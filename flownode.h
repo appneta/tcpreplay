@@ -1,4 +1,4 @@
-/* $Id: flownode.h,v 1.2 2003/05/30 19:27:57 aturner Exp $ */
+/* $Id: flownode.h,v 1.3 2003/06/02 00:05:00 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -15,12 +15,15 @@
 #include "flowkey.h"
 #include "rbtree.h"
 
+#define RBKEYLEN 12
 
 /* Links a session in the pcap with the fd of the socket */
 struct session_t { 
     RB_ENTRY(session_t) node;
+    u_char key[RBKEYLEN];      /* lookup id for this node 
+				* which is the high IP + low IP + high port + low port
+				*/
     int socket;                /* socket fd */
-    u_int64_t key;             /* lookup id for this node */
     u_int32_t server_ip;       /* ip we're connecting to */
     u_int32_t count;           /* number of packets so far in the flow */
     u_int32_t data_expected;   /* # of bytes expected from server until we send again */
@@ -47,8 +50,8 @@ struct session_tree {
 };
 
 
-struct session_t * getnodebykey(char, u_int64_t);
-struct session_t * newnode(char, u_int64_t, ip_hdr_t *, void *);
+struct session_t * getnodebykey(char, u_char *);
+struct session_t * newnode(char, u_char *, ip_hdr_t *, void *);
 int rbsession_comp(struct session_t *, struct session_t *);
 void delete_node(struct session_tree *, struct session_t *);
 void close_sockets(void);
