@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.7 2002/07/03 01:32:08 mattbing Exp $
+# $Id: Makefile.in,v 1.8 2002/07/16 19:52:20 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -51,6 +51,7 @@ clean:
 
 distclean: clean
 	rm -f Makefile config.h config.status config.cache config.log
+	rm -rf autom4te-2.53.cache
 	cd libredblack && make distclean
 
 install: 
