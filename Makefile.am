@@ -26,8 +26,11 @@ version:
 	-rm -f src/common/svn_version.c
 	cd src/common && make svn_version.c
 
+distclean-local:
+	-rm -rf autom4te.cache
+
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
 DISTCLEANFILES = .tm_project.cache stamp-h1
 
-MAINTAINERCLEANFILES = Makefile.in configure *.bak autom4te.cache
+MAINTAINERCLEANFILES = Makefile.in configure *.bak
