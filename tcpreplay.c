@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.50 2003/03/24 04:59:58 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.51 2003/04/29 19:33:42 aturner Exp $ */
 
 #include "config.h"
 
@@ -19,6 +19,7 @@
 #include "err.h"
 #include "do_packets.h"
 #include "xX.h"
+#include "signal_handler.h"
 
 struct options options;
 char *cachedata = NULL;
@@ -71,10 +72,10 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mp:r:Rs:u:Vvx:X:?")) != -1)
+	    getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mp:r:Rs:u:Vvx:X:?")) != -1)
+	    getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?")) != -1)
 #endif
 	switch (ch) {
 	case 'c':		/* cache file */
@@ -131,6 +132,9 @@ main(int argc, char *argv[])
 		errx(1, "Invalid pause value: %s", optarg);
 	    options.rate = 0.0;
 	    options.mult = 0.0;
+	    break;
+	case 'P':               /* print our PID */
+	    fprintf(stderr, "PID: %hu\n", getpid());
 	    break;
 	case 'r':		/* target rate */
 	    options.rate = atof(optarg);
@@ -234,6 +238,9 @@ main(int argc, char *argv[])
     }
 
     warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
+
+    /* init the signal handlers */
+    init_signal_handlers();
 
     if (gettimeofday(&begin, NULL) < 0)
 	err(1, "gettimeofday");
