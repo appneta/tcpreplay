@@ -114,8 +114,18 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
 
     /* Pad packet or truncate it */
     if (options.trunc == PAD_PACKET) {
-        memset(pktdata + pkthdr->caplen, 0, pkthdr->len - pkthdr->caplen);
-        pkthdr->caplen = pkthdr->len;
+        /*
+         * this should be an unnecessary check
+  	     * but I've gotten a report that sometimes the caplen > len
+  	     * which seems like a corrupted pcap
+  	     */
+        if (pkthdr->len > pkthdr->caplen) {
+            memset(pktdata + pkthdr->caplen, 0, pkthdr->len - pkthdr->caplen);
+            pkthdr->caplen = pkthdr->len;         
+        } else {
+            /* i guess this is necessary if we've got a bogus pcap */
+            ip_hdr->ip_len = htons(pkthdr->caplen);
+        }
     }
     else if (options.trunc == TRUNC_PACKET) {
         ip_hdr->ip_len = htons(pkthdr->caplen);
@@ -696,4 +706,3 @@ rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l)
  c-basic-offset:4
  End:
 */
-
