@@ -1,4 +1,4 @@
-$Id: CREDIT,v 1.3 2003/05/29 22:08:58 aturner Exp $ 
+$Id: CREDIT,v 1.4 2003/08/31 01:45:57 aturner Exp $ 
 
 Branden Moore <bmoore-at-cse.nd.edu>
 	- Patch to pad truncated packets
@@ -13,3 +13,6 @@ Jeffrey Guttenfelder <guttenfelder@sourceforge.net>
 
 John Carlson
         - Patch for improved timerdiv() accuracy
+
+Frey Kuo <kero@3sheep.com>
+        - Patch to replace pause option with packets/sec
