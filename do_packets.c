@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.40 2003/12/11 03:04:12 aturner Exp $ */
+/* $Id: do_packets.c,v 1.41 2003/12/16 03:57:02 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -36,7 +36,11 @@
 #include "config.h"
 
 #include <libnet.h>
+#ifdef HAVE_PCAPNAV
 #include <pcapnav.h>
+#else
+#include "fakepcapnav.h"
+#endif
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
@@ -73,7 +77,7 @@ extern int debug;
 #endif
 
 
-void packet_stats(); /* from tcpreplay.c */
+void packet_stats();            /* from tcpreplay.c */
 
 
 /*
@@ -84,7 +88,7 @@ catcher(int signo)
 {
     /* stdio in signal handlers cause a race, instead we set a flag */
     if (signo == SIGINT)
-	didsig = 1;
+        didsig = 1;
 }
 
 
@@ -94,34 +98,36 @@ catcher(int signo)
  */
 
 void
-do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype, 
-	   int l2enabled, char *l2data, int l2len)
+do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
+           int l2enabled, char *l2data, int l2len)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
     libnet_t *l = NULL;
-    struct pcap_pkthdr pkthdr;	        /* libpcap packet info */
-    const u_char *nextpkt = NULL;	/* packet buffer from libpcap */
-    u_char *pktdata = NULL;	        /* full packet buffer */
+    struct pcap_pkthdr pkthdr;  /* libpcap packet info */
+    const u_char *nextpkt = NULL;   /* packet buffer from libpcap */
+    u_char *pktdata = NULL;     /* full packet buffer */
 #ifdef FORCE_ALIGN
-    u_char *ipbuff = NULL;	        /* IP header and above buffer */
+    u_char *ipbuff = NULL;      /* IP header and above buffer */
 #endif
     struct timeval last;
     static int firsttime = 1;
     int ret, newl2len;
     unsigned long packetnum = 0;
+#ifdef HAVE_PCAPNAV
     pcapnav_result_t pcapnav_result = 0;
-    char datadumpbuff[MAXPACKET];       /* data dumper buffer */
-    int datalen = 0;                    /* data dumper length */
+#endif
+    char datadumpbuff[MAXPACKET];   /* data dumper buffer */
+    int datalen = 0;            /* data dumper length */
 
 
     /* create packet buffers */
-    if ((pktdata = (u_char *)malloc(maxpacket)) == NULL)
-	errx(1, "Unable to malloc pktdata buffer");
+    if ((pktdata = (u_char *) malloc(maxpacket)) == NULL)
+        errx(1, "Unable to malloc pktdata buffer");
 
 #ifdef FORCE_ALIGN
-    if ((ipbuff = (u_char *)malloc(maxpacket)) == NULL)
-	errx(1, "Unaable to malloc ipbuff buffer");
+    if ((ipbuff = (u_char *) malloc(maxpacket)) == NULL)
+        errx(1, "Unaable to malloc ipbuff buffer");
 #endif
 
     /* register signals */
@@ -129,16 +135,18 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
     (void)signal(SIGINT, catcher);
 
     if (firsttime) {
-	timerclear(&last);
-	firsttime = 0;
+        timerclear(&last);
+        firsttime = 0;
     }
 
+#ifdef HAVE_PCAPNAV
     /* only support jumping w/ files */
     if ((pcapnav != NULL) && (options.offset)) {
-	if (pcapnav_goto_offset(pcapnav, options.offset) != PCAPNAV_DEFINITELY)
-	    fprintf(stderr, "Unable to get a definate jump offset pcapnav_goto_offset(): %d\n", 
-		    pcapnav_result);
+        if (pcapnav_goto_offset(pcapnav, options.offset) != PCAPNAV_DEFINITELY)
+            warnx("Unable to get a definate jump offset "
+                  "pcapnav_goto_offset(): %d\n", pcapnav_result);
     }
+#endif
 
     /* get the pcap handler for the main loop */
     pcap = pcapnav_pcap(pcapnav);
@@ -148,212 +156,221 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
      * we've sent enough packets
      */
     while (((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) &&
-	   (options.limit_send != pkts_sent)) {
-	if (didsig) {
-	    packet_stats();
-	    exit(1);
-	}
+           (options.limit_send != pkts_sent)) {
+        if (didsig) {
+            packet_stats();
+            exit(1);
+        }
 
-	dbg(2, "packets sent %llu", pkts_sent);
+        dbg(2, "packets sent %llu", pkts_sent);
 
-	packetnum++;
-	dbg(2, "packet %d caplen %d", packetnum, pkthdr.caplen);
+        packetnum++;
+        dbg(2, "packet %d caplen %d", packetnum, pkthdr.caplen);
 
-	/* zero out the old packet info */
-	memset(pktdata, '\0', maxpacket);
-	
-
-	/* Rewrite any Layer 2 data */
-	if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt, 
-				  linktype, l2enabled, l2data, l2len)) == 0)
-	    continue;
-
-	l2len = newl2len;
-
-	/* look for include or exclude LIST match */
-	if (xX_list != NULL) {
-	    if (include_exclude_mode < xXExclude) {
-		if (!check_list(xX_list, (packetnum))) {
-		    continue;
-		}
-	    }
-	    else if (check_list(xX_list, (packetnum))) {
-		continue;
-	    }
-	}
+        /* zero out the old packet info */
+        memset(pktdata, '\0', maxpacket);
 
 
-	eth_hdr = (eth_hdr_t *)pktdata;
+        /* Rewrite any Layer 2 data */
+        if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt,
+                                   linktype, l2enabled, l2data, l2len)) == 0)
+            continue;
 
-	/* does packet have an IP header?  if so set our pointer to it */
-	if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
+        l2len = newl2len;
+
+        /* look for include or exclude LIST match */
+        if (xX_list != NULL) {
+            if (include_exclude_mode < xXExclude) {
+                if (!check_list(xX_list, (packetnum))) {
+                    continue;
+                }
+            }
+            else if (check_list(xX_list, (packetnum))) {
+                continue;
+            }
+        }
+
+
+        eth_hdr = (eth_hdr_t *) pktdata;
+
+        /* does packet have an IP header?  if so set our pointer to it */
+        if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
 #ifdef FORCE_ALIGN
-	    /* 
-	     * copy layer 3 and up to our temp packet buffer
-	     * for now on, we have to edit the packetbuff because
-	     * just before we send the packet, we copy the packetbuff 
-	     * back onto the pkt.data + l2len buffer
-	     * we do all this work to prevent byte alignment issues
-	     */
-	    ip_hdr = (ip_hdr_t *)ipbuff;
-	    memcpy(ip_hdr, (&pktdata[l2len]), pkthdr.caplen - l2len);
+            /* 
+             * copy layer 3 and up to our temp packet buffer
+             * for now on, we have to edit the packetbuff because
+             * just before we send the packet, we copy the packetbuff 
+             * back onto the pkt.data + l2len buffer
+             * we do all this work to prevent byte alignment issues
+             */
+            ip_hdr = (ip_hdr_t *) ipbuff;
+            memcpy(ip_hdr, (&pktdata[l2len]), pkthdr.caplen - l2len);
 #else
-	    /*
-	     * on non-strict byte align systems, don't need to memcpy(), 
-	     * just point to 14 bytes into the existing buffer
-	     */
-	    ip_hdr = (ip_hdr_t *)(&pktdata[l2len]);
+            /*
+             * on non-strict byte align systems, don't need to memcpy(), 
+             * just point to 14 bytes into the existing buffer
+             */
+            ip_hdr = (ip_hdr_t *) (&pktdata[l2len]);
 #endif
 
-	    /* look for include or exclude CIDR match */
-	    if (xX_cidr != NULL) {
-		if (!process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
-		    continue;
-		}
-	    }
+            /* look for include or exclude CIDR match */
+            if (xX_cidr != NULL) {
+                if (!process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
+                    continue;
+                }
+            }
 
-	}
-	else {
-	    /* non-IP packets have a NULL ip_hdr struct */
-	    ip_hdr = NULL;
-	}
+        }
+        else {
+            /* non-IP packets have a NULL ip_hdr struct */
+            ip_hdr = NULL;
+        }
 
-	/* check for martians? */
-	if (options.no_martians && (ip_hdr != NULL)) {
-	    switch ((ntohl(ip_hdr->ip_dst.s_addr) & 0xff000000) >> 24) {
-	    case 0:
-	    case 127:
-	    case 255:
+        /* check for martians? */
+        if (options.no_martians && (ip_hdr != NULL)) {
+            switch ((ntohl(ip_hdr->ip_dst.s_addr) & 0xff000000) >> 24) {
+            case 0:
+            case 127:
+            case 255:
 
-		dbg(1, "Skipping martian.  Packet #%d", packetnum);
-
-
-		/* then skip the packet */
-		continue;
-
-	    default:
-		/* continue processing */
-		break;
-	    }
-	}
+                dbg(1, "Skipping martian.  Packet #%d", packetnum);
 
 
-	/* Dual nic processing */
-	if (options.intf2 != NULL) {
+                /* then skip the packet */
+                continue;
 
-	    if (cachedata != NULL) {
-		l = (LIBNET *) cache_mode(cachedata, packetnum, eth_hdr);
-	    }
-	    else if (options.cidr) {
-		l = (LIBNET *) cidr_mode(eth_hdr, ip_hdr);
-	    }
-	    else {
-		errx(1, "Strange, we should of never of gotten here");
-	    }
-	}
-	else {
-	    /* normal single nic operation */
-	    l = options.intf1;
-	    /* check for destination MAC rewriting */
-	    if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-		memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-	    }
-	}
-
-	/* sometimes we should not send the packet */
-	if (l == CACHE_NOSEND)
-	    continue;
-
-	/* Untruncate packet? Only for IP packets */
-	if ((options.trunc) && (ip_hdr != NULL)) {
-	    untrunc_packet(&pkthdr, pktdata, ip_hdr, l, l2len);
-	}
+            default:
+                /* continue processing */
+                break;
+            }
+        }
 
 
-	/* do we need to spoof the src/dst IP address? */
-	if ((options.seed) && (ip_hdr != NULL)) {
-	    randomize_ips(&pkthdr, pktdata, ip_hdr, l, l2len);
-	}
+        /* Dual nic processing */
+        if (options.intf2 != NULL) {
 
-	/* do we need to force fixing checksums? */
-	if ((options.fixchecksums) && (ip_hdr != NULL)) {
-	    fix_checksums(&pkthdr, ip_hdr, l);
-	}
+            if (cachedata != NULL) {
+                l = (LIBNET *) cache_mode(cachedata, packetnum, eth_hdr);
+            }
+            else if (options.cidr) {
+                l = (LIBNET *) cidr_mode(eth_hdr, ip_hdr);
+            }
+            else {
+                errx(1, "Strange, we should of never of gotten here");
+            }
+        }
+        else {
+            /* normal single nic operation */
+            l = options.intf1;
+            /* check for destination MAC rewriting */
+            if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+                memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+            }
+        }
+
+        /* sometimes we should not send the packet */
+        if (l == CACHE_NOSEND)
+            continue;
+
+        /* Untruncate packet? Only for IP packets */
+        if ((options.trunc) && (ip_hdr != NULL)) {
+            untrunc_packet(&pkthdr, pktdata, ip_hdr, l, l2len);
+        }
+
+
+        /* do we need to spoof the src/dst IP address? */
+        if ((options.seed) && (ip_hdr != NULL)) {
+            randomize_ips(&pkthdr, pktdata, ip_hdr, l, l2len);
+        }
+
+        /* do we need to force fixing checksums? */
+        if ((options.fixchecksums) && (ip_hdr != NULL)) {
+            fix_checksums(&pkthdr, ip_hdr, l);
+        }
 
 
 #ifdef STRICT_ALIGN
-	/* 
-	 * put back the layer 3 and above back in the pkt.data buffer 
-	 * we can't edit the packet at layer 3 or above beyond this point
-	 */
-	memcpy(&pktdata[l2len], ip_hdr, pkthdr.caplen - l2len);
+        /* 
+         * put back the layer 3 and above back in the pkt.data buffer 
+         * we can't edit the packet at layer 3 or above beyond this point
+         */
+        memcpy(&pktdata[l2len], ip_hdr, pkthdr.caplen - l2len);
 #endif
 
-	if (!options.topspeed)
-	    /* we have to cast the ts, since OpenBSD sucks
-	     * had to be special and use bpf_timeval 
-	     */
-	    do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
+        if (!options.topspeed)
+            /* we have to cast the ts, since OpenBSD sucks
+             * had to be special and use bpf_timeval 
+             */
+            do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
 
-	/* Physically send the packet or write to file */
-	if (options.savepcap != NULL || options.datadump_mode) {
+        /* Physically send the packet or write to file */
+        if (options.savepcap != NULL || options.datadump_mode) {
 
-	    /* figure out the correct offsets/data len */
-	    if (options.datadump_mode) {
-		memset(datadumpbuff, '\0', MAXPACKET);
-		datalen = extract_data(pktdata, pkthdr.caplen, l2len, &datadumpbuff);
-	    }
+            /* figure out the correct offsets/data len */
+            if (options.datadump_mode) {
+                memset(datadumpbuff, '\0', MAXPACKET);
+                datalen =
+                    extract_data(pktdata, pkthdr.caplen, l2len, &datadumpbuff);
+            }
 
-	    /* interface 1 */
-	    if (l == options.intf1) {
-		if (options.datadump_mode) { 	/* data only? */
-		    if (datalen) {
-			if (write(options.datadumpfile, datadumpbuff, datalen) == -1)
-			    warnx("error writing data to primary dump file: %s", strerror(errno));
-		    }
-		} else {                        /* full packet */
-		    pcap_dump((u_char *)options.savedumper, &pkthdr, pktdata);
-		}
-		
-	    } 
+            /* interface 1 */
+            if (l == options.intf1) {
+                if (options.datadump_mode) {    /* data only? */
+                    if (datalen) {
+                        if (write(options.datadumpfile, datadumpbuff, datalen)
+                            == -1)
+                            warnx("error writing data to primary dump file: %s",
+                                  strerror(errno));
+                    }
+                }
+                else {          /* full packet */
+                    pcap_dump((u_char *) options.savedumper, &pkthdr, pktdata);
+                }
+
+            }
 
             /* interface 2 */
-	    else {  
-		if (options.datadump_mode) {    /* data only? */
-		    if (datalen) {
-			if (write(options.datadumpfile2, datadumpbuff, datalen) == -1)
-			    warnx("error writing data to secondary dump file: %s", strerror(errno));
-		    }
-		} else {                        /* full packet */
-		    pcap_dump((u_char *)options.savedumper2, &pkthdr, pktdata);
-		}
-	    }
-	} else {
-	    /* write packet out on network */
-	    do {
-		ret = libnet_adv_write_link(l, pktdata, pkthdr.caplen);
-		if (ret == -1) {
-		    /* Make note of failed writes due to full buffers */
-		    if (errno == ENOBUFS) {
-			failed++;
-		    }
-		    else {
-			errx(1, "libnet_adv_write_link(): %s", strerror(errno));
-		    }
-		}
-		/* keep trying if fail, unless user Ctrl-C's */
-	    } while (ret == -1 && !didsig);
-	}
+            else {
+                if (options.datadump_mode) {    /* data only? */
+                    if (datalen) {
+                        if (write(options.datadumpfile2, datadumpbuff, datalen)
+                            == -1)
+                            warnx
+                                ("error writing data to secondary dump file: %s",
+                                 strerror(errno));
+                    }
+                }
+                else {          /* full packet */
+                    pcap_dump((u_char *) options.savedumper2, &pkthdr, pktdata);
+                }
+            }
+        }
+        else {
+            /* write packet out on network */
+            do {
+                ret = libnet_adv_write_link(l, pktdata, pkthdr.caplen);
+                if (ret == -1) {
+                    /* Make note of failed writes due to full buffers */
+                    if (errno == ENOBUFS) {
+                        failed++;
+                    }
+                    else {
+                        errx(1, "libnet_adv_write_link(): %s", strerror(errno));
+                    }
+                }
+                /* keep trying if fail, unless user Ctrl-C's */
+            } while (ret == -1 && !didsig);
+        }
 
-	bytes_sent += pkthdr.caplen;
-	pkts_sent++;
+        bytes_sent += pkthdr.caplen;
+        pkts_sent++;
 
-	/* again, OpenBSD is special, so use memcpy() rather then a
-	 * straight assignment 
-	 */
-	memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
+        /* again, OpenBSD is special, so use memcpy() rather then a
+         * straight assignment 
+         */
+        memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
 
-    }
+    }                           /* while() */
 
     /* free buffers */
     free(pktdata);
@@ -366,8 +383,8 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
      * gracefully
      */
     if (options.limit_send == pkts_sent) {
-      packet_stats();
-      exit(1);
+        packet_stats();
+        exit(1);
     }
 
 }
@@ -381,39 +398,39 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
  */
 
 void *
-cache_mode(char *cachedata, int packet_num, eth_hdr_t *eth_hdr)
+cache_mode(char *cachedata, int packet_num, eth_hdr_t * eth_hdr)
 {
     void *l = NULL;
     int result;
 
     if (packet_num > cache_packets)
-	errx(1, "Exceeded number of packets in cache file.");
+        errx(1, "Exceeded number of packets in cache file.");
 
     result = check_cache(cachedata, packet_num);
     if (result == CACHE_NOSEND) {
-	dbg(2, "Cache: Not sending packet %d.", packet_num);
-	return NULL;
+        dbg(2, "Cache: Not sending packet %d.", packet_num);
+        return NULL;
     }
     else if (result == CACHE_PRIMARY) {
-	dbg(2, "Cache: Sending packet %d out primary interface.", packet_num);
-	l = options.intf1;
+        dbg(2, "Cache: Sending packet %d out primary interface.", packet_num);
+        l = options.intf1;
 
-	/* check for destination MAC rewriting */
-	if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-	    memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-	}
+        /* check for destination MAC rewriting */
+        if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+            memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+        }
     }
     else if (result == CACHE_SECONDARY) {
-	dbg(2, "Cache: Sending packet %d out secondary interface.", packet_num);
-	l = options.intf2;
+        dbg(2, "Cache: Sending packet %d out secondary interface.", packet_num);
+        l = options.intf2;
 
-	/* check for destination MAC rewriting */
-	if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
-	    memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
-	}
+        /* check for destination MAC rewriting */
+        if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
+            memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
+        }
     }
     else {
-	errx(1, "check_cache() returned an error.  Aborting...");
+        errx(1, "check_cache() returned an error.  Aborting...");
     }
 
     return l;
@@ -428,36 +445,36 @@ cache_mode(char *cachedata, int packet_num, eth_hdr_t *eth_hdr)
  */
 
 void *
-cidr_mode(eth_hdr_t *eth_hdr, ip_hdr_t * ip_hdr)
+cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
 {
     void *l = NULL;
 
     if (ip_hdr == NULL) {
-	/* non IP packets go out intf1 */
-	l = options.intf1;
+        /* non IP packets go out intf1 */
+        l = options.intf1;
 
-	/* check for destination MAC rewriting */
-	if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-	    memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-	}
+        /* check for destination MAC rewriting */
+        if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+            memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+        }
     }
     else if (check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr)) {
-	/* set interface to send out packet */
-	l = options.intf1;
+        /* set interface to send out packet */
+        l = options.intf1;
 
-	/* check for destination MAC rewriting */
-	if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-	    memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-	}
+        /* check for destination MAC rewriting */
+        if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+            memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+        }
     }
     else {
-	/* override interface to send out packet */
-	l = options.intf2;
+        /* override interface to send out packet */
+        l = options.intf2;
 
-	/* check for destination MAC rewriting */
-	if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
-	    memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
-	}
+        /* check for destination MAC rewriting */
+        if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
+            memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
+        }
     }
 
     return l;
@@ -471,77 +488,77 @@ cidr_mode(eth_hdr_t *eth_hdr, ip_hdr_t * ip_hdr)
 void
 do_sleep(struct timeval *time, struct timeval *last, int len)
 {
-    static struct timeval didsleep = {0, 0};
-    static struct timeval start = {0, 0};
+    static struct timeval didsleep = { 0, 0 };
+    static struct timeval start = { 0, 0 };
     struct timeval nap, now, delta;
     struct timespec ignore, sleep;
     float n;
 
     if (gettimeofday(&now, NULL) < 0) {
-	err(1, "gettimeofday");
+        err(1, "gettimeofday");
     }
 
     /* First time through for this file */
     if (!timerisset(last)) {
-	start = now;
-	timerclear(&delta);
-	timerclear(&didsleep);
+        start = now;
+        timerclear(&delta);
+        timerclear(&didsleep);
     }
     else {
-	timersub(&now, &start, &delta);
+        timersub(&now, &start, &delta);
     }
 
     if (options.mult) {
-	/* 
-	 * Replay packets a factor of the time they were originally sent.
-	 */
-	if (timerisset(last) && timercmp(time, last, >)) {
-	    timersub(time, last, &nap);
-	}
-	else {
-	    /* 
-	     * Don't sleep if this is our first packet, or if the
-	     * this packet appears to have been sent before the 
-	     * last packet.
-	     */
-	    timerclear(&nap);
-	}
-	timerdiv(&nap, options.mult);
+        /* 
+         * Replay packets a factor of the time they were originally sent.
+         */
+        if (timerisset(last) && timercmp(time, last, >)) {
+            timersub(time, last, &nap);
+        }
+        else {
+            /* 
+             * Don't sleep if this is our first packet, or if the
+             * this packet appears to have been sent before the 
+             * last packet.
+             */
+            timerclear(&nap);
+        }
+        timerdiv(&nap, options.mult);
 
     }
     else if (options.rate) {
-	/* 
-	 * Ignore the time supplied by the capture file and send data at
-	 * a constant 'rate' (bytes per second).
-	 */
-	if (timerisset(last)) {
-	    n = (float)len / (float)options.rate;
-	    nap.tv_sec = n;
-	    nap.tv_usec = (n - nap.tv_sec) * 1000000;
-	}
-	else {
-	    timerclear(&nap);
-	}
+        /* 
+         * Ignore the time supplied by the capture file and send data at
+         * a constant 'rate' (bytes per second).
+         */
+        if (timerisset(last)) {
+            n = (float)len / (float)options.rate;
+            nap.tv_sec = n;
+            nap.tv_usec = (n - nap.tv_sec) * 1000000;
+        }
+        else {
+            timerclear(&nap);
+        }
     }
     else if (options.packetrate) {
-	float pr;
-	pr = 1/options.packetrate;
-	nap.tv_sec = pr;
-	pr -= nap.tv_sec;
-	nap.tv_usec = pr * 1000000;
+        float pr;
+        pr = 1 / options.packetrate;
+        nap.tv_sec = pr;
+        pr -= nap.tv_sec;
+        nap.tv_usec = pr * 1000000;
     }
 
     timeradd(&didsleep, &nap, &didsleep);
 
     if (timercmp(&didsleep, &delta, >)) {
-	timersub(&didsleep, &delta, &nap);
+        timersub(&didsleep, &delta, &nap);
 
-	sleep.tv_sec = nap.tv_sec;
-	sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
+        sleep.tv_sec = nap.tv_sec;
+        sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
 
-	if (nanosleep(&sleep, &ignore) == -1) {
-	    warnx("nanosleep error: %s", strerror(errno));
-	}
+        if (nanosleep(&sleep, &ignore) == -1) {
+            warnx("nanosleep error: %s", strerror(errno));
+        }
 
     }
 }
