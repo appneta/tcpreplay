@@ -1,0 +1,6 @@
+06/17/2002: Version 1.1
+	- Major rewrite
+	- Support multiple nics
+	- Better control over packet rates
+	- Added support for snoop capture files
+	- Includes tcpprep and capinfo commands
