@@ -62,6 +62,9 @@ To build tcpreplay on a supported platform:
 
 	% ./configure ; make
 
+Note: A variety of optional parameters are available for ./configure which
+may be necessary on certain systems.  Run: ./configure --help for details.
+
 Testing tcpreplay
 ------------------
 
@@ -110,4 +113,4 @@ Tcpreplay has been re-written and is now maintained by Matt Bing
 Tcpprep was written and is now maintained by Aaron Turner.
 Capinfo was written and is now maintained by Matt Bing.
 
-$Id: README,v 1.5 2002/11/19 06:49:18 aturner Exp $
+$Id: README,v 1.6 2002/11/20 04:37:35 aturner Exp $
