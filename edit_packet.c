@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.13 2004/02/03 22:49:03 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.14 2004/02/04 01:22:24 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -538,7 +538,14 @@ rewrite_iparp(arp_hdr_t *arp_hdr)
     /* don't ever play with the ptr */
     cidrmap = cidrmap_data;
 
-    if (ntohs(arp_hdr->ar_pro) == ETHERTYPE_IP) {
+    /* must be IPv4 and request or reply 
+     * Do other op codes use the same subheader stub?
+     * If so we won't need to check the op code.
+     */
+    if ((ntohs(arp_hdr->ar_pro) == ETHERTYPE_IP) &&
+        ((ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) ||
+         (ntohs(arp_hdr->ar_op) == ARPOP_REPLY)))
+        {
         /* jump to the addresses */
         add_hdr = (u_char *)arp_hdr;
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
