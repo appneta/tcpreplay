@@ -1,11 +1,17 @@
-$Id: INSTALL,v 1.2 2003/05/29 22:09:41 aturner Exp $
+$Id: INSTALL,v 1.3 2004/02/01 18:22:19 aturner Exp $
 
 You'll need:
 
-- libnet 1.1.x (1.0.x is no longer supported)
+- libnet 1.1.x (1.1.1 or greater is recommended)
 http://www.packetfactory.net/Projects/libnet/
 
-- libpcap
+- libpcap >= 0.6 (0.7 or greater is recommended)
+http://www.tcpdump.org/
+
+- libpcapnav >= 0.4 (Optional. If you want the jump to byte offset feature)
+http://netdude.sf.net/
+
+- tcpdump (Also optional. If you want packet decoding of sent packets)
 http://www.tcpdump.org/
 
 Run:
@@ -15,4 +21,4 @@ Run as root:
 make test -i    (optional)
 make install
 
-For more detailed information, see the README
+For more detailed information, see the FAQ.

@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Jan 31, 2004
+Feb 1, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -81,7 +81,7 @@ tcpprep - a pcap pre-processor for tcpreplay
 
 flowreplay
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -140,7 +140,7 @@ You'll need the libnet and libpcap libraries.
 
 To support the jump to offset feature, you'll need the libpcapnav
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -152,7 +152,7 @@ http://netdude.sourceforge.net/
 
 To support the packet decoding feature you'll need tcpdump
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -188,9 +188,9 @@ As root:
 \layout Standard
 
 There are some optional arguments which can be passed to the configure script
- which may help in cases where your libnet or libpcap installation is not
- standard or if it can't determine the correct network interface card to
- use for testing.
+ which may help in cases where your libnet, libpcap, libpcapnav or tcpdump
+ installation is not standard or if it can't determine the correct network
+ interface card to use for testing.
  If you find that configure isn't completing correctly, run:
 \emph on 
  ./configure --help
@@ -206,9 +206,11 @@ make test is just a series of sanity checks which try to find serious bugs
 \layout Itemize
 
 make test requires at least one properly configured network interface.
+ If the configure script can't guess what a vaild interface is you can specify
+ it with the --with-testnic and --with-testnic2 arguments.
 \layout Itemize
 
-If make test fails, you can find details in test/test.log
+If make test fails, often you can find details in test/test.log.
 \layout Itemize
 
 OpenBSD's make has a bug where it ignores the MAKEFLAGS variable in the
@@ -236,6 +238,8 @@ Not really.
  to Windows.
  Now we're looking for someone to help merge and maintain the code in to
  the main development tree.
+ If you're interested in helping with this please contact Aaron Turner or
+ the tcpreplay-users list.
 \layout Subsection
 
 How is tcpreplay licensed?
@@ -311,7 +315,37 @@ What happened to version 1.5?
 
 After looking at all the changes that have happened over the last year or
  so, I decided that it was finally time to graduate tcpreplay to 2.0 status.
- Hence the 1.5 branch became 2.0.
+ Hence the 1.5 branch was renamed 2.0.
+\layout Subsection
+
+What is the history of tcpreplay?
+\layout Standard
+
+Tcpreplay has had quite a few authors over the past five or so years.
+ One of the advantages of the BSD and GPL licenses is that if someone becomes
+ unable or unwilling to continue development, anyone else can take over.
+\layout Standard
+
+Originally, Matt Undy of Anzen Computing wrote tcpreplay.
+ Matt released version 1.0.1 sometime in 1999.
+ Sometime after that, Anzen Computing was (at least partially) purchased
+ by NFR and development ceased.
+\layout Standard
+
+Then in 2001, two people independantly started work on tcpreplay: Matt Bing
+ of NFR and Aaron Turner.
+ After developing a series of patches (the -adt branch), Aaron attempted
+ to send the patches in to be included in the main development tree.
+\layout Standard
+
+After some discussion between Aaron and Matt Bing, they decided to continue
+ development together.
+ Since then, over a dozen stable releases have been made and more then twenty
+ new features have been added, including the addition of a number of accessory
+ tools.
+\layout Standard
+
+Today, Aaron continues active development of the code.
 \layout Section
 
 Bugs, Feature Requests, and Patches
@@ -642,8 +676,7 @@ The packet length (in this case 8892 bytes) is greater then the maximum
  transmition unit (MTU) on the outgoing interface.
  Tcpreplay must skip the packet.
  Alternatively, you can specify the -T option and tcpreplay will truncate
- the packet to the MTU size and send it.
- You'll almost certainly want to use -F to fix the checksums as well.
+ the packet to the MTU size, fix the checksums and send it.
 \layout Subsection
 
 Why is tcpreplay not sending all the packets?
@@ -713,7 +746,7 @@ Replaying on multiple interfaces
 Tcpreplay can also split traffic so that each side of a connection is sent
  out a different interface
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -727,12 +760,12 @@ Note that you can also use the following options to split traffic into two
  Currently, there are two ways to split traffic:
 \layout Enumerate
 
--C = split traffic by source IP address
+-C = split traffic by source IP address which is specified in CIDR notation
 \layout Enumerate
 
 -c = split traffic according to a tcpprep cachefile
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -824,7 +857,7 @@ F - BPF syntax (same as used in tcpdump).
 \newline 
 Filter must be quoted and is only supported with -x
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -1536,7 +1569,7 @@ Some of these limitations are:
 
 Flowreplay only plays the client side
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -1657,7 +1690,7 @@ As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
  our code with the latest version: 0.7.2.
  Libpcap can be obtained on the tcpdump homepage
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -1681,7 +1714,7 @@ Tcpreplay v1.3 is the last version to support the old libnet API (everything
  As of v1.4 you will need to use Libnet 1.1.0 or better which can be obtained
  from the Libnet homepage
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
