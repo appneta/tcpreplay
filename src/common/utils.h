@@ -34,11 +34,17 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 int read_hexstring(char *l2string, char *hex, int hexlen);
 int argv_create(char *p, int argc, char *argv[]);
 void packet_stats(struct timeval *begin, struct timeval *end, 
         u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed);
 void *get_layer4(ip_hdr_t * ip_hdr);
+#define safe_malloc(x) _safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
+void *_our_safe_malloc(size_t len, const char *, const int, const char *);
 
 #define MAX_ARGS 128
 
@@ -52,4 +58,3 @@ void *get_layer4(ip_hdr_t * ip_hdr);
  c-basic-offset:4
  End:
 */
-

@@ -34,6 +34,36 @@
 #include "defines.h"
 #include "common.h"
 
+#ifdef DEBUG
+extern int debug;
+#endif
+
+/* 
+ * this is wrapped up in a #define safe_malloc
+ * This function, detects failures to malloc memory and zeros out the
+ * memory before returning
+ */
+
+void *
+_our_safe_malloc(size_t len, const char *funcname, const int line, const char *file)
+{
+    u_char *ptr;
+
+    if ((ptr = malloc(len)) == NULL)
+        errx(1, "safe_malloc() error: Unable to malloc %d bytes\n"
+            "%s:%s() line %d\n", len, file, funcname, line);
+    
+    /* zero memory */
+    memset(ptr, 0, len);
+    
+#ifdef DEBUG
+    /* wrapped inside an #ifdef for better performance */
+    dbg(4, "Malloc'd %d bytes in %s:%s() line %d", len, file, funcname, line);
+#endif
+    
+    return (void *)ptr;
+}
+
 void
 packet_stats(struct timeval *begin, struct timeval *end, 
         u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed)
@@ -157,4 +187,3 @@ get_layer4(ip_hdr_t * ip_hdr)
  c-basic-offset:4
  End:
 */
-
