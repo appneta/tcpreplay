@@ -74,7 +74,7 @@ tcprewrite_opt_t options;
 void validate_l2(pcap_t *pcap, char *filename, l2_t *l2);
 void init(void);
 void post_args(int argc, char *argv[]);
-void rewrite_packets(pcap_t *inpcap, pcap_t *outpcap);
+void rewrite_packets(pcap_t *inpcap, pcap_dumper_t *outpcap);
 void verify_input_pcap(pcap_t *pcap);
 
 int main(int argc, char *argv[])
@@ -94,16 +94,15 @@ int main(int argc, char *argv[])
     if ((options.l = libnet_init(LIBNET_RAW4, NULL, ebuf)) == NULL)
         errx(1, "Unable to open raw socket for libnet: %s", ebuf);
 
-    rewrite_packets(options.pin, options.pout);
-
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
         tcpdump.filename = options.infile;
         tcpdump_open(&tcpdump);
     }
 #endif
-
     
+    validate_l2(options.pin, options.infile, &options.l2);
+    rewrite_packets(options.pin, options.pout);
 
 
     /* clean up after ourselves */
@@ -162,8 +161,12 @@ void post_args(int argc, char *argv[])
         options.tcpdump_args = safe_strdup(OPT_ARG(DECODE));
     
 #endif
-
-
+ 
+    /* open up the output file */
+    options.outfile = safe_strdup(OPT_ARG(OUTFILE));
+    if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
+        errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
+    
     /*
      * If we have one and only one -N, then use the same map data
      * for both interfaces/files
@@ -189,6 +192,9 @@ void post_args(int argc, char *argv[])
         dbg(1, "We will %s 802.1q headers", options.vlan == VLAN_DEL ? "delete" : "add/modify");
     }
 
+    /*
+     * IP address rewriting processing
+     */
     if (HAVE_OPT(SEED)) {
         options.rewrite_ip ++;
         options.seed = OPT_VALUE_SEED;
@@ -198,6 +204,26 @@ void post_args(int argc, char *argv[])
         options.rewrite_ip ++;
         if (!parse_endpoints(&options.cidrmap1, &options.cidrmap2, OPT_ARG(ENDPOINTS)))
             errx(1, "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
+    }
+
+    /*
+     * Figure out the maxpacket len
+     */
+    if (options.l2.enabled) {
+        /* custom L2 header */
+        dbg(1, "Using custom L2 header to calculate max frame size");
+        options.maxpacket = options.mtu + options.l2.len;
+    }
+    else if (options.l2.linktype == DLT_EN10MB) {
+        /* ethernet */
+        dbg(1, "Using Ethernet to calculate max frame size");
+        options.maxpacket = options.mtu + LIBNET_ETH_H;
+    }
+    else {
+        /* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
+        options.maxpacket = options.mtu + LIBNET_ETH_H;
+        warn("Unable to determine layer 2 encapsulation, assuming ethernet\n"
+             "You may need to increase the MTU (-t <size>) if you get errors");
     }
 
 }
@@ -297,34 +323,10 @@ validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
         break;
     }
 
-
-    /* 
-     * ALL THIS CODE NEEDS TO GO SOMEWHERE ELSE
-     */
-#if 0
-    /* calculate the maxpacket based on the l2len, linktype and mtu */
-    if (l2->enabled) {
-        /* custom L2 header */
-        dbg(1, "Using custom L2 header to calculate max frame size");
-        options.maxpacket = options.mtu + l2->len;
-    }
-    else if (l2->linktype == DLT_EN10MB) {
-        /* ethernet */
-        dbg(1, "Using Ethernet to calculate max frame size");
-        options.maxpacket = options.mtu + LIBNET_ETH_H;
-    }
-    else {
-        /* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
-        options.maxpacket = options.mtu + LIBNET_ETH_H;
-        warn("Unable to determine layer 2 encapsulation, assuming ethernet\n"
-             "You may need to increase the MTU (-t <size>) if you get errors");
-    }
-#endif
-
 }
 
 void
-rewrite_packets(pcap_t * inpcap, pcap_t *outpcap)
+rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -346,7 +348,7 @@ rewrite_packets(pcap_t * inpcap, pcap_t *outpcap)
     char datadumpbuff[MAXPACKET];   /* data dumper buffer */
     int datalen = 0;                /* data dumper length */
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
-  
+    struct pcap_pkthdr *pkthdr_ptr;  
 
 #ifdef FORCE_ALIGN
     ipbuff = (u_char *)safe_malloc(MAXPACKET);
@@ -401,9 +403,10 @@ rewrite_packets(pcap_t * inpcap, pcap_t *outpcap)
         if (options.efcs)
             pkthdr.caplen -= 2;
         
+        pkthdr_ptr = &pkthdr;
 
         /* Rewrite any Layer 2 data */
-        if ((l2len = rewrite_l2(inpcap, &pkthdr, newpkt, cache_result)) == 0)
+        if ((l2len = rewrite_l2(inpcap, &pkthdr_ptr, newpkt, cache_result)) == 0)
             continue; /* packet is too long and we didn't trunc, so skip it */
 
         eth_hdr = (eth_hdr_t *) pktdata;
