@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.27 2003/11/04 18:30:26 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.28 2003/11/05 06:47:08 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -138,7 +138,7 @@ usage()
 	    "-i <capfile>\t\tInput capture file to process\n"
 	    "-m <minmask>\t\tMinimum mask length in Auto/Router mode\n"
 	    "-M <maxmask>\t\tMaximum mask length in Auto/Router mode\n"
-	    "-n bridge|router\tUse bridge/router algorithm in Auto Mode\n"
+	    "-n <auto mode>\t\tUse specified algorithm in Auto Mode\n"
 	    "-N client|server\tClassify non-IP traffic as client/server\n"
 	    "-o <outputfile>\t\tOutput cache file name\n");
     fprintf(stderr, "-r <regex>\t\tSplit traffic in Regex Mode\n"
@@ -262,8 +262,22 @@ process_raw_packets(pcap_t * pcap)
 	     * second run through in auto mode: create bridge
 	     * based cache
 	     */
-	    add_cache(&cachedata, 1, check_ip_tree(ip_hdr->ip_src.s_addr));
+	    add_cache(&cachedata, 1, check_ip_tree(UNKNOWN, ip_hdr->ip_src.s_addr));
 	    break;
+        case SERVER_MODE:
+            /* 
+             * second run through in auto mode: create bridge
+             * where unknowns are servers
+             */
+            add_cache(&cachedata, 1, check_ip_tree(SERVER, ip_hdr->ip_src.s_addr));
+            break;
+        case CLIENT_MODE:
+            /* 
+             * second run through in auto mode: create bridge
+             * where unknowns are clients
+             */
+            add_cache(&cachedata, 1, check_ip_tree(CLIENT, ip_hdr->ip_src.s_addr));
+            break;
 	}
 
     }
@@ -412,7 +426,7 @@ main(int argc, char *argv[])
 	     "You can't specify a min/max mask length unless you use auto mode");
 
     if ((mode == AUTO_MODE) && (automode == 0))
-	errx(1, "You must specify -n (bridge|router) with auto mode (-a)");
+	errx(1, "You must specify -n (bridge|router|client|server) with auto mode (-a)");
 
     if ((ratio != 0.0) && (mode != AUTO_MODE))
 	errx(1, "Ratio (-R) only works in auto mode (-a).");
@@ -429,6 +443,8 @@ main(int argc, char *argv[])
     if (info && mode == REGEX_MODE)
 	fprintf(stderr, "Building cache file from regex...\n");
 
+    if (infilename == NULL)
+        errx(1, "You must specify a pcap file to read via -i");
 
     /* set ratio to the default if unspecified */
     if (ratio == 0.0)

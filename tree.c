@@ -1,4 +1,4 @@
-/* $Id: tree.c,v 1.19 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: tree.c,v 1.20 2003/11/05 06:47:08 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -194,10 +194,13 @@ tree_to_cidr(const int masklen, const int type)
 
 /*
  * Checks to see if an IP is client or server by finding it in the tree
- * returns SERVER or CLIENT
+ * returns SERVER or CLIENT.
+ * if mode = UNKNOWN, then abort on unknowns
+ * if mode = CLIENT, then unknowns become clients
+ * if mode = SERVER, then unknowns become servers
  */
 int
-check_ip_tree(const unsigned long ip)
+check_ip_tree(const int mode, const unsigned long ip)
 {
     struct tree_type *node = NULL, *finder = NULL;
 
@@ -206,10 +209,9 @@ check_ip_tree(const unsigned long ip)
 
     node = RB_FIND(data_tree, &treeroot, finder);
 
-    if (node == NULL)
+    if (node == NULL && mode == UNKNOWN)
 	errx(1, "%s (%lu) is an unknown system... aborting.!\n"
-	     "Try router mode (-n router)\n", libnet_addr2name4(ip, RESOLVE),
-	     ip);
+	     "Try a different auto mode (-n router|client|server)", libnet_addr2name4(ip, RESOLVE), ip);
 
 #ifdef DEBUG
     if (node->type == SERVER) {
@@ -223,8 +225,12 @@ check_ip_tree(const unsigned long ip)
     }
 #endif
 
-    return (node->type);
-
+    /* return node type if we found the node, else return the default (mode) */
+    if (node != NULL) {
+        return (node->type);
+    } else {
+        return mode;
+    }
 }
 
 /*
@@ -242,7 +248,7 @@ add_tree(const unsigned long ip, const u_char * data)
 
 	dbg(2, "%s (%lu) unknown client/server",
 	    libnet_addr2name4(newnode->ip, RESOLVE), newnode->ip);
-
+            
     }
     /* try to find a simular entry in the tree */
     node = RB_FIND(data_tree, &treeroot, newnode);

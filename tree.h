@@ -1,4 +1,4 @@
-/* $Id: tree.h,v 1.8 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: tree.h,v 1.9 2003/11/05 06:47:08 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -68,7 +68,7 @@ typedef struct buildcidr_type BUILDCIDR;
 #define DEF_RATIO 2.0		/* default auto ratio */
 
 void add_tree(const unsigned long, const u_char *);	/* done */
-int check_ip_tree(const unsigned long);
+int check_ip_tree(const int, const unsigned long);
 int process_tree();
 void tree_calculate(struct data_tree *);
 int tree_comp(struct tree_type *, struct tree_type *);

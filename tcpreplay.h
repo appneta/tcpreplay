@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.41 2003/11/04 03:16:16 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.42 2003/11/05 06:47:08 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -114,6 +114,8 @@ struct options {
 #define AUTO_MODE 4		/* first pass through in auto mode */
 #define ROUTER_MODE 8		/* second pass through in router/auto mode */
 #define BRIDGE_MODE 32		/* second pass through in bridge/auto mode */
+#define SERVER_MODE 64          /* second pass through in client/auto mode */
+#define CLIENT_MODE 128         /* second pass through in server/auto mode */
 
 #define L2DATALEN 255           /* Max size of the L2 data file */
 
