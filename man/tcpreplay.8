@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.7 2003/06/05 16:51:58 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.8 2003/06/16 19:33:28 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -160,7 +160,8 @@ addresses (only in IP header) to pseudo-random values.  Will also recalculate
 the IP header as necessary.
 .TP
 .B \-t or "mtu"
-Specify the MTU of the interface(s) being used.  Default is 1500.
+Specify the MTU in bytes of the interface(s) being used.  Default is 1500 which
+is standard for 10/100 Ethernet.
 .TP
 .B \-u or "untruncate"
 When a packet is truncated in the capture file, this option will
