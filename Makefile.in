@@ -19,7 +19,7 @@ LNAV_CFLAGS	= @LNAV_CFLAGS@
 
 INSTALL		= @INSTALL@
 
-BINARIES	= tcpreplay capinfo pcapmerge tcpprep flowreplay
+BINARIES	= tcpreplay tcpprep flowreplay
 
 
 TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c fakepcapnav.c tcpdump.c portmap.c fakepcap.c
