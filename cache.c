@@ -8,7 +8,6 @@
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
-#include <err.h>
 #include <fcntl.h>
 #include <math.h>
 #include <stdlib.h>
@@ -20,6 +19,7 @@
 
 #include "cache.h"
 #include "tcpreplay.h"
+#include "err.h"
 
 extern int debug;
 

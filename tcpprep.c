@@ -46,7 +46,6 @@
  *  - Auto learning of CIDR block for servers (clients all other)
  */
 
-#include <err.h>
 #include <libnet.h>
 #include <pcap.h>
 #include <math.h>
@@ -69,6 +68,7 @@
 #include "tree.h"
 #include "list.h"
 #include "xX.h"
+#include "err.h"
 
 /*
  * global variables
@@ -95,6 +95,8 @@ int include_exclude_mode;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
 
+/* we get this from libpcap */
+extern char pcap_version[];
 
 static void usage();
 static void version();
@@ -112,7 +114,7 @@ version()
 #endif
 	fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
-	fprintf(stderr, "Compiled against libpcap: %d.%d\n", PCAP_VERSION_MAJOR, PCAP_VERSION_MINOR);
+	fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
 	exit(0);
 }
 

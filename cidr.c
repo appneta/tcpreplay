@@ -8,7 +8,6 @@
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
-#include <err.h>
 #include <libnet.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,13 +1,13 @@
-/* $Id: libpcap.c,v 1.4 2002/08/08 03:35:15 mattbing Exp $ */
+/* $Id: libpcap.c,v 1.5 2003/03/19 04:31:46 aturner Exp $ */
 
 #include "config.h"
 
-#include <err.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 
 #include "libpcap.h"
+#include "err.h"
 
 
 /* data-link level type codes */

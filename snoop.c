@@ -1,8 +1,7 @@
-/* $Id: snoop.c,v 1.5 2002/08/11 23:57:18 mattbing Exp $ */
+/* $Id: snoop.c,v 1.6 2003/03/19 04:31:46 aturner Exp $ */
  
 #include "config.h"
 
-#include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +11,7 @@
 #include <sys/types.h>
 
 #include "snoop.h"
+#include "err.h"
 
 char *snoop_links[] = {
 	"ethernet",
