@@ -1,4 +1,4 @@
-/* $Id: cidr.c,v 1.22 2004/02/03 22:47:45 aturner Exp $ */
+/* $Id: cidr.c,v 1.23 2004/04/03 22:40:33 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -239,9 +239,9 @@ cidr2CIDR(char *cidr)
     /* we only get here on error parsing input */
   error:
     memset(ebuf, '\0', EBUF_SIZE);
-    strncpy(ebuf, "Unable to parse as a vaild CIDR: ", 18);
+    strncpy(ebuf, "Unable to parse as a vaild CIDR: ", 34);
     strncat(ebuf, cidr, (EBUF_SIZE - strlen(ebuf) - 1));
-    err(1, "%s", ebuf);
+    errx(1, "%s", ebuf);
     return NULL;
 }
 
