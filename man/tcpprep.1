@@ -155,6 +155,8 @@ E:<CIDR1>,... - Either src or dst address must match
 P:<list>      - Must be one of the listed packets where the list corresponds to the
 packet number in the capture file.  Ex: -x P:1-5,9,15 would only send packets 1 
 through 5, 9 and 15.
+.br
+F:"<filter>"  - BPF filter.  See the tcpdump(8) man page for syntax.
 .TP
 .B \-X
 Specifies which packets from the capture file(s) to NOT send.  Can be one of:
