@@ -61,10 +61,12 @@ manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html \
 postweb: webfiles manpages
 	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
 		-avz web/ aturner@tequila.synfin.net:/var/www-vhosts/tcpreplay/
+	scp CHANGELOG aturner@tequila.synfin.net:/var/www-vhosts/tcpreplay/
 
 postwebsf: webfiles manpages
-	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
+	-rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
 		-avz web/ aturner@shell.sf.net:htdocs/
+	scp CHANGELOG aturner@shell.sf.net:htdocs/
 
 endif
 
