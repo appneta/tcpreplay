@@ -1,0 +1,357 @@
+autogen definitions options;
+
+copyright = {
+    date        = "2000 - 2004";
+    owner       = "Aaron Turner";
+    eaddr       = "aturner@pobox.com";
+    type        = "bsd";
+};
+
+package         = "tcpreplay";
+prog-name       = "tcpreplay";
+prog-title      = "Replay network traffic stored in pcap files";
+long-opts;
+test-main;
+include         = "tcpreplay.h";
+version;
+help-value      = "h";
+version-value   = "V";
+
+explain = <<- EOExplain
+    tcpreplay is a tool for replaying network traffic from files saved with
+    tcpdump or other tools which write pcap(3) files.
+EOExplain;
+
+detail = <<- EODetail
+     The basic operation of tcpreplay is to  resend  all  packets  from  the
+     input  file(s) at the speed at which they were recorded, or a
+     specified data rate, up to as fast as the hardware is capable.
+
+     Optionally, the traffic can be split between two interfaces, written to
+     files, filtered and edited in various ways, providing the means to test
+     firewalls, NIDS and other network devices.
+EODetail;
+
+/* Verbose decoding via tcpdump */
+
+flag = {
+    name        = tcpdump_args;
+    value       = A;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Arguments passed to tcpdump decoder";
+    ifdef       = HAVE_TCPDUMP;
+};
+
+flag = {
+    name        = verbose;
+    value       = v;
+    arg-type    = boolean;
+    max         = 1;
+    immediate;
+    descrip     = "Print decoded packets via tcpdump to STDOUT";
+    ifdef       = HAVE_TCPDUMP;
+    flag-code   = <<- EOVerbose
+    
+    options.verbose = 1;
+    
+EOVerbose;
+};
+
+flag = {
+    name        = debug;
+    value       = d;
+    arg-type    = number;
+    max         = 1;
+    immediate;
+    descrip     = "Enable debugging output";
+    ifdef       = DEBUG;
+};
+
+/*
+ * Output modifiers: -D, -O, -c
+ */
+
+flag = {
+    name        = datadump;
+    value       = D;
+    arg-type    = boolean;
+    max         = 1;
+    immediate;
+    descrip     = "Dump packet data to files";
+};
+
+flag = {
+    name        = oneout;
+    value       = O;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Merge split traffic into a single output stream";
+};
+
+flag = {
+    name        = cachefile;
+    value       = c;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Split traffic via tcpprep cache file";
+};
+
+/*
+ * Outputs: -i, -I, -w, -W
+ */
+
+flag = {
+    name        = intf1;
+    value       = i;
+    arg-type    = string;
+    max         = 1;
+    must-set;
+    descrip     = "Primary output interface";
+};
+
+flag = {
+    name        = intf2;
+    value       = I;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Secondary output interface";
+};
+
+flag = {
+    name        = write1;
+    value       = w;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Specify the primary output file";
+};
+
+flag = {
+    name        = write2;
+    value       = W;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Specify the secondary output file";
+};
+/*
+ * Limits and loops: -l, -L, -o
+ */
+
+flag = {
+    name        = loop;
+    value       = l;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Loop through the capture file X times";
+};
+
+flag = {
+    name        = limit;
+    value       = L;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Limit the number of packets to send";
+};
+
+flag = {
+    name        = offset;
+    value       = o;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Jump to the packet at the specified byte offset";
+    ifdef       = HAVE_PCAPNAV;
+    flag-code   = <<- EOOffset
+    
+    options.offset = stroull(OPT_VALUE(OFFSET), NULL, 0)
+    
+EOOffset;
+};
+/*
+ * Replay speed modifiers: -m, -p, -r, -R, -1
+ */
+
+/* note that this is really a float, but autoopts does not support float */
+flag = {
+    name        = multiplier;
+    value       = m;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Modify replay speed to a given multiple";
+    flag-code   = <<- EOMuliplier
+    
+    if (HAVE_OPT(MULTIPLIER)) {
+        errx(1, "Unable to use both multiplier (-m) and %s (%s) at the same time",
+        tOptDesc->optIndex, tOptDesc->optValue);
+    }
+    else if (HAVE_OPT(PACKETRATE)) {
+        errx(1, "Unable to use both packetrate (-r) and %s (%s) at the same time",
+        tOptDesc->optIndex, tOptDesc->optValue);
+    }
+    else if (HAVE_OPT(MBPSRATE)) {
+        errx(1, "Unable to use both mbpsrate (-r) and %s (%s) at the same time",
+        tOptDesc->optIndex, tOptDesc->optValue);
+    }
+    else if (ENABLED_OPT(ONEATATIME)) {
+        errx(1, "Unable to use both oneatatime (-1) and %s (%s) at the same time",
+        tOptDesc->optIndex, tOptDesc->optValue);
+    }
+    
+    switch (tOptDesc->optValue) {
+        case 'm':
+            options.speedmode = MULTIPLIER;
+            options.speed = atof(OPT_VALUE(MULTIPLER));
+            break;
+            
+        case '1':
+            options.speedmode = ONEATATIME;
+            options.speed = 0.0;
+            break;
+            
+        case 'p':
+            options.speedmode = PACKETRATE;
+            options.speed = atof(OPT_VALUE(PACKETRATE));
+            break;
+            
+        case 'R':
+            options.speedmode = TOPSPEED;
+            options.speed = 0.0;
+            break;
+            
+        case 'r':
+            options.speedmode = MBPSRATE;
+            options.speed = atof(OPT_VALUE(MBPSRATE));
+            break;
+            
+        default:
+            errx(1, "Unknown speed mode: %s", tOptDesc->optValue);
+            break;
+            
+    }
+    
+    
+EOMuliplier;
+};
+
+flag = {
+    name        = pktrate;
+    value       = p;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Replay packets at a given packets/sec";
+    flag-proc   = multiplier;
+};
+
+flag = {
+    name        = rate;
+    value       = r;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Resend the packets a given Mbps";
+    flag-proc   = multiplier;
+};
+
+flag = {
+    name        = topspeed;
+    value       = R;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Resend the packets as fast as possible";
+    flag-proc   = multiplier;
+};
+
+flag = {
+    name        = oneatatime;
+    value       = 1;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Resend one packet at a time for each user input";
+    flag-proc   = multiplier;
+};
+
+flag = {
+    name        = nopromisc;
+    value       = n;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Do not listen in promisc mode when sniffing";
+    flag-code   = <<- EONopromisc
+    
+    options.promisc = 0;
+    
+EONopromisc;
+};
+
+flag = {
+    name        = pid;
+    value       = P;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Print the PID of tcpreplay at startup";
+    flag-code   = <<- EOPid
+    
+    options.pid = 1;
+    
+EOPid;
+};
+
+
+flag = {
+    name        = sniff;
+    value       = S;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Sniff network traffic using the specified snaplen";
+    flag-code   = <<- EOSniff
+    
+    options.sniff_snaplen = atoi(OPT_VALUE(SNIFF));
+    if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > MAX_SNAPLEN)) {
+        errx(1, "Invalid snaplen: %d", options.sniff_snaplen);
+    }
+    else if (options.sniff_snaplen == 0) {
+        options.sniff_snaplen = MAX_SNAPLEN;
+    }
+    
+EOSniff;
+};
+
+flag = {
+    name        = bridge;
+    value       = b;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Enables bi-directional sniffing/sending";
+    flag-code   = <<- EOBridge
+    
+    if (options.speedmode)
+        warnx("Overriding manual speed modifier in bridge mode");
+        
+    options.speedmode = TOPSPEED;
+    
+EOBridge;
+};
+
+flag = {
+    name        = mtu;
+    value       = t;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Override the default MTU of the output";
+    flag-code   = <<- EOMtu
+    
+    options.mtu = atoi(OPT_VALUE(MTU));
+    
+EOMtu;
+};
+
+flag = {
+    name        = trunc;
+    value       = T;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Truncate packets larger then the MTU";
+    flag-code   = <<- EOTrunc
+    
+    options.trunc = 1;
+
+EOTrunc;
+};
