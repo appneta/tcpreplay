@@ -140,7 +140,7 @@ classified as a server in auto mode.  A system is classified as a server if
 [# server connections] >= ([# client connections] * [ratio]).  Default is:
 2.0
 .TP
-.B \-x or "include"
+.B \-x
 Specifies which packets from the capture file(s) to send.  Can be one of:
 .br
 .br
@@ -156,7 +156,7 @@ P:<list>      - Must be one of the listed packets where the list corresponds to 
 packet number in the capture file.  Ex: -x P:1-5,9,15 would only send packets 1 
 through 5, 9 and 15.
 .TP
-.B \-X or "exclude"
+.B \-X
 Specifies which packets from the capture file(s) to NOT send.  Can be one of:
 .br
 S:<CIDR1>,... - Src IP must match specified CIDR(s)
