@@ -143,7 +143,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
 
 
 /*
- * Do all the layer 2 rewriting: via -2 and DLT_LINUX_SLL
+ * Do all the layer 2 rewriting.  Change ethernet header or even rewrite mac addresses
  * return layer 2 length on success or 0 on fail (don't send packet)
  */
 int
@@ -194,8 +194,9 @@ rewrite_l2(pcap_t *pcap, struct pcap_pkthdr *pkthdr, u_char * pktdata, int cache
 
     } /* switch (linktype) */
 
+    /* if newl2len == 0, then return zero so we don't send the packet */
     if (! newl2len)
-        err(1, "Error rewriting Layer 2: new L2 header is zero bytes");
+        return 0;
 
     /*
      * Okay... we've got our new layer 2 header
