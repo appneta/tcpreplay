@@ -1,0 +1,16 @@
+You'll need:
+
+- libnet 1.1.x (1.0.x is no longer supported)
+http://www.packetfactory.net/Projects/libnet/
+
+- libpcap
+http://www.tcpdump.org/
+
+Run:
+./configure ; make
+
+Run as root:
+make test -i    (optional)
+make install
+
+For more detailed information, see the README
