@@ -42,7 +42,6 @@
 #include <netinet/in.h>
 
 #include "tcpreplay.h"
-#include "tcpdump.h"
 #include "send_packets.h"
 #include "timer.h"
 
