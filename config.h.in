@@ -1,6 +1,8 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#include "defines.h"
+
 /* Our code version */
 #undef VERSION
 
@@ -44,6 +46,16 @@
 /* Various functions */
 #undef HAVE_FSEEKO
 #undef HAVE_STRNCPY
+#undef HAVE_STRDUP
+#undef HAVE_STRERROR
+#undef HAVE_STRLCPY
+#undef HAVE_STRTOULL
+#undef HAVE_NTOHLL
+#undef HAVE_GETTIMEOFDAY
+#undef HAVE_CTIME
+#undef HAVE_MEMSET
+#undef HAVE_REGCOMP
+#undef HAVE_STRTOL
 
 /* We need fakepoll if poll.h and sys/poll.h don't exist */
 #undef HAVE_POLL_H
@@ -51,6 +63,7 @@
 
 #undef HAVE_UNISTD_H
 #undef HAVE_STRING_H
+
 
 /* Is libpcapnav available? */
 #undef HAVE_PCAPNAV
