@@ -30,11 +30,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "tcpreplay.h"
 #include "config.h"
-#include "timer.h"
-#include "err.h"
-#include "fakepoll.h"
+#include "defines.h"
+#include "common.h"
+#include "tcpreplay.h"
+
+#include <stdlib.h>
 
 /* Miscellaneous timeval routines */
 
@@ -75,7 +76,8 @@ float2timer(float time, struct timeval *tvp)
  * calculate the appropriate amount of time to sleep and do so.
  */
 void
-do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, float speed)
+do_sleep(struct timeval *time, struct timeval *last, int len,
+         struct options *options, libnet_t *l, char *intf1, char *intf2)
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
@@ -83,10 +85,11 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, flo
     struct timespec ignore, sleep;
     float n;
     struct pollfd poller[1];        /* use poll to read from the keyboard */
-    int newchar = 0;
+    char input[EBUF_SIZE];
+    static u_int32_t skip = 0;
 
     /* just return if topspeed */
-    if (speedmode == TOPSPEED)
+    if (options->speedmode == TOPSPEED)
         return;
 
     if (gettimeofday(&now, NULL) < 0) {
@@ -103,7 +106,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, flo
         timersub(&now, &start, &delta);
     }
 
-    switch(speedmode) {
+    switch(options->speedmode) {
     case MULTIPLIER:
         /* 
          * Replay packets a factor of the time they were originally sent.
@@ -119,7 +122,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, flo
              */
             timerclear(&nap);
         }
-        timerdiv(&nap, speed);
+        timerdiv(&nap, options->speed);
         break;
 
     case MBPSRATE:
@@ -128,7 +131,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, flo
          * a constant 'rate' (bytes per second).
          */
         if (timerisset(last)) {
-            n = (float)len / speed;
+            n = (float)len / options->speed;
             nap.tv_sec = n;
             nap.tv_usec = (n - nap.tv_sec) * 1000000;
         }
@@ -139,31 +142,62 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, flo
 
     case PACKETRATE:
         /* run in packets/sec */
-        n = 1 / speed;
+        n = 1 / options->speed;
         nap.tv_sec = n;
         n -= nap.tv_sec;
         nap.tv_usec = n * 1000000;
         break;
 
     case ONEATATIME:
-        printf("**** Press <ENTER> to send the next packet:\n");
-        poller[0].fd = STDIN_FILENO;
-        poller[0].events = POLLIN;
-        poller[0].revents = 0;
+        /* do we skip prompting for a key press? */
+        if (skip <= 0) {
+            printf("**** How many packets do you wish to send? (next packet out %s)\n",
+                   l == options->intf1 ? intf1 : intf2);
+            poller[0].fd = STDIN_FILENO;
+            poller[0].events = POLLIN;
+            poller[0].revents = 0;
+            
+            /* wait for the input */
+            if (poll(poller, 1, -1) < 0)
+                errx(1, "do_packets(): Error reading from stdin: %s", strerror(errno));
+            
+            /*
+             * read to the end of the line or EBUF_SIZE,
+             * Note, if people are stupid, and type in more text then EBUF_SIZE
+             * then the next fgets() will pull in that data, which will have poor 
+             * results.  fuck them.
+             */
+            fgets(input, sizeof(input), stdin);
+            if (strlen(input) > 1) {
+                skip = strtoul(input, NULL, 0);
+            }
 
-        /* wait for the input */
-        if (poll(poller, 1, -1) < 0)
-            errx(1, "do_packets(): Error reading from stdin: %s", strerror(errno));
+            /* how many packets should we skip? */
+            if (skip < 1) {
+                warnx("Input %d was less then 1 or non-numeric, assuming 1", skip);
+                /* assume no skip */
+                skip = 1;
+            }
+            
+            /* 
+             * when people say one, they're not thinking "skip one packet" but rather
+             * "send one packet".  so this fixes that
+             */
+            skip --;
 
-        /* read to the end of the line */
-        do {
-            newchar = getc(stdin);
-        } while (newchar != '\n');
-        
+        } else {
+            /* decrement our skip counter */
+            printf("Sending packet out %s\n", l == options->intf1 ? intf1 : intf2);
+            skip --;
+        }
+
+        /* leave do_sleep() */
+        return;
+
         break;
 
     default:
-        errx(1, "Unknown/supported speed mode: %d", speedmode);
+        errx(1, "Unknown/supported speed mode: %d", options->speedmode);
         break;
     }
 

@@ -33,13 +33,20 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+#include "tcpreplay.h"
+
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
+#include <libnet.h>
 
 inline void timerdiv(struct timeval *tvp, float div);
 inline void float2timer(float time, struct timeval *tvp);
-void do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, float speed);
+void do_sleep(struct timeval *time, struct timeval *last, int len,
+              struct options *options, libnet_t *l, char *inf1, char *intf2);
 
 #ifndef TIMEVAL_TO_TIMESPEC
 #define TIMEVAL_TO_TIMESPEC(tv, ts) { (ts)->tv_sec = (tv)->tv_sec; (ts)->tv_nsec = (tv)->tv_usec * 1000; }
