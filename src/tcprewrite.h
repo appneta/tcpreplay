@@ -1,4 +1,4 @@
-/* $Id: $ */
+/* $Id:$ */
 
 /*
  * Copyright (c) 2004 Aaron Turner <aturner@pobox.com>.

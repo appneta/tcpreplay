@@ -59,7 +59,18 @@ Restart tcpreplay
 @end enumerate
 
 .SH "SEE ALSO"
-tcpdump(1), tcpprep(1), tcprewrite(1)
+tcpdump(1), tcpprep(1), tcprewrite(1), libnet(3)
+
+.SH "BUGS"
+tcpreplay can only send packets as fast as your computer's interface,
+processor, disk and system bus will allow.
+
+Replaying captured traffic may simulate odd or broken conditions on your
+network and cause problems.
+
+Some operating systems by default do not allow for forging source MAC
+addresses.  Please consult your operating system's documentation and the
+tcpreplay FAQ if you experiance this issue.
 EOMan;
 
 flag = {
@@ -132,7 +143,6 @@ flag = {
     value       = i;
     arg-type    = string;
     max         = 1;
-    min         = 1;
     must-set;
     descrip     = "Server/primary traffic output interface";
     doc         = "";
@@ -189,8 +199,8 @@ EOText;
 /* note that this is really a float, but autoopts does not support float */
 flag = {
     name        = multiplier;
-    flags-cant  = pktrate;
-    flags-cant  = mbpsrate;
+    flags-cant  = pps;
+    flags-cant  = mbps;
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
     value       = m;
@@ -208,9 +218,9 @@ EOText;
 };
 
 flag = {
-    name        = pktrate;
+    name        = pps;
     flags-cant  = multiplier;
-    flags-cant  = mbpsrate;
+    flags-cant  = mbps;
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
     value       = p;
@@ -221,9 +231,9 @@ flag = {
 };
 
 flag = {
-    name        = mbpsrate;
+    name        = mbps;
     flags-cant  = multiplier;
-    flags-cant  = pktrate;
+    flags-cant  = pps;
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
     value       = M;
@@ -238,9 +248,9 @@ EOText;
 
 flag = {
     name        = topspeed;
-    flags-cant  = mbpsrate;
+    flags-cant  = mbps;
     flags-cant  = multiplier;
-    flags-cant  = pktrate;
+    flags-cant  = pps;
     flags-cant  = oneatatime;
     value       = t;
     descrip     = "Replay packets as fast as possible";
@@ -249,8 +259,8 @@ flag = {
 
 flag = {
     name        = oneatatime;
-    flags-cant  = mbpsrate;
-    flags-cant  = pktrate;
+    flags-cant  = mbps;
+    flags-cant  = pps;
     flags-cant  = multiplier;
     flags-cant  = topspeed;
     value       = o;
