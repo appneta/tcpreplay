@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.15 2003/11/06 05:59:30 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.16 2003/12/09 03:20:20 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -34,7 +34,7 @@ tcpreplay \- replay packets from capture files
 .I intf mac
 ] [
 .B \-l
-.I loop count
+.I loop
 ] [
 .B \-m
 .I multiplier
@@ -47,6 +47,8 @@ tcpreplay \- replay packets from capture files
 .B \-p
 .I packetrate
 ] [
+.B \-n
+] [
 .B \-o 
 .I offset
 ] [
@@ -54,6 +56,9 @@ tcpreplay \- replay packets from capture files
 ] [
 .B \-s
 .I seed
+] [
+.B \-S
+.I snaplen
 ] [
 .B \-t 
 .I MTU
@@ -150,6 +155,9 @@ recorded, specified as a floating-point number.
 .B \-M or "no_martians"
 Disable sending martian packets (source networks: 0/8, 127/8, 255/8)
 .TP
+.B \-n or "not_nosy"
+Don't listen in promiscuous mode when sniffing with -S
+.TP
 .B \-o or "offset"
 Jump to packet at the nearest specified byte offset and start replaying packets from there.
 .TP
@@ -173,6 +181,12 @@ Resend the packets as fast as possible. Negates all other speed options.
 Specify a seed value to allow rewriting the source and destination IP
 addresses (only in IP header) to pseudo-random values.  Will also recalculate 
 the IP header as necessary.
+.TP
+.B \-S or "sniff_snaplen"
+Instead of reading from a saved tcpdump file, perform live capture.
+The argument is the number of bytes to capture off the wire.
+The name of the capture interface will be the nominal filename.  Please 
+read the FAQ for more details/warnings about this feature. 
 .TP
 .B \-t or "mtu"
 Specify the MTU in bytes of the interface(s) being used.  Default is 1500 which
