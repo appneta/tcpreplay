@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.27 2002/07/31 01:05:52 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.28 2002/08/06 01:46:20 mattbing Exp $ */
 
 #include "config.h"
 
@@ -279,9 +279,6 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			_exit(1);
 		}
 
-		if (!Rflag)
-			do_sleep(&pkt.ts, &last, pkt.len);
-
 		eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 
 		/* does packet have an IP header?  if so set our pointer to it */
@@ -349,6 +346,9 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 		pktdata = pkt.data;
 		pktlen = pkt.len;
+
+		if (!Rflag)
+			do_sleep(&pkt.ts, &last, pkt.len);
 
 		/* Physically send the packet */
 		do {
