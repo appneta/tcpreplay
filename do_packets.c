@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.52 2004/05/14 21:42:52 aturner Exp $ */
+/* $Id: do_packets.c,v 1.53 2004/05/15 21:14:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -159,7 +159,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
 #ifdef FORCE_ALIGN
     if ((ipbuff = (u_char *) malloc(maxpacket)) == NULL)
-        errx(1, "Unaable to malloc ipbuff buffer");
+        errx(1, "Unable to malloc ipbuff buffer");
 #endif
 
     /* register signals */
@@ -381,7 +381,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
         }
 
-        /* in one output mode always use primary nic */
+        /* in one output mode always use primary nic/file */
         if (options.one_output)
             l = options.intf1;
 
