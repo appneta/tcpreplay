@@ -99,7 +99,7 @@ int
 main(int argc, char *argv[])
 {
     int out_file, ch, mask_count = 0;
-    u_int64_t totpackets = 0;
+    COUNTER totpackets = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
     int i, optct = 0;
  
@@ -514,7 +514,7 @@ print_comment(const char *file)
 {
     char *cachedata = NULL;
     char *comment = NULL;
-    u_int64_t count = 0;
+    COUNTER count = 0;
 
     count = read_cache(&cachedata, file, &comment);
     printf("tcpprep args: %s\n", comment);
