@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.18 2002/07/16 21:00:33 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.19 2002/07/16 21:13:35 aturner Exp $ */
 
 #include "config.h"
 
@@ -51,10 +51,10 @@ main(int argc, char *argv[])
 	intf = intf2 = NULL;
 	memset(&options, 0, sizeof(options));
 
-	/* Default mode is to replay pcap once at 10MB */
-	options.mult = 0.0;
+	/* Default mode is to replay pcap once in real-time */
+	options.mult = 1.0;
 	options.n_iter = 1;
-	options.rate = 10.0;
+	options.rate = 0.0;
 
 	Rflag =  Sflag = Cflag = uflag = 0;
 	cache_bit = cache_byte = 0;
