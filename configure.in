@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.53 2003/12/21 20:21:05 aturner Exp $
+dnl $Id: configure.in,v 1.54 2004/01/15 07:17:36 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -31,6 +31,7 @@ AC_CANONICAL_TARGET
 AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
+AC_C_BIGENDIAN
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -373,7 +374,7 @@ main (int argc, char *argv[])
 		exit(0);
 	exit(1);
 }],
-      	libpcapnav_ver=yes
+     	libpcapnav_ver=yes
        	AC_MSG_RESULT(>= 0.4),
        	libpcapnav_ver=no
        	AC_MSG_RESULT(< 0.4),
@@ -382,30 +383,18 @@ main (int argc, char *argv[])
 
 
         if test $libpcapnav_ver = no ; then
-        	AC_MSG_WARN(Libpcapnav versions < 0.4 are not supported.
+        	AC_MSG_WARN([Libpcapnav versions < 0.4 are not supported.
     Please upgrade to version 0.4 or better.
-    qDisabling offset jump feature.)
+    Disabling offset jump feature.])
         fi
 		],
-AC_MSG_RESULT(Cannot find libpcapnav: Disabling offset jump feature.)) ])
+    AC_MSG_RESULT(Cannot find libpcapnav: Disabling offset jump feature.)) 
+    ]
+)
 
 if test $libpcapnav_ver = yes -a $pcapnav = yes ; then
     AC_DEFINE(HAVE_PCAPNAV)
 fi
-
-
-dnl Check for tcpdump source tree
-tcpdumpdir=no
-AC_MSG_CHECKING(for tcpdump source tree)
-AC_ARG_WITH(tcpdump,
-    [  --with-tcpdump=DIR      Path to the tcpdump source code tree],
-    [ tcpdumpdir=$withval
-    AC_DEFINE(WITH_TCPDUMP) 
-    AC_SUBST(tcpdumpdir)
-    tcpdumpsrcs=`ls $(tcpdumpdir)/print-*.c`
-    AC_SUBST(tcpdumpsrcs)
-    AC_MSG_RESULT($withval)], 
-    AC_MSG_RESULT(no))
 
 
 dnl (shamelessly ripped off from libpcap)
