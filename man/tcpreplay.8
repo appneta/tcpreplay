@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.18 2003/12/21 20:07:18 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.19 2004/01/15 07:31:25 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -84,6 +84,10 @@ CIDR...
 .I exclude
 ] [
 .B \-2 l2data
+] [
+.B \-v
+.B \-d 
+"\fBargs\fP"
 ]
 .I pcap_file(s)
 .SH DESCRIPTION
@@ -215,7 +219,16 @@ unmodified.
 .TP
 .B \-v or "verbose"
 .br
-Verbose mode, currently unused.
+Verbose mode, dump decoded packets via tcpdump to STDOUT.  You may also 
+specify one or more of the following \fItcpdump(8)\fR arguments to modify 
+how the packets are decoded:
+.br
+"[ -aAenNqRStuvxX ]
+.br
+ [ -E spi@ipaddr algo:secret,...]
+.br 
+ [ -s snaplen ]"
+.TP
 .TP
 .B \-V
 Print version info and exit.
