@@ -71,12 +71,12 @@ flowreplay_opts.c: flowreplay_opts.def
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I..
 tcpbridge_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c netout.c
+tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c
 tcpbridge_opts.h: tcpbridge_opts.h
 tcpbridge_opts.c: tcpbridge_opts.def
 	@AUTOGEN@ tcpbridge_opts.def
 
-noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h portmap.h \
+noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h portmap.h \
 		 defines.h dlt.h dlt_names.h edit_packet.h tree.h mac.h \
 		 send_packets.h flowbuff.h flowkey.h flownode.h flowstate.h \
 		 signal_handler.h common.h tcpreplay_opts.h rewrite_l2.h \
