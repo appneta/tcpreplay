@@ -126,7 +126,7 @@ main(int argc, char *argv[])
     if ((pcap_datalink(options.pcap) != DLT_EN10MB) &&
         (pcap_datalink(options.pcap) != DLT_LINUX_SLL) &&
         (pcap_datalink(options.pcap) != DLT_RAW) &&
-        (pcap_datalink(options.pcap) != DLT_CHDLC)) {
+        (pcap_datalink(options.pcap) != DLT_C_HDLC)) {
         errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
     }
 
@@ -316,7 +316,7 @@ process_raw_packets(pcap_t * pcap)
             l2len = 0;
             break;
 
-        case DLT_CHDLC:
+        case DLT_C_HDLC:
             hdlc_hdr = (cisco_hdlc_header_t *)pktdata;
             protocol = hdlc_hdr->protocol;
             l2len = CISCO_HDLC_LEN;
