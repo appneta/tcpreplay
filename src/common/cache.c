@@ -131,8 +131,6 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     *cachedata = (char *)safe_malloc(cache_size);
 
-    memset(*cachedata, '\0', cache_size);
-
     /* read in the cache */
     if ((read_size = read(cachefd, *cachedata, cache_size)) != cache_size)
         errx(1, "Cache data length (%ld bytes) doesn't match "
