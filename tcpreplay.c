@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.5 2002/04/15 17:30:37 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.6 2002/04/15 17:37:18 mattbing Exp $ */
 
 #include "config.h"
 
@@ -18,7 +18,6 @@
 #include "libpcap.h"
 #include "snoop.h"
 #include "tcpreplay.h"
-#include "cache.h"
 
 struct libnet_link_int *l_intf, *l_intf2;
 struct timeval begin, end;
