@@ -1,20 +1,24 @@
-/* $Id: capinfo.c,v 1.3 2002/08/11 23:57:18 mattbing Exp $ */
+/* $Id: capinfo.c,v 1.4 2002/11/20 06:11:19 aturner Exp $ */
 
 #include "config.h"
 
-#include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "err.h"
 #include "libpcap.h"
 #include "snoop.h"
 
 void print_pcap(struct pcap_info *);
 void print_snoop(struct snoop_info *);
 void usage();
+
+#ifdef DEBUG
+int debug = 0;
+#endif 
 
 int
 main(int argc, char *argv[])

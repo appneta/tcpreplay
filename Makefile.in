@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.24 2002/11/20 04:19:09 aturner Exp $
+# $Id: Makefile.in,v 1.25 2002/11/20 06:11:19 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -20,7 +20,7 @@ BINARIES	= tcpreplay capinfo tcpprep
 TSRCS		= tcpreplay.c libpcap.c snoop.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c @EXTRAS@
 TOBJS		= $(TSRCS:.c=.o)
 
-CSRCS		= capinfo.c libpcap.c snoop.c timer.c @EXTRAS@
+CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c @EXTRAS@
 COBJS		= $(CSRCS:.c=.o)
 
 PSRCS		= tcpprep.c libpcap.c snoop.c cidr.c tree.c cache.c list.c xX.c err.c @EXTRAS@

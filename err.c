@@ -1,4 +1,4 @@
-/* $Id: err.c,v 1.3 2002/11/07 05:31:07 aturner Exp $ */
+/* $Id: err.c,v 1.4 2002/11/20 06:11:19 aturner Exp $ */
 
 /*
  * err.c
@@ -39,7 +39,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +46,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "config.h"
 #ifdef DEBUG
 extern int debug;
 #endif
