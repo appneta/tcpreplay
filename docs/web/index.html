@@ -80,7 +80,12 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
         <tr><td>&nbsp;</td></tr>
         <tr><td class=sechdr>Get It</td></tr>
         <tr><td class=section>
-            <ul>
+                Releases:
+                <ul>
+                    <li>Latest development release:
+                    <a
+                        href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-3.beta1.tar.gz">tcpreplay-3.beta1.tar.gz</a>
+                    </li>
               <li>
                 Latest stable release: 
             <a href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-2.3.3.tar.gz">tcpreplay-2.3.3.tar.gz</a>
@@ -91,16 +96,18 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
                 Last release supporting Libnet 1.0.x:
                 <a href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-1.3.3.tar.gz">tcpreplay-1.3.3.tar.gz</a>
                 (<a href="http://sourceforge.net/project/shownotes.php?release_id=156906">release notes</a>)
-              </li>
+                </li>
+            </ul>
+              <P>
               
-              <li>
               Source via Subversion:<br>
               svn co https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay-trunk<br>
               or view it online using
               <a href="https://www.synfin.net:444/cgi-bin/viewcvs.cgi/tcpreplay/">
                 the web interface</a>
-              </li>
-
+            <P>
+            Packages:
+            <ul>
               <li>Apple OS X users can try Darian Lanx's Fink package: <i>fink install tcpreplay</i></li>
 
               <li>Debian users can try Noel Koethe's APT package: <i>apt-get install tcpreplay</i></li>
@@ -117,22 +124,34 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
     <a name="docs">
       <tr><td>&nbsp;</td></tr>
       <tr><td class=sechdr>Documentation</td></tr>
-      <tr><td class=section>
-              Docs:
+      <tr>
+          <td><table border=0 cellpadding=0 cellspacing=0 width="100%">
+            <tr valign=top>
+          <td class=section width="50%">
+              3.x Docs:
           <ul>
             <li><a href="manual/index.html">Manual</a></li>
             <li><a href="FAQ/index.html">Frequently Asked Questions</a></li>
-        </ul>
-            Man Pages:
+          </ul>
+            3.x Man Pages:
             <ul>
                 <li><a href="man/tcpreplay.html">tcpreplay</a></li>
                 <li><a href="man/tcpprep.html">tcpprep</a></li>
-                <!--
                 <li><a href="man/tcprewrite.html">tcprewrite</a></li>
-                -->
                 <li><a href="man/flowreplay.html">flowreplay</a></li>
-        </td>
-      </tr>
+            </ul>
+            </td>
+            <td class=section>
+                2.x Docs:
+                <ul>
+                    <li><a href="tcpreplay-2-faq.html">Frequently Asked
+                        Questions</a></li>
+                </uL>
+            </td>
+        </tr>
+    </table>
+</td>
+</tr>
       <a name="support">
         <tr><td>&nbsp;</td></tr>
         <tr><td class=sechdr>Support</td></tr>
@@ -141,7 +160,10 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
             &nbsp;So if you submit a ticket into any of those systems, it will likely be ignored for a few 
             months, if not longer. &nbsp;Hence, you should be using the 
             <a href="http://sourceforge.net/mail/?group_id=48862">tcpreplay-users mailing 
-              list</a> for support.
+                list</a> for support.
+            <P>
+            Please note that tcpreplay has a lot of documentation.
+            &nbsp;Please read the documentation before asking for help.
             <P>
               You may also be interested in checking out 
               <a href="http://www.sourceforge.net/projects/tcpreplay/">
