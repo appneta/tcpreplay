@@ -1,6 +1,6 @@
-$Id: CHANGELOG,v 1.10 2003/06/06 20:21:06 aturner Exp $
+$Id: CHANGELOG,v 1.11 2003/06/06 21:41:26 aturner Exp $
 
-06/??/2003: Version 1.5.alpha3
+06/06/2003: Version 1.5.alpha3
 	- Add support for Linux Cooked Sockets (SLL) format rewriting
 	- Added a flowreplay design doc in Docs/
 	- A lot more work on flowreplay
