@@ -1,3 +1,6 @@
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
+
 /* Our code version */
 #undef VERSION
 
@@ -60,3 +63,5 @@
 
 /* does libpcap come with pcap_datalink_val_to_description() */
 #undef HAVE_DLT_VAL_TO_DESC
+
+#endif /* __CONFIG_H__ */
