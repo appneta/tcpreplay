@@ -9,9 +9,9 @@ Legend:
     o = Started work
     . = Canceled
 
-- Look at VLAN (802.1q) packets
+0 Look at VLAN (802.1q) packets
     - others non-vanilla types?
-    - Add tags?  Remove tags?  Change tags?
+    + Add tags?  Remove tags?  Change tags?
     - Cisco's ISL trunking?
 
 - Add support for setting the ethernet protocol field so we can use
@@ -19,12 +19,12 @@ Legend:
 
 - Add a secondary interface full layer two rewrite option
 
-- Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
++ Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
 
 - Add support for more linktypes (Prism Monitor, 802.11, etc)
     - Make it easier for others to add support for others
 
-o Rip out packet munger from tcpreplay and put it into another tool so
+0 Rip out packet munger from tcpreplay and put it into another tool so
   that tcpreplay can be more optimized
     - perhaps use libnetdude?
     - make into a library?
@@ -66,7 +66,7 @@ o Rip out packet munger from tcpreplay and put it into another tool so
 + When splitting traffic via tcpprep print out each packet (tcpdump style)
   so end users know where each packet is going
 
-o Improve autoconf detection of libraries
+0 Improve autoconf detection of libraries
 
 + Re-organize source tree
 
@@ -86,7 +86,16 @@ O tcpdump decoder should print packets syncronously w/ the main process
 - Tcprewrite should be able to remove the two byte ethernet FCS (checksums)
   at the end of the frame.
 
+- See about removing libnet_init() from all binaries other then tcprewrite
+  so we don't have to run as root:
+  - libnet_addr2name4
+  - libnet_name2addr4 ???
+  - libnet_get_hwaddr
+  - libnet_do_checksum
+
++ Support randomization of IP addresses in ARP packets
+
 - Only tcpreplay should need to run as root.
 
 - Tcpreplay should use raw sockets directly for writing rather then libnet
-  where applicable.
+  where applicable (such as Linux) for higher performance.
