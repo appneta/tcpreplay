@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.4 2002/06/01 19:11:32 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.5 2002/06/20 06:02:08 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -68,6 +68,9 @@ proxy-arp to forward packets.
 .B \-c
 Specify the \fItcpprep cache\fR to use to process packets.
 .TP
+.B \-h
+Prints help/usage
+.TP
 .B \-i
 Specify the interface in which to send packets.
 .TP
@@ -91,6 +94,12 @@ recorded.
 .TP
 .B \-r
 Resend the packets at the \fIrate\fR specified (in Mbps).
+.TP
+.B \-C
+CIDR mode. Specify a list of CIDR's (network1/masklen1,network2/masklen2,...) 
+to match against the source IP of each packet. Packets matching any of the 
+CIDR's are sent out the primary interface; remaining packets are sent out 
+the secondary interface.  Can't be used with -c.
 .TP
 .B \-R
 Resend the packets as fast as possible. Negates other speed options.
