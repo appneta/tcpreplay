@@ -57,7 +57,7 @@ extern u_int64_t bytes_sent, failed, pkts_sent;
 extern u_int64_t cache_packets;
 extern volatile int didsig;
 extern int l2len, maxpacket;
-
+extern char *intf1, *intf2;
 extern int include_exclude_mode;
 extern CIDR *xX_cidr;
 extern LIST *xX_list;
@@ -352,7 +352,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 
          */
-        do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, options.speedmode, options.speed);
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, &options, l, intf1, intf2);
      
         /* in one output mode always use primary nic/file */
         if (options.one_output)
