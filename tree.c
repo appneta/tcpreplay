@@ -41,10 +41,9 @@ static void tree_checkincidr(const void *, const VISIT, const int, void *);
 
 
 /*
-  used with rbwalk to walk a tree and generate CIDR * cidrdata.
-  is smart enough to prevent dupes.  void * arg is cast to bulidcidr_type
-
-*/
+ * used with rbwalk to walk a tree and generate CIDR * cidrdata.
+ * is smart enough to prevent dupes.  void * arg is cast to bulidcidr_type
+ */
 void
 tree_buildcidr(const void *treeentry, const VISIT which, const int depth, void *arg)
 {
