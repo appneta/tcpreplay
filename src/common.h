@@ -3,7 +3,9 @@
 #include "../config.h"
 #include "common/cache.h"
 #include "common/cidr.h"
+#if 0
 #include "common/confargs.h"
+#endif
 #include "common/err.h"
 #include "common/fakepcap.h"
 #include "common/fakepcapnav.h"
