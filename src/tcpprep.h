@@ -49,7 +49,6 @@ struct tcpprep_opt_s {
     pcap_t *pcap;
     int verbose;    
     char *tcpdump_args;
-    int info;
     /* mode */
 
     cache_t *cachedata;
@@ -80,8 +79,6 @@ struct tcpprep_opt_s {
     int nonip;
 };
 typedef struct tcpprep_opt_s tcpprep_opt_t;
-    
-void print_comment(const char *file);
 
 #endif
 

@@ -83,8 +83,10 @@ data_tree_t treeroot;
 /* we get this from libpcap */
 extern char pcap_version[];
 
-void init(void);
-void post_args(int, char *[]);
+static void init(void);
+static void post_args(int, char *[]);
+static void print_comment(const char *);
+static void print_info(const char *);
 static void usage();
 static void version();
 static int check_ip_regex(const unsigned long ip);
@@ -462,39 +464,64 @@ init(void)
 /* 
  * post process args
  */
-void
+static void
 post_args(int argc, char *argv[])
 {
     char myargs[MYARGS_LEN];
     int i;
+    char *string;
 
+    memset(myargs, 0, MYARGS_LEN);
+
+    if (HAVE_OPT(DBUG))
+        debug = OPT_VALUE_DBUG;
+
+    /* print_comment and print_info don't return */
+    if (HAVE_OPT(PRINT))
+        print_comment(OPT_ARG(PRINT));
+
+    if (HAVE_OPT(INFO))
+        print_info(OPT_ARG(INFO));
+
+    if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(PCAP))
+        err(1, "Must specify an output cachefile (-o) and input pcap (-i)");
+    
+    if (! options.mode)
+        err(1, "Must specify a processing mode: -a, -c, -r, -p");
+    
+    /* ADT 
+     * Need to fix this... args need to come BEFORE the comment with
+     * a \n in between to correctly print
+     */
+    
     /* copy all of our args to myargs */
     for (i = 1; i < argc; i ++) {
         /* skip the -C <comment> */
-        if (strcmp(argv[i], "-C") == 0) 
+        if (strcmp(argv[i], "-C") == 0) {
             i += 2;
+            continue;
+        }
 
         strlcat(myargs, argv[i], MYARGS_LEN);
         strlcat(myargs, " ", MYARGS_LEN);
     }
 
+    /* remove trailing space */
+    myargs[strlen(myargs) - 1] = 0;
+
+    dbg(1, "Comment args length: %d", strlen(myargs));
     strlcat(myargs, "\n", MYARGS_LEN);
-    dbg(1, "Comment args length: %d", MYARGS_LEN);
-
-
-    if (HAVE_OPT(INFO))
-        options.info = 1;
 
     /* malloc our buffer to be + 1 strlen so we can null terminate */
     if (options.comment != NULL) {
         options.comment = (char *)safe_realloc(options.comment, 
             strlen(options.comment) + strlen(myargs) + 1);
+      
     } else {
         options.comment = (char *)safe_malloc(strlen(myargs) + 1);
     }
-                
 
-    strlcat(options.comment, myargs, sizeof(options.comment));
+    strlcat(options.comment, myargs, strlen(options.comment) + strlen(myargs) + 1);
         
     dbg(1, "Final comment length: %d", strlen(options.comment));
 
@@ -517,7 +544,7 @@ post_args(int argc, char *argv[])
 /*
  * print the tcpprep cache file comment
  */
-void
+static void
 print_comment(const char *file)
 {
     char *cachedata = NULL;
@@ -526,7 +553,7 @@ print_comment(const char *file)
 
     count = read_cache(&cachedata, file, &comment);
     printf("tcpprep args: %s\n", comment);
-    printf("Cache contains data for %llu packets\n", count);
+    printf("Cache contains data for %llu packets\n", (u_int64_t)count);
 
     exit(0);
 }
@@ -534,7 +561,7 @@ print_comment(const char *file)
 /*
  * prints out the cache file details
  */
-void
+static void
 print_info(const char *file)
 {
     char *cachedata = NULL;
@@ -542,7 +569,7 @@ print_info(const char *file)
     COUNTER count = 0, i;
 
     count = read_cache(&cachedata, file, &comment);
-    for (i = 0; i < count; i ++) {
+    for (i = 1; i <= count; i ++) {
         
         switch (check_cache(cachedata, i)) {
         case CACHE_PRIMARY:
@@ -560,6 +587,7 @@ print_info(const char *file)
         }
 
     }
+    exit(0);
 }
 
 /*
