@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.21 2002/11/20 19:32:58 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.22 2002/11/21 00:05:28 mattbing Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -33,13 +33,8 @@ typedef struct libnet_dnsv4_hdr dns_hdr_t;
 
 /* run-time options */
 struct options {
-#if USE_LIBNET_VERSION == 10
 	LIBNET *intf1;
 	LIBNET *intf2;
-#elif USE_LIBNET_VERSION == 11
-	LIBNET *intf1;
-	LIBNET *intf2;
-#endif
 	char intf1_mac[6];
 	char intf2_mac[6];
 	float rate;
