@@ -71,7 +71,7 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
     if (eth_hdr->ether_type == ETHERTYPE_VLAN) {
         oldl2len = LIBNET_802_1Q_H;
     } else {
-        oldl2len = LIBNET_802_3_H;
+        oldl2len = LIBNET_ETH_H;
     }
   
     switch (options.l2.linktype) {
@@ -133,7 +133,7 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
             } 
 
             /* else we are adding a VLAN header */
-            else if (oldl2len == LIBNET_802_3_H) {
+            else if (oldl2len == LIBNET_ETH_H) {
                 /* zero out our L2 header */
                 memset(tmpbuff, 0, sizeof(vlan_hdr_t));
 
@@ -162,13 +162,13 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
                 memcpy(pktdata, tmpbuff, sizeof(vlan_hdr_t));
 
             } else {
-                err(1, "Uh, how are we supposed to rewrite the header when the oldl2len != LIBNET_802_3_H?");
+                err(1, "Uh, how are we supposed to rewrite the header when the oldl2len != LIBNET_ETH_H?");
             }
         } 
 
         else {
             /* remove VLAN header */
-            newl2len = LIBNET_802_3_H;
+            newl2len = LIBNET_ETH_H;
 
             /* we still verify packet len incase MTU has shrunk */
             if (! check_pkt_len(pkthdr, oldl2len, newl2len))
@@ -181,7 +181,7 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
 
             eth_hdr->ether_type = vlan_hdr->vlan_len;
             
-            memcpy(&pktdata[LIBNET_802_3_H], (tmpbuff + LIBNET_802_1Q_H), pkthdr->caplen - oldl2len);
+            memcpy(&pktdata[LIBNET_ETH_H], (tmpbuff + LIBNET_802_1Q_H), pkthdr->caplen - oldl2len);
         }
         break;
 
@@ -268,13 +268,13 @@ rewrite_raw(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
         break;
 
     case LINKTYPE_ETHER:
-        newl2len = LIBNET_802_3_H;
+        newl2len = LIBNET_ETH_H;
 
         if (! check_pkt_len(pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make room for L2 header */
-        memmove(&pktdata[LIBNET_802_3_H], pktdata, pkthdr->caplen);
+        memmove(&pktdata[LIBNET_ETH_H], pktdata, pkthdr->caplen);
 
         /* these fields are always set this way */
         eth_hdr = (eth_hdr_t *)pktdata;
@@ -361,7 +361,7 @@ rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
         break;
 
     case LINKTYPE_ETHER:
-        newl2len = LIBNET_802_3_H;
+        newl2len = LIBNET_ETH_H;
         
         if (! check_pkt_len(pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -369,7 +369,7 @@ rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
         /* make room for L2 header */
      
         memcpy(tmpbuff, pktdata, pkthdr->caplen);
-        memcpy(&pktdata[LIBNET_802_3_H], (tmpbuff + oldl2len), pkthdr->caplen - oldl2len);
+        memcpy(&pktdata[LIBNET_ETH_H], (tmpbuff + oldl2len), pkthdr->caplen - oldl2len);
 
         /* these fields are always set this way */
         sll_hdr = (sll_hdr_t *)tmpbuff;
@@ -458,7 +458,7 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
         break;
 
     case LINKTYPE_ETHER:
-        newl2len = LIBNET_802_3_H;
+        newl2len = LIBNET_ETH_H;
 
         if (! check_pkt_len(pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -467,7 +467,7 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
         hdlc_hdr = (hdlc_hdr_t *)tmpbuff;
 
         eth_hdr = (eth_hdr_t *)pktdata;
-        memcpy(&pktdata[LIBNET_802_3_H], tmpbuff + oldl2len, pkthdr->caplen - oldl2len);
+        memcpy(&pktdata[LIBNET_ETH_H], tmpbuff + oldl2len, pkthdr->caplen - oldl2len);
 
         eth_hdr->ether_type = hdlc_hdr->protocol;
         
