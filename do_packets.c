@@ -145,10 +145,13 @@ do_packets(pcap_t *pcap)
 				}
 			}
 
+		} else {
+			/* non-IP packets have a NULL ip_hdr struct */
+			ip_hdr = NULL;
 		}
 
 		/* check for martians? */
-		if (options.no_martians && (ip_hdr->ip_hl != 0)) {
+		if (options.no_martians && (ip_hdr != NULL)) {
 			switch ((ntohl(ip_hdr->ip_dst.s_addr) & 0xff000000) >> 24) {
 			case 0: case 127: case 255:
 #ifdef DEBUG
@@ -191,13 +194,13 @@ do_packets(pcap_t *pcap)
 			continue;
 
 		/* Untruncate packet? Only for IP packets */
-		if (options.trunc) {
+		if ((options.trunc) && (ip_hdr != NULL)) {
 		    untrunc_packet(&pkthdr, pktdata, ip_hdr, (void *)l);
 		}
 
 
 		/* do we need to spoof the src/dst IP address? */
-		if (options.seed && ip_hdr->ip_hl != 0) {
+		if ((options.seed) && (ip_hdr != NULL)) {
 			randomize_ips(&pkthdr, pktdata, ip_hdr, (void *)l);
 		}
 	
