@@ -1,4 +1,4 @@
-/* $Id: xX.c,v 1.5 2003/11/04 03:03:51 aturner Exp $ */
+/* $Id: xX.c,v 1.6 2003/11/04 05:58:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -35,6 +35,7 @@ parse_xX_str(char mode, char *str)
 {
     LIST *list = NULL;
     CIDR *cidr = NULL;
+    int bpf = 0;
 
     switch (*str) {
     case 'B': /* both ip's */
@@ -56,6 +57,7 @@ parse_xX_str(char mode, char *str)
 	    return NULL;
 	break;
     case 'F': /* bpf filter */
+        bpf = 1;
 	str = str + 2;
 	include_exclude_mode = xXBPF;
 	options.bpf_filter = str;
@@ -83,13 +85,17 @@ parse_xX_str(char mode, char *str)
 	break;
     }
 
-    if (mode == 'X') /* run in exclude mode */
+    if (mode == 'X') { /* run in exclude mode */
 	include_exclude_mode += xXExclude;
+        if (bpf)
+            warnx("Using a BPF filter with -X doesn't work.\nTry using -xF:\"not <filter>\" instead");
+    }
 
     if (cidr != NULL) {
 	return (void *)cidr;
-    }
-    else {
+    } else if (bpf) {
+        return str;
+    } else {
 	return (void *)list;
     }
 

@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.24 2003/11/04 03:16:16 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.25 2003/11/04 05:58:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -84,7 +84,7 @@ CIDR *cidrdata = NULL;
 CACHE *cachedata = NULL;
 struct data_tree treeroot;
 struct options options;
-struct bpf_program *bpf = NULL;
+struct bpf_program bpf;
 
 int mode = 0;
 int automode = 0;
@@ -447,12 +447,13 @@ main(int argc, char *argv[])
 	errx(1, "Error opening file: %s", errbuf);
     }
 
-   /* do we apply a bpf filter? */
+    /* do we apply a bpf filter? */
     if (options.bpf_filter != NULL) {
-	if (pcap_compile(pcap, bpf, options.bpf_filter, 
+	if (pcap_compile(pcap, &bpf, options.bpf_filter, 
 			 options.bpf_optimize, 0) != 0) {
 	    errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
 	}
+        pcap_setfilter(pcap, &bpf);
     }
 
     totpackets = process_raw_packets(pcap);

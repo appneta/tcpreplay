@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.71 2003/11/04 03:03:51 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.72 2003/11/04 05:58:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -65,7 +65,7 @@ int cache_bit, cache_byte;
 u_int32_t cache_packets;
 volatile int didsig;
 
-struct bpf_program *bpf = NULL;
+struct bpf_program bpf;
 int include_exclude_mode = 0;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
@@ -277,7 +277,7 @@ main(int argc, char *argv[])
 	    if (include_exclude_mode & xXPacket) {
 		xX_list = (LIST *) xX;
 	    }
-	    else {
+	    else if (! include_exclude_mode & xXBPF) {
 		xX_cidr = (CIDR *) xX;
 	    }
 	    break;
@@ -291,7 +291,7 @@ main(int argc, char *argv[])
 	    if (include_exclude_mode & xXPacket) {
 		xX_list = (LIST *) xX;
 	    }
-	    else {
+	    else if (! include_exclude_mode & xXBPF) {
 		xX_cidr = (CIDR *) xX;
 	    }
 	    break;
@@ -479,10 +479,11 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 
     /* do we apply a bpf filter? */
     if (options.bpf_filter != NULL) {
-	if (pcap_compile(pcapnav_pcap(pcapnav), bpf, options.bpf_filter, 
+	if (pcap_compile(pcapnav_pcap(pcapnav), &bpf, options.bpf_filter, 
 			 options.bpf_optimize, 0) != 0) {
 	    errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcapnav_pcap(pcapnav)));
 	}
+        pcap_setfilter(pcapnav_pcap(pcapnav), &bpf);
     }
     do_packets(pcapnav, linktype, l2enabled, l2data, l2len);
     pcapnav_close(pcapnav);
