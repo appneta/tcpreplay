@@ -1,4 +1,6 @@
-tcpreplay 1.4
+$Id: README,v 1.2 2003/05/29 22:09:42 aturner Exp $
+
+tcpreplay 1.5
 -------------
 
 tcpreplay is a tool to replay saved tcpdump or snoop files at 
@@ -28,7 +30,7 @@ tcpreplay has been successfully tested on
 	- OpenBSD 2.x, 3.x
 	- FreeBSD 4.x
 	- BSD/OS 3.x
-	- Red Hat Linux 6.x, 7.x, 8.x
+	- Red Hat Linux 6.x, 7.x, 8.x, 9
 	- Solaris 2.7 (SPARC)
 	- OS/X (PPC)
 
@@ -116,5 +118,3 @@ Tcpreplay has been re-written and is now maintained by Matt Bing
 <mbing@nfr.net> and Aaron Turner <aturner@pobox.com>
 Tcpprep was written and is now maintained by Aaron Turner.
 Capinfo was written and is now maintained by Matt Bing.
-
-$Id: README,v 1.1 2003/03/19 04:35:17 aturner Exp $
