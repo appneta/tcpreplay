@@ -1,5 +1,5 @@
 .\" yo there.
-.TH TCPPREP 1  "27 June 2002"
+.TH TCPPREP 1  "22 April 2004"
 .SH NAME
 tcpprep \- create a tcpreplay cache file from a saved capture file
 .SH SYNOPSIS
@@ -13,6 +13,10 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 |
 .B \-r 
 .I regex
+|
+.B \-p
+|
+.B \-P
 ] [
 .B \-h|-V
 ] [
@@ -55,6 +59,8 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .B \-X
 .I exclude
 ]
+.B \-C 
+.I comment
 .br
 .ad
 .SH DESCRIPTION
@@ -87,6 +93,9 @@ CIDR mode. Specify a list of CIDR's (network1/masklen1,network2/masklen2,...)
 to match against the source IP of each packet.  Packets matching any of the 
 CIDR's are sent out the primary interface; remaining packets are sent out 
 the secondary interface.  Can't be used with -r or -a.
+.TP
+.B \-C 
+Imbed a comment in the tcpprep cache file which can be later viewed via -P.
 .TP
 .B \-h
 Help.
@@ -146,6 +155,12 @@ out.  Default is client.
 .TP
 .B \-o
 Output file (tcpreplay cache file)
+.TP
+.B \-p
+Port mode.  Split TCP/UDP traffic based on the destination port.
+.TP
+.B -P
+Print the embeded tcpprep cache file comment.
 .TP
 .B \-r
 Regex mode.  Specifies a regular expression to match against the source ip 
