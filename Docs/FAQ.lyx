@@ -203,7 +203,7 @@ Replaying at different speeds
 You can also replay the traffic at different speeds then it was originally
  captured
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -790,6 +790,12 @@ Note:
  for you.
  It may even make your system horribly unstable, corrupt your harddrive,
  or worse.
+\layout Standard
+
+NOTE: Different operating systems, network card drivers, and even hardware
+ can have an effect on the accuracy of packet timestamps that tcpdump or
+ other capture utilities generate.
+ And as you know: garbage in, garbage out.
 \layout Subsection
 
 Linux 2.4.x
