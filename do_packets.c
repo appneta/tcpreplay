@@ -206,13 +206,13 @@ do_packets(pcap_t * pcap)
 
 	/* Untruncate packet? Only for IP packets */
 	if ((options.trunc) && (ip_hdr != NULL)) {
-	    untrunc_packet(&pkthdr, pktdata, ip_hdr, (void *)l);
+	    untrunc_packet(&pkthdr, pktdata, ip_hdr, l);
 	}
 
 
 	/* do we need to spoof the src/dst IP address? */
 	if ((options.seed) && (ip_hdr != NULL)) {
-	    randomize_ips(&pkthdr, pktdata, ip_hdr, (void *)l);
+	    randomize_ips(&pkthdr, pktdata, ip_hdr, l);
 	}
 
 
@@ -254,7 +254,7 @@ do_packets(pcap_t * pcap)
  */
 void
 randomize_ips(struct pcap_pkthdr *pkthdr,
-	      u_char * pktdata, ip_hdr_t * ip_hdr, void *l)
+	      u_char * pktdata, ip_hdr_t * ip_hdr, libnet_t *l)
 {
     /* randomize IP addresses based on the value of random */
 #ifdef DEBUG
@@ -379,15 +379,12 @@ cidr_mode(struct libnet_ethernet_hdr *eth_hdr, ip_hdr_t * ip_hdr)
 /*
  * this code will untruncate a packet via padding it with null
  * or resetting the actual packet len to the snaplen.  In either case
- * it will recalcuate the IP and transport layer checksums
- *
- * Note that the *l parameter should be the libnet_t *l for libnet 1.1
- * or NULL for libnet 1.0
+ * it will recalcuate the IP and transport layer checksums.
  */
 
 void
 untrunc_packet(struct pcap_pkthdr *pkthdr,
-	       u_char * pktdata, ip_hdr_t * ip_hdr, void *l)
+	       u_char * pktdata, ip_hdr_t * ip_hdr, libnet_t *l)
 {
 
     /* if actual len == cap len or there's no IP header, don't do anything */
@@ -431,11 +428,16 @@ untrunc_packet(struct pcap_pkthdr *pkthdr,
 void
 do_sleep(struct timeval *time, struct timeval *last, int len)
 {
-    static struct timeval didsleep;
-    static struct timeval start;
+    static struct timeval didsleep = {0, 0};
+    static struct timeval start = {0, 0};
     struct timeval nap, now, delta;
     float n;
 
+    /*
+    if (options.pause > 0.0) {
+	sleep(uint options.pause);
+	usleep(uint options.pause % 
+    */
     if (gettimeofday(&now, NULL) < 0) {
 	err(1, "gettimeofday");
     }
