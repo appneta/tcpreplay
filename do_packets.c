@@ -63,7 +63,7 @@ do_packets(pcap_t *pcap)
 	struct pcap_pkthdr pkthdr;      /* libpcap packet info */
 	const u_char *nextpkt = NULL;   /* packet buffer from libpcap */
 	u_char pktdata[MAXPACKET];      /* full packet buffer */
-#ifdef STRICT_ALIGN
+#ifdef FORCE_ALIGN
 	u_char ipbuff[MAXPACKET];       /* IP header and above buffer */
 #endif
 
