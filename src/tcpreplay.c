@@ -47,29 +47,19 @@
 #include "tcpreplay.h"
 #include "tcpreplay_opts.h"
 #include "tcpdump.h"
-#include "portmap.h"
 #include "fileout.h"
+#include "timer.h"
 #include "signal_handler.h"
 #include "netout.h"
-#include "edit_packet.h"
-#include "mac.h"
 
-struct options options;
-char *cachedata = NULL;
+struct tcpreplay_opt_t options;
 CIDR *cidrdata = NULL;
-CIDRMAP *cidrmap_data1 = NULL, *cidrmap_data2 = NULL;
-PORTMAP *portmap_data = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
-char *cache_file = NULL, *intf1 = NULL, *intf2 = NULL;
 int cache_bit, cache_byte;
 u_int64_t cache_packets;
 volatile int didsig;
 
-struct bpf_program bpf;
-int include_exclude_mode = 0;
-CIDR *xX_cidr = NULL;
-LIST *xX_list = NULL;
 char l2data[L2DATALEN] = "";
 int l2len = LIBNET_ETH_H;
 int maxpacket = 0;
@@ -89,10 +79,8 @@ int debug = 0;
 
 void replay_file(char *path, int l2enabled, char *l2data, int l2len);
 void replay_live(char *iface, int l2enabled, char *l2data, int l2len);
-void validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype);
 void usage(void);
 void version(void);
-void configfile(char *file);
 void init(void);
 void apply_filter(pcap_t *pcap);
 
@@ -100,17 +88,17 @@ int
 main(int argc, char *argv[])
 {
     char ebuf[256];
-    int ch, i, nat_interface = 0, optct = 0;
+    int i, optct = 0;
     int l2enabled = 0;
-    void *xX = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
     
     init();                     /* init our globals */
     
-    optct = optionProcess(&CheckOptions, argc, argv);
+    optct = optionProcess(&tcpreplayOptions, argc, argv);
     argc -= optct;
     argv += optct;
-    
+
+#if 0 /* disable getopts */
     while ((ch =
             getopt(argc, argv,
                    "bc:C:De:f:Fhi:I:j:J:k:K:l:L:m:MnN:o:Op:Pr:Rs:S:t:Tu:Vw:W:x:X:12:4:"
@@ -124,63 +112,7 @@ main(int argc, char *argv[])
         switch (ch) {
         case 'b':              /* sniff/send bi-directionally */
             options.sniff_bridge = 1;
-            options.speedmode = TOPSPEED;
-            break;
-        case 'c':              /* cache file */
-            cache_file = optarg;
-            cache_packets = read_cache(&cachedata, cache_file);
-            break;
-        case 'C':              /* cidr matching */
-            options.cidr = 1;
-            if (!parse_cidr(&cidrdata, optarg, ","))
-                errx(1, "Unable to parse -C");
-            break;
-#ifdef DEBUG
-        case 'd':              /* enable debug */
-            debug = atoi(optarg);
-            break;
-#endif
-        case 'D':              /* dump only data (no headers) to file (-w/-W) */
-            options.datadump_mode = 1;
-            options.speedmode = TOPSPEED;
-            break;
-        case 'e':              /* rewrite IP's to two end points */
-            options.rewriteip ++;
-            if (!parse_endpoints(&cidrmap_data1, &cidrmap_data2, optarg))
-                errx(1, "Unable to parse -e");
-            break;
-        case 'f':              /* config file */
-            configfile(optarg);
-            break;
-        case 'F':              /* force fixing checksums */
-            options.fixchecksums = 1;
-            break;
-        case 'i':              /* interface */
-            intf1 = optarg;
-            break;
-        case 'I':              /* primary dest mac */
-            mac2hex(optarg, options.intf1_mac, sizeof(options.intf1_mac));
-            if (memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", optarg);
-            break;
-        case 'j':              /* secondary interface */
-            intf2 = optarg;
-            break;
-        case 'J':              /* secondary dest mac */
-            mac2hex(optarg, options.intf2_mac, sizeof(options.intf2_mac));
-            if (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", optarg);
-            break;
-        case 'k':              /* primary source mac */
-            mac2hex(optarg, options.intf1_smac, sizeof(options.intf1_smac));
-            if (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", optarg);
-            break;
-       case 'K':              /* secondary source mac */
-            mac2hex(optarg, options.intf2_smac, sizeof(options.intf2_smac));
-            if (memcmp(options.intf2_smac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", optarg);
-            break;
+            options.speedmode = SPEED_TOPSPEED;
         case 'l':              /* loop count */
             options.n_iter = atoi(optarg);
             if (options.n_iter < 0)
@@ -197,180 +129,10 @@ main(int argc, char *argv[])
                 errx(1, "Invalid multiplier: %s", optarg);
 
             break;
-        case 'M':              /* disable sending martians */
-            options.no_martians = 1;
-            break;
         case 'n':              /* don't be nosy, non-promisc mode */
             options.promisc = 0;
             break;
-        case 'N':              /* rewrite IP addresses using our pseudo-nat */
-            options.rewriteip ++;
-            nat_interface ++;
 
-            /* first -N is primary nic */
-            if (nat_interface == 1) {
-                if (! parse_cidr_map(&cidrmap_data1, optarg))
-                    errx(1, "Invalid primary NAT string");
-            } else { /* after that, secondary nic */
-                if (! parse_cidr_map(&cidrmap_data2, optarg))
-                    errx(1, "Invalid secondary NAT string");
-            }
-            break;
-        case 'o':              /* starting offset */
-#ifdef HAVE_PCAPNAV
-            options.offset = strtoull(optarg, NULL, 0);
-#else
-            errx(1,
-                 "tcpreplay was not compiled with libpcapnav.  Unable to use -o");
-#endif
-            break;
-        case 'O':              /* One interface/file */
-            options.one_output = 1;
-            break;
-        case 'p':              /* packets/sec */
-            options.speedmode = PACKETRATE;
-            if ((options.speed = atof(optarg)) <= 0)
-                errx(1, "Invalid packetrate value: %s", optarg);
-            break;
-        case 'P':              /* print our PID */
-            fprintf(stderr, "PID: %hu\n", getpid());
-            break;
-        case 'r':              /* target rate */
-            options.speedmode = MBPSRATE;
-            if ((options.speed = atof(optarg)) <= 0)
-                errx(1, "Invalid rate: %s", optarg);
-            /* convert to bytes */
-            options.speed = (options.speed * (1024 * 1024)) / 8;
-            break;
-        case 'R':              /* replay at top speed */
-            options.speedmode = TOPSPEED;
-            break;
-        case 's':
-            options.seed = atoi(optarg);
-            break;
-        case 'S':              /* enable live replay mode w/ snaplen */
-            options.sniff_snaplen = atoi(optarg);
-            if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > MAX_SNAPLEN)) {
-                errx(1, "Invalid snaplen: %d", options.sniff_snaplen);
-            }
-            else if (options.sniff_snaplen == 0) {
-                options.sniff_snaplen = MAX_SNAPLEN;
-            }
-            break;
-        case 't':              /* MTU */
-            options.mtu = atoi(optarg);
-            break;
-        case 'T':              /* Truncate frames > MTU */
-            options.truncate = 1;
-            break;
-        case 'w':              /* write packets to file */
-            if (!options.datadump_mode) {
-                if ((options.savepcap =
-                     pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
-                    errx(1, "error setting primary output file linktype");
-
-                if ((options.savedumper =
-                     pcap_dump_open(options.savepcap, optarg)) == NULL)
-                    errx(1, "pcap_dump_open() error: %s",
-                         pcap_geterr(options.savepcap));
-                
-                warnx("saving primary packets in %s", optarg);
-            }
-            else {
-                if ((options.datadumpfile =
-                     creat(optarg,
-                           S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
-                    errx(1, "error creating primary output file: %s\n%s",
-                         optarg, strerror(errno));
-                warnx("saving primary data in %s", optarg);
-            }
-            break;
-        case 'W':              /* write packets to second file */
-            /* don't bother opening a second file in one_output mode */
-            if (options.one_output)
-                break;
-
-            if (!options.datadump_mode) {
-                if ((options.savepcap2 =
-                     pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
-                    errx(1, "error setting secondary output file linktype");
-
-                if ((options.savedumper2 =
-                     pcap_dump_open(options.savepcap2, optarg)) == NULL)
-                    errx(1, "pcap_dump_open() error: %s",
-                         pcap_geterr(options.savepcap2));
-
-                warnx("saving secondary packets in %s", optarg);
-            }
-            else {
-                if ((options.datadumpfile2 =
-                     creat(optarg,
-                           S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
-                    errx(1, "error creating secondary output file: %s\n%s",
-                         optarg, strerror(errno));
-                warnx("saving secondary data in %s", optarg);
-            }
-            break;
-        case 'u':              /* untruncate packet */
-            if (strcmp("pad", optarg) == 0) {
-                options.trunc = PAD_PACKET;
-            }
-            else if (strcmp("trunc", optarg) == 0) {
-                options.trunc = TRUNC_PACKET;
-            }
-            else {
-                errx(1, "Invalid untruncate option: %s", optarg);
-            }
-            options.fixchecksums = 0;   /* untruncating already does this */
-            break;
-#ifdef HAVE_TCPDUMP
-        case 'v':              /* verbose: print packet decodes via tcpdump */
-            options.verbose = 1;
-            break;
-        case 'A':
-            tcpdump.args = optarg;
-            break;
-#endif
-        case 'V':              /* print version info */
-            version();
-            break;
-        case 'x':              /* include mode */
-            if (include_exclude_mode != 0)
-                errx(1, "Error: Can only specify -x OR -X");
-
-            include_exclude_mode = 'x';
-            if ((include_exclude_mode = 
-                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
-                errx(1, "Unable to parse -x: %s", optarg);
-
-            if (include_exclude_mode & xXPacket) {
-                xX_list = (LIST *) xX;
-            } else if (! (include_exclude_mode & xXBPF)) {
-                xX_cidr = (CIDR *) xX;
-            }
-            break;
-        case 'X':              /* exclude mode */
-            if (include_exclude_mode != 0)
-                errx(1, "Error: Can only specify -x OR -X");
-
-            include_exclude_mode = 'X';
-            if ((include_exclude_mode = 
-                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
-                errx(1, "Unable to parse -X: %s", optarg);
-
-            if (include_exclude_mode & xXPacket) {
-                xX_list = (LIST *) xX;
-            } else {
-                xX_cidr = (CIDR *) xX;
-            } 
-            break;
-        case '1':              /* replay one packet at a time */
-            options.speedmode = ONEATATIME;
-            break;
-        case '2':              /* layer 2 header file */
-            l2enabled = 1;
-            l2len = read_hexstring(optarg, l2data, L2DATALEN);
-            break;
         case '4':
             options.rewriteports = 1;
 
@@ -383,7 +145,8 @@ main(int argc, char *argv[])
 
     argc -= optind;
     argv += optind;
-
+#endif /* getopts */
+    
     if ((argc == 0) && (!options.sniff_bridge))
         errx(1, "Must specify one or more pcap files to process");
 
@@ -392,27 +155,17 @@ main(int argc, char *argv[])
             if (!strcmp("-", argv[i]))
                 errx(1, "stdin must be the only file specified");
 
-    if (intf1 == NULL)
+    if (options.intf1_name == NULL)
         errx(1, "Must specify a primary interface");
 
-    if ((intf2 == NULL) && (cache_file != NULL))
+    if ((options.intf2_name == NULL) && (options.cachedata != NULL))
         errx(1, "Needs secondary interface with cache");
 
-    if ((intf2 != NULL) && (!options.sniff_bridge) && 
-        (!options.cidr && (cache_file == NULL)))
+    if ((options.intf2_name != NULL) && (!options.sniff_bridge) && 
+        (options.cachedata == NULL))
         errx(1, "Needs cache or cidr match with secondary interface");
 
-    if (options.sniff_bridge && (options.savepcap ||
-                                 options.savedumper ||
-                                 options.savepcap2 || options.savedumper2)) {
-        errx(1, "Bridge mode excludes saving packets or data to file");
-    }
-
-    if ((intf2 != NULL) && options.datadump_mode && (!options.one_output) &&
-        ((options.datadumpfile == 0) || (options.datadumpfile2 == 0)))
-        errx(1,
-             "You must specify two output files when splitting traffic in data dump mode");
-
+    
     if ((options.offset) && (options.sniff_snaplen != -1)) {
         errx(1, "You can't specify an offset when sniffing a live network");
     }
@@ -426,85 +179,37 @@ main(int argc, char *argv[])
         errx(1, "Bridging requires sniff mode (-S <snaplen>)");
     }
 
-    if ((options.sniff_bridge) && (intf2 == NULL)) {
+    if ((options.sniff_bridge) && (options.intf2_name == NULL)) {
         errx(1, "Bridging requires a secondary interface");
     }
 
-    if ((options.sniff_snaplen != -1) && (options.speedmode == ONEATATIME)) {
+    if ((options.sniff_snaplen != -1) && (options.speedmode == SPEED_ONEATATIME)) {
         errx(1, "Sniffing live traffic excludes one at a time mode");
     }
 
-    if (options.one_output && options.sniff_bridge) {
-        errx(1, "One output mode and bridge mode are incompatible");
-    }
-
-    if ((options.rewriteip > 1) && (options.rewriteip != nat_interface)) {
-        errx(1, "Using both -N and -e are not supported");
-    }
-
-    if (options.seed != 0) {
-        srand(options.seed);
-        options.seed = random();
-
-        dbg(1, "random() picked: %d", options.seed);
-    }
-
-    /*
-     * If we have one and only one -N, then use the same map data
-     * for both interfaces/files
-     */
-    if ((cidrmap_data1 != NULL) && (cidrmap_data2 == NULL))
-        cidrmap_data2 = cidrmap_data1;
-
-    /*
-     * some options are limited if we change the type of header
-     * we're making a half-assed assumption that any header 
-     * length = LIBNET_ETH_H is actually 802.3.  This will 
-     * prolly bite some poor slob later using some wierd
-     * header type in their pcaps, but I don't really care right now
-     */
-    if (l2len != LIBNET_ETH_H) {
-        /* 
-         * we can't untruncate packets with a different lenght
-         * ethernet header because we don't take the lenghts
-         * into account when doing the pointer math
-         */
-        if (options.trunc)
-            errx(1, "You can't use -u with non-802.3 frames");
-
-        /*
-         * we also can't rewrite macs for non-802.3
-         */
-        if ((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-            (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0))
-            errx(1,
-                 "You can't rewrite destination MAC's with non-802.3 frames");
-
-    }
-
     /* open interfaces for writing */
-    if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf1, ebuf)) == NULL)
-        errx(1, "Libnet can't open %s: %s", intf1, ebuf);
+    if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, options.intf1_name, ebuf)) == NULL)
+        errx(1, "Libnet can't open %s: %s", options.intf1_name, ebuf);
 
-    if (intf2 != NULL) {
-        if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
-            errx(1, "Libnet can't open %s: %s", intf2, ebuf);
+    if (options.intf2 != NULL) {
+        if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, options.intf2_name, ebuf)) == NULL)
+            errx(1, "Libnet can't open %s: %s", options.intf2_name, ebuf);
     }
 
     /* open bridge interfaces for reading */
     if (options.sniff_bridge) {
         if ((options.listen1 =
-             pcap_open_live(intf1, options.sniff_snaplen,
+             pcap_open_live(options.intf1_name, options.sniff_snaplen,
                             options.promisc, PCAP_TIMEOUT, errbuf)) == NULL) {
-            errx(1, "Libpcap can't open %s: %s", intf1, errbuf);
+            errx(1, "Libpcap can't open %s: %s", options.intf1_name, errbuf);
         }
 
         apply_filter(options.listen1);
 
         if ((options.listen2 =
-             pcap_open_live(intf2, options.sniff_snaplen,
+             pcap_open_live(options.intf2_name, options.sniff_snaplen,
                             options.promisc, PCAP_TIMEOUT, errbuf)) == NULL) {
-            errx(1, "Libpcap can't open %s: %s", intf2, errbuf);
+            errx(1, "Libpcap can't open %s: %s", options.intf2_name, errbuf);
         }
 
         apply_filter(options.listen2);
@@ -525,19 +230,14 @@ main(int argc, char *argv[])
             errx(1, "Unable to bridge loopback interface");
         }
 
-        /* 
-         * only need to validate once since we're guaranteed both interfaces
-         * use the same link type
-         */
-        validate_l2(intf1, l2enabled, l2data, l2len,
-                    pcap_datalink(options.listen1));
+      
         
-        warnx("listening on: %s %s", intf1, intf2);
+        warnx("listening on: %s %s", options.intf1_name, options.intf2_name);
 
     }
 
-    if (options.savepcap == NULL)
-        warnx("sending on: %s %s", intf1, intf2 == NULL ? "" : intf2);
+    warnx("sending on: %s %s", options.intf1_name, 
+        options.intf2_name == NULL ? "" : options.intf2_name);
 
     /* init the signal handlers */
     init_signal_handlers();
@@ -600,20 +300,6 @@ main(int argc, char *argv[])
     if (bytes_sent > 0)
         packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
 
-    /* save the pcap write file */
-    if (options.savepcap != NULL)
-        pcap_dump_close(options.savedumper);
-
-    if (options.savepcap2 != NULL)
-        pcap_dump_close(options.savedumper2);
-
-    /* close the data dump files */
-    if (options.datadumpfile)
-        close(options.datadumpfile);
-
-    if (options.datadumpfile2)
-        close(options.datadumpfile2);
-
     return 0;
 }                               /* main() */
 
@@ -626,7 +312,6 @@ void
 replay_live(char *iface, int l2enabled, char *l2data, int l2len)
 {
     pcap_t *pcap = NULL;
-    u_int32_t linktype = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
 
     /* if no interface specified, pick one */
@@ -634,7 +319,7 @@ replay_live(char *iface, int l2enabled, char *l2data, int l2len)
         errx(1, "Error determing live capture device : %s", errbuf);
     }
 
-    if (strcmp(intf1, iface) == 0) {
+    if (strcmp(options.intf1_name, iface) == 0) {
         warnx("WARNING: Listening and sending on the same interface!");
     }
 
@@ -644,20 +329,19 @@ replay_live(char *iface, int l2enabled, char *l2data, int l2len)
         errx(1, "Error opening live capture: %s", errbuf);
     }
 
-    linktype = pcap_datalink(pcap);
-    validate_l2(iface, l2enabled, l2data, l2len, linktype);
+    options.l2.linktype = pcap_datalink(pcap);
 
     /* do we apply a bpf filter? */
-    if (options.bpf_filter != NULL) {
-        if (pcap_compile(pcap, &bpf, options.bpf_filter,
-                         options.bpf_optimize, 0) != 0) {
+    if (options.bpf.filter != NULL) {
+        if (pcap_compile(pcap, &options.bpf.program, options.bpf.filter,
+                         options.bpf.optimize, 0) != 0) {
             errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
         }
-        if (pcap_setfilter(pcap, &bpf) != 0)
+        if (pcap_setfilter(pcap, &options.bpf.program) != 0)
             errx(1, "Unable to apply BPF filter: %s", pcap_geterr(pcap));
     }
 
-    do_packets(NULL, pcap, linktype, l2enabled, l2data, l2len);
+    do_packets(pcap);
     pcap_close(pcap);
 }
 
@@ -687,11 +371,9 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
     pcap = pcapnav_pcap(pcapnav);
     linktype = pcap_datalink(pcap);
 
-    validate_l2(path, l2enabled, l2data, l2len, linktype);
-
     apply_filter(pcapnav_pcap(pcapnav));
 
-    do_packets(pcapnav, NULL, linktype, l2enabled, l2data, l2len);
+    do_packets(pcapnav_pcap(pcapnav));
     pcapnav_close(pcapnav);
 #ifdef HAVE_TCPDUMP
     tcpdump_close(&tcpdump);
@@ -706,382 +388,15 @@ apply_filter(pcap_t * pcap)
 {
 
     /* do we apply a bpf filter? */
-    if (options.bpf_filter != NULL) {
-        if (pcap_compile(pcap, &bpf, options.bpf_filter,
-                         options.bpf_optimize, 0) != 0) {
+    if (options.bpf.filter != NULL) {
+        if (pcap_compile(pcap, &options.bpf.program, options.bpf.filter,
+                         options.bpf.optimize, 0) != 0) {
             errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
         }
-        pcap_setfilter(pcap, &bpf);
+        pcap_setfilter(pcap, &options.bpf.program);
     }
 }
 
-/* 
- * if linktype not DLT_EN10MB we have to see if we can send the frames
- * if DLT_LINUX_SLL AND (options.intf1_mac OR l2enabled), then OK
- * else if l2enabled, then ok
- */
-void
-validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
-{
-
-
-    dbg(1, "Linktype is %s\n", pcap_datalink_val_to_description(linktype));
-
-    switch (linktype) {
-    case DLT_EN10MB:
-        /* nothing to do here */
-        break;
-
-    case DLT_LINUX_SLL:
-        
-        /* single output mode */
-        if (! options.intf2) {
-            /* if SLL, then either -2 or -I are ok */
-            if ((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) && (!l2enabled)) {
-                warnx("Unable to process pcap without -2 or -I: %s", name);
-                return;
-            }
-        }
-        
-        /* dual output mode */
-        else {
-            /* if using dual interfaces, make sure -2 or -J & -I) is set */
-            if (((memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
-                (! l2enabled)) {
-                errx(1, "Unable to process pcap with -j without -2 or -I & -J: %s",  name);
-                return;
-            }
-        }            
-        break;
-            
-    case DLT_CHDLC:
-        /* Cisco HDLC (used at least for SONET) */
-        /* 
-         * HDLC has a 4byte header, a 2 byte address type (0x0f00 is unicast
-         * is all I know) and a 2 byte protocol type
-         */
-            
-        /* single output mode */
-        if (! options.intf2) {
-            /* Need either a full l2 header or -I & -k */
-            if (((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) || 
-                 (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
-                (! l2enabled)) {
-                errx(1, "Unable to process pcap without -2 or -I and -k: %s", name);
-                return;
-            }
-        }
-        
-        /* dual output mode */
-        else {
-            /* Need to have a l2 header or -J, -K, -I, -k */
-            if (((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf2_smac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
-                (! l2enabled)) {
-                errx(1, "Unable to process pcap with -j without -2 or -J, -I, -K & -k: %s", name);
-                return;
-            }
-        }
-        break;
-        
-    case DLT_RAW:
-        if (!l2enabled) {
-            errx(1, "Unable to process pcap without -2: %s",  name);
-            return;
-        }
-        break;
-
-    default:
-        errx(1, "validate_l2(): Unsupported datalink type: %s (0x%x)", 
-             pcap_datalink_val_to_description(linktype), linktype);
-        break;
-    }
-
-    /* calculate the maxpacket based on the l2len, linktype and mtu */
-    if (l2enabled) {
-        /* custom L2 header */
-        dbg(1, "Using custom L2 header to calculate max frame size");
-        maxpacket = options.mtu + l2len;
-    }
-    else if (linktype == DLT_EN10MB) {
-        /* ethernet */
-        dbg(1, "Using Ethernet to calculate max frame size");
-        maxpacket = options.mtu + LIBNET_ETH_H;
-    }
-    else {
-        /* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
-        maxpacket = options.mtu + LIBNET_ETH_H;
-        warnx("Unable to determine layer 2 encapsulation, assuming ethernet\n"
-              "You may need to increase the MTU (-t <size>) if you get errors");
-    }
-
-}
-
-
-/*
- * parse the configfile, and put all the values into options
- */
-void
-configfile(char *file)
-{
-    FILE *fp;
-    char *argv[MAX_ARGS], buf[BUFSIZ];
-    int argc, i;
-    void *xX;
-    int nat_interface = 0;
-
-    if ((fp = fopen(file, "r")) == NULL)
-        errx(1, "Could not open config file %s", file);
-
-    for (i = 1; fgets(buf, sizeof(buf), fp) != NULL; i++) {
-        if (*buf == '#' || *buf == '\r' || *buf == '\n')
-            continue;
-
-        if ((argc = argv_create(buf, MAX_ARGS, argv)) < 1) {
-            warnx("couldn't parse arguments (line %d)", i);
-            break;
-        }
-
-#define ARGS(x, y) ( (!strcmp(argv[0], x)) && (argc == y) )
-        if (ARGS("sniff_bridge", 1)) {
-            options.sniff_bridge = 1;
-        }
-        else if (ARGS("cachefile", 2)) {
-            cache_file = strdup(argv[1]);
-            cache_packets = read_cache(&cachedata, cache_file);
-        }
-        else if (ARGS("cidr", 2)) {
-            options.cidr = 1;
-            if (!parse_cidr(&cidrdata, argv[1], ","))
-                usage();
-        }
-        else if (ARGS("endpoints", 2)) {
-            options.rewriteip ++;
-            if (!parse_endpoints(&cidrmap_data1, &cidrmap_data2, argv[1]))
-                usage();
-        }
-#ifdef DEBUG
-        else if (ARGS("debug", 1)) {
-            debug = 1;
-        }
-#endif
-        else if (ARGS("datadump_mode", 1)) {
-            options.datadump_mode = 1;
-        }
-        else if (ARGS("fixchecksums", 1)) {
-            options.fixchecksums = 1;
-        }
-        else if (ARGS("l2data", 2)) {
-            l2len = read_hexstring(argv[1], l2data, L2DATALEN);
-        }
-        else if (ARGS("primary_intf", 2)) {
-            intf1 = strdup(argv[1]);
-        }
-        else if (ARGS("primary_mac", 2)) {
-            mac2hex(argv[1], options.intf1_mac, sizeof(options.intf1_mac));
-            if (memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", argv[1]);
-        }
-        else if (ARGS("primary_smac", 2)) {
-            mac2hex(argv[1], options.intf1_smac, sizeof(options.intf1_smac));
-            if (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", argv[1]);
-        }
-        else if (ARGS("second_intf", 2)) {
-            intf2 = strdup(argv[1]);
-        }
-        else if (ARGS("second_mac", 2)) {
-            mac2hex(argv[1], options.intf2_mac, sizeof(options.intf2_mac));
-            if (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", argv[1]);
-        }
-        else if (ARGS("second_smac", 2)) {
-            mac2hex(argv[1], options.intf2_smac, sizeof(options.intf2_smac));
-            if (memcmp(options.intf2_smac, NULL_MAC, LIBNET_ETH_H) == 0)
-                errx(1, "Invalid mac address: %s", argv[1]);
-        }
-        else if (ARGS("loop", 2)) {
-            options.n_iter = atoi(argv[1]);
-            if (options.n_iter < 0)
-                errx(1, "Invalid loop count: %s", argv[1]);
-        }
-        else if (ARGS("limit_send", 2)) {
-            options.limit_send = strtoull(argv[1], NULL, 0);
-            if (options.limit_send <= 0)
-                errx(1, "limit_send <limit> must be positive");
-        }
-        else if (ARGS("multiplier", 2)) {
-            options.speedmode = MULTIPLIER;
-            if ((options.speed = atof(argv[1])) <= 0)
-                errx(1, "Invalid multiplier: %s", argv[1]);
-        }
-        else if (ARGS("no_martians", 1)) {
-            options.no_martians = 1;
-        }
-        else if (ARGS("nat", 2)) {
-            options.rewriteip ++;
-            nat_interface ++;
-            if (nat_interface == 1) {
-                if (! parse_cidr_map(&cidrmap_data1, argv[1]))
-                    errx(1, "Invalid primary NAT string");
-            } else {
-                if (! parse_cidr_map(&cidrmap_data2, argv[1]))
-                    errx(1, "Invalid secondary NAT string");
-            }
-        }
-        else if (ARGS("portmap", 2)) {
-            options.rewriteports = 1;
-
-            if (! parse_portmap(&portmap_data, argv[1]))
-                errx(1, "Invalid port mapping");
-        }
-#ifdef HAVE_PCAPNAV
-        else if (ARGS("offset", 2)) {
-            options.offset = strtoull(argv[1], NULL, 0);
-        }
-#endif
-        else if (ARGS("one_output", 1)) {
-            options.one_output = 1;
-        }
-        else if (ARGS("one_at_a_time", 1)) {
-            options.speedmode = ONEATATIME;
-        }
-        else if (ARGS("rate", 2)) {
-            options.speedmode = MBPSRATE;
-            if ((options.speed = atof(argv[1])) <= 0)
-                errx(1, "Invalid rate: %s", argv[1]);
-            /* convert to bytes */
-            options.speed = (options.speed * (1024 * 1024)) / 8;
-        }
-        else if (ARGS("topspeed", 1)) {
-            options.speedmode = TOPSPEED;
-        }
-        else if (ARGS("mtu", 2)) {
-            options.mtu = atoi(argv[1]);
-        }
-        else if (ARGS("not_nosy", 1)) {
-            options.promisc = 0;
-        }
-        else if (ARGS("truncate", 1)) {
-            options.truncate = 1;
-        }
-        else if (ARGS("untruncate", 2)) {
-            if (strcmp("pad", argv[1]) == 0) {
-                options.trunc = PAD_PACKET;
-            }
-            else if (strcmp("trunc", argv[1]) == 0) {
-                options.trunc = TRUNC_PACKET;
-            }
-            else {
-                errx(1, "Invalid untruncate option: %s", argv[1]);
-            }
-        }
-        else if (ARGS("seed", 2)) {
-            options.seed = atol(argv[1]);
-        }
-        else if (ARGS("sniff_snaplen", 2)) {
-            options.sniff_snaplen = atoi(argv[1]);
-            if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > MAX_SNAPLEN)) {
-                errx(1, "Invalid sniff snaplen: %d", options.sniff_snaplen);
-            }
-            else if (options.sniff_snaplen == 0) {
-                options.sniff_snaplen = MAX_SNAPLEN;
-            }
-        }
-        else if (ARGS("packetrate", 2)) {
-            options.speedmode = PACKETRATE;
-            if ((options.speed = atof(argv[1])) <= 0)
-                errx(1, "Invalid packetrate option: %s", argv[1]);
-        }
-        else if (ARGS("include", 2)) {
-            if (include_exclude_mode != 0)
-                errx(1,
-                     "Error: Can only specify include (-x) OR exclude (-X) ");
-            include_exclude_mode = 'x';
-            if ((include_exclude_mode = 
-                 parse_xX_str(include_exclude_mode, argv[1], &xX)) == 0)
-                errx(1, "Unable to parse include: %s", optarg);
-            if (include_exclude_mode & xXPacket) {
-                xX_list = (LIST *) xX;
-            }
-            else if (!include_exclude_mode & xXBPF) {
-                xX_cidr = (CIDR *) xX;
-            }
-        }
-        else if (ARGS("exclude", 2)) {
-            if (include_exclude_mode != 0)
-                errx(1, "Error: Can only specify include (-x) OR exclude (-X)");
-
-            include_exclude_mode = 'X';
-            if ((include_exclude_mode =
-                 parse_xX_str(include_exclude_mode, argv[1], &xX)) == 0)
-                errx(1, "Unable to parse exclude: %s", optarg);
-            if (include_exclude_mode & xXPacket) {
-                xX_list = (LIST *) xX;
-            }
-            else if (!include_exclude_mode & xXBPF) {
-                xX_cidr = (CIDR *) xX;
-            }
-        }
-        else if (ARGS("primary_write", 2)) {
-            if (!options.datadump_mode) {
-                if ((options.savepcap =
-                     pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
-                    errx(1, "error setting primary output file linktype");
-
-                if ((options.savedumper =
-                     pcap_dump_open(options.savepcap, argv[1])) == NULL)
-                    errx(1, "pcap_dump_open() error: %s",
-                         pcap_geterr(options.savepcap));
-
-                warnx("saving primary packets in %s", argv[1]);
-            }
-            else {
-                if ((options.datadumpfile =
-                     creat(argv[1],
-                           S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
-                    errx(1, "error creating primary output file: %s\n%s",
-                         argv[1], strerror(errno));
-                    warnx("saving primary data in %s", argv[1]);
-                }
-            }
-        }
-        else if (ARGS("second_write", 2)) {
-            if (!options.datadump_mode) {
-                if ((options.savepcap2 =
-                     pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
-                    errx(1, "error setting secondary output file linktype");
-
-                if ((options.savedumper2 =
-                     pcap_dump_open(options.savepcap2, argv[1])) == NULL)
-                    errx(1, "pcap_dump_open() error: %s",
-                         pcap_geterr(options.savepcap2));
-
-                warnx("saving secondary packets in %s", argv[1]);
-            }
-            else {
-                if ((options.datadumpfile2 =
-                     creat(argv[1],
-                           S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
-                    errx(1, "error creating secondary output file: %s\n%s",
-                         argv[1], strerror(errno));
-                warnx("saving secondary data in %s", argv[1]);
-            }
-        }
-        else if (ARGS("verbose", 1)) {
-            options.verbose = 1;
-        }
-        else if (ARGS("tcpdump_args", 2)) {
-            tcpdump.args = argv[1];
-        }
-        else {
-            errx(1, "Skipping unrecognized: %s", argv[0]);
-        }
-    }
-}
 
 void
 version(void)
@@ -1170,21 +485,23 @@ void
 init(void)
 {
     bytes_sent = failed = pkts_sent = 0;
-    intf1 = intf2 = NULL;
     memset(&options, 0, sizeof(options));
 
     /* replay packets only once */
     options.n_iter = 1;
     
     /* Default mode is to replay pcap once in real-time */
-    options.speedmode = MULTIPLIER;
+    options.speedmode = SPEED_MULTIPLIER;
     options.speed = 1.0;
 
     /* set the default MTU size */
     options.mtu = DEFAULT_MTU;
 
     /* set the bpf optimize */
-    options.bpf_optimize = BPF_OPTIMIZE;
+    options.bpf.optimize = BPF_OPTIMIZE;
+
+    /* default L2 len is ethernet */
+    options.l2.len = LIBNET_ETH_H;
 
     /* sniff mode options */
     options.sniff_snaplen = -1; /* disabled */

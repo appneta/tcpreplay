@@ -35,95 +35,70 @@
 
 #include "../config.h"
 #include "defines.h"
-#include "common.h"
 
-#if 0
-struct config_def_t options_map[] = {
-    { "verbose", "print decoded packet as it's sent", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
-    { "print", "arguments to pass to tcpdump to print decoded packet", CONFIG_TYPE_STRING, 1, 1, 0 },
-    { "cache", "tcpprep cache file to split traffic with", CONFIG_TYPE_STRING, 1, 1, 0 },
-    { "cidr", "split traffic based on source ip matching a list of networks", CONFIG_TYPE_CIDR, 1, -1, ',' },
-    { "limit", "specify the number of packets to send", CONFIG_TYPE_INT, 1, 1, 0 },
-    { "intf1", "primary output interface", CONFIG_TYPE_STRING, 1, 1, 0 },
-    { "intf2", "secondary output interface", CONFIG_TYPE_STRING, 1, 1, 0 },
-    { "file1", "primary output file", CONFIG_TYPE_STRING, 1, 1, 0 },
-    { "file2", "secondary output file", CONFIG_TYPE_STRING, 1, 1, 0 },
-    { "dumpdata", "write application layer data to output files", CONFIG_TYPE_INT, 0, 0, 0 },
-    { "multi", "resend packets at a multiple of the original", CONFIG_TYPE_DOUBLE, 1, 1, 0 },
-    { "pps", "resend packets at a given packets/second", CONFIG_TYPE_INT, 1, 1, 0 },
-    { "mbps", "resend packets a given Mbps/second", CONFIG_TYPE_DOUBLE, 1, 1, 0 },
-    { "onetime", "resend one packet per keypress", CONFIG_TYPE_INT, 0, 0, 0 },
-    { "topspeed", "resend packets as fast as possible", CONFIG_TYPE_INT, 0, 0, 0 },
-    { "loop", "loop through pcap file X times", CONFIG_TYPE_INT, 1, 1, 0 },
-    { "nopromisc", "don't listen promiscously when sniffing", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
-    { "offset", "start sending packets from the given byte offset", CONFIG_TYPE_INT, 1, 1, 0 },
-    { "oneout", "", CONFIG_TYPE_BOOLEAN, 0, 0 , 0 },
-    { "pid", "print the process id", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
-    { "sniff", "read packets from the network instead of a file", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
-    { "mtu", "set the mtu in bytes of the output", CONFIG_TYPE_INT, 1, 1, 0 },
-    { "ippair", "rewrite all network traffic to be between two ip addresses", 2, 2, ':' },
-    { NULL, NULL, 0 }
-};
-
-
-
-#endif
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <libnet.h>
 
 /* run-time options */
-struct options {
-    LIBNET *intf1;
-    LIBNET *intf2;
+struct tcpreplay_opt_t {
+    /* input/output */
+    char *intf1_name;
+    char *intf2_name;
+    libnet_t *intf1;
+    libnet_t *intf2;
     pcap_t *listen1;
     pcap_t *listen2;
-    pcap_t *savepcap;
+/* disable data dump mode
+    pcap_t *savepcap1;
     pcap_t *savepcap2;
-    pcap_dumper_t *savedumper;
+    pcap_dumper_t *savedumper1;
     pcap_dumper_t *savedumper2;
-    char intf1_mac[ETHER_ADDR_LEN];
-    char intf2_mac[ETHER_ADDR_LEN];
-    char intf1_smac[ETHER_ADDR_LEN];
-    char intf2_smac[ETHER_ADDR_LEN];
+
     int datadump_mode;
-    int datadumpfile;
+    int datadumpfile1;
     int datadumpfile2;
-    int break_percent;
+*/
+    /* speed modifiers */
     int speedmode;
-#define MULTIPLIER 1
-#define PACKETRATE 2
-#define MBPSRATE   3
-#define ONEATATIME 4
-#define TOPSPEED   5
+#define SPEED_MULTIPLIER 1
+#define SPEED_MBPSRATE   2
+#define SPEED_PACKETRATE 3
+#define SPEED_TOPSPEED   4
+#define SPEED_ONEATATIME 5
     float speed;
+    u_int32_t limit;
+    u_int32_t loop;
     int n_iter;
+
+    /* tcpprep cache data */
     int cache_packets;
-    int no_martians;
-    int fixchecksums;
-    int cidr;
-    int trunc;
-    long int seed;
-    int rewriteip;
-    int rewriteports;
+    char *cachedata;
+    char *tcpprep_comment;
+
+    /* deal with MTU/packet len issues */
     int mtu;
     int truncate;
+    
     char **files;
-    char *cache_files;
     u_int64_t offset; 
     u_int64_t limit_send;
-    char *bpf_filter;
-    int bpf_optimize;
+    
+    
+    /* bridge packets */
     int sniff_snaplen;
     int sniff_bridge;
     int promisc;
     int poll_timeout;
+    bpf_t bpf;
+
     int verbose;
-    int one_output;
-    char *tcpprep_comment;
-    char break_type;
+    l2_t l2;
+
 };
 
-
 #endif
-
 /*
  Local Variables:
  mode:c
@@ -131,4 +106,3 @@ struct options {
  c-basic-offset:4
  End:
 */
-
