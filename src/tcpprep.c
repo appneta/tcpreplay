@@ -492,10 +492,10 @@ post_args(int argc, char *argv[])
 
     /* copy over our min/max mask */
     if (HAVE_OPT(MINMASK))
-        options.min_mask = OPT_ARG(MINMASK);
+        options.min_mask = OPT_VALUE_MINMASK;
     
     if (HAVE_OPT(MAXMASK))
-        options.max_mask = OPT_ARG(MAXMASK);
+        options.max_mask = OPT_VALUE_MAXMASK;
     
     if (options.min_mask > options.max_mask)
         errx(1, "Min network mask len (%d) must be less then max network mask len (%d)",
