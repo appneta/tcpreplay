@@ -9,8 +9,11 @@ $Id$
     - Fix small documentation bugs in man/tcpreplay.8
     - Updated the FAQ
     - Start using automake and autoheader
-    - Major rewrite of autoconf
+    - Major rewrite of configure.in
     - Remove capinfo and pcapmerge
+    - Add support for printing which interface packets go out w/ -1
+    - I now own the full copyright for tcpreplay
+    - Removed the evil 4th clause from the BSD license
 
 09/19/2004: Version 2.3.1
     - Fix bug with fakepcap.c which appeared on systems using an older

@@ -134,13 +134,31 @@ The source code is available in tarball format on the tcpreplay homepage:
  in the tarballs.
 \layout Standard
 
-svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay-ng
+svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay-3
 \layout Subsection
 
 What requirements does tcpreplay have?
 \layout Enumerate
 
-You'll need the libnet and libpcap libraries.
+You'll need recent versions of the libnet
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+http://www.packetfactory.net/libnet/
+\end_inset 
+
+ and libpcap
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+http://www.tcpdump.org/
+\end_inset 
+
+ libraries.
 \layout Enumerate
 
 To support the jump to offset feature, you'll need the libpcapnav
@@ -250,7 +268,7 @@ Not really.
 How is tcpreplay licensed?
 \layout Standard
 
-Tcpreplay is licensed under a BSD-style license.
+Tcpreplay is licensed under a 3 clause BSD-style license.
  For details, see Appendix A.
 \layout Subsection
 
@@ -347,9 +365,8 @@ Then in 2001, two people independently started work on tcpreplay: Matt Bing
 
 After some discussion between Aaron and Matt Bing, they decided to continue
  development together.
- Since then, over a dozen stable releases have been made and more then twenty
- new features have been added, including the addition of a number of accessory
- tools.
+ Since then, two major rewrites have occured, and more then thirty new features
+ have been added, including the addition of a number of accessory tools.
 \layout Standard
 
 Today, Aaron continues active development of the code.
@@ -427,18 +444,15 @@ Patch requirements
 
 Be aware that submitting a patch, 
 \emph on 
-you are licensing it under the BSD License
+you are assigning your copyright to me.
+
 \emph default 
- as written in Appendix A.
  If this is not acceptable to you, then 
 \emph on 
 do not
 \emph default 
- send me the patch!
-\layout Itemize
-
-If you wish to maintain the copyright over your code, be sure that your
- patch contains the appropriate information.
+ send me the patch! I have people assign their copyright to me to help prevent
+ licensing issues that may crop up in the future.
 \layout Itemize
 
 Please provide a description of what your patch does!
@@ -448,8 +462,8 @@ Comment your code! I won't use code I can't understand.
 \layout Itemize
 
 Make sure you are patching a branch that is still being maintained.
- Generally that means that most recent stable and development branches (1.4
- and 2.0 at the time of this writing).
+ Generally that means that most recent stable and development branches (2.0
+ and 3.0 at the time of this writing).
 \layout Itemize
 
 Make sure you are patching against the most recent release for that branch.
