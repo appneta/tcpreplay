@@ -44,14 +44,17 @@
 #include "tcpreplay.h"
 #include "tcpdump.h"
 #include "send_packets.h"
+#include "timer.h"
 
-
-extern struct tcpreplay_opt_t options;
+extern tcpreplay_opt_t options;
 extern struct timeval begin, end;
-extern u_int64_t bytes_sent, failed, pkts_sent, maxpacket;
+extern u_int64_t bytes_sent, failed, pkts_sent;
 extern u_int64_t cache_packets;
 extern volatile int didsig;
+
+#ifdef HAVE_TCPDUMP
 extern tcpdump_t tcpdump;
+#endif
 
 #ifdef DEBUG
 extern int debug;
@@ -80,12 +83,13 @@ break_now(int signo)
 
     if (signo == SIGINT || didsig) {
         printf("\n");
-
+    
+#ifdef HAVE_TCPDUMP
         /* kill tcpdump child if required */
         if (tcpdump.pid)
             if (kill(tcpdump.pid, SIGTERM) != 0)
                 kill(tcpdump.pid, SIGKILL);
-
+#endif
         packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
         exit(1);
     }
@@ -95,9 +99,94 @@ break_now(int signo)
  * the main loop function.  This is where we figure out
  * what to do with each packet
  */
-
 void
-send_packets(pcap_t * pcap)
+send_packets(pcap_t *pcap)
+{
+    struct timeval last;
+    static int firsttime = 1;
+    u_int64_t packetnum = 0;
+    struct pcap_pkthdr pkthdr;
+    const u_char *nextpkt = NULL;
+    u_char *pktdata = NULL;
+    libnet_t *l = options.intf1;
+    int ret; /* libnet return code */
+    
+    /* register signals */
+    didsig = 0;
+    if (!options.speedmode == SPEED_ONEATATIME) {
+        (void)signal(SIGINT, catcher);
+    }
+    else {
+        (void)signal(SIGINT, break_now);
+    }
+
+    /* clear out the time we sent the last packet if this is the first packet */
+    if (firsttime) {
+        timerclear(&last);
+        firsttime = 0;
+    }
+
+    /* MAIN LOOP 
+     * Keep sending while we have packets or until
+     * we've sent enough packets
+     */
+    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
+
+        /* die? */
+        if (didsig)
+            break_now(0);
+
+        dbg(2, "packets sent %llu", pkts_sent);
+
+        packetnum++;
+        dbg(2, "packet %llu caplen %d", packetnum, pkthdr.caplen);
+        
+        /* Dual nic processing */
+        if (options.intf2 != NULL) {
+
+            l = (libnet_t *) cache_mode(options.cachedata, packetnum);
+        
+            /* sometimes we should not send the packet */
+            if (l == CACHE_NOSEND)
+                continue;
+        }
+    
+        /* do we need to print the packet via tcpdump? */
+#ifdef HAVE_TCPDUMP
+        if (options.verbose)
+            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+#endif
+        
+        /*
+         * we have to cast the ts, since OpenBSD sucks
+         * had to be special and use bpf_timeval 
+         */
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, &options, l);
+            
+        /* write packet out on network */
+        do {
+            ret = libnet_adv_write_link(l, pktdata, pkthdr.caplen);
+            if (ret == -1) {
+                /* Make note of failed writes due to full buffers */
+                if (errno == ENOBUFS) {
+                    failed++;
+                } else {
+                    errx(1, "libnet_adv_write_link(): %s", strerror(errno));
+                }
+            }
+        
+            /* keep trying if fail, unless user Ctrl-C's */
+        } while (ret == -1 && !didsig);
+
+        bytes_sent += pkthdr.caplen;
+        pkts_sent++;
+    
+    } /* while */
+}
+
+#if 0
+void
+send_packets_old(pcap_t * pcap)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -430,6 +519,7 @@ send_packets(pcap_t * pcap)
 
 }
 
+#endif
 
 /*
  * determines based upon the cachedata which interface the given packet 
@@ -439,7 +529,7 @@ send_packets(pcap_t * pcap)
  */
 
 void *
-cache_mode(char *cachedata, u_int64_t packet_num, eth_hdr_t * eth_hdr)
+cache_mode(char *cachedata, u_int64_t packet_num)
 {
     void *l = NULL;
     int result;
@@ -450,32 +540,15 @@ cache_mode(char *cachedata, u_int64_t packet_num, eth_hdr_t * eth_hdr)
     result = check_cache(cachedata, packet_num);
     if (result == CACHE_NOSEND) {
         dbg(2, "Cache: Not sending packet %d.", packet_num);
-        return NULL;
+        return CACHE_NOSEND;
     }
     else if (result == CACHE_PRIMARY) {
         dbg(2, "Cache: Sending packet %d out primary interface.", packet_num);
         l = options.intf1;
-
-        /* check for dest/src MAC rewriting */
-        if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-        }
-        if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
-        }
     }
     else if (result == CACHE_SECONDARY) {
         dbg(2, "Cache: Sending packet %d out secondary interface.", packet_num);
         l = options.intf2;
-
-        /* check for dest/src MAC rewriting */
-        if (memcmp(options.intf2_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
-        }
-        if (memcmp(options.intf2_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_shost, options.intf2_smac, ETHER_ADDR_LEN);
-        }                    
-
     }
     else {
         errx(1, "check_cache() returned an error.  Aborting...");
@@ -484,14 +557,13 @@ cache_mode(char *cachedata, u_int64_t packet_num, eth_hdr_t * eth_hdr)
     return l;
 }
 
-
 /*
  * determines based upon the cidrdata which interface the given packet 
  * should go out.  Also rewrites any layer 2 data we might need to adjust.
  * Returns a void cased pointer to the options.intfX of the corresponding
  * interface.
  */
-
+#if 0
 void *
 cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
 {
@@ -538,7 +610,7 @@ cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
     return l;
 }
 
-
+#endif /* 0 */
 /*
  Local Variables:
  mode:c

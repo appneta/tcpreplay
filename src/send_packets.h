@@ -35,8 +35,10 @@
 
 void catcher(int);
 void send_packets(pcap_t *);
-void *cache_mode(char *, u_int64_t, eth_hdr_t *);
+void *cache_mode(char *, u_int64_t);
+#if 0
 void *cidr_mode(eth_hdr_t *, ip_hdr_t *);
+#endif
 
 #endif
 
