@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.12 2002/07/27 20:18:40 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.13 2002/08/20 22:48:23 mattbing Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -11,6 +11,9 @@ tcpreplay \- replay packets from capture files
 .B \-c
 .I cache file
 ] [
+.B \-f
+.I config file
+] [ 
 .B \-I
 .I intf mac
 ] [
@@ -72,55 +75,60 @@ proxy-arp to forward packets.
 .SH OPTIONS
 .LP
 .TP
-.B \-c
+.B \-f 
+Specify a file that contains configuration options. 
+Option tokens are listed below next to the corresponding command-line flag.
+.TP
+.B \-c or "cachefile"
 Specify the \fItcpprep cache\fR to use to process packets.
 .TP
 .B \-h
 Prints help/usage
 .TP
-.B \-i
+.B \-i or "intf"
 Specify the interface in which to send packets.
 .TP
-.B \-I
+.B \-I or "primary_mac"
 Specify the \fIdestination MAC\fR to use for packets being sent out the primary
 interface.
 .TP
-.B \-j
+.B \-j or "second_intf"
 Specify the \fIsecondary interface\fR in which to send packets.
 .TP
-.B \-J
+.B \-J or "second_mac"
 Specify the \fIdestination MAC\fR to use for packets being sent out the 
 secondary interface.
 .TP
-.B \-l
+.B \-l or "loop"
 Resend the capture file(s) \fIloop count\fR times.  Setting this to 0 (zero)
 will cause tcpreplay to loop infinately.
 .TP
-.B \-m
+.B \-m or "multiplier"
 Resend the packets a \fImultiple\fR of the speed at which they were
 recorded.
 .TP
-.B \-M
+.B \-M or "no_martians"
 Disable sending martian packets (source networks: 0/8, 127/8, 255/8)
 .TP
-.B \-r
+.B \-r or "rate"
 Resend the packets at the \fIrate\fR specified (in Mbps).
 .TP
-.B \-C
+.B \-C or "cidr"
 CIDR mode. Specify a list of CIDR's (network1/masklen1,network2/masklen2,...) 
 to match against the source IP of each packet. Packets matching any of the 
 CIDR's are sent out the primary interface; remaining packets are sent out 
 the secondary interface.  Can't be used with -c.
 .TP
-.B \-R
+.B \-R or "topspeed"
 Resend the packets as fast as possible. Negates other speed options.
 .TP
-.B \-u
+.B \-u or "untruncate"
 Untruncates IP packets when snaplen > the actual packet length.  Packets can
 be padded (\fIpad\fR) with zeros or truncated (\fItrunc\fR) to the snaplen.
 Will also recalcuate the IP and TCP/UDP headers as necessary.
 .TP
-.B \-v
+.B \-v or "verbose"
+.br
 Verbose mode, currently unused.
 .TP
 .B \-V
