@@ -71,6 +71,18 @@ typedef struct services_s services_t;
 /* from lib/sll.h */
 typedef struct sll_header sll_header_t;
 
+struct speed_s {
+    /* speed modifiers */
+    int mode;
+#define SPEED_MULTIPLIER 1
+#define SPEED_MBPSRATE   2
+#define SPEED_PACKETRATE 3
+#define SPEED_TOPSPEED   4
+#define SPEED_ONEATATIME 5
+    float speed;
+};
+typedef struct speed_s speed_t;
+
 #define MAX_FILES   1024        /* Max number of files we can pass to tcpreplay */
 
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet

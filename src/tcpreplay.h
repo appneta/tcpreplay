@@ -58,14 +58,7 @@ struct tcpreplay_opt_s {
     int datadumpfile1;
     int datadumpfile2;
 */
-    /* speed modifiers */
-    int speedmode;
-#define SPEED_MULTIPLIER 1
-#define SPEED_MBPSRATE   2
-#define SPEED_PACKETRATE 3
-#define SPEED_TOPSPEED   4
-#define SPEED_ONEATATIME 5
-    float speed;
+    speed_t speed;
     u_int32_t limit;
     u_int32_t loop;
     int n_iter;

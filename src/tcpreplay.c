@@ -97,7 +97,7 @@ main(int argc, char *argv[])
             errx(1, "Libnet can't open %s: %s", options.intf2_name, ebuf);
     }
 
-    warnx("sending on: %s %s", options.intf1_name, 
+    warnx("sending out %s %s", options.intf1_name,
         options.intf2_name == NULL ? "" : options.intf2_name);
 
     /* init the signal handlers */
@@ -176,8 +176,8 @@ init(void)
     options.n_iter = 1;
     
     /* Default mode is to replay pcap once in real-time */
-    options.speedmode = SPEED_MULTIPLIER;
-    options.speed = 1.0;
+    options.speed.mode = SPEED_MULTIPLIER;
+    options.speed.speed = 1.0;
 
     /* set the default MTU size */
     options.mtu = DEFAULT_MTU;
@@ -214,20 +214,20 @@ post_args(void)
     options.loop = OPT_VALUE_LOOP;
     
     if (HAVE_OPT(TOPSPEED)) {
-        options.speedmode = SPEED_TOPSPEED;
-        options.speed = 0.0;
+        options.speed.mode = SPEED_TOPSPEED;
+        options.speed.speed = 0.0;
     } else if (HAVE_OPT(PKTRATE)) {
-        options.speedmode = SPEED_PACKETRATE;
-        options.speed = atof(OPT_ARG(PKTRATE));
+        options.speed.mode = SPEED_PACKETRATE;
+        options.speed.speed = atof(OPT_ARG(PKTRATE));
     } else if (HAVE_OPT(ONEATATIME)) {
-        options.speedmode = SPEED_ONEATATIME;
-        options.speed = 0.0;
+        options.speed.mode = SPEED_ONEATATIME;
+        options.speed.speed = 0.0;
     } else if (HAVE_OPT(MBPSRATE)) {
-        options.speedmode = SPEED_MBPSRATE;
-        options.speed = atof(OPT_ARG(MBPSRATE));
+        options.speed.mode = SPEED_MBPSRATE;
+        options.speed.speed = atof(OPT_ARG(MBPSRATE));
     } else if (HAVE_OPT(MULTIPLIER)) {
-        options.speedmode = SPEED_MULTIPLIER;
-        options.speed = atof(OPT_ARG(MULTIPLIER));
+        options.speed.mode = SPEED_MULTIPLIER;
+        options.speed.speed = atof(OPT_ARG(MULTIPLIER));
     }
 
     if (HAVE_OPT(VERBOSE))
