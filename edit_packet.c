@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.15 2004/02/25 21:09:28 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.16 2004/03/25 02:16:09 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -170,6 +170,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
             /*
              * remove ethernet header and copy our header back
              */
+            dbg(3, "Rewriting 802.3 via -2...");
             memcpy(pktdata, l2data, l2len);
             memcpy(&pktdata[l2len], (nextpkt + LIBNET_ETH_H),
                    (pkthdr->caplen - LIBNET_ETH_H));
@@ -178,6 +179,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
             break;
 
         case DLT_LINUX_SLL:    /* Linux Cooked sockets */
+            dbg(3, "Rewriting Linux SLL via -2...");
             if ((pkthdr->caplen - SLL_HDR_LEN + l2len) > maxpacket) {
                 if (options.truncate) {
                     warnx
@@ -206,6 +208,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
             /*
              * is new packet too big?
              */
+            dbg(3, "Appending header to RAW frame via -2...");
             if ((pkthdr->caplen + l2len) > maxpacket) {
                 if (options.truncate) {
                     warnx
@@ -288,28 +291,64 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
             sllhdr = (struct sll_header *)nextpkt;
             switch (ntohs(sllhdr->sll_hatype)) {
             case 0x1:          /* out on the wire */
+                dbg(3, "Rewriting ethernet Linux SLL header as 802.3...");
                 /* set the DST MAC
                  * Note: the dest MAC will get rewritten in cidr_mode() 
                  * or cache_mode() if splitting between interfaces
                  */
-                memcpy(pktdata, options.intf1_mac, 6);
+                memcpy(pktdata, options.intf1_mac, ETHER_ADDR_LEN);
 
                 /* set the SRC MAC */
-                memcpy(&pktdata[6], sllhdr->sll_addr, 6);
+                memcpy(&pktdata[ETHER_ADDR_LEN], sllhdr->sll_addr, ETHER_ADDR_LEN);
 
                 /* set the Protocol type (IP, ARP, etc) */
                 memcpy(&pktdata[12], &sllhdr->sll_protocol, 2);
 
                 /* update lengths */
                 l2len = LIBNET_ETH_H;
+
+                /* copy over the packet data, minus the SLL header */
+                memcpy(&pktdata[l2len], (nextpkt + SLL_HDR_LEN),
+                       (pkthdr->caplen - SLL_HDR_LEN));
+
                 pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H;
+                pkthdr->len = pkthdr->len - SLL_HDR_LEN + LIBNET_ETH_H;
+                
                 /* keep processing beyond case */
                 break;
 
             case 0x304:        /* loopback */
-                /* loopback packets don't have a src MAC */
-                warnx("Skipping SLL loopback packet.");
-                return (0);
+                /* loopback packets don't have a src/dst MAC */
+                if ((memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) == 0) &&
+                    (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) == 0)) {
+                    warnx("Skipping SLL loopback packet.");
+                    return (0);
+                } else {
+                    dbg(3, "Rewriting loopback Linux SLL header as 802.3...");
+                    /* set the DST MAC
+                     * Note: the dest MAC will get rewritten in cidr_mode() 
+                     * or cache_mode() if splitting between interfaces
+                     */
+                    memcpy(pktdata, options.intf1_mac, ETHER_ADDR_LEN);
+                    
+                    /* set the SRC MAC which may also get rewriten later */
+                    memcpy(&pktdata[ETHER_ADDR_LEN], options.intf1_smac, ETHER_ADDR_LEN);
+                    
+                    /* set the Protocol type (IP, ARP, etc) */
+                    memcpy(&pktdata[12], &sllhdr->sll_protocol, 2);
+                    
+                    /* update lengths */
+                    l2len = LIBNET_ETH_H;
+
+                    /* copy over the packet data, minus the SLL header */
+                    memcpy(&pktdata[l2len], (nextpkt + SLL_HDR_LEN),
+                           (pkthdr->caplen - SLL_HDR_LEN));
+
+                    pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H;
+                    pkthdr->len = pkthdr->len - SLL_HDR_LEN + LIBNET_ETH_H;
+                 
+                    /* keep processing beyond case */
+                }
                 break;
 
             default:

@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.47 2004/02/03 22:52:15 aturner Exp $ */
+/* $Id: do_packets.c,v 1.48 2004/03/25 02:16:09 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -316,7 +316,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
             /* normal single nic operation */
             l = options.intf1;
             /* check for destination MAC rewriting */
-            if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+            if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
                 memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
             }
         }
@@ -489,19 +489,26 @@ cache_mode(char *cachedata, int packet_num, eth_hdr_t * eth_hdr)
         dbg(2, "Cache: Sending packet %d out primary interface.", packet_num);
         l = options.intf1;
 
-        /* check for destination MAC rewriting */
-        if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+        /* check for dest/src MAC rewriting */
+        if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
             memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+        }
+        if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+            memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
         }
     }
     else if (result == CACHE_SECONDARY) {
         dbg(2, "Cache: Sending packet %d out secondary interface.", packet_num);
         l = options.intf2;
 
-        /* check for destination MAC rewriting */
-        if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
+        /* check for dest/src MAC rewriting */
+        if (memcmp(options.intf2_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
             memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
         }
+        if (memcmp(options.intf2_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+            memcpy(eth_hdr->ether_shost, options.intf2_smac, ETHER_ADDR_LEN);
+        }                    
+
     }
     else {
         errx(1, "check_cache() returned an error.  Aborting...");
@@ -527,28 +534,38 @@ cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
         /* non IP packets go out intf1 */
         l = options.intf1;
 
-        /* check for destination MAC rewriting */
-        if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+        /* check for dest/src MAC rewriting */
+        if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
             memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+        }
+        if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+            memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
         }
     }
     else if (check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr)) {
         /* set interface to send out packet */
         l = options.intf1;
 
-        /* check for destination MAC rewriting */
-        if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+
+        /* check for dest/src MAC rewriting */
+        if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
             memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+        }
+        if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+            memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
         }
     }
     else {
         /* override interface to send out packet */
         l = options.intf2;
 
-        /* check for destination MAC rewriting */
-        if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
+        /* check for dest/src MAC rewriting */
+        if (memcmp(options.intf2_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
             memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
         }
+        if (memcmp(options.intf2_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+            memcpy(eth_hdr->ether_shost, options.intf2_smac, ETHER_ADDR_LEN);
+        }        
     }
 
     return l;
