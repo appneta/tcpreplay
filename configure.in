@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.9 2002/08/08 03:12:52 mattbing Exp $
+dnl $Id: configure.in,v 1.10 2002/10/08 17:33:36 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -69,8 +69,8 @@ dnl #include <netinet/in.h>
 dnl #include <arpa/inet.h>
 dnl ])
 
-AC_CHECK_FUNC(inet_aton, inet_aton=yes, inet_aton=no)
-AC_CHECK_FUNC(inet_addr, inet_addr=yes, inet_addr=no)
+AC_CHECK_FUNC(inet_aton, AC_DEFINE(INET_ATON) inet_aton=yes, inet_aton=no)
+AC_CHECK_FUNC(inet_addr, AC_DEFINE(INET_ADDR) inet_addr=yes, inet_addr=no)
 
 if test $inet_aton = no -a $inet_addr = no ; then
 	AC_MSG_ERROR("We need either inet_aton or inet_addr")

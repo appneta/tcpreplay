@@ -3413,7 +3413,10 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_func_inet_aton" >&5
 echo "${ECHO_T}$ac_cv_func_inet_aton" >&6
 if test $ac_cv_func_inet_aton = yes; then
-  inet_aton=yes
+  cat >>confdefs.h <<\_ACEOF
+#define INET_ATON 1
+_ACEOF
+ inet_aton=yes
 else
   inet_aton=no
 fi
@@ -3483,7 +3486,10 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_func_inet_addr" >&5
 echo "${ECHO_T}$ac_cv_func_inet_addr" >&6
 if test $ac_cv_func_inet_addr = yes; then
-  inet_addr=yes
+  cat >>confdefs.h <<\_ACEOF
+#define INET_ADDR 1
+_ACEOF
+ inet_addr=yes
 else
   inet_addr=no
 fi
