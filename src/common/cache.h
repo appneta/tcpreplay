@@ -89,7 +89,7 @@ int check_cache(char *, unsigned long);
 
 /* return values for check_cache */
 #define CACHE_ERROR -1
-#define CACHE_NOSEND 0
+#define CACHE_NOSEND 0 /* equal to NULL */
 #define CACHE_PRIMARY 1
 #define CACHE_SECONDARY 2
 
