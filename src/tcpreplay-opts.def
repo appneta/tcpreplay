@@ -1,0 +1,237 @@
+autogen definitions options;
+
+copyright = {
+    date        = "2000 - 2004";
+    owner       = "Aaron Turner";
+    eaddr       = "aturner@pobox.com";
+    type        = "bsd";
+};
+
+package         = "tcpreplay";
+prog-name       = "tcpreplay";
+prog-title      = "Replay network traffic stored in pcap files";
+long-opts;
+test-main;
+
+explain = <<- EOExplain
+    tcpreplay is a tool for replaying network traffic from files saved with
+    tcpdump or other tools which write pcap(3) files.
+EOExplain;
+
+detail = <<- EODetail
+     The basic operation of tcpreplay is to  resend  all  packets  from  the
+     input  file(s) at the speed at which they were recorded, or a
+     specified data rate, up to as fast as the hardware is capable.
+
+     Optionally, the traffic can be split between two interfaces, written to
+     files, filtered and edited in various ways, providing the means to test
+     firewalls, NIDS and other network devices.
+EODetail;
+
+
+
+flag = {
+    name        = tcpdump_args;
+    value       = A;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Arguments passed to tcpdump decoder";
+};
+
+flag = {
+    name        = cachefile;
+    value       = c;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Split traffic via tcpprep cache file";
+};
+
+flag = {
+    name        = datadump;
+    value       = D;
+    arg-type    = boolean;
+    max         = 1;
+    immediate;
+    descrip     = "Dump packet data to files";
+};
+
+flag = {
+    name        = intf1;
+    value       = i;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Primary output interface";
+};
+
+flag = {
+    name        = intf2;
+    value       = j;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Secondary output interface";
+};
+
+flag = {
+    name        = loop;
+    value       = l;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Loop through the capture file X times";
+};
+
+flag = {
+    name        = limit;
+    value       = L;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Limit the number of packets to send";
+};
+
+
+/* note that this is really a float, but autoopts does not support float */
+flag = {
+    name        = multiplier;
+    value       = m;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Modify replay speed to a given multiple";
+};
+
+flag = {
+    name        = nopromisc;
+    value       = n;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Do not listen in promisc mode when sniffing";
+};
+
+flag = {
+    name        = offset;
+    value       = o;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Jump to the packet at the specified byte offset";
+};
+
+flag = {
+    name        = oneout;
+    value       = O;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Merge split traffic into a single output stream";
+};
+
+flag = {
+    name        = pktrate;
+    value       = p;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Replay packets at a given packets/sec";
+};
+
+flag = {
+    name        = pid;
+    value       = P;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Print the PID of tcpreplay at startup";
+};
+
+flag = {
+    name        = rate;
+    value       = r;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Resend the packets a given Mbps";
+};
+
+flag = {
+    name        = topspeed;
+    value       = R;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Resend the packets as fast as possible";
+};
+
+flag = {
+    name        = seedrand;
+    value       = s;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Seed to use to randomize src/dst IP addresses";
+};
+
+flag = {
+    name        = sniff;
+    value       = S;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Sniff network traffic using the specified snaplen";
+};
+
+flag = {
+    name        = mtu;
+    value       = t;
+    arg-type    = number;
+    max         = 1;
+    descrip     = "Override the default MTU of the output";
+};
+
+flag = {
+    name        = trunc;
+    value       = T;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Truncate packets larger then the MTU";
+};
+
+flag = {
+    name        = verbose;
+    value       = v;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Print decoded packets via tcpdump to STDOUT";
+};
+
+flag = {
+    name        = version;
+    value       = V;
+    arg-type    = boolean;
+    max         = 1;
+    immediate;
+    descrip     = "Print version info and exit";
+};
+
+flag = {
+    name        = write1;
+    value       = w;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Specify the primary output file";
+};
+
+flag = {
+    name        = write2;
+    value       = W;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Specify the secondary output file";
+};
+
+flag = {
+    name        = oneatatime;
+    value       = 1;
+    arg-type    = boolean;
+    max         = 1;
+    descrip     = "Resend one packet at a time for each user input";
+};
+
+flag = {
+    name        = help;
+    value       = h;
+    arg-type    = boolean;
+    max         = 1;
+    immediate;
+    descrip     = "Help";
+};
+
