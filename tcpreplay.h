@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.62 2004/09/05 19:46:27 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.63 2004/09/05 19:59:10 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -178,16 +178,16 @@ struct options {
 #define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
 
 /* converts a 64bit int to network byte order */
+#ifndef ntohll
 #ifdef WORDS_BIGENDIAN
 #define ntohll(x) (x)
 #define htonll(x) (x)
 #else
-#ifndef ntohll
 /* stolen from http://www.codeproject.com/cpp/endianness.asp */
 #define ntohll(x) (((u_int64_t)(ntohl((int)((x << 32) >> 32))) << 32) | \
                      (unsigned int)ntohl(((int)(x >> 32))))
 #define htonll(x) ntohll(x)
-#endif /* ntholl */
 #endif /* WORDS_BIGENDIAN */
+#endif /* ntholl */
 
 #endif
