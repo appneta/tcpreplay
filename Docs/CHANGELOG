@@ -1,3 +1,16 @@
+$Id: CHANGELOG,v 1.7 2003/05/29 22:20:36 aturner Exp $
+
+??/??/2003: Version 1.5.alpha
+        - Add -F to force checksum fixing
+        - Fix packet corruption when not using -2
+        - Improve timerdiv() code
+        - Port from libredblack to OpenBSD RB_*
+        - Add flowreplay application
+        - Fix a bunch of compiler warnings about miss-matched sign
+        - IP & layer 4 checksums now work when IP options exist (tcpreplay)
+        - Updated FAQ
+
+
 05/07/2003: Version 1.5.alpha1
         - Add layer2 rewriting
 
