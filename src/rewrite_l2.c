@@ -39,6 +39,7 @@
 #include "tcprewrite_opts.h"
 #include "lib/sll.h"
 #include "dlt.h"
+#include "rewrite_l2.h"
 
 extern int maxpacket;
 extern tcprewrite_opt_t options;
@@ -54,24 +55,21 @@ static int check_pkt_len(struct pcap_pkthdr *pkthdr, int oldl2len, int newl2len)
 int
 rewrite_l2(pcap_t *pcap, struct pcap_pkthdr **pkthdr_ptr, u_char * pktdata, int cache_mode)
 {
-    eth_hdr_t *eth_hdr = NULL;
     u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
-    int oldl2len = 0, newl2len = 0;
-    u_char tmpbuff[MAXPACKET];
-    macaddr_t *dstmac = NULL;
-    macaddr_t *srcmac = NULL;
+    int newl2len = 0;
     struct pcap_pkthdr *pkthdr;
 
     pkthdr = *pkthdr_ptr;
 
 
     /* do we need a ptr for l2data ? */
-    if (options.l2.linktype == LINKTYPE_USER)
+    if (options.l2.linktype == LINKTYPE_USER) {
         if (cache_mode == CACHE_SECONDARY) {
             l2data = options.l2.data2;
         } else {
             l2data = options.l2.data1;
         }
+    }
     
 
     /*
