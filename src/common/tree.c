@@ -44,7 +44,7 @@ extern double ratio;
 extern int debug;
 #endif
 extern int min_mask, max_mask;
-extern CIDR *cidrdata;
+extern cidr_t *cidrdata;
 
 
 int checkincidr;
@@ -67,7 +67,7 @@ RB_GENERATE(data_tree_s, tree_s, node, tree_comp)
        tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
 {
     tree_t *node = NULL;
-    CIDR *newcidr = NULL;
+    cidr_t *newcidr = NULL;
     unsigned long network = 0;
     unsigned long mask = ~0;    /* turn on all bits */
 
@@ -82,7 +82,7 @@ RB_GENERATE(data_tree_s, tree_s, node, tree_comp)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        if (!check_ip_CIDR(cidrdata, node->ip)) {   /* if we exist, abort */
+        if (!check_ip_cidr(cidrdata, node->ip)) {   /* if we exist, abort */
             newcidr = new_cidr();
             newcidr->masklen = bcdata->masklen;
             network = node->ip & (mask >> (32 - bcdata->masklen));
@@ -116,7 +116,7 @@ tree_checkincidr(data_tree_t *treeroot, buildcidr_t * bcdata)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        if (check_ip_CIDR(cidrdata, node->ip)) {    /* if we exist, abort */
+        if (check_ip_cidr(cidrdata, node->ip)) {    /* if we exist, abort */
             checkincidr = 1;
         }
     }

@@ -33,33 +33,33 @@
 #ifndef __CIDR_H__
 #define __CIDR_H__
 
-struct cidr_type {
+struct cidr_s {
     unsigned long network;
     int masklen;
-    struct cidr_type *next;
+    struct cidr_s *next;
 };
 
-typedef struct cidr_type CIDR;
+typedef struct cidr_s cidr_t;
 
-struct cidr_map {
-    CIDR *from;
-    CIDR *to;
-    struct cidr_map *next;
+struct cidrmap_s {
+    cidr_t *from;
+    cidr_t *to;
+    struct cidrmap_s *next;
 };
-typedef struct cidr_map CIDRMAP;
+typedef struct cidrmap_s cidrmap_t;
 
-int ip_in_cidr(const CIDR *, const unsigned long);
-int check_ip_CIDR(CIDR *, const unsigned long);
-int parse_cidr(CIDR **, char *, char *delim);
-int parse_cidr_map(CIDRMAP **, char *);
-int parse_endpoints(CIDRMAP **, CIDRMAP **, char *);
+int ip_in_cidr(const cidr_t *, const unsigned long);
+int check_ip_cidr(cidr_t *, const unsigned long);
+int parse_cidr(cidr_t **, char *, char *delim);
+int parse_cidr_map(cidrmap_t **, char *);
+int parse_endpoints(cidrmap_t **, cidrmap_t **, char *);
 u_char *ip2cidr(const unsigned long, const int);
-void add_cidr(CIDR *, CIDR **);
-CIDR *new_cidr(void);
-CIDRMAP *new_cidr_map(void);
-void destroy_cidr(CIDR *);
-void print_cidr(CIDR *);
-char *cidr2iplist(CIDR *, char);
+void add_cidr(cidr_t *, cidr_t **);
+cidr_t *new_cidr(void);
+cidrmap_t *new_cidr_map(void);
+void destroy_cidr(cidr_t *);
+void print_cidr(cidr_t *);
+char *cidr2iplist(cidr_t *, char);
 #endif
 
 /*
@@ -69,4 +69,3 @@ char *cidr2iplist(CIDR *, char);
  c-basic-offset:4
  End:
 */
-

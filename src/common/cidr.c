@@ -49,15 +49,15 @@
 extern int debug;
 #endif
 
-static CIDR *cidr2CIDR(char *);
+static cidr_t *cidr2cidr(char *);
 
 /*
  * prints to the given fd all the entries in mycidr
  */
 void
-print_cidr(CIDR * mycidr)
+print_cidr(cidr_t * mycidr)
 {
-    CIDR *cidr_ptr;
+    cidr_t *cidr_ptr;
 
     fprintf(stderr, "Cidr List: ");
 
@@ -83,7 +83,7 @@ print_cidr(CIDR * mycidr)
  * deletes all entries in a cidr and destroys the datastructure
  */
 void
-destroy_cidr(CIDR * cidr)
+destroy_cidr(cidr_t * cidr)
 {
 
     if (cidr != NULL)
@@ -96,12 +96,12 @@ destroy_cidr(CIDR * cidr)
 }
 
 /*
- * adds a new CIDR entry to cidrdata
+ * adds a new cidr_t entry to cidrdata
  */
 void
-add_cidr(CIDR * cidrdata, CIDR ** newcidr)
+add_cidr(cidr_t * cidrdata, cidr_t ** newcidr)
 {
-    CIDR *cidr_ptr;
+    cidr_t *cidr_ptr;
 
     if (cidrdata == NULL) {
         cidrdata = *newcidr;
@@ -147,35 +147,35 @@ ip2cidr(const unsigned long ip, const int masklen)
 }
 
 /*
- * Mallocs and sets to sane defaults a CIDR structure
+ * Mallocs and sets to sane defaults a cidr_t structure
  */
 
-CIDR *
+cidr_t *
 new_cidr(void)
 {
-    CIDR *newcidr;
+    cidr_t *newcidr;
 
-    newcidr = (CIDR *) malloc(sizeof(CIDR));
+    newcidr = (cidr_t *) malloc(sizeof(cidr_t));
     if (newcidr == NULL)
         err(1, "unable to malloc memory for new_cidr()");
 
-    memset(newcidr, '\0', sizeof(CIDR));
+    memset(newcidr, '\0', sizeof(cidr_t));
     newcidr->masklen = 99;
     newcidr->next = NULL;
 
     return (newcidr);
 }
 
-CIDRMAP *
+cidrmap_t *
 new_cidr_map(void)
 {
-    CIDRMAP *new;
+    cidrmap_t *new;
 
-    new = (CIDRMAP *)malloc(sizeof(CIDRMAP));
+    new = (cidrmap_t *)malloc(sizeof(cidrmap_t));
     if (new == NULL)
         err(1, "unable to malloc memory for new_cidr()");
 
-    memset(new, '\0', sizeof(CIDRMAP));
+    memset(new, '\0', sizeof(cidrmap_t));
     new->next = NULL;
 
     return (new);
@@ -184,15 +184,15 @@ new_cidr_map(void)
 
 /*
  * Converts a single cidr (string) in the form of x.x.x.x/y into a
- * CIDR structure.  Will malloc the CIDR structure.
+ * cidr_t structure.  Will malloc the cidr_t structure.
  */
 
-static CIDR *
-cidr2CIDR(char *cidr)
+static cidr_t *
+cidr2cidr(char *cidr)
 {
     int count = 0;
     unsigned int octets[4];     /* used in sscanf */
-    CIDR *newcidr;
+    cidr_t *newcidr;
     char networkip[16], tempoctet[4], ebuf[EBUF_SIZE];
 
     if ((cidr == NULL) || (strlen(cidr) > EBUF_SIZE))
@@ -248,23 +248,23 @@ cidr2CIDR(char *cidr)
 }
 
 /*
- * parses a list of CIDR's input from the user which should be in the form
+ * parses a list of cidr_t's input from the user which should be in the form
  * of x.x.x.x/y,x.x.x.x/y...
  * returns 1 for success, or fails to return on failure (exit 1)
  * since we use strtok to process cidr, it gets zeroed out.
  */
 
 int
-parse_cidr(CIDR ** cidrdata, char *cidrin, char *delim)
+parse_cidr(cidr_t ** cidrdata, char *cidrin, char *delim)
 {
-    CIDR *cidr_ptr;             /* ptr to current cidr record */
+    cidr_t *cidr_ptr;             /* ptr to current cidr record */
     char *network = NULL;
     char *token = NULL;
 
     /* first itteration of input using strtok */
     network = strtok_r(cidrin, delim, &token);
 
-    *cidrdata = cidr2CIDR(network);
+    *cidrdata = cidr2cidr(network);
     cidr_ptr = *cidrdata;
 
     /* do the same with the rest of the input */
@@ -275,7 +275,7 @@ parse_cidr(CIDR ** cidrdata, char *cidrin, char *delim)
             break;
 
         /* next record */
-        cidr_ptr->next = cidr2CIDR(network);
+        cidr_ptr->next = cidr2cidr(network);
         cidr_ptr = cidr_ptr->next;
     }
     return 1;
@@ -289,7 +289,7 @@ parse_cidr(CIDR ** cidrdata, char *cidrin, char *delim)
  * since we use strtok to process optarg, it gets zeroed out
  */
 int
-parse_endpoints(CIDRMAP ** cidrmap1, CIDRMAP ** cidrmap2, char *optarg)
+parse_endpoints(cidrmap_t ** cidrmap1, cidrmap_t ** cidrmap2, char *optarg)
 {
 #define NEWMAP_LEN 32
     char *map = NULL, newmap[NEWMAP_LEN];
@@ -317,18 +317,18 @@ parse_endpoints(CIDRMAP ** cidrmap1, CIDRMAP ** cidrmap2, char *optarg)
 
 
 /*
- * parses a list of CIDRMAP's input from the user which should be in the form
+ * parses a list of cidrmap_t's input from the user which should be in the form
  * of x.x.x.x/y:x.x.x.x/y,...
  * returns 1 for success, or returns 0 on failure
  * since we use strtok to process optarg, it gets zeroed out.
  */
 int
-parse_cidr_map(CIDRMAP **cidrmap, char *optarg)
+parse_cidr_map(cidrmap_t **cidrmap, char *optarg)
 {
-    CIDR *cidr = NULL;
+    cidr_t *cidr = NULL;
     char *map = NULL;
     char *token = NULL;
-    CIDRMAP *ptr;
+    cidrmap_t *ptr;
 
     /* first iteration */
     map = strtok_r(optarg, ",", &token);
@@ -377,7 +377,7 @@ parse_cidr_map(CIDRMAP **cidrmap, char *optarg)
  */
 
 int
-ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
+ip_in_cidr(const cidr_t * mycidr, const unsigned long ip)
 {
     unsigned long ipaddr = 0, network = 0, mask = 0;
 
@@ -421,9 +421,9 @@ ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
  */
 
 int
-check_ip_CIDR(CIDR * cidrdata, const unsigned long ip)
+check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
 {
-    CIDR *mycidr;
+    cidr_t *mycidr;
 
     /* if we have no cidrdata, of course it isn't in there */
     if (cidrdata == NULL)
@@ -453,12 +453,12 @@ check_ip_CIDR(CIDR * cidrdata, const unsigned long ip)
 
 
 /*
- * cidr2ip takes a CIDR and a delimiter
+ * cidr2ip takes a cidr_t and a delimiter
  * and returns a string which lists all the IP addresses in the cidr
  * deliminated by the given char
  */
 char *
-cidr2iplist(CIDR * cidr, char delim)
+cidr2iplist(cidr_t * cidr, char delim)
 {
     char *list = NULL;
     char ipaddr[16];
