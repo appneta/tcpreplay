@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.30 2002/12/23 20:01:38 aturner Exp $
+# $Id: Makefile.in,v 1.31 2002/12/24 02:45:53 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -53,11 +53,11 @@ pcapmerge: $(MOBJS)
 libredblack: libredblack/.libs/libredblack.a
 
 libredblack/.libs/libredblack.a:
-	cd libredblack && sh ./configure && make
+	cd libredblack && make
 
 clean:
 	-rm -f *.o *core $(BINARIES)
-	-cd libredblack && make distclean
+	-cd libredblack && make clean
 	-cd test && make clean
 	-cd Docs && make clean
 
@@ -65,6 +65,7 @@ distclean: clean
 	-rm -rf autom4te-2.??.cache
 	-rm -f Makefile config.h config.status config.cache config.log *~
 	-rm -f tcpreplay.spec
+	-cd libredblack && make distclean
 	-cd test && make distclean
 	-cd Docs && make distclean
 
