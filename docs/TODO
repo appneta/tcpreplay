@@ -83,3 +83,5 @@ O tcpdump decoder should print packets syncronously w/ the main process
 
 + Improve CLI/config file parsing
 
+- Tcprewrite should be able to remove the two byte ethernet FCS (checksums)
+  at the end of the frame.
