@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.20 2002/11/12 02:25:41 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.21 2002/11/20 19:32:58 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -8,9 +8,6 @@
 #include <sys/time.h>
 
 #include "timer.h"
-
-#define VERSION "1.3-beta6"
-
 
 /* Compatibility for libnet 1.0 vs 1.1 */
 #if USE_LIBNET_VERSION == 10

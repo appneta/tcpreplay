@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.25 2002/11/20 06:11:19 aturner Exp $
+# $Id: Makefile.in,v 1.26 2002/11/20 19:32:58 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -55,6 +55,7 @@ clean:
 distclean: clean
 	-rm -rf autom4te-2.??.cache
 	-rm -f Makefile config.h config.status config.cache config.log *~
+	-rm -f tcpreplay.spec
 	-cd test && make distclean
 
 install: 

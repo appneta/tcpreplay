@@ -1,8 +1,23 @@
 
-dnl $Id: configure.in,v 1.18 2002/11/20 04:31:20 aturner Exp $
+dnl $Id: configure.in,v 1.19 2002/11/20 19:32:58 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
+
+dnl Set version info here!
+MAJOR_VERSION=1
+MINOR_VERSION=3
+MICRO_VERSION=0-beta6
+TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
+
+dnl Release is only used for the RPM spec file
+TCPREPLAY_RELEASE=1
+
+
+AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION")
+AC_SUBST(TCPREPLAY_VERSION)
+AC_SUBST(TCPREPLAY_RELEASE)
+
 
 dnl Initialize prefix.
 if test "$prefix" = "NONE"; then
@@ -305,3 +320,4 @@ AC_SUBST(nic2)
 
 AC_OUTPUT(Makefile)
 AC_OUTPUT(test/Makefile)
+AC_OUTPUT(tcpreplay.spec)

@@ -1,3 +1,6 @@
+/* Our code version */
+#undef VERSION
+
 /* Define to 'uint8_t' if <sys/types.h> doesn't define. */
 #undef u_int8_t
 
