@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS = foreign
 
 include $(top_srcdir)/libopts/MakeDefs.inc
 
-SUBDIRS = scripts lib src man $(LIBOPTS_DIR)
+SUBDIRS = scripts lib man $(LIBOPTS_DIR) src
 DIST_SUBDIRS = scripts lib src man docs libopts
 .PHONY: docs test
 
