@@ -61,11 +61,10 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 #elif USE_LIBNET_VERSION == 11
 	libnet_t *l = NULL;
 #endif
-	ip_hdr_t *ip_hdr = NULL;
+	ip_hdr_t ip_hdr;
 	struct packet pkt;
 	struct timeval last;
-	char *pktdata;
-	int ret, pktlen;
+	int ret;
 	unsigned long packetnum = 0;
 
 	
@@ -96,25 +95,25 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			
 
 		eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
+		memset(&ip_hdr, '\0', LIBNET_IP_H);
 
 		/* does packet have an IP header?  if so set our pointer to it */
 		if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
-			ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
+			/* prevent issues with byte alignment via memcpy */
+			memcpy(&ip_hdr, (pkt.data + LIBNET_ETH_H), LIBNET_IP_H);
 			
 			/* look for include or exclude CIDR match */
 			if (xX_cidr != NULL) {
-				if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
+				if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, &ip_hdr)) {
 					continue;
 				}
 			}
 
-		} else {
-			ip_hdr = NULL; /* NULL == non-ip packet */
 		}
 
 		/* check for martians? */
-		if (options.no_martians && (ip_hdr != NULL)) {
-			switch ((ntohl(ip_hdr->ip_dst.s_addr) & 0xff000000) >> 24) {
+		if (options.no_martians && (ip_hdr.ip_hl != 0)) {
+			switch ((ntohl(ip_hdr.ip_dst.s_addr) & 0xff000000) >> 24) {
 			case 0: case 127: case 255:
 #ifdef DEBUG
 				if (debug) {
@@ -138,7 +137,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			if (cachedata != NULL) { 
 				l = (LIBNET *)cache_mode(cachedata, packetnum, eth_hdr);
 			} else if (options.cidr) { 
-				l = (LIBNET *)cidr_mode(eth_hdr, ip_hdr);
+				l = (LIBNET *)cidr_mode(eth_hdr, &ip_hdr);
 			} else {
 				errx(1, "Strange, we should of never of gotten here");
 			}
@@ -158,26 +157,22 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		/* Untruncate packet? Only for IP packets */
 		if (options.trunc) {
 #if USE_LIBNET_VERSION == 10
-			untrunc_packet(&pkt, ip_hdr, NULL);
+			untrunc_packet(&pkt, &ip_hdr, NULL);
 #elif USE_LIBNET_VERSION == 11
-		    untrunc_packet(&pkt, ip_hdr, (void *)l);
+		    untrunc_packet(&pkt, &ip_hdr, (void *)l);
 #endif
 		}
 
 
 		/* do we need to spoof the src/dst IP address? */
-		if (options.seed && ip_hdr != NULL) {
+		if (options.seed && ip_hdr.ip_hl != 0) {
 #if USE_LIBNET_VERSION == 10
-			randomize_ips(&pkt, ip_hdr, NULL);
+			randomize_ips(&pkt, &ip_hdr, NULL);
 #elif USE_LIBNET_VERSION == 11
-			randomize_ips(&pkt, ip_hdr, (void *)l);
+			randomize_ips(&pkt, &ip_hdr, (void *)l);
 #endif
 		}
 	
-
-		pktdata = pkt.data;
-		pktlen = pkt.len;
-
 
 		if (!options.topspeed)
 			do_sleep(&pkt.ts, &last, pkt.len);
@@ -185,9 +180,9 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		/* Physically send the packet */
 		do {
 #if USE_LIBNET_VERSION == 10
-			ret = libnet_write_link_layer(l, l->device, (u_char *)pktdata, pktlen);
+			ret = libnet_write_link_layer(l, l->device, (u_char *)pkt.data, pkt.len);
 #elif USE_LIBNET_VERSION == 11
-			ret = libnet_adv_write_link(l, (u_char*)pktdata, pktlen);
+			ret = libnet_adv_write_link(l, (u_char*)pkt.data, pkt.len);
 #endif
 			if (ret == -1) {
 				/* Make note of failed writes due to full buffers */
@@ -216,38 +211,35 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
  */
 void randomize_ips(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 {
-	int proto;
-
 	/* randomize IP addresses based on the value of random */
 #ifdef DEBUG
-		dbg(1, "Old Src IP: 0x%08lx\tOld Dst IP: 0x%08lx", 
-			ip_hdr->ip_src.s_addr,
-			ip_hdr->ip_dst.s_addr);
-
+	dbg(1, "Old Src IP: 0x%08lx\tOld Dst IP: 0x%08lx", 
+		ip_hdr->ip_src.s_addr,
+		ip_hdr->ip_dst.s_addr);
 #endif
-		ip_hdr->ip_dst.s_addr = 
-			(ip_hdr->ip_dst.s_addr ^ options.seed) - 
-			(ip_hdr->ip_dst.s_addr & options.seed);
-		ip_hdr->ip_src.s_addr = 
-			(ip_hdr->ip_src.s_addr ^ options.seed) -
-			(ip_hdr->ip_src.s_addr & options.seed);
 
-
+	ip_hdr->ip_dst.s_addr = 
+		(ip_hdr->ip_dst.s_addr ^ options.seed) - 
+		(ip_hdr->ip_dst.s_addr & options.seed);
+	ip_hdr->ip_src.s_addr = 
+		(ip_hdr->ip_src.s_addr ^ options.seed) -
+		(ip_hdr->ip_src.s_addr & options.seed);
+	
+	
 #ifdef DEBUG
-			dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
-				ip_hdr->ip_src.s_addr,
-				ip_hdr->ip_dst.s_addr);
+	dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
+		ip_hdr->ip_src.s_addr,
+		ip_hdr->ip_dst.s_addr);
 #endif
 
 	/* recalc the UDP/TCP checksum(s) */
-	proto = ((ip_hdr_t *)(pkt->data + LIBNET_ETH_H))->ip_p;
-	if ((proto == IPPROTO_UDP) || (proto == IPPROTO_TCP)) {
+	if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 #if USE_LIBNET_VERSION == 10
-		if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, proto, 
+		if (libnet_do_checksum((u_char *)ip_hdr, ip_hdr->ip_p, 
 							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 			warnx("Layer 4 checksum failed");
 #elif USE_LIBNET_VERSION == 11
-		if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+		if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, ip_hdr->ip_p,
 							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 			warnx("Layer 4 checksum failed");
 #endif
@@ -255,11 +247,10 @@ void randomize_ips(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 
 	/* recalc IP checksum */
 #if USE_LIBNET_VERSION == 10
-	if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, IPPROTO_IP, 
-						   LIBNET_IP_H) < 0)
+	if (libnet_do_checksum((u_char *)ip_hdr, IPPROTO_IP, LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #elif USE_LIBNET_VERSION == 11
-	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, IPPROTO_IP,
+	if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, IPPROTO_IP,
 						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #endif
@@ -360,7 +351,6 @@ cidr_mode(struct libnet_ethernet_hdr *eth_hdr, ip_hdr_t *ip_hdr)
 void
 untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 {
-	int proto;
 
 	/* if actual len == cap len or there's no IP header, don't do anything */
 	if ((pkt->len == pkt->actual_len) || (ip_hdr == NULL)) {
@@ -379,14 +369,13 @@ untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 	}
 	
 	/* recalc the UDP/TCP checksum(s) */
-	proto = ((ip_hdr_t *)(pkt->data + LIBNET_ETH_H))->ip_p;
-	if ((proto == IPPROTO_UDP) || (proto == IPPROTO_TCP)) {
+	if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 #if USE_LIBNET_VERSION == 10
-		if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, proto, 
+		if (libnet_do_checksum((u_char *)ip_hdr, ip_hdr->ip_p, 
 							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 			warnx("Layer 4 checksum failed");
 #elif USE_LIBNET_VERSION == 11
-		if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+		if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, ip_hdr->ip_p,
 							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 			warnx("Layer 4 checksum failed");
 #endif
@@ -395,11 +384,10 @@ untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 	
 	/* recalc IP checksum */
 #if USE_LIBNET_VERSION == 10
-	if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, IPPROTO_IP, 
-						   LIBNET_IP_H) < 0)
+	if (libnet_do_checksum((u_char *)ip_hdr, IPPROTO_IP, LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #elif USE_LIBNET_VERSION == 11
-	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, IPPROTO_IP,
+	if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, IPPROTO_IP,
 						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #endif
