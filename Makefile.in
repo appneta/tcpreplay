@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.45 2003/06/07 01:27:50 aturner Exp $
+# $Id: Makefile.in,v 1.46 2003/07/17 04:59:39 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -17,7 +17,7 @@ LIBS		= @LIBS@ @LNETLIB@ @LPCAPLIB@
 
 INSTALL		= @INSTALL@
 
-BINARIES	= tcpreplay capinfo pcapmerge flowreplay tcpprep
+BINARIES	= tcpreplay capinfo pcapmerge tcpprep flowreplay
 
 TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c
 TOBJS		= $(TSRCS:.c=.o)
