@@ -15,8 +15,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cidr.h"
 #include "tcpreplay.h"
+#include "cidr.h"
 #include "tree.h"
 
 extern TREE *treedata;

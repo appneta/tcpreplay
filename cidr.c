@@ -18,8 +18,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "cidr.h"
 #include "tcpreplay.h"
+#include "cidr.h"
+
 
 extern int debug;
 
@@ -326,3 +327,5 @@ check_ip_CIDR(CIDR * cidrdata, const unsigned long ip)
 	/* if we get here, no match */
 	return 0;
 }
+
+

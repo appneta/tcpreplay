@@ -12,7 +12,9 @@
 #include <regex.h>
 #include <errno.h>
 
+#include "tcpreplay.h"
 #include "err.h"
+#include "cidr.h"
 #include "list.h"
 
 #define EBUF_SIZE 256
