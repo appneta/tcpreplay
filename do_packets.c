@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.34 2003/06/16 21:01:40 aturner Exp $ */
+/* $Id: do_packets.c,v 1.35 2003/07/16 22:30:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -243,19 +243,25 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	    do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
 
 	/* Physically send the packet */
-	do {
-	    ret = libnet_adv_write_link(l, pktdata, pkthdr.caplen);
-	    if (ret == -1) {
-		/* Make note of failed writes due to full buffers */
-		if (errno == ENOBUFS) {
-		    failed++;
+	if (options.savepcap != NULL) {
+	    /* write to a file */
+	    pcap_dump((u_char *)options.savedumper, &pkthdr, pktdata);
+	} else {
+	    /* write packet out on network */
+	    do {
+		ret = libnet_adv_write_link(l, pktdata, pkthdr.caplen);
+		if (ret == -1) {
+		    /* Make note of failed writes due to full buffers */
+		    if (errno == ENOBUFS) {
+			failed++;
+		    }
+		    else {
+			errx(1, "libnet_adv_write_link(): %s", strerror(errno));
+		    }
 		}
-		else {
-		    errx(1, "libnet_adv_write_link(): %s", strerror(errno));
-		}
-	    }
-	    /* keep trying if fail, unless user Ctrl-C's */
-	} while (ret == -1 && !didsig);
+		/* keep trying if fail, unless user Ctrl-C's */
+	    } while (ret == -1 && !didsig);
+	}
 
 	bytes_sent += pkthdr.caplen;
 	pkts_sent++;

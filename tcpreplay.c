@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.63 2003/06/17 18:52:56 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.64 2003/07/16 22:30:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -88,10 +88,10 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvx:X:?2:")) != -1)
+	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvw:x:X:?2:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvx:X:?2:")) != -1)
+	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvw:x:X:?2:")) != -1)
 #endif
 	switch (ch) {
 	case 'c':		/* cache file */
@@ -177,6 +177,15 @@ main(int argc, char *argv[])
 	case 'v':		/* verbose */
 	    options.verbose++;
 	    break;
+	case 'w':               /* write packets to file */
+	    if ((options.savepcap = pcap_open_dead(DLT_EN10MB, 0)) == NULL)
+		errx(1, "error setting output file linktype");
+
+	    if ((options.savedumper = pcap_dump_open(options.savepcap, optarg)) == NULL)
+		errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap));
+
+	    warnx("saving packets in %s", optarg);
+	    break;
 	case 'u':		/* untruncate packet */
 	    if (strcmp("pad", optarg) == 0) {
 		options.trunc = PAD_PACKET;
@@ -239,14 +248,17 @@ main(int argc, char *argv[])
 	    if (!strcmp("-", argv[i]))
 		errx(1, "stdin must be the only file specified");
 
-    if (intf == NULL)
-	errx(1, "Must specify interface");
+    if (intf == NULL) 
+	errx(1, "Must specify a primary interface");
 
     if ((intf2 == NULL) && (cache_file != NULL))
 	errx(1, "Needs secondary interface with cache");
 
     if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL)))
 	errx(1, "Needs cache or cidr match with secondary interface");
+
+    if ((intf2 != NULL) && (options.savepcap != NULL))
+	errx(1, "You can't specify an output file and dual-interfaces");
 
     if (options.seed != 0) {
 	srand(options.seed);
@@ -289,7 +301,8 @@ main(int argc, char *argv[])
 	    errx(1, "Can't open %s: %s", intf2, ebuf);
     }
 
-    warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
+    if (options.savepcap == NULL)
+	warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
 
     /* init the signal handlers */
     init_signal_handlers();
@@ -321,6 +334,9 @@ main(int argc, char *argv[])
 
     if (bytes_sent > 0)
 	packet_stats();
+
+    if (options.savepcap != NULL)
+	pcap_dump_close(options.savedumper);
 
     return 0;
 }
@@ -704,6 +720,7 @@ usage()
 	    "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
 	    "-v\t\t\tVerbose\n"
 	    "-V\t\t\tVersion\n"
+	    "-w <file>\t\tWrite packets to file\n"
 	    "-x <match>\t\tOnly send the packets specified\n"
 	    "-X <match>\t\tSend all the packets except those specified\n"
 	    "-2 <datafile>\t\tLayer 2 data\n"

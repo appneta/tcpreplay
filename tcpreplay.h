@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.34 2003/06/05 16:48:16 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.35 2003/07/16 22:30:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -12,6 +12,7 @@
 
 #include "config.h"
 #include <libnet.h>
+#include <pcap.h>
 #include <sys/time.h>
 
 #include "timer.h"
@@ -37,7 +38,9 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 /* run-time options */
 struct options {
     LIBNET *intf1;
-    LIBNET *intf2;
+    LIBNET *intf2;    
+    pcap_t *savepcap;
+    pcap_dumper_t *savedumper;
     char intf1_mac[6];
     char intf2_mac[6];
     float rate;

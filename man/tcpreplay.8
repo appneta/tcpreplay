@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.9 2003/06/17 18:27:01 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.10 2003/07/16 22:30:39 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -21,6 +21,9 @@ tcpreplay \- replay packets from capture files
 ] [
 .B \-j
 .I intf2
+|
+.B \-w
+.I file
 ] [
 .B \-J
 .I intf mac
@@ -175,6 +178,10 @@ Verbose mode, currently unused.
 .TP
 .B \-V
 Print version info and exit.
+.TP
+.B -w
+Specify the output file to write all the packets to instead of the network.
+You still must specify the primary interface via -i.
 .TP
 .B \-x or "include"
 Specifies which packets from the capture file(s) to send.  Can be one of:

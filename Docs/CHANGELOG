@@ -1,8 +1,15 @@
-$Id: CHANGELOG,v 1.12 2003/06/07 18:20:37 aturner Exp $
+$Id: CHANGELOG,v 1.13 2003/07/16 22:30:39 aturner Exp $
 
 06/??/2003: Version 1.5.alpha4
         - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
         - Don't die when packet > MTU, just skip
+        - Fix a ptr bug in do_packets() w/ the ethernet header
+	- Merge Ctrl-C fix from 1.4.4 for libnet_adv_write_link() 
+            in do_packets.c
+	- Rewrite flowreplay design document
+        - Fix an integer overflow in packet_stats() in tcpreplay.c
+        - tcpreplay's -2 now accepts a hex string rather then a filename
+        - tcpreplay now can output to a file (-w <file>)
 
 06/06/2003: Version 1.5.alpha3
 	- Add support for Linux Cooked Sockets (SLL) format rewriting
