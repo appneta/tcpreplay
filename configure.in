@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.42 2003/07/17 05:47:35 aturner Exp $
+dnl $Id: configure.in,v 1.43 2003/08/28 20:30:46 mattbing Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -260,15 +260,14 @@ AC_ARG_WITH(libpcap,
   *)
      AC_MSG_RESULT($withval)
      if test -f $withval/include/pcap.h -a -f $withval/lib/libpcap.a; then
-        owd=`pwd`
-        if cd $withval; then 
-          withval=`pwd` 
-          cd $owd
-        fi
 		LPCAPINC="-I$withval/include"
 		LPCAPINCDIR="$withval/include"
 		LPCAPLIB="-L$withval/lib -lpcap"
-     else
+     elif test -f $withval/pcap.h -a -f $withval/libpcap.a; then
+		LPCAPINC="-I$withval/"
+		LPCAPINCDIR="$withval/"
+		LPCAPLIB="-L$withval/ -lpcap"
+	 else
         AC_ERROR(pcap.h or libpcap.a not found in $withval)
      fi
      ;;
