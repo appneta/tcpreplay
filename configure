@@ -4413,7 +4413,10 @@ fi
 
 
 
-for ac_header in fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h
+
+
+
+for ac_header in fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then

@@ -1,7 +1,7 @@
 /* Our code version */
 #undef VERSION
 
-/* Version of libpcapnav */
+/* Version of libpcapnav we were compiled against */
 #undef PCAPNAV_VERSION
 
 /* Define to 'uint8_t' if <sys/types.h> doesn't define. */
@@ -38,3 +38,10 @@
 /* Various functions */
 #undef HAVE_FSEEKO
 #undef HAVE_STRNCPY
+
+/* We need fakepoll if poll.h and sys/poll.h don't exist */
+#undef HAVE_POLL_H
+#undef HAVE_SYS_POLL_H
+
+#undef HAVE_UNISTD_H
+#undef HAVE_STRING_H
