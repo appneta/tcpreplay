@@ -2,3 +2,6 @@
     if you overlay a Layer 2 header (eth_hdr_t, etc) over the 
     packet buffer, the protocol field comes across as 
     little endian rather then NBO.   Doesn't make much sense.
+
+2) Bug with autoopts under OS X.  Bruce is looking into it but it might
+"take a few weeks" to get back to me since he's busy.  01/11/05.
