@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.14 2004/02/04 01:22:24 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.15 2004/02/25 21:09:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -369,7 +369,7 @@ extract_data(u_char * pktdata, int caplen, int l2len, char *l7data[])
      * we do all this work to prevent byte alignment issues
      */
     ip_hdr = (ip_hdr_t *) & ipbuff;
-    memcpy(ip_hdr, pktdata[l2len], pkthdr.caplen - l2len);
+    memcpy(ip_hdr, pktdata[l2len], caplen - l2len);
 #else
     /*
      * on non-strict byte align systems, don't need to memcpy(), 
