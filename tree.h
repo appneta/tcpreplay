@@ -9,11 +9,12 @@
 #define __TREE_H__
 
 #include "rbtree.h"
+#include "tcpreplay.h"
 
 struct tree_type {
     RB_ENTRY(tree_type) node;
     unsigned long ip;		/* ip/network address in network byte order */
-    u_char mac[6];		/* mac address of system */
+    u_char mac[ETHER_ADDR_LEN]; /* mac address of system */
     int masklen;		/* CIDR network mask length */
     int server_cnt;		/* count # of times this entry was flagged server */
     int client_cnt;		/* flagged client */
