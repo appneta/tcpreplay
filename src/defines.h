@@ -35,10 +35,14 @@ typedef struct libnet_arp_hdr arp_hdr_t;
 typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
+typedef struct libnet_802_1q_hdr  vlan_hdr_t;
+typedef struct sll_header sll_hdr_t;
+typedef struct cisco_hdlc_header_s hdlc_hdr_t;
 
 /* our custom typdefs/structs */
 typedef u_char macaddr_t[LIBNET_ETH_H];
- struct bpf_s {
+
+struct bpf_s {
     char *filter;
     int optimize;
     struct bpf_program program;
@@ -48,13 +52,25 @@ typedef struct bpf_s bpf_t;
 #define L2DATALEN 255           /* Max size of the L2 data file */
     
 struct l2_s {
-    int enabled;
-    int len;
-    char data1[L2DATALEN];
-    char data2[L2DATALEN];
+    int enabled; /* are we rewritting the L2 header ? */
+    int len;  /* user data length */
+    u_char data1[L2DATALEN];
+    u_char data2[L2DATALEN];
+
+    /* 
+     * we need to store the *new* linktype which we will then use to 
+     * select the correct union slice.  set to LINKTYPE_USER to 
+     * use the user specified data (data1[] & data2[])
+     * other valid options are LINKTYPE_VLAN and LINKTYPE_ETHER for
+     * 802.1q and standard ethernet frames respectively.
+     */
     int linktype;
+#define LINKTYPE_USER  1
+#define LINKTYPE_VLAN  2
+#define LINKTYPE_ETHER 3
 };
 typedef struct l2_s l2_t;
+
 
 struct xX_s {
 #define xX_MODE_INCLUDE 'x'
