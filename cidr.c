@@ -269,7 +269,7 @@ ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
     }
     else {
 
-	dbg(1, "The ip %s is not inside of %s/%d\n",
+	dbg(1, "The ip %s is not inside of %s/%d",
 	    libnet_addr2name4(ip, RESOLVE),
 	    libnet_addr2name4(htonl(network), RESOLVE),
 	    mycidr->masklen);
