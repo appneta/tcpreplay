@@ -33,7 +33,7 @@
 #ifndef __TREE_H__
 #define __TREE_H__
 
-#include "../../lib/tree.h"
+#include "lib/tree.h"
 
 struct tree_s {
     RB_ENTRY(tree_s) node;
