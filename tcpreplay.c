@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.97 2004/08/09 19:42:45 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.98 2004/09/05 02:11:11 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -169,7 +169,7 @@ main(int argc, char *argv[])
             break;
         case 'I':              /* primary dest mac */
             mac2hex(optarg, options.intf1_mac, sizeof(options.intf1_mac));
-            if (memcmp(options.intf1_mac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", optarg);
             break;
         case 'j':              /* secondary interface */
@@ -177,17 +177,17 @@ main(int argc, char *argv[])
             break;
         case 'J':              /* secondary dest mac */
             mac2hex(optarg, options.intf2_mac, sizeof(options.intf2_mac));
-            if (memcmp(options.intf2_mac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", optarg);
             break;
         case 'k':              /* primary source mac */
             mac2hex(optarg, options.intf1_smac, sizeof(options.intf1_smac));
-            if (memcmp(options.intf1_smac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", optarg);
             break;
        case 'K':              /* secondary source mac */
             mac2hex(optarg, options.intf2_smac, sizeof(options.intf2_smac));
-            if (memcmp(options.intf2_smac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf2_smac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", optarg);
             break;
         case 'l':              /* loop count */
@@ -275,11 +275,11 @@ main(int argc, char *argv[])
             break;
         case 'S':              /* enable live replay mode w/ snaplen */
             options.sniff_snaplen = atoi(optarg);
-            if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > 65535)) {
+            if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > MAX_SNAPLEN)) {
                 errx(1, "Invalid snaplen: %d", options.sniff_snaplen);
             }
             else if (options.sniff_snaplen == 0) {
-                options.sniff_snaplen = 65535;
+                options.sniff_snaplen = MAX_SNAPLEN;
             }
             break;
         case 't':              /* MTU */
@@ -504,8 +504,8 @@ main(int argc, char *argv[])
         /*
          * we also can't rewrite macs for non-802.3
          */
-        if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) ||
-            (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))
+        if ((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
+            (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0))
             errx(1,
                  "You can't rewrite destination MAC's with non-802.3 frames");
 
@@ -766,7 +766,7 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
         /* single output mode */
         if (! options.intf2) {
             /* if SLL, then either -2 or -I are ok */
-            if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (!l2enabled)) {
+            if ((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) && (!l2enabled)) {
                 warnx("Unable to process pcap without -2 or -I: %s", name);
                 return;
             }
@@ -775,8 +775,8 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
         /* dual output mode */
         else {
             /* if using dual interfaces, make sure -2 or -J & -I) is set */
-            if (((memcmp(options.intf2_mac, NULL_MAC, 6) == 0) ||
-                 (memcmp(options.intf1_mac, NULL_MAC, 6) == 0)) &&
+            if (((memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
+                 (memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
                 (! l2enabled)) {
                 errx(1, "Unable to process pcap with -j without -2 or -I & -J: %s",  name);
                 return;
@@ -794,8 +794,8 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
         /* single output mode */
         if (! options.intf2) {
             /* Need either a full l2 header or -I & -k */
-            if (((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) || 
-                 (memcmp(options.intf1_smac, NULL_MAC, 6) == 0)) &&
+            if (((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) || 
+                 (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
                 (! l2enabled)) {
                 errx(1, "Unable to process pcap without -2 or -I and -k: %s", name);
                 return;
@@ -805,10 +805,10 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
         /* dual output mode */
         else {
             /* Need to have a l2 header or -J, -K, -I, -k */
-            if (((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) ||
-                 (memcmp(options.intf1_smac, NULL_MAC, 6) == 0) ||
-                 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0) ||
-                 (memcmp(options.intf2_smac, NULL_MAC, 6) == 0)) &&
+            if (((memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
+                 (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0) ||
+                 (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0) ||
+                 (memcmp(options.intf2_smac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
                 (! l2enabled)) {
                 errx(1, "Unable to process pcap with -j without -2 or -J, -I, -K & -k: %s", name);
                 return;
@@ -911,12 +911,12 @@ configfile(char *file)
         }
         else if (ARGS("primary_mac", 2)) {
             mac2hex(argv[1], options.intf1_mac, sizeof(options.intf1_mac));
-            if (memcmp(options.intf1_mac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf1_mac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", argv[1]);
         }
         else if (ARGS("primary_smac", 2)) {
             mac2hex(argv[1], options.intf1_smac, sizeof(options.intf1_smac));
-            if (memcmp(options.intf1_smac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", argv[1]);
         }
         else if (ARGS("second_intf", 2)) {
@@ -924,12 +924,12 @@ configfile(char *file)
         }
         else if (ARGS("second_mac", 2)) {
             mac2hex(argv[1], options.intf2_mac, sizeof(options.intf2_mac));
-            if (memcmp(options.intf2_mac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf2_mac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", argv[1]);
         }
         else if (ARGS("second_smac", 2)) {
             mac2hex(argv[1], options.intf2_smac, sizeof(options.intf2_smac));
-            if (memcmp(options.intf2_smac, NULL_MAC, 6) == 0)
+            if (memcmp(options.intf2_smac, NULL_MAC, LIBNET_ETH_H) == 0)
                 errx(1, "Invalid mac address: %s", argv[1]);
         }
         else if (ARGS("loop", 2)) {
@@ -1025,11 +1025,11 @@ configfile(char *file)
         }
         else if (ARGS("sniff_snaplen", 2)) {
             options.sniff_snaplen = atoi(argv[1]);
-            if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > 65535)) {
+            if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > MAX_SNAPLEN)) {
                 errx(1, "Invalid sniff snaplen: %d", options.sniff_snaplen);
             }
             else if (options.sniff_snaplen == 0) {
-                options.sniff_snaplen = 65535;
+                options.sniff_snaplen = MAX_SNAPLEN;
             }
         }
         else if (ARGS("packetrate", 2)) {
