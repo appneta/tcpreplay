@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.49 2003/12/10 06:48:33 aturner Exp $
+dnl $Id: configure.in,v 1.50 2003/12/11 03:02:50 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -136,7 +136,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy])
+AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll])
 
 dnl Check for inet_aton and inet_addr
 AC_CHECK_FUNC(inet_aton, AC_DEFINE(INET_ATON) inet_aton=yes, inet_aton=no)
