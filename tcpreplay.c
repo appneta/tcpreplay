@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.43 2003/01/06 00:29:32 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.44 2003/01/07 23:14:12 aturner Exp $ */
 
 #include "config.h"
 
@@ -257,8 +257,8 @@ replay_file(char *path)
 	char errbuf[PCAP_ERRBUF_SIZE];
 
 
-	if ((pcap = pcap_open_offline(path, &errbuf)) == NULL) {
-		errx(1, "Error opening file: %s : %s", path, &errbuf);
+	if ((pcap = pcap_open_offline(path, errbuf)) == NULL) {
+		errx(1, "Error opening file: %s", errbuf);
 	}
 
 	do_packets(pcap);
