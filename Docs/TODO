@@ -1,9 +1,12 @@
-For 1.4:
+For 1.5:
 
-- Add in functionality to auto-write/apply IPTables/NetFilter, etc rules so 
-	that if you're sending traffic with your own IP, the kernel won't
-	try to reply (tcp resets for your fake connections, etc) 
-	(libdnet can do this - mbing)
+- Replace libredblack with OpenBSD tree.h
+
+- Add a 'socket' mode which can replay TCP and UDP traffic to a server
+        - Limit to a single service/server
+        - Change destination IP
+        - Support multiple simultaneous sessions
+    
 
 - Filter which packets to send/not send based on libpcap matching language
 
@@ -11,31 +14,11 @@ For 1.4:
 
 - Look at VLAN packets
 	- others non-vanilla types?
-
-- Libnet 1.1 only
-
-- Remove snoop 
-	- use Ethereal to convert snoop & others to pcap
-
-- Properly deal with alignment on Solaris
-
-- Use system libpcap 
-	- optionally keep libpcap.c hack?
-	- use libpcap syntax when reading pcaps
+        - Add tags?  Remove tags?  Change tags?
 
 - Modularize packet mangling interface
 
 - Arbitrary number of interfaces
-
-- Write a FAQ
-	- basic usage
-	- advanced usage
-	- config files
-	- compiling libpcap, libnet 
-	- other pcap tools available
-	- "failed buffers"
-		- NMBCLUSTERS on *BSD
-		- /proc/sys/net/core/{r,w}mem_{default,max} on Linux
 
 - Ports
 	- support --with-pcap --with-libnet in the spec
