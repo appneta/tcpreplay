@@ -25,7 +25,7 @@ tcpprep_opts.h: tcpprep_opts.c
 
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c edit_packet.c
 
-tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tcpprep_opts.c tree.c
+tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c
 
 flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
 
