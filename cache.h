@@ -1,4 +1,4 @@
-/* $Id: cache.h,v 1.11 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: cache.h,v 1.12 2004/04/03 22:39:53 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -34,7 +34,7 @@
 #define __CACHE_H__
 
 #define CACHEMAGIC "tcpprep"
-#define CACHEVERSION "03"
+#define CACHEVERSION "04"
 #define CACHEDATASIZE 255
 #define CACHE_PACKETS_PER_BYTE 4    /* number of packets / byte */
 #define CACHE_BITS_PER_PACKET 2 /* number of bits / packet */
@@ -44,6 +44,7 @@
  * 01 - Inital release.  1 bit of data/packet (primary or secondary nic)
  * 02 - 2 bits of data/packet (drop/send & primary or secondary nic)
  * 03 - Write integers in network-byte order
+ * 04 - Increase num_packets from 32 to 64 bit integer
  */
 
 struct cache_type {
@@ -72,7 +73,8 @@ struct cache_file_header {
     char version[4];
     /* begin version 2 features */
     /* version 3 puts everything in network-byte order */
-    u_int32_t num_packets;      /* total # of packets in file */
+    /* version 4 makes num_packets a 64 bit int */
+    u_int64_t num_packets;      /* total # of packets in file */
     u_int16_t packets_per_byte;
     u_int16_t padding;          /* align our header on a 32bit line */
 };
@@ -80,9 +82,9 @@ struct cache_file_header {
 typedef struct cache_type CACHE;
 typedef struct cache_file_header CACHE_HEADER;
 
-unsigned long write_cache(CACHE *, const int, unsigned long);
+u_int64_t write_cache(CACHE *, const int, u_int64_t);
 void add_cache(CACHE **, const int, const int);
-u_int32_t read_cache(char **, char *);
+u_int64_t read_cache(char **, char *);
 int check_cache(char *, unsigned long);
 
 /* return values for check_cache */
@@ -91,5 +93,11 @@ int check_cache(char *, unsigned long);
 #define CACHE_PRIMARY 1
 #define CACHE_SECONDARY 2
 
+/* macro to change a bitstring to 8 bits */
+#define BIT_STR(x) x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]
+
+/* string of 8 zeros */
+#define EIGHT_ZEROS "\060\060\060\060\060\060\060\060"
 
 #endif
+

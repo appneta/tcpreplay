@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.19 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: cache.c,v 1.20 2004/04/03 22:39:53 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -53,6 +53,25 @@ extern int debug;
 static CACHE *new_cache();
 
 /*
+ * Takes a single char and returns a ptr to a string representation of the
+ * 8 bits that make up that char.  Use BIT_STR() to print it out
+ */
+#ifdef DEBUG
+static char *
+byte2bits(char byte, char *bitstring) {
+    int i = 1, j = 7;
+
+    for (i = 1; i <= 255; i = i << 1) {
+        if (byte & i)
+            bitstring[j] = '\061';
+        j--;
+    }
+
+    return bitstring;
+}
+#endif
+
+/*
  * simple function to read in a cache file created with tcpprep this let's us
  * be really damn fast in picking an interface to send the packet out returns
  * number of cache entries read
@@ -60,13 +79,13 @@ static CACHE *new_cache();
  * now also checks for the cache magic and version
  */
 
-u_int32_t
+u_int64_t
 read_cache(char **cachedata, char *cachefile)
 {
     int cachefd, cnt;
     CACHE_HEADER header;
     ssize_t read_size = 0;
-    unsigned long int cache_size = 0;
+    u_int64_t cache_size = 0;
 
     /* open the file or abort */
     cachefd = open(cachefile, O_RDONLY);
@@ -91,10 +110,14 @@ read_cache(char **cachedata, char *cachefile)
              cachefile);
 
     /* malloc our cache block */
-    cache_size = ntohl(header.num_packets) / ntohs(header.packets_per_byte);
+    cache_size = ntohll(header.num_packets) / ntohs(header.packets_per_byte);
 
-    dbg(1, "Cache file contains %ld packets in %ld bytes",
-        ntohl(header.num_packets), cache_size);
+    /* deal with any remainder, becuase above divsion is integer */
+    if (ntohll(header.num_packets) % ntohs(header.packets_per_byte))
+      cache_size ++;
+
+    dbg(1, "Cache file contains %lld packets in %ld bytes",
+        ntohll(header.num_packets), cache_size);
     dbg(1, "Cache uses %d packets per byte", ntohs(header.packets_per_byte));
     *cachedata = (char *)malloc(cache_size);
     memset(*cachedata, '\0', cache_size);
@@ -106,7 +129,7 @@ read_cache(char **cachedata, char *cachefile)
              "Cache data length (%ld bytes) doesn't match cache header (%ld bytes)",
              read_size, cache_size);
 
-    dbg(1, "Loaded in %u packets from cache.", ntohl(header.num_packets));
+    dbg(1, "Loaded in %llu packets from cache.", ntohll(header.num_packets));
 
     close(cachefd);
     return (header.num_packets);
@@ -118,14 +141,14 @@ read_cache(char **cachedata, char *cachefile)
  * the number of cache entries written (not including the file header
  * (magic + version = 11 bytes)
  */
-unsigned long
-write_cache(CACHE * cachedata, const int out_file, unsigned long numpackets)
+u_int64_t
+write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
 {
-    CACHE *mycache;
-    CACHE_HEADER *cache_header;
-    int chars, last = 0;
-    unsigned long packets = 0;
-    ssize_t written;
+    CACHE *mycache = NULL;
+    CACHE_HEADER *cache_header = NULL;
+    u_int32_t chars, last = 0;
+    u_int64_t packets = 0;
+    ssize_t written = 0;
 
     /* write a header to our file */
     cache_header = (CACHE_HEADER *) malloc(sizeof(CACHE_HEADER));
@@ -133,7 +156,7 @@ write_cache(CACHE * cachedata, const int out_file, unsigned long numpackets)
     strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
     strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
-    cache_header->num_packets = htonl(numpackets);
+    cache_header->num_packets = htonll(numpackets);
 
     written = write(out_file, cache_header, sizeof(CACHE_HEADER));
     dbg(1, "Wrote %d bytes of cache file header", written);
@@ -209,6 +232,9 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
     u_char *byte = NULL;
     int bit;
     unsigned long index;
+#ifdef DEBUG
+    char bitstring[9] = EIGHT_ZEROS;
+#endif
 
     /* first run?  malloc our first entry, set bit count to 0 */
     if (*cachedata == NULL) {
@@ -236,34 +262,47 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
 
     /* always increment our bit count */
     lastcache->packets++;
-    dbg(1, "Packet %d", lastcache->packets);
+    dbg(1, "Cache array packet %d", lastcache->packets);
 
     /* send packet ? */
     if (send) {
         index = (lastcache->packets - 1) / CACHE_PACKETS_PER_BYTE;
-        bit =
-            (((lastcache->packets -
-               1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
+        bit = (((lastcache->packets - 1) % CACHE_PACKETS_PER_BYTE) * 
+               CACHE_BITS_PER_PACKET) + 1;
+        dbg(3, "Bit: %d", bit);
+
         byte = (u_char *) & lastcache->data[index];
         *byte += (u_char) (1 << bit);
 
-        dbg(1, "set send bit: byte %d = 0x%x", index, *byte);
+        dbg(2, "set send bit: byte %d = 0x%x", index, *byte);
 
         /* if true, set low order bit. else, do squat */
         if (interface) {
-            *byte += (char)(1 << (bit - 1));
+            *byte += (u_char)(1 << (bit - 1));
 
-            dbg(1, "set interface bit: byte %d = 0x%x", index, *byte);
+            dbg(2, "set interface bit: byte %d = 0x%x", index, *byte);
 
         }
         else {
-            dbg(1, "don't set interface bit: byte %d = 0x%x", index, *byte);
+            dbg(2, "don't set interface bit: byte %d = 0x%x", index, *byte);
         }
+        dbg(3, "Current cache byte: %c%c%c%c%c%c%c%c",
+
+            /* 
+             * only build the byte string when not in debug mode since
+             * the calculation is a bit expensive
+             */
+#ifdef DEBUG
+            BIT_STR(byte2bits(*byte, bitstring))
+#else
+            EIGHT_ZEROS
+#endif
+            );
     }
     else {
-        dbg(1, "not sending packet");
+        dbg(1, "not setting send bit");
     }
-
+  
 }
 
 
