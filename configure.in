@@ -29,7 +29,7 @@ AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
 
-AM_INIT_AUTOMAKE(tcpreplay, 1.0, nodefine)
+AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
 
 AC_C_BIGENDIAN
 
@@ -476,17 +476,27 @@ dnl ##################################################
 dnl # Check for tcpdump.
 dnl ##################################################
 
+td=no
 AC_ARG_WITH(tcpdump,
             [  --with-tcpdump=FILE     Path to tcpdump binary],
-            td=$withval,
-            td="no")
+            [ if test x$enableval = xyes ; then
+                if test -x $withval ; then
+                   td=$withval
+                   AC_MSG_RESULT([Using tcpdump in $td])
+                else
+                    AC_MSG_RESULT([Unable to find $withval])
+                fi
+              fi
+            ],
+            [
+            AC_PATH_PROG(td, tcpdump, "no", [$PATH:/usr/sbin:/sbin:/usr/local/sbin])
+            ])
+           
 
-AC_PATH_PROG(td, tcpdump, "no",[$PATH:/usr/sbin:/sbin:/usr/local/sbin])
 if test "$td" = "no"; then
     AC_MSG_WARN([Unable to find tcpdump.  Please specify --with-tcpdump.
                  Disabling verbose reporting.])
 else
-    AC_MSG_RESULT([Using tcpdump in $td.])
     AC_DEFINE([HAVE_TCPDUMP], [], [Do we have tcpdump?])
     AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$td", [The tcpdump binary initially used])
 fi
