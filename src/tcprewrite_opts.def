@@ -1,5 +1,7 @@
 autogen definitions options;
 
+# autogen -T agman1.tpl --base-name=tcprewrite tcprewrite_opts.def
+
 copyright = {
     date        = "2004-2005";
     owner       = "Aaron Turner";
@@ -15,6 +17,16 @@ gnu-usage;
 help-value      = "H";
 save-opts-value = "";
 load-opts-value = "";
+
+detail		= <<- EOText
+Tcprewrite is a tool to rewrite packets stored in pcap(3) file format, such
+as crated by tools such as tcpdump(1) and ethereal(1).  Once a pcap file has
+had it's packets rewritten, they can be replayed back out on the network
+using tcpreplay(1).
+
+Certain packet editing features of tcprewrite requires a tcpprep(1) cache
+file which distinguishes "client" and "server" side traffic from each other.
+EOText;
 
 config-header   = "config.h";
 include         = "#include \"defines.h\"\n"
@@ -33,6 +45,10 @@ flag = {
     descrip     = "Enable debugging output";
     max         = 1;
     immediate;
+    doc         = <<- EOText
+If configured with --enable-debug, then you can specify a verbosity 
+level.  Higher numbers increase verbosity.
+EOText;
 };
 
 flag = {
@@ -41,6 +57,12 @@ flag = {
     arg-type    = number;
     descrip     = "Randomize src/dst IP addresses w/ given seed";
     max         = 1;
+    doc         = <<- EOText
+Causes the source and destination IP addresses to be pseudo 
+randomized but still maintain client/server relationships.
+Since the randomization is deterministic based on the seed, 
+you can reuse the same seed value to recreate the traffic.
+EOText; 
 };
 
 flag = {
@@ -59,6 +81,13 @@ flag = {
     options.mac_mask ^= (mask << 2);
 
 EODmac;
+    doc         = <<- EOText
+Takes a pair of comma deliminated ethernet MAC addresses which
+will replace the destination MAC address of outbound packets.
+The first MAC address will be used for the primary interface
+and the second MAC address will be used for the secondary
+interface.
+EOText;
 };
 
 flag = {
@@ -76,6 +105,13 @@ flag = {
     options.mac_mask ^= mask;
 
 EOSmac;
+  doc         = <<- EOText
+Takes a pair of comma deliminated ethernet MAC addresses which
+will replace the source MAC address of outbound packets.
+The first MAC address will be used for the primary interface
+and the second MAC address will be used for the secondary
+interface.
+EOText;
 };
 
 flag = {
@@ -100,6 +136,13 @@ flag = {
     }
 
 EOPnat;
+    doc         = <<- EOText
+Takes a comma delimited series of colon deliminated CIDR 
+netblock pairs.  Each netblock pair is evaluated in order against
+the IP addresses.  If the IP address in the packet matches the
+first netblock, it is rewriten using the second netblock as a
+mask against the high order bits.
+EOText; 
 };
 
 flag = {
@@ -128,6 +171,14 @@ flag = {
     }
 
 EODlink;
+    doc         = <<- EOText
+Provide a series of comma deliminated hex values which will be
+used to rewrite or create the Layer 2 header of the packets.
+The first instance of this argument will rewrite packets going
+out the primary and secondary interfaces.  If this argument
+is specified a second time, it will override the first argument
+for the secondary interface.
+EOText;
 };
 
 flag = {
@@ -140,6 +191,10 @@ flag = {
     options.fixcsum = 1;
 
 EOFixcsum;
+    doc         = <<- EOText
+Causes each IP packet to have it's checksums recalcualted and
+fixed.
+EOText;
 };
 
 flag = {
@@ -158,6 +213,8 @@ flag = {
         errx(1, "Unable to open input pcap file: %s", ebuf);
 
 EOInfile;
+    doc         = <<- EOText
+EOText;            
 };
 
 flag = {
@@ -167,6 +224,8 @@ flag = {
     descrip     = "Output pcap file";
     max         = 1;
     must-set;
+    doc		= <<- EOText
+EOText;
 };
 
 flag = {
