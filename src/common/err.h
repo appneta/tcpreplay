@@ -54,6 +54,7 @@
  * warn()  - Warning. Pass static string
  * warnx() - Warning. Pass format string, one or more variables
  * dbg()   - Debug. Debug level to trigger, format string, one or more variables
+ * notice() - Informational only via stderr, format string, one or more variables
  */
 
 void dbg(int dbg_level, const char *fmt, ...);
