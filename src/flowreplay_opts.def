@@ -1,0 +1,182 @@
+autogen definitions options;
+
+
+copyright = {
+    date        = "2004-2005";
+    owner       = "Aaron Turner";
+    type        = "bsd";
+    author      = <<- EOText
+Copyright 2000-2005 Aaron Turner
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+EOText;
+};
+
+package         = "flowreplay";
+prog-name       = "flowreplay";
+prog-title      = "Connect to servers based on network traffic stored in pcap files";
+long-opts;
+gnu-usage;
+help-value      = "H";
+save-opts-value = "";
+load-opts-value = "";
+argument = "<pcap_file(s)>";
+
+
+config-header   = "config.h";
+
+include         = "#include \"defines.h\"\n"
+                "#include \"flowreplay.h\"\n"
+                "#include \"common.h\"\n"
+                "extern char pcap_version[];\n"
+                "extern flowreplay_opt_t options;\n";
+
+homerc          = "$$/";
+
+explain = <<- EOExplain
+flowreplay is a tool for using network traffic stored in pcap(3) files as
+the basis for replaying connections to servers.
+EOExplain;
+
+detail = <<- EODetail
+
+EODetail;
+
+flag = {
+    name        = dbug;
+    value       = d;
+    arg-type    = number;
+    max         = 1;
+    immediate;
+    arg-range   = "0->5";
+    arg-default = 0;
+    descrip     = "Enable debugging output";
+    doc         = <<- EOText
+If configured with --enable-debug, then you can specify a verbosity 
+level for debugging output.  Higher numbers increase verbosity.
+EOText;
+};
+
+/* Verbose decoding via tcpdump */
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = verbose;
+    value       = v;
+    max         = 1;
+    immediate;
+    descrip     = "Print decoded packets via tcpdump to STDOUT";
+    settable;
+    doc         = "";
+};
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = decode;
+    flags-must  = verbose;
+    value       = A;
+    arg-type    = string;
+    max         = 1;
+    min         = 1;
+    descrip     = "Arguments passed to tcpdump decoder";
+    doc         = <<- EOText
+When enabling verbose mode (@var{-v}) you may also specify one or more
+additional  arguments to pass to @code{tcpdump} to modify the way packets
+are decoded.  By default, -n and -l are used.   Be  sure  to
+quote the arguments like: -A "-axxx" so that they are not interpreted
+by tcpreplay.  The following arguments are vaild:
+    [ -aAeNqRStuvxX ]
+    [ -E spi@ipaddr algo:secret,... ]
+    [ -s snaplen ]
+EOText;
+};
+
+
+flag = {
+    name        = mode;
+    value       = m;
+    arg-type    = string;
+    max         = 1;
+    min         = 1;
+    must-set;
+    descrip     = "Replay mode";
+    doc         = <<- EOText
+Flowreplay needs to know handle client/server exchanges to properly time.
+The options are:
+@table @bullet
+@item @var{send}
+Replay traffic as fast as possible.  Don't wait for server to reply.
+@item @var{wait}
+Wait @var{--wait} sec.usec for the server to reply before sending.
+@item @var{bytes}
+Wait until the server has sent the number of bytes stored in the pcap file.
+@item @var{user}
+Send packets based on user interaction.
+@end table
+EOText;
+};
+    
+flag = {
+    name        = wait;
+    value       = w;
+    arg-type    = string;
+    max         = 1;
+    default     = "2.0";
+    descrip     = "Number of sec.usec to wait between client's turn to send";
+    doc         = <<- EOText
+If @var{--mode} is @var{wait}, then you can specify the amount of time to 
+wait for the server to complete it's side of the transaction before starting
+to send the client side again.
+EOText;
+};
+
+flag = {
+    name        = server;
+    value       = s;
+    arg-type    = string;
+    max         = 1;
+    min         = 1;
+    must-set;
+    descrip     = "Server IP to connect to";
+    doc         = "";
+};
+
+flag = {
+    name        = filter;
+    value       = f;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "BPF filter to limit which flows are replayed";
+    doc         = "";
+};
+
+flag = {
+    name        = version;
+    value       = V;
+    descrip     = "Print version information";
+    flag-code   = <<- EOVersion
+    
+    fprintf(stderr, "flowreplay version: %s (build %s)", VERSION, svn_version());
+#ifdef DEBUG
+    fprintf(stderr, " (debug)");
+#endif
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+    exit(0);
+    
+EOVersion;
+    doc         = "";
+};
+
+flag = {
+    name        = less-help;
+    value       = "h";
+    immediate;
+    descrip     = "Display less usage information and exit";
+    flag-code   = <<- EOHelp
+  
+    USAGE(EXIT_FAILURE);
+
+EOHelp;
+    doc         = "";
+};
