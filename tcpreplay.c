@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.33 2002/10/03 01:08:10 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.34 2002/10/03 02:31:04 aturner Exp $ */
 
 #include "config.h"
 
@@ -523,14 +523,27 @@ void randomize_ips(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 				ip_hdr->ip_dst.s_addr);
 #endif
 
+	/* recalc the UDP/TCP checksum(s) */
+	proto = ((ip_hdr_t *)(pkt->data + LIBNET_ETH_H))->ip_p;
+	if ((proto == IPPROTO_UDP) || (proto == IPPROTO_TCP)) {
+#if USE_LIBNET_VERSION == 10
+		if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, proto, 
+							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			warnx("Layer 4 checksum failed");
+#elif USE_LIBNET_VERSION == 11
+		if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			warnx("Layer 4 checksum failed");
+#endif
+	}
+
 	/* recalc IP checksum */
 #if USE_LIBNET_VERSION == 10
 	if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, IPPROTO_IP, 
 						   LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #elif USE_LIBNET_VERSION == 11
-	proto = ((ip_hdr_t *)(pkt->data + LIBNET_ETH_H))->ip_p;
-	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, IPPROTO_IP,
 						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #endif
@@ -588,7 +601,7 @@ untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 						   LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #elif USE_LIBNET_VERSION == 11
-	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, IPPROTO_IP,
 						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 #endif
