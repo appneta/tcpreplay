@@ -40,12 +40,10 @@
 
 extern data_tree_t treeroot;
 extern double ratio;
+extern tcpprep_opt_t options;
 #ifdef DEBUG
 extern int debug;
 #endif
-extern int min_mask, max_mask;
-extern cidr_t *cidrdata;
-
 
 int checkincidr;
 
@@ -60,11 +58,11 @@ RB_PROTOTYPE(data_tree_s, tree_s, node, tree_comp)
 RB_GENERATE(data_tree_s, tree_s, node, tree_comp)
 
 /*
- * used with rbwalk to walk a tree and generate CIDR * cidrdata.
- * is smart enough to prevent dupes.  void * arg is cast to bulidcidr_type
+ * used with rbwalk to walk a tree and generate cidr_t * cidrdata.
+ * is smart enough to prevent dupes.  void * arg is cast to bulidcidr_t
  */
-     void
-       tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
+void
+tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
 {
     tree_t *node = NULL;
     cidr_t *newcidr = NULL;
@@ -82,12 +80,12 @@ RB_GENERATE(data_tree_s, tree_s, node, tree_comp)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        if (!check_ip_cidr(cidrdata, node->ip)) {   /* if we exist, abort */
+        if (!check_ip_cidr(options.cidrdata, node->ip)) {   /* if we exist, abort */
             newcidr = new_cidr();
             newcidr->masklen = bcdata->masklen;
             network = node->ip & (mask >> (32 - bcdata->masklen));
             newcidr->network = network;
-            add_cidr(cidrdata, &newcidr);
+            add_cidr(options.cidrdata, &newcidr);
         }
     }
 }
@@ -116,7 +114,7 @@ tree_checkincidr(data_tree_t *treeroot, buildcidr_t * bcdata)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        if (check_ip_cidr(cidrdata, node->ip)) {    /* if we exist, abort */
+        if (check_ip_cidr(options.cidrdata, node->ip)) {    /* if we exist, abort */
             checkincidr = 1;
         }
     }
@@ -139,7 +137,7 @@ process_tree()
     if ((bcdata = (buildcidr_t *) malloc(sizeof(buildcidr_t))) == NULL)
         err(1, "malloc");
 
-    for (mymask = max_mask; mymask <= min_mask; mymask++) {
+    for (mymask = options.max_mask; mymask <= options.min_mask; mymask++) {
         dbg(1, "Current mask: %u", mymask);
 
         /* set starting vals */
@@ -161,8 +159,8 @@ process_tree()
             return (mymask);    /* success! */
         }
         else {
-            destroy_cidr(cidrdata); /* clean up after our mess */
-            cidrdata = NULL;
+            destroy_cidr(options.cidrdata); /* clean up after our mess */
+            options.cidrdata = NULL;
         }
     }
 
