@@ -1,13 +1,13 @@
 
-dnl $Id: configure.in,v 1.21 2002/12/14 07:15:15 aturner Exp $
+dnl $Id: configure.in,v 1.22 2002/12/18 07:06:23 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
 
 dnl Set version info here!
 MAJOR_VERSION=1
-MINOR_VERSION=3
-MICRO_VERSION=0
+MINOR_VERSION=4
+MICRO_VERSION=beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -40,9 +40,6 @@ AC_PROG_CPP
 AC_FUNC_MEMCMP
 AC_PATH_PROG(PRINTF, printf)
 AC_SUBST(PRINTF)
-
-AC_PATH_PROG(LIBNET_CONFIG, libnet-config)
-AC_SUBST(LIBNET_CONFIG)
 
 dnl Enable debugging in code/compiler options
 debug=no
@@ -77,31 +74,11 @@ AC_FUNC_MEMCMP
 
 dnl Checks for header files.
 AC_HEADER_STDC
+
 dnl AC_CHECK_HEADERS(err.h math.h sys/time.h signal.h)
 AC_CHECK_HEADERS(math.h sys/time.h signal.h)
 
-
-dnl use inet_aton or inet_addr ?
-dnl AC_CHECK_DECL(inet_aton,
-dnl 	AC_DEFINE(INET_ATON)
-dnl 	inet_aton=yes, 
-dnl 	inet_aton=no,
-dnl 	[
-dnl #include <sys/socket.h>
-dnl #include <netinet/in.h>
-dnl #include <arpa/inet.h>
-dnl ])
-
-dnl AC_CHECK_DECL(inet_addr,
-dnl 	AC_DEFINE(INET_ADDR)
-dnl 	inet_addr=yes, 
-dnl 	inet_addr=no,
-dnl 	[
-dnl #include <sys/socket.h>
-dnl #include <netinet/in.h>
-dnl #include <arpa/inet.h>
-dnl ])
-
+dnl Check for inet_aton and inet_addr
 AC_CHECK_FUNC(inet_aton, AC_DEFINE(INET_ATON) inet_aton=yes, inet_aton=no)
 AC_CHECK_FUNC(inet_addr, AC_DEFINE(INET_ADDR) inet_addr=yes, inet_addr=no)
 
@@ -136,34 +113,24 @@ AC_ARG_WITH(libnet,
      AC_MSG_RESULT($withval)
      if test -f $withval/include/libnet.h -a -f $withval/lib/libnet.a; then
         owd=`pwd`
-        if cd $withval; then withval=`pwd`; cd $owd; fi
-	if test -x $withval/bin/libnet-config; then
-	   CFLAGS="$CFLAGS `$withval/bin/libnet-config --defines`"
-	elif test -x $withval/libnet-config; then
-	   CFLAGS="$CFLAGS `$withval/libnet-config --defines`"
-	elif test -x $LIBNET_CONFIG; then
-	   CFLAGS="$CFLAGS `$LIBNET_CONFIG --defines`"
-	fi
-	LNETINC="-I$withval/include"
-	LNETINCDIR="$withval/include/"
-	LNETLIB="-L$withval/lib -lnet"
+        if cd $withval; then 
+          withval=`pwd` 
+          cd $owd
+        fi
+		LNETINC="-I$withval/include"
+		LNETINCDIR="$withval/include"
+		LNETLIB="-L$withval/lib -lnet"
      else
         AC_ERROR(libnet.h or libnet.a not found in $withval)
      fi
      ;;
   esac ],
 [ if test -f ${prefix}/include/libnet.h; then
-     if test -x ${prefix}/bin/libnet-config; then
-         CFLAGS="$CFLAGS `${prefix}/bin/libnet-config --defines`"
-     fi
      LNETINC="-I${prefix}/include"
-     LNETINCDIR="$prefix/include/"
+     LNETINCDIR="$prefix/include"
      LNETLIB="-L${prefix}/lib -lnet"
   elif test -f /usr/include/libnet.h; then
-     if test -x /usr/bin/libnet-config; then
-	     CFLAGS="$CFLAGS `/usr/bin/libnet-config --defines`" 
-     fi
-     LNETINCDIR="/usr/include/"
+     LNETINCDIR="/usr/include"
      LNETLIB="-lnet"
   else
      AC_MSG_RESULT(no)
@@ -179,30 +146,12 @@ dnl Checks to see what version of libnet we've got
 OLDLIBS="$LIBS"
 LIBS="$LNETLIB"
 
+dnl Check to see what version of libnet
+dnl this code has been reduced a lot, but probably still could be
+dnl reduced quite a bit more if we chose too
 AC_MSG_CHECKING(for libnet version)
 
-AC_ARG_WITH(libnetver,
-[  --with-libnetver=VER    version of libnet in use],
-[ case "$withval" in
-  1.0.x)
-     AC_MSG_RESULT($withval)
-     libnet_ver_10=yes
-     libnet_ver_11=no
-     AC_DEFINE(USE_LIBNET_VERSION, 10)
-     ;;
-  1.1.x)
-     AC_MSG_RESULT($withval)
-     libnet_ver_10=no
-     libnet_ver_11=yes
-     AC_DEFINE(USE_LIBNET_VERSION, 11)
-     ;;
-  *)
-     AC_MSG_ERROR(Invalid version: $withval
-  valid versions are 1.0.x or 1.1.x)
-     ;;
-esac
-], 
-[ AC_TRY_RUN([
+AC_TRY_RUN([
 #include <string.h>
 #include "$LNETINCDIR/libnet.h"
 #define LIB_TEST "1.0"
@@ -219,7 +168,6 @@ main (int argc, char *argv[])
 	exit(1);
 }],
 	libnet_ver_10=yes
-	AC_DEFINE(USE_LIBNET_VERSION, 10)
 	AC_MSG_RESULT(1.0.x), 
 	libnet_ver_10=no,
 	libnet_ver_10=no
@@ -242,25 +190,21 @@ main (int argc, char *argv[])
 	exit(1);
 }],
 	libnet_ver_11=yes
-	AC_DEFINE(USE_LIBNET_VERSION, 11)
 	AC_MSG_RESULT(1.1.x), 
 	libnet_ver_11=no,
 	libnet_ver_11=no
 	)
-])
+
 
 if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
 	AC_MSG_RESULT(unknown)
 	AC_MSG_ERROR(Unable to determine version of libnet)
 fi
 
-dnl for now, we don't handle 1.1.x so we have to abort
-dnl hopefully soon we'll handle either version
-
-dnl if test $libnet_ver_11 = yes ; then
-dnl	AC_MSG_ERROR(Libnet version 1.1.x isn't currently supported.
-dnl  Please use 1.0.2a)
-dnl fi
+if test $libnet_ver_10 = yes ; then
+	  AC_MSG_ERROR(Libnet version 1.0.x is no longer supported.
+		Please upgrade to 1.1.0 or better)
+fi
 dnl restore LIBS
 LIBS="$OLDLIBS"
 

@@ -151,11 +151,7 @@ check_ip_regex(const unsigned long ip)
 	regmatch_t *pmatch = NULL;
 
 	memset(src_ip, '\0', 16);
-#if USE_LIBNET_VERSION == 10
-	strncat(src_ip, libnet_host_lookup(ip, RESOLVE), 15);
-#elif USE_LIBNET_VERSION == 11
 	strncat(src_ip, libnet_addr2name4(ip, RESOLVE), 15);
-#endif
 	if (regexec(preg, src_ip, nmatch, pmatch, eflags) == 0) {
 		return (1);
 	} else {

@@ -205,29 +205,12 @@ check_ip_tree(const unsigned long ip)
 
 	tree = (TREE *) rbfind((void *) finder, rbdata);
 
-#if USE_LIBNET_VERSION == 10
-	if (tree == NULL) 
-		errx(1, "%s (%lu) is an unknown system... aborting.!\n"
-			"Try router mode (-n router)\n", 
-			 libnet_host_lookup(ip, RESOLVE), ip);
-#elif USE_LIBNET_VERSION == 11
 	if (tree == NULL) 
 		errx(1, "%s (%lu) is an unknown system... aborting.!\n"
 			 "Try router mode (-n router)\n", 
 			 libnet_addr2name4(ip, RESOLVE), ip);
-#endif
 
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-	if (debug) {
-		if (tree->type == SERVER) {
-			fprintf(stderr, "Server: %s\n", libnet_host_lookup(ip, RESOLVE));
-		} else if (tree->type == CLIENT) {
-			fprintf(stderr, "Client: %s\n", libnet_host_lookup(ip, RESOLVE));
-		} else {
-			fprintf(stderr, "Unknown: %s\n", libnet_host_lookup(ip, RESOLVE));
-		}
-	}
-#elif defined DEBUG && DEBUSE_LIBNET_VERSION == 11
+#ifdef DEBUG
 	if (debug) {
 		if (tree->type == SERVER) {
 			fprintf(stderr, "Server: %s\n", libnet_addr2name4(ip, RESOLVE));
@@ -238,7 +221,6 @@ check_ip_tree(const unsigned long ip)
 		}
 	}
 #endif
-
 
 	return (tree->type);
 
@@ -261,18 +243,17 @@ add_tree(const unsigned long ip, const u_char * data)
 	newtree = packet2tree(data);
 	if (newtree->type == UNKNOWN) {
 		/* couldn't figure out if packet was client or server */
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-		if (debug > 1)
-			fprintf(stderr, "%s (%lu) unknown client/server\n",
-					libnet_host_lookup(newtree->ip, RESOLVE), newtree->ip);
-#elif defined DEBUG && USE_LIBNET_VERSION == 11
+
+#ifdef DEBUG
 		if (debug > 1)
 			fprintf(stderr, "%s (%lu) unknown client/server\n",
 					libnet_addr2name4(newtree->ip, RESOLVE), newtree->ip);
 #endif
+
 	}
 	/* try to find a simular entry in the tree */
 	tree = (TREE *) rbfind((void *) newtree, rbdata);
+
 #ifdef DEBUG
 	if (debug > 2)
 		print_tree("rbfind", tree);
@@ -371,31 +352,25 @@ tree_comp(const void *first, const void *second, const void *config)
 	t2 = (TREE *) second;
 
 	if (t1->ip > t2->ip) {
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-		if (debug > 1)
-			fprintf(stderr, "%s > %s\n", libnet_host_lookup(t1->ip, RESOLVE), libnet_host_lookup(t2->ip, RESOLVE));
-#elif defined DEBUG && USE_LIBNET_VERSION == 11
+
+#ifdef DEBUG
 		if (debug > 1)
 			fprintf(stderr, "%s > %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
 #endif
+
 		return 1;
 	}
 	if (t1->ip < t2->ip) {
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-		if (debug > 1)
-			fprintf(stderr, "%s < %s\n", libnet_host_lookup(t1->ip, RESOLVE), libnet_host_lookup(t2->ip, RESOLVE));
-#elif defined DEBUG && USE_LIBNET_VERSION == 11
+
+#ifdef DEBUG
 		if (debug > 1)
 			fprintf(stderr, "%s < %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
-
 #endif
+
 		return -1;
 	}
 
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-	if (debug > 1)
-		fprintf(stderr, "%s = %s\n", libnet_host_lookup(t1->ip, RESOLVE), libnet_host_lookup(t2->ip, RESOLVE));
-#elif defined DEBUG && USE_LIBNET_VERSION == 11
+#ifdef DEBUG
 	if (debug > 1)
 		fprintf(stderr, "%s = %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
 #endif
@@ -463,10 +438,7 @@ packet2tree(const u_char * data)
 	 */
 	if (ip_hdr.ip_p == IPPROTO_TCP) {
 
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-		if (debug)
-			fprintf(stderr, "%s uses TCP...  ", libnet_host_lookup(ip_hdr.ip_src.s_addr, RESOLVE));
-#elif defined DEBUG && USE_LIBNET_VERSION == 11
+#ifdef DEBUG
 		if (debug)
 			fprintf(stderr, "%s uses TCP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 #endif
@@ -504,15 +476,11 @@ packet2tree(const u_char * data)
 		/* memcpy over to prevent alignment issues */
 		memcpy(&udp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_UDP_H);
 
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-		if (debug)
-			fprintf(stderr, "%s uses UDP...  ", libnet_host_lookup(ip_hdr.ip_src.s_addr, RESOLVE));
-#elif defined DEBUG && USE_LIBNET_VERSION == 11
+#ifdef DEBUG
 		if (debug)
 			fprintf(stderr, "%s uses UDP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 #endif
 		
-
 		switch (ntohs(udp_hdr.uh_dport)) {
 		case 0x0035:	/* dns */
 			/* prevent memory alignment issues */
@@ -521,17 +489,21 @@ packet2tree(const u_char * data)
 			if (dns_hdr.flags & DNS_QUERY_FLAG) {
 				/* bit set, response */
 				mytree->type = SERVER;
+
 #ifdef DEBUG
 				if (debug)
 					fprintf(stderr, "is a dns server\n");
 #endif
+
 			} else {
 				/* bit not set, query */
 				mytree->type = CLIENT;
+
 #ifdef DEBUG
 				if (debug)
 					fprintf(stderr, "is a dns client\n");
 #endif
+
 			}
 			return (mytree);
 			break;
@@ -562,10 +534,12 @@ packet2tree(const u_char * data)
 			return (mytree);
 			break;
 		default:
+
 #ifdef DEBUG
 			if (debug)
 				fprintf(stderr, "unknown UDP protocol: %hu->%hu\n", udp_hdr.uh_sport, udp_hdr.uh_dport);
 #endif
+
 			break;
 		}
 
@@ -577,10 +551,7 @@ packet2tree(const u_char * data)
 		/* prevent alignment issues */
 		memcpy(&icmp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_ICMP_H);
 
-#if defined DEBUG && USE_LIBNET_VERSION == 10
-		if (debug)
-			fprintf(stderr, "%s uses ICMP...  ", libnet_host_lookup(ip_hdr.ip_src.s_addr, RESOLVE));
-#elif defined DEBUG && USE_LIBNET_VERSION == 11
+#ifdef DEBUG
 		if (debug)
 			fprintf(stderr, "%s uses ICMP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 #endif
@@ -612,15 +583,9 @@ print_tree(const char *name, const TREE * tree)
 	if (tree == NULL) {
 		fprintf(stderr, "%s Tree is null\n", name);
 	} else {
-#if USE_LIBNET_VERSION == 10
-		fprintf(stderr, "-- %s: 0x%p\nIP  : %s\nMask: %d\nSrvr: %d\nClnt: %d\n", 
-				name, tree, libnet_host_lookup(tree->ip, 0), tree->masklen, 
-				tree->server_cnt, tree->client_cnt);
-#elif USE_LIBNET_VERSION == 11
 		fprintf(stderr, "-- %s: 0x%p\nIP  : %s\nMask: %d\nSrvr: %d\nClnt: %d\n", 
 				name, tree, libnet_addr2name4(tree->ip, 0), tree->masklen, 
 				tree->server_cnt, tree->client_cnt);
-#endif
 		if (tree->type == SERVER) {
 			fprintf(stderr, "Type: Server\n--\n");
 		} else {

@@ -41,13 +41,8 @@ print_cidr(CIDR * mycidr)
 	cidr_ptr = mycidr;
 	while (cidr_ptr != NULL) {
 		/* print it */
-#if USE_LIBNET_VERSION == 10
-		fprintf(stderr, "%s/%d, ", libnet_host_lookup(cidr_ptr->network, RESOLVE), 
-				cidr_ptr->masklen);
-#elif USE_LIBNET_VERSION == 11
 		fprintf(stderr, "%s/%d, ", libnet_addr2name4(cidr_ptr->network, RESOLVE), 
 				cidr_ptr->masklen);
-#endif
 
 		/* go to the next */
 		if (cidr_ptr->next != NULL) {
@@ -109,11 +104,7 @@ ip2cidr(const unsigned long ip, const int masklen)
 	if ((network = (u_char *) malloc(20)) == NULL)
 		err(1, "malloc");
 
-#if USE_LIBNET_VERSION == 10
-	strncpy(network, libnet_host_lookup(ip, RESOLVE), 19);
-#elif USE_LIBNET_VERSION == 11
 	strncpy(network, libnet_addr2name4(ip, RESOLVE), 19);
-#endif
 
 	strcat(network, "/");
 	if (masklen < 10) {
@@ -265,30 +256,24 @@ ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
 
 	/* if they're the same, then ip is in network */
 	if (network == ipaddr) {
+
 #ifdef DEBUG
 		if (debug) {
-#if USE_LIBNET_VERSION == 10
-			fprintf(stderr, "The ip %s is inside of %s/%d\n",
-					libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(htonl(network), RESOLVE), mycidr->masklen);
-#elif USE_LIBNET_VERSION == 11
 			fprintf(stderr, "The ip %s is inside of %s/%d\n",
 					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
-#endif
 		}
 #endif
+
 		return 1;
 	} else {
+
 #ifdef DEBUG
 		if (debug) {
-#if USE_LIBNET_VERSION == 10
-			fprintf(stderr, "The ip %s is not inside of %s/%d\n",
-				libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(htonl(network), RESOLVE), mycidr->masklen);
-#elif USE_LIBNET_VERSION == 11
 			fprintf(stderr, "The ip %s is not inside of %s/%d\n",
 					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
-#endif
 		}
 #endif
+
 		return 0;
 	}
 

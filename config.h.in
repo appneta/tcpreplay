@@ -16,12 +16,6 @@
 /* Define to enable debugging code and -d flag */
 #undef DEBUG
 
-/* 
- * Define to either 10 (for 1.0.x) or 11 (for 1.1.x).  
- * Used for managing differences in the API 
- */
-#undef USE_LIBNET_VERSION
-
 /* Do we have the new inet_aton ? */
 #undef INET_ATON
 

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.24 2002/11/22 23:11:04 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.25 2002/12/18 07:06:23 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -9,16 +9,7 @@
 
 #include "timer.h"
 
-/* Compatibility for libnet 1.0 vs 1.1 */
-#if USE_LIBNET_VERSION == 10
-
-typedef struct libnet_link_int LIBNET;
-typedef struct libnet_ip_hdr ip_hdr_t;
-typedef struct libnet_dns_hdr dns_hdr_t;
-typedef struct libnet_icmp_hdr icmp_hdr_t;
-
-#elif USE_LIBNET_VERSION == 11
-
+/* Map libnet 1.1 structs to shorter names for internal use */
 typedef libnet_t LIBNET;
 #define LIBNET_IP_H LIBNET_IPV4_H
 #define LIBNET_ICMP_H LIBNET_ICMPV4_H
@@ -26,9 +17,6 @@ typedef libnet_t LIBNET;
 typedef struct libnet_ipv4_hdr ip_hdr_t;
 typedef struct libnet_dnsv4_hdr dns_hdr_t;
 typedef struct libnet_icmpv4_hdr icmp_hdr_t;
-#else
-#error "Unsupported version of Libnet"
-#endif /* USE_LIBNET_VERSION */
 
 /* standardize all common header typedefs */
 typedef struct libnet_tcp_hdr tcp_hdr_t;

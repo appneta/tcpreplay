@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.41 2002/11/07 05:30:40 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.42 2002/12/18 07:06:23 aturner Exp $ */
 
 #include "config.h"
 
@@ -209,22 +209,6 @@ main(int argc, char *argv[])
 	}
 		
 
-#if USE_LIBNET_VERSION == 10
-	if ((options.intf1 = libnet_open_link_interface(intf, ebuf)) == NULL)
-		errx(1, "Can't open %s: %s", intf, ebuf);
-
-	if (options.intf1->device == NULL)
-		options.intf1->device = intf;
-
-	if (intf2 != NULL) { 
-		if ((options.intf2 = libnet_open_link_interface(intf2, ebuf)) == NULL)
-			errx(1, "Can't open %s: %s", intf2, ebuf);
-
-		if (options.intf2->device == NULL)
-			options.intf2->device = intf2;
-	}
-
-#elif USE_LIBNET_VERSION == 11
 	if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
 		errx(1, "Can't open %s: %s", intf, ebuf);
 
@@ -232,7 +216,6 @@ main(int argc, char *argv[])
 		if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
 			errx(1, "Can't open %s: %s", intf2, ebuf);
 	}
-#endif
 
 	warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
 

@@ -829,7 +829,6 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-debug            Enable debugging code and support for the -d option
   --with-libnet=DIR       use libnet in DIR
-  --with-libnetver=VER    version of libnet in use
   --with-testnic=NIC      Select which network card to use for testing
   --with-testnic2=NIC2    Select an optional 2nd network card to use for testing
 
@@ -1194,8 +1193,8 @@ ac_config_headers="$ac_config_headers config.h"
 
 
 MAJOR_VERSION=1
-MINOR_VERSION=3
-MICRO_VERSION=0
+MINOR_VERSION=4
+MICRO_VERSION=beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 TCPREPLAY_RELEASE=1
@@ -2506,47 +2505,6 @@ fi
 
 
 
-# Extract the first word of "libnet-config", so it can be a program name with args.
-set dummy libnet-config; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_LIBNET_CONFIG+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $LIBNET_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_LIBNET_CONFIG="$LIBNET_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_LIBNET_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-LIBNET_CONFIG=$ac_cv_path_LIBNET_CONFIG
-
-if test -n "$LIBNET_CONFIG"; then
-  echo "$as_me:$LINENO: result: $LIBNET_CONFIG" >&5
-echo "${ECHO_T}$LIBNET_CONFIG" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-
-
 debug=no
 echo "$as_me:$LINENO: checking for debug enabled" >&5
 echo $ECHO_N "checking for debug enabled... $ECHO_C" >&6
@@ -3423,6 +3381,7 @@ fi
 
 
 
+
 for ac_header in math.h sys/time.h signal.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -3535,9 +3494,6 @@ _ACEOF
 fi
 
 done
-
-
-
 
 
 echo "$as_me:$LINENO: checking for inet_aton" >&5
@@ -3906,17 +3862,13 @@ echo "${ECHO_T}no" >&6
 echo "${ECHO_T}$withval" >&6
      if test -f $withval/include/libnet.h -a -f $withval/lib/libnet.a; then
         owd=`pwd`
-        if cd $withval; then withval=`pwd`; cd $owd; fi
-	if test -x $withval/bin/libnet-config; then
-	   CFLAGS="$CFLAGS `$withval/bin/libnet-config --defines`"
-	elif test -x $withval/libnet-config; then
-	   CFLAGS="$CFLAGS `$withval/libnet-config --defines`"
-	elif test -x $LIBNET_CONFIG; then
-	   CFLAGS="$CFLAGS `$LIBNET_CONFIG --defines`"
-	fi
-	LNETINC="-I$withval/include"
-	LNETINCDIR="$withval/include/"
-	LNETLIB="-L$withval/lib -lnet"
+        if cd $withval; then
+          withval=`pwd`
+          cd $owd
+        fi
+		LNETINC="-I$withval/include"
+		LNETINCDIR="$withval/include"
+		LNETLIB="-L$withval/lib -lnet"
      else
         { { echo "$as_me:$LINENO: error: libnet.h or libnet.a not found in $withval" >&5
 echo "$as_me: error: libnet.h or libnet.a not found in $withval" >&2;}
@@ -3926,17 +3878,11 @@ echo "$as_me: error: libnet.h or libnet.a not found in $withval" >&2;}
   esac
 else
    if test -f ${prefix}/include/libnet.h; then
-     if test -x ${prefix}/bin/libnet-config; then
-         CFLAGS="$CFLAGS `${prefix}/bin/libnet-config --defines`"
-     fi
      LNETINC="-I${prefix}/include"
-     LNETINCDIR="$prefix/include/"
+     LNETINCDIR="$prefix/include"
      LNETLIB="-L${prefix}/lib -lnet"
   elif test -f /usr/include/libnet.h; then
-     if test -x /usr/bin/libnet-config; then
-	     CFLAGS="$CFLAGS `/usr/bin/libnet-config --defines`"
-     fi
-     LNETINCDIR="/usr/include/"
+     LNETINCDIR="/usr/include"
      LNETLIB="-lnet"
   else
      echo "$as_me:$LINENO: result: no" >&5
@@ -3959,42 +3905,7 @@ LIBS="$LNETLIB"
 echo "$as_me:$LINENO: checking for libnet version" >&5
 echo $ECHO_N "checking for libnet version... $ECHO_C" >&6
 
-
-# Check whether --with-libnetver or --without-libnetver was given.
-if test "${with_libnetver+set}" = set; then
-  withval="$with_libnetver"
-   case "$withval" in
-  1.0.x)
-     echo "$as_me:$LINENO: result: $withval" >&5
-echo "${ECHO_T}$withval" >&6
-     libnet_ver_10=yes
-     libnet_ver_11=no
-     cat >>confdefs.h <<\_ACEOF
-#define USE_LIBNET_VERSION 10
-_ACEOF
-
-     ;;
-  1.1.x)
-     echo "$as_me:$LINENO: result: $withval" >&5
-echo "${ECHO_T}$withval" >&6
-     libnet_ver_10=no
-     libnet_ver_11=yes
-     cat >>confdefs.h <<\_ACEOF
-#define USE_LIBNET_VERSION 11
-_ACEOF
-
-     ;;
-  *)
-     { { echo "$as_me:$LINENO: error: Invalid version: $withval
-  valid versions are 1.0.x or 1.1.x" >&5
-echo "$as_me: error: Invalid version: $withval
-  valid versions are 1.0.x or 1.1.x" >&2;}
-   { (exit 1); exit 1; }; }
-     ;;
-esac
-
-else
-   if test "$cross_compiling" = yes; then
+if test "$cross_compiling" = yes; then
   libnet_ver_10=no
 
 else
@@ -4030,10 +3941,6 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
   libnet_ver_10=yes
-	cat >>confdefs.h <<\_ACEOF
-#define USE_LIBNET_VERSION 10
-_ACEOF
-
 	echo "$as_me:$LINENO: result: 1.0.x" >&5
 echo "${ECHO_T}1.0.x" >&6
 else
@@ -4082,10 +3989,6 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
   libnet_ver_11=yes
-	cat >>confdefs.h <<\_ACEOF
-#define USE_LIBNET_VERSION 11
-_ACEOF
-
 	echo "$as_me:$LINENO: result: 1.1.x" >&5
 echo "${ECHO_T}1.1.x" >&6
 else
@@ -4098,7 +4001,6 @@ fi
 rm -f core core.* *.core conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
 
-fi;
 
 if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
 	echo "$as_me:$LINENO: result: unknown" >&5
@@ -4108,7 +4010,13 @@ echo "$as_me: error: Unable to determine version of libnet" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-
+if test $libnet_ver_10 = yes ; then
+	  { { echo "$as_me:$LINENO: error: Libnet version 1.0.x is no longer supported.
+		Please upgrade to 1.1.0 or better" >&5
+echo "$as_me: error: Libnet version 1.0.x is no longer supported.
+		Please upgrade to 1.1.0 or better" >&2;}
+   { (exit 1); exit 1; }; }
+fi
 LIBS="$OLDLIBS"
 
 echo "$as_me:$LINENO: checking for 'make test' profile" >&5
@@ -4764,7 +4672,6 @@ s,@SET_MAKE@,$SET_MAKE,;t t
 s,@CPP@,$CPP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@PRINTF@,$PRINTF,;t t
-s,@LIBNET_CONFIG@,$LIBNET_CONFIG,;t t
 s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
@@ -5798,7 +5705,6 @@ s,@SET_MAKE@,$SET_MAKE,;t t
 s,@CPP@,$CPP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@PRINTF@,$PRINTF,;t t
-s,@LIBNET_CONFIG@,$LIBNET_CONFIG,;t t
 s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
@@ -6833,7 +6739,6 @@ s,@SET_MAKE@,$SET_MAKE,;t t
 s,@CPP@,$CPP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@PRINTF@,$PRINTF,;t t
-s,@LIBNET_CONFIG@,$LIBNET_CONFIG,;t t
 s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
