@@ -68,6 +68,65 @@ flag = {
 EOAuto;
 };
 
+
+flag = {
+    name        = cidr;
+    value       = c;
+    descrip     = "CIDR-split mode";
+    arg-type    = string;
+    max         = 1;
+    flags-cant  = auto;
+    flags-cant  = port;
+    flags-cant  = regex;
+    flag-code   = <<- EOCidr
+  
+    char *cidr = safe_strdup(OPT_ARG(CIDR));
+    options.mode = CIDR_MODE;
+    if (!parse_cidr(&options.cidrdata, cidr, ","))
+        errx(1, "Unable to parse CIDR map: %s", OPT_ARG(CIDR));
+    free(cidr);
+
+EOCidr;
+};
+
+flag = {
+    name        = regex;
+    value       = r;
+    descrip     = "Regex-split mode";
+    arg-type    = string;
+    max         = 1;
+    flags-cant  = auto;
+    flags-cant  = port;
+    flags-cant  = cidr;
+    flag-code   = <<- EORegex
+    
+    int regex_error;
+    char ebuf[EBUF_SIZE];
+    
+    options.mode = REGEX_MODE;
+    if (regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
+        REG_EXTENDED|REG_NOSUB)) {
+        regerror(regex_error, &options.preg, ebuf, EBUF_SIZE);
+        errx(1, "Unable to compile regex: %s", ebuf);
+    }
+    
+EORegex;
+};
+
+flag = {
+    name        = port;
+    value       = p;
+    descrip     = "Port-split mode";
+    flags-cant  = auto;
+    flags-cant  = regex;
+    flags-cant  = cidr;
+    flag-code   = <<- EOPort
+    
+    options.mode = PORT_MODE;
+    
+EOPort;
+};
+
 flag = {
     name        = comment;
     value       = C;
@@ -86,18 +145,6 @@ flag = {
     strcpy(options.comment, OPT_ARG(COMMENT));
     
 EOComment;
-};
-
-flag = {
-//    ifdef       = DEBUG;
-    name        = dbug;
-    value       = d;
-    arg-type    = number;
-    max         = 1;
-    immediate;
-    arg-range   = "0->5";
-    arg-default = 0;
-    descrip     = "Enable debugging output";
 };
 
 
@@ -151,7 +198,6 @@ flag = {
     value       = o;
     arg-type    = string;
     max         = 1;
-    min         = 1;
     descrip     = "Output cache file";
 };
 
@@ -161,7 +207,6 @@ flag = {
     descrip     = "Input pcap file to process";
     arg-type    = string;
     max         = 1;
-    min         = 1;
 };
 
 flag = {
@@ -169,18 +214,13 @@ flag = {
     value       = P;
     descrip     = "Print cache file comment";
     arg-type    = string;
-    immediate;
-    flag-code   = <<- EOPrint
-    
-    print_comment(OPT_ARG(PRINT));
-    
-EOPrint;
 };
 
 flag = {
     name        = info;
     value       = I;
     descrip     = "Print cache file info";
+    arg-type        = string;
 };
 
 flag = {
@@ -190,7 +230,7 @@ flag = {
     flag-must   = port;
     arg-type    = string;
     flag-code   = <<- EOServices
-  
+    
     parse_services(OPT_ARG(SERVICES), &options.services);
     
 EOServices;
@@ -257,59 +297,6 @@ flag = {
 };
 
 flag = {
-    name        = cidr;
-    value       = c;
-    descrip     = "CIDR-split mode";
-    arg-type    = string;
-    max         = 1;
-    flags-cant  = auto;
-    flags-cant  = port;
-    flags-cant  = regex;
-    flag-code   = <<- EOCidr
-  
-    char *cidr = safe_strdup(OPT_ARG(CIDR));
-    options.mode = CIDR_MODE;
-    if (!parse_cidr(&options.cidrdata, cidr, ","))
-        errx(1, "Unable to parse CIDR map: %s", OPT_ARG(CIDR));
-    free(cidr);
-
-EOCidr;
-};
-
-flag = {
-    name        = regex;
-    value       = r;
-    descrip     = "Regex-split mode";
-    arg-type    = string;
-    max         = 1;
-    flags-cant  = auto;
-    flags-cant  = port;
-    flags-cant  = cidr;
-    flag-code   = <<- EORegex
-    
-    int regex_error;
-    char ebuf[EBUF_SIZE];
-    
-    options.mode = REGEX_MODE;
-    if (regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
-        REG_EXTENDED|REG_NOSUB)) {
-        regerror(regex_error, &options.preg, ebuf, EBUF_SIZE);
-        errx(1, "Unable to compile regex: %s", ebuf);
-    }
-    
-EORegex;
-};
-
-flag = {
-    name        = port;
-    value       = p;
-    descrip     = "Port-split mode";
-    flags-cant  = auto;
-    flags-cant  = regex;
-    flags-cant  = cidr;
-};
-
-flag = {
     ifdef       = HAVE_TCPDUMP;
     name        = verbose;
     value       = v;
@@ -328,6 +315,20 @@ flag = {
     max         = 1;
     descrip     = "Arguments passed to tcpdump decoder";
 };
+
+
+flag = {
+//    ifdef       = DEBUG;
+    name        = dbug;
+    value       = d;
+    arg-type    = number;
+    max         = 1;
+    immediate;
+    arg-range   = "0->5";
+    arg-default = 0;
+    descrip     = "Enable debugging output";
+};
+
 
 flag = {
     name        = version;
