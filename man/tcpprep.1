@@ -16,8 +16,6 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .I client
 |
 .I server
-|
-.I port
 ] |
 .B \-c
 .I CIDR,...
@@ -88,7 +86,7 @@ Auto mode.  Tcpprep will try to learn the roles of systems on the
 network, and split traffic between the two interfaces based upon whether a
 system is classified as a "server" or "client".  Servers are sent out the
 primary interface, clients out the secondary.  Requires the use of -n and 
-excludes the use of -c and -r.
+excludes the use of -c, -p and -r.
 .TP
 .B \-c
 CIDR mode. Specify a list of CIDR's (network1/masklen1,network2/masklen2,...) 
