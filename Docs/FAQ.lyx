@@ -30,7 +30,7 @@
 
 \layout Title
 
-Tcpreplay 1.5.x FAQ
+Tcpreplay 2.0 FAQ
 \layout Author
 
 Aaron Turner <aturner_AT_pobox.com> 
@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Jan 21, 2004
+Jan 31, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -66,7 +66,7 @@ Tcpreplay is a suite of powerful tools, but with that power comes complexity.
  then we can provide in the man pages.
  Additionally, this FAQ attempts to cover material which we feel will be
  of use to people using tcpreplay, as well as common questions that occur
- on the Tcpreplay-Users mailing list.
+ on the Tcpreplay-Users <tcpreplay-users@lists.sourceforge.net> mailing list.
 \layout Subsection
 
 What tools come with tcpreplay?
@@ -79,8 +79,27 @@ tcpreplay - replay ethernet packets stored in a pcap file as they were captured
 tcpprep - a pcap pre-processor for tcpreplay
 \layout Itemize
 
-flowreplay - connects to a server(s) and replays the client side of the
- connection stored in a pcap file
+flowreplay
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+Flowreplay is still 
+\begin_inset Quotes eld
+\end_inset 
+
+alpha
+\begin_inset Quotes erd
+\end_inset 
+
+ quality and is not usable for most situations.
+ Anyone interested in helping me develop flowreplay is encouraged to contact
+ me.
+\end_inset 
+
+ - connects to a server(s) and replays the client side of the connection
+ stored in a pcap file
 \layout Itemize
 
 pcapmerge - merges two or more pcap files into one
@@ -92,12 +111,25 @@ capinfo - displays basic information about a pcap file
 How can I get tcpreplay's source?
 \layout Standard
 
-The source code to tcpreplay is available on the tcpreplay homepage: 
-\begin_inset LatexCommand \url{http://tcpreplay.sf.net/}
+The source code is available in tarball format on the tcpreplay homepage:
+ 
+\begin_inset LatexCommand \htmlurl{http://tcpreplay.sourceforge.net/}
 
 \end_inset 
 
+ I also encourage users familiar with CVS to try checking out the latest
+ code as it often has additional features not found in the tarballs.
+\layout Standard
 
+cvs -d:pserver:anonymous@cvs.sf.net:/cvsroot/tcpreplay login
+\newline 
+Pass: 
+\emph on 
+<Enter>
+\emph default 
+
+\newline 
+cvs -z3 -d:pserver:anonymous@cvs.sf.net:/cvsroot/tcpreplay co tcpreplay
 \layout Subsection
 
 What requirements does tcpreplay have?
@@ -106,9 +138,33 @@ What requirements does tcpreplay have?
 You'll need the libnet and libpcap libraries.
 \layout Enumerate
 
+To support the jump to offset feature, you'll need the libpcapnav
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+http://netdude.sourceforge.net/
+\end_inset 
+
+ library.
+\layout Enumerate
+
+To support the packet decoding feature you'll need tcpdump
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+http://www.tcpdump.org/
+\end_inset 
+
+ installed.
+\layout Enumerate
+
 You'll also need a compatible operating system.
  Basically, any UNIX-like or UNIX-based operating system should work.
- Linux, *BSD, Solaris, OS/X and others should all work.
+ Linux, *BSD, Solaris, OS X and others should all work.
  If you find any compatibility issues with any UNIX-like/based OS, please
  let us know.
 \layout Subsection
@@ -175,9 +231,11 @@ Occasionally.
 Is there a Microsoft Windows port?
 \layout Standard
 
-Sorry, none of the developers have yet to sell their soul.
- Now if you want to port tcpreplay to Windows, let us know and we will try
- to help you.
+Not really.
+ We had one user port the code over for a slightly old version of tcpreplay
+ to Windows.
+ Now we're looking for someone to help merge and maintain the code in to
+ the main development tree.
 \layout Subsection
 
 How is tcpreplay licensed?
@@ -192,7 +250,8 @@ What is tcpreplay?
 
 In the simplest terms, tcpreplay is a tool to send network traffic stored
  in pcap format back onto the network; basically the exact opposite of tcpdump.
- Tcpreplay is also a suite of tools: tcpreplay, tcpprep, pcapmerge and capinfo.
+ Tcpreplay is also a suite of tools: tcpreplay, tcpprep, pcapmerge, capinfo
+ and flowreplay.
 \layout Subsection
 
 What isn't tcpreplay?
@@ -243,19 +302,29 @@ to
  This makes flowreplay an ideal tool to test host intrusion detection systems
  (HIDS) as well as captured exploits and security patches when the actual
  exploit code is not available.
+ Please note that flowreplay is still alpha quality code and is currently
+ missing some important features.
+\layout Subsection
+
+What happened to version 1.5?
+\layout Standard
+
+After looking at all the changes that have happened over the last year or
+ so, I decided that it was finally time to graduate tcpreplay to 2.0 status.
+ Hence the 1.5 branch became 2.0.
 \layout Section
 
 Bugs, Feature Requests, and Patches
 \layout Subsection
 
-Where can I get help or report bugs?
+Where can I get help, report bugs or contact the developers?
 \layout Standard
 
 The best place to get help or report a bug is the Tcpreplay-Users mailing
  list: 
 \newline 
 
-\begin_inset LatexCommand \url{http://lists.sourceforge.net/lists/listinfo/tcpreplay-users}
+\begin_inset LatexCommand \htmlurl{http://lists.sourceforge.net/lists/listinfo/tcpreplay-users}
 
 \end_inset 
 
@@ -339,7 +408,7 @@ Comment your code! I won't use code I can't understand.
 
 Make sure you are patching a branch that is still being maintained.
  Generally that means that most recent stable and development branches (1.4
- and 1.5 at the time of this writing).
+ and 2.0 at the time of this writing).
 \layout Itemize
 
 Make sure you are patching against the most recent release for that branch.
@@ -489,22 +558,14 @@ Can't open eth0: libnet_select_device(): Can't find interface eth0
 
 Generally this occurs when the interface (eth0 in this example) is not up
  or doesn't have an IP address assigned to it.
- For example:
-\newline 
-
-\emph on 
-ifconfig eth0 1.1.1.1 netmask 255.255.255.0 up
-\layout Standard
-
-Will do the trick on most operating systems.
+ 
 \layout Subsection
 
 Can't open lo: libnet_select_device(): Can't find interface lo
 \layout Standard
 
 Version 1.1.0 of Libnet is unable to send traffic on the loopback device.
- Try upgrading to the 1.1.1 (pre)release of the Libnet library to solve this
- problem.
+ Upgrade to a later release of the Libnet library to solve this problem.
 \layout Subsection
 
 Can't open eth0: UID != 0
@@ -578,10 +639,11 @@ Packet length (8892) is greater then MTU; skipping packet.
 \layout Standard
 
 The packet length (in this case 8892 bytes) is greater then the maximum
- transmition unit (MTU) on the outgoing intreface.
+ transmition unit (MTU) on the outgoing interface.
  Tcpreplay must skip the packet.
  Alternatively, you can specify the -T option and tcpreplay will truncate
  the packet to the MTU size and send it.
+ You'll almost certainly want to use -F to fix the checksums as well.
 \layout Subsection
 
 Why is tcpreplay not sending all the packets?
@@ -768,7 +830,7 @@ collapsed false
 
 Note that if you want to send all the packets which do not match a bpf filter,
  all you have to do is negate the bpf filter.
- See the tcpdump(8) man page for more info.
+ See the tcpdump(1) man page for more info.
 \end_inset 
 
 .
@@ -819,7 +881,7 @@ If you want to skip the beginning of a pcap file, you can use the offset
  next packet.
 \layout Itemize
 
-To skip 15KB into the pcap file and start sending packets from there:
+To skip 15Kb into the pcap file and start sending packets from there:
 \newline 
 
 \emph on 
@@ -856,18 +918,18 @@ tcpreplay -i eth0 -j eth1 -I 00:01:00:00:AA:01 -J 00:01:00:00:AA:02 -C 10.0.0.0/
 Randomizing IP addresses
 \layout Standard
 
-Occasionally, it is necessary to have tcprewrite rewrite the source and
- destination IP addresses, yet maintain the client/server relationship.
- Such a case might be having multiple copies of tcpdump running at the same
- time using the same pcap file while trying to stress test firewall, IDS
- or other stateful device.
+Occasionally, it is necessary to have tcpreplay rewrite the source and destinati
+on IP addresses, yet maintain the client/server relationship.
+ Such a case might be having multiple copies of tcpreplay running at the
+ same time using the same pcap file while trying to stress test firewall,
+ IDS or other stateful device.
  If you didn't change the source and destination IP addresses, the device
  under test would get confused since it would see multiple copies of the
  same connection occurring at the same time.
  In order to accomplish this, tcpreplay accepts a user specified seed which
  is used to generate pseudo-random IP addresses.
  Also, when this feature is enabled, tcpreplay will automatically recalculate
- the layer 3 and 4 checksums as needed.
+ the IP and TCP, UDP or ICMP checksums as needed.
  Example:
 \layout Standard
 
@@ -893,7 +955,7 @@ Occasionally, it is necessary to replay traffic which has been truncated
  packet or attempting checksum calculations, tcpreplay allows you to either
  pad the packet with zeros or reset the packet length in the headers to
  the actual packet size.
- In either case, the layer 3 and 4 checksums are recalculated.
+ In either case, the IP and TCP, UDP or ICMP checksums are recalculated.
  Examples:
 \layout Itemize
 
@@ -936,6 +998,8 @@ By default, tcpreplay will skip these packets and not send them.
  the MTU and then send them.
  Of course this may invalidate your testing, but it has proven useful in
  certain situations.
+ Also, when this feature is enabled, tcpreplay will automatically recalculate
+ the IP and TCP, UDP or ICMP checksums as needed.
  Example:
 \layout Standard
 
@@ -976,7 +1040,7 @@ You can also split traffic into two files by using -W <2nd output file>.
 Extracting Application Data (Layer 7)
 \layout Standard
 
-New to version 1.5 is the ability to extract the application layer data from
+New to version 2.0 is the ability to extract the application layer data from
  the packets and write them to a file.
  In the man page, we call this 
 \begin_inset Quotes eld
@@ -1035,29 +1099,34 @@ multiplier 2
  capture
 \newline 
 untruncate pad
-\layout Itemize
+\newline 
+
+\newline 
+
+\newline 
+
+\layout Standard
 
 You would then execute:
 \newline 
 
 \emph on 
 tcpreplay -f myconfigfile sample.pcap
-\emph default 
-
-\newline 
-
 \layout Subsection
 
 Replaying Live Traffic
 \layout Standard
 
 You can now replay live traffic sniffed on one network interface and replay
- it on another interface using the -S flag to indicate sniff mode.
+ it on another interface using the -S flag to indicate sniff mode and the
+ appropriate snaplen in bytes (0 denotes the entire packet).
+ You can also enabling bi-directional traffic using the bridge mode flag:
+ -b.
 \layout Standard
 
-
+N
 \noun on 
-NOTE:
+ote:
 \noun default 
  It is critical for your sanity (and to prevent your murder by your network
  administrators) that the input interface and the output interface be on
@@ -1072,6 +1141,13 @@ Send packets sniffed on eth0 out eth1:
 
 \emph on 
 tcpreplay -i eth1 -S 0 eth0
+\layout Itemize
+
+Bridge two subnets connected to eth0 and eth1:
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -j eth1 -b -S 0
 \layout Standard
 
 By default, tcpreplay listens in promiscuous mode on the specified interface,
@@ -1088,33 +1164,6 @@ not_nosy
  Note that if another program has already placed the interface in promiscuous
  mode, the -n flag will have no effect, so you may want to use the -x or
  -X argument to limit packets.
-\layout Subsection
-
-Bridging Live Traffic
-\layout Standard
-
-Much like replaying live traffic, tcpreplay can both listen and send on
- two interfaces, effectively connecting two broadcast domains by using the
- -S and -b flags.
-\layout Standard
-
-
-\noun on 
-NOTE:
-\noun default 
- It is critical for your sanity (and to prevent your murder by your network
- administrators) that the input interface and the output interface be on
- separate networks and additionally that no other network devices (such
- as bridges, switches, routers, etc) be connecting the two networks, else
- you will surely get a networkstorm the likes that have not been seen for
- years.
-\layout Itemize
-
-Bridge two subnets connected to eth0 and eth1:
-\newline 
-
-\emph on 
-tcpreplay -i eth0 -j eth1 -b -S 0
 \layout Subsection
 
 Replaying Packet Capture Formats Other Than Libpcap
@@ -1161,9 +1210,10 @@ A common question on the tcpreplay-users list is how does one replay the
  requested.
 \layout Standard
 
-This is however a feature that we're looking into implementing.
- If you're interested in helping add this feature, please contact us and
- we'd be more then happy to work with you.
+This is however a feature that we're looking into implementing in the flowreplay
+ utility.
+ If you're interested in helping work on this feature, please contact us
+ and we'd be more then happy to work with you.
  At this time however, we don't have an ETA when this will be implemented,
  so don't bother asking.
 \layout Subsection
@@ -1171,7 +1221,7 @@ This is however a feature that we're looking into implementing.
 Rewriting Layer 2 with -2
 \layout Standard
 
-Starting in the 1.5.x branch, tcpreplay can replace the existing layer 2 header
+Starting in the 2.0.x branch, tcpreplay can replace the existing layer 2 header
  with one of your choosing.
  This is useful for when you want to change the layer 2 header type or add
  a header for pcap files without one.
@@ -1466,10 +1516,8 @@ While tcpreplay is a great way to test NIDS and firewalls, it can't be used
  file created with a tool like Ethereal or tcpdump.
 \layout Standard
 
-NOTE: flowreplay at the time of this writing is alpha quality and still
- needs work.
- Features that are described in this FAQ may not work as advertized or even
- exist at all.
+Please note that flowreplay is currently alpha quality and is missing a
+ number of key features.
 \layout Subsection
 
 How flowreplay works
@@ -1515,7 +1563,7 @@ Flowreplay can't listen on a port and wait for a client to connect to it.
 Running flowreplay
 \layout Standard
 
-[MORE STUFF HERE]
+See the flowreplay(8) man page for details.
 \layout Section
 
 Tuning OS's for high performance
@@ -1528,22 +1576,34 @@ Regardless of the size of physical memory, UNIX kernels will only allocate
  increasing performance and accuracy.
 \layout Standard
 
-
+N
 \noun on 
-Note:
+ote:
 \noun default 
- Please note that the following information is provided based upon our own
- experiences or the reported experiences of others.
+ The following information is provided based upon our own experiences or
+ the reported experiences of others.
  Depending on your hardware and specific hardware, it may or may not work
  for you.
  It may even make your system horribly unstable, corrupt your harddrive,
  or worse.
 \layout Standard
 
-NOTE: Different operating systems, network card drivers, and even hardware
- can have an effect on the accuracy of packet timestamps that tcpdump or
- other capture utilities generate.
+
+\noun on 
+Note
+\noun default 
+: Different operating systems, network card drivers, and even hardware can
+ have an effect on the accuracy of packet timestamps that tcpdump or other
+ capture utilities generate.
  And as you know: garbage in, garbage out.
+\layout Standard
+
+
+\noun on 
+Note:
+\noun default 
+ If you have information on tuning the kernel of an operating system not
+ listed here, please send it to me so I can include it.
 \layout Subsection
 
 Linux 2.4.x
@@ -1586,21 +1646,31 @@ On one system, we've seen a jump from 23.02 megabits/sec (5560 packets/sec)
  See the options(4) man page for more details.
 \layout Section
 
-Required Libraries
+Required Libraries and Tools
 \layout Subsection
 
 Libpcap
 \layout Standard
 
 As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
- As of v1.5, you'll need at least version 0.6.0 or better, but I only test
+ As of v2.0, you'll need at least version 0.6.0 or better, but I only test
  our code with the latest version: 0.7.2.
- Libpcap can be obtained here: 
-\begin_inset LatexCommand \url[Tcpdump]{http://www.tcpdump.org/}
+ Libpcap can be obtained on the tcpdump homepage
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+
+\begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
 
 \end_inset 
 
 
+\end_inset 
+
+.
+ 
 \layout Subsection
 
 Libnet
@@ -1609,25 +1679,63 @@ Libnet
 Tcpreplay v1.3 is the last version to support the old libnet API (everything
  before 1.1.x).
  As of v1.4 you will need to use Libnet 1.1.0 or better which can be obtained
- from the Libnet homepage: 
-\begin_inset LatexCommand \url[Libnet]{http://www.packetfactory.net/Projects/Libnet/}
+ from the Libnet homepage
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+
+\begin_inset LatexCommand \htmlurl{http://www.packetfactory.net/Projects/Libnet/}
 
 \end_inset 
 
 
+\end_inset 
+
+.
+ 
 \layout Subsection
 
 Libpcapnav
 \layout Standard
 
-Starting with v1.5, tcpreplay optionally compiles with libpcapnav in order
- to support the offset jumping option (-o).
- Libpcapnav can be found on the NetDude homepage: 
-\begin_inset LatexCommand \url[NetDude]{http://netdude.sf.net/}
+Starting with v1.5.alpha5, tcpreplay can use libpcapnav to support the jump
+ offset feature.
+ If libpcapnav is not found on the system, that feature will be disabled.
+ Libpcapnav can be found on the NetDude homepage
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\begin_inset LatexCommand \htmlurl{http://netdude.sourceforge.net/}
 
 \end_inset 
 
 
+\end_inset 
+
+.
+ 
+\layout Subsection
+
+Tcpdump
+\layout Standard
+
+As of 2.0, tcpreplay uses tcpdump (the binary, not code) to decode packets
+ to STDOUT in a human readable (with practice) format as it sends them.
+ If you would like this feature, tcpdump must be installed on your system.
+\layout Standard
+
+
+\noun on 
+Note:
+\noun default 
+ The location of the tcpdump binary is hardcoded in tcpreplay at compile
+ time.
+ If tcpdump gets renamed or moved, the feature will become disabled.
 \layout Part
 
 Other Resources
@@ -1636,26 +1744,13 @@ Other Resources
 Other pcap tools available
 \layout Subsection
 
-Other tools in the Tcpreplay suite
-\layout Itemize
-
-pcapmerge
-\newline 
-Pcapmerge is a tool for merging two or more pcap files into a single file.
-\layout Itemize
-
-capinfo
-\newline 
-Capinfo is a tool for displaying information about pcap files.
-\layout Subsection
-
 Tools to capture network traffic or decode pcap files
 \layout Itemize
 
 tcpdump
 \newline 
 
-\begin_inset LatexCommand \url{http://www.tcpdump.org/}
+\begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
 
 \end_inset 
 
@@ -1665,7 +1760,7 @@ tcpdump
 ethereal
 \newline 
 
-\begin_inset LatexCommand \url{http://www.ethereal.com/}
+\begin_inset LatexCommand \htmlurl{http://www.ethereal.com/}
 
 \end_inset 
 
@@ -1675,7 +1770,7 @@ ethereal
 ettercap
 \newline 
 
-\begin_inset LatexCommand \url{http://ettercap.sourceforge.net/}
+\begin_inset LatexCommand \htmlurl{http://ettercap.sourceforge.net/}
 
 \end_inset 
 
@@ -1687,10 +1782,10 @@ Tools to edit pcap files
 
 tcpslice
 \newline 
-Splits pcap files into smaller files.
+Splits pcap files into smaller files
 \newline 
 
-\begin_inset LatexCommand \url{http://tcpdump.org/}
+\begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
 
 \end_inset 
 
@@ -1699,10 +1794,10 @@ Splits pcap files into smaller files.
 
 mergecap
 \newline 
-Merges two pcap capture files into one.
+Merges two pcap capture files into one
 \newline 
 
-\begin_inset LatexCommand \url{http://ethereal.com/}
+\begin_inset LatexCommand \htmlurl{http://www.ethreal.com/}
 
 \end_inset 
 
@@ -1711,10 +1806,10 @@ Merges two pcap capture files into one.
 
 pcapmerge
 \newline 
-Merges two or more pcap capture files into one.
+Merges two or more pcap capture files into one
 \newline 
 
-\begin_inset LatexCommand \url{http://tcpdump.org/}
+\begin_inset LatexCommand \htmlurl{http://tcpreplay.sourceforge.net/}
 
 \end_inset 
 
@@ -1723,10 +1818,10 @@ Merges two or more pcap capture files into one.
 
 editcap
 \newline 
-Converts capture file formats (pcap, snoop, etc).
+Converts capture file formats (pcap, snoop, etc)
 \newline 
 
-\begin_inset LatexCommand \url{http://ethereal.com/}
+\begin_inset LatexCommand \htmlurl{http://www.ethreal.com/}
 
 \end_inset 
 
@@ -1739,7 +1834,22 @@ GTK based pcap capture file editor.
  Allows editing most anything in the packet.
 \newline 
 
-\begin_inset LatexCommand \url{http://netdude.sourceforge.net/}
+\begin_inset LatexCommand \htmlurl{http://netdude.sourceforge.net/}
+
+\end_inset 
+
+
+\layout Subsection
+
+Other useful tools
+\layout Itemize
+
+capinfo
+\newline 
+Prints statistics and basic information about a pcap file
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://tcpreplay.sourceforge.net/}
 
 \end_inset 
 
@@ -1748,10 +1858,23 @@ GTK based pcap capture file editor.
 
 text2pcap
 \newline 
-Generates a pcap capture file from a hex dump.
+Generates a pcap capture file from a hex dump
 \newline 
 
-\begin_inset LatexCommand \url{http://ethereal.com/}
+\begin_inset LatexCommand \htmlurl{http://www.ethreal.com/}
+
+\end_inset 
+
+
+\layout Itemize
+
+tcpflow
+\newline 
+Extracts and reassembles the data portion on a per-flow basis on live traffic
+ or pcap capture files
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.circlemud.org/~jelson/software/tcpflow/}
 
 \end_inset 
 
