@@ -64,12 +64,14 @@ AC_ARG_WITH(lyx,
     [ 
     case $host in
         powerpc-apple-darwin*)
-        AC_MSG_CHECKING(for lyx)
-        lyx="/Applications/Lyx.app/Contents/MacOS/LyX"
+        lyx=/Applications/Lyx.app/Contents/MacOS/LyX
         if test -x $lyx ; then
+            AC_MSG_CHECKING(for lyx)
             AC_SUBST(LYX, $lyx)
-        fi
-        AC_MSG_RESULT($lyx) 
+            AC_MSG_RESULT($lyx) 
+        else
+	    AC_PATH_PROG(LYX, lyx)
+	fi
         ;;
 
         *)
@@ -127,11 +129,12 @@ AC_CHECK_MEMBERS([struct timeval.tv_sec])
 LIBOPTS_CHECK
 AC_C_BIGENDIAN
 
-if test -n $FIG2DEV -a -n $LYX -a -n $DVIPS -a -n $TEXI2DVI \
-    -a -n $LATEX2HTML -a -n $DVIPDFM ; then
+doctools=no
+if test -n "$FIG2DEV" -a -n "$LYX" -a -n "$DVIPS" -a -n "$TEXI2DVI" \
+	 -a -n "$LATEX2HTML" -a -n "$DVIPDFM" ; then
     doctools=yes
 fi
-AM_CONDITIONAL(HAVE_DOCTOOLS, test x$doctools = xyes)
+AM_CONDITIONAL(HAVE_DOCTOOLS, test $doctools = yes)
 
 
 
@@ -423,12 +426,17 @@ pcapnav_ver=no
 pcncfg=no
 AC_ARG_WITH(pcapnav-config,
     AC_HELP_STRING([--with-pcapnav-config=FILE], [Use given pcapnav-config]),
-    [pcncfg=$withval],
-    [ AC_PATH_PROG(pcncfg,[pcapnav-config], [] ) ])
+    [ AC_MSG_CHECKING(for pcapnav-config)
+    if test -x $withval ; then
+	pcncfg=$withval
+	AC_MSG_RESULT($pcncfg)
+    else
+	AC_MSG_RESULT([Can't find pcapnav-config: disabling offset jump feature])
+    fi ],
+    [ AC_PATH_PROG(pcncfg,[pcapnav-config], [no] ) ]
+)
 
-if test $pcncfg = no ; then
-    AC_MSG_RESULT(Cannot find pcapnav-config: Disabling offset jump feature.)
-else
+if test $pcncfg != no ; then
     LNAVLIB=`$pcncfg --libs`
     LNAV_CFLAGS=`$pcncfg --cflags`
     PCAPNAV_VERSION=`$pcncfg --version`
@@ -598,7 +606,7 @@ case $host in
 	powerpc-apple-darwin*)
 	nic1=en0
 	nic2=en0
-	AC_MSG_RESULT(Apple OSX)
+	AC_MSG_RESULT(Apple OS X)
 	;;
 
     *-*-openbsd*)
