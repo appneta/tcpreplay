@@ -75,12 +75,12 @@ tree_buildcidr(const void *treeentry, const VISIT which, const int depth, void *
 		 * in cases of leaves and last visit add to cidrdata if
 		 * necessary
 		 */
-		if (!check_ip_CIDR(tree->ip)) {	/* if we exist, abort */
+		if (!check_ip_CIDR(cidrdata, tree->ip)) {	/* if we exist, abort */
 			newcidr = new_cidr();
 			newcidr->masklen = bcdata->masklen;
 			network = tree->ip & (mask >> (32 - bcdata->masklen));
 			newcidr->network = network;
-			add_cidr(&newcidr);
+			add_cidr(cidrdata, &newcidr);
 		}
 		break;
 	}
@@ -120,7 +120,7 @@ tree_checkincidr(const void *treeentry, const VISIT which, const int depth, void
 		 * in cases of leaves and last visit add to cidrdata if
 		 * necessary
 		 */
-		if (check_ip_CIDR(tree->ip)) {	/* if we exist, abort */
+		if (check_ip_CIDR(cidrdata, tree->ip)) {	/* if we exist, abort */
 			checkincidr = 1;
 		}
 		break;
@@ -166,13 +166,11 @@ process_tree()
 		cbdata->type = CLIENT;
 		rbwalk(rbdata, tree_checkincidr, (void *) cbdata);
 
-		if (checkincidr == 0) {	/* didn't find any clients in
-					 * cidrdata */
+		if (checkincidr == 0) {	/* didn't find any clients in cidrdata */
 			return (mymask);	/* success! */
 		} else {
-			delete_cidr(cidrdata);	/* clean up after our mess */
-			cidrdata = NULL;	/* reset to null, so when we
-						 * test, all is ok */
+			destroy_cidr(cidrdata);	/* clean up after our mess */
+			cidrdata = NULL;
 		}
 	}
 

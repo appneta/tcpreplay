@@ -88,6 +88,10 @@ double ratio = 0.0;
 int max_mask = DEF_MAX_MASK;
 int min_mask = DEF_MIN_MASK;
 int non_ip = 0;
+extern char *optarg;
+extern int optind, opterr, optopt;
+
+
 
 static void usage();
 static void version();
@@ -178,14 +182,14 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 			add_cache(check_ip_regex(ip_hdr->ip_src.s_addr));
 			break;
 		case CIDR_MODE:
-			add_cache(check_ip_CIDR(ip_hdr->ip_src.s_addr));
+			add_cache(check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
 			break;
 		case AUTO_MODE:
 			/* first run through in auto mode: create tree */
 			add_tree(ip_hdr->ip_src.s_addr, pkt.data);
 			break;
 		case ROUTER_MODE:
-			add_cache(check_ip_CIDR(ip_hdr->ip_src.s_addr));
+			add_cache(check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
 			break;
 		case BRIDGE_MODE:
 			/*
@@ -212,7 +216,6 @@ main(int argc, char *argv[])
 	char *infilename = NULL;
 	char *outfilename = NULL;
 	char ebuf[EBUF_SIZE];
-	extern char *optarg;
 	u_int totpackets = 0;
 
 	debug = 0;
@@ -225,7 +228,7 @@ main(int argc, char *argv[])
 		err(1, "malloc");
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:Ihm:M:n:N:V")) != -1)
+	while ((ch = getopt(argc, argv, "adc:r:R:o:i:Ihm:M:n:N:V")) != -1)
 #else
 	while ((ch = getopt(argc, argv, "ac:r:R:o:i:Ihm:M:n:N:V")) != -1)
 #endif
@@ -234,13 +237,13 @@ main(int argc, char *argv[])
 			mode = AUTO_MODE;
 			break;
 		case 'c':
-			if (!parse_cidr(optarg)) {
+			if (!parse_cidr(&cidrdata, optarg)) {
 				usage();
 			}
 			mode = CIDR_MODE;
 			break;
 		case 'd':
-			debug = atoi(optarg);
+			debug = 1;
 			break;
 		case 'h':
 			usage();
@@ -339,23 +342,22 @@ main(int argc, char *argv[])
 
 readpcap:
 	/* open the pcap file */
-	if (!strcmp(infilename, "-")) {
-		in_file = STDIN_FILENO;
-	} else if ((in_file = open(infilename, O_RDONLY, 0)) < 0) {
+	if ((in_file = open(infilename, O_RDONLY, 0)) < 0) {
 		errx(1, "could not open: %s", infilename);
 	}
-	/* process the pcap file */
+
+	/* process the file */
 	if (is_snoop(in_file)) {
 #ifdef DEBUG
 		if (debug)
-			warnx("File %s is a snoop file", path);
+			warnx("File %s is a snoop file", infilename);
 #endif
 		process_raw_packets(in_file, get_next_snoop);
 		(void) close(in_file);
 	} else if (is_pcap(in_file)) {
 #ifdef DEBUG
 		if (debug)
-			warnx("File %s is a pcap file", path);
+			warnx("File %s is a pcap file", infilename);
 #endif
 		process_raw_packets(in_file, get_next_pcap);
 		(void) close(in_file);
@@ -366,8 +368,7 @@ readpcap:
 	/* we need to process the pcap file twice in HASH/AUTO mode */
 	if (mode == AUTO_MODE) {
 		mode = automode;
-		if (mode == ROUTER_MODE) {	/* do we need to convert
-						 * TREE->CIDR? */
+		if (mode == ROUTER_MODE) {	/* do we need to convert TREE->CIDR? */
 			if (info)
 				fprintf(stderr, "Building network list from pre-cache...\n");
 			if (!process_tree()) {
@@ -382,15 +383,20 @@ readpcap:
 			 */
 			rbwalk(rbdata, tree_calculate, (void *) rbdata);
 		}
-#ifdef DEBUG
-		if (debug)
-			print_cidr(cidrdata);
-#endif
+
 		if (info)
 			fprintf(stderr, "Buliding cache file...\n");
-		goto readpcap;	/* re-process files, but this time generate
-				 * cache */
+		/* 
+		 * re-process files, but this time generate
+		 * cache 
+		 */
+		goto readpcap;	
 	}
+#ifdef DEBUG
+	if (debug && (cidrdata != NULL))
+		print_cidr(cidrdata);
+#endif
+
 	/* write cache data */
 	totpackets = write_cache(out_file);
 	if (info)
