@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 
 int in_tt = 0;
 int next_line_dd = 0;
@@ -22,10 +23,11 @@ int fill_mode = 1;
 int current_BI = 0;
 int skip_nl = 0;
 
+int process_line(void);
+
 char *
 get_token(char *inp, char *buf)
 {
-  char *obuf = buf;
   int quoted = 0;
   /* skip whitespace */
   while (*inp && isspace(*inp))
@@ -291,7 +293,8 @@ clean(char *cp)
   strcpy(ocp, foo);
 }
 
-un_bi()
+void
+un_bi(void)
 {
   if (current_BI)
   {
@@ -300,8 +303,8 @@ un_bi()
   }
 }
 
-int
-process_line_til_regular()
+void
+process_line_til_regular(void)
 {
   got_regular_line = 0;
   while (!got_regular_line)
@@ -309,7 +312,7 @@ process_line_til_regular()
 }
 
 void
-bol()
+bol(void)
 {
   got_regular_line = 1;
   if (next_line_dd)
@@ -318,7 +321,7 @@ bol()
 }
 
 void
-eol()
+eol(void)
 {
   if (!fill_mode)
     printf("<br>");
@@ -351,9 +354,9 @@ twoggle(char *a, char *b, char *l)
 }
 
 int
-process_line()
+process_line(void)
 {
-  char buf[1000], cmd[10], b1[1000];
+  char buf[1000], cmd[10];
   char token[1000];
   if (fgets(buf, 1000, stdin) == 0)
     return 0;
@@ -491,7 +494,7 @@ process_line()
       need_undl = 0;
     }
     printf("\n</ul><H2>");
-    while (cp = get_token(cp, token))
+    while ((cp = get_token(cp, token)))
     {
       got_token = 1;
       clean(token);
@@ -615,9 +618,9 @@ process_line()
 }
 
 
+int
 main()
 {
-  char line[1000];
 
   while (process_line());
   printf("</ul>\n<!--#exec cmd=\"trailer\" -->\n");
