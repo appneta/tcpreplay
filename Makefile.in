@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.56 2004/05/02 00:34:15 aturner Exp $
+# $Id: Makefile.in,v 1.57 2004/05/08 21:38:25 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -28,13 +28,13 @@ TOBJS		= $(TSRCS:.c=.o)
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c
 COBJS		= $(CSRCS:.c=.o)
 
-PSRCS		= tcpprep.c cidr.c tree.c cache.c list.c xX.c err.c utils.c
+PSRCS		= tcpprep.c cidr.c tree.c cache.c list.c xX.c err.c utils.c services.c
 POBJS		= $(PSRCS:.c=.o)
 
 MSRCS		= pcapmerge.c err.c
 MOBJS		= $(MSRCS:.c=.o)
 
-FSRCS		= flowreplay.c flowkey.c flownode.c flowstate.c flowbuff.c cidr.c timer.c err.c
+FSRCS		= flowreplay.c flowkey.c flownode.c flowstate.c flowbuff.c cidr.c timer.c err.c utils.c
 FOBJS		= $(FSRCS:.c=.o)
 
 .c.o:
@@ -43,6 +43,9 @@ FOBJS		= $(FSRCS:.c=.o)
 .PHONY: test
 
 all: $(BINARIES) 
+
+tags:
+	etags *.h *.c
 
 tcpprep: $(POBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(POBJS) $(LDFLAGS) $(LIBS)
