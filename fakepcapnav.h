@@ -30,6 +30,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef HAVE_PCAPNAV
+#include <pcapnav.h>
+#define _FAKEPCAPNAV_H_
+#endif
+
 #ifndef _FAKEPCAPNAV_H_
 #define _FAKEPCAPNAV_H_
 

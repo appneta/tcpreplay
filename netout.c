@@ -33,11 +33,7 @@
 #include "config.h"
 
 #include <libnet.h>
-#ifdef HAVE_PCAPNAV
-#include <pcapnav.h>
-#else
 #include "fakepcapnav.h"
-#endif
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
