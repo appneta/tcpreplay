@@ -540,7 +540,7 @@ print_tree(const char *name, const TREE * tree)
 	if (tree == NULL) {
 		fprintf(stderr, "%s Tree is null\n", name);
 	} else {
-		fprintf(stderr, "-- %s: 0x%lx\nIP  : %s\nMask: %d\nSrvr: %d\nClnt: %d\n", name, tree, libnet_host_lookup(tree->ip, 0), tree->masklen, tree->server_cnt, tree->client_cnt);
+		fprintf(stderr, "-- %s: 0x%p\nIP  : %s\nMask: %d\nSrvr: %d\nClnt: %d\n", name, tree, libnet_host_lookup(tree->ip, 0), tree->masklen, tree->server_cnt, tree->client_cnt);
 		if (tree->type == SERVER) {
 			fprintf(stderr, "Type: Server\n--\n");
 		} else {
