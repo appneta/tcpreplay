@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.31 2004/02/01 17:15:12 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.32 2004/02/03 22:51:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -320,7 +320,7 @@ main(int argc, char *argv[])
             mode = AUTO_MODE;
             break;
         case 'c':
-            if (!parse_cidr(&cidrdata, optarg)) {
+            if (!parse_cidr(&cidrdata, optarg, ",")) {
                 usage();
             }
             mode = CIDR_MODE;
