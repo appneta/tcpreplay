@@ -34,7 +34,8 @@
 #include "defines.h"
 #include "common.h"
 
-#include "tcpreplay.h"
+#include "tcprewrite.h"
+#include "tcprewrite_opts.h"
 #include "edit_packet.h"
 #include "lib/sll.h"
 #include "dlt.h"
@@ -52,18 +53,18 @@ extern tcprewrite_opt_t options;
  * I was too lazy to re-invent the wheel.
  */
 void
-fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr, libnet_t * l)
+fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
 {
 
     /* calc the L4 checksum */
-    if (libnet_do_checksum(l, (u_char *) ip_hdr, ip_hdr->ip_p,
+    if (libnet_do_checksum(options.l, (u_char *) ip_hdr, ip_hdr->ip_p,
                            ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
-        warnx("Layer 4 checksum failed: %s", libnet_geterror(l));
+        warnx("Layer 4 checksum failed: %s", libnet_geterror(options.l));
 
     /* calc IP checksum */
-    if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
+    if (libnet_do_checksum(options.l, (u_char *) ip_hdr, IPPROTO_IP,
                            ntohs(ip_hdr->ip_len)) < 0)
-        warnx("IP checksum failed: %s", libnet_geterror(l));
+        warnx("IP checksum failed: %s", libnet_geterror(options.l));
 }
 
 
@@ -74,7 +75,7 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr, libnet_t * l)
  */
 int
 randomize_ips(struct pcap_pkthdr *pkthdr, u_char * pktdata,
-              ip_hdr_t * ip_hdr, libnet_t * l, int l2len)
+              ip_hdr_t * ip_hdr)
 {
     /* randomize IP addresses based on the value of random */
     dbg(1, "Old Src IP: 0x%08lx\tOld Dst IP: 0x%08lx",
@@ -104,7 +105,7 @@ randomize_ips(struct pcap_pkthdr *pkthdr, u_char * pktdata,
 
 int
 untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
-               ip_hdr_t * ip_hdr, libnet_t * l, int l2len)
+               ip_hdr_t * ip_hdr)
 {
 
     /* if actual len == cap len or there's no IP header, don't do anything */
@@ -113,7 +114,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
     }
 
     /* Pad packet or truncate it */
-    if (options.trunc == PAD_PACKET) {
+    if (options.fixlen == FIXLEN_PAD) {
         /*
          * this should be an unnecessary check
   	     * but I've gotten a report that sometimes the caplen > len
@@ -127,7 +128,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
             ip_hdr->ip_len = htons(pkthdr->caplen);
         }
     }
-    else if (options.trunc == TRUNC_PACKET) {
+    else if (options.fixlen == FIXLEN_TRUNC) {
         ip_hdr->ip_len = htons(pkthdr->caplen);
     }
     else {
@@ -135,7 +136,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
     }
 
     /* fix checksums */
-    fix_checksums(pkthdr, ip_hdr, l);
+    fix_checksums(pkthdr, ip_hdr);
     return(1);
 }
 
@@ -146,11 +147,19 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
  */
 int
 rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
-           u_int32_t linktype, int l2enabled, char *l2data, int l2len)
+           u_int32_t linktype, int cache_mode)
 {
     sll_header_t *sllhdr = NULL;   /* Linux cooked socket header */
     cisco_hdlc_header_t *hdlc_header = NULL; /*Cisco HDLC */
     eth_hdr_t *eth_hdr = NULL;
+    char *l2data = NULL; /* ptr to the new layer2 data */
+
+    /* use data2 iff CACHE_SECONDARY */
+    if (cache_mode == CACHE_SECONDARY) {
+        l2data = options.l2.data2;
+    } else {
+        l2data = options.l2.data1;
+    }
 
     /*
      * Depending on the DLT and the various user supplied flags (-2, -I, -J,
@@ -160,21 +169,21 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
      */
     switch (linktype) {
     case DLT_EN10MB:       /* Standard 802.3 Ethernet */
-        if (l2enabled) {
+        if (options.l2.enabled) {
             /*
              * is new packet too big?
              */
-            if ((pkthdr->caplen - LIBNET_ETH_H + l2len) > maxpacket) {
-                if (options.truncate) {
+            if ((pkthdr->caplen - LIBNET_ETH_H + options.l2.len) > options.maxpacket) {
+                if (options.fixlen) {
                     warnx("Packet length (%u) is greater then MTU; "
                           "truncating packet.",
-                          (pkthdr->caplen - LIBNET_ETH_H + l2len));
-                    pkthdr->caplen = maxpacket;
+                          (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
+                    pkthdr->caplen = options.maxpacket;
                 }
                 else {
                     warnx("Packet length (%u) is greater then MTU; "
                           "skipping packet.",
-                          (pkthdr->caplen - LIBNET_ETH_H + l2len));
+                          (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
                     return (0);
                 }
             }
@@ -182,22 +191,22 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
              * remove ethernet header and copy our header back
              */
             dbg(3, "Rewriting 802.3 via -2...");
-            memcpy(pktdata, l2data, l2len);
-            memcpy(&pktdata[l2len], (nextpkt + LIBNET_ETH_H),
+            memcpy(pktdata, l2data, options.l2.len);
+            memcpy(&pktdata[options.l2.len], (nextpkt + LIBNET_ETH_H),
                    (pkthdr->caplen - LIBNET_ETH_H));
             /* update pkthdr->caplen with the new size */
-            pkthdr->caplen = pkthdr->caplen - LIBNET_ETH_H + l2len;
+            pkthdr->caplen = pkthdr->caplen - LIBNET_ETH_H + options.l2.len;
         }
 
         else {  /* no need to replace L2 */
 
             /* verify that the packet isn't > maxpacket */
-            if (pkthdr->caplen > maxpacket) {
-                if (options.truncate) {
+            if (pkthdr->caplen > options.maxpacket) {
+                if (options.fixlen) {
                     warnx("Packet length (%u) is greater then MTU; "
                           "truncating packet.",
                           pkthdr->caplen);
-                    pkthdr->caplen = maxpacket;
+                    pkthdr->caplen = options.maxpacket;
                 }
                 else {
                     warnx("Packet length (%u) is greater then MTU; "
@@ -218,42 +227,43 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
         break;
 
     case DLT_LINUX_SLL:    /* Linux Cooked sockets */
-        if (l2enabled) {
+        if (options.l2.enabled) {
             
             dbg(3, "Rewriting Linux SLL via -2...");
-            if ((pkthdr->caplen - SLL_HDR_LEN + l2len) > maxpacket) {
-                if (options.truncate) {
+            if ((pkthdr->caplen - SLL_HDR_LEN + options.l2.len) > options.maxpacket) {
+                if (options.fixlen) {
                     warnx("New packet length (%u) is greater then MTU; "
                           "truncating packet.",
-                          (pkthdr->caplen - SLL_HDR_LEN + l2len));
-                    pkthdr->caplen = maxpacket;
+                          (pkthdr->caplen - SLL_HDR_LEN + options.l2.len));
+                    pkthdr->caplen = options.maxpacket;
                 }
                 else {
                     warnx
                         ("New packet length (%u) is greater then MTU; "
                          "skipping packet.",
-                         (pkthdr->caplen - SLL_HDR_LEN + l2len));
+                         (pkthdr->caplen - SLL_HDR_LEN + options.l2.len));
                     return (0);
                 }
             }
             
             /* copy over our new L2 data */
-            memcpy(pktdata, l2data, l2len);
+            memcpy(pktdata, l2data, options.l2.len);
+        
             /* copy over the packet data, minus the SLL header */
-            memcpy(&pktdata[l2len], (nextpkt + SLL_HDR_LEN),
+            memcpy(&pktdata[options.l2.len], (nextpkt + SLL_HDR_LEN),
                    (pkthdr->caplen - SLL_HDR_LEN));
             /* update pktdhr.caplen with new size */
-            pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + l2len;
+            pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + options.l2.len;
         }
         
         else {    /* no need to rewrite L2 */
             /* verify new packet isn't > maxpacket */
-            if ((pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H) > maxpacket) {
-                if (options.truncate) {
+            if ((pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H) > options.maxpacket) {
+                if (options.fixlen) {
                     warnx("Packet length (%u) is greater then MTU; "
                          "truncating packet.",
                          (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H));
-                    pkthdr->caplen = maxpacket;
+                    pkthdr->caplen = options.maxpacket;
                 }
                 else {
                     warnx("Packet length (%u) is greater then MTU; "
@@ -307,10 +317,10 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
             memcpy(&pktdata[12], &sllhdr->sll_protocol, 2);
             
             /* update lengths */
-            l2len = LIBNET_ETH_H;
+            options.l2.len = LIBNET_ETH_H;
             
             /* copy over the packet data, minus the SLL header */
-            memcpy(&pktdata[l2len], (nextpkt + SLL_HDR_LEN), 
+            memcpy(&pktdata[options.l2.len], (nextpkt + SLL_HDR_LEN), 
                    (pkthdr->caplen - SLL_HDR_LEN));
             
             pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H;
@@ -320,30 +330,31 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
         break;
         
     case DLT_RAW:          /* No ethernet header */
-        if (l2enabled) {
+        if (options.l2.enabled) {
             /*
              * is new packet too big?
              */
             dbg(3, "Appending header to RAW frame via -2...");
-            if ((pkthdr->caplen + l2len) > maxpacket) {
-                if (options.truncate) {
+            if ((pkthdr->caplen + options.l2.len) > options.maxpacket) {
+                if (options.fixlen) {
                     warnx("Packet length (%u) is greater then MTU; "
                          "truncating packet.",
-                         (pkthdr->caplen - LIBNET_ETH_H + l2len));
-                    pkthdr->caplen = maxpacket;
+                         (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
+                    pkthdr->caplen = options.maxpacket;
                 }
                 else {
                     warnx("Packet length (%u) is greater then MTU; "
                          "skipping packet.",
-                         (pkthdr->caplen - LIBNET_ETH_H + l2len));
+                         (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
                     return (0);
                 }
                 
             }
-            
-            memcpy(pktdata, l2data, l2len);
-            memcpy(&pktdata[l2len], nextpkt, pkthdr->caplen);
-            pkthdr->caplen += l2len;
+
+
+            memcpy(pktdata, l2data, options.l2.len);
+            memcpy(&pktdata[options.l2.len], nextpkt, pkthdr->caplen);
+            pkthdr->caplen += options.l2.len;
             
         }
         
@@ -358,17 +369,17 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
          * is new packet too big?
          */
         dbg(3, "Rewriting Cisco HDLC via -2...");
-        if ((pkthdr->caplen - CISCO_HDLC_LEN + l2len) > maxpacket) {
-            if (options.truncate) {
+        if ((pkthdr->caplen - CISCO_HDLC_LEN + options.l2.len) > options.maxpacket) {
+            if (options.fixlen) {
                 warnx("Packet length (%u) is greater then MTU; "
                       "truncating packet.",
-                      (pkthdr->caplen - CISCO_HDLC_LEN + l2len));
-                pkthdr->caplen = maxpacket;
+                      (pkthdr->caplen - CISCO_HDLC_LEN + options.l2.len));
+                pkthdr->caplen = options.maxpacket;
             }
             else {
                 warnx("Packet length (%u) is greater then MUT; "
                       "skipping packet.",
-                      (pkthdr->caplen - CISCO_HDLC_LEN + l2len));
+                      (pkthdr->caplen - CISCO_HDLC_LEN + options.l2.len));
                 return(0);
             }
         }
@@ -383,16 +394,16 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
         memcpy(&pktdata[CISCO_HDLC_LEN], (nextpkt + LIBNET_ETH_H), 
                (pkthdr->caplen - CISCO_HDLC_LEN));
         eth_hdr->ether_type = hdlc_header->protocol;
-        pkthdr->caplen += l2len - CISCO_HDLC_LEN;
+        pkthdr->caplen += options.l2.len - CISCO_HDLC_LEN;
         
         /* update lengths */
-        l2len = LIBNET_ETH_H;
+        options.l2.len = LIBNET_ETH_H;
         break;
 
     } /* switch (linktype) */
 
     /* return the updated layer 2 len */
-    return (l2len);
+    return (options.l2.len);
 }
 
 /*
@@ -401,7 +412,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
  * Returns 0 for no data
  */
 int
-extract_data(u_char * pktdata, int caplen, int l2len, char *l7data[])
+extract_data(u_char * pktdata, int caplen, char *l7data[])
 {
     int datalen = 0;
     eth_hdr_t *eth_hdr = NULL;
@@ -433,13 +444,13 @@ extract_data(u_char * pktdata, int caplen, int l2len, char *l7data[])
      * we do all this work to prevent byte alignment issues
      */
     ip_hdr = (ip_hdr_t *) & ipbuff;
-    memcpy(ip_hdr, pktdata[l2len], caplen - l2len);
+    memcpy(ip_hdr, pktdata[options.l2.len], caplen - options.l2.len);
 #else
     /*
      * on non-strict byte align systems, don't need to memcpy(), 
      * just point to 14 bytes into the existing buffer
      */
-    ip_hdr = (ip_hdr_t *) (pktdata + l2len);
+    ip_hdr = (ip_hdr_t *) (pktdata + options.l2.len);
 #endif
 
     dataptr = (char *)ip_hdr;
@@ -451,7 +462,7 @@ extract_data(u_char * pktdata, int caplen, int l2len, char *l7data[])
         datalen = ntohs(ip_hdr->ip_len);
     }
     else {
-        datalen = caplen - l2len;
+        datalen = caplen - options.l2.len;
     }
 
     /* update the datlen to not include the IP header len */
@@ -507,7 +518,7 @@ extract_data(u_char * pktdata, int caplen, int l2len, char *l7data[])
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
  */
 u_int32_t
-remap_ip(CIDR *cidr, const u_int32_t original)
+remap_ip(cidr_t *cidr, const u_int32_t original)
 {
     u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
 
@@ -536,22 +547,22 @@ remap_ip(CIDR *cidr, const u_int32_t original)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
+rewrite_ipl3(ip_hdr_t * ip_hdr, int cache_mode)
 {
-    CIDRMAP *cidrmap1 = NULL, *cidrmap2 = NULL;
+    cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
 
     /* anything to rewrite? */
-    if (cidrmap_data1 == NULL)
+    if (options.cidrmap1 == NULL)
         return(0);
 
     /* don't play with the main pointers */
-    if (l == options.intf1) {
-        cidrmap1 = cidrmap_data1;
-        cidrmap2 = cidrmap_data2;
+    if (cache_mode == CACHE_PRIMARY) {
+        cidrmap1 = options.cidrmap1;
+        cidrmap2 = options.cidrmap2;
     } else {
-        cidrmap1 = cidrmap_data2;
-        cidrmap2 = cidrmap_data1;
+        cidrmap1 = options.cidrmap2;
+        cidrmap2 = options.cidrmap1;
     }
     
 
@@ -606,21 +617,21 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l)
+rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode)
 {
     u_char *add_hdr = NULL;
     u_int32_t *ip1 = NULL, *ip2 = NULL;
     u_int32_t newip = 0;
-    CIDRMAP *cidrmap1 = NULL, *cidrmap2 = NULL;
+    cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
 
    /* figure out what mapping to use */
-    if (l == options.intf1) {
-        cidrmap1 = cidrmap_data1;
-        cidrmap2 = cidrmap_data2;
-    } else if (l == options.intf2) {
-        cidrmap1 = cidrmap_data2;
-        cidrmap2 = cidrmap_data1;
+    if (cache_mode == CACHE_PRIMARY) {
+        cidrmap1 = options.cidrmap1;
+        cidrmap2 = options.cidrmap2;
+    } else if (cache_mode == CACHE_SECONDARY) {
+        cidrmap1 = options.cidrmap2;
+        cidrmap2 = options.cidrmap1;
     }
 
     /* anything to rewrite? */

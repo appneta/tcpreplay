@@ -34,16 +34,15 @@
 #define _EDIT_PACKETS_H_
 
 
-int untrunc_packet(struct pcap_pkthdr *, u_char *, ip_hdr_t *, libnet_t *,
-                    int);
-int randomize_ips(struct pcap_pkthdr *, u_char *, ip_hdr_t *, libnet_t *, int);
-void fix_checksums(struct pcap_pkthdr *, ip_hdr_t *, libnet_t *);
-int rewrite_l2(struct pcap_pkthdr *, u_char *, const u_char *, u_int32_t,
-               int, char *, int);
-int extract_data(u_char *, int, int, char *[]);
+int untrunc_packet(struct pcap_pkthdr *pkthdr, u_char *pktdata, ip_hdr_t *ip_hdr);
+int randomize_ips(struct pcap_pkthdr *pktdhr, u_char *pktdata, ip_hdr_t *ip_hdr);
+void fix_checksums(struct pcap_pkthdr *pkdhdr, ip_hdr_t *ip_hdr);
+int rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt, 
+    u_int32_t linktype, int cache_mode);
+int extract_data(u_char *pktdata, int caplen, char *l7data[]);
 u_int32_t remap_ip(cidr_t *cidr, const u_int32_t original);
-int rewrite_ipl3(ip_hdr_t *ip_hdr, libnet_t *l);
-int rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l);
+int rewrite_ipl3(ip_hdr_t *ip_hdr, int cache_mode);
+int rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode);
 
 #endif
 
@@ -54,4 +53,3 @@ int rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l);
  c-basic-offset:4
  End:
 */
-
