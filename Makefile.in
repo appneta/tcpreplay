@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.27 2002/11/20 20:12:50 aturner Exp $
+# $Id: Makefile.in,v 1.28 2002/12/23 00:09:01 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -13,11 +13,11 @@ CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 DEFS		= @DEFS@
 INCS		= @LNETINC@ -I. -Ilibredblack
-LIBS		= @LIBS@ @LNETLIB@
+LIBS		= @LIBS@ @LNETLIB@ @LPCAPLIB@
 
 INSTALL		= @INSTALL@
 
-BINARIES	= tcpreplay capinfo tcpprep
+BINARIES	= tcpreplay capinfo tcpprep pcapmerge
 
 TSRCS		= tcpreplay.c libpcap.c snoop.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c @EXTRAS@
 TOBJS		= $(TSRCS:.c=.o)
@@ -27,6 +27,9 @@ COBJS		= $(CSRCS:.c=.o)
 
 PSRCS		= tcpprep.c libpcap.c snoop.c cidr.c tree.c cache.c list.c xX.c err.c @EXTRAS@
 POBJS		= $(PSRCS:.c=.o)
+
+MSRCS		= pcapmerge.c err.c
+MOBJS		= $(MSRCS:.c=.o)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCS) -c $*.c
@@ -43,6 +46,9 @@ tcpreplay: $(TOBJS)
 
 capinfo: $(COBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(COBJS) $(LDFLAGS) $(LIBS)
+
+pcapmerge: $(MOBJS)
+	$(CC) $(CFLAGS) $(DEFS) -o $@ $(MOBJS) $(LDFLAGS) -lpcap
 
 libredblack: libredblack/.libs/libredblack.a
 
@@ -68,9 +74,11 @@ install:
 	$(INSTALL) -m 755 tcpreplay $(SBINDIR)
 	$(INSTALL) -m 755 capinfo $(BINDIR)
 	$(INSTALL) -m 755 tcpprep $(BINDIR)
+	$(INSTALL) -m 755 pcapmerge $(BINDIR)
 	$(INSTALL) -m 644 tcpreplay.8 $(MAN8DIR)
 	$(INSTALL) -m 644 capinfo.1 $(MAN1DIR)
 	$(INSTALL) -m 644 tcpprep.1 $(MAN1DIR)
+	$(INSTALL) -m 644 pcapmerge.1 $(MAN1DIR)
 
 uninstall:
 	rm -f $(SBINDIR)/tcpreplay
@@ -79,6 +87,8 @@ uninstall:
 	rm -f $(MAN1DIR)/capinfo.1
 	rm -f $(BINDIR)/tcpprep
 	rm -f $(MAN1DIR)/tcpprep.1
+	rm -f ($BINDIR)/pcapmerge
+	rm -f $(MAN1DIR)/pcapmerge.1
 
 pretty:
 	indent -br -brs -di24 -ts4 -ncdw -nce -ncs -npcs -nprs -bfda -l80 -lc80 -lp -psl -i4 *.c *.h
