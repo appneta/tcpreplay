@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.17 2002/07/16 19:51:44 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.18 2002/07/16 21:00:33 aturner Exp $ */
 
 #include "config.h"
 
@@ -97,7 +97,7 @@ main(int argc, char *argv[])
 			break;
 		case 'l': /* loop count */
 			options.n_iter = atoi(optarg);
-			if (options.n_iter <= 0)
+			if (options.n_iter < 0)
 				errx(1, "Invalid loop count: %s", optarg);
 			break;
 		case 'm': /* multiplier */
@@ -188,12 +188,23 @@ main(int argc, char *argv[])
 		err(1, "gettimeofday");
 
 	/* main loop */
-	while (options.n_iter--) {
-		for (i = 0; i < argc; i++) {
-			/* reset cache markers for each iteration */
-			cache_byte = 0;
-			cache_bit = 0;
-			replay_file(argv[i]);
+	if (options.n_iter > 0) { 
+		while (options.n_iter--) { /* limited loop */
+			for (i = 0; i < argc; i++) {
+				/* reset cache markers for each iteration */
+				cache_byte = 0;
+				cache_bit = 0;
+				replay_file(argv[i]);
+			}
+		}
+	} else { /* loop forever */
+		while (1) {
+			for (i = 0; i < argc; i++) {
+				/* reset cache markers for each iteration */
+				cache_byte = 0;
+				cache_bit = 0;
+				replay_file(argv[i]);
+			}
 		}
 	}
 

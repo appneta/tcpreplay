@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.8 2002/07/10 05:35:53 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.9 2002/07/16 21:00:33 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -93,7 +93,8 @@ Specify the \fIdestination MAC\fR to use for packets being sent out the
 secondary interface.
 .TP
 .B \-l
-Resend the capture file(s) \fIloop count\fR times.
+Resend the capture file(s) \fIloop count\fR times.  Setting this to 0 (zero)
+will cause tcpreplay to loop infinately.
 .TP
 .B \-m
 Resend the packets a \fImultiple\fR of the speed at which they were
