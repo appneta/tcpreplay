@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.17 2003/10/21 04:36:23 aturner Exp $
+$Id: CHANGELOG,v 1.18 2003/10/24 03:30:25 aturner Exp $
 
 ??/??/2003: Version 1.5.alpha5
         - Add -T to truncate packets > MTU so they can be sent
@@ -8,6 +8,7 @@ $Id: CHANGELOG,v 1.17 2003/10/21 04:36:23 aturner Exp $
 	- Merge packetrate code from 1.4.5
 	- Fix compile issues under Libnet 1.1.1
 	- --with-debug now enables debuging during 'make test'
+        - Fix various Solaris compatibility bugs
 
 07/16/2003: Version 1.5.alpha4
         - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
