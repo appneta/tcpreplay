@@ -1,7 +1,7 @@
-/* $Id: flownode.h,v 1.3 2003/06/02 00:05:00 aturner Exp $ */
+/* $Id: flownode.h,v 1.4 2003/06/05 06:31:24 aturner Exp $ */
 
 /*
- * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * Copyright (c) 2003 Aaron Turner.
  * All rights reserved.
  *
  * Please see Docs/LICENSE for licensing information
@@ -16,6 +16,13 @@
 #include "rbtree.h"
 
 #define RBKEYLEN 12
+
+/* linked list data structure of buffered packets */
+struct pktbuffhdr_t {
+    u_int32_t len;              /* packet length */
+    u_char *packet;             /* packet data */
+    struct pktbuffhdr_t *next;  /* next packet */
+};
 
 /* Links a session in the pcap with the fd of the socket */
 struct session_t { 
@@ -37,6 +44,10 @@ struct session_t {
     u_char wait;               /* are we waiting for the server to reply? */
 #define WAIT 0x1
 #define DONT_WAIT 0x2
+    struct pktbuffhdr_t *buffered; /* linked list of packets buffered */
+    struct pktbuffhdr_t *lastbuff; /* pointer to last packet buffered */
+    struct pktbuffhdr_t *sentbuff; /* pointer to last packet sent */
+    u_int32_t buffmem;         /* bytes currently in use by the packet buff linked list */
 };
 
 

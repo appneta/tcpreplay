@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.3 2003/06/05 02:25:03 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.4 2003/06/05 06:31:24 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -24,6 +24,7 @@
 #include "flownode.h"
 #include "flowkey.h"
 #include "flowstate.h"
+#include "flowbuff.h"
 #include "cidr.h"
 #include "err.h"
 #include "tcpreplay.h"
@@ -68,6 +69,9 @@ CIDR *clients = NULL, *servers = NULL;
 /* libnet handle for libnet functions */
 libnet_t *l = NULL;
 
+/* limits for buffered packets */
+int32_t pernodebufflim = PER_NODE_BUFF_LIMIT;
+int32_t totalbufflim = TOTAL_BUFF_LIMIT;      /* counts down to zero */
 
 static void
 version()
