@@ -38,10 +38,10 @@
 #include "defines.h"
 #include "common.h"
 
-int read_hexstring(char *l2string, char *hex, int hexlen);
+int read_hexstring(const char *l2string, char *hex, const int hexlen);
 int argv_create(char *p, int argc, char *argv[]);
 void packet_stats(struct timeval *begin, struct timeval *end, 
-        u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed);
+        COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
 void *get_layer4(ip_hdr_t * ip_hdr);
 
 /* our "safe" implimentations of functions which allocate memory */

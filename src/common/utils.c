@@ -114,7 +114,7 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 
 void
 packet_stats(struct timeval *begin, struct timeval *end, 
-        u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed)
+        COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
 {
     float bytes_sec = 0.0, mb_sec = 0.0;
     int pkts_sec = 0;
@@ -149,13 +149,16 @@ packet_stats(struct timeval *begin, struct timeval *end,
 }
 
 int
-read_hexstring(char *l2string, char *hex, int hexlen)
+read_hexstring(const char *l2string, char *hex, const int hexlen)
 {
     int numbytes = 0;
     unsigned int value;
     char *l2byte;
     u_char databyte;
     char *token = NULL;
+    char *string;
+
+    string = safe_strdup(l2string);
 
     if (hexlen <= 0)
         errx(1, "Hex buffer must be > 0");
@@ -165,7 +168,7 @@ read_hexstring(char *l2string, char *hex, int hexlen)
     /* data is hex, comma seperated, byte by byte */
 
     /* get the first byte */
-    l2byte = strtok_r(l2string, ",", &token);
+    l2byte = strtok_r(string, ",", &token);
     sscanf(l2byte, "%x", &value);
     if (value > 0xff)
         errx(1, "Invalid hex byte passed to -2: %s", l2byte);
@@ -187,6 +190,8 @@ read_hexstring(char *l2string, char *hex, int hexlen)
     }
 
     numbytes++;
+
+    free(string);
 
     dbg(1, "Read %d bytes of layer 2 data", numbytes);
     return (numbytes);
