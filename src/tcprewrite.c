@@ -65,9 +65,9 @@ tcprewrite_opt_t options;
 
 /* local functions */
 void validate_l2(char *name, l2_t *l2);
-void apply_filter(pcap_t *pcap, bpf_t *bpf);
 void init(void);
 void post_args(int argc, char *argv[]);
+void rewrite_packets(pcap_t * pcap);
 
 int main(int argc, char *argv[])
 {
@@ -245,5 +245,187 @@ validate_l2(char *name, l2_t *l2)
         warn("Unable to determine layer 2 encapsulation, assuming ethernet\n"
             "You may need to increase the MTU (-t <size>) if you get errors");
     }
+
+}
+
+void
+rewrite_packets(pcap_t * pcap)
+{
+    eth_hdr_t *eth_hdr = NULL;
+    ip_hdr_t *ip_hdr = NULL;
+    arp_hdr_t *arp_hdr = NULL;
+    int cache_result = CACHE_PRIMARY; /* default to primary */
+    struct pcap_pkthdr pkthdr;        /* libpcap packet info */
+    const u_char *nextpkt = NULL;     /* packet buffer from libpcap */
+    u_char *pktdata = NULL;           /* full packet buffer */
+#ifdef FORCE_ALIGN
+    u_char *ipbuff = NULL;            /* IP header and above buffer */
+#endif
+    struct timeval last;
+    static int firsttime = 1;
+    int ret, newl2len;
+    u_int64_t packetnum = 0;
+#ifdef HAVE_PCAPNAV
+    pcapnav_result_t pcapnav_result = 0;
+#endif
+    char datadumpbuff[MAXPACKET];   /* data dumper buffer */
+    int datalen = 0;                /* data dumper length */
+    int needtorecalc = 0;           /* did the packet change? if so, checksum */
+  
+
+    /* create packet buffers */
+    pktdata = (u_char *)safe_malloc(maxpacket);
+
+#ifdef FORCE_ALIGN
+    ipbuff = (u_char *)safe_malloc(maxpacket);
+        
+#endif
+
+
+    /* MAIN LOOP 
+     * Keep sending while we have packets or until
+     * we've sent enough packets
+     */
+    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL)) {
+
+        dbg(2, "packets edited %llu", pkts_sent);
+
+        packetnum++;
+        dbg(2, "packet %llu caplen %d", packetnum, pkthdr.caplen);
+
+    
+        /* Dual nic processing? */
+        if (options.cachedata != NULL) {
+            cache_result = check_cache(options.cachedata, packetnum);
+        }
+    
+        /* sometimes we should not send the packet, in such cases
+         * no point in editing this packet at all, just write it to the
+         * output file (note, we can't just remove it, or the tcpprep cache
+         * file will loose it's indexing
+         */
+        if (cache_result == CACHE_NOSEND)
+            goto WRITE_PACKET;
+    
+        /* zero out the old packet info */
+        memset(pktdata, '\0', maxpacket);
+        needtorecalc = 0;
+
+        /* Rewrite any Layer 2 data */
+        if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt,
+                                   linktype, l2enabled, l2data, l2len)) == 0)
+            continue; /* why do we continue here ??? */
+
+        l2len = newl2len;
+
+        eth_hdr = (eth_hdr_t *) pktdata;
+
+        /* does packet have an IP header?  if so set our pointer to it */
+        if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
+#ifdef FORCE_ALIGN
+            /* 
+             * copy layer 3 and up to our temp packet buffer
+             * for now on, we have to edit the packetbuff because
+             * just before we send the packet, we copy the packetbuff 
+             * back onto the pkt.data + l2len buffer
+             * we do all this work to prevent byte alignment issues
+             */
+            ip_hdr = (ip_hdr_t *) ipbuff;
+            memcpy(ip_hdr, (&pktdata[l2len]), pkthdr.caplen - l2len);
+#else
+            /*
+             * on non-strict byte align systems, don't need to memcpy(), 
+             * just point to 14 bytes into the existing buffer
+             */
+            ip_hdr = (ip_hdr_t *) (&pktdata[l2len]);
+#endif
+        } else {
+            /* non-IP packets have a NULL ip_hdr struct */
+            ip_hdr = NULL;
+        }
+
+        if (cache_result == CACHE_PRIMARY) {
+            /* check for destination MAC rewriting */
+            if (memcmp(options.intf1_dmac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+                memcpy(eth_hdr->ether_dhost, options.intf1_dmac, ETHER_ADDR_LEN);
+            }
+            if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+                memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
+            }
+        } else if (cache_result == CACHE_SECONDARY) {
+            /* check for destination MAC rewriting */
+            if (memcmp(options.intf2_dmac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+                memcpy(eth_hdr->ether_dhost, options.intf2_dmac, ETHER_ADDR_LEN);
+            }
+            if (memcmp(options.intf2_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+                memcpy(eth_hdr->ether_shost, options.intf2_smac, ETHER_ADDR_LEN);
+            }
+        }
+
+        /* rewrite IP addresses */
+        if (options.rewriteip) {
+            /* IP packets */
+            if (ip_hdr != NULL) {
+                needtorecalc += rewrite_ipl3(ip_hdr, cache_result);
+            }
+
+            /* ARP packets */
+            else if (ntohs(eth_hdr->ether_type) == ETHERTYPE_ARP) {
+                arp_hdr = (arp_hdr_t *)(&pktdata[l2len]);
+                /* unlike, rewrite_ipl3, we don't care if the packet changed
+                 * because we never need to recalc the checksums for an ARP
+                 * packet.  So ignore the return value
+                 */
+                rewrite_iparp(arp_hdr, l);
+            }
+        }
+
+        /* rewrite ports */
+        if (options.rewriteports && (ip_hdr != NULL)) {
+            needtorecalc += rewrite_ports(portmap_data, &ip_hdr);
+        }
+
+        /* Untruncate packet? Only for IP packets */
+        if ((options.trunc) && (ip_hdr != NULL)) {
+            needtorecalc += untrunc_packet(&pkthdr, pktdata, ip_hdr, cache_result, l2len);
+        }
+
+
+        /* do we need to spoof the src/dst IP address? */
+        if ((options.seed) && (ip_hdr != NULL)) {
+            needtorecalc += randomize_ips(&pkthdr, pktdata, ip_hdr, cache_result, l2len);
+        }
+
+        /* do we need to force fixing checksums? */
+        if ((options.fixchecksums || needtorecalc) && (ip_hdr != NULL)) {
+            fix_checksums(&pkthdr, ip_hdr, cache_result);
+        }
+
+#ifdef STRICT_ALIGN
+        /* 
+         * put back the layer 3 and above back in the pkt.data buffer 
+         * we can't edit the packet at layer 3 or above beyond this point
+         */
+        memcpy(&pktdata[l2len], ip_hdr, pkthdr.caplen - l2len);
+#endif
+
+        /* do we need to print the packet via tcpdump? */
+        if (options.verbose)
+            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+
+WRITE_PACKET:
+        /* write the packet */
+        pcap_dump((u_char *) options.pout, &pkthdr, pktdata);
+
+        bytes_sent += pkthdr.caplen;
+        pkts_sent++;
+
+    }                           /* while() */
+
+    /* free buffers */
+    free(pktdata);
+#ifdef FORCE_ALIGN
+    free(ipbuff);
+#endif
 
 }
