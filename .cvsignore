@@ -1,14 +1,2 @@
-Makefile
-capinfo
-config.cache
-config.h
-config.log
-config.status
-regress
-tcpreplay
-tcpprep
-pcapmerge
-flowreplay
-autom4te.cache
-*.o
 .DS_Store
+tcpreplay.pws
