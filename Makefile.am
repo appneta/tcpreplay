@@ -22,7 +22,10 @@ postweb:
 	cd $(DOCS_DIR) && make postweb
 
 manpages:
+	cd scripts && make
 	cd src && make manpages
+	rm -f scripts/man2html
+
 
 TEST_DIR = $(top_builddir)/test
 
