@@ -1,9 +1,11 @@
-/* $Id: err.c,v 1.6 2003/12/16 03:58:37 aturner Exp $ */
+/* $Id: err.c,v 1.7 2004/01/31 21:29:28 aturner Exp $ */
 
 /*
  * err.c
  *
  * Adapted from OpenBSD libc *err* *warn* code.
+ *
+ * Copyright (c) 2001-2004 Aaron Turner.
  *
  * Copyright (c) 2000 Dug Song <dugsong@monkey.org>
  *
@@ -66,6 +68,7 @@ dbg(int dbg_level, const char *fmt, ...)
         (void)vfprintf(stderr, fmt, ap);
     (void)fprintf(stderr, "\n");
     va_end(ap);
+    fflush(NULL);
 #else
     return;
 #endif
