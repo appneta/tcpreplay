@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.16 2002/11/20 02:34:16 aturner Exp $
+dnl $Id: configure.in,v 1.17 2002/11/20 04:19:09 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -62,7 +62,8 @@ AC_FUNC_MEMCMP
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(err.h math.h sys/time.h signal.h)
+dnl AC_CHECK_HEADERS(err.h math.h sys/time.h signal.h)
+AC_CHECK_HEADERS(math.h sys/time.h signal.h)
 
 
 dnl use inet_aton or inet_addr ?
@@ -101,11 +102,11 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS(gettimeofday regcomp ctime)
 
 dnl Check for err
-neederr=no
-AC_CHECK_FUNCS(warnx, , [neederr=yes])
-if test $neederr = yes; then
-	EXTRAS="$EXTRAS err.c"
-fi
+dnl neederr=no
+dnl AC_CHECK_FUNCS(warnx, , [neederr=yes])
+dnl if test $neederr = yes; then
+dnl	EXTRAS="$EXTRAS err.c"
+dnl fi
 AC_SUBST(EXTRAS)
 
 dnl Checks for libnet (shamelessly horked from dsniff)
