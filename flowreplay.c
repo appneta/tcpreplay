@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.4 2003/06/05 06:31:24 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.5 2003/10/21 18:11:58 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -178,8 +178,13 @@ main(int argc, char *argv[])
 		usage();
 	    break;
 	case 't': /* target IP */
+#ifdef INET_ATON
 	    if (inet_aton(optarg, &targetaddr) == 0)
 		errx(1, "Invalid target IP address: %s", optarg);
+#elif INET_ADDR
+	    if ((targetaddr = inet_addr(optarg)) == -1)
+		errx(1, "Invalid target IP address: %s", optarg);
+#endif	      
 	    break;
 	case 'V':
 	    version();
