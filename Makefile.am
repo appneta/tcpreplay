@@ -17,7 +17,7 @@ docs:
 clean-docs:
 	cd $(DOCS_DIR) && make clean-docs
 
-TEST_DIR = $(top_buildir)/test
+TEST_DIR = $(top_builddir)/test
 
 test:
 	echo Making test in $(TEST_DIR)
