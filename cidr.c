@@ -1,4 +1,4 @@
-/* $Id: cidr.c,v 1.25 2004/05/15 21:16:42 aturner Exp $ */
+/* $Id: cidr.c,v 1.26 2004/05/16 17:09:55 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -47,8 +47,9 @@
 #include "cidr.h"
 #include "err.h"
 
-
+#ifdef DEBUG
 extern int debug;
+#endif
 
 static CIDR *cidr2CIDR(char *);
 
