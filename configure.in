@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.22 2002/12/18 07:06:23 aturner Exp $
+dnl $Id: configure.in,v 1.23 2002/12/23 00:06:57 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -207,6 +207,49 @@ if test $libnet_ver_10 = yes ; then
 fi
 dnl restore LIBS
 LIBS="$OLDLIBS"
+
+
+dnl Checks for libpcap
+AC_MSG_CHECKING(for libpcap)
+AC_ARG_WITH(libpcap,
+[  --with-libpcap=DIR      use libpcap in DIR],
+[ case "$withval" in
+  yes|no)
+     AC_MSG_RESULT(no)
+     ;;
+  *)
+     AC_MSG_RESULT($withval)
+     if test -f $withval/include/pcap.h -a -f $withval/lib/libpcap.a; then
+        owd=`pwd`
+        if cd $withval; then 
+          withval=`pwd` 
+          cd $owd
+        fi
+		LPCAPINC="-I$withval/include"
+		LPCAPINCDIR="$withval/include"
+		LPCAPLIB="-L$withval/lib -lpcap"
+     else
+        AC_ERROR(pcap.h or libpcap.a not found in $withval)
+     fi
+     ;;
+  esac ],
+[ if test -f ${prefix}/include/pcap.h; then
+     LPCAPNC="-I${prefix}/include"
+     LPCAPINCDIR="$prefix/include"
+     LPCAPLIB="-L${prefix}/lib -lpcap"
+  elif test -f /usr/include/pcap.h; then
+     LNETINCDIR="/usr/include"
+     LNETLIB="-lpcap"
+  else
+     AC_MSG_RESULT(no)
+     AC_ERROR(libpcap not found)
+  fi
+  AC_MSG_RESULT(yes) ]
+)
+AC_SUBST(LPCAPINC)
+AC_SUBST(LPCAPLIB)
+
+
 
 AC_MSG_CHECKING( for 'make test' profile)
 if test "$host" != "$build" ; then

@@ -829,6 +829,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-debug            Enable debugging code and support for the -d option
   --with-libnet=DIR       use libnet in DIR
+  --with-libpcap=DIR      use libpcap in DIR
   --with-testnic=NIC      Select which network card to use for testing
   --with-testnic2=NIC2    Select an optional 2nd network card to use for testing
 
@@ -4019,6 +4020,61 @@ echo "$as_me: error: Libnet version 1.0.x is no longer supported.
 fi
 LIBS="$OLDLIBS"
 
+
+echo "$as_me:$LINENO: checking for libpcap" >&5
+echo $ECHO_N "checking for libpcap... $ECHO_C" >&6
+
+# Check whether --with-libpcap or --without-libpcap was given.
+if test "${with_libpcap+set}" = set; then
+  withval="$with_libpcap"
+   case "$withval" in
+  yes|no)
+     echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+     ;;
+  *)
+     echo "$as_me:$LINENO: result: $withval" >&5
+echo "${ECHO_T}$withval" >&6
+     if test -f $withval/include/pcap.h -a -f $withval/lib/libpcap.a; then
+        owd=`pwd`
+        if cd $withval; then
+          withval=`pwd`
+          cd $owd
+        fi
+		LPCAPINC="-I$withval/include"
+		LPCAPINCDIR="$withval/include"
+		LPCAPLIB="-L$withval/lib -lpcap"
+     else
+        { { echo "$as_me:$LINENO: error: pcap.h or libpcap.a not found in $withval" >&5
+echo "$as_me: error: pcap.h or libpcap.a not found in $withval" >&2;}
+   { (exit 1); exit 1; }; }
+     fi
+     ;;
+  esac
+else
+   if test -f ${prefix}/include/pcap.h; then
+     LPCAPNC="-I${prefix}/include"
+     LPCAPINCDIR="$prefix/include"
+     LPCAPLIB="-L${prefix}/lib -lpcap"
+  elif test -f /usr/include/pcap.h; then
+     LNETINCDIR="/usr/include"
+     LNETLIB="-lpcap"
+  else
+     echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+     { { echo "$as_me:$LINENO: error: libpcap not found" >&5
+echo "$as_me: error: libpcap not found" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+
+fi;
+
+
+
+
+
 echo "$as_me:$LINENO: checking for 'make test' profile" >&5
 echo $ECHO_N "checking for 'make test' profile... $ECHO_C" >&6
 if test "$host" != "$build" ; then
@@ -4675,6 +4731,8 @@ s,@PRINTF@,$PRINTF,;t t
 s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
+s,@LPCAPINC@,$LPCAPINC,;t t
+s,@LPCAPLIB@,$LPCAPLIB,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 CEOF
@@ -5708,6 +5766,8 @@ s,@PRINTF@,$PRINTF,;t t
 s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
+s,@LPCAPINC@,$LPCAPINC,;t t
+s,@LPCAPLIB@,$LPCAPLIB,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 CEOF
@@ -6742,6 +6802,8 @@ s,@PRINTF@,$PRINTF,;t t
 s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
+s,@LPCAPINC@,$LPCAPINC,;t t
+s,@LPCAPLIB@,$LPCAPLIB,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 CEOF
