@@ -26,8 +26,6 @@ check:
 standard:
 	$(TCPPREP) -i test.pcap -o test.auto_router -a -n router -N client
 	$(TCPPREP) -i test.pcap -o test.auto_bridge -a -n bridge -N client
-	$(TCPPREP) -i test.pcap -o test.auto_bridge -a -n bridge -N client
-	$(TCPPREP) -i test.pcap -o test.auto_bridge -a -n bridge -N client
 	$(TCPPREP) -i test.pcap -o test.port -p
 	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24' -N client
 	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*' -N client
