@@ -1,26 +1,9 @@
-Sockets:
-	- No need to futz with layer 3/4 translation.  Just deal with data.
-	- select() should make scaling to 100's of connections painless
-	- Unable to maintain source ports or source IP's
-	- Unable to replicate Syn with data
-	- Unable to replicate specific layer 3/4 data
-	- One socket per UDP/TCP session
-	- Does not require root
-
-Libnet/libpcap:
-	- Need to deal with layer 3/4 translation
-	- Can maintain source ports and source IP's
-	- May get source port conflicts when sending all traffic to a given server
-	- Requires using libpcap to read off the wire which isn't
-	  as nice as select()
-	- Possibly can use select() with libpcap however.  Need to research.
-	- Look into the libnet 1.1.1 patch which is supposed to deal with
-	  detecting responses to packets sent with libnet.
-	- Will I need to deal with funky TCP/IP options?  Should I?
-	- One libpcap socket per pcap file?
-
+$Id: flowreplay.txt,v 1.2 2003/06/09 04:38:17 aturner Exp $
 
 Ideas:
+	- Socket based solution rather then processing raw packets with
+	libpcap and sending via libnet.
+
 	- Rather then opening the pcap file multiple times, or fseek/rewind'ing
 	all around the file to jump between current flows, better to buffer
 	packets to be sent.  With a few MB buffer limit, we shouldn't create
@@ -30,10 +13,11 @@ Ideas:
 	- Rather then use a semi-unique key for the RB tree, use a 12 byte
 	string represening the 4-tuple of the flow.  Use the semi-unique
 	key for dbg() purposes, since 0's in the string will be treated as NULL.
+	Collisions won't be a problem, and our RB tree should never grow too big.
 
 	- How many threads do we need?  We should be able to put the read pcap
 	into a single thread and wrap the select() for send/reading off the wire
-	into another.
+	into another.  It might be doable in a single thread.
 
 	- Knowing when to start sending client traffic in response to the server
 	will be "tricky".  Prolly the best bet is waiting for a given period of
@@ -56,3 +40,26 @@ Ideas:
 
 	- Should we support server sockets?  This would be to support FTP
 	as well as acting as a web server, etc.
+
+Pro's & Con's
+     
+Sockets:
+	- No need to futz with layer 3/4 translation.  Just deal with data.
+	- select() should make scaling to 100's of connections painless
+	- Unable to maintain source ports or source IP's
+	- Unable to replicate Syn with data
+	- Unable to replicate specific layer 3/4 data
+	- One socket per TCP session, UDP can use socket over and over again
+	- Does not require root
+
+Libnet/libpcap:
+	- Need to deal with layer 3/4 translation
+	- Can maintain source ports and source IP's
+	- May get source port conflicts when sending all traffic to a given server
+	- Requires using libpcap to read off the wire which isn't
+	  as nice as select()
+	- Possibly can use select() with libpcap however.  Need to research.
+	- Look into the libnet 1.1.1 patch which is supposed to deal with
+	  detecting responses to packets sent with libnet.
+	- Will I need to deal with funky TCP/IP options?  Should I?
+	- One libpcap socket per pcap file?
