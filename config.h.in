@@ -28,3 +28,7 @@
 /* Large file support */
 #undef _FILE_OFFSET_BITS
 #undef _LARGE_FILES
+#undef _LARGEFILE_SOURCE
+
+/* Various functions */
+#undef HAVE_FSEEKO
