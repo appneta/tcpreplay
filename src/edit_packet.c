@@ -41,8 +41,7 @@
 #include "dlt_names.h"
 
 extern int maxpacket;
-extern struct options options;
-extern CIDRMAP *cidrmap_data1, *cidrmap_data2;
+extern tcprewrite_opt_t options;
 
 /*
  * this code re-calcs the IP and Layer 4 checksums
