@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.29 2003/06/06 01:25:11 aturner Exp $ */
+/* $Id: do_packets.c,v 1.30 2003/06/06 19:57:35 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -356,7 +356,10 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 #endif
 
 	if (!options.topspeed)
-	    do_sleep(&pkthdr.ts, &last, pkthdr.caplen);
+	    /* we have to cast the ts, since OpenBSD sucks
+	     * had to be special and use bpf_timeval 
+	     */
+	    do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
 
 	/* Physically send the packet */
 	do {
@@ -375,7 +378,11 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	bytes_sent += pkthdr.caplen;
 	pkts_sent++;
 
-	last = pkthdr.ts;
+	/* again, OpenBSD is special, so use memcpy() rather then a
+	 * straight assignment 
+	 */
+	memcpy(&last, &pktdhr.ts, sizeof(struct timeval));
+
     }
 
     /* free buffers */
