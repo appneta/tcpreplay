@@ -140,7 +140,6 @@ typedef struct speed_s speed_t;
 #define SERVER_MODE 64          /* second pass through in client/auto mode */
 #define CLIENT_MODE 128         /* second pass through in server/auto mode */
 
-#define NULL_MAC "\0\0\0\0\0\0"
 #define BROADCAST_MAC "\FF\FF\FF\FF\FF\FF"
 
 /* MAC macros for printf */
