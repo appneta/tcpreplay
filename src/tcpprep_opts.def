@@ -178,6 +178,12 @@ EOPrint;
 };
 
 flag = {
+    name        = info;
+    value       = I;
+    descrip     = "Print cache file info";
+};
+
+flag = {
     name        = services;
     value       = s;
     descrip     = "Load services file for server ports";
