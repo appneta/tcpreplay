@@ -37,14 +37,11 @@
 #include <sys/types.h>
 #include <regex.h>
 
-extern char tcpservices[NUM_PORTS], udpservices[NUM_PORTS];
-
-
 /*
  * parses /etc/services so we know which ports are service ports
  */
 void
-parse_services(char *file)
+parse_services(const char *file, services_t *services)
 {
     FILE *service = NULL;
     char service_line[MAXLINE], port[10], proto[10];
@@ -58,8 +55,8 @@ parse_services(char *file)
     memset(service_line, '\0', MAXLINE);
 
     /* mark all ports not a service */
-    memset(tcpservices, '\0', NUM_PORTS);
-    memset(udpservices, '\0', NUM_PORTS);
+    memset(services->tcp, '\0', NUM_PORTS);
+    memset(services->udp, '\0', NUM_PORTS);
 
     if ((service = fopen(file, "r")) == NULL) {
         errx(1, "Unable to open service file: %s\n%s", file, strerror(errno));
@@ -95,10 +92,10 @@ parse_services(char *file)
             /* update appropriate service array with the server port */
             if (strcmp(proto, "tcp") == 0) {
                 dbg(3, "Setting TCP/%d as a server port", portc);
-                tcpservices[portc] = 1; /* mark it as a service port */
+                services->tcp[portc] = 1; /* mark it as a service port */
             } else if (strcmp(proto, "udp") == 0) {
                 dbg(3, "Setting UDP/%d as a server port", portc);
-                udpservices[portc] = 1;
+                services->udp[portc] = 1;
             } else {
                 warnx("Skipping unknown protocol service %s/%d", proto, portc);
             }
@@ -113,4 +110,3 @@ parse_services(char *file)
  c-basic-offset:4
  End:
 */
-

@@ -30,13 +30,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __services_H__
-#define __services_H__
+#ifndef __SERVICES_H__
+#define __SERVICES_H__
 
-void parse_services(char *file);
-
-/* number of ports 0-65535 */
-#define NUM_PORTS 65536
+void parse_services(const char *file, services_t *services);
 
 /* max width of a line in /etc/services */
 #define MAXLINE 1024
@@ -50,4 +47,3 @@ void parse_services(char *file);
  c-basic-offset:4
  End:
 */
-
