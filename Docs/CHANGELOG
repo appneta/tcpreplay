@@ -1,3 +1,8 @@
+05/07/2003: Version 1.5.alpha1
+        - Add layer2 rewriting
+
+05/07/2002: Branch 1.4.x tree
+
 05/04/2003: Version 1.4.beta5
         - Fixed a one-off bug when replaying tcpprep cache files
         - Fixed a small reporting bug in tcpprep
