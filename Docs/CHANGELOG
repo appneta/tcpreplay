@@ -1,4 +1,13 @@
-$Id: CHANGELOG,v 1.8 2003/05/30 00:30:17 aturner Exp $
+$Id: CHANGELOG,v 1.9 2003/06/06 01:26:03 aturner Exp $
+
+06/??/2003: Version 1.5.alpha3
+	- Add support for Linux Cooked Sockets (SLL) format rewriting
+	- Added a flowreplay design doc in Docs/
+	- A lot more work on flowreplay
+	- Start work on read-ahead buffering of packets in flowreplay        
+	- Add support for specifying MTU.
+	- Update tcpreplay man page
+
 
 05/29/2003: Version 1.5.alpha2
         - Add -F to force checksum fixing
