@@ -18,6 +18,7 @@ What's included with tcpreplay?
 tcpreplay - the tool for replaying capture files
 tcpprep - a capture file pre-processor for creating cache files for tcpreplay
 capinfo - the tool for printing statistics about capture files
+pcapmerge - a tool to merge two or more pcap files into one
 
 What systems does tcpreplay support?
 -------------------------------------
@@ -113,4 +114,4 @@ Tcpreplay has been re-written and is now maintained by Matt Bing
 Tcpprep was written and is now maintained by Aaron Turner.
 Capinfo was written and is now maintained by Matt Bing.
 
-$Id: README,v 1.8 2002/12/18 07:18:13 aturner Exp $
+$Id: README,v 1.9 2002/12/23 06:00:40 aturner Exp $
