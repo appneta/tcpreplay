@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.31 2002/08/20 18:48:52 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.32 2002/08/22 05:32:21 aturner Exp $ */
 
 #include "config.h"
 
@@ -765,8 +765,8 @@ configfile(char *file) {
 void
 version()
 {
-	fprintf(stderr, "Tcpreplay version: %s\n", VERSION);
-	fprintf(stderr, "Compiled against Libnet %s\n", LIBNET_VERSION);
+	fprintf(stderr, "tcpreplay version: %s\n", VERSION);
+	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
 	exit(0);
 }
 

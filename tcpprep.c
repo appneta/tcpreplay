@@ -101,8 +101,8 @@ static void process_raw_packets(int fd, int (*get_next) (int, struct packet *));
 static void
 version()
 {
-	fprintf(stderr, "Tcpprep version: %s\n", TCPPREP_VERSION);
-	fprintf(stderr, "Compiled against Libnet %s\n", LIBNET_VERSION);
+	fprintf(stderr, "tcpprep version: %s\n", VERSION);
+	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
 	exit(0);
 }
 

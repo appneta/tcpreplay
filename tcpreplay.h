@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.11 2002/08/11 23:44:22 mattbing Exp $ */
+/* $Id: tcpreplay.h,v 1.12 2002/08/22 05:32:21 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -8,6 +8,9 @@
 #include <sys/time.h>
 
 #include "timer.h"
+
+#define VERSION "1.2a"
+
 
 /* Compatibility for libnet 1.0 vs 1.1 */
 #if USE_LIBNET_VERSION == 10
@@ -26,7 +29,6 @@ typedef struct libnet_dnsv4_hdr dns_hdr_t;
 #error "Unsupported version of Libnet"
 #endif /* USE_LIBNET_VERSION */
 
-#define VERSION "1.2"
 
 /* Big enough for ethernet */
 #define MAXPACKET 2048
