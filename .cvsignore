@@ -6,4 +6,6 @@ config.log
 config.status
 regress
 tcpreplay
+tcpprep
+autom4te.cache
 *.o
