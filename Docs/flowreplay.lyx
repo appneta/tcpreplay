@@ -56,7 +56,7 @@ http://synfin.net/
 \color black
 Last Edited:
 \newline 
-October 1, 2003
+October 23, 2003
 \layout Section
 \pagebreak_top 
 
@@ -68,7 +68,7 @@ Overview
 \color black
 Tcpreplay
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -154,12 +154,6 @@ well enough
 
 
 \color black
-Should be able to scale to pcap files in the 100's of MB in size and 100+
- simultaneous flows on a P3 500MHz w/ 256MB of RAM.
-\layout Enumerate
-
-
-\color black
 Flows being replayed 
 \begin_inset Quotes eld
 \end_inset 
@@ -206,6 +200,12 @@ Limit which flows are replayed using user defined filters.
 
 \color black
 Process pcap files directly with no intermediary file conversions.
+\layout Enumerate
+
+
+\color black
+Should be able to scale to pcap files in the 100's of MB in size and 100+
+ simultaneous flows on a P3 500MHz w/ 256MB of RAM.
 \layout Section
 
 
@@ -286,6 +286,7 @@ Because a pcap file can contain multiple simultaneous flows, we need to
  be able to support that too.
  The biggest problem with this is reading packet data in a different order
  then stored in the pcap file.
+ 
 \layout Standard
 
 
@@ -297,6 +298,17 @@ Reading and writing to multiple sockets is easy with select() or poll(),
  in RAM where they can be accessed more randomly, creating an index of the
  packets in the pcap file, or converting the pcap file to another format
  altogether.
+ Alternatively, I've started looking at libpcapnav
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+http://netdude.sourceforge.net/
+\end_inset 
+
+ as an alternate means to navigate a pcap file and process packets out of
+ order.
 \layout Subsection
 
 
@@ -385,6 +397,20 @@ Flows which contain large quantities of data (FTP transfers of ISO's for
 \color black
 How we implement parallel processing of the pcap savefile will dramatically
  effect how well we can scale.
+ A few considerations:
+\layout Itemize
+
+Most Unix systems limit the maximum number of open file descriptors a single
+ process can have.
+ Generally speaking this shouldn't be a problem except for highly parallel
+ pcap's.
+\layout Itemize
+
+While RAM isn't limitless, we can use mmap() to get around this.
+\layout Itemize
+
+Many Unix systems have enhanced solutions to poll() which will improve flow
+ management.
 \layout Comment
 
 
@@ -605,6 +631,7 @@ Develop a custom user-space TCP/IP stack, perhaps based on a BSD TCP/IP
 \color black
 Screw it and say that IP fragmentation and out of order IP packets/TCP segments
  are not supported.
+ Not sure if this will meet the needs of potential users.
 \layout Subsection
 
 
@@ -812,7 +839,7 @@ The data streams themselves
 \color black
 
 \begin_inset Graphics
-	filename /home/aturner/Code/flowreplay/docs/flowheader.eps
+	filename flowheader.eps
 
 \end_inset 
 

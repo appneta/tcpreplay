@@ -32,11 +32,9 @@ ps: tex dvi
 
 rmtemp:
 	rm -f labels.pl *.log *.toc WARNINGS *.aux index.html 
-	rm -f *.dvi *.tex
 
 clean: rmtemp
 	rm -f *~
 
 distclean: rmtemp clean
-	rm -f FAQ.html FAQ.pdf FAQ.txt FAQ.ps FAQ.dvi FAQ.tex 
-	rm -f FAQ.css index.html flowreplay.txt
+	rm -f *.html *.pdf *.txt *.ps *.dvi *.tex  *.css
