@@ -50,7 +50,7 @@
 #include "list.h"
 #include "xX.h"
 #include "fakepoll.h"
-
+#include "utils.h"
 
 extern struct options options;
 extern struct timeval begin, end;
@@ -68,7 +68,6 @@ extern CIDR *xX_cidr;
 extern int debug;
 #endif
 
-void packet_stats();            /* from tcpreplay.c */
 static int live_callback(struct live_data_t *,
                          struct pcap_pkthdr *, const u_char *);
 
@@ -150,7 +149,7 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2, int l2enabled, char *l2data,
      */
     while ((options.limit_send == -1) || (options.limit_send != pkts_sent)) {
         if (didsig) {
-            packet_stats();
+            packet_stats(&begin, &end);
             exit(1);
         }
 
@@ -413,3 +412,12 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
     return (1);
 }                               /* live_callback() */
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+
