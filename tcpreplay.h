@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.55 2004/04/23 06:33:15 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.56 2004/05/01 22:55:12 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -183,13 +183,15 @@ struct options {
 
 /* converts a 64bit int to network byte order */
 #ifndef WORDS_BIGENDIAN
+#ifndef ntohll
 /* stolen from http://www.codeproject.com/cpp/endianness.asp */
 #define ntohll(x) (((u_int64_t)(ntohl((int)((x << 32) >> 32))) << 32) | \
                      (unsigned int)ntohl(((int)(x >> 32))))
 #define htonll(x) ntohll(x)
+#endif
 #else
 #define ntohll(x) (x)
 #define htonll(x) (x)
-#endif
+#endif /* WORDS_BIGENDIAN */
 
 #endif
