@@ -29,28 +29,28 @@ auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] Auto/Router mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -a -n router -N client
-	diff -q test.$@ test.$@1 >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
 
 auto_bridge:
 	$(PRINTF) "%s" "[tcpprep] Auto/Bridge mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] Auto/Bridge mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -a -n bridge -N client
-	diff -q test.$@ test.$@1 >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
 
 regex:
 	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] Regex mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -r '216.27.178.*' -N client
-	diff -q test.$@ test.$@1 >>test.log 2>&1 
+	diff  test.$@ test.$@1 >>test.log 2>&1 
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 cidr:
 	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] CIDR mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -c '216.27.178.0/24' -N client
-	diff -q test.$@ test.$@1 >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_basic:
