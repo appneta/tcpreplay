@@ -1,6 +1,6 @@
 MAKEFLAGS=-s
 
-all: images pdf txt ps rmtemp
+all: images pdf txt ps rmtemp html
 
 images:
 	fig2dev -L eps flowheader.fig flowheader.eps
