@@ -57,7 +57,7 @@ preferences.anjuta.make.options=-k
 preferences.make=make
 preferences.build.option.keep.going=1
 preferences.build.option.warn.undef=0
-preferences.autoformat.custom.style= -i8 -sc -bli0 -bl0 -cbi0 -ss
+preferences.autoformat.custom.style=-bli0 -bl0 -cbi0 -ss -sc -br -brs -ts4 -ncdw -nce -ncs -npcs -nprs -l80 -lc80 -lp -psl -i4 -nut
 preferences.indent.opening=1
 preferences.autoformat.disable=0
 preferences.indent.automatic=1
@@ -74,7 +74,6 @@ module.include.files=\
 	src/signal_handler.h\
 	src/flowbuff.h\
 	src/edit_packet.h\
-	src/tcpdump.h\
 	src/flownode.h\
 	src/tcpprep.h\
 	src/netout.h\
@@ -104,7 +103,8 @@ module.include.files=\
 	lib/tree.h\
 	lib/strlcpy.h\
 	lib/queue.h\
-	config.h
+	config.h\
+	src/send_packets.h
 
 module.source.name=.
 module.source.type=
@@ -120,8 +120,6 @@ module.source.files=\
 	src/portmap.c\
 	src/flowreplay.c\
 	src/tcpreplay.c\
-	src/fileout.c\
-	src/tcpdump.c\
 	src/flownode.c\
 	src/common/cache.c\
 	src/common/fakepoll.c\
@@ -131,13 +129,15 @@ module.source.files=\
 	src/common/xX.c\
 	src/common/fakepcap.c\
 	src/common/fakepcapnav.c\
-	src/common/timer.c\
 	src/common/cidr.c\
 	src/common/err.c\
 	src/common/tree.c\
 	lib/strlcpy.c\
 	lib/strlcat.c\
-	src/tcpreplay_opts.def
+	src/tcpreplay_opts.def\
+	src/send_packets.c\
+	src/timer.c\
+	src/common/tcpdump.c
 
 module.pixmap.name=.
 module.pixmap.type=
