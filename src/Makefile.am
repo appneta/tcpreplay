@@ -6,6 +6,24 @@ else
 LIBSTRL = ../lib/libstrl.a
 endif
 
+manpages: tcpprep.1 tcprewrite.1 tcpreplay.1 flowreplay.1
+
+tcpprep.1: tcpprep_opts.def
+	@AUTOGEN@ -T agman1.tpl --base-name tcpprep tcpprep_opts.def
+
+tcprewrite.1: tcprewrite_opts.def
+	@AUTOGEN@ -T agman1.tpl --base-name tcprewrite tcprewrite_opts.def
+
+tcpreplay.1: tcpreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl --base-name tcpreplay tcpreplay_opts.def
+
+flowreplay.1: flowreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl --base-name flowreplay flowreplay_opts.def
+
+man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 flowreplay.1
+EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 flowreplay.1
+
+
 LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 
@@ -50,4 +68,4 @@ MOSTLYCLEANFILES = *~ *.o
 
 MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c \
 		       tcprewrite_opts.c tcprewrite_opts.h tcpprep_opts.c \
-		       tcpprep_opts.h
+		       tcpprep_opts.h tcpprep.1 tcpreplay.1 tcprewrite.1 flowreplay.1
