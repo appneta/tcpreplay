@@ -110,7 +110,8 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		 * remove ethernet header and copy our header back
 		 */
 		memcpy(pktdata, l2data, l2len);
-		memcpy(&pktdata[l2len], nextpkt, (pkthdr.caplen - LIBNET_ETH_H));
+		memcpy(&pktdata[l2len], (nextpkt + LIBNET_ETH_H), 
+		       (pkthdr.caplen - LIBNET_ETH_H));
 		/* update pkthdr.caplen with the new size */
 		pkthdr.caplen = pkthdr.caplen - LIBNET_ETH_H + l2len;
 		break;
@@ -126,7 +127,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 			 (pkthdr.caplen + l2len), MAXPACKET);
 		}
 
-		memcpy(&pktdata, l2data, l2len);
+		memcpy(pktdata, l2data, l2len);
 		memcpy(&pktdata[l2len], nextpkt, pkthdr.caplen);
 		pkthdr.caplen += l2len;
 		break;
