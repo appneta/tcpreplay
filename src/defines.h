@@ -52,15 +52,24 @@ struct xX_s {
 #define xX_MODE_INCLUDE x
 #define xX_MODE_EXCLUDE X
     int mode;
-    union match_u {
-        list_t *list;
-        cidr_t *cidr;
-    } match;
+    list_t *list;
+    cidr_t *cidr;
 #define xX_TYPE_LIST 1
 #define xX_TYPE_CIDR 2
     int type;
 };
 typedef struct xX_s xX_t;
+
+/* number of ports 0-65535 */
+#define NUM_PORTS 65536
+struct services_s {
+    char tcp[NUM_PORTS];    
+    char udp[NUM_PORTS];
+};
+typedef struct services_s services_t;
+
+/* from lib/sll.h */
+typedef struct sll_header sll_header_t;
 
 #define MAX_FILES   1024        /* Max number of files we can pass to tcpreplay */
 
@@ -76,7 +85,7 @@ typedef struct xX_s xX_t;
 #define TRUE 1
 #define FALSE 0
 
-#define EBUF_SIZE 256           /* size of our error buffers */
+#define EBUF_SIZE 1024           /* size of our error buffers */
 #define MAC_SIZE  7             /* size of the mac[] buffer */
 
 #define PAD_PACKET   1          /* values for the 'uflag' in tcpreplay */
