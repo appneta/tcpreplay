@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.98 2004/09/05 02:11:11 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.99 2004/09/29 17:37:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -1251,7 +1251,7 @@ init(void)
     cache_bit = cache_byte = 0;
 
     if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
-        errx(1, "Unable to set STDERR to non-blocking");
+        warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
 }
 
 void
