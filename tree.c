@@ -12,7 +12,6 @@
 #include <err.h>
 #include <libnet.h>
 #include <redblack.h>
-#include <search.h>
 #include <stdio.h>
 #include <stdlib.h>
 
