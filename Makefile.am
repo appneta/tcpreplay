@@ -4,20 +4,24 @@ include $(top_srcdir)/libopts/MakeDefs.inc
 
 SUBDIRS = scripts lib src man $(LIBOPTS_DIR)
 DIST_SUBDIRS = scripts lib src man docs libopts
+.PHONY: docs test
 
 dist-hook: version docs
 
-docsdir = $(top_builddir)/docs
+DOCS_DIR = $(top_builddir)/docs
 
 docs:
-	echo Making docs in $(docsdir)
-	cd $(docsdir) && make docs
+	echo Making docs in $(DOCS_DIR)
+	cd $(DOCS_DIR) && make docs
 
-testdir = $(top_buildir)/test
+clean-docs:
+	cd $(DOCS_DIR) && make clean-docs
+
+TEST_DIR = $(top_buildir)/test
 
 test:
-	echo Making test in $(testdir)
-	cd $(testdir) && make test
+	echo Making test in $(TEST_DIR)
+	cd $(TEST_DIR) && make test
 
 dlt_names:
 	cat @SAVEFILE_C@ | $(top_builddir)/scripts/dlt2name.pl src/dlt_names.h

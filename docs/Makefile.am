@@ -2,28 +2,31 @@ MAKEFLAGS=-s
 
 if HAVE_DOCTOOLS
 
-docs: all
+docs: FAQ.pdf FAQ.html flowreplay.pdf flowreplay.html
+#docs: all
 
-all: FAQ-pdf FAQ-html flowreplay-pdf flowreplay-html
+#all: FAQ-pdf FAQ-html flowreplay-pdf flowreplay-html
 
+clean-docs: clean
+	-rm *.pdf *.css *.html
 
-FAQ-pdf:
+FAQ.pdf:
 	@LYX@ -e latex FAQ.lyx
 	@TEXI2DVI@ FAQ.tex
 	@DVIPDFM@ FAQ.dvi
 
-FAQ-html: FAQ-pdf
+FAQ.html: FAQ.pdf
 	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
 		-show_section_numbers FAQ.tex
 
 
-flowreplay-pdf: 
+flowreplay.pdf: 
 	@FIG2DEV@ -L eps flowheader.fig flowheader.eps
 	@LYX@ -e latex flowreplay.lyx
 	@TEXI2DVI@ flowreplay.tex
 	@DVIPDFM@ flowreplay.dvi
 
-flowreplay-html: flowreplay-pdf
+flowreplay.html: flowreplay.pdf
 	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
 		-show_section_numbers flowreplay.tex
 
