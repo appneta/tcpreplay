@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,14 +40,13 @@
 #include <netinet/in.h>
 #include <time.h>
 
-#include "tcpreplay.h"
+#include "tcpbridge.h"
 #include "edit_packet.h"
-#include "fileout.h"
 #include "netout.h"
 
-extern tcpreplay_opt_t options;
+extern tcpbridge_opt_t options;
 extern struct timeval begin, end;
-extern COUNTER bytes_sent, failed, pkts_sent, cache_packets;
+extern COUNTER bytes_sent, failed, pkts_sent;
 extern volatile int didsig;
 
 #ifdef DEBUG
@@ -56,6 +55,9 @@ extern int debug;
 
 static int live_callback(struct live_data_t *,
                          struct pcap_pkthdr *, const u_char *);
+
+static void catcher(int signo);
+static void break_now(int signo);
 
 
 /*
@@ -91,6 +93,33 @@ new_node(void)
     
     memset(node, '\0', sizeof(struct macsrc_t));
     return (node);
+}
+
+static void
+catcher(int signo)
+{
+    /* stdio in signal handlers causes a race condition, instead set a flag */
+    if (signo == SIGINT)
+        didsig = 1;
+}
+
+static void
+break_now(int signo)
+{
+
+    if (signo == SIGINT || didsig) {
+        printf("\n");
+
+#ifdef HAVE_TCPDUMP
+        /* kill tcpdump child if required */
+        if (tcpdump.pid)
+            if (kill(tcpdump.pid, SIGTERM) != 0)
+                kill(tcpdump.pid, SIGKILL);
+#endif
+
+        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
+        exit(1);
+    }
 }
 
 /*
@@ -225,15 +254,15 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
-    if ((memcmp(libnet_get_hwaddr(options.intf1), &finder.key, ETHER_ADDR_LEN))
+    if ((memcmp(libnet_get_hwaddr(options.send1), &finder.key, ETHER_ADDR_LEN))
         == 0) {
-        dbg(1, "Packet matches the MAC of %s, skipping.", intf1);
+        dbg(1, "Packet matches the MAC of %s, skipping.", options.intf1);
         return (1);
     }
     else if ((memcmp
-              (libnet_get_hwaddr(options.intf2), &finder.key,
+              (libnet_get_hwaddr(options.send2), &finder.key,
                ETHER_ADDR_LEN)) == 0) {
-        dbg(1, "Packet matches the MAC of %s, skipping.", intf2);
+        dbg(1, "Packet matches the MAC of %s, skipping.", options.intf2);
         return (1);
     }
 
@@ -261,16 +290,16 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
      * and update the dst mac if necessary
      */
     if (node->source == PCAP_INT1) {
-        dbg(2, "Packet source was %s... sending out on %s", intf1, intf2);
-        l = options.intf2;
+        dbg(2, "Packet source was %s... sending out on %s", options.intf1, options.intf2);
+        l = options.send2;
         if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
             dbg(3, "Rewriting destination MAC for %s", intf2);
             memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
         }
     }
     else {
-        dbg(2, "Packet source was %s... sending out on %s", intf2, intf1);
-        l = options.intf1;
+        dbg(2, "Packet source was %s... sending out on %s", options.intf2, options.intf1);
+        l = options.send1;
         if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
             dbg(3, "Rewriting destination MAC for %s", intf1);
             memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
