@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.47 2003/01/12 05:57:42 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.48 2003/01/13 07:10:58 aturner Exp $ */
 
 #include "config.h"
 
@@ -281,6 +281,7 @@ packet_stats()
 {
 	float bytes_sec = 0.0, mb_sec = 0.0;
 	int pkts_sec = 0;
+	char bits[3];
 
 	if (gettimeofday(&end, NULL) < 0)
 		err(1, "gettimeofday");
@@ -295,8 +296,10 @@ packet_stats()
 		pkts_sec = pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
 	}
 
-	fprintf(stderr, " %ld packets (%ld bytes) sent in %ld seconds\n",
-		pkts_sent, bytes_sent, begin.tv_sec);
+	snprintf(bits, sizeof(bits), "%ld", begin.tv_usec);
+
+	fprintf(stderr, " %ld packets (%ld bytes) sent in %ld.%s seconds\n",
+		pkts_sent, bytes_sent, begin.tv_sec, bits);
 	fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n", 
 		bytes_sec, mb_sec, pkts_sec);
 
