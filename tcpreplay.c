@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.2 2002/04/14 18:37:52 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.3 2002/04/15 16:30:37 aturner Exp $ */
 
 #include "config.h"
  
@@ -16,6 +16,7 @@
 #include "libpcap.h"
 #include "snoop.h"
 #include "tcpreplay.h"
+#include "cache.h"
 
 struct libnet_link_int *l_intf;
 struct timeval begin, end;
@@ -24,6 +25,7 @@ float rate, mult;
 int n_iter, verbose, Rflag, Sflag;
 volatile int didsig;
 char *intf;
+CACHE * cachedata = NULL;
 
 void replay_file(char *);
 void write_packet(struct timeval *, struct timeval *, void *, int);
