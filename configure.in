@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.32 2003/04/30 20:46:07 aturner Exp $
+dnl $Id: configure.in,v 1.33 2003/05/03 01:06:53 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -119,6 +119,7 @@ AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h
 dnl Checks for libraries.
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, gethostbyname)
+AC_CHECK_LIB(rt, nanosleep)
 
 dnl Checks for library functions.
 AC_FUNC_MALLOC
