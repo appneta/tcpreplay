@@ -103,8 +103,7 @@ send_packets(pcap_t *pcap)
     static int firsttime = 1;
     COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
-    const u_char *nextpkt = NULL;
-    u_char *pktdata = NULL;
+    const u_char *pktdata = NULL;
     libnet_t *l = options.intf1;
     int ret; /* libnet return code */
     
@@ -127,7 +126,7 @@ send_packets(pcap_t *pcap)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
+    while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
 
         /* die? */
         if (didsig)
