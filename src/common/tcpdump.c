@@ -357,8 +357,7 @@ tcpdump_fill_in_options(char *opt)
     /* process the first argument */
     arg = strtok_r(options, OPT_DELIM, &token);
     arglen = strlen(arg) + 2; /* -{arg}\0 */
-    newarg = (char *)malloc(arglen);
-    memset(newarg, '\0', arglen);    
+    newarg = (char *)safe_malloc(arglen);
     strlcat(newarg, "-", arglen); 
     strlcat(newarg, arg, arglen);
     options_vec[i++] = newarg;
@@ -372,8 +371,7 @@ tcpdump_fill_in_options(char *opt)
            (i < OPTIONS_VEC_SIZE - 1)) {
 
         arglen = strlen(arg) + 2;
-        newarg = (char *)malloc(arglen);
-        memset(newarg, '\0', arglen);
+        newarg = (char *)safe_malloc(arglen);
         strlcat(newarg, "-", arglen);
         strlcat(newarg, arg, arglen);
         options_vec[i++] = newarg;
