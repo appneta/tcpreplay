@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.25 2002/07/30 06:44:38 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.26 2002/07/30 22:14:11 aturner Exp $ */
 
 #include "config.h"
 
@@ -42,6 +42,7 @@ void packet_stats();
 void usage();
 void version();
 void mac2hex(const char *, char *, int); 
+void untrunc_packet(struct packet *, ip_hdr_t *, void *);
 
 int
 main(int argc, char *argv[])
@@ -262,7 +263,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct packet pkt;
 	struct timeval last;
 	char *pktdata;
-	int packet_num, ret, pktlen, proto;
+	int packet_num, ret, pktlen;
 
 	/* register signals */
 	didsig = 0;
@@ -391,36 +392,13 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		}
 
 		/* Untruncate packet? Only for IP packets */
-		if (uflag && (pkt.len != pkt.actual_len) && (ip_hdr != NULL)) {
-			/* Pad packet? */
-			if (uflag == PAD_PACKET) {
-				memset(pkt.data + pkt.len, 0, sizeof(pkt.data) - pkt.len);
-				pkt.len = pkt.actual_len;
-			} else { /* truncate packet */
-				ip_hdr = (ip_hdr_t *)(pkt.data + LIBNET_ETH_H);
-				ip_hdr->ip_len = htons(pkt.len);
-			}
-		
-			/* recalc the UDP/TCP checksum(s) */
-			proto = ((ip_hdr_t *)(pkt.data + LIBNET_ETH_H))->ip_p;
+		if (uflag) {
 #if USE_LIBNET_VERSION == 10
-			if (libnet_do_checksum(pkt.data + LIBNET_ETH_H, proto, 
-								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
-				warnx("Layer 4 checksum failed");
-			
-			if (libnet_do_checksum(pkt.data + LIBNET_ETH_H, IPPROTO_IP, 
-								   LIBNET_IP_H) < 0)
-				warnx("IP checksum failed");
+			untrunc_packet(&pkt, ip_hdr, NULL);
 #elif USE_LIBNET_VERSION == 11
-			if (libnet_do_checksum(l, pkt.data + LIBNET_ETH_H, proto,
-								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
-				warnx("Layer 4 checksum failed");
-			
-			if (libnet_do_checksum(l, pkt.data + LIBNET_ETH_H, proto,
-								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
-				warnx("IP checksum failed");
+		    untrunc_packet(&pkt, ip_hdr, (void *)l);
 #endif
-		} 
+		}
 
 		pktdata = pkt.data;
 		pktlen = pkt.len;
@@ -451,6 +429,64 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 		last = pkt.ts;
 	}
+}
+
+/*
+ * this code will untruncate a packet via padding it with null
+ * or resetting the actual packet len to the snaplen.  In either case
+ * it will recalcuate the IP and transport layer checksums
+ *
+ * Note that the *l parameter should be the libnet_t *l for libnet 1.1
+ * or NULL for libnet 1.0
+ */
+
+void
+untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
+{
+	int proto;
+
+	/* if actual len == cap len or there's no IP header, don't do anything */
+	if ((pkt->len == pkt->actual_len) || (ip_hdr == NULL)) {
+		return;
+	}
+
+	/* Pad packet or truncate it */
+	if (uflag == PAD_PACKET) {
+		memset(pkt->data + pkt->len, 0, sizeof(pkt->data) - pkt->len);
+		pkt->len = pkt->actual_len;
+	} else if (uflag == TRUNC_PACKET) {
+		ip_hdr = (ip_hdr_t *)(pkt->data + LIBNET_ETH_H);
+		ip_hdr->ip_len = htons(pkt->len);
+	} else {
+		errx(1, "Hello!  I'm not supposed to be here!");
+	}
+	
+	/* recalc the UDP/TCP checksum(s) */
+	proto = ((ip_hdr_t *)(pkt->data + LIBNET_ETH_H))->ip_p;
+	if ((proto == IPPROTO_UDP) || (proto == IPPROTO_TCP)) {
+#if USE_LIBNET_VERSION == 10
+		if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, proto, 
+							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			warnx("Layer 4 checksum failed");
+#elif USE_LIBNET_VERSION == 11
+		if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			warnx("Layer 4 checksum failed");
+#endif
+	}
+
+	
+	/* recalc IP checksum */
+#if USE_LIBNET_VERSION == 10
+	if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, IPPROTO_IP, 
+						   LIBNET_IP_H) < 0)
+		warnx("IP checksum failed");
+#elif USE_LIBNET_VERSION == 11
+	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+		warnx("IP checksum failed");
+#endif
+
 }
 
 /*
