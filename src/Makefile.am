@@ -18,7 +18,7 @@ tcpprep_SOURCES = tcpprep.c
 flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
 
 tcpreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
-		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@
+		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 
 tcpprep_LDADD =  ./common/libcommon.a ../lib/libstrl.a \
 		  @LNETLIB@ @LPCAPLIB@
@@ -31,7 +31,7 @@ noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
 		 fileout.h flowbuff.h flowkey.h flownode.h flowstate.h \
 		 signal_handler.h tcpdump.h common.h tcpreplay_opts.h
 
-tcpreplay_CFLAGS = -I../lib
+tcpreplay_CFLAGS = -I../lib $(LIBOPTS_CFLAGS)
 tcpprep_CFLAGS = -I../lib
 flowreplay_CFLAGS = -I../lib
 

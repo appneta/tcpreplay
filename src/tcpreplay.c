@@ -45,6 +45,7 @@
 #include <unistd.h>
 
 #include "tcpreplay.h"
+#include "tcpreplay_opts.h"
 #include "tcpdump.h"
 #include "portmap.h"
 #include "fileout.h"
@@ -99,13 +100,17 @@ int
 main(int argc, char *argv[])
 {
     char ebuf[256];
-    int ch, i, nat_interface = 0;
+    int ch, i, nat_interface = 0, optct = 0;
     int l2enabled = 0;
     void *xX = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
-
+    
     init();                     /* init our globals */
-
+    
+    optct = optionProcess(&CheckOptions, argc, argv);
+    argc -= optct;
+    argv += optct;
+    
     while ((ch =
             getopt(argc, argv,
                    "bc:C:De:f:Fhi:I:j:J:k:K:l:L:m:MnN:o:Op:Pr:Rs:S:t:Tu:Vw:W:x:X:12:4:"
@@ -1213,4 +1218,3 @@ init(void)
  c-basic-offset:4
  End:
 */
-
