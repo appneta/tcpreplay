@@ -422,11 +422,11 @@ post_args(int argc, char *argv[])
 #endif
 
     /* print_comment and print_info don't return */
-    if (HAVE_OPT(PRINT))
-        print_comment(OPT_ARG(PRINT));
+    if (HAVE_OPT(PRINT_COMMENT))
+        print_comment(OPT_ARG(PRINT_COMMENT));
 
-    if (HAVE_OPT(INFO))
-        print_info(OPT_ARG(INFO));
+    if (HAVE_OPT(PRINT_INFO))
+        print_info(OPT_ARG(PRINT_INFO));
 
     if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(PCAP))
         err(1, "Must specify an output cachefile (-o) and input pcap (-i)");
