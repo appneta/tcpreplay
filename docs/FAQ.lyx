@@ -33,9 +33,9 @@
 Tcpreplay 3.x FAQ
 \layout Author
 
-sourceforgeAaron Turner
+Aaron Turner
 \newline 
-http://tcpreplay.synfin.net/
+http://tcpreplay.sourceforge.net/
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -97,7 +97,7 @@ alpha
  stored in a pcap file
 \layout Subsection
 
-What tools no longer come with tcpreplay?
+What tools no longer come with Tcpreplay?
 \layout Standard
 
 Recently, other people and projects have developed better versions of two
@@ -666,6 +666,23 @@ If for some reason, you still think its a bug in tcpreplay, by all means
  read the code and tell me how stupid I am.
  The do_packets() function in do_packets.c is where tcpreplay processes the
  pcap file and sends all of the packets.
+\layout Subsection
+
+Can tcpreplay read gzip/bzip2 compressed files?
+\layout Standard
+
+Yes, but not directly.
+ Since tcpreplay can read data via STDIN, you can decompress the file on
+ the fly like this:
+\layout Standard
+
+
+\emph on 
+gzcat myfile.pcap.gz | tcpreplay -i eth0 -
+\layout Standard
+
+Note that decompressing on the fly will require additional CPU time and
+ will likely reduce the overall performance of tcpreplay.
 \layout Subsection
 
 How fast can tcpreplay send packets?
