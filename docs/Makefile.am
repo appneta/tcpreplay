@@ -37,6 +37,9 @@ web/flowreplay/flowreplay.html: latex
 	@LATEX2HTML@ $(L2HFLAGS) -dir web/flowreplay flowreplay.tex
 
 manual.pdf: latex
+	@FIG2DEV@ -L eps router-mode1.fig router-mode1.eps
+	@FIG2DEV@ -L eps router-mode2.fig router-mode2.eps
+	@FIG2DEV@ -L eps router-mode3.fig router-mode3.eps
 	@TEXI2DVI@ manual.tex
 	@DVIPDFM@ manual.dvi
 
@@ -73,7 +76,7 @@ endif
 EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
 	FAQ.lyx FAQ.pdf web/FAQ/FAQ.html web/FAQ \
 	flowreplay.lyx flowreplay.pdf web/flowreplay/flowreplay.html web/flowreplay \
-	flowheader.fig \
+	flowheader.fig router-mode1.fig router-mode2.fig router-mode3.fig \
 	manual.lyx manual.pdf web/manual/manual.html web/manual \
 	web/index.html web/web.css \
 	web/man/tcpreplay.html  web/man/tcpprep.html web/man/flowreplay.html \
@@ -84,6 +87,7 @@ MOSTLYCLEANFILES = FAQ.aux FAQ.log FAQ.toc FAQ.dvi FAQ.tex \
 	flowreplay.aux flowreplay.log flowheader.eps flowreplay.tex \
 	flowreplay.log flowreplay.toc flowreplay.dvi \
 	images.aux images.log images.pl images.tex img1.png labels.pl \
+	router-mode1.eps router-mode2.eps router-mode3.eps \
 	*~ web/*~
 
 maintainer-clean-local: clean-docs
