@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.25 2002/12/18 07:06:23 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.26 2003/01/05 23:06:01 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -23,8 +23,8 @@ typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
 
-/* Big enough for ethernet */
-#define MAXPACKET 2048
+/* Big enough for GigE jumbo frames */
+#define MAXPACKET 9000
 
 /* run-time options */
 struct options {
