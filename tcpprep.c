@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.37 2004/04/23 22:40:47 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.38 2004/05/08 21:30:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -66,6 +66,7 @@
 #include "err.h"
 #include "rbtree.h"
 #include "utils.h"
+#include "services.h"
 
 /*
  * global variables
@@ -108,7 +109,6 @@ static void version();
 static int check_ip_regex(const unsigned long ip);
 static unsigned long process_raw_packets(pcap_t * pcap);
 static int check_dst_port(ip_hdr_t *ip_hdr, int len);
-static void parse_services(char *file);
 
 static void
 version()
@@ -654,71 +654,4 @@ main(int argc, char *argv[])
     close(out_file);
     return 0;
 
-}
-
-
-/*
- * parses /etc/services so we know which ports are service ports
- */
-void
-parse_services(char *file)
-{
-    FILE *service = NULL;
-    char service_line[MAXLINE], port[10], proto[10];
-    regex_t preg;
-    int portc;
-    size_t nmatch = 3;
-    regmatch_t pmatch[3];
-    char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1], service pmatch[2] */
-
-    dbg(1, "Parsing %s", file);
-    memset(service_line, '\0', MAXLINE);
-
-    /* mark all ports not a service */
-    memset(tcpservices, '\0', NUM_PORTS);
-    memset(udpservices, '\0', NUM_PORTS);
-
-    if ((service = fopen(file, "r")) == NULL) {
-        errx(1, "Unable to open service file: %s\n%s", file, strerror(errno));
-    }
-    
-    /* compile our regexes */
-    if ((regcomp(&preg, regex, REG_ICASE|REG_EXTENDED)) != 0) {
-        errx(1, "Unable to compile regex: %s", regex);
-    }
-
-    /* parse the entire file */
-    while ((fgets(service_line, MAXLINE, service)) != NULL) {
-        /* zero out our vars */
-        memset(port, '\0', 10);
-        memset(proto, '\0', 10);
-        portc = 0;
-        
-        dbg(4, "Procesing: %s", service_line);
-        
-        /* look for format of 1234/tcp */
-        if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
-            if (nmatch < 2) {
-                errx(1, "WTF?  I matched the line, but I don't know where!");
-            }
-
-            /* strip out the port & proto from the line */
-            strncpy(port, &service_line[pmatch[1].rm_so], (pmatch[1].rm_eo - pmatch[1].rm_so));
-            strncpy(proto, &service_line[pmatch[2].rm_so], (pmatch[2].rm_eo - pmatch[2].rm_so));
-
-            /* convert port[] into an integer */
-            portc = atoi(port);
-
-            /* update appropriate service array with the server port */
-            if (strcmp(proto, "tcp") == 0) {
-                dbg(3, "Setting TCP/%d as a server port", portc);
-                tcpservices[portc] = 1; /* mark it as a service port */
-            } else if (strcmp(proto, "udp") == 0) {
-                dbg(3, "Setting UDP/%d as a server port", portc);
-                udpservices[portc] = 1;
-            } else {
-                warnx("Skipping unknown protocol service %s/%d", proto, portc);
-            }
-        }
-    }
 }
