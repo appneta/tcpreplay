@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.23 2002/12/23 00:06:57 aturner Exp $
+dnl $Id: configure.in,v 1.24 2002/12/23 22:35:21 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -153,6 +153,7 @@ AC_MSG_CHECKING(for libnet version)
 
 AC_TRY_RUN([
 #include <string.h>
+#define LIBNET_LIL_ENDIAN 1
 #include "$LNETINCDIR/libnet.h"
 #define LIB_TEST "1.0"
 /* 
