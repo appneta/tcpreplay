@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-April 23, 2004
+May 14, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -1263,6 +1263,118 @@ would match any IP in the 10.100.0.0/16 subnet and rewrite it as if it came
 For any given IP address, the translation table is applied in order (so
  if there are multiple mappings, earlier maps take precedence) and occurs
  only once per IP (no risk of an address getting rewritten a second time).
+\layout Subsection
+
+Advanced pseudo-NAT
+\layout Standard
+
+Pseudo-NAT also works with traffic splitting (using two interfaces or output
+ files) but with a few important differences.
+ First you have the option of specifying one or two pseudo-NAT tables.
+ Using a single pseudo-NAT table means that the source and destination IP
+ addresses of both interfaces are rewritten using the same rules.
+ Using two pseudo-NAT tables (specifying -N <Table1> -N <Table2>) will cause
+ the source and destination IP addresses to be rewritten differently for
+ each interface using the following matrix:
+\layout Standard
+\align center 
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="3" columns="3">
+<features>
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" rightline="true" width="0">
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Out Primary Interface
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Out Secondary Interface
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Src IP
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Table 1
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Table 2
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Dest IP
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Table 2
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+Table 1
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Standard
+
+While seemingly a bit confusing, this feature provides the unique ability
+ to rewrite the IP headers of packets in the case where traffic is captured
+ on the loopback interface (and the source and destination address is always
+ 127.0.0.1) so that tcpreplay can make it look like two different systems are
+ talking to each other (you'll probably also need to specify the source
+ and destination MAC addresses via -I, -J, -k and -K).
 \layout Section
 
 Tcpprep Usage
