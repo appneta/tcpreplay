@@ -1,7 +1,7 @@
 .\" yo there.
-.TH TCPPREP 8  "7 December 2001"
+.TH TCPPREP 1  "27 June 2002"
 .SH NAME
-tcpprep \- create a tcpreplay cache file from a saved pcap (tcpdump) file
+tcpprep \- create a tcpreplay cache file from a saved capture file
 .SH SYNOPSIS
 .na
 .B tcpprep
@@ -42,6 +42,8 @@ tcpprep \- create a tcpreplay cache file from a saved pcap (tcpdump) file
 ] [
 .B \-R
 .I ratio
+] [
+.B \-S
 ] 
 .br
 .ad
@@ -49,7 +51,7 @@ tcpprep \- create a tcpreplay cache file from a saved pcap (tcpdump) file
 .LP
 .I Tcpprep
 is a program for creating a cache file for later use with \fItcpreplay(8)\fP.  By
-using tcpprep to pre-process a pcap file, tcpreplay in dual-nic mode can
+using tcpprep to pre-process a pcap or snoop file, tcpreplay in dual-nic mode can
 match the performance of the traditional tcpreplay single-nic mode.
 .LP
 The basic operation of
@@ -80,7 +82,7 @@ the secondary interface.  Can't be used with -r or -a.
 Help.
 .TP
 .B \-i
-Input file (pcap/tcpdump format)
+Input file (pcap or snoop format)
 .TP
 .B \-I
 Enable informational status printing to stderr. (Probably only interesting 
@@ -137,8 +139,11 @@ The ratio of server connections to client connections necessary to be
 classified as a server in auto mode.  A system is classified as a server if
 [# server connections] >= ([# client connections] * [ratio]).  Default is:
 2.0
+.TP
+.B \-S
+Indicates the specified input file is in Solaris snoop(1M) format.
 .SH "SEE ALSO"
-tcpdump(8)  tcpreplay(8)
+tcpdump(8)  tcpreplay(8)  snoop(1M)  capinfo(1)
 .SH AUTHOR
 Aaron Turner <aturner@pobox.com>
 .LP
