@@ -30,7 +30,7 @@
 
 \layout Title
 
-Tcpreplay 2.x FAQ
+Tcpreplay 3.x FAQ
 \layout Author
 
 Aaron Turner <aturner_AT_pobox.com> 
@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Sept 6, 2004
+Oct 13, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -76,12 +76,15 @@ tcpreplay - replay ethernet packets stored in a pcap file as they were captured
  
 \layout Itemize
 
+tcprewrite - normalize packets stored in a pcap file
+\layout Itemize
+
 tcpprep - a pcap pre-processor for tcpreplay
 \layout Itemize
 
 flowreplay
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -100,12 +103,21 @@ alpha
 
  - connects to a server(s) and replays the client side of the connection
  stored in a pcap file
+\layout Subsection
+
+What tools no longer come with tcpreplay?
+\layout Standard
+
+Recently, other people and projects have developed better versions of two
+ applications that ship with tcpreplay 2.x:
 \layout Itemize
 
-pcapmerge - merges two or more pcap files into one
+pcapmerge - merges two or more pcap files into one.
+ Ethereal now ships with a more powerful appliation called 'mergecap'.
 \layout Itemize
 
-capinfo - displays basic information about a pcap file
+capinfo - displays basic information about a pcap file.
+ Ethereal now ships with a more powerful application of the same name.
 \layout Subsection
 
 How can I get tcpreplay's source?
@@ -117,20 +129,12 @@ The source code is available in tarball format on the tcpreplay homepage:
 
 \end_inset 
 
- I also encourage users familiar with CVS to try checking out the latest
- code as it often has additional features and bugfixes not found in the
- tarballs.
+ I also encourage users familiar with Subversion to try checking out the
+ latest code as it often has additional features and bugfixes not found
+ in the tarballs.
 \layout Standard
 
-cvs -d:pserver:anonymous@cvs.sf.net:/cvsroot/tcpreplay login
-\newline 
-Pass: 
-\emph on 
-<Enter>
-\emph default 
-
-\newline 
-cvs -z3 -d:pserver:anonymous@cvs.sf.net:/cvsroot/tcpreplay co tcpreplay
+svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay-ng
 \layout Subsection
 
 What requirements does tcpreplay have?
@@ -141,7 +145,7 @@ You'll need the libnet and libpcap libraries.
 
 To support the jump to offset feature, you'll need the libpcapnav
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -153,7 +157,7 @@ http://netdude.sourceforge.net/
 
 To support the packet decoding feature you'll need tcpdump
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -225,10 +229,10 @@ make -is test
 Are there binaries available?
 \layout Standard
 
-Occasionally.
- And even when we do, generally only for one or two operating systems.
- Generally speaking, we assume people who want to use a tool like this can
- figure out how to compile it.
+The tcpreplay project does not maintain binaries for any platforms.
+ However some operating systems such as Debian GNU/Linux (apt-get) and OS
+ X (fink) have packages available.
+ Try searching on Google.
 \layout Subsection
 
 Is there a Microsoft Windows port?
