@@ -8,6 +8,7 @@
 	- Add support for OSX
 	- Add --with-testnic and --with-testnic2 to allow end user to specify
 		specific network cards to be used for 'make test'
+	- Fixes SIGBUS errors on SPARC
 
 11/08/2002: Version 1.3-beta5
 	- Add testing subsystem
