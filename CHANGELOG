@@ -1,4 +1,4 @@
-??/??/2002: Version 1.3-beta4
+10/21/2002: Version 1.3-beta4
 	- Updated tcpprep man page with -x and -X options
 	- Now supports (again) the include/exclude options in the config file
 	- Fixed -x|-X sanity check in tcpprep/tcpreplay
