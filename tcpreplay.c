@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.65 2003/07/17 00:53:26 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.66 2003/07/17 05:42:30 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -32,7 +32,7 @@ struct options options;
 char *cachedata = NULL;
 CIDR *cidrdata = NULL;
 struct timeval begin, end;
-unsigned long long bytes_sent, failed, pkts_sent;
+u_int64_t bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
 int cache_bit, cache_byte, cache_packets;
 volatile int didsig;
