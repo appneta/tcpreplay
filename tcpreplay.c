@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.58 2003/06/05 02:24:46 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.59 2003/06/05 16:51:36 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -42,6 +42,7 @@ CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
 char *l2data = NULL;
 int l2len = LIBNET_ETH_H;
+int maxpacket = 0;
 
 
 /* we get this from libpcap */
@@ -84,10 +85,10 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
+	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvx:X:?2:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
+	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvx:X:?2:")) != -1)
 #endif
 	switch (ch) {
 	case 'c':		/* cache file */
@@ -166,6 +167,9 @@ main(int argc, char *argv[])
 	case 's':
 	    options.seed = atoi(optarg);
 	    options.fixchecksums = 0; /* seed already does this */
+	    break;
+	case 't':               /* MTU */
+	    options.mtu = atoi(optarg);
 	    break;
 	case 'v':		/* verbose */
 	    options.verbose++;
@@ -271,6 +275,7 @@ main(int argc, char *argv[])
 	if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) ||
 	    (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))
 	    errx(1, "You can't rewrite destination MAC's with non-802.3 frames");
+
     }
 
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
@@ -358,6 +363,21 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 	    return;
 	}
     }
+
+    /* calculate the maxpacket based on the l2len, linktype and mtu */
+    if (l2enabled) {
+	/* custom L2 header */
+	maxpacket = options.mtu + l2len;
+    } else if ((linktype == DLT_EN10MB) || (linktype == DLT_LINUX_SLL)) {
+	/* ethernet */
+	maxpacket = options.mtu + LIBNET_ETH_H;
+    } else {
+	/* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
+	maxpacket = options.mtu + LIBNET_ETH_H;
+	warnx("Unable to determine layer 2 encapsulation, assuming ethernet\n"
+	      "You may need to increase the MTU (-t <size>) if you get errors");
+    }
+
 
     do_packets(pcap, linktype, l2enabled, l2data, l2len);
     pcap_close(pcap);
@@ -557,6 +577,9 @@ configfile(char *file)
 	}
 	else if (ARGS("topspeed", 1)) {
 	    options.topspeed = 1;
+	}
+	else if (ARGS("mtu", 2)) {
+	    options.mtu = atoi(argv[1]);
 	}
 	else if (ARGS("verbose", 1)) {
 	    options.verbose++;
