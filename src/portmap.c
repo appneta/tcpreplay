@@ -45,34 +45,30 @@
 #include "portmap.h"
 
 
-PORTMAP *
+portmap_t *
 new_portmap()
 {
-    PORTMAP *newportmap;
+    portmap_t *newportmap;
 
-    newportmap = (PORTMAP *) malloc(sizeof(PORTMAP));
-    if (newportmap == NULL)
-        errx(1, "unable to malloc memory for new_portmap()");
-
-    memset(newportmap, 0, sizeof(PORTMAP));
+    newportmap = (portmap_t *)safe_malloc(sizeof(portmap_t));
     return (newportmap);
 }
 
 /*
  * parses a string <port>:<port> and returns a new
- * PORTMAP datastruct
+ * portmap_t datastruct
  */
-static PORTMAP *
+static portmap_t *
 ports2PORT(char *ports)
 {
-    PORTMAP *portmap = NULL;
+    portmap_t *portmap = NULL;
     char *from_s, *to_s, *badchar;
     long from_l, to_l;
     char *token = NULL;
 
     /* first split the port numbers */
     from_s = strtok_r(ports, ":", &token);
-      to_s = strtok_r(NULL, ":", &token);
+    to_s = strtok_r(NULL, ":", &token);
 
     /* if there's anything left, it's a syntax error */
     if (strtok_r(NULL, ":", &token) != NULL)
@@ -112,9 +108,9 @@ ports2PORT(char *ports)
  * success, 0 for fail.
  */
 int
-parse_portmap(PORTMAP ** portmap, char *ourstr)
+parse_portmap(portmap_t ** portmap, char *ourstr)
 {
-    PORTMAP *portmap_ptr;
+    portmap_t *portmap_ptr;
     char *substr = NULL, *token = NULL;
 
     /* first iteration of input */
@@ -143,7 +139,7 @@ parse_portmap(PORTMAP ** portmap, char *ourstr)
  * Free's all the memory associated with the given portmap chain
  */
 void
-free_portmap(PORTMAP * portmap)
+free_portmap(portmap_t * portmap)
 {
 
     /* recursively go down the portmaps */
@@ -156,9 +152,9 @@ free_portmap(PORTMAP * portmap)
 
 /* This function takes a pointer to a portmap list and prints each node */
 void
-print_portmap(PORTMAP *portmap_data)
+print_portmap(portmap_t *portmap_data)
 {
-    PORTMAP *portmap_ptr;
+    portmap_t *portmap_ptr;
 
     portmap_ptr = portmap_data;
     while (portmap_ptr != NULL) {
@@ -174,9 +170,9 @@ print_portmap(PORTMAP *portmap_data)
  * or the original port if it isn't mapped to anything.
  */
 long
-map_port(PORTMAP *portmap_data, long port)
+map_port(portmap_t *portmap_data, long port)
 {
-    PORTMAP *portmap_ptr;
+    portmap_t *portmap_ptr;
     long newport;
 
     portmap_ptr = portmap_data;
@@ -199,7 +195,7 @@ map_port(PORTMAP *portmap_data, long port)
  */
 
 int
-rewrite_ports(PORTMAP * portmap, ip_hdr_t **ip_hdr)
+rewrite_ports(portmap_t * portmap, ip_hdr_t **ip_hdr)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
