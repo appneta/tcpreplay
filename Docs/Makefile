@@ -22,10 +22,12 @@ ps: FAQ.tex dvi
 	dvips -o FAQ.ps FAQ.dvi
 
 rmtemp:
-	rm -f labels.pl FAQ.log FAQ.toc WARNINGS FAQ.aux index.html FAQ.dvi FAQ.tex
+	rm -f labels.pl FAQ.log FAQ.toc WARNINGS FAQ.aux index.html 
+	rm -f FAQ.dvi FAQ.tex
 
 clean: rmtemp
-	rm -f FAQ.html FAQ.pdf FAQ.txt FAQ.ps FAQ.dvi FAQ.tex FAQ.css index.html
+	rm -f FAQ.html FAQ.pdf FAQ.txt FAQ.ps FAQ.dvi FAQ.tex 
+	rm -f FAQ.css index.html
 
 distclean: clean
 	rm -f *~
