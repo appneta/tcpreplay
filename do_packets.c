@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.28 2003/06/05 16:50:57 aturner Exp $ */
+/* $Id: do_packets.c,v 1.29 2003/06/06 01:25:11 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -107,10 +107,8 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	    _exit(1);
 	}
 
-	dbg(1, "Sending packet: %d (%u)", packetnum + 1, pkthdr.caplen);
-
 	/* zero out the old packet info */
-	memset(&pktdata, '\0', sizeof(pktdata));
+	memset(pktdata, '\0', maxpacket);
 
 
 	/*
@@ -203,7 +201,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 			 (pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H), maxpacket);
 		}
 
-		/* if linktype is SLL, then rewrite as a standard 802.3 header */
+		/* rewrite as a standard 802.3 header */
 		sllhdr = (struct sll_header *)nextpkt;
 		if (ntohs(sllhdr->sll_hatype) == 1) {
 		    /* set the dest/src MAC 
@@ -222,9 +220,9 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 
 		    
 		} else {
-			warnx("Unknown sll_hatype: 0x%x.  Skipping packet.", 
-			      ntohs(sllhdr->sll_hatype));
-			continue;
+		    warnx("Unknown sll_hatype: 0x%x.  Skipping packet.", 
+			  ntohs(sllhdr->sll_hatype));
+		    continue;
 		}
 
 	    } 
