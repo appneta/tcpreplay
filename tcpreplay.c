@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.6 2002/04/15 17:37:18 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.7 2002/05/13 22:18:05 aturner Exp $ */
 
 #include "config.h"
 
@@ -26,6 +26,9 @@ float rate, mult;
 int n_iter, verbose, Rflag, Sflag;
 volatile int didsig;
 char *intf, *intf2, primary_mac[6], secondary_mac[6];
+#ifdef DEBUG
+int debug = 0;
+#endif
 
 /* cache related vars */
 CACHE *cachedata = NULL;
@@ -57,7 +60,11 @@ main(int argc, char *argv[])
 	Rflag = 0;
 	Sflag = 0;
 
+#ifdef DEBUG
+	while ((ch = getopt(argc, argv, "cd:i:I:j:J:l:m:r:RSv:")) != -1)
+#else
 	while ((ch = getopt(argc, argv, "ci:I:j:J:l:m:r:RSv:")) != -1)
+#endif
 		switch(ch) {
 		case 'c': /* cache file */
 			cache_file = optarg;
@@ -405,6 +412,10 @@ void
 usage()
 {
 	fprintf(stderr, "tcpreplay " VERSION "\nUsage: tcpreplay "
-		"[-i interface] [-l loops] [-m multiplier] [-r rate] <file> ..\n");
+          "[-i pri int] [-j sec int] [-l loops] [-m multiplier]");
+#ifdef DEBUG
+	fprintf(stderr, " [-d]");
+#endif
+  	fprintf(stderr,"\n[-r rate] [-c cache] [-I pri mac] [-J sec mac] [-v] <file>\n");
 	exit(1);
 }
