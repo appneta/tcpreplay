@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner <aturner@pobox.com>.
+ * Copyright (c) 2001-2005 Aaron Turner <aturner@pobox.com>.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,8 +97,8 @@ main(int argc, char *argv[])
             errx(1, "Libnet can't open %s: %s", options.intf2_name, ebuf);
     }
 
-    warnx("sending out %s %s", options.intf1_name,
-        options.intf2_name == NULL ? "" : options.intf2_name);
+    notice("sending out %s %s", options.intf1_name,
+           options.intf2_name == NULL ? "" : options.intf2_name);
 
     /* init the signal handlers */
     init_signal_handlers();
@@ -292,6 +292,8 @@ replay_file(char *path)
     }
 #endif
 
+    notice("processing file: %s", path);
+
     if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
         errx(1, "Error opening pcap file: %s", ebuf);
 
@@ -380,11 +382,11 @@ post_args(void)
 #endif
 
     options.intf1_name = (char *)safe_malloc(strlen(OPT_ARG(INTF1)) + 1);
-    strlcpy(options.intf1_name, OPT_ARG(INTF1), sizeof(options.intf1_name));
+    strncpy(options.intf1_name, OPT_ARG(INTF1), strlen(OPT_ARG(INTF1)));
     
     if (HAVE_OPT(INTF2)) {
         options.intf2_name = (char *)safe_malloc(strlen(OPT_ARG(INTF2)) + 1);
-        strlcpy(options.intf2_name, OPT_ARG(INTF2), sizeof(options.intf2_name));
+        strncpy(options.intf2_name, OPT_ARG(INTF2), strlen(OPT_ARG(INTF2)));
     }
 
     if (HAVE_OPT(CACHEFILE)) {
