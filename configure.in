@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.47 2003/11/05 03:40:28 aturner Exp $
+dnl $Id: configure.in,v 1.48 2003/11/06 05:58:12 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -481,4 +481,5 @@ AC_SUBST(nic2)
 
 AC_OUTPUT(Makefile)
 AC_OUTPUT(test/Makefile)
+AC_OUTPUT(test/config)
 AC_OUTPUT(tcpreplay.spec)
