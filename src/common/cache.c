@@ -89,10 +89,10 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
         errx(1, "unable to open %s:%s", cachefile, strerror(errno));
 
     /* read the cache header and determine compatibility */
-    if ((cnt = read(cachefd, &header, sizeof(cache_file_hdr_t))) < 0)
+    if ((cnt = read(cachefd, &header, sizeof(header))) < 0)
         errx(1, "unable to read from %s:%s,", cachefile, strerror(errno));
 
-    if (cnt < sizeof(cache_file_hdr_t))
+    if (cnt < sizeof(header))
         errx(1, "Cache file %s too small", cachefile);
 
     /* verify our magic: tcpprep\0 */
