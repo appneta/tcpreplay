@@ -45,8 +45,6 @@
 
 inline void timerdiv(struct timeval *tvp, float div);
 inline void float2timer(float time, struct timeval *tvp);
-void do_sleep(struct timeval *time, struct timeval *last, int len,
-            tcpreplay_opt_t *options, libnet_t *l);
 
 #ifndef TIMEVAL_TO_TIMESPEC
 #define TIMEVAL_TO_TIMESPEC(tv, ts) { \
