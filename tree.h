@@ -8,7 +8,6 @@
 #ifndef __TREE_H__
 #define __TREE_H__
 
-
 struct tree_type {
 	unsigned long ip;	/* ip/network address in network byte order */
 	u_char mac[6];		/* mac address of system */
