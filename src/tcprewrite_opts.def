@@ -55,9 +55,13 @@ flag = {
     max         = 1;
     descrip     = "Rewrite destination MAC addresses";
     flag-code   = <<- EODmac
-    
-    dualmac2hex(OPT_ARG(DMAC), options.intf1_dmac, options.intf2_dmac,
-        strlen(OPT_ARG(DMAC)));
+
+    int mask = 0;    
+
+    mask = dualmac2hex(OPT_ARG(DMAC), options.intf1_dmac, options.intf2_dmac,
+                strlen(OPT_ARG(DMAC)));
+
+    options.mac_mask ^= (mask << 2);
 
 EODmac;
 };
@@ -70,8 +74,11 @@ flag = {
     descrip     = "Rewrite source MAC addresses";
     flag-code   = <<- EOSmac
     
-    dualmac2hex(OPT_ARG(SMAC), options.intf1_smac, options.intf2_smac,
-        strlen(OPT_ARG(SMAC)));
+    int mask = 0;
+    mask =  dualmac2hex(OPT_ARG(SMAC), options.intf1_smac, options.intf2_smac,
+                strlen(OPT_ARG(SMAC)));
+
+    options.mac_mask ^= mask;
 
 EOSmac;
 };
@@ -114,6 +121,11 @@ flag = {
     
     if (count == 1) {
         options.l2.len = read_hexstring(OPT_ARG(DLINK), options.l2.data1, L2DATALEN);
+        /* 
+         * preemtively copy over our data1[] to data2[] if user doesn't specify 
+         * any data2[] data
+         */
+        memcpy(options.l2.data2, options.l2.data1, options.l2.len);
         count ++;
     } else {
         if (options.l2.len != read_hexstring(OPT_ARG(DLINK), options.l2.data2, L2DATALEN))
@@ -242,7 +254,7 @@ flag = {
     name        = vlan;
     value       = l;
     max         = 1;
-    descrip     = "Specify 802.1q VLAN tag mode: del, add or edit";
+    descrip     = "Specify 802.1q VLAN tag mode: del or add";
     arg-type    = string;
     flag-code   = <<- EOVlan
 
@@ -250,10 +262,8 @@ flag = {
         options.vlan = VLAN_ADD;
     } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
         options.vlan = VLAN_DEL;
-    } else if (strcmp(OPT_ARG(VLAN), "edit") == 0) {
-        options.vlan = VLAN_EDIT;
     } else {
-        errx(1, "Invalid vlan argument '%s'.  Must be 'add', 'del' or 'edit'", OPT_ARG(VLAN));
+        errx(1, "Invalid vlan argument '%s'.  Must be 'add' or 'del'", OPT_ARG(VLAN));
     }
 
 EOVlan;
@@ -266,7 +276,6 @@ flag = {
     descrip     = "Specify the new 802.1q VLAN tag value";
     arg-type    = number;
     flags-must  = vlan;
-    default     = 0;
     arg-range   = "0->4095"; /* VID's are 12bit unsigned int's */
 };
 
@@ -277,7 +286,6 @@ flag = {
     descrip     = "Specify the 802.1q VLAN CFI value";
     arg-type    = number;
     flags-must  = vlan;
-    default     = 1;
     arg-range   = "0->1"; /* one bit */
 };
 
@@ -288,7 +296,6 @@ flag = {
     descrip     = "Specify the 802.1q VLAN priority";
     flags-must  = vlan;
     arg-type    = number;
-    default     = 0;
     arg-range   = "0->7"; /* one byte */
 };
 
