@@ -423,13 +423,14 @@ tcpreplay -i eth0 -j eth1 -I 00:01:00:00:AA:01 -J 00:01:00:00:AA:02 -C 10.0.0.0/
  sample.pcap
 \layout Subsection
 
-Rewriting IP addresses
+Randomizing IP addresses
 \layout Standard
 
 Ocassionally, it is necessary to have tcprewrite rewrite the source and
  destination IP addresses, yet maintain the client/server relationship.
  Such a case might be having multiple copies of tcpdump running at the same
- time using the same pcap file while trying to stress test a device.
+ time using the same pcap file while trying to stress test firewall, IDS
+ or other stateful device.
  If you didn't change the source and destination IP addresses, the device
  under test would get confused since it would see multiple copies of the
  same connection occuring at the same time.
@@ -446,7 +447,9 @@ tcpreplay -i eth0 -s 1239 sample.pcap &
 \newline 
 tcpreplay -i eth0 -s 76 sample.pcap &
 \newline 
-tcpreplay -i eth0 -s 239 sample.pcap
+tcpreplay -i eth0 -s 239 sample.pcap &
+\newline 
+tcpreplay -i eth0 sample.pcap
 \layout Subsection
 
 Replaying (de)truncated packets
@@ -847,6 +850,17 @@ When tcpreplay displays a message like "100000 write attempts failed from
  "-R" option.
  See the tuning OS section in this document for suggestions on solving this
  problem.
+\layout Subsection
+
+Invalid mac address: 00:00:00:00:00:00
+\layout Standard
+
+Currently tcpreplay reserves the MAC address of 00:00:00:00:00:00 as reserved
+ for internal use.
+ Hence you can't rewrite the destination MAC address of packets to be all
+ zeros.
+ While we intend to fix this someday it's not currently high on our priority
+ list, so let us know if we should re-prioritize things.
 \layout Section
 
 Other pcap tools available
