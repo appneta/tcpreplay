@@ -1,4 +1,4 @@
-/* $Id: timer.c,v 1.5 2003/03/24 04:59:58 aturner Exp $ */
+/* $Id: timer.c,v 1.6 2003/05/22 16:11:32 aturner Exp $ */
 
 #include "timer.h"
 
@@ -8,28 +8,14 @@
 inline void
 timerdiv(struct timeval *tvp, float div)
 {
-    int n;
-    float sec;
+    double interval;
 
-    if (div == 0.0 || div == 1.0)
-	return;
+    if (div == 0 || div == 1)
+        return;
 
-    /* do the simple math */
-    sec = (float)tvp->tv_sec / (float)div;
-    tvp->tv_sec = sec;
-    tvp->tv_usec = (float)tvp->tv_usec / (float)div;
-
-    /* see if we have to add a fractional sec to usec */
-    if (sec > 0.0) {
-	tvp->tv_usec += (sec - tvp->tv_sec) * 100000;
-    }
-
-    /* if usec >= 1second, adjust */
-    if (tvp->tv_usec >= 1000000) {
-	n = tvp->tv_usec % 1000000;
-	tvp->tv_usec -= (n * 1000000);
-	tvp->tv_sec += n;
-    }
+    interval = ((double)tvp->tv_sec * 1000000 + tvp->tv_usec) / (double)div;
+    tvp->tv_sec = interval / (int) 1000000;
+    tvp->tv_usec = interval - (tvp->tv_sec * 1000000);
 }
 
 /*
