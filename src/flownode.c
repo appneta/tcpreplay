@@ -42,7 +42,7 @@
 extern struct session_tree tcproot, udproot;
 extern int nfds, NoSyn;
 extern struct in_addr targetaddr;
-extern CIDR *clients, *servers;
+extern cidr_t *clients, *servers;
 
 /* prepare the RB trees for tcp and udp sessions */
 RB_PROTOTYPE(session_tree, session_t, node, rbsession_comp)
@@ -170,14 +170,14 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
          */
 
         if ((clients != NULL)
-            && (check_ip_CIDR(clients, ip_hdr->ip_src.s_addr))) {
+            && (check_ip_cidr(clients, ip_hdr->ip_src.s_addr))) {
             /* source IP is client */
             dbg(3, "UDP match client CIDR.  Server is destination IP: %s",
                 libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE));
             newnode->server_ip = ip_hdr->ip_dst.s_addr;
         }
         else if ((servers != NULL)
-                 && (check_ip_CIDR(servers, ip_hdr->ip_src.s_addr))) {
+                 && (check_ip_cidr(servers, ip_hdr->ip_src.s_addr))) {
             /* source IP is server */
             dbg(3, "UDP match server CIDR.  Server is source IP: %s",
                 libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
