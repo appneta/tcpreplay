@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.17 2002/10/14 03:19:16 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.18 2002/10/22 05:51:53 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -55,8 +55,6 @@ struct options {
 	int cidr;
 	int trunc;
 	long int seed;
-	char *include;
-	char *exclude;
 	char **files;
 	char *cache_files;
 };
