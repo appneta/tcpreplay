@@ -28,7 +28,8 @@ tcpreplay has been successfully tested on
 	- FreeBSD 4.x
 	- BSD/OS 3.x
 	- Red Hat Linux 6.x, 7.x
-	- Solaris 2.x
+	- Solaris 2.7 (SPARC)
+	- OS X
 
 Who can use tcpreplay?
 -----------------------
@@ -40,7 +41,7 @@ in your circumstances.
 Contact info?
 -------------
 
-The primary tcpreplay site is 
+The primary tcpreplay site is:
 
 	http://www.sourceforge.net/projects/tcpreplay/
 
@@ -73,7 +74,7 @@ ok.  While it won't find every possible bug, it will find "stupid stuff".
 
 To test tcpreplay, as root:
 
-	# make test
+	# make test -i
 
 Installing tcpreplay
 ---------------------
@@ -113,4 +114,4 @@ Tcpreplay has been re-written and is now maintained by Matt Bing
 Tcpprep was written and is now maintained by Aaron Turner.
 Capinfo was written and is now maintained by Matt Bing.
 
-$Id: README,v 1.6 2002/11/20 04:37:35 aturner Exp $
+$Id: README,v 1.7 2002/11/22 23:19:25 aturner Exp $
