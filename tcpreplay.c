@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.30 2002/08/12 17:21:01 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.31 2002/08/20 18:48:52 aturner Exp $ */
 
 #include "config.h"
 
@@ -773,11 +773,26 @@ version()
 void
 usage()
 {
-	fprintf(stderr, "Usage: tcpreplay "
-          "[-h|V] [-i pri int] [-j sec int] [-v] [-r rate|-R|-m multi]\n");
+	fprintf(stderr, "Usage: tcpreplay\n");
+	fprintf(stderr, "-c <cachefile>\t\tSplit traffic via cache file\n"
+			"-C CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
-	fprintf(stderr, "[-d] ");
+	fprintf(stderr, "-d\t\t\tEnable debug output to STDERR\n");
 #endif
-  	fprintf(stderr,"[-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac] [-l loop]\n[-M] [-f config] <file>\n");
+	fprintf(stderr, "-f <configfile>\t\tSpecify configuration file\n"
+			"-h\t\t\tHelp\n"
+			"-i <nic>\t\tPrimary interface to send traffic out of\n"
+			"-I <mac>\t\tRewrite dest MAC on primary interface\n"
+			"-j <nic>\t\tSecondary interface to send traffic out of\n"
+			"-J <mac>\t\tRewrite dest MAC on secondary interface\n"
+			"-l <loop>\t\tSpecify number of times to loop\n"
+			"-m <multiple>\t\tSet replay speed to given multiple\n"
+			"-M\t\t\tDisable sending martian IP packets\n"
+			"-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
+			"-R\t\t\tSet replay speed to as fast as possible\n"
+			"-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
+			"-v\t\t\tVerbose\n"
+			"-V\t\t\tVersion\n"
+			"<file1> <file2> ...\tFile list to replay\n");
 	exit(1);
 }
