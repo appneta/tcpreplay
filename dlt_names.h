@@ -8,8 +8,8 @@
  * scripts/dlt2name.pl
  */
 
-/* DLT to String names */
-char *dlt2name[] = {
+/* DLT to descriptions */
+char *dlt2desc[] = {
 		"no link-layer encapsulation",
 		"Ethernet (10Mb)",
 		"Experimental Ethernet (3Mb)",
@@ -135,4 +135,4 @@ char *dlt2name[] = {
 		"IP over Fibre Channel",
 		NULL
 };
-#define DLT2NAME_LEN 123
+#define DLT2DESC_LEN 123
