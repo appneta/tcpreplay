@@ -1,12 +1,12 @@
 AUTOMAKE_OPTIONS = foreign
 
-include $(srcdir)/libopts/MakeDefs.inc
+include $(top_srcdir)/libopts/MakeDefs.inc
 
 SUBDIRS = scripts lib src man docs $(LIBOPTS_DIR)
 DIST_SUBDIRS = scripts lib src man docs
 
 
-docsdir = $(top_buildir)/docs
+docsdir = $(top_builddir)/docs
 
 docs:
 	echo Making docs in $(docsdir)
@@ -19,7 +19,7 @@ test:
 	cd $(testdir) && make test
 
 dlt_names:
-	cat @DLT_H@ | $(top_buildir)/scripts/dlt2name.pl src/dlt_names.h
+	cat @DLT_H@ | $(top_builddir)/scripts/dlt2name.pl src/dlt_names.h
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
