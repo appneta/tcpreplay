@@ -30,8 +30,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tcpreplay.h"
 #include "config.h"
 #include "timer.h"
+#include "err.h"
+#include "fakepoll.h"
 
 /* Miscellaneous timeval routines */
 
@@ -64,4 +67,117 @@ float2timer(float time, struct timeval *tvp)
     n -= tvp->tv_sec;
     tvp->tv_usec = n * 100000;
 
+}
+
+
+/*
+ * Given the timestamp on the current packet and the last packet sent,
+ * calculate the appropriate amount of time to sleep and do so.
+ */
+void
+do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, float speed)
+{
+    static struct timeval didsleep = { 0, 0 };
+    static struct timeval start = { 0, 0 };
+    struct timeval nap, now, delta;
+    struct timespec ignore, sleep;
+    float n;
+    struct pollfd poller[1];        /* use poll to read from the keyboard */
+    int newchar = 0;
+
+    /* just return if topspeed */
+    if (speedmode == TOPSPEED)
+        return;
+
+    if (gettimeofday(&now, NULL) < 0) {
+        err(1, "gettimeofday");
+    }
+
+    /* First time through for this file */
+    if (!timerisset(last)) {
+        start = now;
+        timerclear(&delta);
+        timerclear(&didsleep);
+    }
+    else {
+        timersub(&now, &start, &delta);
+    }
+
+    switch(speedmode) {
+    case MULTIPLIER:
+        /* 
+         * Replay packets a factor of the time they were originally sent.
+         */
+        if (timerisset(last) && timercmp(time, last, >)) {
+            timersub(time, last, &nap);
+        }
+        else {
+            /* 
+             * Don't sleep if this is our first packet, or if the
+             * this packet appears to have been sent before the 
+             * last packet.
+             */
+            timerclear(&nap);
+        }
+        timerdiv(&nap, speed);
+        break;
+
+    case MBPSRATE:
+        /* 
+         * Ignore the time supplied by the capture file and send data at
+         * a constant 'rate' (bytes per second).
+         */
+        if (timerisset(last)) {
+            n = (float)len / speed;
+            nap.tv_sec = n;
+            nap.tv_usec = (n - nap.tv_sec) * 1000000;
+        }
+        else {
+            timerclear(&nap);
+        }
+        break;
+
+    case PACKETRATE:
+        /* run in packets/sec */
+        n = 1 / speed;
+        nap.tv_sec = n;
+        n -= nap.tv_sec;
+        nap.tv_usec = n * 1000000;
+        break;
+
+    case ONEATATIME:
+        printf("**** Press <ENTER> to send the next packet:\n");
+        poller[0].fd = STDIN_FILENO;
+        poller[0].events = POLLIN;
+        poller[0].revents = 0;
+
+        /* wait for the input */
+        if (poll(poller, 1, -1) < 0)
+            errx(1, "do_packets(): Error reading from stdin: %s", strerror(errno));
+
+        /* read to the end of the line */
+        do {
+            newchar = getc(stdin);
+        } while (newchar != '\n');
+        
+        break;
+
+    default:
+        errx(1, "Unknown/supported speed mode: %d", speedmode);
+        break;
+    }
+
+    timeradd(&didsleep, &nap, &didsleep);
+
+    if (timercmp(&didsleep, &delta, >)) {
+        timersub(&didsleep, &delta, &nap);
+
+        sleep.tv_sec = nap.tv_sec;
+        sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
+
+        if (nanosleep(&sleep, &ignore) == -1) {
+            warnx("nanosleep error: %s", strerror(errno));
+        }
+
+    }
 }
