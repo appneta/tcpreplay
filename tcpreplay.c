@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.12 2002/07/01 02:10:13 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.13 2002/07/01 02:29:27 mattbing Exp $ */
 
 #include "config.h"
 
@@ -216,7 +216,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct libnet_link_int *l = NULL;
 	struct packet pkt;
 	struct timeval last;
-	char *pktdata, *i = NULL, tmppkt[MAXPACKET];
+	char *pktdata, *i = NULL;
 	int packet_num, ret, pktlen, proto;
 
 	/* register signals */
@@ -311,41 +311,25 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			(ntohs(eth_hdr->ether_type) == ETHERTYPE_IP)) {
 			/* Pad packet? */
 			if (uflag == PAD_PACKET) {
-#ifdef DEBUG
-				if (debug)
-					warnx("Padding packet from %d to %d bytes.", pkt.len, pkt.actual_len);
-#endif
-				memset(tmppkt, 0, sizeof(tmppkt));
-				memcpy(tmppkt, pkt.data, pkt.len);
-				pktlen = pkt.actual_len;
-		
+				memset(pkt.data + pkt.len, 0, sizeof(pkt.data) - pkt.len);
+				pkt.len = pkt.actual_len;
 			} else { /* truncate packet */
-#ifdef DEBUG
-				if (debug)
-					warnx("Truncating packet at %d bytes.", pkt.len);
-#endif 
-
-				ip_hdr = (struct libnet_ip_hdr *) (pkt.data + LIBNET_ETH_H);
+				ip_hdr = (struct libnet_ip_hdr *)(pkt.data + LIBNET_ETH_H);
 				ip_hdr->ip_len = htons(pkt.len);
-				memcpy(tmppkt, pkt.data, pkt.len);
-				pktlen = pkt.len; 
-
 			}
 		
 			/* recalc the checksum(s) */
-			proto = ((struct libnet_ip_hdr*)(tmppkt+LIBNET_ETH_H))->ip_p;
-			if (libnet_do_checksum(tmppkt+LIBNET_ETH_H, proto, pktlen - LIBNET_ETH_H - LIBNET_IP_H) < 0 )
+			proto = ((struct libnet_ip_hdr*)(pkt.data + LIBNET_ETH_H))->ip_p;
+			if (libnet_do_checksum(pkt.data+LIBNET_ETH_H, proto, 
+				pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 				warnx("Layer 4 checksum failed");
 
-			if (libnet_do_checksum(tmppkt+LIBNET_ETH_H, IPPROTO_IP, LIBNET_IP_H) < 0 )
+			if (libnet_do_checksum(pkt.data + LIBNET_ETH_H, IPPROTO_IP, 
+				LIBNET_IP_H) < 0)
 				warnx("IP checksum failed");
-
-			pktdata = tmppkt;
-
-		} else { /* copy over packet data & len for sending */
-			pktdata = pkt.data;
-			pktlen = pkt.len;
-		}
+		} 
+		pktdata = pkt.data;
+		pktlen = pkt.len;
 
 		/* Physically send the packet */
 		do {
