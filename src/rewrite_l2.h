@@ -31,6 +31,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+int rewrite_l2(pcap_t *pcap, struct pcap_pkthdr *pkthdr, u_char *pktdata, int cache_mode);
 int rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data);
 int rewrite_raw(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data);
 int rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data);

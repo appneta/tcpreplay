@@ -48,6 +48,91 @@ static int check_pkt_len(struct pcap_pkthdr *pkthdr, int oldl2len, int newl2len)
 
 
 /*
+ * Do all the layer 2 rewriting.  Change ethernet header or even rewrite mac addresses
+ * return layer 2 length on success or 0 on fail (don't send packet)
+ */
+int
+rewrite_l2(pcap_t *pcap, struct pcap_pkthdr *pkthdr, u_char * pktdata, int cache_mode)
+{
+    eth_hdr_t *eth_hdr = NULL;
+    u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
+    int oldl2len = 0, newl2len = 0;
+    u_char tmpbuff[MAXPACKET];
+    macaddr_t *dstmac = NULL;
+    macaddr_t *srcmac = NULL;
+
+
+    /* do we need a ptr for l2data ? */
+    if (options.l2.linktype == LINKTYPE_USER)
+        if (cache_mode == CACHE_SECONDARY) {
+            l2data = options.l2.data2;
+        } else {
+            l2data = options.l2.data1;
+        }
+    
+
+    /*
+     * figure out what the CURRENT packet encapsulation is and we'll call
+     * the appropriate function to:
+     * 1) resize the L2 header
+     * 2) copy over existing L2 header info (protocol, MAC's) to a new
+     *    standard 802.3 ethernet header where applicable
+     * We do NOT apply any src/dst mac rewriting, as that is common
+     * to all conversions, so that happens at the bottom of this function
+     */
+    switch (pcap_datalink(pcap)) {
+    case DLT_EN10MB:       /* Standard 802.3 Ethernet */
+        newl2len = rewrite_en10mb(pktdata, pkthdr, l2data);
+        break;
+
+    case DLT_LINUX_SLL:    /* Linux Cooked sockets */
+        newl2len = rewrite_linux_sll(pktdata, pkthdr, l2data);
+        break;
+        
+    case DLT_RAW:          /* No ethernet header, raw IP */
+        newl2len = rewrite_raw(pktdata, pkthdr, l2data);
+        break;
+        
+    case DLT_C_HDLC:         /* Cisco HDLC */
+        newl2len = rewrite_c_hdlc(pktdata, pkthdr, l2data);
+        break;
+
+    } /* switch (linktype) */
+
+    /* if newl2len == 0, then return zero so we don't send the packet */
+    if (! newl2len)
+        return 0;
+
+    /*
+     * Okay... we've got our new layer 2 header
+     * if required.  The next question, is do we have to 
+     * replace the src/dst MAC??
+     */
+
+    if (cache_mode == CACHE_SECONDARY) {
+        if (options.mac_mask & SMAC2) {
+            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf2_smac, ETHER_ADDR_LEN);
+        }
+        if (options.mac_mask & DMAC2) {
+            memcpy(pktdata, options.intf2_dmac, ETHER_ADDR_LEN);
+        }
+        
+    } else {
+        if (options.mac_mask & SMAC1) {
+            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf1_smac, ETHER_ADDR_LEN);
+        }
+        if (options.mac_mask & DMAC1) {
+            memcpy(pktdata, options.intf1_dmac, ETHER_ADDR_LEN);
+        }
+    }
+
+    /* return the updated layer 2 len */
+    return (newl2len);
+}
+
+
+
+/*
  * All of these functions return the NEW layer two length and update the
  * total packet length in pkthdr->caplen
  */
@@ -69,9 +154,9 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
      */
     eth_hdr = (eth_hdr_t *)pktdata;
     if (eth_hdr->ether_type == ETHERTYPE_VLAN) {
-        oldl2len = LIBNET_802_1Q_H;
+        newl2len = oldl2len = LIBNET_802_1Q_H;
     } else {
-        oldl2len = LIBNET_ETH_H;
+        newl2len = oldl2len = LIBNET_ETH_H;
     }
   
     switch (options.l2.linktype) {
@@ -307,7 +392,7 @@ rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
     sll_hdr_t *sll_hdr = NULL;
 
 
-    oldl2len = SLL_HDR_LEN;
+    newl2len = oldl2len = SLL_HDR_LEN;
 
     switch (options.l2.linktype) {
     case LINKTYPE_USER:
@@ -406,9 +491,7 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr *pkthdr, u_char *l2data)
     eth_hdr_t *eth_hdr = NULL;
     vlan_hdr_t *vlan_hdr = NULL;
 
-
-
-    oldl2len = CISCO_HDLC_LEN;
+    newl2len = oldl2len = CISCO_HDLC_LEN;
 
     switch (options.l2.linktype) {
     case LINKTYPE_USER:
