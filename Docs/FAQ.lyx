@@ -36,12 +36,11 @@ Tcpreplay 1.5.x FAQ
 Aaron Turner <aturner_AT_pobox.com> 
 \newline 
 http://tcpreplay.sourceforge.net/
-\newline 
+\layout Date
 
+Last Edited:
 \newline 
-
-\newline 
-FAQ Version 0.7
+June 6, 2003
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -93,8 +92,8 @@ capinfo - displays basic information about a pcap file
 How can I get tcpreplay's source?
 \layout Standard
 
-The source code to tcpreplay is available on SourceForge: 
-\begin_inset LatexCommand \url{http://www.sourceforge.net/projects/tcpreplay}
+The source code to tcpreplay is available on the tcpreplay homepage: 
+\begin_inset LatexCommand \url{http://tcpreplay.sf.net/}
 
 \end_inset 
 
@@ -653,6 +652,25 @@ Replace existing 802.3/EthernetII header
 DLT_RAW
 \newline 
 Frame has no Layer 2 header, so we can add one.
+\layout Itemize
+
+DLT_LINUX_SLL
+\newline 
+Frame uses the Linux Cooked Socket header which is most commonly used with
+ 
+\emph on 
+tcpdump -i any
+\emph default 
+ on a Linux system.
+ This uses a 16 byte Layer 2 header which contains the protocol type and
+ source MAC address but 
+\emph on 
+not
+\emph default 
+ the destination MAC.
+ You can send these packets with either -2 or by specifying a destination
+ MAC via -I and -J in which case tcpreplay will rewrite it as a standard
+ 802.3 Ethernet header.
 \layout Standard
 
 First you'll need to create a file containing the new header.
@@ -1021,8 +1039,8 @@ Libpcap
 \layout Standard
 
 As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
- Any recent Libpcap version should do, but we only test our code with the
- latest version: 0.7.1.
+ As of v1.5, you'll need at least version 0.6.0 or better, but I only test
+ our code with the latest version: 0.7.2.
  Libpcap can be obtained here: 
 \begin_inset LatexCommand \url{http://www.tcpdump.org/}
 
