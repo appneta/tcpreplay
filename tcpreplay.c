@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.72 2003/11/04 05:58:56 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.73 2003/11/06 05:59:09 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -120,14 +120,12 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "B:c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
+	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "B:c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:")) != -1)
+	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:")) != -1)
 #endif
 	switch (ch) {
-	case 'B':               /* break TCP/IP/UDP checksums on X% packets */
-	    
 	case 'c':		/* cache file */
 	    cache_file = optarg;
 	    cache_packets = read_cache(&cachedata, cache_file);
@@ -661,6 +659,9 @@ configfile(char *file)
 	else if (ARGS("datadump_mode", 1)) {
 	    options.datadump_mode = 1;
 	}
+        else if (ARGS("fixchecksums", 1)) {
+            options.fixchecksums = 1;
+        }
 	else if (ARGS("l2data", 2)) {
 	    l2len = read_hexstring(argv[1], l2data, L2DATALEN);
 	}
@@ -696,9 +697,6 @@ configfile(char *file)
 	}
 	else if (ARGS("offset", 2)) {
 	  options.offset = atol(argv[1]);
-	}
-	else if (ARGS("fixchecksums", 1)) {
-	    options.fixchecksums = 1;
 	}
 	else if (ARGS("rate", 2)) {
 	    options.rate = atof(argv[1]);
@@ -743,31 +741,65 @@ configfile(char *file)
 	}
 	else if (ARGS("include", 2)) {
 	    if (include_exclude_mode != 0)
-		errx(1, "Error: Can only specify -x OR -X");
+		errx(1, "Error: Can only specify include (-x) OR exclude (-X) ");
 	    include_exclude_mode = 'x';
 	    if ((xX = parse_xX_str(include_exclude_mode, argv[1])) == NULL)
-		errx(1, "Unable to parse -x: %s", optarg);
+		errx(1, "Unable to parse include: %s", optarg);
 	    if (include_exclude_mode & xXPacket) {
 		xX_list = (LIST *) xX;
 	    }
-	    else {
+	    else if (! include_exclude_mode & xXBPF) {
 		xX_cidr = (CIDR *) xX;
 	    }
 	}
 	else if (ARGS("exclude", 2)) {
 	    if (include_exclude_mode != 0)
-		errx(1, "Error: Can only specify -x OR -X");
+		errx(1, "Error: Can only specify include (-x) OR exclude (-X)");
 
 	    include_exclude_mode = 'X';
 	    if ((xX = parse_xX_str(include_exclude_mode, argv[1])) == NULL)
-		errx(1, "Unable to parse -X: %s", optarg);
+		errx(1, "Unable to parse exclude: %s", optarg);
 	    if (include_exclude_mode & xXPacket) {
 		xX_list = (LIST *) xX;
 	    }
-	    else {
+	    else if (! include_exclude_mode & xXBPF) {
 		xX_cidr = (CIDR *) xX;
 	    }
 	}
+        else if (ARGS("primary_write", 2)) {
+            if (! options.datadump_mode) {
+		if ((options.savepcap = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
+		    errx(1, "error setting primary output file linktype");
+		
+		if ((options.savedumper = pcap_dump_open(options.savepcap, argv[1])) == NULL)
+		    errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap));
+		
+		warnx("saving primary packets in %s", argv[1]);
+	    } else {
+		if ((options.datadumpfile = 
+		     creat(argv[1], S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1)
+		    errx(1, "error creating primary output file: %s\n%s", argv[1], 
+			 strerror(errno));
+		warnx("saving primary data in %s", argv[1]);
+	    }
+        }
+        else if (ARGS("second_write", 2)) {
+	    if (! options.datadump_mode) {
+		if ((options.savepcap2 = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
+		    errx(1, "error setting secondary output file linktype");
+
+		if ((options.savedumper2 = pcap_dump_open(options.savepcap2, argv[1])) == NULL)
+		    errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap2));
+
+		warnx("saving secondary packets in %s", argv[1]);
+	    } else {
+		if ((options.datadumpfile2 = 
+		     creat(argv[1], S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1)
+		    errx(1, "error creating secondary output file: %s\n%s", argv[1], 
+			 strerror(errno));
+		warnx("saving secondary data in %s", argv[1]);
+	    }
+        }
 	else {
 	    errx(1, "Skipping unrecognized: %s", argv[0]);
 	}
