@@ -83,7 +83,7 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
         errx(1, "Error during poll() to write to tcpdump\n%s", strerror(errno));
 
     if (result == 0)
-        errx(1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
+        err(1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
 
@@ -123,8 +123,8 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
         errx(1, "Error during poll() to write to tcpdump\n%s", strerror(errno));
 
     if (result == 0)
-        errx(1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
-                "Try increasing TCPDUMP_POLL_TIMEOUT");
+        err(1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
+            "Try increasing TCPDUMP_POLL_TIMEOUT");
 
     /* result > 0 if we get here */
     if (read(tcpdump->outfd, &decode, TCPDUMP_DECODE_LEN) < 0)
@@ -164,23 +164,23 @@ tcpdump_init(tcpdump_t *tcpdump)
     
     /* is tcpdump executable? */
     if (! can_exec(TCPDUMP_BINARY)) {
-        errx(1, "tcpdump_init(): Unable to execute tcpdump binary: %s", TCPDUMP_BINARY);
+        errx(1, "Unable to execute tcpdump binary: %s", TCPDUMP_BINARY);
     }
     
     /* Check if we can read the tracefile */
     if ( (f = fopen(tcpdump->filename, "r")) == NULL)
-        errx(1, "tcpdump_init() error: unable to open %s\n", tcpdump->filename);
+        errx(1, "Unable to open %s\n", tcpdump->filename);
     
     pfh = &(tcpdump->pfh);
     
     /* Read trace file header */
     if (fread(pfh, sizeof(struct pcap_file_header), 1, f) != 1)
-        errx(1, "tcpdump_init() error: unable to read pcap_file_header\n");
+        errx(1, "Unable to read pcap_file_header: %s", strerror(errno));
 
     if (pfh->magic != TCPDUMP_MAGIC && pfh->magic != PATCHED_TCPDUMP_MAGIC) {
         magic = SWAPLONG(pfh->magic);
         if (magic != TCPDUMP_MAGIC && magic != PATCHED_TCPDUMP_MAGIC)
-            errx(1, "tcpdump_init(): bad dump file format");
+            err(1, "Invalid pcap file magic number");
 
         swap_hdr(pfh);
     }
@@ -231,14 +231,14 @@ tcpdump_open(tcpdump_t *tcpdump)
 
     /* create our socket pair to send packet data to tcpdump via */
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, infd) < 0)
-        errx(1, "tcpdump_open() error: unable to create stdin socket pair");
+        errx(1, "Unable to create stdin socket pair: %s", strerror(errno));
 
     /* create our socket pair to read packet decode from tcpdump */
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, outfd) < 0)
-        errx(1, "tcpdump_open() error: unable to create stdout socket pair");
+        errx(1, "Unable to create stdout socket pair: %s", strerror(errno));
     
     if ((tcpdump->pid = fork() ) < 0)
-        errx(1, "tcpdump_open() error: fork failed");
+        errx(1, "Fork failed: %s", strerror(errno));
 
     dbg(2, "tcpdump pid: %d", tcpdump->pid);
     
@@ -252,10 +252,10 @@ tcpdump_open(tcpdump_t *tcpdump)
         tcpdump->outfd = outfd[0];
 
         if (fcntl(tcpdump->infd, F_SETFL, O_NONBLOCK) < 0)
-            errx(1, "[parent] tcpdump_open() error: unable to fcntl tcpreplay socket:\n%s", strerror(errno));
+            errx(1, "[parent] Unable to fcntl tcpreplay socket:\n%s", strerror(errno));
 
         if (fcntl(tcpdump->outfd, F_SETFL, O_NONBLOCK) < 0)
-            errx(1, "[parent] tcpdump_open() error: unable to fnctl stdout socket:\n%s", strerror(errno));
+            errx(1, "[parent] Unable to fnctl stdout socket:\n%s", strerror(errno));
         
         /* send the pcap file header to tcpdump */
         tcpdump_send_file_header(tcpdump);
@@ -273,19 +273,21 @@ tcpdump_open(tcpdump_t *tcpdump)
         /* copy our side of the socketpair to our stdin */
         if (infd[1] != STDIN_FILENO) {
             if (dup2(infd[1], STDIN_FILENO) != STDIN_FILENO)
-                errx(1, "[child] tcpdump_open() error: unable to copy socket to stdin");
+                errx(1, "[child] Unable to copy socket to stdin: %s", 
+                    strerror(errno));
         }
     
         /* copy our side of the socketpair to our stdout */
         if (outfd[1] != STDOUT_FILENO) {
             if (dup2(outfd[1], STDOUT_FILENO) != STDOUT_FILENO)
-                errx(1, "[child] tcpdump_open() error: unable to copy socket to stdout");
+                errx(1, "[child] Unable to copy socket to stdout: %s", 
+                    strerror(errno));
         }
 
     /* exec tcpdump */
         dbg(2, "[child] Exec'ing tcpdump...");
         if (execv(TCPDUMP_BINARY, options_vec) < 0)
-            errx(1, "unable to exec tcpdump");
+            errx(1, "Unable to exec tcpdump: %s", strerror(errno));
 
     }
     
@@ -299,7 +301,7 @@ tcpdump_send_file_header(tcpdump_t *tcpdump)
 
     dbg(2, "[parent] Sending pcap file header out fd %d...", tcpdump->infd);
     if (! tcpdump->infd) 
-        errx(1, "[parent] tcpdump filehandle is zero.");
+        err(1, "[parent] tcpdump filehandle is zero.");
 
     if (write(tcpdump->infd, (void *)&(tcpdump->pfh), sizeof(struct pcap_file_header))
         != sizeof(struct pcap_file_header)) {
@@ -400,7 +402,7 @@ tcpdump_close(tcpdump_t *tcpdump)
     close(tcpdump->outfd);
 
     if (waitpid(tcpdump->pid, NULL, 0) != tcpdump->pid)
-        errx(1, "[parent] Error in waitpid()");
+        errx(1, "[parent] Error in waitpid: %s", strerror(errno));
 
     tcpdump->pid = 0;
     tcpdump->infd = 0;

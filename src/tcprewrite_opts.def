@@ -114,7 +114,7 @@ flag = {
         count ++;
     } else {
         if (options.l2.len != read_hexstring(OPT_ARG(DLINK), options.l2.data2, L2DATALEN))
-            errx(1, "Layer2 data for both interfaces must be the same length");
+            err(1, "Layer2 data for both interfaces must be the same length");
     }
     
 EODlink;

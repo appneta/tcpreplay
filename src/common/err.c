@@ -78,51 +78,47 @@ dbg(int dbg_level, const char *fmt, ...)
 
 
 void
-err(int eval, const char *fmt, ...)
+_our_verbose_err(int eval, const char *string, const char *function, 
+    const int line, const char *file)
 {
-    va_list ap;
-
-    va_start(ap, fmt);
-    if (fmt != NULL) {
-        (void)vfprintf(stderr, fmt, ap);
-        (void)fprintf(stderr, ": ");
-    }
-    va_end(ap);
-    (void)fprintf(stderr, "%s\n", strerror(errno));
+ 
+    fprintf(stderr, "Fatal Error in %s:%s() line %d\n", file, function, line);
+    fprintf(stderr, "%s", string);
     exit(eval);
 }
 
 void
-warn(const char *fmt, ...)
+_our_verbose_warn(const char *string, const char *function, const int line, 
+    const char *file)
 {
-    va_list ap;
 
-    va_start(ap, fmt);
-    if (fmt != NULL) {
-        (void)vfprintf(stderr, fmt, ap);
-        (void)fprintf(stderr, ": ");
-    }
-    va_end(ap);
-    (void)fprintf(stderr, "%s\n", strerror(errno));
+    fprintf(stderr, "Warning in %s:%s() line %d\n", file, function, line);
+    fprintf(stderr, "%s", string);
 }
 
 void
-errx(int eval, const char *fmt, ...)
+_our_verbose_errx(int eval, const char *fmt, const char *function, 
+    const int line, const char *file, ...)
 {
     va_list ap;
 
+    fprintf(stderr, "Fatal Error in %s:%s() line %d\n", file, function, line);
+
     va_start(ap, fmt);
     if (fmt != NULL)
-        (void)vfprintf(stderr, fmt, ap);
+        (void)vfprintf(stderr,  fmt, ap);
     (void)fprintf(stderr, "\n");
     va_end(ap);
     exit(eval);
 }
 
 void
-warnx(const char *fmt, ...)
+_our_verbose_warnx(const char *fmt, const char *function, 
+    const int line, const char *file,...)
 {
     va_list ap;
+
+    fprintf(stderr, "Warning in %s:%s() line %d\n", file, function, line);
 
     va_start(ap, fmt);
     if (fmt != NULL)
@@ -138,4 +134,3 @@ warnx(const char *fmt, ...)
  c-basic-offset:4
  End:
 */
-

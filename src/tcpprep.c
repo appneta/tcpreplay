@@ -115,7 +115,8 @@ main(int argc, char *argv[])
     /* open the cache file */
     if ((out_file = open(OPT_ARG(CACHEFILE), O_WRONLY | O_CREAT | O_TRUNC,
             S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP | S_IROTH)) == -1)
-        err(1, "Unable to open cache file %s for writing.", OPT_ARG(CACHEFILE));
+        errx(1, "Unable to open cache file %s for writing: %s", 
+            OPT_ARG(CACHEFILE), strerror(errno));
 
   readpcap:
     /* open the pcap file */
@@ -140,7 +141,7 @@ main(int argc, char *argv[])
 
     if ((totpackets = process_raw_packets(options.pcap)) == 0) {
         pcap_close(options.pcap);
-        errx(1, "Error: no packets were processed.  Filter too limiting?");
+        err(1, "No packets were processed.  Filter too limiting?");
     }
     pcap_close(options.pcap);
 
@@ -152,8 +153,7 @@ main(int argc, char *argv[])
             if (info)
                 fprintf(stderr, "Building network list from pre-cache...\n");
             if (!process_tree()) {
-                errx(1,
-                     "Error: unable to build a valid list of servers. Aborting.");
+                err(1, "Error: unable to build a valid list of servers. Aborting.");
             }
         }
         else {
@@ -482,6 +482,9 @@ post_args(int argc, char *argv[])
     dbg(1, "Comment args length: %d", MYARGS_LEN);
 
 
+    if (HAVE_OPT(INFO))
+        options.info = 1;
+
     /* malloc our buffer to be + 1 strlen so we can null terminate */
     if (options.comment != NULL) {
         options.comment = (char *)safe_realloc(options.comment, 
@@ -507,7 +510,7 @@ post_args(int argc, char *argv[])
         options.min_mask, options.max_mask);
     
     if (options.ratio < 0)
-        errx(1, "Ratio must be a non-negative number.");
+        err(1, "Ratio must be a non-negative number.");
 
 }
 
@@ -526,6 +529,37 @@ print_comment(const char *file)
     printf("Cache contains data for %llu packets\n", count);
 
     exit(0);
+}
+
+/*
+ * prints out the cache file details
+ */
+void
+print_info(const char *file)
+{
+    char *cachedata = NULL;
+    char *comment = NULL;
+    COUNTER count = 0, i;
+
+    count = read_cache(&cachedata, file, &comment);
+    for (i = 0; i < count; i ++) {
+        
+        switch (check_cache(cachedata, i)) {
+        case CACHE_PRIMARY:
+            printf("Packet %llu -> Primary\n", (u_int64_t)i);
+            break;
+        case CACHE_SECONDARY:
+            printf("Packet %llu -> Secondary\n", (u_int64_t)i);
+            break;
+        case CACHE_NOSEND:
+            printf("Packet %llu -> Don't Send\n", (u_int64_t)i);
+            break;
+        default:
+            err(1, "print_info(): what are we doing here?");
+            break;
+        }
+
+    }
 }
 
 /*

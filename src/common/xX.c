@@ -106,8 +106,8 @@ parse_xX_str(xX_t *xX, char *str, bpf_t *bpf)
     if (xX->mode == 'X') {          /* run in exclude mode */
         out += xXExclude;
         if (bpf->filter != NULL)
-            errx(1, "Using a BPF filter with -X doesn't work.\n"
-                 "Try using -xF:\"not <filter>\" instead");
+            err(1, "Using a BPF filter with -X doesn't work.\n"
+                "Try using -xF:\"not <filter>\" instead");
     }
 
     xX->mode = out;
@@ -165,7 +165,7 @@ process_xX_by_cidr(int mode, cidr_t * cidr, ip_hdr_t * ip_hdr)
     }
 
     /* total failure */
-    warnx("Unable to determine action in CIDR filter mode");
+    warn("Unable to determine action in CIDR filter mode");
     return 0;
 
 }

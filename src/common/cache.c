@@ -86,11 +86,11 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     /* open the file or abort */
     if ((cachefd = open(cachefile, O_RDONLY)) == -1)
-        err(1, "open %s", cachefile);
+        errx(1, "unable to open %s:%s", cachefile, strerror(errno));
 
     /* read the cache header and determine compatibility */
     if ((cnt = read(cachefd, &header, sizeof(cache_file_hdr_t))) < 0)
-        err(1, "read %s,", cachefile);
+        errx(1, "unable to read from %s:%s,", cachefile, strerror(errno));
 
     if (cnt < sizeof(cache_file_hdr_t))
         errx(1, "Cache file %s too small", cachefile);
@@ -117,11 +117,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     dbg(1, "Cache file comment: %s", *comment);
 
     /* malloc our cache block */
-#ifdef ENABLE_64BITS
     header.num_packets = ntohll(header.num_packets);
-#else
-    header.num_packets = (u_int64_t)ntohl((u_int32_t)header.num_packets);
-#endif
     header.packets_per_byte = ntohs(header.packets_per_byte);
     cache_size = header.num_packets / header.packets_per_byte;
 

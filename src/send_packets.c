@@ -168,7 +168,7 @@ send_packets(pcap_t *pcap)
                 if (errno == ENOBUFS) {
                     failed++;
                 } else {
-                    errx(1, "libnet_adv_write_link(): %s", strerror(errno));
+                    errx(1, "Unable to send packet: %s", strerror(errno));
                 }
             }
         
@@ -208,12 +208,11 @@ send_packets_old(pcap_t * pcap)
   
 
     /* create packet buffers */
-    if ((pktdata = (u_char *) malloc(maxpacket)) == NULL)
-        errx(1, "Unable to malloc pktdata buffer");
+    pktdata = (u_char *)safe_malloc(maxpacket);
 
 #ifdef FORCE_ALIGN
-    if ((ipbuff = (u_char *) malloc(maxpacket)) == NULL)
-        errx(1, "Unable to malloc ipbuff buffer");
+    ipbuff = (u_char *)safe_malloc(maxpacket);
+        
 #endif
 
     /* register signals */
@@ -349,7 +348,7 @@ send_packets_old(pcap_t * pcap)
                 l = (libnet_t *) cidr_mode(eth_hdr, ip_hdr);
             }
             else {
-                errx(1, "do_packets(): Strange, we should of never of gotten here");
+                err(1, "Strange, we should of never of gotten here");
             }
         }
         else {
@@ -462,8 +461,7 @@ send_packets_old(pcap_t * pcap)
                     if (datalen) {
                         if (write(options.datadumpfile2, datadumpbuff, datalen)
                             == -1)
-                            warnx
-                                ("error writing data to secondary dump file: %s",
+                            warnx("error writing data to secondary dump file: %s",
                                  strerror(errno));
                     }
                 }
@@ -482,7 +480,7 @@ send_packets_old(pcap_t * pcap)
                         failed++;
                     }
                     else {
-                        errx(1, "libnet_adv_write_link(): %s", strerror(errno));
+                        errx(1, "Unable to send packet: %s", strerror(errno));
                     }
                 }
                 /* keep trying if fail, unless user Ctrl-C's */
@@ -532,7 +530,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
     int result;
 
     if (packet_num > cache_packets)
-        errx(1, "Exceeded number of packets in cache file.");
+        err(1, "Exceeded number of packets in cache file.");
 
     result = check_cache(cachedata, packet_num);
     if (result == CACHE_NOSEND) {
@@ -548,7 +546,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
         l = options.intf2;
     }
     else {
-        errx(1, "check_cache() returned an error.  Aborting...");
+        err(1, "check_cache() returned an error.  Aborting...");
     }
 
     return l;

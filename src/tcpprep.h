@@ -49,7 +49,7 @@ struct tcpprep_opt_s {
     pcap_t *pcap;
     int verbose;    
     char *tcpdump_args;
-
+    int info;
     /* mode */
 
     cache_t *cachedata;

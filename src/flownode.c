@@ -112,11 +112,7 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
 
     dbg(2, "Adding new node: 0x%llx", pkeygen(key));
 
-    if ((newnode =
-         (struct session_t *)malloc(sizeof(struct session_t))) == NULL)
-        errx(1, "Unable to malloc memory for a new node");
-
-    memset(newnode, '\0', sizeof(struct session_t));
+    newnode = (struct session_t *)safe_malloc(sizeof(struct session_t));
 
     memcpy(newnode->key, key, RBKEYLEN);
 
@@ -285,4 +281,3 @@ close_sockets(void)
  c-basic-offset:4
  End:
 */
-

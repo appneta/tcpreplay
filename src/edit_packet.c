@@ -132,7 +132,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
         ip_hdr->ip_len = htons(pkthdr->caplen);
     }
     else {
-        errx(1, "Hello!  I'm not supposed to be here!");
+        err(1, "Invalid options.fixlen value");
     }
 
     /* fix checksums */
@@ -291,7 +291,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
                  * require the SRC mac for SLL (we do require DST mac)
                  */
                 if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) == 0) {
-                    warnx("Skipping SLL loopback packet.");
+                    warn("Skipping SLL loopback packet.");
                     return (0);
                 }
                 break;
@@ -359,7 +359,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
         }
         
         else {   /* no need to rewrite L2 */
-            warnx("rewrite_l2(): WTF?  We can't process DLT_RAW without -2!");
+            warn("WTF?  We can't process DLT_RAW without -2!");
             return(0);
         }
         break;
@@ -704,7 +704,7 @@ rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode)
         } while (loop);
         
     } else {
-        warnx("ARP packet isn't for IPv4!  Can't rewrite IP's");
+        warn("ARP packet isn't for IPv4!  Can't rewrite IP's");
     }
 
     return(didsrc + diddst);

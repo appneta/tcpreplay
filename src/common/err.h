@@ -45,11 +45,30 @@
 
 #ifndef _ERR_H_
 #define _ERR_H_
+
+
+/*
+ * We define five functions for reporting errors, warnings and debug messages:
+ * err()   - Fatal error.  Pass exit code followed by static string
+ * errx()  - Fatal error.  Pass exit code, format string, one or more variables
+ * warn()  - Warning. Pass static string
+ * warnx() - Warning. Pass format string, one or more variables
+ * dbg()   - Debug. Debug level to trigger, format string, one or more variables
+ */
+
 void dbg(int dbg_level, const char *fmt, ...);
-void err(int eval, const char *fmt, ...);
-void warn(const char *fmt, ...);
-void errx(int eval, const char *fmt, ...);
-void warnx(const char *fmt, ...);
+
+#define err(x, y) _our_verbose_err(x, y, __FUNCTION__, __LINE__, __FILE__)
+void _our_verbose_err(int eval, const char *string, const char *, const int, const char *);
+
+#define warn(x) _our_verbose_warn(x, __FUNCTION__, __LINE__, __FILE__)
+void _our_verbose_warn(const char *fmt, const char *, const int, const char *);
+
+#define errx(x, y, ...) _our_verbose_errx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
+void _our_verbose_errx(int eval, const char *fmt, const char *, const int, const char *, ...);
+
+#define warnx(x, ...) _our_verbose_warnx(x, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
+void _our_verbose_warnx(const char *fmt, const char *, const int, const char *, ...);
 
 #endif /* !_ERR_H_ */
 
@@ -60,4 +79,3 @@ void warnx(const char *fmt, ...);
  c-basic-offset:4
  End:
 */
-

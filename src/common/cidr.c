@@ -155,10 +155,8 @@ new_cidr(void)
 {
     cidr_t *newcidr;
 
-    newcidr = (cidr_t *) malloc(sizeof(cidr_t));
-    if (newcidr == NULL)
-        err(1, "unable to malloc memory for new_cidr()");
-
+    newcidr = (cidr_t *)safe_malloc(sizeof(cidr_t));
+    
     memset(newcidr, '\0', sizeof(cidr_t));
     newcidr->masklen = 99;
     newcidr->next = NULL;
@@ -171,10 +169,8 @@ new_cidr_map(void)
 {
     cidrmap_t *new;
 
-    new = (cidrmap_t *)malloc(sizeof(cidrmap_t));
-    if (new == NULL)
-        err(1, "unable to malloc memory for new_cidr()");
-
+    new = (cidrmap_t *)safe_malloc(sizeof(cidrmap_t));
+    
     memset(new, '\0', sizeof(cidrmap_t));
     new->next = NULL;
 

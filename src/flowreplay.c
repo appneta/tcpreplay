@@ -230,11 +230,11 @@ main(int argc, char *argv[])
 
     /* if -m wait, then must use -w */
     if ((SendMode == MODE_WAIT) && (!timerisset(&timeout)))
-        errx(1, "You must specify a wait period with -m wait");
+        err(1, "You must specify a wait period with -m wait");
 
     /* Can't specify client & server CIDR */
     if ((clients != NULL) && (servers != NULL))
-        errx(1, "You can't specify both a client and server cidr block");
+        err(1, "You can't specify both a client and server cidr block");
 
     /* move over to the input files */
     argc -= optind;
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
     if (argc > 1)
         for (i = 0; i < argc; i++)
             if (!strcmp("-", argv[i]))
-                errx(1, "stdin must be the only file specified");
+                err(1, "stdin must be the only file specified");
 
     /* loop through the input file(s) */
     for (i = 0; i < argc; i++) {

@@ -100,7 +100,7 @@ rbkeygen(ip_hdr_t * ip, u_char proto, void *l4, u_char * key)
 
     }
     else {
-        warnx("You tried to rbkeygen() for a non-TCP/UDP packet!");
+        warn("You tried to rbkeygen() for a non-TCP/UDP packet!");
         return (0);
     }
 
@@ -141,4 +141,3 @@ pkeygen(u_char key[])
  c-basic-offset:4
  End:
 */
-

@@ -54,14 +54,14 @@ addpkt2buff(struct session_t *node, u_char * pktdata, u_int32_t len)
 
     /* check per node buffer limit */
     if ((node->buffmem + len) > pernodebufflim) {
-        warnx("Unable to buffer next packet: per node buffer limit reached");
+        warn("Unable to buffer next packet: per node buffer limit reached");
         return (NULL);
     }
 
     /* check total buffer limit */
     totalbufflim -= len;
     if (totalbufflim < 0) {
-        warnx("Unable to buffer next packet: total buffer limit reached");
+        warn("Unable to buffer next packet: total buffer limit reached");
         totalbufflim += len;    /* reset */
         return (NULL);
     }
@@ -138,4 +138,3 @@ nextbuffpkt(struct session_t *node, u_int32_t len)
  c-basic-offset:4
  End:
 */
-

@@ -79,7 +79,7 @@ parse_services(const char *file, services_t *services)
         /* look for format of 1234/tcp */
         if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
             if (nmatch < 2) {
-                errx(1, "WTF?  I matched the line, but I don't know where!");
+                err(1, "WTF?  I matched the line, but I don't know where!");
             }
 
             /* strip out the port & proto from the line */

@@ -50,8 +50,7 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     u_char *ptr;
 
     if ((ptr = malloc(len)) == NULL)
-        errx(1, "safe_malloc() error: Unable to malloc %d bytes\n"
-            "%s:%s() line %d\n", len, file, funcname, line);
+        _our_verbose_errx(1, "Unable to malloc() %d bytes", funcname, line, file, len);
     
     /* zero memory */
     memset(ptr, 0, len);
@@ -79,8 +78,8 @@ _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, c
         oldlen = sizeof(*ptr);
 
     if ((ptr = realloc(ptr, len)) == NULL)
-        errx(1, "safe_realloc() error: Unable to grow ptr from %d to %d bytes\n"
-                "%s:%s() line %d\n", oldlen, len, file, funcname, line);
+        _our_verbose_errx(1, "Unable to remalloc() ptr from %d to %d bytes",
+            funcname, line, file, oldlen, len);
 
     charptr = (char *)ptr;
     
@@ -102,10 +101,10 @@ char *
 _our_safe_strdup(const char *str, const char *funcname, const int line, const char *file)
 {
     char *newstr;
-    
+
     if ((newstr = (char *)malloc(strlen(str) + 1)) == NULL)
-        errx(1, "safe_strdup() error: Unable to malloc %d bytes\n"
-                "%s:%s() line %d\n", strlen(str), file, funcname, line);
+        _our_verbose_errx(1, "Unable to strdup() %d bytes\n",
+                funcname, line, file, strlen(str));
 
     memcpy(newstr, str, strlen(str) + 1);
     
@@ -124,7 +123,7 @@ packet_stats(struct timeval *begin, struct timeval *end,
     char bits[3];
 
     if (gettimeofday(end, NULL) < 0)
-        err(1, "gettimeofday");
+        errx(1, "Unable to gettimeofday(): %s", strerror(errno));
 
     timersub(end, begin, begin);
     if (timerisset(begin)) {
@@ -164,7 +163,7 @@ read_hexstring(const char *l2string, char *hex, const int hexlen)
     string = safe_strdup(l2string);
 
     if (hexlen <= 0)
-        errx(1, "Hex buffer must be > 0");
+        err(1, "Hex buffer must be > 0");
 
     memset(hex, '\0', hexlen);
 
@@ -182,7 +181,7 @@ read_hexstring(const char *l2string, char *hex, const int hexlen)
     while ((l2byte = strtok_r(NULL, ",", &token)) != NULL) {
         numbytes++;
         if (numbytes + 1 > hexlen) {
-            warnx("Hex buffer too small for data- skipping data");
+            warn("Hex buffer too small for data- skipping data");
             return (++numbytes);
         }
         sscanf(l2byte, "%x", &value);
