@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.39 2004/05/17 19:25:14 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.40 2004/05/21 15:28:24 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -542,8 +542,12 @@ main(int argc, char *argv[])
             parse_services(optarg);
             break;
         case 'x':
+            if (include_exclude_mode != 0)
+                errx(1, "Error: Can only specify -x OR -X");
+
             include_exclude_mode = 'x';
-            if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+            if ((include_exclude_mode = 
+                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
                 errx(1, "Unable to parse -x: %s", optarg);
             if (include_exclude_mode & xXPacket) {
                 xX_list = (LIST *) xX;
@@ -553,8 +557,12 @@ main(int argc, char *argv[])
             }
             break;
         case 'X':
+            if (include_exclude_mode != 0)
+                errx(1, "Error: Can only specify -x OR -X");
+
             include_exclude_mode = 'X';
-            if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+            if ((include_exclude_mode = 
+                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
                 errx(1, "Unable to parse -X: %s", optarg);
             if (include_exclude_mode & xXPacket) {
                 xX_list = (LIST *) xX;
