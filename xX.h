@@ -22,9 +22,9 @@ int process_xX_by_cidr(int, CIDR *, ip_hdr_t *);
  */
 #define xXSource 1
 #define xXDest 2
-#define xXBoth 3
-#define xXEither 4
-#define xXPacket 5
+#define xXBoth 4
+#define xXEither 8
+#define xXPacket 16
 #define xXExclude 128 /* if exclude mode, add 128 to above value */
 
 
