@@ -207,7 +207,7 @@ flag = {
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
     
-    fprintf(stderr, "tcprewrite version: %s", VERSION);
+    fprintf(stderr, "tcprewrite version: %s (build %s)", VERSION, svn_version);
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif

@@ -2,7 +2,9 @@ noinst_LIBRARIES = libcommon.a
 
 dist-hook: svn_version.c
 
-svn_version.c: 
+BUILT_SOURCES = svn_version.c
+
+svn_version.c:
 	echo -n 'const char SVN_Version[] = "'   > svn_version.c
 	svnversion -n ../..                     >> svn_version.c
 	echo '";'				>> svn_version.c
