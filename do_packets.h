@@ -1,3 +1,11 @@
+/* $Id: do_packets.h,v 1.8 2003/05/30 19:27:57 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
 
 #ifndef _DO_PACKETS_H_
 #define _DO_PACKETS_H_

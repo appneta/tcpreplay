@@ -1,4 +1,11 @@
-/* $Id: timer.h,v 1.5 2003/03/24 04:59:58 aturner Exp $ */
+/* $Id: timer.h,v 1.6 2003/05/30 19:27:57 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
 
 #ifndef _TIMER_H_
 #define _TIMER_H_

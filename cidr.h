@@ -1,7 +1,10 @@
+/* $Id: cidr.h,v 1.7 2003/05/30 19:27:57 aturner Exp $ */
+
 /*
- * Please see tcpprep.c for license information.
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * All rights reserved.
  *
- * Copyright (c) 2001 Aaron Turner
+ * Please see Docs/LICENSE for licensing information
  */
 
 #ifndef __CIDR_H__

@@ -1,4 +1,11 @@
-/* $Id: flownode.h,v 1.1 2003/05/29 21:58:12 aturner Exp $ */
+/* $Id: flownode.h,v 1.2 2003/05/30 19:27:57 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
 
 #ifndef __FLOWNODE_H__
 #define __FLOWNODE_H__
@@ -7,8 +14,6 @@
 #include "tcpreplay.h"
 #include "flowkey.h"
 #include "rbtree.h"
-
-
 
 
 /* Links a session in the pcap with the fd of the socket */
