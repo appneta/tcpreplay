@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.26 2002/07/30 22:14:11 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.27 2002/07/31 01:05:52 aturner Exp $ */
 
 #include "config.h"
 
@@ -43,6 +43,8 @@ void usage();
 void version();
 void mac2hex(const char *, char *, int); 
 void untrunc_packet(struct packet *, ip_hdr_t *, void *);
+void * cache_mode(struct libnet_ethernet_hdr *, int);
+void * cidr_mode(struct libnet_ethernet_hdr *, ip_hdr_t *);
 
 int
 main(int argc, char *argv[])
@@ -263,13 +265,12 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct packet pkt;
 	struct timeval last;
 	char *pktdata;
-	int packet_num, ret, pktlen;
+	int ret, pktlen;
 
 	/* register signals */
 	didsig = 0;
 	(void)signal(SIGINT, catcher);
 
-	packet_num = 0;
 	timerclear(&last);
 
 	while ( (*get_next) (fd, &pkt) ) {
@@ -320,65 +321,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
  
 		/* Dual nic processing */
 		if (options.intf2 != NULL) {
-			/* cache mode */
-			if (cachedata != NULL) {
-				if (packet_num > cache_packets)
-					errx(1, "Exceeded number of packets in cache file");
 
-
-				if (cachedata->data[cache_byte] & (char)pow((long)2, (long)cache_bit) ) {
-					/* set interface to send out packet */
-					l = options.intf1;
-					
-					/* check for destination MAC rewriting */
-					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-					}
-				} else {
-					/* set interface to send out packet */
-					l = options.intf2;
-
-					/* check for destination MAC rewriting */
-					if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
-						memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
-					}
-				} /* end cache processing */
-			
-				/* increment our bit/byte pointers for next time */
-				if (cache_bit == 7) {
-					cache_bit = 0;
-					cache_byte++;
-				} else {
-					cache_bit++;
-				}
-				/* end cache Mode */
-			} else if (Cflag) {
-				/* CIDR mode */
-				if (ip_hdr == NULL) {
-					/* non IP packets go out intf1 */
-					l = options.intf1;
-					
-					/* check for destination MAC rewriting */
-					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-					}
-				} else if (check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr)) {
-					/* set interface to send out packet */
-					l = options.intf1;
-
-					/* check for destination MAC rewriting */
-					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-					}
-				} else {
-					/* override interface to send out packet */
-					l = options.intf2;
-
-					/* check for destination MAC rewriting */
-					if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
-						memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
-					}
-				}
+			if (cachedata != NULL) { 
+				l = cache_mode(eth_hdr, pkts_sent);
+			} else if (Cflag) { 
+				l = cidr_mode(eth_hdr, ip_hdr);
 			} else {
 				errx(1, "Strange, we should of never of gotten here");
 			}
@@ -429,6 +376,91 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 		last = pkt.ts;
 	}
+}
+
+/*
+ * determines based upon the cachedata which interface the given packet 
+ * should go out.  Also rewrites any layer 2 data we might need to adjust.
+ * Returns a void cased pointer to the options.intfX of the corresponding 
+ * interface.
+ */
+
+void * 
+cache_mode(struct libnet_ethernet_hdr *eth_hdr, int packet_num) 
+{
+	void * l = NULL;
+
+	if (packet_num > cache_packets)
+		errx(1, "Exceeded number of packets in cache file");
+	
+	if (cachedata->data[cache_byte] & (char)pow((long)2, (long)cache_bit) ) {
+		/* set interface to send out packet */
+		l = options.intf1;
+		
+		/* check for destination MAC rewriting */
+		if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+			memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+		}
+	} else {
+		/* set interface to send out packet */
+		l = options.intf2;
+		
+		/* check for destination MAC rewriting */
+		if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
+			memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
+		}
+	} /* end cache processing */
+  
+	/* increment our bit/byte pointers for next time */
+	if (cache_bit == 7) {
+		cache_bit = 0;
+		cache_byte++;
+	} else {
+		cache_bit++;
+	}
+
+	return l;
+}
+
+/*
+ * determines based upon the cidrdata which interface the given packet 
+ * should go out.  Also rewrites any layer 2 data we might need to adjust.
+ * Returns a void cased pointer to the options.intfX of the corresponding
+ * interface.
+ */
+
+void * 
+cidr_mode(struct libnet_ethernet_hdr *eth_hdr, ip_hdr_t *ip_hdr)
+{
+	void * l = NULL;
+
+	if (ip_hdr == NULL) {
+		/* non IP packets go out intf1 */
+		l = options.intf1;
+					
+		/* check for destination MAC rewriting */
+		if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+			memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+		}
+	} else if (check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr)) {
+		/* set interface to send out packet */
+		l = options.intf1;
+		
+		/* check for destination MAC rewriting */
+		if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+			memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+		}
+	} else {
+		/* override interface to send out packet */
+		l = options.intf2;
+		
+		/* check for destination MAC rewriting */
+		if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
+			memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
+		}
+	}
+
+	return l;
 }
 
 /*
