@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.13 2002/07/01 02:29:27 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.14 2002/07/01 22:23:17 mattbing Exp $ */
 
 #include "config.h"
 
@@ -61,14 +61,19 @@ main(int argc, char *argv[])
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:hi:I:j:J:l:m:r:RSv:u:?")) != -1)
+	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:r:RSu:v?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:hi:I:j:J:l:m:r:C:RSv:u:?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:r:RSu:v?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
 			cache_file = optarg;
 			cache_packets = read_cache(cache_file);
+			break;
+		case 'C': /* cidr matching */
+			Cflag = 1;
+			if (!parse_cidr(optarg))
+				usage();
 			break;
 #ifdef DEBUG
 		case 'd': /* enable debug */
@@ -110,15 +115,6 @@ main(int argc, char *argv[])
 			rate = (rate * (1024*1024)) / 8;
 			mult = 0.0;
 			break;
-		case 'u': /* untruncate packet */
-			if (strcmp("pad", optarg) == 0) {
-				uflag = PAD_PACKET;
-			} else if (strcmp("trunc", optarg) == 0) {
-				uflag = TRUNC_PACKET;
-			} else {
-				errx(1, "Invalid untruncate option: %s", optarg);
-			}
-			break;
 		case 'R': /* replay at top speed */
 			Rflag = 1;
 			break;
@@ -128,10 +124,14 @@ main(int argc, char *argv[])
 		case 'v': /* verbose */
 			verbose++;
 			break;
-		case 'C': /* cidr matching */
-			Cflag = 1;
-			if (!parse_cidr(optarg))
-				usage();
+		case 'u': /* untruncate packet */
+			if (strcmp("pad", optarg) == 0) {
+				uflag = PAD_PACKET;
+			} else if (strcmp("trunc", optarg) == 0) {
+				uflag = TRUNC_PACKET;
+			} else {
+				errx(1, "Invalid untruncate option: %s", optarg);
+			}
 			break;
 		default:
 			usage();
