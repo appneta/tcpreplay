@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.65 2004/05/17 19:26:09 aturner Exp $
+dnl $Id: configure.in,v 1.66 2004/06/21 17:06:50 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -116,6 +116,12 @@ dnl Electric Fence
 if test $efence = yes ; then
 	CCOPTS="$CCOPTS -lefence"
 	CFLAGS="$CCOPTS"
+fi
+
+dnl gprof
+if test $gprof = yes ; then
+        CCOPTS="$CCOPTS -fprofile-arcs"
+        CFLAGS="$CCOPTS"
 fi
 
 dnl Check for types.
@@ -357,7 +363,7 @@ if test $pcncfg = no ; then
 else
     AC_MSG_RESULT($pcncfg)
     LNAVLIB=`$pcncfg --libs`
-    LPNAV_CFLAGS=`$pcncfg --cflags`
+    LNAV_CFLAGS=`$pcncfg --cflags`
     PCAPNAV_VERSION=`$pcncfg --version`
     AC_SUBST(LNAVLIB)
     AC_SUBST(LNAV_CFLAGS)

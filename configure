@@ -5366,6 +5366,11 @@ if test $efence = yes ; then
 	CFLAGS="$CCOPTS"
 fi
 
+if test $gprof = yes ; then
+        CCOPTS="$CCOPTS -fprofile-arcs"
+        CFLAGS="$CCOPTS"
+fi
+
 echo "$as_me:$LINENO: checking for u_int8_t" >&5
 echo $ECHO_N "checking for u_int8_t... $ECHO_C" >&6
 if test "${ac_cv_type_u_int8_t+set}" = set; then
@@ -7268,7 +7273,7 @@ else
     echo "$as_me:$LINENO: result: $pcncfg" >&5
 echo "${ECHO_T}$pcncfg" >&6
     LNAVLIB=`$pcncfg --libs`
-    LPNAV_CFLAGS=`$pcncfg --cflags`
+    LNAV_CFLAGS=`$pcncfg --cflags`
     PCAPNAV_VERSION=`$pcncfg --version`
 
 
