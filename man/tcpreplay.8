@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.1 2003/03/19 04:32:42 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.2 2003/04/29 19:34:16 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -37,6 +37,8 @@ tcpreplay \- replay packets from capture files
 .B \-p
 .I pause
 ] [
+.B \-P
+] [
 .B \-s
 .I seed
 ] [
@@ -62,9 +64,7 @@ CIDR...
 .LP
 .I tcpreplay
 is a tool for replaying network traffic from files saved with 
-\fItcpdump(8)\fP
-or
-\fIsnoop(1M)\fP.
+\fItcpdump(8)\fP.
 .LP
 The basic operation of
 .I tcpreplay
@@ -124,6 +124,11 @@ Disable sending martian packets (source networks: 0/8, 127/8, 255/8)
 .B \-p or "pause"
 Specify the number of seconds and microseconds (sec.usec) to pause between 
 each packet.  Negates all other speed options.
+.TP
+.B \-P
+.br
+Print the PID of the tcpreplay process at startup.  Useful when wanting to
+use SIGUSR1 and SIGCONT to pause/restart.
 .TP
 .B \-r or "rate"
 Resend the packets at \fIrate\fR megabits per-second, specified as a 
@@ -187,6 +192,15 @@ E:<CIDR1>,... - Either src or dst address must match
 P:<list>      - Must be one of the listed packets where the list corresponds to the
 packet number in the capture file.  Ex: -X P:1-5,9,15 would send all packets except 1 
 through 5, 9 and 15.
+.SH SIGNALS
+.I Tcpreplay
+understands the following signals:
+.TP
+.B SIGUSR1
+Suspend tcpreplay.
+.TP
+.B SIGCONT
+Restart tcpreplay after it has been suspended.
 .SH "SEE ALSO"
 tcpdump(8), snoop(1M), tcpprep(1), capinfo(1)
 .SH AUTHORS
@@ -202,26 +216,7 @@ The current version is available via HTTP:
 .RS
 .I http://www.sourceforge.net/projects/tcpreplay/
 .RE
-.SH BUGS
-.I tcpreplay
-can only send packets as fast as your machine's interface,
-processor, and disk will allow.
-.LP
-``\fIN\fR write attempts failed from full buffers and were repeated''
-indicates that kernel buffers were full and \fIN\fR packets had to
-be resent.
-.LP
-Looping captured traffic may simulate odd conditions on a network.
-For example, opening the same TCP connection multiple times may 
-exhaust resources on machines tracking the connection. The 
-.B \-l
-flag is provided to allow faster sending on machines with greater I/O
-constraints. 
-.LP
-Looping will not work when reading from stdin since tcpreplay closes 
-then re-opens the file and re-reads it from the beginning.
-.LP
-On BSD-based systems, kernel modifications may be required to preserve
-outgoing link layer source addresses. Refer to the \fIlibnet(3)\fP
-documentation for more information on how to do this. Increasing
-NMBCLUSTERS kernel option will help performance.
+.SH LIMITATIONS
+Please see the tcpreplay FAQ for a list of limitations and any possible
+work-arounds:
+.I http://tcpreplay.sourceforge.net/FAQ.html
