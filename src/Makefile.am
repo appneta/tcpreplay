@@ -1,5 +1,16 @@
 SUBDIRS = common
 
+if SYSTEM_STRLCPY
+LIBSTRL =
+else
+LIBSTRL = ../lib/libstrl.a
+endif
+
+LDADD = ./common/libcommon.a $(LIBSTRL) \
+		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+
+tcprewrite_LDADD = ./common/libcommon.a $(LIBSTRL) \
+		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 bin_PROGRAMS = tcpreplay tcpprep flowreplay tcprewrite
 
 tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c
@@ -24,11 +35,6 @@ tcpprep_opts.c: tcpprep_opts.def
 
 flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
 
-LDADD = ./common/libcommon.a ../lib/libstrl.a \
-		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-
-tcprewrite_LDADD = ./common/libcommon.a ../lib/libstrl.a \
-		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 
 AM_CFLAGS = -I.. $(LIBOPTS_CFLAGS)
 

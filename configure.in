@@ -118,6 +118,10 @@ AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll mmap])
 
+dnl Look for strlcpy since some BSD's have it
+AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
+AM_CONDITIONAL(SYSTEM_STRLCPY, [test x$have_strlcpy = xtrue])
+
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
 
 LIBOPTS_CHECK
