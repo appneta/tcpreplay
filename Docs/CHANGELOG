@@ -1,4 +1,8 @@
-$Id: CHANGELOG,v 1.32 2004/02/25 21:33:45 aturner Exp $
+$Id: CHANGELOG,v 1.33 2004/03/25 02:32:39 aturner Exp $
+
+03/24/2004: Version 2.0.3
+    - Add support for rewriting src mac & Linux SLL loopback frames
+    - Update FAQ
 
 02/25/2004: Version 2.0.2
     - Fix compile issue in edit_packet.c on strict aligned archs
