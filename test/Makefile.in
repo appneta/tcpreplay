@@ -1,17 +1,17 @@
-MAKEFLAGS=-s -k
-
-# these need to be dynamic based on OS
-nic1=eth0
-nic2=eth0
-
-PRINTF=/usr/bin/printf
+MAKEFLAGS=-s
+PRINTF = @PRINTF@
+HOST = @host@
+TARGET = @target@
+BUILD = @build@
+nic1 = @nic1@
+nic2 = @nic2@
 
 test: all
 all: check tcpprep tcpreplay
 
 check:
 	$(PRINTF) "%s\n" "NOTICE: Tests must be run as root"
-	$(PRINTF) "%s\n" "Sending traffic on $(nic1) and $(nic2)"
+	$(PRINTF) "%s\n" "Sending traffic on '$(nic1)' and '$(nic2)'"
 	
 # the cache files to be used as the standard; be sure to do a cvs commit
 # afterwords!
@@ -101,7 +101,8 @@ replay_exclude:
 	../tcpreplay -i $(nic1) -X P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
-clean: distclean
-
-distclean:
+clean:
 	rm -f *1 test.log core
+
+distclean: clean
+	rm -f Makefile
