@@ -2,7 +2,7 @@ Summary: A tool to replay captured network traffic.
 Name: tcpreplay
 Version: @TCPREPLAY_VERSION@
 Release: @TCPREPLAY_RELEASE@
-Copyright: BSD
+License: BSD
 Group: Applications/Internet
 Source0: http://prdownloads.sf.net/tcpreplay/tcpreplay-%{version}.tar.gz
 Prefix: %{_prefix}
@@ -42,10 +42,12 @@ install -m755 tcpreplay $RPM_BUILD_ROOT%{_sbindir}
 install -m755 tcpprep $RPM_BUILD_ROOT%{_bindir} 
 install -m755 capinfo $RPM_BUILD_ROOT%{_bindir}
 install -m755 pcapmerge $RPM_BUILD_ROOT%{_bindir}
+install -m755 flowreplay $RPM_BUILD_ROOT%{_bindir}
 install -m644 tcpreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
 install -m644 tcpprep.1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -m644 capinfo.1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -m644 pcapmerge.1 $RPM_BUILD_ROOT%{_mandir}/man1
+install -m644 flowreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
