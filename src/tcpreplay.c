@@ -154,7 +154,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
     float n;
     struct pollfd poller[1];        /* use poll to read from the keyboard */
     char input[EBUF_SIZE];
-    static u_int32_t skip = 0;
+    static u_int32_t send = 0;      /* remember # of packets to send btw calls */
 
     /* just return if topspeed */
     if (options.speed.mode == SPEED_TOPSPEED)
@@ -218,7 +218,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
 
     case SPEED_ONEATATIME:
         /* do we skip prompting for a key press? */
-        if (skip <= 0) {
+        if (send < 0) {
             printf("**** How many packets do you wish to send? (next packet out %s)\n",
                    l == options.intf1 ? options.intf1_name : options.intf2_name);
             poller[0].fd = STDIN_FILENO;
@@ -237,27 +237,21 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
              */
             fgets(input, sizeof(input), stdin);
             if (strlen(input) > 1) {
-                skip = strtoul(input, NULL, 0);
+                send = strtoul(input, NULL, 0);
             }
 
-            /* how many packets should we skip? */
-            if (skip < 1) {
-                warnx("Input %d was less then 1 or non-numeric, assuming 1", skip);
-                /* assume no skip */
-                skip = 1;
+            /* how many packets should we send? */
+            if (send < 1) {
+                warnx("Input %d was less then 1 or non-numeric, assuming 1", send);
+                /* assume send only one packet */
+                send = 1;
             }
             
-            /* 
-             * when people say one, they're not thinking "skip one packet" but rather
-             * "send one packet".  so this fixes that
-             */
-            skip --;
-
         } else {
-            /* decrement our skip counter */
+            /* decrement our send counter */
             printf("Sending packet out %s\n", 
                 l == options.intf1 ? options.intf1_name : options.intf2_name);
-            skip --;
+            send --;
         }
 
         /* leave do_sleep() */
