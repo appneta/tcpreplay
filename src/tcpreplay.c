@@ -158,7 +158,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
         return;
 
     if (gettimeofday(&now, NULL) < 0) {
-        err(1, "gettimeofday");
+        errx(1, "Error gettimeofday: %s", strerror(errno));
     }
 
     /* First time through for this file */
@@ -225,7 +225,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
             
             /* wait for the input */
             if (poll(poller, 1, -1) < 0)
-                errx(1, "do_packets(): Error reading from stdin: %s", strerror(errno));
+                errx(1, "Error reading from stdin: %s", strerror(errno));
             
             /*
              * read to the end of the line or EBUF_SIZE,
@@ -240,9 +240,8 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
 
             /* how many packets should we send? */
             if (send == 0) {
-/*
-  warn("Input was less then 1 or non-numeric, assuming 1");
-*/
+                dbg(1, "Input was less then 1 or non-numeric, assuming 1");
+
                 /* assume send only one packet */
                 send = 1;
             }
