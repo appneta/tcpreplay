@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.35 2002/10/03 16:58:25 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.36 2002/10/03 18:02:13 aturner Exp $ */
 
 #include "config.h"
 
@@ -63,9 +63,9 @@ main(int argc, char *argv[])
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:C:f:hi:I:j:J:l:m:Mp:r:Rs:u:Vvx:?")) != -1)
+	while ((ch = getopt(argc, argv, "dc:C:f:hi:I:j:J:l:m:Mr:Rs:u:Vvx:X:?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mp:r:Rs:u:Vvx:?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mr:Rs:u:Vvx:X:?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -115,9 +115,6 @@ main(int argc, char *argv[])
 		case 'M': /* disable sending martians */
 			options.no_martians = 1;
 			break;
-		case 'p':
-			options.packets = optarg;
-			break;
 		case 'r': /* target rate */
 			options.rate = atof(optarg);			
 			if (options.rate <= 0)
@@ -148,6 +145,9 @@ main(int argc, char *argv[])
 			version();
 			break;
 		case 'x':
+			options.include = optarg;
+			break;
+		case 'X':
 			options.exclude = optarg;
 			break;
 		default:
@@ -173,6 +173,9 @@ main(int argc, char *argv[])
 
 	if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
+
+	if ((options.include != NULL) && (options.exclude != NULL))
+		errx(1, "Can only specify -x or -X, not both");
 
 	/* use our seed to make pseudo-random IP's */
 	if (options.seed != 0) {
@@ -431,8 +434,8 @@ configfile(char *file) {
 			}
 		} else if (ARGS("seed", 2)) {
 			options.seed = atol(argv[1]);
-		} else if (ARGS("packets", 2)) {
-			options.packets = strdup(argv[1]);
+		} else if (ARGS("include", 2)) {
+			options.include = strdup(argv[1]);
 		} else if (ARGS("exclude", 2)) {
 			options.exclude = strdup(argv[1]);
 		} else {

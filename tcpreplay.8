@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.14 2002/10/03 01:08:10 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.15 2002/10/03 18:02:13 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -47,6 +47,12 @@ CIDR...
 .B \-h|-V
 ] [
 .B \-M
+] [
+.B \-x
+.I include
+|
+.B \-X
+.I exclude
 ]
 .I file ...
 .SH DESCRIPTION
@@ -125,7 +131,7 @@ the secondary interface.  Can't be used with -c.
 .B \-R or "topspeed"
 Resend the packets as fast as possible. Negates other speed options.
 .TP
-.B \-s or seed
+.B \-s or "seed"
 Specify a seed value to allow rewriting the source and destination IP
 addresses (only in IP header) to pseudo-random values.  Will also recalculate 
 the IP header as necessary.
@@ -133,7 +139,7 @@ the IP header as necessary.
 .B \-u or "untruncate"
 Untruncates IP packets when snaplen > the actual packet length.  Packets can
 be padded (\fIpad\fR) with zeros or truncated (\fItrunc\fR) to the snaplen.
-Will also recalcuate the IP and TCP/UDP headers as necessary.
+Will also recalcuate the IP and TCP/UDP checksums as necessary.
 .TP
 .B \-v or "verbose"
 .br
@@ -141,6 +147,37 @@ Verbose mode, currently unused.
 .TP
 .B \-V
 Print version info and exit.
+.TP
+.B \-x or "include"
+Specifies which packets from the capture file(s) to send.  Can be one of:
+.br
+.br
+S:<CIDR1>,... - Src IP must match specified CIDR(s)
+.br
+D:<CIDR1>,... - Dst IP must match specified CIDR(s)
+.br
+B:<CIDR1>,... - Both src and dst addresses must match
+.br
+E:<CIDR1>,... - Either src or dst address must match
+.br
+P:<list>      - Must be one of the listed packets where the list corresponds to the
+packet number in the capture file.  Ex: -x P:1-5,9,15 would only send packets 1 
+through 5, 9 and 15.
+.TP
+.B \-X or "exclude"
+Specifies which packets from the capture file(s) to NOT send.  Can be one of:
+.br
+S:<CIDR1>,... - Src IP must match specified CIDR(s)
+.br
+D:<CIDR1>,... - Dst IP must match specified CIDR(s)
+.br
+B:<CIDR1>,... - Both src and dst addresses must match
+.br
+E:<CIDR1>,... - Either src or dst address must match
+.br
+P:<list>      - Must be one of the listed packets where the list corresponds to the
+packet number in the capture file.  Ex: -X P:1-5,9,15 would send all packets except 1 
+through 5, 9 and 15.
 .SH "SEE ALSO"
 tcpdump(8), snoop(1M), tcpprep(1), capinfo(1)
 .SH AUTHORS
