@@ -1,4 +1,4 @@
-/* $Id: timer.h,v 1.3 2002/05/13 21:45:49 mattbing Exp $ */
+/* $Id: timer.h,v 1.4 2003/01/12 04:46:26 aturner Exp $ */
 
 #ifndef _TIMER_H_
 #define _TIMER_H_
@@ -8,6 +8,7 @@
 #include <math.h>
 
 inline void timerdiv(struct timeval *tvp, float div);
+inline void float2timer(float time, struct timeval *tvp);
 
 #ifndef TIMEVAL_TO_TIMESPEC
 #define TIMEVAL_TO_TIMESPEC(tv, ts) { (ts)->tv_sec = (tv)->tv_sec; (ts)->tv_nsec = (tv)->tv_usec * 1000; }

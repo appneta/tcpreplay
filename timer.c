@@ -1,4 +1,4 @@
-/* $Id: timer.c,v 1.3 2003/01/11 20:28:02 aturner Exp $ */
+/* $Id: timer.c,v 1.4 2003/01/12 04:46:26 aturner Exp $ */
 
 #include "timer.h"
 
@@ -32,3 +32,19 @@ timerdiv(struct timeval *tvp, float div)
 	}
 }
 
+/*
+ * converts a float to a timeval structure
+ */
+inline void
+float2timer(float time, struct timeval *tvp)
+{
+	float n;
+
+	n = time;
+
+	tvp->tv_sec = n;
+
+	n -= tvp->tv_sec;
+	tvp->tv_usec = n * 100000;
+
+}
