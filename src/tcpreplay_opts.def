@@ -12,6 +12,8 @@ prog-name       = "tcpreplay";
 prog-title      = "Replay network traffic stored in pcap files";
 long-opts;
 test-main;
+include         = "config.h";
+include         = "defines.h";
 include         = "tcpreplay.h";
 version;
 help-value      = "h";
@@ -45,7 +47,7 @@ flag = {
     
     if (! ENABLED_OPT(VERBOSE))
         SET_OPT(VERBOSE);
-        
+    
 EOTcpdump;
 };
 
@@ -72,6 +74,11 @@ flag = {
     immediate;
     descrip     = "Enable debugging output";
     ifdef       = DEBUG;
+    flag-code   = <<- EODebug
+    
+    debug = atoi(OPT_VALUE(DEBUG));
+    
+EODebug;
 };
 
 /*
@@ -85,6 +92,11 @@ flag = {
     max         = 1;
     immediate;
     descrip     = "Dump packet data to files";
+    flag-code   = <<- EODump
+    
+    options.datadump_mode = 1;
+
+EODump;
 };
 
 flag = {
@@ -92,7 +104,13 @@ flag = {
     value       = O;
     arg-type    = boolean;
     max         = 1;
+    immediate;
     descrip     = "Merge split traffic into a single output stream";
+    flag-code   = <<- EOOneout
+    
+    options.one_out = 1;
+    
+EOOneout;
 };
 
 flag = {
@@ -101,6 +119,11 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Split traffic via tcpprep cache file";
+    flag-code   = <<- EOCachefile
+    
+    options.cache_packets = read_cache(&cachedata, cache_file);
+    
+EOCachefile;    
 };
 
 /*
@@ -130,6 +153,29 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Specify the primary output file";
+    flag-code   = <<- EOWrite1
+    
+    if (ENABLED_OPT(DATADUMP)) {
+        if ((options.savepcap1 = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
+            errx(1, "error setting primary output file linktype");
+
+        if ((options.savedumper1 = pcap_dump_open(options.savepcap1, 
+                OPT_VALUE(WRITE1))) == NULL)
+            errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap1));
+                
+        warnx("saving primary packets in %s", optarg);
+        
+    }
+    else {
+        if ((options.datadumpfile1 =
+                creat(OPT_VALUE(WRITE1), S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
+            errx(1, "error creating primary output file: %s\n%s",
+                OPT_VALUE(WRITE1), strerror(errno));
+                warnx("saving primary data in %s", OPT_VALUE(WRITE1));
+        }
+    }
+    
+EOWrite1;
 };
 
 flag = {
@@ -138,6 +184,33 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Specify the secondary output file";
+    flag-code   = <<- EOWrite2
+    
+    /* don't open 2nd file in one-out mode */
+    if (ENABLED_OPT(ONEOUT))
+        return;
+    
+    if (ENABLED_OPT(DATADUMP)) {
+        if ((options.savepcap1 = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
+            errx(1, "error setting primary output file linktype");
+
+        if ((options.savedumper1 = pcap_dump_open(options.savepcap1, 
+                OPT_VALUE(WRITE2))) == NULL)
+            errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap1));
+                
+        warnx("saving primary packets in %s", optarg);
+        
+    }
+    else {
+        if ((options.datadumpfile1 =
+                creat(OPT_VALUE(WRITE2), S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
+            errx(1, "error creating primary output file: %s\n%s",
+                OPT_VALUE(WRITE2), strerror(errno));
+                warnx("saving primary data in %s", optarg);
+        }
+    }
+    
+EOWrite2;
 };
 /*
  * Limits and loops: -l, -L, -o
@@ -149,6 +222,11 @@ flag = {
     arg-type    = number;
     max         = 1;
     descrip     = "Loop through the capture file X times";
+    flag-code   = <<- EOLoop
+    
+    options.loop = atoi(OPT_VALUE(LOOP));
+    
+EOLoop;
 };
 
 flag = {
@@ -157,6 +235,11 @@ flag = {
     arg-type    = number;
     max         = 1;
     descrip     = "Limit the number of packets to send";
+    flag-code   = <<- EOLimit
+    
+    options.limit = atoi(OPT_VALUE(LIMIT));
+    
+EOLimit;
 };
 
 flag = {
@@ -233,7 +316,6 @@ flag = {
             break;
             
     }
-    
     
 EOMuliplier;
 };
@@ -361,4 +443,3 @@ flag = {
 
 EOTrunc;
 };
-au
