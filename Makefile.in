@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.60 2004/07/25 23:37:14 aturner Exp $
+# $Id: Makefile.in,v 1.61 2004/08/09 19:40:32 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -12,7 +12,7 @@ CC		= @CC@
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 DEFS		= @DEFS@
-INCS		= -I. @LNETINC@
+INCS		= -I. @LNETINC@ @LPCAPINC@
 LIBS		= @LIBS@ @LNETLIB@ @LPCAPLIB@
 LNAVLIB		= @LNAVLIB@
 LNAV_CFLAGS	= @LNAV_CFLAGS@
@@ -22,13 +22,13 @@ INSTALL		= @INSTALL@
 BINARIES	= tcpreplay capinfo pcapmerge tcpprep flowreplay
 
 
-TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c fakepcapnav.c tcpdump.c portmap.c
+TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c fakepcapnav.c tcpdump.c portmap.c fakepcap.c
 TOBJS		= $(TSRCS:.c=.o)
 
-CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c
+CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c fakepcap.c
 COBJS		= $(CSRCS:.c=.o)
 
-PSRCS		= tcpprep.c cidr.c tree.c cache.c list.c xX.c err.c utils.c services.c
+PSRCS		= tcpprep.c cidr.c tree.c cache.c list.c xX.c err.c utils.c services.c fakepcap.c
 POBJS		= $(PSRCS:.c=.o)
 
 MSRCS		= pcapmerge.c err.c
