@@ -43,7 +43,6 @@
 
 #include "tcpreplay.h"
 #include "send_packets.h"
-#include "timer.h"
 
 extern tcpreplay_opt_t options;
 extern struct timeval begin, end;
@@ -112,7 +111,7 @@ send_packets(pcap_t *pcap)
     
     /* register signals */
     didsig = 0;
-    if (!options.speedmode == SPEED_ONEATATIME) {
+    if (!options.speed.mode == SPEED_ONEATATIME) {
         (void)signal(SIGINT, catcher);
     }
     else {
