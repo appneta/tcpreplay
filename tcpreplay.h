@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.47 2003/12/16 04:28:07 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.48 2004/01/15 07:29:25 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -64,6 +64,11 @@ typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
 
+/* is WORDS_BIGENDIAN defined in config.h? */
+#ifndef WORDS_BIGENDIAN
+#define WORDS_BIGENDIAN 0
+#endif
+
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
 #define MAXPACKET 16436         /* MTU of Linux loopback */
@@ -104,17 +109,21 @@ struct options {
     off_t offset;
     u_int64_t limit_send;
     char *bpf_filter;
+    char *tcpdump_flags;
     int bpf_optimize;
     int sniff_snaplen;
     int sniff_bridge;
     int promisc;
     int poll_timeout;
+    int verbose_enabled;
 };
 
 #define RESOLVE 0               /* disable dns lookups */
 #define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
 #define PCAP_TIMEOUT 100        /* 100ms pcap_open_live timeout */
 
+#define TRUE 1
+#define FALSE 0
 
 #define EBUF_SIZE 256           /* size of our error buffers */
 #define MAC_SIZE  7             /* size of the mac[] buffer */

@@ -4,6 +4,9 @@
 /* Version of libpcapnav we were compiled against */
 #undef PCAPNAV_VERSION
 
+/* Are we big endian? */
+#undef WORDS_BIGENDIAN
+
 /* Define to 'uint8_t' if <sys/types.h> doesn't define. */
 #undef u_int8_t
 
