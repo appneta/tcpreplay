@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.5 2003/10/21 18:11:58 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.6 2003/10/21 19:30:40 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -61,7 +61,7 @@ fd_set fds;
 int nfds = 0;
 
 /* target to connect to */
-struct in_addr targetaddr = { 0 };
+struct in_addr targetaddr;
 
 /* Client/Server CIDR blocks */
 CIDR *clients = NULL, *servers = NULL;
@@ -182,7 +182,7 @@ main(int argc, char *argv[])
 	    if (inet_aton(optarg, &targetaddr) == 0)
 		errx(1, "Invalid target IP address: %s", optarg);
 #elif INET_ADDR
-	    if ((targetaddr = inet_addr(optarg)) == -1)
+	    if ((targetaddr.s_addr = inet_addr(optarg)) == -1)
 		errx(1, "Invalid target IP address: %s", optarg);
 #endif	      
 	    break;
@@ -477,7 +477,7 @@ process_packet(struct session_t *node, ip_hdr_t *ip_hdr, void *l4)
 	sa.sin_family = AF_INET;
 	sa.sin_port = node->server_port;
 	sa.sin_addr.s_addr = node->server_ip;
-	if (sendto(node->socket, data, len, 0, &sa, sizeof(struct sockaddr_in)) != len) {
+	if (sendto(node->socket, data, len, 0, (struct sockaddr *)&sa, sizeof(sa)) != len) {
 	    warnx("Error sending data on socket %d (0x%llx)\n%s", node->socket, 
 		  pkeygen(node->key), strerror(errno));
 	}
@@ -494,6 +494,8 @@ init(void)
     FD_ZERO(&fds);
     RB_INIT(&tcproot);
     RB_INIT(&udproot);
+
+    memset(&targetaddr, '\0', sizeof(struct in_addr));
 }
 
 /*
