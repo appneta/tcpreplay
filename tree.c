@@ -148,7 +148,7 @@ process_tree()
 	err(1, "malloc");
 
     for (mymask = max_mask; mymask <= min_mask; mymask++) {
-	dbg(1, "Current mask: %u\n", mymask);
+	dbg(1, "Current mask: %u", mymask);
 
 	/* set starting vals */
 	cbdata->type = SERVER;
@@ -213,13 +213,13 @@ check_ip_tree(const unsigned long ip)
 
 #ifdef DEBUG
     if (tree->type == SERVER) {
-	dbg(1, "Server: %s\n", libnet_addr2name4(ip, RESOLVE));
+	dbg(1, "Server: %s", libnet_addr2name4(ip, RESOLVE));
     }
     else if (tree->type == CLIENT) {
-	dbg(1, "Client: %s\n", libnet_addr2name4(ip, RESOLVE));
+	dbg(1, "Client: %s", libnet_addr2name4(ip, RESOLVE));
     }
     else {
-	dbg(1, "Unknown: %s\n", libnet_addr2name4(ip, RESOLVE));
+	dbg(1, "Unknown: %s", libnet_addr2name4(ip, RESOLVE));
     }
 #endif
 
@@ -245,7 +245,7 @@ add_tree(const unsigned long ip, const u_char * data)
     if (newtree->type == UNKNOWN) {
 	/* couldn't figure out if packet was client or server */
 
-	dbg(2, "%s (%lu) unknown client/server\n",
+	dbg(2, "%s (%lu) unknown client/server",
 	    libnet_addr2name4(newtree->ip, RESOLVE), newtree->ip);
 
     }
@@ -272,7 +272,7 @@ add_tree(const unsigned long ip, const u_char * data)
     }
     else {
 	/* we found something, so update it */
-	dbg(2, "   tree: 0x%p\nnewtree: 0x%p\n", tree, newtree);
+	dbg(2, "   tree: 0x%p\nnewtree: 0x%p", tree, newtree);
 #ifdef DEBUG
 	if (debug > 2)
 	    print_tree("update tree", tree);
@@ -289,7 +289,7 @@ add_tree(const unsigned long ip, const u_char * data)
 	free(newtree);
     }
 
-    dbg(2, "------- START NEXT -------\n");
+    dbg(2, "------- START NEXT -------");
 #ifdef DEBUG
     if (debug > 2)
 	rbwalk(rbdata, tree_nodeprint, NULL);
@@ -352,18 +352,18 @@ tree_comp(const void *first, const void *second, const void *config)
     t2 = (TREE *) second;
 
     if (t1->ip > t2->ip) {
-	dbg(2, "%s > %s\n", libnet_addr2name4(t1->ip, RESOLVE),
+	dbg(2, "%s > %s", libnet_addr2name4(t1->ip, RESOLVE),
 	    libnet_addr2name4(t2->ip, RESOLVE));
 	return 1;
     }
 
     if (t1->ip < t2->ip) {
-	dbg(2, "%s < %s\n", libnet_addr2name4(t1->ip, RESOLVE),
+	dbg(2, "%s < %s", libnet_addr2name4(t1->ip, RESOLVE),
 	    libnet_addr2name4(t2->ip, RESOLVE));
 	return -1;
     }
 
-    dbg(2, "%s = %s\n", libnet_addr2name4(t1->ip, RESOLVE),
+    dbg(2, "%s = %s", libnet_addr2name4(t1->ip, RESOLVE),
 	libnet_addr2name4(t2->ip, RESOLVE));
 
     return 0;
@@ -443,14 +443,14 @@ packet2tree(const u_char * data)
 	/* set TREE->type based on TCP flags */
 	if (tcp_hdr.th_flags == TH_SYN) {
 	    mytree->type = CLIENT;
-	    dbg(1, "is a client\n");
+	    dbg(1, "is a client");
 	}
 	else if (tcp_hdr.th_flags == (TH_SYN | TH_ACK)) {
 	    mytree->type = SERVER;
-	    dbg(1, "is a server\n");
+	    dbg(1, "is a server");
+	} else {
+	    dbg(1, "is an unknown");
 	}
-	dbg(1, "is an unknown\n");
-
 
 	/* 
 	 * UDP 
@@ -472,14 +472,14 @@ packet2tree(const u_char * data)
 		/* bit set, response */
 		mytree->type = SERVER;
 
-		dbg(1, "is a dns server\n");
+		dbg(1, "is a dns server");
 
 	    }
 	    else {
 		/* bit not set, query */
 		mytree->type = CLIENT;
 
-		dbg(1, "is a dns client\n");
+		dbg(1, "is a dns client");
 	    }
 	    return (mytree);
 	    break;
@@ -496,18 +496,18 @@ packet2tree(const u_char * data)
 	    if (dns_hdr.flags & DNS_QUERY_FLAG) {
 		/* bit set, response */
 		mytree->type = SERVER;
-		dbg(1, "is a dns server\n");
+		dbg(1, "is a dns server");
 	    }
 	    else {
 		/* bit not set, query */
 		mytree->type = CLIENT;
-		dbg(1, "is a dns client\n");
+		dbg(1, "is a dns client");
 	    }
 	    return (mytree);
 	    break;
 	default:
 
-	    dbg(1, "unknown UDP protocol: %hu->%hu\n", udp_hdr.uh_sport,
+	    dbg(1, "unknown UDP protocol: %hu->%hu", udp_hdr.uh_sport,
 		udp_hdr.uh_dport);
 	    break;
 	}
@@ -530,7 +530,7 @@ packet2tree(const u_char * data)
 	if ((icmp_hdr.icmp_type == ICMP_UNREACH) &&
 	    (icmp_hdr.icmp_code == ICMP_UNREACH_PORT)) {
 	    mytree->type = SERVER;
-	    dbg(1, "is a server with a closed port\n");
+	    dbg(1, "is a server with a closed port");
 	}
 
     }
