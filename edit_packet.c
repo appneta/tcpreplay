@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.5 2003/07/18 00:01:28 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.6 2003/07/18 22:04:07 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -18,10 +18,10 @@ extern int maxpacket;
 extern struct options options;
 
 /*
- * this code re-calcs the IP and TCP/UDP checksums
+ * this code re-calcs the IP and TCP/UDP/ICMP checksums
  * the IMPORTANT THING is that the Layer 4 header 
  * is contiguious in memory after *ip_hdr we're actually
- * writing to the TCP/UDP header via the ip_hdr ptr.
+ * writing to the TCP/UDP/ICMP header via the ip_hdr ptr.
  * (Yes, this sucks, but that's the way libnet works, and
  * I was too lazy to re-invent the wheel.
  */
@@ -30,22 +30,29 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr, libnet_t *l)
 {
     tcp_hdr_t *tcp_hdr;
     udp_hdr_t *udp_hdr;
+    icmp_hdr_t *icmp_hdr;
 
-    /* recalc the UDP/TCP checksum(s) */
+    /* recalc the UDP/TCP/ICMP checksum(s) */
     if (ip_hdr->ip_p == IPPROTO_UDP) {
 	/* zero out checksum */
 	udp_hdr = (udp_hdr_t *)((u_char *)ip_hdr + (ip_hdr->ip_hl * 4));
 	udp_hdr->uh_sum = 0;
-	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
+	if (libnet_do_checksum(l, (u_char *)ip_hdr, ip_hdr->ip_p,
 			       ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl * 4)) < 0)
 	    warnx("UDP checksum failed");
     } else if  (ip_hdr->ip_p == IPPROTO_TCP) {
 	/* zero out checksum */
 	tcp_hdr = (tcp_hdr_t *)((u_char *)ip_hdr + (ip_hdr->ip_hl * 4));
 	tcp_hdr->th_sum = 0;
-	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
+	if (libnet_do_checksum(l, (u_char *)ip_hdr, ip_hdr->ip_p,
 			       ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl * 4)) < 0)
 	    warnx("TCP checksum failed");
+    } else if (ip_hdr->ip_p == IPPROTO_ICMP) {
+	icmp_hdr = (icmp_hdr_t *)((u_char *)ip_hdr + (ip_hdr->ip_hl * 4));
+	icmp_hdr->icmp_sum = 0;
+	if (libnet_do_checksum(l, (u_char *)ip_hdr, ip_hdr->ip_p,
+			       ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl * 4)) < 0)
+	    warnx("ICMP checksum failed");
     }
     
     
