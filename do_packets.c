@@ -66,8 +66,8 @@ do_packets(pcap_t *pcap)
 #ifdef FORCE_ALIGN
 	u_char ipbuff[MAXPACKET];       /* IP header and above buffer */
 #endif
-
 	struct timeval last;
+	static int firsttime = 1;
 	int ret;
 	unsigned long packetnum = 0;
 
@@ -76,7 +76,10 @@ do_packets(pcap_t *pcap)
 	didsig = 0;
 	(void)signal(SIGINT, catcher);
 
-	timerclear(&last);
+	if (firsttime) {
+		timerclear(&last);
+		firsttime = 0;
+	}
 
 	while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
 		if (didsig) {
@@ -416,8 +419,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 	struct timeval nap, now, delta;
 	float n;
 
-	if (gettimeofday(&now, NULL) < 0)
+	if (gettimeofday(&now, NULL) < 0) {
 		err(1, "gettimeofday");
+	}
 
 	/* First time through for this file */
 	if (!timerisset(last)) {
@@ -432,16 +436,16 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 		/* 
 		 * Replay packets a factor of the time they were originally sent.
 		 */
-		if (timerisset(last) && timercmp(time, last, >)) 
+		if (timerisset(last) && timercmp(time, last, >)) {
 			timersub(time, last, &nap);
-		else  
+		} else {
 			/* 
 			 * Don't sleep if this is our first packet, or if the
 			 * this packet appears to have been sent before the 
 			 * last packet.
 			 */
 			timerclear(&nap);
-
+		}
 		timerdiv(&nap, options.mult);
 
 	} else if (options.rate) {
@@ -453,8 +457,11 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 			n = (float)len / (float)options.rate;
 			nap.tv_sec = n;
 			nap.tv_usec = (n - nap.tv_sec) * 1000000;
-		} else
+		} else {
 			timerclear(&nap);
+		}
+	} else if (options.sleep >= 0.0) {
+		float2timer(options.sleep, &nap);
 	}
 
 	timeradd(&didsleep, &nap, &didsleep);
@@ -464,9 +471,11 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 
 		/* sleep & usleep only return EINTR & EINVAL, neither which we'd
 	 	 * like to restart */
-		if (nap.tv_sec)	 
+		if (nap.tv_sec) {
 			(void)sleep(nap.tv_sec);
-		if (nap.tv_usec)	 
+		}
+		if (nap.tv_usec) {
 			(void)usleep(nap.tv_usec);
+		}
 	}
 }

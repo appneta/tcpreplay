@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.26 2003/01/05 23:06:01 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.27 2003/01/12 05:44:22 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -34,6 +34,7 @@ struct options {
 	char intf2_mac[6];
 	float rate;
 	float mult;
+	float sleep;
 	int n_iter;
 	int cache_packets;
 	int verbose;
