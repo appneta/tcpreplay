@@ -356,7 +356,8 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
         if (options.verbose)
             tcpdump_print(&tcpdump, &pkthdr, pktdata);
 
-        /* we have to cast the ts, since OpenBSD sucks
+        /*
+         * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 
          */
         do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, options.speedmode, options.speed);

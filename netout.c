@@ -58,7 +58,7 @@ extern u_int64_t bytes_sent, failed, pkts_sent;
 extern u_int32_t cache_packets;
 extern volatile int didsig;
 extern int l2len, maxpacket;
-extern char *intf, *intf2;
+extern char *intf1, *intf2;
 
 extern int include_exclude_mode;
 extern LIST *xX_list;
@@ -254,7 +254,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /* first, is this a packet sent locally?  If so, ignore it */
     if ((memcmp(libnet_get_hwaddr(options.intf1), &finder.key, ETHER_ADDR_LEN))
         == 0) {
-        dbg(1, "Packet matches the MAC of %s, skipping.", intf);
+        dbg(1, "Packet matches the MAC of %s, skipping.", intf1);
         return (1);
     }
     else if ((memcmp
@@ -288,7 +288,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
      * and update the dst mac if necessary
      */
     if (node->source == PCAP_INT1) {
-        dbg(2, "Packet source was %s... sending out on %s", intf, intf2);
+        dbg(2, "Packet source was %s... sending out on %s", intf1, intf2);
         l = options.intf2;
         if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
             dbg(3, "Rewriting destination MAC for %s", intf2);
@@ -296,10 +296,10 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         }
     }
     else {
-        dbg(2, "Packet source was %s... sending out on %s", intf2, intf);
+        dbg(2, "Packet source was %s... sending out on %s", intf2, intf1);
         l = options.intf1;
         if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-            dbg(3, "Rewriting destination MAC for %s", intf);
+            dbg(3, "Rewriting destination MAC for %s", intf1);
             memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
         }
     }

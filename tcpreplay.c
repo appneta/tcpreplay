@@ -70,7 +70,7 @@ CIDRMAP *cidrmap_data1 = NULL, *cidrmap_data2 = NULL;
 PORTMAP *portmap_data = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
-char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
+char *cache_file = NULL, *intf1 = NULL, *intf2 = NULL;
 int cache_bit, cache_byte;
 u_int64_t cache_packets;
 volatile int didsig;
@@ -161,7 +161,7 @@ main(int argc, char *argv[])
             options.fixchecksums = 1;
             break;
         case 'i':              /* interface */
-            intf = optarg;
+            intf1 = optarg;
             break;
         case 'I':              /* primary dest mac */
             mac2hex(optarg, options.intf1_mac, sizeof(options.intf1_mac));
@@ -397,7 +397,7 @@ main(int argc, char *argv[])
             if (!strcmp("-", argv[i]))
                 errx(1, "stdin must be the only file specified");
 
-    if (intf == NULL)
+    if (intf1 == NULL)
         errx(1, "Must specify a primary interface");
 
     if ((intf2 == NULL) && (cache_file != NULL))
@@ -488,8 +488,8 @@ main(int argc, char *argv[])
     }
 
     /* open interfaces for writing */
-    if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
-        errx(1, "Libnet can't open %s: %s", intf, ebuf);
+    if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf1, ebuf)) == NULL)
+        errx(1, "Libnet can't open %s: %s", intf1, ebuf);
 
     if (intf2 != NULL) {
         if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
@@ -499,9 +499,9 @@ main(int argc, char *argv[])
     /* open bridge interfaces for reading */
     if (options.sniff_bridge) {
         if ((options.listen1 =
-             pcap_open_live(intf, options.sniff_snaplen,
+             pcap_open_live(intf1, options.sniff_snaplen,
                             options.promisc, PCAP_TIMEOUT, errbuf)) == NULL) {
-            errx(1, "Libpcap can't open %s: %s", intf, errbuf);
+            errx(1, "Libpcap can't open %s: %s", intf1, errbuf);
         }
 
         apply_filter(options.listen1);
@@ -534,15 +534,15 @@ main(int argc, char *argv[])
          * only need to validate once since we're guaranteed both interfaces
          * use the same link type
          */
-        validate_l2(intf, l2enabled, l2data, l2len,
+        validate_l2(intf1, l2enabled, l2data, l2len,
                     pcap_datalink(options.listen1));
-
-        warnx("listening on: %s %s", intf, intf2);
+        
+        warnx("listening on: %s %s", intf1, intf2);
 
     }
 
     if (options.savepcap == NULL)
-        warnx("sending on: %s %s", intf, intf2 == NULL ? "" : intf2);
+        warnx("sending on: %s %s", intf1, intf2 == NULL ? "" : intf2);
 
     /* init the signal handlers */
     init_signal_handlers();
@@ -639,7 +639,7 @@ replay_live(char *iface, int l2enabled, char *l2data, int l2len)
         errx(1, "Error determing live capture device : %s", errbuf);
     }
 
-    if (strcmp(intf, iface) == 0) {
+    if (strcmp(intf1, iface) == 0) {
         warnx("WARNING: Listening and sending on the same interface!");
     }
 
@@ -882,8 +882,8 @@ configfile(char *file)
         else if (ARGS("l2data", 2)) {
             l2len = read_hexstring(argv[1], l2data, L2DATALEN);
         }
-        else if (ARGS("intf", 2)) {
-            intf = strdup(argv[1]);
+        else if (ARGS("primary_intf", 2)) {
+            intf1 = strdup(argv[1]);
         }
         else if (ARGS("primary_mac", 2)) {
             mac2hex(argv[1], options.intf1_mac, sizeof(options.intf1_mac));
@@ -1175,7 +1175,7 @@ void
 init(void)
 {
     bytes_sent = failed = pkts_sent = 0;
-    intf = intf2 = NULL;
+    intf1 = intf2 = NULL;
     memset(&options, 0, sizeof(options));
 
     /* Default mode is to replay pcap once in real-time */
