@@ -218,15 +218,15 @@ post_args(void)
     if (HAVE_OPT(TOPSPEED)) {
         options.speed.mode = SPEED_TOPSPEED;
         options.speed.speed = 0.0;
-    } else if (HAVE_OPT(PKTRATE)) {
+    } else if (HAVE_OPT(PPS)) {
         options.speed.mode = SPEED_PACKETRATE;
-        options.speed.speed = (float)OPT_VALUE_PKTRATE;
+        options.speed.speed = (float)OPT_VALUE_PPS;
     } else if (HAVE_OPT(ONEATATIME)) {
         options.speed.mode = SPEED_ONEATATIME;
         options.speed.speed = 0.0;
-    } else if (HAVE_OPT(MBPSRATE)) {
+    } else if (HAVE_OPT(MBPS)) {
         options.speed.mode = SPEED_MBPSRATE;
-        options.speed.speed = atof(OPT_ARG(MBPSRATE));
+        options.speed.speed = atof(OPT_ARG(MBPS));
     } else if (HAVE_OPT(MULTIPLIER)) {
         options.speed.mode = SPEED_MULTIPLIER;
         options.speed.speed = atof(OPT_ARG(MULTIPLIER));
