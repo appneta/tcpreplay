@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.30 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.31 2004/02/01 17:15:12 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -350,6 +350,12 @@ main(int argc, char *argv[])
             }
             else if (strcmp(optarg, "router") == 0) {
                 automode = ROUTER_MODE;
+            }
+            else if (strcmp(optarg, "client") == 0) {
+                automode = CLIENT_MODE;
+            }
+            else if (strcmp(optarg, "server") == 0) {
+                automode = SERVER_MODE;
             }
             else {
                 errx(1, "Invalid network type: %s", optarg);
