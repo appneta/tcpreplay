@@ -33,10 +33,45 @@
 #ifndef __TCPPREP_H__
 #define __TCPPREP_H__
 
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+#include "portmap.h"
+
 /* default ports used for servers */
 #define DEFAULT_LOW_SERVER_PORT 0
 #define DEFAULT_HIGH_SERVER_PORT 1023
 
+struct tcpprep_opt_s {
+    pcap_t *pcap;
+    char *filename;
+
+    /* mode */
+
+    char *cachedata;
+    cidr_t *cidrdata;
+    cidrmap_t *cidrmap1;
+    cidrmap_t *cidrmap2;
+    PORTMAP *portmap;
+    cidr_t  *xX_cidr;
+    list_t *xX_list;
+    int xX_mode;
+    int l2len;
+    char l2data[L2DATALEN];
+    long int seed;
+    int rewriteip;
+    int rewriteports;
+    int fixchecksums;
+    macaddr_t intf1_dmac;
+    macaddr_t intf2_dmac;
+    macaddr_t intf1_smac;
+    macaddr_t intf2_smac;
+    bpf_t bpf;
+    char tcpservices[NUM_PORTS];    
+    char udpservices[NUM_PORTS];
+    char *comment; /* cache file comment */
+};
+typedef struct tcpprep_opt_s tcpprep_opt_t;
 #endif
 
 /*
@@ -46,4 +81,3 @@
  c-basic-offset:4
  End:
 */
-
