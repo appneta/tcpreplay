@@ -75,11 +75,8 @@ read_cache(char **cachedata, char *cachefile)
 	     "Cache data length (%ld bytes) doesn't match cache header (%ld bytes)",
 	     read_size, cache_size);
 
-#ifdef DEBUG
-    if (debug)
-	fprintf(stderr, "Loaded in %u packets from cache.\n",
-		header.num_packets);
-#endif
+    dbg(1, "Loaded in %u packets from cache.", header.num_packets);
+
     close(cachefd);
     return (header.num_packets);
 }
@@ -87,7 +84,7 @@ read_cache(char **cachedata, char *cachefile)
 
 /*
  * writes out the contents of *cachedata to out_file returns
- * the number of cache entries (bits) written (not including the file header
+ * the number of cache entries written (not including the file header
  * (magic + version = 11 bytes)
  */
 unsigned long
@@ -116,9 +113,9 @@ write_cache(CACHE * cachedata, const int out_file, unsigned long numpackets)
 
     while (!last) {
 	/* calculate how many chars to write */
-	packets += mycache->bits;
-	chars = mycache->bits / 8 + 1;
-	if (mycache->bits % 8)
+	packets += mycache->packets;
+	chars = mycache->packets / 8 + 1;
+	if (mycache->packets % 8)
 	    chars++;
 
 	/* write to file, and verify it wrote properly */
@@ -157,12 +154,12 @@ new_cache()
 
     /* set mem to \0 and set bits stored to 0 */
     memset(newcache, '\0', sizeof(CACHE));
-    newcache->bits = 0;
+    newcache->packets = 0;
     return (newcache);
 }
 
 /*
- * adds a binary value for true or false to the end of the global
+ * adds the cache data for a packet to the given cachedata
  * CIDR * cidrdata
  */
 
@@ -185,48 +182,39 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
 	}
 
 	/* check to see if this is the last bit in this struct */
-	if ((lastcache->bits + 1) == CACHEDATASIZE) {
+	if ((lastcache->packets + 1) == (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
 	    /*
 	     * if so, we have to malloc a new one and set bit to
 	     * 0
 	     */
+	    dbg(1, "Adding to cachedata linked list");
 	    lastcache->next = new_cache();
 	    lastcache = lastcache->next;
 	}
 	else {
 	    /* else just increment our bit count */
-	    lastcache->bits++;
+	    lastcache->packets ++;
 	}
     }
 
     /* send packet ? */
     if (send) {
-	byte = &lastcache->data[lastcache->bits / 8];
-	*byte = *byte + (u_char) pow((double)2, (double)(lastcache->bits % 8));
-#ifdef DEBUG
-	if (debug)
-	    fprintf(stderr, "byte %d = 0x%x\n", (lastcache->bits / 8), *byte);
-#endif
+	byte = &lastcache->data[lastcache->packets / CACHE_PACKETS_PER_BYTE];
+	*byte = *byte + (u_char) (1 << (lastcache->packets % CACHE_PACKETS_PER_BYTE));
 
-	/* go to the next bit */
-	lastcache->bits++;
+	dbg(1, "set high bit: byte %d = 0x%x", (lastcache->packets / CACHE_PACKETS_PER_BYTE), *byte);
 
-	/* if true, set bit. else, do squat */
+	/* if true, set low order bit. else, do squat */
 	if (interface) {
-	    byte = &lastcache->data[lastcache->bits / 8];
-	    *byte =
-		*byte + (u_char) pow((double)2, (double)(lastcache->bits % 8));
-#ifdef DEBUG
-	    if (debug)
-		fprintf(stderr, "byte %d = 0x%x\n", (lastcache->bits / 8),
-			*byte);
-#endif
+	    *byte = *byte + (u_char) (1 << ((lastcache->packets % CACHE_PACKETS_PER_BYTE) - 1));
+
+	    dbg(1, "set low bit: byte %d = 0x%x", (lastcache->packets / CACHE_PACKETS_PER_BYTE), *byte);
+
 	}
+    } else {
+	dbg(1, "no change");
     }
-    else {
-	/* always need to jump a bit */
-	lastcache->bits++;
-    }
+
 }
 
 
@@ -242,13 +230,13 @@ check_cache(char *cachedata, unsigned long packetid)
     index = packetid / CACHE_PACKETS_PER_BYTE;
     bit = ((packetid % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
 
-    if (!(cachedata[index] & (char)pow((long)2, (long)bit))) {
+    if (!(cachedata[index] & (char)(1 << bit))) {
 	return CACHE_NOSEND;
     }
 
     /* go back a bit to get the interface */
     bit--;
-    if (cachedata[index] & (char)pow((long)2, (long)bit)) {
+    if (cachedata[index] & (char)(1 << bit)) {
 	return CACHE_PRIMARY;
     }
     else {
