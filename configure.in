@@ -22,7 +22,7 @@ AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION", [What is our version?])
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
-CFLAGS="$CFLAGS -Wall -O2 -funroll-loops"
+CFLAGS="$CFLAGS -Wall -O2 -funroll-loops" # -std=c99 -Wno-variadic-macros"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -137,7 +137,7 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
          debug=yes
-         CFLAGS="-ggdb -pedantic"
+         CFLAGS="-ggdb -Wall -pedantic"
          AC_SUBST(debug_flag)
          AC_DEFINE([DEBUG], [], [Enable debuggin code and support for the -d option]) 
       fi])
