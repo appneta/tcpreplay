@@ -1,43 +1,18 @@
+/* $Id: tcpprep.c,v 1.22 2003/05/29 22:01:27 aturner Exp $ */
+
 /*
- *  tcprep.c
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * All rights reserved.
  *
- *  Aaron Turner <aturner@pobox.com>
- *
- *  Copyright (c) 2001 Aaron Turner.  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *  1. Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *  3. All advertising materials mentioning features or use of this software
- *     must display the following acknowledgement:
- *        This product includes software developed by Aaron Turner <aturner@pobox.com>
- *  4. Neither the name of Aaron Turner nor the names of the contributors
- *     to this software may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
- *  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- *  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- *  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- *  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- *  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *
+ * Please see Docs/LICENSE for licensing information
+ */
+
+
+/*
  *  Purpose:
  *  1) Remove the performance bottleneck in tcpreplay for choosing an NIC
  *  2) Seperate code to make it more manageable
- *  3) Seperate code to make sending packets independant from choosing a NIC
+ *  3) Add addtional features which require multiple passes of a pcap
  *
  *  Support:
  *  Right now we support matching source IP based upon on of the following:
@@ -51,7 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <redblack.h>
 #include <regex.h>
 #include <string.h>
 #include <unistd.h>
@@ -68,6 +42,7 @@
 #include "list.h"
 #include "xX.h"
 #include "err.h"
+#include "rbtree.h"
 
 /*
  * global variables
@@ -81,8 +56,9 @@ char *cidr = NULL;
 regex_t *preg = NULL;
 CIDR *cidrdata = NULL;
 CACHE *cachedata = NULL;
-TREE *treedata = NULL;
-extern struct rbtree *rbdata;
+struct data_tree treeroot;
+
+
 int mode = 0;
 int automode = 0;
 double ratio = 0.0;
@@ -137,8 +113,8 @@ usage()
 	    "-M <maxmask>\t\tMaximum mask length in Auto/Router mode\n"
 	    "-n bridge|router\tUse bridge/router algorithm in Auto Mode\n"
 	    "-N client|server\tClassify non-IP traffic as client/server\n"
-	    "-o <outputfile>\t\tOutput cache file name\n"
-	    "-r <regex>\t\tSplit traffic in Regex Mode\n"
+	    "-o <outputfile>\t\tOutput cache file name\n");
+    fprintf(stderr, "-r <regex>\t\tSplit traffic in Regex Mode\n"
 	    "-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
 	    "-x <match>\t\tOnly send the packets specified\n"
 	    "-X <match>\t\tSend all the packets except those specified\n"
@@ -159,8 +135,8 @@ check_ip_regex(const unsigned long ip)
     regmatch_t *pmatch = NULL;
 
     memset(src_ip, '\0', 16);
-    strncat(src_ip, libnet_addr2name4(ip, RESOLVE), 15);
-    if (regexec(preg, src_ip, nmatch, pmatch, eflags) == 0) {
+    strncat((char *)src_ip, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE), 15);
+    if (regexec(preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
 	return (1);
     }
     else {
@@ -170,7 +146,7 @@ check_ip_regex(const unsigned long ip)
 }
 
 /*
- * uses the new libpcap/snoop code to parse the packets and build
+ * uses libpcap library to parse the packets and build
  * the cache file.
  */
 static unsigned long
@@ -464,7 +440,7 @@ main(int argc, char *argv[])
 	     * manually since this is done automatically in
 	     * process_tree()
 	     */
-	    rbwalk(rbdata, tree_calculate, (void *)rbdata);
+	    tree_calculate(&treeroot);
 	}
 
 	if (info)
