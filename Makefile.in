@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.3 2002/04/10 01:01:38 mattbing Exp $
+# $Id: Makefile.in,v 1.4 2002/05/13 22:59:02 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -47,9 +47,11 @@ libredblack/.libs/libredblack.a:
 
 clean:
 	rm -f *~ *.o *core $(BINARIES)
+	cd libredblack && make clean
 
 distclean: clean
 	rm -f Makefile config.h config.status config.cache config.log
+	cd libredblack && make distclean
 
 install: 
 	test -d $(SBINDIR) || $(INSTALL) -d $(SBINDIR)
