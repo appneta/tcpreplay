@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.8 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.9 2004/02/03 22:50:55 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
 #endif
         switch (ch) {
         case 'c':              /* client network */
-            if (!parse_cidr(&clients, optarg))
+            if (!parse_cidr(&clients, optarg, ","))
                 usage();
             break;
 #ifdef DEBUG
@@ -201,7 +201,7 @@ main(int argc, char *argv[])
             port = htons(port);
             break;
         case 's':              /* server network */
-            if (!parse_cidr(&servers, optarg))
+            if (!parse_cidr(&servers, optarg, ","))
                 usage();
             break;
         case 't':              /* target IP */
