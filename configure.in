@@ -1,5 +1,5 @@
-dnl tcpreplay configure script.
-dnl $Id: configure.in,v 1.1 2002/03/29 03:44:52 mattbing Exp $
+
+dnl $Id: configure.in,v 1.2 2002/06/18 05:48:34 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -62,6 +62,49 @@ if test $neederr = yes; then
 	EXTRAS="$EXTRAS err.c"
 fi
 AC_SUBST(EXTRAS)
+
+dnl Checks for libpcap (stolen from dsniff)
+AC_MSG_CHECKING(for libpcap)
+AC_ARG_WITH(libpcap,
+[  --with-libpcap=DIR      use libpcap in DIR],
+[ case "$withval" in
+  yes|no)
+     AC_MSG_RESULT(no)
+     ;;
+  *)
+     AC_MSG_RESULT($withval)
+     if test -f $withval/pcap.h -a -f $withval/libpcap.a; then
+        owd=`pwd`
+        if cd $withval; then withval=`pwd`; cd $owd; fi
+        PCAPINC="-I$withval -I$withval/bpf"
+        PCAPLIB="-L$withval -lpcap"
+     elif test -f $withval/include/pcap.h -a \
+               -f $withval/include/net/bpf.h -a \
+               -f $withval/lib/libpcap.a; then
+        owd=`pwd`
+        if cd $withval; then withval=`pwd`; cd $owd; fi
+        PCAPINC="-I$withval/include"
+        PCAPLIB="-L$withval/lib -lpcap"
+     else
+	AC_ERROR(libpcap.h or libpcap.a not found in $withval)
+     fi
+     ;;
+  esac ],
+[ if test -f ${prefix}/include/pcap.h; then
+     PCAPINC="-I${prefix}/include"
+     PCAPLIB="-L${prefix}/lib -lpcap"
+  elif test -f /usr/include/pcap/pcap.h; then
+     PCAPINC="-I/usr/include/pcap"
+     PCAPLIB="-lpcap"
+  elif test -f /usr/include/pcap.h; then
+     PCAPLIB="-lpcap"
+  else
+     AC_MSG_RESULT(no)
+     AC_ERROR(libpcap not found)
+  fi
+     AC_MSG_RESULT(yes) ]
+)
+
 
 dnl Checks for libnet (shamelessly horked from dsniff)
 AC_MSG_CHECKING(for libnet)
