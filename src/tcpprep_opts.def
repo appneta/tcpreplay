@@ -337,14 +337,16 @@ flag = {
 flag = {
     name        = print-comment;
     value       = P;
-    descrip     = "Print embedded cache file comment";
+    arg-type	= string;
+    descrip     = "Print embedded comment in the specified cache file";
     doc         = "";
 };
 
 flag = {
     name        = print-info;
     value       = I;
-    descrip     = "Print cache file info";
+	arg-type	= string;
+    descrip     = "Print basic info from the specified cache file";
     doc         = "";
 };
 
