@@ -1,25 +1,13 @@
-For 1.5:
-
-- Replace libredblack with OpenBSD tree.h
-
-- Add a 'socket' mode which can replay TCP and UDP traffic to a server
-        - Limit to a single service/server
-        - Change destination IP
-        - Support multiple simultaneous sessions
-    
-
-- Filter which packets to send/not send based on libpcap matching language
-
-- Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
+For 2.x:
 
 - Look at VLAN packets
 	- others non-vanilla types?
         - Add tags?  Remove tags?  Change tags?
 
+- Support fragrouter like features (basic IP fragmenation, then advanced)
+
+- Improve flowreplay
+
+- Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
+
 - Modularize packet mangling interface
-
-- Arbitrary number of interfaces
-
-- Ports
-	- support --with-pcap --with-libnet in the spec
-	- up-to-date *BSD ports
