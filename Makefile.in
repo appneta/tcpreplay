@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.36 2003/01/12 05:46:00 aturner Exp $
+# $Id: Makefile.in,v 1.37 2003/03/19 04:32:41 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -78,10 +78,10 @@ install:
 	$(INSTALL) -m 755 capinfo $(BINDIR)
 	$(INSTALL) -m 755 tcpprep $(BINDIR)
 	$(INSTALL) -m 755 pcapmerge $(BINDIR)
-	$(INSTALL) -m 644 tcpreplay.8 $(MAN8DIR)
-	$(INSTALL) -m 644 capinfo.1 $(MAN1DIR)
-	$(INSTALL) -m 644 tcpprep.1 $(MAN1DIR)
-	$(INSTALL) -m 644 pcapmerge.1 $(MAN1DIR)
+	$(INSTALL) -m 644 man/tcpreplay.8 $(MAN8DIR)
+	$(INSTALL) -m 644 man/capinfo.1 $(MAN1DIR)
+	$(INSTALL) -m 644 man/tcpprep.1 $(MAN1DIR)
+	$(INSTALL) -m 644 man/pcapmerge.1 $(MAN1DIR)
 
 uninstall:
 	rm -f $(SBINDIR)/tcpreplay

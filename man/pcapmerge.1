@@ -1,0 +1,44 @@
+.\" yo there.
+.TH PCAPMERGE 1  "22 Dec 2002"
+.SH NAME
+pcapmerge \- merge multiple pcap files into one larger one
+.SH SYNOPSIS
+.na
+.B pcapmerge
+[
+.B -V
+] [
+.B -h
+]
+.B \-o
+.I outfile
+pcap1 pcap2 ...
+.br
+.ad
+.SH DESCRIPTION
+.LP
+.I Pcapmerge
+is a program for creating a single pcap (tcpdump) file from two or more pcap files.  The
+resulting file contains the packets from each of the source pcap files in the order they
+are specified on the command line.
+.SH OPTIONS
+.LP
+.TP
+.B \-h
+Help
+.TP
+.B \-o <file>
+Output filename.  The name of the file to write.
+.TP
+.B \-V
+Print version info and exit.
+.SH "SEE ALSO"
+tcpdump(8), tcpreplay(8), capinfo(1)
+.SH AUTHOR
+Matt Bing <mbing@nfr.net>
+.LP
+The current version is packaged with tcpreplay which is available via HTTP:
+.LP
+.RS
+.I http://www.sourceforge.net/projects/tcpreplay/
+.RE
