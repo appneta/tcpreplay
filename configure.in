@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.56 2004/02/01 02:41:54 aturner Exp $
+dnl $Id: configure.in,v 1.57 2004/02/01 18:05:04 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -468,7 +468,7 @@ dnl # Check for tcpdump.
 dnl ##################################################
 
 AC_ARG_WITH(tcpdump,
-            [  --with-tcpdump=PATH     Path to tcpdump binary],
+            [  --with-tcpdump=FILE     Path to tcpdump binary],
             td=$withval,
             td="no")
 

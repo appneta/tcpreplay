@@ -863,7 +863,7 @@ Optional Packages:
   --with-libnet=DIR       use libnet in DIR
   --with-libpcap=DIR      use libpcap in DIR
   --with-pcapnav-config=FILE     Use given pcapnav-config
-  --with-tcpdump=PATH     Path to tcpdump binary
+  --with-tcpdump=FILE     Path to tcpdump binary
   --with-testnic=NIC      Select which network card to use for testing
   --with-testnic2=NIC2    Select an optional 2nd network card to use for testing
 
