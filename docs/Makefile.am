@@ -5,9 +5,11 @@ if HAVE_DOCTOOLS
 L2HFLAGS = -show_section_numbers -no_footnode -split +1 -info 0 \
 	-auto_navigation -local_icons -mkdir -html_version 4.0
 
-docs: FAQ.pdf web/FAQ/FAQ.html flowreplay.pdf web/flowreplay/flowreplay.html \
-	manual.pdf web/manual/manual.html
+docs: webdir FAQ.pdf web/FAQ/FAQ.html flowreplay.pdf \
+	web/flowreplay/flowreplay.html manual.pdf web/manual/manual.html
 
+webdir:
+	if ! test -d web ; then mkdir web ; fi
 
 clean-docs: clean
 	-rm -rf *.pdf web/*
