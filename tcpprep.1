@@ -19,7 +19,7 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .B \-i
 .I pcapfile
 ] [
-.B \-I
+.B \-v
 ] [
 .B \-m
 .I minmask
@@ -82,10 +82,6 @@ Help.
 .B \-i
 Input file (pcap or snoop format)
 .TP
-.B \-I
-Enable informational status printing to stderr. (Probably only interesting 
-for large input files.)
-.TP
 .B \-m
 Minimum mask length.  Used in auto/router mode to set the minimum valid
 network size.  Defaults to 30 (bits).
@@ -137,6 +133,10 @@ The ratio of server connections to client connections necessary to be
 classified as a server in auto mode.  A system is classified as a server if
 [# server connections] >= ([# client connections] * [ratio]).  Default is:
 2.0
+.TP
+.B \-v
+Enable verbose status printing to stderr. (Probably only interesting 
+for large input files.)
 .TP
 .B \-V
 Print version info and exit.

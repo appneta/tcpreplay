@@ -112,12 +112,23 @@ version()
 static void 
 usage()
 {
-	fprintf(stderr, "Usage: tcpprep ");
+	fprintf(stderr, "Usage: tcpprep\n");
+	fprintf(stderr, "-a\t\t\tSplit traffic in Auto Mode\n"
+			"-c CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
-	fprintf(stderr, "[-d] ");
+	fprintf(stderr, "-d\t\t\tEnable debug output to STDERR\n");
 #endif
-	fprintf(stderr, "[-h|V] [-a|-c CIDR,...|-r regex] [-n bridge|router] [-R ratio]\n");
-	fprintf(stderr, "-S [-N client|server] [-i capture file] [-o cache file]\n");
+	fprintf(stderr, "-h\t\t\tHelp\n"
+			"-i <capfile>\t\tInput capture file to process\n"
+			"-m <minmask>\t\tMinimum mask length in Auto/Router mode\n"
+			"-M <maxmask>\t\tMaximum mask length in Auto/Router mode\n"
+			"-r <regex>\t\tSplit traffic in Regex Mode\n"
+			"-n bridge|router\tUse bridge/router algorithm in Auto Mode\n"
+			"-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
+			"-N client|server\tClassify non-IP traffic as client/server\n"
+			"-o <outputfile>\t\tOutput cache file name\n"
+			"-v\t\t\tVerbose\n"
+			"-V\t\t\tVersion\n");
 	exit(0);
 }
 
@@ -228,9 +239,9 @@ main(int argc, char *argv[])
 		err(1, "malloc");
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "adc:r:R:o:i:Ihm:M:n:N:V")) != -1)
+	while ((ch = getopt(argc, argv, "adc:r:R:o:i:hm:M:n:N:vV")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "ac:r:R:o:i:Ihm:M:n:N:V")) != -1)
+	while ((ch = getopt(argc, argv, "ac:r:R:o:i:hm:M:n:N:vV")) != -1)
 #endif
 		switch (ch) {
 		case 'a':
@@ -250,9 +261,6 @@ main(int argc, char *argv[])
 			break;
 		case 'i':
 			infilename = optarg;
-			break;
-		case 'I':
-			info = 1;
 			break;
 		case 'm':
 			min_mask = atoi(optarg);
@@ -297,6 +305,9 @@ main(int argc, char *argv[])
 			break;
 		case 'R':
 			ratio = atof(optarg);
+			break;
+		case 'v':
+			info = 1;
 			break;
 		case 'V':
 			version();
