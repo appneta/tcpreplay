@@ -1,0 +1,1125 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\language english
+\inputencoding latin1
+\fontscheme pslatex
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 10mm
+\topmargin 10mm
+\rightmargin 10mm
+\bottommargin 15mm
+\secnumdepth 4
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\bullet 1
+	0
+	6
+	-1
+\end_bullet
+\bullet 2
+	0
+	0
+	-1
+\end_bullet
+
+\layout Title
+
+
+\color black
+Flowreplay Design Notes
+\layout Author
+
+
+\color black
+Aaron Turner 
+\newline 
+http://synfin.net/
+\layout Date
+
+
+\color black
+Last Edited:
+\newline 
+October 23, 2003
+\layout Section
+\pagebreak_top 
+
+\color black
+Overview
+\layout Standard
+
+
+\color black
+Tcpreplay
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+http://tcpreplay.sourceforge.net/
+\end_inset 
+
+ was designed to replay traffic previously captured in the pcap format back
+ onto the wire for testing NIDS and other passive devices.
+ Over time, it was enhanced to be able to test in-line network devices.
+ However, a re-occurring feature request for tcpreplay is to connect to
+ a server in order to test applications and host TCP/IP stacks.
+ It was determined early on, that adding this feature to tcpreplay was far
+ too complex, so I decided to create a new tool specifically designed for
+ this.
+\layout Standard
+
+
+\color black
+Flowreplay is designed to replay traffic at Layer 4 or 7 depending on the
+ protocol rather then at Layer 2 like tcpreplay does.
+ This allows flowreplay to connect to one or more servers using a pcap savefile
+ as the basis of the connections.
+ Hence, flowreplay allows the testing of applications running on real servers
+ rather then passive devices.
+ 
+\layout Section
+
+
+\color black
+Features
+\layout Subsection
+
+
+\color black
+Requirements
+\layout Enumerate
+
+
+\color black
+Full TCP/IP support, including IP fragments and TCP stream reassembly.
+\layout Enumerate
+
+
+\color black
+Support replaying TCP and UDP flows.
+\layout Enumerate
+
+
+\color black
+Code should handle each flow/service independently.
+\layout Enumerate
+
+
+\color black
+Should be able to connect to the server(s) in the pcap file or to a user
+ specified IP address.
+\layout Enumerate
+
+
+\color black
+Support a plug-in architecture to allow adding application layer intelligence.
+\layout Enumerate
+
+
+\color black
+Plug-ins must be able to support multi-flow protocols like FTP.
+\layout Enumerate
+
+
+\color black
+Ship with a default plug-in which will work 
+\begin_inset Quotes eld
+\end_inset 
+
+well enough
+\begin_inset Quotes erd
+\end_inset 
+
+ for simple single-flow protocols like HTTP and telnet.
+\layout Enumerate
+
+
+\color black
+Flows being replayed 
+\begin_inset Quotes eld
+\end_inset 
+
+correctly
+\begin_inset Quotes erd
+\end_inset 
+
+ is more important then performance (Mbps).
+\layout Enumerate
+
+
+\color black
+Portable to run on common flavors of Unix and Unix-like systems.
+\layout Subsection
+
+
+\color black
+Wishes
+\layout Enumerate
+
+
+\color black
+Support clients connecting to flowreplay on a limited basis.
+ Flowreplay would replay the server side of the connection.
+\layout Enumerate
+
+
+\color black
+Support other IP based traffic (ICMP, VRRP, OSPF, etc) via plug-ins.
+\layout Enumerate
+
+
+\color black
+Support non-IP traffic (ARP, STP, CDP, etc) via plug-ins.
+\layout Enumerate
+
+
+\color black
+Limit which flows are replayed using user defined filters.
+ (bpf filter syntax?)
+\layout Enumerate
+
+
+\color black
+Process pcap files directly with no intermediary file conversions.
+\layout Enumerate
+
+
+\color black
+Should be able to scale to pcap files in the 100's of MB in size and 100+
+ simultaneous flows on a P3 500MHz w/ 256MB of RAM.
+\layout Section
+
+
+\color black
+Design Thoughts
+\layout Subsection
+
+
+\color black
+Sending and Receiving traffic
+\layout Standard
+
+
+\color black
+Flowreplay must be able to process multiple connections to one or more devices.
+ There are two options:
+\layout Enumerate
+
+
+\color black
+Use sockets
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+socket(2)
+\end_inset 
+
+ to send and receive data
+\layout Enumerate
+
+
+\color black
+Use libpcap
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+http://www.tcpdump.org/
+\end_inset 
+
+ to receive packets and libnet
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+http://www.packetfactory.net/projects/libnet/
+\end_inset 
+
+ to send packets
+\layout Standard
+
+
+\color black
+Although using libpcap/libnet would allow more simultaneous connections
+ and greater flexibility, there would be a very high complexity cost associated
+ with it.
+ With that in mind, I've decided to use sockets to send and receive data.
+\layout Subsection
+
+
+\color black
+Handling Multiple Connections
+\layout Standard
+
+
+\color black
+Because a pcap file can contain multiple simultaneous flows, we need to
+ be able to support that too.
+ The biggest problem with this is reading packet data in a different order
+ then stored in the pcap file.
+ 
+\layout Standard
+
+
+\color black
+Reading and writing to multiple sockets is easy with select() or poll(),
+ however a pcap file has it's data stored serially, but we need to access
+ it randomly.
+ There are a number of possible solutions for this such as caching packets
+ in RAM where they can be accessed more randomly, creating an index of the
+ packets in the pcap file, or converting the pcap file to another format
+ altogether.
+ Alternatively, I've started looking at libpcapnav
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+http://netdude.sourceforge.net/
+\end_inset 
+
+ as an alternate means to navigate a pcap file and process packets out of
+ order.
+\layout Subsection
+
+
+\color black
+Data Synchronization
+\layout Standard
+
+
+\color black
+Knowing when to start sending client traffic in response to the server will
+ be "tricky".
+ Without understanding the actual protocol involved, probably the best general
+ solution is waiting for a given period of time after no more data from
+ the server has been received.
+ Not sure what to do if the client traffic doesn't elicit a response from
+ the server (implement some kind of timeout?).
+ This will be the basis for the default plug-in.
+\layout Subsection
+
+
+\color black
+TCP/IP
+\layout Standard
+
+
+\color black
+Dealing with IP fragmentation and TCP stream reassembly will be another
+ really complex problem.
+ We're basically talking about implementing a significant portion of a TCP/IP
+ stack.
+ One thought is to use libnids
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+http://www.avet.com.pl/~nergal/libnids/
+\end_inset 
+
+ which basically implements a Linux 2.0.37 TCP/IP stack in user-space.
+ Other solutions include porting a TCP/IP stack from Open/Net/FreeBSD or
+ writing our own custom stack from scratch.
+\layout Section
+
+
+\color black
+Multiple Independent Flows
+\layout Standard
+
+
+\color black
+The biggest asynchronous problem, that pcap files are serial, has to be
+ solved in a scaleable manner.
+ Not much can be assumed about the network traffic contained in a pcap savefile
+ other then Murphy's Law will be in effect.
+ This means we'll have to deal with:
+\layout Itemize
+
+
+\color black
+Thousands of small simultaneous flows (captured on a busy network)
+\layout Itemize
+
+
+\color black
+Flows which 
+\begin_inset Quotes eld
+\end_inset 
+
+hang
+\begin_inset Quotes erd
+\end_inset 
+
+ mid-stream (an exploit against a server causes it to crash)
+\layout Itemize
+
+
+\color black
+Flows which contain large quantities of data (FTP transfers of ISO's for
+ example)
+\layout Standard
+
+
+\color black
+How we implement parallel processing of the pcap savefile will dramatically
+ effect how well we can scale.
+ A few considerations:
+\layout Itemize
+
+Most Unix systems limit the maximum number of open file descriptors a single
+ process can have.
+ Generally speaking this shouldn't be a problem except for highly parallel
+ pcap's.
+\layout Itemize
+
+While RAM isn't limitless, we can use mmap() to get around this.
+\layout Itemize
+
+Many Unix systems have enhanced solutions to poll() which will improve flow
+ management.
+\layout Comment
+
+
+\color black
+Unix systems implement a maximum limit on the number of file descriptors
+ a single process can open.
+ My Linux box for example craps out at 1021 (it's really 1024, but 3 are
+ reserved for STDIN, STDOUT, STDERR), which seems to be pretty standard
+ for recent Unix's.
+ This means we're limited to at most 1020 simultaneous flows if the pcap
+ savefile is opened once and half that (510 flows) if the savefile is re-opened
+ for each flow.
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+It appears that most Unix-like OS's allow root to increase the 
+\begin_inset Quotes eld
+\end_inset 
+
+hard-limit
+\begin_inset Quotes erd
+\end_inset 
+
+ beyond 1024.
+ Compiling a list of methods to do this for common OS's should be added
+ to the flowreplay documentation.
+\end_inset 
+
+
+\layout Comment
+
+
+\color black
+RAM isn't limitless.
+ Caching packets in memory may cause problems when one or more flows with
+ a lot of data 
+\begin_inset Quotes eld
+\end_inset 
+
+hang
+\begin_inset Quotes erd
+\end_inset 
+
+ and their packets have to be cached so that other flows can be processed.
+ If you work with large pcaps containing malicious traffic (say packet captures
+ from DefCon), this sort of thing may be a real problem.
+ Dealing with this situation would require complicated buffer limits and
+ error handling.
+\layout Comment
+
+
+\color black
+Jumping around in the pcap file via fgetpos() and fsetpos() is probably
+ the most disk I/O intensive solution and may effect performance.
+ However, on systems with enough free memory, one would hope the system
+ disk cache will provide a dramatic speedup.
+ The 
+\begin_inset Quotes eld
+\end_inset 
+
+bookmarks
+\begin_inset Quotes erd
+\end_inset 
+
+ used by fgetpos/fsetpos are just 64 bit integers which are relatively space
+ efficent compared to other solutions.
+\layout Comment
+
+
+\color black
+The other typical asynchronous issue is dealing with multiple sockets, which
+ we will solve via poll()
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+poll(2)
+\end_inset 
+
+.
+ Each flow will define a 
+\emph on 
+struct pollfd
+\emph default 
+ and the amount of time in ms to timeout.
+ Then prior to calling poll() we walk the list of flows and create the array
+ of pollfd's and determine the flow(s) with the smallest timeout.
+ A list of these flows is saved for when poll() returns.
+ Finally, the current time is tucked away and the timeout and array of pollfd's
+ is passed to poll().
+\layout Comment
+
+
+\color black
+When poll() returns, the sockets that returned ready have their plug-in
+ called.
+ If no sockets are ready, then the flows saved prior to calling poll() are
+ processed.
+\layout Comment
+
+
+\color black
+Once all flows are processed, all the flows not processed have their timeout
+ decremented by the time difference of the current time and when poll was
+ last called and we start again.
+\layout Subsection
+
+
+\color black
+IP Fragments and TCP Streams
+\layout Standard
+
+
+\color black
+There are five major complications with flowreplay:
+\layout Enumerate
+
+
+\color black
+The IP datagrams may be fragmented- we won't be able to use the standard
+ 5-tuple (src/dst IP, src/dst port, protocol) to lookup which flow a packet
+ belongs to.
+\layout Enumerate
+
+
+\color black
+IP fragments may arrive out of order which will complicate ordering of data
+ to be sent.
+\layout Enumerate
+
+
+\color black
+The TCP segments may arrive out of order which will complicate ordering
+ of data to be sent.
+\layout Enumerate
+
+
+\color black
+Packets may be missing in the pcap file because they were dropped during
+ capture.
+\layout Enumerate
+
+
+\color black
+There are tools like fragrouter which intentionally create non-deterministic
+ situations.
+\layout Standard
+
+
+\color black
+First off, I've decided, that I'm not going to worry about fragrouter or
+ it's cousins.
+ I'll handle non-deterministic situations one and only one way, so that
+ the way flowreplay handles the traffic will be deterministic.
+ Perhaps, I'll make it easy for others to write a plug-in which will change
+ it, but that's not something I'm going to concern myself with now.
+\layout Standard
+
+
+\color black
+Missing packets in the pcap file will probably make that flow unplayable.
+ There are proabably certain situation where we can make an educated guess,
+ but this is far too complex to worry about for the first stable release.
+\layout Standard
+
+
+\color black
+That still leaves creating a basic TCP/IP stack in user space.
+ The good news it that there is already a library which does this called
+ libnids.
+ As of version 1.17, libnids can process packets from a pcap savefile (it's
+ not documented in the man page, but the code is there).
+\layout Standard
+
+
+\color black
+A potential problem with libnids though is that it has to maintain it's
+ own state/cache system.
+ This not only means additional overhead, but jumping around in the pcap
+ file as I'm planning on doing to handle multiple simultaneous flows is
+ likely to really confuse libnids' state engine.
+ Also, libnids is licensed under the GPL, but I want flowreplay released
+ under a BSD-like license; I need to research if the two are compatible
+ in this way.
+\layout Standard
+
+
+\color black
+Possible solutions:
+\layout Itemize
+
+
+\color black
+Developing a custom wedge between the capture file and libnids which will
+ cause each packet to only be processed a single time.
+\layout Itemize
+
+
+\color black
+Use libnids to process the pcap file into a new flow-based format, effectively
+ putting the TCP/IP stack into a dedicated utility.
+\layout Itemize
+
+
+\color black
+Develop a custom user-space TCP/IP stack, perhaps based on a BSD TCP/IP
+ stack, much like libnids is based on Linux 2.0.37.
+\layout Itemize
+
+
+\color black
+Screw it and say that IP fragmentation and out of order IP packets/TCP segments
+ are not supported.
+ Not sure if this will meet the needs of potential users.
+\layout Subsection
+
+
+\color black
+Blocking
+\layout Standard
+
+
+\color black
+As earlier stated, one of the main goals of this project is to keep things
+ single threaded to make coding plugins easier.
+ One caveat of that is that any function which blocks will cause serious
+ problems.
+\layout Standard
+
+
+\color black
+There are three major cases where blocking is likely to occur:
+\layout Enumerate
+
+
+\color black
+Opening a socket
+\layout Enumerate
+
+
+\color black
+Reading from a socket
+\layout Enumerate
+
+
+\color black
+Writing to a socket
+\layout Standard
+
+
+\color black
+Reading from sockets in a non-blocking manner is easy to solve for using
+ poll() or select().
+ Writing to a socket, or merely opening a TCP socket via connect() however
+ requires a different method:
+\layout Quotation
+
+
+\color black
+It is possible to do non-blocking IO on sockets by setting the O_NONBLOCK
+ flag on a socket file descriptor using fcntl(2).
+ Then all operations that would block will (usually) return with EAGAIN
+ (operation should be retried later); connect(2) will return EINPROGRESS
+ error.
+ The user can then wait for various events via poll(2) or select(2).
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+socket(7)
+\end_inset 
+
+
+\layout Standard
+
+
+\color black
+If connect() returns EINPROGRESS, then we'll just have to do something like
+ this:
+\layout LyX-Code
+
+
+\color black
+int e, len=sizeof(e);
+\layout LyX-Code
+
+
+\color black
+if (getsockopt(conn->s, SOL_SOCKET, SO_ERROR, &e, &len) < 0) { 
+\layout LyX-Code
+
+
+\color black
+    /* not yet */
+\layout LyX-Code
+
+
+\color black
+    if(errno != EINPROGRESS){  /* yuck.
+ kill it.
+ */ 
+\layout LyX-Code
+
+
+\color black
+       log_fn(LOG_DEBUG,"in-progress connect failed.
+ Removing."); 
+\layout LyX-Code
+
+
+\color black
+       return -1; 
+\layout LyX-Code
+
+
+\color black
+    } else { 
+\layout LyX-Code
+
+
+\color black
+       return 0; /* no change, see if next time is better */ 
+\layout LyX-Code
+
+
+\color black
+    } 
+\layout LyX-Code
+
+
+\color black
+} 
+\layout LyX-Code
+
+
+\color black
+/* the connect has finished.
+ */ 
+\layout Quote
+
+
+\color black
+Note: It may not be totally right, but it works ok.
+ (that chunk of code gets called after poll returns the socket as writable.
+ if poll returns it as readable, then it's probably because of eof, connect
+ fails.
+ You must poll for both.
+\layout Section
+
+
+\color black
+pcap vs flow File Format
+\layout Standard
+
+
+\color black
+As stated before, the pcap file format really isn't well suited for flowreplay
+ because it uses the raw packet as a container for data.
+ Flowreplay however isn't interested in packets, it's interested in data
+ streams
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\color black
+A 
+\begin_inset Quotes eld
+\end_inset 
+
+data stream
+\begin_inset Quotes erd
+\end_inset 
+
+ as I call it is a simplex communication from the client or server which
+ is a complete query, response or message.
+\end_inset 
+
+ which may span one or more TCP/UDP segments, each comprised of an IP datagram
+ which may be comprised of multiple IP fragments.
+ Handling all this additional complexity requires a full TCP/IP stack in
+ user space which would have additional feature requirements specific to
+ flowreplay.
+\layout Standard
+
+
+\color black
+Rather then trying to do that, I've decided to create a pcap preprocessor
+ for flowreplay called: flowprep.
+ Flowprep will handle all the TCP/IP defragmentation/reassembly and write
+ out a file containing the data streams for each flow.
+\layout Standard
+
+
+\color black
+A flow file will contain three sections:
+\layout Enumerate
+
+
+\color black
+A header which identifies this as a flowprep file and the file version
+\layout Enumerate
+
+
+\color black
+An index of all the flows contained in the file
+\layout Enumerate
+
+
+\color black
+The data streams themselves
+\layout Standard
+\align center 
+
+\color black
+
+\begin_inset Graphics
+	filename flowheader.eps
+
+\end_inset 
+
+
+\layout Standard
+
+
+\color black
+At startup, the file header is validated and the data stream indexes are
+ loaded into memory.
+ Then the first data stream header from each flow is read.
+ Then each flow and subsequent data stream is processed based upon the timestamp
+s and plug-ins.
+\layout Section
+
+
+\color black
+Plug-ins
+\layout Standard
+
+
+\color black
+Plug-ins will provide the 
+\begin_inset Quotes eld
+\end_inset 
+
+intelligence
+\begin_inset Quotes erd
+\end_inset 
+
+ in flowreplay.
+ Flowreplay is designed to be a mere framework for connecting captured flows
+ in a flow file with socket file handles.
+ How data is processed and what should be done with it will be done via
+ plug-ins.
+\layout Standard
+
+
+\color black
+Plug-ins will allow proper handling of a variety of protocols while hopefully
+ keeping things simple.
+ Another part of the consideration will be making it easy for others to
+ contribute to flowreplay.
+ I don't want to have to write all the protocol logic myself.
+\layout Subsection
+
+
+\color black
+Plug-in Basics
+\layout Standard
+
+
+\color black
+Each plug-in provides the logic for handling one or more services.
+ The main purpose of a plug-in is to decide when flowreplay should send
+ data via one or more sockets.
+ The plug-in can use any 
+\emph on 
+non-blocking
+\emph default 
+ method of determining if it appropriate to send data or wait for data to
+ received.
+ If necessary, a plug-in can also modify the data sent.
+\layout Standard
+
+
+\color black
+Each time poll() returns, flowreplay calls the plug-ins for the flows which
+ either have data waiting or in the case of a timeout, those flows which
+ timed out.
+ Afterwords, all the flows are processed and poll() is called on those flows
+ which have their state set to POLL.
+ And the process repeats until there are no more nodes in the tree.
+\layout Subsection
+
+
+\color black
+The Default Plug-in
+\layout Standard
+
+
+\color black
+Initially, flowreplay will ship with one basic plug-in called 
+\begin_inset Quotes eld
+\end_inset 
+
+default
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ Any flow which doesn't have a specific plug-in defined, will use default.
+ The goal of the default plug-in is to work 
+\begin_inset Quotes eld
+\end_inset 
+
+good enough
+\begin_inset Quotes erd
+\end_inset 
+
+ for a majority of single-flow protocols such as SMTP, HTTP, and Telnet.
+ Protocols which use encryption (SSL, SSH, etc) or multiple flows (FTP,
+ RPC, etc) will never work with the default plug-in.
+ Furthermore, the default plug-in will only support connections 
+\emph on 
+to
+\emph default 
+ a server, it will not support accepting connections from clients.
+\layout Standard
+
+
+\color black
+The default plug-in will provide no data level manipulation and only a simple
+ method for detecting when it is time to send data to the server.
+ Detecting when to send data will be done by a 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ timeout value.
+ Basically, by using the pcap file as a means to determine the order of
+ the exchange, anytime it is the servers turn to send data, flowreplay will
+ wait for the first byte of data and then start the 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ timer.
+ Every time more data is received, the timer is reset.
+ If the timer reaches zero, then flowreplay sends the next portion of the
+ client side of the connection.
+ This is repeated until the the flow has been completely replayed or a 
+\begin_inset Quotes eld
+\end_inset 
+
+server hung
+\begin_inset Quotes erd
+\end_inset 
+
+ timeout is reached.
+ The server hung timeout is used to detect a server which crashed and never
+ starts sending any data which would start the 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ timer.
+\layout Standard
+
+
+\color black
+Both the 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ and 
+\begin_inset Quotes eld
+\end_inset 
+
+server hung
+\begin_inset Quotes erd
+\end_inset 
+
+ timers will be user defined values and global to all flows using the default
+ plug-in.
+\layout Subsection
+
+
+\color black
+Plug-in Details
+\layout Standard
+
+
+\color black
+Each plug-in will be comprised of the following:
+\layout Enumerate
+
+
+\color black
+An optional global data structure, for intra-flow communication
+\layout Enumerate
+
+
+\color black
+Per-flow data structure, for tracking flow state information
+\layout Enumerate
+
+
+\color black
+A list of functions which flow replay will call when certain well-defined
+ conditions are met.
+\begin_deeper 
+\layout Itemize
+
+
+\color black
+Required functions:
+\begin_deeper 
+\layout Itemize
+
+
+\color black
+initialize_node() - called when a node in the tree created using this plug-in
+\layout Itemize
+
+
+\color black
+post_poll_timeout() - called when the poll() returned due to a timeout for
+ this node
+\layout Itemize
+
+
+\color black
+post_poll_read() - called when the poll() returned due to the socket being
+ ready
+\layout Itemize
+
+
+\color black
+buffer_full() - called when a the packet buffer for this flow is full
+\layout Itemize
+
+
+\color black
+delete_node() - called just prior to the node being free()'d
+\end_deeper 
+\layout Itemize
+
+
+\color black
+Optional functions:
+\begin_deeper 
+\layout Itemize
+
+
+\color black
+pre_send_data() - called before data is sent
+\layout Itemize
+
+
+\color black
+post_send_data() - called after data is sent
+\layout Itemize
+
+
+\color black
+pre_poll() - called prior to poll()
+\layout Itemize
+
+
+\color black
+post_poll_default() - called when poll() returns and neither the socket
+ was ready or the node timed out 
+\layout Itemize
+
+
+\color black
+open_socket() - called after the socket is opened
+\layout Itemize
+
+
+\color black
+close_socket() - called after the socket is closed
+\end_deeper 
+\end_deeper 
+\layout LyX-Code
+
+\layout LyX-Code
+
+\the_end

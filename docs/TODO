@@ -1,0 +1,47 @@
+This is a general list of things which should/could/may be done.
+If any of these features interest you let me know- especially if you're
+willing and able to help code it.
+
+- Look at VLAN packets
+    - others non-vanilla types?
+    - Add tags?  Remove tags?  Change tags?
+
+- Add support for setting the ethernet protocol field so we can use
+    -I, -K to fill out an entire ethernet header w/o using -2
+
+- Add a secondary interface full layer two rewrite option
+
+- Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
+
+- Add support for more linktypes (Prism Monitor, 802.11, etc)
+    - Make it easier for others to add support for others
+
+- Rip out packet munger from tcpreplay and put it into another tool so
+  that tcpreplay can be more optimized
+    - perhaps use libnetdude?
+    - make into a library?
+    - definately put it into a seperate binary
+
+- Improve config file format
+  - better variable names
+  - use "var: value" format
+  - have tcpreplay, tcpprep, tcprewrite sections
+
+- Add support for dual-nic send on one intf, wait for packet, send next.
+  would be really useful for testing the effectiveness of how well an IPS
+  detects and blocks attacks.
+
+- Support fragrouter like features 
+    - basic IP fragmenation
+    - TCP fudging 
+    - then more advanced stuff
+
+- Support connection tracking and generating 3way handshake for connections
+  missing them.
+
+- Bump Syn/Ack numbers by a random or given value so that running 
+  the same pcap will behave as different streams.
+
+- Improve flowreplay so it actually works
+
+- IPv6 support?
