@@ -130,7 +130,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
-    dbg(1, "Cache file contains %lld packets in %lld bytes",
+    dbg(1, "Cache file contains %llu packets in %llu bytes",
         header.num_packets, cache_size);
 
     dbg(1, "Cache uses %d packets per byte", header.packets_per_byte);
@@ -299,17 +299,17 @@ add_cache(cache_t ** cachedata, const int send, const int interface)
         byte = (u_char *) & lastcache->data[index];
         *byte += (u_char) (1 << bit);
 
-        dbg(2, "set send bit: byte %d = 0x%x", index, *byte);
+        dbg(2, "set send bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
 
         /* if true, set low order bit. else, do squat */
         if (interface) {
             *byte += (u_char)(1 << (bit - 1));
 
-            dbg(2, "set interface bit: byte %d = 0x%x", index, *byte);
+            dbg(2, "set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
             result = CACHE_PRIMARY;
         }
         else {
-            dbg(2, "don't set interface bit: byte %d = 0x%x", index, *byte);
+            dbg(2, "don't set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
             result = CACHE_SECONDARY;
         }
         dbg(3, "Current cache byte: %c%c%c%c%c%c%c%c",
@@ -350,13 +350,8 @@ check_cache(char *cachedata, COUNTER packetid)
     bit = (u_int32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
         (COUNTER)CACHE_BITS_PER_PACKET) + 1;
 
-#ifdef ENABLE_64BITS
-    dbg(3, "Index: %lld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
+    dbg(3, "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
         cachedata[index], (cachedata[index] & (char)(1 << bit)));
-#else
-    dbg(3, "Index: %ld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
-        cachedata[index], (cachedata[index] & (char)(1 << bit)));
-#endif
 
     if (!(cachedata[index] & (char)(1 << bit))) {
         return CACHE_NOSEND;

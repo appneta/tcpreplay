@@ -132,10 +132,10 @@ send_packets(pcap_t *pcap)
         if (didsig)
             break_now(0);
 
-        dbg(2, "packets sent %llu", pkts_sent);
+        dbg(2, "packets sent " COUNTER_SPEC, pkts_sent);
 
         packetnum++;
-        dbg(2, "packet %llu caplen %d", packetnum, pkthdr.caplen);
+        dbg(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
         
         /* Dual nic processing */
         if (options.intf2 != NULL) {
@@ -199,15 +199,15 @@ cache_mode(char *cachedata, COUNTER packet_num)
 
     result = check_cache(cachedata, packet_num);
     if (result == CACHE_NOSEND) {
-        dbg(2, "Cache: Not sending packet %d.", packet_num);
+        dbg(2, "Cache: Not sending packet " COUNTER_SPEC ".", packet_num);
         return CACHE_NOSEND;
     }
     else if (result == CACHE_PRIMARY) {
-        dbg(2, "Cache: Sending packet %d out primary interface.", packet_num);
+        dbg(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
         l = options.intf1;
     }
     else if (result == CACHE_SECONDARY) {
-        dbg(2, "Cache: Sending packet %d out secondary interface.", packet_num);
+        dbg(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
         l = options.intf2;
     }
     else {
