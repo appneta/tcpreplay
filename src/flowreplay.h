@@ -34,13 +34,32 @@
 #define _FLOWREPLAY_H_
 
 #include "config.h"
+#include "defines.h"
 
 #include <sys/types.h>
 
-#define MODE_SEND 0x1
-#define MODE_WAIT 0x2
+#define MODE_SEND  0x1
+#define MODE_WAIT  0x2
 #define MODE_BYTES 0x3
+#define MODE_USER  0x4
 
+/* runtime options */
+struct flowreplay_opt_s {
+    int sendmode;
+    int nosyn;          /* require Syn to start flow? */
+    struct in_addr targetaddr; /* target host */
+    cidr_t *clients;
+    cidr_t *servers;
+    libnet_t *l;
+    struct timeval timeout;
+    u_int32_t pernodebufflim;
+    u_int32_t totalbufflim;
+    u_int16_t port;
+    u_char proto;
+    u_char spacer; /* make 4 byte aligned */
+};
+
+typedef struct flowreplay_opt_s flowreplay_opt_t;
 
 #endif
 

@@ -46,6 +46,7 @@
 #include <strings.h>            /* strcasecmp() */
 
 #include "flowreplay.h"
+#include "flowreplay_opts.h"
 #include "flownode.h"
 #include "flowkey.h"
 #include "flowstate.h"
@@ -58,199 +59,41 @@ int debug = 0;
 
 static void cleanup(void);
 static void init(void);
-int main_loop(pcap_t *, u_char, u_int16_t);
+static void post_args(int argc, char *argv[]);
+int main_loop(pcap_t *);
 int process_packet(struct session_t *, ip_hdr_t *, void *);
+
+/*
+ * Global options
+ */
+
+flowreplay_opt_t options;
+
 struct session_tree tcproot, udproot;
-
-
-/* getopt */
-extern int optind, opterr, optopt;
-extern char *optarg;
 
 /* we get this from libpcap */
 extern char pcap_version[];
-
-/* send mode */
-int SendMode = MODE_SEND;
-
-/* require Syn to start flow? */
-int NoSyn = 0;
 
 /* file descriptor stuff */
 fd_set fds;
 int nfds = 0;
 
-/* target to connect to */
-struct in_addr targetaddr;
-
-/* Client/Server CIDR blocks */
-cidr_t *clients = NULL, *servers = NULL;
-
-/* libnet handle for libnet functions */
-libnet_t *l = NULL;
-
-/* limits for buffered packets */
-int32_t pernodebufflim = PER_NODE_BUFF_LIMIT;
-int32_t totalbufflim = TOTAL_BUFF_LIMIT;    /* counts down to zero */
-
-static void
-version(void)
-{
-    fprintf(stderr, "flowreplay version: %s", VERSION);
-#ifdef DEBUG
-    fprintf(stderr, " (debug)");
-#endif
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
-    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
-    exit(0);
-}
-
-static void
-usage(void)
-{
-    fprintf(stderr, "Usage: flowreplay [args] <file1> <file2> ...\n"
-            "-c <CIDR1,CIDR2,...>\tClients are on this CIDR block\n");
-#ifdef DEBUG
-    fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
-#endif
-    fprintf(stderr,
-            "-f\t\t\tFirst TCP packet starts flow (don't require SYN)\n"
-            "-h\t\t\tHelp\n"
-            "-m <mode>\t\tReplay mode (send|wait|bytes)\n"
-            "-t <ipaddr>\t\tRedirect flows to target ip address\n"
-            "-p <proto/port>\t\tLimit to protocol and/or port\n"
-            "-s <CIDR1,CIDR2,...>\tServers are on this CIDR block\n"
-            "-V\t\t\tVersion\n"
-            "-w <sec.usec>\t\tWait for server to send data\n");
-    exit(0);
-}
-
 int
 main(int argc, char *argv[])
 {
-    int ch, i;
+    int optct, i;
     char ebuf[PCAP_ERRBUF_SIZE];
     pcap_t *pcap = NULL;
-    char *p_parse = NULL;
-    u_char proto = 0x0;
-    u_int16_t port = 0;
-    struct timeval timeout = { 0, 0 };
 
     init();
 
-    while ((ch = getopt(argc, argv, "c:fhm:p:s:t:Vw:"
-#ifdef DEBUG
-                        "d:"
-#endif
-                )) != -1) {
-        switch (ch) {
-        case 'c':              /* client network */
-            if (!parse_cidr(&clients, optarg, ","))
-                usage();
-            break;
-#ifdef DEBUG
-        case 'd':
-            debug = atoi(optarg);
-            break;
-#endif
-        case 'f':              /* don't require a Syn packet to start a flow */
-            NoSyn = 1;
-            break;
-        case 'h':
-            usage();
-            exit(0);
-            break;
-        case 'm':              /* mode */
-            if (strcasecmp(optarg, "send") == 0) {
-                SendMode = MODE_SEND;
-            }
-            else if (strcasecmp(optarg, "wait") == 0) {
-                SendMode = MODE_WAIT;
-            }
-            else if (strcasecmp(optarg, "bytes") == 0) {
-                SendMode = MODE_BYTES;
-            }
-            else {
-                errx(1, "Invalid mode: -m %s", optarg);
-            }
-            break;
-        case 'p':              /* protocol & port */
-            p_parse = strtok(optarg, "/");
-            if (strcasecmp(p_parse, "TCP") == 0) {
-                proto = IPPROTO_TCP;
-                dbg(1, "Proto: TCP");
-            }
-            else if (strcasecmp(p_parse, "UDP") == 0) {
-                proto = IPPROTO_UDP;
-                dbg(1, "Proto: UDP");
-            }
-            else {
-                errx(1, "Unknown protocol: %s", p_parse);
-            }
+    /* call autoopts to process args */
+    optct = optionProcess(&flowreplayOptions, argc, argv);
+    argc -= optct;
+    argv += optct;
 
-            /* if a port is specifed, set it */
-            if ((p_parse = strtok(NULL, "/")))
-                port = atoi(p_parse);
+    post_args(argc, argv);
 
-            dbg(1, "Port: %u", port);
-            port = htons(port);
-            break;
-        case 's':              /* server network */
-            if (!parse_cidr(&servers, optarg, ","))
-                usage();
-            break;
-        case 't':              /* target IP */
-#ifdef INET_ATON
-            if (inet_aton(optarg, &targetaddr) == 0)
-                errx(1, "Invalid target IP address: %s", optarg);
-#elif INET_ADDR
-            if ((targetaddr.s_addr = inet_addr(optarg)) == -1)
-                errx(1, "Invalid target IP address: %s", optarg);
-#endif
-            break;
-        case 'V':
-            version();
-            exit(0);
-            break;
-        case 'w':              /* wait between last server packet */
-            float2timer(atof(optarg), &timeout);
-            break;
-        default:
-            warnx("Invalid argument: -%c", ch);
-            usage();
-            exit(1);
-            break;
-        }
-    } /* getopt() END */
-
-    /*
-     * Verify input 
-     */
-
-    /* if -m wait, then must use -w */
-    if ((SendMode == MODE_WAIT) && (!timerisset(&timeout)))
-        err(1, "You must specify a wait period with -m wait");
-
-    /* Can't specify client & server CIDR */
-    if ((clients != NULL) && (servers != NULL))
-        err(1, "You can't specify both a client and server cidr block");
-
-    /* move over to the input files */
-    argc -= optind;
-    argv += optind;
-
-    /* we need to replay something */
-    if (argc == 0) {
-        usage();
-        exit(1);
-    }
-
-    /* check for valid stdin */
-    if (argc > 1)
-        for (i = 0; i < argc; i++)
-            if (!strcmp("-", argv[i]))
-                err(1, "stdin must be the only file specified");
 
     /* loop through the input file(s) */
     for (i = 0; i < argc; i++) {
@@ -264,7 +107,7 @@ main(int argc, char *argv[])
             pcap_datalink_val_to_description(pcap_datalink(pcap)));
         
         /* play the pcap */
-        main_loop(pcap, proto, port);
+        main_loop(pcap);
 
         /* Close the pcap file */
         pcap_close(pcap);
@@ -283,7 +126,7 @@ main(int argc, char *argv[])
  */
 
 int
-main_loop(pcap_t * pcap, u_char proto, u_int16_t port)
+main_loop(pcap_t * pcap)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -322,13 +165,13 @@ main_loop(pcap_t * pcap, u_char proto, u_int16_t port)
         ip_hdr = (ip_hdr_t *) & pktdata;
 
         /* TCP */
-        if ((proto == 0x0 || proto == IPPROTO_TCP)
+        if ((options.proto == 0x0 || options.proto == IPPROTO_TCP)
             && (ip_hdr->ip_p == IPPROTO_TCP)) {
             tcp_hdr = (tcp_hdr_t *) get_layer4(ip_hdr);
 
             /* skip if port is set and not our port */
-            if ((port) && (tcp_hdr->th_sport != port &&
-                           tcp_hdr->th_dport != port)) {
+            if ((options.port) && (tcp_hdr->th_sport != options.port &&
+                           tcp_hdr->th_dport != options.port)) {
                 dbg(3, "Skipping packet #%u based on port not matching", count);
                 continue;       /* next packet */
             }
@@ -361,13 +204,13 @@ main_loop(pcap_t * pcap, u_char proto, u_int16_t port)
             }
         }
         /* UDP */
-        else if ((proto == 0x0 || proto == IPPROTO_UDP)
+        else if ((options.proto == 0x0 || options.proto == IPPROTO_UDP)
                  && (ip_hdr->ip_p == IPPROTO_UDP)) {
             udp_hdr = (udp_hdr_t *) get_layer4(ip_hdr);
 
             /* skip if port is set and not our port */
-            if ((port) && (udp_hdr->uh_sport != port &&
-                           udp_hdr->uh_dport != port)) {
+            if ((options.port) && (udp_hdr->uh_sport != options.port &&
+                           udp_hdr->uh_dport != options.port)) {
                 dbg(2, "Skipping packet #%u based on port not matching", count);
                 continue;       /* next packet */
             }
@@ -537,7 +380,41 @@ init(void)
     RB_INIT(&tcproot);
     RB_INIT(&udproot);
 
-    memset(&targetaddr, '\0', sizeof(struct in_addr));
+    memset(&options.targetaddr, '\0', sizeof(struct in_addr));
+    memset(&options, '\0', sizeof(flowreplay_opt_t));
+
+    options.sendmode = MODE_SEND;
+    options.pernodebufflim = PER_NODE_BUFF_LIMIT;
+    options.totalbufflim = TOTAL_BUFF_LIMIT;
+    
+}
+
+
+
+static void
+post_args(int argc, char *argv[])
+{
+    int i;
+
+    /*
+     * Verify input 
+     */
+
+    /* if -m wait, then must use -w */
+    if ((options.sendmode == MODE_WAIT) && (!timerisset(&options.timeout)))
+        err(1, "You must specify a wait period with -m wait");
+
+    /* Can't specify client & server CIDR */
+    if ((options.clients != NULL) && (options.servers != NULL))
+        err(1, "You can't specify both a client and server cidr block");
+
+    /* check for valid stdin */
+    if (argc > 1)
+        for (i = 0; i < argc; i++)
+            if (!strcmp("-", argv[i]))
+                err(1, "stdin must be the only file specified");
+
+
 }
 
 /*
