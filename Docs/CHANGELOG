@@ -1,4 +1,9 @@
-$Id: CHANGELOG,v 1.33 2004/03/25 02:32:39 aturner Exp $
+$Id: CHANGELOG,v 1.34 2004/04/01 06:49:12 aturner Exp $
+
+?????: Version 2.1.0
+    - Add support for per output interface/file NAT tables 
+    - Add support for using dual output features w/ a single output
+    - Add support to tcpprep for splitting via destination port
 
 03/24/2004: Version 2.0.3
     - Add support for rewriting src mac & Linux SLL loopback frames
