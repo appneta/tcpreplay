@@ -4,12 +4,14 @@ MAKEFLAGS=-s -k
 nic1=eth0
 nic2=eth0
 
+PRINTF=/usr/bin/printf
+
 test: all
 all: check tcpprep tcpreplay
 
 check:
-	echo "NOTICE: Tests must be run as root"
-	echo "Sending traffic on $(nic1) and $(nic2)"
+	$(PRINTF) "%s\n" "NOTICE: Tests must be run as root"
+	$(PRINTF) "%s\n" "Sending traffic on $(nic1) and $(nic2)"
 	
 # the cache files to be used as the standard; be sure to do a cvs commit
 # afterwords!
@@ -24,80 +26,80 @@ tcpprep: auto_router auto_bridge cidr regex
 tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude
 
 auto_router:
-	echo -n "[tcpprep] Auto/Router mode test: "
-	echo "[tcpprep] Auto/Router mode test: " >>test.log
+	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
+	$(PRINTF) "%s\n" "[tcpprep] Auto/Router mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -a -n router -N client
 	diff -q test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then echo "\tFAILED"; else echo -e "\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
 
 auto_bridge:
-	echo -n "[tcpprep] Auto/Bridge mode test: "
-	echo "[tcpprep] Auto/Bridge mode test: " >>test.log
+	$(PRINTF) "%s" "[tcpprep] Auto/Bridge mode test: "
+	$(PRINTF) "%s\n" "[tcpprep] Auto/Bridge mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -a -n bridge -N client
 	diff -q test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then echo "\tFAILED"; else echo -e "\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
 
 regex:
-	echo -n "[tcpprep] Regex mode test: "
-	echo "[tcpprep] Regex mode test: " >>test.log
+	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
+	$(PRINTF) "%s\n" "[tcpprep] Regex mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -r '216.27.178.*' -N client
 	diff -q test.$@ test.$@1 >>test.log 2>&1 
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 cidr:
-	echo -n "[tcpprep] CIDR mode test: "
-	echo "[tcpprep] CIDR mode test: " >>test.log
+	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
+	$(PRINTF) "%s\n" "[tcpprep] CIDR mode test: " >>test.log
 	../tcpprep -i test.pcap -o test.$@1 -c '216.27.178.0/24' -N client
 	diff -q test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_basic:
-	echo -n "[tcpreplay] Basic test: "
-	echo "[tcpreplay] Basic test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Basic test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Basic test: " >>test.log
 	../tcpreplay -i $(nic1) test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_cache:
-	echo -n "[tcpreplay] Cache test: "
-	echo "[tcpreplay] Cache test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Cache test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Cache test: " >>test.log
 	../tcpreplay -c test.cidr -i $(nic1) -j $(nic2) test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_cidr:
-	echo -n "[tcpreplay] CIDR test: "
-	echo "[tcpreplay] CIDR test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] CIDR test: "
+	$(PRINTF) "%s\n" "[tcpreplay] CIDR test: " >>test.log
 	../tcpreplay -C 216.27.178.0/24 -i $(nic1) -j $(nic2) test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\t\tFAILED"; else echo -e "\t\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else printf "\t\t\t%s\n" "OK"; fi
 
 replay_trunc:
-	echo -n "[tcpreplay] Trunc test: "
-	echo "[tcpreplay] Trunc test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Trunc test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Trunc test: " >>test.log
 	../tcpreplay -i $(nic1) -u trunc test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_pad:
-	echo -n "[tcpreplay] Pad test: "
-	echo "[tcpreplay] Pad test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Pad test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Pad test: " >>test.log
 	../tcpreplay -i $(nic1) -u pad test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\t\tFAILED"; else echo -e "\t\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else printf "\t\t\t%s\n" "OK"; fi
 
 replay_rand:
-	echo -n "[tcpreplay] Random IP test: "
-	echo "[tcpreplay] Random IP test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Random IP test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Random IP test: " >>test.log
 	../tcpreplay -i $(nic1) -s 666 test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_include:
-	echo -n "[tcpreplay] Include only test: "
-	echo "[tcpreplay] Include only test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Include only test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Include only test: " >>test.log
 	../tcpreplay -i $(nic1) -x P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_exclude:
-	echo -n "[tcpreplay] Exclude test: "
-	echo "[tcpreplay] Exclude test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Exclude test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Exclude test: " >>test.log
 	../tcpreplay -i $(nic1) -X P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
-	if [ $? ] ; then echo "\t\tFAILED"; else echo -e "\t\tOK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 clean: distclean
 
