@@ -443,7 +443,11 @@ packet2tree(const u_char * data)
 	ip_hdr_t *ip_hdr = NULL;
 	struct libnet_tcp_hdr *tcp_hdr = NULL;
 	struct libnet_udp_hdr *udp_hdr = NULL;
+#if USE_LIBNET_VERSION == 10
 	struct libnet_icmp_hdr *icmp_hdr = NULL;
+#elif USE_LIBNET_VERSION == 11
+	struct libnet_icmpv4_hdr *icmp_hdr = NULL;
+#endif
 	dns_hdr_t *dns_hdr = NULL;
 
 	mytree = new_tree();
@@ -565,7 +569,12 @@ packet2tree(const u_char * data)
 		 * ICMP 
 		 */
 	} else if (ip_hdr->ip_p == IPPROTO_ICMP) {
+#if USE_LIBNET_VERSION == 10
 		icmp_hdr = (struct libnet_icmp_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
+#elif USE_LIBNET_VERSION == 11
+		icmp_hdr = (struct libnet_icmpv4_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
+#endif
+
 #if defined DEBUG && USE_LIBNET_VERSION == 10
 		if (debug)
 			fprintf(stderr, "%s uses ICMP...  ", libnet_host_lookup(ip_hdr->ip_src.s_addr, RESOLVE));
