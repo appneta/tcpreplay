@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern struct data_tree treeroot;
+extern data_tree_t treeroot;
 extern double ratio;
 #ifdef DEBUG
 extern int debug;
@@ -49,30 +49,30 @@ extern CIDR *cidrdata;
 
 int checkincidr;
 
-static struct tree_type *new_tree();
-static struct tree_type *packet2tree(const u_char *);
-static void tree_print(struct data_tree *);
-static void tree_printnode(const char *, const struct tree_type *);
-static void tree_buildcidr(struct data_tree *, BUILDCIDR *);
-static void tree_checkincidr(struct data_tree *, BUILDCIDR *);
+static tree_t *new_tree();
+static tree_t *packet2tree(const u_char *);
+static void tree_print(data_tree_t *);
+static void tree_printnode(const char *, const tree_t *);
+static void tree_buildcidr(data_tree_t *, buildcidr_t *);
+static void tree_checkincidr(data_tree_t *, buildcidr_t *);
 
-RB_PROTOTYPE(data_tree, tree_type, node, tree_comp)
-    RB_GENERATE(data_tree, tree_type, node, tree_comp)
+RB_PROTOTYPE(data_tree_s, tree_s, node, tree_comp)
+RB_GENERATE(data_tree_s, tree_s, node, tree_comp)
 
 /*
  * used with rbwalk to walk a tree and generate CIDR * cidrdata.
  * is smart enough to prevent dupes.  void * arg is cast to bulidcidr_type
  */
      void
-       tree_buildcidr(struct data_tree *treeroot, BUILDCIDR * bcdata)
+       tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
 {
-    struct tree_type *node = NULL;
+    tree_t *node = NULL;
     CIDR *newcidr = NULL;
     unsigned long network = 0;
     unsigned long mask = ~0;    /* turn on all bits */
 
 
-    RB_FOREACH(node, data_tree, treeroot) {
+    RB_FOREACH(node, data_tree_s, treeroot) {
 
         /* we only check types that are vaild */
         if (bcdata->type != ANY)    /* don't check if we're adding ANY */
@@ -100,12 +100,12 @@ RB_PROTOTYPE(data_tree, tree_type, node, tree_comp)
  * since this is void, we return via the global int checkincidr
  */
 void
-tree_checkincidr(struct data_tree *treeroot, BUILDCIDR * bcdata)
+tree_checkincidr(data_tree_t *treeroot, buildcidr_t * bcdata)
 {
-    struct tree_type *node = NULL;
+    tree_t *node = NULL;
 
 
-    RB_FOREACH(node, data_tree, treeroot) {
+    RB_FOREACH(node, data_tree_s, treeroot) {
 
         /* we only check types that are vaild */
         if (bcdata->type != ANY)    /* don't check if we're adding ANY */
@@ -133,10 +133,10 @@ int
 process_tree()
 {
     int mymask = 0;
-    BUILDCIDR *bcdata;
+    buildcidr_t *bcdata;
 
 
-    if ((bcdata = (BUILDCIDR *) malloc(sizeof(BUILDCIDR))) == NULL)
+    if ((bcdata = (buildcidr_t *) malloc(sizeof(buildcidr_t))) == NULL)
         err(1, "malloc");
 
     for (mymask = max_mask; mymask <= min_mask; mymask++) {
@@ -193,12 +193,12 @@ tree_to_cidr(const int masklen, const int type)
 int
 check_ip_tree(const int mode, const unsigned long ip)
 {
-    struct tree_type *node = NULL, *finder = NULL;
+    tree_t *node = NULL, *finder = NULL;
 
     finder = new_tree();
     finder->ip = ip;
 
-    node = RB_FIND(data_tree, &treeroot, finder);
+    node = RB_FIND(data_tree_s, &treeroot, finder);
 
     if (node == NULL && mode == UNKNOWN)
         errx(1, "%s (%lu) is an unknown system... aborting.!\n"
@@ -233,7 +233,7 @@ check_ip_tree(const int mode, const unsigned long ip)
 void
 add_tree(const unsigned long ip, const u_char * data)
 {
-    struct tree_type *node = NULL, *newnode = NULL;
+    tree_t *node = NULL, *newnode = NULL;
 
     newnode = packet2tree(data);
     if (newnode->type == UNKNOWN) {
@@ -244,7 +244,7 @@ add_tree(const unsigned long ip, const u_char * data)
 
     }
     /* try to find a simular entry in the tree */
-    node = RB_FIND(data_tree, &treeroot, newnode);
+    node = RB_FIND(data_tree_s, &treeroot, newnode);
 
 #ifdef DEBUG
     if (debug > 2)
@@ -296,11 +296,11 @@ add_tree(const unsigned long ip, const u_char * data)
  */
 
 void
-tree_calculate(struct data_tree *treeroot)
+tree_calculate(data_tree_t *treeroot)
 {
-    struct tree_type *node;
+    tree_t *node;
 
-    RB_FOREACH(node, data_tree, treeroot) {
+    RB_FOREACH(node, data_tree_s, treeroot) {
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
             if ((double)node->server_cnt >= (double)node->client_cnt * ratio) {
@@ -325,7 +325,7 @@ tree_calculate(struct data_tree *treeroot)
  *
  */
 int
-tree_comp(struct tree_type *t1, struct tree_type *t2)
+tree_comp(tree_t *t1, tree_t *t2)
 {
 
     if (t1->ip > t2->ip) {
@@ -351,16 +351,16 @@ tree_comp(struct tree_type *t1, struct tree_type *t2)
  * creates a new TREE * with reasonable defaults
  */
 
-static struct tree_type *
+static tree_t *
 new_tree()
 {
-    struct tree_type *node;
+    tree_t *node;
 
-    node = (struct tree_type *)malloc(sizeof(struct tree_type));
+    node = (tree_t *)malloc(sizeof(tree_t));
     if (node == NULL)
         err(1, "malloc");
 
-    memset(node, '\0', sizeof(struct tree_type));
+    memset(node, '\0', sizeof(tree_t));
     node->server_cnt = 0;
     node->client_cnt = 0;
     node->type = UNKNOWN;
@@ -377,10 +377,10 @@ new_tree()
  * the u_char * data should be the data that is passed by pcap_dispatch()
  */
 
-struct tree_type *
+tree_t *
 packet2tree(const u_char * data)
 {
-    struct tree_type *node = NULL;
+    tree_t *node = NULL;
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t ip_hdr;
     tcp_hdr_t tcp_hdr;
@@ -528,7 +528,7 @@ packet2tree(const u_char * data)
  */
 
 static void
-tree_printnode(const char *name, const struct tree_type *node)
+tree_printnode(const char *name, const tree_t *node)
 {
 
     if (node == NULL) {
@@ -555,11 +555,11 @@ tree_printnode(const char *name, const struct tree_type *node)
  */
 
 static void
-tree_print(struct data_tree *treeroot)
+tree_print(data_tree_t *treeroot)
 {
-    struct tree_type *node = NULL;
+    tree_t *node = NULL;
 
-    RB_FOREACH(node, data_tree, treeroot) {
+    RB_FOREACH(node, data_tree_s, treeroot) {
         tree_printnode("my node", node);
     }
     return;
@@ -573,4 +573,3 @@ tree_print(struct data_tree *treeroot)
  c-basic-offset:4
  End:
 */
-

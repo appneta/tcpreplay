@@ -33,10 +33,10 @@
 #ifndef __TREE_H__
 #define __TREE_H__
 
-#include "lib/tree.h"
+#include "../../lib/tree.h"
 
-struct tree_type {
-    RB_ENTRY(tree_type) node;
+struct tree_s {
+    RB_ENTRY(tree_s) node;
     unsigned long ip;           /* ip/network address in network byte order */
     u_char mac[ETHER_ADDR_LEN]; /* mac address of system */
     int masklen;                /* CIDR network mask length */
@@ -44,20 +44,22 @@ struct tree_type {
     int client_cnt;             /* flagged client */
     int type;                   /* 1 = server, 0 = client, -1 = undefined */
 };
+typedef struct tree_s tree_t;
 
 /*
  * replacement for RB_HEAD() which doesn't actually declare the root
  */
-struct data_tree {
-    struct tree_type *rbh_root;
+struct data_tree_s {
+    tree_t *rbh_root;
 };
+typedef struct data_tree_s data_tree_t;
 
-struct buildcidr_type {
+struct buildcidr_s {
     int type;                   /* SERVER|CLIENT|UNKNOWN|ANY */
     int masklen;                /* mask size to use to build the CIDR */
 };
 
-typedef struct buildcidr_type BUILDCIDR;
+typedef struct buildcidr_s buildcidr_t;
 
 #define DEF_MAX_MASK  8         /* default max masklen */
 #define DEF_MIN_MASK  30        /* default min masklen */
@@ -74,8 +76,8 @@ typedef struct buildcidr_type BUILDCIDR;
 void add_tree(const unsigned long, const u_char *); /* done */
 int check_ip_tree(const int, const unsigned long);
 int process_tree();
-void tree_calculate(struct data_tree *);
-int tree_comp(struct tree_type *, struct tree_type *);
+void tree_calculate(data_tree_t *);
+int tree_comp(tree_t *, tree_t *);
 
 
 #endif
@@ -87,4 +89,3 @@ int tree_comp(struct tree_type *, struct tree_type *);
  c-basic-offset:4
  End:
 */
-
