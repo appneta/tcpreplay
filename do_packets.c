@@ -161,11 +161,9 @@ do_packets(pcap_t * pcap)
 	    case 0:
 	    case 127:
 	    case 255:
-#ifdef DEBUG
-		if (debug) {
-		    warnx("Skipping martian.  Packet #%d", pkts_sent);
-		}
-#endif
+
+		dbg(1, "Skipping martian.  Packet #%d", pkts_sent);
+
 
 		/* then skip the packet */
 		continue;
@@ -256,10 +254,8 @@ randomize_ips(struct pcap_pkthdr *pkthdr,
 	      u_char * pktdata, ip_hdr_t * ip_hdr, libnet_t *l)
 {
     /* randomize IP addresses based on the value of random */
-#ifdef DEBUG
     dbg(1, "Old Src IP: 0x%08lx\tOld Dst IP: 0x%08lx",
 	ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
-#endif
 
     ip_hdr->ip_dst.s_addr =
 	(ip_hdr->ip_dst.s_addr ^ options.seed) -
@@ -269,10 +265,8 @@ randomize_ips(struct pcap_pkthdr *pkthdr,
 	(ip_hdr->ip_src.s_addr & options.seed);
 
 
-#ifdef DEBUG
     dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
 	ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
-#endif
 
     /* recalc the UDP/TCP checksum(s) */
     if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {

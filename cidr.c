@@ -260,27 +260,19 @@ ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
     /* if they're the same, then ip is in network */
     if (network == ipaddr) {
 
-#ifdef DEBUG
-	if (debug) {
-	    fprintf(stderr, "The ip %s is inside of %s/%d\n",
-		    libnet_addr2name4(ip, RESOLVE),
-		    libnet_addr2name4(htonl(network), RESOLVE),
-		    mycidr->masklen);
-	}
-#endif
+	dbg(1, "The ip %s is inside of %s/%d",
+	    libnet_addr2name4(ip, RESOLVE),
+	    libnet_addr2name4(htonl(network), RESOLVE),
+	    mycidr->masklen);
 
 	return 1;
     }
     else {
 
-#ifdef DEBUG
-	if (debug) {
-	    fprintf(stderr, "The ip %s is not inside of %s/%d\n",
-		    libnet_addr2name4(ip, RESOLVE),
-		    libnet_addr2name4(htonl(network), RESOLVE),
-		    mycidr->masklen);
-	}
-#endif
+	dbg(1, "The ip %s is not inside of %s/%d\n",
+	    libnet_addr2name4(ip, RESOLVE),
+	    libnet_addr2name4(htonl(network), RESOLVE),
+	    mycidr->masklen);
 
 	return 0;
     }

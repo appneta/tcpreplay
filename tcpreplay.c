@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.51 2003/04/29 19:33:42 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.52 2003/05/01 23:32:17 aturner Exp $ */
 
 #include "config.h"
 
@@ -223,9 +223,9 @@ main(int argc, char *argv[])
     if (options.seed != 0) {
 	srand(options.seed);
 	options.seed = random();
-#ifdef DEBUG
+
 	dbg(1, "random() picked: %d", options.seed);
-#endif
+
     }
 
 
