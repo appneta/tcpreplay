@@ -9,5 +9,6 @@ void untrunc_packet(struct packet *, ip_hdr_t *, void *);
 void randomize_ips(struct packet *, ip_hdr_t *, void *);
 void * cache_mode(struct libnet_ethernet_hdr *, int);
 void * cidr_mode(struct libnet_ethernet_hdr *, ip_hdr_t *);
+int process_packet_by_cidr(char, CIDR *, CIDR *, ip_hdr_t *);
 
 #endif

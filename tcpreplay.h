@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.15 2002/10/03 18:02:14 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.16 2002/10/08 18:11:50 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -93,6 +93,16 @@ struct packet {
 
 #define PAD_PACKET 1	 /* values for the 'uflag' in tcpreplay */
 #define TRUNC_PACKET 2
+
+/* Values for storing the include/exclude (-x|-X) 
+ * mode in options.include_exclude_mode
+ */
+#define xXSource 1
+#define xXDest 2
+#define xXBoth 3
+#define xXEither 4
+#define xXPacket 5
+#define xXExclude 128 /* if exclude mode, add 128 to above value */
 
 #ifndef SWAPLONG
 #define SWAPLONG(y) \

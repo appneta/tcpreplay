@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.36 2002/10/03 18:02:13 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.37 2002/10/08 18:11:50 aturner Exp $ */
 
 #include "config.h"
 
@@ -12,24 +12,30 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "tcpreplay.h"
 #include "cache.h"
 #include "cidr.h"
 #include "libpcap.h"
 #include "snoop.h"
-#include "tcpreplay.h"
+#include "list.h"
 #include "err.h"
 #include "do_packets.h"
 
 struct options options;
 CACHE *cachedata = NULL;
 CIDR *cidrdata = NULL;
-CIDR *cidrsend = NULL;
-CIDR *cidrignore = NULL;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
 int cache_bit, cache_byte, cache_packets;
 volatile int didsig;
+
+char include_exclude_mode;
+CIDR *include_cidr = NULL;
+CIDR *exclude_cidr = NULL;
+LIST *include_list = NULL;
+LIST *exclude_list = NULL;
+
 
 #ifdef DEBUG
 int debug = 0;
@@ -44,12 +50,14 @@ void version();
 void mac2hex(const char *, char *, int); 
 void configfile(char *);
 int argv_create(char *, int, char **);
+void * parse_xX(char *);
 
 int
 main(int argc, char *argv[])
 {
 	char ebuf[256]; 
 	int ch, i;
+	char *str;
 
 	bytes_sent = failed = pkts_sent = 0;
 	intf = intf2 = NULL;
@@ -174,8 +182,87 @@ main(int argc, char *argv[])
 	if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
 
+	/* process -x and -X */
 	if ((options.include != NULL) && (options.exclude != NULL))
 		errx(1, "Can only specify -x or -X, not both");
+
+	if (options.include != NULL) {
+		str = options.include;
+		switch (*str) {
+		case 'P':
+			str = str + 2;
+			include_exclude_mode = xXPacket;
+			if (!parse_list(&include_list, str))
+				errx(1, "Aborting...");
+			break;
+		case 'S':
+			str = str + 2;
+			include_exclude_mode = xXSource;
+			if (!parse_cidr(&include_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		case 'D':
+			str = str + 2;
+			include_exclude_mode = xXDest;
+			if (!parse_cidr(&include_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		case 'B':
+			str = str + 2;
+			include_exclude_mode = xXBoth;
+			if (!parse_cidr(&include_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		case 'E':
+			str = str + 2;
+			include_exclude_mode = xXEither;
+			if (!parse_cidr(&include_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		default:
+			errx(1, "Invalid include option: %c", *str);
+			break;
+		}
+	}
+
+	if (options.exclude != NULL) {
+		str = options.exclude;
+		switch (*str) {
+		case 'P':
+			str = str + 2;
+			include_exclude_mode = xXPacket + xXExclude;
+			if (!parse_list(&exclude_list, str))
+				errx(1, "Aborting...");
+			break;
+		case 'S':
+			str = str + 2;
+			include_exclude_mode = xXSource + xXExclude;
+			if (!parse_cidr(&exclude_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		case 'D':
+			str = str + 2;
+			include_exclude_mode = xXDest + xXExclude;
+			if (!parse_cidr(&exclude_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		case 'B':
+			str = str + 2;
+			include_exclude_mode = xXBoth + xXExclude;
+			if (!parse_cidr(&exclude_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		case 'E':
+			str = str + 2;
+			include_exclude_mode = xXEither +xXExclude;
+			if (!parse_cidr(&exclude_cidr, str))
+				errx(1, "Aborting...");
+			break;
+		default:
+			errx(1, "Invalid exclude option: %c", *str);
+			break;
+		}
+	}
 
 	/* use our seed to make pseudo-random IP's */
 	if (options.seed != 0) {
@@ -470,14 +557,14 @@ usage()
 			"-l <loop>\t\tSpecify number of times to loop\n"
 			"-m <multiple>\t\tSet replay speed to given multiple\n"
 			"-M\t\t\tDisable sending martian IP packets\n"
-			"-p <packets>\t\tOnly send the specified packets\n"
 			"-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 			"-R\t\t\tSet replay speed to as fast as possible\n"
 			"-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
 			"-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
 			"-v\t\t\tVerbose\n"
 			"-V\t\t\tVersion\n"
-			"-x <packets>\t\tSend all the packets except those specified\n"
+			"-x <match>\t\tOnly send the packets specified\n"
+			"-X <match>\t\tSend all the packets except those specified\n"
 			"<file1> <file2> ...\tFile list to replay\n");
 	exit(1);
 }

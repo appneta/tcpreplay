@@ -11,6 +11,7 @@
 #include "err.h"
 #include "do_packets.h"
 #include "timer.h"
+#include "list.h"
 
 extern struct options options;
 extern CACHE *cachedata;
@@ -22,13 +23,21 @@ extern unsigned long bytes_sent, failed, pkts_sent;
 extern int cache_bit, cache_byte, cache_packets;
 extern volatile int didsig;
 
+extern char include_exclude_mode;
+extern CIDR *include_cidr;
+extern CIDR *exclude_cidr;
+extern LIST *include_list;
+extern LIST *exclude_list;
+
 
 #ifdef DEBUG
-extern int debug = 0;
+extern int debug;
 #endif
 
 
 void packet_stats();
+
+
 
 /*
  * we've got a race condition, this is our workaround
@@ -60,8 +69,10 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct packet pkt;
 	struct timeval last;
 	char *pktdata;
-	int ret, pktlen;
+	int ret, pktlen, packetnum;
 
+	packetnum = 0;
+	
 	/* register signals */
 	didsig = 0;
 	(void)signal(SIGINT, catcher);
@@ -74,11 +85,35 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			_exit(1);
 		}
 
+		packetnum ++;
+
+		/* look for include or exclude LIST match */
+		if (include_list != NULL) {
+			if (!check_list(include_list, (packetnum))) {
+				continue;
+			}
+
+		} else if (exclude_list != NULL) {
+			if (check_list(exclude_list, (pkts_sent + 1))) {
+				continue;
+			}
+		}
+			
+
 		eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 
 		/* does packet have an IP header?  if so set our pointer to it */
 		if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
 			ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
+			
+			/* look for include or exclude CIDR match */
+			if ((include_exclude_mode != 0) && 
+				(include_exclude_mode != xXPacket)) {
+				if (! process_packet_by_cidr(include_exclude_mode, include_cidr, exclude_cidr, ip_hdr)) {
+					continue;
+				}
+			}
+
 		} else {
 			ip_hdr = NULL; /* NULL == non-ip packet */
 		}
@@ -384,6 +419,8 @@ untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 
 }
 
+
+
 /*
  * Given the timestamp on the current packet and the last packet sent,
  * calculate the appropriate amount of time to sleep and do so.
@@ -449,4 +486,90 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 		if (nap.tv_usec)	 
 			(void)usleep(nap.tv_usec);
 	}
+}
+
+/*
+ * compare the source/destination IP address according to the mode
+ * and return 1 if we should send the packet or 0 if not
+ */
+
+
+int 
+process_packet_by_cidr(char mode, CIDR *include_cidr, CIDR *exclude_cidr, ip_hdr_t *ip_hdr)
+{
+
+	if (mode & xXExclude) {
+		/* Exclude mode */
+		switch(mode) {
+		case xXSource:
+			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_src.s_addr)) {
+				return 0;
+			} else {
+				return 1;
+			}
+			break;
+		case xXDest:
+			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_dst.s_addr)) {
+				return 0;
+			} else {
+				return 1;
+			}
+			break;
+		case xXBoth:
+			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_dst.s_addr) &&
+				check_ip_CIDR(exclude_cidr, ip_hdr->ip_src.s_addr)) {
+				return 0;
+			} else {
+				return 1;
+			}
+			break;
+		case xXEither:
+			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_dst.s_addr) ||
+				check_ip_CIDR(exclude_cidr, ip_hdr->ip_src.s_addr)) {
+				return 0;
+			} else {
+				return 1;
+			}
+			break;
+		}
+	} else {
+		/* Include Mode */
+		switch(mode) {
+		case xXSource:
+			if (check_ip_CIDR(include_cidr, ip_hdr->ip_src.s_addr)) {
+				return 1;
+			} else {
+				return 0;
+			}
+			break;
+		case xXDest:
+			if (check_ip_CIDR(include_cidr, ip_hdr->ip_dst.s_addr)) {
+				return 1;
+			} else {
+				return 0;
+			}
+			break;
+		case xXBoth:
+			if (check_ip_CIDR(include_cidr, ip_hdr->ip_dst.s_addr) &&
+				check_ip_CIDR(include_cidr, ip_hdr->ip_src.s_addr)) {
+				return 1;
+			} else {
+				return 0;
+			}
+			break;
+		case xXEither:
+			if (check_ip_CIDR(include_cidr, ip_hdr->ip_dst.s_addr) ||
+				check_ip_CIDR(include_cidr, ip_hdr->ip_src.s_addr)) {
+				return 1;
+			} else {
+				return 0;
+			}
+			break;
+		}
+	}
+	
+	/* total failure */
+	warnx("Unable to determine action in CIDR filter mode");
+	return 0;
+
 }
