@@ -245,13 +245,13 @@ EOLimit;
 flag = {
     name        = offset;
     value       = o;
-    arg-type    = number;
+    arg-type    = string;
     max         = 1;
     descrip     = "Jump to the packet at the specified byte offset";
     ifdef       = HAVE_PCAPNAV;
     flag-code   = <<- EOOffset
     
-    options.offset = stroull(OPT_VALUE(OFFSET), NULL, 0)
+    options.offset = stroull(OPT_VALUE(OFFSET), NULL, 0);
     
 EOOffset;
 };
