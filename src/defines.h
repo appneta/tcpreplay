@@ -6,8 +6,10 @@
 /* should packet counters be 32 or 64 bit? --enable-64bit */
 #ifdef ENABLE_64BITS
 #define COUNTER u_int64_t
+#define COUNTER_SPEC "%llu"
 #else
 #define COUNTER u_int32_t
+#define COUNTER_SPEC "%lu"
 #endif
 
 #include "lib/strlcpy.h"
