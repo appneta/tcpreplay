@@ -61,7 +61,6 @@ struct tcpreplay_opt_s {
     speed_t speed;
     u_int32_t limit;
     u_int32_t loop;
-    int n_iter;
 
     /* tcpprep cache data */
     int cache_packets;
