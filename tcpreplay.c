@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.94 2004/05/22 05:25:45 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.95 2004/07/14 05:10:13 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -752,31 +752,79 @@ void
 validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
 {
 
-    if (linktype != DLT_EN10MB) {
-        if (linktype == DLT_LINUX_SLL) {
-            dbg(1, "pcap file's link type is DLT_LINUX_SLL");
+    switch (linktype) {
+    case DLT_EN10MB:
+        dbg(1, "Linktype is DLT_EN10MB");
+        break;
+
+    case DLT_LINUX_SLL:
+        dbg(1, "Linktype is DLT_LINUX_SLL");
+        
+        /* single output mode */
+        if (! options.intf2) {
             /* if SLL, then either -2 or -I are ok */
             if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (!l2enabled)) {
-                warnx("Unable to process Linux Cooked Socket pcap "
-                      "without -2 or -I: %s", name);
-                return;
-            }
-
-            /* if using dual interfaces, make sure -2 or -J is set */
-            if (options.intf2 && 
-                ((!l2enabled) && (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
-                errx(1, "Unable to process Linux Cooked Socket pcap with -j"
-                     " without -2 or -J: %s",  name);
+                warnx("Unable to process pcap without -2 or -I: %s", name);
                 return;
             }
         }
-        else if (!l2enabled) {
-            dbg(1, "pcap link type is not DLT_EN10MB or DLT_LINUX_SLL");
-            errx(1, "Unable to process non-802.3 pcap without layer 2 data: %s",  name);
+        
+        /* dual output mode */
+        else {
+            /* if using dual interfaces, make sure -2 or -J & -I) is set */
+            if (((memcmp(options.intf2_mac, NULL_MAC, 6) == 0) ||
+                 (memcmp(options.intf1_mac, NULL_MAC, 6) == 0)) &&
+                (! l2enabled)) {
+                errx(1, "Unable to process pcap with -j without -2 or -I & -J: %s",  name);
+                return;
+            }
+        }            
+        break;
+            
+    case DLT_CHDLC:
+        /* Cisco HDLC (used at least for SONET) */
+        dbg(1, "pcap file's link type is DLT_HDLC");
+        /* 
+         * HDLC has a 4byte header, a 2 byte address type (0x0f00 is unicast
+         * is all I know) and a 2 byte protocol type
+         */
+            
+        /* single output mode */
+        if (! options.intf2) {
+            /* Need either a full l2 header or -I & -k */
+            if (((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) || 
+                 (memcmp(options.intf1_smac, NULL_MAC, 6) == 0)) &&
+                (! l2enabled)) {
+                errx(1, "Unable to process pcap without -2 or -I and -k: %s", name);
+                return;
+            }
+        }
+        
+        /* dual output mode */
+        else {
+            /* Need to have a l2 header or -J, -K, -I, -k */
+            if (((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) ||
+                 (memcmp(options.intf1_smac, NULL_MAC, 6) == 0) ||
+                 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0) ||
+                 (memcmp(options.intf2_smac, NULL_MAC, 6) == 0)) &&
+                (! l2enabled)) {
+                errx(1, "Unable to process pcap with -j without -2 or -J, -I, -K & -k: %s", name);
+                return;
+            }
+        }
+        break;
+        
+    case DLT_RAW:
+        dbg(1, "pcap file's link type is DLT_RAW");
+        if (!l2enabled) {
+            errx(1, "Unable to process pcap without -2: %s",  name);
             return;
         }
-    } else {
-        dbg(1, "pcap link type is DLT_EN10MB");
+        break;
+        
+    default:
+        errx(1, "validate_l2(): Unsupported datalink type: 0x%x", linktype);
+        break;
     }
 
     /* calculate the maxpacket based on the l2len, linktype and mtu */
@@ -785,7 +833,7 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
         dbg(1, "Using custom L2 header to calculate max frame size");
         maxpacket = options.mtu + l2len;
     }
-    else if ((linktype == DLT_EN10MB) || (linktype == DLT_LINUX_SLL)) {
+    else if (linktype == DLT_EN10MB) {
         /* ethernet */
         dbg(1, "Using Ethernet to calculate max frame size");
         maxpacket = options.mtu + LIBNET_ETH_H;

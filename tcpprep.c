@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.40 2004/05/21 15:28:24 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.41 2004/07/14 05:10:14 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -248,6 +248,7 @@ process_raw_packets(pcap_t * pcap)
     ip_hdr_t *ip_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
     struct sll_header *sll_hdr = NULL;
+    struct cisco_hdlc_header *hdlc_hdr = NULL;
     int l2len = 0;
     u_int16_t protocol = 0;
     struct pcap_pkthdr pkthdr;
@@ -262,6 +263,7 @@ process_raw_packets(pcap_t * pcap)
         eth_hdr = NULL;
         sll_hdr = NULL;
         ip_hdr = NULL;
+        hdlc_hdr = NULL;
 
         if (pcap_datalink(pcap) == DLT_EN10MB) {
             dbg(3, "Datalink is DLT_EN10MB.");
@@ -277,6 +279,11 @@ process_raw_packets(pcap_t * pcap)
             dbg(3, "Datalink is RAW");
             protocol = ETHERTYPE_IP;
             l2len = 0;
+        } else if (pcap_datalink(pcap) == DLT_CHDLC) {
+            dbg(3, "Datalink is Cisco HDLC");
+            hdlc_hdr = (struct cisco_hdlc_header *)pktdata;
+            protocol = hdlc_hdr->protocol;
+            l2len = CISCO_HDLC_LEN;
         } else {
             errx(1, "WTF?  How'd we get here with an invalid DLT type? 0x%x",
                  pcap_datalink(pcap));
@@ -631,7 +638,8 @@ main(int argc, char *argv[])
 
     if ((pcap_datalink(pcap) != DLT_EN10MB) &&
         (pcap_datalink(pcap) != DLT_LINUX_SLL) &&
-        (pcap_datalink(pcap) == DLT_RAW)) {
+        (pcap_datalink(pcap) != DLT_RAW) &&
+        (pcap_datalink(pcap) != DLT_CHDLC)) {
         errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(pcap));
     }
 

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.59 2004/05/22 05:25:46 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.60 2004/07/14 05:10:14 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -47,6 +47,7 @@
 #include <sys/time.h>
 #include "timer.h"
 #include "cache.h"
+#include "dlt.h"
 
 /* Map libnet 1.1 structs to shorter names for internal use */
 typedef libnet_t LIBNET;
