@@ -76,7 +76,7 @@ flag = {
     ifdef       = DEBUG;
     flag-code   = <<- EODebug
     
-    debug = atoi(OPT_VALUE(DEBUG));
+    debug = OPT_VALUE(DEBUG);
     
 EODebug;
 };
@@ -224,7 +224,7 @@ flag = {
     descrip     = "Loop through the capture file X times";
     flag-code   = <<- EOLoop
     
-    options.loop = atoi(OPT_VALUE(LOOP));
+    options.loop = OPT_VALUE(LOOP);
     
 EOLoop;
 };
@@ -237,7 +237,7 @@ flag = {
     descrip     = "Limit the number of packets to send";
     flag-code   = <<- EOLimit
     
-    options.limit = atoi(OPT_VALUE(LIMIT));
+    options.limit = OPT_VALUE(LIMIT);
     
 EOLimit;
 };
@@ -391,7 +391,7 @@ flag = {
     descrip     = "Sniff network traffic using the specified snaplen";
     flag-code   = <<- EOSniff
     
-    options.sniff_snaplen = atoi(OPT_VALUE(SNIFF));
+    options.sniff_snaplen = (OPT_VALUE(SNIFF);
     if ((options.sniff_snaplen < 0) || (options.sniff_snaplen > MAX_SNAPLEN)) {
         errx(1, "Invalid snaplen: %d", options.sniff_snaplen);
     }
@@ -426,7 +426,7 @@ flag = {
     descrip     = "Override the default MTU of the output";
     flag-code   = <<- EOMtu
     
-    options.mtu = atoi(OPT_VALUE(MTU));
+    options.mtu = OPT_VALUE(MTU);
     
 EOMtu;
 };
