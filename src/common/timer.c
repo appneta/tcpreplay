@@ -77,7 +77,7 @@ float2timer(float time, struct timeval *tvp)
  */
 void
 do_sleep(struct timeval *time, struct timeval *last, int len,
-         struct options *options, libnet_t *l, char *intf1, char *intf2)
+         struct tcpreplay_opt_t *options, libnet_t *l)
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
@@ -89,7 +89,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len,
     static u_int32_t skip = 0;
 
     /* just return if topspeed */
-    if (options->speedmode == TOPSPEED)
+    if (options->speedmode == SPEED_TOPSPEED)
         return;
 
     if (gettimeofday(&now, NULL) < 0) {
@@ -107,7 +107,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len,
     }
 
     switch(options->speedmode) {
-    case MULTIPLIER:
+    case SPEED_MULTIPLIER:
         /* 
          * Replay packets a factor of the time they were originally sent.
          */
@@ -125,7 +125,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len,
         timerdiv(&nap, options->speed);
         break;
 
-    case MBPSRATE:
+    case SPEED_MBPSRATE:
         /* 
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
@@ -140,7 +140,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len,
         }
         break;
 
-    case PACKETRATE:
+    case SPEED_PACKETRATE:
         /* run in packets/sec */
         n = 1 / options->speed;
         nap.tv_sec = n;
@@ -148,11 +148,11 @@ do_sleep(struct timeval *time, struct timeval *last, int len,
         nap.tv_usec = n * 1000000;
         break;
 
-    case ONEATATIME:
+    case SPEED_ONEATATIME:
         /* do we skip prompting for a key press? */
         if (skip <= 0) {
             printf("**** How many packets do you wish to send? (next packet out %s)\n",
-                   l == options->intf1 ? intf1 : intf2);
+                   l == options->intf1 ? options->intf1_name : options->intf2_name);
             poller[0].fd = STDIN_FILENO;
             poller[0].events = POLLIN;
             poller[0].revents = 0;

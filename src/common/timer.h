@@ -35,8 +35,8 @@
 
 #include "config.h"
 #include "defines.h"
-#include "common.h"
 #include "tcpreplay.h"
+#include "common.h"
 
 #include <time.h>
 #include <sys/time.h>
@@ -46,10 +46,12 @@
 inline void timerdiv(struct timeval *tvp, float div);
 inline void float2timer(float time, struct timeval *tvp);
 void do_sleep(struct timeval *time, struct timeval *last, int len,
-              struct options *options, libnet_t *l, char *inf1, char *intf2);
+            struct tcpreplay_opt_t *options, libnet_t *l);
 
 #ifndef TIMEVAL_TO_TIMESPEC
-#define TIMEVAL_TO_TIMESPEC(tv, ts) { (ts)->tv_sec = (tv)->tv_sec; (ts)->tv_nsec = (tv)->tv_usec * 1000; }
+#define TIMEVAL_TO_TIMESPEC(tv, ts) { \
+            (ts)->tv_sec = (tv)->tv_sec; \
+            (ts)->tv_nsec = (tv)->tv_usec * 1000; }
 #endif
 
 #ifndef timerclear
@@ -117,4 +119,3 @@ void do_sleep(struct timeval *time, struct timeval *last, int len,
  c-basic-offset:4
  End:
 */
-
