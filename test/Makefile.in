@@ -21,10 +21,11 @@ standard:
 	../tcpprep -i test.pcap -o test.auto_bridge -a -n bridge -N client
 	../tcpprep -i test.pcap -o test.auto_bridge -a -n bridge -N client
 	../tcpprep -i test.pcap -o test.auto_bridge -a -n bridge -N client
+	../tcpprep -i test.pcap -o test.port -p
 	../tcpprep -i test.pcap -o test.cidr -c '216.27.178.0/24' -N client
 	../tcpprep -i test.pcap -o test.regex -r '216.27.178.*' -N client
 
-tcpprep: auto_router auto_bridge cidr regex
+tcpprep: auto_router auto_bridge cidr regex port comment print_comment
 tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude replay_layer2 replay_packetrate datadump_mode config_mode
 
 auto_router:
@@ -54,6 +55,26 @@ cidr:
 	../tcpprep $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' -N client 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
+
+port:
+	$(PRINTF) "%s" "[tcpprep] Port mode test: "
+	$(PRINTF) "%s\n" "[tcpprep] Port mode test: " >>test.log
+	../tcpprep $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -p 2>>test.log
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
+
+comment:
+	$(PRINTF) "%s" "[tcpprep] Comment mode test: "
+	$(PRINTF) "%s\n" "[tcpprep] Comment mode test: " >>test.log
+	../tcpprep $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -C "This is a comment" -p 2>>test.log
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
+
+
+print_comment:
+	$(PRINTF) "%s" "[tcpprep] Print comment mode test: "
+	$(PRINTF) "%s\n" "[tcpprep] Print comment mode test: " >>test.log
+	../tcpprep $(ENABLE_DEBUG) -P test.comment >test.$@1 2>>test.log
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
 
 replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
