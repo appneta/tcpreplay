@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.14 2003/11/04 05:59:17 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.15 2003/11/06 05:59:30 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -198,12 +198,12 @@ Verbose mode, currently unused.
 .B \-V
 Print version info and exit.
 .TP
-.B -w
+.B -w or "write"
 Specify the output file to write the primary packets to instead of the network.
 You still must specify the primary interface via -i.  If -D is set before it,
 it will write only the layer 7 data.
 .TP
-.B -W
+.B -W or "secondary_write"
 Specify the output file to write the secondary packets to instead of the 
 network.  You still must specify the secondary interface via -j.  If -D is 
 set before it, it will write only the layer 7 data.
