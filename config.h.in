@@ -21,3 +21,6 @@
 
 /* do we have the old inet_addr ? */
 #undef INET_ADDR
+
+/* do we have to force strict byte alignment? */
+#undef FORCE_ALIGN
