@@ -3,8 +3,12 @@ autogen definitions options;
 copyright = {
     date        = "2000 - 2004";
     owner       = "Aaron Turner";
-    eaddr       = "aturner@pobox.com";
     type        = "bsd";
+    author      = <<- EOText
+Copyright 2000-2005 Aaron Turner
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+EOText;
 };
 
 package         = "tcpprep";
@@ -26,17 +30,34 @@ include         = "#include \"defines.h\"\n"
 homerc          = "$$/";
 
 explain = <<- EOExplain
-    tcpprep is a pcap(3) file pre-processor which creates a cache
-    file which provides "rules" for tcpreplay on how to send packets
+tcpprep is a @file{pcap(3)} file pre-processor which creates a cache
+file which provides "rules" for tcprewrite tcpreplay on how to process and
+send packets
 EOExplain;
 
 detail = <<- EODetail
-    The basic operation of tcpreplay is to resend all packets from the
-    input file(s) out a single file.  Tcpprep processes a pcap file and 
-    applies a set of user-specified rules to create a cache file which 
-    tells tcpreplay wether or not to send each packet and which interface the
-    packet should be sent out of.
+The basic operation of tcpreplay is to resend all packets from the
+input file(s) out a single file.  Tcpprep processes a pcap file and 
+applies a set of user-specified rules to create a cache file which 
+tells tcpreplay wether or not to send each packet and which interface the
+packet should be sent out of.
 EODetail;
+
+
+flag = {
+    name        = dbug;
+    value       = d;
+    arg-type    = number;
+    max         = 1;
+    immediate;
+    arg-range   = "0->5";
+    arg-default = 0;
+    descrip     = "Enable debugging output";
+    doc         = <<- EOText
+If configured with --enable-debug, then you can specify a verbosity 
+level for debugging output.  Higher numbers increase verbosity.
+EOText;
+};
 
 
 /* Modes: -a bridge/router/client/server, -c (cidr) */
@@ -68,6 +89,36 @@ flag = {
         errx(1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
     }
 EOAuto;
+    doc         = <<- EOText
+Tcpprep will try to automatically determine the primary function of hosts
+based on the traffic captured and classify each host as client or server.
+In order to do so, you must provide a hint to tcpprep as to how to search
+for clients and servers.  Valid hints are:
+
+@table @bullet
+@item
+@var{bridge}
+Bridge mode processes each packet to try to determine if the sender is a 
+client or server.  Once all the packets are processed, the results are weighed
+according to the server/client ratio (@samp{--ratio}) and systems are assigned an
+interface.  If tcpprep is unable to determine what role a system plays, tcpprep
+will abort.
+@item
+@var{router}
+Router mode works just like bridge mode, except that after weighing is done, 
+systems which are undetermined are considered a server if they fall inside a 
+network known to contain other servers.  Router has a greater chance of
+successfully splitting clients and servers but is not 100% foolproof.
+@item
+@var{client}
+Client mode works just like bridge mode, except that unclassified systems are
+treated as clients.  Client mode should always complete successfully.
+@item
+@var{server}
+Server mode works just like bridge mode, except that unclassified systems are
+treated as servers.  Server mode should always complete successfully.
+@end table
+EOText;
 };
 
 
@@ -89,6 +140,11 @@ flag = {
     free(cidr);
 
 EOCidr;
+    doc         = <<- EOText
+Specify a comma delimited list of CIDR netblocks to match against
+the source IP of each packet.  Packets matching any of the CIDR's
+are classified as servers.
+EOText;
 };
 
 flag = {
@@ -113,6 +169,10 @@ flag = {
     }
     
 EORegex;
+    doc         = <<- EOText
+Specify a regular expression to match against the source IP of each
+packet.  Packets matching the regex are classified as servers.
+EOText;
 };
 
 flag = {
@@ -127,6 +187,10 @@ flag = {
     options.mode = PORT_MODE;
     
 EOPort;
+    doc         = <<- EOText
+Specifies that TCP and UDP traffic should be classified as client
+or server based upon the destination port of the header.
+EOText;
 };
 
 flag = {
@@ -147,6 +211,10 @@ flag = {
     strcpy(options.comment, OPT_ARG(COMMENT));
     
 EOComment;
+    doc         = <<- EOText
+Specify a comment to be imbedded within the output cache file and later
+viewed.
+EOText;
 };
 
 
@@ -171,6 +239,31 @@ flag = {
     free(include);
     
 EOInclude;
+    doc         = <<- EOText
+Override default of sending all packets stored in the capture file and only
+send packets which match the provided rule.  Rules can be one of:
+
+@table @bullet
+@item S:<CIDR1>,... 
+- Source IP must match specified CIDR(s)
+@item D:<CIDR1>,... 
+- Destination IP must match specified CIDR(s)
+@item B:<CIDR1>,... 
+- Both source and destination IP must match specified CIDR(s)
+@item E:<CIDR1>,... 
+- Either IP must match specified CIDR(s)
+@item P:<LIST>      
+- Must be one of the listed packets where the list
+corresponds to the packet number in the capture file.
+@example
+-x P:1-5,9,15,72-
+@end example
+would send packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+end of the file
+@item F:'<bpf>'
+- BPF filter.  See the @file{tcpdump(8)} man page for syntax.
+@end table
+EOText;
 };
 
 flag = {
@@ -193,6 +286,29 @@ flag = {
     free(exclude);
     
 EOExclude;
+    doc         = <<- EOText
+Override default of sending all packets stored in the capture file and only
+send packets which do not match the provided rule.  Rules can be one of:
+
+@table @bullet
+@item S:<CIDR1>,... 
+- Source IP must not match specified CIDR(s)
+@item D:<CIDR1>,... 
+- Destination IP must not match specified CIDR(s)
+@item B:<CIDR1>,... 
+- Both source and destination IP must not match specified CIDR(s)
+@item E:<CIDR1>,... 
+- Either IP must not match specified CIDR(s)
+@item P:<LIST>      
+- Must not be one of the listed packets where the list
+corresponds to the packet number in the capture file.
+@example
+-x P:1-5,9,15,72-
+@end example
+would drop packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+end of the file
+@end table
+EOText;
 };
 
 flag = {
@@ -201,6 +317,7 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Output cache file";
+    doc         = "";
 };
 
 flag = {
@@ -209,20 +326,21 @@ flag = {
     descrip     = "Input pcap file to process";
     arg-type    = string;
     max         = 1;
+    doc         = "";
 };
 
 flag = {
-    name        = print;
+    name        = print-comment;
     value       = P;
-    descrip     = "Print cache file comment";
-    arg-type    = string;
+    descrip     = "Print embedded cache file comment";
+    doc         = "";
 };
 
 flag = {
-    name        = info;
+    name        = print-info;
     value       = I;
     descrip     = "Print cache file info";
-    arg-type        = string;
+    doc         = "";
 };
 
 flag = {
@@ -247,21 +365,13 @@ flag = {
     options.nonip = SERVER;
     
 EONonip;
+    doc         = <<- EOText
+By default, non-IP traffic which can not be classified as client
+or server is classified as "client".  Specifiying @samp{--nonip}
+will reclassify non-IP traffic as "server".
+EOText;
 };
 
-/*
- * Limits: -l, -L, -o
- */
-
-flag = {
-    name        = limit;
-    value       = l;
-    arg-type    = number;
-    max         = 1;
-    arg-default = 0;
-    arg-range   = "0->";
-    descrip     = "Limit the number of packets to send";
-};
 
 flag = {
     name        = ratio;
@@ -269,12 +379,18 @@ flag = {
     arg-type    = string;
     max         = 1;
     flags-must  = auto;
-    descrip     = "Ratio of client to server flows";
+    descrip     = "Ratio of client to server packets";
     flag-code   = <<- EORatio
   
     options.ratio = atof(OPT_ARG(RATIO));
     
 EORatio;
+    doc         = <<- EOText
+Since a given host may have both client and server traffic being sent
+to/from it, tcpprep uses a ratio to weigh these packets.  If you would
+like to override the default of 2:1 server to client packets required for
+a host to be classified as a server, specify it as a floating point value.
+EOText;
 };
 
 
@@ -286,6 +402,12 @@ flag = {
     max         = 1;
     arg-type    = number;
     arg-range   = "0->32";
+    doc         = <<- EOText
+By default, auto modes use a minimum network mask length of 30 bits
+to build networks containing clients and servers.  This allows you
+to override this value.  Larger values will increase performance but
+may provide inaccurate results.
+EOText;
 };
 
 flag = {
@@ -296,6 +418,12 @@ flag = {
     max         = 1;
     arg-type    = number;
     arg-range   = "0->32";
+    doc         = <<- EOText
+By default, auto modes use a maximum network mask length of 8 bits
+to build networks containing clients and servers.  This allows you
+to override this value.  Larger values will decrease performance
+and accuracy but will provide greater chance of success.
+EOText;
 };
 
 flag = {
@@ -306,6 +434,7 @@ flag = {
     immediate;
     descrip     = "Print decoded packets via tcpdump to STDOUT";
     settable;
+    doc         = "";
 };
 
 flag = {
@@ -316,19 +445,16 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Arguments passed to tcpdump decoder";
-};
-
-
-flag = {
-//    ifdef       = DEBUG;
-    name        = dbug;
-    value       = d;
-    arg-type    = number;
-    max         = 1;
-    immediate;
-    arg-range   = "0->5";
-    arg-default = 0;
-    descrip     = "Enable debugging output";
+    doc         = <<- EOText
+When enabling verbose mode (@samp{-v}) you may also specify one or
+more additional arguments to pass to @code{tcpdump} to modify
+the way packets are decoded.  By default, -n and -l are used.
+Be sure to quote the arguments so that they are not interpreted
+by tcprewrite.  The following arguments are valid:
+    [ -aAeNqRStuvxX ]
+    [ -E spi@ipaddr algo:secret,... ]
+    [ -s snaplen ]
+EOText;
 };
 
 
@@ -354,6 +480,7 @@ flag = {
     exit(0);
     
 EOVersion;
+    doc         = "";
 };
 
 flag = {
