@@ -14,10 +14,10 @@
 \use_natbib 0
 \use_numerical_citations 0
 \paperorientation portrait
-\leftmargin 20mm
+\leftmargin 10mm
 \topmargin 10mm
-\rightmargin 20mm
-\bottommargin 10mm
+\rightmargin 10mm
+\bottommargin 15mm
 \secnumdepth 4
 \tocdepth 3
 \paragraph_separation skip
