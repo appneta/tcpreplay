@@ -1,7 +1,5 @@
 noinst_LIBRARIES = libcommon.a
 
-dist-hook: svn_version.c
-
 BUILT_SOURCES = svn_version.c
 
 svn_version.c:
