@@ -30,12 +30,12 @@
 
 \layout Title
 
-Tcpreplay v1.3.0 FAQ
+Tcpreplay v1.3.x/1.4.x FAQ
 \layout Author
 
-Aaron Turner <aturner@pobox.com>
+Aaron Turner <aturner_AT_pobox.com>
 \newline 
-Matt Bing <mbing@nfr.net>
+Matt Bing <mbing_AT_nfr.net>
 \newline 
 http://www.sourceforge.net/projects/tcpreplay/
 \newline 
@@ -43,7 +43,7 @@ http://www.sourceforge.net/projects/tcpreplay/
 \newline 
 
 \newline 
-FAQ Version 0.3
+FAQ Version 0.5
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -54,7 +54,7 @@ FAQ Version 0.3
 
 \layout Part*
 
-Tcpreplay v1.3.0 FAQ
+Tcpreplay v1.3.x/1.4.x FAQ
 \layout Section
 
 General Info
@@ -201,8 +201,21 @@ Replaying at different speeds
 \layout Standard
 
 You can also replay the traffic at different speeds then it was originally
- captured.
- To support this, tcpreplay supports three different flags: -R, -r and -m
+ captured
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+Tcpreplay makes a "best" effort to replay traffic at the given rate, but
+ due to limitations in hardware or the pcap file itself, it may not be possible.
+ Capture files with only a few packets in them are especially succeptable
+ to this.
+\end_inset 
+
+.
+ To support this, tcpreplay supports four different flags: -R, -r, -m, and
+ -p
 \layout Standard
 
 Some examples:
@@ -234,13 +247,32 @@ To replay traffic at half-speed:
 
 \emph on 
 tcpreplay -m 0.5 -i eth0 sample.pcap
+\layout Itemize
+
+To pause 1.005 seconds between each packet:
+\newline 
+
+\emph on 
+tcpreplay -p 1.005 -i eth0 sample.pcap
 \layout Subsection
 
 Replaying the same file over and over again
 \layout Standard
 
 Using the loop flag (-l) you can specify that a pcap file will be sent two
- or more times:
+ or more times
+\begin_inset Foot
+collapsed false
+
+\layout Standard
+
+Looping files resets internal counters which control the speed that the
+ file is replayed.
+ Also because the file has to be closed and re-opened, an added delay between
+ the last and first packet may occur.
+\end_inset 
+
+:
 \layout Itemize
 
 To replay the sample.pcap file 10 times:
@@ -250,8 +282,7 @@ To replay the sample.pcap file 10 times:
 tcpreplay -l 10 -i eth0 sample.pcap
 \layout Itemize
 
-To replay the sample.pcap an infinate (until CTRL-C is pressed) number of
- times:
+To replay the sample.pcap an infinately or until CTRL-C is pressed:
 \newline 
 
 \emph on 
@@ -488,7 +519,17 @@ Replaying Packet Capture Formats Other Than Libpcap
 \layout Standard
 
 There are about as many different capture file formats as there are sniffers.
- In the interest of simplicity, tcpreplay only supports libpcap.
+ In the interest of simplicity, tcpreplay only supports libpcap
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Note that some versions of tcpreplay prior to 1.4 also supported the Solaris
+ snoop format.
+\end_inset 
+
+.
  If you would like to replay a file in one of these multitude of formats,
  the excellent open source tool Ethereal easily allows you to convert it
  to libpcap.
@@ -594,7 +635,7 @@ Very small.
 What are these 'modes' tcpprep has? 
 \layout Standard
 
-tcpprep has two basic modes which require the user to specify how to split
+Tcpprep has two basic modes which require the user to specify how to split
  traffic.
 \layout Itemize
 
