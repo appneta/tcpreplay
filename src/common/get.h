@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: $ */
 
 /*
  * Copyright (c) 2001-2005 Aaron Turner.
@@ -31,30 +31,23 @@
  */
 
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#ifndef __GET_H__
+#define __GET_H__
 
 #include "config.h"
 #include "defines.h"
 #include "common.h"
 
-int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
-int argv_create(char *p, int argc, char *argv[]);
-void packet_stats(struct timeval *begin, struct timeval *end, 
-                  COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
 
-/* our "safe" implimentations of functions which allocate memory */
-#define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
-void *_our_safe_malloc(size_t len, const char *, const int, const char *);
+int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
 
-#define safe_realloc(x, y) _our_safe_realloc(x, y, __FUNCTION__, __LINE__, __FILE__)
-void *_our_safe_realloc(void *ptr, size_t len, const char *, const int, const char *);
+u_int16_t get_l2protocol(const u_char *pktdata, const int datalen, const int datalink);
 
-#define safe_strdup(x) _our_safe_strdup(x, __FUNCTION__, __LINE__, __FILE__)
-char *_our_safe_strdup(const char *str, const char *, const int, const char *);
+void *get_layer4(ip_hdr_t * ip_hdr);
 
-#define MAX_ARGS 128
+u_char *get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff);
 
+u_int32_t get_name2addr4(char *hostname, u_int8_t dnslookup);
 
 #endif
 
