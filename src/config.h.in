@@ -6,6 +6,9 @@
 /* Enable Electric Fence memory debugger */
 #undef EFENCE
 
+/* Use 64bit packet counters */
+#undef ENABLE_64BITS
+
 /* fopen(3) accepts a 'b' in the mode flag */
 #undef FOPEN_BINARY_FLAG
 
