@@ -67,12 +67,17 @@ mac2hex(const char *mac, char *dst, int len)
  * converts a string representation of TWO MAC addresses, which
  * are comma deliminated into two hex values.  Either *first or *second 
  * can be NULL if there is nothing before or after the comma.
+ * returns:
+ * 1 = first mac
+ * 2 = second mac
+ * 3 = both mac's
  */
-void
+int
 dualmac2hex(const char *dualmac, char *first, char *second, int len)
 {
     char *tok, *temp, *string;
-  
+    int ret;
+
     string = safe_strdup(dualmac);
 
     /* if we've only got a comma, then return NULL's */
@@ -83,14 +88,18 @@ dualmac2hex(const char *dualmac, char *first, char *second, int len)
 
         
     temp = strtok_r(string, ",", &tok);
-    if (strlen(temp))
+    if (strlen(temp)) {
         mac2hex(temp, first, len);
+        ret = 1;
+    }
 
     temp = strtok_r(NULL, ",", &tok);
-    if (strlen(temp))
+    if (strlen(temp)) {
         mac2hex(temp, second, len);
+        ret += 2;
+    }
 
-    return;
+    return ret;
 
 }
 

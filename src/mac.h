@@ -33,7 +33,7 @@
 #define __MAC_H__
 
 void mac2hex(const char *mac, char *dst, int len);
-void dualmac2hex(const char *dualmac, char *first, char *second, int len);
+int dualmac2hex(const char *dualmac, char *first, char *second, int len);
 
 #endif /* __MAC_H__ */
 
