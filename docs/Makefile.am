@@ -2,22 +2,23 @@ MAKEFLAGS=-s
 
 if HAVE_DOCTOOLS
 
-docs: FAQ.pdf FAQ.html flowreplay.pdf flowreplay.html
-#docs: all
+L2HFLAGS = -show_section_numbers -no_footnode -split +1 -info 0 \
+	-auto_navigation -local_icons -mkdir -html_version 4.0
 
-#all: FAQ-pdf FAQ-html flowreplay-pdf flowreplay-html
+docs: FAQ.pdf web/FAQ/FAQ.html flowreplay.pdf web/flowreplay/flowreplay.html \
+	manual.pdf web/manual/manual.html
+
 
 clean-docs: clean
-	-rm *.pdf *.css *.html
+	-rm -rf *.pdf web/*
 
 FAQ.pdf:
 	@LYX@ -e latex FAQ.lyx
 	@TEXI2DVI@ FAQ.tex
 	@DVIPDFM@ FAQ.dvi
 
-FAQ.html: FAQ.pdf
-	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
-		-show_section_numbers FAQ.tex
+web/FAQ/FAQ.html: FAQ.pdf
+	@LATEX2HTML@ $(L2HFLAGS) -dir web/FAQ FAQ.tex
 
 
 flowreplay.pdf: 
@@ -26,22 +27,30 @@ flowreplay.pdf:
 	@TEXI2DVI@ flowreplay.tex
 	@DVIPDFM@ flowreplay.dvi
 
-flowreplay.html: flowreplay.pdf
-	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
-		-show_section_numbers flowreplay.tex
+web/flowreplay/flowreplay.html: flowreplay.pdf
+	@LATEX2HTML@ $(L2HFLAGS) -dir web/flowreplay flowreplay.tex
+
+manual.pdf:
+	@LYX@ -e latex manual.lyx
+	@TEXI2DVI@ manual.tex
+	@DVIPDFM@ manual.dvi
+
+web/manual/manual.html: manual.pdf
+	@LATEX2HTML@ $(L2HFLAGS) -dir web/manual manual.tex
 
 endif
 
 EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
-	     FAQ.pdf FAQ.html FAQ.css flowreplay.pdf flowreplay.html \
-	     flowreplay.css FAQ.lyx flowreplay.lyx flowheader.fig
+	FAQ.lyx FAQ.pdf web/FAQ/* \
+	flowreplay.lyx flowreplay.pdf web/flowreplay/* flowheader.fig \
+	manual.lyx manual.pdf web/manual/* FAQ.lyx
 
-MOSTLYCLEANFILES = flowheader.eps FAQ.aux FAQ.log FAQ.toc FAQ.txt FAQ.dvi \
-		   WARNINGS flowreplay.aux flowreplay.log \
-		   flowreplay.txt images.aux images.log images.pl \
-		   images.tex img1.png index.html labels.pl FAQ.dvi \
-		   FAQ.ps FAQ.tex flowreplay.dvi flowreplay.ps \
-		   flowreplay.tex *~
+MOSTLYCLEANFILES = FAQ.aux FAQ.log FAQ.toc FAQ.dvi FAQ.tex \
+	manual.aux manual.log manual.dvi manual.tex \
+	flowreplay.aux flowreplay.log flowheader.eps flowreplay.tex \
+	flowreplay.log flowreplay.toc flowreplay.dvi \
+	images.aux images.log images.pl images.tex img1.png labels.pl \
+	*~ WARNINGS
 
-MAINTAINERCLEANFILES = FAQ.pdf FAQ.html FAQ.css flowreplay.pdf \
-		       flowreplay.html flowreplay.css Makefile.in
+MAINTAINERCLEANFILES = FAQ.pdf flowreplay.pdf manual.pdf Makefile.in
+
