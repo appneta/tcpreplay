@@ -17,8 +17,11 @@ docs: manpages
 clean-docs:
 	cd $(DOCS_DIR) && make clean-docs
 
-postweb: manpages docs
+postweb: manpages
 	cd $(DOCS_DIR) && make postweb
+
+postwebsf: manpages
+	cd $(DOCS_DIR) && make postwebsf
 
 manpages:
 	cd scripts && make
