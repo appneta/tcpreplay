@@ -31,8 +31,8 @@ homerc          = "$$/";
 
 explain = <<- EOExplain
 tcpprep is a @file{pcap(3)} file pre-processor which creates a cache
-file which provides "rules" for tcprewrite tcpreplay on how to process and
-send packets
+file which provides "rules" for @file{tcprewrite(1)} and @file{tcpreplay(1)}
+on how to process and send packets.
 EOExplain;
 
 detail = <<- EODetail
