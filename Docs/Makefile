@@ -17,6 +17,7 @@ pdf: FAQ.tex dvi
 
 txt:
 	lyx -e text FAQ.lyx
+	lyx -e text flowreplay.lyx
 
 ps: FAQ.tex dvi
 	dvips -o FAQ.ps FAQ.dvi
