@@ -1,6 +1,7 @@
 
 /*
- *  $Id: load.c,v 1.3 2004/02/02 03:31:50 bkorb Exp $
+ *  $Id: load.c,v 4.7 2005/02/13 01:48:00 bkorb Exp $
+ *  Time-stamp:      "2005-02-14 07:25:49 bkorb"
  *
  *  This file contains the routines that deal with processing text strings
  *  for options, either from a NUL-terminated string passed in or from an
@@ -8,7 +9,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -50,15 +51,11 @@
  * If you do not wish that, delete this exception notice.
  */
 
-/* === STATIC PROCS === */
-STATIC void
-loadOptionLine(
-    tOptions*  pOpts,
-    tOptState* pOS,
-    char*      pzLine,
-    tDirection direction );
-
-/* === END STATIC PROCS === */
+/* = = = START-STATIC-FORWARD = = = */
+/* static forward declarations maintained by :mkfwd */
+static char*
+findArg( char* pzTxt, load_mode_t mode );
+/* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  optionMakePath
  * private:
@@ -71,18 +68,42 @@ loadOptionLine(
  *
  * ret-type: ag_bool
  * ret-desc: AG_TRUE if the name was handled, otherwise AG_FALSE.
+ *           If the name does not start with ``$'', then it is handled
+ *           simply by copying the input name to the output buffer.
  *
  * doc:
- *  This routine does environment variable expansion if the first character
- *  is a ``$''.  If it starts with two dollar characters, then the path
- *  is relative to the location of the executable.
+ *
+ *  This routine will copy the @code{pzName} input name into the @code{pzBuf}
+ *  output buffer, carefully not exceeding @code{bufSize} bytes.  If the
+ *  first character of the input name is a @code{'$'} character, then there
+ *  is special handling:
+ *  @*
+ *  @code{$$} is replaced with the directory name of the @code{pzProgPath},
+ *  searching @code{$PATH} if necessary.
+ *  @*
+ *  @code{$NAME} is replaced by the contents of the @code{NAME} environment
+ *  variable.
+ *
+ *  Please note: both @code{$$} and @code{$NAME} must be at the start of the
+ *     @code{pzName} string and must either be the entire string or be followed
+ *     by the @code{'/'} character.
+ *
+ * err:  @code{AG_FALSE} is returned if:
+ *       @*
+ *       @bullet{} @code{$$} is not the full string and
+ *                 the next character is not '/'.
+ *       @*
+ *       @bullet{} @code{$NAME} is not the full string and
+ *                 the next character is not '/'.
+ *       @*
+ *       @bullet{} @code{NAME} is not a known environment variable
 =*/
 ag_bool
 optionMakePath(
-    char*    pzBuf,
-    int      bufSize,
-    tCC*     pzName,
-    tCC*     pzProgPath )
+    char*   pzBuf,
+    int     bufSize,
+    tCC*    pzName,
+    tCC*    pzProgPath )
 {
     if (bufSize <= strlen( pzName ))
         return AG_FALSE;
@@ -91,7 +112,7 @@ optionMakePath(
      *  IF not an environment variable, just copy the data
      */
     if (*pzName != '$') {
-        strcpy( pzBuf, pzName );
+        strncpy( pzBuf, pzName, bufSize );
         return AG_TRUE;
     }
 
@@ -101,8 +122,8 @@ optionMakePath(
      *  with the path to the executable and append a "/" character.
      */
     if (pzName[1] == '$') {
-        tCC*  pzPath;
-        tCC*  pz;
+        tCC*    pzPath;
+        tCC*    pz;
 
         switch (pzName[2]) {
         case '/':
@@ -157,6 +178,13 @@ optionMakePath(
 
         memcpy( pzBuf, pzPath, (pz - pzPath)+1 );
         strcpy( pzBuf + (pz - pzPath) + 1, pzName );
+
+        /*
+         *  If the "pzPath" path was gotten from "pathfind()", then it was
+         *  allocated and we need to deallocate it.
+         */
+        if (pzPath != pzProgPath)
+             free( (void*)pzPath );
     }
 
     /*
@@ -192,46 +220,107 @@ optionMakePath(
         sprintf( pzBuf, "%s%s", pzDir, pzName );
     }
 
+#ifdef HAVE_REALPATH
+    {
+        char z[ PATH_MAX+1 ];
+
+        if (realpath( pzBuf, z ) == NULL)
+            return AG_FALSE;
+
+        strcpy( pzBuf, z );
+    }
+#endif
+
     return AG_TRUE;
 }
 
 
-STATIC void
-loadOptionLine(
-    tOptions*  pOpts,
-    tOptState* pOS,
-    char*      pzLine,
-    tDirection direction )
+static char*
+findArg( char* pzTxt, load_mode_t mode )
 {
+    tSCC zBrk[] = " \t:=";
+    char* pzEnd = strpbrk( pzTxt, zBrk );
+    int   space_break;
+
     /*
-     *  Strip off the first token on the line.
-     *  No quoting, space separation only.
+     *  Not having an argument to a configurable name is okay.
+     */
+    if (pzEnd == NULL)
+        return pzTxt + strlen(pzTxt);
+
+    /*
+     *  If we are keeping all whitespace, then the value starts with the
+     *  character that follows the end of the configurable name, regardless
+     *  of which character caused it.
+     */
+    if (mode == LOAD_KEEP) {
+        *(pzEnd++) = NUL;
+        return pzEnd;
+    }
+
+    /*
+     *  If the name ended on a white space character, remember that
+     *  because we'll have to skip over an immediately following ':' or '='
+     *  (and the white space following *that*).
+     */
+    space_break = isspace(*pzEnd);
+    *(pzEnd++) = NUL;
+    while (isspace(*pzEnd))  pzEnd++;
+    if (space_break) {
+        if ((*pzEnd == ':') || (*pzEnd == '='))
+            while (isspace(*++pzEnd))   ;
+    }
+
+    /*
+     *  Trim off trailing white space
      */
     {
-        char* pz = pzLine;
-        while (  (! isspace( *pz ))
-              && (*pz != NUL)
-              && (*pz != '=' )  ) pz++;
+        char* pz = pzEnd + strlen(pzEnd);
+        while (isspace(pz[-1]) && (pz > pzEnd))  pz--;
+        *pz = NUL;
 
-        /*
-         *  IF we exited because we found either a space char or an '=',
-         *  THEN terminate the name (clobbering either a space or '=')
-         *       and scan over any more white space that follows.
-         */
-        if (*pz != NUL) {
-            *pz++ = NUL;
-            while (isspace( *pz )) pz++;
-        }
+        if ((mode == LOAD_UNCOOKED) || (pzEnd == pz))
+            return pzEnd;
 
-        /*
-         *  Make sure we can find the option in our tables and initing it is OK
-         */
+        if ((pz[-1] != '"') && (pz[-1] != '\''))
+            return pzEnd;
+    }
+    if ((*pzEnd != '"') && (*pzEnd != '\''))
+        return pzEnd;
+
+    /*
+     *  If we got to here, the text starts and ends with a quote character and
+     *  we are cooking our quoted strings.
+     */
+    (void)ao_string_cook( pzEnd, NULL );
+    return pzEnd;
+}
+
+
+/*
+ *  Load an option from a block of text.  The text must start with the
+ *  configurable/option name and be followed by its associated value.
+ *  That value may be processed in any of several ways.  See "load_mode_t"
+ *  in autoopts.h.
+ */
+LOCAL void
+loadOptionLine(
+    tOptions*   pOpts,
+    tOptState*  pOS,
+    char*       pzLine,
+    tDirection  direction,
+    load_mode_t load_mode )
+{
+    while (isspace( *pzLine ))  pzLine++;
+
+    {
+        char* pzArg = findArg( pzLine, load_mode );
+
         if (! SUCCESSFUL( longOptionFind( pOpts, pzLine, pOS )))
             return;
         if (pOS->flags & OPTST_NO_INIT)
             return;
-
-        pOS->pzOptArg = pz;
+        pOS->pzOptArg = pzArg;
     }
 
     switch (pOS->flags & (OPTST_IMM|OPTST_DISABLE_IMM)) {
@@ -323,121 +412,6 @@ loadOptionLine(
 }
 
 
-/*
- *  filePreset
- *
- *  Load a file containing presetting information (an RC file).
- */
-LOCAL void
-filePreset(
-    tOptions*     pOpts,
-    const char*   pzFileName,
-    int           direction )
-{
-    typedef enum { SEC_NONE, SEC_LOOKING, SEC_PROCESS } teSec;
-    teSec   sec     = SEC_NONE;
-    FILE*   fp      = fopen( pzFileName, (const char*)"r" FOPEN_BINARY_FLAG );
-    u_int   saveOpt = pOpts->fOptSet;
-    char    zLine[ 0x1000 ];
-
-    if (fp == NULL)
-        return;
-
-    /*
-     *  DO NOT STOP ON ERRORS.  During preset, they are ignored.
-     */
-    pOpts->fOptSet &= ~OPTPROC_ERRSTOP;
-
-    /*
-     *  FOR each line in the file...
-     */
-    while (fgets( zLine, sizeof( zLine ), fp ) != NULL) {
-        char*  pzLine = zLine;
-
-        for (;;) {
-            pzLine += strlen( pzLine );
-
-            /*
-             *  IF the line is full, we stop...
-             */
-            if (pzLine >= zLine + (sizeof( zLine )-2))
-                break;
-            /*
-             *  Trim of trailing white space.
-             */
-            while ((pzLine > zLine) && isspace(pzLine[-1])) pzLine--;
-            *pzLine = NUL;
-            /*
-             *  IF the line is not continued, then exit the loop
-             */
-            if (pzLine[-1] != '\\')
-                break;
-            /*
-             *  insert a newline and get the continuation
-             */
-            pzLine[-1] = '\n';
-            fgets( pzLine, sizeof( zLine ) - (int)(pzLine - zLine), fp );
-        }
-
-        pzLine = zLine;
-        while (isspace( *pzLine )) pzLine++;
-
-        switch (*pzLine) {
-        case NUL:
-        case '#':
-            /*
-             *  Ignore blank and comment lines
-             */
-            continue;
-
-        case '[':
-            /*
-             *  Enter a section IFF sections are requested and the section
-             *  name matches.  If the file is not sectioned,
-             *  then all will be handled.
-             */
-            if (pOpts->pzPROGNAME == NULL)
-                goto fileDone;
-
-            switch (sec) {
-            case SEC_NONE:
-                sec = SEC_LOOKING;
-                /* FALLTHROUGH */
-
-            case SEC_LOOKING:
-            {
-                int secNameLen = strlen( pOpts->pzPROGNAME );
-                if (  (strncmp( pzLine+1, pOpts->pzPROGNAME, secNameLen ) != 0)
-                   || (pzLine[secNameLen+1] != ']')  )
-                    continue;
-                sec = SEC_PROCESS;
-                break;
-            }
-
-            case SEC_PROCESS:
-                goto fileDone;
-            }
-            break;
-
-        default:
-            /*
-             *  Load the line only if we are not in looking-for-section state
-             */
-            if (sec == SEC_LOOKING)
-                continue;
-        }
-
-        {
-            tOptState st = { NULL, OPTST_PRESET, TOPT_UNDEFINED, 0, NULL };
-            loadOptionLine( pOpts, &st, pzLine, direction );
-        }
-    } fileDone:;
-
-    pOpts->fOptSet = saveOpt;
-    fclose( fp );
-}
-
-
 /*=export_func  optionLoadLine
  *
  * what:  process a string for an option name and value
@@ -447,10 +421,9 @@ filePreset(
  *
  * doc:
  *
- * This is a user callable routine for setting options from, for
- * example, the contents of a file that they read in.
- * Only one option may appear in the text.  It will be treated
- * as a normal (non-preset) option.
+ * This is a client program callable routine for setting options from, for
+ * example, the contents of a file that they read in.  Only one option may
+ * appear in the text.  It will be treated as a normal (non-preset) option.
  *
  * When passed a pointer to the option struct and a string, it will
  * find the option named by the first token on the string and set
@@ -466,62 +439,12 @@ optionLoadLine(
     tOptions*  pOpts,
     tCC*       pzLine )
 {
-    tOptState st = { NULL, OPTST_SET, TOPT_UNDEFINED, 0, NULL };
+    tOptState st = OPTSTATE_INITIALIZER(SET);
     char* pz;
     AGDUPSTR( pz, pzLine, "user option line" );
-    loadOptionLine( pOpts, &st, pz, DIRECTION_PROCESS );
+    loadOptionLine( pOpts, &st, pz, DIRECTION_PROCESS, LOAD_UNCOOKED );
     AGFREE( pz );
 }
-
-
-/*=export_func  doLoadOpt
- * private:
- *
- * what:  Load an option rc/ini file
- * arg:   + tOptions* + pOpts    + program options descriptor +
- * arg:   + tOptDesc* + pOptDesc + the descriptor for this arg +
- *
- * doc:
- *  Processes the options found in the file named with pOptDesc->pzLastArg.
-=*/
-void
-doLoadOpt( tOptions* pOpts, tOptDesc* pOptDesc )
-{
-    /*
-     *  IF the option is not being disabled,
-     *  THEN load the file.  There must be a file.
-     *  (If it is being disabled, then the disablement processing
-     *  already took place.  It must be done to suppress preloading
-     *  of ini/rc files.)
-     */
-    if (! DISABLED_OPT( pOptDesc )) {
-        struct stat sb;
-        if (stat( pOptDesc->pzLastArg, &sb ) != 0) {
-            tSCC zMsg[] =
-                "File error %d (%s) opening %s for loading options\n";
-
-            if ((pOpts->fOptSet & OPTPROC_ERRSTOP) == 0)
-                return;
-
-            fprintf( stderr, zMsg, errno, strerror( errno ),
-                     pOptDesc->pzLastArg );
-            (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
-            /* NOT REACHED */
-        }
-
-        if (! S_ISREG( sb.st_mode )) {
-            if ((pOpts->fOptSet & OPTPROC_ERRSTOP) == 0)
-                return;
-
-            fprintf( stderr, zNotFile, pOptDesc->pzLastArg );
-            (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
-            /* NOT REACHED */
-        }
-
-        filePreset( pOpts, pOptDesc->pzLastArg, DIRECTION_PROCESS );
-    }
-}
-
 /*
  * Local Variables:
  * mode: C

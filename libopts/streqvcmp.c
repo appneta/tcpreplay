@@ -1,6 +1,7 @@
 
 /*
- *  $Id: streqvcmp.c,v 2.24 2004/02/02 03:31:51 bkorb Exp $
+ *  $Id: streqvcmp.c,v 4.3 2005/01/09 03:20:27 bkorb Exp $
+ * Time-stamp:      "2005-02-14 08:20:58 bkorb"
  *
  *  String Equivalence Comparison
  *
@@ -11,7 +12,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -98,13 +99,32 @@ static unsigned char charmap[] = {
 };
 
 
+/*=export_func strneqvcmp
+ *
+ * what: compare two strings with an equivalence mapping
+ *
+ * arg:  + tCC* + str1 + first string +
+ * arg:  + tCC* + str2 + second string +
+ * arg:  + int  + ct   + compare length +
+ *
+ * ret_type:  int
+ * ret_desc:  the difference between two differing characters
+ *
+ * doc:
+ *
+ * Using a character mapping, two strings are compared for "equivalence".
+ * Each input character is mapped to a comparison character and the
+ * mapped-to characters are compared for the two NUL terminated input strings.
+ * The comparison is limited to @code{ct} bytes.
+ * This function name is mapped to option_strneqvcmp so as to not conflict
+ * with the POSIX name space.
+ *
+ * err:  none checked.  Caller responsible for seg faults.
+=*/
 int
-strneqvcmp( s1, s2, ct )
-    const char* s1;
-    const char* s2;
-    size_t      ct;
+strneqvcmp( tCC* s1, tCC* s2, int ct )
 {
-    for (; ct != 0; --ct) {
+    for (; ct > 0; --ct) {
         unsigned char u1 = (unsigned char) *s1++;
         unsigned char u2 = (unsigned char) *s2++;
         int dif = charmap[ u1 ] - charmap[ u2 ];
@@ -120,10 +140,28 @@ strneqvcmp( s1, s2, ct )
 }
 
 
+/*=export_func streqvcmp
+ *
+ * what: compare two strings with an equivalence mapping
+ *
+ * arg:  + const char* + str1 + first string +
+ * arg:  + const char* + str2 + second string +
+ *
+ * ret_type:  int
+ * ret_desc:  the difference between two differing characters
+ *
+ * doc:
+ *
+ * Using a character mapping, two strings are compared for "equivalence".
+ * Each input character is mapped to a comparison character and the
+ * mapped-to characters are compared for the two NUL terminated input strings.
+ * This function name is mapped to option_streqvcmp so as to not conflict
+ * with the POSIX name space.
+ *
+ * err:  none checked.  Caller responsible for seg faults.
+=*/
 int
-streqvcmp( s1, s2 )
-    const char* s1;
-    const char* s2;
+streqvcmp( tCC* s1, tCC* s2 )
 {
     for (;;) {
         unsigned char u1 = (unsigned char) *s1++;
@@ -139,6 +177,26 @@ streqvcmp( s1, s2 )
 }
 
 
+/*=export_func streqvmap
+ *
+ * what: Set the character mappings for the streqv functions
+ *
+ * arg:  + char + From + Input character +
+ * arg:  + char + To   + Mapped-to character +
+ * arg:  + int  + ct   + compare length +
+ *
+ * doc:
+ *
+ * Set the character mapping.  If the count (@code{ct}) is set to zero, then
+ * the map is first cleared by setting all entries in the map to their index
+ * value.  Otherwise, the "@code{From}" character is mapped to the "@code{To}"
+ * character.  If @code{ct} is greater than 1, then @code{From} and @code{To}
+ * are incremented and the process repeated until @code{ct} entries have been
+ * set. This function name is mapped to option_streqvmap so as to not conflict
+ * with the POSIX name space.
+ *
+ * err:  none.
+=*/
 void
 streqvmap( char From, char To, int ct )
 {
@@ -164,9 +222,23 @@ streqvmap( char From, char To, int ct )
 }
 
 
+/*=export_func strequate
+ *
+ * what: map a list of characters to the same value
+ *
+ * arg:  + const char* + ch_list + characters to equivalence +
+ *
+ * doc:
+ *
+ * Each character in the input string get mapped to the first character
+ * in the string.
+ * This function name is mapped to option_strequate so as to not conflict
+ * with the POSIX name space.
+ *
+ * err:  none.
+=*/
 void
-strequate( s )
-    const char* s;
+strequate( const char* s )
 {
     if ((s != NULL) && (*s != NUL)) {
         unsigned char equiv = (unsigned)*s;
@@ -176,6 +248,22 @@ strequate( s )
 }
 
 
+/*=export_func strtransform
+ *
+ * what: convert a string into its mapped-to value
+ *
+ * arg:  + char*       + dest + output string +
+ * arg:  + const char* + src  + input string +
+ *
+ * doc:
+ *
+ * Each character in the input string is mapped and the mapped-to
+ * character is put into the output.
+ * This function name is mapped to option_strtransform so as to not conflict
+ * with the POSIX name space.
+ *
+ * err:  none.
+=*/
 void
 strtransform( d, s )
     char*       d;

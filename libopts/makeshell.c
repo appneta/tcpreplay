@@ -1,13 +1,14 @@
 
 /*
- *  $Id: makeshell.c,v 2.51 2004/02/16 22:12:50 bkorb Exp $
+ *  $Id: makeshell.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
+ * Time-stamp:      "2005-02-14 08:23:20 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and create a Bourne shell script capable of parsing them.
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -362,35 +363,35 @@ tSCC* pzShell = NULL;
 static char*  pzLeader  = NULL;
 static char*  pzTrailer = NULL;
 
-/* === STATIC PROCS === */
-STATIC void
+/* = = = START-STATIC-FORWARD = = = */
+/* static forward declarations maintained by :mkfwd */
+static void
 textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD );
 
-STATIC void
+static void
 emitUsage( tOptions* pOpts );
 
-STATIC void
+static void
 emitSetup( tOptions* pOpts );
 
-STATIC void
+static void
 printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc );
 
-STATIC void
+static void
 printOptionInaction( tOptions* pOpts, tOptDesc* pOptDesc );
 
-STATIC void
+static void
 emitFlag( tOptions* pOpts );
 
-STATIC void
+static void
 emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts );
 
-STATIC void
+static void
 emitLong( tOptions* pOpts );
 
-STATIC void
+static void
 openOutput( const char* pzFile );
-
-/* === END STATIC PROCS === */
+/* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  putShellParse
  * private:
@@ -495,7 +496,7 @@ putShellParse( tOptions* pOpts )
 }
 
 
-STATIC void
+static void
 textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
 {
     int  nlHoldCt = 0;
@@ -587,7 +588,7 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
 }
 
 
-STATIC void
+static void
 emitUsage( tOptions* pOpts )
 {
     char     zTimeBuf[ AO_NAME_SIZE ];
@@ -657,7 +658,7 @@ emitUsage( tOptions* pOpts )
 }
 
 
-STATIC void
+static void
 emitSetup( tOptions* pOpts )
 {
     tOptDesc* pOptDesc = pOpts->pOptDesc;
@@ -709,7 +710,7 @@ emitSetup( tOptions* pOpts )
 }
 
 
-STATIC void
+static void
 printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc )
 {
     if (pOptDesc->pOptProc == doVersion)
@@ -760,7 +761,7 @@ printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc )
 }
 
 
-STATIC void
+static void
 printOptionInaction( tOptions* pOpts, tOptDesc* pOptDesc )
 {
     if (pOptDesc->pOptProc == doLoadOpt) {
@@ -779,7 +780,7 @@ printOptionInaction( tOptions* pOpts, tOptDesc* pOptDesc )
 }
 
 
-STATIC void
+static void
 emitFlag( tOptions* pOpts )
 {
     tOptDesc* pOptDesc = pOpts->pOptDesc;
@@ -804,7 +805,7 @@ emitFlag( tOptions* pOpts )
 /*
  *  Emit the match text for a long option
  */
-STATIC void
+static void
 emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
 {
     tOptDesc* pOD = pOpts->pOptDesc;
@@ -884,7 +885,7 @@ emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
 /*
  *  Emit GNU-standard long option handling code
  */
-STATIC void
+static void
 emitLong( tOptions* pOpts )
 {
     tOptDesc* pOD = pOpts->pOptDesc;
@@ -918,7 +919,7 @@ emitLong( tOptions* pOpts )
 }
 
 
-STATIC void
+static void
 openOutput( const char* pzFile )
 {
     FILE* fp;

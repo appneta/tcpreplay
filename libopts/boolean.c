@@ -1,6 +1,7 @@
 
 /*
- *  $Id: boolean.c,v 2.11 2004/02/02 03:31:50 bkorb Exp $
+ *  $Id: boolean.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
+ * Time-stamp:      "2005-02-14 08:24:12 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -9,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -50,9 +51,6 @@
  * whether to permit this exception to apply to your modifications.
  * If you do not wish that, delete this exception notice.
  */
-
-/* === STATIC PROCS === */
-/* === END STATIC PROCS === */
 
 /*=export_func  optionBooleanVal
  * private:

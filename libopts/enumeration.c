@@ -1,6 +1,7 @@
 
 /*
- *  $Id: enumeration.c,v 3.23 2004/02/01 21:26:45 bkorb Exp $
+ *  $Id: enumeration.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
+ * Time-stamp:      "2005-02-14 08:23:44 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -9,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -51,27 +52,27 @@
  * If you do not wish that, delete this exception notice.
  */
 
-/* === STATIC PROCS === */
-STATIC void
+tSCC*  pz_enum_err_fmt;
+
+/* = = = START-STATIC-FORWARD = = = */
+/* static forward declarations maintained by :mkfwd */
+static void
 enumError(
     tOptions* pOpts,
     tOptDesc* pOD,
     tCC**     paz_names,
     int       name_ct );
 
-STATIC uintptr_t
+static uintptr_t
 findName(
     tCC*          pzName,
     tOptions*     pOpts,
     tOptDesc*     pOD,
     tCC**         paz_names,
     unsigned int  name_ct );
+/* = = = END-STATIC-FORWARD = = = */
 
-/* === END STATIC PROCS === */
-
-tSCC*  pz_enum_err_fmt;
-
-STATIC void
+static void
 enumError(
     tOptions* pOpts,
     tOptDesc* pOD,
@@ -169,7 +170,7 @@ enumError(
 }
 
 
-STATIC uintptr_t
+static uintptr_t
 findName(
     tCC*          pzName,
     tOptions*     pOpts,
@@ -375,7 +376,7 @@ optionSetMembers(
         tCC*      pzArg = pOD->pzLastArg;
         uintptr_t res;
         if ((pzArg == NULL) || (*pzArg == NUL)) {
-            pOD->optCookie = NULL;
+            pOD->optCookie = (void*)0;
             return;
         }
 

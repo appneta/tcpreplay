@@ -1,13 +1,15 @@
 
 /*
  *  stack.c
- *  $Id: stack.c,v 2.22 2004/02/02 03:31:51 bkorb Exp $
+ *  $Id: stack.c,v 4.1 2005/01/01 00:20:59 bkorb Exp $
+ *  Time-stamp:      "2005-02-14 08:21:23 bkorb"
+ *
  *  This is a special option processing routine that will save the
  *  argument to an option in a FIFO queue.
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -166,12 +168,6 @@ stackOptArg( pOpts, pOptDesc )
 
     if (pOptDesc->optActualIndex != pOptDesc->optIndex)
         pOptDesc = pOpts->pOptDesc + pOptDesc->optActualIndex;
-
-    /*
-     *  Being called is the most authoritative way to be sure an
-     *  option wants to have its argument values stacked...
-     */
-    pOptDesc->fOptState |= OPTST_STACKED;
 
     /*
      *  IF this is a negated ('+'-marked) option

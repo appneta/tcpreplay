@@ -1,12 +1,13 @@
 
 /*
- *  sort.c  $Id: sort.c,v 2.8 2004/02/02 03:31:51 bkorb Exp $
+ *  sort.c  $Id: sort.c,v 4.3 2005/01/23 23:33:06 bkorb Exp $
+ * Time-stamp:      "2005-02-14 08:21:26 bkorb"
  *
  *  This module implements argument sorting.
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -48,15 +49,27 @@
  * If you do not wish that, delete this exception notice.
  */
 
-/* === STATIC PROCS === */
-/* === END STATIC PROCS === */
+/* = = = START-STATIC-FORWARD = = = */
+/* static forward declarations maintained by :mkfwd */
+static tSuccess
+mustHandleArg( tOptions* pOpts, char* pzArg, tOptState* pOS,
+               char** ppzOpts, int* pOptsIdx );
+
+static tSuccess
+mayHandleArg( tOptions* pOpts, char* pzArg, tOptState* pOS,
+              char** ppzOpts, int* pOptsIdx );
+
+static tSuccess
+checkShortOpts( tOptions* pOpts, char* pzArg, tOptState* pOS,
+                char** ppzOpts, int* pOptsIdx );
+/* = = = END-STATIC-FORWARD = = = */
 
 /*
  *  "mustHandleArg" and "mayHandleArg" are really similar.  The biggest
  *  difference is that "may" will consume the next argument only if it
  *  does not start with a hyphen and "must" will consume it, hyphen or not.
  */
-STATIC tSuccess
+static tSuccess
 mustHandleArg( tOptions* pOpts, char* pzArg, tOptState* pOS,
                char** ppzOpts, int* pOptsIdx )
 {
@@ -94,7 +107,7 @@ mustHandleArg( tOptions* pOpts, char* pzArg, tOptState* pOS,
     return SUCCESS;
 }
 
-STATIC tSuccess
+static tSuccess
 mayHandleArg( tOptions* pOpts, char* pzArg, tOptState* pOS,
               char** ppzOpts, int* pOptsIdx )
 {
@@ -137,7 +150,7 @@ mayHandleArg( tOptions* pOpts, char* pzArg, tOptState* pOS,
  *  Process a string of short options glued together.  If the last one
  *  does or may take an argument, the do the argument processing and leave.
  */
-STATIC tSuccess
+static tSuccess
 checkShortOpts( tOptions* pOpts, char* pzArg, tOptState* pOS,
                 char** ppzOpts, int* pOptsIdx )
 {
@@ -192,7 +205,7 @@ optionSort( tOptions* pOpts )
     int    optsIdx = 0;
     int    opdsIdx = 0;
 
-    tOptState os = { NULL, OPTST_DEFINED, TOPT_UNDEFINED, 0, NULL };
+    tOptState os = OPTSTATE_INITIALIZER(DEFINED);
 
     /*
      *  Disable for POSIX conformance

@@ -1,6 +1,7 @@
 
 /*
- *  $Id: autoopts.c,v 3.33 2004/02/16 22:20:45 bkorb Exp $
+ *  $Id: autoopts.c,v 4.8 2005/02/13 01:47:59 bkorb Exp $
+ *  Time-stamp:      "2005-02-13 14:23:59 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -9,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -57,34 +58,23 @@
 
 static const char zNil[] = "";
 
-#define ISNAMECHAR( c )    (isalnum(c) || ((c) == '_') || ((c) == '-'))
-
 #define SKIP_RC_FILES(po) \
     DISABLED_OPT(&((po)->pOptDesc[ (po)->specOptIdx.save_opts+1]))
 
-/* === STATIC PROCS === */
-STATIC tSuccess
+/* = = = START-STATIC-FORWARD = = = */
+/* static forward declarations maintained by :mkfwd */
+static tSuccess
 findOptDesc( tOptions* pOpts, tOptState* pOptState );
 
-STATIC tSuccess
+static tSuccess
 nextOption( tOptions* pOpts, tOptState* pOptState );
 
-STATIC tSuccess
-doImmediateOpts( tOptions* pOpts );
-
-STATIC void
-doEnvPresets( tOptions* pOpts, teEnvPresetType type );
-
-STATIC void
-doRcFiles( tOptions* pOpts );
-
-STATIC tSuccess
+static tSuccess
 doPresets( tOptions* pOpts );
 
-STATIC int
+static int
 checkConsistency( tOptions* pOpts );
-
-/* === END STATIC PROCS === */
+/* = = = END-STATIC-FORWARD = = = */
 
 /*
  *  handleOption
@@ -105,6 +95,15 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
     pOD->pzLastArg =  pOptState->pzOptArg;
 
     /*
+     *  IF we are presetting options, then we will ignore any un-presettable
+     *  options.  They are the ones either marked as such.
+     */
+    if (  ((pOpts->fOptSet & OPTPROC_PRESETTING) != 0)
+       && ((pOD->fOptState & OPTST_NO_INIT) != 0)
+       )
+        return PROBLEM;
+
+    /*
      *  IF this is an equivalence class option,
      *  THEN
      *      Save the option value that got us to this option
@@ -113,15 +112,52 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
      *      set the pointer to the equivalence class base
      */
     if (pOD->optEquivIndex != NO_EQUIVALENT) {
-        tOptDesc*  p = pOpts->pOptDesc + pOD->optEquivIndex;
+        tOptDesc* p = pOpts->pOptDesc + pOD->optEquivIndex;
 
         /*
-         *  Add in the equivalence flag
+         * IF the current option state has not been defined (set on the
+         *    command line), THEN we will allow continued resetting of
+         *    the value.  Once "defined", then it must not change.
          */
-        pOptState->flags |= OPTST_EQUIVALENCE;
-        p->pzLastArg      = pOD->pzLastArg;
-        p->optActualValue = pOD->optValue;
-        p->optActualIndex = pOD->optIndex;
+        if ((pOD->fOptState & OPTST_DEFINED) != 0) {
+            /*
+             *  The equivalenced-to option has been found on the command
+             *  line before.  Make sure new occurrences are the same type.
+             *
+             *  IF this option has been previously equivalenced and
+             *     it was not the same equivalenced-to option,
+             *  THEN we have a usage problem.
+             */
+            if (p->optActualIndex != pOD->optIndex) {
+                fprintf( stderr, (char*)zMultiEquiv, p->pz_Name, pOD->pz_Name,
+                         (pOpts->pOptDesc + p->optActualIndex)->pz_Name);
+                return FAILURE;
+            }
+        } else {
+            /*
+             *  Set the equivalenced-to actual option index to no-equivalent
+             *  so that we set all the entries below.  This option may either
+             *  never have been selected before, or else it was selected by
+             *  some sort of "presetting" mechanism.
+             */
+            p->optActualIndex = NO_EQUIVALENT;
+        }
+
+        if (p->optActualIndex != pOD->optIndex) {
+            /*
+             *  First time through, copy over the state
+             *  and add in the equivalence flag
+             */
+            p->optActualValue = pOD->optValue;
+            p->optActualIndex = pOD->optIndex;
+            pOptState->flags |= OPTST_EQUIVALENCE;          
+        }
+
+        /*
+         *  Copy the most recent option argument.  set membership state
+         *  is kept in ``p->optCookie''.  Do not overwrite.
+         */
+        p->pzLastArg = pOD->pzLastArg;
         pOD = p;
 
     } else {
@@ -219,7 +255,7 @@ longOptionFind( tOptions* pOpts, char* pzOptName, tOptState* pOptState )
          *  THEN ...
          */
         else if (  (pOD->pz_DisableName != NULL)
-                && (strneqvcmp( pzOptName, pOD->pz_DisableName, nameLen ) == 0)
+                && (strneqvcmp(pzOptName, pOD->pz_DisableName, nameLen) == 0)
                 )  {
             disable  = AG_TRUE;
 
@@ -368,7 +404,7 @@ shortOptionFind( tOptions* pOpts, tUC optValue, tOptState* pOptState )
  *
  *  Find the option descriptor for the current option
  */
-STATIC tSuccess
+static tSuccess
 findOptDesc( tOptions* pOpts, tOptState* pOptState )
 {
     /*
@@ -461,7 +497,7 @@ findOptDesc( tOptions* pOpts, tOptState* pOptState )
  *  all the state in the state argument so that the option can be skipped
  *  without consequence (side effect).
  */
-STATIC tSuccess
+static tSuccess
 nextOption( tOptions* pOpts, tOptState* pOptState )
 {
     tSuccess res;
@@ -631,34 +667,29 @@ nextOption( tOptions* pOpts, tOptState* pOptState )
  *  DO PRESETS
  *
  *  The next several routines do the immediate action pass on the command
- *  line options, then the environment variables then the RC files in
+ *  line options, then the environment variables, then the config files in
  *  reverse order.  Once done with that, the order is reversed and all
- *  the RC files and environment variables are processed again, this time
- *  only processing the non-immediate action options.  doPresets() will
- *  then return for optionProcess() to do the final pass on the command
+ *  the config files and environment variables are processed again, this
+ *  time only processing the non-immediate action options.  doPresets()
+ *  will then return for optionProcess() to do the final pass on the command
  *  line arguments.
  */
 
 /*
  *  doImmediateOpts - scan the command line for immediate action options
  */
-STATIC tSuccess
+LOCAL tSuccess
 doImmediateOpts( tOptions* pOpts )
 {
     pOpts->curOptIdx = 1;     /* start by skipping program name */
     pOpts->pzCurOpt  = NULL;
 
     /*
-     *  when comparing long names, these are equivalent
-     */
-    strequate( zSepChars );
-
-    /*
      *  Examine all the options from the start.  We process any options that
      *  are marked for immediate processing.
      */
     for (;;) {
-        tOptState optState = OPTSTATE_INITIALIZER;
+        tOptState optState = OPTSTATE_INITIALIZER(PRESET);
 
         switch (nextOption( pOpts, &optState )) {
         case FAILURE: goto optionsDone;
@@ -669,23 +700,8 @@ doImmediateOpts( tOptions* pOpts )
         /*
          *  IF this *is* an immediate-attribute option, then do it.
          */
-        switch (optState.flags & (OPTST_DISABLE_IMM|OPTST_IMM)) {
-        case 0:                   /* never */
+        if (! DO_IMMEDIATELY(optState.flags))
             continue;
-
-        case OPTST_DISABLE_IMM:   /* do enabled options later */
-            if ((optState.flags & OPTST_DISABLED) == 0)
-                continue;
-            break;
-
-        case OPTST_IMM:           /* do disabled options later */
-            if ((optState.flags & OPTST_DISABLED) != 0)
-                continue;
-            break;
-
-        case OPTST_DISABLE_IMM|OPTST_IMM: /* always */
-            break;
-        }
 
         if (! SUCCESSFUL( handleOption( pOpts, &optState )))
             break;
@@ -697,270 +713,70 @@ doImmediateOpts( tOptions* pOpts )
 }
 
 
-/*
- *  doEnvPresets - check for preset values from the envrionment
- *  This routine should process in all, immediate or normal modes....
- */
-STATIC void
-doEnvPresets( tOptions* pOpts, teEnvPresetType type )
+LOCAL tSuccess
+doRegularOpts( tOptions* pOpts )
 {
-    int        ct;
-    tOptState  st;
-    char*      pzFlagName;
-    size_t     spaceLeft;
-    char       zEnvName[ AO_NAME_SIZE ];
-
     /*
-     *  Finally, see if we are to look at the environment
-     *  variables for initial values.
-     */
-    if ((pOpts->fOptSet & OPTPROC_ENVIRON) == 0)
-        return;
-
-    ct  = pOpts->presetOptCt;
-    st.pOD = pOpts->pOptDesc;
-
-    pzFlagName = zEnvName
-        + snprintf( zEnvName, sizeof( zEnvName ), "%s_", pOpts->pzPROGNAME );
-    spaceLeft = AO_NAME_SIZE - (pzFlagName - zEnvName) - 1;
-
-    for (;ct-- > 0; st.pOD++) {
-        /*
-         *  If presetting is disallowed, then skip this entry
-         */
-        if ((st.pOD->fOptState & OPTST_NO_INIT) != 0)
-            continue;
-
-        /*
-         *  IF there is no such environment variable,
-         *  THEN skip this entry, too.
-         */
-        if (strlen( st.pOD->pz_NAME ) >= spaceLeft)
-            continue;
-
-        /*
-         *  Set up the option state
-         */
-        strcpy( pzFlagName, st.pOD->pz_NAME );
-        st.pzOptArg = getenv( zEnvName );
-        if (st.pzOptArg == NULL)
-            continue;
-        st.flags    = OPTST_PRESET | st.pOD->fOptState;
-        st.optType  = TOPT_UNDEFINED;
-        st.argType  = 0;
-
-        if (  (st.pOD->pz_DisablePfx != NULL)
-           && (streqvcmp( st.pzOptArg, st.pOD->pz_DisablePfx ) == 0)) {
-            st.flags |= OPTST_DISABLED;
-            st.pzOptArg = NULL;
-        }
-
-        switch (type) {
-        case ENV_IMM:
-            /*
-             *  Process only immediate actions
-             */
-            if (st.flags & OPTST_DISABLED) {
-                if ((st.flags & OPTST_DISABLE_IMM) == 0)
-                    continue;
-            } else {
-                if ((st.flags & OPTST_IMM) == 0)
-                    continue;
-            }
-            break;
-
-        case ENV_NON_IMM:
-            /*
-             *  Process only NON immediate actions
-             */
-            if (st.flags & OPTST_DISABLED) {
-                if ((st.flags & OPTST_DISABLE_IMM) != 0)
-                    continue;
-            } else {
-                if ((st.flags & OPTST_IMM) != 0)
-                    continue;
-            }
-            break;
-
-        default: /* process everything */
-            break;
-        }
-
-        /*
-         *  Make sure the option value string is persistent and consistent.
-         *  This may be a memory leak, but we cannot do anything about it.
-         *
-         *  The interpretation of the option value depends
-         *  on the type of value argument the option takes
-         */
-        if (st.pzOptArg != NULL)
-            switch (st.pOD->optArgType) {
-            case ARG_MAY:
-                if (*st.pzOptArg == NUL) {
-                    st.pzOptArg = NULL;
-                    break;
-                }
-                /* FALLTHROUGH */
-
-            case ARG_MUST:
-                if (*st.pzOptArg == NUL)
-                     st.pzOptArg = zNil;
-                else AGDUPSTR( st.pzOptArg, st.pzOptArg, "option argument" );
-                break;
-
-            default: /* no argument allowed */
-                st.pzOptArg = NULL;
-                break;
-            }
-
-        handleOption( pOpts, &st );
-    }
-}
-
-
-/*
- *  doPresets - check for preset values from an rc file or the envrionment
- */
-STATIC void
-doRcFiles( tOptions* pOpts )
-{
-    int   idx;
-    int   inc = DIRECTION_PRESET;
-    tCC*  pzPath;
-    char  zFileName[ 4096 ];
-
-    /*
-     *  Find the last RC entry (highest priority entry)
-     */
-    for (idx = 0; pOpts->papzHomeList[ idx+1 ] != NULL; ++idx)  ;
-
-    /*
-     *  For every path in the home list, ...  *TWICE* We start at the last
-     *  (highest priority) entry, work our way down to the lowest priority,
-     *  handling the immediate options.
-     *  Then we go back up, doing the normal options.
+     *  Now, process all the options from our current position onward.
+     *  (This allows interspersed options and arguments for the few
+     *  non-standard programs that require it.)
      */
     for (;;) {
-        struct stat StatBuf;
+        tOptState optState = OPTSTATE_INITIALIZER(DEFINED);
 
-        /*
-         *  IF we've reached the bottom end, change direction
-         */
-        if (idx < 0) {
-            inc = DIRECTION_PROCESS;
-            idx = 0;
+        switch (nextOption( pOpts, &optState )) {
+        case FAILURE: goto optionsDone;
+        case PROBLEM: return SUCCESS; /* no more args */
+        case SUCCESS: break;
         }
 
-        pzPath = pOpts->papzHomeList[ idx ];
-
         /*
-         *  IF we've reached the top end, bail out
+         *  IF this is not being processed normally (i.e. is immediate action)
+         *  THEN skip it (unless we are supposed to do it a second time).
          */
-        if (pzPath == NULL)
-            break;
-
-        idx += inc;
-
-        if (! optionMakePath( zFileName, sizeof( zFileName ),
-                              pzPath, pOpts->pzProgPath ))
-            continue;
-
-        /*
-         *  IF the file name we constructed is a directory,
-         *  THEN append the Resource Configuration file name
-         *  ELSE we must have the complete file name
-         */
-        if (stat( zFileName, &StatBuf ) != 0)
-            continue; /* bogus name - skip the home list entry */
-
-        if (S_ISDIR( StatBuf.st_mode )) {
-            size_t len = strlen( zFileName );
-            char* pz;
-
-            if (len + 1 + strlen( pOpts->pzRcName ) >= sizeof( zFileName ))
+        if (! DO_NORMALLY(optState.flags)) {
+            if (! DO_SECOND_TIME(optState.flags))
                 continue;
-
-            pz = zFileName + len;
-            if (pz[-1] != '/')
-                *(pz++) = '/';
-            strcpy( pz, pOpts->pzRcName );
+            optState.pOD->optOccCt--; /* don't count last time */
         }
 
-        filePreset( pOpts, zFileName, inc );
-
-        /*
-         *  IF we are now to skip RC files AND we are presetting,
-         *  THEN change direction.  We must go the other way.
-         */
-        if (SKIP_RC_FILES(pOpts) && PRESETTING(inc)) {
-            idx -= inc;  /* go back and reprocess current file */
-            inc =  DIRECTION_PROCESS;
-        }
-    } /* For every path in the home list, ... */
+        if (! SUCCESSFUL( handleOption( pOpts, &optState )))
+            break;
+    } optionsDone:;
+    if ((pOpts->fOptSet & OPTPROC_ERRSTOP) != 0)
+        (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
+    return FAILURE;
 }
 
 
 /*
- *  doPresets - check for preset values from an rc file or the envrionment
+ *  doPresets - check for preset values from a config file or the envrionment
  */
-STATIC tSuccess
+static tSuccess
 doPresets( tOptions* pOpts )
 {
-    /*
-     *  IF the struct version is not the current, and also
-     *     either too large (?!) or too small,
-     *  THEN emit error message and fail-exit
-     */
-    if (  ( pOpts->structVersion  != OPTIONS_STRUCT_VERSION  )
-       && (  (pOpts->structVersion > OPTIONS_STRUCT_VERSION  )
-          || (pOpts->structVersion < OPTIONS_MINIMUM_VERSION )
-       )  )  {
-
-        fprintf( stderr, zAO_Err, pOpts->origArgVect[0],
-                 NUM_TO_VER( pOpts->structVersion ));
-        if (pOpts->structVersion > OPTIONS_STRUCT_VERSION )
-            fputs( zAO_Big, stderr );
-        else
-            fputs( zAO_Sml, stderr );
-
-        exit( EXIT_FAILURE );
-    }
-
-    /*
-     *  IF the client has enabled translation and the translation procedure
-     *  is available, then go do it.
-     */
-    if (  ((pOpts->fOptSet & OPTPROC_TRANSLATE) != 0)
-       && (pOpts->pTransProc != 0) ) {
-        (*pOpts->pTransProc)();
-    }
-
-    {
-        const char* pz = strrchr( *pOpts->origArgVect, '/' );
-
-        if (pz == NULL)
-             pOpts->pzProgName = *pOpts->origArgVect;
-        else pOpts->pzProgName = pz+1;
-
-        pOpts->pzProgPath = *pOpts->origArgVect;
-    }
-
     if (! SUCCESSFUL( doImmediateOpts( pOpts )))
         return FAILURE;
 
     /*
-     *  IF there are no RC files,
+     *  Until we return from this procedure, disable non-presettable opts
+     */
+    pOpts->fOptSet |= OPTPROC_PRESETTING;
+    /*
+     *  IF there are no config files,
      *  THEN do any environment presets and leave.
      */
     if (  (pOpts->papzHomeList == NULL)
        || SKIP_RC_FILES(pOpts) )  {
         doEnvPresets( pOpts, ENV_ALL );
-        return SUCCESS;
     }
+    else {
+        doEnvPresets( pOpts, ENV_IMM );
+        internalFileLoad( pOpts );
+        doEnvPresets( pOpts, ENV_NON_IMM );
+    }
+    pOpts->fOptSet &= ~OPTPROC_PRESETTING;
 
-    doEnvPresets( pOpts, ENV_IMM );
-    doRcFiles(    pOpts );
-    doEnvPresets( pOpts, ENV_NON_IMM );
     return SUCCESS;
 }
 
@@ -971,7 +787,7 @@ doPresets( tOptions* pOpts )
  *
  *  Make sure that the argument list passes our consistency tests.
  */
-STATIC int
+static int
 checkConsistency( tOptions* pOpts )
 {
     int        errCt = 0;
@@ -1020,12 +836,12 @@ checkConsistency( tOptions* pOpts )
         /*
          *  IF       this option is not equivalenced to another,
          *        OR it is equivalenced to itself (is the equiv. root)
-         *  THEN we need to make sure it occurrs often enough.
+         *  THEN we need to make sure it occurs often enough.
          */
         if (  (pOD->optEquivIndex == NO_EQUIVALENT)
            || (pOD->optEquivIndex == pOD->optIndex) )   do {
             /*
-             *  IF the occurrance counts have been satisfied,
+             *  IF the occurrence counts have been satisfied,
              *  THEN there is no problem.
              */
             if (pOD->optOccCt >= pOD->optMinCt)
@@ -1033,7 +849,7 @@ checkConsistency( tOptions* pOpts )
 
             /*
              *  IF presetting is okay and it has been preset,
-             *  THEN min occurrance count doesn't count
+             *  THEN min occurrence count doesn't count
              */
 #           define PRESET_OK  (OPTST_PRESET | OPTST_MUST_SET)
             if ((pOD->fOptState & PRESET_OK) == PRESET_OK)
@@ -1136,6 +952,9 @@ optionProcess(
     int        argCt,
     char**     argVect )
 {
+    if (! SUCCESSFUL( validateOptionsStruct( pOpts, argVect[0] )))
+        exit( EXIT_FAILURE );
+
     /*
      *  Establish the real program name, the program full path,
      *  and do all the presetting the first time thru only.
@@ -1164,59 +983,8 @@ optionProcess(
         pOpts->pzCurOpt  = NULL;
     }
 
-    /*
-     *  Now, process all the options from our current position onward.
-     *  (This allows interspersed options and arguments for the few
-     *  non-standard programs that require it.)
-     */
-    for (;;) {
-        tOptState optState = OPTSTATE_INITIALIZER;
-
-        switch (nextOption( pOpts, &optState )) {
-        case FAILURE:
-            if ((pOpts->fOptSet & OPTPROC_ERRSTOP) != 0)
-                (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
-            goto optionsBad;
-
-        case PROBLEM:
-            goto optionsDone;
-
-        case SUCCESS:
-            break;
-        }
-
-        /*
-         *  IF this is not an immediate-attribute option, then do it.
-         */
-        switch (optState.flags & (OPTST_DISABLE_IMM|OPTST_IMM)) {
-        case 0:                   /* always */
-            break;
-
-        case OPTST_DISABLE_IMM:   /* disabled options already done */
-            if ((optState.flags & OPTST_DISABLED) != 0)
-                continue;
-            break;
-
-        case OPTST_IMM:           /* enabled options already done */
-            if ((optState.flags & OPTST_DISABLED) == 0)
-                continue;
-            break;
-
-        case OPTST_DISABLE_IMM|OPTST_IMM: /* opt already done */
-            continue;
-        }
-
-        if (! SUCCESSFUL( handleOption( pOpts, &optState ))) {
-            if ((pOpts->fOptSet & OPTPROC_ERRSTOP) != 0)
-                (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
-            break;
-        }
-    }
-
- optionsBad:
-    return pOpts->origArgCt;
-
- optionsDone:
+    if (! SUCCESSFUL( doRegularOpts( pOpts )))
+        return pOpts->origArgCt;
 
     /*
      *  IF    there were no errors

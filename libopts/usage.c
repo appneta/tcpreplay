@@ -1,13 +1,14 @@
 
 /*
- *  usage.c  $Id: usage.c,v 2.47 2004/02/02 03:31:51 bkorb Exp $
+ *  usage.c  $Id: usage.c,v 4.4 2005/01/23 23:33:06 bkorb Exp $
+ * Time-stamp:      "2005-02-14 08:20:02 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -55,44 +56,42 @@
 #  define tSC static char
 #endif
 
-#include "usage-txt.h"
-
 static arg_types_t argTypes;
 
 FILE* option_usage_fp = NULL;
 static char    zOptFmtLine[ 16 ];
 static ag_bool displayEnum;
 
-/* === STATIC PROCS === */
-STATIC void
+/* = = = START-STATIC-FORWARD = = = */
+/* static forward declarations maintained by :mkfwd */
+static void
 printProgramDetails( tOptions* pOptions );
 
-STATIC void
+static void
 printExtendedUsage(
     tOptions*     pOptions,
     tOptDesc*     pOD,
     arg_types_t*  pAT );
 
-STATIC void
+static void
 printBareUsage(
     tOptions*     pOptions,
     tOptDesc*     pOD,
     arg_types_t*  pAT );
 
-STATIC void
+static void
 setStdOptFmts( tOptions* pOpts, tCC** ppT );
 
-STATIC void
+static void
 setGnuOptFmts( tOptions* pOpts, tCC** ppT );
 
-STATIC void
+static void
 printInitList(
     tCC**    papz,
     ag_bool* pInitIntro,
     tCC*     pzRc,
     tCC*     pzPN );
-
-/* === END STATIC PROCS === */
+/* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  optionUsage
  * private:
@@ -245,13 +244,13 @@ optionUsage(
  *
  *   PROGRAM DETAILS
  */
-STATIC void
+static void
 printProgramDetails( tOptions* pOptions )
 {
     ag_bool  initIntro = AG_TRUE;
 
     /*
-     *  Display all the places we look for RC files
+     *  Display all the places we look for config files
      */
     printInitList( pOptions->papzHomeList, &initIntro,
                    pOptions->pzRcName, pOptions->pzProgPath );
@@ -295,7 +294,7 @@ printProgramDetails( tOptions* pOptions )
  *
  *   PER OPTION TYPE USAGE INFORMATION
  */
-STATIC void
+static void
 printExtendedUsage(
     tOptions*     pOptions,
     tOptDesc*     pOD,
@@ -425,7 +424,7 @@ printExtendedUsage(
 }
 
 
-STATIC void
+static void
 printBareUsage(
     tOptions*     pOptions,
     tOptDesc*     pOD,
@@ -504,7 +503,7 @@ printBareUsage(
  *  These formats are used immediately after the option flag (if used) has
  *  been printed.
  */
-STATIC void
+static void
 setStdOptFmts( tOptions* pOpts, tCC** ppT )
 {
     int  flen = 0;
@@ -549,7 +548,7 @@ setStdOptFmts( tOptions* pOpts, tCC** ppT )
     sprintf( zOptFmtLine, zFmtFmt, flen );
 }
 
-STATIC void
+static void
 setGnuOptFmts( tOptions* pOpts, tCC** ppT )
 {
     int  flen = 22;
@@ -589,7 +588,7 @@ setGnuOptFmts( tOptions* pOpts, tCC** ppT )
  *   testing to see if a name is a directory or a file.  It's
  *   squishy, but important to tell users how to find these files.
  */
-STATIC void
+static void
 printInitList(
     tCC**    papz,
     ag_bool* pInitIntro,

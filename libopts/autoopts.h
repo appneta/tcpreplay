@@ -1,15 +1,16 @@
 
 /*
- *  Time-stamp:      "2004-02-16 11:22:13 bkorb"
+ *  Time-stamp:      "2005-02-14 08:24:59 bkorb"
  *
- *  autoopts.h  $Id: autoopts.h,v 2.46 2004/02/16 22:12:50 bkorb Exp $
+ *  autoopts.h  $Id: autoopts.h,v 4.7 2005/02/13 01:48:00 bkorb Exp $
+ *  Time-stamp:      "2005-02-14 05:59:50 bkorb"
  *
  *  This file defines all the global structures and special values
  *  used in the automated option processing library.
  */
 
 /*
- *  Automated Options copyright 1992-2004 Bruce Korb
+ *  Automated Options copyright 1992-2005 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -68,6 +69,8 @@
 #ifndef MAXPATHLEN
 #  define MAXPATHLEN     4096
 #endif
+#undef  EXPORT
+#define EXPORT
 
 /*
  *  Convert the number to a list usable in a printf call
@@ -82,8 +85,12 @@
 typedef int tDirection;
 #define DIRECTION_PRESET  -1
 #define DIRECTION_PROCESS  1
+#define DIRECTION_CALLED   0
+
 #define PROCESSING(d)     ((d)>0)
 #define PRESETTING(d)     ((d)<0)
+
+#define ISNAMECHAR( c )    (isalnum(c) || ((c) == '_') || ((c) == '-'))
 
 /*
  *  Procedure success codes
@@ -101,6 +108,33 @@ typedef int tSuccess;
 #define SUCCESSFUL( p )    SUCCEEDED( p )
 #define FAILED( p )        ((p) <  SUCCESS)
 #define HADGLITCH( p )     ((p) >  SUCCESS)
+
+/*
+ *  When loading a line (or block) of text as an option, the value can
+ *  be processed in any of several modes:
+ *
+ *  @table @samp
+ *  @item keep
+ *  Every part of the value between the delimiters is saved.
+ *
+ *  @item uncooked
+ *  Even if the value begins with quote characters, do not do quote processing.
+ *
+ *  @item cooked
+ *  If the value looks like a quoted string, then process it.
+ *  Double quoted strings are processed the way strings are in "C" programs,
+ *  except they are treated as regular characters if the following character
+ *  is not a well-established escape sequence.
+ *  Single quoted strings (quoted with apostrophies) are handled the way
+ *  strings are handled in shell scripts, *except* that backslash escapes
+ *  are honored before backslash escapes and apostrophies.
+ *  @end table
+ */
+typedef enum {
+    LOAD_COOKED,
+    LOAD_UNCOOKED,
+    LOAD_KEEP
+} load_mode_t;
 
 /*
  *  The pager state is used by doPagedUsage() procedure.
@@ -133,13 +167,13 @@ typedef enum {
 
 typedef struct {
     tOptDesc*  pOD;
+    tCC*       pzOptArg;
     tUL        flags;
     teOptType  optType;
     int        argType;
-    tCC*       pzOptArg;
 } tOptState;
-#define OPTSTATE_INITIALIZER \
-    { NULL, OPTST_DEFINED, TOPT_UNDEFINED, 0, NULL }
+#define OPTSTATE_INITIALIZER(st) \
+    { NULL, NULL, OPTST_ ## st, TOPT_UNDEFINED, 0 }
 
 #define TEXTTO_TABLE \
         _TT_( LONGUSAGE ) \
@@ -178,12 +212,136 @@ typedef struct {
 #endif /* AUTOGEN_BUILD */
 
 /*
+ *  DO option handling?
+ *
+ *  Options are examined at two times:  at immediate handling time and at
+ *  normal handling time.  If an option is disabled, the timing may be
+ *  different from the handling of the undisabled option.  The OPTST_DIABLED
+ *  bit indicates the state of the currently discovered option.
+ *  So, here's how it works:
+ *
+ *  A) handling at "immediate" time, either 1 or 2:
+ *
+ *  1.  OPTST_DISABLED is not set:
+ *      IMM           must be set
+ *      DISABLE_IMM   don't care
+ *      TWICE         don't care
+ *      DISABLE_TWICE don't care
+ *      0 -and-  1 x x x
+ *
+ *  2.  OPTST_DISABLED is set:
+ *      IMM           don't care
+ *      DISABLE_IMM   must be set
+ *      TWICE         don't care
+ *      DISABLE_TWICE don't care
+ *      1 -and-  x 1 x x
+ */
+#define DO_IMMEDIATELY(_flg) \
+    (  (((_flg) & (OPTST_DISABLED|OPTST_IMM)) == OPTST_IMM) \
+    || (   ((_flg) & (OPTST_DISABLED|OPTST_DISABLE_IMM))    \
+        == (OPTST_DISABLED|OPTST_DISABLE_IMM)  ))
+
+/*  B) handling at "regular" time because it was not immediate
+ *
+ *  1.  OPTST_DISABLED is not set:
+ *      IMM           must *NOT* be set
+ *      DISABLE_IMM   don't care
+ *      TWICE         don't care
+ *      DISABLE_TWICE don't care
+ *      0 -and-  0 x x x
+ *
+ *  2.  OPTST_DISABLED is set:
+ *      IMM           don't care
+ *      DISABLE_IMM   don't care
+ *      TWICE         must be set
+ *      DISABLE_TWICE don't care
+ *      1 -and-  x x 1 x
+ */
+#define DO_NORMALLY(_flg) ( \
+       (((_flg) & (OPTST_DISABLED|OPTST_IMM))            == 0)  \
+    || (((_flg) & (OPTST_DISABLED|OPTST_DISABLE_IMM))    ==     \
+                  OPTST_DISABLED)  )
+
+/*  C)  handling at "regular" time because it is to be handled twice.
+ *      The immediate bit was already tested and found to be set:
+ *
+ *  3.  OPTST_DISABLED is not set:
+ *      IMM           is set (but don't care)
+ *      DISABLE_IMM   don't care
+ *      TWICE         must be set
+ *      DISABLE_TWICE don't care
+ *      0 -and-  ? x 1 x
+ *
+ *  4.  OPTST_DISABLED is set:
+ *      IMM           don't care
+ *      DISABLE_IMM   is set (but don't care)
+ *      TWICE         don't care
+ *      DISABLE_TWICE must be set
+ *      1 -and-  x ? x 1
+ */
+#define DO_SECOND_TIME(_flg) ( \
+       (((_flg) & (OPTST_DISABLED|OPTST_TWICE))          ==     \
+                  OPTST_TWICE)                                  \
+    || (((_flg) & (OPTST_DISABLED|OPTST_DISABLE_TWICE))  ==     \
+                  (OPTST_DISABLED|OPTST_DISABLE_TWICE)  ))
+
+/*
+ *  text_mmap structure.  Only active on platforms with mmap(2).
+ */
+#ifdef HAVE_SYS_MMAN_H
+#  include <sys/mman.h>
+#else
+#  ifndef  PROT_READ
+#   define PROT_READ    0x01
+#  endif
+#  ifndef  PROT_WRITE
+#   define PROT_WRITE   0x02
+#  endif
+#  ifndef  MAP_SHARED
+#   define MAP_SHARED   0x01
+#  endif
+#  ifndef  MAP_PRIVATE
+#   define MAP_PRIVATE  0x02
+#  endif
+#endif
+
+#ifndef MAP_FAILED
+#  define  MAP_FAILED   ((void*)-1)
+#endif
+
+#ifndef  _SC_PAGESIZE
+# ifdef  _SC_PAGE_SIZE
+#  define _SC_PAGESIZE _SC_PAGE_SIZE
+# endif
+#endif
+
+/*
+ *  This is an output only structure used by text_mmap and text_munmap.
+ *  Clients must not alter the contents and must provide it to both
+ *  the text_mmap and text_munmap procedures.  BE ADVISED: if you are
+ *  mapping the file with PROT_WRITE the NUL byte at the end MIGHT NOT
+ *  BE WRITABLE.  In any event, that byte is not be written back
+ *  to the source file.  ALSO: if "txt_data" is valid and "txt_errno"
+ *  is not zero, then there *may* not be a terminating NUL.
+ */
+typedef struct {
+    void*       txt_data;      /* text file data   */
+    size_t      txt_size;      /* actual file size */
+    int         txt_fd;        /* file descriptor  */
+    size_t      txt_full_size; /* mmaped mem size  */
+    int         txt_zero_fd;   /* fd for /dev/zero */
+    int         txt_errno;     /* warning code     */
+    int         txt_prot;      /* "prot" flags     */
+    int         txt_flags;     /* mapping type     */
+} tmap_info_t;
+
+/*
  *  Define and initialize all the user visible strings.
  *  We do not do translations.  If translations are to be done, then
  *  the client will provide a callback for that purpose.
  */
 #undef DO_TRANSLATIONS
-#include "usage-txt.h"
+#include "autoopts/usage-txt.h"
 
 /*
  *  File pointer for usage output
@@ -193,34 +351,8 @@ extern FILE* option_usage_fp;
 extern tOptProc doVersion, doPagedUsage, doLoadOpt;
 
 #define LOCAL static
-#ifdef AUTOOPTS_INTERNAL
-/* === LOCAL PROCEDURES === */
+#include "proto.h"
 
-/* autoopts.c */
-static tSuccess
-handleOption( tOptions* pOpts, tOptState* pOptState );
-
-static tSuccess
-longOptionFind( tOptions* pOpts, char* pzOptName, tOptState* pOptState );
-
-static tSuccess
-shortOptionFind( tOptions* pOpts, tUC optValue, tOptState* pOptState );
-
-
-/* load.c */
-static void
-filePreset(
-    tOptions*     pOpts,
-    const char*   pzFileName,
-    int           direction );
-
-
-/* sort.c */
-static void
-optionSort( tOptions* pOpts );
-
-/* === END LOCALS === */
-#endif /* GUILE_OPTIONS */
 #endif /* AUTOGEN_AUTOOPTS_H */
 /*
  * Local Variables:
