@@ -49,7 +49,7 @@
 #include "cache.h"
 #include "edit_packet.h"
 #include "err.h"
-#include "do_packets.h"
+#include "fileout.h"
 #include "netout.h"
 #include "list.h"
 #include "xX.h"

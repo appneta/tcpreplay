@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _REPLAY_LIVE_H_
-#define _REPLAY_LIVE_H_
+#ifndef _NETOUT_H_
+#define _NETOUT_H_
 
 #include "config.h"
 #include "lib/tree.h"

@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _DO_PACKETS_H_
-#define _DO_PACKETS_H_
+#ifndef _FILEOUT_H_
+#define _FILEOUT_H_
 
 void catcher(int);
 void do_packets(pcapnav_t *, pcap_t *, u_int32_t, int, char *, int);
