@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.29 2002/12/23 06:58:35 aturner Exp $
+# $Id: Makefile.in,v 1.30 2002/12/23 20:01:38 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -59,12 +59,14 @@ clean:
 	-rm -f *.o *core $(BINARIES)
 	-cd libredblack && make distclean
 	-cd test && make clean
+	-cd Docs && make clean
 
 distclean: clean
 	-rm -rf autom4te-2.??.cache
 	-rm -f Makefile config.h config.status config.cache config.log *~
 	-rm -f tcpreplay.spec
 	-cd test && make distclean
+	-cd Docs && make distclean
 
 install: 
 	test -d $(SBINDIR) || $(INSTALL) -d $(SBINDIR)
