@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -268,15 +268,10 @@ static COUNTER
 process_raw_packets(pcap_t * pcap)
 {
     ip_hdr_t *ip_hdr = NULL;
-    eth_hdr_t *eth_hdr = NULL;
-    sll_hdr_t *sll_hdr = NULL;
-    hdlc_hdr_t *hdlc_hdr = NULL;
-    int l2len = 0;
-    u_int16_t protocol = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
     COUNTER packetnum = 0;
-    int linktype = 0, cache_result = 0;
+    int l2len, cache_result = 0;
     u_char ipbuff[MAXPACKET];
 #ifdef HAVE_TCPDUMP
     struct pollfd poller[1];
@@ -288,7 +283,6 @@ process_raw_packets(pcap_t * pcap)
     
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
-        ip_hdr = NULL;
 
         dbg(1, "Packet " COUNTER_SPEC, packetnum);
 
@@ -296,12 +290,12 @@ process_raw_packets(pcap_t * pcap)
         if (options.xX.list != NULL) {
             if (options.xX.mode < xXExclude) {
                 if (!check_list(options.xX.list, packetnum)) {
-                    add_cache(&options.cachedata, 0, 0);
+                    add_cache(&options.cachedata, DONT_SEND, 0);
                     continue;
                 }
             }
             else if (check_list(options.xX.list, packetnum)) {
-                add_cache(&options.cachedata, 0, 0);
+                add_cache(&options.cachedata, DONT_SEND, 0);
                 continue;
             }
         }
@@ -309,31 +303,33 @@ process_raw_packets(pcap_t * pcap)
         /* get the IP header (if any) */
         ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, pcap_datalink(pcap), &ipbuff);
         
-
         if (ip_hdr == NULL) {
             dbg(2, "Packet isn't IP");
 
-            if (options.mode != AUTO_MODE)  /* we don't want to cache
-                                     * these packets twice */
-                add_cache(&options.cachedata, 1, options.nonip);
+            /* we don't want to cache these packets twice */
+            if (options.mode != AUTO_MODE)
+                add_cache(&options.cachedata, SEND, options.nonip);
+
             continue;
         }
+
+        l2len = get_l2len(pktdata, pkthdr.caplen, pcap_datalink(pcap));
 
         /* look for include or exclude CIDR match */
         if (options.xX.cidr != NULL) {
             if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
-                add_cache(&options.cachedata, 0, 0);
+                add_cache(&options.cachedata, DONT_SEND, 0);
                 continue;
             }
         }
 
         switch (options.mode) {
         case REGEX_MODE:
-            cache_result = add_cache(&options.cachedata, 1, 
+            cache_result = add_cache(&options.cachedata, SEND, 
                 check_ip_regex(ip_hdr->ip_src.s_addr));
             break;
         case CIDR_MODE:
-            cache_result = add_cache(&options.cachedata, 1,
+            cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
             break;
         case AUTO_MODE:
@@ -341,7 +337,7 @@ process_raw_packets(pcap_t * pcap)
             add_tree(ip_hdr->ip_src.s_addr, pktdata);
             break;
         case ROUTER_MODE:
-            cache_result = add_cache(&options.cachedata, 1,
+            cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
             break;
         case BRIDGE_MODE:
@@ -349,7 +345,7 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * based cache
              */
-            cache_result = add_cache(&options.cachedata, 1,
+            cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_tree(UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
         case SERVER_MODE:
@@ -357,7 +353,7 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * where unknowns are servers
              */
-            cache_result = add_cache(&options.cachedata, 1,
+            cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_tree(SERVER, ip_hdr->ip_src.s_addr));
             break;
         case CLIENT_MODE:
@@ -365,14 +361,14 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * where unknowns are clients
              */
-            cache_result = add_cache(&options.cachedata, 1,
+            cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_tree(CLIENT, ip_hdr->ip_src.s_addr));
             break;
         case PORT_MODE:
             /*
              * process ports based on their destination port
              */
-            cache_result = add_cache(&options.cachedata, 1, 
+            cache_result = add_cache(&options.cachedata, SEND, 
                       check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
             break;
         }
@@ -485,7 +481,6 @@ post_args(int argc, char *argv[])
     
     if (options.ratio < 0)
         err(1, "Ratio must be a non-negative number.");
-
 }
 
 /*
