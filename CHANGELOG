@@ -3,6 +3,7 @@
 	- Remove unneeded memcpy() for non-strict aligned architectures
 		for added performance boost
 	- Switch to libpcap for reading packets
+	- Fix portability issues with tcpprep cache files
 
 12/23/2002: Version 1.4.beta1
 	- Remove libnet 1.0 support
