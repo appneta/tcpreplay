@@ -8,17 +8,18 @@
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
-#include "tcpreplay.h"
-#include <stdio.h>
+#include <err.h>
+#include <fcntl.h>
 #include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include "cache.h"
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include "err.h"
+
+#include "cache.h"
+#include "tcpreplay.h"
 
 extern CACHE *cachedata;
 extern int debug;
@@ -36,23 +37,21 @@ static CACHE *new_cache();
 int 
 read_cache(char *cachefile)
 {
-	u_int packets = 0;
-	int cachefd;
-	ssize_t read_size = 0;
 	CACHE *cache_ptr;
 	CACHE_HEADER *cache_header;
+	u_int packets = 0;
+	int cachefd, cnt;
 	char header[32];
-	int cnt;
+	ssize_t read_size = 0;
 
 	/* open the file or abort */
 	cachefd = open(cachefile, O_RDONLY);
-	if (cachefd == -1) {
-		fprintf(stderr, "Unable to open cache file: %s\n", cachefile);
-		exit(1);
-	}
+	if (cachefd == -1) 
+		err("open %s", cachefile);
+
 	/* read the cache header and determine compatibility */
 	if ((cnt = read(cachefd, header, sizeof(CACHE_HEADER))) < 0)
-		errx(1, "read %s,", cachefile);
+		err(1, "read %s,", cachefile);
 
 	if (cnt < sizeof(CACHE_HEADER))
 		errx(1, "Cache file %s too small", cachefile);
@@ -106,11 +105,10 @@ u_int
 write_cache(const int out_file)
 {
 	CACHE *mycache;
-	int last = 0;
-	int chars;
-	ssize_t written;
-	unsigned int packets = 1;
 	CACHE_HEADER *cache_header;
+	int chars, last = 0;
+	unsigned int packets = 1;
+	ssize_t written;
 
 	/* write a header to our file */
 	cache_header = (CACHE_HEADER *) malloc(sizeof(CACHE_HEADER));
@@ -119,8 +117,8 @@ write_cache(const int out_file)
 
 	written = write(out_file, cache_header, sizeof(CACHE_HEADER));
 	if (written != sizeof(CACHE_HEADER))
-		err(1, "Only wrote %i of %i bytes of the cache file header!\n", written,
-		    sizeof(CACHE_HEADER));
+		errx(1, "Only wrote %i of %i bytes of the cache file header!", 
+			written, sizeof(CACHE_HEADER));
 
 	mycache = cachedata;
 
@@ -133,10 +131,10 @@ write_cache(const int out_file)
 
 		/* write to file, and verify it wrote properly */
 		written = write(out_file, mycache->data, chars);
-		if (written != chars) {
-			fprintf(stderr, "Only wrote %i of %i bytes to cache file!\n", written, chars);
-			exit(1);
-		}
+		if (written != chars)
+			errx(1, "Only wrote %i of %i bytes to cache file!", 
+				written, chars);
+
 		/*
 		 * if that was the last, stop processing, otherwise wash,
 		 * rinse, repeat
@@ -162,10 +160,9 @@ new_cache()
 
 	/* malloc mem */
 	newcache = (CACHE *) malloc(sizeof(CACHE));
-	if (newcache == NULL) {
-		fprintf(stderr, "Unable to malloc()\n");
-		exit(-1);
-	}
+	if (newcache == NULL)
+		err(1, "malloc");
+
 	/* set mem to \0 and set bits stored to 0 */
 	memset(newcache, '\0', sizeof(CACHE));
 	newcache->bits = 0;

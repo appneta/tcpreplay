@@ -93,10 +93,9 @@ ip2cidr(const unsigned long ip, const int masklen)
 	u_char *network;
 	char mask[3];
 
-	if ((network = (u_char *) malloc(20)) == NULL) {
-		fprintf(stderr, "Unable to malloc()\n");
-		exit(-1);
-	}
+	if ((network = (u_char *) malloc(20)) == NULL)
+		err(1, "malloc");
+
 	strcpy(network, libnet_host_lookup(ip, RESOLVE));
 	strcat(network, "/");
 	if (masklen < 10) {
@@ -120,10 +119,9 @@ new_cidr()
 	CIDR *newcidr;
 
 	newcidr = (CIDR *) malloc(sizeof(CIDR));
-	if (newcidr == NULL) {
-		fprintf(stderr, "Unable to malloc()\n");
-		exit(-1);
-	}
+	if (newcidr == NULL)
+		err(1, "malloc");
+
 	memset(newcidr, '\0', sizeof(CIDR));
 	newcidr->masklen = 99;
 	newcidr->next = NULL;
@@ -142,21 +140,19 @@ cidr2CIDR(char *cidr)
 	int count = 0;
 	unsigned int octets[4];	/* used in sscanf */
 	CIDR *newcidr;
-	char networkip[16];
-	char tempoctet[4];
-	char ebuf[EBUF_SIZE];
+	char networkip[16], tempoctet[4], ebuf[EBUF_SIZE];
 
-	if ((cidr == NULL) || (strlen(cidr) > EBUF_SIZE)) {
-		fprintf(stderr, "Error parsing: %s\n", cidr);
-		exit(1);
-	}
+	if ((cidr == NULL) || (strlen(cidr) > EBUF_SIZE))
+		errx(1, "Error parsing: %s", cidr);
+
 	newcidr = new_cidr();
 
 	/*
 	 * scan it, and make sure it scanned correctly, also copy over the
 	 * masklen
 	 */
-	count = sscanf(cidr, "%u.%u.%u.%u/%u", &octets[0], &octets[1], &octets[2], &octets[3], &newcidr->masklen);
+	count = sscanf(cidr, "%u.%u.%u.%u/%u", &octets[0], &octets[1], 
+		&octets[2], &octets[3], &newcidr->masklen);
 	if (count != 5)
 		goto error;
 
@@ -186,8 +182,7 @@ error:
 	memset(ebuf, '\0', EBUF_SIZE);
 	strcpy(ebuf, "Unable to parse: ");
 	strncat(ebuf, cidr, (EBUF_SIZE - strlen(ebuf) - 1));
-	fprintf(stderr, "%s\n", ebuf);
-	exit(1);
+	err(1, "%s", ebuf);
 }
 
 /*
@@ -234,9 +229,7 @@ parse_cidr(char *cidrin)
 static int 
 ip_in_cidr(const unsigned long ip, const CIDR * mycidr)
 {
-	unsigned long ipaddr = 0;
-	unsigned long network = 0;
-	unsigned long mask = ~0;
+	unsigned long ipaddr = 0, network = 0, mask = 0;
 
 	/* shift over by the correct number of bits */
 	mask = mask >> (32 - mycidr->masklen);

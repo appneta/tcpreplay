@@ -46,28 +46,28 @@
  *  - Auto learning of CIDR block for servers (clients all other)
  */
 
-#include <unistd.h>
+#include <err.h>
+#include <libnet.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libnet.h>
-#include <regex.h>
 #include <redblack.h>
-#include <math.h>
+#include <regex.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
-#include "tcpreplay.h"
-#include "tcpprep.h"
-#include "tree.h"
 #include "cache.h"
 #include "cidr.h"
 #include "libpcap.h"
+#include "tcpprep.h"
+#include "tcpreplay.h"
+#include "tree.h"
 #include "snoop.h"
-#include "err.h"
 
 
 /*
@@ -116,10 +116,10 @@ usage()
 static int 
 check_ip_regex(const unsigned long ip)
 {
+	int eflags = 0;
 	u_char src_ip[16];
 	size_t nmatch = 0;
 	regmatch_t *pmatch = NULL;
-	int eflags = 0;
 
 	memset(src_ip, '\0', 16);
 	strncat(src_ip, libnet_host_lookup(ip, RESOLVE), 15);
@@ -190,17 +190,13 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 int 
 main(int argc, char *argv[])
 {
-	int out_file, in_file;
+	int out_file, in_file, ch, regex_flags = 0, regex_error = 0, mask_count = 0;
 	//struct libnet_link_int *write_if = NULL;
-	char ebuf[EBUF_SIZE];
 	char *infilename = NULL;
 	char *outfilename = NULL;
-	int ch;
-	int regex_flags = 0;
-	int regex_error = 0;
+	char ebuf[EBUF_SIZE];
 	extern char *optarg;
 	u_int totpackets = 0;
-	int mask_count = 0;
 
 	debug = 0;
 	ourregex = NULL;
@@ -208,10 +204,9 @@ main(int argc, char *argv[])
 	regex_flags |= REG_NOSUB;
 
 	preg = (regex_t *) malloc(sizeof(regex_t));
-	if (preg == NULL) {
-		fprintf(stderr, "Unable to malloc()\n");
-		exit(-1);
-	}
+	if (preg == NULL)
+		err(1, "malloc");
+
 #ifdef DEBUG
 	while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:Ihm:M:n:N:S")) != -1)
 #else
@@ -253,8 +248,7 @@ main(int argc, char *argv[])
 			} else if (strcmp(optarg, "router") == 0) {
 				automode = ROUTER_MODE;
 			} else {
-				fprintf(stderr, "Invalid network type: %s\n", optarg);
-				exit(1);
+				errx(1, "Invalid network type: %s", optarg);
 			}
 			break;
 		case 'N':
@@ -263,8 +257,7 @@ main(int argc, char *argv[])
 			} else if (strcmp(optarg, "server") == 0) {
 				non_ip = 1;
 			} else {
-				fprintf(stderr, "-N must be client or server\n");
-				exit(1);
+				errx(1, "-N must be client or server");
 			}
 			break;
 		case 'o':
@@ -291,26 +284,21 @@ main(int argc, char *argv[])
 		}
 
 	/* process args */
-	if ((mode != CIDR_MODE) && (mode != REGEX_MODE) && (mode != AUTO_MODE)) {
-		fprintf(stderr, "You need to specifiy a vaild CIDR list, regex, or auto mode\n");
-		exit(1);
-	}
-	if ((mask_count > 0) && (mode != AUTO_MODE)) {
-		fprintf(stderr, "You can't specify a min/max mask length unless you use auto mode\n");
-		exit(1);
-	}
-	if ((mode == AUTO_MODE) && (automode == 0)) {
-		fprintf(stderr, "You must specify -n (bridge|router) with auto mode (-a)\n");
-		exit(1);
-	}
-	if ((ratio != 0.0) && (mode != AUTO_MODE)) {
-		fprintf(stderr, "Ratio (-R) only works in auto mode (-a).\n");
-		exit(1);
-	}
-	if (ratio < 0) {
-		fprintf(stderr, "Ratio must be a non-negative number.");
-		exit(1);
-	}
+	if ((mode != CIDR_MODE) && (mode != REGEX_MODE) && (mode != AUTO_MODE))
+		errx(1, "You need to specifiy a vaild CIDR list, regex, or auto mode");
+
+	if ((mask_count > 0) && (mode != AUTO_MODE))
+		errx(1, "You can't specify a min/max mask length unless you use auto mode");
+
+	if ((mode == AUTO_MODE) && (automode == 0))
+		errx(1, "You must specify -n (bridge|router) with auto mode (-a)");
+
+	if ((ratio != 0.0) && (mode != AUTO_MODE))
+		errx(1, "Ratio (-R) only works in auto mode (-a).");
+
+	if (ratio < 0)
+		errx(1, "Ratio must be a non-negative number.");
+
 	if (info && mode == AUTO_MODE)
 		fprintf(stderr, "Building auto mode pre-cache data structure...\n");
 
@@ -327,10 +315,9 @@ main(int argc, char *argv[])
 
 	/* open the cache file */
 	out_file = open(outfilename, O_WRONLY | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP | S_IROTH);
-	if (out_file == -1) {
-		fprintf(stderr, "Unable to open cache file %s for writing.\n", outfilename);
-		exit(1);
-	}
+	if (out_file == -1)
+		err(1, "Unable to open cache file %s for writing.", outfilename);
+
 readpcap:
 	/* open the pcap file */
 	if (!strcmp(infilename, "-")) {

@@ -9,14 +9,16 @@
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
-#include "tcpreplay.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include <err.h>
 #include <libnet.h>
 #include <redblack.h>
 #include <search.h>
-#include "tree.h"
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cidr.h"
+#include "tcpreplay.h"
+#include "tree.h"
 
 extern TREE *treedata;
 extern double ratio;
@@ -140,10 +142,9 @@ process_tree()
 	BUILDCIDR *cbdata;
 
 
-	if ((cbdata = (BUILDCIDR *) malloc(sizeof(BUILDCIDR))) == NULL) {
-		fprintf(stderr, "Unable to malloc()\n");
-		exit(-1);
-	}
+	if ((cbdata = (BUILDCIDR *) malloc(sizeof(BUILDCIDR))) == NULL)
+		err(1, "malloc");
+
 	for (mymask = max_mask; mymask <= min_mask; mymask++) {
 #ifdef DEBUG
 		if (debug > 0)
@@ -206,10 +207,11 @@ check_ip_tree(const unsigned long ip)
 	finder->ip = ip;
 
 	tree = (TREE *) rbfind((void *) finder, rbdata);
-	if (tree == NULL) {
-		fprintf(stderr, "%s (%lu) is an unknown system... aborting.!\nTry router mode (-n router)\n", libnet_host_lookup(ip, RESOLVE), ip);
-		exit(1);
-	}
+	if (tree == NULL) 
+		errx(1, "%s (%lu) is an unknown system... aborting.!\n"
+			"Try router mode (-n router)\n", 
+			libnet_host_lookup(ip, RESOLVE), ip);
+
 #ifdef DEBUG
 	if (debug) {
 		if (tree->type == SERVER) {
@@ -385,10 +387,9 @@ new_tree()
 	TREE *mytree;
 
 	mytree = (TREE *) malloc(sizeof(TREE));
-	if (mytree == NULL) {
-		fprintf(stderr, "Unable to malloc()\n");
-		exit(-1);
-	}
+	if (mytree == NULL)
+		err(1, "malloc");
+
 	memset(mytree, '\0', sizeof(TREE));
 	mytree->server_cnt = 0;
 	mytree->client_cnt = 0;
@@ -574,8 +575,6 @@ tree_nodeprint(const void *treeentry, const VISIT which, const int depth, void *
 static void
 start_rbtree()
 {
-	if ((rbdata = rbinit(tree_comp, NULL)) == NULL) {
-		fprintf(stderr, "Unable to build tree.\n");
-		exit(-1);
-	}
+	if ((rbdata = rbinit(tree_comp, NULL)) == NULL) 
+		errx(1, "Unable to build tree.");
 }
