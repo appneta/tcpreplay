@@ -47,23 +47,16 @@
 #include "tcpreplay.h"
 #include "tcpreplay_opts.h"
 #include "tcpdump.h"
-#include "fileout.h"
+#include "send_packets.h"
 #include "timer.h"
 #include "signal_handler.h"
-#include "netout.h"
 
-struct tcpreplay_opt_t options;
-CIDR *cidrdata = NULL;
+tcpreplay_opt_t options;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
 int cache_bit, cache_byte;
 u_int64_t cache_packets;
 volatile int didsig;
-
-char l2data[L2DATALEN] = "";
-int l2len = LIBNET_ETH_H;
-int maxpacket = 0;
-
 
 /* we get this from libpcap */
 extern char pcap_version[];
@@ -77,26 +70,23 @@ tcpdump_t tcpdump;
 int debug = 0;
 #endif
 
-void replay_file(char *path, int l2enabled, char *l2data, int l2len);
-void replay_live(char *iface, int l2enabled, char *l2data, int l2len);
+void replay_file(char *path);
 void usage(void);
-void version(void);
 void init(void);
-void apply_filter(pcap_t *pcap);
+void post_args(void);
 
 int
 main(int argc, char *argv[])
 {
     char ebuf[256];
     int i, optct = 0;
-    int l2enabled = 0;
-    char errbuf[PCAP_ERRBUF_SIZE];
-    
+ 
     init();                     /* init our globals */
     
     optct = optionProcess(&tcpreplayOptions, argc, argv);
     argc -= optct;
     argv += optct;
+
 
 #if 0 /* disable getopts */
     while ((ch =
@@ -147,7 +137,7 @@ main(int argc, char *argv[])
     argv += optind;
 #endif /* getopts */
     
-    if ((argc == 0) && (!options.sniff_bridge))
+    if (argc == 0)
         errx(1, "Must specify one or more pcap files to process");
 
     if (argc > 1)
@@ -161,32 +151,10 @@ main(int argc, char *argv[])
     if ((options.intf2_name == NULL) && (options.cachedata != NULL))
         errx(1, "Needs secondary interface with cache");
 
-    if ((options.intf2_name != NULL) && (!options.sniff_bridge) && 
-        (options.cachedata == NULL))
+    if ((options.intf2_name != NULL) && (options.cachedata == NULL))
         errx(1, "Needs cache or cidr match with secondary interface");
 
-    
-    if ((options.offset) && (options.sniff_snaplen != -1)) {
-        errx(1, "You can't specify an offset when sniffing a live network");
-    }
-
-    if ((!options.promisc) && (options.sniff_snaplen == -1)) {
-        errx(1,
-             "Not nosy can't be specified except when sniffing a live network");
-    }
-
-    if ((options.sniff_bridge) && (options.sniff_snaplen == -1)) {
-        errx(1, "Bridging requires sniff mode (-S <snaplen>)");
-    }
-
-    if ((options.sniff_bridge) && (options.intf2_name == NULL)) {
-        errx(1, "Bridging requires a secondary interface");
-    }
-
-    if ((options.sniff_snaplen != -1) && (options.speedmode == SPEED_ONEATATIME)) {
-        errx(1, "Sniffing live traffic excludes one at a time mode");
-    }
-
+ 
     /* open interfaces for writing */
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, options.intf1_name, ebuf)) == NULL)
         errx(1, "Libnet can't open %s: %s", options.intf1_name, ebuf);
@@ -194,46 +162,6 @@ main(int argc, char *argv[])
     if (options.intf2 != NULL) {
         if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, options.intf2_name, ebuf)) == NULL)
             errx(1, "Libnet can't open %s: %s", options.intf2_name, ebuf);
-    }
-
-    /* open bridge interfaces for reading */
-    if (options.sniff_bridge) {
-        if ((options.listen1 =
-             pcap_open_live(options.intf1_name, options.sniff_snaplen,
-                            options.promisc, PCAP_TIMEOUT, errbuf)) == NULL) {
-            errx(1, "Libpcap can't open %s: %s", options.intf1_name, errbuf);
-        }
-
-        apply_filter(options.listen1);
-
-        if ((options.listen2 =
-             pcap_open_live(options.intf2_name, options.sniff_snaplen,
-                            options.promisc, PCAP_TIMEOUT, errbuf)) == NULL) {
-            errx(1, "Libpcap can't open %s: %s", options.intf2_name, errbuf);
-        }
-
-        apply_filter(options.listen2);
-
-        /* sanity checks for the linktype */
-        if (pcap_datalink(options.listen1) != pcap_datalink(options.listen2)) {
-            errx(1, "Unable to bridge different datalink types");
-        }
-
-        /* abort on non-supported link types */
-        if (pcap_datalink(options.listen1) == DLT_LINUX_SLL) {
-            errx(1, "Unable to bridge Linux Cooked Capture format");
-        }
-        else if (pcap_datalink(options.listen1) == DLT_NULL) {
-            errx(1, "Unable to bridge BSD loopback format");
-        }
-        else if (pcap_datalink(options.listen1) == DLT_LOOP) {
-            errx(1, "Unable to bridge loopback interface");
-        }
-
-      
-        
-        warnx("listening on: %s %s", options.intf1_name, options.intf2_name);
-
     }
 
     warnx("sending on: %s %s", options.intf1_name, 
@@ -245,21 +173,6 @@ main(int argc, char *argv[])
     if (gettimeofday(&begin, NULL) < 0)
         err(1, "gettimeofday() failed");
 
-    /* don't use the standard main loop in bridge mode */
-    if (options.sniff_bridge) {
-        cache_byte = 0;
-        cache_bit = 0;
-
-        do_bridge(options.listen1, options.listen2, l2enabled, l2data, l2len);
-
-        pcap_close(options.listen1);
-        pcap_close(options.listen2);
-        libnet_destroy(options.intf1);
-        libnet_destroy(options.intf2);
-        exit(0);
-
-    }
-
     /* main loop for non-bridge mode */
     if (options.n_iter > 0) {
         while (options.n_iter--) {  /* limited loop */
@@ -267,14 +180,7 @@ main(int argc, char *argv[])
                 /* reset cache markers for each iteration */
                 cache_byte = 0;
                 cache_bit = 0;
-
-                /* replay file or live network depending on snaplen */
-                if (options.sniff_snaplen == -1) {
-                    replay_file(argv[i], l2enabled, l2data, l2len);
-                }
-                else {
-                    replay_live(argv[i], l2enabled, l2data, l2len);
-                }
+                replay_file(argv[i]);
             }
         }
     }
@@ -285,14 +191,7 @@ main(int argc, char *argv[])
                 /* reset cache markers for each iteration */
                 cache_byte = 0;
                 cache_bit = 0;
-
-                /* replay file or live network depending on snaplen */
-                if (options.sniff_snaplen == -1) {
-                    replay_file(argv[i], l2enabled, l2data, l2len);
-                }
-                else {
-                    replay_live(argv[i], l2enabled, l2data, l2len);
-                }
+                replay_file(argv[i]);
             }
         }
     }
@@ -304,58 +203,15 @@ main(int argc, char *argv[])
 }                               /* main() */
 
 
-/*
- * replay a live network on another interface
- * but only in a single direction (non-bridge mode)
- */
-void
-replay_live(char *iface, int l2enabled, char *l2data, int l2len)
-{
-    pcap_t *pcap = NULL;
-    char errbuf[PCAP_ERRBUF_SIZE];
-
-    /* if no interface specified, pick one */
-    if ((!iface || !*iface) && !(iface = pcap_lookupdev(errbuf))) {
-        errx(1, "Error determing live capture device : %s", errbuf);
-    }
-
-    if (strcmp(options.intf1_name, iface) == 0) {
-        warnx("WARNING: Listening and sending on the same interface!");
-    }
-
-    /* open the interface */
-    if ((pcap = pcap_open_live(iface, options.sniff_snaplen,
-                               options.promisc, 0, errbuf)) == NULL) {
-        errx(1, "Error opening live capture: %s", errbuf);
-    }
-
-    options.l2.linktype = pcap_datalink(pcap);
-
-    /* do we apply a bpf filter? */
-    if (options.bpf.filter != NULL) {
-        if (pcap_compile(pcap, &options.bpf.program, options.bpf.filter,
-                         options.bpf.optimize, 0) != 0) {
-            errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
-        }
-        if (pcap_setfilter(pcap, &options.bpf.program) != 0)
-            errx(1, "Unable to apply BPF filter: %s", pcap_geterr(pcap));
-    }
-
-    do_packets(pcap);
-    pcap_close(pcap);
-}
 
 /* 
  * replay a pcap file out an interface
  */
 void
-replay_file(char *path, int l2enabled, char *l2data, int l2len)
+replay_file(char *path)
 {
     pcap_t *pcap = NULL;
-    pcapnav_t *pcapnav = NULL;
-    u_int32_t linktype = 0;
-
-    pcapnav_init();
+    char ebuf[PCAP_ERRBUF_SIZE];
 
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
@@ -364,119 +220,15 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
     }
 #endif
 
-    if ((pcapnav = pcapnav_open_offline(path)) == NULL) {
-        errx(1, "Error opening file: %s", strerror(errno));
-    }
+    if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
+        errx(1, "Error opening pcap file: %s", ebuf);
 
-    pcap = pcapnav_pcap(pcapnav);
-    linktype = pcap_datalink(pcap);
-
-    apply_filter(pcapnav_pcap(pcapnav));
-
-    do_packets(pcapnav_pcap(pcapnav));
-    pcapnav_close(pcapnav);
+    send_packets(pcap);
+    pcap_close(pcap);
 #ifdef HAVE_TCPDUMP
     tcpdump_close(&tcpdump);
 #endif
 }
-
-/*
- * applys a BPF filter if applicable
- */
-void
-apply_filter(pcap_t * pcap)
-{
-
-    /* do we apply a bpf filter? */
-    if (options.bpf.filter != NULL) {
-        if (pcap_compile(pcap, &options.bpf.program, options.bpf.filter,
-                         options.bpf.optimize, 0) != 0) {
-            errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
-        }
-        pcap_setfilter(pcap, &options.bpf.program);
-    }
-}
-
-
-void
-version(void)
-{
-    fprintf(stderr, "tcpreplay version: %s", VERSION);
-#ifdef DEBUG
-    fprintf(stderr, " (debug)\n");
-#else
-    fprintf(stderr, "\n");
-#endif
-    fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
-    fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
-    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
-#ifdef HAVE_PCAPNAV
-    fprintf(stderr, "Compiled against libpcapnav: %s\n", PCAPNAV_VERSION);
-#else
-    fprintf(stderr, "Not compiled against libpcapnav.\n");
-#endif
-#ifdef HAVE_TCPDUMP
-    fprintf(stderr, "Using tcpdump located in: %s\n", TCPDUMP_BINARY);
-#else
-    fprintf(stderr, "Not using tcpdump.\n");
-#endif
-    exit(0);
-}
-
-void
-usage(void)
-{
-    printf("Usage: tcpreplay [args] <file(s)>\n"
-           "-A \"<args>\"\t\tPass arguments to tcpdump decoder (use w/ -v)\n"
-           "-b\t\t\tBridge two broadcast domains in sniffer mode\n"
-           "-c <cachefile>\t\tSplit traffic via cache file\n"
-           "-C <CIDR1,CIDR2,...>\tSplit traffic by matching src IP\n");
-#ifdef DEBUG
-    printf("-d <level>\t\tEnable debug output to STDERR\n");
-#endif
-    printf("-D\t\t\tData dump mode (set this BEFORE -w and -W)\n"
-           "-e <ip1:ip2>\t\tSpecify IP endpoint rewriting\n"
-           "-f <configfile>\t\tSpecify configuration file\n"
-           "-F\t\t\tFix IP, TCP, UDP and ICMP checksums\n"
-           "-h\t\t\tHelp\n"
-           "-i <nic>\t\tPrimary interface to send traffic out of\n"
-           "-I <mac>\t\tRewrite dest MAC on primary interface\n"
-           "-j <nic>\t\tSecondary interface to send traffic out of\n"
-           "-J <mac>\t\tRewrite dest MAC on secondary interface\n"
-           "-k <mac>\t\tRewrite source MAC on primary interface\n"
-           "-K <mac>\t\tRewrite source MAC on secondary interface\n");
-    printf("-l <loop>\t\tSpecify number of times to loop\n"
-           "-L <limit>\t\tSpecify the maximum number of packets to send\n"
-           "-m <multiple>\t\tSet replay speed to given multiple\n"
-           "-M\t\t\tDisable sending martian IP packets\n"
-           "-n\t\t\tNot nosy mode (not promisc in sniff/bridge mode)\n"
-           "-N <CIDR1:CIDR2,...>\tRewrite IP's via pseudo-NAT\n"
-#ifdef HAVE_PCAPNAV
-           "-o <offset>\t\tStarting byte offset\n"
-#endif
-           "-O\t\t\tOne output mode\n"
-           "-p <packetrate>\t\tSet replay speed to given rate (packets/sec)\n");
-    printf("-P\t\t\tPrint PID\n"
-           "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
-           "-R\t\t\tSet replay speed to as fast as possible\n"
-           "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
-           "-S <snaplen>\t\tSniff interface(s) and set the snaplen length\n"
-           "-t <mtu>\t\tOverride MTU (defaults to 1500)\n"
-           "-T\t\t\tTruncate packets > MTU so they can be sent\n"
-           "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
-           "-v\t\t\tVerbose: print packet decodes for each packet sent\n"
-           "-V\t\t\tVersion\n");
-    printf("-w <file>\t\tWrite (primary) packets or data to file\n"
-           "-W <file>\t\tWrite secondary packets or data to file\n"
-           "-x <match>\t\tOnly send the packets specified\n"
-           "-X <match>\t\tSend all the packets except those specified\n"
-           "-1\t\t\tSend one packet per key press\n"
-           "-2 <datafile>\t\tLayer 2 data\n"
-           "-4 <PORT1:PORT2,...>\tRewrite port numbers\n"
-           "<file1> <file2> ...\tFile list to replay\n");
-    exit(1);
-}
-
 
 /*
  * Initialize globals
@@ -497,24 +249,8 @@ init(void)
     /* set the default MTU size */
     options.mtu = DEFAULT_MTU;
 
-    /* set the bpf optimize */
-    options.bpf.optimize = BPF_OPTIMIZE;
-
-    /* default L2 len is ethernet */
-    options.l2.len = LIBNET_ETH_H;
-
-    /* sniff mode options */
-    options.sniff_snaplen = -1; /* disabled */
-    options.promisc = 1;        /* listen in promisc mode by default */
-
-    /* poll timeout (in ms) defaults to infinate */
-    options.poll_timeout = -1;
-
     /* disable limit send */
     options.limit_send = -1;
-
-    /* init the RBTree */
-    rbinit();
 
 #ifdef HAVE_TCPDUMP
     /* clear out tcpdump struct */
@@ -527,6 +263,58 @@ init(void)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
 }
 
+/*
+ * post processes the args and puts them into our options
+ */
+void
+post_args(void)
+{
+
+#ifdef DEBUG
+    debug = OPT_VALUE_DBUG;
+#else
+    if (HAVE_OPT(DBUG))
+        warnx("not configured with --enable-debug.  Debugging disabled.");
+#endif
+    
+    options.loop = OPT_VALUE_LOOP;
+    
+    if (HAVE_OPT(TOPSPEED)) {
+        options.speedmode = SPEED_TOPSPEED;
+        options.speed = 0.0;
+    } else if (HAVE_OPT(PKTRATE)) {
+        options.speedmode = SPEED_PACKETRATE;
+        options.speed = atof(OPT_ARG(PKTRATE));
+    } else if (HAVE_OPT(ONEATATIME)) {
+        options.speedmode = SPEED_ONEATATIME;
+        options.speed = 0.0;
+    } else if (HAVE_OPT(MBPSRATE)) {
+        options.speedmode = SPEED_MBPSRATE;
+        options.speed = atof(OPT_ARG(MBPSRATE));
+    } else if (HAVE_OPT(MULTIPLIER)) {
+        options.speedmode = SPEED_MULTIPLIER;
+        options.speed = atof(OPT_ARG(MULTIPLIER));
+    }
+
+    if (HAVE_OPT(VERBOSE))
+        options.verbose = 1;
+    
+    if (HAVE_OPT(DECODE))
+        options.tcpdump_args = OPT_ARG(DECODE);
+    
+    options.intf1_name = (char *)safe_malloc(strlen(OPT_ARG(INTF1)) + 1);
+    strlcpy(options.intf1_name, OPT_ARG(INTF1), sizeof(options.intf1_name));
+    
+    if (HAVE_OPT(INTF2)) {
+        options.intf2_name = (char *)safe_malloc(strlen(OPT_ARG(INTF2)) + 1);
+        strlcpy(options.intf2_name, OPT_ARG(INTF2), sizeof(options.intf2_name));
+    }
+
+    if (HAVE_OPT(CACHEFILE)) {
+        options.cache_packets = read_cache(&options.cachedata, OPT_ARG(CACHEFILE),
+            &options.comment);
+    }
+}
 
 /*
  Local Variables:
