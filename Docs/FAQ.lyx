@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Aug 30, 2003
+Nov 4, 2003
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -565,6 +565,11 @@ Pattern is a comma delimited CIDR notation
 P - A list of packet numbers from the pcap file.
 \newline 
 Pattern is a series of numbers, seperated by commas or dashes.
+\layout Enumerate
+
+F - BPF syntax (same as used in tcpdump).
+\newline 
+Filter must be quoted and is only supported with -x.
 \layout Standard
 
 Examples:
@@ -597,6 +602,11 @@ To only send the first 50 packets followed by packets: 100, 150, 200 and
 
 \emph on 
 tcpreplay -x P:1-50,100,150,200,250 -i eth0 sample.pcap
+\layout Itemize
+
+To only send TCP packets from 10.0.0.1:
+\newline 
+tcpreplay -x F:'tcp and host 10.0.0.1' -i eth0 sample.pcap
 \layout Subsection
 
 Rewriting destination MAC address
@@ -741,6 +751,33 @@ Notice that specifying an interface is still required (required for various
 output.pcap
 \emph default 
 .
+\layout Standard
+
+You can also split traffic into two files by using -W <2nd output file>.
+\layout Subsection
+
+Extracting Application Data (Layer 7)
+\layout Standard
+
+New to version 1.5 is the ability to extract the application layer data from
+ the packets and write them to a file.
+ In the man page, we call this 
+\begin_inset Quotes eld
+\end_inset 
+
+data dump mode
+\begin_inset Quotes erd
+\end_inset 
+
+ which is enabled with -D.
+ It's important to specifiy -D before -w (and -W if you're splitting data
+ into two files).
+ Example:
+\layout Standard
+
+
+\emph on 
+tcpreplay -D -i eth0 -j eth0 -w clientdata -W serverdata -C 10.0.0.0/24 sample.pcap
 \layout Subsection
 
 Using Configuration Files
