@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.13 2002/10/03 01:08:10 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.14 2002/10/03 16:58:25 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -9,7 +9,7 @@
 
 #include "timer.h"
 
-#define VERSION "1.3-beta1"
+#define VERSION "1.3-beta2"
 
 
 /* Compatibility for libnet 1.0 vs 1.1 */
@@ -53,6 +53,8 @@ struct options {
 	int cidr;
 	int trunc;
 	long int seed;
+	char *packets;
+	char *exclude;
 	char **files;
 	char *cache_files;
 };
