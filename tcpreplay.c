@@ -1,10 +1,36 @@
-/* $Id: tcpreplay.c,v 1.68 2003/07/18 00:06:39 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.69 2003/08/31 01:40:05 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
  * All rights reserved.
  *
- * Please see Docs/LICENSE for licensing information
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *    This product includes software developed by Anzen Computing, Inc.
+ * 4. Neither the name of Anzen Computing, Inc. nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "config.h"
@@ -34,7 +60,8 @@ CIDR *cidrdata = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
-int cache_bit, cache_byte, cache_packets;
+int cache_bit, cache_byte;
+u_int32_t cache_packets;
 volatile int didsig;
 
 int include_exclude_mode = 0;
@@ -79,7 +106,7 @@ main(int argc, char *argv[])
     options.mult = 1.0;
     options.n_iter = 1;
     options.rate = 0.0;
-    options.pause = -1.0;
+    options.packetrate = 0.0;
 
     /* set the default MTU size */
     options.mtu = DEFAULT_MTU;
@@ -140,18 +167,18 @@ main(int argc, char *argv[])
 	    if (options.mult <= 0)
 		errx(1, "Invalid multiplier: %s", optarg);
 	    options.rate = 0.0;
-	    options.pause = -1.0;
+	    options.packetrate = 0.0;
 	    break;
 	case 'M':		/* disable sending martians */
 	    options.no_martians = 1;
 	    break;
-	case 'p':		/* pause between packets */
-	    options.pause = atof(optarg);
-	    if (options.pause < 0)
-		errx(1, "Invalid pause value: %s", optarg);
-	    options.rate = 0.0;
-	    options.mult = 0.0;
-	    break;
+	case 'p':		/* packets/sec */
+	    options.packetrate = atof(optarg);
+	    if (options.packetrate <= 0)
+                errx(1, "Invalid packetrate value: %s", optarg);
+            options.rate = 0.0;
+            options.mult = 0.0;
+            break;
 	case 'P':               /* print our PID */
 	    fprintf(stderr, "PID: %hu\n", getpid());
 	    break;
@@ -162,7 +189,7 @@ main(int argc, char *argv[])
 	    /* convert to bytes */
 	    options.rate = (options.rate * (1024 * 1024)) / 8;
 	    options.mult = 0.0;
-	    options.pause = -1.0;
+	    options.packetrate = 0.0;
 	    break;
 	case 'R':		/* replay at top speed */
 	    options.topspeed = 1;
@@ -176,9 +203,6 @@ main(int argc, char *argv[])
 	    break;
 	case 'T':               /* Truncate frames > MTU */
 	    options.truncate = 1;
-	    break;
-	case 'v':		/* verbose */
-	    options.verbose++;
 	    break;
 	case 'w':               /* write packets to file */
 	    if ((options.savepcap = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
@@ -624,9 +648,6 @@ configfile(char *file)
 	else if (ARGS("mtu", 2)) {
 	    options.mtu = atoi(argv[1]);
 	}
-	else if (ARGS("verbose", 1)) {
-	    options.verbose++;
-	}
 	else if (ARGS("truncate", 1)) {
 	    options.truncate = 1;
 	}
@@ -644,10 +665,10 @@ configfile(char *file)
 	else if (ARGS("seed", 2)) {
 	    options.seed = atol(argv[1]);
 	}
-	else if (ARGS("pause", 2)) {
-	    options.pause = atof(argv[1]);
-	    if (options.pause < 0)
-		errx(1, "Invalid pause option: %s", argv[1]);
+	else if (ARGS("packetrate", 2)) {
+	    options.packetrate = atof(argv[1]);
+	    if (options.packetrate < 0)
+		errx(1, "Invalid packetrate option: %s", argv[1]);
 	    options.rate = 0.0;
 	    options.mult = 0.0;
 	}
@@ -702,7 +723,7 @@ version()
 void
 usage()
 {
-    fprintf(stderr, "Usage: tcpreplay\n");
+    fprintf(stderr, "Usage: tcpreplay [args] <file(s)>\n");
     fprintf(stderr, "-c <cachefile>\t\tSplit traffic via cache file\n"
 	    "-C CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
@@ -718,7 +739,7 @@ usage()
 	    "-l <loop>\t\tSpecify number of times to loop\n"
 	    "-m <multiple>\t\tSet replay speed to given multiple\n"
 	    "-M\t\t\tDisable sending martian IP packets\n"
-	    "-p <sec.usec>\t\tPause sec.usecs between packets\n");
+	    "-p <packetrate>\t\tSet replay speed to given rate (packets/sec)\n");
     fprintf(stderr, 
 	    "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 	    "-R\t\t\tSet replay speed to as fast as possible\n"
@@ -726,8 +747,8 @@ usage()
 	    "-t <mtu>\t\tOverride MTU (defaults to 1500)\n"
 	    "-T\t\t\tTruncate packets > MTU so they can be sent\n"
 	    "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
-	    "-v\t\t\tVerbose\n"
-	    "-V\t\t\tVersion\n"
+	    "-V\t\t\tVersion\n");
+    fprintf(stderr,
 	    "-w <file>\t\tWrite packets to file\n"
 	    "-x <match>\t\tOnly send the packets specified\n"
 	    "-X <match>\t\tSend all the packets except those specified\n"
