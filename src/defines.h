@@ -92,9 +92,6 @@ struct services_s {
 };
 typedef struct services_s services_t;
 
-/* from lib/sll.h */
-typedef struct sll_header sll_header_t;
-
 struct speed_s {
     /* speed modifiers */
     int mode;
