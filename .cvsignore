@@ -1,0 +1,9 @@
+Makefile
+capinfo
+config.cache
+config.h
+config.log
+config.status
+regress
+tcpreplay
+*.o

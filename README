@@ -1,0 +1,81 @@
+tcpreplay 1.1
+-------------
+
+tcpreplay is a tool to replay saved tcpdump or snoop files at 
+arbitrary speeds.
+
+This program was written in the hopes that a more precise testing
+methodology might be applied to the area of network intrusion
+detection, which is still a black art at best. 
+
+Many NIDSs fare poorly when looking for attacks on heavily-loaded
+networks. tcpreplay allows you to recreate real network traffic from a
+real network for use in testing.
+
+What's included with tcpreplay?
+-------------------------------
+
+tcpreplay - the tool for replaying capture files
+capinfo - the tool for printing statistics about capture files
+
+What systems does tcpreplay support?
+-------------------------------------
+
+tcpreplay has been successfully tested on
+
+	- OpenBSD 2.x, 3.x
+	- FreeBSD 4.x
+	- BSD/OS 3.x
+	- Redhat Linux 6.x, 7.x
+	- Solaris 2.x
+
+Who can use tcpreplay?
+-----------------------
+
+tcpreplay is licensed under a BSD-style license, as in the included
+LICENSE file. Please read the license to make sure it's okay to use it
+in your circumstances.
+
+Contact info?
+-------------
+
+The primary tcpreplay site is 
+
+	http://www.anzen.com/research/nidsbench/
+
+Please send bug reports, comments, or questions about this software to
+<nidsbench@anzen.com>.
+
+Building tcpreplay
+-------------------
+
+Libnet is required and is located at:
+
+http://www.packetfactory.net/Projects/libnet/
+
+To build tcpreplay on a supported platform:
+
+	% ./configure ; make
+
+Installing tcpreplay
+---------------------
+
+To install tcpreplay, as root:
+
+	# make install
+
+This will install the binaries and man pages into /usr/local/ 
+(by default).
+
+On BSD-based systems, kernel modifications are required to correctly
+forge outgoing Ethernet source MACs. See the libnet documentation for
+details on how to do this.
+
+Known Problems
+--------------
+
+tcpreplay can only replay traffic as fast as your hardware allows. If
+you find you can't hit that 80 Mbps traffic rate you want, build a
+faster machine (disk I/O seems to account for a lot of the overhead).
+
+$Id: README,v 1.1 2002/03/29 03:44:48 mattbing Exp $

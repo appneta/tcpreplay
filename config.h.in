@@ -1,0 +1,11 @@
+/* Define to 'uint8_t' if <sys/types.h> doesn't define. */
+#undef u_int8_t
+
+/* Define to 'uint16_t' if <sys/types.h> doesn't define. */
+#undef u_int16_t
+
+/* Define to 'uint32_t' if <sys/types.h> doesn't define. */
+#undef u_int32_t
+
+/* Define to 'uint64_t' if <sys/types.h> doesn't define. */
+#undef u_int64_t

@@ -1,0 +1,57 @@
+# $Id: Makefile.in,v 1.1 2002/03/29 03:44:48 mattbing Exp $
+
+PREFIX		= @prefix@
+BINDIR		= $(PREFIX)/bin
+SBINDIR		= $(PREFIX)/sbin
+MAN8DIR		= $(PREFIX)/man/man8
+MAN1DIR		= $(PREFIX)/man/man1
+
+CC			= @CC@
+CFLAGS		= @CFLAGS@
+LDFLAGS		= @LDFLAGS@
+DEFS		= @DEFS@
+INCS		= @LNETINC@ -I.
+LIBS		= @LIBS@ @LNETLIB@
+
+INSTALL		= @INSTALL@
+
+BINARIES	= tcpreplay capinfo
+
+TSRCS		= tcpreplay.c libpcap.c snoop.c timer.c @EXTRAS@
+TOBJS		= $(TSRCS:.c=.o)
+
+CSRCS		= capinfo.c libpcap.c snoop.c timer.c @EXTRAS@
+COBJS		= $(CSRCS:.c=.o)
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCS) -c $*.c
+
+all: $(BINARIES)
+
+tcpreplay: $(TOBJS)
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(TOBJS) $(LDFLAGS) $(LIBS)
+
+capinfo: $(COBJS)
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(COBJS) $(LDFLAGS) $(LIBS)
+
+clean:
+	rm -f *~ *.o *core $(BINARIES)
+
+distclean: clean
+	rm -f Makefile config.h config.status config.cache config.log
+
+install: 
+	test -d $(SBINDIR) || $(INSTALL) -d $(SBINDIR)
+	test -d $(BINDIR) || $(INSTALL) -d $(BINDIR)
+	test -d $(MAN8DIR) || $(INSTALL) -d $(MAN8DIR)
+	test -d $(MAN1DIR) || $(INSTALL) -d $(MAN1DIR)
+	$(INSTALL) -m 755 tcpreplay $(SBINDIR)
+	$(INSTALL) -m 755 capinfo $(BINDIR)
+	$(INSTALL) -m 644 tcpreplay.8 $(MAN8DIR)
+	$(INSTALL) -m 644 capinfo.1 $(MAN1DIR)
+
+uninstall:
+	rm -f $(SBINDIR)/tcpreplay
+	rm -f $(MAN8DIR)/tcpreplay.8
+	rm -f $(BINDIR)/capinfo
+	rm -f $(MAN1DIR)/capinfo.1

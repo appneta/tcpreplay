@@ -1,0 +1,108 @@
+.\" $Id: tcpreplay.8,v 1.1 2002/03/29 03:44:53 mattbing Exp $
+.TH TCPREPLAY 8
+.SH NAME
+tcpreplay \- replay packets from capture files
+.SH SYNOPSIS
+.na
+.B tcpreplay
+.B \-i
+.I intf
+[
+.B \-l
+.I loop count
+] [
+.B \-m
+.I multiplier
+|
+.B \-r
+.I rate
+|
+.B \-R
+]
+[
+.B \-S
+]
+[
+.B \-v
+]
+.I file ...
+.SH DESCRIPTION
+.LP
+.I tcpreplay
+is a tool for replaying network traffic from files
+saved with 
+\fItcpdump(8)\fP
+or
+\fIsnoop(1M)\fP.
+.LP
+The basic operation of
+.I tcpreplay
+is to resend all packets from input file(s) at the speed at which
+they were recorded, a specified data \fIrate\fP, or as fast as the hardware is 
+capable.  
+.LP
+If no
+\fIrate\fP or
+\fImultiplier\fP are given, 
+.I tcpreplay 
+will replay packets at 10MBps.
+.SH OPTIONS
+.LP
+.TP
+.B \-i
+Specify the interface in which to send packets.
+.TP
+.B \-l
+Resend the capture file(s) \fIloop count\fR times.
+.TP
+.B \-m
+Resend the packets a \fImultiple\fR of the speed at which they were
+recorded.
+.TP
+.B \-r
+Resend the packets at the \fIrate\fR specified (in Mbps).
+.TP
+.B \-R
+Resend the packets as fast as possible. Negates other speed options.
+.TP
+.B \-S
+Indicates the specified files are in snoop format.
+.TP
+.B \-v
+Verbose mode, currently unused.
+.SH "SEE ALSO"
+tcpdump(8), snoop(1M)
+.SH AUTHORS
+Matt Undy, Anzen Computing.
+.br
+Matt Bing <mbing@nfr.net>
+.SH AVAILABILITY
+.LP
+The current version is available via HTTP:
+.LP
+.RS
+.I http://www.anzen.com/research/nidsbench/
+.RE
+.SH BUGS
+.I tcpreplay
+can only send packets as fast as your machine's interface,
+processor, and disk will allow.
+.LP
+``\fIN\fR write attempts failed from full buffers and were repeated''
+indicates that kernel buffers were full and \fIN\fR packets had to
+be resent.
+.LP
+Looping captured traffic may simulate odd conditions on a network.
+For example, opening the same TCP connection multiple times may 
+exhaust resources on machines tracking the connection. The 
+.B \-l
+flag is provided to allow faster sending on machines with greater I/O
+constraints. 
+.LP
+Looping will not work when reading from stdin since tcpreplay closes 
+then re-opens the file and re-reads it from the beginning.
+.LP
+On BSD-based systems, kernel modifications may be required to preserve
+outgoing link layer source addresses. Refer to the \fIlibnet(3)\fP
+documentation for more information on how to do this. Increasing
+NMBCLUSTERS kernel option will help performance.
