@@ -48,7 +48,7 @@
  */
 
 int
-parse_xX_str(char mode, char *str, void **mybuf, bpf_t *bpf)
+parse_xX_str(xX_t *xX, char *str, bpf_t *bpf)
 {
     int out = 0;
 
@@ -59,19 +59,19 @@ parse_xX_str(char mode, char *str, void **mybuf, bpf_t *bpf)
     case 'B':                  /* both ip's */
         str = str + 2;
         out = xXBoth;
-        if (!parse_cidr((cidr_t **)mybuf, str, ","))
+        if (!parse_cidr(&(xX->cidr), str, ","))
             return 0;
         break;
     case 'D':                  /* dst ip */
         str = str + 2;
         out = xXDest;
-        if (!parse_cidr((cidr_t **)mybuf, str, ","))
+        if (!parse_cidr(&(xX->cidr), str, ","))
             return 0;
         break;
     case 'E':                  /* either ip */
         str = str + 2;
         out = xXEither;
-        if (!parse_cidr((cidr_t **)mybuf, str, ","))
+        if (!parse_cidr(&(xX->cidr), str, ","))
             return 0;
         break;
     case 'F':                  /* bpf filter */
@@ -87,30 +87,31 @@ parse_xX_str(char mode, char *str, void **mybuf, bpf_t *bpf)
     case 'P':                  /* packet id */
         str = str + 2;
         out = xXPacket;
-        if (!parse_list((list_t **)mybuf, str))
+        if (!parse_list(&(xX->list), str))
             return 0;
         break;
     case 'S':                  /* source ip */
         str = str + 2;
         out = xXSource;
-        if (!parse_cidr((cidr_t **)mybuf, str, ","))
+        if (!parse_cidr(&(xX->cidr), str, ","))
             return 0;
         break;
 
 
     default:
-        errx(1, "Invalid -%c option: %c", mode, *str);
+        errx(1, "Invalid -%c option: %c", xX->mode, *str);
         break;
     }
 
-    if (mode == 'X') {          /* run in exclude mode */
+    if (xX->mode == 'X') {          /* run in exclude mode */
         out += xXExclude;
         if (bpf->filter != NULL)
             errx(1, "Using a BPF filter with -X doesn't work.\n"
                  "Try using -xF:\"not <filter>\" instead");
     }
 
-    return out;
+    xX->mode = out;
+    return xX->mode;
 }
 
 
