@@ -603,7 +603,7 @@ main(int argc, char *argv[])
     }
 
     if (bytes_sent > 0)
-        packet_stats();
+        packet_stats(&begin, &end);
 
     /* save the pcap write file */
     if (options.savepcap != NULL)
@@ -1212,38 +1212,12 @@ init(void)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
 }
 
-void
-packet_stats()
-{
-    float bytes_sec = 0.0, mb_sec = 0.0;
-    int pkts_sec = 0;
-    char bits[3];
 
-    if (gettimeofday(&end, NULL) < 0)
-        err(1, "gettimeofday");
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
 
-    timersub(&end, &begin, &begin);
-    if (timerisset(&begin)) {
-        if (bytes_sent) {
-            bytes_sec =
-                bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-            mb_sec = (bytes_sec * 8) / (1024 * 1024);
-        }
-        if (pkts_sent)
-            pkts_sec =
-                pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-    }
-
-    snprintf(bits, sizeof(bits), "%d", begin.tv_usec);
-
-    fprintf(stderr, " %llu packets (%llu bytes) sent in %d.%s seconds\n",
-            pkts_sent, bytes_sent, begin.tv_sec, bits);
-    fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
-            bytes_sec, mb_sec, pkts_sec);
-
-    if (failed) {
-        fprintf(stderr,
-                " %llu write attempts failed from full buffers and were repeated\n",
-                failed);
-    }
-}
