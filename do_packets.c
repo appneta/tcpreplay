@@ -151,6 +151,10 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			}
 		}
 
+		/* sometimes we should not send the packet */
+		if (l == CACHE_NOSEND)
+			continue;
+
 		/* Untruncate packet? Only for IP packets */
 		if (options.trunc) {
 #if USE_LIBNET_VERSION == 10
