@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ pcapnav_open_offline(const char *filename)
 
     pcapnav = (pcapnav_t *) malloc(sizeof(pcapnav_t));
     if (pcapnav == NULL) {
-        errx(1, "malloc() error: unable to malloc pcapnav_t");
+        err(1, "malloc() error: unable to malloc pcapnav_t");
     }
 
     pcapnav->pcap = pcap_open_offline(filename, errbuf);
