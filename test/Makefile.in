@@ -1,4 +1,4 @@
-MAKEFLAGS=-s
+MAKEFLAGS=-s -k
 PRINTF = @PRINTF@
 HOST = @host@
 TARGET = @target@
@@ -24,6 +24,7 @@ standard:
 	../tcpprep -i test.pcap -o test.port -p
 	../tcpprep -i test.pcap -o test.cidr -c '216.27.178.0/24' -N client
 	../tcpprep -i test.pcap -o test.regex -r '216.27.178.*' -N client
+	../tcpprep -i test.pcap -o test.comment -C "This is a comment" -p
 
 tcpprep: auto_router auto_bridge cidr regex port comment print_comment
 tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude replay_layer2 replay_packetrate datadump_mode config_mode
