@@ -1,4 +1,4 @@
-/* $Id: pcapmerge.c,v 1.3 2003/01/02 06:47:32 aturner Exp $ */
+/* $Id: pcapmerge.c,v 1.4 2003/01/07 23:35:38 aturner Exp $ */
 
 /* The pcapmerge available at http://indev.insu.com/Fwctl/pcapmerge.html
  * is written in Perl and does not handle large pcaps very well. This
@@ -58,9 +58,6 @@ int debug = 0;
 #define PCAP_SWAPPED_MAGIC      	0xd4c3b2a1
 #define PCAP_MODIFIED_MAGIC     	0xa1b2cd34
 #define PCAP_SWAPPED_MODIFIED_MAGIC 0x34cdb2a1
-
-/* maximum size of a packet */
-#define MAXPACKET 2048
 
 #define SWAPLONG(y) \
 ((((y)&0xff)<<24) | (((y)&0xff00)<<8) | (((y)&0xff0000)>>8) | (((y)>>24)&0xff)) 
