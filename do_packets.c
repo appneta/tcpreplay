@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.49 2004/04/01 06:00:40 aturner Exp $ */
+/* $Id: do_packets.c,v 1.50 2004/04/03 22:41:17 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -70,7 +70,7 @@ extern char *cachedata;
 extern CIDR *cidrdata;
 extern struct timeval begin, end;
 extern u_int64_t bytes_sent, failed, pkts_sent;
-extern u_int32_t cache_packets;
+extern u_int64_t cache_packets;
 extern volatile int didsig;
 extern int l2len, maxpacket;
 
@@ -143,7 +143,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
     struct timeval last;
     static int firsttime = 1;
     int ret, newl2len;
-    unsigned long packetnum = 0;
+    u_int64_t packetnum = 0;
 #ifdef HAVE_PCAPNAV
     pcapnav_result_t pcapnav_result = 0;
 #endif
@@ -204,7 +204,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
         dbg(2, "packets sent %llu", pkts_sent);
 
         packetnum++;
-        dbg(2, "packet %d caplen %d", packetnum, pkthdr.caplen);
+        dbg(2, "packet %llu caplen %d", packetnum, pkthdr.caplen);
 
         /* zero out the old packet info */
         memset(pktdata, '\0', maxpacket);
@@ -272,7 +272,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
             case 127:
             case 255:
 
-                dbg(1, "Skipping martian.  Packet #%d", packetnum);
+                dbg(1, "Skipping martian.  Packet #%llu", packetnum);
 
 
                 /* then skip the packet */
@@ -286,7 +286,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
 
         /* Dual nic processing */
-        if ((options.intf2 != NULL) || (options.one_output)) {
+        if (options.intf2 != NULL) {
 
             if (cachedata != NULL) {
                 l = (LIBNET *) cache_mode(cachedata, packetnum, eth_hdr);
@@ -381,6 +381,10 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
         }
 
+        /* in one output mode always use primary nic */
+        if (options.one_output)
+            l = options.intf1;
+
         /* Physically send the packet or write to file */
         if (options.savepcap != NULL || options.datadump_mode) {
 
@@ -390,10 +394,6 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
                 datalen =
                     extract_data(pktdata, pkthdr.caplen, l2len, &datadumpbuff);
             }
-
-            /* in one output mode always use primary nic */
-            if (options.one_output)
-                l = options.intf1;
 
             /* interface 1 */
             if (l == options.intf1) {
@@ -480,7 +480,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
  */
 
 void *
-cache_mode(char *cachedata, int packet_num, eth_hdr_t * eth_hdr)
+cache_mode(char *cachedata, u_int64_t packet_num, eth_hdr_t * eth_hdr)
 {
     void *l = NULL;
     int result;
