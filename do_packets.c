@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.54 2004/05/22 05:25:45 aturner Exp $ */
+/* $Id: do_packets.c,v 1.55 2004/06/20 00:01:11 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -308,6 +308,9 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
             /* check for destination MAC rewriting */
             if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
                 memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+            }
+            if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
+                memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
             }
         }
 
