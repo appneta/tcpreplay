@@ -2374,7 +2374,7 @@ else
 echo "${ECHO_T}no" >&6
 fi;
 
-if test $ac_cv_c_compiler_gnu = yes -a $debug = no; then
+if test $ac_cv_c_compiler_gnu = yes -a $debug = no ; then
     CCOPTS='-O3 -pipe -Wall'
     CFLAGS="$CCOPTS"
 else
@@ -3474,7 +3474,7 @@ else
 fi
 
 
-if test inet_aton = no -a inet_addr = no ; then
+if test $inet_aton = no -a $inet_addr = no ; then
 	{ { echo "$as_me:$LINENO: error: \"We need either inet_aton or inet_addr\"" >&5
 echo "$as_me: error: \"We need either inet_aton or inet_addr\"" >&2;}
    { (exit 1); exit 1; }; }
