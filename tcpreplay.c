@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.19 2002/07/16 21:13:35 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.20 2002/07/16 23:51:23 aturner Exp $ */
 
 #include "config.h"
 
@@ -84,7 +84,7 @@ main(int argc, char *argv[])
 			break;
 		case 'I': /* primary dest mac */
 			mac2hex(optarg, options.intf1_mac, sizeof(options.intf1_mac));
-			if (options.intf1_mac == NULL)
+			if (memcmp(options.intf1_mac, NULL_MAC, 6) == 0)
 				errx(1, "Invalid mac address: %s", optarg);
 			break;
 		case 'j': /* secondary interface */
@@ -92,7 +92,7 @@ main(int argc, char *argv[])
 			break;
 		case 'J': /* secondary dest mac */
 			mac2hex(optarg, options.intf2_mac, sizeof(options.intf2_mac));
-			if (options.intf2_mac == NULL)
+			if (memcmp(options.intf2_mac, NULL_MAC, 6) == 0)
 				errx(1, "Invalid mac address: %s", optarg);
 			break;
 		case 'l': /* loop count */
@@ -284,7 +284,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					l = options.intf1;
 
 					/* check for destination MAC rewriting */
-					if (options.intf1_mac != NULL) {
+					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
 						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 					}
 				} else {
@@ -292,7 +292,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					l = options.intf2;
 
 					/* check for destination MAC rewriting */
-					if (options.intf2_mac != NULL) {
+					if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
 						memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 					}
 				} /* end cache processing */
@@ -312,7 +312,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					l = options.intf1;
 
 					/* check for destination MAC rewriting */
-					if (options.intf1_mac != NULL) {
+					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
 						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 					}
 				} else {
@@ -320,7 +320,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					l = options.intf2;
 
 					/* check for destination MAC rewriting */
-					if (options.intf2_mac != NULL) {
+					if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
 						memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 					}
 				}
@@ -329,7 +329,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			/* normal operation */
 			l = options.intf1;
 			/* check for destination MAC rewriting */
-			if (options.intf1_mac != NULL) {
+			if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
 				memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 			}
 		}

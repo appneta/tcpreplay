@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.9 2002/07/10 05:35:53 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.10 2002/07/16 23:51:23 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -94,5 +94,7 @@ struct packet {
 #define SWAPSHORT(y) \
 ( (((y)&0xff)<<8) | ((u_short)((y)&0xff00)>>8) )
 #endif
+
+#define NULL_MAC "\0\0\0\0\0\0"
 
 #endif
