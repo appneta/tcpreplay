@@ -37,7 +37,7 @@ struct portmap_s {
     long to;
     struct portmap_s *next;
 };
-typedef struct portmap portmap_t;
+typedef struct portmap_s portmap_t;
 
 portmap_t *new_portmap();
 int parse_portmap(portmap_t **portmapdata, char *ourstr);
@@ -55,4 +55,3 @@ int rewrite_ports(portmap_t *portmap, ip_hdr_t **ip_hdr);
  c-basic-offset:4
  End:
 */
-
