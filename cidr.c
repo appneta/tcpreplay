@@ -1,4 +1,4 @@
-/* $Id: cidr.c,v 1.24 2004/05/14 17:29:45 aturner Exp $ */
+/* $Id: cidr.c,v 1.25 2004/05/15 21:16:42 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -284,9 +284,43 @@ parse_cidr(CIDR ** cidrdata, char *cidrin, char *delim)
 }
 
 /*
+ * parses a pair of IP addresses: <IP1>:<IP2> and processes it like:
+ * -N 0.0.0.0/0:<IP1> -N 0.0.0.0/0:<IP2>
+ * returns 1 for success or returns 0 on failure
+ * since we use strtok to process optarg, it gets zeroed out
+ */
+int
+parse_endpoints(CIDRMAP ** cidrmap1, CIDRMAP ** cidrmap2, char *optarg)
+{
+#define NEWMAP 32
+    char *map = NULL, newmap[NEWMAP];
+    char *token = NULL;
+
+    memset(newmap, '\0', NEWMAP);
+    map = strtok_r(optarg, ":", &token);
+
+    strcpy(newmap, "0.0.0.0/0:");
+    strncat(newmap, map, NEWMAP - 1);
+    if (! parse_cidr_map(cidrmap1, newmap))
+        return 0;
+    
+    /* do again with the second IP */
+    memset(newmap, '\0', NEWMAP);
+    map = strtok_r(NULL, ":", &token);
+    
+    strcpy(newmap, "0.0.0.0/0:");
+    strncat(newmap, map, NEWMAP - 1);
+    if (! parse_cidr_map(cidrmap2, newmap))
+        return 0;
+    
+    return 1; /* success */
+}
+
+
+/*
  * parses a list of CIDRMAP's input from the user which should be in the form
  * of x.x.x.x/y:x.x.x.x/y,...
- * returns 1 for success, or fails to return on failure (exit 1)
+ * returns 1 for success, or returns 0 on failure
  * since we use strtok to process optarg, it gets zeroed out.
  */
 int
@@ -347,6 +381,10 @@ int
 ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
 {
     unsigned long ipaddr = 0, network = 0, mask = 0;
+
+    /* always return 1 if 0.0.0.0/0 */
+    if (mycidr->masklen == 0 && mycidr->network == 0)
+        return 1;
 
     mask = ~0;                  /* turn on all the bits */
 
