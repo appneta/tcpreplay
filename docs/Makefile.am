@@ -57,17 +57,19 @@ manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html \
 	web/man/tcprewrite.html
 
 postweb: webfiles manpages
-	rsync -e ssh -avz web/ aturner@synfin.net:/var/www-vhosts/tcpreplay/
+	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
+		-avz web/ aturner@synfin.net:/var/www-vhosts/tcpreplay/
 
 endif
 
 EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
 	FAQ.lyx FAQ.pdf web/FAQ/FAQ.html web/FAQ \
 	flowreplay.lyx flowreplay.pdf web/flowreplay/flowreplay.html \
-	web/flowreplay flowheader.fig \
+	web/flowreplay flowheader.fig web/man \
 	manual.lyx manual.pdf web/manual/manual.html web/manual \
 	web/index.html web/web.css web/man/tcpreplay.html \
-	web/man/tcpprep.html web/man/flowreplay.html
+	web/man/tcpprep.html web/man/flowreplay.html web/tcpreplay-2-faq.html \
+	web/tcpreplay-2-faq.css
 
 MOSTLYCLEANFILES = FAQ.aux FAQ.log FAQ.toc FAQ.dvi FAQ.tex \
 	manual.aux manual.log manual.dvi manual.tex manual.toc \
