@@ -43,18 +43,18 @@ install -m755 tcpprep $RPM_BUILD_ROOT%{_bindir}
 install -m755 capinfo $RPM_BUILD_ROOT%{_bindir}
 install -m755 pcapmerge $RPM_BUILD_ROOT%{_bindir}
 install -m755 flowreplay $RPM_BUILD_ROOT%{_bindir}
-install -m644 tcpreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
-install -m644 tcpprep.1 $RPM_BUILD_ROOT%{_mandir}/man1
-install -m644 capinfo.1 $RPM_BUILD_ROOT%{_mandir}/man1
-install -m644 pcapmerge.1 $RPM_BUILD_ROOT%{_mandir}/man1
-install -m644 flowreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
+install -m644 man/tcpreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
+install -m644 man/tcpprep.1 $RPM_BUILD_ROOT%{_mandir}/man1
+install -m644 man/capinfo.1 $RPM_BUILD_ROOT%{_mandir}/man1
+install -m644 man/pcapmerge.1 $RPM_BUILD_ROOT%{_mandir}/man1
+install -m644 man/flowreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
 %files
 %defattr(-,root,root)
-%doc	CHANGELOG LICENSE README Docs/FAQ.html Docs/FAQ.txt Docs/FAQ.pdf Docs/FAQ.ps Docs/FAQ.css
+%doc	Docs/CHANGELOG Docs/LICENSE Docs/README Docs/FAQ.html Docs/FAQ.txt Docs/FAQ.pdf Docs/FAQ.ps Docs/FAQ.css
 %{_bindir}/*
 %{_sbindir}/*
 %{_mandir}/man8/*
@@ -62,6 +62,9 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Wed May 29 2003 Aaron Turner <aturner@pobox.com>
+- Update paths for man pages and docs
+
 * Sun Dec 22 2002 Aaron Turner <aturner@pobox.com>
 - Update packaging to add pcapmerge and remove tcpprep.FAQ
 
