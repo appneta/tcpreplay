@@ -34,6 +34,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef HAVE_SYS_POLL_H
+#include <sys/poll.h>
+#define  __FAKEPOLL_H
+#elif HAVE_POLL_H
+#include <poll.h>
+#define __FAKEPOLL_H
+#endif
 
 #ifndef __FAKEPOLL_H
 #define __FAKEPOLL_H
