@@ -1,0 +1,948 @@
+#LyX 1.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 220
+\textclass article
+\language english
+\inputencoding latin1
+\fontscheme times
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 10mm
+\topmargin 10mm
+\rightmargin 10mm
+\bottommargin 10mm
+\secnumdepth 4
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Title
+
+Tcpreplay v1.3.0 FAQ
+\layout Author
+
+Aaron Turner <aturner@pobox.com>
+\newline 
+Matt Bing <mbing@nfr.net>
+\newline 
+http://www.sourceforge.net/projects/tcpreplay/
+\newline 
+
+\newline 
+
+\newline 
+FAQ Version 0.3
+\layout Standard
+\pagebreak_top \pagebreak_bottom 
+
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset 
+
+
+\layout Part*
+
+Tcpreplay v1.3.0 FAQ
+\layout Section
+
+General Info
+\layout Subsection
+
+What is this FAQ for?
+\layout Standard
+
+Tcpreplay is a powerful tool, but with that power comes complexity.
+ While we have done our best to write good man pages for tcpreplay and it's
+ associated utilities, we understand that many people may want more information
+ then we can provide in the man pages.
+ Additionally, this FAQ attempts to cover material which we feel will be
+ of use to people using tcpreplay, as well as common questions that occur
+ on the Tcpreplay-Users mailing list.
+\layout Subsection
+
+What is tcpreplay?
+\layout Standard
+
+In the simplest terms, tcpreplay is a tool to send network traffic stored
+ in pcap (tcpdump) format back onto the network.
+\layout Subsection
+
+How can I get tcpreplay's source?
+\layout Standard
+
+The source code to tcpreplay is available on SourceForge: 
+\begin_inset LatexCommand \url{http://www.sourceforge.net/projects/tcpreplay}
+
+\end_inset 
+
+
+\layout Subsection
+
+What requirements does tcpreplay have?
+\layout Enumerate
+
+You'll need the libnet library: 
+\begin_inset LatexCommand \url{http://www.packetfactory.net/libnet/}
+
+\end_inset 
+
+
+\layout Enumerate
+
+You'll also need a compatible operating system.
+ Basically, any UNIX-like or UNIX-based operating system should work.
+ Linux, *BSD, Solaris, OS/X and others should all work.
+ If you find any compatibility issues with any UNIX-like/based OS, please
+ let us know.
+\layout Subsection
+
+How do I compile tcpreplay?
+\layout Standard
+
+Two easy steps:
+\layout Enumerate
+
+As a normal user: 
+\emph on 
+./configure && make
+\emph default 
+ 
+\layout Enumerate
+
+As root:
+\emph on 
+ make test -i && make install
+\layout Standard
+
+There are some optional arguments which can be passed to the configure script
+ which may help in cases where your libnet or libpcap installation is not
+ standard.
+ If you find that configure isn't completing correctly, run:
+\emph on 
+ ./configure --help
+\emph default 
+ for more information.
+\layout Subsection
+
+Are there binaries available?
+\layout Standard
+
+Occasionally.
+ And even when we do, generally only for one or two operating systems.
+ Generally speaking, we assume people who want to use a tool like this can
+ figure out how to compile it.
+\layout Subsection
+
+Is there a Microsoft Windows port?
+\layout Standard
+
+Sorry, none of the developers have yet to sell their soul.
+\layout Subsection
+
+How is tcpreplay licensed?
+\layout Standard
+
+Tcpreplay is licensed under the BSD License.
+ For details, see Appendix A.
+\layout Subsection
+
+What are some uses for tcpreplay?
+\layout Standard
+
+Originally, tcpreplay was written to test network intrusion detection devices,
+ however tcpreplay has been used to test firewalls, routers, and other devices.
+ In it's current form, tcpreplay is not very well suited for testing IP
+ stacks or applications running on servers or clients since it is unable
+ to syncronise TCP sequence numbers nor is able to react or use packets
+ sent by other devices as input.
+\layout Subsection
+
+Where can I get help?
+\layout Standard
+
+The best place to get help is the Tcpreplay-Users mailing list: 
+\newline 
+
+\begin_inset LatexCommand \url{http://lists.sourceforge.net/lists/listinfo/tcpreplay-users}
+
+\end_inset 
+
+
+\layout Section
+
+Basic Usage
+\layout Subsection
+
+Replaying the traffic
+\layout Standard
+
+To replay a given pcap as it was captured all you need to do is specify
+ the pcap file and the interface to send the traffic out of:
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 sample.pcap
+\layout Subsection
+
+Replaying at different speeds
+\layout Standard
+
+You can also replay the traffic at different speeds then it was originally
+ captured.
+ To support this, tcpreplay supports three different flags: -R, -r and -m
+\layout Standard
+
+Some examples:
+\layout Itemize
+
+To replay traffic as fast as possible:
+\newline 
+
+\emph on 
+tcpreplay -R -i eth0 sample.pcap
+\layout Itemize
+
+To replay traffic at 10Mbps:
+\newline 
+
+\emph on 
+tcpreplay -r 10.0 -i eth0 sample.pcap
+\layout Itemize
+
+To replay traffic 7.3 times as fast as it was captured:
+\newline 
+
+\emph on 
+tcpreplay -m 7.3 -i eth0 sample.pcap
+\layout Itemize
+
+To replay traffic at half-speed:
+\newline 
+
+\emph on 
+tcpreplay -m 0.5 -i eth0 sample.pcap
+\layout Subsection
+
+Replaying the same file over and over again
+\layout Standard
+
+Using the loop flag (-l) you can specify that a pcap file will be sent two
+ or more times:
+\layout Itemize
+
+To replay the sample.pcap file 10 times:
+\newline 
+
+\emph on 
+tcpreplay -l 10 -i eth0 sample.pcap
+\layout Itemize
+
+To replay the sample.pcap an infinate (until CTRL-C is pressed) number of
+ times:
+\newline 
+
+\emph on 
+tcpreplay -l 0 -i eth0 sample.pcap
+\layout Section
+
+Advanced Usage
+\layout Subsection
+
+Replaying on multiple interfaces
+\layout Standard
+
+Tcpreplay can also split traffic so that each side of a connection is sent
+ out a different interface.
+ In order to do this, tcpreplay needs the name of the second interface (-j)
+ and a way to split the traffic.
+ Currently, there are two ways to split traffic:
+\layout Enumerate
+
+-C = split traffic by source IP address
+\layout Enumerate
+
+-c = split traffic according to a tcpprep cachefile
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+For information on generating tcpprep cache files, see the section on tcpprep.
+\end_inset 
+
+
+\layout Standard
+
+When splitting traffic, it is important to remember that traffic that matches
+ the filter is sent out the primary interface (-i).
+ In this case, when splitting traffic by source IP address, you provide
+ a list of networks in CIDR notation.
+ For example:
+\layout Itemize
+
+To send traffic from 10.0.0.0/8 out eth0 and everything else out eth1:
+\newline 
+
+\emph on 
+tcpreplay -C 10.0.0.0/8 -i eth0 -j eth1 sample.pcap
+\layout Itemize
+
+To send traffic from 10.1.0.0/24 and 10.2.0.0/20 out eth0 and everything else
+ out eth1:
+\newline 
+
+\emph on 
+tcpreplay -C 10.1.0.0/24,10.2.0.0/20 -i eth0 -j eth1 sample.pcap
+\layout Itemize
+
+After using tcpprep to generate a cache file, you can use it to split traffic
+ between two interfaces like this:
+\newline 
+
+\emph on 
+tcpreplay -c sample.cache -i eth0 -j eth1 sample.pcap
+\layout Subsection
+
+Selectively sending or dropping packets
+\layout Standard
+
+Sometimes, you want to do some post-capture filtering of packets.
+ Tcpreplay let's you have some control over which packets get sent.
+\layout Enumerate
+
+-M = disables sending of martian packets.
+ By definition, martian packets have a source IP of 0.x.x.x, 127.x.x.x, or 255.x.x.x
+\layout Enumerate
+
+-x = send packets which match a specific pattern
+\layout Enumerate
+
+-X = send packets which do not match a specific pattern
+\layout Standard
+
+Both -x and -X support a variety of pattern matching types.
+ These types are specified by a single character, followed by a colon, followed
+ by the pattern.
+ The following pattern matching types are available:
+\layout Enumerate
+
+S - Source IP
+\newline 
+Pattern is a comma delimited CIDR notation
+\layout Enumerate
+
+D - Destination IP
+\newline 
+Pattern is a comma delimited CIDR notation
+\layout Enumerate
+
+B - Both source and destination IP must match
+\newline 
+Pattern is a comma delimited CIDR notation
+\layout Enumerate
+
+E - Either source or destination IP must match
+\newline 
+Pattern is a comma delimited CIDR notation
+\layout Enumerate
+
+P - A list of packet numbers from the pcap file.
+\newline 
+Pattern is a series of numbers, seperated by commas or dashes.
+\layout Standard
+
+Examples:
+\layout Itemize
+
+To only send traffic that is too and from a host in 10.0.0.0/8:
+\newline 
+
+\emph on 
+tcpreplay -x B:10.0.0.0/8 -i eth0 sample.pcap
+\layout Itemize
+
+To not send traffic that is too or from a host in 10.0.0.0/8:
+\newline 
+
+\emph on 
+tcpreplay -X E:10.0.0.0/8 -i eth0 sample.pcap
+\layout Itemize
+
+To send every packet except the first 10 packets:
+\newline 
+
+\emph on 
+tcpreplay -X P:1-10 -i eth0 sample.pcap
+\layout Itemize
+
+To only send the first 50 packets followed by packets: 100, 150, 200 and
+ 250:
+\newline 
+
+\emph on 
+tcpreplay -x P:1-50,100,150,200,250 -i eth0 sample.pcap
+\layout Subsection
+
+Rewriting destination MAC address
+\layout Standard
+
+If you ever want to send traffic to another device on a switched LAN, you
+ may need to change the destination MAC address of the packets.
+ Tcpreplay allows you to set the destination MAC for each interface independantl
+y using the -I and -J swiches.
+ Example:
+\layout Itemize
+
+To send traffic out eth0 with a destination MAC of your router (00:00:01:02:03:0
+4):
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -I 00:00:01:02:03:04 sample.pcap
+\layout Itemize
+
+To split traffic between internal (10.0.0.0/24) and external addresses and
+ to send that traffic to the two interfaces of a firewall:
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -j eth1 -I 00:01:00:00:AA:01 -J 00:01:00:00:AA:02 -C 10.0.0.0/24
+ sample.pcap
+\layout Subsection
+
+Rewriting IP addresses
+\layout Standard
+
+Ocassionally, it is necessary to have tcprewrite rewrite the source and
+ destination IP addresses, yet maintain the client/server relationship.
+ Such a case might be having multiple copies of tcpdump running at the same
+ time using the same pcap file while trying to stress test a device.
+ If you didn't change the source and destination IP addresses, the device
+ under test would get confused since it would see multiple copies of the
+ same connection occuring at the same time.
+ In order to accomplish this, tcpreplay accepts a user specified seed which
+ is used to generate pseudo-random IP addresses.
+ Also, when this feature is enabled, tcpreplay will automatically recalcuate
+ the layer 3 and 4 checksums as needed.
+ Example:
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 -s 1239 sample.pcap &
+\newline 
+tcpreplay -i eth0 -s 76 sample.pcap &
+\newline 
+tcpreplay -i eth0 -s 239 sample.pcap
+\layout Subsection
+
+Replaying (de)truncated packets
+\layout Standard
+
+Occasionally, it is necessary to replay traffic which has been truncated
+ by tcpdump.
+ This occurs when the tcpdump snaplen is smaller then the actual packet
+ size.
+ Since this will create problems for devices which are expecting a full-sized
+ packet or attempting checksum calculations, tcpreplay allows you to either
+ pad the packet with zeros or reset the packet length in the headers to
+ the actual packet size.
+ In either case, the layer 3 and 4 checksums are recalculated.
+ Examples:
+\layout Itemize
+
+Pad truncated packets:
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -u pad sample.pcap
+\layout Itemize
+
+Rewrite packet header lenghts to the actual packet size:
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -u trunc sample.pcap
+\layout Subsection
+
+Using Configuration Files
+\layout Subsection
+
+Replaying Packet Capture Formats Other Than Libpcap
+\layout Standard
+
+There are about as many different capture file formats as there are sniffers.
+ In the interest of simplicity, tcpreplay only supports libpcap.
+ If you would like to replay a file in one of these multitude of formats,
+ the excellent open source tool Ethereal easily allows you to convert it
+ to libpcap.
+ For instance, to convert a file in Sun's snoop format to libpcap, issue
+ the command: 
+\layout Standard
+
+
+\emph on 
+tethereal -r blah.snoop -w blah.pcap
+\layout Standard
+
+and replay the resulting file.
+ 
+\layout Section
+
+Using tcpprep
+\layout Subsection
+
+What is tcpprep?
+\layout Standard
+
+Tcpreplay can send traffic out two network cards, however it requires the
+ calculations be done in real-time.
+ These calculations can be expensive and can significantly reduce the throughput
+ of tcpreplay.
+\layout Standard
+
+Tcpprep is a libpcap pre-processor for tcpreplay which enables using two
+ network cards to send traffic without the performance hit of doing the
+ calcuations in real-time.
+\layout Subsection
+
+How does tcpprep work? 
+\layout Standard
+
+Tcpprep reads in a libpcap (tcpdump) formatted capture file and does some
+ processing to generate a tcpreplay cache file.
+ This cache file tells tcpreplay which interface a given packet should be
+ sent out of.
+ 
+\layout Subsection
+
+Does tcpprep modify my libpcap file?
+\layout Standard
+
+No.
+ 
+\layout Subsection
+
+Why use tcpprep?
+\layout Standard
+
+There are three major reasons to use tcpprep:
+\layout Enumerate
+
+Tcpprep can split traffic based upon more methods and critera then tcpreplay.
+\layout Enumerate
+
+By pre-processing the pcap, tcpreplay has a higher theoretical maximum throughpu
+t.
+\layout Enumerate
+
+By pre-processing the pcap, tcpreplay can be more accurate in timing when
+ replaying traffic at normal speed.
+\layout Subsection
+
+Can a cache file be used for multiple (different) libpcap files? 
+\layout Standard
+
+Cache files have nothing linking them to a given libpcap file, so there
+ is nothing to stop you from doing this.
+ However running tcpreplay with a cache file from a different libpcap source
+ file is likely to cause a lot of problems and is not supported.
+ 
+\layout Subsection
+
+Why would I want to use tcpreplay with two network cards? 
+\layout Standard
+
+Tcpreplay traditionally is good for putting traffic on a given network,
+ often used to test a network intrusion detection system (NIDS).
+ However, there are cases where putting traffic onto a subnet in this manner
+ is not good enough- you have to be able to send traffic *through* a device
+ such as a router, firewall, or bridge.
+\layout Standard
+
+In these cases, being able to use a single source file (libpcap) for both
+ ends of the connection solves this problem.
+\layout Subsection
+
+How big are the cache files?
+\layout Standard
+
+Very small.
+ Actual size depends on the number of packets in the dump file.
+ Two bits of data is stored for each packet.
+ On a test using a 900MB dump file containing over 500,000 packets, the
+ cache file was only 150K.
+ 
+\layout Subsection
+
+What are these 'modes' tcpprep has? 
+\layout Standard
+
+tcpprep has two basic modes which require the user to specify how to split
+ traffic.
+\layout Itemize
+
+CIDR (-c) mode requires the user to provide a list of networks.
+ Any packet with a source IP in one of these networks gets sent out the
+ primary interface.
+\layout Itemize
+
+Regex (-r) mode requires the user to provde a regular expression.
+ Any packet with a source IP matching the regex gets sent out the primary
+ interface.
+\layout Standard
+
+And two auto modes in which tcpprep decides how to split traffic.
+ Auto modes are useful for when you don't know much about the contents of
+ the dump file in question and you want to split traffic up based upon servers
+ and clients.
+\layout Itemize
+
+Auto/Router (-a -n router) mode trys to find the largest network(s) that
+ contain all the servers and no clients.
+ Any unknown system is automatically re-classifed as servers if it's inside
+ the server network(s), otherwise it is classified as a client.
+\layout Itemize
+
+Auto/Bridge (-a -n bridge) mode makes the assumption that the clients and
+ servers are horribly intermixed on the network and there's no way to subnet
+ them.
+ While this takes less processing time to create the cache file it is unable
+ to deal with unknown systems.
+\layout Subsection
+
+Splitting traffic based upon IP address
+\layout Standard
+
+Tcpprep supports the same CIDR mode that tcpreplay supports using the -c
+ flag (tcpreplay uses -C).
+ Additionally, tcpprep also supports regex(7) regular expressions to match
+ source IP addresses using the -r flag.
+\layout Subsection
+
+Auto Mode
+\layout Subsubsection
+
+How does Auto/Bridge mode work? 
+\layout Standard
+
+Tcpprep does an initial pass over the libpcap file to build a binary tree
+ (one node per IP).
+ For each IP, it keeps track of how many times it was a client or server.
+ It then does a second pass of the file using the data in the tree and the
+ ratio to determine if an IP is a client or server.
+ If tcpprep is unable to determine the type (client or server) for each
+ and every packet, then auto/bridge mode will fail.
+ In these cases, it is best to use auto/router mode.
+\layout Subsubsection
+
+How does Auto/Router mode work? 
+\layout Standard
+
+Tcpprep does the same first pass as Auto/Bridge mode.
+ It then trys to convert the binary tree into a list of networks containing
+ the servers.
+ Finally it uses the CIDR mode with the list of server networks in a second
+ pass of the libpcap file.
+ Unlike auto/bridge mode, auto/router mode can always sucessfuly split IP
+ addresses into clients and servers.
+\layout Subsubsection
+
+Determining Clients and Servers
+\layout Standard
+
+Tcpprep uses the following methods in auto/router and auto/bridge mode to
+ determine if an IP address is a client or server:
+\layout Itemize
+
+Client:
+\begin_deeper 
+\layout Itemize
+
+TCP with Syn flag set
+\layout Itemize
+
+UDP source/destination port 53 (DNS) without query flag set
+\layout Itemize
+
+ICMP port unreachable (destination IP of packet)
+\end_deeper 
+\layout Itemize
+
+Server:
+\begin_deeper 
+\layout Itemize
+
+TCP with Syn/Ack flag set
+\layout Itemize
+
+UDP source/destination port 53 (DNS) with query flag set
+\layout Itemize
+
+ICMP port unreachable (source IP of packet)
+\end_deeper 
+\layout Subsubsection
+
+Client/Server ratio
+\layout Standard
+
+Since a system may send traffic which would classify it as both a client
+ and server, it's necessary to be able to weigh the traffic.
+ This is done by specifying the client/server ratio (-R) which is by default
+ set to 2.0.
+ The ratio is the modifier to the number of client connections.
+ Hence, by default, client connections are valued twice as high as server
+ connections.
+\layout Subsection
+
+Selectively sending/dropping packets
+\layout Standard
+
+Tcpprep supports the same -x and -X options to selectively send or drop
+ packets.
+\layout Subsection
+
+Using tcpprep cache files with tcpreplay
+\layout Standard
+
+Just run:
+\layout Standard
+
+
+\emph on 
+tcpreplay -c sample.cache -i eth0 -j eth1 sample.pcap
+\layout Section
+
+Tuning OS's for high performance
+\layout Standard
+
+Regardless of the size of physical memory, UNIX kernels will only allocate
+ a static amount for network buffers.
+ This includes packets sent via the "raw" interface, like with tcpreplay.
+ Most kernels will allow you to tweak the size of these buffers, drastically
+ increasing performance and accuracy.
+\layout Standard
+
+
+\noun on 
+Note:
+\noun default 
+ Please note that the following information is provided based upon our own
+ experiances or the reported experiances of others.
+ Depending on your hardware and specific hardware, it may or may not work
+ for you.
+ It may even make your system horribly unstable, corrupt your harddrive,
+ or worse.
+\layout Subsection
+
+Linux 2.4.x
+\layout Standard
+
+The following is known to apply to the 2.4.x series of kernels.
+ If anyone has any information regarding other kernel versions, please let
+ us know.
+ By default Linux's tcpreplay performance isn't all that stellar.
+ However, with a simple tweak, relatively decent performance can be had
+ on the right hardware.
+ By default, Linux specifies a 64K buffer for sending packets.
+ Increasing this buffer to about half a megabyte does a good job:
+\layout Standard
+
+
+\emph on 
+echo 524287 >/proc/sys/net/core/wmem_default 
+\newline 
+echo 524287 >/proc/sys/net/core/wmem_max 
+\newline 
+echo 524287 >/proc/sys/net/core/rmem_max 
+\newline 
+echo 524287 >/proc/sys/net/core/rmem_default 
+\layout Standard
+
+On one system, we've seen a jump from 23.02 megabits/sec (5560 packets/sec)
+ to 220.30 megabits/sec (53212 packets/sec) which is nearly a 10x increase
+ in performance.
+ Depending on your system, different numbers may provide different results.
+\layout Subsection
+
+*BSD
+\layout Standard
+
+*BSD systems typically allow you to specify the size of network buffers
+ with the NMBCLUSTERS option in the kernel config file.
+ Experiment with different sizes to see which yields the best performance.
+ See the options(4) man page for more details.
+ 
+\layout Section
+
+Required Libraries
+\layout Subsection
+
+Libpcap
+\layout Standard
+
+As of tcpreplay v1.4, you'll need to have Libpcap installed on your system.
+ Any recent Libpcap version should do, but we only test our code with the
+ latest version: 0.7.1.
+ Libpcap can be obtained here: 
+\begin_inset LatexCommand \url{http://www.tcpdump.org/}
+
+\end_inset 
+
+
+\layout Subsection
+
+Libnet
+\layout Standard
+
+Tcpreplay v1.3 is the last version to support the old Libnet API (everything
+ before 1.1.x).
+ As of v1.4 you will need to use Libnet 1.1.0 or better which can be obtained
+ from the Libnet homepage: 
+\begin_inset LatexCommand \url{http://www.packetfactory.net/Projects/Libnet/}
+
+\end_inset 
+
+
+\layout Section
+
+Common Errors
+\layout Subsection
+
+Can't open eth0: libnet_select_device(): Can't find interface eth0
+\layout Standard
+
+Generally this occurs when the interface (eth0 in this example) is not up
+ or doesn't have an IP address assigned to it.
+ For example:
+\newline 
+
+\emph on 
+ifconfig eth0 1.1.1.1 netmask 255.255.255.0 up
+\layout Standard
+
+Will do the trick on most operating systems.
+\layout Subsection
+
+100000 write attempts failed from full buffers and were repeated
+\layout Standard
+
+When tcpreplay displays a message like "100000 write attempts failed from
+ full buffers and were repeated", this usually means the kernel buffers
+ were full and it had to wait until memory was available.
+ This is quite common when replaying files as fast as possible with the
+ "-R" option.
+ See the tuning OS section in this document for suggestions on solving this
+ problem.
+\layout Section
+
+Other pcap tools available
+\layout Subsection
+
+Tools to capture network traffic or decode pcap files
+\layout Itemize
+
+tcpdump
+\newline 
+
+\begin_inset LatexCommand \url{http://www.tcpdump.org/}
+
+\end_inset 
+
+
+\layout Itemize
+
+ethereal
+\newline 
+
+\begin_inset LatexCommand \url{http://www.ethereal.com/}
+
+\end_inset 
+
+
+\layout Itemize
+
+ettercap
+\newline 
+
+\begin_inset LatexCommand \url{http://ettercap.sourceforge.net/}
+
+\end_inset 
+
+
+\layout Subsection
+
+Tools to edit pcap files
+\layout Itemize
+
+tcpslice
+\newline 
+Splits pcap files into smaller files
+\newline 
+Tcpdump
+\layout Itemize
+
+mergecap
+\newline 
+Merges two pcap capture files into one
+\newline 
+Ethereal
+\layout Itemize
+
+pcapmerge
+\newline 
+Merges two or more pcap capture files into one
+\newline 
+Tcpdump
+\layout Itemize
+
+editcap
+\newline 
+Converts capture file formats (pcap, snoop, etc)
+\newline 
+Ethereal
+\layout Subsection
+
+Other tools
+\layout Itemize
+
+capinfo
+\newline 
+Prints statistics and basic information about a pcap file
+\newline 
+Tcpreplay
+\layout Itemize
+
+text2pcap
+\newline 
+Generates a pcap capture file from a hex dump
+\newline 
+Ethereal
+\layout Part*
+\pagebreak_top \start_of_appendix 
+Appendix
+\layout Section
+
+BSD License
+\layout Standard
+
+
+\begin_inset Include \input{../LICENSE}
+
+\end_inset 
+
+
+\the_end
