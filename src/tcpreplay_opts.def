@@ -190,14 +190,12 @@ flag = {
     descrip     = "Input pcap file to replay";
     arg-type    = string;
     max         = MAX_FILES;
-    must-set;
+    min         = 1;
     flag-code   = <<- EOPcap
 
     static int count = 0;
     
-    options.files[count] = (char *)safe_malloc(strlen(OPT_ARG(PCAP) + 1));
-    strcpy(options.files[count], OPT_ARG(PCAP));
-    count ++;
+    options.files[count++] = safe_strdup(OPT_ARG(PCAP));
     
 EOPcap;
 };
