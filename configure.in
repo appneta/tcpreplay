@@ -54,18 +54,22 @@ dnl The OS X installer puts Lyx at /Applications/Lyx.app/Contents/MacOS/LyX
 
 AC_ARG_WITH(lyx,
     AC_HELP_STRING([--with-lyx=FILE], [Path to Lyx binary]),
-    [ if test -x $withval ; then
+    [ AC_MSG_CHECKING(for lyx)
+    if test -x $withval ; then
           td=$withval
-          AC_MSG_RESULT([Using Lyx at $td])
+          AC_MSG_RESULT($td)
       else
           AC_MSG_RESULT([Error: $withval does not exist or is not executable])
       fi ],
     [ 
     case $host in
         powerpc-apple-darwin*)
-        if test -x /Applications/Lyx.app/Contents/MacOS/LyX ; then
-            AC_SUBST(LYX, "/Applications/Lyx.app/Contents/MacOS/LyX")
+        AC_MSG_CHECKING(for lyx)
+        lyx="/Applications/Lyx.app/Contents/MacOS/LyX"
+        if test -x $lyx ; then
+            AC_SUBST(LYX, $lyx)
         fi
+        AC_MSG_RESULT($lyx) 
         ;;
 
         *)
