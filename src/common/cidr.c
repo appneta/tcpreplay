@@ -289,14 +289,17 @@ parse_cidr(cidr_t ** cidrdata, char *cidrin, char *delim)
  * since we use strtok to process optarg, it gets zeroed out
  */
 int
-parse_endpoints(cidrmap_t ** cidrmap1, cidrmap_t ** cidrmap2, char *optarg)
+parse_endpoints(cidrmap_t ** cidrmap1, cidrmap_t ** cidrmap2, const char *optarg)
 {
 #define NEWMAP_LEN 32
     char *map = NULL, newmap[NEWMAP_LEN];
     char *token = NULL;
+    char *string;
+
+    string = safe_strdup(optarg);
 
     memset(newmap, '\0', NEWMAP_LEN);
-    map = strtok_r(optarg, ":", &token);
+    map = strtok_r(string, ":", &token);
 
     strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
     strlcat(newmap, map, NEWMAP_LEN);
@@ -312,6 +315,7 @@ parse_endpoints(cidrmap_t ** cidrmap1, cidrmap_t ** cidrmap2, char *optarg)
     if (! parse_cidr_map(cidrmap2, newmap))
         return 0;
     
+    free(string);
     return 1; /* success */
 }
 
@@ -323,15 +327,17 @@ parse_endpoints(cidrmap_t ** cidrmap1, cidrmap_t ** cidrmap2, char *optarg)
  * since we use strtok to process optarg, it gets zeroed out.
  */
 int
-parse_cidr_map(cidrmap_t **cidrmap, char *optarg)
+parse_cidr_map(cidrmap_t **cidrmap, const char *optarg)
 {
     cidr_t *cidr = NULL;
     char *map = NULL;
-    char *token = NULL;
+    char *token = NULL, *string = NULL;
     cidrmap_t *ptr;
+    
+    string = safe_strdup(optarg);
 
     /* first iteration */
-    map = strtok_r(optarg, ",", &token);
+    map = strtok_r(string, ",", &token);
     if (! parse_cidr(&cidr, map, ":"))
         return 0;
 
@@ -368,6 +374,7 @@ parse_cidr_map(cidrmap_t **cidrmap, char *optarg)
         ptr->from->next = NULL;
 
     }
+    free(string);
     return 1; /* success */
 }
 
