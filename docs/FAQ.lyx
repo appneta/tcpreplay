@@ -126,7 +126,7 @@ The source code is available in tarball format on the tcpreplay homepage:
  in the tarballs.
 \layout Standard
 
-svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay-3
+svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay
 \layout Subsection
 
 What requirements does tcpreplay have?
@@ -596,7 +596,7 @@ Your capture file was created on Linux with the 'any' parameter which then
  captured a packet on the loopback interface.
  However, tcpreplay doesn't have enough information to actual send the packet,
  so it skips it.
- Specifying a source and destination MAC address (-I, -k, -J, -K) will allow
+ Specifying a destination and source MAC address (-D and -S) will allow
  tcpreplay to send these packets.
 \layout Subsection
 
@@ -618,7 +618,7 @@ Why is tcpreplay not sending all the packets?
 
 Every now and then, someone emails the tcpreplay-users list, asking if there
  is a bug in tcpreplay which causes it not to send all the packets.
- This usually happens when the user uses the -R flag or is replaying a high-spee
+ This usually happens when the user uses the -t flag or is replaying a high-spee
 d pcap file (> 50Mbps, although this number is dependant on the hardware
  in use).
 \layout Standard
@@ -645,8 +645,8 @@ lies
  about how many packets were dropped.
  Tcpdump will repeat this lie to you.
  In other words, tcpdump isn't seeing all the packets.
- Usually this is a problem with the network card or driver which may or
- may not be fixable.
+ Usually this is a problem with the network card, driver or OS kernel which
+ may or may not be fixable.
  Try another network card/driver.
 \layout Enumerate
 
@@ -666,6 +666,40 @@ If for some reason, you still think its a bug in tcpreplay, by all means
  read the code and tell me how stupid I am.
  The do_packets() function in do_packets.c is where tcpreplay processes the
  pcap file and sends all of the packets.
+\layout Subsection
+
+How fast can tcpreplay send packets?
+\layout Standard
+
+First, if performance is important to you, then upgrading to tcpreplay 3.x
+ is worthwhile since it is more optimized then the 2.x series.
+ After that, there are a number of variables which effect performance, including
+ on how you measure it (packets/sec or bytes/sec).
+ 100Mbps and 120K pps are quite doable.
+ Generally speaking here are some points to consider:
+\layout Itemize
+
+Profiling tcpreplay has shown that a significant amount of time is spent
+ writing packets to the network.
+ Hence, your OS kernel implimentation of writing to raw sockets is one of
+ the most important aspects since that is where tcpreplay spends most of
+ it's time.
+\layout Itemize
+
+Like most network based I/O, it is faster to send the same amount of data
+ in a few large packets then many small packets.
+\layout Itemize
+
+Most operating systems will cache disk reads in RAM; hence making subsequent
+ access to the file faster the second time.
+\layout Itemize
+
+Re-opening small files repeatly will reduce performance.
+ Consider using mergecap to generate a single large file.
+\layout Itemize
+
+Network cards and drivers, disk speed (RPM is more important then seek),
+ amount of RAM and system bus speed are all important.
 \layout Section
 
 Required Libraries and Tools
