@@ -102,7 +102,7 @@ replay_exclude:
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 clean:
-	rm -f *1 test.log core
+	rm -f *1 test.log core *~
 
 distclean: clean
 	rm -f Makefile
