@@ -61,7 +61,7 @@
 #include "list.h"
 #include "xX.h"
 #include "err.h"
-#include "rbtree.h"
+#include "lib/tree.h"
 #include "utils.h"
 #include "services.h"
 #include "sll.h"

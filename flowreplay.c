@@ -52,7 +52,7 @@
 #include "cidr.h"
 #include "err.h"
 #include "tcpreplay.h"
-#include "rbtree.h"
+#include "lib/tree.h"
 #include "timer.h"
 #include "utils.h"
 

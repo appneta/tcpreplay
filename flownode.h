@@ -36,7 +36,7 @@
 #include <sys/types.h>
 #include "tcpreplay.h"
 #include "flowkey.h"
-#include "rbtree.h"
+#include "lib/tree.h"
 
 #define RBKEYLEN 12
 

@@ -34,7 +34,7 @@
 #define _REPLAY_LIVE_H_
 
 #include "config.h"
-#include "rbtree.h"
+#include "lib/tree.h"
 #include <libnet.h>
 
 /*
