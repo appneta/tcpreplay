@@ -474,6 +474,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
+	fprintf(stderr, "Copyright Aaron Turner <aturner@pobox.com>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
