@@ -1,4 +1,4 @@
-/* $Id: libpcap.h,v 1.4 2003/05/30 19:27:57 aturner Exp $ */
+/* $Id: libpcap.h,v 1.5 2003/07/17 05:00:49 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -21,24 +21,6 @@
 #define PCAP_SWAPPED_MAGIC      	0xd4c3b2a1
 #define PCAP_MODIFIED_MAGIC     	0xa1b2cd34
 #define PCAP_SWAPPED_MODIFIED_MAGIC 0x34cdb2a1
-
-/* pcap data stored once at the beginning of the file */
-struct pcap_file_header {
-    u_int32_t magic;		/* magic file header */
-    u_int16_t version_major;	/* major number */
-    u_int16_t version_minor;	/* minor number */
-    u_int32_t thiszone;		/* gmt to local correction */
-    u_int32_t sigfigs;		/* accurary of timestamp */
-    u_int32_t snaplen;		/* max length of saved portion of packet */
-    u_int32_t linktype;		/* data link type */
-};
-
-/* data prefixing each packet */
-struct pcap_pkthdr {
-    struct timeval ts;		/* timestamp */
-    u_int32_t caplen;		/* captured length of the packet */
-    u_int32_t len;		/* actual length of the packet */
-};
 
 /* data prefixing each packet in modified pcap */
 struct pcap_mod_pkthdr {
