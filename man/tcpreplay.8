@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.22 2004/03/25 00:49:56 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.23 2004/04/01 06:07:53 aturner Exp $
 .TH "TCPREPLAY" "8" "2.0.3" "Aaron Turner" "Replay Captured Network Traffic"
 .SH "NAME"
 .LP 
@@ -102,13 +102,22 @@ Disable sending martian packets (source networks: 0/8, 127/8, 255/8)
 Don't listen in promiscuous mode when sniffing with \-S
 .TP 
 .B \-N or "nat"
-Specify the nat transation table(s) where a table is a pair of CIDR's
-seperated by a colon and teach table is sererated by a comma:
-\fI<FROMCIDR1>:<TOCIDR1>,<FROMCIDR2>:<TOCIDR2>\fR
+Specify the nat transation table(s) where a table is one or more pairs of
+CIDR's seperated by a colon and each pair is sererated by a comma:
+.br
+<FROMCIDR1>:<TOCIDR1>,<FROMCIDR2>:<TOCIDR2>
+.br
+The first instance of this argument is used for the primary interface while
+the second instance is used for the secondary interface.  If no second
+instance of this argument exists, then the NAT table is used for both.
 .TP 
 .B \-o or "offset"
 Jump to packet at the nearest specified byte offset and start replaying packets from there.
 .TP 
+.B \-O or "one_output"
+Processes packets internally for dual interfaces/files for purposes of NAT and MAC
+rewriting, but only write packets to a single interface or file.
+.TP
 .B \-p or "packetrate"
 Specify the replay rate in packets per second.  Negates all other 
 speed options.

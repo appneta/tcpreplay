@@ -35,6 +35,8 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .I client
 |
 .I server
+|
+.I port
 ] [
 .B \-N
 .I client
@@ -126,6 +128,13 @@ and unknown IP's.  It starts out with very large networks (8 bit netmask by
 default, change with -M) and works it's way down to the minimum mask len (-m).
 If tcpprep is unable to determine one or more networks which only contains
 servers and unknowns, tcpprep will abort.
+
+Port mode looks at the source/destination port of the TCP or UDP packet.
+Client traffic goes out the primary interface, and server traffic out the
+secondary interface.  Non-TCP and UDP traffic goes out the same interface
+as non-IP traffic does.  Note that this mode does not track IP addresses;
+so an IP may appear to jump between interfaces depending on if it is the
+client or server.
 
 In all cases, servers are sent out the primary interface, and clients out the 
 secondary.
