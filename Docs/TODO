@@ -18,3 +18,11 @@ For 3.x:
 - Add support for dual-nic send on one intf, wait for packet, send next.
 
 - Support fragrouter like features (basic IP fragmenation, then advanced)
+
+- Support connection tracking and generating 3way handshake for connections
+  missing them.
+
+- Bump Syn/Ack numbers by a random or given value so that running the same pcap
+  will behave as different streams.
+
+- IPv6 support?
