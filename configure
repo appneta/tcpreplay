@@ -1798,6 +1798,105 @@ fi
 
 
 
+
+LIBS="$LNETLIB"
+echo $ac_n "checking for libnet version""... $ac_c" 1>&6
+echo "configure:1805: checking for libnet version" >&5
+if test "$cross_compiling" = yes; then
+  libnet_ver_10=no
+	
+else
+  cat > conftest.$ac_ext <<EOF
+#line 1811 "configure"
+#include "confdefs.h"
+
+#include <libnet.h>
+#include <string.h>
+#define LIB_TEST "1.0"
+/* 
+ * simple proggy to test the version of libnet
+ * returns zero if it's 1.0.x 
+ * or one otherwise
+ */
+int
+main (int argc, char *argv[])
+{
+	if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
+		exit(0);
+	exit(1);
+}
+EOF
+if { (eval echo configure:1830: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+then
+  libnet_ver_10=yes
+	cat >> confdefs.h <<\EOF
+#define USE_LIBNET_VERSION 1.0
+EOF
+
+	echo "$ac_t""1.0.x" 1>&6
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -fr conftest*
+  libnet_ver_10=no
+fi
+rm -fr conftest*
+fi
+
+
+if test "$cross_compiling" = yes; then
+  libnet_ver_11=no
+	
+else
+  cat > conftest.$ac_ext <<EOF
+#line 1853 "configure"
+#include "confdefs.h"
+
+#include <libnet.h>
+#include <string.h>
+#define LIB_TEST "1.1"
+/* 
+ * simple proggy to test the version of libnet
+ * returns zero if it's 1.0.x 
+ * or one otherwise
+ */
+int
+main (int argc, char *argv[])
+{
+	if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
+		exit(0);
+	exit(1);
+}
+EOF
+if { (eval echo configure:1872: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+then
+  libnet_ver_11=yes
+	cat >> confdefs.h <<\EOF
+#define USE_LIBNET_VERSION 1.1
+EOF
+
+	echo "$ac_t""1.1.x" 1>&6
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -fr conftest*
+  libnet_ver_11=no
+fi
+rm -fr conftest*
+fi
+
+
+if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
+	echo "$ac_t""unknown" 1>&6
+	{ echo "configure: error: Unable to determine version of libnet" 1>&2; exit 1; }
+fi
+
+
+if test $libnet_ver_11 = yes ; then
+	{ echo "configure: error: Libnet version 1.1.x isn't currently supported.
+  Please use 1.0.2a" 1>&2; exit 1; }
+fi
+
 trap '' 1 2 15
 cat > confcache <<\EOF
 # This file is a shell script that caches the results of configure

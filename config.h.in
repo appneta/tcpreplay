@@ -12,3 +12,6 @@
 
 /* Define to enable debugging code and -d flag */
 #undef DEBUG
+
+/* Define to either 1.0 or 1.1.  Used for managing differences in the API */
+#undef USE_LIBNET_VERSION
