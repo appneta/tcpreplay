@@ -57,6 +57,7 @@ extern tcpdump_t tcpdump;
 extern int debug;
 #endif
 
+static void do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l);
 
 /*
  * we've got a race condition, this is our workaround
@@ -157,7 +158,7 @@ send_packets(pcap_t *pcap)
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 
          */
-        do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, &options, l);
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, l);
             
         /* write packet out on network */
         do {
@@ -269,8 +270,151 @@ cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
 
     return l;
 }
+#endif
 
-#endif /* 0 */
+
+/*
+ * Given the timestamp on the current packet and the last packet sent,
+ * calculate the appropriate amount of time to sleep and do so.
+ */
+static void
+do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
+{
+    static struct timeval didsleep = { 0, 0 };
+    static struct timeval start = { 0, 0 };
+    struct timeval nap, now, delta;
+    struct timespec ignore, sleep;
+    float n;
+    struct pollfd poller[1];        /* use poll to read from the keyboard */
+    char input[EBUF_SIZE];
+    static u_int32_t send = 0;      /* remember # of packets to send btw calls */
+
+    /* just return if topspeed */
+    if (options.speed.mode == SPEED_TOPSPEED)
+        return;
+
+    if (gettimeofday(&now, NULL) < 0) {
+        errx(1, "Error gettimeofday: %s", strerror(errno));
+    }
+
+    /* First time through for this file */
+    if (!timerisset(last)) {
+        start = now;
+        timerclear(&delta);
+        timerclear(&didsleep);
+    }
+    else {
+        timersub(&now, &start, &delta);
+    }
+
+    switch(options.speed.mode) {
+    case SPEED_MULTIPLIER:
+        /* 
+         * Replay packets a factor of the time they were originally sent.
+         */
+        if (timerisset(last) && timercmp(time, last, >)) {
+            timersub(time, last, &nap);
+        }
+        else {
+            /* 
+             * Don't sleep if this is our first packet, or if the
+             * this packet appears to have been sent before the 
+             * last packet.
+             */
+            timerclear(&nap);
+        }
+        timerdiv(&nap, options.speed.speed);
+        break;
+
+    case SPEED_MBPSRATE:
+        /* 
+         * Ignore the time supplied by the capture file and send data at
+         * a constant 'rate' (bytes per second).
+         */
+        if (timerisset(last)) {
+            n = (float)len / options.speed.speed;
+            nap.tv_sec = n;
+            nap.tv_usec = (n - nap.tv_sec) * 1000000;
+        }
+        else {
+            timerclear(&nap);
+        }
+        break;
+
+    case SPEED_PACKETRATE:
+        /* run in packets/sec */
+        n = 1 / options.speed.speed;
+        nap.tv_sec = n;
+        n -= nap.tv_sec;
+        nap.tv_usec = n * 1000000;
+        break;
+
+    case SPEED_ONEATATIME:
+        /* do we skip prompting for a key press? */
+        if (send == 0) {
+            printf("**** How many packets do you wish to send? (next packet out %s): ",
+                   l == options.intf1 ? options.intf1_name : options.intf2_name);
+            fflush(NULL);
+            poller[0].fd = STDIN_FILENO;
+            poller[0].events = POLLIN;
+            poller[0].revents = 0;
+            
+            /* wait for the input */
+            if (poll(poller, 1, -1) < 0)
+                errx(1, "Error reading from stdin: %s", strerror(errno));
+            
+            /*
+             * read to the end of the line or EBUF_SIZE,
+             * Note, if people are stupid, and type in more text then EBUF_SIZE
+             * then the next fgets() will pull in that data, which will have poor 
+             * results.  fuck them.
+             */
+            fgets(input, sizeof(input), stdin);
+            if (strlen(input) > 1) {
+                send = strtoul(input, NULL, 0);
+            }
+
+            /* how many packets should we send? */
+            if (send == 0) {
+                dbg(1, "Input was less then 1 or non-numeric, assuming 1");
+
+                /* assume send only one packet */
+                send = 1;
+            }
+            
+        }
+
+        /* decrement our send counter */
+        printf("Sending packet out: %s\n", 
+               l == options.intf1 ? options.intf1_name : options.intf2_name);
+        send --;
+
+        /* leave do_sleep() */
+        return;
+
+        break;
+
+    default:
+        errx(1, "Unknown/supported speed mode: %d", options.speed.mode);
+        break;
+    }
+
+    timeradd(&didsleep, &nap, &didsleep);
+
+    if (timercmp(&didsleep, &delta, >)) {
+        timersub(&didsleep, &delta, &nap);
+
+        sleep.tv_sec = nap.tv_sec;
+        sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
+
+        if (nanosleep(&sleep, &ignore) == -1) {
+            warnx("nanosleep error: %s", strerror(errno));
+        }
+
+    }
+}
+
+
 /*
  Local Variables:
  mode:c
