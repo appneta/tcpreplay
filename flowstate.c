@@ -1,4 +1,4 @@
-/* $Id: flowstate.c,v 1.2 2003/06/02 00:02:00 aturner Exp $ */
+/* $Id: flowstate.c,v 1.3 2003/10/20 05:19:19 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -10,6 +10,7 @@
 #include "flowreplay.h"
 #include "flownode.h"
 #include "tcpreplay.h"
+#include "flowstate.h"
 #include "err.h"
 
 /*
