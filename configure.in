@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.36 2003/05/08 16:34:50 aturner Exp $
+dnl $Id: configure.in,v 1.37 2003/05/29 21:59:39 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -408,5 +408,3 @@ AC_SUBST(nic2)
 AC_OUTPUT(Makefile)
 AC_OUTPUT(test/Makefile)
 AC_OUTPUT(tcpreplay.spec)
-
-cd libredblack && sh ./configure
