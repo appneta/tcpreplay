@@ -130,8 +130,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
         header.num_packets, cache_size);
     dbg(1, "Cache uses %d packets per byte", header.packets_per_byte);
 
-    if ((*cachedata = (char *)malloc(cache_size)) == NULL)
-        errx(1, "Unable to malloc() our cache data");
+    *cachedata = (char *)safe_malloc(cache_size);
 
     memset(*cachedata, '\0', cache_size);
 

@@ -67,15 +67,12 @@ addpkt2buff(struct session_t *node, u_char * pktdata, u_int32_t len)
     }
 
     /* prep the buffer header for the linked list */
-    if ((buffhdr =
-         (struct pktbuffhdr_t *)malloc(sizeof(struct pktbuffhdr_t))) == NULL)
-        errx(1, "Unable to malloc *pktbuffhdr in addpkt2buff()");
+    buffhdr = (struct pktbuffhdr_t *)safe_malloc(sizeof(struct pktbuffhdr_t));
 
     buffhdr->len = len;
 
     /* allocate memory for the packet data */
-    if ((buffhdr->packet = (u_char *) malloc(len)) == NULL)
-        errx(1, "Unable to malloc *buff in addpkt2buff()");
+    buffhdr->packet = (u_char *)safe_malloc(len);
 
     /* copy over the packet */
     memcpy(buffhdr->packet, pktdata, len);

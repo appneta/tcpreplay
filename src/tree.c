@@ -137,8 +137,7 @@ process_tree()
     buildcidr_t *bcdata;
 
 
-    if ((bcdata = (buildcidr_t *) malloc(sizeof(buildcidr_t))) == NULL)
-        err(1, "malloc");
+    bcdata = (buildcidr_t *)safe_malloc(sizeof(buildcidr_t));
 
     for (mymask = options.max_mask; mymask <= options.min_mask; mymask++) {
         dbg(1, "Current mask: %u", mymask);
@@ -357,9 +356,7 @@ new_tree()
 {
     tree_t *node;
 
-    node = (tree_t *)malloc(sizeof(tree_t));
-    if (node == NULL)
-        err(1, "malloc");
+    node = (tree_t *)safe_malloc(sizeof(tree_t));
 
     memset(node, '\0', sizeof(tree_t));
     node->server_cnt = 0;
