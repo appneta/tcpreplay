@@ -52,7 +52,7 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %files
 %defattr(-,root,root)
-%doc	CHANGELOG LICENSE README Docs/FAQ.html
+%doc	CHANGELOG LICENSE README Docs/FAQ.html Docs/FAQ.txt Docs/FAQ.pdf Docs/FAQ.ps Docs/FAQ.css
 %{_bindir}/*
 %{_sbindir}/*
 %{_mandir}/man8/*
