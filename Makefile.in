@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.10 2002/08/07 20:06:17 aturner Exp $
+# $Id: Makefile.in,v 1.11 2002/08/11 22:10:42 mattbing Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -17,7 +17,7 @@ INSTALL		= @INSTALL@
 
 BINARIES	= tcpreplay capinfo tcpprep
 
-TSRCS		= tcpreplay.c libpcap.c snoop.c timer.c cache.c cidr.c @EXTRAS@
+TSRCS		= tcpreplay.c libpcap.c snoop.c timer.c cache.c cidr.c configfile.c @EXTRAS@
 TOBJS		= $(TSRCS:.c=.o)
 
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c @EXTRAS@
@@ -75,5 +75,5 @@ uninstall:
 	rm -f $(MAN1DIR)/tcpprep.1
 
 pretty:
-         indent -br -brs -di24 -ts4 -ncdw -nce -ncs -npcs -nprs -bfda -l80 -lc80 -lp -psl -i4 *.c *.h
+	indent -br -brs -di24 -ts4 -ncdw -nce -ncs -npcs -nprs -bfda -l80 -lc80 -lp -psl -i4 *.c *.h
 
