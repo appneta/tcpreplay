@@ -23,6 +23,8 @@ include         = "#include \"defines.h\"\n"
                 "extern char pcap_version[];\n"
                 "extern tcpprep_opt_t options;\n";
 
+homerc          = "$$/";
+
 explain = <<- EOExplain
     tcpprep is a pcap(3) file pre-processor which creates a cache
     file which provides "rules" for tcpreplay on how to send packets

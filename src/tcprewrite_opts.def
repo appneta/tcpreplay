@@ -23,6 +23,7 @@ include         = "#include \"defines.h\"\n"
                 "extern char pcap_version[];\n"
                 "extern tcprewrite_opt_t options;\n";
 
+homerc          = "$$/";
 
 flag = {
     name        = dbug;
@@ -186,7 +187,7 @@ flag = {
     value       = e;
     arg-type    = string;
     max         = 1;
-    descrip     = "Rewrite IP addresses so all traffic is between two endpoints";
+    descrip     = "Rewrite IP addresses to be between two endpoints";
     flag-code   = <<- EOEndpoints
     
     options.rewrite_ip ++;
@@ -264,7 +265,31 @@ flag = {
     max         = 1;
     descrip     = "Specify the new 802.1q VLAN tag value";
     arg-type    = number;
-    arg-range   = "1->65535";
+    flags-must  = vlan;
+    default     = 0;
+    arg-range   = "0->4095"; /* VID's are 12bit unsigned int's */
+};
+
+flag = {
+    name        = vlan_cfi;
+    value       = P;
+    max         = 1;
+    descrip     = "Specify the 802.1q VLAN CFI value";
+    arg-type    = number;
+    flags-must  = vlan;
+    default     = 1;
+    arg-range   = "0->1"; /* one bit */
+};
+
+flag = {
+    name        = vlan_pri;
+    value       = p;
+    max         = 1;
+    descrip     = "Specify the 802.1q VLAN priority";
+    flags-must  = vlan;
+    arg-type    = number;
+    default     = 0;
+    arg-range   = "0->7"; /* one byte */
 };
 
 /* Verbose decoding via tcpdump */
