@@ -1,4 +1,4 @@
-/* $Id: xX.c,v 1.6 2003/11/04 05:58:56 aturner Exp $ */
+/* $Id: xX.c,v 1.7 2003/11/05 06:46:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -88,7 +88,7 @@ parse_xX_str(char mode, char *str)
     if (mode == 'X') { /* run in exclude mode */
 	include_exclude_mode += xXExclude;
         if (bpf)
-            warnx("Using a BPF filter with -X doesn't work.\nTry using -xF:\"not <filter>\" instead");
+            errx(1, "Using a BPF filter with -X doesn't work.\nTry using -xF:\"not <filter>\" instead");
     }
 
     if (cidr != NULL) {
