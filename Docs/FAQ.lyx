@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Dec 13, 2003
+Jan 21, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -354,7 +354,7 @@ Please provide any relevant personal information you'd like listed in the
 \layout Standard
 
 Please note that while I'm always interested in patches, I may rewrite some
- or all of your submission to maintain a consitent coding style.
+ or all of your submission to maintain a consistent coding style.
 \layout Part
 
 Basics
@@ -381,13 +381,13 @@ Replaying at different speeds
 You can also replay the traffic at different speeds then it was originally
  captured
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
 Tcpreplay makes a "best" effort to replay traffic at the given rate, but
  due to limitations in hardware or the pcap file itself, it may not be possible.
- Capture files with only a few packets in them are especially succeptable
+ Capture files with only a few packets in them are especially susceptible
  to this.
 \end_inset 
 
@@ -440,7 +440,7 @@ Replaying the same file over and over again
 Using the loop flag (-l) you can specify that a pcap file will be sent two
  or more times
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -460,7 +460,7 @@ To replay the sample.pcap file 10 times:
 tcpreplay -l 10 -i eth0 sample.pcap
 \layout Itemize
 
-To replay the sample.pcap an infinately or until CTRL-C is pressed:
+To replay the sample.pcap an infinitely or until CTRL-C is pressed:
 \newline 
 
 \emph on 
@@ -660,7 +660,7 @@ Replaying on multiple interfaces
 Tcpreplay can also split traffic so that each side of a connection is sent
  out a different interface
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -679,7 +679,7 @@ Note that you can also use the following options to split traffic into two
 
 -c = split traffic according to a tcpprep cachefile
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -764,14 +764,14 @@ Pattern is a comma delimited CIDR notation
 
 P - A list of packet numbers from the pcap file.
 \newline 
-Pattern is a series of numbers, seperated by commas or dashes.
+Pattern is a series of numbers, separated by commas or dashes.
 \layout Enumerate
 
 F - BPF syntax (same as used in tcpdump).
 \newline 
 Filter must be quoted and is only supported with -x
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -828,7 +828,7 @@ If you want to skip the beginning of a pcap file, you can use the offset
  next packet.
 \layout Itemize
 
-To skip 15Kbytes into the pcap file and start sending packets from there:
+To skip 15Kb into the pcap file and start sending packets from there:
 \newline 
 
 \emph on 
@@ -840,8 +840,8 @@ Rewriting destination MAC address
 
 If you ever want to send traffic to another device on a switched LAN, you
  may need to change the destination MAC address of the packets.
- Tcpreplay allows you to set the destination MAC for each interface independantl
-y using the -I and -J swiches.
+ Tcpreplay allows you to set the destination MAC for each interface independentl
+y using the -I and -J switches.
  Example:
 \layout Itemize
 
@@ -865,17 +865,17 @@ tcpreplay -i eth0 -j eth1 -I 00:01:00:00:AA:01 -J 00:01:00:00:AA:02 -C 10.0.0.0/
 Randomizing IP addresses
 \layout Standard
 
-Ocassionally, it is necessary to have tcprewrite rewrite the source and
+Occasionally, it is necessary to have tcprewrite rewrite the source and
  destination IP addresses, yet maintain the client/server relationship.
  Such a case might be having multiple copies of tcpdump running at the same
  time using the same pcap file while trying to stress test firewall, IDS
  or other stateful device.
  If you didn't change the source and destination IP addresses, the device
  under test would get confused since it would see multiple copies of the
- same connection occuring at the same time.
+ same connection occurring at the same time.
  In order to accomplish this, tcpreplay accepts a user specified seed which
  is used to generate pseudo-random IP addresses.
- Also, when this feature is enabled, tcpreplay will automatically recalcuate
+ Also, when this feature is enabled, tcpreplay will automatically recalculate
  the layer 3 and 4 checksums as needed.
  Example:
 \layout Standard
@@ -913,7 +913,7 @@ Pad truncated packets:
 tcpreplay -i eth0 -u pad sample.pcap
 \layout Itemize
 
-Rewrite packet header lenghts to the actual packet size:
+Rewrite packet header lengths to the actual packet size:
 \newline 
 
 \emph on 
@@ -959,8 +959,8 @@ Writing packets to a file
 It's not always necessary to write packets to the network.
  Since tcpreplay has so many features which modify and select which packets
  are sent, it is occasionally useful to save these changes to another pcap
- file for comparision.
- Rather then running a seperate tcpdump process to capture the packets,
+ file for comparison.
+ Rather then running a separate tcpdump process to capture the packets,
  tcpreplay now supports output directly to a file.
  Example:
 \layout Standard
@@ -996,7 +996,7 @@ data dump mode
 \end_inset 
 
  which is enabled with -D.
- It's important to specifiy -D before -w (and -W if you're splitting data
+ It's important to specify -D before -w (and -W if you're splitting data
  into two files).
  Example:
 \layout Standard
@@ -1013,7 +1013,7 @@ Tcpreplay offers the options of specifying configuration options in a config
  file in addition to the traditional command line.
  Each configuration option has an equivalent config file option which is
  listed in the tcpreplay man page.
- To specifiy the configuration file you'd like to use, use the -f <filename>
+ To specify the configuration file you'd like to use, use the -f <filename>
  option.
 \layout Standard
 
@@ -1070,7 +1070,7 @@ NOTE:
 \noun default 
  It is critical for your sanity (and to prevent your murder by your network
  administrators) that the input interface and the output interface be on
- seperate networks and additionally that no other network devices (such
+ separate networks and additionally that no other network devices (such
  as bridges, switches, routers, etc) be connecting the two networks, else
  you will surely get a networkstorm the likes that have not been seen for
  years.
@@ -1113,7 +1113,7 @@ NOTE:
 \noun default 
  It is critical for your sanity (and to prevent your murder by your network
  administrators) that the input interface and the output interface be on
- seperate networks and additionally that no other network devices (such
+ separate networks and additionally that no other network devices (such
  as bridges, switches, routers, etc) be connecting the two networks, else
  you will surely get a networkstorm the likes that have not been seen for
  years.
@@ -1132,7 +1132,7 @@ Replaying Packet Capture Formats Other Than Libpcap
 There are about as many different capture file formats as there are sniffers.
  In the interest of simplicity, tcpreplay only supports libpcap
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -1165,18 +1165,15 @@ A common question on the tcpreplay-users list is how does one replay the
  Unfortunately, tcpreplay doesn't support this right now.
  The major problem concerns syncing up TCP Seq/Ack numbers which will be
  different.
- ICMP also often contains IP header information which would need to be adjusted<
-<<<<<< FAQ.lyx as well in many cases.
+ ICMP also often contains IP header information which would need to be adjusted.
  About the only thing that could be easy to do is UDP, which isn't usually
- requested.======= in many cases.
- About the only thing that could be easy to do is UDP which isn't usually
- requested.>>>>>>> 1.14
+ requested.
 \layout Standard
 
-This is however a feature that we're looking into implimenting.
+This is however a feature that we're looking into implementing.
  If you're interested in helping add this feature, please contact us and
  we'd be more then happy to work with you.
- At this time however, we don't have an ETA when this will be implimented,
+ At this time however, we don't have an ETA when this will be implemented,
  so don't bother asking.
 \layout Subsection
 
@@ -1221,7 +1218,7 @@ not
  802.3 Ethernet header.
 \layout Standard
 
-Tcpreplay accepts the new Layer 2 header as a string of comma seperated
+Tcpreplay accepts the new Layer 2 header as a string of comma separated
  hex values such as: 0xff,0xac,0x00,0x01,0xc0,0x64.
  Note that the leading '0x' is 
 \emph on 
@@ -1248,7 +1245,7 @@ Tcpreplay can send traffic out two network cards, however it requires the
 
 Tcpprep is a libpcap pre-processor for tcpreplay which enables using two
  network cards to send traffic without the performance hit of doing the
- calcuations in real-time.
+ calculations in real-time.
 \layout Subsection
 
 How does tcpprep work? 
@@ -1274,7 +1271,7 @@ Why use tcpprep?
 There are three major reasons to use tcpprep:
 \layout Enumerate
 
-Tcpprep can split traffic based upon more methods and critera then tcpreplay.
+Tcpprep can split traffic based upon more methods and criteria then tcpreplay.
 \layout Enumerate
 
 By pre-processing the pcap, tcpreplay has a higher theoretical maximum throughpu
@@ -1332,7 +1329,7 @@ CIDR (-c) mode requires the user to provide a list of networks.
  primary interface.
 \layout Itemize
 
-Regex (-r) mode requires the user to provde a regular expression.
+Regex (-r) mode requires the user to provide a regular expression.
  Any packet with a source IP matching the regex gets sent out the primary
  interface.
 \layout Standard
@@ -1345,7 +1342,7 @@ And four auto modes in which tcpprep decides how to split traffic.
 
 Auto/Router (-a -n router) mode trys to find the largest network(s) that
  contain all the servers and no clients.
- Any unknown system is automatically re-classifed as servers if it's inside
+ Any unknown system is automatically re-classified as servers if it's inside
  the server network(s), otherwise it is classified as a client.
 \layout Itemize
 
@@ -1397,8 +1394,8 @@ Tcpprep does the same first pass as Auto/Bridge mode.
  the servers.
  Finally it uses the CIDR mode with the list of server networks in a second
  pass of the libpcap file.
- Unlike auto/bridge mode, auto/router mode can always sucessfuly split IP
- addresses into clients and servers.
+ Unlike auto/bridge mode, auto/router mode can always successfully split
+ IP addresses into clients and servers.
 \layout Subsubsection
 
 Determining Clients and Servers
@@ -1474,7 +1471,7 @@ While tcpreplay is a great way to test NIDS and firewalls, it can't be used
  on a device.
  The solution to this problem is flowreplay which instead of sending packets
  at Layer 2 (ethernet header and up), it can actually connect via TCP or
- UDP to server and then sends and recieves data based upon a pcap capture
+ UDP to server and then sends and receives data based upon a pcap capture
  file created with a tool like Ethereal or tcpdump.
 \layout Subsection
 
@@ -1494,7 +1491,7 @@ Some of these limitations are:
 
 Flowreplay only plays the client side
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -1539,7 +1536,7 @@ Regardless of the size of physical memory, UNIX kernels will only allocate
 Note:
 \noun default 
  Please note that the following information is provided based upon our own
- experiances or the reported experiances of others.
+ experiences or the reported experiences of others.
  Depending on your hardware and specific hardware, it may or may not work
  for you.
  It may even make your system horribly unstable, corrupt your harddrive,
