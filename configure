@@ -830,6 +830,7 @@ Optional Packages:
   --with-debug            Enable debugging code and support for the -d option
   --with-libnet=DIR       use libnet in DIR
   --with-libnetver=VER    version of libnet in use
+  --with-testnic=NIC      Select which network card to use for testing
 
 Some influential environment variables:
   CC          C compiler command
@@ -4183,6 +4184,16 @@ if test "$host" != "$build" ; then
 echo "$as_me: WARNING: Unable to do tests when cross-compiling" >&2;}
 fi
 
+
+# Check whether --with-testnic or --without-testnic was given.
+if test "${with_testnic+set}" = set; then
+  withval="$with_testnic"
+   nic1=$withval
+nic2=$withval
+echo "$as_me:$LINENO: result: Using --with-testnic=$withval" >&5
+echo "${ECHO_T}Using --with-testnic=$withval" >&6
+else
+
 case $host in
 	*-*-linux*)
 	nic1=eth0
@@ -4213,10 +4224,13 @@ echo "${ECHO_T}Apple OSX" >&6
 	;;
 
 	*)
-	echo "$as_me:$LINENO: result: $host is unknown!  Unable to run 'make test'" >&5
-echo "${ECHO_T}$host is unknown!  Unable to run 'make test'" >&6
+	echo "$as_me:$LINENO: result: $host is unknown!
+	Please use --with-nictest to select an interface for 'make test'" >&5
+echo "${ECHO_T}$host is unknown!
+	Please use --with-nictest to select an interface for 'make test'" >&6
 	;;
 esac
+fi;
 
 
 

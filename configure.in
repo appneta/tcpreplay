@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.15 2002/11/20 02:03:15 aturner Exp $
+dnl $Id: configure.in,v 1.16 2002/11/20 02:34:16 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -253,6 +253,13 @@ if test "$host" != "$build" ; then
 	AC_MSG_WARN(Unable to do tests when cross-compiling)
 fi
 
+dnl Allows user to choose which nic to use for testing purposes
+AC_ARG_WITH(testnic,
+[  --with-testnic=NIC      Select which network card to use for testing],
+[ nic1=$withval
+nic2=$withval
+AC_MSG_RESULT(Using --with-testnic=$withval)],
+[
 dnl these need to be dynamic based on OS
 case $host in
 	*-*-linux*)
@@ -280,9 +287,10 @@ case $host in
 	;;
 
 	*)
-	AC_MSG_RESULT($host is unknown!  Unable to run 'make test')
+	AC_MSG_RESULT([$host is unknown!  
+	Please use --with-nictest to select an interface for 'make test'])
 	;;
-esac
+esac])
 
 
 AC_SUBST(nic1)
