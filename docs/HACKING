@@ -25,10 +25,13 @@ etc.
 
 The file layout is pretty simple:
 
-/       - Code, header files, autoconf stuff
-/Docs   - Where to find documentation
-/test   - Test scripts and stuff which is used during 'make test'
-/man    - Unix man pages which get copied to $MANPATH
+/           - Base directory
+/lib        - 3rd party libraries stolen verbatim
+/src        - Main code routines
+/src/common - Common routines for all binaries
+/docs       - Where to find documentation
+/test       - Test scripts and stuff which is used during 'make test'
+/man        - Unix man pages which get copied to $MANPATH
 
 3. Adding support for additional DLTs (Data Link Types)
 

@@ -1,6 +1,6 @@
 $Id$
 
-??/??/????: Version 3.0.0
+??/??/????: Version 3.0.pre1
     - Major code cleanups and rewriting
       - Move around utility functions
       - Move MAC Address funcs into mac.c
@@ -8,7 +8,9 @@ $Id$
     - Start work on generic config arg/file processor
     - Fix small documentation bugs in man/tcpreplay.8
     - Updated the FAQ
-    - Major
+    - Start using automake and autoheader
+    - Major rewrite of autoconf
+    - Remove capinfo and pcapmerge
 
 09/19/2004: Version 2.3.1
     - Fix bug with fakepcap.c which appeared on systems using an older
