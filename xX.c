@@ -1,4 +1,4 @@
-/* $Id: xX.c,v 1.9 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: xX.c,v 1.10 2004/02/03 22:54:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -64,19 +64,19 @@ parse_xX_str(char mode, char *str)
     case 'B':                  /* both ip's */
         str = str + 2;
         include_exclude_mode = xXBoth;
-        if (!parse_cidr(&cidr, str))
+        if (!parse_cidr(&cidr, str, ","))
             return NULL;
         break;
     case 'D':                  /* dst ip */
         str = str + 2;
         include_exclude_mode = xXDest;
-        if (!parse_cidr(&cidr, str))
+        if (!parse_cidr(&cidr, str, ","))
             return NULL;
         break;
     case 'E':                  /* either ip */
         str = str + 2;
         include_exclude_mode = xXEither;
-        if (!parse_cidr(&cidr, str))
+        if (!parse_cidr(&cidr, str, ","))
             return NULL;
         break;
     case 'F':                  /* bpf filter */
@@ -98,7 +98,7 @@ parse_xX_str(char mode, char *str)
     case 'S':                  /* source ip */
         str = str + 2;
         include_exclude_mode = xXSource;
-        if (!parse_cidr(&cidr, str))
+        if (!parse_cidr(&cidr, str, ","))
             return NULL;
         break;
 
