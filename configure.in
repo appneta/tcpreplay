@@ -13,16 +13,12 @@ TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 dnl Release is only used for the RPM spec file
 TCPREPLAY_RELEASE=1
 
-
+AC_DEFINE(PACKAGE, [tcpreplay], [This is our package name])
 AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION", [What is our version?])
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
-
-dnl Initialize prefix.
-if test "$prefix" = "NONE"; then
-	prefix="/usr/local"
-fi
+CFLAGS="$CFLAGS -Wall -O2 -funroll-loops"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -32,7 +28,7 @@ AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
 
-AM_INIT_AUTOMAKE(tcpreplay, 1.0)
+AM_INIT_AUTOMAKE(tcpreplay, 1.0, nodefine)
 
 AC_C_BIGENDIAN
 
@@ -70,70 +66,39 @@ AC_SYS_LARGEFILE
 dnl Check for functions
 AC_FUNC_FSEEKO
 
+
 dnl Enable debugging in code/compiler options
 debug=no
 AC_ARG_ENABLE(debug,
 [  --enable-debug          Enable debugging code and support for the -d option],
 [ if test x$enableval = xyes; then
  debug=yes
- CFLAGS="$CFLAGS -ggdb"
+ CFLAGS="$CFLAGS -ggdb -pedantic"
  AC_SUBST(debug_flag)
  AC_DEFINE([DEBUG], [], [Enable debuggin code and support for the -d option]) 
  fi])
 
 
 dnl Enable Efense
-efence=no
-AC_MSG_CHECKING(for efence enabled)
 AC_ARG_ENABLE(efence,
 [  --enable-efence         Enable Electric Fence memory debugger],
-[ efence=yes
+[ if test x$enableval = xyes; then
+  CFLAGS="$CFLAGS -lefence"
   AC_DEFINE([EFENCE], [], [Enable Electric Fence memory debugger])
-  AC_MSG_RESULT(yes)],
-  AC_MSG_RESULT(no)
-  )
+  fi])
 
 dnl Enable Gprof
-gprof=no
-AC_MSG_CHECKING(for gprof enabled)
-AC_ARG_WITH(gprof,
-[  --with-gprof            Enable GNU Profiler],
-[ gprof=yes
+AC_ARG_ENABLE(gprof,
+[  --enable-gprof          Enable GNU Profiler],
+[ if test x$enableval = xyes; then
+  if test $debug = yes; then
+      CFLAGS="$CFLAGS -pg"
+  else 
+      # GPROF requires gdb
+      CFLAGS="$CFLAGS -ggdb -pg -fprofile-arcs"
+  fi
   AC_DEFINE([GPROF], [], [Enable GNU Profiler])
-  AC_MSG_RESULT(yes)],
-  AC_MSG_RESULT(no)
-  )
-
-
-dnl Use these compiler flags if we have gcc.
-if test $ac_cv_prog_gcc = yes -a $debug = no ; then
-    CCOPTS="-pipe -Wall -O2 -ggdb -funroll-loops"
-    CFLAGS="$CCOPTS"
-else
-	CCOPTS="-pipe -Wall -ggdb -pedantic"
-	CFLAGS="$CCOPTS"
-fi
-
-dnl Gprof requires -ggdb
-if test $gprof = yes -a $debug = yes ; then
-	CCOPTS="$CCOPTS -pg" 
-	CFLAGS="$CCOPTS"
-elif test $gprof = yes -a $debug = no ; then
-	CCOPTS="-pipe -Wall -pg -ggdb"
-	CFLAGS="$CCOPTS"
-fi
-
-dnl Electric Fence
-if test $efence = yes ; then
-	CCOPTS="$CCOPTS -lefence"
-	CFLAGS="$CCOPTS"
-fi
-
-dnl gprof
-if test $gprof = yes ; then
-        CCOPTS="$CCOPTS -fprofile-arcs"
-        CFLAGS="$CCOPTS"
-fi
+  fi])
 
 dnl Check for types.
 AC_CHECK_TYPE(u_int8_t, uint8_t)
@@ -156,6 +121,8 @@ AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll])
 
+AC_CHECK_MEMBERS([struct timeval.tv_sec])
+
 dnl Check for inet_aton and inet_addr
 AC_CHECK_FUNC(inet_aton, 
     AC_DEFINE([INET_ATON], [], [Do we have inet_aton?]) 
@@ -172,42 +139,32 @@ fi
 dnl ##################################################
 dnl Checks for libnet (shamelessly horked from dsniff)
 dnl ##################################################
+foundnet=no
+trynetdir=/usr/local
 AC_MSG_CHECKING(for libnet)
 AC_ARG_WITH(libnet,
 [  --with-libnet=DIR       use libnet in DIR],
-[ case "$withval" in
-  yes|no)
-     AC_MSG_RESULT(no)
-     ;;
-  *)
-     AC_MSG_RESULT($withval)
-     if test -f $withval/include/libnet.h -a -f $withval/lib/libnet.a; then
-        owd=`pwd`
-        if cd $withval; then 
-          withval=`pwd` 
-          cd $owd
-        fi
-		LNETINC="-I$withval/include"
-		LNETINCDIR="$withval/include"
-		LNETLIB="-L$withval/lib -lnet"
-     else
-        AC_ERROR(libnet.h or libnet.a not found in $withval)
-     fi
-     ;;
-  esac ],
-[ if test -f ${prefix}/include/libnet.h; then
-     LNETINC="-I${prefix}/include"
-     LNETINCDIR="$prefix/include"
-     LNETLIB="-L${prefix}/lib -lnet"
-  elif test -f /usr/include/libnet.h; then
-     LNETINCDIR="/usr/include"
-     LNETLIB="-lnet"
-  else
+[ if test x$enableval = xyes ; then
+        trynetdir=$withval
+      fi
+])
+
+for testdir in $trynetdir /usr/local /usr ; do
+    if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
+     LNETINC="-I${testdir}/include"
+     LNETINCDIR="$testdir/include"
+     LNETLIB="-L${testdir}/lib -lnet"
+     foundnet=$testdir
+    fi
+done
+
+if test $foundnet = no ; then
      AC_MSG_RESULT(no)
      AC_ERROR(libnet not found)
-  fi
-  AC_MSG_RESULT(yes) ]
-)
+else 
+     AC_MSG_RESULT($foundnet) 
+fi
+
 AC_SUBST(LNETINC)
 AC_SUBST(LNETLIB)
 
@@ -280,41 +237,33 @@ LIBS="$OLDLIBS"
 dnl #####################################################
 dnl Checks for libpcap
 dnl #####################################################
+foundpcap=no
+trypcapdir=/usr/local
 AC_MSG_CHECKING(for libpcap)
 AC_ARG_WITH(libpcap,
-[  --with-libpcap=DIR      use libpcap in DIR],
-[ case "$withval" in
-  yes|no)
-     AC_MSG_RESULT(no)
-     ;;
-  *)
-     AC_MSG_RESULT($withval)
-     if test -f $withval/include/pcap.h -a -f $withval/lib/libpcap.a; then
-		LPCAPINC="-I$withval/include"
-		LPCAPINCDIR="$withval/include"
-		LPCAPLIB="-L$withval/lib -lpcap"
-     elif test -f $withval/pcap.h -a -f $withval/libpcap.a; then
-		LPCAPINC="-I$withval/"
-		LPCAPINCDIR="$withval/"
-		LPCAPLIB="-L$withval/ -lpcap"
-	 else
-        AC_ERROR(pcap.h or libpcap.a not found in $withval)
+    [  --with-libpcap=DIR      use libpcap in DIR],
+    [ if test x$enableval = xyes ; then
+         trypcapdir=$withval
+      fi
+    ])
+
+    for testdir in $trypcapdir /usr/local /usr ; do 
+ 
+     if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
+         LPCAPINC="-I${testdir}/include"
+         LPCAPINCDIR="${testdir}/include"
+         LPCAPLIB="-L${testdir}/lib -lpcap"
+        foundpcap=$testdir
      fi
-     ;;
-  esac ],
-[ if test -f ${prefix}/include/pcap.h; then
-     LPCAPNC="-I${prefix}/include"
-     LPCAPINCDIR="$prefix/include"
-     LPCAPLIB="-L${prefix}/lib -lpcap"
-  elif test -f /usr/include/pcap.h; then
-     LPCAPINCDIR="/usr/include"
-     LPCAPLIB="-lpcap"
-  else
+   done
+
+   if test $foundpcap = no ; then
      AC_MSG_RESULT(no)
      AC_ERROR(libpcap not found)
-  fi
-  AC_MSG_RESULT(yes) ]
-)
+   else
+     AC_MSG_RESULT($foundpcap)
+   fi
+
 AC_SUBST(LPCAPINC)
 AC_SUBST(LPCAPLIB)
 
@@ -329,6 +278,8 @@ AC_MSG_CHECKING(for libpcap version)
 
 AC_TRY_RUN([
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "$LPCAPINCDIR/pcap.h"
 #define PCAP_TEST "0.6"
 /* 
@@ -361,11 +312,12 @@ dnl Check to see if we've got pcap_datalink_val_to_name()
 AC_MSG_CHECKING(for pcap_datalink_val_to_description)
 AC_TRY_RUN([
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "$LPCAPINCDIR/pcap.h"
 int 
 main(int argc, char *argv[]) {
-    char name[100];
-    strncpy(name, pcap_datalink_val_to_description(1), 99);
+    pcap_datalink_val_to_description(1);
     exit(0);
 } 
 ],
@@ -393,18 +345,17 @@ pcapnav_ver=no
 pcncfg=no
 AC_ARG_WITH(pcapnav-config,
     [  --with-pcapnav-config=FILE     Use given pcapnav-config],
-    [ AC_MSG_CHECKING(for pcapnav-config)
-      if test -x $withval ; then
-        pcncfg="$withval"
+    [ 
+      if test x$enableval = xyes ; then
+        pcncfg=$withval
       fi
     ],
-    [ AC_PATH_PROG(pcncfg,[pcapnav-config],[no]) ]
+    [ AC_PATH_PROG(pcncfg,[pcapnav-config], [] ) ]
 )
 
 if test $pcncfg = no ; then
     AC_MSG_RESULT(Cannot find pcapnav-config: Disabling offset jump feature.)
 else
-    AC_MSG_RESULT($pcncfg)
     LNAVLIB=`$pcncfg --libs`
     LNAV_CFLAGS=`$pcncfg --cflags`
     PCAPNAV_VERSION=`$pcncfg --version`
