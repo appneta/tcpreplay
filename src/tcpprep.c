@@ -269,8 +269,8 @@ process_raw_packets(pcap_t * pcap)
 {
     ip_hdr_t *ip_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
-    sll_header_t *sll_hdr = NULL;
-    cisco_hdlc_header_t *hdlc_hdr = NULL;
+    sll_hdr_t *sll_hdr = NULL;
+    hdlc_hdr_t *hdlc_hdr = NULL;
     int l2len = 0;
     u_int16_t protocol = 0;
     struct pcap_pkthdr pkthdr;
@@ -304,7 +304,7 @@ process_raw_packets(pcap_t * pcap)
             break;
 
         case DLT_LINUX_SLL:
-            sll_hdr = (sll_header_t *) pktdata;
+            sll_hdr = (sll_hdr_t *) pktdata;
             l2len = SLL_HDR_LEN;
             protocol = sll_hdr->sll_protocol;
             break;
@@ -315,7 +315,7 @@ process_raw_packets(pcap_t * pcap)
             break;
 
         case DLT_C_HDLC:
-            hdlc_hdr = (cisco_hdlc_header_t *)pktdata;
+            hdlc_hdr = (hdlc_hdr_t *)pktdata;
             protocol = hdlc_hdr->protocol;
             l2len = CISCO_HDLC_LEN;
             break;
