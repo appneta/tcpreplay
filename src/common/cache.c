@@ -47,7 +47,7 @@
 extern int debug;
 #endif
 
-cache_t *new_cache(void);
+static cache_t *new_cache(void);
 
 /*
  * Takes a single char and returns a ptr to a string representation of the
@@ -76,7 +76,7 @@ byte2bits(char byte, char *bitstring) {
  * now also checks for the cache magic and version
  */
 
-u_int64_t
+COUNTER
 read_cache(char **cachedata, const char *cachefile, char **comment)
 {
     int cachefd, cnt;
@@ -117,7 +117,11 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     dbg(1, "Cache file comment: %s", *comment);
 
     /* malloc our cache block */
+#ifdef ENABLE_64BITS
     header.num_packets = ntohll(header.num_packets);
+#else
+    header.num_packets = (u_int64_t)ntohl((u_int32_t)header.num_packets);
+#endif
     header.packets_per_byte = ntohs(header.packets_per_byte);
     cache_size = header.num_packets / header.packets_per_byte;
 
@@ -125,8 +129,14 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
-    dbg(1, "Cache file contains %lld packets in %ld bytes",
+#ifdef ENABLE_64BITS
+    dbg(1, "Cache file contains %lld packets in %lld bytes",
         header.num_packets, cache_size);
+#else
+    dbg(1, "Cache file contains %ld packets in %lld bytes",
+        header.num_packets, cache_size);
+#endif
+
     dbg(1, "Cache uses %d packets per byte", header.packets_per_byte);
 
     *cachedata = (char *)safe_malloc(cache_size);
@@ -148,14 +158,14 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
  * contents of *cachedata to out_file and then returns the number 
  * of cache entries written
  */
-u_int64_t
-write_cache(cache_t * cachedata, const int out_file, u_int64_t numpackets, 
+COUNTER
+write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets, 
     char *comment)
 {
     cache_t *mycache = NULL;
     cache_file_hdr_t *cache_header = NULL;
     u_int32_t chars, last = 0;
-    u_int64_t packets = 0;
+    COUNTER packets = 0;
     ssize_t written = 0;
 
     /* write a header to our file */
@@ -163,7 +173,11 @@ write_cache(cache_t * cachedata, const int out_file, u_int64_t numpackets,
     strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
     strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
+#ifdef ENABLE_64BITS
     cache_header->num_packets = htonll(numpackets);
+#else
+    cache_header->num_packets = (u_int64_t)htonl(numpackets);
+#endif
 
     /* we can't strlen(NULL) so ... */
     if (comment != NULL) {
@@ -250,8 +264,8 @@ add_cache(cache_t ** cachedata, const int send, const int interface)
 {
     cache_t *lastcache = NULL;
     u_char *byte = NULL;
-    int bit, result;
-    unsigned long index;
+    u_int32_t bit, result;
+    COUNTER index;
 #ifdef DEBUG
     char bitstring[9] = EIGHT_ZEROS;
 #endif
@@ -286,9 +300,9 @@ add_cache(cache_t ** cachedata, const int send, const int interface)
 
     /* send packet ? */
     if (send) {
-        index = (lastcache->packets - 1) / CACHE_PACKETS_PER_BYTE;
-        bit = (((lastcache->packets - 1) % CACHE_PACKETS_PER_BYTE) * 
-               CACHE_BITS_PER_PACKET) + 1;
+        index = (lastcache->packets - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
+        bit = (((lastcache->packets - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
+               (COUNTER)CACHE_BITS_PER_PACKET) + 1;
         dbg(3, "Bit: %d", bit);
 
         byte = (u_char *) & lastcache->data[index];
@@ -333,18 +347,23 @@ add_cache(cache_t ** cachedata, const int send, const int interface)
  * returns the action for a given packet based on the CACHE
  */
 int
-check_cache(char *cachedata, unsigned long packetid)
+check_cache(char *cachedata, COUNTER packetid)
 {
+    COUNTER index = 0;
     u_int32_t bit;
-    unsigned long index = 0;
 
 
-    index = (packetid - 1) / CACHE_PACKETS_PER_BYTE;
-    bit =
-        (((packetid - 1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
+    index = (packetid - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
+    bit = (u_int32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
+        (COUNTER)CACHE_BITS_PER_PACKET) + 1;
 
+#ifdef ENABLE_64BITS
+    dbg(3, "Index: %lld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
+        cachedata[index], (cachedata[index] & (char)(1 << bit)));
+#else
     dbg(3, "Index: %ld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
         cachedata[index], (cachedata[index] & (char)(1 << bit)));
+#endif
 
     if (!(cachedata[index] & (char)(1 << bit))) {
         return CACHE_NOSEND;

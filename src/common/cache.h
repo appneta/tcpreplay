@@ -81,10 +81,10 @@ struct cache_file_hdr_s {
 
 typedef struct cache_file_hdr_s cache_file_hdr_t;
 
-u_int64_t write_cache(cache_t *, const int, u_int64_t, char *);
+COUNTER write_cache(cache_t *, const int, COUNTER, char *);
 int add_cache(cache_t **, const int, const int);
-u_int64_t read_cache(char **, const char *, char **);
-int check_cache(char *, unsigned long);
+COUNTER read_cache(char **, const char *, char **);
+int check_cache(char *, COUNTER);
 
 /* return values for check_cache */
 #define CACHE_ERROR -1
