@@ -23,7 +23,7 @@ standard:
 
 	
 tcpprep: auto_router auto_bridge cidr regex
-tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude
+tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude replay_layer2
 
 auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
@@ -99,6 +99,12 @@ replay_exclude:
 	$(PRINTF) "%s" "[tcpreplay] Exclude test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Exclude test: " >>test.log
 	../tcpreplay -i $(nic1) -X P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
+
+replay_layer2:
+	$($PRINTF) "%s" "[tcpreplay] Layer2 test: "
+	$($PRINTF) "%s\n" "[tcpreplay] Layer2 test: " >>test.log
+	../tcpreplay -i $(nic1) -2 l2.dat test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 clean:
