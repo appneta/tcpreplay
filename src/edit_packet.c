@@ -37,6 +37,7 @@
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
 #include "edit_packet.h"
+#include "rewrite_l2.h"
 #include "lib/sll.h"
 #include "dlt.h"
 #include "dlt_names.h"
@@ -132,7 +133,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
         ip_hdr->ip_len = htons(pkthdr->caplen);
     }
     else {
-        err(1, "Invalid options.fixlen value");
+        errx(1, "Invalid options.fixlen value: 0x%x", options.fixlen);
     }
 
     /* fix checksums */
@@ -146,265 +147,83 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
  * return layer 2 length on success or 0 on fail (don't send packet)
  */
 int
-rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
-            int cache_mode)
+rewrite_l2(pcap_t *pcap, struct pcap_pkthdr *pkthdr, u_char * pktdata, int cache_mode)
 {
-    sll_header_t *sllhdr = NULL;   /* Linux cooked socket header */
-    cisco_hdlc_header_t *hdlc_header = NULL; /*Cisco HDLC */
     eth_hdr_t *eth_hdr = NULL;
-    char *l2data = NULL; /* ptr to the new layer2 data */
+    u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
+    int oldl2len = 0, newl2len = 0;
+    u_char tmpbuff[MAXPACKET];
+    macaddr_t *dstmac = NULL;
+    macaddr_t *srcmac = NULL;
 
-    /* use data2 iff CACHE_SECONDARY */
-    if (cache_mode == CACHE_SECONDARY) {
-        l2data = options.l2.data2;
-    } else {
-        l2data = options.l2.data1;
-    }
+
+    /* do we need a ptr for l2data ? */
+    if (options.l2.linktype == LINKTYPE_USER)
+        if (cache_mode == CACHE_SECONDARY) {
+            l2data = options.l2.data2;
+        } else {
+            l2data = options.l2.data1;
+        }
+    
 
     /*
-     * Depending on the DLT and the various user supplied flags (-2, -I, -J,
-     * -k, -K) we need to rewrite the layer two header.  Usually this means
-     * we rewrite it to look like 802.3 ethernet, but the user can do crazy
-     * stuff and make it look like anything else if they use -2
+     * figure out what the CURRENT packet encapsulation is and we'll call
+     * the appropriate function to:
+     * 1) resize the L2 header
+     * 2) copy over existing L2 header info (protocol, MAC's) to a new
+     *    standard 802.3 ethernet header where applicable
+     * We do NOT apply any src/dst mac rewriting, as that is common
+     * to all conversions, so that happens at the bottom of this function
      */
-    switch (options.l2.linktype) {
+    switch (pcap_datalink(pcap)) {
     case DLT_EN10MB:       /* Standard 802.3 Ethernet */
-        if (options.l2.enabled) {
-            /*
-             * is new packet too big?
-             */
-            if ((pkthdr->caplen - LIBNET_ETH_H + options.l2.len) > options.maxpacket) {
-                if (options.fixlen) {
-                    warnx("Packet length (%u) is greater then MTU; "
-                          "truncating packet.",
-                          (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
-                    pkthdr->caplen = options.maxpacket;
-                }
-                else {
-                    warnx("Packet length (%u) is greater then MTU; "
-                          "skipping packet.",
-                          (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
-                    return (0);
-                }
-            }
-            /*
-             * remove ethernet header and copy our header back
-             */
-            dbg(3, "Rewriting 802.3 via -2...");
-            memcpy(pktdata, l2data, options.l2.len);
-            memcpy(&pktdata[options.l2.len], (nextpkt + LIBNET_ETH_H),
-                   (pkthdr->caplen - LIBNET_ETH_H));
-            /* update pkthdr->caplen with the new size */
-            pkthdr->caplen = pkthdr->caplen - LIBNET_ETH_H + options.l2.len;
-        }
-
-        else {  /* no need to replace L2 */
-
-            /* verify that the packet isn't > maxpacket */
-            if (pkthdr->caplen > options.maxpacket) {
-                if (options.fixlen) {
-                    warnx("Packet length (%u) is greater then MTU; "
-                          "truncating packet.",
-                          pkthdr->caplen);
-                    pkthdr->caplen = options.maxpacket;
-                }
-                else {
-                    warnx("Packet length (%u) is greater then MTU; "
-                          "skipping packet.",
-                          pkthdr->caplen);
-                    return (0);
-                }
-            }
-
-            /*
-             * since libpcap returns a pointer to a buffer 
-             * malloc'd to the snaplen which might screw up
-             * an untruncate situation, we have to memcpy
-             * the packet to a static buffer
-             */
-            memcpy(pktdata, nextpkt, pkthdr->caplen);
-        }
+        newl2len = rewrite_en10mb(pktdata, pkthdr, l2data);
         break;
 
     case DLT_LINUX_SLL:    /* Linux Cooked sockets */
-        if (options.l2.enabled) {
-            
-            dbg(3, "Rewriting Linux SLL via -2...");
-            if ((pkthdr->caplen - SLL_HDR_LEN + options.l2.len) > options.maxpacket) {
-                if (options.fixlen) {
-                    warnx("New packet length (%u) is greater then MTU; "
-                          "truncating packet.",
-                          (pkthdr->caplen - SLL_HDR_LEN + options.l2.len));
-                    pkthdr->caplen = options.maxpacket;
-                }
-                else {
-                    warnx
-                        ("New packet length (%u) is greater then MTU; "
-                         "skipping packet.",
-                         (pkthdr->caplen - SLL_HDR_LEN + options.l2.len));
-                    return (0);
-                }
-            }
-            
-            /* copy over our new L2 data */
-            memcpy(pktdata, l2data, options.l2.len);
-        
-            /* copy over the packet data, minus the SLL header */
-            memcpy(&pktdata[options.l2.len], (nextpkt + SLL_HDR_LEN),
-                   (pkthdr->caplen - SLL_HDR_LEN));
-            /* update pktdhr.caplen with new size */
-            pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + options.l2.len;
-        }
-        
-        else {    /* no need to rewrite L2 */
-            /* verify new packet isn't > maxpacket */
-            if ((pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H) > options.maxpacket) {
-                if (options.fixlen) {
-                    warnx("Packet length (%u) is greater then MTU; "
-                         "truncating packet.",
-                         (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H));
-                    pkthdr->caplen = options.maxpacket;
-                }
-                else {
-                    warnx("Packet length (%u) is greater then MTU; "
-                         "skipping packet.",
-                         (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H));
-                    return (0);
-                }
-            }
-            
-            /* rewrite as a standard 802.3 header */
-            sllhdr = (sll_header_t *)nextpkt;
-            
-            switch (ntohs(sllhdr->sll_hatype)) {
-            case 0x1:          /* out on the wire */
-                dbg(3, "Rewriting ethernet Linux SLL header as 802.3...");
-                
-                /* nothing special to do here... */
-                
-                /* keep processing beyond case */
-                break;
-                
-            case 0x304:        /* loopback */
-                /* 
-                 * loopback packets don't have a src/dst MAC, but we don't 
-                 * require the SRC mac for SLL (we do require DST mac)
-                 */
-                if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) == 0) {
-                    warn("Skipping SLL loopback packet.");
-                    return (0);
-                }
-                break;
-                
-            default:
-                /* who know what the hell this is */
-                warnx("Unknown sll_hatype: 0x%x.  Skipping packet.",
-                      ntohs(sllhdr->sll_hatype));
-                return (0);
-                break;
-            }
-            
-            /*
-             * Regardless of out on the wire or a loopback packet
-             * there are certain things we've gotta do...
-             */
-
-            /* set the SRC MAC which may also get rewritten later */
-            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf1_smac, 
-                   ETHER_ADDR_LEN);
-            
-            /* set the Protocol type (IP, ARP, etc) */
-            memcpy(&pktdata[12], &sllhdr->sll_protocol, 2);
-            
-            /* update lengths */
-            options.l2.len = LIBNET_ETH_H;
-            
-            /* copy over the packet data, minus the SLL header */
-            memcpy(&pktdata[options.l2.len], (nextpkt + SLL_HDR_LEN), 
-                   (pkthdr->caplen - SLL_HDR_LEN));
-            
-            pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H;
-            pkthdr->len = pkthdr->len - SLL_HDR_LEN + LIBNET_ETH_H;
-            
-        }
+        newl2len = rewrite_linux_sll(pktdata, pkthdr, l2data);
         break;
         
-    case DLT_RAW:          /* No ethernet header */
-        if (options.l2.enabled) {
-            /*
-             * is new packet too big?
-             */
-            dbg(3, "Appending header to RAW frame via -2...");
-            if ((pkthdr->caplen + options.l2.len) > options.maxpacket) {
-                if (options.fixlen) {
-                    warnx("Packet length (%u) is greater then MTU; "
-                         "truncating packet.",
-                         (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
-                    pkthdr->caplen = options.maxpacket;
-                }
-                else {
-                    warnx("Packet length (%u) is greater then MTU; "
-                         "skipping packet.",
-                         (pkthdr->caplen - LIBNET_ETH_H + options.l2.len));
-                    return (0);
-                }
-                
-            }
-
-
-            memcpy(pktdata, l2data, options.l2.len);
-            memcpy(&pktdata[options.l2.len], nextpkt, pkthdr->caplen);
-            pkthdr->caplen += options.l2.len;
-            
-        }
-        
-        else {   /* no need to rewrite L2 */
-            warn("WTF?  We can't process DLT_RAW without -2!");
-            return(0);
-        }
+    case DLT_RAW:          /* No ethernet header, raw IP */
+        newl2len = rewrite_raw(pktdata, pkthdr, l2data);
         break;
         
     case DLT_C_HDLC:         /* Cisco HDLC */
-        /*
-         * is new packet too big?
-         */
-        dbg(3, "Rewriting Cisco HDLC via -2...");
-        if ((pkthdr->caplen - CISCO_HDLC_LEN + options.l2.len) > options.maxpacket) {
-            if (options.fixlen) {
-                warnx("Packet length (%u) is greater then MTU; "
-                      "truncating packet.",
-                      (pkthdr->caplen - CISCO_HDLC_LEN + options.l2.len));
-                pkthdr->caplen = options.maxpacket;
-            }
-            else {
-                warnx("Packet length (%u) is greater then MUT; "
-                      "skipping packet.",
-                      (pkthdr->caplen - CISCO_HDLC_LEN + options.l2.len));
-                return(0);
-            }
-        }
-        
-        /* 
-         * fill out the ethernet header and data portion of the packet
-         * except for the source/dest mac addresses which get rewritten in 
-         * do_packets.c
-         */
-        hdlc_header = (cisco_hdlc_header_t *)nextpkt;
-        eth_hdr = (eth_hdr_t *)pktdata;
-        memcpy(&pktdata[CISCO_HDLC_LEN], (nextpkt + LIBNET_ETH_H), 
-               (pkthdr->caplen - CISCO_HDLC_LEN));
-        eth_hdr->ether_type = hdlc_header->protocol;
-        pkthdr->caplen += options.l2.len - CISCO_HDLC_LEN;
-        
-        /* update lengths */
-        options.l2.len = LIBNET_ETH_H;
+        newl2len = rewrite_c_hdlc(pktdata, pkthdr, l2data);
         break;
 
     } /* switch (linktype) */
 
+    if (! newl2len)
+        err(1, "Error rewriting Layer 2: new L2 header is zero bytes");
+
+    /*
+     * Okay... we've got our new layer 2 header
+     * if required.  The next question, is do we have to 
+     * replace the src/dst MAC??
+     */
+
+    if (cache_mode == CACHE_SECONDARY) {
+        if (options.mac_mask & SMAC2) {
+            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf2_smac, ETHER_ADDR_LEN);
+        }
+        if (options.mac_mask & DMAC2) {
+            memcpy(pktdata, options.intf2_dmac, ETHER_ADDR_LEN);
+        }
+        
+    } else {
+        if (options.mac_mask & SMAC1) {
+            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf1_smac, ETHER_ADDR_LEN);
+        }
+        if (options.mac_mask & DMAC1) {
+            memcpy(pktdata, options.intf1_dmac, ETHER_ADDR_LEN);
+        }
+    }
+
     /* return the updated layer 2 len */
-    return (options.l2.len);
+    return (newl2len);
 }
+
 
 /*
  * Extracts the layer 7 data from the packet for TCP, UDP, ICMP
