@@ -65,20 +65,13 @@ typedef struct buildcidr_s buildcidr_t;
 #define DEF_MIN_MASK  30        /* default min masklen */
 #define DEF_RATIO 2.0           /* default auto ratio */
 
-#define SERVER 1
-#define CLIENT 0
-#define UNKNOWN -1
-#define ANY 2
-
 #define DNS_QUERY_FLAG 0x8000
-
 
 void add_tree(const unsigned long, const u_char *); /* done */
 int check_ip_tree(const int, const unsigned long);
 int process_tree();
 void tree_calculate(data_tree_t *);
 int tree_comp(tree_t *, tree_t *);
-
 
 #endif
 
