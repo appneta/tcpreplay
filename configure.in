@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.37 2003/05/29 21:59:39 aturner Exp $
+dnl $Id: configure.in,v 1.38 2003/06/01 23:54:26 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -114,7 +114,7 @@ AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h ])
 
 dnl Checks for libraries.
 AC_CHECK_LIB(socket, socket)
