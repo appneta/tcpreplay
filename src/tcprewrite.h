@@ -63,7 +63,10 @@ struct tcprewrite_opt_s {
 #define SMAC2 0x2
 #define DMAC1 0x4
 #define DMAC2 0x8
-    
+
+    u_int16_t l2proto;
+    u_int16_t l2_mem_align; /* keep things 4 byte aligned */
+
     /* rewriting L2 data */
     l2_t l2;
     
