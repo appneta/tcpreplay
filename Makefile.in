@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.20 2002/11/19 23:32:12 aturner Exp $
+# $Id: Makefile.in,v 1.21 2002/11/19 23:43:08 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -28,6 +28,8 @@ POBJS		= $(PSRCS:.c=.o)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCS) -c $*.c
+
+.PHONY: test
 
 all: libredblack $(BINARIES) 
 
