@@ -1,4 +1,4 @@
-/* $Id: tcpdump.c,v 1.3 2004/05/14 21:40:12 aturner Exp $ */
+/* $Id: tcpdump.c,v 1.4 2004/09/29 17:37:49 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -233,7 +233,7 @@ tcpdump_open(tcpdump_t *tcpdump)
         tcpdump->fd = fd[0];
 
         if (fcntl(tcpdump->fd, F_SETFL, O_NONBLOCK) < 0)
-            errx(1, "[parent] tcpdump_open() error: unable to fcntl tcpreplay socket");
+            errx(1, "[parent] tcpdump_open() error: unable to fcntl tcpreplay socket:\n%s", strerror(errno));
 
         /* send the pcap file header to tcpdump */
         tcpdump_send_file_header(tcpdump);
