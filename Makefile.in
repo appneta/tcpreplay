@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.40 2003/05/25 00:41:30 aturner Exp $
+# $Id: Makefile.in,v 1.41 2003/05/29 21:59:04 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -12,12 +12,12 @@ CC		= @CC@
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 DEFS		= @DEFS@
-INCS		= @LNETINC@ -I. -Ilibredblack
+INCS		= @LNETINC@ -I.
 LIBS		= @LIBS@ @LNETLIB@ @LPCAPLIB@
 
 INSTALL		= @INSTALL@
 
-BINARIES	= tcpreplay capinfo tcpprep pcapmerge sessreplay
+BINARIES	= tcpreplay capinfo pcapmerge flowreplay tcpprep
 
 TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c
 TOBJS		= $(TSRCS:.c=.o)
@@ -31,18 +31,18 @@ POBJS		= $(PSRCS:.c=.o)
 MSRCS		= pcapmerge.c err.c
 MOBJS		= $(MSRCS:.c=.o)
 
-SSRCS		= sessreplay.c err.c timer.c
-MOBJS		= $(SSRCS:.c=.o)
+FSRCS		= flowreplay.c err.c timer.c flowkey.c flownode.c
+FOBJS		= $(FSRCS:.c=.o)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCS) -c $*.c
 
 .PHONY: test
 
-all: libredblack $(BINARIES) 
+all: $(BINARIES) 
 
 tcpprep: $(POBJS)
-	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(POBJS) $(LDFLAGS) $(LIBS) libredblack/.libs/libredblack.a
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(POBJS) $(LDFLAGS) $(LIBS)
 
 tcpreplay: $(TOBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(TOBJS) $(LDFLAGS) $(LIBS)
@@ -53,17 +53,11 @@ capinfo: $(COBJS)
 pcapmerge: $(MOBJS)
 	$(CC) $(CFLAGS) $(DEFS) -o $@ $(MOBJS) $(LDFLAGS) $(LIBS)
 
-sessreplay: $(SOBJS)
-	$(CC) $(CFLAGS) $(DEFS) -o $@ $(SOBJS) $(LDFLAGS) $(LIBS)
-
-libredblack: libredblack/.libs/libredblack.a
-
-libredblack/.libs/libredblack.a:
-	cd libredblack && make
+flowreplay: $(FOBJS)
+	$(CC) $(CFLAGS) $(DEFS) -o $@ $(FOBJS) $(LDFLAGS) $(LIBS)
 
 clean:
 	-rm -f *.o *core $(BINARIES)
-	-cd libredblack && make clean
 	-cd test && make clean
 	-cd Docs && make clean
 
@@ -71,7 +65,6 @@ distclean: clean
 	-rm -rf autom4te-2.??.cache autom4te.cache
 	-rm -f Makefile config.h config.status config.cache config.log *~
 	-rm -f tcpreplay.spec confdefs.h
-	-cd libredblack && make distclean
 	-cd test && make distclean
 	-cd Docs && make distclean
 
@@ -84,10 +77,12 @@ install:
 	$(INSTALL) -m 755 capinfo $(BINDIR)
 	$(INSTALL) -m 755 tcpprep $(BINDIR)
 	$(INSTALL) -m 755 pcapmerge $(BINDIR)
+	$(INSTALL) -m 755 flowreplay $(BINDIR)
 	$(INSTALL) -m 644 man/tcpreplay.8 $(MAN8DIR)
 	$(INSTALL) -m 644 man/capinfo.1 $(MAN1DIR)
 	$(INSTALL) -m 644 man/tcpprep.1 $(MAN1DIR)
 	$(INSTALL) -m 644 man/pcapmerge.1 $(MAN1DIR)
+	$(INSTALL) -m 644 man/flowreplay.8 $(MAN1DIR)
 
 uninstall:
 	rm -f $(SBINDIR)/tcpreplay
@@ -96,8 +91,10 @@ uninstall:
 	rm -f $(MAN1DIR)/capinfo.1
 	rm -f $(BINDIR)/tcpprep
 	rm -f $(MAN1DIR)/tcpprep.1
-	rm -f ($BINDIR)/pcapmerge
+	rm -f $(BINDIR)/pcapmerge
 	rm -f $(MAN1DIR)/pcapmerge.1
+	rm -f $(BINDIR)/flowreplay
+	rm -f $(MAN8DIR)/flowreplay.8
 
 pretty:
 	indent -br -brs -ts8 -ncdw -nce -ncs -npcs -nprs -l80 -lc80 -lp -psl -i4 *.c *.h
