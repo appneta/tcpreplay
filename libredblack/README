@@ -1,0 +1,17 @@
+README file
+===========
+
+This a small library that provides the red-black balanced tree algorithm
+
+If this code is raw out of the CVS tree, you will have to do the following to
+compile it:-
+
+sh ./autogen.sh
+
+NOTE: When you have done a 'make install', you should check that /etc/ld.so.conf
+contains the directory /usr/local/lib, and you should also probably run
+/sbin/ldconfig to make sure that ld.so's cache file is up to date.
+
+23 May 2000
+Damian Ivereigh
+Cisco Systems Inc

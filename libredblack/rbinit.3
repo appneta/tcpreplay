@@ -1,0 +1,277 @@
+.\" Copyright 2000 by Damian Ivereigh <damian@cisco.com>
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one.
+.\" 
+.\" Since the Linux kernel and libraries are constantly changing, this
+.\" manual page may be incorrect or out-of-date.  The author(s) assume no
+.\" responsibility for errors or omissions, or for damages resulting from
+.\" the use of the information contained herein.  The author(s) may not
+.\" have taken the same level of care in the production of this manual,
+.\" which is licensed free of charge, as they might when working
+.\" professionally.
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.TH RBINIT 3  "May 23, 2000" "GNU" "Linux Programmer's Manual"
+.SH NAME
+rbinit, rbdestroy, rbsearch, rbfind, rbdelete, rbwalk \- manage a red-black binary tree
+.SH SYNOPSIS
+.nf
+.B #include <redblack.h>
+.sp
+.BI "struct rbtree *rbinit ("
+.BI "          int (*" cmp ")(const void *" p1 ", const void *" p2 ", "
+.BI "                  const void *" config "), "
+.BI "          const void *" config ");"
+.sp
+.BI "void rbdestroy (struct rbtree *" rb ");"
+.sp
+.BI "const void *rbsearch (const void *" key ", struct rbtree *" rb ");"
+.sp
+.BI "const void *rbfind (const void *" key ", struct rbtree *" rb ");"
+.sp
+.BI "const void *rblookup (int" mode ", const void *" key ", "
+.BI "          struct rbtree *" rb ");"
+.sp
+.BI "const void *rbdelete (const void *" key ", struct rbtree *" rb ");"
+.sp
+.BI "void rbwalk (const struct rbtree *" rb ", "
+.BI "          void (*" action ")(const void *" nodep ", "
+.BI "                      const VISIT " which ", "
+.BI "                      const int " depth ", void *" arg "), "
+.BI "          void *" arg ");"
+.sp
+.BI "const void *rbmin (struct rbtree *" rb ");"
+.sp
+.BI "const void *rbmax (struct rbtree *" rb ");"
+
+.RE
+.fi
+.SH DESCRIPTION
+\fBrbinit\fP, \fBrbdestroy\fP, \fBrbsearch\fP, \fBrbfind\fP,
+\fBrblookup\fP, \fBrbdelete\fP and \fBrbwalk\fP manage a redblack balanced
+binary tree.  They are generalized from "Introduction to Algorithms"
+by Cormen, Leiserson & Rivest.  The last field in each node of the tree
+is a pointer to the corresponding data item.  (The calling program must
+store the actual data.)  \fIcmp\fP points to a comparison routine, which
+takes pointers to three items.  The first two are pointers to the data to
+be compared. The last is some static configuration data which is passed
+to the comparison routine each time. It should return an integer which
+is negative, zero, or positive, depending on whether the first item is
+less than, equal to, or greater than the second.
+.PP
+\fBrbinit\fP initialises the tree, stores a pointer to the comparison
+routine and any config data, which may be NULL if not required. A
+pointer to type struct rbtree is returned and is used in subsequent
+calls into the redblack library.
+.PP
+A typical compare routine would be defined thus:
+.sp
+.nf
+.BI "int " cmp "(const void *" p1 ", const void *" p2 ", "
+.BI "                  const void *" config ");"
+.fi
+.sp
+The arguments \fBp1\fP and \fBp2\fP are the pointers to the data to be
+compared. \fBconfig\fP is used to alter the behaviour of the compare
+routine in a fixed way. For example using the same compare routine
+with multiple trees - with this compare routine behaving differently
+for each tree. The \fBconfig\fP argument is just passed straight through
+to the compare routine and if not used may be set to \fBNULL\fP.
+\fBN.B.\fP It is very important that the compare routine
+be deterministic and stateless, i.e. always return the same result for
+the same given data.
+.PP
+\fBrbdestroy\fP destroys any tree allocated by \fBrbinit\fP and will
+free up any allocated nodes. N.B. The users data is not freed, since it
+is the users responsibility to store (and free) this data.
+.PP
+\fBrbsearch\fP searches the tree for an item.  \fIkey\fP points to the
+item to be searched for.  \fIrb\fP points to the structure returned
+by \fBrbinit\fP.  If the item is found in the tree, then \fBrbsearch\fP
+returns a pointer to it.  If it is not found, then \fBrbsearch\fP adds
+it, and returns a pointer to the newly added item.
+.PP
+\fBrbfind\fP is like \fBrbsearch\fP, except that if the item is not
+found, then \fBrbfind\fP returns \fBNULL\fP.
+.PP
+\fBrbdelete\fP deletes an item from the tree.  Its arguments are the
+same as for \fBrbsearch\fP.  
+.PP
+\fBrblookup\fP allows the traversing of the tree. Which key is returned
+is determined by \fImode\fP. If requested key cannot be found then
+\fBrblookup\fP returns \fBNULL\fP. \fImode\fP can be any one of the following:
+.TP
+.B RB_LUEQUAL
+Returns node exactly matching the key.  This is equivalent to \fBrbfind\fP
+.TP
+.B RB_LUGTEQ
+Returns the node exactly matching the specified key, if this is not found
+then the next node that is greater than the specified key is returned.
+.TP
+.B RB_LULTEQ
+Returns the node exactly matching the specified key, if this is not found
+then the next node that is less than the specified key is returned.
+.TP
+.B RB_LUGREAT
+Returns the node that is just greater than the specified key - not equal to.
+This mode is similar to \fBRB_LUNEXT\fP except that the specified key need
+not exist in the tree.
+.TP
+.B RB_LULESS
+Returns the node that is just less than the specified key - not equal to.
+This mode is similar to \fBRB_LUPREV\fP except that the specified key need
+not exist in the tree.
+.TP
+.B RB_LUNEXT
+Looks for the key specified, if not found returns NULL. If the node is found
+returns the next node that is greater than the one found (or NULL if there
+is no next node). This is used to step through the tree in order.
+.TP
+.B RB_LUPREV
+Looks for the key specified, if not found returns NULL. If the node is found
+returns the previous node that is less than the one found (or NULL if there
+is no previous node). This is used to step through the tree in reverse order.
+.TP
+.B RB_LUFIRST
+Returns the first node in the tree (i.e. the one with the lowest key). The
+argument \fIkey\fP is ignored.
+.TP
+.B RB_LULAST
+Returns the last node in the tree (i.e. the one with the largest key). The
+argument \fIkey\fP is ignored.
+.PP
+\fBrbwalk\fP performs depth-first, left-to-right traversal of a binary
+tree.  \fIroot\fP points to the starting node for the traversal.  If
+that node is not the root, then only part of the tree will be visited.
+\fBrbwalk\fP calls the user function \fIaction\fP each time a node is
+visited (that is, three times for an internal node, and once for a
+leaf).  \fIaction\fP, in turn, takes three arguments.  The first is a
+pointer to the node being visited.  The second is an integer which
+takes on the values \fBpreorder\fP, \fBpostorder\fP, and
+\fBendorder\fP depending on whether this is the first, second, or
+third visit to the internal node, or \fBleaf\fP if it is the single
+visit to a leaf node.  (These symbols are defined in
+\fI<search.h>\fP which is automatically included with \fI<redblack.h>\fP.)
+The third argument is the depth of the node, with
+zero being the root.
+.PP
+\fBrbmin\fP is a macro which delivers the minimum (first) node in the tree.
+.PP
+\fBrbmax\fP is a macro which delivers the maximum (last) node in the tree.
+.PP
+.SH "READING BACK THE DATA"
+There are essentially three different ways that the data can be read out of
+the tree. Each with different optimisations.
+.PP
+\fBrblookup\fP is designed for ad-hoc moving around the tree (forward,
+backwards and jumping to new places). However this is not so good when
+wanting to read all the data out in sequence using RB_LUFIRST & RB_LUNEXT,
+since the key needs to be re-found each time, which can be particularly
+problematic if that key has been deleted! (see example1.c)
+.PP
+\fBrbwalk\fP actually walks the tree from beginning to end, calling a
+callback-function at every stage that it deals with a node. This is also
+useful if you want to work within the tree as you walk (e.g. deleting as you
+go). It is also fairly compatible with \fBtwalk(3)\fP. However it requires
+the use of a callback function which can be difficult to use if this needs
+to change the state of the routine calling \fBrbwalk\fP (you have to use
+global variables). (see example2.c)
+.PP
+\fBrbopenlist\fP, \fBrbreadlist\fP and \fBrbcloselist\fP (described in a
+seperate man page) work best for reading the entire tree in order, each
+call to \fBreadlist\fP delivering another node. (see example3.c)
+.PP
+.SH "RETURN VALUE"
+\fBrbinit\fP returns a pointer to the new tree, \fBNULL\fP if there
+was insufficient memory to allocate the structure.
+\fBrbdestroy\fP has no return value.
+\fBrbwalk\fP has no return value.
+\fBrbsearch\fP returns a pointer to a matching item in the tree, or to
+the newly added item, or \fBNULL\fP if there was insufficient memory
+to add the item.  \fBrbfind\fP returns a pointer to the item, or
+\fBNULL\fP if no match is found.  If there
+are multiple elements that match the key, the element returned is
+unspecified.
+.PP
+\fBtdelete\fP returns a pointer to the data for the item deleted, or
+\fBNULL\fP if the item was not found.
+.PP
+\fBrbsearch\fP, \fBrbfind\fP, and \fBrbdelete\fP also
+return \fBNULL\fP if \fIrb\fP was \fBNULL\fP on entry.  
+.SH WARNINGS
+\fBrbdelete\fP frees the memory required for the node in the tree.
+The user is responsible for freeing the memory for the corresponding
+data.
+.SH EXAMPLE
+The following program inserts twelve random numbers into a binary
+tree, then prints the numbers in order. 
+.sp
+.nf
+    #include <redblack.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+    
+    void *xmalloc(unsigned n)
+    {
+        void *p;
+        p = malloc(n);
+        if(p) return p;
+        fprintf(stderr, "insufficient memory\\n");
+        exit(1);
+    }
+    
+    int compare(const void *pa, const void *pb, const void *config)
+    {
+        if(*(int *)pa < *(int *)pb) return -1;
+        if(*(int *)pa > *(int *)pb) return 1;
+        return 0;
+    }
+    
+    int main()
+    {
+        int i, *ptr;
+        void *val;
+        struct rbtree *rb;
+    
+        srand(getpid());
+    
+        if ((rb=rbinit(compare, NULL))==NULL)
+        {
+            fprintf(stderr, "insufficient memory\\n");
+            exit(1);
+        }
+    
+        for (i = 0; i < 12; i++)
+        {
+            ptr = (int *)xmalloc(sizeof(int));
+            *ptr = rand()&0xff;
+            val = rbsearch((void *)ptr, rb);
+            if(val == NULL) exit(1);
+        }
+    
+        for(val=rblookup(RB_LUFIRST, NULL, rb); 
+		val!=NULL; 
+		val=rblookup(RB_LUNEXT, val, rb))
+        {
+            printf("%6d\\n", *(int *)val);
+        }
+    
+        rbdestroy(rb);
+        
+        return 0;
+    }
+.fi
+.SH "CONFORMING TO"
+SVID
+.SH "SEE ALSO"
+.BR rbopenlist "(3), " tsearch "(3)"
+
