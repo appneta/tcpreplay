@@ -4205,6 +4205,13 @@ echo "${ECHO_T}Solaris OK" >&6
 echo "${ECHO_T}SunOS OK" >&6
 	;;
 
+	powerpc-apple-darwin*)
+	nic1=en0
+	nic2=en0
+	echo "$as_me:$LINENO: result: Apple OSX" >&5
+echo "${ECHO_T}Apple OSX" >&6
+	;;
+
 	*)
 	echo "$as_me:$LINENO: result: $host is unknown!  Unable to run 'make test'" >&5
 echo "${ECHO_T}$host is unknown!  Unable to run 'make test'" >&6

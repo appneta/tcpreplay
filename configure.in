@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.14 2002/11/19 23:28:55 aturner Exp $
+dnl $Id: configure.in,v 1.15 2002/11/20 02:03:15 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -271,6 +271,12 @@ case $host in
 	nic1=hme0
 	nic2=hme0
 	AC_MSG_RESULT(SunOS OK)
+	;;
+
+	powerpc-apple-darwin*)
+	nic1=en0
+	nic2=en0
+	AC_MSG_RESULT(Apple OSX)
 	;;
 
 	*)
