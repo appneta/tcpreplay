@@ -277,9 +277,7 @@ process_raw_packets(pcap_t * pcap)
     const u_char *pktdata = NULL;
     unsigned long packetnum = 0;
     int linktype = 0, cache_result = 0;
-#ifdef FORCE_ALIGN
     u_char ipbuff[MAXPACKET];
-#endif
 #ifdef HAVE_TCPDUMP
     struct pollfd poller[1];
     
@@ -353,23 +351,9 @@ process_raw_packets(pcap_t * pcap)
             continue;
         }
 
-#ifdef FORCE_ALIGN
-        /* 
-         * copy layer 3 and up to our temp packet buffer
-         * for now on, we have to edit the packetbuff because
-         * just before we send the packet, we copy the packetbuff 
-         * back onto the pkt.data + l2len buffer
-         * we do all this work to prevent byte alignment issues
-         */
-        ip_hdr = (ip_hdr_t *) & ipbuff;
-        memcpy(ip_hdr, (pktdata + l2len), (pkthdr.caplen - l2len));
-#else
-        /*
-         * on non-strict byte align systems, don't need to memcpy(), 
-         * just point to l2len bytes into the existing buffer
-         */
-        ip_hdr = (ip_hdr_t *) (pktdata + l2len);
-#endif
+        /* get the IP header */
+        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, pcap_datalink(pcap), &ipbuff);
+
 
         /* look for include or exclude CIDR match */
         if (options.xX.cidr != NULL) {
