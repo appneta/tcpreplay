@@ -1,3 +1,7 @@
+08/21/2002: Version 1.2a
+	- Fix compile bug in tree.c w/ libnet 1.1
+	- Sync tcpprep version to tcpreplay
+
 08/19/2002: Version 1.2
 	- Configuration files specified via -f
 	- Now requires a recent version of AutoConf (2.53)

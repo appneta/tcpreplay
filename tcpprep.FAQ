@@ -1,5 +1,5 @@
 
-			tcpprep FAQ v1.3
+			tcpprep FAQ v1.4
 
 What is tcpprep?
 	tcpreplay with patches can send traffic out two network cards, however
@@ -117,5 +117,12 @@ When I run tcpprep or tcpreplay I get the following error:
 Who wrote tcpprep?
 	Aaron Turner <aturner@pobox.com> wrote it as well as the patch
 	allowing tcpreplay to use multiple interfaces.
+
+What is the latest version of tcpprep?
+	Now that tcpprep is shipped with tcpreplay, the versioning has been
+	sync'd.  Hence the latest version of tcpprep as of this writing 
+	(8/21/2002) is 1.2a.  If your copy of tcpprep is not the same version
+	as tcpreplay it is older than 1.2a even if it's version is greater
+	than 1.2a.  Yes, it's confusing, deal with it.
 
 EOF
