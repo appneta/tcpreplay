@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.25 2003/06/03 00:55:21 aturner Exp $ */
+/* $Id: do_packets.c,v 1.26 2003/06/04 22:49:48 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -23,6 +23,7 @@
 #include "timer.h"
 #include "list.h"
 #include "xX.h"
+#include "sll.h"
 
 
 extern struct options options;
@@ -69,12 +70,12 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
     libnet_t *l = NULL;
-
-    struct pcap_pkthdr pkthdr;	/* libpcap packet info */
+    struct sll_header *sllhdr = NULL;   /* Linux cooked socket header */
+    struct pcap_pkthdr pkthdr;	        /* libpcap packet info */
     const u_char *nextpkt = NULL;	/* packet buffer from libpcap */
-    u_char pktdata[MAXPACKET];	/* full packet buffer */
+    u_char pktdata[MAXPACKET];	        /* full packet buffer */
 #ifdef FORCE_ALIGN
-    u_char ipbuff[MAXPACKET];	/* IP header and above buffer */
+    u_char ipbuff[MAXPACKET];	        /* IP header and above buffer */
 #endif
     struct timeval last;
     static int firsttime = 1;
@@ -97,14 +98,18 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	    _exit(1);
 	}
 
+	dbg(1, "Sending packet: %d (%u)", packetnum + 1, pkthdr.caplen);
+
 	/* zero out the old packet info */
 	memset(&pktdata, '\0', sizeof(pktdata));
 
 
 	/*
-	 * rewrite L2 Layer?
+	 * First thing we have to do is copy the nextpkt over to the 
+	 * pktdata[] array.  However, depending on the Layer 2 header
+	 * we may have to jump through a bunch of hoops.
 	 */
-	if (l2enabled) { /* rewrite l2 layer */
+	if (l2enabled) { /* rewrite l2 layer via -2 */
 	    switch(linktype) {
 	    case DLT_EN10MB: /* Standard 802.3 Ethernet */
 		/* remove 802.3 header and replace */
@@ -112,7 +117,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		 * is new packet too big?
 		 */
 		if ((pkthdr.caplen - LIBNET_ETH_H + l2len) > MAXPACKET) {
-		    errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
+		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
 			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
 			 (pkthdr.caplen - LIBNET_ETH_H + l2len), MAXPACKET);
 		}
@@ -130,7 +135,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		/* copy over our new L2 data */
 		memcpy(pktdata, l2data, l2len);
 		/* copy over the packet data, minus the SLL header */
-		memcpy(&pktdata[SLL_HDR_LEN], (nextpkt + SLL_HDR_LEN),
+		memcpy(&pktdata[l2len], (nextpkt + SLL_HDR_LEN),
 		       (pkthdr.caplen - SLL_HDR_LEN));
 		/* update pktdhr.caplen with new size */
 		pkthdr.caplen = pkthdr.caplen - SLL_HDR_LEN + l2len;
@@ -141,7 +146,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		 * is new packet too big?
 		 */
 		if ((pkthdr.caplen + l2len) > MAXPACKET) {
-		    errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
+		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
 			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
 			 (pkthdr.caplen + l2len), MAXPACKET);
 		}
@@ -160,22 +165,62 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 
 	} 
 
-	else { /* We're not replacing the Layer2 header */
+	else { 
+	    /* We're not replacing the Layer2 header, use what we've got */
 
-	    /* verify that the packet isn't > MAXPACKET */
-	    if (pkthdr.caplen > MAXPACKET) {
-		errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
-		     "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
-		     pkthdr.caplen, MAXPACKET);
+	    if (linktype == DLT_EN10MB) {
+
+		/* verify that the packet isn't > MAXPACKET */
+		if (pkthdr.caplen > MAXPACKET) {
+		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
+			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
+			 pkthdr.caplen, MAXPACKET);
+		}
+
+		/*
+		 * since libpcap returns a pointer to a buffer 
+		 * malloc'd to the snaplen which might screw up
+		 * an untruncate situation, we have to memcpy
+		 * the packet to a static buffer
+		 */
+		memcpy(pktdata, nextpkt, pkthdr.caplen);
+	    }
+		/* how should we process non-802.3 frames? */
+	    else if (linktype == DLT_LINUX_SLL) {
+		/* verify new packet isn't > MAXPACKET */
+		if ((pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H) > MAXPACKET) {
+		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
+			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
+			 (pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H), MAXPACKET);
+		}
+
+		/* if linktype is SLL, then rewrite as a standard 802.3 header */
+		sllhdr = (struct sll_header *)nextpkt;
+		if (ntohs(sllhdr->sll_hatype) == 1) {
+		    /* set the source/destination MAC */
+		    memcpy(pktdata, options.intf1_mac, 6);
+		    memcpy(&pktdata[6], sllhdr->sll_addr, 6);
+		    
+		    /* set the Protocol type (IP, ARP, etc) */
+		    memcpy(&pktdata[12], &sllhdr->sll_protocol, 2);
+		    
+		    /* update lengths */
+		    l2len = LIBNET_ETH_H;
+		    pkthdr.caplen = pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H;
+
+		    
+		} else {
+			warnx("Unknown sll_hatype: 0x%x.  Skipping packet.", 
+			      ntohs(sllhdr->sll_hatype));
+			continue;
+		}
+
+	    } 
+
+	    else {
+		errx(1, "Unsupported pcap link type: %d", linktype);
 	    }
 
-	    /*
-	     * since libpcap returns a pointer to a buffer 
-	     * malloc'd to the snaplen which might screw up
-	     * an untruncate situation, we have to memcpy
-	     * the packet to a static buffer
-	     */
-	memcpy(pktdata, nextpkt, pkthdr.caplen);
 	}
 
 	packetnum++;
@@ -312,7 +357,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		    failed++;
 		}
 		else {
-		    err(1, "libnet_adv_write_link(): %s", strerror(errno));
+		    errx(1, "libnet_adv_write_link(): %s", strerror(errno));
 		}
 	    }
 	} while (ret == -1);
