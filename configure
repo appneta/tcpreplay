@@ -308,7 +308,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TCPREPLAY_VERSION TCPREPLAY_RELEASE build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP LN_S RANLIB ac_ct_RANLIB AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE PRINTF EGREP debug_flag LIBOBJS LNETINC LNETLIB LPCAPINC LPCAPLIB PCAPNAV_CONFIG PCAPNAV_CFLAGS PCAPNAV_LIBS LNAVLIB LNAV_CFLAGS nic1 nic2 LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TCPREPLAY_VERSION TCPREPLAY_RELEASE build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP LN_S RANLIB ac_ct_RANLIB AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE PRINTF EGREP debug_flag LIBOBJS LNETINC LNETLIB LPCAPINC LPCAPLIB PCAPNAV_CONFIG LNAVLIB LNAV_CFLAGS PCAPNAV_CFLAGS PCAPNAV_LIBS nic1 nic2 LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1291,7 +1291,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 MAJOR_VERSION=1
 MINOR_VERSION=5
-MICRO_VERSION=alpha6
+MICRO_VERSION=beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 TCPREPLAY_RELEASE=1
@@ -5931,6 +5931,24 @@ echo $ECHO_N "checking for pcapnav... $ECHO_C" >&6
      echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
      pcncfg="pcapnav-config"
+		LNAVLIB=`$pcncfg --libs`
+		LPNAV_CFLAGS=`$pcncfg --cflags`
+		PCAPNAV_VERSION=`$pcncfg --version`
+
+
+		cat >>confdefs.h <<\_ACEOF
+#define HAVE_PCAPNAV 1
+_ACEOF
+
+		cat >>confdefs.h <<_ACEOF
+#define PCAPNAV_VERSION "$PCAPNAV_VERSION"
+_ACEOF
+
+		echo "$as_me:$LINENO: checking for libpcapnav version" >&5
+echo $ECHO_N "checking for libpcapnav version... $ECHO_C" >&6
+		echo "$as_me:$LINENO: result: $PCAPNAV_VERSION" >&5
+echo "${ECHO_T}$PCAPNAV_VERSION" >&6
+
   else
      echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
@@ -5942,9 +5960,8 @@ echo "${ECHO_T}no" >&6
      fi
      PCAPNAV_CFLAGS=""
      PCAPNAV_LIBS=""
-     { { echo "$as_me:$LINENO: error: Cannot find libpcapnav: Is pcapnav-config in path?" >&5
-echo "$as_me: error: Cannot find libpcapnav: Is pcapnav-config in path?" >&2;}
-   { (exit 1); exit 1; }; }
+     echo "$as_me:$LINENO: result: Cannot find libpcapnav: Disabling offset jump feature." >&5
+echo "${ECHO_T}Cannot find libpcapnav: Disabling offset jump feature." >&6
   fi
 
 
@@ -5954,19 +5971,7 @@ echo "$as_me: error: Cannot find libpcapnav: Is pcapnav-config in path?" >&2;}
 
 fi;
 
-LNAVLIB=`$pcncfg --libs`
-LPNAV_CFLAGS=`$pcncfg --cflags`
-PCAPNAV_VERSION=`$pcncfg --version`
 
-
-cat >>confdefs.h <<_ACEOF
-#define PCAPNAV_VERSION "$PCAPNAV_VERSION"
-_ACEOF
-
-echo "$as_me:$LINENO: checking for libpcapnav version" >&5
-echo $ECHO_N "checking for libpcapnav version... $ECHO_C" >&6
-echo "$as_me:$LINENO: result: $PCAPNAV_VERSION" >&5
-echo "${ECHO_T}$PCAPNAV_VERSION" >&6
 
 echo "$as_me:$LINENO: checking for requires strict byte alignment" >&5
 echo $ECHO_N "checking for requires strict byte alignment... $ECHO_C" >&6
@@ -6766,10 +6771,10 @@ s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
 s,@LPCAPLIB@,$LPCAPLIB,;t t
 s,@PCAPNAV_CONFIG@,$PCAPNAV_CONFIG,;t t
-s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
-s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
+s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
+s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -7884,10 +7889,10 @@ s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
 s,@LPCAPLIB@,$LPCAPLIB,;t t
 s,@PCAPNAV_CONFIG@,$PCAPNAV_CONFIG,;t t
-s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
-s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
+s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
+s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -9003,10 +9008,10 @@ s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
 s,@LPCAPLIB@,$LPCAPLIB,;t t
 s,@PCAPNAV_CONFIG@,$PCAPNAV_CONFIG,;t t
-s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
-s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
+s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
+s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -10123,10 +10128,10 @@ s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
 s,@LPCAPLIB@,$LPCAPLIB,;t t
 s,@PCAPNAV_CONFIG@,$PCAPNAV_CONFIG,;t t
-s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
-s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
+s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
+s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t

@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.50 2003/12/11 03:07:14 aturner Exp $
+# $Id: Makefile.in,v 1.51 2003/12/16 03:24:49 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -21,7 +21,7 @@ INSTALL		= @INSTALL@
 
 BINARIES	= tcpreplay capinfo pcapmerge tcpprep flowreplay
 
-TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c
+TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c fakepcapnav.c
 TOBJS		= $(TSRCS:.c=.o)
 
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c
@@ -99,7 +99,7 @@ uninstall:
 	rm -f $(MAN8DIR)/flowreplay.8
 
 pretty:
-	indent -br -brs -ts8 -ncdw -nce -ncs -npcs -nprs -l80 -lc80 -lp -psl -i4 *.c *.h
+	indent -br -brs -ts4 -ncdw -nce -ncs -npcs -nprs -l80 -lc80 -lp -psl -i4 -nut *.c *.h
 
 test:
 	cd test && make

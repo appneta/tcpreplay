@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.50 2003/12/11 03:02:50 aturner Exp $
+dnl $Id: configure.in,v 1.51 2003/12/16 03:24:49 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -7,7 +7,7 @@ AC_CONFIG_HEADER(config.h)
 dnl Set version info here!
 MAJOR_VERSION=1
 MINOR_VERSION=5
-MICRO_VERSION=alpha6
+MICRO_VERSION=beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -343,17 +343,20 @@ AC_ARG_WITH(pcapnav-config,
     AC_HELP_STRING([--with-pcapnav-config=FILE], [Use given pcapnav-config]),
     [ pcncfg="$withval" ],
     [ AC_PATH_GENERIC(pcapnav,,
-          pcncfg="pcapnav-config",
-          AC_MSG_ERROR(Cannot find libpcapnav: Is pcapnav-config in path?)) ])
+		[pcncfg="pcapnav-config"
+		LNAVLIB=`$pcncfg --libs`
+		LPNAV_CFLAGS=`$pcncfg --cflags`
+		PCAPNAV_VERSION=`$pcncfg --version`
+		AC_SUBST(LNAVLIB)
+		AC_SUBST(LNAV_CFLAGS)
+		AC_DEFINE(HAVE_PCAPNAV)
+		AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION")
+		AC_MSG_CHECKING(for libpcapnav version)
+		AC_MSG_RESULT($PCAPNAV_VERSION)
+		],
+        AC_MSG_RESULT(Cannot find libpcapnav: Disabling offset jump feature.)) ])
 
-LNAVLIB=`$pcncfg --libs`
-LPNAV_CFLAGS=`$pcncfg --cflags`
-PCAPNAV_VERSION=`$pcncfg --version`
-AC_SUBST(LNAVLIB)
-AC_SUBST(LNAV_CFLAGS)
-AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION")
-AC_MSG_CHECKING(for libpcapnav version)
-AC_MSG_RESULT($PCAPNAV_VERSION)
+
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail

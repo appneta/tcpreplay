@@ -45,3 +45,6 @@
 
 #undef HAVE_UNISTD_H
 #undef HAVE_STRING_H
+
+/* Is libpcapnav available? */
+#undef HAVE_PCAPNAV
