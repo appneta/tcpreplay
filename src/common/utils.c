@@ -108,8 +108,7 @@ void
 packet_stats(struct timeval *begin, struct timeval *end, 
         COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
 {
-    float bytes_sec = 0.0, mb_sec = 0.0;
-    int pkts_sec = 0;
+    float bytes_sec = 0.0, mb_sec = 0.0, pkts_sec = 0.0;
     char bits[3];
 
     if (gettimeofday(end, NULL) < 0)
@@ -131,7 +130,7 @@ packet_stats(struct timeval *begin, struct timeval *end,
 
     notice("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds",
             pkts_sent, bytes_sent, begin->tv_sec, bits);
-    notice("Rated: %.1f bps, %.2f Mbps/sec, %d pps\n",
+    notice("Rated: %.1f bps, %.2f Mbps/sec, %.2f pps\n",
            bytes_sec, mb_sec, pkts_sec);
 
     if (failed)
