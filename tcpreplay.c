@@ -40,11 +40,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <libnet.h>
-#ifdef HAVE_PCAPNAV
-#include <pcapnav.h>
-#else
 #include "fakepcapnav.h"
-#endif
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
