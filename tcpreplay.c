@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.96 2004/07/25 23:37:57 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.97 2004/08/09 19:42:45 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -65,7 +65,7 @@
 #include "replay_live.h"
 #include "utils.h"
 #include "edit_packet.h"
-#include "dlt_names.h"
+#include "fakepcap.h"
 
 struct options options;
 char *cachedata = NULL;
@@ -754,7 +754,7 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
 {
 
 
-    dbg(1, "Linktype is %s\n", dlt2name[linktype]);
+    dbg(1, "Linktype is %s\n", pcap_datalink_val_to_description(linktype));
 
     switch (linktype) {
     case DLT_EN10MB:
@@ -825,7 +825,7 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
 
     default:
         errx(1, "validate_l2(): Unsupported datalink type: %s (0x%x)", 
-             dlt2name[linktype], linktype);
+             pcap_datalink_val_to_description(linktype), linktype);
         break;
     }
 

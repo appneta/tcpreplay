@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.43 2004/07/25 23:37:57 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.44 2004/08/09 19:39:29 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -68,7 +68,7 @@
 #include "utils.h"
 #include "services.h"
 #include "sll.h"
-#include "dlt_names.h";
+#include "fakepcap.h";
 
 /*
  * global variables
@@ -268,7 +268,8 @@ process_raw_packets(pcap_t * pcap)
         hdlc_hdr = NULL;
 
         linktype = pcap_datalink(pcap);
-        dbg(1, "Linktype is %s (0x%x)", dlt2name[linktype], linktype);
+        dbg(1, "Linktype is %s (0x%x)", 
+                pcap_datalink_val_to_description(linktype), linktype);
         switch (linktype) {
         case DLT_EN10MB:
             eth_hdr = (eth_hdr_t *) pktdata;
@@ -295,7 +296,7 @@ process_raw_packets(pcap_t * pcap)
 
         default:
             errx(1, "WTF?  How'd we get here with an invalid DLT type: %s (0x%x)",
-                 dlt2name[linktype], linktype);
+                 pcap_datalink_val_to_description(linktype), linktype);
             break;
         }
 
