@@ -2495,9 +2495,11 @@ echo $ECHO_N "checking for debug enabled... $ECHO_C" >&6
 # Check whether --with-debug or --without-debug was given.
 if test "${with_debug+set}" = set; then
   withval="$with_debug"
-  debug=yes cat >>confdefs.h <<\_ACEOF
+  debug=yes
+ cat >>confdefs.h <<\_ACEOF
 #define DEBUG 1
 _ACEOF
+
  echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
 else
