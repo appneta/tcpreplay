@@ -50,9 +50,13 @@ Please send bug reports, comments, or questions about this software to
 Building tcpreplay
 -------------------
 
-Libnet v1.0.2a is required and is located at:
+Libnet v1.0.2a or better is required and is located at:
 
 http://www.packetfactory.net/Projects/libnet/
+
+Note that Libnet 1.1.x is currently itself in beta and the tcpreplay code 
+supporting 1.1.x should be considered alpha.  Hence, we currently recommend 
+using 1.0.2a for production.
 
 To build tcpreplay on a supported platform:
 
@@ -79,4 +83,4 @@ tcpreplay can only replay traffic as fast as your hardware allows. If
 you find you can't hit that 80 Mbps traffic rate you want, build a
 faster machine (disk I/O seems to account for a lot of the overhead).
 
-$Id: README,v 1.2 2002/06/01 19:28:52 aturner Exp $
+$Id: README,v 1.3 2002/07/10 05:41:51 aturner Exp $
