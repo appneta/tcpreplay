@@ -346,7 +346,7 @@ rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 
         /* these fields are always set this way */
         vlan_hdr->vlan_tpi = ETHERTYPE_VLAN;
-        vlan_hdr->vlan_len = ETHERTYPE_IP; /* DLT_RAW is always IP (I think) */
+        vlan_hdr->vlan_len = options.l2proto;
         
         /* user must always specify a tag */
         vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_TAG & LIBNET_802_1Q_VIDMASK);
@@ -373,7 +373,7 @@ rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 
         /* these fields are always set this way */
         eth_hdr = (eth_hdr_t *)pktdata;
-        eth_hdr->ether_type = ETHERTYPE_IP;
+        eth_hdr->ether_type = options.l2proto;
         break;
 
     default:
