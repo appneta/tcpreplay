@@ -73,8 +73,7 @@ struct tcpreplay_opt_s {
     int truncate;
     
     char *files[MAX_FILES];
-    u_int64_t offset; 
-    u_int64_t limit_send;
+    COUNTER limit_send;
     
     
 /* disable bridge mode
