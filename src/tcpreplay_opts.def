@@ -15,6 +15,8 @@ gnu-usage;
 help-value      = "H";
 save-opts-value = "";
 load-opts-value = "";
+argument = "<pcap_file(s)>";
+
 
 config-header   = "config.h";
 
@@ -145,7 +147,7 @@ flag = {
     flags-cant  = mbpsrate;
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
-    value       = p;
+    value       = k;
     arg-type    = number;
     max         = 1;
     descrip     = "Replay packets at a given packets/sec";
@@ -183,12 +185,12 @@ flag = {
     descrip     = "Replay one packet at a time for each user input";
 };
 
+/*
 flag = {
     name        = pcap;
     value       = p;
     descrip     = "Input pcap file to replay";
     arg-type    = string;
-    max         = MAX_FILES;
     min         = 1;
     flag-code   = <<- EOPcap
 
@@ -198,6 +200,7 @@ flag = {
     
 EOPcap;
 };
+*/
 
 flag = {
     name        = pid;
