@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.37 2003/03/19 04:32:41 aturner Exp $
+# $Id: Makefile.in,v 1.38 2003/03/24 04:30:04 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -94,7 +94,7 @@ uninstall:
 	rm -f $(MAN1DIR)/pcapmerge.1
 
 pretty:
-	indent -br -brs -di24 -ts4 -ncdw -nce -ncs -npcs -nprs -bfda -l80 -lc80 -lp -psl -i4 *.c *.h
+	indent -br -brs -ts8 -ncdw -nce -ncs -npcs -nprs -l80 -lc80 -lp -psl -i4 *.c *.h
 
 test:
 	cd test && make
