@@ -50,7 +50,6 @@
 #include "flowkey.h"
 #include "flowstate.h"
 #include "flowbuff.h"
-#include "tcpreplay.h"
 #include "tree.h"
 
 #ifdef DEBUG
@@ -85,7 +84,7 @@ int nfds = 0;
 struct in_addr targetaddr;
 
 /* Client/Server CIDR blocks */
-CIDR *clients = NULL, *servers = NULL;
+cidr_t *clients = NULL, *servers = NULL;
 
 /* libnet handle for libnet functions */
 libnet_t *l = NULL;
@@ -557,4 +556,3 @@ cleanup(void)
  c-basic-offset:4
  End:
 */
-
