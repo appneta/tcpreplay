@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.56 2003/05/29 22:06:35 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.57 2003/06/04 22:51:01 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -333,10 +333,22 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
     /* check what kind of pcap we've got */
     linktype = pcap_datalink(pcap);
 
-    /* if not ethernet and we don't have a l2data file, barf */
-    if ((linktype != DLT_EN10MB) && (! l2enabled)) {
-	warnx("Unable to process non-802.3 pcap without layer 2 data file: %s", path);
-	return;
+    /* 
+     * if linktype not DLT_EN10MB we have to see if we can send the frames
+     * if DLT_LINUX_SLL AND (options.intf1_mac OR l2enabled), then OK
+     * else if l2enabled, then ok
+     */
+    if (linktype != DLT_EN10MB) {
+	if (linktype == DLT_LINUX_SLL) {
+	    /* if SLL, then either -2 or -I are ok */
+	    if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (! l2enabled)) {
+		warnx("Unable to process Linux Cooked Socket pcap without layer 2 data or dst MAC rewriting: %s", path);
+		return;
+	    }
+	} else if (! l2enabled) {
+	    warnx("Unable to process non-802.3 pcap without layer 2 data: %s", path);
+	    return;
+	}
     }
 
     do_packets(pcap, linktype, l2enabled, l2data, l2len);
