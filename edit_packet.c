@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.3 2003/07/17 00:40:24 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.4 2003/07/17 00:53:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -26,7 +26,7 @@ extern struct options options;
  * I was too lazy to re-invent the wheel.
  */
 void
-fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr, libnet_t *l, int l2len)
+fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr, libnet_t *l)
 {
     tcp_hdr_t *tcp_hdr;
     udp_hdr_t *udp_hdr;
@@ -81,7 +81,7 @@ randomize_ips(struct pcap_pkthdr *pkthdr, u_char * pktdata,
 	ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
 
     /* fix checksums */
-    fix_checksums(pkthdr, ip_hdr, l, l2len);
+    fix_checksums(pkthdr, ip_hdr, l);
 
 }
 
@@ -115,7 +115,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
     }
 
     /* fix checksums */
-    fix_checksums(pkthdr, ip_hdr, l, l2len);
+    fix_checksums(pkthdr, ip_hdr, l);
 
 }
 

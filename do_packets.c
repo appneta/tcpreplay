@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.35 2003/07/16 22:30:39 aturner Exp $ */
+/* $Id: do_packets.c,v 1.36 2003/07/17 00:53:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -224,7 +224,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 
 	/* do we need to force fixing checksums? */
 	if ((options.fixchecksums) && (ip_hdr != NULL)) {
-	    fix_checksums(&pkthdr, ip_hdr, l, l2len);
+	    fix_checksums(&pkthdr, ip_hdr, l);
 	}
 
 

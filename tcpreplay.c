@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.64 2003/07/16 22:30:39 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.65 2003/07/17 00:53:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
 	    options.verbose++;
 	    break;
 	case 'w':               /* write packets to file */
-	    if ((options.savepcap = pcap_open_dead(DLT_EN10MB, 0)) == NULL)
+	    if ((options.savepcap = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
 		errx(1, "error setting output file linktype");
 
 	    if ((options.savedumper = pcap_dump_open(options.savepcap, optarg)) == NULL)
