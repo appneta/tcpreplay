@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.52 2003/12/16 20:59:10 aturner Exp $
+dnl $Id: configure.in,v 1.53 2003/12/21 20:21:05 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -395,14 +395,18 @@ fi
 
 
 dnl Check for tcpdump source tree
-tcpdump=no
+tcpdumpdir=no
 AC_MSG_CHECKING(for tcpdump source tree)
 AC_ARG_WITH(tcpdump,
     [  --with-tcpdump=DIR      Path to the tcpdump source code tree],
-    [ tcpdump=yes
-     AC_DEFINE(WITH_TCPDUMP) 
-     AC_MSG_RESULT(yes)], 
+    [ tcpdumpdir=$withval
+    AC_DEFINE(WITH_TCPDUMP) 
+    AC_SUBST(tcpdumpdir)
+    tcpdumpsrcs=`ls $(tcpdumpdir)/print-*.c`
+    AC_SUBST(tcpdumpsrcs)
+    AC_MSG_RESULT($withval)], 
     AC_MSG_RESULT(no))
+
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail

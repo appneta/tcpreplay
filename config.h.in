@@ -48,3 +48,6 @@
 
 /* Is libpcapnav available? */
 #undef HAVE_PCAPNAV
+
+/* Is tcpdump available? */
+#undef HAVE_TCPDUMP
