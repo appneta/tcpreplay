@@ -1,4 +1,4 @@
-/* $Id: edit_packet.h,v 1.3 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: edit_packet.h,v 1.4 2003/11/03 02:21:00 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -49,6 +49,6 @@ void randomize_ips(struct pcap_pkthdr *, u_char *, ip_hdr_t *, libnet_t *, int);
 void fix_checksums(struct pcap_pkthdr *, ip_hdr_t *, libnet_t *);
 int rewrite_l2(struct pcap_pkthdr *, u_char *, const u_char *, u_int32_t, 
 		int, char *, int);
-
+int extract_data(u_char *, int, int, char *[]);
 
 #endif

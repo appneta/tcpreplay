@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.8 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.9 2003/11/03 02:21:00 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -42,6 +42,7 @@
 
 extern int maxpacket;
 extern struct options options;
+void *get_layer4(ip_hdr_t *);
 
 /*
  * this code re-calcs the IP and Layer 4 checksums
@@ -312,3 +313,120 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
     /* return the updated layer 2 len */
     return(l2len);
 }
+
+/*
+ * Extracts the layer 7 data from the packet for TCP, UDP, ICMP
+ * returns the number of bytes and a pointer to the layer 7 data. 
+ * Returns 0 for no data
+ */
+int
+extract_data(u_char *pktdata, int caplen, int l2len, char *l7data[])
+{
+    int datalen = 0;
+    eth_hdr_t *eth_hdr = NULL;
+    ip_hdr_t *ip_hdr = NULL;
+    tcp_hdr_t *tcp_hdr = NULL;
+    udp_hdr_t *udp_hdr = NULL;
+    icmp_hdr_t *icmp_hdr = NULL;
+#ifdef FORCE_ALIGN
+    u_char ipbuff[MAXPACKET];
+#endif
+    char *dataptr = NULL;
+
+    /* map the ethernet header */
+    eth_hdr = (eth_hdr_t *)pktdata;
+
+    /* return zero if not IP */
+    if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
+	dbg(2, "Skipping non-IP frame");
+	return 0;
+    }
+
+
+
+#ifdef FORCE_ALIGN
+    /* 
+     * copy layer 3 and up to our temp packet buffer
+     * for now on, we have to edit the packetbuff because
+     * just before we send the packet, we copy the packetbuff 
+     * back onto the pkt.data + l2len buffer
+     * we do all this work to prevent byte alignment issues
+     */
+    ip_hdr = (ip_hdr_t *) & ipbuff;
+    memcpy(ip_hdr, pktdata[l2len], pkthdr.caplen - l2len);
+#else
+    /*
+     * on non-strict byte align systems, don't need to memcpy(), 
+     * just point to 14 bytes into the existing buffer
+     */
+    ip_hdr = (ip_hdr_t *) (pktdata + l2len);
+#endif
+
+    dataptr = (char *)ip_hdr;
+
+    /* figure out the actual datalen which might be < the caplen
+     * due to ethernet padding 
+     */
+    if (caplen > ntohs(ip_hdr->ip_len)) {
+	datalen = ntohs(ip_hdr->ip_len);
+    } else {
+	datalen = caplen - l2len;
+    }
+    
+    /* update the datlen to not include the IP header len */
+    datalen -= ip_hdr->ip_hl * 4;
+    dataptr += ip_hdr->ip_hl * 4;
+    if (datalen <= 0)
+	goto nodata;
+    
+    /* TCP ? */
+    if (ip_hdr->ip_p == IPPROTO_TCP) {
+	tcp_hdr = (tcp_hdr_t *)get_layer4(ip_hdr);
+	datalen -= tcp_hdr->th_off * 4;
+	if (datalen <= 0)
+	    goto nodata;
+
+	dataptr += tcp_hdr->th_off * 4;
+    }
+    
+    /* UDP ? */
+    else if (ip_hdr->ip_p == IPPROTO_UDP) {
+	udp_hdr = (udp_hdr_t *)get_layer4(ip_hdr);
+	datalen -= LIBNET_UDP_H;
+	if (datalen <= 0)
+	    goto nodata;
+
+	dataptr += LIBNET_UDP_H;
+    }
+    
+    /* ICMP ? just ignore it for now */
+    else if (ip_hdr->ip_p == IPPROTO_ICMP) {
+	dbg(2, "Ignoring any possible data in ICMP packet");
+	goto nodata;
+    }
+    
+    /* unknown proto, just dump everything past the IP header */
+    else {
+	dbg(2, "Unknown protocol, dumping everything past the IP header");
+	dataptr = (char *)ip_hdr;
+    }
+
+    dbg(2, "packet had %d bytes of layer 7 data", datalen);
+    memcpy(l7data, dataptr, datalen);
+    return datalen;
+
+  nodata:
+    dbg(2, "packet has no data, skipping...");
+    return 0;
+}
+/*
+ * returns a pointer to the layer 4 header which is just beyond the IP header
+ */
+void *
+get_layer4(ip_hdr_t *ip_hdr)
+{
+    void * ptr;
+    ptr = (u_int32_t *)ip_hdr + ip_hdr->ip_hl;
+    return((void *)ptr);
+}
+
