@@ -23,19 +23,19 @@ BINARIES	= tcpreplay tcpprep flowreplay
 STRLCPY		= lib/strlcpy.o lib/strlcat.o
 
 
-TSRCS		= tcpreplay.c timer.c cache.c cidr.c fileout.c list.c xX.c err.c signal_handler.c edit_packet.c netout.c fakepoll.c utils.c fakepcapnav.c tcpdump.c portmap.c fakepcap.c 
+TSRCS		= tcpreplay.c timer.c cache.c cidr.c fileout.c list.c xX.c err.c signal_handler.c edit_packet.c netout.c fakepoll.c utils.c fakepcapnav.c tcpdump.c portmap.c fakepcap.c mac.c confargs.c
 TOBJS		= $(TSRCS:.c=.o) $(STRLCPY)
 
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c fakepcap.c
 COBJS		= $(CSRCS:.c=.o)
 
-PSRCS		= tcpprep.c cidr.c tree.c cache.c list.c xX.c err.c utils.c services.c fakepcap.c
+PSRCS		= tcpprep.c cidr.c tree.c cache.c list.c xX.c err.c utils.c services.c fakepcap.c confargs.c
 POBJS		= $(PSRCS:.c=.o) $(STRLCPY)
 
 MSRCS		= pcapmerge.c err.c
 MOBJS		= $(MSRCS:.c=.o)
 
-FSRCS		= flowreplay.c flowkey.c flownode.c flowstate.c flowbuff.c cidr.c timer.c err.c utils.c
+FSRCS		= flowreplay.c flowkey.c flownode.c flowstate.c flowbuff.c cidr.c timer.c err.c utils.c confargs.c
 FOBJS		= $(FSRCS:.c=.o) $(STRLCPY)
 
 .c.o:
