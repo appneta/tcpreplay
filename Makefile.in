@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.34 2003/01/06 00:25:11 aturner Exp $
+# $Id: Makefile.in,v 1.35 2003/01/08 06:40:28 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -107,7 +107,7 @@ release:
 	cp -r * ../$(RELEASEDIR)/
 	cd ../$(RELEASEDIR) && make distclean
 	-cd ../$(RELEASEDIR)/Docs && make
-	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS
+	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS ../$(RELEASEDIR)/Docs/CVS
 	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
 
 
@@ -117,7 +117,7 @@ rerelease:
 	cp -r * ../$(RELEASEDIR)/
 	cd ../$(RELEASEDIR) && make distclean
 	-cd ../$(RELEASEDIR)/Docs && make
-	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS
+	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS ../$(RELEASEDIR)/Docs/CVS
 	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
 
 srpm:
