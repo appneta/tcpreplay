@@ -1,4 +1,4 @@
-/* $Id: cache.h,v 1.13 2004/04/22 23:46:03 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

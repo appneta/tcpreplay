@@ -1,4 +1,4 @@
-/* $Id: do_packets.h,v 1.15 2004/04/03 22:41:37 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.

@@ -1,4 +1,4 @@
-/* $Id: snoop.h,v 1.7 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.

@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.71 2004/09/20 21:32:00 aturner Exp $
+dnl $Id$
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)

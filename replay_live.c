@@ -1,4 +1,4 @@
-/* $Id: replay_live.c,v 1.7 2004/02/03 22:51:20 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

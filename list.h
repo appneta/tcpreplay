@@ -1,4 +1,4 @@
-/* $Id: list.h,v 1.6 2004/04/03 22:42:20 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

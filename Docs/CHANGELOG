@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.51 2004/09/20 21:32:02 aturner Exp $
+$Id$
 
 09/19/2004: Version 2.3.1
     - Fix bug with fakepcap.c which appeared on systems using an older

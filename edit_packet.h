@@ -1,4 +1,4 @@
-/* $Id: edit_packet.h,v 1.8 2004/04/01 06:03:03 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

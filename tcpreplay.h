@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.63 2004/09/05 19:59:10 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.

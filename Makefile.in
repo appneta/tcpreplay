@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.62 2004/09/06 03:50:23 aturner Exp $
+# $Id$
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin

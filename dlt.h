@@ -1,4 +1,4 @@
-/* $Id: dlt.h,v 1.2 2004/07/25 23:38:54 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2004 Aaron Turner

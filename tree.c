@@ -1,4 +1,4 @@
-/* $Id: tree.c,v 1.24 2004/09/06 03:46:35 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

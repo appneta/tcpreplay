@@ -1,4 +1,4 @@
-/* $Id: services.h,v 1.1 2004/05/08 21:17:33 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

@@ -1,4 +1,4 @@
-/* $Id: capinfo.c,v 1.11 2004/09/05 19:46:27 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.

@@ -1,4 +1,4 @@
-/* $Id: utils.h,v 1.6 2004/05/08 21:31:55 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.

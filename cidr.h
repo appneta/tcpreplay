@@ -1,4 +1,4 @@
-/* $Id: cidr.h,v 1.11 2004/05/15 21:16:57 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.56 2004/09/05 19:46:27 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.

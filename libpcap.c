@@ -1,4 +1,4 @@
-/* $Id: libpcap.c,v 1.13 2004/08/09 19:35:57 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.

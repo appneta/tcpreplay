@@ -1,4 +1,4 @@
-/* $Id: fakepcap.c,v 1.2 2004/09/19 19:23:38 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2004 Aaron Turner.

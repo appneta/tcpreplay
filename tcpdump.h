@@ -1,4 +1,4 @@
-/* $Id: tcpdump.h,v 1.2 2004/01/31 21:21:12 aturner Exp $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
