@@ -24,11 +24,11 @@ check:
 # the cache files to be used as the standard; be sure to do a cvs commit
 # afterwords!
 standard:
-	$(TCPPREP) -i test.pcap -o test.auto_router -a -n router -N client
-	$(TCPPREP) -i test.pcap -o test.auto_bridge -a -n bridge -N client
+	$(TCPPREP) -i test.pcap -o test.auto_router -a router
+	$(TCPPREP) -i test.pcap -o test.auto_bridge -a bridge
 	$(TCPPREP) -i test.pcap -o test.port -p
-	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24' -N client
-	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*' -N client
+	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
+	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
 	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
 
 tcpprep: auto_router auto_bridge cidr regex port comment print_comment
@@ -37,28 +37,28 @@ tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_
 auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Router mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a -n router -N client 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a router 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 auto_bridge:
 	$(PRINTF) "%s" "[tcpprep] Auto/Bridge mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Bridge mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a -n bridge -N client 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a bridge 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 regex:
 	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' -N client 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' 2>>test.log
 	diff  test.$@ test.$@1 >>test.log 2>&1 
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 cidr:
 	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' -N client 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
