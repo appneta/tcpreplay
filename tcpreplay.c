@@ -62,6 +62,7 @@
 #include "utils.h"
 #include "edit_packet.h"
 #include "fakepcap.h"
+#include "mac.h"
 
 struct options options;
 char *cachedata = NULL;
