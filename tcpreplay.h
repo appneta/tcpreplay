@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.60 2004/07/14 05:10:14 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.61 2004/09/05 02:11:29 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -78,6 +78,7 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
 #define MAXPACKET 16436         /* MTU of Linux loopback */
+#define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */
 
 /* run-time options */
 struct options {
