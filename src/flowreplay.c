@@ -258,6 +258,11 @@ main(int argc, char *argv[])
         if ((pcap = pcap_open_offline(argv[i], ebuf)) == NULL)
             errx(1, "Error opening file: %s", ebuf);
 
+        /* only support 802.3 ethernet */
+        if (pcap_datalink(pcap) != DLT_EN10MB)
+            errx(1, "Unsupported datalink: %s.  flowreplay only supports Ethernet",
+            pcap_datalink_val_to_description(pcap_datalink(pcap)));
+        
         /* play the pcap */
         main_loop(pcap, proto, port);
 
