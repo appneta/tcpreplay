@@ -204,35 +204,35 @@ rewrite_ports(portmap_t * portmap, ip_hdr_t **ip_hdr)
 
     if (*ip_hdr == NULL) {
         return 0;
-    } else if ((*ip_hdr)->ip_p == htons(IPPROTO_TCP)) {
+    } else if ((*ip_hdr)->ip_p == IPPROTO_TCP) {
         tcp_hdr = (tcp_hdr_t *)get_layer4(*ip_hdr);
 
         /* check if we need to remap the destination port */
-        newport = htons(map_port(portmap, tcp_hdr->th_dport));
+        newport = map_port(portmap, tcp_hdr->th_dport);
         if (newport != tcp_hdr->th_dport) {
             tcp_hdr->th_dport = newport;
             changes ++;
         }
 
         /* check if we need to remap the source port */
-        newport = htons(map_port(portmap, tcp_hdr->th_sport));
+        newport = map_port(portmap, tcp_hdr->th_sport);
         if (newport != tcp_hdr->th_sport) {
             tcp_hdr->th_sport = newport;
             changes ++;
         }
         
-    } else if ((*ip_hdr)->ip_p == htons(IPPROTO_UDP)) {
+    } else if ((*ip_hdr)->ip_p == IPPROTO_UDP) {
         udp_hdr = (udp_hdr_t *)get_layer4(*ip_hdr);
 
         /* check if we need to remap the destination port */
-        newport = htons(map_port(portmap, udp_hdr->uh_dport));
+        newport = map_port(portmap, udp_hdr->uh_dport);
         if (newport != udp_hdr->uh_dport) {
             udp_hdr->uh_dport = newport;
             changes ++;
         }
 
         /* check if we need to remap the source port */
-        newport = htons(map_port(portmap, udp_hdr->uh_sport));
+        newport = map_port(portmap, udp_hdr->uh_sport);
         if (newport != udp_hdr->uh_sport) {
             udp_hdr->uh_sport = newport;
             changes ++;
@@ -250,4 +250,3 @@ rewrite_ports(portmap_t * portmap, ip_hdr_t **ip_hdr)
  c-basic-offset:4
  End:
 */
-
