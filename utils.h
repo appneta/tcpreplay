@@ -1,4 +1,4 @@
-/* $Id: utils.h,v 1.5 2004/04/03 22:50:14 aturner Exp $ */
+/* $Id: utils.h,v 1.6 2004/05/08 21:31:55 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -37,10 +37,9 @@
 int read_hexstring(char *l2string, char *hex, int hexlen);
 int argv_create(char *p, int argc, char *argv[]);
 void mac2hex(const char *mac, char *dst, int len);
-void validate_l2(char *name, int l2enabled, char *l2data, int l2len,
-                 int linktype);
 void packet_stats();
 void *get_layer4(ip_hdr_t * ip_hdr);
+void parse_services(char *file);
 
 #define MAX_ARGS 128
 
