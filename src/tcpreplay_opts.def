@@ -41,6 +41,12 @@ flag = {
     max         = 1;
     descrip     = "Arguments passed to tcpdump decoder";
     ifdef       = HAVE_TCPDUMP;
+    flag-code   = <<- EOTcpdump
+    
+    if (! ENABLED_OPT(VERBOSE))
+        SET_OPT(VERBOSE);
+        
+EOTcpdump;
 };
 
 flag = {
@@ -233,7 +239,7 @@ EOMuliplier;
 };
 
 flag = {
-    name        = pktrate;
+    name        = packetrate;
     value       = p;
     arg-type    = number;
     max         = 1;
@@ -242,7 +248,7 @@ flag = {
 };
 
 flag = {
-    name        = rate;
+    name        = mbpsrate;
     value       = r;
     arg-type    = string;
     max         = 1;
@@ -355,3 +361,4 @@ flag = {
 
 EOTrunc;
 };
+au
