@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.20 2002/07/16 23:51:23 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.21 2002/07/17 23:51:48 aturner Exp $ */
 
 #include "config.h"
 
@@ -178,8 +178,10 @@ main(int argc, char *argv[])
 	if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
 		errx(1, "Can't open %s: %s", intf, ebuf);
 
-	if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
-		errx(1, "Can't open %s: %s", intf2, ebuf);
+	if (intf2 != NULL) {
+		if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
+			errx(1, "Can't open %s: %s", intf2, ebuf);
+	}
 #endif
 
 	warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
@@ -274,12 +276,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		/* Dual nic processing */
 		if (options.intf2 != NULL) {
 			/* Cache Mode */
-			if (!Cflag) {
+			if (Cflag) {
 				if (packet_num > cache_packets)
 					errx(1, "Exceeded number of packets in cache file");
 
-				if (cachedata->data[cache_byte] & 
-					(char)pow((long)2, (long)cache_bit) ) {
+				if (cachedata->data[cache_byte] & (char)pow((long)2, (long)cache_bit) ) {
 					/* set interface to send out packet */
 					l = options.intf1;
 
@@ -304,7 +305,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				} else {
 					cache_bit++;
 				}
-			/* CIDR Mode */
+			/* end CIDR Mode */
 			} else {
 				ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
 				if (check_ip_CIDR(ip_hdr->ip_src.s_addr)) {
