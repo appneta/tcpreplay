@@ -5,7 +5,7 @@ You'll need:
 - libnet 1.1.x (1.1.1 or greater is recommended)
 http://www.packetfactory.net/Projects/libnet/
 
-- libpcap >= 0.6 (0.7 or greater is recommended)
+- libpcap >= 0.6 (0.8 or greater is recommended)
 http://www.tcpdump.org/
 
 - libpcapnav >= 0.4 (Optional. If you want the jump to byte offset feature)
