@@ -1,5 +1,5 @@
-.\" $Id: tcpreplay.8,v 1.21 2004/02/04 00:01:05 aturner Exp $
-.TH "TCPREPLAY" "8" "2.0.1" "Aaron Turner" "Replay Captured Network Traffic"
+.\" $Id: tcpreplay.8,v 1.22 2004/03/25 00:49:56 aturner Exp $
+.TH "TCPREPLAY" "8" "2.0.3" "Aaron Turner" "Replay Captured Network Traffic"
 .SH "NAME"
 .LP 
 tcpreplay \- replay packets back out onto the network from pcap files
@@ -74,6 +74,14 @@ Specify the \fIsecondary interface\fR in which to send packets.
 .TP 
 .B \-J or "second_mac"
 Specify the \fIdestination MAC\fR to use for packets being sent out the 
+secondary interface.
+.TP 
+.B \-k or "primary_smac"
+Specify the \fIsource MAC\fR to use for packets being sent out the primary
+interface.
+.TP
+.B \-K or "second_smac"
+Specify the \fIsource MAC\fR to use for packets being sent out the 
 secondary interface.
 .TP 
 .B \-l or "loop"
@@ -207,10 +215,11 @@ P:<list>      Must be one of the listed packets where the list corresponds to th
 Resend one packet at a time, once for each keypress.
 .TP 
 .B \-2 or l2data
-Specifies a string of comma seperated numbers in hex to be used instead of the Layer
-2 header in the packet.  Useful for converting between 802.x types or adding a header 
-when the pcap file doesn't contain a header (as in the case of DLT_RAW).  Currently
-this only supports the following pcap(3) types: DLT_EN10MB and DLT_RAW.
+Specifies a string of comma seperated numbers in hex to be used instead of the
+Layer 2 header in the packet.  Useful for converting between 802.x types or
+adding a header when the pcap file doesn't contain a header (as in the case of
+DLT_RAW).  Currently this only supports the following pcap(3) types:
+DLT_EN10MB, DLT_LINUX_SLL and DLT_RAW.
 .SH "SIGNALS"
 .LP 
 .I Tcpreplay
