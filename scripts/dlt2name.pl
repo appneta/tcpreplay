@@ -9,8 +9,10 @@
 use strict;
 my $outfile = "dlt_names.h";
 
+defined $ARGV[0] or die("Please specify an output file");
+
 # open outfile
-open(OUT, ">$outfile") or die("Unable to open $outfile for writing: $!");
+open(OUT, ">$ARGV[0]") or die("Unable to open $ARGV[0] for writing: $!");
 
 # read STDIN
 
