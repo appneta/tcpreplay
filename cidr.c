@@ -129,7 +129,7 @@ new_cidr()
 
 	newcidr = (CIDR *) malloc(sizeof(CIDR));
 	if (newcidr == NULL)
-		err(1, "malloc");
+		err(1, "unable to malloc memory for new_cidr()");
 
 	memset(newcidr, '\0', sizeof(CIDR));
 	newcidr->masklen = 99;
