@@ -438,55 +438,54 @@ TREE *
 packet2tree(const u_char * data)
 {
 	TREE *mytree;
-	struct libnet_ethernet_hdr *eth_hdr = NULL;
-	ip_hdr_t *ip_hdr = NULL;
-	struct libnet_tcp_hdr *tcp_hdr = NULL;
-	struct libnet_udp_hdr *udp_hdr = NULL;
-#if USE_LIBNET_VERSION == 10
-	struct libnet_icmp_hdr *icmp_hdr = NULL;
-#elif USE_LIBNET_VERSION == 11
-	struct libnet_icmpv4_hdr *icmp_hdr = NULL;
-#endif
-	dns_hdr_t *dns_hdr = NULL;
+	eth_hdr_t *eth_hdr = NULL;
+	ip_hdr_t ip_hdr;
+	tcp_hdr_t tcp_hdr;
+	udp_hdr_t udp_hdr;
+	icmp_hdr_t icmp_hdr;
+	dns_hdr_t dns_hdr;
 
 	mytree = new_tree();
 
-	eth_hdr = (struct libnet_ethernet_hdr *) (data);
-	ip_hdr = (ip_hdr_t *) (data + LIBNET_ETH_H);
+	eth_hdr = (eth_hdr_t *) (data);
+	/* prevent issues with byte alignment, must memcpy */
+	memcpy(&ip_hdr, (data + LIBNET_ETH_H), LIBNET_IP_H);
+
 
 	/* copy over the source mac */
 	strncpy(mytree->mac, eth_hdr->ether_shost, 6);
 
 	/* copy over the source ip */
-	mytree->ip = ip_hdr->ip_src.s_addr;
+	mytree->ip = ip_hdr.ip_src.s_addr;
 
 	/* 
 	 * TCP 
 	 */
-	if (ip_hdr->ip_p == IPPROTO_TCP) {
+	if (ip_hdr.ip_p == IPPROTO_TCP) {
 
 #if defined DEBUG && USE_LIBNET_VERSION == 10
 		if (debug)
-			fprintf(stderr, "%s uses TCP...  ", libnet_host_lookup(ip_hdr->ip_src.s_addr, RESOLVE));
+			fprintf(stderr, "%s uses TCP...  ", libnet_host_lookup(ip_hdr.ip_src.s_addr, RESOLVE));
 #elif defined DEBUG && USE_LIBNET_VERSION == 11
 		if (debug)
-			fprintf(stderr, "%s uses TCP...  ", libnet_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
+			fprintf(stderr, "%s uses TCP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 #endif
 
-		tcp_hdr = (struct libnet_tcp_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
+		/* memcpy it over to prevent alignment issues */
+		memcpy(&tcp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_TCP_H);
 
 		/* ftp-data is going to skew our results so we ignore it */
-		if (tcp_hdr->th_sport == 20) {
+		if (tcp_hdr.th_sport == 20) {
 			return (mytree);
 		}
 		/* set TREE->type based on TCP flags */
-		if (tcp_hdr->th_flags == TH_SYN) {
+		if (tcp_hdr.th_flags == TH_SYN) {
 			mytree->type = CLIENT;
 #ifdef DEBUG
 			if (debug)
 				fprintf(stderr, "is a client\n");
 #endif
-		} else if (tcp_hdr->th_flags == (TH_SYN | TH_ACK)) {
+		} else if (tcp_hdr.th_flags == (TH_SYN | TH_ACK)) {
 			mytree->type = SERVER;
 #ifdef DEBUG
 			if (debug)
@@ -501,21 +500,25 @@ packet2tree(const u_char * data)
 		/* 
 		 * UDP 
 		 */
-	} else if (ip_hdr->ip_p == IPPROTO_UDP) {
-		udp_hdr = (struct libnet_udp_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
+	} else if (ip_hdr.ip_p == IPPROTO_UDP) {
+		/* memcpy over to prevent alignment issues */
+		memcpy(&udp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_UDP_H);
+
 #if defined DEBUG && USE_LIBNET_VERSION == 10
 		if (debug)
-			fprintf(stderr, "%s uses UDP...  ", libnet_host_lookup(ip_hdr->ip_src.s_addr, RESOLVE));
+			fprintf(stderr, "%s uses UDP...  ", libnet_host_lookup(ip_hdr.ip_src.s_addr, RESOLVE));
 #elif defined DEBUG && USE_LIBNET_VERSION == 11
 		if (debug)
-			fprintf(stderr, "%s uses UDP...  ", libnet_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
+			fprintf(stderr, "%s uses UDP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 #endif
 		
 
-		switch (ntohs(udp_hdr->uh_dport)) {
+		switch (ntohs(udp_hdr.uh_dport)) {
 		case 0x0035:	/* dns */
-			dns_hdr = (dns_hdr_t *) (data + LIBNET_ETH_H + LIBNET_IP_H + LIBNET_UDP_H);
-			if (dns_hdr->flags & DNS_QUERY_FLAG) {
+			/* prevent memory alignment issues */
+			memcpy(&dns_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H + LIBNET_UDP_H), LIBNET_DNS_H);
+
+			if (dns_hdr.flags & DNS_QUERY_FLAG) {
 				/* bit set, response */
 				mytree->type = SERVER;
 #ifdef DEBUG
@@ -536,10 +539,12 @@ packet2tree(const u_char * data)
 			break;
 		}
 
-		switch (ntohs(udp_hdr->uh_sport)) {
+		switch (ntohs(udp_hdr.uh_sport)) {
 		case 0x0035:	/* dns */
-			dns_hdr = (dns_hdr_t *) (data + LIBNET_ETH_H + LIBNET_IP_H + LIBNET_UDP_H);
-			if (dns_hdr->flags & DNS_QUERY_FLAG) {
+			/* prevent memory alignment issues */
+			memcpy(&dns_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H + LIBNET_UDP_H), LIBNET_DNS_H);
+
+			if (dns_hdr.flags & DNS_QUERY_FLAG) {
 				/* bit set, response */
 				mytree->type = SERVER;
 #ifdef DEBUG
@@ -559,7 +564,7 @@ packet2tree(const u_char * data)
 		default:
 #ifdef DEBUG
 			if (debug)
-				fprintf(stderr, "unknown UDP protocol: %hu->%hu\n", udp_hdr->uh_sport, udp_hdr->uh_dport);
+				fprintf(stderr, "unknown UDP protocol: %hu->%hu\n", udp_hdr.uh_sport, udp_hdr.uh_dport);
 #endif
 			break;
 		}
@@ -567,26 +572,24 @@ packet2tree(const u_char * data)
 		/* 
 		 * ICMP 
 		 */
-	} else if (ip_hdr->ip_p == IPPROTO_ICMP) {
-#if USE_LIBNET_VERSION == 10
-		icmp_hdr = (struct libnet_icmp_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
-#elif USE_LIBNET_VERSION == 11
-		icmp_hdr = (struct libnet_icmpv4_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
-#endif
+	} else if (ip_hdr.ip_p == IPPROTO_ICMP) {
+
+		/* prevent alignment issues */
+		memcpy(&icmp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_ICMP_H);
 
 #if defined DEBUG && USE_LIBNET_VERSION == 10
 		if (debug)
-			fprintf(stderr, "%s uses ICMP...  ", libnet_host_lookup(ip_hdr->ip_src.s_addr, RESOLVE));
+			fprintf(stderr, "%s uses ICMP...  ", libnet_host_lookup(ip_hdr.ip_src.s_addr, RESOLVE));
 #elif defined DEBUG && USE_LIBNET_VERSION == 11
 		if (debug)
-			fprintf(stderr, "%s uses ICMP...  ", libnet_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
+			fprintf(stderr, "%s uses ICMP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 #endif
 		
 		/*
 		 * if port unreachable, then source == server, dst == client 
 		 */
-		if ((icmp_hdr->icmp_type == ICMP_UNREACH) &&
-			(icmp_hdr->icmp_code == ICMP_UNREACH_PORT)) {
+		if ((icmp_hdr.icmp_type == ICMP_UNREACH) &&
+			(icmp_hdr.icmp_code == ICMP_UNREACH_PORT)) {
 			mytree->type = SERVER;
 			if (debug)
 				fprintf(stderr, "is a server with a closed port\n");

@@ -176,7 +176,7 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 #elif USE_LIBNET_VERSION == 11
 	typedef struct libnet_ipv4_hdr ip_hdr_t;
 #endif
-	ip_hdr_t *ip_hdr = NULL;
+	ip_hdr_t ip_hdr;
 	struct libnet_ethernet_hdr *eth_hdr = NULL;
 	struct packet pkt;
 	unsigned long packetnum = 0;
@@ -208,11 +208,16 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 				add_cache(&cachedata, 1, non_ip);
 			continue;
 		}
-		ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
+		
+		/* 
+		 * we have to copy the IP header because the ethernet header
+		 * puts us 14bytes in which is not byte aligned 
+		 */
+		memcpy(&ip_hdr,(pkt.data + LIBNET_ETH_H), LIBNET_IP_H);
 
 		/* look for include or exclude CIDR match */
 		if (xX_cidr != NULL) {
-			if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
+			if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, &ip_hdr)) {
 				add_cache(&cachedata, 0, 0);
 				continue;
 			}
@@ -220,24 +225,24 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 
 		switch (mode) {
 		case REGEX_MODE:
-			add_cache(&cachedata, 1, check_ip_regex(ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_regex(ip_hdr.ip_src.s_addr));
 			break;
 		case CIDR_MODE:
-			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr.ip_src.s_addr));
 			break;
 		case AUTO_MODE:
 			/* first run through in auto mode: create tree */
-			add_tree(ip_hdr->ip_src.s_addr, pkt.data);
+			add_tree(ip_hdr.ip_src.s_addr, pkt.data);
 			break;
 		case ROUTER_MODE:
-			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr.ip_src.s_addr));
 			break;
 		case BRIDGE_MODE:
 			/*
 			 * second run through in auto mode: create bridge
 			 * based cache
 			 */
-			add_cache(&cachedata, 1, check_ip_tree(ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_tree(ip_hdr.ip_src.s_addr));
 			break;
 		}
 

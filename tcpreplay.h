@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.22 2002/11/21 00:05:28 mattbing Exp $ */
+/* $Id: tcpreplay.h,v 1.23 2002/11/21 00:16:59 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -15,18 +15,25 @@
 typedef struct libnet_link_int LIBNET;
 typedef struct libnet_ip_hdr ip_hdr_t;
 typedef struct libnet_dns_hdr dns_hdr_t;
+typedef struct libnet_icmp_hdr icmp_hdr_t;
 
 #elif USE_LIBNET_VERSION == 11
 
 typedef libnet_t LIBNET;
 #define LIBNET_IP_H LIBNET_IPV4_H
 #define LIBNET_ICMP_H LIBNET_ICMPV4_H
+#define LIBNET_DNS_H LIBNET_DNSV4_H
 typedef struct libnet_ipv4_hdr ip_hdr_t;
 typedef struct libnet_dnsv4_hdr dns_hdr_t;
-
+typedef struct libnet_icmpv4_hdr icmp_hdr_t;
 #else
 #error "Unsupported version of Libnet"
 #endif /* USE_LIBNET_VERSION */
+
+/* standardize all common header typedefs */
+typedef struct libnet_tcp_hdr tcp_hdr_t;
+typedef struct libnet_udp_hdr udp_hdr_t;
+typedef struct libnet_ethernet_hdr eth_hdr_t;
 
 /* Big enough for ethernet */
 #define MAXPACKET 2048
