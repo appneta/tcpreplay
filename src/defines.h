@@ -53,14 +53,16 @@ struct xX_s {
 #define xX_MODE_EXCLUDE X
     int mode;
     union match_u {
-        LIST *list;
-        CIDR *cidr;
+        list_t *list;
+        cidr_t *cidr;
     } match;
 #define xX_TYPE_LIST 1
 #define xX_TYPE_CIDR 2
     int type;
 };
 typedef struct xX_s xX_t;
+
+#define MAX_FILES   1024        /* Max number of files we can pass to tcpreplay */
 
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */

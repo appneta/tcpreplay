@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _TCPDUMP_H_
-#define _TCPDUMP_H_
+#ifndef __TCPDUMP_H__
+#define __TCPDUMP_H__
 
 /* line buffer stdout, read from stdin */
 #define TCPDUMP_ARGS " -n -l -r-"
@@ -52,12 +52,15 @@
 #define TCPDUMP_MAGIC 0xa1b2c3d4
 #define PATCHED_TCPDUMP_MAGIC 0xa1b2cd34
 
-struct tcpdump {
+#define TCPDUMP_DECODE_LEN 65535
+
+struct tcpdump_s {
     char *filename;
     char *args;
     struct pcap_file_header pfh;
     int pid;
-    int fd; /* fd to write to. 1/2 of the socketpair */
+    int infd; /* fd to write to. 1/2 of the socketpair */
+    int outfd; /* fd to read from. */
     /* following vars are for figuring out exactly what we send to
      * tcpdump.  See TCPDUMP_DEBUG 
      */
@@ -67,11 +70,11 @@ struct tcpdump {
 #endif
 };
 
-typedef struct tcpdump tcpdump_t;
+typedef struct tcpdump_s tcpdump_t;
 
 int tcpdump_init(tcpdump_t *tcpdump);
 int tcpdump_open(tcpdump_t *tcpdump);
-int tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, u_char *data);
+int tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data);
 void tcpdump_close(tcpdump_t *tcpdump);
 
 #endif
@@ -83,4 +86,3 @@ void tcpdump_close(tcpdump_t *tcpdump);
  c-basic-offset:4
  End:
 */
-

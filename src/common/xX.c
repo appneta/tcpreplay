@@ -41,7 +41,6 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
-#include "tcprewrite.h"
 
 /*
  * returns the include_exclude_mode on success placing the CIDR or LIST in mybuf
@@ -88,7 +87,7 @@ parse_xX_str(char mode, char *str, void **mybuf, bpf_t *bpf)
     case 'P':                  /* packet id */
         str = str + 2;
         out = xXPacket;
-        if (!parse_list((LIST **)mybuf, str))
+        if (!parse_list((list_t **)mybuf, str))
             return 0;
         break;
     case 'S':                  /* source ip */
