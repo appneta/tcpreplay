@@ -75,7 +75,7 @@
 */
 int debug = 0;
 int info = 0;
-char * regex = NULL;
+char * ourregex = NULL;
 char * cidr = NULL;
 regex_t * preg = NULL;
 CIDR * cidrdata = NULL;
@@ -184,7 +184,7 @@ int main(int argc, char * argv[]) {
   int mask_count = 0;
 
   debug = 0;
-  regex = NULL;
+  ourregex = NULL;
   regex_flags |= REG_EXTENDED;
   regex_flags |= REG_NOSUB;
   
@@ -253,9 +253,9 @@ int main(int argc, char * argv[]) {
 	outfilename = optarg;
 	break;
       case 'r':
-	regex = optarg;
+	ourregex = optarg;
 	mode = REGEX_MODE;
-	if ((regex_error = regcomp(preg, regex, regex_flags))) {
+	if ((regex_error = regcomp(preg, ourregex, regex_flags))) {
 	  if (regerror(regex_error, preg, ebuf, EBUF_SIZE) != -1) {
 	    fprintf(stderr, "Error compiling regex: %s\n", ebuf);
 	  } else {
