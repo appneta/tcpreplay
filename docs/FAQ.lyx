@@ -161,18 +161,6 @@ http://www.tcpdump.org/
  libraries.
 \layout Enumerate
 
-To support the jump to offset feature, you'll need the libpcapnav
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-http://netdude.sourceforge.net/
-\end_inset 
-
- library.
-\layout Enumerate
-
 To support the packet decoding feature you'll need tcpdump
 \begin_inset Foot
 collapsed true
@@ -211,9 +199,9 @@ As root:
 \layout Standard
 
 There are some optional arguments which can be passed to the configure script
- which may help in cases where your libnet, libpcap, libpcapnav or tcpdump
- installation is not standard or if it can't determine the correct network
- interface card to use for testing.
+ which may help in cases where your libnet, libpcap or tcpdump installation
+ is not standard or if it can't determine the correct network interface
+ card to use for testing.
  If you find that configure isn't completing correctly, run:
 \emph on 
  ./configure --help
@@ -263,6 +251,10 @@ Not really.
  the main development tree.
  If you're interested in helping with this please contact Aaron Turner or
  the tcpreplay-users list.
+ Other then that, you can download the tcpreplay-win32.zip file from the
+ website and give it a go.
+ Please understand that the Win32 port of tcpreplay comes with no support
+ whatsoever, so if you run into a problem you're on your own.
 \layout Subsection
 
 How is tcpreplay licensed?
@@ -279,10 +271,10 @@ In the simplest terms, tcpreplay is a tool to send network traffic stored
  in pcap format back onto the network; basically the exact opposite of tcpdump.
  Just to make things more confusing, tcpreplay is also a suite of tools:
  tcpreplay, tcpprep, tcprewrite and flowreplay.
-\layout Subsection
+\layout Comment
 
 What isn't tcpreplay?
-\layout Standard
+\layout Comment
 
 Tcpreplay is 
 \emph on 
@@ -311,7 +303,17 @@ What are some uses for tcpreplay?
 Originally, tcpreplay was written to test network intrusion detection systems
  (NIDS), however tcpreplay has been used to test firewalls, routers, and
  other network devices.
- 
+ With the addition of flowreplay, most
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Note the flowreplay does not support protocols such as ftp which use multiple
+ connections.
+\end_inset 
+
+ any udp or tcp service on a server can be tested as well.
 \layout Subsection
 
 What are some uses for flowreplay?
@@ -329,16 +331,9 @@ to
  This makes flowreplay an ideal tool to test host intrusion detection systems
  (HIDS) as well as captured exploits and security patches when the actual
  exploit code is not available.
- Please note that flowreplay is still alpha quality code and is currently
- missing some important features.
-\layout Subsection
-
-What happened to version 1.5?
-\layout Standard
-
-After looking at all the changes that have happened over the last year or
- so, I decided that it was finally time to graduate tcpreplay to 2.0 status.
- Hence the 1.5 branch was renamed 2.0.
+ Please note that flowreplay is still alpha quality code which means it
+ doesn't work very well (some would argue it doesn't work at all) and is
+ currently missing some important features.
 \layout Subsection
 
 What is the history of tcpreplay?
@@ -415,7 +410,7 @@ Error message (if available) and/or description of problem
 If possible, attach the pcap file used (compressed with bzip2 or gzip preferred)
 \layout Itemize
 
-The core dump if available
+The core dump or backtrace if available
 \layout Subsection
 
 I have a feature request, what should I do?
@@ -511,7 +506,7 @@ Replaying at different speeds
 You can also replay the traffic at different speeds then it was originally
  captured
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
