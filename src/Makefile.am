@@ -9,7 +9,7 @@ tcpreplay_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ tcpreplay_opts.def
 
 
-tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c edit_packet.c
+tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c edit_packet.c rewrite_l2.c
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def
@@ -35,7 +35,7 @@ AM_CFLAGS = -I.. $(LIBOPTS_CFLAGS)
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
 		 defines.h dlt.h dlt_names.h edit_packet.h tree.h \
 		 send_packets.h flowbuff.h flowkey.h flownode.h flowstate.h \
-		 signal_handler.h common.h tcpreplay_opts.h \
+		 signal_handler.h common.h tcpreplay_opts.h rewrite_l2.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h
 
 
