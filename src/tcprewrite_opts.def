@@ -148,6 +148,7 @@ flag = {
     descrip     = "Input pcap file";
     max         = 1;
     immediate;
+    must-set;
     flag-code   = <<- EOInfile
     
     char ebuf[PCAP_ERRBUF_SIZE];
@@ -164,13 +165,7 @@ flag = {
     arg-type    = string;
     descrip     = "Output pcap file";
     max         = 1;
-    flag-code   = <<- EOOutfile
-  
-    options.outfile = safe_strdup(OPT_ARG(OUTFILE));
-    if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
-        errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
-
-EOOutfile;
+    must-set;
 };
 
 flag = {
@@ -239,7 +234,7 @@ EOFixlen;
 /* rewrite 802.1q vlan tags */
 flag = {
     name        = vlan;
-    value       = l;
+    value       = T;
     max         = 1;
     descrip     = "Specify 802.1q VLAN tag mode: del or add";
     arg-type    = string;
