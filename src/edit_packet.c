@@ -138,8 +138,8 @@ int
 rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
            u_int32_t linktype, int l2enabled, char *l2data, int l2len)
 {
-    struct sll_header *sllhdr = NULL;   /* Linux cooked socket header */
-    struct cisco_hdlc_header *hdlc_header = NULL; /*Cisco HDLC */
+    sll_header_t *sllhdr = NULL;   /* Linux cooked socket header */
+    cisco_hdlc_header_t *hdlc_header = NULL; /*Cisco HDLC */
     eth_hdr_t *eth_hdr = NULL;
 
     /*
@@ -254,7 +254,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
             }
             
             /* rewrite as a standard 802.3 header */
-            sllhdr = (struct sll_header *)nextpkt;
+            sllhdr = (sll_header_t *)nextpkt;
             
             switch (ntohs(sllhdr->sll_hatype)) {
             case 0x1:          /* out on the wire */
@@ -368,7 +368,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
          * except for the source/dest mac addresses which get rewritten in 
          * do_packets.c
          */
-        hdlc_header = (struct cisco_hdlc_header *)nextpkt;
+        hdlc_header = (cisco_hdlc_header_t *)nextpkt;
         eth_hdr = (eth_hdr_t *)pktdata;
         memcpy(&pktdata[CISCO_HDLC_LEN], (nextpkt + LIBNET_ETH_H), 
                (pkthdr->caplen - CISCO_HDLC_LEN));
