@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.43 2003/12/09 03:18:04 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.44 2003/12/10 06:51:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -71,7 +71,9 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 /* run-time options */
 struct options {
     LIBNET *intf1;
-    LIBNET *intf2;    
+    LIBNET *intf2;
+    pcap_t *listen1;
+    pcap_t *listen2;
     pcap_t *savepcap;
     pcap_t *savepcap2;
     pcap_dumper_t *savedumper;
@@ -102,7 +104,9 @@ struct options {
     char *bpf_filter;
     int bpf_optimize;
     int sniff_snaplen;
+    int sniff_bridge;
     int promisc;
+    int poll_timeout;
 };
 
 #define RESOLVE 0		/* disable dns lookups */

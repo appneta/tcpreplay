@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.74 2003/12/09 03:18:04 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.75 2003/12/10 06:51:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -54,6 +54,7 @@
 #include "do_packets.h"
 #include "xX.h"
 #include "signal_handler.h"
+#include "replay_live.h"
 
 struct options options;
 char *cachedata = NULL;
@@ -92,6 +93,7 @@ void mac2hex(const char *, char *, int);
 void configfile(char *);
 int argv_create(char *, int, char **);
 int read_hexstring(char *, char *, int);
+static void init(void);
 
 int
 main(int argc, char *argv[])
@@ -101,36 +103,19 @@ main(int argc, char *argv[])
     int l2enabled = 0;
     void *xX = NULL;
 
-    bytes_sent = failed = pkts_sent = 0;
-    intf = intf2 = NULL;
-    memset(&options, 0, sizeof(options));
-
-    /* Default mode is to replay pcap once in real-time */
-    options.mult = 1.0;
-    options.n_iter = 1;
-    options.rate = 0.0;
-    options.packetrate = 0.0;
-
-    /* set the default MTU size */
-    options.mtu = DEFAULT_MTU;
-
-    /* set the bpf optimize */
-    options.bpf_optimize = BPF_OPTIMIZE;
-
-    /* sniff mode options */
-    options.sniff_snaplen = -1; /* disabled */
-    options.promisc = 1;        /* listen in promisc mode */
-
-    cache_bit = cache_byte = 0;
+    init();
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
+	    getopt(argc, argv, "bc:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:")) != -1)
+	    getopt(argc, argv, "bc:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:")) != -1)
 #endif
 	switch (ch) {
+	case 'b':               /* sniff/send bi-directionally */
+	    options.sniff_bridge = 1;
+	    break;
 	case 'c':		/* cache file */
 	    cache_file = optarg;
 	    cache_packets = read_cache(&cachedata, cache_file);
@@ -346,8 +331,12 @@ main(int argc, char *argv[])
         errx(1, "You can't specify an offset when sniffing a live network");
     }
 
-    if ((options.not_nosy) && (! options.sniff_snaplen >= 0)) {
+    if ((options.promisc) && (! options.sniff_snaplen >= 0)) {
         errx(1, "Not nosy can't be specified except when sniffing a live network");
+    }
+
+    if ((options.sniff_bridge) && (! options.sniff_snaplen >= 0)) {
+        errx(1, "Bridging requires sniff mode (-S <snaplen>)");
     }
 
     if (options.seed != 0) {
@@ -730,7 +719,9 @@ configfile(char *file)
 	}
 
 #define ARGS(x, y) ( (!strcmp(argv[0], x)) && (argc == y) )
-	if (ARGS("cachefile", 2)) {
+        if (ARGS("sniff_bridge", 1)) {
+            options.sniff_bridge = 1;
+        } else if (ARGS("cachefile", 2)) {
 	    cache_file = strdup(argv[1]);
 	    cache_packets = read_cache(&cachedata, cache_file);
 	}
@@ -925,7 +916,9 @@ void
 usage()
 {
     fprintf(stderr, "Usage: tcpreplay [args] <file(s)>\n");
-    fprintf(stderr, "-c <cachefile>\t\tSplit traffic via cache file\n"
+    fprintf(stderr, 
+            "-b\t\t\tBridge two broadcast domains in sniffer mode\n"
+            "-c <cachefile>\t\tSplit traffic via cache file\n"
 	    "-C <CIDR1,CIDR2,...>\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
     fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
@@ -964,4 +957,40 @@ usage()
 	    "-2 <datafile>\t\tLayer 2 data\n"
 	    "<file1> <file2> ...\tFile list to replay\n");
     exit(1);
+}
+
+
+/*
+ * Initialize globals
+ */
+static void
+init(void)
+{
+    bytes_sent = failed = pkts_sent = 0;
+    intf = intf2 = NULL;
+    memset(&options, 0, sizeof(options));
+
+    /* Default mode is to replay pcap once in real-time */
+    options.mult = 1.0;
+    options.n_iter = 1;
+    options.rate = 0.0;
+    options.packetrate = 0.0;
+
+    /* set the default MTU size */
+    options.mtu = DEFAULT_MTU;
+
+    /* set the bpf optimize */
+    options.bpf_optimize = BPF_OPTIMIZE;
+
+    /* sniff mode options */
+    options.sniff_snaplen = -1; /* disabled */
+    options.promisc = 1;        /* listen in promisc mode */
+
+    /* poll timeout (in ms) defaults to infinate */
+    options.poll_timeout = -1;
+
+    /* init the RBTree */
+    rbinit();
+
+    cache_bit = cache_byte = 0;
 }
