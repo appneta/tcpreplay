@@ -1,51 +1,18 @@
 /*  -*- Mode: C -*-  */
 
 /* --- fake the preprocessor into handlng portability */
-
 /*
- *  Time-stamp:      "2004-04-02 11:21:26 bkorb"
+ *  Time-stamp:      "2005-01-08 12:13:21 bkorb"
  *
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
  * Created:          Mon Jun 30 15:54:46 1997
  *
- * $Id: compat.h,v 2.17 2004/04/03 17:01:18 bkorb Exp $
+ * $Id: compat.h,v 4.1 2005/01/01 00:20:58 bkorb Exp $
  */
 #ifndef COMPAT_H
 #define COMPAT_H 1
 
 #include <config.h>
-
-#ifndef HAVE_SYS_TYPES_H
-#  error NEED <sys/types.h>
-#endif
-
-#ifndef HAVE_SYS_STAT_H
-#  error NEED <sys/stat.h>
-#endif
-
-#ifndef HAVE_STRING_H
-#  error NEED <string.h>
-#endif
-
-#ifndef HAVE_ERRNO_H
-#  error NEED <errno.h>
-#endif
-
-#ifndef HAVE_STDLIB_H
-#  error NEED <stdlib.h>
-#endif
-
-#ifndef HAVE_MEMORY_H
-#  error NEED <memory.h>
-#endif
-
-#if (! defined(HAVE_LIMITS_H)) && (! defined(HAVE_SYS_LIMITS_H))
-#  error NEED <limits.h> *OR* <sys/limits.h>
-#endif
-
-#ifndef HAVE_SETJMP_H
-#  error NEED <setjmp.h>
-#endif
 
 #ifndef HAVE_STRSIGNAL
    char * strsignal( int signo );
@@ -71,6 +38,36 @@
 #  include <sys/systeminfo.h>
 #elif defined( HAVE_UNAME_SYSCALL )
 #  include <sys/utsname.h>
+#endif
+
+#ifdef DAEMON_ENABLED
+#  if HAVE_SYS_STROPTS_H
+#  include <sys/stropts.h>
+#  endif
+
+#  if HAVE_SYS_SOCKET_H
+#  include <sys/socket.h>
+#  endif
+
+#  if ! defined(HAVE_SYS_POLL_H) && ! defined(HAVE_SYS_SELECT_H)
+#    error This system cannot support daemon processing
+#  endif
+
+#  if HAVE_SYS_POLL_H
+#  include <sys/poll.h>
+#  endif
+
+#  if HAVE_SYS_SELECT_H
+#  include <sys/select.h>
+#  endif
+
+#  if HAVE_NETINET_IN_H
+#  include <netinet/in.h>
+#  endif
+
+#  if HAVE_SYS_UN_H
+#  include <sys/un.h>
+#  endif
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -118,6 +115,10 @@
 #ifdef HAVE_FCNTL_H
 # include <fcntl.h>
 #endif
+#ifndef O_NONBLOCK
+# define O_NONBLOCK FNDELAY
+#endif
+
 #if defined(HAVE_LIBGEN) && defined(HAVE_LIBGEN_H)
 #  include <libgen.h>
 #endif
@@ -143,7 +144,7 @@
 #include <utime.h>
 
 #ifdef HAVE_UNISTD_H
-#   include <unistd.h>
+#  include <unistd.h>
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -156,17 +157,9 @@
 #   define EXTERN extern
 #endif
 
-#undef STATIC
-
-#ifdef DEBUG
-#  define STATIC
-#else
-#  define STATIC static
-#endif
-
 /* some systems #def errno! and others do not declare it!! */
 #ifndef errno
-   extern       int     errno;
+   extern int errno;
 #endif
 
 /* Some machines forget this! */
@@ -178,6 +171,10 @@
 
 #ifndef NUL
 #  define NUL '\0'
+#endif
+
+#ifndef NULL
+#  define NULL 0
 #endif
 
 #if !defined (MAXPATHLEN) && defined (HAVE_SYS_PARAM_H)
@@ -208,14 +205,6 @@
 #ifndef HAVE_STRCHR
 #  define strchr        index
 #  define strrchr       rindex
-#endif
-
-#ifndef HAVE_PATHFIND
-  EXTERN char *pathfind(const char *, const char *, const char *);
-#endif
-
-#ifndef NULL
-#  define NULL 0
 #endif
 
 #ifdef USE_FOPEN_BINARY

@@ -5,10 +5,10 @@
 /*
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
  * Created:          Tue Jun 24 15:07:31 1997
- * Last Modified:    $Date: 2003/11/23 19:21:57 $
- *            by:    Bruce Korb <bkorb@gnu.org>
+ * Last Modified:    $Date: 2005/01/01 00:20:58 $
+ *            by: bkorb
  *
- * $Id: pathfind.c,v 2.3 2003/11/23 19:21:57 bkorb Exp $
+ * $Id: pathfind.c,v 4.1 2005/01/01 00:20:58 bkorb Exp $
  */
 
 /* Code: */
@@ -16,30 +16,68 @@
 #include "compat.h"
 #ifndef HAVE_PATHFIND
 
-STATIC char* make_absolute( const char *string, const char *dot_path );
-STATIC char* canonicalize_pathname( char *path );
-STATIC char* extract_colon_unit( char* dir, const char *string, int *p_index );
+static char* make_absolute( const char *string, const char *dot_path );
+static char* canonicalize_pathname( char *path );
+static char* extract_colon_unit( char* dir, const char *string, int *p_index );
 
 
-/*
- * pathfind looks for a a file with name FILENAME and MODE access
- * along colon delimited PATH, and returns the full pathname as a
- * string, or NULL if not found.
+/*=export_func pathfind
+ *
+ * what: fild a file in a list of directories
+ *
+ * ifndef: HAVE_PATHFIND
+ *
+ * arg:  + const char* + path + colon separated list of search directories +
+ * arg:  + const char* + file + the name of the file to look for +
+ * arg:  + const char* + mode + the mode bits that must be set to match +
+ *
+ * ret_type:  char*
+ * ret_desc:  the path to the located file
+ *
+ * doc:
+ *
+ * pathfind looks for a a file with name "FILE" and "MODE" access
+ * along colon delimited "PATH", and returns the full pathname as a
+ * string, or NULL if not found.  If "FILE" contains a slash, then
+ * it is treated as a relative or absolute path and "PATH" is ignored.
+ *
+ * @strong{NOTE}: this function is compiled into @file{libopts} only if
+ * it is not natively supplied.
+ *
+ * The "MODE" argument is a string of option letters chosen from the
+ * list below:
+ * @example
  *          Letter    Meaning
  *          r         readable
  *          w         writable
  *          x         executable
- *          f         normal file    (NOT IMPLEMENTED)
- *          b         block special    (NOT IMPLEMENTED)
- *          c         character special    (NOT IMPLEMENTED)
- *          d         directory        (NOT IMPLEMENTED)
- *          p         FIFO (pipe)    (NOT IMPLEMENTED)
- *          u         set user ID bit    (NOT IMPLEMENTED)
- *          g         set group ID bit    (NOT IMPLEMENTED)
- *          k         sticky bit    (NOT IMPLEMENTED)
- *          s         size nonzero    (NOT IMPLEMENTED)
+ *          f         normal file       (NOT IMPLEMENTED)
+ *          b         block special     (NOT IMPLEMENTED)
+ *          c         character special (NOT IMPLEMENTED)
+ *          d         directory         (NOT IMPLEMENTED)
+ *          p         FIFO (pipe)       (NOT IMPLEMENTED)
+ *          u         set user ID bit   (NOT IMPLEMENTED)
+ *          g         set group ID bit  (NOT IMPLEMENTED)
+ *          k         sticky bit        (NOT IMPLEMENTED)
+ *          s         size nonzero      (NOT IMPLEMENTED)
+ * @end example
+ *
+ * example:
+ * To find the "ls" command using the "PATH" environment variable:
+ * @example
+ *    #include <stdlib.h>
+ *    char* pz_ls = pathfind( getenv("PATH"), "ls", "rx" );
+ *    <<do whatever with pz_ls>>
+ *    free( pz_ls );
+ * @end example
+ * The path is allocated with @code{malloc(3C)}, so you must @code{free(3C)}
+ * the result.  Also, do not use unimplemented file modes.  :-)
+ *
+ * err:  returns NULL if the file is not found.
+=*/
+/*
  */
-     char*
+char*
 pathfind( const char*  path,
           const char*  fileName,
           const char*  mode )
@@ -118,7 +156,7 @@ pathfind( const char*  path,
  * DOT_PATH contains the symbolic location of  `.'.  This always returns
  * a new string, even if STRING was an absolute pathname to begin with.
  */
-STATIC char*
+static char*
 make_absolute( const char *string, const char *dot_path )
 {
     char *result;
@@ -158,7 +196,7 @@ make_absolute( const char *string, const char *dot_path )
  *    Non-leading `../'s and trailing `..'s are handled by removing
  *                    portions of the path.
  */
-STATIC char*
+static char*
 canonicalize_pathname( char *path )
 {
     int i, start;
@@ -242,37 +280,55 @@ canonicalize_pathname( char *path )
  * return the next one  pointed to by (P_INDEX), or NULL if there are no
  * more.  Advance (P_INDEX) to the character after the colon.
  */
-STATIC char*
+static char*
 extract_colon_unit( char* pzDir, const char *string, int *p_index )
 {
     char*  pzDest = pzDir;
+    int    ix     = *p_index;
+
     const char*  pzSrc  = string + *p_index;
 
-    if (  (string == NULL)
-       || (*p_index >= (int) strlen( string )))
+    if (string == NULL)
         return NULL;
 
-    while (*pzSrc == ':')
-        pzSrc++;
+    if ((unsigned)ix >= strlen( string ))
+        return NULL;
 
-    for (;;) {
-        char ch = (*pzDest = *pzSrc);
-        if (ch == NUL)
-            break;
-        if (ch == ':') {
-            *pzDest = NUL;
-            break;
-        }
-        pzDest++;
-        pzSrc++;
+    {
+        const char* pzSrc = string + ix;
+
+        while (*pzSrc == ':')  pzSrc++;
+
+        for (;;) {
+            char ch = (*(pzDest++) = *(pzSrc++));
+            switch (ch) {
+            case ':':
+                pzDest[-1] = NUL;
+            case NUL:
+                goto copy_done;
+            }
+
+            if ((pzDest - pzDir) >= MAXPATHLEN)
+                break;
+        } copy_done:;
+
+        ix = pzSrc - string;
     }
 
     if (*pzDir == NUL)
         return NULL;
 
-    *p_index = (pzSrc - string);
+    *p_index = ix;
     return pzDir;
 }
 
 #endif /* HAVE_PATHFIND */
-/* pathfind.c ends here */
+
+/*
+ * Local Variables:
+ * mode: C
+ * c-file-style: "stroustrup"
+ * tab-width: 4
+ * indent-tabs-mode: nil
+ * End:
+ * end of compat/pathfind.c */
