@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.41 2003/05/29 21:59:04 aturner Exp $
+# $Id: Makefile.in,v 1.42 2003/05/29 22:49:32 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -64,7 +64,7 @@ clean:
 distclean: clean
 	-rm -rf autom4te-2.??.cache autom4te.cache
 	-rm -f Makefile config.h config.status config.cache config.log *~
-	-rm -f tcpreplay.spec confdefs.h
+	-rm -f tcpreplay.spec confdefs.h man/*~
 	-cd test && make distclean
 	-cd Docs && make distclean
 
