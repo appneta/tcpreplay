@@ -1,4 +1,4 @@
-/* $Id: snoop.c,v 1.8 2003/05/29 22:06:35 aturner Exp $ */
+/* $Id: snoop.c,v 1.9 2003/06/05 16:47:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include "capinfo.h"
 #include "snoop.h"
 #include "err.h"
 

@@ -1,4 +1,4 @@
-/* $Id: libpcap.c,v 1.7 2003/05/29 22:06:35 aturner Exp $ */
+/* $Id: libpcap.c,v 1.8 2003/06/05 16:47:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#include "capinfo.h"
 #include "libpcap.h"
 #include "err.h"
 
