@@ -87,10 +87,12 @@ dualmac2hex(const char *dualmac, char *first, char *second, int len)
 
         
     temp = strtok_r(string, ",", &tok);
-    mac2hex(temp, first, len);
+    if (strlen(temp))
+        mac2hex(temp, first, len);
 
     temp = strtok_r(NULL, ",", &tok);
-    mac2hex(temp, second, len);
+    if (strlen(temp))
+        mac2hex(temp, second, len);
 
     return;
 
