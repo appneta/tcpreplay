@@ -144,10 +144,10 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
  * Note: you can cast the result as an ip_hdr_t, but you'll be able 
  * to access data above the header minus any stripped L2 data
  */
-u_char *
+const u_char *
 get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 {
-    u_char *ip_hdr = NULL;
+    const u_char *ip_hdr = NULL;
     int l2_len = 0;
     u_int16_t proto;
 
@@ -230,7 +230,9 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
                 /* XXX - this is actually 255.255.255.255 */
                 return (-1);
             }
-            memcpy(&addr.s_addr, host_ent->h_addr, host_ent->h_length);
+            memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr)); /* was:
+                                                                          * host_ent->h_length);
+                                                                          */
         }
         /* network byte order */
         return (addr.s_addr);
