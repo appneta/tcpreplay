@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.85 2004/04/01 06:05:11 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.86 2004/04/01 06:15:02 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -209,7 +209,6 @@ main(int argc, char *argv[])
             break;
         case 'N':              /* rewrite IP addresses using our pseudo-nat */
             options.rewriteip = 1;
-            options.fixchecksums = 1;
             nat_interface ++;
 
             /* first -N is primary nic */
@@ -821,7 +820,6 @@ configfile(char *file)
         }
         else if (ARGS("nat", 2)) {
             options.rewriteip = 1;
-            options.fixchecksums = 1;
             nat_interface ++;
             if (nat_interface == 1) {
                 if (! parse_cidr_map(&cidrmap_data1, argv[1]))
