@@ -1,9 +1,35 @@
+For 1.4:
+
 - Add in functionality to auto-write/apply IPTables/NetFilter, etc rules so 
 	that if you're sending traffic with your own IP, the kernel won't
-	try to reply (tcp resets for your fake connections, etc)
+	try to reply (tcp resets for your fake connections, etc) 
+	(libdnet can do this - mbing)
 
 - Filter which packets to send/not send based on libpcap matching language
 
 - Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
 
 - Look at VLAN packets
+	- others non-vanilla types?
+
+- Libnet 1.1 only
+
+- Remove snoop 
+	- use Ethereal to convert snoop & others to pcap
+
+- Properly deal with alignment on Solaris
+
+- Use system libpcap 
+	- optionally keep libpcap.c hack?
+	- use libpcap syntax when reading pcaps
+
+- Modularize packet mangling interface
+
+- Arbitrary number of interfaces
+
+- Write a FAQ
+	- basic usage
+	- advanced usage
+	- config files
+	- compiling libpcap, libnet 
+	- other pcap tools available
