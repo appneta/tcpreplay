@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.42 2003/05/29 22:49:32 aturner Exp $
+# $Id: Makefile.in,v 1.43 2003/05/30 23:45:29 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -31,11 +31,11 @@ POBJS		= $(PSRCS:.c=.o)
 MSRCS		= pcapmerge.c err.c
 MOBJS		= $(MSRCS:.c=.o)
 
-FSRCS		= flowreplay.c err.c timer.c flowkey.c flownode.c
+FSRCS		= flowreplay.c flowkey.c flownode.c flowstate.c flowread.c cidr.c timer.c err.c
 FOBJS		= $(FSRCS:.c=.o)
 
 .c.o:
-	$(CC) $(CFLAGS) $(INCS) -c $*.c
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -c $*.c
 
 .PHONY: test
 
