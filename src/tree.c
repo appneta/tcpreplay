@@ -38,8 +38,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "tree.h"
+#include "tcpprep.h"
+#include "tcpprep_opts.h"
+
 extern data_tree_t treeroot;
-extern double ratio;
 extern tcpprep_opt_t options;
 #ifdef DEBUG
 extern int debug;
@@ -259,7 +262,7 @@ add_tree(const unsigned long ip, const u_char * data)
             newnode->client_cnt++;
         }
         /* insert it in */
-        RB_INSERT(data_tree, &treeroot, newnode);
+        RB_INSERT(data_tree_s, &treeroot, newnode);
 
     }
     else {
@@ -301,7 +304,7 @@ tree_calculate(data_tree_t *treeroot)
     RB_FOREACH(node, data_tree_s, treeroot) {
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
-            if ((double)node->server_cnt >= (double)node->client_cnt * ratio) {
+            if ((double)node->server_cnt >= (double)node->client_cnt * options.ratio) {
                 node->type = SERVER;
             }
             else {
