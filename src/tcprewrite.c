@@ -186,6 +186,17 @@ void post_args(int argc, char *argv[])
         dbg(1, "We will %s 802.1q headers", options.vlan == VLAN_DEL ? "delete" : "add/modify");
     }
 
+    if (HAVE_OPT(SEED)) {
+        options.rewrite_ip ++;
+        options.seed = atoi(OPT_VALUE_SEED);
+    }
+
+    if (HAVE_OPT(ENDPOINTS)) {
+        options.rewrite_ip ++;
+        if (!parse_endpoints(&options.cidrmap1, &options.cidrmap2, OPT_ARG(ENDPOINTS)))
+            errx(1, "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
+    }
+
 }
 
 

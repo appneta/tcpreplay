@@ -40,12 +40,6 @@ flag = {
     arg-type    = number;
     descrip     = "Randomize src/dst IP addresses w/ given seed";
     max         = 1;
-    flag-code   = <<- EOSeed
-  
-    options.rewrite_ip ++;
-    options.seed = atoi(OPT_ARG(SEED));
-
-EOSeed;
 };
 
 flag = {
@@ -200,13 +194,6 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Rewrite IP addresses to be between two endpoints";
-    flag-code   = <<- EOEndpoints
-    
-    options.rewrite_ip ++;
-    if (!parse_endpoints(&options.cidrmap1, &options.cidrmap2, OPT_ARG(ENDPOINTS)))
-        errx(1, "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
-    
-EOEndpoints;
 };
 
 flag = {
