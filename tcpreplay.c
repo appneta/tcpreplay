@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.52 2003/05/01 23:32:17 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.53 2003/05/07 17:45:38 aturner Exp $ */
 
 #include "config.h"
 
@@ -33,6 +33,9 @@ volatile int didsig;
 int include_exclude_mode = 0;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
+char *l2data = NULL;
+int l2len = LIBNET_ETH_H;
+
 
 /* we get this from libpcap */
 extern char pcap_version[];
@@ -41,7 +44,7 @@ extern char pcap_version[];
 int debug = 0;
 #endif
 
-void replay_file(char *);
+void replay_file(char *, int, char *, int);
 
 
 void packet_stats();
@@ -50,13 +53,15 @@ void version();
 void mac2hex(const char *, char *, int);
 void configfile(char *);
 int argv_create(char *, int, char **);
+int read_l2data(char *, char **);
 
 int
 main(int argc, char *argv[])
 {
     char ebuf[256];
     int ch, i;
-    void *xX;
+    int l2enabled = 0;
+    void *xX = NULL;
 
     bytes_sent = failed = pkts_sent = 0;
     intf = intf2 = NULL;
@@ -72,10 +77,10 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?")) != -1)
+	    getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?")) != -1)
+	    getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
 #endif
 	switch (ch) {
 	case 'c':		/* cache file */
@@ -196,6 +201,10 @@ main(int argc, char *argv[])
 		xX_cidr = (CIDR *) xX;
 	    }
 	    break;
+	case '2':   /* layer 2 header file */
+	    l2enabled = 1;
+	    l2len = read_l2data(optarg, &l2data);
+	    break;
 	default:
 	    usage();
 	}
@@ -225,9 +234,32 @@ main(int argc, char *argv[])
 	options.seed = random();
 
 	dbg(1, "random() picked: %d", options.seed);
-
     }
 
+    
+    /*
+     * some options are limited if we change the type of header
+     * we're making a half-assed assumption that any header 
+     * length = LIBNET_ETH_H is actually 802.3.  This will 
+     * prolly bite some poor slob later using some wierd
+     * header type in their pcaps, but I don't really care right now
+     */
+    if (l2len != LIBNET_ETH_H) {
+       /* 
+	* we can't untruncate packets with a different lenght
+	* ethernet header because we don't take the lenghts
+	* into account when doing the pointer math
+	*/
+	if (options.trunc)
+	    errx(1, "You can't use -u with non-802.3 frames");
+
+	/*
+	 * we also can't rewrite macs for non-802.3
+	 */
+	if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) ||
+	    (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))
+	    errx(1, "You can't rewrite destination MAC's with non-802.3 frames");
+    }
 
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
 	errx(1, "Can't open %s: %s", intf, ebuf);
@@ -252,7 +284,7 @@ main(int argc, char *argv[])
 		/* reset cache markers for each iteration */
 		cache_byte = 0;
 		cache_bit = 0;
-		replay_file(argv[i]);
+		replay_file(argv[i], l2enabled, l2data, l2len);
 	    }
 	}
     }
@@ -262,7 +294,7 @@ main(int argc, char *argv[])
 		/* reset cache markers for each iteration */
 		cache_byte = 0;
 		cache_bit = 0;
-		replay_file(argv[i]);
+		replay_file(argv[i], l2enabled, l2data, l2len);
 	    }
 	}
     }
@@ -276,17 +308,26 @@ main(int argc, char *argv[])
 
 
 void
-replay_file(char *path)
+replay_file(char *path, int l2enabled, char *l2data, int l2len)
 {
     pcap_t *pcap;
     char errbuf[PCAP_ERRBUF_SIZE];
-
+    u_int32_t linktype = 0;
 
     if ((pcap = pcap_open_offline(path, errbuf)) == NULL) {
 	errx(1, "Error opening file: %s", errbuf);
     }
 
-    do_packets(pcap);
+    /* check what kind of pcap we've got */
+    linktype = pcap_datalink(pcap);
+
+    /* if not ethernet and we don't have a l2data file, barf */
+    if ((linktype != DLT_EN10MB) && (! l2enabled)) {
+	warnx("Unable to process non-802.3 pcap without layer 2 data file: %s", path);
+	return;
+    }
+
+    do_packets(pcap, linktype, l2enabled, l2data, l2len);
     pcap_close(pcap);
 }
 
@@ -380,6 +421,29 @@ argv_create(char *p, int argc, char *argv[])
     return (i);
 }
 
+int
+read_l2data(char *file, char **l2data)
+{
+    int fd, bytes;
+
+    *l2data = (char *)malloc(L2DATALEN);
+    bzero(*l2data, L2DATALEN);
+
+
+    if ((fd = open(file, O_RDONLY)) == -1)
+	errx(1, "Could not open layer 2 data file %s: %s", file, strerror(errno));
+
+    if ((bytes = read(fd, *l2data, L2DATALEN)) < 0)
+	errx(1, "Error reading layer 2 data file: %s", strerror(errno));
+
+    if (close(fd) == -1) 
+	errx(1, "Error closing layer 2 data file: %s", strerror(errno));
+
+    dbg(1, "Read %d bytes of layer 2 data", bytes);
+    return bytes;
+}
+
+
 void
 configfile(char *file)
 {
@@ -414,6 +478,9 @@ configfile(char *file)
 	else if (ARGS("debug", 1)) {
 	    debug = 1;
 #endif
+	}
+	else if (ARGS("l2datafile", 2)) {
+	    l2len = read_l2data(argv[1], &l2data);
 	}
 	else if (ARGS("intf", 2)) {
 	    intf = strdup(argv[1]);
@@ -546,7 +613,8 @@ usage()
 	    "-l <loop>\t\tSpecify number of times to loop\n"
 	    "-m <multiple>\t\tSet replay speed to given multiple\n"
 	    "-M\t\t\tDisable sending martian IP packets\n"
-	    "-p <sec.usec>\t\tPause sec.usecs between packets\n"
+	    "-p <sec.usec>\t\tPause sec.usecs between packets\n");
+    fprintf(stderr, 
 	    "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 	    "-R\t\t\tSet replay speed to as fast as possible\n"
 	    "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
@@ -555,6 +623,7 @@ usage()
 	    "-V\t\t\tVersion\n"
 	    "-x <match>\t\tOnly send the packets specified\n"
 	    "-X <match>\t\tSend all the packets except those specified\n"
+	    "-2 <datafile>\t\tLayer 2 data\n"
 	    "<file1> <file2> ...\tFile list to replay\n");
     exit(1);
 }

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.29 2003/03/24 04:59:58 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.30 2003/05/07 17:45:38 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -45,6 +45,8 @@ struct options {
     long int seed;
     char **files;
     char *cache_files;
+    char *layer2file;
+    int l2len;
 };
 
 /* internal representation of a packet */
@@ -54,7 +56,6 @@ struct packet {
     int actual_len;		/* actual length of the packet */
     struct timeval ts;		/* timestamp */
 };
-
 
 #define RESOLVE 0		/* disable dns lookups */
 
@@ -66,6 +67,8 @@ struct packet {
 #define AUTO_MODE 4		/* first pass through in auto mode */
 #define ROUTER_MODE 8		/* second pass through in router/auto mode */
 #define BRIDGE_MODE 32		/* second pass through in bridge/auto mode */
+
+#define L2DATALEN 255           /* Max size of the L2 data file */
 
 #define DNS_QUERY_FLAG 0x8000
 
