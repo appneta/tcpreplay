@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.12 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.13 2004/02/03 22:49:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -34,12 +34,15 @@
 #include <pcap.h>
 
 #include "tcpreplay.h"
+#include "edit_packet.h"
+#include "cidr.h"
 #include "sll.h"
 #include "err.h"
 
 extern int maxpacket;
 extern struct options options;
 void *get_layer4(ip_hdr_t *);
+extern CIDRMAP *cidrmap_data;
 
 /*
  * this code re-calcs the IP and Layer 4 checksums
@@ -68,8 +71,9 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr, libnet_t * l)
 /*
  * randomizes the source and destination IP addresses based on a 
  * pseudo-random number which is generated via the seed.
+ * return 1 since we changed one or more IP addresses
  */
-void
+int
 randomize_ips(struct pcap_pkthdr *pkthdr, u_char * pktdata,
               ip_hdr_t * ip_hdr, libnet_t * l, int l2len)
 {
@@ -88,9 +92,7 @@ randomize_ips(struct pcap_pkthdr *pkthdr, u_char * pktdata,
     dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
         ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
 
-    /* fix checksums */
-    fix_checksums(pkthdr, ip_hdr, l);
-
+    return(1);
 }
 
 
@@ -98,16 +100,17 @@ randomize_ips(struct pcap_pkthdr *pkthdr, u_char * pktdata,
  * this code will untruncate a packet via padding it with null
  * or resetting the actual packet len to the snaplen.  In either case
  * it will recalcuate the IP and transport layer checksums.
+ * return 0 if no change, 1 if change
  */
 
-void
+int
 untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
                ip_hdr_t * ip_hdr, libnet_t * l, int l2len)
 {
 
     /* if actual len == cap len or there's no IP header, don't do anything */
     if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL)) {
-        return;
+        return(0);
     }
 
     /* Pad packet or truncate it */
@@ -124,7 +127,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
 
     /* fix checksums */
     fix_checksums(pkthdr, ip_hdr, l);
-
+    return(1);
 }
 
 
@@ -432,6 +435,144 @@ extract_data(u_char * pktdata, int caplen, int l2len, char *l7data[])
   nodata:
     dbg(2, "packet has no data, skipping...");
     return 0;
+}
+
+/*
+ * takes a CIDR notation netblock and uses that to "remap" given IP
+ * onto that netblock.  ie: 10.0.0.0/8 and 192.168.55.123 -> 10.168.55.123
+ * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
+ */
+u_int32_t
+remap_ip(CIDR *cidr, const u_int32_t original)
+{
+    u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
+
+    mask = ~0; /* turn on all the bits */
+
+    /* shift over by correct # of bits */
+    mask = mask << (32 - cidr->masklen);
+
+    /* apply the mask to the network */
+    network = htonl(cidr->network) & mask;
+
+    /* apply the reverse of the mask to the IP */
+    mask = mask ^ ~0;
+    ipaddr = ntohl(original) & mask;
+
+    /* merge the network portion and ip portions */
+    result = network ^ ipaddr;
+    
+    /* return the result in network byte order */
+    return(htonl(result));
+}
+
+/*
+ * rewrite IP address (layer3)
+ * uses -a to rewrite (map) one subnet onto another subnet
+ * return 0 if no change, 1 or 2 if changed
+ */
+int
+rewrite_ipl3(ip_hdr_t * ip_hdr)
+{
+    CIDRMAP *cidrmap = NULL;
+    int didsrc = 0, diddst = 0;
+
+
+    /* anything to rewrite? */
+    if (cidrmap_data == NULL)
+        return(0);
+    
+    /* don't ever play with the ptr */
+    cidrmap = cidrmap_data;
+
+    /* loop through the cidrmap to rewrite */
+    do {
+        if (ip_in_cidr(cidrmap->from, ip_hdr->ip_dst.s_addr) && (! diddst)) {
+            ip_hdr->ip_dst.s_addr = remap_ip(cidrmap->to, ip_hdr->ip_dst.s_addr);
+            diddst = 1;
+        }
+        if (ip_in_cidr(cidrmap->from, ip_hdr->ip_src.s_addr) && (! didsrc)) {
+            ip_hdr->ip_src.s_addr = remap_ip(cidrmap->to, ip_hdr->ip_src.s_addr);
+            didsrc = 1;
+        }
+
+        /* go to the next case if at end of map or did both src and dst */
+        if (cidrmap->next != NULL || (diddst && didsrc)) {
+            cidrmap = cidrmap->next;
+        } else {
+            cidrmap = NULL;
+        }
+
+        /* Later on we should support various IP protocols which embed
+         * the IP address in the application layer.  Things like
+         * DNS and FTP.
+         */
+
+    } while (cidrmap != NULL);
+
+    /* return wether we changed an IP or not */
+    return (diddst + didsrc);
+}
+
+/*
+ * rewrite IP address (arp)
+ * uses -a to rewrite (map) one subnet onto another subnet
+ * pointer must point to the WHOLE and CONTIGOUS memory buffer
+ * because the arp_hdr_t doesn't have the space for the IP/MAC
+ * addresses
+ * return 0 if no change, 1 or 2 if changed
+ */
+int
+rewrite_iparp(arp_hdr_t *arp_hdr)
+{
+    u_char *add_hdr = NULL;
+    u_int32_t *ip1 = NULL, *ip2 = NULL;
+    u_int32_t newip = 0;
+    CIDRMAP *cidrmap = NULL;
+    int didsrc = 0, diddst = 0;
+
+    /* anything to rewrite? */
+    if (cidrmap_data == NULL)
+        return(0);
+
+    /* don't ever play with the ptr */
+    cidrmap = cidrmap_data;
+
+    if (ntohs(arp_hdr->ar_pro) == ETHERTYPE_IP) {
+        /* jump to the addresses */
+        add_hdr = (u_char *)arp_hdr;
+        add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
+        ip1 = (u_int32_t *)add_hdr;
+        add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
+        ip2 = (u_int32_t *)add_hdr;
+
+        /* loop through the cidrmap to rewrite */
+        do {
+            if (ip_in_cidr(cidrmap->from, *ip1) && (! diddst)) {
+                newip = remap_ip(cidrmap->to, *ip1);
+                memcpy(ip1, &newip, 4);
+                diddst = 1;
+            }
+            if (ip_in_cidr(cidrmap->from, *ip2) && (! didsrc)) {
+                newip = remap_ip(cidrmap->to, *ip2);
+                memcpy(ip2, &newip, 4);
+                didsrc = 1;
+            }
+            
+            /* go to the next case if at end of map or did both src and dst */
+            if (cidrmap->next != NULL || (diddst && didsrc)) {
+                cidrmap = cidrmap->next;
+            } else {
+                cidrmap = NULL;
+            } 
+
+        } while (cidrmap != NULL);
+        
+    } else {
+        warnx("ARP packet isn't for IPv4!  Can't rewrite IP's");
+    }
+
+    return(didsrc + diddst);
 }
 
 /*
