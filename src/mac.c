@@ -71,19 +71,20 @@ mac2hex(const char *mac, char *dst, int len)
  * 1 = first mac
  * 2 = second mac
  * 3 = both mac's
+ * 0 = none
  */
 int
 dualmac2hex(const char *dualmac, char *first, char *second, int len)
 {
     char *tok, *temp, *string;
-    int ret;
+    int ret = 0;
 
     string = safe_strdup(dualmac);
 
     /* if we've only got a comma, then return NULL's */
     if (len <= 1) {
         second = first = NULL;
-        return;
+        return 0;
     }
 
         
