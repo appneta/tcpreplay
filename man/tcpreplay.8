@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.19 2004/01/15 07:31:25 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.20 2004/01/31 22:09:21 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -86,7 +86,7 @@ CIDR...
 .B \-2 l2data
 ] [
 .B \-v
-.B \-d 
+.B \-A
 "\fBargs\fP"
 ]
 .I pcap_file(s)
@@ -94,7 +94,7 @@ CIDR...
 .LP
 .I tcpreplay
 is a tool for replaying network traffic from files saved with 
-\fItcpdump(8)\fP.
+\fItcpdump(1)\fP.
 .LP
 The basic operation of
 .I tcpreplay
@@ -116,6 +116,20 @@ proxy-arp to forward packets.
 .SH OPTIONS
 .LP
 .TP
+.B \-A or "tcpdump_args"
+When enabling verbose mode (-v) you may also specify one or more 
+additional arguments to pass to \fItcpdump(1)\fR to modify the way
+packets are decoded.  By default, -n and -l are used.  Be sure to
+quote the arguments like: -A "-axxx" so that they are not interpreted by
+tcpreplay.  The following arguments are vaild:
+.br
+ [ -aAeNqRStuvxX ]
+.br 
+ [ -E spi@ipaddr algo:secret,...]
+.br  
+ [ -s snaplen ]
+.TP
+.TP
 .B \-c or "cachefile"
 Specify the \fItcpprep cache\fR to use to process packets.
 .TP
@@ -129,6 +143,7 @@ and do not contain spaces, \fI192.168.0.0/28,10.0.0.0/16\fR and
 .B \-D or "datadump_mode"
 When used in conjunction with -w and -W, rather then dumping the entire
 packets to the files, only the layer 7 data is dumped.
+.TP
 .B \-f 
 Specify a file that contains configuration options. 
 Option tokens are listed below next to the corresponding command-line flag.
@@ -219,16 +234,7 @@ unmodified.
 .TP
 .B \-v or "verbose"
 .br
-Verbose mode, dump decoded packets via tcpdump to STDOUT.  You may also 
-specify one or more of the following \fItcpdump(8)\fR arguments to modify 
-how the packets are decoded:
-.br
-"[ -aAenNqRStuvxX ]
-.br
- [ -E spi@ipaddr algo:secret,...]
-.br 
- [ -s snaplen ]"
-.TP
+Verbose mode, dump decoded packets via tcpdump to STDOUT.  
 .TP
 .B \-V
 Print version info and exit.
@@ -259,7 +265,7 @@ P:<list>      - Must be one of the listed packets where the list corresponds to 
 packet number in the capture file.  Ex: -x P:1-5,9,15 would only send packets 1 
 through 5, 9 and 15.
 .br
-F:"<filter>"  - BPF filter.  See the tcpdump(8) man page for syntax.
+F:"<filter>"  - BPF filter.  See the tcpdump(1) man page for syntax.
 .TP
 .B \-X or "exclude"
 Specifies which packets from the capture file(s) to NOT send.  Can be one of:
@@ -294,7 +300,7 @@ Suspend tcpreplay.
 .B SIGCONT
 Restart tcpreplay after it has been suspended.
 .SH "SEE ALSO"
-tcpdump(8), tcpprep(1), capinfo(1)
+tcpdump(1), tcpprep(1), capinfo(1)
 .SH AUTHORS
 Aaron Turner <aturner@pobox.com>
 .br
@@ -312,4 +318,4 @@ The current version is available via HTTP:
 .SH LIMITATIONS
 Please see the tcpreplay FAQ for a list of limitations and any possible
 work-arounds:
-.I http://tcpreplay.sourceforge.net/FAQ.html
+.I http://tcpreplay.sourceforge.net/
