@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.17 2003/12/11 03:06:45 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.18 2003/12/21 20:07:18 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -49,6 +49,8 @@ tcpreplay \- replay packets from capture files
 |
 .B \-p
 .I packetrate
+|
+.B \-1
 ] [
 .B \-n
 ] [
@@ -260,6 +262,9 @@ E:<CIDR1>,... - Either src or dst address must match
 P:<list>      - Must be one of the listed packets where the list corresponds to the
 packet number in the capture file.  Ex: -X P:1-5,9,15 would send all packets except 1 
 through 5, 9 and 15.
+.TP
+.B \-1 or one_at_a_time
+Resend one packet at a time, once for each keypress.
 .TP
 .B \-2 or l2data
 Specifies a string of comma seperated numbers in hex to be used instead of the Layer
