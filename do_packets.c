@@ -1,4 +1,5 @@
 #include <libnet.h>
+#include <pcap.h>
 #include <math.h>
 #include <sys/time.h>
 #include <signal.h>
@@ -53,36 +54,53 @@ catcher(int signo)
  */
 
 void
-do_packets(int fd, int (*get_next)(int, struct packet *))
+do_packets(pcap_t *pcap)
 {
-	struct libnet_ethernet_hdr *eth_hdr = NULL;
+	eth_hdr_t *eth_hdr = NULL;
+	ip_hdr_t *ip_hdr = NULL;
 	libnet_t *l = NULL;
-	u_char packetbuff[MAXPACKET];
-	ip_hdr_t *ip_hdr;
-	struct packet pkt;
+
+	struct pcap_pkthdr pkthdr;      /* libpcap packet info */
+	const u_char *nextpkt = NULL;   /* packet buffer from libpcap */
+	u_char pktdata[MAXPACKET];      /* full packet buffer */
+#ifdef STRICT_ALIGN
+	u_char ipbuff[MAXPACKET];       /* IP header and above buffer */
+#endif
+
 	struct timeval last;
 	int ret;
 	unsigned long packetnum = 0;
 
 
-	/* 
-	 * point the ip_hdr to the temp packet buff
-	 * This holds layer 3 and up!  We need to do this so we can 
-	 * correctly calculate checksums @ layer 4
-	 */
-	ip_hdr = &packetbuff;
-	
 	/* register signals */
 	didsig = 0;
 	(void)signal(SIGINT, catcher);
 
 	timerclear(&last);
 
-	while ( (*get_next) (fd, &pkt) ) {
+	while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
 		if (didsig) {
 			packet_stats();
 			_exit(1);
 		}
+
+		/* verify that the packet isn't > MAXPACKET */
+		if (pkthdr.caplen > MAXPACKET) {
+			errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
+				 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h", 
+				 pkthdr.caplen, MAXPACKET);
+		}
+
+		/* zero out the old packet info */
+		memset(&pktdata, '\0', sizeof(pktdata));
+
+		/*
+		 * since libpcap returns a pointer to a buffer 
+		 * malloc'd to the snaplen which might screw up
+		 * an untruncate situation, we have to memcpy
+		 * the packet to a static buffer
+		 */
+		memcpy(&pktdata, nextpkt, sizeof(nextpkt));
 
 		packetnum ++;
 
@@ -98,11 +116,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		}
 			
 
-		eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
-		memset(&packetbuff, '\0', sizeof(packetbuff));
+		eth_hdr = (eth_hdr_t *)&pktdata;
 
 		/* does packet have an IP header?  if so set our pointer to it */
 		if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
+#ifdef FORCE_ALIGN
 			/* 
 			 * copy layer 3 and up to our temp packet buffer
 			 * for now on, we have to edit the packetbuff because
@@ -110,7 +128,15 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			 * back onto the pkt.data + LIBNET_ETH_H buffer
 			 * we do all this work to prevent byte alignment issues
 			 */
-			memcpy(ip_hdr, (pkt.data + LIBNET_ETH_H), pkt.len - LIBNET_ETH_H);
+			ip_hdr = (ip_hdr_t *)&ipbuff;
+			memcpy(ip_hdr, (&pktdata + LIBNET_ETH_H), pkthdr.caplen - LIBNET_ETH_H);
+#else
+			/*
+			 * on non-strict byte align systems, don't need to memcpy(), 
+			 * just point to 14 bytes into the existing buffer
+			 */
+			ip_hdr = (ip_hdr_t *)(&pktdata + LIBNET_ETH_H);
+#endif
 			
 			/* look for include or exclude CIDR match */
 			if (xX_cidr != NULL) {
@@ -166,28 +192,30 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 		/* Untruncate packet? Only for IP packets */
 		if (options.trunc) {
-		    untrunc_packet(&pkt, ip_hdr, (void *)l);
+		    untrunc_packet(&pkthdr, pktdata, ip_hdr, (void *)l);
 		}
 
 
 		/* do we need to spoof the src/dst IP address? */
 		if (options.seed && ip_hdr->ip_hl != 0) {
-			randomize_ips(&pkt, ip_hdr, (void *)l);
+			randomize_ips(&pkthdr, pktdata, ip_hdr, (void *)l);
 		}
 	
 
+#ifdef STRICT_ALIGN
 		/* 
 		 * put back the layer 3 and above back in the pkt.data buffer 
 		 * we can't edit the packet at layer 3 or above beyond this point
 		 */
-		memcpy((pkt.data + LIBNET_ETH_H), ip_hdr, pkt.len - LIBNET_ETH_H);
+		memcpy(&(pktdata + LIBNET_ETH_H), ip_hdr, pkthdr.caplen - LIBNET_ETH_H);
+#endif
 
 		if (!options.topspeed)
-			do_sleep(&pkt.ts, &last, pkt.len);
+			do_sleep(&pkthdr.ts, &last, pkthdr.caplen);
 
 		/* Physically send the packet */
 		do {
-			ret = libnet_adv_write_link(l, (u_char*)pkt.data, pkt.len);
+			ret = libnet_adv_write_link(l, pktdata, pkthdr.caplen);
 			if (ret == -1) {
 				/* Make note of failed writes due to full buffers */
 				if (errno == ENOBUFS) {
@@ -198,10 +226,10 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			}
 		} while (ret == -1);
 
-		bytes_sent += pkt.len;
+		bytes_sent += pkthdr.caplen;
 		pkts_sent++;
 
-		last = pkt.ts;
+		last = pkthdr.ts;
 	}
 }
 
@@ -209,7 +237,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
  * randomizes the source and destination IP addresses based on a 
  * pseudo-random number which is generated via the seed.
  */
-void randomize_ips(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
+void randomize_ips(struct pcap_pkthdr *pkthdr, u_char *pktdata, ip_hdr_t *ip_hdr, void *l)
 {
 	/* randomize IP addresses based on the value of random */
 #ifdef DEBUG
@@ -235,13 +263,13 @@ void randomize_ips(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 	/* recalc the UDP/TCP checksum(s) */
 	if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 		if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, ip_hdr->ip_p,
-							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+							   pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 			warnx("Layer 4 checksum failed");
 	}
 
 	/* recalc IP checksum */
 	if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, IPPROTO_IP,
-						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+						   pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 
 }
@@ -338,20 +366,20 @@ cidr_mode(struct libnet_ethernet_hdr *eth_hdr, ip_hdr_t *ip_hdr)
  */
 
 void
-untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
+untrunc_packet(struct pcap_pkthdr *pkthdr, u_char *pktdata, ip_hdr_t *ip_hdr, void *l)
 {
 
 	/* if actual len == cap len or there's no IP header, don't do anything */
-	if ((pkt->len == pkt->actual_len) || (ip_hdr == NULL)) {
+	if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL)) {
 		return;
 	}
 
 	/* Pad packet or truncate it */
 	if (options.trunc == PAD_PACKET) {
-		memset(pkt->data + pkt->len, 0, sizeof(pkt->data) - pkt->len);
-		pkt->len = pkt->actual_len;
+		memset(pktdata + pkthdr->caplen, 0, sizeof(pktdata) - pkthdr->caplen);
+		pkthdr->caplen = pkthdr->len;
 	} else if (options.trunc == TRUNC_PACKET) {
-		ip_hdr->ip_len = htons(pkt->len);
+		ip_hdr->ip_len = htons(pkthdr->caplen);
 	} else {
 		errx(1, "Hello!  I'm not supposed to be here!");
 	}
@@ -359,14 +387,14 @@ untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 	/* recalc the UDP/TCP checksum(s) */
 	if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 		if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, ip_hdr->ip_p,
-							   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+							   pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 			warnx("Layer 4 checksum failed");
 	}
 
 	
 	/* recalc IP checksum */
 	if (libnet_do_checksum((libnet_t *)l, (u_char *)ip_hdr, IPPROTO_IP,
-						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+						   pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 		warnx("IP checksum failed");
 
 }

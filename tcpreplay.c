@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.42 2002/12/18 07:06:23 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.43 2003/01/06 00:29:32 aturner Exp $ */
 
 #include "config.h"
 
@@ -6,6 +6,7 @@
 #include <err.h>
 #include <fcntl.h>
 #include <libnet.h>
+#include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,8 +16,6 @@
 #include "tcpreplay.h"
 #include "cache.h"
 #include "cidr.h"
-#include "libpcap.h"
-#include "snoop.h"
 #include "list.h"
 #include "err.h"
 #include "do_packets.h"
@@ -254,32 +253,16 @@ main(int argc, char *argv[])
 void
 replay_file(char *path)
 {
-	int fd;
+	pcap_t *pcap;
+	char errbuf[PCAP_ERRBUF_SIZE];
 
-	if (!strcmp(path, "-")) {
-		fd = STDIN_FILENO;
-	} else if ((fd = open(path, O_RDONLY, 0)) < 0) {
-		warn("skipping %s: could not open", path);
-		return;
+
+	if ((pcap = pcap_open_offline(path, &errbuf)) == NULL) {
+		errx(1, "Error opening file: %s : %s", path, &errbuf);
 	}
 
-	if (is_snoop(fd)) {
-#ifdef DEBUG
-		if (debug)
-			warnx("File %s is a snoop file", path);
-#endif
-		do_packets(fd, get_next_snoop);
-		(void)close(fd);
-	} else if (is_pcap(fd)) {
-#ifdef DEBUG
-		if (debug)
-			warnx("File %s is a pcap file", path);
-#endif
-		do_packets(fd, get_next_pcap);
-		(void)close(fd);
-	} else {
-		warnx("skipping %s: unknown format", path);
-	}
+	do_packets(pcap);
+	pcap_close(pcap);
 }
 
 
