@@ -308,7 +308,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TCPREPLAY_VERSION TCPREPLAY_RELEASE build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP LN_S RANLIB ac_ct_RANLIB AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE PRINTF EGREP debug_flag LIBOBJS LNETINC LNETLIB LPCAPINC LPCAPLIB nic1 nic2 LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TCPREPLAY_VERSION TCPREPLAY_RELEASE build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP LN_S RANLIB ac_ct_RANLIB AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE PRINTF EGREP debug_flag LIBOBJS LNETINC LNETLIB LPCAPINC LPCAPLIB PCAPNAV_CONFIG PCAPNAV_CFLAGS PCAPNAV_LIBS LNAVLIB LNAV_CFLAGS nic1 nic2 LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -862,6 +862,10 @@ Optional Packages:
   --with-gprof            Enable GNU Profiler
   --with-libnet=DIR       use libnet in DIR
   --with-libpcap=DIR      use libpcap in DIR
+  --with-pcapnav-config=FILE
+                          Use given pcapnav-config
+  --with-pcapnav-prefix=PFX       Prefix where pcapnav is installed (optional)
+  --with-pcapnav-exec-prefix=PFX Exec prefix where pcapnav is installed (optional)
   --with-testnic=NIC      Select which network card to use for testing
   --with-testnic2=NIC2    Select an optional 2nd network card to use for testing
 
@@ -5268,7 +5272,8 @@ done
 
 
 
-for ac_func in gettimeofday ctime memset regcomp strdup strerror strtol
+
+for ac_func in gettimeofday ctime memset regcomp strdup strerror strtol strncpy
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:$LINENO: checking for $ac_func" >&5
@@ -5829,6 +5834,134 @@ echo "$as_me: error: Libpcap versions < 0.6 are no longer supported.
 fi
 
 LIBS="$OLDLIBS"
+
+
+# Check whether --with-pcapnav-config or --without-pcapnav-config was given.
+if test "${with_pcapnav_config+set}" = set; then
+  withval="$with_pcapnav_config"
+   pcncfg="$withval"
+else
+
+
+# Check whether --with-pcapnav-prefix or --without-pcapnav-prefix was given.
+if test "${with_pcapnav_prefix+set}" = set; then
+  withval="$with_pcapnav_prefix"
+  pcapnav_config_prefix="$withval"
+else
+  pcapnav_config_prefix=""
+fi;
+
+# Check whether --with-pcapnav-exec-prefix or --without-pcapnav-exec-prefix was given.
+if test "${with_pcapnav_exec_prefix+set}" = set; then
+  withval="$with_pcapnav_exec_prefix"
+  pcapnav_config_exec_prefix="$withval"
+else
+  pcapnav_config_exec_prefix=""
+fi;
+
+  if test x$pcapnav_config_exec_prefix != x ; then
+     pcapnav_config_args="$pcapnav_config_args --exec-prefix=$pcapnav_config_exec_prefix"
+     if test x${PCAPNAV_CONFIG+set} != xset ; then
+       PCAPNAV_CONFIG=$pcapnav_config_exec_prefix/bin/pcapnav-config
+     fi
+  fi
+  if test x$pcapnav_config_prefix != x ; then
+     pcapnav_config_args="$pcapnav_config_args --prefix=$pcapnav_config_prefix"
+     if test x${PCAPNAV_CONFIG+set} != xset ; then
+       PCAPNAV_CONFIG=$pcapnav_config_prefix/bin/pcapnav-config
+     fi
+  fi
+
+  # Extract the first word of "pcapnav-config", so it can be a program name with args.
+set dummy pcapnav-config; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_PCAPNAV_CONFIG+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $PCAPNAV_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PCAPNAV_CONFIG="$PCAPNAV_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_PCAPNAV_CONFIG="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_path_PCAPNAV_CONFIG" && ac_cv_path_PCAPNAV_CONFIG="no"
+  ;;
+esac
+fi
+PCAPNAV_CONFIG=$ac_cv_path_PCAPNAV_CONFIG
+
+if test -n "$PCAPNAV_CONFIG"; then
+  echo "$as_me:$LINENO: result: $PCAPNAV_CONFIG" >&5
+echo "${ECHO_T}$PCAPNAV_CONFIG" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  echo "$as_me:$LINENO: checking for pcapnav" >&5
+echo $ECHO_N "checking for pcapnav... $ECHO_C" >&6
+  no_pcapnav=""
+  if test "$PCAPNAV_CONFIG" = "no" ; then
+     no_pcapnav=yes
+  else
+     PCAPNAV_CFLAGS="`$PCAPNAV_CONFIG $pcapnav_config_args --cflags`"
+     PCAPNAV_LIBS="`$PCAPNAV_CONFIG $pcapnav_config_args --libs`"
+
+  fi
+  if test "x$no_pcapnav" = x ; then
+     echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+     pcncfg="pcapnav-config"
+  else
+     echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+     if test "$PCAPNAV_CONFIG" = "no" ; then
+       echo "*** The pcapnav-config script installed by pcapnav could not be found"
+       echo "*** If pcapnav was installed in PREFIX, make sure PREFIX/bin is in"
+       echo "*** your path, or set the PCAPNAV_CONFIG environment variable to the"
+       echo "*** full path to pcapnav-config."
+     fi
+     PCAPNAV_CFLAGS=""
+     PCAPNAV_LIBS=""
+     { { echo "$as_me:$LINENO: error: Cannot find libpcapnav: Is pcapnav-config in path?" >&5
+echo "$as_me: error: Cannot find libpcapnav: Is pcapnav-config in path?" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
+
+
+
+
+
+
+fi;
+
+LNAVLIB=`$pcncfg --libs`
+LPNAV_CFLAGS=`$pcncfg --cflags`
+PCAPNAV_VERSION=`$pcncfg --version`
+
+
+cat >>confdefs.h <<_ACEOF
+#define PCAPNAV_VERSION "$PCAPNAV_VERSION"
+_ACEOF
+
+echo "$as_me:$LINENO: checking for libpcapnav version" >&5
+echo $ECHO_N "checking for libpcapnav version... $ECHO_C" >&6
+echo "$as_me:$LINENO: result: $PCAPNAV_VERSION" >&5
+echo "${ECHO_T}$PCAPNAV_VERSION" >&6
 
 echo "$as_me:$LINENO: checking for requires strict byte alignment" >&5
 echo $ECHO_N "checking for requires strict byte alignment... $ECHO_C" >&6
@@ -6627,6 +6760,11 @@ s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
 s,@LPCAPLIB@,$LPCAPLIB,;t t
+s,@PCAPNAV_CONFIG@,$PCAPNAV_CONFIG,;t t
+s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
+s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
+s,@LNAVLIB@,$LNAVLIB,;t t
+s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -7740,6 +7878,11 @@ s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
 s,@LPCAPLIB@,$LPCAPLIB,;t t
+s,@PCAPNAV_CONFIG@,$PCAPNAV_CONFIG,;t t
+s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
+s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
+s,@LNAVLIB@,$LNAVLIB,;t t
+s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -8854,6 +8997,11 @@ s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
 s,@LPCAPLIB@,$LPCAPLIB,;t t
+s,@PCAPNAV_CONFIG@,$PCAPNAV_CONFIG,;t t
+s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
+s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
+s,@LNAVLIB@,$LNAVLIB,;t t
+s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t

@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.46 2003/07/17 04:59:39 aturner Exp $
+# $Id: Makefile.in,v 1.47 2003/11/03 02:19:50 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -14,6 +14,8 @@ LDFLAGS		= @LDFLAGS@
 DEFS		= @DEFS@
 INCS		= @LNETINC@ -I.
 LIBS		= @LIBS@ @LNETLIB@ @LPCAPLIB@
+LNAVLIB		= @LNAVLIB@
+LNAV_CFLAGS	= @LNAV_CFLAGS@
 
 INSTALL		= @INSTALL@
 
@@ -45,7 +47,7 @@ tcpprep: $(POBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(POBJS) $(LDFLAGS) $(LIBS)
 
 tcpreplay: $(TOBJS)
-	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(TOBJS) $(LDFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) $(LNAV_CFLAGS) $(DEFS) $(INCS) -o $@ $(TOBJS) $(LDFLAGS) $(LIBS) $(LNAVLIB)
 
 capinfo: $(COBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(COBJS) $(LDFLAGS) $(LIBS)

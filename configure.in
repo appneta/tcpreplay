@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.45 2003/10/21 04:36:23 aturner Exp $
+dnl $Id: configure.in,v 1.46 2003/11/03 02:19:51 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -136,7 +136,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol])
+AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy])
 
 dnl Check for inet_aton and inet_addr
 AC_CHECK_FUNC(inet_aton, AC_DEFINE(INET_ATON) inet_aton=yes, inet_aton=no)
@@ -145,7 +145,7 @@ AC_CHECK_FUNC(inet_addr, AC_DEFINE(INET_ADDR) inet_addr=yes, inet_addr=no)
 if test $inet_aton = no -a $inet_addr = no ; then
 	AC_MSG_ERROR("We need either inet_aton or inet_addr")
 fi
-	
+
 dnl Checks for libnet (shamelessly horked from dsniff)
 AC_MSG_CHECKING(for libnet)
 AC_ARG_WITH(libnet,
@@ -335,6 +335,25 @@ fi
 
 dnl restore LIBS
 LIBS="$OLDLIBS"
+
+dnl ##################################################
+dnl # Check for pcapnav
+dnl ##################################################
+AC_ARG_WITH(pcapnav-config,
+    AC_HELP_STRING([--with-pcapnav-config=FILE], [Use given pcapnav-config]),
+    [ pcncfg="$withval" ],
+    [ AC_PATH_GENERIC(pcapnav,,
+          pcncfg="pcapnav-config",
+          AC_MSG_ERROR(Cannot find libpcapnav: Is pcapnav-config in path?)) ])
+
+LNAVLIB=`$pcncfg --libs`
+LPNAV_CFLAGS=`$pcncfg --cflags`
+PCAPNAV_VERSION=`$pcncfg --version`
+AC_SUBST(LNAVLIB)
+AC_SUBST(LNAV_CFLAGS)
+AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION")
+AC_MSG_CHECKING(for libpcapnav version)
+AC_MSG_RESULT($PCAPNAV_VERSION)
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail

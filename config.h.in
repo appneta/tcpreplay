@@ -1,6 +1,9 @@
 /* Our code version */
 #undef VERSION
 
+/* Version of libpcapnav */
+#undef PCAPNAV_VERSION
+
 /* Define to 'uint8_t' if <sys/types.h> doesn't define. */
 #undef u_int8_t
 
