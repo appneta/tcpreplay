@@ -37,10 +37,10 @@
 #include <stdlib.h>             /* malloc/free */
 
 #include "flowreplay.h"
+#include "flowreplay_opts.h"
 #include "flownode.h"
 
-extern int32_t pernodebufflim;
-extern int32_t totalbufflim;
+extern flowreplay_opt_t options;
 
 /*
  * adds a packet read from pcap_next() to the chain of buffered
@@ -48,21 +48,21 @@ extern int32_t totalbufflim;
  * the new buffer or NULL on fail
  */
 struct pktbuffhdr_t *
-addpkt2buff(struct session_t *node, u_char * pktdata, u_int32_t len)
+addpkt2buff(struct session_t *node, u_char *pktdata, u_int32_t len)
 {
     struct pktbuffhdr_t *buffhdr = NULL;    /* packet buffer hdr */
 
     /* check per node buffer limit */
-    if ((node->buffmem + len) > pernodebufflim) {
+    if ((node->buffmem + len) > options.pernodebufflim) {
         warn("Unable to buffer next packet: per node buffer limit reached");
         return (NULL);
     }
 
     /* check total buffer limit */
-    totalbufflim -= len;
-    if (totalbufflim < 0) {
+    options.totalbufflim -= len;
+    if (options.totalbufflim < 0) {
         warn("Unable to buffer next packet: total buffer limit reached");
-        totalbufflim += len;    /* reset */
+        options.totalbufflim += len;    /* reset */
         return (NULL);
     }
 
@@ -113,7 +113,7 @@ nextbuffpkt(struct session_t *node, u_int32_t len)
     if (node->sentbuff != NULL) {
         free(node->sentbuff->packet);
         node->buffmem -= node->sentbuff->len;
-        totalbufflim += len;
+        options.totalbufflim += len;
         free(node->sentbuff);
     }
 

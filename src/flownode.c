@@ -35,14 +35,14 @@
 #include "common.h"
 
 #include "flowreplay.h"
+#include "flowreplay_opts.h"
 #include "flownode.h"
 #include "flowkey.h"
 #include "flowstate.h"
 
 extern struct session_tree tcproot, udproot;
-extern int nfds, NoSyn;
-extern struct in_addr targetaddr;
-extern cidr_t *clients, *servers;
+extern int nfds;
+extern flowreplay_opt_t options;
 
 /* prepare the RB trees for tcp and udp sessions */
 RB_PROTOTYPE(session_tree, session_t, node, rbsession_comp)
@@ -124,7 +124,7 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
         tcp_hdr = (tcp_hdr_t *) l4;
 
         /* No new flows for non-Syn packets, unless NoSyn is set */
-        if ((tcp_hdr->th_flags != TH_SYN) && (NoSyn == 0)) {
+        if ((tcp_hdr->th_flags != TH_SYN) && (options.nosyn == 0)) {
             free(newnode);
             warnx("We won't connect (%s:%d -> %s:%d) on non-Syn packets",
                   libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE),
@@ -165,15 +165,15 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
          * told otherwise
          */
 
-        if ((clients != NULL)
-            && (check_ip_cidr(clients, ip_hdr->ip_src.s_addr))) {
+        if ((options.clients != NULL)
+            && (check_ip_cidr(options.clients, ip_hdr->ip_src.s_addr))) {
             /* source IP is client */
             dbg(3, "UDP match client CIDR.  Server is destination IP: %s",
                 libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE));
             newnode->server_ip = ip_hdr->ip_dst.s_addr;
         }
-        else if ((servers != NULL)
-                 && (check_ip_cidr(servers, ip_hdr->ip_src.s_addr))) {
+        else if ((options.servers != NULL)
+                 && (check_ip_cidr(options.servers, ip_hdr->ip_src.s_addr))) {
             /* source IP is server */
             dbg(3, "UDP match server CIDR.  Server is source IP: %s",
                 libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
@@ -206,8 +206,8 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
     sa.sin_family = AF_INET;
 
     /* set the appropriate destination IP */
-    if (targetaddr.s_addr != 0) {
-        sa.sin_addr = targetaddr;
+    if (options.targetaddr.s_addr != 0) {
+        sa.sin_addr = options.targetaddr;
     }
     else {
         sa.sin_addr = ip_hdr->ip_dst;
