@@ -45,16 +45,16 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include "fakepoll.h"
 
 #include "tcpreplay.h"
 #include "tcpdump.h"
-#include "err.h"
 #include "lib/strlcpy.h"
 
 #ifdef DEBUG

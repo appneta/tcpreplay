@@ -31,16 +31,14 @@
  */
 
 #include "config.h"
-
-#include <libnet.h>
-#include <pcap.h>
+#include "defines.h"
+#include "common.h"
 
 #include "tcpreplay.h"
 #include "edit_packet.h"
-#include "cidr.h"
-#include "sll.h"
-#include "err.h"
-#include "utils.h"
+#include "lib/sll.h"
+#include "dlt.h"
+#include "dlt_names.h"
 
 extern int maxpacket;
 extern struct options options;

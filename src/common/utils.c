@@ -37,13 +37,14 @@
 
 
 void
-packet_stats(struct timeval *begin, struct timeval *end)
+packet_stats(struct timeval *begin, struct timeval *end, 
+        u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed)
 {
     float bytes_sec = 0.0, mb_sec = 0.0;
     int pkts_sec = 0;
     char bits[3];
 
-    if (gettimeofday(*end, NULL) < 0)
+    if (gettimeofday(end, NULL) < 0)
         err(1, "gettimeofday");
 
     timersub(end, begin, begin);

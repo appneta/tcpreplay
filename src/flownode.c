@@ -30,14 +30,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <libnet.h>
 #include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include "flowreplay.h"
 #include "flownode.h"
 #include "flowkey.h"
 #include "flowstate.h"
-#include "cidr.h"
-#include "err.h"
 
 extern struct session_tree tcproot, udproot;
 extern int nfds, NoSyn;

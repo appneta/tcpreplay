@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,45 +30,17 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __TREE_H__
-#define __TREE_H__
 
-#include "lib/tree.h"
-#include "tcpreplay.h"
+#ifndef _UTILS_H_
+#define _UTILS_H_
 
-struct tree_type {
-    RB_ENTRY(tree_type) node;
-    unsigned long ip;           /* ip/network address in network byte order */
-    u_char mac[ETHER_ADDR_LEN]; /* mac address of system */
-    int masklen;                /* CIDR network mask length */
-    int server_cnt;             /* count # of times this entry was flagged server */
-    int client_cnt;             /* flagged client */
-    int type;                   /* 1 = server, 0 = client, -1 = undefined */
-};
+int read_hexstring(char *l2string, char *hex, int hexlen);
+int argv_create(char *p, int argc, char *argv[]);
+void packet_stats(struct timeval *begin, struct timeval *end, 
+        u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed);
+void *get_layer4(ip_hdr_t * ip_hdr);
 
-/*
- * replacement for RB_HEAD() which doesn't actually declare the root
- */
-struct data_tree {
-    struct tree_type *rbh_root;
-};
-
-struct buildcidr_type {
-    int type;                   /* SERVER|CLIENT|UNKNOWN|ANY */
-    int masklen;                /* mask size to use to build the CIDR */
-};
-
-typedef struct buildcidr_type BUILDCIDR;
-
-#define DEF_MAX_MASK  8         /* default max masklen */
-#define DEF_MIN_MASK  30        /* default min masklen */
-#define DEF_RATIO 2.0           /* default auto ratio */
-
-void add_tree(const unsigned long, const u_char *); /* done */
-int check_ip_tree(const int, const unsigned long);
-int process_tree();
-void tree_calculate(struct data_tree *);
-int tree_comp(struct tree_type *, struct tree_type *);
+#define MAX_ARGS 128
 
 
 #endif

@@ -31,6 +31,8 @@
 
 #include "config.h"
 #include "defines.h"
+#include "common.h"
+
 #include "mac.h"
 
 /*
@@ -70,8 +72,13 @@ mac2hex(const char *mac, char *dst, int len)
 void
 dualmac2hex(const char *dualmac, char *first, char *second, int len)
 {
-    char *tok, *temp;
-    
+    char *tok, *temp, *string;
+  
+    if ((string = malloc(strlen(dualmac))) == NULL)
+        errx(1, "Unable to malloc: %s", strerror(errno));
+
+    string = strdup(dualmac);
+
     /* if we've only got a comma, then return NULL's */
     if (len <= 1) {
         second = first = NULL;
@@ -79,7 +86,7 @@ dualmac2hex(const char *dualmac, char *first, char *second, int len)
     }
 
         
-    temp = strtok_r(dualmac, ',', &tok);
+    temp = strtok_r(string, ',', &tok);
     mac2hex(temp, first, len);
 
     temp = strtok_r(NULL, ',', &tok);

@@ -33,18 +33,16 @@
  * This file contains routines to manipulate port maps, in which
  * one port number is mapped to another.
  */
+#include "config.h"
+#include "defines.h"
+#include "common.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
-#include "config.h"
 #include "tcpreplay.h"
-#include "utils.h"
-#include "err.h"
 #include "portmap.h"
-
-#define EBUF_SIZE 256
 
 
 PORTMAP *

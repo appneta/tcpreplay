@@ -43,8 +43,10 @@
  *  - Auto learning of CIDR block for servers (clients all other)
  */
 
-#include <libnet.h>
-#include <pcap.h>
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,21 +54,12 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "config.h"
 #include "tcpreplay.h"
-#include "cache.h"
-#include "cidr.h"
 #include "tcpprep.h"
-#include "tree.h"
-#include "list.h"
-#include "xX.h"
-#include "err.h"
 #include "lib/tree.h"
-#include "utils.h"
-#include "services.h"
-#include "sll.h"
-#include "fakepcap.h"
+#include "lib/sll.h"
 #include "lib/strlcpy.h"
+#include "dlt.h"
 
 /*
  * global variables

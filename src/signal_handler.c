@@ -39,6 +39,10 @@
  *      01/24/2003  Added suspend signal support.
  */
 
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include <signal.h>
 #include <sys/time.h>
 #include <stdio.h>
@@ -46,11 +50,8 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "config.h"
 #include "tcpreplay.h"
 #include "signal_handler.h"
-#include "timer.h"
-#include "err.h"
 
 struct timeval suspend_time;
 static struct timeval suspend_start;

@@ -33,11 +33,6 @@
 #ifndef _EDIT_PACKETS_H_
 #define _EDIT_PACKETS_H_
 
-#include <libnet.h>
-#include <pcap.h>
-#include "tcpreplay.h"
-#include "cidr.h"
-#include "sll.h"
 
 int untrunc_packet(struct pcap_pkthdr *, u_char *, ip_hdr_t *, libnet_t *,
                     int);

@@ -38,10 +38,11 @@
 #ifndef __TCPREPLAY_H__
 #define __TCPREPLAY_H__
 
-#include "config.h"
+#include "../config.h"
 #include "defines.h"
-#include "confargs.h"
+#include "common.h"
 
+#if 0
 struct options_map_t {
     char *option;
     char *description;
@@ -71,6 +72,7 @@ struct options_map_t {
     { "mtu", "set the mtu in bytes of the output", CONFIG_TYPE_INT },
     { NULL, NULL, 0 }
 };
+#endif
 
 /* run-time options */
 struct options {

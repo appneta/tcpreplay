@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _DLT_H_
-#define _DLT_H_
+#ifndef __DLT_H__
+#define __DLT_H__
 
 /*
  * Cisco HDLC.  Used by Dag interfaces for SONET 

@@ -35,15 +35,6 @@
 void mac2hex(const char *mac, char *dst, int len);
 void dualmac2hex(const char *dualmac, char *first, char *second, int len);
 
-#define NULL_MAC "\0\0\0\0\0\0"
-#define BROADCAST_MAC "\FF\FF\FF\FF\FF\FF"
-
-/* MAC macros for printf */
-#define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
-#define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
-
-
-
 #endif /* __MAC_H__ */
 
 

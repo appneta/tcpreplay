@@ -31,9 +31,9 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
-#include <libnet.h>
-#include "fakepcapnav.h"
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
@@ -41,16 +41,9 @@
 #include <time.h>
 
 #include "tcpreplay.h"
-#include "cidr.h"
-#include "cache.h"
 #include "edit_packet.h"
-#include "err.h"
 #include "fileout.h"
 #include "netout.h"
-#include "list.h"
-#include "xX.h"
-#include "fakepoll.h"
-#include "utils.h"
 
 extern struct options options;
 extern struct timeval begin, end;
@@ -149,7 +142,7 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2, int l2enabled, char *l2data,
      */
     while ((options.limit_send == -1) || (options.limit_send != pkts_sent)) {
         if (didsig) {
-            packet_stats(&begin, &end);
+            packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
             exit(1);
         }
 

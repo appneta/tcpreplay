@@ -30,8 +30,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <libnet.h>
-#include <pcap.h>
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include <unistd.h>             /* getopt() */
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,18 +45,13 @@
 #include <string.h>             /* strtok() */
 #include <strings.h>            /* strcasecmp() */
 
-#include "config.h"
 #include "flowreplay.h"
 #include "flownode.h"
 #include "flowkey.h"
 #include "flowstate.h"
 #include "flowbuff.h"
-#include "cidr.h"
-#include "err.h"
 #include "tcpreplay.h"
-#include "lib/tree.h"
-#include "timer.h"
-#include "utils.h"
+#include "tree.h"
 
 #ifdef DEBUG
 int debug = 0;

@@ -32,8 +32,9 @@
 
 
 #include "config.h"
-#include <libnet.h>
-#include "fakepcapnav.h"
+#include "defines.h"
+#include "common.h"
+
 #include <sys/time.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -42,16 +43,9 @@
 
 #include "tcpreplay.h"
 #include "tcpdump.h"
-#include "cidr.h"
 #include "portmap.h"
-#include "cache.h"
-#include "err.h"
 #include "fileout.h"
 #include "edit_packet.h"
-#include "timer.h"
-#include "list.h"
-#include "xX.h"
-#include "utils.h"
 
 
 extern struct options options;
@@ -105,7 +99,7 @@ break_now(int signo)
             if (kill(tcpdump.pid, SIGTERM) != 0)
                 kill(tcpdump.pid, SIGKILL);
 
-        packet_stats(&begin, &end);
+        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
         exit(1);
     }
 }
@@ -444,7 +438,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
      * gracefully
      */
     if (options.limit_send == pkts_sent) {
-        packet_stats(&begin, &end);
+        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
         exit(1);
     }
 

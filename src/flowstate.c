@@ -31,11 +31,12 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include "flowreplay.h"
 #include "flownode.h"
-#include "tcpreplay.h"
 #include "flowstate.h"
-#include "err.h"
 
 /*
  * determines the new state for a TCP flow based on 

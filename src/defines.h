@@ -4,6 +4,7 @@
 #include "config.h"
 #include "lib/strlcpy.h"
 #include <libnet.h>
+#include <pcap.h>
 
 /* Map libnet 1.1 structs to shorter names for internal use */
 typedef libnet_t LIBNET;
@@ -40,6 +41,34 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 
 #define EBUF_SIZE 256           /* size of our error buffers */
 #define MAC_SIZE  7             /* size of the mac[] buffer */
+
+#define PAD_PACKET   1          /* values for the 'uflag' in tcpreplay */
+#define TRUNC_PACKET 2
+
+#define L2DATALEN 255           /* Max size of the L2 data file */
+
+#define DNS_QUERY_FLAG 0x8000
+
+#define SERVER 1
+#define CLIENT 0
+#define UNKNOWN -1
+#define ANY 2
+
+#define CIDR_MODE 1             /* single pass, CIDR netblock */
+#define REGEX_MODE 2            /* single pass, Regex */
+#define AUTO_MODE 4             /* first pass through in auto mode */
+#define PORT_MODE 8             /* single pass, use src/dst ports to split */
+#define ROUTER_MODE 16          /* second pass through in router/auto mode */
+#define BRIDGE_MODE 32          /* second pass through in bridge/auto mode */
+#define SERVER_MODE 64          /* second pass through in client/auto mode */
+#define CLIENT_MODE 128         /* second pass through in server/auto mode */
+
+#define NULL_MAC "\0\0\0\0\0\0"
+#define BROADCAST_MAC "\FF\FF\FF\FF\FF\FF"
+
+/* MAC macros for printf */
+#define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
+#define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
 
 #ifndef SWAPLONG
 #define SWAPLONG(y) \

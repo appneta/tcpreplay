@@ -1,8 +1,8 @@
 
 dnl $Id$
 
-AC_INIT(tcpreplay.c)
-AC_CONFIG_HEADER(config.h)
+AC_INIT(src/tcpreplay.c)
+AM_CONFIG_HEADER(config.h)
 
 dnl Set version info here!
 MAJOR_VERSION=3
@@ -14,7 +14,7 @@ dnl Release is only used for the RPM spec file
 TCPREPLAY_RELEASE=1
 
 
-AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION")
+AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION", [What is our version?])
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
@@ -31,6 +31,9 @@ AC_CANONICAL_TARGET
 AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
+
+AM_INIT_AUTOMAKE(tcpreplay, 1.0)
+
 AC_C_BIGENDIAN
 
 dnl Checks for programs.
@@ -43,7 +46,19 @@ AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PATH_PROG(PRINTF, printf)
+AC_PATH_PROG(FIG2DEV, fig2dev)
+AC_PATH_PROG(LYX, lyx)
+AC_PATH_PROG(DVIPS, dvips)
+AC_PATH_PROG(TEXI2DVI, texi2dvi)
+AC_PATH_PROG(LATEX2HTML, latex2html)
+AC_PATH_PROG(DVIPDFM, dvipdfm)
+AC_SUBST(FIG2DEV)
 AC_SUBST(PRINTF)
+AC_SUBST(LYX)
+AC_SUBST(DVIPS)
+AC_SUBST(TEXI2DVI)
+AC_SUBST(LATEX2HTML)
+AC_SUBST(DVIPDFM)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -57,27 +72,23 @@ AC_FUNC_FSEEKO
 
 dnl Enable debugging in code/compiler options
 debug=no
-AC_MSG_CHECKING(for debug enabled)
-AC_ARG_WITH(debug,
-[  --with-debug            Enable debugging code and support for the -d option],
-[ debug=yes
- AC_DEFINE(DEBUG) 
- AC_MSG_RESULT(yes)], 
-AC_MSG_RESULT(no))
+AC_ARG_ENABLE(debug,
+[  --enable-debug          Enable debugging code and support for the -d option],
+[ if test x$enableval = xyes; then
+ debug=yes
+ CFLAGS="$CFLAGS -ggdb"
+ AC_SUBST(debug_flag)
+ AC_DEFINE([DEBUG], [], [Enable debuggin code and support for the -d option]) 
+ fi])
 
-dnl Use a debug flag during make test if debug is enabled
-if test $debug = yes ; then
-	debug_flag="-d 3"
-	AC_SUBST(debug_flag)
-fi
 
 dnl Enable Efense
 efence=no
 AC_MSG_CHECKING(for efence enabled)
-AC_ARG_WITH(efence,
-[  --with-efence           Enable Electric Fence memory debugger],
+AC_ARG_ENABLE(efence,
+[  --enable-efence         Enable Electric Fence memory debugger],
 [ efence=yes
-  AC_DEFINE(EFENCE)
+  AC_DEFINE([EFENCE], [], [Enable Electric Fence memory debugger])
   AC_MSG_RESULT(yes)],
   AC_MSG_RESULT(no)
   )
@@ -88,7 +99,7 @@ AC_MSG_CHECKING(for gprof enabled)
 AC_ARG_WITH(gprof,
 [  --with-gprof            Enable GNU Profiler],
 [ gprof=yes
-  AC_DEFINE(GPROF)
+  AC_DEFINE([GPROF], [], [Enable GNU Profiler])
   AC_MSG_RESULT(yes)],
   AC_MSG_RESULT(no)
   )
@@ -96,7 +107,7 @@ AC_ARG_WITH(gprof,
 
 dnl Use these compiler flags if we have gcc.
 if test $ac_cv_prog_gcc = yes -a $debug = no ; then
-    CCOPTS="-pipe -Wall -O3 -funroll-loops"
+    CCOPTS="-pipe -Wall -O2 -ggdb -funroll-loops"
     CFLAGS="$CCOPTS"
 else
 	CCOPTS="-pipe -Wall -ggdb -pedantic"
@@ -146,8 +157,14 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll])
 
 dnl Check for inet_aton and inet_addr
-AC_CHECK_FUNC(inet_aton, AC_DEFINE(INET_ATON) inet_aton=yes, inet_aton=no)
-AC_CHECK_FUNC(inet_addr, AC_DEFINE(INET_ADDR) inet_addr=yes, inet_addr=no)
+AC_CHECK_FUNC(inet_aton, 
+    AC_DEFINE([INET_ATON], [], [Do we have inet_aton?]) 
+    inet_aton=yes, 
+    inet_aton=no)
+AC_CHECK_FUNC(inet_addr, 
+    AC_DEFINE([INET_ADDR], [], [Do we have inet_addr?]) 
+    inet_addr=yes, 
+    inet_addr=no)
 
 if test $inet_aton = no -a $inet_addr = no ; then
 	AC_MSG_ERROR("We need either inet_aton or inet_addr")
@@ -360,7 +377,8 @@ main(int argc, char *argv[]) {
     )
 
 if test $have_dlt_to_desc = yes ; then
-    AC_DEFINE(HAVE_DLT_VAL_TO_DESC)
+    AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [], 
+              [Does libpcap have dlt_val_to_desc?])
 fi
 
 dnl restore LIBS
@@ -392,7 +410,8 @@ else
     PCAPNAV_VERSION=`$pcncfg --version`
     AC_SUBST(LNAVLIB)
     AC_SUBST(LNAV_CFLAGS)
-    AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION")
+    AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION", 
+                       [libpcapnav's version?])
 
 dnl Check to see what version of libpcapnav
 dnl this code has been reduced a lot, but probably still could be
@@ -427,7 +446,7 @@ if test $libpcapnav_ver = no ; then
     Please upgrade to version 0.4 or better.
     Disabling offset jump feature.])
 else
-    AC_DEFINE(HAVE_PCAPNAV)
+    AC_DEFINE([HAVE_PCAPNAV], [], [Do we have libpcapnav?])
 fi
 
 fi # checking pcapnav version
@@ -491,7 +510,7 @@ EOF
         esac])
     AC_MSG_RESULT($unaligned_fail)
     if test $unaligned_fail = yes ; then
-            AC_DEFINE(FORCE_ALIGN,1,[if unaligned access fails])
+            AC_DEFINE([FORCE_ALIGN],1,[Are we strictly aligned?])
     fi
 
 dnl ##################################################
@@ -509,7 +528,7 @@ if test "$td" = "no"; then
                  Disabling verbose reporting.])
 else
     AC_MSG_RESULT([Using tcpdump in $td.])
-    AC_DEFINE(HAVE_TCPDUMP)
+    AC_DEFINE([HAVE_TCPDUMP], [], [Do we have tcpdump?])
     AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$td", [The tcpdump binary initially used])
 fi
 
@@ -575,8 +594,11 @@ AC_MSG_NOTICE(Using $nic2 for 2nd test network interface card)
 AC_SUBST(nic1)
 AC_SUBST(nic2)
 
-AC_OUTPUT(Makefile)
-AC_OUTPUT(lib/Makefile)
-AC_OUTPUT(test/Makefile)
-AC_OUTPUT(test/config)
-AC_OUTPUT(tcpreplay.spec)
+AC_OUTPUT([Makefile
+            lib/Makefile
+            docs/Makefile
+            src/Makefile
+            src/common/Makefile
+            test/Makefile
+            test/config
+            tcpreplay.spec])

@@ -36,11 +36,12 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
 #include <ctype.h>
 #include <fcntl.h>
 #include <libnet.h>
-#include "fakepcapnav.h"
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,18 +51,11 @@
 
 #include "tcpreplay.h"
 #include "tcpdump.h"
-#include "cache.h"
-#include "cidr.h"
 #include "portmap.h"
-#include "list.h"
-#include "err.h"
 #include "fileout.h"
-#include "xX.h"
 #include "signal_handler.h"
 #include "netout.h"
-#include "utils.h"
 #include "edit_packet.h"
-#include "fakepcap.h"
 #include "mac.h"
 
 struct options options;
@@ -604,7 +598,7 @@ main(int argc, char *argv[])
     }
 
     if (bytes_sent > 0)
-        packet_stats(&begin, &end);
+        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
 
     /* save the pcap write file */
     if (options.savepcap != NULL)

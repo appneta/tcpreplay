@@ -31,9 +31,11 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include "flowreplay.h"
 #include "flowkey.h"
-#include "err.h"
 
 
 

@@ -31,7 +31,10 @@
  */
 
 
-#include <libnet.h>
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,11 +43,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "config.h"
-#include "tcpreplay.h"
 #include "cidr.h"
 #include "err.h"
-#include "lib/strlcpy.h"
+#include "../../lib/strlcpy.h"
 
 #ifdef DEBUG
 extern int debug;

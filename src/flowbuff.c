@@ -31,11 +31,13 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include <stdlib.h>             /* malloc/free */
 
 #include "flowreplay.h"
 #include "flownode.h"
-#include "err.h"
 
 extern int32_t pernodebufflim;
 extern int32_t totalbufflim;
