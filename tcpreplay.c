@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.86 2004/04/01 06:15:02 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.87 2004/04/03 22:43:30 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -73,7 +73,7 @@ struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
 int cache_bit, cache_byte;
-u_int32_t cache_packets;
+u_int64_t cache_packets;
 volatile int didsig;
 
 struct bpf_program bpf;
@@ -1117,4 +1117,40 @@ init(void)
 
     if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
         errx(1, "Unable to set STDERR to non-blocking");
+}
+
+void
+packet_stats()
+{
+    float bytes_sec = 0.0, mb_sec = 0.0;
+    int pkts_sec = 0;
+    char bits[3];
+
+    if (gettimeofday(&end, NULL) < 0)
+        err(1, "gettimeofday");
+
+    timersub(&end, &begin, &begin);
+    if (timerisset(&begin)) {
+        if (bytes_sent) {
+            bytes_sec =
+                bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
+            mb_sec = (bytes_sec * 8) / (1024 * 1024);
+        }
+        if (pkts_sent)
+            pkts_sec =
+                pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
+    }
+
+    snprintf(bits, sizeof(bits), "%d", begin.tv_usec);
+
+    fprintf(stderr, " %llu packets (%llu bytes) sent in %d.%s seconds\n",
+            pkts_sent, bytes_sent, begin.tv_sec, bits);
+    fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
+            bytes_sec, mb_sec, pkts_sec);
+
+    if (failed) {
+        fprintf(stderr,
+                " %llu write attempts failed from full buffers and were repeated\n",
+                failed);
+    }
 }
