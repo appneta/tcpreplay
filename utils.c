@@ -1,4 +1,4 @@
-/* $Id: utils.c,v 1.7 2004/05/08 21:31:35 aturner Exp $ */
+/* $Id: utils.c,v 1.8 2004/05/14 17:32:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -46,6 +46,7 @@ read_hexstring(char *l2string, char *hex, int hexlen)
     unsigned int value;
     char *l2byte;
     u_char databyte;
+    char *token = NULL;
 
     if (hexlen <= 0)
         errx(1, "Hex buffer must be > 0");
@@ -55,7 +56,7 @@ read_hexstring(char *l2string, char *hex, int hexlen)
     /* data is hex, comma seperated, byte by byte */
 
     /* get the first byte */
-    l2byte = strtok(l2string, ",");
+    l2byte = strtok_r(l2string, ",", &token);
     sscanf(l2byte, "%x", &value);
     if (value > 0xff)
         errx(1, "Invalid hex byte passed to -2: %s", l2byte);
@@ -63,7 +64,7 @@ read_hexstring(char *l2string, char *hex, int hexlen)
     memcpy(&hex[numbytes], &databyte, 1);
 
     /* get remaining bytes */
-    while ((l2byte = strtok(NULL, ",")) != NULL) {
+    while ((l2byte = strtok_r(NULL, ",", &token)) != NULL) {
         numbytes++;
         if (numbytes + 1 > hexlen) {
             warnx("Hex buffer too small for data- skipping data");

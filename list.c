@@ -1,4 +1,4 @@
-/* $Id: list.c,v 1.10 2004/04/03 22:42:20 aturner Exp $ */
+/* $Id: list.c,v 1.11 2004/05/14 17:31:52 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -80,6 +80,7 @@ parse_list(LIST ** listdata, char *ourstr)
     regex_t preg;
     char ebuf[EBUF_SIZE];
     char regex[] = "^[0-9]+(-[0-9]+)?$";
+    char *token = NULL;
 
 
     /* compile the regex first */
@@ -89,7 +90,7 @@ parse_list(LIST ** listdata, char *ourstr)
     }
 
     /* first iteration */
-    this = strtok(ourstr, ",");
+    this = strtok_r(ourstr, ",", &token);
     first = this;
     second = NULL;
 
@@ -120,7 +121,7 @@ parse_list(LIST ** listdata, char *ourstr)
     }
 
     while (1) {
-        this = strtok(NULL, ",");
+        this = strtok_r(NULL, ",", &token);
         if (this == NULL)
             break;
 
