@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <time.h>
 
 #include "tcpreplay.h"
 #include "cidr.h"
@@ -278,7 +279,7 @@ randomize_ips(struct pcap_pkthdr *pkthdr,
     /* recalc IP checksum */
     if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
 			   pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
-	warnx("IP checksum failed");
+	warnx("IP checksum failed.");
 
 }
 
@@ -296,13 +297,15 @@ cache_mode(char *cachedata, int packet_num, struct libnet_ethernet_hdr *eth_hdr)
     int result;
 
     if (packet_num > cache_packets)
-	errx(1, "Exceeded number of packets in cache file");
+	errx(1, "Exceeded number of packets in cache file.");
 
     result = check_cache(cachedata, packet_num);
     if (result == CACHE_NOSEND) {
+	dbg(2, "Cache: Not sending packet %d.", packet_num);
 	return NULL;
     }
     else if (result == CACHE_PRIMARY) {
+	dbg(2, "Cache: Sending packet %d out primary interface.", packet_num);
 	l = options.intf1;
 
 	/* check for destination MAC rewriting */
@@ -311,6 +314,7 @@ cache_mode(char *cachedata, int packet_num, struct libnet_ethernet_hdr *eth_hdr)
 	}
     }
     else if (result == CACHE_SECONDARY) {
+	dbg(2, "Cache: Sending packet %d out secondary interface.", packet_num);
 	l = options.intf2;
 
 	/* check for destination MAC rewriting */
@@ -424,13 +428,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
     static struct timeval didsleep = {0, 0};
     static struct timeval start = {0, 0};
     struct timeval nap, now, delta;
+    struct timespec ignore, sleep;
     float n;
 
-    /*
-    if (options.pause > 0.0) {
-	sleep(uint options.pause);
-	usleep(uint options.pause % 
-    */
     if (gettimeofday(&now, NULL) < 0) {
 	err(1, "gettimeofday");
     }
@@ -486,13 +486,12 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
     if (timercmp(&didsleep, &delta, >)) {
 	timersub(&didsleep, &delta, &nap);
 
-	/* sleep & usleep only return EINTR & EINVAL, neither which we'd
-	 * like to restart */
-	if (nap.tv_sec) {
-	    (void)sleep(nap.tv_sec);
+	sleep.tv_sec = nap.tv_sec;
+	sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
+
+	if (nanosleep(&sleep, &ignore) == -1) {
+	    warnx("nanosleep error: %s", strerror(errno));
 	}
-	if (nap.tv_usec) {
-	    (void)usleep(nap.tv_usec);
-	}
+
     }
 }
