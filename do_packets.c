@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.44 2003/12/16 22:06:46 aturner Exp $ */
+/* $Id: do_packets.c,v 1.45 2003/12/16 22:58:02 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -91,6 +91,20 @@ catcher(int signo)
         didsig = 1;
 }
 
+/*
+ * when we're sending only one packet at a time via <ENTER>
+ * then there's no race and we can quit now
+ */
+void
+break_now(int signo)
+{
+
+    if (signo == SIGINT) {
+        printf("\n");
+        packet_stats();
+        exit(1);
+    }
+}
 
 /*
  * the main loop function.  This is where we figure out
@@ -133,7 +147,12 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
     /* register signals */
     didsig = 0;
-    (void)signal(SIGINT, catcher);
+    if (!options.one_at_a_time) {
+        (void)signal(SIGINT, catcher);
+    }
+    else {
+        (void)signal(SIGINT, break_now);
+    }
 
     if (firsttime) {
         timerclear(&last);
@@ -144,7 +163,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
     /* only support jumping w/ files */
     if ((pcapnav != NULL) && (options.offset)) {
         /* jump to the next packet >= the offset */
-        if (pcapnav_goto_offset(pcapnav, options.offset, PCAPNAV_CMP_GEQ) 
+        if (pcapnav_goto_offset(pcapnav, options.offset, PCAPNAV_CMP_GEQ)
             != PCAPNAV_DEFINITELY)
             warnx("Unable to get a definate jump offset "
                   "pcapnav_goto_offset(): %d\n", pcapnav_result);
