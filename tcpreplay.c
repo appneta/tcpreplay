@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.89 2004/05/08 21:31:35 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.90 2004/05/14 21:42:53 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -67,7 +67,7 @@
 
 struct options options;
 char *cachedata = NULL;
-CIDR *cidrdata = NULL;
+CIDR *cidrdata = NULL, *enddata = NULL;
 CIDRMAP *cidrmap_data1 = NULL, *cidrmap_data2 = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
@@ -119,7 +119,7 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:Df:Fhi:I:j:J:k:K:l:L:m:MnN:o:Op:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
+                   "bc:C:De:f:Fhi:I:j:J:k:K:l:L:m:MnN:o:Op:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
 #ifdef HAVE_TCPDUMP
                    "vA:"
 #endif
@@ -149,6 +149,10 @@ main(int argc, char *argv[])
         case 'D':              /* dump only data (no headers) to file (-w/-W) */
             options.datadump_mode = 1;
             options.topspeed = 1;
+            break;
+        case 'e':              /* rewrite IP's to two end points */
+            if (!parse_cidr(&enddata, optarg, ","))
+                usage();
             break;
         case 'f':              /* config file */
             configfile(optarg);
@@ -342,7 +346,7 @@ main(int argc, char *argv[])
             break;
 #ifdef HAVE_TCPDUMP
         case 'v':              /* verbose: print packet decodes via tcpdump */
-            options.verbose_enabled = 1;
+            options.verbose = 1;
             break;
         case 'A':
             tcpdump.args = optarg;
@@ -682,7 +686,7 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
     pcapnav_init();
 
 #ifdef HAVE_TCPDUMP
-    if (options.verbose_enabled) {
+    if (options.verbose) {
         tcpdump.filename = path;
         tcpdump_open(&tcpdump);
     }
@@ -815,6 +819,11 @@ configfile(char *file)
         else if (ARGS("cidr", 2)) {
             options.cidr = 1;
             if (!parse_cidr(&cidrdata, argv[1], ","))
+                usage();
+        }
+        else if (ARGS("endpoints", 2)) {
+            options.endpoints = 1;
+            if (!parse_cidr(&enddata, argv[1], ","))
                 usage();
         }
 #ifdef DEBUG
@@ -1034,7 +1043,7 @@ configfile(char *file)
             }
         }
         else if (ARGS("verbose", 1)) {
-            options.verbose_enabled = 1;
+            options.verbose = 1;
         }
         else if (ARGS("tcpdump_args", 2)) {
             tcpdump.args = argv[1];

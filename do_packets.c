@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.51 2004/04/22 23:48:56 aturner Exp $ */
+/* $Id: do_packets.c,v 1.52 2004/05/14 21:42:52 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -355,7 +355,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 #endif
 
         /* do we need to print the packet via tcpdump? */
-        if (options.verbose_enabled)
+        if (options.verbose)
             tcpdump_print(&tcpdump, &pkthdr, pktdata);
 
         if ((!options.topspeed) && (!options.one_at_a_time)) {

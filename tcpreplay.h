@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.56 2004/05/01 22:55:12 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.57 2004/05/14 21:42:53 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -121,8 +121,9 @@ struct options {
     int sniff_bridge;
     int promisc;
     int poll_timeout;
-    int verbose_enabled;
+    int verbose;
     int one_output;
+    int endpoints;
     char *tcpprep_comment;
     char break_type;
 };
