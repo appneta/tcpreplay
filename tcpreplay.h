@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.33 2003/05/30 19:27:57 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.34 2003/06/05 16:48:16 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -30,8 +30,9 @@ typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
 
-/* Big enough for GigE jumbo frames */
-#define MAXPACKET 9000
+#define DEFAULT_MTU 1500 /* Max Transmission Unit of standard ethernet
+			  * don't forget *frames* are MTU + L2 header! */
+#define MAXPACKET 16436  /* MTU of Linux loopback */
 
 /* run-time options */
 struct options {
@@ -51,16 +52,9 @@ struct options {
     int cidr;
     int trunc;
     long int seed;
+    int mtu;
     char **files;
     char *cache_files;
-};
-
-/* internal representation of a packet */
-struct packet {
-    char data[MAXPACKET];	/* pointer to packet contents */
-    int len;			/* length of data (snaplen) */
-    int actual_len;		/* actual length of the packet */
-    struct timeval ts;		/* timestamp */
 };
 
 #define RESOLVE 0		/* disable dns lookups */
