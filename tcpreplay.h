@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.7 2002/07/03 00:53:32 mattbing Exp $ */
+/* $Id: tcpreplay.h,v 1.8 2002/07/03 01:36:34 mattbing Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -14,6 +14,20 @@
 /* Big enough for ethernet */
 #define MAXPACKET 2048
 
+/* run-time options */
+struct options {
+	struct libnet_link_int *intf1;
+	struct libnet_link_int *intf2;
+	char intf1_mac[6];
+	char intf2_mac[6];
+	float rate;
+	float mult;
+	int n_iter;
+	int cache_packets;
+	char **files;
+	char *cache_files;
+};
+
 /* internal representation of a packet */
 struct packet {
 	char data[MAXPACKET];	/* pointer to packet contents */
@@ -22,15 +36,6 @@ struct packet {
 	struct timeval ts;			/* timestamp */
 };
 
-#ifndef SWAPLONG
-#define SWAPLONG(y) \
-((((y)&0xff)<<24) | (((y)&0xff00)<<8) | (((y)&0xff0000)>>8) | (((y)>>24)&0xff))
-#endif
-
-#ifndef SWAPSHORT
-#define SWAPSHORT(y) \
-( (((y)&0xff)<<8) | ((u_short)((y)&0xff00)>>8) )
-#endif
 
 #define RESOLVE 0                /* disable dns lookups */
 
@@ -57,5 +62,16 @@ struct packet {
 
 #define PAD_PACKET 1	 /* values for the 'uflag' in tcpreplay */
 #define TRUNC_PACKET 2
+
+#ifndef SWAPLONG
+#define SWAPLONG(y) \
+((((y)&0xff)<<24) | (((y)&0xff00)<<8) | (((y)&0xff0000)>>8) | (((y)>>24)&0xff))
+#endif
+
+#ifndef SWAPSHORT
+#define SWAPSHORT(y) \
+( (((y)&0xff)<<8) | ((u_short)((y)&0xff00)>>8) )
+#endif
+
 
 #endif

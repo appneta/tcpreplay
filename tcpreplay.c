@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.14 2002/07/01 22:23:17 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.15 2002/07/03 01:36:34 mattbing Exp $ */
 
 #include "config.h"
 
@@ -20,16 +20,13 @@
 #include "snoop.h"
 #include "tcpreplay.h"
 
+struct options options;
 CACHE *cachedata = NULL;
-CIDR * cidrdata = NULL;
-struct libnet_link_int *l_intf, *l_intf2;
+CIDR *cidrdata = NULL;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
-float rate, mult;
-int n_iter, verbose, Rflag, Sflag, Cflag, cache_bit, cache_byte, cache_packets;
-int Rflag, Sflag, Cflag, uflag;
+int verbose, Rflag, Sflag, Cflag, uflag, cache_bit, cache_byte, cache_packets;
 volatile int didsig;
-char *intf, *intf2, primary_mac[6], secondary_mac[6];
 
 #ifdef DEBUG
 int debug = 0;
@@ -46,16 +43,17 @@ void mac2hex(const char *, char *, int);
 int
 main(int argc, char *argv[])
 {
-	char *cache_file = NULL, ebuf[256];
+	char *cache_file = NULL, *intf = NULL, *intf2 = NULL, ebuf[256]; 
 	int ch, i;
 
 	bytes_sent = failed = pkts_sent = verbose = 0;
 	intf = intf2 = NULL;
+	memset(&options, 0, sizeof(options));
 
 	/* Default mode is to replay pcap once at 10MB */
-	mult = 0.0;
-	n_iter = 1;
-	rate = 10.0;
+	options.mult = 0.0;
+	options.n_iter = 1;
+	options.rate = 10.0;
 
 	Rflag =  Sflag = Cflag = uflag = 0;
 	cache_bit = cache_byte = 0;
@@ -84,36 +82,36 @@ main(int argc, char *argv[])
 			intf = optarg;
 			break;
 		case 'I': /* primary dest mac */
-			mac2hex(optarg, primary_mac, sizeof(primary_mac));
-			if (primary_mac == NULL)
+			mac2hex(optarg, options.intf1_mac, sizeof(options.intf1_mac));
+			if (options.intf1_mac == NULL)
 				errx(1, "Invalid mac address: %s", optarg);
 			break;
 		case 'j': /* secondary interface */
 			intf2 = optarg;
 			break;
 		case 'J': /* secondary dest mac */
-			mac2hex(optarg, secondary_mac, sizeof(secondary_mac));
-			if (secondary_mac == NULL)
+			mac2hex(optarg, options.intf2_mac, sizeof(options.intf2_mac));
+			if (options.intf2_mac == NULL)
 				errx(1, "Invalid mac address: %s", optarg);
 			break;
 		case 'l': /* loop count */
-			n_iter = atoi(optarg);
-			if (n_iter <= 0)
+			options.n_iter = atoi(optarg);
+			if (options.n_iter <= 0)
 				errx(1, "Invalid loop count: %s", optarg);
 			break;
 		case 'm': /* multiplier */
-			mult = atof(optarg);
-			if (mult <= 0)
+			options.mult = atof(optarg);
+			if (options.mult <= 0)
 				errx(1, "Invalid multiplier: %s", optarg);
-			rate = 0.0;
+			options.rate = 0.0;
 			break;
 		case 'r': /* target rate */
-			rate = atof(optarg);			
-			if (rate <= 0)
+			options.rate = atof(optarg);			
+			if (options.rate <= 0)
 				errx(1, "Invalid rate: %s", optarg);
 			/* convert to bytes */
-			rate = (rate * (1024*1024)) / 8;
-			mult = 0.0;
+			options.rate = (options.rate * (1024*1024)) / 8;
+			options.mult = 0.0;
 			break;
 		case 'R': /* replay at top speed */
 			Rflag = 1;
@@ -140,7 +138,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if ( (mult > 0.0 && rate > 0.0) || argc == 0)
+	if ( (options.mult > 0.0 && options.rate > 0.0) || argc == 0)
 		usage();
 
 	if (argc > 1)
@@ -157,11 +155,11 @@ main(int argc, char *argv[])
 	if ((intf2 != NULL) && (!Cflag && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
 
-	if ((l_intf = libnet_open_link_interface(intf, ebuf)) == NULL)
+	if ((options.intf1 = libnet_open_link_interface(intf, ebuf)) == NULL)
 		errx(1, "Cannot open %s: %s", intf, ebuf);
 
 	if (intf2 != NULL && 
-		(l_intf2 = libnet_open_link_interface(intf2, ebuf)) == NULL)
+		(options.intf2 = libnet_open_link_interface(intf2, ebuf)) == NULL)
 		errx(1, "Cannot open %s: %s", intf2, ebuf);
 
 	warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
@@ -170,7 +168,7 @@ main(int argc, char *argv[])
 		err(1, "gettimeofday");
 
 	/* main loop */
-	while (n_iter--) {
+	while (options.n_iter--) {
 		for (i = 0; i < argc; i++) {
 			/* reset cache markers for each iteration */
 			cache_byte = 0;
@@ -216,7 +214,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct libnet_link_int *l = NULL;
 	struct packet pkt;
 	struct timeval last;
-	char *pktdata, *i = NULL;
+	char *pktdata;
 	int packet_num, ret, pktlen, proto;
 
 	/* register signals */
@@ -239,7 +237,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 
 		/* Dual nic processing */
-		if (intf2 != NULL) {
+		if (options.intf2 != NULL) {
 			/* Cache Mode */
 			if (!Cflag) {
 				if (packet_num > cache_packets)
@@ -248,21 +246,19 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				if (cachedata->data[cache_byte] & 
 					(char)pow((long)2, (long)cache_bit) ) {
 					/* set interface to send out packet */
-					i = intf; 
-					l = l_intf;
+					l = options.intf1;
 
 					/* check for destination MAC rewriting */
-					if (primary_mac != NULL) {
-						memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
+					if (options.intf1_mac != NULL) {
+						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 					}
 				} else {
 					/* set interface to send out packet */
-					i = intf2; 
-					l = l_intf2;
+					l = options.intf2;
 
 					/* check for destination MAC rewriting */
-					if (secondary_mac != NULL) {
-						memcpy(eth_hdr->ether_dhost, secondary_mac, ETHER_ADDR_LEN);
+					if (options.intf2_mac != NULL) {
+						memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 					}
 				} /* end cache processing */
 			
@@ -278,31 +274,28 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				ip_hdr = (struct libnet_ip_hdr *) (pkt.data + LIBNET_ETH_H);
 				if (check_ip_CIDR(ip_hdr->ip_src.s_addr)) {
 					/* set interface to send out packet */
-					i = intf;
-					l = l_intf;
+					l = options.intf1;
 
 					/* check for destination MAC rewriting */
-					if (primary_mac != NULL) {
-						memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
+					if (options.intf1_mac != NULL) {
+						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 					}
 				} else {
 					/* override interface to send out packet */
-					i = intf2;
-					l = l_intf2;
+					l = options.intf2;
 
 					/* check for destination MAC rewriting */
-					if (secondary_mac != NULL) {
-						memcpy(eth_hdr->ether_dhost, secondary_mac, ETHER_ADDR_LEN);
+					if (options.intf2_mac != NULL) {
+						memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 					}
 				}
 			}
 		} else {
 			/* normal operation */
-			l = l_intf;
-			i = intf;
+			l = options.intf1;
 			/* check for destination MAC rewriting */
-			if (primary_mac != NULL) {
-				memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
+			if (options.intf1_mac != NULL) {
+				memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 			}
 		}
 
@@ -333,7 +326,8 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 		/* Physically send the packet */
 		do {
-			ret = libnet_write_link_layer(l, i, (u_char *)pktdata, pktlen);
+			ret = libnet_write_link_layer(l, l->device, (u_char *)pktdata, 
+				pktlen);
 			if (ret == -1) {
 				/* Make note of failed writes due to full buffers */
 				if (errno == ENOBUFS) {
@@ -375,7 +369,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 		timersub(&now, &start, &delta);
 	}
 
-	if (mult) {
+	if (options.mult) {
 		/* 
 		 * Replay packets a factor of the time they were originally sent.
 		 */
@@ -389,15 +383,15 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 			 */
 			timerclear(&nap);
 
-		timerdiv(&nap, mult);
+		timerdiv(&nap, options.mult);
 
-	} else if (rate) {
+	} else if (options.rate) {
 		/* 
 		 * Ignore the time supplied by the capture file and send data at
 		 * a constant 'rate' (bytes per second).
 		 */
 		if (timerisset(last)) {
-			n = (float)len / (float)rate;
+			n = (float)len / (float)options.rate;
 			nap.tv_sec = n;
 			nap.tv_usec = (n - nap.tv_sec) * 1000000;
 		} else
