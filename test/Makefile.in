@@ -12,7 +12,7 @@ all: check tcpprep tcpreplay
 check:
 	$(PRINTF) "%s\n" "NOTICE: Tests must be run as root"
 	$(PRINTF) "%s\n" "Sending traffic on '$(nic1)' and '$(nic2)'"
-	
+
 # the cache files to be used as the standard; be sure to do a cvs commit
 # afterwords!
 standard:
@@ -21,9 +21,8 @@ standard:
 	../tcpprep -i test.pcap -o test.cidr -c '216.27.178.0/24' -N client
 	../tcpprep -i test.pcap -o test.regex -r '216.27.178.*' -N client
 
-	
 tcpprep: auto_router auto_bridge cidr regex
-tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude replay_layer2
+tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude replay_layer2 replay_packetrate
 
 auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
@@ -72,8 +71,8 @@ replay_cidr:
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else printf "\t\t\t%s\n" "OK"; fi
 
 replay_trunc:
-	$(PRINTF) "%s" "[tcpreplay] Trunc test: "
-	$(PRINTF) "%s\n" "[tcpreplay] Trunc test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Truncate test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Truncate test: " >>test.log
 	../tcpreplay -i $(nic1) -u trunc test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
@@ -106,6 +105,13 @@ replay_layer2:
 	$(PRINTF) "%s\n" "[tcpreplay] Layer2 test: " >>test.log
 	../tcpreplay -i $(nic1) -2 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
+
+replay_packetrate:
+	$(PRINTF) "%s" "[tcpreplay] Packetrate test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Packetrate test: " >>test.log
+	../tcpreplay -i $(nic1) -p 25.0 test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
+
 
 clean:
 	rm -f *1 test.log core *~
