@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.38 2003/06/01 23:54:26 aturner Exp $
+dnl $Id: configure.in,v 1.39 2003/06/06 20:21:07 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -285,7 +285,47 @@ AC_ARG_WITH(libpcap,
 AC_SUBST(LPCAPINC)
 AC_SUBST(LPCAPLIB)
 
+dnl Checks to see what version of libpcap we've got
+OLDLIBS="$LIBS"
+LIBS="$LPCAPLIB"
 
+dnl Check to see what version of libpcap
+dnl this code has been reduced a lot, but probably still could be
+dnl reduced quite a bit more if we chose too
+AC_MSG_CHECKING(for libpcap version)
+
+AC_TRY_RUN([
+#include <string.h>
+#include "$LPCAPINCDIR/pcap.h"
+#define PCAP_TEST "0.6"
+/* 
+ * simple proggy to test the version of libpcap
+ * returns zero if version >= 0.6
+ * or one otherwise
+ */
+extern char pcap_version[];
+int
+main (int argc, char *argv[])
+{
+	if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
+		exit(0);
+	exit(1);
+}],
+	libpcap_ver=yes
+	AC_MSG_RESULT(>= 0.6),
+	libpcap_ver=no
+	AC_MSG_RESULT(< 0.6),
+	libpcap_ver=no
+	)
+
+
+if test $libpcap_ver = no ; then
+	AC_MSG_ERROR(Libpcap versions < 0.6 are no longer supported.
+	Please upgrade to 0.6 or better)
+fi
+
+dnl restore LIBS
+LIBS="$OLDLIBS"
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail

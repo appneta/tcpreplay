@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.9 2003/06/06 01:26:03 aturner Exp $
+$Id: CHANGELOG,v 1.10 2003/06/06 20:21:06 aturner Exp $
 
 06/??/2003: Version 1.5.alpha3
 	- Add support for Linux Cooked Sockets (SLL) format rewriting
@@ -7,6 +7,8 @@ $Id: CHANGELOG,v 1.9 2003/06/06 01:26:03 aturner Exp $
 	- Start work on read-ahead buffering of packets in flowreplay        
 	- Add support for specifying MTU.
 	- Update tcpreplay man page
+        - Fix compile of do_packets() under OpenBSD
+        - configure now checks for libpcap >= 0.6 (required for SLL)
 
 
 05/29/2003: Version 1.5.alpha2

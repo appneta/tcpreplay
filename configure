@@ -5291,7 +5291,78 @@ fi;
 
 
 
+OLDLIBS="$LIBS"
+LIBS="$LPCAPLIB"
 
+echo "$as_me:$LINENO: checking for libpcap version" >&5
+echo $ECHO_N "checking for libpcap version... $ECHO_C" >&6
+
+if test "$cross_compiling" = yes; then
+  libpcap_ver=no
+
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <string.h>
+#include "$LPCAPINCDIR/pcap.h"
+#define PCAP_TEST "0.6"
+/*
+ * simple proggy to test the version of libpcap
+ * returns zero if version >= 0.6
+ * or one otherwise
+ */
+extern char pcap_version[];
+int
+main (int argc, char *argv[])
+{
+	if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
+		exit(0);
+	exit(1);
+}
+_ACEOF
+rm -f conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  libpcap_ver=yes
+	echo "$as_me:$LINENO: result: >= 0.6" >&5
+echo "${ECHO_T}>= 0.6" >&6
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+libpcap_ver=no
+	echo "$as_me:$LINENO: result: < 0.6" >&5
+echo "${ECHO_T}< 0.6" >&6
+fi
+rm -f core core.* *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+
+
+if test $libpcap_ver = no ; then
+	{ { echo "$as_me:$LINENO: error: Libpcap versions < 0.6 are no longer supported.
+	Please upgrade to 0.6 or better" >&5
+echo "$as_me: error: Libpcap versions < 0.6 are no longer supported.
+	Please upgrade to 0.6 or better" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+LIBS="$OLDLIBS"
 
 echo "$as_me:$LINENO: checking for requires strict byte alignment" >&5
 echo $ECHO_N "checking for requires strict byte alignment... $ECHO_C" >&6
