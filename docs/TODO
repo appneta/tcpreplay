@@ -88,8 +88,8 @@ O tcpdump decoder should print packets syncronously w/ the main process
 
 - See about removing libnet_init() from all binaries other then tcprewrite
   so we don't have to run as root:
-  - libnet_addr2name4
-  - libnet_name2addr4 ???
+  . libnet_addr2name4 (ignore, doesn't require libnet_t context)
+  + libnet_name2addr4
   - libnet_get_hwaddr
   - libnet_do_checksum
 
