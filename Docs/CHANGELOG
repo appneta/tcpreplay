@@ -1,10 +1,11 @@
-$Id: CHANGELOG,v 1.22 2003/11/05 06:47:58 aturner Exp $
+$Id: CHANGELOG,v 1.23 2003/12/09 03:19:06 aturner Exp $
 
 ??/??/????: Version 1.5.alpha6
 	- Add BPF filter support to tcpprep and tcpreplay (-x F:"filter")
 	- Update the FAQ
 	- Add two new auto modes to tcpprep (client and server)
 	- Make clean no longer wipes out the compiled documentation in Docs
+	- Add support for replaying live traffic
 
 11/03/2003: Version 1.5.alpha5
         - Add -T to truncate packets > MTU so they can be sent

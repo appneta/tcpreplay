@@ -1,4 +1,4 @@
-$Id: CREDIT,v 1.4 2003/08/31 01:45:57 aturner Exp $ 
+$Id: CREDIT,v 1.5 2003/12/09 03:19:06 aturner Exp $ 
 
 Branden Moore <bmoore-at-cse.nd.edu>
 	- Patch to pad truncated packets
@@ -16,3 +16,6 @@ John Carlson
 
 Frey Kuo <kero@3sheep.com>
         - Patch to replace pause option with packets/sec
+
+Seth Robertson (seth at sysd dot com)
+        - Patch to allow replaying of live traffic
