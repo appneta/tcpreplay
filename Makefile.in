@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.55 2004/04/03 22:27:38 aturner Exp $
+# $Id: Makefile.in,v 1.56 2004/05/02 00:34:15 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -85,7 +85,7 @@ install:
 	$(INSTALL) -m 644 man/capinfo.1 $(MAN1DIR)
 	$(INSTALL) -m 644 man/tcpprep.1 $(MAN1DIR)
 	$(INSTALL) -m 644 man/pcapmerge.1 $(MAN1DIR)
-	$(INSTALL) -m 644 man/flowreplay.8 $(MAN8DIR)
+	$(INSTALL) -m 644 man/flowreplay.1 $(MAN1DIR)
 
 uninstall:
 	rm -f $(SBINDIR)/tcpreplay
