@@ -5,6 +5,7 @@ include $(top_srcdir)/libopts/MakeDefs.inc
 SUBDIRS = scripts lib src man docs $(LIBOPTS_DIR)
 DIST_SUBDIRS = scripts lib src man docs libopts
 
+dist-hook: version
 
 docsdir = $(top_builddir)/docs
 
