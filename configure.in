@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.61 2004/04/01 05:57:10 aturner Exp $
+dnl $Id: configure.in,v 1.62 2004/05/01 22:55:53 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -7,7 +7,7 @@ AC_CONFIG_HEADER(config.h)
 dnl Set version info here!
 MAJOR_VERSION=2
 MINOR_VERSION=1
-MICRO_VERSION=0
+MICRO_VERSION=1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
