@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.78 2003/12/16 04:28:07 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.79 2004/01/15 07:30:40 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -109,7 +109,7 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:12:"
+                   "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:v:Vw:W:x:X:12:"
 #ifdef DEBUG
                    "d:"
 #endif
@@ -297,6 +297,12 @@ main(int argc, char *argv[])
                 errx(1, "Invalid untruncate option: %s", optarg);
             }
             options.fixchecksums = 0;   /* untruncating already does this */
+            break;
+        case 'v':              /* verbose: print packet decodes via tcpdump */
+            options.verbose_enabled = 1;
+
+            /* may be NULL (I hope... possible bug w/ getopt and *optional* args to the -v flag) */
+            options.tcpdump_flags = optarg;
             break;
         case 'V':              /* print version info */
             version();
