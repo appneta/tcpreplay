@@ -55,6 +55,8 @@
 #include <unistd.h>
 
 #include "tcpprep.h"
+#include "tcpdump.h"
+#include "portmap.h"
 #include "lib/tree.h"
 #include "lib/sll.h"
 #include "lib/strlcpy.h"
@@ -66,17 +68,19 @@
 #ifdef DEBUG
 int debug = 0;
 #endif
+
+#ifdef HAVE_TCPDUMP
+tcpdump_t tcpdump;
+#endif
+
+tcpprep_opt_t options;
 int info = 0;
 char *ourregex = NULL;
 char *cidr = NULL;
 regex_t *preg = NULL;
-CIDR *cidrdata = NULL;
-CACHE *cachedata = NULL;
-struct data_tree treeroot;
-struct options options;
-struct bpf_program bpf;
+data_tree_t treeroot;
 
-char tcpservices[NUM_PORTS], udpservices[NUM_PORTS];
+
 int mode = 0;
 int automode = 0;
 double ratio = 0.0;
@@ -84,10 +88,6 @@ int max_mask = DEF_MAX_MASK;
 int min_mask = DEF_MIN_MASK;
 extern char *optarg;
 extern int optind, opterr, optopt;
-
-int include_exclude_mode;
-CIDR *xX_cidr = NULL;
-LIST *xX_list = NULL;
 
 /* required to include utils.c */
 int non_ip = 0;
@@ -153,10 +153,11 @@ static void
 print_comment(char *file)
 {
     char *cachedata = NULL;
+    char *comment = NULL;
     u_int64_t count = 0;
 
-    count = read_cache(&cachedata, file);
-    printf("tcpprep args: %s\n", options.tcpprep_comment);
+    count = read_cache(&cachedata, file, &comment);
+    printf("tcpprep args: %s\n", comment);
     printf("Cache contains data for %llu packets\n", count);
 
     exit(0);
@@ -178,7 +179,7 @@ check_dst_port(ip_hdr_t *ip_hdr, int len)
         tcp_hdr = (tcp_hdr_t *)get_layer4(ip_hdr);
 
         /* is a service? */
-        if (tcpservices[ntohs(tcp_hdr->th_dport)]) {
+        if (options.tcpservices[ntohs(tcp_hdr->th_dport)]) {
             dbg(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
             return 1;
         }
@@ -190,7 +191,7 @@ check_dst_port(ip_hdr_t *ip_hdr, int len)
         udp_hdr = (udp_hdr_t *)get_layer4(ip_hdr);
 
         /* is a service? */
-        if (udpservices[ntohs(udp_hdr->uh_dport)]) {
+        if (options.udpservices[ntohs(udp_hdr->uh_dport)]) {
             dbg(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
             return 1;
         }
@@ -247,11 +248,18 @@ process_raw_packets(pcap_t * pcap)
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
     unsigned long packetnum = 0;
-    int linktype = 0;
+    int linktype = 0, cache_result = 0;
 #ifdef FORCE_ALIGN
     u_char ipbuff[MAXPACKET];
 #endif
-
+#ifdef HAVE_TCPDUMP
+    struct pollfd poller[1];
+    
+    poller[0].fd = tcpdump.outfd;
+    poller[0].events = POLLIN;
+    poller[0].revents = 0;
+#endif
+    
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
         eth_hdr = NULL;
@@ -295,15 +303,15 @@ process_raw_packets(pcap_t * pcap)
         dbg(1, "Packet %d", packetnum);
 
         /* look for include or exclude LIST match */
-        if (xX_list != NULL) {
-            if (include_exclude_mode < xXExclude) {
-                if (!check_list(xX_list, (packetnum))) {
-                    add_cache(&cachedata, 0, 0);
+        if (options.xX.list != NULL) {
+            if (options.xX_mode < xXExclude) {
+                if (!check_list(options.xX.list, packetnum)) {
+                    add_cache(&options.cachedata, 0, 0);
                     continue;
                 }
             }
-            else if (check_list(xX_list, (packetnum))) {
-                add_cache(&cachedata, 0, 0);
+            else if (check_list(options.xX.list, packetnum)) {
+                add_cache(&options.cachedata, 0, 0);
                 continue;
             }
         }
@@ -313,7 +321,7 @@ process_raw_packets(pcap_t * pcap)
 
             if (mode != AUTO_MODE)  /* we don't want to cache
                                      * these packets twice */
-                add_cache(&cachedata, 1, non_ip);
+                add_cache(&options.cachedata, 1, non_ip);
             continue;
         }
 
@@ -336,35 +344,36 @@ process_raw_packets(pcap_t * pcap)
 #endif
 
         /* look for include or exclude CIDR match */
-        if (xX_cidr != NULL) {
-            if (!process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
-                add_cache(&cachedata, 0, 0);
+        if (options.xX.cidr != NULL) {
+            if (!process_xX_by_cidr(options.xX_mode, options.xX.cidr, ip_hdr)) {
+                add_cache(&options.cachedata, 0, 0);
                 continue;
             }
         }
 
         switch (mode) {
         case REGEX_MODE:
-            add_cache(&cachedata, 1, check_ip_regex(ip_hdr->ip_src.s_addr));
+            cache_result = add_cache(&options.cachedata, 1, 
+                check_ip_regex(ip_hdr->ip_src.s_addr));
             break;
         case CIDR_MODE:
-            add_cache(&cachedata, 1,
-                      check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+            cache_result = add_cache(&options.cachedata, 1,
+                      check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
             break;
         case AUTO_MODE:
             /* first run through in auto mode: create tree */
             add_tree(ip_hdr->ip_src.s_addr, pktdata);
             break;
         case ROUTER_MODE:
-            add_cache(&cachedata, 1,
-                      check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+            cache_result = add_cache(&options.cachedata, 1,
+                      check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
             break;
         case BRIDGE_MODE:
             /*
              * second run through in auto mode: create bridge
              * based cache
              */
-            add_cache(&cachedata, 1,
+            cache_result = add_cache(&options.cachedata, 1,
                       check_ip_tree(UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
         case SERVER_MODE:
@@ -372,7 +381,7 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * where unknowns are servers
              */
-            add_cache(&cachedata, 1,
+            cache_result = add_cache(&options.cachedata, 1,
                       check_ip_tree(SERVER, ip_hdr->ip_src.s_addr));
             break;
         case CLIENT_MODE:
@@ -380,18 +389,21 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * where unknowns are clients
              */
-            add_cache(&cachedata, 1,
+            cache_result = add_cache(&options.cachedata, 1,
                       check_ip_tree(CLIENT, ip_hdr->ip_src.s_addr));
             break;
         case PORT_MODE:
             /*
              * process ports based on their destination port
              */
-            add_cache(&cachedata, 1, 
+            cache_result = add_cache(&options.cachedata, 1, 
                       check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
             break;
         }
-
+#ifdef HAVE_TCPDUMP
+        if (options.verbose)
+            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+#endif
     }
 
     return packetnum;
@@ -416,18 +428,15 @@ main(int argc, char *argv[])
     char myargs[1024];
 
     memset(&options, '\0', sizeof(options));
-    options.bpf_optimize = BPF_OPTIMIZE;
+    options.bpf.optimize = BPF_OPTIMIZE;
 
     preg = (regex_t *) malloc(sizeof(regex_t));
     if (preg == NULL)
         err(1, "malloc");
 
-    /* set default server ports (override w/ -s) */
-    memset(tcpservices, '\0', NUM_PORTS);
-    memset(udpservices, '\0', NUM_PORTS);
     for (i = DEFAULT_LOW_SERVER_PORT; i <= DEFAULT_HIGH_SERVER_PORT; i++) {
-        tcpservices[i] = 1;
-        udpservices[i] = 1;
+        options.tcpservices[i] = 1;
+        options.udpservices[i] = 1;
     }
 
 #ifdef DEBUG
@@ -440,7 +449,7 @@ main(int argc, char *argv[])
             mode = AUTO_MODE;
             break;
         case 'c':
-            if (!parse_cidr(&cidrdata, optarg, ",")) {
+            if (!parse_cidr(&options.cidrdata, optarg, ",")) {
                 usage();
             }
             mode = CIDR_MODE;
@@ -465,13 +474,13 @@ main(int argc, char *argv[])
             dbg(1, "comment args length: %d", strlen(myargs));
 
             /* malloc our buffer to be + 1 strlen so we can null terminate */
-            if ((options.tcpprep_comment = (char *)malloc(strlen(optarg) 
+            if ((options.comment = (char *)malloc(strlen(optarg) 
                                            + strlen(myargs) + 1)) == NULL)
                 errx(1, "Unable to malloc() memory for comment");
 
-            memset(options.tcpprep_comment, '\0', strlen(optarg) + 1 + strlen(myargs));
-            strlcpy(options.tcpprep_comment, myargs, sizeof(options.tcpprep_comment));
-            strlcat(options.tcpprep_comment, optarg, sizeof(options.tcpprep_comment));
+            memset(options.comment, '\0', strlen(optarg) + 1 + strlen(myargs));
+            strlcpy(options.comment, myargs, sizeof(options.comment));
+            strlcat(options.comment, optarg, sizeof(options.comment));
             dbg(1, "comment length: %d", strlen(optarg));
             break;
 #ifdef DEBUG
@@ -552,33 +561,33 @@ main(int argc, char *argv[])
             parse_services(optarg);
             break;
         case 'x':
-            if (include_exclude_mode != 0)
+            if (options.xX_mode != 0)
                 errx(1, "Error: Can only specify -x OR -X");
 
-            include_exclude_mode = 'x';
-            if ((include_exclude_mode = 
-                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
+            options.xX_mode = 'x';
+            if ((options.xX_mode = 
+                 parse_xX_str(options.xX_mode, optarg, &xX, &options.bpf)) == 0)
                 errx(1, "Unable to parse -x: %s", optarg);
-            if (include_exclude_mode & xXPacket) {
-                xX_list = (LIST *) xX;
+            if (options.xX_mode & xXPacket) {
+                options.xX.list = (list_t *) xX;
             }
-            else if (! (include_exclude_mode & xXBPF)) {
-                xX_cidr = (CIDR *) xX;
+            else if (! (options.xX_mode & xXBPF)) {
+                options.xX.cidr = (cidr_t *) xX;
             }
             break;
         case 'X':
-            if (include_exclude_mode != 0)
+            if (options.xX_mode != 0)
                 errx(1, "Error: Can only specify -x OR -X");
 
-            include_exclude_mode = 'X';
-            if ((include_exclude_mode = 
-                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
+            options.xX_mode = 'X';
+            if ((options.xX_mode = 
+                 parse_xX_str(options.xX_mode, optarg, &xX, &options.bpf)) == 0)
                 errx(1, "Unable to parse -X: %s", optarg);
-            if (include_exclude_mode & xXPacket) {
-                xX_list = (LIST *) xX;
+            if (options.xX_mode & xXPacket) {
+                options.xX.list = (list_t *) xX;
             }
             else {
-                xX_cidr = (CIDR *) xX;
+                options.xX.cidr = (cidr_t *) xX;
             }
             break;
         case 'v':
@@ -648,12 +657,12 @@ main(int argc, char *argv[])
 
 
     /* do we apply a bpf filter? */
-    if (options.bpf_filter != NULL) {
-        if (pcap_compile(pcap, &bpf, options.bpf_filter,
-                         options.bpf_optimize, 0) != 0) {
+    if (options.bpf.filter != NULL) {
+        if (pcap_compile(pcap, &options.bpf.program, options.bpf.filter,
+                         options.bpf.optimize, 0) != 0) {
             errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
         }
-        pcap_setfilter(pcap, &bpf);
+        pcap_setfilter(pcap, &options.bpf.program);
     }
 
     if ((totpackets = process_raw_packets(pcap)) == 0) {
@@ -692,12 +701,13 @@ main(int argc, char *argv[])
         goto readpcap;
     }
 #ifdef DEBUG
-    if (debug && (cidrdata != NULL))
-        print_cidr(cidrdata);
+    if (debug && (options.cidrdata != NULL))
+        print_cidr(options.cidrdata);
 #endif
 
     /* write cache data */
-    totpackets = write_cache(cachedata, out_file, totpackets);
+    totpackets = write_cache(options.cachedata, out_file, totpackets, 
+        options.comment);
     if (info)
         fprintf(stderr, "Done.\nCached %llu packets.\n", totpackets);
 
@@ -714,4 +724,3 @@ main(int argc, char *argv[])
  c-basic-offset:4
  End:
 */
-
