@@ -1,4 +1,10 @@
-$Id: CHANGELOG,v 1.24 2003/12/11 04:05:04 aturner Exp $
+$Id: CHANGELOG,v 1.25 2003/12/21 20:07:32 aturner Exp $
+
+??/??/????: Version 1.5.beta1
+        - Remove libpcapnav requirement
+        - Now support libpcapnav >= 0.4
+        - Add -1 to replay one packet at a time (user must hit <ENTER>)
+        - Add tcpdump packet parsing to print packets as sent
 
 12/10/2003: Version 1.5.alpha6
 	- Add BPF filter support to tcpprep and tcpreplay (-x F:"filter")
@@ -7,6 +13,7 @@ $Id: CHANGELOG,v 1.24 2003/12/11 04:05:04 aturner Exp $
 	- Make clean no longer wipes out the compiled documentation in Docs
 	- Add support for replaying live traffic
         - Add bridge mode
+        - Add -L to limit the total number of packets to send
 
 11/03/2003: Version 1.5.alpha5
         - Add -T to truncate packets > MTU so they can be sent
