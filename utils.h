@@ -36,12 +36,19 @@
 
 int read_hexstring(char *l2string, char *hex, int hexlen);
 int argv_create(char *p, int argc, char *argv[]);
-void mac2hex(const char *mac, char *dst, int len);
-void packet_stats();
+void packet_stats(struct timeval *begin, struct timeval *end);
 void *get_layer4(ip_hdr_t * ip_hdr);
-void parse_services(char *file);
 
 #define MAX_ARGS 128
 
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

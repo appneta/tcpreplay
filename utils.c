@@ -14,7 +14,8 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  * 3. Neither the names of the copyright owners nor the names of its
- *    contributors may be used to endorse or promote products derived from *    this software without specific prior written permission.
+ *    contributors may be used to endorse or promote products derived from 
+ *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -29,15 +30,46 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <regex.h>
 #include "config.h"
-#include "tcpreplay.h"
+#include "defines.h"
 #include "utils.h"
 #include "err.h"
 
-extern int maxpacket;
-extern struct options options;
+
+void
+packet_stats(struct timeval *begin, struct timeval *end)
+{
+    float bytes_sec = 0.0, mb_sec = 0.0;
+    int pkts_sec = 0;
+    char bits[3];
+
+    if (gettimeofday(*end, NULL) < 0)
+        err(1, "gettimeofday");
+
+    timersub(end, begin, begin);
+    if (timerisset(begin)) {
+        if (bytes_sent) {
+            bytes_sec =
+                bytes_sent / (begin->tv_sec + (float)begin->tv_usec / 1000000);
+            mb_sec = (bytes_sec * 8) / (1024 * 1024);
+        }
+        if (pkts_sent)
+            pkts_sec =
+                pkts_sent / (begin->tv_sec + (float)begin->tv_usec / 1000000);
+    }
+
+    snprintf(bits, sizeof(bits), "%d", begin->tv_usec);
+
+    fprintf(stderr, " %llu packets (%llu bytes) sent in %d.%s seconds\n",
+            pkts_sent, bytes_sent, begin->tv_sec, bits);
+    fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
+            bytes_sec, mb_sec, pkts_sec);
+
+    if (failed)
+        warnx(" %llu write attempts failed from full buffers and were repeated\n",
+              failed);
+
+}
 
 int
 read_hexstring(char *l2string, char *hex, int hexlen)
@@ -107,37 +139,6 @@ argv_create(char *p, int argc, char *argv[])
     return (i);
 }
 
-/*
- * converts a string representation of a MAC address, based on 
- * non-portable ether_aton() 
- */
-void
-mac2hex(const char *mac, char *dst, int len)
-{
-    int i;
-    long l;
-    char *pp;
-
-    if (len < 6)
-        return;
-
-    while (isspace(*mac))
-        mac++;
-
-    /* expect 6 hex octets separated by ':' or space/NUL if last octet */
-    for (i = 0; i < 6; i++) {
-        l = strtol(mac, &pp, 16);
-        if (pp == mac || l > 0xFF || l < 0)
-            return;
-        if (!(*pp == ':' || (i == 5 && (isspace(*pp) || *pp == '\0'))))
-            return;
-        dst[i] = (u_char) l;
-        mac = pp + 1;
-    }
-}
-
-
-
 
 /*
  * returns a pointer to the layer 4 header which is just beyond the IP header
@@ -149,3 +150,12 @@ get_layer4(ip_hdr_t * ip_hdr)
     ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
     return ((void *)ptr);
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+
