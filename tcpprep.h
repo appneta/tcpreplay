@@ -1,4 +1,4 @@
-/* $Id: tcpprep.h,v 1.6 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: tcpprep.h,v 1.7 2004/04/01 06:06:42 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -32,6 +32,16 @@
 
 #ifndef __TCPPREP_H__
 #define __TCPPREP_H__
+
+/* default ports used for servers */
+#define DEFAULT_LOW_SERVER_PORT 0
+#define DEFAULT_HIGH_SERVER_PORT 1023
+
+/* number of ports 0-65535 */
+#define NUM_PORTS 65536
+
+/* max width of a line in /etc/services */
+#define MAXLINE 1024
 
 
 #endif

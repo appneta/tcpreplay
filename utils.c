@@ -1,4 +1,4 @@
-/* $Id: utils.c,v 1.3 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: utils.c,v 1.4 2004/04/01 06:06:42 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -30,6 +30,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <regex.h>
 #include "config.h"
 #include "tcpreplay.h"
 #include "utils.h"
@@ -228,3 +229,4 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
     }
 
 }
+
