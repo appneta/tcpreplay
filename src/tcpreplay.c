@@ -46,7 +46,6 @@
 
 #include "tcpreplay.h"
 #include "tcpreplay_opts.h"
-#include "tcpdump.h"
 #include "send_packets.h"
 #include "timer.h"
 #include "signal_handler.h"
@@ -87,6 +86,8 @@ main(int argc, char *argv[])
     argc -= optct;
     argv += optct;
  
+    post_args();
+
     /* open interfaces for writing */
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, options.intf1_name, ebuf)) == NULL)
         errx(1, "Libnet can't open %s: %s", options.intf1_name, ebuf);
@@ -201,6 +202,7 @@ init(void)
 void
 post_args(void)
 {
+    char *temp;
 
 #ifdef DEBUG
     debug = OPT_VALUE_DBUG;
@@ -232,7 +234,7 @@ post_args(void)
         options.verbose = 1;
     
     if (HAVE_OPT(DECODE))
-        options.tcpdump_args = OPT_ARG(DECODE);
+        options.tcpdump_args = safe_strdup(OPT_ARG(DECODE));
     
     options.intf1_name = (char *)safe_malloc(strlen(OPT_ARG(INTF1)) + 1);
     strlcpy(options.intf1_name, OPT_ARG(INTF1), sizeof(options.intf1_name));
@@ -243,8 +245,10 @@ post_args(void)
     }
 
     if (HAVE_OPT(CACHEFILE)) {
-        options.cache_packets = read_cache(&options.cachedata, OPT_ARG(CACHEFILE),
+        temp = safe_strdup(OPT_ARG(CACHEFILE));
+        options.cache_packets = read_cache(&options.cachedata, temp,
             &options.comment);
+        free(temp);
     }
 }
 
