@@ -147,7 +147,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
  */
 int
 rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
-           u_int32_t linktype, int cache_mode)
+            int cache_mode)
 {
     sll_header_t *sllhdr = NULL;   /* Linux cooked socket header */
     cisco_hdlc_header_t *hdlc_header = NULL; /*Cisco HDLC */
@@ -167,7 +167,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
      * we rewrite it to look like 802.3 ethernet, but the user can do crazy
      * stuff and make it look like anything else if they use -2
      */
-    switch (linktype) {
+    switch (options.l2.linktype) {
     case DLT_EN10MB:       /* Standard 802.3 Ethernet */
         if (options.l2.enabled) {
             /*
@@ -364,7 +364,7 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char * pktdata, const u_char * nextpkt,
         }
         break;
         
-    case DLT_CHDLC:         /* Cisco HDLC */
+    case DLT_C_HDLC:         /* Cisco HDLC */
         /*
          * is new packet too big?
          */
@@ -460,8 +460,7 @@ extract_data(u_char * pktdata, int caplen, char *l7data[])
      */
     if (caplen > ntohs(ip_hdr->ip_len)) {
         datalen = ntohs(ip_hdr->ip_len);
-    }
-    else {
+    } else {
         datalen = caplen - options.l2.len;
     }
 
@@ -522,7 +521,7 @@ remap_ip(cidr_t *cidr, const u_int32_t original)
 {
     u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
 
-    mask = ~0; /* turn on all the bits */
+    mask = 0xffffffff; /* turn on all the bits */
 
     /* shift over by correct # of bits */
     mask = mask << (32 - cidr->masklen);
@@ -531,7 +530,7 @@ remap_ip(cidr_t *cidr, const u_int32_t original)
     network = htonl(cidr->network) & mask;
 
     /* apply the reverse of the mask to the IP */
-    mask = mask ^ ~0;
+    mask = mask ^ 0xffffffff;
     ipaddr = ntohl(original) & mask;
 
     /* merge the network portion and ip portions */
