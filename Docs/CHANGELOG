@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.13 2003/07/16 22:30:39 aturner Exp $
+$Id: CHANGELOG,v 1.14 2003/07/17 02:16:04 aturner Exp $
 
 06/??/2003: Version 1.5.alpha4
         - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
@@ -10,6 +10,8 @@ $Id: CHANGELOG,v 1.13 2003/07/16 22:30:39 aturner Exp $
         - Fix an integer overflow in packet_stats() in tcpreplay.c
         - tcpreplay's -2 now accepts a hex string rather then a filename
         - tcpreplay now can output to a file (-w <file>)
+        - fix bug in checksum fixer
+        - Add support for files > 2GB
 
 06/06/2003: Version 1.5.alpha3
 	- Add support for Linux Cooked Sockets (SLL) format rewriting

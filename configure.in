@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.39 2003/06/06 20:21:07 aturner Exp $
+dnl $Id: configure.in,v 1.40 2003/07/17 02:16:04 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -49,6 +49,7 @@ AC_TYPE_SIZE_T
 AC_HEADER_TIME
 AC_C_CONST
 AC_C_INLINE
+AC_SYS_LARGEFILE
 
 dnl Enable debugging in code/compiler options
 debug=no

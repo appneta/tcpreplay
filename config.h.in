@@ -24,3 +24,7 @@
 
 /* do we have to force strict byte alignment? */
 #undef FORCE_ALIGN
+
+/* Large file support */
+#undef _FILE_OFFSET_BITS
+#undef _LARGE_FILES
