@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.38 2002/10/14 03:22:00 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.39 2002/10/22 05:01:21 aturner Exp $ */
 
 #include "config.h"
 
@@ -312,11 +312,11 @@ packet_stats()
 	timersub(&end, &begin, &begin);
 	if (timerisset(&begin)) {
 		if (bytes_sent) {
-		bytes_sec = bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 100000);
+		bytes_sec = bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
 		mb_sec = (bytes_sec * 8) / (1024 * 1024);
 		}
 		if (pkts_sent)
-		pkts_sec = pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 100000);
+		pkts_sec = pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
 	}
 
 	fprintf(stderr, " %ld packets (%ld bytes) sent in %ld seconds\n",
