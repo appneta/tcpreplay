@@ -56,6 +56,19 @@ extern int debug;
 #endif
 
 void
+notice(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    if (fmt != NULL)
+        (void)vfprintf(stderr, fmt, ap);
+    (void)fprintf(stderr, "\n");
+    va_end(ap);
+    fflush(NULL);
+}
+
+void
 dbg(int dbg_level, const char *fmt, ...)
 {
 #ifdef DEBUG

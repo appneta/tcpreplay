@@ -84,6 +84,8 @@ void _our_verbose_warn(const char *fmt);
 #define warnx(x, ...) _our_verbose_warnx(x, __VA_ARGS__)
 void _our_verbose_warnx(const char *fmt, ...);
 
+void notice(const char *fmt, ...);
+
 #endif /* DEBUG */
 
 #endif /* !_ERR_H_ */
