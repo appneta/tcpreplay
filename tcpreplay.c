@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.32 2002/08/22 05:32:21 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.33 2002/10/03 01:08:10 aturner Exp $ */
 
 #include "config.h"
 
@@ -19,6 +19,7 @@
 #include "libpcap.h"
 #include "snoop.h"
 #include "tcpreplay.h"
+#include "err.h"
 
 struct options options;
 CACHE *cachedata = NULL;
@@ -44,6 +45,7 @@ void usage();
 void version();
 void mac2hex(const char *, char *, int); 
 void untrunc_packet(struct packet *, ip_hdr_t *, void *);
+void randomize_ips(struct packet *, ip_hdr_t *, void *);
 void * cache_mode(struct libnet_ethernet_hdr *, int);
 void * cidr_mode(struct libnet_ethernet_hdr *, ip_hdr_t *);
 void configfile(char *);
@@ -67,9 +69,9 @@ main(int argc, char *argv[])
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:C:f:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "dc:C:f:hi:I:j:J:l:m:Mr:Rs:u:Vv?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mr:Rs:u:Vv?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -130,6 +132,9 @@ main(int argc, char *argv[])
 		case 'R': /* replay at top speed */
 			options.topspeed = 1;
 			break;
+		case 's':
+			options.seed = atoi(optarg);
+			break;
 		case 'v': /* verbose */
 			options.verbose++;
 			break;
@@ -168,6 +173,16 @@ main(int argc, char *argv[])
 
 	if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
+
+	/* use our seed to make pseudo-random IP's */
+	if (options.seed != 0) {
+		srand(options.seed);
+		options.seed = random();
+#ifdef DEBUG
+		dbg(1, "random() picked: %d", options.seed);
+#endif
+	}
+		
 
 #if USE_LIBNET_VERSION == 10
 	if ((options.intf1 = libnet_open_link_interface(intf, ebuf)) == NULL)
@@ -348,8 +363,20 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 #endif
 		}
 
+
+		/* do we need to spoof the src/dst IP address? */
+		if (options.seed && ip_hdr != NULL) {
+#if USE_LIBNET_VERSION == 10
+			randomize_ips(&pkt, ip_hdr, NULL);
+#elif USE_LIBNET_VERSION == 11
+			randomize_ips(&pkt, ip_hdr, (void *)l);
+#endif
+		}
+	
+
 		pktdata = pkt.data;
 		pktlen = pkt.len;
+
 
 		if (!options.topspeed)
 			do_sleep(&pkt.ts, &last, pkt.len);
@@ -465,6 +492,49 @@ cidr_mode(struct libnet_ethernet_hdr *eth_hdr, ip_hdr_t *ip_hdr)
 	}
 
 	return l;
+}
+
+/*
+ * randomizes the source and destination IP addresses based on a 
+ * pseudo-random number which is generated via the seed.
+ */
+void randomize_ips(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
+{
+	int proto;
+
+	/* randomize IP addresses based on the value of random */
+#ifdef DEBUG
+		dbg(1, "Old Src IP: 0x%08lx\tOld Dst IP: 0x%08lx", 
+			ip_hdr->ip_src.s_addr,
+			ip_hdr->ip_dst.s_addr);
+
+#endif
+		ip_hdr->ip_dst.s_addr = 
+			(ip_hdr->ip_dst.s_addr ^ options.seed) - 
+			(ip_hdr->ip_dst.s_addr & options.seed);
+		ip_hdr->ip_src.s_addr = 
+			(ip_hdr->ip_src.s_addr ^ options.seed) -
+			(ip_hdr->ip_src.s_addr & options.seed);
+
+
+#ifdef DEBUG
+			dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
+				ip_hdr->ip_src.s_addr,
+				ip_hdr->ip_dst.s_addr);
+#endif
+
+	/* recalc IP checksum */
+#if USE_LIBNET_VERSION == 10
+	if (libnet_do_checksum(pkt->data + LIBNET_ETH_H, IPPROTO_IP, 
+						   LIBNET_IP_H) < 0)
+		warnx("IP checksum failed");
+#elif USE_LIBNET_VERSION == 11
+	proto = ((ip_hdr_t *)(pkt->data + LIBNET_ETH_H))->ip_p;
+	if (libnet_do_checksum((libnet_t *)l, pkt->data + LIBNET_ETH_H, proto,
+						   pkt->len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+		warnx("IP checksum failed");
+#endif
+
 }
 
 /*
@@ -790,6 +860,7 @@ usage()
 			"-M\t\t\tDisable sending martian IP packets\n"
 			"-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 			"-R\t\t\tSet replay speed to as fast as possible\n"
+			"-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
 			"-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
 			"-v\t\t\tVerbose\n"
 			"-V\t\t\tVersion\n"

@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.13 2002/08/20 22:48:23 mattbing Exp $
+.\" $Id: tcpreplay.8,v 1.14 2002/10/03 01:08:10 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -33,6 +33,9 @@ tcpreplay \- replay packets from capture files
 .I rate
 |
 .B \-R
+] [
+.B \-s
+.I seed
 ] [
 .B \-C 
 CIDR...
@@ -121,6 +124,11 @@ the secondary interface.  Can't be used with -c.
 .TP
 .B \-R or "topspeed"
 Resend the packets as fast as possible. Negates other speed options.
+.TP
+.B \-s or seed
+Specify a seed value to allow rewriting the source and destination IP
+addresses (only in IP header) to pseudo-random values.  Will also recalculate 
+the IP header as necessary.
 .TP
 .B \-u or "untruncate"
 Untruncates IP packets when snaplen > the actual packet length.  Packets can
