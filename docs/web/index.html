@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Tcpreplay: Pcap editing and replay tools for *NIX</title>
+    <link rel="stylesheet" type="text/css" title="normal" media="screen" href="web.css" >
+  </head>
+  <body>
+    
+    <table border=0 cellpadding=3 cellspacing=0 width="100%">
+        <tr>
+          <td align=center class=title colspan=1>
+            Tcpreplay: Pcap editing and replay tools for *NIX
+          </td>
+        </tr>
+        <tr>
+          <td align=right class=menubar>
+            <!--
+            <a href="http://sourceforge.net/project/showfiles.php?group_id=48862">Downloads</a> | 
+<a href="manual.html">Manual</a> | 
+            <a href="faq.html">FAQ</a> |
+            <a href="http://sourceforge.net/mail/?group_id=48862">Mailing Lists</a> |
+            <a href="https://www.synfin.net:444/cgi-bin/viewcvs.cgi/tcpreplay/">SVN
+            Repository</a>
+            -->
+            <a href="#about">About</a> |
+            <a href="#details">Details</a> |
+            <a href="#downloads">Downloads</a> |
+            <a href="#docs">Documentation</a> |
+            <a href="#support">Support</a>
+          </td>
+        </tr>
+    </table>
+    
+    <P>&nbsp;<P>
+      
+    <table border=0 cellpadding=3 cellspacing=0 width="100%" class=fill>
+      <a name="about">
+        <tr><td class=sechdr>About</td></tr>
+        <tr><td class=section>
+            Tcpreplay is a suite of BSD licensed tools written by Aaron Turner for *NIX operating 
+            systems which gives you the ability to use previously captured traffic in 
+            <a href="http://www.tcpdump.org">libpcap format</a> to test a variety of
+            network devices. &nbsp;It allows you to classify traffic as client or
+            server, rewrite Layer 2, 3 and 4 headers and finally replay the traffic back
+            onto the network and through other devices such as switches, routers,
+            firewalls, NIDS and IPS's.
+            <P>
+              These programs were written in the hopes that a more precise and repeatable
+              testing methodology might be applied to the area of network intrusion
+              detection, which is still a black art at best.
+          </td>
+        </tr>
+    <a name="details">
+      <tr><td>&nbsp;</td></tr>
+      <tr><td class=sechdr>Details</td></tr>
+      <tr><td class=section>
+          Tcpreplay includes the following tools:
+          <ul>
+            <li>tcpprep - multi-pass pcap file pre-processor which determines
+              packets as client or server and creates cache files used by
+              tcpreplay and tcprewrite</li>
+            <li>tcprewrite - pcap file editor which rewrites TCP/IP and Layer 2 packet headers</li>
+            <li>tcpreplay - replays pcap files at arbitrary speeds onto the
+              network</li>
+            <li>flowreplay - emulates a network client using a pcap file as the
+              basis of a TCP or UDP connection (currently in alpha)</li>
+          </ul>
+       
+          <P>
+Generally speaking, most people would first run tcpprep against a pcap file to create a cache file which splits
+traffic between client and server if they are testing an inline device like a firewall or IPS. &nbsp;Then
+depending on their network setup and where the pcap was captured, they would use tcprewrite to edit the
+packets so that the device under test will examine them properly. &nbsp;Finally, tcpreplay is used to
+           replay the pcap onto the network to do the test.
+        </td>
+      </tr>
+      
+      <a name="download">
+        <tr><td>&nbsp;</td></tr>
+        <tr><td class=sechdr>Get It</td></tr>
+        <tr><td class=section>
+            <ul>
+              <li>
+                Latest stable release: 
+            <a href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-2.3.3.tar.gz">tcpreplay-2.3.3.tar.gz</a>
+            (<a href="http://sourceforge.net/project/shownotes.php?release_id=304008">release notes</a>)
+              </li>
+
+              <li>
+                Last release supporting Libnet 1.0.x:
+                <a href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-1.3.3.tar.gz">tcpreplay-1.3.3.tar.gz</a>
+                (<a href="http://sourceforge.net/project/shownotes.php?release_id=156906">release notes</a>)
+              </li>
+              
+              <li>
+              Source via Subversion:<br>
+              svn co https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay-trunk<br>
+              or view it online using
+              <a href="https://www.synfin.net:444/cgi-bin/viewcvs.cgi/tcpreplay/">
+                the web interface</a>
+              </li>
+
+              <li>Apple OS X users can try Darian Lanx's Fink package: <i>fink install tcpreplay</i></li>
+
+              <li>Debian users can try Noel Koethe's APT package: <i>apt-get install tcpreplay</i></li>
+              
+              <li>
+              Win32 users can try 
+              <a
+                  href="http://sourceforge.net/project/showfiles.php?group_id=48862&package_id=144474">this
+                  UNOFFICAL and UNSUPPORTED</a> port. &nbsp;Note: anyone interested in helping with an offical Win32 port of tcpreplay should contact me.
+              </li>
+              
+          </td>
+          
+    <a name="docs">
+      <tr><td>&nbsp;</td></tr>
+      <tr><td class=sechdr>Documentation</td></tr>
+      <tr><td class=section>
+              Docs:
+          <ul>
+            <li><a href="manual/index.html">Manual</a></li>
+            <li><a href="FAQ/index.html">Frequently Asked Questions</a></li>
+        </ul>
+            Man Pages:
+            <ul>
+                <li><a href="tcpreplay.html">tcpreplay</a></li>
+                <li><a href="tcpprep.html">tcpprep</a></li>
+                <li><a href="tcprewrite.html">tcprewrite</a></li>
+                <li><a href="flowreplay.html">flowreplay</a></li>
+        </td>
+      </tr>
+      <a name="support">
+        <tr><td>&nbsp;</td></tr>
+        <tr><td class=sechdr>Support</td></tr>
+        <tr><td class=section>
+            Sourceforge has a support, bug and patch ticket tracking system which we <b>do not use</b>. 
+            &nbsp;So if you submit a ticket into any of those systems, it will likely be ignored for a few 
+            months, if not longer. &nbsp;Hence, you should be using the 
+            <a href="http://sourceforge.net/mail/?group_id=48862">tcpreplay-users mailing 
+              list</a> for support.
+            <P>
+              You may also be interested in checking out 
+              <a href="http://www.sourceforge.net/projects/tcpreplay/">
+                tcpreplay's SourceForge project page</a>.
+            </ul>
+          </td>
+      </tr>
+      <tr>
+          <td align=center>
+              <a  href="http://sourceforge.net"><img
+                  src="http://sourceforge.net/sflogo.php?group_id=48862&type=1"
+                  width="88" height="31" border="0" alt="SourceForge.net
+                  Logo"  /></a>
+          </td>
+      </tr>
+    </table>
+
+  </body>
+</html>
