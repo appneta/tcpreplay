@@ -1,3 +1,7 @@
+xx/xx/xxxx: Version 1.2
+	- Added CIDR dual-nic support to tcpreplay. 
+	  patch by: Scott Mace <smace@intt.org>
+
 06/17/2002: Version 1.1
 	- Major rewrite
 	- Support multiple nics
