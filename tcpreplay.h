@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.16 2002/10/08 18:11:50 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.17 2002/10/14 03:19:16 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -15,11 +15,13 @@
 /* Compatibility for libnet 1.0 vs 1.1 */
 #if USE_LIBNET_VERSION == 10
 
+typedef struct libnet_link_int LIBNET;
 typedef struct libnet_ip_hdr ip_hdr_t;
 typedef struct libnet_dns_hdr dns_hdr_t;
 
 #elif USE_LIBNET_VERSION == 11
 
+typedef libnet_t LIBNET;
 #define LIBNET_IP_H LIBNET_IPV4_H
 #define LIBNET_ICMP_H LIBNET_ICMPV4_H
 typedef struct libnet_ipv4_hdr ip_hdr_t;
@@ -35,11 +37,11 @@ typedef struct libnet_dnsv4_hdr dns_hdr_t;
 /* run-time options */
 struct options {
 #if USE_LIBNET_VERSION == 10
-	struct libnet_link_int *intf1;
-	struct libnet_link_int *intf2;
+	LIBNET *intf1;
+	LIBNET *intf2;
 #elif USE_LIBNET_VERSION == 11
-	libnet_t *intf1;
-	libnet_t *intf2;
+	LIBNET *intf1;
+	LIBNET *intf2;
 #endif
 	char intf1_mac[6];
 	char intf2_mac[6];
@@ -94,15 +96,6 @@ struct packet {
 #define PAD_PACKET 1	 /* values for the 'uflag' in tcpreplay */
 #define TRUNC_PACKET 2
 
-/* Values for storing the include/exclude (-x|-X) 
- * mode in options.include_exclude_mode
- */
-#define xXSource 1
-#define xXDest 2
-#define xXBoth 3
-#define xXEither 4
-#define xXPacket 5
-#define xXExclude 128 /* if exclude mode, add 128 to above value */
 
 #ifndef SWAPLONG
 #define SWAPLONG(y) \
