@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.1 2003/06/07 01:27:24 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.2 2003/06/07 18:20:02 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -108,7 +108,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
 
 /*
  * Do all the layer 2 rewriting: via -2 and DLT_LINUX_SLL
- * return 1 on success or 0 on fail (don't send packet)
+ * return layer 2 length on success or 0 on fail (don't send packet)
  */
 int
 rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt, 
@@ -129,9 +129,9 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	     * is new packet too big?
 	     */
 	    if ((pkthdr->caplen - LIBNET_ETH_H + l2len) > maxpacket) {
-		errx(1, "Packet length (%u) is greater then %d.\n"
-		     "Either reduce snaplen or increase the MTU",
-		     (pkthdr->caplen - LIBNET_ETH_H + l2len), maxpacket);
+		warnx("Packet length (%u) is greater then MTU; skipping packet.",
+		     (pkthdr->caplen - LIBNET_ETH_H + l2len));
+		return(0);
 	    }
 	    /*
 	     * remove ethernet header and copy our header back
@@ -158,9 +158,8 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	     * is new packet too big?
 	     */
 	    if ((pkthdr->caplen + l2len) > maxpacket) {
-		errx(1, "Packet length (%u) is greater then %d.\n"
-		     "Either reduce snaplen or increase the MTU",
-		     (pkthdr->caplen + l2len), maxpacket);
+		warnx("Packet length (%u) is greater then MTU; skipping packet.");
+		return(0);
 	    }
 	    
 	    memcpy(pktdata, l2data, l2len);
@@ -174,19 +173,17 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	    break;
 	}
 	
-	
-    } 
+    }
     
     else { 
 	/* We're not replacing the Layer2 header, use what we've got */
-	
-	if (linktype == DLT_EN10MB) {
-	    
+	switch (linktype) {
+	case DLT_EN10MB:
 	    /* verify that the packet isn't > maxpacket */
 	    if (pkthdr->caplen > maxpacket) {
-		errx(1, "Packet length (%u) is greater then %d.\n"
-		     "Either reduce snaplen or increase the MTU",
-		     pkthdr->caplen, maxpacket);
+		warnx("Packet length (%u) is greater then MTU; skipping packet.",
+		      pkthdr->caplen);
+		return(0);
 	    }
 	    
 	    /*
@@ -196,24 +193,28 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	     * the packet to a static buffer
 	     */
 	    memcpy(pktdata, nextpkt, pkthdr->caplen);
-	}
+	    break;
+
+	case DLT_LINUX_SLL:
 	/* how should we process non-802.3 frames? */
-	else if (linktype == DLT_LINUX_SLL) {
 	    /* verify new packet isn't > maxpacket */
 	    if ((pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H) > maxpacket) {
-		errx(1, "Packet length (%u) is greater then %d.\n"
-		     "Either reduce snaplen or increase the MTU",
-		     (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H), maxpacket);
+		warnx("Packet length (%u) is greater then MTU; skipping packet.",
+		      (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H));
+		return(0);
 	    }
 	    
 	    /* rewrite as a standard 802.3 header */
 	    sllhdr = (struct sll_header *)nextpkt;
-	    if (ntohs(sllhdr->sll_hatype) == 1) {
-		/* set the dest/src MAC 
+	    switch (ntohs(sllhdr->sll_hatype)) {
+	    case 0x1: /* out on the wire */
+		/* set the DST MAC
 		 * Note: the dest MAC will get rewritten in cidr_mode() 
 		 * or cache_mode() if splitting between interfaces
 		 */
 		memcpy(pktdata, options.intf1_mac, 6);
+	
+		/* set the SRC MAC */
 		memcpy(&pktdata[6], sllhdr->sll_addr, 6);
 		
 		/* set the Protocol type (IP, ARP, etc) */
@@ -222,20 +223,30 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 		/* update lengths */
 		l2len = LIBNET_ETH_H;
 		pkthdr->caplen = pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H;
-		
-		
-	    } else {
+		/* keep processing beyond case */
+		break;
+
+	    case 0x304: /* loopback */
+		/* loopback packets don't have a src MAC */
+		warnx("Skipping SLL loopback packet.");
+		return(0);
+		break;
+
+	    default:
+		/* who know what the hell this is */
 		warnx("Unknown sll_hatype: 0x%x.  Skipping packet.", 
 		      ntohs(sllhdr->sll_hatype));
 		return(0);
+		break;
 	    }
 	    
-	} 
-	
-	else {
-	    errx(1, "Unsupported pcap link type: %d", linktype);
+	    break;
+	    
+	default:
+	    errx(1, "Unsupported pcap link type: 0x%x", linktype);
+	    break;
 	}
-	
     }
-    return(1);
+    /* return the updated layer 2 len */
+    return(l2len);
 }
