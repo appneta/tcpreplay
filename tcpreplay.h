@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.44 2003/12/10 06:51:56 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.45 2003/12/11 03:06:29 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -101,6 +101,7 @@ struct options {
     char **files;
     char *cache_files;
     off_t offset;
+    u_int64_t limit_send;
     char *bpf_filter;
     int bpf_optimize;
     int sniff_snaplen;
@@ -111,6 +112,8 @@ struct options {
 
 #define RESOLVE 0		/* disable dns lookups */
 #define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
+#define PCAP_TIMEOUT 100        /* 100ms pcap_open_live timeout */
+
 
 #define EBUF_SIZE 256		/* size of our error buffers */
 #define MAC_SIZE  7		/* size of the mac[] buffer */
@@ -152,5 +155,11 @@ struct options {
 #endif
 
 #define NULL_MAC "\0\0\0\0\0\0"
+#define BROADCAST_MAC "\FF\FF\FF\FF\FF\FF"
+
+/* MAC macros for printf */
+#define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
+#define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
+
 
 #endif
