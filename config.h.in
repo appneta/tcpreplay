@@ -35,7 +35,3 @@
 /* Various functions */
 #undef HAVE_FSEEKO
 #undef HAVE_STRNCPY
-
-/* struct sockaddr vs sockaddr_in */
-#undef HAVE_SOCKADDR
-#undef HAVE_SOCKADDR_IN
