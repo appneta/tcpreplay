@@ -30,7 +30,7 @@
 
 \layout Title
 
-Tcpreplay 2.1.x FAQ
+Tcpreplay 2.x FAQ
 \layout Author
 
 Aaron Turner <aturner_AT_pobox.com> 
@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-May 14, 2004
+May 15, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -61,10 +61,10 @@ What is this FAQ for?
 \layout Standard
 
 Tcpreplay is a suite of powerful tools, but with that power comes complexity.
- While we have done our best to write good man pages for tcpreplay and it's
- associated utilities, we understand that many people may want more information
- then we can provide in the man pages.
- Additionally, this FAQ attempts to cover material which we feel will be
+ While I have done my best to write good man pages for tcpreplay and it's
+ associated utilities, I understand that many people may want more information
+ then I can provide in the man pages.
+ Additionally, this FAQ attempts to cover material which I feel will be
  of use to people using tcpreplay, as well as common questions that occur
  on the Tcpreplay-Users <tcpreplay-users@lists.sourceforge.net> mailing list.
 \layout Subsection
@@ -118,7 +118,8 @@ The source code is available in tarball format on the tcpreplay homepage:
 \end_inset 
 
  I also encourage users familiar with CVS to try checking out the latest
- code as it often has additional features not found in the tarballs.
+ code as it often has additional features and bugfixes not found in the
+ tarballs.
 \layout Standard
 
 cvs -d:pserver:anonymous@cvs.sf.net:/cvsroot/tcpreplay login
@@ -166,7 +167,7 @@ You'll also need a compatible operating system.
  Basically, any UNIX-like or UNIX-based operating system should work.
  Linux, *BSD, Solaris, OS X and others should all work.
  If you find any compatibility issues with any UNIX-like/based OS, please
- let us know.
+ let me know.
 \layout Subsection
 
 How do I compile tcpreplay?
@@ -254,6 +255,8 @@ What is tcpreplay?
 
 In the simplest terms, tcpreplay is a tool to send network traffic stored
  in pcap format back onto the network; basically the exact opposite of tcpdump.
+ Tcpreplay also has the ability to edit various packet headers as the packets
+ are sent.
  Tcpreplay is also a suite of tools: tcpreplay, tcpprep, pcapmerge, capinfo
  and flowreplay.
 \layout Subsection
@@ -1369,12 +1372,64 @@ Table 1
 
 \layout Standard
 
-While seemingly a bit confusing, this feature provides the unique ability
- to rewrite the IP headers of packets in the case where traffic is captured
- on the loopback interface (and the source and destination address is always
- 127.0.0.1) so that tcpreplay can make it look like two different systems are
- talking to each other (you'll probably also need to specify the source
- and destination MAC addresses via -I, -J, -k and -K).
+While seemingly a bit confusing, this feature provides a number of interesting
+ possibilities such as the ability to rewrite the IP headers of packets
+ in the case where traffic is captured on the loopback interface (and the
+ source and destination address is always 127.0.0.1) so that tcpreplay can
+ make it look like two different systems are talking to each other (you'll
+ probably also need to specify the source and destination MAC addresses
+ via -I, -J, -k and -K).
+\layout Subsection
+
+IP Endpoints
+\layout Standard
+
+While pseudo-NAT provides a great deal of flexibility, it is often more
+ complicated then is necessary for testing of inline devices.
+ As a simplier alternative, tcpreplay supports the concept of rewriting
+ all traffic to so that it appears to be between two IP addresses:
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 -j eth1 -c sample.cache -e 10.0.0.1:10.1.1.1 sample.pcap
+\layout Standard
+
+Will rewrite all the traffic so that it is between 10.0.0.1 and 10.1.1.1.
+ The equivalent command using -N would be:
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 -j eth1 -c sample.cache -N 0.0.0.0/0:10.0.0.1 -N 0.0.0.0/0:10.1.1.1
+ sample.pcap
+\layout Subsection
+
+Unifying Dual-Outputs
+\layout Standard
+
+Since a number of tcpreplay's packet editing functions require splitting
+ traffic between client and servers, one problem that may arrise is needing
+ to edit packets but still output to a single interface or file.
+ The solution to this is to use the one output option -O which causes packets
+ to be processed as if they will be split between the interfaces/files,
+ but then always go out the primary interface or file.
+ Note that even though only one interface/file will be written to, both
+ -i and -j must be specified; although they can be the same physical interface.
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 -j eth0 -O -c sample.cache -e 10.0.0.1:10.1.1.1 sample.pcap
+\layout Standard
+
+Merging the output to a single file:
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 -j eth0 -w rewrite.pcap -c sample.cache -e 10.0.0.1:10.1.1.1 sample.pca
+p
 \layout Section
 
 Tcpprep Usage
@@ -1890,7 +1945,7 @@ Version 3:
 
 Version 4:
 \newline 
-2.10 and above
+2.1.0 and above
 \layout Subsection
 
 Skipping SLL loopback packet.
