@@ -1,3 +1,15 @@
+10/08/2002: Version 1.3-beta2
+	- Fix ./configure bug w/ INET_ATON and INET_ADDR
+	- Add support for filtering packets to send based on
+		IP address or packet number (-x & -X)
+	- Move a lot of code from tcpreplay.c to do_packets.c
+	- Update tcpreplay man page
+
+10/03/2002: Version 1.3-beta1
+	- Add support for randomizing IP addresses (-s)
+	- Update tcpreplay man page
+	- Fix problem with checksums after untruncate
+
 08/21/2002: Version 1.2a
 	- Fix compile bug in tree.c w/ libnet 1.1
 	- Sync tcpprep version to tcpreplay
