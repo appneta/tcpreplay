@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.46 2003/01/12 05:44:22 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.47 2003/01/12 05:57:42 aturner Exp $ */
 
 #include "config.h"
 
@@ -64,14 +64,14 @@ main(int argc, char *argv[])
 	options.mult = 1.0;
 	options.n_iter = 1;
 	options.rate = 0.0;
-	options.sleep = -1.0;
+	options.pause = -1.0;
 
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mr:Rs:S:u:Vvx:X:?")) != -1)
+	while ((ch = getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mp:r:Rs:u:Vvx:X:?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mr:Rs:S:u:Vvx:X:?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mp:r:Rs:u:Vvx:X:?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -117,10 +117,17 @@ main(int argc, char *argv[])
 			if (options.mult <= 0)
 				errx(1, "Invalid multiplier: %s", optarg);
 			options.rate = 0.0;
-			options.sleep = -1.0;
+			options.pause = -1.0;
 			break;
 		case 'M': /* disable sending martians */
 			options.no_martians = 1;
+			break;
+		case 'p': /* pause between packets */
+			options.pause = atof(optarg);
+			if (options.pause < 0)
+				errx(1, "Invalid pause value: %s", optarg);
+			options.rate = 0.0;
+			options.mult = 0.0;
 			break;
 		case 'r': /* target rate */
 			options.rate = atof(optarg);			
@@ -129,7 +136,7 @@ main(int argc, char *argv[])
 			/* convert to bytes */
 			options.rate = (options.rate * (1024*1024)) / 8;
 			options.mult = 0.0;
-			options.sleep = -1.0;
+			options.pause = -1.0;
 			break;
 		case 'R': /* replay at top speed */
 			options.topspeed = 1;
@@ -137,12 +144,6 @@ main(int argc, char *argv[])
 		case 's':
 			options.seed = atoi(optarg);
 			break;
-		case 'S':
-			options.sleep = atof(optarg);
-			if (options.sleep < 0)
-				errx(1, "Invalid sleep value: %s", optarg);
-			options.rate = 0.0;
-			options.mult = 0.0;
 		case 'v': /* verbose */
 			options.verbose++;
 			break;
@@ -434,10 +435,10 @@ configfile(char *file) {
 			}
 		} else if (ARGS("seed", 2)) {
 			options.seed = atol(argv[1]);
-		} else if (ARGS("sleep", 2)) {
-			options.sleep = atof(argv[1]);
-			if (options.sleep < 0)
-				errx(1, "Invalid sleep: %s", argv[1]);
+		} else if (ARGS("pause", 2)) {
+			options.pause = atof(argv[1]);
+			if (options.pause < 0)
+				errx(1, "Invalid pause option: %s", argv[1]);
 			options.rate = 0.0;
 			options.mult = 0.0;
 		} else if (ARGS("include", 2)) {
@@ -502,10 +503,10 @@ usage()
 			"-l <loop>\t\tSpecify number of times to loop\n"
 			"-m <multiple>\t\tSet replay speed to given multiple\n"
 			"-M\t\t\tDisable sending martian IP packets\n"
+			"-p <sec.usec>\t\tPause sec.usecs between packets\n"
 			"-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 			"-R\t\t\tSet replay speed to as fast as possible\n"
 			"-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
-			"-S <sec.usec>\t\tSleep the given seconds/microsecs between packets\n"
 			"-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
 			"-v\t\t\tVerbose\n"
 			"-V\t\t\tVersion\n"

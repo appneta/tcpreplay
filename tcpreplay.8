@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.17 2003/01/12 05:44:22 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.18 2003/01/12 05:57:42 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -34,8 +34,8 @@ tcpreplay \- replay packets from capture files
 |
 .B \-R
 |
-.B \-S
-.I sleep
+.B \-p
+.I pause
 ] [
 .B \-s
 .I seed
@@ -121,6 +121,10 @@ recorded, specified as a floating-point number.
 .B \-M or "no_martians"
 Disable sending martian packets (source networks: 0/8, 127/8, 255/8)
 .TP
+.B \-p or "pause"
+Specify the number of seconds and microseconds (sec.usec) to pause between 
+each packet.  Negates all other speed options.
+.TP
 .B \-r or "rate"
 Resend the packets at \fIrate\fR megabits per-second, specified as a 
 floating-point number.
@@ -139,10 +143,6 @@ Resend the packets as fast as possible. Negates all other speed options.
 Specify a seed value to allow rewriting the source and destination IP
 addresses (only in IP header) to pseudo-random values.  Will also recalculate 
 the IP header as necessary.
-.TP
-.B \-S or "sleep"
-Specify the number of seconds and microseconds (sec.usec) to sleep between 
-each packet.  Negates all other speed options.
 .TP
 .B \-u or "untruncate"
 When a packet is truncated in the capture file, this option will

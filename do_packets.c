@@ -460,8 +460,8 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 		} else {
 			timerclear(&nap);
 		}
-	} else if (options.sleep >= 0.0) {
-		float2timer(options.sleep, &nap);
+	} else if (options.pause >= 0.0) {
+		float2timer(options.pause, &nap);
 	}
 
 	timeradd(&didsleep, &nap, &didsleep);
