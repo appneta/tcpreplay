@@ -1,4 +1,4 @@
-/* $Id: pcapmerge.c,v 1.8 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: pcapmerge.c,v 1.9 2003/12/10 06:51:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -68,7 +68,7 @@ int debug = 0;
 #define PCAP_MAGIC          		0xa1b2c3d4
 #define PCAP_SWAPPED_MAGIC      	0xd4c3b2a1
 #define PCAP_MODIFIED_MAGIC     	0xa1b2cd34
-#define PCAP_SWAPPED_MODIFIED_MAGIC 0x34cdb2a1
+#define PCAP_SWAPPED_MODIFIED_MAGIC     0x34cdb2a1
 
 #define SWAPLONG(y) \
 ((((y)&0xff)<<24) | (((y)&0xff00)<<8) | (((y)&0xff0000)>>8) | (((y)>>24)&0xff))
@@ -91,7 +91,7 @@ struct pcap_file {
     int modified;
     int swapped;
     char *name;
-      SLIST_ENTRY(pcap_file) next;
+    SLIST_ENTRY(pcap_file) next;
 };
 
 void init_files(int, char **);
@@ -99,13 +99,13 @@ void write_packets(struct pcap_file *, int);
 void usage();
 
 SLIST_HEAD(, pcap_file) files;
-     struct pcap_file_header hdr;
-     int outfd;
-     char *outfile;
+struct pcap_file_header hdr;
+int outfd;
+char *outfile;
 
 
-     void
-       version()
+void
+version()
 {
     fprintf(stderr, "pcapmerge version: %s\n", VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
