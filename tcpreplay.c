@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.53 2003/05/07 17:45:38 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.54 2003/05/08 03:30:51 aturner Exp $ */
 
 #include "config.h"
 
@@ -77,10 +77,10 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
+	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
+	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:u:Vvx:X:?2:")) != -1)
 #endif
 	switch (ch) {
 	case 'c':		/* cache file */
@@ -99,6 +99,9 @@ main(int argc, char *argv[])
 #endif
 	case 'f':		/* config file */
 	    configfile(optarg);
+	    break;
+	case 'F':               /* force fixing checksums */
+	    options.fixchecksums = 1;
 	    break;
 	case 'i':		/* interface */
 	    intf = optarg;
@@ -155,6 +158,7 @@ main(int argc, char *argv[])
 	    break;
 	case 's':
 	    options.seed = atoi(optarg);
+	    options.fixchecksums = 0; /* untruncating already does this */
 	    break;
 	case 'v':		/* verbose */
 	    options.verbose++;
@@ -169,6 +173,7 @@ main(int argc, char *argv[])
 	    else {
 		errx(1, "Invalid untruncate option: %s", optarg);
 	    }
+	    options.fixchecksums = 0; /* untruncating already does this */
 	    break;
 	case 'V':
 	    version();
@@ -512,6 +517,9 @@ configfile(char *file)
 	else if (ARGS("no_martians", 1)) {
 	    options.no_martians = 1;
 	}
+	else if (ARGS("fixchecksums", 1)) {
+	    options.fixchecksums = 1;
+	}
 	else if (ARGS("rate", 2)) {
 	    options.rate = atof(argv[1]);
 	    if (options.rate <= 0)
@@ -605,6 +613,7 @@ usage()
     fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
     fprintf(stderr, "-f <configfile>\t\tSpecify configuration file\n"
+	    "-F\t\t\tFix IP, TCP and UDP checksums\n"
 	    "-h\t\t\tHelp\n"
 	    "-i <nic>\t\tPrimary interface to send traffic out of\n"
 	    "-I <mac>\t\tRewrite dest MAC on primary interface\n"

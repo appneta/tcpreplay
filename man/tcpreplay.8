@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.4 2003/05/07 22:32:35 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.5 2003/05/08 03:30:52 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -14,6 +14,8 @@ tcpreplay \- replay packets from capture files
 .B \-f
 .I config file
 ] [ 
+.B \-F
+] [
 .B \-I
 .I intf mac
 ] [
@@ -94,6 +96,9 @@ Option tokens are listed below next to the corresponding command-line flag.
 .TP
 .B \-c or "cachefile"
 Specify the \fItcpprep cache\fR to use to process packets.
+.TP
+.B \-F or "fixchecksums"
+Fixes IP and TCP/UDP checksums in packets.  Auto-forced with -s or -u
 .TP
 .B \-h
 Prints help/usage

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.31 2003/05/07 22:33:30 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.32 2003/05/08 03:30:51 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -40,6 +40,7 @@ struct options {
     int verbose;
     int no_martians;
     int topspeed;
+    int fixchecksums;
     int cidr;
     int trunc;
     long int seed;
