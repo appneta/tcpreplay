@@ -213,8 +213,8 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
 
     /* send packet ? */
     if (send) {
-	index = lastcache->packets / CACHE_PACKETS_PER_BYTE;
-	bit = ((lastcache->packets % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
+	index = (lastcache->packets - 1) / CACHE_PACKETS_PER_BYTE;
+	bit = (((lastcache->packets - 1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
 	byte = &lastcache->data[index];
 	*byte += (char)(1 << bit);
 
