@@ -1,4 +1,22 @@
-$Id: CHANGELOG,v 1.39 2004/05/01 23:13:39 aturner Exp $
+$Id: CHANGELOG,v 1.40 2004/05/15 22:06:59 aturner Exp $
+
+05/15/2004: Version 2.2.0
+    - Fix pseudo-NAT (not evaluating all rules and an infinate loop)
+    - Start using strtok_r() in any function to prevent future bugs
+    - Minor updates to tcpprep.1 & tcpreplay.8 man pages
+    - Re-org some functions into different files for better modularity
+    - Clean up of some of the cache comment code
+    - flowreplay man page moved to section 1
+    - Update tcpprep and tcpreplay man pages and the FAQ
+    - Improve documentation regarding pseudo-NAT feature
+    - Fix one output mode which treated all packets as primary
+    - Add endpoint mode (-e) which rewrites all traffic between two IP's
+    - Fix rewrite of IP addresses in ARP requests & replies w/ pseudo-NAT
+    - Fix CIDR matching of 0.0.0.0/0 (all packets) which matched only 
+      255.255.255.255
+    - All CIDR notation now accepts IP addresses w/o requiring /32
+    - non-debug mode now uses -O3 -funroll-loops for better performance
+
 05/01/2004: Version 2.1.1
     - Fix ntohll/htonll compile error on big endian systems
 
