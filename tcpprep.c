@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.36 2004/04/23 06:33:15 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.37 2004/04/23 22:40:47 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -163,7 +163,7 @@ print_comment(char *file)
     char *cachedata = NULL;
 
     read_cache(&cachedata, file);
-    printf("Comment:\n%s\n", options.tcpprep_comment);
+    printf("tcpprep args: %s\n", options.tcpprep_comment);
 
     exit(0);
 }
@@ -378,6 +378,7 @@ main(int argc, char *argv[])
     void *xX = NULL;
     pcap_t *pcap = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
+    char myargs[1024];
 
     memset(&options, '\0', sizeof(options));
     options.bpf_optimize = BPF_OPTIMIZE;
@@ -410,17 +411,32 @@ main(int argc, char *argv[])
             mode = CIDR_MODE;
             break;
         case 'C':
-            /* our comment_len is only 16bit */
-            if (strlen(optarg) > (1 << 16) -1)
+            /* our comment_len is only 16bit - myargs[] */
+            if (strlen(optarg) > ((1 << 16) - 1 - sizeof(myargs)))
                 errx(1, "Comment length %d is longer then max allowed (%d)", 
-                     strlen(optarg), (1 << 16) -1);
+                     strlen(optarg), (1 << 16) - 1 - sizeof(myargs));
+
+            /* copy all of our args to myargs */
+            memset(myargs, '\0', sizeof(myargs));
+            for (i = 1; i < argc; i ++) {
+                /* skip the -C <comment> */
+                if (strcmp(argv[i], "-C") == 0) 
+                    i += 2;
+
+                strncat(myargs, argv[i], sizeof(myargs) - 1);
+                strncat(myargs, " ", sizeof(myargs) - 1);
+            }
+            strncat(myargs, "\n", sizeof(myargs) - 1);
+            dbg(1, "comment args length: %d", strlen(myargs));
 
             /* malloc our buffer to be + 1 strlen so we can null terminate */
-            if ((options.tcpprep_comment = (char *)malloc(strlen(optarg) + 1)) == NULL)
+            if ((options.tcpprep_comment = (char *)malloc(strlen(optarg) 
+                                                          + strlen(myargs) + 1)) == NULL)
                 errx(1, "Unable to malloc() memory for comment");
 
-            memset(options.tcpprep_comment, '\0', strlen(optarg) + 1);
-            memcpy(options.tcpprep_comment, optarg, strlen(optarg));
+            memset(options.tcpprep_comment, '\0', strlen(optarg) + 1 + strlen(myargs));
+            strcpy(options.tcpprep_comment, myargs);
+            strcat(options.tcpprep_comment, optarg);
             dbg(1, "comment length: %d", strlen(optarg));
             break;
 #ifdef DEBUG
@@ -456,7 +472,7 @@ main(int argc, char *argv[])
                 automode = SERVER_MODE;
             }
             else {
-                errx(1, "Invalid network type: %s", optarg);
+                errx(1, "Invalid auto mode type: %s", optarg);
             }
             break;
         case 'N':
