@@ -57,8 +57,8 @@ struct l2_s {
 typedef struct l2_s l2_t;
 
 struct xX_s {
-#define xX_MODE_INCLUDE x
-#define xX_MODE_EXCLUDE X
+#define xX_MODE_INCLUDE 'x'
+#define xX_MODE_EXCLUDE 'X'
     int mode;
     list_t *list;
     cidr_t *cidr;
