@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.66 2003/07/17 05:42:30 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.67 2003/07/18 00:01:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -88,10 +88,10 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvw:x:X:?2:")) != -1)
+	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:Tu:Vvw:x:X:?2:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:Vvw:x:X:?2:")) != -1)
+	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:TVvw:x:X:?2:")) != -1)
 #endif
 	switch (ch) {
 	case 'c':		/* cache file */
@@ -173,6 +173,9 @@ main(int argc, char *argv[])
 	    break;
 	case 't':               /* MTU */
 	    options.mtu = atoi(optarg);
+	    break;
+	case 'T':               /* Truncate frames > MTU */
+	    options.truncate = 1;
 	    break;
 	case 'v':		/* verbose */
 	    options.verbose++;
@@ -717,6 +720,8 @@ usage()
 	    "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 	    "-R\t\t\tSet replay speed to as fast as possible\n"
 	    "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
+	    "-t <mtu>\t\tOverride MTU (defaults to 1500)\n"
+	    "-T\t\t\tTruncate packets > MTU so they can be sent\n"
 	    "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
 	    "-v\t\t\tVerbose\n"
 	    "-V\t\t\tVersion\n"

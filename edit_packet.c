@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.4 2003/07/17 00:53:26 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.5 2003/07/18 00:01:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -143,9 +143,15 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	     * is new packet too big?
 	     */
 	    if ((pkthdr->caplen - LIBNET_ETH_H + l2len) > maxpacket) {
-		warnx("Packet length (%u) is greater then MTU; skipping packet.",
-		     (pkthdr->caplen - LIBNET_ETH_H + l2len));
-		return(0);
+		if (options.truncate) {
+		    warnx("Packet length (%u) is greater then MTU; truncating packet.",
+			  (pkthdr->caplen - LIBNET_ETH_H + l2len));
+		    pkthdr->caplen = maxpacket;
+		} else {
+		    warnx("Packet length (%u) is greater then MTU; skipping packet.",
+			  (pkthdr->caplen - LIBNET_ETH_H + l2len));
+		    return(0);
+		}
 	    }
 	    /*
 	     * remove ethernet header and copy our header back
@@ -158,6 +164,18 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	    break;
 	    
 	case DLT_LINUX_SLL: /* Linux Cooked sockets */
+	    if ((pkthdr->caplen - SLL_HDR_LEN + l2len) > maxpacket) {
+		if (options.truncate) {
+		    warnx("New packet length (%u) is greater then MTU; truncating packet.",
+			  (pkthdr->caplen - SLL_HDR_LEN + l2len));
+		    pkthdr->caplen = maxpacket;
+		} else {
+		    warnx("New packet length (%u) is greater then MTU; skipping packet.",
+			  (pkthdr->caplen - SLL_HDR_LEN + l2len));
+		    return(0);
+		}
+	    }
+
 	    /* copy over our new L2 data */
 	    memcpy(pktdata, l2data, l2len);
 	    /* copy over the packet data, minus the SLL header */
@@ -172,8 +190,16 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	     * is new packet too big?
 	     */
 	    if ((pkthdr->caplen + l2len) > maxpacket) {
-		warnx("Packet length (%u) is greater then MTU; skipping packet.");
-		return(0);
+		if (options.truncate) {
+		    warnx("New packet length (%u) is greater then MTU; truncating packet.",
+			  (pkthdr->caplen - LIBNET_ETH_H + l2len));
+		    pkthdr->caplen = maxpacket;
+		} else {
+		    warnx("New packet length (%u) is greater then MTU; skipping packet.",
+			  (pkthdr->caplen - LIBNET_ETH_H + l2len));
+		    return(0);
+		}
+
 	    }
 	    
 	    memcpy(pktdata, l2data, l2len);
@@ -195,9 +221,15 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	case DLT_EN10MB:
 	    /* verify that the packet isn't > maxpacket */
 	    if (pkthdr->caplen > maxpacket) {
-		warnx("Packet length (%u) is greater then MTU; skipping packet.",
-		      pkthdr->caplen);
-		return(0);
+		if (options.truncate) {
+		    warnx("Packet length (%u) is greater then MTU; truncating packet.",
+			  pkthdr->caplen);
+		    pkthdr->caplen = maxpacket;
+		} else {
+		    warnx("Packet length (%u) is greater then MTU; skipping packet.",
+			  pkthdr->caplen);
+		    return(0);
+		}
 	    }
 	    
 	    /*
@@ -213,9 +245,15 @@ rewrite_l2(struct pcap_pkthdr *pkthdr, u_char *pktdata, const u_char *nextpkt,
 	/* how should we process non-802.3 frames? */
 	    /* verify new packet isn't > maxpacket */
 	    if ((pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H) > maxpacket) {
-		warnx("Packet length (%u) is greater then MTU; skipping packet.",
-		      (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H));
-		return(0);
+		if (options.truncate) {
+		    warnx("Packet length (%u) is greater then MTU; truncating packet.",
+			  (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H));
+		    pkthdr->caplen = maxpacket;
+		} else {
+		    warnx("Packet length (%u) is greater then MTU; skipping packet.",
+			  (pkthdr->caplen - SLL_HDR_LEN + LIBNET_ETH_H));
+		    return(0);
+		}
 	    }
 	    
 	    /* rewrite as a standard 802.3 header */

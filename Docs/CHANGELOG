@@ -1,6 +1,9 @@
-$Id: CHANGELOG,v 1.14 2003/07/17 02:16:04 aturner Exp $
+$Id: CHANGELOG,v 1.15 2003/07/18 00:01:28 aturner Exp $
 
-06/??/2003: Version 1.5.alpha4
+??/??/2003: Version 1.5.alpha5
+        - Add -T to truncate packets > MTU so they can be sent
+
+07/16/2003: Version 1.5.alpha4
         - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
         - Don't die when packet > MTU, just skip
         - Fix a ptr bug in do_packets() w/ the ethernet header

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.35 2003/07/16 22:30:39 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.36 2003/07/18 00:01:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -56,6 +56,7 @@ struct options {
     int trunc;
     long int seed;
     int mtu;
+    int truncate;
     char **files;
     char *cache_files;
 };
