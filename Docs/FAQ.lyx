@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-June 6, 2003
+June 7, 2003
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -166,13 +166,30 @@ Tcpreplay is licensed under the BSD License.
 What are some uses for tcpreplay?
 \layout Standard
 
-Originally, tcpreplay was written to test network intrusion detection devices,
- however tcpreplay has been used to test firewalls, routers, and other devices.
- The flowreplay tool can be used to test a variety of servers such as HTTP
- and SMTP.
+Originally, tcpreplay was written to test network intrusion detection systems
+ (NIDS), however tcpreplay has been used to test firewalls, routers, and
+ other network devices.
+ 
+\layout Subsection
+
+What are some uses for flowreplay?
+\layout Standard
+
+A lot of people wanted a tool like tcpreplay, but wanted to be able to replay
+ traffic 
+\emph on 
+to
+\emph default 
+ a server.
+ Since tcpreplay was unable to do this, I developed flowreplay which replays
+ the data portion of the flow, but recreates the connection to the specified
+ server(s).
+ This makes flowreplay an ideal tool to test host intrusion detection systems
+ (HIDS) as well as captured exploits and security patches when the actual
+ exploit code is not available.
 \layout Section
 
-Undocumented Features (aka Bugs)
+Bugs, Feature Requests, and Patches
 \layout Subsection
 
 Where can I get help or report bugs?
@@ -211,10 +228,73 @@ Command line used (options and arguments)
 Platform (Red Hat Linux 9 on Intel, Solaris 7 on SPARC, etc)
 \layout Itemize
 
-Error message or description of problem
+Error message (if available) and/or description of problem
 \layout Itemize
 
-If possible, attach the pcap file used (compressed with bzip or gzip preferred)
+If possible, attach the pcap file used (compressed with bzip2 or gzip preferred)
+\layout Subsection
+
+I have a feature request, what should I do?
+\layout Standard
+
+Let us know! Many of the features exist today because users like you asked
+ for them.
+ To make a feature request, you can either email the tcpreplay-users mailing
+ list (see above) or fill out the feature request form on the tcpreplay
+ SourceForge website.
+\layout Subsection
+
+I've written a patch for tcpreplay, how can I submit it?
+\layout Standard
+
+I'm always willing to include new features or bug requests submitted by
+ users.
+ You may email me directly or the tcpreplay-users mailing list.
+ Please 
+\emph on 
+do not
+\emph default 
+ use the Patch Tracker on the tcpreplay SourceForge web site.
+\layout Subsection
+
+Patch requirements
+\layout Itemize
+
+Be aware that submitting a patch, 
+\emph on 
+you are licensing it under the BSD License
+\emph default 
+ as written in Appendix A.
+ If this is not acceptable to you, then 
+\emph on 
+do not
+\emph default 
+ send me the patch!
+\layout Itemize
+
+If you wish to maintain the copyright over your code, be sure that your
+ patch contains the appropriate information.
+\layout Itemize
+
+Please provide a description of what your patch does!
+\layout Itemize
+
+Comment your code! I won't use code I can't understand.
+\layout Itemize
+
+Make sure you are patching against the most recent release for that branch.
+\layout Itemize
+
+Please submit your patch in the unified diff format so I can better understand
+ what you're changing.
+\layout Itemize
+
+Please provide any relevant personal information you'd like listed in the
+ CREDITS file.
+\layout Standard
+
+Please note that while I'm always interested in patches, I may rewrite some
+ or all of your submission to maintain a consitent coding style.
 \layout Section
 
 Basic Tcpreplay Usage
@@ -248,6 +328,7 @@ connect
 
  to a server or be used to emulate a server and have clients connect to
  it.
+ If you're looking for that, check out flowreplay.
 \layout Subsection
 
 Replaying the traffic
@@ -912,18 +993,19 @@ Flowreplay Usage
 \layout Standard
 
 While tcpreplay is a great way to test NIDS and firewalls, it can't be used
- to test servers since tcpreplay can't connect to a service running on a
- device.
+ to test servers or HIDS since tcpreplay can't connect to a service running
+ on a device.
  The solution to this problem is flowreplay which instead of sending packets
  at Layer 2 (ethernet header and up), it can actually connect via TCP or
- UDP to server and then sends and recieves data.
+ UDP to server and then sends and recieves data based upon a pcap capture
+ file created with a tool like Ethereal or tcpdump.
 \layout Subsection
 
 How flowreplay works
 \layout Standard
 
 Put simply, flowreplay opens a socket connection to a service on a target
- system and sends data over that socket based on the packet capture.
+ system(s) and sends data over that socket based on the packet capture.
  Flowreplay has no understanding of the application protocol (like HTTP
  or FTP) so it is somewhat limited in how it can deal with complicated exchanges
  between client and server.
@@ -1020,7 +1102,8 @@ echo 524287 >/proc/sys/net/core/rmem_default
 On one system, we've seen a jump from 23.02 megabits/sec (5560 packets/sec)
  to 220.30 megabits/sec (53212 packets/sec) which is nearly a 10x increase
  in performance.
- Depending on your system, different numbers may provide different results.
+ Depending on your system and capture file, different numbers may provide
+ different results.
 \layout Subsection
 
 *BSD
@@ -1145,6 +1228,23 @@ Version 2:
 Version 3:
 \newline 
 1.3.2/1.4.beta2 and above
+\layout Subsection
+
+Skipping SLL loopback packet.
+\layout Standard
+
+Your capture file was created on Linux with the 'any' parameter which then
+ captured a packet on the loopback interface.
+ However, tcpreplay doesn't have enough information to actual send the packet,
+ so it skips it.
+\layout Subsection
+
+Packet length (8892) is greater then MTU; skipping packet.
+\layout Standard
+
+The packet length (in this case 8892 bytes) is greater then the maximum
+ transmition unit (MTU) on the outgoing intreface.
+ Tcpreplay must skip the packet.
 \layout Section
 
 Other pcap tools available
@@ -1190,7 +1290,7 @@ tcpslice
 \newline 
 Splits pcap files into smaller files
 \newline 
-Tcpdump
+tcpdump
 \layout Itemize
 
 mergecap
@@ -1204,7 +1304,7 @@ pcapmerge
 \newline 
 Merges two or more pcap capture files into one
 \newline 
-Tcpdump
+tcpdump
 \layout Itemize
 
 editcap
@@ -1212,6 +1312,14 @@ editcap
 Converts capture file formats (pcap, snoop, etc)
 \newline 
 Ethereal
+\layout Itemize
+
+netdude
+\newline 
+GTK based pcap capture file editor.
+ Allows editing most anything in the packet.
+\newline 
+NetDude
 \layout Subsection
 
 Other tools
