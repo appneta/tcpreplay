@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.11 2002/11/09 06:16:18 aturner Exp $
+dnl $Id: configure.in,v 1.12 2002/11/12 02:24:41 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -9,12 +9,22 @@ if test "$prefix" = "NONE"; then
 	prefix="/usr/local"
 fi
 
+dnl Determine OS
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+AC_CANONICAL_TARGET
+AC_SUBST(host)
+AC_SUBST(build)
+AC_SUBST(target)
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_FUNC_MEMCMP
+AC_PATH_PROG(PRINTF, printf)
+AC_SUBST(PRINTF)
 
 dnl Enable debugging in code/compiler options
 debug=no
@@ -47,6 +57,7 @@ AC_FUNC_MEMCMP
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(err.h math.h sys/time.h signal.h)
+
 
 dnl use inet_aton or inet_addr ?
 dnl AC_CHECK_DECL(inet_aton,
@@ -226,4 +237,40 @@ dnl  Please use 1.0.2a)
 dnl fi
 dnl restore LIBS
 LIBS="$OLDLIBS"
+
+AC_MSG_CHECKING( for 'make test' profile)
+if test "$host" != "$build" ; then
+	AC_MSG_WARN(Unable to do tests when cross-compiling)
+fi
+
+dnl these need to be dynamic based on OS
+case $host in
+	*-*-linux*)
+	nic1=eth0
+	nic2=eth0
+	AC_MSG_RESULT(Linux OK)
+	;;
+
+	*-*-solaris*)
+	nic1=hme0
+	nic2=hme0
+	AC_MSG_RESULT(Solaris OK)
+	;;
+
+	*-*-sunos*)
+	nic1=hme0
+	nic2=hme0
+	AC_MSG_RESULT(SunOS OK)
+	;;
+
+	*)
+	AC_MSG_RESULT($host is unknown!  Unable to run 'make test')
+	;;
+esac
+
+
+AC_SUBST(nic1)
+AC_SUBST(nic2)
+
 AC_OUTPUT(Makefile)
+AC_OUTPUT(test/Makefile)
