@@ -345,7 +345,7 @@ flag = {
 flag = {
     name        = print-info;
     value       = I;
-	arg-type	= string;
+    arg-type	= string;
     descrip     = "Print basic info from the specified cache file";
     doc         = "";
 };
