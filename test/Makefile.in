@@ -5,6 +5,7 @@ TARGET = @target@
 BUILD = @build@
 nic1 = @nic1@
 nic2 = @nic2@
+ENABLE_DEBUG ="@debug_flag@"
 
 test: all
 all: check tcpprep tcpreplay
@@ -18,6 +19,8 @@ check:
 standard:
 	../tcpprep -i test.pcap -o test.auto_router -a -n router -N client
 	../tcpprep -i test.pcap -o test.auto_bridge -a -n bridge -N client
+	../tcpprep -i test.pcap -o test.auto_bridge -a -n bridge -N client
+	../tcpprep -i test.pcap -o test.auto_bridge -a -n bridge -N client
 	../tcpprep -i test.pcap -o test.cidr -c '216.27.178.0/24' -N client
 	../tcpprep -i test.pcap -o test.regex -r '216.27.178.*' -N client
 
@@ -27,89 +30,89 @@ tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_
 auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] Auto/Router mode test: " >>test.log
-	../tcpprep -i test.pcap -o test.$@1 -a -n router -N client
+	../tcpprep $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a -n router -N client 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
 
 auto_bridge:
 	$(PRINTF) "%s" "[tcpprep] Auto/Bridge mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] Auto/Bridge mode test: " >>test.log
-	../tcpprep -i test.pcap -o test.$@1 -a -n bridge -N client
+	../tcpprep $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a -n bridge -N client 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
 
 regex:
 	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] Regex mode test: " >>test.log
-	../tcpprep -i test.pcap -o test.$@1 -r '216.27.178.*' -N client
+	../tcpprep $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' -N client 2>>test.log
 	diff  test.$@ test.$@1 >>test.log 2>&1 
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 cidr:
 	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
 	$(PRINTF) "%s\n" "[tcpprep] CIDR mode test: " >>test.log
-	../tcpprep -i test.pcap -o test.$@1 -c '216.27.178.0/24' -N client
+	../tcpprep $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' -N client 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Basic test: " >>test.log
-	../tcpreplay -i $(nic1) test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_cache:
 	$(PRINTF) "%s" "[tcpreplay] Cache test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Cache test: " >>test.log
-	../tcpreplay -c test.cidr -i $(nic1) -j $(nic2) test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -c test.cidr -i $(nic1) -j $(nic2) test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_cidr:
 	$(PRINTF) "%s" "[tcpreplay] CIDR test: "
 	$(PRINTF) "%s\n" "[tcpreplay] CIDR test: " >>test.log
-	../tcpreplay -C 216.27.178.0/24 -i $(nic1) -j $(nic2) test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -C 216.27.178.0/24 -i $(nic1) -j $(nic2) test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else printf "\t\t\t%s\n" "OK"; fi
 
 replay_trunc:
 	$(PRINTF) "%s" "[tcpreplay] Truncate test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Truncate test: " >>test.log
-	../tcpreplay -i $(nic1) -u trunc test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -u trunc test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_pad:
 	$(PRINTF) "%s" "[tcpreplay] Pad test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Pad test: " >>test.log
-	../tcpreplay -i $(nic1) -u pad test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -u pad test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else printf "\t\t\t%s\n" "OK"; fi
 
 replay_rand:
 	$(PRINTF) "%s" "[tcpreplay] Random IP test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Random IP test: " >>test.log
-	../tcpreplay -i $(nic1) -s 666 test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -s 666 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_include:
 	$(PRINTF) "%s" "[tcpreplay] Include only test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Include only test: " >>test.log
-	../tcpreplay -i $(nic1) -x P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -x P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_exclude:
 	$(PRINTF) "%s" "[tcpreplay] Exclude test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Exclude test: " >>test.log
-	../tcpreplay -i $(nic1) -X P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -X P:1,5,7-53,88,93-100 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_layer2:
 	$(PRINTF) "%s" "[tcpreplay] Layer2 test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Layer2 test: " >>test.log
-	../tcpreplay -i $(nic1) -2 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -2 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 replay_packetrate:
 	$(PRINTF) "%s" "[tcpreplay] Packetrate test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Packetrate test: " >>test.log
-	../tcpreplay -i $(nic1) -p 25.0 test.pcap >>test.log 2>&1
+	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -p 25.0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 
