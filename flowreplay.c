@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.1 2003/05/29 21:58:12 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.2 2003/06/02 00:08:15 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -23,6 +23,8 @@
 #include "flowreplay.h"
 #include "flownode.h"
 #include "flowkey.h"
+#include "flowstate.h"
+#include "cidr.h"
 #include "err.h"
 #include "tcpreplay.h"
 #include "rbtree.h"
@@ -32,13 +34,11 @@
 int debug = 0;
 #endif
 
-struct session_t * getnodebykey(char, u_int64_t);
-struct session_t * newnode(char, u_int64_t, ip_hdr_t *, void *);
-void cleanup(void);
+static void cleanup(void);
+static void init(void);
 int main_loop(pcap_t *, u_char, u_int16_t);
 int process_packet(struct session_t *, ip_hdr_t *, void *);
 void *get_layer4(ip_hdr_t *);
-
 struct session_tree tcproot, udproot;
 
 
@@ -50,7 +50,10 @@ extern char *optarg;
 extern char pcap_version[];
 
 /* send mode */
-int sendmode = MODE_SEND;
+int SendMode = MODE_SEND;
+
+/* require Syn to start flow? */
+int NoSyn = 0;
 
 /* file descriptor stuff */
 fd_set fds;
@@ -59,8 +62,12 @@ int nfds = 0;
 /* target to connect to */
 struct in_addr targetaddr = { 0 };
 
+/* Client/Server CIDR blocks */
+CIDR *clients = NULL, *servers = NULL;
+
 /* libnet handle for libnet functions */
 libnet_t *l = NULL;
+
 
 static void
 version()
@@ -79,15 +86,18 @@ version()
 static void
 usage()
 {
-    fprintf(stderr, "Usage: flowreplay [args]\n");
+    fprintf(stderr, "Usage: flowreplay [args] <file1> <file2> ...\n"
+	"-c <CIDR1,CIDR2,...>\tClients are on this CIDR block\n");
 #ifdef DEBUG
     fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
-    fprintf(stderr, "-h\t\t\tHelp\n"
-	    "-i <capfile>\t\tInput capture file to process\n"
+    fprintf(stderr, 
+	    "-f\t\t\tFirst TCP packet starts flow (don't require SYN)\n"
+	    "-h\t\t\tHelp\n"
 	    "-m <mode>\t\tReplay mode (send|wait|bytes)\n"
-	    "-t <ipaddr>\t\tTarget ip address\n"
-	    "-p <proto/port>\t\tLimit to protocol & port\n"
+	    "-t <ipaddr>\t\tRedirect flows to target ip address\n"
+	    "-p <proto/port>\t\tLimit to protocol and/or port\n"
+	    "-s <CIDR1,CIDR2,...>\tServers are on this CIDR block\n"
 	    "-V\t\t\tVersion\n"
 	    "-w <sec.usec>\t\tWait for server to send data\n"
 	);
@@ -97,7 +107,7 @@ usage()
 int 
 main(int argc, char *argv[])
 {
-    int ch;
+    int ch, i;
     char ebuf[PCAP_ERRBUF_SIZE];
     pcap_t *pcap = NULL;
     char *p_parse = NULL;
@@ -105,38 +115,37 @@ main(int argc, char *argv[])
     u_int16_t port = 0;
     struct timeval timeout = {0, 0};
 
-    
-    /* init stuff */
-    FD_ZERO(&fds);
-    RB_INIT(&tcproot);
-    RB_INIT(&udproot);
+    init();
 
 #ifdef DEBUG
-    while ((ch = getopt(argc, argv, "d:hi:m:p:t:Vw:")) != -1)
+    while ((ch = getopt(argc, argv, "c:d:fhm:p:s:t:Vw:")) != -1)
 #else
-    while ((ch = getopt(argc, argv, "hi:m:p:t:Vw:")) != -1)
+    while ((ch = getopt(argc, argv, "c:fhm:p:s:t:Vw:")) != -1)
 #endif
 	switch (ch) {
+	case 'c':
+	    if (! parse_cidr(&clients, optarg))
+		usage();
+	    break;
 #ifdef DEBUG
 	case 'd':
 	    debug = atoi(optarg);
 	    break;
 #endif
+	case 'f':
+	    NoSyn = 1;
+	    break;
 	case 'h':
 	    usage();
 	    exit(0);
 	    break;
-	case 'i':
-	    if ((pcap = pcap_open_offline(optarg, ebuf)) == NULL)
-		errx(1, "Error opening file: %s", ebuf);
-	    break;
 	case 'm':
 	    if (strcasecmp(optarg, "send") == 0) {
-		sendmode = MODE_SEND;
+		SendMode = MODE_SEND;
 	    } else if (strcasecmp(optarg, "wait") == 0) {
-		sendmode = MODE_WAIT;
+		SendMode = MODE_WAIT;
 	    } else if (strcasecmp(optarg, "bytes") == 0) {
-		sendmode = MODE_BYTES;
+		SendMode = MODE_BYTES;
 	    } else {
 		errx(1, "Invalid mode: -m %s", optarg);
 	    }
@@ -160,6 +169,10 @@ main(int argc, char *argv[])
 	    dbg(1, "Port: %u", port);
 	    port = htons(port);
 	    break;
+	case 's':
+	    if (!parse_cidr(&servers, optarg))
+		usage();
+	    break;
 	case 't':
 	    if (inet_aton(optarg, &targetaddr) == 0)
 		errx(1, "Invalid target IP address: %s", optarg);
@@ -179,19 +192,52 @@ main(int argc, char *argv[])
 	}
 
     /* getopt() END */
+
+     /*
+     * Verify input 
+     */
+
+    /* if -m wait, then must use -w */
+    if ((SendMode == MODE_WAIT) && (! timerisset(&timeout)))
+	errx(1, "You must specify a wait period with -m wait");
+
+    /* Can't specify client & server CIDR */
+    if ((clients != NULL) && (servers != NULL))
+	errx(1, "You can't specify both a client and server cidr block");
+
+   /* move over to the input files */
+    argc -= optind;
+    argv += optind;
     
-    if (pcap == NULL)
-	errx(1, "Missing required arg: -i <inputfile>");
+    /* we need to replay something */
+    if (argc == 0) {
+	usage();
+	exit(1);
+    }
 
-    main_loop(pcap, proto, port);
+    /* check for valid stdin */
+    if (argc > 1)
+	for (i = 0; i < argc; i++)
+	    if (! strcmp("-", argv[i]))
+		errx(1, "stdin must be the only file specified");
 
+    /* loop through the input file(s) */
+    for (i = 0; i < argc; i++) {
+	/* open the pcap file */
+	if ((pcap = pcap_open_offline(argv[i], ebuf)) == NULL)
+	    errx(1, "Error opening file: %s", ebuf);
 
-    /* Close the pcap file */
-    pcap_close(pcap);
+	/* play the pcap */
+	main_loop(pcap, proto, port);
+
+	/* Close the pcap file */
+	pcap_close(pcap);
+
+    }
 
     /* close our tcp sockets, etc */
     cleanup();
-
+	
     return(0);
 }
 
@@ -210,7 +256,7 @@ main_loop(pcap_t *pcap, u_char proto, u_int16_t port)
     u_char pktdata[MAXPACKET];
     u_int32_t count = 0;
     u_int32_t send_count = 0;
-    u_int64_t key = 0;
+    u_char key[12] = "";
     struct pcap_pkthdr header;
     const u_char *packet = NULL;
     struct session_t *node = NULL;
@@ -223,7 +269,7 @@ main_loop(pcap_t *pcap, u_char proto, u_int16_t port)
 	eth_hdr = (eth_hdr_t *)packet;
 	if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
 	    dbg(2, "************ Skipping non-IP packet #%u ************", count);
-	    continue;
+	    continue; /* next packet */
 	}
 
 	/* zero out old packet info */
@@ -246,54 +292,31 @@ main_loop(pcap_t *pcap, u_char proto, u_int16_t port)
 	    if ((port) && (tcp_hdr->th_sport != port &&
 			   tcp_hdr->th_dport != port)) {
 		dbg(3, "Skipping packet #%u based on port not matching", count);
-		continue;
+		continue; /* next packet */
 	    }
 
 	    dbg(2, "************ Processing packet #%u ************", count);
-	    key = rbkeygen(ip_hdr, IPPROTO_TCP, (void *)tcp_hdr);
+	    if (! rbkeygen(ip_hdr, IPPROTO_TCP, (void *)tcp_hdr, key))
+		continue; /* next packet */
 
 	    /* find an existing sockfd or create a new one! */
 	    if ((node = getnodebykey(IPPROTO_TCP, key)) == NULL) {
 		if ((node = newnode(IPPROTO_TCP, key, ip_hdr, tcp_hdr)) == NULL) {
 		    /* skip if newnode() doesn't create a new node for us */
-		    continue;
+		    continue; /* next packet */
 		}
 	    } else {
-		/* 
-		 * figure out the TCP state 
-		 */
-		if ((tcp_hdr->th_flags & TH_SYN) &&
-		    (tcp_hdr->th_flags & TH_ACK) &&
-		    (node->state == TH_SYN)) {
-		    /* server sent SYN/ACK */
-		    node->state = TH_SYN ^ TH_ACK;
-		    dbg(4, "Setting state to Syn/Ack");
-		} 
+		/* calculate the new TCP state */
+		if (tcp_state(tcp_hdr, node) == TCP_CLOSE) {
+		    dbg(2, "Closing socket #%u on second Fin", node->socket);
+		    close(node->socket);
 
-		else if ((tcp_hdr->th_flags & TH_ACK) && 
-			 (node->state & TH_SYN) &&
-			 (node->state & TH_ACK)) {
-		    /* server sent ACK */
-		    node->state = TH_ACK;
-		    dbg(4, "Setting state to Ack");
-		} 
-
-		/* someone sent us the FIN */
-		else if (tcp_hdr->th_flags & TH_FIN) {
-		    if (node->state == TH_ACK) {
-			/* first FIN */
-			node->state = TH_FIN;
-			dbg(4, "Setting state to Fin");
-		    } else {
-			/* second FIN, close connection */
-			dbg(2, "Closing socket #%u on second Fin", node->socket, node->key);
-			close(node->socket);
-
-			/* destroy our node */
-			delete_node(&tcproot, node);
-			continue;
-		    }
+		    /* destroy our node */
+		    delete_node(&tcproot, node);
+		    continue; /* next packet */
 		}
+		
+		/* send the packet? */
 		if (process_packet(node, ip_hdr, tcp_hdr))
 		    send_count ++; /* number of packets we've actually sent */
 	    }		
@@ -306,18 +329,19 @@ main_loop(pcap_t *pcap, u_char proto, u_int16_t port)
 	    if ((port) && (udp_hdr->uh_sport != port &&
 			   udp_hdr->uh_dport != port)) {
 		dbg(2, "Skipping packet #%u based on port not matching", count);
-		continue;
+		continue; /* next packet */
 	    }
 
 	    dbg(2, "************ Processing packet #%u ************", count);
 
-	    key = rbkeygen(ip_hdr, IPPROTO_UDP, (void *)udp_hdr);
+	    if (! rbkeygen(ip_hdr, IPPROTO_UDP, (void *)udp_hdr, key))
+		continue; /* next packet */
 
 	    /* find an existing socket or create a new one! */
 	    if ((node = getnodebykey(IPPROTO_UDP, key)) == NULL) {
-		if((node = newnode(IPPROTO_UDP, key, ip_hdr, udp_hdr)) == NULL) {
+		if ((node = newnode(IPPROTO_UDP, key, ip_hdr, udp_hdr)) == NULL) {
 		    /* skip if newnode() doesn't create a new node for us */
-		    continue;
+		    continue; /* next packet */
 		}
 	    }
 
@@ -437,27 +461,37 @@ process_packet(struct session_t *node, ip_hdr_t *ip_hdr, void *l4)
     dbg(4, "Sending %d bytes of data");
     if (node->proto == IPPROTO_TCP) {
 	if (send(node->socket, data, len, 0) != len) {
-	    warnx("Error sending data on socket %d (0x%llx)\n%s", node->socket, node->key,
-		  strerror(errno));
+	    warnx("Error sending data on socket %d (0x%llx)\n%s", node->socket, 
+		  pkeygen(node->key), strerror(errno));
 	}
     } else {
 	sa.sin_family = AF_INET;
 	sa.sin_port = node->server_port;
 	sa.sin_addr.s_addr = node->server_ip;
 	if (sendto(node->socket, data, len, 0, &sa, sizeof(struct sockaddr_in)) != len) {
-	    warnx("Error sending data on socket %d (0x%llx)\n%s", node->socket, node->key,
-		  strerror(errno));
+	    warnx("Error sending data on socket %d (0x%llx)\n%s", node->socket, 
+		  pkeygen(node->key), strerror(errno));
 	}
     }
 	return(len);
 }
 
 
+static void
+init(void)
+{
+    
+    /* init stuff */
+    FD_ZERO(&fds);
+    RB_INIT(&tcproot);
+    RB_INIT(&udproot);
+}
+
 /*
  * cleanup after ourselves
  */
 
-void
+static void
 cleanup(void)
 {
 
@@ -478,3 +512,5 @@ get_layer4(ip_hdr_t *ip_hdr)
     ptr = (u_int32_t *)ip_hdr + ip_hdr->ip_hl;
     return((void *)ptr);
 }
+
+
