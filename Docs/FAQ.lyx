@@ -17,7 +17,7 @@
 \leftmargin 10mm
 \topmargin 10mm
 \rightmargin 10mm
-\bottommargin 10mm
+\bottommargin 15mm
 \secnumdepth 4
 \tocdepth 3
 \paragraph_separation skip
@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Feb 3, 2004
+March 23, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -81,7 +81,7 @@ tcpprep - a pcap pre-processor for tcpreplay
 
 flowreplay
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -140,7 +140,7 @@ You'll need the libnet and libpcap libraries.
 
 To support the jump to offset feature, you'll need the libpcapnav
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -152,7 +152,7 @@ http://netdude.sourceforge.net/
 
 To support the packet decoding feature you'll need tcpdump
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -206,7 +206,7 @@ make test is just a series of sanity checks which try to find serious bugs
 \layout Itemize
 
 make test requires at least one properly configured network interface.
- If the configure script can't guess what a vaild interface is you can specify
+ If the configure script can't guess what a valid interface is you can specify
  it with the --with-testnic and --with-testnic2 arguments.
 \layout Itemize
 
@@ -332,7 +332,7 @@ Originally, Matt Undy of Anzen Computing wrote tcpreplay.
  by NFR and development ceased.
 \layout Standard
 
-Then in 2001, two people independantly started work on tcpreplay: Matt Bing
+Then in 2001, two people independently started work on tcpreplay: Matt Bing
  of NFR and Aaron Turner.
  After developing a series of patches (the -adt branch), Aaron attempted
  to send the patches in to be included in the main development tree.
@@ -635,7 +635,7 @@ Replaying on multiple interfaces
 Tcpreplay can also split traffic so that each side of a connection is sent
  out a different interface
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -654,7 +654,7 @@ Note that you can also use the following options to split traffic into two
 
 -c = split traffic according to a tcpprep cachefile
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -746,7 +746,7 @@ F - BPF syntax (same as used in tcpdump).
 \newline 
 Filter must be quoted and is only supported with -x
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -1021,7 +1021,7 @@ Decoding Packets
 
 If the tcpdump binary is installed on your system when tcpreplay is compiled,
  it will allow you to decode packets as they are sent without running tcpdump
- in a sperate window or worrying about it capturing packets which weren't
+ in a separate window or worrying about it capturing packets which weren't
  sent by tcpreplay.
 \layout Itemize
 
@@ -1069,22 +1069,23 @@ Note that tcpreplay automatically applies the -n flag to disable DNS lookups
 Packet Editing
 \layout Subsection
 
-Rewriting destination MAC address
+Rewriting MAC addresses
 \layout Standard
 
 If you ever want to send traffic to another device on a switched LAN, you
  may need to change the destination MAC address of the packets.
  Tcpreplay allows you to set the destination MAC for each interface independentl
 y using the -I and -J switches.
+ As of version 2.1.0, you can also specify the source MAC via -k and -K.
  Example:
 \layout Itemize
 
 To send traffic out eth0 with a destination MAC of your router (00:00:01:02:03:0
-4):
+4) and the source MAC of the server (00:20:30:40:50:60):
 \newline 
 
 \emph on 
-tcpreplay -i eth0 -I 00:00:01:02:03:04 sample.pcap
+tcpreplay -i eth0 -I 00:00:01:02:03:04 -k 00:20:30:40:50:60 sample.pcap
 \layout Itemize
 
 To split traffic between internal (10.0.0.0/24) and external addresses and
@@ -1178,21 +1179,12 @@ Frame has no Layer 2 header, so we can add one.
 
 DLT_LINUX_SLL
 \newline 
-Frame uses the Linux Cooked Socket header which is most commonly used with
- 
+Frame uses the Linux Cooked Socket header which is most commonly created
+ with 
 \emph on 
 tcpdump -i any
 \emph default 
  on a Linux system.
- This uses a 16 byte Layer 2 header which contains the protocol type and
- source MAC address but 
-\emph on 
-not
-\emph default 
- the destination MAC.
- You can send these packets with either -2 or by specifying a destination
- MAC via -I and -J in which case tcpreplay will rewrite it as a standard
- 802.3 Ethernet header.
 \layout Standard
 
 Tcpreplay accepts the new Layer 2 header as a string of comma separated
@@ -1206,6 +1198,38 @@ not
 
 Potential uses for this are to add a layer 2 header for DLT_RAW captures
  or add/remove ethernet tags or QoS features.
+\layout Subsection
+
+Rewriting DLT_LINUX_SLL (Linux Cooked Socket) captures
+\layout Standard
+
+Tcpdump uses a special frame type to store captures created with the 
+\begin_inset Quotes eld
+\end_inset 
+
+-i any
+\begin_inset Quotes erd
+\end_inset 
+
+ argument.
+ This frame type uses a custom 16 byte layer 2 header which tracks which
+ interface captured the packet and often the source MAC address of the original
+ ethernet frame.
+ Unfortunately, it never stores the destination MAC address and it doesn't
+ store a source MAC when the packet is captured on the loopback interface.
+ Normally, tcpreplay can't replay these pcap files because there isn't enough
+ information in the LINUX_SLL header to do so; however two options do exist:
+\layout Enumerate
+
+You can send these packets with -2 which will replace the LINUX_SLL header
+ with an ethernet header of your choosing.
+\layout Enumerate
+
+You can specify a destination MAC via -I and -J in which case tcpreplay
+ will use the stored source MAC and create a new 802.3 Ethernet header.
+ Note that if the pcap contains loopback packets, you will also need to
+ specify -k and/or -K to specify the source MAC as well or they will be
+ skipped.
 \layout Subsection
 
 Rewriting IP Addresses (pseudo-NAT)
@@ -1505,7 +1529,7 @@ Some of these limitations are:
 
 Flowreplay only plays the client side
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
@@ -1615,7 +1639,7 @@ On one system, we've seen a jump from 23.02 megabits/sec (5560 packets/sec)
  See the options(4) man page for more details.
 \layout Section
 
-Understanding Common Error Messages
+Understanding Common Error and Warning Messages
 \layout Subsection
 
 Can't open eth0: libnet_select_device(): Can't find interface eth0
@@ -1656,8 +1680,7 @@ Invalid mac address: 00:00:00:00:00:00
 
 Currently tcpreplay reserves the MAC address of 00:00:00:00:00:00 as reserved
  for internal use.
- Hence you can't rewrite the destination MAC address of packets to be all
- zeros.
+ Hence you can't rewrite the MAC address of packets to be all zeros.
  While we intend to fix this someday it's not currently high on our priority
  list, so let us know if we should re-prioritize things.
 \layout Subsection
@@ -1698,6 +1721,8 @@ Your capture file was created on Linux with the 'any' parameter which then
  captured a packet on the loopback interface.
  However, tcpreplay doesn't have enough information to actual send the packet,
  so it skips it.
+ Specifying a source and destination MAC address (-I, -k, -J, -K) will allow
+ tcpreplay to send these packets.
 \layout Subsection
 
 Packet length (8892) is greater then MTU; skipping packet.
