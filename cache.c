@@ -47,7 +47,7 @@ read_cache(char *cachefile)
 	/* open the file or abort */
 	cachefd = open(cachefile, O_RDONLY);
 	if (cachefd == -1) 
-		err("open %s", cachefile);
+		err(1, "open %s", cachefile);
 
 	/* read the cache header and determine compatibility */
 	if ((cnt = read(cachefd, header, sizeof(CACHE_HEADER))) < 0)
