@@ -100,8 +100,7 @@ break_now(int signo)
 void
 send_packets(pcap_t *pcap)
 {
-    struct timeval last;
-    static int firsttime = 1;
+    struct timeval last = { 0, 0 };
     COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
@@ -115,12 +114,6 @@ send_packets(pcap_t *pcap)
     }
     else {
         (void)signal(SIGINT, break_now);
-    }
-
-    /* clear out the time we sent the last packet if this is the first packet */
-    if (firsttime) {
-        timerclear(&last);
-        firsttime = 0;
     }
 
     /* MAIN LOOP 
@@ -178,6 +171,12 @@ send_packets(pcap_t *pcap)
         bytes_sent += pkthdr.caplen;
         pkts_sent++;
     
+        /* 
+         * track the time of the "last packet sent".  Again, because of OpenBSD
+         * we have to do a mempcy rather then assignment
+         */
+        memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
+
     } /* while */
 }
 
@@ -314,6 +313,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
          */
         if (timerisset(last) && timercmp(time, last, >)) {
             timersub(time, last, &nap);
+            timerdiv(&nap, options.speed.speed);
         }
         else {
             /* 
@@ -323,7 +323,6 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
              */
             timerclear(&nap);
         }
-        timerdiv(&nap, options.speed.speed);
         break;
 
     case SPEED_MBPSRATE:
