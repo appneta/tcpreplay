@@ -108,6 +108,8 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     header.comment_len = ntohs(header.comment_len);
     *comment = (char *)safe_malloc(header.comment_len);
 
+    dbg(1, "Comment length: %d", header.comment_len);
+    
     if ((read_size = read(cachefd, *comment, header.comment_len)) 
             != header.comment_len)
         errx(1, "Unable to read %d bytes of data for the comment (%d) %s", 
@@ -121,17 +123,15 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     header.packets_per_byte = ntohs(header.packets_per_byte);
     cache_size = header.num_packets / header.packets_per_byte;
 
+    if (cache_size == 0)
+        err(1, "Cache size must be greater then zero");
+        
     /* deal with any remainder, becuase above divsion is integer */
     if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
-#ifdef ENABLE_64BITS
     dbg(1, "Cache file contains %lld packets in %lld bytes",
         header.num_packets, cache_size);
-#else
-    dbg(1, "Cache file contains %ld packets in %lld bytes",
-        header.num_packets, cache_size);
-#endif
 
     dbg(1, "Cache uses %d packets per byte", header.packets_per_byte);
 
@@ -169,11 +169,7 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
     strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
     strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
-#ifdef ENABLE_64BITS
-    cache_header->num_packets = htonll(numpackets);
-#else
-    cache_header->num_packets = (u_int64_t)htonl(numpackets);
-#endif
+    cache_header->num_packets = htonll((u_int64_t)numpackets);
 
     /* we can't strlen(NULL) so ... */
     if (comment != NULL) {
@@ -348,6 +344,8 @@ check_cache(char *cachedata, COUNTER packetid)
     COUNTER index = 0;
     u_int32_t bit;
 
+    if (packetid == 0)
+        err(1, "packetid must be > 0");
 
     index = (packetid - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
     bit = (u_int32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
