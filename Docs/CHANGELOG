@@ -1,186 +1,186 @@
-$Id: CHANGELOG,v 1.25 2003/12/21 20:07:32 aturner Exp $
+$Id: CHANGELOG,v 1.26 2004/01/15 07:25:23 aturner Exp $
 
 ??/??/????: Version 1.5.beta1
-        - Remove libpcapnav requirement
-        - Now support libpcapnav >= 0.4
-        - Add -1 to replay one packet at a time (user must hit <ENTER>)
-        - Add tcpdump packet parsing to print packets as sent
+    - Remove libpcapnav requirement
+    - Now support libpcapnav >= 0.4
+    - Add -1 to replay one packet at a time (user must hit <ENTER>)
+    - Add tcpdump packet parsing to print packets as sent
+    - Place flowreplay manpage in correct location
 
 12/10/2003: Version 1.5.alpha6
-	- Add BPF filter support to tcpprep and tcpreplay (-x F:"filter")
-	- Update the FAQ
-	- Add two new auto modes to tcpprep (client and server)
-	- Make clean no longer wipes out the compiled documentation in Docs
-	- Add support for replaying live traffic
-        - Add bridge mode
-        - Add -L to limit the total number of packets to send
+    - Add BPF filter support to tcpprep and tcpreplay (-x F:"filter")
+    - Update the FAQ
+    - Add two new auto modes to tcpprep (client and server)
+    - Make clean no longer wipes out the compiled documentation in Docs
+    - Add support for replaying live traffic
+    - Add bridge mode
+    - Add -L to limit the total number of packets to send
 
 11/03/2003: Version 1.5.alpha5
-        - Add -T to truncate packets > MTU so they can be sent
-        - Now fixes ICMP checksums as appropriate
-        - Updated FAQ
-        - Updated flowreplay design doc
-        - Merge packetrate code from 1.4.5
-        - Fix compile issues under Libnet 1.1.1
-        - --with-debug now enables debuging during 'make test'
-        - Fix various Solaris compatibility bugs
-        - Add data dump mode which dumps layer 7 data to the file (-D)
-        - Now requires libpcapnav
-        - Allow to jump X bytes into the pcap and start replaying packets (-o)
-        - Can now split traffic/data into files (-w & -W)
+    - Add -T to truncate packets > MTU so they can be sent
+    - Now fixes ICMP checksums as appropriate
+    - Updated FAQ
+    - Updated flowreplay design doc
+    - Merge packetrate code from 1.4.5
+    - Fix compile issues under Libnet 1.1.1
+    - --with-debug now enables debuging during 'make test'
+    - Fix various Solaris compatibility bugs
+    - Add data dump mode which dumps layer 7 data to the file (-D)
+    - Now requires libpcapnav
+    - Allow to jump X bytes into the pcap and start replaying packets (-o)
+    - Can now split traffic/data into files (-w & -W)
 
 07/16/2003: Version 1.5.alpha4
-        - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
-        - Don't die when packet > MTU, just skip
-        - Fix a ptr bug in do_packets() w/ the ethernet header
-	- Merge Ctrl-C fix from 1.4.4 for libnet_adv_write_link() 
-            in do_packets.c
-	- Rewrite flowreplay design document
-        - Fix an integer overflow in packet_stats() in tcpreplay.c
-        - tcpreplay's -2 now accepts a hex string rather then a filename
-        - tcpreplay now can output to a file (-w <file>)
-        - fix bug in checksum fixer
-        - Add support for files > 2GB
+    - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
+    - Don't die when packet > MTU, just skip
+    - Fix a ptr bug in do_packets() w/ the ethernet header
+    - Merge Ctrl-C fix from 1.4.4 for libnet_adv_write_link() 
+        in do_packets.c
+    - Rewrite flowreplay design document
+    - Fix an integer overflow in packet_stats() in tcpreplay.c
+    - tcpreplay's -2 now accepts a hex string rather then a filename
+    - tcpreplay now can output to a file (-w <file>)
+    - fix bug in checksum fixer
+    - Add support for files > 2GB
 
 06/06/2003: Version 1.5.alpha3
-	- Add support for Linux Cooked Sockets (SLL) format rewriting
-	- Added a flowreplay design doc in Docs/
-	- A lot more work on flowreplay
-	- Start work on read-ahead buffering of packets in flowreplay        
-	- Add support for specifying MTU.
-	- Update tcpreplay man page
-        - Fix compile of do_packets() under OpenBSD
-        - configure now checks for libpcap >= 0.6 (required for SLL)
+    - Add support for Linux Cooked Sockets (SLL) format rewriting
+    - Added a flowreplay design doc in Docs/
+    - A lot more work on flowreplay
+    - Start work on read-ahead buffering of packets in flowreplay        
+    - Add support for specifying MTU.
+    - Update tcpreplay man page
+    - Fix compile of do_packets() under OpenBSD
+    - configure now checks for libpcap >= 0.6 (required for SLL)
 
 
 05/29/2003: Version 1.5.alpha2
-        - Add -F to force checksum fixing
-        - Fix packet corruption when not using -2
-        - Improve timerdiv() code
-        - Port from libredblack to OpenBSD RB_*
-        - Add flowreplay application
-        - Fix a bunch of compiler warnings about miss-matched sign
-        - IP & layer 4 checksums now work when IP options exist (tcpreplay)
-        - Updated FAQ
-        - Fix spec file
-
+    - Add -F to force checksum fixing
+    - Fix packet corruption when not using -2
+    - Improve timerdiv() code
+    - Port from libredblack to OpenBSD RB_*
+    - Add flowreplay application
+    - Fix a bunch of compiler warnings about miss-matched sign
+    - IP & layer 4 checksums now work when IP options exist (tcpreplay)
+    - Updated FAQ
+    - Fix spec file
 
 05/07/2003: Version 1.5.alpha1
-        - Add layer2 rewriting
+    - Add layer2 rewriting
 
 05/07/2002: Branch 1.4.x tree
 
 05/04/2003: Version 1.4.beta5
-        - Fixed a one-off bug when replaying tcpprep cache files
-        - Fixed a small reporting bug in tcpprep
+    - Fixed a one-off bug when replaying tcpprep cache files
+    - Fixed a small reporting bug in tcpprep
 
 05/02/2003: Version 1.4.beta4
-	- significantly improved timing accuracy between packets
-        - fix bug with writing only about 1/2 of cache data which caused
-          tcpreplay to bitch
-        - updated 'make test' standard cache files
-        - improved alignment of cache header (20bytes vs 17bytes)
+    - significantly improved timing accuracy between packets
+    - fix bug with writing only about 1/2 of cache data which caused
+        tcpreplay to bitch
+    - updated 'make test' standard cache files
+    - improved alignment of cache header (20bytes vs 17bytes)
 
 04/30/2003: Version 1.4.beta3
-	- Specifying a list of packets to include/exclude now works (-x/X P:)
-	- Minor code cleanups (better error messages, etc)
-	- Add -p option to pause a given number of sec/usec between each packet
-	- Ported tcpprep to libpcap
-        - Increase final report resolution to two sig digits
-        - Switch to err.h that we ship rather then system provided err.h
-        - Don't reset timer each time we open a file for reading
-        - fix --mandir option for ./configure
-        - fix SIGSEGV in tcpprep
-        - Add SIGUSR1 and SIGCONT signal support to tcpreplay
-        - Updated tcpreplay man pages
-        - Remove need for math.h/libm
+    - Specifying a list of packets to include/exclude now works (-x/X P:)
+    - Minor code cleanups (better error messages, etc)
+    - Add -p option to pause a given number of sec/usec between each packet
+    - Ported tcpprep to libpcap
+    - Increase final report resolution to two sig digits
+    - Switch to err.h that we ship rather then system provided err.h
+    - Don't reset timer each time we open a file for reading
+    - fix --mandir option for ./configure
+    - fix SIGSEGV in tcpprep
+    - Add SIGUSR1 and SIGCONT signal support to tcpreplay
+    - Updated tcpreplay man pages
+    - Remove need for math.h/libm
 
 01/07/2003: Version 1.4.beta2
-	- Major updates to configure script
-	- Remove unneeded memcpy() for non-strict aligned architectures
-		for added performance boost
-	- Switch to libpcap for reading packets
-	- Fix portability issues with tcpprep cache files
+    - Major updates to configure script
+    - Remove unneeded memcpy() for non-strict aligned architectures
+        for added performance boost
+    - Switch to libpcap for reading packets
+    - Fix portability issues with tcpprep cache files
 
 12/23/2002: Version 1.4.beta1
-	- Remove libnet 1.0 support
-	- Start a quality FAQ for all programs
-	- Add support for detecting libpcap in autoconf
-	- Add pcapmerge to makefile and port to non-BSD OS's
-	- Write pcapmerge manpage
-	- Variety of small configure/makefile improvements
+    - Remove libnet 1.0 support
+    - Start a quality FAQ for all programs
+    - Add support for detecting libpcap in autoconf
+    - Add pcapmerge to makefile and port to non-BSD OS's
+    - Write pcapmerge manpage
+    - Variety of small configure/makefile improvements
 
 12/13/2002: Version 1.3.0
-	- Re-release 1.3.beta6 as 1.3.0
+    - Re-release 1.3.beta6 as 1.3.0
 
 11/22/2002: Version 1.3.beta6
-	- Improve cross platform compatibility of test subsystem
-	- Fix bug in Makefile which caused possible failures of clean/distclean
-	- Fix bug with CCFLAGS when using --with-debug
-	- Fix bug with -x/-X which would drop/send all packets in certain 
-		conditions
-	- Update libredblack to 1.2 (latest)
-	- Add support for OSX
-	- Add --with-testnic and --with-testnic2 to allow end user to specify
-		specific network cards to be used for 'make test'
-	- Fixes SIGBUS errors on SPARC
+    - Improve cross platform compatibility of test subsystem
+    - Fix bug in Makefile which caused possible failures of clean/distclean
+    - Fix bug with CCFLAGS when using --with-debug
+    - Fix bug with -x/-X which would drop/send all packets in certain 
+        conditions
+    - Update libredblack to 1.2 (latest)
+    - Add support for OSX
+    - Add --with-testnic and --with-testnic2 to allow end user to specify
+        specific network cards to be used for 'make test'
+    - Fixes SIGBUS errors on SPARC
 
 11/08/2002: Version 1.3-beta5
-	- Add testing subsystem
-	- Fix segfault when we don't send a packet
-	- Improve debug output support in dbg()
+    - Add testing subsystem
+    - Fix segfault when we don't send a packet
+    - Improve debug output support in dbg()
 
 10/21/2002: Version 1.3-beta4
-	- Updated tcpprep man page with -x and -X options
-	- Now supports (again) the include/exclude options in the config file
-	- Fixed -x|-X sanity check in tcpprep/tcpreplay
+    - Updated tcpprep man page with -x and -X options
+    - Now supports (again) the include/exclude options in the config file
+    - Fixed -x|-X sanity check in tcpprep/tcpreplay
 
 10/13/2002: Version 1.3-beta3
-	- Fix compile of list.c under FreeBSD 4.7 and others
-	- Add -x|-X to tcpprep
-	- Modify cache file format to be 2 bits/packet to allow caching of
-		-x|-X args (dropping packets)
-	- Modularize some more code
+    - Fix compile of list.c under FreeBSD 4.7 and others
+    - Add -x|-X to tcpprep
+    - Modify cache file format to be 2 bits/packet to allow caching of
+        -x|-X args (dropping packets)
+    - Modularize some more code
 
 10/08/2002: Version 1.3-beta2
-	- Fix ./configure bug w/ INET_ATON and INET_ADDR
-	- Add support for filtering packets to send based on
-		IP address or packet number (-x & -X)
-	- Move a lot of code from tcpreplay.c to do_packets.c
-	- Update tcpreplay man page
+    - Fix ./configure bug w/ INET_ATON and INET_ADDR
+    - Add support for filtering packets to send based on
+        IP address or packet number (-x & -X)
+    - Move a lot of code from tcpreplay.c to do_packets.c
+    - Update tcpreplay man page
 
 10/03/2002: Version 1.3-beta1
-	- Add support for randomizing IP addresses (-s)
-	- Update tcpreplay man page
-	- Fix problem with checksums after untruncate
+    - Add support for randomizing IP addresses (-s)
+    - Update tcpreplay man page
+    - Fix problem with checksums after untruncate
 
 08/21/2002: Version 1.2a
-	- Fix compile bug in tree.c w/ libnet 1.1
-	- Sync tcpprep version to tcpreplay
+    - Fix compile bug in tree.c w/ libnet 1.1
+    - Sync tcpprep version to tcpreplay
 
 08/19/2002: Version 1.2
-	- Configuration files specified via -f
-	- Now requires a recent version of AutoConf (2.53)
-	- Added support for Libnet 1.1.x (requires beta8 or better)
-	- Added -V switch to print version info (tcpprep & tcpreplay)
-	- Added CIDR dual-nic support to tcpreplay. 
-	- Fix for -I in tcpreplay when only using a single NIC.
-	- Remove requirement for libpcap in tcpprep.  We're now
-		  100% libpcap independant.
-	- tcpprep now supports snoop files.
-	- Added -u flag to untruncate IP packets (pad/trunc)
-	- Fixed --with-debug configure option
-	- Added RPM .spec file
-	- Added -M flag to ignore martian IP packets
-	- Now auto-detects snoop/pcap files.  Remove -S flag from tcpprep and
-		tcpreplay
-	- tcpprep now detects servers via ICMP port unreachable
-	- Improve usefulness of -h
-	- Rename -I to -v in tcpprep
+    - Configuration files specified via -f
+    - Now requires a recent version of AutoConf (2.53)
+    - Added support for Libnet 1.1.x (requires beta8 or better)
+    - Added -V switch to print version info (tcpprep & tcpreplay)
+    - Added CIDR dual-nic support to tcpreplay. 
+    - Fix for -I in tcpreplay when only using a single NIC.
+    - Remove requirement for libpcap in tcpprep.  We're now
+        100% libpcap independant.
+    - tcpprep now supports snoop files.
+    - Added -u flag to untruncate IP packets (pad/trunc)
+    - Fixed --with-debug configure option
+    - Added RPM .spec file
+    - Added -M flag to ignore martian IP packets
+    - Now auto-detects snoop/pcap files.  Remove -S flag from tcpprep and
+        tcpreplay
+    - tcpprep now detects servers via ICMP port unreachable
+    - Improve usefulness of -h
+    - Rename -I to -v in tcpprep
 
 06/17/2002: Version 1.1
-	- Major rewrite
-	- Support multiple nics
-	- Better control over packet rates
-	- Added support for snoop capture files
-	- Includes tcpprep and capinfo commands
+    - Major rewrite
+    - Support multiple nics
+    - Better control over packet rates
+    - Added support for snoop capture files
+    - Includes tcpprep and capinfo commands
