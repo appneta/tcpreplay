@@ -1,0 +1,20 @@
+HISTORY
+-------
+
+Not much really - this code has been stable for so long now!
+
+Current revision: $Revision: 1.1 $
+
+$Log: ChangeLog,v $
+Revision 1.1  2002/04/13 03:43:03  aturner
+the rest of libredblack
+
+Revision 1.1.1.1  2002/04/10 00:46:18  mbing
+libredblack for tcpprep
+
+Revision 1.1  2000/05/24 04:15:53  damo
+Initial import of files. Versions are now all over the place. Oh well
+
+Revision 1.1  2000/05/23 06:01:49  damo
+Loads of stuff for the autoconf system
+

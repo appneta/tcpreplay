@@ -1,0 +1,53 @@
+Summary: Library for handling red-black tree searching algorithm
+Name: @PACKAGE@
+Version: @VERSION@
+Release: 1
+Copyright: GPL
+Group: System Environment/Libraries
+Source: ftp://@PACKAGE@.sourceforge.net/pub/@PACKAGE@/@PACKAGE@-@VERSION@.tar.gz
+URL: http://@PACKAGE@.sourceforge.net
+Packager: Damian Ivereigh <damian@cisco.com>
+Prefix: /usr
+BuildRoot:/var/tmp/@PACKAGE@
+
+%package devel
+Summary: Additional files and headers required to compile programs using libredblack
+Group: Development/Libraries
+Requires: libredblack
+
+%description 
+This implements the redblack balanced tree algorithm.
+
+%description devel
+To develop programs based upon the libredblack library, the system needs to 
+have these header and object files available for creating the executables.
+
+%prep
+%setup
+
+%build
+./configure --prefix=/usr
+make
+
+%install
+make prefix=${RPM_BUILD_ROOT}/usr install
+
+%files
+/usr/lib/libredblack.so
+/usr/lib/libredblack.so.1
+/usr/lib/libredblack.so.1.@REDBLACK_MAJOR_VERSION@.@REDBLACK_MINOR_VERSION@
+
+%files devel
+/usr/include/redblack.h
+/usr/lib/libredblack.a
+/usr/lib/libredblack.la
+/usr/man/man3/rbdelete.3
+/usr/man/man3/rbdestroy.3
+/usr/man/man3/rbfind.3
+/usr/man/man3/rbinit.3
+/usr/man/man3/rblookup.3
+/usr/man/man3/rbsearch.3
+%doc example.c
+%doc example1.c
+%doc example2.c
+%doc example3.c
