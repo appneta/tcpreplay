@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.27 2003/06/05 02:26:15 aturner Exp $ */
+/* $Id: do_packets.c,v 1.28 2003/06/05 16:50:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -32,7 +32,7 @@ extern CIDR *cidrdata;
 extern struct timeval begin, end;
 extern unsigned long bytes_sent, failed, pkts_sent, cache_packets;
 extern volatile int didsig;
-extern int l2len;
+extern int l2len, maxpacket;
 
 extern int include_exclude_mode;
 extern CIDR *xX_cidr;
@@ -73,15 +73,24 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
     struct sll_header *sllhdr = NULL;   /* Linux cooked socket header */
     struct pcap_pkthdr pkthdr;	        /* libpcap packet info */
     const u_char *nextpkt = NULL;	/* packet buffer from libpcap */
-    u_char pktdata[MAXPACKET];	        /* full packet buffer */
+    u_char *pktdata = NULL;	        /* full packet buffer */
 #ifdef FORCE_ALIGN
-    u_char ipbuff[MAXPACKET];	        /* IP header and above buffer */
+    u_char *ipbuff = NULL;	        /* IP header and above buffer */
 #endif
     struct timeval last;
     static int firsttime = 1;
     int ret;
     unsigned long packetnum = 0;
 
+
+    /* create packet buffers */
+    if ((pktdata = (u_char *)malloc(maxpacket)) == NULL)
+	errx(1, "Unable to malloc pktdata buffer");
+
+#ifdef FORCE_ALIGN
+    if ((ipbuff = (u_char *)malloc(maxpacket)) == NULL)
+	errx(1, "Unaable to malloc ipbuff buffer");
+#endif
 
     /* register signals */
     didsig = 0;
@@ -116,10 +125,10 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		/*
 		 * is new packet too big?
 		 */
-		if ((pkthdr.caplen - LIBNET_ETH_H + l2len) > MAXPACKET) {
-		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
-			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
-			 (pkthdr.caplen - LIBNET_ETH_H + l2len), MAXPACKET);
+		if ((pkthdr.caplen - LIBNET_ETH_H + l2len) > maxpacket) {
+		    errx(1, "Packet length (%u) is greater then %d.\n"
+			 "Either reduce snaplen or increase the MTU",
+			 (pkthdr.caplen - LIBNET_ETH_H + l2len), maxpacket);
 		}
 		/*
 		 * remove ethernet header and copy our header back
@@ -145,10 +154,10 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		/*
 		 * is new packet too big?
 		 */
-		if ((pkthdr.caplen + l2len) > MAXPACKET) {
-		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
-			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
-			 (pkthdr.caplen + l2len), MAXPACKET);
+		if ((pkthdr.caplen + l2len) > maxpacket) {
+		    errx(1, "Packet length (%u) is greater then %d.\n"
+			 "Either reduce snaplen or increase the MTU",
+			 (pkthdr.caplen + l2len), maxpacket);
 		}
 
 		memcpy(pktdata, l2data, l2len);
@@ -170,11 +179,11 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 
 	    if (linktype == DLT_EN10MB) {
 
-		/* verify that the packet isn't > MAXPACKET */
-		if (pkthdr.caplen > MAXPACKET) {
-		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
-			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
-			 pkthdr.caplen, MAXPACKET);
+		/* verify that the packet isn't > maxpacket */
+		if (pkthdr.caplen > maxpacket) {
+		    errx(1, "Packet length (%u) is greater then %d.\n"
+			 "Either reduce snaplen or increase the MTU",
+			 pkthdr.caplen, maxpacket);
 		}
 
 		/*
@@ -187,11 +196,11 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	    }
 		/* how should we process non-802.3 frames? */
 	    else if (linktype == DLT_LINUX_SLL) {
-		/* verify new packet isn't > MAXPACKET */
-		if ((pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H) > MAXPACKET) {
-		    errx(1, "Packet length (%u) is greater then MAXPACKET (%d).\n"
-			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
-			 (pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H), MAXPACKET);
+		/* verify new packet isn't > maxpacket */
+		if ((pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H) > maxpacket) {
+		    errx(1, "Packet length (%u) is greater then %d.\n"
+			 "Either reduce snaplen or increase the MTU",
+			 (pkthdr.caplen - SLL_HDR_LEN + LIBNET_ETH_H), maxpacket);
 		}
 
 		/* if linktype is SLL, then rewrite as a standard 802.3 header */
@@ -370,6 +379,12 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 
 	last = pkthdr.ts;
     }
+
+    /* free buffers */
+    free(pktdata);
+#ifdef FORCE_ALIGN
+    free(ipbuff);
+#endif
 }
 
 /*
