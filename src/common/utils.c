@@ -131,9 +131,9 @@ packet_stats(struct timeval *begin, struct timeval *end,
 
     snprintf(bits, sizeof(bits), "%d", begin->tv_usec);
 
-    notice(COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds\n",
+    notice("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds",
             pkts_sent, bytes_sent, begin->tv_sec, bits);
-    notice("%.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
+    notice("Rated: %.1f bps, %.2f Mbps/sec, %d pps\n",
            bytes_sec, mb_sec, pkts_sec);
 
     if (failed)
