@@ -1,7 +1,10 @@
+/* $Id: cache.c,v 1.16 2003/05/29 22:02:03 aturner Exp $ */
+
 /*
- * Please see tcpprep.c for license information.
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * All rights reserved.
  *
- * Copyright (c) 2001 Aaron Turner
+ * Please see Docs/LICENSE for licensing information
  */
 
 #ifdef HAVE_CONFIG_H
@@ -179,7 +182,7 @@ void
 add_cache(CACHE ** cachedata, const int send, const int interface)
 {
     CACHE *lastcache = NULL;
-    u_char *byte = NULL;
+    char *byte = NULL;
     int bit;
     unsigned long index;
 
