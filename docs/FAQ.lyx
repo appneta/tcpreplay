@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Oct 13, 2004
+Jan 10, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -76,7 +76,7 @@ tcpreplay - replay ethernet packets stored in a pcap file as they were captured
  
 \layout Itemize
 
-tcprewrite - normalize packets stored in a pcap file
+tcprewrite - edit packets stored in a pcap file
 \layout Itemize
 
 tcpprep - a pcap pre-processor for tcpreplay
@@ -268,7 +268,7 @@ Not really.
 How is tcpreplay licensed?
 \layout Standard
 
-Tcpreplay is licensed under a 3 clause BSD-style license.
+Tcpreplay is licensed under a three clause BSD-style license.
  For details, see Appendix A.
 \layout Subsection
 
@@ -277,10 +277,8 @@ What is tcpreplay?
 
 In the simplest terms, tcpreplay is a tool to send network traffic stored
  in pcap format back onto the network; basically the exact opposite of tcpdump.
- Tcpreplay also has the ability to edit various packet headers as the packets
- are sent.
- Tcpreplay is also a suite of tools: tcpreplay, tcpprep, pcapmerge, capinfo
- and flowreplay.
+ Just to make things more confusing, tcpreplay is also a suite of tools:
+ tcpreplay, tcpprep, tcprewrite and flowreplay.
 \layout Subsection
 
 What isn't tcpreplay?
@@ -415,6 +413,9 @@ Error message (if available) and/or description of problem
 \layout Itemize
 
 If possible, attach the pcap file used (compressed with bzip2 or gzip preferred)
+\layout Itemize
+
+The core dump if available
 \layout Subsection
 
 I have a feature request, what should I do?
@@ -437,6 +438,11 @@ I'm always willing to include new features or bug fixes submitted by users.
 do not
 \emph default 
  use the Patch Tracker on the tcpreplay SourceForge web site.
+ But before you start working on adding a feature or fixing a bug in tcpreplay,
+ please make sure you checkout the latest source code from the Subversion
+ repository.
+ Patches against released versions are almost surely not going to apply
+ cleanly if at all.
 \layout Subsection
 
 Patch requirements
@@ -1303,9 +1309,9 @@ Pseudo-NAT also works with traffic splitting (using two interfaces or output
 \begin_inset  Tabular
 <lyxtabular version="3" rows="3" columns="3">
 <features>
-<column alignment="center" valignment="top" leftline="true" width="0">
-<column alignment="center" valignment="top" leftline="true" width="0">
-<column alignment="center" valignment="top" leftline="true" rightline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0sp">
+<column alignment="center" valignment="top" leftline="true" width="0sp">
+<column alignment="center" valignment="top" leftline="true" rightline="true" width="0sp">
 <row topline="true" bottomline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
