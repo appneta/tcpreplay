@@ -83,7 +83,7 @@ typedef struct cache_file_hdr_s cache_file_hdr_t;
 
 u_int64_t write_cache(cache_t *, const int, u_int64_t, char *);
 int add_cache(cache_t **, const int, const int);
-u_int64_t read_cache(char **, char *, char **);
+u_int64_t read_cache(char **, const char *, char **);
 int check_cache(char *, unsigned long);
 
 /* return values for check_cache */

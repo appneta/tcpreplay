@@ -77,7 +77,7 @@ byte2bits(char byte, char *bitstring) {
  */
 
 u_int64_t
-read_cache(char **cachedata, char *cachefile, char **comment)
+read_cache(char **cachedata, const char *cachefile, char **comment)
 {
     int cachefd, cnt;
     cache_file_hdr_t header;
