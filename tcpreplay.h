@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.6 2002/07/01 22:41:37 mattbing Exp $ */
+/* $Id: tcpreplay.h,v 1.7 2002/07/03 00:53:32 mattbing Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -9,7 +9,7 @@
 
 #include "timer.h"
 
-#define VERSION "-cvs"
+#define VERSION "1.2"
 
 /* Big enough for ethernet */
 #define MAXPACKET 2048
