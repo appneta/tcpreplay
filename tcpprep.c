@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.42 2004/07/25 04:48:36 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.43 2004/07/25 23:37:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -68,6 +68,7 @@
 #include "utils.h"
 #include "services.h"
 #include "sll.h"
+#include "dlt_names.h";
 
 /*
  * global variables
@@ -267,37 +268,34 @@ process_raw_packets(pcap_t * pcap)
         hdlc_hdr = NULL;
 
         linktype = pcap_datalink(pcap);
+        dbg(1, "Linktype is %s (0x%x)", dlt2name[linktype], linktype);
         switch (linktype) {
         case DLT_EN10MB:
-            dbg(3, "Datalink is DLT_EN10MB.");
             eth_hdr = (eth_hdr_t *) pktdata;
             l2len = LIBNET_ETH_H;
             protocol = eth_hdr->ether_type;
             break;
 
         case DLT_LINUX_SLL:
-            dbg(3, "Datalink is LINUX SLL");
             sll_hdr = (struct sll_header *) pktdata;
             l2len = SLL_HDR_LEN;
             protocol = sll_hdr->sll_protocol;
             break;
 
         case DLT_RAW:
-            dbg(3, "Datalink is RAW");
             protocol = ETHERTYPE_IP;
             l2len = 0;
             break;
 
         case DLT_CHDLC:
-            dbg(3, "Datalink is Cisco HDLC");
             hdlc_hdr = (struct cisco_hdlc_header *)pktdata;
             protocol = hdlc_hdr->protocol;
             l2len = CISCO_HDLC_LEN;
             break;
 
         default:
-            errx(1, "WTF?  How'd we get here with an invalid DLT type? 0x%x",
-                 linktype);
+            errx(1, "WTF?  How'd we get here with an invalid DLT type: %s (0x%x)",
+                 dlt2name[linktype], linktype);
             break;
         }
 

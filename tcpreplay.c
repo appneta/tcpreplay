@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.95 2004/07/14 05:10:13 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.96 2004/07/25 23:37:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -65,6 +65,7 @@
 #include "replay_live.h"
 #include "utils.h"
 #include "edit_packet.h"
+#include "dlt_names.h"
 
 struct options options;
 char *cachedata = NULL;
@@ -752,13 +753,15 @@ void
 validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
 {
 
+
+    dbg(1, "Linktype is %s\n", dlt2name[linktype]);
+
     switch (linktype) {
     case DLT_EN10MB:
-        dbg(1, "Linktype is DLT_EN10MB");
+        /* nothing to do here */
         break;
 
     case DLT_LINUX_SLL:
-        dbg(1, "Linktype is DLT_LINUX_SLL");
         
         /* single output mode */
         if (! options.intf2) {
@@ -783,7 +786,6 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
             
     case DLT_CHDLC:
         /* Cisco HDLC (used at least for SONET) */
-        dbg(1, "pcap file's link type is DLT_HDLC");
         /* 
          * HDLC has a 4byte header, a 2 byte address type (0x0f00 is unicast
          * is all I know) and a 2 byte protocol type
@@ -815,15 +817,15 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
         break;
         
     case DLT_RAW:
-        dbg(1, "pcap file's link type is DLT_RAW");
         if (!l2enabled) {
             errx(1, "Unable to process pcap without -2: %s",  name);
             return;
         }
         break;
-        
+
     default:
-        errx(1, "validate_l2(): Unsupported datalink type: 0x%x", linktype);
+        errx(1, "validate_l2(): Unsupported datalink type: %s (0x%x)", 
+             dlt2name[linktype], linktype);
         break;
     }
 

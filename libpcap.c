@@ -1,4 +1,4 @@
-/* $Id: libpcap.c,v 1.11 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: libpcap.c,v 1.12 2004/07/25 23:37:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -39,32 +39,7 @@
 #include "capinfo.h"
 #include "libpcap.h"
 #include "err.h"
-
-
-/* data-link level type codes */
-char *pcap_links[] = {
-    "null",
-    "ethernet",
-    "experimental ethernet (3mb)",
-    "amateur radio ax.25",
-    "Proteon ProNET token ring",
-    "Chaos",
-    "IEEE 802 networks",
-    "ARCNET",
-    "serial line IP",
-    "point-to-point protocol",
-    "FDDI",
-    "LLC/SNAP ecapsulated atm",
-    "loopback type",
-    "IPSEC enc type",
-    "raw IP",
-    "BSD/OS serial line IP",
-    "BSD/OS point-to-point protocol",
-    "OpenBSD packet filter logging",
-    NULL
-};
-
-#define LINKSIZE (sizeof(pcap_links) / sizeof(pcap_links[0]) - 1)
+#include "dlt_names.h"
 
 /* state of the current pcap file */
 struct pcap_file_header phdr;
@@ -179,10 +154,10 @@ stat_pcap(int fd, struct pcap_info *p)
     p->modified = modified;
     p->swapped = swapped ? endian[1] : endian[0];
     p->phdr = phdr;
-    if (phdr.linktype > LINKSIZE)
-        p->linktype = "unknown linktype\n";
+    if (phdr.linktype > DLT2NAME_LEN)
+        p->linktype = "Unknown";
     else
-        p->linktype = pcap_links[phdr.linktype];
+        p->linktype = dlt2name[phdr.linktype];
 
     p->bytes = p->trunc = 0;
     for (p->cnt = 0; get_next_pcap(fd, &pkt); p->cnt++) {
