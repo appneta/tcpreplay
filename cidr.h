@@ -15,11 +15,11 @@ struct cidr_type {
 
 typedef struct cidr_type CIDR;
 
-int check_ip_CIDR(const unsigned long);
-int parse_cidr(char *);
+int check_ip_CIDR(CIDR *, const unsigned long);
+int parse_cidr(CIDR **, char *);
 u_char *ip2cidr(const unsigned long, const int);
-void add_cidr(CIDR **);
+void add_cidr(CIDR *, CIDR **);
 CIDR *new_cidr();
-void delete_cidr(CIDR *);
+void destroy_cidr(CIDR *);
 void print_cidr(CIDR *);
 #endif

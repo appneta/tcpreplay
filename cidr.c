@@ -21,14 +21,13 @@
 #include "cidr.h"
 #include "tcpreplay.h"
 
-extern CIDR *cidrdata;
 extern int debug;
 
-static int ip_in_cidr(const unsigned long, const CIDR *);
+static int ip_in_cidr(const CIDR *, const unsigned long);
 static CIDR *cidr2CIDR(char *);
 
 /*
- * prints to stderr all the entries in mycidr
+ * prints to the given fd all the entries in mycidr
  */
 void 
 print_cidr(CIDR * mycidr)
@@ -59,15 +58,15 @@ print_cidr(CIDR * mycidr)
 }
 
 /*
- * deletes all entries in a cidrdata
+ * deletes all entries in a cidr and destroys the datastructure
  */
 void 
-delete_cidr(CIDR * cidr)
+destroy_cidr(CIDR * cidr)
 {
 
 	if (cidr != NULL)
 		if (cidr->next != NULL)
-			delete_cidr(cidr->next);
+			destroy_cidr(cidr->next);
 
 	free(cidr);
 	return;
@@ -78,7 +77,7 @@ delete_cidr(CIDR * cidr)
  * adds a new CIDR entry to cidrdata
  */
 void 
-add_cidr(CIDR ** newcidr)
+add_cidr(CIDR * cidrdata, CIDR ** newcidr)
 {
 	CIDR *cidr_ptr;
 
@@ -213,11 +212,10 @@ error:
  * of x.x.x.x/y,x.x.x.x/y...
  * returns 1 for success, or fails to return on failure (exit 1)
  * since we use strtok to process cidr, it gets zeroed out.
- * we add entries to the global CIDR * cidrdata var.
  */
 
 int 
-parse_cidr(char *cidrin)
+parse_cidr(CIDR ** cidrdata, char *cidrin)
 {
 	CIDR *cidr_ptr;	/* ptr to current cdir record */
 	char *network = NULL;
@@ -225,8 +223,8 @@ parse_cidr(char *cidrin)
 	/* first itteration of input using strtok */
 	network = strtok(cidrin, ",");
 
-	cidrdata = cidr2CIDR(network);
-	cidr_ptr = cidrdata;
+	*cidrdata = cidr2CIDR(network);
+	cidr_ptr = *cidrdata;
 
 	/* do the same with the rest of the input */
 	while (1) {
@@ -250,40 +248,42 @@ parse_cidr(char *cidrin)
  */
 
 static int 
-ip_in_cidr(const unsigned long ip, const CIDR * mycidr)
+ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
 {
 	unsigned long ipaddr = 0, network = 0, mask = 0;
-
+	
+	mask = ~0; /* turn on all the bits */
+	
 	/* shift over by the correct number of bits */
-	mask = mask >> (32 - mycidr->masklen);
+	mask = mask << (32 - mycidr->masklen);
 
 	/* apply the mask to the network and ip */
-	ipaddr = ip & mask;
-	network = mycidr->network & mask;
+	ipaddr = ntohl(ip) & mask;
+	network = htonl(mycidr->network) & mask;
 
 	/* if they're the same, then ip is in network */
 	if (network == ipaddr) {
 #ifdef DEBUG
-		if (debug > 1) {
+		if (debug) {
 #if USE_LIBNET_VERSION == 10
 			fprintf(stderr, "The ip %s is inside of %s/%d\n",
-					libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(network, RESOLVE), mycidr->masklen);
+					libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(htonl(network), RESOLVE), mycidr->masklen);
 #elif USE_LIBNET_VERSION == 11
 			fprintf(stderr, "The ip %s is inside of %s/%d\n",
-					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(network, RESOLVE), mycidr->masklen);
+					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 #endif
 		}
 #endif
 		return 1;
 	} else {
 #ifdef DEBUG
-		if (debug > 1) {
+		if (debug) {
 #if USE_LIBNET_VERSION == 10
 			fprintf(stderr, "The ip %s is not inside of %s/%d\n",
-				libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(network, RESOLVE), mycidr->masklen);
+				libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(htonl(network), RESOLVE), mycidr->masklen);
 #elif USE_LIBNET_VERSION == 11
 			fprintf(stderr, "The ip %s is not inside of %s/%d\n",
-					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(network, RESOLVE), mycidr->masklen);
+					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 #endif
 		}
 #endif
@@ -293,12 +293,12 @@ ip_in_cidr(const unsigned long ip, const CIDR * mycidr)
 }
 
 /*
- * iterates over global CIDR * cidrdata to find if a given ip matches
+ * iterates over cidrdata to find if a given ip matches
  * returns 1 for true, 0 for false
  */
 
 int 
-check_ip_CIDR(const unsigned long ip)
+check_ip_CIDR(CIDR * cidrdata, const unsigned long ip)
 {
 	CIDR *mycidr;
 
@@ -312,7 +312,7 @@ check_ip_CIDR(const unsigned long ip)
 	while (1) {
 
 		/* if match, return 1 */
-		if (ip_in_cidr(ip, mycidr)) {
+		if (ip_in_cidr(mycidr, ip)) {
 			return 1;
 		}
 		/* check for next record */
