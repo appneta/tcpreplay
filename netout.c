@@ -53,15 +53,7 @@
 #include "netout.h"
 #include "list.h"
 #include "xX.h"
-
-
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
-#elif HAVE_POLL_H
-#include <poll.h>
-#else
 #include "fakepoll.h"
-#endif
 
 
 extern struct options options;

@@ -50,14 +50,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
-#elif HAVE_POLL_H
-#include <poll.h>
-#else
 #include "fakepoll.h"
-#endif
 
 #include "tcpreplay.h"
 #include "tcpdump.h"
