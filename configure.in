@@ -11,7 +11,7 @@ AM_WITH_DMALLOC
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=0
-MICRO_VERSION=beta1
+MICRO_VERSION=beta2
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -126,7 +126,6 @@ AM_CONDITIONAL(SYSTEM_STRLCPY, [test x$have_strlcpy = xtrue])
 
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
 
-LIBOPTS_CHECK
 AC_C_BIGENDIAN
 
 doctools=no
@@ -631,6 +630,7 @@ AC_MSG_NOTICE([Using $nic2 for 2nd test network interface card])
 AC_SUBST(nic1)
 AC_SUBST(nic2)
 
+LIBOPTS_CHECK
 AC_OUTPUT([Makefile
             lib/Makefile
             docs/Makefile
