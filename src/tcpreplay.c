@@ -88,6 +88,9 @@ main(int argc, char *argv[])
  
     post_args();
 
+    for (i = 0; i < argc; i++)
+        options.files[i] = safe_strdup(argv[i]);
+
     /* open interfaces for writing */
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, options.intf1_name, ebuf)) == NULL)
         errx(1, "Libnet can't open %s: %s", options.intf1_name, ebuf);
@@ -354,7 +357,7 @@ post_args(void)
         debug = OPT_VALUE_DBUG;
 #else
     if (HAVE_OPT(DBUG))
-        warnx("not configured with --enable-debug.  Debugging disabled.");
+        warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
     
     options.loop = OPT_VALUE_LOOP;
