@@ -1205,7 +1205,7 @@ ac_config_headers="$ac_config_headers config.h"
 
 MAJOR_VERSION=1
 MINOR_VERSION=4
-MICRO_VERSION=beta2
+MICRO_VERSION=beta3
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 TCPREPLAY_RELEASE=1
@@ -3724,7 +3724,6 @@ fi
 
 
 
-
 for ac_header in fcntl.h stddef.h sys/socket.h  arpa/inet.h math.h sys/time.h signal.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -4739,8 +4738,6 @@ echo "$as_me: error: \"We need either inet_aton or inet_addr\"" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-
-
 echo "$as_me:$LINENO: checking for libnet" >&5
 echo $ECHO_N "checking for libnet... $ECHO_C" >&6
 
@@ -5698,7 +5695,6 @@ s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@PRINTF@,$PRINTF,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
-s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
@@ -6740,7 +6736,6 @@ s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@PRINTF@,$PRINTF,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
-s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
@@ -7783,7 +7778,6 @@ s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@PRINTF@,$PRINTF,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
-s,@EXTRAS@,$EXTRAS,;t t
 s,@LNETINC@,$LNETINC,;t t
 s,@LNETLIB@,$LNETLIB,;t t
 s,@LPCAPINC@,$LPCAPINC,;t t
