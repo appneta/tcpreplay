@@ -1,4 +1,4 @@
-/* $Id: replay_live.c,v 1.6 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: replay_live.c,v 1.7 2004/02/03 22:51:20 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -82,7 +82,7 @@ extern int debug;
 
 void packet_stats();            /* from tcpreplay.c */
 static int live_callback(struct live_data_t *,
-                         const struct pcap_pkthdr *, const u_char *);
+                         struct pcap_pkthdr *, const u_char *);
 
 
 /*
@@ -215,7 +215,7 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2, int l2enabled, char *l2data,
  * each packet recieved by libpcap on the two interfaces.
  */
 static int
-live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
+live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
               const u_char * nextpkt)
 {
     eth_hdr_t *eth_hdr = NULL;
@@ -241,7 +241,7 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
 
 #ifdef FORCE_ALIGN
     if ((ipbuff = (u_char *) malloc(maxpacket)) == NULL)
-        errx(1, "Unaable to malloc ipbuff buffer");
+        errx(1, "Unable to malloc ipbuff buffer");
 #endif
 
     /* zero out the old packet info */
