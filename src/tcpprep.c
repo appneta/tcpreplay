@@ -88,7 +88,7 @@ static void post_args(int, char *[]);
 static void print_comment(const char *);
 static void print_info(const char *);
 static int check_ip_regex(const unsigned long ip);
-static unsigned long process_raw_packets(pcap_t * pcap);
+static COUNTER process_raw_packets(pcap_t * pcap);
 static int check_dst_port(ip_hdr_t *ip_hdr, int len);
 
 
@@ -182,7 +182,7 @@ main(int argc, char *argv[])
     totpackets = write_cache(options.cachedata, out_file, totpackets, 
         options.comment);
     if (info)
-        fprintf(stderr, "Done.\nCached %llu packets.\n", totpackets);
+        notice("Done.\nCached " COUNTER_SPEC " packets.\n", totpackets);
 
     /* close cache file */
     close(out_file);
@@ -264,7 +264,7 @@ check_ip_regex(const unsigned long ip)
  * uses libpcap library to parse the packets and build
  * the cache file.
  */
-static unsigned long
+static COUNTER
 process_raw_packets(pcap_t * pcap)
 {
     ip_hdr_t *ip_hdr = NULL;
@@ -275,7 +275,7 @@ process_raw_packets(pcap_t * pcap)
     u_int16_t protocol = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
-    unsigned long packetnum = 0;
+    COUNTER packetnum = 0;
     int linktype = 0, cache_result = 0;
     u_char ipbuff[MAXPACKET];
 #ifdef HAVE_TCPDUMP
@@ -288,45 +288,9 @@ process_raw_packets(pcap_t * pcap)
     
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
-        eth_hdr = NULL;
-        sll_hdr = NULL;
         ip_hdr = NULL;
-        hdlc_hdr = NULL;
 
-        linktype = pcap_datalink(pcap);
-        dbg(1, "Linktype is %s (0x%x)", 
-                pcap_datalink_val_to_description(linktype), linktype);
-        switch (linktype) {
-        case DLT_EN10MB:
-            eth_hdr = (eth_hdr_t *) pktdata;
-            l2len = LIBNET_ETH_H;
-            protocol = eth_hdr->ether_type;
-            break;
-
-        case DLT_LINUX_SLL:
-            sll_hdr = (sll_hdr_t *) pktdata;
-            l2len = SLL_HDR_LEN;
-            protocol = sll_hdr->sll_protocol;
-            break;
-
-        case DLT_RAW:
-            protocol = ETHERTYPE_IP;
-            l2len = 0;
-            break;
-
-        case DLT_C_HDLC:
-            hdlc_hdr = (hdlc_hdr_t *)pktdata;
-            protocol = hdlc_hdr->protocol;
-            l2len = CISCO_HDLC_LEN;
-            break;
-
-        default:
-            errx(1, "WTF?  How'd we get here with an invalid DLT type: %s (0x%x)",
-                 pcap_datalink_val_to_description(linktype), linktype);
-            break;
-        }
-
-        dbg(1, "Packet %d", packetnum);
+        dbg(1, "Packet " COUNTER_SPEC, packetnum);
 
         /* look for include or exclude LIST match */
         if (options.xX.list != NULL) {
@@ -342,18 +306,18 @@ process_raw_packets(pcap_t * pcap)
             }
         }
 
-        if (htons(protocol) != ETHERTYPE_IP) {
-            dbg(2, "Packet isn't IP: %#0.4x", protocol);
+        /* get the IP header (if any) */
+        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, pcap_datalink(pcap), &ipbuff);
+        
+
+        if (ip_hdr == NULL) {
+            dbg(2, "Packet isn't IP");
 
             if (options.mode != AUTO_MODE)  /* we don't want to cache
                                      * these packets twice */
                 add_cache(&options.cachedata, 1, options.nonip);
             continue;
         }
-
-        /* get the IP header */
-        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, pcap_datalink(pcap), &ipbuff);
-
 
         /* look for include or exclude CIDR match */
         if (options.xX.cidr != NULL) {
@@ -536,7 +500,7 @@ print_comment(const char *file)
 
     count = read_cache(&cachedata, file, &comment);
     printf("tcpprep args: %s\n", comment);
-    printf("Cache contains data for %llu packets\n", (u_int64_t)count);
+    printf("Cache contains data for " COUNTER_SPEC " packets\n", count);
 
     exit(0);
 }
@@ -556,16 +520,16 @@ print_info(const char *file)
         
         switch (check_cache(cachedata, i)) {
         case CACHE_PRIMARY:
-            printf("Packet %llu -> Primary\n", (u_int64_t)i);
+            printf("Packet " COUNTER_SPEC " -> Primary\n", i);
             break;
         case CACHE_SECONDARY:
-            printf("Packet %llu -> Secondary\n", (u_int64_t)i);
+            printf("Packet " COUNTER_SPEC " -> Secondary\n", i);
             break;
         case CACHE_NOSEND:
-            printf("Packet %llu -> Don't Send\n", (u_int64_t)i);
+            printf("Packet " COUNTER_SPEC " -> Don't Send\n", i);
             break;
         default:
-            err(1, "print_info(): what are we doing here?");
+            err(1, "Invalid cachedata value!");
             break;
         }
 
