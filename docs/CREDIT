@@ -3,31 +3,34 @@ $Id$
 Here's a list of people in no particular order who have kindly submitted
 patches or code snippets for me to use in tcpreplay.
 
+Matt Bing <matt@mutedwarf.com>
+    - Matt helped write a lot of the 1.x code
+
 Branden Moore <bmoore-at-cse.nd.edu>
-	- Patch to pad truncated packets
-	- Patch to allow specifying a destination MAC w/ only a single NIC
+   - Patch to pad truncated packets
+   - Patch to allow specifying a destination MAC w/ only a single NIC
 
 Scott Mace <smace@intt.org>
-	- Patch for tcpreplay to support CIDR mode
-	- Patch for ignoring martian IP packets 
+   - Patch for tcpreplay to support CIDR mode
+   - Patch for ignoring martian IP packets 
 
 Jeffrey Guttenfelder <guttenfelder@sourceforge.net>
-        - Code for pausing/restarting tcpreplay via signals.
+   - Code for pausing/restarting tcpreplay via signals.
 
 John Carlson
-        - Patch for improved timerdiv() accuracy
+   - Patch for improved timerdiv() accuracy
 
 Frey Kuo <kero@3sheep.com>
-        - Patch to replace pause option with packets/sec
+   - Patch to replace pause option with packets/sec
 
 Seth Robertson (seth at sysd dot com)
-        - Patch to allow replaying of live traffic
+   - Patch to allow replaying of live traffic
 
 Nick Mathewson <nickm@freehaven.net>
-	- Kindly giving me his BSD licensed implimentation of poll()
-	  using select() so I don't have to worry about cross platform
-	  issues.
+    - Kindly giving me his BSD licensed implimentation of poll()
+      using select() so I don't have to worry about cross platform
+      issues.
           
 Denis McLaughlin <denism@cyberus.ca>
-        - Patch to allow TCP/UDP port translation
+    - Patch to allow TCP/UDP port translation
 
