@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.22 2004/04/23 06:33:15 aturner Exp $ */
+/* $Id: cache.c,v 1.23 2004/04/23 22:40:08 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -112,6 +112,8 @@ read_cache(char **cachedata, char *cachefile)
 
     /* read the comment */
     header.comment_len = ntohs(header.comment_len);
+    if ((options.tcpprep_comment = (char *)malloc(header.comment_len)) == NULL)
+        errx(1, "Unable to malloc() tcpprep comment buffer");
 
     read_size = read(cachefd, options.tcpprep_comment, header.comment_len);
     if (read_size != header.comment_len)
