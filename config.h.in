@@ -57,3 +57,6 @@
 
 /* if so, where is it located? */
 #undef TCPDUMP_BINARY
+
+/* does libpcap come with pcap_datalink_val_to_description() */
+#undef HAVE_DLT_VAL_TO_DESC
