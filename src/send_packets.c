@@ -46,8 +46,7 @@
 
 extern tcpreplay_opt_t options;
 extern struct timeval begin, end;
-extern u_int64_t bytes_sent, failed, pkts_sent;
-extern u_int64_t cache_packets;
+extern COUNTER bytes_sent, failed, pkts_sent, cache_packets;
 extern volatile int didsig;
 
 #ifdef HAVE_TCPDUMP
@@ -102,7 +101,7 @@ send_packets(pcap_t *pcap)
 {
     struct timeval last;
     static int firsttime = 1;
-    u_int64_t packetnum = 0;
+    COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *nextpkt = NULL;
     u_char *pktdata = NULL;
@@ -527,7 +526,7 @@ send_packets_old(pcap_t * pcap)
  */
 
 void *
-cache_mode(char *cachedata, u_int64_t packet_num)
+cache_mode(char *cachedata, COUNTER packet_num)
 {
     void *l = NULL;
     int result;
