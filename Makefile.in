@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.9 2002/07/17 00:47:48 aturner Exp $
+# $Id: Makefile.in,v 1.10 2002/08/07 20:06:17 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -46,11 +46,11 @@ libredblack/.libs/libredblack.a:
 	cd libredblack && ./configure && make
 
 clean:
-	rm -f *~ *.o *core $(BINARIES)
-#	cd libredblack && make clean
+	rm -f *.o *core $(BINARIES)
+	cd libredblack && make clean
 
 distclean: clean
-	rm -f Makefile config.h config.status config.cache config.log
+	rm -f Makefile config.h config.status config.cache config.log *~
 	rm -rf autom4te-2.53.cache
 	cd libredblack && make distclean
 
@@ -73,3 +73,7 @@ uninstall:
 	rm -f $(MAN1DIR)/capinfo.1
 	rm -f $(BINDIR)/tcpprep
 	rm -f $(MAN1DIR)/tcpprep.1
+
+pretty:
+         indent -br -brs -di24 -ts4 -ncdw -nce -ncs -npcs -nprs -bfda -l80 -lc80 -lp -psl -i4 *.c *.h
+
