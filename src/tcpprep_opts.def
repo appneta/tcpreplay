@@ -1,0 +1,360 @@
+autogen definitions options;
+
+copyright = {
+    date        = "2000 - 2004";
+    owner       = "Aaron Turner";
+    eaddr       = "aturner@pobox.com";
+    type        = "bsd";
+};
+
+package         = "tcpprep";
+prog-name       = "tcpprep";
+prog-title      = "Create a tcpreplay cache cache file from a pcap file.";
+long-opts;
+gnu-usage;
+help-value      = "H";
+save-opts-value = "";
+load-opts-value = "";
+
+config-header   = "config.h";
+include         = "#include \"defines.h\"\n"
+                "#include \"common.h\"\n"
+                "#include \"tcpprep.h\"\n"
+                "extern char pcap_version[];\n"
+                "extern tcpprep_opt_t options;\n";
+
+explain = <<- EOExplain
+    tcpprep is a pcap(3) file pre-processor which creates a cache
+    file which provides "rules" for tcpreplay on how to send packets
+EOExplain;
+
+detail = <<- EODetail
+    The basic operation of tcpreplay is to resend all packets from the
+    input file(s) out a single file.  Tcpprep processes a pcap file and 
+    applies a set of user-specified rules to create a cache file which 
+    tells tcpreplay wether or not to send each packet and which interface the
+    packet should be sent out of.
+EODetail;
+
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = verbose;
+    value       = v;
+    max         = 1;
+    immediate;
+    descrip     = "Print decoded packets via tcpdump to STDOUT";
+    settable;
+};
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = decode;
+    flags-must  = verbose;
+    value       = A;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Arguments passed to tcpdump decoder";
+};
+
+flag = {
+//    ifdef       = DEBUG;
+    name        = dbug;
+    value       = d;
+    arg-type    = number;
+    max         = 1;
+    immediate;
+    arg-range   = "0->5";
+    arg-default = 0;
+    descrip     = "Enable debugging output";
+};
+
+
+/* Include/Exclude */
+flag = {
+    name        = include;
+    value       = x;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Include only packets matching rule";
+    flags-cant  = exclude;
+    flag-code   = <<- EOInclude
+    
+    char *include;
+    
+    include = safe_strdup(OPT_ARG(INCLUDE));
+    options.xX.mode = 'xX_MODE_INCLUDE';
+        
+    if ((options.xX.mode = parse_xX_str(&options.xX, include, &options.bpf)) == 0)
+        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
+
+    free(include);
+    
+EOInclude;
+};
+
+flag = {
+    name        = exclude;
+    value       = X;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Exclude only packets matching this rule";
+    flags-cant  = include;
+    flag-code   = <<- EOExclude
+    
+    char *exclude;
+    
+    exclude = safe_strdup(OPT_ARG(EXCLUDE));
+    options.xX.mode = 'xX_MODE_EXCLUDE';
+    
+    if ((options.xX.mode = parse_xX_str(&options.xX, exclude, &options.bpf)) == 0)
+        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
+    
+    free(exclude);
+    
+EOExclude;
+};
+
+flag = {
+    name        = cachefile;
+    value       = o;
+    arg-type    = string;
+    max         = 1;
+    min         = 1;
+    descrip     = "Output cache file";
+};
+
+flag = {
+    name        = pcap;
+    value       = i;
+    descrip     = "Input pcap file to process";
+    arg-type    = string;
+    max         = 1;
+    min         = 1;
+};
+
+flag = {
+    name        = print;
+    value       = P;
+    descrip     = "Print cache file comment";
+    arg-type    = string;
+    immediate;
+    flag-code   = <<- EOPrint
+    
+    print_comment(OPT_ARG(PRINT));
+    
+EOPrint;
+};
+
+flag = {
+    name        = services;
+    value       = s;
+    descrip     = "Load services file for server ports";
+    flag-must   = port;
+    arg-type    = string;
+    flag-code   = <<- EOServices
+  
+    parse_services(OPT_ARG(SERVICES), &options.services);
+    
+EOServices;
+};
+
+flag = {
+    name        = nonip;
+    value       = N;
+    descrip     = "Send non-IP traffic out server interface";
+    flag-code   = <<- EONonip
+ 
+    options.nonip = 1;
+    
+EONonip;
+};
+
+/*
+ * Limits: -l, -L, -o
+ */
+
+flag = {
+    name        = limit;
+    value       = l;
+    arg-type    = number;
+    max         = 1;
+    arg-default = 0;
+    arg-range   = "0->";
+    descrip     = "Limit the number of packets to send";
+};
+
+flag = {
+    name        = comment;
+    value       = C;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Embeded cache file comment";
+    flag-code   = <<- EOComment
+
+    /* our comment_len is only 16bit - myargs[] */
+    if (strlen(OPT_ARG(COMMENT)) > ((1 << 16) - 1 - MYARGS_LEN))
+                errx(1, "Comment length %d is longer then max allowed (%d)", 
+                strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
+    
+    /* save the comment */
+    options.comment = (char *)safe_malloc(strlen(OPT_ARG(COMMENT)) + 1);
+    strcpy(options.comment, OPT_ARG(COMMENT));
+    
+EOComment;
+};
+
+flag = {
+    name        = ratio;
+    value       = R;
+    arg-type    = string;
+    max         = 1;
+    flags-must  = auto;
+    descrip     = "Ratio of client to server flows";
+    flag-code   = <<- EORatio
+  
+    options.ratio = atof(OPT_ARG(RATIO));
+    
+EORatio;
+};
+
+
+flag = {
+    name        = minmask;
+    value       = m;
+    descrip     = "Minimum network mask length in auto mode";
+    flags-must  = auto;
+    max         = 1;
+    arg-type    = number;
+    arg-range   = "0->32";
+};
+
+flag = {
+    name        = maxmask;
+    value       = M;
+    descrip     = "Maximum network mask length in auto mode";
+    flags-must  = auto;
+    max         = 1;
+    arg-type    = number;
+    arg-range   = "0->32";
+};
+
+/* Modes: -a bridge/router/client/server, -c (cidr) */
+flag = {
+    name        = auto;
+    value       = a;
+    descrip     = "Auto-split mode";
+    arg-type    = string;
+    max         = 1;
+    flags-cant  = cidr;
+    flags-cant  = port;
+    flags-cant  = regex;
+    flag-code   = <<- EOAuto
+    
+    options.mode = AUTO_MODE;
+    if (strcmp(OPT_ARG(AUTO), "bridge") == 0) {
+        options.automode = BRIDGE_MODE;
+    }
+    else if (strcmp(OPT_ARG(AUTO), "router") == 0) {
+        options.automode = ROUTER_MODE;
+    }
+    else if (strcmp(OPT_ARG(AUTO), "client") == 0) {
+        options.automode = CLIENT_MODE;
+    }
+    else if (strcmp(OPT_ARG(AUTO), "server") == 0) {
+        options.automode = SERVER_MODE;
+    }
+    else {
+        errx(1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
+    }
+EOAuto;
+};
+
+flag = {
+    name        = cidr;
+    value       = c;
+    descrip     = "CIDR-split mode";
+    arg-type    = string;
+    max         = 1;
+    flags-cant  = auto;
+    flags-cant  = port;
+    flags-cant  = regex;
+    flag-code   = <<- EOCidr
+  
+    char *cidr = safe_strdup(OPT_ARG(CIDR));
+    options.mode = CIDR_MODE;
+    if (!parse_cidr(&options.cidrdata, cidr, ","))
+        errx(1, "Unable to parse CIDR map: %s", OPT_ARG(CIDR));
+    free(cidr);
+
+EOCidr;
+};
+
+flag = {
+    name        = regex;
+    value       = r;
+    descrip     = "Regex-split mode";
+    arg-type    = string;
+    max         = 1;
+    flags-cant  = auto;
+    flags-cant  = port;
+    flags-cant  = cidr;
+    flag-code   = <<- EORegex
+    
+    int regex_error;
+    char ebuf[EBUF_SIZE];
+    
+    options.mode = REGEX_MODE;
+    if (regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
+        REG_EXTENDED|REG_NOSUB)) {
+        regerror(regex_error, &options.preg, ebuf, EBUF_SIZE);
+        errx(1, "Unable to compile regex: %s", ebuf);
+    }
+    
+EORegex;
+};
+
+flag = {
+    name        = port;
+    value       = p;
+    desecrip    = "Port-split mode";
+    flags-cant  = auto;
+    flags-cant  = regex;
+    flags-cant  = cidr;
+};
+
+flag = {
+    name        = version;
+    value       = V;
+    descrip     = "Print version information";
+    flag-code   = <<- EOVersion
+    
+    fprintf(stderr, "tcpprep version: %s", VERSION);
+#ifdef DEBUG
+    fprintf(stderr, " (debug)");
+#endif
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
+    fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+#ifdef ENABLE_64BIT
+    fprintf(stderr, "64 bit packet counters: enabled\n");
+#else
+    fprintf(stderr, "64 bit packet counters: disabled\n");
+#endif
+    exit(0);
+    
+EOVersion;
+};
+
+flag = {
+    name        = less-help;
+    value       = "h";
+    immediate;
+    descrip     = "Display less usage information and exit";
+    flag-code   = <<- EOHelp
+  
+    USAGE(EXIT_FAILURE);
+
+EOHelp;
+};

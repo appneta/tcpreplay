@@ -1,0 +1,238 @@
+autogen definitions options;
+
+copyright = {
+    date        = "2004";
+    owner       = "Aaron Turner";
+    eaddr       = "aturner@pobox.com";
+    type        = "bsd";
+};
+
+package         = "tcprewrite";
+prog-name       = "tcprewrite";
+prog-title      = "Rewrite the packets in a pcap file.";
+long-opts;
+gnu-usage;
+help-value      = "H";
+save-opts-value = "";
+load-opts-value = "";
+
+config-header   = "config.h";
+include         = "#include \"defines.h\"\n"
+                "#include \"common.h\"\n"
+                "#include \"tcprewrite.h\"\n"
+                "extern char pcap_version[];\n"
+                "extern tcprewrite_opt_t options;\n";
+
+
+flag = {
+    name        = dbug;
+    value       = d;
+    arg-type    = number;
+    descrip     = "Enable debugging output";
+    max         = 1;
+    immediate;
+};
+
+flag = {
+    name        = seed;
+    value       = s;
+    arg-type    = number;
+    descrip     = "Randomize src/dst IP addresses w/ given seed";
+    max         = 1;
+    flag-code   = <<- EOSeed
+  
+    options.rewrite_ip ++;
+    options.seed = atoi(OPT_ARG(SEED));
+EOSeed;
+};
+
+flag = {
+    name        = dmac;
+    value       = D;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite destination MAC addresses";
+    flag-code   = <<- EODmac
+    
+    dualmac2hex(OPT_ARG(DMAC), options.intf1_dmac, options.intf2_dmac,
+        strlen(OPT_ARG(DMAC)));
+EODmac;
+};
+
+flag = {
+    name        = smac;
+    value       = S;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite source MAC addresses";
+    flag-code   = <<- EOSmac
+    
+    dualmac2hex(OPT_ARG(SMAC), options.intf1_smac, options.intf2_smac,
+        strlen(OPT_ARG(SMAC)));
+EOSmac;
+};
+
+flag = {
+    name        = pnat;
+    value       = N;
+    arg-type    = string;
+    max         = 2;
+    descrip     = "Rewrite IP addresses using pseudo-NAT";
+    flag-code   = <<- EOPnat
+    
+    static int count = 1;
+    char *string;
+    options.rewrite_ip ++;
+    
+    string = safe_strdup(OPT_ARG(PNAT));
+    
+    if (count == 1) {
+        if (! parse_cidr_map(&options.cidrmap1, string))
+            errx(1, "Unable to parse primary pseudo-NAT: %s", OPT_ARG(PNAT));
+        count ++;
+    } else {
+        if (! parse_cidr_map(&options.cidrmap2, string))
+            errx(1, "Unable parse secondary pseudo-NAT: %s", OPT_ARG(PNAT));
+    }
+    free(string);
+EOPnat;
+};
+
+flag = {
+    name        = dlink;
+    value       = l;
+    arg-type    = string;
+    max         = 2;
+    descrip     = "Rewrite Data-Link layer with specified data";
+    flag-code   = <<- EODlink
+
+    static int count = 1;
+    
+    if (count == 1) {
+        options.l2.enabled = 1;
+        options.l2.len = read_hexstring(OPT_ARG(DLINK), options.l2.data1, L2DATALEN);
+        count ++;
+    } else {
+        if (options.l2.len != read_hexstring(OPT_ARG(DLINK), options.l2.data2, L2DATALEN))
+            errx(1, "Layer2 data for both interfaces must be the same length");
+    }
+    
+EODlink;
+};
+
+flag = {
+    name        = fixcsum;
+    value       = F;
+    disable;
+    descrip     = "Force recalculation of IP/TCP/UDP checksums";
+    flag-code   = <<- EOFixcsum
+  
+    options.fixcsum = 1;
+EOFixcsum;
+};
+
+flag = {
+    name        = infile;
+    value       = i;
+    arg-type    = string;
+    descrip     = "Input pcap file";
+    max         = 1;
+    immediate;
+    flag-code   = <<- EOInfile
+    
+    char ebuf[PCAP_ERRBUF_SIZE];
+    options.infile = safe_strdup(OPT_ARG(INFILE));
+    if ((options.pin = pcap_open_offline(OPT_ARG(INFILE), ebuf)) == NULL)
+        errx(1, "Unable to open input pcap file: %s", ebuf);
+EOInfile;
+};
+
+flag = {
+    name        = outfile;
+    value       = o;
+    arg-type    = string;
+    descrip     = "Output pcap file";
+    max         = 1;
+    flag-code   = <<- EOOutfile
+  
+    options.outfile = safe_strdup(OPT_ARG(OUTFILE));
+    if ((options.pout = pcap_dump_open(options.pin, OPT_ARG(OUTFILE))) == NULL)
+        errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
+EOOutfile;
+};
+
+flag = {
+    name        = cachefile;
+    value       = c;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Split traffic via tcpprep cache file";
+    settable;
+    flag-code   = <<- EOCachefile
+    
+    options.cache_packets = 
+        read_cache(&options.cachedata, OPT_ARG(CACHEFILE), &options.comment);
+    
+EOCachefile;    
+};
+
+flag = {
+    name        = endpoints;
+    value       = e;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite IP addresses so all traffic is between two endpoints";
+    flag-code   = <<- EOEndpoints
+    
+    options.rewrite_ip ++;
+    if (!parse_endpoints(&options.cidrmap1, &options.cidrmap2, OPT_ARG(ENDPOINTS)))
+        errx(1, "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
+    
+EOEndpoints;
+};
+
+flag = {
+    name        = mtu;
+    value       = m;
+    arg-type    = number;
+    max         = 1;
+    arg-range   = "1->MAXPACKET";
+    default     = DEFAULT_MTU;
+    descrip     = "Override default MTU length (1500 bytes)";
+};
+
+flag = {
+    name        = version;
+    value       = V;
+    descrip     = "Print version information";
+    flag-code   = <<- EOVersion
+    
+    fprintf(stderr, "tcprewrite version: %s", VERSION);
+#ifdef DEBUG
+    fprintf(stderr, " (debug)");
+#endif
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
+    fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+#ifdef ENABLE_64BIT
+    fprintf(stderr, "64 bit packet counters: enabled\n");
+#else
+    fprintf(stderr, "64 bit packet counters: disabled\n");
+#endif
+    exit(0);
+    
+EOVersion;
+};
+
+flag = {
+    name        = less-help;
+    value       = "h";
+    immediate;
+    descrip     = "Display less usage information and exit";
+    flag-code   = <<- EOHelp
+  
+    USAGE(EXIT_FAILURE);
+
+EOHelp;
+};
