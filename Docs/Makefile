@@ -37,4 +37,4 @@ clean: rmtemp
 	rm -f *~
 
 distclean: rmtemp clean
-	rm -f *.html *.pdf *.txt *.ps *.dvi *.tex  *.css images.pl img1.png
+	rm -f *.html *.pdf *.txt *.ps *.dvi *.tex  *.css images.pl img1.png *.eps
