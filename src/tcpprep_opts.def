@@ -178,7 +178,7 @@ flag = {
     value       = X;
     arg-type    = string;
     max         = 1;
-    descrip     = "Exclude only packets matching this rule";
+    descrip     = "Exclude any packet matching this rule";
     flags-cant  = include;
     flag-code   = <<- EOExclude
     
