@@ -38,7 +38,8 @@ tcpreplay_opts.c: tcpreplay_opts.def
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I..
 tcprewrite_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c edit_packet.c rewrite_l2.c
+tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c \
+		     edit_packet.c rewrite_l2.c
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def
@@ -57,7 +58,12 @@ tcpprep_opts.c: tcpprep_opts.def
 flowreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I..
 flowreplay_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
+flowreplay_SOURCES = flowreplay_opts.c flowreplay.c flowkey.c flownode.c \
+		     flowbuff.c flowstate.c 
+flowreplay_OBJECTS: flowreplay_opts.h
+flowreplay_opts.h: flowreplay_opts.c
+flowreplay_opts.c: flowreplay_opts.def
+	@AUTOGEN@ flowreplay_opts.def
 
 
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h portmap.h \
