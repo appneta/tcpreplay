@@ -1,4 +1,4 @@
-/* $Id: edit_packet.h,v 1.7 2004/02/03 22:49:03 aturner Exp $ */
+/* $Id: edit_packet.h,v 1.8 2004/04/01 06:03:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -51,6 +51,6 @@ int rewrite_l2(struct pcap_pkthdr *, u_char *, const u_char *, u_int32_t,
                int, char *, int);
 int extract_data(u_char *, int, int, char *[]);
 u_int32_t remap_ip(CIDR *cidr, const u_int32_t original);
-int rewrite_ipl3(ip_hdr_t *ip_hdr);
-int rewrite_iparp(arp_hdr_t *arp_hdr);
+int rewrite_ipl3(ip_hdr_t *ip_hdr, libnet_t *l);
+int rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l);
 #endif

@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.16 2004/03/25 02:16:09 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.17 2004/04/01 06:03:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -42,7 +42,7 @@
 extern int maxpacket;
 extern struct options options;
 void *get_layer4(ip_hdr_t *);
-extern CIDRMAP *cidrmap_data;
+extern CIDRMAP *cidrmap_data1, *cidrmap_data2;
 
 /*
  * this code re-calcs the IP and Layer 4 checksums
@@ -507,23 +507,26 @@ remap_ip(CIDR *cidr, const u_int32_t original)
 
 /*
  * rewrite IP address (layer3)
- * uses -a to rewrite (map) one subnet onto another subnet
+ * uses -N to rewrite (map) one subnet onto another subnet
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_ipl3(ip_hdr_t * ip_hdr)
+rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
 {
     CIDRMAP *cidrmap = NULL;
     int didsrc = 0, diddst = 0;
 
+    /* figure out what mapping to use */
+    if (l == options.intf1) {
+        cidrmap = cidrmap_data1;
+    } else if (l == options.intf2) {
+        cidrmap = cidrmap_data2;
+    }
 
     /* anything to rewrite? */
-    if (cidrmap_data == NULL)
+    if (cidrmap == NULL)
         return(0);
     
-    /* don't ever play with the ptr */
-    cidrmap = cidrmap_data;
-
     /* loop through the cidrmap to rewrite */
     do {
         if (ip_in_cidr(cidrmap->from, ip_hdr->ip_dst.s_addr) && (! diddst)) {
@@ -562,7 +565,7 @@ rewrite_ipl3(ip_hdr_t * ip_hdr)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_iparp(arp_hdr_t *arp_hdr)
+rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l)
 {
     u_char *add_hdr = NULL;
     u_int32_t *ip1 = NULL, *ip2 = NULL;
@@ -570,12 +573,16 @@ rewrite_iparp(arp_hdr_t *arp_hdr)
     CIDRMAP *cidrmap = NULL;
     int didsrc = 0, diddst = 0;
 
-    /* anything to rewrite? */
-    if (cidrmap_data == NULL)
-        return(0);
+   /* figure out what mapping to use */
+    if (l == options.intf1) {
+        cidrmap = cidrmap_data1;
+    } else if (l == options.intf2) {
+        cidrmap = cidrmap_data2;
+    }
 
-    /* don't ever play with the ptr */
-    cidrmap = cidrmap_data;
+    /* anything to rewrite? */
+    if (cidrmap == NULL)
+        return(0);
 
     /* must be IPv4 and request or reply 
      * Do other op codes use the same subheader stub?
