@@ -8,8 +8,8 @@ Source0: http://prdownloads.sf.net/tcpreplay/tcpreplay-%{version}.tar.gz
 Prefix: %{_prefix}
 BuildRoot: %{_tmppath}/%{name}-root
 Packager: Aaron Turner <aturner@pobox.com>
-Requires: libnet >= 1.0.2
-BuildPreReq: libnet >= 1.0.2
+Requires: libnet >= 1.1
+BuildPreReq: libnet >= 1.1
 URL: http://tcpreplay.sf.net/
 
 # set to 1 to enable debugging
