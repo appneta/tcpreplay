@@ -30,11 +30,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FILEOUT_H_
-#define _FILEOUT_H_
+#ifndef __SEND_PACKETS_H__
+#define __SEND_PACKETS_H__
 
 void catcher(int);
-void do_packets(pcap_t *);
+void send_packets(pcap_t *);
 void *cache_mode(char *, u_int64_t, eth_hdr_t *);
 void *cidr_mode(eth_hdr_t *, ip_hdr_t *);
 

@@ -43,27 +43,15 @@
 
 #include "tcpreplay.h"
 #include "tcpdump.h"
-#include "portmap.h"
-#include "fileout.h"
-#include "edit_packet.h"
+#include "send_packets.h"
 
 
 extern struct tcpreplay_opt_t options;
-extern CIDR *cidrdata;
-extern PORTMAP *portmap_data;
 extern struct timeval begin, end;
-extern u_int64_t bytes_sent, failed, pkts_sent;
+extern u_int64_t bytes_sent, failed, pkts_sent, maxpacket;
 extern u_int64_t cache_packets;
 extern volatile int didsig;
-extern int l2len, maxpacket;
-extern char *intf1, *intf2;
-extern int include_exclude_mode;
-extern CIDR *xX_cidr;
-extern LIST *xX_list;
-
 extern tcpdump_t tcpdump;
-
-
 
 #ifdef DEBUG
 extern int debug;
@@ -109,7 +97,7 @@ break_now(int signo)
  */
 
 void
-do_packets(pcap_t * pcap)
+send_packets(pcap_t * pcap)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
