@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.39 2003/11/03 02:24:28 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.40 2003/11/04 03:03:51 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -68,6 +68,7 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 			  * don't forget *frames* are MTU + L2 header! */
 #define MAXPACKET 16436  /* MTU of Linux loopback */
 
+#ifndef __TCPPREP_H__
 /* run-time options */
 struct options {
     LIBNET *intf1;
@@ -99,9 +100,13 @@ struct options {
     char **files;
     char *cache_files;
     off_t offset;
+    char *bpf_filter;
+    int bpf_optimize;
 };
+#endif
 
 #define RESOLVE 0		/* disable dns lookups */
+#define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
 
 #define EBUF_SIZE 256		/* size of our error buffers */
 #define MAC_SIZE  7		/* size of the mac[] buffer */

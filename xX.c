@@ -1,4 +1,4 @@
-/* $Id: xX.c,v 1.4 2003/05/29 22:06:35 aturner Exp $ */
+/* $Id: xX.c,v 1.5 2003/11/04 03:03:51 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -22,6 +22,7 @@
 #include "err.h"
 
 extern int include_exclude_mode;
+extern struct options options;
 
 
 /*
@@ -36,42 +37,53 @@ parse_xX_str(char mode, char *str)
     CIDR *cidr = NULL;
 
     switch (*str) {
-    case 'P':
-	str = str + 2;
-	include_exclude_mode = xXPacket;
-	if (!parse_list(&list, str))
-	    return NULL;
-	break;
-    case 'S':
-	str = str + 2;
-	include_exclude_mode = xXSource;
-	if (!parse_cidr(&cidr, str))
-	    return NULL;
-	break;
-    case 'D':
-	str = str + 2;
-	include_exclude_mode = xXDest;
-	if (!parse_cidr(&cidr, str))
-	    return NULL;
-	break;
-    case 'B':
+    case 'B': /* both ip's */
 	str = str + 2;
 	include_exclude_mode = xXBoth;
 	if (!parse_cidr(&cidr, str))
 	    return NULL;
 	break;
-    case 'E':
+    case 'D': /* dst ip */
+	str = str + 2;
+	include_exclude_mode = xXDest;
+	if (!parse_cidr(&cidr, str))
+	    return NULL;
+	break;
+    case 'E': /* either ip */
 	str = str + 2;
 	include_exclude_mode = xXEither;
 	if (!parse_cidr(&cidr, str))
 	    return NULL;
 	break;
+    case 'F': /* bpf filter */
+	str = str + 2;
+	include_exclude_mode = xXBPF;
+	options.bpf_filter = str;
+        /* note: it's temping to compile the BPF here, but we don't
+         * yet know what the link type is for the file, so we have 
+         * to compile the BPF once we open the pcap file
+         */
+        break;
+    case 'P': /* packet id */
+	str = str + 2;
+	include_exclude_mode = xXPacket;
+	if (!parse_list(&list, str))
+	    return NULL;
+	break;
+    case 'S': /* source ip */
+	str = str + 2;
+	include_exclude_mode = xXSource;
+	if (!parse_cidr(&cidr, str))
+	    return NULL;
+	break;
+ 
+ 
     default:
 	errx(1, "Invalid -%c option: %c", mode, *str);
 	break;
     }
 
-    if (mode == 'X')
+    if (mode == 'X') /* run in exclude mode */
 	include_exclude_mode += xXExclude;
 
     if (cidr != NULL) {

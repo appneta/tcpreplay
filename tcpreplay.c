@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.70 2003/11/03 02:24:28 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.71 2003/11/04 03:03:51 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <libnet.h>
 #include <pcapnav.h>
+#include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,6 +65,7 @@ int cache_bit, cache_byte;
 u_int32_t cache_packets;
 volatile int didsig;
 
+struct bpf_program *bpf = NULL;
 int include_exclude_mode = 0;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
@@ -112,6 +114,9 @@ main(int argc, char *argv[])
     options.mtu = DEFAULT_MTU;
 
     cache_bit = cache_byte = 0;
+
+    /* set the bpf optimize */
+    options.bpf_optimize = BPF_OPTIMIZE;
 
 #ifdef DEBUG
     while ((ch =
@@ -472,7 +477,13 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 	      "You may need to increase the MTU (-t <size>) if you get errors");
     }
 
-
+    /* do we apply a bpf filter? */
+    if (options.bpf_filter != NULL) {
+	if (pcap_compile(pcapnav_pcap(pcapnav), bpf, options.bpf_filter, 
+			 options.bpf_optimize, 0) != 0) {
+	    errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcapnav_pcap(pcapnav)));
+	}
+    }
     do_packets(pcapnav, linktype, l2enabled, l2data, l2len);
     pcapnav_close(pcapnav);
 }
