@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.12 2003/08/31 01:44:34 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.13 2003/11/03 02:25:38 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -11,6 +11,8 @@ tcpreplay \- replay packets from capture files
 .B \-c
 .I cache file
 ] [
+.B \-D
+] [
 .B \-f
 .I config file
 ] [ 
@@ -21,8 +23,11 @@ tcpreplay \- replay packets from capture files
 ] [
 .B \-j
 .I intf2
-|
+] [
 .B \-w
+.I file
+] [
+.B \-W
 .I file
 ] [
 .B \-J
@@ -42,6 +47,9 @@ tcpreplay \- replay packets from capture files
 .B \-p
 .I packetrate
 ] [
+.B \-o 
+.I offset
+] [
 .B \-P
 ] [
 .B \-s
@@ -57,10 +65,6 @@ CIDR...
 ] [
 .B \-u pad|trunc
 ] [
-.B \-v
-] [
-.B \-h|-V
-] [
 .B \-M
 ] [
 .B \-x
@@ -71,7 +75,7 @@ CIDR...
 ] [
 .B \-2 l2data
 ]
-.I file ...
+.I pcap_file(s)
 .SH DESCRIPTION
 .LP
 .I tcpreplay
@@ -108,6 +112,9 @@ are sent via the secondary interface. CIDR lists are comma-separated
 and do not contain spaces, \fI192.168.0.0/28,10.0.0.0/16\fR and 
 \fI10.1.1.0/29\fR, for example. Overrides the -c option.
 .TP
+.B \-D or "datadump_mode"
+When used in conjunction with -w and -W, rather then dumping the entire
+packets to the files, only the layer 7 data is dumped.
 .B \-f 
 Specify a file that contains configuration options. 
 Option tokens are listed below next to the corresponding command-line flag.
@@ -142,6 +149,9 @@ recorded, specified as a floating-point number.
 .TP
 .B \-M or "no_martians"
 Disable sending martian packets (source networks: 0/8, 127/8, 255/8)
+.TP
+.B \-o or "offset"
+Jump to packet at the nearest specified byte offset and start replaying packets from there.
 .TP
 .B \-p or "packetrate"
 Specify the replay rate in packets per second.  Negates all other 
@@ -189,8 +199,14 @@ Verbose mode, currently unused.
 Print version info and exit.
 .TP
 .B -w
-Specify the output file to write all the packets to instead of the network.
-You still must specify the primary interface via -i.
+Specify the output file to write the primary packets to instead of the network.
+You still must specify the primary interface via -i.  If -D is set before it,
+it will write only the layer 7 data.
+.TP
+.B -W
+Specify the output file to write the secondary packets to instead of the 
+network.  You still must specify the secondary interface via -j.  If -D is 
+set before it, it will write only the layer 7 data.
 .TP
 .B \-x or "include"
 Specifies which packets from the capture file(s) to send.  Can be one of:
