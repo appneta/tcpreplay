@@ -1,12 +1,10 @@
-/* $Id: timer.c,v 1.1 2002/03/29 03:44:54 mattbing Exp $ */
+/* $Id: timer.c,v 1.2 2002/05/13 21:45:49 mattbing Exp $ */
 
 #include "timer.h"
 
-/*
- * Miscellaneous timeval routines
- */
+/* Miscellaneous timeval routines */
 
-/* Divide tvp by i, storing the result in tvp */
+/* Divide tvp by div, storing the result in tvp */
 inline void
 timerdiv(struct timeval *tvp, float div)
 {
@@ -25,12 +23,4 @@ timerdiv(struct timeval *tvp, float div)
 		tvp->tv_usec /= (i * 100000);
 		tvp->tv_sec += i;
 	}
-}
-
-
-inline void 
-timercopy(struct timeval *tvp, struct timeval *uvp)
-{
-	tvp->tv_sec = uvp->tv_sec;
-	tvp->tv_usec = uvp->tv_usec;
 }
