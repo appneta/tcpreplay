@@ -1,4 +1,4 @@
-/* $Id: fakepcap.c,v 1.1 2004/08/09 19:47:43 aturner Exp $ */
+/* $Id: fakepcap.c,v 1.2 2004/09/19 19:23:38 aturner Exp $ */
 
 /*
  * Copyright (c) 2004 Aaron Turner.
@@ -48,7 +48,7 @@
 char *
 pcap_datalink_val_to_description(int dlt)
 {
-    if (dlt > DTL2DESC_LEN)
+    if (dlt > DLT2DESC_LEN)
         return NULL;
 
     return dlt2desc[dlt];
