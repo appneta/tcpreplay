@@ -1,4 +1,4 @@
-/* $Id: utils.c,v 1.6 2004/04/04 02:00:10 aturner Exp $ */
+/* $Id: utils.c,v 1.7 2004/05/08 21:31:35 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -14,8 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  * 3. Neither the names of the copyright owners nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
+ *    contributors may be used to endorse or promote products derived from *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -136,61 +135,7 @@ mac2hex(const char *mac, char *dst, int len)
     }
 }
 
-/* 
- * if linktype not DLT_EN10MB we have to see if we can send the frames
- * if DLT_LINUX_SLL AND (options.intf1_mac OR l2enabled), then OK
- * else if l2enabled, then ok
- */
-void
-validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
-{
 
-    if (linktype != DLT_EN10MB) {
-        if (linktype == DLT_LINUX_SLL) {
-            /* if SLL, then either -2 or -I are ok */
-            if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (!l2enabled)) {
-                warnx
-                    ("Unable to process Linux Cooked Socket pcap without -2 or -I: %s",
-                     name);
-                return;
-            }
-
-            /* if using dual interfaces, make sure -2 or -J is set */
-            if (options.intf2 &&
-                ((!l2enabled) ||
-                 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
-                warnx
-                    ("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s",
-                     name);
-                return;
-            }
-        }
-        else if (!l2enabled) {
-            warnx("Unable to process non-802.3 pcap without layer 2 data: %s",
-                  name);
-            return;
-        }
-    }
-
-    /* calculate the maxpacket based on the l2len, linktype and mtu */
-    if (l2enabled) {
-        /* custom L2 header */
-        dbg(1, "Using custom L2 header to calculate max frame size");
-        maxpacket = options.mtu + l2len;
-    }
-    else if ((linktype == DLT_EN10MB) || (linktype == DLT_LINUX_SLL)) {
-        /* ethernet */
-        dbg(1, "Using Ethernet to calculate max frame size");
-        maxpacket = options.mtu + LIBNET_ETH_H;
-    }
-    else {
-        /* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
-        maxpacket = options.mtu + LIBNET_ETH_H;
-        warnx("Unable to determine layer 2 encapsulation, assuming ethernet\n"
-              "You may need to increase the MTU (-t <size>) if you get errors");
-    }
-
-}
 
 
 /*
@@ -203,5 +148,3 @@ get_layer4(ip_hdr_t * ip_hdr)
     ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
     return ((void *)ptr);
 }
-
-
