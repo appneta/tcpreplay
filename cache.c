@@ -112,8 +112,8 @@ write_cache(const int out_file)
 
 	/* write a header to our file */
 	cache_header = (CACHE_HEADER *) malloc(sizeof(CACHE_HEADER));
-	strcpy(cache_header->magic, CACHEMAGIC);
-	strcpy(cache_header->version, CACHEVERSION);
+	strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
+	strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
 
 	written = write(out_file, cache_header, sizeof(CACHE_HEADER));
 	if (written != sizeof(CACHE_HEADER))

@@ -99,7 +99,7 @@ ip2cidr(const unsigned long ip, const int masklen)
 	if ((network = (u_char *) malloc(20)) == NULL)
 		err(1, "malloc");
 
-	strcpy(network, libnet_host_lookup(ip, RESOLVE));
+	strncpy(network, libnet_host_lookup(ip, RESOLVE), 19);
 	strcat(network, "/");
 	if (masklen < 10) {
 		snprintf(mask, 1, "%d", masklen);
@@ -183,7 +183,7 @@ cidr2CIDR(char *cidr)
 	/* we only get here on error parsing input */
 error:
 	memset(ebuf, '\0', EBUF_SIZE);
-	strcpy(ebuf, "Unable to parse: ");
+	strncpy(ebuf, "Unable to parse: ", 18);
 	strncat(ebuf, cidr, (EBUF_SIZE - strlen(ebuf) - 1));
 	err(1, "%s", ebuf);
 	return NULL;
