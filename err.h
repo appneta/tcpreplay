@@ -1,4 +1,4 @@
-/* $Id: err.h,v 1.1 2002/03/29 03:44:52 mattbing Exp $ */
+/* $Id: err.h,v 1.2 2002/10/03 01:01:10 aturner Exp $ */
 
 /*
  * err.h
@@ -43,7 +43,7 @@
 
 #ifndef _ERR_H_
 #define _ERR_H_
-
+void    dbg(int dbg_level, const char *fmt, ...);
 void	err(int eval, const char *fmt, ...);
 void	warn(const char *fmt, ...);
 void	errx(int eval, const char *fmt, ...);

@@ -1,4 +1,4 @@
-/* $Id: err.c,v 1.1 2002/03/29 03:44:52 mattbing Exp $ */
+/* $Id: err.c,v 1.2 2002/10/03 01:01:10 aturner Exp $ */
 
 /*
  * err.c
@@ -44,6 +44,27 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
+
+
+void
+dbg(int dbg_level, const char *fmt, ...)
+{
+        va_list ap;
+
+#ifdef DEBUG
+        if (debug < dbg_level)
+                return;
+#endif
+
+        fprintf(stderr, "DEBUG%d: ", dbg_level);
+        va_start(ap, fmt);
+        if (fmt != NULL)
+                (void)vfprintf(stderr, fmt, ap);
+        (void)fprintf(stderr, "\n");
+        va_end(ap);
+
+}
+
 
 void
 err(int eval, const char *fmt, ...)
