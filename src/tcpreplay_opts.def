@@ -1,10 +1,15 @@
 autogen definitions options;
 
+
 copyright = {
-    date        = "2000 - 2004";
+    date        = "2000-2005";
     owner       = "Aaron Turner";
-    eaddr       = "aturner@pobox.com";
     type        = "bsd";
+    author      = <<- EOText
+Copyright 2000-2005 Aaron Turner
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+EOText;
 };
 
 package         = "tcpreplay";
@@ -29,19 +34,34 @@ include         = "#include \"defines.h\"\n"
 homerc          = "$$/";
 
 explain = <<- EOExplain
-    tcpreplay is a tool for replaying network traffic from files saved with
-    tcpdump or other tools which write pcap(3) files.
+tcpreplay is a tool for replaying network traffic from files saved with
+tcpdump or other tools which write pcap(3) files.
 EOExplain;
 
 detail = <<- EODetail
-     The basic operation of tcpreplay is to resend  all  packets  from  the
-     input file(s) at the speed at which they were recorded, or a specified 
-     data rate, up to as fast as the hardware is capable.
+The basic operation of tcpreplay is to resend  all  packets  from  the
+input file(s) at the speed at which they were recorded, or a specified 
+data rate, up to as fast as the hardware is capable.
 
-     Optionally, the traffic can be split between two interfaces, written to
-     files, filtered and edited in various ways, providing the means to test
-     firewalls, NIDS and other network devices.
+Optionally, the traffic can be split between two interfaces, written to
+files, filtered and edited in various ways, providing the means to test
+firewalls, NIDS and other network devices.
 EODetail;
+
+flag = {
+    name        = dbug;
+    value       = d;
+    arg-type    = number;
+    max         = 1;
+    immediate;
+    arg-range   = "0->5";
+    arg-default = 0;
+    descrip     = "Enable debugging output";
+    doc         = <<- EOText
+If configured with --enable-debug, then you can specify a verbosity 
+level for debugging output.  Higher numbers increase verbosity.
+EOText;
+};
 
 /* Verbose decoding via tcpdump */
 
@@ -53,6 +73,7 @@ flag = {
     immediate;
     descrip     = "Print decoded packets via tcpdump to STDOUT";
     settable;
+    doc         = "";
 };
 
 flag = {
@@ -63,17 +84,16 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Arguments passed to tcpdump decoder";
-};
-
-flag = {
-    name        = dbug;
-    value       = d;
-    arg-type    = number;
-    max         = 1;
-    immediate;
-    arg-range   = "0->5";
-    arg-default = 0;
-    descrip     = "Enable debugging output";
+    doc         = <<- EOText
+When enabling verbose mode (@var{-v}) you may also specify one or more
+additional  arguments to pass to @code{tcpdump} to modify the way packets
+are decoded.  By default, -n and -l are used.   Be  sure  to
+quote the arguments like: -A "-axxx" so that they are not interpreted
+by tcpreplay.  The following arguments are vaild:
+    [ -aAeNqRStuvxX ]
+    [ -E spi@ipaddr algo:secret,... ]
+    [ -s snaplen ]
+EOText;
 };
 
 /*
@@ -85,7 +105,8 @@ flag = {
     value       = c;
     arg-type    = string;
     max         = 1;
-    descrip     = "Split traffic via tcpprep cache file";
+    descrip     = "Split traffic via a tcppep cache file";
+    doc         = "";
 };
 
 /*
@@ -97,8 +118,10 @@ flag = {
     value       = i;
     arg-type    = string;
     max         = 1;
+    min         = 1;
     must-set;
-    descrip     = "Primary output interface";
+    descrip     = "Server/primary traffic output interface";
+    doc         = "";
 };
 
 flag = {
@@ -107,7 +130,8 @@ flag = {
     arg-type    = string;
     max         = 1;
     flags-must  = cachefile;
-    descrip     = "Secondary output interface";
+    descrip     = "Client/secondary traffic output interface";
+    doc         = "";
 };
 
 /*
@@ -122,7 +146,27 @@ flag = {
     max         = 1;
     descrip     = "Loop through the capture file X times";
     arg-default = 1;
+    doc         = "";
 };
+
+/*
+    Do we really need to support this?  Adding this support would 
+    have a slight but non-zero performance hit
+    
+flag = {
+    name        = limit;
+    value       = L;
+    arg-type    = number;
+    max         = 1;
+    arg-default = -1;
+    arg-range   = "0->";
+    descrip     = "Limit the number of packets to send";
+    doc         = <<- EOText
+By default, tcpreplay will send all the packets.  Alternatively, you can 
+specify a maximum number of packets to send.  
+EOText;
+};
+*/
 
 /*
  * Replay speed modifiers: -m, -p, -r, -R, -o
@@ -139,6 +183,14 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Modify replay speed to a given multiple";
+    doc         = <<- EOText
+Specify a floating point value to modify the packet replay speed.
+Examples:
+@example
+    2.0 will replay traffic at twice the speed captured
+    0.7 will replay traffic at 70% the speed captured
+@end example
+EOText;
 };
 
 flag = {
@@ -151,6 +203,7 @@ flag = {
     arg-type    = number;
     max         = 1;
     descrip     = "Replay packets at a given packets/sec";
+    doc         = "";
 };
 
 flag = {
@@ -163,6 +216,10 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Replay packets at a given Mbps";
+    doc         = <<- EOText
+Specify a floating point value for the Mbps rate that tcpreplay
+should send packets at.
+EOText;
 };
 
 flag = {
@@ -173,6 +230,7 @@ flag = {
     flags-cant  = oneatatime;
     value       = R;
     descrip     = "Replay packets as fast as possible";
+    doc         = "";
 };
 
 flag = {
@@ -183,6 +241,9 @@ flag = {
     flags-cant  = topspeed;
     value       = o;
     descrip     = "Replay one packet at a time for each user input";
+    doc         = <<- EOText
+Allows you to step through one or more packets at a time.
+EOText;
 };
 
 flag = {
@@ -194,6 +255,7 @@ flag = {
     fprintf(stderr, "PID: %hu\n", getpid());
     
 EOPid;
+    doc         = "";
 };
 
 flag = {
@@ -218,6 +280,7 @@ flag = {
     exit(0);
     
 EOVersion;
+    doc         = "";
 };
 
 flag = {
@@ -230,4 +293,5 @@ flag = {
     USAGE(EXIT_FAILURE);
 
 EOHelp;
+    doc         = "";
 };

@@ -1,12 +1,14 @@
 autogen definitions options;
 
-# autogen -T agman1.tpl --base-name=tcprewrite tcprewrite_opts.def
-
 copyright = {
     date        = "2004-2005";
     owner       = "Aaron Turner";
-    eaddr       = "aturner@pobox.com";
     type        = "bsd";
+    author      = <<- EOText
+Copyright 2004-2005 Aaron Turner
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+EOText;
 };
 
 package         = "tcprewrite";
@@ -19,13 +21,19 @@ save-opts-value = "";
 load-opts-value = "";
 
 detail		= <<- EOText
-Tcprewrite is a tool to rewrite packets stored in pcap(3) file format, such
-as crated by tools such as tcpdump(1) and ethereal(1).  Once a pcap file has
+Tcprewrite is a tool to rewrite packets stored in @file{pcap(3)} file format, such
+as crated by tools such as @file{tcpdump(1)} and @file{ethereal(1)}.  Once a pcap file has
 had it's packets rewritten, they can be replayed back out on the network
-using tcpreplay(1).
+using @file{tcpreplay(1)}.
 
-Certain packet editing features of tcprewrite requires a tcpprep(1) cache
-file which distinguishes "client" and "server" side traffic from each other.
+tcprewrite currently supports the following DLT types:
+    * DLT_C_HDLC
+    * DLT_EN10MB
+    * DLT_LINUX_SSL
+    * DLT_RAW
+
+The packet editing features of tcprewrite which distinguish between "client"
+and "server" traffic requires a tcpprep(1) cache file.
 EOText;
 
 config-header   = "config.h";
@@ -38,32 +46,22 @@ include         = "#include \"defines.h\"\n"
 
 homerc          = "$$/";
 
+
 flag = {
     name        = dbug;
     value       = d;
     arg-type    = number;
     descrip     = "Enable debugging output";
+    arg-range   = "0->5";
+    arg-default = 0;
     max         = 1;
     immediate;
     doc         = <<- EOText
 If configured with --enable-debug, then you can specify a verbosity 
-level.  Higher numbers increase verbosity.
+level for debugging output.  Higher numbers increase verbosity.
 EOText;
 };
 
-flag = {
-    name        = seed;
-    value       = s;
-    arg-type    = number;
-    descrip     = "Randomize src/dst IP addresses w/ given seed";
-    max         = 1;
-    doc         = <<- EOText
-Causes the source and destination IP addresses to be pseudo 
-randomized but still maintain client/server relationships.
-Since the randomization is deterministic based on the seed, 
-you can reuse the same seed value to recreate the traffic.
-EOText; 
-};
 
 flag = {
     name        = dmac;
@@ -84,11 +82,17 @@ EODmac;
     doc         = <<- EOText
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the destination MAC address of outbound packets.
-The first MAC address will be used for the primary interface
-and the second MAC address will be used for the secondary
-interface.
+The first MAC address will be used for the server traffic
+and the optional second MAC address will be used for the client
+traffic.
+
+Example:
+@example
+--dmac 00:12:13:14:15:16,00:22:33:44:55:66
+@end example
 EOText;
 };
+
 
 flag = {
     name        = smac;
@@ -108,42 +112,16 @@ EOSmac;
   doc         = <<- EOText
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the source MAC address of outbound packets.
-The first MAC address will be used for the primary interface
-and the second MAC address will be used for the secondary
-interface.
+The first MAC address will be used for the server traffic
+and the optional second MAC address will be used for the client traffic.
+
+Example:
+@example
+--smac 00:12:13:14:15:16,00:22:33:44:55:66
+@end example
 EOText;
 };
 
-flag = {
-    name        = pnat;
-    value       = N;
-    arg-type    = string;
-    max         = 2;
-    descrip     = "Rewrite IP addresses using pseudo-NAT";
-    flag-code   = <<- EOPnat
-    
-    static int count = 1;
-
-    options.rewrite_ip ++;
-    
-    if (count == 1) {
-        if (! parse_cidr_map(&options.cidrmap1, OPT_ARG(PNAT)))
-            errx(1, "Unable to parse primary pseudo-NAT: %s", OPT_ARG(PNAT));
-        count ++;
-    } else {
-        if (! parse_cidr_map(&options.cidrmap2, OPT_ARG(PNAT)))
-            errx(1, "Unable parse secondary pseudo-NAT: %s", OPT_ARG(PNAT));
-    }
-
-EOPnat;
-    doc         = <<- EOText
-Takes a comma delimited series of colon deliminated CIDR 
-netblock pairs.  Each netblock pair is evaluated in order against
-the IP addresses.  If the IP address in the packet matches the
-first netblock, it is rewriten using the second netblock as a
-mask against the high order bits.
-EOText; 
-};
 
 flag = {
     name        = dlink;
@@ -174,17 +152,111 @@ EODlink;
     doc         = <<- EOText
 Provide a series of comma deliminated hex values which will be
 used to rewrite or create the Layer 2 header of the packets.
-The first instance of this argument will rewrite packets going
-out the primary and secondary interfaces.  If this argument
-is specified a second time, it will override the first argument
-for the secondary interface.
+The first instance of this argument will rewrite both server
+and client traffic, but if this argument is specified a second
+time, it will be used for the client traffic.
+
+Example:
+@example
+--dlink 01,02,03,04,05,06,00,11,22,33,44,55,66,08,00
+@end example
+EOText;
+};
+
+flag = {
+    name        = portmap;
+    value       = r;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite TCP/UDP ports";
+    flag-code   = <<- EOPortmap
+
+EOPortmap;
+    doc         = <<- EOText
+Specify a list of comma delimited port mappingings consisting of 
+colon delimited port number pairs.  Each colon delimited port pair
+consists of the port to match followed by the port number to rewrite.
+
+Example:
+@example
+--portmap 80:8000,8080:80
+@end example
+EOText;
+};
+
+
+flag = {
+    name        = seed;
+    value       = s;
+    arg-type    = number;
+    descrip     = "Randomize src/dst IP addresses w/ given seed";
+    max         = 1;
+    doc         = <<- EOText
+Causes the source and destination IP addresses to be pseudo 
+randomized but still maintain client/server relationships.
+Since the randomization is deterministic based on the seed, 
+you can reuse the same seed value to recreate the traffic.
+EOText; 
+};
+
+
+flag = {
+    name        = pnat;
+    value       = N;
+    arg-type    = string;
+    max         = 2;
+    descrip     = "Rewrite IP addresses using pseudo-NAT";
+    flag-code   = <<- EOPnat
+    
+    static int count = 1;
+
+    options.rewrite_ip ++;
+    
+    if (count == 1) {
+        if (! parse_cidr_map(&options.cidrmap1, OPT_ARG(PNAT)))
+            errx(1, "Unable to parse primary pseudo-NAT: %s", OPT_ARG(PNAT));
+        count ++;
+    } else {
+        if (! parse_cidr_map(&options.cidrmap2, OPT_ARG(PNAT)))
+            errx(1, "Unable parse secondary pseudo-NAT: %s", OPT_ARG(PNAT));
+    }
+
+EOPnat;
+    doc         = <<- EOText
+Takes a comma delimited series of colon delimited CIDR
+netblock pairs.  Each netblock pair is evaluated in order against
+the IP addresses.  If the IP address in the packet matches the
+first netblock, it is rewriten using the second netblock as a
+mask against the high order bits.
+
+Example:
+@example
+--pnat 192.168.0.0/16:10.77.0.0/16,172.16.0.0/12:10.1.0.0/24
+@end example
+EOText; 
+};
+
+
+flag = {
+    name        = endpoints;
+    value       = e;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite IP addresses to be between two endpoints";
+    doc         = <<- EOText
+Takes a pair of colon delimited IP addresses which will be used to rewrite
+all traffic to appear to be between the two IP's.
+
+Example:
+@example
+--endpoints 172.16.0.1:172.16.0.2
+@end example
 EOText;
 };
 
 flag = {
     name        = fixcsum;
     value       = C;
-    disable;
     descrip     = "Force recalculation of IP/TCP/UDP checksums";
     flag-code   = <<- EOFixcsum
   
@@ -193,7 +265,8 @@ flag = {
 EOFixcsum;
     doc         = <<- EOText
 Causes each IP packet to have it's checksums recalcualted and
-fixed.
+fixed.  Automatically enabled for packets modified with @samp{--seed}, 
+@samp{--pnat}, @samp{--endpoints} or @samp{--fixlen}.
 EOText;
 };
 
@@ -201,7 +274,7 @@ flag = {
     name        = infile;
     value       = i;
     arg-type    = string;
-    descrip     = "Input pcap file";
+    descrip     = "Input pcap file to be processed";
     max         = 1;
     immediate;
     must-set;
@@ -213,8 +286,7 @@ flag = {
         errx(1, "Unable to open input pcap file: %s", ebuf);
 
 EOInfile;
-    doc         = <<- EOText
-EOText;            
+    doc         = "";
 };
 
 flag = {
@@ -224,8 +296,7 @@ flag = {
     descrip     = "Output pcap file";
     max         = 1;
     must-set;
-    doc		= <<- EOText
-EOText;
+    doc		    = "";
 };
 
 flag = {
@@ -241,14 +312,9 @@ flag = {
         read_cache(&options.cachedata, OPT_ARG(CACHEFILE), &options.comment);
 
 EOCachefile;    
-};
-
-flag = {
-    name        = endpoints;
-    value       = e;
-    arg-type    = string;
-    max         = 1;
-    descrip     = "Rewrite IP addresses to be between two endpoints";
+    doc         = <<- EOText
+Use tcpprep cache file to split traffic based upon client/server relationships.
+EOText;
 };
 
 flag = {
@@ -259,6 +325,9 @@ flag = {
     arg-range   = "1->MAXPACKET";
     default     = DEFAULT_MTU;
     descrip     = "Override default MTU length (1500 bytes)";
+    doc         = <<- EOText
+Override the default 1500 byte MTU size for determining the maximum padding length.
+EOText;
 };
 
 flag = {
@@ -270,6 +339,8 @@ flag = {
     options.efcs = 1;
 
 EOEfcs;
+    doc         = <<- EOText
+EOText;
 };
 
 flag = {
@@ -289,6 +360,21 @@ flag = {
     }
 
 EOFixlen;
+    doc         = <<- EOText
+Packets may be truncated during capture if the snaplen is smaller then the
+packet.  This option allows you to modify the packet to pad the packet back
+out to the size stored in the IPv4 header or rewrite the IP header total length
+to reflect the stored packet length.
+@table @bullet
+@item
+@var{pad}
+Truncated packets will be padded out so that the packet length matches the 
+IPv4 total length
+@item
+@var{trunc}
+Truncated packets will have their IPv4 total length field rewritten to match
+the actual packet length
+EOText;
 };
 
 /* rewrite 802.1q vlan tags */
@@ -296,7 +382,7 @@ flag = {
     name        = vlan;
     value       = T;
     max         = 1;
-    descrip     = "Specify 802.1q VLAN tag mode: del or add";
+    descrip     = "Specify 802.1q VLAN tag mode";
     arg-type    = string;
     flag-code   = <<- EOVlan
 
@@ -309,6 +395,17 @@ flag = {
     }
 
 EOVlan;
+    doc         = <<- EOText
+Allows you to rewrite ethernet frames to add a 802.1q header to standard 802.3
+ethernet headers or remove the 802.1q VLAN tag information.
+@table @bullet
+@item
+@var{add}
+Rewrites the existing 802.3 ethernet header as an 802.1q VLAN header
+@item
+@var{del}
+Rewrites the existing 802.1q VLAN header as an 802.3 ethernet header
+EOText;
 };
 
 flag = {
@@ -319,6 +416,7 @@ flag = {
     arg-type    = number;
     flags-must  = vlan;
     arg-range   = "0->4095"; /* VID's are 12bit unsigned int's */
+    doc         = "";
 };
 
 flag = {
@@ -329,6 +427,7 @@ flag = {
     arg-type    = number;
     flags-must  = vlan;
     arg-range   = "0->1"; /* one bit */
+    doc         = "";
 };
 
 flag = {
@@ -339,6 +438,7 @@ flag = {
     flags-must  = vlan;
     arg-type    = number;
     arg-range   = "0->7"; /* one byte */
+    doc         = "";
 };
 
 /* Verbose decoding via tcpdump */
@@ -351,6 +451,7 @@ flag = {
     immediate;
     descrip     = "Print decoded packets via tcpdump to STDOUT";
     settable;
+    doc         = "";
 };
 
 flag = {
@@ -361,6 +462,16 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Arguments passed to tcpdump decoder";
+    doc         = <<- EOText
+When enabling verbose mode (@var{-v}) you may also specify one or
+more additional arguments to pass to @code{tcpdump} to modify
+the way packets are decoded.  By default, -n and -l are used.
+Be sure to quote the arguments so that they are not interpreted
+by tcprewrite.  The following arguments are valid:
+    [ -aAeNqRStuvxX ]
+    [ -E spi@ipaddr algo:secret,... ]
+    [ -s snaplen ]
+EOText;
 };
 
 
@@ -386,6 +497,7 @@ flag = {
     exit(0);
     
 EOVersion;
+    doc         = "";
 };
 
 flag = {
@@ -398,4 +510,5 @@ flag = {
     USAGE(EXIT_FAILURE);
 
 EOHelp;
+    doc         = "";
 };
