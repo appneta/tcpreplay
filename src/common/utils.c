@@ -127,7 +127,7 @@ packet_stats(struct timeval *begin, struct timeval *end,
                 pkts_sent / (begin->tv_sec + (float)begin->tv_usec / 1000000);
     }
 
-    snprintf(bits, sizeof(bits), "%d", begin->tv_usec);
+    snprintf(bits, sizeof(bits), "%u", begin->tv_usec);
 
     notice("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds",
             pkts_sent, bytes_sent, begin->tv_sec, bits);
