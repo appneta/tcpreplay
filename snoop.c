@@ -1,4 +1,11 @@
-/* $Id: snoop.c,v 1.7 2003/03/24 04:59:58 aturner Exp $ */
+/* $Id: snoop.c,v 1.8 2003/05/29 22:06:35 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
 
 #include "config.h"
 

@@ -1,4 +1,11 @@
-/* $Id: timer.c,v 1.6 2003/05/22 16:11:32 aturner Exp $ */
+/* $Id: timer.c,v 1.7 2003/05/29 22:06:35 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
 
 #include "timer.h"
 

@@ -1,3 +1,12 @@
+/* $Id: xX.c,v 1.4 2003/05/29 22:06:35 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
+
 /*
  * xX stands for "include or exclude" which is used with the 
  * -x and -X flags

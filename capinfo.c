@@ -1,4 +1,11 @@
-/* $Id: capinfo.c,v 1.5 2003/03/24 04:59:57 aturner Exp $ */
+/* $Id: capinfo.c,v 1.6 2003/05/29 22:06:35 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
 
 #include "config.h"
 

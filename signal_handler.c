@@ -1,3 +1,5 @@
+/* $Id: signal_handler.c,v 1.2 2003/05/29 22:06:35 aturner Exp $ */
+
 /*
  * File: signal_handler.c 
  *
