@@ -117,6 +117,21 @@ Wait until the server has sent the number of bytes stored in the pcap file.
 Send packets based on user interaction.
 @end table
 EOText;
+	flag-code	= <<- EOText
+
+	if (strcasecmp(OPT_ARG(MODE), "send") == 0) {
+		options.sendmode = MODE_SEND;
+	} else if (strcasecmp(OPT_ARG(MODE), "wait") == 0) {
+		options.sendmode = MODE_WAIT;
+	} else if (strcasecmp(OPT_ARG(MODE), "bytes") == 0) {
+		options.sendmode = MODE_BYTES;
+	} else if (strcasecmp(OPT_ARG(MODE), "user") == 0) {
+		options.sendmode = MODE_USER;
+	} else {
+		errx(1, "Invalid --mode: %s", OPT_ARG(MODE));
+	}
+
+EOText;
 };
     
 flag = {
@@ -131,18 +146,34 @@ If @var{--mode} is @var{wait}, then you can specify the amount of time to
 wait for the server to complete it's side of the transaction before starting
 to send the client side again.
 EOText;
+	flag-code	= <<- EOText
+
+	float2timer(atof(OPT_ARG(WAIT)), &options.timeout);
+
+EOText;
 };
 
 flag = {
-    name        = server;
-    value       = s;
-    arg-type    = string;
-    max         = 1;
-    min         = 1;
-    must-set;
-    descrip     = "Server IP to connect to";
-    doc         = "";
+	name		= targetip;
+	value		= t;
+	arg-type	= string;
+	max			= 1;
+	must-set;
+	descrip		= "Target host to connect to";
+	flag-code	= <<- EOText
+
+#ifdef INET_ATON
+	if (inet_aton(OPT_ARG(TARGETIP), &options.targetaddr) == 0)
+		errx(1, "Invalid target IP address: %s", OPT_ARG(TARGETIP));
+#else
+	if ((options.targetaddr.s_addr = inet_addr(OPT_ARG(TARGETIP))) == -1)
+		errx(1, "Invalid target IP address: %s", OPT_ARG(TARGETIP));
+#endif
+
+EOText;
 };
+
+
 
 flag = {
     name        = filter;
@@ -151,6 +182,74 @@ flag = {
     max         = 1;
     descrip     = "BPF filter to limit which flows are replayed";
     doc         = "";
+};
+
+flag = {
+	name 		= clientnet;
+	value		= c;
+	arg-type	= string;
+	descrip		= "Client network(s)";
+	flag-code	= <<- EOText
+  
+    char *cidr = safe_strdup(OPT_ARG(CLIENTNET));
+    if (!parse_cidr(&options.clients, cidr, ","))
+        errx(1, "Unable to parse CIDR: %s", OPT_ARG(CLIENTNET));
+    free(cidr);
+
+EOText;
+};
+
+
+flag = {
+	name		= servernet;
+	value		= s;
+	arg-type	= string;
+	descrip		= "Server network(s)";
+	flag-code	= <<- EOText
+
+	char *cidr = safe_strdup(OPT_ARG(SERVERNET));
+	if (!parse_cidr(&options.servers, cidr, ","))
+		errx(1, "Unable to parse CIDR: %s", OPT_ARG(SERVERNET));
+	free(cidr);
+
+EOText;
+};
+
+flag = {
+	name		= nosyn;
+	value		= n;
+	descrip		= "Disable Syn packet requirement to start connections";
+	flag-code	= <<- EOText
+
+options.nosyn = 1;
+
+EOText;
+};
+
+flag = {
+	name		= slimit;
+	value		= l;
+	descrip		= "Service limit to proto/port";
+	arg-type	= string;
+	flag-code	= <<- EOText
+
+	char *p_parse = NULL, *myarg;
+	myarg = safe_strdup(OPT_ARG(SLIMIT));
+
+	p_parse = strtok(myarg, "/");
+	if (strcasecmp(p_parse, "TCP") == 0) {
+		options.proto = IPPROTO_TCP;
+	} else if (strcasecmp(p_parse, "UDP") == 0) {
+		options.proto = IPPROTO_UDP;
+	} else {
+		errx(1, "Unsupported protocol: %s", p_parse);
+	}
+
+	/* if port is specified, set it */
+	if ((p_parse = strtok(NULL, "/")))
+		options.port = htons(atoi(p_parse));
+	
+EOText;
 };
 
 flag = {
@@ -164,6 +263,8 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
+	fprintf(stderr, "Copyright 2004-2005 Aaron Turner <aturner@pobox.com>\n");
+	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
     exit(0);
     
