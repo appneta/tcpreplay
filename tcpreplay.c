@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.75 2003/12/10 06:51:56 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.76 2003/12/11 03:05:59 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -55,6 +55,7 @@
 #include "xX.h"
 #include "signal_handler.h"
 #include "replay_live.h"
+#include "utils.h"
 
 struct options options;
 char *cachedata = NULL;
@@ -84,16 +85,12 @@ int debug = 0;
 
 void replay_file(char *, int, char *, int);
 void replay_live(char *, int, char *, int);
-void validate_l2(char *, int, char *, int, int);
 
-void packet_stats();
 void usage();
 void version();
-void mac2hex(const char *, char *, int);
 void configfile(char *);
-int argv_create(char *, int, char **);
-int read_hexstring(char *, char *, int);
-static void init(void);
+void init(void);
+void apply_filter(pcap_t *);
 
 int
 main(int argc, char *argv[])
@@ -102,19 +99,21 @@ main(int argc, char *argv[])
     int ch, i;
     int l2enabled = 0;
     void *xX = NULL;
+    char errbuf[PCAP_ERRBUF_SIZE];
 
-    init();
+    init(); /* init our globals */
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "bc:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
+	    getopt(argc, argv, "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "bc:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:")) != -1)
+	    getopt(argc, argv, "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:")) != -1)
 #endif
 	switch (ch) {
 	case 'b':               /* sniff/send bi-directionally */
 	    options.sniff_bridge = 1;
+	    options.topspeed = 1;
 	    break;
 	case 'c':		/* cache file */
 	    cache_file = optarg;
@@ -160,6 +159,11 @@ main(int argc, char *argv[])
 	    options.n_iter = atoi(optarg);
 	    if (options.n_iter < 0)
 		errx(1, "Invalid loop count: %s", optarg);
+	    break;
+	case 'L':               /* limit sending X packets */
+	    options.limit_send = strtoull(optarg, NULL, 0);
+	    if (options.limit_send <= 0)
+		errx(1, "-L <limit> must be positive");
 	    break;
 	case 'm':		/* multiplier */
 	    options.mult = atof(optarg);
@@ -306,8 +310,8 @@ main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if ((options.mult > 0.0 && options.rate > 0.0) || argc == 0)
-	usage();
+    if ((argc == 0) && (! options.sniff_bridge))
+	errx(1, "Must specify one or more pcap files to process");
 
     if (argc > 1)
 	for (i = 0; i < argc; i++)
@@ -320,8 +324,16 @@ main(int argc, char *argv[])
     if ((intf2 == NULL) && (cache_file != NULL))
 	errx(1, "Needs secondary interface with cache");
 
-    if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL)))
+    if ((intf2 != NULL) && (! options.sniff_bridge) &&
+	(!options.cidr && (cache_file == NULL)))
 	errx(1, "Needs cache or cidr match with secondary interface");
+
+    if (options.sniff_bridge && (options.savepcap || 
+				 options.savedumper || 
+				 options.savepcap2 || 
+				 options.savedumper2)) {
+	errx(1, "Bridge mode excludes saving packets or data to file");
+    }
 
     if ((intf2 != NULL) && options.datadump_mode && 
 	((options.datadumpfile == 0) || (options.datadumpfile2 == 0)))
@@ -331,12 +343,16 @@ main(int argc, char *argv[])
         errx(1, "You can't specify an offset when sniffing a live network");
     }
 
-    if ((options.promisc) && (! options.sniff_snaplen >= 0)) {
+    if ((! options.promisc) && (options.sniff_snaplen == -1)) {
         errx(1, "Not nosy can't be specified except when sniffing a live network");
     }
 
-    if ((options.sniff_bridge) && (! options.sniff_snaplen >= 0)) {
+    if ((options.sniff_bridge) && (options.sniff_snaplen == -1)) {
         errx(1, "Bridging requires sniff mode (-S <snaplen>)");
+    }
+
+    if ((options.sniff_bridge) && (intf2 == NULL)) {
+	errx(1, "Bridging requires a secondary interface");
     }
 
     if (options.seed != 0) {
@@ -346,7 +362,6 @@ main(int argc, char *argv[])
 	dbg(1, "random() picked: %d", options.seed);
     }
 
-    
     /*
      * some options are limited if we change the type of header
      * we're making a half-assed assumption that any header 
@@ -372,22 +387,78 @@ main(int argc, char *argv[])
 
     }
 
+    /* open interfaces for writing */
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
-	errx(1, "Can't open %s: %s", intf, ebuf);
+	errx(1, "Libnet can't open %s: %s", intf, ebuf);
 
     if (intf2 != NULL) {
 	if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
-	    errx(1, "Can't open %s: %s", intf2, ebuf);
+	    errx(1, "Libnet can't open %s: %s", intf2, ebuf);
+    }
+
+    /* open bridge interfaces for reading */
+    if (options.sniff_bridge) {
+	if ((options.listen1 = pcap_open_live(intf, options.sniff_snaplen,
+					      options.promisc, PCAP_TIMEOUT, errbuf))
+	    == NULL) {
+	    errx(1, "Libpcap can't open %s: %s", intf, errbuf);
+	}
+	apply_filter(options.listen1);
+
+	if ((options.listen2 = pcap_open_live(intf2, options.sniff_snaplen,
+					      options.promisc, PCAP_TIMEOUT, errbuf))
+	    == NULL) {
+	    errx(1, "Libpcap can't open %s: %s", intf2, errbuf);
+	}
+	apply_filter(options.listen2);
+
+	/* sanity checks for the linktype */
+	if (pcap_datalink(options.listen1) != pcap_datalink(options.listen2)) {
+	    errx(1, "Unable to bridge different datalink types");
+	}
+
+	/* abort on non-supported link types */
+	if (pcap_datalink(options.listen1) == DLT_LINUX_SLL) {
+	    errx(1, "Unable to bridge Linux Cooked Capture format");
+	} else if (pcap_datalink(options.listen1) == DLT_NULL) {
+	    errx(1, "Unable to bridge BSD loopback format");
+	} else if (pcap_datalink(options.listen1) == DLT_LOOP) {
+	    errx(1, "Unable to bridge loopback interface");
+	}
+
+	/* 
+	 * only need to validate once since we're guaranteed both interfaces
+	 * use the same link type
+	 */
+	validate_l2(intf, l2enabled, l2data, l2len, pcap_datalink(options.listen1));
+
+ 	warnx("listening on: %s %s", intf, intf2);
+
     }
 
     if (options.savepcap == NULL)
-	warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
+	warnx("sending on: %s %s", intf, intf2 == NULL ? "" : intf2);
 
     /* init the signal handlers */
     init_signal_handlers();
 
     if (gettimeofday(&begin, NULL) < 0)
-	err(1, "gettimeofday");
+	err(1, "gettimeofday() failed");
+
+    /* don't use the standard main loop in bridge mode */
+    if (options.sniff_bridge) {
+	cache_byte = 0;
+	cache_bit = 0;
+
+	do_bridge(options.listen1, options.listen2, l2enabled, l2data, l2len);
+
+	pcap_close(options.listen1);
+	pcap_close(options.listen2);
+	libnet_destroy(options.intf1);
+	libnet_destroy(options.intf2);
+	exit(0);
+	
+    }
 
     /* main loop */
     if (options.n_iter > 0) {
@@ -441,57 +512,12 @@ main(int argc, char *argv[])
 	close(options.datadumpfile2);
 
     return 0;
-}
+} /* main() */
 
-
-/* 
- * if linktype not DLT_EN10MB we have to see if we can send the frames
- * if DLT_LINUX_SLL AND (options.intf1_mac OR l2enabled), then OK
- * else if l2enabled, then ok
- */
-void
-validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
-{
-
-    if (linktype != DLT_EN10MB) {
-	if (linktype == DLT_LINUX_SLL) {
-	    /* if SLL, then either -2 or -I are ok */
-	    if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (! l2enabled)) {
-		warnx("Unable to process Linux Cooked Socket pcap without -2 or -I: %s", name);
-		return;
-	    }
-
-	    /* if using dual interfaces, make sure -2 or -J is set */
-	    if (options.intf2 && 
-		((! l2enabled ) || 
-		 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
-		warnx("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s", name);
-		return;
-	    }
-	} else if (! l2enabled) {
-	    warnx("Unable to process non-802.3 pcap without layer 2 data: %s", name);
-	    return;
-	}
-    }
-
-    /* calculate the maxpacket based on the l2len, linktype and mtu */
-    if (l2enabled) {
-	/* custom L2 header */
-	maxpacket = options.mtu + l2len;
-    } else if ((linktype == DLT_EN10MB) || (linktype == DLT_LINUX_SLL)) {
-	/* ethernet */
-	maxpacket = options.mtu + LIBNET_ETH_H;
-    } else {
-	/* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
-	maxpacket = options.mtu + LIBNET_ETH_H;
-	warnx("Unable to determine layer 2 encapsulation, assuming ethernet\n"
-	      "You may need to increase the MTU (-t <size>) if you get errors");
-    }
-
-}
 
 /*
  * replay a live network on another interface
+ * but only in a single direction (non-bridge mode)
  */
 void
 replay_live(char *iface, int l2enabled, char *l2data, int l2len)
@@ -552,150 +578,30 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 
     validate_l2(path, l2enabled, l2data, l2len, linktype);
 
-    /* do we apply a bpf filter? */
-    if (options.bpf_filter != NULL) {
-	if (pcap_compile(pcapnav_pcap(pcapnav), &bpf, options.bpf_filter, 
-			 options.bpf_optimize, 0) != 0) {
-	    errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcapnav_pcap(pcapnav)));
-	}
-        pcap_setfilter(pcapnav_pcap(pcapnav), &bpf);
-    }
+    
+    apply_filter(pcapnav_pcap(pcapnav));
+
     do_packets(pcapnav, NULL, linktype, l2enabled, l2data, l2len);
     pcapnav_close(pcapnav);
 }
 
-
-void
-packet_stats()
-{
-    float bytes_sec = 0.0, mb_sec = 0.0;
-    int pkts_sec = 0;
-    char bits[3];
-
-    if (gettimeofday(&end, NULL) < 0)
-	err(1, "gettimeofday");
-
-    timersub(&end, &begin, &begin);
-    if (timerisset(&begin)) {
-	if (bytes_sent) {
-	    bytes_sec =
-		bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-	    mb_sec = (bytes_sec * 8) / (1024 * 1024);
-	}
-	if (pkts_sent)
-	    pkts_sec =
-		pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-    }
-
-    snprintf(bits, sizeof(bits), "%ld", begin.tv_usec);
-
-    fprintf(stderr, " %llu packets (%llu bytes) sent in %ld.%s seconds\n",
-	    pkts_sent, bytes_sent, begin.tv_sec, bits);
-    fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
-	    bytes_sec, mb_sec, pkts_sec);
-
-    if (failed) {
-	fprintf(stderr,
-		" %llu write attempts failed from full buffers and were repeated\n",
-		failed);
-    }
-}
-
 /*
- * converts a string representation of a MAC address, based on 
- * non-portable ether_aton() 
+ * applys a BPF filter if applicable
  */
 void
-mac2hex(const char *mac, char *dst, int len)
+apply_filter(pcap_t *pcap)
 {
-    int i;
-    long l;
-    char *pp;
 
-    if (len < 6)
-	return;
-
-    while (isspace(*mac))
-	mac++;
-
-    /* expect 6 hex octets separated by ':' or space/NUL if last octet */
-    for (i = 0; i < 6; i++) {
-	l = strtol(mac, &pp, 16);
-	if (pp == mac || l > 0xFF || l < 0)
-	    return;
-	if (!(*pp == ':' || (i == 5 && (isspace(*pp) || *pp == '\0'))))
-	    return;
-	dst[i] = (u_char) l;
-	mac = pp + 1;
-    }
-}
-
-/* whorishly appropriated from fragroute-1.2 */
-#define MAX_ARGS 128
-int
-argv_create(char *p, int argc, char *argv[])
-{
-    int i;
-
-    for (i = 0; i < argc - 1; i++) {
-	while (*p != '\0' && isspace((int)*p))
-	    *p++ = '\0';
-
-	if (*p == '\0')
-	    break;
-	argv[i] = p;
-
-	while (*p != '\0' && !isspace((int)*p))
-	    p++;
-    }
-    p[0] = '\0';
-    argv[i] = NULL;
-
-    return (i);
-}
-
-int
-read_hexstring(char *l2string, char *hex, int hexlen)
-{
-    int numbytes = 0;
-    unsigned int value;
-    char *l2byte;
-    u_char databyte;
-
-    if (hexlen <= 0)
-	errx(1, "Hex buffer must be > 0");
-
-    memset(hex, '\0', hexlen);
-
-    /* data is hex, comma seperated, byte by byte */
-
-    /* get the first byte */
-    l2byte = strtok(l2string, ",");
-    sscanf(l2byte, "%x", &value);
-    if (value > 0xff)
-	errx(1, "Invalid hex byte passed to -2: %s", l2byte);
-    databyte = (u_char)value;
-    memcpy(&hex[numbytes], &databyte, 1);
-
-    /* get remaining bytes */
-    while ((l2byte = strtok(NULL, ",")) != NULL) {
-	numbytes ++;
-	if (numbytes + 1 > hexlen) {
-	    warnx("Hex buffer too small for data- skipping data");
-	    return(++numbytes);
+    /* do we apply a bpf filter? */
+    if (options.bpf_filter != NULL) {
+	if (pcap_compile(pcap, &bpf, options.bpf_filter, 
+			 options.bpf_optimize, 0) != 0) {
+	    errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
 	}
-	sscanf(l2byte, "%x", &value);
-	if (value > 0xff)
-	    errx(1, "Invalid hex byte passed to -2: %s", l2byte);
-	databyte = (u_char)value;
-	memcpy(&hex[numbytes], &databyte, 1);
+        pcap_setfilter(pcap, &bpf);
     }
-
-    numbytes ++;
-
-    dbg(1, "Read %d bytes of layer 2 data", numbytes);
-    return(numbytes);
 }
+
 
 
 void
@@ -764,6 +670,11 @@ configfile(char *file)
 	    options.n_iter = atoi(argv[1]);
 	    if (options.n_iter < 0)
 		errx(1, "Invalid loop count: %s", argv[1]);
+	}
+	else if (ARGS("limit_send", 2)) {
+	    options.limit_send = strtoull(argv[1], NULL, 0);
+	    if (options.limit_send <= 0)
+		errx(1, "limit_send <limit> must be positive");
 	}
 	else if (ARGS("multiplier", 2)) {
 	    options.mult = atof(argv[1]);
@@ -963,7 +874,7 @@ usage()
 /*
  * Initialize globals
  */
-static void
+void
 init(void)
 {
     bytes_sent = failed = pkts_sent = 0;
@@ -984,10 +895,13 @@ init(void)
 
     /* sniff mode options */
     options.sniff_snaplen = -1; /* disabled */
-    options.promisc = 1;        /* listen in promisc mode */
+    options.promisc = 1;        /* listen in promisc mode by default */
 
     /* poll timeout (in ms) defaults to infinate */
     options.poll_timeout = -1;
+
+    /* disable limit send */
+    options.limit_send = -1;
 
     /* init the RBTree */
     rbinit();
