@@ -4,6 +4,7 @@
 #include "common/cache.h"
 #include "common/cidr.h"
 #include "common/err.h"
+#include "common/get.h"
 #include "common/fakepcap.h"
 #include "common/fakepcapnav.h"
 #include "common/fakepoll.h"
