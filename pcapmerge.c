@@ -1,4 +1,4 @@
-/* $Id: pcapmerge.c,v 1.1 2002/08/11 21:39:30 mattbing Exp $ */
+/* $Id: pcapmerge.c,v 1.2 2002/12/23 00:08:48 aturner Exp $ */
 
 /* The pcapmerge available at http://indev.insu.com/Fwctl/pcapmerge.html
  * is written in Perl and does not handle large pcaps very well. This
@@ -36,15 +36,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <err.h>
+#include <pcap.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/queue.h>
 #include <sys/time.h>
 #include <sys/types.h>
+
+#include "tcpreplay.h"
+#include "err.h"
+#include "queue.h"
 
 /* magic constants for various pcap file types */
 #define PCAP_MAGIC          		0xa1b2c3d4
@@ -60,24 +63,6 @@
 
 #define SWAPSHORT(y) \
 ( (((y)&0xff)<<8) | ((u_short)((y)&0xff00)>>8) )
-
-/* pcap data stored once at the beginning of the file */
-struct pcap_file_header {
-	u_int32_t magic;			/* magic file header */
-	u_int16_t version_major;	/* major number */
-	u_int16_t version_minor;	/* minor number */
-	u_int32_t thiszone;			/* gmt to local correction */
-	u_int32_t sigfigs;			/* accurary of timestamp */
-	u_int32_t snaplen;			/* max length of saved portion of packet */
-	u_int32_t linktype;			/* data link type */
-};
-
-/* data prefixing each packet */
-struct pcap_pkthdr {
-	struct timeval ts;	/* timestamp */
-	u_int32_t caplen;	/* captured length of the packet */
-	u_int32_t len;		/* actual length of the packet */
-};
 
 /* data prefixing each packet in modified pcap */
 struct pcap_mod_pkthdr {
@@ -106,6 +91,15 @@ struct pcap_file_header hdr;
 int outfd;
 char *outfile;
 
+
+void
+version()
+{
+	fprintf(stderr, "pcapmerge version: %s\n", VERSION);
+	fprintf(stderr, "Compiled against libpcap: %i.%i\n", PCAP_VERSION_MAJOR, PCAP_VERSION_MINOR);
+	exit(0);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -114,13 +108,16 @@ main(int argc, char *argv[])
 
 	outfile = NULL;
 
-	while ((ch = getopt(argc, argv, "o:h?")) != -1) {
+	while ((ch = getopt(argc, argv, "o:h?V")) != -1) {
 		switch (ch) {
-			case 'o':	/* output file */
-				outfile = optarg;
-				break;
-			default:
-				usage();
+		case 'o':	/* output file */
+			outfile = optarg;
+			break;
+		case 'V':
+			version();
+			break;
+		default:
+			usage();
 		}
 	}
 
