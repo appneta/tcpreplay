@@ -1,10 +1,12 @@
 
 dnl $Id$
 
-AC_INIT(src/tcpreplay.c)
+AC_INIT(tcpreplay)
+AC_CONFIG_SRCDIR(src/tcpreplay.c)
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE
+AM_WITH_DMALLOC
 
 dnl Set version info here!
 MAJOR_VERSION=3
@@ -32,17 +34,18 @@ AC_SUBST(target)
 
 AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
 
-AC_C_BIGENDIAN
-
 dnl Checks for programs.
+AC_PROG_INSTALL
+AC_PROG_LIBTOOL
 AC_PROG_CC
+AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_LN_S
 AC_PROG_RANLIB
 AC_PROG_AWK
-AC_PROG_INSTALL
 AC_PROG_MAKE_SET
+AC_EXEEXT
 AC_PATH_PROG(PRINTF, printf)
 AC_PATH_PROG(FIG2DEV, fig2dev)
 AC_PATH_PROG(LYX, lyx)
@@ -50,20 +53,9 @@ AC_PATH_PROG(DVIPS, dvips)
 AC_PATH_PROG(TEXI2DVI, texi2dvi)
 AC_PATH_PROG(LATEX2HTML, latex2html)
 AC_PATH_PROG(DVIPDFM, dvipdfm)
-#AC_SUBST(FIG2DEV)
-#AC_SUBST(PRINTF)
-#AC_SUBST(LYX)
-#AC_SUBST(DVIPS)
-#AC_SUBST(TEXI2DVI)
-#AC_SUBST(LATEX2HTML)
-#AC_SUBST(DVIPDFM)
 
-if test -n $FIG2DEV -a -n $LYX -a -n $DVIPS -a -n $TEXI2DVI \
-    -a -n $LATEX2HTML -a -n $DVIPDFM ; then
-    doctools=yes
-fi
-AM_CONDITIONAL(HAVE_DOCTOOLS, test x$doctools = xyes)
-
+AC_HEADER_STDC
+AC_HEADER_MAJOR
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -74,6 +66,39 @@ AC_SYS_LARGEFILE
 
 dnl Check for functions
 AC_FUNC_FSEEKO
+
+dnl Check for types.
+AC_CHECK_TYPE(u_int8_t, uint8_t)
+AC_CHECK_TYPE(u_int16_t, uint16_t)
+AC_CHECK_TYPE(u_int32_t, uint32_t)
+AC_CHECK_TYPE(u_int64_t, uint64_t)
+
+dnl Check for other header files
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h])
+
+dnl Checks for libraries.
+AC_CHECK_LIB(socket, socket)
+AC_CHECK_LIB(nsl, gethostbyname)
+AC_CHECK_LIB(rt, nanosleep)
+
+dnl Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_TYPE_SIGNAL
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll mmap])
+
+AC_CHECK_MEMBERS([struct timeval.tv_sec])
+
+LIBOPTS_CHECK
+AC_C_BIGENDIAN
+
+if test -n $FIG2DEV -a -n $LYX -a -n $DVIPS -a -n $TEXI2DVI \
+    -a -n $LATEX2HTML -a -n $DVIPDFM ; then
+    doctools=yes
+fi
+AM_CONDITIONAL(HAVE_DOCTOOLS, test x$doctools = xyes)
+
 
 
 dnl Enable debugging in code/compiler options
@@ -108,29 +133,6 @@ AC_ARG_ENABLE(gprof,
   fi
   AC_DEFINE([GPROF], [], [Enable GNU Profiler])
   fi])
-
-dnl Check for types.
-AC_CHECK_TYPE(u_int8_t, uint8_t)
-AC_CHECK_TYPE(u_int16_t, uint16_t)
-AC_CHECK_TYPE(u_int32_t, uint32_t)
-AC_CHECK_TYPE(u_int64_t, uint64_t)
-
-dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h])
-
-dnl Checks for libraries.
-AC_CHECK_LIB(socket, socket)
-AC_CHECK_LIB(nsl, gethostbyname)
-AC_CHECK_LIB(rt, nanosleep)
-
-dnl Checks for library functions.
-AC_FUNC_MALLOC
-AC_FUNC_MEMCMP
-AC_TYPE_SIGNAL
-AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll])
-
-AC_CHECK_MEMBERS([struct timeval.tv_sec])
 
 dnl Check for inet_aton and inet_addr
 AC_CHECK_FUNC(inet_aton, 
