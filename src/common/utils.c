@@ -33,6 +33,8 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
+#include "../../lib/sll.h"
+#include "../dlt.h"
 
 #ifdef DEBUG
 extern int debug;
@@ -141,7 +143,7 @@ packet_stats(struct timeval *begin, struct timeval *end,
 }
 
 int
-read_hexstring(const char *l2string, char *hex, const int hexlen)
+read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 {
     int numbytes = 0;
     unsigned int value;
@@ -213,6 +215,90 @@ argv_create(char *p, int argc, char *argv[])
     return (i);
 }
 
+/*
+ * returns a ptr to the ip header + data or NULL if it's not IP
+ * we may use an extra buffer for the ip header (and above)
+ * on stricly aligned systems where the layer 2 header doesn't
+ * fall on a 4 byte boundry (like a standard ethernet header)
+ *
+ * Note: you can cast the result as an ip_hdr_t, but you'll be able 
+ * to access data above the header minus any stripped L2 data
+ */
+u_char *
+get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff)
+{
+
+    ip_hdr_t *ip_hdr = NULL;
+    eth_hdr_t *eth_hdr = NULL;
+    int l2_len = 0;
+
+    switch (datalink) {
+    case DLT_RAW:
+        /* pktdata IS the ip header! */
+        return pktdata;
+        break;
+
+    case DLT_EN10MB:
+        eth_hdr = (eth_hdr_t *)pktdata;
+        switch (eth_hdr->ether_type) {
+        case ETHERTYPE_IP:              /* ethernet */
+            l2_len =  LIBNET_802_3_H;
+            break;
+        case ETHERTYPE_VLAN:            /* 802.1q */
+            l2_len = LIBNET_802_1Q_H;
+            break;
+        default:
+            /* no IP header above us */
+            return NULL;
+        }
+        break;
+        
+    case DLT_C_HDLC:
+        l2_len = CISCO_HDLC_LEN;
+        break;
+
+    case DLT_LINUX_SLL:
+        l2_len = SLL_HDR_LEN;
+        break;
+
+    default:
+        errx(1, "get_ipv4(): Unable to process unsupported DLT type: %s (0x%x)", 
+             pcap_datalink_val_to_description(datalink), datalink);
+        break;
+    }
+
+    /* sanity... datalen must be > l2_len */
+    if (l2_len <= datalen) {
+        dbg(1, "get_ipv4(): Total packet len <= Layer 2 len, hence no IP header");
+        return NULL;
+    }
+
+#ifdef FORCE_ALIGN
+    /* 
+     * copy layer 3 and up to our temp packet buffer
+     * for now on, we have to edit the packetbuff because
+     * just before we send the packet, we copy the packetbuff 
+     * back onto the pkt.data + l2len buffer
+     * we do all this work to prevent byte alignment issues
+     */
+    if (l2_len % 4) {
+        ip_hdr = (ip_hdr_t *)newbuff;
+        memcpy(ip_hdr, (pktdata + l2_len), (pkthdr.caplen - l2_len));
+    } else {
+
+        /* we don't have to do a memcpy if l2_len lands on a boundry */
+        ip_hdr = (ip_hdr_t *)(pktdata + l2_len);
+    }
+#else
+    /*
+     * on non-strict byte align systems, don't need to memcpy(), 
+     * just point to l2len bytes into the existing buffer
+     */
+    ip_hdr = (ip_hdr_t *) (pktdata + l2_len);
+#endif
+
+    return (u_char *)ip_hdr;
+}
 
 /*
  * returns a pointer to the layer 4 header which is just beyond the IP header

@@ -38,11 +38,13 @@
 #include "defines.h"
 #include "common.h"
 
-int read_hexstring(const char *l2string, char *hex, const int hexlen);
+int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 int argv_create(char *p, int argc, char *argv[]);
 void packet_stats(struct timeval *begin, struct timeval *end, 
         COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
 void *get_layer4(ip_hdr_t * ip_hdr);
+
+u_char *get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff);
 
 /* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
