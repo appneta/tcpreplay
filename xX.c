@@ -1,4 +1,4 @@
-/* $Id: xX.c,v 1.10 2004/02/03 22:54:03 aturner Exp $ */
+/* $Id: xX.c,v 1.11 2004/04/03 22:50:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -60,7 +60,10 @@ parse_xX_str(char mode, char *str)
     CIDR *cidr = NULL;
     int bpf = 0;
 
-    switch (*str) {
+    dbg(1, "Parsing string: %s", str);
+    dbg(1, "Switching on: %c", str[0]);
+
+    switch (str[0]) {
     case 'B':                  /* both ip's */
         str = str + 2;
         include_exclude_mode = xXBoth;
@@ -119,7 +122,8 @@ parse_xX_str(char mode, char *str)
         return (void *)cidr;
     }
     else if (bpf) {
-        return str;
+        /* if BPF, return NULL, so we don't set xX_list or xX_cidr */
+        return str; 
     }
     else {
         return (void *)list;
