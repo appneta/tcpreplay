@@ -1,6 +1,12 @@
 $Id$
 
-02/27/2005: Version 3.beta1
+??/??/????: Version 3.0.beta2
+    - Significant improvements to FAQ and manual
+    - use autoopts for flowreplay
+    - Be more cautious about memcpy's
+    - Fix numerous warnings during compile
+
+02/27/2005: Version 3.0.beta1
     - Major code cleanups and rewriting
       - Rip out all edit functions from tcpreplay and put into tcprewrite
       - Improve tcpreplay performance by about 5% for raw sending
