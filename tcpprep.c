@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.26 2003/11/04 18:16:47 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.27 2003/11/04 18:30:26 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -360,10 +360,10 @@ main(int argc, char *argv[])
 	    mode = REGEX_MODE;
 	    if ((regex_error = regcomp(preg, ourregex, regex_flags))) {
 		if (regerror(regex_error, preg, ebuf, EBUF_SIZE) != -1) {
-		    fprintf(stderr, "Error compiling regex: %s\n", ebuf);
+		    errx(1, "Error compiling regex: %s", ebuf);
 		}
 		else {
-		    fprintf(stderr, "Error compiling regex.\n");
+		    errx(1, "Error compiling regex.");
 		}
 		exit(1);
 	    }
@@ -470,9 +470,7 @@ main(int argc, char *argv[])
 	    if (info)
 		fprintf(stderr, "Building network list from pre-cache...\n");
 	    if (!process_tree()) {
-		fprintf(stderr,
-			"Error: unable to build a valid list of servers. Aborting.\n");
-		exit(1);
+		errx(1, "Error: unable to build a valid list of servers. Aborting.");
 	    }
 	}
 	else {
