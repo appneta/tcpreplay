@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.37 2003/08/31 01:40:05 aturner Exp $ */
+/* $Id: do_packets.c,v 1.38 2003/11/03 02:24:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -34,7 +34,7 @@
  */
 
 #include <libnet.h>
-#include <pcap.h>
+#include <pcapnav.h>
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
@@ -91,7 +91,7 @@ catcher(int signo)
  */
 
 void
-do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l2len)
+do_packets(pcapnav_t * pcapnav, u_int32_t linktype, int l2enabled, char *l2data, int l2len)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -106,6 +106,9 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
     static int firsttime = 1;
     int ret, newl2len;
     unsigned long packetnum = 0;
+    pcapnav_result_t pcapnav_result = 0;
+    char datadumpbuff[MAXPACKET];       /* data dumper buffer */
+    int datalen = 0;                    /* data dumper length */
 
 
     /* create packet buffers */
@@ -126,22 +129,32 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	firsttime = 0;
     }
 
-    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
+    if (options.offset) {
+	if (pcapnav_goto_offset(pcapnav, options.offset) != PCAPNAV_DEFINITELY)
+	    fprintf(stderr, "Unable to get a definate jump offset pcapnav_goto_offset(): %d\n", 
+		    pcapnav_result);
+    }
+
+    /* MAIN LOOP */
+    while ((nextpkt = pcap_next(pcapnav_pcap(pcapnav), &pkthdr)) != NULL) {
 	if (didsig) {
 	    packet_stats();
 	    _exit(1);
 	}
 
+	packetnum++;
+	dbg(2, "packet %d caplen %d", packetnum, pkthdr.caplen);
+
 	/* zero out the old packet info */
 	memset(pktdata, '\0', maxpacket);
+	
 
 	/* Rewrite any Layer 2 data */
-	if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt, linktype, l2enabled, l2data, l2len)) == 0)
+	if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt, 
+				  linktype, l2enabled, l2data, l2len)) == 0)
 	    continue;
 
 	l2len = newl2len;
-
-	packetnum++;
 
 	/* look for include or exclude LIST match */
 	if (xX_list != NULL) {
@@ -268,10 +281,39 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	     */
 	    do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
 
-	/* Physically send the packet */
-	if (options.savepcap != NULL) {
-	    /* write to a file */
-	    pcap_dump((u_char *)options.savedumper, &pkthdr, pktdata);
+	/* Physically send the packet or write to file */
+	if (options.savepcap != NULL || options.datadump_mode) {
+
+	    /* figure out the correct offsets/data len */
+	    if (options.datadump_mode) {
+		memset(datadumpbuff, '\0', MAXPACKET);
+		datalen = extract_data(pktdata, pkthdr.caplen, l2len, &datadumpbuff);
+	    }
+
+	    /* interface 1 */
+	    if (l == options.intf1) {
+		if (options.datadump_mode) { 	/* data only? */
+		    if (datalen) {
+			if (write(options.datadumpfile, datadumpbuff, datalen) == -1)
+			    warnx("error writing data to primary dump file: %s", strerror(errno));
+		    }
+		} else {                        /* full packet */
+		    pcap_dump((u_char *)options.savedumper, &pkthdr, pktdata);
+		}
+		
+	    } 
+
+            /* interface 2 */
+	    else {  
+		if (options.datadump_mode) {    /* data only? */
+		    if (datalen) {
+			if (write(options.datadumpfile2, datadumpbuff, datalen) == -1)
+			    warnx("error writing data to secondary dump file: %s", strerror(errno));
+		    }
+		} else {                        /* full packet */
+		    pcap_dump((u_char *)options.savedumper2, &pkthdr, pktdata);
+		}
+	    }
 	} else {
 	    /* write packet out on network */
 	    do {

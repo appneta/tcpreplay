@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.69 2003/08/31 01:40:05 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.70 2003/11/03 02:24:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -38,7 +38,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <libnet.h>
-#include <pcap.h>
+#include <pcapnav.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -115,12 +115,14 @@ main(int argc, char *argv[])
 
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "d:c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:Tu:Vvw:x:X:?2:")) != -1)
+	    getopt(argc, argv, "B:c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:f:Fhi:I:j:J:l:m:Mp:Pr:Rs:t:u:TVvw:x:X:?2:")) != -1)
+	    getopt(argc, argv, "B:c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:")) != -1)
 #endif
 	switch (ch) {
+	case 'B':               /* break TCP/IP/UDP checksums on X% packets */
+	    
 	case 'c':		/* cache file */
 	    cache_file = optarg;
 	    cache_packets = read_cache(&cachedata, cache_file);
@@ -135,6 +137,10 @@ main(int argc, char *argv[])
 	    debug = atoi(optarg);
 	    break;
 #endif
+	case 'D':               /* dump only data (no headers) to file (-w/-W) */
+	    options.datadump_mode = 1;
+	    options.topspeed = 1;
+	    break;
 	case 'f':		/* config file */
 	    configfile(optarg);
 	    break;
@@ -172,6 +178,9 @@ main(int argc, char *argv[])
 	case 'M':		/* disable sending martians */
 	    options.no_martians = 1;
 	    break;
+	case 'o':               /* starting offset */
+	    options.offset = atol(optarg);
+	    break;
 	case 'p':		/* packets/sec */
 	    options.packetrate = atof(optarg);
 	    if (options.packetrate <= 0)
@@ -205,13 +214,38 @@ main(int argc, char *argv[])
 	    options.truncate = 1;
 	    break;
 	case 'w':               /* write packets to file */
-	    if ((options.savepcap = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
-		errx(1, "error setting output file linktype");
+	    if (! options.datadump_mode) {
+		if ((options.savepcap = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
+		    errx(1, "error setting primary output file linktype");
+		
+		if ((options.savedumper = pcap_dump_open(options.savepcap, optarg)) == NULL)
+		    errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap));
+		
+		warnx("saving primary packets in %s", optarg);
+	    } else {
+		if ((options.datadumpfile = 
+		     creat(optarg, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1)
+		    errx(1, "error creating primary output file: %s\n%s", optarg, 
+			 strerror(errno));
+		warnx("saving primary data in %s", optarg);
+	    }
+	    break;
+	case 'W':               /* write packets to second file */
+	    if (! options.datadump_mode) {
+		if ((options.savepcap2 = pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
+		    errx(1, "error setting secondary output file linktype");
 
-	    if ((options.savedumper = pcap_dump_open(options.savepcap, optarg)) == NULL)
-		errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap));
+		if ((options.savedumper2 = pcap_dump_open(options.savepcap2, optarg)) == NULL)
+		    errx(1, "pcap_dump_open() error: %s", pcap_geterr(options.savepcap2));
 
-	    warnx("saving packets in %s", optarg);
+		warnx("saving secondary packets in %s", optarg);
+	    } else {
+		if ((options.datadumpfile2 = 
+		     creat(optarg, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1)
+		    errx(1, "error creating secondary output file: %s\n%s", optarg, 
+			 strerror(errno));
+		warnx("saving secondary data in %s", optarg);
+	    }
 	    break;
 	case 'u':		/* untruncate packet */
 	    if (strcmp("pad", optarg) == 0) {
@@ -284,8 +318,9 @@ main(int argc, char *argv[])
     if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL)))
 	errx(1, "Needs cache or cidr match with secondary interface");
 
-    if ((intf2 != NULL) && (options.savepcap != NULL))
-	errx(1, "You can't specify an output file and dual-interfaces");
+    if ((intf2 != NULL) && options.datadump_mode && 
+	((options.datadumpfile == 0) || (options.datadumpfile2 == 0)))
+	errx(1, "You must specify two output files when splitting traffic in data dump mode");
 
     if (options.seed != 0) {
 	srand(options.seed);
@@ -362,8 +397,19 @@ main(int argc, char *argv[])
     if (bytes_sent > 0)
 	packet_stats();
 
+    /* save the pcap write file */
     if (options.savepcap != NULL)
 	pcap_dump_close(options.savedumper);
+
+    if (options.savepcap2 != NULL)
+	pcap_dump_close(options.savedumper2);
+
+    /* close the data dump files */
+    if (options.datadumpfile)
+	close(options.datadumpfile);
+
+    if (options.datadumpfile2)
+	close(options.datadumpfile2);
 
     return 0;
 }
@@ -373,16 +419,18 @@ main(int argc, char *argv[])
 void
 replay_file(char *path, int l2enabled, char *l2data, int l2len)
 {
-    pcap_t *pcap;
-    char errbuf[PCAP_ERRBUF_SIZE];
+    const struct pcap_file_header *file_header = NULL;
+    pcapnav_t *pcapnav = NULL;
     u_int32_t linktype = 0;
 
-    if ((pcap = pcap_open_offline(path, errbuf)) == NULL) {
-	errx(1, "Error opening file: %s", errbuf);
+    pcapnav_init();
+
+    if ((pcapnav = pcapnav_open_offline(path)) == NULL) {
+	errx(1, "Error opening file: %s", strerror(errno));
     }
 
-    /* check what kind of pcap we've got */
-    linktype = pcap_datalink(pcap);
+    file_header = pcapnav_get_file_header(pcapnav);
+    linktype = file_header->linktype;
 
     /* 
      * if linktype not DLT_EN10MB we have to see if we can send the frames
@@ -425,8 +473,8 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
     }
 
 
-    do_packets(pcap, linktype, l2enabled, l2data, l2len);
-    pcap_close(pcap);
+    do_packets(pcapnav, linktype, l2enabled, l2data, l2len);
+    pcapnav_close(pcapnav);
 }
 
 
@@ -598,6 +646,9 @@ configfile(char *file)
 	    debug = 1;
 #endif
 	}
+	else if (ARGS("datadump_mode", 1)) {
+	    options.datadump_mode = 1;
+	}
 	else if (ARGS("l2data", 2)) {
 	    l2len = read_hexstring(argv[1], l2data, L2DATALEN);
 	}
@@ -630,6 +681,9 @@ configfile(char *file)
 	}
 	else if (ARGS("no_martians", 1)) {
 	    options.no_martians = 1;
+	}
+	else if (ARGS("offset", 2)) {
+	  options.offset = atol(argv[1]);
 	}
 	else if (ARGS("fixchecksums", 1)) {
 	    options.fixchecksums = 1;
@@ -664,6 +718,9 @@ configfile(char *file)
 	}
 	else if (ARGS("seed", 2)) {
 	    options.seed = atol(argv[1]);
+	}
+	else if (ARGS("offset", 2)) {
+	    options.offset = atol(argv[1]);
 	}
 	else if (ARGS("packetrate", 2)) {
 	    options.packetrate = atof(argv[1]);
@@ -705,8 +762,7 @@ configfile(char *file)
     }
 }
 
-void
-version()
+void version()
 {
     fprintf(stderr, "tcpreplay version: %s", VERSION);
 #ifdef DEBUG
@@ -717,6 +773,7 @@ version()
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+    fprintf(stderr, "Compiled against libpcapnav: %s\n", PCAPNAV_VERSION);
     exit(0);
 }
 
@@ -729,18 +786,23 @@ usage()
 #ifdef DEBUG
     fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
-    fprintf(stderr, "-f <configfile>\t\tSpecify configuration file\n"
+    fprintf(stderr, 
+	    "-D\t\t\tData dump mode (set this BEFORE -w and -W)\n"
+	    "-f <configfile>\t\tSpecify configuration file\n"
 	    "-F\t\t\tFix IP, TCP and UDP checksums\n"
 	    "-h\t\t\tHelp\n"
 	    "-i <nic>\t\tPrimary interface to send traffic out of\n"
 	    "-I <mac>\t\tRewrite dest MAC on primary interface\n"
 	    "-j <nic>\t\tSecondary interface to send traffic out of\n"
-	    "-J <mac>\t\tRewrite dest MAC on secondary interface\n"
+	    "-J <mac>\t\tRewrite dest MAC on secondary interface\n");
+    fprintf(stderr, 
 	    "-l <loop>\t\tSpecify number of times to loop\n"
 	    "-m <multiple>\t\tSet replay speed to given multiple\n"
 	    "-M\t\t\tDisable sending martian IP packets\n"
+	    "-o <offset>\t\tStarting byte offset\n"
 	    "-p <packetrate>\t\tSet replay speed to given rate (packets/sec)\n");
     fprintf(stderr, 
+	    "-P\t\t\tPrint PID\n"
 	    "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 	    "-R\t\t\tSet replay speed to as fast as possible\n"
 	    "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
@@ -749,7 +811,8 @@ usage()
 	    "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
 	    "-V\t\t\tVersion\n");
     fprintf(stderr,
-	    "-w <file>\t\tWrite packets to file\n"
+	    "-w <file>\t\tWrite (primary) packets or data to file\n"
+	    "-W <file>\t\tWrite secondary packets or data to file\n"
 	    "-x <match>\t\tOnly send the packets specified\n"
 	    "-X <match>\t\tSend all the packets except those specified\n"
 	    "-2 <datafile>\t\tLayer 2 data\n"

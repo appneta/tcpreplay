@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.38 2003/10/20 01:24:34 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.39 2003/11/03 02:24:28 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -73,7 +73,14 @@ struct options {
     LIBNET *intf1;
     LIBNET *intf2;    
     pcap_t *savepcap;
+    pcap_t *savepcap2;
     pcap_dumper_t *savedumper;
+    pcap_dumper_t *savedumper2;
+    int datadump_mode;
+    int datadumpfile;
+    int datadumpfile2;
+    char break_type;
+    int break_percent;
     char intf1_mac[6];
     char intf2_mac[6];
     float rate;
@@ -91,6 +98,7 @@ struct options {
     int truncate;
     char **files;
     char *cache_files;
+    off_t offset;
 };
 
 #define RESOLVE 0		/* disable dns lookups */
