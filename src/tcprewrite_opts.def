@@ -1,7 +1,7 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2004";
+    date        = "2004-2005";
     owner       = "Aaron Turner";
     eaddr       = "aturner@pobox.com";
     type        = "bsd";
@@ -20,6 +20,7 @@ config-header   = "config.h";
 include         = "#include \"defines.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"tcprewrite.h\"\n"
+                "#include \"mac.h\"\n"
                 "extern char pcap_version[];\n"
                 "extern tcprewrite_opt_t options;\n";
 
