@@ -55,7 +55,7 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .LP
 .I Tcpprep
 is a program for creating a cache file for later use with \fItcpreplay(8)\fP.  By
-using tcpprep to pre-process a pcap or snoop file, tcpreplay in dual-nic mode can
+using tcpprep to pre-process a pcap, tcpreplay in dual-nic mode can
 match the performance of the traditional tcpreplay single-nic mode.
 .LP
 The basic operation of
@@ -86,7 +86,7 @@ the secondary interface.  Can't be used with -r or -a.
 Help.
 .TP
 .B \-i
-Input file (pcap or snoop format)
+Input file (pcap format)
 .TP
 .B \-m
 Minimum mask length.  Used in auto/router mode to set the minimum valid
@@ -178,7 +178,7 @@ for large input files.)
 .B \-V
 Print version info and exit.
 .SH "SEE ALSO"
-tcpdump(8), tcpreplay(8), snoop(1M), capinfo(1)
+tcpdump(8), tcpreplay(8), capinfo(1)
 .SH AUTHOR
 Aaron Turner <aturner@pobox.com>
 .LP
