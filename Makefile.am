@@ -4,28 +4,25 @@ include $(top_srcdir)/libopts/MakeDefs.inc
 
 SUBDIRS = scripts lib $(LIBOPTS_DIR) src
 DIST_SUBDIRS = scripts lib src docs libopts
-.PHONY: docs test
+.PHONY: manpages docs test
 
 dist-hook: version manpages docs 
 
 DOCS_DIR = $(top_builddir)/docs
 
-docs:
-	cd scripts && make
+docs: manpages
 	echo Making docs in $(DOCS_DIR)
 	cd $(DOCS_DIR) && make docs
 
 clean-docs:
 	cd $(DOCS_DIR) && make clean-docs
 
-postweb:
+postweb: manpages docs
 	cd $(DOCS_DIR) && make postweb
 
 manpages:
 	cd scripts && make
 	cd src && make manpages
-	rm -f scripts/man2html
-
 
 TEST_DIR = $(top_builddir)/test
 
