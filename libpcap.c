@@ -1,4 +1,4 @@
-/* $Id: libpcap.c,v 1.12 2004/07/25 23:37:57 aturner Exp $ */
+/* $Id: libpcap.c,v 1.13 2004/08/09 19:35:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -39,7 +39,7 @@
 #include "capinfo.h"
 #include "libpcap.h"
 #include "err.h"
-#include "dlt_names.h"
+#include "fakepcap.h"
 
 /* state of the current pcap file */
 struct pcap_file_header phdr;
@@ -154,10 +154,7 @@ stat_pcap(int fd, struct pcap_info *p)
     p->modified = modified;
     p->swapped = swapped ? endian[1] : endian[0];
     p->phdr = phdr;
-    if (phdr.linktype > DLT2NAME_LEN)
-        p->linktype = "Unknown";
-    else
-        p->linktype = dlt2name[phdr.linktype];
+    p->linktype = pcap_datalink_val_to_description(phdr.linktype);
 
     p->bytes = p->trunc = 0;
     for (p->cnt = 0; get_next_pcap(fd, &pkt); p->cnt++) {
