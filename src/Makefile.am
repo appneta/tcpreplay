@@ -9,7 +9,7 @@ tcpreplay_opts.c:
 
 bin_PROGRAMS = tcpreplay tcpprep flowreplay tcprewrite
 
-tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c timer.c \
+tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c \
 		    signal_handler.c tcpreplay.c
 		    
 
@@ -41,7 +41,7 @@ tcpprep_LDADD =  ./common/libcommon.a ../lib/libstrl.a \
 flowreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 		   @LNETLIB@ @LPCAPLIB@
 
-noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h timer.h \
+noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
 		 defines.h dlt.h dlt_names.h edit_packet.h tree.h \
 		 send_packets.h flowbuff.h flowkey.h flownode.h flowstate.h \
 		 signal_handler.h common.h tcpreplay_opts.h \
