@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.25 2003/11/04 05:58:56 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.26 2003/11/04 18:16:47 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -456,7 +456,10 @@ main(int argc, char *argv[])
         pcap_setfilter(pcap, &bpf);
     }
 
-    totpackets = process_raw_packets(pcap);
+    if ((totpackets = process_raw_packets(pcap)) == 0) {
+	pcap_close(pcap);
+	errx(1, "Error: no packets were processed.  Filter too limiting?");
+    }
     pcap_close(pcap);
 
 
