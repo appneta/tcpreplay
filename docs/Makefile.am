@@ -58,7 +58,7 @@ manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html \
 
 postweb: webfiles manpages
 	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
-		-avz web/ aturner@synfin.net:/var/www-vhosts/tcpreplay/
+		-avz web/ aturner@tequila.synfin.net:/var/www-vhosts/tcpreplay/
 
 endif
 
