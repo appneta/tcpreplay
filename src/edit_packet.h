@@ -35,9 +35,10 @@
 
 
 int untrunc_packet(struct pcap_pkthdr *pkthdr, u_char *pktdata, ip_hdr_t *ip_hdr);
-int randomize_ips(struct pcap_pkthdr *pktdhr, u_char *pktdata, ip_hdr_t *ip_hdr);
+int randomize_ipv4(struct pcap_pkthdr *pktdhr, u_char *pktdata, ip_hdr_t *ip_hdr);
+int randomize_iparp(struct pcap_pkthdr *pkthdr, u_char *pktdata, int datalink);
+u_int32_t randomize_ip(u_int32_t ip);
 void fix_checksums(struct pcap_pkthdr *pkdhdr, ip_hdr_t *ip_hdr);
-int rewrite_l2(pcap_t *pcap, struct pcap_pkthdr *pkthdr, u_char *pktdata, int cache_mode);
 int extract_data(u_char *pktdata, int caplen, char *l7data[]);
 u_int32_t remap_ip(cidr_t *cidr, const u_int32_t original);
 int rewrite_ipl3(ip_hdr_t *ip_hdr, int cache_mode);
