@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.7 2002/05/13 22:18:05 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.8 2002/06/20 05:53:05 aturner Exp $ */
 
 #include "config.h"
 
@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "cache.h"
+#include "cidr.h"
 #include "libpcap.h"
 #include "snoop.h"
 #include "tcpreplay.h"
@@ -23,7 +24,7 @@ struct libnet_link_int *l_intf, *l_intf2;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
 float rate, mult;
-int n_iter, verbose, Rflag, Sflag;
+int n_iter, verbose, Rflag, Sflag, Cflag;
 volatile int didsig;
 char *intf, *intf2, primary_mac[6], secondary_mac[6];
 #ifdef DEBUG
@@ -34,6 +35,9 @@ int debug = 0;
 CACHE *cachedata = NULL;
 int cache_bit = 0, cache_byte = 0;
 int cache_packets;
+
+/* cidr related vars */
+CIDR * cidrdata = NULL;
 
 void replay_file(char *);
 void do_packets(int, int (*)(int, struct packet *));
@@ -59,16 +63,21 @@ main(int argc, char *argv[])
 	rate = 10.0;
 	Rflag = 0;
 	Sflag = 0;
+	Cflag = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "cd:i:I:j:J:l:m:r:RSv:")) != -1)
+	while ((ch = getopt(argc, argv, "cd:hi:I:j:J:l:m:r:RSv:")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "ci:I:j:J:l:m:r:RSv:")) != -1)
+	while ((ch = getopt(argc, argv, "c:hi:I:j:J:l:m:r:C:RSv:")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
 			cache_file = optarg;
 			cache_packets = read_cache(cache_file);
+			break;
+		case 'h': /* help */
+			usage();
+			exit (0);
 			break;
 		case 'i': /* interface */
 			intf = optarg;
@@ -114,6 +123,12 @@ main(int argc, char *argv[])
 		case 'v': /* verbose */
 			verbose++;
 			break;
+		case 'C': /* cidr matching */
+			Cflag = 1;
+			if (! parse_cidr(optarg)) {
+				usage();
+			}
+			break;
 		default:
 			usage();
 		}
@@ -135,8 +150,8 @@ main(int argc, char *argv[])
 	if ((intf2 == NULL) && (cache_file != NULL))
 		errx(1, "Needs secondary interface with cache");
 
-	if ((intf2 != NULL) && (cache_file == NULL))
-		errx(1, "Needs cache with secondary interface");
+	if ((intf2 != NULL) && (!Cflag && (cache_file == NULL) ))
+		errx(1, "Needs cache or cidr match with secondary interface");
 
 	if ((l_intf = libnet_open_link_interface(intf, ebuf)) == NULL)
 		errx(1, "Cannot open %s: %s", intf, ebuf);
@@ -192,6 +207,7 @@ replay_file(char *path)
 void
 do_packets(int fd, int (*get_next)(int, struct packet *))
 {
+	struct libnet_ip_hdr *ip_hdr = NULL;
 	struct libnet_ethernet_hdr *eth_hdr = NULL;
 	struct libnet_link_int *l = NULL;
 	struct packet pkt;
@@ -217,26 +233,33 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 		/* Dual nic processing */
 		if (intf2 != NULL) {
-			if (packet_num > cache_packets)
-				errx(1, "Exceeded number of packets in cache file");
+			/* Cache Mode */
+			if (!Cflag) {
+				if (packet_num > cache_packets)
+					errx(1, "Exceeded number of packets in cache file");
 
-			if (cachedata->data[cache_byte] & 
-				(char)pow((long)2, (long)cache_bit) ) {
-				/* check for destination MAC rewriting */
-				if (primary_mac != NULL) {
-					eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
-					memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
+				if (cachedata->data[cache_byte] & 
+					(char)pow((long)2, (long)cache_bit) ) {
+					/* set interface to send out packet */
+					i = intf; 
+					l = l_intf;
+
+					/* check for destination MAC rewriting */
+					if (primary_mac != NULL) {
+						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
+						memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
+					}
 				} else {
-					/* override interface to send out packet */
+					/* set interface to send out packet */
 					i = intf2; 
 					l = l_intf2;
-				
+
 					/* check for destination MAC rewriting */
 					if (secondary_mac != NULL) {
 						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 						memcpy(eth_hdr->ether_dhost, secondary_mac, ETHER_ADDR_LEN);
 					}
-				} /* end cidr processing */
+				} /* end cache processing */
 			
 				/* increment our bit/byte pointers for next time */
 				if (cache_bit == 7) {
@@ -244,8 +267,32 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					cache_byte++;
 				} else {
 					cache_bit++;
-				}	
-			} 
+				}
+			/* CIDR Mode */
+			} else {
+				ip_hdr = (struct libnet_ip_hdr *) (pkt.data + LIBNET_ETH_H);
+				if (check_ip_CIDR(ip_hdr->ip_src.s_addr)) {
+					/* set interface to send out packet */
+					i = intf;
+					l = l_intf;
+
+					/* check for destination MAC rewriting */
+					if (primary_mac != NULL) {
+						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
+						memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
+					}
+				} else {
+					/* override interface to send out packet */
+					i = intf2;
+					l = l_intf2;
+
+					/* check for destination MAC rewriting */
+					if (secondary_mac != NULL) {
+						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
+						memcpy(eth_hdr->ether_dhost, secondary_mac, ETHER_ADDR_LEN);
+					}
+				}
+			}
 		} else {
 			/* normal operation */
 			l = l_intf;
@@ -416,6 +463,6 @@ usage()
 #ifdef DEBUG
 	fprintf(stderr, " [-d]");
 #endif
-  	fprintf(stderr,"\n[-r rate] [-c cache] [-I pri mac] [-J sec mac] [-v] <file>\n");
+  	fprintf(stderr,"\n[-r rate] [-c cache|-C CIDR,...] [-I pri mac] [-J sec mac] [-v] [-h] <file>\n");
 	exit(1);
 }
