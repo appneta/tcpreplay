@@ -88,7 +88,6 @@ double ratio = 0.0;
 int max_mask = DEF_MAX_MASK;
 int min_mask = DEF_MIN_MASK;
 int non_ip = 0;
-int Sflag = 0;
 
 static void usage();
 static void version();
@@ -226,9 +225,9 @@ main(int argc, char *argv[])
 		err(1, "malloc");
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:Ihm:M:n:N:SV")) != -1)
+	while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:Ihm:M:n:N:V")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "ac:r:R:o:i:Ihm:M:n:N:SV")) != -1)
+	while ((ch = getopt(argc, argv, "ac:r:R:o:i:Ihm:M:n:N:V")) != -1)
 #endif
 		switch (ch) {
 		case 'a':
@@ -296,9 +295,6 @@ main(int argc, char *argv[])
 		case 'R':
 			ratio = atof(optarg);
 			break;
-		case 'S':
-			Sflag = 1;
-			break;
 		case 'V':
 			version();
 			break;
@@ -349,10 +345,18 @@ readpcap:
 		errx(1, "could not open: %s", infilename);
 	}
 	/* process the pcap file */
-	if (Sflag && is_snoop(in_file)) {
+	if (is_snoop(in_file)) {
+#ifdef DEBUG
+		if (debug)
+			warnx("File %s is a snoop file", path);
+#endif
 		process_raw_packets(in_file, get_next_snoop);
 		(void) close(in_file);
 	} else if (is_pcap(in_file)) {
+#ifdef DEBUG
+		if (debug)
+			warnx("File %s is a pcap file", path);
+#endif
 		process_raw_packets(in_file, get_next_pcap);
 		(void) close(in_file);
 	} else {

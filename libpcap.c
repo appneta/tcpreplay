@@ -1,12 +1,14 @@
-/* $Id: libpcap.c,v 1.2 2002/06/28 04:23:15 aturner Exp $ */
+/* $Id: libpcap.c,v 1.3 2002/07/27 20:18:40 aturner Exp $ */
 
 #include "config.h"
 
 #include <err.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 #include "libpcap.h"
+
 
 /* data-link level type codes */
 char *pcap_links[] =  {
@@ -40,6 +42,10 @@ int swapped;
 /* return flag if this is a pcap file */
 int 
 is_pcap(int fd) {
+
+	if (lseek(fd, SEEK_SET, 0) != 0) {
+		err(1, "Unable to seek to start of file");
+	}
 
 	if (read(fd, (void *)&phdr, sizeof(phdr)) != sizeof(phdr)) 
 		return 0;

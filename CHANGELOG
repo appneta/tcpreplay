@@ -5,12 +5,14 @@ xx/xx/xxxx: Version 1.2
 	- Added CIDR dual-nic support to tcpreplay. 
 	- Fix for -I in tcpreplay when only using a single NIC.
 	- Remove requirement for libpcap in tcpprep.  We're now
-	  100% libpcap independant.
+		  100% libpcap independant.
 	- tcpprep now supports snoop files.
 	- Added -u flag to untruncate IP packets (pad/trunc)
 	- Fixed --with-debug configure option
 	- Added RPM .spec file
 	- Added -M flag to ignore martian IP packets
+	- Now auto-detects snoop/pcap files.  Remove -S flag from tcpprep and
+		tcpreplay
 
 06/17/2002: Version 1.1
 	- Major rewrite

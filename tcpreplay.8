@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.11 2002/07/27 19:09:57 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.12 2002/07/27 20:18:40 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -33,8 +33,6 @@ tcpreplay \- replay packets from capture files
 ] [
 .B \-C 
 CIDR...
-] [
-.B \-S
 ] [
 .B \-u pad|trunc
 ] [
@@ -116,9 +114,6 @@ the secondary interface.  Can't be used with -c.
 .TP
 .B \-R
 Resend the packets as fast as possible. Negates other speed options.
-.TP
-.B \-S
-Indicates the specified files are in snoop format.
 .TP
 .B \-u
 Untruncates IP packets when snaplen > the actual packet length.  Packets can

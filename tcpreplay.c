@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.23 2002/07/27 19:09:57 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.24 2002/07/27 20:18:40 aturner Exp $ */
 
 #include "config.h"
 
@@ -25,7 +25,7 @@ CACHE *cachedata = NULL;
 CIDR *cidrdata = NULL;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
-int verbose, Mflag, Rflag, Sflag, Cflag, uflag, cache_bit, cache_byte, cache_packets;
+int verbose, Mflag, Rflag, Cflag, uflag, cache_bit, cache_byte, cache_packets;
 volatile int didsig;
 
 #ifdef DEBUG
@@ -56,13 +56,13 @@ main(int argc, char *argv[])
 	options.n_iter = 1;
 	options.rate = 0.0;
 
-	Mflag = Rflag =  Sflag = Cflag = uflag = 0;
+	Mflag = Rflag = Cflag = uflag = 0;
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:Mr:RSu:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:Mr:RSu:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -119,9 +119,6 @@ main(int argc, char *argv[])
 			break;
 		case 'R': /* replay at top speed */
 			Rflag = 1;
-			break;
-		case 'S': /* snoop files */
-			Sflag = 1;
 			break;
 		case 'v': /* verbose */
 			verbose++;
@@ -231,10 +228,18 @@ replay_file(char *path)
 		return;
 	}
 
-	if (Sflag && is_snoop(fd)) {
+	if (is_snoop(fd)) {
+#ifdef DEBUG
+		if (debug)
+			warnx("File %s is a snoop file", path);
+#endif
 		do_packets(fd, get_next_snoop);
 		(void)close(fd);
 	} else if (is_pcap(fd)) {
+#ifdef DEBUG
+		if (debug)
+			warnx("File %s is a pcap file", path);
+#endif
 		do_packets(fd, get_next_pcap);
 		(void)close(fd);
 	} else {

@@ -1,4 +1,4 @@
-/* $Id: snoop.c,v 1.3 2002/06/28 04:23:15 aturner Exp $ */
+/* $Id: snoop.c,v 1.4 2002/07/27 20:18:40 aturner Exp $ */
  
 #include "config.h"
 
@@ -50,6 +50,10 @@ int
 is_snoop(int fd) 
 {
 	char *snoop_magic = SNOOP_MAGIC;
+
+	if (lseek(fd, SEEK_SET, 0) != 0) {
+		err(1, "Unable to seek to start of file");
+	}	
 
 	if (read(fd, &shdr, sizeof(shdr)) != sizeof(shdr))
 		return 0;

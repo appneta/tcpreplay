@@ -42,9 +42,7 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 ] [
 .B \-R
 .I ratio
-] [
-.B \-S
-] 
+]
 .br
 .ad
 .SH DESCRIPTION
@@ -139,9 +137,6 @@ The ratio of server connections to client connections necessary to be
 classified as a server in auto mode.  A system is classified as a server if
 [# server connections] >= ([# client connections] * [ratio]).  Default is:
 2.0
-.TP
-.B \-S
-Indicates the specified input file is in Solaris snoop(1M) format.
 .TP
 .B \-V
 Print version info and exit.
