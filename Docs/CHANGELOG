@@ -1,18 +1,18 @@
-$Id: CHANGELOG,v 1.19 2003/11/03 02:25:20 aturner Exp $
+$Id: CHANGELOG,v 1.20 2003/11/03 15:49:12 aturner Exp $
 
-??/??/2003: Version 1.5.alpha5
+11/03/2003: Version 1.5.alpha5
         - Add -T to truncate packets > MTU so they can be sent
         - Now fixes ICMP checksums as appropriate
         - Updated FAQ
         - Updated flowreplay design doc
-	- Merge packetrate code from 1.4.5
-	- Fix compile issues under Libnet 1.1.1
-	- --with-debug now enables debuging during 'make test'
+        - Merge packetrate code from 1.4.5
+        - Fix compile issues under Libnet 1.1.1
+        - --with-debug now enables debuging during 'make test'
         - Fix various Solaris compatibility bugs
-        - Add data dump mode which dumps l7 data to the file (-D)
-        - Add libpcapnav
+        - Add data dump mode which dumps layer 7 data to the file (-D)
+        - Now requires libpcapnav
         - Allow to jump X bytes into the pcap and start replaying packets (-o)
-        - Can now split traffic into files (-w & -W)
+        - Can now split traffic/data into files (-w & -W)
 
 07/16/2003: Version 1.5.alpha4
         - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
