@@ -66,7 +66,7 @@ Fixes IP and TCP/UDP checksums in packets.  Auto\-forced with \-s, \-u, \-T \-N 
 .B \-h
 Prints help/usage
 .TP 
-.B \-i or "intf"
+.B \-i or "primary_intf"
 Specify the prmary interface in which to send packets.
 .TP 
 .B \-I or "primary_mac"
@@ -173,12 +173,12 @@ Verbose mode, dump decoded packets via tcpdump to STDOUT.
 .B \-V
 Print version info and exit.
 .TP 
-.B \-w or "write"
+.B \-w or "primary_write"
 Specify the output file to write the primary packets to instead of the network.
 You still must specify the primary interface via \-i.  If \-D is set before it,
 it will write only the layer 7 data.
 .TP 
-.B \-W or "secondary_write"
+.B \-W or "second_write"
 Specify the output file to write the secondary packets to instead of the 
 network.  You still must specify the secondary interface via \-j.  If \-D is 
 set before it, it will write only the layer 7 data.
