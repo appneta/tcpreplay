@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.23 2002/11/21 00:16:59 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.24 2002/11/22 23:11:04 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -61,7 +61,7 @@ struct options {
 /* internal representation of a packet */
 struct packet {
 	char data[MAXPACKET];	/* pointer to packet contents */
-	int len;				/* length of the captured packet */
+	int len;				/* length of data (snaplen) */
 	int actual_len;				/* actual length of the packet */
 	struct timeval ts;			/* timestamp */
 };
