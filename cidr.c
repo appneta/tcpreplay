@@ -1,4 +1,4 @@
-/* $Id: cidr.c,v 1.23 2004/04/03 22:40:33 aturner Exp $ */
+/* $Id: cidr.c,v 1.24 2004/05/14 17:29:45 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -207,8 +207,11 @@ cidr2CIDR(char *cidr)
      */
     count = sscanf(cidr, "%u.%u.%u.%u/%d", &octets[0], &octets[1],
                    &octets[2], &octets[3], &newcidr->masklen);
-    if (count != 5)
+    if (count == 4) {
+        newcidr->masklen = 32;
+    } else if (count != 5) {
         goto error;
+    }
 
     /* masklen better be 0 =< masklen <= 32 */
     if (newcidr->masklen > 32)
@@ -257,16 +260,17 @@ parse_cidr(CIDR ** cidrdata, char *cidrin, char *delim)
 {
     CIDR *cidr_ptr;             /* ptr to current cidr record */
     char *network = NULL;
+    char *token = NULL;
 
     /* first itteration of input using strtok */
-    network = strtok(cidrin, delim);
+    network = strtok_r(cidrin, delim, &token);
 
     *cidrdata = cidr2CIDR(network);
     cidr_ptr = *cidrdata;
 
     /* do the same with the rest of the input */
     while (1) {
-        network = strtok(NULL, delim);
+        network = strtok_r(NULL, delim, &token);
         /* if that was the last CIDR, then kickout */
         if (network == NULL)
             break;
@@ -290,10 +294,11 @@ parse_cidr_map(CIDRMAP **cidrmap, char *optarg)
 {
     CIDR *cidr = NULL;
     char *map = NULL;
+    char *token = NULL;
     CIDRMAP *ptr;
 
     /* first iteration */
-    map = strtok(optarg, ",");
+    map = strtok_r(optarg, ",", &token);
     if (! parse_cidr(&cidr, map, ":"))
         return 0;
 
@@ -311,7 +316,7 @@ parse_cidr_map(CIDRMAP **cidrmap, char *optarg)
 
     /* do the same with the reset of the input */
     while(1) {
-        map = strtok(NULL, ",");
+        map = strtok_r(NULL, ",", &token);
         if (map == NULL)
             break;
 
@@ -323,7 +328,7 @@ parse_cidr_map(CIDRMAP **cidrmap, char *optarg)
             return 0;
 
         /* copy over */
-        ptr->next = (struct cidr_map *)new_cidr_map;
+        ptr->next = new_cidr_map();
         ptr = ptr->next;
         ptr->from = cidr;
         ptr->to = cidr->next;
