@@ -1,4 +1,4 @@
-/* $Id: pcapmerge.c,v 1.2 2002/12/23 00:08:48 aturner Exp $ */
+/* $Id: pcapmerge.c,v 1.3 2003/01/02 06:47:32 aturner Exp $ */
 
 /* The pcapmerge available at http://indev.insu.com/Fwctl/pcapmerge.html
  * is written in Perl and does not handle large pcaps very well. This
@@ -48,6 +48,10 @@
 #include "tcpreplay.h"
 #include "err.h"
 #include "queue.h"
+
+#ifdef DEBUG
+int debug = 0;
+#endif
 
 /* magic constants for various pcap file types */
 #define PCAP_MAGIC          		0xa1b2c3d4
