@@ -37,24 +37,55 @@ detail = <<- EODetail
 EODetail;
 
 
+/* Modes: -a bridge/router/client/server, -c (cidr) */
 flag = {
-    ifdef       = HAVE_TCPDUMP;
-    name        = verbose;
-    value       = v;
+    name        = auto;
+    value       = a;
+    descrip     = "Auto-split mode";
+    arg-type    = string;
     max         = 1;
-    immediate;
-    descrip     = "Print decoded packets via tcpdump to STDOUT";
-    settable;
+    flags-cant  = cidr;
+    flags-cant  = port;
+    flags-cant  = regex;
+    flag-code   = <<- EOAuto
+    
+    options.mode = AUTO_MODE;
+    if (strcmp(OPT_ARG(AUTO), "bridge") == 0) {
+        options.automode = BRIDGE_MODE;
+    }
+    else if (strcmp(OPT_ARG(AUTO), "router") == 0) {
+        options.automode = ROUTER_MODE;
+    }
+    else if (strcmp(OPT_ARG(AUTO), "client") == 0) {
+        options.automode = CLIENT_MODE;
+    }
+    else if (strcmp(OPT_ARG(AUTO), "server") == 0) {
+        options.automode = SERVER_MODE;
+    }
+    else {
+        errx(1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
+    }
+EOAuto;
 };
 
 flag = {
-    ifdef       = HAVE_TCPDUMP;
-    name        = decode;
-    flags-must  = verbose;
-    value       = A;
+    name        = comment;
+    value       = C;
     arg-type    = string;
     max         = 1;
-    descrip     = "Arguments passed to tcpdump decoder";
+    descrip     = "Embeded cache file comment";
+    flag-code   = <<- EOComment
+
+    /* our comment_len is only 16bit - myargs[] */
+    if (strlen(OPT_ARG(COMMENT)) > ((1 << 16) - 1 - MYARGS_LEN))
+                errx(1, "Comment length %d is longer then max allowed (%d)", 
+                strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
+    
+    /* save the comment */
+    options.comment = (char *)safe_malloc(strlen(OPT_ARG(COMMENT)) + 1);
+    strcpy(options.comment, OPT_ARG(COMMENT));
+    
+EOComment;
 };
 
 flag = {
@@ -165,7 +196,7 @@ flag = {
     descrip     = "Send non-IP traffic out server interface";
     flag-code   = <<- EONonip
  
-    options.nonip = 1;
+    options.nonip = SERVER;
     
 EONonip;
 };
@@ -182,26 +213,6 @@ flag = {
     arg-default = 0;
     arg-range   = "0->";
     descrip     = "Limit the number of packets to send";
-};
-
-flag = {
-    name        = comment;
-    value       = C;
-    arg-type    = string;
-    max         = 1;
-    descrip     = "Embeded cache file comment";
-    flag-code   = <<- EOComment
-
-    /* our comment_len is only 16bit - myargs[] */
-    if (strlen(OPT_ARG(COMMENT)) > ((1 << 16) - 1 - MYARGS_LEN))
-                errx(1, "Comment length %d is longer then max allowed (%d)", 
-                strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
-    
-    /* save the comment */
-    options.comment = (char *)safe_malloc(strlen(OPT_ARG(COMMENT)) + 1);
-    strcpy(options.comment, OPT_ARG(COMMENT));
-    
-EOComment;
 };
 
 flag = {
@@ -237,37 +248,6 @@ flag = {
     max         = 1;
     arg-type    = number;
     arg-range   = "0->32";
-};
-
-/* Modes: -a bridge/router/client/server, -c (cidr) */
-flag = {
-    name        = auto;
-    value       = a;
-    descrip     = "Auto-split mode";
-    arg-type    = string;
-    max         = 1;
-    flags-cant  = cidr;
-    flags-cant  = port;
-    flags-cant  = regex;
-    flag-code   = <<- EOAuto
-    
-    options.mode = AUTO_MODE;
-    if (strcmp(OPT_ARG(AUTO), "bridge") == 0) {
-        options.automode = BRIDGE_MODE;
-    }
-    else if (strcmp(OPT_ARG(AUTO), "router") == 0) {
-        options.automode = ROUTER_MODE;
-    }
-    else if (strcmp(OPT_ARG(AUTO), "client") == 0) {
-        options.automode = CLIENT_MODE;
-    }
-    else if (strcmp(OPT_ARG(AUTO), "server") == 0) {
-        options.automode = SERVER_MODE;
-    }
-    else {
-        errx(1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
-    }
-EOAuto;
 };
 
 flag = {
@@ -317,10 +297,30 @@ EORegex;
 flag = {
     name        = port;
     value       = p;
-    desecrip    = "Port-split mode";
+    descrip     = "Port-split mode";
     flags-cant  = auto;
     flags-cant  = regex;
     flags-cant  = cidr;
+};
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = verbose;
+    value       = v;
+    max         = 1;
+    immediate;
+    descrip     = "Print decoded packets via tcpdump to STDOUT";
+    settable;
+};
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = decode;
+    flags-must  = verbose;
+    value       = A;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Arguments passed to tcpdump decoder";
 };
 
 flag = {
