@@ -7,7 +7,18 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .B tcpprep
 [
 .B \-a
+.B \-n
+[
+.I bridge
 |
+.I router
+|
+.I client
+|
+.I server
+|
+.I port
+] |
 .B \-c
 .I CIDR,...
 |
@@ -15,10 +26,10 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .I regex
 |
 .B \-p
-|
-.B \-P
 ] [
-.B \-h|-V
+.B \-h 
+|
+.B \-V
 ] [
 .B \-i
 .I pcapfile
@@ -31,24 +42,10 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .B \-M
 .I maxmask
 ] [
-.B \-n
-.I bridge
-|
-.I router
-|
-.I client
-|
-.I server
-|
-.I port
-] [
 .B \-N
 .I client
 |
 .I server
-] [
-.B \-o
-.I cachefile
 ] [
 .B \-R
 .I ratio
@@ -58,9 +55,14 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 |
 .B \-X
 .I exclude
-]
+] [
 .B \-C 
 .I comment
+]
+.B \-o
+|
+.B \-P
+.I cachefile
 .br
 .ad
 .SH DESCRIPTION
