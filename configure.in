@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.13 2002/11/12 07:45:07 aturner Exp $
+dnl $Id: configure.in,v 1.14 2002/11/19 23:28:55 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -25,6 +25,9 @@ AC_PROG_CPP
 AC_FUNC_MEMCMP
 AC_PATH_PROG(PRINTF, printf)
 AC_SUBST(PRINTF)
+
+AC_PATH_PROG(LIBNET_CONFIG, libnet-config)
+AC_SUBST(LIBNET_CONFIG)
 
 dnl Enable debugging in code/compiler options
 debug=no
@@ -118,12 +121,12 @@ AC_ARG_WITH(libnet,
      if test -f $withval/include/libnet.h -a -f $withval/lib/libnet.a; then
         owd=`pwd`
         if cd $withval; then withval=`pwd`; cd $owd; fi
-	if test -f $withval/bin/libnet-config; then
+	if test -x $withval/bin/libnet-config; then
 	   CFLAGS="$CFLAGS `$withval/bin/libnet-config --defines`"
-	elif test -f $withval/libnet-config; then
+	elif test -x $withval/libnet-config; then
 	   CFLAGS="$CFLAGS `$withval/libnet-config --defines`"
-	else
-	   CFLAGS="$CFLAGS `libnet-config --defines`"
+	elif test -x $LIBNET_CONFIG; then
+	   CFLAGS="$CFLAGS `$LIBNET_CONFIG --defines`"
 	fi
 	LNETINC="-I$withval/include"
 	LNETINCDIR="$withval/include/"
@@ -134,12 +137,16 @@ AC_ARG_WITH(libnet,
      ;;
   esac ],
 [ if test -f ${prefix}/include/libnet.h; then
-     CFLAGS="$CFLAGS `${prefix}/bin/libnet-config --defines`"
+     if test -x ${prefix}/bin/libnet-config; then
+         CFLAGS="$CFLAGS `${prefix}/bin/libnet-config --defines`"
+     fi
      LNETINC="-I${prefix}/include"
      LNETINCDIR="$prefix/include/"
      LNETLIB="-L${prefix}/lib -lnet"
   elif test -f /usr/include/libnet.h; then
-     CFLAGS="$CFLAGS `libnet-config --defines`"
+     if test -x /usr/bin/libnet-config; then
+	     CFLAGS="$CFLAGS `/usr/bin/libnet-config --defines`" 
+     fi
      LNETINCDIR="/usr/include/"
      LNETLIB="-lnet"
   else
