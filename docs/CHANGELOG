@@ -5,6 +5,9 @@ $Id$
     - use autoopts for flowreplay
     - Be more cautious about memcpy's
     - Fix numerous warnings during compile
+    - Allow overriding L2 protocol field for DLT_RAW
+    - tcpprep -I & -P now take the cache filename
+    - Added tcpbridge utility
 
 02/27/2005: Version 3.0.beta1
     - Major code cleanups and rewriting
