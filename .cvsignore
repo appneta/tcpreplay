@@ -7,5 +7,7 @@ config.status
 regress
 tcpreplay
 tcpprep
+pcapmerge
+flowreplay
 autom4te.cache
 *.o
