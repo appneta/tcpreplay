@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.8 2002/07/16 19:52:20 aturner Exp $
+# $Id: Makefile.in,v 1.9 2002/07/17 00:47:48 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -32,7 +32,7 @@ POBJS		= $(PSRCS:.c=.o)
 all: libredblack $(BINARIES) 
 
 tcpprep: $(POBJS)
-	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(POBJS) $(LDFLAGS) $(LIBS) -lpcap libredblack/.libs/libredblack.a
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(POBJS) $(LDFLAGS) $(LIBS) libredblack/.libs/libredblack.a
 
 tcpreplay: $(TOBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(TOBJS) $(LDFLAGS) $(LIBS) -lm
