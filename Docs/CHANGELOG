@@ -1,5 +1,15 @@
 $Id$
 
+??/??/????: Version 3.0.0
+    - Major code cleanups and rewriting
+      - Move around utility functions
+      - Move MAC Address funcs into mac.c
+      - Move global defines into defines.h
+    - Start work on generic config arg/file processor
+    - Fix small documentation bugs in man/tcpreplay.8
+    - Updated the FAQ
+    - Major
+
 09/19/2004: Version 2.3.1
     - Fix bug with fakepcap.c which appeared on systems using an older
       version of libpcap (such as Red Hat 9.0)
