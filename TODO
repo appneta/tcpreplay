@@ -33,3 +33,7 @@ For 1.4:
 	- config files
 	- compiling libpcap, libnet 
 	- other pcap tools available
+
+- Ports
+	- support --with-pcap --with-libnet in the spec
+	- up-to-date *BSD ports
