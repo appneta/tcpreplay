@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.54 2003/05/08 03:30:51 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.55 2003/05/08 16:34:30 aturner Exp $ */
 
 #include "config.h"
 
@@ -158,7 +158,7 @@ main(int argc, char *argv[])
 	    break;
 	case 's':
 	    options.seed = atoi(optarg);
-	    options.fixchecksums = 0; /* untruncating already does this */
+	    options.fixchecksums = 0; /* seed already does this */
 	    break;
 	case 'v':		/* verbose */
 	    options.verbose++;

@@ -140,7 +140,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 
 	} 
 
-	else { /* just copy the packet over */
+	else { /* We're not replacing the Layer2 header */
 
 	    /* verify that the packet isn't > MAXPACKET */
 	    if (pkthdr.caplen > MAXPACKET) {
@@ -306,6 +306,11 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 
 /*
  * this code re-calcs the IP and TCP/UDP checksums
+ * the IMPORTANT THING is that the Layer 4 header 
+ * is contiguious in memory after *ip_hdr we're actually
+ * writing to the TCP/UDP header via the ip_hdr ptr.
+ * (Yes, this sucks, but that's the way libnet works, and
+ * I was too lazy to re-invent the wheel.
  */
 void
 fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr, 
