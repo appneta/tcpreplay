@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.5 2002/07/09 20:14:02 aturner Exp $
+dnl $Id: configure.in,v 1.6 2002/07/09 20:26:53 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -188,9 +188,9 @@ fi
 dnl for now, we don't handle 1.1.x so we have to abort
 dnl hopefully soon we'll handle either version
 
-dnl if test $libnet_ver_11 = yes ; then
-dnl	AC_MSG_ERROR(Libnet version 1.1.x isn't currently supported.
-dnl   Please use 1.0.2a)
-dnl fi
+if test $libnet_ver_11 = yes ; then
+	AC_MSG_ERROR(Libnet version 1.1.x isn't currently supported.
+  Please use 1.0.2a)
+fi
 
 AC_OUTPUT(Makefile)

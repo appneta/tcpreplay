@@ -1928,6 +1928,10 @@ if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
 fi
 
 
+if test $libnet_ver_11 = yes ; then
+	{ echo "configure: error: Libnet version 1.1.x isn't currently supported.
+  Please use 1.0.2a" 1>&2; exit 1; }
+fi
 
 trap '' 1 2 15
 cat > confcache <<\EOF
