@@ -64,6 +64,54 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     return (void *)ptr;
 }
 
+/* 
+ * this is wrapped up in a #define safe_realloc
+ * This function, detects failures to realloc memory and zeros
+ * out the NEW memory if len > current len
+ */
+void *
+_our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, const char *file)
+{
+    size_t oldlen;
+    char *charptr = (char *)ptr;
+
+    oldlen = sizeof(ptr);
+
+    if ((ptr = realloc(ptr, len)) == NULL)
+        errx(1, "safe_realloc() error: Unable to grow ptr from %d to %d bytes\n"
+                "%s:%s() line %d\n", oldlen, len, file, funcname, line);
+
+    if (oldlen < len)
+        memset(&charptr[oldlen], 0, len - oldlen -1);
+
+#ifdef DEBUG
+    dbg(4, "Remalloc'd to %d bytes in %s:%s() line %d", len, file, funcname, line);
+#endif
+
+    return (void *)ptr;
+}
+
+/* 
+ * this is wrapped up in a #define safe_strdup
+ * This function, detects failures to realloc memory
+ */
+char *
+_our_safe_strdup(const char *str, const char *funcname, const int line, const char *file)
+{
+    char *newstr;
+    
+    if ((newstr = (char *)malloc(strlen(str) + 1)) == NULL)
+        errx(1, "safe_strdup() error: Unable to malloc %d bytes\n"
+                "%s:%s() line %d\n", strlen(str), file, funcname, line);
+
+    memcpy(newstr, str, strlen(str) + 1);
+    
+    return newstr;
+
+}
+
+
+
 void
 packet_stats(struct timeval *begin, struct timeval *end, 
         u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed)

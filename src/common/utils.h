@@ -43,8 +43,16 @@ int argv_create(char *p, int argc, char *argv[]);
 void packet_stats(struct timeval *begin, struct timeval *end, 
         u_int64_t bytes_sent, u_int64_t pkts_sent, u_int64_t failed);
 void *get_layer4(ip_hdr_t * ip_hdr);
+
+/* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
 void *_our_safe_malloc(size_t len, const char *, const int, const char *);
+
+#define safe_realloc(x, y) _our_safe_realloc(x, y, __FUNCTION__, __LINE__, __FILE__)
+void *_our_safe_realloc(void *ptr, size_t len, const char *, const int, const char *);
+
+#define safe_strdup(x) _our_safe_strdup(x, __FUNCTION__, __LINE__, __FILE__)
+char *_our_safe_strdup(const char *str, const char *, const int, const char *);
 
 #define MAX_ARGS 128
 
