@@ -40,10 +40,11 @@
 
 #define CISCO_HDLC_LEN 4
 
-struct cisco_hdlc_header {
+struct cisco_hdlc_header_s {
     u_int16_t address;
     u_int16_t protocol;
 };
+typedef struct cisco_hdlc_header_s cisco_hdlc_header_t;
 
 #endif /* _DLT_H_ */
 
