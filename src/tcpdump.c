@@ -53,7 +53,6 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 
-#include "tcpreplay.h"
 #include "tcpdump.h"
 #include "lib/strlcpy.h"
 
@@ -61,7 +60,6 @@
 extern int debug;
 #endif
 
-extern struct options options;
 char *options_vec[OPTIONS_VEC_SIZE];
 
 void tcpdump_send_file_header(tcpdump_t *tcpdump);
@@ -69,15 +67,16 @@ int tcpdump_fill_in_options(char *opt);
 int can_exec(const char *filename);
 
 int
-tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, u_char *data)
+tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data)
 {
     struct pollfd poller[1];
     int result;
+    char decode[TCPDUMP_DECODE_LEN];
 
-    poller[0].fd = tcpdump->fd;
+    poller[0].fd = tcpdump->infd;
     poller[0].events = POLLOUT;
     poller[0].revents = 0;
-
+    
     /* wait until we can write to the tcpdump socket */
     result = poll(poller, 1, TCPDUMP_POLL_TIMEOUT);
     if (result < 0)
@@ -90,7 +89,7 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, u_char *data)
 
     /* result > 0 if we get here */
 
-    if (write(tcpdump->fd, (char *)pkthdr, sizeof(struct pcap_pkthdr))
+    if (write(tcpdump->infd, (char *)pkthdr, sizeof(struct pcap_pkthdr))
         != sizeof(struct pcap_pkthdr))
         errx(1, "Error writing pcap file header to tcpdump\n%s", strerror(errno));
 
@@ -102,7 +101,7 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, u_char *data)
     }
 #endif
 
-    if (write(tcpdump->fd, data, pkthdr->caplen)
+    if (write(tcpdump->infd, data, pkthdr->caplen)
         != pkthdr->caplen)
         errx(1, "Error writing packet data to tcpdump\n%s", strerror(errno));
 
@@ -113,12 +112,31 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, u_char *data)
             errx(1, "Error writing packet data to tcpdump debug\n%s", strerror(errno));
     }
 #endif
-    fflush(stdout);
+
+    /* Wait for output from tcpdump */
+    poller[0].fd = tcpdump->outfd;
+    poller[0].events = POLLIN;
+    poller[0].revents = 0;
+
+    result = poll(poller, 1, TCPDUMP_POLL_TIMEOUT);
+    if (result < 0)
+        errx(1, "Error during poll() to write to tcpdump\n%s", strerror(errno));
+
+    if (result == 0)
+        errx(1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
+                "Try increasing TCPDUMP_POLL_TIMEOUT");
+
+    /* result > 0 if we get here */
+    if (read(tcpdump->outfd, &decode, TCPDUMP_DECODE_LEN) < 0)
+        errx(1, "Error reading tcpdump decode: %s", strerror(errno));
+            
+    printf("%s", decode);
+
     return TRUE;
 }
 
 /*
- * swaps the pcap header bytes.  Ripped right out of libpcap's savefile.c
+ * swaps the pcap header bytes.  Ripped right out of libpcap's file.c
  */
 static void
 swap_hdr(struct pcap_file_header *hp)
@@ -184,7 +202,7 @@ tcpdump_init(tcpdump_t *tcpdump)
 int
 tcpdump_open(tcpdump_t *tcpdump)
 {
-    int fd[2];
+    int infd[2], outfd[2];
 
     if (! tcpdump)
         return FALSE;
@@ -212,9 +230,13 @@ tcpdump_open(tcpdump_t *tcpdump)
     dbg(2, "Starting tcpdump...");
 
     /* create our socket pair to send packet data to tcpdump via */
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, fd) < 0)
-        errx(1, "tcpdump_open() error: unable to create socket pair");
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, infd) < 0)
+        errx(1, "tcpdump_open() error: unable to create stdin socket pair");
 
+    /* create our socket pair to read packet decode from tcpdump */
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, outfd) < 0)
+        errx(1, "tcpdump_open() error: unable to create stdout socket pair");
+    
     if ((tcpdump->pid = fork() ) < 0)
         errx(1, "tcpdump_open() error: fork failed");
 
@@ -222,13 +244,19 @@ tcpdump_open(tcpdump_t *tcpdump)
     
     if (tcpdump->pid > 0) {
         /* we're still in tcpreplay */
-        dbg(2, "[parent] closing fd %d", fd[1]);
-        close(fd[1]);  /* close the tcpdump side */
-        tcpdump->fd = fd[0];
+        dbg(2, "[parent] closing input fd %d", infd[1]);
+        dbg(2, "[parent] closing output fd %d", outfd[1]);
+        close(infd[1]);  /* close the tcpdump side */
+        close(outfd[1]);
+        tcpdump->infd = infd[0];
+        tcpdump->outfd = outfd[0];
 
-        if (fcntl(tcpdump->fd, F_SETFL, O_NONBLOCK) < 0)
+        if (fcntl(tcpdump->infd, F_SETFL, O_NONBLOCK) < 0)
             errx(1, "[parent] tcpdump_open() error: unable to fcntl tcpreplay socket:\n%s", strerror(errno));
 
+        if (fcntl(tcpdump->outfd, F_SETFL, O_NONBLOCK) < 0)
+            errx(1, "[parent] tcpdump_open() error: unable to fnctl stdout socket:\n%s", strerror(errno));
+        
         /* send the pcap file header to tcpdump */
         tcpdump_send_file_header(tcpdump);
 
@@ -237,22 +265,24 @@ tcpdump_open(tcpdump_t *tcpdump)
         dbg(2, "[child] started the kid");
 
         /* we're in the child process */
-        dbg(2, "[child] closing fd %d", fd[0]);
-        close(fd[0]); /* close the tcpreplay side */
-
+        dbg(2, "[child] closing in fd %d", infd[0]);
+        dbg(2, "[child] closing out fd %d", outfd[0]);
+        close(infd[0]); /* close the tcpreplay side */
+        close(outfd[0]);
+    
         /* copy our side of the socketpair to our stdin */
-        if (fd[1] != STDIN_FILENO) {
-            if (dup2(fd[1], STDIN_FILENO) != STDIN_FILENO)
+        if (infd[1] != STDIN_FILENO) {
+            if (dup2(infd[1], STDIN_FILENO) != STDIN_FILENO)
                 errx(1, "[child] tcpdump_open() error: unable to copy socket to stdin");
         }
-/*
-        if (fd[1] != STDOUT_FILENO) {
-            if (dup2(fd[1], STDOUT_FILENO) != STDOUT_FILENO) {
+    
+        /* copy our side of the socketpair to our stdout */
+        if (outfd[1] != STDOUT_FILENO) {
+            if (dup2(outfd[1], STDOUT_FILENO) != STDOUT_FILENO)
                 errx(1, "[child] tcpdump_open() error: unable to copy socket to stdout");
-            }
         }
-*/
-        /* exec tcpdump */
+
+    /* exec tcpdump */
         dbg(2, "[child] Exec'ing tcpdump...");
         if (execv(TCPDUMP_BINARY, options_vec) < 0)
             errx(1, "unable to exec tcpdump");
@@ -267,11 +297,11 @@ void
 tcpdump_send_file_header(tcpdump_t *tcpdump)
 {
 
-    dbg(2, "[parent] Sending pcap file header out fd %d...", tcpdump->fd);
-    if (! tcpdump->fd) 
+    dbg(2, "[parent] Sending pcap file header out fd %d...", tcpdump->infd);
+    if (! tcpdump->infd) 
         errx(1, "[parent] tcpdump filehandle is zero.");
 
-    if (write(tcpdump->fd, (void *)&(tcpdump->pfh), sizeof(struct pcap_file_header))
+    if (write(tcpdump->infd, (void *)&(tcpdump->pfh), sizeof(struct pcap_file_header))
         != sizeof(struct pcap_file_header)) {
         errx(1, "[parent] tcpdump_send_file_header() error writing file header:\n%s", 
              strerror(errno));
@@ -366,13 +396,15 @@ tcpdump_close(tcpdump_t *tcpdump)
     dbg(2, "[parent] killing tcpdump pid: %d", tcpdump->pid);
 
     kill(tcpdump->pid, SIGKILL);
-    close(tcpdump->fd);
+    close(tcpdump->infd);
+    close(tcpdump->outfd);
 
     if (waitpid(tcpdump->pid, NULL, 0) != tcpdump->pid)
         errx(1, "[parent] Error in waitpid()");
 
     tcpdump->pid = 0;
-    tcpdump->fd = 0;
+    tcpdump->infd = 0;
+    tcpdump->outfd = 0;
 }
 
 int
@@ -404,4 +436,3 @@ can_exec(const char *filename)
  c-basic-offset:4
  End:
 */
-
