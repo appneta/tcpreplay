@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.25 2004/09/05 18:28:53 aturner Exp $ */
+/* $Id: cache.c,v 1.26 2004/09/05 18:43:31 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -123,15 +123,17 @@ read_cache(char **cachedata, char *cachefile)
     dbg(1, "Cache file comment: %s", options.tcpprep_comment);
 
     /* malloc our cache block */
-    cache_size = ntohll(header.num_packets) / ntohs(header.packets_per_byte);
+    header.num_packets = ntohll(header.num_packets);
+    header.packets_per_byte = ntohs(header.packets_per_byte);
+    cache_size = header.num_packets / header.packets_per_byte;
 
     /* deal with any remainder, becuase above divsion is integer */
-    if (ntohll(header.num_packets) % ntohs(header.packets_per_byte))
+    if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
     dbg(1, "Cache file contains %lld packets in %ld bytes",
-        ntohll(header.num_packets), cache_size);
-    dbg(1, "Cache uses %d packets per byte", ntohs(header.packets_per_byte));
+        header.num_packets, cache_size);
+    dbg(1, "Cache uses %d packets per byte", header.packets_per_byte);
 
     if ((*cachedata = (char *)malloc(cache_size)) == NULL)
         errx(1, "Unable to malloc() our cache data");
@@ -145,10 +147,10 @@ read_cache(char **cachedata, char *cachefile)
              "Cache data length (%ld bytes) doesn't match cache header (%ld bytes)",
              read_size, cache_size);
 
-    dbg(1, "Loaded in %llu packets from cache.", ntohll(header.num_packets));
+    dbg(1, "Loaded in %llu packets from cache.", header.num_packets);
 
     close(cachefd);
-    return (ntohll(header.num_packets));
+    return (header.num_packets);
 }
 
 
