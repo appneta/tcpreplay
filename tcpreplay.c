@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.62 2003/06/17 18:27:01 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.63 2003/06/17 18:52:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -61,7 +61,7 @@ void version();
 void mac2hex(const char *, char *, int);
 void configfile(char *);
 int argv_create(char *, int, char **);
-int read_l2data(char *, char *);
+int read_hexstring(char *, char *, int);
 
 int
 main(int argc, char *argv[])
@@ -222,7 +222,7 @@ main(int argc, char *argv[])
 	    break;
 	case '2':   /* layer 2 header file */
 	    l2enabled = 1;
-	    l2len = read_l2data(optarg, l2data);
+	    l2len = read_hexstring(optarg, l2data, L2DATALEN);
 	    break;
 	default:
 	    usage();
@@ -477,14 +477,17 @@ argv_create(char *p, int argc, char *argv[])
 }
 
 int
-read_l2data(char *l2string, char *l2data)
+read_hexstring(char *l2string, char *hex, int hexlen)
 {
     int numbytes = 0;
     unsigned int value;
     char *l2byte;
     u_char databyte;
 
-    memset(l2data, '\0', L2DATALEN);
+    if (hexlen <= 0)
+	errx(1, "Hex buffer must be > 0");
+
+    memset(hex, '\0', hexlen);
 
     /* data is hex, comma seperated, byte by byte */
 
@@ -494,16 +497,20 @@ read_l2data(char *l2string, char *l2data)
     if (value > 0xff)
 	errx(1, "Invalid hex byte passed to -2: %s", l2byte);
     databyte = (u_char)value;
-    memcpy(&l2data[numbytes], &databyte, 1);
+    memcpy(&hex[numbytes], &databyte, 1);
 
     /* get remaining bytes */
     while ((l2byte = strtok(NULL, ",")) != NULL) {
 	numbytes ++;
+	if (numbytes + 1 > hexlen) {
+	    warnx("Hex buffer too small for data- skipping data");
+	    return(++numbytes);
+	}
 	sscanf(l2byte, "%x", &value);
 	if (value > 0xff)
 	    errx(1, "Invalid hex byte passed to -2: %s", l2byte);
 	databyte = (u_char)value;
-	memcpy(&l2data[numbytes], &databyte, 1);
+	memcpy(&hex[numbytes], &databyte, 1);
     }
 
     numbytes ++;
@@ -548,8 +555,8 @@ configfile(char *file)
 	    debug = 1;
 #endif
 	}
-	else if (ARGS("l2datafile", 2)) {
-	    l2len = read_l2data(argv[1], l2data);
+	else if (ARGS("l2data", 2)) {
+	    l2len = read_hexstring(argv[1], l2data, L2DATALEN);
 	}
 	else if (ARGS("intf", 2)) {
 	    intf = strdup(argv[1]);
