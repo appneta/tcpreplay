@@ -1,3 +1,9 @@
+??/??/????: Version 1.4.beta2
+	- Major updates to configure script
+	- Remove unneeded memcpy() for non-strict aligned architectures
+		for added performance boost
+	- Switch to libpcap for reading packets
+
 12/23/2002: Version 1.4.beta1
 	- Remove libnet 1.0 support
 	- Start a quality FAQ for all programs
