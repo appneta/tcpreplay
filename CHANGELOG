@@ -1,4 +1,4 @@
-??/??/????: Version 1.4.beta2
+01/07/2003: Version 1.4.beta2
 	- Major updates to configure script
 	- Remove unneeded memcpy() for non-strict aligned architectures
 		for added performance boost
