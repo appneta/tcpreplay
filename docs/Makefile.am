@@ -42,18 +42,19 @@ web/manual/manual.html: latex
 	@LATEX2HTML@ $(L2HFLAGS) -dir web/manual manual.tex
 
 web/man/tcpreplay.html:
-	$(MAN2HTML) < ../man/tcpreplay.8 > web/man/tcpreplay.html
+	$(MAN2HTML) < ../src/tcpreplay.1 > web/man/tcpreplay.html
 
 web/man/tcpprep.html:
-	$(MAN2HTML) < ../man/tcpprep.1 > web/man/tcpprep.html
+	$(MAN2HTML) < ../src/tcpprep.1 > web/man/tcpprep.html
 
 web/man/flowreplay.html:
-	$(MAN2HTML) < ../man/flowreplay.1 > web/man/flowreplay.html
+	$(MAN2HTML) < ../src/flowreplay.1 > web/man/flowreplay.html
 
 web/man/tcprewrite.html:
-	$(MAN2HTML) < ../man/tcprewrite.1 > web/man/tcprewrite.html
+	$(MAN2HTML) < ../src/tcprewrite.1 > web/man/tcprewrite.html
 
-manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html
+manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html \
+	web/man/tcprewrite.html
 
 postweb: webfiles manpages
 	rsync -e ssh -avz web/ aturner@synfin.net:/var/www-vhosts/tcpreplay/
