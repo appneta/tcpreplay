@@ -66,8 +66,8 @@ print OUT (<<HEADER);
  * scripts/dlt2name.pl
  */
 
-/* DLT to String names */
-char *dlt2name[] = {
+/* DLT to descriptions */
+char *dlt2desc[] = {
 HEADER
 
 
@@ -80,7 +80,7 @@ for (my $i = 0; $i < $#names; $i ++) {
 }
 
 print OUT "\t\tNULL\n};\n";
-print OUT "\#define DLT2NAME_LEN $#names\n";
+print OUT "\#define DLT2DESC_LEN $#names\n";
 close OUT;
 
 exit 0;
