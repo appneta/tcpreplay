@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.20 2004/04/03 22:39:53 aturner Exp $ */
+/* $Id: cache.c,v 1.21 2004/04/22 23:46:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -50,6 +50,7 @@
 extern int debug;
 #endif
 
+extern struct options options;
 static CACHE *new_cache();
 
 /*
@@ -109,6 +110,17 @@ read_cache(char **cachedata, char *cachefile)
         errx(1, "Unable to process %s: cache file version missmatch",
              cachefile);
 
+    /* read the comment */
+    header.comment_len = ntohs(header.comment_len);
+
+    read_size = read(cachefd, options.tcpprep_comment, 
+                     header.comment_len < COMMENT_LEN ? header.comment_len : COMMENT_LEN - 1);
+    if (read_size != header.comment_len)
+        errx(1, "Unable to read %d bytes of data for the comment (%d) %s", 
+             header.comment_len, read_size, read_size == -1 ? strerror(read_size) : "");
+
+    dbg(1, "Cache file comment: %s", options.tcpprep_comment);
+
     /* malloc our cache block */
     cache_size = ntohll(header.num_packets) / ntohs(header.packets_per_byte);
 
@@ -119,7 +131,10 @@ read_cache(char **cachedata, char *cachefile)
     dbg(1, "Cache file contains %lld packets in %ld bytes",
         ntohll(header.num_packets), cache_size);
     dbg(1, "Cache uses %d packets per byte", ntohs(header.packets_per_byte));
-    *cachedata = (char *)malloc(cache_size);
+
+    if ((*cachedata = (char *)malloc(cache_size)) == NULL)
+        errx(1, "Unable to malloc() our cache data");
+
     memset(*cachedata, '\0', cache_size);
 
     /* read in the cache */
@@ -137,9 +152,9 @@ read_cache(char **cachedata, char *cachefile)
 
 
 /*
- * writes out the contents of *cachedata to out_file returns
- * the number of cache entries written (not including the file header
- * (magic + version = 11 bytes)
+ * writes out the cache file header, comment and then the
+ * contents of *cachedata to out_file and then returns the number 
+ * of cache entries written
  */
 u_int64_t
 write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
@@ -157,13 +172,23 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
     strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
     cache_header->num_packets = htonll(numpackets);
+    cache_header->comment_len = htons((u_int16_t)strlen(options.tcpprep_comment));
 
     written = write(out_file, cache_header, sizeof(CACHE_HEADER));
     dbg(1, "Wrote %d bytes of cache file header", written);
 
     if (written != sizeof(CACHE_HEADER))
-        errx(1, "Only wrote %i of %i bytes of the cache file header!",
-             written, sizeof(CACHE_HEADER));
+        errx(1, "Only wrote %d of %d bytes of the cache file header!\n%s",
+             written, sizeof(CACHE_HEADER),
+             written == -1 ? strerror(errno) : "");
+
+    written = write(out_file, options.tcpprep_comment, strlen(options.tcpprep_comment));
+    dbg(1, "Wrote %d bytes of comment", written);
+
+    if (written != strlen(options.tcpprep_comment))
+        errx(1, "Only wrote %d of %d bytes of the comment!\n%s",
+             written, strlen(options.tcpprep_comment), 
+             written == -1 ? strerror(errno) : "");
 
     mycache = cachedata;
 

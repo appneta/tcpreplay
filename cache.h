@@ -1,4 +1,4 @@
-/* $Id: cache.h,v 1.12 2004/04/03 22:39:53 aturner Exp $ */
+/* $Id: cache.h,v 1.13 2004/04/22 23:46:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -37,7 +37,7 @@
 #define CACHEVERSION "04"
 #define CACHEDATASIZE 255
 #define CACHE_PACKETS_PER_BYTE 4    /* number of packets / byte */
-#define CACHE_BITS_PER_PACKET 2 /* number of bits / packet */
+#define CACHE_BITS_PER_PACKET 2     /* number of bits / packet */
 
 /* 
  * CACHEVERSION History:
@@ -76,7 +76,7 @@ struct cache_file_header {
     /* version 4 makes num_packets a 64 bit int */
     u_int64_t num_packets;      /* total # of packets in file */
     u_int16_t packets_per_byte;
-    u_int16_t padding;          /* align our header on a 32bit line */
+    u_int16_t comment_len;      /* how long is the user comment? */
 };
 
 typedef struct cache_type CACHE;
