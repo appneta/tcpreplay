@@ -133,8 +133,8 @@ packet_stats(struct timeval *begin, struct timeval *end,
 
     notice(COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds\n",
             pkts_sent, bytes_sent, begin->tv_sec, bits);
-    noitice("%.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
-            bytes_sec, mb_sec, pkts_sec);
+    notice("%.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
+           bytes_sec, mb_sec, pkts_sec);
 
     if (failed)
         warnx(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
