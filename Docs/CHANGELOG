@@ -1,7 +1,9 @@
-$Id: CHANGELOG,v 1.49 2004/09/05 19:51:58 aturner Exp $
+$Id: CHANGELOG,v 1.50 2004/09/05 20:04:22 aturner Exp $
 
-09/04/2004: Version 2.2.3
+09/05/2004: Version 2.3.0
     - Fix longstanding endian bug in cache files on little endian systems
+      (note that this breaks compatibility w/ existing cache files created
+      on little endian systems)
     - Add support to tcpreplay and tcpprep for DLT_CHDLC (Cisco HDLC)
     - Clean up validate_l2() and rewrite_l2()
     - Write a simple perl script to parse net/bpf.h of DLT values
