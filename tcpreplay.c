@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.29 2002/08/11 23:44:22 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.30 2002/08/12 17:21:01 aturner Exp $ */
 
 #include "config.h"
 
@@ -774,10 +774,10 @@ void
 usage()
 {
 	fprintf(stderr, "Usage: tcpreplay "
-          "[-h|V] [-i pri int] [-j sec int] [-l loops] [-m multiplier] [-v]\n");
+          "[-h|V] [-i pri int] [-j sec int] [-v] [-r rate|-R|-m multi]\n");
 #ifdef DEBUG
 	fprintf(stderr, "[-d] ");
 #endif
-  	fprintf(stderr,"[-r rate] [-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac]\n[-M] <file>\n");
+  	fprintf(stderr,"[-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac] [-l loop]\n[-M] [-f config] <file>\n");
 	exit(1);
 }
