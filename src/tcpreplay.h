@@ -42,14 +42,12 @@
 #include <libnet.h>
 
 /* run-time options */
-struct tcpreplay_opt_t {
+struct tcpreplay_opt_s {
     /* input/output */
     char *intf1_name;
     char *intf2_name;
     libnet_t *intf1;
     libnet_t *intf2;
-    pcap_t *listen1;
-    pcap_t *listen2;
 /* disable data dump mode
     pcap_t *savepcap1;
     pcap_t *savepcap2;
@@ -75,30 +73,34 @@ struct tcpreplay_opt_t {
     /* tcpprep cache data */
     int cache_packets;
     char *cachedata;
-    char *tcpprep_comment;
+    char *comment; /* tcpprep comment */
 
     /* deal with MTU/packet len issues */
     int mtu;
     int truncate;
     
-    char **files;
+    char *files[MAX_FILES];
     u_int64_t offset; 
     u_int64_t limit_send;
     
     
-    /* bridge packets */
+/* disable bridge mode
+    pcap_t *listen1;
+    pcap_t *listen2;
     int sniff_snaplen;
     int sniff_bridge;
     int promisc;
     int poll_timeout;
-    bpf_t bpf;
-
+*/
     int verbose;
-    l2_t l2;
+    char *tcpdump_args;
 
 };
 
+typedef struct tcpreplay_opt_s tcpreplay_opt_t;
+    
 #endif
+
 /*
  Local Variables:
  mode:c
