@@ -1,42 +1,50 @@
 MAKEFLAGS=-s
 
-all: images pdf txt ps rmtemp html
+#if HAVE_DOCTOOLS
 
-images:
-	@FIG2DEV@ -L eps flowheader.fig flowheader.eps
+all: FAQ.pdf FAQ.html flowreplay.pdf flowreplay.html
 
-tex: images
+flowheader.eps: flowheader.fig
+	@FIG2DEV@ -L eps $< $@
+
+FAQ.tex:
 	@LYX@ -e latex FAQ.lyx
+
+flowreplay.tex:
 	@LYX@ -e latex flowreplay.lyx
 
-dvi: tex 
+
+FAQ.dvi: FAQ.tex
 	@TEXI2DVI@ FAQ.tex
+
+flowreplay.dvi: flowreplay.tex flowheader.eps
 	@TEXI2DVI@ flowreplay.tex
 
-html: tex 
-	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
-		-show_section_numbers FAQ.tex
-	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
-		-show_section_numbers flowreplay.tex
 
-
-pdf: dvi
+FAQ.pdf: FAQ.dvi
 	@DVIPDFM@ FAQ.dvi
+
+flowreplay.pdf: flowreplay.dvi
 	@DVIPDFM@ flowreplay.dvi
 
-txt:
-	@LYX@ -e text FAQ.lyx
-	@LYX@ -e text flowreplay.lyx
+FAQ.html: FAQ.tex
+	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
+		-show_section_numbers FAQ.tex
 
-ps: dvi
-	@DVIPS@ -o FAQ.ps FAQ.dvi
-	@DVIPS@ -o flowreplay.ps flowreplay.dvi
+flowreplay.html: flowreplay.tex
+	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
+		-show_section_numbers flowreplay.tex
+#endif
 
-rmtemp:
-	rm -f labels.pl *.log *.toc WARNINGS *.aux index.html 
 
-clean: rmtemp
-	rm -f *~
+EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO 
 
-distclean: rmtemp clean
-	rm -f *.html *.pdf *.txt *.ps *.dvi *.tex  *.css images.pl img1.png *.eps
+MOSTLYCLEANFILES = flowheader.eps FAQ.aux FAQ.log FAQ.toc FAQ.txt \
+		   WARNINGS flowreplay.aux flowreplay.log \
+		   flowreplay.txt images.aux images.log images.pl \
+		   images.tex img1.png index.html labels.pl FAQ.dvi \
+		   FAQ.ps FAQ.tex flowreplay.dvi flowreplay.ps \
+		   flowreplay.tex *~
+
+MAINTAINERCLEANFILES = FAQ.pdf FAQ.html FAQ.css flowreplay.pdf \
+		       flowreplay.html flowreplay.css
