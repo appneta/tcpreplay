@@ -1,21 +1,36 @@
 SUBDIRS = common
 
-tcpreplay_opts.h:
-	@AUTOGEN@ tcpreplay-opts.def
+tcpreplay_OBJECTS: tcpreplay_opts.h 
+
+tcpreplay_opts.h: tcpreplay_opts.c
 
 tcpreplay_opts.c:
-	@AUTOGEN@ tcpreplay-opts.def
-    
-bin_PROGRAMS = tcpreplay tcpprep flowreplay
+	@AUTOGEN@ tcpreplay_opts.def
 
-tcpreplay_SOURCES = tcpreplay.c netout.c fileout.c mac.c \
-		    signal_handler.c tcpdump.c edit_packet.c \
-		    portmap.c tcpreplay_opts.c
+bin_PROGRAMS = tcpreplay tcpprep flowreplay tcprewrite
+
+tcpreplay_SOURCES = tcpreplay.c netout.c fileout.c timer.c \
+		    signal_handler.c tcpdump.c tcpreplay_opts.c
 		    
 
-tcpprep_SOURCES = tcpprep.c
+tcprewrite_opts.c:
+	@AUTOGEN@ tcprewrite_opts.def
+
+tcprewrite_opts.h: tcprewrite_opts.c
+
+tcpprep_opts.c:
+	@AUTOGEN@ tcpprep_opts.def
+
+tcpprep_opts.h: tcpprep_opts.c
+
+tcprewrite_SOURCES = tcprewrite.c tcprewrite_opts.c mac.c portmap.c edit_packet.c
+
+tcpprep_SOURCES = tcpprep.c tcpprep_opts.c
 
 flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
+
+tcprewrite_LDADD = ./common/libcommon.a ../lib/libstrl.a \
+		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 
 tcpreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
@@ -26,15 +41,19 @@ tcpprep_LDADD =  ./common/libcommon.a ../lib/libstrl.a \
 flowreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 		   @LNETLIB@ @LPCAPLIB@
 
-noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
+noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h timer.h \
 		 defines.h dlt.h dlt_names.h edit_packet.h \
 		 fileout.h flowbuff.h flowkey.h flownode.h flowstate.h \
-		 signal_handler.h tcpdump.h common.h tcpreplay_opts.h
+		 signal_handler.h tcpdump.h common.h tcpreplay_opts.h \
+		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h
 
 tcpreplay_CFLAGS = -I../lib $(LIBOPTS_CFLAGS)
 tcpprep_CFLAGS = -I../lib
 flowreplay_CFLAGS = -I../lib
+tcprewrite_CFLAGS = -I../lib
 
 MOSTLYCLEANFILES = *~ *.o
 
-MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c
+MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c \
+		       tcprewrite_opts.c tcprewrite_opts.h tcpprep_opts.c \
+		       tcpprep_opts.h
