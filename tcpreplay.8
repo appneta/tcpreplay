@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.7 2002/06/28 06:27:53 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.8 2002/07/10 05:35:53 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -39,6 +39,8 @@ CIDR...
 .B \-u pad|trunc
 ] [
 .B \-v
+] [
+.B \-h|-V
 ]
 .I file ...
 .SH DESCRIPTION
@@ -119,8 +121,11 @@ Will also recalcuate the IP and TCP/UDP headers as necessary.
 .TP
 .B \-v
 Verbose mode, currently unused.
+.TP
+.B \-V
+Print version info and exit.
 .SH "SEE ALSO"
-tcpdump(8), snoop(1M)
+tcpdump(8), snoop(1M), tcpprep(1), capinfo(1)
 .SH AUTHORS
 Matt Undy, Anzen Computing.
 .br

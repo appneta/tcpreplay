@@ -1,4 +1,7 @@
 xx/xx/xxxx: Version 1.2
+	- Now requires a recent version of AutoConf (2.53)
+	- Added support for Libnet 1.1.x
+	- Added -V switch to print version info (tcpprep & tcpreplay)
 	- Added CIDR dual-nic support to tcpreplay. 
 	  patch by: Scott Mace <smace@intt.org>
 	- Fix for -I in tcpreplay when only using a single NIC.

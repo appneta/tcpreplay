@@ -91,8 +91,17 @@ int non_ip = 0;
 int Sflag = 0;
 
 static void usage();
+static void version();
 static int check_ip_regex(const unsigned long ip);
 static void process_raw_packets(int fd, int (*get_next) (int, struct packet *));
+
+static void
+version()
+{
+	fprintf(stderr, "Tcpprep version: %s\n", TCPPREP_VERSION);
+	fprintf(stderr, "Compiled against Libnet %s\n", LIBNET_VERSION);
+	exit(0);
+}
 
 /*
  *  usage
@@ -100,11 +109,11 @@ static void process_raw_packets(int fd, int (*get_next) (int, struct packet *));
 static void 
 usage()
 {
-	fprintf(stderr, "Version: " TCPPREP_VERSION "\nUsage: tcpprep ");
+	fprintf(stderr, "Usage: tcpprep ");
 #ifdef DEBUG
 	fprintf(stderr, "[-d] ");
 #endif
-	fprintf(stderr, "[-h] [-a|-c CIDR,...|-r regex] [-n bridge|router] [-R ratio]\n");
+	fprintf(stderr, "[-h|V] [-a|-c CIDR,...|-r regex] [-n bridge|router] [-R ratio]\n");
 	fprintf(stderr, "-S [-N client|server] [-i capture file] [-o cache file]\n");
 	exit(0);
 }
@@ -122,7 +131,11 @@ check_ip_regex(const unsigned long ip)
 	regmatch_t *pmatch = NULL;
 
 	memset(src_ip, '\0', 16);
+#if USE_LIBNET_VERSION == 10
 	strncat(src_ip, libnet_host_lookup(ip, RESOLVE), 15);
+#elif USE_LIBNET_VERSION == 11
+	strncat(src_ip, libnet_addr2name4(ip, RESOLVE), 15);
+#endif
 	if (regexec(preg, src_ip, nmatch, pmatch, eflags) == 0) {
 		return (1);
 	} else {
@@ -138,7 +151,12 @@ check_ip_regex(const unsigned long ip)
 static void 
 process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 {
-	struct libnet_ip_hdr *ip_hdr = NULL;
+#if USE_LIBNET_VERSION == 10
+	typedef struct libnet_ip_hdr ip_hdr_t;
+#elif USE_LIBNET_VERSION == 11
+	typedef struct libnet_ipv4_hdr ip_hdr_t;
+#endif
+	ip_hdr_t *ip_hdr = NULL;
 	struct libnet_ethernet_hdr *eth_hdr = NULL;
 	struct packet pkt;
 
@@ -154,7 +172,7 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 				add_cache(non_ip);
 			continue;
 		}
-		ip_hdr = (struct libnet_ip_hdr *) (pkt.data + LIBNET_ETH_H);
+		ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
 
 		switch (mode) {
 		case REGEX_MODE:
@@ -208,9 +226,9 @@ main(int argc, char *argv[])
 		err(1, "malloc");
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:Ihm:M:n:N:S")) != -1)
+	while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:Ihm:M:n:N:SV")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "ac:r:R:o:i:Ihm:M:n:N:S")) != -1)
+	while ((ch = getopt(argc, argv, "ac:r:R:o:i:Ihm:M:n:N:SV")) != -1)
 #endif
 		switch (ch) {
 		case 'a':
@@ -281,6 +299,11 @@ main(int argc, char *argv[])
 		case 'S':
 			Sflag = 1;
 			break;
+		case 'V':
+			version();
+			break;
+		default:
+			usage();
 		}
 
 	/* process args */

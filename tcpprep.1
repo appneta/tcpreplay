@@ -14,7 +14,7 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 .B \-r 
 .I regex
 ] [
-.B \-h
+.B \-h|-V
 ] [
 .B \-i
 .I pcapfile
@@ -142,8 +142,11 @@ classified as a server in auto mode.  A system is classified as a server if
 .TP
 .B \-S
 Indicates the specified input file is in Solaris snoop(1M) format.
+.TP
+.B \-V
+Print version info and exit.
 .SH "SEE ALSO"
-tcpdump(8)  tcpreplay(8)  snoop(1M)  capinfo(1)
+tcpdump(8), tcpreplay(8), snoop(1M), capinfo(1)
 .SH AUTHOR
 Aaron Turner <aturner@pobox.com>
 .LP

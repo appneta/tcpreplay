@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.15 2002/07/03 01:36:34 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.16 2002/07/10 05:35:53 aturner Exp $ */
 
 #include "config.h"
 
@@ -38,6 +38,7 @@ void do_sleep(struct timeval *, struct timeval *, int);
 void catcher(int);
 void packet_stats();
 void usage();
+void version();
 void mac2hex(const char *, char *, int); 
 
 int
@@ -59,9 +60,9 @@ main(int argc, char *argv[])
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:r:RSu:v?")) != -1)
+	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:r:RSu:Vv?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:r:RSu:v?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:r:RSu:Vv?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -131,6 +132,9 @@ main(int argc, char *argv[])
 				errx(1, "Invalid untruncate option: %s", optarg);
 			}
 			break;
+		case 'V':
+			version();
+			break;
 		default:
 			usage();
 		}
@@ -155,12 +159,20 @@ main(int argc, char *argv[])
 	if ((intf2 != NULL) && (!Cflag && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
 
+#if USE_LIBNET_VERSION == 10
 	if ((options.intf1 = libnet_open_link_interface(intf, ebuf)) == NULL)
-		errx(1, "Cannot open %s: %s", intf, ebuf);
+		errx(1, "Can't open %s: %s", intf, ebuf);
 
 	if (intf2 != NULL && 
 		(options.intf2 = libnet_open_link_interface(intf2, ebuf)) == NULL)
-		errx(1, "Cannot open %s: %s", intf2, ebuf);
+		errx(1, "Can't open %s: %s", intf2, ebuf);
+#elif USE_LIBNET_VERSION == 11
+	if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
+		errx(1, "Can't open %s: %s", intf, ebuf);
+
+	if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
+		errx(1, "Can't open %s: %s", intf2, ebuf);
+#endif
 
 	warnx("sending on %s %s", intf, intf2 == NULL ? "" : intf2);
 
@@ -209,9 +221,13 @@ replay_file(char *path)
 void
 do_packets(int fd, int (*get_next)(int, struct packet *))
 {
-	struct libnet_ip_hdr *ip_hdr = NULL;
 	struct libnet_ethernet_hdr *eth_hdr = NULL;
+#if USE_LIBNET_VERSION == 10
 	struct libnet_link_int *l = NULL;
+#elif USE_LIBNET_VERSION == 11
+	libnet_t *l = NULL;
+#endif
+	ip_hdr_t *ip_hdr = NULL;
 	struct packet pkt;
 	struct timeval last;
 	char *pktdata;
@@ -271,7 +287,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				}
 			/* CIDR Mode */
 			} else {
-				ip_hdr = (struct libnet_ip_hdr *) (pkt.data + LIBNET_ETH_H);
+				ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
 				if (check_ip_CIDR(ip_hdr->ip_src.s_addr)) {
 					/* set interface to send out packet */
 					l = options.intf1;
@@ -307,33 +323,56 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				memset(pkt.data + pkt.len, 0, sizeof(pkt.data) - pkt.len);
 				pkt.len = pkt.actual_len;
 			} else { /* truncate packet */
-				ip_hdr = (struct libnet_ip_hdr *)(pkt.data + LIBNET_ETH_H);
+				ip_hdr = (ip_hdr_t *)(pkt.data + LIBNET_ETH_H);
 				ip_hdr->ip_len = htons(pkt.len);
 			}
 		
 			/* recalc the checksum(s) */
-			proto = ((struct libnet_ip_hdr*)(pkt.data + LIBNET_ETH_H))->ip_p;
-			if (libnet_do_checksum(pkt.data+LIBNET_ETH_H, proto, 
-				pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			proto = ((ip_hdr_t *)(pkt.data + LIBNET_ETH_H))->ip_p;
+#if USE_LIBNET_VERSION == 10
+			if (libnet_do_checksum(pkt.data + LIBNET_ETH_H, proto, 
+								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 				warnx("Layer 4 checksum failed");
 
 			if (libnet_do_checksum(pkt.data + LIBNET_ETH_H, IPPROTO_IP, 
-				LIBNET_IP_H) < 0)
+								   LIBNET_IP_H) < 0)
 				warnx("IP checksum failed");
+#elif USE_LIBNET_VERSION == 11
+			if (libnet_do_checksum(l, pkt.data + LIBNET_ETH_H, proto,
+								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+				warnx("Layer 4 checksum failed");
+
+			if (libnet_do_checksum(l, pkt.data + LIBNET_ETH_H, proto,
+								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+				warnx("IP checksum failed");
+#endif
+								   
 		} 
 		pktdata = pkt.data;
 		pktlen = pkt.len;
 
 		/* Physically send the packet */
 		do {
-			ret = libnet_write_link_layer(l, l->device, (u_char *)pktdata, 
-				pktlen);
+#if USE_LIBNET_VERSION == 10
+			ret = libnet_write_link_layer(l, l->device, (u_char *)pktdata, pktlen);
+#elif USE_LIBNET_VERSION == 11
+			/*
+			 * libnet_write_link() isn't part of the offical external API of Libnet 1.1
+			 * so we're hoping that Mike S. doesn't change things.  If he does, we'll 
+			 * have to figure out a work around.
+			 */
+			ret = libnet_write_link(l, (u_char*)pktdata, pktlen);
+#endif
 			if (ret == -1) {
 				/* Make note of failed writes due to full buffers */
 				if (errno == ENOBUFS) {
 					failed++;
 				} else {
+#if USE_LIBNET_VERSION == 10
 					err(1, "libnet_write_link_layer");
+#elif USE_LIBNET_VERSION == 11
+					err(1, "libnet_write_link");
+#endif
 				}
 			}
 		} while (ret == -1);
@@ -481,14 +520,21 @@ mac2hex(const char *mac, char *dst, int len)
 }
 
 void
+version()
+{
+	fprintf(stderr, "Tcpreplay version: %s\n", VERSION);
+	fprintf(stderr, "Compiled against Libnet %s\n", LIBNET_VERSION);
+	exit(0);
+}
+
+void
 usage()
 {
-	fprintf(stderr, "tcpreplay " VERSION "\nUsage: tcpreplay "
-          "[-i pri int] [-j sec int] [-l loops] [-m multiplier] [-v]");
+	fprintf(stderr, "Usage: tcpreplay "
+          "[-h|V] [-i pri int] [-j sec int] [-l loops] [-m multiplier] [-v]");
 #ifdef DEBUG
 	fprintf(stderr, " [-d]");
 #endif
-  	fprintf(stderr,"\n[-r rate] [-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac] [-h]\n");
-	fprintf(stderr, "<file>\n");
+  	fprintf(stderr,"\n[-r rate] [-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac] <file>\n");
 	exit(1);
 }

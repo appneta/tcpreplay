@@ -13,6 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+/* required for inet_aton() */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "cidr.h"
 #include "tcpreplay.h"
@@ -36,8 +40,13 @@ print_cidr(CIDR * mycidr)
 	cidr_ptr = mycidr;
 	while (cidr_ptr != NULL) {
 		/* print it */
-		fprintf(stderr, "%s/%d, ", libnet_host_lookup(cidr_ptr->network, 
-			RESOLVE), cidr_ptr->masklen);
+#if USE_LIBNET_VERSION == 10
+		fprintf(stderr, "%s/%d, ", libnet_host_lookup(cidr_ptr->network, RESOLVE), 
+				cidr_ptr->masklen);
+#elif USE_LIBNET_VERSION == 11
+		fprintf(stderr, "%s/%d, ", libnet_addr2name4(cidr_ptr->network, RESOLVE), 
+				cidr_ptr->masklen);
+#endif
 
 		/* go to the next */
 		if (cidr_ptr->next != NULL) {
@@ -99,7 +108,12 @@ ip2cidr(const unsigned long ip, const int masklen)
 	if ((network = (u_char *) malloc(20)) == NULL)
 		err(1, "malloc");
 
+#if USE_LIBNET_VERSION == 10
 	strncpy(network, libnet_host_lookup(ip, RESOLVE), 19);
+#elif USE_LIBNET_VERSION == 11
+	strncpy(network, libnet_addr2name4(ip, RESOLVE), 19);
+#endif
+
 	strcat(network, "/");
 	if (masklen < 10) {
 		snprintf(mask, 1, "%d", masklen);
@@ -177,7 +191,12 @@ cidr2CIDR(char *cidr)
 	}
 
 	/* copy over the network address and return */
-	newcidr->network = libnet_name_resolve(networkip, RESOLVE);
+#ifdef INET_ATON
+	inet_aton(networkip, (struct in_addr *)&newcidr->network);
+#elif INET_ADDR
+	newcidr->network = inet_addr(networkip);
+#endif
+
 	return (newcidr);
 
 	/* we only get here on error parsing input */

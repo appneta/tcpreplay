@@ -1,13 +1,30 @@
-/* $Id: tcpreplay.h,v 1.8 2002/07/03 01:36:34 mattbing Exp $ */
+/* $Id: tcpreplay.h,v 1.9 2002/07/10 05:35:53 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
 
 #include "config.h"
-
+#include <libnet.h>
 #include <sys/time.h>
 
 #include "timer.h"
+
+/* Compatibility for libnet 1.0 vs 1.1 */
+#if USE_LIBNET_VERSION == 10
+
+typedef struct libnet_ip_hdr ip_hdr_t;
+typedef struct libnet_dns_hdr dns_hdr_t;
+
+#elif USE_LIBNET_VERSION == 11
+
+#define LIBNET_IP_H LIBNET_IPV4_H
+#define LIBNET_ICMP_H LIBNET_ICMPV4_H
+typedef struct libnet_ipv4_hdr ip_hdr_t;
+typedef struct libnet_dnsv4_hdr dns_hdr_t;
+
+#else
+#error "Unsupported version of Libnet"
+#endif /* USE_LIBNET_VERSION */
 
 #define VERSION "1.2"
 
@@ -16,8 +33,13 @@
 
 /* run-time options */
 struct options {
+#if USE_LIBNET_VERSION == 10
 	struct libnet_link_int *intf1;
 	struct libnet_link_int *intf2;
+#elif USE_LIBNET_VERSION == 11
+	libnet_t *intf1;
+	libnet_t *intf2;
+#endif
 	char intf1_mac[6];
 	char intf2_mac[6];
 	float rate;
@@ -72,6 +94,5 @@ struct packet {
 #define SWAPSHORT(y) \
 ( (((y)&0xff)<<8) | ((u_short)((y)&0xff00)>>8) )
 #endif
-
 
 #endif
