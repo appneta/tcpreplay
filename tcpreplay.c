@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.80 2004/01/31 21:21:12 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.81 2004/01/31 23:19:24 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -252,6 +252,7 @@ main(int argc, char *argv[])
             break;
         case 'T':              /* Truncate frames > MTU */
             options.truncate = 1;
+            options.fixchecksums = 1;
             break;
         case 'w':              /* write packets to file */
             if (!options.datadump_mode) {
