@@ -6,11 +6,20 @@
 /* Enable Electric Fence memory debugger */
 #undef EFENCE
 
+/* fopen(3) accepts a 'b' in the mode flag */
+#undef FOPEN_BINARY_FLAG
+
+/* fopen(3) accepts a 't' in the mode flag */
+#undef FOPEN_TEXT_FLAG
+
 /* Are we strictly aligned? */
 #undef FORCE_ALIGN
 
 /* Enable GNU Profiler */
 #undef GPROF
+
+/* Define this if ctime() allocates memory for its result */
+#undef HAVE_ALLOCATED_CTIME
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
@@ -18,11 +27,20 @@
 /* Define to 1 if you have the `ctime' function. */
 #undef HAVE_CTIME
 
+/* Define to 1 if you have the <dirent.h> header file. */
+#undef HAVE_DIRENT_H
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
 /* Does libpcap have dlt_val_to_desc? */
 #undef HAVE_DLT_VAL_TO_DESC
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 #undef HAVE_DOPRNT
+
+/* Define to 1 if you have the <errno.h> header file. */
+#undef HAVE_ERRNO_H
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
@@ -36,6 +54,12 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `gen' library (-lgen). */
+#undef HAVE_LIBGEN
+
+/* Define to 1 if you have the <libgen.h> header file. */
+#undef HAVE_LIBGEN_H
+
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #undef HAVE_LIBNSL
 
@@ -44,6 +68,9 @@
 
 /* Define to 1 if you have the `socket' library (-lsocket). */
 #undef HAVE_LIBSOCKET
+
+/* Define to 1 if you have the <limits.h> header file. */
+#undef HAVE_LIMITS_H
 
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
@@ -55,11 +82,20 @@
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
 
+/* Define to 1 if you have the `mmap' function. */
+#undef HAVE_MMAP
+
+/* Define to 1 if you have the <ndir.h> header file. */
+#undef HAVE_NDIR_H
+
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
 
 /* Define to 1 if you have the `ntohll' function. */
 #undef HAVE_NTOHLL
+
+/* Define this if pathfind(3) works */
+#undef HAVE_PATHFIND
 
 /* Do we have libpcapnav? */
 #undef HAVE_PCAPNAV
@@ -73,8 +109,14 @@
 /* Define to 1 if you have the `regcomp' function. */
 #undef HAVE_REGCOMP
 
+/* Define to 1 if you have the <setjmp.h> header file. */
+#undef HAVE_SETJMP_H
+
 /* Define to 1 if you have the <signal.h> header file. */
 #undef HAVE_SIGNAL_H
+
+/* Define to 1 if you have the <stdarg.h> header file. */
+#undef HAVE_STDARG_H
 
 /* Define to 1 if you have the <stddef.h> header file. */
 #undef HAVE_STDDEF_H
@@ -90,6 +132,9 @@
 
 /* Define to 1 if you have the `strerror' function. */
 #undef HAVE_STRERROR
+
+/* Define this if strftime() works */
+#undef HAVE_STRFTIME
 
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
@@ -109,8 +154,24 @@
 /* Define to 1 if `tv_sec' is member of `struct timeval'. */
 #undef HAVE_STRUCT_TIMEVAL_TV_SEC
 
+/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_DIR_H
+
+/* Define to 1 if you have the <sys/limits.h> header file. */
+#undef HAVE_SYS_LIMITS_H
+
+/* Define to 1 if you have the <sys/ndir.h> header file. */
+#undef HAVE_SYS_NDIR_H
+
+/* Define to 1 if you have the <sys/param.h> header file. */
+#undef HAVE_SYS_PARAM_H
+
 /* Define to 1 if you have the <sys/poll.h> header file. */
 #undef HAVE_SYS_POLL_H
+
+/* Define to 1 if you have the <sys/procset.h> header file. */
+#undef HAVE_SYS_PROCSET_H
 
 /* Define to 1 if you have the <sys/select.h> header file. */
 #undef HAVE_SYS_SELECT_H
@@ -133,6 +194,12 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define to 1 if you have the <values.h> header file. */
+#undef HAVE_VALUES_H
+
+/* Define to 1 if you have the <varargs.h> header file. */
+#undef HAVE_VARARGS_H
+
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
 
@@ -141,6 +208,14 @@
 
 /* Do we have inet_aton? */
 #undef INET_ATON
+
+/* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
+   */
+#undef MAJOR_IN_MKDEV
+
+/* Define to 1 if `major', `minor', and `makedev' are declared in
+   <sysmacros.h>. */
+#undef MAJOR_IN_SYSMACROS
 
 /* This is our package name */
 #undef PACKAGE
@@ -163,6 +238,9 @@
 /* libpcapnav's version? */
 #undef PCAPNAV_VERSION
 
+/* name of regex header file */
+#undef REGEX_HEADER
+
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
@@ -177,6 +255,9 @@
 
 /* What is our version? */
 #undef VERSION
+
+/* Define if using the dmalloc debugging malloc package */
+#undef WITH_DMALLOC
 
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */
