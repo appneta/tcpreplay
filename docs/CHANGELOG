@@ -6,6 +6,7 @@ $Id$
       - Move MAC Address funcs into mac.c
       - Move global defines into defines.h
       - Standardize use of structs and typedefs
+      - Start passing const's when we don't need to modify
     - Start using GNU AutoOpts for arg/config file processing
     - Fix small documentation bugs in man/tcpreplay.8
     - Updated the FAQ
@@ -15,6 +16,16 @@ $Id$
     - Add support for printing which interface packets go out w/ -1
     - I now own the full copyright for tcpreplay
     - Removed the evil 4th clause from the BSD license
+    - 64bit counters are optional via --enable-64bits
+    - Can now rewrite l2 data per outbound interface
+
+    - New Applications:
+      - tcprewrite
+      - tcpbridge
+
+    - Merge fixes from 2.x/stable branch:
+      - portmap.c endian bugs
+      - edit_packet.c handle corrupted pcap's where caplen < len
 
 *** Fork NG Branch ***
 
