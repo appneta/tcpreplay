@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.45 2004/09/05 18:28:53 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.46 2004/09/05 18:42:10 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -167,7 +167,7 @@ print_comment(char *file)
 
     count = read_cache(&cachedata, file);
     printf("tcpprep args: %s\n", options.tcpprep_comment);
-    printf("Cache contains data for %llu packets\n");
+    printf("Cache contains data for %llu packets\n", count);
 
     exit(0);
 }
