@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.24 2003/05/29 17:38:18 aturner Exp $ */
+/* $Id: do_packets.c,v 1.25 2003/06/03 00:55:21 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -23,6 +23,7 @@
 #include "timer.h"
 #include "list.h"
 #include "xX.h"
+
 
 extern struct options options;
 extern char *cachedata;
@@ -105,7 +106,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	 */
 	if (l2enabled) { /* rewrite l2 layer */
 	    switch(linktype) {
-	    case DLT_EN10MB:
+	    case DLT_EN10MB: /* Standard 802.3 Ethernet */
 		/* remove 802.3 header and replace */
 		/*
 		 * is new packet too big?
@@ -125,8 +126,17 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		pkthdr.caplen = pkthdr.caplen - LIBNET_ETH_H + l2len;
 		break;
 
-	    case DLT_RAW:
-		/* we have no ethernet header */
+	    case DLT_LINUX_SLL: /* Linux Cooked sockets */
+		/* copy over our new L2 data */
+		memcpy(pktdata, l2data, l2len);
+		/* copy over the packet data, minus the SLL header */
+		memcpy(&pktdata[SLL_HDR_LEN], (nextpkt + SLL_HDR_LEN),
+		       (pkthdr.caplen - SLL_HDR_LEN));
+		/* update pktdhr.caplen with new size */
+		pkthdr.caplen = pkthdr.caplen - SLL_HDR_LEN + l2len;
+
+
+	    case DLT_RAW: /* No ethernet header */
 		/*
 		 * is new packet too big?
 		 */
