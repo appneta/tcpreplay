@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.28 2003/01/12 04:43:24 aturner Exp $
+dnl $Id: configure.in,v 1.29 2003/03/19 16:55:26 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -60,12 +60,50 @@ AC_ARG_WITH(debug,
  AC_MSG_RESULT(yes)], 
 AC_MSG_RESULT(no))
 
+dnl Enable Efense
+efense=no
+AC_MSG_CHECKING(for efence enabled)
+AC_ARG_WITH(efence,
+[  --with-efence           Enable Electric Fence memory debugger],
+[ efence=yes
+  AC_DEFINE(EFENCE)
+  AC_MSG_RESULT(yes)],
+  AC_MSG_RESULT(no)
+  )
+
+dnl Enable Gprof
+gprof=no
+AC_MSG_CHECKING(for gprof enabled)
+AC_ARG_WITH(gprof,
+[  --with-gprof            Enable GNU Profiler],
+[ gprof=yes
+  AC_DEFINE(GPROF)
+  AC_MSG_RESULT(yes)],
+  AC_MSG_RESULT(no)
+  )
+
+
 dnl Use these compiler flags if we have gcc.
 if test $ac_cv_prog_gcc = yes -a $debug = no ; then
-    CCOPTS='-O2 -pipe -Wall'
+    CCOPTS='-pipe -Wall -O2'
     CFLAGS="$CCOPTS"
 else
 	CCOPTS='-pipe -Wall -ggdb -pedantic'
+	CFLAGS="$CCOPTS"
+fi
+
+dnl Gprof requires -ggdb
+if test $gprof = yes -a $debug = yes ; then
+	CCOPTS="$CCOPTS -pg" 
+	CFLAGS="$CCOPTS"
+elif test $gprof = yes -a $debug = no ; then
+	CCOPTS="-pipe -Wall -pg -ggdb"
+	CFLAGS="$CCOPTS"
+fi
+
+dnl Electric Fence
+if test $efence = yes ; then
+	CCOPTS="$CCOPTS -lefence"
 	CFLAGS="$CCOPTS"
 fi
 
