@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.17 2004/04/01 06:03:03 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.18 2004/04/03 22:46:36 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -38,10 +38,10 @@
 #include "cidr.h"
 #include "sll.h"
 #include "err.h"
+#include "utils.h"
 
 extern int maxpacket;
 extern struct options options;
-void *get_layer4(ip_hdr_t *);
 extern CIDRMAP *cidrmap_data1, *cidrmap_data2;
 
 /*
@@ -513,36 +513,47 @@ remap_ip(CIDR *cidr, const u_int32_t original)
 int
 rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
 {
-    CIDRMAP *cidrmap = NULL;
-    int didsrc = 0, diddst = 0;
-
-    /* figure out what mapping to use */
-    if (l == options.intf1) {
-        cidrmap = cidrmap_data1;
-    } else if (l == options.intf2) {
-        cidrmap = cidrmap_data2;
-    }
+    CIDRMAP *cidrmap1 = NULL, *cidrmap2 = NULL;
+    int didsrc = 0, diddst = 0, loop = 1;
 
     /* anything to rewrite? */
-    if (cidrmap == NULL)
+    if (cidrmap_data1 == NULL)
         return(0);
+
+    /* don't play with the main pointer */
+    if (l == options.intf1) {
+        cidrmap1 = cidrmap_data1;
+        cidrmap2 = cidrmap_data2;
+    } else {
+        cidrmap1 = cidrmap_data2;
+        cidrmap2 = cidrmap_data1;
+    }
     
+
     /* loop through the cidrmap to rewrite */
     do {
-        if (ip_in_cidr(cidrmap->from, ip_hdr->ip_dst.s_addr) && (! diddst)) {
-            ip_hdr->ip_dst.s_addr = remap_ip(cidrmap->to, ip_hdr->ip_dst.s_addr);
+        if (ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr) && (! diddst)) {
+            ip_hdr->ip_dst.s_addr = remap_ip(cidrmap2->to, ip_hdr->ip_dst.s_addr);
             diddst = 1;
         }
-        if (ip_in_cidr(cidrmap->from, ip_hdr->ip_src.s_addr) && (! didsrc)) {
-            ip_hdr->ip_src.s_addr = remap_ip(cidrmap->to, ip_hdr->ip_src.s_addr);
+        if (ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr) && (! didsrc)) {
+            ip_hdr->ip_src.s_addr = remap_ip(cidrmap1->to, ip_hdr->ip_src.s_addr);
             didsrc = 1;
         }
 
-        /* go to the next case if at end of map or did both src and dst */
-        if (cidrmap->next != NULL || (diddst && didsrc)) {
-            cidrmap = cidrmap->next;
+        /*
+         * loop while we haven't modified both src/dst AND
+         * at least one of the cidr maps have a next pointer
+         */
+        if ((! (diddst && didsrc)) || ((cidrmap1->next != NULL) || (cidrmap2->next != NULL))) {
+            if (cidrmap1->next != NULL)
+                cidrmap1 = cidrmap1->next;
+
+            if (cidrmap2->next != NULL)
+                cidrmap2 = cidrmap2->next;
+
         } else {
-            cidrmap = NULL;
+            loop = 0;
         }
 
         /* Later on we should support various IP protocols which embed
@@ -550,7 +561,7 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
          * DNS and FTP.
          */
 
-    } while (cidrmap != NULL);
+    } while (loop);
 
     /* return wether we changed an IP or not */
     return (diddst + didsrc);
@@ -626,15 +637,4 @@ rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l)
     }
 
     return(didsrc + diddst);
-}
-
-/*
- * returns a pointer to the layer 4 header which is just beyond the IP header
- */
-void *
-get_layer4(ip_hdr_t * ip_hdr)
-{
-    void *ptr;
-    ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
-    return ((void *)ptr);
 }
