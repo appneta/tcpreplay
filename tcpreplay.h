@@ -91,14 +91,16 @@ struct options {
     int datadumpfile;
     int datadumpfile2;
     int break_percent;
-    float rate;
-    float mult;
-    float packetrate;
-    int one_at_a_time;
+    int speedmode;
+#define MULTIPLIER 1
+#define PACKETRATE 2
+#define MBPSRATE   3
+#define ONEATATIME 4
+#define TOPSPEED   5
+    float speed;
     int n_iter;
     int cache_packets;
     int no_martians;
-    int topspeed;
     int fixchecksums;
     int cidr;
     int trunc;

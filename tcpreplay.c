@@ -133,7 +133,7 @@ main(int argc, char *argv[])
         switch (ch) {
         case 'b':              /* sniff/send bi-directionally */
             options.sniff_bridge = 1;
-            options.topspeed = 1;
+            options.speedmode = TOPSPEED;
             break;
         case 'c':              /* cache file */
             cache_file = optarg;
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
 #endif
         case 'D':              /* dump only data (no headers) to file (-w/-W) */
             options.datadump_mode = 1;
-            options.topspeed = 1;
+            options.speedmode = TOPSPEED;
             break;
         case 'e':              /* rewrite IP's to two end points */
             options.rewriteip ++;
@@ -201,13 +201,10 @@ main(int argc, char *argv[])
                 errx(1, "-L <limit> must be positive");
             break;
         case 'm':              /* multiplier */
-            options.mult = atof(optarg);
-            if (options.mult <= 0)
+            options.speedmode = MULTIPLIER;
+            if ((options.speed = atof(optarg)) <= 0)
                 errx(1, "Invalid multiplier: %s", optarg);
-            options.rate = 0.0;
-            options.packetrate = 0.0;
-            options.one_at_a_time = 0;
-            options.topspeed = 0;
+
             break;
         case 'M':              /* disable sending martians */
             options.no_martians = 1;
@@ -240,35 +237,22 @@ main(int argc, char *argv[])
             options.one_output = 1;
             break;
         case 'p':              /* packets/sec */
-            options.packetrate = atof(optarg);
-            if (options.packetrate <= 0)
+            options.speedmode = PACKETRATE;
+            if ((options.speed = atof(optarg)) <= 0)
                 errx(1, "Invalid packetrate value: %s", optarg);
-            options.rate = 0.0;
-            options.mult = 0.0;
-            options.one_at_a_time = 0;
-            options.topspeed = 0;
             break;
         case 'P':              /* print our PID */
             fprintf(stderr, "PID: %hu\n", getpid());
             break;
         case 'r':              /* target rate */
-            options.rate = atof(optarg);
-            if (options.rate <= 0)
+            options.speedmode = MBPSRATE;
+            if ((options.speed = atof(optarg)) <= 0)
                 errx(1, "Invalid rate: %s", optarg);
             /* convert to bytes */
-            options.rate = (options.rate * (1024 * 1024)) / 8;
-
-            options.mult = 0.0;
-            options.packetrate = 0.0;
-            options.one_at_a_time = 0;
-            options.topspeed = 0;
+            options.speed = (options.speed * (1024 * 1024)) / 8;
             break;
         case 'R':              /* replay at top speed */
-            options.topspeed = 1;
-            options.mult = 0.0;
-            options.rate = 0.0;
-            options.one_at_a_time = 0;
-            options.packetrate = 0.0;
+            options.speedmode = TOPSPEED;
             break;
         case 's':
             options.seed = atoi(optarg);
@@ -390,11 +374,7 @@ main(int argc, char *argv[])
             } 
             break;
         case '1':              /* replay one packet at a time */
-            options.one_at_a_time = 1;
-            options.mult = 0.0;
-            options.rate = 0.0;
-            options.packetrate = 0;
-            options.topspeed = 0;
+            options.speedmode = ONEATATIME;
             break;
         case '2':              /* layer 2 header file */
             l2enabled = 1;
@@ -459,7 +439,7 @@ main(int argc, char *argv[])
         errx(1, "Bridging requires a secondary interface");
     }
 
-    if ((options.sniff_snaplen != -1) && options.one_at_a_time) {
+    if ((options.sniff_snaplen != -1) && (options.speedmode == ONEATATIME)) {
         errx(1, "Sniffing live traffic excludes one at a time mode");
     }
 
@@ -943,10 +923,9 @@ configfile(char *file)
                 errx(1, "limit_send <limit> must be positive");
         }
         else if (ARGS("multiplier", 2)) {
-            options.mult = atof(argv[1]);
-            if (options.mult <= 0)
+            options.speedmode = MULTIPLIER;
+            if ((options.speed = atof(argv[1])) <= 0)
                 errx(1, "Invalid multiplier: %s", argv[1]);
-            options.rate = 0.0;
         }
         else if (ARGS("no_martians", 1)) {
             options.no_martians = 1;
@@ -977,28 +956,17 @@ configfile(char *file)
             options.one_output = 1;
         }
         else if (ARGS("one_at_a_time", 1)) {
-            options.one_at_a_time = 1;
-            options.rate = 0.0;
-            options.mult = 0.0;
-            options.topspeed = 0;
-            options.packetrate = 0;
+            options.speedmode = ONEATATIME;
         }
         else if (ARGS("rate", 2)) {
-            options.rate = atof(argv[1]);
-            if (options.rate <= 0)
+            options.speedmode = MBPSRATE;
+            if ((options.speed = atof(argv[1])) <= 0)
                 errx(1, "Invalid rate: %s", argv[1]);
             /* convert to bytes */
-            options.rate = (options.rate * (1024 * 1024)) / 8;
-            options.mult = 0.0;
-            options.topspeed = 0;
-            options.packetrate = 0;
+            options.speed = (options.speed * (1024 * 1024)) / 8;
         }
         else if (ARGS("topspeed", 1)) {
-            options.topspeed = 1;
-            options.rate = 0.0;
-            options.packetrate = 0;
-            options.mult = 0.0;
-            options.one_at_a_time = 0;
+            options.speedmode = TOPSPEED;
         }
         else if (ARGS("mtu", 2)) {
             options.mtu = atoi(argv[1]);
@@ -1033,13 +1001,9 @@ configfile(char *file)
             }
         }
         else if (ARGS("packetrate", 2)) {
-            options.packetrate = atof(argv[1]);
-            if (options.packetrate < 0)
+            options.speedmode = PACKETRATE;
+            if ((options.speed = atof(argv[1])) <= 0)
                 errx(1, "Invalid packetrate option: %s", argv[1]);
-            options.rate = 0.0;
-            options.mult = 0.0;
-            options.topspeed = 0;
-            options.one_at_a_time = 0;
         }
         else if (ARGS("include", 2)) {
             if (include_exclude_mode != 0)
@@ -1219,10 +1183,8 @@ init(void)
     memset(&options, 0, sizeof(options));
 
     /* Default mode is to replay pcap once in real-time */
-    options.mult = 1.0;
-    options.n_iter = 1;
-    options.rate = 0.0;
-    options.packetrate = 0.0;
+    options.speedmode = MULTIPLIER;
+    options.speed = 1.0;
 
     /* set the default MTU size */
     options.mtu = DEFAULT_MTU;
