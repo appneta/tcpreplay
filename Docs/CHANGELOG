@@ -1,7 +1,11 @@
-$Id: CHANGELOG,v 1.15 2003/07/18 00:01:28 aturner Exp $
+$Id: CHANGELOG,v 1.16 2003/08/31 02:05:11 aturner Exp $
 
 ??/??/2003: Version 1.5.alpha5
         - Add -T to truncate packets > MTU so they can be sent
+        - Now fixes ICMP checksums as appropriate
+        - Updated FAQ
+        - Updated flowreplay design doc
+	- Merge packetrate code from 1.4.5
 
 07/16/2003: Version 1.5.alpha4
         - Split do_packets.c & do_packets() -> edit_packet.c & rewrite_l2()
