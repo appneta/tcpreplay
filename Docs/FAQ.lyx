@@ -754,11 +754,13 @@ not
  802.3 Ethernet header.
 \layout Standard
 
-First you'll need to create a file containing the new header.
- This must be binary in nature, tcpreplay does not convert ASCII to binary
- for you.
- There are a variety of hex editors available on the internet to help you
- create such a file.
+Tcpreplay accepts the new Layer 2 header as a string of comma seperated
+ hex values such as: 0xff,0xac,0x00,0x01,0xc0,0x64.
+ Note that the leading '0x' is 
+\emph on 
+not
+\emph default 
+ required.
 \layout Standard
 
 Potential uses for this are to add a layer 2 header for DLT_RAW captures
