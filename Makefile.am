@@ -21,6 +21,9 @@ clean-docs:
 postweb:
 	cd $(DOCS_DIR) && make postweb
 
+manpages:
+	cd src && make manpages
+
 TEST_DIR = $(top_builddir)/test
 
 test:
