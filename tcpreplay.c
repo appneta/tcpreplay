@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.91 2004/05/15 21:11:50 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.92 2004/05/17 19:26:54 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -743,29 +743,29 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
 
     if (linktype != DLT_EN10MB) {
         if (linktype == DLT_LINUX_SLL) {
+            dbg(1, "pcap file's link type is DLT_LINUX_SLL");
             /* if SLL, then either -2 or -I are ok */
             if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (!l2enabled)) {
-                warnx
-                    ("Unable to process Linux Cooked Socket pcap without -2 or -I: %s",
-                     name);
+                warnx("Unable to process Linux Cooked Socket pcap "
+                      "without -2 or -I: %s", name);
                 return;
             }
 
             /* if using dual interfaces, make sure -2 or -J is set */
-            if (options.intf2 &&
-                ((!l2enabled) ||
-                 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
-                warnx
-                    ("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s",
-                     name);
+            if (options.intf2 && 
+                ((!l2enabled) && (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
+                errx(1, "Unable to process Linux Cooked Socket pcap with -j"
+                     " without -2 or -J: %s",  name);
                 return;
             }
         }
         else if (!l2enabled) {
-            warnx("Unable to process non-802.3 pcap without layer 2 data: %s",
-                  name);
+            dbg(1, "pcap link type is not DLT_EN10MB or DLT_LINUX_SLL");
+            errx(1, "Unable to process non-802.3 pcap without layer 2 data: %s",  name);
             return;
         }
+    } else {
+        dbg(1, "pcap link type is DLT_EN10MB");
     }
 
     /* calculate the maxpacket based on the l2len, linktype and mtu */
