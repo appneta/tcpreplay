@@ -38,35 +38,35 @@
 #include "common.h"
 
 #if 0
-struct options_map_t {
-    char *option;
-    char *description;
-    int type;
-} options_map[] = {
-    { "verbose", "print decoded packet as it's sent", CONFIG_TYPE_ENABLE },
-    { "print", "arguments to pass to tcpdump to print decoded packet", CONFIG_TYPE_STRING },
-    { "cache", "tcpprep cache file to split traffic with", CONFIG_TYPE_STRING },
-    { "cidr", "split traffic based on source ip matching a list of networks", CONFIG_TYPE_CIDRTABLE },
-    { "limit", "specify the number of packets to send", CONFIG_TYPE_INT },
-    { "intf1", "primary output interface", CONFIG_TYPE_STRING },
-    { "intf2", "secondary output interface", CONFIG_TYPE_STRING },
-    { "file1", "primary output file", CONFIG_TYPE_STRING },
-    { "file2", "secondary output file", CONFIG_TYPE_STRING },
-    { "dumpdata", "write application layer data to output files", CONFIG_TYPE_INT },
-    { "multi", "resend packets at a multiple of the original", CONFIG_TYPE_DOUBLE },
-    { "pps", "resend packets at a given packets/second", CONFIG_TYPE_INT },
-    { "mbps", "resend packets a given Mbps/second", CONFIG_TYPE_DOUBLE },
-    { "onetime", "resend one packet per keypress", CONFIG_TYPE_INT },
-    { "topspeed", "resend packets as fast as possible", CONFIG_TYPE_INT },
-    { "loop", "loop through pcap file X times", CONFIG_TYPE_INT },
-    { "nopromisc", "don't listen promiscously when sniffing", CONFIG_TYPE_BOOLEAN },
-    { "offset", "start sending packets from the given byte offset", CONFIG_TYPE_INT },
-    { "oneout", "", CONFIG_TYPE_BOOLEAN },
-    { "pid", "print the process id", CONFIG_TYPE_BOOLEAN },
-    { "sniff", "read packets from the network instead of a file", CONFIG_TYPE_BOOLEAN },
-    { "mtu", "set the mtu in bytes of the output", CONFIG_TYPE_INT },
+struct config_def_t options_map[] = {
+    { "verbose", "print decoded packet as it's sent", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
+    { "print", "arguments to pass to tcpdump to print decoded packet", CONFIG_TYPE_STRING, 1, 1, 0 },
+    { "cache", "tcpprep cache file to split traffic with", CONFIG_TYPE_STRING, 1, 1, 0 },
+    { "cidr", "split traffic based on source ip matching a list of networks", CONFIG_TYPE_CIDR, 1, -1, ',' },
+    { "limit", "specify the number of packets to send", CONFIG_TYPE_INT, 1, 1, 0 },
+    { "intf1", "primary output interface", CONFIG_TYPE_STRING, 1, 1, 0 },
+    { "intf2", "secondary output interface", CONFIG_TYPE_STRING, 1, 1, 0 },
+    { "file1", "primary output file", CONFIG_TYPE_STRING, 1, 1, 0 },
+    { "file2", "secondary output file", CONFIG_TYPE_STRING, 1, 1, 0 },
+    { "dumpdata", "write application layer data to output files", CONFIG_TYPE_INT, 0, 0, 0 },
+    { "multi", "resend packets at a multiple of the original", CONFIG_TYPE_DOUBLE, 1, 1, 0 },
+    { "pps", "resend packets at a given packets/second", CONFIG_TYPE_INT, 1, 1, 0 },
+    { "mbps", "resend packets a given Mbps/second", CONFIG_TYPE_DOUBLE, 1, 1, 0 },
+    { "onetime", "resend one packet per keypress", CONFIG_TYPE_INT, 0, 0, 0 },
+    { "topspeed", "resend packets as fast as possible", CONFIG_TYPE_INT, 0, 0, 0 },
+    { "loop", "loop through pcap file X times", CONFIG_TYPE_INT, 1, 1, 0 },
+    { "nopromisc", "don't listen promiscously when sniffing", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
+    { "offset", "start sending packets from the given byte offset", CONFIG_TYPE_INT, 1, 1, 0 },
+    { "oneout", "", CONFIG_TYPE_BOOLEAN, 0, 0 , 0 },
+    { "pid", "print the process id", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
+    { "sniff", "read packets from the network instead of a file", CONFIG_TYPE_BOOLEAN, 0, 0, 0 },
+    { "mtu", "set the mtu in bytes of the output", CONFIG_TYPE_INT, 1, 1, 0 },
+    { "ippair", "rewrite all network traffic to be between two ip addresses", 2, 2, ':' },
     { NULL, NULL, 0 }
 };
+
+
+
 #endif
 
 /* run-time options */
