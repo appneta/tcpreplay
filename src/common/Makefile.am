@@ -4,7 +4,7 @@ libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c \
 		      fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c \
 		      tree.c
 
-AM_CFLAGS = -I..
+AM_CFLAGS = -I.. -I../..
 
 libcommon_a_LIBADD = ../../lib/libstrl.a
 

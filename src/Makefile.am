@@ -47,10 +47,10 @@ noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h timer.h \
 		 signal_handler.h tcpdump.h common.h tcpreplay_opts.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h
 
-tcpreplay_CFLAGS = -I../lib $(LIBOPTS_CFLAGS)
-tcpprep_CFLAGS = -I../lib
-flowreplay_CFLAGS = -I../lib
-tcprewrite_CFLAGS = -I../lib
+tcpreplay_CFLAGS = -I.. $(LIBOPTS_CFLAGS)
+tcpprep_CFLAGS = -I..
+flowreplay_CFLAGS = -I..
+tcprewrite_CFLAGS = -I..
 
 MOSTLYCLEANFILES = *~ *.o
 
