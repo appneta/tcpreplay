@@ -443,7 +443,7 @@ packet2tree(const u_char * data)
 	ip_hdr_t *ip_hdr = NULL;
 	struct libnet_tcp_hdr *tcp_hdr = NULL;
 	struct libnet_udp_hdr *udp_hdr = NULL;
-	/* struct libnet_icmp_hdr * icmp_hdr = NULL; */
+	struct libnet_icmp_hdr *icmp_hdr = NULL;
 	dns_hdr_t *dns_hdr = NULL;
 
 	mytree = new_tree();
@@ -457,8 +457,11 @@ packet2tree(const u_char * data)
 	/* copy over the source ip */
 	mytree->ip = ip_hdr->ip_src.s_addr;
 
-	/* process layer 4 and above and look for signatures of client/server */
+	/* 
+	 * TCP 
+	 */
 	if (ip_hdr->ip_p == IPPROTO_TCP) {
+
 #if defined DEBUG && USE_LIBNET_VERSION == 10
 		if (debug)
 			fprintf(stderr, "%s uses TCP...  ", libnet_host_lookup(ip_hdr->ip_src.s_addr, RESOLVE));
@@ -492,6 +495,9 @@ packet2tree(const u_char * data)
 			fprintf(stderr, "is an unknown\n");
 #endif
 
+		/* 
+		 * UDP 
+		 */
 	} else if (ip_hdr->ip_p == IPPROTO_UDP) {
 		udp_hdr = (struct libnet_udp_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
 #if defined DEBUG && USE_LIBNET_VERSION == 10
@@ -555,12 +561,31 @@ packet2tree(const u_char * data)
 			break;
 		}
 
+		/* 
+		 * ICMP 
+		 */
+	} else if (ip_hdr->ip_p == IPPROTO_ICMP) {
+		icmp_hdr = (struct libnet_icmp_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
+#if defined DEBUG && USE_LIBNET_VERSION == 10
+		if (debug)
+			fprintf(stderr, "%s uses ICMP...  ", libnet_host_lookup(ip_hdr->ip_src.s_addr, RESOLVE));
+#elif defined DEBUG && USE_LIBNET_VERSION == 11
+		if (debug)
+			fprintf(stderr, "%s uses ICMP...  ", libnet_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
+#endif
+		
+		/*
+		 * if port unreachable, then source == server, dst == client 
+		 */
+		if ((icmp_hdr->icmp_type == ICMP_UNREACH) &&
+			(icmp_hdr->icmp_code == ICMP_UNREACH_PORT)) {
+			mytree->type = SERVER;
+			if (debug)
+				fprintf(stderr, "is a server with a closed port\n");
+		}
+
 	}
-	/*
-          else {
-          non-tcp & udp stuff should go here
-          }
-        */
+
 
 	return (mytree);
 }

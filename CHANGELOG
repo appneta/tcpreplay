@@ -1,4 +1,4 @@
-xx/xx/xxxx: Version 1.2
+08/19/2002: Version 1.2
 	- Configuration files specified via -f
 	- Now requires a recent version of AutoConf (2.53)
 	- Added support for Libnet 1.1.x (requires beta8 or better)
