@@ -39,12 +39,12 @@ struct portmap_s {
 };
 typedef struct portmap portmap_t;
 
-portmapt_t *new_portmap();
-int parse_portmap(portmapt_t **portmapdata, char *ourstr);
-void free_portmap(portmapt_t *portmap);
-void print_portmap(portmapt_t *portmap);
-long map_port(portmapt_t *portmap , long port);
-int rewrite_ports(portmapt_t *portmap, ip_hdr_t **ip_hdr);
+portmap_t *new_portmap();
+int parse_portmap(portmap_t **portmapdata, char *ourstr);
+void free_portmap(portmap_t *portmap);
+void print_portmap(portmap_t *portmap);
+long map_port(portmap_t *portmap , long port);
+int rewrite_ports(portmap_t *portmap, ip_hdr_t **ip_hdr);
 
 #endif
 
