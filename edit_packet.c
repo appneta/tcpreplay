@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.9 2003/11/03 02:21:00 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.10 2003/11/06 05:58:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -327,7 +327,6 @@ extract_data(u_char *pktdata, int caplen, int l2len, char *l7data[])
     ip_hdr_t *ip_hdr = NULL;
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
-    icmp_hdr_t *icmp_hdr = NULL;
 #ifdef FORCE_ALIGN
     u_char ipbuff[MAXPACKET];
 #endif
