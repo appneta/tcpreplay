@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.21 2004/04/22 23:46:03 aturner Exp $ */
+/* $Id: cache.c,v 1.22 2004/04/23 06:33:15 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -113,8 +113,7 @@ read_cache(char **cachedata, char *cachefile)
     /* read the comment */
     header.comment_len = ntohs(header.comment_len);
 
-    read_size = read(cachefd, options.tcpprep_comment, 
-                     header.comment_len < COMMENT_LEN ? header.comment_len : COMMENT_LEN - 1);
+    read_size = read(cachefd, options.tcpprep_comment, header.comment_len);
     if (read_size != header.comment_len)
         errx(1, "Unable to read %d bytes of data for the comment (%d) %s", 
              header.comment_len, read_size, read_size == -1 ? strerror(read_size) : "");

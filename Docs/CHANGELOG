@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.35 2004/04/03 22:51:35 aturner Exp $
+$Id: CHANGELOG,v 1.36 2004/04/23 06:33:15 aturner Exp $
 
 ?????: Version 2.1.0
     - Add support for per output interface/file NAT tables 
@@ -8,6 +8,7 @@ $Id: CHANGELOG,v 1.35 2004/04/03 22:51:35 aturner Exp $
     - Fix a bug where sometimes the last few packets are not sent when using
       a tcpprep cache file
     - Some code refactorization/cleanup
+    - tcpprep cache files now support user comments
 
 03/24/2004: Version 2.0.3
     - Add support for rewriting src mac & Linux SLL loopback frames

@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.35 2004/04/22 23:46:39 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.36 2004/04/23 06:33:15 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -410,9 +410,18 @@ main(int argc, char *argv[])
             mode = CIDR_MODE;
             break;
         case 'C':
-            options.tcpprep_comment[COMMENT_LEN -1] = '\0';
-            strncpy(options.tcpprep_comment, optarg, COMMENT_LEN -1);
-            dbg(1, "comment length: %d", strlen(options.tcpprep_comment));
+            /* our comment_len is only 16bit */
+            if (strlen(optarg) > (1 << 16) -1)
+                errx(1, "Comment length %d is longer then max allowed (%d)", 
+                     strlen(optarg), (1 << 16) -1);
+
+            /* malloc our buffer to be + 1 strlen so we can null terminate */
+            if ((options.tcpprep_comment = (char *)malloc(strlen(optarg) + 1)) == NULL)
+                errx(1, "Unable to malloc() memory for comment");
+
+            memset(options.tcpprep_comment, '\0', strlen(optarg) + 1);
+            memcpy(options.tcpprep_comment, optarg, strlen(optarg));
+            dbg(1, "comment length: %d", strlen(optarg));
             break;
 #ifdef DEBUG
         case 'd':

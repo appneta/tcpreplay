@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.54 2004/04/22 23:50:19 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.55 2004/04/23 06:33:15 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -77,7 +77,6 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
 #define MAXPACKET 16436         /* MTU of Linux loopback */
-#define COMMENT_LEN 256         /* tcpprep comment length in the header */
 
 /* run-time options */
 struct options {
@@ -124,7 +123,7 @@ struct options {
     int poll_timeout;
     int verbose_enabled;
     int one_output;
-    char tcpprep_comment[COMMENT_LEN];
+    char *tcpprep_comment;
     char break_type;
 };
 
