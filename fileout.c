@@ -43,15 +43,6 @@
 #include <signal.h>
 #include <string.h>
 #include <netinet/in.h>
-#include <time.h>
-
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
-#elif HAVE_POLL_H
-#include <poll.h>
-#else
-#include "fakepoll.h"
-#endif
 
 #include "tcpreplay.h"
 #include "tcpdump.h"
@@ -153,9 +144,8 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 #endif
     char datadumpbuff[MAXPACKET];   /* data dumper buffer */
     int datalen = 0;                /* data dumper length */
-    int newchar = 0;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
-    struct pollfd poller[1];        /* use poll to read from the keyboard */
+  
 
     /* create packet buffers */
     if ((pktdata = (u_char *) malloc(maxpacket)) == NULL)
@@ -168,7 +158,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
     /* register signals */
     didsig = 0;
-    if (!options.one_at_a_time) {
+    if (!options.speedmode == ONEATATIME) {
         (void)signal(SIGINT, catcher);
     }
     else {
@@ -370,29 +360,11 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
         if (options.verbose)
             tcpdump_print(&tcpdump, &pkthdr, pktdata);
 
-        if ((!options.topspeed) && (!options.one_at_a_time)) {
-            /* we have to cast the ts, since OpenBSD sucks
-             * had to be special and use bpf_timeval 
-             */
-            do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
-        }
-        else if (options.one_at_a_time) {
-            printf("**** Press <ENTER> to send the next packet:\n");
-            poller[0].fd = STDIN_FILENO;
-            poller[0].events = POLLIN;
-            poller[0].revents = 0;
-
-            /* wait for the input */
-            if (poll(poller, 1, -1) < 0)
-                errx(1, "do_packets(): Error reading from stdin: %s", strerror(errno));
-
-            /* read to the end of the line */
-            do {
-                newchar = getc(stdin);
-            } while (newchar != '\n');
-
-        }
-
+        /* we have to cast the ts, since OpenBSD sucks
+         * had to be special and use bpf_timeval 
+         */
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, options.speedmode, options.speed);
+     
         /* in one output mode always use primary nic/file */
         if (options.one_output)
             l = options.intf1;
@@ -591,85 +563,3 @@ cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
     return l;
 }
 
-
-/*
- * Given the timestamp on the current packet and the last packet sent,
- * calculate the appropriate amount of time to sleep and do so.
- */
-void
-do_sleep(struct timeval *time, struct timeval *last, int len)
-{
-    static struct timeval didsleep = { 0, 0 };
-    static struct timeval start = { 0, 0 };
-    struct timeval nap, now, delta;
-    struct timespec ignore, sleep;
-    float n;
-
-    if (gettimeofday(&now, NULL) < 0) {
-        err(1, "gettimeofday");
-    }
-
-    /* First time through for this file */
-    if (!timerisset(last)) {
-        start = now;
-        timerclear(&delta);
-        timerclear(&didsleep);
-    }
-    else {
-        timersub(&now, &start, &delta);
-    }
-
-    if (options.mult) {
-        /* 
-         * Replay packets a factor of the time they were originally sent.
-         */
-        if (timerisset(last) && timercmp(time, last, >)) {
-            timersub(time, last, &nap);
-        }
-        else {
-            /* 
-             * Don't sleep if this is our first packet, or if the
-             * this packet appears to have been sent before the 
-             * last packet.
-             */
-            timerclear(&nap);
-        }
-        timerdiv(&nap, options.mult);
-
-    }
-    else if (options.rate) {
-        /* 
-         * Ignore the time supplied by the capture file and send data at
-         * a constant 'rate' (bytes per second).
-         */
-        if (timerisset(last)) {
-            n = (float)len / (float)options.rate;
-            nap.tv_sec = n;
-            nap.tv_usec = (n - nap.tv_sec) * 1000000;
-        }
-        else {
-            timerclear(&nap);
-        }
-    }
-    else if (options.packetrate) {
-        float pr;
-        pr = 1 / options.packetrate;
-        nap.tv_sec = pr;
-        pr -= nap.tv_sec;
-        nap.tv_usec = pr * 1000000;
-    }
-
-    timeradd(&didsleep, &nap, &didsleep);
-
-    if (timercmp(&didsleep, &delta, >)) {
-        timersub(&didsleep, &delta, &nap);
-
-        sleep.tv_sec = nap.tv_sec;
-        sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
-
-        if (nanosleep(&sleep, &ignore) == -1) {
-            warnx("nanosleep error: %s", strerror(errno));
-        }
-
-    }
-}

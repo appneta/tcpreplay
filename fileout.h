@@ -35,7 +35,6 @@
 
 void catcher(int);
 void do_packets(pcapnav_t *, pcap_t *, u_int32_t, int, char *, int);
-void do_sleep(struct timeval *, struct timeval *, int);
 void *cache_mode(char *, u_int64_t, eth_hdr_t *);
 void *cidr_mode(eth_hdr_t *, ip_hdr_t *);
 
