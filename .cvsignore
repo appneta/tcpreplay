@@ -11,3 +11,4 @@ pcapmerge
 flowreplay
 autom4te.cache
 *.o
+.DS_Store
