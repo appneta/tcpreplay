@@ -26,6 +26,7 @@ $Id$
     - Merge fixes from 2.x/stable branch:
       - portmap.c endian bugs
       - edit_packet.c handle corrupted pcap's where caplen < len
+      - configure now properly uses --with-libnet and --with-libpcap
 
 *** Fork NG Branch ***
 
