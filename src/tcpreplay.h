@@ -84,8 +84,12 @@ struct tcpreplay_opt_s {
     int promisc;
     int poll_timeout;
 */
+
+#ifdef HAVE_TCPDUMP
+    /* tcpdump verbose printing */
     int verbose;
     char *tcpdump_args;
+#endif
 
 };
 
