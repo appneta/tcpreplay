@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.16 2003/12/09 03:20:20 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.17 2003/12/11 03:06:45 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -35,6 +35,9 @@ tcpreplay \- replay packets from capture files
 ] [
 .B \-l
 .I loop
+] [
+.B \-L
+.I limit
 ] [
 .B \-m
 .I multiplier
@@ -147,6 +150,9 @@ secondary interface.
 .B \-l or "loop"
 Resend the capture file(s) \fIloop count\fR times.  Setting this to 0 (zero)
 will cause tcpreplay to loop infinitely.
+.TP
+.B \-L or "limit_send"
+Causes tcpreplay to exit after sending the specified number of packets
 .TP
 .B \-m or "multiplier"
 Resend the packets at a \fImultiple\fR of the speed at which they were
