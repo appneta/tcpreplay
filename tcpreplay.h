@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.53 2004/04/03 22:44:02 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.54 2004/04/22 23:50:19 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -38,12 +38,15 @@
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif /* HAVE_CONFIG_H */
+
 #include <libnet.h>
 #include <pcap.h>
 #include <sys/time.h>
-
 #include "timer.h"
+#include "cache.h"
 
 /* Map libnet 1.1 structs to shorter names for internal use */
 typedef libnet_t LIBNET;
@@ -74,6 +77,7 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
 #define MAXPACKET 16436         /* MTU of Linux loopback */
+#define COMMENT_LEN 256         /* tcpprep comment length in the header */
 
 /* run-time options */
 struct options {
@@ -85,15 +89,14 @@ struct options {
     pcap_t *savepcap2;
     pcap_dumper_t *savedumper;
     pcap_dumper_t *savedumper2;
-    int datadump_mode;
-    int datadumpfile;
-    int datadumpfile2;
-    char break_type;
-    int break_percent;
     char intf1_mac[ETHER_ADDR_LEN];
     char intf2_mac[ETHER_ADDR_LEN];
     char intf1_smac[ETHER_ADDR_LEN];
     char intf2_smac[ETHER_ADDR_LEN];
+    int datadump_mode;
+    int datadumpfile;
+    int datadumpfile2;
+    int break_percent;
     float rate;
     float mult;
     float packetrate;
@@ -111,7 +114,7 @@ struct options {
     int truncate;
     char **files;
     char *cache_files;
-    off_t offset;
+    u_int64_t offset; 
     u_int64_t limit_send;
     char *bpf_filter;
     int bpf_optimize;
@@ -121,6 +124,8 @@ struct options {
     int poll_timeout;
     int verbose_enabled;
     int one_output;
+    char tcpprep_comment[COMMENT_LEN];
+    char break_type;
 };
 
 #define RESOLVE 0               /* disable dns lookups */
