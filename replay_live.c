@@ -1,4 +1,4 @@
-/* $Id: replay_live.c,v 1.4 2003/12/16 03:58:37 aturner Exp $ */
+/* $Id: replay_live.c,v 1.5 2004/01/15 07:29:45 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -36,7 +36,11 @@
 #include "config.h"
 
 #include <libnet.h>
+#ifdef HAVE_PCAPNAV
 #include <pcapnav.h>
+#else
+#include "fakepcapnav.h"
+#endif
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
