@@ -481,15 +481,6 @@ To send at most 100 packets:
 tcpreplay -i eth0 -L 100 sample.pcap
 \layout Section
 
-Other tools in the Tcpreplay suite
-\layout Subsection
-
-pcapmerge
-\layout Standard
-
-Pcapmerge is a tool for merging two or more pcap files into a single file.
-\layout Section
-
 Understanding Common Error Messages
 \layout Subsection
 
@@ -828,7 +819,7 @@ If you want to skip the beginning of a pcap file, you can use the offset
  next packet.
 \layout Itemize
 
-To skip 15Kb into the pcap file and start sending packets from there:
+To skip 15KB into the pcap file and start sending packets from there:
 \newline 
 
 \emph on 
@@ -1473,6 +1464,12 @@ While tcpreplay is a great way to test NIDS and firewalls, it can't be used
  at Layer 2 (ethernet header and up), it can actually connect via TCP or
  UDP to server and then sends and receives data based upon a pcap capture
  file created with a tool like Ethereal or tcpdump.
+\layout Standard
+
+NOTE: flowreplay at the time of this writing is alpha quality and still
+ needs work.
+ Features that are described in this FAQ may not work as advertized or even
+ exist at all.
 \layout Subsection
 
 How flowreplay works
@@ -1623,10 +1620,8 @@ Tcpreplay v1.3 is the last version to support the old libnet API (everything
 Libpcapnav
 \layout Standard
 
-Starting with v1.5.alpha5, tcpreplay requires libpcapnav.
- I'm unsure if this requirement will continue when 1.5 goes beta or not.
- If this is a real problem for you, let me know and I'll take that into
- consideration.
+Starting with v1.5, tcpreplay optionally compiles with libpcapnav in order
+ to support the offset jumping option (-o).
  Libpcapnav can be found on the NetDude homepage: 
 \begin_inset LatexCommand \url[NetDude]{http://netdude.sf.net/}
 
@@ -1639,6 +1634,19 @@ Other Resources
 \layout Section
 
 Other pcap tools available
+\layout Subsection
+
+Other tools in the Tcpreplay suite
+\layout Itemize
+
+pcapmerge
+\newline 
+Pcapmerge is a tool for merging two or more pcap files into a single file.
+\layout Itemize
+
+capinfo
+\newline 
+Capinfo is a tool for displaying information about pcap files.
 \layout Subsection
 
 Tools to capture network traffic or decode pcap files
@@ -1679,30 +1687,50 @@ Tools to edit pcap files
 
 tcpslice
 \newline 
-Splits pcap files into smaller files
+Splits pcap files into smaller files.
 \newline 
-tcpdump
+
+\begin_inset LatexCommand \url{http://tcpdump.org/}
+
+\end_inset 
+
+
 \layout Itemize
 
 mergecap
 \newline 
-Merges two pcap capture files into one
+Merges two pcap capture files into one.
 \newline 
-Ethereal
+
+\begin_inset LatexCommand \url{http://ethereal.com/}
+
+\end_inset 
+
+
 \layout Itemize
 
 pcapmerge
 \newline 
-Merges two or more pcap capture files into one
+Merges two or more pcap capture files into one.
 \newline 
-tcpdump
+
+\begin_inset LatexCommand \url{http://tcpdump.org/}
+
+\end_inset 
+
+
 \layout Itemize
 
 editcap
 \newline 
-Converts capture file formats (pcap, snoop, etc)
+Converts capture file formats (pcap, snoop, etc).
 \newline 
-Ethereal
+
+\begin_inset LatexCommand \url{http://ethereal.com/}
+
+\end_inset 
+
+
 \layout Itemize
 
 netdude
@@ -1710,24 +1738,24 @@ netdude
 GTK based pcap capture file editor.
  Allows editing most anything in the packet.
 \newline 
-NetDude
-\layout Subsection
 
-Other tools
-\layout Itemize
+\begin_inset LatexCommand \url{http://netdude.sourceforge.net/}
 
-capinfo
-\newline 
-Prints statistics and basic information about a pcap file
-\newline 
-Tcpreplay
+\end_inset 
+
+
 \layout Itemize
 
 text2pcap
 \newline 
-Generates a pcap capture file from a hex dump
+Generates a pcap capture file from a hex dump.
 \newline 
-Ethereal
+
+\begin_inset LatexCommand \url{http://ethereal.com/}
+
+\end_inset 
+
+
 \layout Part*
 \pagebreak_top \start_of_appendix 
 Appendix
@@ -1737,7 +1765,7 @@ BSD License
 \layout Standard
 
 
-\begin_inset Include \input{LICENSE}
+\begin_inset Include \verbatiminput{LICENSE}
 preview false
 
 \end_inset 
