@@ -14,6 +14,11 @@ Legend:
     + Add tags?  Remove tags?  Change tags?
     - Cisco's ISL trunking?
 
+- Add support for GRE
+  http://www.linuxguruz.com/iptables/howto/2.4routing-5.html
+  Perhaps this should be done via the hardware interface rather then the GRE
+  virtual interface since libnet doesn't support the GRE virtual
+
 - Add support for setting the ethernet protocol field so we can use
     -I, -K to fill out an entire ethernet header w/o using -2
 
