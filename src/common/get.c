@@ -46,6 +46,7 @@ extern int debug;
 
 /*
  * returns the L2 protocol (IP, ARP, etc)
+ * or 0 for error
  */
 u_int16_t
 get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
@@ -87,6 +88,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 
     }
 
+    return 0;
 
 }
 
