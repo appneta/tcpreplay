@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.87 2004/04/03 22:43:30 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.88 2004/04/22 23:48:56 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -222,7 +222,7 @@ main(int argc, char *argv[])
             break;
         case 'o':              /* starting offset */
 #ifdef HAVE_PCAPNAV
-            options.offset = atol(optarg);
+            options.offset = strtoull(optarg, NULL, 0);
 #else
             errx(1,
                  "tcpreplay was not compiled with libpcapnav.  Unable to use -o");
@@ -831,7 +831,7 @@ configfile(char *file)
         }
 #ifdef HAVE_PCAPNAV
         else if (ARGS("offset", 2)) {
-            options.offset = atol(argv[1]);
+            options.offset = strtoull(argv[1], NULL, 0);
         }
 #endif
         else if (ARGS("one_output", 1)) {
@@ -892,9 +892,6 @@ configfile(char *file)
             else if (options.sniff_snaplen == 0) {
                 options.sniff_snaplen = 65535;
             }
-        }
-        else if (ARGS("offset", 2)) {
-            options.offset = atol(argv[1]);
         }
         else if (ARGS("packetrate", 2)) {
             options.packetrate = atof(argv[1]);
