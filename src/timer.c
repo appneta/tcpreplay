@@ -33,6 +33,8 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
+
+#include "timer.h"
 #include "tcpreplay.h"
 
 #include <stdlib.h>
@@ -77,7 +79,7 @@ float2timer(float time, struct timeval *tvp)
  */
 void
 do_sleep(struct timeval *time, struct timeval *last, int len,
-         struct tcpreplay_opt_t *options, libnet_t *l)
+         tcpreplay_opt_t *options, libnet_t *l)
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
@@ -187,7 +189,8 @@ do_sleep(struct timeval *time, struct timeval *last, int len,
 
         } else {
             /* decrement our skip counter */
-            printf("Sending packet out %s\n", l == options->intf1 ? intf1 : intf2);
+            printf("Sending packet out %s\n", 
+                l == options->intf1 ? options->intf1_name : options->intf2_name);
             skip --;
         }
 
