@@ -45,3 +45,12 @@ willing and able to help code it.
 - Improve flowreplay so it actually works
 
 - IPv6 support?
+
+- When splitting traffic via tcpprep print out each packet (tcpdump style)
+  so end users know where each packet is going
+
+- Tcpreplay should say which interface each packet is going out
+
+- Improve autoconf detection of libraries
+
+- Re-organize source tree
