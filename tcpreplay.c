@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.24 2002/07/27 20:18:40 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.25 2002/07/30 06:44:38 aturner Exp $ */
 
 #include "config.h"
 
@@ -23,6 +23,8 @@
 struct options options;
 CACHE *cachedata = NULL;
 CIDR *cidrdata = NULL;
+CIDR *cidrsend = NULL;
+CIDR *cidrignore = NULL;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
 int verbose, Mflag, Rflag, Cflag, uflag, cache_bit, cache_byte, cache_packets;
@@ -71,7 +73,7 @@ main(int argc, char *argv[])
 			break;
 		case 'C': /* cidr matching */
 			Cflag = 1;
-			if (!parse_cidr(optarg))
+			if (!parse_cidr(&cidrdata, optarg))
 				usage();
 			break;
 #ifdef DEBUG
@@ -296,7 +298,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					warnx("Skipping martian.  Packet #%d", pkts_sent);
 				}
 #endif
-				if (Cflag) { /* update cache pointers if neccessary */
+				if (cachedata != NULL) { /* update cache pointers if neccessary */
 					if (cache_bit == 7) {
 						cache_bit = 0;
 						cache_byte++;
@@ -314,11 +316,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			}
 		}
 
-
+ 
 		/* Dual nic processing */
 		if (options.intf2 != NULL) {
-			/* Cache Mode */
-			if (Cflag) {
+			/* cache mode */
+			if (cachedata != NULL) {
 				if (packet_num > cache_packets)
 					errx(1, "Exceeded number of packets in cache file");
 
@@ -348,8 +350,9 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				} else {
 					cache_bit++;
 				}
-				/* end CIDR Mode */
-			} else {
+				/* end cache Mode */
+			} else if (Cflag) {
+				/* CIDR mode */
 				if (ip_hdr == NULL) {
 					/* non IP packets go out intf1 */
 					l = options.intf1;
@@ -358,7 +361,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
 						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 					}
-				} else if (check_ip_CIDR(ip_hdr->ip_src.s_addr)) {
+				} else if (check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr)) {
 					/* set interface to send out packet */
 					l = options.intf1;
 
@@ -375,9 +378,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 						memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 					}
 				}
+			} else {
+				errx(1, "Strange, we should of never of gotten here");
 			}
 		} else {
-			/* normal operation */
+			/* normal single nic operation */
 			l = options.intf1;
 			/* check for destination MAC rewriting */
 			if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
