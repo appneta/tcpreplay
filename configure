@@ -862,10 +862,10 @@ Optional Packages:
   --with-gprof            Enable GNU Profiler
   --with-libnet=DIR       use libnet in DIR
   --with-libpcap=DIR      use libpcap in DIR
-  --with-pcapnav-config=FILE
-                          Use given pcapnav-config
+  --with-pcapnav-config=FILE   Use given pcapnav-config
   --with-pcapnav-prefix=PFX       Prefix where pcapnav is installed (optional)
   --with-pcapnav-exec-prefix=PFX Exec prefix where pcapnav is installed (optional)
+  --with-tcpdump=DIR      Path to the tcpdump source code tree
   --with-testnic=NIC      Select which network card to use for testing
   --with-testnic2=NIC2    Select an optional 2nd network card to use for testing
 
@@ -5832,14 +5832,15 @@ fi
 
 if test $libpcap_ver = no ; then
 	{ { echo "$as_me:$LINENO: error: Libpcap versions < 0.6 are no longer supported.
-	Please upgrade to 0.6 or better" >&5
+	Please upgrade to version 0.6 or better" >&5
 echo "$as_me: error: Libpcap versions < 0.6 are no longer supported.
-	Please upgrade to 0.6 or better" >&2;}
+	Please upgrade to version 0.6 or better" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
 LIBS="$OLDLIBS"
 
+pcapnav=no
 
 # Check whether --with-pcapnav-config or --without-pcapnav-config was given.
 if test "${with_pcapnav_config+set}" = set; then
@@ -5930,24 +5931,84 @@ echo $ECHO_N "checking for pcapnav... $ECHO_C" >&6
   if test "x$no_pcapnav" = x ; then
      echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
-     pcncfg="pcapnav-config"
+     pcapnav=yes
+        pcncfg="pcapnav-config"
 		LNAVLIB=`$pcncfg --libs`
 		LPNAV_CFLAGS=`$pcncfg --cflags`
 		PCAPNAV_VERSION=`$pcncfg --version`
 
 
-		cat >>confdefs.h <<\_ACEOF
-#define HAVE_PCAPNAV 1
-_ACEOF
-
 		cat >>confdefs.h <<_ACEOF
 #define PCAPNAV_VERSION "$PCAPNAV_VERSION"
 _ACEOF
 
-		echo "$as_me:$LINENO: checking for libpcapnav version" >&5
+        echo "$as_me:$LINENO: checking for libpcapnav version" >&5
 echo $ECHO_N "checking for libpcapnav version... $ECHO_C" >&6
-		echo "$as_me:$LINENO: result: $PCAPNAV_VERSION" >&5
-echo "${ECHO_T}$PCAPNAV_VERSION" >&6
+
+        if test "$cross_compiling" = yes; then
+  libpcapnav_ver=no
+
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <string.h>
+#define PCAPNAV_TEST "0.4"
+/*
+ * simple proggy to test the version of libpcapnav
+ * returns zero if version >= 0.4
+ * or one otherwise
+ */
+
+int
+main (int argc, char *argv[])
+{
+	if (strncmp(PCAPNAV_VERSION, PCAPNAV_TEST, 3) >= 0)
+		exit(0);
+	exit(1);
+}
+_ACEOF
+rm -f conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  libpcapnav_ver=yes
+       	echo "$as_me:$LINENO: result: >= 0.4" >&5
+echo "${ECHO_T}>= 0.4" >&6
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+libpcapnav_ver=no
+       	echo "$as_me:$LINENO: result: < 0.4" >&5
+echo "${ECHO_T}< 0.4" >&6
+fi
+rm -f core core.* *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+
+
+        if test $libpcapnav_ver = no ; then
+        	{ echo "$as_me:$LINENO: WARNING: Libpcapnav versions < 0.4 are not supported.
+    Please upgrade to version 0.4 or better.
+    qDisabling offset jump feature." >&5
+echo "$as_me: WARNING: Libpcapnav versions < 0.4 are not supported.
+    Please upgrade to version 0.4 or better.
+    qDisabling offset jump feature." >&2;}
+        fi
 
   else
      echo "$as_me:$LINENO: result: no" >&5
@@ -5971,7 +6032,32 @@ echo "${ECHO_T}Cannot find libpcapnav: Disabling offset jump feature." >&6
 
 fi;
 
+if test $libpcapnav_ver = yes -a $pcapnav = yes ; then
+    cat >>confdefs.h <<\_ACEOF
+#define HAVE_PCAPNAV 1
+_ACEOF
 
+fi
+
+
+tcpdump=no
+echo "$as_me:$LINENO: checking for tcpdump source tree" >&5
+echo $ECHO_N "checking for tcpdump source tree... $ECHO_C" >&6
+
+# Check whether --with-tcpdump or --without-tcpdump was given.
+if test "${with_tcpdump+set}" = set; then
+  withval="$with_tcpdump"
+   tcpdump=yes
+     cat >>confdefs.h <<\_ACEOF
+#define WITH_TCPDUMP 1
+_ACEOF
+
+     echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi;
 
 echo "$as_me:$LINENO: checking for requires strict byte alignment" >&5
 echo $ECHO_N "checking for requires strict byte alignment... $ECHO_C" >&6
@@ -6087,12 +6173,12 @@ echo "${ECHO_T}SunOS" >&6
 echo "${ECHO_T}Apple OSX" >&6
 	;;
 
-        *-*-openbsd*)
-        nic1=xl0
-        nic2=xl0
-        echo "$as_me:$LINENO: result: OpenBSD" >&5
+    *-*-openbsd*)
+    nic1=xl0
+    nic2=xl0
+    echo "$as_me:$LINENO: result: OpenBSD" >&5
 echo "${ECHO_T}OpenBSD" >&6
-        ;;
+    ;;
 
 	*)
 	echo "$as_me:$LINENO: result: $host is unknown!

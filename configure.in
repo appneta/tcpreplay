@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.51 2003/12/16 03:24:49 aturner Exp $
+dnl $Id: configure.in,v 1.52 2003/12/16 20:59:10 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -330,7 +330,7 @@ main (int argc, char *argv[])
 
 if test $libpcap_ver = no ; then
 	AC_MSG_ERROR(Libpcap versions < 0.6 are no longer supported.
-	Please upgrade to 0.6 or better)
+	Please upgrade to version 0.6 or better)
 fi
 
 dnl restore LIBS
@@ -339,24 +339,70 @@ LIBS="$OLDLIBS"
 dnl ##################################################
 dnl # Check for pcapnav
 dnl ##################################################
+pcapnav=no
 AC_ARG_WITH(pcapnav-config,
-    AC_HELP_STRING([--with-pcapnav-config=FILE], [Use given pcapnav-config]),
+    [  --with-pcapnav-config=FILE   Use given pcapnav-config],
     [ pcncfg="$withval" ],
     [ AC_PATH_GENERIC(pcapnav,,
-		[pcncfg="pcapnav-config"
+		[pcapnav=yes
+        pcncfg="pcapnav-config"
 		LNAVLIB=`$pcncfg --libs`
 		LPNAV_CFLAGS=`$pcncfg --cflags`
 		PCAPNAV_VERSION=`$pcncfg --version`
 		AC_SUBST(LNAVLIB)
 		AC_SUBST(LNAV_CFLAGS)
-		AC_DEFINE(HAVE_PCAPNAV)
 		AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION")
-		AC_MSG_CHECKING(for libpcapnav version)
-		AC_MSG_RESULT($PCAPNAV_VERSION)
+dnl Check to see what version of libpcapnav
+dnl this code has been reduced a lot, but probably still could be
+dnl reduced quite a bit more if we chose too
+        AC_MSG_CHECKING(for libpcapnav version)
+
+        AC_TRY_RUN([
+#include <string.h>
+#define PCAPNAV_TEST "0.4"
+/* 
+ * simple proggy to test the version of libpcapnav
+ * returns zero if version >= 0.4
+ * or one otherwise
+ */
+
+int
+main (int argc, char *argv[])
+{
+	if (strncmp(PCAPNAV_VERSION, PCAPNAV_TEST, 3) >= 0)
+		exit(0);
+	exit(1);
+}],
+      	libpcapnav_ver=yes
+       	AC_MSG_RESULT(>= 0.4),
+       	libpcapnav_ver=no
+       	AC_MSG_RESULT(< 0.4),
+       	libpcapnav_ver=no
+       	)
+
+
+        if test $libpcapnav_ver = no ; then
+        	AC_MSG_WARN(Libpcapnav versions < 0.4 are not supported.
+    Please upgrade to version 0.4 or better.
+    qDisabling offset jump feature.)
+        fi
 		],
-        AC_MSG_RESULT(Cannot find libpcapnav: Disabling offset jump feature.)) ])
+AC_MSG_RESULT(Cannot find libpcapnav: Disabling offset jump feature.)) ])
+
+if test $libpcapnav_ver = yes -a $pcapnav = yes ; then
+    AC_DEFINE(HAVE_PCAPNAV)
+fi
 
 
+dnl Check for tcpdump source tree
+tcpdump=no
+AC_MSG_CHECKING(for tcpdump source tree)
+AC_ARG_WITH(tcpdump,
+    [  --with-tcpdump=DIR      Path to the tcpdump source code tree],
+    [ tcpdump=yes
+     AC_DEFINE(WITH_TCPDUMP) 
+     AC_MSG_RESULT(yes)], 
+    AC_MSG_RESULT(no))
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail
@@ -460,11 +506,11 @@ case $host in
 	AC_MSG_RESULT(Apple OSX)
 	;;
 
-        *-*-openbsd*)
-        nic1=xl0
-        nic2=xl0
-        AC_MSG_RESULT(OpenBSD)
-        ;;
+    *-*-openbsd*)
+    nic1=xl0
+    nic2=xl0
+    AC_MSG_RESULT(OpenBSD)
+    ;;
 
 	*)
 	AC_MSG_RESULT([$host is unknown!  

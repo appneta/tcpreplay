@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.42 2003/12/16 04:28:07 aturner Exp $ */
+/* $Id: do_packets.c,v 1.43 2003/12/16 20:59:10 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -143,7 +143,8 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 #ifdef HAVE_PCAPNAV
     /* only support jumping w/ files */
     if ((pcapnav != NULL) && (options.offset)) {
-        if (pcapnav_goto_offset(pcapnav, options.offset) != PCAPNAV_DEFINITELY)
+        if (pcapnav_goto_offset(pcapnav, options.offset, PCAPNAV_CMP_LEQ) 
+            != PCAPNAV_DEFINITELY)
             warnx("Unable to get a definate jump offset "
                   "pcapnav_goto_offset(): %d\n", pcapnav_result);
     }
