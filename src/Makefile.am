@@ -9,7 +9,7 @@ tcpreplay_opts.c:
 
 bin_PROGRAMS = tcpreplay tcpprep flowreplay tcprewrite
 
-tcpreplay_SOURCES = tcpreplay.c netout.c fileout.c timer.c \
+tcpreplay_SOURCES = tcpreplay.c send_packets.c timer.c \
 		    signal_handler.c tcpdump.c tcpreplay_opts.c
 		    
 
@@ -43,7 +43,7 @@ flowreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h timer.h \
 		 defines.h dlt.h dlt_names.h edit_packet.h \
-		 fileout.h flowbuff.h flowkey.h flownode.h flowstate.h \
+		 send_packets.h flowbuff.h flowkey.h flownode.h flowstate.h \
 		 signal_handler.h tcpdump.h common.h tcpreplay_opts.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h
 
