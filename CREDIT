@@ -1,0 +1,6 @@
+Branden Moore <bmoore-at-cse.nd.edu>
+	- Patch to pad truncated packets
+	- Patch to allow specifying a destination MAC w/ only a single NIC
+
+Scott Mace <smace@intt.org>
+	- Patch for tcpreplay to support CIDR mode

@@ -1,16 +1,13 @@
 xx/xx/xxxx: Version 1.2
 	- Now requires a recent version of AutoConf (2.53)
-	- Added support for Libnet 1.1.x
+	- Added support for Libnet 1.1.x (requires beta8 or better)
 	- Added -V switch to print version info (tcpprep & tcpreplay)
 	- Added CIDR dual-nic support to tcpreplay. 
-	  patch by: Scott Mace <smace@intt.org>
 	- Fix for -I in tcpreplay when only using a single NIC.
-	  patch by: Branden J. Moore <bmoore@cse.nd.edu>
 	- Remove requirement for libpcap in tcpprep.  We're now
 	  100% libpcap independant.
 	- tcpprep now supports snoop files.
 	- Added -u flag to untruncate IP packets (pad/trunc)
-	  based on patch by: Branden J. Moore <bmoore@cse.nd.edu>
 	- fixed --with-debug configure option
 	- added RPM .spec file
 
