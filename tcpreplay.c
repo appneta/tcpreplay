@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.40 2002/10/22 05:50:11 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.41 2002/11/07 05:30:40 aturner Exp $ */
 
 #include "config.h"
 
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:C:f:hi:I:j:J:l:m:Mr:Rs:u:Vvx:X:?")) != -1)
+	while ((ch = getopt(argc, argv, "d:c:C:f:hi:I:j:J:l:m:Mr:Rs:u:Vvx:X:?")) != -1)
 #else
 	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mr:Rs:u:Vvx:X:?")) != -1)
 #endif
@@ -85,7 +85,7 @@ main(int argc, char *argv[])
 			break;
 #ifdef DEBUG
 		case 'd': /* enable debug */
-			debug = 1;
+			debug = atoi(optarg);
 			break;
 #endif
 		case 'f': /* config file*/
@@ -503,7 +503,7 @@ usage()
 	fprintf(stderr, "-c <cachefile>\t\tSplit traffic via cache file\n"
 			"-C CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
-	fprintf(stderr, "-d\t\t\tEnable debug output to STDERR\n");
+	fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
 	fprintf(stderr, "-f <configfile>\t\tSpecify configuration file\n"
 			"-h\t\t\tHelp\n"
