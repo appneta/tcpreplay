@@ -1,4 +1,4 @@
-/* $Id: xX.c,v 1.11 2004/04/03 22:50:57 aturner Exp $ */
+/* $Id: xX.c,v 1.12 2004/05/20 03:59:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -44,21 +44,19 @@
 #include "xX.h"
 #include "err.h"
 
-extern int include_exclude_mode;
 extern struct options options;
 
 
 /*
- * returns a LIST or CIDR matching the string and updates the mode to reflect the 
- * xXmode.  Returns NULL on error
+ * returns the include_exclude_mode on success placing the CIDR or LIST in mybuf
+ * but on failure, returns 0
  */
 
-void *
-parse_xX_str(char mode, char *str)
+int
+parse_xX_str(char mode, char *str, void **mybuf)
 {
-    LIST *list = NULL;
-    CIDR *cidr = NULL;
     int bpf = 0;
+    int out = 0;
 
     dbg(1, "Parsing string: %s", str);
     dbg(1, "Switching on: %c", str[0]);
@@ -66,26 +64,26 @@ parse_xX_str(char mode, char *str)
     switch (str[0]) {
     case 'B':                  /* both ip's */
         str = str + 2;
-        include_exclude_mode = xXBoth;
-        if (!parse_cidr(&cidr, str, ","))
-            return NULL;
+        out = xXBoth;
+        if (!parse_cidr((CIDR **)mybuf, str, ","))
+            return 0;
         break;
     case 'D':                  /* dst ip */
         str = str + 2;
-        include_exclude_mode = xXDest;
-        if (!parse_cidr(&cidr, str, ","))
-            return NULL;
+        out = xXDest;
+        if (!parse_cidr((CIDR **)mybuf, str, ","))
+            return 0;
         break;
     case 'E':                  /* either ip */
         str = str + 2;
-        include_exclude_mode = xXEither;
-        if (!parse_cidr(&cidr, str, ","))
-            return NULL;
+        out = xXEither;
+        if (!parse_cidr((CIDR **)mybuf, str, ","))
+            return 0;
         break;
     case 'F':                  /* bpf filter */
         bpf = 1;
         str = str + 2;
-        include_exclude_mode = xXBPF;
+        out = xXBPF;
         options.bpf_filter = str;
         /* note: it's temping to compile the BPF here, but we don't
          * yet know what the link type is for the file, so we have 
@@ -94,15 +92,15 @@ parse_xX_str(char mode, char *str)
         break;
     case 'P':                  /* packet id */
         str = str + 2;
-        include_exclude_mode = xXPacket;
-        if (!parse_list(&list, str))
-            return NULL;
+        out = xXPacket;
+        if (!parse_list((LIST **)mybuf, str))
+            return 0;
         break;
     case 'S':                  /* source ip */
         str = str + 2;
-        include_exclude_mode = xXSource;
-        if (!parse_cidr(&cidr, str, ","))
-            return NULL;
+        out = xXSource;
+        if (!parse_cidr((CIDR **)mybuf, str, ","))
+            return 0;
         break;
 
 
@@ -112,23 +110,13 @@ parse_xX_str(char mode, char *str)
     }
 
     if (mode == 'X') {          /* run in exclude mode */
-        include_exclude_mode += xXExclude;
+        out += xXExclude;
         if (bpf)
-            errx(1,
-                 "Using a BPF filter with -X doesn't work.\nTry using -xF:\"not <filter>\" instead");
+            errx(1, "Using a BPF filter with -X doesn't work.\n"
+                 "Try using -xF:\"not <filter>\" instead");
     }
 
-    if (cidr != NULL) {
-        return (void *)cidr;
-    }
-    else if (bpf) {
-        /* if BPF, return NULL, so we don't set xX_list or xX_cidr */
-        return str; 
-    }
-    else {
-        return (void *)list;
-    }
-
+    return out;
 }
 
 
@@ -145,40 +133,19 @@ process_xX_by_cidr(int mode, CIDR * cidr, ip_hdr_t * ip_hdr)
 
     if (mode & xXExclude) {
         /* Exclude mode */
-        switch (mode) {
+        switch (mode ^ xXExclude) {
         case xXSource:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-                return 0;
-            }
-            else {
-                return 1;
-            }
+            return check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr) ? 0 : 1;
             break;
         case xXDest:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr)) {
-                return 0;
-            }
-            else {
-                return 1;
-            }
-            break;
+            return check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ? 0 : 1;
         case xXBoth:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
-                check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-                return 0;
-            }
-            else {
-                return 1;
-            }
+            return (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
+                    check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) ? 0 : 1;
             break;
         case xXEither:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
-                check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-                return 0;
-            }
-            else {
-                return 1;
-            }
+            return (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
+                    check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) ? 0 : 1;
             break;
         }
     }
@@ -186,38 +153,18 @@ process_xX_by_cidr(int mode, CIDR * cidr, ip_hdr_t * ip_hdr)
         /* Include Mode */
         switch (mode) {
         case xXSource:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-                return 1;
-            }
-            else {
-                return 0;
-            }
+            return check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr) ? 1 : 0;
             break;
         case xXDest:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr)) {
-                return 1;
-            }
-            else {
-                return 0;
-            }
+            return check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ? 1 : 0;
             break;
         case xXBoth:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
-                check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-                return 1;
-            }
-            else {
-                return 0;
-            }
+            return (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
+                    check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) ? 1 : 0;
             break;
         case xXEither:
-            if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
-                check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-                return 1;
-            }
-            else {
-                return 0;
-            }
+            return (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
+                    check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) ? 1 : 0;
             break;
         }
     }

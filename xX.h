@@ -1,4 +1,4 @@
-/* $Id: xX.h,v 1.7 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: xX.h,v 1.8 2004/05/20 03:59:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -45,7 +45,7 @@
  */
 
 
-void *parse_xX_str(char, char *);
+int parse_xX_str(char, char *, void **);
 int process_xX_by_cidr(int, CIDR *, ip_hdr_t *);
 
 

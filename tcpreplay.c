@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.92 2004/05/17 19:26:54 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.93 2004/05/20 03:59:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -361,12 +361,13 @@ main(int argc, char *argv[])
                 errx(1, "Error: Can only specify -x OR -X");
 
             include_exclude_mode = 'x';
-            if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+            if ((include_exclude_mode = 
+                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
                 errx(1, "Unable to parse -x: %s", optarg);
+
             if (include_exclude_mode & xXPacket) {
                 xX_list = (LIST *) xX;
-            }
-            else if (!include_exclude_mode & xXBPF) {
+            } else if (! (include_exclude_mode & xXBPF)) {
                 xX_cidr = (CIDR *) xX;
             }
             break;
@@ -375,14 +376,15 @@ main(int argc, char *argv[])
                 errx(1, "Error: Can only specify -x OR -X");
 
             include_exclude_mode = 'X';
-            if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+            if ((include_exclude_mode = 
+                 parse_xX_str(include_exclude_mode, optarg, &xX)) == 0)
                 errx(1, "Unable to parse -X: %s", optarg);
+
             if (include_exclude_mode & xXPacket) {
                 xX_list = (LIST *) xX;
-            }
-            else if (!include_exclude_mode & xXBPF) {
+            } else {
                 xX_cidr = (CIDR *) xX;
-            }
+            } 
             break;
         case '1':              /* replay one packet at a time */
             options.one_at_a_time = 1;
@@ -671,7 +673,8 @@ replay_live(char *iface, int l2enabled, char *l2data, int l2len)
                          options.bpf_optimize, 0) != 0) {
             errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
         }
-        pcap_setfilter(pcap, &bpf);
+        if (pcap_setfilter(pcap, &bpf) != 0)
+            errx(1, "Unable to apply BPF filter: %s", pcap_geterr(pcap));
     }
 
     do_packets(NULL, pcap, linktype, l2enabled, l2data, l2len);
@@ -979,7 +982,8 @@ configfile(char *file)
                 errx(1,
                      "Error: Can only specify include (-x) OR exclude (-X) ");
             include_exclude_mode = 'x';
-            if ((xX = parse_xX_str(include_exclude_mode, argv[1])) == NULL)
+            if ((include_exclude_mode = 
+                 parse_xX_str(include_exclude_mode, argv[1], &xX)) == 0)
                 errx(1, "Unable to parse include: %s", optarg);
             if (include_exclude_mode & xXPacket) {
                 xX_list = (LIST *) xX;
@@ -993,7 +997,8 @@ configfile(char *file)
                 errx(1, "Error: Can only specify include (-x) OR exclude (-X)");
 
             include_exclude_mode = 'X';
-            if ((xX = parse_xX_str(include_exclude_mode, argv[1])) == NULL)
+            if ((include_exclude_mode =
+                 parse_xX_str(include_exclude_mode, argv[1], &xX)) == 0)
                 errx(1, "Unable to parse exclude: %s", optarg);
             if (include_exclude_mode & xXPacket) {
                 xX_list = (LIST *) xX;
