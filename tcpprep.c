@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.38 2004/05/08 21:30:26 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.39 2004/05/17 19:25:14 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -67,6 +67,7 @@
 #include "rbtree.h"
 #include "utils.h"
 #include "services.h"
+#include "sll.h"
 
 /*
  * global variables
@@ -246,6 +247,9 @@ process_raw_packets(pcap_t * pcap)
 {
     ip_hdr_t *ip_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
+    struct sll_header *sll_hdr = NULL;
+    int l2len = 0;
+    u_int16_t protocol = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
     unsigned long packetnum = 0;
@@ -255,7 +259,28 @@ process_raw_packets(pcap_t * pcap)
 
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
-        eth_hdr = (eth_hdr_t *) pktdata;
+        eth_hdr = NULL;
+        sll_hdr = NULL;
+        ip_hdr = NULL;
+
+        if (pcap_datalink(pcap) == DLT_EN10MB) {
+            dbg(3, "Datalink is DLT_EN10MB.");
+            eth_hdr = (eth_hdr_t *) pktdata;
+            l2len = LIBNET_ETH_H;
+            protocol = eth_hdr->ether_type;
+        } else if (pcap_datalink(pcap) == DLT_LINUX_SLL) {
+            dbg(3, "Datalink is LINUX SLL");
+            sll_hdr = (struct sll_header *) pktdata;
+            l2len = SLL_HDR_LEN;
+            protocol = sll_hdr->sll_protocol;
+        } else if (pcap_datalink(pcap) == DLT_RAW) {
+            dbg(3, "Datalink is RAW");
+            protocol = ETHERTYPE_IP;
+            l2len = 0;
+        } else {
+            errx(1, "WTF?  How'd we get here with an invalid DLT type? 0x%x",
+                 pcap_datalink(pcap));
+        }
 
         dbg(1, "Packet %d", packetnum);
 
@@ -273,8 +298,8 @@ process_raw_packets(pcap_t * pcap)
             }
         }
 
-        if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
-            dbg(2, "Packet isn't IP: 0x%.2x", eth_hdr->ether_type);
+        if (htons(protocol) != ETHERTYPE_IP) {
+            dbg(2, "Packet isn't IP: 0x%.2x", protocol);
 
             if (mode != AUTO_MODE)  /* we don't want to cache
                                      * these packets twice */
@@ -287,17 +312,17 @@ process_raw_packets(pcap_t * pcap)
          * copy layer 3 and up to our temp packet buffer
          * for now on, we have to edit the packetbuff because
          * just before we send the packet, we copy the packetbuff 
-         * back onto the pkt.data + LIBNET_ETH_H buffer
+         * back onto the pkt.data + l2len buffer
          * we do all this work to prevent byte alignment issues
          */
         ip_hdr = (ip_hdr_t *) & ipbuff;
-        memcpy(ip_hdr, (pktdata + LIBNET_ETH_H), (pkthdr.caplen - LIBNET_ETH_H));
+        memcpy(ip_hdr, (pktdata + l2len), (pkthdr.caplen - l2len));
 #else
         /*
          * on non-strict byte align systems, don't need to memcpy(), 
-         * just point to 14 bytes into the existing buffer
+         * just point to l2len bytes into the existing buffer
          */
-        ip_hdr = (ip_hdr_t *) (pktdata + LIBNET_ETH_H);
+        ip_hdr = (ip_hdr_t *) (pktdata + l2len);
 #endif
 
         /* look for include or exclude CIDR match */
@@ -353,7 +378,7 @@ process_raw_packets(pcap_t * pcap)
              * process ports based on their destination port
              */
             add_cache(&cachedata, 1, 
-                      check_dst_port(ip_hdr, (pkthdr.caplen - LIBNET_ETH_H)));
+                      check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
             break;
         }
 
@@ -595,6 +620,13 @@ main(int argc, char *argv[])
     if ((pcap = pcap_open_offline(infilename, errbuf)) == NULL) {
         errx(1, "Error opening file: %s", errbuf);
     }
+
+    if ((pcap_datalink(pcap) != DLT_EN10MB) &&
+        (pcap_datalink(pcap) != DLT_LINUX_SLL) &&
+        (pcap_datalink(pcap) == DLT_RAW)) {
+        errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(pcap));
+    }
+
 
     /* do we apply a bpf filter? */
     if (options.bpf_filter != NULL) {
