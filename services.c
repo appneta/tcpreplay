@@ -1,4 +1,4 @@
-/* $Id: services.c,v 1.1 2004/05/08 21:17:33 aturner Exp $ */
+/* $Id: services.c,v 1.2 2004/05/16 17:09:35 aturner Exp $ */
 
 /*
  * Copyright (c) 2004 Aaron Turner.
@@ -30,6 +30,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <regex.h>
 #include "tcpreplay.h"
 #include "err.h"
