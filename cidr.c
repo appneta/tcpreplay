@@ -8,12 +8,14 @@
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
-#include "tcpreplay.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <err.h>
 #include <libnet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "cidr.h"
+#include "tcpreplay.h"
 
 extern CIDR *cidrdata;
 extern int debug;
@@ -25,7 +27,7 @@ static CIDR *cidr2CIDR(char *);
  * prints to stderr all the entries in mycidr
  */
 void 
-print_cidr(const CIDR * mycidr)
+print_cidr(CIDR * mycidr)
 {
 	CIDR *cidr_ptr;
 
@@ -34,7 +36,8 @@ print_cidr(const CIDR * mycidr)
 	cidr_ptr = mycidr;
 	while (cidr_ptr != NULL) {
 		/* print it */
-		fprintf(stderr, "%s/%d, ", libnet_host_lookup(cidr_ptr->network, RESOLVE), cidr_ptr->masklen);
+		fprintf(stderr, "%s/%d, ", libnet_host_lookup(cidr_ptr->network, 
+			RESOLVE), cidr_ptr->masklen);
 
 		/* go to the next */
 		if (cidr_ptr->next != NULL) {
@@ -183,6 +186,7 @@ error:
 	strcpy(ebuf, "Unable to parse: ");
 	strncat(ebuf, cidr, (EBUF_SIZE - strlen(ebuf) - 1));
 	err(1, "%s", ebuf);
+	return NULL;
 }
 
 /*

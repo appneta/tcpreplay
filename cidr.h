@@ -21,5 +21,5 @@ u_char * ip2cidr(const unsigned long, const int);
 void add_cidr(CIDR **);
 CIDR * new_cidr();
 void delete_cidr(CIDR *);
-void print_cidr(const CIDR *);
+void print_cidr(CIDR *);
 #endif
