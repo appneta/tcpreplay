@@ -1,4 +1,4 @@
-$Id: CREDIT,v 1.5 2003/12/09 03:19:06 aturner Exp $ 
+$Id: CREDIT,v 1.6 2004/02/01 18:22:02 aturner Exp $ 
 
 Branden Moore <bmoore-at-cse.nd.edu>
 	- Patch to pad truncated packets
@@ -19,3 +19,8 @@ Frey Kuo <kero@3sheep.com>
 
 Seth Robertson (seth at sysd dot com)
         - Patch to allow replaying of live traffic
+
+Nick Mathewson <nickm@freehaven.net>
+	- Kindly giving me his BSD licensed implimentation of poll()
+	  using select() so I don't have to worry about cross platform
+	  issues.
