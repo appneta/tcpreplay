@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.33 2003/06/07 18:18:16 aturner Exp $ */
+/* $Id: do_packets.c,v 1.34 2003/06/16 21:01:40 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -254,7 +254,8 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		    errx(1, "libnet_adv_write_link(): %s", strerror(errno));
 		}
 	    }
-	} while (ret == -1);
+	    /* keep trying if fail, unless user Ctrl-C's */
+	} while (ret == -1 && !didsig);
 
 	bytes_sent += pkthdr.caplen;
 	pkts_sent++;
