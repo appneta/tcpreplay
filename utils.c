@@ -1,4 +1,4 @@
-/* $Id: utils.c,v 1.4 2004/04/01 06:06:42 aturner Exp $ */
+/* $Id: utils.c,v 1.5 2004/04/03 22:50:14 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -38,45 +38,6 @@
 
 extern int maxpacket;
 extern struct options options;
-extern u_int64_t bytes_sent, failed, pkts_sent;
-extern struct timeval begin, end;
-
-void
-packet_stats()
-{
-    float bytes_sec = 0.0, mb_sec = 0.0;
-    int pkts_sec = 0;
-    char bits[3];
-
-    if (gettimeofday(&end, NULL) < 0)
-        err(1, "gettimeofday");
-
-    timersub(&end, &begin, &begin);
-    if (timerisset(&begin)) {
-        if (bytes_sent) {
-            bytes_sec =
-                bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-            mb_sec = (bytes_sec * 8) / (1024 * 1024);
-        }
-        if (pkts_sent)
-            pkts_sec =
-                pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-    }
-
-    snprintf(bits, sizeof(bits), "%d", begin.tv_usec);
-
-    fprintf(stderr, " %llu packets (%llu bytes) sent in %d.%s seconds\n",
-            pkts_sent, bytes_sent, begin.tv_sec, bits);
-    fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
-            bytes_sec, mb_sec, pkts_sec);
-
-    if (failed) {
-        fprintf(stderr,
-                " %llu write attempts failed from full buffers and were repeated\n",
-                failed);
-    }
-}
-
 
 int
 read_hexstring(char *l2string, char *hex, int hexlen)
@@ -229,4 +190,17 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
     }
 
 }
+
+
+/*
+ * returns a pointer to the layer 4 header which is just beyond the IP header
+ */
+void *
+get_layer4(ip_hdr_t * ip_hdr)
+{
+    void *ptr;
+    ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
+    return ((void *)ptr);
+}
+
 

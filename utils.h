@@ -1,4 +1,4 @@
-/* $Id: utils.h,v 1.4 2004/04/01 06:06:42 aturner Exp $ */
+/* $Id: utils.h,v 1.5 2004/04/03 22:50:14 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -40,7 +40,7 @@ void mac2hex(const char *mac, char *dst, int len);
 void validate_l2(char *name, int l2enabled, char *l2data, int l2len,
                  int linktype);
 void packet_stats();
-void parse_services(char services[], char *file);
+void *get_layer4(ip_hdr_t * ip_hdr);
 
 #define MAX_ARGS 128
 
