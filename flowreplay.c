@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.10 2004/05/08 21:26:57 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.11 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -43,6 +43,7 @@
 #include <string.h>             /* strtok() */
 #include <strings.h>            /* strcasecmp() */
 
+#include "config.h"
 #include "flowreplay.h"
 #include "flownode.h"
 #include "flowkey.h"

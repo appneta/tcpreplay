@@ -38,6 +38,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "config.h"
 #include "tcpreplay.h"
 #include "utils.h"
 #include "err.h"

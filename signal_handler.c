@@ -1,4 +1,4 @@
-/* $Id: signal_handler.c,v 1.5 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: signal_handler.c,v 1.6 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Jeff Guttenfelder, Nathan Monteleone
@@ -45,6 +45,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "signal_handler.h"
 #include "timer.h"
 #include "err.h"

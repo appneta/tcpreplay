@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.46 2004/09/05 18:42:10 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.47 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -52,10 +52,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif /* HAVE_CONFIG_H */
-
 #include "tcpreplay.h"
 #include "cache.h"
 #include "cidr.h"

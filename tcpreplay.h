@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.61 2004/09/05 02:11:29 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.62 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -38,9 +38,7 @@
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif /* HAVE_CONFIG_H */
 
 #include <libnet.h>
 #include <pcap.h>
@@ -69,11 +67,6 @@ typedef struct libnet_arp_hdr arp_hdr_t;
 typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
-
-/* is WORDS_BIGENDIAN defined in config.h? */
-#ifndef WORDS_BIGENDIAN
-#define WORDS_BIGENDIAN 0
-#endif
 
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
@@ -185,16 +178,16 @@ struct options {
 #define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
 
 /* converts a 64bit int to network byte order */
-#ifndef WORDS_BIGENDIAN
+#ifdef WORDS_BIGENDIAN
+#define ntohll(x) (x)
+#define htonll(x) (x)
+#else
 #ifndef ntohll
 /* stolen from http://www.codeproject.com/cpp/endianness.asp */
 #define ntohll(x) (((u_int64_t)(ntohl((int)((x << 32) >> 32))) << 32) | \
                      (unsigned int)ntohl(((int)(x >> 32))))
 #define htonll(x) ntohll(x)
-#endif
-#else
-#define ntohll(x) (x)
-#define htonll(x) (x)
+#endif /* ntholl */
 #endif /* WORDS_BIGENDIAN */
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.55 2004/06/20 00:01:11 aturner Exp $ */
+/* $Id: do_packets.c,v 1.56 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
 
+#include "config.h"
 #include <libnet.h>
 #ifdef HAVE_PCAPNAV
 #include <pcapnav.h>

@@ -1,4 +1,4 @@
-/* $Id: xX.c,v 1.12 2004/05/20 03:59:03 aturner Exp $ */
+/* $Id: xX.c,v 1.13 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -38,6 +38,7 @@
  * tcpreplay/do_packets and tcpprep.
  */
 
+#include "config.h"
 #include "tcpreplay.h"
 #include "cidr.h"
 #include "list.h"

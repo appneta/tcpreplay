@@ -1,4 +1,4 @@
-/* $Id: cidr.c,v 1.26 2004/05/16 17:09:55 aturner Exp $ */
+/* $Id: cidr.c,v 1.27 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -30,9 +30,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif /* HAVE_CONFIG_H */
 
 #include <libnet.h>
 #include <stdio.h>
@@ -43,6 +40,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "config.h"
 #include "tcpreplay.h"
 #include "cidr.h"
 #include "err.h"

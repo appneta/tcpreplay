@@ -1,4 +1,4 @@
-/* $Id: pcapmerge.c,v 1.11 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: pcapmerge.c,v 1.12 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -50,6 +50,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include "config.h"
 #include "tcpreplay.h"
 #include "err.h"
 #include "queue.h"

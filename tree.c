@@ -1,4 +1,4 @@
-/* $Id: tree.c,v 1.22 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: tree.c,v 1.23 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -30,9 +30,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif /* HAVE_CONFIG_H */
 
 #include <libnet.h>
 #include <stdio.h>

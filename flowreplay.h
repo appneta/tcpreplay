@@ -1,4 +1,4 @@
-/* $Id: flowreplay.h,v 1.3 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: flowreplay.h,v 1.4 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -33,9 +33,7 @@
 #ifndef _FLOWREPLAY_H_
 #define _FLOWREPLAY_H_
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <sys/types.h>
 

@@ -1,4 +1,4 @@
-/* $Id: flowbuff.c,v 1.3 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: flowbuff.c,v 1.4 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -30,7 +30,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#include "config.h"
 #include <stdlib.h>             /* malloc/free */
 
 #include "flowreplay.h"

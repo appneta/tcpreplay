@@ -1,4 +1,4 @@
-/* $Id: list.c,v 1.11 2004/05/14 17:31:52 aturner Exp $ */
+/* $Id: list.c,v 1.12 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -44,6 +44,7 @@
 #include <regex.h>
 #include <errno.h>
 
+#include "config.h"
 #include "tcpreplay.h"
 #include "err.h"
 #include "cidr.h"

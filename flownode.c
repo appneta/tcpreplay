@@ -1,4 +1,4 @@
-/* $Id: flownode.c,v 1.5 2004/05/08 21:19:55 aturner Exp $ */
+/* $Id: flownode.c,v 1.6 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -31,7 +31,7 @@
  */
 
 #include <libnet.h>
-
+#include "config.h"
 #include "flowreplay.h"
 #include "flownode.h"
 #include "flowkey.h"

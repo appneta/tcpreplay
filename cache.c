@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.26 2004/09/05 18:43:31 aturner Exp $ */
+/* $Id: cache.c,v 1.27 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -30,9 +30,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif /* HAVE_CONFIG_H */
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -42,6 +39,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "cache.h"
 #include "tcpreplay.h"
 #include "err.h"

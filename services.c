@@ -1,4 +1,4 @@
-/* $Id: services.c,v 1.2 2004/05/16 17:09:35 aturner Exp $ */
+/* $Id: services.c,v 1.3 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2004 Aaron Turner.
@@ -32,6 +32,7 @@
 
 #include <sys/types.h>
 #include <regex.h>
+#include "config.h"
 #include "tcpreplay.h"
 #include "err.h"
 #include "services.h"

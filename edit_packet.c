@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.21 2004/07/14 05:10:14 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.22 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -29,6 +29,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "config.h"
 
 #include <libnet.h>
 #include <pcap.h>

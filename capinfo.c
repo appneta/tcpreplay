@@ -1,4 +1,4 @@
-/* $Id: capinfo.c,v 1.10 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: capinfo.c,v 1.11 2004/09/05 19:46:27 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -30,7 +30,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -38,6 +37,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "err.h"
 #include "capinfo.h"
 #include "libpcap.h"
