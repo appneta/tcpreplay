@@ -91,13 +91,13 @@ replay_basic:
 replay_cache:
 	$(PRINTF) "%s" "[tcpreplay] Cache test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Cache test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -c test.cidr -i $(nic1) -j $(nic2) -R test.pcap >>test.log 2>&1
+	$(TCPREPLAY) $(ENABLE_DEBUG) -c test.cidr -i $(nic1) -I $(nic2) -R test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_cidr:
 	$(PRINTF) "%s" "[tcpreplay] CIDR test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] CIDR test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -C 216.27.178.0/24 -i $(nic1) -j $(nic2) -R test.pcap >>test.log 2>&1
+	$(TCPREPLAY) $(ENABLE_DEBUG) -C 216.27.178.0/24 -i $(nic1) -I $(nic2) -R test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_trunc:
@@ -151,7 +151,7 @@ datadump_mode:
 config_mode:
 	$(PRINTF) "%s" "[tcpreplay] Config file mode test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Config file mode test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -f config test.pcap >>test.log 2>&1
+	$(TCPREPLAY) $(ENABLE_DEBUG) --load-opts=config test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 clean:
