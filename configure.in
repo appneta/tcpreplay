@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.55 2004/01/31 21:21:12 aturner Exp $
+dnl $Id: configure.in,v 1.56 2004/02/01 02:41:54 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -340,24 +340,33 @@ LIBS="$OLDLIBS"
 dnl ##################################################
 dnl # Check for pcapnav
 dnl ##################################################
-pcapnav=no
+pcapnav_ver=no
+pcncfg=no
 AC_ARG_WITH(pcapnav-config,
     [  --with-pcapnav-config=FILE     Use given pcapnav-config],
-    [ pcncfg="$withval" ],
-    [ AC_PATH_GENERIC(pcapnav,,
-		[pcapnav=yes
-        pcncfg="pcapnav-config"
-		LNAVLIB=`$pcncfg --libs`
-		LPNAV_CFLAGS=`$pcncfg --cflags`
-		PCAPNAV_VERSION=`$pcncfg --version`
-		AC_SUBST(LNAVLIB)
-		AC_SUBST(LNAV_CFLAGS)
-		AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION")
+    [ AC_MSG_CHECKING(for pcapnav-config)
+      if test -x $withval ; then
+        pcncfg="$withval"
+      fi
+    ],
+    [ AC_PATH_PROG(pcncfg,[pcapnav-config],[no]) ]
+)
+
+if test $pcncfg = no ; then
+    AC_MSG_RESULT(Cannot find pcapnav-config: Disabling offset jump feature.)
+else
+    AC_MSG_RESULT($pcncfg)
+    LNAVLIB=`$pcncfg --libs`
+    LPNAV_CFLAGS=`$pcncfg --cflags`
+    PCAPNAV_VERSION=`$pcncfg --version`
+    AC_SUBST(LNAVLIB)
+    AC_SUBST(LNAV_CFLAGS)
+    AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION")
+
 dnl Check to see what version of libpcapnav
 dnl this code has been reduced a lot, but probably still could be
 dnl reduced quite a bit more if we chose too
         AC_MSG_CHECKING(for libpcapnav version)
-
         AC_TRY_RUN([
 #include <string.h>
 #define PCAPNAV_TEST "0.4"
@@ -382,20 +391,15 @@ main (int argc, char *argv[])
        	)
 
 
-        if test $libpcapnav_ver = no ; then
-        	AC_MSG_WARN([Libpcapnav versions < 0.4 are not supported.
+if test $libpcapnav_ver = no ; then
+     	AC_MSG_WARN([Libpcapnav versions < 0.4 are not supported.
     Please upgrade to version 0.4 or better.
     Disabling offset jump feature.])
-        fi
-		],
-    AC_MSG_RESULT(Cannot find libpcapnav: Disabling offset jump feature.)) 
-    ]
-)
-
-if test $libpcapnav_ver = yes -a $pcapnav = yes ; then
+else
     AC_DEFINE(HAVE_PCAPNAV)
 fi
 
+fi # checking pcapnav version
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail
