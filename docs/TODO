@@ -85,3 +85,8 @@ O tcpdump decoder should print packets syncronously w/ the main process
 
 - Tcprewrite should be able to remove the two byte ethernet FCS (checksums)
   at the end of the frame.
+
+- Only tcpreplay should need to run as root.
+
+- Tcpreplay should use raw sockets directly for writing rather then libnet
+  where applicable.
