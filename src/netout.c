@@ -45,17 +45,10 @@
 #include "fileout.h"
 #include "netout.h"
 
-extern struct options options;
+extern tcpreplay_opt_t options;
 extern struct timeval begin, end;
-extern u_int64_t bytes_sent, failed, pkts_sent;
-extern u_int32_t cache_packets;
+extern COUNTER bytes_sent, failed, pkts_sent, cache_packets;
 extern volatile int didsig;
-extern int l2len, maxpacket;
-extern char *intf1, *intf2;
-
-extern int include_exclude_mode;
-extern LIST *xX_list;
-extern CIDR *xX_cidr;
 
 #ifdef DEBUG
 extern int debug;
@@ -74,17 +67,17 @@ static struct macsrc_t *new_node(void);
 
 RB_HEAD(macsrc_tree, macsrc_t) macsrc_root;
 
-     static int
-       rbmacsrc_comp(struct macsrc_t *a, struct macsrc_t *b)
+static int
+rbmacsrc_comp(struct macsrc_t *a, struct macsrc_t *b)
 {
     return (memcmp(a->key, b->key, ETHER_ADDR_LEN));
 }
 
 RB_PROTOTYPE(macsrc_tree, macsrc_t, node, rbmacsrc_comp)
-    RB_GENERATE(macsrc_tree, macsrc_t, node, rbmacsrc_comp)
+RB_GENERATE(macsrc_tree, macsrc_t, node, rbmacsrc_comp)
 
-     void
-       rbinit(void)
+void
+rbinit(void)
 {
     RB_INIT(&macsrc_root);
 }
@@ -94,10 +87,8 @@ new_node(void)
 {
     struct macsrc_t *node;
 
-    node = (struct macsrc_t *)malloc(sizeof(struct macsrc_t));
-    if (node == NULL)
-        errx(1, "Error malloc() in new_node()");
-
+    node = (struct macsrc_t *)safe_malloc(sizeof(struct macsrc_t));
+    
     memset(node, '\0', sizeof(struct macsrc_t));
     return (node);
 }
@@ -107,8 +98,7 @@ new_node(void)
  */
 
 void
-do_bridge(pcap_t * pcap1, pcap_t * pcap2, int l2enabled, char *l2data,
-          int l2len)
+do_bridge(pcap_t * pcap1, pcap_t * pcap2)
 {
     struct pollfd polls[2];     /* one for left & right pcap */
     int pollresult = 0;
@@ -123,13 +113,6 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2, int l2enabled, char *l2data,
     polls[PCAP_INT2].events = POLLIN | POLLPRI;
     polls[PCAP_INT1].revents = 0;
     polls[PCAP_INT2].revents = 0;
-
-
-    /* our live data thingy */
-    livedata.linktype = pcap_datalink(pcap1);
-    livedata.l2enabled = l2enabled;
-    livedata.l2len = l2len;
-    livedata.l2data = l2data;
 
     /* register signals */
     didsig = 0;
@@ -216,12 +199,10 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     dbg(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
 
     /* create packet buffers */
-    if ((pktdata = (u_char *) malloc(maxpacket)) == NULL)
-        errx(1, "Unable to malloc pktdata buffer");
+    pktdata = (u_char *)safe_malloc(maxpacket);
 
 #ifdef FORCE_ALIGN
-    if ((ipbuff = (u_char *) malloc(maxpacket)) == NULL)
-        errx(1, "Unable to malloc ipbuff buffer");
+    ipbuff = (u_char *)safe_malloc(maxpacket);
 #endif
 
     /* zero out the old packet info */
@@ -413,4 +394,3 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
  c-basic-offset:4
  End:
 */
-
