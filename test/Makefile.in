@@ -104,7 +104,7 @@ replay_exclude:
 replay_layer2:
 	$(PRINTF) "%s" "[tcpreplay] Layer2 test: "
 	$(PRINTF) "%s\n" "[tcpreplay] Layer2 test: " >>test.log
-	../tcpreplay -i $(nic1) -2 l2.dat test.pcap >>test.log 2>&1
+	../tcpreplay -i $(nic1) -2 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
 clean:
