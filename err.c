@@ -1,4 +1,4 @@
-/* $Id: err.c,v 1.2 2002/10/03 01:01:10 aturner Exp $ */
+/* $Id: err.c,v 1.3 2002/11/07 05:31:07 aturner Exp $ */
 
 /*
  * err.c
@@ -39,22 +39,26 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
 
+#ifdef DEBUG
+extern int debug;
+#endif
 
 void
 dbg(int dbg_level, const char *fmt, ...)
 {
+#ifdef DEBUG
         va_list ap;
 
-#ifdef DEBUG
         if (debug < dbg_level)
                 return;
-#endif
 
         fprintf(stderr, "DEBUG%d: ", dbg_level);
         va_start(ap, fmt);
@@ -62,7 +66,9 @@ dbg(int dbg_level, const char *fmt, ...)
                 (void)vfprintf(stderr, fmt, ap);
         (void)fprintf(stderr, "\n");
         va_end(ap);
-
+#else
+		return;
+#endif
 }
 
 
