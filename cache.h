@@ -43,11 +43,12 @@ struct cache_type {
  */
 struct cache_file_header {
     char magic[8];
-    char version[3];
+    char version[4];
     /* begin version 2 features */
     /* version 3 puts everything in network-byte order */
     u_int32_t num_packets;	/* total # of packets in file */
     u_int16_t packets_per_byte;
+    u_int16_t padding;          /* align our header on a 32bit line */
 };
 
 typedef struct cache_type CACHE;
