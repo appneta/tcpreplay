@@ -2,6 +2,8 @@ MAKEFLAGS=-s
 
 if HAVE_DOCTOOLS
 
+PHONY: docs webfiles manpages
+
 MAN2HTML=../scripts/man2html
 
 L2HFLAGS = -show_section_numbers -no_footnode -split +1 -info 0 \
@@ -41,16 +43,16 @@ manual.pdf: latex
 web/manual/manual.html: latex
 	@LATEX2HTML@ $(L2HFLAGS) -dir web/manual manual.tex
 
-web/man/tcpreplay.html: ../src/tcpreplay.1
+web/man/tcpreplay.html:
 	$(MAN2HTML) < ../src/tcpreplay.1 > web/man/tcpreplay.html
 
-web/man/tcpprep.html: ../src/tcpprep.1
+web/man/tcpprep.html:
 	$(MAN2HTML) < ../src/tcpprep.1 > web/man/tcpprep.html
 
-web/man/flowreplay.html: ../src/flowreplay.1
+web/man/flowreplay.html:
 	$(MAN2HTML) < ../src/flowreplay.1 > web/man/flowreplay.html
 
-web/man/tcprewrite.html: ../src/tcprewrite.1
+web/man/tcprewrite.html:
 	$(MAN2HTML) < ../src/tcprewrite.1 > web/man/tcprewrite.html
 
 manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html \
@@ -64,10 +66,12 @@ endif
 
 EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
 	FAQ.lyx FAQ.pdf web/FAQ/FAQ.html web/FAQ \
-	flowreplay.lyx flowreplay.pdf web/flowreplay flowheader.fig web/man \
-	manual.lyx manual.pdf web/manual web/index.html web/web.css web/man/tcpreplay.html \
-	web/man/tcpprep.html web/man/flowreplay.html web/man/tcprewrite.html \
-	web/tcpreplay-2-faq.html web/tcpreplay-2-faq.css
+	flowreplay.lyx flowreplay.pdf web/flowreplay/flowreplay.html web/flowreplay \
+	flowheader.fig \
+	manual.lyx manual.pdf web/manual/manual.html web/manual \
+	web/index.html web/web.css \
+	web/man/tcpreplay.html  web/man/tcpprep.html web/man/flowreplay.html \
+	web/man web/man/tcprewrite.html web/tcpreplay-2-faq.html web/tcpreplay-2-faq.css
 
 MOSTLYCLEANFILES = FAQ.aux FAQ.log FAQ.toc FAQ.dvi FAQ.tex \
 	manual.aux manual.log manual.dvi manual.tex manual.toc \
@@ -76,7 +80,7 @@ MOSTLYCLEANFILES = FAQ.aux FAQ.log FAQ.toc FAQ.dvi FAQ.tex \
 	images.aux images.log images.pl images.tex img1.png labels.pl \
 	*~ web/*~
 
-maintainer-clean-local: clean-docs mostly-clean
+maintainer-clean-local: clean-docs
 	-rm -rf web/flowreplay web/FAQ web/manual web/man/*.html
 
 MAINTAINERCLEANFILES = FAQ.pdf flowreplay.pdf manual.pdf Makefile.in 
