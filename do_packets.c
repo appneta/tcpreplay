@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.53 2004/05/15 21:14:56 aturner Exp $ */
+/* $Id: do_packets.c,v 1.54 2004/05/22 05:25:45 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -56,6 +56,7 @@
 #include "tcpreplay.h"
 #include "tcpdump.h"
 #include "cidr.h"
+#include "portmap.h"
 #include "cache.h"
 #include "err.h"
 #include "do_packets.h"
@@ -68,6 +69,7 @@
 extern struct options options;
 extern char *cachedata;
 extern CIDR *cidrdata;
+extern PORTMAP *portmap_data;
 extern struct timeval begin, end;
 extern u_int64_t bytes_sent, failed, pkts_sent;
 extern u_int64_t cache_packets;
@@ -79,6 +81,8 @@ extern CIDR *xX_cidr;
 extern LIST *xX_list;
 
 extern tcpdump_t tcpdump;
+
+
 
 #ifdef DEBUG
 extern int debug;
@@ -327,6 +331,11 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
                  */
                 rewrite_iparp(arp_hdr, l);
             }
+        }
+
+        /* rewrite ports */
+        if (options.rewriteports && (ip_hdr != NULL)) {
+            needtorecalc += rewrite_ports(portmap_data, &ip_hdr);
         }
 
         /* Untruncate packet? Only for IP packets */

@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.43 2004/05/20 04:06:40 aturner Exp $
+$Id: CHANGELOG,v 1.44 2004/05/22 05:25:46 aturner Exp $
 
 ??/??/2004: Version 2.2.2
     - tcpprep now supports DLT_RAW and DLT_LINUX_SLL
@@ -6,6 +6,7 @@ $Id: CHANGELOG,v 1.43 2004/05/20 04:06:40 aturner Exp $
     - Fix some sanity checks in tcpreplay for processing various DLT types
       in validate_l2()
     - Fix -x & -X
+    - Merge in patch from Denis which rewrites TCP/UDP ports via -4
 
 05/16/2004: Version 2.2.1
     - Fix compile issue under RH9

@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.25 2004/05/15 21:17:28 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.26 2004/05/22 05:25:46 aturner Exp $
 .TH "TCPREPLAY" "8" "2.0.3" "Aaron Turner" "Replay Captured Network Traffic"
 .SH "NAME"
 .LP 
@@ -61,7 +61,7 @@ Specify a file that contains configuration options.
 Option tokens are listed next to the corresponding command\-line flag.
 .TP 
 .B \-F or "fixchecksums"
-Fixes IP and TCP/UDP checksums in packets.  Auto\-forced with \-s, \-u, \-T or \-N
+Fixes IP and TCP/UDP checksums in packets.  Auto\-forced with \-s, \-u, \-T \-N or \-4
 .TP 
 .B \-h
 Prints help/usage
@@ -233,6 +233,17 @@ Layer 2 header in the packet.  Useful for converting between 802.x types or
 adding a header when the pcap file doesn't contain a header (as in the case of
 DLT_RAW).  Currently this only supports the following pcap(3) types:
 DLT_EN10MB, DLT_LINUX_SLL and DLT_RAW.
+.TP
+.B \-4 or "portmap"
+Specify a port mapping, where the mapping looks like:
+.br
+<FROMPORT1>:<TOPORT1>,<FROMPORT2>:<TOPORT2>
+.br
+For example, if this mapping was specified:
+.br
+80:8080
+.br
+then any packets with a source or destination port of 80 would be changed to 8080.  This option can be specified multiple times to specify multiple mappings.  Mappings are not transitive: each source or destination port is mapped only once.
 .SH "SIGNALS"
 .LP 
 .I Tcpreplay

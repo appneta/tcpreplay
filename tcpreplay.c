@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.93 2004/05/20 03:59:03 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.94 2004/05/22 05:25:45 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -56,6 +56,7 @@
 #include "tcpdump.h"
 #include "cache.h"
 #include "cidr.h"
+#include "portmap.h"
 #include "list.h"
 #include "err.h"
 #include "do_packets.h"
@@ -69,6 +70,7 @@ struct options options;
 char *cachedata = NULL;
 CIDR *cidrdata = NULL;
 CIDRMAP *cidrmap_data1 = NULL, *cidrmap_data2 = NULL;
+PORTMAP *portmap_data = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
@@ -119,7 +121,7 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:De:f:Fhi:I:j:J:k:K:l:L:m:MnN:o:Op:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
+                   "bc:C:De:f:Fhi:I:j:J:k:K:l:L:m:MnN:o:Op:Pr:Rs:S:t:Tu:Vw:W:x:X:12:4:"
 #ifdef HAVE_TCPDUMP
                    "vA:"
 #endif
@@ -396,6 +398,12 @@ main(int argc, char *argv[])
         case '2':              /* layer 2 header file */
             l2enabled = 1;
             l2len = read_hexstring(optarg, l2data, L2DATALEN);
+            break;
+        case '4':
+            options.rewriteports = 1;
+
+            if (! parse_portmap(&portmap_data, optarg))
+                errx(1, "Invalid port mapping");
             break;
         default:
             usage();
@@ -904,6 +912,12 @@ configfile(char *file)
                     errx(1, "Invalid secondary NAT string");
             }
         }
+        else if (ARGS("portmap", 2)) {
+            options.rewriteports = 1;
+
+            if (! parse_portmap(&portmap_data, argv[1]))
+                errx(1, "Invalid port mapping");
+        }
 #ifdef HAVE_PCAPNAV
         else if (ARGS("offset", 2)) {
             options.offset = strtoull(argv[1], NULL, 0);
@@ -1138,6 +1152,7 @@ usage(void)
            "-X <match>\t\tSend all the packets except those specified\n"
            "-1\t\t\tSend one packet per key press\n"
            "-2 <datafile>\t\tLayer 2 data\n"
+           "-4 <PORT1:PORT2,...>\tRewrite port numbers\n"
            "<file1> <file2> ...\tFile list to replay\n");
     exit(1);
 }

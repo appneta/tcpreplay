@@ -1,4 +1,7 @@
-$Id: CREDIT,v 1.6 2004/02/01 18:22:02 aturner Exp $ 
+$Id: CREDIT,v 1.7 2004/05/22 05:25:46 aturner Exp $ 
+
+Here's a list of people in no particular order who have kindly submitted
+patches or code snippets for me to use in tcpreplay.
 
 Branden Moore <bmoore-at-cse.nd.edu>
 	- Patch to pad truncated packets
@@ -24,3 +27,7 @@ Nick Mathewson <nickm@freehaven.net>
 	- Kindly giving me his BSD licensed implimentation of poll()
 	  using select() so I don't have to worry about cross platform
 	  issues.
+          
+Denis McLaughlin <denism@cyberus.ca>
+        - Patch to allow TCP/UDP port translation
+
