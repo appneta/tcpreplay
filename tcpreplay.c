@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.28 2002/08/06 01:46:20 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.29 2002/08/11 23:44:22 mattbing Exp $ */
 
 #include "config.h"
 
@@ -27,7 +27,8 @@ CIDR *cidrsend = NULL;
 CIDR *cidrignore = NULL;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
-int verbose, Mflag, Rflag, Cflag, uflag, cache_bit, cache_byte, cache_packets;
+char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
+int cache_bit, cache_byte, cache_packets;
 volatile int didsig;
 
 #ifdef DEBUG
@@ -45,14 +46,16 @@ void mac2hex(const char *, char *, int);
 void untrunc_packet(struct packet *, ip_hdr_t *, void *);
 void * cache_mode(struct libnet_ethernet_hdr *, int);
 void * cidr_mode(struct libnet_ethernet_hdr *, ip_hdr_t *);
+void configfile(char *);
+int argv_create(char *, int, char **);
 
 int
 main(int argc, char *argv[])
 {
-	char *cache_file = NULL, *intf = NULL, *intf2 = NULL, ebuf[256]; 
+	char ebuf[256]; 
 	int ch, i;
 
-	bytes_sent = failed = pkts_sent = verbose = 0;
+	bytes_sent = failed = pkts_sent = 0;
 	intf = intf2 = NULL;
 	memset(&options, 0, sizeof(options));
 
@@ -61,13 +64,12 @@ main(int argc, char *argv[])
 	options.n_iter = 1;
 	options.rate = 0.0;
 
-	Mflag = Rflag = Cflag = uflag = 0;
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "dc:C:f:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:f:hi:I:j:J:l:m:Mr:Ru:Vv?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -75,7 +77,7 @@ main(int argc, char *argv[])
 			cache_packets = read_cache(cache_file);
 			break;
 		case 'C': /* cidr matching */
-			Cflag = 1;
+			options.cidr = 1;
 			if (!parse_cidr(&cidrdata, optarg))
 				usage();
 			break;
@@ -84,6 +86,9 @@ main(int argc, char *argv[])
 			debug = 1;
 			break;
 #endif
+		case 'f': /* config file*/
+			configfile(optarg);
+			break;
 		case 'i': /* interface */
 			intf = optarg;
 			break;
@@ -112,7 +117,7 @@ main(int argc, char *argv[])
 			options.rate = 0.0;
 			break;
 		case 'M': /* disable sending martians */
-			Mflag = 1;
+			options.no_martians = 1;
 			break;
 		case 'r': /* target rate */
 			options.rate = atof(optarg);			
@@ -123,16 +128,16 @@ main(int argc, char *argv[])
 			options.mult = 0.0;
 			break;
 		case 'R': /* replay at top speed */
-			Rflag = 1;
+			options.topspeed = 1;
 			break;
 		case 'v': /* verbose */
-			verbose++;
+			options.verbose++;
 			break;
 		case 'u': /* untruncate packet */
 			if (strcmp("pad", optarg) == 0) {
-				uflag = PAD_PACKET;
+				options.trunc = PAD_PACKET;
 			} else if (strcmp("trunc", optarg) == 0) {
-				uflag = TRUNC_PACKET;
+				options.trunc = TRUNC_PACKET;
 			} else {
 				errx(1, "Invalid untruncate option: %s", optarg);
 			}
@@ -161,7 +166,7 @@ main(int argc, char *argv[])
 	if ((intf2 == NULL) && (cache_file != NULL))
 		errx(1, "Needs secondary interface with cache");
 
-	if ((intf2 != NULL) && (!Cflag && (cache_file == NULL) ))
+	if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
 
 #if USE_LIBNET_VERSION == 10
@@ -289,7 +294,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		}
 
 		/* check for martians? */
-		if (Mflag && (ip_hdr != NULL)) {
+		if (options.no_martians && (ip_hdr != NULL)) {
 			switch ((ntohl(ip_hdr->ip_dst.s_addr) & 0xff000000) >> 24) {
 			case 0: case 127: case 255:
 #ifdef DEBUG
@@ -307,10 +312,9 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				}
 				/* then skip the packet */
 				continue;
-				break;
 
 			default:
-				/* continue processing*/
+				/* continue processing */
 				break;
 			}
 		}
@@ -321,7 +325,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 			if (cachedata != NULL) { 
 				l = cache_mode(eth_hdr, pkts_sent);
-			} else if (Cflag) { 
+			} else if (options.cidr) { 
 				l = cidr_mode(eth_hdr, ip_hdr);
 			} else {
 				errx(1, "Strange, we should of never of gotten here");
@@ -336,7 +340,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		}
 
 		/* Untruncate packet? Only for IP packets */
-		if (uflag) {
+		if (options.trunc) {
 #if USE_LIBNET_VERSION == 10
 			untrunc_packet(&pkt, ip_hdr, NULL);
 #elif USE_LIBNET_VERSION == 11
@@ -347,7 +351,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		pktdata = pkt.data;
 		pktlen = pkt.len;
 
-		if (!Rflag)
+		if (!options.topspeed)
 			do_sleep(&pkt.ts, &last, pkt.len);
 
 		/* Physically send the packet */
@@ -483,10 +487,10 @@ untrunc_packet(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
 	}
 
 	/* Pad packet or truncate it */
-	if (uflag == PAD_PACKET) {
+	if (options.trunc == PAD_PACKET) {
 		memset(pkt->data + pkt->len, 0, sizeof(pkt->data) - pkt->len);
 		pkt->len = pkt->actual_len;
-	} else if (uflag == TRUNC_PACKET) {
+	} else if (options.trunc == TRUNC_PACKET) {
 		ip_hdr = (ip_hdr_t *)(pkt->data + LIBNET_ETH_H);
 		ip_hdr->ip_len = htons(pkt->len);
 	} else {
@@ -653,6 +657,108 @@ mac2hex(const char *mac, char *dst, int len)
 			return; 
 		dst[i] = (u_char)l;
 		mac = pp + 1; 
+	}
+}
+
+/* whorishly appropriated from fragroute-1.2 */
+#define MAX_ARGS 128
+int
+argv_create(char *p, int argc, char *argv[])
+{
+	int i;
+	
+	for (i = 0; i < argc - 1; i++) {
+		while (*p != '\0' && isspace((int)*p))
+			*p++ = '\0';
+		
+		if (*p == '\0')
+			break;
+		argv[i] = p;
+		
+		while (*p != '\0' && !isspace((int)*p))
+			p++;
+	}
+	p[0] = '\0';
+	argv[i] = NULL;
+	
+	return (i);
+}
+
+void 
+configfile(char *file) {
+	FILE *fp;
+	char *argv[MAX_ARGS], buf[BUFSIZ];
+	int argc, i;
+
+	if ((fp = fopen(file, "r")) == NULL)
+		errx(1, "Could not open config file %s", file);
+
+	for (i = 1; fgets(buf, sizeof(buf), fp) != NULL; i++) {
+		if (*buf == '#' || *buf == '\r' || *buf == '\n')
+			continue;
+
+		if ((argc = argv_create(buf, MAX_ARGS, argv)) < 1) {
+			warnx("couldn't parse arguments (line %d)", i);
+			break;
+		}
+
+#define ARGS(x, y) ( (!strcmp(argv[0], x)) && (argc == y) )
+		if (ARGS("cachefile", 2)) {
+			cache_file = strdup(argv[1]);
+			cache_packets = read_cache(cache_file);
+		} else if (ARGS("cidr", 2)) {
+			options.cidr = 1;
+			if (!parse_cidr(&cidrdata, argv[1]))
+				usage();
+#ifdef DEBUG
+		} else if (ARGS("debug", 1)) {
+			debug = 1;
+#endif
+		} else if (ARGS("intf", 2)) {
+			intf = strdup(argv[1]);
+		} else if (ARGS("primary_mac", 2)) {
+			mac2hex(argv[1], options.intf1_mac, sizeof(options.intf1_mac));
+			if (memcmp(options.intf1_mac, NULL_MAC, 6) == 0)
+				errx(1, "Invalid mac address: %s", argv[1]);
+		} else if (ARGS("second_intf", 2)) {
+			intf2 = strdup(argv[1]);
+		} else if (ARGS("second_mac", 2)) {
+			mac2hex(argv[1], options.intf2_mac, sizeof(options.intf2_mac));
+			if (memcmp(options.intf2_mac, NULL_MAC, 6) == 0)
+				errx(1, "Invalid mac address: %s", argv[1]);
+		} else if (ARGS("loop", 2)) {
+			options.n_iter = atoi(argv[1]);
+			if (options.n_iter < 0)
+				errx(1, "Invalid loop count: %s", argv[1]);
+		} else if (ARGS("multiplier", 2)) {
+			options.mult = atof(argv[1]);
+			if (options.mult <= 0)
+				errx(1, "Invalid multiplier: %s", argv[1]);
+			options.rate = 0.0;
+		} else if (ARGS("no_martians", 1)) {
+			options.no_martians = 1;
+		} else if (ARGS("rate", 2)) {
+			options.rate = atof(argv[1]);			
+			if (options.rate <= 0)
+				errx(1, "Invalid rate: %s", argv[1]);
+			/* convert to bytes */
+			options.rate = (options.rate * (1024*1024)) / 8;
+			options.mult = 0.0;
+		} else if (ARGS("topspeed", 1)) {
+			options.topspeed = 1;
+		} else if (ARGS("verbose", 1)) {
+			options.verbose++;
+		} else if (ARGS("untruncate", 2)) {
+			if (strcmp("pad", argv[1]) == 0) {
+				options.trunc = PAD_PACKET;
+			} else if (strcmp("trunc", argv[1]) == 0) {
+				options.trunc = TRUNC_PACKET;
+			} else {
+				errx(1, "Invalid untruncate option: %s", argv[1]);
+			}
+		} else {
+			errx(1, "Skipping unrecognized: %s", argv[0]);
+		}
 	}
 }
 

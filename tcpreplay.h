@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.10 2002/07/16 23:51:23 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.11 2002/08/11 23:44:22 mattbing Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -46,6 +46,11 @@ struct options {
 	float mult;
 	int n_iter;
 	int cache_packets;
+	int verbose;
+	int no_martians;
+	int topspeed;
+	int cidr;
+	int trunc;
 	char **files;
 	char *cache_files;
 };
