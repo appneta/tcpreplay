@@ -1,4 +1,4 @@
-/* $Id: pcapmerge.c,v 1.4 2003/01/07 23:35:38 aturner Exp $ */
+/* $Id: pcapmerge.c,v 1.5 2003/03/19 04:46:34 aturner Exp $ */
 
 /* The pcapmerge available at http://indev.insu.com/Fwctl/pcapmerge.html
  * is written in Perl and does not handle large pcaps very well. This
@@ -49,6 +49,9 @@
 #include "err.h"
 #include "queue.h"
 
+/* we get this from libpcap */
+extern char pcap_version[];
+
 #ifdef DEBUG
 int debug = 0;
 #endif
@@ -97,7 +100,7 @@ void
 version()
 {
 	fprintf(stderr, "pcapmerge version: %s\n", VERSION);
-	fprintf(stderr, "Compiled against libpcap: %i.%i\n", PCAP_VERSION_MAJOR, PCAP_VERSION_MINOR);
+	fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
 	exit(0);
 }
 
