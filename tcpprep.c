@@ -72,7 +72,9 @@
 /*
  * global variables
  */
+#ifdef DEBUG
 int debug = 0;
+#endif
 int info = 0;
 char *ourregex = NULL;
 char *cidr = NULL;
@@ -127,7 +129,7 @@ usage()
     fprintf(stderr, "-a\t\t\tSplit traffic in Auto Mode\n"
 	    "-c CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
-    fprintf(stderr, "-d\t\t\tEnable debug output to STDERR\n");
+    fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
     fprintf(stderr, "-h\t\t\tHelp\n"
 	    "-i <capfile>\t\tInput capture file to process\n"
@@ -202,7 +204,7 @@ process_raw_packets(pcap_t * pcap)
 	}
 
 	if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
-	    dbg(2, "Packet isn't IP: 0x%.2x\n", eth_hdr->ether_type);
+	    dbg(2, "Packet isn't IP: 0x%.2x", eth_hdr->ether_type);
 
 	    if (mode != AUTO_MODE)	/* we don't want to cache
 					   * these packets twice */
@@ -281,7 +283,6 @@ main(int argc, char *argv[])
     pcap_t *pcap;
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    debug = 0;
     ourregex = NULL;
     regex_flags |= REG_EXTENDED;
     regex_flags |= REG_NOSUB;
@@ -291,7 +292,7 @@ main(int argc, char *argv[])
 	err(1, "malloc");
 
 #ifdef DEBUG
-    while ((ch = getopt(argc, argv, "adc:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
+    while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
 #else
     while ((ch = getopt(argc, argv, "ac:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
 #endif
@@ -305,9 +306,11 @@ main(int argc, char *argv[])
 	    }
 	    mode = CIDR_MODE;
 	    break;
+#ifdef DEBUG
 	case 'd':
-	    debug = 1;
+	    debug = atoi(optarg);
 	    break;
+#endif
 	case 'h':
 	    usage();
 	    break;
