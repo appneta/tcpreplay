@@ -1,11 +1,14 @@
-$Id: CHANGELOG,v 1.26 2004/01/15 07:25:23 aturner Exp $
+$Id: CHANGELOG,v 1.27 2004/01/31 22:28:46 aturner Exp $
 
-??/??/????: Version 1.5.beta1
+01/31/2004: Version 2.0.0
     - Remove libpcapnav requirement
     - Now support libpcapnav >= 0.4
     - Add -1 to replay one packet at a time (user must hit <ENTER>)
-    - Add tcpdump packet parsing to print packets as sent
+    - Add tcpdump packet parsing to print packets as sent (-v)
     - Place flowreplay manpage in correct location
+    - More FAQ updates
+    - Rename 1.5.x as 2.0
+    - Fix/standardize all licensing info.  Still BSD of course.
 
 12/10/2003: Version 1.5.alpha6
     - Add BPF filter support to tcpprep and tcpreplay (-x F:"filter")
