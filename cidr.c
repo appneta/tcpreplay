@@ -1,7 +1,10 @@
+/* $Id: cidr.c,v 1.17 2003/05/29 22:02:31 aturner Exp $ */
+
 /*
- * Please see tcpprep.c for license information.
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * All rights reserved.
  *
- *  Copyright (c) 2001 Aaron Turner
+ * Please see Docs/LICENSE for licensing information
  */
 
 #ifdef HAVE_CONFIG_H
@@ -106,16 +109,16 @@ ip2cidr(const unsigned long ip, const int masklen)
     if ((network = (u_char *) malloc(20)) == NULL)
 	err(1, "malloc");
 
-    strncpy(network, libnet_addr2name4(ip, RESOLVE), 19);
+    strncpy((char *)network, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE), 19);
 
-    strcat(network, "/");
+    strcat((char *)network, "/");
     if (masklen < 10) {
 	snprintf(mask, 1, "%d", masklen);
-	strncat(network, mask, 1);
+	strncat((char *)network, mask, 1);
     }
     else {
 	snprintf(mask, 2, "%d", masklen);
-	strncat(network, mask, 2);
+	strncat((char *)network, mask, 2);
     }
 
     return (network);
@@ -163,7 +166,7 @@ cidr2CIDR(char *cidr)
      * scan it, and make sure it scanned correctly, also copy over the
      * masklen
      */
-    count = sscanf(cidr, "%u.%u.%u.%u/%u", &octets[0], &octets[1],
+    count = sscanf(cidr, "%u.%u.%u.%u/%d", &octets[0], &octets[1],
 		   &octets[2], &octets[3], &newcidr->masklen);
     if (count != 5)
 	goto error;
