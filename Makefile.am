@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = foreign
 include $(top_srcdir)/libopts/MakeDefs.inc
 
 SUBDIRS = scripts lib src man docs $(LIBOPTS_DIR)
-DIST_SUBDIRS = scripts lib src man docs
+DIST_SUBDIRS = scripts lib src man docs libopts
 
 
 docsdir = $(top_builddir)/docs
@@ -26,5 +26,7 @@ version:
 	cd src/common && make svn_version.c
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
+
+DISTCLEANFILES = .tm_project.cache stamp-h1
 
 MAINTAINERCLEANFILES = Makefile.in configure *.bak autom4te.cache
