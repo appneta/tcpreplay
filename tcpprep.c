@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.33 2004/04/01 06:06:42 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.34 2004/04/03 22:49:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -83,19 +83,22 @@ struct data_tree treeroot;
 struct options options;
 struct bpf_program bpf;
 
-char services[NUM_PORTS];
+char tcpservices[NUM_PORTS], udpservices[NUM_PORTS];
 int mode = 0;
 int automode = 0;
 double ratio = 0.0;
 int max_mask = DEF_MAX_MASK;
 int min_mask = DEF_MIN_MASK;
-int non_ip = 0;
 extern char *optarg;
 extern int optind, opterr, optopt;
 
 int include_exclude_mode;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
+
+/* required to include utils.c */
+int non_ip = 0;
+int maxpacket = 0; 
 
 /* we get this from libpcap */
 extern char pcap_version[];
@@ -105,6 +108,7 @@ static void version();
 static int check_ip_regex(const unsigned long ip);
 static unsigned long process_raw_packets(pcap_t * pcap);
 static int check_dst_port(ip_hdr_t *ip_hdr, int len);
+static void parse_services(char *file);
 
 static void
 version()
@@ -127,7 +131,7 @@ version()
 static void
 usage()
 {
-    fprintf(stderr, "Usage: tcpprep\n");
+    fprintf(stderr, "Usage: tcpprep [-a -n <mode> -N <type> | -c <cidr> | -p | -r <regex>] \\\n\t\t-o <out> -i <in> <args>\n");
     fprintf(stderr, "-a\t\t\tSplit traffic in Auto Mode\n"
             "-c CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
@@ -139,7 +143,8 @@ usage()
             "-M <maxmask>\t\tMaximum mask length in Auto/Router mode\n"
             "-n <auto mode>\t\tUse specified algorithm in Auto Mode\n"
             "-N client|server\tClassify non-IP traffic as client/server\n"
-            "-o <outputfile>\t\tOutput cache file name\n");
+            "-o <outputfile>\t\tOutput cache file name\n"
+            "-p\t\t\tSplit traffic based on destination port\n");
     fprintf(stderr, "-r <regex>\t\tSplit traffic in Regex Mode\n"
             "-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
             "-s <file>\t\tSpecify service ports in /etc/services format\n"
@@ -156,32 +161,34 @@ usage()
 static int 
 check_dst_port(ip_hdr_t *ip_hdr, int len)
 {
-    tcp_hdr_t tcp_hdr;
-    udp_hdr_t udp_hdr;
+    tcp_hdr_t *tcp_hdr = NULL;
+    udp_hdr_t *udp_hdr = NULL;
+
+    dbg(3, "Checking the destination port...");
 
     if (ip_hdr->ip_p == IPPROTO_TCP) {
-        memcpy(&tcp_hdr, (ip_hdr + (ip_hdr->ip_hl * 4)), LIBNET_TCP_H);
+        tcp_hdr = (tcp_hdr_t *)get_layer4(ip_hdr);
 
         /* is a service? */
-        if (services[tcp_hdr.th_dport]) {
-            dbg(1, "TCP packet is destined for a server port: %d", tcp_hdr.th_dport);
+        if (tcpservices[ntohs(tcp_hdr->th_dport)]) {
+            dbg(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
             return 1;
         }
 
         /* nope */
-        dbg(1, "TCP packet is NOT destined for a server port: %d", tcp_hdr.th_dport);
+        dbg(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
         return 0;
     } else if (ip_hdr->ip_p == IPPROTO_UDP) {
-        memcpy(&udp_hdr, (ip_hdr + (ip_hdr->ip_hl * 4)), LIBNET_UDP_H);
+        udp_hdr = (udp_hdr_t *)get_layer4(ip_hdr);
 
         /* is a service? */
-        if (services[udp_hdr.uh_dport]) {
-            dbg(1, "UDP packet is destined for a server port: %d", udp_hdr.uh_dport);
+        if (udpservices[ntohs(udp_hdr->uh_dport)]) {
+            dbg(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
             return 1;
         }
 
         /* nope */
-        dbg(1, "UDP packet is NOT destined for a server port: %d", udp_hdr.uh_dport);
+        dbg(1, "UDP packet is NOT destined for a server port: %d", ntohs(udp_hdr->uh_dport));
         return 0;
     }
 
@@ -235,6 +242,8 @@ process_raw_packets(pcap_t * pcap)
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
         eth_hdr = (eth_hdr_t *) pktdata;
+
+        dbg(1, "Packet %d", packetnum);
 
         /* look for include or exclude LIST match */
         if (xX_list != NULL) {
@@ -345,35 +354,36 @@ process_raw_packets(pcap_t * pcap)
 int
 main(int argc, char *argv[])
 {
-    int out_file, ch, regex_flags = 0, regex_error = 0, mask_count = 0;
+    int out_file, ch, regex_error = 0, mask_count = 0;
+    int regex_flags = REG_EXTENDED|REG_NOSUB;
     int i;
     char *infilename = NULL;
     char *outfilename = NULL;
     char ebuf[EBUF_SIZE];
-    unsigned long totpackets = 0;
-    void *xX;
-    pcap_t *pcap;
+    u_int64_t totpackets = 0;
+    void *xX = NULL;
+    pcap_t *pcap = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
 
     memset(&options, 0, sizeof(options));
     options.bpf_optimize = BPF_OPTIMIZE;
-    ourregex = NULL;
-    regex_flags |= REG_EXTENDED;
-    regex_flags |= REG_NOSUB;
 
     preg = (regex_t *) malloc(sizeof(regex_t));
     if (preg == NULL)
         err(1, "malloc");
 
-    /* set default server ports (override w/ -f) */
-    memset(&services, '\0', NUM_PORTS);
-    for (i = DEFAULT_LOW_SERVER_PORT; i <= DEFAULT_HIGH_SERVER_PORT; i++)
-        services[i] = 1;
+    /* set default server ports (override w/ -s) */
+    memset(tcpservices, '\0', NUM_PORTS);
+    memset(udpservices, '\0', NUM_PORTS);
+    for (i = DEFAULT_LOW_SERVER_PORT; i <= DEFAULT_HIGH_SERVER_PORT; i++) {
+        tcpservices[i] = 1;
+        udpservices[i] = 1;
+    }
 
 #ifdef DEBUG
-    while ((ch = getopt(argc, argv, "ad:c:r:R:o:i:hm:M:n:N:s:x:X:vV")) != -1)
+    while ((ch = getopt(argc, argv, "ad:c:r:R:o:pi:hm:M:n:N:s:x:X:vV")) != -1)
 #else
-    while ((ch = getopt(argc, argv, "ac:r:R:o:i:hm:M:n:N:x:s:X:vV")) != -1)
+    while ((ch = getopt(argc, argv, "ac:r:R:o:pi:hm:M:n:N:s:x:X:vV")) != -1)
 #endif
         switch (ch) {
         case 'a':
@@ -417,9 +427,6 @@ main(int argc, char *argv[])
             else if (strcmp(optarg, "server") == 0) {
                 automode = SERVER_MODE;
             }
-            else if (strcmp(optarg, "port") == 0) {
-                automode = PORT_MODE;
-            }
             else {
                 errx(1, "Invalid network type: %s", optarg);
             }
@@ -438,6 +445,9 @@ main(int argc, char *argv[])
         case 'o':
             outfilename = optarg;
             break;
+        case 'p':
+            mode = PORT_MODE;
+            break;
         case 'r':
             ourregex = optarg;
             mode = REGEX_MODE;
@@ -455,7 +465,8 @@ main(int argc, char *argv[])
             ratio = atof(optarg);
             break;
         case 's':
-            parse_services(services, optarg);
+            printf("Parsing services...\n");
+            parse_services(optarg);
             break;
         case 'x':
             include_exclude_mode = 'x';
@@ -464,7 +475,7 @@ main(int argc, char *argv[])
             if (include_exclude_mode & xXPacket) {
                 xX_list = (LIST *) xX;
             }
-            else {
+            else if (! (include_exclude_mode & xXBPF)) {
                 xX_cidr = (CIDR *) xX;
             }
             break;
@@ -490,8 +501,9 @@ main(int argc, char *argv[])
         }
 
     /* process args */
-    if ((mode != CIDR_MODE) && (mode != REGEX_MODE) && (mode != AUTO_MODE))
-        errx(1, "You need to specifiy a vaild CIDR list, regex, or auto mode");
+    if ((mode != CIDR_MODE) && (mode != REGEX_MODE) && 
+        (mode != AUTO_MODE) && (mode != PORT_MODE))
+        errx(1, "You need to specifiy a vaild CIDR list or regex, or choose auto or port mode");
 
     if ((mask_count > 0) && (mode != AUTO_MODE))
         errx(1,
@@ -588,7 +600,7 @@ main(int argc, char *argv[])
     /* write cache data */
     totpackets = write_cache(cachedata, out_file, totpackets);
     if (info)
-        fprintf(stderr, "Done.\nCached %lu packets.\n", totpackets);
+        fprintf(stderr, "Done.\nCached %llu packets.\n", totpackets);
 
     /* close cache file */
     close(out_file);
@@ -598,10 +610,10 @@ main(int argc, char *argv[])
 
 
 /*
- * parses /etc/services so we can skip them
+ * parses /etc/services so we know which ports are service ports
  */
 void
-parse_services(char services[], char *file)
+parse_services(char *file)
 {
     FILE *service = NULL;
     char service_line[MAXLINE], port[10], proto[10];
@@ -609,37 +621,37 @@ parse_services(char services[], char *file)
     int portc;
     size_t nmatch = 3;
     regmatch_t pmatch[3];
-    char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1] */
+    char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1], service pmatch[2] */
 
+    dbg(1, "Parsing %s", file);
     memset(service_line, '\0', MAXLINE);
 
     /* mark all ports not a service */
-    memset(services, '\0', NUM_PORTS);
+    memset(tcpservices, '\0', NUM_PORTS);
+    memset(udpservices, '\0', NUM_PORTS);
 
     if ((service = fopen(file, "r")) == NULL) {
-        fprintf(stderr, "Unable to open service file: %s\n%s", optarg, strerror(errno));
-        exit(EXIT_FAILURE);
+        errx(1, "Unable to open service file: %s\n%s", file, strerror(errno));
     }
     
     /* compile our regexes */
     if ((regcomp(&preg, regex, REG_ICASE|REG_EXTENDED)) != 0) {
-        fprintf(stderr, "Unable to compile regex: %s\n", regex);
-        exit(EXIT_FAILURE);
+        errx(1, "Unable to compile regex: %s", regex);
     }
 
     /* parse the entire file */
     while ((fgets(service_line, MAXLINE, service)) != NULL) {
         /* zero out our vars */
         memset(port, '\0', 10);
+        memset(proto, '\0', 10);
         portc = 0;
         
-        dbg(2, "Procesing: %s", service_line);
+        dbg(4, "Procesing: %s", service_line);
         
         /* look for format of 1234/tcp */
         if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
             if (nmatch < 2) {
-                fprintf(stderr, "WTF?  I matched the line, but I don't know where!\n");
-                exit(EXIT_FAILURE);
+                errx(1, "WTF?  I matched the line, but I don't know where!");
             }
 
             /* strip out the port & proto from the line */
@@ -648,8 +660,17 @@ parse_services(char services[], char *file)
 
             /* convert port[] into an integer */
             portc = atoi(port);
-            services[portc] = 1; /* mark it as a service port */
-            dbg(2, "Skipping service %s/%d\n", proto, portc);
+
+            /* update appropriate service array with the server port */
+            if (strcmp(proto, "tcp") == 0) {
+                dbg(3, "Setting TCP/%d as a server port", portc);
+                tcpservices[portc] = 1; /* mark it as a service port */
+            } else if (strcmp(proto, "udp") == 0) {
+                dbg(3, "Setting UDP/%d as a server port", portc);
+                udpservices[portc] = 1;
+            } else {
+                warnx("Skipping unknown protocol service %s/%d", proto, portc);
+            }
         }
     }
 }
