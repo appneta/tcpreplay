@@ -21,6 +21,7 @@ extern CIDR *cidrdata;
 extern struct timeval begin, end;
 extern unsigned long bytes_sent, failed, pkts_sent, cache_packets;
 extern volatile int didsig;
+extern int l2len;
 
 extern int include_exclude_mode;
 extern CIDR *xX_cidr;
@@ -54,7 +55,7 @@ catcher(int signo)
  */
 
 void
-do_packets(pcap_t * pcap)
+do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l2len)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -87,23 +88,76 @@ do_packets(pcap_t * pcap)
 	    _exit(1);
 	}
 
-	/* verify that the packet isn't > MAXPACKET */
-	if (pkthdr.caplen > MAXPACKET) {
-	    errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
-		 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
-		 pkthdr.caplen, MAXPACKET);
-	}
-
 	/* zero out the old packet info */
 	memset(&pktdata, '\0', sizeof(pktdata));
 
+
 	/*
-	 * since libpcap returns a pointer to a buffer 
-	 * malloc'd to the snaplen which might screw up
-	 * an untruncate situation, we have to memcpy
-	 * the packet to a static buffer
+	 * rewrite L2 Layer?
 	 */
+	if (l2enabled) { /* rewrite l2 layer */
+	    switch(linktype) {
+	    case DLT_EN10MB:
+		/* remove 802.3 header and replace */
+		/*
+		 * is new packet too big?
+		 */
+		if ((pkthdr.caplen - LIBNET_ETH_H + l2len) > MAXPACKET) {
+		    errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
+			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
+			 (pkthdr.caplen - LIBNET_ETH_H + l2len), MAXPACKET);
+		}
+		/*
+		 * remove ethernet header and copy our header back
+		 */
+		memcpy(&pktdata, l2data, l2len);
+		memcpy(&pktdata[l2len], nextpkt, (pkthdr.caplen - LIBNET_ETH_H));
+		/* update pkthdr.caplen with the new size */
+		pkthdr.caplen = pkthdr.caplen - LIBNET_ETH_H + l2len;
+		break;
+
+	    case DLT_RAW:
+		/* we have no ethernet header */
+		/*
+		 * is new packet too big?
+		 */
+		if ((pkthdr.caplen + l2len) > MAXPACKET) {
+		    errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
+			 "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
+			 (pkthdr.caplen + l2len), MAXPACKET);
+		}
+
+		memcpy(&pktdata, l2data, l2len);
+		memcpy(&pktdata[l2len], nextpkt, pkthdr.caplen);
+		pkthdr.caplen += l2len;
+		break;
+
+	    default:
+		/* we're fucked */
+		errx(1, "sorry, tcpreplay doesn't know how to deal with DLT type 0x%x", linktype);
+		break;
+	    }
+
+
+	} 
+
+	else { /* just copy the packet over */
+
+	    /* verify that the packet isn't > MAXPACKET */
+	    if (pkthdr.caplen > MAXPACKET) {
+		errx(1, "Packet length (%d) is greater then MAXPACKET (%d).\n"
+		     "Either reduce snaplen or increase MAXPACKET in tcpreplay.h",
+		     pkthdr.caplen, MAXPACKET);
+	    }
+
+	    /*
+	     * since libpcap returns a pointer to a buffer 
+	     * malloc'd to the snaplen which might screw up
+	     * an untruncate situation, we have to memcpy
+	     * the packet to a static buffer
+	     */
 	memcpy(&pktdata, nextpkt, sizeof(nextpkt));
+	}
 
 	packetnum++;
 
@@ -129,18 +183,18 @@ do_packets(pcap_t * pcap)
 	     * copy layer 3 and up to our temp packet buffer
 	     * for now on, we have to edit the packetbuff because
 	     * just before we send the packet, we copy the packetbuff 
-	     * back onto the pkt.data + LIBNET_ETH_H buffer
+	     * back onto the pkt.data + l2len buffer
 	     * we do all this work to prevent byte alignment issues
 	     */
 	    ip_hdr = (ip_hdr_t *) & ipbuff;
-	    memcpy(ip_hdr, (&pktdata + LIBNET_ETH_H),
-		   pkthdr.caplen - LIBNET_ETH_H);
+	    memcpy(ip_hdr, (&pktdata + l2len),
+		   pkthdr.caplen - l2len);
 #else
 	    /*
 	     * on non-strict byte align systems, don't need to memcpy(), 
 	     * just point to 14 bytes into the existing buffer
 	     */
-	    ip_hdr = (ip_hdr_t *) (&pktdata + LIBNET_ETH_H);
+	    ip_hdr = (ip_hdr_t *) (&pktdata + l2len);
 #endif
 
 	    /* look for include or exclude CIDR match */
@@ -219,7 +273,7 @@ do_packets(pcap_t * pcap)
 	 * put back the layer 3 and above back in the pkt.data buffer 
 	 * we can't edit the packet at layer 3 or above beyond this point
 	 */
-	memcpy(&(pktdata + LIBNET_ETH_H), ip_hdr, pkthdr.caplen - LIBNET_ETH_H);
+	memcpy(&(pktdata + l2len), ip_hdr, pkthdr.caplen - l2len);
 #endif
 
 	if (!options.topspeed)
@@ -272,13 +326,13 @@ randomize_ips(struct pcap_pkthdr *pkthdr,
     /* recalc the UDP/TCP checksum(s) */
     if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
-			       pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			       pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
 	    warnx("Layer 4 checksum failed");
     }
 
     /* recalc IP checksum */
     if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
-			   pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			   pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
 	warnx("IP checksum failed.");
 
 }
@@ -291,7 +345,7 @@ randomize_ips(struct pcap_pkthdr *pkthdr,
  */
 
 void *
-cache_mode(char *cachedata, int packet_num, struct libnet_ethernet_hdr *eth_hdr)
+cache_mode(char *cachedata, int packet_num, eth_hdr_t *eth_hdr)
 {
     void *l = NULL;
     int result;
@@ -337,7 +391,7 @@ cache_mode(char *cachedata, int packet_num, struct libnet_ethernet_hdr *eth_hdr)
  */
 
 void *
-cidr_mode(struct libnet_ethernet_hdr *eth_hdr, ip_hdr_t * ip_hdr)
+cidr_mode(eth_hdr_t *eth_hdr, ip_hdr_t * ip_hdr)
 {
     void *l = NULL;
 
@@ -404,14 +458,14 @@ untrunc_packet(struct pcap_pkthdr *pkthdr,
     /* recalc the UDP/TCP checksum(s) */
     if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
-			       pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			       pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
 	    warnx("Layer 4 checksum failed");
     }
 
 
     /* recalc IP checksum */
     if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
-			   pkthdr->caplen - LIBNET_ETH_H - LIBNET_IP_H) < 0)
+			   pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
 	warnx("IP checksum failed");
 
 }
