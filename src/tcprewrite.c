@@ -128,6 +128,7 @@ init(void)
     total_bytes = pkts_edited = 0;
 
     options.l2.linktype = LINKTYPE_ETHER;
+    options.l2proto = ETHERTYPE_IP;
 
 #ifdef HAVE_TCPDUMP
     /* clear out tcpdump struct */
@@ -164,6 +165,11 @@ post_args(int argc, char *argv[])
     
 #endif
  
+    /* layer two protocol */
+    if (HAVE_OPT(PROTO)) {
+        options.l2proto = OPT_VALUE_PROTO;
+    }
+
     /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
     if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
@@ -295,7 +301,7 @@ validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
          * but it does contain the L3 protocol type (just like an ethernet header
          * does) so we require either a full L2 or both src/dst mac's
          *
-         * DLT_RAW is always IP, so we know the protocol type
+         * DLT_RAW is assumed always IP, so we know the protocol type
          */
             
         /* single output mode */
@@ -341,7 +347,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
     u_char *ipbuff = NULL;            /* IP header and above buffer */
 #endif
     int l2len = 0;
-    u_int64_t packetnum = 0;
+    COUNTER packetnum = 0;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
     struct pcap_pkthdr *pkthdr_ptr;  
 
@@ -365,7 +371,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
         memcpy(newpkt, pktdata, pkthdr.caplen);
 
         packetnum++;
-        dbg(2, "packet %llu caplen %d", packetnum, pkthdr.caplen);
+        dbg(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 
 
 #ifdef HAVE_TCPDUMP
