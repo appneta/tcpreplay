@@ -1,4 +1,4 @@
-/* $Id: tree.c,v 1.23 2004/09/05 19:46:27 aturner Exp $ */
+/* $Id: tree.c,v 1.24 2004/09/06 03:46:35 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -269,7 +269,7 @@ add_tree(const unsigned long ip, const u_char * data)
     }
     else {
         /* we found something, so update it */
-        dbg(2, "   node: 0x%p\nnewnode: 0x%p", node, newnode);
+        dbg(2, "   node: %p\nnewnode: %p", node, newnode);
 #ifdef DEBUG
         if (debug > 2)
             tree_printnode("update node", node);
@@ -539,7 +539,7 @@ tree_printnode(const char *name, const struct tree_type *node)
     }
 
     else {
-        fprintf(stderr, "-- %s: 0x%p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
+        fprintf(stderr, "-- %s: %p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
                 name, (void *)node, libnet_addr2name4(node->ip, RESOLVE),
                 node->masklen, node->server_cnt, node->client_cnt);
         if (node->type == SERVER) {
