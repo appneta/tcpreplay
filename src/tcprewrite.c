@@ -56,6 +56,7 @@
 #include "portmap.h"
 #include "edit_packet.h"
 #include "mac.h"
+#include "rewrite_l2.h"
 
 #ifdef DEBUG
 int debug;
@@ -268,7 +269,7 @@ validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
         /* single output mode */
         if (! options.cache_packets) {
             /* if SLL, then either --dlink or --dmac  are ok */
-            if (options.mac_mask & DMAC1 == 0) {
+            if ((options.mac_mask & DMAC1) == 0) {
                 errx(1, "%s requires --dlink or --dmac <mac>: %s", 
                      pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
             }
@@ -277,7 +278,7 @@ validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
         /* dual output mode */
         else {
             /* if using dual interfaces, make sure we have both dest MAC's */
-            if ((options.mac_mask & DMAC1 == 0) || (options.mac_mask & DMAC2 == 0)) {
+            if (((options.mac_mask & DMAC1) == 0) || ((options.mac_mask & DMAC2) == 0)) {
                 errx(1, "%s with --cachefile requires --dlink or\n"
                      "\t--dmac <mac1>:<mac2>: %s",  
                      pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
@@ -299,7 +300,7 @@ validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
         /* single output mode */
         if (! options.cache_packets) {
             /* Need both src/dst MAC's */
-            if ((options.mac_mask & DMAC1 == 0) || (options.mac_mask & DMAC2 == 0)) {
+            if (((options.mac_mask & DMAC1) == 0) || ((options.mac_mask & DMAC2) == 0)) {
                 errx(1, "%s requires --dlink or --smac <mac> and --dmac <mac>: %s", 
                      pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
             }
@@ -338,15 +339,8 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;            /* IP header and above buffer */
 #endif
-    struct timeval last;
-    static int firsttime = 1;
-    int ret, l2len = 0;
+    int l2len = 0;
     u_int64_t packetnum = 0;
-#ifdef HAVE_PCAPNAV
-    pcapnav_result_t pcapnav_result = 0;
-#endif
-    char datadumpbuff[MAXPACKET];   /* data dumper buffer */
-    int datalen = 0;                /* data dumper length */
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
     struct pcap_pkthdr *pkthdr_ptr;  
 
