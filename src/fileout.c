@@ -48,8 +48,7 @@
 #include "edit_packet.h"
 
 
-extern struct options options;
-extern char *cachedata;
+extern struct tcpreplay_opt_t options;
 extern CIDR *cidrdata;
 extern PORTMAP *portmap_data;
 extern struct timeval begin, end;
@@ -110,8 +109,7 @@ break_now(int signo)
  */
 
 void
-do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
-           int l2enabled, char *l2data, int l2len)
+do_packets(pcap_t * pcap)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -146,7 +144,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
     /* register signals */
     didsig = 0;
-    if (!options.speedmode == ONEATATIME) {
+    if (!options.speedmode == SPEED_ONEATATIME) {
         (void)signal(SIGINT, catcher);
     }
     else {
@@ -270,11 +268,11 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
         /* Dual nic processing */
         if (options.intf2 != NULL) {
 
-            if (cachedata != NULL) {
-                l = (LIBNET *) cache_mode(cachedata, packetnum, eth_hdr);
+            if (options.cachedata != NULL) {
+                l = (libnet_t *) cache_mode(options.cachedata, packetnum, eth_hdr);
             }
             else if (options.cidr) {
-                l = (LIBNET *) cidr_mode(eth_hdr, ip_hdr);
+                l = (libnet_t *) cidr_mode(eth_hdr, ip_hdr);
             }
             else {
                 errx(1, "do_packets(): Strange, we should of never of gotten here");
@@ -359,7 +357,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
             l = options.intf1;
 
         /* Physically send the packet or write to file */
-        if (options.savepcap != NULL || options.datadump_mode) {
+        if (options.savepcap1 != NULL || options.datadump_mode) {
 
             /* figure out the correct offsets/data len */
             if (options.datadump_mode) {
@@ -372,14 +370,14 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
             if (l == options.intf1) {
                 if (options.datadump_mode) {    /* data only? */
                     if (datalen) {
-                        if (write(options.datadumpfile, datadumpbuff, datalen)
+                        if (write(options.datadumpfile1, datadumpbuff, datalen)
                             == -1)
                             warnx("error writing data to primary dump file: %s",
                                   strerror(errno));
                     }
                 }
                 else {          /* full packet */
-                    pcap_dump((u_char *) options.savedumper, &pkthdr, pktdata);
+                    pcap_dump((u_char *) options.savedumper1, &pkthdr, pktdata);
                 }
 
             }
@@ -560,4 +558,3 @@ cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
  c-basic-offset:4
  End:
 */
-

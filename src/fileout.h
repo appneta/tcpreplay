@@ -34,7 +34,7 @@
 #define _FILEOUT_H_
 
 void catcher(int);
-void do_packets(pcapnav_t *, pcap_t *, u_int32_t, int, char *, int);
+void do_packets(pcap_t *);
 void *cache_mode(char *, u_int64_t, eth_hdr_t *);
 void *cidr_mode(eth_hdr_t *, ip_hdr_t *);
 
@@ -47,4 +47,3 @@ void *cidr_mode(eth_hdr_t *, ip_hdr_t *);
  c-basic-offset:4
  End:
 */
-
