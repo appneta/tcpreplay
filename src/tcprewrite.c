@@ -142,7 +142,8 @@ init(void)
 }
 
 
-void post_args(int argc, char *argv[])
+void 
+post_args(int argc, char *argv[])
 {
 
 #ifdef DEBUG
