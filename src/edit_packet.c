@@ -37,7 +37,6 @@
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
 #include "edit_packet.h"
-#include "rewrite_l2.h"
 #include "lib/sll.h"
 #include "dlt.h"
 #include "dlt_names.h"
@@ -152,48 +151,20 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
  * Returns 0 for no data
  */
 int
-extract_data(u_char * pktdata, int caplen, char *l7data[])
+extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[])
 {
     int datalen = 0;
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
-#ifdef FORCE_ALIGN
     u_char ipbuff[MAXPACKET];
-#endif
-    char *dataptr = NULL;
+    u_char *dataptr = NULL;
 
-    /* map the ethernet header */
-    eth_hdr = (eth_hdr_t *) pktdata;
-
-    /* return zero if not IP */
-    if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
-        dbg(2, "Skipping non-IP frame");
+    /* grab our IPv4 header */
+    dataptr = ipbuff;
+    if ((ip_hdr = get_ipv4(pktdata, caplen, datalink, &dataptr)) == NULL)
         return 0;
-    }
-
-
-
-#ifdef FORCE_ALIGN
-    /* 
-     * copy layer 3 and up to our temp packet buffer
-     * for now on, we have to edit the packetbuff because
-     * just before we send the packet, we copy the packetbuff 
-     * back onto the pkt.data + l2len buffer
-     * we do all this work to prevent byte alignment issues
-     */
-    ip_hdr = (ip_hdr_t *) & ipbuff;
-    memcpy(ip_hdr, pktdata[options.l2.len], caplen - options.l2.len);
-#else
-    /*
-     * on non-strict byte align systems, don't need to memcpy(), 
-     * just point to 14 bytes into the existing buffer
-     */
-    ip_hdr = (ip_hdr_t *) (pktdata + options.l2.len);
-#endif
-
-    dataptr = (char *)ip_hdr;
 
     /* figure out the actual datalen which might be < the caplen
      * due to ethernet padding 

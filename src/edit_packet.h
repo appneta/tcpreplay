@@ -39,7 +39,7 @@ int randomize_ipv4(struct pcap_pkthdr *pktdhr, u_char *pktdata, ip_hdr_t *ip_hdr
 int randomize_iparp(struct pcap_pkthdr *pkthdr, u_char *pktdata, int datalink);
 u_int32_t randomize_ip(u_int32_t ip);
 void fix_checksums(struct pcap_pkthdr *pkdhdr, ip_hdr_t *ip_hdr);
-int extract_data(u_char *pktdata, int caplen, char *l7data[]);
+int extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[]);
 u_int32_t remap_ip(cidr_t *cidr, const u_int32_t original);
 int rewrite_ipl3(ip_hdr_t *ip_hdr, int cache_mode);
 int rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode);
