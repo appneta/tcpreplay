@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.32 2003/06/07 01:27:24 aturner Exp $ */
+/* $Id: do_packets.c,v 1.33 2003/06/07 18:18:16 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -44,7 +44,8 @@ extern int debug;
 #endif
 
 
-void packet_stats();
+void packet_stats(); /* from tcpreplay.c */
+
 
 /*
  * we've got a race condition, this is our workaround
@@ -77,7 +78,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 #endif
     struct timeval last;
     static int firsttime = 1;
-    int ret;
+    int ret, newl2len;
     unsigned long packetnum = 0;
 
 
@@ -109,8 +110,10 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	memset(pktdata, '\0', maxpacket);
 
 	/* Rewrite any Layer 2 data */
-	if (! rewrite_l2(&pkthdr, pktdata, nextpkt, linktype, l2enabled, l2data, l2len))
+	if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt, linktype, l2enabled, l2data, l2len)) == 0)
 	    continue;
+
+	l2len = newl2len;
 
 	packetnum++;
 
@@ -127,7 +130,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	}
 
 
-	eth_hdr = (eth_hdr_t *) & pktdata;
+	eth_hdr = (eth_hdr_t *)pktdata;
 
 	/* does packet have an IP header?  if so set our pointer to it */
 	if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
@@ -139,15 +142,14 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	     * back onto the pkt.data + l2len buffer
 	     * we do all this work to prevent byte alignment issues
 	     */
-	    ip_hdr = (ip_hdr_t *) & ipbuff;
-	    memcpy(ip_hdr, (&pktdata[l2len]),
-		   pkthdr.caplen - l2len);
+	    ip_hdr = (ip_hdr_t *)ipbuff;
+	    memcpy(ip_hdr, (&pktdata[l2len]), pkthdr.caplen - l2len);
 #else
 	    /*
 	     * on non-strict byte align systems, don't need to memcpy(), 
 	     * just point to 14 bytes into the existing buffer
 	     */
-	    ip_hdr = (ip_hdr_t *) (&pktdata[l2len]);
+	    ip_hdr = (ip_hdr_t *)(&pktdata[l2len]);
 #endif
 
 	    /* look for include or exclude CIDR match */
@@ -231,7 +233,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	 * put back the layer 3 and above back in the pkt.data buffer 
 	 * we can't edit the packet at layer 3 or above beyond this point
 	 */
-	memcpy(&(pktdata + l2len), ip_hdr, pkthdr.caplen - l2len);
+	memcpy(&pktdata[l2len], ip_hdr, pkthdr.caplen - l2len);
 #endif
 
 	if (!options.topspeed)
@@ -270,6 +272,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
     free(ipbuff);
 #endif
 }
+
 
 /*
  * determines based upon the cachedata which interface the given packet 
@@ -317,6 +320,7 @@ cache_mode(char *cachedata, int packet_num, eth_hdr_t *eth_hdr)
     return l;
 }
 
+
 /*
  * determines based upon the cidrdata which interface the given packet 
  * should go out.  Also rewrites any layer 2 data we might need to adjust.
@@ -359,10 +363,6 @@ cidr_mode(eth_hdr_t *eth_hdr, ip_hdr_t * ip_hdr)
 
     return l;
 }
-
-
-
-
 
 
 /*
