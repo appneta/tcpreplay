@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.8 2003/06/16 19:33:28 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.9 2003/06/17 18:27:01 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -64,7 +64,7 @@ CIDR...
 .B \-X
 .I exclude
 ] [
-.B \-2 l2datafile
+.B \-2 l2data
 ]
 .I file ...
 .SH DESCRIPTION
@@ -207,10 +207,10 @@ P:<list>      - Must be one of the listed packets where the list corresponds to 
 packet number in the capture file.  Ex: -X P:1-5,9,15 would send all packets except 1 
 through 5, 9 and 15.
 .TP
-.B \-2 or l2datafile
-Specifies a file containing the Layer 2 header to use instead of the Layer 2 header
-in the packet.  Useful for converting between 802.x types or adding a header when
-the pcap file doesn't contain a header (as in the case of DLT_RAW).  Currently
+.B \-2 or l2data
+Specifies a string of comma seperated numbers in hex to be used instead of the Layer
+2 header in the packet.  Useful for converting between 802.x types or adding a header 
+when the pcap file doesn't contain a header (as in the case of DLT_RAW).  Currently
 this only supports the following pcap(3) types: DLT_EN10MB and DLT_RAW.
 .SH SIGNALS
 .I Tcpreplay

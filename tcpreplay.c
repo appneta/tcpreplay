@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.61 2003/06/16 19:28:40 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.62 2003/06/17 18:27:01 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -40,7 +40,7 @@ volatile int didsig;
 int include_exclude_mode = 0;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
-char *l2data = NULL;
+char l2data[L2DATALEN] = "";
 int l2len = LIBNET_ETH_H;
 int maxpacket = 0;
 
@@ -61,7 +61,7 @@ void version();
 void mac2hex(const char *, char *, int);
 void configfile(char *);
 int argv_create(char *, int, char **);
-int read_l2data(char *, char **);
+int read_l2data(char *, char *);
 
 int
 main(int argc, char *argv[])
@@ -222,7 +222,7 @@ main(int argc, char *argv[])
 	    break;
 	case '2':   /* layer 2 header file */
 	    l2enabled = 1;
-	    l2len = read_l2data(optarg, &l2data);
+	    l2len = read_l2data(optarg, l2data);
 	    break;
 	default:
 	    usage();
@@ -477,25 +477,39 @@ argv_create(char *p, int argc, char *argv[])
 }
 
 int
-read_l2data(char *file, char **l2data)
+read_l2data(char *l2string, char *l2data)
 {
-    int fd, bytes;
+    int numbytes = 0;
+    unsigned int value;
+    char *l2byte;
+    u_char databyte;
 
-    *l2data = (char *)malloc(L2DATALEN);
-    bzero(*l2data, L2DATALEN);
+    memset(l2data, '\0', L2DATALEN);
 
+    /* data is hex, comma seperated, byte by byte */
 
-    if ((fd = open(file, O_RDONLY)) == -1)
-	errx(1, "Could not open layer 2 data file %s: %s", file, strerror(errno));
+    /* get the first byte */
+    l2byte = strtok(l2string, ",");
+    sscanf(l2byte, "%x", &value);
+    if (value > 0xff)
+	errx(1, "Invalid hex byte passed to -2: %s", l2byte);
+    databyte = (u_char)value;
+    memcpy(&l2data[numbytes], &databyte, 1);
 
-    if ((bytes = read(fd, *l2data, L2DATALEN)) < 0)
-	errx(1, "Error reading layer 2 data file: %s", strerror(errno));
+    /* get remaining bytes */
+    while ((l2byte = strtok(NULL, ",")) != NULL) {
+	numbytes ++;
+	sscanf(l2byte, "%x", &value);
+	if (value > 0xff)
+	    errx(1, "Invalid hex byte passed to -2: %s", l2byte);
+	databyte = (u_char)value;
+	memcpy(&l2data[numbytes], &databyte, 1);
+    }
 
-    if (close(fd) == -1) 
-	errx(1, "Error closing layer 2 data file: %s", strerror(errno));
+    numbytes ++;
 
-    dbg(1, "Read %d bytes of layer 2 data", bytes);
-    return bytes;
+    dbg(1, "Read %d bytes of layer 2 data", numbytes);
+    return(numbytes);
 }
 
 
@@ -535,7 +549,7 @@ configfile(char *file)
 #endif
 	}
 	else if (ARGS("l2datafile", 2)) {
-	    l2len = read_l2data(argv[1], &l2data);
+	    l2len = read_l2data(argv[1], l2data);
 	}
 	else if (ARGS("intf", 2)) {
 	    intf = strdup(argv[1]);
