@@ -1,0 +1,10 @@
+intf @nic1@
+second_intf @nic2@
+primary_mac 01:00:00:01:01:01
+second_mac 02:00:00:02:02:02
+fixchecksums
+no_martians
+topspeed
+seed 819
+untruncate pad
+cachefile test.auto_bridge
