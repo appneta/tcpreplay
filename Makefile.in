@@ -1,10 +1,10 @@
-# $Id: Makefile.in,v 1.38 2003/03/24 04:30:04 aturner Exp $
+# $Id: Makefile.in,v 1.39 2003/04/29 19:32:13 aturner Exp $
 
-PREFIX		= @prefix@
-BINDIR		= $(PREFIX)/bin
-SBINDIR		= $(PREFIX)/sbin
-MAN8DIR		= $(PREFIX)/man/man8
-MAN1DIR		= $(PREFIX)/man/man1
+prefix		= @prefix@
+BINDIR		= ${prefix}/bin
+SBINDIR		= ${prefix}/sbin
+MAN8DIR		= @mandir@/man8
+MAN1DIR		= @mandir@/man1
 VERSION		= @TCPREPLAY_VERSION@
 RELEASEDIR	= tcpreplay-$(VERSION)
 
@@ -19,7 +19,7 @@ INSTALL		= @INSTALL@
 
 BINARIES	= tcpreplay capinfo tcpprep pcapmerge
 
-TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c
+TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c
 TOBJS		= $(TSRCS:.c=.o)
 
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c
