@@ -1,4 +1,4 @@
-/* $Id: replay_live.c,v 1.2 2003/12/11 03:04:55 aturner Exp $ */
+/* $Id: replay_live.c,v 1.3 2003/12/11 03:12:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -223,7 +223,9 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
     int ret, newl2len;
     static unsigned long packetnum = 0;
     struct macsrc_t *node, finder;     /* rb tree nodes */
+#ifdef DEBUG
     u_char dstmac[ETHER_ADDR_LEN];
+#endif
 
     packetnum++;
     dbg(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
@@ -248,24 +250,13 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
         return(1);
     }
     
-
-    /* 
-     * we seem to get these weird packets with no data
-     * no idea why this happens right now
-     * so for now, we ignore them
-
-    if ((memcmp(pktdata, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 14)) == 0) {
-	dbg(2, "Got a null packet... skipping packet");
-	return(1);
-    }
-    */
-
     /* lookup our source MAC in the tree */
-    memcpy(&dstmac, pktdata, ETHER_ADDR_LEN);
     memcpy(&finder.key, &pktdata[ETHER_ADDR_LEN], ETHER_ADDR_LEN);
+#ifdef DEBUG
+    memcpy(&dstmac, pktdata, ETHER_ADDR_LEN);
     dbg(1, "Source MAC: " MAC_FORMAT "\tDestin MAC: " MAC_FORMAT, 
 	MAC_STR(finder.key), MAC_STR(dstmac));
-      
+#endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
     if ((memcmp(libnet_get_hwaddr(options.intf1), &finder.key, ETHER_ADDR_LEN)) == 0) {
@@ -299,14 +290,14 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
      * and update the dst mac if necessary
      */
     if (node->source == PCAP_INT1) {
-	dbg(2, "Packet source was %s... sending out %s", intf, intf2);
+	dbg(2, "Packet source was %s... sending out on %s", intf, intf2);
 	l = options.intf2;
 	if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
 	    dbg(3, "Rewriting destination MAC for %s", intf2);
 	    memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 	}
     } else {
-	dbg(2, "Packet source was %s... sending out %s", intf2, intf);
+	dbg(2, "Packet source was %s... sending out on %s", intf2, intf);
 	l = options.intf1;
 	if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
 	    dbg(3, "Rewriting destination MAC for %s", intf);
