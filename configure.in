@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.8 2002/07/16 19:52:38 aturner Exp $
+dnl $Id: configure.in,v 1.9 2002/08/08 03:12:52 mattbing Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -49,25 +49,28 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS(err.h math.h sys/time.h signal.h)
 
 dnl use inet_aton or inet_addr ?
-AC_CHECK_DECL(inet_aton,
-	AC_DEFINE(INET_ATON)
-	inet_aton=yes, 
-	inet_aton=no,
-	[
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-])
+dnl AC_CHECK_DECL(inet_aton,
+dnl 	AC_DEFINE(INET_ATON)
+dnl 	inet_aton=yes, 
+dnl 	inet_aton=no,
+dnl 	[
+dnl #include <sys/socket.h>
+dnl #include <netinet/in.h>
+dnl #include <arpa/inet.h>
+dnl ])
 
-AC_CHECK_DECL(inet_addr,
-	AC_DEFINE(INET_ADDR)
-	inet_addr=yes, 
-	inet_addr=no,
-	[
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-])
+dnl AC_CHECK_DECL(inet_addr,
+dnl 	AC_DEFINE(INET_ADDR)
+dnl 	inet_addr=yes, 
+dnl 	inet_addr=no,
+dnl 	[
+dnl #include <sys/socket.h>
+dnl #include <netinet/in.h>
+dnl #include <arpa/inet.h>
+dnl ])
+
+AC_CHECK_FUNC(inet_aton, inet_aton=yes, inet_aton=no)
+AC_CHECK_FUNC(inet_addr, inet_addr=yes, inet_addr=no)
 
 if test $inet_aton = no -a $inet_addr = no ; then
 	AC_MSG_ERROR("We need either inet_aton or inet_addr")
@@ -109,6 +112,7 @@ AC_ARG_WITH(libnet,
 	   CFLAGS="$CFLAGS `libnet-config --defines`"
 	fi
 	LNETINC="-I$withval/include"
+	LNETINCDIR="$withval/include/"
 	LNETLIB="-L$withval/lib -lnet"
      else
         AC_ERROR(libnet.h or libnet.a not found in $withval)
@@ -118,9 +122,11 @@ AC_ARG_WITH(libnet,
 [ if test -f ${prefix}/include/libnet.h; then
      CFLAGS="$CFLAGS `${prefix}/bin/libnet-config --defines`"
      LNETINC="-I${prefix}/include"
+     LNETINCDIR="$prefix/include/"
      LNETLIB="-L${prefix}/lib -lnet"
   elif test -f /usr/include/libnet.h; then
      CFLAGS="$CFLAGS `libnet-config --defines`"
+     LNETINCDIR="/usr/include/"
      LNETLIB="-lnet"
   else
      AC_MSG_RESULT(no)
@@ -160,8 +166,8 @@ AC_ARG_WITH(libnetver,
 esac
 ], 
 [ AC_TRY_RUN([
-#include <libnet.h>
 #include <string.h>
+#include "$LNETINCDIR/libnet.h"
 #define LIB_TEST "1.0"
 /* 
  * simple proggy to test the version of libnet
@@ -183,8 +189,8 @@ main (int argc, char *argv[])
 	)
 
 AC_TRY_RUN([
-#include <libnet.h>
 #include <string.h>
+#include "$LNETINCDIR/libnet.h"
 #define LIB_TEST "1.1"
 /* 
  * simple proggy to test the version of libnet

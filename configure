@@ -3346,19 +3346,27 @@ fi
 done
 
 
-echo "$as_me:$LINENO: checking whether inet_aton is declared" >&5
-echo $ECHO_N "checking whether inet_aton is declared... $ECHO_C" >&6
-if test "${ac_cv_have_decl_inet_aton+set}" = set; then
+
+
+echo "$as_me:$LINENO: checking for inet_aton" >&5
+echo $ECHO_N "checking for inet_aton... $ECHO_C" >&6
+if test "${ac_cv_func_inet_aton+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 #include "confdefs.h"
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char inet_aton (); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char inet_aton ();
+char (*f) ();
 
 #ifdef F77_DUMMY_MAIN
 #  ifdef __cplusplus
@@ -3369,60 +3377,66 @@ else
 int
 main ()
 {
-#ifndef inet_aton
-  char *p = (char *) inet_aton;
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_inet_aton) || defined (__stub___inet_aton)
+choke me
+#else
+f = inet_aton;
 #endif
 
   ;
   return 0;
 }
 _ACEOF
-rm -f conftest.$ac_objext
-if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
-  (eval $ac_compile) 2>&5
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-         { ac_try='test -s conftest.$ac_objext'
+         { ac_try='test -s conftest$ac_exeext'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_have_decl_inet_aton=yes
+  ac_cv_func_inet_aton=yes
 else
   echo "$as_me: failed program was:" >&5
 cat conftest.$ac_ext >&5
-ac_cv_have_decl_inet_aton=no
+ac_cv_func_inet_aton=no
 fi
-rm -f conftest.$ac_objext conftest.$ac_ext
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_have_decl_inet_aton" >&5
-echo "${ECHO_T}$ac_cv_have_decl_inet_aton" >&6
-if test $ac_cv_have_decl_inet_aton = yes; then
-  cat >>confdefs.h <<\_ACEOF
-#define INET_ATON 1
-_ACEOF
-
-	inet_aton=yes
+echo "$as_me:$LINENO: result: $ac_cv_func_inet_aton" >&5
+echo "${ECHO_T}$ac_cv_func_inet_aton" >&6
+if test $ac_cv_func_inet_aton = yes; then
+  inet_aton=yes
 else
   inet_aton=no
 fi
 
-
-echo "$as_me:$LINENO: checking whether inet_addr is declared" >&5
-echo $ECHO_N "checking whether inet_addr is declared... $ECHO_C" >&6
-if test "${ac_cv_have_decl_inet_addr+set}" = set; then
+echo "$as_me:$LINENO: checking for inet_addr" >&5
+echo $ECHO_N "checking for inet_addr... $ECHO_C" >&6
+if test "${ac_cv_func_inet_addr+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 #include "confdefs.h"
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char inet_addr (); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char inet_addr ();
+char (*f) ();
 
 #ifdef F77_DUMMY_MAIN
 #  ifdef __cplusplus
@@ -3433,42 +3447,43 @@ else
 int
 main ()
 {
-#ifndef inet_addr
-  char *p = (char *) inet_addr;
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_inet_addr) || defined (__stub___inet_addr)
+choke me
+#else
+f = inet_addr;
 #endif
 
   ;
   return 0;
 }
 _ACEOF
-rm -f conftest.$ac_objext
-if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
-  (eval $ac_compile) 2>&5
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-         { ac_try='test -s conftest.$ac_objext'
+         { ac_try='test -s conftest$ac_exeext'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_have_decl_inet_addr=yes
+  ac_cv_func_inet_addr=yes
 else
   echo "$as_me: failed program was:" >&5
 cat conftest.$ac_ext >&5
-ac_cv_have_decl_inet_addr=no
+ac_cv_func_inet_addr=no
 fi
-rm -f conftest.$ac_objext conftest.$ac_ext
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_have_decl_inet_addr" >&5
-echo "${ECHO_T}$ac_cv_have_decl_inet_addr" >&6
-if test $ac_cv_have_decl_inet_addr = yes; then
-  cat >>confdefs.h <<\_ACEOF
-#define INET_ADDR 1
-_ACEOF
-
-	inet_addr=yes
+echo "$as_me:$LINENO: result: $ac_cv_func_inet_addr" >&5
+echo "${ECHO_T}$ac_cv_func_inet_addr" >&6
+if test $ac_cv_func_inet_addr = yes; then
+  inet_addr=yes
 else
   inet_addr=no
 fi
@@ -3784,6 +3799,7 @@ echo "${ECHO_T}$withval" >&6
 	   CFLAGS="$CFLAGS `libnet-config --defines`"
 	fi
 	LNETINC="-I$withval/include"
+	LNETINCDIR="$withval/include/"
 	LNETLIB="-L$withval/lib -lnet"
      else
         { { echo "$as_me:$LINENO: error: libnet.h or libnet.a not found in $withval" >&5
@@ -3796,9 +3812,11 @@ else
    if test -f ${prefix}/include/libnet.h; then
      CFLAGS="$CFLAGS `${prefix}/bin/libnet-config --defines`"
      LNETINC="-I${prefix}/include"
+     LNETINCDIR="$prefix/include/"
      LNETLIB="-L${prefix}/lib -lnet"
   elif test -f /usr/include/libnet.h; then
      CFLAGS="$CFLAGS `libnet-config --defines`"
+     LNETINCDIR="/usr/include/"
      LNETLIB="-lnet"
   else
      echo "$as_me:$LINENO: result: no" >&5
@@ -3864,8 +3882,8 @@ else
 #line $LINENO "configure"
 #include "confdefs.h"
 
-#include <libnet.h>
 #include <string.h>
+#include "$LNETINCDIR/libnet.h"
 #define LIB_TEST "1.0"
 /*
  * simple proggy to test the version of libnet
@@ -3916,8 +3934,8 @@ else
 #line $LINENO "configure"
 #include "confdefs.h"
 
-#include <libnet.h>
 #include <string.h>
+#include "$LNETINCDIR/libnet.h"
 #define LIB_TEST "1.1"
 /*
  * simple proggy to test the version of libnet
