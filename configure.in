@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.43 2003/08/28 20:30:46 mattbing Exp $
+dnl $Id: configure.in,v 1.44 2003/08/31 01:37:32 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -7,7 +7,7 @@ AC_CONFIG_HEADER(config.h)
 dnl Set version info here!
 MAJOR_VERSION=1
 MINOR_VERSION=5
-MICRO_VERSION=alpha4
+MICRO_VERSION=alpha5
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -431,6 +431,12 @@ case $host in
 	nic2=en0
 	AC_MSG_RESULT(Apple OSX)
 	;;
+
+        *-*-openbsd*)
+        nic1=xl0
+        nic2=xl0
+        AC_MSG_RESULT(OpenBSD)
+        ;;
 
 	*)
 	AC_MSG_RESULT([$host is unknown!  

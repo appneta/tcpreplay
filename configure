@@ -1287,7 +1287,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 MAJOR_VERSION=1
 MINOR_VERSION=5
-MICRO_VERSION=alpha4
+MICRO_VERSION=alpha5
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 TCPREPLAY_RELEASE=1
@@ -5716,15 +5716,14 @@ echo "${ECHO_T}no" >&6
      echo "$as_me:$LINENO: result: $withval" >&5
 echo "${ECHO_T}$withval" >&6
      if test -f $withval/include/pcap.h -a -f $withval/lib/libpcap.a; then
-        owd=`pwd`
-        if cd $withval; then
-          withval=`pwd`
-          cd $owd
-        fi
 		LPCAPINC="-I$withval/include"
 		LPCAPINCDIR="$withval/include"
 		LPCAPLIB="-L$withval/lib -lpcap"
-     else
+     elif test -f $withval/pcap.h -a -f $withval/libpcap.a; then
+		LPCAPINC="-I$withval/"
+		LPCAPINCDIR="$withval/"
+		LPCAPLIB="-L$withval/ -lpcap"
+	 else
         { { echo "$as_me:$LINENO: error: pcap.h or libpcap.a not found in $withval" >&5
 echo "$as_me: error: pcap.h or libpcap.a not found in $withval" >&2;}
    { (exit 1); exit 1; }; }
@@ -5939,6 +5938,13 @@ echo "${ECHO_T}SunOS" >&6
 	echo "$as_me:$LINENO: result: Apple OSX" >&5
 echo "${ECHO_T}Apple OSX" >&6
 	;;
+
+        *-*-openbsd*)
+        nic1=xl0
+        nic2=xl0
+        echo "$as_me:$LINENO: result: OpenBSD" >&5
+echo "${ECHO_T}OpenBSD" >&6
+        ;;
 
 	*)
 	echo "$as_me:$LINENO: result: $host is unknown!
