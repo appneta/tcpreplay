@@ -1,5 +1,5 @@
-#LyX 1.2 created this file. For more info see http://www.lyx.org/
-\lyxformat 220
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
 \textclass article
 \language english
 \inputencoding latin1
@@ -43,7 +43,7 @@ http://www.sourceforge.net/projects/tcpreplay/
 \newline 
 
 \newline 
-FAQ Version 0.5
+FAQ Version 0.6
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -169,10 +169,11 @@ Originally, tcpreplay was written to test network intrusion detection devices,
  sent by other devices as input.
 \layout Subsection
 
-Where can I get help?
+Where can I get help or report bugs?
 \layout Standard
 
-The best place to get help is the Tcpreplay-Users mailing list: 
+The best place to get help or report a bug is the Tcpreplay-Users mailing
+ list: 
 \newline 
 
 \begin_inset LatexCommand \url{http://lists.sourceforge.net/lists/listinfo/tcpreplay-users}
@@ -544,6 +545,27 @@ tethereal -r blah.snoop -w blah.pcap
 
 and replay the resulting file.
  
+\layout Subsection
+
+Replaying Client Traffic to a Server
+\layout Standard
+
+A common question on the tcpreplay-users list is how does one the client
+ side of a connection back to a server.
+ Unfortunately, tcpreplay doesn't support this right now.
+ The major problem concerns syncing up TCP Seq/Ack numbers which will be
+ different.
+ ICMP also often contains IP header information which would need to be adjusted
+ as well in many cases.
+ About the only thing that could be easy to do is UDP which doesn't isn't
+ usually requested.
+\layout Standard
+
+This is however a feature that we're looking into implimenting.
+ If you're interested in helping add this feature, please contact us and
+ we'd be more then happy to work with you.
+ At this time however, we don't have an ETA when this will be implimented,
+ so don't bother asking.
 \layout Section
 
 Using tcpprep
@@ -835,7 +857,6 @@ On one system, we've seen a jump from 23.02 megabits/sec (5560 packets/sec)
  with the NMBCLUSTERS option in the kernel config file.
  Experiment with different sizes to see which yields the best performance.
  See the options(4) man page for more details.
- 
 \layout Section
 
 Required Libraries
@@ -869,7 +890,7 @@ Tcpreplay v1.3 is the last version to support the old Libnet API (everything
 
 \layout Section
 
-Common Errors
+Understanding Common Error Messages
 \layout Subsection
 
 Can't open eth0: libnet_select_device(): Can't find interface eth0
@@ -1044,7 +1065,8 @@ BSD License
 \layout Standard
 
 
-\begin_inset Include \input{../LICENSE}
+\begin_inset Include \input{LICENSE}
+preview false
 
 \end_inset 
 
