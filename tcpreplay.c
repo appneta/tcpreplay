@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.90 2004/05/14 21:42:53 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.91 2004/05/15 21:11:50 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -67,7 +67,7 @@
 
 struct options options;
 char *cachedata = NULL;
-CIDR *cidrdata = NULL, *enddata = NULL;
+CIDR *cidrdata = NULL;
 CIDRMAP *cidrmap_data1 = NULL, *cidrmap_data2 = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
@@ -139,7 +139,7 @@ main(int argc, char *argv[])
         case 'C':              /* cidr matching */
             options.cidr = 1;
             if (!parse_cidr(&cidrdata, optarg, ","))
-                usage();
+                errx(1, "Unable to parse -C");
             break;
 #ifdef DEBUG
         case 'd':              /* enable debug */
@@ -151,8 +151,9 @@ main(int argc, char *argv[])
             options.topspeed = 1;
             break;
         case 'e':              /* rewrite IP's to two end points */
-            if (!parse_cidr(&enddata, optarg, ","))
-                usage();
+            options.rewriteip ++;
+            if (!parse_endpoints(&cidrmap_data1, &cidrmap_data2, optarg))
+                errx(1, "Unable to parse -e");
             break;
         case 'f':              /* config file */
             configfile(optarg);
@@ -212,7 +213,7 @@ main(int argc, char *argv[])
             options.promisc = 0;
             break;
         case 'N':              /* rewrite IP addresses using our pseudo-nat */
-            options.rewriteip = 1;
+            options.rewriteip ++;
             nat_interface ++;
 
             /* first -N is primary nic */
@@ -294,7 +295,7 @@ main(int argc, char *argv[])
                      pcap_dump_open(options.savepcap, optarg)) == NULL)
                     errx(1, "pcap_dump_open() error: %s",
                          pcap_geterr(options.savepcap));
-
+                
                 warnx("saving primary packets in %s", optarg);
             }
             else {
@@ -412,11 +413,11 @@ main(int argc, char *argv[])
     if (intf == NULL)
         errx(1, "Must specify a primary interface");
 
-    if ((intf2 == NULL) && (!options.one_output) && (cache_file != NULL))
+    if ((intf2 == NULL) && (cache_file != NULL))
         errx(1, "Needs secondary interface with cache");
 
-    if ((intf2 != NULL) && (!options.one_output) && 
-        (!options.sniff_bridge) && (!options.cidr && (cache_file == NULL)))
+    if ((intf2 != NULL) && (!options.sniff_bridge) && 
+        (!options.cidr && (cache_file == NULL)))
         errx(1, "Needs cache or cidr match with secondary interface");
 
     if (options.sniff_bridge && (options.savepcap ||
@@ -453,6 +454,10 @@ main(int argc, char *argv[])
 
     if (options.one_output && options.sniff_bridge) {
         errx(1, "One output mode and bridge mode are incompatible");
+    }
+
+    if ((options.rewriteip > 1) && (options.rewriteip != nat_interface)) {
+        errx(1, "Using both -N and -e are not supported");
     }
 
     if (options.seed != 0) {
@@ -499,7 +504,7 @@ main(int argc, char *argv[])
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
         errx(1, "Libnet can't open %s: %s", intf, ebuf);
 
-    if (intf2 != NULL && (! options.one_output)) {
+    if (intf2 != NULL) {
         if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
             errx(1, "Libnet can't open %s: %s", intf2, ebuf);
     }
@@ -822,8 +827,8 @@ configfile(char *file)
                 usage();
         }
         else if (ARGS("endpoints", 2)) {
-            options.endpoints = 1;
-            if (!parse_cidr(&enddata, argv[1], ","))
+            options.rewriteip ++;
+            if (!parse_endpoints(&cidrmap_data1, &cidrmap_data2, argv[1]))
                 usage();
         }
 #ifdef DEBUG
@@ -886,7 +891,7 @@ configfile(char *file)
             options.no_martians = 1;
         }
         else if (ARGS("nat", 2)) {
-            options.rewriteip = 1;
+            options.rewriteip ++;
             nat_interface ++;
             if (nat_interface == 1) {
                 if (! parse_cidr_map(&cidrmap_data1, argv[1]))
@@ -1082,57 +1087,53 @@ version(void)
 void
 usage(void)
 {
-    fprintf(stderr, "Usage: tcpreplay [args] <file(s)>\n");
-    fprintf(stderr,
-            "-A \"<args>\"\t\tPass arguments to tcpdump decoder (use w/ -v)\n"
-            "-b\t\t\tBridge two broadcast domains in sniffer mode\n"
-            "-c <cachefile>\t\tSplit traffic via cache file\n"
-            "-C <CIDR1,CIDR2,...>\tSplit traffic by matching src IP\n");
+    printf("Usage: tcpreplay [args] <file(s)>\n"
+           "-A \"<args>\"\t\tPass arguments to tcpdump decoder (use w/ -v)\n"
+           "-b\t\t\tBridge two broadcast domains in sniffer mode\n"
+           "-c <cachefile>\t\tSplit traffic via cache file\n"
+           "-C <CIDR1,CIDR2,...>\tSplit traffic by matching src IP\n");
 #ifdef DEBUG
-    fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
+    printf("-d <level>\t\tEnable debug output to STDERR\n");
 #endif
-    fprintf(stderr,
-            "-D\t\t\tData dump mode (set this BEFORE -w and -W)\n"
-            "-f <configfile>\t\tSpecify configuration file\n"
-            "-F\t\t\tFix IP, TCP, UDP and ICMP checksums\n"
-            "-h\t\t\tHelp\n"
-            "-i <nic>\t\tPrimary interface to send traffic out of\n"
-            "-I <mac>\t\tRewrite dest MAC on primary interface\n"
-            "-j <nic>\t\tSecondary interface to send traffic out of\n"
-            "-J <mac>\t\tRewrite dest MAC on secondary interface\n"
-            "-k <mac>\t\tRewrite source MAC on primary interface\n"
-            "-K <mac>\t\tRewrite source MAC on secondary interface\n");
-    fprintf(stderr,
-            "-l <loop>\t\tSpecify number of times to loop\n"
-            "-L <limit>\t\tSpecify the maximum number of packets to send\n"
-            "-m <multiple>\t\tSet replay speed to given multiple\n"
-            "-M\t\t\tDisable sending martian IP packets\n"
-            "-n\t\t\tNot nosy mode (noenable promisc in sniff/bridge mode)\n"
-            "-N <CIDR1:CIDR2,...>\tRewrite IP addresses (pseudo NAT)\n"
+    printf("-D\t\t\tData dump mode (set this BEFORE -w and -W)\n"
+           "-e <ip1:ip2>\t\tSpecify IP endpoint rewriting\n"
+           "-f <configfile>\t\tSpecify configuration file\n"
+           "-F\t\t\tFix IP, TCP, UDP and ICMP checksums\n"
+           "-h\t\t\tHelp\n"
+           "-i <nic>\t\tPrimary interface to send traffic out of\n"
+           "-I <mac>\t\tRewrite dest MAC on primary interface\n"
+           "-j <nic>\t\tSecondary interface to send traffic out of\n"
+           "-J <mac>\t\tRewrite dest MAC on secondary interface\n"
+           "-k <mac>\t\tRewrite source MAC on primary interface\n"
+           "-K <mac>\t\tRewrite source MAC on secondary interface\n");
+    printf("-l <loop>\t\tSpecify number of times to loop\n"
+           "-L <limit>\t\tSpecify the maximum number of packets to send\n"
+           "-m <multiple>\t\tSet replay speed to given multiple\n"
+           "-M\t\t\tDisable sending martian IP packets\n"
+           "-n\t\t\tNot nosy mode (not promisc in sniff/bridge mode)\n"
+           "-N <CIDR1:CIDR2,...>\tRewrite IP's via pseudo-NAT\n"
 #ifdef HAVE_PCAPNAV
-            "-o <offset>\t\tStarting byte offset\n"
+           "-o <offset>\t\tStarting byte offset\n"
 #endif
-            "-O\t\t\tOne output mode\n"
-            "-p <packetrate>\t\tSet replay speed to given rate (packets/sec)\n");
-    fprintf(stderr,
-            "-P\t\t\tPrint PID\n"
-            "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
-            "-R\t\t\tSet replay speed to as fast as possible\n"
-            "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
-            "-S <snaplen>\t\tSniff interface(s) and set the snaplen length\n"
-            "-t <mtu>\t\tOverride MTU (defaults to 1500)\n"
-            "-T\t\t\tTruncate packets > MTU so they can be sent\n"
-            "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
-            "-v\t\t\tVerbose: print packet decodes for each packet sent\n"
-            "-V\t\t\tVersion\n");
-    fprintf(stderr,
-            "-w <file>\t\tWrite (primary) packets or data to file\n"
-            "-W <file>\t\tWrite secondary packets or data to file\n"
-            "-x <match>\t\tOnly send the packets specified\n"
-            "-X <match>\t\tSend all the packets except those specified\n"
-            "-1\t\t\tSend one packet per key press\n"
-            "-2 <datafile>\t\tLayer 2 data\n"
-            "<file1> <file2> ...\tFile list to replay\n");
+           "-O\t\t\tOne output mode\n"
+           "-p <packetrate>\t\tSet replay speed to given rate (packets/sec)\n");
+    printf("-P\t\t\tPrint PID\n"
+           "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
+           "-R\t\t\tSet replay speed to as fast as possible\n"
+           "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
+           "-S <snaplen>\t\tSniff interface(s) and set the snaplen length\n"
+           "-t <mtu>\t\tOverride MTU (defaults to 1500)\n"
+           "-T\t\t\tTruncate packets > MTU so they can be sent\n"
+           "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
+           "-v\t\t\tVerbose: print packet decodes for each packet sent\n"
+           "-V\t\t\tVersion\n");
+    printf("-w <file>\t\tWrite (primary) packets or data to file\n"
+           "-W <file>\t\tWrite secondary packets or data to file\n"
+           "-x <match>\t\tOnly send the packets specified\n"
+           "-X <match>\t\tSend all the packets except those specified\n"
+           "-1\t\t\tSend one packet per key press\n"
+           "-2 <datafile>\t\tLayer 2 data\n"
+           "<file1> <file2> ...\tFile list to replay\n");
     exit(1);
 }
 
