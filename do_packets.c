@@ -1,3 +1,12 @@
+/* $Id: do_packets.c,v 1.24 2003/05/29 17:38:18 aturner Exp $ */
+
+/*
+ * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
+ * All rights reserved.
+ *
+ * Please see Docs/LICENSE for licensing information
+ */
+
 #include <libnet.h>
 #include <pcap.h>
 #include <sys/time.h>
@@ -320,14 +329,14 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr,
     /* recalc the UDP/TCP checksum(s) */
     if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
-			       pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
+			       pkthdr->caplen - l2len - (ip_hdr->ip_hl * 4)) < 0)
 	    warnx("Layer 4 checksum failed");
     }
     
     
     /* recalc IP checksum */
     if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
-			   pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
+			   pkthdr->caplen - l2len - (ip_hdr->ip_hl * 4)) < 0)
 	warnx("IP checksum failed");
 }
 
