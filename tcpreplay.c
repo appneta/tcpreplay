@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.22 2002/07/26 01:08:36 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.23 2002/07/27 19:09:57 aturner Exp $ */
 
 #include "config.h"
 
@@ -25,7 +25,7 @@ CACHE *cachedata = NULL;
 CIDR *cidrdata = NULL;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
-int verbose, Rflag, Sflag, Cflag, uflag, cache_bit, cache_byte, cache_packets;
+int verbose, Mflag, Rflag, Sflag, Cflag, uflag, cache_bit, cache_byte, cache_packets;
 volatile int didsig;
 
 #ifdef DEBUG
@@ -56,13 +56,13 @@ main(int argc, char *argv[])
 	options.n_iter = 1;
 	options.rate = 0.0;
 
-	Rflag =  Sflag = Cflag = uflag = 0;
+	Mflag = Rflag =  Sflag = Cflag = uflag = 0;
 	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:r:RSu:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "dc:C:hi:I:j:J:l:m:Mr:RSu:Vv?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:r:RSu:Vv?")) != -1)
+	while ((ch = getopt(argc, argv, "c:C:hi:I:j:J:l:m:Mr:RSu:Vv?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -105,6 +105,9 @@ main(int argc, char *argv[])
 			if (options.mult <= 0)
 				errx(1, "Invalid multiplier: %s", optarg);
 			options.rate = 0.0;
+			break;
+		case 'M': /* disable sending martians */
+			Mflag = 1;
 			break;
 		case 'r': /* target rate */
 			options.rate = atof(optarg);			
@@ -267,11 +270,45 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			_exit(1);
 		}
 
-
 		if (!Rflag)
 			do_sleep(&pkt.ts, &last, pkt.len);
 
 		eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
+
+		/* does packet have an IP header?  if so set our pointer to it */
+		if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
+			ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
+		} else {
+			ip_hdr = NULL; /* NULL == non-ip packet */
+		}
+
+		/* check for martians? */
+		if (Mflag && (ip_hdr != NULL)) {
+			switch ((ntohl(ip_hdr->ip_dst.s_addr) & 0xff000000) >> 24) {
+			case 0: case 127: case 255:
+#ifdef DEBUG
+				if (debug) {
+					warnx("Skipping martian.  Packet #%d", pkts_sent);
+				}
+#endif
+				if (Cflag) { /* update cache pointers if neccessary */
+					if (cache_bit == 7) {
+						cache_bit = 0;
+						cache_byte++;
+					} else {
+						cache_bit++;
+					}
+				}
+				/* then skip the packet */
+				continue;
+				break;
+
+			default:
+				/* continue processing*/
+				break;
+			}
+		}
+
 
 		/* Dual nic processing */
 		if (options.intf2 != NULL) {
@@ -280,10 +317,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				if (packet_num > cache_packets)
 					errx(1, "Exceeded number of packets in cache file");
 
+
 				if (cachedata->data[cache_byte] & (char)pow((long)2, (long)cache_bit) ) {
 					/* set interface to send out packet */
 					l = options.intf1;
-
+					
 					/* check for destination MAC rewriting */
 					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
 						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
@@ -305,10 +343,17 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				} else {
 					cache_bit++;
 				}
-			/* end CIDR Mode */
+				/* end CIDR Mode */
 			} else {
-				ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
-				if (check_ip_CIDR(ip_hdr->ip_src.s_addr)) {
+				if (ip_hdr == NULL) {
+					/* non IP packets go out intf1 */
+					l = options.intf1;
+					
+					/* check for destination MAC rewriting */
+					if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+						memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
+					}
+				} else if (check_ip_CIDR(ip_hdr->ip_src.s_addr)) {
 					/* set interface to send out packet */
 					l = options.intf1;
 
@@ -336,8 +381,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		}
 
 		/* Untruncate packet? Only for IP packets */
-		if (uflag && (pkt.len != pkt.actual_len) && 
-			(ntohs(eth_hdr->ether_type) == ETHERTYPE_IP)) {
+		if (uflag && (pkt.len != pkt.actual_len) && (ip_hdr != NULL)) {
 			/* Pad packet? */
 			if (uflag == PAD_PACKET) {
 				memset(pkt.data + pkt.len, 0, sizeof(pkt.data) - pkt.len);
@@ -347,13 +391,13 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 				ip_hdr->ip_len = htons(pkt.len);
 			}
 		
-			/* recalc the checksum(s) */
+			/* recalc the UDP/TCP checksum(s) */
 			proto = ((ip_hdr_t *)(pkt.data + LIBNET_ETH_H))->ip_p;
 #if USE_LIBNET_VERSION == 10
 			if (libnet_do_checksum(pkt.data + LIBNET_ETH_H, proto, 
 								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 				warnx("Layer 4 checksum failed");
-
+			
 			if (libnet_do_checksum(pkt.data + LIBNET_ETH_H, IPPROTO_IP, 
 								   LIBNET_IP_H) < 0)
 				warnx("IP checksum failed");
@@ -361,13 +405,13 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			if (libnet_do_checksum(l, pkt.data + LIBNET_ETH_H, proto,
 								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 				warnx("Layer 4 checksum failed");
-
+			
 			if (libnet_do_checksum(l, pkt.data + LIBNET_ETH_H, proto,
 								   pkt.len - LIBNET_ETH_H - LIBNET_IP_H) < 0)
 				warnx("IP checksum failed");
 #endif
-								   
 		} 
+
 		pktdata = pkt.data;
 		pktlen = pkt.len;
 
@@ -546,10 +590,10 @@ void
 usage()
 {
 	fprintf(stderr, "Usage: tcpreplay "
-          "[-h|V] [-i pri int] [-j sec int] [-l loops] [-m multiplier] [-v]");
+          "[-h|V] [-i pri int] [-j sec int] [-l loops] [-m multiplier] [-v]\n");
 #ifdef DEBUG
-	fprintf(stderr, " [-d]");
+	fprintf(stderr, "[-d] ");
 #endif
-  	fprintf(stderr,"\n[-r rate] [-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac] <file>\n");
+  	fprintf(stderr,"[-r rate] [-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac]\n[-M] <file>\n");
 	exit(1);
 }

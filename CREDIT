@@ -4,3 +4,4 @@ Branden Moore <bmoore-at-cse.nd.edu>
 
 Scott Mace <smace@intt.org>
 	- Patch for tcpreplay to support CIDR mode
+	- Patch for ignoring martian IP packets 

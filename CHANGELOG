@@ -8,8 +8,9 @@ xx/xx/xxxx: Version 1.2
 	  100% libpcap independant.
 	- tcpprep now supports snoop files.
 	- Added -u flag to untruncate IP packets (pad/trunc)
-	- fixed --with-debug configure option
-	- added RPM .spec file
+	- Fixed --with-debug configure option
+	- Added RPM .spec file
+	- Added -M flag to ignore martian IP packets
 
 06/17/2002: Version 1.1
 	- Major rewrite

@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.10 2002/07/16 21:15:26 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.11 2002/07/27 19:09:57 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -41,6 +41,8 @@ CIDR...
 .B \-v
 ] [
 .B \-h|-V
+] [
+.B \-M
 ]
 .I file ...
 .SH DESCRIPTION
@@ -99,6 +101,9 @@ will cause tcpreplay to loop infinately.
 .B \-m
 Resend the packets a \fImultiple\fR of the speed at which they were
 recorded.
+.TP
+.B \-M
+Disable sending martian packets (source networks: 0/8, 127/8, 255/8)
 .TP
 .B \-r
 Resend the packets at the \fIrate\fR specified (in Mbps).
