@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.41 2003/12/16 03:57:02 aturner Exp $ */
+/* $Id: do_packets.c,v 1.42 2003/12/16 04:28:07 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -119,6 +119,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 #endif
     char datadumpbuff[MAXPACKET];   /* data dumper buffer */
     int datalen = 0;            /* data dumper length */
+    int newchar = 0;
 
 
     /* create packet buffers */
@@ -297,11 +298,18 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
         memcpy(&pktdata[l2len], ip_hdr, pkthdr.caplen - l2len);
 #endif
 
-        if (!options.topspeed)
+        if ((!options.topspeed) && (!options.one_at_a_time)) {
             /* we have to cast the ts, since OpenBSD sucks
              * had to be special and use bpf_timeval 
              */
             do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
+        }
+        else if (options.one_at_a_time) {
+            printf("Press <ENTER> to send the next packet.");
+            newchar = 0;
+            while (newchar != '\n')
+                newchar = getc(stdin);
+        }
 
         /* Physically send the packet or write to file */
         if (options.savepcap != NULL || options.datadump_mode) {

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.77 2003/12/16 03:56:56 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.78 2003/12/16 04:28:07 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -109,7 +109,7 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:"
+                   "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:12:"
 #ifdef DEBUG
                    "d:"
 #endif
@@ -175,6 +175,8 @@ main(int argc, char *argv[])
                 errx(1, "Invalid multiplier: %s", optarg);
             options.rate = 0.0;
             options.packetrate = 0.0;
+            options.one_at_a_time = 0;
+            options.topspeed = 0;
             break;
         case 'M':              /* disable sending martians */
             options.no_martians = 1;
@@ -196,6 +198,8 @@ main(int argc, char *argv[])
                 errx(1, "Invalid packetrate value: %s", optarg);
             options.rate = 0.0;
             options.mult = 0.0;
+            options.one_at_a_time = 0;
+            options.topspeed = 0;
             break;
         case 'P':              /* print our PID */
             fprintf(stderr, "PID: %hu\n", getpid());
@@ -206,11 +210,18 @@ main(int argc, char *argv[])
                 errx(1, "Invalid rate: %s", optarg);
             /* convert to bytes */
             options.rate = (options.rate * (1024 * 1024)) / 8;
+
             options.mult = 0.0;
             options.packetrate = 0.0;
+            options.one_at_a_time = 0;
+            options.topspeed = 0;
             break;
         case 'R':              /* replay at top speed */
             options.topspeed = 1;
+            options.mult = 0.0;
+            options.rate = 0.0;
+            options.one_at_a_time = 0;
+            options.packetrate = 0.0;
             break;
         case 's':
             options.seed = atoi(optarg);
@@ -318,6 +329,13 @@ main(int argc, char *argv[])
                 xX_cidr = (CIDR *) xX;
             }
             break;
+        case '1':              /* replay one packet at a time */
+            options.one_at_a_time = 1;
+            options.mult = 0.0;
+            options.rate = 0.0;
+            options.packetrate = 0;
+            options.topspeed = 0;
+            break;
         case '2':              /* layer 2 header file */
             l2enabled = 1;
             l2len = read_hexstring(optarg, l2data, L2DATALEN);
@@ -373,6 +391,10 @@ main(int argc, char *argv[])
 
     if ((options.sniff_bridge) && (intf2 == NULL)) {
         errx(1, "Bridging requires a secondary interface");
+    }
+
+    if ((options.sniff_snaplen != -1) && options.one_at_a_time) {
+        errx(1, "Sniffing live traffic excludes one at a time mode");
     }
 
     if (options.seed != 0) {
@@ -719,6 +741,13 @@ configfile(char *file)
             options.offset = atol(argv[1]);
         }
 #endif
+        else if (ARGS("one_at_a_time", 1)) {
+            options.one_at_a_time = 1;
+            options.rate = 0.0;
+            options.mult = 0.0;
+            options.topspeed = 0;
+            options.packetrate = 0;
+        }
         else if (ARGS("rate", 2)) {
             options.rate = atof(argv[1]);
             if (options.rate <= 0)
@@ -726,9 +755,15 @@ configfile(char *file)
             /* convert to bytes */
             options.rate = (options.rate * (1024 * 1024)) / 8;
             options.mult = 0.0;
+            options.topspeed = 0;
+            options.packetrate = 0;
         }
         else if (ARGS("topspeed", 1)) {
             options.topspeed = 1;
+            options.rate = 0.0;
+            options.packetrate = 0;
+            options.mult = 0.0;
+            options.one_at_a_time = 0;
         }
         else if (ARGS("mtu", 2)) {
             options.mtu = atoi(argv[1]);
@@ -771,6 +806,8 @@ configfile(char *file)
                 errx(1, "Invalid packetrate option: %s", argv[1]);
             options.rate = 0.0;
             options.mult = 0.0;
+            options.topspeed = 0;
+            options.one_at_a_time = 0;
         }
         else if (ARGS("include", 2)) {
             if (include_exclude_mode != 0)
@@ -915,6 +952,7 @@ usage(void)
             "-W <file>\t\tWrite secondary packets or data to file\n"
             "-x <match>\t\tOnly send the packets specified\n"
             "-X <match>\t\tSend all the packets except those specified\n"
+            "-1\t\t\tSend one packet per key press\n"
             "-2 <datafile>\t\tLayer 2 data\n"
             "<file1> <file2> ...\tFile list to replay\n");
     exit(1);

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.46 2003/12/16 03:58:37 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.47 2003/12/16 04:28:07 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -88,6 +88,7 @@ struct options {
     float rate;
     float mult;
     float packetrate;
+    int one_at_a_time;
     int n_iter;
     int cache_packets;
     int no_martians;
