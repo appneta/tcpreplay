@@ -51,9 +51,8 @@
 
 tcpreplay_opt_t options;
 struct timeval begin, end;
-u_int64_t bytes_sent, failed, pkts_sent;
+COUNTER bytes_sent, failed, pkts_sent, cache_packets;
 int cache_bit, cache_byte;
-u_int64_t cache_packets;
 volatile int didsig;
 
 /* we get this from libpcap */
@@ -351,7 +350,8 @@ post_args(void)
     char *temp;
 
 #ifdef DEBUG
-    debug = OPT_VALUE_DBUG;
+    if (HAVE_OPT(DBUG))
+        debug = OPT_VALUE_DBUG;
 #else
     if (HAVE_OPT(DBUG))
         warnx("not configured with --enable-debug.  Debugging disabled.");
