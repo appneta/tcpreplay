@@ -1,7 +1,7 @@
-/* $Id: replay_live.c,v 1.1 2003/12/10 06:47:38 aturner Exp $ */
+/* $Id: replay_live.c,v 1.2 2003/12/11 03:04:55 aturner Exp $ */
 
 /*
- * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * Copyright (c) 2003 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <libnet.h>
 #include <pcapnav.h>
 #include <sys/time.h>
@@ -63,9 +65,11 @@
 
 extern struct options options;
 extern struct timeval begin, end;
-extern unsigned long bytes_sent, failed, pkts_sent, cache_packets;
+extern u_int64_t bytes_sent, failed, pkts_sent; 
+extern u_int32_t cache_packets;
 extern volatile int didsig;
 extern int l2len, maxpacket;
+extern char *intf, *intf2;
 
 extern int include_exclude_mode;
 extern LIST *xX_list;
@@ -78,6 +82,13 @@ extern int debug;
 void packet_stats(); /* from tcpreplay.c */
 static int live_callback(struct live_data_t *, 
                          const struct pcap_pkthdr *, const u_char *);
+
+
+/*
+ * First, prep our RB Tree which tracks where each (source)
+ * MAC really lives so we don't create really nasty network
+ * storms.  
+ */
 static struct macsrc_t *new_node(void);
 
 RB_HEAD(macsrc_tree, macsrc_t) macsrc_root;
@@ -110,9 +121,12 @@ new_node(void)
     return(node);
 }
 
+/*
+ * main loop for bridging mode
+ */
+
 void
-do_live(pcap_t *pcap1, pcap_t *pcap2, u_int32_t linktype, 
-	int l2enabled, char *l2data, int l2len)
+do_bridge(pcap_t *pcap1, pcap_t *pcap2,	int l2enabled, char *l2data, int l2len)
 {
     struct pollfd polls[2];            /* one for left & right pcap */
     int pollresult = 0;
@@ -130,7 +144,7 @@ do_live(pcap_t *pcap1, pcap_t *pcap2, u_int32_t linktype,
 
 
     /* our live data thingy */
-    livedata.linktype = linktype;
+    livedata.linktype = pcap_datalink(pcap1);
     livedata.l2enabled = l2enabled;
     livedata.l2len = l2len;
     livedata.l2data = l2data;
@@ -139,46 +153,62 @@ do_live(pcap_t *pcap1, pcap_t *pcap2, u_int32_t linktype,
     didsig = 0;
     (void)signal(SIGINT, catcher);
 
-    /* loop until ctrl-C or something happens */
-    while(1) {
+    /* 
+     * loop until ctrl-C or we've sent enough packets
+     * note that if -L wasn't specified, limit_send is
+     * set to -1 so this will loop infinately
+     */
+    while ((options.limit_send == -1) || (options.limit_send != pkts_sent)) {
 	if (didsig) {
 	    packet_stats();
-	    _exit(1);
+	    exit(1);
 	}
 
+	dbg(1, "limit_send: %llu \t pkts_sent: %llu", options.limit_send, pkts_sent);
+
+	/* poll for a packet on the two interfaces */
 	pollresult = poll(polls, 2, options.poll_timeout);
 
+	/* poll has returned, process the result */
 	if (pollresult > 0) {
-	    /* success */
+	    /* success, got one or more packets */
 	    if (polls[PCAP_INT1].revents > 0) {
+		dbg(2, "Processing first interface");
 		livedata.source = source1;
 		pcap_dispatch(pcap1, -1, (pcap_handler)live_callback, 
                               (u_char *)&livedata);
 	    }
 
+	    /* check the other interface */
 	    if (polls[PCAP_INT2].revents > 0) {
+		dbg(2, "Processing second interface");
 		livedata.source = source2;
 		pcap_dispatch(pcap2, -1, (pcap_handler)live_callback, 
                               (u_char *)&livedata);
 	    }
 
 	} else if (pollresult == 0) {
-	    dbg(1, "poll timeout exceeded...");
+	    dbg(3, "poll timeout exceeded...");
 	    /* do something here? */
 	} else {
-	    /* poll error */
-	    errx(1, "poll() error: %s", strerror(errno));
+	    /* poll error, probably a Ctrl-C */
+	    warnx("poll() error: %s", strerror(errno));
 	}
 
 	/* reset the result codes */
 	polls[PCAP_INT1].revents = 0;
 	polls[PCAP_INT2].revents = 0;
+	
+	/* go back to the top of the loop */
     }
     
+} /* do_bridge() */
 
 
-} /* do_live() */
-
+/*
+ * This is the callback we use with pcap_dispatch to process
+ * each packet recieved by libpcap on the two interfaces.
+ */
 static int
 live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr, 
 	      const u_char *nextpkt)
@@ -190,11 +220,13 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;	        /* IP header and above buffer */
 #endif
-    struct timeval last;
-    static int firsttime = 1;
     int ret, newl2len;
     static unsigned long packetnum = 0;
     struct macsrc_t *node, finder;     /* rb tree nodes */
+    u_char dstmac[ETHER_ADDR_LEN];
+
+    packetnum++;
+    dbg(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
 
     /* create packet buffers */
     if ((pktdata = (u_char *)malloc(maxpacket)) == NULL)
@@ -205,27 +237,59 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
 	errx(1, "Unaable to malloc ipbuff buffer");
 #endif
 
-    if (firsttime) {
-	timerclear(&last);
-	firsttime = 0;
-    }
+    /* zero out the old packet info */
+    memset(pktdata, '\0', maxpacket);
 
+    /* Rewrite any Layer 2 data and copy the data to our local buffer */
+    if ((newl2len = rewrite_l2(pkthdr, pktdata, nextpkt, 
+			       livedata->linktype, livedata->l2enabled, 
+                               livedata->l2data, livedata->l2len)) == 0) {
+	warnx("Error rewriting layer 2 data... skipping packet %d", packetnum);
+        return(1);
+    }
+    
+
+    /* 
+     * we seem to get these weird packets with no data
+     * no idea why this happens right now
+     * so for now, we ignore them
+
+    if ((memcmp(pktdata, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 14)) == 0) {
+	dbg(2, "Got a null packet... skipping packet");
+	return(1);
+    }
+    */
 
     /* lookup our source MAC in the tree */
+    memcpy(&dstmac, pktdata, ETHER_ADDR_LEN);
     memcpy(&finder.key, &pktdata[ETHER_ADDR_LEN], ETHER_ADDR_LEN);
+    dbg(1, "Source MAC: " MAC_FORMAT "\tDestin MAC: " MAC_FORMAT, 
+	MAC_STR(finder.key), MAC_STR(dstmac));
+      
+
+    /* first, is this a packet sent locally?  If so, ignore it */
+    if ((memcmp(libnet_get_hwaddr(options.intf1), &finder.key, ETHER_ADDR_LEN)) == 0) {
+	dbg(1, "Packet matches the MAC of %s, skipping.", intf);
+	return(1);
+    } else if ((memcmp(libnet_get_hwaddr(options.intf2), &finder.key, ETHER_ADDR_LEN)) == 0) {
+	dbg(1, "Packet matches the MAC of %s, skipping.", intf2);
+	return(1);
+    }
+
     node = RB_FIND(macsrc_tree, &macsrc_root, &finder);
     /* if we can't find the node, build a new one */
     if (node == NULL) {
+	dbg(1, "Unable to find MAC in the tree");
         node = new_node();
 	node->source = livedata->source;
         memcpy(&node->key, &finder.key, ETHER_ADDR_LEN);
 	RB_INSERT(macsrc_tree, &macsrc_root, node);
     } /* otherwise compare sources */
-    else if (node->source == livedata->source) {
+    else if (node->source != livedata->source) {
+	dbg(1, "Found the MAC and we had a source missmatch... skipping packet");
         /*
          * IMPORTANT!!!
-         * Do we send this packet out this interface?
-         * Never send it out the same interface we sourced it on!
+         * Never send a packet out the same interface we sourced it on!
          */
 	return(1);
     }
@@ -235,35 +299,26 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
      * and update the dst mac if necessary
      */
     if (node->source == PCAP_INT1) {
+	dbg(2, "Packet source was %s... sending out %s", intf, intf2);
 	l = options.intf2;
 	if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
+	    dbg(3, "Rewriting destination MAC for %s", intf2);
 	    memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 	}
     } else {
+	dbg(2, "Packet source was %s... sending out %s", intf2, intf);
 	l = options.intf1;
 	if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
+	    dbg(3, "Rewriting destination MAC for %s", intf);
 	    memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 	}
     }
-
-    packetnum++;
-    dbg(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
-
-    /* zero out the old packet info */
-    memset(pktdata, '\0', maxpacket);
-	
-
-    /* Rewrite any Layer 2 data */
-    if ((newl2len = rewrite_l2(pkthdr, pktdata, nextpkt, 
-			       livedata->linktype, livedata->l2enabled, 
-                               livedata->l2data, livedata->l2len)) == 0)
-        return(1);
-    
 
     eth_hdr = (eth_hdr_t *)pktdata;
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
+	dbg(3, "Packet is IP");
 #ifdef FORCE_ALIGN
 	/* 
 	 * copy layer 3 and up to our temp packet buffer
@@ -291,6 +346,7 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
 	
     }
     else {
+	dbg(3, "Packet is not IP");
 	/* non-IP packets have a NULL ip_hdr struct */
 	ip_hdr = NULL;
     }
@@ -356,11 +412,8 @@ live_callback(struct live_data_t *livedata, const struct pcap_pkthdr *pkthdr,
 
     bytes_sent += pkthdr->caplen;
     pkts_sent++;
-    
-    /* again, OpenBSD is special, so use memcpy() rather then a
-     * straight assignment 
-     */
-    memcpy(&last, &pkthdr->ts, sizeof(struct timeval));
+
+    dbg(1, "Sent packet %llu", pkts_sent);
 
     /* free buffers */
     free(pktdata);
