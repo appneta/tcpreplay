@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.73 2003/11/06 05:59:09 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.74 2003/12/09 03:18:04 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -82,7 +82,8 @@ int debug = 0;
 #endif
 
 void replay_file(char *, int, char *, int);
-
+void replay_live(char *, int, char *, int);
+void validate_l2(char *, int, char *, int, int);
 
 void packet_stats();
 void usage();
@@ -113,17 +114,21 @@ main(int argc, char *argv[])
     /* set the default MTU size */
     options.mtu = DEFAULT_MTU;
 
-    cache_bit = cache_byte = 0;
-
     /* set the bpf optimize */
     options.bpf_optimize = BPF_OPTIMIZE;
 
+    /* sniff mode options */
+    options.sniff_snaplen = -1; /* disabled */
+    options.promisc = 1;        /* listen in promisc mode */
+
+    cache_bit = cache_byte = 0;
+
 #ifdef DEBUG
     while ((ch =
-	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
+	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:d:")) != -1)
 #else
     while ((ch =
-	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mo:p:Pr:Rs:t:Tu:Vvw:W:x:X:?2:")) != -1)
+	    getopt(argc, argv, "c:C:Df:Fhi:I:j:J:l:m:Mno:p:Pr:Rs:S:t:Tu:Vvw:W:x:X:?2:")) != -1)
 #endif
 	switch (ch) {
 	case 'c':		/* cache file */
@@ -181,6 +186,9 @@ main(int argc, char *argv[])
 	case 'M':		/* disable sending martians */
 	    options.no_martians = 1;
 	    break;
+        case 'n':               /* don't be nosy, non-promisc mode */
+            options.promisc = 0;
+            break;
 	case 'o':               /* starting offset */
 	    options.offset = atol(optarg);
 	    break;
@@ -209,6 +217,15 @@ main(int argc, char *argv[])
 	case 's':
 	    options.seed = atoi(optarg);
 	    options.fixchecksums = 0; /* seed already does this */
+	    break;
+	case 'S':
+            options.sniff_snaplen = atoi(optarg);
+            if ((options.sniff_snaplen < 0) ||
+                (options.sniff_snaplen > 65535)) {
+                errx(1, "Invalid snaplen: %d", options.sniff_snaplen);
+            } else if (options.sniff_snaplen == 0) {
+                options.sniff_snaplen = 65535;
+            }
 	    break;
 	case 't':               /* MTU */
 	    options.mtu = atoi(optarg);
@@ -325,6 +342,14 @@ main(int argc, char *argv[])
 	((options.datadumpfile == 0) || (options.datadumpfile2 == 0)))
 	errx(1, "You must specify two output files when splitting traffic in data dump mode");
 
+    if ((options.offset) && (options.sniff_snaplen != -1)) {
+        errx(1, "You can't specify an offset when sniffing a live network");
+    }
+
+    if ((options.not_nosy) && (! options.sniff_snaplen >= 0)) {
+        errx(1, "Not nosy can't be specified except when sniffing a live network");
+    }
+
     if (options.seed != 0) {
 	srand(options.seed);
 	options.seed = random();
@@ -382,7 +407,13 @@ main(int argc, char *argv[])
 		/* reset cache markers for each iteration */
 		cache_byte = 0;
 		cache_bit = 0;
-		replay_file(argv[i], l2enabled, l2data, l2len);
+
+		/* replay file or live network depending on snaplen */
+		if (options.sniff_snaplen == -1) {
+		    replay_file(argv[i], l2enabled, l2data, l2len);
+		} else {
+		    replay_live(argv[i], l2enabled, l2data, l2len);
+		}
 	    }
 	}
     }
@@ -392,7 +423,13 @@ main(int argc, char *argv[])
 		/* reset cache markers for each iteration */
 		cache_byte = 0;
 		cache_bit = 0;
-		replay_file(argv[i], l2enabled, l2data, l2len);
+
+		/* replay file or live network depending on snaplen */
+		if (options.sniff_snaplen == -1) {
+		    replay_file(argv[i], l2enabled, l2data, l2len);
+		} else {
+		    replay_live(argv[i], l2enabled, l2data, l2len);
+		}
 	    }
 	}
     }
@@ -418,33 +455,20 @@ main(int argc, char *argv[])
 }
 
 
-
+/* 
+ * if linktype not DLT_EN10MB we have to see if we can send the frames
+ * if DLT_LINUX_SLL AND (options.intf1_mac OR l2enabled), then OK
+ * else if l2enabled, then ok
+ */
 void
-replay_file(char *path, int l2enabled, char *l2data, int l2len)
+validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
 {
-    const struct pcap_file_header *file_header = NULL;
-    pcapnav_t *pcapnav = NULL;
-    u_int32_t linktype = 0;
 
-    pcapnav_init();
-
-    if ((pcapnav = pcapnav_open_offline(path)) == NULL) {
-	errx(1, "Error opening file: %s", strerror(errno));
-    }
-
-    file_header = pcapnav_get_file_header(pcapnav);
-    linktype = file_header->linktype;
-
-    /* 
-     * if linktype not DLT_EN10MB we have to see if we can send the frames
-     * if DLT_LINUX_SLL AND (options.intf1_mac OR l2enabled), then OK
-     * else if l2enabled, then ok
-     */
     if (linktype != DLT_EN10MB) {
 	if (linktype == DLT_LINUX_SLL) {
 	    /* if SLL, then either -2 or -I are ok */
 	    if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (! l2enabled)) {
-		warnx("Unable to process Linux Cooked Socket pcap without -2 or -I: %s", path);
+		warnx("Unable to process Linux Cooked Socket pcap without -2 or -I: %s", name);
 		return;
 	    }
 
@@ -452,11 +476,11 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 	    if (options.intf2 && 
 		((! l2enabled ) || 
 		 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
-		warnx("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s", path);
+		warnx("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s", name);
 		return;
 	    }
 	} else if (! l2enabled) {
-	    warnx("Unable to process non-802.3 pcap without layer 2 data: %s", path);
+	    warnx("Unable to process non-802.3 pcap without layer 2 data: %s", name);
 	    return;
 	}
     }
@@ -475,6 +499,70 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 	      "You may need to increase the MTU (-t <size>) if you get errors");
     }
 
+}
+
+/*
+ * replay a live network on another interface
+ */
+void
+replay_live(char *iface, int l2enabled, char *l2data, int l2len)
+{
+    pcap_t *pcap = NULL;
+    u_int32_t linktype = 0;
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    /* if no interface specified, pick one */
+    if ((!iface || !*iface) && !(iface = pcap_lookupdev(errbuf))) {
+	errx(1, "Error determing live capture device : %s", errbuf);
+    }
+    
+    if (strcmp(intf, iface) == 0) {
+	warnx("WARNING: Listening and sending on the same interface!");
+    }
+
+    /* open the interface */
+    if ((pcap = pcap_open_live(iface, options.sniff_snaplen, 
+			       options.promisc, 0, errbuf)) == NULL) {
+	errx(1, "Error opening live capture: %s", errbuf);
+    }
+
+    linktype = pcap_datalink(pcap);
+    validate_l2(iface, l2enabled, l2data, l2len, linktype);
+
+    /* do we apply a bpf filter? */
+    if (options.bpf_filter != NULL) {
+        if (pcap_compile(pcap, &bpf, options.bpf_filter,
+                         options.bpf_optimize, 0) != 0) {
+            errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
+        }
+        pcap_setfilter(pcap, &bpf);
+    }
+
+    do_packets(NULL, pcap, linktype, l2enabled, l2data, l2len);
+    pcap_close(pcap);
+}
+
+/* 
+ * replay a pcap file out an interface
+ */
+void
+replay_file(char *path, int l2enabled, char *l2data, int l2len)
+{
+    const struct pcap_file_header *file_header = NULL;
+    pcapnav_t *pcapnav = NULL;
+    u_int32_t linktype = 0;
+
+    pcapnav_init();
+
+    if ((pcapnav = pcapnav_open_offline(path)) == NULL) {
+	errx(1, "Error opening file: %s", strerror(errno));
+    }
+
+    file_header = pcapnav_get_file_header(pcapnav);
+    linktype = file_header->linktype;
+
+    validate_l2(path, l2enabled, l2data, l2len, linktype);
+
     /* do we apply a bpf filter? */
     if (options.bpf_filter != NULL) {
 	if (pcap_compile(pcapnav_pcap(pcapnav), &bpf, options.bpf_filter, 
@@ -483,7 +571,7 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 	}
         pcap_setfilter(pcapnav_pcap(pcapnav), &bpf);
     }
-    do_packets(pcapnav, linktype, l2enabled, l2data, l2len);
+    do_packets(pcapnav, NULL, linktype, l2enabled, l2data, l2len);
     pcapnav_close(pcapnav);
 }
 
@@ -712,6 +800,9 @@ configfile(char *file)
 	else if (ARGS("mtu", 2)) {
 	    options.mtu = atoi(argv[1]);
 	}
+	else if (ARGS("not_nosy", 1)) {
+            options.promisc = 0;
+        }
 	else if (ARGS("truncate", 1)) {
 	    options.truncate = 1;
 	}
@@ -729,6 +820,15 @@ configfile(char *file)
 	else if (ARGS("seed", 2)) {
 	    options.seed = atol(argv[1]);
 	}
+	else if (ARGS("sniff_snaplen", 2)) {
+            options.sniff_snaplen = atoi(argv[1]);
+            if ((options.sniff_snaplen < 0) ||
+                (options.sniff_snaplen > 65535)) {
+                errx(1, "Invalid sniff snaplen: %d", options.sniff_snaplen);
+            } else if (options.sniff_snaplen == 0) {
+                options.sniff_snaplen = 65535;
+            }
+        }
 	else if (ARGS("offset", 2)) {
 	    options.offset = atol(argv[1]);
 	}
@@ -826,7 +926,7 @@ usage()
 {
     fprintf(stderr, "Usage: tcpreplay [args] <file(s)>\n");
     fprintf(stderr, "-c <cachefile>\t\tSplit traffic via cache file\n"
-	    "-C CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
+	    "-C <CIDR1,CIDR2,...>\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
     fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
@@ -843,6 +943,7 @@ usage()
 	    "-l <loop>\t\tSpecify number of times to loop\n"
 	    "-m <multiple>\t\tSet replay speed to given multiple\n"
 	    "-M\t\t\tDisable sending martian IP packets\n"
+	    "-n\t\t\tNot nosy mode (turn off promisc when sniffing)\n"
 	    "-o <offset>\t\tStarting byte offset\n"
 	    "-p <packetrate>\t\tSet replay speed to given rate (packets/sec)\n");
     fprintf(stderr, 
@@ -850,6 +951,7 @@ usage()
 	    "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
 	    "-R\t\t\tSet replay speed to as fast as possible\n"
 	    "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
+	    "-S <snaplen>\t\tSniff traffic and set the snaplen length\n"
 	    "-t <mtu>\t\tOverride MTU (defaults to 1500)\n"
 	    "-T\t\t\tTruncate packets > MTU so they can be sent\n"
 	    "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"

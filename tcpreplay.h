@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.42 2003/11/05 06:47:08 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.43 2003/12/09 03:18:04 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -101,6 +101,8 @@ struct options {
     off_t offset;
     char *bpf_filter;
     int bpf_optimize;
+    int sniff_snaplen;
+    int promisc;
 };
 
 #define RESOLVE 0		/* disable dns lookups */

@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.38 2003/11/03 02:24:28 aturner Exp $ */
+/* $Id: do_packets.c,v 1.39 2003/12/09 03:18:04 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -91,7 +91,8 @@ catcher(int signo)
  */
 
 void
-do_packets(pcapnav_t * pcapnav, u_int32_t linktype, int l2enabled, char *l2data, int l2len)
+do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype, 
+	   int l2enabled, char *l2data, int l2len)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -129,14 +130,18 @@ do_packets(pcapnav_t * pcapnav, u_int32_t linktype, int l2enabled, char *l2data,
 	firsttime = 0;
     }
 
-    if (options.offset) {
+    /* only support jumping w/ files */
+    if ((pcapnav != NULL) && (options.offset)) {
 	if (pcapnav_goto_offset(pcapnav, options.offset) != PCAPNAV_DEFINITELY)
 	    fprintf(stderr, "Unable to get a definate jump offset pcapnav_goto_offset(): %d\n", 
 		    pcapnav_result);
     }
 
+    /* get the pcap handler for the main loop */
+    pcap = pcapnav_pcap(pcapnav);
+
     /* MAIN LOOP */
-    while ((nextpkt = pcap_next(pcapnav_pcap(pcapnav), &pkthdr)) != NULL) {
+    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
 	if (didsig) {
 	    packet_stats();
 	    _exit(1);
