@@ -5,3 +5,5 @@
 - Filter which packets to send/not send based on libpcap matching language
 
 - Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
+
+- Look at VLAN packets
