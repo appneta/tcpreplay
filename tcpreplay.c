@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.11 2002/06/28 20:08:25 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.12 2002/07/01 02:10:13 mattbing Exp $ */
 
 #include "config.h"
 
@@ -20,24 +20,20 @@
 #include "snoop.h"
 #include "tcpreplay.h"
 
+CACHE *cachedata = NULL;
+CIDR * cidrdata = NULL;
 struct libnet_link_int *l_intf, *l_intf2;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
 float rate, mult;
-int n_iter, verbose, Rflag, Sflag, Cflag, uflag;
+int n_iter, verbose, Rflag, Sflag, Cflag, cache_bit, cache_byte, cache_packets;
+int Rflag, Sflag, Cflag, uflag;
 volatile int didsig;
 char *intf, *intf2, primary_mac[6], secondary_mac[6];
+
 #ifdef DEBUG
 int debug = 0;
 #endif
-
-/* cache related vars */
-CACHE *cachedata = NULL;
-int cache_bit = 0, cache_byte = 0;
-int cache_packets;
-
-/* cidr related vars */
-CIDR * cidrdata = NULL;
 
 void replay_file(char *);
 void do_packets(int, int (*)(int, struct packet *));
@@ -50,8 +46,7 @@ void mac2hex(const char *, char *, int);
 int
 main(int argc, char *argv[])
 {
-	char ebuf[256];
-	char *cache_file = NULL;
+	char *cache_file = NULL, ebuf[256];
 	int ch, i;
 
 	bytes_sent = failed = pkts_sent = verbose = 0;
@@ -61,15 +56,14 @@ main(int argc, char *argv[])
 	mult = 0.0;
 	n_iter = 1;
 	rate = 10.0;
-	Rflag = 0;
-	Sflag = 0;
-	Cflag = 0;
-	uflag = 0;
+
+	Rflag =  Sflag = Cflag = uflag = 0;
+	cache_bit = cache_byte = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "dc:hi:I:j:J:l:m:r:RSv:u:")) != -1)
+	while ((ch = getopt(argc, argv, "dc:hi:I:j:J:l:m:r:RSv:u:?")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:hi:I:j:J:l:m:r:C:RSv:u:")) != -1)
+	while ((ch = getopt(argc, argv, "c:hi:I:j:J:l:m:r:C:RSv:u:?")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
@@ -81,10 +75,6 @@ main(int argc, char *argv[])
 			debug = 1;
 			break;
 #endif
-		case 'h': /* help */
-			usage();
-			exit (0);
-			break;
 		case 'i': /* interface */
 			intf = optarg;
 			break;
@@ -140,9 +130,8 @@ main(int argc, char *argv[])
 			break;
 		case 'C': /* cidr matching */
 			Cflag = 1;
-			if (! parse_cidr(optarg)) {
+			if (!parse_cidr(optarg))
 				usage();
-			}
 			break;
 		default:
 			usage();
@@ -227,10 +216,8 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct libnet_link_int *l = NULL;
 	struct packet pkt;
 	struct timeval last;
+	char *pktdata, *i = NULL, tmppkt[MAXPACKET];
 	int packet_num, ret, pktlen, proto;
-	char *pktdata;
-	char tmppkt[MAXPACKET];
-	char *i = NULL;
 
 	/* register signals */
 	didsig = 0;
@@ -320,7 +307,8 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		}
 
 		/* Untruncate packet? Only for IP packets */
-		if ((uflag) && (pkt.len != pkt.actual_len) && (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP)) {
+		if (uflag && (pkt.len != pkt.actual_len) && 
+			(ntohs(eth_hdr->ether_type) == ETHERTYPE_IP)) {
 			/* Pad packet? */
 			if (uflag == PAD_PACKET) {
 #ifdef DEBUG
@@ -457,8 +445,7 @@ catcher(int signo)
 void
 packet_stats()
 {
-	float bytes_sec = 0.0;
-	float mb_sec = 0.0;
+	float bytes_sec = 0.0, mb_sec = 0.0;
 	int pkts_sec = 0;
 
 	if (gettimeofday(&end, NULL) < 0)
