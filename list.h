@@ -46,3 +46,12 @@ int check_list(LIST *, u_int64_t);
 void free_list(LIST *);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -51,3 +51,12 @@ int rewrite_ipl3(ip_hdr_t *ip_hdr, libnet_t *l);
 int rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

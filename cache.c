@@ -373,3 +373,12 @@ check_cache(char *cachedata, unsigned long packetid)
 
     return CACHE_ERROR;
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -61,3 +61,12 @@ void destroy_cidr(CIDR *);
 void print_cidr(CIDR *);
 char *cidr2iplist(CIDR *, char);
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

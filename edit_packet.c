@@ -691,3 +691,12 @@ rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l)
 
     return(didsrc + diddst);
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

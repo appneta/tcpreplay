@@ -91,3 +91,12 @@ void delete_node(struct session_tree *, struct session_t *);
 void close_sockets(void);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

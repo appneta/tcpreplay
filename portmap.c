@@ -248,3 +248,12 @@ rewrite_ports(PORTMAP * portmap, ip_hdr_t **ip_hdr)
     }
     return changes;
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

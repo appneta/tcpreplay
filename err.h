@@ -52,3 +52,12 @@ void errx(int eval, const char *fmt, ...);
 void warnx(const char *fmt, ...);
 
 #endif /* !_ERR_H_ */
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

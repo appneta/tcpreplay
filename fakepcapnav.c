@@ -88,3 +88,12 @@ pcapnav_pcap(pcapnav_t * pcapnav)
 
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

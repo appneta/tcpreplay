@@ -131,3 +131,12 @@ nextbuffpkt(struct session_t *node, u_int32_t len)
     len = node->buffered->len;
     return (node->buffered->packet);
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

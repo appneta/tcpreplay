@@ -130,3 +130,12 @@ poll(struct pollfd *ufds, unsigned int nfds, int timeout)
     return r;
 }
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -212,3 +212,12 @@ free_list(LIST * list)
 
     free(list);
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

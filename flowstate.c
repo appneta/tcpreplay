@@ -127,3 +127,12 @@ tcp_state(tcp_hdr_t * tcp_hdr, struct session_t *node)
     }
     return node->state;
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

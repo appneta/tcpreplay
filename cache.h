@@ -101,3 +101,12 @@ int check_cache(char *, unsigned long);
 
 #endif
 
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

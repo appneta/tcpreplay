@@ -38,3 +38,12 @@
 #define DEFAULT_HIGH_SERVER_PORT 1023
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -568,3 +568,12 @@ tree_print(struct data_tree *treeroot)
     return;
 
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -552,3 +552,12 @@ cleanup(void)
     close_sockets();
 
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

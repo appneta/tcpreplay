@@ -51,6 +51,7 @@
 #include "timer.h"
 #include "list.h"
 #include "xX.h"
+#include "utils.h"
 
 
 extern struct options options;
@@ -74,9 +75,6 @@ extern tcpdump_t tcpdump;
 #ifdef DEBUG
 extern int debug;
 #endif
-
-
-void packet_stats();            /* from tcpreplay.c */
 
 
 /*
@@ -107,7 +105,7 @@ break_now(int signo)
             if (kill(tcpdump.pid, SIGTERM) != 0)
                 kill(tcpdump.pid, SIGKILL);
 
-        packet_stats();
+        packet_stats(&begin, &end);
         exit(1);
     }
 }
@@ -446,7 +444,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
      * gracefully
      */
     if (options.limit_send == pkts_sent) {
-        packet_stats();
+        packet_stats(&begin, &end);
         exit(1);
     }
 
@@ -559,4 +557,13 @@ cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
 
     return l;
 }
+
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
 

@@ -277,3 +277,12 @@ close_sockets(void)
     }
     dbg(1, "Closed %d tcp and %d udp socket(s)", tcpcount, udpcount);
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

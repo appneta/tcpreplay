@@ -47,3 +47,12 @@ long map_port(PORTMAP * portmap , long port);
 int rewrite_ports(PORTMAP * portmap, ip_hdr_t **ip_hdr);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -39,3 +39,12 @@ void suspend_handler(int signo);
 void continue_handler(int signo);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

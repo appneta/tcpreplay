@@ -41,3 +41,12 @@ int rbkeygen(ip_hdr_t *, u_char, void *, u_char *);
 u_int64_t pkeygen(u_char[]);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

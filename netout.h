@@ -66,3 +66,12 @@ void do_bridge(pcap_t *, pcap_t *, int, char *, int);
 
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

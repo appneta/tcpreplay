@@ -180,4 +180,13 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int speedmode, flo
         }
 
     }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+
 }

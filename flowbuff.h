@@ -40,3 +40,12 @@ struct pktbuffhdr_t *addpkt2buff(struct session_t *, u_char *, u_int32_t);
 const u_char *nextbuffpkt(struct session_t *, u_int32_t);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

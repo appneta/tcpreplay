@@ -110,3 +110,12 @@ continue_handler(int signo)
     timersub(&suspend_end, &suspend_start, &suspend_delta);
     timeradd(&suspend_time, &suspend_delta, &suspend_time);
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

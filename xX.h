@@ -62,3 +62,12 @@ int process_xX_by_cidr(int, CIDR *, ip_hdr_t *);
 
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

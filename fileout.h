@@ -39,3 +39,12 @@ void *cache_mode(char *, u_int64_t, eth_hdr_t *);
 void *cidr_mode(eth_hdr_t *, ip_hdr_t *);
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -46,3 +46,12 @@ struct cisco_hdlc_header {
 };
 
 #endif /* _DLT_H_ */
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

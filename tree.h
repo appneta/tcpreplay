@@ -72,3 +72,12 @@ int tree_comp(struct tree_type *, struct tree_type *);
 
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

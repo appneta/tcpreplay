@@ -128,3 +128,12 @@ warnx(const char *fmt, ...)
     (void)fprintf(stderr, "\n");
     va_end(ap);
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -42,3 +42,12 @@ void parse_services(char *file);
 #define MAXLINE 1024
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

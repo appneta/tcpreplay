@@ -396,3 +396,12 @@ can_exec(const char *filename)
 
     return FALSE;
 }
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+

@@ -42,3 +42,12 @@ char *pcap_datalink_val_to_description(int dlt);
 #endif
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+
