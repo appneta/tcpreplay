@@ -47,12 +47,12 @@
  * 04 - Increase num_packets from 32 to 64 bit integer
  */
 
-struct cache_type {
+struct cache_s {
     char data[CACHEDATASIZE];
     unsigned int packets;       /* number of packets tracked in data */
-    struct cache_type *next;
+    struct cache_s *next;
 };
-
+typedef struct cache_s cache_t;
 
 /*
  * Each byte in cache_type.data represents CACHE_PACKETS_PER_BYTE (4) number of packets
@@ -68,7 +68,7 @@ struct cache_type {
  * If you need to enhance this struct, do so AFTER the version field and be sure
  * to increment  CACHEVERSION
  */
-struct cache_file_header {
+struct cache_file_hdr_s {
     char magic[8];
     char version[4];
     /* begin version 2 features */
@@ -79,11 +79,10 @@ struct cache_file_header {
     u_int16_t comment_len;      /* how long is the user comment? */
 };
 
-typedef struct cache_type CACHE;
-typedef struct cache_file_header CACHE_HEADER;
+typedef struct cache_file_hdr_s cache_file_hdr_t;
 
-u_int64_t write_cache(CACHE *, const int, u_int64_t, char *);
-int add_cache(CACHE **, const int, const int);
+u_int64_t write_cache(cache_t *, const int, u_int64_t, char *);
+int add_cache(cache_t **, const int, const int);
 u_int64_t read_cache(char **, char *, char **);
 int check_cache(char *, unsigned long);
 

@@ -47,7 +47,7 @@
 extern int debug;
 #endif
 
-static CACHE *new_cache(void);
+cache_t *new_cache(void);
 
 /*
  * Takes a single char and returns a ptr to a string representation of the
@@ -80,7 +80,7 @@ u_int64_t
 read_cache(char **cachedata, char *cachefile, char **comment)
 {
     int cachefd, cnt;
-    CACHE_HEADER header;
+    cache_file_hdr_t header;
     ssize_t read_size = 0;
     u_int64_t cache_size = 0;
 
@@ -90,10 +90,10 @@ read_cache(char **cachedata, char *cachefile, char **comment)
         err(1, "open %s", cachefile);
 
     /* read the cache header and determine compatibility */
-    if ((cnt = read(cachefd, &header, sizeof(CACHE_HEADER))) < 0)
+    if ((cnt = read(cachefd, &header, sizeof(cache_file_hdr_t))) < 0)
         err(1, "read %s,", cachefile);
 
-    if (cnt < sizeof(CACHE_HEADER))
+    if (cnt < sizeof(cache_file_hdr_t))
         errx(1, "Cache file %s too small", cachefile);
 
 
@@ -155,18 +155,17 @@ read_cache(char **cachedata, char *cachefile, char **comment)
  * of cache entries written
  */
 u_int64_t
-write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets, 
+write_cache(cache_t * cachedata, const int out_file, u_int64_t numpackets, 
     char *comment)
 {
-    CACHE *mycache = NULL;
-    CACHE_HEADER *cache_header = NULL;
+    cache_t *mycache = NULL;
+    cache_file_hdr_t *cache_header = NULL;
     u_int32_t chars, last = 0;
     u_int64_t packets = 0;
     ssize_t written = 0;
 
     /* write a header to our file */
-    cache_header = (CACHE_HEADER *) malloc(sizeof(CACHE_HEADER));
-    memset(cache_header, 0, sizeof(CACHE_HEADER));
+    cache_header = (cache_file_hdr_t *)safe_malloc(sizeof(cache_file_hdr_t));
     strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
     strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
@@ -179,12 +178,12 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets,
         cache_header->comment_len = 0;
     }
 
-    written = write(out_file, cache_header, sizeof(CACHE_HEADER));
+    written = write(out_file, cache_header, sizeof(cache_file_hdr_t));
     dbg(1, "Wrote %d bytes of cache file header", written);
 
-    if (written != sizeof(CACHE_HEADER))
+    if (written != sizeof(cache_file_hdr_t))
         errx(1, "Only wrote %d of %d bytes of the cache file header!\n%s",
-             written, sizeof(CACHE_HEADER),
+             written, sizeof(cache_file_hdr_t),
              written == -1 ? strerror(errno) : "");
 
     /* don't write comment if there is none */
@@ -237,19 +236,13 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets,
  * mallocs a new CACHE struct all pre-set to sane defaults
  */
 
-static CACHE *
+static cache_t *
 new_cache(void)
 {
-    CACHE *newcache;
+    cache_t *newcache;
 
     /* malloc mem */
-    newcache = (CACHE *) malloc(sizeof(CACHE));
-    if (newcache == NULL)
-        err(1, "malloc");
-
-    /* set mem to \0 and set bits stored to 0 */
-    memset(newcache, '\0', sizeof(CACHE));
-    newcache->packets = 0;
+    newcache = (cache_t *)safe_malloc(sizeof(cache_t));
     return (newcache);
 }
 
@@ -259,9 +252,9 @@ new_cache(void)
  */
 
 int
-add_cache(CACHE ** cachedata, const int send, const int interface)
+add_cache(cache_t ** cachedata, const int send, const int interface)
 {
-    CACHE *lastcache = NULL;
+    cache_t *lastcache = NULL;
     u_char *byte = NULL;
     int bit, result;
     unsigned long index;
