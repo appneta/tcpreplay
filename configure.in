@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.67 2004/07/14 05:06:07 aturner Exp $
+dnl $Id: configure.in,v 1.68 2004/08/09 19:34:17 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -7,7 +7,7 @@ AC_CONFIG_HEADER(config.h)
 dnl Set version info here!
 MAJOR_VERSION=2
 MINOR_VERSION=3
-MICRO_VERSION=pre2
+MICRO_VERSION=pre3
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -340,8 +340,33 @@ if test $libpcap_ver = no ; then
 	Please upgrade to version 0.6 or better)
 fi
 
+dnl Check to see if we've got pcap_datalink_val_to_name()
+AC_MSG_CHECKING(for pcap_datalink_val_to_description)
+AC_TRY_RUN([
+#include <stdio.h>
+#include "$LPCAPINCDIR/pcap.h"
+int 
+main(int argc, char *argv[]) {
+    char name[100];
+    strncpy(name, pcap_datalink_val_to_description(1), 99);
+    exit(0);
+} 
+],
+    have_dlt_to_desc=yes 
+    AC_MSG_RESULT(yes), 
+    have_dlt_to_desc=no
+    AC_MSG_RESULT(no),
+    have_dlt_to_desc=no
+    )
+
+if test $have_dlt_to_desc = yes ; then
+    AC_DEFINE(HAVE_DLT_VAL_TO_DESC)
+fi
+
 dnl restore LIBS
 LIBS="$OLDLIBS"
+
+
 
 dnl ##################################################
 dnl # Check for pcapnav
