@@ -37,6 +37,15 @@
 #include "config.h"
 #include "fakepoll.h"
 
+/* prevents ISO C error */
+static void FAKEPOLL(int stop)
+{ 
+    if (! stop)
+        FAKEPOLL(1); 
+    return;
+
+} 
+
 #ifdef USE_FAKE_POLL
 #include <sys/types.h>
 #ifdef HAVE_UNISTD_H
