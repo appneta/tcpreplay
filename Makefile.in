@@ -1,10 +1,12 @@
-# $Id: Makefile.in,v 1.26 2002/11/20 19:32:58 aturner Exp $
+# $Id: Makefile.in,v 1.27 2002/11/20 20:12:50 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
 SBINDIR		= $(PREFIX)/sbin
 MAN8DIR		= $(PREFIX)/man/man8
 MAN1DIR		= $(PREFIX)/man/man1
+VERSION		= @TCPREPLAY_VERSION@
+RELEASEDIR	= tcpreplay-$(VERSION)
 
 CC		= @CC@
 CFLAGS		= @CFLAGS@
@@ -83,3 +85,19 @@ pretty:
 
 test:
 	cd test && make
+
+release:
+	mkdir ../$(RELEASEDIR)
+	cp -r * ../$(RELEASEDIR)/
+	cd ../$(RELEASEDIR) && make distclean
+	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS
+	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
+
+
+rerelease:
+	-rm -rf ../$(RELEASEDIR)  ../$(RELEASEDIR).tar.gz
+	mkdir ../$(RELEASEDIR)
+	cp -r * ../$(RELEASEDIR)/
+	cd ../$(RELEASEDIR) && make distclean
+	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS
+	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
