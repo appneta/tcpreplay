@@ -26,9 +26,16 @@
 #undef FORCE_ALIGN
 
 /* Large file support */
+#ifndef _FILE_OFFSET_BITS
 #undef _FILE_OFFSET_BITS
+#endif
 #undef _LARGE_FILES
 #undef _LARGEFILE_SOURCE
 
 /* Various functions */
 #undef HAVE_FSEEKO
+#undef HAVE_STRNCPY
+
+/* struct sockaddr vs sockaddr_in */
+#undef HAVE_SOCKADDR
+#undef HAVE_SOCKADDR_IN
