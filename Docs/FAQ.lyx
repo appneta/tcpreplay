@@ -176,6 +176,8 @@ Is there a Microsoft Windows port?
 \layout Standard
 
 Sorry, none of the developers have yet to sell their soul.
+ Now if you want to port tcpreplay to Windows, let us know and we will try
+ to help you.
 \layout Subsection
 
 How is tcpreplay licensed?
@@ -468,7 +470,17 @@ Replaying on multiple interfaces
 \layout Standard
 
 Tcpreplay can also split traffic so that each side of a connection is sent
- out a different interface.
+ out a different interface
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Note that you can also use the following options to split traffic into two
+ files using -w and -W which are described later on in this FAQ.
+\end_inset 
+
+.
  In order to do this, tcpreplay needs the name of the second interface (-j)
  and a way to split the traffic.
  Currently, there are two ways to split traffic:
@@ -569,7 +581,18 @@ Pattern is a series of numbers, seperated by commas or dashes.
 
 F - BPF syntax (same as used in tcpdump).
 \newline 
-Filter must be quoted and is only supported with -x.
+Filter must be quoted and is only supported with -x
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Note that if you want to send all the packets which do not match a bpf filter,
+ all you have to do is negate the bpf filter.
+ See the tcpdump(8) man page for more info.
+\end_inset 
+
+.
 \layout Standard
 
 Examples:
@@ -827,15 +850,15 @@ and replay the resulting file.
 Replaying Client Traffic to a Server
 \layout Standard
 
-A common question on the tcpreplay-users list is how does one the client
- side of a connection back to a server.
+A common question on the tcpreplay-users list is how does one replay the
+ client side of a connection back to a server.
  Unfortunately, tcpreplay doesn't support this right now.
  The major problem concerns syncing up TCP Seq/Ack numbers which will be
  different.
  ICMP also often contains IP header information which would need to be adjusted
- as well in many cases.
- About the only thing that could be easy to do is UDP which doesn't isn't
- usually requested.
+ in many cases.
+ About the only thing that could be easy to do is UDP which isn't usually
+ requested.
 \layout Standard
 
 This is however a feature that we're looking into implimenting.
@@ -1002,7 +1025,7 @@ Regex (-r) mode requires the user to provde a regular expression.
  interface.
 \layout Standard
 
-And two auto modes in which tcpprep decides how to split traffic.
+And four auto modes in which tcpprep decides how to split traffic.
  Auto modes are useful for when you don't know much about the contents of
  the dump file in question and you want to split traffic up based upon servers
  and clients.
@@ -1019,6 +1042,14 @@ Auto/Bridge (-a -n bridge) mode makes the assumption that the clients and
  them.
  While this takes less processing time to create the cache file it is unable
  to deal with unknown systems.
+\layout Itemize
+
+Auto/Client (-a -n client) mode which works just like Auto/Bridge mode,
+ except that any system it can't figure out is treated like a client.
+\layout Itemize
+
+Auto/Server (-a -n server) mode which works just like Auto/Bridge mode,
+ except that any system it can't figure out is treated like a server.
 \layout Subsection
 
 Splitting traffic based upon IP address
@@ -1043,7 +1074,7 @@ Tcpprep does an initial pass over the libpcap file to build a binary tree
  ratio to determine if an IP is a client or server.
  If tcpprep is unable to determine the type (client or server) for each
  and every packet, then auto/bridge mode will fail.
- In these cases, it is best to use auto/router mode.
+ In these cases, it is best to use a different auto mode.
 \layout Subsubsection
 
 How does Auto/Router mode work? 
@@ -1259,7 +1290,7 @@ As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
  As of v1.5, you'll need at least version 0.6.0 or better, but I only test
  our code with the latest version: 0.7.2.
  Libpcap can be obtained here: 
-\begin_inset LatexCommand \url{http://www.tcpdump.org/}
+\begin_inset LatexCommand \url[Tcpdump]{http://www.tcpdump.org/}
 
 \end_inset 
 
@@ -1273,7 +1304,22 @@ Tcpreplay v1.3 is the last version to support the old libnet API (everything
  before 1.1.x).
  As of v1.4 you will need to use Libnet 1.1.0 or better which can be obtained
  from the Libnet homepage: 
-\begin_inset LatexCommand \url{http://www.packetfactory.net/Projects/Libnet/}
+\begin_inset LatexCommand \url[Libnet]{http://www.packetfactory.net/Projects/Libnet/}
+
+\end_inset 
+
+
+\layout Subsection
+
+Libpcapnav
+\layout Standard
+
+Starting with v1.5.alpha5, tcpreplay requires libpcapnav.
+ I'm unsure if this requirement will continue when 1.5 goes beta or not.
+ If this is a real problem for you, let me know and I'll take that into
+ consideration.
+ Libpcapnav can be found on the NetDude homepage: 
+\begin_inset LatexCommand \url[NetDude]{http://netdude.sf.net/}
 
 \end_inset 
 
@@ -1381,6 +1427,61 @@ The packet length (in this case 8892 bytes) is greater then the maximum
  Tcpreplay must skip the packet.
  Alternatively, you can specify the -T option and tcpreplay will truncate
  the packet to the MTU size and send it.
+\layout Subsection
+
+Why isn't tcpreplay not sending all the packets?
+\layout Standard
+
+Every now and then, someone emails the tcpreplay-users list, asking if there
+ is a bug in tcpreplay which causes it not to send all the packets.
+ This usually happens when the user uses the -R flag or is replaying a high-spee
+d pcap file (> 50Mbps, although this number is dependant on the hardware
+ in use).
+\layout Standard
+
+The short version of the answer is: no, we are not aware of any bugs which
+ might cause a few packets to not be sent.
+\layout Standard
+
+The longer version goes something like this:
+\layout Standard
+
+If you are running tcpreplay multiple times and are using tcpdump or other
+ packet sniffer to count the number packets sent and are getting different
+ numbers, it's not tcpreplay's fault.
+ The problem lies in one of two places:
+\layout Enumerate
+
+It is well known that tcpdump and other sniffers have a problem keeping
+ up with high-speed traffic.
+ Furthermore, the OS in many cases 
+\emph on 
+lies
+\emph default 
+ about how many packets were dropped.
+ Tcpdump will repeat this lie to you.
+ In other words, tcpdump isn't seeing all the packets.
+ Usually this is a problem with the network card or driver which may or
+ may not be fixable.
+ Try another network card/driver.
+\layout Enumerate
+
+When tcpreplay sends a packet, it actually gets copied to a send buffer
+ in the kernel.
+ If this buffer is full, the kernel is supposed to tell tcpreplay that it
+ didn't copy the packet to this buffer.
+ If the kernel has a bug which squelches this error, tcpreplay will not
+ keep trying to send the packet and will move on to the next one.
+ Currently I am not aware of any OS kernels with this bug, but it is possible
+ that it exists.
+ If you find out that your OS has this problem, please let me know so I
+ can list it here.
+\layout Standard
+
+If for some reason, you still think its a bug in tcpreplay, by all means
+ read the code and tell me how stupid I am.
+ The do_packets() function in do_packets.c is where tcpreplay processes the
+ pcap file and sends all of the packets.
 \layout Section
 
 Other pcap tools available
