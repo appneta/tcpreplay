@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.39 2003/04/29 19:32:13 aturner Exp $
+# $Id: Makefile.in,v 1.40 2003/05/25 00:41:30 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -17,7 +17,7 @@ LIBS		= @LIBS@ @LNETLIB@ @LPCAPLIB@
 
 INSTALL		= @INSTALL@
 
-BINARIES	= tcpreplay capinfo tcpprep pcapmerge
+BINARIES	= tcpreplay capinfo tcpprep pcapmerge sessreplay
 
 TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c
 TOBJS		= $(TSRCS:.c=.o)
@@ -30,6 +30,9 @@ POBJS		= $(PSRCS:.c=.o)
 
 MSRCS		= pcapmerge.c err.c
 MOBJS		= $(MSRCS:.c=.o)
+
+SSRCS		= sessreplay.c err.c timer.c
+MOBJS		= $(SSRCS:.c=.o)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCS) -c $*.c
@@ -48,7 +51,10 @@ capinfo: $(COBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(COBJS) $(LDFLAGS) $(LIBS)
 
 pcapmerge: $(MOBJS)
-	$(CC) $(CFLAGS) $(DEFS) -o $@ $(MOBJS) $(LDFLAGS) -lpcap
+	$(CC) $(CFLAGS) $(DEFS) -o $@ $(MOBJS) $(LDFLAGS) $(LIBS)
+
+sessreplay: $(SOBJS)
+	$(CC) $(CFLAGS) $(DEFS) -o $@ $(SOBJS) $(LDFLAGS) $(LIBS)
 
 libredblack: libredblack/.libs/libredblack.a
 
@@ -62,7 +68,7 @@ clean:
 	-cd Docs && make clean
 
 distclean: clean
-	-rm -rf autom4te-2.??.cache
+	-rm -rf autom4te-2.??.cache autom4te.cache
 	-rm -f Makefile config.h config.status config.cache config.log *~
 	-rm -f tcpreplay.spec confdefs.h
 	-cd libredblack && make distclean
@@ -107,7 +113,8 @@ release:
 	cp -r * ../$(RELEASEDIR)/
 	cd ../$(RELEASEDIR) && make distclean
 	-cd ../$(RELEASEDIR)/Docs && make
-	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS ../$(RELEASEDIR)/Docs/CVS
+	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS 
+	rm -rf ../$(RELEASEDIR)/Docs/CVS ../$(RELEASEDIR)/man/CVS
 	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
 
 
@@ -117,7 +124,8 @@ rerelease:
 	cp -r * ../$(RELEASEDIR)/
 	cd ../$(RELEASEDIR) && make distclean
 	-cd ../$(RELEASEDIR)/Docs && make
-	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS ../$(RELEASEDIR)/Docs/CVS
+	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS
+	rm -rf ../$(RELEASEDIR)/Docs/CVS ../$(RELEASEDIR)/man/CVS
 	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
 
 srpm:
