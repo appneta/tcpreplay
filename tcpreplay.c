@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.81 2004/01/31 23:19:24 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.82 2004/02/02 20:59:12 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -953,16 +953,18 @@ void
 usage(void)
 {
     fprintf(stderr, "Usage: tcpreplay [args] <file(s)>\n");
-    fprintf(stderr, "-b\t\t\tBridge two broadcast domains in sniffer mode\n"
+    fprintf(stderr, 
+            "-A \"<args>\"\t\tPass arguments to tcpdump decoder (use w/ -v)\n"
+            "-b\t\t\tBridge two broadcast domains in sniffer mode\n"
             "-c <cachefile>\t\tSplit traffic via cache file\n"
-            "-C <CIDR1,CIDR2,...>\tSplit traffic in CIDR Mode\n");
+            "-C <CIDR1,CIDR2,...>\tSplit traffic by matching src IP\n");
 #ifdef DEBUG
     fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
     fprintf(stderr,
             "-D\t\t\tData dump mode (set this BEFORE -w and -W)\n"
             "-f <configfile>\t\tSpecify configuration file\n"
-            "-F\t\t\tFix IP, TCP and UDP checksums\n"
+            "-F\t\t\tFix IP, TCP, UDP and ICMP checksums\n"
             "-h\t\t\tHelp\n"
             "-i <nic>\t\tPrimary interface to send traffic out of\n"
             "-I <mac>\t\tRewrite dest MAC on primary interface\n"
