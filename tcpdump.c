@@ -1,4 +1,4 @@
-/* $Id: tcpdump.c,v 1.2 2004/01/31 21:21:12 aturner Exp $ */
+/* $Id: tcpdump.c,v 1.3 2004/05/14 21:40:12 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -119,7 +119,7 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, u_char *data)
             errx(1, "Error writing packet data to tcpdump debug\n%s", strerror(errno));
     }
 #endif
-
+    fflush(stdout);
     return TRUE;
 }
 
@@ -308,6 +308,7 @@ tcpdump_fill_in_options(char *opt)
     char options[256];
     char *arg, *newarg;
     int i = 1, arglen;
+    char *token = NULL;
 
     /* zero out our options_vec for execv() */
     memset(options_vec, '\0', OPTIONS_VEC_SIZE);
@@ -328,7 +329,7 @@ tcpdump_fill_in_options(char *opt)
     /* process args */
     
     /* process the first argument */
-    arg = strtok(options, OPT_DELIM);
+    arg = strtok_r(options, OPT_DELIM, &token);
     arglen = strlen(arg) + 2; /* -{arg}\0 */
     newarg = (char *)malloc(arglen);
     memset(newarg, '\0', arglen);    
@@ -341,7 +342,7 @@ tcpdump_fill_in_options(char *opt)
        because: a) we need to add '-' as an option to the end
        b) because the array has to be null terminated
     */
-    while (((arg = strtok(NULL, OPT_DELIM)) != NULL) &&
+    while (((arg = strtok_r(NULL, OPT_DELIM, &token)) != NULL) &&
            (i < OPTIONS_VEC_SIZE - 1)) {
 
         arglen = strlen(arg) + 2;
