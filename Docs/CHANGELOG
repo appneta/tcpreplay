@@ -1,6 +1,6 @@
-$Id: CHANGELOG,v 1.7 2003/05/29 22:20:36 aturner Exp $
+$Id: CHANGELOG,v 1.8 2003/05/30 00:30:17 aturner Exp $
 
-??/??/2003: Version 1.5.alpha
+05/29/2003: Version 1.5.alpha2
         - Add -F to force checksum fixing
         - Fix packet corruption when not using -2
         - Improve timerdiv() code
@@ -9,6 +9,7 @@ $Id: CHANGELOG,v 1.7 2003/05/29 22:20:36 aturner Exp $
         - Fix a bunch of compiler warnings about miss-matched sign
         - IP & layer 4 checksums now work when IP options exist (tcpreplay)
         - Updated FAQ
+        - Fix spec file
 
 
 05/07/2003: Version 1.5.alpha1
