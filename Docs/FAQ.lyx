@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Dec 7, 2003
+Dec 10, 2003
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -458,6 +458,20 @@ To replay the sample.pcap an infinately or until CTRL-C is pressed:
 
 \emph on 
 tcpreplay -l 0 -i eth0 sample.pcap
+\layout Subsection
+
+Replaying only a few packets
+\layout Standard
+
+Using the limit packets flag (-L) you can specify that tcpreplay will only
+ send at most a specified number of packets.
+\layout Itemize
+
+To send at most 100 packets:
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -L 100 sample.pcap
 \layout Section
 
 Advanced Tcpreplay Usage
@@ -627,6 +641,21 @@ tcpreplay -x P:1-50,100,150,200,250 -i eth0 sample.pcap
 To only send TCP packets from 10.0.0.1:
 \newline 
 tcpreplay -x F:'tcp and host 10.0.0.1' -i eth0 sample.pcap
+\layout Subsection
+
+Skipping the first bytes in a pcap file
+\layout Standard
+
+If you want to skip the beginning of a pcap file, you can use the offset
+ flag (-o) to skip a specified number of bytes and start sending on the
+ next packet.
+\layout Itemize
+
+To skip 15Kbytes into the pcap file and start sending packets from there:
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -o 15000 sample.pcap
 \layout Subsection
 
 Rewriting destination MAC address
@@ -855,7 +884,7 @@ Replaying Live Traffic
 \layout Standard
 
 You can now replay live traffic sniffed on one network interface and replay
- it on another interface.
+ it on another interface using the -S flag to indicate sniff mode.
 \layout Standard
 
 
@@ -868,15 +897,13 @@ NOTE:
  as bridges, switches, routers, etc) be connecting the two networks, else
  you will surely get a networkstorm the likes that have not been seen for
  years.
- Additionally, there is currently no good way of sending/recieving traffic
- bi-directionally.
 \layout Itemize
 
 Send packets sniffed on eth0 out eth1:
 \newline 
 
 \emph on 
-tcpreplay -S 0 -i eth1 eth0
+tcpreplay -i eth1 -S 0 eth0
 \layout Standard
 
 By default, tcpreplay listens in promiscuous mode on the specified interface,
@@ -893,6 +920,33 @@ not_nosy
  Note that if another program has already placed the interface in promiscuous
  mode, the -n flag will have no effect, so you may want to use the -x or
  -X argument to limit packets.
+\layout Subsection
+
+Bridging Live Traffic
+\layout Standard
+
+Much like replaying live traffic, tcpreplay can both listen and send on
+ two interfaces, effectively connecting two broadcast domains by using the
+ -S and -b flags.
+\layout Standard
+
+
+\noun on 
+NOTE:
+\noun default 
+ It is critical for your sanity (and to prevent your murder by your network
+ administrators) that the input interface and the output interface be on
+ seperate networks and additionally that no other network devices (such
+ as bridges, switches, routers, etc) be connecting the two networks, else
+ you will surely get a networkstorm the likes that have not been seen for
+ years.
+\layout Itemize
+
+Bridge two subnets connected to eth0 and eth1:
+\newline 
+
+\emph on 
+tcpreplay -i eth0 -j eth1 -b -S 0
 \layout Subsection
 
 Replaying Packet Capture Formats Other Than Libpcap
@@ -934,16 +988,12 @@ A common question on the tcpreplay-users list is how does one replay the
  Unfortunately, tcpreplay doesn't support this right now.
  The major problem concerns syncing up TCP Seq/Ack numbers which will be
  different.
- ICMP also often contains IP header information which would need to be adjusted
-<<<<<<< FAQ.lyx
- as well in many cases.
+ ICMP also often contains IP header information which would need to be adjusted<
+<<<<<< FAQ.lyx as well in many cases.
  About the only thing that could be easy to do is UDP, which isn't usually
- requested.
-=======
- in many cases.
+ requested.======= in many cases.
  About the only thing that could be easy to do is UDP which isn't usually
- requested.
->>>>>>> 1.14
+ requested.>>>>>>> 1.14
 \layout Standard
 
 This is however a feature that we're looking into implimenting.
