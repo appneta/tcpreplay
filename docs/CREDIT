@@ -1,7 +1,10 @@
 $Id$ 
 
-Here's a list of people in no particular order who have kindly submitted
-patches or code snippets for me to use in tcpreplay.
+tcpreplay and it's associated utilities (tcpprep, tcprewrite and flowreplay)
+were designed and written by Aaron Turner <aturner@pobox.com>.
+
+The following is a list of people in no particular order who have kindly
+submitted patches or code snippets for me to use in tcpreplay.
 
 Matt Bing <matt@mutedwarf.com>
     - Matt helped write a lot of the 1.x code
