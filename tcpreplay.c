@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.8 2002/06/20 05:53:05 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.9 2002/06/26 22:23:58 mattbing Exp $ */
 
 #include "config.h"
 
@@ -297,6 +297,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			/* normal operation */
 			l = l_intf;
 			i = intf;
+			/* check for destination MAC rewriting */
+			if (primary_mac != NULL) {
+				eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
+				memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
+			}
 		}
 
 		/* Physically send the packet */
