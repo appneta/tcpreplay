@@ -14,7 +14,6 @@
 #include "common/tcpdump.h"
 #include "common/timer.h"
 
-extern char SVN_Version[];
-const char* svn_version(void); /* svn_version.c */
+const char *svn_version(void); /* svn_version.c */
 
 #endif

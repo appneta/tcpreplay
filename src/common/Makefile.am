@@ -6,7 +6,7 @@ svn_version.c:
 	echo -n 'const char SVN_Version[] = "'   > svn_version.c
 	svnversion -n ../..                     >> svn_version.c
 	echo '";'				>> svn_version.c
-	echo 'const char* svn_version(void) {'  >> svn_version.c
+	echo 'const char *svn_version(void) {'  >> svn_version.c
 	echo '	return SVN_Version;'		>> svn_version.c
 	echo '}' 			        >> svn_version.c
 

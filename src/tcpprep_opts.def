@@ -21,7 +21,6 @@ include         = "#include \"defines.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"tcpprep.h\"\n"
                 "extern char pcap_version[];\n"
-                "extern char SVN_Version[];\n"
                 "extern tcpprep_opt_t options;\n";
 
 explain = <<- EOExplain
@@ -337,7 +336,7 @@ flag = {
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
     
-    fprintf(stderr, "tcpprep version: %s (build %s)", VERSION, SVN_Version);
+    fprintf(stderr, "tcpprep version: %s (build %s)", VERSION, svn_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
