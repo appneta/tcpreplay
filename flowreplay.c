@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.9 2004/02/03 22:50:55 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.10 2004/05/08 21:26:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -53,6 +53,7 @@
 #include "tcpreplay.h"
 #include "rbtree.h"
 #include "timer.h"
+#include "utils.h"
 
 #ifdef DEBUG
 int debug = 0;
@@ -62,7 +63,6 @@ static void cleanup(void);
 static void init(void);
 int main_loop(pcap_t *, u_char, u_int16_t);
 int process_packet(struct session_t *, ip_hdr_t *, void *);
-void *get_layer4(ip_hdr_t *);
 struct session_tree tcproot, udproot;
 
 
@@ -97,21 +97,20 @@ int32_t pernodebufflim = PER_NODE_BUFF_LIMIT;
 int32_t totalbufflim = TOTAL_BUFF_LIMIT;    /* counts down to zero */
 
 static void
-version()
+version(void)
 {
     fprintf(stderr, "flowreplay version: %s", VERSION);
 #ifdef DEBUG
-    fprintf(stderr, " (debug)\n");
-#else
-    fprintf(stderr, "\n");
+    fprintf(stderr, " (debug)");
 #endif
+    fprintf(stderr, "\n");
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
     exit(0);
 }
 
 static void
-usage()
+usage(void)
 {
     fprintf(stderr, "Usage: flowreplay [args] <file1> <file2> ...\n"
             "-c <CIDR1,CIDR2,...>\tClients are on this CIDR block\n");
@@ -143,11 +142,11 @@ main(int argc, char *argv[])
 
     init();
 
+    while ((ch = getopt(argc, argv, "c:fhm:p:s:t:Vw:"
 #ifdef DEBUG
-    while ((ch = getopt(argc, argv, "c:d:fhm:p:s:t:Vw:")) != -1)
-#else
-    while ((ch = getopt(argc, argv, "c:fhm:p:s:t:Vw:")) != -1)
+                        "d:"
 #endif
+                )) != -1) {
         switch (ch) {
         case 'c':              /* client network */
             if (!parse_cidr(&clients, optarg, ","))
@@ -226,8 +225,7 @@ main(int argc, char *argv[])
             exit(1);
             break;
         }
-
-    /* getopt() END */
+    } /* getopt() END */
 
     /*
      * Verify input 
@@ -552,16 +550,4 @@ cleanup(void)
 
     close_sockets();
 
-}
-
-
-/*
- * returns a pointer to the layer 4 header which is just beyond the IP header
- */
-void *
-get_layer4(ip_hdr_t * ip_hdr)
-{
-    void *ptr;
-    ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
-    return ((void *)ptr);
 }
