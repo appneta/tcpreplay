@@ -178,16 +178,15 @@ process_raw_packets(pcap_t * pcap)
     ip_hdr_t *ip_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
     struct pcap_pkthdr pkthdr;
-    const u_char *nextpkt = NULL;
-    u_char pktdata[MAXPACKET];	/* full packet buffer */
+    const u_char *pktdata = NULL;
     unsigned long packetnum = 0;
 #ifdef FORCE_ALIGN
     u_char ipbuff[MAXPACKET];
 #endif
 
-    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
+    while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
 	packetnum++;
-	eth_hdr = (eth_hdr_t *) & pktdata;
+	eth_hdr = (eth_hdr_t *)pktdata;
 
 	/* look for include or exclude LIST match */
 	if (xX_list != NULL) {
@@ -221,13 +220,13 @@ process_raw_packets(pcap_t * pcap)
 	 * we do all this work to prevent byte alignment issues
 	 */
 	ip_hdr = (ip_hdr_t *) & ipbuff;
-	memcpy(ip_hdr, (&pktdata + LIBNET_ETH_H), pkthdr.caplen - LIBNET_ETH_H);
+	memcpy(ip_hdr, (pktdata + LIBNET_ETH_H), pkthdr.caplen - LIBNET_ETH_H);
 #else
 	/*
 	 * on non-strict byte align systems, don't need to memcpy(), 
 	 * just point to 14 bytes into the existing buffer
 	 */
-	ip_hdr = (ip_hdr_t *) (&pktdata + LIBNET_ETH_H);
+	ip_hdr = (ip_hdr_t *) (pktdata + LIBNET_ETH_H);
 #endif
 
 	/* look for include or exclude CIDR match */
