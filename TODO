@@ -33,6 +33,9 @@ For 1.4:
 	- config files
 	- compiling libpcap, libnet 
 	- other pcap tools available
+	- "failed buffers"
+		- NMBCLUSTERS on *BSD
+		- /proc/sys/net/core/{r,w}mem_{default,max} on Linux
 
 - Ports
 	- support --with-pcap --with-libnet in the spec
