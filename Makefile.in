@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.52 2003/12/21 20:21:05 aturner Exp $
+# $Id: Makefile.in,v 1.53 2004/01/15 07:18:02 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -7,7 +7,6 @@ MAN8DIR		= @mandir@/man8
 MAN1DIR		= @mandir@/man1
 VERSION		= @TCPREPLAY_VERSION@
 RELEASEDIR	= tcpreplay-$(VERSION)
-TCPDUMPDIR	= @tcpdumpdir@
 
 CC		= @CC@
 CFLAGS		= @CFLAGS@
@@ -22,8 +21,6 @@ INSTALL		= @INSTALL@
 
 BINARIES	= tcpreplay capinfo pcapmerge tcpprep flowreplay
 
-TCPDUMPSRCS	= @tcpdumpsrcs@
-TCPDUMPOBJS	= $(TCPDUMPSRCS:.c=.o)
 
 TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c fakepcapnav.c
 TOBJS		= $(TSRCS:.c=.o)
@@ -88,7 +85,7 @@ install:
 	$(INSTALL) -m 644 man/capinfo.1 $(MAN1DIR)
 	$(INSTALL) -m 644 man/tcpprep.1 $(MAN1DIR)
 	$(INSTALL) -m 644 man/pcapmerge.1 $(MAN1DIR)
-	$(INSTALL) -m 644 man/flowreplay.8 $(MAN1DIR)
+	$(INSTALL) -m 644 man/flowreplay.8 $(MAN8DIR)
 
 uninstall:
 	rm -f $(SBINDIR)/tcpreplay
