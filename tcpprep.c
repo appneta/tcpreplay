@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.34 2004/04/03 22:49:39 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.35 2004/04/22 23:46:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -133,7 +133,8 @@ usage()
 {
     fprintf(stderr, "Usage: tcpprep [-a -n <mode> -N <type> | -c <cidr> | -p | -r <regex>] \\\n\t\t-o <out> -i <in> <args>\n");
     fprintf(stderr, "-a\t\t\tSplit traffic in Auto Mode\n"
-            "-c CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
+            "-c CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n"
+            "-C <comment>\t\tEmbed comment in tcpprep cache file\n");
 #ifdef DEBUG
     fprintf(stderr, "-d <level>\t\tEnable debug output to STDERR\n");
 #endif
@@ -144,13 +145,26 @@ usage()
             "-n <auto mode>\t\tUse specified algorithm in Auto Mode\n"
             "-N client|server\tClassify non-IP traffic as client/server\n"
             "-o <outputfile>\t\tOutput cache file name\n"
-            "-p\t\t\tSplit traffic based on destination port\n");
+            "-p\t\t\tSplit traffic based on destination port\n"
+            "-P <file>\t\tPrint comment in tcpprep file\n");
     fprintf(stderr, "-r <regex>\t\tSplit traffic in Regex Mode\n"
             "-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
             "-s <file>\t\tSpecify service ports in /etc/services format\n"
             "-x <match>\t\tOnly send the packets specified\n"
             "-X <match>\t\tSend all the packets except those specified\n"
-            "-v\t\t\tVerbose\n" "-V\t\t\tVersion\n");
+            "-v\t\t\tVerbose\n" 
+            "-V\t\t\tVersion\n");
+    exit(0);
+}
+
+static void
+print_comment(char *file)
+{
+    char *cachedata = NULL;
+
+    read_cache(&cachedata, file);
+    printf("Comment:\n%s\n", options.tcpprep_comment);
+
     exit(0);
 }
 
@@ -365,7 +379,7 @@ main(int argc, char *argv[])
     pcap_t *pcap = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    memset(&options, 0, sizeof(options));
+    memset(&options, '\0', sizeof(options));
     options.bpf_optimize = BPF_OPTIMIZE;
 
     preg = (regex_t *) malloc(sizeof(regex_t));
@@ -381,9 +395,9 @@ main(int argc, char *argv[])
     }
 
 #ifdef DEBUG
-    while ((ch = getopt(argc, argv, "ad:c:r:R:o:pi:hm:M:n:N:s:x:X:vV")) != -1)
+    while ((ch = getopt(argc, argv, "ad:c:C:r:R:o:pP:i:hm:M:n:N:s:x:X:vV")) != -1)
 #else
-    while ((ch = getopt(argc, argv, "ac:r:R:o:pi:hm:M:n:N:s:x:X:vV")) != -1)
+    while ((ch = getopt(argc, argv, "ac:C:r:R:o:pP:i:hm:M:n:N:s:x:X:vV")) != -1)
 #endif
         switch (ch) {
         case 'a':
@@ -394,6 +408,11 @@ main(int argc, char *argv[])
                 usage();
             }
             mode = CIDR_MODE;
+            break;
+        case 'C':
+            options.tcpprep_comment[COMMENT_LEN -1] = '\0';
+            strncpy(options.tcpprep_comment, optarg, COMMENT_LEN -1);
+            dbg(1, "comment length: %d", strlen(options.tcpprep_comment));
             break;
 #ifdef DEBUG
         case 'd':
@@ -447,6 +466,10 @@ main(int argc, char *argv[])
             break;
         case 'p':
             mode = PORT_MODE;
+            break;
+        case 'P':
+            print_comment(optarg);
+            /* exits */
             break;
         case 'r':
             ourregex = optarg;
