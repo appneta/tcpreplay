@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.48 2004/03/25 02:16:09 aturner Exp $ */
+/* $Id: do_packets.c,v 1.49 2004/04/01 06:00:40 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -258,25 +258,11 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
                     continue;
                 }
             }
-            
-            /* rewrite IP? */
-            if (options.rewriteip)
-                needtorecalc += rewrite_ipl3(ip_hdr);
 
         }
         else {
             /* non-IP packets have a NULL ip_hdr struct */
             ip_hdr = NULL;
-            
-            /* rewrite IP? (if ARP) */
-            if (options.rewriteip && ntohs(eth_hdr->ether_type) == ETHERTYPE_ARP) {
-                arp_hdr = (arp_hdr_t *)(&pktdata[l2len]);
-                /* unlike, rewrite_ipl3, we don't care if the packet changed
-                 * because we never need to recalc the checksums for an ARP
-                 * packet.  So ignore the return value
-                 */
-                rewrite_iparp(arp_hdr);
-            }
         }
 
         /* check for martians? */
@@ -300,7 +286,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
 
         /* Dual nic processing */
-        if (options.intf2 != NULL) {
+        if ((options.intf2 != NULL) || (options.one_output)) {
 
             if (cachedata != NULL) {
                 l = (LIBNET *) cache_mode(cachedata, packetnum, eth_hdr);
@@ -324,6 +310,24 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
         /* sometimes we should not send the packet */
         if (l == CACHE_NOSEND)
             continue;
+
+        /* rewrite IP addresses */
+        if (options.rewriteip) {
+            /* IP packets */
+            if (ip_hdr != NULL) {
+                needtorecalc += rewrite_ipl3(ip_hdr, l);
+            }
+
+            /* ARP packets */
+            else if (ntohs(eth_hdr->ether_type) == ETHERTYPE_ARP) {
+                arp_hdr = (arp_hdr_t *)(&pktdata[l2len]);
+                /* unlike, rewrite_ipl3, we don't care if the packet changed
+                 * because we never need to recalc the checksums for an ARP
+                 * packet.  So ignore the return value
+                 */
+                rewrite_iparp(arp_hdr, l);
+            }
+        }
 
         /* Untruncate packet? Only for IP packets */
         if ((options.trunc) && (ip_hdr != NULL)) {
@@ -386,6 +390,10 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
                 datalen =
                     extract_data(pktdata, pkthdr.caplen, l2len, &datadumpbuff);
             }
+
+            /* in one output mode always use primary nic */
+            if (options.one_output)
+                l = options.intf1;
 
             /* interface 1 */
             if (l == options.intf1) {
