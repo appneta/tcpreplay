@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.41 2004/07/14 05:10:14 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.42 2004/07/25 04:48:36 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -254,6 +254,7 @@ process_raw_packets(pcap_t * pcap)
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
     unsigned long packetnum = 0;
+    int linktype = 0;
 #ifdef FORCE_ALIGN
     u_char ipbuff[MAXPACKET];
 #endif
@@ -265,28 +266,39 @@ process_raw_packets(pcap_t * pcap)
         ip_hdr = NULL;
         hdlc_hdr = NULL;
 
-        if (pcap_datalink(pcap) == DLT_EN10MB) {
+        linktype = pcap_datalink(pcap);
+        switch (linktype) {
+        case DLT_EN10MB:
             dbg(3, "Datalink is DLT_EN10MB.");
             eth_hdr = (eth_hdr_t *) pktdata;
             l2len = LIBNET_ETH_H;
             protocol = eth_hdr->ether_type;
-        } else if (pcap_datalink(pcap) == DLT_LINUX_SLL) {
+            break;
+
+        case DLT_LINUX_SLL:
             dbg(3, "Datalink is LINUX SLL");
             sll_hdr = (struct sll_header *) pktdata;
             l2len = SLL_HDR_LEN;
             protocol = sll_hdr->sll_protocol;
-        } else if (pcap_datalink(pcap) == DLT_RAW) {
+            break;
+
+        case DLT_RAW:
             dbg(3, "Datalink is RAW");
             protocol = ETHERTYPE_IP;
             l2len = 0;
-        } else if (pcap_datalink(pcap) == DLT_CHDLC) {
+            break;
+
+        case DLT_CHDLC:
             dbg(3, "Datalink is Cisco HDLC");
             hdlc_hdr = (struct cisco_hdlc_header *)pktdata;
             protocol = hdlc_hdr->protocol;
             l2len = CISCO_HDLC_LEN;
-        } else {
+            break;
+
+        default:
             errx(1, "WTF?  How'd we get here with an invalid DLT type? 0x%x",
-                 pcap_datalink(pcap));
+                 linktype);
+            break;
         }
 
         dbg(1, "Packet %d", packetnum);
