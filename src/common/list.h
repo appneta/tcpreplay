@@ -30,20 +30,20 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _LIST_H_
-#define _LIST_H_
+#ifndef __LIST_H__
+#define __LIST_H__
 
-struct list_type {
+struct list_s {
     u_int64_t max;
     u_int64_t min;
-    struct list_type *next;
+    struct list_s *next;
 };
 
-typedef struct list_type LIST;
+typedef struct list_s list_t;
 
-int parse_list(LIST **, char *);
-int check_list(LIST *, u_int64_t);
-void free_list(LIST *);
+int parse_list(list_t **, char *);
+int check_list(list_t *, u_int64_t);
+void free_list(list_t *);
 
 #endif
 

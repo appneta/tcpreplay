@@ -49,16 +49,12 @@
 #include <errno.h>
 
 
-LIST *
+list_t *
 new_list()
 {
-    LIST *newlist;
+    list_t *newlist;
 
-    newlist = (LIST *) malloc(sizeof(LIST));
-    if (newlist == NULL)
-        err(1, "unable to malloc memory for new_list()");
-
-    memset(newlist, 0, sizeof(LIST));
+    newlist = (list_t *)safe_malloc(sizeof(list_t));
     return (newlist);
 }
 
@@ -68,9 +64,9 @@ new_list()
  * success, 0 for fail.
  */
 int
-parse_list(LIST ** listdata, char *ourstr)
+parse_list(list_t ** listdata, char *ourstr)
 {
-    LIST *listcur, *list_ptr;
+    list_t *listcur, *list_ptr;
     char *this = NULL;
     char *first, *second;
     int i, rcode;
@@ -162,9 +158,9 @@ parse_list(LIST ** listdata, char *ourstr)
  * Returns 1 for true, 0 for false
  */
 int
-check_list(LIST * list, u_int64_t value)
+check_list(list_t * list, u_int64_t value)
 {
-    LIST *current;
+    list_t *current;
 
     current = list;
     do {
@@ -199,7 +195,7 @@ check_list(LIST * list, u_int64_t value)
  * Free's all the memory associated with the given LIST
  */
 void
-free_list(LIST * list)
+free_list(list_t * list)
 {
 
     /* recursively go down the list */
