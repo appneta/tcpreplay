@@ -1,4 +1,4 @@
-/* $Id: cidr.c,v 1.21 2004/02/01 01:12:22 aturner Exp $ */
+/* $Id: cidr.c,v 1.22 2004/02/03 22:47:45 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -50,7 +50,6 @@
 
 extern int debug;
 
-static int ip_in_cidr(const CIDR *, const unsigned long);
 static CIDR *cidr2CIDR(char *);
 
 /*
@@ -153,7 +152,7 @@ ip2cidr(const unsigned long ip, const int masklen)
  */
 
 CIDR *
-new_cidr()
+new_cidr(void)
 {
     CIDR *newcidr;
 
@@ -167,6 +166,22 @@ new_cidr()
 
     return (newcidr);
 }
+
+CIDRMAP *
+new_cidr_map(void)
+{
+    CIDRMAP *new;
+
+    new = (CIDRMAP *)malloc(sizeof(CIDRMAP));
+    if (new == NULL)
+        err(1, "unable to malloc memory for new_cidr()");
+
+    memset(new, '\0', sizeof(CIDRMAP));
+    new->next = NULL;
+
+    return (new);
+}
+
 
 /*
  * Converts a single cidr (string) in the form of x.x.x.x/y into a
@@ -238,20 +253,20 @@ cidr2CIDR(char *cidr)
  */
 
 int
-parse_cidr(CIDR ** cidrdata, char *cidrin)
+parse_cidr(CIDR ** cidrdata, char *cidrin, char *delim)
 {
     CIDR *cidr_ptr;             /* ptr to current cidr record */
     char *network = NULL;
 
     /* first itteration of input using strtok */
-    network = strtok(cidrin, ",");
+    network = strtok(cidrin, delim);
 
     *cidrdata = cidr2CIDR(network);
     cidr_ptr = *cidrdata;
 
     /* do the same with the rest of the input */
     while (1) {
-        network = strtok(NULL, ",");
+        network = strtok(NULL, delim);
         /* if that was the last CIDR, then kickout */
         if (network == NULL)
             break;
@@ -264,13 +279,66 @@ parse_cidr(CIDR ** cidrdata, char *cidrin)
 
 }
 
+/*
+ * parses a list of CIDRMAP's input from the user which should be in the form
+ * of x.x.x.x/y:x.x.x.x/y,...
+ * returns 1 for success, or fails to return on failure (exit 1)
+ * since we use strtok to process optarg, it gets zeroed out.
+ */
+int
+parse_cidr_map(CIDRMAP **cidrmap, char *optarg)
+{
+    CIDR *cidr = NULL;
+    char *map = NULL;
+    CIDRMAP *ptr;
+
+    /* first iteration */
+    map = strtok(optarg, ",");
+    if (! parse_cidr(&cidr, map, ":"))
+        return 0;
+
+    /* must return a linked list of two */
+    if (cidr->next == NULL)
+        return 0;
+
+    /* copy over */
+    *cidrmap = new_cidr_map();
+    ptr = *cidrmap;
+
+    ptr->from = cidr;
+    ptr->to = cidr->next;
+    ptr->from->next = NULL;
+
+    /* do the same with the reset of the input */
+    while(1) {
+        map = strtok(NULL, ",");
+        if (map == NULL)
+            break;
+
+        if (! parse_cidr(&cidr, map, ":"))
+            return 0;
+
+        /* must return a linked list of two */
+        if (cidr->next == NULL)
+            return 0;
+
+        /* copy over */
+        ptr->next = (struct cidr_map *)new_cidr_map;
+        ptr = ptr->next;
+        ptr->from = cidr;
+        ptr->to = cidr->next;
+        ptr->from->next = NULL;
+
+    }
+    return 1; /* success */
+}
 
 /*
  * checks to see if the ip address is in the cidr
  * returns 1 for true, 0 for false
  */
 
-static int
+int
 ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
 {
     unsigned long ipaddr = 0, network = 0, mask = 0;
@@ -282,6 +350,7 @@ ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
 
     /* apply the mask to the network and ip */
     ipaddr = ntohl(ip) & mask;
+
     network = htonl(mycidr->network) & mask;
 
     /* if they're the same, then ip is in network */

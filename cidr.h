@@ -1,4 +1,4 @@
-/* $Id: cidr.h,v 1.9 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: cidr.h,v 1.10 2004/02/03 22:47:45 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -41,11 +41,21 @@ struct cidr_type {
 
 typedef struct cidr_type CIDR;
 
+struct cidr_map {
+    CIDR *from;
+    CIDR *to;
+    struct cidr_map *next;
+};
+typedef struct cidr_map CIDRMAP;
+
+int ip_in_cidr(const CIDR *, const unsigned long);
 int check_ip_CIDR(CIDR *, const unsigned long);
-int parse_cidr(CIDR **, char *);
+int parse_cidr(CIDR **, char *, char *delim);
+int parse_cidr_map(CIDRMAP **, char *);
 u_char *ip2cidr(const unsigned long, const int);
 void add_cidr(CIDR *, CIDR **);
-CIDR *new_cidr();
+CIDR *new_cidr(void);
+CIDRMAP *new_cidr_map(void);
 void destroy_cidr(CIDR *);
 void print_cidr(CIDR *);
 char *cidr2iplist(CIDR *, char);
