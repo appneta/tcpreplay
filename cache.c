@@ -1,10 +1,36 @@
-/* $Id: cache.c,v 1.16 2003/05/29 22:02:03 aturner Exp $ */
+/* $Id: cache.c,v 1.17 2003/08/31 01:34:23 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
  * All rights reserved.
  *
- * Please see Docs/LICENSE for licensing information
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *    This product includes software developed by Anzen Computing, Inc.
+ * 4. Neither the name of Anzen Computing, Inc. nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,7 +63,7 @@ static CACHE *new_cache();
  * now also checks for the cache magic and version
  */
 
-int
+u_int32_t
 read_cache(char **cachedata, char *cachefile)
 {
     int cachefd, cnt;
@@ -182,7 +208,7 @@ void
 add_cache(CACHE ** cachedata, const int send, const int interface)
 {
     CACHE *lastcache = NULL;
-    char *byte = NULL;
+    u_char *byte = NULL;
     int bit;
     unsigned long index;
 
@@ -218,8 +244,8 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
     if (send) {
 	index = (lastcache->packets - 1) / CACHE_PACKETS_PER_BYTE;
 	bit = (((lastcache->packets - 1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
-	byte = &lastcache->data[index];
-	*byte += (char)(1 << bit);
+	byte = (u_char *)&lastcache->data[index];
+	*byte += (u_char)(1 << bit);
 
 	dbg(1, "set send bit: byte %d = 0x%x", index, *byte);
 
