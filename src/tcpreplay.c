@@ -215,7 +215,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
 
     case SPEED_ONEATATIME:
         /* do we skip prompting for a key press? */
-        if (send < 0) {
+        if (send == 0) {
             printf("**** How many packets do you wish to send? (next packet out %s)\n",
                    l == options.intf1 ? options.intf1_name : options.intf2_name);
             poller[0].fd = STDIN_FILENO;
@@ -238,18 +238,18 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
             }
 
             /* how many packets should we send? */
-            if (send < 1) {
-                warnx("Input %d was less then 1 or non-numeric, assuming 1", send);
+            if (send == 0) {
+                notice("Input was less then 1 or non-numeric, assuming 1");
                 /* assume send only one packet */
                 send = 1;
             }
             
-        } else {
-            /* decrement our send counter */
-            printf("Sending packet out %s\n", 
-                l == options.intf1 ? options.intf1_name : options.intf2_name);
-            send --;
         }
+
+        /* decrement our send counter */
+        printf("Sending packet out %s\n", 
+               l == options.intf1 ? options.intf1_name : options.intf2_name);
+        send --;
 
         /* leave do_sleep() */
         return;
