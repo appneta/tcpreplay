@@ -21,7 +21,6 @@
 #include "cache.h"
 #include "tcpreplay.h"
 
-extern CACHE *cachedata;
 extern int debug;
 
 static CACHE *new_cache();
@@ -35,14 +34,12 @@ static CACHE *new_cache();
  */
 
 int 
-read_cache(char *cachefile)
+read_cache(char **cachedata, char *cachefile)
 {
-	CACHE *cache_ptr;
-	CACHE_HEADER *cache_header;
-	u_int packets = 0;
 	int cachefd, cnt;
-	char header[32];
+	CACHE_HEADER header;
 	ssize_t read_size = 0;
+	unsigned long int cache_size = 0;
 
 	/* open the file or abort */
 	cachefd = open(cachefile, O_RDONLY);
@@ -50,70 +47,61 @@ read_cache(char *cachefile)
 		err(1, "open %s", cachefile);
 
 	/* read the cache header and determine compatibility */
-	if ((cnt = read(cachefd, header, sizeof(CACHE_HEADER))) < 0)
+	if ((cnt = read(cachefd, &header, sizeof(CACHE_HEADER))) < 0)
 		err(1, "read %s,", cachefile);
 
 	if (cnt < sizeof(CACHE_HEADER))
 		errx(1, "Cache file %s too small", cachefile);
 
-	/* map our structure over the bytes we read */
-	cache_header = (CACHE_HEADER *) header;
 
 	/* verify our magic: tcpprep\0 */
-	if (memcmp(cache_header->magic, CACHEMAGIC, sizeof(CACHEMAGIC)) != 0)
-		errx(1, "unable to process %s: not a tcpprep cache file", cachefile);
+	if (memcmp(header.magic, CACHEMAGIC, sizeof(CACHEMAGIC)) != 0)
+		errx(1, "Unable to process %s: not a tcpprep cache file", cachefile);
 
 	/* verify version */
-	if (atoi(cache_header->version) > atoi(CACHEVERSION))
-		errx(1, "unable to process %s: cache file version missmatch", cachefile);
+	if (atoi(header.version) != atoi(CACHEVERSION))
+		errx(1, "Unable to process %s: cache file version missmatch", cachefile);
 
-	/* malloc our first cache block */
-	cachedata = (CACHE *) malloc(sizeof(CACHE));
-	cache_ptr = cachedata;
-	memset(cache_ptr, '\0', sizeof(CACHE));
+	/* malloc our cache block */
+	cache_size = header.num_packets / header.packets_per_byte;
+	*cachedata = (char *) malloc(cache_size);
+	memset(*cachedata, '\0', cache_size);
 
-	/* read in the first cache block */
-	read_size = read(cachefd, cache_ptr->data, CACHEDATASIZE);
-	cache_ptr->bits = read_size - 1;
-	packets = read_size * 8;
-
-	/* if the cache block is full, load up another. wash, rinse, repeat */
-	while (read_size == CACHEDATASIZE) {
-		cache_ptr->next = new_cache();
-		cache_ptr = cache_ptr->next;
-
-		read_size = read(cachefd, cache_ptr->data, CACHEDATASIZE);
-		cache_ptr->bits = read_size - 1;
-		packets += read_size * 8;
-	}
+	/* read in the cache */
+	read_size = read(cachefd, *cachedata, cache_size);
+	if (read_size != cache_size)
+		errx(1, "Cache data length (%ld bytes) doesn't match cache header (%ld bytes)",
+			 read_size, cache_size);
 
 #ifdef DEBUG
 	if (debug)
-		fprintf(stderr, "Loaded in %d packets from cache.\n", packets);
+		fprintf(stderr, "Loaded in %ld packets from cache.\n", header.num_packets);
 #endif
 	close(cachefd);
-	return (packets);
+	return (header.num_packets);
 }
 
 
 /*
- * writes out the contents of global CACHE * cachedata to out_file returns
+ * writes out the contents of *cachedata to out_file returns
  * the number of cache entries (bits) written (not including the file header
  * (magic + version = 11 bytes)
  */
-u_int 
-write_cache(const int out_file)
+unsigned long
+write_cache(CACHE *cachedata, const int out_file, unsigned long numpackets)
 {
 	CACHE *mycache;
 	CACHE_HEADER *cache_header;
 	int chars, last = 0;
-	unsigned int packets = 1;
+	unsigned long packets = 1;
 	ssize_t written;
 
 	/* write a header to our file */
 	cache_header = (CACHE_HEADER *) malloc(sizeof(CACHE_HEADER));
 	strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
 	strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
+	cache_header->packets_per_byte = CACHE_PACKETS_PER_BYTE;
+	cache_header->num_packets = numpackets;
 
 	written = write(out_file, cache_header, sizeof(CACHE_HEADER));
 	if (written != sizeof(CACHE_HEADER))
@@ -175,17 +163,17 @@ new_cache()
  */
 
 void 
-add_cache(const int truefalse)
+add_cache(CACHE **cachedata, const int send, const int interface)
 {
 	CACHE *lastcache = NULL;
 	u_char *byte = NULL;
 
 	/* first run?  malloc our first entry, set bit count to 0 */
-	if (cachedata == NULL) {
-		cachedata = new_cache();
-		lastcache = cachedata;
+	if (*cachedata == NULL) {
+		*cachedata = new_cache();
+		lastcache = *cachedata;
 	} else {
-		lastcache = cachedata;
+		lastcache = *cachedata;
 		/* existing cache, go to last entry */
 		while (lastcache->next != NULL) {
 			lastcache = lastcache->next;
@@ -205,13 +193,57 @@ add_cache(const int truefalse)
 		}
 	}
 
-	/* if true, set bit. else, do squat */
-	if (truefalse) {
+	/* send packet ? */
+	if (send) {
 		byte = &lastcache->data[lastcache->bits / 8];
 		*byte = *byte + (u_char) pow((double) 2, (double) (lastcache->bits % 8));
 #ifdef DEBUG
 		if (debug)
 			fprintf(stderr, "byte %d = 0x%x\n", (lastcache->bits / 8), *byte);
 #endif
+
+		/* go to the next bit */
+		lastcache->bits++;
+
+		/* if true, set bit. else, do squat */
+		if (interface) {
+			byte = &lastcache->data[lastcache->bits / 8];
+			*byte = *byte + (u_char) pow((double) 2, (double) (lastcache->bits % 8));
+#ifdef DEBUG
+			if (debug)
+				fprintf(stderr, "byte %d = 0x%x\n", (lastcache->bits / 8), *byte);
+#endif
+		}
+	} else {
+		/* always need to jump a bit */
+		lastcache->bits ++;
 	}
+}
+
+
+/*
+ * returns the action for a given packet based on the CACHE
+ */
+int
+check_cache(char *cachedata, unsigned long packetid)
+{
+	int bit = 0;
+	unsigned long index = 0;
+
+	index = packetid / CACHE_PACKETS_PER_BYTE;
+	bit = ((packetid % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
+
+	if (! (cachedata[index] & (char)pow((long)2, (long)bit))) {
+		return CACHE_NOSEND;
+	}
+
+	/* go back a bit to get the interface */
+	bit --;
+	if (cachedata[index] & (char)pow((long)2, (long)bit)) {
+		return CACHE_PRIMARY;
+	} else {
+		return CACHE_SECONDARY;
+	}
+
+	return CACHE_ERROR;
 }
