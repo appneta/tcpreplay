@@ -106,7 +106,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     /* read the comment */
     header.comment_len = ntohs(header.comment_len);
-    *comment = (char *)safe_malloc(header.comment_len);
+    *comment = (char *)safe_malloc(header.comment_len + 1);
 
     dbg(1, "Comment length: %d", header.comment_len);
     
@@ -277,8 +277,7 @@ add_cache(cache_t ** cachedata, const int send, const int interface)
         /* check to see if this is the last bit in this struct */
         if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
             /*
-             * if so, we have to malloc a new one and set bit to
-             * 0
+             * if so, we have to malloc a new one and set bit to 0
              */
             dbg(1, "Adding to cachedata linked list");
             lastcache->next = new_cache();
