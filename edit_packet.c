@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.19 2004/05/14 17:31:22 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.20 2004/05/15 21:14:35 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -586,18 +586,20 @@ rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l)
     u_char *add_hdr = NULL;
     u_int32_t *ip1 = NULL, *ip2 = NULL;
     u_int32_t newip = 0;
-    CIDRMAP *cidrmap = NULL;
-    int didsrc = 0, diddst = 0;
+    CIDRMAP *cidrmap1 = NULL, *cidrmap2 = NULL;
+    int didsrc = 0, diddst = 0, loop = 1;
 
    /* figure out what mapping to use */
     if (l == options.intf1) {
-        cidrmap = cidrmap_data1;
+        cidrmap1 = cidrmap_data1;
+        cidrmap2 = cidrmap_data2;
     } else if (l == options.intf2) {
-        cidrmap = cidrmap_data2;
+        cidrmap1 = cidrmap_data2;
+        cidrmap2 = cidrmap_data1;
     }
 
     /* anything to rewrite? */
-    if (cidrmap == NULL)
+    if (cidrmap1 == NULL || cidrmap2 == NULL)
         return(0);
 
     /* must be IPv4 and request or reply 
@@ -617,25 +619,53 @@ rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l)
 
         /* loop through the cidrmap to rewrite */
         do {
-            if (ip_in_cidr(cidrmap->from, *ip1) && (! diddst)) {
-                newip = remap_ip(cidrmap->to, *ip1);
-                memcpy(ip1, &newip, 4);
-                diddst = 1;
-            }
-            if (ip_in_cidr(cidrmap->from, *ip2) && (! didsrc)) {
-                newip = remap_ip(cidrmap->to, *ip2);
-                memcpy(ip2, &newip, 4);
-                didsrc = 1;
+            /* arp request ? */
+            if (ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) {
+                if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip1)) {
+                    newip = remap_ip(cidrmap2->to, *ip1);
+                    memcpy(ip1, &newip, 4);
+                    diddst = 1;
+                }
+                if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip2)) {
+                    newip = remap_ip(cidrmap1->to, *ip2);
+                    memcpy(ip2, &newip, 4);
+                    didsrc = 1;
+                }
+            } 
+            /* else it's an arp reply */
+            else {
+                if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip2)) {
+                    newip = remap_ip(cidrmap2->to, *ip2);
+                    memcpy(ip2, &newip, 4);
+                    diddst = 1;
+                }
+                if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip1)) {
+                    newip = remap_ip(cidrmap1->to, *ip1);
+                    memcpy(ip1, &newip, 4);
+                    didsrc = 1;
+                }
             }
             
-            /* go to the next case if at end of map or did both src and dst */
-            if (cidrmap->next != NULL || (diddst && didsrc)) {
-                cidrmap = cidrmap->next;
-            } else {
-                cidrmap = NULL;
-            } 
 
-        } while (cidrmap != NULL);
+            /*
+             * loop while we haven't modified both src/dst AND
+             * at least one of the cidr maps have a next pointer
+             */
+            if ((! (diddst && didsrc)) &&
+                (! ((cidrmap1->next == NULL) && (cidrmap2->next == NULL)))) {
+                
+                /* increment our ptr's if possible */
+                if (cidrmap1->next != NULL)
+                    cidrmap1 = cidrmap1->next;
+                
+                if (cidrmap2->next != NULL)
+                    cidrmap2 = cidrmap2->next;
+                
+            } else {
+                loop = 0;
+            }
+
+        } while (loop);
         
     } else {
         warnx("ARP packet isn't for IPv4!  Can't rewrite IP's");
