@@ -171,19 +171,14 @@ check_ip_regex(const unsigned long ip)
 static unsigned long 
 process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 {
-#if USE_LIBNET_VERSION == 10
-	typedef struct libnet_ip_hdr ip_hdr_t;
-#elif USE_LIBNET_VERSION == 11
-	typedef struct libnet_ipv4_hdr ip_hdr_t;
-#endif
 	ip_hdr_t ip_hdr;
-	struct libnet_ethernet_hdr *eth_hdr = NULL;
+	eth_hdr_t *eth_hdr = NULL;
 	struct packet pkt;
 	unsigned long packetnum = 0;
 
 	while ((*get_next) (fd, &pkt)) {
 		packetnum ++;
-		eth_hdr = (struct libnet_ethernet_hdr *) (pkt.data);
+		eth_hdr = (eth_hdr_t *) (pkt.data);
 
 		/* look for include or exclude LIST match */
 		if (xX_list != NULL) {
