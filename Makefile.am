@@ -11,11 +11,15 @@ dist-hook: version docs
 DOCS_DIR = $(top_builddir)/docs
 
 docs:
+	cd scripts && make
 	echo Making docs in $(DOCS_DIR)
 	cd $(DOCS_DIR) && make docs
 
 clean-docs:
 	cd $(DOCS_DIR) && make clean-docs
+
+postweb:
+	cd $(DOCS_DIR) && make postweb
 
 TEST_DIR = $(top_builddir)/test
 
