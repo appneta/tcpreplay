@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.39 2003/12/09 03:18:04 aturner Exp $ */
+/* $Id: do_packets.c,v 1.40 2003/12/11 03:04:12 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <libnet.h>
 #include <pcapnav.h>
 #include <sys/time.h>
@@ -56,7 +58,8 @@ extern struct options options;
 extern char *cachedata;
 extern CIDR *cidrdata;
 extern struct timeval begin, end;
-extern unsigned long bytes_sent, failed, pkts_sent, cache_packets;
+extern u_int64_t bytes_sent, failed, pkts_sent;
+extern u_int32_t cache_packets;
 extern volatile int didsig;
 extern int l2len, maxpacket;
 
@@ -140,12 +143,18 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
     /* get the pcap handler for the main loop */
     pcap = pcapnav_pcap(pcapnav);
 
-    /* MAIN LOOP */
-    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
+    /* MAIN LOOP 
+     * Keep sending while we have packets or until
+     * we've sent enough packets
+     */
+    while (((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) &&
+	   (options.limit_send != pkts_sent)) {
 	if (didsig) {
 	    packet_stats();
-	    _exit(1);
+	    exit(1);
 	}
+
+	dbg(2, "packets sent %llu", pkts_sent);
 
 	packetnum++;
 	dbg(2, "packet %d caplen %d", packetnum, pkthdr.caplen);
@@ -216,7 +225,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 	    case 127:
 	    case 255:
 
-		dbg(1, "Skipping martian.  Packet #%d", pkts_sent);
+		dbg(1, "Skipping martian.  Packet #%d", packetnum);
 
 
 		/* then skip the packet */
@@ -351,6 +360,16 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 #ifdef FORCE_ALIGN
     free(ipbuff);
 #endif
+
+    /* 
+     * if we exited our while() loop, we need to exit 
+     * gracefully
+     */
+    if (options.limit_send == pkts_sent) {
+      packet_stats();
+      exit(1);
+    }
+
 }
 
 
