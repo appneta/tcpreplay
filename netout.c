@@ -50,7 +50,7 @@
 #include "edit_packet.h"
 #include "err.h"
 #include "do_packets.h"
-#include "replay_live.h"
+#include "netout.h"
 #include "list.h"
 #include "xX.h"
 

@@ -59,7 +59,7 @@
 #include "portmap.h"
 #include "cache.h"
 #include "err.h"
-#include "do_packets.h"
+#include "fileout.h"
 #include "edit_packet.h"
 #include "timer.h"
 #include "list.h"
