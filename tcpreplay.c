@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.59 2003/06/05 16:51:36 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.60 2003/06/06 01:26:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -80,6 +80,9 @@ main(int argc, char *argv[])
     options.n_iter = 1;
     options.rate = 0.0;
     options.pause = -1.0;
+
+    /* set the default MTU size */
+    options.mtu = DEFAULT_MTU;
 
     cache_bit = cache_byte = 0;
 
