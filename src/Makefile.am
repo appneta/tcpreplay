@@ -23,7 +23,7 @@ flowreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
 		 defines.h dlt.h dlt_names.h edit_packet.h \
 		 fileout.h flowbuff.h flowkey.h flownode.h flowstate.h \
-		 signal_handler.h tcpdump.h
+		 signal_handler.h tcpdump.h common.h
 
 tcpreplay_CFLAGS = -I../lib
 tcpprep_CFLAGS = -I../lib
