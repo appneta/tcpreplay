@@ -1,5 +1,6 @@
 ??/??/2003: Version 1.4.beta3
 	- Specifying a list of packets to include/exclude now works (-x/X P:)
+	- Fix problem with -m not adjusting time between packets correctly
 	- Minor code cleanups (better error messages, etc)
 
 01/07/2003: Version 1.4.beta2
