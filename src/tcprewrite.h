@@ -49,7 +49,7 @@ struct tcprewrite_opt_s {
     libnet_t *l;
 
     /* tcpprep cache data */
-    int cache_packets;
+    COUNTER cache_packets;
     char *cachedata;
  
     /* rewrite src/dst MAC addresses */
@@ -57,15 +57,27 @@ struct tcprewrite_opt_s {
     macaddr_t intf1_smac;
     macaddr_t intf2_dmac;
     macaddr_t intf2_smac;
- 
+
+    int mac_mask;
+#define SMAC1 0x1
+#define SMAC2 0x2
+#define DMAC1 0x4
+#define DMAC2 0x8
+    
     /* rewriting L2 data */
     l2_t l2;
     
+
+    /* 802.1q vlan stuff */
+#define VLAN_DEL     1        /* strip 802.1q and rewrite as standard 802.3 Ethernet */
+#define VLAN_ADD     2        /* add/replace 802.1q vlan tag */
+    int vlan;
+
     /* rewrite ip? */
-    int rewrite_ip; /* needs to be <= 1 */
+    int rewrite_ip;            /* needs to be >= 1 */
     
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
-    cidrmap_t *cidrmap1;   /* tcpprep cache data */
+    cidrmap_t *cidrmap1;       /* tcpprep cache data */
     cidrmap_t *cidrmap2;
     
     /* pseudo-randomize IP addresses using a seed */
@@ -78,16 +90,37 @@ struct tcprewrite_opt_s {
 #define FIXLEN_PAD   1
 #define FIXLEN_TRUNC 2
     int fixlen;
-    int mtu; /* Deal with different MTU's */
-    int maxpacket; /* L2 header + MTU */
+    int mtu;                   /* Deal with different MTU's */
+    int maxpacket;             /* L2 header + MTU */
     
     /* fix IP/TCP/UDP checksums */
     int fixcsum;
 
+    /* remove ethernet FCS */
+    int efcs;
+    
     /* tcpprep cache file comment */
     char *comment; 
+
+    /* tcpdump verbose printing */
+
+#ifdef HAVE_TCPDUMP
+    /* tcpdump verbose printing */
+    int verbose;
+    char *tcpdump_args;
+#endif
+
 };
 
 typedef struct tcprewrite_opt_s tcprewrite_opt_t;
 
 #endif /* __TCPREWRITE_H__ */
+
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/

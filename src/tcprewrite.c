@@ -1,7 +1,7 @@
-/* $Id: $ */
+/* $Id:$ */
 
 /*
- * Copyright (c) 2004 Aaron Turner.
+ * Copyright (c) 2004-2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,13 +61,21 @@
 int debug;
 #endif
 
+
+#ifdef HAVE_TCPDUMP
+/* tcpdump handle */
+tcpdump_t tcpdump;
+#endif
+
+COUNTER total_bytes, pkts_edited;
 tcprewrite_opt_t options;
 
 /* local functions */
-void validate_l2(char *name, l2_t *l2);
+void validate_l2(pcap_t *pcap, char *filename, l2_t *l2);
 void init(void);
 void post_args(int argc, char *argv[]);
-void rewrite_packets(pcap_t * pcap);
+void rewrite_packets(pcap_t *pcap);
+void verify_input_pcap(pcap_t *pcap);
 
 int main(int argc, char *argv[])
 {
@@ -82,43 +90,52 @@ int main(int argc, char *argv[])
     argv += optct;
 
     post_args(argc, argv);
+
     if ((options.l = libnet_init(LIBNET_RAW4, NULL, ebuf)) == NULL)
         errx(1, "Unable to open raw socket for libnet: %s", ebuf);
  
-#if 0
-  /*
-     * some options are limited if we change the type of header
-     * we're making a half-assed assumption that any header 
-     * length = LIBNET_ETH_H is actually 802.3.  This will 
-     * prolly bite some poor slob later using some wierd
-     * header type in their pcaps, but I don't really care right now
-     */
-    if (options.l2.len != LIBNET_ETH_H) {
-        /* 
-         * we can't untruncate packets with a different lenght
-         * ethernet header because we don't take the lenghts
-         * into account when doing the pointer math
-         */
-        if (options.fixlen)
-            err(1, "You can't use -u with non-802.3 frames");
 
-        /*
-         * we also can't rewrite macs for non-802.3
-         */
-        if ((memcmp(options.intf1_dmac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-            (memcmp(options.intf2_dmac, NULL_MAC, LIBNET_ETH_H) == 0))
-            err(1, "You can't rewrite destination MAC's with non-802.3 frames");
-
+#ifdef HAVE_TCPDUMP
+    if (options.verbose) {
+        tcpdump.filename = options.infile;
+        tcpdump_open(&tcpdump);
     }
+#endif
+
+
+    /* clean up after ourselves */
+    libnet_destroy(options.l);
+    pcap_dump_close(options.pout);
+    pcap_close(options.pin);
+
+#ifdef HAVE_TCPDUMP
+    tcpdump_close(&tcpdump);
 #endif
 
     return 0;
 }
 
-void init(void)
+void 
+init(void)
 {
     memset(&options, 0, sizeof(options));
     options.mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
+    options.l2.len = LIBNET_ETH_H;
+
+    total_bytes = pkts_edited = 0;
+
+    options.l2.linktype = LINKTYPE_ETHER;
+
+#ifdef HAVE_TCPDUMP
+    /* clear out tcpdump struct */
+    memset(&tcpdump, '\0', sizeof(tcpdump_t));
+#endif
+    
+    
+    if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
+        warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
+    
+
 }
 
 
@@ -133,6 +150,17 @@ void post_args(int argc, char *argv[])
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
     
+
+#ifdef HAVE_TCPDUMP
+    if (HAVE_OPT(VERBOSE))
+        options.verbose = 1;
+    
+    if (HAVE_OPT(DECODE))
+        options.tcpdump_args = safe_strdup(OPT_ARG(DECODE));
+    
+#endif
+
+
     /*
      * If we have one and only one -N, then use the same map data
      * for both interfaces/files
@@ -140,94 +168,126 @@ void post_args(int argc, char *argv[])
     if ((options.cidrmap1 != NULL) && (options.cidrmap2 == NULL))
         options.cidrmap2 = options.cidrmap1;
 
-    
+    /*
+     * validate 802.1q vlan args and populate options.vlan_record
+     */
+    if (options.vlan) {
+        if ((options.vlan == VLAN_ADD) && (HAVE_OPT(VLAN_TAG) == 0))
+            err(1, "Must specify a new 802.1q VLAN tag if vlan mode is add");
+        
+        /* 
+         * fill out the 802.1q header
+         */
+        options.l2.linktype = LINKTYPE_VLAN;
+        
+        /* if VLAN_ADD then 802.1q header, else 802.3 header len */
+        options.l2.len = options.vlan == VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
+
+        dbg(1, "We will %s 802.1q headers", options.vlan == VLAN_DEL ? "delete" : "add/modify");
+    }
+
 }
 
 
 /* 
- * if linktype not DLT_EN10MB we have to see if we can send the frames
- * if DLT_LINUX_SLL AND (options.intf1_dmac OR l2enabled), then OK
- * else if l2enabled, then ok
+ * we can rewrite a number of linktypes into DLT_EN10MB (with or without 802.1q tags)
+ * maybe in the future, we'll support outputs into other linktypes.  But for now
+ * we just need to make sure we have enough information (packet + user options)
+ * to generate a valid ethernet frame
  */
 void
-validate_l2(char *name, l2_t *l2)
+validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
 {
 
-    dbg(1, "Linktype is %s\n", pcap_datalink_val_to_description(l2->linktype));
+    dbg(1, "File linktype is %s\n", pcap_datalink_val_to_description(pcap_datalink(pcap)));
 
-    switch (l2->linktype) {
+    /* 
+     * user specified a full L2 header, so we're all set!
+     */
+    if (l2->enabled)
+        return;
+
+    /*
+     * compare the linktype of the capture file to the information 
+     * provided on the CLI (src/dst MAC addresses)
+     */
+
+    switch (pcap_datalink(pcap)) {
     case DLT_EN10MB:
         /* nothing to do here */
+        return;
         break;
 
+
     case DLT_LINUX_SLL:
-        
+        /* 
+         * DLT_LINUX_SLL
+         * Linux cooked socket has the source mac but not the destination mac
+         * hence we look for the destination mac(s)
+         */
         /* single output mode */
-        if (options.cachedata == NULL) {
-            /* if SLL, then either -2 or -I are ok */
-            if ((memcmp(options.intf1_dmac, NULL_MAC, LIBNET_ETH_H) == 0) && (!l2->enabled)) {
-                warnx("Unable to process pcap without -2 or -I: %s", name);
-                return;
+        if (! options.cache_packets) {
+            /* if SLL, then either --dlink or --dmac  are ok */
+            if (options.mac_mask & DMAC1 == 0) {
+                errx(1, "%s requires --dlink or --dmac <mac>: %s", 
+                     pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
             }
         }
         
         /* dual output mode */
         else {
-            /* if using dual interfaces, make sure -2 or -J & -I) is set */
-            if (((memcmp(options.intf2_dmac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf1_dmac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
-                (! l2->enabled)) {
-                errx(1, "Unable to process pcap with -j without -2 or -I & -J: %s",  name);
-                return;
+            /* if using dual interfaces, make sure we have both dest MAC's */
+            if ((options.mac_mask & DMAC1 == 0) || (options.mac_mask & DMAC2 == 0)) {
+                errx(1, "%s with --cachefile requires --dlink or\n"
+                     "\t--dmac <mac1>:<mac2>: %s",  
+                     pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
             }
         }            
         break;
-            
-    case DLT_CHDLC:
-        /* Cisco HDLC (used at least for SONET) */
+ 
+    case DLT_C_HDLC:
+    case DLT_RAW:
         /* 
-         * HDLC has a 4byte header, a 2 byte address type (0x0f00 is unicast
-         * is all I know) and a 2 byte protocol type
+         * DLT_C_HDLC
+         * Cisco HDLC doesn't contain a source or destination mac,
+         * but it does contain the L3 protocol type (just like an ethernet header
+         * does) so we require either a full L2 or both src/dst mac's
+         *
+         * DLT_RAW is always IP, so we know the protocol type
          */
             
         /* single output mode */
-        if (options.cachedata == NULL) {
-            /* Need either a full l2 header or -I & -k */
-            if (((memcmp(options.intf1_dmac, NULL_MAC, LIBNET_ETH_H) == 0) || 
-                 (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
-                (! l2->enabled)) {
-                errx(1, "Unable to process pcap without -2 or -I and -k: %s", name);
-                return;
+        if (! options.cache_packets) {
+            /* Need both src/dst MAC's */
+            if ((options.mac_mask & DMAC1 == 0) || (options.mac_mask & DMAC2 == 0)) {
+                errx(1, "%s requires --dlink or --smac <mac> and --dmac <mac>: %s", 
+                     pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
             }
         }
         
         /* dual output mode */
         else {
-            /* Need to have a l2 header or -J, -K, -I, -k */
-            if (((memcmp(options.intf1_dmac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf1_smac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf2_dmac, NULL_MAC, LIBNET_ETH_H) == 0) ||
-                 (memcmp(options.intf2_smac, NULL_MAC, LIBNET_ETH_H) == 0)) &&
-                (! l2->enabled)) {
-                errx(1, "Unable to process pcap with -j without -2 or -J, -I, -K & -k: %s", name);
-                return;
+            /* Need to have src/dst MAC's for both directions */
+            if (options.mac_mask != SMAC1 + SMAC2 + DMAC1 + DMAC2) {
+                errx(1, "%s with --cachefile requires --dlink or\n"
+                     "\t--smac <mac1>:<mac2> and --dmac <mac1>:<mac2>: %s",
+                     pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
             }
-        }
-        break;
-        
-    case DLT_RAW:
-        if (! l2->enabled) {
-            errx(1, "Unable to process pcap without -2: %s",  name);
-            return;
         }
         break;
 
     default:
-        errx(1, "validate_l2(): Unsupported datalink type: %s (0x%x)", 
-             pcap_datalink_val_to_description(l2->linktype), l2->linktype);
+        errx(1, "Unsupported datalink %s (0x%x): %s", 
+             pcap_datalink_val_to_description(pcap_datalink(pcap)), 
+             pcap_datalink(pcap), filename);
         break;
     }
 
+
+    /* 
+     * ALL THIS CODE NEEDS TO GO SOMEWHERE ELSE
+     */
+#if 0
     /* calculate the maxpacket based on the l2len, linktype and mtu */
     if (l2->enabled) {
         /* custom L2 header */
@@ -243,8 +303,9 @@ validate_l2(char *name, l2_t *l2)
         /* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
         options.maxpacket = options.mtu + LIBNET_ETH_H;
         warn("Unable to determine layer 2 encapsulation, assuming ethernet\n"
-            "You may need to increase the MTU (-t <size>) if you get errors");
+             "You may need to increase the MTU (-t <size>) if you get errors");
     }
+#endif
 
 }
 
@@ -255,15 +316,15 @@ rewrite_packets(pcap_t * pcap)
     ip_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
     int cache_result = CACHE_PRIMARY; /* default to primary */
-    struct pcap_pkthdr pkthdr;        /* libpcap packet info */
-    const u_char *nextpkt = NULL;     /* packet buffer from libpcap */
-    u_char *pktdata = NULL;           /* full packet buffer */
+    struct pcap_pkthdr pkthdr;        /* packet header */
+    u_char newpkt[MAXPACKET] = "";    /* our new packet after editing */
+    const u_char *pktdata = NULL;     /* packet from libpcap */
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;            /* IP header and above buffer */
 #endif
     struct timeval last;
     static int firsttime = 1;
-    int ret, newl2len;
+    int ret, l2len = 0;
     u_int64_t packetnum = 0;
 #ifdef HAVE_PCAPNAV
     pcapnav_result_t pcapnav_result = 0;
@@ -273,26 +334,33 @@ rewrite_packets(pcap_t * pcap)
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
   
 
-    /* create packet buffers */
-    pktdata = (u_char *)safe_malloc(maxpacket);
-
 #ifdef FORCE_ALIGN
-    ipbuff = (u_char *)safe_malloc(maxpacket);
-        
+    ipbuff = (u_char *)safe_malloc(MAXPACKET);
 #endif
-
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL)) {
+    while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
 
-        dbg(2, "packets edited %llu", pkts_sent);
+        /* zero out the old packet info */
+        memset(newpkt, 0, MAXPACKET);
+
+        /* 
+         * copy the packet data to a buffer which allows us
+         * to edit the contents of
+         */
+        memcpy(newpkt, pktdata, pkthdr.caplen);
 
         packetnum++;
         dbg(2, "packet %llu caplen %d", packetnum, pkthdr.caplen);
 
+
+#ifdef HAVE_TCPDUMP
+        if (options.verbose)
+            tcpdump_print(&tcpdump, &pkthdr, newpkt);
+#endif
     
         /* Dual nic processing? */
         if (options.cachedata != NULL) {
@@ -304,19 +372,25 @@ rewrite_packets(pcap_t * pcap)
          * output file (note, we can't just remove it, or the tcpprep cache
          * file will loose it's indexing
          */
+
         if (cache_result == CACHE_NOSEND)
             goto WRITE_PACKET;
     
-        /* zero out the old packet info */
-        memset(pktdata, '\0', maxpacket);
         needtorecalc = 0;
 
-        /* Rewrite any Layer 2 data */
-        if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt,
-                                   linktype, l2enabled, l2data, l2len)) == 0)
-            continue; /* why do we continue here ??? */
+        /*
+         * remove the Ethernet FCS (checksum)?
+         * note that this feature requires the end user to be smart and
+         * only set this flag IFF the pcap has the FCS.  If not, then they
+         * just removed 2 bytes of ACTUAL PACKET DATA.  Sucks to be them.
+         */
+        if (options.efcs)
+            pkthdr.caplen -= 2;
+        
 
-        l2len = newl2len;
+        /* Rewrite any Layer 2 data */
+        if ((l2len = rewrite_l2(pcap, &pkthdr, newpkt, cache_result)) == 0)
+            continue; /* packet is too long and we didn't trunc, so skip it */
 
         eth_hdr = (eth_hdr_t *) pktdata;
 
@@ -331,39 +405,21 @@ rewrite_packets(pcap_t * pcap)
              * we do all this work to prevent byte alignment issues
              */
             ip_hdr = (ip_hdr_t *) ipbuff;
-            memcpy(ip_hdr, (&pktdata[l2len]), pkthdr.caplen - l2len);
+            memcpy(ip_hdr, (&newpkt[l2len]), pkthdr.caplen - l2len);
 #else
             /*
              * on non-strict byte align systems, don't need to memcpy(), 
              * just point to 14 bytes into the existing buffer
              */
-            ip_hdr = (ip_hdr_t *) (&pktdata[l2len]);
+            ip_hdr = (ip_hdr_t *) (&newpkt[l2len]);
 #endif
         } else {
             /* non-IP packets have a NULL ip_hdr struct */
             ip_hdr = NULL;
         }
 
-        if (cache_result == CACHE_PRIMARY) {
-            /* check for destination MAC rewriting */
-            if (memcmp(options.intf1_dmac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-                memcpy(eth_hdr->ether_dhost, options.intf1_dmac, ETHER_ADDR_LEN);
-            }
-            if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-                memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
-            }
-        } else if (cache_result == CACHE_SECONDARY) {
-            /* check for destination MAC rewriting */
-            if (memcmp(options.intf2_dmac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-                memcpy(eth_hdr->ether_dhost, options.intf2_dmac, ETHER_ADDR_LEN);
-            }
-            if (memcmp(options.intf2_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-                memcpy(eth_hdr->ether_shost, options.intf2_smac, ETHER_ADDR_LEN);
-            }
-        }
-
         /* rewrite IP addresses */
-        if (options.rewriteip) {
+        if (options.rewrite_ip) {
             /* IP packets */
             if (ip_hdr != NULL) {
                 needtorecalc += rewrite_ipl3(ip_hdr, cache_result);
@@ -371,34 +427,34 @@ rewrite_packets(pcap_t * pcap)
 
             /* ARP packets */
             else if (ntohs(eth_hdr->ether_type) == ETHERTYPE_ARP) {
-                arp_hdr = (arp_hdr_t *)(&pktdata[l2len]);
+                arp_hdr = (arp_hdr_t *)(&newpkt[l2len]);
                 /* unlike, rewrite_ipl3, we don't care if the packet changed
                  * because we never need to recalc the checksums for an ARP
                  * packet.  So ignore the return value
                  */
-                rewrite_iparp(arp_hdr, l);
+                rewrite_iparp(arp_hdr, cache_result);
             }
         }
 
         /* rewrite ports */
-        if (options.rewriteports && (ip_hdr != NULL)) {
-            needtorecalc += rewrite_ports(portmap_data, &ip_hdr);
+        if (options.portmap != NULL && (ip_hdr != NULL)) {
+            needtorecalc += rewrite_ports(options.portmap, &ip_hdr);
         }
 
         /* Untruncate packet? Only for IP packets */
-        if ((options.trunc) && (ip_hdr != NULL)) {
-            needtorecalc += untrunc_packet(&pkthdr, pktdata, ip_hdr, cache_result, l2len);
+        if ((options.fixlen) && (ip_hdr != NULL)) {
+            needtorecalc += untrunc_packet(&pkthdr, newpkt, ip_hdr);
         }
 
 
         /* do we need to spoof the src/dst IP address? */
         if ((options.seed) && (ip_hdr != NULL)) {
-            needtorecalc += randomize_ips(&pkthdr, pktdata, ip_hdr, cache_result, l2len);
+            needtorecalc += randomize_ips(&pkthdr, newpkt, ip_hdr);
         }
 
         /* do we need to force fixing checksums? */
-        if ((options.fixchecksums || needtorecalc) && (ip_hdr != NULL)) {
-            fix_checksums(&pkthdr, ip_hdr, cache_result);
+        if ((options.fixcsum || needtorecalc) && (ip_hdr != NULL)) {
+            fix_checksums(&pkthdr, ip_hdr);
         }
 
 #ifdef STRICT_ALIGN
@@ -406,26 +462,36 @@ rewrite_packets(pcap_t * pcap)
          * put back the layer 3 and above back in the pkt.data buffer 
          * we can't edit the packet at layer 3 or above beyond this point
          */
-        memcpy(&pktdata[l2len], ip_hdr, pkthdr.caplen - l2len);
+        memcpy(&newpkt[l2len], ip_hdr, pkthdr.caplen - l2len);
 #endif
 
         /* do we need to print the packet via tcpdump? */
+#ifdef HAVE_TCPDUMP
         if (options.verbose)
-            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+            tcpdump_print(&tcpdump, &pkthdr, newpkt);
+#endif
 
 WRITE_PACKET:
         /* write the packet */
-        pcap_dump((u_char *) options.pout, &pkthdr, pktdata);
+        pcap_dump((u_char *) options.pout, &pkthdr, newpkt);
 
-        bytes_sent += pkthdr.caplen;
-        pkts_sent++;
+        total_bytes += pkthdr.caplen;
+        pkts_edited ++;
 
     }                           /* while() */
 
     /* free buffers */
-    free(pktdata);
 #ifdef FORCE_ALIGN
     free(ipbuff);
 #endif
 
 }
+
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
