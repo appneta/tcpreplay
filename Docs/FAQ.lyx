@@ -1426,7 +1426,7 @@ The packet length (in this case 8892 bytes) is greater then the maximum
  the packet to the MTU size and send it.
 \layout Subsection
 
-Why isn't tcpreplay not sending all the packets?
+Why is tcpreplay not sending all the packets?
 \layout Standard
 
 Every now and then, someone emails the tcpreplay-users list, asking if there
