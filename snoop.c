@@ -1,4 +1,4 @@
-/* $Id: snoop.c,v 1.10 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: snoop.c,v 1.11 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -76,6 +76,7 @@ char *snoop_links[] = {
     "100Base-T ethernet",
     NULL
 };
+
 #define LINKSIZE (sizeof(snoop_links) / sizeof(snoop_links[0]) - 1)
 
 struct snoop_hdr shdr;
@@ -86,21 +87,21 @@ is_snoop(int fd)
     char *snoop_magic = SNOOP_MAGIC;
 
     if (lseek(fd, SEEK_SET, 0) != 0) {
-	err(1, "Unable to seek to start of file");
+        err(1, "Unable to seek to start of file");
     }
 
     if (read(fd, &shdr, sizeof(shdr)) != sizeof(shdr))
-	return 0;
+        return 0;
 
     if (memcmp(&shdr.magic, snoop_magic, sizeof(shdr.magic)) == 0) {
-	shdr.version = ntohl(shdr.version);
-	shdr.network = ntohl(shdr.network);
+        shdr.version = ntohl(shdr.version);
+        shdr.network = ntohl(shdr.network);
 
-	/* Dunno about snoop format history, but 2 definately works */
-	if (shdr.version != 2)
-	    return 0;
+        /* Dunno about snoop format history, but 2 definately works */
+        if (shdr.version != 2)
+            return 0;
 
-	return 1;
+        return 1;
     }
 
     return 0;
@@ -113,7 +114,7 @@ get_next_snoop(int fd, struct packet *pkt)
     int pad;
 
     if (read(fd, &rec, sizeof(rec)) != sizeof(rec))
-	return 0;
+        return 0;
 
     pkt->len = ntohl(rec.incl_len);
     pkt->actual_len = ntohl(rec.orig_len);
@@ -121,12 +122,12 @@ get_next_snoop(int fd, struct packet *pkt)
     pkt->ts.tv_usec = ntohl(rec.ts_usec);
 
     if (read(fd, &pkt->data, pkt->len) != pkt->len)
-	return 0;
+        return 0;
 
     /* Skip padding */
     pad = ntohl(rec.rec_len) - (sizeof(rec) + pkt->len);
     if (lseek(fd, pad, SEEK_CUR) == -1)
-	return 0;
+        return 0;
 
     return pkt->len;
 }
@@ -139,20 +140,20 @@ stat_snoop(int fd, struct snoop_info *p)
     p->version = shdr.version;
 
     if (shdr.network > LINKSIZE)
-	p->linktype = "unknown linktype";
+        p->linktype = "unknown linktype";
     else
-	p->linktype = snoop_links[shdr.network];
+        p->linktype = snoop_links[shdr.network];
 
     p->bytes = p->trunc = 0;
     for (p->cnt = 0; get_next_snoop(fd, &pkt); p->cnt++) {
-	/* grab time of the first packet */
-	if (p->cnt == 0)
-	    TIMEVAL_TO_TIMESPEC(&pkt.ts, &p->start_tm);
+        /* grab time of the first packet */
+        if (p->cnt == 0)
+            TIMEVAL_TO_TIMESPEC(&pkt.ts, &p->start_tm);
 
-	/* count truncated packets */
-	p->bytes += pkt.len;
-	if (pkt.actual_len > pkt.len)
-	    p->trunc++;
+        /* count truncated packets */
+        p->bytes += pkt.len;
+        if (pkt.actual_len > pkt.len)
+            p->trunc++;
     }
 
     /* grab time of the last packet */

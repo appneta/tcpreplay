@@ -1,4 +1,4 @@
-/* $Id: libpcap.h,v 1.6 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: libpcap.h,v 1.7 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -50,11 +50,11 @@
 
 /* data prefixing each packet in modified pcap */
 struct pcap_mod_pkthdr {
-    struct pcap_pkthdr hdr;	/* normal header */
-    u_int32_t ifindex;		/* receiving interface index */
-    u_int16_t protocol;		/* ethernet packet type */
-    u_int8_t pkt_type;		/* ethernet packet type */
-    u_int8_t pad;		/* padding */
+    struct pcap_pkthdr hdr;     /* normal header */
+    u_int32_t ifindex;          /* receiving interface index */
+    u_int16_t protocol;         /* ethernet packet type */
+    u_int8_t pkt_type;          /* ethernet packet type */
+    u_int8_t pad;               /* padding */
 };
 
 /* data describing a pcap */

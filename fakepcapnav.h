@@ -1,4 +1,4 @@
-/* $Id: fakepcapnav.h,v 1.1 2003/12/16 03:24:49 aturner Exp $ */
+/* $Id: fakepcapnav.h,v 1.2 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) Aaron Turner.
@@ -32,7 +32,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 #ifndef _FAKEPCAPNAV_H_
 #define _FAKEPCAPNAV_H_
 
@@ -42,9 +42,9 @@
 #ifndef HAVE_PCAPNAV
 
 typedef struct pcapnav pcapnav_t;
-	
+
 struct pcapnav {
-	pcap_t *pcap;
+    pcap_t *pcap;
 };
 
 void pcapnav_init(void);

@@ -35,7 +35,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * @(#) $Header: /home/cvs/tcpreplay/sll.h,v 1.1 2003/06/05 02:17:21 aturner Exp $ (LBL)
+ * @(#) $Header: /home/cvs/tcpreplay/sll.h,v 1.2 2003/12/16 03:58:37 aturner Exp $ (LBL)
  */
 
 /*
@@ -76,15 +76,15 @@
 /*
  * A DLT_LINUX_SLL fake link-layer header.
  */
-#define SLL_HDR_LEN	16		/* total header length */
-#define SLL_ADDRLEN	8		/* length of address field */
+#define SLL_HDR_LEN	16          /* total header length */
+#define SLL_ADDRLEN	8           /* length of address field */
 
 struct sll_header {
-	u_int16_t sll_pkttype;		/* packet type */
-	u_int16_t sll_hatype;		/* link-layer address type */
-	u_int16_t sll_halen;		/* link-layer address length */
-	u_int8_t sll_addr[SLL_ADDRLEN];	/* link-layer address */
-	u_int16_t sll_protocol;		/* protocol */
+    u_int16_t sll_pkttype;      /* packet type */
+    u_int16_t sll_hatype;       /* link-layer address type */
+    u_int16_t sll_halen;        /* link-layer address length */
+    u_int8_t sll_addr[SLL_ADDRLEN]; /* link-layer address */
+    u_int16_t sll_protocol;     /* protocol */
 };
 
 /*
@@ -120,5 +120,5 @@ struct sll_header {
  * in the Linux "if_ether.h" will, I suspect, actually show up in
  * captures.)
  */
-#define LINUX_SLL_P_802_3	0x0001	/* Novell 802.3 frames without 802.2 LLC header */
-#define LINUX_SLL_P_802_2	0x0004	/* 802.2 frames (not D/I/X Ethernet) */
+#define LINUX_SLL_P_802_3	0x0001  /* Novell 802.3 frames without 802.2 LLC header */
+#define LINUX_SLL_P_802_2	0x0004  /* 802.2 frames (not D/I/X Ethernet) */

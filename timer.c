@@ -1,4 +1,4 @@
-/* $Id: timer.c,v 1.8 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: timer.c,v 1.9 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -47,7 +47,7 @@ timerdiv(struct timeval *tvp, float div)
         return;
 
     interval = ((double)tvp->tv_sec * 1000000 + tvp->tv_usec) / (double)div;
-    tvp->tv_sec = interval / (int) 1000000;
+    tvp->tv_sec = interval / (int)1000000;
     tvp->tv_usec = interval - (tvp->tv_sec * 1000000);
 }
 

@@ -1,4 +1,4 @@
-/* $Id: tree.h,v 1.9 2003/11/05 06:47:08 aturner Exp $ */
+/* $Id: tree.h,v 1.10 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -41,12 +41,12 @@
 
 struct tree_type {
     RB_ENTRY(tree_type) node;
-    unsigned long ip;		/* ip/network address in network byte order */
+    unsigned long ip;           /* ip/network address in network byte order */
     u_char mac[ETHER_ADDR_LEN]; /* mac address of system */
-    int masklen;		/* CIDR network mask length */
-    int server_cnt;		/* count # of times this entry was flagged server */
-    int client_cnt;		/* flagged client */
-    int type;			/* 1 = server, 0 = client, -1 = undefined */
+    int masklen;                /* CIDR network mask length */
+    int server_cnt;             /* count # of times this entry was flagged server */
+    int client_cnt;             /* flagged client */
+    int type;                   /* 1 = server, 0 = client, -1 = undefined */
 };
 
 /*
@@ -57,17 +57,17 @@ struct data_tree {
 };
 
 struct buildcidr_type {
-    int type;			/* SERVER|CLIENT|UNKNOWN|ANY */
-    int masklen;		/* mask size to use to build the CIDR */
+    int type;                   /* SERVER|CLIENT|UNKNOWN|ANY */
+    int masklen;                /* mask size to use to build the CIDR */
 };
 
 typedef struct buildcidr_type BUILDCIDR;
 
-#define DEF_MAX_MASK  8		/* default max masklen */
-#define DEF_MIN_MASK  30	/* default min masklen */
-#define DEF_RATIO 2.0		/* default auto ratio */
+#define DEF_MAX_MASK  8         /* default max masklen */
+#define DEF_MIN_MASK  30        /* default min masklen */
+#define DEF_RATIO 2.0           /* default auto ratio */
 
-void add_tree(const unsigned long, const u_char *);	/* done */
+void add_tree(const unsigned long, const u_char *); /* done */
 int check_ip_tree(const int, const unsigned long);
 int process_tree();
 void tree_calculate(struct data_tree *);

@@ -1,4 +1,4 @@
-/* $Id: replay_live.h,v 1.2 2003/12/11 03:04:55 aturner Exp $ */
+/* $Id: replay_live.h,v 1.3 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -47,8 +47,8 @@
 struct macsrc_t {
     RB_ENTRY(macsrc_t) node;
     u_char key[ETHER_ADDR_LEN];
-    u_char source;         /* interface device name we first saw the source MAC */
-    libnet_t *libnet;      /* libnet handle to send packets out */
+    u_char source;              /* interface device name we first saw the source MAC */
+    libnet_t *libnet;           /* libnet handle to send packets out */
 };
 
 /* pri and secondary pcap interfaces */

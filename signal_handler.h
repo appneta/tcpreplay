@@ -1,4 +1,4 @@
-/* $Id: signal_handler.h,v 1.3 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: signal_handler.h,v 1.4 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -38,7 +38,7 @@
 
 void init_signal_handlers();
 void reset_suspend_time();
-void suspend_handler( int signo );
-void continue_handler( int signo );
+void suspend_handler(int signo);
+void continue_handler(int signo);
 
 #endif

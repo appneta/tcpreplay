@@ -1,4 +1,4 @@
-/* $Id: flownode.c,v 1.2 2003/06/02 00:05:00 aturner Exp $ */
+/* $Id: flownode.c,v 1.3 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -23,7 +23,7 @@ extern CIDR *clients, *servers;
 
 /* prepare the RB trees for tcp and udp sessions */
 RB_PROTOTYPE(session_tree, session_t, node, rbsession_comp)
-RB_GENERATE(session_tree, session_t, node, rbsession_comp)
+    RB_GENERATE(session_tree, session_t, node, rbsession_comp)
 
 
 /*
@@ -39,8 +39,7 @@ RB_GENERATE(session_tree, session_t, node, rbsession_comp)
  * provide adequate speed for collisions rather then ignoring
  * the collsion problem all together.
  */
-struct session_t *
-getnodebykey(char proto, u_char *key)
+     struct session_t *getnodebykey(char proto, u_char * key)
 {
     struct session_t *node = NULL;
     struct session_t like;
@@ -49,26 +48,26 @@ getnodebykey(char proto, u_char *key)
     memcpy(like.key, key, RBKEYLEN);
 
     if (proto == IPPROTO_TCP) {
-	if ((node = RB_FIND(session_tree, &tcproot, &like)) == NULL) {
-	    dbg(3, "Couldn't find TCP key: 0x%llx", pkeygen(key));
-	    return(NULL);
-	}
-    } 
+        if ((node = RB_FIND(session_tree, &tcproot, &like)) == NULL) {
+            dbg(3, "Couldn't find TCP key: 0x%llx", pkeygen(key));
+            return (NULL);
+        }
+    }
 
     else if (proto == IPPROTO_UDP) {
-	if ((node = RB_FIND(session_tree, &udproot, &like)) == NULL) {
-	    dbg(3, "Couldn't find UDP key: 0x%llx", pkeygen(key));
-	    return(NULL);
-	}
-    } 
+        if ((node = RB_FIND(session_tree, &udproot, &like)) == NULL) {
+            dbg(3, "Couldn't find UDP key: 0x%llx", pkeygen(key));
+            return (NULL);
+        }
+    }
 
     else {
-	warnx("Invalid tree protocol: 0x%x", proto);
-	return(NULL);
+        warnx("Invalid tree protocol: 0x%x", proto);
+        return (NULL);
     }
 
     dbg(3, "Found 0x%llx in the tree", pkeygen(key));
-    return(node);
+    return (node);
 
 }
 
@@ -78,7 +77,7 @@ getnodebykey(char proto, u_char *key)
  * we then return the node or NULL on error
  */
 struct session_t *
-newnode(char proto, u_char *key, ip_hdr_t *ip_hdr, void *l4)
+newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
 {
     struct sockaddr_in sa;
     struct session_t *newnode = NULL;
@@ -89,8 +88,9 @@ newnode(char proto, u_char *key, ip_hdr_t *ip_hdr, void *l4)
 
     dbg(2, "Adding new node: 0x%llx", pkeygen(key));
 
-    if ((newnode = (struct session_t *)malloc(sizeof(struct session_t))) == NULL)
-	errx(1, "Unable to malloc memory for a new node");
+    if ((newnode =
+         (struct session_t *)malloc(sizeof(struct session_t))) == NULL)
+        errx(1, "Unable to malloc memory for a new node");
 
     memset(newnode, '\0', sizeof(struct session_t));
 
@@ -100,82 +100,86 @@ newnode(char proto, u_char *key, ip_hdr_t *ip_hdr, void *l4)
 
     /* create a TCP or UDP socket & insert it in the tree */
     if (newnode->proto == IPPROTO_TCP) {
-	/* is this a Syn packet? */
-	tcp_hdr = (tcp_hdr_t *)l4;
-	
-	/* No new flows for non-Syn packets, unless NoSyn is set */
-	if ((tcp_hdr->th_flags != TH_SYN) && (NoSyn == 0)) {
-	    free(newnode);
-	    warnx("We won't connect (%s:%d -> %s:%d) on non-Syn packets", 
-		  libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE),
-		  ntohs(tcp_hdr->th_sport),
-		  libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE),
-		  ntohs(tcp_hdr->th_dport));
-	    return(NULL);
-	}
+        /* is this a Syn packet? */
+        tcp_hdr = (tcp_hdr_t *) l4;
 
-	/* otherwise, continue on our merry way */
-	newnode->server_ip = ip_hdr->ip_dst.s_addr;
-	newnode->server_port = tcp_hdr->th_dport;
+        /* No new flows for non-Syn packets, unless NoSyn is set */
+        if ((tcp_hdr->th_flags != TH_SYN) && (NoSyn == 0)) {
+            free(newnode);
+            warnx("We won't connect (%s:%d -> %s:%d) on non-Syn packets",
+                  libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE),
+                  ntohs(tcp_hdr->th_sport),
+                  libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE),
+                  ntohs(tcp_hdr->th_dport));
+            return (NULL);
+        }
 
-	/* figure out what we should set the state to */
-	tcp_state(tcp_hdr, newnode);
+        /* otherwise, continue on our merry way */
+        newnode->server_ip = ip_hdr->ip_dst.s_addr;
+        newnode->server_port = tcp_hdr->th_dport;
 
-	newnode->direction = C2S;
-	newnode->wait = DONT_WAIT;
+        /* figure out what we should set the state to */
+        tcp_state(tcp_hdr, newnode);
 
-	if ((newnode->socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-	    free(newnode);
-	    warnx("Unable to create new TCP socket: %s", strerror(errno));
-	    return(NULL);
-	}
+        newnode->direction = C2S;
+        newnode->wait = DONT_WAIT;
 
-	/* make our socket reusable */
-	setsockopt(newnode->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+        if ((newnode->socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+            free(newnode);
+            warnx("Unable to create new TCP socket: %s", strerror(errno));
+            return (NULL);
+        }
 
-	RB_INSERT(session_tree, &tcproot, newnode);
-	sa.sin_port = tcp_hdr->th_dport;
-    } 
+        /* make our socket reusable */
+        setsockopt(newnode->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
+        RB_INSERT(session_tree, &tcproot, newnode);
+        sa.sin_port = tcp_hdr->th_dport;
+    }
 
     else if (newnode->proto == IPPROTO_UDP) {
-	udp_hdr = (udp_hdr_t *)l4;
-	/* 
-	 * we're not as smart about UDP as TCP so we just assume
-	 * the first UDP packet is client->server unless we're 
-	 * told otherwise
-	 */
+        udp_hdr = (udp_hdr_t *) l4;
+        /* 
+         * we're not as smart about UDP as TCP so we just assume
+         * the first UDP packet is client->server unless we're 
+         * told otherwise
+         */
 
-	if ((clients != NULL) && (check_ip_CIDR(clients, ip_hdr->ip_src.s_addr))) {
-	    /* source IP is client */
-	    dbg(3, "UDP match client CIDR.  Server is destination IP: %s",
-		libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE));
-	    newnode->server_ip = ip_hdr->ip_dst.s_addr;
-	} else if ((servers != NULL) && (check_ip_CIDR(servers, ip_hdr->ip_src.s_addr))) {
-	    /* source IP is server */
-	    dbg(3, "UDP match server CIDR.  Server is source IP: %s",
-		libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
-	    newnode->server_ip = ip_hdr->ip_src.s_addr;
-	} else {
-	    /* first packet is client */
-	    dbg(3, "UDP client is first sender.  Server is: %s",
-		libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
-	    newnode->server_ip = ip_hdr->ip_dst.s_addr;
-	}
-	newnode->server_port = udp_hdr->uh_dport;
-	newnode->direction = C2S;
-	newnode->wait = DONT_WAIT;
+        if ((clients != NULL)
+            && (check_ip_CIDR(clients, ip_hdr->ip_src.s_addr))) {
+            /* source IP is client */
+            dbg(3, "UDP match client CIDR.  Server is destination IP: %s",
+                libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE));
+            newnode->server_ip = ip_hdr->ip_dst.s_addr;
+        }
+        else if ((servers != NULL)
+                 && (check_ip_CIDR(servers, ip_hdr->ip_src.s_addr))) {
+            /* source IP is server */
+            dbg(3, "UDP match server CIDR.  Server is source IP: %s",
+                libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
+            newnode->server_ip = ip_hdr->ip_src.s_addr;
+        }
+        else {
+            /* first packet is client */
+            dbg(3, "UDP client is first sender.  Server is: %s",
+                libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
+            newnode->server_ip = ip_hdr->ip_dst.s_addr;
+        }
+        newnode->server_port = udp_hdr->uh_dport;
+        newnode->direction = C2S;
+        newnode->wait = DONT_WAIT;
 
-	if ((newnode->socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-	    free(newnode);
-	    warnx("Unable to create new UDP socket: %s", strerror(errno));
-	    return(NULL);
-	}
+        if ((newnode->socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+            free(newnode);
+            warnx("Unable to create new UDP socket: %s", strerror(errno));
+            return (NULL);
+        }
 
-	/* make our socket reusable */
-	setsockopt(newnode->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+        /* make our socket reusable */
+        setsockopt(newnode->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
-	RB_INSERT(session_tree, &udproot, newnode);
-	sa.sin_port = udp_hdr->uh_dport;
+        RB_INSERT(session_tree, &udproot, newnode);
+        sa.sin_port = udp_hdr->uh_dport;
     }
 
     /* connect to socket */
@@ -183,35 +187,38 @@ newnode(char proto, u_char *key, ip_hdr_t *ip_hdr, void *l4)
 
     /* set the appropriate destination IP */
     if (targetaddr.s_addr != 0) {
-	sa.sin_addr = targetaddr;
-    } else {
-	sa.sin_addr = ip_hdr->ip_dst;
+        sa.sin_addr = targetaddr;
+    }
+    else {
+        sa.sin_addr = ip_hdr->ip_dst;
     }
 
-    if (connect(newnode->socket, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) < 0) {
-	free(newnode);
-	warnx("Unable to connect to %s:%hu: %s", inet_ntoa(sa.sin_addr), 
-	     ntohs(sa.sin_port), strerror(errno));
-	return(NULL);
+    if (connect
+        (newnode->socket, (struct sockaddr *)&sa,
+         sizeof(struct sockaddr_in)) < 0) {
+        free(newnode);
+        warnx("Unable to connect to %s:%hu: %s", inet_ntoa(sa.sin_addr),
+              ntohs(sa.sin_port), strerror(errno));
+        return (NULL);
     }
 
-    dbg(2, "Connected to %s:%hu as socketID: %d", inet_ntoa(sa.sin_addr), ntohs(sa.sin_port), 
-	newnode->socket);
+    dbg(2, "Connected to %s:%hu as socketID: %d", inet_ntoa(sa.sin_addr),
+        ntohs(sa.sin_port), newnode->socket);
 
     /* increment nfds so our select() works */
     if (nfds <= newnode->socket)
-	nfds = newnode->socket + 1;
+        nfds = newnode->socket + 1;
 
-    return(newnode);
+    return (newnode);
 }
 
 /*
  * compare two session_t structs for the RB_TREE compare
  */
-int 
+int
 rbsession_comp(struct session_t *a, struct session_t *b)
 {
-    return(memcmp(a->key, b->key, RBKEYLEN));
+    return (memcmp(a->key, b->key, RBKEYLEN));
 
 }
 
@@ -220,7 +227,7 @@ rbsession_comp(struct session_t *a, struct session_t *b)
  */
 
 void
-delete_node(struct session_tree *root , struct session_t *node)
+delete_node(struct session_tree *root, struct session_t *node)
 {
     dbg(2, "Deleting node 0x%llx", pkeygen(node->key));
     RB_REMOVE(session_tree, root, node);
@@ -235,15 +242,14 @@ close_sockets(void)
 
     /* close the TCP sockets */
     RB_FOREACH(node, session_tree, &tcproot) {
-	close(node->socket);
-	tcpcount ++;
+        close(node->socket);
+        tcpcount++;
     }
 
     /* close the UDP sockets */
     RB_FOREACH(node, session_tree, &udproot) {
-	close(node->socket);
-	udpcount ++;
+        close(node->socket);
+        udpcount++;
     }
     dbg(1, "Closed %d tcp and %d udp socket(s)", tcpcount, udpcount);
 }
-

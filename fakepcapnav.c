@@ -1,4 +1,4 @@
-/* $Id: fakepcapnav.c,v 1.1 2003/12/16 03:24:49 aturner Exp $ */
+/* $Id: fakepcapnav.c,v 1.2 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) Aaron Turner.
@@ -32,12 +32,12 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 /*  This file impliments a fake, non-functioning version of the libpcapnav
  *  API based on libpcap.  It's solely here for people who don't have 
  *  libpcapnav installed on their system, and to keep the code maintainable.
  */
- 
+
 #include "config.h"
 #include "fakepcapnav.h"
 #include "err.h"
@@ -46,10 +46,10 @@
 #ifndef HAVE_PCAPNAV
 
 /* pcapnav_init does nothing!  */
-void 
+void
 pcapnav_init(void)
 {
-	return;
+    return;
 }
 
 /* pcapnav_open_offline opens a pcap file, 
@@ -58,35 +58,35 @@ pcapnav_init(void)
 pcapnav_t *
 pcapnav_open_offline(const char *filename)
 {
-	pcapnav_t *pcapnav;
-	char errbuf[PCAP_ERRBUF_SIZE];
-	 
-	pcapnav = (pcapnav_t *)malloc(sizeof(pcapnav_t));
-	if (pcapnav == NULL) {
-		errx(1, "malloc() error: unable to malloc pcapnav_t");
-	}
-	 
-	pcapnav->pcap = pcap_open_offline(filename, errbuf);
-	if (pcapnav->pcap == NULL) {
-		errx(1, "Error opening pcap file %s: %s", filename, errbuf);
-	}
-	 
-	return(pcapnav);
+    pcapnav_t *pcapnav;
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    pcapnav = (pcapnav_t *) malloc(sizeof(pcapnav_t));
+    if (pcapnav == NULL) {
+        errx(1, "malloc() error: unable to malloc pcapnav_t");
+    }
+
+    pcapnav->pcap = pcap_open_offline(filename, errbuf);
+    if (pcapnav->pcap == NULL) {
+        errx(1, "Error opening pcap file %s: %s", filename, errbuf);
+    }
+
+    return (pcapnav);
 }
 
 /* closes our pcap file and free's the pcapnav */
-void 
-pcapnav_close(pcapnav_t *pcapnav)
+void
+pcapnav_close(pcapnav_t * pcapnav)
 {
-	pcap_close(pcapnav->pcap);
-	free(pcapnav);
+    pcap_close(pcapnav->pcap);
+    free(pcapnav);
 }
- 
+
 /* returns the pcap_t data struct */
 pcap_t *
-pcapnav_pcap(pcapnav_t *pcapnav)
+pcapnav_pcap(pcapnav_t * pcapnav)
 {
-	return(pcapnav->pcap);	
+    return (pcapnav->pcap);
 }
 
 

@@ -1,4 +1,4 @@
-/* $Id: signal_handler.c,v 1.3 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: signal_handler.c,v 1.4 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * File: signal_handler.c 
@@ -59,7 +59,8 @@ static struct timeval suspend_end;
  * init_signal_handlers - 
  *     Initialize signal handlers to be used in tcpreplay.
  */
-void init_signal_handlers()
+void
+init_signal_handlers()
 {
     signal(SIGUSR1, suspend_handler);
     signal(SIGCONT, continue_handler);
@@ -71,7 +72,8 @@ void init_signal_handlers()
  * reset_suspend_time -
  *     Reset time values for suspend signal.
  */
-void reset_suspend_time()
+void
+reset_suspend_time()
 {
     timerclear(&suspend_time);
     timerclear(&suspend_start);
@@ -83,7 +85,8 @@ void reset_suspend_time()
  *     Signal handler for signal SIGUSR1. SIGSTOP cannot be 
  * caught, so SIGUSR1 is caught and it throws SIGSTOP.
  */
-void suspend_handler( int signo )
+void
+suspend_handler(int signo)
 {
     if (gettimeofday(&suspend_start, NULL) < 0)
         err(1, "gettimeofday");
@@ -95,7 +98,8 @@ void suspend_handler( int signo )
  * continue_handler -
  *     Signal handler for continue signal.
  */
-void continue_handler( int signo )
+void
+continue_handler(int signo)
 {
     struct timeval suspend_delta;
 

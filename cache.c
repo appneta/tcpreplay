@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.17 2003/08/31 01:34:23 aturner Exp $ */
+/* $Id: cache.c,v 1.18 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -51,7 +51,7 @@
 
 #ifdef DEBUG
 extern int debug;
-#endif 
+#endif
 
 static CACHE *new_cache();
 
@@ -74,30 +74,30 @@ read_cache(char **cachedata, char *cachefile)
     /* open the file or abort */
     cachefd = open(cachefile, O_RDONLY);
     if (cachefd == -1)
-	err(1, "open %s", cachefile);
+        err(1, "open %s", cachefile);
 
     /* read the cache header and determine compatibility */
     if ((cnt = read(cachefd, &header, sizeof(CACHE_HEADER))) < 0)
-	err(1, "read %s,", cachefile);
+        err(1, "read %s,", cachefile);
 
     if (cnt < sizeof(CACHE_HEADER))
-	errx(1, "Cache file %s too small", cachefile);
+        errx(1, "Cache file %s too small", cachefile);
 
 
     /* verify our magic: tcpprep\0 */
     if (memcmp(header.magic, CACHEMAGIC, sizeof(CACHEMAGIC)) != 0)
-	errx(1, "Unable to process %s: not a tcpprep cache file", cachefile);
+        errx(1, "Unable to process %s: not a tcpprep cache file", cachefile);
 
     /* verify version */
     if (atoi(header.version) != atoi(CACHEVERSION))
-	errx(1, "Unable to process %s: cache file version missmatch",
-	     cachefile);
+        errx(1, "Unable to process %s: cache file version missmatch",
+             cachefile);
 
     /* malloc our cache block */
     cache_size = ntohl(header.num_packets) / ntohs(header.packets_per_byte);
 
-    dbg(1, "Cache file contains %ld packets in %ld bytes", ntohl(header.num_packets), 
-	cache_size);
+    dbg(1, "Cache file contains %ld packets in %ld bytes",
+        ntohl(header.num_packets), cache_size);
     dbg(1, "Cache uses %d packets per byte", ntohs(header.packets_per_byte));
     *cachedata = (char *)malloc(cache_size);
     memset(*cachedata, '\0', cache_size);
@@ -105,9 +105,9 @@ read_cache(char **cachedata, char *cachefile)
     /* read in the cache */
     read_size = read(cachefd, *cachedata, cache_size);
     if (read_size != cache_size)
-	errx(1,
-	     "Cache data length (%ld bytes) doesn't match cache header (%ld bytes)",
-	     read_size, cache_size);
+        errx(1,
+             "Cache data length (%ld bytes) doesn't match cache header (%ld bytes)",
+             read_size, cache_size);
 
     dbg(1, "Loaded in %u packets from cache.", ntohl(header.num_packets));
 
@@ -142,38 +142,39 @@ write_cache(CACHE * cachedata, const int out_file, unsigned long numpackets)
     dbg(1, "Wrote %d bytes of cache file header", written);
 
     if (written != sizeof(CACHE_HEADER))
-	errx(1, "Only wrote %i of %i bytes of the cache file header!",
-	     written, sizeof(CACHE_HEADER));
+        errx(1, "Only wrote %i of %i bytes of the cache file header!",
+             written, sizeof(CACHE_HEADER));
 
     mycache = cachedata;
-    
+
     while (!last) {
-	/* increment total packets */
-	packets += mycache->packets;
+        /* increment total packets */
+        packets += mycache->packets;
 
-	/* calculate how many chars to write */
-	chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
-	if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
-	    chars++;
-	    dbg(1, "Bumping up to the next byte: %d %% %d", mycache->packets, CACHE_PACKETS_PER_BYTE);
-	}
+        /* calculate how many chars to write */
+        chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
+        if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
+            chars++;
+            dbg(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
+                CACHE_PACKETS_PER_BYTE);
+        }
 
-	/* write to file, and verify it wrote properly */
-	written = write(out_file, mycache->data, chars);
-	dbg(1, "Wrote %i bytes of cache data", written);
-	if (written != chars)
-	    errx(1, "Only wrote %i of %i bytes to cache file!", written, chars);
+        /* write to file, and verify it wrote properly */
+        written = write(out_file, mycache->data, chars);
+        dbg(1, "Wrote %i bytes of cache data", written);
+        if (written != chars)
+            errx(1, "Only wrote %i of %i bytes to cache file!", written, chars);
 
-	/*
-	 * if that was the last, stop processing, otherwise wash,
-	 * rinse, repeat
-	 */
-	if (mycache->next != NULL) {
-	    mycache = mycache->next;
-	}
-	else {
-	    last = 1;
-	}
+        /*
+         * if that was the last, stop processing, otherwise wash,
+         * rinse, repeat
+         */
+        if (mycache->next != NULL) {
+            mycache = mycache->next;
+        }
+        else {
+            last = 1;
+        }
     }
     /* return number of packets written */
     return (packets);
@@ -191,7 +192,7 @@ new_cache()
     /* malloc mem */
     newcache = (CACHE *) malloc(sizeof(CACHE));
     if (newcache == NULL)
-	err(1, "malloc");
+        err(1, "malloc");
 
     /* set mem to \0 and set bits stored to 0 */
     memset(newcache, '\0', sizeof(CACHE));
@@ -214,52 +215,56 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
 
     /* first run?  malloc our first entry, set bit count to 0 */
     if (*cachedata == NULL) {
-	*cachedata = new_cache();
-	lastcache = *cachedata;
+        *cachedata = new_cache();
+        lastcache = *cachedata;
     }
     else {
-	lastcache = *cachedata;
-	/* existing cache, go to last entry */
-	while (lastcache->next != NULL) {
-	    lastcache = lastcache->next;
-	}
+        lastcache = *cachedata;
+        /* existing cache, go to last entry */
+        while (lastcache->next != NULL) {
+            lastcache = lastcache->next;
+        }
 
-	/* check to see if this is the last bit in this struct */
-	if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
-	    /*
-	     * if so, we have to malloc a new one and set bit to
-	     * 0
-	     */
-	    dbg(1, "Adding to cachedata linked list");
-	    lastcache->next = new_cache();
-	    lastcache = lastcache->next;
-	}
+        /* check to see if this is the last bit in this struct */
+        if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
+            /*
+             * if so, we have to malloc a new one and set bit to
+             * 0
+             */
+            dbg(1, "Adding to cachedata linked list");
+            lastcache->next = new_cache();
+            lastcache = lastcache->next;
+        }
     }
 
     /* always increment our bit count */
-    lastcache->packets ++;
+    lastcache->packets++;
     dbg(1, "Packet %d", lastcache->packets);
 
     /* send packet ? */
     if (send) {
-	index = (lastcache->packets - 1) / CACHE_PACKETS_PER_BYTE;
-	bit = (((lastcache->packets - 1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
-	byte = (u_char *)&lastcache->data[index];
-	*byte += (u_char)(1 << bit);
+        index = (lastcache->packets - 1) / CACHE_PACKETS_PER_BYTE;
+        bit =
+            (((lastcache->packets -
+               1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
+        byte = (u_char *) & lastcache->data[index];
+        *byte += (u_char) (1 << bit);
 
-	dbg(1, "set send bit: byte %d = 0x%x", index, *byte);
+        dbg(1, "set send bit: byte %d = 0x%x", index, *byte);
 
-	/* if true, set low order bit. else, do squat */
-	if (interface) {
-	    *byte += (char)(1 << (bit - 1));
+        /* if true, set low order bit. else, do squat */
+        if (interface) {
+            *byte += (char)(1 << (bit - 1));
 
-	    dbg(1, "set interface bit: byte %d = 0x%x", index, *byte);
+            dbg(1, "set interface bit: byte %d = 0x%x", index, *byte);
 
-	} else {
-	    dbg(1, "don't set interface bit: byte %d = 0x%x", index, *byte);
-	}
-    } else {
-	dbg(1, "not sending packet");
+        }
+        else {
+            dbg(1, "don't set interface bit: byte %d = 0x%x", index, *byte);
+        }
+    }
+    else {
+        dbg(1, "not sending packet");
     }
 
 }
@@ -273,25 +278,26 @@ check_cache(char *cachedata, unsigned long packetid)
 {
     u_int32_t bit;
     unsigned long index = 0;
-    
+
 
     index = (packetid - 1) / CACHE_PACKETS_PER_BYTE;
-    bit = (((packetid - 1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
+    bit =
+        (((packetid - 1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
 
-    dbg(3, "Index: %ld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit, 
-	cachedata[index], (cachedata[index] & (char)(1 << bit)));
+    dbg(3, "Index: %ld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
+        cachedata[index], (cachedata[index] & (char)(1 << bit)));
 
     if (!(cachedata[index] & (char)(1 << bit))) {
-	return CACHE_NOSEND;
+        return CACHE_NOSEND;
     }
 
     /* go back a bit to get the interface */
     bit--;
     if (cachedata[index] & (char)(1 << bit)) {
-	return CACHE_PRIMARY;
+        return CACHE_PRIMARY;
     }
     else {
-	return CACHE_SECONDARY;
+        return CACHE_SECONDARY;
     }
 
     return CACHE_ERROR;

@@ -1,4 +1,4 @@
-/* $Id: list.c,v 1.7 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: list.c,v 1.8 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -62,7 +62,7 @@ new_list()
 
     newlist = (LIST *) malloc(sizeof(LIST));
     if (newlist == NULL)
-	err(1, "unable to malloc memory for new_list()");
+        err(1, "unable to malloc memory for new_list()");
 
     memset(newlist, 0, sizeof(LIST));
     return (newlist);
@@ -87,8 +87,8 @@ parse_list(LIST ** listdata, char *ourstr)
 
     /* compile the regex first */
     if ((rcode = regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB)) != 0) {
-	regerror(rcode, &preg, ebuf, sizeof(ebuf));
-	errx(1, "Unable to compile regex (%s): %s", regex, ebuf);
+        regerror(rcode, &preg, ebuf, sizeof(ebuf));
+        errx(1, "Unable to compile regex (%s): %s", regex, ebuf);
     }
 
     /* first iteration */
@@ -98,8 +98,8 @@ parse_list(LIST ** listdata, char *ourstr)
 
     /* regex test */
     if (regexec(&preg, this, 0, NULL, 0) != 0) {
-	warnx("Unable to parse: %s", this);
-	return 0;
+        warnx("Unable to parse: %s", this);
+        return 0;
     }
 
 
@@ -108,52 +108,52 @@ parse_list(LIST ** listdata, char *ourstr)
     listcur = list_ptr;
 
     for (i = 0; i < strlen(this); i++) {
-	if (this[i] == '-') {
-	    this[i] = '\0';
-	    second = &this[i + 1];
-	}
+        if (this[i] == '-') {
+            this[i] = '\0';
+            second = &this[i + 1];
+        }
     }
 
     list_ptr->min = atoi(first);
     if (second != NULL) {
-	list_ptr->max = atoi(second);
+        list_ptr->max = atoi(second);
     }
     else {
-	list_ptr->max = list_ptr->min;
+        list_ptr->max = list_ptr->min;
     }
 
     while (1) {
-	this = strtok(NULL, ",");
-	if (this == NULL)
-	    break;
+        this = strtok(NULL, ",");
+        if (this == NULL)
+            break;
 
-	first = this;
-	second = NULL;
+        first = this;
+        second = NULL;
 
 
-	/* regex test */
-	if (regexec(&preg, this, 0, NULL, 0) != 0) {
-	    warnx("Unable to parse: %s", this);
-	    return 0;
-	}
+        /* regex test */
+        if (regexec(&preg, this, 0, NULL, 0) != 0) {
+            warnx("Unable to parse: %s", this);
+            return 0;
+        }
 
-	listcur->next = new_list();
-	listcur = listcur->next;
+        listcur->next = new_list();
+        listcur = listcur->next;
 
-	for (i = 0; i < strlen(this); i++) {
-	    if (this[i] == '-') {
-		this[i] = '\0';
-		second = &this[i + 1];
-	    }
-	}
+        for (i = 0; i < strlen(this); i++) {
+            if (this[i] == '-') {
+                this[i] = '\0';
+                second = &this[i + 1];
+            }
+        }
 
-	listcur->min = atoi(first);
-	if (second != NULL) {
-	    listcur->max = atoi(second);
-	}
-	else {
-	    listcur->max = listcur->min;
-	}
+        listcur->min = atoi(first);
+        if (second != NULL) {
+            listcur->max = atoi(second);
+        }
+        else {
+            listcur->max = listcur->min;
+        }
 
     }
 
@@ -173,25 +173,25 @@ check_list(LIST * list, int value)
 
     current = list;
     do {
-	if ((current->min != 0) && (current->max != 0)) {
-	    if ((value >= current->min) && (value <= current->max))
-		return 1;
-	}
-	else if (current->min == 0) {
-	    if (value <= current->max)
-		return 1;
-	}
-	else if (current->max == 0) {
-	    if (value >= current->min)
-		return 1;
-	}
+        if ((current->min != 0) && (current->max != 0)) {
+            if ((value >= current->min) && (value <= current->max))
+                return 1;
+        }
+        else if (current->min == 0) {
+            if (value <= current->max)
+                return 1;
+        }
+        else if (current->max == 0) {
+            if (value >= current->min)
+                return 1;
+        }
 
-	if (current->next != NULL) {
-	    current = current->next;
-	}
-	else {
-	    current = NULL;
-	}
+        if (current->next != NULL) {
+            current = current->next;
+        }
+        else {
+            current = NULL;
+        }
 
     } while (current != NULL);
 
@@ -209,7 +209,7 @@ free_list(LIST * list)
 
     /* recursively go down the list */
     if (list->next != NULL)
-	free_list(list->next);
+        free_list(list->next);
 
     free(list);
 }

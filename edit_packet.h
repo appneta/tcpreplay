@@ -1,4 +1,4 @@
-/* $Id: edit_packet.h,v 1.4 2003/11/03 02:21:00 aturner Exp $ */
+/* $Id: edit_packet.h,v 1.5 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -40,15 +40,16 @@
 #include <pcap.h>
 #include "tcpreplay.h"
 
-#define SLL_HDR_LEN 16 /* Linux cooked socket (SLL) header length
-                        * Got that from libpcap's sll.h
-                        */
+#define SLL_HDR_LEN 16          /* Linux cooked socket (SLL) header length
+                                 * Got that from libpcap's sll.h
+                                 */
 
-void untrunc_packet(struct pcap_pkthdr *, u_char *, ip_hdr_t *, libnet_t *, int);
+void untrunc_packet(struct pcap_pkthdr *, u_char *, ip_hdr_t *, libnet_t *,
+                    int);
 void randomize_ips(struct pcap_pkthdr *, u_char *, ip_hdr_t *, libnet_t *, int);
 void fix_checksums(struct pcap_pkthdr *, ip_hdr_t *, libnet_t *);
-int rewrite_l2(struct pcap_pkthdr *, u_char *, const u_char *, u_int32_t, 
-		int, char *, int);
+int rewrite_l2(struct pcap_pkthdr *, u_char *, const u_char *, u_int32_t,
+               int, char *, int);
 int extract_data(u_char *, int, int, char *[]);
 
 #endif

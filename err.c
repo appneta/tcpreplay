@@ -1,4 +1,4 @@
-/* $Id: err.c,v 1.5 2003/03/24 04:59:57 aturner Exp $ */
+/* $Id: err.c,v 1.6 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * err.c
@@ -58,12 +58,12 @@ dbg(int dbg_level, const char *fmt, ...)
     va_list ap;
 
     if (debug < dbg_level)
-	return;
+        return;
 
     fprintf(stderr, "DEBUG%d: ", dbg_level);
     va_start(ap, fmt);
     if (fmt != NULL)
-	(void)vfprintf(stderr, fmt, ap);
+        (void)vfprintf(stderr, fmt, ap);
     (void)fprintf(stderr, "\n");
     va_end(ap);
 #else
@@ -79,8 +79,8 @@ err(int eval, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-	(void)vfprintf(stderr, fmt, ap);
-	(void)fprintf(stderr, ": ");
+        (void)vfprintf(stderr, fmt, ap);
+        (void)fprintf(stderr, ": ");
     }
     va_end(ap);
     (void)fprintf(stderr, "%s\n", strerror(errno));
@@ -94,8 +94,8 @@ warn(const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-	(void)vfprintf(stderr, fmt, ap);
-	(void)fprintf(stderr, ": ");
+        (void)vfprintf(stderr, fmt, ap);
+        (void)fprintf(stderr, ": ");
     }
     va_end(ap);
     (void)fprintf(stderr, "%s\n", strerror(errno));
@@ -108,7 +108,7 @@ errx(int eval, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL)
-	(void)vfprintf(stderr, fmt, ap);
+        (void)vfprintf(stderr, fmt, ap);
     (void)fprintf(stderr, "\n");
     va_end(ap);
     exit(eval);
@@ -121,7 +121,7 @@ warnx(const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL)
-	(void)vfprintf(stderr, fmt, ap);
+        (void)vfprintf(stderr, fmt, ap);
     (void)fprintf(stderr, "\n");
     va_end(ap);
 }

@@ -1,4 +1,4 @@
-/* $Id: utils.c,v 1.1 2003/12/11 03:05:59 aturner Exp $ */
+/* $Id: utils.c,v 1.2 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -51,31 +51,31 @@ packet_stats()
     char bits[3];
 
     if (gettimeofday(&end, NULL) < 0)
-	err(1, "gettimeofday");
+        err(1, "gettimeofday");
 
     timersub(&end, &begin, &begin);
     if (timerisset(&begin)) {
-	if (bytes_sent) {
-	    bytes_sec =
-		bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-	    mb_sec = (bytes_sec * 8) / (1024 * 1024);
-	}
-	if (pkts_sent)
-	    pkts_sec =
-		pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
+        if (bytes_sent) {
+            bytes_sec =
+                bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
+            mb_sec = (bytes_sec * 8) / (1024 * 1024);
+        }
+        if (pkts_sent)
+            pkts_sec =
+                pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
     }
 
     snprintf(bits, sizeof(bits), "%d", begin.tv_usec);
 
     fprintf(stderr, " %llu packets (%llu bytes) sent in %d.%s seconds\n",
-	    pkts_sent, bytes_sent, begin.tv_sec, bits);
+            pkts_sent, bytes_sent, begin.tv_sec, bits);
     fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
-	    bytes_sec, mb_sec, pkts_sec);
+            bytes_sec, mb_sec, pkts_sec);
 
     if (failed) {
-	fprintf(stderr,
-		" %llu write attempts failed from full buffers and were repeated\n",
-		failed);
+        fprintf(stderr,
+                " %llu write attempts failed from full buffers and were repeated\n",
+                failed);
     }
 }
 
@@ -89,7 +89,7 @@ read_hexstring(char *l2string, char *hex, int hexlen)
     u_char databyte;
 
     if (hexlen <= 0)
-	errx(1, "Hex buffer must be > 0");
+        errx(1, "Hex buffer must be > 0");
 
     memset(hex, '\0', hexlen);
 
@@ -99,28 +99,28 @@ read_hexstring(char *l2string, char *hex, int hexlen)
     l2byte = strtok(l2string, ",");
     sscanf(l2byte, "%x", &value);
     if (value > 0xff)
-	errx(1, "Invalid hex byte passed to -2: %s", l2byte);
-    databyte = (u_char)value;
+        errx(1, "Invalid hex byte passed to -2: %s", l2byte);
+    databyte = (u_char) value;
     memcpy(&hex[numbytes], &databyte, 1);
 
     /* get remaining bytes */
     while ((l2byte = strtok(NULL, ",")) != NULL) {
-	numbytes ++;
-	if (numbytes + 1 > hexlen) {
-	    warnx("Hex buffer too small for data- skipping data");
-	    return(++numbytes);
-	}
-	sscanf(l2byte, "%x", &value);
-	if (value > 0xff)
-	    errx(1, "Invalid hex byte passed to -2: %s", l2byte);
-	databyte = (u_char)value;
-	memcpy(&hex[numbytes], &databyte, 1);
+        numbytes++;
+        if (numbytes + 1 > hexlen) {
+            warnx("Hex buffer too small for data- skipping data");
+            return (++numbytes);
+        }
+        sscanf(l2byte, "%x", &value);
+        if (value > 0xff)
+            errx(1, "Invalid hex byte passed to -2: %s", l2byte);
+        databyte = (u_char) value;
+        memcpy(&hex[numbytes], &databyte, 1);
     }
 
-    numbytes ++;
+    numbytes++;
 
     dbg(1, "Read %d bytes of layer 2 data", numbytes);
-    return(numbytes);
+    return (numbytes);
 }
 
 /* whorishly appropriated from fragroute-1.2 */
@@ -131,15 +131,15 @@ argv_create(char *p, int argc, char *argv[])
     int i;
 
     for (i = 0; i < argc - 1; i++) {
-	while (*p != '\0' && isspace((int)*p))
-	    *p++ = '\0';
+        while (*p != '\0' && isspace((int)*p))
+            *p++ = '\0';
 
-	if (*p == '\0')
-	    break;
-	argv[i] = p;
+        if (*p == '\0')
+            break;
+        argv[i] = p;
 
-	while (*p != '\0' && !isspace((int)*p))
-	    p++;
+        while (*p != '\0' && !isspace((int)*p))
+            p++;
     }
     p[0] = '\0';
     argv[i] = NULL;
@@ -159,20 +159,20 @@ mac2hex(const char *mac, char *dst, int len)
     char *pp;
 
     if (len < 6)
-	return;
+        return;
 
     while (isspace(*mac))
-	mac++;
+        mac++;
 
     /* expect 6 hex octets separated by ':' or space/NUL if last octet */
     for (i = 0; i < 6; i++) {
-	l = strtol(mac, &pp, 16);
-	if (pp == mac || l > 0xFF || l < 0)
-	    return;
-	if (!(*pp == ':' || (i == 5 && (isspace(*pp) || *pp == '\0'))))
-	    return;
-	dst[i] = (u_char) l;
-	mac = pp + 1;
+        l = strtol(mac, &pp, 16);
+        if (pp == mac || l > 0xFF || l < 0)
+            return;
+        if (!(*pp == ':' || (i == 5 && (isspace(*pp) || *pp == '\0'))))
+            return;
+        dst[i] = (u_char) l;
+        mac = pp + 1;
     }
 }
 
@@ -186,40 +186,48 @@ validate_l2(char *name, int l2enabled, char *l2data, int l2len, int linktype)
 {
 
     if (linktype != DLT_EN10MB) {
-	if (linktype == DLT_LINUX_SLL) {
-	    /* if SLL, then either -2 or -I are ok */
-	    if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (! l2enabled)) {
-		warnx("Unable to process Linux Cooked Socket pcap without -2 or -I: %s", name);
-		return;
-	    }
+        if (linktype == DLT_LINUX_SLL) {
+            /* if SLL, then either -2 or -I are ok */
+            if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (!l2enabled)) {
+                warnx
+                    ("Unable to process Linux Cooked Socket pcap without -2 or -I: %s",
+                     name);
+                return;
+            }
 
-	    /* if using dual interfaces, make sure -2 or -J is set */
-	    if (options.intf2 && 
-		((! l2enabled ) || 
-		 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
-		warnx("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s", name);
-		return;
-	    }
-	} else if (! l2enabled) {
-	    warnx("Unable to process non-802.3 pcap without layer 2 data: %s", name);
-	    return;
-	}
+            /* if using dual interfaces, make sure -2 or -J is set */
+            if (options.intf2 &&
+                ((!l2enabled) ||
+                 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
+                warnx
+                    ("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s",
+                     name);
+                return;
+            }
+        }
+        else if (!l2enabled) {
+            warnx("Unable to process non-802.3 pcap without layer 2 data: %s",
+                  name);
+            return;
+        }
     }
 
     /* calculate the maxpacket based on the l2len, linktype and mtu */
     if (l2enabled) {
-	/* custom L2 header */
-	dbg(1, "Using custom L2 header to calculate max frame size");
-	maxpacket = options.mtu + l2len;
-    } else if ((linktype == DLT_EN10MB) || (linktype == DLT_LINUX_SLL)) {
-	/* ethernet */
-	dbg(1, "Using Ethernet to calculate max frame size");
-	maxpacket = options.mtu + LIBNET_ETH_H;
-    } else {
-	/* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
-	maxpacket = options.mtu + LIBNET_ETH_H;
-	warnx("Unable to determine layer 2 encapsulation, assuming ethernet\n"
-	      "You may need to increase the MTU (-t <size>) if you get errors");
+        /* custom L2 header */
+        dbg(1, "Using custom L2 header to calculate max frame size");
+        maxpacket = options.mtu + l2len;
+    }
+    else if ((linktype == DLT_EN10MB) || (linktype == DLT_LINUX_SLL)) {
+        /* ethernet */
+        dbg(1, "Using Ethernet to calculate max frame size");
+        maxpacket = options.mtu + LIBNET_ETH_H;
+    }
+    else {
+        /* oh fuck, we don't know what the hell this is, we'll just assume ethernet */
+        maxpacket = options.mtu + LIBNET_ETH_H;
+        warnx("Unable to determine layer 2 encapsulation, assuming ethernet\n"
+              "You may need to increase the MTU (-t <size>) if you get errors");
     }
 
 }

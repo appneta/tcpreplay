@@ -1,4 +1,4 @@
-/* $Id: capinfo.h,v 1.2 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: capinfo.h,v 1.3 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -37,8 +37,8 @@
 
 /* internal representation of a packet, used in libpcap.c & snoop.c */
 struct packet {
-    char data[MAXPACKET];	/* pointer to packet contents */
-    int len;			/* length of data (snaplen) */
-    int actual_len;		/* actual length of the packet */
-    struct timeval ts;		/* timestamp */
+    char data[MAXPACKET];       /* pointer to packet contents */
+    int len;                    /* length of data (snaplen) */
+    int actual_len;             /* actual length of the packet */
+    struct timeval ts;          /* timestamp */
 };

@@ -1,4 +1,4 @@
-/* $Id: cache.h,v 1.9 2003/08/31 01:34:23 aturner Exp $ */
+/* $Id: cache.h,v 1.10 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -39,8 +39,8 @@
 #define CACHEMAGIC "tcpprep"
 #define CACHEVERSION "03"
 #define CACHEDATASIZE 255
-#define CACHE_PACKETS_PER_BYTE 4	/* number of packets / byte */
-#define CACHE_BITS_PER_PACKET 2	/* number of bits / packet */
+#define CACHE_PACKETS_PER_BYTE 4    /* number of packets / byte */
+#define CACHE_BITS_PER_PACKET 2 /* number of bits / packet */
 
 /* 
  * CACHEVERSION History:
@@ -51,7 +51,7 @@
 
 struct cache_type {
     char data[CACHEDATASIZE];
-    unsigned int packets; /* number of packets tracked in data */
+    unsigned int packets;       /* number of packets tracked in data */
     struct cache_type *next;
 };
 
@@ -75,7 +75,7 @@ struct cache_file_header {
     char version[4];
     /* begin version 2 features */
     /* version 3 puts everything in network-byte order */
-    u_int32_t num_packets;	/* total # of packets in file */
+    u_int32_t num_packets;      /* total # of packets in file */
     u_int16_t packets_per_byte;
     u_int16_t padding;          /* align our header on a 32bit line */
 };

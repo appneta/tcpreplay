@@ -1,4 +1,4 @@
-/* $Id: snoop.h,v 1.5 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: snoop.h,v 1.6 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -51,12 +51,12 @@ struct snoop_hdr {
 
 /* data prefixing each packet, network byte order */
 struct snoop_rec {
-    u_int32_t orig_len;		/* actual length of packet */
-    u_int32_t incl_len;		/* number of octets captured in file */
-    u_int32_t rec_len;		/* length of record */
-    u_int32_t cum_drops;	/* cumulative number of dropped packets */
-    u_int32_t ts_sec;		/* timestamp seconds */
-    u_int32_t ts_usec;		/* timestamp microseconds */
+    u_int32_t orig_len;         /* actual length of packet */
+    u_int32_t incl_len;         /* number of octets captured in file */
+    u_int32_t rec_len;          /* length of record */
+    u_int32_t cum_drops;        /* cumulative number of dropped packets */
+    u_int32_t ts_sec;           /* timestamp seconds */
+    u_int32_t ts_usec;          /* timestamp microseconds */
 };
 
 /* data describing a snoop capture */

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.45 2003/12/11 03:06:29 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.46 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -64,9 +64,9 @@ typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
 
-#define DEFAULT_MTU 1500 /* Max Transmission Unit of standard ethernet
-			  * don't forget *frames* are MTU + L2 header! */
-#define MAXPACKET 16436  /* MTU of Linux loopback */
+#define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
+                                 * don't forget *frames* are MTU + L2 header! */
+#define MAXPACKET 16436         /* MTU of Linux loopback */
 
 /* run-time options */
 struct options {
@@ -110,19 +110,19 @@ struct options {
     int poll_timeout;
 };
 
-#define RESOLVE 0		/* disable dns lookups */
+#define RESOLVE 0               /* disable dns lookups */
 #define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
 #define PCAP_TIMEOUT 100        /* 100ms pcap_open_live timeout */
 
 
-#define EBUF_SIZE 256		/* size of our error buffers */
-#define MAC_SIZE  7		/* size of the mac[] buffer */
+#define EBUF_SIZE 256           /* size of our error buffers */
+#define MAC_SIZE  7             /* size of the mac[] buffer */
 
-#define CIDR_MODE 1		/* single pass, CIDR netblock */
-#define REGEX_MODE 2		/* single pass, Regex */
-#define AUTO_MODE 4		/* first pass through in auto mode */
-#define ROUTER_MODE 8		/* second pass through in router/auto mode */
-#define BRIDGE_MODE 32		/* second pass through in bridge/auto mode */
+#define CIDR_MODE 1             /* single pass, CIDR netblock */
+#define REGEX_MODE 2            /* single pass, Regex */
+#define AUTO_MODE 4             /* first pass through in auto mode */
+#define ROUTER_MODE 8           /* second pass through in router/auto mode */
+#define BRIDGE_MODE 32          /* second pass through in bridge/auto mode */
 #define SERVER_MODE 64          /* second pass through in client/auto mode */
 #define CLIENT_MODE 128         /* second pass through in server/auto mode */
 
@@ -135,12 +135,12 @@ struct options {
 #define UNKNOWN -1
 #define ANY 2
 
-#define DEBUG_INFO 1		/* informational only, lessthan 1 line per packet */
-#define DEBUG_BASIC 2		/* limited debugging, one line per packet */
-#define DEBUG_DETAILED 3	/* more detailed, a few lines per packet */
-#define DEBUG_CODE 4		/* examines code & values, many lines per packet */
+#define DEBUG_INFO 1            /* informational only, lessthan 1 line per packet */
+#define DEBUG_BASIC 2           /* limited debugging, one line per packet */
+#define DEBUG_DETAILED 3        /* more detailed, a few lines per packet */
+#define DEBUG_CODE 4            /* examines code & values, many lines per packet */
 
-#define PAD_PACKET 1		/* values for the 'uflag' in tcpreplay */
+#define PAD_PACKET 1            /* values for the 'uflag' in tcpreplay */
 #define TRUNC_PACKET 2
 
 

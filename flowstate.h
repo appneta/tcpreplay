@@ -1,4 +1,4 @@
-/* $Id: flowstate.h,v 1.1 2003/06/01 23:53:32 aturner Exp $ */
+/* $Id: flowstate.h,v 1.2 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -12,8 +12,8 @@
 
 #include "flownode.h"
 
-#define TCP_CLOSE 0x40  /* 7th bit set */
+#define TCP_CLOSE 0x40          /* 7th bit set */
 
-u_int32_t tcp_state(tcp_hdr_t *tcp_hdr, struct session_t *node);
+u_int32_t tcp_state(tcp_hdr_t * tcp_hdr, struct session_t *node);
 
 #endif

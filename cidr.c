@@ -1,4 +1,4 @@
-/* $Id: cidr.c,v 1.18 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: cidr.c,v 1.19 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -68,18 +68,18 @@ print_cidr(CIDR * mycidr)
 
     cidr_ptr = mycidr;
     while (cidr_ptr != NULL) {
-	/* print it */
-	fprintf(stderr, "%s/%d, ",
-		libnet_addr2name4(cidr_ptr->network, RESOLVE),
-		cidr_ptr->masklen);
+        /* print it */
+        fprintf(stderr, "%s/%d, ",
+                libnet_addr2name4(cidr_ptr->network, RESOLVE),
+                cidr_ptr->masklen);
 
-	/* go to the next */
-	if (cidr_ptr->next != NULL) {
-	    cidr_ptr = cidr_ptr->next;
-	}
-	else {
-	    break;
-	}
+        /* go to the next */
+        if (cidr_ptr->next != NULL) {
+            cidr_ptr = cidr_ptr->next;
+        }
+        else {
+            break;
+        }
     }
     fprintf(stderr, "\n");
 }
@@ -92,8 +92,8 @@ destroy_cidr(CIDR * cidr)
 {
 
     if (cidr != NULL)
-	if (cidr->next != NULL)
-	    destroy_cidr(cidr->next);
+        if (cidr->next != NULL)
+            destroy_cidr(cidr->next);
 
     free(cidr);
     return;
@@ -109,16 +109,16 @@ add_cidr(CIDR * cidrdata, CIDR ** newcidr)
     CIDR *cidr_ptr;
 
     if (cidrdata == NULL) {
-	cidrdata = *newcidr;
+        cidrdata = *newcidr;
     }
     else {
-	cidr_ptr = cidrdata;
+        cidr_ptr = cidrdata;
 
-	while (cidr_ptr->next != NULL) {
-	    cidr_ptr = cidr_ptr->next;
-	}
+        while (cidr_ptr->next != NULL) {
+            cidr_ptr = cidr_ptr->next;
+        }
 
-	cidr_ptr->next = *newcidr;
+        cidr_ptr->next = *newcidr;
     }
 }
 
@@ -133,18 +133,19 @@ ip2cidr(const unsigned long ip, const int masklen)
     char mask[3];
 
     if ((network = (u_char *) malloc(20)) == NULL)
-	err(1, "malloc");
+        err(1, "malloc");
 
-    strncpy((char *)network, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE), 19);
+    strncpy((char *)network, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
+            19);
 
     strcat((char *)network, "/");
     if (masklen < 10) {
-	snprintf(mask, 1, "%d", masklen);
-	strncat((char *)network, mask, 1);
+        snprintf(mask, 1, "%d", masklen);
+        strncat((char *)network, mask, 1);
     }
     else {
-	snprintf(mask, 2, "%d", masklen);
-	strncat((char *)network, mask, 2);
+        snprintf(mask, 2, "%d", masklen);
+        strncat((char *)network, mask, 2);
     }
 
     return (network);
@@ -161,7 +162,7 @@ new_cidr()
 
     newcidr = (CIDR *) malloc(sizeof(CIDR));
     if (newcidr == NULL)
-	err(1, "unable to malloc memory for new_cidr()");
+        err(1, "unable to malloc memory for new_cidr()");
 
     memset(newcidr, '\0', sizeof(CIDR));
     newcidr->masklen = 99;
@@ -179,12 +180,12 @@ static CIDR *
 cidr2CIDR(char *cidr)
 {
     int count = 0;
-    unsigned int octets[4];	/* used in sscanf */
+    unsigned int octets[4];     /* used in sscanf */
     CIDR *newcidr;
     char networkip[16], tempoctet[4], ebuf[EBUF_SIZE];
 
     if ((cidr == NULL) || (strlen(cidr) > EBUF_SIZE))
-	errx(1, "Error parsing: %s", cidr);
+        errx(1, "Error parsing: %s", cidr);
 
     newcidr = new_cidr();
 
@@ -193,25 +194,25 @@ cidr2CIDR(char *cidr)
      * masklen
      */
     count = sscanf(cidr, "%u.%u.%u.%u/%d", &octets[0], &octets[1],
-		   &octets[2], &octets[3], &newcidr->masklen);
+                   &octets[2], &octets[3], &newcidr->masklen);
     if (count != 5)
-	goto error;
+        goto error;
 
     /* masklen better be 0 =< masklen <= 32 */
     if (newcidr->masklen > 32)
-	goto error;
+        goto error;
 
     /* copy in the ip address */
     memset(networkip, '\0', 16);
     for (count = 0; count < 4; count++) {
-	if (octets[count] > 255)
-	    goto error;
+        if (octets[count] > 255)
+            goto error;
 
-	snprintf(tempoctet, sizeof(octets[count]), "%d", octets[count]);
-	strcat(networkip, tempoctet);
-	/* we don't want a '.' at the end of the last octet */
-	if (count < 3)
-	    strcat(networkip, ".");
+        snprintf(tempoctet, sizeof(octets[count]), "%d", octets[count]);
+        strcat(networkip, tempoctet);
+        /* we don't want a '.' at the end of the last octet */
+        if (count < 3)
+            strcat(networkip, ".");
     }
 
     /* copy over the network address and return */
@@ -242,7 +243,7 @@ cidr2CIDR(char *cidr)
 int
 parse_cidr(CIDR ** cidrdata, char *cidrin)
 {
-    CIDR *cidr_ptr;		/* ptr to current cidr record */
+    CIDR *cidr_ptr;             /* ptr to current cidr record */
     char *network = NULL;
 
     /* first itteration of input using strtok */
@@ -253,14 +254,14 @@ parse_cidr(CIDR ** cidrdata, char *cidrin)
 
     /* do the same with the rest of the input */
     while (1) {
-	network = strtok(NULL, ",");
-	/* if that was the last CIDR, then kickout */
-	if (network == NULL)
-	    break;
+        network = strtok(NULL, ",");
+        /* if that was the last CIDR, then kickout */
+        if (network == NULL)
+            break;
 
-	/* next record */
-	cidr_ptr->next = cidr2CIDR(network);
-	cidr_ptr = cidr_ptr->next;
+        /* next record */
+        cidr_ptr->next = cidr2CIDR(network);
+        cidr_ptr = cidr_ptr->next;
     }
     return 1;
 
@@ -277,7 +278,7 @@ ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
 {
     unsigned long ipaddr = 0, network = 0, mask = 0;
 
-    mask = ~0;			/* turn on all the bits */
+    mask = ~0;                  /* turn on all the bits */
 
     /* shift over by the correct number of bits */
     mask = mask << (32 - mycidr->masklen);
@@ -289,21 +290,19 @@ ip_in_cidr(const CIDR * mycidr, const unsigned long ip)
     /* if they're the same, then ip is in network */
     if (network == ipaddr) {
 
-	dbg(1, "The ip %s is inside of %s/%d",
-	    libnet_addr2name4(ip, RESOLVE),
-	    libnet_addr2name4(htonl(network), RESOLVE),
-	    mycidr->masklen);
+        dbg(1, "The ip %s is inside of %s/%d",
+            libnet_addr2name4(ip, RESOLVE),
+            libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-	return 1;
+        return 1;
     }
     else {
 
-	dbg(1, "The ip %s is not inside of %s/%d",
-	    libnet_addr2name4(ip, RESOLVE),
-	    libnet_addr2name4(htonl(network), RESOLVE),
-	    mycidr->masklen);
+        dbg(1, "The ip %s is not inside of %s/%d",
+            libnet_addr2name4(ip, RESOLVE),
+            libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-	return 0;
+        return 0;
     }
 
 }
@@ -320,24 +319,24 @@ check_ip_CIDR(CIDR * cidrdata, const unsigned long ip)
 
     /* if we have no cidrdata, of course it isn't in there */
     if (cidrdata == NULL)
-	return 0;
+        return 0;
 
     mycidr = cidrdata;
 
     /* loop through cidr */
     while (1) {
 
-	/* if match, return 1 */
-	if (ip_in_cidr(mycidr, ip)) {
-	    return 1;
-	}
-	/* check for next record */
-	if (mycidr->next != NULL) {
-	    mycidr = mycidr->next;
-	}
-	else {
-	    break;
-	}
+        /* if match, return 1 */
+        if (ip_in_cidr(mycidr, ip)) {
+            return 1;
+        }
+        /* check for next record */
+        if (mycidr->next != NULL) {
+            mycidr = mycidr->next;
+        }
+        else {
+            break;
+        }
     }
 
     /* if we get here, no match */
@@ -365,12 +364,12 @@ cidr2iplist(CIDR * cidr, char delim)
      */
     numips = 2;
     for (i = 2; i <= (32 - cidr->masklen); i++) {
-	numips *= 2;
+        numips *= 2;
     }
     size = 16 * numips;
 
     if ((list = (char *)malloc(size)) == NULL)
-	errx(1, "Unable to malloc %d bytes!  Aborting...", size);
+        errx(1, "Unable to malloc %d bytes!  Aborting...", size);
 
     memset(list, 0, size);
 
@@ -382,10 +381,10 @@ cidr2iplist(CIDR * cidr, char delim)
 
     /* loop through all but the last one */
     for (i = first; i < last; i++) {
-	in.s_addr = htonl(i);
-	snprintf(ipaddr, 17, "%s%c", inet_ntoa(in), delim);
-	dbg(2, "%s", ipaddr);
-	strncat(list, ipaddr, size);
+        in.s_addr = htonl(i);
+        snprintf(ipaddr, 17, "%s%c", inet_ntoa(in), delim);
+        dbg(2, "%s", ipaddr);
+        strncat(list, ipaddr, size);
     }
 
     /* last is a special case, end in \0 */

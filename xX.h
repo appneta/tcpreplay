@@ -1,4 +1,4 @@
-/* $Id: xX.h,v 1.5 2003/11/04 03:03:51 aturner Exp $ */
+/* $Id: xX.h,v 1.6 2003/12/16 03:58:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -35,7 +35,7 @@ int process_xX_by_cidr(int, CIDR *, ip_hdr_t *);
 #define xXEither 8
 #define xXPacket 16
 #define xXBPF 32
-#define xXExclude 128		/* if exclude mode, add 128 to above value */
+#define xXExclude 128           /* if exclude mode, add 128 to above value */
 
 
 #endif
