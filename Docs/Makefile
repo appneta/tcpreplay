@@ -1,6 +1,6 @@
 MAKEFLAGS=-s
 
-all: html pdf txt ps rmlogs
+all: html pdf txt ps rmtemp
 
 FAQ.tex:
 	lyx -e latex FAQ.lyx
