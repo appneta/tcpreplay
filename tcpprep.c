@@ -65,7 +65,8 @@
 #include "utils.h"
 #include "services.h"
 #include "sll.h"
-#include "fakepcap.h";
+#include "fakepcap.h"
+#include "lib/strlcpy.h"
 
 /*
  * global variables
@@ -227,8 +228,8 @@ check_ip_regex(const unsigned long ip)
     regmatch_t *pmatch = NULL;
 
     memset(src_ip, '\0', 16);
-    strncat((char *)src_ip, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
-            15);
+    strlcpy((char *)src_ip, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
+            sizeof(src_ip));
     if (regexec(preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
         return (1);
     }
@@ -465,20 +466,20 @@ main(int argc, char *argv[])
                 if (strcmp(argv[i], "-C") == 0) 
                     i += 2;
 
-                strncat(myargs, argv[i], sizeof(myargs) - 1);
-                strncat(myargs, " ", sizeof(myargs) - 1);
+                strlcat(myargs, argv[i], sizeof(myargs));
+                strlcat(myargs, " ", sizeof(myargs));
             }
-            strncat(myargs, "\n", sizeof(myargs) - 1);
+            strlcat(myargs, "\n", sizeof(myargs));
             dbg(1, "comment args length: %d", strlen(myargs));
 
             /* malloc our buffer to be + 1 strlen so we can null terminate */
             if ((options.tcpprep_comment = (char *)malloc(strlen(optarg) 
-                                                          + strlen(myargs) + 1)) == NULL)
+                                           + strlen(myargs) + 1)) == NULL)
                 errx(1, "Unable to malloc() memory for comment");
 
             memset(options.tcpprep_comment, '\0', strlen(optarg) + 1 + strlen(myargs));
-            strcpy(options.tcpprep_comment, myargs);
-            strcat(options.tcpprep_comment, optarg);
+            strlcpy(options.tcpprep_comment, myargs, sizeof(options.tcpprep_comment));
+            strlcat(options.tcpprep_comment, optarg, sizeof(options.tcpprep_comment));
             dbg(1, "comment length: %d", strlen(optarg));
             break;
 #ifdef DEBUG

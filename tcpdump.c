@@ -62,6 +62,7 @@
 #include "tcpreplay.h"
 #include "tcpdump.h"
 #include "err.h"
+#include "lib/strlcpy.h"
 
 #ifdef DEBUG
 extern int debug;
@@ -181,7 +182,7 @@ tcpdump_init(tcpdump_t *tcpdump)
 
 #ifdef DEBUG
     if (debug >= 5)
-        strncpy(tcpdump->debugfile, TCPDUMP_DEBUG, sizeof(tcpdump->debugfile));
+        strlcpy(tcpdump->debugfile, TCPDUMP_DEBUG, sizeof(tcpdump->debugfile));
 #endif
     
     return TRUE;
@@ -320,9 +321,9 @@ tcpdump_fill_in_options(char *opt)
     /* prep args */
     memset(options, '\0', 256);
     if (opt != NULL) {
-        strncat(options, opt, 255);
+        strlcat(options, opt, sizeof(options));
     }
-    strncat(options, TCPDUMP_ARGS, 255);
+    strlcat(options, TCPDUMP_ARGS, sizeof(options));
     dbg(2, "[child] Will execute: tcpdump %s", options);
 
 
@@ -333,8 +334,8 @@ tcpdump_fill_in_options(char *opt)
     arglen = strlen(arg) + 2; /* -{arg}\0 */
     newarg = (char *)malloc(arglen);
     memset(newarg, '\0', arglen);    
-    strncat(newarg, "-", arglen -1); 
-    strncat(newarg, arg, arglen -1);
+    strlcat(newarg, "-", arglen); 
+    strlcat(newarg, arg, arglen);
     options_vec[i++] = newarg;
 
     /* process the remaining args 
@@ -348,8 +349,8 @@ tcpdump_fill_in_options(char *opt)
         arglen = strlen(arg) + 2;
         newarg = (char *)malloc(arglen);
         memset(newarg, '\0', arglen);
-        strncat(newarg, "-", arglen -1);
-        strncat(newarg, arg, arglen -1);
+        strlcat(newarg, "-", arglen);
+        strlcat(newarg, arg, arglen);
         options_vec[i++] = newarg;
 
     }

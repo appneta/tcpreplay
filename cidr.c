@@ -44,6 +44,7 @@
 #include "tcpreplay.h"
 #include "cidr.h"
 #include "err.h"
+#include "lib/strlcpy.h"
 
 #ifdef DEBUG
 extern int debug;
@@ -128,10 +129,10 @@ ip2cidr(const unsigned long ip, const int masklen)
     char mask[3];
 
     if ((network = (u_char *) malloc(20)) == NULL)
-        err(1, "malloc");
+        errx(1, "malloc(): %s", strerror(errno));
 
-    strncpy((char *)network, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
-            19);
+    strlcpy((char *)network, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
+            sizeof(network));
 
     strcat((char *)network, "/");
     if (masklen < 10) {
@@ -241,8 +242,8 @@ cidr2CIDR(char *cidr)
     /* we only get here on error parsing input */
   error:
     memset(ebuf, '\0', EBUF_SIZE);
-    strncpy(ebuf, "Unable to parse as a vaild CIDR: ", 34);
-    strncat(ebuf, cidr, (EBUF_SIZE - strlen(ebuf) - 1));
+    strcpy(ebuf, "Unable to parse as a vaild CIDR: ");
+    strlcat(ebuf, cidr, EBUF_SIZE);
     errx(1, "%s", ebuf);
     return NULL;
 }
@@ -291,24 +292,24 @@ parse_cidr(CIDR ** cidrdata, char *cidrin, char *delim)
 int
 parse_endpoints(CIDRMAP ** cidrmap1, CIDRMAP ** cidrmap2, char *optarg)
 {
-#define NEWMAP 32
-    char *map = NULL, newmap[NEWMAP];
+#define NEWMAP_LEN 32
+    char *map = NULL, newmap[NEWMAP_LEN];
     char *token = NULL;
 
-    memset(newmap, '\0', NEWMAP);
+    memset(newmap, '\0', NEWMAP_LEN);
     map = strtok_r(optarg, ":", &token);
 
-    strcpy(newmap, "0.0.0.0/0:");
-    strncat(newmap, map, NEWMAP - 1);
+    strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
+    strlcat(newmap, map, NEWMAP_LEN);
     if (! parse_cidr_map(cidrmap1, newmap))
         return 0;
     
     /* do again with the second IP */
-    memset(newmap, '\0', NEWMAP);
+    memset(newmap, '\0', NEWMAP_LEN);
     map = strtok_r(NULL, ":", &token);
     
-    strcpy(newmap, "0.0.0.0/0:");
-    strncat(newmap, map, NEWMAP - 1);
+    strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
+    strlcat(newmap, map, NEWMAP_LEN);
     if (! parse_cidr_map(cidrmap2, newmap))
         return 0;
     
@@ -492,13 +493,13 @@ cidr2iplist(CIDR * cidr, char delim)
         in.s_addr = htonl(i);
         snprintf(ipaddr, 17, "%s%c", inet_ntoa(in), delim);
         dbg(2, "%s", ipaddr);
-        strncat(list, ipaddr, size);
+        strlcat(list, ipaddr, size);
     }
 
     /* last is a special case, end in \0 */
     in.s_addr = htonl(i);
     snprintf(ipaddr, 16, "%s", inet_ntoa(in));
-    strncat(list, ipaddr, size);
+    strlcat(list, ipaddr, size);
 
     return list;
 }
