@@ -154,7 +154,6 @@ int
 extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[])
 {
     int datalen = 0;
-    eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
