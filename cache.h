@@ -7,21 +7,32 @@
 #ifndef __CACHE_H__
 #define __CACHE_H__
 
-#define CACHEDATASIZE 255
 #define CACHEMAGIC "tcpprep"
 #define CACHEVERSION "03"
+#define CACHEDATASIZE 255
+#define CACHE_PACKETS_PER_BYTE 4	/* number of packets / byte */
+#define CACHE_BITS_PER_PACKET 2	/* number of bits / packet */
 
 /* 
  * CACHEVERSION History:
  * 01 - Inital release.  1 bit of data/packet (primary or secondary nic)
  * 02 - 2 bits of data/packet (drop/send & primary or secondary nic)
+ * 03 - Write integers in network-byte order
  */
 
 struct cache_type {
     char data[CACHEDATASIZE];
-    unsigned int bits;
+    unsigned int packets; /* number of packets tracked in data */
     struct cache_type *next;
 };
+
+
+/*
+ * Each byte in cache_type.data represents CACHE_PACKETS_PER_BYTE (4) number of packets
+ * Each packet has CACHE_BITS_PER_PACKETS (2) bits of data.
+ * High Bit: 1 = send, 0 = don't send
+ * Low Bit: 1 = primary interface, 0 = secondary interface
+*/
 
 /*
  * cache_file_header Data structure defining a file as a tcpprep cache file
@@ -41,9 +52,6 @@ struct cache_file_header {
 
 typedef struct cache_type CACHE;
 typedef struct cache_file_header CACHE_HEADER;
-
-#define CACHE_PACKETS_PER_BYTE 4	/* number of packets / byte */
-#define CACHE_BITS_PER_PACKET 2	/* number of bites / packet */
 
 unsigned long write_cache(CACHE *, const int, unsigned long);
 void add_cache(CACHE **, const int, const int);
