@@ -468,8 +468,8 @@ static void
 post_args(int argc, char *argv[])
 {
     char myargs[MYARGS_LEN];
-    int i;
-    char *string;
+    int i, bufsize;
+    char *string, *tempstr;
 
     memset(myargs, 0, MYARGS_LEN);
 
@@ -489,11 +489,6 @@ post_args(int argc, char *argv[])
     if (! options.mode)
         err(1, "Must specify a processing mode: -a, -c, -r, -p");
     
-    /* ADT 
-     * Need to fix this... args need to come BEFORE the comment with
-     * a \n in between to correctly print
-     */
-    
     /* copy all of our args to myargs */
     for (i = 1; i < argc; i ++) {
         /* skip the -C <comment> */
@@ -510,18 +505,22 @@ post_args(int argc, char *argv[])
     myargs[strlen(myargs) - 1] = 0;
 
     dbg(1, "Comment args length: %d", strlen(myargs));
-    strlcat(myargs, "\n", MYARGS_LEN);
-
-    /* malloc our buffer to be + 1 strlen so we can null terminate */
+   
+    /* setup or options.comment buffer so that that we get args\ncomment */
     if (options.comment != NULL) {
+        strlcat(myargs, "\n", MYARGS_LEN);
+        bufsize = strlen(options.comment) + strlen(myargs) + 1;
         options.comment = (char *)safe_realloc(options.comment, 
-            strlen(options.comment) + strlen(myargs) + 1);
-      
+            bufsize);
+        
+        tempstr = strdup(options.comment);
+        strlcpy(options.comment, myargs, bufsize);
+        strlcat(options.comment, tempstr, bufsize);
     } else {
-        options.comment = (char *)safe_malloc(strlen(myargs) + 1);
+        bufsize = strlen(myargs) + 1;
+        options.comment = (char *)safe_malloc(bufsize);
+        strlcpy(options.comment, myargs, bufsize);
     }
-
-    strlcat(options.comment, myargs, strlen(options.comment) + strlen(myargs) + 1);
         
     dbg(1, "Final comment length: %d", strlen(options.comment));
 
