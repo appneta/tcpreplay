@@ -9,7 +9,6 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <fcntl.h>
-#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,12 +1,19 @@
-??/??/2003: Version 1.4.beta3
-	- Specifying a list of packets to include/exclude now works (-x/X P:)
+??/??/2003: Version 1.4.beta4
 	- Fix problem with -m not adjusting time between packets correctly
+
+04/30/2003: Version 1.4.beta3
+	- Specifying a list of packets to include/exclude now works (-x/X P:)
 	- Minor code cleanups (better error messages, etc)
 	- Add -p option to pause a given number of sec/usec between each packet
 	- Ported tcpprep to libpcap
         - Increase final report resolution to two sig digits
         - Switch to err.h that we ship rather then system provided err.h
         - Don't reset timer each time we open a file for reading
+        - fix --mandir option for ./configure
+        - fix SIGSEGV in tcpprep
+        - Add SIGUSR1 and SIGCONT signal support to tcpreplay
+        - Updated tcpreplay man pages
+        - Remove need for math.h/libm
 
 01/07/2003: Version 1.4.beta2
 	- Major updates to configure script

@@ -1,6 +1,5 @@
 #include <libnet.h>
 #include <pcap.h>
-#include <math.h>
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>

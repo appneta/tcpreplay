@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.30 2003/04/29 18:51:25 aturner Exp $
+dnl $Id: configure.in,v 1.31 2003/04/30 19:04:11 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -114,19 +114,18 @@ AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h math.h sys/time.h signal.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h])
 
 dnl Checks for libraries.
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, gethostbyname)
-AC_CHECK_LIB(m, fmod, , AC_MSG_ERROR(libm not found))
 
 dnl Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday ctime memset pow regcomp strdup strerror strtol])
+AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol])
 
 dnl Check for inet_aton and inet_addr
 AC_CHECK_FUNC(inet_aton, AC_DEFINE(INET_ATON) inet_aton=yes, inet_aton=no)
