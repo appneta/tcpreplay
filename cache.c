@@ -75,7 +75,7 @@ read_cache(char **cachedata, char *cachefile)
 
 #ifdef DEBUG
 	if (debug)
-		fprintf(stderr, "Loaded in %ld packets from cache.\n", header.num_packets);
+		fprintf(stderr, "Loaded in %u packets from cache.\n", header.num_packets);
 #endif
 	close(cachefd);
 	return (header.num_packets);
@@ -98,6 +98,7 @@ write_cache(CACHE *cachedata, const int out_file, unsigned long numpackets)
 
 	/* write a header to our file */
 	cache_header = (CACHE_HEADER *) malloc(sizeof(CACHE_HEADER));
+	memset(cache_header, 0, sizeof(CACHE_HEADER));
 	strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
 	strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
 	cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
