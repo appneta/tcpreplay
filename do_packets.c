@@ -34,8 +34,7 @@ extern int debug;
 
 
 void packet_stats();
-
-
+void fix_checksums(struct pcap_pkthdr *, ip_hdr_t *, libnet_t *);
 
 /*
  * we've got a race condition, this is our workaround
@@ -156,7 +155,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	     * an untruncate situation, we have to memcpy
 	     * the packet to a static buffer
 	     */
-	memcpy(&pktdata, nextpkt, sizeof(nextpkt));
+	memcpy(&pktdata, nextpkt, pkthdr.caplen);
 	}
 
 	packetnum++;
@@ -187,14 +186,14 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	     * we do all this work to prevent byte alignment issues
 	     */
 	    ip_hdr = (ip_hdr_t *) & ipbuff;
-	    memcpy(ip_hdr, (&pktdata + l2len),
+	    memcpy(ip_hdr, (&pktdata[l2len]),
 		   pkthdr.caplen - l2len);
 #else
 	    /*
 	     * on non-strict byte align systems, don't need to memcpy(), 
 	     * just point to 14 bytes into the existing buffer
 	     */
-	    ip_hdr = (ip_hdr_t *) (&pktdata + l2len);
+	    ip_hdr = (ip_hdr_t *) (&pktdata[l2len]);
 #endif
 
 	    /* look for include or exclude CIDR match */
@@ -267,6 +266,11 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	    randomize_ips(&pkthdr, pktdata, ip_hdr, l);
 	}
 
+	/* do we need to force fixing checksums? */
+	if ((options.fixchecksums) && (ip_hdr != NULL)) {
+	    fix_checksums(&pkthdr, ip_hdr, l);
+	}
+
 
 #ifdef STRICT_ALIGN
 	/* 
@@ -301,6 +305,28 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 }
 
 /*
+ * this code re-calcs the IP and TCP/UDP checksums
+ */
+void
+fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr, 
+	      libnet_t *l)
+{
+    /* recalc the UDP/TCP checksum(s) */
+    if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
+	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
+			       pkthdr->caplen) < 0)
+	    warnx("Layer 4 checksum failed");
+    }
+    
+    
+    /* recalc IP checksum */
+    if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
+			   pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
+	warnx("IP checksum failed");
+}
+
+
+/*
  * randomizes the source and destination IP addresses based on a 
  * pseudo-random number which is generated via the seed.
  */
@@ -323,17 +349,8 @@ randomize_ips(struct pcap_pkthdr *pkthdr,
     dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
 	ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
 
-    /* recalc the UDP/TCP checksum(s) */
-    if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
-	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
-			       pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
-	    warnx("Layer 4 checksum failed");
-    }
-
-    /* recalc IP checksum */
-    if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
-			   pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
-	warnx("IP checksum failed.");
+    /* fix checksums */
+    fix_checksums(pkthdr, ip_hdr, l);
 
 }
 
@@ -427,6 +444,7 @@ cidr_mode(eth_hdr_t *eth_hdr, ip_hdr_t * ip_hdr)
 }
 
 
+
 /*
  * this code will untruncate a packet via padding it with null
  * or resetting the actual packet len to the snaplen.  In either case
@@ -455,18 +473,8 @@ untrunc_packet(struct pcap_pkthdr *pkthdr,
 	errx(1, "Hello!  I'm not supposed to be here!");
     }
 
-    /* recalc the UDP/TCP checksum(s) */
-    if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
-	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
-			       pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
-	    warnx("Layer 4 checksum failed");
-    }
-
-
-    /* recalc IP checksum */
-    if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
-			   pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
-	warnx("IP checksum failed");
+    /* fix checksums */
+    fix_checksums(pkthdr, ip_hdr, l);
 
 }
 
