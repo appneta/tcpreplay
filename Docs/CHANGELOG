@@ -1,4 +1,4 @@
-$Id: CHANGELOG,v 1.37 2004/04/23 21:54:13 aturner Exp $
+$Id: CHANGELOG,v 1.38 2004/04/23 22:41:26 aturner Exp $
 
 04/23/2004: Version 2.1.0
     - Add support for per output interface/file NAT tables 
@@ -9,6 +9,7 @@ $Id: CHANGELOG,v 1.37 2004/04/23 21:54:13 aturner Exp $
       a tcpprep cache file
     - Some code refactorization/cleanup
     - tcpprep cache files now support user comments
+    - Fix bug where regex optimization was turned always turned off
 
 03/24/2004: Version 2.0.3
     - Add support for rewriting src mac & Linux SLL loopback frames
