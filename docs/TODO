@@ -2,9 +2,17 @@ This is a general list of things which should/could/may be done.
 If any of these features interest you let me know- especially if you're
 willing and able to help code it.
 
-- Look at VLAN packets
+Legend:
+    - = Not started
+    + = Done
+    O = Mostly done
+    o = Started work
+    . = Canceled
+
+- Look at VLAN (802.1q) packets
     - others non-vanilla types?
     - Add tags?  Remove tags?  Change tags?
+    - Cisco's ISL trunking?
 
 - Add support for setting the ethernet protocol field so we can use
     -I, -K to fill out an entire ethernet header w/o using -2
@@ -16,25 +24,28 @@ willing and able to help code it.
 - Add support for more linktypes (Prism Monitor, 802.11, etc)
     - Make it easier for others to add support for others
 
-- Rip out packet munger from tcpreplay and put it into another tool so
+o Rip out packet munger from tcpreplay and put it into another tool so
   that tcpreplay can be more optimized
     - perhaps use libnetdude?
     - make into a library?
-    - definately put it into a seperate binary
+    + definately put it into a seperate binary (tcprewrite)
 
-- Improve config file format
-  - better variable names
-  - use "var: value" format
-  - have tcpreplay, tcpprep, tcprewrite sections
++ Improve config file format
+  + better variable names
+  + use "var: value" format
+  + have tcpreplay, tcpprep, tcprewrite sections
+  + Being solved using GNU AutoOpts
 
-- Add support for dual-nic send on one intf, wait for packet, send next.
+. Add support for dual-nic send on one intf, wait for packet, send next.
   would be really useful for testing the effectiveness of how well an IPS
-  detects and blocks attacks.
+  detects and blocks attacks. (TP's tomahawk does this even better then
+  described here, so why re-invent the wheel?)
 
 - Support fragrouter like features 
     - basic IP fragmenation
     - TCP fudging 
     - then more advanced stuff
+    - Can we integrate FR's code?
 
 - Support connection tracking and generating 3way handshake for connections
   missing them.
@@ -48,25 +59,27 @@ willing and able to help code it.
   http://www.geschke-online.de/FLoP/fpg.8.html
   to do full 3way handshakes
 
+- IPv6 support?  People ask for this every few months, but nobody actually
+  says they "need" or "really want" it; seems more of "gee, wouldn't it be
+  nice".
 
-- IPv6 support?
-
-- When splitting traffic via tcpprep print out each packet (tcpdump style)
++ When splitting traffic via tcpprep print out each packet (tcpdump style)
   so end users know where each packet is going
 
-- Improve autoconf detection of libraries
+o Improve autoconf detection of libraries
 
-- Re-organize source tree
++ Re-organize source tree
 
-- tcpdump decoder should print packets syncronously w/ the main process
+O tcpdump decoder should print packets syncronously w/ the main process
 
 - Rewrite do_sleep() to handle sub sleep times by only nanosleep()'ing
   once for multiple packets when the timestamps are close enough.  We
   also need to time nanosleep, since different architectures have lower
   minimum sleep times (Linux/Alpha is 1ms vs. 10ms for Linux/x86)
 
-Done:
-- Tcpreplay should say which interface each packet is going out
-- Better use of GNU Autotools
-- Improve CLI/config file parsing
++ Tcpreplay should say which interface each packet is going out
+
++ Better use of GNU Autotools
+
++ Improve CLI/config file parsing
 
