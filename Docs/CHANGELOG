@@ -1,5 +1,9 @@
-??/??/2003: Version 1.4.beta4
-	- Fix problem with -m not adjusting time between packets correctly
+05/02/2003: Version 1.4.beta4
+	- significantly improved timing accuracy between packets
+        - fix bug with writing only about 1/2 of cache data which caused
+          tcpreplay to bitch
+        - updated 'make test' standard cache files
+        - improved alignment of cache header (20bytes vs 17bytes)
 
 04/30/2003: Version 1.4.beta3
 	- Specifying a list of packets to include/exclude now works (-x/X P:)
