@@ -1,4 +1,4 @@
-/* $Id: flownode.c,v 1.4 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: flownode.c,v 1.5 2004/05/08 21:19:55 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -46,7 +46,7 @@ extern CIDR *clients, *servers;
 
 /* prepare the RB trees for tcp and udp sessions */
 RB_PROTOTYPE(session_tree, session_t, node, rbsession_comp)
-    RB_GENERATE(session_tree, session_t, node, rbsession_comp)
+RB_GENERATE(session_tree, session_t, node, rbsession_comp)
 
 
 /*
@@ -62,7 +62,8 @@ RB_PROTOTYPE(session_tree, session_t, node, rbsession_comp)
  * provide adequate speed for collisions rather then ignoring
  * the collsion problem all together.
  */
-     struct session_t *getnodebykey(char proto, u_char * key)
+struct session_t *
+getnodebykey(char proto, u_char * key)
 {
     struct session_t *node = NULL;
     struct session_t like;
