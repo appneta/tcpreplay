@@ -48,6 +48,7 @@
 
 #include <err.h>
 #include <libnet.h>
+#include <pcap.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,10 +65,8 @@
 #include "tcpreplay.h"
 #include "cache.h"
 #include "cidr.h"
-#include "libpcap.h"
 #include "tcpprep.h"
 #include "tree.h"
-#include "snoop.h"
 #include "list.h"
 #include "xX.h"
 
@@ -100,13 +99,20 @@ LIST *xX_list = NULL;
 static void usage();
 static void version();
 static int check_ip_regex(const unsigned long ip);
-static unsigned long process_raw_packets(int fd, int (*get_next) (int, struct packet *));
+static unsigned long process_raw_packets(pcap_t *pcap);
 
 static void
 version()
 {
-	fprintf(stderr, "tcpprep version: %s\n", VERSION);
+	fprintf(stderr, "tcpprep version: %s", VERSION);
+#ifdef DEBUG
+	fprintf(stderr, " (debug)\n");
+#else
+	fprintf(stderr, "\n");
+#endif
+	fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+	fprintf(stderr, "Compiled against libpcap: %d.%d\n", PCAP_VERSION_MAJOR, PCAP_VERSION_MINOR);
 	exit(0);
 }
 
@@ -165,16 +171,21 @@ check_ip_regex(const unsigned long ip)
  * the cache file.
  */
 static unsigned long 
-process_raw_packets(int fd, int (*get_next) (int, struct packet *))
+process_raw_packets(pcap_t *pcap)
 {
-	ip_hdr_t ip_hdr;
+	ip_hdr_t *ip_hdr = NULL;
 	eth_hdr_t *eth_hdr = NULL;
-	struct packet pkt;
+	struct pcap_pkthdr pkthdr;
+	const u_char *nextpkt = NULL;
+	u_char pktdata[MAXPACKET];      /* full packet buffer */
 	unsigned long packetnum = 0;
+#ifdef FORCE_ALIGN
+	u_char ipbuff[MAXPACKET];
+#endif
 
-	while ((*get_next) (fd, &pkt)) {
+	while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
 		packetnum ++;
-		eth_hdr = (eth_hdr_t *) (pkt.data);
+		eth_hdr = (eth_hdr_t *)&pktdata;
 
 		/* look for include or exclude LIST match */
 		if (xX_list != NULL) {
@@ -190,25 +201,35 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 		}
 
 		if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
-#ifdef DEBUG
-			if (debug)
-				fprintf(stderr, "Packet isn't IP: 0x%.2x\n", eth_hdr->ether_type);
-#endif
+			dbg(2, "Packet isn't IP: 0x%.2x\n", eth_hdr->ether_type);
+
 			if (mode != AUTO_MODE)	/* we don't want to cache
 									 * these packets twice */
 				add_cache(&cachedata, 1, non_ip);
 			continue;
 		}
 		
-		/* 
-		 * we have to copy the IP header because the ethernet header
-		 * puts us 14bytes in which is not byte aligned 
-		 */
-		memcpy(&ip_hdr,(pkt.data + LIBNET_ETH_H), LIBNET_IP_H);
+#ifdef FORCE_ALIGN
+			/* 
+			 * copy layer 3 and up to our temp packet buffer
+			 * for now on, we have to edit the packetbuff because
+			 * just before we send the packet, we copy the packetbuff 
+			 * back onto the pkt.data + LIBNET_ETH_H buffer
+			 * we do all this work to prevent byte alignment issues
+			 */
+			ip_hdr = (ip_hdr_t *)&ipbuff;
+			memcpy(ip_hdr, (&pktdata + LIBNET_ETH_H), pkthdr.caplen - LIBNET_ETH_H);
+#else
+			/*
+			 * on non-strict byte align systems, don't need to memcpy(), 
+			 * just point to 14 bytes into the existing buffer
+			 */
+			ip_hdr = (ip_hdr_t *)(&pktdata + LIBNET_ETH_H);
+#endif
 
 		/* look for include or exclude CIDR match */
 		if (xX_cidr != NULL) {
-			if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, &ip_hdr)) {
+			if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
 				add_cache(&cachedata, 0, 0);
 				continue;
 			}
@@ -216,24 +237,24 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 
 		switch (mode) {
 		case REGEX_MODE:
-			add_cache(&cachedata, 1, check_ip_regex(ip_hdr.ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_regex(ip_hdr->ip_src.s_addr));
 			break;
 		case CIDR_MODE:
-			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr.ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
 			break;
 		case AUTO_MODE:
 			/* first run through in auto mode: create tree */
-			add_tree(ip_hdr.ip_src.s_addr, pkt.data);
+			add_tree(ip_hdr->ip_src.s_addr, pktdata);
 			break;
 		case ROUTER_MODE:
-			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr.ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
 			break;
 		case BRIDGE_MODE:
 			/*
 			 * second run through in auto mode: create bridge
 			 * based cache
 			 */
-			add_cache(&cachedata, 1, check_ip_tree(ip_hdr.ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_tree(ip_hdr->ip_src.s_addr));
 			break;
 		}
 
@@ -248,13 +269,14 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 int 
 main(int argc, char *argv[])
 {
-	int out_file, in_file, ch, regex_flags = 0, regex_error = 0, mask_count = 0;
-	//struct libnet_link_int *write_if = NULL;
+	int out_file, ch, regex_flags = 0, regex_error = 0, mask_count = 0;
 	char *infilename = NULL;
 	char *outfilename = NULL;
 	char ebuf[EBUF_SIZE];
 	unsigned long totpackets = 0;
 	void *xX;
+	pcap_t *pcap;
+	char errbuf[PCAP_ERRBUF_SIZE];
 
 	debug = 0;
 	ourregex = NULL;
@@ -400,28 +422,13 @@ main(int argc, char *argv[])
 
 readpcap:
 	/* open the pcap file */
-	if ((in_file = open(infilename, O_RDONLY, 0)) < 0) {
-		errx(1, "could not open: %s", infilename);
+	if ((pcap = pcap_open_offline(infilename, errbuf)) == NULL) {
+		errx(1, "Error opening file: %s", errbuf);
 	}
 
-	/* process the file */
-	if (is_snoop(in_file)) {
-#ifdef DEBUG
-		if (debug)
-			warnx("File %s is a snoop file", infilename);
-#endif
-		totpackets = process_raw_packets(in_file, get_next_snoop);
-		(void) close(in_file);
-	} else if (is_pcap(in_file)) {
-#ifdef DEBUG
-		if (debug)
-			warnx("File %s is a pcap file", infilename);
-#endif
-		totpackets = process_raw_packets(in_file, get_next_pcap);
-		(void) close(in_file);
-	} else {
-		errx(1, "unknown file format: %s", infilename);
-	}
+	totpackets = process_raw_packets(pcap);
+	pcap_close(pcap);
+	
 
 	/* we need to process the pcap file twice in HASH/AUTO mode */
 	if (mode == AUTO_MODE) {

@@ -9,7 +9,6 @@
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
-#include <err.h>
 #include <libnet.h>
 #include <redblack.h>
 #include <stdio.h>
@@ -18,10 +17,13 @@
 #include "tcpreplay.h"
 #include "cidr.h"
 #include "tree.h"
+#include "err.h"
 
 extern TREE *treedata;
 extern double ratio;
+#ifdef DEBUG
 extern int debug;
+#endif
 extern int min_mask, max_mask;
 extern CIDR *cidrdata;
 
@@ -144,10 +146,7 @@ process_tree()
 		err(1, "malloc");
 
 	for (mymask = max_mask; mymask <= min_mask; mymask++) {
-#ifdef DEBUG
-		if (debug > 0)
-			fprintf(stderr, "Current mask: %u\n", mymask);
-#endif
+		dbg(1, "Current mask: %u\n", mymask);
 
 		/* set starting vals */
 		cbdata->type = SERVER;
@@ -210,14 +209,12 @@ check_ip_tree(const unsigned long ip)
 			 libnet_addr2name4(ip, RESOLVE), ip);
 
 #ifdef DEBUG
-	if (debug) {
-		if (tree->type == SERVER) {
-			fprintf(stderr, "Server: %s\n", libnet_addr2name4(ip, RESOLVE));
-		} else if (tree->type == CLIENT) {
-			fprintf(stderr, "Client: %s\n", libnet_addr2name4(ip, RESOLVE));
-		} else {
-			fprintf(stderr, "Unknown: %s\n", libnet_addr2name4(ip, RESOLVE));
-		}
+	if (tree->type == SERVER) {
+		dbg(1, "Server: %s\n", libnet_addr2name4(ip, RESOLVE));
+	} else if (tree->type == CLIENT) {
+		dbg(1, "Client: %s\n", libnet_addr2name4(ip, RESOLVE));
+	} else {
+		dbg(1, "Unknown: %s\n", libnet_addr2name4(ip, RESOLVE));
 	}
 #endif
 
@@ -243,11 +240,8 @@ add_tree(const unsigned long ip, const u_char * data)
 	if (newtree->type == UNKNOWN) {
 		/* couldn't figure out if packet was client or server */
 
-#ifdef DEBUG
-		if (debug > 1)
-			fprintf(stderr, "%s (%lu) unknown client/server\n",
-					libnet_addr2name4(newtree->ip, RESOLVE), newtree->ip);
-#endif
+		dbg(2, "%s (%lu) unknown client/server\n",
+			libnet_addr2name4(newtree->ip, RESOLVE), newtree->ip);
 
 	}
 	/* try to find a simular entry in the tree */
@@ -271,10 +265,8 @@ add_tree(const unsigned long ip, const u_char * data)
 
 	} else {
 		/* we found something, so update it */
+		dbg(2, "   tree: 0x%p\nnewtree: 0x%p\n", tree, newtree);
 #ifdef DEBUG
-		if (debug > 1)
-			fprintf(stderr, "   tree: 0x%p\nnewtree: 0x%p\n", tree, newtree);
-
 		if (debug > 2)
 			print_tree("update tree", tree);
 #endif
@@ -289,9 +281,8 @@ add_tree(const unsigned long ip, const u_char * data)
 		free(newtree);
 	}
 
+	dbg(2, "------- START NEXT -------\n");
 #ifdef DEBUG
-	if (debug > 1)
-		fprintf(stderr, "------- START NEXT -------\n");
 	if (debug > 2)
 		rbwalk(rbdata, tree_nodeprint, NULL);
 #endif
@@ -351,28 +342,16 @@ tree_comp(const void *first, const void *second, const void *config)
 	t2 = (TREE *) second;
 
 	if (t1->ip > t2->ip) {
-
-#ifdef DEBUG
-		if (debug > 1)
-			fprintf(stderr, "%s > %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
-#endif
-
+		dbg(2, "%s > %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
 		return 1;
 	}
+
 	if (t1->ip < t2->ip) {
-
-#ifdef DEBUG
-		if (debug > 1)
-			fprintf(stderr, "%s < %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
-#endif
-
+		dbg(2, "%s < %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
 		return -1;
 	}
 
-#ifdef DEBUG
-	if (debug > 1)
-		fprintf(stderr, "%s = %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
-#endif
+	dbg(2, "%s = %s\n", libnet_addr2name4(t1->ip, RESOLVE), libnet_addr2name4(t2->ip, RESOLVE));
 
 	return 0;
 
@@ -437,10 +416,8 @@ packet2tree(const u_char * data)
 	 */
 	if (ip_hdr.ip_p == IPPROTO_TCP) {
 
-#ifdef DEBUG
-		if (debug)
-			fprintf(stderr, "%s uses TCP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
-#endif
+
+		dbg(1, "%s uses TCP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
 		/* memcpy it over to prevent alignment issues */
 		memcpy(&tcp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_TCP_H);
@@ -452,21 +429,13 @@ packet2tree(const u_char * data)
 		/* set TREE->type based on TCP flags */
 		if (tcp_hdr.th_flags == TH_SYN) {
 			mytree->type = CLIENT;
-#ifdef DEBUG
-			if (debug)
-				fprintf(stderr, "is a client\n");
-#endif
+			dbg(1, "is a client\n");
 		} else if (tcp_hdr.th_flags == (TH_SYN | TH_ACK)) {
 			mytree->type = SERVER;
-#ifdef DEBUG
-			if (debug)
-				fprintf(stderr, "is a server\n");
-#endif
+			dbg(1, "is a server\n");
 		}
-#ifdef DEBUG
-		else if (debug)
-			fprintf(stderr, "is an unknown\n");
-#endif
+		dbg(1, "is an unknown\n");
+
 
 		/* 
 		 * UDP 
@@ -474,11 +443,7 @@ packet2tree(const u_char * data)
 	} else if (ip_hdr.ip_p == IPPROTO_UDP) {
 		/* memcpy over to prevent alignment issues */
 		memcpy(&udp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_UDP_H);
-
-#ifdef DEBUG
-		if (debug)
-			fprintf(stderr, "%s uses UDP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
-#endif
+		dbg(1, "%s uses UDP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 		
 		switch (ntohs(udp_hdr.uh_dport)) {
 		case 0x0035:	/* dns */
@@ -489,20 +454,13 @@ packet2tree(const u_char * data)
 				/* bit set, response */
 				mytree->type = SERVER;
 
-#ifdef DEBUG
-				if (debug)
-					fprintf(stderr, "is a dns server\n");
-#endif
+				dbg(1, "is a dns server\n");
 
 			} else {
 				/* bit not set, query */
 				mytree->type = CLIENT;
 
-#ifdef DEBUG
-				if (debug)
-					fprintf(stderr, "is a dns client\n");
-#endif
-
+				dbg(1, "is a dns client\n");
 			}
 			return (mytree);
 			break;
@@ -518,27 +476,17 @@ packet2tree(const u_char * data)
 			if (dns_hdr.flags & DNS_QUERY_FLAG) {
 				/* bit set, response */
 				mytree->type = SERVER;
-#ifdef DEBUG
-				if (debug)
-					fprintf(stderr, "is a dns server\n");
-#endif
+				dbg(1, "is a dns server\n");
 			} else {
 				/* bit not set, query */
 				mytree->type = CLIENT;
-#ifdef DEBUG
-				if (debug)
-					fprintf(stderr, "is a dns client\n");
-#endif
+				dbg(1, "is a dns client\n");
 			}
 			return (mytree);
 			break;
 		default:
 
-#ifdef DEBUG
-			if (debug)
-				fprintf(stderr, "unknown UDP protocol: %hu->%hu\n", udp_hdr.uh_sport, udp_hdr.uh_dport);
-#endif
-
+			dbg(1, "unknown UDP protocol: %hu->%hu\n", udp_hdr.uh_sport, udp_hdr.uh_dport);
 			break;
 		}
 
@@ -550,10 +498,7 @@ packet2tree(const u_char * data)
 		/* prevent alignment issues */
 		memcpy(&icmp_hdr, (data + LIBNET_ETH_H + LIBNET_IP_H), LIBNET_ICMP_H);
 
-#ifdef DEBUG
-		if (debug)
-			fprintf(stderr, "%s uses ICMP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
-#endif
+		dbg(1, "%s uses ICMP...  ", libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 		
 		/*
 		 * if port unreachable, then source == server, dst == client 
@@ -561,8 +506,7 @@ packet2tree(const u_char * data)
 		if ((icmp_hdr.icmp_type == ICMP_UNREACH) &&
 			(icmp_hdr.icmp_code == ICMP_UNREACH_PORT)) {
 			mytree->type = SERVER;
-			if (debug)
-				fprintf(stderr, "is a server with a closed port\n");
+			dbg(1, "is a server with a closed port\n");
 		}
 
 	}
