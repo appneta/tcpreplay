@@ -1,7 +1,7 @@
-/* $Id: cache.h,v 1.10 2003/12/16 03:58:37 aturner Exp $ */
+/* $Id: cache.h,v 1.11 2004/01/31 21:31:55 aturner Exp $ */
 
 /*
- * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * Copyright (c) 2001-2004 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -13,12 +13,9 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *    This product includes software developed by Anzen Computing, Inc.
- * 4. Neither the name of Anzen Computing, Inc. nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * 3. Neither the names of the copyright owners nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF

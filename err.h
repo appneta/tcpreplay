@@ -1,9 +1,11 @@
-/* $Id: err.h,v 1.3 2003/03/24 04:59:58 aturner Exp $ */
+/* $Id: err.h,v 1.4 2004/01/31 21:31:55 aturner Exp $ */
 
 /*
  * err.h
  *
  * Adapted from OpenBSD libc *err* *warn* code.
+ *
+ * Copyright (c) 2001-2004 Aaron Turner.
  *
  * Copyright (c) 2000 Dug Song <dugsong@monkey.org>
  *
