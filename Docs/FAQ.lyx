@@ -30,7 +30,7 @@
 
 \layout Title
 
-Tcpreplay 2.0.x FAQ
+Tcpreplay 2.1.x FAQ
 \layout Author
 
 Aaron Turner <aturner_AT_pobox.com> 
@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-March 23, 2004
+April 23, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -1354,7 +1354,7 @@ Very small.
 What are these 'modes' tcpprep has? 
 \layout Standard
 
-Tcpprep has two basic modes which require the user to specify how to split
+Tcpprep has three basic modes which require the user to specify how to split
  traffic.
 \layout Itemize
 
@@ -1366,6 +1366,21 @@ CIDR (-c) mode requires the user to provide a list of networks.
 Regex (-r) mode requires the user to provide a regular expression.
  Any packet with a source IP matching the regex gets sent out the primary
  interface.
+\layout Itemize
+
+Port (-p) mode splits TCP/UDP traffic based on the destination port in the
+ header.
+ Normally, ports 0-1023 are considered 
+\begin_inset Quotes eld
+\end_inset 
+
+server
+\begin_inset Quotes erd
+\end_inset 
+
+ ports and everything else a client port.
+ You can create your own custom mapping file in the same format as /etc/services
+ (see the services(5) man page for details) by specifying -s <file>.
 \layout Standard
 
 And four auto modes in which tcpprep decides how to split traffic.
@@ -1495,6 +1510,53 @@ Just run:
 
 \emph on 
 tcpreplay -c sample.cache -i eth0 -j eth1 sample.pcap
+\layout Subsection
+
+Commenting tcpprep cache files
+\layout Standard
+
+In versions of tcpprep >= 2.1.0, you can specify a comment to be embeded in
+ the tcpprep cache file.
+ Comments are user specified and automatically include the command line
+ arguments passed to tcpprep.
+ 
+\layout Standard
+
+
+\emph on 
+tcpprep -C 
+\begin_inset Quotes eld
+\end_inset 
+
+this is my comment
+\begin_inset Quotes erd
+\end_inset 
+
+ -i sample.pcap -o sample.cache <other args>
+\layout Standard
+
+Or for no user comment, but still embed the command arguments:
+\layout Standard
+
+
+\emph on 
+tcpprep -C 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\begin_inset Quotes erd
+\end_inset 
+
+ -i sample.pcap -o sample.cache <other args>
+\layout Standard
+
+You can then later on print out the comments by running:
+\layout Standard
+
+
+\emph on 
+tcpprep -P sample.cache
 \layout Section
 
 Flowreplay Usage
@@ -1711,7 +1773,12 @@ Version 2:
 
 Version 3:
 \newline 
-1.3.2/1.4.beta2 and above
+1.3.2/1.4.beta2 to 2.0.3
+\layout Itemize
+
+Version 4:
+\newline 
+2.10 and above
 \layout Subsection
 
 Skipping SLL loopback packet.
