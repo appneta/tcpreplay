@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.26 2003/06/04 22:49:48 aturner Exp $ */
+/* $Id: do_packets.c,v 1.27 2003/06/05 02:26:15 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -197,7 +197,10 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		/* if linktype is SLL, then rewrite as a standard 802.3 header */
 		sllhdr = (struct sll_header *)nextpkt;
 		if (ntohs(sllhdr->sll_hatype) == 1) {
-		    /* set the source/destination MAC */
+		    /* set the dest/src MAC 
+		     * Note: the dest MAC will get rewritten in cidr_mode() 
+		     * or cache_mode() if splitting between interfaces
+		     */
 		    memcpy(pktdata, options.intf1_mac, 6);
 		    memcpy(&pktdata[6], sllhdr->sll_addr, 6);
 		    
