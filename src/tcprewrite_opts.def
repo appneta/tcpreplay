@@ -128,7 +128,19 @@ Example:
 EOText;
 };
 
-
+flag = {
+	name		= proto;
+	value		= P;
+	arg-type	= number;
+	max			= 1;
+	descrip		= "Override L2 protocol type for DLT_RAW";
+	arg-range	= "0->65535";
+	doc			= <<- EOText
+By default, pcap files encapsulated using DLT_RAW will have their protocol
+set to ETHERTYPE_IP (0x0800). 
+EOText;
+};
+	
 flag = {
     name        = dlink;
     value       = l;
@@ -288,6 +300,7 @@ flag = {
     
     char ebuf[PCAP_ERRBUF_SIZE];
     options.infile = safe_strdup(OPT_ARG(INFILE));
+
     if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
         errx(1, "Unable to open input pcap file: %s", ebuf);
 
@@ -427,7 +440,7 @@ flag = {
 
 flag = {
     name        = vlan_cfi;
-    value       = P;
+    value       = c;
     max         = 1;
     descrip     = "Specify the 802.1q VLAN CFI value";
     arg-type    = number;
