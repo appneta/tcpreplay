@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.19 2002/11/12 02:12:03 aturner Exp $
+# $Id: Makefile.in,v 1.20 2002/11/19 23:32:12 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -6,7 +6,7 @@ SBINDIR		= $(PREFIX)/sbin
 MAN8DIR		= $(PREFIX)/man/man8
 MAN1DIR		= $(PREFIX)/man/man1
 
-CC			= @CC@
+CC		= @CC@
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 DEFS		= @DEFS@
@@ -23,7 +23,7 @@ TOBJS		= $(TSRCS:.c=.o)
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c @EXTRAS@
 COBJS		= $(CSRCS:.c=.o)
 
-PSRCS		= tcpprep.c libpcap.c snoop.c cidr.c tree.c cache.c list.c xX.c @EXTRAS@
+PSRCS		= tcpprep.c libpcap.c snoop.c cidr.c tree.c cache.c list.c xX.c err.c @EXTRAS@
 POBJS		= $(PSRCS:.c=.o)
 
 .c.o:
@@ -43,16 +43,17 @@ capinfo: $(COBJS)
 libredblack: libredblack/.libs/libredblack.a
 
 libredblack/.libs/libredblack.a:
-	cd libredblack && ./configure && make
+	cd libredblack && sh ./autogen.sh && make
 
 clean:
 	-rm -f *.o *core $(BINARIES)
-	-cd libredblack && make clean
+	-cd libredblack && make distclean
 	-cd test && make clean
 
 distclean: clean
 	-rm -rf autom4te-2.??.cache
 	-rm -f Makefile config.h config.status config.cache config.log *~
+	-cd test && make distclean
 
 install: 
 	test -d $(SBINDIR) || $(INSTALL) -d $(SBINDIR)
