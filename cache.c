@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.23 2004/04/23 22:40:08 aturner Exp $ */
+/* $Id: cache.c,v 1.24 2004/05/08 21:19:22 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -173,7 +173,13 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
     strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
     cache_header->num_packets = htonll(numpackets);
-    cache_header->comment_len = htons((u_int16_t)strlen(options.tcpprep_comment));
+
+    /* we can't strlen(NULL) so ... */
+    if (options.tcpprep_comment != NULL) {
+        cache_header->comment_len = htons((u_int16_t)strlen(options.tcpprep_comment));
+    } else {
+        cache_header->comment_len = 0;
+    }
 
     written = write(out_file, cache_header, sizeof(CACHE_HEADER));
     dbg(1, "Wrote %d bytes of cache file header", written);
@@ -183,13 +189,16 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
              written, sizeof(CACHE_HEADER),
              written == -1 ? strerror(errno) : "");
 
-    written = write(out_file, options.tcpprep_comment, strlen(options.tcpprep_comment));
-    dbg(1, "Wrote %d bytes of comment", written);
-
-    if (written != strlen(options.tcpprep_comment))
-        errx(1, "Only wrote %d of %d bytes of the comment!\n%s",
-             written, strlen(options.tcpprep_comment), 
-             written == -1 ? strerror(errno) : "");
+    /* don't write comment if there is none */
+    if (options.tcpprep_comment != NULL) {
+        written = write(out_file, options.tcpprep_comment, strlen(options.tcpprep_comment));
+        dbg(1, "Wrote %d bytes of comment", written);
+        
+        if (written != strlen(options.tcpprep_comment))
+            errx(1, "Only wrote %d of %d bytes of the comment!\n%s",
+                 written, strlen(options.tcpprep_comment), 
+                 written == -1 ? strerror(errno) : "");
+    }
 
     mycache = cachedata;
 
