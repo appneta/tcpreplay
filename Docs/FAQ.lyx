@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-May 15, 2004
+Sept 6, 2004
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -1945,7 +1945,9 @@ Version 3:
 
 Version 4:
 \newline 
-2.1.0 and above
+2.1.0 and above.
+ Note that prior to version 2.3.0, tcpprep had a bug which broke cache file
+ compatibility between big and little endian systems.
 \layout Subsection
 
 Skipping SLL loopback packet.
@@ -2032,7 +2034,7 @@ Libpcap
 
 As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
  As of v2.0, you'll need at least version 0.6.0 or better, but I only test
- our code with the latest version: 0.7.2.
+ our code with the latest version.
  Libpcap can be obtained on the tcpdump homepage
 \begin_inset Foot
 collapsed true
