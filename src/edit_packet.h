@@ -41,7 +41,7 @@ void fix_checksums(struct pcap_pkthdr *, ip_hdr_t *, libnet_t *);
 int rewrite_l2(struct pcap_pkthdr *, u_char *, const u_char *, u_int32_t,
                int, char *, int);
 int extract_data(u_char *, int, int, char *[]);
-u_int32_t remap_ip(CIDR *cidr, const u_int32_t original);
+u_int32_t remap_ip(cidr_t *cidr, const u_int32_t original);
 int rewrite_ipl3(ip_hdr_t *ip_hdr, libnet_t *l);
 int rewrite_iparp(arp_hdr_t *arp_hdr, libnet_t *l);
 
