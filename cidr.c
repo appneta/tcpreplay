@@ -265,16 +265,26 @@ ip_in_cidr(const unsigned long ip, const CIDR * mycidr)
 	if (network == ipaddr) {
 #ifdef DEBUG
 		if (debug > 1) {
+#if USE_LIBNET_VERSION == 10
 			fprintf(stderr, "The ip %s is inside of %s/%d\n",
-				libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(network, RESOLVE), mycidr->masklen);
+					libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(network, RESOLVE), mycidr->masklen);
+#elif USE_LIBNET_VERSION == 11
+			fprintf(stderr, "The ip %s is inside of %s/%d\n",
+					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(network, RESOLVE), mycidr->masklen);
+#endif
 		}
 #endif
 		return 1;
 	} else {
 #ifdef DEBUG
 		if (debug > 1) {
+#if USE_LIBNET_VERSION == 10
 			fprintf(stderr, "The ip %s is not inside of %s/%d\n",
 				libnet_host_lookup(ip, RESOLVE), libnet_host_lookup(network, RESOLVE), mycidr->masklen);
+#elif USE_LIBNET_VERSION == 11
+			fprintf(stderr, "The ip %s is not inside of %s/%d\n",
+					libnet_addr2name4(ip, RESOLVE), libnet_addr2name4(network, RESOLVE), mycidr->masklen);
+#endif
 		}
 #endif
 		return 0;
