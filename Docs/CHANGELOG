@@ -1,9 +1,13 @@
-$Id: CHANGELOG,v 1.34 2004/04/01 06:49:12 aturner Exp $
+$Id: CHANGELOG,v 1.35 2004/04/03 22:51:35 aturner Exp $
 
 ?????: Version 2.1.0
     - Add support for per output interface/file NAT tables 
     - Add support for using dual output features w/ a single output
     - Add support to tcpprep for splitting via destination port
+    - Now fully 64bit when tracking number of packets
+    - Fix a bug where sometimes the last few packets are not sent when using
+      a tcpprep cache file
+    - Some code refactorization/cleanup
 
 03/24/2004: Version 2.0.3
     - Add support for rewriting src mac & Linux SLL loopback frames
