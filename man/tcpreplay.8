@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.10 2003/07/16 22:30:39 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.11 2003/07/18 00:06:39 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -49,7 +49,9 @@ tcpreplay \- replay packets from capture files
 ] [
 .B \-t 
 .I MTU
-[ ]
+] [
+.B \-T
+] [
 .B \-C 
 CIDR...
 ] [
@@ -166,11 +168,18 @@ the IP header as necessary.
 Specify the MTU in bytes of the interface(s) being used.  Default is 1500 which
 is standard for 10/100 Ethernet.
 .TP
+.B \-T or "truncate"
+If a packet is larger then the MTU of the interface, the frame will be truncated
+so that it can be sent.  With out this, these frames are skipped.  Not to be
+confused with -u which pads/truncates packets which are larger then the snaplen
+used to capture the packet.
+.TP
 .B \-u or "untruncate"
-When a packet is truncated in the capture file, this option will
-\fIpad\fR the end of the packet with zeros, or truncate (\fItrunc\fR) 
-it by re-adjusting the length in the IP header. The \fItrunc\fR
-option will only alter IPv4 packets, all others will be sent unmodified.
+When a packet is truncated in the capture file because the snaplen was too small, 
+this option will \fIpad\fR the end of the packet with zeros, or 
+truncate (\fItrunc\fR) it by re-adjusting the length in the IP header. 
+The \fItrunc\fR option will only alter IPv4 packets, all others will be sent 
+unmodified.
 .TP
 .B \-v or "verbose"
 .br

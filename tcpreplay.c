@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.67 2003/07/18 00:01:28 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.68 2003/07/18 00:06:39 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -626,6 +626,9 @@ configfile(char *file)
 	}
 	else if (ARGS("verbose", 1)) {
 	    options.verbose++;
+	}
+	else if (ARGS("truncate", 1)) {
+	    options.truncate = 1;
 	}
 	else if (ARGS("untruncate", 2)) {
 	    if (strcmp("pad", argv[1]) == 0) {
