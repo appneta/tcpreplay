@@ -39,6 +39,6 @@ distclean-local:
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
-DISTCLEANFILES = .tm_project.cache stamp-h1
+DISTCLEANFILES = .tm_project.cache stamp-h1 *.tar.*
 
 MAINTAINERCLEANFILES = Makefile.in configure *.bak
