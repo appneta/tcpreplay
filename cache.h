@@ -9,7 +9,7 @@
 
 #define CACHEDATASIZE 255
 #define CACHEMAGIC "tcpprep"
-#define CACHEVERSION "02"
+#define CACHEVERSION "03"
 
 /* 
  * CACHEVERSION History:
@@ -34,8 +34,9 @@ struct cache_file_header {
 	char magic[8];
 	char version[3];
 	/* begin version 2 features */
-	unsigned long num_packets; /* total # of packets in file */
-	int packets_per_byte;
+	/* version 3 puts everything in network-byte order */
+	u_int32_t num_packets; /* total # of packets in file */
+	u_int16_t packets_per_byte;
 };
 
 typedef struct cache_type CACHE;

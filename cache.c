@@ -63,7 +63,7 @@ read_cache(char **cachedata, char *cachefile)
 		errx(1, "Unable to process %s: cache file version missmatch", cachefile);
 
 	/* malloc our cache block */
-	cache_size = header.num_packets / header.packets_per_byte;
+	cache_size = ntohl(header.num_packets) / ntohs(header.packets_per_byte);
 	*cachedata = (char *) malloc(cache_size);
 	memset(*cachedata, '\0', cache_size);
 
@@ -100,8 +100,8 @@ write_cache(CACHE *cachedata, const int out_file, unsigned long numpackets)
 	cache_header = (CACHE_HEADER *) malloc(sizeof(CACHE_HEADER));
 	strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
 	strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
-	cache_header->packets_per_byte = CACHE_PACKETS_PER_BYTE;
-	cache_header->num_packets = numpackets;
+	cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
+	cache_header->num_packets = htonl(numpackets);
 
 	written = write(out_file, cache_header, sizeof(CACHE_HEADER));
 	if (written != sizeof(CACHE_HEADER))
