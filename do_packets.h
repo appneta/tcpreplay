@@ -1,4 +1,4 @@
-/* $Id: do_packets.h,v 1.14 2004/01/31 21:31:55 aturner Exp $ */
+/* $Id: do_packets.h,v 1.15 2004/04/03 22:41:37 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -36,7 +36,7 @@
 void catcher(int);
 void do_packets(pcapnav_t *, pcap_t *, u_int32_t, int, char *, int);
 void do_sleep(struct timeval *, struct timeval *, int);
-void *cache_mode(char *, int, eth_hdr_t *);
+void *cache_mode(char *, u_int64_t, eth_hdr_t *);
 void *cidr_mode(eth_hdr_t *, ip_hdr_t *);
 
 #endif
