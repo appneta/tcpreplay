@@ -23,8 +23,8 @@ extern int include_exclude_mode;
 void *
 parse_xX_str(char mode, char *str) 
 {
-	LIST *list;
-	CIDR *cidr;
+	LIST *list = NULL;
+	CIDR *cidr = NULL;
 
 	switch (*str) {
 	case 'P':

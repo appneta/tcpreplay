@@ -334,7 +334,7 @@ main(int argc, char *argv[])
 			ratio = atof(optarg);
 			break;
 		case 'x':
-			include_exclude_mode = optind;
+			include_exclude_mode = 'x';
 			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
 				errx(1, "Unable to parse -x: %s", optarg);
 			if (include_exclude_mode & xXPacket) {
@@ -344,7 +344,7 @@ main(int argc, char *argv[])
 			}
 			break;
 		case 'X':
-			include_exclude_mode = optind;
+			include_exclude_mode = 'X';
 			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
 				errx(1, "Unable to parse -X: %s", optarg);
 			if (include_exclude_mode & xXPacket) {

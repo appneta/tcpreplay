@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.44 2003/01/07 23:14:12 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.45 2003/01/10 04:06:13 aturner Exp $ */
 
 #include "config.h"
 
@@ -153,7 +153,7 @@ main(int argc, char *argv[])
 			if (include_exclude_mode != 0)
 				errx(1, "Error: Can only specify -x OR -X");
 
-			include_exclude_mode = optind;
+			include_exclude_mode = 'x';
 			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
 				errx(1, "Unable to parse -x: %s", optarg);
 			if (include_exclude_mode & xXPacket) {
@@ -166,7 +166,7 @@ main(int argc, char *argv[])
 			if (include_exclude_mode != 0)
 				errx(1, "Error: Can only specify -x OR -X");
 
-			include_exclude_mode = optind;
+			include_exclude_mode = 'X';
 			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
 				errx(1, "Unable to parse -X: %s", optarg);
 			if (include_exclude_mode & xXPacket) {

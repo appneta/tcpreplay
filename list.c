@@ -22,10 +22,14 @@
 
 LIST *new_list()
 {
-	LIST *new;
-	new = (LIST *)malloc(sizeof(LIST));
-	memset(new, 0, sizeof(LIST));
-	return new;
+	LIST *newlist;
+
+	newlist = (LIST *)malloc(sizeof(LIST));
+	if (newlist == NULL)
+		err(1, "unable to malloc memory for new_list()");
+
+	memset(newlist, 0, sizeof(LIST));
+	return (newlist);
 }
 
 /*
@@ -34,7 +38,7 @@ LIST *new_list()
  * success, 0 for fail.
  */
 int
-parse_list(LIST **list, char *ourstr)
+parse_list(LIST **listdata, char *ourstr)
 {
 	LIST *listcur, *list_ptr;
 	char *this = NULL;
@@ -63,8 +67,8 @@ parse_list(LIST **list, char *ourstr)
 	}
 	
 
-	*list = new_list();
-	list_ptr = *list;
+	*listdata = new_list();
+	list_ptr = *listdata;
 	listcur = list_ptr;
 
 	for (i = 0; i < strlen(this); i ++) {
