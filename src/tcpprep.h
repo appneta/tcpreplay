@@ -38,24 +38,27 @@
 #include "common.h"
 #include "portmap.h"
 
+#include <regex.h>
+
 /* default ports used for servers */
 #define DEFAULT_LOW_SERVER_PORT 0
 #define DEFAULT_HIGH_SERVER_PORT 1023
+#define MYARGS_LEN 1024
 
 struct tcpprep_opt_s {
     pcap_t *pcap;
     char *filename;
+    int verbose;    
+    char *tcpdump_args;
 
     /* mode */
 
-    char *cachedata;
+    cache_t *cachedata;
     cidr_t *cidrdata;
     cidrmap_t *cidrmap1;
     cidrmap_t *cidrmap2;
-    PORTMAP *portmap;
-    cidr_t  *xX_cidr;
-    list_t *xX_list;
-    int xX_mode;
+    portmap_t *portmap;
+    xX_t xX;
     int l2len;
     char l2data[L2DATALEN];
     long int seed;
@@ -70,6 +73,10 @@ struct tcpprep_opt_s {
     char tcpservices[NUM_PORTS];    
     char udpservices[NUM_PORTS];
     char *comment; /* cache file comment */
+    int min_mask;
+    int max_mask;
+    double ratio;
+    regex_t preg;
 };
 typedef struct tcpprep_opt_s tcpprep_opt_t;
 #endif

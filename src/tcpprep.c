@@ -55,9 +55,10 @@
 #include <unistd.h>
 
 #include "tcpprep.h"
-#include "tcpdump.h"
 #include "portmap.h"
+#include "tcpprep_opts.h"
 #include "lib/tree.h"
+#include "tree.h"
 #include "lib/sll.h"
 #include "lib/strlcpy.h"
 #include "dlt.h"
@@ -77,17 +78,11 @@ tcpprep_opt_t options;
 int info = 0;
 char *ourregex = NULL;
 char *cidr = NULL;
-regex_t *preg = NULL;
 data_tree_t treeroot;
 
 
 int mode = 0;
 int automode = 0;
-double ratio = 0.0;
-int max_mask = DEF_MAX_MASK;
-int min_mask = DEF_MIN_MASK;
-extern char *optarg;
-extern int optind, opterr, optopt;
 
 /* required to include utils.c */
 int non_ip = 0;
@@ -96,6 +91,8 @@ int maxpacket = 0;
 /* we get this from libpcap */
 extern char pcap_version[];
 
+void init(void);
+void post_args(int, char *[]);
 static void usage();
 static void version();
 static int check_ip_regex(const unsigned long ip);
@@ -223,7 +220,7 @@ check_ip_regex(const unsigned long ip)
     memset(src_ip, '\0', 16);
     strlcpy((char *)src_ip, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
             sizeof(src_ip));
-    if (regexec(preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
+    if (regexec(&options.preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
         return (1);
     }
     else {
@@ -304,7 +301,7 @@ process_raw_packets(pcap_t * pcap)
 
         /* look for include or exclude LIST match */
         if (options.xX.list != NULL) {
-            if (options.xX_mode < xXExclude) {
+            if (options.xX.mode < xXExclude) {
                 if (!check_list(options.xX.list, packetnum)) {
                     add_cache(&options.cachedata, 0, 0);
                     continue;
@@ -345,7 +342,7 @@ process_raw_packets(pcap_t * pcap)
 
         /* look for include or exclude CIDR match */
         if (options.xX.cidr != NULL) {
-            if (!process_xX_by_cidr(options.xX_mode, options.xX.cidr, ip_hdr)) {
+            if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
                 add_cache(&options.cachedata, 0, 0);
                 continue;
             }
@@ -417,7 +414,6 @@ main(int argc, char *argv[])
 {
     int out_file, ch, regex_error = 0, mask_count = 0;
     int regex_flags = REG_EXTENDED|REG_NOSUB;
-    int i;
     char *infilename = NULL;
     char *outfilename = NULL;
     char ebuf[EBUF_SIZE];
@@ -425,20 +421,19 @@ main(int argc, char *argv[])
     void *xX = NULL;
     pcap_t *pcap = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
-    char myargs[1024];
+    int i, optct = 0;
+ 
+    init();                     /* init our globals */
+    
+    optct = optionProcess(&tcpprepOptions, argc, argv);
+    argc -= optct;
+    argv += optct;
+ 
+    post_args(argc, argv);
 
-    memset(&options, '\0', sizeof(options));
-    options.bpf.optimize = BPF_OPTIMIZE;
 
-    preg = (regex_t *) malloc(sizeof(regex_t));
-    if (preg == NULL)
-        err(1, "malloc");
-
-    for (i = DEFAULT_LOW_SERVER_PORT; i <= DEFAULT_HIGH_SERVER_PORT; i++) {
-        options.tcpservices[i] = 1;
-        options.udpservices[i] = 1;
-    }
-
+    
+#if 0
 #ifdef DEBUG
     while ((ch = getopt(argc, argv, "ad:c:C:r:R:o:pP:i:hm:M:n:N:s:x:X:vV")) != -1)
 #else
@@ -543,8 +538,8 @@ main(int argc, char *argv[])
         case 'r':
             ourregex = optarg;
             mode = REGEX_MODE;
-            if ((regex_error = regcomp(preg, ourregex, regex_flags))) {
-                if (regerror(regex_error, preg, ebuf, EBUF_SIZE) != -1) {
+            if ((regex_error = regcomp(&options.preg, ourregex, regex_flags))) {
+                if (regerror(regex_error, &options.preg, ebuf, EBUF_SIZE) != -1) {
                     errx(1, "Error compiling regex: %s", ebuf);
                 }
                 else {
@@ -561,29 +556,29 @@ main(int argc, char *argv[])
             parse_services(optarg);
             break;
         case 'x':
-            if (options.xX_mode != 0)
+            if (options.xX.mode != 0)
                 errx(1, "Error: Can only specify -x OR -X");
 
-            options.xX_mode = 'x';
-            if ((options.xX_mode = 
-                 parse_xX_str(options.xX_mode, optarg, &xX, &options.bpf)) == 0)
+            options.xX.mode = 'x';
+            if ((options.xX.mode = 
+                 parse_xX_str(&options.xX, optarg, &options.bpf)) == 0)
                 errx(1, "Unable to parse -x: %s", optarg);
-            if (options.xX_mode & xXPacket) {
+            if (options.xX.mode & xXPacket) {
                 options.xX.list = (list_t *) xX;
             }
-            else if (! (options.xX_mode & xXBPF)) {
+            else if (! (options.xX.mode & xXBPF)) {
                 options.xX.cidr = (cidr_t *) xX;
             }
             break;
         case 'X':
-            if (options.xX_mode != 0)
+            if (options.xX.mode != 0)
                 errx(1, "Error: Can only specify -x OR -X");
 
-            options.xX_mode = 'X';
-            if ((options.xX_mode = 
-                 parse_xX_str(options.xX_mode, optarg, &xX, &options.bpf)) == 0)
+            options.xX.mode = 'X';
+            if ((options.xX.mode = 
+                 parse_xX_str(options.xX.mode, optarg, &xX, &options.bpf)) == 0)
                 errx(1, "Unable to parse -X: %s", optarg);
-            if (options.xX_mode & xXPacket) {
+            if (options.xX.mode & xXPacket) {
                 options.xX.list = (list_t *) xX;
             }
             else {
@@ -599,7 +594,8 @@ main(int argc, char *argv[])
         default:
             usage();
         }
-
+#endif /* 0 */
+    
     /* process args */
     if ((mode != CIDR_MODE) && (mode != REGEX_MODE) && 
         (mode != AUTO_MODE) && (mode != PORT_MODE))
@@ -613,10 +609,10 @@ main(int argc, char *argv[])
         errx(1,
              "You must specify -n (bridge|router|client|server) with auto mode (-a)");
 
-    if ((ratio != 0.0) && (mode != AUTO_MODE))
+    if ((options.ratio != 0.0) && (mode != AUTO_MODE))
         errx(1, "Ratio (-R) only works in auto mode (-a).");
 
-    if (ratio < 0)
+    if (options.ratio < 0)
         errx(1, "Ratio must be a non-negative number.");
 
     if (info && mode == AUTO_MODE)
@@ -632,8 +628,8 @@ main(int argc, char *argv[])
         errx(1, "You must specify a pcap file to read via -i");
 
     /* set ratio to the default if unspecified */
-    if (ratio == 0.0)
-        ratio = DEF_RATIO;
+    if (options.ratio == 0.0)
+        options.ratio = DEF_RATIO;
 
     /* open the cache file */
     out_file =
@@ -716,6 +712,61 @@ main(int argc, char *argv[])
     return 0;
 
 }
+
+/*
+ * init our options
+ */
+void 
+init(void)
+{
+    int i;
+
+    memset(&options, '\0', sizeof(options));
+    options.bpf.optimize = BPF_OPTIMIZE;
+
+    for (i = DEFAULT_LOW_SERVER_PORT; i <= DEFAULT_HIGH_SERVER_PORT; i++) {
+        options.tcpservices[i] = 1;
+        options.udpservices[i] = 1;
+    }
+
+    options.max_mask = DEF_MAX_MASK;
+    options.min_mask = DEF_MIN_MASK;
+}
+
+/* 
+ * post process args
+ */
+void
+post_args(int argc, char *argv[])
+{
+    char myargs[MYARGS_LEN];
+    int i;
+
+    /* copy all of our args to myargs */
+    for (i = 1; i < argc; i ++) {
+        /* skip the -C <comment> */
+        if (strcmp(argv[i], "-C") == 0) 
+            i += 2;
+
+        strlcat(myargs, argv[i], MYARGS_LEN);
+        strlcat(myargs, " ", MYARGS_LEN);
+    }
+
+    strlcat(myargs, "\n", MYARGS_LEN);
+    dbg(1, "Comment args length: %d", MYARGS_LEN);
+
+
+    /* malloc our buffer to be + 1 strlen so we can null terminate */
+    options.comment = (char *)safe_realloc(options.comment, strlen(optarg) 
+                                           + strlen(myargs) + 1);
+                
+
+    strlcat(options.comment, myargs, sizeof(options.comment));
+        
+    dbg(1, "Final comment length: %d", strlen(options.comment));
+
+}
+
 
 /*
  Local Variables:
