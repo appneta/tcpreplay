@@ -36,6 +36,12 @@ The packet editing features of tcprewrite which distinguish between "client"
 and "server" traffic requires a tcpprep(1) cache file.
 EOText;
 
+man-doc = <<- EOMan
+.SH "SEE ALSO"
+tcpdump(1), tcpprep(1), tcpreplay(1)
+EOMan;
+
+
 config-header   = "config.h";
 include         = "#include \"defines.h\"\n"
                 "#include \"common.h\"\n"

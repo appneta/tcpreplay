@@ -48,6 +48,20 @@ files, filtered and edited in various ways, providing the means to test
 firewalls, NIDS and other network devices.
 EODetail;
 
+man-doc = <<- EOMan
+.SH "SIGNALS"
+tcpreplay understands the following signals:
+@enumerate
+@item @var{SIGUSR1}
+Suspend tcpreplay
+@item @var{SIGCONT}
+Restart tcpreplay
+@end enumerate
+
+.SH "SEE ALSO"
+tcpdump(1), tcpprep(1), tcprewrite(1)
+EOMan;
+
 flag = {
     name        = dbug;
     value       = d;
@@ -199,7 +213,7 @@ flag = {
     flags-cant  = mbpsrate;
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
-    value       = k;
+    value       = p;
     arg-type    = number;
     max         = 1;
     descrip     = "Replay packets at a given packets/sec";
@@ -212,7 +226,7 @@ flag = {
     flags-cant  = pktrate;
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
-    value       = r;
+    value       = M;
     arg-type    = string;
     max         = 1;
     descrip     = "Replay packets at a given Mbps";
@@ -228,7 +242,7 @@ flag = {
     flags-cant  = multiplier;
     flags-cant  = pktrate;
     flags-cant  = oneatatime;
-    value       = R;
+    value       = t;
     descrip     = "Replay packets as fast as possible";
     doc         = "";
 };

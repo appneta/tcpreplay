@@ -43,6 +43,11 @@ tells tcpreplay wether or not to send each packet and which interface the
 packet should be sent out of.
 EODetail;
 
+man-doc = <<- EOMan
+.SH "SEE ALSO"
+tcpdump(1), tcprewrite(1), tcpreplay(1)
+EOMan;
+
 
 flag = {
     name        = dbug;

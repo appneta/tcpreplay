@@ -39,7 +39,10 @@ the basis for replaying connections to servers.
 EOExplain;
 
 detail = <<- EODetail
-
+Please note that flowreplay is currently in *alpha*.  As such, it is still
+very much a work in progress and currently will not work for most uses.  If
+you have the skill and interest to help make flowreplay work better, please
+contact Aaron Turner.
 EODetail;
 
 flag = {
