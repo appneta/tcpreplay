@@ -109,7 +109,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 		/*
 		 * remove ethernet header and copy our header back
 		 */
-		memcpy(&pktdata, l2data, l2len);
+		memcpy(pktdata, l2data, l2len);
 		memcpy(&pktdata[l2len], nextpkt, (pkthdr.caplen - LIBNET_ETH_H));
 		/* update pkthdr.caplen with the new size */
 		pkthdr.caplen = pkthdr.caplen - LIBNET_ETH_H + l2len;
@@ -155,7 +155,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	     * an untruncate situation, we have to memcpy
 	     * the packet to a static buffer
 	     */
-	memcpy(&pktdata, nextpkt, pkthdr.caplen);
+	memcpy(pktdata, nextpkt, pkthdr.caplen);
 	}
 
 	packetnum++;
@@ -319,7 +319,7 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr,
     /* recalc the UDP/TCP checksum(s) */
     if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
 	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
-			       pkthdr->caplen) < 0)
+			       pkthdr->caplen - l2len - LIBNET_IP_H) < 0)
 	    warnx("Layer 4 checksum failed");
     }
     
@@ -468,7 +468,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr,
 
     /* Pad packet or truncate it */
     if (options.trunc == PAD_PACKET) {
-	memset(pktdata + pkthdr->caplen, 0, sizeof(pktdata) - pkthdr->caplen);
+	memset(pktdata + pkthdr->caplen, 0, pkthdr->len - pkthdr->caplen);
 	pkthdr->caplen = pkthdr->len;
     }
     else if (options.trunc == TRUNC_PACKET) {
