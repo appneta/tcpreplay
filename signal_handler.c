@@ -44,8 +44,10 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "config.h"
+#include "tcpreplay.h"
 #include "signal_handler.h"
 #include "timer.h"
 #include "err.h"
@@ -88,7 +90,7 @@ void
 suspend_handler(int signo)
 {
     if (gettimeofday(&suspend_start, NULL) < 0)
-        err(1, "gettimeofday");
+        errx(1, "gettimeofday(): %s", strerror(errno));
 
     kill(getpid(), SIGSTOP);
 }
@@ -103,7 +105,7 @@ continue_handler(int signo)
     struct timeval suspend_delta;
 
     if (gettimeofday(&suspend_end, NULL) < 0)
-        err(1, "gettimeofday");
+        errx(1, "gettimeofday(): %s", strerror(errno));
 
     timersub(&suspend_end, &suspend_start, &suspend_delta);
     timeradd(&suspend_time, &suspend_delta, &suspend_time);
