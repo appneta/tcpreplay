@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.4 2002/04/15 17:29:51 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.5 2002/04/15 17:30:37 mattbing Exp $ */
 
 #include "config.h"
 
@@ -26,17 +26,12 @@ unsigned long bytes_sent, failed, pkts_sent;
 float rate, mult;
 int n_iter, verbose, Rflag, Sflag;
 volatile int didsig;
-<<<<<<< tcpreplay.c
 char *intf, *intf2, primary_mac[6], secondary_mac[6];
 
 /* cache related vars */
 CACHE *cachedata = NULL;
 int cache_bit = 0, cache_byte = 0;
 int cache_packets;
-=======
-char *intf;
-CACHE * cachedata = NULL;
->>>>>>> 1.3
 
 void replay_file(char *);
 void do_packets(int, int (*)(int, struct packet *));
