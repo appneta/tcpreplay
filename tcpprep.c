@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.23 2003/08/31 01:12:38 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.24 2003/11/04 03:16:16 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -83,7 +83,8 @@ regex_t *preg = NULL;
 CIDR *cidrdata = NULL;
 CACHE *cachedata = NULL;
 struct data_tree treeroot;
-
+struct options options;
+struct bpf_program *bpf = NULL;
 
 int mode = 0;
 int automode = 0;
@@ -285,6 +286,8 @@ main(int argc, char *argv[])
     pcap_t *pcap;
     char errbuf[PCAP_ERRBUF_SIZE];
 
+    memset(&options, 0, sizeof(options));
+    options.bpf_optimize = BPF_OPTIMIZE;
     ourregex = NULL;
     regex_flags |= REG_EXTENDED;
     regex_flags |= REG_NOSUB;
@@ -442,6 +445,14 @@ main(int argc, char *argv[])
     /* open the pcap file */
     if ((pcap = pcap_open_offline(infilename, errbuf)) == NULL) {
 	errx(1, "Error opening file: %s", errbuf);
+    }
+
+   /* do we apply a bpf filter? */
+    if (options.bpf_filter != NULL) {
+	if (pcap_compile(pcap, bpf, options.bpf_filter, 
+			 options.bpf_optimize, 0) != 0) {
+	    errx(1, "Error compiling BPF filter: %s", pcap_geterr(pcap));
+	}
     }
 
     totpackets = process_raw_packets(pcap);
