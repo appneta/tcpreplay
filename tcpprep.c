@@ -61,14 +61,15 @@
 #include "config.h"
 #endif				/* HAVE_CONFIG_H */
 
+#include "tcpreplay.h"
 #include "cache.h"
 #include "cidr.h"
 #include "libpcap.h"
 #include "tcpprep.h"
-#include "tcpreplay.h"
 #include "tree.h"
 #include "snoop.h"
-
+#include "list.h"
+#include "xX.h"
 
 /*
  * global variables
@@ -91,12 +92,15 @@ int non_ip = 0;
 extern char *optarg;
 extern int optind, opterr, optopt;
 
+int include_exclude_mode;
+CIDR *xX_cidr = NULL;
+LIST *xX_list = NULL;
 
 
 static void usage();
 static void version();
 static int check_ip_regex(const unsigned long ip);
-static void process_raw_packets(int fd, int (*get_next) (int, struct packet *));
+static unsigned long process_raw_packets(int fd, int (*get_next) (int, struct packet *));
 
 static void
 version()
@@ -122,11 +126,13 @@ usage()
 			"-i <capfile>\t\tInput capture file to process\n"
 			"-m <minmask>\t\tMinimum mask length in Auto/Router mode\n"
 			"-M <maxmask>\t\tMaximum mask length in Auto/Router mode\n"
-			"-r <regex>\t\tSplit traffic in Regex Mode\n"
 			"-n bridge|router\tUse bridge/router algorithm in Auto Mode\n"
-			"-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
 			"-N client|server\tClassify non-IP traffic as client/server\n"
 			"-o <outputfile>\t\tOutput cache file name\n"
+			"-r <regex>\t\tSplit traffic in Regex Mode\n"
+			"-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
+			"-x <match>\t\tOnly send the packets specified\n"
+			"-X <match>\t\tSend all the packets except those specified\n"			
 			"-v\t\t\tVerbose\n"
 			"-V\t\t\tVersion\n");
 	exit(0);
@@ -162,7 +168,7 @@ check_ip_regex(const unsigned long ip)
  * uses the new libpcap/snoop code to parse the packets and build
  * the cache file.
  */
-static void 
+static unsigned long 
 process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 {
 #if USE_LIBNET_VERSION == 10
@@ -173,47 +179,71 @@ process_raw_packets(int fd, int (*get_next) (int, struct packet *))
 	ip_hdr_t *ip_hdr = NULL;
 	struct libnet_ethernet_hdr *eth_hdr = NULL;
 	struct packet pkt;
+	unsigned long packetnum = 0;
 
 	while ((*get_next) (fd, &pkt)) {
+		packetnum ++;
 		eth_hdr = (struct libnet_ethernet_hdr *) (pkt.data);
+
+		/* look for include or exclude LIST match */
+		if (xX_list != NULL) {
+			if (include_exclude_mode < xXExclude) {
+				if (!check_list(xX_list, (packetnum))) {
+					add_cache(&cachedata, 0, 0);
+					continue;
+				}
+			} else if (check_list(xX_list, (packetnum))) {
+				add_cache(&cachedata, 0, 0);
+				continue;
+			}
+		}
+
 		if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
 #ifdef DEBUG
 			if (debug)
 				fprintf(stderr, "Packet isn't IP: 0x%.2x\n", eth_hdr->ether_type);
 #endif
 			if (mode != AUTO_MODE)	/* we don't want to cache
-						 * these packets twice */
-				add_cache(non_ip);
+									 * these packets twice */
+				add_cache(&cachedata, 1, non_ip);
 			continue;
 		}
 		ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
 
+		/* look for include or exclude CIDR match */
+		if (xX_cidr != NULL) {
+			if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
+				add_cache(&cachedata, 0, 0);
+				continue;
+			}
+		}
+
 		switch (mode) {
 		case REGEX_MODE:
-			add_cache(check_ip_regex(ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_regex(ip_hdr->ip_src.s_addr));
 			break;
 		case CIDR_MODE:
-			add_cache(check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
 			break;
 		case AUTO_MODE:
 			/* first run through in auto mode: create tree */
 			add_tree(ip_hdr->ip_src.s_addr, pkt.data);
 			break;
 		case ROUTER_MODE:
-			add_cache(check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
 			break;
 		case BRIDGE_MODE:
 			/*
 			 * second run through in auto mode: create bridge
 			 * based cache
 			 */
-			add_cache(check_ip_tree(ip_hdr->ip_src.s_addr));
+			add_cache(&cachedata, 1, check_ip_tree(ip_hdr->ip_src.s_addr));
 			break;
 		}
 
 	}
 
-	return;
+	return packetnum;
 }
 
 /*
@@ -227,7 +257,8 @@ main(int argc, char *argv[])
 	char *infilename = NULL;
 	char *outfilename = NULL;
 	char ebuf[EBUF_SIZE];
-	u_int totpackets = 0;
+	unsigned long totpackets = 0;
+	void *xX;
 
 	debug = 0;
 	ourregex = NULL;
@@ -239,9 +270,9 @@ main(int argc, char *argv[])
 		err(1, "malloc");
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "adc:r:R:o:i:hm:M:n:N:vV")) != -1)
+	while ((ch = getopt(argc, argv, "adc:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "ac:r:R:o:i:hm:M:n:N:vV")) != -1)
+	while ((ch = getopt(argc, argv, "ac:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
 #endif
 		switch (ch) {
 		case 'a':
@@ -306,6 +337,26 @@ main(int argc, char *argv[])
 		case 'R':
 			ratio = atof(optarg);
 			break;
+		case 'x':
+			include_exclude_mode = optind;
+			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+				errx(1, "Unable to parse -x: %s", optarg);
+			if (include_exclude_mode & xXPacket) {
+				xX_list = (LIST *)xX;
+			} else {
+				xX_cidr = (CIDR *)xX;
+			}
+			break;
+		case 'X':
+			include_exclude_mode = optind;
+			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+				errx(1, "Unable to parse -X: %s", optarg);
+			if (include_exclude_mode & xXPacket) {
+				xX_list = (LIST *)xX;
+			} else {
+				xX_cidr = (CIDR *)xX;
+			}
+			break;
 		case 'v':
 			info = 1;
 			break;
@@ -363,14 +414,14 @@ readpcap:
 		if (debug)
 			warnx("File %s is a snoop file", infilename);
 #endif
-		process_raw_packets(in_file, get_next_snoop);
+		totpackets = process_raw_packets(in_file, get_next_snoop);
 		(void) close(in_file);
 	} else if (is_pcap(in_file)) {
 #ifdef DEBUG
 		if (debug)
 			warnx("File %s is a pcap file", infilename);
 #endif
-		process_raw_packets(in_file, get_next_pcap);
+		totpackets = process_raw_packets(in_file, get_next_pcap);
 		(void) close(in_file);
 	} else {
 		errx(1, "unknown file format: %s", infilename);
@@ -409,9 +460,9 @@ readpcap:
 #endif
 
 	/* write cache data */
-	totpackets = write_cache(out_file);
+	totpackets = write_cache(cachedata, out_file, totpackets);
 	if (info)
-		fprintf(stderr, "Done.\nCached %u packets.\n", totpackets);
+		fprintf(stderr, "Done.\nCached %lu packets.\n", totpackets);
 
 	/* close cache file */
 	close(out_file);
