@@ -55,9 +55,6 @@ COUNTER bytes_sent, failed, pkts_sent, cache_packets;
 int cache_bit, cache_byte;
 volatile int didsig;
 
-/* we get this from libpcap */
-extern char pcap_version[];
-
 #ifdef HAVE_TCPDUMP
 /* tcpdump handle */
 tcpdump_t tcpdump;
@@ -373,12 +370,15 @@ post_args(void)
         options.speed.speed = atof(OPT_ARG(MULTIPLIER));
     }
 
+#ifdef HAVE_TCPDUMP
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
     
     if (HAVE_OPT(DECODE))
         options.tcpdump_args = safe_strdup(OPT_ARG(DECODE));
     
+#endif
+
     options.intf1_name = (char *)safe_malloc(strlen(OPT_ARG(INTF1)) + 1);
     strlcpy(options.intf1_name, OPT_ARG(INTF1), sizeof(options.intf1_name));
     
