@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.32 2002/12/24 02:55:06 aturner Exp $
+# $Id: Makefile.in,v 1.33 2002/12/24 04:27:02 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -106,6 +106,7 @@ release:
 	mkdir ../$(RELEASEDIR)
 	cp -r * ../$(RELEASEDIR)/
 	cd ../$(RELEASEDIR) && make distclean
+	-cd ../$(RELEASEDIR)/Docs && make
 	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS
 	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
 
@@ -115,6 +116,7 @@ rerelease:
 	mkdir ../$(RELEASEDIR)
 	cp -r * ../$(RELEASEDIR)/
 	cd ../$(RELEASEDIR) && make distclean
+	-cd ../$(RELEASEDIR)/Docs && make
 	rm -rf ../$(RELEASEDIR)/CVS ../$(RELEASEDIR)/test/CVS
 	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
 
@@ -125,5 +127,6 @@ srpm:
 	cd ../$(RELEASEDIR) && mv tcpreplay.spec tcpreplay.SPEC
 	cd ../$(RELEASEDIR) && make distclean
 	cd ../$(RELEASEDIR) && mv tcpreplay.SPEC tcpreplay.spec
+	-cd ../$(RELEASEDIR)/Docs && make
 	cd .. && tar zcvf $(RELEASEDIR).tar.gz $(RELEASEDIR)/*
 	rpm -ts ../$(RELEASEDIR).tar.gz  --nodeps

@@ -1,9 +1,10 @@
-??/??/????: Version 1.4.beta1
+12/23/2002: Version 1.4.beta1
 	- Remove libnet 1.0 support
 	- Start a quality FAQ for all programs
 	- Add support for detecting libpcap in autoconf
 	- Add pcapmerge to makefile and port to non-BSD OS's
 	- Write pcapmerge manpage
+	- Variety of small configure/makefile improvements
 
 12/13/2002: Version 1.3.0
 	- Re-release 1.3.beta6 as 1.3.0
