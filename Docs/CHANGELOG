@@ -1,4 +1,8 @@
-$Id: CHANGELOG,v 1.45 2004/06/21 17:07:52 aturner Exp $
+$Id: CHANGELOG,v 1.46 2004/07/14 05:11:04 aturner Exp $
+
+??/??/2004: Version 2.3.0
+    - Add support to tcpreplay and tcpprep for DLT_CHDLC (Cisco HDLC)
+    - Clean up validate_l2() and rewrite_l2()
 
 06/21/2004: Version 2.2.2
     - tcpprep now supports DLT_RAW and DLT_LINUX_SLL

@@ -2,7 +2,12 @@ For 2.x:
 
 - Look at VLAN packets
 	- others non-vanilla types?
-        - Add tags?  Remove tags?  Change tags?
+    - Add tags?  Remove tags?  Change tags?
+
+- Add support for setting the ethernet protocol field so we can use
+    -I, -K to fill out an entire ethernet header w/o using -2
+
+- Add a secondary interface full layer two rewrite option
 
 - Improve flowreplay
 
