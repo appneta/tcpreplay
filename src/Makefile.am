@@ -13,8 +13,10 @@ flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
 
 tcpreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@
-tcpprep_LDADD = ./common/libcommon.a ../lib/libstrl.a \
-		@LNETLIB@ @LPCAPLIB@
+
+tcpprep_LDADD =  ./common/libcommon.a ../lib/libstrl.a \
+		  @LNETLIB@ @LPCAPLIB@
+
 flowreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 		   @LNETLIB@ @LPCAPLIB@
 
@@ -26,3 +28,5 @@ noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
 tcpreplay_CFLAGS = -I../lib
 tcpprep_CFLAGS = -I../lib
 flowreplay_CFLAGS = -I../lib
+
+MOSTLYCLEANFILES = *~ *.o

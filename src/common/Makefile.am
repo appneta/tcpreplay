@@ -11,3 +11,5 @@ libcommon_a_LIBADD = ../../lib/libstrl.a
 noinst_HEADERS = cidr.h err.h list.h cache.h services.h \
 		 fakepcap.h fakepcapnav.h fakepoll.h xX.h utils.h \
 		 confargs.h confargs.c tree.h timer.h
+
+MOSTLYCLEANFILES = *~
