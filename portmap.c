@@ -95,9 +95,13 @@ ports2PORT(char *ports)
         return NULL;
 
     portmap = new_portmap();
-    /* put the new portmap info into the new node */
-    portmap->from = from_l;
-    portmap->to = to_l;
+
+    /* put the new portmap info into the new node 
+     * while we convert to network-byte order, b/c its better
+     * to do it once now, rather then each time we have to do a lookup
+     */
+    portmap->from = htons(from_l);
+    portmap->to = htons(to_l);
 
     /* return 1 for success */
     return portmap;
@@ -209,14 +213,14 @@ rewrite_ports(PORTMAP * portmap, ip_hdr_t **ip_hdr)
         tcp_hdr = (tcp_hdr_t *)get_layer4(*ip_hdr);
 
         /* check if we need to remap the destination port */
-        newport = htons(map_port(portmap, ntohs(tcp_hdr->th_dport)));
+        newport = htons(map_port(portmap, tcp_hdr->th_dport));
         if (newport != tcp_hdr->th_dport) {
             tcp_hdr->th_dport = newport;
             changes ++;
         }
 
         /* check if we need to remap the source port */
-        newport = htons(map_port(portmap, ntohs(tcp_hdr->th_sport)));
+        newport = htons(map_port(portmap, tcp_hdr->th_sport));
         if (newport != tcp_hdr->th_sport) {
             tcp_hdr->th_sport = newport;
             changes ++;
@@ -226,14 +230,14 @@ rewrite_ports(PORTMAP * portmap, ip_hdr_t **ip_hdr)
         udp_hdr = (udp_hdr_t *)get_layer4(*ip_hdr);
 
         /* check if we need to remap the destination port */
-        newport = htons(map_port(portmap, ntohs(udp_hdr->uh_dport)));
+        newport = htons(map_port(portmap, udp_hdr->uh_dport));
         if (newport != udp_hdr->uh_dport) {
             udp_hdr->uh_dport = newport;
             changes ++;
         }
 
         /* check if we need to remap the source port */
-        newport = htons(map_port(portmap, ntohs(udp_hdr->uh_sport)));
+        newport = htons(map_port(portmap, udp_hdr->uh_sport));
         if (newport != udp_hdr->uh_sport) {
             udp_hdr->uh_sport = newport;
             changes ++;
