@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.30 2003/06/06 19:57:35 aturner Exp $ */
+/* $Id: do_packets.c,v 1.31 2003/06/06 20:43:15 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -381,7 +381,7 @@ do_packets(pcap_t * pcap, u_int32_t linktype, int l2enabled, char *l2data, int l
 	/* again, OpenBSD is special, so use memcpy() rather then a
 	 * straight assignment 
 	 */
-	memcpy(&last, &pktdhr.ts, sizeof(struct timeval));
+	memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
 
     }
 
