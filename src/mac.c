@@ -39,7 +39,7 @@
  * non-portable ether_aton() 
  */
 void
-mac2hex(const char *mac, char *dst, int len)
+mac2hex(const char *mac, u_char *dst, int len)
 {
     int i;
     long l;
@@ -74,7 +74,7 @@ mac2hex(const char *mac, char *dst, int len)
  * 0 = none
  */
 int
-dualmac2hex(const char *dualmac, char *first, char *second, int len)
+dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
 {
     char *tok, *temp, *string;
     int ret = 0;

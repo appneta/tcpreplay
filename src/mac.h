@@ -32,8 +32,8 @@
 #ifndef __MAC_H__
 #define __MAC_H__
 
-void mac2hex(const char *mac, char *dst, int len);
-int dualmac2hex(const char *dualmac, char *first, char *second, int len);
+void mac2hex(const char *mac, u_char *dst, int len);
+int dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len);
 
 #endif /* __MAC_H__ */
 
