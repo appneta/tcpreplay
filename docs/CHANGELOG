@@ -5,15 +5,18 @@ $Id$
       - Move around utility functions
       - Move MAC Address funcs into mac.c
       - Move global defines into defines.h
-    - Start work on generic config arg/file processor
+      - Standardize use of structs and typedefs
+    - Start using GNU AutoOpts for arg/config file processing
     - Fix small documentation bugs in man/tcpreplay.8
     - Updated the FAQ
     - Start using automake and autoheader
     - Major rewrite of configure.in
-    - Remove capinfo and pcapmerge
+    - Remove capinfo and pcapmerge (Ethereal has better utilities)
     - Add support for printing which interface packets go out w/ -1
     - I now own the full copyright for tcpreplay
     - Removed the evil 4th clause from the BSD license
+
+*** Fork NG Branch ***
 
 09/19/2004: Version 2.3.1
     - Fix bug with fakepcap.c which appeared on systems using an older
