@@ -1,4 +1,4 @@
-/* $Id: list.c,v 1.9 2004/01/31 21:31:54 aturner Exp $ */
+/* $Id: list.c,v 1.10 2004/04/03 22:42:20 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -111,9 +111,9 @@ parse_list(LIST ** listdata, char *ourstr)
         }
     }
 
-    list_ptr->min = atoi(first);
+    list_ptr->min = strtoull(first, NULL, 0);
     if (second != NULL) {
-        list_ptr->max = atoi(second);
+        list_ptr->max = strtoull(second, NULL, 0);
     }
     else {
         list_ptr->max = list_ptr->min;
@@ -144,9 +144,9 @@ parse_list(LIST ** listdata, char *ourstr)
             }
         }
 
-        listcur->min = atoi(first);
+        listcur->min = strtoull(first, NULL, 0);
         if (second != NULL) {
-            listcur->max = atoi(second);
+            listcur->max = strtoull(second, NULL, 0);
         }
         else {
             listcur->max = listcur->min;
@@ -164,7 +164,7 @@ parse_list(LIST ** listdata, char *ourstr)
  * Returns 1 for true, 0 for false
  */
 int
-check_list(LIST * list, int value)
+check_list(LIST * list, u_int64_t value)
 {
     LIST *current;
 
