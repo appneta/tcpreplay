@@ -71,23 +71,13 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
 void *
 _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, const char *file)
 {
-    size_t oldlen = 0;
-    char *charptr;
-
-    if (ptr != NULL)
-        oldlen = sizeof(*ptr);
 
     if ((ptr = realloc(ptr, len)) == NULL)
-        _our_verbose_errx(1, "Unable to remalloc() ptr from %d to %d bytes",
-            funcname, line, file, oldlen, len);
-
-    charptr = (char *)ptr;
-    
-    if (oldlen < len)
-        memset(&charptr[oldlen], 0, len - oldlen -1);
+        _our_verbose_errx(1, "Unable to remalloc() buffer to %d bytes",
+            funcname, line, file, len);
 
 #ifdef DEBUG
-    dbg(4, "Remalloc'd to %d bytes in %s:%s() line %d", len, file, funcname, line);
+    dbg(4, "Remalloc'd buffer to %d bytes in %s:%s() line %d", len, file, funcname, line);
 #endif
 
     return ptr;
