@@ -1,4 +1,10 @@
-$Id: CHANGELOG,v 1.30 2004/02/01 18:24:25 aturner Exp $
+$Id: CHANGELOG,v 1.31 2004/02/04 01:23:14 aturner Exp $
+
+02/03/2004: Version 2.0.1
+    - Re-organize FAQ and add more content
+    - Add support for "pseudo NAT" (-N) for ARP and IPv4
+    - Code optimization to only run the checksum fixer once per packet
+    - Clean up help (-h) a little
 
 02/01/2004: Version 2.0.0
     - Remove libpcapnav requirement
