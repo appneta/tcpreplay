@@ -9,3 +9,6 @@
 
 /* Define to 'uint64_t' if <sys/types.h> doesn't define. */
 #undef u_int64_t
+
+/* Define to enable debugging code and -d flag */
+#undef DEBUG

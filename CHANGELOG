@@ -8,6 +8,7 @@ xx/xx/xxxx: Version 1.2
 	- tcpprep now supports snoop files.
 	- Added -u flag to untruncate IP packets (pad/trunc)
 	  based on patch by: Branden J. Moore <bmoore@cse.nd.edu>
+	- fixed --with-debug configure option
 
 06/17/2002: Version 1.1
 	- Major rewrite
