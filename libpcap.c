@@ -1,4 +1,4 @@
-/* $Id: libpcap.c,v 1.3 2002/07/27 20:18:40 aturner Exp $ */
+/* $Id: libpcap.c,v 1.4 2002/08/08 03:35:15 mattbing Exp $ */
 
 #include "config.h"
 
@@ -128,12 +128,10 @@ get_next_pcap(int fd, struct packet *pkt)
  * to read the pcap header.
  */
 void
-stat_pcap(int fd)
+stat_pcap(int fd, struct pcap_info *p)
 {
 	struct packet pkt;
-	struct timespec start_tm, finish_tm;
-	int bytes, cnt, trunc;
-	char *start, *finish, *endian[2];
+	char *endian[2];
 
 #ifdef LIBNET_LIL_ENDIAN
 	endian[0] = "little endian";
@@ -143,43 +141,25 @@ stat_pcap(int fd)
 	endian[1] = "little endian";
 #endif
 
-	printf("\tpcap (%s%s)\n", 
-		(modified ? "modified, ": ""),
-		(swapped ? endian[1]: endian[0]));
-
-	(void)printf("\tversion: %d.%d\n", phdr.version_major, phdr.version_minor);
-	(void)printf("\tzone: %d\n", phdr.thiszone);
-	(void)printf("\tsig figs: %d\n", phdr.sigfigs);
-	(void)printf("\tsnaplen: %d\n", phdr.snaplen);
-
-	(void)printf("\tlinktype: ");
+	p->modified = modified;
+	p->swapped = swapped ? endian[1]: endian[0];
+	p->phdr = phdr;
 	if (phdr.linktype > LINKSIZE)
-		(void)printf("unknown linktype\n");
+		p->linktype = "unknown linktype\n";
 	else
-		(void)printf("%s\n", pcap_links[phdr.linktype]);
+		p->linktype = pcap_links[phdr.linktype];
 
-	bytes = trunc = 0;
-	for (cnt = 0; get_next_pcap(fd, &pkt); cnt++) {
+	p->bytes = p->trunc = 0;
+	for (p->cnt = 0; get_next_pcap(fd, &pkt); p->cnt++) {
 		/* grab time of the first packet */
-		if (cnt == 0) 
-			TIMEVAL_TO_TIMESPEC(&pkt.ts, &start_tm);
+		if (p->cnt == 0) 
+			TIMEVAL_TO_TIMESPEC(&pkt.ts, &p->start_tm);
 
-		/* count truncated packets */
-		bytes += pkt.len;
+		/* count p->truncated packets */
+		p->bytes += pkt.len;
 		if (pkt.actual_len > phdr.snaplen)
-			trunc++;
+			p->trunc++;
 	}
-
-	(void)printf("\t%d packets, %d bytes\n", cnt, bytes);
-	if (trunc > 0)
-		(void)printf("\t%d packets truncated (larger than snaplen)\n", trunc);
-
 	/* grab time of the last packet */
-	TIMEVAL_TO_TIMESPEC(&pkt.ts, &finish_tm);
-	if (cnt > 0) {
-		start = ctime(&start_tm.tv_sec);
-		(void)printf("\tfirst packet: %s", start);
-		finish = ctime(&finish_tm.tv_sec);
-		(void)printf("\tlast  packet: %s", finish);
-	}
+	TIMEVAL_TO_TIMESPEC(&pkt.ts, &p->finish_tm);
 }

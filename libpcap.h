@@ -1,4 +1,4 @@
-/* $Id: libpcap.h,v 1.1 2002/03/29 03:44:54 mattbing Exp $ */
+/* $Id: libpcap.h,v 1.2 2002/08/08 03:35:15 mattbing Exp $ */
 
 #ifndef _LIBPCAP_H_
 #define _LIBPCAP_H_
@@ -8,10 +8,6 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
-
-int is_pcap(int);
-int get_next_pcap(int, struct packet *);
-void stat_pcap(int);
 
 /* magic constants for various pcap file types */
 #define PCAP_MAGIC          		0xa1b2c3d4
@@ -45,5 +41,22 @@ struct pcap_mod_pkthdr {
 	u_int8_t pkt_type;			/* ethernet packet type */
 	u_int8_t pad;				/* padding */
 };
+
+/* data describing a pcap */
+struct pcap_info {
+	int modified;
+	char *swapped;
+	struct pcap_file_header phdr;
+	char *linktype;
+	int cnt;
+	int bytes;
+	int trunc;
+	struct timespec start_tm; 
+	struct timespec finish_tm;
+};
+
+int is_pcap(int);
+int get_next_pcap(int, struct packet *);
+void stat_pcap(int, struct pcap_info *);
 
 #endif

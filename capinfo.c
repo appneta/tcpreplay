@@ -1,4 +1,4 @@
-/* $Id: capinfo.c,v 1.1 2002/03/29 03:44:53 mattbing Exp $ */
+/* $Id: capinfo.c,v 1.2 2002/08/08 03:35:15 mattbing Exp $ */
 
 #include "config.h"
 
@@ -12,11 +12,13 @@
 #include "libpcap.h"
 #include "snoop.h"
 
+void print_pcap(struct pcap_info *);
 void usage();
 
 int
 main(int argc, char *argv[])
 {
+	struct pcap_info p;
 	int i, fd, flag;
 
 	if (argc == 0)
@@ -32,8 +34,10 @@ main(int argc, char *argv[])
 		}
 
 		if (is_pcap(fd)) {
-			stat_pcap(fd);
+			stat_pcap(fd, &p);
 			flag = 1;
+			printf("%s pcap file\n", argv[1]);
+			print_pcap(&p);
 		}
 
 		/* rewind */
@@ -41,6 +45,7 @@ main(int argc, char *argv[])
 			err(1, "lseek");
 
 		if (is_snoop(fd)) {
+			printf("%s snoop file\n", argv[1]);
 			stat_snoop(fd);
 			flag = 1;
 		}
@@ -52,6 +57,35 @@ main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+void
+print_pcap(struct pcap_info *p)
+{
+	char *start, *finish;
+
+	printf("\tpcap (%s%s)\n", 
+		(p->modified ? "modified, ": ""), p->swapped);
+
+	(void)printf("\tversion: %d.%d\n", p->phdr.version_major, 
+		p->phdr.version_minor);
+	(void)printf("\tzone: %d\n", p->phdr.thiszone);
+	(void)printf("\tsig figs: %d\n", p->phdr.sigfigs);
+	(void)printf("\tsnaplen: %d\n", p->phdr.snaplen);
+
+	(void)printf("\tlinktype: %s\n", p->linktype);
+	(void)printf("\t%d packets, %d bytes\n", p->cnt, p->bytes);
+	if (p->trunc > 0)
+		(void)printf("\t%d packets truncated (larger than snaplen)\n", 
+			p->trunc);
+
+	if (p->cnt > 0) {
+		start = ctime(&p->start_tm.tv_sec);
+		(void)printf("\tfirst packet: %s", start);
+		finish = ctime(&p->finish_tm.tv_sec);
+		(void)printf("\tlast  packet: %s", finish);
+	}
+
 }
 
 void
