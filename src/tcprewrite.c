@@ -74,7 +74,7 @@ tcprewrite_opt_t options;
 void validate_l2(pcap_t *pcap, char *filename, l2_t *l2);
 void init(void);
 void post_args(int argc, char *argv[]);
-void rewrite_packets(pcap_t *pcap);
+void rewrite_packets(pcap_t *inpcap, pcap_t *outpcap);
 void verify_input_pcap(pcap_t *pcap);
 
 int main(int argc, char *argv[])
@@ -93,7 +93,8 @@ int main(int argc, char *argv[])
 
     if ((options.l = libnet_init(LIBNET_RAW4, NULL, ebuf)) == NULL)
         errx(1, "Unable to open raw socket for libnet: %s", ebuf);
- 
+
+    rewrite_packets(options.pin, options.pout);
 
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
@@ -101,6 +102,8 @@ int main(int argc, char *argv[])
         tcpdump_open(&tcpdump);
     }
 #endif
+
+    
 
 
     /* clean up after ourselves */
@@ -188,7 +191,7 @@ void post_args(int argc, char *argv[])
 
     if (HAVE_OPT(SEED)) {
         options.rewrite_ip ++;
-        options.seed = atoi(OPT_VALUE_SEED);
+        options.seed = OPT_VALUE_SEED;
     }
 
     if (HAVE_OPT(ENDPOINTS)) {
@@ -321,7 +324,7 @@ validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
 }
 
 void
-rewrite_packets(pcap_t * pcap)
+rewrite_packets(pcap_t * inpcap, pcap_t *outpcap)
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
@@ -353,7 +356,7 @@ rewrite_packets(pcap_t * pcap)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
+    while ((pktdata = pcap_next(inpcap, &pkthdr)) != NULL) {
 
         /* zero out the old packet info */
         memset(newpkt, 0, MAXPACKET);
@@ -400,7 +403,7 @@ rewrite_packets(pcap_t * pcap)
         
 
         /* Rewrite any Layer 2 data */
-        if ((l2len = rewrite_l2(pcap, &pkthdr, newpkt, cache_result)) == 0)
+        if ((l2len = rewrite_l2(inpcap, &pkthdr, newpkt, cache_result)) == 0)
             continue; /* packet is too long and we didn't trunc, so skip it */
 
         eth_hdr = (eth_hdr_t *) pktdata;
@@ -459,8 +462,12 @@ rewrite_packets(pcap_t * pcap)
 
 
         /* do we need to spoof the src/dst IP address? */
-        if ((options.seed) && (ip_hdr != NULL)) {
-            needtorecalc += randomize_ips(&pkthdr, newpkt, ip_hdr);
+        if (options.seed) {
+            if (ip_hdr != NULL) {
+                needtorecalc += randomize_ipv4(&pkthdr, newpkt, ip_hdr);
+            } else {
+                randomize_iparp(&pkthdr, newpkt, pcap_datalink(inpcap));
+            }
         }
 
         /* do we need to force fixing checksums? */
@@ -484,7 +491,7 @@ rewrite_packets(pcap_t * pcap)
 
 WRITE_PACKET:
         /* write the packet */
-        pcap_dump((u_char *) options.pout, &pkthdr, newpkt);
+        pcap_dump((u_char *) outpcap, &pkthdr, newpkt);
 
         total_bytes += pkthdr.caplen;
         pkts_edited ++;
