@@ -1,8 +1,10 @@
-$Id: CHANGELOG,v 1.46 2004/07/14 05:11:04 aturner Exp $
+$Id: CHANGELOG,v 1.47 2004/07/25 23:34:45 aturner Exp $
 
 ??/??/2004: Version 2.3.0
     - Add support to tcpreplay and tcpprep for DLT_CHDLC (Cisco HDLC)
     - Clean up validate_l2() and rewrite_l2()
+    - Write a simple perl script to parse net/bpf.h of DLT values
+    - Teach everything the names of all the current DLT values
 
 06/21/2004: Version 2.2.2
     - tcpprep now supports DLT_RAW and DLT_LINUX_SLL
