@@ -1,9 +1,8 @@
-/* $Id: tcpreplay.c,v 1.48 2003/01/13 07:10:58 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.49 2003/03/24 04:03:31 aturner Exp $ */
 
 #include "config.h"
 
 #include <ctype.h>
-#include <err.h>
 #include <fcntl.h>
 #include <libnet.h>
 #include <pcap.h>
@@ -34,6 +33,8 @@ int include_exclude_mode = 0;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
 
+/* we get this from libpcap */
+extern char pcap_version[];
 
 #ifdef DEBUG
 int debug = 0;
@@ -289,11 +290,11 @@ packet_stats()
 	timersub(&end, &begin, &begin);
 	if (timerisset(&begin)) {
 		if (bytes_sent) {
-		bytes_sec = bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
-		mb_sec = (bytes_sec * 8) / (1024 * 1024);
+			bytes_sec = bytes_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
+			mb_sec = (bytes_sec * 8) / (1024 * 1024);
 		}
 		if (pkts_sent)
-		pkts_sec = pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
+			pkts_sec = pkts_sent / (begin.tv_sec + (float)begin.tv_usec / 1000000);
 	}
 
 	snprintf(bits, sizeof(bits), "%ld", begin.tv_usec);
@@ -484,7 +485,7 @@ version()
 #endif
 	fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
-	fprintf(stderr, "Compiled against libpcap: %d.%d\n", PCAP_VERSION_MAJOR, PCAP_VERSION_MINOR);
+	fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
 	exit(0);
 }
 
