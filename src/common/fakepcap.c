@@ -38,10 +38,13 @@
  */
 
 #include "config.h"
+#include "defines.h"
+
 #include "fakepcap.h"
 #include "err.h"
-#include <stdlib.h>
 #include "dlt_names.h"
+
+#include <stdlib.h>
 
 #ifndef HAVE_DLT_VAL_TO_DESC
 
