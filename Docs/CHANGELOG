@@ -1,6 +1,6 @@
-$Id: CHANGELOG,v 1.29 2004/02/01 17:15:12 aturner Exp $
+$Id: CHANGELOG,v 1.30 2004/02/01 18:24:25 aturner Exp $
 
-01/31/2004: Version 2.0.0
+02/01/2004: Version 2.0.0
     - Remove libpcapnav requirement
     - Now support libpcapnav >= 0.4
     - Add -1 to replay one packet at a time (user must hit <ENTER>)
@@ -11,6 +11,8 @@ $Id: CHANGELOG,v 1.29 2004/02/01 17:15:12 aturner Exp $
     - Fix/standardize all licensing info.  Still BSD of course.
     - -T now forces -F
     - tcpprep now actually accepts -n (client|server)
+    - Update the INSTALL doc
+    - Remove the Docs/README... the FAQ has replaced it.
 
 12/10/2003: Version 1.5.alpha6
     - Add BPF filter support to tcpprep and tcpreplay (-x F:"filter")
