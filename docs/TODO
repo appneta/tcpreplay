@@ -44,13 +44,29 @@ willing and able to help code it.
 
 - Improve flowreplay so it actually works
 
+- Perhaps integrate stick/snot/fpg logic into flowreplay:
+  http://www.geschke-online.de/FLoP/fpg.8.html
+  to do full 3way handshakes
+
+
 - IPv6 support?
 
 - When splitting traffic via tcpprep print out each packet (tcpdump style)
   so end users know where each packet is going
 
-- Tcpreplay should say which interface each packet is going out
-
 - Improve autoconf detection of libraries
 
 - Re-organize source tree
+
+- tcpdump decoder should print packets syncronously w/ the main process
+
+- Rewrite do_sleep() to handle sub sleep times by only nanosleep()'ing
+  once for multiple packets when the timestamps are close enough.  We
+  also need to time nanosleep, since different architectures have lower
+  minimum sleep times (Linux/Alpha is 1ms vs. 10ms for Linux/x86)
+
+Done:
+- Tcpreplay should say which interface each packet is going out
+- Better use of GNU Autotools
+- Improve CLI/config file parsing
+
