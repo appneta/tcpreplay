@@ -6,18 +6,19 @@ RunInTerminal=true
 clean before build=false
 
 [filenumbers]
-0=80
-1=86
-2=64
-3=149
-4=44
-5=1
-6=33
-7=105
-8=73
-9=144
-10=198
-11=58
+0=216
+1=59
+2=36
+3=267
+4=41
+5=110
+6=75
+7=76
+8=49
+9=232
+10=154
+11=84
+12=221
 
 [filemarkers]
 0=
@@ -32,6 +33,7 @@ clean before build=false
 9=
 10=
 11=
+12=
 
 [File View]
 filter.file.unmatch=*.so *.o *.a *.la
@@ -42,22 +44,16 @@ filter.dir.ignore.hidden=0
 0=/home/aturner/SVN/tcpreplay-ng/src/common/cache.c
 1=/home/aturner/SVN/tcpreplay-ng/src/common/cache.h
 2=/home/aturner/SVN/tcpreplay-ng/src/defines.h
-3=/home/aturner/SVN/tcpreplay-ng/src/flowreplay.c
-4=/home/aturner/SVN/tcpreplay-ng/src/send_packets.c
-5=/home/aturner/SVN/tcpreplay-ng/src/common/services.c
-6=/home/aturner/SVN/tcpreplay-ng/src/common/services.h
-7=/home/aturner/SVN/tcpreplay-ng/src/tcpprep.c
-8=/home/aturner/SVN/tcpreplay-ng/src/tcpprep.h
-9=/home/aturner/SVN/tcpreplay-ng/src/tcpprep_opts.def
-10=/home/aturner/SVN/tcpreplay-ng/src/tcpreplay_opts.def
+3=/home/aturner/SVN/tcpreplay-ng/src/edit_packet.c
+4=/home/aturner/SVN/tcpreplay-ng/src/edit_packet.h
+5=/home/aturner/SVN/tcpreplay-ng/src/tcpprep.c
+6=/home/aturner/SVN/tcpreplay-ng/src/common/utils.c
 
 [Project Tree]
 0=0
-1=0:0
-2=0:1
+1=0:1
 
 [File Tree]
 0=0
 1=0:6
 2=0:7
-3=0:7:1

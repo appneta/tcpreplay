@@ -83,7 +83,6 @@ module.include.files=\
 	src/flowreplay.h\
 	src/mac.h\
 	src/dlt_names.h\
-	src/fileout.h\
 	src/common.h\
 	src/tcpreplay.h\
 	src/tcpreplay-opts.h\
@@ -97,7 +96,6 @@ module.include.files=\
 	src/common/list.h\
 	src/common/xX.h\
 	src/common/services.h\
-	src/common/tree.h\
 	src/common/timer.h\
 	lib/sll.h\
 	lib/tree.h\
@@ -131,13 +129,12 @@ module.source.files=\
 	src/common/fakepcapnav.c\
 	src/common/cidr.c\
 	src/common/err.c\
-	src/common/tree.c\
 	lib/strlcpy.c\
 	lib/strlcat.c\
 	src/tcpreplay_opts.def\
 	src/send_packets.c\
-	src/timer.c\
-	src/common/tcpdump.c
+	src/common/tcpdump.c\
+	src/common/timer.c
 
 module.pixmap.name=.
 module.pixmap.type=
