@@ -106,8 +106,9 @@ main(int argc, char *argv[])
         err(1, "gettimeofday() failed");
 
     /* main loop for non-bridge mode */
-    if (options.n_iter > 0) {
-        while (options.n_iter--) {  /* limited loop */
+    if (options.loop > 0) {
+        while (options.loop--) {  /* limited loop */
+            /* process each pcap file in order */
             for (i = 0; i < argc; i++) {
                 /* reset cache markers for each iteration */
                 cache_byte = 0;
@@ -173,7 +174,7 @@ init(void)
     memset(&options, 0, sizeof(options));
 
     /* replay packets only once */
-    options.n_iter = 1;
+    options.loop = 1;
     
     /* Default mode is to replay pcap once in real-time */
     options.speed.mode = SPEED_MULTIPLIER;
@@ -219,7 +220,7 @@ post_args(void)
         options.speed.speed = 0.0;
     } else if (HAVE_OPT(PKTRATE)) {
         options.speed.mode = SPEED_PACKETRATE;
-        options.speed.speed = atof(OPT_ARG(PKTRATE));
+        options.speed.speed = (float)OPT_VALUE_PKTRATE;
     } else if (HAVE_OPT(ONEATATIME)) {
         options.speed.mode = SPEED_ONEATATIME;
         options.speed.speed = 0.0;
