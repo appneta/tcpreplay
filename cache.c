@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.24 2004/05/08 21:19:22 aturner Exp $ */
+/* $Id: cache.c,v 1.25 2004/09/05 18:28:53 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -148,7 +148,7 @@ read_cache(char **cachedata, char *cachefile)
     dbg(1, "Loaded in %llu packets from cache.", ntohll(header.num_packets));
 
     close(cachefd);
-    return (header.num_packets);
+    return (ntohll(header.num_packets));
 }
 
 

@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c,v 1.44 2004/08/09 19:39:29 aturner Exp $ */
+/* $Id: tcpprep.c,v 1.45 2004/09/05 18:28:53 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -163,9 +163,11 @@ static void
 print_comment(char *file)
 {
     char *cachedata = NULL;
+    u_int64_t count = 0;
 
-    read_cache(&cachedata, file);
+    count = read_cache(&cachedata, file);
     printf("tcpprep args: %s\n", options.tcpprep_comment);
+    printf("Cache contains data for %llu packets\n");
 
     exit(0);
 }
@@ -317,7 +319,7 @@ process_raw_packets(pcap_t * pcap)
         }
 
         if (htons(protocol) != ETHERTYPE_IP) {
-            dbg(2, "Packet isn't IP: 0x%.2x", protocol);
+            dbg(2, "Packet isn't IP: %#0.4x", protocol);
 
             if (mode != AUTO_MODE)  /* we don't want to cache
                                      * these packets twice */
