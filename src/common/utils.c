@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
+ * Copyright (c) 2001-2004 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
