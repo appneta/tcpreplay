@@ -53,7 +53,7 @@ typedef enum config_type_t {
     CONFIG_TYPE_MAC,                /* A CSV ethernet MAC address to be converted into a MAC list */
     CONFIG_TYPE_ENABLE,             /* boolean value which is just mentioned to be enabled */
     CONFIG_TYPE_LINELIST,           /* Uninterpreted config lines */
-    CONFIG_TYPE_OBSOLETE,           /* Obsolete (ignored) option. */
+    CONFIG_TYPE_OBSOLETE           /* Obsolete (ignored) option. */
 } config_type_t;
 
 /* Largest allowed config line */
