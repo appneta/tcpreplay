@@ -30,20 +30,18 @@
 
 \layout Title
 
-Tcpreplay v1.3.x/1.4.x FAQ
+Tcpreplay 1.5.x FAQ
 \layout Author
 
-Aaron Turner <aturner_AT_pobox.com>
+Aaron Turner <aturner_AT_pobox.com> 
 \newline 
-Matt Bing <mbing_AT_nfr.net>
-\newline 
-http://www.sourceforge.net/projects/tcpreplay/
+http://tcpreplay.sourceforge.net/
 \newline 
 
 \newline 
 
 \newline 
-FAQ Version 0.6
+FAQ Version 0.7
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -54,7 +52,7 @@ FAQ Version 0.6
 
 \layout Part*
 
-Tcpreplay v1.3.x/1.4.x FAQ
+Tcpreplay 1.5.x FAQ
 \layout Section
 
 General Info
@@ -63,7 +61,7 @@ General Info
 What is this FAQ for?
 \layout Standard
 
-Tcpreplay is a powerful tool, but with that power comes complexity.
+Tcpreplay is a suite of powerful tools, but with that power comes complexity.
  While we have done our best to write good man pages for tcpreplay and it's
  associated utilities, we understand that many people may want more information
  then we can provide in the man pages.
@@ -72,11 +70,24 @@ Tcpreplay is a powerful tool, but with that power comes complexity.
  on the Tcpreplay-Users mailing list.
 \layout Subsection
 
-What is tcpreplay?
-\layout Standard
+What tools come with tcpreplay?
+\layout Itemize
 
-In the simplest terms, tcpreplay is a tool to send network traffic stored
- in pcap (tcpdump) format back onto the network.
+tcpreplay - replay ethernet packets stored in a pcap file as they were captured
+ 
+\layout Itemize
+
+tcpprep - a pcap pre-processor for tcpreplay
+\layout Itemize
+
+flowreplay - connects to a server(s) and replays the client side of the
+ connection stored in a pcap file
+\layout Itemize
+
+pcapmerge - merges two or more pcap files into one
+\layout Itemize
+
+capinfo - displays basic information about a pcap file
 \layout Subsection
 
 How can I get tcpreplay's source?
@@ -93,12 +104,7 @@ The source code to tcpreplay is available on SourceForge:
 What requirements does tcpreplay have?
 \layout Enumerate
 
-You'll need the libnet library: 
-\begin_inset LatexCommand \url{http://www.packetfactory.net/libnet/}
-
-\end_inset 
-
-
+You'll need the libnet and libpcap libraries.
 \layout Enumerate
 
 You'll also need a compatible operating system.
@@ -163,10 +169,11 @@ What are some uses for tcpreplay?
 
 Originally, tcpreplay was written to test network intrusion detection devices,
  however tcpreplay has been used to test firewalls, routers, and other devices.
- In it's current form, tcpreplay is not very well suited for testing IP
- stacks or applications running on servers or clients since it is unable
- to syncronise TCP sequence numbers nor is able to react or use packets
- sent by other devices as input.
+ The flowreplay tool can be used to test a variety of servers such as HTTP
+ and SMTP.
+\layout Section
+
+Undocumented Features (aka Bugs)
 \layout Subsection
 
 Where can I get help or report bugs?
@@ -181,9 +188,67 @@ The best place to get help or report a bug is the Tcpreplay-Users mailing
 \end_inset 
 
 
+\layout Subsection
+
+What information should I provide when I report a bug?
+\layout Standard
+
+One of the most frustrating things for any developer trying to help a user
+ with a problem is not enough information.
+ Please be sure to include 
+\emph on 
+at minimum
+\emph default 
+ the following information, however any additional information you feel
+ may be helpful will be appreciated.
+\layout Itemize
+
+Version information (output of -V)
+\layout Itemize
+
+Command line used (options and arguments)
+\layout Itemize
+
+Platform (Red Hat Linux 9 on Intel, Solaris 7 on SPARC, etc)
+\layout Itemize
+
+Error message or description of problem
+\layout Itemize
+
+If possible, attach the pcap file used (compressed with bzip or gzip preferred)
 \layout Section
 
-Basic Usage
+Basic Tcpreplay Usage
+\layout Subsection
+
+What is tcpreplay?
+\layout Standard
+
+In the simplest terms, tcpreplay is a tool to send network traffic stored
+ in pcap format back onto the network; basically the exact opposite of tcpdump.
+\layout Subsection
+
+What isn't tcpreplay?
+\layout Standard
+
+Tcpreplay is 
+\emph on 
+not
+\emph default 
+ a tool to replay captured traffic to a server or client.
+ Specifically, tcpreplay does not have the ability to rewrite IP addresses
+ to a user-specified value or synchronize TCP sequence and acknowledgment
+ numbers.
+ In other words, tcpreplay can't 
+\begin_inset Quotes eld
+\end_inset 
+
+connect
+\begin_inset Quotes erd
+\end_inset 
+
+ to a server or be used to emulate a server and have clients connect to
+ it.
 \layout Subsection
 
 Replaying the traffic
@@ -290,7 +355,7 @@ To replay the sample.pcap an infinately or until CTRL-C is pressed:
 tcpreplay -l 0 -i eth0 sample.pcap
 \layout Section
 
-Advanced Usage
+Advanced Tcpreplay Usage
 \layout Subsection
 
 Replaying on multiple interfaces
@@ -566,9 +631,42 @@ This is however a feature that we're looking into implimenting.
  we'd be more then happy to work with you.
  At this time however, we don't have an ETA when this will be implimented,
  so don't bother asking.
+\layout Subsection
+
+Rewriting Layer 2 with -2
+\layout Standard
+
+Starting in the 1.5.x branch, tcpreplay can replace the existing layer 2 header
+ with one of your choosing.
+ This is useful for when you want to change the layer 2 header type or add
+ a header for pcap files without one.
+ Each pcap file tells the type of frame.
+ Currently tcpreplay knows how to deal with the following pcap(3) frame
+ types:
+\layout Itemize
+
+DLT_EN10MB
+\newline 
+Replace existing 802.3/EthernetII header
+\layout Itemize
+
+DLT_RAW
+\newline 
+Frame has no Layer 2 header, so we can add one.
+\layout Standard
+
+First you'll need to create a file containing the new header.
+ This must be binary in nature, tcpreplay does not convert ASCII to binary
+ for you.
+ There are a variety of hex editors available on the internet to help you
+ create such a file.
+\layout Standard
+
+Potential uses for this are to add a layer 2 header for DLT_RAW captures
+ or add/remove ethernet tags or QoS features.
 \layout Section
 
-Using tcpprep
+Tcpprep Usage
 \layout Subsection
 
 What is tcpprep?
@@ -792,6 +890,63 @@ Just run:
 tcpreplay -c sample.cache -i eth0 -j eth1 sample.pcap
 \layout Section
 
+Flowreplay Usage
+\layout Standard
+
+While tcpreplay is a great way to test NIDS and firewalls, it can't be used
+ to test servers since tcpreplay can't connect to a service running on a
+ device.
+ The solution to this problem is flowreplay which instead of sending packets
+ at Layer 2 (ethernet header and up), it can actually connect via TCP or
+ UDP to server and then sends and recieves data.
+\layout Subsection
+
+How flowreplay works
+\layout Standard
+
+Put simply, flowreplay opens a socket connection to a service on a target
+ system and sends data over that socket based on the packet capture.
+ Flowreplay has no understanding of the application protocol (like HTTP
+ or FTP) so it is somewhat limited in how it can deal with complicated exchanges
+ between client and server.
+ 
+\layout Standard
+
+Some of these limitations are:
+\layout Itemize
+
+Flowreplay only plays the client side
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Flowreplay assumes the first UDP packet on a given 4-tuple is the client
+\end_inset 
+
+ of the connection.
+\layout Itemize
+
+Flowreplay doesn't understand the application protocols.
+ Hence it can't always deal with the case when the server sends a different
+ response then what was originally captured in the pcap file.
+\layout Itemize
+
+Flowreplay only sends TCP and UDP traffic.
+\layout Itemize
+
+Flowreplay doesn't know about multi-flow protocols like FTP.
+\layout Itemize
+
+Flowreplay can't listen on a port and wait for a client to connect to it.
+\layout Subsection
+
+Running flowreplay
+\layout Standard
+
+[MORE STUFF HERE]
+\layout Section
+
 Tuning OS's for high performance
 \layout Standard
 
@@ -865,7 +1020,7 @@ Required Libraries
 Libpcap
 \layout Standard
 
-As of tcpreplay v1.4, you'll need to have Libpcap installed on your system.
+As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
  Any recent Libpcap version should do, but we only test our code with the
  latest version: 0.7.1.
  Libpcap can be obtained here: 
@@ -879,7 +1034,7 @@ As of tcpreplay v1.4, you'll need to have Libpcap installed on your system.
 Libnet
 \layout Standard
 
-Tcpreplay v1.3 is the last version to support the old Libnet API (everything
+Tcpreplay v1.3 is the last version to support the old libnet API (everything
  before 1.1.x).
  As of v1.4 you will need to use Libnet 1.1.0 or better which can be obtained
  from the Libnet homepage: 
