@@ -1,6 +1,11 @@
 MAKEFLAGS=-s
 
-#if HAVE_DOCTOOLS
+if HAVE_DOCTOOLS
+
+docs: all
+
+all: FAQ.pdf FAQ.html flowreplay.pdf flowreplay.html
+
 
 FAQ.pdf:
 	@LYX@ -e latex FAQ.lyx
@@ -22,10 +27,11 @@ flowreplay.html: flowreplay.pdf
 	@LATEX2HTML@ -nonavigation -no_subdir -split 0 \
 		-show_section_numbers flowreplay.tex
 
-#endif
+endif
 
-
-EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO 
+EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
+	     FAQ.pdf FAQ.html FAQ.css flowreplay.pdf flowreplay.html \
+	     flowreplay.css
 
 MOSTLYCLEANFILES = flowheader.eps FAQ.aux FAQ.log FAQ.toc FAQ.txt FAQ.dvi \
 		   WARNINGS flowreplay.aux flowreplay.log \
