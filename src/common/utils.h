@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,12 @@
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 int argv_create(char *p, int argc, char *argv[]);
 void packet_stats(struct timeval *begin, struct timeval *end, 
-        COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
+                  COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
+
+int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
+
+u_int16_t get_l2protocol(const u_char *pktdata, const int datalen, const int datalink);
+
 void *get_layer4(ip_hdr_t * ip_hdr);
 
 u_char *get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff);

@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -131,13 +131,13 @@ packet_stats(struct timeval *begin, struct timeval *end,
 
     snprintf(bits, sizeof(bits), "%d", begin->tv_usec);
 
-    fprintf(stderr, " %llu packets (%llu bytes) sent in %d.%s seconds\n",
+    notice(COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds\n",
             pkts_sent, bytes_sent, begin->tv_sec, bits);
-    fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
+    noitice("%.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
             bytes_sec, mb_sec, pkts_sec);
 
     if (failed)
-        warnx(" %llu write attempts failed from full buffers and were repeated\n",
+        warnx(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
               failed);
 
 }
@@ -216,6 +216,95 @@ argv_create(char *p, int argc, char *argv[])
 }
 
 /*
+ * returns the L2 protocol (IP, ARP, etc)
+ */
+u_int16_t
+get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
+{
+    eth_hdr_t *eth_hdr;
+    vlan_hdr_t *vlan_hdr;
+    hdlc_hdr_t *hdlc_hdr;
+    sll_hdr_t *sll_hdr;
+
+    switch (datalink) {
+    case DLT_RAW:
+        return ETHERTYPE_IP;
+        break;
+
+    case DLT_EN10MB:
+        eth_hdr = (eth_hdr_t *)pktdata;
+        switch (eth_hdr->ether_type) {
+        case ETHERTYPE_VLAN: /* 802.1q */
+            vlan_hdr = (vlan_hdr_t *)pktdata;
+            return vlan_hdr->vlan_len;
+        default:
+            return eth_hdr->ether_type;
+        }
+        break;
+
+    case DLT_C_HDLC:
+        hdlc_hdr = (hdlc_hdr_t *)pktdata;
+        return hdlc_hdr->protocol;
+        break;
+
+    case DLT_LINUX_SLL:
+        sll_hdr = (sll_hdr_t *)pktdata;
+        return sll_hdr->sll_protocol;
+        break;
+
+    default:
+        errx(1, "Unable to process unsupported DLT type: %s (0x%x)", 
+             pcap_datalink_val_to_description(datalink), datalink);
+
+    }
+
+
+}
+
+/*
+ * returns the length in number of bytes of the L2 header, or -1 on error
+ */
+int
+get_l2len(const u_char *pktdata, const int datalen, const int datalink)
+{
+    eth_hdr_t *eth_hdr;
+
+    switch (datalink) {
+    case DLT_RAW:
+        /* pktdata IS the ip header! */
+        return 0;
+        break;
+
+    case DLT_EN10MB:
+        eth_hdr = (eth_hdr_t *)pktdata;
+        switch (eth_hdr->ether_type) {
+        case ETHERTYPE_VLAN:            /* 802.1q */
+            return LIBNET_802_1Q_H;
+            break;
+        default:              /* ethernet */
+            return LIBNET_ETH_H;
+            break;
+        }
+        break;
+        
+    case DLT_C_HDLC:
+        return CISCO_HDLC_LEN;
+        break;
+
+    case DLT_LINUX_SLL:
+        return SLL_HDR_LEN;
+        break;
+
+    default:
+        errx(1, "Unable to process unsupported DLT type: %s (0x%x)", 
+             pcap_datalink_val_to_description(datalink), datalink);
+        break;
+    }
+
+    return -1; /* we shouldn't get here */
+}
+
+/*
  * returns a ptr to the ip header + data or NULL if it's not IP
  * we may use an extra buffer for the ip header (and above)
  * on stricly aligned systems where the layer 2 header doesn't
@@ -227,51 +316,27 @@ argv_create(char *p, int argc, char *argv[])
 u_char *
 get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff)
 {
-
-    ip_hdr_t *ip_hdr = NULL;
-    eth_hdr_t *eth_hdr = NULL;
+    u_char *ip_hdr = NULL;
     int l2_len = 0;
+    u_int16_t proto;
 
-    switch (datalink) {
-    case DLT_RAW:
-        /* pktdata IS the ip header! */
-        return pktdata;
-        break;
+    l2_len = get_l2len(pktdata, datalen, datalink);
 
-    case DLT_EN10MB:
-        eth_hdr = (eth_hdr_t *)pktdata;
-        switch (eth_hdr->ether_type) {
-        case ETHERTYPE_IP:              /* ethernet */
-            l2_len =  LIBNET_802_3_H;
-            break;
-        case ETHERTYPE_VLAN:            /* 802.1q */
-            l2_len = LIBNET_802_1Q_H;
-            break;
-        default:
-            /* no IP header above us */
-            return NULL;
-        }
-        break;
-        
-    case DLT_C_HDLC:
-        l2_len = CISCO_HDLC_LEN;
-        break;
-
-    case DLT_LINUX_SLL:
-        l2_len = SLL_HDR_LEN;
-        break;
-
-    default:
-        errx(1, "get_ipv4(): Unable to process unsupported DLT type: %s (0x%x)", 
-             pcap_datalink_val_to_description(datalink), datalink);
-        break;
-    }
-
-    /* sanity... datalen must be > l2_len */
-    if (l2_len <= datalen) {
-        dbg(1, "get_ipv4(): Total packet len <= Layer 2 len, hence no IP header");
+    /* sanity... datalen must be > l2_len + IP header len*/
+    if (l2_len + LIBNET_IPV4_H > datalen) {
+        dbg(1, "get_ipv4(): Layer 2 len > total packet len, hence no IP header");
         return NULL;
     }
+
+    proto = get_l2protocol(pktdata, datalen, datalink);
+
+    /*
+     * ARG!  Why on Intel do I have to htons(proto)?  
+     * I'm returning the eth_hdr->ether_type, but it's coming across
+     * in little endian format... WTF?
+     */
+    if (htons(proto) != ETHERTYPE_IP)
+        return NULL;
 
 #ifdef FORCE_ALIGN
     /* 
@@ -282,22 +347,22 @@ get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff)
      * we do all this work to prevent byte alignment issues
      */
     if (l2_len % 4) {
-        ip_hdr = (ip_hdr_t *)newbuff;
+        ip_hdr = newbuff;
         memcpy(ip_hdr, (pktdata + l2_len), (pkthdr.caplen - l2_len));
     } else {
 
         /* we don't have to do a memcpy if l2_len lands on a boundry */
-        ip_hdr = (ip_hdr_t *)(pktdata + l2_len);
+        ip_hdr = (pktdata + l2_len);
     }
 #else
     /*
      * on non-strict byte align systems, don't need to memcpy(), 
      * just point to l2len bytes into the existing buffer
      */
-    ip_hdr = (ip_hdr_t *) (pktdata + l2_len);
+    ip_hdr = (pktdata + l2_len);
 #endif
 
-    return (u_char *)ip_hdr;
+    return ip_hdr;
 }
 
 /*
