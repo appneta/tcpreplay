@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.18 2002/11/07 05:33:09 aturner Exp $
+# $Id: Makefile.in,v 1.19 2002/11/12 02:12:03 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -46,14 +46,13 @@ libredblack/.libs/libredblack.a:
 	cd libredblack && ./configure && make
 
 clean:
-	rm -f *.o *core $(BINARIES)
-	cd libredblack && make clean
-	cd test && make clean
+	-rm -f *.o *core $(BINARIES)
+	-cd libredblack && make clean
+	-cd test && make clean
 
 distclean: clean
-	rm -f Makefile config.h config.status config.cache config.log *~
-	rm -rf autom4te-2.53.cache
-	cd libredblack && make distclean
+	-rm -rf autom4te-2.??.cache
+	-rm -f Makefile config.h config.status config.cache config.log *~
 
 install: 
 	test -d $(SBINDIR) || $(INSTALL) -d $(SBINDIR)
