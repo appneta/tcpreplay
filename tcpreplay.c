@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.60 2003/06/06 01:26:37 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.61 2003/06/16 19:28:40 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -32,7 +32,7 @@ struct options options;
 char *cachedata = NULL;
 CIDR *cidrdata = NULL;
 struct timeval begin, end;
-unsigned long bytes_sent, failed, pkts_sent;
+unsigned long long bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
 int cache_bit, cache_byte, cache_packets;
 volatile int didsig;
@@ -411,14 +411,14 @@ packet_stats()
 
     snprintf(bits, sizeof(bits), "%ld", begin.tv_usec);
 
-    fprintf(stderr, " %ld packets (%ld bytes) sent in %ld.%s seconds\n",
+    fprintf(stderr, " %llu packets (%llu bytes) sent in %ld.%s seconds\n",
 	    pkts_sent, bytes_sent, begin.tv_sec, bits);
     fprintf(stderr, " %.1f bytes/sec %.2f megabits/sec %d packets/sec\n",
 	    bytes_sec, mb_sec, pkts_sec);
 
     if (failed) {
 	fprintf(stderr,
-		" %ld write attempts failed from full buffers and were repeated\n",
+		" %llu write attempts failed from full buffers and were repeated\n",
 		failed);
     }
 }
