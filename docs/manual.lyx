@@ -33,7 +33,7 @@
 Tcpreplay 3.x Manual
 \layout Author
 
-Aaron Turner <aturner_AT_pobox.com> 
+Aaron Turner
 \newline 
 http://tcpreplay.synfin.net/
 \layout Standard
@@ -1969,21 +1969,6 @@ Extracts and reassembles the data portion on a per-flow basis on live traffic
 \newline 
 
 \begin_inset LatexCommand \htmlurl{http://www.circlemud.org/~jelson/software/tcpflow/}
-
-\end_inset 
-
-
-\layout Part*
-\pagebreak_top \start_of_appendix 
-Appendix
-\layout Section
-
-BSD License
-\layout Standard
-
-
-\begin_inset Include \verbatiminput{LICENSE}
-preview false
 
 \end_inset 
 
