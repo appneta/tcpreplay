@@ -2,10 +2,10 @@ AUTOMAKE_OPTIONS = foreign
 
 include $(top_srcdir)/libopts/MakeDefs.inc
 
-SUBDIRS = scripts lib src man docs $(LIBOPTS_DIR)
+SUBDIRS = scripts lib src man $(LIBOPTS_DIR)
 DIST_SUBDIRS = scripts lib src man docs libopts
 
-dist-hook: version
+dist-hook: version docs
 
 docsdir = $(top_builddir)/docs
 
