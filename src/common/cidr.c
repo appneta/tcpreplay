@@ -34,7 +34,6 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
-#include "tcpreplay.h"
 #include "lib/strlcpy.h"
 
 #include <stdio.h>
