@@ -105,43 +105,43 @@ AM_CONDITIONAL(HAVE_DOCTOOLS, test x$doctools = xyes)
 dnl Enable debugging in code/compiler options
 debug=no
 AC_ARG_ENABLE(debug,
-[  --enable-debug          Enable debugging code and support for the -d option],
-[ if test x$enableval = xyes; then
- debug=yes
- CFLAGS="-ggdb -pedantic"
- AC_SUBST(debug_flag)
- AC_DEFINE([DEBUG], [], [Enable debuggin code and support for the -d option]) 
- fi])
+    AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
+    [ if test x$enableval = xyes; then
+         debug=yes
+         CFLAGS="-ggdb -pedantic"
+         AC_SUBST(debug_flag)
+         AC_DEFINE([DEBUG], [], [Enable debuggin code and support for the -d option]) 
+      fi])
 
 
 dnl Enable Efense
 AC_ARG_ENABLE(efence,
-[  --enable-efence         Enable Electric Fence memory debugger],
-[ if test x$enableval = xyes; then
-  CFLAGS="$CFLAGS -lefence"
-  AC_DEFINE([EFENCE], [], [Enable Electric Fence memory debugger])
-  fi])
+    AC_HELP_STRING([--enable-efence], [Enable Electric Fence memory debugger]),
+    [ if test x$enableval = xyes; then
+          CFLAGS="$CFLAGS -lefence"
+          AC_DEFINE([EFENCE], [], [Enable Electric Fence memory debugger])
+      fi])
 
 dnl Enable Gprof
 AC_ARG_ENABLE(gprof,
-[  --enable-gprof          Enable GNU Profiler],
-[ if test x$enableval = xyes; then
-  if test $debug = yes; then
-      CFLAGS="$CFLAGS -pg"
-  else 
-      # GPROF requires gdb
-      CFLAGS="$CFLAGS -ggdb -pg -fprofile-arcs"
-  fi
-  AC_DEFINE([GPROF], [], [Enable GNU Profiler])
-  fi])
+    AC_HELP_STRING([--enable-gprof], [Enable GNU Profiler]),
+    [ if test x$enableval = xyes; then
+          if test $debug = yes; then
+              CFLAGS="$CFLAGS -pg"
+          else 
+              # GPROF requires gdb
+              CFLAGS="$CFLAGS -ggdb -pg -fprofile-arcs"
+          fi
+          AC_DEFINE([GPROF], [], [Enable GNU Profiler])
+      fi])
 
 dnl Use 64bits for packet counters
 AC_ARG_ENABLE(64bit,
-[  --enable-64bit          Use 64bit packet counters],
-[ if test x$enableval = xyes; then
-    AC_DEFINE([ENABLE_64BITS], [], [Use 64bit packet counters])
-  fi
-])
+    AC_HELP_STRING([--enable-64bits], [Use 64bit packet counters]),
+    [ if test x$enableval = xyes; then
+         AC_DEFINE([ENABLE_64BITS], [], [Use 64bit packet counters])
+      fi
+    ])
 
 dnl Check for inet_aton and inet_addr
 AC_CHECK_FUNC(inet_aton, 
@@ -163,11 +163,8 @@ foundnet=no
 trynetdir=/usr/local
 AC_MSG_CHECKING(for libnet)
 AC_ARG_WITH(libnet,
-[  --with-libnet=DIR       use libnet in DIR],
-[ if test x$enableval = xyes ; then
-        trynetdir=$withval
-      fi
-])
+    AC_HELP_STRING([--with-libnet=DIR], [Use libnet in DIR]),
+    [trynetdir=$withval])
 
 for testdir in $trynetdir /usr/local /usr ; do
     if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
@@ -261,11 +258,8 @@ foundpcap=no
 trypcapdir=/usr/local
 AC_MSG_CHECKING(for libpcap)
 AC_ARG_WITH(libpcap,
-    [  --with-libpcap=DIR      use libpcap in DIR],
-    [ if test x$enableval = xyes ; then
-         trypcapdir=$withval
-      fi
-    ])
+    AC_HELP_STRING([--with-libpcap=DIR], [Use libpcap in DIR]),
+    [trypcapdir=$withval])
 
     for testdir in $trypcapdir /usr/local /usr ; do 
  
@@ -364,14 +358,9 @@ dnl ##################################################
 pcapnav_ver=no
 pcncfg=no
 AC_ARG_WITH(pcapnav-config,
-    [  --with-pcapnav-config=FILE     Use given pcapnav-config],
-    [ 
-      if test x$enableval = xyes ; then
-        pcncfg=$withval
-      fi
-    ],
-    [ AC_PATH_PROG(pcncfg,[pcapnav-config], [] ) ]
-)
+    AC_HELP_STRING([--with-pcapnav-config=FILE], [Use given pcapnav-config]),
+    [pcncfg=$withval],
+    [ AC_PATH_PROG(pcncfg,[pcapnav-config], [] ) ])
 
 if test $pcncfg = no ; then
     AC_MSG_RESULT(Cannot find pcapnav-config: Disabling offset jump feature.)
@@ -490,19 +479,14 @@ dnl ##################################################
 
 td=no
 AC_ARG_WITH(tcpdump,
-            [  --with-tcpdump=FILE     Path to tcpdump binary],
-            [ if test x$enableval = xyes ; then
-                if test -x $withval ; then
-                   td=$withval
-                   AC_MSG_RESULT([Using tcpdump in $td])
-                else
-                    AC_MSG_RESULT([Unable to find $withval])
-                fi
-              fi
-            ],
-            [
-            AC_PATH_PROG(td, tcpdump, "no", [$PATH:/usr/sbin:/sbin:/usr/local/sbin])
-            ])
+    AC_HELP_STRING([--with-tcpdump=FILE], [Path to tcpdump binary]),
+    [ if test -x $withval ; then
+          td=$withval
+          AC_MSG_RESULT([Using tcpdump in $td])
+      else
+          AC_MSG_RESULT([Error: $withval does not exist or is not executable])
+      fi ],
+    [ AC_PATH_PROG(td, tcpdump, "no", [$PATH:/usr/sbin:/sbin:/usr/local/sbin]) ])
            
 
 if test "$td" = "no"; then
@@ -522,11 +506,11 @@ fi
 
 dnl Allows user to choose which nic to use for testing purposes
 AC_ARG_WITH(testnic,
-[  --with-testnic=NIC      Select which network card to use for testing],
-[ nic1=$withval
-nic2=$withval
-AC_MSG_RESULT(Using --with-testnic=$withval)],
-[
+    AC_HELP_STRING([--with-testnic=NIC], [Select which network card to use for testing]),
+    [ nic1=$withval
+      nic2=$withval
+      AC_MSG_RESULT([Using --with-testnic=$withval])],
+    [
 dnl these need to be dynamic based on OS
 case $host in
 	*-*-linux*)
@@ -567,11 +551,11 @@ esac])
 
 
 AC_ARG_WITH(testnic2,
-[  --with-testnic2=NIC2    Select an optional 2nd network card to use for testing],
-[ nic2=$withval ])
+    AC_HELP_STRING([--with-testnic2=NIC2], [Select an optional 2nd network card to use for testing]),
+    [ nic2=$withval ])
 
-AC_MSG_NOTICE(Using $nic1 for 1st test network interface card)
-AC_MSG_NOTICE(Using $nic2 for 2nd test network interface card)
+AC_MSG_NOTICE([Using $nic1 for 1st test network interface card])
+AC_MSG_NOTICE([Using $nic2 for 2nd test network interface card])
 AC_SUBST(nic1)
 AC_SUBST(nic2)
 
