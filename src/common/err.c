@@ -78,33 +78,46 @@ dbg(int dbg_level, const char *fmt, ...)
 
 
 void
-_our_verbose_err(int eval, const char *string, const char *function, 
-    const int line, const char *file)
+_our_verbose_err(int eval, const char *string, 
+#ifdef DEBUG
+    const char *function, const int line, const char *file
+#endif
+)
 {
- 
-    fprintf(stderr, "Fatal Error in %s:%s() line %d\n", file, function, line);
-    fprintf(stderr, "%s", string);
+#ifdef DEBUG
+    fprintf(stderr, "Fatal Error in %s:%s() line %d:\n", file, function, line);
+#endif
+    fprintf(stderr, "%s\n", string);
     exit(eval);
 }
 
 void
-_our_verbose_warn(const char *string, const char *function, const int line, 
-    const char *file)
+_our_verbose_warn(const char *string, 
+#ifdef DEBUG
+    const char *function, const int line, const char *file
+#endif
+)
 {
-
-    fprintf(stderr, "Warning in %s:%s() line %d\n", file, function, line);
-    fprintf(stderr, "%s", string);
+#ifdef DEBUG
+    fprintf(stderr, "Warning in %s:%s() line %d:\n", file, function, line);
+#endif
+    fprintf(stderr, "%s\n", string);
 }
 
 void
-_our_verbose_errx(int eval, const char *fmt, const char *function, 
-    const int line, const char *file, ...)
+_our_verbose_errx(int eval, const char *fmt, 
+#ifdef DEBUG
+    const char *function, const int line, const char *file, 
+#endif
+    ...)
 {
     va_list ap;
 
-    fprintf(stderr, "Fatal Error in %s:%s() line %d\n", file, function, line);
+#ifdef DEBUG
+    fprintf(stderr, "Fatal Error in %s:%s() line %d:\n", file, function, line);
+#endif
 
-    va_start(ap, fmt);
+    va_start(ap, file);
     if (fmt != NULL)
         (void)vfprintf(stderr,  fmt, ap);
     (void)fprintf(stderr, "\n");
@@ -113,14 +126,17 @@ _our_verbose_errx(int eval, const char *fmt, const char *function,
 }
 
 void
-_our_verbose_warnx(const char *fmt, const char *function, 
-    const int line, const char *file,...)
+_our_verbose_warnx(const char *fmt, 
+#ifdef DEBUG
+    const char *function, const int line, const char *file, 
+#endif
+    ...)
 {
     va_list ap;
-
-    fprintf(stderr, "Warning in %s:%s() line %d\n", file, function, line);
-
-    va_start(ap, fmt);
+#ifdef DEBUG
+    fprintf(stderr, "Warning in %s:%s() line %d:\n", file, function, line);
+#endif
+    va_start(ap, file);
     if (fmt != NULL)
         (void)vfprintf(stderr, fmt, ap);
     (void)fprintf(stderr, "\n");
