@@ -106,10 +106,11 @@ main(int argc, char *argv[])
     init();                     /* init our globals */
     
     optct = optionProcess(&tcpprepOptions, argc, argv);
+    post_args(argc, argv);
+
     argc -= optct;
     argv += optct;
  
-    post_args(argc, argv);
   
     /* open the cache file */
     if ((out_file = open(OPT_ARG(CACHEFILE), O_WRONLY | O_CREAT | O_TRUNC,
@@ -482,8 +483,8 @@ post_args(int argc, char *argv[])
 
 
     /* malloc our buffer to be + 1 strlen so we can null terminate */
-    options.comment = (char *)safe_realloc(options.comment, strlen(optarg) 
-                                           + strlen(myargs) + 1);
+    options.comment = (char *)safe_realloc(options.comment, 
+        strlen(&options.comment) + strlen(myargs) + 1);
                 
 
     strlcat(options.comment, myargs, sizeof(options.comment));
