@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.17 2002/11/20 04:19:09 aturner Exp $
+dnl $Id: configure.in,v 1.18 2002/11/20 04:31:20 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -294,6 +294,12 @@ case $host in
 esac])
 
 
+AC_ARG_WITH(testnic2,
+[  --with-testnic2=NIC2    Select an optional 2nd network card to use for testing],
+[ nic2=$withval ])
+
+AC_MSG_NOTICE(Using $nic1 for 1st test network interface card)
+AC_MSG_NOTICE(Using $nic2 for 2nd test network interface card)
 AC_SUBST(nic1)
 AC_SUBST(nic2)
 

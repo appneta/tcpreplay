@@ -831,6 +831,7 @@ Optional Packages:
   --with-libnet=DIR       use libnet in DIR
   --with-libnetver=VER    version of libnet in use
   --with-testnic=NIC      Select which network card to use for testing
+  --with-testnic2=NIC2    Select an optional 2nd network card to use for testing
 
 Some influential environment variables:
   CC          C compiler command
@@ -4150,6 +4151,17 @@ esac
 fi;
 
 
+
+# Check whether --with-testnic2 or --without-testnic2 was given.
+if test "${with_testnic2+set}" = set; then
+  withval="$with_testnic2"
+   nic2=$withval
+fi;
+
+{ echo "$as_me:$LINENO: Using $nic1 for 1st test network interface card" >&5
+echo "$as_me: Using $nic1 for 1st test network interface card" >&6;}
+{ echo "$as_me:$LINENO: Using $nic2 for 2nd test network interface card" >&5
+echo "$as_me: Using $nic2 for 2nd test network interface card" >&6;}
 
 
 
