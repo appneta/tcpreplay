@@ -1,4 +1,4 @@
-$Id: HACKING,v 1.2 2004/07/25 23:33:22 aturner Exp $
+$Id: HACKING,v 1.3 2004/08/09 19:43:48 aturner Exp $
 
                           Guide to Hacking Tcpreplay
 
@@ -86,4 +86,37 @@ and then run:
 Note that editing dlt_names.h is NOT going to work, since it will get 
 overwritten the next time it is regenerated.
 
-4. [insert more info here]
+4. Hacking tcprewrite
+
+tcprewrite order of execution:
+
+Figure out if input file's DLT is supported
+
+foreach (packet) {
+	Update packet timestamp based on modifier
+	
+	Decide packet path via cache or CIDR lookup
+	
+	if (a Layer 2 header is specified) {
+	    if (existing Layer 2 header) {
+	        strip existing Layer 2 header
+	    }
+	    prepend specified Layer 2 header
+	}
+	
+	if (primary path or single path) {
+	    re-write MAC addresses
+	    re-write IP addresses
+	    re-write Ports
+	} else if (secondary path) {
+	    re-write MAC addresses
+	    re-write IP addresses
+	    re-write Ports
+	}
+	
+	pad or truncate packet
+	
+	fix checksums
+	
+	write packet to outfile
+}
