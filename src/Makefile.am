@@ -1,45 +1,36 @@
 SUBDIRS = common
 
-tcpreplay_OBJECTS: tcpreplay_opts.h 
-
-tcpreplay_opts.h: tcpreplay_opts.c
-
-tcpreplay_opts.c:
-	@AUTOGEN@ tcpreplay_opts.def
-
 bin_PROGRAMS = tcpreplay tcpprep flowreplay tcprewrite
 
-tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c \
-		    signal_handler.c tcpreplay.c
-		    
+tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c
+tcpreplay_OBJECTS: tcpreplay_opts.h
+tcpreplay_opts.h: tcpreplay_opts.c
+tcpreplay_opts.c: tcpreplay_opts.def
+	@AUTOGEN@ tcpreplay_opts.def
 
-tcprewrite_opts.c:
-	@AUTOGEN@ tcprewrite_opts.def
-
-tcprewrite_opts.h: tcprewrite_opts.c
-
-tcpprep_opts.c:
-	@AUTOGEN@ tcpprep_opts.def
-
-tcpprep_opts.h: tcpprep_opts.c
 
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c edit_packet.c
+tcprewrite_OBJECTS: tcprewrite_opts.h
+tcprewrite_opts.h: tcprewrite_opts.c
+tcprewrite_opts.c: tcprewrite_opts.def
+	@AUTOGEN@ tcprewrite_opts.def
+
 
 tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c
+tcpprep_OBJECTS: tcpprep_opts.h
+tcpprep_opts.h: tcpprep_opts.c
+tcpprep_opts.c: tcpprep_opts.def
+	@AUTOGEN@ tcpprep_opts.def
 
 flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
+
+LDADD = ./common/libcommon.a ../lib/libstrl.a \
+		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 
 tcprewrite_LDADD = ./common/libcommon.a ../lib/libstrl.a \
 		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 
-tcpreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
-		  @LNAVLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-
-tcpprep_LDADD =  ./common/libcommon.a ../lib/libstrl.a \
-		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-
-flowreplay_LDADD = ./common/libcommon.a ../lib/libstrl.a \
-		   @LNETLIB@ @LPCAPLIB@
+AM_CFLAGS = -I.. $(LIBOPTS_CFLAGS)
 
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
 		 defines.h dlt.h dlt_names.h edit_packet.h tree.h \
@@ -47,10 +38,6 @@ noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h netout.h \
 		 signal_handler.h common.h tcpreplay_opts.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h
 
-tcpreplay_CFLAGS = -I.. $(LIBOPTS_CFLAGS)
-tcpprep_CFLAGS = -I..
-flowreplay_CFLAGS = -I..
-tcprewrite_CFLAGS = -I..
 
 MOSTLYCLEANFILES = *~ *.o
 
