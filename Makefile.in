@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.57 2004/05/08 21:38:25 aturner Exp $
+# $Id: Makefile.in,v 1.58 2004/05/20 04:06:15 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -110,6 +110,9 @@ test:
 
 docs:
 	cd Docs && make
+
+webdocs:
+	scp Docs/FAQ.html Docs/FAQ.pdf Docs/CHANGELOG shell.sf.net:htdocs/
 
 release:
 	mkdir ../$(RELEASEDIR)
