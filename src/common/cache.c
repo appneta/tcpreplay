@@ -85,8 +85,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     u_int64_t cache_size = 0;
 
     /* open the file or abort */
-    cachefd = open(cachefile, O_RDONLY);
-    if (cachefd == -1)
+    if ((cachefd = open(cachefile, O_RDONLY)) == -1)
         err(1, "open %s", cachefile);
 
     /* read the cache header and determine compatibility */
@@ -95,7 +94,6 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     if (cnt < sizeof(cache_file_hdr_t))
         errx(1, "Cache file %s too small", cachefile);
-
 
     /* verify our magic: tcpprep\0 */
     if (memcmp(header.magic, CACHEMAGIC, sizeof(CACHEMAGIC)) != 0)
@@ -110,10 +108,11 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     header.comment_len = ntohs(header.comment_len);
     *comment = (char *)safe_malloc(header.comment_len);
 
-    read_size = read(cachefd, *comment, header.comment_len);
-    if (read_size != header.comment_len)
+    if ((read_size = read(cachefd, *comment, header.comment_len)) 
+            != header.comment_len)
         errx(1, "Unable to read %d bytes of data for the comment (%d) %s", 
-             header.comment_len, read_size, read_size == -1 ? strerror(read_size) : "");
+            header.comment_len, read_size, 
+            read_size == -1 ? strerror(read_size) : "");
 
     dbg(1, "Cache file comment: %s", *comment);
 
@@ -135,11 +134,9 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     memset(*cachedata, '\0', cache_size);
 
     /* read in the cache */
-    read_size = read(cachefd, *cachedata, cache_size);
-    if (read_size != cache_size)
-        errx(1,
-             "Cache data length (%ld bytes) doesn't match cache header (%ld bytes)",
-             read_size, cache_size);
+    if ((read_size = read(cachefd, *cachedata, cache_size)) != cache_size)
+        errx(1, "Cache data length (%ld bytes) doesn't match "
+            "cache header (%ld bytes)", read_size, cache_size);
 
     dbg(1, "Loaded in %llu packets from cache.", header.num_packets);
 
