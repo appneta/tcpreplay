@@ -35,43 +35,42 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _TCPREPLAY_H_
-#define _TCPREPLAY_H_
+#ifndef __TCPREPLAY_H__
+#define __TCPREPLAY_H__
 
 #include "config.h"
+#include "defines.h"
+#include "confargs.h"
 
-#include <libnet.h>
-#include <pcap.h>
-#include <sys/time.h>
-#include "timer.h"
-#include "cache.h"
-#include "dlt.h"
-
-/* Map libnet 1.1 structs to shorter names for internal use */
-typedef libnet_t LIBNET;
-#define LIBNET_IP_H LIBNET_IPV4_H
-#define LIBNET_ICMP_H LIBNET_ICMPV4_H
-
-/* The release version of libnet 1.1.1 changed DNS */
-#ifdef LIBNET_DNSV4_H
-#define LIBNET_DNS_H LIBNET_DNSV4_H
-#else
-#define LIBNET_DNS_H LIBNET_UDP_DNSV4_H
-#endif
-
-/* standardize all common header typedefs */
-typedef struct libnet_ipv4_hdr ip_hdr_t;
-typedef struct libnet_dnsv4_hdr dns_hdr_t;
-typedef struct libnet_icmpv4_hdr icmp_hdr_t;
-typedef struct libnet_arp_hdr arp_hdr_t;
-typedef struct libnet_tcp_hdr tcp_hdr_t;
-typedef struct libnet_udp_hdr udp_hdr_t;
-typedef struct libnet_ethernet_hdr eth_hdr_t;
-
-#define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
-                                 * don't forget *frames* are MTU + L2 header! */
-#define MAXPACKET 16436         /* MTU of Linux loopback */
-#define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */
+struct options_map_t {
+    char *option;
+    char *description;
+    int type;
+} options_map[] = {
+    { "verbose", "print decoded packet as it's sent", CONFIG_TYPE_ENABLE },
+    { "print", "arguments to pass to tcpdump to print decoded packet", CONFIG_TYPE_STRING },
+    { "cache", "tcpprep cache file to split traffic with", CONFIG_TYPE_STRING },
+    { "cidr", "split traffic based on source ip matching a list of networks", CONFIG_TYPE_CIDRTABLE },
+    { "limit", "specify the number of packets to send", CONFIG_TYPE_INT },
+    { "intf1", "primary output interface", CONFIG_TYPE_STRING },
+    { "intf2", "secondary output interface", CONFIG_TYPE_STRING },
+    { "file1", "primary output file", CONFIG_TYPE_STRING },
+    { "file2", "secondary output file", CONFIG_TYPE_STRING },
+    { "dumpdata", "write application layer data to output files", CONFIG_TYPE_INT },
+    { "multi", "resend packets at a multiple of the original", CONFIG_TYPE_DOUBLE },
+    { "pps", "resend packets at a given packets/second", CONFIG_TYPE_INT },
+    { "mbps", "resend packets a given Mbps/second", CONFIG_TYPE_DOUBLE },
+    { "onetime", "resend one packet per keypress", CONFIG_TYPE_INT },
+    { "topspeed", "resend packets as fast as possible", CONFIG_TYPE_INT },
+    { "loop", "loop through pcap file X times", CONFIG_TYPE_INT },
+    { "nopromisc", "don't listen promiscously when sniffing", CONFIG_TYPE_BOOLEAN },
+    { "offset", "start sending packets from the given byte offset", CONFIG_TYPE_INT },
+    { "oneout", "", CONFIG_TYPE_BOOLEAN },
+    { "pid", "print the process id", CONFIG_TYPE_BOOLEAN },
+    { "sniff", "read packets from the network instead of a file", CONFIG_TYPE_BOOLEAN },
+    { "mtu", "set the mtu in bytes of the output", CONFIG_TYPE_INT },
+    { NULL, NULL, 0 }
+};
 
 /* run-time options */
 struct options {
@@ -125,71 +124,14 @@ struct options {
     char break_type;
 };
 
-#define RESOLVE 0               /* disable dns lookups */
-#define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
-#define PCAP_TIMEOUT 100        /* 100ms pcap_open_live timeout */
-
-#define TRUE 1
-#define FALSE 0
-
-#define EBUF_SIZE 256           /* size of our error buffers */
-#define MAC_SIZE  7             /* size of the mac[] buffer */
-
-#define CIDR_MODE 1             /* single pass, CIDR netblock */
-#define REGEX_MODE 2            /* single pass, Regex */
-#define AUTO_MODE 4             /* first pass through in auto mode */
-#define PORT_MODE 8             /* single pass, use src/dst ports to split */
-#define ROUTER_MODE 16          /* second pass through in router/auto mode */
-#define BRIDGE_MODE 32          /* second pass through in bridge/auto mode */
-#define SERVER_MODE 64          /* second pass through in client/auto mode */
-#define CLIENT_MODE 128         /* second pass through in server/auto mode */
-
-#define L2DATALEN 255           /* Max size of the L2 data file */
-
-#define DNS_QUERY_FLAG 0x8000
-
-#define SERVER 1
-#define CLIENT 0
-#define UNKNOWN -1
-#define ANY 2
-
-#define DEBUG_INFO 1            /* informational only, lessthan 1 line per packet */
-#define DEBUG_BASIC 2           /* limited debugging, one line per packet */
-#define DEBUG_DETAILED 3        /* more detailed, a few lines per packet */
-#define DEBUG_CODE 4            /* examines code & values, many lines per packet */
-
-#define PAD_PACKET 1            /* values for the 'uflag' in tcpreplay */
-#define TRUNC_PACKET 2
-
-
-#ifndef SWAPLONG
-#define SWAPLONG(y) \
-((((y)&0xff)<<24) | (((y)&0xff00)<<8) | (((y)&0xff0000)>>8) | (((y)>>24)&0xff))
-#endif
-
-#ifndef SWAPSHORT
-#define SWAPSHORT(y) \
-( (((y)&0xff)<<8) | ((u_short)((y)&0xff00)>>8) )
-#endif
-
-#define NULL_MAC "\0\0\0\0\0\0"
-#define BROADCAST_MAC "\FF\FF\FF\FF\FF\FF"
-
-/* MAC macros for printf */
-#define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
-#define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
-
-/* converts a 64bit int to network byte order */
-#ifndef ntohll
-#ifdef WORDS_BIGENDIAN
-#define ntohll(x) (x)
-#define htonll(x) (x)
-#else
-/* stolen from http://www.codeproject.com/cpp/endianness.asp */
-#define ntohll(x) (((u_int64_t)(ntohl((int)((x << 32) >> 32))) << 32) | \
-                     (unsigned int)ntohl(((int)(x >> 32))))
-#define htonll(x) ntohll(x)
-#endif /* WORDS_BIGENDIAN */
-#endif /* ntholl */
 
 #endif
+
+/*
+ Local Variables:
+ mode:c
+ indent-tabs-mode:nil
+ c-basic-offset:4
+ End:
+*/
+
