@@ -167,8 +167,8 @@ flag = {
     char ebuf[EBUF_SIZE];
     
     options.mode = REGEX_MODE;
-    if (regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
-        REG_EXTENDED|REG_NOSUB)) {
+    if ((regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
+        REG_EXTENDED|REG_NOSUB))) {
         regerror(regex_error, &options.preg, ebuf, EBUF_SIZE);
         errx(1, "Unable to compile regex: %s", ebuf);
     }
