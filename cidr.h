@@ -22,4 +22,5 @@ void add_cidr(CIDR *, CIDR **);
 CIDR *new_cidr();
 void destroy_cidr(CIDR *);
 void print_cidr(CIDR *);
+char *cidr2iplist(CIDR *, char);
 #endif
