@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.39 2002/10/22 05:01:21 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.40 2002/10/22 05:50:11 aturner Exp $ */
 
 #include "config.h"
 
@@ -31,7 +31,7 @@ char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
 int cache_bit, cache_byte, cache_packets;
 volatile int didsig;
 
-int include_exclude_mode;
+int include_exclude_mode = 0;
 CIDR *xX_cidr = NULL;
 LIST *xX_list = NULL;
 
@@ -151,6 +151,9 @@ main(int argc, char *argv[])
 			version();
 			break;
 		case 'x':
+			if (include_exclude_mode != 0)
+				errx(1, "Error: Can only specify -x OR -X");
+
 			include_exclude_mode = optind;
 			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
 				errx(1, "Unable to parse -x: %s", optarg);
@@ -161,6 +164,9 @@ main(int argc, char *argv[])
 			}
 			break;
 		case 'X':
+			if (include_exclude_mode != 0)
+				errx(1, "Error: Can only specify -x OR -X");
+
 			include_exclude_mode = optind;
 			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
 				errx(1, "Unable to parse -X: %s", optarg);
@@ -194,12 +200,6 @@ main(int argc, char *argv[])
 	if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
 
-	/* process -x and -X 
-	 * need to fix this -ADT
-	if ((options.include != NULL) && (options.exclude != NULL))
-		errx(1, "Can only specify -x or -X, not both");
-	*/
-	/* use our seed to make pseudo-random IP's */
 	if (options.seed != 0) {
 		srand(options.seed);
 		options.seed = random();
@@ -389,6 +389,7 @@ configfile(char *file) {
 	FILE *fp;
 	char *argv[MAX_ARGS], buf[BUFSIZ];
 	int argc, i;
+	void *xX;
 
 	if ((fp = fopen(file, "r")) == NULL)
 		errx(1, "Could not open config file %s", file);
@@ -458,13 +459,29 @@ configfile(char *file) {
 			}
 		} else if (ARGS("seed", 2)) {
 			options.seed = atol(argv[1]);
-/*
- * need to fix this -ADT
 		} else if (ARGS("include", 2)) {
-			options.include = strdup(argv[1]);
-		} else if (ARGS("exclude", 2)) {
-			options.exclude = strdup(argv[1]);
-*/
+			if (include_exclude_mode != 0)
+				errx(1, "Error: Can only specify -x OR -X");
+			include_exclude_mode = 'x';
+			if ((xX = parse_xX_str(include_exclude_mode, argv[1])) == NULL)
+				errx(1, "Unable to parse -x: %s", optarg);
+			if (include_exclude_mode & xXPacket) {
+				xX_list = (LIST *)xX;
+			} else {
+				xX_cidr = (CIDR *)xX;
+			}
+ 		} else if (ARGS("exclude", 2)) {
+			if (include_exclude_mode != 0)
+				errx(1, "Error: Can only specify -x OR -X");
+
+			include_exclude_mode = 'X';
+			if ((xX = parse_xX_str(include_exclude_mode, argv[1])) == NULL)
+				errx(1, "Unable to parse -X: %s", optarg);
+			if (include_exclude_mode & xXPacket) {
+				xX_list = (LIST *)xX;
+			} else {
+				xX_cidr = (CIDR *)xX;
+			}
 		} else {
 			errx(1, "Skipping unrecognized: %s", argv[0]);
 		}
