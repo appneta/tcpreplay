@@ -1,4 +1,4 @@
-/* $Id: capinfo.c,v 1.2 2002/08/08 03:35:15 mattbing Exp $ */
+/* $Id: capinfo.c,v 1.3 2002/08/11 23:57:18 mattbing Exp $ */
 
 #include "config.h"
 
@@ -13,12 +13,14 @@
 #include "snoop.h"
 
 void print_pcap(struct pcap_info *);
+void print_snoop(struct snoop_info *);
 void usage();
 
 int
 main(int argc, char *argv[])
 {
 	struct pcap_info p;
+	struct snoop_info s;
 	int i, fd, flag;
 
 	if (argc == 0)
@@ -27,7 +29,6 @@ main(int argc, char *argv[])
 	for (i = 1; i < argc; i++) {
 		flag = 0;
 
-		(void)printf("%s:\n", argv[i]);
 		if ((fd = open(argv[i], O_RDONLY, 0)) < 0) {
 			warn("could not open");
 			continue;
@@ -38,6 +39,7 @@ main(int argc, char *argv[])
 			flag = 1;
 			printf("%s pcap file\n", argv[1]);
 			print_pcap(&p);
+			return 0;
 		}
 
 		/* rewind */
@@ -45,14 +47,13 @@ main(int argc, char *argv[])
 			err(1, "lseek");
 
 		if (is_snoop(fd)) {
+			stat_snoop(fd, &s);
 			printf("%s snoop file\n", argv[1]);
-			stat_snoop(fd);
-			flag = 1;
+			print_snoop(&s);
+			return 0;
 		}
 
-		if (flag == 0)
-			warnx("unknown format");
-
+		warnx("unknown format");
 		(void)printf("\n");
 	}
 
@@ -83,6 +84,27 @@ print_pcap(struct pcap_info *p)
 		start = ctime(&p->start_tm.tv_sec);
 		(void)printf("\tfirst packet: %s", start);
 		finish = ctime(&p->finish_tm.tv_sec);
+		(void)printf("\tlast  packet: %s", finish);
+	}
+
+}
+
+void
+print_snoop(struct snoop_info *s)
+{
+	char *start, *finish;
+
+	(void)printf("\tversion: %d\n", s->version);
+	(void)printf("\tlinktype: %s\n", s->linktype);
+	(void)printf("\t%d packets, %d bytes\n", s->cnt, s->bytes);
+	if (s->trunc > 0)
+		(void)printf("\t%d packets truncated (larger than snaplen)\n", 
+			s->trunc);
+
+	if (s->cnt > 0) {
+		start = ctime(&s->start_tm.tv_sec);
+		(void)printf("\tfirst packet: %s", start);
+		finish = ctime(&s->finish_tm.tv_sec);
 		(void)printf("\tlast  packet: %s", finish);
 	}
 

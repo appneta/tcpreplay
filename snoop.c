@@ -1,4 +1,4 @@
-/* $Id: snoop.c,v 1.4 2002/07/27 20:18:40 aturner Exp $ */
+/* $Id: snoop.c,v 1.5 2002/08/11 23:57:18 mattbing Exp $ */
  
 #include "config.h"
 
@@ -98,42 +98,29 @@ get_next_snoop(int fd, struct packet *pkt)
 }
 
 void
-stat_snoop(int fd)
+stat_snoop(int fd, struct snoop_info *p)
 {
 	struct packet pkt;
-	struct timespec start_tm, finish_tm; 
-	int bytes, cnt, trunc;
-	char *start, *finish;
 
-	(void)printf("\tsnoop\n");
-	(void)printf("\tversion: %d\n", shdr.version);
+	p->version = shdr.version;
 
-	(void)printf("\tlinktype: ");
 	if (shdr.network > LINKSIZE)
-		(void)printf("unknown linktype\n");
+		p->linktype = "unknown linktype";
 	else
-		(void)printf("%s\n", snoop_links[shdr.network]);
+		p->linktype = snoop_links[shdr.network];
 
-	bytes = trunc = 0;
-	for (cnt = 0; get_next_snoop(fd, &pkt); cnt++) {
+	p->bytes = p->trunc = 0;
+	for (p->cnt = 0; get_next_snoop(fd, &pkt); p->cnt++) {
 		/* grab time of the first packet */
-		if (cnt == 0)
-			TIMEVAL_TO_TIMESPEC(&pkt.ts, &start_tm);
+		if (p->cnt == 0)
+			TIMEVAL_TO_TIMESPEC(&pkt.ts, &p->start_tm);
 		
 		/* count truncated packets */
-		bytes += pkt.len;
+		p->bytes += pkt.len;
 		if (pkt.actual_len > pkt.len)
-			trunc++;
+			p->trunc++;
 	}
 
-	(void)printf("\t%d packets, %d bytes\n", cnt, bytes);
-	if (trunc > 0)
-		(void)printf("\t%d packets truncated (larger than snaplen)\n", trunc);
-
 	/* grab time of the last packet */ 
-	TIMEVAL_TO_TIMESPEC(&pkt.ts, &finish_tm); 
-	start = ctime(&start_tm.tv_sec); 
-	(void)printf("\tfirst packet: %s", start); 
-	finish = ctime(&finish_tm.tv_sec); 
-	(void)printf("\tlast  packet: %s", finish);
+	TIMEVAL_TO_TIMESPEC(&pkt.ts, &p->finish_tm); 
 }

@@ -1,14 +1,10 @@
-/* $Id: snoop.h,v 1.1 2002/03/29 03:44:53 mattbing Exp $ */
+/* $Id: snoop.h,v 1.2 2002/08/11 23:57:18 mattbing Exp $ */
 
 #ifndef _SNOOP_H_
 #define _SNOOP_H_
 
 #include "config.h"
 #include "tcpreplay.h"
-
-int is_snoop(int);
-int get_next_snoop(int, struct packet *);
-void stat_snoop(int);
 
 /* magic constant for snoop files */
 #define SNOOP_MAGIC "snoop\0\0\0"
@@ -29,5 +25,20 @@ struct snoop_rec {
 	u_int32_t ts_sec;		/* timestamp seconds */
 	u_int32_t ts_usec;		/* timestamp microseconds */
 };
+
+/* data describing a snoop capture */
+struct snoop_info {
+	char *linktype; 
+	int version;
+	int cnt; 
+	int bytes; 
+	int trunc; 
+	struct timespec start_tm; 
+	struct timespec finish_tm;
+};
+
+int is_snoop(int);
+int get_next_snoop(int, struct packet *);
+void stat_snoop(int, struct snoop_info *);
 
 #endif
