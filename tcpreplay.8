@@ -1,4 +1,4 @@
-.\" $Id: tcpreplay.8,v 1.6 2002/06/27 20:16:44 aturner Exp $
+.\" $Id: tcpreplay.8,v 1.7 2002/06/28 06:27:53 aturner Exp $
 .TH TCPREPLAY 8
 .SH NAME
 tcpreplay \- replay packets from capture files
@@ -35,6 +35,8 @@ tcpreplay \- replay packets from capture files
 CIDR...
 ] [
 .B \-S
+] [
+.B \-u pad|trunc
 ] [
 .B \-v
 ]
@@ -109,6 +111,11 @@ Resend the packets as fast as possible. Negates other speed options.
 .TP
 .B \-S
 Indicates the specified files are in snoop format.
+.TP
+.B \-u
+Untruncates IP packets when snaplen > the actual packet length.  Packets can
+be padded (\fIpad\fR) with zeros or truncated (\fItrunc\fR) to the snaplen.
+Will also recalcuate the IP and TCP/UDP headers as necessary.
 .TP
 .B \-v
 Verbose mode, currently unused.

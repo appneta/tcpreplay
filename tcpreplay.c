@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.9 2002/06/26 22:23:58 mattbing Exp $ */
+/* $Id: tcpreplay.c,v 1.10 2002/06/28 06:27:53 aturner Exp $ */
 
 #include "config.h"
 
@@ -24,7 +24,7 @@ struct libnet_link_int *l_intf, *l_intf2;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
 float rate, mult;
-int n_iter, verbose, Rflag, Sflag, Cflag;
+int n_iter, verbose, Rflag, Sflag, Cflag, uflag;
 volatile int didsig;
 char *intf, *intf2, primary_mac[6], secondary_mac[6];
 #ifdef DEBUG
@@ -64,16 +64,20 @@ main(int argc, char *argv[])
 	Rflag = 0;
 	Sflag = 0;
 	Cflag = 0;
+	uflag = 0;
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "cd:hi:I:j:J:l:m:r:RSv:")) != -1)
+	while ((ch = getopt(argc, argv, "dc:hi:I:j:J:l:m:r:RSv:u:")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "c:hi:I:j:J:l:m:r:C:RSv:")) != -1)
+	while ((ch = getopt(argc, argv, "c:hi:I:j:J:l:m:r:C:RSv:u:")) != -1)
 #endif
 		switch(ch) {
 		case 'c': /* cache file */
 			cache_file = optarg;
 			cache_packets = read_cache(cache_file);
+			break;
+		case 'd': /* enable debug */
+			debug = 1;
 			break;
 		case 'h': /* help */
 			usage();
@@ -113,6 +117,15 @@ main(int argc, char *argv[])
 			/* convert to bytes */
 			rate = (rate * (1024*1024)) / 8;
 			mult = 0.0;
+			break;
+		case 'u': /* untruncate packet */
+			if (strcmp("pad", optarg) == 0) {
+				uflag = PAD_PACKET;
+			} else if (strcmp("trunc", optarg) == 0) {
+				uflag = TRUNC_PACKET;
+			} else {
+				errx(1, "Invalid untruncate option: %s", optarg);
+			}
 			break;
 		case 'R': /* replay at top speed */
 			Rflag = 1;
@@ -212,7 +225,9 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct libnet_link_int *l = NULL;
 	struct packet pkt;
 	struct timeval last;
-	int packet_num, ret;
+	int packet_num, ret, pktlen, proto;
+	char *pktdata;
+	char tmppkt[MAXPACKET];
 	char *i = NULL;
 
 	/* register signals */
@@ -228,8 +243,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			_exit(1);
 		}
 
+
 		if (!Rflag)
 			do_sleep(&pkt.ts, &last, pkt.len);
+
+		eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 
 		/* Dual nic processing */
 		if (intf2 != NULL) {
@@ -246,7 +264,6 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 					/* check for destination MAC rewriting */
 					if (primary_mac != NULL) {
-						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 						memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
 					}
 				} else {
@@ -256,7 +273,6 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 					/* check for destination MAC rewriting */
 					if (secondary_mac != NULL) {
-						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 						memcpy(eth_hdr->ether_dhost, secondary_mac, ETHER_ADDR_LEN);
 					}
 				} /* end cache processing */
@@ -278,7 +294,6 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 					/* check for destination MAC rewriting */
 					if (primary_mac != NULL) {
-						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 						memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
 					}
 				} else {
@@ -288,7 +303,6 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 					/* check for destination MAC rewriting */
 					if (secondary_mac != NULL) {
-						eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 						memcpy(eth_hdr->ether_dhost, secondary_mac, ETHER_ADDR_LEN);
 					}
 				}
@@ -299,14 +313,53 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			i = intf;
 			/* check for destination MAC rewriting */
 			if (primary_mac != NULL) {
-				eth_hdr = (struct libnet_ethernet_hdr *)(pkt.data);
 				memcpy(eth_hdr->ether_dhost, primary_mac, ETHER_ADDR_LEN);
 			}
 		}
 
+		/* Untruncate packet? Only for IP packets */
+		if ((uflag) && (pkt.len != pkt.actual_len) && (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP)) {
+			/* Pad packet? */
+			if (uflag == PAD_PACKET) {
+#ifdef DEBUG
+				if (debug)
+					warnx("Padding packet from %d to %d bytes.", pkt.len, pkt.actual_len);
+#endif
+				memset(tmppkt, 0, sizeof(tmppkt));
+				memcpy(tmppkt, pkt.data, pkt.len);
+				pktlen = pkt.actual_len;
+		
+			} else { /* truncate packet */
+#ifdef DEBUG
+				if (debug)
+					warnx("Truncating packet at %d bytes.", pkt.len);
+#endif 
+
+				ip_hdr = (struct libnet_ip_hdr *) (pkt.data + LIBNET_ETH_H);
+				ip_hdr->ip_len = htons(pkt.len);
+				memcpy(tmppkt, pkt.data, pkt.len);
+				pktlen = pkt.len; 
+
+			}
+		
+			/* recalc the checksum(s) */
+			proto = ((struct libnet_ip_hdr*)(tmppkt+LIBNET_ETH_H))->ip_p;
+			if (libnet_do_checksum(tmppkt+LIBNET_ETH_H, proto, pktlen - LIBNET_ETH_H - LIBNET_IP_H) < 0 )
+				warnx("Layer 4 checksum failed");
+
+			if (libnet_do_checksum(tmppkt+LIBNET_ETH_H, IPPROTO_IP, LIBNET_IP_H) < 0 )
+				warnx("IP checksum failed");
+
+			pktdata = tmppkt;
+
+		} else { /* copy over packet data & len for sending */
+			pktdata = pkt.data;
+			pktlen = pkt.len;
+		}
+
 		/* Physically send the packet */
 		do {
-			ret = libnet_write_link_layer(l, i, (u_char *)pkt.data, pkt.len);
+			ret = libnet_write_link_layer(l, i, (u_char *)pktdata, pktlen);
 			if (ret == -1) {
 				/* Make note of failed writes due to full buffers */
 				if (errno == ENOBUFS) {
@@ -464,10 +517,11 @@ void
 usage()
 {
 	fprintf(stderr, "tcpreplay " VERSION "\nUsage: tcpreplay "
-          "[-i pri int] [-j sec int] [-l loops] [-m multiplier]");
+          "[-i pri int] [-j sec int] [-l loops] [-m multiplier] [-v]");
 #ifdef DEBUG
 	fprintf(stderr, " [-d]");
 #endif
-  	fprintf(stderr,"\n[-r rate] [-c cache|-C CIDR,...] [-I pri mac] [-J sec mac] [-v] [-h] <file>\n");
+  	fprintf(stderr,"\n[-r rate] [-c cache|-C CIDR,...] [-u pad|trunc] [-I pri mac] [-J sec mac] [-h]\n");
+	fprintf(stderr, "<file>\n");
 	exit(1);
 }

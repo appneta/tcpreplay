@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.3 2002/06/28 04:23:15 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.4 2002/06/28 06:27:53 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -59,5 +59,7 @@ struct packet {
 #define DEBUG_DETAILED 3  /* more detailed, a few lines per packet */
 #define DEBUG_CODE 4      /* examines code & values, many lines per packet */
 
+#define PAD_PACKET 1	 /* values for the 'uflag' in tcpreplay */
+#define TRUNC_PACKET 2
 
 #endif
