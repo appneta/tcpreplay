@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-Nov 4, 2003
+Dec 7, 2003
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -803,14 +803,96 @@ tcpreplay -D -i eth0 -j eth0 -w clientdata -W serverdata -C 10.0.0.0/24 sample.p
 Using Configuration Files
 \layout Standard
 
-Tcpreplay now supports well over twenty options, many of which take multiple
- arguments.
- The tcpreplay configuration file can be used to store configuration options
- that will be used over and over again rather then having to specify them
- on the command line.
- You specify the config file name via -f <filename> and place on option
- per line.
- For a list of all the options, see the tcpreplay(8) man page.
+Tcpreplay offers the options of specifying configuration options in a config
+ file in addition to the traditional command line.
+ Each configuration option has an equivalent config file option which is
+ listed in the tcpreplay man page.
+ To specifiy the configuration file you'd like to use, use the -f <filename>
+ option.
+\layout Standard
+
+Configuration files have one option per line, and lines beginning with the
+ pound sign (#) are considered comments and ignored.
+ An example config file follows:
+\layout Standard
+
+# send traffic out 'eth0'
+\newline 
+intf eth0
+\newline 
+
+\newline 
+# loop 5 times
+\newline 
+loop 5
+\newline 
+
+\newline 
+# send traffic 2x as fast
+\newline 
+multiplier 2
+\newline 
+
+\newline 
+# pad any packets out to their original size if they were truncated during
+ capture
+\newline 
+untruncate pad
+\layout Itemize
+
+You would then execute:
+\newline 
+
+\emph on 
+tcpreplay -f myconfigfile sample.pcap
+\emph default 
+
+\newline 
+
+\layout Subsection
+
+Replaying Live Traffic
+\layout Standard
+
+You can now replay live traffic sniffed on one network interface and replay
+ it on another interface.
+\layout Standard
+
+
+\noun on 
+NOTE:
+\noun default 
+ It is critical for your sanity (and to prevent your murder by your network
+ administrators) that the input interface and the output interface be on
+ seperate networks and additionally that no other network devices (such
+ as bridges, switches, routers, etc) be connecting the two networks, else
+ you will surely get a networkstorm the likes that have not been seen for
+ years.
+ Additionally, there is currently no good way of sending/recieving traffic
+ bi-directionally.
+\layout Itemize
+
+Send packets sniffed on eth0 out eth1:
+\newline 
+
+\emph on 
+tcpreplay -S 0 -i eth1 eth0
+\layout Standard
+
+By default, tcpreplay listens in promiscuous mode on the specified interface,
+ however if you only want to send unicasts directed for the local system
+ and broadcasts, you can specify the 
+\begin_inset Quotes eld
+\end_inset 
+
+not_nosy
+\begin_inset Quotes erd
+\end_inset 
+
+ option in the configuration file or -n on the command line.
+ Note that if another program has already placed the interface in promiscuous
+ mode, the -n flag will have no effect, so you may want to use the -x or
+ -X argument to limit packets.
 \layout Subsection
 
 Replaying Packet Capture Formats Other Than Libpcap
@@ -853,9 +935,15 @@ A common question on the tcpreplay-users list is how does one replay the
  The major problem concerns syncing up TCP Seq/Ack numbers which will be
  different.
  ICMP also often contains IP header information which would need to be adjusted
+<<<<<<< FAQ.lyx
+ as well in many cases.
+ About the only thing that could be easy to do is UDP, which isn't usually
+ requested.
+=======
  in many cases.
  About the only thing that could be easy to do is UDP which isn't usually
  requested.
+>>>>>>> 1.14
 \layout Standard
 
 This is however a feature that we're looking into implimenting.
