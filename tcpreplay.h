@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.50 2004/02/03 22:53:49 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.51 2004/03/25 00:50:33 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -90,8 +90,10 @@ struct options {
     int datadumpfile2;
     char break_type;
     int break_percent;
-    char intf1_mac[6];
-    char intf2_mac[6];
+    char intf1_mac[ETHER_ADDR_LEN];
+    char intf2_mac[ETHER_ADDR_LEN];
+    char intf1_smac[ETHER_ADDR_LEN];
+    char intf2_smac[ETHER_ADDR_LEN];
     float rate;
     float mult;
     float packetrate;

@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.83 2004/02/03 22:53:23 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.84 2004/03/25 00:50:33 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -119,7 +119,7 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:Df:Fhi:I:j:J:l:L:m:MnN:o:p:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
+                   "bc:C:Df:Fhi:I:j:J:k:K:l:L:m:MnN:o:p:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
 #ifdef HAVE_TCPDUMP
                    "vA:"
 #endif
@@ -170,6 +170,16 @@ main(int argc, char *argv[])
         case 'J':              /* secondary dest mac */
             mac2hex(optarg, options.intf2_mac, sizeof(options.intf2_mac));
             if (memcmp(options.intf2_mac, NULL_MAC, 6) == 0)
+                errx(1, "Invalid mac address: %s", optarg);
+            break;
+        case 'k':              /* primary source mac */
+            mac2hex(optarg, options.intf1_smac, sizeof(options.intf1_smac));
+            if (memcmp(options.intf1_smac, NULL_MAC, 6) == 0)
+                errx(1, "Invalid mac address: %s", optarg);
+            break;
+       case 'K':              /* secondary source mac */
+            mac2hex(optarg, options.intf2_smac, sizeof(options.intf2_smac));
+            if (memcmp(options.intf2_smac, NULL_MAC, 6) == 0)
                 errx(1, "Invalid mac address: %s", optarg);
             break;
         case 'l':              /* loop count */
@@ -744,12 +754,22 @@ configfile(char *file)
             if (memcmp(options.intf1_mac, NULL_MAC, 6) == 0)
                 errx(1, "Invalid mac address: %s", argv[1]);
         }
+        else if (ARGS("primary_smac", 2)) {
+            mac2hex(argv[1], options.intf1_smac, sizeof(options.intf1_smac));
+            if (memcmp(options.intf1_smac, NULL_MAC, 6) == 0)
+                errx(1, "Invalid mac address: %s", argv[1]);
+        }
         else if (ARGS("second_intf", 2)) {
             intf2 = strdup(argv[1]);
         }
         else if (ARGS("second_mac", 2)) {
             mac2hex(argv[1], options.intf2_mac, sizeof(options.intf2_mac));
             if (memcmp(options.intf2_mac, NULL_MAC, 6) == 0)
+                errx(1, "Invalid mac address: %s", argv[1]);
+        }
+        else if (ARGS("second_smac", 2)) {
+            mac2hex(argv[1], options.intf2_smac, sizeof(options.intf2_smac));
+            if (memcmp(options.intf2_smac, NULL_MAC, 6) == 0)
                 errx(1, "Invalid mac address: %s", argv[1]);
         }
         else if (ARGS("loop", 2)) {
@@ -980,7 +1000,9 @@ usage(void)
             "-i <nic>\t\tPrimary interface to send traffic out of\n"
             "-I <mac>\t\tRewrite dest MAC on primary interface\n"
             "-j <nic>\t\tSecondary interface to send traffic out of\n"
-            "-J <mac>\t\tRewrite dest MAC on secondary interface\n");
+            "-J <mac>\t\tRewrite dest MAC on secondary interface\n"
+            "-k <mac>\t\tRewrite source MAC on primary interface\n"
+            "-K <mac>\t\tRewrite source MAC on secondary interface\n");
     fprintf(stderr,
             "-l <loop>\t\tSpecify number of times to loop\n"
             "-L <limit>\t\tSpecify the maximum number of packets to send\n"
