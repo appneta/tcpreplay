@@ -2,6 +2,14 @@
 #define __DEFINES_H__
 
 #include "config.h"
+
+/* should packet counters be 32 or 64 bit? --enable-64bit */
+#ifdef ENABLE_64BITS
+#define COUNTER u_int64_t
+#else
+#define COUNTER u_int32_t
+#endif
+
 #include "lib/strlcpy.h"
 #include "common/list.h"
 #include "common/cidr.h"
@@ -42,8 +50,8 @@ typedef struct bpf_s bpf_t;
 struct l2_s {
     int enabled;
     int len;
-    u_char data1[L2DATALEN];
-    u_char data2[L2DATALEN];
+    char data1[L2DATALEN];
+    char data2[L2DATALEN];
     int linktype;
 };
 typedef struct l2_s l2_t;
@@ -126,6 +134,7 @@ typedef struct speed_s speed_t;
 #define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
 #define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
 
+/* force a word or half-word swap on both Big and Little endian systems */
 #ifndef SWAPLONG
 #define SWAPLONG(y) \
 ((((y)&0xff)<<24) | (((y)&0xff00)<<8) | (((y)&0xff0000)>>8) | (((y)>>24)&0xff))
