@@ -1,4 +1,4 @@
-/* $Id: do_packets.c,v 1.46 2004/01/31 21:21:12 aturner Exp $ */
+/* $Id: do_packets.c,v 1.47 2004/02/03 22:52:15 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -132,6 +132,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 {
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
+    arp_hdr_t *arp_hdr = NULL;
     libnet_t *l = NULL;
     struct pcap_pkthdr pkthdr;  /* libpcap packet info */
     const u_char *nextpkt = NULL;   /* packet buffer from libpcap */
@@ -149,6 +150,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
     char datadumpbuff[MAXPACKET];   /* data dumper buffer */
     int datalen = 0;                /* data dumper length */
     int newchar = 0;
+    int needtorecalc = 0;           /* did the packet change? if so, checksum */
     struct pollfd poller[1];        /* use poll to read from the keyboard */
 
     /* create packet buffers */
@@ -206,7 +208,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
         /* zero out the old packet info */
         memset(pktdata, '\0', maxpacket);
-
+        needtorecalc = 0;
 
         /* Rewrite any Layer 2 data */
         if ((newl2len = rewrite_l2(&pkthdr, pktdata, nextpkt,
@@ -256,11 +258,25 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
                     continue;
                 }
             }
+            
+            /* rewrite IP? */
+            if (options.rewriteip)
+                needtorecalc += rewrite_ipl3(ip_hdr);
 
         }
         else {
             /* non-IP packets have a NULL ip_hdr struct */
             ip_hdr = NULL;
+            
+            /* rewrite IP? (if ARP) */
+            if (options.rewriteip && ntohs(eth_hdr->ether_type) == ETHERTYPE_ARP) {
+                arp_hdr = (arp_hdr_t *)(&pktdata[l2len]);
+                /* unlike, rewrite_ipl3, we don't care if the packet changed
+                 * because we never need to recalc the checksums for an ARP
+                 * packet.  So ignore the return value
+                 */
+                rewrite_iparp(arp_hdr);
+            }
         }
 
         /* check for martians? */
@@ -311,17 +327,17 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
 
         /* Untruncate packet? Only for IP packets */
         if ((options.trunc) && (ip_hdr != NULL)) {
-            untrunc_packet(&pkthdr, pktdata, ip_hdr, l, l2len);
+            needtorecalc += untrunc_packet(&pkthdr, pktdata, ip_hdr, l, l2len);
         }
 
 
         /* do we need to spoof the src/dst IP address? */
         if ((options.seed) && (ip_hdr != NULL)) {
-            randomize_ips(&pkthdr, pktdata, ip_hdr, l, l2len);
+            needtorecalc += randomize_ips(&pkthdr, pktdata, ip_hdr, l, l2len);
         }
 
         /* do we need to force fixing checksums? */
-        if ((options.fixchecksums) && (ip_hdr != NULL)) {
+        if ((options.fixchecksums || needtorecalc) && (ip_hdr != NULL)) {
             fix_checksums(&pkthdr, ip_hdr, l);
         }
 
