@@ -17,7 +17,6 @@ pdf: FAQ.tex dvi
 
 txt:
 	lyx -e text FAQ.lyx
-	lyx -e text flowreplay.lyx
 
 ps: FAQ.tex dvi
 	dvips -o FAQ.ps FAQ.dvi
@@ -28,7 +27,7 @@ rmtemp:
 
 clean: rmtemp
 	rm -f FAQ.html FAQ.pdf FAQ.txt FAQ.ps FAQ.dvi FAQ.tex 
-	rm -f FAQ.css index.html
+	rm -f FAQ.css index.html flowreplay.txt
 
 distclean: clean
 	rm -f *~
