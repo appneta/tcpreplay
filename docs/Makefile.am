@@ -31,7 +31,7 @@ endif
 
 EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
 	     FAQ.pdf FAQ.html FAQ.css flowreplay.pdf flowreplay.html \
-	     flowreplay.css FAQ.lyx flowreplay.lyx
+	     flowreplay.css FAQ.lyx flowreplay.lyx flowheader.fig
 
 MOSTLYCLEANFILES = flowheader.eps FAQ.aux FAQ.log FAQ.toc FAQ.txt FAQ.dvi \
 		   WARNINGS flowreplay.aux flowreplay.log \
