@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c,v 1.2 2003/06/02 00:08:15 aturner Exp $ */
+/* $Id: flowreplay.c,v 1.3 2003/06/05 02:25:03 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -123,7 +123,7 @@ main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "c:fhm:p:s:t:Vw:")) != -1)
 #endif
 	switch (ch) {
-	case 'c':
+	case 'c': /* client network */
 	    if (! parse_cidr(&clients, optarg))
 		usage();
 	    break;
@@ -132,14 +132,14 @@ main(int argc, char *argv[])
 	    debug = atoi(optarg);
 	    break;
 #endif
-	case 'f':
+	case 'f': /* don't require a Syn packet to start a flow */
 	    NoSyn = 1;
 	    break;
 	case 'h':
 	    usage();
 	    exit(0);
 	    break;
-	case 'm':
+	case 'm': /* mode */
 	    if (strcasecmp(optarg, "send") == 0) {
 		SendMode = MODE_SEND;
 	    } else if (strcasecmp(optarg, "wait") == 0) {
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
 		errx(1, "Invalid mode: -m %s", optarg);
 	    }
 	    break;
-	case 'p':
+	case 'p': /* protocol & port */
 	    p_parse = strtok(optarg, "/");
 	    if (strcasecmp(p_parse, "TCP") == 0) {
 		proto = IPPROTO_TCP;
@@ -169,11 +169,11 @@ main(int argc, char *argv[])
 	    dbg(1, "Port: %u", port);
 	    port = htons(port);
 	    break;
-	case 's':
+	case 's': /* server network */
 	    if (!parse_cidr(&servers, optarg))
 		usage();
 	    break;
-	case 't':
+	case 't': /* target IP */
 	    if (inet_aton(optarg, &targetaddr) == 0)
 		errx(1, "Invalid target IP address: %s", optarg);
 	    break;
@@ -181,7 +181,7 @@ main(int argc, char *argv[])
 	    version();
 	    exit(0);
 	    break;
-	case 'w':
+	case 'w': /* wait between last server packet */
 	    float2timer(atof(optarg), &timeout);
 	    break;
 	default:
