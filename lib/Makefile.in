@@ -1,0 +1,20 @@
+CC              = @CC@
+CFLAGS          = @CFLAGS@
+LDFLAGS         = @LDFLAGS@
+DEFS            = @DEFS@
+INCS            = -I. @LNETINC@ @LPCAPINC@
+LIBS            = @LIBS@ @LNETLIB@ @LPCAPLIB@
+LNAVLIB         = @LNAVLIB@
+LNAV_CFLAGS     = @LNAV_CFLAGS@
+SOURCES		= strlcat.c strlcpy.c
+
+.c.o:
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -c $*.c
+
+all: $(SOURCES:.c=.o)
+
+clean:
+	-rm *.o
+
+distclean: clean
+	-rm *~ Makefile

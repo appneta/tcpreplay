@@ -576,6 +576,7 @@ AC_SUBST(nic1)
 AC_SUBST(nic2)
 
 AC_OUTPUT(Makefile)
+AC_OUTPUT(lib/Makefile)
 AC_OUTPUT(test/Makefile)
 AC_OUTPUT(test/config)
 AC_OUTPUT(tcpreplay.spec)
