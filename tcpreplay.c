@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.21 2002/07/17 23:51:48 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.22 2002/07/26 01:08:36 aturner Exp $ */
 
 #include "config.h"
 
@@ -376,12 +376,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 #if USE_LIBNET_VERSION == 10
 			ret = libnet_write_link_layer(l, l->device, (u_char *)pktdata, pktlen);
 #elif USE_LIBNET_VERSION == 11
-			/*
-			 * libnet_write_link() isn't part of the offical external API of Libnet 1.1
-			 * so we're hoping that Mike S. doesn't change things.  If he does, we'll 
-			 * have to figure out a work around.
-			 */
-			ret = libnet_write_link(l, (u_char*)pktdata, pktlen);
+			ret = libnet_adv_write_link(l, (u_char*)pktdata, pktlen);
 #endif
 			if (ret == -1) {
 				/* Make note of failed writes due to full buffers */
@@ -391,7 +386,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 #if USE_LIBNET_VERSION == 10
 					err(1, "libnet_write_link_layer");
 #elif USE_LIBNET_VERSION == 11
-					err(1, "libnet_write_link");
+					err(1, "libnet_adv_write_link");
 #endif
 				}
 			}
