@@ -14,7 +14,7 @@ example2_SOURCES=example2.c
 example2_LDADD=libredblack.la
 example3_SOURCES=example3.c
 example3_LDADD=libredblack.la
-CFLAGS+=-Wall
+CFLAGS=-Wall
 
 rpms: distcheck rpms-nocheck
 
