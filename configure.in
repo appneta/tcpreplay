@@ -48,7 +48,32 @@ AC_PROG_MAKE_SET
 AC_EXEEXT
 AC_PATH_PROG(PRINTF, printf)
 AC_PATH_PROG(FIG2DEV, fig2dev)
-AC_PATH_PROG(LYX, lyx)
+
+dnl Look for lyx in the normal locations
+dnl The OS X installer puts Lyx at /Applications/Lyx.app/Contents/MacOS/LyX
+
+AC_ARG_WITH(lyx,
+    AC_HELP_STRING([--with-lyx=FILE], [Path to Lyx binary]),
+    [ if test -x $withval ; then
+          td=$withval
+          AC_MSG_RESULT([Using Lyx at $td])
+      else
+          AC_MSG_RESULT([Error: $withval does not exist or is not executable])
+      fi ],
+    [ 
+    case $host in
+        powerpc-apple-darwin*)
+        if test -x /Applications/Lyx.app/Contents/MacOS/LyX ; then
+            AC_SUBST(LYX, "/Applications/Lyx.app/Contents/MacOS/LyX")
+        fi
+        ;;
+
+        *)
+        AC_PATH_PROG(LYX, lyx)
+        ;;
+        esac
+    ])
+
 AC_PATH_PROG(DVIPS, dvips)
 AC_PATH_PROG(TEXI2DVI, texi2dvi)
 AC_PATH_PROG(LATEX2HTML, latex2html)
