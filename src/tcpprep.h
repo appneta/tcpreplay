@@ -47,7 +47,6 @@
 
 struct tcpprep_opt_s {
     pcap_t *pcap;
-    char *filename;
     int verbose;    
     char *tcpdump_args;
 
@@ -70,15 +69,20 @@ struct tcpprep_opt_s {
     macaddr_t intf1_smac;
     macaddr_t intf2_smac;
     bpf_t bpf;
-    char tcpservices[NUM_PORTS];    
-    char udpservices[NUM_PORTS];
+    services_t services;
     char *comment; /* cache file comment */
+    int mode;      /* our overall mode */
+    int automode;  /* our auto mode */
     int min_mask;
     int max_mask;
     double ratio;
     regex_t preg;
+    int nonip;
 };
 typedef struct tcpprep_opt_s tcpprep_opt_t;
+    
+void print_comment(const char *file);
+
 #endif
 
 /*
