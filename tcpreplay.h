@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.4 2002/06/28 06:27:53 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.5 2002/07/01 02:39:07 mattbing Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -49,10 +49,6 @@ struct packet {
 #define CLIENT 0
 #define UNKNOWN -1
 #define ANY 2
-
-#define UDP_PROTO 0x11
-#define TCP_PROTO 0x06
-#define ICMP_PROTO 0x01
 
 #define DEBUG_INFO 1      /* informational only, lessthan 1 line per packet */
 #define DEBUG_BASIC 2     /* limited debugging, one line per packet */

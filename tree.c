@@ -430,7 +430,7 @@ packet2tree(const u_char * data)
 	mytree->ip = ip_hdr->ip_src.s_addr;
 
 	/* process layer 4 and above and look for signatures of client/server */
-	if (ip_hdr->ip_p == TCP_PROTO) {
+	if (ip_hdr->ip_p == IPPROTO_TCP) {
 #ifdef DEBUG
 		if (debug)
 			fprintf(stderr, "%s uses TCP...  ", libnet_host_lookup(ip_hdr->ip_src.s_addr, RESOLVE));
@@ -460,7 +460,7 @@ packet2tree(const u_char * data)
 			fprintf(stderr, "is an unknown\n");
 #endif
 
-	} else if (ip_hdr->ip_p == UDP_PROTO) {
+	} else if (ip_hdr->ip_p == IPPROTO_UDP) {
 		udp_hdr = (struct libnet_udp_hdr *) (data + LIBNET_ETH_H + LIBNET_IP_H);
 #ifdef DEBUG
 		if (debug)
