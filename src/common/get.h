@@ -43,11 +43,11 @@ int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
 
 u_int16_t get_l2protocol(const u_char *pktdata, const int datalen, const int datalink);
 
-void *get_layer4(ip_hdr_t * ip_hdr);
+void *get_layer4(const ip_hdr_t * ip_hdr);
 
-u_char *get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff);
+u_char *get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff);
 
-u_int32_t get_name2addr4(char *hostname, u_int8_t dnslookup);
+u_int32_t get_name2addr4(const char *hostname, u_int8_t dnslookup);
 
 #endif
 

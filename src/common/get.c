@@ -143,7 +143,7 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
  * to access data above the header minus any stripped L2 data
  */
 u_char *
-get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff)
+get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 {
     u_char *ip_hdr = NULL;
     int l2_len = 0;
@@ -176,7 +176,7 @@ get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff)
      * we do all this work to prevent byte alignment issues
      */
     if (l2_len % 4) {
-        ip_hdr = newbuff;
+        ip_hdr = *newbuff;
         memcpy(ip_hdr, (pktdata + l2_len), (pkthdr.caplen - l2_len));
     } else {
 
@@ -198,7 +198,7 @@ get_ipv4(u_char *pktdata, int datalen, int datalink, u_char *newbuff)
  * returns a pointer to the layer 4 header which is just beyond the IP header
  */
 void *
-get_layer4(ip_hdr_t * ip_hdr)
+get_layer4(const ip_hdr_t * ip_hdr)
 {
     void *ptr;
     ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
@@ -210,7 +210,7 @@ get_layer4(ip_hdr_t * ip_hdr)
  * stolen from LIBNET since I didn't want to have to deal with passing a libnet_t
  */
 u_int32_t
-get_name2addr4(char *hostname, u_int8_t dnslookup)
+get_name2addr4(const char *hostname, u_int8_t dnslookup)
 {
     struct in_addr addr;
     struct hostent *host_ent; 
@@ -259,7 +259,7 @@ get_name2addr4(char *hostname, u_int8_t dnslookup)
                     val += *hostname - '0';
                     if (val > 255)
                     {
-                        dbg("value %d > 255 for dotted quad", val);
+                        dbg(4, "value %d > 255 for dotted quad", val);
                         /* XXX - this is actually 255.255.255.255 */
                         return (-1);
                     }
