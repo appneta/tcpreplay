@@ -38,19 +38,15 @@
  * if an integer exists in the list.
  */
 
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <regex.h>
 #include <errno.h>
-
-#include "config.h"
-#include "tcpreplay.h"
-#include "err.h"
-#include "cidr.h"
-#include "list.h"
-
-#define EBUF_SIZE 256
 
 
 LIST *

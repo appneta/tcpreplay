@@ -35,7 +35,8 @@
  */
 
 #include "config.h"
-#include "fakepoll.h"
+#include "defines.h"
+#include "common.h"
 
 /* prevents ISO C error */
 static void FAKEPOLL(int stop)

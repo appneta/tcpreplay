@@ -39,9 +39,8 @@
 
 #include "config.h"
 #include "defines.h"
+#include "common.h"
 
-#include "fakepcap.h"
-#include "err.h"
 #include "dlt_names.h"
 
 #include <stdlib.h>

@@ -30,12 +30,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 #include <sys/types.h>
 #include <regex.h>
-#include "config.h"
-#include "tcpreplay.h"
-#include "err.h"
-#include "services.h"
 
 extern char tcpservices[NUM_PORTS], udpservices[NUM_PORTS];
 

@@ -31,15 +31,12 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
 #include <libnet.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "tcpreplay.h"
-#include "cidr.h"
-#include "tree.h"
-#include "err.h"
 
 extern struct data_tree treeroot;
 extern double ratio;

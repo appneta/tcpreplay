@@ -36,8 +36,9 @@
  */
 
 #include "config.h"
-#include "fakepcapnav.h"
-#include "err.h"
+#include "defines.h"
+#include "common.h"
+
 #include <stdlib.h>
 
 #ifndef HAVE_PCAPNAV

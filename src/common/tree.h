@@ -34,7 +34,6 @@
 #define __TREE_H__
 
 #include "lib/tree.h"
-#include "tcpreplay.h"
 
 struct tree_type {
     RB_ENTRY(tree_type) node;

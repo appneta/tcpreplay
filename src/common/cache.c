@@ -30,6 +30,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+#include "defines.h"
+#include "common.h"
+
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -38,11 +42,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include "config.h"
-#include "cache.h"
-#include "tcpreplay.h"
-#include "err.h"
 
 #ifdef DEBUG
 extern int debug;

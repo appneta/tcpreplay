@@ -32,9 +32,7 @@
 
 #include "config.h"
 #include "defines.h"
-#include "utils.h"
-#include "err.h"
-
+#include "common.h"
 
 void
 packet_stats(struct timeval *begin, struct timeval *end, 

@@ -54,7 +54,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "tcpreplay.h"
 #include "tcpprep.h"
 #include "lib/tree.h"
 #include "lib/sll.h"

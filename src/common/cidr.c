@@ -34,6 +34,8 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
+#include "tcpreplay.h"
+#include "lib/strlcpy.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,9 +45,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "cidr.h"
-#include "err.h"
-#include "../../lib/strlcpy.h"
 
 #ifdef DEBUG
 extern int debug;

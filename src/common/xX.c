@@ -39,11 +39,9 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 #include "tcpreplay.h"
-#include "cidr.h"
-#include "list.h"
-#include "xX.h"
-#include "err.h"
 
 extern struct options options;
 
