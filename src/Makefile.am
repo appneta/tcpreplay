@@ -9,8 +9,8 @@ tcpreplay_opts.c:
 
 bin_PROGRAMS = tcpreplay tcpprep flowreplay tcprewrite
 
-tcpreplay_SOURCES = tcpreplay.c send_packets.c timer.c \
-		    signal_handler.c tcpreplay_opts.c
+tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c timer.c \
+		    signal_handler.c tcpreplay.c
 		    
 
 tcprewrite_opts.c:
@@ -23,9 +23,9 @@ tcpprep_opts.c:
 
 tcpprep_opts.h: tcpprep_opts.c
 
-tcprewrite_SOURCES = tcprewrite.c tcprewrite_opts.c mac.c portmap.c edit_packet.c
+tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c edit_packet.c
 
-tcpprep_SOURCES = tcpprep.c tcpprep_opts.c tree.c
+tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tcpprep_opts.c tree.c
 
 flowreplay_SOURCES = flowreplay.c flowkey.c flownode.c flowbuff.c flowstate.c
 
