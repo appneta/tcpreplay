@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.82 2004/02/02 20:59:12 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.83 2004/02/03 22:53:23 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -63,10 +63,12 @@
 #include "signal_handler.h"
 #include "replay_live.h"
 #include "utils.h"
+#include "edit_packet.h"
 
 struct options options;
 char *cachedata = NULL;
 CIDR *cidrdata = NULL;
+CIDRMAP *cidrmap_data = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
@@ -117,7 +119,7 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
+                   "bc:C:Df:Fhi:I:j:J:l:L:m:MnN:o:p:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
 #ifdef HAVE_TCPDUMP
                    "vA:"
 #endif
@@ -136,7 +138,7 @@ main(int argc, char *argv[])
             break;
         case 'C':              /* cidr matching */
             options.cidr = 1;
-            if (!parse_cidr(&cidrdata, optarg))
+            if (!parse_cidr(&cidrdata, optarg, ","))
                 usage();
             break;
 #ifdef DEBUG
@@ -195,6 +197,11 @@ main(int argc, char *argv[])
         case 'n':              /* don't be nosy, non-promisc mode */
             options.promisc = 0;
             break;
+        case 'N':              /* rewrite IP addresses using our pseudo-nat */
+            options.rewriteip = 1;
+            if (! parse_cidr_map(&cidrmap_data, optarg))
+                usage();
+            break;
         case 'o':              /* starting offset */
 #ifdef HAVE_PCAPNAV
             options.offset = atol(optarg);
@@ -236,7 +243,6 @@ main(int argc, char *argv[])
             break;
         case 's':
             options.seed = atoi(optarg);
-            options.fixchecksums = 0;   /* seed already does this */
             break;
         case 'S':              /* enable live replay mode w/ snaplen */
             options.sniff_snaplen = atoi(optarg);
@@ -252,7 +258,6 @@ main(int argc, char *argv[])
             break;
         case 'T':              /* Truncate frames > MTU */
             options.truncate = 1;
-            options.fixchecksums = 1;
             break;
         case 'w':              /* write packets to file */
             if (!options.datadump_mode) {
@@ -714,7 +719,7 @@ configfile(char *file)
         }
         else if (ARGS("cidr", 2)) {
             options.cidr = 1;
-            if (!parse_cidr(&cidrdata, argv[1]))
+            if (!parse_cidr(&cidrdata, argv[1], ","))
                 usage();
         }
 #ifdef DEBUG
@@ -765,6 +770,12 @@ configfile(char *file)
         }
         else if (ARGS("no_martians", 1)) {
             options.no_martians = 1;
+        }
+        else if (ARGS("nat", 2)) {
+            options.rewriteip = 1;
+            options.fixchecksums = 1;
+            if (! parse_cidr_map(&cidrmap_data, argv[1]))
+                errx(1, "Invalid nat string: %s", argv[1]);
         }
 #ifdef HAVE_PCAPNAV
         else if (ARGS("offset", 2)) {
@@ -953,7 +964,7 @@ void
 usage(void)
 {
     fprintf(stderr, "Usage: tcpreplay [args] <file(s)>\n");
-    fprintf(stderr, 
+    fprintf(stderr,
             "-A \"<args>\"\t\tPass arguments to tcpdump decoder (use w/ -v)\n"
             "-b\t\t\tBridge two broadcast domains in sniffer mode\n"
             "-c <cachefile>\t\tSplit traffic via cache file\n"
@@ -975,7 +986,8 @@ usage(void)
             "-L <limit>\t\tSpecify the maximum number of packets to send\n"
             "-m <multiple>\t\tSet replay speed to given multiple\n"
             "-M\t\t\tDisable sending martian IP packets\n"
-            "-n\t\t\tNot nosy mode (don't enable promisc when sniffing)\n"
+            "-n\t\t\tNot nosy mode (noenable promisc in sniff/bridge mode)\n"
+            "-N <CIDR1:CIDR2,...>\tRewrite IP addresses (pseudo NAT)\n"
 #ifdef HAVE_PCAPNAV
             "-o <offset>\t\tStarting byte offset\n"
 #endif
