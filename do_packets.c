@@ -12,22 +12,18 @@
 #include "do_packets.h"
 #include "timer.h"
 #include "list.h"
+#include "xX.h"
 
 extern struct options options;
-extern CACHE *cachedata;
+extern char *cachedata;
 extern CIDR *cidrdata;
-extern CIDR *cidrsend;
-extern CIDR *cidrignore;
 extern struct timeval begin, end;
-extern unsigned long bytes_sent, failed, pkts_sent;
-extern int cache_bit, cache_byte, cache_packets;
+extern unsigned long bytes_sent, failed, pkts_sent, cache_packets;
 extern volatile int didsig;
 
-extern char include_exclude_mode;
-extern CIDR *include_cidr;
-extern CIDR *exclude_cidr;
-extern LIST *include_list;
-extern LIST *exclude_list;
+extern int include_exclude_mode;
+extern CIDR *xX_cidr;
+extern LIST *xX_list;
 
 
 #ifdef DEBUG
@@ -69,9 +65,9 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	struct packet pkt;
 	struct timeval last;
 	char *pktdata;
-	int ret, pktlen, packetnum;
+	int ret, pktlen;
+	unsigned long packetnum = 0;
 
-	packetnum = 0;
 	
 	/* register signals */
 	didsig = 0;
@@ -88,13 +84,12 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		packetnum ++;
 
 		/* look for include or exclude LIST match */
-		if (include_list != NULL) {
-			if (!check_list(include_list, (packetnum))) {
-				continue;
-			}
-
-		} else if (exclude_list != NULL) {
-			if (check_list(exclude_list, (pkts_sent + 1))) {
+		if (xX_list != NULL) {
+			if (include_exclude_mode < xXExclude) {
+				if (!check_list(xX_list, (packetnum))) {
+					continue;
+				}
+			} else if (check_list(xX_list, (packetnum))) {
 				continue;
 			}
 		}
@@ -107,9 +102,8 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 			ip_hdr = (ip_hdr_t *) (pkt.data + LIBNET_ETH_H);
 			
 			/* look for include or exclude CIDR match */
-			if ((include_exclude_mode != 0) && 
-				(include_exclude_mode != xXPacket)) {
-				if (! process_packet_by_cidr(include_exclude_mode, include_cidr, exclude_cidr, ip_hdr)) {
+			if (xX_cidr != NULL) {
+				if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
 					continue;
 				}
 			}
@@ -127,14 +121,7 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 					warnx("Skipping martian.  Packet #%d", pkts_sent);
 				}
 #endif
-				if (cachedata != NULL) { /* update cache pointers if neccessary */
-					if (cache_bit == 7) {
-						cache_bit = 0;
-						cache_byte++;
-					} else {
-						cache_bit++;
-					}
-				}
+
 				/* then skip the packet */
 				continue;
 
@@ -149,9 +136,9 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		if (options.intf2 != NULL) {
 
 			if (cachedata != NULL) { 
-				l = cache_mode(eth_hdr, pkts_sent);
+				l = (LIBNET *)cache_mode(cachedata, packetnum, eth_hdr);
 			} else if (options.cidr) { 
-				l = cidr_mode(eth_hdr, ip_hdr);
+				l = (LIBNET *)cidr_mode(eth_hdr, ip_hdr);
 			} else {
 				errx(1, "Strange, we should of never of gotten here");
 			}
@@ -283,37 +270,33 @@ void randomize_ips(struct packet *pkt, ip_hdr_t *ip_hdr, void *l)
  */
 
 void * 
-cache_mode(struct libnet_ethernet_hdr *eth_hdr, int packet_num) 
+cache_mode(char *cachedata, int packet_num, struct libnet_ethernet_hdr *eth_hdr) 
 {
 	void * l = NULL;
+	int result;
 
 	if (packet_num > cache_packets)
 		errx(1, "Exceeded number of packets in cache file");
-	
-	if (cachedata->data[cache_byte] & (char)pow((long)2, (long)cache_bit) ) {
-		/* set interface to send out packet */
+
+	result = check_cache(cachedata, packet_num);
+	if (result == CACHE_NOSEND) {
+		return NULL;
+	} else if (result == CACHE_PRIMARY) {
 		l = options.intf1;
 		
 		/* check for destination MAC rewriting */
 		if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
 			memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
 		}
-	} else {
-		/* set interface to send out packet */
+	} else if (result == CACHE_SECONDARY) {
 		l = options.intf2;
-		
+
 		/* check for destination MAC rewriting */
 		if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
 			memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
 		}
-	} /* end cache processing */
-  
-	/* increment our bit/byte pointers for next time */
-	if (cache_bit == 7) {
-		cache_bit = 0;
-		cache_byte++;
 	} else {
-		cache_bit++;
+		errx(1, "check_cache() returned an error.  Aborting...");
 	}
 
 	return l;
@@ -486,90 +469,4 @@ do_sleep(struct timeval *time, struct timeval *last, int len)
 		if (nap.tv_usec)	 
 			(void)usleep(nap.tv_usec);
 	}
-}
-
-/*
- * compare the source/destination IP address according to the mode
- * and return 1 if we should send the packet or 0 if not
- */
-
-
-int 
-process_packet_by_cidr(char mode, CIDR *include_cidr, CIDR *exclude_cidr, ip_hdr_t *ip_hdr)
-{
-
-	if (mode & xXExclude) {
-		/* Exclude mode */
-		switch(mode) {
-		case xXSource:
-			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_src.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		case xXDest:
-			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_dst.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		case xXBoth:
-			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_dst.s_addr) &&
-				check_ip_CIDR(exclude_cidr, ip_hdr->ip_src.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		case xXEither:
-			if (check_ip_CIDR(exclude_cidr, ip_hdr->ip_dst.s_addr) ||
-				check_ip_CIDR(exclude_cidr, ip_hdr->ip_src.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		}
-	} else {
-		/* Include Mode */
-		switch(mode) {
-		case xXSource:
-			if (check_ip_CIDR(include_cidr, ip_hdr->ip_src.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		case xXDest:
-			if (check_ip_CIDR(include_cidr, ip_hdr->ip_dst.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		case xXBoth:
-			if (check_ip_CIDR(include_cidr, ip_hdr->ip_dst.s_addr) &&
-				check_ip_CIDR(include_cidr, ip_hdr->ip_src.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		case xXEither:
-			if (check_ip_CIDR(include_cidr, ip_hdr->ip_dst.s_addr) ||
-				check_ip_CIDR(include_cidr, ip_hdr->ip_src.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		}
-	}
-	
-	/* total failure */
-	warnx("Unable to determine action in CIDR filter mode");
-	return 0;
-
 }
