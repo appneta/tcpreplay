@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.49 2004/01/31 21:21:12 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.50 2004/02/03 22:53:49 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -57,11 +57,11 @@ typedef libnet_t LIBNET;
 #define LIBNET_DNS_H LIBNET_UDP_DNSV4_H
 #endif
 
+/* standardize all common header typedefs */
 typedef struct libnet_ipv4_hdr ip_hdr_t;
 typedef struct libnet_dnsv4_hdr dns_hdr_t;
 typedef struct libnet_icmpv4_hdr icmp_hdr_t;
-
-/* standardize all common header typedefs */
+typedef struct libnet_arp_hdr arp_hdr_t;
 typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
@@ -104,6 +104,7 @@ struct options {
     int cidr;
     int trunc;
     long int seed;
+    int rewriteip;
     int mtu;
     int truncate;
     char **files;
