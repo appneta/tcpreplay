@@ -25,7 +25,7 @@ standard:
 	../tcpprep -i test.pcap -o test.regex -r '216.27.178.*' -N client
 
 tcpprep: auto_router auto_bridge cidr regex
-tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude replay_layer2 replay_packetrate
+tcpreplay: replay_basic replay_cache replay_cidr replay_trunc replay_pad replay_rand replay_include replay_exclude replay_layer2 replay_packetrate datadump_mode
 
 auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
@@ -115,7 +115,12 @@ replay_packetrate:
 	../tcpreplay $(ENABLE_DEBUG) -i $(nic1) -p 25.0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else printf "\t\t%s\n" "OK"; fi
 
-
+datadump_mode:
+	$(PRINTF) "%s" "[tcpreplay] Data dump mode test: "
+	$(PRINTF) "%s\n" "[tcpreplay] Data dump mode test: " >>test.log
+	../tcpreplay $(ENABLE_DEBUG) -D -i $(nic1) -i $(nic2) -w primary.data -W secondary.data -c test.cidr test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else printf "\t%s\n" "OK"; fi
+	
 clean:
 	rm -f *1 test.log core *~
 
