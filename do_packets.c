@@ -69,7 +69,11 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 	unsigned long packetnum = 0;
 
 
-	/* point the ip_hdr to the temp packet buff (doesn't hold layer 2) */
+	/* 
+	 * point the ip_hdr to the temp packet buff
+	 * This holds layer 3 and up!  We need to do this so we can 
+	 * correctly calculate checksums @ layer 4
+	 */
 	ip_hdr = &packetbuff;
 	
 	/* register signals */
@@ -103,7 +107,13 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 
 		/* does packet have an IP header?  if so set our pointer to it */
 		if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
-			/* prevent issues with byte alignment via memcpy */
+			/* 
+			 * copy layer 3 and up to our temp packet buffer
+			 * for now on, we have to edit the packetbuff because
+			 * just before we send the packet, we copy the packetbuff 
+			 * back onto the pkt.data + LIBNET_ETH_H buffer
+			 * we do all this work to prevent byte alignment issues
+			 */
 			memcpy(ip_hdr, (pkt.data + LIBNET_ETH_H), pkt.len - LIBNET_ETH_H);
 			
 			/* look for include or exclude CIDR match */
@@ -178,7 +188,10 @@ do_packets(int fd, int (*get_next)(int, struct packet *))
 		}
 	
 
-		/* put back the layer 3 and above back in the pkt.data buffer */
+		/* 
+		 * put back the layer 3 and above back in the pkt.data buffer 
+		 * we can't edit the packet at layer 3 or above beyond this point
+		 */
 		memcpy((pkt.data + LIBNET_ETH_H), ip_hdr, pkt.len - LIBNET_ETH_H);
 
 		if (!options.topspeed)
