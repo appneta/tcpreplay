@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,9 @@
 #define CACHEDATASIZE 255
 #define CACHE_PACKETS_PER_BYTE 4    /* number of packets / byte */
 #define CACHE_BITS_PER_PACKET 2     /* number of bits / packet */
+
+#define SEND 1
+#define DONT_SEND 0
 
 /* 
  * CACHEVERSION History:
