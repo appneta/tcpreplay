@@ -1,8 +1,10 @@
-/* $Id: tcpreplay.c,v 1.79 2004/01/15 07:30:40 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.80 2004/01/31 21:21:12 aturner Exp $ */
 
 /*
- * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
+ * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
  * All rights reserved.
+ *
+ * Copyright (c) 1999 Anzen Computing. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,10 +17,10 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *    This product includes software developed by Anzen Computing, Inc.
- * 4. Neither the name of Anzen Computing, Inc. nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ *       This product includes software developed by Anzen Computing, Inc.
+ * 4. Neither the names of the copyright owners nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -51,6 +53,7 @@
 #include <unistd.h>
 
 #include "tcpreplay.h"
+#include "tcpdump.h"
 #include "cache.h"
 #include "cidr.h"
 #include "list.h"
@@ -83,6 +86,11 @@ int maxpacket = 0;
 /* we get this from libpcap */
 extern char pcap_version[];
 
+#ifdef HAVE_TCPDUMP
+/* tcpdump handle */
+tcpdump_t tcpdump;
+#endif
+
 #ifdef DEBUG
 int debug = 0;
 #endif
@@ -109,7 +117,10 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:v:Vw:W:x:X:12:"
+                   "bc:C:Df:Fhi:I:j:J:l:L:m:Mno:p:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
+#ifdef HAVE_TCPDUMP
+                   "vA:"
+#endif
 #ifdef DEBUG
                    "d:"
 #endif
@@ -298,12 +309,14 @@ main(int argc, char *argv[])
             }
             options.fixchecksums = 0;   /* untruncating already does this */
             break;
+#ifdef HAVE_TCPDUMP
         case 'v':              /* verbose: print packet decodes via tcpdump */
             options.verbose_enabled = 1;
-
-            /* may be NULL (I hope... possible bug w/ getopt and *optional* args to the -v flag) */
-            options.tcpdump_flags = optarg;
             break;
+        case 'A':
+            tcpdump.args = optarg;
+            break;
+#endif
         case 'V':              /* print version info */
             version();
             break;
@@ -626,6 +639,13 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 
     pcapnav_init();
 
+#ifdef HAVE_TCPDUMP
+    if (options.verbose_enabled) {
+        tcpdump.filename = path;
+        tcpdump_open(&tcpdump);
+    }
+#endif
+
     if ((pcapnav = pcapnav_open_offline(path)) == NULL) {
         errx(1, "Error opening file: %s", strerror(errno));
     }
@@ -639,6 +659,9 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 
     do_packets(pcapnav, NULL, linktype, l2enabled, l2data, l2len);
     pcapnav_close(pcapnav);
+#ifdef HAVE_TCPDUMP
+    tcpdump_close(&tcpdump);
+#endif
 }
 
 /*
@@ -888,6 +911,12 @@ configfile(char *file)
                 warnx("saving secondary data in %s", argv[1]);
             }
         }
+        else if (ARGS("verbose", 1)) {
+            options.verbose_enabled = 1;
+        }
+        else if (ARGS("tcpdump_args", 2)) {
+            tcpdump.args = argv[1];
+        }
         else {
             errx(1, "Skipping unrecognized: %s", argv[0]);
         }
@@ -909,7 +938,12 @@ version(void)
 #ifdef HAVE_PCAPNAV
     fprintf(stderr, "Compiled against libpcapnav: %s\n", PCAPNAV_VERSION);
 #else
-    fprintf(stderr, "Not compiled against libpcapnav\n");
+    fprintf(stderr, "Not compiled against libpcapnav.\n");
+#endif
+#ifdef HAVE_TCPDUMP
+    fprintf(stderr, "Using tcpdump located in: %s\n", TCPDUMP_BINARY);
+#else
+    fprintf(stderr, "Not using tcpdump.\n");
 #endif
     exit(0);
 }
@@ -938,7 +972,7 @@ usage(void)
             "-L <limit>\t\tSpecify the maximum number of packets to send\n"
             "-m <multiple>\t\tSet replay speed to given multiple\n"
             "-M\t\t\tDisable sending martian IP packets\n"
-            "-n\t\t\tNot nosy mode (turn off promisc when sniffing)\n"
+            "-n\t\t\tNot nosy mode (don't enable promisc when sniffing)\n"
 #ifdef HAVE_PCAPNAV
             "-o <offset>\t\tStarting byte offset\n"
 #endif
@@ -948,10 +982,11 @@ usage(void)
             "-r <rate>\t\tSet replay speed to given rate (Mbps)\n"
             "-R\t\t\tSet replay speed to as fast as possible\n"
             "-s <seed>\t\tRandomize src/dst IP addresses w/ given seed\n"
-            "-S <snaplen>\t\tSniff traffic and set the snaplen length\n"
+            "-S <snaplen>\t\tSniff interface(s) and set the snaplen length\n"
             "-t <mtu>\t\tOverride MTU (defaults to 1500)\n"
             "-T\t\t\tTruncate packets > MTU so they can be sent\n"
             "-u pad|trunc\t\tPad/Truncate packets which are larger than the snaplen\n"
+            "-v\t\t\tVerbose: print packet decodes for each packet sent\n"
             "-V\t\t\tVersion\n");
     fprintf(stderr,
             "-w <file>\t\tWrite (primary) packets or data to file\n"
@@ -1000,5 +1035,13 @@ init(void)
     /* init the RBTree */
     rbinit();
 
+#ifdef HAVE_TCPDUMP
+    /* clear out tcpdump struct */
+    memset(&tcpdump, '\0', sizeof(tcpdump_t));
+#endif
+
     cache_bit = cache_byte = 0;
+
+    if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
+        errx(1, "Unable to set STDERR to non-blocking");
 }

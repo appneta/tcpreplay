@@ -1,13 +1,13 @@
 
-dnl $Id: configure.in,v 1.54 2004/01/15 07:17:36 aturner Exp $
+dnl $Id: configure.in,v 1.55 2004/01/31 21:21:12 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
 
 dnl Set version info here!
-MAJOR_VERSION=1
-MINOR_VERSION=5
-MICRO_VERSION=beta1
+MAJOR_VERSION=2
+MINOR_VERSION=0
+MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -146,8 +146,9 @@ AC_CHECK_FUNC(inet_addr, AC_DEFINE(INET_ADDR) inet_addr=yes, inet_addr=no)
 if test $inet_aton = no -a $inet_addr = no ; then
 	AC_MSG_ERROR("We need either inet_aton or inet_addr")
 fi
-
+dnl ##################################################
 dnl Checks for libnet (shamelessly horked from dsniff)
+dnl ##################################################
 AC_MSG_CHECKING(for libnet)
 AC_ARG_WITH(libnet,
 [  --with-libnet=DIR       use libnet in DIR],
@@ -187,8 +188,6 @@ AC_ARG_WITH(libnet,
 AC_SUBST(LNETINC)
 AC_SUBST(LNETLIB)
 
-
-dnl Checks to see what version of libnet we've got
 OLDLIBS="$LIBS"
 LIBS="$LNETLIB"
 
@@ -255,8 +254,9 @@ fi
 dnl restore LIBS
 LIBS="$OLDLIBS"
 
-
+dnl #####################################################
 dnl Checks for libpcap
+dnl #####################################################
 AC_MSG_CHECKING(for libpcap)
 AC_ARG_WITH(libpcap,
 [  --with-libpcap=DIR      use libpcap in DIR],
@@ -342,7 +342,7 @@ dnl # Check for pcapnav
 dnl ##################################################
 pcapnav=no
 AC_ARG_WITH(pcapnav-config,
-    [  --with-pcapnav-config=FILE   Use given pcapnav-config],
+    [  --with-pcapnav-config=FILE     Use given pcapnav-config],
     [ pcncfg="$withval" ],
     [ AC_PATH_GENERIC(pcapnav,,
 		[pcapnav=yes
@@ -459,7 +459,26 @@ EOF
             AC_DEFINE(FORCE_ALIGN,1,[if unaligned access fails])
     fi
 
+dnl ##################################################
+dnl # Check for tcpdump.
+dnl ##################################################
 
+AC_ARG_WITH(tcpdump,
+            [  --with-tcpdump=PATH     Path to tcpdump binary],
+            td=$withval,
+            td="no")
+
+AC_PATH_PROG(td, tcpdump, "no",[$PATH:/usr/sbin:/sbin:/usr/local/sbin])
+if test "$td" = "no"; then
+    AC_MSG_WARN([Unable to find tcpdump.  Please specify --with-tcpdump.
+                 Disabling verbose reporting.])
+else
+    AC_MSG_RESULT([Using tcpdump in $td.])
+    AC_DEFINE(HAVE_TCPDUMP)
+    AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$td", [The tcpdump binary initially used])
+fi
+
+dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING( for 'make test' profile)
 if test "$host" != "$build" ; then

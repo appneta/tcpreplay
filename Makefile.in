@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.53 2004/01/15 07:18:02 aturner Exp $
+# $Id: Makefile.in,v 1.54 2004/01/31 21:21:12 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -22,7 +22,7 @@ INSTALL		= @INSTALL@
 BINARIES	= tcpreplay capinfo pcapmerge tcpprep flowreplay
 
 
-TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c fakepcapnav.c
+TSRCS		= tcpreplay.c timer.c cache.c cidr.c do_packets.c list.c xX.c err.c signal_handler.c edit_packet.c replay_live.c fakepoll.c utils.c fakepcapnav.c tcpdump.c
 TOBJS		= $(TSRCS:.c=.o)
 
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c err.c

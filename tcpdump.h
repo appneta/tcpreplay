@@ -1,4 +1,4 @@
-/* $Id: tcpdump.h,v 1.1 2004/01/15 07:30:40 aturner Exp $ */
+/* $Id: tcpdump.h,v 1.2 2004/01/31 21:21:12 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -13,12 +13,9 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *    This product includes software developed by Aaron Turner.
- * 4. Neither the name of Aaron Turner, nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * 3. Neither the names of the copyright owners nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -37,22 +34,44 @@
 #define _TCPDUMP_H_
 
 /* line buffer stdout, read from stdin */
-#define TCPDUMP_ARGS " -l -r -"
+#define TCPDUMP_ARGS " -n -l -r-"
+
+/* max number of tcpdump options; must be a multiple of 4 */
+#define OPTIONS_VEC_SIZE 32
+
+/* how long to wait (in ms) to write to tcpdump */
+#define TCPDUMP_POLL_TIMEOUT 500
+
+/* delim to be used for strtok() to process tcpdump args */
+#define OPT_DELIM " -"
+
+/* output file of data passed to tcpdump when debug level 5 is enabled */
+#define TCPDUMP_DEBUG "tcpdump.debug"
+
+/* taken from libpcap's savefile.c */
+#define TCPDUMP_MAGIC 0xa1b2c3d4
+#define PATCHED_TCPDUMP_MAGIC 0xa1b2cd34
 
 struct tcpdump {
-    char *binary;
     char *filename;
     char *args;
     struct pcap_file_header pfh;
     int pid;
-    int writefd; /* fd to write to. 1/2 of the socketpair */
+    int fd; /* fd to write to. 1/2 of the socketpair */
+    /* following vars are for figuring out exactly what we send to
+     * tcpdump.  See TCPDUMP_DEBUG 
+     */
+#ifdef DEBUG
+    int debugfd;
+    char debugfile[255];
+#endif
 };
 
 typedef struct tcpdump tcpdump_t;
 
 int tcpdump_init(tcpdump_t *tcpdump);
 int tcpdump_open(tcpdump_t *tcpdump);
-int tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, char *data);
-int tcpdump_close(tcpdump_t *tcpdump);
+int tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, u_char *data);
+void tcpdump_close(tcpdump_t *tcpdump);
 
 #endif

@@ -54,3 +54,6 @@
 
 /* Is tcpdump available? */
 #undef HAVE_TCPDUMP
+
+/* if so, where is it located? */
+#undef TCPDUMP_BINARY

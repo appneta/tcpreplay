@@ -1,8 +1,10 @@
-/* $Id: tcpreplay.h,v 1.48 2004/01/15 07:29:25 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.49 2004/01/31 21:21:12 aturner Exp $ */
 
 /*
- * Copyright (c) 2001, 2002, 2003 Aaron Turner.
+ * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
  * All rights reserved.
+ *
+ * Copyright (c) 1999 Anzen Computing. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,10 +17,10 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *    This product includes software developed by Anzen Computing, Inc.
- * 4. Neither the name of Anzen Computing, Inc. nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ *       This product includes software developed by Anzen Computing, Inc.
+ * 4. Neither the names of the copyright owners nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -109,7 +111,6 @@ struct options {
     off_t offset;
     u_int64_t limit_send;
     char *bpf_filter;
-    char *tcpdump_flags;
     int bpf_optimize;
     int sniff_snaplen;
     int sniff_bridge;

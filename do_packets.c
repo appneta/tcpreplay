@@ -1,7 +1,7 @@
-/* $Id: do_packets.c,v 1.45 2003/12/16 22:58:02 aturner Exp $ */
+/* $Id: do_packets.c,v 1.46 2004/01/31 21:21:12 aturner Exp $ */
 
 /*
- * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
+ * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -13,12 +13,9 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *    This product includes software developed by Anzen Computing, Inc.
- * 4. Neither the name of Anzen Computing, Inc. nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * 3. Neither the names of the copyright owners nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -42,12 +39,22 @@
 #include "fakepcapnav.h"
 #endif
 #include <sys/time.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <time.h>
 
+#ifdef HAVE_SYS_POLL_H
+#include <sys/poll.h>
+#elif HAVE_POLL_H
+#include <poll.h>
+#else
+#include "fakepoll.h"
+#endif
+
 #include "tcpreplay.h"
+#include "tcpdump.h"
 #include "cidr.h"
 #include "cache.h"
 #include "err.h"
@@ -71,6 +78,7 @@ extern int include_exclude_mode;
 extern CIDR *xX_cidr;
 extern LIST *xX_list;
 
+extern tcpdump_t tcpdump;
 
 #ifdef DEBUG
 extern int debug;
@@ -94,13 +102,20 @@ catcher(int signo)
 /*
  * when we're sending only one packet at a time via <ENTER>
  * then there's no race and we can quit now
+ * also called when didsig is set
  */
 void
 break_now(int signo)
 {
 
-    if (signo == SIGINT) {
+    if (signo == SIGINT || didsig) {
         printf("\n");
+
+        /* kill tcpdump child if required */
+        if (tcpdump.pid)
+            if (kill(tcpdump.pid, SIGTERM) != 0)
+                kill(tcpdump.pid, SIGKILL);
+
         packet_stats();
         exit(1);
     }
@@ -132,9 +147,9 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
     pcapnav_result_t pcapnav_result = 0;
 #endif
     char datadumpbuff[MAXPACKET];   /* data dumper buffer */
-    int datalen = 0;            /* data dumper length */
+    int datalen = 0;                /* data dumper length */
     int newchar = 0;
-
+    struct pollfd poller[1];        /* use poll to read from the keyboard */
 
     /* create packet buffers */
     if ((pktdata = (u_char *) malloc(maxpacket)) == NULL)
@@ -179,10 +194,10 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
      */
     while (((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) &&
            (options.limit_send != pkts_sent)) {
-        if (didsig) {
-            packet_stats();
-            exit(1);
-        }
+
+        /* die? */
+        if (didsig)
+            break_now(0);
 
         dbg(2, "packets sent %llu", pkts_sent);
 
@@ -278,7 +293,7 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
                 l = (LIBNET *) cidr_mode(eth_hdr, ip_hdr);
             }
             else {
-                errx(1, "Strange, we should of never of gotten here");
+                errx(1, "do_packets(): Strange, we should of never of gotten here");
             }
         }
         else {
@@ -319,6 +334,10 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
         memcpy(&pktdata[l2len], ip_hdr, pkthdr.caplen - l2len);
 #endif
 
+        /* do we need to print the packet via tcpdump? */
+        if (options.verbose_enabled)
+            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+
         if ((!options.topspeed) && (!options.one_at_a_time)) {
             /* we have to cast the ts, since OpenBSD sucks
              * had to be special and use bpf_timeval 
@@ -326,10 +345,20 @@ do_packets(pcapnav_t * pcapnav, pcap_t * pcap, u_int32_t linktype,
             do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen);
         }
         else if (options.one_at_a_time) {
-            printf("Press <ENTER> to send the next packet.");
-            newchar = 0;
-            while (newchar != '\n')
+            printf("**** Press <ENTER> to send the next packet:\n");
+            poller[0].fd = STDIN_FILENO;
+            poller[0].events = POLLIN;
+            poller[0].revents = 0;
+
+            /* wait for the input */
+            if (poll(poller, 1, -1) < 0)
+                errx(1, "do_packets(): Error reading from stdin: %s", strerror(errno));
+
+            /* read to the end of the line */
+            do {
                 newchar = getc(stdin);
+            } while (newchar != '\n');
+
         }
 
         /* Physically send the packet or write to file */

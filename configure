@@ -308,7 +308,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TCPREPLAY_VERSION TCPREPLAY_RELEASE build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP LN_S RANLIB ac_ct_RANLIB AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE PRINTF EGREP debug_flag LIBOBJS LNETINC LNETLIB LPCAPINC LPCAPLIB PCAPNAV_CONFIG LNAVLIB LNAV_CFLAGS PCAPNAV_CFLAGS PCAPNAV_LIBS nic1 nic2 LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TCPREPLAY_VERSION TCPREPLAY_RELEASE build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP LN_S RANLIB ac_ct_RANLIB AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE PRINTF EGREP debug_flag LIBOBJS LNETINC LNETLIB LPCAPINC LPCAPLIB PCAPNAV_CONFIG LNAVLIB LNAV_CFLAGS PCAPNAV_CFLAGS PCAPNAV_LIBS td nic1 nic2 LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -862,9 +862,10 @@ Optional Packages:
   --with-gprof            Enable GNU Profiler
   --with-libnet=DIR       use libnet in DIR
   --with-libpcap=DIR      use libpcap in DIR
-  --with-pcapnav-config=FILE   Use given pcapnav-config
+  --with-pcapnav-config=FILE     Use given pcapnav-config
   --with-pcapnav-prefix=PFX       Prefix where pcapnav is installed (optional)
   --with-pcapnav-exec-prefix=PFX Exec prefix where pcapnav is installed (optional)
+  --with-tcpdump=PATH     Path to tcpdump binary
   --with-testnic=NIC      Select which network card to use for testing
   --with-testnic2=NIC2    Select an optional 2nd network card to use for testing
 
@@ -1288,9 +1289,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
           ac_config_headers="$ac_config_headers config.h"
 
 
-MAJOR_VERSION=1
-MINOR_VERSION=5
-MICRO_VERSION=beta1
+MAJOR_VERSION=2
+MINOR_VERSION=0
+MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 TCPREPLAY_RELEASE=1
@@ -6398,7 +6399,6 @@ if test $inet_aton = no -a $inet_addr = no ; then
 echo "$as_me: error: \"We need either inet_aton or inet_addr\"" >&2;}
    { (exit 1); exit 1; }; }
 fi
-
 echo "$as_me:$LINENO: checking for libnet" >&5
 echo $ECHO_N "checking for libnet... $ECHO_C" >&6
 
@@ -6448,7 +6448,6 @@ echo "$as_me: error: libnet not found" >&2;}
 echo "${ECHO_T}yes" >&6
 
 fi;
-
 
 
 
@@ -6582,7 +6581,6 @@ echo "$as_me: error: Libnet version 1.0.x is no longer supported.
    { (exit 1); exit 1; }; }
 fi
 LIBS="$OLDLIBS"
-
 
 echo "$as_me:$LINENO: checking for libpcap" >&5
 echo $ECHO_N "checking for libpcap... $ECHO_C" >&6
@@ -6976,6 +6974,75 @@ _ACEOF
 
     fi
 
+
+
+# Check whether --with-tcpdump or --without-tcpdump was given.
+if test "${with_tcpdump+set}" = set; then
+  withval="$with_tcpdump"
+  td=$withval
+else
+  td="no"
+fi;
+
+# Extract the first word of "tcpdump", so it can be a program name with args.
+set dummy tcpdump; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_td+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $td in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_td="$td" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$PATH:/usr/sbin:/sbin:/usr/local/sbin"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_td="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_path_td" && ac_cv_path_td=""no""
+  ;;
+esac
+fi
+td=$ac_cv_path_td
+
+if test -n "$td"; then
+  echo "$as_me:$LINENO: result: $td" >&5
+echo "${ECHO_T}$td" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+if test "$td" = "no"; then
+    { echo "$as_me:$LINENO: WARNING: Unable to find tcpdump.  Please specify --with-tcpdump.
+                 Disabling verbose reporting." >&5
+echo "$as_me: WARNING: Unable to find tcpdump.  Please specify --with-tcpdump.
+                 Disabling verbose reporting." >&2;}
+else
+    echo "$as_me:$LINENO: result: Using tcpdump in $td." >&5
+echo "${ECHO_T}Using tcpdump in $td." >&6
+    cat >>confdefs.h <<\_ACEOF
+#define HAVE_TCPDUMP 1
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define TCPDUMP_BINARY "$td"
+_ACEOF
+
+fi
 
 
 echo "$as_me:$LINENO: checking for 'make test' profile" >&5
@@ -7712,6 +7779,7 @@ s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
 s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
 s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
+s,@td@,$td,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -8830,6 +8898,7 @@ s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
 s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
 s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
+s,@td@,$td,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -9949,6 +10018,7 @@ s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
 s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
 s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
+s,@td@,$td,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
@@ -11069,6 +11139,7 @@ s,@LNAVLIB@,$LNAVLIB,;t t
 s,@LNAV_CFLAGS@,$LNAV_CFLAGS,;t t
 s,@PCAPNAV_CFLAGS@,$PCAPNAV_CFLAGS,;t t
 s,@PCAPNAV_LIBS@,$PCAPNAV_LIBS,;t t
+s,@td@,$td,;t t
 s,@nic1@,$nic1,;t t
 s,@nic2@,$nic2,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
