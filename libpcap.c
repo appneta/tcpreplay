@@ -1,4 +1,4 @@
-/* $Id: libpcap.c,v 1.1 2002/03/29 03:44:53 mattbing Exp $ */
+/* $Id: libpcap.c,v 1.2 2002/06/28 04:23:15 aturner Exp $ */
 
 #include "config.h"
 
@@ -104,11 +104,11 @@ get_next_pcap(int fd, struct packet *pkt)
 		pkt->len = SWAPLONG(p->caplen);
 		pkt->ts.tv_sec = SWAPLONG(p->ts.tv_sec);
 		pkt->ts.tv_usec = SWAPLONG(p->ts.tv_usec);
-		pkt->actual = SWAPLONG(p->len);
+		pkt->actual_len = SWAPLONG(p->len);
 	} else {
 		pkt->len = p->caplen;
 		pkt->ts = p->ts;
-		pkt->actual = p->len;
+		pkt->actual_len = p->len;
 	}
 
 	if (read(fd, &pkt->data, pkt->len) != pkt->len)
@@ -160,7 +160,7 @@ stat_pcap(int fd)
 
 		/* count truncated packets */
 		bytes += pkt.len;
-		if (pkt.actual > phdr.snaplen)
+		if (pkt.actual_len > phdr.snaplen)
 			trunc++;
 	}
 

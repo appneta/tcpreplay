@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.2 2002/04/15 16:30:37 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.3 2002/06/28 04:23:15 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -18,9 +18,8 @@
 struct packet {
 	char data[MAXPACKET];	/* pointer to packet contents */
 	int len;				/* length of the captured packet */
-	int orig_len;			/* original length of the captured packet */
-	int actual;				/* actual length of the packet */
-	struct timeval ts;		/* timestamp */
+	int actual_len;				/* actual length of the packet */
+	struct timeval ts;			/* timestamp */
 };
 
 #ifndef SWAPLONG

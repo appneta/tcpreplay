@@ -1,4 +1,4 @@
-/* $Id: snoop.c,v 1.2 2002/04/14 18:37:52 mattbing Exp $ */
+/* $Id: snoop.c,v 1.3 2002/06/28 04:23:15 aturner Exp $ */
  
 #include "config.h"
 
@@ -78,7 +78,7 @@ get_next_snoop(int fd, struct packet *pkt)
 		return 0;
 
 	pkt->len = ntohl(rec.incl_len);
-	pkt->orig_len = ntohl(rec.orig_len);
+	pkt->actual_len = ntohl(rec.orig_len);
 	pkt->ts.tv_sec = ntohl(rec.ts_sec);
 	pkt->ts.tv_usec = ntohl(rec.ts_usec);
 
@@ -118,7 +118,7 @@ stat_snoop(int fd)
 		
 		/* count truncated packets */
 		bytes += pkt.len;
-		if (pkt.orig_len > pkt.len)
+		if (pkt.actual_len > pkt.len)
 			trunc++;
 	}
 
