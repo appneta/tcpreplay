@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.57 2004/05/14 21:42:53 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.58 2004/05/15 21:06:05 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -123,7 +123,6 @@ struct options {
     int poll_timeout;
     int verbose;
     int one_output;
-    int endpoints;
     char *tcpprep_comment;
     char break_type;
 };
