@@ -98,7 +98,7 @@ write_cache(CACHE * cachedata, const int out_file, unsigned long numpackets)
     CACHE *mycache;
     CACHE_HEADER *cache_header;
     int chars, last = 0;
-    unsigned long packets = 1;
+    unsigned long packets = 0;
     ssize_t written;
 
     /* write a header to our file */
@@ -244,11 +244,13 @@ check_cache(char *cachedata, unsigned long packetid)
 {
     u_int32_t bit;
     unsigned long index = 0;
+    
 
-    index = packetid / CACHE_PACKETS_PER_BYTE;
-    bit = ((packetid % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
+    index = (packetid - 1) / CACHE_PACKETS_PER_BYTE;
+    bit = (((packetid - 1) % CACHE_PACKETS_PER_BYTE) * CACHE_BITS_PER_PACKET) + 1;
 
-    dbg(3, "Index: %ld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit, cachedata[index], (cachedata[index] & (char)(1 << bit)));
+    dbg(3, "Index: %ld\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit, 
+	cachedata[index], (cachedata[index] & (char)(1 << bit)));
 
     if (!(cachedata[index] & (char)(1 << bit))) {
 	return CACHE_NOSEND;
