@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.18 2004/04/03 22:46:36 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.19 2004/05/14 17:31:22 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -58,7 +58,7 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr, libnet_t * l)
 
     /* calc the L4 checksum */
     if (libnet_do_checksum(l, (u_char *) ip_hdr, ip_hdr->ip_p,
-                           ntohs(ip_hdr->ip_len) - ip_hdr->ip_hl * 4) < 0)
+                           ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
         warnx("Layer 4 checksum failed: %s", libnet_geterror(l));
 
     /* calc IP checksum */
@@ -430,19 +430,19 @@ extract_data(u_char * pktdata, int caplen, int l2len, char *l7data[])
     }
 
     /* update the datlen to not include the IP header len */
-    datalen -= ip_hdr->ip_hl * 4;
-    dataptr += ip_hdr->ip_hl * 4;
+    datalen -= ip_hdr->ip_hl << 2;
+    dataptr += ip_hdr->ip_hl << 2;
     if (datalen <= 0)
         goto nodata;
 
     /* TCP ? */
     if (ip_hdr->ip_p == IPPROTO_TCP) {
         tcp_hdr = (tcp_hdr_t *) get_layer4(ip_hdr);
-        datalen -= tcp_hdr->th_off * 4;
+        datalen -= tcp_hdr->th_off << 2;
         if (datalen <= 0)
             goto nodata;
 
-        dataptr += tcp_hdr->th_off * 4;
+        dataptr += tcp_hdr->th_off << 2;
     }
 
     /* UDP ? */
@@ -520,7 +520,7 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
     if (cidrmap_data1 == NULL)
         return(0);
 
-    /* don't play with the main pointer */
+    /* don't play with the main pointers */
     if (l == options.intf1) {
         cidrmap1 = cidrmap_data1;
         cidrmap2 = cidrmap_data2;
@@ -532,12 +532,14 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
 
     /* loop through the cidrmap to rewrite */
     do {
-        if (ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr) && (! diddst)) {
+        if ((! diddst) && ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr)) {
             ip_hdr->ip_dst.s_addr = remap_ip(cidrmap2->to, ip_hdr->ip_dst.s_addr);
+            dbg(2, "Remapped dst addr to: %s", inet_ntoa(ip_hdr->ip_dst));
             diddst = 1;
         }
-        if (ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr) && (! didsrc)) {
+        if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
             ip_hdr->ip_src.s_addr = remap_ip(cidrmap1->to, ip_hdr->ip_src.s_addr);
+            dbg(2, "Remapped src addr to: %s", inet_ntoa(ip_hdr->ip_src));
             didsrc = 1;
         }
 
@@ -545,7 +547,10 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
          * loop while we haven't modified both src/dst AND
          * at least one of the cidr maps have a next pointer
          */
-        if ((! (diddst && didsrc)) || ((cidrmap1->next != NULL) || (cidrmap2->next != NULL))) {
+        if ((! (diddst && didsrc)) &&
+            (! ((cidrmap1->next == NULL) && (cidrmap2->next == NULL)))) {
+
+            /* increment our ptr's if possible */
             if (cidrmap1->next != NULL)
                 cidrmap1 = cidrmap1->next;
 
@@ -563,7 +568,7 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, libnet_t *l)
 
     } while (loop);
 
-    /* return wether we changed an IP or not */
+    /* return how many changes we made */
     return (diddst + didsrc);
 }
 
