@@ -19,8 +19,12 @@ test:
 	cd $(testdir) && make test
 
 dlt_names:
-	cat @DLT_H@ | $(top_builddir)/scripts/dlt2name.pl src/dlt_names.h
+	cat @SAVEFILE_C@ | $(top_builddir)/scripts/dlt2name.pl src/dlt_names.h
+
+version:
+	-rm -f src/common/svn_version.c
+	cd src/common && make svn_version.c
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
-MAINTAINERCLEANFILES = Makefile.in configure tcpreplay.prj.bak
+MAINTAINERCLEANFILES = Makefile.in configure *.bak autom4te.cache
