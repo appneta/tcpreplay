@@ -35,4 +35,4 @@ MOSTLYCLEANFILES = flowheader.eps FAQ.aux FAQ.log FAQ.toc FAQ.txt FAQ.dvi \
 		   flowreplay.tex *~
 
 MAINTAINERCLEANFILES = FAQ.pdf FAQ.html FAQ.css flowreplay.pdf \
-		       flowreplay.html flowreplay.css
+		       flowreplay.html flowreplay.css Makefile.in

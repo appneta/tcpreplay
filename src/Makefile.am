@@ -30,3 +30,5 @@ tcpprep_CFLAGS = -I../lib
 flowreplay_CFLAGS = -I../lib
 
 MOSTLYCLEANFILES = *~ *.o
+
+MAINTAINERCLEANFILES = Makefile.in

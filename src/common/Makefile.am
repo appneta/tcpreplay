@@ -13,3 +13,5 @@ noinst_HEADERS = cidr.h err.h list.h cache.h services.h \
 		 confargs.h confargs.c tree.h timer.h
 
 MOSTLYCLEANFILES = *~
+
+MAINTAINERCLEANFILES = Makefile.in

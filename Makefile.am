@@ -11,3 +11,5 @@ test:
 	cd $(testdir) && make $
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
+
+MAINTAINERCLEANFILES = Makefile.in configure
