@@ -14,6 +14,7 @@
 	- Added -M flag to ignore martian IP packets
 	- Now auto-detects snoop/pcap files.  Remove -S flag from tcpprep and
 		tcpreplay
+	- tcpprep now detects servers via ICMP port unreachable
 
 06/17/2002: Version 1.1
 	- Major rewrite
