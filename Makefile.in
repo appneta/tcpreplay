@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.21 2002/11/19 23:43:08 aturner Exp $
+# $Id: Makefile.in,v 1.22 2002/11/20 01:06:36 aturner Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -45,7 +45,7 @@ capinfo: $(COBJS)
 libredblack: libredblack/.libs/libredblack.a
 
 libredblack/.libs/libredblack.a:
-	cd libredblack && sh ./autogen.sh && make
+	cd libredblack && sh ./configure && make
 
 clean:
 	-rm -f *.o *core $(BINARIES)
