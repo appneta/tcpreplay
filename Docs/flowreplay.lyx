@@ -1,0 +1,940 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\language english
+\inputencoding latin1
+\fontscheme times
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 10mm
+\topmargin 10mm
+\rightmargin 10mm
+\bottommargin 10mm
+\secnumdepth 4
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\bullet 1
+	0
+	6
+	-1
+\end_bullet
+\bullet 2
+	0
+	0
+	-1
+\end_bullet
+
+\layout Title
+
+Flowreplay Design Notes
+\layout Author
+
+Aaron Turner 
+\newline 
+http://synfin.net/
+\layout Date
+
+Last Edited:
+\newline 
+June 13, 2003
+\layout Section
+\pagebreak_top 
+Overview
+\layout Standard
+
+Flowreplay is intended to fill a hole in the feature set in tcpreplay.
+ Specifically, tcpreplay was only designed to replay traffic on the wire
+ for testing NIDS.
+ Over time, it was enhanced to be able to test inline network devices, but
+ still can not be used to 
+\begin_inset Quotes eld
+\end_inset 
+
+connect
+\begin_inset Quotes erd
+\end_inset 
+
+ to a server or accept connections from clients in order to test server
+ or client applications.
+\layout Standard
+
+It was determined early on, that adding this feature to tcpreplay was too
+ complex, so I decided to create a new tool specifically designed for this.
+\layout Section
+
+Features
+\layout Subsection
+
+Requirements
+\layout Enumerate
+
+Minimally support TCP and UDP flows
+\layout Enumerate
+
+Code should handle each flow (or service handled by a plugin) asyncronously.
+\layout Enumerate
+
+Should be able to connect to the server(s) in the pcap file or to a user
+ specified IP address.
+ Flowreplay would replay the client side of the connection.
+\layout Enumerate
+
+Support a plugin architecture to allow adding layer 7 intelligence.
+\layout Enumerate
+
+Ship with a default plugin which will work 
+\begin_inset Quotes eld
+\end_inset 
+
+good enough
+\begin_inset Quotes erd
+\end_inset 
+
+ for simple single-flow protocols.
+\layout Enumerate
+
+Should be able to scale to pcap files in the 100's of MB in size and 100+
+ simultaneous flows on a P3 500Mhz w/ 512MB of RAM.
+\layout Enumerate
+
+Maintaining high Mbps throughput is not a high priority as the number of
+ simultaneous flows increase.
+ I'm more concerned with the flows being replayed 
+\begin_inset Quotes eld
+\end_inset 
+
+correctly
+\begin_inset Quotes erd
+\end_inset 
+
+ then raw performance.
+\layout Enumerate
+
+Portable to run on common flavors of Unix and Unix-like systems.
+\layout Subsection
+
+Wishes
+\layout Enumerate
+
+Support clients connecting to flowreplay.
+ Flow replay would replay the server side of the connection.
+\layout Enumerate
+
+Support ICMP and other IP based traffic (VRRP, etc) via plugins.
+\layout Enumerate
+
+Support non-IP traffic (ARP, STP, BOOTP) via plugins.
+\layout Enumerate
+
+Support multi-flow protocols like FTP via plugins.
+\layout Section
+
+Design Thoughts
+\layout Subsection
+
+Basics
+\layout Itemize
+
+A socket based solution rather then processing raw packets with libpcap
+ and sending via libnet will be a lot less work.
+ Although a little control is given up, I believe it's worth it.
+\layout Itemize
+
+Rather then opening the pcap file multiple times, or fseek/rewind'ing all
+ around the file to jump between current flows, better to buffer packets
+ to be sent.
+ With a few MB buffer limit, we shouldn't create a blocking condition for
+ most cases.
+ 
+\layout Itemize
+
+It makes sense to have a total buffer limit and a per-flow buffer limit.
+ Flows which exceed the buffer limit can have a user-definable action executed
+ (shutdown the flow or drop packet).
+\layout Itemize
+
+Track flows in a red-black tree using a 12 byte string represening the 4-tuple
+ of the flow.
+ Use the semi-unique key for dbg() purposes, since 0's in the string will
+ be treated as NULL.
+ Collisions won't be a problem, and our RB tree should never grow 
+\begin_inset Quotes eld
+\end_inset 
+
+too big
+\begin_inset Quotes erd
+\end_inset 
+
+ to negatively effect performance.
+ Each protocol (TCP, UDP, etc) will require it's own tree.
+ Alternatively we can use a longer key (14 bytes) and encode the protocol
+ information as well.
+ This would provide a simpler solution but since all flows would be in a
+ single tree, however it will increase the tree depth (and thereby search
+ time) for larger multi-protocol pcaps.
+\layout Itemize
+
+Knowing when to start sending client traffic in response to the server will
+ be "tricky".
+ Prolly the best bet is waiting for a given period of time after no more
+ data from the server has been recieved.
+ Basing on number of bytes is prolly less then ideal.
+ Not sure what to do if the client traffic doesn't illicit a response from
+ the server.
+ This will be the basis for the 
+\begin_inset Quotes eld
+\end_inset 
+
+default
+\begin_inset Quotes erd
+\end_inset 
+
+ plugin.
+\layout Itemize
+
+Handling multiple flows in a scalable manner will be difficult.
+ Hopefully this can be done in a single thread, however we may have to do
+ it it with pthreads.
+\layout Subsection
+
+Asyncronous Flows
+\layout Standard
+
+As stated above in the requirements section, flowreplay must be asyncronous
+ in handling flows.
+ That is to say, one flow should not effect other unrelated flows.
+ We don't want a flow that stalls becase the associated server just crashed
+ (because we sent an exploit) hanging up the remaining flows.
+\layout Standard
+
+The biggest syncronous problem, that pcap files are serial, has been solved
+ by buffering packets.
+ The other typical syncronous issue is dealing with multiple sockets, which
+ we will solve via poll().
+\layout Standard
+
+One of the biggest questions right now is does flowreplay need to be multi-threa
+ded to support asyncronous flows? And if it does, how many threads will
+ be required? Will each flow require it's own thread or can we categorize
+ activity (such as reading from the pcap file, or reading from sockets)
+ into a single thread?
+\layout Standard
+
+Ideally, we can do everything in a single thread since that will dramatically
+ make writing plugins easier.
+ I'd rather not make phtreads a prerequisite for writing plugins for flowreplay
+ since that will mean fewer people will develop plugins.
+\layout Standard
+
+In order to process inbound traffic I'll use poll().
+ Each node in the tree will define a 
+\emph on 
+struct pollfd
+\emph default 
+ and the amount of time in ms to timeout.
+ Then prior to calling poll() we walk the tree and create the array of pollfd's
+ and determine the flow(s) with the smallest timeout.
+ A list of these flows is saved for when poll() returns.
+ Finally, the current time is tucked away and the timeout and array of pollfd's
+ is passed to poll().
+\layout Standard
+
+When poll() returns, the sockets that returned ready have their plugin called.
+ If no sockets are ready, then the flows saved prior to calling poll() are
+ processed.
+\layout Standard
+
+Once all flows are processed, all the flows not processed have their timeout
+ decremented by the time difference of the current time and when poll was
+ last called and we start again.
+\layout Section
+
+The Flow Tree
+\layout Subsection
+
+Node Basics
+\layout Standard
+
+Each flow (as defined as the 5-tuple: IP proto, src IP, dst IP, src port,
+ dst port) is stored as a unique node in a red-black tree using the 5-tuple
+ as the key.
+ Each node contains all the relevant information for a given flow:
+\layout Itemize
+
+The server IP (target we connected to)
+\layout Itemize
+
+The server port (port on the target we connected to)
+\layout Itemize
+
+The socket filehandle
+\layout Itemize
+
+The flow state (OPEN, SEND, POLL, DONT_POLL, CLOSE, DELETE)
+\layout Itemize
+
+Pointers to the plugin handlers
+\layout Itemize
+
+Pointer to the plugin per-flow data structure
+\layout Itemize
+
+A pointer to a linked list of the buffered packets to be sent for this flow
+\layout Itemize
+
+A pointer to the last packet of the buffered linked list
+\layout Itemize
+
+A pointer to the last packet sent on the linked list chain (or NULL if no
+ packets have been sent)
+\layout Subsection
+
+Flow States
+\layout Standard
+
+As stated above, each flow can have one of the following states:
+\layout Itemize
+
+NODE_OPEN
+\newline 
+flowreplay has detected this has a new flow and the socket needs to be created/o
+pened
+\layout Itemize
+
+NODE_SEND
+\newline 
+This flow has data which needs to be sent via the socket
+\layout Itemize
+
+NODE_POLL
+\newline 
+This flow is expecting data from the socket
+\layout Itemize
+
+NODE_DONT_POLL
+\newline 
+This flow does not need to send or receive data
+\layout Itemize
+
+NODE_CLOSE
+\newline 
+This flow should be shutdown
+\layout Itemize
+
+NODE_DELETE
+\newline 
+This node should be removed from the tree and all it's associated data structure
+s need to be free()'d
+\layout Section
+
+Plugins
+\layout Standard
+
+Plugins will be the 
+\begin_inset Quotes eld
+\end_inset 
+
+intelligence
+\begin_inset Quotes erd
+\end_inset 
+
+ in flowreplay.
+ Flowreplay is designed to be a mere framework for connecting captured flows
+ in a pcap file with socket filehandles.
+ How data is processed and what should be done with it will be done via
+ plugins.
+\layout Standard
+
+Plugins will allow proper handling of a variety of protocols while hopefully
+ keeping things simple.
+ Another part of the consideration will be making it easy for others to
+ contribute to flowreplay.
+ I don't want to have to write all the protocol logic myself.
+\layout Subsection
+
+Plugin Basics
+\layout Standard
+
+Each plugin provides the logic for handling one or more services.
+ The main purpose of a plugin is to decide when flowreplay should send data
+ via one or more sockets.
+ The plugin can use any 
+\emph on 
+non-blocking
+\emph default 
+ method of determining if it appropriate to send data or wait for data to
+ recieved.
+ 
+\layout Standard
+
+Each time poll() returns, flowreplay calls the plugins for the flows which
+ either have data waiting or in the case of a timeout, those flows which
+ timed out.
+ Afterwords, all the flows are processed and poll() is called on those flows
+ which have their state set to POLL.
+ And the process repeats until there are no more nodes in the tree.
+\layout Subsection
+
+The Default Plugin
+\layout Standard
+
+Initially, flowreplay will ship with one basic plugin called 
+\begin_inset Quotes eld
+\end_inset 
+
+default
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ Any flow which doesn't have a specific plugin defined, will use default.
+ The goal of the default plugin is to work 
+\begin_inset Quotes eld
+\end_inset 
+
+good enough
+\begin_inset Quotes erd
+\end_inset 
+
+ for a majority of single-flow protocols such as SMTP, HTTP, and Telnet.
+ Protocols which use encryption (SSL, SSH, etc) or multiple flows (FTP,
+ RPC, etc) will never work with the default plugin.
+ Furthermore, the default plugin will only support connections 
+\emph on 
+to
+\emph default 
+ a server, it will not support accepting connections from clients.
+\layout Standard
+
+The default plugin will provide no data level manipulation and only a simple
+ method for detecting when it is time to send data to the server.
+ Detecting when to send data will be done by a 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ timeout value.
+ Basically, by using the pcap file as a means to determine the order of
+ the exchange, anytime it is the servers turn to send data, flowreplay will
+ wait for the first byte of data and then start the 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ timer.
+ Every time more data is recieved, the timer is reset.
+ If the timer reaches zero, then flowreplay sends the next portion of the
+ client side of the connection.
+ This is repeated until the the flow has been completely replayed or a 
+\begin_inset Quotes eld
+\end_inset 
+
+server hung
+\begin_inset Quotes erd
+\end_inset 
+
+ timeout is reached.
+ The server hung timeout is used to detect a server which crashed and never
+ starts sending any data which would start the 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ timer.
+\layout Standard
+
+Both the 
+\begin_inset Quotes eld
+\end_inset 
+
+no more data
+\begin_inset Quotes erd
+\end_inset 
+
+ and 
+\begin_inset Quotes eld
+\end_inset 
+
+server hung
+\begin_inset Quotes erd
+\end_inset 
+
+ timers will be user defined values and global to all flows using the default
+ plugin.
+\layout Subsection
+
+Plugin Details
+\layout Standard
+
+Each plugin will be comprised of the following:
+\layout Itemize
+
+An optional global data structure, for intra-flow communication
+\layout Itemize
+
+Per-flow data structure, for tracking flow state information
+\layout Itemize
+
+A list of functions which flow replay will call when certain well-defined
+ conditions are met.
+\begin_deeper 
+\layout Itemize
+
+Required functions:
+\begin_deeper 
+\layout Itemize
+
+initialize_node() - called when a node in the tree created using this plugin
+\layout Itemize
+
+post_poll_timeout() - called when the poll() returned due to a timeout for
+ this node
+\layout Itemize
+
+post_poll_read() - called when the poll() returned due to the socket being
+ ready
+\layout Itemize
+
+buffer_full() - called when a the packet buffer for this flow is full
+\layout Itemize
+
+delete_node() - called just prior to the node being free()'d
+\end_deeper 
+\layout Itemize
+
+Optional functions:
+\begin_deeper 
+\layout Itemize
+
+pre_send_data() - called before data is sent
+\layout Itemize
+
+post_send_data() - called after data is sent
+\layout Itemize
+
+pre_poll() - called prior to poll()
+\layout Itemize
+
+post_poll_default() - called when poll() returns and neither the socket
+ was ready or the node timed out 
+\layout Itemize
+
+open_socket() - called after the socket is opened
+\layout Itemize
+
+close_socket() - called after the socket is closed
+\end_deeper 
+\end_deeper 
+\layout Section
+\pagebreak_top \start_of_appendix 
+Single Threaded Pseudo Code: Main Loop
+\layout LyX-Code
+
+
+\size scriptsize 
+int shortest_timeout; 
+\layout LyX-Code
+
+
+\size scriptsize 
+struct timeval poll_time = {0,0}, blocked_time = {0,0};
+\layout LyX-Code
+
+
+\size scriptsize 
+struct flow_node_t *timeout_nodes = NULL;
+\layout LyX-Code
+
+
+\size scriptsize 
+num_timeout_nodes = 0;
+\layout LyX-Code
+
+
+\size scriptsize 
+struct pollfd *pollfds;
+\layout LyX-Code
+
+
+\size scriptsize 
+int nfds = 0, activefds = 0;
+\layout LyX-Code
+
+
+\size scriptsize 
+int stop = 0;
+\layout LyX-Code
+
+
+\size scriptsize 
+while (! stop) {
+\layout LyX-Code
+
+
+\size scriptsize 
+    nfds = 0, activefds = 0;
+\layout LyX-Code
+
+
+\size scriptsize 
+    shortest_timeout = 0xfffffffe;
+\layout LyX-Code
+
+
+\size scriptsize 
+    
+\layout LyX-Code
+
+
+\size scriptsize 
+    foreach NODE in TREE {
+\layout LyX-Code
+
+
+\size scriptsize 
+        switch NODE->state {
+\layout LyX-Code
+
+
+\size scriptsize 
+        case NODE_SEND:
+\layout LyX-Code
+
+
+\size scriptsize 
+            pre_send_data(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            send_packets(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            post_send_data(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            break;
+\layout LyX-Code
+
+
+\size scriptsize 
+            
+\layout LyX-Code
+
+
+\size scriptsize 
+        case NODE_OPEN:
+\layout LyX-Code
+
+
+\size scriptsize 
+            open_node(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            open_socket(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            break;
+\layout LyX-Code
+
+
+\size scriptsize 
+            
+\layout LyX-Code
+
+
+\size scriptsize 
+        case NODE_CLOSE:
+\layout LyX-Code
+
+
+\size scriptsize 
+            close_node(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            close_socket(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            break;
+\layout LyX-Code
+
+\layout LyX-Code
+
+
+\size scriptsize 
+        case NODE_DELETE:
+\layout LyX-Code
+
+
+\size scriptsize 
+            delete_node(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            continue;
+\layout LyX-Code
+
+
+\size scriptsize 
+            break;
+\layout LyX-Code
+
+\layout LyX-Code
+
+
+\size scriptsize 
+        default:
+\layout LyX-Code
+
+
+\size scriptsize 
+            /* do nothing */
+\layout LyX-Code
+
+
+\size scriptsize 
+        }
+\layout LyX-Code
+
+
+\size scriptsize 
+        if (NODE->timeout > blocked_time) {
+\layout LyX-Code
+
+
+\size scriptsize 
+            NODE->timeout -= blocked_time;
+\layout LyX-Code
+
+
+\size scriptsize 
+        } else {
+\layout LyX-Code
+
+
+\size scriptsize 
+            NODE->timeout = 0;
+\layout LyX-Code
+
+
+\size scriptsize 
+        }
+\layout LyX-Code
+
+
+\size scriptsize 
+        
+\layout LyX-Code
+
+
+\size scriptsize 
+        if (NODE->timeout < shortest_timeout) {
+\layout LyX-Code
+
+
+\size scriptsize 
+            shortest_timeout = NODE->timeout;
+\layout LyX-Code
+
+
+\size scriptsize 
+            clear(timeout_nodes);
+\layout LyX-Code
+
+
+\size scriptsize 
+            num_timeout_nodes = 1;
+\layout LyX-Code
+
+
+\size scriptsize 
+            
+\layout LyX-Code
+
+
+\size scriptsize 
+            push(timeout_nodes, NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            
+\layout LyX-Code
+
+
+\size scriptsize 
+        } else if (NODE->timeout = shortest_timeout) {
+\layout LyX-Code
+
+
+\size scriptsize 
+            push(timeout_nodes, NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            num_timout_nodes ++;
+\layout LyX-Code
+
+
+\size scriptsize 
+        }
+\layout LyX-Code
+
+
+\size scriptsize 
+        push(pollfds, NODE->pollfd);
+\layout LyX-Code
+
+
+\size scriptsize 
+        nfds ++;
+\layout LyX-Code
+
+
+\size scriptsize 
+    }
+\layout LyX-Code
+
+
+\size scriptsize 
+    poll_time = gettimeofday();
+\layout LyX-Code
+
+
+\size scriptsize 
+    if (nfds) {
+\layout LyX-Code
+
+
+\size scriptsize 
+        activefds = poll(pollfds, nfds, shortest_timeout);
+\layout LyX-Code
+
+
+\size scriptsize 
+        blocked_time = gettimeofday - poll_time;
+\layout LyX-Code
+
+
+\size scriptsize 
+    } else {
+\layout LyX-Code
+
+
+\size scriptsize 
+        blocked_time = poll_time;
+\layout LyX-Code
+
+
+\size scriptsize 
+    }
+\layout LyX-Code
+
+
+\size scriptsize 
+    if (activefds = 0) {
+\layout LyX-Code
+
+
+\size scriptsize 
+        for (i = 0; i < num_timeout_nodes; i ++) {
+\layout LyX-Code
+
+
+\size scriptsize 
+            post_poll_timeout(timeout_nodes[i]);
+\layout LyX-Code
+
+
+\size scriptsize 
+        }
+\layout LyX-Code
+
+
+\size scriptsize 
+    } else {
+\layout LyX-Code
+
+
+\size scriptsize 
+        foreach NODE in TREE {          
+\layout LyX-Code
+
+
+\size scriptsize 
+            if (NODE->pollfd->revents) {
+\layout LyX-Code
+
+
+\size scriptsize 
+                post_poll_read(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            } else {
+\layout LyX-Code
+
+
+\size scriptsize 
+                post_poll_default(NODE);
+\layout LyX-Code
+
+
+\size scriptsize 
+            }
+\layout LyX-Code
+
+
+\size scriptsize 
+        }
+\layout LyX-Code
+
+
+\size scriptsize 
+    }
+\layout LyX-Code
+
+
+\size scriptsize 
+}
+\layout LyX-Code
+
+\the_end
