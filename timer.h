@@ -1,4 +1,4 @@
-/* $Id: timer.h,v 1.4 2003/01/12 04:46:26 aturner Exp $ */
+/* $Id: timer.h,v 1.5 2003/03/24 04:59:58 aturner Exp $ */
 
 #ifndef _TIMER_H_
 #define _TIMER_H_
@@ -52,5 +52,22 @@ inline void float2timer(float time, struct timeval *tvp);
 	((tvp)->tv_usec cmp (uvp)->tv_usec) :		\
 	((tvp)->tv_sec cmp (uvp)->tv_sec))
 #endif
+
+#define timermul(tvp, uvp, x)						\
+	do {								\
+		(uvp)->tv_sec = (tvp)->tv_sec * x;			\
+		(uvp)->tv_usec = (tvp)->tv_usec * x;			\
+		while((uvp)->tv_usec > 1000000) {			\
+			(uvp)->tv_sec++;				\
+			(uvp)->tv_usec -= 1000000;			\
+		}							\
+	} while(0)
+
+
+#define timerdiv2(tvp, x)						\
+	do {								\
+		(tvp)->tv_sec = (tvp)->tv_sec / x;			\
+		(tvp)->tv_usec = (tvp)->tv_usec / x;			\
+	} while(0)
 
 #endif

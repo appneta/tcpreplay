@@ -59,7 +59,7 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif				/* HAVE_CONFIG_H */
+#endif /* HAVE_CONFIG_H */
 
 #include "tcpreplay.h"
 #include "cache.h"
@@ -101,70 +101,70 @@ extern char pcap_version[];
 static void usage();
 static void version();
 static int check_ip_regex(const unsigned long ip);
-static unsigned long process_raw_packets(pcap_t *pcap);
+static unsigned long process_raw_packets(pcap_t * pcap);
 
 static void
 version()
 {
-	fprintf(stderr, "tcpprep version: %s", VERSION);
+    fprintf(stderr, "tcpprep version: %s", VERSION);
 #ifdef DEBUG
-	fprintf(stderr, " (debug)\n");
+    fprintf(stderr, " (debug)\n");
 #else
-	fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
 #endif
-	fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
-	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
-	fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
-	exit(0);
+    fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
+    fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+    exit(0);
 }
 
 /*
  *  usage
  */
-static void 
+static void
 usage()
 {
-	fprintf(stderr, "Usage: tcpprep\n");
-	fprintf(stderr, "-a\t\t\tSplit traffic in Auto Mode\n"
-			"-c CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
+    fprintf(stderr, "Usage: tcpprep\n");
+    fprintf(stderr, "-a\t\t\tSplit traffic in Auto Mode\n"
+	    "-c CIDR1,CIDR2,...\tSplit traffic in CIDR Mode\n");
 #ifdef DEBUG
-	fprintf(stderr, "-d\t\t\tEnable debug output to STDERR\n");
+    fprintf(stderr, "-d\t\t\tEnable debug output to STDERR\n");
 #endif
-	fprintf(stderr, "-h\t\t\tHelp\n"
-			"-i <capfile>\t\tInput capture file to process\n"
-			"-m <minmask>\t\tMinimum mask length in Auto/Router mode\n"
-			"-M <maxmask>\t\tMaximum mask length in Auto/Router mode\n"
-			"-n bridge|router\tUse bridge/router algorithm in Auto Mode\n"
-			"-N client|server\tClassify non-IP traffic as client/server\n"
-			"-o <outputfile>\t\tOutput cache file name\n"
-			"-r <regex>\t\tSplit traffic in Regex Mode\n"
-			"-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
-			"-x <match>\t\tOnly send the packets specified\n"
-			"-X <match>\t\tSend all the packets except those specified\n"			
-			"-v\t\t\tVerbose\n"
-			"-V\t\t\tVersion\n");
-	exit(0);
+    fprintf(stderr, "-h\t\t\tHelp\n"
+	    "-i <capfile>\t\tInput capture file to process\n"
+	    "-m <minmask>\t\tMinimum mask length in Auto/Router mode\n"
+	    "-M <maxmask>\t\tMaximum mask length in Auto/Router mode\n"
+	    "-n bridge|router\tUse bridge/router algorithm in Auto Mode\n"
+	    "-N client|server\tClassify non-IP traffic as client/server\n"
+	    "-o <outputfile>\t\tOutput cache file name\n"
+	    "-r <regex>\t\tSplit traffic in Regex Mode\n"
+	    "-R <ratio>\t\tSpecify a ratio to use in Auto Mode\n"
+	    "-x <match>\t\tOnly send the packets specified\n"
+	    "-X <match>\t\tSend all the packets except those specified\n"
+	    "-v\t\t\tVerbose\n" "-V\t\t\tVersion\n");
+    exit(0);
 }
 
 /*
  * checks to see if an ip address matches a regex.  Returns 1 for true
  * 0 for false
  */
-static int 
+static int
 check_ip_regex(const unsigned long ip)
 {
-	int eflags = 0;
-	u_char src_ip[16];
-	size_t nmatch = 0;
-	regmatch_t *pmatch = NULL;
+    int eflags = 0;
+    u_char src_ip[16];
+    size_t nmatch = 0;
+    regmatch_t *pmatch = NULL;
 
-	memset(src_ip, '\0', 16);
-	strncat(src_ip, libnet_addr2name4(ip, RESOLVE), 15);
-	if (regexec(preg, src_ip, nmatch, pmatch, eflags) == 0) {
-		return (1);
-	} else {
-		return (0);
-	}
+    memset(src_ip, '\0', 16);
+    strncat(src_ip, libnet_addr2name4(ip, RESOLVE), 15);
+    if (regexec(preg, src_ip, nmatch, pmatch, eflags) == 0) {
+	return (1);
+    }
+    else {
+	return (0);
+    }
 
 }
 
@@ -172,305 +172,320 @@ check_ip_regex(const unsigned long ip)
  * uses the new libpcap/snoop code to parse the packets and build
  * the cache file.
  */
-static unsigned long 
-process_raw_packets(pcap_t *pcap)
+static unsigned long
+process_raw_packets(pcap_t * pcap)
 {
-	ip_hdr_t *ip_hdr = NULL;
-	eth_hdr_t *eth_hdr = NULL;
-	struct pcap_pkthdr pkthdr;
-	const u_char *nextpkt = NULL;
-	u_char pktdata[MAXPACKET];      /* full packet buffer */
-	unsigned long packetnum = 0;
+    ip_hdr_t *ip_hdr = NULL;
+    eth_hdr_t *eth_hdr = NULL;
+    struct pcap_pkthdr pkthdr;
+    const u_char *nextpkt = NULL;
+    u_char pktdata[MAXPACKET];	/* full packet buffer */
+    unsigned long packetnum = 0;
 #ifdef FORCE_ALIGN
-	u_char ipbuff[MAXPACKET];
+    u_char ipbuff[MAXPACKET];
 #endif
 
-	while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
-		packetnum ++;
-		eth_hdr = (eth_hdr_t *)&pktdata;
+    while ((nextpkt = pcap_next(pcap, &pkthdr)) != NULL) {
+	packetnum++;
+	eth_hdr = (eth_hdr_t *) & pktdata;
 
-		/* look for include or exclude LIST match */
-		if (xX_list != NULL) {
-			if (include_exclude_mode < xXExclude) {
-				if (!check_list(xX_list, (packetnum))) {
-					add_cache(&cachedata, 0, 0);
-					continue;
-				}
-			} else if (check_list(xX_list, (packetnum))) {
-				add_cache(&cachedata, 0, 0);
-				continue;
-			}
+	/* look for include or exclude LIST match */
+	if (xX_list != NULL) {
+	    if (include_exclude_mode < xXExclude) {
+		if (!check_list(xX_list, (packetnum))) {
+		    add_cache(&cachedata, 0, 0);
+		    continue;
 		}
-
-		if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
-			dbg(2, "Packet isn't IP: 0x%.2x\n", eth_hdr->ether_type);
-
-			if (mode != AUTO_MODE)	/* we don't want to cache
-									 * these packets twice */
-				add_cache(&cachedata, 1, non_ip);
-			continue;
-		}
-		
-#ifdef FORCE_ALIGN
-			/* 
-			 * copy layer 3 and up to our temp packet buffer
-			 * for now on, we have to edit the packetbuff because
-			 * just before we send the packet, we copy the packetbuff 
-			 * back onto the pkt.data + LIBNET_ETH_H buffer
-			 * we do all this work to prevent byte alignment issues
-			 */
-			ip_hdr = (ip_hdr_t *)&ipbuff;
-			memcpy(ip_hdr, (&pktdata + LIBNET_ETH_H), pkthdr.caplen - LIBNET_ETH_H);
-#else
-			/*
-			 * on non-strict byte align systems, don't need to memcpy(), 
-			 * just point to 14 bytes into the existing buffer
-			 */
-			ip_hdr = (ip_hdr_t *)(&pktdata + LIBNET_ETH_H);
-#endif
-
-		/* look for include or exclude CIDR match */
-		if (xX_cidr != NULL) {
-			if (! process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
-				add_cache(&cachedata, 0, 0);
-				continue;
-			}
-		}
-
-		switch (mode) {
-		case REGEX_MODE:
-			add_cache(&cachedata, 1, check_ip_regex(ip_hdr->ip_src.s_addr));
-			break;
-		case CIDR_MODE:
-			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
-			break;
-		case AUTO_MODE:
-			/* first run through in auto mode: create tree */
-			add_tree(ip_hdr->ip_src.s_addr, pktdata);
-			break;
-		case ROUTER_MODE:
-			add_cache(&cachedata, 1, check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
-			break;
-		case BRIDGE_MODE:
-			/*
-			 * second run through in auto mode: create bridge
-			 * based cache
-			 */
-			add_cache(&cachedata, 1, check_ip_tree(ip_hdr->ip_src.s_addr));
-			break;
-		}
-
+	    }
+	    else if (check_list(xX_list, (packetnum))) {
+		add_cache(&cachedata, 0, 0);
+		continue;
+	    }
 	}
 
-	return packetnum;
+	if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
+	    dbg(2, "Packet isn't IP: 0x%.2x\n", eth_hdr->ether_type);
+
+	    if (mode != AUTO_MODE)	/* we don't want to cache
+					   * these packets twice */
+		add_cache(&cachedata, 1, non_ip);
+	    continue;
+	}
+
+#ifdef FORCE_ALIGN
+	/* 
+	 * copy layer 3 and up to our temp packet buffer
+	 * for now on, we have to edit the packetbuff because
+	 * just before we send the packet, we copy the packetbuff 
+	 * back onto the pkt.data + LIBNET_ETH_H buffer
+	 * we do all this work to prevent byte alignment issues
+	 */
+	ip_hdr = (ip_hdr_t *) & ipbuff;
+	memcpy(ip_hdr, (&pktdata + LIBNET_ETH_H), pkthdr.caplen - LIBNET_ETH_H);
+#else
+	/*
+	 * on non-strict byte align systems, don't need to memcpy(), 
+	 * just point to 14 bytes into the existing buffer
+	 */
+	ip_hdr = (ip_hdr_t *) (&pktdata + LIBNET_ETH_H);
+#endif
+
+	/* look for include or exclude CIDR match */
+	if (xX_cidr != NULL) {
+	    if (!process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
+		add_cache(&cachedata, 0, 0);
+		continue;
+	    }
+	}
+
+	switch (mode) {
+	case REGEX_MODE:
+	    add_cache(&cachedata, 1, check_ip_regex(ip_hdr->ip_src.s_addr));
+	    break;
+	case CIDR_MODE:
+	    add_cache(&cachedata, 1,
+		      check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+	    break;
+	case AUTO_MODE:
+	    /* first run through in auto mode: create tree */
+	    add_tree(ip_hdr->ip_src.s_addr, pktdata);
+	    break;
+	case ROUTER_MODE:
+	    add_cache(&cachedata, 1,
+		      check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr));
+	    break;
+	case BRIDGE_MODE:
+	    /*
+	     * second run through in auto mode: create bridge
+	     * based cache
+	     */
+	    add_cache(&cachedata, 1, check_ip_tree(ip_hdr->ip_src.s_addr));
+	    break;
+	}
+
+    }
+
+    return packetnum;
 }
 
 /*
  *  main()
  */
-int 
+int
 main(int argc, char *argv[])
 {
-	int out_file, ch, regex_flags = 0, regex_error = 0, mask_count = 0;
-	char *infilename = NULL;
-	char *outfilename = NULL;
-	char ebuf[EBUF_SIZE];
-	unsigned long totpackets = 0;
-	void *xX;
-	pcap_t *pcap;
-	char errbuf[PCAP_ERRBUF_SIZE];
+    int out_file, ch, regex_flags = 0, regex_error = 0, mask_count = 0;
+    char *infilename = NULL;
+    char *outfilename = NULL;
+    char ebuf[EBUF_SIZE];
+    unsigned long totpackets = 0;
+    void *xX;
+    pcap_t *pcap;
+    char errbuf[PCAP_ERRBUF_SIZE];
 
-	debug = 0;
-	ourregex = NULL;
-	regex_flags |= REG_EXTENDED;
-	regex_flags |= REG_NOSUB;
+    debug = 0;
+    ourregex = NULL;
+    regex_flags |= REG_EXTENDED;
+    regex_flags |= REG_NOSUB;
 
-	preg = (regex_t *) malloc(sizeof(regex_t));
-	if (preg == NULL)
-		err(1, "malloc");
+    preg = (regex_t *) malloc(sizeof(regex_t));
+    if (preg == NULL)
+	err(1, "malloc");
 
 #ifdef DEBUG
-	while ((ch = getopt(argc, argv, "adc:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
+    while ((ch = getopt(argc, argv, "adc:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
 #else
-	while ((ch = getopt(argc, argv, "ac:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
+    while ((ch = getopt(argc, argv, "ac:r:R:o:i:hm:M:n:N:x:X:vV")) != -1)
 #endif
-		switch (ch) {
-		case 'a':
-			mode = AUTO_MODE;
-			break;
-		case 'c':
-			if (!parse_cidr(&cidrdata, optarg)) {
-				usage();
-			}
-			mode = CIDR_MODE;
-			break;
-		case 'd':
-			debug = 1;
-			break;
-		case 'h':
-			usage();
-			break;
-		case 'i':
-			infilename = optarg;
-			break;
-		case 'm':
-			min_mask = atoi(optarg);
-			mask_count++;
-			break;
-		case 'M':
-			max_mask = atoi(optarg);
-			mask_count++;
-			break;
-		case 'n':
-			if (strcmp(optarg, "bridge") == 0) {
-				automode = BRIDGE_MODE;
-			} else if (strcmp(optarg, "router") == 0) {
-				automode = ROUTER_MODE;
-			} else {
-				errx(1, "Invalid network type: %s", optarg);
-			}
-			break;
-		case 'N':
-			if (strcmp(optarg, "client") == 0) {
-				non_ip = 0;
-			} else if (strcmp(optarg, "server") == 0) {
-				non_ip = 1;
-			} else {
-				errx(1, "-N must be client or server");
-			}
-			break;
-		case 'o':
-			outfilename = optarg;
-			break;
-		case 'r':
-			ourregex = optarg;
-			mode = REGEX_MODE;
-			if ((regex_error = regcomp(preg, ourregex, regex_flags))) {
-				if (regerror(regex_error, preg, ebuf, EBUF_SIZE) != -1) {
-					fprintf(stderr, "Error compiling regex: %s\n", ebuf);
-				} else {
-					fprintf(stderr, "Error compiling regex.\n");
-				}
-				exit(1);
-			}
-			break;
-		case 'R':
-			ratio = atof(optarg);
-			break;
-		case 'x':
-			include_exclude_mode = 'x';
-			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
-				errx(1, "Unable to parse -x: %s", optarg);
-			if (include_exclude_mode & xXPacket) {
-				xX_list = (LIST *)xX;
-			} else {
-				xX_cidr = (CIDR *)xX;
-			}
-			break;
-		case 'X':
-			include_exclude_mode = 'X';
-			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
-				errx(1, "Unable to parse -X: %s", optarg);
-			if (include_exclude_mode & xXPacket) {
-				xX_list = (LIST *)xX;
-			} else {
-				xX_cidr = (CIDR *)xX;
-			}
-			break;
-		case 'v':
-			info = 1;
-			break;
-		case 'V':
-			version();
-			break;
-		default:
-			usage();
+	switch (ch) {
+	case 'a':
+	    mode = AUTO_MODE;
+	    break;
+	case 'c':
+	    if (!parse_cidr(&cidrdata, optarg)) {
+		usage();
+	    }
+	    mode = CIDR_MODE;
+	    break;
+	case 'd':
+	    debug = 1;
+	    break;
+	case 'h':
+	    usage();
+	    break;
+	case 'i':
+	    infilename = optarg;
+	    break;
+	case 'm':
+	    min_mask = atoi(optarg);
+	    mask_count++;
+	    break;
+	case 'M':
+	    max_mask = atoi(optarg);
+	    mask_count++;
+	    break;
+	case 'n':
+	    if (strcmp(optarg, "bridge") == 0) {
+		automode = BRIDGE_MODE;
+	    }
+	    else if (strcmp(optarg, "router") == 0) {
+		automode = ROUTER_MODE;
+	    }
+	    else {
+		errx(1, "Invalid network type: %s", optarg);
+	    }
+	    break;
+	case 'N':
+	    if (strcmp(optarg, "client") == 0) {
+		non_ip = 0;
+	    }
+	    else if (strcmp(optarg, "server") == 0) {
+		non_ip = 1;
+	    }
+	    else {
+		errx(1, "-N must be client or server");
+	    }
+	    break;
+	case 'o':
+	    outfilename = optarg;
+	    break;
+	case 'r':
+	    ourregex = optarg;
+	    mode = REGEX_MODE;
+	    if ((regex_error = regcomp(preg, ourregex, regex_flags))) {
+		if (regerror(regex_error, preg, ebuf, EBUF_SIZE) != -1) {
+		    fprintf(stderr, "Error compiling regex: %s\n", ebuf);
 		}
-
-	/* process args */
-	if ((mode != CIDR_MODE) && (mode != REGEX_MODE) && (mode != AUTO_MODE))
-		errx(1, "You need to specifiy a vaild CIDR list, regex, or auto mode");
-
-	if ((mask_count > 0) && (mode != AUTO_MODE))
-		errx(1, "You can't specify a min/max mask length unless you use auto mode");
-
-	if ((mode == AUTO_MODE) && (automode == 0))
-		errx(1, "You must specify -n (bridge|router) with auto mode (-a)");
-
-	if ((ratio != 0.0) && (mode != AUTO_MODE))
-		errx(1, "Ratio (-R) only works in auto mode (-a).");
-
-	if (ratio < 0)
-		errx(1, "Ratio must be a non-negative number.");
-
-	if (info && mode == AUTO_MODE)
-		fprintf(stderr, "Building auto mode pre-cache data structure...\n");
-
-	if (info && mode == CIDR_MODE)
-		fprintf(stderr, "Building cache file from CIDR list...\n");
-
-	if (info && mode == REGEX_MODE)
-		fprintf(stderr, "Building cache file from regex...\n");
-
-
-	/* set ratio to the default if unspecified */
-	if (ratio == 0.0)
-		ratio = DEF_RATIO;
-
-	/* open the cache file */
-	out_file = open(outfilename, O_WRONLY | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP | S_IROTH);
-	if (out_file == -1)
-		err(1, "Unable to open cache file %s for writing.", outfilename);
-
-readpcap:
-	/* open the pcap file */
-	if ((pcap = pcap_open_offline(infilename, errbuf)) == NULL) {
-		errx(1, "Error opening file: %s", errbuf);
+		else {
+		    fprintf(stderr, "Error compiling regex.\n");
+		}
+		exit(1);
+	    }
+	    break;
+	case 'R':
+	    ratio = atof(optarg);
+	    break;
+	case 'x':
+	    include_exclude_mode = 'x';
+	    if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+		errx(1, "Unable to parse -x: %s", optarg);
+	    if (include_exclude_mode & xXPacket) {
+		xX_list = (LIST *) xX;
+	    }
+	    else {
+		xX_cidr = (CIDR *) xX;
+	    }
+	    break;
+	case 'X':
+	    include_exclude_mode = 'X';
+	    if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+		errx(1, "Unable to parse -X: %s", optarg);
+	    if (include_exclude_mode & xXPacket) {
+		xX_list = (LIST *) xX;
+	    }
+	    else {
+		xX_cidr = (CIDR *) xX;
+	    }
+	    break;
+	case 'v':
+	    info = 1;
+	    break;
+	case 'V':
+	    version();
+	    break;
+	default:
+	    usage();
 	}
 
-	totpackets = process_raw_packets(pcap);
-	pcap_close(pcap);
-	
+    /* process args */
+    if ((mode != CIDR_MODE) && (mode != REGEX_MODE) && (mode != AUTO_MODE))
+	errx(1, "You need to specifiy a vaild CIDR list, regex, or auto mode");
 
-	/* we need to process the pcap file twice in HASH/AUTO mode */
-	if (mode == AUTO_MODE) {
-		mode = automode;
-		if (mode == ROUTER_MODE) {	/* do we need to convert TREE->CIDR? */
-			if (info)
-				fprintf(stderr, "Building network list from pre-cache...\n");
-			if (!process_tree()) {
-				fprintf(stderr, "Error: unable to build a valid list of servers. Aborting.\n");
-				exit(1);
-			}
-		} else {
-			/*
-			 * in bridge mode we need to calculate client/sever
-			 * manually since this is done automatically in
-			 * process_tree()
-			 */
-			rbwalk(rbdata, tree_calculate, (void *) rbdata);
-		}
+    if ((mask_count > 0) && (mode != AUTO_MODE))
+	errx(1,
+	     "You can't specify a min/max mask length unless you use auto mode");
 
-		if (info)
-			fprintf(stderr, "Buliding cache file...\n");
-		/* 
-		 * re-process files, but this time generate
-		 * cache 
-		 */
-		goto readpcap;	
+    if ((mode == AUTO_MODE) && (automode == 0))
+	errx(1, "You must specify -n (bridge|router) with auto mode (-a)");
+
+    if ((ratio != 0.0) && (mode != AUTO_MODE))
+	errx(1, "Ratio (-R) only works in auto mode (-a).");
+
+    if (ratio < 0)
+	errx(1, "Ratio must be a non-negative number.");
+
+    if (info && mode == AUTO_MODE)
+	fprintf(stderr, "Building auto mode pre-cache data structure...\n");
+
+    if (info && mode == CIDR_MODE)
+	fprintf(stderr, "Building cache file from CIDR list...\n");
+
+    if (info && mode == REGEX_MODE)
+	fprintf(stderr, "Building cache file from regex...\n");
+
+
+    /* set ratio to the default if unspecified */
+    if (ratio == 0.0)
+	ratio = DEF_RATIO;
+
+    /* open the cache file */
+    out_file =
+	open(outfilename, O_WRONLY | O_CREAT | O_TRUNC,
+	     S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP | S_IROTH);
+    if (out_file == -1)
+	err(1, "Unable to open cache file %s for writing.", outfilename);
+
+  readpcap:
+    /* open the pcap file */
+    if ((pcap = pcap_open_offline(infilename, errbuf)) == NULL) {
+	errx(1, "Error opening file: %s", errbuf);
+    }
+
+    totpackets = process_raw_packets(pcap);
+    pcap_close(pcap);
+
+
+    /* we need to process the pcap file twice in HASH/AUTO mode */
+    if (mode == AUTO_MODE) {
+	mode = automode;
+	if (mode == ROUTER_MODE) {	/* do we need to convert TREE->CIDR? */
+	    if (info)
+		fprintf(stderr, "Building network list from pre-cache...\n");
+	    if (!process_tree()) {
+		fprintf(stderr,
+			"Error: unable to build a valid list of servers. Aborting.\n");
+		exit(1);
+	    }
 	}
-#ifdef DEBUG
-	if (debug && (cidrdata != NULL))
-		print_cidr(cidrdata);
-#endif
+	else {
+	    /*
+	     * in bridge mode we need to calculate client/sever
+	     * manually since this is done automatically in
+	     * process_tree()
+	     */
+	    rbwalk(rbdata, tree_calculate, (void *)rbdata);
+	}
 
-	/* write cache data */
-	totpackets = write_cache(cachedata, out_file, totpackets);
 	if (info)
-		fprintf(stderr, "Done.\nCached %lu packets.\n", totpackets);
+	    fprintf(stderr, "Buliding cache file...\n");
+	/* 
+	 * re-process files, but this time generate
+	 * cache 
+	 */
+	goto readpcap;
+    }
+#ifdef DEBUG
+    if (debug && (cidrdata != NULL))
+	print_cidr(cidrdata);
+#endif
 
-	/* close cache file */
-	close(out_file);
-	return 0;
+    /* write cache data */
+    totpackets = write_cache(cachedata, out_file, totpackets);
+    if (info)
+	fprintf(stderr, "Done.\nCached %lu packets.\n", totpackets);
+
+    /* close cache file */
+    close(out_file);
+    return 0;
 
 }

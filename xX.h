@@ -11,7 +11,7 @@
  * CIDR *xX_cidr = NULL;
  * LIST *xX_list = NULL;
  */
- 
+
 
 void *parse_xX_str(char, char *);
 int process_xX_by_cidr(int, CIDR *, ip_hdr_t *);
@@ -25,7 +25,7 @@ int process_xX_by_cidr(int, CIDR *, ip_hdr_t *);
 #define xXBoth 4
 #define xXEither 8
 #define xXPacket 16
-#define xXExclude 128 /* if exclude mode, add 128 to above value */
+#define xXExclude 128		/* if exclude mode, add 128 to above value */
 
 
 #endif

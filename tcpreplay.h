@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.28 2003/01/12 05:57:42 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.29 2003/03/24 04:59:58 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -28,44 +28,44 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 
 /* run-time options */
 struct options {
-	LIBNET *intf1;
-	LIBNET *intf2;
-	char intf1_mac[6];
-	char intf2_mac[6];
-	float rate;
-	float mult;
-	float pause;
-	int n_iter;
-	int cache_packets;
-	int verbose;
-	int no_martians;
-	int topspeed;
-	int cidr;
-	int trunc;
-	long int seed;
-	char **files;
-	char *cache_files;
+    LIBNET *intf1;
+    LIBNET *intf2;
+    char intf1_mac[6];
+    char intf2_mac[6];
+    float rate;
+    float mult;
+    float pause;
+    int n_iter;
+    int cache_packets;
+    int verbose;
+    int no_martians;
+    int topspeed;
+    int cidr;
+    int trunc;
+    long int seed;
+    char **files;
+    char *cache_files;
 };
 
 /* internal representation of a packet */
 struct packet {
-	char data[MAXPACKET];	/* pointer to packet contents */
-	int len;				/* length of data (snaplen) */
-	int actual_len;				/* actual length of the packet */
-	struct timeval ts;			/* timestamp */
+    char data[MAXPACKET];	/* pointer to packet contents */
+    int len;			/* length of data (snaplen) */
+    int actual_len;		/* actual length of the packet */
+    struct timeval ts;		/* timestamp */
 };
 
 
-#define RESOLVE 0                /* disable dns lookups */
+#define RESOLVE 0		/* disable dns lookups */
 
-#define EBUF_SIZE 256            /* size of our error buffers */
-#define MAC_SIZE  7              /* size of the mac[] buffer */
+#define EBUF_SIZE 256		/* size of our error buffers */
+#define MAC_SIZE  7		/* size of the mac[] buffer */
 
-#define CIDR_MODE 1    /* single pass, CIDR netblock */
-#define REGEX_MODE 2   /* single pass, Regex */
-#define AUTO_MODE 4    /* first pass through in auto mode */
-#define ROUTER_MODE 8  /* second pass through in router/auto mode */
-#define BRIDGE_MODE 32 /* second pass through in bridge/auto mode */
+#define CIDR_MODE 1		/* single pass, CIDR netblock */
+#define REGEX_MODE 2		/* single pass, Regex */
+#define AUTO_MODE 4		/* first pass through in auto mode */
+#define ROUTER_MODE 8		/* second pass through in router/auto mode */
+#define BRIDGE_MODE 32		/* second pass through in bridge/auto mode */
 
 #define DNS_QUERY_FLAG 0x8000
 
@@ -74,12 +74,12 @@ struct packet {
 #define UNKNOWN -1
 #define ANY 2
 
-#define DEBUG_INFO 1      /* informational only, lessthan 1 line per packet */
-#define DEBUG_BASIC 2     /* limited debugging, one line per packet */
-#define DEBUG_DETAILED 3  /* more detailed, a few lines per packet */
-#define DEBUG_CODE 4      /* examines code & values, many lines per packet */
+#define DEBUG_INFO 1		/* informational only, lessthan 1 line per packet */
+#define DEBUG_BASIC 2		/* limited debugging, one line per packet */
+#define DEBUG_DETAILED 3	/* more detailed, a few lines per packet */
+#define DEBUG_CODE 4		/* examines code & values, many lines per packet */
 
-#define PAD_PACKET 1	 /* values for the 'uflag' in tcpreplay */
+#define PAD_PACKET 1		/* values for the 'uflag' in tcpreplay */
 #define TRUNC_PACKET 2
 
 

@@ -1,4 +1,4 @@
-/* $Id: err.h,v 1.2 2002/10/03 01:01:10 aturner Exp $ */
+/* $Id: err.h,v 1.3 2003/03/24 04:59:58 aturner Exp $ */
 
 /*
  * err.h
@@ -43,10 +43,10 @@
 
 #ifndef _ERR_H_
 #define _ERR_H_
-void    dbg(int dbg_level, const char *fmt, ...);
-void	err(int eval, const char *fmt, ...);
-void	warn(const char *fmt, ...);
-void	errx(int eval, const char *fmt, ...);
-void	warnx(const char *fmt, ...);
+void dbg(int dbg_level, const char *fmt, ...);
+void err(int eval, const char *fmt, ...);
+void warn(const char *fmt, ...);
+void errx(int eval, const char *fmt, ...);
+void warnx(const char *fmt, ...);
 
 #endif /* !_ERR_H_ */

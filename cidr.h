@@ -8,9 +8,9 @@
 #define __CIDR_H__
 
 struct cidr_type {
-	unsigned long network;
-	int masklen;
-	struct cidr_type *next;
+    unsigned long network;
+    int masklen;
+    struct cidr_type *next;
 };
 
 typedef struct cidr_type CIDR;

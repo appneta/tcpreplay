@@ -9,19 +9,19 @@
 #define __TREE_H__
 
 struct tree_type {
-	unsigned long ip;	/* ip/network address in network byte order */
-	u_char mac[6];		/* mac address of system */
-	int masklen;		/* CIDR network mask length */
-	int server_cnt;		/* count # of times this entry was flagged server */
-	int client_cnt;		/* flagged client */
-	int type;			/* 1 = server, 0 = client, -1 = undefined */
+    unsigned long ip;		/* ip/network address in network byte order */
+    u_char mac[6];		/* mac address of system */
+    int masklen;		/* CIDR network mask length */
+    int server_cnt;		/* count # of times this entry was flagged server */
+    int client_cnt;		/* flagged client */
+    int type;			/* 1 = server, 0 = client, -1 = undefined */
 };
 
 typedef struct tree_type TREE;
 
 struct buildcidr_type {
-	int type;		/* SERVER|CLIENT|UNKNOWN|ANY */
-	int masklen;	/* mask size to use to build the CIDR */
+    int type;			/* SERVER|CLIENT|UNKNOWN|ANY */
+    int masklen;		/* mask size to use to build the CIDR */
 };
 
 typedef struct buildcidr_type BUILDCIDR;

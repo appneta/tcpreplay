@@ -21,55 +21,56 @@ extern int include_exclude_mode;
  */
 
 void *
-parse_xX_str(char mode, char *str) 
+parse_xX_str(char mode, char *str)
 {
-	LIST *list = NULL;
-	CIDR *cidr = NULL;
+    LIST *list = NULL;
+    CIDR *cidr = NULL;
 
-	switch (*str) {
-	case 'P':
-		str = str + 2;
-		include_exclude_mode = xXPacket;
-		if (!parse_list(&list, str))
-			return NULL;
-		break;
-	case 'S':
-		str = str + 2;
-		include_exclude_mode = xXSource;
-		if (!parse_cidr(&cidr, str))
-			return NULL;
-		break;
-	case 'D':
-		str = str + 2;
-		include_exclude_mode = xXDest;
-		if (!parse_cidr(&cidr, str))
-			return NULL;
-		break;
-	case 'B':
-		str = str + 2;
-		include_exclude_mode = xXBoth;
-		if (!parse_cidr(&cidr, str))
-			return NULL;
-		break;
-	case 'E':
-		str = str + 2;
-		include_exclude_mode = xXEither;
-		if (!parse_cidr(&cidr, str))
-			return NULL;
-		break;
-	default:
-		errx(1, "Invalid -%c option: %c", mode, *str);
-		break;
-	}
+    switch (*str) {
+    case 'P':
+	str = str + 2;
+	include_exclude_mode = xXPacket;
+	if (!parse_list(&list, str))
+	    return NULL;
+	break;
+    case 'S':
+	str = str + 2;
+	include_exclude_mode = xXSource;
+	if (!parse_cidr(&cidr, str))
+	    return NULL;
+	break;
+    case 'D':
+	str = str + 2;
+	include_exclude_mode = xXDest;
+	if (!parse_cidr(&cidr, str))
+	    return NULL;
+	break;
+    case 'B':
+	str = str + 2;
+	include_exclude_mode = xXBoth;
+	if (!parse_cidr(&cidr, str))
+	    return NULL;
+	break;
+    case 'E':
+	str = str + 2;
+	include_exclude_mode = xXEither;
+	if (!parse_cidr(&cidr, str))
+	    return NULL;
+	break;
+    default:
+	errx(1, "Invalid -%c option: %c", mode, *str);
+	break;
+    }
 
-	if (mode == 'X')
-		include_exclude_mode += xXExclude;
+    if (mode == 'X')
+	include_exclude_mode += xXExclude;
 
-	if (cidr != NULL) {
-		return (void *)cidr;
-	} else {
-		return (void *)list;
-	}
+    if (cidr != NULL) {
+	return (void *)cidr;
+    }
+    else {
+	return (void *)list;
+    }
 
 }
 
@@ -81,82 +82,91 @@ parse_xX_str(char mode, char *str)
  */
 
 
-int 
-process_xX_by_cidr(int mode, CIDR *cidr, ip_hdr_t *ip_hdr)
+int
+process_xX_by_cidr(int mode, CIDR * cidr, ip_hdr_t * ip_hdr)
 {
 
-	if (mode & xXExclude) {
-		/* Exclude mode */
-		switch(mode) {
-		case xXSource:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		case xXDest:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		case xXBoth:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
-				check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		case xXEither:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
-				check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-				return 0;
-			} else {
-				return 1;
-			}
-			break;
-		}
-	} else {
-		/* Include Mode */
-		switch(mode) {
-		case xXSource:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		case xXDest:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		case xXBoth:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
-				check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		case xXEither:
-			if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
-				check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
-				return 1;
-			} else {
-				return 0;
-			}
-			break;
-		}
+    if (mode & xXExclude) {
+	/* Exclude mode */
+	switch (mode) {
+	case xXSource:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
+		return 0;
+	    }
+	    else {
+		return 1;
+	    }
+	    break;
+	case xXDest:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr)) {
+		return 0;
+	    }
+	    else {
+		return 1;
+	    }
+	    break;
+	case xXBoth:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
+		check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
+		return 0;
+	    }
+	    else {
+		return 1;
+	    }
+	    break;
+	case xXEither:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
+		check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
+		return 0;
+	    }
+	    else {
+		return 1;
+	    }
+	    break;
 	}
-	
-	/* total failure */
-	warnx("Unable to determine action in CIDR filter mode");
-	return 0;
+    }
+    else {
+	/* Include Mode */
+	switch (mode) {
+	case xXSource:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
+		return 1;
+	    }
+	    else {
+		return 0;
+	    }
+	    break;
+	case xXDest:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr)) {
+		return 1;
+	    }
+	    else {
+		return 0;
+	    }
+	    break;
+	case xXBoth:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) &&
+		check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
+		return 1;
+	    }
+	    else {
+		return 0;
+	    }
+	    break;
+	case xXEither:
+	    if (check_ip_CIDR(cidr, ip_hdr->ip_dst.s_addr) ||
+		check_ip_CIDR(cidr, ip_hdr->ip_src.s_addr)) {
+		return 1;
+	    }
+	    else {
+		return 0;
+	    }
+	    break;
+	}
+    }
+
+    /* total failure */
+    warnx("Unable to determine action in CIDR filter mode");
+    return 0;
 
 }

@@ -18,9 +18,9 @@
  */
 
 struct cache_type {
-	char data[CACHEDATASIZE];
-	unsigned int bits;
-	struct cache_type *next;
+    char data[CACHEDATASIZE];
+    unsigned int bits;
+    struct cache_type *next;
 };
 
 /*
@@ -31,19 +31,19 @@ struct cache_type {
  * to increment  CACHEVERSION
  */
 struct cache_file_header {
-	char magic[8];
-	char version[3];
-	/* begin version 2 features */
-	/* version 3 puts everything in network-byte order */
-	u_int32_t num_packets; /* total # of packets in file */
-	u_int16_t packets_per_byte;
+    char magic[8];
+    char version[3];
+    /* begin version 2 features */
+    /* version 3 puts everything in network-byte order */
+    u_int32_t num_packets;	/* total # of packets in file */
+    u_int16_t packets_per_byte;
 };
 
 typedef struct cache_type CACHE;
 typedef struct cache_file_header CACHE_HEADER;
 
-#define CACHE_PACKETS_PER_BYTE 4 /* number of packets / byte */
-#define CACHE_BITS_PER_PACKET 2  /* number of bites / packet */
+#define CACHE_PACKETS_PER_BYTE 4	/* number of packets / byte */
+#define CACHE_BITS_PER_PACKET 2	/* number of bites / packet */
 
 unsigned long write_cache(CACHE *, const int, unsigned long);
 void add_cache(CACHE **, const int, const int);
