@@ -34,15 +34,15 @@
 #define __LIST_H__
 
 struct list_s {
-    u_int64_t max;
-    u_int64_t min;
+    COUNTER max;
+    COUNTER min;
     struct list_s *next;
 };
 
 typedef struct list_s list_t;
 
 int parse_list(list_t **, char *);
-int check_list(list_t *, u_int64_t);
+int check_list(list_t *, COUNTER);
 void free_list(list_t *);
 
 #endif

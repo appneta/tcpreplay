@@ -158,7 +158,7 @@ parse_list(list_t ** listdata, char *ourstr)
  * Returns 1 for true, 0 for false
  */
 int
-check_list(list_t * list, u_int64_t value)
+check_list(list_t * list, COUNTER value)
 {
     list_t *current;
 
