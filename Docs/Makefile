@@ -1,30 +1,40 @@
 MAKEFLAGS=-s
 
-all: html pdf txt ps rmtemp
+all: images pdf txt ps rmtemp
 
-FAQ.tex:
+images:
+	fig2dev -L eps flowheader.fig flowheader.eps
+
+tex:
 	lyx -e latex FAQ.lyx
+	lyx -e latex flowreplay.lyx
 
-dvi: FAQ.tex 
+dvi: tex 
 	texi2dvi FAQ.tex
+	texi2dvi flowreplay.tex
 
-html: FAQ.tex 
+html: tex 
 	latex2html -nonavigation -no_subdir -split 0 -show_section_numbers FAQ.tex
+	latex2html -nonavigation -no_subdir -split 0 -show_section_numbers flowreplay.tex
 
 
-pdf: FAQ.tex dvi
+pdf: tex dvi
 	dvipdf FAQ.dvi
+	dvipdf flowreplay.dvi
 
 txt:
 	lyx -e text FAQ.lyx
+	lyx -e text flowreplay.lyx
 
-ps: FAQ.tex dvi
+ps: tex dvi
 	dvips -o FAQ.ps FAQ.dvi
+	dvips -o flowreplay.ps flowreplay.dvi
 
 rmtemp:
-	rm -f labels.pl FAQ.log FAQ.toc WARNINGS FAQ.aux index.html 
-	rm -f FAQ.dvi FAQ.tex
-clean:
+	rm -f labels.pl *.log *.toc WARNINGS *.aux index.html 
+	rm -f *.dvi *.tex
+
+clean: rmtemp
 	rm -f *~
 
 distclean: rmtemp clean
