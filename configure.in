@@ -4,7 +4,7 @@ dnl $Id$
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
 
-SVN_VERSION=$Revision:$
+SVN_VERSION=$Revision$
 AC_SUBST(SVN_VERSION)
 
 dnl Set version info here!
