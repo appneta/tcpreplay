@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.59 2004/05/22 05:25:45 aturner Exp $
+# $Id: Makefile.in,v 1.60 2004/07/25 23:37:14 aturner Exp $
 
 prefix		= @prefix@
 BINDIR		= ${prefix}/bin
@@ -61,6 +61,9 @@ pcapmerge: $(MOBJS)
 
 flowreplay: $(FOBJS)
 	$(CC) $(CFLAGS) $(DEFS) -o $@ $(FOBJS) $(LDFLAGS) $(LIBS)
+
+dlt_names:
+	cat /usr/include/net/bpf.h | ./scripts/dlt2name.pl
 
 clean:
 	-rm -f *.o *core $(BINARIES)
