@@ -33,7 +33,7 @@
 #ifndef __TCPREPLAY_H__
 #define __TCPREPLAY_H__
 
-#include "../config.h"
+#include "config.h"
 #include "defines.h"
 
 #include <sys/types.h>
