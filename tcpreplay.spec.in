@@ -8,8 +8,8 @@ Source0: http://prdownloads.sf.net/tcpreplay/tcpreplay-%{version}.tar.gz
 Prefix: %{_prefix}
 BuildRoot: %{_tmppath}/%{name}-root
 Packager: Aaron Turner <aturner@pobox.com>
-Requires: libnet >= 1.1
-BuildPreReq: libnet >= 1.1
+Requires: libnet >= 1.1, libpcap >= 0.7.1
+BuildPreReq: libnet >= 1.1, libpcap >= 0.7.1
 URL: http://tcpreplay.sf.net/
 
 # set to 1 to enable debugging
@@ -41,16 +41,18 @@ mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
 install -m755 tcpreplay $RPM_BUILD_ROOT%{_sbindir} 
 install -m755 tcpprep $RPM_BUILD_ROOT%{_bindir} 
 install -m755 capinfo $RPM_BUILD_ROOT%{_bindir}
+install -m755 pcapmerge $RPM_BUILD_ROOT%{_bindir}
 install -m644 tcpreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
 install -m644 tcpprep.1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -m644 capinfo.1 $RPM_BUILD_ROOT%{_mandir}/man1
+install -m644 pcapmerge.1 $RPM_BUILD_ROOT%{_mandir}/man1
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
 %files
 %defattr(-,root,root)
-%doc	CHANGELOG LICENSE tcpprep.FAQ README
+%doc	CHANGELOG LICENSE README Docs/FAQ.html
 %{_bindir}/*
 %{_sbindir}/*
 %{_mandir}/man8/*
@@ -58,5 +60,8 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Sun Dec 22 2002 Aaron Turner <aturner@pobox.com>
+- Update packaging to add pcapmerge and remove tcpprep.FAQ
+
 * Fri Jun 28 2002 Aaron Turner <aturner@pobox.com>
 - Initial packaging
