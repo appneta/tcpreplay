@@ -40,7 +40,7 @@ http://tcpreplay.sourceforge.net/
 
 Last Edited:
 \newline 
-June 7, 2003
+Aug 30, 2003
 \layout Standard
 \pagebreak_top \pagebreak_bottom 
 
@@ -133,12 +133,34 @@ As root:
 
 There are some optional arguments which can be passed to the configure script
  which may help in cases where your libnet or libpcap installation is not
- standard.
+ standard or if it can't determine the correct network interface card to
+ use for testing.
  If you find that configure isn't completing correctly, run:
 \emph on 
  ./configure --help
 \emph default 
  for more information.
+\layout Standard
+
+A few comments about 'make test':
+\layout Itemize
+
+make test is just a series of sanity checks which try to find serious bugs
+ (crashes) in tcpprep and tcpreplay.
+\layout Itemize
+
+make test requires at least one properly configured network interface.
+\layout Itemize
+
+If make test fails, you can find details in test/test.log
+\layout Itemize
+
+OpenBSD's make has a bug where it ignores the MAKEFLAGS variable in the
+ Makefile, hence you'll probably want to run: 
+\emph on 
+make -is test
+\emph default 
+ instead.
 \layout Subsection
 
 Are there binaries available?
@@ -247,8 +269,7 @@ Let us know! Many of the features exist today because users like you asked
 I've written a patch for tcpreplay, how can I submit it?
 \layout Standard
 
-I'm always willing to include new features or bug requests submitted by
- users.
+I'm always willing to include new features or bug fixes submitted by users.
  You may email me directly or the tcpreplay-users mailing list.
  Please 
 \emph on 
@@ -280,6 +301,11 @@ Please provide a description of what your patch does!
 \layout Itemize
 
 Comment your code! I won't use code I can't understand.
+\layout Itemize
+
+Make sure you are patching a branch that is still being maintained.
+ Generally that means that most recent stable and development branches (1.4
+ and 1.5 at the time of this writing).
 \layout Itemize
 
 Make sure you are patching against the most recent release for that branch.
@@ -395,11 +421,11 @@ To replay traffic at half-speed:
 tcpreplay -m 0.5 -i eth0 sample.pcap
 \layout Itemize
 
-To pause 1.005 seconds between each packet:
+To replay at 25.5 packets per second:
 \newline 
 
 \emph on 
-tcpreplay -p 1.005 -i eth0 sample.pcap
+tcpreplay -p 25.5 -i eth0 sample.pcap
 \layout Subsection
 
 Replaying the same file over and over again
@@ -408,7 +434,7 @@ Replaying the same file over and over again
 Using the loop flag (-l) you can specify that a pcap file will be sent two
  or more times
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -658,7 +684,76 @@ Rewrite packet header lenghts to the actual packet size:
 tcpreplay -i eth0 -u trunc sample.pcap
 \layout Subsection
 
+Replaying packets which are bigger then the MTU
+\layout Standard
+
+Occasionally, you might find yourself trying to replay a pcap file which
+ contains packets which are larger then the MTU for the sending interface.
+ This might be due to the packets being captured on the loopback interface
+ or on a 1000Mbps ethernet interface supporting 
+\begin_inset Quotes eld
+\end_inset 
+
+jumbo frames
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ I've even seen packets which are 1500 bytes but contain both an ethernet
+ header and trailer which bumps the total frame size to 1518 which is 4
+ bytes too large.
+\layout Standard
+
+By default, tcpreplay will skip these packets and not send them.
+ Alternatively, you can specify the -T flag to truncate these packets to
+ the MTU and then send them.
+ Of course this may invalidate your testing, but it has proven useful in
+ certain situations.
+ Example:
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 -T sample.pcap
+\layout Subsection
+
+Writing packets to a file
+\layout Standard
+
+It's not always necessary to write packets to the network.
+ Since tcpreplay has so many features which modify and select which packets
+ are sent, it is occasionally useful to save these changes to another pcap
+ file for comparision.
+ Rather then running a seperate tcpdump process to capture the packets,
+ tcpreplay now supports output directly to a file.
+ Example:
+\layout Standard
+
+
+\emph on 
+tcpreplay -i eth0 -w output.pcap -F -u pad -x E:10.0.0.0/8 input1.pcap input2.pcap
+ input3.pcap
+\layout Standard
+
+Notice that specifying an interface is still required (required for various
+ internal functions), but all the packets will be written to 
+\emph on 
+output.pcap
+\emph default 
+.
+\layout Subsection
+
 Using Configuration Files
+\layout Standard
+
+Tcpreplay now supports well over twenty options, many of which take multiple
+ arguments.
+ The tcpreplay configuration file can be used to store configuration options
+ that will be used over and over again rather then having to specify them
+ on the command line.
+ You specify the config file name via -f <filename> and place on option
+ per line.
+ For a list of all the options, see the tcpreplay(8) man page.
 \layout Subsection
 
 Replaying Packet Capture Formats Other Than Libpcap
@@ -727,7 +822,7 @@ Starting in the 1.5.x branch, tcpreplay can replace the existing layer 2 header
 
 DLT_EN10MB
 \newline 
-Replace existing 802.3/EthernetII header
+Replace existing 802.3/Ethernet II header
 \layout Itemize
 
 DLT_RAW
@@ -1247,6 +1342,8 @@ Packet length (8892) is greater then MTU; skipping packet.
 The packet length (in this case 8892 bytes) is greater then the maximum
  transmition unit (MTU) on the outgoing intreface.
  Tcpreplay must skip the packet.
+ Alternatively, you can specify the -T option and tcpreplay will truncate
+ the packet to the MTU size and send it.
 \layout Section
 
 Other pcap tools available
