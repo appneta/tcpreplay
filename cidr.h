@@ -1,4 +1,4 @@
-/* $Id: cidr.h,v 1.10 2004/02/03 22:47:45 aturner Exp $ */
+/* $Id: cidr.h,v 1.11 2004/05/15 21:16:57 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
@@ -52,6 +52,7 @@ int ip_in_cidr(const CIDR *, const unsigned long);
 int check_ip_CIDR(CIDR *, const unsigned long);
 int parse_cidr(CIDR **, char *, char *delim);
 int parse_cidr_map(CIDRMAP **, char *);
+int parse_endpoints(CIDRMAP **, CIDRMAP **, char *);
 u_char *ip2cidr(const unsigned long, const int);
 void add_cidr(CIDR *, CIDR **);
 CIDR *new_cidr(void);
