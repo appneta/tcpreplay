@@ -272,7 +272,7 @@ process_raw_packets(pcap_t * pcap)
     const u_char *pktdata = NULL;
     COUNTER packetnum = 0;
     int l2len, cache_result = 0;
-    u_char ipbuff[MAXPACKET];
+    u_char ipbuff[MAXPACKET], *buffptr;
 #ifdef HAVE_TCPDUMP
     struct pollfd poller[1];
     
@@ -301,7 +301,8 @@ process_raw_packets(pcap_t * pcap)
         }
 
         /* get the IP header (if any) */
-        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, pcap_datalink(pcap), &ipbuff);
+        buffptr = ipbuff;
+        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, pcap_datalink(pcap), &buffptr);
         
         if (ip_hdr == NULL) {
             dbg(2, "Packet isn't IP");
