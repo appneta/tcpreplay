@@ -1,4 +1,4 @@
-/* $Id: edit_packet.c,v 1.2 2003/06/07 18:20:02 aturner Exp $ */
+/* $Id: edit_packet.c,v 1.3 2003/07/17 00:40:24 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner
@@ -28,17 +28,31 @@ extern struct options options;
 void
 fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t *ip_hdr, libnet_t *l, int l2len)
 {
+    tcp_hdr_t *tcp_hdr;
+    udp_hdr_t *udp_hdr;
+
     /* recalc the UDP/TCP checksum(s) */
-    if ((ip_hdr->ip_p == IPPROTO_UDP) || (ip_hdr->ip_p == IPPROTO_TCP)) {
+    if (ip_hdr->ip_p == IPPROTO_UDP) {
+	/* zero out checksum */
+	udp_hdr = (udp_hdr_t *)((u_char *)ip_hdr + (ip_hdr->ip_hl * 4));
+	udp_hdr->uh_sum = 0;
 	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
-			       pkthdr->caplen - l2len - (ip_hdr->ip_hl * 4)) < 0)
-	    warnx("Layer 4 checksum failed");
+			       ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl * 4)) < 0)
+	    warnx("UDP checksum failed");
+    } else if  (ip_hdr->ip_p == IPPROTO_TCP) {
+	/* zero out checksum */
+	tcp_hdr = (tcp_hdr_t *)((u_char *)ip_hdr + (ip_hdr->ip_hl * 4));
+	tcp_hdr->th_sum = 0;
+	if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, ip_hdr->ip_p,
+			       ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl * 4)) < 0)
+	    warnx("TCP checksum failed");
     }
     
     
     /* recalc IP checksum */
+    ip_hdr->ip_sum = 0;
     if (libnet_do_checksum((libnet_t *) l, (u_char *) ip_hdr, IPPROTO_IP,
-			   pkthdr->caplen - l2len - (ip_hdr->ip_hl * 4)) < 0)
+			   ntohs(ip_hdr->ip_len)) < 0)
 	warnx("IP checksum failed");
 }
 
