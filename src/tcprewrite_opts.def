@@ -43,6 +43,7 @@ flag = {
   
     options.rewrite_ip ++;
     options.seed = atoi(OPT_ARG(SEED));
+
 EOSeed;
 };
 
@@ -56,6 +57,7 @@ flag = {
     
     dualmac2hex(OPT_ARG(DMAC), options.intf1_dmac, options.intf2_dmac,
         strlen(OPT_ARG(DMAC)));
+
 EODmac;
 };
 
@@ -69,6 +71,7 @@ flag = {
     
     dualmac2hex(OPT_ARG(SMAC), options.intf1_smac, options.intf2_smac,
         strlen(OPT_ARG(SMAC)));
+
 EOSmac;
 };
 
@@ -81,20 +84,18 @@ flag = {
     flag-code   = <<- EOPnat
     
     static int count = 1;
-    char *string;
+
     options.rewrite_ip ++;
     
-    string = safe_strdup(OPT_ARG(PNAT));
-    
     if (count == 1) {
-        if (! parse_cidr_map(&options.cidrmap1, string))
+        if (! parse_cidr_map(&options.cidrmap1, OPT_ARG(PNAT)))
             errx(1, "Unable to parse primary pseudo-NAT: %s", OPT_ARG(PNAT));
         count ++;
     } else {
-        if (! parse_cidr_map(&options.cidrmap2, string))
+        if (! parse_cidr_map(&options.cidrmap2, OPT_ARG(PNAT)))
             errx(1, "Unable parse secondary pseudo-NAT: %s", OPT_ARG(PNAT));
     }
-    free(string);
+
 EOPnat;
 };
 
@@ -108,26 +109,28 @@ flag = {
 
     static int count = 1;
     
+    options.l2.enabled = 1;
+    
     if (count == 1) {
-        options.l2.enabled = 1;
         options.l2.len = read_hexstring(OPT_ARG(DLINK), options.l2.data1, L2DATALEN);
         count ++;
     } else {
         if (options.l2.len != read_hexstring(OPT_ARG(DLINK), options.l2.data2, L2DATALEN))
             err(1, "Layer2 data for both interfaces must be the same length");
     }
-    
+
 EODlink;
 };
 
 flag = {
     name        = fixcsum;
-    value       = F;
+    value       = C;
     disable;
     descrip     = "Force recalculation of IP/TCP/UDP checksums";
     flag-code   = <<- EOFixcsum
   
     options.fixcsum = 1;
+
 EOFixcsum;
 };
 
@@ -142,8 +145,9 @@ flag = {
     
     char ebuf[PCAP_ERRBUF_SIZE];
     options.infile = safe_strdup(OPT_ARG(INFILE));
-    if ((options.pin = pcap_open_offline(OPT_ARG(INFILE), ebuf)) == NULL)
+    if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
         errx(1, "Unable to open input pcap file: %s", ebuf);
+
 EOInfile;
 };
 
@@ -156,8 +160,9 @@ flag = {
     flag-code   = <<- EOOutfile
   
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
-    if ((options.pout = pcap_dump_open(options.pin, OPT_ARG(OUTFILE))) == NULL)
+    if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
         errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
+
 EOOutfile;
 };
 
@@ -172,7 +177,7 @@ flag = {
     
     options.cache_packets = 
         read_cache(&options.cachedata, OPT_ARG(CACHEFILE), &options.comment);
-    
+
 EOCachefile;    
 };
 
@@ -202,6 +207,90 @@ flag = {
 };
 
 flag = {
+    name        = efcs;
+    value       = E;
+    descrip     = "Remove Ethernet checksums (FCS) from end of frames";
+    flag-code   = <<- EOEfcs
+    
+    options.efcs = 1;
+
+EOEfcs;
+};
+
+flag = {
+    name        = fixlen;
+    value       = F;
+    descrip     = "Pad or truncate packet data to match header length";
+    max         = 1;
+    arg-type    = string;
+    flag-code   = <<- EOFixlen
+
+    if (strcmp(OPT_ARG(FIXLEN), "pad") == 0) {
+        options.fixlen = FIXLEN_PAD;
+    } else if (strcmp(OPT_ARG(FIXLEN), "trunc") == 0) {
+        options.fixlen = FIXLEN_TRUNC;
+    } else {
+        errx(1, "Invalid fixlen argument '%s'.  Must be 'trunc' or 'pad'", OPT_ARG(FIXLEN));
+    }
+
+EOFixlen;
+};
+
+/* rewrite 802.1q vlan tags */
+flag = {
+    name        = vlan;
+    value       = l;
+    max         = 1;
+    descrip     = "Specify 802.1q VLAN tag mode: del, add or edit";
+    arg-type    = string;
+    flag-code   = <<- EOVlan
+
+    if (strcmp(OPT_ARG(VLAN), "add") == 0) {
+        options.vlan = VLAN_ADD;
+    } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
+        options.vlan = VLAN_DEL;
+    } else if (strcmp(OPT_ARG(VLAN), "edit") == 0) {
+        options.vlan = VLAN_EDIT;
+    } else {
+        errx(1, "Invalid vlan argument '%s'.  Must be 'add', 'del' or 'edit'", OPT_ARG(VLAN));
+    }
+
+EOVlan;
+};
+
+flag = {
+    name        = vlan_tag;
+    value       = t;
+    max         = 1;
+    descrip     = "Specify the new 802.1q VLAN tag value";
+    arg-type    = number;
+    arg-range   = "1->65535";
+};
+
+/* Verbose decoding via tcpdump */
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = verbose;
+    value       = v;
+    max         = 1;
+    immediate;
+    descrip     = "Print decoded packets via tcpdump to STDOUT";
+    settable;
+};
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = decode;
+    flags-must  = verbose;
+    value       = A;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Arguments passed to tcpdump decoder";
+};
+
+
+flag = {
     name        = version;
     value       = V;
     descrip     = "Print version information";
@@ -227,7 +316,7 @@ EOVersion;
 
 flag = {
     name        = less-help;
-    value       = "h";
+    value       = h;
     immediate;
     descrip     = "Display less usage information and exit";
     flag-code   = <<- EOHelp
