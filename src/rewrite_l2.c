@@ -249,9 +249,7 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
                     vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_CFI) << 12;
 
                 /* move around our buffers */
-//                memmove(&pktdata[newl2len], (pktdata + oldl2len), (pkthdr->caplen - oldl2len));
                 memcpy(&tmpbuff[newl2len], (pktdata + oldl2len), (pkthdr->caplen - oldl2len));
-//                memcpy(pktdata, tmpbuff, newl2len);
                 memcpy(pktdata, tmpbuff, (pkthdr->caplen + newl2len - oldl2len));
 
             } else {
