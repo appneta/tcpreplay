@@ -1,4 +1,4 @@
-/* $Id: flowstate.c,v 1.1 2003/06/01 23:53:32 aturner Exp $ */
+/* $Id: flowstate.c,v 1.2 2003/06/02 00:02:00 aturner Exp $ */
 
 /*
  * Copyright (c) 2003 Aaron Turner.
@@ -25,16 +25,19 @@ tcp_state(tcp_hdr_t *tcp_hdr, struct session_t *node)
      */
     if (node->state == 0x0) {
 	/*
-	 * We go here if we're trying to pickup the 
-	 * TCP state from mid-stream
+	 * We go here if this is the first packet in the 
+	 * in the TCP stream.  This could be a Syn or
+	 * if we're trying to pickup the state from mid-stream
 	*/
 
-
-	/* = Syn */
+	/* = Syn, start of new flow */
 	if (tcp_hdr->th_flags & TH_SYN) {
 	    node->state = TH_SYN;
-	    dbg(3, "Mid-stream state pickup: Syn");
+	    dbg(3, "Setting state: New -> Syn");
 	}
+
+	/* Anything matching after this point is a mid-stream pickup */
+
 	/* + Ack */
 	if (tcp_hdr->th_flags & TH_ACK) {
 	    node->state ^= TH_ACK;
