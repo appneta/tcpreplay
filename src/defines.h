@@ -3,11 +3,12 @@
 
 #include "config.h"
 #include "lib/strlcpy.h"
+#include "common/list.h"
+#include "common/cidr.h"
 #include <libnet.h>
 #include <pcap.h>
 
 /* Map libnet 1.1 structs to shorter names for internal use */
-typedef libnet_t LIBNET;
 #define LIBNET_IP_H LIBNET_IPV4_H
 #define LIBNET_ICMP_H LIBNET_ICMPV4_H
 
@@ -27,6 +28,40 @@ typedef struct libnet_tcp_hdr tcp_hdr_t;
 typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
 
+/* our custom typdefs/structs */
+typedef u_char macaddr_t[LIBNET_ETH_H];
+ struct bpf_s {
+    char *filter;
+    int optimize;
+    struct bpf_program program;
+};
+typedef struct bpf_s bpf_t;
+
+#define L2DATALEN 255           /* Max size of the L2 data file */
+    
+struct l2_s {
+    int enabled;
+    int len;
+    u_char data1[L2DATALEN];
+    u_char data2[L2DATALEN];
+    int linktype;
+};
+typedef struct l2_s l2_t;
+
+struct xX_s {
+#define xX_MODE_INCLUDE x
+#define xX_MODE_EXCLUDE X
+    int mode;
+    union match_u {
+        LIST *list;
+        CIDR *cidr;
+    } match;
+#define xX_TYPE_LIST 1
+#define xX_TYPE_CIDR 2
+    int type;
+};
+typedef struct xX_s xX_t;
+
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
 #define MAXPACKET 16436         /* MTU of Linux loopback */
@@ -44,8 +79,6 @@ typedef struct libnet_ethernet_hdr eth_hdr_t;
 
 #define PAD_PACKET   1          /* values for the 'uflag' in tcpreplay */
 #define TRUNC_PACKET 2
-
-#define L2DATALEN 255           /* Max size of the L2 data file */
 
 #define DNS_QUERY_FLAG 0x8000
 
