@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.57 2003/06/04 22:51:01 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.58 2003/06/05 02:24:46 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner, Matt Bing.
@@ -342,7 +342,15 @@ replay_file(char *path, int l2enabled, char *l2data, int l2len)
 	if (linktype == DLT_LINUX_SLL) {
 	    /* if SLL, then either -2 or -I are ok */
 	    if ((memcmp(options.intf1_mac, NULL_MAC, 6) == 0) && (! l2enabled)) {
-		warnx("Unable to process Linux Cooked Socket pcap without layer 2 data or dst MAC rewriting: %s", path);
+		warnx("Unable to process Linux Cooked Socket pcap without -2 or -I: %s", path);
+		return;
+	    }
+
+	    /* if using dual interfaces, make sure -2 or -J is set */
+	    if (options.intf2 && 
+		((! l2enabled ) || 
+		 (memcmp(options.intf2_mac, NULL_MAC, 6) == 0))) {
+		warnx("Unable to process Linux Cooked Socket pcap with -j without -2 or -J: %s", path);
 		return;
 	    }
 	} else if (! l2enabled) {
