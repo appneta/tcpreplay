@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.10 2002/06/28 06:27:53 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.11 2002/06/28 20:08:25 aturner Exp $ */
 
 #include "config.h"
 
@@ -76,9 +76,11 @@ main(int argc, char *argv[])
 			cache_file = optarg;
 			cache_packets = read_cache(cache_file);
 			break;
+#ifdef DEBUG
 		case 'd': /* enable debug */
 			debug = 1;
 			break;
+#endif
 		case 'h': /* help */
 			usage();
 			exit (0);
