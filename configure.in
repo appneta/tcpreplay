@@ -3,6 +3,7 @@ dnl $Id$
 
 AC_INIT(src/tcpreplay.c)
 AM_CONFIG_HEADER(config.h)
+AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE
 
 dnl Set version info here!
