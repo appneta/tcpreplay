@@ -3480,7 +3480,7 @@ if test $ac_cv_c_compiler_gnu = yes -a $debug = no ; then
     CCOPTS='-O2 -pipe -Wall'
     CFLAGS="$CCOPTS"
 else
-	CCOPTS='-pipe -Wall -ggdb'
+	CCOPTS='-pipe -Wall -ggdb -pedantic'
 	CFLAGS="$CCOPTS"
 fi
 

@@ -1,5 +1,5 @@
 
-dnl $Id: configure.in,v 1.27 2003/01/10 04:13:44 aturner Exp $
+dnl $Id: configure.in,v 1.28 2003/01/12 04:43:24 aturner Exp $
 
 AC_INIT(tcpreplay.c)
 AC_CONFIG_HEADER(config.h)
@@ -65,7 +65,7 @@ if test $ac_cv_prog_gcc = yes -a $debug = no ; then
     CCOPTS='-O2 -pipe -Wall'
     CFLAGS="$CCOPTS"
 else
-	CCOPTS='-pipe -Wall -ggdb'
+	CCOPTS='-pipe -Wall -ggdb -pedantic'
 	CFLAGS="$CCOPTS"
 fi
 
