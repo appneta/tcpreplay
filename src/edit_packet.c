@@ -68,6 +68,16 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
         warnx("IP checksum failed: %s", libnet_geterror(options.l));
 }
 
+/*
+ * returns a new 32bit integer which is the randomized IP 
+ * based upon the user specified seed
+ */
+u_int32_t
+randomize_ip(u_int32_t ip)
+{
+    return ((ip ^ options.seed) - (ip & options.seed));
+}
+
 
 /*
  * randomizes the source and destination IP addresses based on a 
@@ -75,20 +85,15 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
  * return 1 since we changed one or more IP addresses
  */
 int
-randomize_ips(struct pcap_pkthdr *pkthdr, u_char * pktdata,
+randomize_ipv4(struct pcap_pkthdr *pkthdr, u_char * pktdata,
               ip_hdr_t * ip_hdr)
 {
     /* randomize IP addresses based on the value of random */
     dbg(1, "Old Src IP: 0x%08lx\tOld Dst IP: 0x%08lx",
         ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
 
-    ip_hdr->ip_dst.s_addr =
-        (ip_hdr->ip_dst.s_addr ^ options.seed) -
-        (ip_hdr->ip_dst.s_addr & options.seed);
-    ip_hdr->ip_src.s_addr =
-        (ip_hdr->ip_src.s_addr ^ options.seed) -
-        (ip_hdr->ip_src.s_addr & options.seed);
-
+    ip_hdr->ip_dst.s_addr = randomize_ip(ip_hdr->ip_dst.s_addr);
+    ip_hdr->ip_src.s_addr = randomize_ip(ip_hdr->ip_src.s_addr);
 
     dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
         ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
@@ -140,91 +145,6 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
     fix_checksums(pkthdr, ip_hdr);
     return(1);
 }
-
-
-/*
- * Do all the layer 2 rewriting.  Change ethernet header or even rewrite mac addresses
- * return layer 2 length on success or 0 on fail (don't send packet)
- */
-int
-rewrite_l2(pcap_t *pcap, struct pcap_pkthdr *pkthdr, u_char * pktdata, int cache_mode)
-{
-    eth_hdr_t *eth_hdr = NULL;
-    u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
-    int oldl2len = 0, newl2len = 0;
-    u_char tmpbuff[MAXPACKET];
-    macaddr_t *dstmac = NULL;
-    macaddr_t *srcmac = NULL;
-
-
-    /* do we need a ptr for l2data ? */
-    if (options.l2.linktype == LINKTYPE_USER)
-        if (cache_mode == CACHE_SECONDARY) {
-            l2data = options.l2.data2;
-        } else {
-            l2data = options.l2.data1;
-        }
-    
-
-    /*
-     * figure out what the CURRENT packet encapsulation is and we'll call
-     * the appropriate function to:
-     * 1) resize the L2 header
-     * 2) copy over existing L2 header info (protocol, MAC's) to a new
-     *    standard 802.3 ethernet header where applicable
-     * We do NOT apply any src/dst mac rewriting, as that is common
-     * to all conversions, so that happens at the bottom of this function
-     */
-    switch (pcap_datalink(pcap)) {
-    case DLT_EN10MB:       /* Standard 802.3 Ethernet */
-        newl2len = rewrite_en10mb(pktdata, pkthdr, l2data);
-        break;
-
-    case DLT_LINUX_SLL:    /* Linux Cooked sockets */
-        newl2len = rewrite_linux_sll(pktdata, pkthdr, l2data);
-        break;
-        
-    case DLT_RAW:          /* No ethernet header, raw IP */
-        newl2len = rewrite_raw(pktdata, pkthdr, l2data);
-        break;
-        
-    case DLT_C_HDLC:         /* Cisco HDLC */
-        newl2len = rewrite_c_hdlc(pktdata, pkthdr, l2data);
-        break;
-
-    } /* switch (linktype) */
-
-    /* if newl2len == 0, then return zero so we don't send the packet */
-    if (! newl2len)
-        return 0;
-
-    /*
-     * Okay... we've got our new layer 2 header
-     * if required.  The next question, is do we have to 
-     * replace the src/dst MAC??
-     */
-
-    if (cache_mode == CACHE_SECONDARY) {
-        if (options.mac_mask & SMAC2) {
-            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf2_smac, ETHER_ADDR_LEN);
-        }
-        if (options.mac_mask & DMAC2) {
-            memcpy(pktdata, options.intf2_dmac, ETHER_ADDR_LEN);
-        }
-        
-    } else {
-        if (options.mac_mask & SMAC1) {
-            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf1_smac, ETHER_ADDR_LEN);
-        }
-        if (options.mac_mask & DMAC1) {
-            memcpy(pktdata, options.intf1_dmac, ETHER_ADDR_LEN);
-        }
-    }
-
-    /* return the updated layer 2 len */
-    return (newl2len);
-}
-
 
 /*
  * Extracts the layer 7 data from the packet for TCP, UDP, ICMP
@@ -428,6 +348,44 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, int cache_mode)
 }
 
 /*
+ * Randomize the IP addresses in an ARP packet based on the user seed
+ * return 0 if no change, or 1 for a change
+ */
+int 
+randomize_iparp(struct pcap_pkthdr *pkthdr, u_char *pktdata, int datalink)
+{
+    arp_hdr_t *arp_hdr = NULL;
+    int l2len = 0;
+    u_int32_t *ip, tempip;
+    u_char *add_hdr;
+
+    l2len = get_l2len(pktdata, pkthdr->caplen, datalink);
+    arp_hdr = (arp_hdr_t *)(pktdata + l2len);
+
+    /*
+     * only rewrite IP addresses from REPLY/REQUEST's
+     */
+    if ((ntohs(arp_hdr->ar_pro) == ETHERTYPE_IP) &&
+        ((ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) ||
+         (ntohs(arp_hdr->ar_op) == ARPOP_REPLY))) {
+
+        /* jump to the addresses */
+        add_hdr = (u_char *)arp_hdr;
+        add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
+        ip = (u_int32_t *)add_hdr;
+        tempip = randomize_ip(*ip);
+        memcpy(ip, &tempip, sizeof(u_int32_t));
+
+        add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
+        ip = (u_int32_t *)add_hdr;
+        tempip = randomize_ip(*ip);
+        memcpy(ip, &tempip, sizeof(u_int32_t));
+    }
+
+    return 1; /* yes we changed the packet */
+}
+
+/*
  * rewrite IP address (arp)
  * uses -a to rewrite (map) one subnet onto another subnet
  * pointer must point to the WHOLE and CONTIGOUS memory buffer
@@ -457,7 +415,8 @@ rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode)
     if (cidrmap1 == NULL || cidrmap2 == NULL)
         return(0);
 
-    /* must be IPv4 and request or reply 
+    /*
+     * must be IPv4 and request or reply 
      * Do other op codes use the same subheader stub?
      * If so we won't need to check the op code.
      */
