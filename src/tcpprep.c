@@ -87,8 +87,6 @@ static void init(void);
 static void post_args(int, char *[]);
 static void print_comment(const char *);
 static void print_info(const char *);
-static void usage();
-static void version();
 static int check_ip_regex(const unsigned long ip);
 static unsigned long process_raw_packets(pcap_t * pcap);
 static int check_dst_port(ip_hdr_t *ip_hdr, int len);
@@ -100,10 +98,10 @@ static int check_dst_port(ip_hdr_t *ip_hdr, int len);
 int
 main(int argc, char *argv[])
 {
-    int out_file, ch, mask_count = 0;
+    int out_file;
     COUNTER totpackets = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
-    int i, optct = 0;
+    int optct = 0;
  
     init();                     /* init our globals */
     
@@ -469,12 +467,14 @@ post_args(int argc, char *argv[])
 {
     char myargs[MYARGS_LEN];
     int i, bufsize;
-    char *string, *tempstr;
+    char *tempstr;
 
     memset(myargs, 0, MYARGS_LEN);
 
+#ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;
+#endif
 
     /* print_comment and print_info don't return */
     if (HAVE_OPT(PRINT))
