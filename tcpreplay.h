@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.30 2003/05/07 17:45:38 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.31 2003/05/07 22:33:30 aturner Exp $ */
 
 #ifndef _TCPREPLAY_H_
 #define _TCPREPLAY_H_
@@ -45,8 +45,6 @@ struct options {
     long int seed;
     char **files;
     char *cache_files;
-    char *layer2file;
-    int l2len;
 };
 
 /* internal representation of a packet */
