@@ -483,8 +483,12 @@ post_args(int argc, char *argv[])
 
 
     /* malloc our buffer to be + 1 strlen so we can null terminate */
-    options.comment = (char *)safe_realloc(options.comment, 
-        strlen(&options.comment) + strlen(myargs) + 1);
+    if (options.comment != NULL) {
+        options.comment = (char *)safe_realloc(options.comment, 
+            strlen(options.comment) + strlen(myargs) + 1);
+    } else {
+        options.comment = (char *)safe_malloc(strlen(myargs) + 1);
+    }
                 
 
     strlcat(options.comment, myargs, sizeof(options.comment));
@@ -498,7 +502,7 @@ post_args(int argc, char *argv[])
     if (HAVE_OPT(MAXMASK))
         options.max_mask = OPT_VALUE_MAXMASK;
     
-    if (options.min_mask > options.max_mask)
+    if (! options.min_mask > options.max_mask)
         errx(1, "Min network mask len (%d) must be less then max network mask len (%d)",
         options.min_mask, options.max_mask);
     
