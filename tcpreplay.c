@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.37 2002/10/08 18:11:50 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.38 2002/10/14 03:22:00 aturner Exp $ */
 
 #include "config.h"
 
@@ -20,9 +20,10 @@
 #include "list.h"
 #include "err.h"
 #include "do_packets.h"
+#include "xX.h"
 
 struct options options;
-CACHE *cachedata = NULL;
+char *cachedata = NULL;
 CIDR *cidrdata = NULL;
 struct timeval begin, end;
 unsigned long bytes_sent, failed, pkts_sent;
@@ -30,11 +31,9 @@ char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
 int cache_bit, cache_byte, cache_packets;
 volatile int didsig;
 
-char include_exclude_mode;
-CIDR *include_cidr = NULL;
-CIDR *exclude_cidr = NULL;
-LIST *include_list = NULL;
-LIST *exclude_list = NULL;
+int include_exclude_mode;
+CIDR *xX_cidr = NULL;
+LIST *xX_list = NULL;
 
 
 #ifdef DEBUG
@@ -50,14 +49,13 @@ void version();
 void mac2hex(const char *, char *, int); 
 void configfile(char *);
 int argv_create(char *, int, char **);
-void * parse_xX(char *);
 
 int
 main(int argc, char *argv[])
 {
 	char ebuf[256]; 
 	int ch, i;
-	char *str;
+	void *xX;
 
 	bytes_sent = failed = pkts_sent = 0;
 	intf = intf2 = NULL;
@@ -78,7 +76,7 @@ main(int argc, char *argv[])
 		switch(ch) {
 		case 'c': /* cache file */
 			cache_file = optarg;
-			cache_packets = read_cache(cache_file);
+			cache_packets = read_cache(&cachedata, cache_file);
 			break;
 		case 'C': /* cidr matching */
 			options.cidr = 1;
@@ -153,10 +151,24 @@ main(int argc, char *argv[])
 			version();
 			break;
 		case 'x':
-			options.include = optarg;
+			include_exclude_mode = optind;
+			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+				errx(1, "Unable to parse -x: %s", optarg);
+			if (include_exclude_mode & xXPacket) {
+				xX_list = (LIST *)xX;
+			} else {
+				xX_cidr = (CIDR *)xX;
+			}
 			break;
 		case 'X':
-			options.exclude = optarg;
+			include_exclude_mode = optind;
+			if ((xX = parse_xX_str(include_exclude_mode, optarg)) == NULL)
+				errx(1, "Unable to parse -X: %s", optarg);
+			if (include_exclude_mode & xXPacket) {
+				xX_list = (LIST *)xX;
+			} else {
+				xX_cidr = (CIDR *)xX;
+			}
 			break;
 		default:
 			usage();
@@ -182,88 +194,11 @@ main(int argc, char *argv[])
 	if ((intf2 != NULL) && (!options.cidr && (cache_file == NULL) ))
 		errx(1, "Needs cache or cidr match with secondary interface");
 
-	/* process -x and -X */
+	/* process -x and -X 
+	 * need to fix this -ADT
 	if ((options.include != NULL) && (options.exclude != NULL))
 		errx(1, "Can only specify -x or -X, not both");
-
-	if (options.include != NULL) {
-		str = options.include;
-		switch (*str) {
-		case 'P':
-			str = str + 2;
-			include_exclude_mode = xXPacket;
-			if (!parse_list(&include_list, str))
-				errx(1, "Aborting...");
-			break;
-		case 'S':
-			str = str + 2;
-			include_exclude_mode = xXSource;
-			if (!parse_cidr(&include_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		case 'D':
-			str = str + 2;
-			include_exclude_mode = xXDest;
-			if (!parse_cidr(&include_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		case 'B':
-			str = str + 2;
-			include_exclude_mode = xXBoth;
-			if (!parse_cidr(&include_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		case 'E':
-			str = str + 2;
-			include_exclude_mode = xXEither;
-			if (!parse_cidr(&include_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		default:
-			errx(1, "Invalid include option: %c", *str);
-			break;
-		}
-	}
-
-	if (options.exclude != NULL) {
-		str = options.exclude;
-		switch (*str) {
-		case 'P':
-			str = str + 2;
-			include_exclude_mode = xXPacket + xXExclude;
-			if (!parse_list(&exclude_list, str))
-				errx(1, "Aborting...");
-			break;
-		case 'S':
-			str = str + 2;
-			include_exclude_mode = xXSource + xXExclude;
-			if (!parse_cidr(&exclude_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		case 'D':
-			str = str + 2;
-			include_exclude_mode = xXDest + xXExclude;
-			if (!parse_cidr(&exclude_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		case 'B':
-			str = str + 2;
-			include_exclude_mode = xXBoth + xXExclude;
-			if (!parse_cidr(&exclude_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		case 'E':
-			str = str + 2;
-			include_exclude_mode = xXEither +xXExclude;
-			if (!parse_cidr(&exclude_cidr, str))
-				errx(1, "Aborting...");
-			break;
-		default:
-			errx(1, "Invalid exclude option: %c", *str);
-			break;
-		}
-	}
-
+	*/
 	/* use our seed to make pseudo-random IP's */
 	if (options.seed != 0) {
 		srand(options.seed);
@@ -330,6 +265,8 @@ main(int argc, char *argv[])
 
 	return 0;
 }
+
+
 
 void
 replay_file(char *path)
@@ -468,7 +405,7 @@ configfile(char *file) {
 #define ARGS(x, y) ( (!strcmp(argv[0], x)) && (argc == y) )
 		if (ARGS("cachefile", 2)) {
 			cache_file = strdup(argv[1]);
-			cache_packets = read_cache(cache_file);
+			cache_packets = read_cache(&cachedata, cache_file);
 		} else if (ARGS("cidr", 2)) {
 			options.cidr = 1;
 			if (!parse_cidr(&cidrdata, argv[1]))
@@ -521,10 +458,13 @@ configfile(char *file) {
 			}
 		} else if (ARGS("seed", 2)) {
 			options.seed = atol(argv[1]);
+/*
+ * need to fix this -ADT
 		} else if (ARGS("include", 2)) {
 			options.include = strdup(argv[1]);
 		} else if (ARGS("exclude", 2)) {
 			options.exclude = strdup(argv[1]);
+*/
 		} else {
 			errx(1, "Skipping unrecognized: %s", argv[0]);
 		}
