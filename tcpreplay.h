@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.51 2004/03/25 00:50:33 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.52 2004/04/01 06:05:11 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -120,6 +120,7 @@ struct options {
     int promisc;
     int poll_timeout;
     int verbose_enabled;
+    int one_output;
 };
 
 #define RESOLVE 0               /* disable dns lookups */
@@ -135,7 +136,8 @@ struct options {
 #define CIDR_MODE 1             /* single pass, CIDR netblock */
 #define REGEX_MODE 2            /* single pass, Regex */
 #define AUTO_MODE 4             /* first pass through in auto mode */
-#define ROUTER_MODE 8           /* second pass through in router/auto mode */
+#define PORT_MODE 8             /* single pass, use src/dst ports to split */
+#define ROUTER_MODE 16          /* second pass through in router/auto mode */
 #define BRIDGE_MODE 32          /* second pass through in bridge/auto mode */
 #define SERVER_MODE 64          /* second pass through in client/auto mode */
 #define CLIENT_MODE 128         /* second pass through in server/auto mode */

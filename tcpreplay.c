@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c,v 1.84 2004/03/25 00:50:33 aturner Exp $ */
+/* $Id: tcpreplay.c,v 1.85 2004/04/01 06:05:11 aturner Exp $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner, Matt Bing.
@@ -68,7 +68,7 @@
 struct options options;
 char *cachedata = NULL;
 CIDR *cidrdata = NULL;
-CIDRMAP *cidrmap_data = NULL;
+CIDRMAP *cidrmap_data1 = NULL, *cidrmap_data2 = NULL;
 struct timeval begin, end;
 u_int64_t bytes_sent, failed, pkts_sent;
 char *cache_file = NULL, *intf = NULL, *intf2 = NULL;
@@ -110,7 +110,7 @@ int
 main(int argc, char *argv[])
 {
     char ebuf[256];
-    int ch, i;
+    int ch, i, nat_interface = 0;
     int l2enabled = 0;
     void *xX = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -119,7 +119,7 @@ main(int argc, char *argv[])
 
     while ((ch =
             getopt(argc, argv,
-                   "bc:C:Df:Fhi:I:j:J:k:K:l:L:m:MnN:o:p:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
+                   "bc:C:Df:Fhi:I:j:J:k:K:l:L:m:MnN:o:Op:Pr:Rs:S:t:Tu:Vw:W:x:X:12:"
 #ifdef HAVE_TCPDUMP
                    "vA:"
 #endif
@@ -209,8 +209,17 @@ main(int argc, char *argv[])
             break;
         case 'N':              /* rewrite IP addresses using our pseudo-nat */
             options.rewriteip = 1;
-            if (! parse_cidr_map(&cidrmap_data, optarg))
-                usage();
+            options.fixchecksums = 1;
+            nat_interface ++;
+
+            /* first -N is primary nic */
+            if (nat_interface == 1) {
+                if (! parse_cidr_map(&cidrmap_data1, optarg))
+                    errx(1, "Invalid primary NAT string");
+            } else { /* after that, secondary nic */
+                if (! parse_cidr_map(&cidrmap_data2, optarg))
+                    errx(1, "Invalid secondary NAT string");
+            }
             break;
         case 'o':              /* starting offset */
 #ifdef HAVE_PCAPNAV
@@ -219,6 +228,9 @@ main(int argc, char *argv[])
             errx(1,
                  "tcpreplay was not compiled with libpcapnav.  Unable to use -o");
 #endif
+            break;
+        case 'O':              /* One interface/file */
+            options.one_output = 1;
             break;
         case 'p':              /* packets/sec */
             options.packetrate = atof(optarg);
@@ -292,6 +304,10 @@ main(int argc, char *argv[])
             }
             break;
         case 'W':              /* write packets to second file */
+            /* don't bother opening a second file in one_output mode */
+            if (options.one_output)
+                break;
+
             if (!options.datadump_mode) {
                 if ((options.savepcap2 =
                      pcap_open_dead(DLT_EN10MB, 0xffff)) == NULL)
@@ -393,11 +409,11 @@ main(int argc, char *argv[])
     if (intf == NULL)
         errx(1, "Must specify a primary interface");
 
-    if ((intf2 == NULL) && (cache_file != NULL))
+    if ((intf2 == NULL) && (!options.one_output) && (cache_file != NULL))
         errx(1, "Needs secondary interface with cache");
 
-    if ((intf2 != NULL) && (!options.sniff_bridge) &&
-        (!options.cidr && (cache_file == NULL)))
+    if ((intf2 != NULL) && (!options.one_output) && 
+        (!options.sniff_bridge) && (!options.cidr && (cache_file == NULL)))
         errx(1, "Needs cache or cidr match with secondary interface");
 
     if (options.sniff_bridge && (options.savepcap ||
@@ -406,7 +422,7 @@ main(int argc, char *argv[])
         errx(1, "Bridge mode excludes saving packets or data to file");
     }
 
-    if ((intf2 != NULL) && options.datadump_mode &&
+    if ((intf2 != NULL) && options.datadump_mode && (!options.one_output) &&
         ((options.datadumpfile == 0) || (options.datadumpfile2 == 0)))
         errx(1,
              "You must specify two output files when splitting traffic in data dump mode");
@@ -432,12 +448,23 @@ main(int argc, char *argv[])
         errx(1, "Sniffing live traffic excludes one at a time mode");
     }
 
+    if (options.one_output && options.sniff_bridge) {
+        errx(1, "One output mode and bridge mode are incompatible");
+    }
+
     if (options.seed != 0) {
         srand(options.seed);
         options.seed = random();
 
         dbg(1, "random() picked: %d", options.seed);
     }
+
+    /*
+     * If we have one and only one -N, then use the same map data
+     * for both interfaces/files
+     */
+    if ((cidrmap_data1 != NULL) && (cidrmap_data2 == NULL))
+        cidrmap_data2 = cidrmap_data1;
 
     /*
      * some options are limited if we change the type of header
@@ -469,7 +496,7 @@ main(int argc, char *argv[])
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, intf, ebuf)) == NULL)
         errx(1, "Libnet can't open %s: %s", intf, ebuf);
 
-    if (intf2 != NULL) {
+    if (intf2 != NULL && (! options.one_output)) {
         if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, intf2, ebuf)) == NULL)
             errx(1, "Libnet can't open %s: %s", intf2, ebuf);
     }
@@ -706,6 +733,7 @@ configfile(char *file)
     char *argv[MAX_ARGS], buf[BUFSIZ];
     int argc, i;
     void *xX;
+    int nat_interface = 0;
 
     if ((fp = fopen(file, "r")) == NULL)
         errx(1, "Could not open config file %s", file);
@@ -794,14 +822,23 @@ configfile(char *file)
         else if (ARGS("nat", 2)) {
             options.rewriteip = 1;
             options.fixchecksums = 1;
-            if (! parse_cidr_map(&cidrmap_data, argv[1]))
-                errx(1, "Invalid nat string: %s", argv[1]);
+            nat_interface ++;
+            if (nat_interface == 1) {
+                if (! parse_cidr_map(&cidrmap_data1, argv[1]))
+                    errx(1, "Invalid primary NAT string");
+            } else {
+                if (! parse_cidr_map(&cidrmap_data2, argv[1]))
+                    errx(1, "Invalid secondary NAT string");
+            }
         }
 #ifdef HAVE_PCAPNAV
         else if (ARGS("offset", 2)) {
             options.offset = atol(argv[1]);
         }
 #endif
+        else if (ARGS("one_output", 1)) {
+            options.one_output = 1;
+        }
         else if (ARGS("one_at_a_time", 1)) {
             options.one_at_a_time = 1;
             options.rate = 0.0;
@@ -1013,6 +1050,7 @@ usage(void)
 #ifdef HAVE_PCAPNAV
             "-o <offset>\t\tStarting byte offset\n"
 #endif
+            "-O\t\t\tOne output mode\n"
             "-p <packetrate>\t\tSet replay speed to given rate (packets/sec)\n");
     fprintf(stderr,
             "-P\t\t\tPrint PID\n"
