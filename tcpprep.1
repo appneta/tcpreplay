@@ -42,6 +42,12 @@ tcpprep \- create a tcpreplay cache file from a saved capture file
 ] [
 .B \-R
 .I ratio
+] [
+.B \-x
+.I include
+|
+.B \-X
+.I exclude
 ]
 .br
 .ad
@@ -133,6 +139,37 @@ The ratio of server connections to client connections necessary to be
 classified as a server in auto mode.  A system is classified as a server if
 [# server connections] >= ([# client connections] * [ratio]).  Default is:
 2.0
+.TP
+.B \-x or "include"
+Specifies which packets from the capture file(s) to send.  Can be one of:
+.br
+.br
+S:<CIDR1>,... - Src IP must match specified CIDR(s)
+.br
+D:<CIDR1>,... - Dst IP must match specified CIDR(s)
+.br
+B:<CIDR1>,... - Both src and dst addresses must match
+.br
+E:<CIDR1>,... - Either src or dst address must match
+.br
+P:<list>      - Must be one of the listed packets where the list corresponds to the
+packet number in the capture file.  Ex: -x P:1-5,9,15 would only send packets 1 
+through 5, 9 and 15.
+.TP
+.B \-X or "exclude"
+Specifies which packets from the capture file(s) to NOT send.  Can be one of:
+.br
+S:<CIDR1>,... - Src IP must match specified CIDR(s)
+.br
+D:<CIDR1>,... - Dst IP must match specified CIDR(s)
+.br
+B:<CIDR1>,... - Both src and dst addresses must match
+.br
+E:<CIDR1>,... - Either src or dst address must match
+.br
+P:<list>      - Must be one of the listed packets where the list corresponds to the
+packet number in the capture file.  Ex: -X P:1-5,9,15 would send all packets except 1 
+through 5, 9 and 15.
 .TP
 .B \-v
 Enable verbose status printing to stderr. (Probably only interesting 
