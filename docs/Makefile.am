@@ -62,6 +62,10 @@ postweb: webfiles manpages
 	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
 		-avz web/ aturner@tequila.synfin.net:/var/www-vhosts/tcpreplay/
 
+postwebsf: webfiles manpages
+	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
+		-avz web/ aturner@shell.sf.net:htdocs/
+
 endif
 
 EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
