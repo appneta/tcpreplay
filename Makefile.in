@@ -1,4 +1,4 @@
-# $Id: Makefile.in,v 1.1 2002/03/29 03:44:48 mattbing Exp $
+# $Id: Makefile.in,v 1.2 2002/04/10 00:55:10 mattbing Exp $
 
 PREFIX		= @prefix@
 BINDIR		= $(PREFIX)/bin
@@ -10,29 +10,40 @@ CC			= @CC@
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 DEFS		= @DEFS@
-INCS		= @LNETINC@ -I.
+INCS		= @LNETINC@ -I. -Ilibredblack
 LIBS		= @LIBS@ @LNETLIB@
 
 INSTALL		= @INSTALL@
 
-BINARIES	= tcpreplay capinfo
+BINARIES	= tcpreplay capinfo tcpprep
 
-TSRCS		= tcpreplay.c libpcap.c snoop.c timer.c @EXTRAS@
+TSRCS		= tcpreplay.c libpcap.c snoop.c timer.c cache.c @EXTRAS@
 TOBJS		= $(TSRCS:.c=.o)
 
 CSRCS		= capinfo.c libpcap.c snoop.c timer.c @EXTRAS@
 COBJS		= $(CSRCS:.c=.o)
 
+PSRCS		= tcpprep.c cidr.c tree.c cache.c @EXTRAS@
+POBJS		= $(PSRCS:.c=.o)
+
 .c.o:
 	$(CC) $(CFLAGS) $(INCS) -c $*.c
 
-all: $(BINARIES)
+all: libredblack $(BINARIES) 
+
+tcpprep: $(POBJS)
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(POBJS) $(LDFLAGS) $(LIBS) -lpcap libredblack/.libs/libredblack.a
 
 tcpreplay: $(TOBJS)
-	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(TOBJS) $(LDFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(TOBJS) $(LDFLAGS) $(LIBS) -lm
 
 capinfo: $(COBJS)
 	$(CC) $(CFLAGS) $(DEFS) $(INCS) -o $@ $(COBJS) $(LDFLAGS) $(LIBS)
+
+libredblack: libredblack/.libs/libredblack.a
+
+libredblack/.libs/libredblack.a:
+	cd libredblack && ./configure && make
 
 clean:
 	rm -f *~ *.o *core $(BINARIES)
@@ -47,11 +58,15 @@ install:
 	test -d $(MAN1DIR) || $(INSTALL) -d $(MAN1DIR)
 	$(INSTALL) -m 755 tcpreplay $(SBINDIR)
 	$(INSTALL) -m 755 capinfo $(BINDIR)
+	$(INSTALL) -m 755 tcpprep $(BINDIR)
 	$(INSTALL) -m 644 tcpreplay.8 $(MAN8DIR)
 	$(INSTALL) -m 644 capinfo.1 $(MAN1DIR)
+	$(INSTALL) -m 644 tcpprep.1 $(MAN1DIR)
 
 uninstall:
 	rm -f $(SBINDIR)/tcpreplay
 	rm -f $(MAN8DIR)/tcpreplay.8
 	rm -f $(BINDIR)/capinfo
 	rm -f $(MAN1DIR)/capinfo.1
+	rm -f $(BINDIR)/tcpprep
+	rm -f $(MAN1DIR)/tcpprep.1
