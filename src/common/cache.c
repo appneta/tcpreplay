@@ -47,8 +47,7 @@
 extern int debug;
 #endif
 
-extern struct options options;
-static CACHE *new_cache();
+static CACHE *new_cache(void);
 
 /*
  * Takes a single char and returns a ptr to a string representation of the
@@ -78,7 +77,7 @@ byte2bits(char byte, char *bitstring) {
  */
 
 u_int64_t
-read_cache(char **cachedata, char *cachefile)
+read_cache(char **cachedata, char *cachefile, char **comment)
 {
     int cachefd, cnt;
     CACHE_HEADER header;
@@ -109,15 +108,14 @@ read_cache(char **cachedata, char *cachefile)
 
     /* read the comment */
     header.comment_len = ntohs(header.comment_len);
-    if ((options.tcpprep_comment = (char *)malloc(header.comment_len)) == NULL)
-        errx(1, "Unable to malloc() tcpprep comment buffer");
+    *comment = (char *)safe_malloc(header.comment_len);
 
-    read_size = read(cachefd, options.tcpprep_comment, header.comment_len);
+    read_size = read(cachefd, *comment, header.comment_len);
     if (read_size != header.comment_len)
         errx(1, "Unable to read %d bytes of data for the comment (%d) %s", 
              header.comment_len, read_size, read_size == -1 ? strerror(read_size) : "");
 
-    dbg(1, "Cache file comment: %s", options.tcpprep_comment);
+    dbg(1, "Cache file comment: %s", *comment);
 
     /* malloc our cache block */
     header.num_packets = ntohll(header.num_packets);
@@ -157,7 +155,8 @@ read_cache(char **cachedata, char *cachefile)
  * of cache entries written
  */
 u_int64_t
-write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
+write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets, 
+    char *comment)
 {
     CACHE *mycache = NULL;
     CACHE_HEADER *cache_header = NULL;
@@ -174,8 +173,8 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
     cache_header->num_packets = htonll(numpackets);
 
     /* we can't strlen(NULL) so ... */
-    if (options.tcpprep_comment != NULL) {
-        cache_header->comment_len = htons((u_int16_t)strlen(options.tcpprep_comment));
+    if (comment != NULL) {
+        cache_header->comment_len = htons((u_int16_t)strlen(comment));
     } else {
         cache_header->comment_len = 0;
     }
@@ -189,13 +188,13 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
              written == -1 ? strerror(errno) : "");
 
     /* don't write comment if there is none */
-    if (options.tcpprep_comment != NULL) {
-        written = write(out_file, options.tcpprep_comment, strlen(options.tcpprep_comment));
+    if (comment != NULL) {
+        written = write(out_file, comment, strlen(comment));
         dbg(1, "Wrote %d bytes of comment", written);
         
-        if (written != strlen(options.tcpprep_comment))
+        if (written != strlen(comment))
             errx(1, "Only wrote %d of %d bytes of the comment!\n%s",
-                 written, strlen(options.tcpprep_comment), 
+                 written, strlen(comment), 
                  written == -1 ? strerror(errno) : "");
     }
 
@@ -238,8 +237,8 @@ write_cache(CACHE * cachedata, const int out_file, u_int64_t numpackets)
  * mallocs a new CACHE struct all pre-set to sane defaults
  */
 
-CACHE *
-new_cache()
+static CACHE *
+new_cache(void)
 {
     CACHE *newcache;
 
@@ -259,12 +258,12 @@ new_cache()
  * CIDR * cidrdata
  */
 
-void
+int
 add_cache(CACHE ** cachedata, const int send, const int interface)
 {
     CACHE *lastcache = NULL;
     u_char *byte = NULL;
-    int bit;
+    int bit, result;
     unsigned long index;
 #ifdef DEBUG
     char bitstring[9] = EIGHT_ZEROS;
@@ -315,10 +314,11 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
             *byte += (u_char)(1 << (bit - 1));
 
             dbg(2, "set interface bit: byte %d = 0x%x", index, *byte);
-
+            result = CACHE_PRIMARY;
         }
         else {
             dbg(2, "don't set interface bit: byte %d = 0x%x", index, *byte);
+            result = CACHE_SECONDARY;
         }
         dbg(3, "Current cache byte: %c%c%c%c%c%c%c%c",
 
@@ -335,8 +335,10 @@ add_cache(CACHE ** cachedata, const int send, const int interface)
     }
     else {
         dbg(1, "not setting send bit");
+        result = CACHE_NOSEND;
     }
-  
+
+    return result;
 }
 
 
@@ -380,4 +382,3 @@ check_cache(char *cachedata, unsigned long packetid)
  c-basic-offset:4
  End:
 */
-

@@ -82,9 +82,9 @@ struct cache_file_header {
 typedef struct cache_type CACHE;
 typedef struct cache_file_header CACHE_HEADER;
 
-u_int64_t write_cache(CACHE *, const int, u_int64_t);
-void add_cache(CACHE **, const int, const int);
-u_int64_t read_cache(char **, char *);
+u_int64_t write_cache(CACHE *, const int, u_int64_t, char *);
+int add_cache(CACHE **, const int, const int);
+u_int64_t read_cache(char **, char *, char **);
 int check_cache(char *, unsigned long);
 
 /* return values for check_cache */
@@ -109,4 +109,3 @@ int check_cache(char *, unsigned long);
  c-basic-offset:4
  End:
 */
-
