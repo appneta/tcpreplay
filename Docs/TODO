@@ -4,10 +4,17 @@ For 2.x:
 	- others non-vanilla types?
         - Add tags?  Remove tags?  Change tags?
 
-- Support fragrouter like features (basic IP fragmenation, then advanced)
-
 - Improve flowreplay
 
 - Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
 
-- Modularize packet mangling interface
+For 3.x:
+
+- Modularize packet mangling interface (libnetdude?)
+
+- Rip out packet munger from tcpreplay and put it into another tool so
+  that tcpreplay can be more optimized
+
+- Add support for dual-nic send on one intf, wait for packet, send next.
+
+- Support fragrouter like features (basic IP fragmenation, then advanced)
