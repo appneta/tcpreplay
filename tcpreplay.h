@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h,v 1.37 2003/08/31 01:40:05 aturner Exp $ */
+/* $Id: tcpreplay.h,v 1.38 2003/10/20 01:24:34 aturner Exp $ */
 
 /*
  * Copyright (c) 2001, 2002, 2003 Aaron Turner.
@@ -47,7 +47,14 @@
 typedef libnet_t LIBNET;
 #define LIBNET_IP_H LIBNET_IPV4_H
 #define LIBNET_ICMP_H LIBNET_ICMPV4_H
+
+/* The release version of libnet 1.1.1 changed DNS */
+#ifdef LIBNET_DNSV4_H
 #define LIBNET_DNS_H LIBNET_DNSV4_H
+#else
+#define LIBNET_DNS_H LIBNET_UDP_DNSV4_H
+#endif
+
 typedef struct libnet_ipv4_hdr ip_hdr_t;
 typedef struct libnet_dnsv4_hdr dns_hdr_t;
 typedef struct libnet_icmpv4_hdr icmp_hdr_t;
