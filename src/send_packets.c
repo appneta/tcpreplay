@@ -217,60 +217,6 @@ cache_mode(char *cachedata, COUNTER packet_num)
     return l;
 }
 
-/*
- * determines based upon the cidrdata which interface the given packet 
- * should go out.  Also rewrites any layer 2 data we might need to adjust.
- * Returns a void cased pointer to the options.intfX of the corresponding
- * interface.
- */
-#if 0
-void *
-cidr_mode(eth_hdr_t * eth_hdr, ip_hdr_t * ip_hdr)
-{
-    void *l = NULL;
-
-    if (ip_hdr == NULL) {
-        /* non IP packets go out intf1 */
-        l = options.intf1;
-
-        /* check for dest/src MAC rewriting */
-        if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-        }
-        if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
-        }
-    }
-    else if (check_ip_CIDR(cidrdata, ip_hdr->ip_src.s_addr)) {
-        /* set interface to send out packet */
-        l = options.intf1;
-
-
-        /* check for dest/src MAC rewriting */
-        if (memcmp(options.intf1_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-        }
-        if (memcmp(options.intf1_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_shost, options.intf1_smac, ETHER_ADDR_LEN);
-        }
-    }
-    else {
-        /* override interface to send out packet */
-        l = options.intf2;
-
-        /* check for dest/src MAC rewriting */
-        if (memcmp(options.intf2_mac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
-        }
-        if (memcmp(options.intf2_smac, NULL_MAC, ETHER_ADDR_LEN) != 0) {
-            memcpy(eth_hdr->ether_shost, options.intf2_smac, ETHER_ADDR_LEN);
-        }        
-    }
-
-    return l;
-}
-#endif
-
 
 /*
  * Given the timestamp on the current packet and the last packet sent,
