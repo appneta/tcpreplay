@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NETOUT_H_
-#define _NETOUT_H_
+#ifndef __BRIDGE_H__
+#define __BRIDGE_H__
 
 #include "config.h"
 #include "lib/tree.h"
@@ -62,7 +62,7 @@ struct live_data_t {
 };
 
 void rbinit(void);
-void do_bridge(pcap_t *, pcap_t *, int, char *, int);
+void do_bridge(pcap_t *, pcap_t *);
 
 
 #endif

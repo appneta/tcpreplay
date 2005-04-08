@@ -42,7 +42,9 @@
 
 #include "tcpbridge.h"
 #include "edit_packet.h"
-#include "netout.h"
+#include "bridge.h"
+#include "send_packets.h"
+#include "rewrite_l2.h"
 
 extern tcpbridge_opt_t options;
 extern struct timeval begin, end;
@@ -55,10 +57,6 @@ extern int debug;
 
 static int live_callback(struct live_data_t *,
                          struct pcap_pkthdr *, const u_char *);
-
-static void catcher(int signo);
-static void break_now(int signo);
-
 
 /*
  * First, prep our RB Tree which tracks where each (source)
@@ -95,32 +93,6 @@ new_node(void)
     return (node);
 }
 
-static void
-catcher(int signo)
-{
-    /* stdio in signal handlers causes a race condition, instead set a flag */
-    if (signo == SIGINT)
-        didsig = 1;
-}
-
-static void
-break_now(int signo)
-{
-
-    if (signo == SIGINT || didsig) {
-        printf("\n");
-
-#ifdef HAVE_TCPDUMP
-        /* kill tcpdump child if required */
-        if (tcpdump.pid)
-            if (kill(tcpdump.pid, SIGTERM) != 0)
-                kill(tcpdump.pid, SIGKILL);
-#endif
-
-        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
-        exit(1);
-    }
-}
 
 /*
  * main loop for bridging mode
@@ -150,16 +122,16 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
     /* 
      * loop until ctrl-C or we've sent enough packets
      * note that if -L wasn't specified, limit_send is
-     * set to -1 so this will loop infinately
+     * set to 0 so this will loop infinately
      */
-    while ((options.limit_send == -1) || (options.limit_send != pkts_sent)) {
+    while ((options.limit_send == 0) || (options.limit_send != pkts_sent)) {
         if (didsig) {
             packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
             exit(1);
         }
 
-        dbg(1, "limit_send: %llu \t pkts_sent: %llu", options.limit_send,
-            pkts_sent);
+        dbg(1, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
+            options.limit_send, pkts_sent);
 
         /* poll for a packet on the two interfaces */
         pollresult = poll(polls, 2, options.poll_timeout);
@@ -217,6 +189,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;      /* IP header and above buffer */
 #endif
+    static int first_time = 1;
     int ret, newl2len;
     static unsigned long packetnum = 0;
     struct macsrc_t *node, finder;  /* rb tree nodes */
@@ -227,15 +200,23 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     packetnum++;
     dbg(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
 
-    /* create packet buffers */
-    pktdata = (u_char *)safe_malloc(maxpacket);
+    /* only malloc the first time */
+    if (first_time) {
+        /* create packet buffers */
+        pktdata = (u_char *)safe_malloc(maxpacket);
 
 #ifdef FORCE_ALIGN
-    ipbuff = (u_char *)safe_malloc(maxpacket);
+        ipbuff = (u_char *)safe_malloc(maxpacket);
 #endif
+        first_time = 0;
+    } else {
+        /* zero out the old packet info */
+        memset(pktdata, '\0', maxpacket);
 
-    /* zero out the old packet info */
-    memset(pktdata, '\0', maxpacket);
+#ifdef FORCE_ALIGN
+        memset(ipbuff, '\0', maxpacket);
+#endif
+    }
 
     /* Rewrite any Layer 2 data and copy the data to our local buffer */
     if ((newl2len = rewrite_l2(pkthdr, pktdata, nextpkt,
@@ -254,14 +235,13 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
-    if ((memcmp(libnet_get_hwaddr(options.send1), &finder.key, ETHER_ADDR_LEN))
-        == 0) {
+    if ((memcmp(libnet_get_hwaddr(options.send1), &finder.key, 
+                ETHER_ADDR_LEN)) == 0) {
         dbg(1, "Packet matches the MAC of %s, skipping.", options.intf1);
         return (1);
     }
-    else if ((memcmp
-              (libnet_get_hwaddr(options.send2), &finder.key,
-               ETHER_ADDR_LEN)) == 0) {
+    else if ((memcmp(libnet_get_hwaddr(options.send2), &finder.key,
+                     ETHER_ADDR_LEN)) == 0) {
         dbg(1, "Packet matches the MAC of %s, skipping.", options.intf2);
         return (1);
     }
@@ -297,13 +277,15 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
             memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
         }
     }
-    else {
+    else if (node->source == PCAP_INT2) {
         dbg(2, "Packet source was %s... sending out on %s", options.intf2, options.intf1);
         l = options.send1;
         if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
             dbg(3, "Rewriting destination MAC for %s", intf1);
             memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
         }
+    } else {
+        errx(1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", node->source);
     }
 
     eth_hdr = (eth_hdr_t *) pktdata;
@@ -341,23 +323,6 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         dbg(3, "Packet is not IP");
         /* non-IP packets have a NULL ip_hdr struct */
         ip_hdr = NULL;
-    }
-
-    /* check for martians? */
-    if (options.no_martians && (ip_hdr != NULL)) {
-        switch ((ntohl(ip_hdr->ip_dst.s_addr) & 0xff000000) >> 24) {
-        case 0:
-        case 127:
-        case 255:
-
-            dbg(1, "Skipping martian.  Packet #%d", pkts_sent);
-            /* then skip the packet */
-            return (1);
-
-        default:
-            /* continue processing */
-            break;
-        }
     }
 
 
@@ -405,13 +370,8 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     bytes_sent += pkthdr->caplen;
     pkts_sent++;
 
-    dbg(1, "Sent packet %llu", pkts_sent);
+    dbg(1, "Sent packet " COUNTER_SPEC, pkts_sent);
 
-    /* free buffers */
-    free(pktdata);
-#ifdef FORCE_ALIGN
-    free(ipbuff);
-#endif
 
     return (1);
 }                               /* live_callback() */

@@ -59,39 +59,6 @@ extern int debug;
 
 static void do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l);
 
-/*
- * we've got a race condition, this is our workaround
- */
-void
-catcher(int signo)
-{
-    /* stdio in signal handlers cause a race, instead we set a flag */
-    if (signo == SIGINT)
-        didsig = 1;
-}
-
-/*
- * when we're sending only one packet at a time via <ENTER>
- * then there's no race and we can quit now
- * also called when didsig is set
- */
-void
-break_now(int signo)
-{
-
-    if (signo == SIGINT || didsig) {
-        printf("\n");
-    
-#ifdef HAVE_TCPDUMP
-        /* kill tcpdump child if required */
-        if (tcpdump.pid)
-            if (kill(tcpdump.pid, SIGTERM) != 0)
-                kill(tcpdump.pid, SIGKILL);
-#endif
-        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
-        exit(1);
-    }
-}
 
 /*
  * the main loop function.  This is where we figure out

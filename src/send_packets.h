@@ -33,7 +33,6 @@
 #ifndef __SEND_PACKETS_H__
 #define __SEND_PACKETS_H__
 
-void catcher(int);
 void send_packets(pcap_t *);
 void *cache_mode(char *, COUNTER);
 
