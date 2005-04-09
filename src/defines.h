@@ -110,7 +110,9 @@ typedef struct speed_s speed_t;
 
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
-#define MAXPACKET 16436         /* MTU of Linux loopback */
+/* #define MAXPACKET 16436          MTU of Linux loopback */
+#define MAXPACKET 65535         /* maybe something is bigger then 
+                                   linux loopback */
 #define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */
 
 #define RESOLVE 0               /* disable dns lookups */
