@@ -36,7 +36,6 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
-#include "portmap.h"
 
 #include <regex.h>
 
