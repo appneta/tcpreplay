@@ -121,6 +121,9 @@ int main(int argc, char *argv[])
 void 
 init(void)
 {
+
+    total_bytes = 0;
+
     memset(&options, 0, sizeof(options));
     options.mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
     options.l2.len = LIBNET_ETH_H;
@@ -247,7 +250,8 @@ void
 validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
 {
 
-    dbg(1, "File linktype is %s\n", pcap_datalink_val_to_description(pcap_datalink(pcap)));
+    dbg(1, "File linktype is %s\n", 
+        pcap_datalink_val_to_description(pcap_datalink(pcap)));
 
     /* 
      * user specified a full L2 header, so we're all set!
@@ -346,7 +350,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;            /* IP header and above buffer */
 #endif
-    int l2len = 0;
+    int l2len = 0, l2proto;
     COUNTER packetnum = 0;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
     struct pcap_pkthdr *pkthdr_ptr;  
@@ -410,10 +414,10 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
         if ((l2len = rewrite_l2(inpcap, &pkthdr_ptr, newpkt, cache_result)) == 0)
             continue; /* packet is too long and we didn't trunc, so skip it */
 
-        eth_hdr = (eth_hdr_t *) pktdata;
+        l2proto = get_l2protocol(newpkt, pkthdr.caplen, pcap_datalink(inpcap));
 
         /* does packet have an IP header?  if so set our pointer to it */
-        if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
+        if (l2proto == ETHERTYPE_IP) {
 #ifdef FORCE_ALIGN
             /* 
              * copy layer 3 and up to our temp packet buffer
@@ -444,7 +448,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
             }
 
             /* ARP packets */
-            else if (ntohs(eth_hdr->ether_type) == ETHERTYPE_ARP) {
+            else if (l2proto == ETHERTYPE_ARP) {
                 arp_hdr = (arp_hdr_t *)(&newpkt[l2len]);
                 /* unlike, rewrite_ipl3, we don't care if the packet changed
                  * because we never need to recalc the checksums for an ARP
