@@ -35,11 +35,14 @@
 
 #include "config.h"
 #include "defines.h"
+#include "common.h"
+#include "portmap.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <libnet.h>
+#include <regex.h>
 
 /* run-time options */
 struct tcpbridge_opt_s {
@@ -48,14 +51,14 @@ struct tcpbridge_opt_s {
     libnet_t *send1;
     libnet_t *send2;
 
-    /* deal with MTU/packet len issues */
-    int mtu;
+    /* truncate packet ? */
     int truncate;
     
     COUNTER limit_send;
     
     pcap_t *listen1;
     pcap_t *listen2;
+    int unidir;
     int snaplen;
     int to_ms;
     int promisc;
@@ -80,6 +83,33 @@ struct tcpbridge_opt_s {
 #define DMAC1 0x4
 #define DMAC2 0x8
 
+    /* rewrite tcp/udp ports */
+    portmap_t *portmap;
+    
+    /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
+    cidrmap_t *cidrmap1;
+    cidrmap_t *cidrmap2;
+
+    /* filter options */
+    xX_t xX;
+    bpf_t bpf;  
+    regex_t preg;
+    cidr_t *cidrdata;
+    
+    /* required for rewrite_l2.c */
+    l2_t l2;
+#define FIXLEN_PAD   1
+#define FIXLEN_TRUNC 2
+    int fixlen;
+    int mtu;
+    int maxpacket;
+    int fixcsum;
+    /* 802.1q vlan stuff */
+#define VLAN_DEL     1        /* strip 802.1q and rewrite as standard 802.3 Ethernet */
+#define VLAN_ADD     2        /* add/replace 802.1q vlan tag */
+    int vlan;
+    u_int16_t l2proto;
+    u_int16_t l2_mem_align; /* keep things 4 byte aligned */
 };
 
 typedef struct tcpbridge_opt_s tcpbridge_opt_t;
