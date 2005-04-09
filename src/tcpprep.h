@@ -49,24 +49,11 @@ struct tcpprep_opt_s {
     pcap_t *pcap;
     int verbose;    
     char *tcpdump_args;
-    /* mode */
 
     cache_t *cachedata;
     cidr_t *cidrdata;
-    cidrmap_t *cidrmap1;
-    cidrmap_t *cidrmap2;
-    portmap_t *portmap;
+
     xX_t xX;
-    int l2len;
-    char l2data[L2DATALEN];
-    long int seed;
-    int rewriteip;
-    int rewriteports;
-    int fixchecksums;
-    macaddr_t intf1_dmac;
-    macaddr_t intf2_dmac;
-    macaddr_t intf1_smac;
-    macaddr_t intf2_smac;
     bpf_t bpf;
     services_t services;
     char *comment; /* cache file comment */
