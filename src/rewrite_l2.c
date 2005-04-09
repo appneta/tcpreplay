@@ -35,15 +35,27 @@
 #include "defines.h"
 #include "common.h"
 
+/*
+ * rewrite_l2.c can be compiled for tcprewrite or tcpbridge
+ * in both cases, it requires a number of variables to be
+ * available in the global options structure
+ */
+
+#ifdef TCPREWRITE
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
+extern tcprewrite_opt_t options;
+#elif defined TCPBRIDGE
+#include "tcpbridge.h"
+#include "tcpbridge_opts.h"
+extern tcpbridge_opt_t options;
+#endif
+
 #include "lib/sll.h"
 #include "dlt.h"
 #include "rewrite_l2.h"
 
 extern int maxpacket;
-extern tcprewrite_opt_t options;
-
 
 static int check_pkt_len(struct pcap_pkthdr *pkthdr, int oldl2len, int newl2len);
 
