@@ -27,6 +27,7 @@ config-header   = "config.h";
 include         = "#include \"defines.h\"\n"
                 "#include \"tcpbridge.h\"\n"
                 "#include \"common.h\"\n"
+		"#include \"mac.h\"\n"
                 "extern char pcap_version[];\n"
                 "extern tcpbridge_opt_t options;\n";
 
@@ -154,6 +155,66 @@ be sent uni-directionally.
 EOText;
 };
 
+
+flag = {
+    name        = dmac;
+    value       = D;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite destination MAC addresses";
+    flag-code   = <<- EODmac
+
+    int mask = 0;    
+
+    mask = dualmac2hex(OPT_ARG(DMAC), options.intf1_dmac, options.intf2_dmac,
+                strlen(OPT_ARG(DMAC)));
+
+    options.mac_mask ^= (mask << 2);
+
+EODmac;
+    doc         = <<- EOText
+Takes a pair of comma deliminated ethernet MAC addresses which
+will replace the destination MAC address of outbound packets.
+The first MAC address will be used for the server traffic
+and the optional second MAC address will be used for the client
+traffic.
+
+Example:
+@example
+--dmac 00:12:13:14:15:16,00:22:33:44:55:66
+@end example
+EOText;
+};
+
+
+flag = {
+    name        = smac;
+    value       = S;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite source MAC addresses";
+    flag-code   = <<- EOSmac
+    
+    int mask = 0;
+    mask =  dualmac2hex(OPT_ARG(SMAC), options.intf1_smac, options.intf2_smac,
+                strlen(OPT_ARG(SMAC)));
+
+    options.mac_mask ^= mask;
+
+EOSmac;
+  doc         = <<- EOText
+Takes a pair of comma deliminated ethernet MAC addresses which
+will replace the source MAC address of outbound packets.
+The first MAC address will be used for the server traffic
+and the optional second MAC address will be used for the client traffic.
+
+Example:
+@example
+--smac 00:12:13:14:15:16,00:22:33:44:55:66
+@end example
+EOText;
+};
+
 flag = {
 	name		= limit;
 	value		= l;
@@ -166,6 +227,165 @@ flag = {
 By default, tcpbridge will send packets forever or until Ctrl-C.  Alternatively,
 you can specify a maximum number of packets to send.
 EOText;
+};
+
+
+/* Include/Exclude */
+flag = {
+    name        = include;
+    value       = x;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Include only packets matching rule";
+    flags-cant  = exclude;
+    flag-code   = <<- EOInclude
+    
+    char *include;
+    
+    include = safe_strdup(OPT_ARG(INCLUDE));
+    options.xX.mode = xX_MODE_INCLUDE;
+        
+    if ((options.xX.mode = parse_xX_str(&options.xX, include, &options.bpf)) == 0)
+        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
+
+    free(include);
+    
+EOInclude;
+    doc         = <<- EOText
+Override default of sending all packets stored in the capture file and only
+send packets which match the provided rule.  Rules can be one of:
+
+@table @bullet
+@item S:<CIDR1>,... 
+- Source IP must match specified CIDR(s)
+@item D:<CIDR1>,... 
+- Destination IP must match specified CIDR(s)
+@item B:<CIDR1>,... 
+- Both source and destination IP must match specified CIDR(s)
+@item E:<CIDR1>,... 
+- Either IP must match specified CIDR(s)
+@item P:<LIST>      
+- Must be one of the listed packets where the list
+corresponds to the packet number in the capture file.
+@example
+-x P:1-5,9,15,72-
+@end example
+would send packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+end of the file
+@item F:'<bpf>'
+- BPF filter.  See the @file{tcpdump(8)} man page for syntax.
+@end table
+EOText;
+};
+
+flag = {
+    name        = exclude;
+    value       = X;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Exclude any packet matching this rule";
+    flags-cant  = include;
+    flag-code   = <<- EOExclude
+    
+    char *exclude;
+    
+    exclude = safe_strdup(OPT_ARG(EXCLUDE));
+    options.xX.mode = xX_MODE_EXCLUDE;
+    
+    if ((options.xX.mode = parse_xX_str(&options.xX, exclude, &options.bpf)) == 0)
+        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
+    
+    free(exclude);
+    
+EOExclude;
+    doc         = <<- EOText
+Override default of sending all packets stored in the capture file and only
+send packets which do not match the provided rule.  Rules can be one of:
+
+@table @bullet
+@item S:<CIDR1>,... 
+- Source IP must not match specified CIDR(s)
+@item D:<CIDR1>,... 
+- Destination IP must not match specified CIDR(s)
+@item B:<CIDR1>,... 
+- Both source and destination IP must not match specified CIDR(s)
+@item E:<CIDR1>,... 
+- Either IP must not match specified CIDR(s)
+@item P:<LIST>      
+- Must not be one of the listed packets where the list
+corresponds to the packet number in the capture file.
+@example
+-x P:1-5,9,15,72-
+@end example
+would drop packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+end of the file
+@end table
+EOText;
+};
+
+
+/* rewrite 802.1q vlan tags */
+flag = {
+    name        = vlan;
+    value       = T;
+    max         = 1;
+    descrip     = "Specify 802.1q VLAN tag mode";
+    arg-type    = string;
+    flag-code   = <<- EOVlan
+
+    if (strcmp(OPT_ARG(VLAN), "add") == 0) {
+        options.vlan = VLAN_ADD;
+    } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
+        options.vlan = VLAN_DEL;
+    } else {
+        errx(1, "Invalid vlan argument '%s'.  Must be 'add' or 'del'", OPT_ARG(VLAN));
+    }
+
+EOVlan;
+    doc         = <<- EOText
+Allows you to rewrite ethernet frames to add a 802.1q header to standard 802.3
+ethernet headers or remove the 802.1q VLAN tag information.
+@table @bullet
+@item
+@var{add}
+Rewrites the existing 802.3 ethernet header as an 802.1q VLAN header
+@item
+@var{del}
+Rewrites the existing 802.1q VLAN header as an 802.3 ethernet header
+EOText;
+};
+
+flag = {
+    name        = vlan_tag;
+    value       = t;
+    max         = 1;
+    descrip     = "Specify the new 802.1q VLAN tag value";
+    arg-type    = number;
+    flags-must  = vlan;
+    arg-range   = "0->4095"; /* VID's are 12bit unsigned int's */
+    doc         = "";
+};
+
+flag = {
+    name        = vlan_cfi;
+    value       = c;
+    max         = 1;
+    descrip     = "Specify the 802.1q VLAN CFI value";
+    arg-type    = number;
+    flags-must  = vlan;
+    arg-range   = "0->1"; /* one bit */
+    doc         = "";
+};
+
+flag = {
+    name        = vlan_pri;
+    value       = p;
+    max         = 1;
+    descrip     = "Specify the 802.1q VLAN priority";
+    flags-must  = vlan;
+    arg-type    = number;
+    arg-range   = "0->7"; /* one byte */
+    doc         = "";
 };
 
 
