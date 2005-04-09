@@ -142,6 +142,7 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
             if (polls[PCAP_INT1].revents > 0) {
                 dbg(2, "Processing first interface");
                 livedata.source = source1;
+                livedata.pcap = pcap1;
                 pcap_dispatch(pcap1, -1, (pcap_handler) live_callback,
                               (u_char *) & livedata);
             }
@@ -150,6 +151,7 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
             if (polls[PCAP_INT2].revents > 0) {
                 dbg(2, "Processing second interface");
                 livedata.source = source2;
+                livedata.pcap = pcap2;
                 pcap_dispatch(pcap2, -1, (pcap_handler) live_callback,
                               (u_char *) & livedata);
             }
@@ -182,7 +184,6 @@ static int
 live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
               const u_char * nextpkt)
 {
-    eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
     libnet_t *l = NULL;
     u_char *pktdata = NULL;     /* full packet buffer */
@@ -190,7 +191,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     u_char *ipbuff = NULL;      /* IP header and above buffer */
 #endif
     static int first_time = 1;
-    int ret, newl2len;
+    int ret, newl2len, cache_mode;
     static unsigned long packetnum = 0;
     struct macsrc_t *node, finder;  /* rb tree nodes */
 #ifdef DEBUG
@@ -203,27 +204,19 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /* only malloc the first time */
     if (first_time) {
         /* create packet buffers */
-        pktdata = (u_char *)safe_malloc(maxpacket);
+        pktdata = (u_char *)safe_malloc(MAXPACKET);
 
 #ifdef FORCE_ALIGN
-        ipbuff = (u_char *)safe_malloc(maxpacket);
+        ipbuff = (u_char *)safe_malloc(MAXPACKET);
 #endif
         first_time = 0;
     } else {
         /* zero out the old packet info */
-        memset(pktdata, '\0', maxpacket);
+        memset(pktdata, '\0', MAXPACKET);
 
 #ifdef FORCE_ALIGN
-        memset(ipbuff, '\0', maxpacket);
+        memset(ipbuff, '\0', MAXPACKET);
 #endif
-    }
-
-    /* Rewrite any Layer 2 data and copy the data to our local buffer */
-    if ((newl2len = rewrite_l2(pkthdr, pktdata, nextpkt,
-                               livedata->linktype, livedata->l2enabled,
-                               livedata->l2data, livedata->l2len)) == 0) {
-        warnx("Error rewriting layer 2 data... skipping packet %d", packetnum);
-        return (1);
     }
 
     /* lookup our source MAC in the tree */
@@ -265,33 +258,38 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         return (1);
     }
 
+
+
+    /* what is our cache mode? */
+    cache_mode = livedata->source == PCAP_INT1 ? CACHE_PRIMARY : CACHE_SECONDARY;
+
+    /* Rewrite any Layer 2 data and copy the data to our local buffer */
+    if ((newl2len = rewrite_l2(livedata->pcap, &pkthdr, pktdata, cache_mode)) 
+        == 0) {
+        warnx("Error rewriting layer 2 data... skipping packet %d", packetnum);
+        return (1);
+    }
+
     /* 
      * send packets out the OTHER interface
      * and update the dst mac if necessary
      */
     if (node->source == PCAP_INT1) {
-        dbg(2, "Packet source was %s... sending out on %s", options.intf1, options.intf2);
+        dbg(2, "Packet source was %s... sending out on %s", options.intf1, 
+            options.intf2);
         l = options.send2;
-        if (memcmp(options.intf2_mac, NULL_MAC, 6) != 0) {
-            dbg(3, "Rewriting destination MAC for %s", intf2);
-            memcpy(eth_hdr->ether_dhost, options.intf2_mac, ETHER_ADDR_LEN);
-        }
     }
     else if (node->source == PCAP_INT2) {
-        dbg(2, "Packet source was %s... sending out on %s", options.intf2, options.intf1);
+        dbg(2, "Packet source was %s... sending out on %s", options.intf2, 
+            options.intf1);
         l = options.send1;
-        if (memcmp(options.intf1_mac, NULL_MAC, 6) != 0) {
-            dbg(3, "Rewriting destination MAC for %s", intf1);
-            memcpy(eth_hdr->ether_dhost, options.intf1_mac, ETHER_ADDR_LEN);
-        }
     } else {
-        errx(1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", node->source);
+        errx(1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
+             node->source);
     }
 
-    eth_hdr = (eth_hdr_t *) pktdata;
-
-    /* does packet have an IP header?  if so set our pointer to it */
-    if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP) {
+    if (get_l2protocol(nextpkt, pkthdr->caplen, livedata->linktype) 
+        == ETHERTYPE_IP) {
         dbg(3, "Packet is IP");
 #ifdef FORCE_ALIGN
         /* 
@@ -312,8 +310,8 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #endif
 
         /* look for include or exclude CIDR match */
-        if (xX_cidr != NULL) {
-            if (!process_xX_by_cidr(include_exclude_mode, xX_cidr, ip_hdr)) {
+        if (options.xX.cidr != NULL) {
+            if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
                 return (1);
             }
         }
@@ -323,23 +321,6 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         dbg(3, "Packet is not IP");
         /* non-IP packets have a NULL ip_hdr struct */
         ip_hdr = NULL;
-    }
-
-
-    /* Untruncate packet? Only for IP packets */
-    if ((options.trunc) && (ip_hdr != NULL)) {
-        untrunc_packet(pkthdr, pktdata, ip_hdr, l, newl2len);
-    }
-
-
-    /* do we need to spoof the src/dst IP address? */
-    if ((options.seed) && (ip_hdr != NULL)) {
-        randomize_ips(pkthdr, pktdata, ip_hdr, l, newl2len);
-    }
-
-    /* do we need to force fixing checksums? */
-    if ((options.fixchecksums) && (ip_hdr != NULL)) {
-        fix_checksums(pkthdr, ip_hdr, l);
     }
 
 
