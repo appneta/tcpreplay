@@ -14,6 +14,7 @@
 #include "common/xX.h"
 #include "common/tcpdump.h"
 #include "common/timer.h"
+#include "common/abort.h"
 
 const char *svn_version(void); /* svn_version.c */
 
