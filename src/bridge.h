@@ -59,6 +59,7 @@ struct live_data_t {
     int l2len;
     u_char source;
     char *l2data;
+    pcap_t *pcap;
 };
 
 void rbinit(void);
