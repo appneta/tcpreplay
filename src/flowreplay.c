@@ -71,9 +71,6 @@ flowreplay_opt_t options;
 
 struct session_tree tcproot, udproot;
 
-/* we get this from libpcap */
-extern char pcap_version[];
-
 /* file descriptor stuff */
 fd_set fds;
 int nfds = 0;

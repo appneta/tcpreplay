@@ -80,9 +80,6 @@ char *ourregex = NULL;
 char *cidr = NULL;
 data_tree_t treeroot;
 
-/* we get this from libpcap */
-extern char pcap_version[];
-
 static void init(void);
 static void post_args(int, char *[]);
 static void print_comment(const char *);
