@@ -430,24 +430,30 @@ post_args(int argc, char *argv[])
     
     if (! options.mode)
         err(1, "Must specify a processing mode: -a, -c, -r, -p");
-    
-    /* copy all of our args to myargs */
-    for (i = 1; i < argc; i ++) {
-        /* skip the -C <comment> */
-        if (strcmp(argv[i], "-C") == 0) {
-            i += 2;
-            continue;
+
+    /* 
+     * if we are to include the cli args, then prep it for the
+     * cache file header
+     */
+    if (! options.nocomment) {
+        /* copy all of our args to myargs */
+        for (i = 1; i < argc; i ++) {
+            /* skip the -C <comment> */
+            if (strcmp(argv[i], "-C") == 0) {
+                i += 2;
+                continue;
+            }
+            
+            strlcat(myargs, argv[i], MYARGS_LEN);
+            strlcat(myargs, " ", MYARGS_LEN);
         }
 
-        strlcat(myargs, argv[i], MYARGS_LEN);
-        strlcat(myargs, " ", MYARGS_LEN);
+        /* remove trailing space */
+        myargs[strlen(myargs) - 1] = 0;
+
+        dbg(1, "Comment args length: %d", strlen(myargs));
     }
 
-    /* remove trailing space */
-    myargs[strlen(myargs) - 1] = 0;
-
-    dbg(1, "Comment args length: %d", strlen(myargs));
-   
     /* setup or options.comment buffer so that that we get args\ncomment */
     if (options.comment != NULL) {
         strlcat(myargs, "\n", MYARGS_LEN);
