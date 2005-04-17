@@ -2,9 +2,9 @@ MAKEFLAGS=-s
 
 if HAVE_DOCTOOLS
 
-PHONY: docs webfiles manpages
+.PHONY: docs webfiles manpages
 
-MAN2HTML=../scripts/man2html
+MAN2HTML = ../scripts/man2html
 
 L2HFLAGS = -show_section_numbers -no_footnode -split +1 -info 0 \
 	-auto_navigation -local_icons -mkdir -html_version 4.0
@@ -12,9 +12,6 @@ L2HFLAGS = -show_section_numbers -no_footnode -split +1 -info 0 \
 webfiles: web/FAQ/FAQ.html web/manual/manual.html web/flowreplay/flowreplay.html
 
 docs: FAQ.pdf flowreplay.pdf manual.pdf webfiles manpages
-
-clean-docs: clean
-	-rm -rf *.pdf web/manual web/FAQ web/flowreplay web/man/*
 
 latex:
 	@LYX@ -e latex FAQ.lyx
@@ -89,6 +86,9 @@ MOSTLYCLEANFILES = FAQ.aux FAQ.log FAQ.toc FAQ.dvi FAQ.tex \
 	images.aux images.log images.pl images.tex img1.png labels.pl \
 	router-mode1.eps router-mode2.eps router-mode3.eps \
 	*~ web/*~
+
+clean-docs: clean
+	-rm -rf *.pdf web/manual web/FAQ web/flowreplay web/man/*
 
 maintainer-clean-local: clean-docs
 	-rm -rf web/flowreplay web/FAQ web/manual web/man/*.html
