@@ -1,7 +1,7 @@
 
 /*
- *  $Id: environment.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:23:43 bkorb"
+ *  $Id: environment.c,v 4.5 2005/03/13 19:51:58 bkorb Exp $
+ * Time-stamp:      "2005-02-20 17:18:54 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -199,7 +199,6 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
             continue;
         st.flags    = OPTST_PRESET | st.pOD->fOptState;
         st.optType  = TOPT_UNDEFINED;
-        st.argType  = 0;
 
         if (  (st.pOD->pz_DisablePfx != NULL)
            && (streqvcmp( st.pzOptArg, st.pOD->pz_DisablePfx ) == 0)) {
@@ -235,29 +234,23 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
          *  The interpretation of the option value depends
          *  on the type of value argument the option takes
          */
-        if (st.pzOptArg != NULL)
-            switch (st.pOD->optArgType) {
-            case ARG_MAY:
-                if (*st.pzOptArg == NUL) {
-                    st.pzOptArg = NULL;
-                    break;
-                }
-                /* FALLTHROUGH */
-
-            case ARG_MUST:
-                if (*st.pzOptArg == NUL)
-                     st.pzOptArg = zNil;
-                else AGDUPSTR( st.pzOptArg, st.pzOptArg, "option argument" );
-                break;
-
-            default: /* no argument allowed */
+        if (st.pzOptArg != NULL) {
+            if (OPTST_GET_ARGTYPE(st.pOD->fOptState) == OPARG_TYPE_NONE) {
                 st.pzOptArg = NULL;
-                break;
+            } else if (  (st.pOD->fOptState & OPTST_ARG_OPTIONAL)
+                      && (*st.pzOptArg == NUL)) {
+                    st.pzOptArg = NULL;
+            } else if (*st.pzOptArg == NUL) {
+                st.pzOptArg = zNil;
+            } else {
+                AGDUPSTR( st.pzOptArg, st.pzOptArg, "option argument" );
             }
+        }
 
         handleOption( pOpts, &st );
     }
 }
+
 /*
  * Local Variables:
  * mode: C
@@ -265,4 +258,4 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
  * tab-width: 4
  * indent-tabs-mode: nil
  * End:
- * end of agen5/autogen.c */
+ * end of autoopts/environment.c */

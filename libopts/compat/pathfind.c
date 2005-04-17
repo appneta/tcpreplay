@@ -5,10 +5,10 @@
 /*
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
  * Created:          Tue Jun 24 15:07:31 1997
- * Last Modified:    $Date: 2005/01/01 00:20:58 $
+ * Last Modified:    $Date: 2005/03/13 19:52:20 $
  *            by: bkorb
  *
- * $Id: pathfind.c,v 4.1 2005/01/01 00:20:58 bkorb Exp $
+ * $Id: pathfind.c,v 4.3 2005/03/13 19:52:20 bkorb Exp $
  */
 
 /* Code: */
@@ -75,8 +75,6 @@ static char* extract_colon_unit( char* dir, const char *string, int *p_index );
  *
  * err:  returns NULL if the file is not found.
 =*/
-/*
- */
 char*
 pathfind( const char*  path,
           const char*  fileName,

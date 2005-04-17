@@ -2,12 +2,12 @@
 
 /* --- fake the preprocessor into handlng portability */
 /*
- *  Time-stamp:      "2005-01-08 12:13:21 bkorb"
+ *  Time-stamp:      "2005-02-20 17:17:51 bkorb"
  *
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
  * Created:          Mon Jun 30 15:54:46 1997
  *
- * $Id: compat.h,v 4.1 2005/01/01 00:20:58 bkorb Exp $
+ * $Id: compat.h,v 4.3 2005/03/13 19:52:20 bkorb Exp $
  */
 #ifndef COMPAT_H
 #define COMPAT_H 1
@@ -242,6 +242,7 @@
 #endif
 
 #endif /* COMPAT_H */
+
 /*
  * Local Variables:
  * mode: C
@@ -249,4 +250,4 @@
  * tab-width: 4
  * indent-tabs-mode: nil
  * End:
- * compat.h ends here */
+ * end of compat/compat.h */

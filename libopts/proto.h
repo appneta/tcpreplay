@@ -1,7 +1,7 @@
 /* -*- buffer-read-only: t -*- vi: set ro:
  *
  * Prototypes for autoopts
- * Generated Mon Feb 14 08:43:14 PST 2005
+ * Generated Sun Apr 17 11:55:34 PDT 2005
  */
 #ifndef AUTOOPTS_PROTO_H_GUARD
 #define AUTOOPTS_PROTO_H_GUARD
@@ -32,12 +32,25 @@ doRegularOpts( tOptions* pOpts );
 /*
  *  Extracted from configfile.c
  */
-LOCAL tSuccess
-validateOptionsStruct( tOptions* pOpts, const char* pzProgram );
-
 LOCAL void
 internalFileLoad( tOptions* pOpts );
 
+LOCAL char*
+parseAttributes(
+    tOptions*           pOpts,
+    char*               pzText,
+    tOptionLoadMode*    pMode,
+    tOptionValue*       pType );
+
+LOCAL tSuccess
+validateOptionsStruct( tOptions* pOpts, const char* pzProgram );
+
+/*
+ *  Extracted from cook.c
+ */
+/*
+ *  Extracted from enumeration.c
+ */
 /*
  *  Extracted from environment.c
  */
@@ -51,18 +64,39 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type );
  *  Extracted from load.c
  */
 LOCAL void
+mungeString( char* pzTxt, tOptionLoadMode mode );
+
+LOCAL void
 loadOptionLine(
     tOptions*   pOpts,
     tOptState*  pOS,
     char*       pzLine,
     tDirection  direction,
-    load_mode_t load_mode );
+    tOptionLoadMode   load_mode );
 
+/*
+ *  Extracted from makeshell.c
+ */
+/*
+ *  Extracted from nested.c
+ */
+/*
+ *  Extracted from putshell.c
+ */
+/*
+ *  Extracted from save.c
+ */
 /*
  *  Extracted from sort.c
  */
 LOCAL void
 optionSort( tOptions* pOpts );
+
+/*
+ *  Extracted from stack.c
+ */
+LOCAL void
+addArgListEntry( void** ppAL, void* entry );
 
 /*
  *  Extracted from text_mmap.c
@@ -73,6 +107,15 @@ text_mmap( const char* pzFile, int prot, int flags, tmap_info_t* pMI );
 LOCAL int
 text_munmap( tmap_info_t* pMI );
 
+/*
+ *  Extracted from tokenize.c
+ */
+/*
+ *  Extracted from usage.c
+ */
+/*
+ *  Extracted from version.c
+ */
 #ifdef REDEF_LOCAL
 #  undef LOCAL
 #  define LOCAL

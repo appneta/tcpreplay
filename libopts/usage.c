@@ -1,7 +1,7 @@
 
 /*
- *  usage.c  $Id: usage.c,v 4.4 2005/01/23 23:33:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:20:02 bkorb"
+ *  usage.c  $Id: usage.c,v 4.7 2005/03/13 19:51:59 bkorb Exp $
+ * Time-stamp:      "2005-02-20 13:47:52 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
@@ -278,8 +278,11 @@ printProgramDetails( tOptions* pOptions )
         fputc( '\n', option_usage_fp );
         fflush( option_usage_fp );
         do  {
-            if (pOD->fOptState & (OPTST_ENUMERATION|OPTST_MEMBER_BITS))
+            switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
+            case OPARG_TYPE_ENUMERATION:
+            case OPARG_TYPE_MEMBERSHIP:
                 (*(pOD->pOptProc))( NULL, pOD );
+            }
         }  while (pOD++, optNo++, (--ct > 0));
     }
 
@@ -354,7 +357,7 @@ printExtendedUsage(
      *  IF the numeric option has a special callback,
      *  THEN call it, requesting the range or other special info
      */
-    if (  (pOD->fOptState & OPTST_NUMERIC)
+    if (  (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_NUMERIC)
        && (pOD->pOptProc != NULL)
        && (pOD->pOptProc != optionNumericVal) ) {
         (*(pOD->pOptProc))( pOptions, NULL );
@@ -394,7 +397,7 @@ printExtendedUsage(
     /*
      *  Print the appearance requirements.
      */
-    if (pOD->fOptState & OPTST_MEMBER_BITS)
+    if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_MEMBERSHIP)
         fputs( zMembers, option_usage_fp );
 
     else switch (pOD->optMinCt) {
@@ -453,27 +456,25 @@ printBareUsage(
     {
         char  z[ 80 ];
         tCC*  pzArgType;
-#       define OPTFMT ( OPTST_NUMERIC | OPTST_BOOLEAN | OPTST_ENUMERATION \
-                      | OPTST_MEMBER_BITS )
-
         /*
          *  Determine the argument type string first on its usage, then,
          *  when the option argument is required, base the type string on the
          *  argument type.
          */
-        switch (pOD->optArgType) {
-        default:       goto bogus_desc;
-        case ARG_MAY:  pzArgType = pAT->pzOpt; break;
-        case ARG_NONE: pzArgType = pAT->pzNo;  break;
-        case ARG_MUST:
-            switch ( pOD->fOptState & OPTFMT) {
-            case OPTST_ENUMERATION: pzArgType = pAT->pzKey;  break;
-            case OPTST_MEMBER_BITS: pzArgType = pAT->pzKeyL; break;
-            case OPTST_BOOLEAN:     pzArgType = pAT->pzBool; break;
-            case OPTST_NUMERIC:     pzArgType = pAT->pzNum;  break;
-            case 0:                 pzArgType = pAT->pzStr;  break;
-            default:                goto bogus_desc;         break;
-            }
+        if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_NONE) {
+            pzArgType = pAT->pzNo;
+
+        } else if (pOD->fOptState & OPTST_ARG_OPTIONAL) {
+            pzArgType = pAT->pzOpt;
+
+        } else switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
+        case OPARG_TYPE_ENUMERATION: pzArgType = pAT->pzKey;  break;
+        case OPARG_TYPE_MEMBERSHIP:  pzArgType = pAT->pzKeyL; break;
+        case OPARG_TYPE_BOOLEAN:     pzArgType = pAT->pzBool; break;
+        case OPARG_TYPE_NUMERIC:     pzArgType = pAT->pzNum;  break;
+        case OPARG_TYPE_HIERARCHY:   pzArgType = pAT->pzNest; break;
+        case OPARG_TYPE_STRING:      pzArgType = pAT->pzStr;  break;
+        default:                     goto bogus_desc;         break;
         }
 
         snprintf( z, sizeof(z), pAT->pzOptFmt, pzArgType, pOD->pz_Name,
@@ -481,8 +482,11 @@ printBareUsage(
 
         fprintf( option_usage_fp, zOptFmtLine, z, pOD->pzText );
 
-        if (pOD->fOptState & (OPTST_ENUMERATION|OPTST_MEMBER_BITS))
+        switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
+        case OPARG_TYPE_ENUMERATION:
+        case OPARG_TYPE_MEMBERSHIP:
             displayEnum |= (pOD->pOptProc != NULL) ? AG_TRUE : AG_FALSE;
+        }
     }
     return;
 
@@ -514,6 +518,7 @@ setStdOptFmts( tOptions* pOpts, tCC** ppT )
     argTypes.pzKey  = zStdKeyArg;
     argTypes.pzKeyL = zStdKeyLArg;
     argTypes.pzBool = zStdBoolArg;
+    argTypes.pzNest = zStdNestArg;
     argTypes.pzOpt  = zStdOptArg;
     argTypes.pzNo   = zStdNoArg;
     argTypes.pzBrk  = zStdBreak;
@@ -560,6 +565,7 @@ setGnuOptFmts( tOptions* pOpts, tCC** ppT )
     argTypes.pzKey  = zGnuKeyArg;
     argTypes.pzKeyL = zGnuKeyLArg;
     argTypes.pzBool = zGnuBoolArg;
+    argTypes.pzNest = zGnuNestArg;
     argTypes.pzOpt  = zGnuOptArg;
     argTypes.pzNo   = zOneSpace;
     argTypes.pzBrk  = zGnuBreak;

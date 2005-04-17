@@ -1,7 +1,7 @@
 
 /*
- *  sort.c  $Id: sort.c,v 4.3 2005/01/23 23:33:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:21:26 bkorb"
+ *  sort.c  $Id: sort.c,v 4.5 2005/03/13 19:51:59 bkorb Exp $
+ * Time-stamp:      "2005-02-20 17:18:41 bkorb"
  *
  *  This module implements argument sorting.
  */
@@ -158,21 +158,13 @@ checkShortOpts( tOptions* pOpts, char* pzArg, tOptState* pOS,
         if (FAILED( shortOptionFind( pOpts, *pzArg, pOS )))
             return FAILURE;
 
-        switch (pOS->pOD->optArgType) {
-        case ARG_MUST:
-            /*
-             *  IF we need another argument, be sure it is there and
-             *  take it.
-             */
-            if (pzArg[1] == NUL) {
-                if (pOpts->curOptIdx >= pOpts->origArgCt)
-                    return FAILURE;
-                ppzOpts[ (*pOptsIdx)++ ] =
-                    pOpts->origArgVect[ (pOpts->curOptIdx)++ ];
-            }
-            return SUCCESS;
+        /*
+         *  See if we can have an arg.
+         */
+        if (OPTST_GET_ARGTYPE(pOS->pOD->fOptState) == OPARG_TYPE_NONE) {
+            pzArg++;
 
-        case ARG_MAY:
+        } else if (pOS->pOD->fOptState & OPTST_ARG_OPTIONAL) {
             /*
              *  Take an argument if it is not attached and it does not
              *  start with a hyphen.
@@ -186,8 +178,18 @@ checkShortOpts( tOptions* pOpts, char* pzArg, tOptState* pOS,
                     pOpts->origArgVect[ (pOpts->curOptIdx)++ ];
             return SUCCESS;
 
-        default:
-            pzArg++;
+        } else {
+            /*
+             *  IF we need another argument, be sure it is there and
+             *  take it.
+             */
+            if (pzArg[1] == NUL) {
+                if (pOpts->curOptIdx >= pOpts->origArgCt)
+                    return FAILURE;
+                ppzOpts[ (*pOptsIdx)++ ] =
+                    pOpts->origArgVect[ (pOpts->curOptIdx)++ ];
+            }
+            return SUCCESS;
         }
     }
     return SUCCESS;
@@ -309,22 +311,7 @@ optionSort( tOptions* pOpts )
          */
         ppzOpts[ optsIdx++ ] = pOpts->origArgVect[ (pOpts->curOptIdx)++ ];
 
-        switch (os.pOD->optArgType) {
-        case ARG_MUST:
-            switch (mustHandleArg( pOpts, pzArg+2, &os, ppzOpts, &optsIdx )) {
-            case PROBLEM:
-            case FAILURE: errno = EIO; goto freeTemps;
-            }
-            goto nextArg;
-
-        case ARG_MAY:
-            switch (mayHandleArg( pOpts, pzArg+2, &os, ppzOpts, &optsIdx )) {
-            case FAILURE: errno = EIO; goto freeTemps;
-            case PROBLEM: errno = 0;   goto joinLists;
-            }
-            goto nextArg;
-
-        default: /* CANNOT */
+        if (OPTST_GET_ARGTYPE(os.pOD->fOptState) == OPARG_TYPE_NONE) {
             /*
              *  No option argument.  If we have a short option here,
              *  then scan for short options until we get to the end
@@ -336,7 +323,19 @@ optionSort( tOptions* pOpts )
                 errno = EIO;
                 goto freeTemps;
             }
-        } nextArg:;
+
+        } else if (os.pOD->fOptState & OPTST_ARG_OPTIONAL) {
+            switch (mayHandleArg( pOpts, pzArg+2, &os, ppzOpts, &optsIdx )) {
+            case FAILURE: errno = EIO; goto freeTemps;
+            case PROBLEM: errno = 0;   goto joinLists;
+            }
+
+        } else {
+            switch (mustHandleArg( pOpts, pzArg+2, &os, ppzOpts, &optsIdx )) {
+            case PROBLEM:
+            case FAILURE: errno = EIO; goto freeTemps;
+            }
+        }
     } /* for (;;) */
 
  restOperands:
@@ -367,4 +366,4 @@ optionSort( tOptions* pOpts )
  * tab-width: 4
  * indent-tabs-mode: nil
  * End:
- * end of autoopts/usage.c */
+ * end of autoopts/sort.c */

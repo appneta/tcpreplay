@@ -1,6 +1,6 @@
 
 /*
- *  $Id: cook.c,v 4.2 2005/02/14 16:18:25 bkorb Exp $
+ *  $Id: cook.c,v 4.1 2005/02/14 17:03:54 bkorb Exp $
  *  Time-stamp:      "2005-02-14 07:58:28 bkorb"
  *
  *  This file contains the routines that deal with processing quoted strings

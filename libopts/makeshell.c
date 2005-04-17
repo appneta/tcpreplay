@@ -1,7 +1,7 @@
 
 /*
- *  $Id: makeshell.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:23:20 bkorb"
+ *  $Id: makeshell.c,v 4.5 2005/03/13 19:51:58 bkorb Exp $
+ * Time-stamp:      "2005-02-20 14:06:03 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and create a Bourne shell script capable of parsing them.
@@ -393,7 +393,7 @@ static void
 openOutput( const char* pzFile );
 /* = = = END-STATIC-FORWARD = = = */
 
-/*=export_func  putShellParse
+/*=export_func  optionParseShell
  * private:
  *
  * what:  Decipher a boolean value
@@ -403,7 +403,7 @@ openOutput( const char* pzFile );
  *  Emit a shell script that will parse the command line options.
 =*/
 void
-putShellParse( tOptions* pOpts )
+optionParseShell( tOptions* pOpts )
 {
     /*
      *  Check for our SHELL option now.
@@ -542,7 +542,7 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
 
         case TT_VERSION:
             pOD->pzLastArg = "c";
-            doVersion( pOpts, pOD );
+            optionPrintVersion( pOpts, pOD );
             /* NOTREACHED */
 
         default:
@@ -645,7 +645,7 @@ emitUsage( tOptions* pOpts )
         int       optionCt = pOpts->optCt;
 
         for (;;) {
-            if (pOptDesc->pOptProc == doVersion) {
+            if (pOptDesc->pOptProc == optionPrintVersion) {
                 textToVariable( pOpts, TT_VERSION, pOptDesc );
                 break;
             }
@@ -684,26 +684,30 @@ emitSetup( tOptions* pOpts )
          *  IF this is an enumeration/bitmask option, then convert the value
          *  to a string before printing the default value.
          */
-        if (pOptDesc->fOptState & OPTST_ENUMERATION) {
+        switch (OPTST_GET_ARGTYPE(pOptDesc->fOptState)) {
+        case OPARG_TYPE_ENUMERATION:
             (*(pOptDesc->pOptProc))( (tOptions*)2UL, pOptDesc );
             pzDefault = pOptDesc->pzLastArg;
-        }
+            break;
 
         /*
          *  Numeric and membership bit options are just printed as a number.
          */
-        else if (pOptDesc->fOptState & (OPTST_NUMERIC | OPTST_MEMBER_BITS)) {
+        case OPARG_TYPE_NUMERIC:
+        case OPARG_TYPE_MEMBERSHIP:
             snprintf( zVal, sizeof( zVal ), "%ld", (tUL)pOptDesc->pzLastArg );
             pzDefault = zVal;
-        }
+            break;
 
-        else if (pOptDesc->pzLastArg == NULL) {
-            if (pzFmt == zSingleDef)
-                pzFmt = zSingleNoDef;
-            pzDefault = NULL;
+        default:
+            if (pOptDesc->pzLastArg == NULL) {
+                if (pzFmt == zSingleDef)
+                    pzFmt = zSingleNoDef;
+                pzDefault = NULL;
+            }
+            else
+                pzDefault = pOptDesc->pzLastArg;
         }
-        else
-            pzDefault = pOptDesc->pzLastArg;
 
         printf( pzFmt, pOpts->pzPROGNAME, pOptDesc->pz_NAME, pzDefault );
     }
@@ -713,13 +717,13 @@ emitSetup( tOptions* pOpts )
 static void
 printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc )
 {
-    if (pOptDesc->pOptProc == doVersion)
+    if (pOptDesc->pOptProc == optionPrintVersion)
         printf( zTextExit, pOpts->pzPROGNAME, "VERSION" );
 
-    else if (pOptDesc->pOptProc == doPagedUsage)
+    else if (pOptDesc->pOptProc == optionPagedUsage)
         printf( zPagedUsageExit, pOpts->pzPROGNAME );
 
-    else if (pOptDesc->pOptProc == doLoadOpt) {
+    else if (pOptDesc->pOptProc == optionLoadOpt) {
         printf( zCmdFmt, "echo 'Warning:  Cannot load options files' >&2" );
         printf( zCmdFmt, "OPT_ARG_NEEDED=YES" );
 
@@ -743,18 +747,17 @@ printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc )
             printf( zMultiArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME );
         }
 
-        switch (pOptDesc->optArgType) {
-        case ARG_MAY:
-            printf( zMayArg,  pOpts->pzPROGNAME, pOptDesc->pz_NAME );
-            break;
-
-        case ARG_MUST:
-            fputs( zMustArg, stdout );
-            break;
-
-        default:
+        /*
+         *  Fix up the args.
+         */
+        if (OPTST_GET_ARGTYPE(pOptDesc->fOptState) == OPARG_TYPE_NONE) {
             printf( zCantArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME );
-            break;
+
+        } else if (pOptDesc->fOptState & OPTST_ARG_OPTIONAL) {
+            printf( zMayArg,  pOpts->pzPROGNAME, pOptDesc->pz_NAME );
+
+        } else {
+            fputs( zMustArg, stdout );
         }
     }
     fputs( zOptionEndSelect, stdout );
@@ -764,7 +767,7 @@ printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc )
 static void
 printOptionInaction( tOptions* pOpts, tOptDesc* pOptDesc )
 {
-    if (pOptDesc->pOptProc == doLoadOpt) {
+    if (pOptDesc->pOptProc == optionLoadOpt) {
         printf( zCmdFmt, "echo 'Warning:  Cannot suppress the loading of "
                 "options files' >&2" );
 

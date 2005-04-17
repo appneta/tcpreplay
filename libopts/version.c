@@ -1,5 +1,5 @@
 
-/*  $Id: version.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
+/*  $Id: version.c,v 4.4 2005/03/13 19:52:00 bkorb Exp $
  * Time-stamp:      "2005-02-14 08:19:54 bkorb"
  *
  *  This module implements the default usage procedure for
@@ -131,7 +131,7 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
     exit( EXIT_SUCCESS );
 }
 
-/*=export_func  doVersion
+/*=export_func  optionPrintVersion
  * private:
  *
  * what:  Print the program version
@@ -142,14 +142,14 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
  *  This routine will print the version to stdout.
 =*/
 void
-doVersion( pOpts, pOD )
+optionPrintVersion( pOpts, pOD )
     tOptions*  pOpts;
     tOptDesc*  pOD;
 {
     printVersion( pOpts, pOD, stdout );
 }
 
-/*=export_func  doVersionStderr
+/*=export_func  optionVersionStderr
  * private:
  *
  * what:  Print the program version to stderr
@@ -160,7 +160,7 @@ doVersion( pOpts, pOD )
  *  This routine will print the version to stderr.
 =*/
 void
-doVersionStderr( pOpts, pOD )
+optionVersionStderr( pOpts, pOD )
     tOptions*  pOpts;
     tOptDesc*  pOD;
 {

@@ -1,7 +1,7 @@
 
 /*
- *  $Id: enumeration.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:23:44 bkorb"
+ *  $Id: enumeration.c,v 4.4 2005/02/15 02:12:18 bkorb Exp $
+ * Time-stamp:      "2005-02-14 14:29:55 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -165,7 +165,7 @@ enumError(
      */
     if (pOpts != NULL)
         (*(pOpts->pUsageProc))( pOpts, EXIT_FAILURE );
-    if (pOD->fOptState & OPTST_MEMBER_BITS)
+    if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_MEMBERSHIP)
         fputs( zSetMemberSettings, option_usage_fp );
 }
 

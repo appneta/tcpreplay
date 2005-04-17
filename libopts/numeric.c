@@ -1,12 +1,7 @@
 
 /*
- *  $Id: numeric.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:22:56 bkorb"
- *
- *   Automated Options Paged Usage module.
- *
- *  This routine will run run-on options through a pager so the
- *  user may examine, print or edit them at their leisure.
+ *  $Id: numeric.c,v 4.4 2005/03/13 19:51:58 bkorb Exp $
+ *  Time-stamp:      "2005-02-14 08:22:56 bkorb"
  */
 
 /*

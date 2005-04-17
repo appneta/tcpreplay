@@ -1,7 +1,7 @@
 
 /*
- *  $Id: streqvcmp.c,v 4.3 2005/01/09 03:20:27 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:20:58 bkorb"
+ *  $Id: streqvcmp.c,v 4.4 2005/04/16 16:44:32 bkorb Exp $
+ * Time-stamp:      "2005-04-10 14:05:53 bkorb"
  *
  *  String Equivalence Comparison
  *
@@ -188,11 +188,19 @@ streqvcmp( tCC* s1, tCC* s2 )
  * doc:
  *
  * Set the character mapping.  If the count (@code{ct}) is set to zero, then
- * the map is first cleared by setting all entries in the map to their index
+ * the map is cleared by setting all entries in the map to their index
  * value.  Otherwise, the "@code{From}" character is mapped to the "@code{To}"
  * character.  If @code{ct} is greater than 1, then @code{From} and @code{To}
  * are incremented and the process repeated until @code{ct} entries have been
- * set. This function name is mapped to option_streqvmap so as to not conflict
+ * set. For example,
+ * @example
+ *    streqvmap( 'a', 'A', 26 );
+ * @end example
+ * @noindent
+ * will alter the mapping so that all English lower case letters
+ * will map to upper case.
+ *
+ * This function name is mapped to option_streqvmap so as to not conflict
  * with the POSIX name space.
  *
  * err:  none.

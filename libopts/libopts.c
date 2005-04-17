@@ -1,4 +1,5 @@
 #define AUTOOPTS_INTERNAL
+#include "config.h"
 #include "autoopts/options.h"
 #include "autoopts/usage-txt.h"
 #include "genshell.h"
@@ -13,6 +14,7 @@
 #include "genshell.c"
 #include "load.c"
 #include "makeshell.c"
+#include "nested.c"
 #include "numeric.c"
 #include "pgusage.c"
 #include "putshell.c"

@@ -1,7 +1,7 @@
 
 /*
- *  $Id: putshell.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:21:59 bkorb"
+ *  $Id: putshell.c,v 4.5 2005/03/13 19:51:59 bkorb Exp $
+ * Time-stamp:      "2005-02-14 14:55:01 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and print them to standard out in a fashion that
@@ -119,7 +119,7 @@ putQuotedStr( tCC* pzStr )
 }
 
 
-/*=export_func  putBourneShell
+/*=export_func  optionPutShell
  * what:  write a portable shell script to parse options
  * private:
  * arg:   tOptions*, pOpts, the program options descriptor
@@ -127,7 +127,7 @@ putQuotedStr( tCC* pzStr )
  *        the options described in the option definitions.
 =*/
 void
-putBourneShell( tOptions* pOpts )
+optionPutShell( tOptions* pOpts )
 {
     int  optIx = 0;
     tSCC zOptCtFmt[]  = "OPTION_CT=%d\nexport OPTION_CT\n";
@@ -175,7 +175,7 @@ putBourneShell( tOptions* pOpts )
          *  emit the thing.  We do this because it will always have some sort
          *  of bitmask value and we need to emit the bit values.
          */
-        if ((pOD->fOptState & OPTST_MEMBER_BITS) != 0) {
+        if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_MEMBERSHIP) {
             char* pz;
             uintptr_t val = 1;
             printf( zOptNumFmt, pOpts->pzPROGNAME, pOD->pz_NAME,
@@ -254,7 +254,7 @@ putBourneShell( tOptions* pOpts )
          *  If the argument type is numeric, the last arg pointer
          *  is really the VALUE of the string that was pointed to.
          */
-        else if ((pOD->fOptState & OPTST_NUMERIC) != 0)
+        else if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_NUMERIC)
             printf( zOptNumFmt, pOpts->pzPROGNAME, pOD->pz_NAME,
                     (uintptr_t)(pOD->pzLastArg) );
 
@@ -263,7 +263,7 @@ putBourneShell( tOptions* pOpts )
          *  like a text value, except we call the callback function
          *  to emit the value corresponding to the "pzLastArg" number.
          */
-        else if ((pOD->fOptState & OPTST_ENUMERATION) != 0) {
+        else if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_ENUMERATION) {
             printf( zOptValFmt, pOpts->pzPROGNAME, pOD->pz_NAME );
             fputc( '\'', stdout );
             (*(pOD->pOptProc))( (tOptions*)1UL, pOD );
@@ -275,7 +275,7 @@ putBourneShell( tOptions* pOpts )
          *  If the argument type is numeric, the last arg pointer
          *  is really the VALUE of the string that was pointed to.
          */
-        else if ((pOD->fOptState & OPTST_BOOLEAN) != 0)
+        else if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_BOOLEAN)
             printf( zFullOptFmt, pOpts->pzPROGNAME, pOD->pz_NAME,
                     ((uintptr_t)(pOD->pzLastArg) == 0) ? "false" : "true" );
 

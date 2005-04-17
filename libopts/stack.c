@@ -1,8 +1,8 @@
 
 /*
  *  stack.c
- *  $Id: stack.c,v 4.1 2005/01/01 00:20:59 bkorb Exp $
- *  Time-stamp:      "2005-02-14 08:21:23 bkorb"
+ *  $Id: stack.c,v 4.4 2005/03/13 19:51:59 bkorb Exp $
+ *  Time-stamp:      "2005-02-20 16:33:20 bkorb"
  *
  *  This is a special option processing routine that will save the
  *  argument to an option in a FIFO queue.
@@ -53,7 +53,7 @@
 
 #include REGEX_HEADER
 
-/*=export_func  unstackOptArg
+/*=export_func  optionUnstackArg
  * private:
  *
  * what:  Remove option args from a stack
@@ -64,9 +64,9 @@
  *  Invoked for options that are equivalenced to stacked options.
 =*/
 void
-unstackOptArg( pOpts, pOptDesc )
-    tOptions*  pOpts;
-    tOptDesc*  pOptDesc;
+optionUnstackArg(
+    tOptions*  pOpts,
+    tOptDesc*  pOptDesc )
 {
     int       res;
 
@@ -145,48 +145,15 @@ unstackOptArg( pOpts, pOptDesc )
 }
 
 
-/*=export_func  stackOptArg
- * private:
- *
- * what:  put option args on a stack
- * arg:   + tOptions* + pOpts    + program options descriptor +
- * arg:   + tOptDesc* + pOptDesc + the descriptor for this arg +
- *
- * doc:
- *  Keep an entry-ordered list of option arguments.
-=*/
-void
-stackOptArg( pOpts, pOptDesc )
-    tOptions*  pOpts;
-    tOptDesc*  pOptDesc;
+/*
+ *  Put an entry into an argument list.  The first argument points to
+ *  a pointer to the argument list structure.  It gets passed around
+ *  as an opaque address.
+ */
+LOCAL void
+addArgListEntry( void** ppAL, void* entry )
 {
-    tArgList* pAL;
-    tCC* pzLast = pOptDesc->pzLastArg;
-
-    if (pOptDesc->optArgType == ARG_NONE)
-        return;
-
-    if (pOptDesc->optActualIndex != pOptDesc->optIndex)
-        pOptDesc = pOpts->pOptDesc + pOptDesc->optActualIndex;
-
-    /*
-     *  IF this is a negated ('+'-marked) option
-     *  THEN we unstack the argument
-     */
-    if (DISABLED_OPT( pOptDesc )) {
-        if (pOptDesc->optCookie != NULL) {
-            AGFREE( pOptDesc->optCookie );
-            pOptDesc->optCookie = NULL;
-        }
-        pOptDesc->fOptState &= OPTST_PERSISTENT;
-        pOptDesc->fOptState |= OPTST_DISABLED;
-        return;
-    }
-
-    pAL = (tArgList*)pOptDesc->optCookie;
-
-    if (pzLast == NULL)
-        return;
+    tArgList* pAL = *(void**)ppAL;
 
     /*
      *  IF we have never allocated one of these,
@@ -198,6 +165,7 @@ stackOptArg( pOpts, pOptDesc )
             return;
         pAL->useCt   = 0;
         pAL->allocCt = MIN_ARG_ALLOC_CT;
+        *ppAL = (void*)pAL;
     }
 
     /*
@@ -216,13 +184,35 @@ stackOptArg( pOpts, pOptDesc )
         pAL = (tArgList*)AGREALOC( (void*)pAL, sz, "expanded opt arg stack" );
         if (pAL == NULL)
             return;
+        *ppAL = (void*)pAL;
     }
 
     /*
      *  Insert the new argument into the list
      */
-    pAL->apzArgs[ (pAL->useCt)++ ] = pzLast;
-    pOptDesc->optCookie = (void*)pAL;
+    pAL->apzArgs[ (pAL->useCt)++ ] = entry;
+}
+
+
+/*=export_func  optionStackArg
+ * private:
+ *
+ * what:  put option args on a stack
+ * arg:   + tOptions* + pOpts    + program options descriptor +
+ * arg:   + tOptDesc* + pOptDesc + the descriptor for this arg +
+ *
+ * doc:
+ *  Keep an entry-ordered list of option arguments.
+=*/
+void
+optionStackArg(
+    tOptions*  pOpts,
+    tOptDesc*  pOD )
+{
+    if (pOD->pzLastArg == NULL)
+        return;
+
+    addArgListEntry( &(pOD->optCookie), (void*)pOD->pzLastArg );
 }
 /*
  * Local Variables:

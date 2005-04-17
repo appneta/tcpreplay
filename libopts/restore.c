@@ -1,7 +1,7 @@
 
 /*
- *  restore.c  $Id: restore.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:21:30 bkorb"
+ *  restore.c  $Id: restore.c,v 4.4 2005/03/13 19:51:59 bkorb Exp $
+ * Time-stamp:      "2005-02-23 15:10:20 bkorb"
  *
  *  This module's routines will save the current option state to memory
  *  and restore it.  If saved prior to the initial optionProcess call,
@@ -87,9 +87,33 @@ optionSaveState( tOptions* pOpts )
     }
 
     {
-        tOptions* p = pOpts->pSavedState;
+        tOptions* p   = pOpts->pSavedState;
+        tOptDesc* pOD = pOpts->pOptDesc;
+        int       ct  = pOpts->optCt;
+
         memcpy( p, pOpts, sizeof( *p ));
         memcpy( p + 1, pOpts->pOptDesc, p->optCt * sizeof( tOptDesc ));
+
+        /*
+         *  Make sure that allocated stuff is only referenced in the
+         *  archived copy of the data.
+         */
+        for (; ct-- > 0; pOD++)  {
+            switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
+            case OPARG_TYPE_STRING:
+                if (pOD->fOptState & OPTST_STACKED) {
+                    tOptDesc* q = p->pOptDesc + (pOD - pOpts->pOptDesc);
+                    q->optCookie = NULL;
+                }
+                break;
+
+            case OPARG_TYPE_HIERARCHY:
+            {
+                tOptDesc* q = p->pOptDesc + (pOD - pOpts->pOptDesc);
+                q->optCookie = NULL;
+            }
+            }
+        }
     }
 }
 
@@ -139,7 +163,7 @@ optionRestore( tOptions* pOpts )
  *        option state structures.  This routine deallocates all such memory.
  *
  * err:   As long as memory has not been corrupted,
- *        this routine is always successful.      
+ *        this routine is always successful.
 =*/
 void
 optionFree( tOptions* pOpts )
@@ -152,12 +176,24 @@ optionFree( tOptions* pOpts )
         tOptDesc* p = pOpts->pOptDesc;
         int ct = pOpts->optCt;
         do  {
-            if ((p->fOptState & OPTST_STACKED) && (p->optCookie != NULL)) {
-                AGFREE( p->optCookie );
-                p->fOptState &= OPTST_PERSISTENT;
-                if ((p->fOptState & OPTST_INITENABLED) == 0)
-                    p->fOptState |= OPTST_DISABLED;
+            switch (OPTST_GET_ARGTYPE(p->fOptState)) {
+            case OPARG_TYPE_STRING:
+                if (  (p->fOptState & OPTST_STACKED)
+                   && (p->optCookie != NULL)) {
+                    AGFREE( p->optCookie );
+                    p->fOptState &= OPTST_PERSISTENT;
+                    if ((p->fOptState & OPTST_INITENABLED) == 0)
+                        p->fOptState |= OPTST_DISABLED;
+                }
+                break;
+
+            case OPARG_TYPE_HIERARCHY:
+                if (p->optCookie != NULL)
+                    optionUnloadNested(p->optCookie);
+                break;
             }
+
+            p->optCookie = NULL;
         } while (p++, --ct > 0);
     }
 }

@@ -1,7 +1,7 @@
 
 /*
- *  $Id: autoopts.c,v 4.8 2005/02/13 01:47:59 bkorb Exp $
- *  Time-stamp:      "2005-02-13 14:23:59 bkorb"
+ *  $Id: autoopts.c,v 4.8 2005/03/13 19:51:57 bkorb Exp $
+ *  Time-stamp:      "2005-03-13 08:39:23 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -150,7 +150,7 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
              */
             p->optActualValue = pOD->optValue;
             p->optActualIndex = pOD->optIndex;
-            pOptState->flags |= OPTST_EQUIVALENCE;          
+            pOptState->flags |= OPTST_EQUIVALENCE;
         }
 
         /*
@@ -501,6 +501,7 @@ static tSuccess
 nextOption( tOptions* pOpts, tOptState* pOptState )
 {
     tSuccess res;
+    enum { ARG_NONE, ARG_MAY, ARG_MUST } arg_type = ARG_NONE;
 
     res = findOptDesc( pOpts, pOptState );
     if (! SUCCESSFUL( res ))
@@ -514,10 +515,15 @@ nextOption( tOptions* pOpts, tOptState* pOptState )
      *  Disabled mode option selection also disables option arguments.
      */
     if ((pOptState->flags & OPTST_DISABLED) != 0)
-         pOptState->argType = ARG_NONE;
-    else pOptState->argType = pOptState->pOD->optArgType;
+        arg_type = ARG_NONE;
+    else if (OPTST_GET_ARGTYPE(pOptState->flags) == OPARG_TYPE_NONE)
+        arg_type = ARG_NONE;
+    else if (pOptState->flags & OPTST_ARG_OPTIONAL)
+        arg_type = ARG_MAY;
+    else
+        arg_type = ARG_MUST;
 
-    switch (pOptState->argType) {
+    switch (arg_type) {
     case ARG_MUST:
         /*
          *  An option argument is required.  Long options can either have
@@ -848,11 +854,11 @@ checkConsistency( tOptions* pOpts )
                 break;
 
             /*
-             *  IF presetting is okay and it has been preset,
-             *  THEN min occurrence count doesn't count
+             *  IF MUST_SET means SET and PRESET are okay,
+             *  so min occurrence count doesn't count
              */
-#           define PRESET_OK  (OPTST_PRESET | OPTST_MUST_SET)
-            if ((pOD->fOptState & PRESET_OK) == PRESET_OK)
+            if (  (pOD->fOptState & OPTST_MUST_SET)
+               && (pOD->fOptState & (OPTST_PRESET | OPTST_SET)) )
                 break;
 
             errCt++;
@@ -936,10 +942,13 @@ checkConsistency( tOptions* pOpts )
  * do not want to do this.
  *
  * The number of arguments processed always includes the program name.
- * If one of the arguments is "--", then it is counted and the
- * processing stops.  If an error was encountered and errors are
- * to be tolerated, then the returned value is the index of the
- * argument causing the error.
+ * If one of the arguments is "--", then it is counted and the processing
+ * stops.  If an error was encountered and errors are to be tolerated, then
+ * the returned value is the index of the argument causing the error.
+ * A hyphen by itself ("-") will also cause processing to stop and will
+ * @emph{not} be counted among the processed arguments.  A hyphen by itself
+ * is treated as an operand.  Encountering an operand stops option
+ * processing.
  *
  * err:  Errors will cause diagnostics to be printed.  @code{exit(3)} may
  *       or may not be called.  It depends upon whether or not the options
@@ -1020,6 +1029,5 @@ optionProcess(
  * c-file-style: "stroustrup"
  * tab-width: 4
  * indent-tabs-mode: nil
- * tab-width: 4
  * End:
  * end of autoopts/autoopts.c */

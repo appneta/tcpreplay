@@ -1,6 +1,6 @@
 
 /*
- *  $Id: pgusage.c,v 4.2 2005/01/09 00:25:06 bkorb Exp $
+ *  $Id: pgusage.c,v 4.4 2005/03/13 19:51:59 bkorb Exp $
  * Time-stamp:      "2005-02-14 08:22:01 bkorb"
  *
  *   Automated Options Paged Usage module.
@@ -54,7 +54,7 @@
 
 tePagerState pagerState = PAGER_STATE_INITIAL;
 
-/*=export_func  doPagedUsage
+/*=export_func  optionPagedUsage
  * private:
  *
  * what:  Decipher a boolean value
@@ -66,7 +66,7 @@ tePagerState pagerState = PAGER_STATE_INITIAL;
  *  This is very handy if it is very long.
 =*/
 void
-doPagedUsage( tOptions* pOptions, tOptDesc* pOD )
+optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
 {
     static pid_t     my_pid;
     char zPageUsage[ 1024 ];
@@ -99,7 +99,7 @@ doPagedUsage( tOptions* pOptions, tOptDesc* pOD )
         /*
          *  Set up so this routine gets called during the exit logic
          */
-        atexit( (void(*)(void))doPagedUsage );
+        atexit( (void(*)(void))optionPagedUsage );
 
         /*
          *  The usage procedure will now put the usage information into

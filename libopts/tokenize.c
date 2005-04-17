@@ -1,6 +1,6 @@
 /*
  *  This file defines the string_tokenize interface
- * Time-stamp:      "2005-02-14 08:20:31 bkorb"
+ * Time-stamp:      "2005-02-23 14:00:09 bkorb"
  *
  *  string_tokenize copyright 2005 Bruce Korb
  *
@@ -8,12 +8,12 @@
  *  modify it under the terms of the GNU Lesser General Public
  *  License as published by the Free Software Foundation; either
  *  version 2.1 of the License, or (at your option) any later version.
- *  
+ *
  *  string_tokenize is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  Lesser General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with string_tokenize; if not, write to:
  *             The Free Software Foundation, Inc.,
@@ -45,7 +45,7 @@ copy_cooked( ch_t** ppDest, cc_t** ppSrc )
     for (;;) {
         ch_t ch = *(pSrc++);
         switch (ch) {
-        case NUL:   pSrc--; /* FALLTHROUGH */
+        case NUL:   *ppSrc = NULL; return;
         case '"':   goto done;
         case '\\':
             pSrc += ao_string_cook_escape_char( pSrc, &ch, 0x7F );
@@ -73,7 +73,7 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
     for (;;) {
         ch_t ch = *(pSrc++);
         switch (ch) {
-        case NUL:   pSrc--; /* FALLTHROUGH */
+        case NUL:   *ppSrc = NULL; return;
         case '\'':  goto done;
         case '\\':
             /*
@@ -81,6 +81,7 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
              *  quoting and apostrophe quoting
              */
             switch (*pSrc) {
+            case NUL:   *ppSrc = NULL; return;
             case '\r':
                 if (*(++pSrc) == '\n')
                     ++pSrc;
@@ -113,7 +114,7 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
 
 /*=export_func ao_string_tokenize
  *
- * what: this is the main option processing routine
+ * what: tokenize an input string
  *
  * arg:  + const char* + string + string to be tokenized +
  *
@@ -127,6 +128,19 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
  * white space separation.  However, if the input contains either single
  * or double quote characters, then the text after that character up to
  * a matching quote will become the string in the list.
+ *
+ *  The returned pointer should be deallocated with @code{free(3C)} when
+ *  are done using the data.  The data are placed in a single block of
+ *  allocated memory.  Do not deallocate individual token/strings.
+ *
+ *  The structure pointed to will contain at least these two fields:
+ *  @table @samp
+ *  @item tkn_ct
+ *  The number of tokens found in the input string.
+ *  @item tok_list
+ *  An array of @code{tkn_ct + 1} pointers to substring tokens, with
+ *  the last pointer set to NULL.
+ *  @end table
  *
  * There are two types of quoted strings: single quoted (@code{'}) and
  * double quoted (@code{"}).  Singly quoted strings are fairly raw in that
@@ -152,11 +166,16 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
  * @end example
  * Note that everything is freed with the one call to @code{free(3C)}.
  *
- * err:  NULL is returned and @code{errno} will be set to indicate the problem:
- * @example
- * ENOENT if the input string contains nothing.
- * ENOMEM if there is not enough memory.
- * @end example
+ * err:
+ *  NULL is returned and @code{errno} will be set to indicate the problem:
+ *  @itemize @bullet
+ *  @item
+ *  @code{EINVAL} - There was an unterminated quoted string.
+ *  @item
+ *  @code{ENOENT} - The input string was empty.
+ *  @item
+ *  @code{ENOMEM} - There is not enough memory.
+ *  @end itemize
 =*/
 token_list_t*
 ao_string_tokenize( const char* str )
@@ -222,12 +241,22 @@ ao_string_tokenize( const char* str )
                 switch (ch) {
                 case '"':
                     copy_cooked( &pzDest, (cc_t**)&str );
+                    if (str == NULL) {
+                        free(res);
+                        errno = EINVAL;
+                        return NULL;
+                    }
                     if (isspace( *str ))
                         goto found_white_space;
                     break;
 
                 case '\'':
                     copy_raw( &pzDest, (cc_t**)&str );
+                    if (str == NULL) {
+                        free(res);
+                        errno = EINVAL;
+                        return NULL;
+                    }
                     if (isspace( *str ))
                         goto found_white_space;
                     break;
@@ -290,4 +319,4 @@ main( int argc, char** argv )
  * tab-width: 4
  * indent-tabs-mode: nil
  * End:
- * end of agen5/autogen.c */
+ * end of autoopts/tokenize.c */
