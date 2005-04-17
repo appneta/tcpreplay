@@ -333,3 +333,44 @@ AC_DEFUN([INVOKE_LIBOPTS_MACROS],[
   AC_CHECK_LIB(gen, pathfind)
   AC_CHECK_FUNCS(mmap)
 ]) # end AC_DEFUN of INVOKE_LIBOPTS_MACROS
+
+dnl @synopsis  LIBOPTS_CHECK
+dnl
+dnl If autoopts-config works, add the linking information to LIBS.
+dnl Otherwise, add \`\`libopts-${AO_CURRENT}.${AO_REVISION}.${AO_AGE}''
+dnl to SUBDIRS and run all the config tests that the library needs.
+dnl
+AC_DEFUN([LIBOPTS_CHECK],[
+  AC_MSG_CHECKING([whether autoopts-config can be found])
+  AC_ARG_WITH([autoopts-config],
+          AC_HELP_STRING([--with-autoopts-config],
+                   [specify the config-info script]),
+    [lo_cv_with_autoopts_config=${with_autoopts_config}],
+    AC_CACHE_CHECK([whether autoopts-config is specified],
+       lo_cv_with_autoopts_config,
+       lo_cv_with_autoopts_config=autoopts-config)
+  ) # end of AC_ARG_WITH
+  AC_CACHE_VAL([lo_cv_test_autoopts],[
+    aoconfig=${lo_cv_with_autoopts_config}
+    lo_cv_test_autoopts=`${aoconfig} --libs` 2> /dev/null
+    if test $? -ne 0 -o -z "${lo_cv_test_autoopts}"
+    then lo_cv_test_autoopts=no ; fi
+  ]) # end of CACHE_VAL
+  AC_MSG_RESULT([${lo_cv_test_autoopts}])
+
+  if test "X${lo_cv_test_autoopts}" != Xno
+  then
+    LIBOPTS_LDADD="${lo_cv_test_autoopts}"
+    LIBOPTS_CFLAGS="`${aoconfig} --cflags`"
+    NEED_LIBOPTS_DIR=''
+  else
+    LIBOPTS_LDADD='$(top_builddir)/libopts/libopts.la'
+    LIBOPTS_CFLAGS='-I$(top_srcdir)/libopts'
+    INVOKE_LIBOPTS_MACROS
+    NEED_LIBOPTS_DIR=true
+  fi
+  AM_CONDITIONAL([NEED_LIBOPTS], [test -n "${NEED_LIBOPTS_DIR}"])
+  AC_SUBST(LIBOPTS_LDADD)
+  AC_SUBST(LIBOPTS_CFLAGS)
+  AC_CONFIG_FILES([libopts/Makefile])
+]) # end of AC_DEFUN of LIBOPTS_CHECK
