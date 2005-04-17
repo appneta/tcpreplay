@@ -56,6 +56,7 @@ struct tcpprep_opt_s {
     bpf_t bpf;
     services_t services;
     char *comment; /* cache file comment */
+    int nocomment; /* don't include the cli in the comment */
     int mode;      /* our overall mode */
     int automode;  /* our auto mode */
     int min_mask;
