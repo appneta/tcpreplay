@@ -73,7 +73,8 @@ tcpbridge_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c \
 		edit_packet.c rewrite_l2.c mac.c
-tcpbridge_opts.h: tcpbridge_opts.h
+tcpbridge_OBJECTS: tcpbridge_opts.h
+tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def
 	@AUTOGEN@ tcpbridge_opts.def
 
