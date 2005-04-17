@@ -2,7 +2,20 @@
 #  preset/initialization file
 #  Mon Jan 10 15:19:55 2005
 #
+[TCPREPLAY]
 cachefile           test.auto_bridge
 intf1               @nic1@
 intf2               @nic2@
 topspeed
+
+[TCPREWRITE]
+
+
+[TCPPREP]
+pcap        test.pcap
+auto        bridge
+minmask     31
+maxmask     16
+nonip
+comment     "This file was generated via the config file"
+
