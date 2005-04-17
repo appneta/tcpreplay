@@ -222,6 +222,21 @@ viewed.
 EOText;
 };
 
+flag = {
+	name		= no-arg-comment;
+	max			= 1;
+	descrip		= "Do not embed any cache file comment";
+	flag-code	= <<- EOCode
+
+options.nocomment = 1;
+EOCode;
+	doc			= <<- EOText
+By default, tcpprep includes the arguments passed on the command line
+in the cache file comment (in addition to any user specified --comment).
+If for some reason you do not wish to include this, specify this option.
+EOText;
+};
+
 
 /* Include/Exclude */
 flag = {
