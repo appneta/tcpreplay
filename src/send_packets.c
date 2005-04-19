@@ -205,13 +205,13 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
     if (options.speed.mode == SPEED_TOPSPEED)
         return;
 
-    dbg(3, "Last time: %lu.%lu", last->tv_sec, last->tv_usec);
+    dbg(3, "Last time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
     if (gettimeofday(&now, NULL) < 0) {
         errx(1, "Error gettimeofday: %s", strerror(errno));
     }
 
-    dbg(3, "Now time: %lu.%lu", now.tv_sec, now.tv_usec);
+    dbg(3, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
 
     /* First time through for this file */
     if (!timerisset(last)) {
@@ -251,7 +251,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
             n = (float)len / (options.speed.speed * 1024 * 1024); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_usec = (n - nap.tv_sec) * 1000000;
-            dbg(3, "packet size %d\t\tequals %f bps\t\tnap %lu.%lu", len, n, 
+            dbg(3, "packet size %d\t\tequals %f bps\t\tnap " TIMEVAL_FORMAT, len, n, 
                 nap.tv_sec, nap.tv_usec);
         }
         else {
@@ -319,7 +319,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
 
     timeradd(&didsleep, &nap, &didsleep);
 
-    dbg(3, "I will sleep %lu.%lu", nap.tv_sec, nap.tv_usec);
+    dbg(3, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
 
     if (timercmp(&didsleep, &delta, >)) {
         timersub(&didsleep, &delta, &nap);

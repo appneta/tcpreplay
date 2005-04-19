@@ -150,6 +150,9 @@ typedef struct speed_s speed_t;
 #define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
 #define MAC_STR(x) x[0], x[1], x[2], x[3], x[4], x[5]
 
+/* struct timeval print structs */
+#define TIMEVAL_FORMAT "%lu.%08lu"
+
 /* force a word or half-word swap on both Big and Little endian systems */
 #ifndef SWAPLONG
 #define SWAPLONG(y) \
