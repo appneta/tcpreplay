@@ -34,6 +34,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* don't warn on OS X that poll is emulated */
+#define POLL_NO_WARN 
+#define SYS_POLL_NO_WARN
+
 #ifdef HAVE_SYS_POLL_H
 #include <sys/poll.h>
 #define  __FAKEPOLL_H
