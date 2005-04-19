@@ -1,13 +1,21 @@
 $Id$
 
-??/??/????: Version 3.0.beta2
+04/19/2005: Version 3.0.beta2
     - Significant improvements to FAQ and manual
-    - use autoopts for flowreplay
+    - Use autoopts for flowreplay
     - Be more cautious about memcpy's
     - Fix numerous warnings during compile
     - Allow overriding L2 protocol field for DLT_RAW
     - tcpprep -I & -P now take the cache filename
+    - Lots of cleanup
     - Added tcpbridge utility
+    - Fix tcpreplay --mbps which was being interpreted as bps
+    - Add --no-arg-comment feature for tcpprep
+    - Improve auto-tests and fix old broken ones
+    - Fix Makefile errors in the docs directory
+    - Upgrade libopts tear off to v5.7pre12 which fixes problems with
+      loading config files
+    - Add support for forcing the use of the local libopts tearoff code
 
 02/27/2005: Version 3.0.beta1
     - Major code cleanups and rewriting
