@@ -37,7 +37,7 @@ standard:
 
 tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port comment print_info print_comment prep_config
 tcprewrite: rewrite_cache rewrite_cidr rewrite_trunc rewrite_pad rewrite_rand rewrite_layer2 rewrite_config
-tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config
+tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config replay_multi
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -181,6 +181,12 @@ replay_rate:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -M 25.0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
+
+replay_multi:
+	$(PRINTF) "%s" "[tcpreplay] Multiplier test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Multiplier test: " >>test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -m 25.0 test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_top:
 	$(PRINTF) "%s" "[tcpreplay] Topspeed test: "
