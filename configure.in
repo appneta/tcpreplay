@@ -472,7 +472,7 @@ main (int argc, char *argv[])
        	)
 
 
-if test $libpcapnav_ver = no ; then
+if test x$libpcapnav_ver = xno ; then
      	AC_MSG_WARN([Libpcapnav versions < 0.4 are not supported.
     Please upgrade to version 0.4 or better.
     Disabling offset jump feature.])
@@ -631,6 +631,7 @@ AC_SUBST(nic1)
 AC_SUBST(nic2)
 
 LIBOPTS_CHECK
+
 AC_OUTPUT([Makefile
             lib/Makefile
             docs/Makefile
