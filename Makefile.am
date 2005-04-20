@@ -3,12 +3,15 @@ AUTOMAKE_OPTIONS = foreign
 include $(top_srcdir)/libopts/MakeDefs.inc
 
 SUBDIRS = scripts lib $(LIBOPTS_DIR) src
-DIST_SUBDIRS = scripts lib src docs libopts
-.PHONY: manpages docs test
+DIST_SUBDIRS = scripts lib libopts src docs
+.PHONY: manpages docs test man2html
 
 dist-hook: version manpages docs 
 
 DOCS_DIR = $(top_builddir)/docs
+
+man2html:
+	cd scripts && make man2html
 
 docs: manpages
 	echo Making docs in $(DOCS_DIR)
@@ -23,8 +26,7 @@ postweb: manpages
 postwebsf: manpages
 	cd $(DOCS_DIR) && make postwebsf
 
-manpages:
-	cd scripts && make
+manpages: man2html
 	cd src && make manpages
 
 TEST_DIR = $(top_builddir)/test
