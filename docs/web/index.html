@@ -63,7 +63,9 @@
               tcpreplay and tcprewrite</li>
             <li>tcprewrite - pcap file editor which rewrites TCP/IP and Layer 2 packet headers</li>
             <li>tcpreplay - replays pcap files at arbitrary speeds onto the
-              network</li>
+            network</li>
+            <li>tcpbridge - bridge two network segments with the power of
+            tcprewrite</li>
             <li>flowreplay - emulates a network client using a pcap file as the
               basis of a TCP or UDP connection (currently in alpha)</li>
           </ul>
@@ -82,6 +84,12 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
         <tr><td class=sechdr>News</td></tr>
         <tr>
             <td class=section>
+                2005-04-20<br>
+                Just released tcpreplay 3.0.beta2!   A metric ton of bug
+                fixes and some new features as well.  First release with
+                "tcpbridge" which re-introduces the network bridge
+                functionality originally added to the 2.x tree.
+                <P>
                 2005-03-09<br>
                 Just re-posted a <a
                     href="https://sourceforge.net/people/viewjob.php?group_id=48862&job_id=21661">job
@@ -112,7 +120,7 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
                 <ul>
                     <li>Latest development release:
                     <a
-                        href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-3.0.beta1.tar.gz">tcpreplay-3.0.beta1.tar.gz</a>
+                        href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-3.0.beta2.tar.gz">tcpreplay-3.0.beta2.tar.gz</a>
                     (<a
                         href="http://tcpreplay.sourceforge.net/CHANGELOG">Changelog</a>)
                     </li>
@@ -173,6 +181,7 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
                 <li><a href="man/tcpprep.html">tcpprep</a></li>
                 <li><a href="man/tcprewrite.html">tcprewrite</a></li>
                 <li><a href="man/flowreplay.html">flowreplay</a></li>
+                <li><a href="man/tcpbridge.html">tcpbridge</a></li>
             </ul>
             </td>
             <td class=section>
