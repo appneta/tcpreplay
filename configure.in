@@ -349,7 +349,9 @@ AC_SUBST(LPCAPLIB)
 
 dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
+OLDCFLAGS="$CFLAGS"
 LIBS="$LPCAPLIB"
+CFLAGS="$LPCAPINC $CFLAGS"
 
 dnl Check to see what version of libpcap
 dnl this code has been reduced a lot, but probably still could be
@@ -360,7 +362,7 @@ AC_TRY_RUN([
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "$LPCAPINCDIR/pcap.h"
+#include <pcap.h>
 #define PCAP_TEST "0.6"
 /* 
  * simple proggy to test the version of libpcap
@@ -394,7 +396,7 @@ AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "$LPCAPINCDIR/pcap.h"
+#include <pcap.h>
 int 
 main(int argc, char *argv[]) {
     pcap_datalink_val_to_description(1);
@@ -413,8 +415,9 @@ if test $have_dlt_to_desc = yes ; then
               [Does libpcap have dlt_val_to_desc?])
 fi
 
-dnl restore LIBS
+dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
+CFLAGS="$OLDCFLAGS"
 
 
 
