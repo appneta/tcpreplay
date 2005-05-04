@@ -1,5 +1,8 @@
 $Id$
 
+05/04/2005: Version 3.0.beta3
+    - Fix autoconf problems with --with-libnet
+
 04/19/2005: Version 3.0.beta2
     - Significant improvements to FAQ and manual
     - Use autoopts for flowreplay

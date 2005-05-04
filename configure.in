@@ -11,7 +11,7 @@ AM_WITH_DMALLOC
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=0
-MICRO_VERSION=beta2
+MICRO_VERSION=beta3
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -221,7 +221,9 @@ AC_SUBST(LNETINC)
 AC_SUBST(LNETLIB)
 
 OLDLIBS="$LIBS"
+OLDCFLAGS="$CFLAGS"
 LIBS="$LNETLIB"
+CFLAGS="$LNETINC $CFLAGS"
 
 dnl Check to see what version of libnet
 dnl this code has been reduced a lot, but probably still could be
@@ -283,8 +285,6 @@ if test $libnet_ver_10 = yes ; then
 	  AC_MSG_ERROR(Libnet version 1.0.x is no longer supported.
 		Please upgrade to 1.1.0 or better)
 fi
-dnl restore LIBS
-LIBS="$OLDLIBS"
 
 AC_MSG_CHECKING([for working libnet_checksum()])
 AC_TRY_RUN([
@@ -315,6 +315,10 @@ if test $libnet_ver_113 = no ; then
 else
     AC_MSG_RESULT(yes)
 fi
+
+dnl restore LIBS & CFLAGS
+LIBS="$OLDLIBS"
+CFLAGS="$OLDCFLAGS"
 
 
 dnl #####################################################
