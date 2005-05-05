@@ -2,6 +2,9 @@ $Id$
 
 05/04/2005: Version 3.0.beta3
     - Fix autoconf problems with --with-libnet
+    - Fix compile problems with dlt2desc with old versions of libpcap
+    - Fix compile problem due to not shipping flowreplay_opts.h and
+      tcpbridge_opts.h
 
 04/19/2005: Version 3.0.beta2
     - Significant improvements to FAQ and manual

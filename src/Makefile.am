@@ -84,7 +84,8 @@ noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h portmap.h \
 		 signal_handler.h common.h tcpreplay_opts.h rewrite_l2.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h portmap.h \
 		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def \
-		 flowreplay_opts.def tcpbridge_opts.def tcpbridge.h
+		 flowreplay_opts.def tcpbridge_opts.def tcpbridge.h \
+		 flowreplay_opts.h tcpbridge_opts.h
 
 
 MOSTLYCLEANFILES = *~ *.o

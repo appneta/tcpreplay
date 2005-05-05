@@ -39,7 +39,6 @@
 #include "edit_packet.h"
 #include "lib/sll.h"
 #include "dlt.h"
-#include "dlt_names.h"
 
 extern int maxpacket;
 extern tcprewrite_opt_t options;
