@@ -47,7 +47,7 @@ EODetail;
 
 man-doc = <<- EOMan
 .SH "SIGNALS"
-tcpreplay understands the following signals:
+tcpbridge understands the following signals:
 @enumerate
 @item @var{SIGUSR1}
 Suspend tcpbridge
@@ -112,7 +112,7 @@ When enabling verbose mode (@var{-v}) you may also specify one or more
 additional  arguments to pass to @code{tcpdump} to modify the way packets
 are decoded.  By default, -n and -l are used.   Be  sure  to
 quote the arguments like: -A "-axxx" so that they are not interpreted
-by tcpreplay.  The following arguments are vaild:
+by tcpbridge.  The following arguments are vaild:
     [ -aAeNqRStuvxX ]
     [ -E spi@ipaddr algo:secret,... ]
     [ -s snaplen ]
@@ -392,7 +392,7 @@ flag = {
 flag = {
     name        = pid;
     value       = P;
-    descrip     = "Print the PID of tcpreplay at startup";
+    descrip     = "Print the PID of tcpbridge at startup";
     flag-code   = <<- EOPid
     
     fprintf(stderr, "PID: %hu\n", getpid());
