@@ -55,8 +55,11 @@ web/man/flowreplay.html:
 web/man/tcprewrite.html:
 	$(MAN2HTML) < ../src/tcprewrite.1 > web/man/tcprewrite.html
 
+web/man/tcpbridge.html:
+	$(MAN2HTML) < ../src/tcpbridge.1 > web/man/tcpbridge.html
+
 manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html \
-	web/man/tcprewrite.html
+	web/man/tcprewrite.html web/man/tcpbridge.html
 
 postweb: webfiles manpages
 	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
