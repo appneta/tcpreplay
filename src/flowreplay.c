@@ -295,7 +295,7 @@ process_packet(struct session_t *node, ip_hdr_t * ip_hdr, void *l4)
                 node->data_expected += len;
             }
 
-            dbg(4, "Server data = %d", node->data_expected);
+            dbg(4, "Server data = %lu", node->data_expected);
             return (0);
         }
 
@@ -331,7 +331,7 @@ process_packet(struct session_t *node, ip_hdr_t * ip_hdr, void *l4)
                 node->data_expected += len;
             }
 
-            dbg(4, "Server data = %d", node->data_expected);
+            dbg(4, "Server data = %lu", node->data_expected);
             return (0);
         }
     }
@@ -397,6 +397,14 @@ post_args(int argc, char *argv[])
      * Verify input 
      */
 
+#ifdef DEBUG
+    if (HAVE_OPT(DBUG))
+        debug = OPT_VALUE_DBUG;
+#else
+    if (HAVE_OPT(DBUG))
+        warn("not configured with --enable-debug.  Debugging disabled.");
+#endif
+    
     /* if -m wait, then must use -w */
     if ((options.sendmode == MODE_WAIT) && (!timerisset(&options.timeout)))
         err(1, "You must specify a wait period with -m wait");
