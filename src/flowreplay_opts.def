@@ -80,7 +80,6 @@ flag = {
     value       = A;
     arg-type    = string;
     max         = 1;
-    min         = 1;
     descrip     = "Arguments passed to tcpdump decoder";
     doc         = <<- EOText
 When enabling verbose mode (@var{-v}) you may also specify one or more
@@ -100,7 +99,6 @@ flag = {
     value       = m;
     arg-type    = string;
     max         = 1;
-    min         = 1;
     must-set;
     descrip     = "Replay mode";
     doc         = <<- EOText
@@ -108,7 +106,7 @@ Flowreplay needs to know handle client/server exchanges to properly time.
 The options are:
 @table @bullet
 @item @var{send}
-Replay traffic as fast as possible.  Don't wait for server to reply.
+Replay traffic as fast as possible.  Do not wait for server to reply.
 @item @var{wait}
 Wait @var{--wait} sec.usec for the server to reply before sending.
 @item @var{bytes}
