@@ -23,10 +23,15 @@ flowreplay.1: flowreplay_opts.def
 tcpbridge.1: tcpbridge_opts.def
 	@AUTOGEN@ -T agman1.tpl --base-name tcpbridge tcpbridge_opts.def
 
-man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 flowreplay.1 tcpbridge.1
-EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 flowreplay.1 tcpbridge.1
+man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1  tcpbridge.1
+EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1
 
-bin_PROGRAMS = tcpreplay tcpprep flowreplay tcprewrite tcpbridge
+bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpbridge
+if HAVE_LIBNIDS
+bin_PROGRAMS += flowreplay
+man_MANS += flowreplay.1
+EXTRA_DIST += flowreplay.1
+endif
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPREPLAY @LNETINC@ @LPCAPINC@
 tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) \
@@ -58,9 +63,10 @@ tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def
 	@AUTOGEN@ tcpprep_opts.def
 
-flowreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DFLOWREPLAY @LNETINC@ @LPCAPINC@
+flowreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DFLOWREPLAY @LNETINC@ @LPCAPINC@ \
+		    @LNIDSINC@
 flowreplay_LDADD = ./common/libcommon.a $(LIBSTRL) \
-		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+		  @LNETLIB@ @LPCAPLIB@ @LNIDSLIB@ $(LIBOPTS_LDADD)
 flowreplay_SOURCES = flowreplay_opts.c flowreplay.c flowkey.c flownode.c \
 		     flowbuff.c flowstate.c 
 flowreplay_OBJECTS: flowreplay_opts.h

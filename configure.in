@@ -489,6 +489,41 @@ fi
 
 fi # checking pcapnav version
 
+
+dnl #####################################################
+dnl Checks for libnids
+dnl #####################################################
+foundnids=no
+trynidsdir=/usr/local
+AC_MSG_CHECKING(for libnids)
+AC_ARG_WITH(libnids,
+    AC_HELP_STRING([--with-libnids=DIR], [Use libnids in DIR]),
+    [trynidsdir=$withval])
+
+    for testdir in $trynidsdir /usr/local /usr ; do 
+ 
+     if test -f "${testdir}/include/nids.h" -a $foundnids = no ; then
+         LNIDSINC="-I${testdir}/include"
+         LNIDSINCDIR="${testdir}/include"
+dnl Libnids by default doesn't build a dynamic library and due to a 
+dnl bug, won't build one for OS X, so we link to the static
+dnl         LNIDSLIB="${testdir}/lib -lnids"
+         LNIDSLIB="${testdir}/lib/libnids.a"
+        foundnids=$testdir
+     fi
+   done
+
+   if test $foundnids = no ; then
+     AC_MSG_RESULT(no)
+     AC_MSG_WARN(libnids not found.  We won't build flowreplay.)
+   else
+     AC_MSG_RESULT($foundnids)
+   fi
+
+AC_SUBST(LNIDSINC)
+AC_SUBST(LNIDSLIB)
+AM_CONDITIONAL([HAVE_LIBNIDS], [test ${foundnids} != no ])
+
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail
 dnl
