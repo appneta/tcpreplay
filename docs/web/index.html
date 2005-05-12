@@ -84,6 +84,14 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
         <tr><td class=sechdr>News</td></tr>
         <tr>
             <td class=section>
+                2005-05-12<br>
+                Oops.  I thought I fixed a compile problem with dlt2desc
+                in 3.0.beta3, but apparently I goofed.  If you get an error
+                complaining about multiple definitions, then go into
+                src/edit_packet.c and delete the line:<P>
+                <pre>
+#include "dlt_names.h"
+                </pre>
                 2005-05-04<br>
                 3.0.beta3 has just been released which fixes some major 
                 configure and compile problems.  Users who had problems
