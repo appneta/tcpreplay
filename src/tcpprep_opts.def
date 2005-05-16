@@ -334,6 +334,7 @@ EOText;
 flag = {
     name        = cachefile;
     value       = o;
+    must-set;
     arg-type    = string;
     max         = 1;
     descrip     = "Output cache file";
@@ -343,6 +344,7 @@ flag = {
 flag = {
     name        = pcap;
     value       = i;
+    must-set;
     descrip     = "Input pcap file to process";
     arg-type    = string;
     max         = 1;
@@ -491,7 +493,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-	fprintf(stderr, "Copyright Aaron Turner <aturner@pobox.com>\n");
+	fprintf(stderr, "Copyright 2001-2005 by Aaron Turner <aturner@pobox.com>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
