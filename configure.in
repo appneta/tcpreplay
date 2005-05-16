@@ -11,7 +11,7 @@ AM_WITH_DMALLOC
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=0
-MICRO_VERSION=beta3
+MICRO_VERSION=beta4
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -191,6 +191,8 @@ AC_CHECK_FUNC(inet_addr,
 if test $inet_aton = no -a $inet_addr = no ; then
 	AC_MSG_ERROR("We need either inet_aton or inet_addr")
 fi
+
+
 dnl ##################################################
 dnl Checks for libnet (shamelessly horked from dsniff)
 dnl ##################################################
@@ -203,9 +205,9 @@ AC_ARG_WITH(libnet,
 
 for testdir in $trynetdir /usr/local /usr ; do
     if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
-     LNETINC="-I${testdir}/include"
+     LNETINC="${testdir}/include/libnet.h"
      LNETINCDIR="$testdir/include"
-     LNETLIB="-L${testdir}/lib -lnet"
+     LNETLIB="${testdir}/lib/libnet.a"
      foundnet=$testdir
     fi
 done
@@ -223,7 +225,7 @@ AC_SUBST(LNETLIB)
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS"
 LIBS="$LNETLIB"
-CFLAGS="$LNETINC $CFLAGS"
+CFLAGS="$CFLAGS"
 
 dnl Check to see what version of libnet
 dnl this code has been reduced a lot, but probably still could be
@@ -233,7 +235,7 @@ AC_MSG_CHECKING(for libnet version)
 AC_TRY_RUN([
 #include <string.h>
 #define LIBNET_LIL_ENDIAN 1
-#include "$LNETINCDIR/libnet.h"
+#include "$LNETINC"
 #define LIB_TEST "1.0"
 /* 
  * simple proggy to test the version of libnet
@@ -243,19 +245,19 @@ AC_TRY_RUN([
 int
 main (int argc, char *argv[])
 {
-	if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
-		exit(0);
-	exit(1);
+        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
+                exit(0);
+        exit(1);
 }],
-	libnet_ver_10=yes
-	AC_MSG_RESULT(1.0.x), 
-	libnet_ver_10=no,
-	libnet_ver_10=no
-	)
+        libnet_ver_10=yes
+        AC_MSG_RESULT(1.0.x), 
+        libnet_ver_10=no,
+        libnet_ver_10=no
+        )
 
 AC_TRY_RUN([
 #include <string.h>
-#include "$LNETINCDIR/libnet.h"
+#include "$LNETINC"
 #define LIB_TEST "1.1"
 /* 
  * simple proggy to test the version of libnet
@@ -265,31 +267,31 @@ AC_TRY_RUN([
 int
 main (int argc, char *argv[])
 {
-	if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
-		exit(0);
-	exit(1);
+        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
+                exit(0);
+        exit(1);
 }],
-	libnet_ver_11=yes
-	AC_MSG_RESULT(1.1.x), 
-	libnet_ver_11=no,
-	libnet_ver_11=no
-	)
+        libnet_ver_11=yes
+        AC_MSG_RESULT(1.1.x), 
+        libnet_ver_11=no,
+        libnet_ver_11=no
+        )
 
 
 if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
-	AC_MSG_RESULT(unknown)
-	AC_MSG_ERROR(Unable to determine version of libnet)
+        AC_MSG_RESULT(unknown)
+        AC_MSG_ERROR(Unable to determine version of libnet)
 fi
 
 if test $libnet_ver_10 = yes ; then
-	  AC_MSG_ERROR(Libnet version 1.0.x is no longer supported.
-		Please upgrade to 1.1.0 or better)
+          AC_MSG_ERROR(Libnet version 1.0.x is no longer supported.
+                Please upgrade to 1.1.0 or better)
 fi
 
 AC_MSG_CHECKING([for working libnet_checksum()])
 AC_TRY_RUN([
 #include <string.h>
-#include "$LNETINCDIR/libnet.h"
+#include "$LNETINC"
 #define LIB_TEST "1.1.3"
 /* 
  * simple proggy to test the version of libnet
@@ -299,14 +301,14 @@ AC_TRY_RUN([
 int
 main (int argc, char *argv[])
 {
-	if (strncmp(LIB_TEST, LIBNET_VERSION, 5) <= 0)
-		exit(0);
-	exit(1);
+        if (strncmp(LIB_TEST, LIBNET_VERSION, 5) <= 0)
+                exit(0);
+        exit(1);
 }],
-	libnet_ver_113=yes,
-	libnet_ver_113=no,
-	libnet_ver_113=no
-	)
+        libnet_ver_113=yes,
+        libnet_ver_113=no,
+        libnet_ver_113=no
+        )
 
 if test $libnet_ver_113 = no ; then
     AC_MSG_RESULT(no)
@@ -319,7 +321,6 @@ fi
 dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
 CFLAGS="$OLDCFLAGS"
-
 
 dnl #####################################################
 dnl Checks for libpcap
@@ -334,9 +335,9 @@ AC_ARG_WITH(libpcap,
     for testdir in $trypcapdir /usr/local /usr ; do 
  
      if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
-         LPCAPINC="-I${testdir}/include"
+         LPCAPINC="${testdir}/include/pcap.h"
          LPCAPINCDIR="${testdir}/include"
-         LPCAPLIB="-L${testdir}/lib -lpcap"
+         LPCAPLIB="${testdir}/lib/libpcap.a"
         foundpcap=$testdir
      fi
    done
@@ -355,7 +356,7 @@ dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS"
 LIBS="$LPCAPLIB"
-CFLAGS="$LPCAPINC $CFLAGS"
+CFLAGS="$CFLAGS"
 
 dnl Check to see what version of libpcap
 dnl this code has been reduced a lot, but probably still could be
@@ -366,7 +367,7 @@ AC_TRY_RUN([
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pcap.h>
+#include "$LPCAPINC"
 #define PCAP_TEST "0.6"
 /* 
  * simple proggy to test the version of libpcap
@@ -377,21 +378,21 @@ extern char pcap_version[];
 int
 main (int argc, char *argv[])
 {
-	if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
-		exit(0);
-	exit(1);
+        if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
+                exit(0);
+        exit(1);
 }],
-	libpcap_ver=yes
-	AC_MSG_RESULT(>= 0.6),
-	libpcap_ver=no
-	AC_MSG_RESULT(< 0.6),
-	libpcap_ver=no
-	)
+        libpcap_ver=yes
+        AC_MSG_RESULT(>= 0.6),
+        libpcap_ver=no
+        AC_MSG_RESULT(< 0.6),
+        libpcap_ver=no
+        )
 
 
 if test $libpcap_ver = no ; then
-	AC_MSG_ERROR(Libpcap versions < 0.6 are no longer supported.
-	Please upgrade to version 0.6 or better)
+        AC_MSG_ERROR(Libpcap versions < 0.6 are no longer supported.
+        Please upgrade to version 0.6 or better)
 fi
 
 dnl Check to see if we've got pcap_datalink_val_to_name()
@@ -400,7 +401,7 @@ AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pcap.h>
+#include "$LPCAPINC"
 int 
 main(int argc, char *argv[]) {
     pcap_datalink_val_to_description(1);
@@ -422,7 +423,6 @@ fi
 dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
 CFLAGS="$OLDCFLAGS"
-
 
 
 dnl ##################################################
@@ -503,7 +503,7 @@ AC_ARG_WITH(libnids,
     for testdir in $trynidsdir /usr/local /usr ; do 
  
      if test -f "${testdir}/include/nids.h" -a $foundnids = no ; then
-         LNIDSINC="-I${testdir}/include"
+         LNIDSINC="${testdir}/include/nids.h"
          LNIDSINCDIR="${testdir}/include"
 dnl Libnids by default doesn't build a dynamic library and due to a 
 dnl bug, won't build one for OS X, so we link to the static
@@ -518,11 +518,12 @@ dnl         LNIDSLIB="${testdir}/lib -lnids"
      AC_MSG_WARN(libnids not found.  We won't build flowreplay.)
    else
      AC_MSG_RESULT($foundnids)
+     AC_DEFINE([HAVE_LIBNIDS], [], [Do we have libnids?])
    fi
 
 AC_SUBST(LNIDSINC)
 AC_SUBST(LNIDSLIB)
-AM_CONDITIONAL([HAVE_LIBNIDS], [test ${foundnids} != no ])
+AM_CONDITIONAL([HAVE_LIBNIDS], [ test ${foundnids} != no ])
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail
@@ -650,11 +651,11 @@ case $host in
 	AC_MSG_RESULT(Apple OS X)
 	;;
 
-    *-*-openbsd*)
-    nic1=xl0
-    nic2=xl0
-    AC_MSG_RESULT(OpenBSD)
-    ;;
+        *-*-openbsd*)
+        nic1=xl0
+        nic2=xl0
+        AC_MSG_RESULT(OpenBSD)
+        ;;
 
 	*)
 	AC_MSG_RESULT([$host is unknown!  
@@ -679,6 +680,7 @@ AC_OUTPUT([Makefile
             docs/Makefile
             src/Makefile
             src/common/Makefile
+            src/defines.h
             test/Makefile
             test/config
             scripts/Makefile
