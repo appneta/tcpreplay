@@ -80,7 +80,7 @@ EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
 	manual.lyx manual.pdf web/manual/manual.html web/manual \
 	web/index.html web/web.css \
 	web/man/tcpreplay.html  web/man/tcpprep.html web/man/flowreplay.html \
-	web/man web/man/tcprewrite.html web/tcpreplay-2-faq.html web/tcpreplay-2-faq.css
+	web/man/tcprewrite.html web/tcpreplay-2-faq.html web/tcpreplay-2-faq.css
 
 MOSTLYCLEANFILES = FAQ.aux FAQ.log FAQ.toc FAQ.dvi FAQ.tex \
 	manual.aux manual.log manual.dvi manual.tex manual.toc \
