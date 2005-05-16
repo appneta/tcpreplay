@@ -33,7 +33,7 @@ man_MANS += flowreplay.1
 EXTRA_DIST += flowreplay.1
 endif
 
-tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPREPLAY @LNETINC@ @LPCAPINC@
+tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPREPLAY
 tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c
@@ -43,7 +43,7 @@ tcpreplay_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ tcpreplay_opts.def
 
 
-tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPREWRITE @LNETINC@ @LPCAPINC@
+tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPREWRITE
 tcprewrite_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c \
@@ -54,7 +54,7 @@ tcprewrite_opts.c: tcprewrite_opts.def
 	@AUTOGEN@ tcprewrite_opts.def
 
 
-tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPPREP @LNETINC@ @LPCAPINC@
+tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c
@@ -63,10 +63,9 @@ tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def
 	@AUTOGEN@ tcpprep_opts.def
 
-flowreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DFLOWREPLAY @LNETINC@ @LPCAPINC@ \
-		    @LNIDSINC@
+flowreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DFLOWREPLAY
 flowreplay_LDADD = ./common/libcommon.a $(LIBSTRL) \
-		  @LNETLIB@ @LPCAPLIB@ @LNIDSLIB@ $(LIBOPTS_LDADD)
+		  @LNIDSLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 flowreplay_SOURCES = flowreplay_opts.c flowreplay.c flowkey.c flownode.c \
 		     flowbuff.c flowstate.c 
 flowreplay_OBJECTS: flowreplay_opts.h
@@ -74,7 +73,7 @@ flowreplay_opts.h: flowreplay_opts.c
 flowreplay_opts.c: flowreplay_opts.def
 	@AUTOGEN@ flowreplay_opts.def
 
-tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPBRIDGE @LNETINC@ @LPCAPINC@
+tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -DTCPBRIDGE
 tcpbridge_LDADD = ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c \
