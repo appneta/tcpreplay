@@ -1,5 +1,11 @@
 $Id$
 
+??/??/2005: Version 3.0.beta4
+    - Really fix compile problems with dlt2desc with old versions of libpcap
+    - All libraries are now statically linked and full-path #includes.  This
+      should fix problems with people who have different versions of
+      libraries installed in different locations.
+
 05/04/2005: Version 3.0.beta3
     - Fix autoconf problems with --with-libnet
     - Fix compile problems with dlt2desc with old versions of libpcap
