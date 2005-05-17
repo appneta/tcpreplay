@@ -41,7 +41,6 @@
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
-#include <libnet.h>
 
 inline void timerdiv(struct timeval *tvp, float div);
 inline void float2timer(float time, struct timeval *tvp);

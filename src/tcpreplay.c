@@ -36,8 +36,6 @@
 
 #include <ctype.h>
 #include <fcntl.h>
-#include <libnet.h>
-#include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

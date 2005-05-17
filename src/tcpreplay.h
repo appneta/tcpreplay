@@ -39,7 +39,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <libnet.h>
 
 /* run-time options */
 struct tcpreplay_opt_s {

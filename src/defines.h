@@ -15,8 +15,12 @@
 #include "lib/strlcpy.h"
 #include "common/list.h"
 #include "common/cidr.h"
-#include <libnet.h>
-#include <pcap.h>
+
+#include "/usr/include/libnet.h"
+#include "/usr/local/include/pcap.h"
+#ifdef HAVE_LIBNIDS
+#include "/usr/local/include/nids.h"
+#endif
 
 /* Map libnet 1.1 structs to shorter names for internal use */
 #define LIBNET_IP_H LIBNET_IPV4_H

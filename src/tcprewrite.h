@@ -37,7 +37,6 @@
 #include "config.h"
 #include "defines.h"
 #include "portmap.h"
-#include <libnet.h>
 
 /* runtime options */
 struct tcprewrite_opt_s {

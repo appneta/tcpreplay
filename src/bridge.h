@@ -35,7 +35,6 @@
 
 #include "config.h"
 #include "lib/tree.h"
-#include <libnet.h>
 
 /*
  * RBTree node object for tracking which side of tcpreplay where 

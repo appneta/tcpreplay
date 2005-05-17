@@ -34,7 +34,6 @@
 #include "defines.h"
 #include "common.h"
 
-#include <libnet.h>
 #include <stdio.h>
 #include <stdlib.h>
 
