@@ -8,6 +8,7 @@ Legend:
     O = Mostly done
     o = Started work
     . = Canceled
+    ? = To think about
 
 + Look at VLAN (802.1q) packets
     - others non-vanilla types?
@@ -26,14 +27,21 @@ Legend:
 
 + Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
 
-- Add support for more linktypes (Prism Monitor, 802.11, etc)
+- Add support for more linktypes (Prism Monitor, 802.11, FDDI, etc)
     - Make it easier for others to add support for others
 
-O Rip out packet munger from tcpreplay and put it into another tool so
++ Rip out packet munger from tcpreplay and put it into another tool so
   that tcpreplay can be more optimized
-    - perhaps use libnetdude?
-    - make into a library?
+    ? perhaps use libnetdude?
+    ? make into a library?
     + definately put it into a seperate binary (tcprewrite)
+
+- Add the ability to modify packet data via regex(es) in tcprewrite
+  - Should support pcre
+  - Support (foo) and $1, etc so new data can include old
+  - Limit matching which packets via BPF filter and tcpprep cache
+        (client/server)
+  - Step through packets ala tcpreplay and provide option to edit (Y/n)
 
 + Improve config file format
   + better variable names
@@ -59,6 +67,8 @@ O Rip out packet munger from tcpreplay and put it into another tool so
   the same pcap will behave as different streams.
 
 - Improve flowreplay so it actually works
+  o Use libnids to read the pcaps
+  - Allow handoff to a socket after user specified client/server exchanges
 
 - Perhaps integrate stick/snot/fpg logic into flowreplay:
   http://www.geschke-online.de/FLoP/fpg.8.html
@@ -102,5 +112,5 @@ O tcpdump decoder should print packets syncronously w/ the main process
 
 - Only tcpreplay should need to run as root.
 
-- Tcpreplay should use raw sockets directly for writing rather then libnet
-  where applicable (such as Linux) for higher performance.
+- Tcpreplay should use raw sockets or BPF directly for writing rather then
+      libnet where applicable for higher performance.
