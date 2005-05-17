@@ -43,6 +43,8 @@
 #define MODE_BYTES 0x3
 #define MODE_USER  0x4
 
+#define PCAP_FILTER_LEN 1024
+
 /* runtime options */
 struct flowreplay_opt_s {
     int sendmode;

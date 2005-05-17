@@ -44,6 +44,7 @@
 #include <arpa/inet.h>
 #include <string.h>             /* strtok() */
 #include <strings.h>            /* strcasecmp() */
+#include <nids.h>               /* libnids */
 
 #include "flowreplay.h"
 #include "flowreplay_opts.h"
@@ -56,6 +57,10 @@
 #ifdef DEBUG
 int debug = 0;
 #endif
+
+/* libnids external vars */
+extern struct nids_prm nids_params;
+extern char nids_errbuf[];
 
 static void cleanup(void);
 static void init(void);
@@ -81,6 +86,7 @@ main(int argc, char *argv[])
     int optct, i;
     char ebuf[PCAP_ERRBUF_SIZE];
     pcap_t *pcap = NULL;
+    int first_run = 0;
 
     init();
 
@@ -94,20 +100,28 @@ main(int argc, char *argv[])
 
     /* loop through the input file(s) */
     for (i = 0; i < argc; i++) {
-        /* open the pcap file */
-        if ((pcap = pcap_open_offline(argv[i], ebuf)) == NULL)
-            errx(1, "Error opening file: %s", ebuf);
 
-        /* only support 802.3 ethernet */
-        if (pcap_datalink(pcap) != DLT_EN10MB)
-            errx(1, "Unsupported datalink: %s.  flowreplay only supports Ethernet",
-            pcap_datalink_val_to_description(pcap_datalink(pcap)));
+        /* set the libnids filename to our file */
+        nids_params.filename = argv[i];
+
+        /* init libnids */
+        if (!nids_init())
+            errx(1, "libnids error: %s", nids_errbuf);
+
+        if (! first_run) {
+            first_run = 1;
+            /*
+            nids_register_tcp(tcp_callback);
+            nids_register_udp(udp_callback);
+            */
+        }
+
         
         /* play the pcap */
-        main_loop(pcap);
+        nids_dispatch(-1);
 
         /* Close the pcap file */
-        pcap_close(pcap);
+//        pcap_close(nids_params.desc);
 
     }
 
@@ -392,6 +406,7 @@ static void
 post_args(int argc, char *argv[])
 {
     int i;
+    char filter[PCAP_FILTER_LEN];
 
     /*
      * Verify input 
@@ -419,6 +434,10 @@ post_args(int argc, char *argv[])
             if (!strcmp("-", argv[i]))
                 err(1, "stdin must be the only file specified");
 
+    /* apply our pcap filter, with the necessary stuff to handle IP frags */
+    strlcpy(filter, OPT_ARG(FILTER), PCAP_FILTER_LEN);
+    strlcat(filter, " or (ip[6:2] & 0x1fff != 0)", PCAP_FILTER_LEN);
+    nids_params.pcap_filter = safe_strdup(filter);
 
 }
 

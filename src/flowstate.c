@@ -84,6 +84,7 @@ tcp_state(tcp_hdr_t * tcp_hdr, struct session_t *node)
 
     }
 
+    /* look for a Syn/Ack while we're in Syn */
     else if ((tcp_hdr->th_flags & TH_SYN) &&
              (tcp_hdr->th_flags & TH_ACK) && (node->state == TH_SYN)) {
         /* server sent SYN/ACK */
