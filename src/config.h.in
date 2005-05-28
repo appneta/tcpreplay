@@ -33,6 +33,12 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
+/* Does pcap.h have DLT_C_HDLC? */
+#undef HAVE_DLT_C_HDLC
+
+/* Does pcap.h have DLT_LINUX_SLL? */
+#undef HAVE_DLT_LINUX_SLL
+
 /* Does libpcap have dlt_val_to_desc? */
 #undef HAVE_DLT_VAL_TO_DESC
 

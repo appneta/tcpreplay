@@ -368,10 +368,10 @@ AC_TRY_RUN([
 #include <stdlib.h>
 #include <stdio.h>
 #include "$LPCAPINC"
-#define PCAP_TEST "0.6"
+#define PCAP_TEST "0.5"
 /* 
  * simple proggy to test the version of libpcap
- * returns zero if version >= 0.6
+ * returns zero if version >= 0.5
  * or one otherwise
  */
 extern char pcap_version[];
@@ -383,16 +383,16 @@ main (int argc, char *argv[])
         exit(1);
 }],
         libpcap_ver=yes
-        AC_MSG_RESULT(>= 0.6),
+        AC_MSG_RESULT(>= 0.5),
         libpcap_ver=no
-        AC_MSG_RESULT(< 0.6),
+        AC_MSG_RESULT(< 0.5),
         libpcap_ver=no
         )
 
 
 if test $libpcap_ver = no ; then
-        AC_MSG_ERROR(Libpcap versions < 0.6 are no longer supported.
-        Please upgrade to version 0.6 or better)
+        AC_MSG_ERROR(Libpcap versions < 0.5 are not supported.
+        Please upgrade to version 0.5 or better)
 fi
 
 dnl Check to see if we've got pcap_datalink_val_to_name()
@@ -419,6 +419,29 @@ if test $have_dlt_to_desc = yes ; then
     AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [], 
               [Does libpcap have dlt_val_to_desc?])
 fi
+
+dnl Older versions of libpcap are missing some DLT types
+dnl If doesn't exist, we'll define them in src/common/fakepcap.h
+AC_MSG_CHECKING(for DLT_LINUX_SLL in libpcap)
+AC_TRY_COMPILE([#include "$LPCAPINC"], 
+               [ int foo;
+                 foo = DLT_LINUX_SLL ],
+                [ AC_DEFINE([HAVE_DLT_LINUX_SLL],
+                    [], [Does pcap.h include a header with DLT_LINUX_SLL?])
+                  AC_MSG_RESULT(yes)
+                ], 
+                AC_MSG_RESULT(no)
+               )
+AC_MSG_CHECKING(for DLT_C_HDLC in libpcap)
+AC_TRY_COMPILE([#include "$LPCAPINC"],
+               [ int foo;
+                 foo = DLT_C_HDLC ],
+                [ AC_DEFINE([HAVE_DLT_C_HDLC],
+                    [], [Does pcap.h include a header with DLT_C_HDLC?])
+                  AC_MSG_RESULT(yes)
+                ],
+                AC_MSG_RESULT(no)   
+               )
 
 dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"

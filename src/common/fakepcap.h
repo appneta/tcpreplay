@@ -35,13 +35,27 @@
 
 #include "config.h"
 
+/*
+ * libpcap <= 0.5 don't have some DLT types.  Add them here
+ */
+#ifndef HAVE_DLT_LINUX_SLL
+#define DLT_LINUX_SLL 113
+#endif
+
+#ifndef HAVE_DLT_C_HDLC
+#define DLT_C_HDLC 104
+#endif
+
+/*
+ * libpcap < 0.8 (I think) don't have pcap_datalink_val_to_description()
+ */
 #ifndef HAVE_DLT_VAL_TO_DESC
 
 char *pcap_datalink_val_to_description(int dlt);
 
 #endif
 
-#endif
+#endif /* end of _FAKEPCAP_H_ */
 
 /*
  Local Variables:
