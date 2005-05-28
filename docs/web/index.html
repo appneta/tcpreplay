@@ -39,17 +39,18 @@
         <a name="about"></a>
         <tr><td class=sechdr>About</td></tr>
         <tr><td class=section>
-            Tcpreplay is a suite of BSD licensed tools written by Aaron Turner for *NIX operating 
-            systems which gives you the ability to use previously captured traffic in 
-            <a href="http://www.tcpdump.org">libpcap format</a> to test a variety of
-            network devices. &nbsp;It allows you to classify traffic as client or
-            server, rewrite Layer 2, 3 and 4 headers and finally replay the traffic back
-            onto the network and through other devices such as switches, routers,
-            firewalls, NIDS and IPS's.
+Tcpreplay is a suite of BSD licensed tools written by Aaron Turner for *NIX
+operating systems which gives you the ability to use previously captured
+traffic in <a href="http://www.tcpdump.org">libpcap format</a> to test a
+variety of network devices. &nbsp;It allows you to classify traffic as
+client or server, rewrite Layer 2, 3 and 4 headers and finally replay the
+traffic back onto the network and through other devices such as switches,
+routers, firewalls, NIDS and IPS's.
             <P>
-              These programs were written in the hopes that a more precise and repeatable
-              testing methodology might be applied to the area of network intrusion
-              detection, which is still a black art at best.
+Voted as <a href="http://www.insecure.org/tools.html"> one of the top 75
+ security tools</a>, these programs were written in the hopes that a more
+precise and repeatable testing methodology might be applied to the area of
+network intrusion detection, which is still a black art at best.
           </td>
         </tr>
         <a name="details"></a>
@@ -58,24 +59,32 @@
       <tr><td class=section>
           Tcpreplay includes the following tools:
           <ul>
-            <li>tcpprep - multi-pass pcap file pre-processor which determines
-              packets as client or server and creates cache files used by
-              tcpreplay and tcprewrite</li>
-            <li>tcprewrite - pcap file editor which rewrites TCP/IP and Layer 2 packet headers</li>
+            <li>tcpprep - multi-pass pcap file pre-processor which
+            determines packets as client or server and creates cache files
+            used by tcpreplay and tcprewrite</li> 
+            
+            <li>tcprewrite - pcap file
+            editor which rewrites TCP/IP and Layer 2 packet headers</li>
+
             <li>tcpreplay - replays pcap files at arbitrary speeds onto the
-            network</li>
-            <li>tcpbridge - bridge two network segments with the power of
-            tcprewrite</li>
-            <li>flowreplay - emulates a network client using a pcap file as the
-              basis of a TCP or UDP connection (currently in alpha)</li>
+            network</li> 
+            
+            <li>tcpbridge - bridge two network segments with
+            the power of tcprewrite</li> 
+            
+            <li>flowreplay - emulates a network
+            client using a pcap file as the basis of a TCP or UDP connection
+            (currently in alpha)</li>
           </ul>
        
           <P>
-Generally speaking, most people would first run tcpprep against a pcap file to create a cache file which splits
-traffic between client and server if they are testing an inline device like a firewall or IPS. &nbsp;Then
-depending on their network setup and where the pcap was captured, they would use tcprewrite to edit the
-packets so that the device under test will examine them properly. &nbsp;Finally, tcpreplay is used to
-           replay the pcap onto the network to do the test.
+Generally speaking, most people would first run tcpprep against a pcap file
+to create a cache file which splits traffic between client and server if
+they are testing an inline device like a firewall or IPS. &nbsp;Then
+depending on their network setup and where the pcap was captured, they would
+use tcprewrite to edit the packets so that the device under test will
+examine them properly. &nbsp;Finally, tcpreplay is used to replay the pcap
+onto the network to do the test.
         </td>
       </tr>
 
@@ -84,6 +93,20 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
         <tr><td class=sechdr>News</td></tr>
         <tr>
             <td class=section>
+                2005-05-28<br>
+                Ugh.  <a href="http://libnids.sourceforge.net/">libnids</a>
+                is so close and yet so far away.  It handles the basic
+                functionality of doing IP defragmentation and TCP stream
+                reassembly which I need for flowreplay, but yet misses the
+                boat on a number of key requirements... the biggest of which
+                are no multi-thread support or proper handling of multiple
+                pcap files.
+                <P>
+                Unfortunately, doing proper multi-thread support would
+                require an API change... something that the libnids author
+                is unwilling to do.  The only option seems to be a fork of
+                the code, but that's plain ugly...  Suggestions?
+                <P>
                 2005-05-12<br>
                 Oops.  I thought I fixed a compile problem with dlt2desc
                 in 3.0.beta3, but apparently I goofed.  If you get an error
@@ -117,12 +140,6 @@ packets so that the device under test will examine them properly. &nbsp;Finally,
                 <P>
                 2005-02-27<br>
                 First 3.0 BETA released!
-                <P>
-                2003-05-??<br>
-                Tcpreplay was rated as <a
-                    href="http://www.insecure.org/tools.html">one of the top
-                    75 security tools</a> by the nmap-hackers mailing list!
-
             </td>
         </tr>
         <a name="download"></a>
