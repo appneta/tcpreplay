@@ -14,7 +14,7 @@ libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 		      fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c \
 		      tcpdump.c timer.c svn_version.c abort.c
 
-AM_CFLAGS = -I.. -I../..
+AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS)
 
 libcommon_a_LIBADD = ../../lib/libstrl.a
 
