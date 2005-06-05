@@ -38,6 +38,15 @@ Aaron Turner
 http://tcpreplay.sourceforge.net/
 \layout Section*
 
+Notice
+\layout Standard
+
+This document is still in the process of being re-written due to the significant
+ CLI and configuration file changes between versions 2.x and 3.x.
+ For the definative source of configuration options, please see the tcpprep,
+ tcprewrite, tcpreplay and tcpbridge man pages.
+\layout Section*
+
 Overview
 \layout Standard
 
@@ -127,9 +136,9 @@ The goal of this manual is to provide an idea of what tcpreplay and it's
 \layout Itemize
 
 Commands you should run from the command line 
-\emph on 
-are in italics
-\emph default 
+\family typewriter 
+are in monotype
+\family default 
 .
 \layout Itemize
 
@@ -188,10 +197,8 @@ The source code is available as a tarball on the tcpreplay homepage:
  I also encourage users familiar with Subversion to try checking out the
  latest code as it often has additional features and bugfixes not yet found
  in the offical releases.
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 $ svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay
 \layout Subsection*
 
@@ -276,17 +283,21 @@ Compiling Tcpreplay
 \layout Standard
 
 Two easy steps:
-\layout Enumerate
+\layout LyX-Code
 
+
+\emph on 
 $ 
-\emph on 
-./configure && make
 \emph default 
- 
-\layout Enumerate
-
-#
+./configure && make
 \emph on 
+ 
+\layout LyX-Code
+
+
+\emph on 
+#
+\emph default 
  make install
 \layout Standard
 
@@ -296,12 +307,14 @@ on is not standard or if it can't determine the correct network interface
  card to use for testing.
  I also recommend that for beta code you specify 
 \series bold 
---enable-debug 
+-\SpecialChar \textcompwordmark{}
+-enable-debug
 \series default 
-to the configure script in case you find any bugs.
+ to the configure script in case you find any bugs.
  If you find that configure isn't completing correctly, run:
 \emph on 
- ./configure --help
+ ./configure -\SpecialChar \textcompwordmark{}
+-help
 \emph default 
  for more information.
 \layout Standard
@@ -317,7 +330,9 @@ make test is just a series of sanity checks which try to find serious bugs
 
 make test requires at least one properly configured network interface.
  If the configure script can't guess what a valid interface is you can specify
- it with the --with-testnic and --with-testnic2 arguments.
+ it with the -\SpecialChar \textcompwordmark{}
+-with-testnic and -\SpecialChar \textcompwordmark{}
+-with-testnic2 arguments.
 \layout Itemize
 
 If make test fails, often you can find details in test/test.log.
@@ -339,10 +354,8 @@ Replaying the traffic
 
 To replay a given pcap as it was captured all you need to do is specify
  the pcap file and the interface to send the traffic out interface 'eth0':
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 # tcpreplay --intf1=eth0 sample.pcap
 \layout Subsection*
 
@@ -370,37 +383,32 @@ Some examples:
 \layout Itemize
 
 To replay traffic as quickly as possible:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --topspeed --intf1=eth0 sample.pcap
 \layout Itemize
 
 To replay traffic at a rate of 10Mbps:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --mbps=10.0 --intf1=eth0 sample.pcap
 \layout Itemize
 
 To replay traffic 7.3 times as fast as it was captured:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --multiplier=7.3 --intf1=eth0 sample.pcap
 \layout Itemize
 
 To replay traffic at half-speed:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --multiplier=0.5 --intf1=eth0 sample.pcap
 \layout Itemize
 
 To replay at 25 packets per second:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --pps=25 --intf1=eth0 sample.pcap
 \layout Subsection*
 
@@ -421,19 +429,17 @@ Looping files resets internal counters which control the speed that the
 \end_inset 
 
 :
-\layout Itemize
+\layout Standard
 
 To replay the sample.pcap file 10 times:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --loop=10 --intf1=eth0 sample.pcap
-\layout Itemize
+\layout Standard
 
 To replay the sample.pcap an infinitely or until CTRL-C is pressed:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --loop=0 --intf1=eth0 sample.pcap
 \layout Section*
 
@@ -732,10 +738,12 @@ tcpprep cache file
 \end_inset 
 
  and the mode to use:
-\layout Standard
+\layout LyX-Code
 
-$ 
+
 \emph on 
+$ 
+\emph default 
 tcpprep --auto=bridge --pcap=input.pcap --cachefile=input.cache
 \layout Standard
 
@@ -769,10 +777,12 @@ server
  client traffic required to classify an IP as a server.
  If for example you wanted to require 3.5 times as much server to client
  traffic you would specify it like:
-\layout Standard
+\layout LyX-Code
 
-$ 
+
 \emph on 
+$ 
+\emph default 
 tcpprep --auto=bridge --ratio=3.5 --pcap=input.pcap --cachefile=input.cache
 \layout Subsubsection*
 
@@ -838,25 +848,22 @@ When splitting traffic, it is important to remember that traffic that matches
 \layout Itemize
 
 To send traffic from 10.0.0.0/8 out eth0 and everything else out eth1:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay -C 10.0.0.0/8 --intf1=eth0 --intf2=eth1 sample.pcap
 \layout Itemize
 
 To send traffic from 10.1.0.0/24 and 10.2.0.0/20 out eth0 and everything else
  out eth1:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay -C 10.1.0.0/24,10.2.0.0/20 --intf1=eth0 --intf2=eth1 sample.pcap
 \layout Itemize
 
 After using tcpprep to generate a cache file, you can use it to split traffic
  between two interfaces like this:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay -c sample.cache --intf1=eth0 --intf2=eth1 sample.pcap
 \layout Subsection*
 
@@ -928,36 +935,35 @@ Examples:
 \layout Itemize
 
 To only send traffic that is too and from a host in 10.0.0.0/8:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay -x B:10.0.0.0/8 --intf1 eth0 sample.pcap
 \layout Itemize
 
 To not send traffic that is too or from a host in 10.0.0.0/8:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay -X E:10.0.0.0/8 --intf1 eth0 sample.pcap
 \layout Itemize
 
 To send every packet except the first 10 packets:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay -X P:1-10 --intf1 eth0 sample.pcap
 \layout Itemize
 
 To only send the first 50 packets followed by packets: 100, 150, 200 and
  250:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay -x P:1-50,100,150,200,250 --intf1 eth0 sample.pcap
 \layout Itemize
 
 To only send TCP packets from 10.0.0.1:
-\newline 
+\layout LyX-Code
+
+
+\emph on 
 tcpreplay -x F:'tcp and host 10.0.0.1' --intf1 eth0 sample.pcap
 \layout Subsection*
 
@@ -969,9 +975,8 @@ Using the limit packets flag (-L) you can specify that tcpreplay will only
 \layout Itemize
 
 To send at most 100 packets:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1 eth0 -L 100 sample.pcap
 \layout Subsection*
 
@@ -984,9 +989,8 @@ If you want to skip the beginning of a pcap file, you can use the offset
 \layout Itemize
 
 To skip 15Kb into the pcap file and start sending packets from there:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1=eth0 -o 15000 sample.pcap
 \layout Subsection*
 
@@ -1018,10 +1022,8 @@ By default, tcpreplay will skip these packets and not send them.
  Also, when this feature is enabled, tcpreplay will automatically recalculate
  the IP and TCP, UDP or ICMP checksums as needed.
  Example:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tcpreplay --intf1 eth0 -T sample.pcap
 \layout Subsection*
 
@@ -1035,10 +1037,8 @@ It's not always necessary to write packets to the network.
  Rather then running a separate tcpdump process to capture the packets,
  tcpreplay now supports output directly to a file.
  Example:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tcpreplay --intf1 eth0 -w output.pcap -F -u pad -x E:10.0.0.0/8 input1.pcap input2.pca
 p input3.pcap
 \layout Standard
@@ -1071,10 +1071,8 @@ data dump mode
  It's important to specify -D before -w (and -W if you're splitting data
  into two files).
  Example:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tcpreplay -D --intf1 eth0 -j eth0 -w clientdata -W serverdata -C 10.0.0.0/24
  sample.pcap
 \layout Subsection*
@@ -1102,16 +1100,14 @@ ote:
 \layout Itemize
 
 Send packets sniffed on eth0 out eth1:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1 eth1 -S 0 eth0
 \layout Itemize
 
 Bridge two subnets connected to eth0 and eth1:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1 eth0 --intf2=eth1 -b -S 0
 \layout Standard
 
@@ -1151,10 +1147,8 @@ Note that some versions of tcpreplay prior to 1.4 also supported the Solaris
  to libpcap.
  For instance, to convert a file in Sun's snoop format to libpcap, issue
  the command: 
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tethereal -r blah.snoop -w blah.pcap
 \layout Standard
 
@@ -1193,16 +1187,14 @@ If the tcpdump binary is installed on your system when tcpreplay is compiled,
 \layout Itemize
 
 Decode packets as they are sent:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1 eth0 -v sample.pcap
 \layout Itemize
 
 Decode packets with the link level header:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1 eth0 -v -A 
 \begin_inset Quotes eld
 \end_inset 
@@ -1215,9 +1207,8 @@ tcpreplay --intf1 eth0 -v -A
 \layout Itemize
 
 Fully decode and send one packet at a time:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1 eth0 -v -1 -A 
 \begin_inset Quotes eld
 \end_inset 
@@ -1249,17 +1240,15 @@ y using the -I and -J switches.
 
 To send traffic out eth0 with a destination MAC of your router (00:00:01:02:03:0
 4) and the source MAC of the server (00:20:30:40:50:60):
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1=eth0 -I 00:00:01:02:03:04 -k 00:20:30:40:50:60 sample.pcap
 \layout Itemize
 
 To split traffic between internal (10.0.0.0/24) and external addresses and
  to send that traffic to the two interfaces of a firewall:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1=eth0 --intf2=eth1 -I 00:01:00:00:AA:01 -J 00:01:00:00:AA:02
  -C 10.0.0.0/24 sample.pcap
 \layout Subsection*
@@ -1280,7 +1269,7 @@ on IP addresses, yet maintain the client/server relationship.
  Also, when this feature is enabled, tcpreplay will automatically recalculate
  the IP and TCP, UDP or ICMP checksums as needed.
  Example:
-\layout Standard
+\layout LyX-Code
 
 
 \emph on 
@@ -1309,16 +1298,14 @@ Occasionally, it is necessary to replay traffic which has been truncated
 \layout Itemize
 
 Pad truncated packets:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1=eth0 -u pad sample.pcap
 \layout Itemize
 
 Rewrite packet header lengths to the actual packet size:
-\newline 
+\layout LyX-Code
 
-\emph on 
 tcpreplay --intf1=eth0 -u trunc sample.pcap
 \layout Subsection*
 
@@ -1552,19 +1539,15 @@ While pseudo-NAT provides a great deal of flexibility, it is often more
  complicated then is necessary for testing of inline devices.
  As a simplier alternative, tcpreplay supports the concept of rewriting
  all traffic to so that it appears to be between two IP addresses:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tcpreplay --intf1=eth0 --intf2=eth1 -c sample.cache -e 10.0.0.1:10.1.1.1 sample.pcap
 \layout Standard
 
 Will rewrite all the traffic so that it is between 10.0.0.1 and 10.1.1.1.
  The equivalent command using -N would be:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tcpreplay --intf1=eth0 --intf2=eth1 -c sample.cache -N 0.0.0.0/0:10.0.0.1 -N 0.0.0.0/0:10.1.
 1.1 sample.pcap
 \layout Subsection*
@@ -1580,18 +1563,14 @@ Since a number of tcpreplay's packet editing functions require splitting
  but then always go out the primary interface or file.
  Note that even though only one interface/file will be written to, both
  -i and -j must be specified; although they can be the same physical interface.
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tcpreplay --intf1=eth0 -j eth0 -O -c sample.cache -e 10.0.0.1:10.1.1.1 sample.pcap
 \layout Standard
 
 Merging the output to a single file:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
 tcpreplay --intf1=eth0 -j eth0 -w rewrite.pcap -c sample.cache -e 10.0.0.1:10.1.1.1
  sample.pcap
 \layout Section*
@@ -1620,18 +1599,21 @@ Tcpprep has three basic modes which require the user to specify how to split
  traffic.
 \layout Itemize
 
-CIDR (-c) mode requires the user to provide a list of networks.
+CIDR (-\SpecialChar \textcompwordmark{}
+-cidr) mode requires the user to provide a list of networks.
  Any packet with a source IP in one of these networks gets sent out the
  primary interface.
 \layout Itemize
 
-Regex (-r) mode requires the user to provide a regular expression.
+Regex (-\SpecialChar \textcompwordmark{}
+-regex) mode requires the user to provide a regular expression.
  Any packet with a source IP matching the regex gets sent out the primary
  interface.
 \layout Itemize
 
-Port (-p) mode splits TCP/UDP traffic based on the destination port in the
- header.
+Port (-\SpecialChar \textcompwordmark{}
+-port) mode splits TCP/UDP traffic based on the destination port
+ in the header.
  Normally, ports 0-1023 are considered 
 \begin_inset Quotes eld
 \end_inset 
@@ -1642,7 +1624,8 @@ server
 
  ports and everything else a client port.
  You can create your own custom mapping file in the same format as /etc/services
- (see the services(5) man page for details) by specifying -s <file>.
+ (see the services(5) man page for details) by specifying -\SpecialChar \textcompwordmark{}
+-services <file>.
 \layout Standard
 
 And four auto modes in which tcpprep decides how to split traffic.
@@ -1651,34 +1634,40 @@ And four auto modes in which tcpprep decides how to split traffic.
  and clients.
 \layout Itemize
 
-Auto/Router (-a -n router) mode trys to find the largest network(s) that
+Auto/Router (-\SpecialChar \textcompwordmark{}
+-auto router) mode trys to find the largest network(s) that
  contain all the servers and no clients.
  Any unknown system is automatically re-classified as servers if it's inside
  the server network(s), otherwise it is classified as a client.
 \layout Itemize
 
-Auto/Bridge (-a -n bridge) mode makes the assumption that the clients and
+Auto/Bridge (-\SpecialChar \textcompwordmark{}
+-auto bridge) mode makes the assumption that the clients and
  servers are horribly intermixed on the network and there's no way to subnet
  them.
  While this takes less processing time to create the cache file it is unable
  to deal with unknown systems.
 \layout Itemize
 
-Auto/Client (-a -n client) mode which works just like Auto/Bridge mode,
+Auto/Client (-\SpecialChar \textcompwordmark{}
+-auto client) mode which works just like Auto/Bridge mode,
  except that any system it can't figure out is treated like a client.
 \layout Itemize
 
-Auto/Server (-a -n server) mode which works just like Auto/Bridge mode,
+Auto/Server (-\SpecialChar \textcompwordmark{}
+-auto server) mode which works just like Auto/Bridge mode,
  except that any system it can't figure out is treated like a server.
 \layout Subsection*
 
 Splitting traffic based upon IP address
 \layout Standard
 
-Tcpprep supports the same CIDR mode that tcpreplay supports using the -c
- flag (tcpreplay uses -C).
+Tcpprep supports the same CIDR mode that tcpreplay supports using the -\SpecialChar \textcompwordmark{}
+-cidr
+ flag.
  Additionally, tcpprep also supports regex(7) regular expressions to match
- source IP addresses using the -r flag.
+ source IP addresses using the -\SpecialChar \textcompwordmark{}
+-regex flag.
 \layout Subsection*
 
 Auto Mode
@@ -1759,19 +1748,19 @@ Since a system may send traffic which would classify it as both a client
 Selectively sending/dropping packets
 \layout Standard
 
-Tcpprep supports the same -x and -X options to selectively send or drop
- packets.
+Tcpprep supports the same -\SpecialChar \textcompwordmark{}
+-include and -\SpecialChar \textcompwordmark{}
+-exclude options to selectively
+ send or drop packets.
 \layout Subsection*
 
 Using tcpprep cache files with tcpreplay
 \layout Standard
 
 Just run:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
-tcpreplay -c sample.cache --intf1=eth0 --intf2=eth1 sample.pcap
+tcpreplay --cachefile sample.cache --intf1=eth0 --intf2=eth1 sample.pcap
 \layout Subsection*
 
 Commenting tcpprep cache files
@@ -1782,11 +1771,9 @@ In versions of tcpprep >= 2.1.0, you can specify a comment to be embeded in
  Comments are user specified and automatically include the command line
  arguments passed to tcpprep.
  
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
-tcpprep -C 
+tcpprep --comment 
 \begin_inset Quotes eld
 \end_inset 
 
@@ -1794,15 +1781,13 @@ this is my comment
 \begin_inset Quotes erd
 \end_inset 
 
- -i sample.pcap -o sample.cache <other args>
+ --pcap sample.pcap --cachefile sample.cache <other args>
 \layout Standard
 
 Or for no user comment, but still embed the command arguments:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
-tcpprep -C 
+tcpprep --comment 
 \begin_inset Quotes eld
 \end_inset 
 
@@ -1810,15 +1795,13 @@ tcpprep -C
 \begin_inset Quotes erd
 \end_inset 
 
- -i sample.pcap -o sample.cache <other args>
+ --pcap sample.pcap --cachefile sample.cache <other args>
 \layout Standard
 
 You can then later on print out the comments by running:
-\layout Standard
+\layout LyX-Code
 
-
-\emph on 
-tcpprep -P sample.cache
+tcpprep --print-comment sample.cache
 \layout Section*
 
 Using Configuration Files
@@ -1829,7 +1812,8 @@ Each of the applications in the tcpreplay suite offers the choice of specifying
  line.
  Each command line option has an equivalent config file option which is
  listed in the man page.
- To specify the configuration file you'd like to use, use the --load-opts=<filen
+ To specify the configuration file you'd like to use, use the -\SpecialChar \textcompwordmark{}
+-load-opts=<filen
 ame> option.
 \layout Standard
 
@@ -1865,9 +1849,8 @@ multiplier 2
 \layout Standard
 
 You would then execute:
-\newline 
+\layout LyX-Code
 
-\emph on 
 # tcpreplay --load-opts=myconfigfile sample.pcap
 \layout Standard
 
