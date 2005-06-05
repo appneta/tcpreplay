@@ -261,9 +261,19 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-	fprintf(stderr, "Copyright 2001-2005 by Aaron Turner <aturner@pobox.com>\n");
-	fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+    fprintf(stderr, "Copyright 2001-2005 by Aaron Turner <aturner@pobox.com>\n");
+    fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+#ifdef ENABLE_64BIT
+    fprintf(stderr, "64 bit packet counters: enabled\n");
+#else
+    fprintf(stderr, "64 bit packet counters: disabled\n");
+#endif
+#ifdef HAVE_TCPDUMP
+    fprintf(stderr, "Verbose printing via tcpdump: enabled\n");
+#else
+    fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
+#endif
     exit(0);
     
 EOVersion;

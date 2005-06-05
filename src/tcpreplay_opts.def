@@ -302,6 +302,11 @@ flag = {
 #else
     fprintf(stderr, "64 bit packet counters: disabled\n");
 #endif
+#ifdef HAVE_TCPDUMP
+    fprintf(stderr, "Verbose printing via tcpdump: enabled\n");
+#else
+    fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
+#endif
     exit(0);
     
 EOVersion;
