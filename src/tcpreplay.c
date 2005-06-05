@@ -152,6 +152,11 @@ replay_file(char *path)
 
     notice("processing file: %s", path);
 
+    /* close stdin if reading from it (needed for some OS's) */
+    if (strncmp(path, "-", 1) == 0)
+        if (close(1) == -1)
+            warnx("unable to close stdin: %s", strerror(errno));
+
     if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
         errx(1, "Error opening pcap file: %s", ebuf);
 
