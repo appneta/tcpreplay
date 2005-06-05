@@ -5,7 +5,8 @@ $Id$
     - All libraries are now statically linked and full-path #includes.  This
       should fix problems with people who have different versions of
       libraries installed in different locations.
-    - Attempt to handle libpcap 0.5 such as shipped with OpenBSD
+    - Add support for libpcap 0.5 such as on OpenBSD
+    - Fix tcpprep --verbose
 
 05/04/2005: Version 3.0.beta3
     - Fix autoconf problems with --with-libnet
