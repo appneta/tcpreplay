@@ -13,7 +13,10 @@ Legend:
 + Look at VLAN (802.1q) packets
     - others non-vanilla types?
     + Add tags?  Remove tags?  Change tags?
+    - Tag only one side of the connection
     - Cisco's ISL trunking?
+
+- Add support for MPLS
 
 - Add support for GRE
   http://www.linuxguruz.com/iptables/howto/2.4routing-5.html
