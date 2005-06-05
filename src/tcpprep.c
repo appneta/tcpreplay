@@ -127,6 +127,13 @@ main(int argc, char *argv[])
         errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
     }
 
+#ifdef HAVE_TCPDUMP
+    if (HAVE_OPT(VERBOSE)) {
+        tcpdump.filename = safe_strdup(OPT_ARG(PCAP));
+        tcpdump_open(&tcpdump);
+    }
+#endif
+
     /* do we apply a bpf filter? */
     if (options.bpf.filter != NULL) {
         if (pcap_compile(options.pcap, &options.bpf.program, options.bpf.filter,
@@ -142,6 +149,9 @@ main(int argc, char *argv[])
     }
     pcap_close(options.pcap);
 
+#ifdef HAVE_TCPDUMP
+    tcpdump_close(&tcpdump);
+#endif
 
     /* we need to process the pcap file twice in HASH/AUTO mode */
     if (options.mode == AUTO_MODE) {
@@ -413,11 +423,6 @@ post_args(int argc, char *argv[])
 
     memset(myargs, 0, MYARGS_LEN);
 
-#ifdef DEBUG
-    if (HAVE_OPT(DBUG))
-        debug = OPT_VALUE_DBUG;
-#endif
-
     /* print_comment and print_info don't return */
     if (HAVE_OPT(PRINT_COMMENT))
         print_comment(OPT_ARG(PRINT_COMMENT));
@@ -430,6 +435,25 @@ post_args(int argc, char *argv[])
     
     if (! options.mode)
         err(1, "Must specify a processing mode: -a, -c, -r, -p");
+
+#ifdef DEBUG
+    if (HAVE_OPT(DBUG))
+        debug = OPT_VALUE_DBUG;
+#endif
+
+#ifdef HAVE_TCPDUMP
+    if (HAVE_OPT(VERBOSE)) {
+        options.verbose = 1;
+    }
+
+    if (HAVE_OPT(DECODE))
+        options.tcpdump_args = safe_strdup(OPT_ARG(DECODE));
+   
+    /*
+     * put the open after decode options so they are passed to tcpdump
+     */
+#endif
+
 
     /* 
      * if we are to include the cli args, then prep it for the
