@@ -1,12 +1,14 @@
 $Id$
 
-??/??/2005: Version 3.0.beta4
+06/05/2005: Version 3.0.beta4
     - Really fix compile problems with dlt2desc with old versions of libpcap
     - All libraries are now statically linked and full-path #includes.  This
       should fix problems with people who have different versions of
       libraries installed in different locations.
+    - Fix problems compiling on systems with libpcapnav
     - Add support for libpcap 0.5 such as on OpenBSD
     - Fix tcpprep --verbose
+    - Close STDIN prior to re-opening it for certain OS's
 
 05/04/2005: Version 3.0.beta3
     - Fix autoconf problems with --with-libnet
