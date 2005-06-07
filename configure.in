@@ -207,7 +207,11 @@ for testdir in $trynetdir /usr/local /usr ; do
     if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
      LNETINC="${testdir}/include/libnet.h"
      LNETINCDIR="$testdir/include"
-     LNETLIB="${testdir}/lib/libnet.a"
+     if test -f "${testdir}/lib64/libnet.a" ; then
+         LNETLIB="${testdir}/lib64/libnet.a"
+     else
+         LNETLIB="${testdir}/lib/libnet.a"
+     fi
      foundnet=$testdir
     fi
 done
@@ -337,7 +341,11 @@ AC_ARG_WITH(libpcap,
      if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
          LPCAPINC="${testdir}/include/pcap.h"
          LPCAPINCDIR="${testdir}/include"
-         LPCAPLIB="${testdir}/lib/libpcap.a"
+         if test -f "${testdir}/lib64/libpcap.a" ; then
+             LPCAPLIB="${testdir}/lib64/libpcap.a"
+         else
+             LPCAPLIB="${testdir}/lib/libpcap.a"
+         fi
         foundpcap=$testdir
      fi
    done
