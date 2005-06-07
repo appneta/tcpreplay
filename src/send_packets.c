@@ -42,6 +42,11 @@
 #include <netinet/in.h>
 
 #include "tcpreplay.h"
+
+#ifdef TCPREPLAY
+#include "tcpreplay_opts.h"
+#endif
+
 #include "send_packets.h"
 
 extern tcpreplay_opt_t options;
@@ -73,6 +78,7 @@ send_packets(pcap_t *pcap)
     const u_char *pktdata = NULL;
     libnet_t *l = options.intf1;
     int ret; /* libnet return code */
+    u_int32_t pktlen;
     
     /* register signals */
     didsig = 0;
@@ -96,7 +102,17 @@ send_packets(pcap_t *pcap)
         dbg(2, "packets sent " COUNTER_SPEC, pkts_sent);
 
         packetnum++;
-        dbg(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
+
+#ifdef TCPREPLAY
+        /* do we use the snaplen (caplen) or the "actual" packet len? */
+        pktlen = HAVE_OPT(PKTLEN) ? pkthdr.len : pkthdr.caplen;
+#elif TCPBRIDGE
+        pktlen = pkthdr.caplen;
+#else
+        WTF???  We shouldn't be here!
+#endif
+
+        dbg(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
         
         /* Dual nic processing */
         if (options.intf2 != NULL) {
@@ -118,11 +134,11 @@ send_packets(pcap_t *pcap)
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 
          */
-        do_sleep((struct timeval *)&pkthdr.ts, &last, pkthdr.caplen, l);
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, l);
             
         /* write packet out on network */
         do {
-            ret = libnet_adv_write_link(l, pktdata, pkthdr.caplen);
+            ret = libnet_adv_write_link(l, pktdata, pktlen);
             if (ret == -1) {
                 /* Make note of failed writes due to full buffers */
                 if (errno == ENOBUFS) {
@@ -135,7 +151,7 @@ send_packets(pcap_t *pcap)
             /* keep trying if fail, unless user Ctrl-C's */
         } while (ret == -1 && !didsig);
 
-        bytes_sent += pkthdr.caplen;
+        bytes_sent += pktlen;
         pkts_sent++;
     
         /* 

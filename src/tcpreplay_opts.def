@@ -173,6 +173,21 @@ flag = {
     doc         = "";
 };
 
+flag = {
+    name        = pktlen;
+    value       = L;
+    max         = 1;
+    descrip     = "Override the snaplen and use the actual packet len";
+    doc         = <<- EOText
+By default, tcpreplay will send packets based on the size of the "snaplen"
+stored in the pcap file which is usually the correct thing to do.  However,
+occasionally, tools will store more bytes then told to.  By specifying this
+option, tcpreplay will ignore the snaplen field and instead try to send
+packets based on the original packet length.  Bad things (TM) may happen if
+you specify this option.
+EOText;
+};
+
 /*
     Do we really need to support this?  Adding this support would 
     have a slight but non-zero performance hit
