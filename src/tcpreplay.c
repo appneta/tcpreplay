@@ -244,6 +244,9 @@ post_args(void)
     
 #endif
 
+    if (HAVE_OPT(PKTLEN))
+        warn("--pktlen may cause problems.  Use with caution.");
+    
     options.intf1_name = (char *)safe_malloc(strlen(OPT_ARG(INTF1)) + 1);
     strncpy(options.intf1_name, OPT_ARG(INTF1), strlen(OPT_ARG(INTF1)));
     
