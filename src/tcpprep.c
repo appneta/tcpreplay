@@ -447,7 +447,7 @@ post_args(int argc, char *argv[])
     }
 
     if (HAVE_OPT(DECODE))
-        options.tcpdump_args = safe_strdup(OPT_ARG(DECODE));
+        tcpdump.args = safe_strdup(OPT_ARG(DECODE));
    
     /*
      * put the open after decode options so they are passed to tcpdump

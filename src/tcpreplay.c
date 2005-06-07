@@ -240,7 +240,7 @@ post_args(void)
         options.verbose = 1;
     
     if (HAVE_OPT(DECODE))
-        options.tcpdump_args = safe_strdup(OPT_ARG(DECODE));
+        tcpdump.args = safe_strdup(OPT_ARG(DECODE));
     
 #endif
 
