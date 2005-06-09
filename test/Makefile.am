@@ -11,6 +11,9 @@ TCPREPLAY=../src/tcpreplay
 TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
 
+EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
+		 test.auto_server test.cidr test.comment test.port \
+		 test.prep_config test.primary test.regex test.secondary
 
 test: all
 all: clearlog check tcpprep tcpreplay
