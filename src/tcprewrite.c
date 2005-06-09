@@ -223,7 +223,7 @@ post_args(int argc, char *argv[])
         dbg(1, "Using custom L2 header to calculate max frame size");
         options.maxpacket = options.mtu + options.l2.len;
     }
-    else if (options.l2.linktype == DLT_EN10MB) {
+    else if (options.l2.linktype == LINKTYPE_ETHER) {
         /* ethernet */
         dbg(1, "Using Ethernet to calculate max frame size");
         options.maxpacket = options.mtu + LIBNET_ETH_H;
@@ -248,7 +248,7 @@ void
 validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
 {
 
-    dbg(1, "File linktype is %s\n", 
+    dbg(1, "File linktype is %s", 
         pcap_datalink_val_to_description(pcap_datalink(pcap)));
 
     /* 
@@ -416,6 +416,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
 
         /* does packet have an IP header?  if so set our pointer to it */
         if (l2proto == ETHERTYPE_IP) {
+            dbg(3, "Packet has an IP header...");
 #ifdef FORCE_ALIGN
             /* 
              * copy layer 3 and up to our temp packet buffer
@@ -434,6 +435,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
             ip_hdr = (ip_hdr_t *) (&newpkt[l2len]);
 #endif
         } else {
+            dbg(3, "Packet isn't IP...");
             /* non-IP packets have a NULL ip_hdr struct */
             ip_hdr = NULL;
         }
