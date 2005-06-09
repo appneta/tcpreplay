@@ -86,15 +86,25 @@ int
 randomize_ipv4(struct pcap_pkthdr *pkthdr, u_char * pktdata,
               ip_hdr_t * ip_hdr)
 {
+    char srcip[16], dstip[16];
+
+    strlcpy(srcip, libnet_addr2name4(ip_hdr->ip_src.s_addr, 
+                LIBNET_DONT_RESOLVE), 16);
+    strlcpy(dstip, libnet_addr2name4(ip_hdr->ip_dst.s_addr, 
+                LIBNET_DONT_RESOLVE), 16);
+    
     /* randomize IP addresses based on the value of random */
-    dbg(1, "Old Src IP: 0x%08lx\tOld Dst IP: 0x%08lx",
-        ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
+    dbg(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
     ip_hdr->ip_dst.s_addr = randomize_ip(ip_hdr->ip_dst.s_addr);
     ip_hdr->ip_src.s_addr = randomize_ip(ip_hdr->ip_src.s_addr);
 
-    dbg(1, "New Src IP: 0x%08lx\tNew Dst IP: 0x%08lx\n",
-        ip_hdr->ip_src.s_addr, ip_hdr->ip_dst.s_addr);
+    strlcpy(srcip, libnet_addr2name4(ip_hdr->ip_src.s_addr, 
+                LIBNET_DONT_RESOLVE), 16);
+    strlcpy(dstip, libnet_addr2name4(ip_hdr->ip_dst.s_addr, 
+                LIBNET_DONT_RESOLVE), 16);
+
+    dbg(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
 
     return(1);
 }
