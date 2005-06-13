@@ -497,7 +497,7 @@ flag = {
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
-#ifdef ENABLE_64BIT
+#ifdef ENABLE_64BITS
     fprintf(stderr, "64 bit packet counters: enabled\n");
 #else
     fprintf(stderr, "64 bit packet counters: disabled\n");
