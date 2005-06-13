@@ -43,6 +43,9 @@ The file layout is pretty simple:
 4) Use provided warnx, dbg, and errx functions provided in err.h
 5) Use provided safe_strdup, safe_malloc and safe_realloc functions provided
     in common/utils.h
+6) Use provided strl* functions in lib/strlcat.c and lib/strlcpy.c
+
+[NOTE: Everything below this point is currently inaccurate.]
 
 4. Adding support for additional DLTs (Data Link Types)
 
