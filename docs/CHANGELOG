@@ -1,15 +1,17 @@
 $Id$
 
-??/??/2005: Version 3.0.beta5
+06/14/2005: Version 3.0.beta5
     - Fix --decode flag
     - Fix compile under AMD64/RHEL4 where libraries are in /usr/lib64
-    - Add --pktlen
-    - Fix bug on little endian systems which prevented tcprewrite from
-      editing packets
     - tarball now ships with a full test subdir
-    - Fix tcprewrite linktype checks
     - Fix compile of src/common/get.c under strictly aligned architectures
     - Fix ./configure --enable-64bits flag
+    - Fix bug on little endian systems which prevented tcprewrite from
+      editing packets
+    - Fix tcprewrite linktype checks
+    - Add --pktlen for when the pcap snaplen lies to us
+    - Add --enable-dynamic-link for those who want to dynamically link their
+      libs
 
 06/05/2005: Version 3.0.beta4
     - Really fix compile problems with dlt2desc with old versions of libpcap
