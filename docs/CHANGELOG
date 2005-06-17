@@ -1,6 +1,8 @@
 $Id$
 
 ??/??/2005: Version 3.0.beta6
+    - Fix rpm .spec file which was horribly broken
+    - Detect and manually include pcap-bpf.h
 
 06/14/2005: Version 3.0.beta5
     - Fix --decode flag
