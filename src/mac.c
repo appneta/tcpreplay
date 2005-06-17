@@ -95,10 +95,13 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
     }
 
     temp = strtok_r(NULL, ",", &tok);
-    if (strlen(temp)) {
-        mac2hex(temp, second, len);
-        ret += 2;
-    }
+    /* temp is null if no comma */
+    if (temp != NULL) { 
+        if (strlen(temp)) {
+            mac2hex(temp, second, len);
+            ret += 2;
+        }
+    } 
 
     return ret;
 
