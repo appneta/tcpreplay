@@ -244,7 +244,7 @@ AC_SUBST(LNETLIB)
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS"
 LIBS="$LNETLIB"
-CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -I$LNETINCDIR"
 
 dnl Check to see what version of libnet
 dnl this code has been reduced a lot, but probably still could be
@@ -381,7 +381,7 @@ dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS"
 LIBS="$LPCAPLIB"
-CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
 dnl Check to see what version of libpcap
 dnl this code has been reduced a lot, but probably still could be
@@ -466,6 +466,22 @@ AC_TRY_COMPILE([#include "$LPCAPINC"],
                   AC_MSG_RESULT(yes)
                 ],
                 AC_MSG_RESULT(no)   
+               )
+
+PCAP_BPF_H_FILE="$LPCAPINCDIR/pcap-bpf.h"
+AC_MSG_CHECKING(for $PCAP_BPF_H_FILE)
+AC_TRY_COMPILE([#include <sys/types.h>
+                #include <sys/time.h>
+                #include "$PCAP_BPF_H_FILE"],
+               [ int foo;
+                 foo = BPF_MAJOR_VERSION; ],
+               [ AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [],
+                           [What is the path (if any) to the pcap-bpf.h
+                            header?])
+                 AC_MSG_RESULT(yes)
+                 AC_SUBST(PCAP_BPF_H_FILE)
+               ],
+               AC_MSG_RESULT(no)
                )
 
 dnl restore LIBS & CFLAGS

@@ -9,6 +9,9 @@
 /* Use 64bit packet counters */
 #undef ENABLE_64BITS
 
+/* Enable dynamically linking libs */
+#undef ENABLE_DYNAMIC_LINK
+
 /* fopen(3) accepts a 'b' in the mode flag */
 #undef FOPEN_BINARY_FLAG
 
@@ -33,10 +36,10 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Does pcap.h have DLT_C_HDLC? */
+/* Does pcap.h include a header with DLT_C_HDLC? */
 #undef HAVE_DLT_C_HDLC
 
-/* Does pcap.h have DLT_LINUX_SLL? */
+/* Does pcap.h include a header with DLT_LINUX_SLL? */
 #undef HAVE_DLT_LINUX_SLL
 
 /* Does libpcap have dlt_val_to_desc? */
@@ -226,6 +229,9 @@
 
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
+
+/* What is the path (if any) to the pcap-bpf.h header? */
+#undef INCLUDE_PCAP_BPF_HEADER
 
 /* Do we have inet_addr? */
 #undef INET_ADDR

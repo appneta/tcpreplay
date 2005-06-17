@@ -17,6 +17,10 @@
 #include "common/cidr.h"
 
 #include "@LNETINC@"
+#ifdef INCLUDE_PCAP_BPF_H_FILE
+#include "@PCAP_BPF_H_FILE@"
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H /* don't re-include it in pcap.h */
+#endif
 #include "@LPCAPINC@"
 #ifdef HAVE_LIBNIDS
 #include "@LNIDSINC@"
