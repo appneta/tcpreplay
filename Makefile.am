@@ -44,7 +44,10 @@ version:
 	cd src/common && make svn_version.c
 
 distclean-local:
-	-rm -rf autom4te.cache
+	-rm -rf autom4te.cache doxygen
+
+doxygen: version
+	doxygen doxygen.cfg
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
