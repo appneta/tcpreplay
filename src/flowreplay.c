@@ -435,9 +435,11 @@ post_args(int argc, char *argv[])
                 err(1, "stdin must be the only file specified");
 
     /* apply our pcap filter, with the necessary stuff to handle IP frags */
-    strlcpy(filter, OPT_ARG(FILTER), PCAP_FILTER_LEN);
-    strlcat(filter, " or (ip[6:2] & 0x1fff != 0)", PCAP_FILTER_LEN);
-    nids_params.pcap_filter = safe_strdup(filter);
+    if (HAVE_OPT(FILTER)) {
+        strlcpy(filter, OPT_ARG(FILTER), PCAP_FILTER_LEN);
+        strlcat(filter, " or (ip[6:2] & 0x1fff != 0)", PCAP_FILTER_LEN);
+        nids_params.pcap_filter = safe_strdup(filter);
+    }
 
 }
 
