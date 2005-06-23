@@ -17,8 +17,10 @@ URL: http://tcpreplay.sf.net/
 
 %description
 Tcpreplay is a suite of tools to edit and replay captured network traffic.
-The tcpreplay suite includes tcpreplay, tcpprep, tcprewrite, tcpbridge and
-flowreplay.
+The tcpreplay suite includes tcpprep to pre-process pcap files, tcprewrite a
+pcap editor and tcpreplay to send packets.  Also included is tcpbridge which
+is a user-space bridge and flowreplay, a client-side agent using pcap files
+as the basis of connections.
 
 %prep
 %setup -q
@@ -51,9 +53,8 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %files
 %defattr(-,root,root)
-%doc	docs/CHANGELOG docs/LICENSE docs/README docs/FAQ.html docs/FAQ.txt
-%docs/FAQ.pdf docs/FAQ.css docs/manual.pdf docs/manual.css docs/NOTES
-%docs/INSTALL docs/manual.html docs/TODO
+%doc	docs/CHANGELOG docs/LICENSE docs/README docs/TODO docs/CREDIT \
+    docs/NOTES docs/INSTALL docs/FAQ.pdf docs/manual.pdf docs/flowreplay.pdf
 %{_bindir}/*
 %{_mandir}/man1/*
 
