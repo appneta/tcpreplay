@@ -6,6 +6,7 @@ $Id$
     - Fix tcprewrite -S crash with only one MAC
     - Fix tcpreplay using 2nd NIC split mode
     - Fix tcpreplay packet counter initialization
+    - Fix tcpprep to properly handle missing -i and -c with -I and -P
 
 06/14/2005: Version 3.0.beta5
     - Fix --decode flag
