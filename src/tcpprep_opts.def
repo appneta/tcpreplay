@@ -334,7 +334,6 @@ EOText;
 flag = {
     name        = cachefile;
     value       = o;
-    must-set;
     arg-type    = string;
     max         = 1;
     descrip     = "Output cache file";
@@ -344,7 +343,6 @@ flag = {
 flag = {
     name        = pcap;
     value       = i;
-    must-set;
     descrip     = "Input pcap file to process";
     arg-type    = string;
     max         = 1;
