@@ -49,7 +49,7 @@
 
 tcpreplay_opt_t options;
 struct timeval begin, end;
-COUNTER bytes_sent, failed, pkts_sent, cache_packets;
+COUNTER bytes_sent, failed, pkts_sent;
 int cache_bit, cache_byte;
 volatile int didsig;
 
@@ -89,7 +89,7 @@ main(int argc, char *argv[])
     if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, options.intf1_name, ebuf)) == NULL)
         errx(1, "Libnet can't open %s: %s", options.intf1_name, ebuf);
 
-    if (options.intf2 != NULL) {
+    if (options.intf2_name != NULL) {
         if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, options.intf2_name, ebuf)) == NULL)
             errx(1, "Libnet can't open %s: %s", options.intf2_name, ebuf);
     }

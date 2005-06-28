@@ -62,7 +62,7 @@ struct tcpreplay_opt_s {
     u_int32_t loop;
 
     /* tcpprep cache data */
-    int cache_packets;
+    COUNTER cache_packets;
     char *cachedata;
     char *comment; /* tcpprep comment */
 

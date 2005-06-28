@@ -51,7 +51,7 @@
 
 extern tcpreplay_opt_t options;
 extern struct timeval begin, end;
-extern COUNTER bytes_sent, failed, pkts_sent, cache_packets;
+extern COUNTER bytes_sent, failed, pkts_sent;
 extern volatile int didsig;
 
 #ifdef HAVE_TCPDUMP
@@ -177,7 +177,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
     void *l = NULL;
     int result;
 
-    if (packet_num > cache_packets)
+    if (packet_num > options.cache_packets)
         err(1, "Exceeded number of packets in cache file.");
 
     result = check_cache(cachedata, packet_num);
