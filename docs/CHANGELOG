@@ -1,9 +1,11 @@
 $Id$
 
-??/??/2005: Version 3.0.beta6
-    - Fix rpm .spec file which was horribly broken
-    - Detect and manually include pcap-bpf.h
+06/28/2005: Version 3.0.beta6
+    - Fix rpm .spec file which was still based on tcpreplay 2.x (untested)
+    - Detect and manually include pcap-bpf.h which fixes compile problem
     - Fix tcprewrite -S crash with only one MAC
+    - Fix tcpreplay using 2nd NIC split mode
+    - Fix tcpreplay packet counter initialization
 
 06/14/2005: Version 3.0.beta5
     - Fix --decode flag
