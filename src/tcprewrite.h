@@ -1,7 +1,7 @@
 /* $Id:$ */
 
 /*
- * Copyright (c) 2004 Aaron Turner <aturner@pobox.com>.
+ * Copyright (c) 2004-2005 Aaron Turner <aturner@pobox.com>.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
