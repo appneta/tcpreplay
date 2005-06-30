@@ -21,10 +21,10 @@ docs: manpages
 clean-docs:
 	cd $(DOCS_DIR) && make clean-docs
 
-postweb: manpages
+postweb: manpages doxygen
 	cd $(DOCS_DIR) && make postweb
 
-postwebsf: manpages
+postwebsf: manpages doxygen
 	cd $(DOCS_DIR) && make postwebsf
 
 manpages: man2html
@@ -54,3 +54,5 @@ MOSTLYCLEANFILES = tcpreplay.spec *~
 DISTCLEANFILES = .tm_project.cache stamp-h1 *.tar.*
 
 MAINTAINERCLEANFILES = Makefile.in configure *.bak
+
+EXTRA_DIST = doxygen.cfg.in
