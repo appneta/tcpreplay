@@ -741,12 +741,13 @@ AC_SUBST(nic2)
 LIBOPTS_CHECK
 
 AC_OUTPUT([Makefile
-            lib/Makefile
-            docs/Makefile
-            src/Makefile
-            src/common/Makefile
-            src/defines.h
-            test/Makefile
-            test/config
-            scripts/Makefile
-            tcpreplay.spec])
+           doxygen.cfg
+           lib/Makefile
+           docs/Makefile
+           src/Makefile
+           src/common/Makefile
+           src/defines.h
+           test/Makefile
+           test/config
+           scripts/Makefile
+           tcpreplay.spec])
