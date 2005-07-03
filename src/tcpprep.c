@@ -309,14 +309,17 @@ process_raw_packets(pcap_t * pcap)
 
         /* get the IP header (if any) */
         buffptr = ipbuff;
-        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, pcap_datalink(pcap), &buffptr);
+        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
+                pcap_datalink(pcap), &buffptr);
         
         if (ip_hdr == NULL) {
             dbg(2, "Packet isn't IP");
 
             /* we don't want to cache these packets twice */
-            if (options.mode != AUTO_MODE)
+            if (options.mode != AUTO_MODE) {
+                dbg(3, "Adding to cache using options for Non-IP packets");
                 add_cache(&options.cachedata, SEND, options.nonip);
+            }
 
             continue;
         }
@@ -333,18 +336,26 @@ process_raw_packets(pcap_t * pcap)
 
         switch (options.mode) {
         case REGEX_MODE:
+            dbg(2, "processing regex mode...");
             cache_result = add_cache(&options.cachedata, SEND, 
                 check_ip_regex(ip_hdr->ip_src.s_addr));
             break;
         case CIDR_MODE:
+            dbg(2, "processing cidr mode...");
             cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
             break;
         case AUTO_MODE:
+            dbg(2, "processing first pass of auto mode...");
             /* first run through in auto mode: create tree */
             add_tree(ip_hdr->ip_src.s_addr, pktdata);
             break;
         case ROUTER_MODE:
+            /* 
+             * second run through in auto mode: create route
+             * based cache
+             */
+            dbg(2, "processing second pass of auto: router mode...");
             cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
             break;
@@ -353,6 +364,7 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * based cache
              */
+            dbg(2, "processing second pass of auto: bridge mode...");
             cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_tree(UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
@@ -361,6 +373,7 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * where unknowns are servers
              */
+            dbg(2, "processing second pass of auto: server mode...");
             cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_tree(SERVER, ip_hdr->ip_src.s_addr));
             break;
@@ -369,6 +382,7 @@ process_raw_packets(pcap_t * pcap)
              * second run through in auto mode: create bridge
              * where unknowns are clients
              */
+            dbg(2, "processing second pass of auto: client mode...");
             cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_tree(CLIENT, ip_hdr->ip_src.s_addr));
             break;
@@ -376,6 +390,7 @@ process_raw_packets(pcap_t * pcap)
             /*
              * process ports based on their destination port
              */
+            dbg(2, "processing port mode...");
             cache_result = add_cache(&options.cachedata, SEND, 
                       check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
             break;
