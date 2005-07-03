@@ -28,6 +28,13 @@ http://www.tcpdump.org/
 - tcpdump (Optional. If you want packet decoding of sent packets)
 http://www.tcpdump.org/
 
+- autogen >= 5.7.0 (Only necessary if you are building tcpreplay from 
+      subversion)
+http://autogen.sourceforge.net/
+
+If building from subversion:
+./autogen.sh
+
 Run:
 ./configure ; make
 
