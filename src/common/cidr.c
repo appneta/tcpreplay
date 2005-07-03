@@ -99,15 +99,16 @@ destroy_cidr(cidr_t * cidr)
  * adds a new cidr_t entry to cidrdata
  */
 void
-add_cidr(cidr_t * cidrdata, cidr_t ** newcidr)
+add_cidr(cidr_t ** cidrdata, cidr_t ** newcidr)
 {
     cidr_t *cidr_ptr;
+    dbg(1, "Running new_cidr()");
 
-    if (cidrdata == NULL) {
-        cidrdata = *newcidr;
+    if (*cidrdata == NULL) {
+        *cidrdata = *newcidr;
     }
     else {
-        cidr_ptr = cidrdata;
+        cidr_ptr = *cidrdata;
 
         while (cidr_ptr->next != NULL) {
             cidr_ptr = cidr_ptr->next;
@@ -127,8 +128,7 @@ ip2cidr(const unsigned long ip, const int masklen)
     u_char *network;
     char mask[3];
 
-    if ((network = (u_char *) malloc(20)) == NULL)
-        errx(1, "malloc(): %s", strerror(errno));
+    network = (u_char *)safe_malloc(20);
 
     strlcpy((char *)network, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
             sizeof(network));
@@ -428,9 +428,12 @@ check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
 {
     cidr_t *mycidr;
 
-    /* if we have no cidrdata, of course it isn't in there */
-    if (cidrdata == NULL)
+    /* if we have no cidrdata, of course it isn't in there 
+     * this actually should happen occasionally, so don't put an assert here
+     */
+    if (cidrdata == NULL) {
         return 0;
+    }
 
     mycidr = cidrdata;
 
@@ -439,6 +442,7 @@ check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
 
         /* if match, return 1 */
         if (ip_in_cidr(mycidr, ip)) {
+            dbg(3, "Found %s in cidr", libnet_addr2name4(ip, RESOLVE));
             return 1;
         }
         /* check for next record */
@@ -451,6 +455,7 @@ check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
     }
 
     /* if we get here, no match */
+    dbg(3, "Didn't find %s in cidr", libnet_addr2name4(ip, RESOLVE));
     return 0;
 }
 
@@ -479,8 +484,7 @@ cidr2iplist(cidr_t * cidr, char delim)
     }
     size = 16 * numips;
 
-    if ((list = (char *)malloc(size)) == NULL)
-        errx(1, "Unable to malloc %d bytes!  Aborting...", size);
+    list = (char *)safe_malloc(size);
 
     memset(list, 0, size);
 

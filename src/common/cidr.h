@@ -54,7 +54,7 @@ int parse_cidr(cidr_t **, char *, char *delim);
 int parse_cidr_map(cidrmap_t **, const char *);
 int parse_endpoints(cidrmap_t **, cidrmap_t **, const char *);
 u_char *ip2cidr(const unsigned long, const int);
-void add_cidr(cidr_t *, cidr_t **);
+void add_cidr(cidr_t **, cidr_t **);
 cidr_t *new_cidr(void);
 cidrmap_t *new_cidr_map(void);
 void destroy_cidr(cidr_t *);
