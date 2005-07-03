@@ -57,7 +57,7 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     
 #ifdef DEBUG
     /* wrapped inside an #ifdef for better performance */
-    dbg(4, "Malloc'd %d bytes in %s:%s() line %d", len, file, funcname, line);
+    dbg(5, "Malloc'd %d bytes in %s:%s() line %d", len, file, funcname, line);
 #endif
     
     return (void *)ptr;
@@ -77,7 +77,7 @@ _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, c
             funcname, line, file, len);
 
 #ifdef DEBUG
-    dbg(4, "Remalloc'd buffer to %d bytes in %s:%s() line %d", len, file, funcname, line);
+    dbg(5, "Remalloc'd buffer to %d bytes in %s:%s() line %d", len, file, funcname, line);
 #endif
 
     return ptr;
@@ -184,7 +184,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     free(string);
 
-    dbg(1, "Read %d bytes of layer 2 data", numbytes);
+    dbg(1, "Read %d bytes of hex data", numbytes);
     return (numbytes);
 }
 
