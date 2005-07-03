@@ -1,5 +1,12 @@
 $Id$
 
+??/??/2005: Version 3.0.beta7
+    - New 'make doxygen' target builds pretty source code docs in
+          docs/web/doxygen/html
+    - Fix tcpprep auto/router mode which was sending all packets out the
+          secondary interface
+    - Improve debugability of tcpprep
+
 06/28/2005: Version 3.0.beta6
     - Fix rpm .spec file which was still based on tcpreplay 2.x (untested)
     - Detect and manually include pcap-bpf.h which fixes compile problem
