@@ -47,14 +47,15 @@ extern tcpprep_opt_t options;
 extern int debug;
 #endif
 
-int checkincidr;
+/* static buffer used by tree_print*() functions */
+char tree_print_buff[TREEPRINTBUFFLEN]; 
 
 static tree_t *new_tree();
 static tree_t *packet2tree(const u_char *);
-static void tree_print(data_tree_t *);
-static void tree_printnode(const char *, const tree_t *);
+static char *tree_print(data_tree_t *);
+static char *tree_printnode(const char *, const tree_t *);
 static void tree_buildcidr(data_tree_t *, buildcidr_t *);
-static void tree_checkincidr(data_tree_t *, buildcidr_t *);
+static int tree_checkincidr(data_tree_t *, buildcidr_t *);
 
 RB_PROTOTYPE(data_tree_s, tree_s, node, tree_comp)
 RB_GENERATE(data_tree_s, tree_s, node, tree_comp)
@@ -71,6 +72,7 @@ tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
     unsigned long network = 0;
     unsigned long mask = ~0;    /* turn on all bits */
 
+    dbg(1, "Running: tree_buildcidr()");
 
     RB_FOREACH(node, data_tree_s, treeroot) {
 
@@ -82,12 +84,17 @@ tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
+        dbg(4, "Checking if node exists...");
         if (!check_ip_cidr(options.cidrdata, node->ip)) {   /* if we exist, abort */
+            dbg(3, "Node %s doesn't exist... creating.", 
+                    libnet_addr2name4(node->ip, RESOLVE));
             newcidr = new_cidr();
             newcidr->masklen = bcdata->masklen;
-            network = node->ip & (mask >> (32 - bcdata->masklen));
+            network = node->ip & (mask << (32 - bcdata->masklen));
+            dbg(3, "Using network: %s", 
+                    libnet_addr2name4(network, LIBNET_DONT_RESOLVE));
             newcidr->network = network;
-            add_cidr(options.cidrdata, &newcidr);
+            add_cidr(&options.cidrdata, &newcidr);
         }
     }
 }
@@ -97,9 +104,8 @@ tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
  * uses rbwalk to check to see if a given ip address of a given type in the
  * tree is inside any of the cidrdata
  *
- * since this is void, we return via the global int checkincidr
  */
-void
+static int
 tree_checkincidr(data_tree_t *treeroot, buildcidr_t * bcdata)
 {
     tree_t *node = NULL;
@@ -110,16 +116,17 @@ tree_checkincidr(data_tree_t *treeroot, buildcidr_t * bcdata)
         /* we only check types that are vaild */
         if (bcdata->type != ANY)    /* don't check if we're adding ANY */
             if (bcdata->type != node->type) /* no match, exit early */
-                return;
+                return 0;
 
         /*
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
         if (check_ip_cidr(options.cidrdata, node->ip)) {    /* if we exist, abort */
-            checkincidr = 1;
+            return 1;
         }
     }
+    return 0;
 }
 
 /*
@@ -135,6 +142,8 @@ process_tree()
     int mymask = 0;
     buildcidr_t *bcdata;
 
+
+    dbg(1, "Running: process_tree()");
 
     bcdata = (buildcidr_t *)safe_malloc(sizeof(buildcidr_t));
 
@@ -152,11 +161,9 @@ process_tree()
         tree_calculate(&treeroot);
 
         /* try to find clients in cidrdata */
-        checkincidr = 0;
         bcdata->type = CLIENT;
-        tree_checkincidr(&treeroot, bcdata);
 
-        if (checkincidr == 0) { /* didn't find any clients in cidrdata */
+        if (! tree_checkincidr(&treeroot, bcdata)) { /* didn't find any clients in cidrdata */
             return (mymask);    /* success! */
         }
         else {
@@ -246,8 +253,7 @@ add_tree(const unsigned long ip, const u_char * data)
     node = RB_FIND(data_tree_s, &treeroot, newnode);
 
 #ifdef DEBUG
-    if (debug > 2)
-        tree_printnode("add_tree", node);
+    dbg(3, "%s", tree_printnode("add_tree", node));
 #endif
 
     /* new entry required */
@@ -267,8 +273,7 @@ add_tree(const unsigned long ip, const u_char * data)
         /* we found something, so update it */
         dbg(2, "   node: %p\nnewnode: %p", node, newnode);
 #ifdef DEBUG
-        if (debug > 2)
-            tree_printnode("update node", node);
+        dbg(3, "%s", tree_printnode("update node", node));
 #endif
         /* increment counter */
         if (newnode->type == SERVER) {
@@ -284,8 +289,7 @@ add_tree(const unsigned long ip, const u_char * data)
 
     dbg(2, "------- START NEXT -------");
 #ifdef DEBUG
-    if (debug > 2)
-        tree_print(&treeroot);
+    dbg(3, "%s", tree_print(&treeroot));
 #endif
 }
 
@@ -299,18 +303,27 @@ tree_calculate(data_tree_t *treeroot)
 {
     tree_t *node;
 
+    dbg(1, "Running tree_calculate()");
+
     RB_FOREACH(node, data_tree_s, treeroot) {
+        dbg(4, "Processing %s", libnet_addr2name4(node->ip, RESOLVE));
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
             if ((double)node->server_cnt >= (double)node->client_cnt * options.ratio) {
                 node->type = SERVER;
+                dbg(3, "Setting %s to server", 
+                        libnet_addr2name4(node->ip, RESOLVE));
             }
             else {
                 node->type = CLIENT;
+                dbg(3, "Setting %s to client", 
+                        libnet_addr2name4(node->ip, RESOLVE));
             }
         }
         else {                  /* IP had no client or server connections */
             node->type = UNKNOWN;
+            dbg(3, "Setting %s to unknown", 
+                    libnet_addr2name4(node->ip, RESOLVE));
         }
     }
 }
@@ -524,42 +537,44 @@ packet2tree(const u_char * data)
  * prints out a node of the tree to stderr
  */
 
-static void
+static char *
 tree_printnode(const char *name, const tree_t *node)
 {
 
+    memset(&tree_print_buff, '\0', TREEPRINTBUFFLEN);
     if (node == NULL) {
-        fprintf(stderr, "%s node is null\n", name);
+        snprintf(tree_print_buff, TREEPRINTBUFFLEN, "%s node is null\n", name);
     }
 
     else {
-        fprintf(stderr, "-- %s: %p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
+        snprintf(tree_print_buff, TREEPRINTBUFFLEN,
+                "-- %s: %p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
                 name, (void *)node, libnet_addr2name4(node->ip, RESOLVE),
                 node->masklen, node->server_cnt, node->client_cnt);
         if (node->type == SERVER) {
-            fprintf(stderr, "Type: Server\n--\n");
+            strlcat(tree_print_buff, "Type: Server\n--\n", TREEPRINTBUFFLEN);
         }
         else {
-            fprintf(stderr, "Type: Client\n--\n");
+            strlcat(tree_print_buff, "Type: Client\n--\n", TREEPRINTBUFFLEN);
         }
 
     }
-
+    return (tree_print_buff);
 }
 
 /*
  * prints out the entire tree
  */
 
-static void
+static char *
 tree_print(data_tree_t *treeroot)
 {
     tree_t *node = NULL;
-
+    memset(&tree_print_buff, '\0', TREEPRINTBUFFLEN);
     RB_FOREACH(node, data_tree_s, treeroot) {
         tree_printnode("my node", node);
     }
-    return;
+    return (tree_print_buff);
 
 }
 

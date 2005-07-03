@@ -35,6 +35,8 @@
 
 #include "lib/tree.h"
 
+#define TREEPRINTBUFFLEN 2048
+
 struct tree_s {
     RB_ENTRY(tree_s) node;
     unsigned long ip;           /* ip/network address in network byte order */
