@@ -165,12 +165,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 
     proto = get_l2protocol(pktdata, datalen, datalink);
 
-    /*
-     * ARG!  Why on Intel do I have to htons(proto)?  
-     * I'm returning the eth_hdr->ether_type, but it's coming across
-     * in little endian format... WTF?
-     */
-    if (htons(proto) != ETHERTYPE_IP)
+    if (proto != ETHERTYPE_IP)
         return NULL;
 
 #ifdef FORCE_ALIGN
