@@ -5,6 +5,8 @@ $Id$
           docs/web/doxygen/html
     - Fix tcpprep auto/router mode which was sending all packets out the
           secondary interface
+    - Fix endian issue on little-endian systems which made tcpprep think all
+          packets were not IP
     - Improve debugability of tcpprep
 
 06/28/2005: Version 3.0.beta6
