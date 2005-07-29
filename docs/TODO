@@ -1,0 +1,119 @@
+This is a general list of things which should/could/may be done.
+If any of these features interest you let me know- especially if you're
+willing and able to help code it.
+
+Legend:
+    - = Not started
+    + = Done
+    O = Mostly done
+    o = Started work
+    . = Canceled
+    ? = To think about
+
++ Look at VLAN (802.1q) packets
+    - others non-vanilla types?
+    + Add tags?  Remove tags?  Change tags?
+    - Tag only one side of the connection
+    - Cisco's ISL trunking?
+
+- Add support for MPLS
+
+- Add support for GRE
+  http://www.linuxguruz.com/iptables/howto/2.4routing-5.html
+  Perhaps this should be done via the hardware interface rather then the GRE
+  virtual interface since libnet doesn't support the GRE virtual
+
++ Add support for setting the ethernet protocol field so we can use
+    -I, -K to fill out an entire ethernet header w/o using -2
+
++ Add a secondary interface full layer two rewrite option
+
++ Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
+
+- Add support for more linktypes (Prism Monitor, 802.11, FDDI, etc)
+    - Make it easier for others to add support for others
+
++ Rip out packet munger from tcpreplay and put it into another tool so
+  that tcpreplay can be more optimized
+    ? perhaps use libnetdude?
+    ? make into a library?
+    + definately put it into a seperate binary (tcprewrite)
+
+- Add the ability to modify packet data via regex(es) in tcprewrite
+  - Should support pcre
+  - Support (foo) and $1, etc so new data can include old
+  - Limit matching which packets via BPF filter and tcpprep cache
+        (client/server)
+  - Step through packets ala tcpreplay and provide option to edit (Y/n)
+
++ Improve config file format
+  + better variable names
+  + use "var: value" format
+  + have tcpreplay, tcpprep, tcprewrite sections
+  + Being solved using GNU AutoOpts
+
+. Add support for dual-nic send on one intf, wait for packet, send next.
+  would be really useful for testing the effectiveness of how well an IPS
+  detects and blocks attacks. (TP's tomahawk does this even better then
+  described here, so why re-invent the wheel?)
+
+- Support fragrouter like features 
+    - basic IP fragmenation
+    - TCP fudging 
+    - then more advanced stuff
+    - Can we integrate FR's code?
+
+- Support connection tracking and generating 3way handshake for connections
+  missing them.
+
+- Bump Syn/Ack numbers by a random or given value so that running 
+  the same pcap will behave as different streams.
+
+- Improve flowreplay so it actually works
+  o Use libnids to read the pcaps
+  - Allow handoff to a socket after user specified client/server exchanges
+
+- Perhaps integrate stick/snot/fpg logic into flowreplay:
+  http://www.geschke-online.de/FLoP/fpg.8.html
+  to do full 3way handshakes
+
+- IPv6 support?  People ask for this every few months, but nobody actually
+  says they "need" or "really want" it; seems more of "gee, wouldn't it be
+  nice".
+
++ When splitting traffic via tcpprep print out each packet (tcpdump style)
+  so end users know where each packet is going
+
++ Improve autoconf detection of libraries
+
++ Re-organize source tree
+
+O tcpdump decoder should print packets syncronously w/ the main process
+
+- Rewrite do_sleep() to handle sub sleep times by only nanosleep()'ing
+  once for multiple packets when the timestamps are close enough.  We
+  also need to time nanosleep, since different architectures have lower
+  minimum sleep times (Linux/Alpha is 1ms vs. 10ms for Linux/x86)
+
++ Tcpreplay should say which interface each packet is going out
+
++ Better use of GNU Autotools
+
++ Improve CLI/config file parsing
+
+- Tcprewrite should be able to remove the two byte ethernet FCS (checksums)
+  at the end of the frame.
+
+- See about removing libnet_init() from all binaries other then tcprewrite
+  so we don't have to run as root:
+  . libnet_addr2name4 (ignore, doesn't require libnet_t context)
+  + libnet_name2addr4
+  - libnet_get_hwaddr
+  - libnet_do_checksum
+
++ Support randomization of IP addresses in ARP packets
+
+- Only tcpreplay should need to run as root.
+
+- Tcpreplay should use raw sockets or BPF directly for writing rather then
+      libnet where applicable for higher performance.

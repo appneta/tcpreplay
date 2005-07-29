@@ -8,26 +8,26 @@ Source0: http://prdownloads.sf.net/tcpreplay/tcpreplay-%{version}.tar.gz
 Prefix: %{_prefix}
 BuildRoot: %{_tmppath}/%{name}-root
 Packager: Aaron Turner <aturner@pobox.com>
-Requires: libnet >= 1.1, libpcap >= 0.7.1
-BuildPreReq: libnet >= 1.1, libpcap >= 0.7.1
+Requires: libnet >= 1.1, libpcap >= 0.5
+BuildPreReq: libnet >= 1.1, libpcap >= 0.5
 URL: http://tcpreplay.sf.net/
 
 # set to 1 to enable debugging
 %define enable_debug 0
 
 %description
-Tcpreplay is a tool to replay captured network traffic.  Currently, tcpreplay
-supports pcap (tcpdump) and snoop capture formats.  Also included, is tcpprep
-a tool to pre-process capture files to allow increased performance under
-certain conditions as well as capinfo which provides basic information about
-capture files.
+Tcpreplay is a suite of tools to edit and replay captured network traffic.
+The tcpreplay suite includes tcpprep to pre-process pcap files, tcprewrite a
+pcap editor and tcpreplay to send packets.  Also included is tcpbridge which
+is a user-space bridge and flowreplay, a client-side agent using pcap files
+as the basis of connections.
 
 %prep
 %setup -q
 
 %build
 %if %{enable_debug}
-./configure --with-debug
+./configure --enable-debug
 %else
 ./configure
 %endif
@@ -35,33 +35,34 @@ make
 
 %install
 mkdir -p $RPM_BUILD_ROOT%{_bindir}
-mkdir -p $RPM_BUILD_ROOT%{_sbindir}
-mkdir -p $RPM_BUILD_ROOT%{_mandir}/man8
 mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
-install -m755 tcpreplay $RPM_BUILD_ROOT%{_sbindir} 
-install -m755 tcpprep $RPM_BUILD_ROOT%{_bindir} 
-install -m755 capinfo $RPM_BUILD_ROOT%{_bindir}
-install -m755 pcapmerge $RPM_BUILD_ROOT%{_bindir}
-install -m755 flowreplay $RPM_BUILD_ROOT%{_bindir}
-install -m644 man/tcpreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
+install -m755 src/tcpreplay $RPM_BUILD_ROOT%{_bindir} 
+install -m755 src/tcpprep $RPM_BUILD_ROOT%{_bindir} 
+install -m755 src/flowreplay $RPM_BUILD_ROOT%{_bindir}
+install -m755 src/tcpbridge $RPM_BUILD_ROOT%{_bindir}
+install -m755 src/tcprewrite $RPM_BUILD_ROOT%{_bindir}
+
+install -m644 man/tcpreplay.1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -m644 man/tcpprep.1 $RPM_BUILD_ROOT%{_mandir}/man1
-install -m644 man/capinfo.1 $RPM_BUILD_ROOT%{_mandir}/man1
-install -m644 man/pcapmerge.1 $RPM_BUILD_ROOT%{_mandir}/man1
-install -m644 man/flowreplay.8 $RPM_BUILD_ROOT%{_mandir}/man8
+install -m644 man/flowreplay.1 $RPM_BUILD_ROOT%{_mandir}/man1
+install -m644 man/tcpbridge.1 $RPM_BUILD_ROOT%{_mandir}/man1
+install -m644 man/tcprewrite.1 $RPM_BUILD_ROOT%{_mandir}/man1
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
 %files
 %defattr(-,root,root)
-%doc	Docs/CHANGELOG Docs/LICENSE Docs/README Docs/FAQ.html Docs/FAQ.txt Docs/FAQ.pdf Docs/FAQ.ps Docs/FAQ.css
+%doc	docs/CHANGELOG docs/LICENSE docs/README docs/TODO docs/CREDIT \
+    docs/NOTES docs/INSTALL docs/FAQ.pdf docs/manual.pdf docs/flowreplay.pdf
 %{_bindir}/*
-%{_sbindir}/*
-%{_mandir}/man8/*
 %{_mandir}/man1/*
 
 
 %changelog
+* Thu Jun 16 2005 Aaron Turner <aturner@pobox.com>
+- Make things right for 3.0
+
 * Wed May 29 2003 Aaron Turner <aturner@pobox.com>
 - Update paths for man pages and docs
 

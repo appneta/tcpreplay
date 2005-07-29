@@ -1,0 +1,101 @@
+$Id$
+
+??/??/2005: Version 3.0.beta7
+    - New 'make doxygen' target builds pretty source code docs in
+          docs/web/doxygen/html
+    - Fix tcpprep auto/router mode which was sending all packets out the
+          secondary interface
+    - Fix endian issue on little-endian systems which made tcpprep think all
+          packets were not IP
+    - Improve debugability of tcpprep
+
+06/28/2005: Version 3.0.beta6
+    - Fix rpm .spec file which was still based on tcpreplay 2.x (untested)
+    - Detect and manually include pcap-bpf.h which fixes compile problem
+    - Fix tcprewrite -S crash with only one MAC
+    - Fix tcpreplay using 2nd NIC split mode
+    - Fix tcpreplay packet counter initialization
+    - Fix tcpprep to properly handle missing -i and -c with -I and -P
+
+06/14/2005: Version 3.0.beta5
+    - Fix --decode flag
+    - Fix compile under AMD64/RHEL4 where libraries are in /usr/lib64
+    - tarball now ships with a full test subdir
+    - Fix compile of src/common/get.c under strictly aligned architectures
+    - Fix ./configure --enable-64bits flag
+    - Fix bug on little endian systems which prevented tcprewrite from
+      editing packets
+    - Fix tcprewrite linktype checks
+    - Add --pktlen for when the pcap snaplen lies to us
+    - Add --enable-dynamic-link for those who want to dynamically link their
+      libs
+
+06/05/2005: Version 3.0.beta4
+    - Really fix compile problems with dlt2desc with old versions of libpcap
+    - All libraries are now statically linked and full-path #includes.  This
+      should fix problems with people who have different versions of
+      libraries installed in different locations.
+    - Fix problems compiling on systems with libpcapnav
+    - Add support for libpcap 0.5 such as on OpenBSD
+    - Fix tcpprep --verbose
+    - Close STDIN prior to re-opening it for certain OS's
+
+05/04/2005: Version 3.0.beta3
+    - Fix autoconf problems with --with-libnet
+    - Fix compile problems with dlt2desc with old versions of libpcap
+    - Fix compile problem due to not shipping flowreplay_opts.h and
+      tcpbridge_opts.h
+
+04/19/2005: Version 3.0.beta2
+    - Significant improvements to FAQ and manual
+    - Use autoopts for flowreplay
+    - Be more cautious about memcpy's
+    - Fix numerous warnings during compile
+    - Allow overriding L2 protocol field for DLT_RAW
+    - tcpprep -I & -P now take the cache filename
+    - Lots of cleanup
+    - Added tcpbridge utility
+    - Fix tcpreplay --mbps which was being interpreted as bps
+    - Add --no-arg-comment feature for tcpprep
+    - Improve auto-tests and fix old broken ones
+    - Fix Makefile errors in the docs directory
+    - Upgrade libopts tear off to v5.7pre12 which fixes problems with
+      loading config files
+    - Add support for forcing the use of the local libopts tearoff code
+
+02/27/2005: Version 3.0.beta1
+    - Major code cleanups and rewriting
+      - Rip out all edit functions from tcpreplay and put into tcprewrite
+      - Improve tcpreplay performance by about 5% for raw sending
+      - Move around utility functions for greater code-reuse
+      - Move MAC Address funcs into mac.c
+      - Move global defines into defines.h
+      - Standardize use of structs and typedefs
+      - Start passing const's when we don't need to modify
+    - Start using GNU AutoOpts for arg/config file processing
+    - Start using automake and autoheader
+    - Major rewrite of configure.in
+    - Add support for printing which interface packets go out
+    - 64bit counters are optional via --enable-64bits
+    - Can now rewrite L2 data per outbound interface
+    - Add support for additional DLT types
+
+    - Non-Code changes
+      - I now own the full copyright for tcpreplay
+      - Removed the evil 4th clause from the BSD license
+      - Start updating the FAQ and split some content to make a manual
+      - Automatically generate man pages based via autogen
+
+    - New Applications:
+      - tcprewrite
+
+    - Removed Applications: (Ethereal has better utilities)
+      - capinfo 
+      - pcapmerge 
+
+    - Merge fixes from 2.x/stable branch:
+      - portmap.c endian bugs
+      - edit_packet.c handle corrupted pcap's where caplen < len
+      - configure now properly uses --with-libnet and --with-libpcap
+
+*** Fork 3.x Branch from v2.3.1 ***

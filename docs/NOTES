@@ -1,0 +1,14 @@
+1) There seems to be some wierd issue (on Intel at least) where
+    if you overlay a Layer 2 header (eth_hdr_t, etc) over the 
+    packet buffer, the protocol field comes across as 
+    little endian rather then NBO.   Doesn't make much sense.
+
+2) Bug with autoopts under OS X.  Bruce is looking into it but it might
+"take a few weeks" to get back to me since he's busy.  01/11/05.
+
+3) Libnet is nice, but requires all my applications to run as root which sucks.
+I should investigate better alternatives for common libnet functions such as
+calculating IP/L4 checksums.
+
+4) Why is SunFreeware.com shipping tcpreplay 1.0?  Damn.  Need to give them a
+new package.

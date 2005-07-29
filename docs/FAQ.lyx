@@ -1,0 +1,952 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\language english
+\inputencoding latin1
+\fontscheme times
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 10mm
+\topmargin 10mm
+\rightmargin 10mm
+\bottommargin 15mm
+\secnumdepth 4
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Title
+
+Tcpreplay 3.x FAQ
+\layout Author
+
+Aaron Turner
+\newline 
+http://tcpreplay.sourceforge.net/
+\layout Standard
+\pagebreak_top \pagebreak_bottom 
+
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset 
+
+
+\layout Section
+
+General Info
+\layout Subsection
+
+What is this FAQ for?
+\layout Standard
+
+Tcpreplay is a suite of powerful tools, but with that power comes complexity.
+ While I have done my best to write good man pages for tcpreplay and it's
+ associated utilities, I understand that many people may want more information
+ then I can provide in the man pages.
+ Additionally, this FAQ attempts to cover material which I feel will be
+ of use to people using tcpreplay, as well as common questions that occur
+ on the Tcpreplay-Users <tcpreplay-users@lists.sourceforge.net> mailing list.
+\layout Subsection
+
+What tools come with tcpreplay?
+\layout Itemize
+
+tcpreplay - replay ethernet packets stored in a pcap file as they were captured
+ 
+\layout Itemize
+
+tcprewrite - edit packets stored in a pcap file
+\layout Itemize
+
+tcpprep - a pcap pre-processor for tcpreplay
+\layout Itemize
+
+flowreplay
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Flowreplay is still 
+\begin_inset Quotes eld
+\end_inset 
+
+alpha
+\begin_inset Quotes erd
+\end_inset 
+
+ quality and is not usable for most situations.
+ Anyone interested in helping me develop flowreplay is encouraged to contact
+ me.
+\end_inset 
+
+ - connects to a server(s) and replays the client side of the connection
+ stored in a pcap file
+\layout Subsection
+
+What tools no longer come with Tcpreplay?
+\layout Standard
+
+Recently, other people and projects have developed better versions of two
+ applications that ship with tcpreplay 2.x:
+\layout Itemize
+
+pcapmerge - merges two or more pcap files into one.
+ Ethereal now ships with a more powerful appliation called 'mergecap'.
+\layout Itemize
+
+capinfo - displays basic information about a pcap file.
+ Ethereal now ships with a more powerful application of the same name.
+\layout Subsection
+
+How can I get tcpreplay's source?
+\layout Standard
+
+The source code is available in tarball format on the tcpreplay homepage:
+ 
+\begin_inset LatexCommand \htmlurl{http://tcpreplay.sourceforge.net/}
+
+\end_inset 
+
+ I also encourage users familiar with Subversion to try checking out the
+ latest code as it often has additional features and bugfixes not found
+ in the tarballs.
+\layout Standard
+
+svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay
+\layout Subsection
+
+What requirements does tcpreplay have?
+\layout Enumerate
+
+You'll need recent versions of the libnet
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+http://www.packetfactory.net/libnet/
+\end_inset 
+
+ and libpcap
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+http://www.tcpdump.org/
+\end_inset 
+
+ libraries.
+\layout Enumerate
+
+To support the packet decoding feature you'll need tcpdump
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+http://www.tcpdump.org/
+\end_inset 
+
+ installed.
+\layout Enumerate
+
+You'll also need a compatible operating system.
+ Basically, any UNIX-like or UNIX-based operating system should work.
+ Linux, *BSD, Solaris, OS X and others should all work.
+ If you find any compatibility issues with any UNIX-like/based OS, please
+ let me know.
+\layout Subsection
+
+Are there binaries available?
+\layout Standard
+
+The tcpreplay project does not maintain binaries for any platforms.
+ However some operating systems such as Debian GNU/Linux (apt-get) and OS
+ X (fink) have packages available.
+ Try searching on Google.
+\layout Subsection
+
+Is there a Microsoft Windows port?
+\layout Standard
+
+Not really.
+ We had one user port the code over for an old version of tcpreplay to Windows.
+ Now we're looking for someone to help merge and maintain the code in to
+ the main development tree.
+ If you're interested in helping with this please contact Aaron Turner or
+ the tcpreplay-users list.
+ Other then that, you can download the tcpreplay-win32.zip file from the
+ website and give it a go.
+ Please understand that the Win32 port of tcpreplay comes with no support
+ whatsoever, so if you run into a problem you're on your own.
+\layout Subsection
+
+How is tcpreplay licensed?
+\layout Standard
+
+Tcpreplay is licensed under a three clause BSD-style license.
+ For details see the docs/LICENSE file included with the source code.
+\layout Subsection
+
+What is tcpreplay?
+\layout Standard
+
+In the simplest terms, tcpreplay is a tool to send network traffic stored
+ in pcap format back onto the network; basically the exact opposite of tcpdump.
+ Just to make things more confusing, tcpreplay is also a suite of tools:
+ tcpreplay, tcpprep, tcprewrite and flowreplay.
+\layout Comment
+
+What isn't tcpreplay?
+\layout Comment
+
+Tcpreplay is 
+\emph on 
+not
+\emph default 
+ a tool to replay captured traffic to a server or client.
+ Specifically, tcpreplay does not have the ability to rewrite IP addresses
+ to a user-specified value or synchronize TCP sequence and acknowledgment
+ numbers.
+ In other words, tcpreplay can't 
+\begin_inset Quotes eld
+\end_inset 
+
+connect
+\begin_inset Quotes erd
+\end_inset 
+
+ to a server or be used to emulate a server and have clients connect to
+ it.
+ If you're looking for that, check out flowreplay.
+\layout Subsection
+
+What are some uses for tcpreplay?
+\layout Standard
+
+Originally, tcpreplay was written to test network intrusion detection systems
+ (NIDS), however tcpreplay has been used to test firewalls, routers, and
+ other network devices.
+ With the addition of flowreplay, most
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Note the flowreplay does not support protocols such as ftp which use multiple
+ connections.
+\end_inset 
+
+ any udp or tcp service on a server can be tested as well.
+\layout Subsection
+
+What are some uses for flowreplay?
+\layout Standard
+
+A lot of people wanted a tool like tcpreplay, but wanted to be able to replay
+ traffic 
+\emph on 
+to
+\emph default 
+ a server.
+ Since tcpreplay was unable to do this, I developed flowreplay which replays
+ the data portion of the flow, but recreates the connection to the specified
+ server(s).
+ This makes flowreplay an ideal tool to test host intrusion detection systems
+ (HIDS) as well as captured exploits and security patches when the actual
+ exploit code is not available.
+ Please note that flowreplay is still alpha quality code which means it
+ doesn't work very well (some would argue it doesn't work at all) and is
+ currently missing some important features.
+\layout Subsection
+
+What is the history of tcpreplay?
+\layout Standard
+
+Tcpreplay has had quite a few authors over the past five or so years.
+ One of the advantages of the BSD and GPL licenses is that if someone becomes
+ unable or unwilling to continue development, anyone else can take over.
+\layout Standard
+
+Originally, Matt Undy of Anzen Computing wrote tcpreplay.
+ Matt released version 1.0.1 sometime in 1999.
+ Sometime after that, Anzen Computing was (at least partially) purchased
+ by NFR and development ceased.
+\layout Standard
+
+Then in 2001, two people independently started work on tcpreplay: Matt Bing
+ of NFR and Aaron Turner.
+ After developing a series of patches (the -adt branch), Aaron attempted
+ to send the patches in to be included in the main development tree.
+\layout Standard
+
+After some discussion between Aaron and Matt Bing, they decided to continue
+ development together.
+ Since then, two major rewrites have occured, and more then thirty new features
+ have been added, including the addition of a number of accessory tools.
+\layout Standard
+
+Today, Aaron continues active development of the code.
+\layout Section
+
+Bugs, Feature Requests, and Patches
+\layout Subsection
+
+Where can I get help, report bugs or contact the developers?
+\layout Standard
+
+The best place to get help or report a bug is the Tcpreplay-Users mailing
+ list: 
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://lists.sourceforge.net/lists/listinfo/tcpreplay-users}
+
+\end_inset 
+
+
+\layout Subsection
+
+What information should I provide when I report a bug?
+\layout Standard
+
+One of the most frustrating things for any developer trying to help a user
+ with a problem is not enough information.
+ Please be sure to include 
+\emph on 
+at minimum
+\emph default 
+ the following information, however any additional information you feel
+ may be helpful will be appreciated.
+\layout Itemize
+
+Version information (output of -V)
+\layout Itemize
+
+Command line used (options and arguments)
+\layout Itemize
+
+Platform (Red Hat Linux 9 on Intel, Solaris 7 on SPARC, etc)
+\layout Itemize
+
+Error message (if available) and/or description of problem
+\layout Itemize
+
+If possible, attach the pcap file used (compressed with bzip2 or gzip preferred)
+\layout Itemize
+
+The core dump or backtrace if available
+\layout Subsection
+
+I have a feature request, what should I do?
+\layout Standard
+
+Let us know! Many of the features exist today because users like you asked
+ for them.
+ To make a feature request, you can either email the tcpreplay-users mailing
+ list (see above) or fill out the feature request form on the tcpreplay
+ SourceForge website.
+\layout Subsection
+
+I've written a patch for tcpreplay, how can I submit it?
+\layout Standard
+
+I'm always willing to include new features or bug fixes submitted by users.
+ You may email me directly or the tcpreplay-users mailing list.
+ Please 
+\emph on 
+do not
+\emph default 
+ use the Patch Tracker on the tcpreplay SourceForge web site.
+ But before you start working on adding a feature or fixing a bug in tcpreplay,
+ please make sure you checkout the latest source code from the Subversion
+ repository.
+ Patches against released versions are almost surely not going to apply
+ cleanly if at all.
+\layout Subsection
+
+Patch requirements
+\layout Itemize
+
+Be aware that submitting a patch, 
+\emph on 
+you are assigning your copyright to me.
+
+\emph default 
+ If this is not acceptable to you, then 
+\emph on 
+do not
+\emph default 
+ send me the patch! I have people assign their copyright to me to help prevent
+ licensing issues that may crop up in the future.
+\layout Itemize
+
+Please provide a description of what your patch does!
+\layout Itemize
+
+Comment your code! I won't use code I can't understand.
+\layout Itemize
+
+Make sure you are patching a branch that is still being maintained.
+ Generally that means that most recent stable and development branches (2.0
+ and 3.0 at the time of this writing).
+\layout Itemize
+
+Make sure you are patching against the most recent release for that branch.
+\layout Itemize
+
+Please submit your patch in the unified diff format so I can better understand
+ what you're changing.
+\layout Itemize
+
+Please provide any relevant personal information you'd like listed in the
+ CREDITS file.
+\layout Standard
+
+Please note that while I'm always interested in patches, I may rewrite some
+ or all of your submission to maintain a consistent coding style.
+\layout Section
+
+Understanding tcpprep
+\layout Subsection
+
+What is tcpprep?
+\layout Standard
+
+Tcpreplay can send traffic out two network cards, however it requires the
+ calculations be done in real-time.
+ These calculations can be expensive and can significantly reduce the throughput
+ of tcpreplay.
+\layout Standard
+
+Tcpprep is a libpcap pre-processor for tcpreplay which enables using two
+ network cards to send traffic without the performance hit of doing the
+ calculations in real-time.
+\layout Subsection
+
+How does tcpprep work? 
+\layout Standard
+
+Tcpprep reads in a libpcap (tcpdump) formatted capture file and does some
+ processing to generate a tcpreplay cache file.
+ This cache file tells tcpreplay which interface a given packet should be
+ sent out of.
+ 
+\layout Subsection
+
+Does tcpprep modify my libpcap file?
+\layout Standard
+
+No.
+ 
+\layout Subsection
+
+Why use tcpprep?
+\layout Standard
+
+There are three major reasons to use tcpprep:
+\layout Enumerate
+
+Tcpprep can split traffic based upon more methods and criteria then tcpreplay.
+\layout Enumerate
+
+By pre-processing the pcap, tcpreplay has a higher theoretical maximum throughpu
+t.
+\layout Enumerate
+
+By pre-processing the pcap, tcpreplay can be more accurate in timing when
+ replaying traffic at normal speed.
+\layout Subsection
+
+Can a cache file be used for multiple (different) libpcap files? 
+\layout Standard
+
+Cache files have nothing linking them to a given libpcap file, so there
+ is nothing to stop you from doing this.
+ However running tcpreplay with a cache file from a different libpcap source
+ file is likely to cause a lot of problems and is not supported.
+ 
+\layout Subsection
+
+Why would I want to use tcpreplay with two network cards? 
+\layout Standard
+
+Tcpreplay traditionally is good for putting traffic on a given network,
+ often used to test a network intrusion detection system (NIDS).
+ However, there are cases where putting traffic onto a subnet in this manner
+ is not good enough- you have to be able to send traffic *through* a device
+ such as a router, firewall, or bridge.
+\layout Standard
+
+In these cases, being able to use a single source file (libpcap) for both
+ ends of the connection solves this problem.
+\layout Subsection
+
+How big are the cache files?
+\layout Standard
+
+Very small.
+ Actual size depends on the number of packets in the dump file.
+ Two bits of data is stored for each packet.
+ On a test using a 900MB dump file containing over 500,000 packets, the
+ cache file was only 150K.
+ 
+\layout Section
+
+Common Error and Warning Messages
+\layout Subsection
+
+Can't open eth0: libnet_select_device(): Can't find interface eth0
+\layout Standard
+
+Generally this occurs when the interface (eth0 in this example) is not up
+ or doesn't have an IP address assigned to it.
+ 
+\layout Subsection
+
+Can't open lo: libnet_select_device(): Can't find interface lo
+\layout Standard
+
+Version 1.1.0 of Libnet is unable to send traffic on the loopback device.
+ Upgrade to a later release of the Libnet library to solve this problem.
+\layout Subsection
+
+Can't open eth0: UID != 0
+\layout Standard
+
+Tcpreplay requires that you run it as root.
+\layout Subsection
+
+100000 write attempts failed from full buffers and were repeated
+\layout Standard
+
+When tcpreplay displays a message like "100000 write attempts failed from
+ full buffers and were repeated", this usually means the kernel buffers
+ were full and it had to wait until memory was available.
+ This is quite common when replaying files as fast as possible with the
+ "-R" option.
+ See the tuning OS section in this document for suggestions on solving this
+ problem.
+\layout Subsection
+
+Invalid mac address: 00:00:00:00:00:00
+\layout Standard
+
+Currently tcpreplay reserves the MAC address of 00:00:00:00:00:00 as reserved
+ for internal use.
+ Hence you can't rewrite the MAC address of packets to be all zeros.
+ While we intend to fix this someday it's not currently high on our priority
+ list, so let us know if we should re-prioritize things.
+\layout Subsection
+
+Unable to process test.cache: cache file version missmatch
+\layout Standard
+
+Cache files generated by tcpprep and read by tcpreplay are versioned to
+ allow enhancements to the cache file format.
+ Anytime the cache file format changes, the version is incremented.
+ Since this occurs on a very rare basis, this is generally not an issue;
+ however anytime there is a change, it breaks compatibility with previously
+ created cache files.
+ The solution for this problem is to use the same version of tcpreplay and
+ tcpprep to read/write the cache files.
+ Cache file versions match the following versions of tcpprep/tcpreplay:
+\layout Itemize
+
+Version 1:
+\newline 
+Prior to 1.3.beta1
+\layout Itemize
+
+Version 2:
+\newline 
+1.3.beta2 to 1.3.1/1.4.beta1
+\layout Itemize
+
+Version 3:
+\newline 
+1.3.2/1.4.beta2 to 2.0.3
+\layout Itemize
+
+Version 4:
+\newline 
+2.1.0 and above.
+ Note that prior to version 2.3.0, tcpprep had a bug which broke cache file
+ compatibility between big and little endian systems.
+\layout Subsection
+
+Skipping SLL loopback packet.
+\layout Standard
+
+Your capture file was created on Linux with the 'any' parameter which then
+ captured a packet on the loopback interface.
+ However, tcpreplay doesn't have enough information to actual send the packet,
+ so it skips it.
+ Specifying a destination and source MAC address (-D and -S) will allow
+ tcpreplay to send these packets.
+\layout Subsection
+
+Packet length (8892) is greater then MTU; skipping packet.
+\layout Standard
+
+The packet length (in this case 8892 bytes) is greater then the maximum
+ transmition unit (MTU) on the outgoing interface.
+ Tcpreplay must skip the packet.
+ Alternatively, you can specify the -T option and tcpreplay will truncate
+ the packet to the MTU size, fix the checksums and send it.
+\layout Section
+
+Common Questions from Users
+\layout Subsection
+
+Why is tcpreplay not sending all the packets?
+\layout Standard
+
+Every now and then, someone emails the tcpreplay-users list, asking if there
+ is a bug in tcpreplay which causes it not to send all the packets.
+ This usually happens when the user uses the -t flag or is replaying a high-spee
+d pcap file (> 50Mbps, although this number is dependant on the hardware
+ in use).
+\layout Standard
+
+The short version of the answer is: no, we are not aware of any bugs which
+ might cause a few packets to not be sent.
+\layout Standard
+
+The longer version goes something like this:
+\layout Standard
+
+If you are running tcpreplay multiple times and are using tcpdump or other
+ packet sniffer to count the number packets sent and are getting different
+ numbers, it's not tcpreplay's fault.
+ The problem lies in one of two places:
+\layout Enumerate
+
+It is well known that tcpdump and other sniffers have a problem keeping
+ up with high-speed traffic.
+ Furthermore, the OS in many cases 
+\emph on 
+lies
+\emph default 
+ about how many packets were dropped.
+ Tcpdump will repeat this lie to you.
+ In other words, tcpdump isn't seeing all the packets.
+ Usually this is a problem with the network card, driver or OS kernel which
+ may or may not be fixable.
+ Try another network card/driver.
+\layout Enumerate
+
+When tcpreplay sends a packet, it actually gets copied to a send buffer
+ in the kernel.
+ If this buffer is full, the kernel is supposed to tell tcpreplay that it
+ didn't copy the packet to this buffer.
+ If the kernel has a bug which squelches this error, tcpreplay will not
+ keep trying to send the packet and will move on to the next one.
+ Currently I am not aware of any OS kernels with this bug, but it is possible
+ that it exists.
+ If you find out that your OS has this problem, please let me know so I
+ can list it here.
+\layout Standard
+
+If for some reason, you still think its a bug in tcpreplay, by all means
+ read the code and tell me how stupid I am.
+ The do_packets() function in do_packets.c is where tcpreplay processes the
+ pcap file and sends all of the packets.
+\layout Subsection
+
+Can tcpreplay read gzip/bzip2 compressed files?
+\layout Standard
+
+Yes, but not directly.
+ Since tcpreplay can read data via STDIN, you can decompress the file on
+ the fly like this:
+\layout Standard
+
+
+\emph on 
+gzcat myfile.pcap.gz | tcpreplay -i eth0 -
+\layout Standard
+
+Note that decompressing on the fly will require additional CPU time and
+ will likely reduce the overall performance of tcpreplay.
+\layout Subsection
+
+How fast can tcpreplay send packets?
+\layout Standard
+
+First, if performance is important to you, then upgrading to tcpreplay 3.x
+ is worthwhile since it is more optimized then the 2.x series.
+ After that, there are a number of variables which effect performance, including
+ on how you measure it (packets/sec or bytes/sec).
+ 100Mbps and 120K pps are quite doable.
+ Generally speaking here are some points to consider:
+\layout Itemize
+
+Profiling tcpreplay has shown that a significant amount of time is spent
+ writing packets to the network.
+ Hence, your OS kernel implimentation of writing to raw sockets is one of
+ the most important aspects since that is where tcpreplay spends most of
+ it's time.
+\layout Itemize
+
+Like most network based I/O, it is faster to send the same amount of data
+ in a few large packets then many small packets.
+\layout Itemize
+
+Most operating systems will cache disk reads in RAM; hence making subsequent
+ access to the file faster the second time.
+\layout Itemize
+
+Re-opening small files repeatly will reduce performance.
+ Consider using mergecap to generate a single large file.
+\layout Itemize
+
+Network cards and drivers, disk speed (RPM is more important then seek),
+ amount of RAM and system bus speed are all important.
+\layout Section
+
+Required Libraries and Tools
+\layout Subsection
+
+Libpcap
+\layout Standard
+
+As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
+ As of v2.0, you'll need at least version 0.6.0 or better, but I only test
+ our code with the latest version.
+ Libpcap can be obtained on the tcpdump homepage
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
+
+\end_inset 
+
+
+\end_inset 
+
+.
+ 
+\layout Subsection
+
+Libnet
+\layout Standard
+
+Tcpreplay v1.3 is the last version to support the old libnet API (everything
+ before 1.1.x).
+ As of v1.4 you will need to use Libnet 1.1.0 or better which can be obtained
+ from the Libnet homepage
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\begin_inset LatexCommand \htmlurl{http://www.packetfactory.net/Projects/Libnet/}
+
+\end_inset 
+
+
+\end_inset 
+
+.
+ 
+\layout Subsection
+
+Libpcapnav
+\layout Standard
+
+Starting with v2.0, tcpreplay can use libpcapnav to support the jump offset
+ feature.
+ If libpcapnav is not found on the system, that feature will be disabled.
+ Libpcapnav can be found on the NetDude homepage
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+
+\begin_inset LatexCommand \htmlurl{http://netdude.sourceforge.net/}
+
+\end_inset 
+
+
+\end_inset 
+
+.
+ 
+\layout Subsection
+
+Tcpdump
+\layout Standard
+
+As of 2.0, tcpreplay uses tcpdump (the binary, not code) to decode packets
+ to STDOUT in a human readable (with practice) format as it sends them.
+ If you would like this feature, tcpdump must be installed on your system.
+\layout Standard
+
+
+\noun on 
+Note:
+\noun default 
+ The location of the tcpdump binary is hardcoded in tcpreplay at compile
+ time.
+ If tcpdump gets renamed or moved, the feature will become disabled.
+\layout Section
+
+Other pcap tools available
+\layout Subsection
+
+Tools to capture network traffic or decode pcap files
+\layout Itemize
+
+tcpdump
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
+
+\end_inset 
+
+
+\layout Itemize
+
+ethereal
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.ethereal.com/}
+
+\end_inset 
+
+
+\layout Itemize
+
+ettercap
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://ettercap.sourceforge.net/}
+
+\end_inset 
+
+
+\layout Subsection
+
+Tools to edit pcap files
+\layout Itemize
+
+tcpslice
+\newline 
+Splits pcap files into smaller files
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
+
+\end_inset 
+
+
+\layout Itemize
+
+mergecap
+\newline 
+Merges two pcap capture files into one
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.ethreal.com/}
+
+\end_inset 
+
+
+\layout Itemize
+
+pcapmerge
+\newline 
+Merges two or more pcap capture files into one
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://tcpreplay.sourceforge.net/}
+
+\end_inset 
+
+
+\layout Itemize
+
+editcap
+\newline 
+Converts capture file formats (pcap, snoop, etc)
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.ethreal.com/}
+
+\end_inset 
+
+
+\layout Itemize
+
+netdude
+\newline 
+GTK based pcap capture file editor.
+ Allows editing most anything in the packet.
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://netdude.sourceforge.net/}
+
+\end_inset 
+
+
+\layout Subsection
+
+Other useful tools
+\layout Itemize
+
+capinfo
+\newline 
+Prints statistics and basic information about a pcap file
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://tcpreplay.sourceforge.net/}
+
+\end_inset 
+
+
+\layout Itemize
+
+text2pcap
+\newline 
+Generates a pcap capture file from a hex dump
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.ethreal.com/}
+
+\end_inset 
+
+
+\layout Itemize
+
+tcpflow
+\newline 
+Extracts and reassembles the data portion on a per-flow basis on live traffic
+ or pcap capture files
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.circlemud.org/~jelson/software/tcpflow/}
+
+\end_inset 
+
+
+\the_end

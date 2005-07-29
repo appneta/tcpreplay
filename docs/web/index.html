@@ -1,0 +1,281 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Tcpreplay: Pcap editing and replay tools for *NIX</title>
+    <link rel="stylesheet" type="text/css" title="normal" media="screen" href="web.css" >
+  </head>
+  <body>
+    
+    <table border=0 cellpadding=3 cellspacing=0 width="100%">
+        <tr>
+          <td align=center class=title colspan=1>
+            Tcpreplay: Pcap editing and replay tools for *NIX
+          </td>
+        </tr>
+        <tr>
+          <td align=right class=menubar>
+            <!--
+            <a href="http://sourceforge.net/project/showfiles.php?group_id=48862">Downloads</a> | 
+<a href="manual.html">Manual</a> | 
+            <a href="faq.html">FAQ</a> |
+            <a href="http://sourceforge.net/mail/?group_id=48862">Mailing Lists</a> |
+            <a href="https://www.synfin.net:444/cgi-bin/viewcvs.cgi/tcpreplay/">SVN
+            Repository</a>
+            -->
+            <a href="#about">About</a> |
+            <a href="#details">Details</a> |
+            <a href="#news">News</a> |
+            <a href="#downloads">Downloads</a> |
+            <a href="#docs">Documentation</a> |
+            <a href="#support">Support</a>
+          </td>
+        </tr>
+    </table>
+    
+    <P>&nbsp;<P>
+      
+    <table border=0 cellpadding=3 cellspacing=0 width="100%" class=fill>
+        <a name="about"></a>
+        <tr><td class=sechdr>About</td></tr>
+        <tr><td class=section>
+Tcpreplay is a suite of BSD licensed tools written by Aaron Turner for *NIX
+operating systems which gives you the ability to use previously captured
+traffic in <a href="http://www.tcpdump.org">libpcap format</a> to test a
+variety of network devices. &nbsp;It allows you to classify traffic as
+client or server, rewrite Layer 2, 3 and 4 headers and finally replay the
+traffic back onto the network and through other devices such as switches,
+routers, firewalls, NIDS and IPS's.
+            <P>
+Voted as <a href="http://www.insecure.org/tools.html"> one of the top 75
+    security tools</a>, tcpreplay is used by numerous firewall, IDS, IPS and
+other networking vendors, enterprises, universities, and open source
+projects.  If your organization uses tcpreplay, please let me know who you
+are and what you use it for so that I can continue to add features which are
+useful.
+          </td>
+        </tr>
+        <a name="details"></a>
+      <tr><td>&nbsp;</td></tr>
+      <tr><td class=sechdr>Details</td></tr>
+      <tr><td class=section>
+          Tcpreplay includes the following tools:
+          <ul>
+            <li>tcpprep - multi-pass pcap file pre-processor which
+            determines packets as client or server and creates cache files
+            used by tcpreplay and tcprewrite</li> 
+            
+            <li>tcprewrite - pcap file
+            editor which rewrites TCP/IP and Layer 2 packet headers</li>
+
+            <li>tcpreplay - replays pcap files at arbitrary speeds onto the
+            network</li> 
+            
+            <li>tcpbridge - bridge two network segments with
+            the power of tcprewrite</li> 
+            
+            <li>flowreplay - emulates a network
+            client using a pcap file as the basis of a TCP or UDP connection
+            (currently in alpha)</li>
+          </ul>
+       
+          <P>
+Generally speaking, most people would first run tcpprep against a pcap file
+to create a cache file which splits traffic between client and server if
+they are testing an inline device like a firewall or IPS. &nbsp;Then
+depending on their network setup and where the pcap was captured, they would
+use tcprewrite to edit the packets so that the device under test will
+examine them properly. &nbsp;Finally, tcpreplay is used to replay the pcap
+onto the network to do the test.
+        </td>
+      </tr>
+
+      <a name="news"></a>
+        <tr><td>&nbsp;</td></tr>
+        <tr><td class=sechdr>News</td></tr>
+        <tr>
+            <td class=section>
+                2005-07-03<br>
+                Tcpreplay 2.3.5 is released which fixes a long standing bug
+                in tcpprep with auto/router mode.  Note that *all* tcpprep
+                releases up to now in all three branches of code (1.x, 2.x
+                and 3.x) have this bug.  3.0.beta7 will have the fix, but
+                1.x is EOL.
+                <P>
+                2005-06-29<br>
+                Many thanks to <a href="http://www.cse.scu.edu/send.cgi?Z&people/parttime/DorrClark.htm">Dorr
+                    Clark</a> of Santa Clara University who provided me a
+                really nice <a href="http://www.doxygen.org">doxygen</a>
+                file for documenting the 3.0 source code.
+                <P>
+                2005-06-28<br>
+                Beta6 is out.  Fixes a number of user reported bugs.  Thanks
+                to all the beta testers who have been giving me such great
+                feedback.  Keep it comming!
+                <P>
+                2005-06-14<br>
+                Well I got a lot of good feedback on the beta4 release, so
+                beta5 fixes a number of key bugs and adds a few enhancements
+                which should help people out.  Let me know...
+                <P>
+                2005-06-05<br>
+                Released 3.0.beta4 and 2.3.4.  Both fix problems compiling
+                under OpenBSD and add support for libpcap 0.5 although some
+                features may be disabled.   3.0.beta4 also fixes a number of
+                bugs during both compile and runtime... check the changelog
+                for details.
+                <P>
+                2005-05-28<br>
+                Ugh.  <a href="http://libnids.sourceforge.net/">libnids</a>
+                is so close and yet so far away.  It handles the basic
+                functionality of doing IP defragmentation and TCP stream
+                reassembly which I need for flowreplay, but yet misses the
+                boat on a number of key requirements... the biggest of which
+                are no multi-thread support or proper handling of multiple
+                pcap files.
+                <P>
+                Unfortunately, doing proper multi-thread support would
+                require an API change... something that the libnids author
+                is unwilling to do.  The only option seems to be a fork of
+                the code, but that's plain ugly...  Suggestions?
+                <P>
+                2005-05-12<br>
+                Oops.  I thought I fixed a compile problem with dlt2desc
+                in 3.0.beta3, but apparently I goofed.  If you get an error
+                complaining about multiple definitions, then go into
+                src/edit_packet.c and delete the line:<P>
+                <pre>
+#include "dlt_names.h"
+                </pre>
+                <P>
+                2005-03-09<br>
+                Just re-posted a <a
+                    href="https://sourceforge.net/people/viewjob.php?group_id=48862&job_id=21661">job
+                    posting for a technical writer/editor</a> to help me
+                with the tcpreplay documentation.  If you are interested in
+                getting some good tech writing experiance in the
+                networking/security space, then this might just be the
+                opportunity for you!
+            </td>
+        </tr>
+        <a name="download"></a>
+        <tr><td>&nbsp;</td></tr>
+        <tr><td class=sechdr>Get It</td></tr>
+        <tr><td class=section>
+                Releases:
+                <ul>
+                    <li>Latest development release:
+                    <a
+                        href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-3.0.beta6.tar.gz">tcpreplay-3.0.beta6.tar.gz</a>
+                    (<a
+                        href="CHANGELOG">Changelog</a>)
+                    </li>
+              <li>
+                Latest stable release: 
+            <a href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-2.3.5.tar.gz">tcpreplay-2.3.5.tar.gz</a>
+            (<a
+                href="http://sourceforge.net/project/shownotes.php?release_id=339538">release notes</a>)
+              </li>
+
+              <li>
+                Last release supporting Libnet 1.0.x:
+                <a href="http://prdownloads.sourceforge.net/tcpreplay/tcpreplay-1.3.3.tar.gz">tcpreplay-1.3.3.tar.gz</a>
+                (<a
+                    href="http://sourceforge.net/project/shownotes.php?release_id=156906">release
+                    notes</a>) Note that the 1.x series is EOL.
+                </li>
+              <li><a
+                  href="http://sourceforge.net/project/showfiles.php?group_id=48862">
+                  Past releases</a>
+              </li>
+            </ul>
+              <P>
+              
+              Source via Subversion:<br>
+              svn co https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay-trunk<br>
+              or view it online using
+              <a href="https://www.synfin.net:444/cgi-bin/viewcvs.cgi/tcpreplay/">
+                the web interface</a>
+            <P>
+            Packages:
+            <ul>
+              <li>Apple OS X users can try Darian Lanx's Fink package: <i>fink install tcpreplay</i></li>
+
+              <li>Debian users can try Noel Koethe's APT package: <i>apt-get install tcpreplay</i></li>
+              
+              <li>
+              Win32 users can try 
+              <a
+                  href="http://sourceforge.net/project/showfiles.php?group_id=48862&package_id=144474">this
+                  UNOFFICAL and UNSUPPORTED</a> port. &nbsp;Note: anyone interested in helping with an offical Win32 port of tcpreplay should contact me.
+              </li>
+              
+          </td>
+          
+      <a name="docs"></a>
+      <tr><td>&nbsp;</td></tr>
+      <tr><td class=sechdr>Documentation</td></tr>
+      <tr>
+          <td><table border=0 cellpadding=0 cellspacing=0 width="100%">
+            <tr valign=top>
+          <td class=section width="50%">
+              3.x Docs:
+          <ul>
+            <li><a href="manual/index.html">Manual</a></li>
+            <li><a href="FAQ/index.html">Frequently Asked Questions</a></li>
+            <li><a href="doxygen/html/index.html">Source code documentation via
+                Doxygen</a></li>
+          </ul>
+            3.x Man Pages:
+            <ul>
+                <li><a href="man/tcpreplay.html">tcpreplay</a></li>
+                <li><a href="man/tcpprep.html">tcpprep</a></li>
+                <li><a href="man/tcprewrite.html">tcprewrite</a></li>
+                <li><a href="man/flowreplay.html">flowreplay</a></li>
+                <li><a href="man/tcpbridge.html">tcpbridge</a></li>
+            </ul>
+            </td>
+            <td class=section>
+                2.x Docs:
+                <ul>
+                    <li><a href="tcpreplay-2-faq.html">Frequently Asked
+                        Questions</a></li>
+                </uL>
+            </td>
+        </tr>
+    </table>
+</td>
+</tr>
+<a name="support"></a>
+        <tr><td>&nbsp;</td></tr>
+        <tr><td class=sechdr>Support</td></tr>
+        <tr><td class=section>
+            Sourceforge has a support, bug and patch ticket tracking system which we <b>do not use</b>. 
+            &nbsp;So if you submit a ticket into any of those systems, it will likely be ignored for a few 
+            months, if not longer. &nbsp;Hence, you should be using the 
+            <a href="http://sourceforge.net/mail/?group_id=48862">tcpreplay-users mailing 
+                list</a> for support. (Note, due to spam, the
+            tcpreplay-users list is a closed list, so you will need to
+            subscribe in order to post.)
+            <P>
+            Please note that tcpreplay has a lot of documentation.
+            &nbsp;Please read the documentation before asking for help.
+            <P>
+              You may also be interested in checking out 
+              <a href="http://www.sourceforge.net/projects/tcpreplay/">
+                tcpreplay's SourceForge project page</a>.
+            </ul>
+          </td>
+      </tr>
+      <tr>
+          <td align=center>
+              <a  href="http://sourceforge.net"><img
+                  src="http://sourceforge.net/sflogo.php?group_id=48862&type=1"
+                  width="88" height="31" border="0" alt="SourceForge.net
+                  Logo"  /></a>
+          </td>
+      </tr>
+    </table>
+
+  </body>
+</html>
