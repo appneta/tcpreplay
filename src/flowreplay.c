@@ -317,7 +317,7 @@ process_packet(struct session_t *node, ip_hdr_t * ip_hdr, void *l4)
     else if (node->proto == IPPROTO_UDP) {
         /* packet is UDP */
         udp_hdr = (udp_hdr_t *) l4;
-        len = ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl * 4) - sizeof(tcp_hdr_t);
+        len = ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl * 4) - sizeof(udp_hdr_t);
 
         /* check client to server */
         if ((ip_hdr->ip_dst.s_addr == node->server_ip) &&
