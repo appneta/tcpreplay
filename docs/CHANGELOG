@@ -1,6 +1,6 @@
 $Id$
 
-??/??/2005: Version 3.0.beta7
+08/07/2005: Version 3.0.beta7
     - New 'make doxygen' target builds pretty source code docs in
           docs/web/doxygen/html
     - Fix tcpprep auto/router mode which was sending all packets out the
@@ -8,6 +8,7 @@ $Id$
     - Fix endian issue on little-endian systems which made tcpprep think all
           packets were not IP
     - Improve debugability of tcpprep
+    - Fix UDP header offset bug in flowreplay
 
 06/28/2005: Version 3.0.beta6
     - Fix rpm .spec file which was still based on tcpreplay 2.x (untested)
