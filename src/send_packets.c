@@ -264,7 +264,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
          * a constant 'rate' (bytes per second).
          */
         if (timerisset(last)) {
-            n = (float)len / (options.speed.speed * 1024 * 1024); /* convert Mbps to bps */
+            n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_usec = (n - nap.tv_sec) * 1000000;
             dbg(3, "packet size %d\t\tequals %f bps\t\tnap " TIMEVAL_FORMAT, len, n, 
@@ -335,7 +335,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
 
     timeradd(&didsleep, &nap, &didsleep);
 
-    dbg(3, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
+    dbg(4, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
 
     if (timercmp(&didsleep, &delta, >)) {
         timersub(&didsleep, &delta, &nap);
