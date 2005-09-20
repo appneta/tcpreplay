@@ -170,6 +170,12 @@ post_args(int argc, char *argv[])
     
 #endif
 
+    options.intf1 = safe_strdup(OPT_ARG(INTF1));
+
+    if (HAVE_OPT(INTF2)) 
+        options.intf2 = safe_strdup(OPT_ARG(INTF2));
+
+
     /* open up interfaces */
     if ((options.send1 = libnet_init(LIBNET_LINK_ADV, options.intf1, ebuf)) == NULL)
         errx(1, "Unable to open interface %s for sending: %s", options.intf1, ebuf);
