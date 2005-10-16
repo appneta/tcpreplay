@@ -201,6 +201,13 @@ post_args(int argc, char *argv[])
         dbg(1, "We will %s 802.1q headers", options.vlan == VLAN_DEL ? "delete" : "add/modify");
     }
 
+    /* TCP/UDP port rewriting */
+    if (HAVE_OPT(PORTMAP)) {
+        if (! parse_portmap(&options.portmap, OPT_ARG(PORTMAP))) {
+            errx(1, "Unable to parse portmap: %s", OPT_ARG(PORTMAP));
+        }
+    }
+    
     /*
      * IP address rewriting processing
      */
@@ -309,7 +316,7 @@ validate_l2(pcap_t *pcap, char *filename, l2_t *l2)
         /* single output mode */
         if (! options.cache_packets) {
             /* Need both src/dst MAC's */
-            if (((options.mac_mask & DMAC1) == 0) || ((options.mac_mask & DMAC2) == 0)) {
+            if (((options.mac_mask & DMAC1) == 0) || ((options.mac_mask & SMAC1) == 0)) {
                 errx(1, "%s requires --dlink or --smac <mac> and --dmac <mac>: %s", 
                      pcap_datalink_val_to_description(pcap_datalink(pcap)), filename);
             }
