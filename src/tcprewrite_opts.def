@@ -427,6 +427,10 @@ Rewrites the existing 802.1q VLAN header as an 802.3 ethernet header
 EOText;
 };
 
+/*
+ * VLAN Tags
+ */
+
 flag = {
     name        = vlan_tag;
     value       = t;
