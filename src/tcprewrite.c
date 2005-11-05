@@ -209,7 +209,9 @@ post_args(int argc, char *argv[])
     }
     
     /*
-     * IP address rewriting processing
+     * IP address rewriting processing.  We used to call srandom()
+     * on the seed, but there really isn't any point, so we just use
+     * the user input as the direct 'seed'
      */
     if (HAVE_OPT(SEED)) {
         options.rewrite_ip ++;
