@@ -217,6 +217,10 @@ post_args(void)
 #endif
     
     options.loop = OPT_VALUE_LOOP;
+    /* Currently disabled
+    if (HAVE_OPT(LIMIT))
+        options.limit_send = OPT_VALUE_LIMIT;
+     */
     
     if (HAVE_OPT(TOPSPEED)) {
         options.speed.mode = SPEED_TOPSPEED;
