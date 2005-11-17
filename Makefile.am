@@ -6,8 +6,10 @@ SUBDIRS = scripts lib $(LIBOPTS_DIR) src
 DIST_SUBDIRS = scripts lib libopts src docs test
 .PHONY: manpages docs test man2html
 
-dist-hook: version manpages
+dist-hook: version manpages update
 
+update:
+	svn update
 
 DOCS_DIR = $(top_builddir)/docs
 
