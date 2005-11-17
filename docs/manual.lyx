@@ -2214,4 +2214,16 @@ Extracts and reassembles the data portion on a per-flow basis on live traffic
 \end_inset 
 
 
+\layout Itemize
+
+airodump/aireplay:
+\newline 
+Capture and replay 802.11 frames
+\newline 
+
+\begin_inset LatexCommand \htmlurl{http://www.cr0.net:8040/code/network/aircrack/}
+
+\end_inset 
+
+
 \the_end
