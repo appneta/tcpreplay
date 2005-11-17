@@ -68,11 +68,15 @@ Legend:
 - Support connection tracking and generating 3way handshake for connections
   missing them.
 
-- Bump Syn/Ack numbers by a random or given value so that running 
+- Bump Syn/Ack numbers by a pseudo random or given value so that running 
   the same pcap will behave as different streams.
 
 - Improve flowreplay so it actually works
-  o Use libnids to read the pcaps
+  . Use libnids to read the pcaps.  This seems DOA at this time since
+    libnids is GPL and the author is unwilling to make it support multiple
+    threads which flowreplay probably needs to be.  The only other option is
+    a major rewrite which would break API compatibility.  Doesn't seem worth
+    it.
   - Allow handoff to a socket after user specified client/server exchanges
 
 - Perhaps integrate stick/snot/fpg logic into flowreplay:
@@ -81,7 +85,7 @@ Legend:
 
 - IPv6 support?  People ask for this every few months, but nobody actually
   says they "need" or "really want" it; seems more of "gee, wouldn't it be
-  nice".
+  nice".  What does that mean anyways???
 
 + When splitting traffic via tcpprep print out each packet (tcpdump style)
   so end users know where each packet is going
@@ -118,4 +122,21 @@ O tcpdump decoder should print packets syncronously w/ the main process
 - Only tcpreplay should need to run as root.
 
 - Tcpreplay should use raw sockets or BPF directly for writing rather then
-      libnet where applicable for higher performance.
+      libnet where applicable for theoretically higher performance.
+
+- Detect system version of libopts b/c we need a recent version
+
+- Add support for rewriting MAC addresses in the ARP body for
+  tcprewrite/tcpbridge to allow proxy-arp like behaviour
+
+- Add support for IP fragmenting frames which are > MTU
+
+BUGS:
+- fix RNG for randomization of IP's
+
+- Fix tcpbridge after code refactoring
+
+- Fix spec file using patch
+
+- adding a layer 2 header to RawIP pcap's results in broken pcap's
+
