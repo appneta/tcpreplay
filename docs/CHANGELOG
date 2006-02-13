@@ -1,5 +1,16 @@
 $Id$
 
+??/??/2005: Version 3.0.beta8
+    - Fix -M running in MBps rather then Mbps
+    - Fix tcpbridge segfault/bus error reported by Steven Z. (Gerry)
+    - Fix tcprewrite --portmap 
+    - Fix a warning in tcprewrite where we incorrectly listed --mtu as -t
+    - Fix --mtu in tcprewrite being ignored
+    - Much improved README document
+    - Improve tcpbridge man page
+    - Reorganize packet editing code into a standalone module which can be
+      librarized.
+
 08/07/2005: Version 3.0.beta7
     - New 'make doxygen' target builds pretty source code docs in
           docs/web/doxygen/html
