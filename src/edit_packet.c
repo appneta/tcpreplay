@@ -34,14 +34,12 @@
 #include "defines.h"
 #include "common.h"
 
-#include "tcprewrite.h"
-#include "tcprewrite_opts.h"
+#include "tcpedit.h"
 #include "edit_packet.h"
 #include "lib/sll.h"
 #include "dlt.h"
 
 extern int maxpacket;
-extern tcprewrite_opt_t options;
 
 /*
  * this code re-calcs the IP and Layer 4 checksums
@@ -52,18 +50,21 @@ extern tcprewrite_opt_t options;
  * I was too lazy to re-invent the wheel.
  */
 void
-fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
+fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
 {
 
     /* calc the L4 checksum */
-    if (libnet_do_checksum(options.l, (u_char *) ip_hdr, ip_hdr->ip_p,
-                           ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
-        warnx("Layer 4 checksum failed: %s", libnet_geterror(options.l));
+    if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
+                ip_hdr->ip_p, 
+                ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
+        warnx("Layer 4 checksum failed: %s", 
+                libnet_geterror(tcpedit->runtime.lnet));
 
     /* calc IP checksum */
-    if (libnet_do_checksum(options.l, (u_char *) ip_hdr, IPPROTO_IP,
-                           ntohs(ip_hdr->ip_len)) < 0)
-        warnx("IP checksum failed: %s", libnet_geterror(options.l));
+    if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
+                IPPROTO_IP, ntohs(ip_hdr->ip_len)) < 0)
+        warnx("IP checksum failed: %s", 
+                libnet_geterror(tcpedit->runtime.lnet));
 }
 
 /*
@@ -71,9 +72,9 @@ fix_checksums(struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
  * based upon the user specified seed
  */
 u_int32_t
-randomize_ip(u_int32_t ip)
+randomize_ip(tcpedit_t *tcpedit, u_int32_t ip)
 {
-    return ((ip ^ options.seed) - (ip & options.seed));
+    return ((ip ^ tcpedit->seed) - (ip & tcpedit->seed));
 }
 
 
@@ -83,8 +84,8 @@ randomize_ip(u_int32_t ip)
  * return 1 since we changed one or more IP addresses
  */
 int
-randomize_ipv4(struct pcap_pkthdr *pkthdr, u_char * pktdata,
-              ip_hdr_t * ip_hdr)
+randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
+        u_char * pktdata, ip_hdr_t * ip_hdr)
 {
     char srcip[16], dstip[16];
 
@@ -96,8 +97,8 @@ randomize_ipv4(struct pcap_pkthdr *pkthdr, u_char * pktdata,
     /* randomize IP addresses based on the value of random */
     dbg(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
-    ip_hdr->ip_dst.s_addr = randomize_ip(ip_hdr->ip_dst.s_addr);
-    ip_hdr->ip_src.s_addr = randomize_ip(ip_hdr->ip_src.s_addr);
+    ip_hdr->ip_dst.s_addr = randomize_ip(tcpedit, ip_hdr->ip_dst.s_addr);
+    ip_hdr->ip_src.s_addr = randomize_ip(tcpedit, ip_hdr->ip_src.s_addr);
 
     strlcpy(srcip, libnet_addr2name4(ip_hdr->ip_src.s_addr, 
                 LIBNET_DONT_RESOLVE), 16);
@@ -118,8 +119,8 @@ randomize_ipv4(struct pcap_pkthdr *pkthdr, u_char * pktdata,
  */
 
 int
-untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
-               ip_hdr_t * ip_hdr)
+untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
+        u_char * pktdata, ip_hdr_t * ip_hdr)
 {
 
     /* if actual len == cap len or there's no IP header, don't do anything */
@@ -128,7 +129,7 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
     }
 
     /* Pad packet or truncate it */
-    if (options.fixlen == FIXLEN_PAD) {
+    if (tcpedit->fixlen == TCPEDIT_FIXLEN_PAD) {
         /*
          * this should be an unnecessary check
   	     * but I've gotten a report that sometimes the caplen > len
@@ -142,15 +143,15 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
             ip_hdr->ip_len = htons(pkthdr->caplen);
         }
     }
-    else if (options.fixlen == FIXLEN_TRUNC) {
+    else if (tcpedit->fixlen == TCPEDIT_FIXLEN_TRUNC) {
         ip_hdr->ip_len = htons(pkthdr->caplen);
     }
     else {
-        errx(1, "Invalid options.fixlen value: 0x%x", options.fixlen);
+        errx(1, "Invalid fixlen value: 0x%x", tcpedit->fixlen);
     }
 
     /* fix checksums */
-    fix_checksums(pkthdr, ip_hdr);
+    fix_checksums(tcpedit, pkthdr, ip_hdr);
     return(1);
 }
 
@@ -160,7 +161,8 @@ untrunc_packet(struct pcap_pkthdr *pkthdr, u_char * pktdata,
  * Returns 0 for no data
  */
 int
-extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[])
+extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen, 
+        char *l7data[])
 {
     int datalen = 0;
     ip_hdr_t *ip_hdr = NULL;
@@ -171,7 +173,8 @@ extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[])
 
     /* grab our IPv4 header */
     dataptr = ipbuff;
-    if ((ip_hdr = get_ipv4(pktdata, caplen, datalink, &dataptr)) == NULL)
+    if ((ip_hdr = get_ipv4(pktdata, caplen, 
+                    pcap_datalink(tcpedit->runtime.pcap), &dataptr)) == NULL)
         return 0;
 
     /* figure out the actual datalen which might be < the caplen
@@ -180,7 +183,7 @@ extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[])
     if (caplen > ntohs(ip_hdr->ip_len)) {
         datalen = ntohs(ip_hdr->ip_len);
     } else {
-        datalen = caplen - options.l2.len;
+        datalen = caplen - tcpedit->l2.len;
     }
 
     /* update the datlen to not include the IP header len */
@@ -218,7 +221,7 @@ extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[])
     /* unknown proto, just dump everything past the IP header */
     else {
         dbg(2, "Unknown protocol, dumping everything past the IP header");
-        dataptr = (char *)ip_hdr;
+        dataptr = (u_char *)ip_hdr;
     }
 
     dbg(2, "packet had %d bytes of layer 7 data", datalen);
@@ -265,22 +268,22 @@ remap_ip(cidr_t *cidr, const u_int32_t original)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_ipl3(ip_hdr_t * ip_hdr, int cache_mode)
+rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t * ip_hdr, int direction)
 {
     cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
 
     /* anything to rewrite? */
-    if (options.cidrmap1 == NULL)
+    if (tcpedit->cidrmap1 == NULL)
         return(0);
 
     /* don't play with the main pointers */
-    if (cache_mode == CACHE_PRIMARY) {
-        cidrmap1 = options.cidrmap1;
-        cidrmap2 = options.cidrmap2;
+    if (direction == CACHE_PRIMARY) {
+        cidrmap1 = tcpedit->cidrmap1;
+        cidrmap2 = tcpedit->cidrmap2;
     } else {
-        cidrmap1 = options.cidrmap2;
-        cidrmap2 = options.cidrmap1;
+        cidrmap1 = tcpedit->cidrmap2;
+        cidrmap2 = tcpedit->cidrmap1;
     }
     
 
@@ -331,7 +334,8 @@ rewrite_ipl3(ip_hdr_t * ip_hdr, int cache_mode)
  * return 0 if no change, or 1 for a change
  */
 int 
-randomize_iparp(struct pcap_pkthdr *pkthdr, u_char *pktdata, int datalink)
+randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
+        u_char *pktdata, int datalink)
 {
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0;
@@ -352,12 +356,12 @@ randomize_iparp(struct pcap_pkthdr *pkthdr, u_char *pktdata, int datalink)
         add_hdr = (u_char *)arp_hdr;
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
         ip = (u_int32_t *)add_hdr;
-        tempip = randomize_ip(*ip);
+        tempip = randomize_ip(tcpedit, *ip);
         memcpy(ip, &tempip, sizeof(u_int32_t));
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
         ip = (u_int32_t *)add_hdr;
-        tempip = randomize_ip(*ip);
+        tempip = randomize_ip(tcpedit, *ip);
         memcpy(ip, &tempip, sizeof(u_int32_t));
     }
 
@@ -373,7 +377,7 @@ randomize_iparp(struct pcap_pkthdr *pkthdr, u_char *pktdata, int datalink)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode)
+rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
 {
     u_char *add_hdr = NULL;
     u_int32_t *ip1 = NULL, *ip2 = NULL;
@@ -383,11 +387,11 @@ rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode)
 
    /* figure out what mapping to use */
     if (cache_mode == CACHE_PRIMARY) {
-        cidrmap1 = options.cidrmap1;
-        cidrmap2 = options.cidrmap2;
+        cidrmap1 = tcpedit->cidrmap1;
+        cidrmap2 = tcpedit->cidrmap2;
     } else if (cache_mode == CACHE_SECONDARY) {
-        cidrmap1 = options.cidrmap2;
-        cidrmap2 = options.cidrmap1;
+        cidrmap1 = tcpedit->cidrmap2;
+        cidrmap2 = tcpedit->cidrmap1;
     }
 
     /* anything to rewrite? */

@@ -31,12 +31,20 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-int rewrite_l2(pcap_t *pcap, struct pcap_pkthdr **pkthdr_ptr, u_char *pktdata, int cache_mode);
-int rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
-int rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
-int rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
-int rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+int rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr, 
+        u_char *pktdata, int cache_mode);
 
+int rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+
+int rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+
+int rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+
+int rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
 
 /*
  Local Variables:

@@ -1,6 +1,5 @@
 /* $Id:$ */
 
-
 /*
  * Copyright (c) 2005 Aaron Turner.
  * All rights reserved.
@@ -41,31 +40,25 @@
  * available in the global options structure
  */
 
-#ifdef TCPREWRITE
-#include "tcprewrite.h"
-#include "tcprewrite_opts.h"
-extern tcprewrite_opt_t options;
-#elif defined TCPBRIDGE
-#include "tcpbridge.h"
-#include "tcpbridge_opts.h"
-extern tcpbridge_opt_t options;
-#endif
-
+#include "tcpedit.h"
 #include "lib/sll.h"
 #include "dlt.h"
 #include "rewrite_l2.h"
 
 extern int maxpacket;
 
-static int check_pkt_len(struct pcap_pkthdr *pkthdr, int oldl2len, int newl2len);
+static int check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, i
+        nt oldl2len, int newl2len);
 
 
 /*
- * Do all the layer 2 rewriting.  Change ethernet header or even rewrite mac addresses
+ * Do all the layer 2 rewriting.  Change ethernet header or even 
+ * rewrite mac addresses
  * return layer 2 length on success or 0 on fail (don't send packet)
  */
 int
-rewrite_l2(pcap_t *pcap, struct pcap_pkthdr **pkthdr_ptr, u_char * pktdata, int cache_mode)
+rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr, 
+        u_char * pktdata, int direction)
 {
     u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
     int newl2len = 0;
@@ -75,11 +68,11 @@ rewrite_l2(pcap_t *pcap, struct pcap_pkthdr **pkthdr_ptr, u_char * pktdata, int 
 
 
     /* do we need a ptr for l2data ? */
-    if (options.l2.linktype == LINKTYPE_USER) {
-        if (cache_mode == CACHE_SECONDARY) {
-            l2data = options.l2.data2;
+    if (tcpedit->l2.linktype == LINKTYPE_USER) {
+        if (direction == CACHE_SECONDARY) {
+            l2data = tcpedit->l2.data2;
         } else {
-            l2data = options.l2.data1;
+            l2data = tcpedit->l2.data1;
         }
     }
     
@@ -93,21 +86,21 @@ rewrite_l2(pcap_t *pcap, struct pcap_pkthdr **pkthdr_ptr, u_char * pktdata, int 
      * We do NOT apply any src/dst mac rewriting, as that is common
      * to all conversions, so that happens at the bottom of this function
      */
-    switch (pcap_datalink(pcap)) {
+    switch (pcap_datalink(tcpedit->runtime.pcap)) {
     case DLT_EN10MB:       /* Standard 802.3 Ethernet */
-        newl2len = rewrite_en10mb(pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_en10mb(tcpedit, pktdata, pkthdr_ptr, l2data);
         break;
 
     case DLT_LINUX_SLL:    /* Linux Cooked sockets */
-        newl2len = rewrite_linux_sll(pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_linux_sll(tcpedit, pktdata, pkthdr_ptr, l2data);
         break;
         
     case DLT_RAW:          /* No ethernet header, raw IP */
-        newl2len = rewrite_raw(pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_raw(tcpedit, pktdata, pkthdr_ptr, l2data);
         break;
         
     case DLT_C_HDLC:         /* Cisco HDLC */
-        newl2len = rewrite_c_hdlc(pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_c_hdlc(tcpedit, pktdata, pkthdr_ptr, l2data);
         break;
 
     } /* switch (linktype) */
@@ -122,20 +115,20 @@ rewrite_l2(pcap_t *pcap, struct pcap_pkthdr **pkthdr_ptr, u_char * pktdata, int 
      * replace the src/dst MAC??
      */
 
-    if (cache_mode == CACHE_SECONDARY) {
-        if (options.mac_mask & SMAC2) {
-            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf2_smac, ETHER_ADDR_LEN);
+    if (direction == CACHE_SECONDARY) {
+        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC2) {
+            memcpy(&pktdata[ETHER_ADDR_LEN], tcpedit->intf2_smac, ETHER_ADDR_LEN);
         }
-        if (options.mac_mask & DMAC2) {
-            memcpy(pktdata, options.intf2_dmac, ETHER_ADDR_LEN);
+        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC2) {
+            memcpy(pktdata, tcpedit->intf2_dmac, ETHER_ADDR_LEN);
         }
         
     } else {
-        if (options.mac_mask & SMAC1) {
-            memcpy(&pktdata[ETHER_ADDR_LEN], options.intf1_smac, ETHER_ADDR_LEN);
+        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC1) {
+            memcpy(&pktdata[ETHER_ADDR_LEN], tcpedit->intf1_smac, ETHER_ADDR_LEN);
         }
-        if (options.mac_mask & DMAC1) {
-            memcpy(pktdata, options.intf1_dmac, ETHER_ADDR_LEN);
+        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC1) {
+            memcpy(pktdata, tcpedit->intf1_dmac, ETHER_ADDR_LEN);
         }
     }
 
@@ -155,7 +148,8 @@ rewrite_l2(pcap_t *pcap, struct pcap_pkthdr **pkthdr_ptr, u_char * pktdata, int 
  */
 
 int 
-rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 {
     eth_hdr_t *eth_hdr = NULL;
     vlan_hdr_t *vlan_hdr = NULL;
@@ -175,11 +169,11 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
         newl2len = oldl2len = LIBNET_ETH_H;
     }
   
-    switch (options.l2.linktype) {
+    switch (tcpedit->l2.linktype) {
     case LINKTYPE_USER:
 
         /* track the new L2 len */
-        newl2len = options.l2.len;
+        newl2len = tcpedit->l2.len;
   
   
         if (! check_pkt_len(pkthdr, oldl2len, newl2len))
@@ -194,7 +188,7 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
         if (newl2len > oldl2len) {
             memcpy(tmpbuff, pktdata, pkthdr->caplen);
 
-            memcpy(pktdata, l2data, options.l2.len);
+            memcpy(pktdata, l2data, tcpedit->l2.len);
             memcpy(&pktdata[newl2len], (tmpbuff + oldl2len),
                    pkthdr->caplen);
 
@@ -210,7 +204,7 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
     case LINKTYPE_VLAN:
 
         /* are we adding/modifying a VLAN header? */
-        if (options.vlan == VLAN_ADD) {
+        if (tcpedit->vlan == VLAN_ADD) {
             newl2len = LIBNET_802_1Q_H;
   
             if (! check_pkt_len(pkthdr, oldl2len, newl2len))
@@ -223,14 +217,17 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
             if (oldl2len == newl2len) {
                 
                 /* user must always specify a tag */
-                vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_TAG & LIBNET_802_1Q_VIDMASK);
+                vlan_hdr->vlan_priority_c_vid |= 
+                    htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
 
                 /* these are optional */
-                if (HAVE_OPT(VLAN_PRI))
-                    vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_PRI) << 13;
+                if (tcpedit->l2.vlan_pri)
+                    vlan_hdr->vlan_priority_c_vid |= 
+                        htons((u_int16_t)tcpedit->l2.vlan_pri) << 13;
 
-                if (HAVE_OPT(VLAN_CFI))
-                    vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_CFI) << 12;
+                if (tcpedit->l2.vlan_cfi)
+                    vlan_hdr->vlan_priority_c_vid |= 
+                        htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
             } 
 
             /* else we are adding a VLAN header */
@@ -249,14 +246,17 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
                 vlan_hdr->vlan_len = eth_hdr->ether_type;
 
                 /* user must always specify a tag */
-                vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_TAG & LIBNET_802_1Q_VIDMASK);
+                vlan_hdr->vlan_priority_c_vid |= 
+                    htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
                 
                 /* other things are optional */
-                if (HAVE_OPT(VLAN_PRI))
-                    vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_PRI) << 13;
+                if (tcpedit->l2.vlan_pri)
+                    vlan_hdr->vlan_priority_c_vid |= 
+                        htons((u_int16_t)tcpedit->l2.vlan_pri) << 13;
                 
-                if (HAVE_OPT(VLAN_CFI))
-                    vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_CFI) << 12;
+                if (tcpedit->l2.vlan_cfi)
+                    vlan_hdr->vlan_priority_c_vid |= 
+                        htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
 
                 /* move around our buffers */
                 memcpy(&tmpbuff[newl2len], (pktdata + oldl2len), (pkthdr->caplen - oldl2len));
@@ -291,7 +291,7 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
         break;
 
     default:
-        errx(1, "Invalid options.l2.linktype value: 0x%04x", options.l2.linktype);
+        errx(1, "Invalid tcpedit->l2.linktype value: 0x%04x", tcpedit->l2.linktype);
         break;
     }
 
@@ -309,7 +309,8 @@ rewrite_en10mb(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
  */
 
 int 
-rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 {
     int oldl2len = 0, newl2len = 0, lendiff;
     u_char tmpbuff[MAXPACKET];
@@ -321,9 +322,9 @@ rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 
 
     /* we have no ethernet header, but we know we're IP */
-    switch (options.l2.linktype) {
+    switch (tcpedit->l2.linktype) {
     case LINKTYPE_USER:
-        newl2len = options.l2.len;
+        newl2len = tcpedit->l2.len;
 
 
         if (! check_pkt_len(pkthdr, oldl2len, newl2len))
@@ -358,17 +359,20 @@ rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 
         /* these fields are always set this way */
         vlan_hdr->vlan_tpi = ETHERTYPE_VLAN;
-        vlan_hdr->vlan_len = options.l2proto;
+        vlan_hdr->vlan_len = tcpedit->l2proto;
         
         /* user must always specify a tag */
-        vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_TAG & LIBNET_802_1Q_VIDMASK);
+        vlan_hdr->vlan_priority_c_vid |= 
+            htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
                 
         /* other things are optional */
-        if (HAVE_OPT(VLAN_PRI))
-            vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_PRI) << 13;
+        if (tcpedit->l2.vlan_pri)
+            vlan_hdr->vlan_priority_c_vid |= 
+                htons((u_int16_t)tcpedit->l2.vlan_pri) << 13;
                 
-        if (HAVE_OPT(VLAN_CFI))
-            vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_CFI) << 12;
+        if (tcpedit->l2.vlan_cfi)
+            vlan_hdr->vlan_priority_c_vid |= 
+                htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
 
         /* new packet len */
         newl2len = LIBNET_802_1Q_H;
@@ -385,11 +389,11 @@ rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 
         /* these fields are always set this way */
         eth_hdr = (eth_hdr_t *)pktdata;
-        eth_hdr->ether_type = options.l2proto;
+        eth_hdr->ether_type = tcpedit->l2proto;
         break;
 
     default:
-        errx(1, "Invalid options.l2.linktype value: 0x%x", options.l2.linktype);
+        errx(1, "Invalid tcpedit->l2.linktype value: 0x%x", tcpedit->l2.linktype);
         break;
 
     }
@@ -408,7 +412,8 @@ rewrite_raw(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
  */
 
 int 
-rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 {
     int oldl2len = 0, newl2len = 0, lendiff;
     u_char tmpbuff[MAXPACKET];
@@ -422,9 +427,9 @@ rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2da
 
     newl2len = oldl2len = SLL_HDR_LEN;
 
-    switch (options.l2.linktype) {
+    switch (tcpedit->l2.linktype) {
     case LINKTYPE_USER:
-        newl2len = options.l2.len;
+        newl2len = tcpedit->l2.len;
 
         if (! check_pkt_len(pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -463,14 +468,17 @@ rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2da
             memcpy(vlan_hdr->vlan_shost, sll_hdr->sll_addr, ETHER_ADDR_LEN);
         
         /* user must always specify a tag */
-        vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)(OPT_VALUE_VLAN_TAG & LIBNET_802_1Q_VIDMASK));
+        vlan_hdr->vlan_priority_c_vid |= 
+            htons((u_int16_t)(tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK));
                 
         /* other things are optional */
-        if (HAVE_OPT(VLAN_PRI))
-            vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_PRI) << 13;
+        if (tcpedit->l2.vlan_pri)
+            vlan_hdr->vlan_priority_c_vid |= 
+                htons((u_int16_t)tcpedit->l2.vlan_pri) << 13;
                 
-        if (HAVE_OPT(VLAN_CFI))
-            vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_CFI) << 12;
+        if (tcpedit->l2.vlan_cfi)
+            vlan_hdr->vlan_priority_c_vid |= 
+                htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
         break;
 
     case LINKTYPE_ETHER:
@@ -496,7 +504,7 @@ rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2da
         break;
 
     default:
-        errx(1, "Invalid options.l2.linktype value: 0x%x", options.l2.linktype);
+        errx(1, "Invalid tcpedit->l2.linktype value: 0x%x", tcpedit->l2.linktype);
         break;
 
     }
@@ -514,7 +522,8 @@ rewrite_linux_sll(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2da
  * logic to rewrite packets using DLT_C_HDLC
  */
 int 
-rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata, 
+        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 {
     int oldl2len = 0, newl2len = 0, lendiff;
     u_char tmpbuff[MAXPACKET];
@@ -528,10 +537,10 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 
     newl2len = oldl2len = CISCO_HDLC_LEN;
 
-    switch (options.l2.linktype) {
+    switch (tcpedit->l2.linktype) {
     case LINKTYPE_USER:
         /* track the new L2 len */
-        newl2len = options.l2.len;
+        newl2len = tcpedit->l2.len;
         
         if (! check_pkt_len(pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -544,8 +553,8 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
         /* backup the old packet */
         memcpy(tmpbuff, pktdata, pkthdr->caplen);
 
-        memcpy(pktdata, l2data, options.l2.len);
-        memcpy(&pktdata[options.l2.len], (tmpbuff + oldl2len), pkthdr->caplen - oldl2len);
+        memcpy(pktdata, l2data, tcpedit->l2.len);
+        memcpy(&pktdata[tcpedit->l2.len], (tmpbuff + oldl2len), pkthdr->caplen - oldl2len);
         break;
 
     case LINKTYPE_VLAN:
@@ -565,14 +574,17 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
         vlan_hdr->vlan_len = hdlc_hdr->protocol;
       
         /* user must always specify a tag */
-        vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_TAG & LIBNET_802_1Q_VIDMASK);
+        vlan_hdr->vlan_priority_c_vid |= 
+            htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
                 
         /* other things are optional */
-        if (HAVE_OPT(VLAN_PRI))
-            vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_PRI) << 13;
+        if (tcpedit->l2.vlan_pri)
+            vlan_hdr->vlan_priority_c_vid |= 
+                htons((u_int16_t)tcpedit->l2.vlan_pri) << 13;
                 
-        if (HAVE_OPT(VLAN_CFI))
-            vlan_hdr->vlan_priority_c_vid |= htons((u_int16_t)OPT_VALUE_VLAN_CFI) << 12;
+        if (tcpedit->l2.vlan_cfi)
+            vlan_hdr->vlan_priority_c_vid |= 
+                htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
         break;
 
     case LINKTYPE_ETHER:
@@ -592,7 +604,7 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
         break;
 
     default:
-        errx(1, "Invalid options.l2.linktype value: 0x%x", options.l2.linktype);
+        errx(1, "Invalid tcpedit->l2.linktype value: 0x%x", tcpedit->l2.linktype);
         break;
 
     }
@@ -609,25 +621,27 @@ rewrite_c_hdlc(u_char *pktdata, struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
 /*
  * will the new packet be too big?  
  * If so, we have to change the pkthdr->caplen to be artifically lower
- * so we don't go beyond options.maxpacket
+ * so we don't go beyond tcpedit->maxpacket
  */
 static int
-check_pkt_len(struct pcap_pkthdr *pkthdr, int oldl2len, int newl2len)
+check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
+        int oldl2len, int newl2len)
 {
     /*
      * is new packet too big?
      */
-    if ((pkthdr->caplen - oldl2len + newl2len) > options.maxpacket) {
-        if (options.fixlen) {
+    if ((pkthdr->caplen - oldl2len + newl2len) > tcpedit->maxpacket) {
+        if (tcpedit->fixlen) {
             warnx("Packet length (%u) is greater then MTU (%u); "
                   "truncating packet.",
-                  (pkthdr->caplen - oldl2len + newl2len), options.maxpacket);
-            pkthdr->caplen = options.maxpacket - (newl2len - oldl2len);
+                  (pkthdr->caplen - oldl2len + newl2len), tcpedit->maxpacket);
+            /* set our packet length to the max packet size */
+            pkthdr->caplen = tcpedit->maxpacket;
         }
         else {
             warnx("Packet length (%u) is greater then MTU (%u); "
                   "skipping packet.",
-                  (pkthdr->caplen - oldl2len + newl2len), options.maxpacket);
+                  (pkthdr->caplen - oldl2len + newl2len), tcpedit->maxpacket);
             return (0);
         }
     }

@@ -33,16 +33,30 @@
 #ifndef _EDIT_PACKETS_H_
 #define _EDIT_PACKETS_H_
 
+#include "tcpedit.h"
 
-int untrunc_packet(struct pcap_pkthdr *pkthdr, u_char *pktdata, ip_hdr_t *ip_hdr);
-int randomize_ipv4(struct pcap_pkthdr *pktdhr, u_char *pktdata, ip_hdr_t *ip_hdr);
-int randomize_iparp(struct pcap_pkthdr *pkthdr, u_char *pktdata, int datalink);
-u_int32_t randomize_ip(u_int32_t ip);
-void fix_checksums(struct pcap_pkthdr *pkdhdr, ip_hdr_t *ip_hdr);
-int extract_data(const u_char *pktdata, int caplen, int datalink, char *l7data[]);
+int untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
+        u_char *pktdata, ip_hdr_t *ip_hdr);
+
+int randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pktdhr, 
+        u_char *pktdata, ip_hdr_t *ip_hdr);
+
+int randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
+        u_char *pktdata, int datalink);
+
+u_int32_t randomize_ip(tcpedit_t *tcpedit, u_int32_t ip);
+
+void fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr, 
+        ip_hdr_t *ip_hdr);
+
+int extract_data(tcpedit_t *tcpedit, const u_char *pktdata, 
+        int caplen, char *l7data[]);
+
 u_int32_t remap_ip(cidr_t *cidr, const u_int32_t original);
-int rewrite_ipl3(ip_hdr_t *ip_hdr, int cache_mode);
-int rewrite_iparp(arp_hdr_t *arp_hdr, int cache_mode);
+
+int rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t *ip_hdr, int direction);
+
+int rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int direction);
 
 #endif
 
