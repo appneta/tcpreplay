@@ -95,7 +95,7 @@ new_node(void)
 
 
 /*
- * main loop for bridging mode
+ * main loop for bridging mode or unidir
  */
 
 void
@@ -106,14 +106,22 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
     u_char source1 = PCAP_INT1;
     u_char source2 = PCAP_INT2;
     struct live_data_t livedata;
+    int pollcount = 1;          /* default to unidir mode */
+    
+    assert(pcap1); /* must be set */
 
     /* define polls */
     polls[PCAP_INT1].fd = pcap_fileno(pcap1);
-    polls[PCAP_INT2].fd = pcap_fileno(pcap2);
     polls[PCAP_INT1].events = POLLIN | POLLPRI;
-    polls[PCAP_INT2].events = POLLIN | POLLPRI;
     polls[PCAP_INT1].revents = 0;
-    polls[PCAP_INT2].revents = 0;
+
+    if (! options.unidir) {
+        assert(pcap2);
+        polls[PCAP_INT2].fd = pcap_fileno(pcap2);
+        polls[PCAP_INT2].events = POLLIN | POLLPRI;
+        polls[PCAP_INT2].revents = 0;
+        pollcount = 2;
+    }
 
     /* register signals */
     didsig = 0;
@@ -134,7 +142,7 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
             options.limit_send, pkts_sent);
 
         /* poll for a packet on the two interfaces */
-        pollresult = poll(polls, 2, options.poll_timeout);
+        pollresult = poll(polls, pollcount, options.poll_timeout);
 
         /* poll has returned, process the result */
         if (pollresult > 0) {
@@ -147,8 +155,8 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
                               (u_char *) & livedata);
             }
 
-            /* check the other interface */
-            if (polls[PCAP_INT2].revents > 0) {
+            /* check the other interface?? */
+            if (! options.unidir && polls[PCAP_INT2].revents > 0) {
                 dbg(2, "Processing second interface");
                 livedata.source = source2;
                 livedata.pcap = pcap2;
@@ -168,12 +176,13 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
 
         /* reset the result codes */
         polls[PCAP_INT1].revents = 0;
-        polls[PCAP_INT2].revents = 0;
+        if (! options.unidir)
+            polls[PCAP_INT2].revents = 0;
 
         /* go back to the top of the loop */
     }
 
-}                               /* do_bridge() */
+} /* do_bridge() */
 
 
 /*
@@ -186,7 +195,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 {
     ip_hdr_t *ip_hdr = NULL;
     libnet_t *l = NULL;
-    u_char *pktdata = NULL;     /* full packet buffer */
+    static u_char *pktdata = NULL;     /* full packet buffer */
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;      /* IP header and above buffer */
 #endif
@@ -218,6 +227,13 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         memset(ipbuff, '\0', MAXPACKET);
 #endif
     }
+
+#ifdef HAVE_TCPDUMP
+    /* decode packet? */
+    if (options.verbose)
+        tcpdump_print(&tcpdump, pkthdr, nextpkt);
+#endif
+
 
     /* lookup our source MAC in the tree */
     memcpy(&finder.key, &pktdata[ETHER_ADDR_LEN], ETHER_ADDR_LEN);

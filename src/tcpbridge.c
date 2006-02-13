@@ -51,11 +51,9 @@
 
 #include "tcpbridge.h"
 #include "tcpbridge_opts.h"
-#include "portmap.h"
-#include "edit_packet.h"
-#include "mac.h"
-#include "rewrite_l2.h"
 #include "bridge.h"
+#include "tcpedit/tcpedit.h"
+#include "tcpedit_opts.h"
 #include "send_packets.h"
 
 #ifdef DEBUG
@@ -91,28 +89,23 @@ main(int argc, char *argv[])
 
     post_args(argc, argv);
 
-/*
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
-        tcpdump.filename = options.infile;
-        tcpdump_open(&tcpdump);
+        tcpdump_open_live(&tcpdump, options.listen1);
     }
 #endif
-*/
 
-/*  
-    if (options.unidir) {
-        replay_live(options.listen1, options.send1);
-    } else {
-*/
-       do_bridge(options.listen1, options.listen2);
-//    }
+    /* process packets from one or both interfaces */
+    do_bridge(options.listen1, options.listen2);
 
     /* clean up after ourselves */
     libnet_destroy(options.send1);
-    libnet_destroy(options.send2);
     pcap_close(options.listen1);
-    pcap_close(options.listen2);
+
+    if (! options.unidir) {
+        libnet_destroy(options.send2);
+        pcap_close(options.listen2);
+    }
 
 #ifdef HAVE_TCPDUMP
     tcpdump_close(&tcpdump);
@@ -131,6 +124,8 @@ init(void)
     options.snaplen = 65535;
     options.promisc = 1;
     options.to_ms = 1;
+    /*  default is ethernet */
+    options.l2.linktype = LINKTYPE_ETHER;
 
     total_bytes = 0;
 
@@ -170,11 +165,18 @@ post_args(int argc, char *argv[])
     
 #endif
 
+    if (HAVE_OPT(UNIDIR))
+        options.unidir = 1;
+
+    if (HAVE_OPT(LIMIT))
+        options.limit_send = OPT_VALUE_LIMIT; /* default is -1 */
+
     options.intf1 = safe_strdup(OPT_ARG(INTF1));
 
     if (HAVE_OPT(INTF2)) 
         options.intf2 = safe_strdup(OPT_ARG(INTF2));
 
+    
 
     /* open up interfaces */
     if ((options.send1 = libnet_init(LIBNET_LINK_ADV, options.intf1, ebuf)) == NULL)

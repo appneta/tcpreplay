@@ -27,7 +27,7 @@ config-header   = "config.h";
 include         = "#include \"defines.h\"\n"
                 "#include \"tcpbridge.h\"\n"
                 "#include \"common.h\"\n"
-		"#include \"mac.h\"\n"
+        		"#include \"mac.h\"\n"
                 "extern char pcap_version[];\n"
                 "extern tcpbridge_opt_t options;\n";
 
@@ -40,7 +40,7 @@ EOExplain;
 
 detail = <<- EODetail
 The basic operation of tcpbridge is to be a network bridge between two
-subnets.  All  packets recieved on one interface are sent via the other.
+subnets.  All packets received on one interface are sent via the other.
 
 Optionally, packets can be edited in a variety of ways according to your needs.
 EODetail;
@@ -71,6 +71,10 @@ addresses.  Please consult your operating system's documentation and the
 tcpreplay FAQ if you experiance this issue.
 EOMan;
 
+/*
+ * Debugging
+ */
+
 flag = {
     name        = dbug;
     value       = d;
@@ -83,39 +87,6 @@ flag = {
     doc         = <<- EOText
 If configured with --enable-debug, then you can specify a verbosity 
 level for debugging output.  Higher numbers increase verbosity.
-EOText;
-};
-
-/* Verbose decoding via tcpdump */
-
-flag = {
-    ifdef       = HAVE_TCPDUMP;
-    name        = verbose;
-    value       = v;
-    max         = 1;
-    immediate;
-    descrip     = "Print decoded packets via tcpdump to STDOUT";
-    settable;
-    doc         = "";
-};
-
-flag = {
-    ifdef       = HAVE_TCPDUMP;
-    name        = decode;
-    flags-must  = verbose;
-    value       = A;
-    arg-type    = string;
-    max         = 1;
-    descrip     = "Arguments passed to tcpdump decoder";
-    doc         = <<- EOText
-When enabling verbose mode (@var{-v}) you may also specify one or more
-additional  arguments to pass to @code{tcpdump} to modify the way packets
-are decoded.  By default, -n and -l are used.   Be  sure  to
-quote the arguments like: -A "-axxx" so that they are not interpreted
-by tcpbridge.  The following arguments are vaild:
-    [ -aAeNqRStuvxX ]
-    [ -E spi@ipaddr algo:secret,... ]
-    [ -s snaplen ]
 EOText;
 };
 
@@ -156,6 +127,10 @@ EOText;
 };
 
 
+/*
+ * Layer 2
+ */
+
 flag = {
     name        = dmac;
     value       = D;
@@ -175,13 +150,13 @@ EODmac;
     doc         = <<- EOText
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the destination MAC address of outbound packets.
-The first MAC address will be used for the server traffic
-and the optional second MAC address will be used for the client
-traffic.
+The first MAC address will be used for the primary interface traffic
+and the optional second MAC address will be used for the secondary
+interface traffic.
 
 Example:
 @example
---dmac 00:12:13:14:15:16,00:22:33:44:55:66
+--dmac=00:12:13:14:15:16,00:22:33:44:55:66
 @end example
 EOText;
 };
@@ -205,19 +180,64 @@ EOSmac;
   doc         = <<- EOText
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the source MAC address of outbound packets.
-The first MAC address will be used for the server traffic
-and the optional second MAC address will be used for the client traffic.
+The first MAC address will be used for the primary interface traffic
+and the optional second MAC address will be used for the secondary
+interface traffic.
 
 Example:
 @example
---smac 00:12:13:14:15:16,00:22:33:44:55:66
+--smac=00:12:13:14:15:16,00:22:33:44:55:66
 @end example
 EOText;
 };
 
 flag = {
+    name        = dlink;
+    value       = l;
+    arg-type    = string;
+    max         = 2;
+    descrip     = "Rewrite Data-Link layer with specified data";
+    flag-code   = <<- EODlink
+
+    static int count = 1;
+
+    options.l2.enabled = 1;
+
+    if (count == 1) {
+        options.l2.len = read_hexstring(OPT_ARG(DLINK), options.l2.data1, L2DATALEN);
+        /* 
+         * preemtively copy over our data1[] to data2[] if user doesn't specify
+         * any data2[] data 
+         */
+        memcpy(options.l2.data2, options.l2.data1, options.l2.len); 
+        count ++;
+    } else {
+        if (options.l2.len != read_hexstring(OPT_ARG(DLINK), options.l2.data2, L2DATALEN))
+                err(1, "Layer2 data for both interfaces must be the same length");
+    }
+
+EODlink;
+    doc = <<- EOText 
+Provide a series of comma deliminated hex values which will be used to rewrite
+or create the Layer 2 header of the packets.  The first instance of this 
+argument will rewrite both primary and secondary interface traffic, 
+but if this argument is specified a second time, it will be used for the 
+secondary interface traffic.
+
+Example:
+@example
+--dlink=01,02,03,04,05,06,00,11,22,33,44,55,66,08,00
+@end example
+EOText;
+}; 
+
+/*
+ * Select which packets to process
+ */
+
+flag = {
 	name		= limit;
-	value		= l;
+	value		= L;
 	arg-type	= number;
 	max			= 1;
 	arg-default	= -1;
@@ -268,7 +288,7 @@ send packets which match the provided rule.  Rules can be one of:
 - Must be one of the listed packets where the list
 corresponds to the packet number in the capture file.
 @example
--x P:1-5,9,15,72-
+--include=P:1-5,9,15,72-
 @end example
 would send packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
 end of the file
@@ -315,7 +335,7 @@ send packets which do not match the provided rule.  Rules can be one of:
 - Must not be one of the listed packets where the list
 corresponds to the packet number in the capture file.
 @example
--x P:1-5,9,15,72-
+--exclude=P:1-5,9,15,72-
 @end example
 would drop packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
 end of the file
@@ -323,6 +343,18 @@ end of the file
 EOText;
 };
 
+
+flag = {
+    name        = pid;
+    value       = P;
+    descrip     = "Print the PID of tcpbridge at startup";
+    flag-code   = <<- EOPid
+    
+    fprintf(stderr, "PID: %hu\n", getpid());
+    
+EOPid;
+    doc         = "";
+};
 
 /* rewrite 802.1q vlan tags */
 flag = {
@@ -377,6 +409,10 @@ flag = {
     doc         = "";
 };
 
+/*
+ * VLAN Tags
+ */
+
 flag = {
     name        = vlan_pri;
     value       = p;
@@ -388,17 +424,37 @@ flag = {
     doc         = "";
 };
 
+/* Verbose decoding via tcpdump */
 
 flag = {
-    name        = pid;
-    value       = P;
-    descrip     = "Print the PID of tcpbridge at startup";
-    flag-code   = <<- EOPid
-    
-    fprintf(stderr, "PID: %hu\n", getpid());
-    
-EOPid;
+    ifdef       = HAVE_TCPDUMP;
+    name        = verbose;
+    value       = v;
+    max         = 1;
+    immediate;
+    descrip     = "Print decoded packets via tcpdump to STDOUT";
+    settable;
     doc         = "";
+};
+
+flag = {
+    ifdef       = HAVE_TCPDUMP;
+    name        = decode;
+    flags-must  = verbose;
+    value       = A;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Arguments passed to tcpdump decoder";
+    doc         = <<- EOText
+When enabling verbose mode (@var{-v}) you may also specify one or more
+additional  arguments to pass to @code{tcpdump} to modify the way packets
+are decoded.  By default, -n and -l are used.   Be  sure  to
+quote the arguments like: --verbose="-axxx" so that they are not interpreted
+by tcpbridge.  The following arguments are vaild:
+    [ -aAeNqRStuvxX ]
+    [ -E spi@ipaddr algo:secret,... ]
+    [ -s snaplen ]
+EOText;
 };
 
 flag = {

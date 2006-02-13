@@ -47,6 +47,7 @@ include         = "#include \"defines.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"tcprewrite.h\"\n"
                 "#include \"mac.h\"\n"
+                "#include \"tcpedit.h\"\n"
                 "extern char pcap_version[];\n"
                 "extern tcprewrite_opt_t options;\n";
 
@@ -75,16 +76,6 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Rewrite destination MAC addresses";
-    flag-code   = <<- EODmac
-
-    int mask = 0;    
-
-    mask = dualmac2hex(OPT_ARG(DMAC), options.intf1_dmac, options.intf2_dmac,
-                strlen(OPT_ARG(DMAC)));
-
-    options.mac_mask ^= (mask << 2);
-
-EODmac;
     doc         = <<- EOText
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the destination MAC address of outbound packets.
@@ -106,15 +97,6 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Rewrite source MAC addresses";
-    flag-code   = <<- EOSmac
-    
-    int mask = 0;
-    mask =  dualmac2hex(OPT_ARG(SMAC), options.intf1_smac, options.intf2_smac,
-                strlen(OPT_ARG(SMAC)));
-
-    options.mac_mask ^= mask;
-
-EOSmac;
   doc         = <<- EOText
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the source MAC address of outbound packets.
@@ -146,27 +128,8 @@ flag = {
     value       = l;
     arg-type    = string;
     max         = 2;
+    stack-arg;
     descrip     = "Rewrite Data-Link layer with specified data";
-    flag-code   = <<- EODlink
-
-    static int count = 1;
-    
-    options.l2.enabled = 1;
-    
-    if (count == 1) {
-        options.l2.len = read_hexstring(OPT_ARG(DLINK), options.l2.data1, L2DATALEN);
-        /* 
-         * preemtively copy over our data1[] to data2[] if user doesn't specify 
-         * any data2[] data
-         */
-        memcpy(options.l2.data2, options.l2.data1, options.l2.len);
-        count ++;
-    } else {
-        if (options.l2.len != read_hexstring(OPT_ARG(DLINK), options.l2.data2, L2DATALEN))
-            err(1, "Layer2 data for both interfaces must be the same length");
-    }
-
-EODlink;
     doc         = <<- EOText
 Provide a series of comma deliminated hex values which will be
 used to rewrite or create the Layer 2 header of the packets.
@@ -187,9 +150,6 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Rewrite TCP/UDP ports";
-    flag-code   = <<- EOPortmap
-
-EOPortmap;
     doc         = <<- EOText
 Specify a list of comma delimited port mappingings consisting of 
 colon delimited port number pairs.  Each colon delimited port pair
@@ -223,23 +183,8 @@ flag = {
     value       = N;
     arg-type    = string;
     max         = 2;
+    stack-arg;
     descrip     = "Rewrite IP addresses using pseudo-NAT";
-    flag-code   = <<- EOPnat
-    
-    static int count = 1;
-
-    options.rewrite_ip ++;
-    
-    if (count == 1) {
-        if (! parse_cidr_map(&options.cidrmap1, OPT_ARG(PNAT)))
-            errx(1, "Unable to parse primary pseudo-NAT: %s", OPT_ARG(PNAT));
-        count ++;
-    } else {
-        if (! parse_cidr_map(&options.cidrmap2, OPT_ARG(PNAT)))
-            errx(1, "Unable parse secondary pseudo-NAT: %s", OPT_ARG(PNAT));
-    }
-
-EOPnat;
     doc         = <<- EOText
 Takes a comma delimited series of colon delimited CIDR
 netblock pairs.  Each netblock pair is evaluated in order against
@@ -276,11 +221,6 @@ flag = {
     name        = fixcsum;
     value       = C;
     descrip     = "Force recalculation of IP/TCP/UDP checksums";
-    flag-code   = <<- EOFixcsum
-  
-    options.fixcsum = 1;
-
-EOFixcsum;
     doc         = <<- EOText
 Causes each IP packet to have it's checksums recalcualted and
 fixed.  Automatically enabled for packets modified with @samp{--seed}, 
@@ -316,6 +256,9 @@ flag = {
     max         = 1;
     must-set;
     doc		    = "";
+    /* options.outfile is set in post_args, because we need to make
+     * sure that options.infile is processed first
+     */
 };
 
 flag = {
@@ -353,11 +296,6 @@ flag = {
     name        = efcs;
     value       = E;
     descrip     = "Remove Ethernet checksums (FCS) from end of frames";
-    flag-code   = <<- EOEfcs
-    
-    options.efcs = 1;
-
-EOEfcs;
     doc         = <<- EOText
 EOText;
 };
@@ -368,17 +306,6 @@ flag = {
     descrip     = "Pad or truncate packet data to match header length";
     max         = 1;
     arg-type    = string;
-    flag-code   = <<- EOFixlen
-
-    if (strcmp(OPT_ARG(FIXLEN), "pad") == 0) {
-        options.fixlen = FIXLEN_PAD;
-    } else if (strcmp(OPT_ARG(FIXLEN), "trunc") == 0) {
-        options.fixlen = FIXLEN_TRUNC;
-    } else {
-        errx(1, "Invalid fixlen argument '%s'.  Must be 'trunc' or 'pad'", OPT_ARG(FIXLEN));
-    }
-
-EOFixlen;
     doc         = <<- EOText
 Packets may be truncated during capture if the snaplen is smaller then the
 packet.  This option allows you to modify the packet to pad the packet back
@@ -393,6 +320,9 @@ IPv4 total length
 @var{trunc}
 Truncated packets will have their IPv4 total length field rewritten to match
 the actual packet length
+@item
+@var{del}
+Delete the packet
 EOText;
 };
 
@@ -403,17 +333,6 @@ flag = {
     max         = 1;
     descrip     = "Specify 802.1q VLAN tag mode";
     arg-type    = string;
-    flag-code   = <<- EOVlan
-
-    if (strcmp(OPT_ARG(VLAN), "add") == 0) {
-        options.vlan = VLAN_ADD;
-    } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
-        options.vlan = VLAN_DEL;
-    } else {
-        errx(1, "Invalid vlan argument '%s'.  Must be 'add' or 'del'", OPT_ARG(VLAN));
-    }
-
-EOVlan;
     doc         = <<- EOText
 Allows you to rewrite ethernet frames to add a 802.1q header to standard 802.3
 ethernet headers or remove the 802.1q VLAN tag information.

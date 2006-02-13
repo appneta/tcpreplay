@@ -1,5 +1,6 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
+#include <assert.h>
 #include "config.h"
 #include "common/cache.h"
 #include "common/cidr.h"

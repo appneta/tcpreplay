@@ -149,6 +149,12 @@ swap_hdr(struct pcap_file_header *hp)
         hp->linktype = SWAPLONG(hp->linktype);
 }
 
+int
+tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap)
+{
+
+
+}
 
 int
 tcpdump_init(tcpdump_t *tcpdump)

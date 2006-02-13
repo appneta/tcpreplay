@@ -36,7 +36,7 @@
  
 #include "config.h"
 #include "defines.h"
-#include "portmap.h"
+#include "tcpedit.h"
 
 /* runtime options */
 struct tcprewrite_opt_s {
@@ -51,66 +51,15 @@ struct tcprewrite_opt_s {
     COUNTER cache_packets;
     char *cachedata;
  
-    /* rewrite src/dst MAC addresses */
-    macaddr_t intf1_dmac;
-    macaddr_t intf1_smac;
-    macaddr_t intf2_dmac;
-    macaddr_t intf2_smac;
-
-    int mac_mask;
-#define SMAC1 0x1
-#define SMAC2 0x2
-#define DMAC1 0x4
-#define DMAC2 0x8
-
-    u_int16_t l2proto;
-    u_int16_t l2_mem_align; /* keep things 4 byte aligned */
-
-    /* rewriting L2 data */
-    l2_t l2;
-    
-
-    /* 802.1q vlan stuff */
-#define VLAN_DEL     1        /* strip 802.1q and rewrite as standard 802.3 Ethernet */
-#define VLAN_ADD     2        /* add/replace 802.1q vlan tag */
-    int vlan;
-
-    /* rewrite ip? */
-    int rewrite_ip;            /* needs to be >= 1 */
-    
-    /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
-    cidrmap_t *cidrmap1;       /* tcpprep cache data */
-    cidrmap_t *cidrmap2;
-    
-    /* pseudo-randomize IP addresses using a seed */
-    int seed;
-    
-    /* rewrite tcp/udp ports */
-    portmap_t *portmap;
-    
-    /* pad or truncate packets */
-#define FIXLEN_PAD   1
-#define FIXLEN_TRUNC 2
-    int fixlen;
-    int mtu;                   /* Deal with different MTU's */
-    int maxpacket;             /* L2 header + MTU */
-    
-    /* fix IP/TCP/UDP checksums */
-    int fixcsum;
-
-    /* remove ethernet FCS */
-    int efcs;
-    
     /* tcpprep cache file comment */
     char *comment; 
-
-    /* tcpdump verbose printing */
 
 #ifdef HAVE_TCPDUMP
     /* tcpdump verbose printing */
     int verbose;
     char *tcpdump_args;
 #endif
+    tcpedit_t *tcpedit;
 
 };
 

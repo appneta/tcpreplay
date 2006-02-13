@@ -1,4 +1,4 @@
-SUBDIRS = common
+SUBDIRS = common tcpedit
 
 if SYSTEM_STRLCPY
 LIBSTRL =
@@ -44,10 +44,9 @@ tcpreplay_opts.c: tcpreplay_opts.def
 
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE
-tcprewrite_LDADD = ./common/libcommon.a $(LIBSTRL) \
-		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c portmap.c \
-		     edit_packet.c rewrite_l2.c
+tcprewrite_LDADD = ./common/libcommon.a ./tcpedit/libtcpedit.a \
+		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c tcpedit_opts.c
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def
@@ -55,8 +54,8 @@ tcprewrite_opts.c: tcprewrite_opts.def
 
 
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPPREP
-tcpprep_LDADD = ./common/libcommon.a $(LIBSTRL) \
-		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+tcpprep_LDADD = ./common/libcommon.a \
+		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
@@ -74,23 +73,23 @@ flowreplay_opts.c: flowreplay_opts.def
 	@AUTOGEN@ flowreplay_opts.def
 
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPBRIDGE
-tcpbridge_LDADD = ./common/libcommon.a $(LIBSTRL) \
-		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+tcpbridge_LDADD = ./common/libcommon.a ./tcpedit/libtcpedit.a \
+		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c \
-		edit_packet.c rewrite_l2.c mac.c
+		mac.c tcpedit_opts.c
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def
 	@AUTOGEN@ tcpbridge_opts.def
 
-noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h portmap.h \
-		 defines.h dlt.h dlt_names.h edit_packet.h tree.h mac.h \
+noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h \
+		 defines.h dlt.h dlt_names.h tree.h mac.h \
 		 send_packets.h flowbuff.h flowkey.h flownode.h flowstate.h \
-		 signal_handler.h common.h tcpreplay_opts.h rewrite_l2.h \
+		 signal_handler.h common.h tcpreplay_opts.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h portmap.h \
 		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def \
 		 flowreplay_opts.def tcpbridge_opts.def tcpbridge.h \
-		 flowreplay_opts.h tcpbridge_opts.h
+		 flowreplay_opts.h tcpbridge_opts.h tcpedit_opts.h
 
 
 MOSTLYCLEANFILES = *~ *.o
