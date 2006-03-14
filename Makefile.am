@@ -34,6 +34,9 @@ manpages: man2html
 
 TEST_DIR = $(top_builddir)/test
 
+autoopts:
+	cd src && make autoopts
+
 test:
 	echo Making test in $(TEST_DIR)
 	cd $(TEST_DIR) && make test
@@ -50,6 +53,9 @@ distclean-local:
 
 doxygen: version
 	doxygen doxygen.cfg
+
+ncc:
+	CC=ncc make
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
