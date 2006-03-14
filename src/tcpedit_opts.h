@@ -1,6 +1,7 @@
+/* $Id:$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2006 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,29 +30,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PORT_H__
-#define __PORT_H__
+#include "tcpedit/tcpedit.h"
 
-struct portmap_s {
-    long from;
-    long to;
-    struct portmap_s *next;
-};
-typedef struct portmap_s portmap_t;
-
-portmap_t *new_portmap();
-int parse_portmap(portmap_t **portmapdata, const char *ourstr);
-void free_portmap(portmap_t *portmap);
-void print_portmap(portmap_t *portmap);
-long map_port(portmap_t *portmap , long port);
-int rewrite_ports(portmap_t *portmap, ip_hdr_t **ip_hdr);
-
-#endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
+int tcpedit_post_args(tcpedit_t **tcpedit_ex);

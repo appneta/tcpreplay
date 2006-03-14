@@ -41,6 +41,7 @@
 
 #include "config.h"
 #include "defines.h"
+#include "tcpedit.h"
 #include "common.h"
 #include "portmap.h"
 #include "edit_packet.h"
@@ -48,7 +49,6 @@
 #include "rewrite_l2.h"
 
 
-#include "tcpedit.h"
 #include "lib/sll.h"
 #include "dlt.h"
 
@@ -417,13 +417,14 @@ tcpedit_close(tcpedit_t *tcpedit)
 
 }
 
-
+/*
+ * ADT This needs to be filled out from tcprewrite.c
 void
 rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
 {
 
 }
-
+*/
 
 /*
  Local Variables:

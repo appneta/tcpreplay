@@ -108,7 +108,7 @@ ports2PORT(char *ports)
  * success, 0 for fail.
  */
 int
-parse_portmap(portmap_t ** portmap, char *ourstr)
+parse_portmap(portmap_t ** portmap, const char *ourstr)
 {
     portmap_t *portmap_ptr;
     char *substr = NULL, *token = NULL;

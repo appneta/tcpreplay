@@ -47,8 +47,8 @@
 
 extern int maxpacket;
 
-static int check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, i
-        nt oldl2len, int newl2len);
+static int check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
+        int oldl2len, int newl2len);
 
 
 /*
@@ -176,7 +176,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
         newl2len = tcpedit->l2.len;
   
   
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
         
         /*
@@ -204,10 +204,10 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
     case LINKTYPE_VLAN:
 
         /* are we adding/modifying a VLAN header? */
-        if (tcpedit->vlan == VLAN_ADD) {
+        if (tcpedit->vlan == TCPEDIT_VLAN_ADD) {
             newl2len = LIBNET_802_1Q_H;
   
-            if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+            if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
                 return 0; /* unable to send packet */
 
 
@@ -272,7 +272,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
             newl2len = LIBNET_ETH_H;
 
             /* we still verify packet len incase MTU has shrunk */
-            if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+            if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
                 return 0; /* unable to send packet */
 
             memcpy(tmpbuff, pktdata, pkthdr->caplen);
@@ -327,7 +327,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
         newl2len = tcpedit->l2.len;
 
 
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
         
         /*
@@ -346,7 +346,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
     case LINKTYPE_VLAN:
         newl2len = LIBNET_802_1Q_H;
 
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* prep a 802.1q tagged frame */
@@ -381,7 +381,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
     case LINKTYPE_ETHER:
         newl2len = LIBNET_ETH_H;
 
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make room for L2 header */
@@ -431,7 +431,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
     case LINKTYPE_USER:
         newl2len = tcpedit->l2.len;
 
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
         /*
          * add our user specified header
@@ -449,7 +449,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
         /* prep a 802.1q tagged frame */
         newl2len = LIBNET_802_1Q_H;
 
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make space for the header */
@@ -484,7 +484,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
     case LINKTYPE_ETHER:
         newl2len = LIBNET_ETH_H;
         
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make room for L2 header */
@@ -542,7 +542,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         /* track the new L2 len */
         newl2len = tcpedit->l2.len;
         
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /*
@@ -561,7 +561,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         /* new l2 len */
         newl2len = LIBNET_802_1Q_H;
 
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         memcpy(tmpbuff, pktdata, pkthdr->caplen);
@@ -590,7 +590,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
     case LINKTYPE_ETHER:
         newl2len = LIBNET_ETH_H;
 
-        if (! check_pkt_len(pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         memcpy(tmpbuff, pktdata, pkthdr->caplen);

@@ -36,7 +36,7 @@
  
 #include "config.h"
 #include "defines.h"
-#include "tcpedit.h"
+#include "tcpedit/tcpedit.h"
 
 /* runtime options */
 struct tcprewrite_opt_s {

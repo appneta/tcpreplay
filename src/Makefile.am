@@ -8,6 +8,10 @@ endif
 
 manpages: tcpprep.1 tcprewrite.1 tcpreplay.1 flowreplay.1 tcpbridge.1
 
+autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpprep_opts.c \
+	flowreplay_opts.c tcpbridge_opts.c manpages
+
+
 tcpprep.1: tcpprep_opts.def
 	@AUTOGEN@ -T agman1.tpl --base-name tcpprep tcpprep_opts.def
 
@@ -44,7 +48,7 @@ tcpreplay_opts.c: tcpreplay_opts.def
 
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE
-tcprewrite_LDADD = ./common/libcommon.a ./tcpedit/libtcpedit.a \
+tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c tcpedit_opts.c
 tcprewrite_OBJECTS: tcprewrite_opts.h
@@ -86,7 +90,7 @@ noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h \
 		 defines.h dlt.h dlt_names.h tree.h mac.h \
 		 send_packets.h flowbuff.h flowkey.h flownode.h flowstate.h \
 		 signal_handler.h common.h tcpreplay_opts.h \
-		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h portmap.h \
+		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h \
 		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def \
 		 flowreplay_opts.def tcpbridge_opts.def tcpbridge.h \
 		 flowreplay_opts.h tcpbridge_opts.h tcpedit_opts.h

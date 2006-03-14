@@ -109,7 +109,7 @@ send_packets(pcap_t *pcap)
 #elif TCPBRIDGE
         pktlen = pkthdr.caplen;
 #else
-        WTF???  We should not be here!
+#error WTF???  We should not be here!
 #endif
 
         dbg(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);

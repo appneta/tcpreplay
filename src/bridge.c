@@ -41,10 +41,9 @@
 #include <time.h>
 
 #include "tcpbridge.h"
-#include "edit_packet.h"
 #include "bridge.h"
 #include "send_packets.h"
-#include "rewrite_l2.h"
+#include "tcpedit/tcpedit.h"
 
 extern tcpbridge_opt_t options;
 extern struct timeval begin, end;
@@ -231,7 +230,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #ifdef HAVE_TCPDUMP
     /* decode packet? */
     if (options.verbose)
-        tcpdump_print(&tcpdump, pkthdr, nextpkt);
+        tcpdump_print(options.tcpdump, pkthdr, nextpkt);
 #endif
 
 

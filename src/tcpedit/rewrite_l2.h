@@ -31,6 +31,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "defines.h"
+#include "tcpedit.h"
+
+#ifndef __REWRITE_L2_H__
+#define __REWRITE_L2_H__
+
+
 int rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr, 
         u_char *pktdata, int cache_mode);
 
@@ -45,6 +52,8 @@ int rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
 
 int rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata, 
         struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+
+#endif
 
 /*
  Local Variables:

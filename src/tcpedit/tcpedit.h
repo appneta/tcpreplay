@@ -36,6 +36,33 @@
 #include "defines.h"
 #include "portmap.h"
 
+#define L2DATALEN 255           /* Max size of the L2 data file */
+    
+struct l2_s {
+    int enabled; /* are we rewritting the L2 header ? */
+    int len;  /* user data length */
+    u_char data1[L2DATALEN];
+    u_char data2[L2DATALEN];
+
+    /* 
+     * we need to store the *new* linktype which we will then use to 
+     * select the correct union slice.  set to LINKTYPE_USER to 
+     * use the user specified data (data1[] & data2[])
+     * other valid options are LINKTYPE_VLAN and LINKTYPE_ETHER for
+     * 802.1q and standard ethernet frames respectively.
+     */
+    int linktype;
+#define LINKTYPE_USER  1
+#define LINKTYPE_VLAN  2
+#define LINKTYPE_ETHER 3
+
+    u_int16_t vlan_tag;
+    u_int8_t vlan_pri;
+    u_int8_t vlan_cfi;
+};
+
+typedef struct l2_s l2_t;
+
 #define TCPEDIT_ERRSTR_LEN 1024
 struct tcpedit_runtime_s {
     COUNTER packetnum;
@@ -58,7 +85,6 @@ struct tcpedit_s {
     /* runtime variables, don't mess with these */
     tcpedit_runtime_t runtime;
 
-
     /* we use the mask to say which are valid values */
     char mac_mask;  
 #define TCPEDIT_MAC_MASK_SMAC1 0x1
@@ -75,8 +101,7 @@ struct tcpedit_s {
     char vlan;
 #define TCPEDIT_VLAN_OFF 0x0
 #define TCPEDIT_VLAN_DEL 0x1 /* strip 802.1q and rewrite as standard 
-                              * 802.3 Ethernet 
-                              */
+                              * 802.3 Ethernet */
 #define TCPEDIT_VLAN_ADD 0x2 /* add/replace 802.1q vlan tag */
 
     /* pad or truncate packets */
@@ -115,9 +140,6 @@ struct tcpedit_s {
 
     /* rewrite L2 data in full */
     l2_t l2;
-#define VLAN_DEL 1
-#define VLAN_ADD 2
-
 
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     cidrmap_t *cidrmap1;       /* tcpprep cache data */
@@ -131,8 +153,6 @@ struct tcpedit_s {
     
     int mtu;                   /* Deal with different MTU's */
     int maxpacket;             /* L2 header + MTU */
-    
-
 };
 
 typedef struct tcpedit_s tcpedit_t;

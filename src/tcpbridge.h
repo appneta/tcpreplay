@@ -36,7 +36,7 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
-#include "portmap.h"
+#include "tcpedit/tcpedit.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -67,6 +67,7 @@ struct tcpbridge_opt_s {
     /* tcpdump verbose printing */
     int verbose;
     char *tcpdump_args;
+    tcpdump_t *tcpdump;
 #endif
 
     
