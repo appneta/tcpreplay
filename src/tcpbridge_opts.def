@@ -468,7 +468,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-	fprintf(stderr, "Copyright 2001-2005 by Aaron Turner <aturner@pobox.com>\n");
+	fprintf(stderr, "Copyright 2001-2006 by Aaron Turner <aturner@synfin.net>\n");
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
 #ifdef ENABLE_64BITS
