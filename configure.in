@@ -136,8 +136,6 @@ if test -n "$FIG2DEV" -a -n "$LYX" -a -n "$DVIPS" -a -n "$TEXI2DVI" \
 fi
 AM_CONDITIONAL(HAVE_DOCTOOLS, test $doctools = yes)
 
-
-
 dnl Enable debugging in code/compiler options
 debug=no
 AC_ARG_ENABLE(debug,
@@ -752,3 +750,9 @@ AC_OUTPUT([Makefile
            test/config
            scripts/Makefile
            tcpreplay.spec])
+
+if test $doctools = no; then
+    AC_MSG_NOTICE([One or more tool for creating documentation is unavailable.])
+    AC_MSG_NOTICE([This is only an issue for developers, so don't worry.])
+fi
+
