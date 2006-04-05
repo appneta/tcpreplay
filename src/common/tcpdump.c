@@ -153,7 +153,7 @@ int
 tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap)
 {
 
-
+    return 1;
 }
 
 int
