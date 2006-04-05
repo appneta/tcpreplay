@@ -1,52 +1,9 @@
 flag = {
-    name = tcpedit;
+    name        = tcpedit;
     documentation;
-    descrip = "tcpedit - library to edit packets";
-    lib-name = tcpedit;
-}
-
-autogen definitions options;
-
-copyright = {
-    date        = "2004-2005";
-    owner       = "Aaron Turner";
-    type        = "bsd";
-    author      = <<- EOText
-Copyright 2004-2005 Aaron Turner
-
-For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
-EOText;
+    descrip     = "tcpedit - library to edit packets";
+    lib-name    = tcpedit;
 };
-
-package         = "tcprewrite";
-prog-name       = "tcprewrite";
-prog-title      = "Rewrite the packets in a pcap file.";
-long-opts;
-gnu-usage;
-help-value      = "H";
-save-opts-value = "";
-load-opts-value = "";
-
-detail		= <<- EOText
-Tcprewrite is a tool to rewrite packets stored in @file{pcap(3)} file format, such
-as crated by tools such as @file{tcpdump(1)} and @file{ethereal(1)}.  Once a pcap 
-file has had it's packets rewritten, they can be replayed back out on the network
-using @file{tcpreplay(1)}.
-
-tcprewrite currently supports the following DLT types:
-    * DLT_C_HDLC
-    * DLT_EN10MB
-    * DLT_LINUX_SSL
-    * DLT_RAW
-
-The packet editing features of tcprewrite which distinguish between "client"
-and "server" traffic requires a tcpprep(1) cache file.
-EOText;
-
-man-doc = <<- EOMan
-.SH "SEE ALSO"
-tcpdump(1), tcpprep(1), tcpreplay(1)
-EOMan;
 
 
 flag = {
@@ -76,7 +33,7 @@ flag = {
     arg-type    = string;
     max         = 1;
     descrip     = "Rewrite source MAC addresses";
-  doc         = <<- EOText
+    doc         = <<- EOText
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the source MAC address of outbound packets.
 The first MAC address will be used for the server traffic

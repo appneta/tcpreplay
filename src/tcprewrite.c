@@ -52,7 +52,6 @@
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
 #include "tcpedit/tcpedit.h"
-#include "tcpedit_opts.h"
 
 #ifdef DEBUG
 int debug;

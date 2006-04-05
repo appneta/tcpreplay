@@ -1,6 +1,6 @@
 AutoGen definitions options;
-prog-name  = does-not-matter;  // but is always required
-prog-title = 'also does not matter';  // also required
-config-header = 'config.h'; // optional, but common
+prog-name  = tcpedit_stub;  // but is always required
+prog-title = 'libtcpedit autoopts stub';  // also required
+//config-header = '../config.h'; // optional, but common
 library;
 #include tcpedit_opts.def

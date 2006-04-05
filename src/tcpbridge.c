@@ -53,7 +53,6 @@
 #include "tcpbridge_opts.h"
 #include "bridge.h"
 #include "tcpedit/tcpedit.h"
-#include "tcpedit_opts.h"
 #include "send_packets.h"
 
 #ifdef DEBUG

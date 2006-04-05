@@ -30,6 +30,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "tcpedit/tcpedit.h"
+#ifndef _PARSE_ARGS_H_
+#define _PARSE_ARGS_H_
+#include "tcpedit.h"
 
 int tcpedit_post_args(tcpedit_t **tcpedit_ex);
+
+#endif

@@ -43,10 +43,11 @@
 #include "defines.h"
 #include "tcpedit.h"
 #include "tcpedit_stub.h"
+#include "parse_args.h"
 #include "common.h"
 #include "portmap.h"
 #include "edit_packet.h"
-#include "mac.h"
+#include "../mac.h"
 #include "rewrite_l2.h"
 
 
@@ -54,6 +55,7 @@
 #include "dlt.h"
 
 static void tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...);
+tOptDesc const* tcpedit_tcpedit_optDesc_p;
 
 /* 
  * Processs a given packet and edit the pkthdr/pktdata structures
@@ -366,6 +368,7 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
     }
 
 
+    return 1;
 }
 
 /*
@@ -415,7 +418,7 @@ tcpedit_close(tcpedit_t *tcpedit)
     free(tcpedit->runtime.ipbuff);
 #endif
 
-
+    return 1;
 }
 
 /*

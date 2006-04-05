@@ -33,16 +33,9 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
-#include "tcpedit/tcpedit.h"
+#include "tcpedit.h"
 #include "mac.h"
-
-#ifdef TCPREWRITE
-#include "tcprewrite_opts.h"
-#elif defined TCPBRIDGE
-#include "tcpbridge_opts.h"
-#else
-#error  WTF??? We should not be here!
-#endif
+#include "tcpedit_stub.h"
 
 
 int 
@@ -130,7 +123,6 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         } while (--ct > 0);
     }
 
-#ifndef TCPBRIDGE
     /* --pnat */
     if (HAVE_OPT(PNAT)) {
         int ct = STACKCT_OPT(PNAT);
@@ -211,7 +203,6 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2, OPT_ARG(ENDPOINTS)))
             errx(1, "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
     }
-#endif
 
     /*
      * Validate 802.1q vlan args and populate tcpedit->vlan_record
