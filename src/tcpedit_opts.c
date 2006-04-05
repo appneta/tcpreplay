@@ -34,6 +34,7 @@
 #include "defines.h"
 #include "common.h"
 #include "tcpedit/tcpedit.h"
+#include "mac.h"
 
 #ifdef TCPREWRITE
 #include "tcprewrite_opts.h"
@@ -52,11 +53,105 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     tcpedit = *tcpedit_ex;
     assert(tcpedit);
 
+
+    /* --dmac */
+    if (HAVE_OPT(DMAC)) {
+        int macparse;
+        macparse = dualmac2hex(OPT_ARG(DMAC), tcpedit->intf1_dmac,
+                    tcpedit->intf2_dmac, strlen(OPT_ARG(DMAC)));
+        switch (macparse) {
+            case 1:
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+                break;
+            case 2:
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+                break;
+            case 3:
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+                break;
+            case 0:
+                /* nothing to do */
+                break;
+            default:
+                errx(1, "Invalid result from dualmac2hex: %d for --dmac %s", 
+                        macparse, OPT_ARG(DMAC));
+                break;
+        }
+    }
+    
+    /* --smac */
+    if (HAVE_OPT(SMAC)) {
+        int macparse;
+        macparse = dualmac2hex(OPT_ARG(SMAC), tcpedit->intf1_smac,
+                    tcpedit->intf2_smac, strlen(OPT_ARG(SMAC)));
+        switch (macparse) {
+            case 1:
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+                break;
+            case 2:
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+                break;
+            case 3:
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+                break;
+            case 0:
+                /* nothing to do */
+                break;
+            default:
+                errx(1, "Invalid result from dualmac2hex: %d for --smac %s", 
+                        macparse, OPT_ARG(SMAC));
+                break;
+        }
+    }
+
+    /* --dlink */
+    if (HAVE_OPT(DLINK)) {
+        int  ct = STACKCT_OPT(DLINK);
+        char **pp = STACKLST_OPT(DLINK);
+        int first = 1;
+        
+        tcpedit->l2.enabled = 1;
+
+        do  {
+            char *p = *pp++;
+            if (first) {
+                tcpedit->l2.len = read_hexstring(p, tcpedit->l2.data1,
+                    L2DATALEN);
+                memcpy(tcpedit->l2.data2, tcpedit->l2.data1, tcpedit->l2.len);
+            } else {
+                if (tcpedit->l2.len != read_hexstring(p, tcpedit->l2.data2,
+                        L2DATALEN))
+                    err(1, "both --dlink data must be the same length");
+            }
+
+            first = 0;
+        } while (--ct > 0);
+    }
+
 #ifndef TCPBRIDGE
-    /* Layer two protocol */
-    if (HAVE_OPT(PROTO))
-        tcpedit->l2proto = OPT_VALUE_PROTO;
-#endif
+    /* --pnat */
+    if (HAVE_OPT(PNAT)) {
+        int ct = STACKCT_OPT(PNAT);
+        char **pp = STACKLST_OPT(PNAT);
+        int first = 1;
+
+        tcpedit->rewrite_ip ++;
+
+        do {
+            char *p = *pp++;
+            if (first) {
+                if (! parse_cidr_map(&tcpedit->cidrmap1, p))
+                    errx(1, "Unable to parse primary pseudo-NAT: %s", p);
+            } else {
+                if (! parse_cidr_map(&tcpedit->cidrmap2, p))
+                    errx(1, "Unable to parse secondary pseudo-NAT: %s", p);
+            }
+            
+            first = 0;
+        } while (--ct > 0);
+    }
 
     /*
      * If we have one and only one -N, then use the same map data
@@ -65,25 +160,35 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     if ((tcpedit->cidrmap1 != NULL) && (tcpedit->cidrmap2 == NULL))
         tcpedit->cidrmap2 = tcpedit->cidrmap1;
 
-    /*
-     * Validate 802.1q vlan args and populate tcpedit->vlan_record
-     */
-    if (tcpedit->vlan) {
-        if ((tcpedit->vlan == TCPEDIT_VLAN_ADD) && (HAVE_OPT(VLAN_TAG) == 0))
-            err(1, "Must specify a new 802.1 VLAN tag if vlan mode is add");
+    /* --fixcsum */
+    if (HAVE_OPT(FIXCSUM))
+        tcpedit->fixcsum = 1;
 
-        /*
-         * fill out the 802.1q header
-         */
-        tcpedit->l2.linktype = LINKTYPE_VLAN;
+    /* --efcs */
+    if (HAVE_OPT(EFCS)) 
+        tcpedit->efcs = 1;
 
-        /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
-        tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
-        dbg(1, "We will %s 802.1q headers", tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+    /* --mtu */
+    if (HAVE_OPT(MTU))
+        tcpedit->mtu = OPT_VALUE_MTU;
+
+    /* --fixlen */
+    if (HAVE_OPT(FIXLEN)) {
+        if (strcmp(OPT_ARG(FIXLEN), "pad") == 0) {
+            tcpedit->fixlen = TCPEDIT_FIXLEN_PAD;
+        } else if (strcmp(OPT_ARG(FIXLEN), "trunc") == 0) {
+            tcpedit->fixlen = TCPEDIT_FIXLEN_TRUNC;
+        } else if (strcmp(OPT_ARG(FIXLEN), "del") == 0) {
+            tcpedit->fixlen = TCPEDIT_FIXLEN_DEL;
+        } else {
+            errx(1, "Invalid --fixlen %s", OPT_ARG(FIXLEN));
+        }
     }
 
-
-#ifndef TCPBRIDGE
+    /* Layer two protocol */
+    if (HAVE_OPT(PROTO))
+        tcpedit->l2proto = OPT_VALUE_PROTO;
+    
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
         if (! parse_portmap(&tcpedit->portmap, OPT_ARG(PORTMAP))) {
@@ -107,6 +212,24 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
             errx(1, "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
     }
 #endif
+
+    /*
+     * Validate 802.1q vlan args and populate tcpedit->vlan_record
+     */
+    if (tcpedit->vlan) {
+        if ((tcpedit->vlan == TCPEDIT_VLAN_ADD) && (HAVE_OPT(VLAN_TAG) == 0))
+            err(1, "Must specify a new 802.1 VLAN tag if vlan mode is add");
+
+        /*
+         * fill out the 802.1q header
+         */
+        tcpedit->l2.linktype = LINKTYPE_VLAN;
+
+        /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
+        tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
+        dbg(1, "We will %s 802.1q headers", tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+    }
+
 
     /* 
      * figure out the max packet len
