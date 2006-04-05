@@ -216,20 +216,39 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     /*
      * Validate 802.1q vlan args and populate tcpedit->vlan_record
      */
-    if (tcpedit->vlan) {
-        if ((tcpedit->vlan == TCPEDIT_VLAN_ADD) && (HAVE_OPT(VLAN_TAG) == 0))
-            err(1, "Must specify a new 802.1 VLAN tag if vlan mode is add");
+    if (HAVE_OPT(VLAN)) {
+        if (strcmp(OPT_ARG(VLAN), "add") == 0) {
+            tcpedit->vlan = TCPEDIT_VLAN_ADD;
+        } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
+            tcpedit->vlan = TCPEDIT_VLAN_DEL;
+        } else {
+            errx(1, "Invalid --vlan %s", OPT_ARG(VLAN));
+        }
 
-        /*
-         * fill out the 802.1q header
-         */
-        tcpedit->l2.linktype = LINKTYPE_VLAN;
+        if (tcpedit->vlan != TCPEDIT_VLAN_OFF) {
+            tcpedit->l2.linktype = LINKTYPE_VLAN;
 
-        /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
-        tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
-        dbg(1, "We will %s 802.1q headers", tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+            if (tcpedit->vlan == TCPEDIT_VLAN_ADD) {
+                if (! HAVE_OPT(VLAN_TAG)) 
+                    err(1, "Must specify a new 802.1 VLAN tag if vlan mode is add");
+
+                /*
+                 * fill out the 802.1q header
+                 */
+                tcpedit->l2.vlan_tag = OPT_VALUE_VLAN_TAG;
+
+                /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
+                tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
+                dbg(1, "We will %s 802.1q headers", tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+
+            if (HAVE_OPT(VLAN_PRI))
+                tcpedit->l2.vlan_pri = OPT_VALUE_VLAN_PRI;
+
+            if (HAVE_OPT(VLAN_CFI))
+                tcpedit->l2.vlan_cfi = OPT_VALUE_VLAN_CFI;
+            }
+        }
     }
-
 
     /* 
      * figure out the max packet len

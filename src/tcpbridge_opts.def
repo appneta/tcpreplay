@@ -363,17 +363,6 @@ flag = {
     max         = 1;
     descrip     = "Specify 802.1q VLAN tag mode";
     arg-type    = string;
-    flag-code   = <<- EOVlan
-
-    if (strcmp(OPT_ARG(VLAN), "add") == 0) {
-        options.vlan = VLAN_ADD;
-    } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
-        options.vlan = VLAN_DEL;
-    } else {
-        errx(1, "Invalid vlan argument '%s'.  Must be 'add' or 'del'", OPT_ARG(VLAN));
-    }
-
-EOVlan;
     doc         = <<- EOText
 Allows you to rewrite ethernet frames to add a 802.1q header to standard 802.3
 ethernet headers or remove the 802.1q VLAN tag information.
