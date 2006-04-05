@@ -111,10 +111,12 @@ int
 parse_portmap(portmap_t ** portmap, const char *ourstr)
 {
     portmap_t *portmap_ptr;
-    char *substr = NULL, *token = NULL;
+    char *substr = NULL, *ourstrcpy = NULL, *token = NULL;
+
+    ourstrcpy = safe_strdup(ourstr);
 
     /* first iteration of input */
-    substr = strtok_r(ourstr, ",", &token);
+    substr = strtok_r(ourstrcpy, ",", &token);
 
     if ((*portmap = ports2PORT(substr)) == NULL)
         return 0;
