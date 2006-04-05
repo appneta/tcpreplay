@@ -42,6 +42,7 @@
 #include "config.h"
 #include "defines.h"
 #include "tcpedit.h"
+#include "tcpedit_stub.h"
 #include "common.h"
 #include "portmap.h"
 #include "edit_packet.h"
