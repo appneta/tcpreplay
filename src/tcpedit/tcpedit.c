@@ -68,7 +68,6 @@ int
 tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char **pktdata, int direction)
 {
-    eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
     u_char newpkt[MAXPACKET] = "";    /* our new packet after editing */
@@ -104,7 +103,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         pkthdr_ptr->caplen -= 2;
         
     /* Rewrite any Layer 2 data */
-    if ((l2len = rewrite_l2(tcpedit->runtime.pcap, &pkthdr_ptr, newpkt, direction)) == 0)
+    if ((l2len = rewrite_l2(tcpedit, &pkthdr_ptr, newpkt, direction)) == 0)
         return 0; /* packet is too long and we didn't trunc, so skip it */
 
     l2proto = get_l2protocol(newpkt, pkthdr_ptr->caplen, 
