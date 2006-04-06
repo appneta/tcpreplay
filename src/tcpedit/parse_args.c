@@ -102,13 +102,13 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     /* --dlink */
     if (HAVE_OPT(DLINK)) {
         int  ct = STACKCT_OPT(DLINK);
-        char **pp = STACKLST_OPT(DLINK);
+        char **list = STACKLST_OPT(DLINK);
         int first = 1;
         
         tcpedit->l2.enabled = 1;
 
         do  {
-            char *p = *pp++;
+            char *p = *list++;
             if (first) {
                 tcpedit->l2.len = read_hexstring(p, tcpedit->l2.data1,
                     L2DATALEN);
@@ -126,13 +126,13 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     /* --pnat */
     if (HAVE_OPT(PNAT)) {
         int ct = STACKCT_OPT(PNAT);
-        char **pp = STACKLST_OPT(PNAT);
+        char **list = STACKLST_OPT(PNAT);
         int first = 1;
 
         tcpedit->rewrite_ip ++;
 
         do {
-            char *p = *pp++;
+            char *p = *list++;
             if (first) {
                 if (! parse_cidr_map(&tcpedit->cidrmap1, p))
                     errx(1, "Unable to parse primary pseudo-NAT: %s", p);
