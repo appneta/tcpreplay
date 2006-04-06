@@ -53,6 +53,10 @@ void
 fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
 {
 
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(ip_hdr);
+
     /* calc the L4 checksum */
     if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
                 ip_hdr->ip_p, 
@@ -74,6 +78,8 @@ fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
 u_int32_t
 randomize_ip(tcpedit_t *tcpedit, u_int32_t ip)
 {
+    assert(tcpedit);
+
     return ((ip ^ tcpedit->seed) - (ip & tcpedit->seed));
 }
 
@@ -88,6 +94,11 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         u_char * pktdata, ip_hdr_t * ip_hdr)
 {
     char srcip[16], dstip[16];
+
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(pktdata);
+    assert(ip_hdr);
 
     strlcpy(srcip, libnet_addr2name4(ip_hdr->ip_src.s_addr, 
                 LIBNET_DONT_RESOLVE), 16);
@@ -122,6 +133,11 @@ int
 untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         u_char * pktdata, ip_hdr_t * ip_hdr)
 {
+
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(pktdata);
+    assert(ip_hdr);
 
     /* if actual len == cap len or there's no IP header, don't do anything */
     if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL)) {
@@ -170,10 +186,14 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
     udp_hdr_t *udp_hdr = NULL;
     u_char ipbuff[MAXPACKET];
     u_char *dataptr = NULL;
+    
+    assert(tcpedit);
+    assert(pktdata);
+    assert(l7data);
 
     /* grab our IPv4 header */
     dataptr = ipbuff;
-    if ((ip_hdr = get_ipv4(pktdata, caplen, 
+    if ((ip_hdr = (ip_hdr_t*)get_ipv4(pktdata, caplen, 
                     pcap_datalink(tcpedit->runtime.pcap), &dataptr)) == NULL)
         return 0;
 
@@ -243,6 +263,8 @@ remap_ip(cidr_t *cidr, const u_int32_t original)
 {
     u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
 
+    assert(cidr);
+
     mask = 0xffffffff; /* turn on all the bits */
 
     /* shift over by correct # of bits */
@@ -272,6 +294,9 @@ rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t * ip_hdr, int direction)
 {
     cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
+
+    assert(tcpedit);
+    assert(ip_hdr);
 
     /* anything to rewrite? */
     if (tcpedit->cidrmap1 == NULL)
@@ -342,6 +367,10 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     u_int32_t *ip, tempip;
     u_char *add_hdr;
 
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(pktdata);
+
     l2len = get_l2len(pktdata, pkthdr->caplen, datalink);
     arp_hdr = (arp_hdr_t *)(pktdata + l2len);
 
@@ -384,6 +413,9 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     u_int32_t newip = 0;
     cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
+
+    assert(tcpedit);
+    assert(arp_hdr);
 
    /* figure out what mapping to use */
     if (cache_mode == CACHE_PRIMARY) {
