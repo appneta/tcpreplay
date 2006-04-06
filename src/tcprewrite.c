@@ -212,7 +212,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
             goto WRITE_PACKET;
 
         pkthdr_ptr = &pkthdr;
-        pktdata_ptr = &pktdata;
+        pktdata_ptr = (u_char *)&pktdata;
 
         tcpedit_packet(&tcpedit, &pkthdr_ptr, &pktdata_ptr, cache_result);
 
