@@ -208,6 +208,12 @@ check_dst_port(ip_hdr_t *ip_hdr, int len)
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
 
+    assert(ip_hdr);
+
+    if (len < ((ip_hdr->ip_hl * 4) + 4))
+        return 0; /* not enough data in the packet to know */
+
+
     dbg(3, "Checking the destination port...");
 
     if (ip_hdr->ip_p == IPPROTO_TCP) {
