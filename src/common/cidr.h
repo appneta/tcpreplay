@@ -34,7 +34,7 @@
 #define __CIDR_H__
 
 struct cidr_s {
-    unsigned long network;
+    u_int32_t network;
     int masklen;
     struct cidr_s *next;
 };

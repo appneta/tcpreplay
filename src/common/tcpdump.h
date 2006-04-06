@@ -74,6 +74,7 @@ typedef struct tcpdump_s tcpdump_t;
 
 int tcpdump_init(tcpdump_t *tcpdump);
 int tcpdump_open(tcpdump_t *tcpdump);
+int tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap);
 int tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data);
 void tcpdump_close(tcpdump_t *tcpdump);
 

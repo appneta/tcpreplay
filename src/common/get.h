@@ -47,8 +47,6 @@ void *get_layer4(const ip_hdr_t * ip_hdr);
 
 const u_char *get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff);
 
-u_int32_t get_name2addr4(const char *hostname, u_int8_t dnslookup);
-
 #endif
 
 /*

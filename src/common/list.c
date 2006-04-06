@@ -69,7 +69,7 @@ parse_list(list_t ** listdata, char *ourstr)
     list_t *listcur, *list_ptr;
     char *this = NULL;
     char *first, *second;
-    int i, rcode;
+    int rcode;
     regex_t preg;
     char ebuf[EBUF_SIZE];
     char regex[] = "^[0-9]+(-[0-9]+)?$";
@@ -98,7 +98,7 @@ parse_list(list_t ** listdata, char *ourstr)
     list_ptr = *listdata;
     listcur = list_ptr;
 
-    for (i = 0; i < strlen(this); i++) {
+    for (u_int i = 0; i < strlen(this); i++) {
         if (this[i] == '-') {
             this[i] = '\0';
             second = &this[i + 1];
@@ -131,7 +131,7 @@ parse_list(list_t ** listdata, char *ourstr)
         listcur->next = new_list();
         listcur = listcur->next;
 
-        for (i = 0; i < strlen(this); i++) {
+        for (u_int i = 0; i < strlen(this); i++) {
             if (this[i] == '-') {
                 this[i] = '\0';
                 second = &this[i + 1];

@@ -101,14 +101,12 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
     }
 #endif
 
-    if (write(tcpdump->infd, data, pkthdr->caplen)
-        != pkthdr->caplen)
+    if (write(tcpdump->infd, data, pkthdr->caplen) != (ssize_t)pkthdr->caplen)
         errx(1, "Error writing packet data to tcpdump\n%s", strerror(errno));
 
 #ifdef DEBUG
     if (debug >= 5) {
-        if (write(tcpdump->debugfd, data, pkthdr->caplen)
-            != pkthdr->caplen)
+        if (write(tcpdump->debugfd, data, pkthdr->caplen) != (ssize_t)pkthdr->caplen)
             errx(1, "Error writing packet data to tcpdump debug\n%s", strerror(errno));
     }
 #endif
@@ -147,13 +145,6 @@ swap_hdr(struct pcap_file_header *hp)
         hp->sigfigs = SWAPLONG(hp->sigfigs);
         hp->snaplen = SWAPLONG(hp->snaplen);
         hp->linktype = SWAPLONG(hp->linktype);
-}
-
-int
-tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap)
-{
-
-    return 1;
 }
 
 int
@@ -298,6 +289,16 @@ tcpdump_open(tcpdump_t *tcpdump)
     }
     
     return TRUE;
+}
+
+
+int 
+tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap) {
+
+    assert(tcpdump);
+    assert(pcap);
+
+    return 1;
 }
 
 /* write the pcap header to the tcpdump child process */

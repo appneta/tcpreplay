@@ -79,21 +79,21 @@ byte2bits(char byte, char *bitstring) {
 COUNTER
 read_cache(char **cachedata, const char *cachefile, char **comment)
 {
-    int cachefd, cnt;
+    int cachefd;
     cache_file_hdr_t header;
     ssize_t read_size = 0;
-    u_int64_t cache_size = 0;
+    COUNTER cache_size = 0;
 
     /* open the file or abort */
     if ((cachefd = open(cachefile, O_RDONLY)) == -1)
         errx(1, "unable to open %s:%s", cachefile, strerror(errno));
 
     /* read the cache header and determine compatibility */
-    if ((cnt = read(cachefd, &header, sizeof(header))) < 0)
+    if ((read_size = read(cachefd, &header, sizeof(header))) < 0)
         errx(1, "unable to read from %s:%s,", cachefile, strerror(errno));
 
-    if (cnt < sizeof(header))
-        errx(1, "Cache file %s too small", cachefile);
+    if (read_size < (ssize_t)sizeof(header))
+        errx(1, "Cache file %s doesn't contain a full header", cachefile);
 
     /* verify our magic: tcpprep\0 */
     if (memcmp(header.magic, CACHEMAGIC, sizeof(CACHEMAGIC)) != 0)
@@ -138,7 +138,8 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     *cachedata = (char *)safe_malloc(cache_size);
 
     /* read in the cache */
-    if ((read_size = read(cachefd, *cachedata, cache_size)) != cache_size)
+    if ((COUNTER)(read_size = read(cachefd, *cachedata, cache_size)) 
+            != cache_size)
         errx(1, "Cache data length (%ld bytes) doesn't match "
             "cache header (%ld bytes)", read_size, cache_size);
 
@@ -191,7 +192,7 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
         written = write(out_file, comment, strlen(comment));
         dbg(1, "Wrote %d bytes of comment", written);
         
-        if (written != strlen(comment))
+        if (written != (ssize_t)strlen(comment))
             errx(1, "Only wrote %d of %d bytes of the comment!\n%s",
                  written, strlen(comment), 
                  written == -1 ? strerror(errno) : "");
@@ -214,7 +215,7 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
         /* write to file, and verify it wrote properly */
         written = write(out_file, mycache->data, chars);
         dbg(1, "Wrote %i bytes of cache data", written);
-        if (written != chars)
+        if (written != (ssize_t)chars)
             errx(1, "Only wrote %i of %i bytes to cache file!", written, chars);
 
         /*

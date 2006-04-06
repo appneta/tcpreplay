@@ -470,8 +470,7 @@ cidr2iplist(cidr_t * cidr, char delim)
 {
     char *list = NULL;
     char ipaddr[16];
-    unsigned long size, i;
-    unsigned long first, last, numips;
+    u_int32_t size, addr, first, last, numips;
     struct in_addr in;
 
     /* 
@@ -479,7 +478,7 @@ cidr2iplist(cidr_t * cidr, char delim)
      * # of IP's = 2^(32-masklen)
      */
     numips = 2;
-    for (i = 2; i <= (32 - cidr->masklen); i++) {
+    for (int i = 2; i <= (32 - cidr->masklen); i++) {
         numips *= 2;
     }
     size = 16 * numips;
@@ -495,15 +494,15 @@ cidr2iplist(cidr_t * cidr, char delim)
     dbg(1, "First: %u\t\tLast: %u", first, last);
 
     /* loop through all but the last one */
-    for (i = first; i < last; i++) {
-        in.s_addr = htonl(i);
+    for (addr = first; addr < last; addr++) {
+        in.s_addr = htonl(addr);
         snprintf(ipaddr, 17, "%s%c", inet_ntoa(in), delim);
         dbg(2, "%s", ipaddr);
         strlcat(list, ipaddr, size);
     }
 
     /* last is a special case, end in \0 */
-    in.s_addr = htonl(i);
+    in.s_addr = htonl(addr);
     snprintf(ipaddr, 16, "%s", inet_ntoa(in));
     strlcat(list, ipaddr, size);
 
