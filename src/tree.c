@@ -181,13 +181,13 @@ process_tree()
  * given type (SERVER, CLIENT, UNKNOWN) using the given masklen
  *
  * is smart enough to prevent dupes
- */
 
 void
 tree_to_cidr(const int masklen, const int type)
 {
 
 }
+ */
 
 /*
  * Checks to see if an IP is client or server by finding it in the tree
@@ -242,6 +242,9 @@ add_tree(const unsigned long ip, const u_char * data)
     tree_t *node = NULL, *newnode = NULL;
 
     newnode = packet2tree(data);
+
+    assert(ip == newnode->ip);
+
     if (newnode->type == UNKNOWN) {
         /* couldn't figure out if packet was client or server */
 
