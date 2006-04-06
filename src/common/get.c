@@ -212,13 +212,88 @@ void *
 get_layer4(const ip_hdr_t * ip_hdr)
 {
     void *ptr;
-    
+
     assert(ip_hdr);
 
     ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
     return ((void *)ptr);
 }
 
+/*
+ * get_name2addr4()
+ * stolen from LIBNET since I didn't want to have to deal with passing a libnet_t
+ */
+u_int32_t
+get_name2addr4(const char *hostname, u_int8_t dnslookup)
+{
+    struct in_addr addr;
+    struct hostent *host_ent; 
+    u_int32_t m;
+    u_int val;
+    int i;
+
+    if (dnslookup == LIBNET_RESOLVE)
+    {
+        if ((addr.s_addr = inet_addr(hostname)) == -1)
+        {
+            if (!(host_ent = gethostbyname(hostname)))
+            {
+                warnx("unable to resolve %s: %s", hostname, strerror(errno));
+                /* XXX - this is actually 255.255.255.255 */
+                return (-1);
+            }
+            memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr)); /* was:
+                                                                          * host_ent->h_length);
+                                                                          */
+        }
+        /* network byte order */
+        return (addr.s_addr);
+    }
+    else
+    {
+        /*
+         *  We only want dots 'n decimals.
+         */
+        if (!isdigit(hostname[0]))
+        {
+            warnx("Expected dotted-quad notation (%s) when DNS lookups are disabled", hostname);
+            /* XXX - this is actually 255.255.255.255 */
+            return (-1);
+        }
+
+
+        m = 0;
+        for (i = 0; i < 4; i++)
+        {
+            m <<= 8;
+            if (*hostname)
+            {
+                val = 0;
+                while (*hostname && *hostname != '.')
+                {   
+                    val *= 10;
+                    val += *hostname - '0';
+                    if (val > 255)
+                    {
+                        dbg(4, "value %d > 255 for dotted quad", val);
+                        /* XXX - this is actually 255.255.255.255 */
+                        return (-1);
+                    }
+                    hostname++;
+                }
+                m |= val;
+                if (*hostname)
+                {
+                    hostname++;
+                }
+            }
+        }
+        /* host byte order */
+       return (ntohl(m));
+    }
+
+
+}
 
 /*
  Local Variables:
