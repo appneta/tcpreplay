@@ -1,7 +1,7 @@
 noinst_LIBRARIES = libtcpedit.a
 
 libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
-					   rewrite_l2.c portmap.c
+					   rewrite_l2.c portmap.c ../mac.c
 
 manpages: tcpedit.1
 

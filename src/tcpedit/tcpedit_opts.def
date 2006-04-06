@@ -5,7 +5,7 @@ flag = {
     lib-name    = tcpedit;
 };
 
-
+#ifndef TCPEDIT_MAC_DISABLE
 flag = {
     name        = dmac;
     value       = D;
@@ -46,6 +46,9 @@ Example:
 EOText;
 };
 
+#endif
+
+#ifndef TCPEDIT_PROTO_DISABLE
 flag = {
 	name		= proto;
 	value		= P;
@@ -58,7 +61,9 @@ By default, pcap files encapsulated using DLT_RAW will have their protocol
 set to ETHERTYPE_IP (0x0800). 
 EOText;
 };
-	
+#endif
+
+#ifndef TCPEDIT_DLINK_DISABLE
 flag = {
     name        = dlink;
     value       = l;
@@ -79,7 +84,9 @@ Example:
 @end example
 EOText;
 };
+#endif
 
+#ifndef TCPEDIT_PORTMAP_DISABLE
 flag = {
     name        = portmap;
     value       = r;
@@ -97,8 +104,9 @@ Example:
 @end example
 EOText;
 };
+#endif
 
-
+#ifndef TCPEDIT_SEED_DISABLE
 flag = {
     name        = seed;
     value       = s;
@@ -112,8 +120,9 @@ Since the randomization is deterministic based on the seed,
 you can reuse the same seed value to recreate the traffic.
 EOText; 
 };
+#endif
 
-
+#ifndef TCPEDIT_PNAT_DISABLE
 flag = {
     name        = pnat;
     value       = N;
@@ -134,8 +143,9 @@ Example:
 @end example
 EOText; 
 };
+#endif
 
-
+#ifndef TCPEDIT_ENDPOINTS_DISABLE
 flag = {
     name        = endpoints;
     value       = e;
@@ -152,7 +162,9 @@ Example:
 @end example
 EOText;
 };
+#endif
 
+#ifndef TCPEDIT_FIXCSUM_DISABLE
 flag = {
     name        = fixcsum;
     value       = C;
@@ -163,7 +175,9 @@ fixed.  Automatically enabled for packets modified with @samp{--seed},
 @samp{--pnat}, @samp{--endpoints} or @samp{--fixlen}.
 EOText;
 };
+#endif
 
+#ifndef TCPEDIT_MTU_DISABLE
 flag = {
     name        = mtu;
     value       = m;
@@ -176,7 +190,9 @@ flag = {
 Override the default 1500 byte MTU size for determining the maximum padding length.
 EOText;
 };
+#endif
 
+#ifndef TCPEDIT_EFCS_DISABLE
 flag = {
     name        = efcs;
     value       = E;
@@ -184,7 +200,9 @@ flag = {
     doc         = <<- EOText
 EOText;
 };
+#endif
 
+#ifndef TCPEDIT_FIXLEN_DISABLE
 flag = {
     name        = fixlen;
     value       = F;
@@ -210,7 +228,9 @@ the actual packet length
 Delete the packet
 EOText;
 };
+#endif
 
+#ifndef TCPEDIT_VLAN_DISABLE
 /* rewrite 802.1q vlan tags */
 flag = {
     name        = vlan;
@@ -263,3 +283,4 @@ flag = {
     arg-range   = "0->7"; /* one byte */
     doc         = "";
 };
+#endif

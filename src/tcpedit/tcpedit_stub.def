@@ -1,6 +1,5 @@
 AutoGen definitions options;
 prog-name  = tcpedit_stub;  // but is always required
 prog-title = 'libtcpedit autoopts stub';  // also required
-//config-header = '../config.h'; // optional, but common
-library;
 #include tcpedit_opts.def
+library;

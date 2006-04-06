@@ -169,5 +169,5 @@ int tcpedit_close(tcpedit_t *tcpedit);
 COUNTER tcpedit_get_total_bytes(tcpedit_t *tcpedit);
 COUNTER tcpedit_get_pkts_edited(tcpedit_t *tcpedit);
 
-
 #endif
+#include "parse_args.h"
