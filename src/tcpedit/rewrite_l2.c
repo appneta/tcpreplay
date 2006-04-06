@@ -630,7 +630,7 @@ check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /*
      * is new packet too big?
      */
-    if ((pkthdr->caplen - oldl2len + newl2len) > tcpedit->maxpacket) {
+    if ((pkthdr->caplen - oldl2len + newl2len) > (u_int)tcpedit->maxpacket) {
         if (tcpedit->fixlen) {
             warnx("Packet length (%u) is greater then MTU (%u); "
                   "truncating packet.",
