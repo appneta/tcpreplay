@@ -90,6 +90,11 @@ reset_suspend_time()
 void
 suspend_handler(int signo)
 {
+    if (signo != SIGUSR1) {
+        warnx("suspend_handler() got the wrong signal: %d", signo);
+        return;
+    }
+
     if (gettimeofday(&suspend_start, NULL) < 0)
         errx(1, "gettimeofday(): %s", strerror(errno));
 
@@ -104,7 +109,12 @@ void
 continue_handler(int signo)
 {
     struct timeval suspend_delta;
-
+    
+    if (signo != SIGCONT) {
+        warnx("continue_handler() got the wrong signal: %d", signo);
+        return;
+    }
+    
     if (gettimeofday(&suspend_end, NULL) < 0)
         errx(1, "gettimeofday(): %s", strerror(errno));
 
