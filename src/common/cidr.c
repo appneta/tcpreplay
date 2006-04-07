@@ -65,7 +65,7 @@ print_cidr(cidr_t * mycidr)
     while (cidr_ptr != NULL) {
         /* print it */
         fprintf(stderr, "%s/%d, ",
-                libnet_addr2name4(cidr_ptr->network, RESOLVE),
+                get_addr2name4(cidr_ptr->network, RESOLVE),
                 cidr_ptr->masklen);
 
         /* go to the next */
@@ -130,7 +130,7 @@ ip2cidr(const unsigned long ip, const int masklen)
 
     network = (u_char *)safe_malloc(20);
 
-    strlcpy((char *)network, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
+    strlcpy((char *)network, (char *)get_addr2name4(ip, LIBNET_DONT_RESOLVE),
             sizeof(network));
 
     strcat((char *)network, "/");
@@ -402,16 +402,16 @@ ip_in_cidr(const cidr_t * mycidr, const unsigned long ip)
     if (network == ipaddr) {
 
         dbg(1, "The ip %s is inside of %s/%d",
-            libnet_addr2name4(ip, RESOLVE),
-            libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
+            get_addr2name4(ip, RESOLVE),
+            get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
         return 1;
     }
     else {
 
         dbg(1, "The ip %s is not inside of %s/%d",
-            libnet_addr2name4(ip, RESOLVE),
-            libnet_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
+            get_addr2name4(ip, RESOLVE),
+            get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
         return 0;
     }
@@ -442,7 +442,7 @@ check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
 
         /* if match, return 1 */
         if (ip_in_cidr(mycidr, ip)) {
-            dbg(3, "Found %s in cidr", libnet_addr2name4(ip, RESOLVE));
+            dbg(3, "Found %s in cidr", get_addr2name4(ip, RESOLVE));
             return 1;
         }
         /* check for next record */
@@ -455,7 +455,7 @@ check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
     }
 
     /* if we get here, no match */
-    dbg(3, "Didn't find %s in cidr", libnet_addr2name4(ip, RESOLVE));
+    dbg(3, "Didn't find %s in cidr", get_addr2name4(ip, RESOLVE));
     return 0;
 }
 

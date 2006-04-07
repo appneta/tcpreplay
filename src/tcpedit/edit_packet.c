@@ -100,10 +100,10 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(pktdata);
     assert(ip_hdr);
 
-    strlcpy(srcip, libnet_addr2name4(ip_hdr->ip_src.s_addr, 
-                LIBNET_DONT_RESOLVE), 16);
-    strlcpy(dstip, libnet_addr2name4(ip_hdr->ip_dst.s_addr, 
-                LIBNET_DONT_RESOLVE), 16);
+    strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, 
+                RESOLVE), 16);
+    strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, 
+                RESOLVE), 16);
     
     /* randomize IP addresses based on the value of random */
     dbg(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
@@ -111,10 +111,10 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     ip_hdr->ip_dst.s_addr = randomize_ip(tcpedit, ip_hdr->ip_dst.s_addr);
     ip_hdr->ip_src.s_addr = randomize_ip(tcpedit, ip_hdr->ip_src.s_addr);
 
-    strlcpy(srcip, libnet_addr2name4(ip_hdr->ip_src.s_addr, 
-                LIBNET_DONT_RESOLVE), 16);
-    strlcpy(dstip, libnet_addr2name4(ip_hdr->ip_dst.s_addr, 
-                LIBNET_DONT_RESOLVE), 16);
+    strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, 
+                RESOLVE), 16);
+    strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, 
+                RESOLVE), 16);
 
     dbg(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
 
