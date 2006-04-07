@@ -232,12 +232,9 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
     u_int val;
     int i;
 
-    if (dnslookup == LIBNET_RESOLVE)
-    {
-        if ((addr.s_addr = inet_addr(hostname)) == -1)
-        {
-            if (!(host_ent = gethostbyname(hostname)))
-            {
+    if (dnslookup == LIBNET_RESOLVE) {
+        if ((addr.s_addr = inet_addr(hostname)) == -1) {
+            if (!(host_ent = gethostbyname(hostname))) {
                 warnx("unable to resolve %s: %s", hostname, strerror(errno));
                 /* XXX - this is actually 255.255.255.255 */
                 return (-1);
@@ -248,14 +245,11 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
         }
         /* network byte order */
         return (addr.s_addr);
-    }
-    else
-    {
+    } else {
         /*
          *  We only want dots 'n decimals.
          */
-        if (!isdigit(hostname[0]))
-        {
+        if (!isdigit(hostname[0])) {
             warnx("Expected dotted-quad notation (%s) when DNS lookups are disabled", hostname);
             /* XXX - this is actually 255.255.255.255 */
             return (-1);
@@ -263,18 +257,14 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
 
 
         m = 0;
-        for (i = 0; i < 4; i++)
-        {
+        for (i = 0; i < 4; i++) {
             m <<= 8;
-            if (*hostname)
-            {
+            if (*hostname) {
                 val = 0;
-                while (*hostname && *hostname != '.')
-                {   
+                while (*hostname && *hostname != '.') {   
                     val *= 10;
                     val += *hostname - '0';
-                    if (val > 255)
-                    {
+                    if (val > 255) {
                         dbg(4, "value %d > 255 for dotted quad", val);
                         /* XXX - this is actually 255.255.255.255 */
                         return (-1);
@@ -282,8 +272,7 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
                     hostname++;
                 }
                 m |= val;
-                if (*hostname)
-                {
+                if (*hostname) {
                     hostname++;
                 }
             }
@@ -291,10 +280,27 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
         /* host byte order */
        return (ntohl(m));
     }
-
-
 }
 
+const char *
+get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
+{
+    struct in_addr addr;
+    static char new_string[255];
+
+    addr.s_addr = ip;
+
+#ifdef HAVE_INET_PTON
+    if (inet_pton(AF_INET, &addr, &new_string, 255) == NULL) {
+        warnx("Unable to convert 0x%x to a string", ip);
+        strcpy(new_string, "");
+    }
+#endif
+    if (dnslookup == RESOLVE) {
+        warn("Sorry, we don't support name resolution.");
+    }
+    return new_string;
+}
 /*
  Local Variables:
  mode:c
