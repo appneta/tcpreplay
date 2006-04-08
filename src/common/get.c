@@ -221,7 +221,8 @@ get_layer4(const ip_hdr_t * ip_hdr)
 
 /*
  * get_name2addr4()
- * stolen from LIBNET since I didn't want to have to deal with passing a libnet_t
+ * stolen from LIBNET since I didn't want to have to deal with 
+ * passing a libnet_t around
  */
 u_int32_t
 get_name2addr4(const char *hostname, u_int8_t dnslookup)
@@ -239,9 +240,9 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
                 /* XXX - this is actually 255.255.255.255 */
                 return (-1);
             }
-            memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr)); /* was:
-                                                                          * host_ent->h_length);
-                                                                          */
+
+            /* was: host_ent->h_length); */
+            memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr)); 
         }
         /* network byte order */
         return (addr.s_addr);
@@ -265,7 +266,7 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
                     val *= 10;
                     val += *hostname - '0';
                     if (val > 255) {
-                        dbg(4, "value %d > 255 for dotted quad", val);
+                        dbgx(4, "value %d > 255 for dotted quad", val);
                         /* XXX - this is actually 255.255.255.255 */
                         return (-1);
                     }
