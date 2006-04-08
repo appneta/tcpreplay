@@ -90,7 +90,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     memcpy(newpkt, pktdata_ptr, pkthdr_ptr->caplen);
 
     tcpedit->runtime.packetnum++;
-    dbg(2, "packet " COUNTER_SPEC " caplen %d", 
+    dbgx(2, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, pkthdr_ptr->caplen);
 
     /*
@@ -204,8 +204,9 @@ tcpedit_init(tcpedit_t *tcpedit)
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
     tcpedit->l2.len = LIBNET_ETH_H;
 
-    tcpedit->l2.linktype = LINKTYPE_ETHER;
+    tcpedit->l2.dlt = DLT_EN10MB;
     tcpedit->l2proto = ETHERTYPE_IP;
+    tcpedit->mac_mask = 0x0;
 
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
 
@@ -222,9 +223,9 @@ int
 tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
 {
 
-    dbg(1, "Input linktype is %s", 
+    dbgx(1, "Input linktype is %s", 
         pcap_datalink_val_to_description(srcdlt));
-    dbg(1, "Output linktype is %s", 
+    dbgx(1, "Output linktype is %s", 
         pcap_datalink_val_to_description(dstdlt));
 
     /*
@@ -232,6 +233,7 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
      */
     switch (tcpedit->mac_mask) {
         /* these are valid values */
+        case 0x0:
         case TCPEDIT_MAC_MASK_SMAC1:
         case TCPEDIT_MAC_MASK_SMAC2:
         case TCPEDIT_MAC_MASK_DMAC1:
@@ -277,6 +279,16 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
      */
 
     switch (srcdlt) {
+    case DLT_USER:
+        /* user specified header, nothing to do */
+        return 1;
+        break;
+
+    case DLT_VLAN:
+        /* same as EN10MB, just different placement of proto field */
+        return 1;
+        break;
+
     case DLT_EN10MB:
         /* nothing to do here */
         return 1;
@@ -392,7 +404,7 @@ tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-        dbg(1, fmt, ap);
+        dbgx(1, fmt, ap);
         (void)vsnprintf(tcpedit->runtime.errstr, 
               (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
     }
@@ -408,7 +420,7 @@ tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
 int
 tcpedit_close(tcpedit_t *tcpedit)
 {
-    dbg(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
+    dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
             " packets.\n", tcpedit->runtime.total_bytes, 
             tcpedit->runtime.pkts_edited);
 

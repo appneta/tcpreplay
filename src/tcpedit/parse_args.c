@@ -39,13 +39,15 @@
 
 
 int 
-tcpedit_post_args(tcpedit_t **tcpedit_ex) {
+tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap) {
     tcpedit_t *tcpedit;
 
     assert(tcpedit_ex);
     tcpedit = *tcpedit_ex;
     assert(tcpedit);
 
+    tcpedit->runtime.pcap = pcap;
+    tcpedit->l2.dlt = pcap_datalink(pcap);
 
     /* --dmac */
     if (HAVE_OPT(DMAC)) {
@@ -217,7 +219,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         }
 
         if (tcpedit->vlan != TCPEDIT_VLAN_OFF) {
-            tcpedit->l2.linktype = LINKTYPE_VLAN;
+            tcpedit->l2.dlt = DLT_VLAN;
 
             if (tcpedit->vlan == TCPEDIT_VLAN_ADD) {
                 if (! HAVE_OPT(VLAN_TAG)) 
@@ -230,7 +232,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
 
                 /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
                 tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
-                dbg(1, "We will %s 802.1q headers", tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+                dbgx(1, "We will %s 802.1q headers", tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
 
             if (HAVE_OPT(VLAN_PRI))
                 tcpedit->l2.vlan_pri = OPT_VALUE_VLAN_PRI;
@@ -249,7 +251,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         dbg(1, "Using custom L2 header to calculate max frame size");
         tcpedit->maxpacket = tcpedit->mtu + tcpedit->l2.len;
     }
-    else if (tcpedit->l2.linktype == LINKTYPE_ETHER) {
+    else if (tcpedit->l2.dlt == DLT_EN10MB) {
         /* ethernet */
         dbg(1, "Using Ethernet to calculate max frame size");
         tcpedit->maxpacket = tcpedit->mtu + LIBNET_ETH_H;

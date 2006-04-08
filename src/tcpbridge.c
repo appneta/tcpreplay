@@ -124,7 +124,7 @@ init(void)
     options.promisc = 1;
     options.to_ms = 1;
     /*  default is ethernet */
-    options.l2.linktype = LINKTYPE_ETHER;
+    options.l2.dlt = DLT_EN10MB;
 
     total_bytes = 0;
 
