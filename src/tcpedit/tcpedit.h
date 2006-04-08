@@ -51,10 +51,9 @@ struct l2_s {
      * other valid options are LINKTYPE_VLAN and LINKTYPE_ETHER for
      * 802.1q and standard ethernet frames respectively.
      */
-    int linktype;
-#define LINKTYPE_USER  1
-#define LINKTYPE_VLAN  2
-#define LINKTYPE_ETHER 3
+    int dlt;
+#define DLT_USER           DLT_USER0
+#define DLT_VLAN           DLT_USER1
 
     u_int16_t vlan_tag;
     u_int8_t vlan_pri;
