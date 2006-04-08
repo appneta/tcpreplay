@@ -68,7 +68,7 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
 
 
     /* do we need a ptr for l2data ? */
-    if (tcpedit->l2.linktype == LINKTYPE_USER) {
+    if (tcpedit->l2.dlt == DLT_USER) {
         if (direction == CACHE_SECONDARY) {
             l2data = tcpedit->l2.data2;
         } else {
@@ -103,7 +103,7 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
         newl2len = rewrite_c_hdlc(tcpedit, pktdata, pkthdr_ptr, l2data);
         break;
 
-    } /* switch (linktype) */
+    } /* switch (dlt) */
 
     /* if newl2len == 0, then return zero so we don't send the packet */
     if (! newl2len)
@@ -169,8 +169,8 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
         newl2len = oldl2len = LIBNET_ETH_H;
     }
   
-    switch (tcpedit->l2.linktype) {
-    case LINKTYPE_USER:
+    switch (tcpedit->l2.dlt) {
+    case DLT_USER:
 
         /* track the new L2 len */
         newl2len = tcpedit->l2.len;
@@ -201,7 +201,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
 
         break;
 
-    case LINKTYPE_VLAN:
+    case DLT_VLAN:
 
         /* are we adding/modifying a VLAN header? */
         if (tcpedit->vlan == TCPEDIT_VLAN_ADD) {
@@ -286,12 +286,12 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
         }
         break;
 
-    case LINKTYPE_ETHER:
+    case DLT_EN10MB:
         /* nothing to do here since we're already ethernet! */
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.linktype value: 0x%04x", tcpedit->l2.linktype);
+        errx(1, "Invalid tcpedit->l2.dlt value: 0x%04x", tcpedit->l2.dlt);
         break;
     }
 
@@ -322,8 +322,8 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
 
 
     /* we have no ethernet header, but we know we're IP */
-    switch (tcpedit->l2.linktype) {
-    case LINKTYPE_USER:
+    switch (tcpedit->l2.dlt) {
+    case DLT_USER:
         newl2len = tcpedit->l2.len;
 
 
@@ -343,7 +343,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
 
         break;
 
-    case LINKTYPE_VLAN:
+    case DLT_VLAN:
         newl2len = LIBNET_802_1Q_H;
 
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
@@ -378,7 +378,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
         newl2len = LIBNET_802_1Q_H;
         break;
 
-    case LINKTYPE_ETHER:
+    case DLT_EN10MB:
         newl2len = LIBNET_ETH_H;
 
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
@@ -393,7 +393,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.linktype value: 0x%x", tcpedit->l2.linktype);
+        errx(1, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
         break;
 
     }
@@ -427,8 +427,8 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
 
     newl2len = oldl2len = SLL_HDR_LEN;
 
-    switch (tcpedit->l2.linktype) {
-    case LINKTYPE_USER:
+    switch (tcpedit->l2.dlt) {
+    case DLT_USER:
         newl2len = tcpedit->l2.len;
 
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
@@ -445,7 +445,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
         memcpy(&pktdata[newl2len], tmpbuff, pkthdr->caplen);
         break;
 
-    case LINKTYPE_VLAN:
+    case DLT_VLAN:
         /* prep a 802.1q tagged frame */
         newl2len = LIBNET_802_1Q_H;
 
@@ -481,7 +481,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
                 htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
         break;
 
-    case LINKTYPE_ETHER:
+    case DLT_EN10MB:
         newl2len = LIBNET_ETH_H;
         
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
@@ -504,7 +504,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.linktype value: 0x%x", tcpedit->l2.linktype);
+        errx(1, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
         break;
 
     }
@@ -537,8 +537,8 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
 
     newl2len = oldl2len = CISCO_HDLC_LEN;
 
-    switch (tcpedit->l2.linktype) {
-    case LINKTYPE_USER:
+    switch (tcpedit->l2.dlt) {
+    case DLT_USER:
         /* track the new L2 len */
         newl2len = tcpedit->l2.len;
         
@@ -557,7 +557,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         memcpy(&pktdata[tcpedit->l2.len], (tmpbuff + oldl2len), pkthdr->caplen - oldl2len);
         break;
 
-    case LINKTYPE_VLAN:
+    case DLT_VLAN:
         /* new l2 len */
         newl2len = LIBNET_802_1Q_H;
 
@@ -587,7 +587,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
                 htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
         break;
 
-    case LINKTYPE_ETHER:
+    case DLT_EN10MB:
         newl2len = LIBNET_ETH_H;
 
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
@@ -604,7 +604,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.linktype value: 0x%x", tcpedit->l2.linktype);
+        errx(1, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
         break;
 
     }
