@@ -86,13 +86,13 @@ tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
          */
         dbg(4, "Checking if node exists...");
         if (!check_ip_cidr(options.cidrdata, node->ip)) {   /* if we exist, abort */
-            dbg(3, "Node %s doesn't exist... creating.", 
-                    libnet_addr2name4(node->ip, RESOLVE));
+            dbgx(3, "Node %s doesn't exist... creating.", 
+                    get_addr2name4(node->ip, RESOLVE));
             newcidr = new_cidr();
             newcidr->masklen = bcdata->masklen;
             network = node->ip & (mask << (32 - bcdata->masklen));
-            dbg(3, "Using network: %s", 
-                    libnet_addr2name4(network, LIBNET_DONT_RESOLVE));
+            dbgx(3, "Using network: %s", 
+                    get_addr2name4(network, LIBNET_DONT_RESOLVE));
             newcidr->network = network;
             add_cidr(&options.cidrdata, &newcidr);
         }
@@ -148,7 +148,7 @@ process_tree()
     bcdata = (buildcidr_t *)safe_malloc(sizeof(buildcidr_t));
 
     for (mymask = options.max_mask; mymask <= options.min_mask; mymask++) {
-        dbg(1, "Current mask: %u", mymask);
+        dbgx(1, "Current mask: %u", mymask);
 
         /* set starting vals */
         bcdata->type = SERVER;
@@ -209,17 +209,17 @@ check_ip_tree(const int mode, const unsigned long ip)
     if (node == NULL && mode == UNKNOWN)
         errx(1, "%s (%lu) is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
-             libnet_addr2name4(ip, RESOLVE), ip);
+             get_addr2name4(ip, RESOLVE), ip);
 
 #ifdef DEBUG
     if (node->type == SERVER) {
-        dbg(1, "Server: %s", libnet_addr2name4(ip, RESOLVE));
+        dbgx(1, "Server: %s", get_addr2name4(ip, RESOLVE));
     }
     else if (node->type == CLIENT) {
-        dbg(1, "Client: %s", libnet_addr2name4(ip, RESOLVE));
+        dbgx(1, "Client: %s", get_addr2name4(ip, RESOLVE));
     }
     else {
-        dbg(1, "Unknown: %s", libnet_addr2name4(ip, RESOLVE));
+        dbgx(1, "Unknown: %s", get_addr2name4(ip, RESOLVE));
     }
 #endif
 
@@ -248,16 +248,14 @@ add_tree(const unsigned long ip, const u_char * data)
     if (newnode->type == UNKNOWN) {
         /* couldn't figure out if packet was client or server */
 
-        dbg(2, "%s (%lu) unknown client/server",
-            libnet_addr2name4(newnode->ip, RESOLVE), newnode->ip);
+        dbgx(2, "%s (%lu) unknown client/server",
+            get_addr2name4(newnode->ip, RESOLVE), newnode->ip);
 
     }
     /* try to find a simular entry in the tree */
     node = RB_FIND(data_tree_s, &treeroot, newnode);
 
-#ifdef DEBUG
-    dbg(3, "%s", tree_printnode("add_tree", node));
-#endif
+    dbgx(3, "%s", tree_printnode("add_tree", node));
 
     /* new entry required */
     if (node == NULL) {
@@ -274,10 +272,8 @@ add_tree(const unsigned long ip, const u_char * data)
     }
     else {
         /* we found something, so update it */
-        dbg(2, "   node: %p\nnewnode: %p", node, newnode);
-#ifdef DEBUG
-        dbg(3, "%s", tree_printnode("update node", node));
-#endif
+        dbgx(2, "   node: %p\nnewnode: %p", node, newnode);
+        dbgx(3, "%s", tree_printnode("update node", node));
         /* increment counter */
         if (newnode->type == SERVER) {
             node->server_cnt++;
@@ -291,9 +287,7 @@ add_tree(const unsigned long ip, const u_char * data)
     }
 
     dbg(2, "------- START NEXT -------");
-#ifdef DEBUG
-    dbg(3, "%s", tree_print(&treeroot));
-#endif
+    dbgx(3, "%s", tree_print(&treeroot));
 }
 
 
@@ -309,24 +303,24 @@ tree_calculate(data_tree_t *treeroot)
     dbg(1, "Running tree_calculate()");
 
     RB_FOREACH(node, data_tree_s, treeroot) {
-        dbg(4, "Processing %s", libnet_addr2name4(node->ip, RESOLVE));
+        dbgx(4, "Processing %s", get_addr2name4(node->ip, RESOLVE));
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
             if ((double)node->server_cnt >= (double)node->client_cnt * options.ratio) {
                 node->type = SERVER;
-                dbg(3, "Setting %s to server", 
-                        libnet_addr2name4(node->ip, RESOLVE));
+                dbgx(3, "Setting %s to server", 
+                        get_addr2name4(node->ip, RESOLVE));
             }
             else {
                 node->type = CLIENT;
-                dbg(3, "Setting %s to client", 
-                        libnet_addr2name4(node->ip, RESOLVE));
+                dbgx(3, "Setting %s to client", 
+                        get_addr2name4(node->ip, RESOLVE));
             }
         }
         else {                  /* IP had no client or server connections */
             node->type = UNKNOWN;
-            dbg(3, "Setting %s to unknown", 
-                    libnet_addr2name4(node->ip, RESOLVE));
+            dbgx(3, "Setting %s to unknown", 
+                    get_addr2name4(node->ip, RESOLVE));
         }
     }
 }
@@ -344,19 +338,19 @@ tree_comp(tree_t *t1, tree_t *t2)
 {
 
     if (t1->ip > t2->ip) {
-        dbg(2, "%s > %s", libnet_addr2name4(t1->ip, RESOLVE),
-            libnet_addr2name4(t2->ip, RESOLVE));
+        dbgx(2, "%s > %s", get_addr2name4(t1->ip, RESOLVE),
+            get_addr2name4(t2->ip, RESOLVE));
         return 1;
     }
 
     if (t1->ip < t2->ip) {
-        dbg(2, "%s < %s", libnet_addr2name4(t1->ip, RESOLVE),
-            libnet_addr2name4(t2->ip, RESOLVE));
+        dbgx(2, "%s < %s", get_addr2name4(t1->ip, RESOLVE),
+            get_addr2name4(t2->ip, RESOLVE));
         return -1;
     }
 
-    dbg(2, "%s = %s", libnet_addr2name4(t1->ip, RESOLVE),
-        libnet_addr2name4(t2->ip, RESOLVE));
+    dbgx(2, "%s = %s", get_addr2name4(t1->ip, RESOLVE),
+        get_addr2name4(t2->ip, RESOLVE));
 
     return 0;
 
@@ -420,8 +414,8 @@ packet2tree(const u_char * data)
     if (ip_hdr.ip_p == IPPROTO_TCP) {
 
 
-        dbg(1, "%s uses TCP...  ",
-            libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
+        dbgx(1, "%s uses TCP...  ",
+            get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         /* memcpy it over to prevent alignment issues */
         memcpy(&tcp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
@@ -452,8 +446,8 @@ packet2tree(const u_char * data)
         /* memcpy over to prevent alignment issues */
         memcpy(&udp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
                LIBNET_UDP_H);
-        dbg(1, "%s uses UDP...  ",
-            libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
+        dbgx(1, "%s uses UDP...  ",
+            get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
@@ -502,7 +496,7 @@ packet2tree(const u_char * data)
             break;
         default:
 
-            dbg(1, "unknown UDP protocol: %hu->%hu", udp_hdr.uh_sport,
+            dbgx(1, "unknown UDP protocol: %hu->%hu", udp_hdr.uh_sport,
                 udp_hdr.uh_dport);
             break;
         }
@@ -517,8 +511,8 @@ packet2tree(const u_char * data)
         memcpy(&icmp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
                LIBNET_ICMP_H);
 
-        dbg(1, "%s uses ICMP...  ",
-            libnet_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
+        dbgx(1, "%s uses ICMP...  ",
+            get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         /*
          * if port unreachable, then source == server, dst == client 
@@ -552,7 +546,7 @@ tree_printnode(const char *name, const tree_t *node)
     else {
         snprintf(tree_print_buff, TREEPRINTBUFFLEN,
                 "-- %s: %p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
-                name, (void *)node, libnet_addr2name4(node->ip, RESOLVE),
+                name, (void *)node, get_addr2name4(node->ip, RESOLVE),
                 node->masklen, node->server_cnt, node->client_cnt);
         if (node->type == SERVER) {
             strlcat(tree_print_buff, "Type: Server\n--\n", TREEPRINTBUFFLEN);

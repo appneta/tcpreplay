@@ -74,7 +74,7 @@ rbkeygen(ip_hdr_t * ip, u_char proto, void *l4, u_char * key)
             memcpy(&key[10], &tcp->th_sport, 2);
         }
 
-        dbg(3, "rbkeygen TCP: %s:%hu > %s:%hu => 0x%llx",
+        dbgx(3, "rbkeygen TCP: %s:%hu > %s:%hu => 0x%llx",
             libnet_addr2name4(ip->ip_src.s_addr, LIBNET_DONT_RESOLVE),
             ntohs(tcp->th_sport),
             libnet_addr2name4(ip->ip_dst.s_addr, LIBNET_DONT_RESOLVE),
@@ -92,7 +92,7 @@ rbkeygen(ip_hdr_t * ip, u_char proto, void *l4, u_char * key)
             memcpy(&key[10], &udp->uh_sport, 2);
         }
 
-        dbg(3, "rbkeygen UDP: %s:%u > %s:%u => 0x%llx",
+        dbgx(3, "rbkeygen UDP: %s:%u > %s:%u => 0x%llx",
             libnet_addr2name4(ip->ip_src.s_addr, LIBNET_DONT_RESOLVE),
             ntohs(udp->uh_sport),
             libnet_addr2name4(ip->ip_dst.s_addr, LIBNET_DONT_RESOLVE),

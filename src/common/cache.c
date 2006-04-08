@@ -108,7 +108,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     header.comment_len = ntohs(header.comment_len);
     *comment = (char *)safe_malloc(header.comment_len + 1);
 
-    dbg(1, "Comment length: %d", header.comment_len);
+    dbgx(1, "Comment length: %d", header.comment_len);
     
     if ((read_size = read(cachefd, *comment, header.comment_len)) 
             != header.comment_len)
@@ -116,7 +116,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
             header.comment_len, read_size, 
             read_size == -1 ? strerror(read_size) : "");
 
-    dbg(1, "Cache file comment: %s", *comment);
+    dbgx(1, "Cache file comment: %s", *comment);
 
     /* malloc our cache block */
     header.num_packets = ntohll(header.num_packets);
@@ -130,10 +130,10 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
-    dbg(1, "Cache file contains %llu packets in %llu bytes",
+    dbgx(1, "Cache file contains %llu packets in %llu bytes",
         header.num_packets, cache_size);
 
-    dbg(1, "Cache uses %d packets per byte", header.packets_per_byte);
+    dbgx(1, "Cache uses %d packets per byte", header.packets_per_byte);
 
     *cachedata = (char *)safe_malloc(cache_size);
 
@@ -143,7 +143,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
         errx(1, "Cache data length (%ld bytes) doesn't match "
             "cache header (%ld bytes)", read_size, cache_size);
 
-    dbg(1, "Loaded in %llu packets from cache.", header.num_packets);
+    dbgx(1, "Loaded in %llu packets from cache.", header.num_packets);
 
     close(cachefd);
     return (header.num_packets);
@@ -180,7 +180,7 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
     }
 
     written = write(out_file, cache_header, sizeof(cache_file_hdr_t));
-    dbg(1, "Wrote %d bytes of cache file header", written);
+    dbgx(1, "Wrote %d bytes of cache file header", written);
 
     if (written != sizeof(cache_file_hdr_t))
         errx(1, "Only wrote %d of %d bytes of the cache file header!\n%s",
@@ -190,7 +190,7 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
     /* don't write comment if there is none */
     if (comment != NULL) {
         written = write(out_file, comment, strlen(comment));
-        dbg(1, "Wrote %d bytes of comment", written);
+        dbgx(1, "Wrote %d bytes of comment", written);
         
         if (written != (ssize_t)strlen(comment))
             errx(1, "Only wrote %d of %d bytes of the comment!\n%s",
@@ -208,13 +208,13 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
         chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
         if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
             chars++;
-            dbg(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
+            dbgx(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
                 CACHE_PACKETS_PER_BYTE);
         }
 
         /* write to file, and verify it wrote properly */
         written = write(out_file, mycache->data, chars);
-        dbg(1, "Wrote %i bytes of cache data", written);
+        dbgx(1, "Wrote %i bytes of cache data", written);
         if (written != (ssize_t)chars)
             errx(1, "Only wrote %i of %i bytes to cache file!", written, chars);
 
@@ -288,32 +288,32 @@ add_cache(cache_t ** cachedata, const int send, const int interface)
 
     /* always increment our bit count */
     lastcache->packets++;
-    dbg(1, "Cache array packet %d", lastcache->packets);
+    dbgx(1, "Cache array packet %d", lastcache->packets);
 
     /* send packet ? */
     if (send) {
         index = (lastcache->packets - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
         bit = (((lastcache->packets - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
                (COUNTER)CACHE_BITS_PER_PACKET) + 1;
-        dbg(3, "Bit: %d", bit);
+        dbgx(3, "Bit: %d", bit);
 
         byte = (u_char *) & lastcache->data[index];
         *byte += (u_char) (1 << bit);
 
-        dbg(2, "set send bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
+        dbgx(2, "set send bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
 
         /* if true, set low order bit. else, do squat */
         if (interface) {
             *byte += (u_char)(1 << (bit - 1));
 
-            dbg(2, "set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
+            dbgx(2, "set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
             result = CACHE_PRIMARY;
         }
         else {
-            dbg(2, "don't set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
+            dbgx(2, "don't set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
             result = CACHE_SECONDARY;
         }
-        dbg(3, "Current cache byte: %c%c%c%c%c%c%c%c",
+        dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c",
 
             /* 
              * only build the byte string when not in debug mode since
@@ -351,7 +351,7 @@ check_cache(char *cachedata, COUNTER packetid)
     bit = (u_int32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
         (COUNTER)CACHE_BITS_PER_PACKET) + 1;
 
-    dbg(3, "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
+    dbgx(3, "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
         cachedata[index], (cachedata[index] & (char)(1 << bit)));
 
     if (!(cachedata[index] & (char)(1 << bit))) {

@@ -401,7 +401,7 @@ ip_in_cidr(const cidr_t * mycidr, const unsigned long ip)
     /* if they're the same, then ip is in network */
     if (network == ipaddr) {
 
-        dbg(1, "The ip %s is inside of %s/%d",
+        dbgx(1, "The ip %s is inside of %s/%d",
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
@@ -409,7 +409,7 @@ ip_in_cidr(const cidr_t * mycidr, const unsigned long ip)
     }
     else {
 
-        dbg(1, "The ip %s is not inside of %s/%d",
+        dbgx(1, "The ip %s is not inside of %s/%d",
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
@@ -442,7 +442,7 @@ check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
 
         /* if match, return 1 */
         if (ip_in_cidr(mycidr, ip)) {
-            dbg(3, "Found %s in cidr", get_addr2name4(ip, RESOLVE));
+            dbgx(3, "Found %s in cidr", get_addr2name4(ip, RESOLVE));
             return 1;
         }
         /* check for next record */
@@ -455,7 +455,7 @@ check_ip_cidr(cidr_t * cidrdata, const unsigned long ip)
     }
 
     /* if we get here, no match */
-    dbg(3, "Didn't find %s in cidr", get_addr2name4(ip, RESOLVE));
+    dbgx(3, "Didn't find %s in cidr", get_addr2name4(ip, RESOLVE));
     return 0;
 }
 
@@ -491,13 +491,13 @@ cidr2iplist(cidr_t * cidr, char delim)
     first = ntohl(cidr->network) + 1;
     last = first + numips - 3;
 
-    dbg(1, "First: %u\t\tLast: %u", first, last);
+    dbgx(1, "First: %u\t\tLast: %u", first, last);
 
     /* loop through all but the last one */
     for (addr = first; addr < last; addr++) {
         in.s_addr = htonl(addr);
         snprintf(ipaddr, 17, "%s%c", inet_ntoa(in), delim);
-        dbg(2, "%s", ipaddr);
+        dbgx(2, "%s", ipaddr);
         strlcat(list, ipaddr, size);
     }
 

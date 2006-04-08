@@ -221,24 +221,24 @@ check_dst_port(ip_hdr_t *ip_hdr, int len)
 
         /* is a service? */
         if (options.services.tcp[ntohs(tcp_hdr->th_dport)]) {
-            dbg(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
+            dbgx(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
             return 1;
         }
 
         /* nope */
-        dbg(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
+        dbgx(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
         return 0;
     } else if (ip_hdr->ip_p == IPPROTO_UDP) {
         udp_hdr = (udp_hdr_t *)get_layer4(ip_hdr);
 
         /* is a service? */
         if (options.services.udp[ntohs(udp_hdr->uh_dport)]) {
-            dbg(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
+            dbgx(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
             return 1;
         }
 
         /* nope */
-        dbg(1, "UDP packet is NOT destined for a server port: %d", ntohs(udp_hdr->uh_dport));
+        dbgx(1, "UDP packet is NOT destined for a server port: %d", ntohs(udp_hdr->uh_dport));
         return 0;
     }
 
@@ -297,7 +297,7 @@ process_raw_packets(pcap_t * pcap)
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
 
-        dbg(1, "Packet " COUNTER_SPEC, packetnum);
+        dbgx(1, "Packet " COUNTER_SPEC, packetnum);
 
         /* look for include or exclude LIST match */
         if (options.xX.list != NULL) {
@@ -496,7 +496,7 @@ post_args(int argc, char *argv[])
         /* remove trailing space */
         myargs[strlen(myargs) - 1] = 0;
 
-        dbg(1, "Comment args length: %d", strlen(myargs));
+        dbgx(1, "Comment args length: %d", strlen(myargs));
     }
 
     /* setup or options.comment buffer so that that we get args\ncomment */
@@ -515,7 +515,7 @@ post_args(int argc, char *argv[])
         strlcpy(options.comment, myargs, bufsize);
     }
         
-    dbg(1, "Final comment length: %d", strlen(options.comment));
+    dbgx(1, "Final comment length: %d", strlen(options.comment));
 
     /* copy over our min/max mask */
     if (HAVE_OPT(MINMASK))

@@ -73,14 +73,14 @@ getnodebykey(char proto, u_char * key)
 
     if (proto == IPPROTO_TCP) {
         if ((node = RB_FIND(session_tree, &tcproot, &like)) == NULL) {
-            dbg(3, "Couldn't find TCP key: 0x%llx", pkeygen(key));
+            dbgx(3, "Couldn't find TCP key: 0x%llx", pkeygen(key));
             return (NULL);
         }
     }
 
     else if (proto == IPPROTO_UDP) {
         if ((node = RB_FIND(session_tree, &udproot, &like)) == NULL) {
-            dbg(3, "Couldn't find UDP key: 0x%llx", pkeygen(key));
+            dbgx(3, "Couldn't find UDP key: 0x%llx", pkeygen(key));
             return (NULL);
         }
     }
@@ -90,7 +90,7 @@ getnodebykey(char proto, u_char * key)
         return (NULL);
     }
 
-    dbg(3, "Found 0x%llx in the tree", pkeygen(key));
+    dbgx(3, "Found 0x%llx in the tree", pkeygen(key));
     return (node);
 
 }
@@ -110,7 +110,7 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
     udp_hdr_t *udp_hdr = NULL;
 
 
-    dbg(2, "Adding new node: 0x%llx", pkeygen(key));
+    dbgx(2, "Adding new node: 0x%llx", pkeygen(key));
 
     newnode = (struct session_t *)safe_malloc(sizeof(struct session_t));
 
@@ -127,9 +127,9 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
         if ((tcp_hdr->th_flags != TH_SYN) && (options.nosyn == 0)) {
             free(newnode);
             warnx("We won't connect (%s:%d -> %s:%d) on non-Syn packets",
-                  libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE),
+                  get_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE),
                   ntohs(tcp_hdr->th_sport),
-                  libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE),
+                  get_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE),
                   ntohs(tcp_hdr->th_dport));
             return (NULL);
         }
@@ -168,21 +168,21 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
         if ((options.clients != NULL)
             && (check_ip_cidr(options.clients, ip_hdr->ip_src.s_addr))) {
             /* source IP is client */
-            dbg(3, "UDP match client CIDR.  Server is destination IP: %s",
-                libnet_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE));
+            dbgx(3, "UDP match client CIDR.  Server is destination IP: %s",
+                get_addr2name4(ip_hdr->ip_dst.s_addr, LIBNET_DONT_RESOLVE));
             newnode->server_ip = ip_hdr->ip_dst.s_addr;
         }
         else if ((options.servers != NULL)
                  && (check_ip_cidr(options.servers, ip_hdr->ip_src.s_addr))) {
             /* source IP is server */
-            dbg(3, "UDP match server CIDR.  Server is source IP: %s",
-                libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
+            dbgx(3, "UDP match server CIDR.  Server is source IP: %s",
+                get_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
             newnode->server_ip = ip_hdr->ip_src.s_addr;
         }
         else {
             /* first packet is client */
-            dbg(3, "UDP client is first sender.  Server is: %s",
-                libnet_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
+            dbgx(3, "UDP client is first sender.  Server is: %s",
+                get_addr2name4(ip_hdr->ip_src.s_addr, LIBNET_DONT_RESOLVE));
             newnode->server_ip = ip_hdr->ip_dst.s_addr;
         }
         newnode->server_port = udp_hdr->uh_dport;
@@ -222,7 +222,7 @@ newnode(char proto, u_char * key, ip_hdr_t * ip_hdr, void *l4)
         return (NULL);
     }
 
-    dbg(2, "Connected to %s:%hu as socketID: %d", inet_ntoa(sa.sin_addr),
+    dbgx(2, "Connected to %s:%hu as socketID: %d", inet_ntoa(sa.sin_addr),
         ntohs(sa.sin_port), newnode->socket);
 
     /* increment nfds so our select() works */
@@ -249,7 +249,7 @@ rbsession_comp(struct session_t *a, struct session_t *b)
 void
 delete_node(struct session_tree *root, struct session_t *node)
 {
-    dbg(2, "Deleting node 0x%llx", pkeygen(node->key));
+    dbgx(2, "Deleting node 0x%llx", pkeygen(node->key));
     RB_REMOVE(session_tree, root, node);
 }
 
@@ -271,7 +271,7 @@ close_sockets(void)
         close(node->socket);
         udpcount++;
     }
-    dbg(1, "Closed %d tcp and %d udp socket(s)", tcpcount, udpcount);
+    dbgx(1, "Closed %d tcp and %d udp socket(s)", tcpcount, udpcount);
 }
 
 /*

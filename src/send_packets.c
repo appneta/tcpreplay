@@ -99,7 +99,7 @@ send_packets(pcap_t *pcap)
         if (didsig)
             break_now(0);
 
-        dbg(2, "packets sent " COUNTER_SPEC, pkts_sent);
+        dbgx(2, "packets sent " COUNTER_SPEC, pkts_sent);
 
         packetnum++;
 
@@ -112,7 +112,7 @@ send_packets(pcap_t *pcap)
 #error WTF???  We should not be here!
 #endif
 
-        dbg(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
+        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
         
         /* Dual nic processing */
         if (options.intf2 != NULL) {
@@ -182,15 +182,15 @@ cache_mode(char *cachedata, COUNTER packet_num)
 
     result = check_cache(cachedata, packet_num);
     if (result == CACHE_NOSEND) {
-        dbg(2, "Cache: Not sending packet " COUNTER_SPEC ".", packet_num);
+        dbgx(2, "Cache: Not sending packet " COUNTER_SPEC ".", packet_num);
         return CACHE_NOSEND;
     }
     else if (result == CACHE_PRIMARY) {
-        dbg(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
+        dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
         l = options.intf1;
     }
     else if (result == CACHE_SECONDARY) {
-        dbg(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
+        dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
         l = options.intf2;
     }
     else {
@@ -221,13 +221,13 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
     if (options.speed.mode == SPEED_TOPSPEED)
         return;
 
-    dbg(3, "Last time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
+    dbgx(3, "Last time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
     if (gettimeofday(&now, NULL) < 0) {
         errx(1, "Error gettimeofday: %s", strerror(errno));
     }
 
-    dbg(3, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
+    dbgx(3, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
 
     /* First time through for this file */
     if (!timerisset(last)) {
@@ -267,7 +267,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
             n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_usec = (n - nap.tv_sec) * 1000000;
-            dbg(3, "packet size %d\t\tequals %f bps\t\tnap " TIMEVAL_FORMAT, len, n, 
+            dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMEVAL_FORMAT, len, n, 
                 nap.tv_sec, nap.tv_usec);
         }
         else {
@@ -335,7 +335,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
 
     timeradd(&didsleep, &nap, &didsleep);
 
-    dbg(4, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
+    dbgx(4, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
 
     if (timercmp(&didsleep, &delta, >)) {
         timersub(&didsleep, &delta, &nap);

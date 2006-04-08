@@ -106,7 +106,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
                 RESOLVE), 16);
     
     /* randomize IP addresses based on the value of random */
-    dbg(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
+    dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
     ip_hdr->ip_dst.s_addr = randomize_ip(tcpedit, ip_hdr->ip_dst.s_addr);
     ip_hdr->ip_src.s_addr = randomize_ip(tcpedit, ip_hdr->ip_src.s_addr);
@@ -116,7 +116,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, 
                 RESOLVE), 16);
 
-    dbg(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
+    dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
 
     return(1);
 }
@@ -244,7 +244,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
         dataptr = (u_char *)ip_hdr;
     }
 
-    dbg(2, "packet had %d bytes of layer 7 data", datalen);
+    dbgx(2, "packet had %d bytes of layer 7 data", datalen);
     memcpy(l7data, dataptr, datalen);
     return datalen;
 
@@ -316,12 +316,12 @@ rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t * ip_hdr, int direction)
     do {
         if ((! diddst) && ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr)) {
             ip_hdr->ip_dst.s_addr = remap_ip(cidrmap2->to, ip_hdr->ip_dst.s_addr);
-            dbg(2, "Remapped dst addr to: %s", inet_ntoa(ip_hdr->ip_dst));
+            dbgx(2, "Remapped dst addr to: %s", inet_ntoa(ip_hdr->ip_dst));
             diddst = 1;
         }
         if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
             ip_hdr->ip_src.s_addr = remap_ip(cidrmap1->to, ip_hdr->ip_src.s_addr);
-            dbg(2, "Remapped src addr to: %s", inet_ntoa(ip_hdr->ip_src));
+            dbgx(2, "Remapped src addr to: %s", inet_ntoa(ip_hdr->ip_src));
             didsrc = 1;
         }
 

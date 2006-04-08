@@ -69,7 +69,8 @@ notice(const char *fmt, ...)
 }
 
 void
-dbg(int dbg_level, const char *fmt, ...)
+_our_verbose_dbgx(int dbg_level, const char *fmt, const char *function, 
+        const int line, const char *file, ...)
 {
 #ifdef DEBUG
     va_list ap;
@@ -77,13 +78,31 @@ dbg(int dbg_level, const char *fmt, ...)
     if (debug < dbg_level)
         return;
 
-    fprintf(stderr, "DEBUG%d: ", dbg_level);
-    va_start(ap, fmt);
+    fprintf(stderr, "DEBUG%d in %s:%s() line %d: ", dbg_level, file, 
+            function, line);
+
+    va_start(ap, file);
+
     if (fmt != NULL)
         (void)vfprintf(stderr, fmt, ap);
     (void)fprintf(stderr, "\n");
     va_end(ap);
     fflush(NULL);
+#else
+    return;
+#endif
+}
+
+void
+_our_verbose_dbg(int dbg_level, const char *string, const char *function, const int line, const char *file)
+{
+#ifdef DEBUG
+
+    if (debug < dbg_level)
+        return;
+
+    fprintf(stderr, "DEBUG%d in %s:%s() line %d: %s", dbg_level, file, 
+            function, line, string);
 #else
     return;
 #endif

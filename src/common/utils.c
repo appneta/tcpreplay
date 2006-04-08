@@ -55,10 +55,8 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     /* zero memory */
     memset(ptr, 0, len);
     
-#ifdef DEBUG
     /* wrapped inside an #ifdef for better performance */
-    dbg(5, "Malloc'd %d bytes in %s:%s() line %d", len, file, funcname, line);
-#endif
+    dbgx(5, "Malloc'd %d bytes in %s:%s() line %d", len, file, funcname, line);
     
     return (void *)ptr;
 }
@@ -76,9 +74,7 @@ _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, c
         _our_verbose_errx(1, "Unable to remalloc() buffer to %d bytes",
             funcname, line, file, len);
 
-#ifdef DEBUG
-    dbg(5, "Remalloc'd buffer to %d bytes in %s:%s() line %d", len, file, funcname, line);
-#endif
+    dbgx(5, "Remalloc'd buffer to %d bytes in %s:%s() line %d", len, file, funcname, line);
 
     return ptr;
 }
@@ -184,7 +180,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     free(string);
 
-    dbg(1, "Read %d bytes of hex data", numbytes);
+    dbgx(1, "Read %d bytes of hex data", numbytes);
     return (numbytes);
 }
 

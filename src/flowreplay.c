@@ -158,7 +158,7 @@ main_loop(pcap_t * pcap)
         /* we only process IP packets */
         eth_hdr = (eth_hdr_t *) packet;
         if (ntohs(eth_hdr->ether_type) != ETHERTYPE_IP) {
-            dbg(2, "************ Skipping non-IP packet #%u ************",
+            dbgx(2, "************ Skipping non-IP packet #%u ************",
                 count);
             continue;           /* next packet */
         }
@@ -183,11 +183,11 @@ main_loop(pcap_t * pcap)
             /* skip if port is set and not our port */
             if ((options.port) && (tcp_hdr->th_sport != options.port &&
                            tcp_hdr->th_dport != options.port)) {
-                dbg(3, "Skipping packet #%u based on port not matching", count);
+                dbgx(3, "Skipping packet #%u based on port not matching", count);
                 continue;       /* next packet */
             }
 
-            dbg(2, "************ Processing packet #%u ************", count);
+            dbgx(2, "************ Processing packet #%u ************", count);
             if (!rbkeygen(ip_hdr, IPPROTO_TCP, (void *)tcp_hdr, key))
                 continue;       /* next packet */
 
@@ -201,7 +201,7 @@ main_loop(pcap_t * pcap)
             else {
                 /* calculate the new TCP state */
                 if (tcp_state(tcp_hdr, node) == TCP_CLOSE) {
-                    dbg(2, "Closing socket #%u on second Fin", node->socket);
+                    dbgx(2, "Closing socket #%u on second Fin", node->socket);
                     close(node->socket);
 
                     /* destroy our node */
@@ -222,11 +222,11 @@ main_loop(pcap_t * pcap)
             /* skip if port is set and not our port */
             if ((options.port) && (udp_hdr->uh_sport != options.port &&
                            udp_hdr->uh_dport != options.port)) {
-                dbg(2, "Skipping packet #%u based on port not matching", count);
+                dbgx(2, "Skipping packet #%u based on port not matching", count);
                 continue;       /* next packet */
             }
 
-            dbg(2, "************ Processing packet #%u ************", count);
+            dbgx(2, "************ Processing packet #%u ************", count);
 
             if (!rbkeygen(ip_hdr, IPPROTO_UDP, (void *)udp_hdr, key))
                 continue;       /* next packet */
@@ -245,7 +245,7 @@ main_loop(pcap_t * pcap)
         }
         /* non-TCP/UDP */
         else {
-            dbg(2, "Skipping non-TCP/UDP packet #%u (0x%x)", count,
+            dbgx(2, "Skipping non-TCP/UDP packet #%u (0x%x)", count,
                 ip_hdr->ip_p);
         }
 
@@ -255,7 +255,7 @@ main_loop(pcap_t * pcap)
     }
 
     /* print number of packets we actually sent */
-    dbg(1, "Sent %d packets containing data", send_count);
+    dbgx(1, "Sent %d packets containing data", send_count);
     return (count);
 }
 
@@ -309,7 +309,7 @@ process_packet(struct session_t *node, ip_hdr_t * ip_hdr, void *l4)
                 node->data_expected += len;
             }
 
-            dbg(4, "Server data = %lu", node->data_expected);
+            dbgx(4, "Server data = %lu", node->data_expected);
             return (0);
         }
 
@@ -345,7 +345,7 @@ process_packet(struct session_t *node, ip_hdr_t * ip_hdr, void *l4)
                 node->data_expected += len;
             }
 
-            dbg(4, "Server data = %lu", node->data_expected);
+            dbgx(4, "Server data = %lu", node->data_expected);
             return (0);
         }
     }
@@ -360,7 +360,7 @@ process_packet(struct session_t *node, ip_hdr_t * ip_hdr, void *l4)
         return (0);
     }
 
-    dbg(4, "Sending %d bytes of data");
+    dbgx(4, "Sending %d bytes of data", len);
     if (node->proto == IPPROTO_TCP) {
         if (send(node->socket, data, len, 0) != len) {
             warnx("Error sending data on socket %d (0x%llx)\n%s", node->socket,

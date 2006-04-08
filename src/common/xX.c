@@ -52,8 +52,8 @@ parse_xX_str(xX_t *xX, char *str, bpf_t *bpf)
 {
     int out = 0;
 
-    dbg(1, "Parsing string: %s", str);
-    dbg(1, "Switching on: %c", str[0]);
+    dbgx(1, "Parsing string: %s", str);
+    dbgx(1, "Switching on: %c", str[0]);
 
     switch (str[0]) {
     case 'B':                  /* both ip's */

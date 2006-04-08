@@ -154,7 +154,7 @@ tcpdump_init(tcpdump_t *tcpdump)
     struct pcap_file_header *pfh;
     u_int32_t magic;
 
-    dbg(2, "tcpdump_init(): preping the pcap file header for tcpdump");
+    dbg(2, "preping the pcap file header for tcpdump");
     
     if (!tcpdump || !tcpdump->filename)
         return FALSE; /* nothing to init */
@@ -212,7 +212,7 @@ tcpdump_open(tcpdump_t *tcpdump)
     tcpdump_fill_in_options(tcpdump->args);
 
 #ifdef DEBUG
-    dbg(5, "Opening tcpdump debug file: %s", tcpdump->debugfile);
+    dbgx(5, "Opening tcpdump debug file: %s", tcpdump->debugfile);
 
     if (debug >= 5) {
         if ((tcpdump->debugfd = open(tcpdump->debugfile, O_WRONLY|O_CREAT|O_TRUNC, 
@@ -237,12 +237,12 @@ tcpdump_open(tcpdump_t *tcpdump)
     if ((tcpdump->pid = fork() ) < 0)
         errx(1, "Fork failed: %s", strerror(errno));
 
-    dbg(2, "tcpdump pid: %d", tcpdump->pid);
+    dbgx(2, "tcpdump pid: %d", tcpdump->pid);
     
     if (tcpdump->pid > 0) {
         /* we're still in tcpreplay */
-        dbg(2, "[parent] closing input fd %d", infd[1]);
-        dbg(2, "[parent] closing output fd %d", outfd[1]);
+        dbgx(2, "[parent] closing input fd %d", infd[1]);
+        dbgx(2, "[parent] closing output fd %d", outfd[1]);
         close(infd[1]);  /* close the tcpdump side */
         close(outfd[1]);
         tcpdump->infd = infd[0];
@@ -262,8 +262,8 @@ tcpdump_open(tcpdump_t *tcpdump)
         dbg(2, "[child] started the kid");
 
         /* we're in the child process */
-        dbg(2, "[child] closing in fd %d", infd[0]);
-        dbg(2, "[child] closing out fd %d", outfd[0]);
+        dbgx(2, "[child] closing in fd %d", infd[0]);
+        dbgx(2, "[child] closing out fd %d", outfd[0]);
         close(infd[0]); /* close the tcpreplay side */
         close(outfd[0]);
     
@@ -306,7 +306,7 @@ void
 tcpdump_send_file_header(tcpdump_t *tcpdump)
 {
 
-    dbg(2, "[parent] Sending pcap file header out fd %d...", tcpdump->infd);
+    dbgx(2, "[parent] Sending pcap file header out fd %d...", tcpdump->infd);
     if (! tcpdump->infd) 
         err(1, "[parent] tcpdump filehandle is zero.");
 
@@ -356,7 +356,7 @@ tcpdump_fill_in_options(char *opt)
         strlcat(options, opt, sizeof(options));
     }
     strlcat(options, TCPDUMP_ARGS, sizeof(options));
-    dbg(2, "[child] Will execute: tcpdump %s", options);
+    dbgx(2, "[child] Will execute: tcpdump %s", options);
 
 
     /* process args */
@@ -400,7 +400,7 @@ tcpdump_close(tcpdump_t *tcpdump)
     if (tcpdump->pid <= 0)
         return;
 
-    dbg(2, "[parent] killing tcpdump pid: %d", tcpdump->pid);
+    dbgx(2, "[parent] killing tcpdump pid: %d", tcpdump->pid);
 
     kill(tcpdump->pid, SIGKILL);
     close(tcpdump->infd);

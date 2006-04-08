@@ -57,9 +57,20 @@
  * notice() - Informational only via stderr, format string, one or more variables
  */
 
-void dbg(int dbg_level, const char *fmt, ...);
 
-#ifdef DEBUG
+#define dbg(x, y) _our_verbose_dbg(x, y, __FUNCTION__, __LINE__, __FILE__)
+void _our_verbose_dbg(int dbg_level, const char *string, const char *, 
+        const int, const char *);
+
+#define dbgx(x, y, ...) _our_verbose_dbgx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
+void _our_verbose_dbgx(int dbg_level, const char *fmt, const char *, 
+        const int, const char *, ...);
+
+void notice(const char *fmt, ...);
+
+
+#ifdef DEBUG /* then err, errx, warn, warnx print file, func, line */
+
 #define err(x, y) _our_verbose_err(x, y, __FUNCTION__, __LINE__, __FILE__)
 void _our_verbose_err(int eval, const char *string, const char *, const int, const char *);
 
@@ -72,7 +83,8 @@ void _our_verbose_errx(int eval, const char *fmt, const char *, const int, const
 #define warnx(x, ...) _our_verbose_warnx(x, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
 void _our_verbose_warnx(const char *fmt, const char *, const int, const char *, ...);
 
-#else /* DEBUG */
+#else /* no detailed DEBUG info */
+
 #define err(x, y) _our_verbose_err(x, y)
 void _our_verbose_err(int eval, const char *string);
 
@@ -86,8 +98,6 @@ void _our_verbose_warn(const char *fmt);
 void _our_verbose_warnx(const char *fmt, ...);
 
 #endif /* DEBUG */
-
-void notice(const char *fmt, ...);
 
 
 #endif /* !_ERR_H_ */

@@ -137,7 +137,7 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
             exit(1);
         }
 
-        dbg(1, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
+        dbgx(1, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
             options.limit_send, pkts_sent);
 
         /* poll for a packet on the two interfaces */
@@ -207,7 +207,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #endif
 
     packetnum++;
-    dbg(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
+    dbgx(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
 
     /* only malloc the first time */
     if (first_time) {
@@ -238,19 +238,19 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     memcpy(&finder.key, &pktdata[ETHER_ADDR_LEN], ETHER_ADDR_LEN);
 #ifdef DEBUG
     memcpy(&dstmac, pktdata, ETHER_ADDR_LEN);
-    dbg(1, "Source MAC: " MAC_FORMAT "\tDestin MAC: " MAC_FORMAT,
+    dbgx(1, "Source MAC: " MAC_FORMAT "\tDestin MAC: " MAC_FORMAT,
         MAC_STR(finder.key), MAC_STR(dstmac));
 #endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
     if ((memcmp(libnet_get_hwaddr(options.send1), &finder.key, 
                 ETHER_ADDR_LEN)) == 0) {
-        dbg(1, "Packet matches the MAC of %s, skipping.", options.intf1);
+        dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf1);
         return (1);
     }
     else if ((memcmp(libnet_get_hwaddr(options.send2), &finder.key,
                      ETHER_ADDR_LEN)) == 0) {
-        dbg(1, "Packet matches the MAC of %s, skipping.", options.intf2);
+        dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf2);
         return (1);
     }
 
@@ -290,12 +290,12 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
      * and update the dst mac if necessary
      */
     if (node->source == PCAP_INT1) {
-        dbg(2, "Packet source was %s... sending out on %s", options.intf1, 
+        dbgx(2, "Packet source was %s... sending out on %s", options.intf1, 
             options.intf2);
         l = options.send2;
     }
     else if (node->source == PCAP_INT2) {
-        dbg(2, "Packet source was %s... sending out on %s", options.intf2, 
+        dbgx(2, "Packet source was %s... sending out on %s", options.intf2, 
             options.intf1);
         l = options.send1;
     } else {
@@ -366,7 +366,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     bytes_sent += pkthdr->caplen;
     pkts_sent++;
 
-    dbg(1, "Sent packet " COUNTER_SPEC, pkts_sent);
+    dbgx(1, "Sent packet " COUNTER_SPEC, pkts_sent);
 
 
     return (1);

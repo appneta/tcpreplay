@@ -51,7 +51,7 @@ parse_services(const char *file, services_t *services)
     regmatch_t pmatch[3];
     char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1], service pmatch[2] */
 
-    dbg(1, "Parsing %s", file);
+    dbgx(1, "Parsing %s", file);
     memset(service_line, '\0', MAXLINE);
 
     /* mark all ports not a service */
@@ -74,7 +74,7 @@ parse_services(const char *file, services_t *services)
         memset(proto, '\0', 10);
         portc = 0;
         
-        dbg(4, "Procesing: %s", service_line);
+        dbgx(4, "Procesing: %s", service_line);
         
         /* look for format of 1234/tcp */
         if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
@@ -91,10 +91,10 @@ parse_services(const char *file, services_t *services)
 
             /* update appropriate service array with the server port */
             if (strcmp(proto, "tcp") == 0) {
-                dbg(3, "Setting TCP/%d as a server port", portc);
+                dbgx(3, "Setting TCP/%d as a server port", portc);
                 services->tcp[portc] = 1; /* mark it as a service port */
             } else if (strcmp(proto, "udp") == 0) {
-                dbg(3, "Setting UDP/%d as a server port", portc);
+                dbgx(3, "Setting UDP/%d as a server port", portc);
                 services->udp[portc] = 1;
             } else {
                 warnx("Skipping unknown protocol service %s/%d", proto, portc);
