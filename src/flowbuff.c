@@ -59,12 +59,12 @@ addpkt2buff(struct session_t *node, u_char *pktdata, u_int32_t len)
     }
 
     /* check total buffer limit */
-    options.totalbufflim -= len;
-    if (options.totalbufflim < 0) {
+    if (options.totalbufflim < len) {
         warn("Unable to buffer next packet: total buffer limit reached");
-        options.totalbufflim += len;    /* reset */
         return (NULL);
     }
+    /* we got enough buffer space so, mark it off */
+    options.totalbufflim -= len;
 
     /* prep the buffer header for the linked list */
     buffhdr = (struct pktbuffhdr_t *)safe_malloc(sizeof(struct pktbuffhdr_t));
