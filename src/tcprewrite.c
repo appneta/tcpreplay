@@ -190,7 +190,7 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
     while ((pktdata = pcap_next(inpcap, &pkthdr)) != NULL) {
 
         packetnum++;
-        dbg(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
+        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 
 #ifdef HAVE_TCPDUMP
         if (options.verbose)
