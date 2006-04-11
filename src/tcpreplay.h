@@ -57,7 +57,7 @@ struct tcpreplay_opt_s {
     int datadumpfile1;
     int datadumpfile2;
 */
-    speed_t speed;
+    tcpr_speed_t speed;
     u_int32_t loop;
 
     /* tcpprep cache data */

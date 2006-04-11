@@ -41,7 +41,7 @@
  * parses /etc/services so we know which ports are service ports
  */
 void
-parse_services(const char *file, services_t *services)
+parse_services(const char *file, tcpr_services_t *services)
 {
     FILE *service = NULL;
     char service_line[MAXLINE], port[10], proto[10];

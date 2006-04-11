@@ -33,7 +33,7 @@
 #ifndef __SERVICES_H__
 #define __SERVICES_H__
 
-void parse_services(const char *file, services_t *services);
+void parse_services(const char *file, tcpr_services_t *services);
 
 /* max width of a line in /etc/services */
 #define MAXLINE 1024

@@ -49,12 +49,12 @@
 #include <errno.h>
 
 
-list_t *
+tcpr_list_t *
 new_list()
 {
-    list_t *newlist;
+    tcpr_list_t *newlist;
 
-    newlist = (list_t *)safe_malloc(sizeof(list_t));
+    newlist = (tcpr_list_t *)safe_malloc(sizeof(tcpr_list_t));
     return (newlist);
 }
 
@@ -64,9 +64,9 @@ new_list()
  * success, 0 for fail.
  */
 int
-parse_list(list_t ** listdata, char *ourstr)
+parse_list(tcpr_list_t ** listdata, char *ourstr)
 {
-    list_t *listcur, *list_ptr;
+    tcpr_list_t *listcur, *list_ptr;
     char *this = NULL;
     char *first, *second;
     int rcode;
@@ -158,9 +158,9 @@ parse_list(list_t ** listdata, char *ourstr)
  * Returns 1 for true, 0 for false
  */
 int
-check_list(list_t * list, COUNTER value)
+check_list(tcpr_list_t * list, COUNTER value)
 {
-    list_t *current;
+    tcpr_list_t *current;
 
     current = list;
     do {
@@ -195,7 +195,7 @@ check_list(list_t * list, COUNTER value)
  * Free's all the memory associated with the given LIST
  */
 void
-free_list(list_t * list)
+free_list(tcpr_list_t * list)
 {
 
     /* recursively go down the list */

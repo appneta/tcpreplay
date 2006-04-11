@@ -48,7 +48,7 @@
  */
 
 int
-parse_xX_str(xX_t *xX, char *str, bpf_t *bpf)
+parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
 {
     int out = 0;
 
@@ -123,7 +123,7 @@ parse_xX_str(xX_t *xX, char *str, bpf_t *bpf)
 
 
 int
-process_xX_by_cidr(int mode, cidr_t * cidr, ip_hdr_t * ip_hdr)
+process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ip_hdr_t * ip_hdr)
 {
 
     if (mode & xXExclude) {

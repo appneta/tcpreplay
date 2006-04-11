@@ -32,19 +32,19 @@
 #ifndef __PORT_H__
 #define __PORT_H__
 
-struct portmap_s {
+struct tcpedit_portmap_s {
     long from;
     long to;
-    struct portmap_s *next;
+    struct tcpedit_portmap_s *next;
 };
-typedef struct portmap_s portmap_t;
+typedef struct tcpedit_portmap_s tcpedit_portmap_t;
 
-portmap_t *new_portmap();
-int parse_portmap(portmap_t **portmapdata, const char *ourstr);
-void free_portmap(portmap_t *portmap);
-void print_portmap(portmap_t *portmap);
-long map_port(portmap_t *portmap , long port);
-int rewrite_ports(portmap_t *portmap, ip_hdr_t **ip_hdr);
+tcpedit_portmap_t *new_portmap();
+int parse_portmap(tcpedit_portmap_t **portmapdata, const char *ourstr);
+void free_portmap(tcpedit_portmap_t *portmap);
+void print_portmap(tcpedit_portmap_t *portmap);
+long map_port(tcpedit_portmap_t *portmap , long port);
+int rewrite_ports(tcpedit_portmap_t *portmap, ip_hdr_t **ip_hdr);
 
 #endif
 

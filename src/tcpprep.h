@@ -49,12 +49,12 @@ struct tcpprep_opt_s {
     int verbose;    
     char *tcpdump_args;
 
-    cache_t *cachedata;
-    cidr_t *cidrdata;
+    tcpr_cache_t *cachedata;
+    tcpr_cidr_t *cidrdata;
 
-    xX_t xX;
-    bpf_t bpf;
-    services_t services;
+    tcpr_xX_t xX;
+    tcpr_bpf_t bpf;
+    tcpr_services_t services;
     char *comment; /* cache file comment */
     int nocomment; /* don't include the cli in the comment */
     int mode;      /* our overall mode */

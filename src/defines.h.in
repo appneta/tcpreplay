@@ -50,36 +50,36 @@ typedef struct sll_header sll_hdr_t;
 typedef struct cisco_hdlc_header_s hdlc_hdr_t;
 
 /* our custom typdefs/structs */
-typedef u_char macaddr_t[LIBNET_ETH_H];
+typedef u_char tcpr_macaddr_t[LIBNET_ETH_H];
 
-struct bpf_s {
+struct tcpr_bpf_s {
     char *filter;
     int optimize;
     struct bpf_program program;
 };
-typedef struct bpf_s bpf_t;
+typedef struct tcpr_bpf_s tcpr_bpf_t;
 
-struct xX_s {
+struct tcpr_xX_s {
 #define xX_MODE_INCLUDE 'x'
 #define xX_MODE_EXCLUDE 'X'
     int mode;
-    list_t *list;
-    cidr_t *cidr;
+    tcpr_list_t *list;
+    tcpr_cidr_t *cidr;
 #define xX_TYPE_LIST 1
 #define xX_TYPE_CIDR 2
     int type;
 };
-typedef struct xX_s xX_t;
+typedef struct tcpr_xX_s tcpr_xX_t;
 
 /* number of ports 0-65535 */
 #define NUM_PORTS 65536
-struct services_s {
+struct tcpr_services_s {
     char tcp[NUM_PORTS];    
     char udp[NUM_PORTS];
 };
-typedef struct services_s services_t;
+typedef struct tcpr_services_s tcpr_services_t;
 
-struct speed_s {
+struct tcpr_speed_s {
     /* speed modifiers */
     int mode;
 #define SPEED_MULTIPLIER 1
@@ -89,7 +89,7 @@ struct speed_s {
 #define SPEED_ONEATATIME 5
     float speed;
 };
-typedef struct speed_s speed_t;
+typedef struct tcpr_speed_s tcpr_speed_t;
 
 #define MAX_FILES   1024        /* Max number of files we can pass to tcpreplay */
 
@@ -165,7 +165,8 @@ typedef struct speed_s speed_t;
 #define DEBUG_INFO   1          /* informational only, lessthan 1 line per packet */
 #define DEBUG_BASIC  2          /* limited debugging, one line per packet */
 #define DEBUG_DETAIL 3          /* more detailed, a few lines per packet */
-#define DEBUG_CODE   4          /* examines code & values, many lines per packet */
+#define DEBUG_MORE   4          /* even more detail */
+#define DEBUG_CODE   5          /* examines code & values, many lines per packet */
 
 
 

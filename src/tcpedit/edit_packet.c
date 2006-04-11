@@ -259,7 +259,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
  */
 u_int32_t
-remap_ip(cidr_t *cidr, const u_int32_t original)
+remap_ip(tcpr_cidr_t *cidr, const u_int32_t original)
 {
     u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
 
@@ -292,7 +292,7 @@ remap_ip(cidr_t *cidr, const u_int32_t original)
 int
 rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t * ip_hdr, int direction)
 {
-    cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
+    tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
 
     assert(tcpedit);
@@ -411,7 +411,7 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     u_char *add_hdr = NULL;
     u_int32_t *ip1 = NULL, *ip2 = NULL;
     u_int32_t newip = 0;
-    cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
+    tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
 
     assert(tcpedit);

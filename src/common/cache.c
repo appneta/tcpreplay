@@ -47,7 +47,7 @@
 extern int debug;
 #endif
 
-static cache_t *new_cache(void);
+static tcpr_cache_t *new_cache(void);
 
 /*
  * Takes a single char and returns a ptr to a string representation of the
@@ -80,7 +80,7 @@ COUNTER
 read_cache(char **cachedata, const char *cachefile, char **comment)
 {
     int cachefd;
-    cache_file_hdr_t header;
+    tcpr_cache_file_hdr_t header;
     ssize_t read_size = 0;
     COUNTER cache_size = 0;
 
@@ -156,17 +156,18 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
  * of cache entries written
  */
 COUNTER
-write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets, 
+write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets, 
     char *comment)
 {
-    cache_t *mycache = NULL;
-    cache_file_hdr_t *cache_header = NULL;
+    tcpr_cache_t *mycache = NULL;
+    tcpr_cache_file_hdr_t *cache_header = NULL;
     u_int32_t chars, last = 0;
     COUNTER packets = 0;
     ssize_t written = 0;
 
     /* write a header to our file */
-    cache_header = (cache_file_hdr_t *)safe_malloc(sizeof(cache_file_hdr_t));
+    cache_header = (tcpr_cache_file_hdr_t *)
+        safe_malloc(sizeof(tcpr_cache_file_hdr_t));
     strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
     strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
@@ -179,12 +180,12 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
         cache_header->comment_len = 0;
     }
 
-    written = write(out_file, cache_header, sizeof(cache_file_hdr_t));
+    written = write(out_file, cache_header, sizeof(tcpr_cache_file_hdr_t));
     dbgx(1, "Wrote %d bytes of cache file header", written);
 
-    if (written != sizeof(cache_file_hdr_t))
+    if (written != sizeof(tcpr_cache_file_hdr_t))
         errx(1, "Only wrote %d of %d bytes of the cache file header!\n%s",
-             written, sizeof(cache_file_hdr_t),
+             written, sizeof(tcpr_cache_file_hdr_t),
              written == -1 ? strerror(errno) : "");
 
     /* don't write comment if there is none */
@@ -237,13 +238,13 @@ write_cache(cache_t * cachedata, const int out_file, COUNTER numpackets,
  * mallocs a new CACHE struct all pre-set to sane defaults
  */
 
-static cache_t *
+static tcpr_cache_t *
 new_cache(void)
 {
-    cache_t *newcache;
+    tcpr_cache_t *newcache;
 
     /* malloc mem */
-    newcache = (cache_t *)safe_malloc(sizeof(cache_t));
+    newcache = (tcpr_cache_t *)safe_malloc(sizeof(tcpr_cache_t));
     return (newcache);
 }
 
@@ -253,9 +254,9 @@ new_cache(void)
  */
 
 int
-add_cache(cache_t ** cachedata, const int send, const int interface)
+add_cache(tcpr_cache_t ** cachedata, const int send, const int interface)
 {
-    cache_t *lastcache = NULL;
+    tcpr_cache_t *lastcache = NULL;
     u_char *byte = NULL;
     u_int32_t bit, result;
     COUNTER index;

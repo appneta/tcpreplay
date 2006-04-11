@@ -128,10 +128,10 @@ struct tcpedit_s {
     char padding1; /* keep things 4 byte aligned */
 
     /* values to rewrite src/dst MAC addresses */
-    macaddr_t intf1_dmac;
-    macaddr_t intf1_smac;
-    macaddr_t intf2_dmac;
-    macaddr_t intf2_smac;
+    tcpr_macaddr_t intf1_dmac;
+    tcpr_macaddr_t intf1_smac;
+    tcpr_macaddr_t intf2_dmac;
+    tcpr_macaddr_t intf2_smac;
 
     /* other L2 editing options */
     u_int16_t l2proto;
@@ -141,14 +141,14 @@ struct tcpedit_s {
     l2_t l2;
 
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
-    cidrmap_t *cidrmap1;       /* tcpprep cache data */
-    cidrmap_t *cidrmap2;
+    tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */
+    tcpr_cidrmap_t *cidrmap2;
     
     /* pseudo-randomize IP addresses using a seed */
     int seed;
     
     /* rewrite tcp/udp ports */
-    portmap_t *portmap;
+    tcpedit_portmap_t *portmap;
     
     int mtu;                   /* Deal with different MTU's */
     int maxpacket;             /* L2 header + MTU */

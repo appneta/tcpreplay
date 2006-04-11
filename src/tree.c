@@ -41,7 +41,7 @@
 #include "tcpprep.h"
 #include "tcpprep_opts.h"
 
-extern data_tree_t treeroot;
+extern tcpr_data_tree_t treeroot;
 extern tcpprep_opt_t options;
 #ifdef DEBUG
 extern int debug;
@@ -50,31 +50,31 @@ extern int debug;
 /* static buffer used by tree_print*() functions */
 char tree_print_buff[TREEPRINTBUFFLEN]; 
 
-static tree_t *new_tree();
-static tree_t *packet2tree(const u_char *);
-static char *tree_print(data_tree_t *);
-static char *tree_printnode(const char *, const tree_t *);
-static void tree_buildcidr(data_tree_t *, buildcidr_t *);
-static int tree_checkincidr(data_tree_t *, buildcidr_t *);
+static tcpr_tree_t *new_tree();
+static tcpr_tree_t *packet2tree(const u_char *);
+static char *tree_print(tcpr_data_tree_t *);
+static char *tree_printnode(const char *, const tcpr_tree_t *);
+static void tree_buildcidr(tcpr_data_tree_t *, tcpr_buildcidr_t *);
+static int tree_checkincidr(tcpr_data_tree_t *, tcpr_buildcidr_t *);
 
-RB_PROTOTYPE(data_tree_s, tree_s, node, tree_comp)
-RB_GENERATE(data_tree_s, tree_s, node, tree_comp)
+RB_PROTOTYPE(tcpr_data_tree_s, tcpr_tree_s, node, tree_comp)
+RB_GENERATE(tcpr_data_tree_s, tcpr_tree_s, node, tree_comp)
 
 /*
  * used with rbwalk to walk a tree and generate cidr_t * cidrdata.
  * is smart enough to prevent dupes.  void * arg is cast to bulidcidr_t
  */
 void
-tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
+tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 {
-    tree_t *node = NULL;
-    cidr_t *newcidr = NULL;
+    tcpr_tree_t *node = NULL;
+    tcpr_cidr_t *newcidr = NULL;
     unsigned long network = 0;
     unsigned long mask = ~0;    /* turn on all bits */
 
     dbg(1, "Running: tree_buildcidr()");
 
-    RB_FOREACH(node, data_tree_s, treeroot) {
+    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
 
         /* we only check types that are vaild */
         if (bcdata->type != ANY)    /* don't check if we're adding ANY */
@@ -106,12 +106,12 @@ tree_buildcidr(data_tree_t *treeroot, buildcidr_t * bcdata)
  *
  */
 static int
-tree_checkincidr(data_tree_t *treeroot, buildcidr_t * bcdata)
+tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 {
-    tree_t *node = NULL;
+    tcpr_tree_t *node = NULL;
 
 
-    RB_FOREACH(node, data_tree_s, treeroot) {
+    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
 
         /* we only check types that are vaild */
         if (bcdata->type != ANY)    /* don't check if we're adding ANY */
@@ -140,12 +140,12 @@ int
 process_tree()
 {
     int mymask = 0;
-    buildcidr_t *bcdata;
+    tcpr_buildcidr_t *bcdata;
 
 
     dbg(1, "Running: process_tree()");
 
-    bcdata = (buildcidr_t *)safe_malloc(sizeof(buildcidr_t));
+    bcdata = (tcpr_buildcidr_t *)safe_malloc(sizeof(tcpr_buildcidr_t));
 
     for (mymask = options.max_mask; mymask <= options.min_mask; mymask++) {
         dbgx(1, "Current mask: %u", mymask);
@@ -183,7 +183,7 @@ process_tree()
  * is smart enough to prevent dupes
 
 void
-tree_to_cidr(const int masklen, const int type)
+tcpr_tree_to_cidr(const int masklen, const int type)
 {
 
 }
@@ -199,12 +199,12 @@ tree_to_cidr(const int masklen, const int type)
 int
 check_ip_tree(const int mode, const unsigned long ip)
 {
-    tree_t *node = NULL, *finder = NULL;
+    tcpr_tree_t *node = NULL, *finder = NULL;
 
     finder = new_tree();
     finder->ip = ip;
 
-    node = RB_FIND(data_tree_s, &treeroot, finder);
+    node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
     if (node == NULL && mode == UNKNOWN)
         errx(1, "%s (%lu) is an unknown system... aborting.!\n"
@@ -239,7 +239,7 @@ check_ip_tree(const int mode, const unsigned long ip)
 void
 add_tree(const unsigned long ip, const u_char * data)
 {
-    tree_t *node = NULL, *newnode = NULL;
+    tcpr_tree_t *node = NULL, *newnode = NULL;
 
     newnode = packet2tree(data);
 
@@ -253,7 +253,7 @@ add_tree(const unsigned long ip, const u_char * data)
 
     }
     /* try to find a simular entry in the tree */
-    node = RB_FIND(data_tree_s, &treeroot, newnode);
+    node = RB_FIND(tcpr_data_tree_s, &treeroot, newnode);
 
     dbgx(3, "%s", tree_printnode("add_tree", node));
 
@@ -267,7 +267,7 @@ add_tree(const unsigned long ip, const u_char * data)
             newnode->client_cnt++;
         }
         /* insert it in */
-        RB_INSERT(data_tree_s, &treeroot, newnode);
+        RB_INSERT(tcpr_data_tree_s, &treeroot, newnode);
 
     }
     else {
@@ -296,13 +296,13 @@ add_tree(const unsigned long ip, const u_char * data)
  */
 
 void
-tree_calculate(data_tree_t *treeroot)
+tree_calculate(tcpr_data_tree_t *treeroot)
 {
-    tree_t *node;
+    tcpr_tree_t *node;
 
     dbg(1, "Running tree_calculate()");
 
-    RB_FOREACH(node, data_tree_s, treeroot) {
+    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
         dbgx(4, "Processing %s", get_addr2name4(node->ip, RESOLVE));
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
@@ -334,7 +334,7 @@ tree_calculate(data_tree_t *treeroot)
  *
  */
 int
-tree_comp(tree_t *t1, tree_t *t2)
+tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
 {
 
     if (t1->ip > t2->ip) {
@@ -360,14 +360,14 @@ tree_comp(tree_t *t1, tree_t *t2)
  * creates a new TREE * with reasonable defaults
  */
 
-static tree_t *
+static tcpr_tree_t *
 new_tree()
 {
-    tree_t *node;
+    tcpr_tree_t *node;
 
-    node = (tree_t *)safe_malloc(sizeof(tree_t));
+    node = (tcpr_tree_t *)safe_malloc(sizeof(tcpr_tree_t));
 
-    memset(node, '\0', sizeof(tree_t));
+    memset(node, '\0', sizeof(tcpr_tree_t));
     node->server_cnt = 0;
     node->client_cnt = 0;
     node->type = UNKNOWN;
@@ -384,10 +384,10 @@ new_tree()
  * the u_char * data should be the data that is passed by pcap_dispatch()
  */
 
-tree_t *
+tcpr_tree_t *
 packet2tree(const u_char * data)
 {
-    tree_t *node = NULL;
+    tcpr_tree_t *node = NULL;
     eth_hdr_t *eth_hdr = NULL;
     ip_hdr_t ip_hdr;
     tcp_hdr_t tcp_hdr;
@@ -535,7 +535,7 @@ packet2tree(const u_char * data)
  */
 
 static char *
-tree_printnode(const char *name, const tree_t *node)
+tree_printnode(const char *name, const tcpr_tree_t *node)
 {
 
     memset(&tree_print_buff, '\0', TREEPRINTBUFFLEN);
@@ -564,11 +564,11 @@ tree_printnode(const char *name, const tree_t *node)
  */
 
 static char *
-tree_print(data_tree_t *treeroot)
+tree_print(tcpr_data_tree_t *treeroot)
 {
-    tree_t *node = NULL;
+    tcpr_tree_t *node = NULL;
     memset(&tree_print_buff, '\0', TREEPRINTBUFFLEN);
-    RB_FOREACH(node, data_tree_s, treeroot) {
+    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
         tree_printnode("my node", node);
     }
     return (tree_print_buff);

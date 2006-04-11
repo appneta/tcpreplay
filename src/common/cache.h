@@ -50,12 +50,12 @@
  * 04 - Increase num_packets from 32 to 64 bit integer
  */
 
-struct cache_s {
+struct tcpr_cache_s {
     char data[CACHEDATASIZE];
     unsigned int packets;       /* number of packets tracked in data */
     struct cache_s *next;
 };
-typedef struct cache_s cache_t;
+typedef struct tcpr_cache_s tcpr_cache_t;
 
 /*
  * Each byte in cache_type.data represents CACHE_PACKETS_PER_BYTE (4) number of packets
@@ -71,7 +71,7 @@ typedef struct cache_s cache_t;
  * If you need to enhance this struct, do so AFTER the version field and be sure
  * to increment  CACHEVERSION
  */
-struct cache_file_hdr_s {
+struct tcpr_cache_file_hdr_s {
     char magic[8];
     char version[4];
     /* begin version 2 features */
@@ -82,10 +82,10 @@ struct cache_file_hdr_s {
     u_int16_t comment_len;      /* how long is the user comment? */
 };
 
-typedef struct cache_file_hdr_s cache_file_hdr_t;
+typedef struct tcpr_cache_file_hdr_s tcpr_cache_file_hdr_t;
 
-COUNTER write_cache(cache_t *, const int, COUNTER, char *);
-int add_cache(cache_t **, const int, const int);
+COUNTER write_cache(tcpr_cache_t *, const int, COUNTER, char *);
+int add_cache(tcpr_cache_t **, const int, const int);
 COUNTER read_cache(char **, const char *, char **);
 int check_cache(char *, COUNTER);
 

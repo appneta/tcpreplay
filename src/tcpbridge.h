@@ -72,10 +72,10 @@ struct tcpbridge_opt_s {
 
     
     /* rewrite src/dst MAC addresses */
-    macaddr_t intf1_dmac;
-    macaddr_t intf1_smac;
-    macaddr_t intf2_dmac;
-    macaddr_t intf2_smac;
+    tcpr_macaddr_t intf1_dmac;
+    tcpr_macaddr_t intf1_smac;
+    tcpr_macaddr_t intf2_dmac;
+    tcpr_macaddr_t intf2_smac;
 
     int mac_mask;
 #define SMAC1 0x1
@@ -84,17 +84,17 @@ struct tcpbridge_opt_s {
 #define DMAC2 0x8
 
     /* rewrite tcp/udp ports */
-    portmap_t *portmap;
+    tcpedit_portmap_t *portmap;
     
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
-    cidrmap_t *cidrmap1;
-    cidrmap_t *cidrmap2;
+    tcpr_cidrmap_t *cidrmap1;
+    tcpr_cidrmap_t *cidrmap2;
 
     /* filter options */
-    xX_t xX;
-    bpf_t bpf;  
+    tcpr_xX_t xX;
+    tcpr_bpf_t bpf;  
     regex_t preg;
-    cidr_t *cidrdata;
+    tcpr_cidr_t *cidrdata;
     
     /* required for rewrite_l2.c */
     l2_t l2;

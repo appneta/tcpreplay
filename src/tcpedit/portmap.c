@@ -45,23 +45,23 @@
 #include "portmap.h"
 
 
-portmap_t *
+tcpedit_portmap_t *
 new_portmap()
 {
-    portmap_t *newportmap;
+    tcpedit_portmap_t *newportmap;
 
-    newportmap = (portmap_t *)safe_malloc(sizeof(portmap_t));
+    newportmap = (tcpedit_portmap_t *)safe_malloc(sizeof(tcpedit_portmap_t));
     return (newportmap);
 }
 
 /*
  * parses a string <port>:<port> and returns a new
- * portmap_t datastruct
+ * tcpedit_portmap_t datastruct
  */
-static portmap_t *
+static tcpedit_portmap_t *
 ports2PORT(char *ports)
 {
-    portmap_t *portmap = NULL;
+    tcpedit_portmap_t *portmap = NULL;
     char *from_s, *to_s, *badchar;
     long from_l, to_l;
     char *token = NULL;
@@ -108,9 +108,9 @@ ports2PORT(char *ports)
  * success, 0 for fail.
  */
 int
-parse_portmap(portmap_t ** portmap, const char *ourstr)
+parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
 {
-    portmap_t *portmap_ptr;
+    tcpedit_portmap_t *portmap_ptr;
     char *substr = NULL, *ourstrcpy = NULL, *token = NULL;
 
     ourstrcpy = safe_strdup(ourstr);
@@ -141,7 +141,7 @@ parse_portmap(portmap_t ** portmap, const char *ourstr)
  * Free's all the memory associated with the given portmap chain
  */
 void
-free_portmap(portmap_t * portmap)
+free_portmap(tcpedit_portmap_t * portmap)
 {
 
     /* recursively go down the portmaps */
@@ -154,9 +154,9 @@ free_portmap(portmap_t * portmap)
 
 /* This function takes a pointer to a portmap list and prints each node */
 void
-print_portmap(portmap_t *portmap_data)
+print_portmap(tcpedit_portmap_t *portmap_data)
 {
-    portmap_t *portmap_ptr;
+    tcpedit_portmap_t *portmap_ptr;
 
     portmap_ptr = portmap_data;
     while (portmap_ptr != NULL) {
@@ -172,9 +172,9 @@ print_portmap(portmap_t *portmap_data)
  * or the original port if it isn't mapped to anything.
  */
 long
-map_port(portmap_t *portmap_data, long port)
+map_port(tcpedit_portmap_t *portmap_data, long port)
 {
-    portmap_t *portmap_ptr;
+    tcpedit_portmap_t *portmap_ptr;
     long newport;
 
     portmap_ptr = portmap_data;
@@ -197,7 +197,7 @@ map_port(portmap_t *portmap_data, long port)
  */
 
 int
-rewrite_ports(portmap_t * portmap, ip_hdr_t **ip_hdr)
+rewrite_ports(tcpedit_portmap_t * portmap, ip_hdr_t **ip_hdr)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;

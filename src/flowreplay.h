@@ -50,8 +50,8 @@ struct flowreplay_opt_s {
     int sendmode;
     int nosyn;          /* require Syn to start flow? */
     struct in_addr targetaddr; /* target host */
-    cidr_t *clients;
-    cidr_t *servers;
+    tcpr_cidr_t *clients;
+    tcpr_cidr_t *servers;
     libnet_t *l;
     struct timeval timeout;
     u_int32_t pernodebufflim;

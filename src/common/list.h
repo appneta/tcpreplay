@@ -39,11 +39,11 @@ struct list_s {
     struct list_s *next;
 };
 
-typedef struct list_s list_t;
+typedef struct list_s tcpr_list_t;
 
-int parse_list(list_t **, char *);
-int check_list(list_t *, COUNTER);
-void free_list(list_t *);
+int parse_list(tcpr_list_t **, char *);
+int check_list(tcpr_list_t *, COUNTER);
+void free_list(tcpr_list_t *);
 
 #endif
 

@@ -52,7 +52,7 @@ void fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr,
 int extract_data(tcpedit_t *tcpedit, const u_char *pktdata, 
         int caplen, char *l7data[]);
 
-u_int32_t remap_ip(cidr_t *cidr, const u_int32_t original);
+u_int32_t remap_ip(tcpr_cidr_t *cidr, const u_int32_t original);
 
 int rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t *ip_hdr, int direction);
 

@@ -78,7 +78,7 @@ tcpprep_opt_t options;
 int info = 0;
 char *ourregex = NULL;
 char *cidr = NULL;
-data_tree_t treeroot;
+tcpr_data_tree_t treeroot;
 
 static void init(void);
 static void post_args(int, char *[]);
