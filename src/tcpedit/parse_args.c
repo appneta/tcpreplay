@@ -39,15 +39,17 @@
 
 
 int 
-tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap) {
+tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     tcpedit_t *tcpedit;
 
     assert(tcpedit_ex);
     tcpedit = *tcpedit_ex;
     assert(tcpedit);
 
+    /*
     tcpedit->runtime.pcap = pcap;
     tcpedit->l2.dlt = pcap_datalink(pcap);
+    */
 
     /* --dmac */
     if (HAVE_OPT(DMAC)) {
