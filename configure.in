@@ -207,8 +207,18 @@ AC_CHECK_FUNC(inet_pton,
     inet_pton=no)
 
 if test "$inet_aton" = "no" -a "$inet_pton" = "no" ; then
-	AC_MSG_ERROR("We need either inet_aton or inet_pton")
+	AC_MSG_ERROR([We need either inet_aton or inet_pton])
 fi
+
+AC_CHECK_FUNC(inet_addr, 
+    AC_DEFINE([INET_ADDR], [], [Do we have inet_addr?]) 
+    inet_addr=yes, 
+    inet_addr=no)
+
+if test x$inet_addr = no ; then
+    AC_MSG_ERROR([We need inet_addr.  See bug 26])
+fi
+
 
 
 dnl ##################################################
