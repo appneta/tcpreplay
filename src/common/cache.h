@@ -53,7 +53,7 @@
 struct tcpr_cache_s {
     char data[CACHEDATASIZE];
     unsigned int packets;       /* number of packets tracked in data */
-    struct cache_s *next;
+    struct tcpr_cache_s *next;
 };
 typedef struct tcpr_cache_s tcpr_cache_t;
 
