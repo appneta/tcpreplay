@@ -1,3 +1,4 @@
+# $Id$
 AUTOMAKE_OPTIONS = foreign
 
 include $(top_srcdir)/libopts/MakeDefs.inc

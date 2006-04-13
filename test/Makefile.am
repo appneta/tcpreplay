@@ -1,3 +1,4 @@
+# $Id$
 MAKEFLAGS=-s -k
 PRINTF = @PRINTF@
 HOST = @host@

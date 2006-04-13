@@ -1,3 +1,4 @@
+# $Id$
 noinst_LIBRARIES = libcommon.a
 
 BUILT_SOURCES = svn_version.c

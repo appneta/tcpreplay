@@ -1,3 +1,4 @@
+# $Id$
 SUBDIRS = common tcpedit
 
 if SYSTEM_STRLCPY
