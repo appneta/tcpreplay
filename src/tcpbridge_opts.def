@@ -20,7 +20,7 @@ gnu-usage;
 help-value      = "H";
 save-opts-value = "";
 load-opts-value = "";
-#include tcpedit/tcpedit_stub.def
+#include tcpedit/tcpedit_opts.def
 
 
 config-header   = "config.h";
