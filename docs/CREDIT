@@ -1,7 +1,10 @@
 $Id$ 
 
 tcpreplay and it's associated utilities (tcpprep, tcprewrite and flowreplay)
-were designed and written by Aaron Turner <aturner@pobox.com>.
+were designed and written by Aaron Turner.
+
+This product includes software developed by the University of California,
+Berkeley and its contributors. 
 
 The following is a list of people in no particular order who have kindly
 submitted patches or code snippets for me to use in tcpreplay.
