@@ -42,6 +42,7 @@
 #include <errno.h>
 
 #include "tcpreplay.h"
+#include "tcpedit.h"
 #include "portmap.h"
 
 
@@ -65,6 +66,8 @@ ports2PORT(char *ports)
     char *from_s, *to_s, *badchar;
     long from_l, to_l;
     char *token = NULL;
+
+    assert(ports);
 
     /* first split the port numbers */
     from_s = strtok_r(ports, ":", &token);
@@ -113,6 +116,7 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
     tcpedit_portmap_t *portmap_ptr;
     char *substr = NULL, *ourstrcpy = NULL, *token = NULL;
 
+    assert(ourstr);
     ourstrcpy = safe_strdup(ourstr);
 
     /* first iteration of input */
@@ -144,6 +148,8 @@ void
 free_portmap(tcpedit_portmap_t * portmap)
 {
 
+    assert(portmap);
+
     /* recursively go down the portmaps */
     if (portmap->next != NULL)
         free_portmap(portmap->next);
@@ -158,6 +164,7 @@ print_portmap(tcpedit_portmap_t *portmap_data)
 {
     tcpedit_portmap_t *portmap_ptr;
 
+    assert(portmap_data);
     portmap_ptr = portmap_data;
     while (portmap_ptr != NULL) {
         printf("from: %ld  to: %ld\n", portmap_ptr->from, portmap_ptr->to);
@@ -176,6 +183,8 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
 {
     tcpedit_portmap_t *portmap_ptr;
     long newport;
+
+    assert(portmap_data);
 
     portmap_ptr = portmap_data;
     newport = port;
@@ -197,12 +206,17 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
  */
 
 int
-rewrite_ports(tcpedit_portmap_t * portmap, ip_hdr_t **ip_hdr)
+rewrite_ports(tcpedit_t *tcpedit, ip_hdr_t **ip_hdr)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
     int changes = 0;
     u_int16_t newport;
+    tcpedit_portmap_t *portmap;
+
+    assert(tcpedit);
+    assert(tcpedit->portmap);
+    portmap = tcpedit->portmap;
 
     if (*ip_hdr == NULL) {
         return 0;

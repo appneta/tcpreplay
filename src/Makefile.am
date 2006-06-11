@@ -88,7 +88,7 @@ tcpbridge_opts.c: tcpbridge_opts.def
 	@AUTOGEN@ tcpbridge_opts.def
 
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h \
-		 defines.h dlt.h dlt_names.h tree.h mac.h \
+		 defines.h dlt_names.h tree.h mac.h \
 		 send_packets.h flowbuff.h flowkey.h flownode.h flowstate.h \
 		 signal_handler.h common.h tcpreplay_opts.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h \

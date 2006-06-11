@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2006 Aaron Turner.
@@ -30,11 +30,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "defines.h"
+#include "dlt.h"
+
 #ifndef _TCPEDIT_H_
 #define _TCPEDIT_H_
-
-#include "defines.h"
-#include "portmap.h"
 
 #define L2DATALEN 255           /* Max size of the L2 data file */
     
@@ -67,7 +67,8 @@ struct tcpedit_runtime_s {
     COUNTER packetnum;
     COUNTER total_bytes;
     COUNTER pkts_edited;
-    pcap_t *pcap;
+    pcap_t *pcap1;
+    pcap_t *pcap2;
     libnet_t *lnet;
     char errstr[TCPEDIT_ERRSTR_LEN];
 #ifdef FORCE_ALIGN
@@ -76,6 +77,16 @@ struct tcpedit_runtime_s {
 };
 
 typedef struct tcpedit_runtime_s tcpedit_runtime_t;
+
+/*
+ * portmap data struct
+ */
+struct tcpedit_portmap_s {
+    long from;
+    long to;
+    struct tcpedit_portmap_s *next;
+};
+typedef struct tcpedit_portmap_s tcpedit_portmap_t;
 
 /*
  * all the arguments that the packet editing library supports
@@ -156,8 +167,9 @@ struct tcpedit_s {
 
 typedef struct tcpedit_s tcpedit_t;
 
-void tcpedit_init(tcpedit_t *tcpedit);
+int tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1, pcap_t *pcap2);
 char *tcpedit_geterr(tcpedit_t *tcpedit);
+void tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...);
 int tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt);
 
 int tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
@@ -169,4 +181,3 @@ COUNTER tcpedit_get_total_bytes(tcpedit_t *tcpedit);
 COUNTER tcpedit_get_pkts_edited(tcpedit_t *tcpedit);
 
 #endif
-#include "parse_args.h"

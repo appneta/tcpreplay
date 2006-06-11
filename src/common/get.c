@@ -35,7 +35,6 @@
 #include "defines.h"
 #include "common.h"
 #include "../../lib/sll.h"
-#include "../dlt.h"
 
 #ifdef DEBUG
 extern int debug;

@@ -2,6 +2,7 @@
 #define __COMMON_H__
 #include <assert.h>
 #include "config.h"
+#include "common/pcap_dlt.h"
 #include "common/cache.h"
 #include "common/cidr.h"
 #include "common/err.h"

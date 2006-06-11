@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2004 Aaron Turner
+ * Copyright (c) 2004-2006 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DLT_H__
-#define __DLT_H__
+#ifndef _PCAP_DLT_H_
+#define _PCAP_DLT_H_
 
 /*
  * Cisco HDLC.  Used by Dag interfaces for SONET 
@@ -40,19 +40,12 @@
 
 #define CISCO_HDLC_LEN 4
 
-struct cisco_hdlc_header_s {
+struct hdlc_hdr_s {
     u_int16_t address;
     u_int16_t protocol;
 };
-typedef struct cisco_hdlc_header_s cisco_hdlc_header_t;
+typedef struct hdlc_hdr_s hdlc_hdr_t;     
 
-#endif /* _DLT_H_ */
 
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
+#endif /* _PCAP_DLT_H_ */
 

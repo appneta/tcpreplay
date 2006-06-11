@@ -61,7 +61,6 @@
 #include "tree.h"
 #include "lib/sll.h"
 #include "lib/strlcpy.h"
-#include "dlt.h"
 
 /*
  * global variables

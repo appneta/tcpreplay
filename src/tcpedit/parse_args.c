@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006 Aaron Turner.
@@ -30,26 +30,32 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <pcap.h>
+
 #include "config.h"
 #include "defines.h"
 #include "common.h"
 #include "tcpedit.h"
-#include "mac.h"
 #include "tcpedit_stub.h"
+#include "../mac.h"
+#include "parse_args.h"
+#include "portmap.h"
 
 
 int 
-tcpedit_post_args(tcpedit_t **tcpedit_ex) {
+tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
     tcpedit_t *tcpedit;
 
     assert(tcpedit_ex);
     tcpedit = *tcpedit_ex;
     assert(tcpedit);
 
-    /*
-    tcpedit->runtime.pcap = pcap;
-    tcpedit->l2.dlt = pcap_datalink(pcap);
-    */
+    assert(pcap1);  
+    
+    tcpedit->runtime.pcap1 = pcap1;
+    tcpedit->runtime.pcap2 = pcap2; // may be NULL
+
+    tcpedit->l2.dlt = pcap_datalink(pcap1);
 
     /* --dmac */
     if (HAVE_OPT(DMAC)) {

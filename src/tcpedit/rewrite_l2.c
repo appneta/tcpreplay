@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2005 Aaron Turner.
@@ -41,6 +41,7 @@
  */
 
 #include "tcpedit.h"
+#include "../common.h"
 #include "lib/sll.h"
 #include "dlt.h"
 #include "rewrite_l2.h"
@@ -54,7 +55,8 @@ static int check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 /*
  * Do all the layer 2 rewriting.  Change ethernet header or even 
  * rewrite mac addresses
- * return layer 2 length on success or 0 on fail (don't send packet)
+ * return layer 2 length on success or 0 on don't send packet
+ * or -1 on critical failure
  */
 int
 rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr, 
@@ -63,6 +65,7 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
     u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
     int newl2len = 0;
     struct pcap_pkthdr *pkthdr;
+    pcap_t *pcap;
 
     pkthdr = *pkthdr_ptr;
 
@@ -75,7 +78,9 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
             l2data = tcpedit->l2.data1;
         }
     }
-    
+   
+    pcap = direction == CACHE_PRIMARY ? tcpedit->runtime.pcap1 : 
+            tcpedit->runtime.pcap2;
 
     /*
      * figure out what the CURRENT packet encapsulation is and we'll call
@@ -86,7 +91,7 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
      * We do NOT apply any src/dst mac rewriting, as that is common
      * to all conversions, so that happens at the bottom of this function
      */
-    switch (pcap_datalink(tcpedit->runtime.pcap)) {
+    switch (pcap_datalink(pcap)) {
     case DLT_EN10MB:       /* Standard 802.3 Ethernet */
         newl2len = rewrite_en10mb(tcpedit, pktdata, pkthdr_ptr, l2data);
         break;
@@ -102,6 +107,11 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
     case DLT_C_HDLC:         /* Cisco HDLC */
         newl2len = rewrite_c_hdlc(tcpedit, pktdata, pkthdr_ptr, l2data);
         break;
+
+    default:
+        tcpedit_seterr(tcpedit, "Unsupported DLT type: %d", 
+                pcap_datalink(pcap));
+        return -1;
 
     } /* switch (dlt) */
 
@@ -145,6 +155,9 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
 
 /*
  * logic to rewrite packets using DLT_EN10MB 
+ * returns -1 on error
+ * returns 0 un unable to rewrite
+ * returns length of new layer 2 header on success
  */
 
 int 
@@ -291,7 +304,8 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.dlt value: 0x%04x", tcpedit->l2.dlt);
+        tcpedit_seterr(tcpedit, "Invalid tcpedit->l2.dlt value: 0x%04x", tcpedit->l2.dlt);
+        return -1;
         break;
     }
 
@@ -306,6 +320,9 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
 
 /*
  * logic to rewrite packets using DLT_RAW
+ * returns -1 on error
+ * returns 0 un unable to rewrite
+ * returns length of new layer 2 header on success
  */
 
 int 
@@ -393,7 +410,8 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
+        tcpedit_seterr(tcpedit, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
+        return -1;
         break;
 
     }
@@ -409,6 +427,9 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
 
 /*
  * logic to rewrite packets using DLT_LINUX_SLL
+ * returns -1 on error
+ * returns 0 un unable to rewrite
+ * returns length of new layer 2 header on success
  */
 
 int 
@@ -504,7 +525,8 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
+        tcpedit_seterr(tcpedit, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
+        return -1;
         break;
 
     }
@@ -520,6 +542,8 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
 
 /*
  * logic to rewrite packets using DLT_C_HDLC
+ * returns -1 on error or 0 on unable to send packet.  Returns length of new 
+ * layer 2 header
  */
 int 
 rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata, 
@@ -535,12 +559,12 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
     pkthdr = *pkthdr_ptr;
 
 
-    newl2len = oldl2len = CISCO_HDLC_LEN;
+    newl2len = oldl2len = dlt2layer2len(tcpedit, DLT_C_HDLC);
 
     switch (tcpedit->l2.dlt) {
     case DLT_USER:
         /* track the new L2 len */
-        newl2len = tcpedit->l2.len;
+        newl2len = dlt2layer2len(tcpedit, DLT_USER);
         
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -559,7 +583,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
 
     case DLT_VLAN:
         /* new l2 len */
-        newl2len = LIBNET_802_1Q_H;
+        newl2len = dlt2layer2len(tcpedit, DLT_VLAN);
 
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -588,7 +612,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     case DLT_EN10MB:
-        newl2len = LIBNET_ETH_H;
+        newl2len = dlt2layer2len(tcpedit, DLT_EN10MB);
 
         if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -604,7 +628,8 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         break;
 
     default:
-        errx(1, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
+        tcpedit_seterr(tcpedit, "Invalid tcpedit->l2.dlt value: 0x%x", tcpedit->l2.dlt);
+        return -1;
         break;
 
     }

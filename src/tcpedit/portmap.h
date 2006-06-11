@@ -29,22 +29,16 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PORT_H__
-#define __PORT_H__
 
-struct tcpedit_portmap_s {
-    long from;
-    long to;
-    struct tcpedit_portmap_s *next;
-};
-typedef struct tcpedit_portmap_s tcpedit_portmap_t;
+#ifndef __PORTMAP_H__
+#define __PORTMAP_H__
 
 tcpedit_portmap_t *new_portmap();
 int parse_portmap(tcpedit_portmap_t **portmapdata, const char *ourstr);
 void free_portmap(tcpedit_portmap_t *portmap);
 void print_portmap(tcpedit_portmap_t *portmap);
 long map_port(tcpedit_portmap_t *portmap , long port);
-int rewrite_ports(tcpedit_portmap_t *portmap, ip_hdr_t **ip_hdr);
+int rewrite_ports(tcpedit_t *tcpedit, ip_hdr_t **ip_hdr);
 
 #endif
 

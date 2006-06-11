@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2006 Aaron Turner.
+ * Copyright (c) 2004-2006 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,21 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _PARSE_ARGS_H_
-#define _PARSE_ARGS_H_
+#ifndef _DLT_H_
+#define _DLT_H_
 
 #include "tcpedit.h"
 
-int tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2);
+#define TCPEDIT_DLT_OK 0
+#define TCPEDIT_DLT_SRC 1
+#define TCPEDIT_DLT_DST 2
+#define TCPEDIT_DLT_PROTO 4
 
-#endif
+
+int dlt2layer2len(tcpedit_t *tcpedit, int dlt);
+int dltrequires(tcpedit_t *tcpedit, int dlt);
+int dlt2mtu(tcpedit_t *tcpedit, int dlt);
+
+
+#endif /* _DLT_H_ */
+

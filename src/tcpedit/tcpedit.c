@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2006 Aaron Turner.
@@ -43,18 +43,17 @@
 #include "defines.h"
 #include "tcpedit.h"
 #include "tcpedit_stub.h"
-#include "parse_args.h"
-#include "common.h"
 #include "portmap.h"
+#include "common.h"
 #include "edit_packet.h"
 #include "../mac.h"
 #include "rewrite_l2.h"
+#include "parse_args.h"
 
 
 #include "lib/sll.h"
 #include "dlt.h"
 
-static void tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...);
 tOptDesc const* tcpedit_tcpedit_optDesc_p;
 
 /* 
@@ -106,8 +105,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if ((l2len = rewrite_l2(tcpedit, &pkthdr_ptr, newpkt, direction)) == 0)
         return 0; /* packet is too long and we didn't trunc, so skip it */
 
-    l2proto = get_l2protocol(newpkt, pkthdr_ptr->caplen, 
-            pcap_datalink(tcpedit->runtime.pcap));
+    if (direction == CACHE_PRIMARY) {
+        l2proto = get_l2protocol(newpkt, pkthdr_ptr->caplen, 
+                pcap_datalink(tcpedit->runtime.pcap1));
+    } else {
+        l2proto = get_l2protocol(newpkt, pkthdr_ptr->caplen, 
+                pcap_datalink(tcpedit->runtime.pcap2));
+    }
+
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == ETHERTYPE_IP) {
@@ -155,7 +160,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* rewrite ports */
     if (tcpedit->portmap != NULL && (ip_hdr != NULL)) {
-        needtorecalc += rewrite_ports(tcpedit->portmap, &ip_hdr);
+        needtorecalc += rewrite_ports(tcpedit, &ip_hdr);
     }
 
     /* Untruncate packet? Only for IP packets */
@@ -170,8 +175,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             needtorecalc += randomize_ipv4(tcpedit, pkthdr_ptr, newpkt, 
                     ip_hdr);
         } else {
-            randomize_iparp(tcpedit, pkthdr_ptr, newpkt, 
-                    pcap_datalink(tcpedit->runtime.pcap));
+            if (direction == CACHE_PRIMARY) {
+                randomize_iparp(tcpedit, pkthdr_ptr, newpkt, 
+                        pcap_datalink(tcpedit->runtime.pcap1));
+            } else {
+                randomize_iparp(tcpedit, pkthdr_ptr, newpkt, 
+                        pcap_datalink(tcpedit->runtime.pcap2));
+            }
         }
     }
 
@@ -197,31 +207,40 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 /*
  * initializes the tcpedit library
  */
-void
-tcpedit_init(tcpedit_t *tcpedit)
+int
+tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1, pcap_t *pcap2)
 {
 
-    tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
-    tcpedit->l2.len = LIBNET_ETH_H;
+    assert(tcpedit);
+    assert(pcap1);
 
-    tcpedit->l2.dlt = DLT_EN10MB;
+    tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
+    tcpedit->l2.len = dlt2layer2len(tcpedit, DLT_EN10MB);
+
     tcpedit->l2proto = ETHERTYPE_IP;
     tcpedit->mac_mask = 0x0;
 
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
+    tcpedit->runtime.pcap1 = pcap1;
+    tcpedit->runtime.pcap2 = pcap2 ? pcap2 : pcap1;
 
 #ifdef FORCE_ALIGN
-    tcpedit->runtime.ipbuff = (u_char *)safe_malloc(MAXPACKET);
+    if ((tcpedit->runtime.ipbuff = (u_char *)malloc(MAXPACKET)) == NULL)
+        return -1;
 #endif
+    return 0;
 }
 
 /*
  * Validates that given the current state of tcpedit that the given
  * pcap source and destination (based on DLT) can be properly rewritten
+ * return 0 on sucess
+ * return -1 on error
  */
 int
 tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
 {
+    assert(tcpedit);
 
     dbgx(1, "Input linktype is %s", 
         pcap_datalink_val_to_description(srcdlt));
@@ -244,14 +263,15 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
         default:
             tcpedit_seterr(tcpedit, "Invalid mac_mask value: 0x%4x",
                     tcpedit->mac_mask);
-            return 0;
+            return -1;
             break;
     }
 
+    /* is bidir sane? */
     if (tcpedit->bidir != TCPEDIT_BIDIR_ON &&
         tcpedit->bidir != TCPEDIT_BIDIR_OFF) {
         tcpedit_seterr(tcpedit, "Invalid bidir value: 0x%4x");
-        return 0;
+        return -1;
     }
 
 
@@ -263,7 +283,7 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
     if (dstdlt != DLT_EN10MB) {
         tcpedit_seterr(tcpedit, "Sorry, but tcpedit currently only "
                 "supports writing to DLT_EN10MB output");
-        return 0;
+        return -1;
     }
 
 
@@ -271,7 +291,7 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
      * user specified a full L2 header, so we're all set!
      */
     if (tcpedit->l2.enabled)
-        return 1;
+        return 0;
 
     /*
      * compare the linktype of the capture file to the information 
@@ -281,17 +301,14 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
     switch (srcdlt) {
     case DLT_USER:
         /* user specified header, nothing to do */
-        return 1;
         break;
 
     case DLT_VLAN:
         /* same as EN10MB, just different placement of proto field */
-        return 1;
         break;
 
     case DLT_EN10MB:
         /* nothing to do here */
-        return 1;
         break;
 
 
@@ -308,7 +325,7 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
                 tcpedit_seterr(tcpedit, 
                     "Input %s requires --dlink or --dmac <mac>", 
                     pcap_datalink_val_to_description(srcdlt));
-                return 0;
+                return -1;
             }
         }
         
@@ -321,7 +338,7 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
                     "Input %s with --cachefile requires --dlink or\n"
                     "\t--dmac <mac1>:<mac2>",  
                     pcap_datalink_val_to_description(srcdlt));
-                return 0;
+                return -1;
             }
         }            
         break;
@@ -331,8 +348,8 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
         /* 
          * DLT_C_HDLC
          * Cisco HDLC doesn't contain a source or destination mac,
-         * but it does contain the L3 protocol type (just like an ethernet header
-         * does) so we require either a full L2 or both src/dst mac's
+         * but it does contain the L3 protocol type (just like an ethernet 
+         * header does) so we require either a full L2 or both src/dst mac's
          *
          * DLT_RAW is assumed always IP, so we know the protocol type
          */
@@ -344,8 +361,9 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
                 ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC1) == 0)) {
                 tcpedit_seterr(tcpedit, 
                         "Input %s requires --dlink or --smac <mac> and "
-                        "--dmac <mac>", pcap_datalink_val_to_description(srcdlt));
-                return 0;
+                        "--dmac <mac>", 
+                        pcap_datalink_val_to_description(srcdlt));
+                return -1;
             }
         }
         
@@ -359,7 +377,7 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
                      "Input %s with --cachefile requires --dlink or\n"
                      "\t--smac <mac1>:<mac2> and --dmac <mac1>:<mac2>",
                      pcap_datalink_val_to_description(srcdlt));
-                return 0;
+                return -1;
             }
         }
         break;
@@ -374,12 +392,12 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
         tcpedit_seterr(tcpedit, "Unsupported input datalink %s (0x%x)", 
              pcap_datalink_val_to_description(srcdlt), 
              srcdlt);
-        return 0;
+        return -1;
         break;
     }
 
 
-    return 1;
+    return 0;
 }
 
 /*
@@ -397,7 +415,7 @@ tcpedit_geterr(tcpedit_t *tcpedit)
 /*
  * used to set the error string when there is an error
  */
-static void
+void
 tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
 {
     va_list ap;
