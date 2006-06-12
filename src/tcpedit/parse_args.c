@@ -42,9 +42,15 @@
 #include "portmap.h"
 
 
+/*
+ * returns 0 for sucess w/o errors
+ * returns 1 for sucess w/ warnings
+ * returns -1 for error
+ */
 int 
 tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
     tcpedit_t *tcpedit;
+    int rcode = 0;
 
     assert(tcpedit_ex);
     tcpedit = *tcpedit_ex;
@@ -56,6 +62,8 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
     tcpedit->runtime.pcap2 = pcap2; // may be NULL
 
     tcpedit->l2.dlt = pcap_datalink(pcap1);
+    dbgx(1, "Input file datalink type is %s\n",
+            pcap_datalink_val_to_name(tcpedit->l2.dlt));
 
     /* --dmac */
     if (HAVE_OPT(DMAC)) {
@@ -77,8 +85,10 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
                 /* nothing to do */
                 break;
             default:
-                errx(1, "Invalid result from dualmac2hex: %d for --dmac %s", 
+                tcpedit_seterr(tcpedit, 
+                        "Invalid result from dualmac2hex: %d for --dmac %s", 
                         macparse, OPT_ARG(DMAC));
+                return -1;
                 break;
         }
     }
@@ -103,8 +113,10 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
                 /* nothing to do */
                 break;
             default:
-                errx(1, "Invalid result from dualmac2hex: %d for --smac %s", 
+                tcpedit_seterr(tcpedit,
+                        "Invalid result from dualmac2hex: %d for --smac %s", 
                         macparse, OPT_ARG(SMAC));
+                return -1;
                 break;
         }
     }
@@ -125,8 +137,11 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
                 memcpy(tcpedit->l2.data2, tcpedit->l2.data1, tcpedit->l2.len);
             } else {
                 if (tcpedit->l2.len != read_hexstring(p, tcpedit->l2.data2,
-                        L2DATALEN))
-                    err(1, "both --dlink data must be the same length");
+                        L2DATALEN)) {
+                    tcpedit_seterr(tcpedit, 
+                            "both --dlink data must be the same length");
+                    return -1;
+                }
             }
 
             first = 0;
@@ -144,11 +159,17 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
         do {
             char *p = *list++;
             if (first) {
-                if (! parse_cidr_map(&tcpedit->cidrmap1, p))
-                    errx(1, "Unable to parse primary pseudo-NAT: %s", p);
+                if (! parse_cidr_map(&tcpedit->cidrmap1, p)) {
+                    tcpedit_seterr(tcpedit, 
+                            "Unable to parse primary pseudo-NAT: %s", p);
+                    return -1;
+                }
             } else {
-                if (! parse_cidr_map(&tcpedit->cidrmap2, p))
-                    errx(1, "Unable to parse secondary pseudo-NAT: %s", p);
+                if (! parse_cidr_map(&tcpedit->cidrmap2, p)) {
+                    tcpedit_seterr(tcpedit, 
+                            "Unable to parse secondary pseudo-NAT: %s", p);
+                    return -1;
+                }
             }
             
             first = 0;
@@ -183,7 +204,8 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
         } else if (strcmp(OPT_ARG(FIXLEN), "del") == 0) {
             tcpedit->fixlen = TCPEDIT_FIXLEN_DEL;
         } else {
-            errx(1, "Invalid --fixlen %s", OPT_ARG(FIXLEN));
+            tcpedit_seterr(tcpedit, "Invalid --fixlen %s", OPT_ARG(FIXLEN));
+            return -1;
         }
     }
 
@@ -194,7 +216,9 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
         if (! parse_portmap(&tcpedit->portmap, OPT_ARG(PORTMAP))) {
-            errx(1, "Unable to parse portmap: %s", OPT_ARG(PORTMAP));
+            tcpedit_seterr(tcpedit, 
+                    "Unable to parse portmap: %s", OPT_ARG(PORTMAP));
+            return -1;
         }
     }
 
@@ -210,8 +234,12 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
 
     if (HAVE_OPT(ENDPOINTS)) {
         tcpedit->rewrite_ip = TCPEDIT_REWRITE_IP_ON;
-        if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2, OPT_ARG(ENDPOINTS)))
-            errx(1, "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
+        if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2,
+                    OPT_ARG(ENDPOINTS))) {
+            tcpedit_seterr(tcpedit, 
+                    "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
+            return -1;
+        }
     }
 
     /*
@@ -223,15 +251,20 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
         } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
             tcpedit->vlan = TCPEDIT_VLAN_DEL;
         } else {
-            errx(1, "Invalid --vlan %s", OPT_ARG(VLAN));
+            tcpedit_seterr(tcpedit, "Invalid --vlan %s", OPT_ARG(VLAN));
+            return -1;
         }
 
         if (tcpedit->vlan != TCPEDIT_VLAN_OFF) {
             tcpedit->l2.dlt = DLT_VLAN;
 
             if (tcpedit->vlan == TCPEDIT_VLAN_ADD) {
-                if (! HAVE_OPT(VLAN_TAG)) 
-                    err(1, "Must specify a new 802.1 VLAN tag if vlan mode is add");
+                if (! HAVE_OPT(VLAN_TAG)) {
+                    tcpedit_seterr(tcpedit, 
+                            "Must specify a new 802.1 VLAN tag if vlan "
+                            "mode is add");
+                    return -1;
+                }
 
                 /*
                  * fill out the 802.1q header
@@ -240,7 +273,9 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
 
                 /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
                 tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
-                dbgx(1, "We will %s 802.1q headers", tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+                dbgx(1, "We will %s 802.1q headers", 
+                        tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : 
+                        "add/modify");
 
             if (HAVE_OPT(VLAN_PRI))
                 tcpedit->l2.vlan_pri = OPT_VALUE_VLAN_PRI;
@@ -256,12 +291,12 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
      */
     if (tcpedit->l2.enabled) {
         /* custom l2 header */
-        dbg(1, "Using custom L2 header to calculate max frame size");
+        dbg(1, "Using custom L2 header to calculate max frame size\n");
         tcpedit->maxpacket = tcpedit->mtu + tcpedit->l2.len;
     }
     else if (tcpedit->l2.dlt == DLT_EN10MB) {
         /* ethernet */
-        dbg(1, "Using Ethernet to calculate max frame size");
+        dbg(1, "Using Ethernet to calculate max frame size\n");
         tcpedit->maxpacket = tcpedit->mtu + LIBNET_ETH_H;
     } else {
         /* 
@@ -269,10 +304,13 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
          * work
          */
         tcpedit->maxpacket = tcpedit->mtu + LIBNET_ETH_H;
-        warn("Unable to determine layer 2 encapsulation, assuming ethernet.\n"
-            "You may need to increase the MTU (-t <size>) if you get errors");
+        tcpedit_seterr(tcpedit, 
+                "Unsupported DLT type: %s.  We'll just treat it as ethernet.\n"
+            "You may need to increase the MTU (-t <size>) if you get errors\n",
+            pcap_datalink_val_to_name(tcpedit->l2.dlt));
+        rcode = 1;
     }
 
-    return 1;
+    return rcode;
 }
 
