@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2004-2005 Aaron Turner.
@@ -52,6 +52,7 @@
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
 #include "tcpedit/tcpedit.h"
+#include "tcpedit/parse_args.h"
 
 #ifdef DEBUG
 int debug;
@@ -68,12 +69,12 @@ tcpedit_t tcpedit;
 /* local functions */
 void init(void);
 void post_args(int argc, char *argv[]);
-void rewrite_packets(pcap_t *inpcap, pcap_dumper_t *outpcap);
+void rewrite_packets(tcpedit_t *tcpedit, pcap_t *inpcap, pcap_dumper_t *outpcap);
 void verify_input_pcap(pcap_t *pcap);
 
 int main(int argc, char *argv[])
 {
-    int optct;
+    int optct, rcode;
     char ebuf[LIBNET_ERRBUF_SIZE];
     tcpedit_t *tcpedit_ptr;
 
@@ -86,7 +87,12 @@ int main(int argc, char *argv[])
 
     post_args(argc, argv);
     tcpedit_ptr = &tcpedit;
-    tcpedit_post_args(&tcpedit_ptr);
+    rcode = tcpedit_post_args(&tcpedit_ptr, options.pin, options.pin);
+    if (rcode < 0) {
+        errx(1, "Unable to parse args: %s", tcpedit_geterr(&tcpedit));
+    } else if (rcode == 1) {
+        warnx("%s", tcpedit_geterr(&tcpedit));
+    }
 
     if ((options.l = libnet_init(LIBNET_RAW4, NULL, ebuf)) == NULL)
         errx(1, "Unable to open raw socket for libnet: %s", ebuf);
@@ -98,13 +104,13 @@ int main(int argc, char *argv[])
     }
 #endif
     
-    if (! tcpedit_validate(&tcpedit, pcap_datalink(options.pin), 
-           pcap_datalink(options.pin))) {
+    if (tcpedit_validate(&tcpedit, pcap_datalink(options.pin), 
+           pcap_datalink(options.pin)) < 0) {
         errx(1, "Unable to edit packets given options/DLT types:\n%s",
                 tcpedit_geterr(&tcpedit));
     }
 
-    rewrite_packets(options.pin, options.pout);
+    rewrite_packets(&tcpedit, options.pin, options.pout);
 
 
     /* clean up after ourselves */
@@ -170,7 +176,7 @@ post_args(int argc, char *argv[])
 }
 
 void
-rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
+rewrite_packets(tcpedit_t *tcpedit, pcap_t * inpcap, pcap_dumper_t *outpcap)
 {
     int cache_result = CACHE_PRIMARY; /* default to primary */
     struct pcap_pkthdr pkthdr;        /* packet header */
@@ -214,7 +220,12 @@ rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
         pkthdr_ptr = &pkthdr;
         pktdata_ptr = (u_char *)&pktdata;
 
-        tcpedit_packet(&tcpedit, &pkthdr_ptr, &pktdata_ptr, cache_result);
+        if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata_ptr, cache_result)
+                == -1) {
+            errx(1, "Error in tcpedit_packet(): %s", 
+                    tcpedit_geterr(tcpedit));
+        }
+
 
 WRITE_PACKET:
         /* write the packet */
