@@ -433,7 +433,7 @@ tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
 
 
 /*
- * Cleans up after ourselves
+ * Cleans up after ourselves.  Return 0 on success.
  */
 int
 tcpedit_close(tcpedit_t *tcpedit)
@@ -447,13 +447,14 @@ tcpedit_close(tcpedit_t *tcpedit)
     free(tcpedit->runtime.ipbuff);
 #endif
 
-    return 1;
+    return 0;
 }
 
 /*
  * ADT This needs to be filled out from tcprewrite.c
-void
-rewrite_packets(pcap_t * inpcap, pcap_dumper_t *outpcap)
+int
+tcpedit_rewrite_packets(tcpedit_t *tcpedit, pcap_t * inpcap, 
+        pcap_dumper_t *outpcap)
 {
 
 }
