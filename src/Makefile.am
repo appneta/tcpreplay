@@ -1,5 +1,5 @@
 # $Id$
-SUBDIRS = common tcpedit
+SUBDIRS = common tcpedit flow
 
 if SYSTEM_STRLCPY
 LIBSTRL =
@@ -68,10 +68,9 @@ tcpprep_opts.c: tcpprep_opts.def
 	@AUTOGEN@ tcpprep_opts.def
 
 flowreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DFLOWREPLAY
-flowreplay_LDADD = ./common/libcommon.a $(LIBSTRL) \
+flowreplay_LDADD = ./common/libcommon.a $(LIBSTRL) ./flow/libflow.a \
 		  @LNIDSLIB@ @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-flowreplay_SOURCES = flowreplay_opts.c flowreplay.c flowkey.c flownode.c \
-		     flowbuff.c flowstate.c 
+flowreplay_SOURCES = flowreplay_opts.c flowreplay.c 
 flowreplay_OBJECTS: flowreplay_opts.h
 flowreplay_opts.h: flowreplay_opts.c
 flowreplay_opts.c: flowreplay_opts.def

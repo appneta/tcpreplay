@@ -48,10 +48,10 @@
 
 #include "flowreplay.h"
 #include "flowreplay_opts.h"
-#include "flownode.h"
-#include "flowkey.h"
-#include "flowstate.h"
-#include "flowbuff.h"
+#include "flow/flownode.h"
+#include "flow/flowkey.h"
+#include "flow/flowstate.h"
+#include "flow/flowbuff.h"
 #include "tree.h"
 
 #ifdef DEBUG

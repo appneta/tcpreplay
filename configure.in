@@ -761,6 +761,7 @@ AC_OUTPUT([Makefile
            src/Makefile
            src/common/Makefile
            src/tcpedit/Makefile
+           src/flow/Makefile
            src/defines.h
            test/Makefile
            test/config
