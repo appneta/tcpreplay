@@ -47,7 +47,6 @@ typedef struct libnet_udp_hdr udp_hdr_t;
 typedef struct libnet_ethernet_hdr eth_hdr_t;
 typedef struct libnet_802_1q_hdr  vlan_hdr_t;
 typedef struct sll_header sll_hdr_t;
-typedef struct cisco_hdlc_header_s hdlc_hdr_t;
 
 /* our custom typdefs/structs */
 typedef u_char tcpr_macaddr_t[LIBNET_ETH_H];
