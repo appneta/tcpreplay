@@ -51,7 +51,7 @@ struct tcpprep_opt_s {
 
     tcpr_cache_t *cachedata;
     tcpr_cidr_t *cidrdata;
-
+    char *maclist;
     tcpr_xX_t xX;
     tcpr_bpf_t bpf;
     tcpr_services_t services;

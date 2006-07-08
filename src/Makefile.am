@@ -61,7 +61,7 @@ tcprewrite_opts.c: tcprewrite_opts.def
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \
 		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c
+tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c mac.c
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def

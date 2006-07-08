@@ -61,6 +61,7 @@
 #include "tree.h"
 #include "lib/sll.h"
 #include "lib/strlcpy.h"
+#include "mac.h"
 
 /*
  * global variables
@@ -120,7 +121,8 @@ main(int argc, char *argv[])
     if ((options.pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
         errx(1, "Error opening file: %s", errbuf);
 
-    switch((int)options.pcap) {
+    /* make sure we support the DLT type */
+    switch(pcap_datalink(options.pcap)) {
         case DLT_EN10MB:
         case DLT_LINUX_SLL:
         case DLT_RAW:
@@ -128,6 +130,12 @@ main(int argc, char *argv[])
             break; /* do nothing because all is good */
         default:
             errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
+    }
+
+    /* Can only split based on MAC address for ethernet */
+    if ((pcap_datalink(options.pcap) != DLT_EN10MB) &&
+        (options.mode == MAC_MODE)) {
+        err(1, "MAC mode splitting is only supported by DLT_EN10MB packet captures.");
     }
 
 #ifdef HAVE_TCPDUMP
@@ -284,6 +292,7 @@ static COUNTER
 process_raw_packets(pcap_t * pcap)
 {
     ip_hdr_t *ip_hdr = NULL;
+    eth_hdr_t *eth_hdr = NULL;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
     COUNTER packetnum = 0;
@@ -315,6 +324,8 @@ process_raw_packets(pcap_t * pcap)
                 continue;
             }
         }
+        
+        eth_hdr = (eth_hdr_t *)pktdata;
 
         /* get the IP header (if any) */
         buffptr = ipbuff;
@@ -353,6 +364,11 @@ process_raw_packets(pcap_t * pcap)
             dbg(2, "processing cidr mode...");
             cache_result = add_cache(&options.cachedata, SEND,
                       check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
+            break;
+        case MAC_MODE:
+            dbg(2, "processing mac mode...");
+            cache_result = add_cache(&options.cachedata, SEND,
+                macinstring(options.maclist, (u_char *)eth_hdr->ether_shost));
             break;
         case AUTO_MODE:
             dbg(2, "processing first pass of auto mode...");

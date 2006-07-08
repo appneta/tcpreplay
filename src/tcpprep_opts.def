@@ -75,6 +75,7 @@ flag = {
     flags-cant  = cidr;
     flags-cant  = port;
     flags-cant  = regex;
+	flags-cant	= mac;
     flag-code   = <<- EOAuto
     
     options.mode = AUTO_MODE;
@@ -136,6 +137,7 @@ flag = {
     flags-cant  = auto;
     flags-cant  = port;
     flags-cant  = regex;
+	flags-cant	= mac;
     flag-code   = <<- EOCidr
   
     char *cidr = safe_strdup(OPT_ARG(CIDR));
@@ -161,6 +163,7 @@ flag = {
     flags-cant  = auto;
     flags-cant  = port;
     flags-cant  = cidr;
+	flags-cant	= mac;
     flag-code   = <<- EORegex
     
     int regex_error;
@@ -184,9 +187,11 @@ flag = {
     name        = port;
     value       = p;
     descrip     = "Port-split mode";
+	max			= 1;
     flags-cant  = auto;
     flags-cant  = regex;
     flags-cant  = cidr;
+	flags-cant	= mac;
     flag-code   = <<- EOPort
     
     options.mode = PORT_MODE;
@@ -196,6 +201,31 @@ EOPort;
 Specifies that TCP and UDP traffic should be classified as client
 or server based upon the destination port of the header.
 EOText;
+};
+
+flag = {
+	name		= mac;
+	value		= e;
+	arg-type	= string;
+	max			= 1;
+	descrip		= "Source MAC split mode";
+	flags-cant	= auto;
+	flags-cant	= regex;
+	flags-cant	= cidr;
+	flags-cant	= port;
+	flag-code	= <<- EOMac
+	
+	options.mode = MAC_MODE;
+	options.maclist = safe_strdup(OPT_ARG(MAC));
+	
+
+EOMac;
+	doc			= <<- EOText
+Specify a list of MAC addresses to match against the source MAC
+of each packet.  Packets matching one of the values are classified
+as servers.	
+EOText;
+	
 };
 
 flag = {

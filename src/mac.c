@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 /* Copyright 2004-2005 Aaron Turner 
  * All rights reserved.
  *
@@ -107,6 +107,44 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
 
 }
 
+/*
+ * Figures out if a MAC is listed in a comma delimited
+ * string of MAC addresses.
+ * returns CACHE_PRIMARY if listed
+ * returns CACHE_SECONDARY if not listed
+ */
+int
+macinstring(const char *macstring, const u_char *mac)
+{
+    char *tok, *tempstr, *ourstring;
+    u_char *tempmac;
+    int len = 6, ret = CACHE_SECONDARY;
+    
+    ourstring = safe_strdup(macstring);
+    
+    tempstr = strtok_r(ourstring, ",", &tok);
+    if (strlen(tempstr)) {
+       mac2hex(tempstr, tempmac, len);
+       if (memcmp(mac, tempmac, len) == 0) {
+           ret = CACHE_PRIMARY;
+           goto EXIT_MACINSTRING;
+       }
+    } else {
+        goto EXIT_MACINSTRING;
+    }
+
+    while ((tempstr = strtok_r(NULL, ",", &tok)) != NULL) {
+       mac2hex(tempstr, tempmac, len);
+       if (memcmp(mac, tempmac, len) == 0) {
+           ret = CACHE_PRIMARY;
+           goto EXIT_MACINSTRING;
+       }
+    }
+
+EXIT_MACINSTRING:
+    free(ourstring);
+    return ret;
+}
 
 /*
   Local Variables:

@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 /* Copyright 2004 Aaron Turner 
  * All rights reserved.
  *
@@ -34,6 +34,7 @@
 
 void mac2hex(const char *mac, u_char *dst, int len);
 int dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len);
+int macinstring(const char *macstring, const u_char *mac);
 
 #endif /* __MAC_H__ */
 
