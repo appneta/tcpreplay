@@ -376,7 +376,7 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
 
 /*
  * checks to see if the ip address is in the cidr
- * returns 1 for true, 0 for false
+ * returns CACHE_PRIMARY for true, CACHE_SECONDARY for false
  */
 
 int
@@ -386,7 +386,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 
     /* always return 1 if 0.0.0.0/0 */
     if (mycidr->masklen == 0 && mycidr->network == 0)
-        return 1;
+        return CACHE_PRIMARY;
 
     mask = ~0;                  /* turn on all the bits */
 
@@ -405,7 +405,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-        return 1;
+        return CACHE_PRIMARY;
     }
     else {
 
@@ -413,14 +413,14 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-        return 0;
+        return CACHE_SECONDARY;
     }
 
 }
 
 /*
  * iterates over cidrdata to find if a given ip matches
- * returns 1 for true, 0 for false
+ * returns CACHE_PRIMARY for true, CACHE_SECONDARY for false
  */
 
 int
@@ -432,7 +432,7 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
      * this actually should happen occasionally, so don't put an assert here
      */
     if (cidrdata == NULL) {
-        return 0;
+        return CACHE_SECONDARY;
     }
 
     mycidr = cidrdata;
@@ -443,7 +443,7 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
         /* if match, return 1 */
         if (ip_in_cidr(mycidr, ip)) {
             dbgx(3, "Found %s in cidr", get_addr2name4(ip, RESOLVE));
-            return 1;
+            return CACHE_PRIMARY;
         }
         /* check for next record */
         if (mycidr->next != NULL) {
@@ -456,7 +456,7 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
 
     /* if we get here, no match */
     dbgx(3, "Didn't find %s in cidr", get_addr2name4(ip, RESOLVE));
-    return 0;
+    return CACHE_SECONDARY;
 }
 
 

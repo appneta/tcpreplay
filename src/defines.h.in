@@ -94,9 +94,10 @@ typedef struct tcpr_speed_s tcpr_speed_t;
 
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
-/* #define MAXPACKET 16436          MTU of Linux loopback */
-#define MAXPACKET 65535         /* maybe something is bigger then 
+
+#define MAXPACKET 65535         /* was 16436 linux loopback, but maybe something is bigger then 
                                    linux loopback */
+
 #define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */
 
 #define RESOLVE 0               /* disable dns lookups */
@@ -119,14 +120,17 @@ typedef struct tcpr_speed_s tcpr_speed_t;
 #define UNKNOWN -1
 #define ANY 2
 
-#define CIDR_MODE 1             /* single pass, CIDR netblock */
-#define REGEX_MODE 2            /* single pass, Regex */
-#define AUTO_MODE 4             /* first pass through in auto mode */
-#define PORT_MODE 8             /* single pass, use src/dst ports to split */
-#define ROUTER_MODE 16          /* second pass through in router/auto mode */
-#define BRIDGE_MODE 32          /* second pass through in bridge/auto mode */
-#define SERVER_MODE 64          /* second pass through in client/auto mode */
-#define CLIENT_MODE 128         /* second pass through in server/auto mode */
+enum tcpprep_mode {
+	CIDR_MODE,     	/* single pass, CIDR netblock */
+	REGEX_MODE,		/* single pass, regex */
+	PORT_MODE,		/* single pass, use src/dst ports to split */
+	MAC_MODE,		/* single pass, use src mac to split */
+	AUTO_MODE,		/* first pass through in auto mode */
+	ROUTER_MODE,	/* second pass through in router mode */
+	BRIDGE_MODE,	/* second pass through in bridge mode */
+	SERVER_MODE,	/* second pass through in server (router) mode */
+	CLIENT_MODE		/* second pass through in client (router) mode */
+};
 
 #define BROADCAST_MAC "\FF\FF\FF\FF\FF\FF"
 
