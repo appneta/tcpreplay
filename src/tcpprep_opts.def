@@ -366,6 +366,14 @@ flag = {
 };
 
 flag = {
+	name		= print-stats;
+	value		= S;
+	arg-type	= string;
+	descrip		= "Print statistical information about the specified cache file";
+	doc			= "";
+};
+
+flag = {
     name        = services;
     value       = s;
     descrip     = "Load services file for server ports";

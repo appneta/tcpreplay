@@ -83,6 +83,7 @@ static void init(void);
 static void post_args(int, char *[]);
 static void print_comment(const char *);
 static void print_info(const char *);
+static void print_stats(const char *);
 static int check_ip_regex(const unsigned long ip);
 static COUNTER process_raw_packets(pcap_t * pcap);
 static int check_dst_port(ip_hdr_t *ip_hdr, int len);
@@ -119,11 +120,14 @@ main(int argc, char *argv[])
     if ((options.pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
         errx(1, "Error opening file: %s", errbuf);
 
-    if ((pcap_datalink(options.pcap) != DLT_EN10MB) &&
-        (pcap_datalink(options.pcap) != DLT_LINUX_SLL) &&
-        (pcap_datalink(options.pcap) != DLT_RAW) &&
-        (pcap_datalink(options.pcap) != DLT_C_HDLC)) {
-        errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
+    switch((int)options.pcap) {
+        case DLT_EN10MB:
+        case DLT_LINUX_SLL:
+        case DLT_RAW:
+        case DLT_C_HDLC:
+            break; /* do nothing because all is good */
+        default:
+            errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
     }
 
 #ifdef HAVE_TCPDUMP
@@ -450,6 +454,9 @@ post_args(int argc, char *argv[])
     if (HAVE_OPT(PRINT_INFO))
         print_info(OPT_ARG(PRINT_INFO));
 
+    if (HAVE_OPT(PRINT_STATS))
+        print_stats(OPT_ARG(PRINT_STATS));
+        
     if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(PCAP))
         err(1, "Must specify an output cachefile (-o) and input pcap (-i)");
     
@@ -577,6 +584,39 @@ print_info(const char *file)
         }
 
     }
+    exit(0);
+}
+
+static void
+print_stats(const char *file)
+{
+    char *cachedata = NULL;
+    char *comment = NULL;
+    COUNTER count = 0;
+    COUNTER pri = 0, sec = 0, nosend = 0;
+    
+    count = read_cache(&cachedata, file, &comment);
+    for (COUNTER i = 1; i <= count; i ++) {
+        int cacheval = check_cache(cachedata, i);
+        switch (cacheval) {
+            case CACHE_PRIMARY:
+                pri ++;
+                break;
+            case CACHE_SECONDARY:
+                sec ++;
+                break;
+            case CACHE_NOSEND:
+                nosend ++;
+                break;
+            default:
+                errx(1, "Unknown cache value: %d", cacheval);
+        }
+    }
+    printf("Primary packets:\t" COUNTER_SPEC "\n", pri);
+    printf("Secondary packets:\t" COUNTER_SPEC "\n", sec);
+    printf("Skipped packets:\t" COUNTER_SPEC "\n", nosend);
+    printf("------------------------------\n");
+    printf("Total packets:\t\t" COUNTER_SPEC "\n", count);
     exit(0);
 }
 
