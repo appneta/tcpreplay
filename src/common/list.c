@@ -161,20 +161,20 @@ int
 check_list(tcpr_list_t * list, COUNTER value)
 {
     tcpr_list_t *current;
-
     current = list;
+
     do {
         if ((current->min != 0) && (current->max != 0)) {
             if ((value >= current->min) && (value <= current->max))
-                return 1;
+                return CACHE_PRIMARY;
         }
         else if (current->min == 0) {
             if (value <= current->max)
-                return 1;
+                return CACHE_PRIMARY;
         }
         else if (current->max == 0) {
             if (value >= current->min)
-                return 1;
+                return CACHE_PRIMARY;
         }
 
         if (current->next != NULL) {
@@ -186,7 +186,7 @@ check_list(tcpr_list_t * list, COUNTER value)
 
     } while (current != NULL);
 
-    return 0;
+    return CACHE_SECONDARY;
 
 }
 

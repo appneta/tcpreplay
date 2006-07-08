@@ -43,6 +43,7 @@ int process_xX_by_cidr(int, tcpr_cidr_t *, ip_hdr_t *);
 /*
  * Include/Exclude (xXmode) values
  */
+#define xXError 0
 #define xXSource 1
 #define xXDest 2
 #define xXBoth 4

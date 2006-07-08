@@ -44,7 +44,7 @@
 
 /*
  * returns the include_exclude_mode on success placing the CIDR or LIST in mybuf
- * but on failure, returns 0
+ * but on failure, returns xXError
  */
 
 int
@@ -60,19 +60,19 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
         str = str + 2;
         out = xXBoth;
         if (!parse_cidr(&(xX->cidr), str, ","))
-            return 0;
+            return xXError;
         break;
     case 'D':                  /* dst ip */
         str = str + 2;
         out = xXDest;
         if (!parse_cidr(&(xX->cidr), str, ","))
-            return 0;
+            return xXError;
         break;
     case 'E':                  /* either ip */
         str = str + 2;
         out = xXEither;
         if (!parse_cidr(&(xX->cidr), str, ","))
-            return 0;
+            return xXError;
         break;
     case 'F':                  /* bpf filter */
         str = str + 2;
@@ -88,13 +88,13 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
         str = str + 2;
         out = xXPacket;
         if (!parse_list(&(xX->list), str))
-            return 0;
+            return xXError;
         break;
     case 'S':                  /* source ip */
         str = str + 2;
         out = xXSource;
         if (!parse_cidr(&(xX->cidr), str, ","))
-            return 0;
+            return xXError;
         break;
 
 
@@ -130,17 +130,17 @@ process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ip_hdr_t * ip_hdr)
         /* Exclude mode */
         switch (mode ^ xXExclude) {
         case xXSource:
-            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ? 0 : 1;
+            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ? DONT_SEND : SEND;
             break;
         case xXDest:
-            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) ? 0 : 1;
+            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) ? DONT_SEND : SEND;
         case xXBoth:
             return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) &&
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? 0 : 1;
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? DONT_SEND : SEND;
             break;
         case xXEither:
             return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) ||
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? 0 : 1;
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? DONT_SEND : SEND;
             break;
         }
     }
@@ -148,25 +148,30 @@ process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ip_hdr_t * ip_hdr)
         /* Include Mode */
         switch (mode) {
         case xXSource:
-            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ? 1 : 0;
+            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ? SEND : DONT_SEND;
             break;
         case xXDest:
-            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) ? 1 : 0;
+            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) ? SEND : DONT_SEND;
             break;
         case xXBoth:
             return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) &&
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? 1 : 0;
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? SEND : DONT_SEND;
             break;
         case xXEither:
             return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) ||
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? 1 : 0;
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)) ? SEND : DONT_SEND;
             break;
         }
     }
 
     /* total failure */
-    warn("Unable to determine action in CIDR filter mode");
-    return 0;
+    if (mode &xXExclude) {
+        warn("Unable to determine action in CIDR filter mode.  Default: Don't Send.");
+        return DONT_SEND;
+    } else {
+        warn("Unable to determine action in CIDR filter mode.  Default: Send.");
+        return SEND;
+    }
 
 }
 

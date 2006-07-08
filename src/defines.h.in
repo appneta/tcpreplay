@@ -121,6 +121,7 @@ typedef struct tcpr_speed_s tcpr_speed_t;
 #define ANY 2
 
 enum tcpprep_mode {
+	ERROR_MODE,     /* Some kind of error has occurred */
 	CIDR_MODE,     	/* single pass, CIDR netblock */
 	REGEX_MODE,		/* single pass, regex */
 	PORT_MODE,		/* single pass, use src/dst ports to split */
