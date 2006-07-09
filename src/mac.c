@@ -117,7 +117,7 @@ int
 macinstring(const char *macstring, const u_char *mac)
 {
     char *tok, *tempstr, *ourstring;
-    u_char *tempmac;
+    u_char tempmac[6];
     int len = 6, ret = CACHE_SECONDARY;
     
     ourstring = safe_strdup(macstring);
@@ -126,6 +126,7 @@ macinstring(const char *macstring, const u_char *mac)
     if (strlen(tempstr)) {
        mac2hex(tempstr, tempmac, len);
        if (memcmp(mac, tempmac, len) == 0) {
+           dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
            ret = CACHE_PRIMARY;
            goto EXIT_MACINSTRING;
        }
@@ -137,12 +138,17 @@ macinstring(const char *macstring, const u_char *mac)
        mac2hex(tempstr, tempmac, len);
        if (memcmp(mac, tempmac, len) == 0) {
            ret = CACHE_PRIMARY;
+           dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
            goto EXIT_MACINSTRING;
        }
     }
 
 EXIT_MACINSTRING:
     free(ourstring);
+#ifdef DEBUG
+    if (ret == CACHE_SECONDARY)
+       dbg(3, "Packet doesn't match any MAC addresses sending out secondary.\n");
+#endif
     return ret;
 }
 
