@@ -250,7 +250,6 @@ new_cache(void)
 
 /*
  * adds the cache data for a packet to the given cachedata
- * CIDR * cidrdata
  */
 
 int
@@ -292,7 +291,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const int interface)
     dbgx(1, "Cache array packet %d", lastcache->packets);
 
     /* send packet ? */
-    if (send) {
+    if (send == SEND) {
         index = (lastcache->packets - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
         bit = (((lastcache->packets - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
                (COUNTER)CACHE_BITS_PER_PACKET) + 1;
@@ -304,7 +303,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const int interface)
         dbgx(2, "set send bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
 
         /* if true, set low order bit. else, do squat */
-        if (interface) {
+        if (interface == CACHE_PRIMARY) {
             *byte += (u_char)(1 << (bit - 1));
 
             dbgx(2, "set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
