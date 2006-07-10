@@ -233,6 +233,7 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
     int i;
 
     if (dnslookup == LIBNET_RESOLVE) {
+#ifdef HAVE_INET_ADDR
         if ((addr.s_addr = inet_addr(hostname)) == -1) {
             if (!(host_ent = gethostbyname(hostname))) {
                 warnx("unable to resolve %s: %s", hostname, strerror(errno));
@@ -242,10 +243,15 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
 
             /* was: host_ent->h_length); */
             memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr)); 
+#else
+warn("Unable to support get_name2addr4 w/ resolve");
+goto DONT_RESOLVE;
+#endif
         }
         /* network byte order */
         return (addr.s_addr);
     } else {
+        DONT_RESOLVE:
         /*
          *  We only want dots 'n decimals.
          */
@@ -286,17 +292,27 @@ const char *
 get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
 {
     struct in_addr addr;
-    static char new_string[255];
+    char *new_string = NULL;
 
+    if (new_string == NULL)
+        new_string = (char *)safe_malloc(255);
+        
+    new_string[0] = '\0';
     addr.s_addr = ip;
 
-#ifdef HAVE_INET_PTON
-    if (inet_pton(AF_INET, &addr, &new_string, 255) == NULL) {
+#ifdef HAVE_INET_NTOP
+    if (inet_ntop(AF_INET, &addr, new_string, 255) == NULL) {
         warnx("Unable to convert 0x%x to a string", ip);
         strcpy(new_string, "");
     }
+    return new_string;
+#elif defined HAVE_INET_NTOA
+    return inet_pton(&addr);
+#else
+#error "Unable to support get_addr2name4."
 #endif
-    if (dnslookup == RESOLVE) {
+
+    if (dnslookup != 0) {
         warn("Sorry, we don't support name resolution.");
     }
     return new_string;

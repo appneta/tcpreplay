@@ -383,7 +383,8 @@ int
 ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 {
     unsigned long ipaddr = 0, network = 0, mask = 0;
-
+    int ret;
+    
     /* always return 1 if 0.0.0.0/0 */
     if (mycidr->masklen == 0 && mycidr->network == 0)
         return CACHE_PRIMARY;
@@ -405,7 +406,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-        return CACHE_PRIMARY;
+        ret = CACHE_PRIMARY;
     }
     else {
 
@@ -413,9 +414,9 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-        return CACHE_SECONDARY;
+        ret = CACHE_SECONDARY;
     }
-
+    return ret;
 }
 
 /*
@@ -441,7 +442,7 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
     while (1) {
 
         /* if match, return 1 */
-        if (ip_in_cidr(mycidr, ip)) {
+        if (ip_in_cidr(mycidr, ip) == CACHE_PRIMARY) {
             dbgx(3, "Found %s in cidr", get_addr2name4(ip, RESOLVE));
             return CACHE_PRIMARY;
         }

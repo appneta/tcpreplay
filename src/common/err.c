@@ -101,7 +101,7 @@ _our_verbose_dbg(int dbg_level, const char *string, const char *function, const 
     if (debug < dbg_level)
         return;
 
-    fprintf(stderr, "DEBUG%d in %s:%s() line %d: %s", dbg_level, file, 
+    fprintf(stderr, "DEBUG%d in %s:%s() line %d: %s\n", dbg_level, file, 
             function, line, string);
 #else
     return;

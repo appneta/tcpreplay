@@ -60,6 +60,18 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
+/* Do we have inet_addr? */
+#undef HAVE_INET_ADDR
+
+/* Do we have inet_aton? */
+#undef HAVE_INET_ATON
+
+/* Do we have inet_ntop? */
+#undef HAVE_INET_NTOP
+
+/* Do we have inet_pton? */
+#undef HAVE_INET_PTON
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -232,15 +244,6 @@
 
 /* What is the path (if any) to the pcap-bpf.h header? */
 #undef INCLUDE_PCAP_BPF_HEADER
-
-/* Do we have inet_addr? */
-#undef INET_ADDR
-
-/* Do we have inet_aton? */
-#undef INET_ATON
-
-/* Do we have inet_pton? */
-#undef INET_PTON
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
    */
