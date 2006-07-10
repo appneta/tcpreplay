@@ -13,7 +13,7 @@ TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
 
 EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
-		 test.auto_server test.cidr test.comment test.port \
+		 test.auto_server test.cidr test.comment test.port test.mac \
 		 test.prep_config test.primary test.regex test.secondary
 
 test: all
@@ -35,11 +35,12 @@ standard:
 	$(TCPPREP) -i test.pcap -o test.auto_server -a server
 	$(TCPPREP) --load-opts config -o test.prep_config
 	$(TCPPREP) -i test.pcap -o test.port -p
+	$(TCPPREP) -i test.pcap -o test.mac -e 00:02:3b:00:3d:ce
 	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
 	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
 	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
 
-tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port comment print_info print_comment prep_config
+tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port mac comment print_info print_comment prep_config
 tcprewrite: rewrite_cache rewrite_cidr rewrite_trunc rewrite_pad rewrite_rand rewrite_layer2 rewrite_config
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config replay_multi
 
@@ -96,6 +97,13 @@ port:
 	$(PRINTF) "%s" "[tcpprep] Port mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Port mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -p 2>>test.log
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+mac:
+	$(PRINTF) "%s" "[tcpprep] MAC mode test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] MAC mode test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
