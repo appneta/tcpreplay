@@ -84,7 +84,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        dbg(4, "Checking if node exists...");
+        dbgx(4, "Checking if %s exists in cidrdata...", get_addr2name4(node->ip, RESOLVE));
         if (!check_ip_cidr(options.cidrdata, node->ip)) {   /* if we exist, abort */
             dbgx(3, "Node %s doesn't exist... creating.", 
                     get_addr2name4(node->ip, RESOLVE));
@@ -92,7 +92,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
             newcidr->masklen = bcdata->masklen;
             network = node->ip & (mask << (32 - bcdata->masklen));
             dbgx(3, "Using network: %s", 
-                    get_addr2name4(network, LIBNET_DONT_RESOLVE));
+                    get_addr2name4(network, RESOLVE));
             newcidr->network = network;
             add_cidr(&options.cidrdata, &newcidr);
         }
@@ -191,7 +191,7 @@ tcpr_tree_to_cidr(const int masklen, const int type)
 
 /*
  * Checks to see if an IP is client or server by finding it in the tree
- * returns SERVER or CLIENT.
+ * returns CACHE_PRIMARY or CACHE_SECONDARY.
  * if mode = UNKNOWN, then abort on unknowns
  * if mode = CLIENT, then unknowns become clients
  * if mode = SERVER, then unknowns become servers
@@ -225,11 +225,20 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-        return (node->type);
+        if (node->type == SERVER) {
+            return CACHE_PRIMARY;
+        } else if (node->type == CLIENT) {
+            return CACHE_SECONDARY;
+        }
     }
     else {
-        return mode;
+        if (mode == SERVER) {
+            return CACHE_PRIMARY;
+        } else if (mode == CLIENT) {
+            return CACHE_SECONDARY;
+        }
     }
+    err(1, "Uh, we shouldn't of gotten here.");
 }
 
 /*
@@ -414,7 +423,7 @@ packet2tree(const u_char * data)
     if (ip_hdr.ip_p == IPPROTO_TCP) {
 
 
-        dbgx(1, "%s uses TCP...  ",
+        dbgx(3, "%s uses TCP...  ",
             get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         /* memcpy it over to prevent alignment issues */
@@ -428,14 +437,14 @@ packet2tree(const u_char * data)
         /* set TREE->type based on TCP flags */
         if (tcp_hdr.th_flags == TH_SYN) {
             node->type = CLIENT;
-            dbg(1, "is a client");
+            dbg(3, "is a client");
         }
         else if (tcp_hdr.th_flags == (TH_SYN | TH_ACK)) {
             node->type = SERVER;
-            dbg(1, "is a server");
+            dbg(3, "is a server");
         }
         else {
-            dbg(1, "is an unknown");
+            dbg(3, "is an unknown");
         }
 
         /* 
@@ -446,7 +455,7 @@ packet2tree(const u_char * data)
         /* memcpy over to prevent alignment issues */
         memcpy(&udp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
                LIBNET_UDP_H);
-        dbgx(1, "%s uses UDP...  ",
+        dbgx(3, "%s uses UDP...  ",
             get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         switch (ntohs(udp_hdr.uh_dport)) {
@@ -460,14 +469,14 @@ packet2tree(const u_char * data)
                 /* bit set, response */
                 node->type = SERVER;
 
-                dbg(1, "is a dns server");
+                dbg(3, "is a dns server");
 
             }
             else {
                 /* bit not set, query */
                 node->type = CLIENT;
 
-                dbg(1, "is a dns client");
+                dbg(3, "is a dns client");
             }
             return (node);
             break;
@@ -482,21 +491,21 @@ packet2tree(const u_char * data)
                    (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4) + LIBNET_UDP_H),
                    LIBNET_DNS_H);
 
-            if (dns_hdr.flags & DNS_QUERY_FLAG) {
+            if ((dns_hdr.flags & 0x7FFFF) ^ DNS_QUERY_FLAG) {
                 /* bit set, response */
                 node->type = SERVER;
-                dbg(1, "is a dns server");
+                dbg(3, "is a dns server");
             }
             else {
                 /* bit not set, query */
                 node->type = CLIENT;
-                dbg(1, "is a dns client");
+                dbg(3, "is a dns client");
             }
             return (node);
             break;
         default:
 
-            dbgx(1, "unknown UDP protocol: %hu->%hu", udp_hdr.uh_sport,
+            dbgx(3, "unknown UDP protocol: %hu->%hu", udp_hdr.uh_sport,
                 udp_hdr.uh_dport);
             break;
         }
@@ -511,7 +520,7 @@ packet2tree(const u_char * data)
         memcpy(&icmp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
                LIBNET_ICMP_H);
 
-        dbgx(1, "%s uses ICMP...  ",
+        dbgx(3, "%s uses ICMP...  ",
             get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         /*
@@ -520,7 +529,7 @@ packet2tree(const u_char * data)
         if ((icmp_hdr.icmp_type == ICMP_UNREACH) &&
             (icmp_hdr.icmp_code == ICMP_UNREACH_PORT)) {
             node->type = SERVER;
-            dbg(1, "is a server with a closed port");
+            dbg(3, "is a server with a closed port");
         }
 
     }
@@ -540,7 +549,7 @@ tree_printnode(const char *name, const tcpr_tree_t *node)
 
     memset(&tree_print_buff, '\0', TREEPRINTBUFFLEN);
     if (node == NULL) {
-        snprintf(tree_print_buff, TREEPRINTBUFFLEN, "%s node is null\n", name);
+        snprintf(tree_print_buff, TREEPRINTBUFFLEN, "%s node is null", name);
     }
 
     else {
@@ -552,7 +561,7 @@ tree_printnode(const char *name, const tcpr_tree_t *node)
             strlcat(tree_print_buff, "Type: Server\n--\n", TREEPRINTBUFFLEN);
         }
         else {
-            strlcat(tree_print_buff, "Type: Client\n--\n", TREEPRINTBUFFLEN);
+            strlcat(tree_print_buff, "Type: Client\n--", TREEPRINTBUFFLEN);
         }
 
     }

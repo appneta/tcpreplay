@@ -382,7 +382,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: router mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
+                      check_ip_tree(options.nonip, ip_hdr->ip_src.s_addr));
             break;
         case BRIDGE_MODE:
             /*
