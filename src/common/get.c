@@ -221,7 +221,8 @@ get_layer4(const ip_hdr_t * ip_hdr)
 /*
  * get_name2addr4()
  * stolen from LIBNET since I didn't want to have to deal with 
- * passing a libnet_t around
+ * passing a libnet_t around.  Returns 0xFFFFFFFF (255.255.255.255)
+ * on error
  */
 u_int32_t
 get_name2addr4(const char *hostname, u_int8_t dnslookup)
@@ -233,22 +234,27 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
     int i;
 
     if (dnslookup == LIBNET_RESOLVE) {
-#ifdef HAVE_INET_ADDR
-        if ((addr.s_addr = inet_addr(hostname)) == -1) {
+#ifdef HAVE_INET_ATON
+        if (inet_aton(hostname, &addr) != 1) {
+            return(0xffffffff);
+        } 
+       
+#elif defined HAVE_INET_ADDR
+        if ((addr.s_addr = inet_addr(hostname)) == INADDR_NONE) {
             if (!(host_ent = gethostbyname(hostname))) {
                 warnx("unable to resolve %s: %s", hostname, strerror(errno));
                 /* XXX - this is actually 255.255.255.255 */
-                return (-1);
+                return (0xffffffff);
             }
 
             /* was: host_ent->h_length); */
             memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr)); 
-#else
-warn("Unable to support get_name2addr4 w/ resolve");
-goto DONT_RESOLVE;
-#endif
         }
-        /* network byte order */
+#else
+        warn("Unable to support get_name2addr4 w/ resolve");
+        goto DONT_RESOLVE;
+#endif
+        /* return in network byte order */
         return (addr.s_addr);
     } else {
         DONT_RESOLVE:

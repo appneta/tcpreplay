@@ -191,7 +191,7 @@ tcpr_tree_to_cidr(const int masklen, const int type)
 
 /*
  * Checks to see if an IP is client or server by finding it in the tree
- * returns CACHE_PRIMARY or CACHE_SECONDARY.
+ * returns CACHE_PRIMARY or CACHE_SECONDARY or -1 on error
  * if mode = UNKNOWN, then abort on unknowns
  * if mode = CLIENT, then unknowns become clients
  * if mode = SERVER, then unknowns become servers
@@ -239,6 +239,7 @@ check_ip_tree(const int mode, const unsigned long ip)
         }
     }
     err(1, "Uh, we shouldn't of gotten here.");
+    return(-1);
 }
 
 /*
