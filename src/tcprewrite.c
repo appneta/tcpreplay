@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2004-2005 Aaron Turner.
+ * Copyright (c) 2004-2006 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -69,8 +69,8 @@ tcpedit_t tcpedit;
 /* local functions */
 void init(void);
 void post_args(int argc, char *argv[]);
-void rewrite_packets(tcpedit_t *tcpedit, pcap_t *inpcap, pcap_dumper_t *outpcap);
 void verify_input_pcap(pcap_t *pcap);
+int rewrite_packets (tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
 
 int main(int argc, char *argv[])
 {
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
     post_args(argc, argv);
     tcpedit_ptr = &tcpedit;
-    rcode = tcpedit_post_args(&tcpedit_ptr, options.pin, options.pin);
+    rcode = tcpedit_post_args(&tcpedit_ptr, options.pin, NULL);
     if (rcode < 0) {
         errx(1, "Unable to parse args: %s", tcpedit_geterr(&tcpedit));
     } else if (rcode == 1) {
@@ -105,12 +105,13 @@ int main(int argc, char *argv[])
 #endif
     
     if (tcpedit_validate(&tcpedit, pcap_datalink(options.pin), 
-           pcap_datalink(options.pin)) < 0) {
+        pcap_datalink(options.pin)) < 0) {
         errx(1, "Unable to edit packets given options/DLT types:\n%s",
                 tcpedit_geterr(&tcpedit));
     }
 
-    rewrite_packets(&tcpedit, options.pin, options.pout);
+    if (rewrite_packets(&tcpedit, options.pin, options.pout) != 0)
+        errx(1, "Error rewriting packets: %s", tcpedit_geterr(&tcpedit));
 
 
     /* clean up after ourselves */
@@ -132,17 +133,13 @@ init(void)
     memset(&options, 0, sizeof(options));
     memset(&tcpedit, 0, sizeof(tcpedit_t));
 
-
 #ifdef HAVE_TCPDUMP
     /* clear out tcpdump struct */
     memset(&tcpdump, '\0', sizeof(tcpdump_t));
 #endif
     
-    
     if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
-    
-
 }
 
 
@@ -164,8 +161,7 @@ post_args(int argc, char *argv[])
         options.verbose = 1;
     
     if (HAVE_OPT(DECODE))
-        tcpdump.args = safe_strdup(OPT_ARG(DECODE));
-    
+        tcpdump.args = safe_strdup(OPT_ARG(DECODE));    
 #endif
 
     /* open up the output file */
@@ -175,15 +171,13 @@ post_args(int argc, char *argv[])
     
 }
 
-void
-rewrite_packets(tcpedit_t *tcpedit, pcap_t * inpcap, pcap_dumper_t *outpcap)
+int
+rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 {
-    int cache_result = CACHE_PRIMARY; /* default to primary */
-    struct pcap_pkthdr pkthdr;        /* packet header */
-    const u_char *pktdata = NULL;     /* packet from libpcap */
+    int cache_result = CACHE_PRIMARY;   /* default to primary */
+    struct pcap_pkthdr *pkthdr = NULL;  /* packet header */
+    const u_char *pktdata = NULL;       /* packet from libpcap */
     COUNTER packetnum = 0;
-    struct pcap_pkthdr *pkthdr_ptr;  
-    u_char *pktdata_ptr;
 
 #ifdef FORCE_ALIGN
     ipbuff = (u_char *)safe_malloc(MAXPACKET);
@@ -193,21 +187,21 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t * inpcap, pcap_dumper_t *outpcap)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktdata = pcap_next(inpcap, &pkthdr)) != NULL) {
+    while (pcap_next_ex(pin, &pkthdr, &pktdata) == 1) {
 
         packetnum++;
-        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
+        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr->caplen);
 
 #ifdef HAVE_TCPDUMP
         if (options.verbose)
-            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+            tcpdump_print(&tcpdump, pkthdr, pktdata);
 #endif
-    
+
         /* Dual nic processing? */
         if (options.cachedata != NULL) {
             cache_result = check_cache(options.cachedata, packetnum);
         }
-    
+
         /* sometimes we should not send the packet, in such cases
          * no point in editing this packet at all, just write it to the
          * output file (note, we can't just remove it, or the tcpprep cache
@@ -217,23 +211,18 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t * inpcap, pcap_dumper_t *outpcap)
         if (cache_result == CACHE_NOSEND)
             goto WRITE_PACKET;
 
-        pkthdr_ptr = &pkthdr;
-        pktdata_ptr = (u_char *)&pktdata;
-
-        if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata_ptr, cache_result)
-                == -1) {
-            errx(1, "Error in tcpedit_packet(): %s", 
-                    tcpedit_geterr(tcpedit));
+        if (tcpedit_packet(tcpedit, &pkthdr, (u_char**)&pktdata, cache_result) == -1) {
+            return -1;
         }
 
 
 WRITE_PACKET:
         /* write the packet */
-        pcap_dump((u_char *) outpcap, &pkthdr, pktdata);
+        pcap_dump((u_char *)pout, pkthdr, pktdata);
 
-    }                           /* while() */
-
-}
+    } /* while() */
+    return 0;
+}   
 
 
 /*
