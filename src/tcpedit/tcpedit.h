@@ -32,6 +32,7 @@
 
 #include "defines.h"
 #include "dlt.h"
+#include "../common.h"
 
 #ifndef _TCPEDIT_H_
 #define _TCPEDIT_H_
@@ -54,7 +55,7 @@ struct l2_s {
     int dlt;
 #define DLT_USER           DLT_USER0
 #define DLT_VLAN           DLT_USER1
-
+    
     u_int16_t vlan_tag;
     u_int8_t vlan_pri;
     u_int8_t vlan_cfi;
@@ -161,8 +162,8 @@ struct tcpedit_s {
     /* rewrite tcp/udp ports */
     tcpedit_portmap_t *portmap;
     
-    int mtu;                   /* Deal with different MTU's */
-    int maxpacket;             /* L2 header + MTU */
+    int mtu;                /* Deal with different MTU's */
+    int maxpacket;          /* L2 header + MTU */
 };
 
 typedef struct tcpedit_s tcpedit_t;

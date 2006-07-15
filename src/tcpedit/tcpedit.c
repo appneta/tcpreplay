@@ -69,28 +69,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 {
     ip_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
-    u_char newpkt[MAXPACKET] = "";    /* our new packet after editing */
     int l2len = 0, l2proto;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
-    u_char *pktdata_ptr = NULL;     /* packet from libpcap */
-    struct pcap_pkthdr *pkthdr_ptr = NULL;
 
-    pktdata_ptr = *pktdata;
-    pkthdr_ptr = *pkthdr;
-
-
-    /* zero out the old packet info */
-    memset(newpkt, 0, MAXPACKET);
-
-    /* 
-     * copy the packet data to a buffer which allows us
-     * to edit the contents of
-     */
-    memcpy(newpkt, pktdata_ptr, pkthdr_ptr->caplen);
 
     tcpedit->runtime.packetnum++;
     dbgx(2, "packet " COUNTER_SPEC " caplen %d", 
-            tcpedit->runtime.packetnum, pkthdr_ptr->caplen);
+            tcpedit->runtime.packetnum, (*pkthdr)->caplen);
 
     /*
      * remove the Ethernet FCS (checksum)?
@@ -99,17 +84,17 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
      * just removed 2 bytes of ACTUAL PACKET DATA.  Sucks to be them.
      */
     if (tcpedit->efcs)
-        pkthdr_ptr->caplen -= 2;
+        (*pkthdr)->caplen -= 2;
         
     /* Rewrite any Layer 2 data */
-    if ((l2len = rewrite_l2(tcpedit, &pkthdr_ptr, newpkt, direction)) == 0)
+    if ((l2len = rewrite_l2(tcpedit, pkthdr, *pktdata, direction)) == 0)
         return 0; /* packet is too long and we didn't trunc, so skip it */
 
     if (direction == CACHE_PRIMARY) {
-        l2proto = get_l2protocol(newpkt, pkthdr_ptr->caplen, 
+        l2proto = get_l2protocol(*pktdata, (*pkthdr)->caplen, 
                 pcap_datalink(tcpedit->runtime.pcap1));
     } else {
-        l2proto = get_l2protocol(newpkt, pkthdr_ptr->caplen, 
+        l2proto = get_l2protocol(*pktdata, (*pkthdr)->caplen, 
                 pcap_datalink(tcpedit->runtime.pcap2));
     }
 
@@ -125,14 +110,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
          * back onto the pkt.data + l2len buffer
          * we do all this work to prevent byte alignment issues
          */
-        ip_hdr = (ip_hdr_t *) ipbuff;
-        memcpy(ip_hdr, (&newpkt[l2len]), pkthdr_ptr->caplen - l2len);
+        ip_hdr = (ip_hdr_t *)tcpedit->runtime.ipbuff;
+        memcpy(ip_hdr, (&(*pktdata)[l2len]), (*pkthdr)->caplen - l2len);
 #else
         /*
          * on non-strict byte align systems, don't need to memcpy(), 
          * just point to 14 bytes into the existing buffer
          */
-        ip_hdr = (ip_hdr_t *) (&newpkt[l2len]);
+        ip_hdr = (ip_hdr_t *) (&(*pktdata)[l2len]);
 #endif
     } else {
         dbg(3, "Packet isn't IP...");
@@ -149,7 +134,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         /* ARP packets */
         else if (l2proto == ETHERTYPE_ARP) {
-            arp_hdr = (arp_hdr_t *)(&newpkt[l2len]);
+            arp_hdr = (arp_hdr_t *)(&(*pktdata)[l2len]);
             /* unlike, rewrite_ipl3, we don't care if the packet changed
              * because we never need to recalc the checksums for an ARP
              * packet.  So ignore the return value
@@ -165,21 +150,21 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* Untruncate packet? Only for IP packets */
     if ((tcpedit->fixlen) && (ip_hdr != NULL)) {
-        needtorecalc += untrunc_packet(tcpedit, pkthdr_ptr, newpkt, ip_hdr);
+        needtorecalc += untrunc_packet(tcpedit, *pkthdr, *pktdata, ip_hdr);
     }
 
 
     /* do we need to spoof the src/dst IP address? */
     if (tcpedit->seed) {
         if (ip_hdr != NULL) {
-            needtorecalc += randomize_ipv4(tcpedit, pkthdr_ptr, newpkt, 
+            needtorecalc += randomize_ipv4(tcpedit, *pkthdr, *pktdata, 
                     ip_hdr);
         } else {
             if (direction == CACHE_PRIMARY) {
-                randomize_iparp(tcpedit, pkthdr_ptr, newpkt, 
+                randomize_iparp(tcpedit, *pkthdr, *pktdata, 
                         pcap_datalink(tcpedit->runtime.pcap1));
             } else {
-                randomize_iparp(tcpedit, pkthdr_ptr, newpkt, 
+                randomize_iparp(tcpedit, *pkthdr, *pktdata, 
                         pcap_datalink(tcpedit->runtime.pcap2));
             }
         }
@@ -187,10 +172,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* do we need to force fixing checksums? */
     if ((tcpedit->fixcsum || needtorecalc) && (ip_hdr != NULL)) {
-        fix_checksums(tcpedit, pkthdr_ptr, ip_hdr);
+        fix_checksums(tcpedit, *pkthdr, ip_hdr);
     }
 
-#ifdef STRICT_ALIGN
+#ifdef FORCE_ALIGN
     /* 
      * put back the layer 3 and above back in the pkt.data buffer 
      * we can't edit the packet at layer 3 or above beyond this point
@@ -198,8 +183,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     memcpy(&newpkt[l2len], ip_hdr, pkthdr_ptr->caplen - l2len);
 #endif
 
-
-    tcpedit->runtime.total_bytes += pkthdr_ptr->caplen;
+    tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
     tcpedit->runtime.pkts_edited ++;
     return 1;
 }
@@ -449,16 +433,6 @@ tcpedit_close(tcpedit_t *tcpedit)
 
     return 0;
 }
-
-/*
- * ADT This needs to be filled out from tcprewrite.c
-int
-tcpedit_rewrite_packets(tcpedit_t *tcpedit, pcap_t * inpcap, 
-        pcap_dumper_t *outpcap)
-{
-
-}
-*/
 
 /*
  Local Variables:
