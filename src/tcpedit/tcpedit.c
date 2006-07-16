@@ -87,7 +87,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         (*pkthdr)->caplen -= 2;
         
     /* Rewrite any Layer 2 data */
-    if ((l2len = rewrite_l2(tcpedit, pkthdr, *pktdata, direction)) == 0)
+    if ((l2len = rewrite_l2(tcpedit, pkthdr, pktdata, direction)) == 0)
         return 0; /* packet is too long and we didn't trunc, so skip it */
 
     if (direction == CACHE_PRIMARY) {
@@ -234,23 +234,12 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
     /*
      * make sure that the options in tcpedit are sane
      */
-    switch (tcpedit->mac_mask) {
-        /* these are valid values */
-        case 0x0:
-        case TCPEDIT_MAC_MASK_SMAC1:
-        case TCPEDIT_MAC_MASK_SMAC2:
-        case TCPEDIT_MAC_MASK_DMAC1:
-        case TCPEDIT_MAC_MASK_DMAC2:
-            break;
-
-        /* not valid */
-        default:
-            tcpedit_seterr(tcpedit, "Invalid mac_mask value: 0x%4x",
-                    tcpedit->mac_mask);
-            return -1;
-            break;
+    if (tcpedit->mac_mask > 0x0F) {
+        tcpedit_seterr(tcpedit, "Invalid mac_mask value: 0x%04x",
+                tcpedit->mac_mask);
+        return -1;
     }
-
+    
     /* is bidir sane? */
     if (tcpedit->bidir != TCPEDIT_BIDIR_ON &&
         tcpedit->bidir != TCPEDIT_BIDIR_OFF) {
