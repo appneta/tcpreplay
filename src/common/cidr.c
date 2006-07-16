@@ -191,8 +191,8 @@ cidr2cidr(char *cidr)
     tcpr_cidr_t *newcidr;
     char networkip[16], tempoctet[4], ebuf[EBUF_SIZE];
 
-    if ((cidr == NULL) || (strlen(cidr) > EBUF_SIZE))
-        errx(1, "Error parsing: %s", cidr);
+    assert(cidr);
+    assert(strlen(cidr) <= EBUF_SIZE);
 
     newcidr = new_cidr();
 
@@ -226,9 +226,9 @@ cidr2cidr(char *cidr)
     }
 
     /* copy over the network address and return */
-#ifdef INET_ATON
+#ifdef HAVE_INET_ATON
     inet_aton(networkip, (struct in_addr *)&newcidr->network);
-#elif INET_ADDR
+#elif HAVE_INET_ADDR
     newcidr->network = inet_addr(networkip);
 #endif
 
