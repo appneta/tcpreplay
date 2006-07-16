@@ -59,15 +59,12 @@ static int check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
  * or -1 on critical failure
  */
 int
-rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr, 
-        u_char * pktdata, int direction)
+rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
+        u_char **pktdata, int direction)
 {
     u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
     int newl2len = 0;
-    struct pcap_pkthdr *pkthdr;
     pcap_t *pcap;
-
-    pkthdr = *pkthdr_ptr;
 
 
     /* do we need a ptr for l2data ? */
@@ -93,19 +90,19 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
      */
     switch (pcap_datalink(pcap)) {
     case DLT_EN10MB:       /* Standard 802.3 Ethernet */
-        newl2len = rewrite_en10mb(tcpedit, pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_en10mb(tcpedit, pktdata, pkthdr, l2data);
         break;
 
     case DLT_LINUX_SLL:    /* Linux Cooked sockets */
-        newl2len = rewrite_linux_sll(tcpedit, pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_linux_sll(tcpedit, pktdata, pkthdr, l2data);
         break;
-        
+    
     case DLT_RAW:          /* No ethernet header, raw IP */
-        newl2len = rewrite_raw(tcpedit, pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_raw(tcpedit, pktdata, pkthdr, l2data);
         break;
-        
+    
     case DLT_C_HDLC:         /* Cisco HDLC */
-        newl2len = rewrite_c_hdlc(tcpedit, pktdata, pkthdr_ptr, l2data);
+        newl2len = rewrite_c_hdlc(tcpedit, pktdata, pkthdr, l2data);
         break;
 
     default:
@@ -127,18 +124,18 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
 
     if (direction == CACHE_SECONDARY) {
         if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC2) {
-            memcpy(&pktdata[ETHER_ADDR_LEN], tcpedit->intf2_smac, ETHER_ADDR_LEN);
+            memcpy(&(*pktdata)[ETHER_ADDR_LEN], tcpedit->intf2_smac, ETHER_ADDR_LEN);
         }
         if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC2) {
-            memcpy(pktdata, tcpedit->intf2_dmac, ETHER_ADDR_LEN);
+            memcpy(*pktdata, tcpedit->intf2_dmac, ETHER_ADDR_LEN);
         }
         
     } else {
         if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC1) {
-            memcpy(&pktdata[ETHER_ADDR_LEN], tcpedit->intf1_smac, ETHER_ADDR_LEN);
+            memcpy(&(*pktdata)[ETHER_ADDR_LEN], tcpedit->intf1_smac, ETHER_ADDR_LEN);
         }
         if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC1) {
-            memcpy(pktdata, tcpedit->intf1_dmac, ETHER_ADDR_LEN);
+            memcpy(*pktdata, tcpedit->intf1_dmac, ETHER_ADDR_LEN);
         }
     }
 
@@ -150,7 +147,7 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
 
 /*
  * All of these functions return the NEW layer two length and update the
- * total packet length in pkthdr->caplen
+ * total packet length in (*pkthdr)->caplen
  */
 
 /*
@@ -161,21 +158,18 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr,
  */
 
 int 
-rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data)
 {
     eth_hdr_t *eth_hdr = NULL;
     vlan_hdr_t *vlan_hdr = NULL;
     int oldl2len = 0, newl2len = 0, lendiff;
     u_char tmpbuff[MAXPACKET];
-    struct pcap_pkthdr *pkthdr;
-
-    pkthdr = *pkthdr_ptr;
-
+ 
     /*
      * is the header ethernet or 802.1q? 
      */
-    eth_hdr = (eth_hdr_t *)pktdata;
+    eth_hdr = (eth_hdr_t *)(*pktdata);
     if (eth_hdr->ether_type == ETHERTYPE_VLAN) {
         newl2len = oldl2len = LIBNET_802_1Q_H;
     } else {
@@ -189,7 +183,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
         newl2len = tcpedit->l2.len;
   
   
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
         
         /*
@@ -199,16 +193,16 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
 
         /* do we need a temp buff? */
         if (newl2len > oldl2len) {
-            memcpy(tmpbuff, pktdata, pkthdr->caplen);
+            memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
 
-            memcpy(pktdata, l2data, tcpedit->l2.len);
-            memcpy(&pktdata[newl2len], (tmpbuff + oldl2len),
-                   pkthdr->caplen);
+            memcpy(*pktdata, l2data, tcpedit->l2.len);
+            memcpy(&(*pktdata[newl2len]), (tmpbuff + oldl2len),
+                   (*pkthdr)->caplen);
 
         } else {
-            memcpy(pktdata, l2data, newl2len);
-            memmove(&pktdata[newl2len], (pktdata + oldl2len), 
-                    pkthdr->caplen);
+            memcpy(*pktdata, l2data, newl2len);
+            memmove(&(*pktdata[newl2len]), (*pktdata + oldl2len), 
+                    (*pkthdr)->caplen);
 
         }
 
@@ -220,11 +214,11 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
         if (tcpedit->vlan == TCPEDIT_VLAN_ADD) {
             newl2len = LIBNET_802_1Q_H;
   
-            if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+            if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
                 return 0; /* unable to send packet */
 
 
-            vlan_hdr = (vlan_hdr_t *)pktdata;
+            vlan_hdr = (vlan_hdr_t *)*pktdata;
 
             /* do we modify the VLAN header? */
             if (oldl2len == newl2len) {
@@ -249,10 +243,10 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
                 memset(tmpbuff, 0, newl2len);
 
                 /* copy the dst/src MAC's over to our temp buffer */
-                memcpy(tmpbuff, pktdata, ETHER_ADDR_LEN * 2);
+                memcpy(tmpbuff, *pktdata, ETHER_ADDR_LEN * 2);
 
                 vlan_hdr = (vlan_hdr_t *)tmpbuff;
-                eth_hdr = (eth_hdr_t *)pktdata;
+                eth_hdr = (eth_hdr_t *)*pktdata;
 
                 /* these fields are always set this way */
                 vlan_hdr->vlan_tpi = htons(ETHERTYPE_VLAN);
@@ -272,8 +266,8 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
                         htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
 
                 /* move around our buffers */
-                memcpy(&tmpbuff[newl2len], (pktdata + oldl2len), (pkthdr->caplen - oldl2len));
-                memcpy(pktdata, tmpbuff, (pkthdr->caplen + newl2len - oldl2len));
+                memcpy(&tmpbuff[newl2len], (*pktdata + oldl2len), ((*pkthdr)->caplen - oldl2len));
+                memcpy(*pktdata, tmpbuff, ((*pkthdr)->caplen + newl2len - oldl2len));
 
             } else {
                 err(1, "Uh, how are we supposed to rewrite the header when the oldl2len != LIBNET_ETH_H?");
@@ -285,17 +279,17 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
             newl2len = LIBNET_ETH_H;
 
             /* we still verify packet len incase MTU has shrunk */
-            if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+            if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
                 return 0; /* unable to send packet */
 
-            memcpy(tmpbuff, pktdata, pkthdr->caplen);
+            memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
             
-            eth_hdr = (eth_hdr_t *)pktdata;
+            eth_hdr = (eth_hdr_t *)*pktdata;
             vlan_hdr = (vlan_hdr_t *)tmpbuff;
 
             eth_hdr->ether_type = vlan_hdr->vlan_len;
             
-            memcpy(&pktdata[LIBNET_ETH_H], (tmpbuff + LIBNET_802_1Q_H), pkthdr->caplen - oldl2len);
+            memcpy(&(*pktdata[LIBNET_ETH_H]), (tmpbuff + LIBNET_802_1Q_H), (*pkthdr)->caplen - oldl2len);
         }
         break;
 
@@ -311,8 +305,8 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
 
     /* new packet len */
     lendiff = newl2len - oldl2len;
-    pkthdr->caplen += lendiff;
-    pkthdr->len += lendiff;
+    (*pkthdr)->caplen += lendiff;
+    (*pkthdr)->len += lendiff;
 
     return newl2len;
     
@@ -326,17 +320,14 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata,
  */
 
 int 
-rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_raw(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data)
 {
     int oldl2len = 0, newl2len = 0, lendiff;
     u_char tmpbuff[MAXPACKET];
     vlan_hdr_t *vlan_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
-    struct pcap_pkthdr *pkthdr;
-
-    pkthdr = *pkthdr_ptr;
-
+  
 
     /* we have no ethernet header, but we know we're IP */
     switch (tcpedit->l2.dlt) {
@@ -344,7 +335,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
         newl2len = tcpedit->l2.len;
 
 
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
         
         /*
@@ -353,26 +344,26 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
         dbg(3, "Rewriting packet via --dlink...");
 
         /* backup the old packet */
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
 
-        memcpy(pktdata, l2data, newl2len);
-        memcpy(&pktdata[newl2len], tmpbuff, pkthdr->caplen);
+        memcpy(*pktdata, l2data, newl2len);
+        memcpy(&(*pktdata[newl2len]), tmpbuff, (*pkthdr)->caplen);
 
         break;
 
     case DLT_VLAN:
         newl2len = LIBNET_802_1Q_H;
 
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* prep a 802.1q tagged frame */
 
         /* make space for the header */
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
-        memcpy(&pktdata[LIBNET_802_1Q_H], tmpbuff, pkthdr->caplen);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
+        memcpy(&pktdata[LIBNET_802_1Q_H], tmpbuff, (*pkthdr)->caplen);
 
-        vlan_hdr = (vlan_hdr_t *)pktdata;
+        vlan_hdr = (vlan_hdr_t *)*pktdata;
 
         /* these fields are always set this way */
         vlan_hdr->vlan_tpi = ETHERTYPE_VLAN;
@@ -398,14 +389,14 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
     case DLT_EN10MB:
         newl2len = LIBNET_ETH_H;
 
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make room for L2 header */
-        memmove(&pktdata[LIBNET_ETH_H], pktdata, pkthdr->caplen);
+        memmove(&(*pktdata[LIBNET_ETH_H]), *pktdata, (*pkthdr)->caplen);
 
         /* these fields are always set this way */
-        eth_hdr = (eth_hdr_t *)pktdata;
+        eth_hdr = (eth_hdr_t *)*pktdata;
         eth_hdr->ether_type = tcpedit->l2proto;
         break;
 
@@ -418,8 +409,8 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
 
     /* new packet len */
     lendiff = newl2len - oldl2len;
-    pkthdr->caplen += lendiff;
-    pkthdr->len += lendiff;
+    (*pkthdr)->caplen += lendiff;
+    (*pkthdr)->len += lendiff;
 
     return newl2len;
 
@@ -433,18 +424,14 @@ rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata,
  */
 
 int 
-rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_linux_sll(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data)
 {
     int oldl2len = 0, newl2len = 0, lendiff;
     u_char tmpbuff[MAXPACKET];
     vlan_hdr_t *vlan_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
     sll_hdr_t *sll_hdr = NULL;
-    struct pcap_pkthdr *pkthdr;
-
-    pkthdr = *pkthdr_ptr;
-
 
     newl2len = oldl2len = SLL_HDR_LEN;
 
@@ -452,7 +439,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
     case DLT_USER:
         newl2len = tcpedit->l2.len;
 
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
         /*
          * add our user specified header
@@ -460,24 +447,24 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
         dbg(3, "Rewriting packet via --dlink...");
 
         /* backup the old packet */
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
 
-        memcpy(pktdata, l2data, newl2len);
-        memcpy(&pktdata[newl2len], tmpbuff, pkthdr->caplen);
+        memcpy(*pktdata, l2data, newl2len);
+        memcpy(&(*pktdata[newl2len]), tmpbuff, (*pkthdr)->caplen);
         break;
 
     case DLT_VLAN:
         /* prep a 802.1q tagged frame */
         newl2len = LIBNET_802_1Q_H;
 
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make space for the header */
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
-        memcpy(&pktdata[LIBNET_802_1Q_H], tmpbuff, pkthdr->caplen - oldl2len);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
+        memcpy(&(*pktdata[LIBNET_802_1Q_H]), tmpbuff, (*pkthdr)->caplen - oldl2len);
 
-        vlan_hdr = (vlan_hdr_t *)pktdata;
+        vlan_hdr = (vlan_hdr_t *)*pktdata;
         sll_hdr = (sll_hdr_t *)tmpbuff;
 
         /* these fields are always set this way */
@@ -505,17 +492,17 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
     case DLT_EN10MB:
         newl2len = LIBNET_ETH_H;
         
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make room for L2 header */
      
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
-        memcpy(&pktdata[LIBNET_ETH_H], (tmpbuff + oldl2len), pkthdr->caplen - oldl2len);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
+        memcpy(&(*pktdata[LIBNET_ETH_H]), (tmpbuff + oldl2len), (*pkthdr)->caplen - oldl2len);
 
         /* these fields are always set this way */
         sll_hdr = (sll_hdr_t *)tmpbuff;
-        eth_hdr = (eth_hdr_t *)pktdata;
+        eth_hdr = (eth_hdr_t *)*pktdata;
         eth_hdr->ether_type = sll_hdr->sll_protocol;
 
         /* the sll header might have a src mac */
@@ -533,8 +520,8 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
 
     /* new packet len */
     lendiff = newl2len - oldl2len;
-    pkthdr->caplen += lendiff;
-    pkthdr->len += lendiff;
+    (*pkthdr)->caplen += lendiff;
+    (*pkthdr)->len += lendiff;
 
     return newl2len;
 
@@ -546,18 +533,14 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata,
  * layer 2 header
  */
 int 
-rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data)
+rewrite_c_hdlc(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data)
 {
     int oldl2len = 0, newl2len = 0, lendiff;
     u_char tmpbuff[MAXPACKET];
     hdlc_hdr_t *hdlc_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
     vlan_hdr_t *vlan_hdr = NULL;
-    struct pcap_pkthdr *pkthdr;
-
-    pkthdr = *pkthdr_ptr;
-
 
     newl2len = oldl2len = dlt2layer2len(tcpedit, DLT_C_HDLC);
 
@@ -566,7 +549,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         /* track the new L2 len */
         newl2len = dlt2layer2len(tcpedit, DLT_USER);
         
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /*
@@ -575,24 +558,24 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
         dbg(3, "Rewriting packet via --dlink...");
         
         /* backup the old packet */
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
 
-        memcpy(pktdata, l2data, tcpedit->l2.len);
-        memcpy(&pktdata[tcpedit->l2.len], (tmpbuff + oldl2len), pkthdr->caplen - oldl2len);
+        memcpy(*pktdata, l2data, tcpedit->l2.len);
+        memcpy(&(*pktdata[tcpedit->l2.len]), (tmpbuff + oldl2len), (*pkthdr)->caplen - oldl2len);
         break;
 
     case DLT_VLAN:
         /* new l2 len */
         newl2len = dlt2layer2len(tcpedit, DLT_VLAN);
 
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
         hdlc_hdr = (hdlc_hdr_t *)tmpbuff;
 
-        vlan_hdr = (vlan_hdr_t *)pktdata;
-        memcpy(&pktdata[LIBNET_802_1Q_H], tmpbuff + oldl2len, pkthdr->caplen - oldl2len);
+        vlan_hdr = (vlan_hdr_t *)*pktdata;
+        memcpy(&(*pktdata[LIBNET_802_1Q_H]), tmpbuff + oldl2len, (*pkthdr)->caplen - oldl2len);
 
         vlan_hdr->vlan_tpi = ETHERTYPE_VLAN;
         vlan_hdr->vlan_len = hdlc_hdr->protocol;
@@ -614,14 +597,14 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
     case DLT_EN10MB:
         newl2len = dlt2layer2len(tcpedit, DLT_EN10MB);
 
-        if (! check_pkt_len(tcpedit, pkthdr, oldl2len, newl2len))
+        if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
-        memcpy(tmpbuff, pktdata, pkthdr->caplen);
+        memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
         hdlc_hdr = (hdlc_hdr_t *)tmpbuff;
 
-        eth_hdr = (eth_hdr_t *)pktdata;
-        memcpy(&pktdata[LIBNET_ETH_H], tmpbuff + oldl2len, pkthdr->caplen - oldl2len);
+        eth_hdr = (eth_hdr_t *)*pktdata;
+        memcpy(&(*pktdata[LIBNET_ETH_H]), tmpbuff + oldl2len, (*pkthdr)->caplen - oldl2len);
 
         eth_hdr->ether_type = hdlc_hdr->protocol;
         
@@ -636,8 +619,8 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
 
     /* new packet len */
     lendiff = newl2len - oldl2len;
-    pkthdr->caplen += lendiff;
-    pkthdr->len += lendiff;
+    (*pkthdr)->caplen += lendiff;
+    (*pkthdr)->len += lendiff;
 
     return newl2len;
 }
@@ -645,7 +628,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata,
 
 /*
  * will the new packet be too big?  
- * If so, we have to change the pkthdr->caplen to be artifically lower
+ * If so, we have to change the (*pkthdr)->caplen to be artifically lower
  * so we don't go beyond tcpedit->maxpacket
  */
 static int

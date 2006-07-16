@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 
 /*
@@ -38,20 +38,20 @@
 #define __REWRITE_L2_H__
 
 
-int rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr_ptr, 
-        u_char *pktdata, int cache_mode);
+int rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
+        u_char **pktdata, int cache_mode);
 
-int rewrite_en10mb(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+int rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data);
 
-int rewrite_raw(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+int rewrite_raw(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data);
 
-int rewrite_linux_sll(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+int rewrite_linux_sll(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data);
 
-int rewrite_c_hdlc(tcpedit_t *tcpedit, u_char *pktdata, 
-        struct pcap_pkthdr **pkthdr_ptr, u_char *l2data);
+int rewrite_c_hdlc(tcpedit_t *tcpedit, u_char **pktdata, 
+        struct pcap_pkthdr **pkthdr, u_char *l2data);
 
 #endif
 
