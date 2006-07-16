@@ -264,7 +264,7 @@ flag = {
 
 flag = {
     name        = vlan_cfi;
-    value       = c;
+    value       = f;
     max         = 1;
     descrip     = "Specify the 802.1q VLAN CFI value";
     arg-type    = number;

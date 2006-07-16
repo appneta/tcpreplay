@@ -290,7 +290,7 @@ remap_ip(tcpr_cidr_t *cidr, const u_int32_t original)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t * ip_hdr, int direction)
+rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t *ip_hdr, int direction)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;

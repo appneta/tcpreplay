@@ -59,7 +59,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
     assert(pcap1);  
     
     tcpedit->runtime.pcap1 = pcap1;
-    tcpedit->runtime.pcap2 = pcap2; // may be NULL
+    tcpedit->runtime.pcap2 = pcap2 ? pcap2 : pcap1;
 
     tcpedit->l2.dlt = pcap_datalink(pcap1);
     dbgx(1, "Input file datalink type is %s\n",
