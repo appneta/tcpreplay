@@ -20,3 +20,5 @@ noinst_HEADERS = tcpedit.h edit_packet.h rewrite_l2.h portmap.h \
 MOSTLYCLEANFILES = *~
 
 MAINTAINERCLEANFILES = Makefile.in
+
+EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def

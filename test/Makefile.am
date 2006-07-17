@@ -244,13 +244,13 @@ replay_top:
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 datadump_mode:
-	$(PRINTF) "%s" "[tcpreplay] Data dump mode test: "
+	$(PRINTF) "%s" "[tcpreplay] Data dump test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Data dump mode test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -D -i $(nic1) -j $(nic2) -w primary.data -W secondary.data -c test.cidr -R test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 replay_config:
-	$(PRINTF) "%s" "[tcpreplay] Config file (VLAN Add) mode test: "
+	$(PRINTF) "%s" "[tcpreplay] Config file/VLAN add test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Config file (VLAN Add) mode test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) --load-opts=config test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
