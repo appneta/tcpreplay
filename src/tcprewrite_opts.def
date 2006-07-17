@@ -78,15 +78,6 @@ flag = {
     max         = 1;
     immediate;
     must-set;
-    flag-code   = <<- EOInfile
-    
-    char ebuf[PCAP_ERRBUF_SIZE];
-    options.infile = safe_strdup(OPT_ARG(INFILE));
-
-    if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
-        errx(1, "Unable to open input pcap file: %s", ebuf);
-
-EOInfile;
     doc         = "";
 };
 
