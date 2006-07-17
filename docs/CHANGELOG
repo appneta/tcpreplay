@@ -1,15 +1,21 @@
 $Id$
 
-??/??/2005: Version 3.0.beta8
+07/16/2006: Version 3.0.beta8
     - Fix -M running in MBps rather then Mbps
     - Fix tcpbridge segfault/bus error reported by Steven Z. (Gerry)
-    - Fix tcprewrite --portmap 
-    - Fix a warning in tcprewrite where we incorrectly listed --mtu as -t
-    - Fix --mtu in tcprewrite being ignored
-    - Much improved README document
     - Improve tcpbridge man page
-    - Reorganize packet editing code into a standalone module which can be
-      librarized.
+    - Massive tcprewrite fixes & cleanup #50
+    - Much improved README document
+    - Reorganize packet editing code into a standalone module (tcpedit) 
+          which has been librarized. #5
+    - Strict code cleanup #27
+    - Fix tcpprep from generating bad cache files #48
+    - Add MAC split mode for tcpprep #1
+    - Improve dbg() to list file/line #32
+    - Add tcpprep statistical reports #2
+    - Reorganize flowreplay code #46
+    - Fix conflicting speed_t for Debian #33
+    - Too many other things to document
 
 08/07/2005: Version 3.0.beta7
     - New 'make doxygen' target builds pretty source code docs in
