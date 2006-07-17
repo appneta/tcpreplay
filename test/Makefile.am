@@ -17,7 +17,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		 test.prep_config test.primary test.regex test.secondary
 
 test: all
-all: clearlog check tcpprep tcpreplay
+all: clearlog check tcpprep tcpreplay tcprewrite
 
 clearlog:
 	-rm test.log
@@ -39,9 +39,23 @@ standard:
 	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
 	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
 	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_portmap -r 80:8080
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_endpoint -e 10.10.0.1:10.10.0.2
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_pnat -N 216.27.178.0/24:172.16.0.0/24
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_pad -F pad
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_trunc -F trunc
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_mac \
+		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
+		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_layer2 \
+		 -l 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_config --vlan=add --vlan-tag=45 \
+		--vlan-cfi=1 --vlan-pri=5
+
 
 tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port mac comment print_info print_comment prep_config
-tcprewrite: rewrite_cache rewrite_cidr rewrite_trunc rewrite_pad rewrite_rand rewrite_layer2 rewrite_config
+tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config replay_multi
 
 prep_config:
@@ -113,7 +127,6 @@ comment:
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -C "This is a comment" -p 2>>test.log
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
-
 print_comment:
 	$(PRINTF) "%s" "[tcpprep] Print comment mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Print comment mode test: " >>test.log
@@ -138,46 +151,69 @@ replay_cache:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c test.cidr -i $(nic1) -I $(nic2) -t test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
-rewrite_cidr:
-	$(PRINTF) "%s" "[tcpreplay] CIDR test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] CIDR test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -C 216.27.178.0/24 -i $(nic1) -I $(nic2) -t test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+rewrite_portmap:
+	$(PRINTF) "%s" "[tcprewrite] Portmap test: "
+	$(PRINTF) "%s\n" "[tcprewrite] Portmap test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_portmap1 -r 80:8080 >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
+rewrite_endpoint:
+	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
+	$(PRINTF) "%s\n" "[tcprewrite] Endpoint test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
+rewrite_pnat:
+	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
+	$(PRINTF) "%s\n" "[tcprewrite] Pseudo NAT test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_pnat1 -N 216.27.178.0/24:172.16.0.0/24
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
+rewrite_mac:
+	$(PRINTF) "%s" "[tcprewrite] Src/Dst MAC test: "
+	$(PRINTF) "%s\n" "[tcprewrite] Src/Dst MAC test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac1 \
+		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
+		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_trunc:
-	$(PRINTF) "%s" "[tcpreplay] Truncate test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Truncate test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -u trunc -t test.pcap >>test.log 2>&1
+	$(PRINTF) "%s" "[tcprewrite] Truncate test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Truncate test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -F trunc -i test.pcap -o test.rewrite_trunc1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_pad:
-	$(PRINTF) "%s" "[tcpreplay] Pad test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Pad test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -u pad -R test.pcap >>test.log 2>&1
+	$(PRINTF) "%s" "[tcprewrite] Pad test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Pad test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -F pad -i test.pcap -o test.rewrite_pad1 >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
-rewrite_rand:
-	$(PRINTF) "%s" "[tcpreplay] Random IP test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Random IP test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -s 666 -R test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
-
-replay_include:
-	$(PRINTF) "%s" "[tcpreplay] Include only test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Include only test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -x P:1,5,7-53,88,93-100 -R test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
-
-replay_exclude:
-	$(PRINTF) "%s" "[tcpreplay] Exclude test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Exclude test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -X P:1,5,7-53,88,93-100 -R test.pcap >>test.log 2>&1
+rewrite_seed:
+	$(PRINTF) "%s" "[tcprewrite] Seed IP test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Seed IP test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_seed1 -s 55 >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_layer2:
-	$(PRINTF) "%s" "[tcpreplay] Layer2 test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Layer2 test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -2 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 -R test.pcap >>test.log 2>&1
+	$(PRINTF) "%s" "[tcprewrite] Layer2 test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Layer2 test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -l 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 \
+		-i test.pcap -o test.rewrite_layer21 >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
+rewrite_config:
+	$(PRINTF) "%s" "[tcprewrite] Config test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Config test: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_config1 --load-opts config
+	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_pps:
@@ -186,13 +222,11 @@ replay_pps:
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -p 25 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
-
 replay_rate:
 	$(PRINTF) "%s" "[tcpreplay] Mbps test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Mbps test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -M 25.0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-
 
 replay_multi:
 	$(PRINTF) "%s" "[tcpreplay] Multiplier test: "

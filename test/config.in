@@ -9,7 +9,13 @@ intf2               @nic2@
 topspeed
 
 [TCPREWRITE]
-
+infile      test.pcap
+outfile     test.rewrite_config1
+cachefile   test.auto_bridge
+vlan        add
+vlan-tag    45
+vlan-cfi    1
+vlan-pri    5
 
 [TCPPREP]
 pcap        test.pcap
