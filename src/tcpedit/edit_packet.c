@@ -57,13 +57,15 @@ fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
     assert(pkthdr);
     assert(ip_hdr);
 
-    /* calc the L4 checksum */
-    if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
-                ip_hdr->ip_p, 
-                ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
-        warnx("Layer 4 checksum failed: %s", 
-                libnet_geterror(tcpedit->runtime.lnet));
-
+    /* calc the L4 checksum if we have the whole packet */
+    if (pkthdr->caplen == pkthdr->len) {
+        if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
+                    ip_hdr->ip_p, 
+                    ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
+            warnx("Layer 4 checksum failed: %s", 
+                    libnet_geterror(tcpedit->runtime.lnet));
+    }
+    
     /* calc IP checksum */
     if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
                 IPPROTO_IP, ntohs(ip_hdr->ip_len)) < 0)
