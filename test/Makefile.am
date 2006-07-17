@@ -251,7 +251,7 @@ datadump_mode:
 
 replay_config:
 	$(PRINTF) "%s" "[tcpreplay] Config file/VLAN add test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Config file (VLAN Add) mode test: " >>test.log
+	$(PRINTF) "%s\n" "*** [tcpreplay] Config file/VLAN add test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) --load-opts=config test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
