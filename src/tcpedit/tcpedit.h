@@ -93,6 +93,8 @@ typedef struct tcpedit_portmap_s tcpedit_portmap_t;
  * all the arguments that the packet editing library supports
  */
 struct tcpedit_s {
+    int validated;  /* have we run tcpedit_validate()? */
+    
     /* runtime variables, don't mess with these */
     tcpedit_runtime_t runtime;
 

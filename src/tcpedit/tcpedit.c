@@ -72,7 +72,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     int l2len = 0, l2proto;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
 
-
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(*pkthdr);
+    assert(pktdata);
+    assert(*pktdata);
+    assert(tcpedit->validated);
+    
     tcpedit->runtime.packetnum++;
     dbgx(2, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
@@ -90,12 +96,15 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if ((l2len = rewrite_l2(tcpedit, pkthdr, pktdata, direction)) == 0)
         return 0; /* packet is too long and we didn't trunc, so skip it */
 
+    if (l2len < 0)
+        errx(1, "fatal rewrite_l2 error: %s", tcpedit_geterr(tcpedit));
+
     if (direction == CACHE_PRIMARY) {
         l2proto = get_l2protocol(*pktdata, (*pkthdr)->caplen, 
-                pcap_datalink(tcpedit->runtime.pcap1));
+            pcap_datalink(tcpedit->runtime.pcap1));
     } else {
         l2proto = get_l2protocol(*pktdata, (*pkthdr)->caplen, 
-                pcap_datalink(tcpedit->runtime.pcap2));
+            pcap_datalink(tcpedit->runtime.pcap2));
     }
 
 
@@ -189,7 +198,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 }
 
 /*
- * initializes the tcpedit library
+ * initializes the tcpedit library.  returns 0 on success, -1 on error.
  */
 int
 tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1, pcap_t *pcap2)
@@ -206,8 +215,23 @@ tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1, pcap_t *pcap2)
 
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.pcap1 = pcap1;
-    tcpedit->runtime.pcap2 = pcap2 ? pcap2 : pcap1;
+    
+    tcpedit->l2.dlt = pcap_datalink(tcpedit->runtime.pcap1);
+    dbgx(1, "Input file (1) datalink type is %s\n",
+            pcap_datalink_val_to_name(tcpedit->l2.dlt));
 
+    if (pcap2 != NULL) {
+        tcpedit->runtime.pcap2 = pcap2;
+        dbgx(1, "Input file (2) datalink type is %s\n",
+            pcap_datalink_val_to_name(pcap_datalink(pcap2)));
+        if (pcap_datalink(pcap1) != pcap_datalink(pcap2)) {
+            tcpedit_seterr(tcpedit, "Sorry, currently both inputs must have the same DLT type.");
+            return -1;
+        }
+    } else {
+        tcpedit->runtime.pcap2 = pcap1;
+    }    
+            
 #ifdef FORCE_ALIGN
     if ((tcpedit->runtime.ipbuff = (u_char *)malloc(MAXPACKET)) == NULL)
         return -1;
@@ -225,6 +249,7 @@ int
 tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
 {
     assert(tcpedit);
+    tcpedit->validated = 1;
 
     dbgx(1, "Input linktype is %s", 
         pcap_datalink_val_to_description(srcdlt));
