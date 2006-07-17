@@ -85,9 +85,18 @@ int main(int argc, char *argv[])
     argc -= optct;
     argv += optct;
 
+    /* parse the tcprewrite args */
     post_args(argc, argv);
     tcpedit_ptr = &tcpedit;
-    rcode = tcpedit_post_args(&tcpedit_ptr, options.pin, NULL);
+  
+    /* init tcpedit context */
+    if (tcpedit_init(&tcpedit, options.pin, NULL) < 0) {
+        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(&tcpedit));
+    }
+    
+  
+    /* parse the tcpedit args */
+    rcode = tcpedit_post_args(&tcpedit_ptr);
     if (rcode < 0) {
         errx(1, "Unable to parse args: %s", tcpedit_geterr(&tcpedit));
     } else if (rcode == 1) {
@@ -105,7 +114,7 @@ int main(int argc, char *argv[])
 #endif
     
     if (tcpedit_validate(&tcpedit, pcap_datalink(options.pin), 
-        pcap_datalink(options.pin)) < 0) {
+            pcap_datalink(options.pin)) < 0) {
         errx(1, "Unable to edit packets given options/DLT types:\n%s",
                 tcpedit_geterr(&tcpedit));
     }
@@ -146,7 +155,8 @@ init(void)
 void 
 post_args(int argc, char *argv[])
 {
-
+    char ebuf[PCAP_ERRBUF_SIZE];
+     
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;
@@ -163,6 +173,12 @@ post_args(int argc, char *argv[])
     if (HAVE_OPT(DECODE))
         tcpdump.args = safe_strdup(OPT_ARG(DECODE));    
 #endif
+
+    /* open up the input file */
+    options.infile = safe_strdup(OPT_ARG(INFILE));
+    if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
+        errx(1, "Unable to open input pcap file: %s", ebuf);
+    
 
     /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
@@ -188,7 +204,6 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
      * we've sent enough packets
      */
     while (pcap_next_ex(pin, &pkthdr, &pktdata) == 1) {
-
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr->caplen);
 
@@ -209,7 +224,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
          */
 
         if (cache_result == CACHE_NOSEND)
-            goto WRITE_PACKET;
+            goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
         if (tcpedit_packet(tcpedit, &pkthdr, (u_char**)&pktdata, cache_result) == -1) {
             return -1;
