@@ -48,22 +48,13 @@
  * returns -1 for error
  */
 int 
-tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
+tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     tcpedit_t *tcpedit;
     int rcode = 0;
 
     assert(tcpedit_ex);
     tcpedit = *tcpedit_ex;
     assert(tcpedit);
-
-    assert(pcap1);  
-    
-    tcpedit->runtime.pcap1 = pcap1;
-    tcpedit->runtime.pcap2 = pcap2 ? pcap2 : pcap1;
-
-    tcpedit->l2.dlt = pcap_datalink(pcap1);
-    dbgx(1, "Input file datalink type is %s\n",
-            pcap_datalink_val_to_name(tcpedit->l2.dlt));
 
     /* --dmac */
     if (HAVE_OPT(DMAC)) {
@@ -128,6 +119,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2) {
         int first = 1;
         
         tcpedit->l2.enabled = 1;
+        tcpedit->l2.dlt = DLT_USER;
 
         do  {
             char *p = *list++;

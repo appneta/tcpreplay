@@ -35,6 +35,6 @@
 
 #include "tcpedit.h"
 
-int tcpedit_post_args(tcpedit_t **tcpedit_ex, pcap_t *pcap1, pcap_t *pcap2);
+int tcpedit_post_args(tcpedit_t **tcpedit_ex);
 
 #endif
