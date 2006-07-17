@@ -77,8 +77,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
                 break;
             default:
                 tcpedit_seterr(tcpedit, 
-                        "Invalid result from dualmac2hex: %d for --dmac %s", 
-                        macparse, OPT_ARG(DMAC));
+                        "Unable to parse --dmac=%s", macparse, OPT_ARG(DMAC));
                 return -1;
                 break;
         }
@@ -105,8 +104,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
                 break;
             default:
                 tcpedit_seterr(tcpedit,
-                        "Invalid result from dualmac2hex: %d for --smac %s", 
-                        macparse, OPT_ARG(SMAC));
+                        "Unable to parse --smac=%s", macparse, OPT_ARG(SMAC));
                 return -1;
                 break;
         }
@@ -131,7 +129,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
                 if (tcpedit->l2.len != read_hexstring(p, tcpedit->l2.data2,
                         L2DATALEN)) {
                     tcpedit_seterr(tcpedit, 
-                            "both --dlink data must be the same length");
+                            "both --dlink's must contain the same number of bytes");
                     return -1;
                 }
             }
@@ -153,13 +151,13 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
             if (first) {
                 if (! parse_cidr_map(&tcpedit->cidrmap1, p)) {
                     tcpedit_seterr(tcpedit, 
-                            "Unable to parse primary pseudo-NAT: %s", p);
+                            "Unable to parse first --pnat=%s", p);
                     return -1;
                 }
             } else {
                 if (! parse_cidr_map(&tcpedit->cidrmap2, p)) {
                     tcpedit_seterr(tcpedit, 
-                            "Unable to parse secondary pseudo-NAT: %s", p);
+                            "Unable to parse second --pnat=%s", p);
                     return -1;
                 }
             }
@@ -196,7 +194,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         } else if (strcmp(OPT_ARG(FIXLEN), "del") == 0) {
             tcpedit->fixlen = TCPEDIT_FIXLEN_DEL;
         } else {
-            tcpedit_seterr(tcpedit, "Invalid --fixlen %s", OPT_ARG(FIXLEN));
+            tcpedit_seterr(tcpedit, "Invalid --fixlen=%s", OPT_ARG(FIXLEN));
             return -1;
         }
     }
@@ -209,7 +207,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     if (HAVE_OPT(PORTMAP)) {
         if (! parse_portmap(&tcpedit->portmap, OPT_ARG(PORTMAP))) {
             tcpedit_seterr(tcpedit, 
-                    "Unable to parse portmap: %s", OPT_ARG(PORTMAP));
+                    "Unable to parse --portmap=%s", OPT_ARG(PORTMAP));
             return -1;
         }
     }
@@ -229,7 +227,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2,
                     OPT_ARG(ENDPOINTS))) {
             tcpedit_seterr(tcpedit, 
-                    "Unable to parse endpoints: %s", OPT_ARG(ENDPOINTS));
+                    "Unable to parse --endpoints=%s", OPT_ARG(ENDPOINTS));
             return -1;
         }
     }
@@ -243,7 +241,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         } else if (strcmp(OPT_ARG(VLAN), "del") == 0) {
             tcpedit->vlan = TCPEDIT_VLAN_DEL;
         } else {
-            tcpedit_seterr(tcpedit, "Invalid --vlan %s", OPT_ARG(VLAN));
+            tcpedit_seterr(tcpedit, "Invalid --vlan=%s", OPT_ARG(VLAN));
             return -1;
         }
 
@@ -286,7 +284,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         dbg(1, "Using custom L2 header to calculate max frame size\n");
         tcpedit->maxpacket = tcpedit->mtu + tcpedit->l2.len;
     }
-    else if (tcpedit->l2.dlt == DLT_EN10MB) {
+    else if (tcpedit->l2.dlt == DLT_EN10MB || tcpedit->l2.dlt == DLT_VLAN) {
         /* ethernet */
         dbg(1, "Using Ethernet to calculate max frame size\n");
         tcpedit->maxpacket = tcpedit->mtu + LIBNET_ETH_H;
@@ -297,7 +295,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
          */
         tcpedit->maxpacket = tcpedit->mtu + LIBNET_ETH_H;
         tcpedit_seterr(tcpedit, 
-                "Unsupported DLT type: %s.  We'll just treat it as ethernet.\n"
+            "Unsupported DLT type: %s.  We'll just treat it as ethernet.\n"
             "You may need to increase the MTU (-t <size>) if you get errors\n",
             pcap_datalink_val_to_name(tcpedit->l2.dlt));
         rcode = 1;
