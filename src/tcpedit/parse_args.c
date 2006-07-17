@@ -77,7 +77,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
                 break;
             default:
                 tcpedit_seterr(tcpedit, 
-                        "Unable to parse --dmac=%s", macparse, OPT_ARG(DMAC));
+                        "Unable to parse --dmac=%s", OPT_ARG(DMAC));
                 return -1;
                 break;
         }
@@ -104,7 +104,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
                 break;
             default:
                 tcpedit_seterr(tcpedit,
-                        "Unable to parse --smac=%s", macparse, OPT_ARG(SMAC));
+                        "Unable to parse --smac=%s", OPT_ARG(SMAC));
                 return -1;
                 break;
         }
