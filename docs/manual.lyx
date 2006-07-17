@@ -1,18 +1,19 @@
-#LyX 1.3 created this file. For more info see http://www.lyx.org/
-\lyxformat 221
+#LyX 1.4.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 245
+\begin_document
+\begin_header
 \textclass article
 \language english
 \inputencoding latin1
 \fontscheme times
 \graphics default
 \paperfontsize default
-\spacing single 
+\spacing single
 \papersize letterpaper
-\paperpackage a4
-\use_geometry 1
-\use_amsmath 0
-\use_natbib 0
-\use_numerical_citations 0
+\use_geometry true
+\use_amsmath 1
+\cite_engine basic
+\use_bibtopic false
 \paperorientation portrait
 \leftmargin 10mm
 \topmargin 10mm
@@ -23,33 +24,41 @@
 \paragraph_separation skip
 \defskip medskip
 \quotes_language english
-\quotes_times 2
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
+\tracking_changes false
+\output_changes true
+\end_header
 
-\layout Title
+\begin_body
 
+\begin_layout Title
 Tcpreplay 3.x Manual (BETA)
-\layout Author
+\end_layout
 
+\begin_layout Author
 Aaron Turner
-\newline 
+\newline
 http://tcpreplay.sourceforge.net/
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Notice
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 This document is still in the process of being re-written due to the significant
  CLI and configuration file changes between versions 2.x and 3.x.
  For the definative source of configuration options, please see the tcpprep,
  tcprewrite, tcpreplay and tcpbridge man pages.
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Overview
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpreplay is a suite of utilities for UNIX systems for editing and replaying
  network traffic which was previously captured by tools like tcpdump and
  ethereal.
@@ -58,72 +67,86 @@ Tcpreplay is a suite of utilities for UNIX systems for editing and replaying
  router, firewalls, network intrusion detection and prevention systems (IDS
  and IPS).
  
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpreplay provides the ability to classify traffic as client or server,
  edit packets at layers 2-4 and replay the traffic at arbitrary speeds onto
  a network for sniffing or through a device.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Some of the advantages of using tcpreplay over using 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 exploit code
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  are:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Since tcpreplay emulates the victim and the attacker, you generally only
  need a tcpreplay box and the device under test (DUT)
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Tests can include background traffic of entire networks without the cost
  and effort of setting up dozens of hosts or costly emulators
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 No need to have a 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 victim
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  host which needs to have the appropriate software installed, properly configure
 d and rebuilt after compromise
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Less chance that a virus or trojan might escape your network and wreak havoc
  on your systems
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Uses the open standard pcap file format for which dozens of command line
  and GUI utilities exist
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Tests are fully repeatable without a complex test harnesses or network configura
 tion
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Tests can be replayed at arbitrary speeds
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Single command-line interface to learn and integrate into test harness
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 You only need to audit tcpreplay, rather then each and every exploit individuall
 y
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Actively developed and supported by it's author
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Using this manual
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 The goal of this manual is to provide an idea of what tcpreplay and it's
  utilities can do.
  It is not however intended to be a complete document which covers every
@@ -133,37 +156,44 @@ The goal of this manual is to provide an idea of what tcpreplay and it's
  It is expected that most of these issues will be ironed out before the
  offical 3.0 release is made.
  You should keep in mind the following conventions when reading this document:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Commands you should run from the command line 
-\family typewriter 
+\family typewriter
 are in monotype
-\family default 
+\family default
 .
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Commands that should be run as root will have a '#' in front of them.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Commands that should be run as an unprivelged user will have a '$' in front
  of them.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Text that should be placed in a file 
-\family typewriter 
+\family typewriter
 is in monospace.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 All of the applications shipped with tcpreplay support both short (a single
  dash followed by a single character) and long (two dashes followed by multiple
  characters) arguments.
  For consistancy, this document uses the long option format.
  Please review the man pages for the short argument equivalents.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Getting Help
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 If you still have a question after reading the Tcpreplay manual, man pages
  and FAQ, please contact the Tcpreplay-Users <tcpreplay-users@lists.sourceforge.ne
 t> mailing list.
@@ -172,322 +202,386 @@ t> mailing list.
  Also, please try to explain your problem in detail.
  It is very difficult and fustrating to get requests from people seeking
  help who only provide vague and incomplete information.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Corrections and additions to the manual
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 I've tried to keep this document up to date with the changes in tcpreplay,
  but occasionally I get too busy, make a mistake or just forget something.
  If you find anything in this document which could be improved upon, please
  let me know.
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Getting Tcpreplay working on your system
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Getting the source code
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 The source code is available as a tarball on the tcpreplay homepage: 
 \begin_inset LatexCommand \htmlurl{http://tcpreplay.sourceforge.net/}
 
-\end_inset 
+\end_inset
 
  I also encourage users familiar with Subversion to try checking out the
  latest code as it often has additional features and bugfixes not yet found
  in the offical releases.
-\layout LyX-Code
+\end_layout
 
-$ svn checkout https://www.synfin.net:444/svn/tcpreplay/trunk tcpreplay
-\layout Subsection*
+\begin_layout LyX-Code
+$ svn checkout https://www.synfin.net/svn/tcpreplay/trunk tcpreplay
+\end_layout
 
+\begin_layout Subsection*
 Requirements
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Libnet
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 http://www.packetfactory.net/libnet/
-\end_inset 
+\end_layout
+
+\end_inset
 
  1.1.x or better (1.1.3 fixes a checksum bug which effects tcprewrite)
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Libpcap
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 http://www.tcpdump.org/
-\end_inset 
+\end_layout
+
+\end_inset
 
  0.6.x or better (0.8.3 or better recommended)
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 To support the packet decoding feature you'll need tcpdump
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 http://www.tcpdump.org/
-\end_inset 
+\end_layout
+
+\end_inset
 
  binary installed.
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 You'll also need a compatible operating system.
  Basically, any *NIX operating system should work.
  Linux, *BSD, Solaris, OS X and others should all work.
  If you find any compatibility issues with any *NIX OS, please let me know.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Compiling Tcpreplay
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Two easy steps:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 
-\emph on 
+\emph on
 $ 
-\emph default 
+\emph default
 ./configure && make
-\emph on 
+\emph on
  
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 
-\emph on 
+\emph on
 #
-\emph default 
+\emph default
  make install
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 There are some optional arguments which can be passed to the 'configure'
  script which may help in cases where your libnet, libpcap or tcpdump installati
 on is not standard or if it can't determine the correct network interface
  card to use for testing.
  I also recommend that for beta code you specify 
-\series bold 
+\series bold
 -\SpecialChar \textcompwordmark{}
 -enable-debug
-\series default 
+\series default
  to the configure script in case you find any bugs.
  If you find that configure isn't completing correctly, run:
-\emph on 
+\emph on
  ./configure -\SpecialChar \textcompwordmark{}
 -help
-\emph default 
+\emph default
  for more information.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 You may also choose to run: 
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 #
-\emph on 
+\emph on
  make test -i
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 make test is just a series of sanity checks which try to find serious bugs
  (crashes) in tcpprep and tcpreplay.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 make test requires at least one properly configured network interface.
  If the configure script can't guess what a valid interface is you can specify
  it with the -\SpecialChar \textcompwordmark{}
 -with-testnic and -\SpecialChar \textcompwordmark{}
 -with-testnic2 arguments.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 If make test fails, often you can find details in test/test.log.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 OpenBSD's make has a bug where it ignores the MAKEFLAGS variable in the
  Makefile, hence you'll probably want to run: 
-\emph on 
+\emph on
 make -is test
-\emph default 
+\emph default
  instead.
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Basic Tcpreplay Usage
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying the traffic
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 To replay a given pcap as it was captured all you need to do is specify
  the pcap file and the interface to send the traffic out interface 'eth0':
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --intf1=eth0 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying at different speeds
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 You can also replay the traffic at different speeds then it was originally
  captured
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 Tcpreplay makes a "best" effort to replay traffic at the given rate, but
  due to limitations in hardware or the pcap file itself, it may not be possible.
  Capture files with only a few packets in them are especially susceptible
  to inaccurately timing packets.
-\end_inset 
+\end_layout
+
+\end_inset
 
 .
  
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Some examples:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To replay traffic as quickly as possible:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --topspeed --intf1=eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To replay traffic at a rate of 10Mbps:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --mbps=10.0 --intf1=eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To replay traffic 7.3 times as fast as it was captured:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --multiplier=7.3 --intf1=eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To replay traffic at half-speed:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --multiplier=0.5 --intf1=eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To replay at 25 packets per second:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --pps=25 --intf1=eth0 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying files multiple times
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Using the loop flag you can specify that a pcap file will be sent two or
  more times
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 Looping files resets internal counters which control the speed that the
  file is replayed.
  Also because the file has to be closed and re-opened, an added delay between
  the last and first packet may occur.
-\end_inset 
+\end_layout
+
+\end_inset
 
 :
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 To replay the sample.pcap file 10 times:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --loop=10 --intf1=eth0 sample.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 To replay the sample.pcap an infinitely or until CTRL-C is pressed:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --loop=0 --intf1=eth0 sample.pcap
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Editing Packets
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 There are a number of ways you can edit packets stored in a pcap file:
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Rewriting IP addresses so that they appear to be sent from and to different
  hosts
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Fixing corrupted packets which were truncated by tcpdump or had bad checksums
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Adding, removing or changing 802.1q VLAN tags on frames
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Rewriting traffic so that it no longer uses 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 standard
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  TCP or UDP ports for the given service
-\layout Enumerate
+\end_layout
 
-Changing ethernet MAC addresses so that packets will be accepted by a router
- or firewall
-\layout Section*
+\begin_layout Enumerate
+Changing ethernet MAC addresses so that packets will be accepted by a switch,
+ router or firewall
+\end_layout
 
+\begin_layout Section*
 Splitting Traffic
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Anything other then just replaying packets at different speeds requires
  additional work and CPU cycles.
  While older versions of tcpreplay allowed you to do many of these calculations
  while replaying traffic, it had a negative effect on the overall throughput
  and performance of tcpreplay.
  Hence, these secondary features have been placed in two utilities:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 tcpprep - Used to categorize packets as originating from clients or servers
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 tcprewrite - Used to edit packets
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 By using tcpprep and tcprewrite on a pcap file before sending it using tcpreplay
 , many possibilities open up.
  A few of these possibilities are:
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Classifying client and servers with tcpprep
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Both tcpreplay and tcprewrite process a single pcap file and generate output.
  Some features, such as rewriting IP or MAC addresses or sending traffic
  out two different interfaces, require tcpreplay and tcprewrite to have
  some basic knowledge about which packets were sent by 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 clients
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 servers
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
 .
  Such classification is often rather arbitrary since for example a SMTP
@@ -496,66 +590,74 @@ servers
  A webserver might accept inbound HTTP requests, but make client connections
  to a SQL server.
  
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 To deal with this problem, tcpreplay comes with tcpprep which provides a
  number of manual and automatic classification methods which cover a variety
  of situations.
  
-\layout Subsubsection*
+\end_layout
 
+\begin_layout Subsubsection*
 Seperating clients and servers automatically
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 The easiest way to split clients and servers is to let tcpprep do the classifica
 tion for you.
  Tcpprep examines the pcap file for TCP three-way handshakes, DNS lookups
  and other types of traffic to figure out which IP's mostly act like clients
  and which mostly act like servers.
  There are four different automatic modes that you can choose between:
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Bridge - This is the simplest mode.
  Each IP is individually tracked and ranked as a client or server.
  However, if any of the hosts do not generate enough 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 client
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  or 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 server
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  traffic then tcpprep will abort complaining that it was unable to determine
  its classification.
  This works best when clients and servers are intermixed on the same subnet.
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Client - This works just like bridge mode, except that unknown hosts will
  be marked a client.
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Server - This works just like bridge mode, except that unknown hosts will
  be marked a server.
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 Router - Hosts are first ranked as client or server.
  Then each host is placed in a subnet which is expanded until either all
  the unknown hosts are included or the --maxmask is reached.
  This works best when clients and servers are on diffierent networks.
-\layout Standard
-\align center 
+\end_layout
 
-\noun on 
+\begin_layout Standard
+\align center
 
-\begin_inset  Tabular
+\noun on
+\begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
 <features>
 <column alignment="center" valignment="top" rightline="true" width="0">
@@ -564,96 +666,103 @@ Router - Hosts are first ranked as client or server.
 <cell multicolumn="1" alignment="center" valignment="top" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 TCPPREP AUTOMATIC ROUTER MODE PROCESS
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell multicolumn="2" alignment="center" valignment="top" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
+\begin_layout Standard
 
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
+\begin_layout Standard
 
-
-\noun on 
+\noun on
 Step 1: 
-\noun default 
+\noun default
 Categorize Clients, Servers and Unknowns
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
+\begin_layout Standard
 
-
-\noun on 
+\noun on
 Step 2: 
-\noun default 
+\noun default
 Clients and Servers Expand Their Subnets to Include Unknowns
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
-
+\begin_layout Standard
 \begin_inset Graphics
 	filename router-mode1.eps
 	lyxscale 60
 	scale 60
 	keepAspectRatio
 
-\end_inset 
+\end_inset
 
 
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
-
+\begin_layout Standard
 \begin_inset Graphics
 	filename router-mode2.eps
 	lyxscale 60
 	scale 60
 	keepAspectRatio
 
-\end_inset 
+\end_inset
 
 
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 </lyxtabular>
 
-\end_inset 
+\end_inset
 
 
-\layout Standard
+\end_layout
 
-\SpecialChar ~
-\SpecialChar ~
-\SpecialChar ~
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+\InsetSpace ~
 
-\layout Standard
-\align center 
+\end_layout
 
-\begin_inset  Tabular
+\begin_layout Standard
+\align center
+\begin_inset Tabular
 <lyxtabular version="3" rows="2" columns="1">
 <features>
 <column alignment="center" valignment="top" width="0">
@@ -661,330 +770,389 @@ Clients and Servers Expand Their Subnets to Include Unknowns
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
+\begin_layout Standard
 
-
-\noun on 
+\noun on
 Step 3: 
-\noun default 
+\noun default
 Unknowns Now Marked as Clients and Servers
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
+\begin_layout Standard
 
-
-\noun on 
-
+\noun on
 \begin_inset Graphics
 	filename router-mode3.eps
 	lyxscale 60
 	scale 60
 	keepAspectRatio
 
-\end_inset 
+\end_inset
 
 
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 </lyxtabular>
 
-\end_inset 
+\end_inset
 
 
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Classifying clients and servers in automatic mode is as easy as choosing
  a pcap file, an output 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 tcpprep cache file
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  and the mode to use:
-\layout LyX-Code
+\end_layout
 
 
-\emph on 
+\begin_layout LyX-Code
+\emph on
 $ 
-\emph default 
+\emph default
 tcpprep --auto=bridge --pcap=input.pcap --cachefile=input.cache
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 The above example would split traffic in bridge mode.
  Other modes are 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 router
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
 , 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 client
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  and 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 server
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
 .
  If you wish, you can override the default 2:1 ratio of server vs.
  client traffic required to classify an IP as a server.
  If for example you wanted to require 3.5 times as much server to client
  traffic you would specify it like:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 
-\emph on 
+\emph on
 $ 
-\emph default 
+\emph default
 tcpprep --auto=bridge --ratio=3.5 --pcap=input.pcap --cachefile=input.cache
-\layout Subsubsection*
+\end_layout
 
+\begin_layout Subsubsection*
 Seperating clients and servers manually by subnet
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Sometimes, you may not want to split traffic based on clients and servers.
  The alternative to using on of the automatic modes in this case, is to
  use one of the manual modes.
  One manual way of differentiating between clients and servers using tcpprep
  is by specifying a list of networks in CIDR notation which contain 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 servers
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
 .
  Of course the specified CIDR netblocks don't have to contain 
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying on multiple interfaces
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpreplay can also split traffic so that each side of a connection is sent
  out a different interface
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 Note that you can also use the following options to split traffic into two
  files using -w and -W which are described later on in this FAQ.
-\end_inset 
+\end_layout
+
+\end_inset
 
 .
  In order to do this, tcpreplay needs the name of the second interface (-j)
  and a way to split the traffic.
  Currently, there are two ways to split traffic:
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 -C = split traffic by source IP address which is specified in CIDR notation
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 -c = split traffic according to a tcpprep cachefile
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 For information on generating tcpprep cache files, see the section on tcpprep.
-\end_inset 
+\end_layout
+
+\end_inset
 
 
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 When splitting traffic, it is important to remember that traffic that matches
  the filter is sent out the primary interface (--intf1).
  In this case, when splitting traffic by source IP address, you provide
  a list of networks in CIDR notation.
  For example:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To send traffic from 10.0.0.0/8 out eth0 and everything else out eth1:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -C 10.0.0.0/8 --intf1=eth0 --intf2=eth1 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To send traffic from 10.1.0.0/24 and 10.2.0.0/20 out eth0 and everything else
  out eth1:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -C 10.1.0.0/24,10.2.0.0/20 --intf1=eth0 --intf2=eth1 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 After using tcpprep to generate a cache file, you can use it to split traffic
  between two interfaces like this:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -c sample.cache --intf1=eth0 --intf2=eth1 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Selectively sending or dropping packets
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Sometimes, you want to do some post-capture filtering of packets.
  Tcpreplay let's you have some control over which packets get sent.
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 -M = disables sending of martian packets.
  By definition, martian packets have a source IP of 0.x.x.x, 127.x.x.x, or 255.x.x.x
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 -x = send packets which match a specific pattern
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 -X = send packets which do not match a specific pattern
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Both -x and -X support a variety of pattern matching types.
  These types are specified by a single character, followed by a colon, followed
  by the pattern.
  The following pattern matching types are available:
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 S - Source IP
-\newline 
+\newline
 Pattern is a comma delimited CIDR notation
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 D - Destination IP
-\newline 
+\newline
 Pattern is a comma delimited CIDR notation
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 B - Both source and destination IP must match
-\newline 
-Pattern is a comma delimited CIDR notation
-\layout Enumerate
+\newline
+Pattern is a comma delimited
+ CIDR notation
+\end_layout
 
+\begin_layout Enumerate
 E - Either source or destination IP must match
-\newline 
-Pattern is a comma delimited CIDR notation
-\layout Enumerate
+\newline
+Pattern is a comma delimited
+ CIDR notation
+\end_layout
 
+\begin_layout Enumerate
 P - A list of packet numbers from the pcap file.
-\newline 
-Pattern is a series of numbers, separated by commas or dashes.
-\layout Enumerate
+\newline
+Pattern is a series of numbers,
+ separated by commas or dashes.
+\end_layout
 
+\begin_layout Enumerate
 F - BPF syntax (same as used in tcpdump).
-\newline 
-Filter must be quoted and is only supported with -x
+\newline
+Filter must be quoted and is only
+ supported with -x
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 Note that if you want to send all the packets which do not match a bpf filter,
  all you have to do is negate the bpf filter.
  See the tcpdump(1) man page for more info.
-\end_inset 
+\end_layout
+
+\end_inset
 
 .
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Examples:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To only send traffic that is too and from a host in 10.0.0.0/8:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -x B:10.0.0.0/8 --intf1 eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To not send traffic that is too or from a host in 10.0.0.0/8:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -X E:10.0.0.0/8 --intf1 eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To send every packet except the first 10 packets:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -X P:1-10 --intf1 eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To only send the first 50 packets followed by packets: 100, 150, 200 and
  250:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -x P:1-50,100,150,200,250 --intf1 eth0 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To only send TCP packets from 10.0.0.1:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 
-\emph on 
+\emph on
 tcpreplay -x F:'tcp and host 10.0.0.1' --intf1 eth0 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying only a few packets
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Using the limit packets flag (-L) you can specify that tcpreplay will only
  send at most a specified number of packets.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To send at most 100 packets:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth0 -L 100 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Skipping the first bytes in a pcap file
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 If you want to skip the beginning of a pcap file, you can use the offset
  flag (-o) to skip a specified number of bytes and start sending on the
  next packet.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To skip 15Kb into the pcap file and start sending packets from there:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 -o 15000 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying packets which are bigger then the MTU
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Occasionally, you might find yourself trying to replay a pcap file which
  contains packets which are larger then the MTU for the sending interface.
  This might be due to the packets being captured on the loopback interface
  or on a 1000Mbps ethernet interface supporting 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 jumbo frames
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
 .
  I've even seen packets which are 1500 bytes but contain both an ethernet
  header and trailer which bumps the total frame size to 1518 which is 4
  bytes too large.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 By default, tcpreplay will skip these packets and not send them.
  Alternatively, you can specify the -T flag to truncate these packets to
  the MTU and then send them.
@@ -993,14 +1161,17 @@ By default, tcpreplay will skip these packets and not send them.
  Also, when this feature is enabled, tcpreplay will automatically recalculate
  the IP and TCP, UDP or ICMP checksums as needed.
  Example:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth0 -T sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Writing packets to a file
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 It's not always necessary to write packets to the network.
  Since tcpreplay has so many features which modify and select which packets
  are sent, it is occasionally useful to save these changes to another pcap
@@ -1008,109 +1179,126 @@ It's not always necessary to write packets to the network.
  Rather then running a separate tcpdump process to capture the packets,
  tcpreplay now supports output directly to a file.
  Example:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth0 -w output.pcap -F -u pad -x E:10.0.0.0/8 input1.pcap input2.pca
 p input3.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Notice that specifying an interface is still required (required for various
  internal functions), but all the packets will be written to 
-\emph on 
+\emph on
 output.pcap
-\emph default 
+\emph default
 .
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 You can also split traffic into two files by using -W <2nd output file>.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Extracting Application Data (Layer 7)
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 New to version 2.0 is the ability to extract the application layer data from
  the packets and write them to a file.
  In the man page, we call this 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 data dump mode
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  which is enabled with -D.
  It's important to specify -D before -w (and -W if you're splitting data
  into two files).
  Example:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay -D --intf1 eth0 -j eth0 -w clientdata -W serverdata -C 10.0.0.0/24
  sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying Live Traffic
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 You can now replay live traffic sniffed on one network interface and replay
  it on another interface using the -S flag to indicate sniff mode and the
  appropriate snaplen in bytes (0 denotes the entire packet).
  You can also enabling bi-directional traffic using the bridge mode flag:
  -b.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 N
-\noun on 
+\noun on
 ote:
-\noun default 
+\noun default
  It is critical for your sanity (and to prevent your murder by your network
  administrators) that the input interface and the output interface be on
  separate networks and additionally that no other network devices (such
  as bridges, switches, routers, etc) be connecting the two networks, else
  you will surely get a networkstorm the likes that have not been seen for
  years.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Send packets sniffed on eth0 out eth1:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth1 -S 0 eth0
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Bridge two subnets connected to eth0 and eth1:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth0 --intf2=eth1 -b -S 0
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 By default, tcpreplay listens in promiscuous mode on the specified interface,
  however if you only want to send unicasts directed for the local system
  and broadcasts, you can specify the 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 not_nosy
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  option in the configuration file or -n on the command line.
  Note that if another program has already placed the interface in promiscuous
  mode, the -n flag will have no effect, so you may want to use the -x or
  -X argument to limit packets.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying Packet Capture Formats Other Than Libpcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 There are about as many different capture file formats as there are sniffers.
  In the interest of simplicity, tcpreplay only supports libpcap
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
+\begin_layout Standard
 Note that some versions of tcpreplay prior to 1.4 also supported the Solaris
  snoop format.
-\end_inset 
+\end_layout
+
+\end_inset
 
 .
  If you would like to replay a file in one of these multitude of formats,
@@ -1118,18 +1306,22 @@ Note that some versions of tcpreplay prior to 1.4 also supported the Solaris
  to libpcap.
  For instance, to convert a file in Sun's snoop format to libpcap, issue
  the command: 
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tethereal -r blah.snoop -w blah.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 and replay the resulting file.
  
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Replaying Client Traffic to a Server
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 A common question on the tcpreplay-users list is how does one replay the
  client side of a connection back to a server.
  Unfortunately, tcpreplay doesn't support this right now.
@@ -1138,95 +1330,114 @@ A common question on the tcpreplay-users list is how does one replay the
  ICMP also often contains IP header information which would need to be adjusted.
  About the only thing that could be easy to do is UDP, which isn't usually
  requested.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 This is however a feature that we're looking into implementing in the flowreplay
  utility.
  If you're interested in helping work on this feature, please contact us
  and we'd be more then happy to work with you.
  At this time however, we don't have an ETA when this will be implemented,
  so don't bother asking.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Decoding Packets
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 If the tcpdump binary is installed on your system when tcpreplay is compiled,
  it will allow you to decode packets as they are sent without running tcpdump
  in a separate window or worrying about it capturing packets which weren't
  sent by tcpreplay.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Decode packets as they are sent:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth0 -v sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Decode packets with the link level header:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth0 -v -A 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 -e
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Fully decode and send one packet at a time:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1 eth0 -v -1 -A 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 -s0 -evvvxX
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  sample.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Note that tcpreplay automatically applies the -n flag to disable DNS lookups
  which would slow down tcpdump too much to make it effective.
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Packet Editing
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Rewriting MAC addresses
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 If you ever want to send traffic to another device on a switched LAN, you
  may need to change the destination MAC address of the packets.
  Tcpreplay allows you to set the destination MAC for each interface independentl
 y using the -I and -J switches.
  As of version 2.1.0, you can also specify the source MAC via -k and -K.
  Example:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To send traffic out eth0 with a destination MAC of your router (00:00:01:02:03:0
 4) and the source MAC of the server (00:20:30:40:50:60):
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 -I 00:00:01:02:03:04 -k 00:20:30:40:50:60 sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 To split traffic between internal (10.0.0.0/24) and external addresses and
  to send that traffic to the two interfaces of a firewall:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 --intf2=eth1 -I 00:01:00:00:AA:01 -J 00:01:00:00:AA:02
  -C 10.0.0.0/24 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Randomizing IP addresses
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Occasionally, it is necessary to have tcpreplay rewrite the source and destinati
 on IP addresses, yet maintain the client/server relationship.
  Such a case might be having multiple copies of tcpreplay running at the
@@ -1240,22 +1451,27 @@ on IP addresses, yet maintain the client/server relationship.
  Also, when this feature is enabled, tcpreplay will automatically recalculate
  the IP and TCP, UDP or ICMP checksums as needed.
  Example:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 
-\emph on 
+\emph on
 tcpreplay --intf1=eth0 -s 1239 sample.pcap &
-\newline 
-tcpreplay --intf1=eth0 -s 76 sample.pcap &
-\newline 
+\newline
+tcpreplay --intf1=eth0 -s 76
+ sample.pcap &
+\newline
 tcpreplay --intf1=eth0 -s 239 sample.pcap &
-\newline 
-tcpreplay --intf1=eth0 sample.pcap
-\layout Subsection*
+\newline
+tcpreplay --intf1=eth0
+ sample.pcap
+\end_layout
 
+\begin_layout Subsection*
 Replaying (de)truncated packets
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Occasionally, it is necessary to replay traffic which has been truncated
  by tcpdump.
  This occurs when the tcpdump snaplen is smaller then the actual packet
@@ -1266,23 +1482,29 @@ Occasionally, it is necessary to replay traffic which has been truncated
  the actual packet size.
  In either case, the IP and TCP, UDP or ICMP checksums are recalculated.
  Examples:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Pad truncated packets:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 -u pad sample.pcap
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Rewrite packet header lengths to the actual packet size:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 -u trunc sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Rewriting Layer 2 with -2
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Starting in the 2.0.x branch, tcpreplay can replace the existing layer 2 header
  with one of your choosing.
  This is useful for when you want to change the layer 2 header type or add
@@ -1290,51 +1512,58 @@ Starting in the 2.0.x branch, tcpreplay can replace the existing layer 2 header
  Each pcap file tells the type of frame.
  Currently tcpreplay knows how to deal with the following pcap(3) frame
  types:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 DLT_EN10MB
-\newline 
+\newline
 Replace existing 802.3/Ethernet II header
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 DLT_RAW
-\newline 
+\newline
 Frame has no Layer 2 header, so we can add one.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 DLT_LINUX_SLL
-\newline 
-Frame uses the Linux Cooked Socket header which is most commonly created
- with 
-\emph on 
+\newline
+Frame uses the Linux Cooked Socket header which is most commonly
+ created with 
+\emph on
 tcpdump -i any
-\emph default 
+\emph default
  on a Linux system.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpreplay accepts the new Layer 2 header as a string of comma separated
  hex values such as: 0xff,0xac,0x00,0x01,0xc0,0x64.
  Note that the leading '0x' is 
-\emph on 
+\emph on
 not
-\emph default 
+\emph default
  required.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Potential uses for this are to add a layer 2 header for DLT_RAW captures
  or add/remove ethernet tags or QoS features.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Rewriting DLT_LINUX_SLL (Linux Cooked Socket) captures
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpdump uses a special frame type to store captures created with the 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 -i any
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  argument.
  This frame type uses a custom 16 byte layer 2 header which tracks which
@@ -1344,55 +1573,65 @@ Tcpdump uses a special frame type to store captures created with the
  store a source MAC when the packet is captured on the loopback interface.
  Normally, tcpreplay can't replay these pcap files because there isn't enough
  information in the LINUX_SLL header to do so; however two options do exist:
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 You can send these packets with -2 which will replace the LINUX_SLL header
  with an ethernet header of your choosing.
-\layout Enumerate
+\end_layout
 
+\begin_layout Enumerate
 You can specify a destination MAC via -I and -J in which case tcpreplay
  will use the stored source MAC and create a new 802.3 Ethernet header.
  Note that if the pcap contains loopback packets, you will also need to
  specify -k and/or -K to specify the source MAC as well or they will be
  skipped.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Rewriting IP Addresses (pseudo-NAT)
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Pseudo-NAT allows the mapping of IP addresses in IPv4 and ARP packets from
  one subnet to another subnet of the same or different size.
  This allows some or all the traffic sent to appear to come from a different
  IP subnet then it actually was captured on.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 The mapping is done through a user specified translation table comprised
  of one or more source and destination network(s) in the format of <srcnet>/<mas
 klen>:<dstnet>/<masklen> deliminated by a comma.
  Mapping is done by matching IP addresses to the source subnet and rewriting
  the most significant bits with the destination subnet.
  For example:
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 
-\emph on 
+\emph on
 tcpreplay --intf1=eth0 -N 10.100.0.0/16:172.16.10.0/24 sample.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 would match any IP in the 10.100.0.0/16 subnet and rewrite it as if it came
  from or sent to the 172.16.10.0/24 subnet.
  Ie: 10.100.5.88 would become 172.16.10.88 and 10.100.99.45 would become 172.16.10.45.
  But 10.150.7.44 would not be rewritten.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 For any given IP address, the translation table is applied in order (so
  if there are multiple mappings, earlier maps take precedence) and occurs
  only once per IP (no risk of an address getting rewritten a second time).
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Advanced pseudo-NAT
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Pseudo-NAT also works with traffic splitting (using two interfaces or output
  files) but with a few important differences.
  First you have the option of specifying one or two pseudo-NAT tables.
@@ -1401,10 +1640,11 @@ Pseudo-NAT also works with traffic splitting (using two interfaces or output
  Using two pseudo-NAT tables (specifying -N <Table1> -N <Table2>) will cause
  the source and destination IP addresses to be rewritten differently for
  each interface using the following matrix:
-\layout Standard
-\align center 
+\end_layout
 
-\begin_inset  Tabular
+\begin_layout Standard
+\align center
+\begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="3">
 <features>
 <column alignment="center" valignment="top" width="0sp">
@@ -1414,86 +1654,97 @@ Pseudo-NAT also works with traffic splitting (using two interfaces or output
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
+\begin_layout Standard
 
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Out Primary Interface
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Out Secondary Interface
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 <row topline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Src IP
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Table 1
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Table 2
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 <row topline="true" bottomline="true">
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Dest IP
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Table 2
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
-\layout Standard
-
+\begin_layout Standard
 Table 1
-\end_inset 
+\end_layout
+
+\end_inset
 </cell>
 </row>
 </lyxtabular>
 
-\end_inset 
+\end_inset
 
 
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 While seemingly a bit confusing, this feature provides a number of interesting
  possibilities such as the ability to rewrite the IP headers of packets
  in the case where traffic is captured on the loopback interface (and the
@@ -1501,31 +1752,38 @@ While seemingly a bit confusing, this feature provides a number of interesting
  make it look like two different systems are talking to each other (you'll
  probably also need to specify the source and destination MAC addresses
  via -I, -J, -k and -K).
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 IP Endpoints
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 While pseudo-NAT provides a great deal of flexibility, it is often more
  complicated then is necessary for testing of inline devices.
  As a simplier alternative, tcpreplay supports the concept of rewriting
  all traffic to so that it appears to be between two IP addresses:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 --intf2=eth1 -c sample.cache -e 10.0.0.1:10.1.1.1 sample.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Will rewrite all the traffic so that it is between 10.0.0.1 and 10.1.1.1.
  The equivalent command using -N would be:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 --intf2=eth1 -c sample.cache -N 0.0.0.0/0:10.0.0.1 -N 0.0.0.0/0:10.1.
 1.1 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Unifying Dual-Outputs
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Since a number of tcpreplay's packet editing functions require splitting
  traffic between client and servers, one problem that may arrise is needing
  to edit packets but still output to a single interface or file.
@@ -1534,119 +1792,141 @@ Since a number of tcpreplay's packet editing functions require splitting
  but then always go out the primary interface or file.
  Note that even though only one interface/file will be written to, both
  -i and -j must be specified; although they can be the same physical interface.
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 -j eth0 -O -c sample.cache -e 10.0.0.1:10.1.1.1 sample.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Merging the output to a single file:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --intf1=eth0 -j eth0 -w rewrite.pcap -c sample.cache -e 10.0.0.1:10.1.1.1
  sample.pcap
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Tcpprep Usage
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 What is tcpprep?
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpreplay can send traffic out two network cards, however it requires the
  calculations be done in real-time.
  These calculations can be expensive and can significantly reduce the throughput
  of tcpreplay.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpprep is a libpcap pre-processor for tcpreplay which enables using two
  network cards to send traffic without the performance hit of doing the
  calculations in real-time.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 What are these 'modes' tcpprep has? 
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpprep has three basic modes which require the user to specify how to split
  traffic.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 CIDR (-\SpecialChar \textcompwordmark{}
 -cidr) mode requires the user to provide a list of networks.
  Any packet with a source IP in one of these networks gets sent out the
  primary interface.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Regex (-\SpecialChar \textcompwordmark{}
 -regex) mode requires the user to provide a regular expression.
  Any packet with a source IP matching the regex gets sent out the primary
  interface.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Port (-\SpecialChar \textcompwordmark{}
 -port) mode splits TCP/UDP traffic based on the destination port
  in the header.
  Normally, ports 0-1023 are considered 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 server
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  ports and everything else a client port.
  You can create your own custom mapping file in the same format as /etc/services
  (see the services(5) man page for details) by specifying -\SpecialChar \textcompwordmark{}
 -services <file>.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 And four auto modes in which tcpprep decides how to split traffic.
  Auto modes are useful for when you don't know much about the contents of
  the dump file in question and you want to split traffic up based upon servers
  and clients.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Auto/Router (-\SpecialChar \textcompwordmark{}
 -auto router) mode trys to find the largest network(s) that
  contain all the servers and no clients.
  Any unknown system is automatically re-classified as servers if it's inside
  the server network(s), otherwise it is classified as a client.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Auto/Bridge (-\SpecialChar \textcompwordmark{}
 -auto bridge) mode makes the assumption that the clients and
  servers are horribly intermixed on the network and there's no way to subnet
  them.
  While this takes less processing time to create the cache file it is unable
  to deal with unknown systems.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Auto/Client (-\SpecialChar \textcompwordmark{}
 -auto client) mode which works just like Auto/Bridge mode,
  except that any system it can't figure out is treated like a client.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Auto/Server (-\SpecialChar \textcompwordmark{}
 -auto server) mode which works just like Auto/Bridge mode,
  except that any system it can't figure out is treated like a server.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Splitting traffic based upon IP address
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpprep supports the same CIDR mode that tcpreplay supports using the -\SpecialChar \textcompwordmark{}
 -cidr
  flag.
  Additionally, tcpprep also supports regex(7) regular expressions to match
  source IP addresses using the -\SpecialChar \textcompwordmark{}
 -regex flag.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Auto Mode
-\layout Subsubsection*
+\end_layout
 
+\begin_layout Subsubsection*
 How does Auto/Bridge mode work? 
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpprep does an initial pass over the libpcap file to build a binary tree
  (one node per IP).
  For each IP, it keeps track of how many times it was a client or server.
@@ -1655,11 +1935,13 @@ Tcpprep does an initial pass over the libpcap file to build a binary tree
  If tcpprep is unable to determine the type (client or server) for each
  and every packet, then auto/bridge mode will fail.
  In these cases, it is best to use a different auto mode.
-\layout Subsubsection*
+\end_layout
 
+\begin_layout Subsubsection*
 How does Auto/Router mode work? 
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpprep does the same first pass as Auto/Bridge mode.
  It then trys to convert the binary tree into a list of networks containing
  the servers.
@@ -1667,46 +1949,58 @@ Tcpprep does the same first pass as Auto/Bridge mode.
  pass of the libpcap file.
  Unlike auto/bridge mode, auto/router mode can always successfully split
  IP addresses into clients and servers.
-\layout Subsubsection*
+\end_layout
 
+\begin_layout Subsubsection*
 Determining Clients and Servers
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpprep uses the following methods in auto/router and auto/bridge mode to
  determine if an IP address is a client or server:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Client:
-\begin_deeper 
-\layout Itemize
+\end_layout
 
+\begin_deeper
+\begin_layout Itemize
 TCP with Syn flag set
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 UDP source/destination port 53 (DNS) without query flag set
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 ICMP port unreachable (destination IP of packet)
-\end_deeper 
-\layout Itemize
+\end_layout
 
+\end_deeper
+\begin_layout Itemize
 Server:
-\begin_deeper 
-\layout Itemize
+\end_layout
 
+\begin_deeper
+\begin_layout Itemize
 TCP with Syn/Ack flag set
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 UDP source/destination port 53 (DNS) with query flag set
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 ICMP port unreachable (source IP of packet)
-\end_deeper 
-\layout Subsubsection*
+\end_layout
 
+\end_deeper
+\begin_layout Subsubsection*
 Client/Server ratio
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Since a system may send traffic which would classify it as both a client
  and server, it's necessary to be able to weigh the traffic.
  This is done by specifying the client/server ratio (-R) which is by default
@@ -1714,70 +2008,84 @@ Since a system may send traffic which would classify it as both a client
  The ratio is the modifier to the number of client connections.
  Hence, by default, client connections are valued twice as high as server
  connections.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Selectively sending/dropping packets
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpprep supports the same -\SpecialChar \textcompwordmark{}
 -include and -\SpecialChar \textcompwordmark{}
 -exclude options to selectively
  send or drop packets.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Using tcpprep cache files with tcpreplay
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Just run:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpreplay --cachefile sample.cache --intf1=eth0 --intf2=eth1 sample.pcap
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Commenting tcpprep cache files
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 In versions of tcpprep >= 2.1.0, you can specify a comment to be embeded in
  the tcpprep cache file.
  Comments are user specified and automatically include the command line
  arguments passed to tcpprep.
  
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpprep --comment 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 this is my comment
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  --pcap sample.pcap --cachefile sample.cache <other args>
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Or for no user comment, but still embed the command arguments:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpprep --comment 
 \begin_inset Quotes eld
-\end_inset 
+\end_inset
 
 
 \begin_inset Quotes erd
-\end_inset 
+\end_inset
 
  --pcap sample.pcap --cachefile sample.cache <other args>
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 You can then later on print out the comments by running:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 tcpprep --print-comment sample.cache
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Using Configuration Files
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Each of the applications in the tcpreplay suite offers the choice of specifying
  configuration options in a config file in addition to the traditional command
  line.
@@ -1786,98 +2094,113 @@ Each of the applications in the tcpreplay suite offers the choice of specifying
  To specify the configuration file you'd like to use, use the -\SpecialChar \textcompwordmark{}
 -load-opts=<filen
 ame> option.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Configuration files have one option per line, and lines beginning with the
  pound sign (#) are considered comments and ignored.
  An example config file follows:
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 ------------BEGIN CONFIG FILE--------------
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 
-\family typewriter 
+\family typewriter
 # send traffic out 'eth0'
-\newline 
+\newline
 intf1 eth0
-\newline 
+\newline
 
-\newline 
+\newline
 # loop 5 times
-\newline 
+\newline
 loop 5
-\newline 
+\newline
 
-\newline 
-# send traffic 2x as fast
-\newline 
+\newline
+# send traffic 2x
+ as fast
+\newline
 multiplier 2
-\family default 
+\family default
 
-\newline 
+\newline
 --------------END CONFIG FILE---------------
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 You would then execute:
-\layout LyX-Code
+\end_layout
 
+\begin_layout LyX-Code
 # tcpreplay --load-opts=myconfigfile sample.pcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 You can also group configuration options for tcpprep, tcprewrite and tcpreplay
  in a single config file by placing section markers in the config file.
  An example:
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 ------------BEGIN CONFIG FILE--------------
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 
-\family typewriter 
+\family typewriter
 cachefile=example.tcpprep
-\newline 
+\newline
 
-\newline 
+\newline
 [TCPREPLAY]
-\newline 
+\newline
 intf1 eth0
-\newline 
+\newline
 intf2 eth1
-\newline 
+\newline
 topspeed 
-\newline 
+\newline
 
-\newline 
+\newline
 [TCPPREP]
-\newline 
-auto=bridge
-\newline 
+\newline
+auto=br
+idge
+\newline
 comment='This cache file was created with a config file'
-\newline 
+\newline
 pcap=sample.pcap
-\newline 
+\newline
 
-\newline 
-[TCPREWRITE]
-\newline 
+\newline
+[TCPR
+EWRITE]
+\newline
 infile=sample.pcap
-\newline 
+\newline
 outfile=newsample.pcap
-\newline 
+\newline
 vlan=add
-\newline 
+\newline
 vlan-tag=44
-\newline 
-endpoints=10.0.0.1:10.0.1.1
-\layout Standard
+\newline
+endpoints=10.0.0.1:
+10.0.1.1
+\end_layout
 
+\begin_layout Standard
 ------------END CONFIG FILE--------------
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Flowreplay Usage
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 While tcpreplay is a great way to test NIDS and firewalls, it can't be used
  to test servers or HIDS since tcpreplay can't connect to a service running
  on a device.
@@ -1885,101 +2208,120 @@ While tcpreplay is a great way to test NIDS and firewalls, it can't be used
  at Layer 2 (ethernet header and up), it can actually connect via TCP or
  UDP to server and then sends and receives data based upon a pcap capture
  file created with a tool like Ethereal or tcpdump.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Please note that flowreplay is currently alpha quality and is missing a
  number of key features.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 How flowreplay works
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Put simply, flowreplay opens a socket connection to a service on a target
  system(s) and sends data over that socket based on the packet capture.
  Flowreplay has no understanding of the application protocol (like HTTP
  or FTP) so it is somewhat limited in how it can deal with complicated exchanges
  between client and server.
  
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Some of these limitations are:
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Flowreplay only plays the client side
 \begin_inset Foot
-collapsed false
+status open
 
-\layout Standard
-
+\begin_layout Standard
 Flowreplay assumes the first UDP packet on a given 4-tuple is the client
-\end_inset 
+\end_layout
+
+\end_inset
 
  of the connection.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Flowreplay doesn't understand the application protocols.
  Hence it can't always deal with the case when the server sends a different
  response then what was originally captured in the pcap file.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Flowreplay only sends TCP and UDP traffic.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Flowreplay doesn't know about multi-flow protocols like FTP.
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 Flowreplay can't listen on a port and wait for a client to connect to it.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Running flowreplay
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 See the flowreplay(8) man page for details.
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Tuning OS's for high performance
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Regardless of the size of physical memory, UNIX kernels will only allocate
  a static amount for network buffers.
  This includes packets sent via the "raw" interface, like with tcpreplay.
  Most kernels will allow you to tweak the size of these buffers, drastically
  increasing performance and accuracy.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 N
-\noun on 
+\noun on
 ote:
-\noun default 
+\noun default
  The following information is provided based upon our own experiences or
  the reported experiences of others.
  Depending on your hardware and specific hardware, it may or may not work
  for you.
  It may even make your system horribly unstable, corrupt your harddrive,
  or worse.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 
-\noun on 
+\noun on
 Note
-\noun default 
+\noun default
 : Different operating systems, network card drivers, and even hardware can
  have an effect on the accuracy of packet timestamps that tcpdump or other
  capture utilities generate.
  And as you know: garbage in, garbage out.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 
-\noun on 
+\noun on
 Note:
-\noun default 
+\noun default
  If you have information on tuning the kernel of an operating system not
  listed here, please send it to me so I can include it.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Linux 2.4.x
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 The following is known to apply to the 2.4.x series of kernels.
  If anyone has any information regarding other kernel versions, please let
  us know.
@@ -1988,242 +2330,275 @@ The following is known to apply to the 2.4.x series of kernels.
  on the right hardware.
  By default, Linux specifies a 64K buffer for sending packets.
  Increasing this buffer to about half a megabyte does a good job:
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 
-\emph on 
+\emph on
 echo 524287 >/proc/sys/net/core/wmem_default 
-\newline 
-echo 524287 >/proc/sys/net/core/wmem_max 
-\newline 
+\newline
+echo 524287 >/proc/sys/net/core/wme
+m_max 
+\newline
 echo 524287 >/proc/sys/net/core/rmem_max 
-\newline 
-echo 524287 >/proc/sys/net/core/rmem_default 
-\layout Standard
+\newline
+echo 524287 >/proc/sys/net/core/r
+mem_default 
+\end_layout
 
+\begin_layout Standard
 On one system, we've seen a jump from 23.02 megabits/sec (5560 packets/sec)
  to 220.30 megabits/sec (53212 packets/sec) which is nearly a 10x increase
  in performance.
  Depending on your system and capture file, different numbers may provide
  different results.
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 *BSD
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 *BSD systems typically allow you to specify the size of network buffers
  with the NMBCLUSTERS option in the kernel config file.
  Experiment with different sizes to see which yields the best performance.
  See the options(4) man page for more details.
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Required Libraries and Tools
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Libpcap
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 As of tcpreplay v1.4, you'll need to have libpcap installed on your system.
  As of v2.0, you'll need at least version 0.6.0 or better, but I only test
  our code with the latest version.
  Libpcap can be obtained on the tcpdump homepage
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
-
+\begin_layout Standard
 \begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
 
-\end_inset 
+\end_inset
 
 
-\end_inset 
+\end_layout
+
+\end_inset
 
 .
  
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Libnet
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 Tcpreplay v1.3 is the last version to support the old libnet API (everything
  before 1.1.x).
  As of v1.4 you will need to use Libnet 1.1.0 or better which can be obtained
  from the Libnet homepage
 \begin_inset Foot
-collapsed true
+status collapsed
 
-\layout Standard
-
-
+\begin_layout Standard
 \begin_inset LatexCommand \htmlurl{http://www.packetfactory.net/Projects/Libnet/}
 
-\end_inset 
+\end_inset
 
 
-\end_inset 
+\end_layout
+
+\end_inset
 
 .
  
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Tcpdump
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 As of 2.0, tcpreplay uses tcpdump (the binary, not code) to decode packets
  to STDOUT in a human readable (with practice) format as it sends them.
  If you would like this feature, tcpdump must be installed on your system.
-\layout Standard
+\end_layout
 
+\begin_layout Standard
 
-\noun on 
+\noun on
 Note:
-\noun default 
+\noun default
  The location of the tcpdump binary is hardcoded in tcpreplay at compile
  time.
  If tcpdump gets renamed or moved, the feature will become disabled.
-\layout Part*
+\end_layout
 
+\begin_layout Part*
 Other Resources
-\layout Section*
+\end_layout
 
+\begin_layout Section*
 Other pcap tools available
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Tools to capture network traffic or decode pcap files
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 tcpdump
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 ethereal
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.ethereal.com/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 ettercap
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://ettercap.sourceforge.net/}
 
-\end_inset 
+\end_inset
 
 
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Tools to edit pcap files
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 tcpslice
-\newline 
+\newline
 Splits pcap files into smaller files
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.tcpdump.org/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 mergecap
-\newline 
+\newline
 Merges two pcap capture files into one
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.ethereal.com/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 editcap
-\newline 
+\newline
 Converts capture file formats (pcap, snoop, etc)
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.ethereal.com/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 netdude
-\newline 
+\newline
 GTK based pcap capture file editor.
  Allows editing most anything in the packet.
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://netdude.sourceforge.net/}
 
-\end_inset 
+\end_inset
 
 
-\layout Subsection*
+\end_layout
 
+\begin_layout Subsection*
 Other useful tools
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 capinfo
-\newline 
+\newline
 Prints statistics and basic information about a pcap file
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.ethereal.com/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 text2pcap
-\newline 
+\newline
 Generates a pcap capture file from a hex dump
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.ethereal.com/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 tcpflow
-\newline 
-Extracts and reassembles the data portion on a per-flow basis on live traffic
- or pcap capture files
-\newline 
+\newline
+Extracts and reassembles the data portion on a per-flow basis on
+ live traffic or pcap capture files
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.circlemud.org/~jelson/software/tcpflow/}
 
-\end_inset 
+\end_inset
 
 
-\layout Itemize
+\end_layout
 
+\begin_layout Itemize
 airodump/aireplay:
-\newline 
+\newline
 Capture and replay 802.11 frames
-\newline 
+\newline
 
 \begin_inset LatexCommand \htmlurl{http://www.cr0.net:8040/code/network/aircrack/}
 
-\end_inset 
+\end_inset
 
 
-\the_end
+\end_layout
+
+\end_body
+\end_document
