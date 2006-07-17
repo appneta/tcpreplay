@@ -13,8 +13,11 @@ TCPREWRITE=../src/tcprewrite
 TCPBRIDGE=../src/tcpbridge
 
 EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
-		 test.auto_server test.cidr test.comment test.port test.mac \
-		 test.prep_config test.primary test.regex test.secondary
+		test.auto_server test.cidr test.comment test.port test.mac \
+		test.prep_config test.primary test.regex test.secondary \
+		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
+		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
+		test.rewrite_mac test.rewrite_layer2 test.rewrite_config
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -247,8 +250,8 @@ datadump_mode:
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 replay_config:
-	$(PRINTF) "%s" "[tcpreplay] Config file mode test: "
-	$(PRINTF) "%s\n" "*** [tcpreplay] Config file mode test: " >>test.log
+	$(PRINTF) "%s" "[tcpreplay] Config file (VLAN Add) mode test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Config file (VLAN Add) mode test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) --load-opts=config test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
