@@ -59,7 +59,7 @@ web/man/tcpbridge.html:
 	$(MAN2HTML) < ../src/tcpbridge.1 > web/man/tcpbridge.html
 
 manpages: web/man/tcpreplay.html web/man/tcpprep.html web/man/flowreplay.html \
-	web/man/tcprewrite.html web/man/tcpbridge.html
+	web/man/tcprewrite.html web/man/tcpbridge.html 
 
 postweb: webfiles manpages
 	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
@@ -78,7 +78,7 @@ EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE TODO \
 	flowreplay.lyx flowreplay.pdf web/flowreplay/flowreplay.html web/flowreplay \
 	flowheader.fig router-mode1.fig router-mode2.fig router-mode3.fig \
 	manual.lyx manual.pdf web/manual/manual.html web/manual \
-	web/index.html web/web.css \
+	web/index.html web/web.css web/man/tcpbridge.html \
 	web/man/tcpreplay.html  web/man/tcpprep.html web/man/flowreplay.html \
 	web/man/tcprewrite.html web/tcpreplay-2-faq.html web/tcpreplay-2-faq.css
 
