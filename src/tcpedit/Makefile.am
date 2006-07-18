@@ -12,7 +12,7 @@ tcpedit.1: tcpedit_stub.def
 tcpedit_stub.h: tcpedit_opts.def
 	@AUTOGEN@ tcpedit_stub.def
 
-AM_CFLAGS = -I.. -I../common -I../.. $(LIBOPTS_CFLAGS)
+AM_CFLAGS = -I.. -I../common -I../.. $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS)
 
 noinst_HEADERS = tcpedit.h edit_packet.h rewrite_l2.h portmap.h \
 	tcpedit_stub.h parse_args.h dlt.h
