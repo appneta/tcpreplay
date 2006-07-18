@@ -3,7 +3,7 @@ noinst_LIBRARIES = libflow.a
 
 libflow_a_SOURCES = flownode.c flowstate.c flowbuff.c flowkey.c
 
-AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS)
+AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS) $(LIBOPTS_CFLAGS)
 
 libflow_a_LIBADD = ../../lib/libstrl.a
 

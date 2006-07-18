@@ -1,7 +1,7 @@
 
 /*
  *  stack.c
- *  $Id: stack.c,v 4.4 2005/03/13 19:51:59 bkorb Exp $
+ *  $Id: stack.c,v 4.6 2006/03/25 19:24:56 bkorb Exp $
  *  Time-stamp:      "2005-02-20 16:33:20 bkorb"
  *
  *  This is a special option processing routine that will save the
@@ -9,7 +9,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -24,8 +24,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.

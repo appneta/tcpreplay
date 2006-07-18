@@ -1,6 +1,6 @@
 /*
  *  This file defines the string_tokenize interface
- * Time-stamp:      "2005-02-23 14:00:09 bkorb"
+ * Time-stamp:      "2005-04-25 18:47:21 bkorb"
  *
  *  string_tokenize copyright 2005 Bruce Korb
  *
@@ -17,8 +17,8 @@
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with string_tokenize; if not, write to:
  *             The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  */
 #include <ctype.h>
 #include <errno.h>
@@ -48,7 +48,7 @@ copy_cooked( ch_t** ppDest, cc_t** ppSrc )
         case NUL:   *ppSrc = NULL; return;
         case '"':   goto done;
         case '\\':
-            pSrc += ao_string_cook_escape_char( pSrc, &ch, 0x7F );
+            pSrc += ao_string_cook_escape_char( (char*)pSrc, (char*)&ch, 0x7F );
             if (ch == 0x7F)
                 break;
             /* FALLTHROUGH */

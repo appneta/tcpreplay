@@ -1,8 +1,8 @@
 
 /*
- *  Time-stamp:      "2005-02-23 07:51:34 bkorb"
+ *  Time-stamp:      "2005-10-29 15:06:44 bkorb"
  *
- *  autoopts.h  $Id: autoopts.h,v 4.9 2005/03/13 19:51:58 bkorb Exp $
+ *  autoopts.h  $Id: autoopts.h,v 4.17 2006/03/25 19:24:56 bkorb Exp $
  *  Time-stamp:      "2005-02-14 05:59:50 bkorb"
  *
  *  This file defines all the global structures and special values
@@ -10,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -25,8 +25,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.
@@ -55,20 +55,24 @@
 #ifndef AUTOGEN_AUTOOPTS_H
 #define AUTOGEN_AUTOOPTS_H
 
-#define __EXTENSIONS__
-
-#include "config.h"
 #include "compat/compat.h"
-#include <sys/param.h>
-#include <sys/wait.h>
-#include <time.h>
-#include <utime.h>
 
 #define AO_NAME_LIMIT    127
 #define AO_NAME_SIZE     (AO_NAME_LIMIT + 1)
+
 #ifndef MAXPATHLEN
-#  define MAXPATHLEN     4096
+#  ifdef PATH_MAX
+#    define MAXPATHLEN   PATH_MAX
+#  else
+#    define MAXPATHLEN   4096
+#  endif
+#else
+#  if defined(PATH_MAX) && (PATH_MAX > MAXPATHLEN)
+#     undef  MAXPATHLEN
+#     define MAXPATHLEN  PATH_MAX
+#  endif
 #endif
+
 #undef  EXPORT
 #define EXPORT
 
@@ -141,7 +145,7 @@ typedef enum {
 typedef struct {
     tOptDesc*  pOD;
     tCC*       pzOptArg;
-    tUL        flags;
+    tAoUL      flags;
     teOptType  optType;
 } tOptState;
 #define OPTSTATE_INITIALIZER(st) \
@@ -287,26 +291,6 @@ typedef struct {
 #  define _SC_PAGESIZE _SC_PAGE_SIZE
 # endif
 #endif
-
-/*
- *  This is an output only structure used by text_mmap and text_munmap.
- *  Clients must not alter the contents and must provide it to both
- *  the text_mmap and text_munmap procedures.  BE ADVISED: if you are
- *  mapping the file with PROT_WRITE the NUL byte at the end MIGHT NOT
- *  BE WRITABLE.  In any event, that byte is not be written back
- *  to the source file.  ALSO: if "txt_data" is valid and "txt_errno"
- *  is not zero, then there *may* not be a terminating NUL.
- */
-typedef struct {
-    void*       txt_data;      /* text file data   */
-    size_t      txt_size;      /* actual file size */
-    int         txt_fd;        /* file descriptor  */
-    size_t      txt_full_size; /* mmaped mem size  */
-    int         txt_zero_fd;   /* fd for /dev/zero */
-    int         txt_errno;     /* warning code     */
-    int         txt_prot;      /* "prot" flags     */
-    int         txt_flags;     /* mapping type     */
-} tmap_info_t;
 
 /*
  *  Define and initialize all the user visible strings.

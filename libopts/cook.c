@@ -1,14 +1,14 @@
 
 /*
- *  $Id: cook.c,v 4.1 2005/02/14 17:03:54 bkorb Exp $
- *  Time-stamp:      "2005-02-14 07:58:28 bkorb"
+ *  $Id: cook.c,v 4.3 2006/03/25 19:24:56 bkorb Exp $
+ *  Time-stamp:      "2005-05-20 13:58:56 bkorb"
  *
  *  This file contains the routines that deal with processing quoted strings
  *  into an internal format.
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -23,8 +23,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.

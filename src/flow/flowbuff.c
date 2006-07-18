@@ -37,7 +37,6 @@
 #include <stdlib.h>             /* malloc/free */
 
 #include "flowreplay.h"
-#include "flowreplay_opts.h"
 #include "flownode.h"
 
 extern flowreplay_opt_t options;

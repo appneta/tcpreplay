@@ -1,7 +1,7 @@
 
 /*
- *  $Id: pgusage.c,v 4.4 2005/03/13 19:51:59 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:22:01 bkorb"
+ *  $Id: pgusage.c,v 4.7 2006/03/25 19:24:56 bkorb Exp $
+ * Time-stamp:      "2005-10-29 13:23:12 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -10,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -25,8 +25,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.
@@ -81,9 +81,9 @@ optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
     {
         my_pid  = getpid();
 #ifdef HAVE_SNPRINTF
-        snprintf( zPageUsage, sizeof(zPageUsage), "/tmp/use.%lu", (tUL)my_pid );
+        snprintf(zPageUsage, sizeof(zPageUsage), "/tmp/use.%lu", (tAoUL)my_pid);
 #else
-        sprintf( zPageUsage, "/tmp/use.%lu", (tUL)my_pid );
+        sprintf( zPageUsage, "/tmp/use.%lu", (tAoUL)my_pid );
 #endif
         unlink( zPageUsage );
 
@@ -126,9 +126,9 @@ optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
          *  Page the file and remove it when done.
          */
 #ifdef HAVE_SNPRINTF
-        snprintf( zPageUsage, sizeof(zPageUsage), zPage, pzPager, (tUL)my_pid );
+        snprintf(zPageUsage, sizeof(zPageUsage), zPage, pzPager, (tAoUL)my_pid);
 #else
-        sprintf( zPageUsage, zPage, pzPager, (tUL)my_pid );
+        sprintf( zPageUsage, zPage, pzPager, (tAoUL)my_pid );
 #endif
         fclose( stderr );
         dup2( STDOUT_FILENO, STDERR_FILENO );

@@ -1,7 +1,7 @@
 
 /*
- *  $Id: autoopts.c,v 4.8 2005/03/13 19:51:57 bkorb Exp $
- *  Time-stamp:      "2005-03-13 08:39:23 bkorb"
+ *  $Id: autoopts.c,v 4.14 2006/03/25 19:24:56 bkorb Exp $
+ *  Time-stamp:      "2005-10-29 13:19:36 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -10,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -25,8 +25,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.
@@ -54,6 +54,16 @@
 
 #ifndef HAVE_PATHFIND
 #  include "compat/pathfind.c"
+#endif
+
+#ifndef HAVE_LIBSNPRINTFV
+# ifndef HAVE_SNPRINTF
+#   include "compat/snprintf.c"
+# endif
+
+# ifndef HAVE_STRDUP
+#   include "compat/strdup.c"
+# endif
 #endif
 
 static const char zNil[] = "";
@@ -340,7 +350,7 @@ longOptionFind( tOptions* pOpts, char* pzOptName, tOptState* pOptState )
  *  Find the short option descriptor for the current option
  */
 LOCAL tSuccess
-shortOptionFind( tOptions* pOpts, tUC optValue, tOptState* pOptState )
+shortOptionFind( tOptions* pOpts, tAoUC optValue, tOptState* pOptState )
 {
     tOptDesc*  pRes = pOpts->pOptDesc;
     int        ct   = pOpts->optCt;

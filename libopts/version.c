@@ -1,13 +1,13 @@
 
-/*  $Id: version.c,v 4.4 2005/03/13 19:52:00 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:19:54 bkorb"
+/*  $Id: version.c,v 4.7 2006/03/25 19:24:57 bkorb Exp $
+ * Time-stamp:      "2005-12-13 10:29:09 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
  */
 
 static const char zAOV[] =
-    "Automated Options version %s, copyright (c) 1999-2005 Bruce Korb\n";
+    "Automated Options version %s, copyright (c) 1999-2006 Bruce Korb\n";
 
 /*  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -22,8 +22,8 @@ static const char zAOV[] =
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.
@@ -83,10 +83,14 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
          swCh = 'v';
     else swCh = pOD->pzLastArg[0];
 
-    if (pOpts->pzFullVersion != NULL)
-         fputs( pOpts->pzFullVersion, fp );
-    else fputs( pOpts->pzProgName,    fp );
-    fputc( '\n', fp );
+    if (pOpts->pzFullVersion != NULL) {
+        fputs( pOpts->pzFullVersion, fp );
+        fputc( '\n', fp );
+
+    } else {
+        const char *pz = pOpts->pzUsageTitle;
+        do { fputc( *pz, fp ); } while (*(pz++) != '\n');
+    }
 
     switch (swCh) {
     case NUL:

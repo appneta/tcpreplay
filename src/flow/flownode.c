@@ -35,7 +35,6 @@
 #include "common.h"
 
 #include "flowreplay.h"
-#include "flowreplay_opts.h"
 #include "flownode.h"
 #include "flowkey.h"
 #include "flowstate.h"

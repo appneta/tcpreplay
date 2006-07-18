@@ -100,4 +100,5 @@ MOSTLYCLEANFILES = *~ *.o
 MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c \
 		       tcprewrite_opts.c tcprewrite_opts.h tcpprep_opts.c \
 		       tcpprep_opts.h tcpprep.1 tcpreplay.1 tcprewrite.1 \
-		       flowreplay.1 tcpbridge.1 tcpbridge_opts.h tcpbridge_opts.c
+		       flowreplay.1 tcpbridge.1 tcpbridge_opts.h tcpbridge_opts.c \
+			   flowreplay_opts.h flowreplay_opts.c

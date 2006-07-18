@@ -2,24 +2,29 @@
 
 /* --- fake the preprocessor into handlng portability */
 /*
- *  Time-stamp:      "2005-02-20 17:17:51 bkorb"
+ *  Time-stamp:      "2005-09-21 20:56:13 bkorb"
  *
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
  * Created:          Mon Jun 30 15:54:46 1997
  *
- * $Id: compat.h,v 4.3 2005/03/13 19:52:20 bkorb Exp $
+ * $Id: compat.h,v 4.6 2005/10/02 16:34:30 bkorb Exp $
  */
 #ifndef COMPAT_H
 #define COMPAT_H 1
+
+#ifndef HAVE_CONFIG_H
+#  error "compat.h" requires "config.h"
+#endif
 
 #include <config.h>
 
 #ifndef HAVE_STRSIGNAL
    char * strsignal( int signo );
-#else
-#  define  _GNU_SOURCE /* for strsignal in GNU's libc */
-#  define  __USE_GNU   /* exact same thing as above   */
 #endif
+
+#define  _GNU_SOURCE    1 /* for strsignal in GNU's libc */
+#define  __USE_GNU      1 /* exact same thing as above   */
+#define  __EXTENSIONS__ 1 /* and another way to call for it */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -104,11 +109,6 @@
 #   if defined (HAVE_NDIR_H)
 #     include <ndir.h>
 #   endif /* HAVE_NDIR_H */
-#   if !defined (HAVE_SYS_NDIR_H) && \
-       !defined (HAVE_SYS_DIR_H)  && \
-       !defined (HAVE_NDIR_H)
-#     include "ndir.h"
-#   endif /* !HAVE_SYS_NDIR_H && !HAVE_SYS_DIR_H && !HAVE_NDIR_H */
 # endif /* !HAVE_DIRENT_H */
 
 #include <errno.h>
@@ -122,11 +122,8 @@
 #if defined(HAVE_LIBGEN) && defined(HAVE_LIBGEN_H)
 #  include <libgen.h>
 #endif
-#ifdef HAVE_LIMITS_H
-#  include <limits.h>
-#else
-#  include <sys/limits.h>
-#endif
+
+#include <limits.h>
 #include <memory.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -189,17 +186,59 @@
 #  define MAXPATHLEN 4096
 #endif /* MAXPATHLEN */
 
-# ifndef LONG_MAX
-#   define LONG_MAX     ~(1L << (8*sizeof(long) -1))
-#   define INT_MAX      ~(1 << (8*sizeof(int) -1))
-#   define SHORT_MAX    ~(1 << (8*sizeof(short) -1))
-# endif
+#ifndef LONG_MAX
+#  define LONG_MAX      ~(1L << (8*sizeof(long) -1))
+#  define INT_MAX       ~(1 << (8*sizeof(int) -1))
+#endif
 
-# ifndef ULONG_MAX
-#   define ULONG_MAX    ~(OUL)
-#   define UINT_MAX     ~(OU)
-#   define USHORT_MAX   ~(OUS)
+#ifndef ULONG_MAX
+#  define ULONG_MAX     ~(OUL)
+#  define UINT_MAX      ~(OU)
+#endif
+
+#ifndef SHORT_MAX
+#  define SHORT_MAX     ~(1 << (8*sizeof(short) -1))
+#else
+#  define USHORT_MAX    ~(OUS)
+#endif
+
+#ifndef HAVE_INT8_T
+  typedef signed char       int8_t;
+#endif
+#ifndef HAVE_UINT8_T
+  typedef unsigned char     uint8_t;
+#endif
+#ifndef HAVE_INT16_T
+  typedef signed short      int16_t;
+#endif
+#ifndef HAVE_UINT16_T
+  typedef unsigned short    uint16_t;
+#endif
+
+#ifndef HAVE_INT32_T
+# if SIZEOF_INT == 4
+	typedef signed int      int32_t;
+# elif SIZEOF_LONG == 4
+	typedef signed long     int32_t;
 # endif
+#endif
+
+#ifndef HAVE_UINT32_T
+# if SIZEOF_INT == 4
+	typedef unsigned int    uint32_t;
+# elif SIZEOF_LONG == 4
+	typedef unsigned long   uint32_t;
+# else
+#   error Cannot create a uint32_t type.
+# endif
+#endif
+
+#ifndef HAVE_INTPTR_T
+  typedef signed long   intptr_t;
+#endif
+#ifndef HAVE_UINTPTR_T
+  typedef unsigned long uintptr_t;
+#endif
 
 /* redefine these for BSD style string libraries */
 #ifndef HAVE_STRCHR

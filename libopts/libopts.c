@@ -1,5 +1,6 @@
 #define AUTOOPTS_INTERNAL
-#include "config.h"
+#include "compat/compat.h"
+#define HAVE_LIBSNPRINTFV
 #include "autoopts/options.h"
 #include "autoopts/usage-txt.h"
 #include "genshell.h"

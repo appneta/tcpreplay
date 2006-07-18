@@ -1,12 +1,12 @@
 /*
- *  $Id: configfile.c,v 4.7 2005/04/16 16:44:28 bkorb Exp $
- *  Time-stamp:      "2005-04-03 15:53:54 bkorb"
+ *  $Id: configfile.c,v 4.12 2006/03/25 19:24:56 bkorb Exp $
+ *  Time-stamp:      "2005-10-16 15:16:32 bkorb"
  *
  *  configuration/rc/ini file handling.
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -21,8 +21,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.
@@ -148,11 +148,11 @@ configFileLoad( const char* pzFile )
     char* pzText =
         text_mmap( pzFile, PROT_READ, MAP_PRIVATE, &cfgfile );
 
-    if (pzText == MAP_FAILED)
+    if (TEXT_MMAP_FAILED_ADDR(pzText))
         return NULL; /* errno is set */
 
     pRes = optionLoadNested(pzText, pzFile, strlen(pzFile), OPTION_LOAD_COOKED);
- all_done:
+
     if (pRes == NULL) {
         int err = errno;
         text_munmap( &cfgfile );
@@ -442,10 +442,9 @@ filePreset(
     tmap_info_t   cfgfile;
     char*         pzFileText =
         text_mmap( pzFileName, PROT_READ|PROT_WRITE, MAP_PRIVATE, &cfgfile );
-    char*         pzEndText;
     tOptState     st = OPTSTATE_INITIALIZER(PRESET);
 
-    if (pzFileText == MAP_FAILED)
+    if (TEXT_MMAP_FAILED_ADDR(pzFileText))
         return;
 
     if (direction == DIRECTION_CALLED) {
@@ -461,8 +460,6 @@ filePreset(
      */
     if ((pOpts->fOptSet & OPTPROC_PRESETTING) == 0)
         st.flags = OPTST_SET;
-
-    pzEndText = pzFileText + cfgfile.txt_size;
 
     do  {
         while (isspace( *pzFileText ))  pzFileText++;
@@ -706,7 +703,6 @@ handleStructure(
 
     char* pzName = ++pzText;
     char* pcNulPoint;
-    char* pzValStart;
 
     while (ISNAMECHAR( *pzText ))  pzText++;
     pcNulPoint = pzText;
@@ -738,7 +734,6 @@ handleStructure(
             pzText++;
         return pzText;
     }
-    pzValStart = ++pzText;
 
     /*
      *  If we are here, we have a value.  Separate the name from the
@@ -794,7 +789,7 @@ internalFileLoad( tOptions* pOpts )
 {
     int     idx;
     int     inc = DIRECTION_PRESET;
-    char    zFileName[ 4096 ];
+    char    zFileName[ MAXPATHLEN+1 ];
 
     if (pOpts->papzHomeList == NULL)
         return;

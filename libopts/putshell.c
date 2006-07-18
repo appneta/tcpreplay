@@ -1,7 +1,7 @@
 
 /*
- *  $Id: putshell.c,v 4.5 2005/03/13 19:51:59 bkorb Exp $
- * Time-stamp:      "2005-02-14 14:55:01 bkorb"
+ *  $Id: putshell.c,v 4.9 2006/03/25 19:24:56 bkorb Exp $
+ * Time-stamp:      "2005-12-13 10:28:47 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and print them to standard out in a fashion that
@@ -9,7 +9,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -24,8 +24,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.
@@ -65,7 +65,7 @@ static void
 putQuotedStr( tCC* pzStr )
 {
     /*
-     *  Handle empty strings to make the rese of the logic simpler.
+     *  Handle empty strings to make the rest of the logic simpler.
      */
     if ((pzStr == NULL) || (*pzStr == NUL)) {
         fputs( "''", stdout );
@@ -200,7 +200,7 @@ optionPutShell( tOptions* pOpts )
                     else if (ch == NUL)      { pz--; goto name_done; }
                     else fputc( '_', stdout );
                 } name_done:;
-                printf( "=%1$d # 0x%1$X\n", val );
+                printf( "=%1$ld # 0x%1$lX\n", val );
                 val <<= 1;
             }
             free( (void*)(pOD->pzLastArg) );

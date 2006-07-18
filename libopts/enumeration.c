@@ -1,7 +1,7 @@
 
 /*
- *  $Id: enumeration.c,v 4.4 2005/02/15 02:12:18 bkorb Exp $
- * Time-stamp:      "2005-02-14 14:29:55 bkorb"
+ *  $Id: enumeration.c,v 4.9 2006/03/25 19:24:56 bkorb Exp $
+ * Time-stamp:      "2005-12-09 06:37:15 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -10,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2005 Bruce Korb
+ *  Automated Options copyright 1992-2006 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -25,8 +25,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Automated Options.  See the file "COPYING".  If not,
  *  write to:  The Free Software Foundation, Inc.,
- *             59 Temple Place - Suite 330,
- *             Boston,  MA  02111-1307, USA.
+ *             51 Franklin Street, Fifth Floor,
+ *             Boston, MA  02110-1301, USA.
  *
  * As a special exception, Bruce Korb gives permission for additional
  * uses of the text contained in his release of AutoOpts.
@@ -216,13 +216,38 @@ findName(
 }
 
 
-/*=export_func  optionEnumerationVal
+/*=export_func  optionKeywordName
  * what:  Convert between enumeration values and strings
+ * private:
+ *
+ * arg:   tOptDesc*,     pOD,       enumeration option description
+ * arg:   unsigned int,  enum_val,  the enumeration value to map
+ *
+ * ret_type:  const char*
+ * ret_desc:  the enumeration name from const memory
+ *
+ * doc:   This converts an enumeration value into the matching string.
+=*/
+const char*
+optionKeywordName(
+    tOptDesc*     pOD,
+    unsigned int  enum_val )
+{
+    tOptDesc od;
+
+    od.pzLastArg = (const char*)(uintptr_t)enum_val;
+    (*(pOD->pOptProc))( (void*)(2UL), &od );
+    return od.pzLastArg;
+}
+
+
+/*=export_func  optionEnumerationVal
+ * what:  Convert from a string to an enumeration value
  * private:
  *
  * arg:   tOptions*,     pOpts,     the program options descriptor
  * arg:   tOptDesc*,     pOD,       enumeration option description
- * arg:   tCC**,         paz_names, list of enumeration names
+ * arg:   const char**,  paz_names, list of enumeration names
  * arg:   unsigned int,  name_ct,   number of names in list
  *
  * ret_type:  char*
@@ -254,18 +279,29 @@ optionEnumerationVal(
         return (char*)0UL;
 
     case 1UL:
+    {
+        unsigned int ix = (uintptr_t)(pOD->pzLastArg);
         /*
          *  print the name string.
          */
-        fputs( paz_names[ (uintptr_t)(pOD->pzLastArg) ], stdout );
+        if (ix >= name_ct)
+            printf( "INVALID-%d", ix );
+        else
+            fputs( paz_names[ ix ], stdout );
         return (char*)0UL;
-
+    }
     case 2UL:
+    {
+        tSCC zInval[] = "*INVALID*";
+        unsigned int ix = (uintptr_t)(pOD->pzLastArg);
         /*
          *  Replace the enumeration value with the name string.
          */
-        return (char*)paz_names[ (uintptr_t)(pOD->pzLastArg) ];
+        if (ix >= name_ct)
+            return (char*)zInval;
 
+        return (char*)paz_names[ ix ];
+    }
     default:
         break;
     }
@@ -280,7 +316,7 @@ optionEnumerationVal(
  *
  * arg:   tOptions*,     pOpts,     the program options descriptor
  * arg:   tOptDesc*,     pOD,       enumeration option description
- * arg:   tCC**,         paz_names, list of enumeration names
+ * arg:   const char**,  paz_names, list of enumeration names
  * arg:   unsigned int,  name_ct,   number of names in list
  *
  * doc:   This converts the pzLastArg string from the option description
