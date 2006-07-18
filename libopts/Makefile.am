@@ -5,7 +5,7 @@ libopts_la_SOURCES    = libopts.c
 libopts_la_CPPFLAGS   = -I$(top_srcdir)
 libopts_la_LDFLAGS    = -version-info  27:1:2
 EXTRA_DIST            = \
-    COPYING.lgpl         COPYING.mbsd         MakeDefs.inc  \
+    COPYING.lgpl         COPYING.mbsd         \
     README               autoopts/options.h   autoopts/usage-txt.h  \
     autoopts.c           autoopts.h           boolean.c  \
     compat/compat.h      compat/pathfind.c    compat/snprintf.c  \
