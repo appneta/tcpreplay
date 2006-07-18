@@ -1,5 +1,9 @@
 $Id$
 
+07/17/2006: Version 3.0.beta9
+    - Fix compile issue for users not having AutoOpts installed #54
+    - Fix compile issue for users w/ AutoOpts 5.8.4 (upgrade to 5.8.4)
+
 07/16/2006: Version 3.0.beta8
     - Fix -M running in MBps rather then Mbps
     - Fix tcpbridge segfault/bus error reported by Steven Z. (Gerry)
