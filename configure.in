@@ -517,6 +517,24 @@ AC_TRY_COMPILE([
 	AC_MSG_RESULT(no)
 ])
 
+dnl Check for linux PF_PACKET support
+AC_MSG_CHECKING(for PF_PACKET socket support)
+AC_TRY_COMPILE([
+#include <sys/socket.h>
+#include <netpacket/packet.h>
+#include <net/ethernet.h>     /* the L2 protocols */
+#include <netinet/in.h>       /* htons */
+],[
+	int pf_packet;
+	pf_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+],[
+	AC_DEFINE([HAVE_PF_PACKET], [1],
+		[Do we have Linux PF_PACKET socket support?])
+	AC_MSG_RESULT(yes)
+],[
+	AC_MSG_RESULT(no)
+])
+
 dnl Older versions of libpcap are missing some DLT types
 dnl If doesn't exist, we'll define them in src/common/fakepcap.h
 AC_MSG_CHECKING(for DLT_LINUX_SLL in libpcap)
@@ -573,7 +591,9 @@ AC_ARG_WITH(pcapnav-config,
     if test -x $withval ; then
 	pcncfg=$withval
 	AC_MSG_RESULT($pcncfg)
-    else
+    elif test x$withval = xno ; then
+	AC_MSG_RESULT(no)
+	else
 	AC_MSG_RESULT([Can't find pcapnav-config: disabling offset jump feature])
     fi ],
     [ AC_PATH_PROG(pcncfg,[pcapnav-config], [no] ) ]

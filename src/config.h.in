@@ -149,6 +149,9 @@
 /* Does libpcap have pcap_sendpacket? */
 #undef HAVE_PCAP_SENDPACKET
 
+/* Do we have Linux PF_PACKET? */
+#undef HAVE_PF_PACKET
+
 /* Define to 1 if you have the `poll' function. */
 #undef HAVE_POLL
 
