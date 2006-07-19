@@ -2,7 +2,7 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2005";
+    date        = "2005-2006";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
@@ -35,7 +35,7 @@ include         = "#include \"defines.h\"\n"
 homerc          = "$$/";
 
 explain = <<- EOExplain
-tcpbridge is a tool for briding network traffic across two interfaces
+tcpbridge is a tool for selectively briding network traffic across two interfaces
 and optionally modifying the packets in betweeen
 EOExplain;
 
