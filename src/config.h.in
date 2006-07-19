@@ -1,6 +1,6 @@
 /* src/config.h.in.  Generated from configure.in by autoheader.  */
 
-/* Enable debuggin code and support for the -d option */
+/* Enable debuging code and support for the -d option */
 #undef DEBUG
 
 /* Enable Electric Fence memory debugger */
@@ -11,6 +11,9 @@
 
 /* Enable dynamically linking libs */
 #undef ENABLE_DYNAMIC_LINK
+
+/* Enable building flowreplay (alpha) */
+#undef ENABLE_FLOWREPLAY
 
 /* fopen(3) accepts a 'b' in the mode flag */
 #undef FOPEN_BINARY_FLAG
@@ -100,9 +103,6 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 #undef HAVE_LIBGEN_H
 
-/* Do we have libnids? */
-#undef HAVE_LIBNIDS
-
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #undef HAVE_LIBNSL
 
@@ -142,6 +142,12 @@
 
 /* Do we have libpcapnav? */
 #undef HAVE_PCAPNAV
+
+/* Does libpcap have pcap_inject? */
+#undef HAVE_PCAP_INJECT
+
+/* Does libpcap have pcap_sendpacket? */
+#undef HAVE_PCAP_SENDPACKET
 
 /* Define to 1 if you have the `poll' function. */
 #undef HAVE_POLL

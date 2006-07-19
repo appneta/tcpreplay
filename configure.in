@@ -12,7 +12,7 @@ AC_PROG_LIBTOOL
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=0
-MICRO_VERSION=beta9
+MICRO_VERSION=beta9a
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -145,7 +145,7 @@ AC_ARG_ENABLE(debug,
          CFLAGS="-ggdb -std=gnu99 -Wall -Wextra -Wfatal-errors -Wno-variadic-macros"
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
          AC_SUBST(debug_flag)
-         AC_DEFINE([DEBUG], [], [Enable debuggin code and support for the -d option]) 
+         AC_DEFINE([DEBUG], [1], [Enable debuging code and support for the -d option]) 
       fi])
 
 AC_ARG_ENABLE(pedantic,
@@ -159,7 +159,7 @@ AC_ARG_ENABLE(efence,
     AC_HELP_STRING([--enable-efence], [Enable Electric Fence memory debugger]),
     [ if test x$enableval = xyes; then
           CFLAGS="$CFLAGS -lefence"
-          AC_DEFINE([EFENCE], [], [Enable Electric Fence memory debugger])
+          AC_DEFINE([EFENCE], [1], [Enable Electric Fence memory debugger])
       fi])
 
 dnl Enable Gprof
@@ -172,14 +172,14 @@ AC_ARG_ENABLE(gprof,
               # GPROF requires gdb
               CFLAGS="$CFLAGS -ggdb -pg -fprofile-arcs"
           fi
-          AC_DEFINE([GPROF], [], [Enable GNU Profiler])
+          AC_DEFINE([GPROF], [1], [Enable GNU Profiler])
       fi])
 
 dnl Use 64bits for packet counters
 AC_ARG_ENABLE(64bits,
     AC_HELP_STRING([--enable-64bits], [Use 64bit packet counters]),
     [ if test x$enableval = xyes; then
-         AC_DEFINE([ENABLE_64BITS], [], [Use 64bit packet counters])
+         AC_DEFINE([ENABLE_64BITS], [1], [Use 64bit packet counters])
          AC_MSG_NOTICE([Using u_int64_t for packet counters])
       else
          AC_MSG_NOTICE([Using u_int32_t for packet counters])
@@ -191,22 +191,22 @@ dynamic_link=no
 AC_ARG_ENABLE(dynamic-link,
     AC_HELP_STRING([--enable-dynamic-link], [Dynamically link libraries]),
     [ if test x$enableval = xyes; then
-        AC_DEFINE([ENABLE_DYNAMIC_LINK], [], [Enable dynamically linking libs])
+        AC_DEFINE([ENABLE_DYNAMIC_LINK], [1], [Enable dynamically linking libs])
         dynamic_link=yes
       fi
     ])
 
 dnl Check for inet_aton and inet_pton
 AC_CHECK_FUNC(inet_aton, 
-    AC_DEFINE([HAVE_INET_ATON], [], [Do we have inet_aton?]) 
+    AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?]) 
     inet_aton=yes, 
     inet_aton=no)
 AC_CHECK_FUNC(inet_pton, 
-    AC_DEFINE([HAVE_INET_PTON], [], [Do we have inet_pton?]) 
+    AC_DEFINE([HAVE_INET_PTON], [1], [Do we have inet_pton?]) 
     inet_pton=yes, 
     inet_pton=no)
 AC_CHECK_FUNC(inet_ntop, 
-    AC_DEFINE([HAVE_INET_NTOP], [], [Do we have inet_ntop?]) 
+    AC_DEFINE([HAVE_INET_NTOP], [1], [Do we have inet_ntop?]) 
     inet_ntop=yes, 
     inet_ntop=no)
 
@@ -219,7 +219,7 @@ if test "$inet_aton" = "no" ; then
 fi
 
 AC_CHECK_FUNC(inet_addr, 
-    AC_DEFINE([HAVE_INET_ADDR], [], [Do we have inet_addr?]) 
+    AC_DEFINE([HAVE_INET_ADDR], [1], [Do we have inet_addr?]) 
     inet_addr=yes, 
     inet_addr=no)
 
@@ -227,7 +227,16 @@ if test x$inet_addr = no ; then
     AC_MSG_ERROR([We need inet_addr.  See bug 26])
 fi
 
+dnl Enable flowreplay
+flowreplay=no
+AC_ARG_ENABLE(flowreplay,
+    AC_HELP_STRING([--enable-flowreplay], [Enable building flowreplay (alpha)]),
+    [ if test x$enableval = xyes; then
+         flowreplay=yes
+         AC_DEFINE([ENABLE_FLOWREPLAY], [1], [Enable building flowreplay (alpha)]) 
+      fi])
 
+AM_CONDITIONAL(ENABLE_FLOWREPLAY, [test x$flowreplay = xyes])
 
 dnl ##################################################
 dnl Checks for libnet (shamelessly horked from dsniff)
@@ -435,6 +444,7 @@ main (int argc, char *argv[])
         libpcap_ver=no
         AC_MSG_RESULT(< 0.5),
         libpcap_ver=no
+		AC_MSG_RESULT(< 0.5)
         )
 
 
@@ -450,23 +460,62 @@ AC_TRY_RUN([
 #include <stdlib.h>
 #include <string.h>
 #include "$LPCAPINC"
+
 int 
 main(int argc, char *argv[]) {
     pcap_datalink_val_to_description(1);
     exit(0);
-} 
-],
+}],
     have_dlt_to_desc=yes 
     AC_MSG_RESULT(yes), 
     have_dlt_to_desc=no
     AC_MSG_RESULT(no),
     have_dlt_to_desc=no
+	AC_MSG_RESULT(no)
     )
 
 if test $have_dlt_to_desc = yes ; then
-    AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [], 
+    AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [1], 
               [Does libpcap have dlt_val_to_desc?])
 fi
+
+dnl Check to see if we've got pcap_inject()
+AC_MSG_CHECKING(for pcap_inject)
+AC_TRY_COMPILE([
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+],[
+	pcap_t *pcap;
+	char *buf;
+    pcap_inject(pcap, (void *)buf, 0);
+],[
+	AC_DEFINE([HAVE_PCAP_INJECT], [1], 
+              [Does libpcap have pcap_inject?])
+	AC_MSG_RESULT(yes)
+],[
+	AC_MSG_RESULT(no)
+])
+
+dnl Check to see if we've got pcap_sendpacket()
+AC_MSG_CHECKING(for pcap_sendpacket)
+AC_TRY_COMPILE([
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+],[
+	pcap_t *pcap;
+	u_char *buf;
+    pcap_sendpacket(pcap, buf, 0);
+],[
+	AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], 
+              [Does libpcap have pcap_sendpacket?])
+	AC_MSG_RESULT(yes)
+],[
+	AC_MSG_RESULT(no)
+])
 
 dnl Older versions of libpcap are missing some DLT types
 dnl If doesn't exist, we'll define them in src/common/fakepcap.h
@@ -474,18 +523,19 @@ AC_MSG_CHECKING(for DLT_LINUX_SLL in libpcap)
 AC_TRY_COMPILE([#include "$LPCAPINC"], 
                [ int foo;
                  foo = DLT_LINUX_SLL ],
-                [ AC_DEFINE([HAVE_DLT_LINUX_SLL],
-                    [], [Does pcap.h include a header with DLT_LINUX_SLL?])
+                [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1], 
+					[Does pcap.h include a header with DLT_LINUX_SLL?])
                   AC_MSG_RESULT(yes)
                 ], 
                 AC_MSG_RESULT(no)
                )
+
 AC_MSG_CHECKING(for DLT_C_HDLC in libpcap)
 AC_TRY_COMPILE([#include "$LPCAPINC"],
                [ int foo;
                  foo = DLT_C_HDLC ],
-                [ AC_DEFINE([HAVE_DLT_C_HDLC],
-                    [], [Does pcap.h include a header with DLT_C_HDLC?])
+                [ AC_DEFINE([HAVE_DLT_C_HDLC], [1], 
+					[Does pcap.h include a header with DLT_C_HDLC?])
                   AC_MSG_RESULT(yes)
                 ],
                 AC_MSG_RESULT(no)   
@@ -498,7 +548,7 @@ AC_TRY_COMPILE([#include <sys/types.h>
                 #include "$PCAP_BPF_H_FILE"],
                [ int foo;
                  foo = BPF_MAJOR_VERSION; ],
-               [ AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [],
+               [ AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [1],
                            [What is the path (if any) to the pcap-bpf.h
                             header?])
                  AC_MSG_RESULT(yes)
@@ -571,46 +621,11 @@ if test x$libpcapnav_ver = xno ; then
     Please upgrade to version 0.4 or better.
     Disabling offset jump feature.])
 else
-    AC_DEFINE([HAVE_PCAPNAV], [], [Do we have libpcapnav?])
+    AC_DEFINE([HAVE_PCAPNAV], [1], [Do we have libpcapnav?])
 fi
 
 fi # checking pcapnav version
 
-
-dnl #####################################################
-dnl Checks for libnids
-dnl #####################################################
-foundnids=no
-trynidsdir=/usr/local
-AC_MSG_CHECKING(for libnids)
-AC_ARG_WITH(libnids,
-    AC_HELP_STRING([--with-libnids=DIR], [Use libnids in DIR]),
-    [trynidsdir=$withval])
-
-    for testdir in $trynidsdir /usr/local /usr ; do 
- 
-     if test -f "${testdir}/include/nids.h" -a $foundnids = no ; then
-         LNIDSINC="${testdir}/include/nids.h"
-         LNIDSINCDIR="${testdir}/include"
-dnl Libnids by default doesn't build a dynamic library and due to a 
-dnl bug, won't build one for OS X, so we link to the static
-dnl         LNIDSLIB="${testdir}/lib -lnids"
-         LNIDSLIB="${testdir}/lib/libnids.a"
-        foundnids=$testdir
-     fi
-   done
-
-   if test $foundnids = no ; then
-     AC_MSG_RESULT(no)
-     AC_MSG_WARN(libnids not found.  We won't build flowreplay.)
-   else
-     AC_MSG_RESULT($foundnids)
-     AC_DEFINE([HAVE_LIBNIDS], [], [Do we have libnids?])
-   fi
-
-AC_SUBST(LNIDSINC)
-AC_SUBST(LNIDSLIB)
-AM_CONDITIONAL([HAVE_LIBNIDS], [ test ${foundnids} != no ])
 
 dnl (shamelessly ripped off from libpcap)
 dnl Checks to see if unaligned memory accesses fail
@@ -671,7 +686,7 @@ EOF
         esac])
     AC_MSG_RESULT($unaligned_fail)
     if test $unaligned_fail = yes ; then
-            AC_DEFINE([FORCE_ALIGN],1,[Are we strictly aligned?])
+            AC_DEFINE([FORCE_ALIGN],[1],[Are we strictly aligned?])
     fi
 
 dnl ##################################################
@@ -694,7 +709,7 @@ if test "$td" = "no"; then
     AC_MSG_WARN([Unable to find tcpdump.  Please specify --with-tcpdump.
                  Disabling verbose reporting.])
 else
-    AC_DEFINE([HAVE_TCPDUMP], [], [Do we have tcpdump?])
+    AC_DEFINE([HAVE_TCPDUMP], [1], [Do we have tcpdump?])
     AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$td", [The tcpdump binary initially used])
 fi
 
@@ -738,11 +753,11 @@ case $host in
 	AC_MSG_RESULT(Apple OS X)
 	;;
 
-        *-*-openbsd*)
-        nic1=xl0
-        nic2=xl0
-        AC_MSG_RESULT(OpenBSD)
-        ;;
+    *-*-openbsd*)
+    nic1=xl0
+    nic2=xl0
+    AC_MSG_RESULT(OpenBSD)
+    ;;
 
 	*)
 	AC_MSG_RESULT([$host is unknown!  
