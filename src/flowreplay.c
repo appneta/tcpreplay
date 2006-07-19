@@ -44,7 +44,7 @@
 #include <arpa/inet.h>
 #include <string.h>             /* strtok() */
 #include <strings.h>            /* strcasecmp() */
-#include <nids.h>               /* libnids */
+//#include <nids.h>               /* libnids */
 
 #include "flowreplay.h"
 #include "flowreplay_opts.h"
@@ -58,9 +58,10 @@
 int debug = 0;
 #endif
 
-/* libnids external vars */
+/* libnids external vars 
 extern struct nids_prm nids_params;
 extern char nids_errbuf[];
+*/
 
 static void cleanup(void);
 static void init(void);
@@ -101,12 +102,14 @@ main(int argc, char *argv[])
     /* loop through the input file(s) */
     for (i = 0; i < argc; i++) {
 
-        /* set the libnids filename to our file */
+        /* set the libnids filename to our file 
         nids_params.filename = argv[i];
+        */
 
-        /* init libnids */
+        /* init libnids 
         if (!nids_init())
             errx(1, "libnids error: %s", nids_errbuf);
+        */
 
         if (! first_run) {
             first_run = 1;
@@ -117,8 +120,9 @@ main(int argc, char *argv[])
         }
 
         
-        /* play the pcap */
+        /* play the pcap 
         nids_dispatch(-1);
+        */
 
         /* Close the pcap file */
 //        pcap_close(nids_params.desc);
@@ -438,7 +442,7 @@ post_args(int argc, char *argv[])
     if (HAVE_OPT(FILTER)) {
         strlcpy(filter, OPT_ARG(FILTER), PCAP_FILTER_LEN);
         strlcat(filter, " or (ip[6:2] & 0x1fff != 0)", PCAP_FILTER_LEN);
-        nids_params.pcap_filter = safe_strdup(filter);
+//        nids_params.pcap_filter = safe_strdup(filter);
     }
 
 }
