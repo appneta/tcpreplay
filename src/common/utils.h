@@ -55,6 +55,10 @@ char *_our_safe_strdup(const char *str, const char *, const int, const char *);
 
 #define MAX_ARGS 128
 
+#define CHECKSUM_CARRY(x) \
+    (x = (x >> 16) + (x & 0xffff), (~(x + (x >> 16)) & 0xffff))
+    
+int do_checksum(u_int8_t *, int, int);
 
 #endif
 

@@ -208,6 +208,125 @@ argv_create(char *p, int argc, char *argv[])
     return (i);
 }
 
+static int
+_do_checksum(u_int16_t *data, int len)
+{
+    int sum = 0;
+    union {
+        u_int16_t s;
+        u_int8_t b[2];
+    } pad;
+    
+    while (len > 1) {
+        sum += *data++;
+        len -= 2;
+    }
+    
+    if (len == 1) {
+        pad.b[0] = *(u_int8_t *)data;
+        pad.b[1] = 0;
+        sum += pad.s;
+    }
+    
+    return (sum);
+}
+
+/*
+ * this function is heavily based on (ie stolen from) Mike Schiffman's Libnet 1.1.3
+ */
+int
+do_checksum(u_int8_t *data, int proto, int len) {
+    ipv4_hdr_t *ipv4;
+    ipv6_hdr_t *ipv6;
+    tcp_hdr_t *tcp;
+    udp_hdr_t *udp;
+    icmpv4_hdr_t *icmp;
+    int ip_hl;
+    int sum;
+    
+    sum = 0;
+    ipv4 = NULL;
+    ipv6 = NULL;
+    assert(data);
+    
+    if (len == 0) {
+        return -1;
+    }
+    
+    ipv4 = (ipv4_hdr_t *)data;
+    if (ipv4->ip_v == 6) {
+        ipv6 = (ipv6_hdr_t *)data;
+        ipv4 = NULL;
+        ip_hl = 40;
+    } else {
+        ip_hl = ipv4->ip_hl << 2;
+    }
+    
+    switch (proto) {
+        
+        case IPPROTO_TCP:
+            tcp = (tcp_hdr_t *)(data + ip_hl);
+#ifdef STUPID_SOLARIS_CHECKSUM_BUG
+            tcp->th_sum = tcp->th_off << 2;
+            return (1);
+#endif
+            tcp->th_sum = 0;
+            if (ipv6 != NULL) {
+                sum = _do_checksum((u_int16_t *)&ipv6->ip_src, 32);
+            } else {
+                sum = _do_checksum((u_int16_t *)&ipv4->ip_src, 8);
+            }
+            sum += ntohs(IPPROTO_TCP + len);
+            sum += _do_checksum((u_int16_t *)tcp, len);
+            tcp->th_sum = CHECKSUM_CARRY(sum);
+            break;
+        
+        case IPPROTO_UDP:
+            udp = (udp_hdr_t *)(data + ip_hl);
+            udp->uh_sum = 0;
+            if (ipv6 != NULL) {
+                sum = _do_checksum((u_int16_t *)&ipv6->ip_src, 32);
+            } else {
+                sum = _do_checksum((u_int16_t *)&ipv4->ip_src, 8);
+            }
+            sum += ntohs(IPPROTO_UDP + len);
+            sum += _do_checksum((u_int16_t *)udp, len);
+            udp->uh_sum = CHECKSUM_CARRY(sum);
+            break;
+        
+        case IPPROTO_ICMP:
+            icmp = (icmpv4_hdr_t *)(data + ip_hl);
+            icmp->icmp_sum = 0;
+            if (ipv6 != NULL) {
+                sum = _do_checksum((u_int16_t *)&ipv6->ip_src, 32);
+                icmp->icmp_sum = CHECKSUM_CARRY(sum);                
+            }
+            sum += _do_checksum((u_int16_t *)icmp, len);
+            icmp->icmp_sum = CHECKSUM_CARRY(sum);
+            break;
+        
+     
+        case IPPROTO_IP:
+            ipv4->ip_sum = 0;
+            sum = _do_checksum((u_int16_t *)data, ip_hl);
+            ipv4->ip_sum = CHECKSUM_CARRY(sum);
+            break;
+       
+       
+        case IPPROTO_IGMP:
+        case IPPROTO_GRE:
+        case IPPROTO_OSPF:
+        case IPPROTO_OSPF_LSA:
+        case IPPROTO_VRRP:
+        case TCPR_PROTO_CDP: 
+        case TCPR_PROTO_ISL:
+        default:
+            warnx("Unsupported protocol for checksum: %d", proto);
+            return -1;
+    }
+    
+    return 1;
+}
 /*
  Local Variables:
  mode:c
