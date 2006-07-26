@@ -36,6 +36,7 @@
 
 #include "tcpedit.h"
 #include "edit_packet.h"
+#include "checksum.h"
 #include "lib/sll.h"
 #include "dlt.h"
 
@@ -62,18 +63,16 @@ fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t * ip_hd
 
     /* calc the L4 checksum if we have the whole packet */
     if (pkthdr->caplen == pkthdr->len) {
-        if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
+        if (do_checksum(tcpedit, (u_char *) ip_hdr, 
                     ip_hdr->ip_p, 
                     ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
-            warnx("Layer 4 checksum failed: %s", 
-                    libnet_geterror(tcpedit->runtime.lnet));
+            warnx("Layer 4 checksum failed: %s", tcpedit_geterr(tcpedit));
     }
     
     /* calc IP checksum */
-    if (libnet_do_checksum(tcpedit->runtime.lnet, (u_char *) ip_hdr, 
+    if (do_checksum(tcpedit, (u_char *) ip_hdr, 
                 IPPROTO_IP, ntohs(ip_hdr->ip_len)) < 0)
-        warnx("IP checksum failed: %s", 
-                libnet_geterror(tcpedit->runtime.lnet));
+        warnx("IPv4 checksum failed: %s", tcpedit_geterr(tcpedit));
 }
 
 /*

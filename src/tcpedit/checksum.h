@@ -1,7 +1,7 @@
-/* $Id$ */
-
+/* $Id:$ */
 /*
- * Copyright (c) 2001-2005 Aaron Turner.
+ * Copyright (c) 2006 Aaron Turner.
+ * Copyright (c) 1998 - 2004 Mike D. Schiffman <mike@infonexus.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  * 3. Neither the names of the copyright owners nor the names of its
- *    contributors may be used to endorse or promote products derived from
+ *    contributors may be used to endorse or promote products derived from 
  *    this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
@@ -30,37 +30,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#ifndef _UTILS_H_
-#define _UTILS_H_
-
-#include "config.h"
-#include "defines.h"
-#include "common.h"
-
-int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
-int argv_create(char *p, int argc, char *argv[]);
-void packet_stats(struct timeval *begin, struct timeval *end, 
-                  COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
-
-/* our "safe" implimentations of functions which allocate memory */
-#define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
-void *_our_safe_malloc(size_t len, const char *, const int, const char *);
-
-#define safe_realloc(x, y) _our_safe_realloc(x, y, __FUNCTION__, __LINE__, __FILE__)
-void *_our_safe_realloc(void *ptr, size_t len, const char *, const int, const char *);
-
-#define safe_strdup(x) _our_safe_strdup(x, __FUNCTION__, __LINE__, __FILE__)
-char *_our_safe_strdup(const char *str, const char *, const int, const char *);
-
-#define MAX_ARGS 128
-
-#endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
+#define CHECKSUM_CARRY(x) \
+    (x = (x >> 16) + (x & 0xffff), (~(x + (x >> 16)) & 0xffff))
+    
+int do_checksum(tcpedit_t *, u_int8_t *, int, int);
