@@ -67,7 +67,7 @@ int
 tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char **pktdata, int direction)
 {
-    ip_hdr_t *ip_hdr = NULL;
+    ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0, l2proto;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
@@ -119,14 +119,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
          * back onto the pkt.data + l2len buffer
          * we do all this work to prevent byte alignment issues
          */
-        ip_hdr = (ip_hdr_t *)tcpedit->runtime.ipbuff;
+        ip_hdr = (ipv4_hdr_t *)tcpedit->runtime.ipbuff;
         memcpy(ip_hdr, (&(*pktdata)[l2len]), (*pkthdr)->caplen - l2len);
 #else
         /*
          * on non-strict byte align systems, don't need to memcpy(), 
          * just point to 14 bytes into the existing buffer
          */
-        ip_hdr = (ip_hdr_t *) (&(*pktdata)[l2len]);
+        ip_hdr = (ipv4_hdr_t *) (&(*pktdata)[l2len]);
 #endif
     } else {
         dbg(3, "Packet isn't IP...");
@@ -138,7 +138,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if (tcpedit->rewrite_ip) {
         /* IP packets */
         if (ip_hdr != NULL) {
-            needtorecalc += rewrite_ipl3(tcpedit, ip_hdr, direction);
+            needtorecalc += rewrite_ipv4l3(tcpedit, ip_hdr, direction);
         }
 
         /* ARP packets */

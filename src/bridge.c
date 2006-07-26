@@ -192,7 +192,7 @@ static int
 live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
               const u_char * nextpkt)
 {
-    ip_hdr_t *ip_hdr = NULL;
+    ipv4_hdr_t *ip_hdr = NULL;
     libnet_t *l = NULL;
     static u_char *pktdata = NULL;     /* full packet buffer */
 #ifdef FORCE_ALIGN
@@ -314,14 +314,14 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
          * back onto the pkt.data + newl2len buffer
          * we do all this work to prevent byte alignment issues
          */
-        ip_hdr = (ip_hdr_t *) ipbuff;
+        ip_hdr = (ipv4_hdr_t *) ipbuff;
         memcpy(ip_hdr, (&pktdata[newl2len]), pkthdr->caplen - newl2len);
 #else
         /*
          * on non-strict byte align systems, don't need to memcpy(), 
          * just point to 14 bytes into the existing buffer
          */
-        ip_hdr = (ip_hdr_t *) (&pktdata[newl2len]);
+        ip_hdr = (ipv4_hdr_t *) (&pktdata[newl2len]);
 #endif
 
         /* look for include or exclude CIDR match */

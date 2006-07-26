@@ -123,7 +123,7 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
 
 
 int
-process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ip_hdr_t * ip_hdr)
+process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ipv4_hdr_t * ip_hdr)
 {
 
     if (mode & xXExclude) {

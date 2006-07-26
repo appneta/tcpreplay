@@ -399,17 +399,17 @@ packet2tree(const u_char * data)
 {
     tcpr_tree_t *node = NULL;
     eth_hdr_t *eth_hdr = NULL;
-    ip_hdr_t ip_hdr;
+    ipv4_hdr_t ip_hdr;
     tcp_hdr_t tcp_hdr;
     udp_hdr_t udp_hdr;
-    icmp_hdr_t icmp_hdr;
-    dns_hdr_t dns_hdr;
+    icmpv4_hdr_t icmp_hdr;
+    dnsv4_hdr_t dnsv4_hdr;
 
     node = new_tree();
 
     eth_hdr = (eth_hdr_t *) (data);
     /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ip_hdr, (data + LIBNET_ETH_H), LIBNET_IP_H);
+    memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
 
 
     /* copy over the source mac */
@@ -428,8 +428,8 @@ packet2tree(const u_char * data)
             get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         /* memcpy it over to prevent alignment issues */
-        memcpy(&tcp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
-               LIBNET_TCP_H);
+        memcpy(&tcp_hdr, (data + TCPR_ETH_H + (ip_hdr.ip_hl * 4)),
+               TCPR_TCP_H);
 
         /* ftp-data is going to skew our results so we ignore it */
         if (tcp_hdr.th_sport == 20) {
@@ -454,19 +454,19 @@ packet2tree(const u_char * data)
     }
     else if (ip_hdr.ip_p == IPPROTO_UDP) {
         /* memcpy over to prevent alignment issues */
-        memcpy(&udp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
-               LIBNET_UDP_H);
+        memcpy(&udp_hdr, (data + TCPR_ETH_H + (ip_hdr.ip_hl * 4)),
+               TCPR_UDP_H);
         dbgx(3, "%s uses UDP...  ",
             get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
             /* prevent memory alignment issues */
-            memcpy(&dns_hdr,
-                   (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4) + LIBNET_UDP_H),
-                   LIBNET_DNS_H);
+            memcpy(&dnsv4_hdr,
+                   (data + TCPR_ETH_H + (ip_hdr.ip_hl * 4) + TCPR_UDP_H),
+                   TCPR_DNS_H);
 
-            if (dns_hdr.flags & DNS_QUERY_FLAG) {
+            if (dnsv4_hdr.flags & DNS_QUERY_FLAG) {
                 /* bit set, response */
                 node->type = SERVER;
 
@@ -488,11 +488,11 @@ packet2tree(const u_char * data)
         switch (ntohs(udp_hdr.uh_sport)) {
         case 0x0035:           /* dns */
             /* prevent memory alignment issues */
-            memcpy(&dns_hdr,
-                   (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4) + LIBNET_UDP_H),
-                   LIBNET_DNS_H);
+            memcpy(&dnsv4_hdr,
+                   (data + TCPR_ETH_H + (ip_hdr.ip_hl * 4) + TCPR_UDP_H),
+                   TCPR_DNS_H);
 
-            if ((dns_hdr.flags & 0x7FFFF) ^ DNS_QUERY_FLAG) {
+            if ((dnsv4_hdr.flags & 0x7FFFF) ^ DNS_QUERY_FLAG) {
                 /* bit set, response */
                 node->type = SERVER;
                 dbg(3, "is a dns server");
@@ -518,8 +518,8 @@ packet2tree(const u_char * data)
     else if (ip_hdr.ip_p == IPPROTO_ICMP) {
 
         /* prevent alignment issues */
-        memcpy(&icmp_hdr, (data + LIBNET_ETH_H + (ip_hdr.ip_hl * 4)),
-               LIBNET_ICMP_H);
+        memcpy(&icmp_hdr, (data + TCPR_ETH_H + (ip_hdr.ip_hl * 4)),
+               TCPR_ICMPV4_H);
 
         dbgx(3, "%s uses ICMP...  ",
             get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE));

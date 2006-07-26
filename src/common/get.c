@@ -208,7 +208,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
  * returns a pointer to the layer 4 header which is just beyond the IP header
  */
 void *
-get_layer4(const ip_hdr_t * ip_hdr)
+get_layer4(const ipv4_hdr_t * ip_hdr)
 {
     void *ptr;
 
@@ -228,7 +228,9 @@ u_int32_t
 get_name2addr4(const char *hostname, u_int8_t dnslookup)
 {
     struct in_addr addr;
+#ifndef HAVE_INET_ATON && defined HAVE_INET_ADDR
     struct hostent *host_ent; 
+#endif
     u_int32_t m;
     u_int val;
     int i;

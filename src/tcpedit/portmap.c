@@ -206,7 +206,7 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
  */
 
 int
-rewrite_ports(tcpedit_t *tcpedit, ip_hdr_t **ip_hdr)
+rewrite_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;

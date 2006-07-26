@@ -87,7 +87,7 @@ static void print_info(const char *);
 static void print_stats(const char *);
 static int check_ip_regex(const unsigned long ip);
 static COUNTER process_raw_packets(pcap_t * pcap);
-static int check_dst_port(ip_hdr_t *ip_hdr, int len);
+static int check_dst_port(ipv4_hdr_t *ip_hdr, int len);
 
 
 /*
@@ -214,7 +214,7 @@ main(int argc, char *argv[])
  * returns 1 for true, 0 for false
  */
 static int 
-check_dst_port(ip_hdr_t *ip_hdr, int len)
+check_dst_port(ipv4_hdr_t *ip_hdr, int len)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
@@ -291,7 +291,7 @@ check_ip_regex(const unsigned long ip)
 static COUNTER
 process_raw_packets(pcap_t * pcap)
 {
-    ip_hdr_t *ip_hdr = NULL;
+    ipv4_hdr_t *ip_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
@@ -329,7 +329,7 @@ process_raw_packets(pcap_t * pcap)
 
         /* get the IP header (if any) */
         buffptr = ipbuff;
-        ip_hdr = (ip_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
+        ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
                 pcap_datalink(pcap), &buffptr);
         
         if (ip_hdr == NULL) {

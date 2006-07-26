@@ -2,6 +2,7 @@
 #define __DEFINES_H__
 
 #include "config.h"
+#include "tcpr.h"
 
 /* should packet counters be 32 or 64 bit? --enable-64bit */
 #ifdef ENABLE_64BITS
@@ -26,30 +27,27 @@
 #include "@LNIDSINC@"
 #endif
 
-/* Map libnet 1.1 structs to shorter names for internal use */
-#define LIBNET_IP_H LIBNET_IPV4_H
-#define LIBNET_ICMP_H LIBNET_ICMPV4_H
-
 /* The release version of libnet 1.1.1 changed DNS */
-#ifdef LIBNET_DNSV4_H
-#define LIBNET_DNS_H LIBNET_DNSV4_H
+#ifdef TCPR_DNSV4_H
+#define TCPR_DNS_H TCPR_DNSV4_H
 #else
-#define LIBNET_DNS_H LIBNET_UDP_DNSV4_H
+#define TCPR_DNS_H TCPR_UDP_DNSV4_H
 #endif
 
-/* standardize all common header typedefs */
-typedef struct libnet_ipv4_hdr ip_hdr_t;
-typedef struct libnet_dnsv4_hdr dns_hdr_t;
-typedef struct libnet_icmpv4_hdr icmp_hdr_t;
-typedef struct libnet_arp_hdr arp_hdr_t;
-typedef struct libnet_tcp_hdr tcp_hdr_t;
-typedef struct libnet_udp_hdr udp_hdr_t;
-typedef struct libnet_ethernet_hdr eth_hdr_t;
-typedef struct libnet_802_1q_hdr  vlan_hdr_t;
+typedef struct tcpr_ipv4_hdr ipv4_hdr_t;
+typedef struct tcpr_ipv6_hdr ipv6_hdr_t;
+typedef struct tcpr_tcp_hdr tcp_hdr_t;
+typedef struct tcpr_udp_hdr udp_hdr_t;
+typedef struct tcpr_icmpv4_hdr icmpv4_hdr_t;
+typedef struct tcpr_icmpv6_hdr icmpv6_hdr_t;
+typedef struct tcpr_ethernet_hdr eth_hdr_t;
+typedef struct tcpr_802_1q_hdr vlan_hdr_t;
 typedef struct sll_header sll_hdr_t;
+typedef struct tcpr_arp_hdr arp_hdr_t;
+typedef struct tcpr_dnsv4_hdr dnsv4_hdr_t;
 
 /* our custom typdefs/structs */
-typedef u_char tcpr_macaddr_t[LIBNET_ETH_H];
+typedef u_char tcpr_macaddr_t[TCPR_ETH_H];
 
 struct tcpr_bpf_s {
     char *filter;
@@ -104,21 +102,27 @@ typedef struct tcpr_speed_s tcpr_speed_t;
 #define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
 #define PCAP_TIMEOUT 100        /* 100ms pcap_open_live timeout */
 
-#define TRUE 1
-#define FALSE 0
+enum bool_t {
+	FALSE = 0,
+	TRUE
+};
 
 #define EBUF_SIZE 1024           /* size of our error buffers */
 #define MAC_SIZE  7             /* size of the mac[] buffer */
 
-#define PAD_PACKET   1          /* values for the 'uflag' in tcpreplay */
-#define TRUNC_PACKET 2
+enum pad_t {
+	PAD_PACKET,
+	TRUNC_PACKET
+};
 
 #define DNS_QUERY_FLAG 0x8000
 
-#define SERVER 1
-#define CLIENT 0
-#define UNKNOWN -1
-#define ANY 2
+enum direction_t {
+	UNKNOWN = -1,
+	CLIENT = 0,
+	SERVER = 1,
+	ANY = 2
+};
 
 enum tcpprep_mode {
 	ERROR_MODE,     /* Some kind of error has occurred */
@@ -175,11 +179,3 @@ enum tcpprep_mode {
 
 
 #endif /* DEFINES */
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/

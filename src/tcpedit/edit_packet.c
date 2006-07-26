@@ -39,6 +39,9 @@
 #include "lib/sll.h"
 #include "dlt.h"
 
+static u_int32_t randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip);
+static u_int32_t remap_ipv4(tcpr_cidr_t *cidr, const u_int32_t original);
+
 extern int maxpacket;
 
 /*
@@ -50,7 +53,7 @@ extern int maxpacket;
  * I was too lazy to re-invent the wheel.
  */
 void
-fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
+fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t * ip_hdr)
 {
 
     assert(tcpedit);
@@ -77,8 +80,8 @@ fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ip_hdr_t * ip_hdr)
  * returns a new 32bit integer which is the randomized IP 
  * based upon the user specified seed
  */
-u_int32_t
-randomize_ip(tcpedit_t *tcpedit, u_int32_t ip)
+static u_int32_t
+randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
 {
     assert(tcpedit);
 
@@ -93,7 +96,7 @@ randomize_ip(tcpedit_t *tcpedit, u_int32_t ip)
  */
 int
 randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char * pktdata, ip_hdr_t * ip_hdr)
+        u_char * pktdata, ipv4_hdr_t * ip_hdr)
 {
     char srcip[16], dstip[16];
 
@@ -110,8 +113,8 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* randomize IP addresses based on the value of random */
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
-    ip_hdr->ip_dst.s_addr = randomize_ip(tcpedit, ip_hdr->ip_dst.s_addr);
-    ip_hdr->ip_src.s_addr = randomize_ip(tcpedit, ip_hdr->ip_src.s_addr);
+    ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
+    ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
 
     strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, 
                 RESOLVE), 16);
@@ -133,7 +136,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 int
 untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char * pktdata, ip_hdr_t * ip_hdr)
+        u_char * pktdata, ipv4_hdr_t * ip_hdr)
 {
 
     assert(tcpedit);
@@ -183,7 +186,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
         char *l7data[])
 {
     int datalen = 0;
-    ip_hdr_t *ip_hdr = NULL;
+    ipv4_hdr_t *ip_hdr = NULL;
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
     u_char ipbuff[MAXPACKET];
@@ -195,7 +198,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 
     /* grab our IPv4 header */
     dataptr = ipbuff;
-    if ((ip_hdr = (ip_hdr_t*)get_ipv4(pktdata, caplen, 
+    if ((ip_hdr = (ipv4_hdr_t*)get_ipv4(pktdata, caplen, 
                     pcap_datalink(tcpedit->runtime.pcap1), &dataptr)) == NULL)
         return 0;
 
@@ -260,8 +263,8 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
  * onto that netblock.  ie: 10.0.0.0/8 and 192.168.55.123 -> 10.168.55.123
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
  */
-u_int32_t
-remap_ip(tcpr_cidr_t *cidr, const u_int32_t original)
+static u_int32_t
+remap_ipv4(tcpr_cidr_t *cidr, const u_int32_t original)
 {
     u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
 
@@ -292,7 +295,7 @@ remap_ip(tcpr_cidr_t *cidr, const u_int32_t original)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t *ip_hdr, int direction)
+rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, int direction)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
@@ -317,12 +320,12 @@ rewrite_ipl3(tcpedit_t *tcpedit, ip_hdr_t *ip_hdr, int direction)
     /* loop through the cidrmap to rewrite */
     do {
         if ((! diddst) && ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr)) {
-            ip_hdr->ip_dst.s_addr = remap_ip(cidrmap2->to, ip_hdr->ip_dst.s_addr);
+            ip_hdr->ip_dst.s_addr = remap_ipv4(cidrmap2->to, ip_hdr->ip_dst.s_addr);
             dbgx(2, "Remapped dst addr to: %s", inet_ntoa(ip_hdr->ip_dst));
             diddst = 1;
         }
         if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
-            ip_hdr->ip_src.s_addr = remap_ip(cidrmap1->to, ip_hdr->ip_src.s_addr);
+            ip_hdr->ip_src.s_addr = remap_ipv4(cidrmap1->to, ip_hdr->ip_src.s_addr);
             dbgx(2, "Remapped src addr to: %s", inet_ntoa(ip_hdr->ip_src));
             didsrc = 1;
         }
@@ -387,12 +390,12 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         add_hdr = (u_char *)arp_hdr;
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
         ip = (u_int32_t *)add_hdr;
-        tempip = randomize_ip(tcpedit, *ip);
+        tempip = randomize_ipv4_addr(tcpedit, *ip);
         memcpy(ip, &tempip, sizeof(u_int32_t));
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
         ip = (u_int32_t *)add_hdr;
-        tempip = randomize_ip(tcpedit, *ip);
+        tempip = randomize_ipv4_addr(tcpedit, *ip);
         memcpy(ip, &tempip, sizeof(u_int32_t));
     }
 
@@ -453,12 +456,12 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
             /* arp request ? */
             if (ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) {
                 if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip1)) {
-                    newip = remap_ip(cidrmap2->to, *ip1);
+                    newip = remap_ipv4(cidrmap2->to, *ip1);
                     memcpy(ip1, &newip, 4);
                     diddst = 1;
                 }
                 if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip2)) {
-                    newip = remap_ip(cidrmap1->to, *ip2);
+                    newip = remap_ipv4(cidrmap1->to, *ip2);
                     memcpy(ip2, &newip, 4);
                     didsrc = 1;
                 }
@@ -466,12 +469,12 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
             /* else it's an arp reply */
             else {
                 if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip2)) {
-                    newip = remap_ip(cidrmap2->to, *ip2);
+                    newip = remap_ipv4(cidrmap2->to, *ip2);
                     memcpy(ip2, &newip, 4);
                     diddst = 1;
                 }
                 if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip1)) {
-                    newip = remap_ip(cidrmap1->to, *ip1);
+                    newip = remap_ipv4(cidrmap1->to, *ip1);
                     memcpy(ip1, &newip, 4);
                     didsrc = 1;
                 }

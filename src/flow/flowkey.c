@@ -47,7 +47,7 @@
  * returns 1 on success, 0 on fail
  */
 int
-rbkeygen(ip_hdr_t * ip, u_char proto, void *l4, u_char * key)
+rbkeygen(ipv4_hdr_t * ip, u_char proto, void *l4, u_char * key)
 {
     tcp_hdr_t *tcp = NULL;
     udp_hdr_t *udp = NULL;

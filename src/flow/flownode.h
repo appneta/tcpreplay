@@ -85,7 +85,7 @@ struct session_tree {
 
 
 struct session_t *getnodebykey(char, u_char *);
-struct session_t *newnode(char, u_char *, ip_hdr_t *, void *);
+struct session_t *newnode(char, u_char *, ipv4_hdr_t *, void *);
 int rbsession_comp(struct session_t *, struct session_t *);
 void delete_node(struct session_tree *, struct session_t *);
 void close_sockets(void);

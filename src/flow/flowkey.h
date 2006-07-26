@@ -37,7 +37,7 @@
 #include "flowreplay.h"
 #include "tcpreplay.h"
 
-int rbkeygen(ip_hdr_t *, u_char, void *, u_char *);
+int rbkeygen(ipv4_hdr_t *, u_char, void *, u_char *);
 u_int64_t pkeygen(u_char[]);
 
 #endif
