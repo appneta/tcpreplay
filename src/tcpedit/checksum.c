@@ -42,6 +42,9 @@
 static int do_checksum_math(u_int16_t *, int);
 
 
+/*
+ * Returns -1 on error and 0 on success
+ */
 int
 do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     ipv4_hdr_t *ipv4;
@@ -57,7 +60,8 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     ipv6 = NULL;
     assert(data);
     
-    if (len == 0) {
+    if (len <= 0) {
+        tcpedit_seterr(tcpedit, "length of data must be > 0");
         return -1;
     }
     

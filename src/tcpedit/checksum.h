@@ -29,8 +29,13 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+#ifndef _CHECKSUM_H_
+#define _CHECKSUM_H_
 
 #define CHECKSUM_CARRY(x) \
     (x = (x >> 16) + (x & 0xffff), (~(x + (x >> 16)) & 0xffff))
     
 int do_checksum(tcpedit_t *, u_int8_t *, int, int);
+
+#endif
