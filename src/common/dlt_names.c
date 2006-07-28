@@ -1,109 +1,3 @@
-#!/usr/bin/perl -w
-
-# Parses the bpf.h header file to generate the dlt_names.h header
-# which maps the DLT types to the DLT string name
-
-# run from the tcpreplay source base directory as:
-# cat /usr/include/pcap-bpf.h | ./scripts/dlt2name.pl
-
-use strict;
-my $out_c = 'src/common/dlt_names.c';
-my $out_h = 'src/common/dlt_names.h';
-
-# open outfile
-open(OUT_C, ">$out_c") or die("Unable to open $out_c for writing: $!");
-open(OUT_H, ">$out_h") or die("Unable to open $out_h for writing: $!");
-
-# read STDIN
-
-# some DLT types aren't in a format we can parse easily or just doesn't
-# exist in my /usr/include/net/bpf.h file so we list them here
-my %known = (107 => 'BSD/OS Frame Relay',
-             108 => 'OpenBSD Loopback',
-             113 => 'Linux Cooked Sockets',
-             114 => 'Apple LocalTalk',
-             115 => 'Acorn Econet',
-             116 => 'OpenBSD IPFilter',
-             117 => 'OpenBSD PF Log/SuSE 6.3 LANE 802.3',
-             118 => 'Cisco IOS',
-             119 => '802.11 Prism Header',
-             120 => '802.11 Aironet Header',
-             121 => 'Siemens HiPath HDLC',
-             122 => 'IP over Fibre Channel'
-            );
-my @names;
-
-# put our known DLT types in names since the format of bpf.h is 
-# inconsistent
-
-foreach my $dlt (keys %known) {
-  $names[$dlt]{name} = $known{$dlt};
-}
-
-while (my $line = <STDIN>) {
-
-  if ($line =~ /^\#define\s+(DLT_[a-zA-Z0-9_]+)\s+(\d+)/) {
-    my $key = $1;
-    my $dlt = $2;
-    my $name = $names[$dlt]{name} ? $names[$dlt]{name} : "";
-    if ($line =~ /\/\*\s+(.*)\s+\*\//) {
-      $name = $1;
-    }
-    $names[$dlt]{key} = $key;
-    $names[$dlt]{name} = $name;
-  }
-
-}
-
-# print the license info 
-while (my $line = <DATA>) {
-    print OUT_C $line;
-    print OUT_H $line;
-}
-
-# prep the header
-print OUT_C <<HEADER;
-
-#include <stdlib.h>
-
-/* DLT to descriptions */
-char *dlt2desc[] = {
-HEADER
-
-for (my $i = 0; $i < $#names; $i ++) {
-  if (! defined $names[$i]) {
-    print OUT_C "\t\t\"Unknown\",\n";
-  } else {
-    print OUT_C "\t\t\"$names[$i]->{name}\",\n";
-  }
-}
-
-print OUT_C <<FOOTER;
-\t\tNULL
-};
-
-FOOTER
-
-print OUT_H <<HEADER;
-
-/* include all the DLT types form pcap-bpf.h */
-
-extern char *dlt2desc[];
-#define DLT2DESC_LEN $#names
-
-HEADER
-
-for (my $i = 0; $i < 255; $i++) {
-    next if ! defined $names[$i];
-    print OUT_H "#ifndef $names[$i]{key}\n#define $names[$i]{key} $i\n#endif\n\n";
-}
-
-close OUT_C;
-close OUT_H;
-
-exit 0;
-
-__DATA__
 /*
  * Copyright (c) 2006 Aaron Turner
  * All rights reserved.
@@ -162,4 +56,193 @@ __DATA__
   *
   * @(#) $Header: /tcpdump/master/libpcap/pcap-bpf.h,v 1.34.2.6 2005/08/13 22:29:47 hannes Exp $ (LBL)
   */
+
+
+#include <stdlib.h>
+
+/* DLT to descriptions */
+char *dlt2desc[] = {
+		"BSD loopback encapsulation",
+		"Ethernet (10Mb)",
+		"Experimental Ethernet (3Mb)",
+		"Amateur Radio AX.25",
+		"Proteon ProNET Token Ring",
+		"Chaos",
+		"IEEE 802 Networks",
+		"ARCNET, with BSD-style header",
+		"Serial Line IP",
+		"Point-to-point Protocol",
+		"FDDI",
+		"LLC-encapsulated ATM",
+		"raw IP",
+		"BSD/OS Serial Line IP",
+		"BSD/OS Point-to-point Protocol",
+		"BSD/OS Serial Line IP",
+		"BSD/OS Point-to-point Protocol",
+		"",
+		"",
+		"Linux Classical-IP over ATM",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"PPP over serial with HDLC encapsulation",
+		"PPP over Ethernet",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Cisco HDLC",
+		"IEEE 802.11 wireless",
+		"Unknown",
+		"BSD/OS Frame Relay",
+		"OpenBSD Loopback",
+		"",
+		"Unknown",
+		"Unknown",
+		"Unknown",
+		"Linux Cooked Sockets",
+		"Apple LocalTalk",
+		"Acorn Econet",
+		"OpenBSD IPFilter",
+		"OpenBSD PF Log/SuSE 6.3 LANE 802.3",
+		"Cisco IOS",
+		"802.11 Prism Header",
+		"802.11 Aironet Header",
+		"Siemens HiPath HDLC",
+		"IP over Fibre Channel",
+		"Solaris+SunATM",
+		"RapidIO",
+		"PCI Express",
+		"Xilinx Aurora link layer",
+		"802.11 plus radiotap radio header",
+		"Tazmen Sniffer Protocol",
+		"ARCNET",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"pseudo-header with various info, followed by MTP2",
+		"MTP2, without pseudo-header",
+		"MTP3, without pseudo-header or MTP2",
+		"SCCP, without pseudo-header or MTP2 or MTP3",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"802.11 plus AVS radio header",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"GPRS LLC",
+		"GPF-T (ITU-T G.7041/Y.1303)",
+		"GPF-F (ITU-T G.7041/Y.1303)",
+		"",
+		"",
+		"",
+		"Ethernet",
+		"Packet-over-SONET",
+		"",
+		"",
+		"",
+		"",
+		NULL
+};
 
