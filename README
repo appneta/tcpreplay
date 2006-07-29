@@ -19,7 +19,7 @@ If your problem has to do with RUNNING tcpreplay or one of the sub-tools:
 - Version information (output of -V)
 - Command line used (options and arguments)
 - Platform (Red Hat Linux 9 on Intel, Solaris 7 on SPARC, etc)
-- Make & model of the network card(s) and driver(s)
+- Make & model of the network card(s) and driver(s) version
 - Error message (if available) and/or description of problem
 - If possible, attach the pcap file used (compressed with bzip2 or gzip
     preferred)
@@ -42,3 +42,7 @@ showing up in the list archives.
 
 Thanks,
 Aaron (tcpreplay author)
+
+PS:
+This product includes software developed by the University of
+California, Berkeley and its contributors.
