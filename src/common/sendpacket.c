@@ -75,6 +75,7 @@
 #include <net/route.h>
 #include <net/if_dl.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #if defined HAVE_PF_PACKET
 
@@ -95,6 +96,8 @@ static struct tcpr_ether_addr *get_hwaddr_pf(sendpacket_t *);
 #include <net/bpf.h>
 #include <sys/socket.h>
 #include <net/if.h>
+#include <sys/uio.h>
+
 static sendpacket_t *sendpacket_open_bpf(const char *, char *);
 static struct tcpr_ether_addr *get_hwaddr_bpf(sendpacket_t *);
 
@@ -125,7 +128,7 @@ int
 sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 {
     int retcode;
-#if defined HAVE_PF_PACKET || defined HAVE_BPF
+#if defined HAVE_PF_PACKET
     struct sockaddr sa;
 #endif
 
@@ -136,15 +139,34 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
         return -1;
                 
     sp->attempt ++;
+    
+TRY_SEND_AGAIN:
 
-#if defined HAVE_PF_PACKET || defined HAVE_BPF
+#if defined HAVE_PF_PACKET 
     memset(&sa, 0, sizeof(sa));
     strlcpy(sa.sa_data, sp->device, sizeof(sa.sa_data));
-    if ((retcode = (int)sendto(sp->handle.fd, (void *)data, (size_t)len, 0, 
-        &sa, sizeof(struct sockaddr))) < 0) {
+    retcode = (int)sendto(sp->handle.fd, (void *)data, (size_t)len, 0, 
+        &sa, sizeof(struct sockaddr));
+    if (retcode < 0 && errno == ENOBUFS && !didsig) {
+        sp->retry ++;
+        goto TRY_SEND_AGAIN;
+    } else if (retcode < 0) {
         sendpacket_seterr(sp, "Error with sendto(): %s", strerror(errno));
     }
     
+#elif defined HAVE_BPF
+    retcode = write(sp->handle.fd, (void *)data, len);
+    if (retcode < 0 && errno == ENOBUFS && !didsig) {
+        sp->retry ++;
+        goto TRY_SEND_AGAIN;
+    } else if (retcode < 0) {
+        sendpacket_seterr(sp, "Error with bpf write(): %s", strerror(errno));
+    }
+    
+    /* 
+     * pcap methods don't seem to support ENOBUFS, so we just straight fail
+     * is there a better way???
+     */    
 #elif defined HAVE_PCAP_INJECT
     if ((retcode = pcap_inject(sp->handle.pcap, (void*)data, len)) < 0)
         sendpacket_seterr(sp, "Error with pcap_inject(): %s", pcap_geterr(sp->handle.pcap));
@@ -153,13 +175,11 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
     if ((retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len)) < 0)
         sendpacket_seterr(sp, "Error with pcap_sendpacket(): %s", pcap_geterr(sp->handle.pcap));
 
-    
 #elif defined HAVE_LIBNET
-SEND_VIA_LIBNET:
     retcode = libnet_adv_write_link(sp->handle.lnet, (u_int8_t*)data, (u_int32_t)len);
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
         sp->retry ++;
-        goto SEND_VIA_LIBNET;
+        goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
         sendpacket_seterr(sp, "Error with libnet_adv_write_link: %s", libnet_geterr(sp->lnet));
     }
@@ -167,9 +187,9 @@ SEND_VIA_LIBNET:
 
     if (retcode < 0) {
         sp->failed ++;
-    } else if (retcode != len) {
-        sendpacket_seterr(sp, "Only able to write %d bytes out of %d bytes total",
-            retcode, (int)len);
+    } else if (retcode != (int)len) {
+        sendpacket_seterr(sp, "Only able to write %d bytes out of %u bytes total",
+            retcode, len);
     } else {
         sp->bytes_sent += len;
         sp->sent ++;
@@ -191,12 +211,13 @@ sendpacket_open(const char *device, char *errbuf)
     sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
     sp = sendpacket_open_bpf(device, errbuf);
-#elif defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET
+#elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
     sp = sendpacket_open_pcap(device, errbuf);
 #elif defined HAVE_LIBNET
     sp = sendpacket_open_libnet(device, errbuf);
 #endif
-    sp->open = 1;
+    if (sp != NULL)
+        sp->open = 1;
     return sp;
 }
 
@@ -221,7 +242,8 @@ int
 sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
-    sp->open = 0;
+
+    free(sp);
     return 0;
 }
 
@@ -235,12 +257,15 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
     struct tcpr_ether_addr *addr;    
     assert(sp);
     
-
+    /* if we already have our MAC address stored, just return it */
+    if (memcmp(&sp->ether, "\00\00\00\00\00\00", ETHER_ADDR_LEN) != 0)
+        return &sp->ether;
+        
 #if defined HAVE_PF_PACKET
     addr = get_hwaddr_pf(sp);
 #elif defined HAVE_BPF
     addr = get_hwaddr_bpf(sp);
-#elif defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET
+#elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
     addr = get_hwaddr_pcap(sp);
 #elif defined HAVE_LIBNET
     addr = get_hwaddr_libnet(sp);
@@ -290,7 +315,8 @@ sendpacket_open_pcap(const char *device, char *errbuf)
     assert(device);
     assert(errbuf);
     
-    if ((pcap = pcap_open_live(device, 0, 0, 0, errbuf)) == NULL) 
+    /* open_pcap_live automatically fills out our errbuf for us */
+    if ((pcap = pcap_open_live(device, 0, 0, 0, errbuf)) == NULL)
         return NULL;
         
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
@@ -432,33 +458,112 @@ sendpacket_open_bpf(const char *device, char *errbuf)
 {
     sendpacket_t *sp;
     char bpf_dev[10];
-    int dev, mysocket;
-    struct ifreq ifr;       
+    int dev, mysocket, link_offset, link_type;
+    struct ifreq ifr;
+    struct bpf_version bv;
+    u_int v;
+#if defined(BIOCGHDRCMPLT) && defined(BIOCSHDRCMPLT) && !(__APPLE__)
+    u_int spoof_eth_src = 1;
+#endif
     
     assert(device);
     assert(errbuf);
+    memset(&ifr, '\0', sizeof(struct ifreq));
     
-    for (dev = 0; dev <= 20; dev ++) {
+    /* open socket */
+    mysocket = -1;
+    for (dev = 0; dev <= 9; dev ++) {
         memset(bpf_dev, '\0', sizeof(bpf_dev));
         snprintf(bpf_dev, sizeof(bpf_dev), "/dev/bpf%d", dev);
-        if ((mysocket = open(bpf_dev, O_RDWR|O_NONBLOCK, 0)) > 0) {
-            continue;
+        if ((mysocket = open(bpf_dev, O_RDWR, 0)) > 0) {
+            break;
         }
     }
     
-    /* error */
-    if (mysocket < 0)
+    /* error?? */
+    if (mysocket < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
+            "Unable to open /dev/bpfX: %s", strerror(errno));
+        errbuf[SENDPACKET_ERRBUF_SIZE -1] = '\0';
         return NULL;
+    }
     
+    /* get BPF version */
+    if (ioctl(mysocket, BIOCVERSION, (caddr_t)&bv) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to get bpf version: %s", strerror(errno));
+        return NULL;
+    }
+
+    if (bv.bv_major != BPF_MAJOR_VERSION || bv.bv_minor != BPF_MINOR_VERSION) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Kernel's bpf version is out of date.");
+        return NULL;
+    }
+
+    /* attach to device */
     strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
-    if (ioctl(mysocket, BIOCSETIF, &ifr) < 0) {
-       snprintf(errbuf, PCAP_ERRBUF_SIZE, "BIOCSETIF: %s", strerror(errno));
+    if (ioctl(mysocket, BIOCSETIF, (caddr_t)&ifr) < 0) {
+       snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to bind %s to %s: %s", 
+           bpf_dev, device, strerror(errno));
        return NULL;
     }
     
+    /* get datalink type */
+    if (ioctl(mysocket, BIOCGDLT, (caddr_t)&v) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to get datalink type: %s",
+            strerror(errno));
+        return NULL;
+    }
+    
+    /*
+     *  NetBSD and FreeBSD BPF have an ioctl for enabling/disabling
+     *  automatic filling of the link level source address.
+     */
+#if defined(BIOCGHDRCMPLT) && defined(BIOCSHDRCMPLT) && !(__APPLE__)
+    if (ioctl(mysocket, BIOCSHDRCMPLT, &spoof_eth_src) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
+            "Unable to enable spoofing src MAC: %s", strerror(errno));
+        return NULL;
+    }
+#endif
+    
+    /* assign link type and offset */
+    switch (v) {
+        case DLT_SLIP:
+            link_offset = 0x10;
+            break;
+        case DLT_RAW:
+            link_offset = 0x0;
+            break;
+        case DLT_PPP:
+            link_offset = 0x04;
+            break;
+        case DLT_EN10MB:
+        default: /* default to Ethernet */
+            link_offset = 0xe;
+            break;
+    }
+#if _BSDI_VERSION - 0 > 199510
+    switch (v) {
+        case DLT_SLIP:
+            v = DLT_SLIP_BSDOS;
+            link_offset = 0x10;
+            break;
+        case DLT_PPP:
+            v = DLT_PPP_BSDOS;
+            link_offset = 0x04;
+            break;
+    }
+#endif
+    
+    link_type = v;
+    
+    /* allocate our sp handle, and return it */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
+    //sp->link_type = link_type;
+    //sp->link_offset = link_offset;
+    
     return sp; 
 }
 
