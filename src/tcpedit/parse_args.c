@@ -30,8 +30,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcap.h>
-
 #include "config.h"
 #include "defines.h"
 #include "common.h"
@@ -40,6 +38,8 @@
 #include "../mac.h"
 #include "parse_args.h"
 #include "portmap.h"
+
+#include <string.h>
 
 
 /*
@@ -262,7 +262,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
                 tcpedit->l2.vlan_tag = OPT_VALUE_VLAN_TAG;
 
                 /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
-                tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? LIBNET_802_1Q_H : LIBNET_ETH_H;
+                tcpedit->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_ETH_H;
                 dbgx(1, "We will %s 802.1q headers", 
                         tcpedit->vlan == TCPEDIT_VLAN_DEL ? "delete" : 
                         "add/modify");
@@ -287,13 +287,13 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     else if (tcpedit->l2.dlt == DLT_EN10MB || tcpedit->l2.dlt == DLT_VLAN) {
         /* ethernet */
         dbg(1, "Using Ethernet to calculate max frame size\n");
-        tcpedit->maxpacket = tcpedit->mtu + LIBNET_ETH_H;
+        tcpedit->maxpacket = tcpedit->mtu + TCPR_ETH_H;
     } else {
         /* 
          * uh, wtf is this now?  we'll just assume ethernet and hope things
          * work
          */
-        tcpedit->maxpacket = tcpedit->mtu + LIBNET_ETH_H;
+        tcpedit->maxpacket = tcpedit->mtu + TCPR_ETH_H;
         tcpedit_seterr(tcpedit, 
             "Unsupported DLT type: %s.  We'll just treat it as ethernet.\n"
             "You may need to increase the MTU (-t <size>) if you get errors\n",

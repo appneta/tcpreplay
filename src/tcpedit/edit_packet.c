@@ -40,10 +40,14 @@
 #include "lib/sll.h"
 #include "dlt.h"
 
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 static u_int32_t randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip);
 static u_int32_t remap_ipv4(tcpr_cidr_t *cidr, const u_int32_t original);
-
-extern int maxpacket;
 
 /*
  * this code re-calcs the IP and Layer 4 checksums
@@ -229,11 +233,11 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
     /* UDP ? */
     else if (ip_hdr->ip_p == IPPROTO_UDP) {
         udp_hdr = (udp_hdr_t *) get_layer4(ip_hdr);
-        datalen -= LIBNET_UDP_H;
+        datalen -= TCPR_UDP_H;
         if (datalen <= 0)
             goto nodata;
 
-        dataptr += LIBNET_UDP_H;
+        dataptr += TCPR_UDP_H;
     }
 
     /* ICMP ? just ignore it for now */
@@ -320,12 +324,12 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, int direction)
     do {
         if ((! diddst) && ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr)) {
             ip_hdr->ip_dst.s_addr = remap_ipv4(cidrmap2->to, ip_hdr->ip_dst.s_addr);
-            dbgx(2, "Remapped dst addr to: %s", inet_ntoa(ip_hdr->ip_dst));
+            dbgx(2, "Remapped dst addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
             diddst = 1;
         }
         if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
             ip_hdr->ip_src.s_addr = remap_ipv4(cidrmap1->to, ip_hdr->ip_src.s_addr);
-            dbgx(2, "Remapped src addr to: %s", inet_ntoa(ip_hdr->ip_src));
+            dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
             didsrc = 1;
         }
 

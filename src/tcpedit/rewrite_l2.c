@@ -41,10 +41,11 @@
  */
 
 #include "tcpedit.h"
-#include "../common.h"
 #include "lib/sll.h"
 #include "dlt.h"
 #include "rewrite_l2.h"
+
+#include <string.h>
 
 extern int maxpacket;
 
@@ -171,9 +172,9 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata,
      */
     eth_hdr = (eth_hdr_t *)(*pktdata);
     if (eth_hdr->ether_type == ETHERTYPE_VLAN) {
-        newl2len = oldl2len = LIBNET_802_1Q_H;
+        newl2len = oldl2len = TCPR_802_1Q_H;
     } else {
-        newl2len = oldl2len = LIBNET_ETH_H;
+        newl2len = oldl2len = TCPR_ETH_H;
     }
   
     switch (tcpedit->l2.dlt) {
@@ -211,7 +212,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata,
 
         /* are we adding/modifying a VLAN header? */
         if (tcpedit->vlan == TCPEDIT_VLAN_ADD) {
-            newl2len = LIBNET_802_1Q_H;
+            newl2len = TCPR_802_1Q_H;
   
             if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
                 return 0; /* unable to send packet */
@@ -224,7 +225,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata,
                 
                 /* user must always specify a tag */
                 vlan_hdr->vlan_priority_c_vid |= 
-                    htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
+                    htons((u_int16_t)tcpedit->l2.vlan_tag & TCPR_802_1Q_VIDMASK);
 
                 /* these are optional */
                 if (tcpedit->l2.vlan_pri)
@@ -237,7 +238,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata,
             } 
 
             /* else we are adding a VLAN header */
-            else if (oldl2len == LIBNET_ETH_H) {
+            else if (oldl2len == TCPR_ETH_H) {
                 /* zero out our L2 header */
                 memset(tmpbuff, 0, newl2len);
 
@@ -253,7 +254,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata,
 
                 /* user must always specify a tag */
                 vlan_hdr->vlan_priority_c_vid |= 
-                    htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
+                    htons((u_int16_t)tcpedit->l2.vlan_tag & TCPR_802_1Q_VIDMASK);
                 
                 /* other things are optional */
                 if (tcpedit->l2.vlan_pri)
@@ -269,13 +270,13 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata,
                 memcpy(*pktdata, tmpbuff, ((*pkthdr)->caplen + newl2len - oldl2len));
 
             } else {
-                err(1, "Uh, how are we supposed to rewrite the header when the oldl2len != LIBNET_ETH_H?");
+                err(1, "Uh, how are we supposed to rewrite the header when the oldl2len != TCPR_ETH_H?");
             }
         } 
 
         else {
             /* remove VLAN header */
-            newl2len = LIBNET_ETH_H;
+            newl2len = TCPR_ETH_H;
 
             /* we still verify packet len incase MTU has shrunk */
             if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
@@ -288,7 +289,7 @@ rewrite_en10mb(tcpedit_t *tcpedit, u_char **pktdata,
 
             eth_hdr->ether_type = vlan_hdr->vlan_len;
             
-            memcpy(*pktdata + LIBNET_ETH_H, (tmpbuff + LIBNET_802_1Q_H), (*pkthdr)->caplen - oldl2len);
+            memcpy(*pktdata + TCPR_ETH_H, (tmpbuff + TCPR_802_1Q_H), (*pkthdr)->caplen - oldl2len);
         }
         break;
 
@@ -351,7 +352,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char **pktdata,
         break;
 
     case DLT_VLAN:
-        newl2len = LIBNET_802_1Q_H;
+        newl2len = TCPR_802_1Q_H;
 
         if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -360,7 +361,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char **pktdata,
 
         /* make space for the header */
         memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
-        memcpy(*pktdata + LIBNET_802_1Q_H, tmpbuff, (*pkthdr)->caplen);
+        memcpy(*pktdata + TCPR_802_1Q_H, tmpbuff, (*pkthdr)->caplen);
 
         vlan_hdr = (vlan_hdr_t *)*pktdata;
 
@@ -370,7 +371,7 @@ rewrite_raw(tcpedit_t *tcpedit, u_char **pktdata,
         
         /* user must always specify a tag */
         vlan_hdr->vlan_priority_c_vid |= 
-            htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
+            htons((u_int16_t)tcpedit->l2.vlan_tag & TCPR_802_1Q_VIDMASK);
                 
         /* other things are optional */
         if (tcpedit->l2.vlan_pri)
@@ -382,17 +383,17 @@ rewrite_raw(tcpedit_t *tcpedit, u_char **pktdata,
                 htons((u_int16_t)tcpedit->l2.vlan_cfi) << 12;
 
         /* new packet len */
-        newl2len = LIBNET_802_1Q_H;
+        newl2len = TCPR_802_1Q_H;
         break;
 
     case DLT_EN10MB:
-        newl2len = LIBNET_ETH_H;
+        newl2len = TCPR_ETH_H;
 
         if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make room for L2 header */
-        memmove(*pktdata + LIBNET_ETH_H, *pktdata, (*pkthdr)->caplen);
+        memmove(*pktdata + TCPR_ETH_H, *pktdata, (*pkthdr)->caplen);
 
         /* these fields are always set this way */
         eth_hdr = (eth_hdr_t *)*pktdata;
@@ -454,14 +455,14 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char **pktdata,
 
     case DLT_VLAN:
         /* prep a 802.1q tagged frame */
-        newl2len = LIBNET_802_1Q_H;
+        newl2len = TCPR_802_1Q_H;
 
         if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
 
         /* make space for the header */
         memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
-        memcpy(*pktdata + LIBNET_802_1Q_H, tmpbuff, (*pkthdr)->caplen - oldl2len);
+        memcpy(*pktdata + TCPR_802_1Q_H, tmpbuff, (*pkthdr)->caplen - oldl2len);
 
         vlan_hdr = (vlan_hdr_t *)*pktdata;
         sll_hdr = (sll_hdr_t *)tmpbuff;
@@ -476,7 +477,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char **pktdata,
         
         /* user must always specify a tag */
         vlan_hdr->vlan_priority_c_vid |= 
-            htons((u_int16_t)(tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK));
+            htons((u_int16_t)(tcpedit->l2.vlan_tag & TCPR_802_1Q_VIDMASK));
                 
         /* other things are optional */
         if (tcpedit->l2.vlan_pri)
@@ -489,7 +490,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char **pktdata,
         break;
 
     case DLT_EN10MB:
-        newl2len = LIBNET_ETH_H;
+        newl2len = TCPR_ETH_H;
         
         if (! check_pkt_len(tcpedit, *pkthdr, oldl2len, newl2len))
             return 0; /* unable to send packet */
@@ -497,7 +498,7 @@ rewrite_linux_sll(tcpedit_t *tcpedit, u_char **pktdata,
         /* make room for L2 header */
      
         memcpy(tmpbuff, *pktdata, (*pkthdr)->caplen);
-        memcpy(*pktdata + LIBNET_ETH_H, (tmpbuff + oldl2len), (*pkthdr)->caplen - oldl2len);
+        memcpy(*pktdata + TCPR_ETH_H, (tmpbuff + oldl2len), (*pkthdr)->caplen - oldl2len);
 
         /* these fields are always set this way */
         sll_hdr = (sll_hdr_t *)tmpbuff;
@@ -574,14 +575,14 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char **pktdata,
         hdlc_hdr = (hdlc_hdr_t *)tmpbuff;
 
         vlan_hdr = (vlan_hdr_t *)*pktdata;
-        memcpy(*pktdata + LIBNET_802_1Q_H, tmpbuff + oldl2len, (*pkthdr)->caplen - oldl2len);
+        memcpy(*pktdata + TCPR_802_1Q_H, tmpbuff + oldl2len, (*pkthdr)->caplen - oldl2len);
 
         vlan_hdr->vlan_tpi = ETHERTYPE_VLAN;
         vlan_hdr->vlan_len = hdlc_hdr->protocol;
       
         /* user must always specify a tag */
         vlan_hdr->vlan_priority_c_vid |= 
-            htons((u_int16_t)tcpedit->l2.vlan_tag & LIBNET_802_1Q_VIDMASK);
+            htons((u_int16_t)tcpedit->l2.vlan_tag & TCPR_802_1Q_VIDMASK);
                 
         /* other things are optional */
         if (tcpedit->l2.vlan_pri)
@@ -603,7 +604,7 @@ rewrite_c_hdlc(tcpedit_t *tcpedit, u_char **pktdata,
         hdlc_hdr = (hdlc_hdr_t *)tmpbuff;
 
         eth_hdr = (eth_hdr_t *)*pktdata;
-        memcpy(*pktdata + LIBNET_ETH_H, tmpbuff + oldl2len, (*pkthdr)->caplen - oldl2len);
+        memcpy(*pktdata + TCPR_ETH_H, tmpbuff + oldl2len, (*pkthdr)->caplen - oldl2len);
 
         eth_hdr->ether_type = hdlc_hdr->protocol;
         

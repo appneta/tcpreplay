@@ -29,8 +29,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <pcap.h>
 #include <assert.h>
+#include "config.h"
+#include "defines.h"
 #include "tcpedit.h"
 #include "dlt.h"
 

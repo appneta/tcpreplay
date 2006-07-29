@@ -70,7 +70,6 @@ struct tcpedit_runtime_s {
     COUNTER pkts_edited;
     pcap_t *pcap1;
     pcap_t *pcap2;
-    libnet_t *lnet;
     char errstr[TCPEDIT_ERRSTR_LEN];
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;            /* IP header and above buffer */

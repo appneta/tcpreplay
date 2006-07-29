@@ -30,6 +30,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+#include "defines.h"
+
 #include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -37,10 +40,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <pcap.h>
+#include <stdarg.h>
 
-#include "config.h"
-#include "defines.h"
 #include "tcpedit.h"
 #include "tcpedit_stub.h"
 #include "portmap.h"
