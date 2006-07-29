@@ -34,6 +34,11 @@
 #include "defines.h"
 #include "common.h"
 
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <ctype.h>
+
 #ifdef DEBUG
 extern int debug;
 #endif

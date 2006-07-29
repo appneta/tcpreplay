@@ -36,6 +36,12 @@
 #include "common.h"
 #include "../../lib/sll.h"
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <ctype.h>
+
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -119,10 +125,10 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         ether_type = ntohs(eth_hdr->ether_type);
         switch (ether_type) {
         case ETHERTYPE_VLAN:            /* 802.1q */
-            return LIBNET_802_1Q_H;
+            return TCPR_802_1Q_H;
             break;
         default:              /* ethernet */
-            return LIBNET_ETH_H;
+            return TCPR_ETH_H;
             break;
         }
         break;
@@ -167,7 +173,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2_len = get_l2len(pktdata, datalen, datalink);
 
     /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len + LIBNET_IPV4_H > datalen) {
+    if (l2_len + TCPR_IPV4_H > datalen) {
         dbg(1, "get_ipv4(): Layer 2 len > total packet len, hence no IP header");
         return NULL;
     }
@@ -235,7 +241,7 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
     u_int val;
     int i;
 
-    if (dnslookup == LIBNET_RESOLVE) {
+    if (dnslookup == 1) {
 #ifdef HAVE_INET_ATON
         if (inet_aton(hostname, &addr) != 1) {
             return(0xffffffff);
@@ -311,7 +317,7 @@ get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
 #ifdef HAVE_INET_NTOP
     if (inet_ntop(AF_INET, &addr, new_string, 255) == NULL) {
         warnx("Unable to convert 0x%x to a string", ip);
-        strcpy(new_string, "");
+        strlcpy(new_string, "", sizeof(new_string));
     }
     return new_string;
 #elif defined HAVE_INET_NTOA
@@ -320,7 +326,7 @@ get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
 #error "Unable to support get_addr2name4."
 #endif
 
-    if (dnslookup != 0) {
+    if (dnslookup != DNS_DONT_RESOLVE) {
         warn("Sorry, we don't support name resolution.");
     }
     return new_string;

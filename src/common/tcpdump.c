@@ -52,6 +52,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <errno.h>
+#include <string.h>
 
 #include "tcpdump.h"
 #include "lib/strlcpy.h"
@@ -291,7 +293,10 @@ tcpdump_open(tcpdump_t *tcpdump)
     return TRUE;
 }
 
-
+/*
+ * Use an existing pcap handle to support decoding of 
+ * packets in verbose mode
+ */
 int 
 tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap) {
 

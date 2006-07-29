@@ -130,7 +130,7 @@ ip2cidr(const unsigned long ip, const int masklen)
 
     network = (u_char *)safe_malloc(20);
 
-    strlcpy((char *)network, (char *)get_addr2name4(ip, LIBNET_DONT_RESOLVE),
+    strlcpy((char *)network, (char *)get_addr2name4(ip, RESOLVE),
             sizeof(network));
 
     strcat((char *)network, "/");

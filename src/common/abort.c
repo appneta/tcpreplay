@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2005 Aaron Turner.
@@ -33,6 +33,9 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
+
+#include <signal.h>
+#include <stdlib.h>
 
 extern volatile int didsig;
 extern COUNTER bytes_sent, pkts_sent, failed;

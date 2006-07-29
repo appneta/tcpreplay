@@ -36,6 +36,9 @@
 
 #include <sys/types.h>
 #include <regex.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
 /*
  * parses /etc/services so we know which ports are service ports

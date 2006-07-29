@@ -41,8 +41,6 @@
 #include "defines.h"
 #include "common.h"
 
-#include "dlt_names.h"
-
 #include <stdlib.h>
 
 #ifndef HAVE_DLT_VAL_TO_DESC
