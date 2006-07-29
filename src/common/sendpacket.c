@@ -345,7 +345,7 @@ sendpacket_open_libnet(const char *device, char *errbuf)
     assert(device);
     assert(errbuf);
     
-    if ((sp->handle.lnet = libnet_init(LIBNET_LINK_ADV, device, errbuf)) == NULL)
+    if ((lnet = libnet_init(LIBNET_LINK_ADV, device, errbuf)) == NULL)
         return NULL;
 
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));

@@ -31,6 +31,7 @@
  */
 
 #include "config.h"
+#include "defines.h"
 
 #ifndef _SENDPACKET_H_
 #define _SENDPACKET_H_
