@@ -56,6 +56,8 @@
   * 
   * Please note that some of this code was copied from Libnet 1.1.3
   */
+
+#include "config.h"
 #include "defines.h"
 #include "common.h"
 #include "sendpacket.h"
@@ -107,7 +109,6 @@ static sendpacket_t *sendpacket_open_pcap(const char *, char *);
 static struct tcpr_ether_addr *get_hwaddr_pcap(sendpacket_t *);
 
 #elif defined HAVE_LIBNET
-#include <libnet.h>
 static sendpacket_t *sendpacket_open_libnet(const char *, char *);
 static struct tcpr_ether_addr *get_hwaddr_libnet(sendpacket_t *);
 #endif
@@ -181,7 +182,7 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with libnet_adv_write_link: %s", libnet_geterr(sp->lnet));
+        sendpacket_seterr(sp, "Error with libnet_adv_write_link: %s", libnet_geterror(sp->handle.lnet));
     }
 #endif
 
@@ -344,7 +345,7 @@ sendpacket_open_libnet(const char *device, char *errbuf)
     assert(device);
     assert(errbuf);
     
-    if ((lnet = libnet_init(LIBNET_LINK_ADV, device, errbuf)) == NULL)
+    if ((sp->handle.lnet = libnet_init(LIBNET_LINK_ADV, device, errbuf)) == NULL)
         return NULL;
 
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
@@ -359,14 +360,14 @@ get_hwaddr_libnet(sendpacket_t *sp)
     struct tcpr_ether_addr *addr;
     assert(sp);
     
-    addr = (struct tcpr_ether_addr *)libnet_get_hwaddr(sp->lnet);
+    addr = (struct tcpr_ether_addr *)libnet_get_hwaddr(sp->handle.lnet);
     
-    if (ether == NULL) {
-        sendpacket_seterr(sp, "Error getting hwaddr via libnet: %s", libnet_geterr(sp->lnet));
-        return NULL
-    } 
+    if (addr == NULL) {
+        sendpacket_seterr(sp, "Error getting hwaddr via libnet: %s", libnet_geterror(sp->handle.lnet));
+        return NULL;
+    }
     
-    mempcy(sp->ether, addr, sizeof(struct tcpr_ether_addr));
+    memcpy(&sp->ether, addr, sizeof(struct tcpr_ether_addr));
     return(&sp->ether);
 }
 #endif
