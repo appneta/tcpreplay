@@ -119,7 +119,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll mmap])
+AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
@@ -185,6 +185,39 @@ AC_ARG_ENABLE(64bits,
          AC_MSG_NOTICE([Using u_int32_t for packet counters])
       fi
     ])
+
+disable_bpf=no
+dnl Turn off *BSD's BPF
+AC_ARG_ENABLE(bpf,
+	AC_HELP_STRING([--disable-bpf], [Disable BPF for sending packets]),
+	[ disable_bpf=yes ])
+	
+disable_pf=no
+dnl Turn off Linux's PF_PACKET
+AC_ARG_ENABLE(pf,
+	AC_HELP_STRING([--disable-pf], [Disable Linux PF_PACKET for sending packets]),
+	[ if test x$enableval = xno ; then
+		disable_pf=yes
+	  fi
+	])
+	
+disable_libnet=no
+dnl Turn of Libnet
+AC_ARG_ENABLE(libnet,
+	AC_HELP_STRING([--disable-libnet], [Disable Libnet for sending packets]),
+	[ if test x$enableval = xno ; then
+		disable_libnet=yes
+	  fi
+	])
+	
+disable_pcap=no
+dnl Turn off pcap for sending
+AC_ARG_ENABLE(pcap,
+	AC_HELP_STRING([--disable-pcap], [Disable libpcap for sending packets]),
+	[ if test x$enableval = xno ; then
+		disable_pcap=yes
+	  fi
+	])
 
 dnl Dynamic link libraries
 dynamic_link=no
@@ -264,10 +297,10 @@ for testdir in $trynetdir /usr/local /usr ; do
 done
 
 if test $foundnet = no ; then
-     AC_MSG_RESULT(no)
-     AC_ERROR(libnet not found)
+    AC_MSG_RESULT(no)
 else 
-     AC_MSG_RESULT($foundnet) 
+    AC_MSG_RESULT($foundnet) 
+	AC_DEFINE([HAVE_LIBNET], [1], [Enable libnet support])
 fi
 
 AC_SUBST(LNETINC)
@@ -339,35 +372,6 @@ if test $libnet_ver_10 = yes ; then
                 Please upgrade to 1.1.0 or better)
 fi
 
-AC_MSG_CHECKING([for working libnet_checksum()])
-AC_TRY_RUN([
-#include <string.h>
-#include "$LNETINC"
-#define LIB_TEST "1.1.3"
-/* 
- * simple proggy to test the version of libnet
- * returns zero if it's < 1.1.3 which has the checksum fix
- * or one otherwise
- */
-int
-main (int argc, char *argv[])
-{
-        if (strncmp(LIB_TEST, LIBNET_VERSION, 5) <= 0)
-                exit(0);
-        exit(1);
-}],
-        libnet_ver_113=yes,
-        libnet_ver_113=no,
-        libnet_ver_113=no
-        )
-
-if test $libnet_ver_113 = no ; then
-    AC_MSG_RESULT(no)
-    AC_MSG_WARN([You should upgrade to libnet 1.1.3 or better if you
-    want to modify packets])
-else
-    AC_MSG_RESULT(yes)
-fi
 
 dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
@@ -415,6 +419,8 @@ OLDCFLAGS="$CFLAGS"
 LIBS="$LPCAPLIB"
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
+
+have_libnet=no
 dnl Check to see what version of libpcap
 dnl this code has been reduced a lot, but probably still could be
 dnl reduced quite a bit more if we chose too
@@ -479,8 +485,20 @@ if test $have_dlt_to_desc = yes ; then
               [Does libpcap have dlt_val_to_desc?])
 fi
 
+dnl This message is placed here for continuity purposes
+dnl but things are really set above in the libnet section
+AC_MSG_CHECKING(for libnet packet sending support)
+if test $disable_libnet = no ; then
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([HAVE_LIBNET], [1], [Do we support libnet for sending packets?])
+	have_libnet=yes
+else 
+	AC_MSG_RESULT(no)
+fi
+
+have_pcap_inject=no
 dnl Check to see if we've got pcap_inject()
-AC_MSG_CHECKING(for pcap_inject)
+AC_MSG_CHECKING(for pcap_inject sending support)
 AC_TRY_COMPILE([
 #include <stdio.h>
 #include <stdlib.h>
@@ -491,15 +509,21 @@ AC_TRY_COMPILE([
 	char *buf;
     pcap_inject(pcap, (void *)buf, 0);
 ],[
-	AC_DEFINE([HAVE_PCAP_INJECT], [1], 
-              [Does libpcap have pcap_inject?])
-	AC_MSG_RESULT(yes)
+	if test $disable_pcap = no ; then
+		AC_DEFINE([HAVE_PCAP_INJECT], [1], 
+	              [Does libpcap have pcap_inject?])
+		AC_MSG_RESULT(yes)
+		have_pcap_inject=yes
+	else
+		AC_MSG_RESULT(no)
+	fi
 ],[
 	AC_MSG_RESULT(no)
 ])
 
+have_pcap_sendpacket=no
 dnl Check to see if we've got pcap_sendpacket()
-AC_MSG_CHECKING(for pcap_sendpacket)
+AC_MSG_CHECKING(for pcap_sendpacket sending support)
 AC_TRY_COMPILE([
 #include <stdio.h>
 #include <stdlib.h>
@@ -510,15 +534,21 @@ AC_TRY_COMPILE([
 	u_char *buf;
     pcap_sendpacket(pcap, buf, 0);
 ],[
-	AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], 
-              [Does libpcap have pcap_sendpacket?])
-	AC_MSG_RESULT(yes)
+	if test $disable_pcap = no ; then
+		AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], 
+	              [Does libpcap have pcap_sendpacket?])
+		AC_MSG_RESULT(yes)
+		have_pcap_sendpacket=yes
+	else 
+		AC_MSG_RESULT(no)
+	fi
 ],[
 	AC_MSG_RESULT(no)
 ])
 
+have_pf=no
 dnl Check for linux PF_PACKET support
-AC_MSG_CHECKING(for PF_PACKET socket support)
+AC_MSG_CHECKING(for PF_PACKET socket sending support)
 AC_TRY_COMPILE([
 #include <sys/socket.h>
 #include <netpacket/packet.h>
@@ -528,12 +558,65 @@ AC_TRY_COMPILE([
 	int pf_packet;
 	pf_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 ],[
-	AC_DEFINE([HAVE_PF_PACKET], [1],
-		[Do we have Linux PF_PACKET socket support?])
-	AC_MSG_RESULT(yes)
+    if test $disable_pf = no ; then
+		AC_DEFINE([HAVE_PF_PACKET], [1],
+			[Do we have Linux PF_PACKET socket support?])
+		AC_MSG_RESULT(yes)
+		have_pf=yes
+	else
+		AC_MSG_RESULT(no)
+	fi
 ],[
 	AC_MSG_RESULT(no)
 ])
+
+have_bpf=no
+dnl Check for BSD's BPF
+AC_MSG_CHECKING(for BPF device sending support)
+AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <net/bpf.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <net/bpf.h>
+#include <errno.h>
+
+int 
+main(int argc, char *argv[]) {
+	int fd;
+	
+	fd = open("/dev/bpf0", O_RDONLY, 0);
+	
+	/* if we opened it, we're good */
+	if (fd > 1)
+		exit(0);
+		
+	/* if we got EBUSY or permission denied it exists, so we're good */
+	if (fd < 0 && (errno == EBUSY || errno == 13))
+		exit(0);
+		
+	/* else suck, no good */
+    exit(-1);
+}],
+    have_bpf=yes)
+
+
+if test $have_bpf = yes -a $disable_bpf = no ; then
+    AC_DEFINE([HAVE_BPF], [1], 
+              [Do we have BPF device support?])
+	AC_MSG_RESULT(yes)
+else
+	AC_MSG_RESULT(no)
+fi
+
+if test $have_bpf = no -a -$have_pcap_inject = no -a $have_pcap_sendpacket = no \
+	-a $have_libnet = no -a $have_pf = no ; then
+	AC_MSG_ERROR([Unable to find a supported method to send packets])
+fi
 
 dnl Older versions of libpcap are missing some DLT types
 dnl If doesn't exist, we'll define them in src/common/fakepcap.h
