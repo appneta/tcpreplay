@@ -37,7 +37,7 @@
 #include "flowreplay.h"
 #include "flowkey.h"
 
-
+#include <string.h>
 
 
 /*
@@ -75,9 +75,9 @@ rbkeygen(ipv4_hdr_t * ip, u_char proto, void *l4, u_char * key)
         }
 
         dbgx(3, "rbkeygen TCP: %s:%hu > %s:%hu => 0x%llx",
-            libnet_addr2name4(ip->ip_src.s_addr, LIBNET_DONT_RESOLVE),
+            get_addr2name4(ip->ip_src.s_addr, RESOLVE),
             ntohs(tcp->th_sport),
-            libnet_addr2name4(ip->ip_dst.s_addr, LIBNET_DONT_RESOLVE),
+            get_addr2name4(ip->ip_dst.s_addr, RESOLVE),
             ntohs(tcp->th_dport), pkeygen(key));
 
     }
@@ -93,9 +93,9 @@ rbkeygen(ipv4_hdr_t * ip, u_char proto, void *l4, u_char * key)
         }
 
         dbgx(3, "rbkeygen UDP: %s:%u > %s:%u => 0x%llx",
-            libnet_addr2name4(ip->ip_src.s_addr, LIBNET_DONT_RESOLVE),
+            get_addr2name4(ip->ip_src.s_addr, RESOLVE),
             ntohs(udp->uh_sport),
-            libnet_addr2name4(ip->ip_dst.s_addr, LIBNET_DONT_RESOLVE),
+            get_addr2name4(ip->ip_dst.s_addr, RESOLVE),
             ntohs(udp->uh_dport), pkeygen(key));
 
     }
