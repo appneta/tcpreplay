@@ -40,6 +40,9 @@
 #include <signal.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "tcpreplay.h"
 
@@ -62,7 +65,7 @@ extern tcpdump_t tcpdump;
 extern int debug;
 #endif
 
-static void do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l);
+static void do_sleep(struct timeval *time, struct timeval *last, int len, sendpacket_t *sp);
 
 
 /*
@@ -76,7 +79,7 @@ send_packets(pcap_t *pcap)
     COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
-    libnet_t *l = options.intf1;
+    sendpacket_t *sp = options.intf1;
     int ret; /* libnet return code */
     u_int32_t pktlen;
     
@@ -117,10 +120,10 @@ send_packets(pcap_t *pcap)
         /* Dual nic processing */
         if (options.intf2 != NULL) {
 
-            l = (libnet_t *) cache_mode(options.cachedata, packetnum);
+            sp = (sendpacket_t *) cache_mode(options.cachedata, packetnum);
         
             /* sometimes we should not send the packet */
-            if (l == CACHE_NOSEND)
+            if (sp == CACHE_NOSEND)
                 continue;
         }
     
@@ -134,25 +137,11 @@ send_packets(pcap_t *pcap)
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 
          */
-        do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, l);
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, sp);
             
         /* write packet out on network */
-        do {
-            ret = libnet_adv_write_link(l, pktdata, pktlen);
-            if (ret == -1) {
-                /* Make note of failed writes due to full buffers */
-                if (errno == ENOBUFS) {
-                    failed++;
-                } else {
-                    errx(1, "Unable to send packet: %s", strerror(errno));
-                }
-            }
-        
-            /* keep trying if fail, unless user Ctrl-C's */
-        } while (ret == -1 && !didsig);
-
-        bytes_sent += pktlen;
-        pkts_sent++;
+        if (sendpacket(sp, pktdata, pktlen) < pktlen)
+            errx(1, "Unable to send packet: %s", sendpacket_geterr(sp));
     
         /* 
          * track the time of the "last packet sent".  Again, because of OpenBSD
@@ -174,7 +163,7 @@ send_packets(pcap_t *pcap)
 void *
 cache_mode(char *cachedata, COUNTER packet_num)
 {
-    void *l = NULL;
+    void *sp = NULL;
     int result;
 
     if (packet_num > options.cache_packets)
@@ -187,17 +176,17 @@ cache_mode(char *cachedata, COUNTER packet_num)
     }
     else if (result == CACHE_PRIMARY) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
-        l = options.intf1;
+        sp = options.intf1;
     }
     else if (result == CACHE_SECONDARY) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
-        l = options.intf2;
+        sp = options.intf2;
     }
     else {
         err(1, "check_cache() returned an error.  Aborting...");
     }
 
-    return l;
+    return sp;
 }
 
 
@@ -206,7 +195,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep and do so.
  */
 static void
-do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
+do_sleep(struct timeval *time, struct timeval *last, int len, sendpacket_t *sp)
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
@@ -287,7 +276,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
         /* do we skip prompting for a key press? */
         if (send == 0) {
             printf("**** How many packets do you wish to send? (next packet out %s): ",
-                   l == options.intf1 ? options.intf1_name : options.intf2_name);
+                   sp == options.intf1 ? options.intf1_name : options.intf2_name);
             fflush(NULL);
             poller[0].fd = STDIN_FILENO;
             poller[0].events = POLLIN;
@@ -320,7 +309,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, libnet_t *l)
 
         /* decrement our send counter */
         printf("Sending packet out: %s\n", 
-               l == options.intf1 ? options.intf1_name : options.intf2_name);
+               sp == options.intf1 ? options.intf1_name : options.intf2_name);
         send --;
 
         /* leave do_sleep() */

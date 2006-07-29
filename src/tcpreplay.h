@@ -35,6 +35,7 @@
 
 #include "config.h"
 #include "defines.h"
+#include "common/sendpacket.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -45,8 +46,8 @@ struct tcpreplay_opt_s {
     /* input/output */
     char *intf1_name;
     char *intf2_name;
-    libnet_t *intf1;
-    libnet_t *intf2;
+    sendpacket_t *intf1;
+    sendpacket_t *intf2;
 /* disable data dump mode
     pcap_t *savepcap1;
     pcap_t *savepcap2;

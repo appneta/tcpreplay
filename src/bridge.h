@@ -44,7 +44,7 @@ struct macsrc_t {
     RB_ENTRY(macsrc_t) node;
     u_char key[ETHER_ADDR_LEN];
     u_char source;              /* interface device name we first saw the source MAC */
-    libnet_t *libnet;           /* libnet handle to send packets out */
+    sendpacket_t *sp;           /* sendpacket handle to send packets out */
 };
 
 /* pri and secondary pcap interfaces */

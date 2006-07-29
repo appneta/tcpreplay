@@ -28,6 +28,10 @@ config-header   = "config.h";
 include         = "#include \"defines.h\"\n"
                 "#include \"tcpreplay.h\"\n"
                 "#include \"common.h\"\n"
+                "#include \"config.h\"\n"
+				"#include <stdlib.h>\n"
+				"#include <sys/types.h>\n"
+				"#include <unistd.h>\n"
                 "extern char pcap_version[];\n"
                 "extern tcpreplay_opt_t options;\n";
 
@@ -310,7 +314,11 @@ flag = {
     fprintf(stderr, "\n");
 	fprintf(stderr, "Copyright 2001-2006 by Aaron Turner <aturner@synfin.net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
+#ifdef HAVE_LIBNET
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+#else
+	fprintf(stderr, "Not compiled with libnet.\n");
+#endif
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
 #ifdef ENABLE_64BITS
     fprintf(stderr, "64 bit packet counters: enabled\n");

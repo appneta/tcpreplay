@@ -13,25 +13,35 @@
 #define COUNTER_SPEC "%lu"
 #endif
 
+
+#ifdef HAVE_BPF
+#include <net/bpf.h>
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+#endif
+
+#if defined INCLUDE_PCAP_BPF_H_FILE && !defined PCAP_DONT_INCLUDE_PCAP_BPF_H
+#include "@PCAP_BPF_H_FILE@"
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1 /* don't re-include it in pcap.h */
+#endif
+
+#include "@LPCAPINC@"
+
 #include "lib/strlcpy.h"
 #include "common/list.h"
 #include "common/cidr.h"
 
-#include "@LNETINC@"
-#ifdef INCLUDE_PCAP_BPF_H_FILE
-#include "@PCAP_BPF_H_FILE@"
-#define PCAP_DONT_INCLUDE_PCAP_BPF_H /* don't re-include it in pcap.h */
-#endif
-#include "@LPCAPINC@"
-#ifdef HAVE_LIBNIDS
-#include "@LNIDSINC@"
-#endif
+/* 
+ * net/bpf.h doesn't include DLT types, but pcap-bpf.h does.  
+ * Unfortunately, pcap-bpf.h also includes things in net/bpf.h
+ * while also missing some key things (wow, that sucks)
+ * The result is that I stole the DLT types from pcap-bpf.h and 
+ * put them in here.
+ */
+#include "common/dlt_names.h"
 
-/* The release version of libnet 1.1.1 changed DNS */
-#ifdef TCPR_DNSV4_H
-#define TCPR_DNS_H TCPR_DNSV4_H
-#else
-#define TCPR_DNS_H TCPR_UDP_DNSV4_H
+
+#ifdef HAVE_LIBNET
+#include "@LNETINC@"
 #endif
 
 typedef struct tcpr_ipv4_hdr ipv4_hdr_t;
@@ -97,6 +107,9 @@ typedef struct tcpr_speed_s tcpr_speed_t;
                                    linux loopback */
 
 #define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */
+
+#define DNS_RESOLVE 1
+#define DNS_DONT_RESOLVE 0
 
 #define RESOLVE 0               /* disable dns lookups */
 #define BPF_OPTIMIZE 1          /* default is to optimize bpf program */

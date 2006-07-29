@@ -38,8 +38,6 @@
  * to work.
 */
 
- 
-#include "config.h"
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>

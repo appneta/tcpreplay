@@ -41,6 +41,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "tcpreplay.h"
 #include "tcpreplay_opts.h"
@@ -71,7 +72,6 @@ void post_args(void);
 int
 main(int argc, char *argv[])
 {
-    char ebuf[256];
     int i, optct = 0;
  
     init();                     /* init our globals */
@@ -84,18 +84,6 @@ main(int argc, char *argv[])
 
     for (i = 0; i < argc; i++)
         options.files[i] = safe_strdup(argv[i]);
-
-    /* open interfaces for writing */
-    if ((options.intf1 = libnet_init(LIBNET_LINK_ADV, options.intf1_name, ebuf)) == NULL)
-        errx(1, "Libnet can't open %s: %s", options.intf1_name, ebuf);
-
-    if (options.intf2_name != NULL) {
-        if ((options.intf2 = libnet_init(LIBNET_LINK_ADV, options.intf2_name, ebuf)) == NULL)
-            errx(1, "Libnet can't open %s: %s", options.intf2_name, ebuf);
-    }
-
-    notice("sending out %s %s", options.intf1_name,
-           options.intf2_name == NULL ? "" : options.intf2_name);
 
     /* init the signal handlers */
     init_signal_handlers();
@@ -207,6 +195,8 @@ void
 post_args(void)
 {
     char *temp;
+    char ebuf[SENDPACKET_ERRBUF_SIZE];
+    
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -254,9 +244,17 @@ post_args(void)
     options.intf1_name = (char *)safe_malloc(strlen(OPT_ARG(INTF1)) + 1);
     strncpy(options.intf1_name, OPT_ARG(INTF1), strlen(OPT_ARG(INTF1)));
     
+    /* open interfaces for writing */
+    if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf)) == NULL)
+        errx(1, "Can't open %s: %s", options.intf1_name, ebuf);
+           
     if (HAVE_OPT(INTF2)) {
         options.intf2_name = (char *)safe_malloc(strlen(OPT_ARG(INTF2)) + 1);
         strncpy(options.intf2_name, OPT_ARG(INTF2), strlen(OPT_ARG(INTF2)));
+        
+        /* open interface for writing */
+        if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf)) == NULL)
+            errx(1, "Can't open %s: %s", options.intf2_name, ebuf);
     }
 
     if (HAVE_OPT(CACHEFILE)) {
@@ -265,6 +263,11 @@ post_args(void)
             &options.comment);
         free(temp);
     }
+    
+   
+    notice("sending out %s %s", options.intf1_name,
+           options.intf2_name == NULL ? "" : options.intf2_name);
+    
 }
 
 /*

@@ -30,6 +30,9 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
+/* Do we have BPF device support? */
+#undef HAVE_BPF
+
 /* Define to 1 if you have the `canonicalize_file_name' function. */
 #undef HAVE_CANONICALIZE_FILE_NAME
 
@@ -103,6 +106,9 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 #undef HAVE_LIBGEN_H
 
+/* Enable libnet support */
+#undef HAVE_LIBNET
+
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #undef HAVE_LIBNSL
 
@@ -149,7 +155,7 @@
 /* Does libpcap have pcap_sendpacket? */
 #undef HAVE_PCAP_SENDPACKET
 
-/* Do we have Linux PF_PACKET? */
+/* Do we have Linux PF_PACKET socket support? */
 #undef HAVE_PF_PACKET
 
 /* Define to 1 if you have the `poll' function. */
@@ -288,6 +294,9 @@
 
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
 
 /* What is the path (if any) to the pcap-bpf.h header? */
 #undef INCLUDE_PCAP_BPF_HEADER

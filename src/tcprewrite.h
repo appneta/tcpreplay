@@ -45,7 +45,6 @@ struct tcprewrite_opt_s {
     char *outfile;
     pcap_t *pin;
     pcap_dumper_t *pout;
-    libnet_t *l;
 
     /* tcpprep cache data */
     COUNTER cache_packets;

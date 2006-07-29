@@ -48,6 +48,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
@@ -75,7 +76,6 @@ int rewrite_packets (tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
 int main(int argc, char *argv[])
 {
     int optct, rcode;
-    char ebuf[LIBNET_ERRBUF_SIZE];
     tcpedit_t *tcpedit_ptr;
 
     init();
@@ -103,9 +103,6 @@ int main(int argc, char *argv[])
         warnx("%s", tcpedit_geterr(&tcpedit));
     }
 
-    if ((options.l = libnet_init(LIBNET_RAW4, NULL, ebuf)) == NULL)
-        errx(1, "Unable to open raw socket for libnet: %s", ebuf);
-
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
         tcpdump.filename = options.infile;
@@ -124,7 +121,6 @@ int main(int argc, char *argv[])
 
 
     /* clean up after ourselves */
-    libnet_destroy(options.l);
     pcap_dump_close(options.pout);
     pcap_close(options.pin);
 

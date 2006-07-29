@@ -39,6 +39,8 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <time.h>
+#include <errno.h>
+#include <stdlib.h>
 
 #include "tcpbridge.h"
 #include "bridge.h"
@@ -193,13 +195,13 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
               const u_char * nextpkt)
 {
     ipv4_hdr_t *ip_hdr = NULL;
-    libnet_t *l = NULL;
+    sendpacket_t *sp = NULL;
     static u_char *pktdata = NULL;     /* full packet buffer */
 #ifdef FORCE_ALIGN
     u_char *ipbuff = NULL;      /* IP header and above buffer */
 #endif
     static int first_time = 1;
-    int ret, newl2len, cache_mode;
+    int newl2len, cache_mode;
     static unsigned long packetnum = 0;
     struct macsrc_t *node, finder;  /* rb tree nodes */
 #ifdef DEBUG
@@ -243,12 +245,12 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
-    if ((memcmp(libnet_get_hwaddr(options.send1), &finder.key, 
+    if ((memcmp(sendpacket_get_hwaddr(options.sp1), &finder.key, 
                 ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf1);
         return (1);
     }
-    else if ((memcmp(libnet_get_hwaddr(options.send2), &finder.key,
+    else if ((memcmp(sendpacket_get_hwaddr(options.sp2), &finder.key,
                      ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf2);
         return (1);
@@ -292,12 +294,12 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     if (node->source == PCAP_INT1) {
         dbgx(2, "Packet source was %s... sending out on %s", options.intf1, 
             options.intf2);
-        l = options.send2;
+        sp = options.sp2;
     }
     else if (node->source == PCAP_INT2) {
         dbgx(2, "Packet source was %s... sending out on %s", options.intf2, 
             options.intf1);
-        l = options.send1;
+        sp = options.sp1;
     } else {
         errx(1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
              node->source);
@@ -350,18 +352,9 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /*
      * write packet out on the network 
      */
-    do {
-        ret = libnet_adv_write_link(l, pktdata, pkthdr->caplen);
-        if (ret == -1) {
-            /* Make note of failed writes due to full buffers */
-            if (errno == ENOBUFS) {
-                failed++;
-            }
-            else {
-                errx(1, "libnet_adv_write_link(): %s", strerror(errno));
-            }
-        }
-    } while (ret == -1 && !didsig);
+     if (sendpacket(sp, pktdata, pkthdr->caplen) < pkthdr->caplen) {
+         errx(1, "Unable to send packet out %s: %s", sp->device, sendpacket_geterr(sp));
+     }
 
     bytes_sent += pkthdr->caplen;
     pkts_sent++;

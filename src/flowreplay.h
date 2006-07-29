@@ -52,7 +52,6 @@ struct flowreplay_opt_s {
     struct in_addr targetaddr; /* target host */
     tcpr_cidr_t *clients;
     tcpr_cidr_t *servers;
-    libnet_t *l;
     struct timeval timeout;
     u_int32_t pernodebufflim;
     u_int32_t totalbufflim;

@@ -28,6 +28,7 @@ config-header   = "config.h";
 include         = "#include \"defines.h\"\n"
                 "#include \"flowreplay.h\"\n"
                 "#include \"common.h\"\n"
+                "#include \"config.h\"\n"
                 "extern char pcap_version[];\n"
                 "extern flowreplay_opt_t options;\n";
 
@@ -262,7 +263,11 @@ flag = {
 #endif
     fprintf(stderr, "\n");
     fprintf(stderr, "Copyright 2001-2006 by Aaron Turner <aturner@synfin.net>\n");
+#ifdef HAVE_LIBNET
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+#else
+	fprintf(stderr, "Not compiled with libnet.\n");
+#endif
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
 #ifdef ENABLE_64BITS
     fprintf(stderr, "64 bit packet counters: enabled\n");

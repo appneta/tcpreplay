@@ -53,6 +53,7 @@
 #include <regex.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "tcpprep.h"
 #include "tcpedit/tcpedit.h"
@@ -273,7 +274,7 @@ check_ip_regex(const unsigned long ip)
     regmatch_t *pmatch = NULL;
 
     memset(src_ip, '\0', 16);
-    strlcpy((char *)src_ip, (char *)libnet_addr2name4(ip, LIBNET_DONT_RESOLVE),
+    strlcpy((char *)src_ip, (char *)get_addr2name4(ip, RESOLVE),
             sizeof(src_ip));
     if (regexec(&options.preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
         return (1);

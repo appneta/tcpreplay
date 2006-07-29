@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2004-2005 Aaron Turner.
@@ -48,6 +48,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "tcpbridge.h"
 #include "tcpbridge_opts.h"
@@ -98,11 +99,11 @@ main(int argc, char *argv[])
     do_bridge(options.listen1, options.listen2);
 
     /* clean up after ourselves */
-    libnet_destroy(options.send1);
+    sendpacket_close(options.sp1);
     pcap_close(options.listen1);
 
     if (! options.unidir) {
-        libnet_destroy(options.send2);
+        sendpacket_close(options.sp2);
         pcap_close(options.listen2);
     }
 
@@ -144,8 +145,8 @@ init(void)
 void 
 post_args(int argc, char *argv[])
 {
-    char ebuf[LIBNET_ERRBUF_SIZE];
-
+    char ebuf[SENDPACKET_ERRBUF_SIZE];
+    
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;
@@ -178,7 +179,7 @@ post_args(int argc, char *argv[])
     
 
     /* open up interfaces */
-    if ((options.send1 = libnet_init(LIBNET_LINK_ADV, options.intf1, ebuf)) == NULL)
+    if ((options.sp1 = sendpacket_open(options.intf1, ebuf)) == NULL)
         errx(1, "Unable to open interface %s for sending: %s", options.intf1, ebuf);
 
     if ((options.listen1 = pcap_open_live(options.intf1, options.snaplen, 
@@ -191,7 +192,7 @@ post_args(int argc, char *argv[])
         if (strcmp(options.intf1, options.intf2) == 0)
             errx(1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
 
-        if ((options.send2 = libnet_init(LIBNET_LINK_ADV, options.intf2, ebuf)) == NULL)
+        if ((options.sp2 = sendpacket_open(options.intf2, ebuf)) == NULL)
             errx(1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
         
         

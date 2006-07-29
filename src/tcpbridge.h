@@ -47,9 +47,9 @@
 struct tcpbridge_opt_s {
     char *intf1;
     char *intf2;
-    libnet_t *send1;
-    libnet_t *send2;
-
+    sendpacket_t *sp1;
+    sendpacket_t *sp2;
+    
     /* truncate packet ? */
     int truncate;
     
