@@ -602,18 +602,18 @@ main(int argc, char *argv[]) {
 	/* else suck, no good */
     exit(-1);
 }],
-    have_bpf=yes)
+	[
+	if test $disable_bpf = no ; then
+	    AC_DEFINE([HAVE_BPF], [1], 
+	              [Do we have BPF device support?])
+		AC_MSG_RESULT(yes)
+		have_bpf=yes
+	else
+		AC_MSG_RESULT(no)
+	fi
+	])
 
-
-if test $have_bpf = yes -a $disable_bpf = no ; then
-    AC_DEFINE([HAVE_BPF], [1], 
-              [Do we have BPF device support?])
-	AC_MSG_RESULT(yes)
-else
-	AC_MSG_RESULT(no)
-fi
-
-if test $have_bpf = no -a -$have_pcap_inject = no -a $have_pcap_sendpacket = no \
+if test $have_bpf = no -a $have_pcap_inject = no -a $have_pcap_sendpacket = no \
 	-a $have_libnet = no -a $have_pf = no ; then
 	AC_MSG_ERROR([Unable to find a supported method to send packets])
 fi
