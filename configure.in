@@ -213,7 +213,7 @@ AC_ARG_ENABLE(libnet,
 disable_pcap=no
 dnl Turn off pcap for sending
 AC_ARG_ENABLE(pcap,
-	AC_HELP_STRING([--disable-pcap], [Disable libpcap for sending packets]),
+	AC_HELP_STRING([--disable-pcap], [Disable Libpcap for sending packets]),
 	[ if test x$enableval = xno ; then
 		disable_pcap=yes
 	  fi
