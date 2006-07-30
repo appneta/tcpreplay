@@ -28,14 +28,18 @@ flowreplay.1: flowreplay_opts.def
 tcpbridge.1: tcpbridge_opts.def
 	@AUTOGEN@ -T agman1.tpl --base-name tcpbridge tcpbridge_opts.def
 
-man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1  tcpbridge.1 
-EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 
-bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpbridge
+man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1
+EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 flowreplay.1
+bin_PROGRAMS = tcpreplay tcpprep tcprewrite
 
 if ENABLE_FLOWREPLAY
 man_MANS += flowreplay.1
-EXTRA_DIST += flowreplay.1
 bin_PROGRAMS += flowreplay
+endif
+
+if ENABLE_TCPBRIDGE
+man_MANS += tcpbridge.1
+bin_PROGRAMS += tcpbridge
 endif
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREPLAY
