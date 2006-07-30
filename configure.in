@@ -275,107 +275,118 @@ dnl ##################################################
 dnl Checks for libnet (shamelessly horked from dsniff)
 dnl ##################################################
 foundnet=no
-trynetdir=/usr/local
-AC_MSG_CHECKING(for libnet)
-AC_ARG_WITH(libnet,
-    AC_HELP_STRING([--with-libnet=DIR], [Use libnet in DIR]),
-    [trynetdir=$withval])
+if test $disable_libnet = no ; then 
 
-for testdir in $trynetdir /usr/local /usr ; do
-    if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
-     LNETINC="${testdir}/include/libnet.h"
-     LNETINCDIR="$testdir/include"
-     if test $dynamic_link = yes; then
-         LNETLIB="-L${testdir}/lib -lnet"
-     elif test -f "${testdir}/lib64/libnet.a" ; then
-         LNETLIB="${testdir}/lib64/libnet.a"
-     else
-         LNETLIB="${testdir}/lib/libnet.a"
-     fi
-     foundnet=$testdir
-    fi
-done
+	trynetdir=/usr/local
+	AC_MSG_CHECKING(for libnet)
+	AC_ARG_WITH(libnet,
+	    AC_HELP_STRING([--with-libnet=DIR], [Use libnet in DIR]),
+	    [trynetdir=$withval])
 
-if test $foundnet = no ; then
-    AC_MSG_RESULT(no)
-else 
-    AC_MSG_RESULT($foundnet) 
-	AC_DEFINE([HAVE_LIBNET], [1], [Enable libnet support])
+	for testdir in $trynetdir /usr/local /usr ; do
+	    if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
+	     LNETINC="${testdir}/include/libnet.h"
+	     LNETINCDIR="$testdir/include"
+	     if test $dynamic_link = yes; then
+	         LNETLIB="-L${testdir}/lib -lnet"
+	     elif test -f "${testdir}/lib64/libnet.a" ; then
+	         LNETLIB="${testdir}/lib64/libnet.a"
+	     else
+	         LNETLIB="${testdir}/lib/libnet.a"
+	     fi
+	     foundnet=$testdir
+	    fi
+	done
+
+	if test $foundnet = no ; then
+	    AC_MSG_RESULT(no)
+	else 
+	    AC_MSG_RESULT($foundnet) 
+		AC_DEFINE([HAVE_LIBNET], [1], [Enable libnet support])
+	fi
+
+	AC_SUBST(LNETINC)
+	AC_SUBST(LNETLIB)
 fi
 
-AC_SUBST(LNETINC)
-AC_SUBST(LNETLIB)
+dnl END OF if $disable_libnet = no ; then
 
-OLDLIBS="$LIBS"
-OLDCFLAGS="$CFLAGS"
-LIBS="$LNETLIB"
-CFLAGS="$CFLAGS -I$LNETINCDIR"
+if test $foundnet = yes ; then
+	OLDLIBS="$LIBS"
+	OLDCFLAGS="$CFLAGS"
+	LIBS="$LNETLIB"
+	CFLAGS="$CFLAGS -I$LNETINCDIR"
 
-dnl Check to see what version of libnet
-dnl this code has been reduced a lot, but probably still could be
-dnl reduced quite a bit more if we chose too
-AC_MSG_CHECKING(for libnet version)
 
-AC_TRY_RUN([
+	dnl Check to see what version of libnet
+	dnl this code has been reduced a lot, but probably still could be
+	dnl reduced quite a bit more if we chose too
+	AC_MSG_CHECKING(for libnet version)
+
+	AC_TRY_RUN([
 #include <string.h>
 #define LIBNET_LIL_ENDIAN 1
 #include "$LNETINC"
 #define LIB_TEST "1.0"
-/* 
- * simple proggy to test the version of libnet
- * returns zero if it's 1.0.x 
- * or one otherwise
- */
-int
-main (int argc, char *argv[])
-{
-        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
-                exit(0);
-        exit(1);
-}],
-        libnet_ver_10=yes
-        AC_MSG_RESULT(1.0.x), 
-        libnet_ver_10=no,
-        libnet_ver_10=no
-        )
+	/* 
+	 * simple proggy to test the version of libnet
+	 * returns zero if it's 1.0.x 
+	 * or one otherwise
+	 */
+	int
+	main (int argc, char *argv[])
+	{
+	        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
+	                exit(0);
+	        exit(1);
+	}],
+	        libnet_ver_10=yes
+	        AC_MSG_RESULT(1.0.x), 
+	        libnet_ver_10=no,
+	        libnet_ver_10=no
+	        )
 
-AC_TRY_RUN([
+	AC_TRY_RUN([
 #include <string.h>
 #include "$LNETINC"
 #define LIB_TEST "1.1"
-/* 
- * simple proggy to test the version of libnet
- * returns zero if it's 1.0.x 
- * or one otherwise
- */
-int
-main (int argc, char *argv[])
-{
-        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
-                exit(0);
-        exit(1);
-}],
-        libnet_ver_11=yes
-        AC_MSG_RESULT(1.1.x), 
-        libnet_ver_11=no,
-        libnet_ver_11=no
-        )
+	/* 
+	 * simple proggy to test the version of libnet
+	 * returns zero if it's 1.0.x 
+	 * or one otherwise
+	 */
+	int
+	main (int argc, char *argv[])
+	{
+	        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
+	                exit(0);
+	        exit(1);
+	}],
+	        libnet_ver_11=yes
+	        AC_MSG_RESULT(1.1.x), 
+	        libnet_ver_11=no,
+	        libnet_ver_11=no
+	        )
 
 
-if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
-        AC_MSG_RESULT(unknown)
-        AC_MSG_ERROR(Unable to determine version of libnet)
-fi
+	if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
+	        AC_MSG_RESULT(unknown)
+	        AC_MSG_ERROR(Unable to determine version of libnet)
+	fi
 
-if test $libnet_ver_10 = yes ; then
-          AC_MSG_ERROR(Libnet version 1.0.x is no longer supported.
-                Please upgrade to 1.1.0 or better)
-fi
+	if test $libnet_ver_10 = yes ; then
+	          AC_MSG_ERROR(Libnet version 1.0.x is no longer supported.
+	                Please upgrade to 1.1.0 or better)
+	fi
 
 
-dnl restore LIBS & CFLAGS
-LIBS="$OLDLIBS"
-CFLAGS="$OLDCFLAGS"
+	dnl restore LIBS & CFLAGS
+	LIBS="$OLDLIBS"
+	CFLAGS="$OLDCFLAGS"
+
+fi 
+
+dnl END OF if test $foundnet = yes
 
 dnl #####################################################
 dnl Checks for libpcap
@@ -488,7 +499,7 @@ fi
 dnl This message is placed here for continuity purposes
 dnl but things are really set above in the libnet section
 AC_MSG_CHECKING(for libnet packet sending support)
-if test $disable_libnet = no ; then
+if test $disable_libnet = no -a $foundnet = yes; then
 	AC_MSG_RESULT(yes)
 	AC_DEFINE([HAVE_LIBNET], [1], [Do we support libnet for sending packets?])
 	have_libnet=yes
