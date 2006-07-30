@@ -32,6 +32,9 @@
 
 #include "config.h"
 #include "defines.h"
+#ifdef HAVE_PF_PACKET
+#include <sys/socket.h>
+#endif
 
 #ifndef _SENDPACKET_H_
 #define _SENDPACKET_H_
@@ -57,6 +60,9 @@ struct sendpacket_s {
     COUNTER attempt;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
+#ifdef HAVE_PF_PACKET
+    struct sockaddr sa;
+#endif
 };
 
 typedef struct sendpacket_s sendpacket_t;

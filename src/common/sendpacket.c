@@ -38,21 +38,24 @@
  */
  
  /* sendpacket.[ch] is my attempt to write a universal packet injection
-  * API for libpcap, libnet, and Linux's PF_PACKET.  I got sick
+  * API for BPF, libpcap, libnet, and Linux's PF_PACKET.  I got sick
   * and tired dealing with libnet bugs and its lack of active maintenence,
   * but unfortunately, libpcap frame injection support is relatively new 
-  * and not everyone uses Linux, so I decided to support all three as
+  * and not everyone uses Linux, so I decided to support all four as
   * best as possible.  If your platform/OS/hardware supports an additional
   * injection method, then by all means add it here (and send me a patch).
   *
   * Anyways, long story short, for now the order of preference is:
   * 1. PF_PACKET
   * 2. BPF
-  * 3. pcap_inject()
-  * 4. pcap_sendpacket()
-  * 5. libnet
-  * Once I get some Linux testing, I should move PF_PACKET to the top of the list
-  * as it is the most direct method.
+  * 3. libnet
+  * 4. pcap_inject()
+  * 5. pcap_sendpacket()
+  *
+  * Right now, one big problem with the pcap_* methods is that libpcap doesn't provide a 
+  * reliable method of getting the MAC address of an interface (required for tcpbridge).
+  * You can use PF_PACKET or BPF to get that, but if your system suports those, might
+  * as well inject directly without going through another level of indirection.
   * 
   * Please note that some of this code was copied from Libnet 1.1.3
   */
@@ -80,7 +83,6 @@
 #include <unistd.h>
 
 #if defined HAVE_PF_PACKET
-
 /* older versions of glibc require different headers */
 #if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
 #include <netpacket/packet.h>
@@ -92,7 +94,7 @@
 #endif
 
 static sendpacket_t *sendpacket_open_pf(const char *, char *);
-static struct tcpr_ether_addr *get_hwaddr_pf(sendpacket_t *);
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
 
 #elif defined HAVE_BPF
 #include <net/bpf.h>
@@ -101,16 +103,16 @@ static struct tcpr_ether_addr *get_hwaddr_pf(sendpacket_t *);
 #include <sys/uio.h>
 
 static sendpacket_t *sendpacket_open_bpf(const char *, char *);
-static struct tcpr_ether_addr *get_hwaddr_bpf(sendpacket_t *);
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *);
+
+#elif defined HAVE_LIBNET
+static sendpacket_t *sendpacket_open_libnet(const char *, char *);
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *);
 
 #elif defined HAVE_PCAP_INJECT || defined HAVE_PACKET_SENDPACKET
 #include <pcap.h>
 static sendpacket_t *sendpacket_open_pcap(const char *, char *);
-static struct tcpr_ether_addr *get_hwaddr_pcap(sendpacket_t *);
-
-#elif defined HAVE_LIBNET
-static sendpacket_t *sendpacket_open_libnet(const char *, char *);
-static struct tcpr_ether_addr *get_hwaddr_libnet(sendpacket_t *);
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *);
 #endif
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
@@ -129,9 +131,7 @@ int
 sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 {
     int retcode;
-#if defined HAVE_PF_PACKET
-    struct sockaddr sa;
-#endif
+
 
     assert(sp);
     assert(data);
@@ -139,15 +139,12 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
     if (len <= 0)
         return -1;
                 
-    sp->attempt ++;
-    
 TRY_SEND_AGAIN:
+    sp->attempt ++;
 
 #if defined HAVE_PF_PACKET 
-    memset(&sa, 0, sizeof(sa));
-    strlcpy(sa.sa_data, sp->device, sizeof(sa.sa_data));
     retcode = (int)sendto(sp->handle.fd, (void *)data, (size_t)len, 0, 
-        &sa, sizeof(struct sockaddr));
+        &sp->sa, sizeof(struct sockaddr));
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
         sp->retry ++;
         goto TRY_SEND_AGAIN;
@@ -164,18 +161,6 @@ TRY_SEND_AGAIN:
         sendpacket_seterr(sp, "Error with bpf write(): %s", strerror(errno));
     }
     
-    /* 
-     * pcap methods don't seem to support ENOBUFS, so we just straight fail
-     * is there a better way???
-     */    
-#elif defined HAVE_PCAP_INJECT
-    if ((retcode = pcap_inject(sp->handle.pcap, (void*)data, len)) < 0)
-        sendpacket_seterr(sp, "Error with pcap_inject(): %s", pcap_geterr(sp->handle.pcap));
-    
-#elif defined HAVE_PCAP_SENDPACKET
-    if ((retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len)) < 0)
-        sendpacket_seterr(sp, "Error with pcap_sendpacket(): %s", pcap_geterr(sp->handle.pcap));
-
 #elif defined HAVE_LIBNET
     retcode = libnet_adv_write_link(sp->handle.lnet, (u_int8_t*)data, (u_int32_t)len);
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
@@ -184,6 +169,18 @@ TRY_SEND_AGAIN:
     } else if (retcode < 0) {
         sendpacket_seterr(sp, "Error with libnet_adv_write_link: %s", libnet_geterror(sp->handle.lnet));
     }
+
+    /* 
+     * pcap methods don't seem to support ENOBUFS, so we just straight fail
+     * is there a better way???
+     */    
+#elif defined HAVE_PCAP_INJECT
+    if ((retcode = pcap_inject(sp->handle.pcap, (void*)data, len)) < 0)
+        sendpacket_seterr(sp, "Error with pcap_inject(): %s", pcap_geterr(sp->handle.pcap));
+
+#elif defined HAVE_PCAP_SENDPACKET
+    if ((retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len)) < 0)
+        sendpacket_seterr(sp, "Error with pcap_sendpacket(): %s", pcap_geterr(sp->handle.pcap));
 #endif
 
     if (retcode < 0) {
@@ -212,10 +209,10 @@ sendpacket_open(const char *device, char *errbuf)
     sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
     sp = sendpacket_open_bpf(device, errbuf);
-#elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-    sp = sendpacket_open_pcap(device, errbuf);
 #elif defined HAVE_LIBNET
     sp = sendpacket_open_libnet(device, errbuf);
+#elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+    sp = sendpacket_open_pcap(device, errbuf);
 #endif
     if (sp != NULL)
         sp->open = 1;
@@ -263,13 +260,13 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
         return &sp->ether;
         
 #if defined HAVE_PF_PACKET
-    addr = get_hwaddr_pf(sp);
+    addr = sendpacket_get_hwaddr_pf(sp);
 #elif defined HAVE_BPF
-    addr = get_hwaddr_bpf(sp);
-#elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-    addr = get_hwaddr_pcap(sp);
+    addr = sendpacket_get_hwaddr_bpf(sp);
 #elif defined HAVE_LIBNET
-    addr = get_hwaddr_libnet(sp);
+    addr = sendpacket_get_hwaddr_libnet(sp);
+#elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+    addr = sendpacket_get_hwaddr_pcap(sp);
 #endif
     return addr;
 }
@@ -303,9 +300,6 @@ sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 }
 
 
-
-
-
 #if defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET
 static sendpacket_t *
 sendpacket_open_pcap(const char *device, char *errbuf)
@@ -327,10 +321,10 @@ sendpacket_open_pcap(const char *device, char *errbuf)
 }
 
 static struct tcpr_ether_addr *
-get_hwaddr_pcap(sendpacket_t *sp)
+sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
 {
     assert(sp);
-    sendpacket_seterr(sp, "Error: get_hwaddr() not yet supported for pcap injection");
+    sendpacket_seterr(sp, "Error: sendpacket_get_hwaddr() not yet supported for pcap injection");
     return NULL;
 }
 #endif
@@ -355,7 +349,7 @@ sendpacket_open_libnet(const char *device, char *errbuf)
 }
 
 static struct tcpr_ether_addr *
-get_hwaddr_libnet(sendpacket_t *sp)
+sendpacket_get_hwaddr_libnet(sendpacket_t *sp)
 {
     struct tcpr_ether_addr *addr;
     assert(sp);
@@ -408,6 +402,11 @@ sendpacket_open_pf(const char *device, char *errbuf)
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
+    
+    /* need this to do a write */
+    strlcpy(sp->sa.sa_data, sp->device, sizeof(sp->sa.sa_data));
+    
+    
     return sp;
 }
 
@@ -417,7 +416,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
  * interface
  */
 struct tcpr_ether_addr *
-get_hwaddr_pf(sendpacket_t *sp)
+sendpacket_get_hwaddr_pf(sendpacket_t *sp)
 {
     struct ifreq ifr;
     int fd;
@@ -569,7 +568,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
 }
 
 struct tcpr_ether_addr *
-get_hwaddr_bpf(sendpacket_t *sp)
+sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
 {
     int mib[6];
     size_t len;
