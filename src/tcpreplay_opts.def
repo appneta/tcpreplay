@@ -78,6 +78,17 @@ tcpreplay FAQ if you experiance this issue.
 EOMan;
 
 flag = {
+	name		= accurate;
+	value		= a;
+	max			= 1;
+	descrip		= "Enable more accurate packet timing";
+	doc			= <<- EOText
+Enables more accurate timing between packets at the cost of higher
+CPU utilization.
+EOText;
+};
+
+flag = {
     name        = dbug;
     value       = d;
     arg-type    = number;

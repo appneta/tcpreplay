@@ -65,8 +65,8 @@ extern tcpdump_t tcpdump;
 extern int debug;
 #endif
 
-static void do_sleep(struct timeval *time, struct timeval *last, int len, sendpacket_t *sp);
-
+static void do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, sendpacket_t *sp);
+static u_int32_t sleep_loop(struct timeval time);
 
 /*
  * the main loop function.  This is where we figure out
@@ -80,7 +80,6 @@ send_packets(pcap_t *pcap)
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
     sendpacket_t *sp = options.intf1;
-    int ret; /* libnet return code */
     u_int32_t pktlen;
     
     /* register signals */
@@ -101,8 +100,6 @@ send_packets(pcap_t *pcap)
         /* die? */
         if (didsig)
             break_now(0);
-
-        dbgx(2, "packets sent " COUNTER_SPEC, pkts_sent);
 
         packetnum++;
 
@@ -137,10 +134,10 @@ send_packets(pcap_t *pcap)
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 
          */
-        do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, sp);
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp);
             
         /* write packet out on network */
-        if (sendpacket(sp, pktdata, pktlen) < pktlen)
+        if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
             errx(1, "Unable to send packet: %s", sendpacket_geterr(sp));
     
         /* 
@@ -195,7 +192,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep and do so.
  */
 static void
-do_sleep(struct timeval *time, struct timeval *last, int len, sendpacket_t *sp)
+do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, sendpacket_t *sp)
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
@@ -205,6 +202,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, sendpacket_t *sp)
     struct pollfd poller[1];        /* use poll to read from the keyboard */
     char input[EBUF_SIZE];
     static u_int32_t send = 0;      /* remember # of packets to send btw calls */
+    u_int32_t loop;
 
     /* just return if topspeed */
     if (options.speed.mode == SPEED_TOPSPEED)
@@ -322,23 +320,44 @@ do_sleep(struct timeval *time, struct timeval *last, int len, sendpacket_t *sp)
         break;
     }
 
-    timeradd(&didsleep, &nap, &didsleep);
+    if (!accurate) {
+        timeradd(&didsleep, &nap, &didsleep);
 
-    dbgx(4, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
+        dbgx(4, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
 
-    if (timercmp(&didsleep, &delta, >)) {
-        timersub(&didsleep, &delta, &nap);
+        if (timercmp(&didsleep, &delta, >)) {
+            timersub(&didsleep, &delta, &nap);
 
-        sleep.tv_sec = nap.tv_sec;
-        sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
+            sleep.tv_sec = nap.tv_sec;
+            sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
 
-        if (nanosleep(&sleep, &ignore) == -1) {
-            warnx("nanosleep error: %s", strerror(errno));
+            if (nanosleep(&sleep, &ignore) == -1) {
+                warnx("nanosleep error: %s", strerror(errno));
+            }
         }
-
+    } else {
+        timeradd(&now, &nap, &delta);
+        loop = sleep_loop(delta);
+        dbgx(3, "sleep_loop looped %u times", loop);
     }
 }
 
+/*
+ * this function will keep calling gettimeofday() until it returns
+ * >= time.  This should be a lot more accurate then using nanosleep(),
+ * but at the cost of being more CPU intensive.
+ */
+static u_int32_t 
+sleep_loop(struct timeval time)
+{
+   struct timeval now;
+   u_int32_t loop = 0;
+   do {
+        gettimeofday(&now, NULL);
+        loop ++;
+   } while (now.tv_sec < time.tv_sec || now.tv_usec < time.tv_usec);
+   return loop;
+}
 
 /*
  Local Variables:

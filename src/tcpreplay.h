@@ -70,6 +70,9 @@ struct tcpreplay_opt_s {
     int mtu;
     int truncate;
     
+    /* use gettimeofday() instead of sleeping between packets */
+    int accurate;
+    
     char *files[MAX_FILES];
     COUNTER limit_send;
     

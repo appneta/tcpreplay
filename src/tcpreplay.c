@@ -238,6 +238,9 @@ post_args(void)
     
 #endif
 
+    if (HAVE_OPT(ACCURATE))
+        options.accurate = 1;
+        
     if (HAVE_OPT(PKTLEN))
         warn("--pktlen may cause problems.  Use with caution.");
     
