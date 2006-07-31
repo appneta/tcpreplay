@@ -61,9 +61,12 @@ standard:
 	
 
 
-tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port mac comment print_info print_comment prep_config
-tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config rewrite_skip
-tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config replay_multi
+tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port mac comment print_info \
+print_comment prep_config
+tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed \
+rewrite_mac rewrite_layer2 rewrite_config rewrite_skip
+tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config replay_multi \
+replay_accurate 
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -156,6 +159,12 @@ replay_cache:
 	$(PRINTF) "%s" "[tcpreplay] Cache test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Cache test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c test.cidr -i $(nic1) -I $(nic2) -t test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+replay_accurate:
+	$(PRINTF) "%s" "[tcpreplay] Accurate test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Accurate test: " >>test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -a -i $(nic1) test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_portmap:
