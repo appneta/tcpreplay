@@ -55,10 +55,14 @@ standard:
 		 -l 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_config --vlan=add --vlan-tag=45 \
 		--vlan-cfi=1 --vlan-pri=5
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip -b -s 55 \
+		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
+		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	
 
 
 tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port mac comment print_info print_comment prep_config
-tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config
+tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config rewrite_skip
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config replay_multi
 
 prep_config:
@@ -219,6 +223,15 @@ rewrite_config:
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
+rewrite_skip:
+	$(PRINTF) "%s" "[tcprewrite] Skip bcast test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Skip bcast test: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip1 -b -s 55 \
+		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
+		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Packets/sec test: " >>test.log
