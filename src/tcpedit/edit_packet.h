@@ -54,6 +54,8 @@ int rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, int direction);
 
 int rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int direction);
 
+#define BROADCAST_IP 4294967295
+
 #endif
 
 /*

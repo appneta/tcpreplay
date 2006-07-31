@@ -47,7 +47,8 @@
 #include <arpa/inet.h>
 
 static u_int32_t randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip);
-static u_int32_t remap_ipv4(tcpr_cidr_t *cidr, const u_int32_t original);
+static u_int32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original);
+static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
 
 /*
  * this code re-calcs the IP and Layer 4 checksums
@@ -90,7 +91,11 @@ static u_int32_t
 randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
 {
     assert(tcpedit);
-
+    
+    /* don't rewrite broadcast addresses */
+    if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, ip))
+        return ip;
+        
     return ((ip ^ tcpedit->seed) - (ip & tcpedit->seed));
 }
 
@@ -111,21 +116,33 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(pktdata);
     assert(ip_hdr);
 
+#ifdef DEBUG
     strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, 
                 RESOLVE), 16);
     strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, 
                 RESOLVE), 16);
-    
+#endif
+
     /* randomize IP addresses based on the value of random */
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
-    ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
-    ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
+    /* don't rewrite broadcast addresses */
+    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_dst.s_addr)) 
+        || !tcpedit->skip_broadcast) {
+        ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
+    }
+    
+    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr))
+        || !tcpedit->skip_broadcast) {
+        ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
+    }
 
+#ifdef DEBUG    
     strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, 
                 RESOLVE), 16);
     strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, 
                 RESOLVE), 16);
+#endif
 
     dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
 
@@ -274,11 +291,16 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
  */
 static u_int32_t
-remap_ipv4(tcpr_cidr_t *cidr, const u_int32_t original)
+remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
 {
     u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
 
+    assert(tcpedit);
     assert(cidr);
+    
+    /* don't rewrite broadcast addresses */
+    if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, original))
+        return original;
 
     mask = 0xffffffff; /* turn on all the bits */
 
@@ -330,12 +352,12 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, int direction)
     /* loop through the cidrmap to rewrite */
     do {
         if ((! diddst) && ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr)) {
-            ip_hdr->ip_dst.s_addr = remap_ipv4(cidrmap2->to, ip_hdr->ip_dst.s_addr);
+            ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, cidrmap2->to, ip_hdr->ip_dst.s_addr);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
             diddst = 1;
         }
         if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
-            ip_hdr->ip_src.s_addr = remap_ipv4(cidrmap1->to, ip_hdr->ip_src.s_addr);
+            ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, cidrmap1->to, ip_hdr->ip_src.s_addr);
             dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
             didsrc = 1;
         }
@@ -466,12 +488,12 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
             /* arp request ? */
             if (ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) {
                 if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip1)) {
-                    newip = remap_ipv4(cidrmap2->to, *ip1);
+                    newip = remap_ipv4(tcpedit, cidrmap2->to, *ip1);
                     memcpy(ip1, &newip, 4);
                     diddst = 1;
                 }
                 if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip2)) {
-                    newip = remap_ipv4(cidrmap1->to, *ip2);
+                    newip = remap_ipv4(tcpedit, cidrmap1->to, *ip2);
                     memcpy(ip2, &newip, 4);
                     didsrc = 1;
                 }
@@ -479,12 +501,12 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
             /* else it's an arp reply */
             else {
                 if ((!diddst) && ip_in_cidr(cidrmap2->from, *ip2)) {
-                    newip = remap_ipv4(cidrmap2->to, *ip2);
+                    newip = remap_ipv4(tcpedit, cidrmap2->to, *ip2);
                     memcpy(ip2, &newip, 4);
                     diddst = 1;
                 }
                 if ((!didsrc) && ip_in_cidr(cidrmap1->from, *ip1)) {
-                    newip = remap_ipv4(cidrmap1->to, *ip1);
+                    newip = remap_ipv4(tcpedit, cidrmap1->to, *ip1);
                     memcpy(ip1, &newip, 4);
                     didsrc = 1;
                 }
@@ -518,6 +540,21 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     return(didsrc + diddst);
 }
 
+/*
+ * returns 1 if the IP address is a unicast address, otherwise, returns 0
+ * for broadcast/multicast addresses.  Returns -1 on error
+ */
+static int
+is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip)
+{
+    assert(tcpedit);
+   
+    /* multicast/broadcast is 224.0.0.0 or greater */
+    if (ip > 3758096384)
+        return 0;
+        
+    return 1;
+}
 /*
  Local Variables:
  mode:c
