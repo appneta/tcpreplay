@@ -56,8 +56,9 @@ static u_int32_t remap_ipv4(tcpr_cidr_t *cidr, const u_int32_t original);
  * writing to the layer 4 header via the ip_hdr ptr.
  * (Yes, this sucks, but that's the way libnet works, and
  * I was too lazy to re-invent the wheel.
+ * Returns 0 on sucess, -1 on error
  */
-void
+int
 fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t * ip_hdr)
 {
 
@@ -70,13 +71,15 @@ fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t * ip_hd
         if (do_checksum(tcpedit, (u_char *) ip_hdr, 
                     ip_hdr->ip_p, 
                     ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
-            warnx("Layer 4 checksum failed: %s", tcpedit_geterr(tcpedit));
+            return -1;
     }
     
     /* calc IP checksum */
     if (do_checksum(tcpedit, (u_char *) ip_hdr, 
                 IPPROTO_IP, ntohs(ip_hdr->ip_len)) < 0)
-        warnx("IPv4 checksum failed: %s", tcpedit_geterr(tcpedit));
+        return -1;
+        
+    return 0;
 }
 
 /*
@@ -132,16 +135,15 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 /*
  * this code will untruncate a packet via padding it with null
- * or resetting the actual packet len to the snaplen.  In either case
- * it will recalcuate the IP and transport layer checksums.
- * return 0 if no change, 1 if change
+ * or resetting the actual IPv4 packet len to the snaplen - L2 header.  
+ * return 0 if no change, 1 if change, -1 on error.
  */
 
 int
 untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         u_char * pktdata, ipv4_hdr_t * ip_hdr)
 {
-
+    int l2len;
     assert(tcpedit);
     assert(pkthdr);
     assert(pktdata);
@@ -150,6 +152,10 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* if actual len == cap len or there's no IP header, don't do anything */
     if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL)) {
         return(0);
+    }
+    
+    if ((l2len = layer2len(tcpedit)) < 0) {
+        return -1;
     }
 
     /* Pad packet or truncate it */
@@ -160,22 +166,23 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
   	     * which seems like a corrupted pcap
   	     */
         if (pkthdr->len > pkthdr->caplen) {
-            memset(pktdata + pkthdr->caplen, 0, pkthdr->len - pkthdr->caplen);
-            pkthdr->caplen = pkthdr->len;         
-        } else {
+            memset(pktdata + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
+            pkthdr->caplen = pkthdr->len;
+        } else if (pkthdr->len < pkthdr->caplen) {
             /* i guess this is necessary if we've got a bogus pcap */
-            ip_hdr->ip_len = htons(pkthdr->caplen);
+            //ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
+            warn("WTF?  Why is your packet larger then the capture len?");
         }
     }
     else if (tcpedit->fixlen == TCPEDIT_FIXLEN_TRUNC) {
-        ip_hdr->ip_len = htons(pkthdr->caplen);
+        if (pkthdr->len != pkthdr->caplen)
+            ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
+        pkthdr->len = pkthdr->caplen;
     }
     else {
         errx(1, "Invalid fixlen value: 0x%x", tcpedit->fixlen);
     }
 
-    /* fix checksums */
-    fix_checksums(tcpedit, pkthdr, ip_hdr);
     return(1);
 }
 
