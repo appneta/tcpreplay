@@ -70,7 +70,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 {
     ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
-    int l2len = 0, l2proto;
+    int l2len = 0, l2proto, retval;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
 
     assert(tcpedit);
@@ -139,7 +139,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if (tcpedit->rewrite_ip) {
         /* IP packets */
         if (ip_hdr != NULL) {
-            needtorecalc += rewrite_ipv4l3(tcpedit, ip_hdr, direction);
+            if ((retval = rewrite_ipv4l3(tcpedit, ip_hdr, direction)) < 0)
+                return -1;
+            needtorecalc += retval;
         }
 
         /* ARP packets */
@@ -149,40 +151,50 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
              * because we never need to recalc the checksums for an ARP
              * packet.  So ignore the return value
              */
-            rewrite_iparp(tcpedit, arp_hdr, direction);
+            if (rewrite_iparp(tcpedit, arp_hdr, direction) < 0)
+                return -1;
         }
     }
 
     /* rewrite ports */
     if (tcpedit->portmap != NULL && (ip_hdr != NULL)) {
-        needtorecalc += rewrite_ports(tcpedit, &ip_hdr);
+        if ((retval = rewrite_ports(tcpedit, &ip_hdr)) < 0)
+            return -1;
+        needtorecalc += retval;
     }
 
     /* Untruncate packet? Only for IP packets */
     if ((tcpedit->fixlen) && (ip_hdr != NULL)) {
-        needtorecalc += untrunc_packet(tcpedit, *pkthdr, *pktdata, ip_hdr);
+        if ((retval = untrunc_packet(tcpedit, *pkthdr, *pktdata, ip_hdr)) < 0)
+            return -1;
+        needtorecalc += retval;
     }
 
 
     /* do we need to spoof the src/dst IP address? */
     if (tcpedit->seed) {
         if (ip_hdr != NULL) {
-            needtorecalc += randomize_ipv4(tcpedit, *pkthdr, *pktdata, 
-                    ip_hdr);
+            if ((retval = randomize_ipv4(tcpedit, *pkthdr, *pktdata, 
+                    ip_hdr)) < 0)
+                return -1;
+            needtorecalc += retval;
         } else {
             if (direction == CACHE_PRIMARY) {
-                randomize_iparp(tcpedit, *pkthdr, *pktdata, 
-                        pcap_datalink(tcpedit->runtime.pcap1));
+                if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
+                        pcap_datalink(tcpedit->runtime.pcap1)) < 0)
+                    return -1;
             } else {
-                randomize_iparp(tcpedit, *pkthdr, *pktdata, 
-                        pcap_datalink(tcpedit->runtime.pcap2));
+                if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
+                        pcap_datalink(tcpedit->runtime.pcap2)) < 0)
+                    return -1;
             }
         }
     }
 
     /* do we need to force fixing checksums? */
     if ((tcpedit->fixcsum || needtorecalc) && (ip_hdr != NULL)) {
-        fix_checksums(tcpedit, *pkthdr, ip_hdr);
+        if (fix_checksums(tcpedit, *pkthdr, ip_hdr) < 0)
+            return -1;
     }
 
 #ifdef FORCE_ALIGN

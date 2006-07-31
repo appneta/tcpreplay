@@ -44,7 +44,7 @@ int randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pktdhr,
 int randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         u_char *pktdata, int datalink);
 
-void fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr, 
+int fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr, 
         ipv4_hdr_t *ip_hdr);
 
 int extract_data(tcpedit_t *tcpedit, const u_char *pktdata, 

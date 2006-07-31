@@ -9,7 +9,7 @@ manpages: tcpedit.1
 tcpedit.1: tcpedit_stub.def
 	@AUTOGEN@  -T agman1.tpl --base-name tcpedit tcpedit_stub.def
 
-tcpedit_stub.h: tcpedit_opts.def
+tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def
 	@AUTOGEN@ tcpedit_stub.def
 
 AM_CFLAGS = -I.. -I../common -I../.. $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS)
