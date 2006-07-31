@@ -97,48 +97,51 @@ struct tcpedit_s {
     /* runtime variables, don't mess with these */
     tcpedit_runtime_t runtime;
 
+    /* skip rewriting IP/MAC's which are broadcast or multicast? */
+    int skip_broadcast;
+
     /* we use the mask to say which are valid values */
-    char mac_mask;  
+    int mac_mask;  
 #define TCPEDIT_MAC_MASK_SMAC1 0x1
 #define TCPEDIT_MAC_MASK_SMAC2 0x2
 #define TCPEDIT_MAC_MASK_DMAC1 0x4
 #define TCPEDIT_MAC_MASK_DMAC2 0x8
 
     /* rewrite traffic bi-directionally */
-    char bidir;
+    int bidir;
 #define TCPEDIT_BIDIR_OFF 0x0
 #define TCPEDIT_BIDIR_ON  0x1
 
     /* 802.1q VLAN tag stuff */
-    char vlan;
+    int vlan;
 #define TCPEDIT_VLAN_OFF 0x0
 #define TCPEDIT_VLAN_DEL 0x1 /* strip 802.1q and rewrite as standard 
                               * 802.3 Ethernet */
 #define TCPEDIT_VLAN_ADD 0x2 /* add/replace 802.1q vlan tag */
 
     /* pad or truncate packets */
-    char fixlen;
+    int fixlen;
 #define TCPEDIT_FIXLEN_OFF   0x0
 #define TCPEDIT_FIXLEN_PAD   0x1
 #define TCPEDIT_FIXLEN_TRUNC 0x2
 #define TCPEDIT_FIXLEN_DEL   0x3
 
     /* rewrite ip? */
-    char rewrite_ip;
+    int rewrite_ip;
 #define TCPEDIT_REWRITE_IP_OFF 0x0
 #define TCPEDIT_REWRITE_IP_ON  0x1
     
     /* fix IP/TCP/UDP checksums */
-    char fixcsum;
+    int fixcsum;
 #define TCPEDIT_FIXCSUM_OFF 0x0
 #define TCPEDIT_FIXCSUM_ON  0x1
 
     /* remove ethernet FCS */
-    char efcs;
+    int efcs;
 #define TCPEDIT_EFCS_OFF 0x0
 #define TCPEDIT_EFCS_ON  0x1
 
-    char padding1; /* keep things 4 byte aligned */
+//    char padding1; /* keep things 4 byte aligned */
 
     /* values to rewrite src/dst MAC addresses */
     tcpr_macaddr_t intf1_dmac;

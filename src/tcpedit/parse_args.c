@@ -184,6 +184,10 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     /* --mtu */
     if (HAVE_OPT(MTU))
         tcpedit->mtu = OPT_VALUE_MTU;
+        
+    /* --skipbroadcast */
+    if (HAVE_OPT(SKIPBROADCAST))
+        tcpedit->skip_broadcast = 1;
 
     /* --fixlen */
     if (HAVE_OPT(FIXLEN)) {

@@ -52,6 +52,7 @@ extern int maxpacket;
 static int check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         int oldl2len, int newl2len);
 
+static int is_unicast_l2(tcpedit_t *, const u_char *);
 
 /*
  * Do all the layer 2 rewriting.  Change ethernet header or even 
@@ -66,7 +67,6 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
     int newl2len = 0;
     pcap_t *pcap;
-
 
     /* do we need a ptr for l2data ? */
     if (tcpedit->l2.dlt == DLT_USER) {
@@ -123,23 +123,40 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
      * replace the src/dst MAC??
      */
 
-    if (direction == CACHE_SECONDARY) {
-        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC2) {
-            memcpy(*pktdata + ETHER_ADDR_LEN, tcpedit->intf2_smac, ETHER_ADDR_LEN);
-        }
-        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC2) {
-            memcpy(*pktdata, tcpedit->intf2_dmac, ETHER_ADDR_LEN);
-        }
-        
-    } else {
-        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC1) {
-            memcpy(*pktdata + ETHER_ADDR_LEN, tcpedit->intf1_smac, ETHER_ADDR_LEN);
-        }
-        if (tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC1) {
-            memcpy(*pktdata, tcpedit->intf1_dmac, ETHER_ADDR_LEN);
-        }
+    switch (direction) {
+        case CACHE_PRIMARY:
+            if ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC1) &&
+                ((tcpedit->skip_broadcast && is_unicast_l2(tcpedit, (*pktdata + ETHER_ADDR_LEN))) ||
+                 !tcpedit->skip_broadcast)) {
+                     memcpy(*pktdata + ETHER_ADDR_LEN, tcpedit->intf1_smac, ETHER_ADDR_LEN);
+            }
+            
+            if ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC1) &&
+                ((tcpedit->skip_broadcast && is_unicast_l2(tcpedit, *pktdata)) ||
+                 !tcpedit->skip_broadcast)) {
+                     memcpy(*pktdata, tcpedit->intf1_dmac, ETHER_ADDR_LEN);
+            }
+            
+            break;
+        case CACHE_SECONDARY:
+            if ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC2) &&
+                ((tcpedit->skip_broadcast && is_unicast_l2(tcpedit, (*pktdata + ETHER_ADDR_LEN))) ||
+                 !tcpedit->skip_broadcast)) {
+                     memcpy(*pktdata + ETHER_ADDR_LEN, tcpedit->intf2_smac, ETHER_ADDR_LEN);
+            }
+            
+            if ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC2) &&
+                ((tcpedit->skip_broadcast && is_unicast_l2(tcpedit, *pktdata)) ||
+                 !tcpedit->skip_broadcast)) {
+                     memcpy(*pktdata, tcpedit->intf2_dmac, ETHER_ADDR_LEN);
+            }
+            
+            break;
+        default:
+            tcpedit_seterr(tcpedit, "Unknown/supported cache value: %d", direction);
+            break;
     }
-
+    
     /* return the updated layer 2 len */
     return (newl2len);
 }
@@ -659,6 +676,29 @@ check_pkt_len(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     
 }
 
+/* 
+ * takes a ptr to an ethernet address and returns
+ * 1 if it is unicast or 0 if it is multicast or
+ * broadcast.
+ */
+static int 
+is_unicast_l2(tcpedit_t *tcpedit, const u_char *ether)
+{
+    
+    assert(tcpedit);
+    assert(ether);
+    
+    /* is broadcast? */
+    if (memcmp(ether, BROADCAST_MAC, ETHER_ADDR_LEN) == 0)
+        return 0;
+        
+    /* Multicast addresses' leading octet are odd */
+    if ((ether[0] & 0x01) == 0x01)
+        return 0;
+        
+    /* everything else is unicast */
+    return 1;
+}
 
 /*
  Local Variables:

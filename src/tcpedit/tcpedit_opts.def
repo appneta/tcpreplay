@@ -1,7 +1,6 @@
 flag = {
     name        = tcpedit;
     documentation;
-    descrip     = "tcpedit - library to edit packets";
     lib-name    = tcpedit;
 };
 
@@ -164,6 +163,19 @@ EOText;
 };
 #endif
 
+#ifndef TCPEDIT_SKIP_BROADCAST_DISABLE
+flag = {
+	name		= skipbroadcast;
+	value		= b;
+	descrip		= "Skip rewriting broadcast/multicast IP's";
+	doc			= <<- EOText
+By default, --dmac, --smac, --seed, --pnat and --endpoints will rewrite 
+broadcast and multicast IP and MAC addresses.	Setting this flag
+will keep broadcast/multicast IP and MAC addresses from being rewritten.
+EOText;
+};
+#endif
+
 #ifndef TCPEDIT_FIXCSUM_DISABLE
 flag = {
     name        = fixcsum;
@@ -206,9 +218,9 @@ EOText;
 flag = {
     name        = fixlen;
     value       = F;
+    arg-type    = string;
     descrip     = "Pad or truncate packet data to match header length";
     max         = 1;
-    arg-type    = string;
     doc         = <<- EOText
 Packets may be truncated during capture if the snaplen is smaller then the
 packet.  This option allows you to modify the packet to pad the packet back
