@@ -146,7 +146,7 @@ TRY_SEND_AGAIN:
     sp->attempt ++;
 
 #if defined HAVE_PF_PACKET 
-    retcode = (int)sendto(sp->handle.fd, (void *)data, (size_t)len, 0, 
+    retcode = (int)sendto(sp->handle.fd, (void *)data, len, 0, 
         (struct sockaddr *)&sp->sa, sizeof(struct sockaddr));
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
         sp->retry ++;
@@ -389,7 +389,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
     }
 
     memset(&ifr, 0, sizeof(ifr));
-    strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
     
     if (ioctl(mysocket, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
         close(mysocket);
@@ -426,7 +426,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
     /* get the sendto() sockaddr struct */
     memset(&sa, 0, sizeof(sa));
     sa.sll_family = AF_PACKET;
-    if ((sa.sll_ifindex = get_iface_index(sp->handle.fd, sp->device)) < 0) {
+    if ((sa.sll_ifindex = get_iface_index(mysocket, device)) < 0) {
         sendpacket_seterr(sp, "Unable to get inteface index: %s", 
             strerror(errno));
         return NULL; 
