@@ -33,7 +33,7 @@
 #include "config.h"
 #include "defines.h"
 #ifdef HAVE_PF_PACKET
-#include <sys/socket.h>
+#include <netpacket/packet.h>
 #endif
 
 #ifndef _SENDPACKET_H_
@@ -61,7 +61,7 @@ struct sendpacket_s {
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
 #ifdef HAVE_PF_PACKET
-    struct sockaddr sa;
+    struct sockaddr_ll sa;
 #endif
 };
 
@@ -75,3 +75,4 @@ sendpacket_t *sendpacket_open(const char *, char *);
 struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 
 #endif /* _SENDPACKET_H_ */
+

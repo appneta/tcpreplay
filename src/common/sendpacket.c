@@ -52,10 +52,12 @@
   * 4. pcap_inject()
   * 5. pcap_sendpacket()
   *
-  * Right now, one big problem with the pcap_* methods is that libpcap doesn't provide a 
-  * reliable method of getting the MAC address of an interface (required for tcpbridge).
-  * You can use PF_PACKET or BPF to get that, but if your system suports those, might
-  * as well inject directly without going through another level of indirection.
+  * Right now, one big problem with the pcap_* methods is that libpcap 
+  * doesn't provide a reliable method of getting the MAC address of 
+  * an interface (required for tcpbridge).  
+  * You can use PF_PACKET or BPF to get that, but if your system suports 
+  * those, might as well inject directly without going through another 
+  * level of indirection.
   * 
   * Please note that some of this code was copied from Libnet 1.1.3
   */
@@ -78,7 +80,6 @@
 #include <sys/file.h>
 #include <sys/sysctl.h>
 #include <net/route.h>
-#include <net/if_dl.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -92,15 +93,18 @@
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
 #endif
+#include <net/if.h>
 
 static sendpacket_t *sendpacket_open_pf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
+static int get_iface_index(int fd, const int8_t *device);
 
 #elif defined HAVE_BPF
 #include <net/bpf.h>
 #include <sys/socket.h>
 #include <net/if.h>
 #include <sys/uio.h>
+#include <net/if_dl.h> // used for get_hwaddr_bpf()
 
 static sendpacket_t *sendpacket_open_bpf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *);
@@ -132,7 +136,6 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 {
     int retcode;
 
-
     assert(sp);
     assert(data);
         
@@ -144,7 +147,7 @@ TRY_SEND_AGAIN:
 
 #if defined HAVE_PF_PACKET 
     retcode = (int)sendto(sp->handle.fd, (void *)data, (size_t)len, 0, 
-        &sp->sa, sizeof(struct sockaddr));
+        (struct sockaddr *)&sp->sa, sizeof(struct sockaddr));
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
         sp->retry ++;
         goto TRY_SEND_AGAIN;
@@ -372,44 +375,79 @@ sendpacket_open_pf(const char *device, char *errbuf)
 {
     int mysocket;
     sendpacket_t *sp;
-    struct ifreq ifr;       
-    
+    struct ifreq ifr;
+    int n = 1;
+    struct sockaddr_ll sa;
+
     assert(device);
     assert(errbuf);
-    
+   
+    /* open our socket */
     if ((mysocket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
-        snprintf(errbuf, PCAP_ERRBUF_SIZE, "socket: %s", strerror(errno));
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "socket: %s", strerror(errno));
         return NULL;
     }
 
-    memset(&ifr, 0, sizeof(struct ifreq));
-    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
-    if (ioctl(mysocket, SIOCGIFHWADDR, &ifr) < 0) {
-        snprintf(errbuf, PCAP_ERRBUF_SIZE, "SIOCGIFHWADDR: %s", strerror(errno));
-        return NULL;
-    }
-    
-    switch (ifr.ifr_hwaddr.sa_family)
-    {
-        case ARPHRD_ETHER;
+    /* make sure it's ethernet */
+    switch (ifr.ifr_hwaddr.sa_family) {
+        case ARPHRD_ETHER:
             break;
         default:
-            snprintf(errbuf, PCAP_ERRBUF_SIZE, "unsupported pysical layer type 0x%x", 
-                ifr.ifr_hwaddr.sa_family);
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
+                "unsupported pysical layer type 0x%x", ifr.ifr_hwaddr.sa_family);
             return NULL;
     }
-    
+  
+#ifdef SO_BROADCAST
+    /*
+     * man 7 socket
+     *
+     * Set or get the broadcast flag. When  enabled,  datagram  sockets
+     * receive packets sent to a broadcast address and they are allowed
+     * to send packets to a broadcast  address.   This  option  has no
+     * effect on stream-oriented sockets.
+     */ 
+    if (setsockopt(mysocket, SOL_SOCKET, SO_BROADCAST, &n, sizeof(n)) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE,
+                "SO_BROADCAS: %s\n", strerror(errno));
+        return NULL;
+    }
+#endif  /*  SO_BROADCAST  */
+   
+    /* get the sendto() sockaddr struct */
+    memset(&sa, 0, sizeof(sa));
+    sa.sll_family = AF_PACKET;
+    if ((sa.sll_ifindex = get_iface_index(sp->handle.fd, sp->device)) < 0) {
+        sendpacket_seterr(sp, "Unable to get inteface index: %s", 
+            strerror(errno));
+        return NULL; 
+    }
+
+    /* prep & return our sp handle */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
     
-    /* need this to do a write */
-    strlcpy(sp->sa.sa_data, sp->device, sizeof(sp->sa.sa_data));
-    
+    /* need this to do a sendto() */
+    memcpy(&sp->sa, &sa, sizeof(sa)); 
     
     return sp;
 }
 
+/* get the interface index (necessary for sending packets w/ PF_PACKET) */
+static int
+get_iface_index(int fd, const int8_t *device) {
+    struct ifreq ifr;
+
+    /* memset(&ifr, 0, sizeof(ifr)); */
+    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFINDEX, &ifr) == -1) {
+        return (-1);
+    }
+
+    return ifr.ifr_ifindex;
+}              
 
 /*
  * get's the hardware address via Linux's PF packet
@@ -420,7 +458,6 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
 {
     struct ifreq ifr;
     int fd;
-    struct struct tcpr_ether_addr &eap;
     
     assert(sp);
     
@@ -437,16 +474,15 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
     }
 
     memset(&ifr, 0, sizeof(ifr));
-    eap = &ea;
     strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
     
     if (ioctl(fd, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
         close(fd);
-        sendpacket_seterr("Error callign SIOCGIFHWADDR: %s", strerror(errno));
+        sendpacket_seterr(sp, "Error callign SIOCGIFHWADDR: %s", strerror(errno));
         return NULL;
     }
     
-    memcpy(sp->ether, &ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+    memcpy(&sp->ether, &ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
     close(fd);
     return(&sp->ether);
 }
