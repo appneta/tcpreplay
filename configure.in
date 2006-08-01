@@ -142,7 +142,13 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
          debug=yes
-         CFLAGS="-ggdb -std=gnu99 -Wall -Wextra -Wfatal-errors -Wno-variadic-macros"
+		# check for gcc 4.0 flags -Wfatal-errors & -Wno-variadic-macros support
+		CFLAGS="-ggdb -std=gnu99 -Wall -Wextra -Wfatal-errors -Wno-variadic-macros"
+		 AC_COMPILE_IFELSE([#include <stdlib.h>
+			int main(int argc, char *argv[]) { return(0); }], 
+			[CFLAGS="-ggdb -std=gnu99 -Wall -Wextra -Wfatal-errors -Wno-variadic-macros"],
+			[CFLAGS="-ggdb -std=gnu99 -Wall -Wextra"])
+# We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
          AC_SUBST(debug_flag)
          AC_DEFINE([DEBUG], [1], [Enable debuging code and support for the -d option]) 
@@ -499,7 +505,7 @@ fi
 dnl This message is placed here for continuity purposes
 dnl but things are really set above in the libnet section
 AC_MSG_CHECKING(for libnet packet sending support)
-if test $disable_libnet = no -a $foundnet = yes; then
+if test $disable_libnet = no -a $foundnet != no ; then
 	AC_MSG_RESULT(yes)
 	AC_DEFINE([HAVE_LIBNET], [1], [Do we support libnet for sending packets?])
 	have_libnet=yes
