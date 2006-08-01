@@ -572,7 +572,7 @@ AC_TRY_COMPILE([
 #include <net/ethernet.h>     /* the L2 protocols */
 #include <netinet/in.h>       /* htons */
 ],[
-	int pf_packet;
+	int pf_socket;
 	pf_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 ],[
     if test $disable_pf = no ; then
