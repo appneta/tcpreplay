@@ -388,6 +388,15 @@ sendpacket_open_pf(const char *device, char *errbuf)
         return NULL;
     }
 
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+    
+    if (ioctl(mysocket, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
+        close(mysocket);
+        sendpacket_seterr(sp, "Error calling SIOCGIFHWADDR: %s", strerror(errno));
+        return NULL;
+    }
+
     /* make sure it's ethernet */
     switch (ifr.ifr_hwaddr.sa_family) {
         case ARPHRD_ETHER:
@@ -478,7 +487,7 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
     
     if (ioctl(fd, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
         close(fd);
-        sendpacket_seterr(sp, "Error callign SIOCGIFHWADDR: %s", strerror(errno));
+        sendpacket_seterr(sp, "Error calling SIOCGIFHWADDR: %s", strerror(errno));
         return NULL;
     }
     
