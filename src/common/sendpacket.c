@@ -104,6 +104,7 @@ static int get_iface_index(int fd, const int8_t *device);
 #include <sys/socket.h>
 #include <net/if.h>
 #include <sys/uio.h>
+#include <pcap.h>
 #include <net/if_dl.h> // used for get_hwaddr_bpf()
 
 static sendpacket_t *sendpacket_open_bpf(const char *, char *);
