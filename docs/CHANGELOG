@@ -1,24 +1,37 @@
 $Id$
 
+08/03/2006: Version 3.0.beta10
+    - flowreplay doesn't compile against libnids 1.21 (#55)
+    - tcpprep & tcprewrite shouldn't require root access (#3)
+    - Replace libnet with new generic API (#4, #24, #29)
+    - Rewrite tcpreplay sleep to support looping for better accuracy (#6)
+    - Prefer inet_pton over older, deprecated routines (#26)
+    - Optionally don't rewrite broadcast/multicast IP/MAC addresses (#38)
+    - Fix build issues when libpcapnav is installed (#56)
+    - Fix truncate feature not putting correct packet length in IP header (#59)
+    - Internal error reporting fixes in libtcpedit (#60)
+    - Support --enable-debug when building under gcc 3.x (#62)
+    - tcpedit_stub.h wasn't being generated automatically from SVN (#63)
+
 07/17/2006: Version 3.0.beta9
-    - Fix compile issue for users not having AutoOpts installed #54
+    - Fix compile issue for users not having AutoOpts installed (#54)
     - Fix compile issue for users w/ AutoOpts 5.8.4 (upgrade to 5.8.4)
 
 07/16/2006: Version 3.0.beta8
     - Fix -M running in MBps rather then Mbps
     - Fix tcpbridge segfault/bus error reported by Steven Z. (Gerry)
     - Improve tcpbridge man page
-    - Massive tcprewrite fixes & cleanup #50
+    - Massive tcprewrite fixes & cleanup (#50)
     - Much improved README document
     - Reorganize packet editing code into a standalone module (tcpedit) 
-          which has been librarized. #5
-    - Strict code cleanup #27
-    - Fix tcpprep from generating bad cache files #48
-    - Add MAC split mode for tcpprep #1
-    - Improve dbg() to list file/line #32
-    - Add tcpprep statistical reports #2
-    - Reorganize flowreplay code #46
-    - Fix conflicting speed_t for Debian #33
+          which has been librarized. (#5)
+    - Strict code cleanup (#27)
+    - Fix tcpprep from generating bad cache files (#48)
+    - Add MAC split mode for tcpprep (#1)
+    - Improve dbg() to list file/line (#32)
+    - Add tcpprep statistical reports (#2)
+    - Reorganize flowreplay code (#46)
+    - Fix conflicting speed_t for Debian (#33)
     - Too many other things to document
 
 08/07/2005: Version 3.0.beta7
