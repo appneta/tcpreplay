@@ -3,6 +3,8 @@
 /*
  * Copyright (c) 2006 Aaron Turner.
  * Copyright (c) 1998 - 2004 Mike D. Schiffman <mike@infonexus.com>
+ * Copyright (c) 2000 Torsten Landschoff <torsten@debian.org>
+ *                    Sebastian Krahmer  <krahmer@cs.uni-potsdam.de>
  * Copyright (c) 1993, 1994, 1995, 1996, 1998
  *      The Regents of the University of California.
  * All rights reserved.
@@ -84,20 +86,22 @@
 #include <unistd.h>
 
 #if defined HAVE_PF_PACKET
-/* older versions of glibc require different headers */
-#if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
-#include <netpacket/packet.h>
-#include <net/ethernet.h>
-#else
+#include <fcntl.h>
 #include <sys/socket.h>
-#include <netpacket/packet.h>
-#include <net/ethernet.h>
-#endif
+#include <sys/utsname.h>
 #include <net/if.h>
+#include <netinet/in.h>
+#include <linux/if_ether.h>
+#include <net/if_arp.h>
+#include <netpacket/packet.h>
+
+#ifndef __GLIBC__
+typedef int socklen_t;
+#endif
 
 static sendpacket_t *sendpacket_open_pf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
-static int get_iface_index(int fd, const int8_t *device);
+static int get_iface_index(int fd, const int8_t *device, char *);
 
 #elif defined HAVE_BPF
 #include <net/bpf.h>
@@ -147,13 +151,16 @@ TRY_SEND_AGAIN:
     sp->attempt ++;
 
 #if defined HAVE_PF_PACKET 
-    retcode = (int)sendto(sp->handle.fd, (void *)data, len, 0, 
-        (struct sockaddr *)&sp->sa, sizeof(struct sockaddr));
+    retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
+        
+    /* out of buffers, silently retry */
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
         sp->retry ++;
         goto TRY_SEND_AGAIN;
-    } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with sendto(): %s", strerror(errno));
+    } 
+    /* some other kind of error */
+    else if (retcode < 0) {
+        sendpacket_seterr(sp, "Error with pf send(): %s", strerror(errno));
     }
     
 #elif defined HAVE_BPF
@@ -171,7 +178,7 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with libnet_adv_write_link: %s", libnet_geterror(sp->handle.lnet));
+        sendpacket_seterr(sp, "Error with libnet write: %s", libnet_geterror(sp->handle.lnet));
     }
 
     /* 
@@ -207,7 +214,6 @@ sendpacket_open(const char *device, char *errbuf)
 
     assert(device);
     assert(errbuf);
-
 
 #if defined HAVE_PF_PACKET
     sp = sendpacket_open_pf(device, errbuf);
@@ -377,8 +383,9 @@ sendpacket_open_pf(const char *device, char *errbuf)
     int mysocket;
     sendpacket_t *sp;
     struct ifreq ifr;
-    int n = 1;
     struct sockaddr_ll sa;
+    int n = 1, err;
+    socklen_t errlen = sizeof(err);
 
     assert(device);
     assert(errbuf);
@@ -389,12 +396,44 @@ sendpacket_open_pf(const char *device, char *errbuf)
         return NULL;
     }
 
+   
+    /* get the interface id for the device */
+    if ((sa.sll_ifindex = get_iface_index(mysocket, device, errbuf)) < 0) {
+        close(mysocket);
+        return NULL; 
+    }
+
+    /* bind socket to our interface id */
+    sa.sll_family = AF_PACKET;
+    sa.sll_protocol = htons(ETH_P_ALL);
+    if (bind(mysocket, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "bind error: %s", strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+    
+    /* check for errors, network down, etc... */
+    if (getsockopt(mysocket, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening %s: %s", device, 
+            strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+    
+    if (err > 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening %s: %s", device, 
+            strerror(err));
+        close(mysocket);
+        return NULL;
+    }
+
+    /* get hardware type for our interface */
     memset(&ifr, 0, sizeof(ifr));
     strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
     
-    if (ioctl(mysocket, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
+    if (ioctl(mysocket, SIOCGIFHWADDR, &ifr) < 0) {
         close(mysocket);
-        sendpacket_seterr(sp, "Error calling SIOCGIFHWADDR: %s", strerror(errno));
+        sendpacket_seterr(sp, "Error getting hardware type: %s", strerror(errno));
         return NULL;
     }
 
@@ -405,6 +444,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
         default:
             snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
                 "unsupported pysical layer type 0x%x", ifr.ifr_hwaddr.sa_family);
+            close(mysocket);
             return NULL;
     }
   
@@ -420,39 +460,30 @@ sendpacket_open_pf(const char *device, char *errbuf)
     if (setsockopt(mysocket, SOL_SOCKET, SO_BROADCAST, &n, sizeof(n)) == -1) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE,
                 "SO_BROADCAS: %s\n", strerror(errno));
+        close(mysocket);
         return NULL;
     }
 #endif  /*  SO_BROADCAST  */
    
-    /* get the sendto() sockaddr struct */
-    memset(&sa, 0, sizeof(sa));
-    sa.sll_family = AF_PACKET;
-    if ((sa.sll_ifindex = get_iface_index(mysocket, device)) < 0) {
-        sendpacket_seterr(sp, "Unable to get inteface index: %s", 
-            strerror(errno));
-        return NULL; 
-    }
-
+ 
     /* prep & return our sp handle */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
-    sp->handle.fd = mysocket;
-    
-    /* need this to do a sendto() */
-    memcpy(&sp->sa, &sa, sizeof(sa)); 
+    sp->handle.fd = mysocket;   
     
     return sp;
 }
 
 /* get the interface index (necessary for sending packets w/ PF_PACKET) */
 static int
-get_iface_index(int fd, const int8_t *device) {
+get_iface_index(int fd, const int8_t *device, char *errbuf) {
     struct ifreq ifr;
 
-    /* memset(&ifr, 0, sizeof(ifr)); */
+    memset(&ifr, 0, sizeof(ifr));
     strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
 
     if (ioctl(fd, SIOCGIFINDEX, &ifr) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl: %s", strerror(errno));
         return (-1);
     }
 
@@ -477,7 +508,7 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
     }
     
 
-    /* create dummy device for ioctl */
+    /* create dummy socket for ioctl */
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         sendpacket_seterr(sp, "Unable to open dummy socket for get_hwaddr: %s", strerror(errno));
         return NULL;
@@ -488,7 +519,7 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
     
     if (ioctl(fd, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
         close(fd);
-        sendpacket_seterr(sp, "Error calling SIOCGIFHWADDR: %s", strerror(errno));
+        sendpacket_seterr(sp, "Error getting hardware address: %s", strerror(errno));
         return NULL;
     }
     
