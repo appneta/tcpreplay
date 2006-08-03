@@ -204,6 +204,8 @@ EOText;
 };
 #endif
 
+
+#if ENABLE_EFCS
 #ifndef TCPEDIT_EFCS_DISABLE
 flag = {
     name        = efcs;
@@ -212,6 +214,7 @@ flag = {
     doc         = <<- EOText
 EOText;
 };
+#endif
 #endif
 
 #ifndef TCPEDIT_FIXLEN_DISABLE
