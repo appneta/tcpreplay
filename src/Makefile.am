@@ -16,7 +16,7 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c \
 tcpprep.1: tcpprep_opts.def
 	@AUTOGEN@ -T agman1.tpl --base-name tcpprep tcpprep_opts.def
 
-tcprewrite.1: tcprewrite_opts.def
+tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ -T agman1.tpl --base-name tcprewrite tcprewrite_opts.def
 
 tcpreplay.1: tcpreplay_opts.def
@@ -25,7 +25,7 @@ tcpreplay.1: tcpreplay_opts.def
 flowreplay.1: flowreplay_opts.def
 	@AUTOGEN@ -T agman1.tpl --base-name flowreplay flowreplay_opts.def
 
-tcpbridge.1: tcpbridge_opts.def
+tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ -T agman1.tpl --base-name tcpbridge tcpbridge_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1
@@ -58,7 +58,7 @@ tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
-tcprewrite_opts.c: tcprewrite_opts.def
+tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ tcprewrite_opts.def
 
 
@@ -87,7 +87,7 @@ tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c \
 		mac.c
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
-tcpbridge_opts.c: tcpbridge_opts.def
+tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ tcpbridge_opts.def
 
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h \
