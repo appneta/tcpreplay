@@ -293,8 +293,8 @@ flag = {
     
 EOInclude;
     doc         = <<- EOText
-Override default of sending all packets stored in the capture file and only
-send packets which match the provided rule.  Rules can be one of:
+Override default of processing all packets stored in the capture file and only
+send/edit packets which match the provided rule.  Rules can be one of:
 
 @table @bullet
 @item S:<CIDR1>,... 
@@ -311,7 +311,7 @@ corresponds to the packet number in the capture file.
 @example
 -x P:1-5,9,15,72-
 @end example
-would send packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+would process packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
 end of the file
 @item F:'<bpf>'
 - BPF filter.  See the @file{tcpdump(8)} man page for syntax.
@@ -340,8 +340,8 @@ flag = {
     
 EOExclude;
     doc         = <<- EOText
-Override default of sending all packets stored in the capture file and only
-send packets which do not match the provided rule.  Rules can be one of:
+Override default of processing all packets stored in the capture file and only
+send/edit packets which do NOT match the provided rule.  Rules can be one of:
 
 @table @bullet
 @item S:<CIDR1>,... 
@@ -358,7 +358,7 @@ corresponds to the packet number in the capture file.
 @example
 -x P:1-5,9,15,72-
 @end example
-would drop packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+would skip packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
 end of the file
 @end table
 EOText;
