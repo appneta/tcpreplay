@@ -44,8 +44,10 @@ standard:
 	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_portmap -r 80:8080
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_endpoint -e 10.10.0.1:10.10.0.2
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_pnat -N 216.27.178.0/24:172.16.0.0/24
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_endpoint \
+		-e 10.10.0.1:10.10.0.2 -c test.auto_router
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_pnat \
+		-N 216.27.178.0/24:172.16.0.0/24
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_pad -F pad
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_mac \

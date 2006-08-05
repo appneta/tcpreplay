@@ -201,6 +201,17 @@ post_args(int argc, char *argv[])
             errx(1, "Unable to open interface %s for recieving: %s", options.intf2, ebuf);
     }
 
+    /*
+    if (HAVE_OPT(ENDPOINTS)) {
+        tcpedit->rewrite_ip = TCPEDIT_REWRITE_IP_ON;
+        if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2,
+                    OPT_ARG(ENDPOINTS))) {
+            tcpedit_seterr(tcpedit, 
+                    "Unable to parse --endpoints=%s", OPT_ARG(ENDPOINTS));
+            return -1;
+        }
+    }
+    */
 
 }
 

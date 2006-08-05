@@ -33,6 +33,9 @@
 #ifndef __TCPBRIDGE_H__
 #define __TCPBRIDGE_H__
 
+/* we don't support endpoints w/ tcpbridge */
+#define TCPEDIT_ENDPOINTS_DISABLE 1
+
 #include "config.h"
 #include "defines.h"
 #include "common.h"

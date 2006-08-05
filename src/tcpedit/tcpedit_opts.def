@@ -150,6 +150,7 @@ flag = {
     value       = e;
     arg-type    = string;
     max         = 1;
+    flags-must  = cachefile;
     descrip     = "Rewrite IP addresses to be between two endpoints";
     doc         = <<- EOText
 Takes a pair of colon delimited IP addresses which will be used to rewrite

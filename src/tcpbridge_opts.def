@@ -20,9 +20,6 @@ gnu-usage;
 help-value      = "H";
 save-opts-value = "";
 load-opts-value = "";
-#include tcpedit/tcpedit_opts.def
-
-
 config-header   = "config.h";
 
 include         = "#include \"defines.h\"\n"
@@ -34,6 +31,12 @@ include         = "#include \"defines.h\"\n"
 				"#include <string.h>\n"
                 "extern char pcap_version[];\n"
                 "extern tcpbridge_opt_t options;\n";
+
+
+/* do not include --endpoints from tcpedit */
+#define TCPEDIT_ENDPOINTS_DISABLE 1
+#include tcpedit/tcpedit_opts.def
+
 
 homerc          = "$$/";
 
@@ -242,6 +245,22 @@ end of the file
 EOText;
 };
 
+flag = {
+    name        = endpoints;
+    value       = e;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Rewrite IP addresses to be between two endpoints";
+    doc         = <<- EOText
+Takes a pair of colon delimited IP addresses which will be used to rewrite
+all traffic to appear to be between the two IP's.
+
+Example:
+@example
+--endpoints=172.16.0.1:172.16.0.2
+@end example
+EOText;
+};
 
 flag = {
     name        = pid;
