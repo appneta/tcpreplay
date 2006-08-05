@@ -442,12 +442,8 @@ flag = {
     arg-type    = string;
     max         = 1;
     flags-must  = auto;
+    arg_default = "2.0";
     descrip     = "Ratio of client to server packets";
-    flag-code   = <<- EORatio
-  
-    options.ratio = atof(OPT_ARG(RATIO));
-    
-EORatio;
     doc         = <<- EOText
 Since a given host may have both client and server traffic being sent
 to/from it, tcpprep uses a ratio to weigh these packets.  If you would
@@ -465,6 +461,7 @@ flag = {
     max         = 1;
     arg-type    = number;
     arg-range   = "0->32";
+    arg_default = 30;
     doc         = <<- EOText
 By default, auto modes use a minimum network mask length of 30 bits
 to build networks containing clients and servers.  This allows you
@@ -481,6 +478,7 @@ flag = {
     max         = 1;
     arg-type    = number;
     arg-range   = "0->32";
+    arg_default = 8;
     doc         = <<- EOText
 By default, auto modes use a maximum network mask length of 8 bits
 to build networks containing clients and servers.  This allows you

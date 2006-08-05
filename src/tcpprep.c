@@ -446,10 +446,6 @@ init(void)
         options.services.udp[i] = 1;
     }
 
-    options.max_mask = DEF_MAX_MASK;
-    options.min_mask = DEF_MIN_MASK;
-    options.ratio = DEF_RATIO;
-
 }
 
 /* 
@@ -541,16 +537,15 @@ post_args(int argc, char *argv[])
     dbgx(1, "Final comment length: %d", strlen(options.comment));
 
     /* copy over our min/max mask */
-    if (HAVE_OPT(MINMASK))
-        options.min_mask = OPT_VALUE_MINMASK;
+    options.min_mask = OPT_VALUE_MINMASK;
     
-    if (HAVE_OPT(MAXMASK))
-        options.max_mask = OPT_VALUE_MAXMASK;
+    options.max_mask = OPT_VALUE_MAXMASK;
     
     if (! options.min_mask > options.max_mask)
         errx(1, "Min network mask len (%d) must be less then max network mask len (%d)",
         options.min_mask, options.max_mask);
-    
+
+    options.ratio = atof(OPT_ARG(RATIO));
     if (options.ratio < 0)
         err(1, "Ratio must be a non-negative number.");
 }

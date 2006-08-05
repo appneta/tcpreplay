@@ -63,10 +63,6 @@ struct tcpr_buildcidr_s {
 
 typedef struct tcpr_buildcidr_s tcpr_buildcidr_t;
 
-#define DEF_MAX_MASK  8         /* default max masklen */
-#define DEF_MIN_MASK  30        /* default min masklen */
-#define DEF_RATIO 2.0           /* default auto ratio */
-
 #define DNS_QUERY_FLAG 0x8000
 
 void add_tree(const unsigned long, const u_char *); /* done */
