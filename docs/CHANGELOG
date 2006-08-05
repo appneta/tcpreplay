@@ -1,18 +1,22 @@
 $Id$
 
-08/03/2006: Version 3.0.beta10
-    - Remove libnids dependancy for flowreplay  (#55)
-    - tcpprep & tcprewrite shouldn't require root access (#3)
-    - Replace libnet requirement with new generic API (#4, #24, #29)
+08/05/2006: Version 3.0.beta10
+    - tcpprep & tcprewrite no longer require root access (#3)
+    - Develop wrapper API for libnet, libpcap, BPF and PF_PACKET (#4, #24)
     - Enhance do_sleep() to support looping for better accuracy (#6)
     - Prefer inet_pton over older, deprecated routines (#26)
+    - Remove libnet as a requirement (#29)
     - Optionally don't rewrite broadcast/multicast IP/MAC addresses (#38)
+    - Remove libnids dependancy for flowreplay  (#55)
     - Fix build issues when libpcapnav is installed (#56)
     - Fix truncate feature not putting correct packet length in IP header (#59)
     - Internal error reporting fixes in libtcpedit (#60)
     - Support --enable-debug when building under gcc 3.x (#62)
     - tcpedit_stub.h wasn't being generated automatically from SVN (#63)
     - Fix 'make doxygen' (#67)
+    - Fix some Makefile issues (#68)
+    - tcprewrite --endpoints should require a cache file (#70)
+    - Improve IP randomizer code to be more random (#71)
 
 07/17/2006: Version 3.0.beta9
     - Fix compile issue for users not having AutoOpts installed (#54)
