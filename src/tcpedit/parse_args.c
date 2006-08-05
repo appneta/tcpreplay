@@ -219,13 +219,15 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     }
 
     /*
-     * IP address rewriting processing.  We used to call srandom()
-     * on the seed, but there really isn't any point, so we just use
-     * the user input as the direct seed
+     * IP address rewriting processing.  Call srandom() then add up
+     * 5 calls to random() as our mixer for randomizing.  This should
+     * work better since most people aren't going to write out values
+     * close to 32bit integers.
      */
     if (HAVE_OPT(SEED)) {
         tcpedit->rewrite_ip = TCPEDIT_REWRITE_IP_ON;
-        tcpedit->seed = OPT_VALUE_SEED;
+        srandom(OPT_VALUE_SEED);
+        tcpedit->seed = random() + random() + random() + random() + random();
     }
 
     if (HAVE_OPT(ENDPOINTS)) {
