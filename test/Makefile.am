@@ -17,7 +17,8 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.prep_config test.primary test.regex test.secondary \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
-		test.rewrite_mac test.rewrite_layer2 test.rewrite_config
+		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
+		test.rewrite_dlt
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -60,15 +61,18 @@ standard:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip -b -s 55 \
 		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
 		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlt \
+		--dlink=0x0f,0x00,0x08,0x00 --dlt=104 
 	
 
 
-tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port mac comment print_info \
-print_comment prep_config
-tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed \
-rewrite_mac rewrite_layer2 rewrite_config rewrite_skip
-tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top replay_config replay_multi \
-replay_accurate 
+tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port \
+	mac comment print_info print_comment prep_config
+tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
+	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
+	rewrite_skip rewrite_dlt
+tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
+	replay_config replay_multi replay_accurate 
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -179,7 +183,7 @@ rewrite_portmap:
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
 	$(PRINTF) "%s\n" "[tcprewrite] Endpoint test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2 -c test.auto_router
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
@@ -242,7 +246,15 @@ rewrite_skip:
 		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
-	
+
+rewrite_dlt:
+	$(PRINTF) "%s" "[tcprewrite] DLT test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT test: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlt1 \
+		--dlink=0x0f,0x00,0x08,0x00 --dlt=104 
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Packets/sec test: " >>test.log

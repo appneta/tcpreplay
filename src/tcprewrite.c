@@ -152,6 +152,7 @@ void
 post_args(int argc, char *argv[])
 {
     char ebuf[PCAP_ERRBUF_SIZE];
+    pcap_t *dlt_pcap;
      
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -178,9 +179,18 @@ post_args(int argc, char *argv[])
 
     /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
-    if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
-        errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
-    
+    if (HAVE_OPT(DLT)) {
+        if ((dlt_pcap = pcap_open_dead(OPT_ARG(DLT), 65535)) == NULL)
+            err(1, "Unable to open dead pcap handle.");
+            
+        if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL)
+            errx(1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
+            
+        pcap_close(dlt_pcap);
+    } else {
+        if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
+            errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
+    }
 }
 
 int
