@@ -20,7 +20,7 @@ traffic.
 
 Example:
 @example
---dmac 00:12:13:14:15:16,00:22:33:44:55:66
+--dmac=00:12:13:14:15:16,00:22:33:44:55:66
 @end example
 EOText;
 };
@@ -40,7 +40,7 @@ and the optional second MAC address will be used for the client traffic.
 
 Example:
 @example
---smac 00:12:13:14:15:16,00:22:33:44:55:66
+--smac=00:12:13:14:15:16,00:22:33:44:55:66
 @end example
 EOText;
 };
