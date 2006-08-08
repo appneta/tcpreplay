@@ -1,5 +1,11 @@
 $Id$
 
+08/07/2006: Version 3.0.beta11
+    - Fix distribution to ship missing src/tcpr.h (#73)
+    - Add support to tcprewrite to alter output file DLT (#74)
+    - Fix errors in 'make test' (little endian still broken) (#77)
+    - Tweak Autogen .def files documentation (#78)
+
 08/05/2006: Version 3.0.beta10
     - tcpprep & tcprewrite no longer require root access (#3)
     - Develop wrapper API for libnet, libpcap, BPF and PF_PACKET (#4, #24)
