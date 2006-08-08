@@ -23,8 +23,8 @@
  *    this software without specific prior written permission.
  * 4. All advertising materials mentioning features or use of this software
  *    display the following acknowledgement:
- *    ``This product includes software developed by the University of California,
- *    Lawrence Berkeley Laboratory and its contributors.''
+ *    ``This product includes software developed by the University of 
+ *    California,  Lawrence Berkeley Laboratory and its contributors.''
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
