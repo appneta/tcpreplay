@@ -72,7 +72,7 @@ struct tcpedit_runtime_s {
     pcap_t *pcap2;
     char errstr[TCPEDIT_ERRSTR_LEN];
 #ifdef FORCE_ALIGN
-    u_char *ipbuff = NULL;            /* IP header and above buffer */
+    u_char *ipbuff;            /* IP header and above buffer */
 #endif
 };
 
