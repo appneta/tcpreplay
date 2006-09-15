@@ -202,7 +202,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
      * put back the layer 3 and above back in the pkt.data buffer 
      * we can't edit the packet at layer 3 or above beyond this point
      */
-    memcpy(&newpkt[l2len], ip_hdr, pkthdr_ptr->caplen - l2len);
+     memcpy((&(*pktdata)[l2len]), ip_hdr, (*pkthdr)->caplen - l2len);
 #endif
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
