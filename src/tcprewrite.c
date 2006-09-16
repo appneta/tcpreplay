@@ -201,10 +201,6 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     const u_char *pktdata = NULL;       /* packet from libpcap */
     COUNTER packetnum = 0;
 
-#ifdef FORCE_ALIGN
-    ipbuff = (u_char *)safe_malloc(MAXPACKET);
-#endif
-
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets
