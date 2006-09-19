@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = man2html
+noinst_bin_PROGRAMS = man2html
 
 man2html_SOURCES = man2html.c
 
