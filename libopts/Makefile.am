@@ -1,6 +1,6 @@
 ## LIBOPTS Makefile
 MAINTAINERCLEANFILES  = Makefile.in
-lib_LTLIBRARIES       = libopts.la
+noinst_lib_LTLIBRARIES       = libopts.la
 libopts_la_SOURCES    = libopts.c
 libopts_la_CPPFLAGS   = -I$(top_srcdir)
 libopts_la_LDFLAGS    = -version-info  27:1:2
