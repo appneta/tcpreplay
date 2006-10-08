@@ -53,7 +53,8 @@
  * errx()  - Fatal error.  Pass exit code, format string, one or more variables
  * warn()  - Warning. Pass static string
  * warnx() - Warning. Pass format string, one or more variables
- * dbg()   - Debug. Debug level to trigger, format string, one or more variables
+ * dbg()   - Debug. Debug level to trigger, static string
+ * dbgx()  - Debug. Debug level to trigger, format string, one or more variables
  * notice() - Informational only via stderr, format string, one or more variables
  */
 

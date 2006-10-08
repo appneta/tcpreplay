@@ -109,13 +109,14 @@ _our_verbose_dbg(int dbg_level, const char *string, const char *function, const 
 }
 
 
-void
 #ifdef DEBUG
-_our_verbose_err(int eval, const char *string, const char *function, const int line, const char *file)
+void
+_our_verbose_err(int eval, const char *string, const char *function, const int line, const char *file) {
 #else
-_our_verbose_err(int eval, const char *string)
+void
+_our_verbose_err(int eval, const char *string) {
 #endif
-{
+
 #ifdef DEBUG
     fprintf(stderr, "Fatal Error in %s:%s() line %d:\n", file, function, line);
 #endif
@@ -123,32 +124,35 @@ _our_verbose_err(int eval, const char *string)
     exit(eval);
 }
 
-void
 #ifdef DEBUG
-_our_verbose_warn(const char *string, const char *function, const int line, const char *file)
+void
+_our_verbose_warn(const char *string, const char *function, const int line, const char *file) {
 #else
-_our_verbose_warn(const char *string)
+void
+_our_verbose_warn(const char *string) {
 #endif
-{
+
 #ifdef DEBUG
     fprintf(stderr, "Warning in %s:%s() line %d:\n", file, function, line);
 #endif
-    fprintf(stderr, "%s\n", string);
+    fprintf(stderr, "Warning: %s\n", string);
 }
 
-void
 #ifdef DEBUG
-_our_verbose_errx(int eval, const char *fmt, const char *function, const int line, const char *file, ...)
+void
+_our_verbose_errx(int eval, const char *fmt, const char *function, const int line, const char *file, ...) {
 #else
-_our_verbose_errx(int eval, const char *fmt, ...)
+void
+_our_verbose_errx(int eval, const char *fmt, ...) {
 #endif
-{
+
     va_list ap;
 
 #ifdef DEBUG
     fprintf(stderr, "Fatal Error in %s:%s() line %d:\n", file, function, line);
     va_start(ap, file);
 #else
+    fprintf(stderr, "Fatal Error: ");
     va_start(ap, fmt);
 #endif
 
@@ -159,18 +163,20 @@ _our_verbose_errx(int eval, const char *fmt, ...)
     exit(eval);
 }
 
-void
 #ifdef DEBUG
-_our_verbose_warnx(const char *fmt, const char *function, const int line, const char *file, ...)
+void
+_our_verbose_warnx(const char *fmt, const char *function, const int line, const char *file, ...) {
 #else
-_our_verbose_warnx(const char *fmt, ...)
+void 
+_our_verbose_warnx(const char *fmt, ...) {
 #endif
-{
+
     va_list ap;
 #ifdef DEBUG
     fprintf(stderr, "Warning in %s:%s() line %d:\n", file, function, line);
     va_start(ap, file);
 #else
+    fprintf(stderr, "Warning: ");
     va_start(ap, fmt);
 #endif
 
