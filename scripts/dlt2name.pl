@@ -88,8 +88,10 @@ print OUT_H <<HEADER;
 
 /* include all the DLT types form pcap-bpf.h */
 
-extern char *dlt2desc[];
+extern const char *dlt2desc[];
+extern const char *dlt2name[];
 #define DLT2DESC_LEN $#names
+#define DLT2NAME_LEN $#names
 
 HEADER
 
@@ -97,6 +99,25 @@ for (my $i = 0; $i < 255; $i++) {
     next if ! defined $names[$i];
     print OUT_H "#ifndef $names[$i]{key}\n#define $names[$i]{key} $i\n#endif\n\n";
 }
+
+print OUT_C <<NAMES;
+
+/* DLT to names */
+char *dlt2name[] = {
+NAMES
+
+for (my $i = 0; $i < 255; $i++) {
+    if (! defined $names[$i]) {
+        print OUT_C "\t\t\"Unknown\",\n";
+    } else {
+        print OUT_C "\t\t\"$names[$i]{key}\",\n";
+    }
+}
+
+print OUT_C <<FOOTER;
+\t\tNULL
+};
+FOOTER
 
 close OUT_C;
 close OUT_H;
