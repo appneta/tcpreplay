@@ -47,11 +47,13 @@
 #endif
 
 /*
- * libpcap < 0.8 (I think) don't have pcap_datalink_val_to_description()
+ * libpcap < 0.8 don't have pcap_datalink_val_to_description() 
+ * and pcap_datalink_val_to_name()
  */
 #ifndef HAVE_DLT_VAL_TO_DESC
 
-char *pcap_datalink_val_to_description(int dlt);
+const char *pcap_datalink_val_to_description(int dlt);
+const char *pcap_datalink_val_to_name(int dlt);
 
 #endif
 

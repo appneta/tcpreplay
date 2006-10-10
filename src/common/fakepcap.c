@@ -45,14 +45,24 @@
 
 #ifndef HAVE_DLT_VAL_TO_DESC
 
-char *
+const char *
 pcap_datalink_val_to_description(int dlt)
 {
     if (dlt > DLT2DESC_LEN)
-        return NULL;
+        return "Unknown";
 
     return dlt2desc[dlt];
 
+}
+
+const char *
+pcap_datalink_val_to_name(int dlt)
+{
+    if (dlt > DLT2NAME_LEN)
+        return "Unknown";
+        
+    return dlt2name[dlt];
+    
 }
 
 #endif

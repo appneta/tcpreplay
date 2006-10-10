@@ -60,8 +60,10 @@
 
 /* include all the DLT types form pcap-bpf.h */
 
-extern char *dlt2desc[];
+extern const char *dlt2desc[];
+extern const char *dlt2name[];
 #define DLT2DESC_LEN 181
+#define DLT2NAME_LEN 181
 
 #ifndef DLT_NULL
 #define DLT_NULL 0
