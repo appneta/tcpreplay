@@ -31,9 +31,6 @@ clean-docs:
 postweb: manpages doxygen
 	cd $(DOCS_DIR) && make postweb
 
-postwebsf: manpages doxygen
-	cd $(DOCS_DIR) && make postwebsf
-
 manpages: man2html
 	cd src && make manpages
 
