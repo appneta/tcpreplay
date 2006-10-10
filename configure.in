@@ -119,7 +119,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf])
+AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strchr strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
@@ -443,59 +443,76 @@ dnl this code has been reduced a lot, but probably still could be
 dnl reduced quite a bit more if we chose too
 AC_MSG_CHECKING(for libpcap version)
 
-AC_TRY_RUN([
+AC_RUN_IFELSE(AC_LANG_PROGRAM([[
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "$LPCAPINC"
+#define PCAP_TEST "0.8"
+]], [[
+/* 
+ * simple proggy to test the version of libpcap
+ * returns zero if version >= 0.8.0
+ * or one otherwise
+ */
+    if (strncmp(pcap_lib_version, PCAP_TEST, 3) >= 0)
+            exit(0);
+    exit(1);
+]]), [
+    libpcap_ver8=yes
+], [
+    libpcap_ver8=no
+])
+
+AC_RUN_IFELSE(AC_LANG_PROGRAM([[
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "$LPCAPINC"
 #define PCAP_TEST "0.5"
+extern char pcap_version[];
+]], [[
 /* 
  * simple proggy to test the version of libpcap
- * returns zero if version >= 0.5
+ * returns zero if version >= 0.5.0
  * or one otherwise
  */
-extern char pcap_version[];
-int
-main (int argc, char *argv[])
-{
-        if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
-                exit(0);
-        exit(1);
-}],
-        libpcap_ver=yes
-        AC_MSG_RESULT(>= 0.5),
-        libpcap_ver=no
-        AC_MSG_RESULT(< 0.5),
-        libpcap_ver=no
-		AC_MSG_RESULT(< 0.5)
-        )
+    if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
+            exit(0);
+    exit(1);
+]]), [
+    libpcap_ver5=yes
+], [
+    libpcap_ver5=no
+])
 
-
-if test $libpcap_ver = no ; then
-        AC_MSG_ERROR(Libpcap versions < 0.5 are not supported.
-        Please upgrade to version 0.5 or better)
+if test $libpcap_ver8 = yes ; then
+    AC_MSG_RESULT(>= 0.8.0)
+elif test $libpcap_ver5 = yes ; then
+    AC_MSG_RESULT(>= 0.5.0)
+else 
+    AC_MSG_ERROR([Libpcap versions < 0.5.0 are not supported
+    Please upgrade to version 0.5.0 or better])
 fi
 
 dnl Check to see if we've got pcap_datalink_val_to_name()
 AC_MSG_CHECKING(for pcap_datalink_val_to_description)
-AC_TRY_RUN([
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "$LPCAPINC"
-
-int 
-main(int argc, char *argv[]) {
-    pcap_datalink_val_to_description(1);
-    exit(0);
-}],
-    have_dlt_to_desc=yes 
-    AC_MSG_RESULT(yes), 
+]],[[
+    if (strcmp(pcap_datalink_val_to_description(1), "Ethernet (10Mb)") == 0)
+        exit(0);
+    exit(1);
+]]),[
+    have_dlt_to_desc=yes
+    AC_MSG_RESULT(yes)
+], [
     have_dlt_to_desc=no
-    AC_MSG_RESULT(no),
-    have_dlt_to_desc=no
-	AC_MSG_RESULT(no)
-    )
+    AC_MSG_RESULT(no)
+])
 
 if test $have_dlt_to_desc = yes ; then
     AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [1], 
