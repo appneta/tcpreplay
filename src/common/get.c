@@ -241,7 +241,7 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
     u_int val;
     int i;
 
-    if (dnslookup == 1) {
+    if (dnslookup == DNS_RESOLVE) {
 #ifdef HAVE_INET_ATON
         if (inet_aton(hostname, &addr) != 1) {
             return(0xffffffff);
@@ -260,12 +260,12 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
         }
 #else
         warn("Unable to support get_name2addr4 w/ resolve");
-        goto DONT_RESOLVE;
+        /* call ourselves recursively once w/o resolving the hostname */
+        return get_name2addr4(hostname, DNS_DONT_RESOLVE); 
 #endif
         /* return in network byte order */
         return (addr.s_addr);
     } else {
-        DONT_RESOLVE:
         /*
          *  We only want dots 'n decimals.
          */
