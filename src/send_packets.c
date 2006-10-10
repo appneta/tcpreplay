@@ -65,7 +65,8 @@ extern tcpdump_t tcpdump;
 extern int debug;
 #endif
 
-static void do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, sendpacket_t *sp);
+static void do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, 
+    sendpacket_t *sp, COUNTER counter);
 static u_int32_t sleep_loop(struct timeval time);
 
 /*
@@ -134,7 +135,7 @@ send_packets(pcap_t *pcap)
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 
          */
-        do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp);
+        do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum);
             
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
@@ -192,7 +193,8 @@ cache_mode(char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep and do so.
  */
 static void
-do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, sendpacket_t *sp)
+do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, sendpacket_t *sp,
+    COUNTER counter)
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
@@ -273,8 +275,8 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
     case SPEED_ONEATATIME:
         /* do we skip prompting for a key press? */
         if (send == 0) {
-            printf("**** How many packets do you wish to send? (next packet out %s): ",
-                   sp == options.intf1 ? options.intf1_name : options.intf2_name);
+            printf("**** How many packets do you wish to send? (next packet (" COUNTER_SPEC ") out %s): ",
+                counter, sp == options.intf1 ? options.intf1_name : options.intf2_name);
             fflush(NULL);
             poller[0].fd = STDIN_FILENO;
             poller[0].events = POLLIN;
@@ -306,7 +308,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
         }
 
         /* decrement our send counter */
-        printf("Sending packet out: %s\n", 
+        printf("Sending packet " COUNTER_SPEC " out: %s\n", counter,
                sp == options.intf1 ? options.intf1_name : options.intf2_name);
         send --;
 
