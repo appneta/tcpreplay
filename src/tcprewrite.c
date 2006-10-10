@@ -68,7 +68,7 @@ tcprewrite_opt_t options;
 tcpedit_t tcpedit;
 
 /* local functions */
-void init(void);
+void tcprewrite_init(void);
 void post_args(int argc, char *argv[]);
 void verify_input_pcap(pcap_t *pcap);
 int rewrite_packets (tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     int optct, rcode;
     tcpedit_t *tcpedit_ptr;
 
-    init();
+    tcprewrite_init();
 
     /* call autoopts to process arguments */
     optct = optionProcess(&tcprewriteOptions, argc, argv);
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 #endif
     
     if (tcpedit_validate(&tcpedit, pcap_datalink(options.pin), 
-            pcap_datalink(options.pin)) < 0) {
+            HAVE_OPT(DLT) ? OPT_VALUE_DLT : pcap_datalink(options.pin)) < 0) {
         errx(1, "Unable to edit packets given options/DLT types:\n%s",
                 tcpedit_geterr(&tcpedit));
     }
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 }
 
 void 
-init(void)
+tcprewrite_init(void)
 {
 
     memset(&options, 0, sizeof(options));
@@ -180,13 +180,18 @@ post_args(int argc, char *argv[])
     /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
     if (HAVE_OPT(DLT)) {
-        if ((dlt_pcap = pcap_open_dead(OPT_ARG(DLT), 65535)) == NULL)
+        dbgx(1, "Rewriting DLT to %s",
+                pcap_datalink_val_to_name(OPT_VALUE_DLT));
+        if ((dlt_pcap = pcap_open_dead(OPT_VALUE_DLT, 65535)) == NULL)
             err(1, "Unable to open dead pcap handle.");
             
+        dbgx(1, "DLT of dlt_pcap is %s",
+                pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
+
         if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL)
             errx(1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
-            
         pcap_close(dlt_pcap);
+
     } else {
         if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
             errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
@@ -205,7 +210,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while (pcap_next_ex(pin, &pkthdr, &pktdata) == 1) {
+    while (pktdata = pcap_next(pin, pkthdr) != NULL) {
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr->caplen);
 
