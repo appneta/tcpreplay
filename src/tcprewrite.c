@@ -71,7 +71,7 @@ tcpedit_t tcpedit;
 void tcprewrite_init(void);
 void post_args(int argc, char *argv[]);
 void verify_input_pcap(pcap_t *pcap);
-int rewrite_packets (tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
+int rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
 
 int main(int argc, char *argv[])
 {
@@ -88,13 +88,12 @@ int main(int argc, char *argv[])
     /* parse the tcprewrite args */
     post_args(argc, argv);
     tcpedit_ptr = &tcpedit;
-  
+    
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, options.pin, NULL) < 0) {
         errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(&tcpedit));
     }
     
-  
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(&tcpedit_ptr);
     if (rcode < 0) {
@@ -210,7 +209,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while (pktdata = pcap_next(pin, pkthdr) != NULL) {
+    while ((pktdata = pcap_next(pin, pkthdr)) != NULL) {
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr->caplen);
 
