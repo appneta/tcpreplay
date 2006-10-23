@@ -200,22 +200,24 @@ post_args(int argc, char *argv[])
 int
 rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 {
-    int cache_result = CACHE_PRIMARY;   /* default to primary */
-    struct pcap_pkthdr *pkthdr = NULL;  /* packet header */
-    const u_char *pktdata = NULL;       /* packet from libpcap */
+    int cache_result = CACHE_PRIMARY;           /* default to primary */
+    struct pcap_pkthdr pkthdr, *pkthdr_ptr;     /* packet header */
+    const u_char *pktdata = NULL;               /* packet from libpcap */
     COUNTER packetnum = 0;
 
+    pkthdr_ptr = &pkthdr;
+    
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktdata = pcap_next(pin, pkthdr)) != NULL) {
+    while ((pktdata = pcap_next(pin, pkthdr_ptr)) != NULL) {
         packetnum++;
-        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr->caplen);
+        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 
 #ifdef HAVE_TCPDUMP
         if (options.verbose)
-            tcpdump_print(&tcpdump, pkthdr, pktdata);
+            tcpdump_print(&tcpdump, pkthdr_ptr, pktdata);
 #endif
 
         /* Dual nic processing? */
@@ -232,14 +234,14 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         if (cache_result == CACHE_NOSEND)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
-        if (tcpedit_packet(tcpedit, &pkthdr, (u_char**)&pktdata, cache_result) == -1) {
+        if (tcpedit_packet(tcpedit, &pkthdr_ptr, (u_char**)&pktdata, cache_result) == -1) {
             return -1;
         }
 
 
 WRITE_PACKET:
         /* write the packet */
-        pcap_dump((u_char *)pout, pkthdr, pktdata);
+        pcap_dump((u_char *)pout, pkthdr_ptr, pktdata);
 
     } /* while() */
     return 0;
