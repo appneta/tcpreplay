@@ -419,6 +419,7 @@ char *
 tcpedit_geterr(tcpedit_t *tcpedit)
 {
 
+    assert(tcpedit);
     return tcpedit->runtime.errstr;
 
 }
@@ -430,6 +431,8 @@ void
 tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
 {
     va_list ap;
+    
+    assert(tcpedit);
 
     va_start(ap, fmt);
     if (fmt != NULL) {
@@ -439,9 +442,40 @@ tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
     }
 
     va_end(ap);
-        
 }
 
+/*
+ * return the warning string when a tcpedit() function returns
+ * a warning
+ */
+char *
+tcpedit_getwarn(tcpedit_t *tcpedit)
+{
+    assert(tcpedit);
+
+    return tcpedit->runtime.warnstr;
+}
+
+/*
+ * used to set the warning string when there is an warning
+ */
+void
+tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
+{
+    va_list ap;
+    
+    assert(tcpedit);
+
+    va_start(ap, fmt);
+    if (fmt != NULL) {
+        dbgx(1, fmt, ap);
+        (void)vsnprintf(tcpedit->runtime.warnstr, 
+              (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
+    }
+
+    va_end(ap);
+        
+}
 
 /*
  * Cleans up after ourselves.  Return 0 on success.
@@ -449,6 +483,8 @@ tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
 int
 tcpedit_close(tcpedit_t *tcpedit)
 {
+
+    assert(tcpedit);
     dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
             " packets.\n", tcpedit->runtime.total_bytes, 
             tcpedit->runtime.pkts_edited);

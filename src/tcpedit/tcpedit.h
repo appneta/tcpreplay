@@ -38,6 +38,9 @@
 #define _TCPEDIT_H_
 
 #define L2DATALEN 255           /* Max size of the L2 data file */
+#define TCPEDIT_FAIL   -1
+#define TCPEDIT_OK      0
+#define TCPEDIT_WARN    1
     
 struct l2_s {
     int enabled; /* are we rewritting the L2 header ? */
@@ -71,6 +74,7 @@ struct tcpedit_runtime_s {
     pcap_t *pcap1;
     pcap_t *pcap2;
     char errstr[TCPEDIT_ERRSTR_LEN];
+    char warnstr[TCPEDIT_ERRSTR_LEN];
 #ifdef FORCE_ALIGN
     u_char *ipbuff;            /* IP header and above buffer */
 #endif
@@ -175,6 +179,8 @@ typedef struct tcpedit_s tcpedit_t;
 int tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1, pcap_t *pcap2);
 char *tcpedit_geterr(tcpedit_t *tcpedit);
 void tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...);
+char *tcpedit_getwarn(tcpedit_t *tcpedit);
+void tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...);
 int tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt);
 
 int tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
