@@ -72,6 +72,8 @@ processor, disk and system bus will allow.
 Replaying captured traffic may simulate odd or broken conditions on your
 network and cause problems.
 
+In most cases, you can not replay traffic back to/at a server.
+
 Some operating systems by default do not allow for forging source MAC
 addresses.  Please consult your operating system's documentation and the
 tcpreplay FAQ if you experiance this issue.

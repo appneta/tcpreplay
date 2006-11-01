@@ -117,6 +117,7 @@ void
 _our_verbose_err(int eval, const char *string) {
 #endif
 
+    fprintf(stderr, "%s", "\n");
 #ifdef DEBUG
     fprintf(stderr, "Fatal Error in %s:%s() line %d:\n", file, function, line);
 #endif
@@ -149,10 +150,10 @@ _our_verbose_errx(int eval, const char *fmt, ...) {
     va_list ap;
 
 #ifdef DEBUG
-    fprintf(stderr, "Fatal Error in %s:%s() line %d:\n", file, function, line);
+    fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n", file, function, line);
     va_start(ap, file);
 #else
-    fprintf(stderr, "Fatal Error: ");
+    fprintf(stderr, "\nFatal Error: ");
     va_start(ap, fmt);
 #endif
 
