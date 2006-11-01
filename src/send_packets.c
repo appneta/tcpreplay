@@ -147,7 +147,8 @@ send_packets(pcap_t *pcap)
          * we have to do a mempcy rather then assignment
          */
         memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
-
+        pkts_sent ++;
+        bytes_sent += pktlen;
     } /* while */
 }
 
