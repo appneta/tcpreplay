@@ -38,7 +38,7 @@
 #define _TCPEDIT_H_
 
 #define L2DATALEN 255           /* Max size of the L2 data file */
-#define TCPEDIT_FAIL   -1
+#define TCPEDIT_ERROR  -1
 #define TCPEDIT_OK      0
 #define TCPEDIT_WARN    1
     

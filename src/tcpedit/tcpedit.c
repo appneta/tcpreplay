@@ -191,10 +191,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
-    /* do we need to force fixing checksums? */
+    /* do we need to fix checksums? */
     if ((tcpedit->fixcsum || needtorecalc) && (ip_hdr != NULL)) {
-        if (fix_checksums(tcpedit, *pkthdr, ip_hdr) < 0)
-            return -1;
+        retval = fix_checksums(tcpedit, *pkthdr, ip_hdr);
+        if (retval < 0) {
+            return TCPEDIT_ERROR;
+        } else if (retval == TCPEDIT_WARN) {
+            warnx("%s", tcpedit_getwarn(tcpedit));
+        }
     }
 
 #ifdef FORCE_ALIGN
@@ -207,7 +211,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
     tcpedit->runtime.pkts_edited ++;
-    return 1;
+    return retval;
 }
 
 /*
@@ -249,7 +253,7 @@ tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1, pcap_t *pcap2)
     if ((tcpedit->runtime.ipbuff = (u_char *)malloc(MAXPACKET)) == NULL)
         return -1;
 #endif
-    return 0;
+    return 1;
 }
 
 /*

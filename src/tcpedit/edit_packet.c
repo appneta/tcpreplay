@@ -62,25 +62,30 @@ static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
 int
 fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t * ip_hdr)
 {
-
+    int ret1 = 0, ret2 = 0;
     assert(tcpedit);
     assert(pkthdr);
     assert(ip_hdr);
+    
 
     /* calc the L4 checksum if we have the whole packet */
     if (pkthdr->caplen == pkthdr->len) {
-        if (do_checksum(tcpedit, (u_char *) ip_hdr, 
-                    ip_hdr->ip_p, 
-                    ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2)) < 0)
-            return -1;
+        ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, 
+                    ip_hdr->ip_p, ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2));
+        if (ret1 < 0)
+            return TCPEDIT_ERROR;
     }
     
     /* calc IP checksum */
-    if (do_checksum(tcpedit, (u_char *) ip_hdr, 
-                IPPROTO_IP, ntohs(ip_hdr->ip_len)) < 0)
-        return -1;
-        
-    return 0;
+    ret2 = do_checksum(tcpedit, (u_char *) ip_hdr, IPPROTO_IP, ntohs(ip_hdr->ip_len));
+    if (ret2 < 0)
+        return TCPEDIT_ERROR;
+
+    /* what do we return? */
+    if (ret1 == TCPEDIT_WARN || ret2 == TCPEDIT_WARN)
+        return TCPEDIT_WARN;
+    
+    return TCPEDIT_OK;
 }
 
 /*

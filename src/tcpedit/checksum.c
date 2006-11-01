@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 /*
  * Copyright (c) 2006 Aaron Turner.
  * Copyright (c) 1998 - 2004 Mike D. Schiffman <mike@infonexus.com>
@@ -43,7 +43,7 @@ static int do_checksum_math(u_int16_t *, int);
 
 
 /*
- * Returns -1 on error and 0 on success
+ * Returns -1 on error and 0 on success, 1 on warn
  */
 int
 do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
@@ -62,7 +62,7 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     
     if (len <= 0) {
         tcpedit_seterr(tcpedit, "length of data must be > 0");
-        return -1;
+        return TCPEDIT_ERROR;
     }
     
     ipv4 = (ipv4_hdr_t *)data;
@@ -80,7 +80,7 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
             tcp = (tcp_hdr_t *)(data + ip_hl);
 #ifdef STUPID_SOLARIS_CHECKSUM_BUG
             tcp->th_sum = tcp->th_off << 2;
-            return (1);
+            return (TCPEDIT_OK);
 #endif
             tcp->th_sum = 0;
             
@@ -137,11 +137,11 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
         case TCPR_PROTO_CDP: 
         case TCPR_PROTO_ISL:
         default:
-            tcpedit_seterr(tcpedit, "Unsupported protocol for checksum: %d", proto);
-            return -1;
+            tcpedit_setwarn(tcpedit, "Unsupported protocol for checksum: 0x%x", proto);
+            return TCPEDIT_WARN;
     }
     
-    return 1;
+    return TCPEDIT_OK;
 }
 
 
