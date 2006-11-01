@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "tcpreplay.h"
 
@@ -275,16 +276,19 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
     case SPEED_ONEATATIME:
         /* do we skip prompting for a key press? */
         if (send == 0) {
-            printf("**** How many packets do you wish to send? (next packet (" COUNTER_SPEC ") out %s): ",
-                counter, sp == options.intf1 ? options.intf1_name : options.intf2_name);
+            printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
+                counter, (sp == options.intf1 ? options.intf1_name : options.intf2_name));
             fflush(NULL);
             poller[0].fd = STDIN_FILENO;
-            poller[0].events = POLLIN;
+            poller[0].events = POLLIN | POLLPRI | POLLNVAL;
             poller[0].revents = 0;
-            
+
+            if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK)) 
+                   errx(1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
+
             /* wait for the input */
             if (poll(poller, 1, -1) < 0)
-                errx(1, "Error reading from stdin: %s", strerror(errno));
+                errx(1, "Error reading user input from stdin: %s", strerror(errno));
             
             /*
              * read to the end of the line or EBUF_SIZE,
@@ -292,8 +296,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
              * then the next fgets() will pull in that data, which will have poor 
              * results.  fuck them.
              */
-            fgets(input, sizeof(input), stdin);
-            if (strlen(input) > 1) {
+            if (fgets(input, sizeof(input), stdin) == NULL) {
+                errx(1, "Unable to process user input for fd %d: %s", fileno(stdin), strerror(errno));
+            } else if (strlen(input) > 1) {
                 send = strtoul(input, NULL, 0);
             }
 
