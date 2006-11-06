@@ -155,9 +155,8 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
 
 /*
  * Checks to see if the given integer exists in the LIST.
- * Returns 1 for true, 0 for false
  */
-int
+tcpr_dir_t
 check_list(tcpr_list_t * list, COUNTER value)
 {
     tcpr_list_t *current;
@@ -166,15 +165,15 @@ check_list(tcpr_list_t * list, COUNTER value)
     do {
         if ((current->min != 0) && (current->max != 0)) {
             if ((value >= current->min) && (value <= current->max))
-                return CACHE_PRIMARY;
+                return TCPR_DIR_C2S;
         }
         else if (current->min == 0) {
             if (value <= current->max)
-                return CACHE_PRIMARY;
+                return TCPR_DIR_C2S;
         }
         else if (current->max == 0) {
             if (value >= current->min)
-                return CACHE_PRIMARY;
+                return TCPR_DIR_C2S;
         }
 
         if (current->next != NULL) {
@@ -186,7 +185,7 @@ check_list(tcpr_list_t * list, COUNTER value)
 
     } while (current != NULL);
 
-    return CACHE_SECONDARY;
+    return TCPR_DIR_S2C;
 
 }
 

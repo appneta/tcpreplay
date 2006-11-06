@@ -278,7 +278,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
 
     /* what is our cache mode? */
-    cache_mode = livedata->source == PCAP_INT1 ? CACHE_PRIMARY : CACHE_SECONDARY;
+    cache_mode = livedata->source == PCAP_INT1 ? TCPR_DIR_C2S : TCPR_DIR_S2C;
 
     /* Rewrite any Layer 2 data and copy the data to our local buffer */
     if ((newl2len = rewrite_l2(livedata->pcap, &pkthdr, pktdata, cache_mode)) 

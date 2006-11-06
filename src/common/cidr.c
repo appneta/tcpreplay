@@ -376,10 +376,10 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
 
 /*
  * checks to see if the ip address is in the cidr
- * returns CACHE_PRIMARY for true, CACHE_SECONDARY for false
+ * returns TCPR_DIR_C2S for true, TCPR_DIR_S2C for false
  */
 
-int
+tcpr_dir_t
 ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 {
     unsigned long ipaddr = 0, network = 0, mask = 0;
@@ -387,7 +387,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
     
     /* always return 1 if 0.0.0.0/0 */
     if (mycidr->masklen == 0 && mycidr->network == 0)
-        return CACHE_PRIMARY;
+        return TCPR_DIR_C2S;
 
     mask = ~0;                  /* turn on all the bits */
 
@@ -406,7 +406,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-        ret = CACHE_PRIMARY;
+        ret = TCPR_DIR_C2S;
     }
     else {
 
@@ -414,17 +414,17 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
             get_addr2name4(ip, RESOLVE),
             get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
 
-        ret = CACHE_SECONDARY;
+        ret = TCPR_DIR_S2C;
     }
     return ret;
 }
 
 /*
  * iterates over cidrdata to find if a given ip matches
- * returns CACHE_PRIMARY for true, CACHE_SECONDARY for false
+ * returns TCPR_DIR_C2S for true, TCPR_DIR_S2C for false
  */
 
-int
+tcpr_dir_t
 check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
 {
     tcpr_cidr_t *mycidr;
@@ -433,7 +433,7 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
      * this actually should happen occasionally, so don't put an assert here
      */
     if (cidrdata == NULL) {
-        return CACHE_SECONDARY;
+        return TCPR_DIR_S2C;
     }
 
     mycidr = cidrdata;
@@ -442,9 +442,9 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
     while (1) {
 
         /* if match, return 1 */
-        if (ip_in_cidr(mycidr, ip) == CACHE_PRIMARY) {
+        if (ip_in_cidr(mycidr, ip) == TCPR_DIR_C2S) {
             dbgx(3, "Found %s in cidr", get_addr2name4(ip, RESOLVE));
-            return CACHE_PRIMARY;
+            return TCPR_DIR_C2S;
         }
         /* check for next record */
         if (mycidr->next != NULL) {
@@ -457,7 +457,7 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
 
     /* if we get here, no match */
     dbgx(3, "Didn't find %s in cidr", get_addr2name4(ip, RESOLVE));
-    return CACHE_SECONDARY;
+    return TCPR_DIR_S2C;
 }
 
 

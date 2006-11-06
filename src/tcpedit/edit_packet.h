@@ -34,6 +34,7 @@
 #define _EDIT_PACKETS_H_
 
 #include "tcpedit.h"
+#include "common.h"
 
 int untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         u_char *pktdata, ipv4_hdr_t *ip_hdr);
@@ -50,7 +51,7 @@ int fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr,
 int extract_data(tcpedit_t *tcpedit, const u_char *pktdata, 
         int caplen, char *l7data[]);
 
-int rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, int direction);
+int rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction);
 
 int rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int direction);
 

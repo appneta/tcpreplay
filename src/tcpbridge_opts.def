@@ -6,9 +6,12 @@ copyright = {
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2005 Aaron Turner
+Copyright 2000-2006 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.synfin.net/
 EOText;
 };
 
@@ -50,6 +53,9 @@ The basic operation of tcpbridge is to be a network bridge between two
 subnets.  All packets received on one interface are sent via the other.
 
 Optionally, packets can be edited in a variety of ways according to your needs.
+
+For more details, please see the Tcpreplay Manual at:
+http://tcpreplay.synfin.net/wiki/manual
 EODetail;
 
 man-doc = <<- EOMan

@@ -2,13 +2,16 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2004-2005";
+    date        = "2004-2006";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2005 Aaron Turner
+Copyright 2000-2006 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.synfin.net/
 EOText;
 };
 
@@ -44,6 +47,9 @@ Please note that flowreplay is currently in *alpha*.  As such, it is still
 very much a work in progress and currently will not work for most uses.  If
 you have the skill and interest to help make flowreplay work better, please
 contact Aaron Turner.
+
+For more details, please see the Tcpreplay Manual at:
+http://tcpreplay.synfin.net/wiki/manual
 EODetail;
 
 flag = {

@@ -581,13 +581,13 @@ print_info(const char *file)
     for (i = 1; i <= count; i ++) {
         
         switch (check_cache(cachedata, i)) {
-        case CACHE_PRIMARY:
+        case TCPR_DIR_C2S:
             printf("Packet " COUNTER_SPEC " -> Primary\n", i);
             break;
-        case CACHE_SECONDARY:
+        case TCPR_DIR_S2C:
             printf("Packet " COUNTER_SPEC " -> Secondary\n", i);
             break;
-        case CACHE_NOSEND:
+        case TCPR_DIR_NOSEND:
             printf("Packet " COUNTER_SPEC " -> Don't Send\n", i);
             break;
         default:
@@ -611,13 +611,13 @@ print_stats(const char *file)
     for (COUNTER i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {
-            case CACHE_PRIMARY:
+            case TCPR_DIR_C2S:
                 pri ++;
                 break;
-            case CACHE_SECONDARY:
+            case TCPR_DIR_S2C:
                 sec ++;
                 break;
-            case CACHE_NOSEND:
+            case TCPR_DIR_NOSEND:
                 nosend ++;
                 break;
             default:

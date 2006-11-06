@@ -2,13 +2,16 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2005";
+    date        = "2000-2006";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2005 Aaron Turner
+Copyright 2000-2006 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.synfin.net/
 EOText;
 };
 
@@ -50,6 +53,9 @@ data rate, up to as fast as the hardware is capable.
 Optionally, the traffic can be split between two interfaces, written to
 files, filtered and edited in various ways, providing the means to test
 firewalls, NIDS and other network devices.
+
+For more details, please see the Tcpreplay Manual at:
+http://tcpreplay.synfin.net/wiki/manual
 EODetail;
 
 man-doc = <<- EOMan

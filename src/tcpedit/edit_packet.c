@@ -332,7 +332,7 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, int direction)
+rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
@@ -345,7 +345,7 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, int direction)
         return(0);
 
     /* don't play with the main pointers */
-    if (direction == CACHE_PRIMARY) {
+    if (direction == TCPR_DIR_C2S) {
         cidrmap1 = tcpedit->cidrmap1;
         cidrmap2 = tcpedit->cidrmap2;
     } else {
@@ -460,10 +460,10 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     assert(arp_hdr);
 
    /* figure out what mapping to use */
-    if (cache_mode == CACHE_PRIMARY) {
+    if (cache_mode == TCPR_DIR_C2S) {
         cidrmap1 = tcpedit->cidrmap1;
         cidrmap2 = tcpedit->cidrmap2;
-    } else if (cache_mode == CACHE_SECONDARY) {
+    } else if (cache_mode == TCPR_DIR_S2C) {
         cidrmap1 = tcpedit->cidrmap2;
         cidrmap2 = tcpedit->cidrmap1;
     }

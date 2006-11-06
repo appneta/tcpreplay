@@ -192,12 +192,12 @@ tcpr_tree_to_cidr(const int masklen, const int type)
 
 /*
  * Checks to see if an IP is client or server by finding it in the tree
- * returns CACHE_PRIMARY or CACHE_SECONDARY or -1 on error
+ * returns TCPR_DIR_C2S or TCPR_DIR_S2C or -1 on error
  * if mode = UNKNOWN, then abort on unknowns
  * if mode = CLIENT, then unknowns become clients
  * if mode = SERVER, then unknowns become servers
  */
-int
+tcpr_dir_t
 check_ip_tree(const int mode, const unsigned long ip)
 {
     tcpr_tree_t *node = NULL, *finder = NULL;
@@ -224,19 +224,23 @@ check_ip_tree(const int mode, const unsigned long ip)
     }
 #endif
 
+    /*
+     * FIXME: Is this logic correct?  I think this might be backwards :(
+     */
+
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
         if (node->type == SERVER) {
-            return CACHE_PRIMARY;
+            return TCPR_DIR_C2S;
         } else if (node->type == CLIENT) {
-            return CACHE_SECONDARY;
+            return TCPR_DIR_S2C;
         }
     }
     else {
         if (mode == SERVER) {
-            return CACHE_PRIMARY;
+            return TCPR_DIR_C2S;
         } else if (mode == CLIENT) {
-            return CACHE_SECONDARY;
+            return TCPR_DIR_S2C;
         }
     }
     err(1, "Uh, we shouldn't of gotten here.");

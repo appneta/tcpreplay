@@ -200,7 +200,7 @@ post_args(int argc, char *argv[])
 int
 rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 {
-    int cache_result = CACHE_PRIMARY;           /* default to primary */
+    tcpr_dir_t cache_result = TCPR_DIR_C2S;     /* default to primary */
     struct pcap_pkthdr pkthdr, *pkthdr_ptr;     /* packet header */
     const u_char *pktdata = NULL;               /* packet from libpcap */
     COUNTER packetnum = 0;
@@ -231,7 +231,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
          * file will loose it's indexing
          */
 
-        if (cache_result == CACHE_NOSEND)
+        if (cache_result == TCPR_DIR_NOSEND)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, (u_char**)&pktdata, cache_result) == -1) {

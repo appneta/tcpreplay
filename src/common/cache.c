@@ -253,12 +253,13 @@ new_cache(void)
  * adds the cache data for a packet to the given cachedata
  */
 
-int
-add_cache(tcpr_cache_t ** cachedata, const int send, const int interface)
+tcpr_dir_t
+add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 {
     tcpr_cache_t *lastcache = NULL;
     u_char *byte = NULL;
-    u_int32_t bit, result;
+    u_int32_t bit;
+    tcpr_dir_t result = TCPR_DIR_ERROR;
     COUNTER index;
 #ifdef DEBUG
     char bitstring[9] = EIGHT_ZEROS;
@@ -304,15 +305,15 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const int interface)
         dbgx(2, "set send bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
 
         /* if true, set low order bit. else, do squat */
-        if (interface == CACHE_PRIMARY) {
+        if (interface == TCPR_DIR_C2S) {
             *byte += (u_char)(1 << (bit - 1));
 
             dbgx(2, "set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
-            result = CACHE_PRIMARY;
+            result = TCPR_DIR_C2S;
         }
         else {
             dbgx(2, "don't set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
-            result = CACHE_SECONDARY;
+            result = TCPR_DIR_S2C;
         }
         dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c",
 
@@ -329,7 +330,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const int interface)
     }
     else {
         dbg(1, "not setting send bit");
-        result = CACHE_NOSEND;
+        result = TCPR_DIR_NOSEND;
     }
 
     return result;
@@ -339,7 +340,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const int interface)
 /*
  * returns the action for a given packet based on the CACHE
  */
-int
+tcpr_dir_t
 check_cache(char *cachedata, COUNTER packetid)
 {
     COUNTER index = 0;
@@ -356,19 +357,19 @@ check_cache(char *cachedata, COUNTER packetid)
         cachedata[index], (cachedata[index] & (char)(1 << bit)));
 
     if (!(cachedata[index] & (char)(1 << bit))) {
-        return CACHE_NOSEND;
+        return TCPR_DIR_NOSEND;
     }
 
     /* go back a bit to get the interface */
     bit--;
     if (cachedata[index] & (char)(1 << bit)) {
-        return CACHE_PRIMARY;
+        return TCPR_DIR_C2S;
     }
     else {
-        return CACHE_SECONDARY;
+        return TCPR_DIR_S2C;
     }
 
-    return CACHE_ERROR;
+    return TCPR_DIR_ERROR;
 }
 
 /*

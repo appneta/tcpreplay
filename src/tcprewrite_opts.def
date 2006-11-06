@@ -5,9 +5,12 @@ copyright = {
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2004-2005 Aaron Turner
+Copyright 2004-2006 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.synfin.net/
 EOText;
 };
 
@@ -35,6 +38,9 @@ tcprewrite currently supports the following DLT types:
 
 The packet editing features of tcprewrite which distinguish between "client"
 and "server" traffic requires a tcpprep(1) cache file.
+
+For more details, please see the Tcpreplay Manual at:
+http://tcpreplay.synfin.net/wiki/manual
 EOText;
 
 man-doc = <<- EOMan

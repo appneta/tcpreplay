@@ -84,16 +84,27 @@ struct tcpr_cache_file_hdr_s {
 
 typedef struct tcpr_cache_file_hdr_s tcpr_cache_file_hdr_t;
 
-COUNTER write_cache(tcpr_cache_t *, const int, COUNTER, char *);
-int add_cache(tcpr_cache_t **, const int, const int);
-COUNTER read_cache(char **, const char *, char **);
-int check_cache(char *, COUNTER);
+enum tcpr_dir_e {
+    TCPR_DIR_ERROR  = -1,
+    TCPR_DIR_NOSEND = 0,
+    TCPR_DIR_C2S    = 1, /* aka PRIMARY */
+    TCPR_DIR_S2C    = 2 /* aka SECONDARY */
+};
+typedef enum tcpr_dir_e tcpr_dir_t;
 
-/* return values for check_cache */
+
+COUNTER write_cache(tcpr_cache_t *, const int, COUNTER, char *);
+tcpr_dir_t add_cache(tcpr_cache_t **, const int, const tcpr_dir_t);
+COUNTER read_cache(char **, const char *, char **);
+tcpr_dir_t check_cache(char *, COUNTER);
+
+/* return values for check_cache 
 #define CACHE_ERROR -1
-#define CACHE_NOSEND 0 /* equal to NULL */
+#define CACHE_NOSEND 0  // NULL 
 #define CACHE_PRIMARY 1
 #define CACHE_SECONDARY 2
+*/
+
 
 /* macro to change a bitstring to 8 bits */
 #define BIT_STR(x) x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]

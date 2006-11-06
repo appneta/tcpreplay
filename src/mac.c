@@ -114,15 +114,15 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
 /*
  * Figures out if a MAC is listed in a comma delimited
  * string of MAC addresses.
- * returns CACHE_PRIMARY if listed
- * returns CACHE_SECONDARY if not listed
+ * returns TCPR_DIR_C2S if listed
+ * returns TCPR_DIR_S2C if not listed
  */
-int
+tcpr_dir_t
 macinstring(const char *macstring, const u_char *mac)
 {
     char *tok, *tempstr, *ourstring;
     u_char tempmac[6];
-    int len = 6, ret = CACHE_SECONDARY;
+    int len = 6, ret = TCPR_DIR_S2C;
     
     ourstring = safe_strdup(macstring);
     
@@ -131,7 +131,7 @@ macinstring(const char *macstring, const u_char *mac)
        mac2hex(tempstr, tempmac, len);
        if (memcmp(mac, tempmac, len) == 0) {
            dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
-           ret = CACHE_PRIMARY;
+           ret = TCPR_DIR_C2S;
            goto EXIT_MACINSTRING;
        }
     } else {
@@ -141,7 +141,7 @@ macinstring(const char *macstring, const u_char *mac)
     while ((tempstr = strtok_r(NULL, ",", &tok)) != NULL) {
        mac2hex(tempstr, tempmac, len);
        if (memcmp(mac, tempmac, len) == 0) {
-           ret = CACHE_PRIMARY;
+           ret = TCPR_DIR_C2S;
            dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
            goto EXIT_MACINSTRING;
        }
@@ -150,7 +150,7 @@ macinstring(const char *macstring, const u_char *mac)
 EXIT_MACINSTRING:
     free(ourstring);
 #ifdef DEBUG
-    if (ret == CACHE_SECONDARY)
+    if (ret == TCPR_DIR_S2C)
        dbg(3, "Packet doesn't match any MAC addresses sending out secondary.\n");
 #endif
     return ret;

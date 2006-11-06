@@ -62,7 +62,7 @@ static int is_unicast_l2(tcpedit_t *, const u_char *);
  */
 int
 rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
-        u_char **pktdata, int direction)
+        u_char **pktdata, tcpr_dir_t direction)
 {
     u_char *l2data = NULL;          /* ptr to the user specified layer2 data if any */
     int newl2len = 0;
@@ -70,14 +70,14 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* do we need a ptr for l2data ? */
     if (tcpedit->l2.dlt == DLT_USER) {
-        if (direction == CACHE_SECONDARY) {
+        if (direction == TCPR_DIR_S2C) {
             l2data = tcpedit->l2.data2;
         } else {
             l2data = tcpedit->l2.data1;
         }
     }
    
-    pcap = direction == CACHE_PRIMARY ? tcpedit->runtime.pcap1 : 
+    pcap = direction == TCPR_DIR_C2S ? tcpedit->runtime.pcap1 : 
             tcpedit->runtime.pcap2;
 
     /*
@@ -124,7 +124,7 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
      */
 
     switch (direction) {
-        case CACHE_PRIMARY:
+        case TCPR_DIR_C2S:
             if ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC1) &&
                 ((tcpedit->skip_broadcast && is_unicast_l2(tcpedit, (*pktdata + ETHER_ADDR_LEN))) ||
                  !tcpedit->skip_broadcast)) {
@@ -138,7 +138,7 @@ rewrite_l2(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             }
             
             break;
-        case CACHE_SECONDARY:
+        case TCPR_DIR_S2C:
             if ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC2) &&
                 ((tcpedit->skip_broadcast && is_unicast_l2(tcpedit, (*pktdata + ETHER_ADDR_LEN))) ||
                  !tcpedit->skip_broadcast)) {

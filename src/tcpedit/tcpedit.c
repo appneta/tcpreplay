@@ -66,7 +66,7 @@ tOptDesc const* tcpedit_tcpedit_optDesc_p;
  */
 int
 tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
-        u_char **pktdata, int direction)
+        u_char **pktdata, tcpr_dir_t direction)
 {
     ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
@@ -100,7 +100,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if (l2len < 0)
         errx(1, "fatal rewrite_l2 error: %s", tcpedit_geterr(tcpedit));
 
-    if (direction == CACHE_PRIMARY) {
+    if (direction == TCPR_DIR_C2S) {
         l2proto = get_l2protocol(*pktdata, (*pkthdr)->caplen, 
             pcap_datalink(tcpedit->runtime.pcap1));
     } else {
@@ -179,7 +179,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
                 return -1;
             needtorecalc += retval;
         } else {
-            if (direction == CACHE_PRIMARY) {
+            if (direction == TCPR_DIR_C2S) {
                 if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
                         pcap_datalink(tcpedit->runtime.pcap1)) < 0)
                     return -1;

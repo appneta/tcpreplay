@@ -1,13 +1,16 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2000 - 2004";
+    date        = "2000 - 2006";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2005 Aaron Turner
+Copyright 2000-2006 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.synfin.net/
 EOText;
 };
 
@@ -44,6 +47,9 @@ input file(s) out a single file.  Tcpprep processes a pcap file and
 applies a set of user-specified rules to create a cache file which 
 tells tcpreplay wether or not to send each packet and which interface the
 packet should be sent out of.
+
+For more details, please see the Tcpreplay Manual at:
+http://tcpreplay.synfin.net/wiki/manual
 EODetail;
 
 man-doc = <<- EOMan

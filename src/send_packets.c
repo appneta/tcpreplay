@@ -122,7 +122,7 @@ send_packets(pcap_t *pcap)
             sp = (sendpacket_t *) cache_mode(options.cachedata, packetnum);
         
             /* sometimes we should not send the packet */
-            if (sp == CACHE_NOSEND)
+            if (sp == TCPR_DIR_NOSEND)
                 continue;
         }
     
@@ -170,15 +170,15 @@ cache_mode(char *cachedata, COUNTER packet_num)
         err(1, "Exceeded number of packets in cache file.");
 
     result = check_cache(cachedata, packet_num);
-    if (result == CACHE_NOSEND) {
+    if (result == TCPR_DIR_NOSEND) {
         dbgx(2, "Cache: Not sending packet " COUNTER_SPEC ".", packet_num);
-        return CACHE_NOSEND;
+        return TCPR_DIR_NOSEND;
     }
-    else if (result == CACHE_PRIMARY) {
+    else if (result == TCPR_DIR_C2S) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
         sp = options.intf1;
     }
-    else if (result == CACHE_SECONDARY) {
+    else if (result == TCPR_DIR_S2C) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
         sp = options.intf2;
     }
