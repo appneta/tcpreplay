@@ -482,6 +482,37 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
 }
 
 /*
+ * Generic function which checks the TCPEDIT_* error code
+ * and always returns OK or ERROR.  For warnings, prints the 
+ * warning message and returns OK.  For any other value, fails with
+ * an assert.
+ */
+int
+tcpedit_checkerror(tcpedit_t *tcpedit, const char *prefix, const int rcode) {
+    assert(tcpedit);
+    
+    switch (rcode) {
+        case TCPEDIT_OK:
+        case TCPEDIT_ERROR:
+            return rcode;
+            break;
+            
+        case TCPEDIT_WARN:
+            if (prefix != NULL) {
+                fprintf(stderr, "Warning %s: %s\n", prefix, tcpedit_getwarn(tcpedit));
+            } else {
+                fprintf(stderr, "Warning: %s\n", tcpedit_getwarn(tcpedit));
+            }
+            return TCPEDIT_OK;
+            break;
+            
+        default:
+            assert(0 == 1); /* this should never happen! */
+            break;
+    }
+}
+
+/*
  * Cleans up after ourselves.  Return 0 on success.
  */
 int

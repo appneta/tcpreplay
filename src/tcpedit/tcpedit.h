@@ -181,6 +181,7 @@ char *tcpedit_geterr(tcpedit_t *tcpedit);
 void tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...);
 char *tcpedit_getwarn(tcpedit_t *tcpedit);
 void tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...);
+int tcpedit_checkerror(tcpedit_t *tcpedit, const char *prefix, const int rcode);
 int tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt);
 
 int tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
