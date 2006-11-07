@@ -1,0 +1,5 @@
+AutoGen definitions options;
+prog-name  = %{plugin}_stub;  // but is always required
+prog-title = 'libtcpedit DLT %{plugin} autoopts stub';  // also required
+#include %{plugin}_opts.def
+library;

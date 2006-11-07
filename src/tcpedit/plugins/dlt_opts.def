@@ -1,0 +1,32 @@
+flag = {
+    name        = tcpedit_dlt;
+    documentation;
+    lib-name    = tcpedit_dlt;
+};
+
+/* 
+ * Allow user to specify output DLT.  The values for this should
+ * match the argument name prefix of your plugin.  For example:
+ * DLT_EN10MB is ethernet, so I called the prefix "enet":
+ * (--enet-src, --enet-dst, --enet-proto)
+ * so the string I should look for here is "enet" too.  It's important
+ * that the prefix you use here is also used as the "name" in the 
+ * tcpeditdlt_plugin_t structure.
+ */
+
+flag = {
+    name        = dlt;
+    descrip     = "Override output DLT encapsulation";
+    arg-type    = string;
+    max         = 1;
+    doc         = <<- EO_DLT_DOC
+By default, no DLT (data link type) or Layer 2 modifications
+will be made.  To enable these modification, you must
+first select the destination DLT by using one of the following:
+@table @bullet
+@item
+@var{enet}
+Ethernet aka DLT_EN10MB
+@end table
+EO_DLT_DOC;
+};
