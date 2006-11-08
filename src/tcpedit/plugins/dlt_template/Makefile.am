@@ -1,5 +1,5 @@
 # $Id:$
-
+# START OF: dlt_%{plugin}
 # Note, if you add any files to your plugin, you will need to edit dlt_<plugin>/Makefile.am
 # add your .c files to libdltplugin_a_SOURCES
 # add your .h files to noinst_HEADERS
@@ -25,4 +25,6 @@ $(srcdir)/dlt_%{plugin}/%{plugin}_stub.h: $(srcdir)/dlt_%{plugin}/%{plugin}_opts
 
 MOSTLYCLEANFILES += $(srcdir)/dlt_%{plugin}/*~
 
-# End of dlt_%{plugin}
+MAINTAINERCLEANFILES += $(srcdir)/dlt_%{plugin}/%{plugin}_stub.h
+
+# END OF: dlt_%{plugin}
