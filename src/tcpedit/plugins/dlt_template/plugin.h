@@ -31,8 +31,7 @@
  */
 
 
-#include "tcpedit.h"
-#include "dlt_plugins.h"
+#include "dlt_plugins-int.h"
 
 #ifndef _DLT_%{plugin}_H_
 #define _DLT_%{plugin}_H_

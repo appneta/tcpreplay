@@ -30,8 +30,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
-#include "dlt_plugins.h"  
-#include "../../common.h"
+#include "dlt_plugins-int.h"  
+#include "common.h"
 #include "dlt_stub.h"
 
 /*

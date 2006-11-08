@@ -30,14 +30,15 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "dlt_plugins-int.h"
 #include "%{plugin}.h"
-#include "dlt_plugins.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
 #include "%{plugin}_stub.h"
 
-static char dlt_name[255] = "%{plugin}";
+/* edit these variables to taste */
+static char dlt_name[] = "%{plugin}";
 static u_int16_t dlt_value = ???;
 
 /*
@@ -164,10 +165,10 @@ dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen)
     u_char *packet;
     assert(ctx);
     assert(packet_ex);
-    assert(pktlen > /* our L2 length */)
+    assert(pktlen > /* our L2 length */);
     
     packet = *packet_ex;
-    asssert(packet);
+    assert(packet);
     
     return TCPEDIT_OK; /* success */
 }
@@ -180,9 +181,9 @@ dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+    assert(pktlen > /* our L2 length */);
     
-    
+    return TCPEDIT_OK;
 }
 
 /*
@@ -195,5 +196,6 @@ dlt_%{plugin}_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
     assert(pktlen);
     
+    return TCPEDIT_OK;
 }
 

@@ -4,17 +4,20 @@
 # add your .c files to libdltplugin_a_SOURCES
 # add your .h files to noinst_HEADERS
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
+# add your dependancy information (see comment below)
 
-libdltplugin_a_SOURCES += $(srcdir)/dlt_%{plugin}/%{plugin}.c $(srcdir)/dlt_%{plugin}/%{plugin}_opts.c
+libdltplugin_a_SOURCES += $(srcdir)/dlt_%{plugin}/%{plugin}.c
 
-noinst_HEADERS += $(srcdir)/dlt_%{plugin}/%{plugin}.h $(srcdir)/dlt_%{plugin}/%{plugin}_opts.h \
-	dlt_%{plugin}/%{plugin}_stub.h
+noinst_HEADERS += $(srcdir)/dlt_%{plugin}/%{plugin}.h dlt_%{plugin}/%{plugin}_stub.h
 
 EXTRA_DIST += $(srcdir)/dlt_%{plugin}/%{plugin}_stub.def $(srcdir)/dlt_%{plugin}/%{plugin}_opts.def
 
-# You probably don't want to touch anything below this line until the end of the plugin
 
-$(srcdir)/dlt_%{plugin}/%{plugin}.c: $(srcdir)/dlt_%{plugin}/%{plugin}_stub.h
+# dependancies for your plugin source code.  Edit as necessary
+$(srcdir)/dlt_%{plugin}/%{plugin}.c: $(srcdir)/dlt_%{plugin}/%{plugin}_stub.h \
+	$(srcdir)/dlt_%{plugin}/%{plugin}.h $(srcdir)/dlt_plugins.h $(srcdir)/dlt_plugins-int.h
+
+# You probably don't want to touch anything below this line until the end of the plugin
 
 $(srcdir)/dlt_%{plugin}/%{plugin}_stub.h: $(srcdir)/dlt_%{plugin}/%{plugin}_opts.def \
 	dlt_%{plugin}/%{plugin}_stub.def
