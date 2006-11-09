@@ -42,6 +42,9 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
+#ifndef _TCPR_H_
+#define _TCPR_H_
+
 #define ETHER_ADDR_LEN 0x6
 #define FDDI_ADDR_LEN 0x6
 #define TOKEN_RING_ADDR_LEN 0x6
@@ -1706,3 +1709,5 @@ struct tcpr_hsrp_hdr
     u_int8_t authdata[HSRP_AUTHDATA_LENGTH]; /* Password */
     u_int32_t virtual_ip;      /* Virtual IP address */
 };
+
+#endif
