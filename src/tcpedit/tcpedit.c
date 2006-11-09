@@ -47,7 +47,6 @@
 #include "portmap.h"
 #include "common.h"
 #include "edit_packet.h"
-#include "../mac.h"
 #include "rewrite_l2.h"
 #include "parse_args.h"
 

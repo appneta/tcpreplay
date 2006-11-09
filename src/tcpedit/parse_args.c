@@ -35,7 +35,6 @@
 #include "common.h"
 #include "tcpedit.h"
 #include "tcpedit_stub.h"
-#include "../mac.h"
 #include "parse_args.h"
 #include "portmap.h"
 

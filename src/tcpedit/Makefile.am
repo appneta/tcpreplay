@@ -3,9 +3,10 @@ SUBDIRS = plugins
 noinst_LIBRARIES = libtcpedit.a
 
 libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
-	rewrite_l2.c portmap.c ../mac.c dlt.c checksum.c
+	rewrite_l2.c portmap.c dlt.c checksum.c
 
-libtcpedit_a_LIBADD = $(srcdir)/plugins/libdltplugin.a
+libtcpedit_a_LIBADD = $(srcdir)/../common/libcommon.a
+libtcpedit_a_LIBADD += $(srcdir)/plugins/libdltplugin.a
 
 manpages: tcpedit.1
 

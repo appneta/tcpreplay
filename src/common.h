@@ -11,6 +11,7 @@
 #include "common/fakepcapnav.h"
 #include "common/fakepoll.h"
 #include "common/list.h"
+#include "common/mac.h"
 #include "common/services.h"
 #include "common/utils.h"
 #include "common/xX.h"

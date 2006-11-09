@@ -55,7 +55,7 @@ tcpreplay_opts.c: tcpreplay_opts.def
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c mac.c
+tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c 
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
@@ -65,7 +65,7 @@ tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \
 		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c mac.c
+tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c 
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def
@@ -83,15 +83,15 @@ flowreplay_opts.c: flowreplay_opts.def
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPBRIDGE
 tcpbridge_LDADD = ./common/libcommon.a ./tcpedit/libtcpedit.a \
 		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c \
-		mac.c
+tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c 
+		
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ tcpbridge_opts.def
 
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h \
-		 defines.h tree.h mac.h \
+		 defines.h tree.h \
 		 send_packets.h signal_handler.h common.h tcpreplay_opts.h \
 		 tcprewrite.h tcprewrite_opts.h tcpprep_opts.h \
 		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def \
