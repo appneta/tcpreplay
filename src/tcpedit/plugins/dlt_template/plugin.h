@@ -45,7 +45,8 @@ int dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen);
 int dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 const u_char *dlt_%{plugin}_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 
-/* structure to hold any data in the tcpeditdlt_plugin_t->state 
+/* 
+ * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->state 
  * Things like: 
  * - Parsed user options
  * - DLT specific storage to copy data that isn't defined in tcpeditdlt_t

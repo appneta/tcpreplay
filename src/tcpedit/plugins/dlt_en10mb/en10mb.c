@@ -38,8 +38,8 @@
 #include "en10mb_stub.h"
 
 static char dlt_name[] = "en10mb";
+static char dlt_prefix[] = "enet";
 static u_int16_t dlt_value = DLT_EN10MB;
-
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -66,10 +66,10 @@ static u_int16_t dlt_value = DLT_EN10MB;
      plugin->requires += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
 
      /* what is our dlt type? */
-     plugin->dlt = DLT_EN10MB;
+     plugin->dlt = dlt_value;
      
      /* set the prefix name of our plugin.  This is also used as the prefix for our options */
-     plugin->name = safe_strdup("enet");
+     plugin->name = safe_strdup(dlt_name);
 
      /* 
       * Point to our functions, note, you need a function for EVERY method.  
@@ -101,7 +101,7 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     assert(ctx);
     
     /* vlan tags need an additional 4 bytes */
-    if ((plugin = tcpedit_dlt_getplugin(ctx, DLT_EN10MB)) == NULL) {
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin en10mb");
         return TCPEDIT_ERROR;
     }
@@ -123,7 +123,7 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
     
     assert(ctx);
     
-    if ((plugin = tcpedit_dlt_getplugin(ctx, DLT_EN10MB)) == NULL)
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL)
         return TCPEDIT_OK;
 
     if (plugin->state != NULL)

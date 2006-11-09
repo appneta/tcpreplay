@@ -488,7 +488,7 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
  * an assert.
  */
 int
-tcpedit_checkerror(tcpedit_t *tcpedit, const char *prefix, const int rcode) {
+tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
     assert(tcpedit);
     
     switch (rcode) {

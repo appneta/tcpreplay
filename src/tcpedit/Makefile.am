@@ -1,8 +1,11 @@
 # $Id$
+SUBDIRS = plugins
 noinst_LIBRARIES = libtcpedit.a
 
 libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
 	rewrite_l2.c portmap.c ../mac.c dlt.c checksum.c
+
+libtcpedit_a_LIBADD = $(srcdir)/plugins/libdltplugin.a
 
 manpages: tcpedit.1
 
@@ -14,7 +17,7 @@ tcpedit.c: tcpedit_stub.h
 tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def
 	@AUTOGEN@ tcpedit_stub.def
 
-AM_CFLAGS = -I.. -I../common -I../.. $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS)
+AM_CFLAGS = -I.. -I../common -I../.. $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS) 
 
 noinst_HEADERS = tcpedit.h edit_packet.h rewrite_l2.h portmap.h \
 	tcpedit_stub.h parse_args.h dlt.h checksum.h

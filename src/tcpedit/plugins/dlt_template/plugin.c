@@ -37,9 +37,10 @@
 #include "tcpr.h"
 #include "%{plugin}_stub.h"
 
-/* edit these variables to taste */
+/* FIXME: edit these variables to taste */
 static char dlt_name[] = "%{plugin}";
-static u_int16_t dlt_value = ???;
+static char dlt_prefix[] = "???";
+static u_int16_t dlt_value = 0xFFFF;
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -61,8 +62,7 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
     /* create  a new plugin structure */
     plugin = tcpedit_dlt_newplugin();
 
-    /* set what we provide & require 
-     * EDIT THIS!!! 
+    /* FIXME: set what we provide & require 
     plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
     plugin->requires += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
      */
@@ -108,11 +108,13 @@ dlt_%{plugin}_init(tcpeditdlt_t *ctx)
     }
     
     /* 
-     * allocate memory for plugin->state here 
-     * plugin->state = safe_malloc(4);
+     * FIXME: allocate memory for plugin->state here 
+     * plugin->state = (%{plugin}_state_t *)safe_malloc(sizeof(%{plugin}_state_t));
+     * 
      */
     
-    return TCPEDIT_OK; /* success */}
+    return TCPEDIT_OK; /* success */
+}
 
 /*
  * Since this is used in a library, we should manually clean up after ourselves
@@ -123,6 +125,8 @@ int
 dlt_%{plugin}_cleanup(tcpeditdlt_t *ctx)
 {
     assert(ctx);
+
+    /* FIXME: make this function do something if necessary */
     
     return TCPEDIT_OK; /* success */
 }
@@ -138,6 +142,8 @@ dlt_%{plugin}_parse_opts(tcpeditdlt_t *ctx)
 {
     assert(ctx);
 
+    /* FIXME: make this function work */
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -150,7 +156,9 @@ dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen > /* our L2 length */);
+    assert(pktlen > /* FIXME: our L2 length */);
+
+    /* FIXME: make this function work */
 
     return TCPEDIT_OK; /* success */
 }
@@ -165,10 +173,13 @@ dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen)
     u_char *packet;
     assert(ctx);
     assert(packet_ex);
-    assert(pktlen > /* our L2 length */);
+    assert(pktlen > /* FIXME: our L2 length */);
     
     packet = *packet_ex;
     assert(packet);
+    
+    /* FIXME: make this function work */
+
     
     return TCPEDIT_OK; /* success */
 }
@@ -181,9 +192,11 @@ dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen > /* our L2 length */);
+    assert(pktlen > /* FIXME: our L2 length */);
+
+    /* FIXME: make this function work */
     
-    return TCPEDIT_OK;
+    return TCPEDIT_OK; /* success */
 }
 
 /*
@@ -196,6 +209,8 @@ dlt_%{plugin}_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
     assert(pktlen);
     
-    return TCPEDIT_OK;
+    /* FIXME: make this function work */
+    
+    return TCPEDIT_OK; /* success */
 }
 

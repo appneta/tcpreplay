@@ -59,6 +59,23 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     return 0;
 }
 
+
+/* 
+ * mapping for bit_mask to bit_info.  If you're making changes here
+ * then you almost certainly need to modify tcpeditdlt_t in dlt_plugins-int.h
+ */
+static const u_int32_t tcpeditdlt_bit_map[] = {
+    PLUGIN_MASK_PROTO,
+    PLUGIN_MASK_SRCADDR,
+    PLUGIN_MASK_DSTADDR
+};
+
+static const char *tcpeditdlt_bit_info[] = {
+    "Missing required Layer 3 protocol.",
+    "Missing required Layer 2 source address.",
+    "Missing required Layer 2 destination address."
+};
+
 /********************************************************************
  * People writing DLT plugins should stop editing here!
  ********************************************************************/
@@ -275,12 +292,16 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
     assert(ctx);
     assert(new);
 
-    /* look for a dupe */
-    ptr = tcpedit_dlt_getplugin(ctx, new->dlt);
-    
-    if (ptr != NULL) {
+    /* look for a dupe by DLT */
+    if ((ptr = tcpedit_dlt_getplugin(ctx, new->dlt)) != NULL) {
         tcpedit_seterr(ctx->tcpedit, "Can only have one DLT plugin registered per-DLT: 0x%x", new->dlt);
-        return -1;
+        return TCPEDIT_ERROR;
+    }
+    
+    /* dupe by name? */
+    if ((ptr = tcpedit_dlt_getplugin_byname(ctx, new->name)) != NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Can only have one DLT plugin registered per-name: %s", new->name);
+        return TCPEDIT_ERROR;
     }
     
     /* check that the plugin is properly constructed */
@@ -304,20 +325,6 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
     return 0;
 }
 
-/* 
- * mapping for bit_mask to bit_info
- */
-static const u_int32_t tcpeditdlt_bit_map[] = {
-    PLUGIN_MASK_PROTO,
-    PLUGIN_MASK_SRCADDR,
-    PLUGIN_MASK_DSTADDR
-};
-
-static const char *tcpeditdlt_bit_info[] = {
-    "Missing required Layer 3 protocol.",
-    "Missing required Layer 2 source address.",
-    "Missing required Layer 2 destination address."
-};
 
 /*
  * validates that the decoder plugin provides all the fields that are required
