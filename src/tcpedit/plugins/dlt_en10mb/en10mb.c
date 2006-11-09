@@ -144,61 +144,59 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
     assert(ctx);
 
     /* --dmac */
-    /*
     if (HAVE_OPT(ENET_DMAC)) {
         int macparse;
-        macparse = dualmac2hex(OPT_ARG(ENET_DMAC), tcpedit->intf1_dmac,
-                    tcpedit->intf2_dmac, strlen(OPT_ARG(ENET_DMAC)));
+        macparse = dualmac2hex(OPT_ARG(ENET_DMAC), ctx->tcpedit->intf1_dmac,
+                    ctx->tcpedit->intf2_dmac, strlen(OPT_ARG(ENET_DMAC)));
         switch (macparse) {
             case 1:
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
                 break;
             case 2:
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
                 break;
             case 3:
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
                 break;
             case 0:
-                /* nothing to do
+                /* nothing to do */
                 break;
             default:
-                tcpedit_seterr(tcpedit, 
+                tcpedit_seterr(ctx->tcpedit, 
                         "Unable to parse --enet-dmac=%s", OPT_ARG(ENET_DMAC));
                 return TCPEDIT_ERROR;
                 break;
         }
     }
-    */
+
     /* --smac */
-    /*
     if (HAVE_OPT(ENET_SMAC)) {
         int macparse;
-        macparse = dualmac2hex(OPT_ARG(ENET_SMAC), tcpedit->intf1_smac,
-                    tcpedit->intf2_smac, strlen(OPT_ARG(ENET_SMAC)));
+        macparse = dualmac2hex(OPT_ARG(ENET_SMAC), ctx->tcpedit->intf1_smac,
+                    ctx->tcpedit->intf2_smac, strlen(OPT_ARG(ENET_SMAC)));
         switch (macparse) {
             case 1:
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
                 break;
             case 2:
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
                 break;
             case 3:
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
-                tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
                 break;
             case 0:
-                /* nothing to do 
+                /* nothing to do */
                 break;
             default:
-                tcpedit_seterr(tcpedit,
+                tcpedit_seterr(ctx->tcpedit,
                         "Unable to parse --enet-smac=%s", OPT_ARG(ENET_SMAC));
-                return -1;
+                return TCPEDIT_ERROR;
                 break;
         }
     }
-    */
+
     return TCPEDIT_OK; /* success */
 }
 
