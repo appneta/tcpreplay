@@ -44,17 +44,30 @@ int dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktl
 int dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen);
 int dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 const u_char *dlt_%{plugin}_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+tcpeditdlt_l2addr_type_t dlt_%{plugin}_l2addr_type(void);
+
+/*
+ * FIXME: structure to hold any data parsed from the packet by the decoder.
+ * Example: Ethernet VLAN tag info
+ */
+struct %{plugin}_extra_s {
+
+};
+typedef struct %{plugin}_extra_s %{plugin}_state_t;
+
 
 /* 
  * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->state 
  * Things like: 
  * - Parsed user options
- * - DLT specific storage to copy data that isn't defined in tcpeditdlt_t
- * - etc
+ * - State between packets
+ * - Note, you should only use this for the encoder function, decoder functions should place
+ *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
+ *   is available to any encoder plugin.
  */
-struct %{plugin}_state_s {
+struct %{plugin}_config_s {
     
 };
-typedef struct %{plugin}_state_s %{plugin}_state_t;
+typedef struct %{plugin}_config_s %{plugin}_config_t;
 
 #endif

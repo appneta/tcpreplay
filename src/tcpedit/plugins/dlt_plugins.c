@@ -131,6 +131,9 @@ static int tcpedit_dlt_validate(tcpeditdlt_t *ctx);
         goto INIT_ERROR;
     }
 
+    /* set our address type */
+    ctx->addr_type = ctx->decoder->plugin_l2addr_type();
+
     /* initalize decoder plugin */
     rcode = ctx->decoder->plugin_init(ctx);
     if (tcpedit_checkerror(ctx->tcpedit, rcode, NULL) != TCPEDIT_OK) {
@@ -313,6 +316,8 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
     assert(new->plugin_encode);
     assert(new->plugin_layer3);
     assert(new->plugin_proto);
+    assert(new->plugin_l2addr_type);
+
     
     /* add it to the end of the chain */
     ptr = ctx->plugins;

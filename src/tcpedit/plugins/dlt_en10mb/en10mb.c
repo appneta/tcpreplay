@@ -82,6 +82,7 @@ static u_int16_t dlt_value = DLT_EN10MB;
      plugin->plugin_encode = dlt_en10mb_encode;
      plugin->plugin_layer3 = dlt_en10mb_layer3;
      plugin->plugin_proto = dlt_en10mb_proto;
+     plugin->plugin_l2addr_type = dlt_en10mb_l2addr_type;
 
      /* add it to the available plugin list */
      return tcpedit_dlt_addplugin(ctx, plugin);
@@ -91,7 +92,7 @@ static u_int16_t dlt_value = DLT_EN10MB;
 /*
  * Initializer function.  This function is called only once, if and only iif
  * this plugin will be utilized.  Remember, if you need to keep track of any state, 
- * store it in your plugin->state, not a global!
+ * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
@@ -106,7 +107,8 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    plugin->state = safe_malloc(4);
+    ctx->decoded_extra = safe_malloc(sizeof(en10mb_extra_t));
+    plugin->config = safe_malloc(sizeof(en10mb_config_t));
     
     return TCPEDIT_OK; /* success */
 }
@@ -126,8 +128,8 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL)
         return TCPEDIT_OK;
 
-    if (plugin->state != NULL)
-        free(plugin->state);
+    if (plugin->config != NULL)
+        free(plugin->config);
         
     return TCPEDIT_OK; /* success */
 }
@@ -141,23 +143,28 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
 int 
 dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 {
+    tcpeditdlt_plugin_t *plugin;
+    en10mb_config_t *config;
     assert(ctx);
+
+    plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    config = (en10mb_config_t *)plugin->config;
 
     /* --dmac */
     if (HAVE_OPT(ENET_DMAC)) {
         int macparse;
-        macparse = dualmac2hex(OPT_ARG(ENET_DMAC), ctx->tcpedit->intf1_dmac,
-                    ctx->tcpedit->intf2_dmac, strlen(OPT_ARG(ENET_DMAC)));
+        macparse = dualmac2hex(OPT_ARG(ENET_DMAC), config->intf1_dmac,
+                    config->intf2_dmac, strlen(OPT_ARG(ENET_DMAC)));
         switch (macparse) {
             case 1:
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+                config->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
                 break;
             case 2:
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+                config->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
                 break;
             case 3:
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+                config->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+                config->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
                 break;
             case 0:
                 /* nothing to do */
@@ -173,18 +180,18 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
     /* --smac */
     if (HAVE_OPT(ENET_SMAC)) {
         int macparse;
-        macparse = dualmac2hex(OPT_ARG(ENET_SMAC), ctx->tcpedit->intf1_smac,
-                    ctx->tcpedit->intf2_smac, strlen(OPT_ARG(ENET_SMAC)));
+        macparse = dualmac2hex(OPT_ARG(ENET_SMAC), config->intf1_smac,
+                    config->intf2_smac, strlen(OPT_ARG(ENET_SMAC)));
         switch (macparse) {
             case 1:
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+                config->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
                 break;
             case 2:
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+                config->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
                 break;
             case 3:
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
-                ctx->tcpedit->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+                config->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+                config->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
                 break;
             case 0:
                 /* nothing to do */
@@ -196,6 +203,55 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
                 break;
         }
     }
+    
+    /* Layer 3 protocol */
+    if (HAVE_OPT(ENET_PROTO))
+        ctx->proto = OPT_VALUE_ENET_PROTO;
+
+
+    /*
+     * Validate 802.1q vlan args and populate tcpedit->vlan_record
+     */
+    if (HAVE_OPT(ENET_VLAN)) {
+        if (strcmp(OPT_ARG(ENET_VLAN), "add") == 0) { // add or change
+            config->vlan = TCPEDIT_VLAN_ADD;
+        } else if (strcmp(OPT_ARG(ENET_VLAN), "del") == 0) {
+            config->vlan = TCPEDIT_VLAN_DEL;
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "Invalid --enet-vlan=%s", OPT_ARG(ENET_VLAN));
+            return -1;
+        }
+
+        if (config->vlan != TCPEDIT_VLAN_OFF) {
+//            tcpedit->l2.dlt = DLT_VLAN;
+
+            if (config->vlan == TCPEDIT_VLAN_ADD) {
+                if (! HAVE_OPT(ENET_VLAN_TAG)) {
+                    tcpedit_seterr(ctx->tcpedit, 
+                            "Must specify a new 802.1 VLAN tag if vlan "
+                            "mode is add");
+                    return TCPEDIT_ERROR;
+                }
+
+                /*
+                 * fill out the 802.1q header
+                 */
+                config->vlan_tag = OPT_VALUE_ENET_VLAN_TAG;
+
+                /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
+//                config->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_ETH_H;
+                dbgx(1, "We will %s 802.1q headers", 
+                    config->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+
+            if (HAVE_OPT(ENET_VLAN_PRI))
+                config->vlan_pri = OPT_VALUE_ENET_VLAN_PRI;
+
+            if (HAVE_OPT(ENET_VLAN_CFI))
+                config->vlan_cfi = OPT_VALUE_ENET_VLAN_CFI;
+            }
+        }
+    }
+
 
     return TCPEDIT_OK; /* success */
 }
@@ -207,9 +263,43 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    tcpeditdlt_plugin_t *plugin = NULL;
+    struct tcpr_ethernet_hdr *eth = NULL;
+    struct tcpr_802_1q_hdr *vlan = NULL;
+    en10mb_extra_t *extra = NULL;
+    en10mb_config_t *config = NULL;
+    
     assert(ctx);
     assert(packet);
     assert(pktlen >= 14);
+
+    plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    config = plugin->config;
+
+    /* get our src & dst address */
+    eth = (struct tcpr_ethernet_hdr *)packet;
+    memcpy(&(ctx->dstaddr), eth, ETHER_ADDR_LEN);
+    memcpy(&(ctx->srcaddr), &(eth->ether_shost), ETHER_ADDR_LEN);
+    
+    /* get the L3 protocol type */
+    switch (eth->ether_type) {
+        case ETHERTYPE_VLAN:
+            vlan = (struct tcpr_802_1q_hdr *)packet;
+            ctx->proto = vlan->vlan_len;
+            config->vlan = 1;
+            
+            /* Get VLAN tag info */
+            extra = (en10mb_extra_t *)ctx->decoded_extra;
+            extra->vlan_tpi = vlan->vlan_tpi;
+            extra->vlan_priority_c_vid = vlan->vlan_priority_c_vid;
+            break;
+        
+        /* we don't properly handle SNAP encoding */
+        default:
+            ctx->proto = eth->ether_type;
+            config->vlan = 0;
+            break;
+    }
 
     return TCPEDIT_OK; /* success */
 }
@@ -284,4 +374,10 @@ dlt_en10mb_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     }
     
     return l3;
+}
+
+tcpeditdlt_l2addr_type_t
+dlt_en10mb_l2addr_type(void)
+{
+    return ETHERNET;
 }

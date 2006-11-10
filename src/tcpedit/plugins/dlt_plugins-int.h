@@ -58,6 +58,18 @@ enum tcpeditdlt_bit_mask_e {
 typedef enum tcpeditdlt_bit_mask_e tcpeditdlt_bit_mask_t;
 
 
+/* Union of all possible L2 address types */
+union tcpeditdlt_l2address_u {
+    u_char ethernet[ETHER_ADDR_LEN]; /* ethernet is 6 bytes long */
+};
+typedef union tcpeditdlt_l2address_u tcpeditdlt_l2address_t;
+
+/* What kind of address is the union? */
+enum tcpeditdlt_l2addr_type_e {
+    ETHERNET       /* support ethernet */
+};
+typedef enum tcpeditdlt_l2addr_type_e tcpeditdlt_l2addr_type_t;
+
 /* 
  * Each plugin must fill this out so that we know what function
  * to call from the external API
@@ -75,24 +87,13 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_encode)(tcpeditdlt_t *, u_char **, int, tcpr_dir_t);
     int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
     u_char *(*plugin_layer3)(tcpeditdlt_t *, const u_char *, const int);
-    void *state; /* any state you need to keep around.  Initialize in plugin_init() 
-                  * You can use this for example to have the dlt decoder put extra 
-                  * L2 data here (like VLAN tags or WiFi signal strength) 
-                  */
+    tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
+    void *config; /* user configuration data for the encoder */
+    
 };
 typedef struct tcpeditdlt_plugin_s tcpeditdlt_plugin_t;
 
-/* Union of all possible L2 address types */
-union tcpeditdlt_l2address_u {
-    u_char ethernet[ETHER_ADDR_LEN]; /* ethernet is 6 bytes long */
-};
-typedef union tcpeditdlt_l2address_u tcpeditdlt_l2address_t;
-
-/* What kind of address is the union? */
-enum tcpeditdlt_l2addr_type_e {
-    ETHERNET       /* support ethernet */
-};
-typedef enum tcpeditdlt_l2addr_type_e tcpeditdlt_l2addr_type_t;
+#define L2EXTRA_LEN 255 /* size of buffer to hold any extra L2 data parsed from the decoder */
 
 /*
  * internal DLT plugin context
@@ -106,11 +107,12 @@ struct tcpeditdlt_s {
                     /* decoder validator tells us which kind of address we're processing */
     tcpeditdlt_l2addr_type_t addr_type;    
     
-    /* The following fields are updated on a per-packet basis */
-    tcpeditdlt_l2address_t srcaddr;        /* filled out source address */
-    tcpeditdlt_l2address_t dstaddr;        /* filled out dst address */
-    u_int16_t proto;                       /* layer 3 proto type?? */
-    tcpr_dir_t direction;                  /* direction of packet */
+    /* The following fields are updated on a per-packet basis by the decoder */
+    tcpeditdlt_l2address_t srcaddr;         /* filled out source address */
+    tcpeditdlt_l2address_t dstaddr;         /* filled out dst address */
+    u_int16_t proto;                        /* layer 3 proto type?? */
+    void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */
+    tcpr_dir_t direction;                   /* direction of packet */
 };
 
 /*********************************************************************

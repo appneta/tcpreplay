@@ -84,6 +84,8 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
     plugin->plugin_encode = dlt_%{plugin}_encode;
     plugin->plugin_layer3 = dlt_%{plugin}_layer3;
     plugin->plugin_proto = dlt_%{plugin}_proto;
+    plugin->plugin_l2addr_type = dlt_%{plugin}_l2addr_type;
+
 
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(tcpedit, ctx->plugins, plugin);
@@ -93,7 +95,7 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
 /*
  * Initializer function.  This function is called only once, if and only iif
  * this plugin will be utilized.  Remember, if you need to keep track of any state, 
- * store it in your plugin->state, not a global!
+ * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
@@ -107,12 +109,14 @@ dlt_%{plugin}_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    /* 
-     * FIXME: allocate memory for plugin->state here 
-     * plugin->state = (%{plugin}_state_t *)safe_malloc(sizeof(%{plugin}_state_t));
-     * 
-     */
-    
+    /* allocate memory for our deocde extra data */
+    if (sizeof(%{plugin}_extra_t) > 0)
+        ctx->decoded_extra = safe_malloc(sizeof(%{plugin}_extra_t));
+
+    /* allocate memory for our config data */
+    if (sizeof(%{plugin}_config_t) > 0)
+        plugin->config = safe_malloc(sizeof(%{plugin}_config_t));
+        
     return TCPEDIT_OK; /* success */
 }
 
@@ -124,10 +128,21 @@ dlt_%{plugin}_init(tcpeditdlt_t *ctx)
 int 
 dlt_%{plugin}_cleanup(tcpeditdlt_t *ctx)
 {
+    tcpeditdlt_plugin_t *plugin;
     assert(ctx);
 
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Unable to cleanup unregistered plugin %s", dlt_name);
+        return TCPEDIT_ERROR;
+    }
+
     /* FIXME: make this function do something if necessary */
-    
+    if (ctx->decoded_extra != NULL)
+        free(ctx->decoded_extra);
+        
+    if (plugin->config != NULL)
+        free(plugin->config);
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -214,3 +229,9 @@ dlt_%{plugin}_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return TCPEDIT_OK; /* success */
 }
 
+tcpeditdlt_l2addr_type_t 
+dlt_%{plugin}_l2addr_type(void)
+{
+    /* FIXME: return the tcpeditdlt_l2addr_type_t value that this DLT uses */
+    return ETHERNET;
+}

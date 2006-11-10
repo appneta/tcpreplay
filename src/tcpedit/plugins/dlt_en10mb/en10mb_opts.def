@@ -43,6 +43,17 @@ Example:
 EOText;
 };
 
+flag = {
+	name		= enet-proto;
+	arg-type	= number;
+	max			= 1;
+	descrip		= "Override ethernet protocol type";
+	arg-range	= "0->65535";
+	doc			= <<- EOText
+Force the ethernet protocol field.  Useful for when the source DLT
+doesn't contain a protocol field.
+EOText;
+};
 
 /* rewrite 802.1q vlan tags */
 flag = {
