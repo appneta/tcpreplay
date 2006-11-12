@@ -86,6 +86,7 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_decode)(tcpeditdlt_t *, const u_char *, const int);
     int (*plugin_encode)(tcpeditdlt_t *, u_char **, int, tcpr_dir_t);
     int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
+//    int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
     u_char *(*plugin_layer3)(tcpeditdlt_t *, const u_char *, const int);
     tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
     void *config; /* user configuration data for the encoder */
@@ -106,13 +107,25 @@ struct tcpeditdlt_s {
     tcpeditdlt_plugin_t *encoder;       /* Decoder plugin */      
                     /* decoder validator tells us which kind of address we're processing */
     tcpeditdlt_l2addr_type_t addr_type;    
+
+    /* skip rewriting IP/MAC's which are broadcast or multicast? */
+    int skip_broadcast;
+    
+    /* original DLT */
+    u_int16_t dlt;
+
+    tcpr_dir_t direction;                   /* direction of packet, passed in by user */
+    
+    /*
+     * These variables are filled out for each packet by the decoder
+     */
     
     /* The following fields are updated on a per-packet basis by the decoder */
     tcpeditdlt_l2address_t srcaddr;         /* filled out source address */
     tcpeditdlt_l2address_t dstaddr;         /* filled out dst address */
+    int l2len;                              /* original L2 len of this packet */
     u_int16_t proto;                        /* layer 3 proto type?? */
     void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */
-    tcpr_dir_t direction;                   /* direction of packet */
 };
 
 /*********************************************************************

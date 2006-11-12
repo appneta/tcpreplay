@@ -131,6 +131,9 @@ static int tcpedit_dlt_validate(tcpeditdlt_t *ctx);
         goto INIT_ERROR;
     }
 
+    /* set our dlt type */
+    ctx->dlt = srcdlt;
+
     /* set our address type */
     ctx->addr_type = ctx->decoder->plugin_l2addr_type();
 
@@ -145,7 +148,10 @@ static int tcpedit_dlt_validate(tcpeditdlt_t *ctx);
         tcpedit_seterr(tcpedit, "No output DLT plugin available for: %s", OPT_ARG(DLT));
         goto INIT_ERROR;
     }
-
+    
+    /* Figure out if we're skipping braodcast & multicast */
+    if (HAVE_OPT(SKIPBROADCAST))
+        ctx->skip_broadcast = 1;
 
     /* init encoder plugin if it's not the decoder plugin */
     if (ctx->encoder->dlt != ctx->decoder->dlt) {
@@ -169,21 +175,23 @@ static int tcpedit_dlt_validate(tcpeditdlt_t *ctx);
         goto INIT_ERROR;
     }
 
-    /* we're done */
+    /* we're OK */
     return ctx;
 
-    INIT_ERROR:
+INIT_ERROR:
     tcpedit_dlt_cleanup(ctx);
     free(ctx);
     return NULL;    
 }
  
 /*
- * cleanup after ourselves: destroys our context
+ * cleanup after ourselves: destroys our context and all plugin data
  */
-int
+void
 tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
 {
+    assert(ctx);
+    
     if (ctx->encoder != NULL)
         ctx->encoder->plugin_cleanup(ctx);
     
@@ -193,9 +201,12 @@ tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
 #ifdef FORCE_ALIGN
     free(ctx->l3buff);
 #endif
+
+    if (ctx->decoded_extra != NULL)
+        free(ctx->decoded_extra);
         
-    /* don't free ctx, we need it for the tcpedit context */
-    return TCPEDIT_OK;
+    free(ctx);
+        
 }
 
 /*
@@ -307,13 +318,14 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
         return TCPEDIT_ERROR;
     }
     
-    /* check that the plugin is properly constructed */
+    /* 
+     * check that the plugin is properly constructed, note that the encoder
+     * and decoder are optional!
+     */
     assert(new->dlt < 0xffff);
     assert(new->plugin_init);
     assert(new->plugin_cleanup);
     assert(new->plugin_parse_opts);
-    assert(new->plugin_decode);
-    assert(new->plugin_encode);
     assert(new->plugin_layer3);
     assert(new->plugin_proto);
     assert(new->plugin_l2addr_type);

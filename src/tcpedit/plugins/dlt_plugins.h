@@ -31,7 +31,8 @@
  */
 
 /*
- * Main DLT Plugin Header.  
+ * Main DLT Plugin Header.   You should only include this file outside
+ * of the plugin API.  dlt_plugin-int.h is used internal to the plugin ONLY. 
  */
 
 #include "tcpedit.h" 
@@ -50,7 +51,7 @@ typedef struct tcpeditdlt_s tcpeditdlt_t;
 tcpeditdlt_t *tcpedit_dlt_init(tcpedit_t *tcpedit, int srcdlt);
 
 /* cleans up after ourselves.  Called for each initalized plugin */
-int tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
+void tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
 
 /*
  * process the given packet, by calling decode & encode

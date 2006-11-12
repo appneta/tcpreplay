@@ -30,3 +30,13 @@ Ethernet aka DLT_EN10MB
 @end table
 EO_DLT_DOC;
 };
+
+flag = {
+	name		= skipbroadcast;
+	descrip		= "Skip rewriting broadcast/multicast IP's";
+	doc			= <<- EOText
+By default, editing Layer 2 or Layer 3 addresses will rewrite 
+broadcast and multicast IP and MAC addresses.	Setting this flag
+will keep broadcast/multicast IP and MAC addresses from being rewritten.
+EOText;
+};

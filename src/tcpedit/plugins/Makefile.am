@@ -1,9 +1,9 @@
 # $Id: $
 noinst_LIBRARIES = libdltplugin.a
 
-libdltplugin_a_SOURCES = dlt_plugins.c
+libdltplugin_a_SOURCES = dlt_plugins.c ethernet.c
 
-noinst_HEADERS = dlt_plugins.h dlt_stub.h
+noinst_HEADERS = dlt_plugins.h dlt_stub.h ethernet.h
 
 dlt_plugins.c: dlt_stub.h
 
