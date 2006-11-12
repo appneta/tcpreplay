@@ -6,12 +6,12 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libdltplugin_a_SOURCES += $(srcdir)/dlt_en10mb/en10mb.c
+libdltplugin_a_SOURCES += $(srcdir)/dlt_en10mb/en10mb.c $(srcdir)/dlt_en10mb/en10mb_extra.c
 
-noinst_HEADERS += $(srcdir)/dlt_en10mb/en10mb.h dlt_en10mb/en10mb_stub.h
+noinst_HEADERS += $(srcdir)/dlt_en10mb/en10mb.h $(srcdir)/dlt_en10mb/en10mb_stub.h \
+	$(srcdir)/dlt_en10mb/en10mb_extra.h
 
 EXTRA_DIST += $(srcdir)/dlt_en10mb/en10mb_stub.def $(srcdir)/dlt_en10mb/en10mb_opts.def
-
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/dlt_en10mb/en10mb.c: $(srcdir)/dlt_en10mb/en10mb_stub.h \

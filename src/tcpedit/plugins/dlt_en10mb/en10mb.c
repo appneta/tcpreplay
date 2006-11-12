@@ -36,6 +36,8 @@
 #include "common.h"
 #include "tcpr.h"
 #include "en10mb_stub.h"
+#include "en10mb_extra.h"
+#include "ethernet.h"
 
 static char dlt_name[] = "en10mb";
 static char dlt_prefix[] = "enet";
@@ -83,6 +85,7 @@ static u_int16_t dlt_value = DLT_EN10MB;
      plugin->plugin_layer3 = dlt_en10mb_layer3;
      plugin->plugin_proto = dlt_en10mb_proto;
      plugin->plugin_l2addr_type = dlt_en10mb_l2addr_type;
+//     plugin->plugin_l2len = dlt_en10mb_l2len;
 
      /* add it to the available plugin list */
      return tcpedit_dlt_addplugin(ctx, plugin);
@@ -223,8 +226,6 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
         }
 
         if (config->vlan != TCPEDIT_VLAN_OFF) {
-//            tcpedit->l2.dlt = DLT_VLAN;
-
             if (config->vlan == TCPEDIT_VLAN_ADD) {
                 if (! HAVE_OPT(ENET_VLAN_TAG)) {
                     tcpedit_seterr(ctx->tcpedit, 
@@ -238,8 +239,6 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
                  */
                 config->vlan_tag = OPT_VALUE_ENET_VLAN_TAG;
 
-                /* if TCPEDIT_VLAN_ADD then 802.1q header, else 802.3 header len */
-//                config->l2.len = tcpedit->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_ETH_H;
                 dbgx(1, "We will %s 802.1q headers", 
                     config->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
 
@@ -281,7 +280,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     memcpy(&(ctx->dstaddr), eth, ETHER_ADDR_LEN);
     memcpy(&(ctx->srcaddr), &(eth->ether_shost), ETHER_ADDR_LEN);
     
-    /* get the L3 protocol type */
+    /* get the L3 protocol type  & L2 len*/
     switch (eth->ether_type) {
         case ETHERTYPE_VLAN:
             vlan = (struct tcpr_802_1q_hdr *)packet;
@@ -292,12 +291,14 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             extra = (en10mb_extra_t *)ctx->decoded_extra;
             extra->vlan_tpi = vlan->vlan_tpi;
             extra->vlan_priority_c_vid = vlan->vlan_priority_c_vid;
+            ctx->l2len = TCPR_802_1Q_H;
             break;
         
         /* we don't properly handle SNAP encoding */
         default:
             ctx->proto = eth->ether_type;
             config->vlan = 0;
+            ctx->l2len = TCPR_802_3_H;
             break;
     }
 
@@ -312,13 +313,52 @@ int
 dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
 {
     u_char *packet;
+    tcpeditdlt_plugin_t *plugin = NULL;
+    struct tcpr_ethernet_hdr *eth = NULL;
+    struct tcpr_802_1q_hdr *vlan = NULL;
+    en10mb_extra_t *extra = NULL;
+    en10mb_config_t *config = NULL;
+    int newl2len;
+    u_char tmpbuff[MAXPACKET];
+
+
+
     assert(ctx);
     assert(packet_ex);
     assert(pktlen >= 14);
     
     packet = *packet_ex;
     assert(packet);
+
+    plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    config = plugin->config;
+        
+    /* ethernet -> ethernet? */
+    if (ctx->dlt == dlt_value) {
+        if ((ctx->l2len == TCPR_802_1Q_H && config->vlan == TCPEDIT_VLAN_OFF) ||
+            (config->vlan == TCPEDIT_VLAN_ADD)) {
+            newl2len = TCPR_802_1Q_H;
+        } else if ((ctx->l2len == TCPR_802_3_H && config->vlan == TCPEDIT_VLAN_OFF) ||
+            (config->vlan == TCPEDIT_VLAN_DEL)) {
+            newl2len = TCPR_802_3_H;
+        }
+    } 
     
+    /* some other DLT -> ethernet */
+    else {
+        /* if add a vlan then 18, else 14 bytes */
+        newl2len = config->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_802_3_H;
+    }
+
+    /* Make space for our new L2 header */
+    if (newl2len > ctx->l2len) {
+        memcpy(tmpbuff, packet, pktlen);
+        memcpy(packet + newl2len, (tmpbuff + ctx->l2len), pktlen - ctx->l2len);
+    } else if (newl2len < ctx->l2len) {
+        memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
+    } /* else same size, so do nothing */
+    
+
     return TCPEDIT_OK;
 }
 
@@ -357,23 +397,13 @@ u_char *
 dlt_en10mb_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     struct tcpr_ethernet_hdr *eth;
-    u_char *l3 = NULL;
+    int l2len;
     assert(ctx);
     assert(packet);
     assert(pktlen);
     
-    eth = (struct tcpr_ethernet_hdr *)packet;
-    switch (eth->ether_type) {
-        case ETHERTYPE_VLAN:
-            l3 = tcpeditdlt_get_l3data(ctx, packet, pktlen, TCPR_802_1Q_H);
-            break;
-        
-        default: /* we assume everything else is 14 bytes */
-            l3 = tcpeditdlt_get_l3data(ctx, packet, pktlen, TCPR_802_3_H);
-            break;
-    }
-    
-    return l3;
+    l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
+    return tcpeditdlt_get_l3data(ctx, packet, pktlen, l2len);
 }
 
 tcpeditdlt_l2addr_type_t
@@ -381,3 +411,4 @@ dlt_en10mb_l2addr_type(void)
 {
     return ETHERNET;
 }
+
