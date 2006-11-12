@@ -85,6 +85,7 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
     plugin->plugin_layer3 = dlt_%{plugin}_layer3;
     plugin->plugin_proto = dlt_%{plugin}_proto;
     plugin->plugin_l2addr_type = dlt_%{plugin}_l2addr_type;
+    plugin->plugin_l2len = dlt_%{plugin}_l2len;
 
 
     /* add it to the available plugin list */
@@ -163,7 +164,13 @@ dlt_%{plugin}_parse_opts(tcpeditdlt_t *ctx)
 }
 
 /*
- * Function to decode the layer 2 header in the packet
+ * Function to decode the layer 2 header in the packet.
+ * You need to fill out:
+ * - ctx->l2len
+ * - ctx->srcaddr
+ * - ctx->dstaddr
+ * - ctx->proto
+ * - ctx->decoded_extra
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 

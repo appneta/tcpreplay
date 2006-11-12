@@ -8,7 +8,7 @@
 
 libdltplugin_a_SOURCES += $(srcdir)/dlt_%{plugin}/%{plugin}.c
 
-noinst_HEADERS += $(srcdir)/dlt_%{plugin}/%{plugin}.h dlt_%{plugin}/%{plugin}_stub.h
+noinst_HEADERS += $(srcdir)/dlt_%{plugin}/%{plugin}.h $(srcdir)/dlt_%{plugin}/%{plugin}_stub.h
 
 EXTRA_DIST += $(srcdir)/dlt_%{plugin}/%{plugin}_stub.def $(srcdir)/dlt_%{plugin}/%{plugin}_opts.def
 
