@@ -54,8 +54,8 @@ static u_int16_t dlt_value = DLT_EN10MB;
  * - Add the plugin to the context's plugin chain
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
- int 
- dlt_en10mb_register(tcpeditdlt_t *ctx)
+int 
+dlt_en10mb_register(tcpeditdlt_t *ctx)
  {
      tcpeditdlt_plugin_t *plugin;
      assert(ctx);
@@ -358,6 +358,97 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
     } /* else same size, so do nothing */
     
+    /* always set the src & dst address as the first 12 bytes */
+    eth = (struct tcpr_ethernet_hdr *)packet;
+    
+    if (ctx->direction == TCPR_DIR_C2S) { 
+        /* copy user supplied SRC MAC if provided or from original packet */
+        if (config->mac_mask && TCPEDIT_MAC_MASK_SMAC1) {
+            memcpy(eth->ether_shost, config->intf1_smac, ETHER_ADDR_LEN);
+        } else if (ctx->addr_type == ETHERNET) {
+            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "Please provide a source address");
+            return TCPEDIT_ERROR;
+        }
+
+        /* copy user supplied DMAC MAC if provided or from original packet */        
+        if (config->mac_mask && TCPEDIT_MAC_MASK_DMAC1) {
+            memcpy(eth->ether_dhost, config->intf1_dmac, ETHER_ADDR_LEN);
+        } else if (ctx->addr_type == ETHERNET) {
+            memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "Please provide a destination address");
+            return TCPEDIT_ERROR;            
+        }
+    
+    } else if (ctx->direction == TCPR_DIR_S2C) {
+        /* copy user supplied SRC MAC if provided or from original packet */
+        if (config->mac_mask && TCPEDIT_MAC_MASK_SMAC2) {
+            memcpy(eth->ether_shost, config->intf2_smac, ETHER_ADDR_LEN);
+        } else if (ctx->addr_type == ETHERNET) {
+            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);            
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "Please provide a source address");
+            return TCPEDIT_ERROR;
+        }
+
+        
+        /* copy user supplied DMAC MAC if provided or from original packet */        
+        if (config->mac_mask && TCPEDIT_MAC_MASK_DMAC2) {
+            memcpy(eth->ether_dhost, config->intf2_dmac, ETHER_ADDR_LEN);
+        } else if (ctx->addr_type == ETHERNET){
+            memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);            
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "Please provide a destination address");
+            return TCPEDIT_ERROR;
+        }
+
+        
+    } else {
+        tcpedit_seterr(ctx->tcpedit, "Encoders only support C2S or C2S!");
+        return TCPEDIT_ERROR;
+    }
+    
+    if (newl2len == TCPR_802_3_H) {
+        /* all we need for 802.3 is the proto */
+        eth->ether_type = ctx->proto;
+        
+    } else if (newl2len == TCPR_802_1Q_H) {
+        /* VLAN tags need a bit more */
+        vlan = (struct tcpr_802_1q_hdr *)packet;
+        vlan->vlan_len = ctx->proto;
+        vlan->vlan_tpi = ETHERTYPE_VLAN;
+        
+        /* are we changing VLAN info? */
+        if (config->vlan == TCPEDIT_VLAN_ADD) {
+            if (HAVE_OPT(ENET_VLAN_TAG)) {
+                vlan->vlan_priority_c_vid |= 
+                    htons((u_int16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
+            }
+        
+            /* these are optional */
+            if (HAVE_OPT(ENET_VLAN_PRI)) {
+                vlan->vlan_priority_c_vid |= 
+                     htons((u_int16_t)config->vlan_pri) << 13;
+            }
+            
+            if (HAVE_OPT(ENET_VLAN_CFI)) {
+                vlan->vlan_priority_c_vid |= 
+                    htons((u_int16_t)config->vlan_cfi) << 12;
+            } 
+            
+        } 
+        /* else just copy things over */
+        else {
+            memcpy(&(packet[12]), ctx->decoded_extra, 4);
+        }
+        
+        
+    } else {
+        tcpedit_seterr(ctx->tcpedit, "Unsupported new layer 2 length: %d", newl2len);
+        return TCPEDIT_ERROR;
+    }
 
     return TCPEDIT_OK;
 }

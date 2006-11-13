@@ -75,7 +75,7 @@ EOText;
 };
 
 flag = {
-    name        = enet-vlan_tag;
+    name        = enet-vlan-tag;
     max         = 1;
     descrip     = "Specify the new ethernet 802.1q VLAN tag value";
     arg-type    = number;
@@ -85,7 +85,7 @@ flag = {
 };
 
 flag = {
-    name        = enet-vlan_cfi;
+    name        = enet-vlan-cfi;
     max         = 1;
     descrip     = "Specify the ethernet 802.1q VLAN CFI value";
     arg-type    = number;
@@ -95,7 +95,7 @@ flag = {
 };
 
 flag = {
-    name        = enet-vlan_pri;
+    name        = enet-vlan-pri;
     max         = 1;
     descrip     = "Specify the ethernet 802.1q VLAN priority";
     flags-must  = enet-vlan;
