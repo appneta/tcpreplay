@@ -1,7 +1,7 @@
 
 /*
- *  $Id: pgusage.c,v 4.7 2006/03/25 19:24:56 bkorb Exp $
- * Time-stamp:      "2005-10-29 13:23:12 bkorb"
+ *  $Id: pgusage.c,v 4.11 2006/09/24 02:11:16 bkorb Exp $
+ * Time-stamp:      "2006-07-16 08:13:26 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -68,6 +68,9 @@ tePagerState pagerState = PAGER_STATE_INITIAL;
 void
 optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
 {
+#if defined(__windows__) && !defined(__CYGWIN__)
+    (*pOptions->pUsageProc)( pOptions, EXIT_SUCCESS );
+#else
     static pid_t     my_pid;
     char zPageUsage[ 1024 ];
 
@@ -114,7 +117,7 @@ optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
     case PAGER_STATE_READY:
     {
         tSCC zPage[]  = "%1$s /tmp/use.%2$lu ; rm -f /tmp/use.%2$lu";
-        char* pzPager = getenv( "PAGER" );
+        tCC* pzPager  = (tCC*)getenv( "PAGER" );
 
         /*
          *  Use the "more(1)" program if "PAGER" has not been defined
@@ -133,7 +136,7 @@ optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
         fclose( stderr );
         dup2( STDOUT_FILENO, STDERR_FILENO );
 
-        system( zPageUsage );
+        (void)system( zPageUsage );
     }
 
     case PAGER_STATE_CHILD:
@@ -142,13 +145,13 @@ optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
          */
         break;
     }
+#endif
 }
 
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/pgusage.c */

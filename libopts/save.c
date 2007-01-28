@@ -1,7 +1,7 @@
 
 /*
- *  save.c  $Id: save.c,v 4.12 2006/03/25 19:24:56 bkorb Exp $
- * Time-stamp:      "2005-02-20 13:49:46 bkorb"
+ *  save.c  $Id: save.c,v 4.16 2007/01/18 05:32:13 bkorb Exp $
+ * Time-stamp:      "2007-01-13 10:32:27 bkorb"
  *
  *  This module's routines will take the currently set options and
  *  store them into an ".rc" file for re-interpretation the next
@@ -63,8 +63,8 @@ findFileName( tOptions* pOpts, int* p_free_name );
 
 static void
 printEntry(
-    FILE*      fp,
-    tOptDesc*  p,
+    FILE *     fp,
+    tOptDesc * p,
     tCC*       pzLA );
 /* = = = END-STATIC-FORWARD = = = */
 
@@ -76,7 +76,7 @@ findDirName( tOptions* pOpts, int* p_free )
     if (pOpts->specOptIdx.save_opts == 0)
         return NULL;
 
-    pzDir = pOpts->pOptDesc[ pOpts->specOptIdx.save_opts ].pzLastArg;
+    pzDir = pOpts->pOptDesc[ pOpts->specOptIdx.save_opts ].optArg.argString;
     if ((pzDir != NULL) && (*pzDir != NUL))
         return pzDir;
 
@@ -100,7 +100,7 @@ findDirName( tOptions* pOpts, int* p_free )
         return pzDir;
 
     {
-        tCC*  pzEndDir = strchr( ++pzDir, '/' );
+        tCC*  pzEndDir = strchr( ++pzDir, DIRCH );
         char* pzFileName;
         char* pzEnv;
 
@@ -108,7 +108,7 @@ findDirName( tOptions* pOpts, int* p_free )
             char z[ AO_NAME_SIZE ];
             if ((pzEndDir - pzDir) > AO_NAME_LIMIT )
                 return NULL;
-            strncpy( z, pzDir, (pzEndDir - pzDir) );
+            strncpy( z, pzDir, (size_t)(pzEndDir - pzDir) );
             z[ (pzEndDir - pzDir) ] = NUL;
             pzEnv = getenv( z );
         } else {
@@ -170,19 +170,19 @@ findFileName( tOptions* pOpts, int* p_free_name )
          *  path to a file name that has not been created yet.
          */
         if (errno == ENOENT) {
-            char z[MAXPATHLEN];
+            char z[AG_PATH_MAX];
 
             /*
              *  Strip off the last component, stat the remaining string and
              *  that string must name a directory
              */
-            char* pzDirCh = strrchr( pzDir, '/' );
+            char* pzDirCh = strrchr( pzDir, DIRCH );
             if (pzDirCh == NULL) {
                 stBuf.st_mode = S_IFREG;
                 continue;  /* bail out of error condition */
             }
 
-            strncpy( z, pzDir, pzDirCh - pzDir );
+            strncpy( z, pzDir, (size_t)(pzDirCh - pzDir));
             z[ pzDirCh - pzDir ] = NUL;
 
             if (  (stat( z, &stBuf ) == 0)
@@ -270,22 +270,31 @@ findFileName( tOptions* pOpts, int* p_free_name )
 
 static void
 printEntry(
-    FILE*      fp,
-    tOptDesc*  p,
+    FILE *     fp,
+    tOptDesc * p,
     tCC*       pzLA )
 {
     /*
-     *  There is an argument.  Pad the name so values line up
+     *  There is an argument.  Pad the name so values line up.
+     *  Not disabled *OR* this got equivalenced to another opt,
+     *  then use current option name.
+     *  Otherwise, there must be a disablement name.
      */
-    fprintf( fp, "%-18s",
-             (DISABLED_OPT( p )) ? p->pz_DisableName : p->pz_Name );
+    {
+        char const * pz;
+        if (! DISABLED_OPT(p) || (p->optEquivIndex != NO_EQUIVALENT))
+            pz = p->pz_Name;
+        else
+            pz = p->pz_DisableName;
 
+        fprintf(fp, "%-18s", pz);
+    }
     /*
      *  IF the option is numeric only,
      *  THEN the char pointer is really the number
      */
     if (OPTST_GET_ARGTYPE(p->fOptState) == OPARG_TYPE_NUMERIC)
-        fprintf( fp, "  %d\n", (t_word)pzLA );
+        fprintf( fp, "  %d\n", (int)(t_word)pzLA );
 
     /*
      *  OTHERWISE, FOR each line of the value text, ...
@@ -308,7 +317,7 @@ printEntry(
             /*
              *  Print the continuation and the text from the current line
              */
-            fwrite( pzLA, pzNl - pzLA, 1, fp );
+            (void)fwrite( pzLA, (size_t)(pzNl - pzLA), (size_t)1, fp );
             pzLA = pzNl+1; /* advance the Last Arg pointer */
             fputs( "\\\n", fp );
         }
@@ -370,7 +379,7 @@ optionSaveFile( tOptions* pOpts )
     }
 
     {
-        const char*  pz = pOpts->pzUsageTitle;
+        char const*  pz = pOpts->pzUsageTitle;
         fputs( "#  ", fp );
         do { fputc( *pz, fp ); } while (*(pz++) != '\n');
     }
@@ -437,7 +446,7 @@ optionSaveFile( tOptions* pOpts )
         switch (arg_state) {
         case 0:
         case OPARG_TYPE_NUMERIC:
-            printEntry( fp, p, p->pzLastArg );
+            printEntry( fp, p, (void*)(p->optArg.argInt));
             break;
 
         case OPARG_TYPE_STRING:
@@ -455,31 +464,36 @@ optionSaveFile( tOptions* pOpts )
                 while (uct-- > 0)
                     printEntry( fp, p, *(ppz++) );
             } else {
-                printEntry( fp, p, p->pzLastArg );
+                printEntry( fp, p, p->optArg.argString );
             }
             break;
 
         case OPARG_TYPE_ENUMERATION:
         case OPARG_TYPE_MEMBERSHIP:
         {
-            tCC* val = p->pzLastArg;
+            uintptr_t val = p->optArg.argEnum;
             /*
              *  This is a magic incantation that will convert the
              *  bit flag values back into a string suitable for printing.
              */
             (*(p->pOptProc))( (tOptions*)2UL, p );
-            printEntry( fp, p, p->pzLastArg );
-            if ((p->pzLastArg != NULL) && (arg_state != OPARG_TYPE_ENUMERATION))
+            printEntry( fp, p, (void*)(p->optArg.argString));
+
+            if (  (p->optArg.argString != NULL)
+               && (arg_state != OPARG_TYPE_ENUMERATION)) {
                 /*
-                 *  bit flag and enumeration strings get allocated
+                 *  set membership strings get allocated
                  */
-                AGFREE( (void*)p->pzLastArg );
-            p->pzLastArg = val;
+                AGFREE( (void*)p->optArg.argString );
+                p->fOptState &= ~OPTST_ALLOC_ARG;
+            }
+
+            p->optArg.argEnum = val;
             break;
         }
 
         case OPARG_TYPE_BOOLEAN:
-            printEntry( fp, p, (p->pzLastArg != 0) ? "true" : "false" );
+            printEntry( fp, p, p->optArg.argBool ? "true" : "false" );
             break;
 
         default:
@@ -493,7 +507,6 @@ optionSaveFile( tOptions* pOpts )
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/save.c */

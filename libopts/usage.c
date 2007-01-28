@@ -1,7 +1,7 @@
 
 /*
- *  usage.c  $Id: usage.c,v 4.11 2006/03/25 19:24:57 bkorb Exp $
- * Time-stamp:      "2006-02-04 13:35:26 bkorb"
+ *  usage.c  $Id: usage.c,v 4.13 2006/11/27 01:52:23 bkorb Exp $
+ * Time-stamp:      "2006-07-01 12:41:02 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
@@ -76,10 +76,10 @@ printExtendedUsage(
 
 static void
 printInitList(
-    tCC**    papz,
-    ag_bool* pInitIntro,
-    tCC*     pzRc,
-    tCC*     pzPN );
+    tCC* const* papz,
+    ag_bool*    pInitIntro,
+    tCC*        pzRc,
+    tCC*        pzPN );
 
 static void
 printOneUsage(
@@ -141,7 +141,7 @@ optionOnlyUsage(
     tOptions* pOpts,
     int       ex_code )
 {
-    tCC* pOptTitle;
+    tCC* pOptTitle = NULL;
 
     /*
      *  Determine which header and which option formatting strings to use
@@ -188,7 +188,7 @@ optionUsage(
     fprintf( option_usage_fp, pOptions->pzUsageTitle, pOptions->pzProgName );
 
     {
-        tCC* pOptTitle;
+        tCC* pOptTitle = NULL;
 
         /*
          *  Determine which header and which option formatting strings to use
@@ -395,12 +395,12 @@ printExtendedUsage(
  */
 static void
 printInitList(
-    tCC**    papz,
-    ag_bool* pInitIntro,
-    tCC*     pzRc,
-    tCC*     pzPN )
+    tCC* const* papz,
+    ag_bool*    pInitIntro,
+    tCC*        pzRc,
+    tCC*        pzPN )
 {
-    char zPath[ MAXPATHLEN+1 ];
+    char zPath[ AG_PATH_MAX+1 ];
 
     if (papz == NULL)
         return;
@@ -409,12 +409,12 @@ printInitList(
     *pInitIntro = AG_FALSE;
 
     for (;;) {
-        const char* pzPath = *(papz++);
+        char const* pzPath = *(papz++);
 
         if (pzPath == NULL)
             break;
 
-        if (optionMakePath( zPath, sizeof( zPath ), pzPath, pzPN ))
+        if (optionMakePath(zPath, (int)sizeof( zPath ), pzPath, pzPN))
             pzPath = zPath;
 
         /*
@@ -431,7 +431,7 @@ printInitList(
              */
             if (  (stat( pzPath, &sb ) == 0)
               &&  S_ISDIR( sb.st_mode ) ) {
-                fputc( '/', option_usage_fp );
+                fputc( DIRCH, option_usage_fp );
                 fputs( pzRc, option_usage_fp );
             }
         }
@@ -726,7 +726,6 @@ setStdOptFmts( tOptions* pOpts, tCC** ppT )
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/usage.c */

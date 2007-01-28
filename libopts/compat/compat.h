@@ -2,21 +2,27 @@
 
 /* --- fake the preprocessor into handlng portability */
 /*
- *  Time-stamp:      "2005-09-21 20:56:13 bkorb"
+ *  Time-stamp:      "2006-09-07 06:49:09 bkorb"
  *
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
  * Created:          Mon Jun 30 15:54:46 1997
  *
- * $Id: compat.h,v 4.6 2005/10/02 16:34:30 bkorb Exp $
+ * $Id: compat.h,v 4.14 2006/11/27 01:52:23 bkorb Exp $
  */
-#ifndef COMPAT_H
-#define COMPAT_H 1
+#ifndef COMPAT_H_GUARD
+#define COMPAT_H_GUARD 1
 
-#ifndef HAVE_CONFIG_H
+#if defined(HAVE_CONFIG_H)
+#  include <config.h>
+
+#elif defined(_WIN32) && !defined(__CYGWIN__)
+#  include "windows-config.h"
+
+#else
 #  error "compat.h" requires "config.h"
+   choke me.
 #endif
 
-#include <config.h>
 
 #ifndef HAVE_STRSIGNAL
    char * strsignal( int signo );
@@ -31,7 +37,9 @@
  *  SYSTEM HEADERS:
  */
 #include <sys/types.h>
-#include <sys/mman.h>
+#ifdef HAVE_SYS_MMAN_H
+#  include <sys/mman.h>
+#endif
 #include <sys/param.h>
 #if HAVE_SYS_PROCSET_H
 #  include <sys/procset.h>
@@ -56,6 +64,7 @@
 
 #  if ! defined(HAVE_SYS_POLL_H) && ! defined(HAVE_SYS_SELECT_H)
 #    error This system cannot support daemon processing
+     Choke Me.
 #  endif
 
 #  if HAVE_SYS_POLL_H
@@ -123,7 +132,12 @@
 #  include <libgen.h>
 #endif
 
-#include <limits.h>
+#if defined(HAVE_LIMITS_H)  /* this is also in options.h */
+#  include <limits.h>
+#elif defined(HAVE_SYS_LIMITS_H)
+#  include <sys/limits.h>
+#endif /* HAVE_LIMITS/SYS_LIMITS_H */
+
 #include <memory.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -138,7 +152,10 @@
 #include <string.h>
 
 #include <time.h>
-#include <utime.h>
+
+#ifdef HAVE_UTIME_H
+#  include <utime.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -183,8 +200,10 @@
 #endif /* !MAXPATHLEN && PATH_MAX */
 
 #if !defined (MAXPATHLEN)
-#  define MAXPATHLEN 4096
+#  define MAXPATHLEN ((size_t)4096)
 #endif /* MAXPATHLEN */
+
+#define AG_PATH_MAX  ((size_t)MAXPATHLEN)
 
 #ifndef LONG_MAX
 #  define LONG_MAX      ~(1L << (8*sizeof(long) -1))
@@ -214,22 +233,26 @@
 #ifndef HAVE_UINT16_T
   typedef unsigned short    uint16_t;
 #endif
+#ifndef HAVE_UINT_T
+  typedef unsigned int      uint_t;
+#endif
 
 #ifndef HAVE_INT32_T
 # if SIZEOF_INT == 4
-	typedef signed int      int32_t;
+        typedef signed int      int32_t;
 # elif SIZEOF_LONG == 4
-	typedef signed long     int32_t;
+        typedef signed long     int32_t;
 # endif
 #endif
 
 #ifndef HAVE_UINT32_T
 # if SIZEOF_INT == 4
-	typedef unsigned int    uint32_t;
+        typedef unsigned int    uint32_t;
 # elif SIZEOF_LONG == 4
-	typedef unsigned long   uint32_t;
+        typedef unsigned long   uint32_t;
 # else
 #   error Cannot create a uint32_t type.
+    Choke Me.
 # endif
 #endif
 
@@ -280,13 +303,12 @@
    #define WORD_MIN  INT_MIN
 #endif
 
-#endif /* COMPAT_H */
+#endif /* COMPAT_H_GUARD */
 
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of compat/compat.h */

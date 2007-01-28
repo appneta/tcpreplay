@@ -1,14 +1,14 @@
 /*
- * $Id: text_mmap.c,v 4.11 2006/02/01 17:18:00 bkorb Exp $
+ * $Id: text_mmap.c,v 4.15 2006/11/27 01:52:23 bkorb Exp $
  *
- * Time-stamp:      "2006-02-01 08:45:37 bkorb"
+ * Time-stamp:      "2006-09-10 14:50:04 bkorb"
  */
 
-#ifndef MAP_ANONYMOUS 
-#  ifdef   MAP_ANON 
-#  define  MAP_ANONYMOUS   MAP_ANON 
-#  endif 
-#endif 
+#ifndef MAP_ANONYMOUS
+#  ifdef   MAP_ANON
+#  define  MAP_ANONYMOUS   MAP_ANON
+#  endif
+#endif
 
 /*
  *  Some weird systems require that a specifically invalid FD number
@@ -19,7 +19,8 @@
 #define AO_INVALID_FD  -1
 
 #define FILE_WRITABLE(_prt,_flg) \
-	((_prt & PROT_WRITE) && (_flg & (MAP_SHARED|MAP_PRIVATE) == MAP_SHARED))
+        (   (_prt & PROT_WRITE) \
+         && ((_flg & (MAP_SHARED|MAP_PRIVATE)) == MAP_SHARED))
 #define MAP_FAILED_PTR ((void*)MAP_FAILED)
 
 /*=export_func  text_mmap
@@ -27,7 +28,7 @@
  *
  * what:  map a text file with terminating NUL
  *
- * arg:   const char*,  pzFile,  name of the file to map
+ * arg:   char const*,  pzFile,  name of the file to map
  * arg:   int,          prot,    mmap protections (see mmap(2))
  * arg:   int,          flags,   mmap flags (see mmap(2))
  * arg:   tmap_info_t*, mapinfo, returned info about the mapping
@@ -76,7 +77,7 @@
  * text_munmap( &mi );
 =*/
 void*
-text_mmap( const char* pzFile, int prot, int flags, tmap_info_t* pMI )
+text_mmap( char const* pzFile, int prot, int flags, tmap_info_t* pMI )
 {
     memset( pMI, 0, sizeof(*pMI) );
 #ifdef HAVE_MMAP
@@ -138,7 +139,8 @@ text_mmap( const char* pzFile, int prot, int flags, tmap_info_t* pMI )
      *  do the mmap.  If we fail, then preserve errno, close the file and
      *  return the failure.
      */
-    pMI->txt_data = mmap( NULL, pMI->txt_size+1, prot, flags, pMI->txt_fd, 0 );
+    pMI->txt_data =
+        mmap(NULL, pMI->txt_size+1, prot, flags, pMI->txt_fd, (size_t)0);
     if (pMI->txt_data == MAP_FAILED_PTR) {
         pMI->txt_errno = errno;
         goto fail_return;
@@ -177,15 +179,14 @@ text_mmap( const char* pzFile, int prot, int flags, tmap_info_t* pMI )
         pNuls = mmap(
                 (void*)(((char*)pMI->txt_data) + pMI->txt_size),
                 pgsz, PROT_READ|PROT_WRITE,
-                MAP_ANONYMOUS|MAP_FIXED|MAP_PRIVATE, AO_INVALID_FD, 0 );
+                MAP_ANONYMOUS|MAP_FIXED|MAP_PRIVATE, AO_INVALID_FD, (size_t)0);
 
         if (pNuls != MAP_FAILED_PTR)
             return pMI->txt_data;
 
         pMI->txt_errno = errno;
-#endif
 
-#if defined(HAVE_DEV_ZERO)
+#elif defined(HAVE_DEV_ZERO)
         pMI->txt_zero_fd = open( "/dev/zero", O_RDONLY );
 
         if (pMI->txt_zero_fd == AO_INVALID_FD) {
@@ -211,10 +212,6 @@ text_mmap( const char* pzFile, int prot, int flags, tmap_info_t* pMI )
 
     {
         void* p = AGALOC( pMI->txt_size+1, "file text" );
-        if (pMI->txt_data == NULL) {
-            pMI->txt_errno = ENOMEM;
-            goto fail_return;
-        }
         memcpy( p, pMI->txt_data, pMI->txt_size );
         ((char*)p)[pMI->txt_size] = NUL;
         munmap(pMI->txt_data, pMI->txt_size );
@@ -306,7 +303,7 @@ text_munmap( tmap_info_t* pMI )
         if (   ((pMI->txt_prot & PROT_WRITE) != 0)
             && ((pMI->txt_flags & MAP_PRIVATE) == 0))  {
 
-            if (lseek( pMI->txt_fd, 0, SEEK_SET) != 0)
+            if (lseek(pMI->txt_fd, (size_t)0, SEEK_SET) != 0)
                 goto error_return;
 
             res = (write( pMI->txt_fd, pMI->txt_data, pMI->txt_size ) < 0)
@@ -361,7 +358,6 @@ text_munmap( tmap_info_t* pMI )
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/text_mmap.c */

@@ -1,6 +1,6 @@
 /*
  *  This file defines the string_tokenize interface
- * Time-stamp:      "2005-04-25 18:47:21 bkorb"
+ * Time-stamp:      "2006-06-24 15:27:49 bkorb"
  *
  *  string_tokenize copyright 2005 Bruce Korb
  *
@@ -30,14 +30,14 @@
 /* = = = START-STATIC-FORWARD = = = */
 /* static forward declarations maintained by :mkfwd */
 static void
-copy_cooked( ch_t** ppDest, cc_t** ppSrc );
+copy_cooked( ch_t** ppDest, char const ** ppSrc );
 
 static void
-copy_raw( ch_t** ppDest, cc_t** ppSrc );
+copy_raw( ch_t** ppDest, char const ** ppSrc );
 /* = = = END-STATIC-FORWARD = = = */
 
 static void
-copy_cooked( ch_t** ppDest, cc_t** ppSrc )
+copy_cooked( ch_t** ppDest, char const ** ppSrc )
 {
     ch_t* pDest = (ch_t*)*ppDest;
     const ch_t* pSrc  = (const ch_t*)(*ppSrc + 1);
@@ -60,15 +60,15 @@ copy_cooked( ch_t** ppDest, cc_t** ppSrc )
 
  done:
     *ppDest = (ch_t*)pDest; /* next spot for storing character */
-    *ppSrc  = (ch_t*)pSrc;  /* char following closing quote    */
+    *ppSrc  = (char const *)pSrc;  /* char following closing quote    */
 }
 
 
 static void
-copy_raw( ch_t** ppDest, cc_t** ppSrc )
+copy_raw( ch_t** ppDest, char const ** ppSrc )
 {
     ch_t* pDest = *ppDest;
-    cc_t* pSrc  = *ppSrc + 1;
+    cc_t* pSrc  = (cc_t*) (*ppSrc + 1);
 
     for (;;) {
         ch_t ch = *(pSrc++);
@@ -108,7 +108,7 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
 
  done:
     *ppDest = pDest; /* next spot for storing character */
-    *ppSrc  = pSrc;  /* char following closing quote    */
+    *ppSrc  = (char const *) pSrc;  /* char following closing quote    */
 }
 
 
@@ -116,7 +116,7 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
  *
  * what: tokenize an input string
  *
- * arg:  + const char* + string + string to be tokenized +
+ * arg:  + char const* + string + string to be tokenized +
  *
  * ret_type:  token_list_t*
  * ret_desc:  pointer to a structure that lists each token
@@ -178,7 +178,7 @@ copy_raw( ch_t** ppDest, cc_t** ppSrc )
  *  @end itemize
 =*/
 token_list_t*
-ao_string_tokenize( const char* str )
+ao_string_tokenize( char const* str )
 {
     int max_token_ct = 1; /* allow for trailing NUL on string */
     token_list_t* res;
@@ -189,7 +189,7 @@ ao_string_tokenize( const char* str )
      *  Trim leading white space.  Use "ENOENT" and a NULL return to indicate
      *  an empty string was passed.
      */
-    while (isspace( *str ))  str++;
+    while (isspace( (ch_t)*str ))  str++;
     if (*str == NUL) {
     bogus_str:
         errno = ENOENT;
@@ -231,33 +231,33 @@ ao_string_tokenize( const char* str )
         do  {
             res->tkn_list[ res->tkn_ct++ ] = pzDest;
             for (;;) {
-                char ch = *str;
+                int ch = (ch_t)*str;
                 if (isspace( ch )) {
                 found_white_space:
-                    while (isspace( *++str ))  ;
+                    while (isspace( (ch_t)*++str ))  ;
                     break;
                 }
 
                 switch (ch) {
                 case '"':
-                    copy_cooked( &pzDest, (cc_t**)&str );
+                    copy_cooked( &pzDest, &str );
                     if (str == NULL) {
                         free(res);
                         errno = EINVAL;
                         return NULL;
                     }
-                    if (isspace( *str ))
+                    if (isspace( (ch_t)*str ))
                         goto found_white_space;
                     break;
 
                 case '\'':
-                    copy_raw( &pzDest, (cc_t**)&str );
+                    copy_raw( &pzDest, &str );
                     if (str == NULL) {
                         free(res);
                         errno = EINVAL;
                         return NULL;
                     }
-                    if (isspace( *str ))
+                    if (isspace( (ch_t)*str ))
                         goto found_white_space;
                     break;
 
@@ -316,7 +316,6 @@ main( int argc, char** argv )
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/tokenize.c */

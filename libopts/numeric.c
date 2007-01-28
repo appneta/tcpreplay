@@ -1,7 +1,7 @@
 
 /*
- *  $Id: numeric.c,v 4.6 2006/03/25 19:24:56 bkorb Exp $
- *  Time-stamp:      "2005-02-14 08:22:56 bkorb"
+ *  $Id: numeric.c,v 4.10 2007/01/18 05:32:13 bkorb Exp $
+ *  Time-stamp:      "2007-01-13 10:28:20 bkorb"
  */
 
 /*
@@ -68,22 +68,26 @@ optionNumericVal( tOptions* pOpts, tOptDesc* pOD )
      *  If it does, the usage procedure requests that it be
      *  emitted by passing a NULL pOD pointer.
      */
-    if ((pOD == NULL) || (pOD->pzLastArg == NULL))
+    if ((pOD == NULL) || (pOD->optArg.argString == NULL))
         return;
 
-    val = strtol( pOD->pzLastArg, &pz, 0 );
+    val = strtol( pOD->optArg.argString, &pz, 0 );
     if (*pz != NUL) {
-        fprintf( stderr, zNotNumber, pOpts->pzProgName, pOD->pzLastArg );
+        fprintf( stderr, zNotNumber, pOpts->pzProgName, pOD->optArg.argString );
         (*(pOpts->pUsageProc))(pOpts, EXIT_FAILURE);
     }
 
-    pOD->pzLastArg = (char*)val;
+    if (pOD->fOptState & OPTST_ALLOC_ARG) {
+        AGFREE(pOD->optArg.argString);
+        pOD->fOptState &= ~OPTST_ALLOC_ARG;
+    }
+
+    pOD->optArg.argInt = val;
 }
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/numeric.c */

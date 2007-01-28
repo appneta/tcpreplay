@@ -1,7 +1,7 @@
 
 /*
- *  $Id: environment.c,v 4.8 2006/03/25 19:24:56 bkorb Exp $
- * Time-stamp:      "2005-10-29 13:23:59 bkorb"
+ *  $Id: environment.c,v 4.11 2007/01/18 05:32:13 bkorb Exp $
+ * Time-stamp:      "2007-01-13 10:02:07 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -65,7 +65,7 @@
 LOCAL void
 doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
 {
-    const char*   pczOptStr = getenv( pOpts->pzPROGNAME );
+    char const*   pczOptStr = getenv( pOpts->pzPROGNAME );
     token_list_t* pTL;
     int           sv_argc;
     tAoUI         sv_flag;
@@ -197,7 +197,7 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
         st.pzOptArg = getenv( zEnvName );
         if (st.pzOptArg == NULL)
             continue;
-        st.flags    = OPTST_PRESET | st.pOD->fOptState;
+        st.flags    = OPTST_PRESET | OPTST_ALLOC_ARG | st.pOD->fOptState;
         st.optType  = TOPT_UNDEFINED;
 
         if (  (st.pOD->pz_DisablePfx != NULL)
@@ -229,7 +229,6 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
 
         /*
          *  Make sure the option value string is persistent and consistent.
-         *  This may be a memory leak, but we cannot do anything about it.
          *
          *  The interpretation of the option value depends
          *  on the type of value argument the option takes
@@ -244,6 +243,7 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
                 st.pzOptArg = zNil;
             } else {
                 AGDUPSTR( st.pzOptArg, st.pzOptArg, "option argument" );
+                st.flags |= OPTST_ALLOC_ARG;
             }
         }
 
@@ -255,7 +255,6 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/environment.c */

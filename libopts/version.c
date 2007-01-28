@@ -1,12 +1,12 @@
 
-/*  $Id: version.c,v 4.7 2006/03/25 19:24:57 bkorb Exp $
- * Time-stamp:      "2005-12-13 10:29:09 bkorb"
+/*  $Id: version.c,v 4.9 2006/09/24 02:11:16 bkorb Exp $
+ * Time-stamp:      "2006-09-22 18:15:00 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
  */
 
-static const char zAOV[] =
+static char const zAOV[] =
     "Automated Options version %s, copyright (c) 1999-2006 Bruce Korb\n";
 
 /*  Automated Options is free software.
@@ -58,16 +58,16 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp );
 /*=export_func  optionVersion
  *
  * what:     return the compiled AutoOpts version number
- * ret_type: const char*
+ * ret_type: char const*
  * ret_desc: the version string in constant memory
  * doc:
  *  Returns the full version string compiled into the library.
  *  The returned string cannot be modified.
 =*/
-const char*
+char const*
 optionVersion( void )
 {
-    static const char zVersion[] =
+    static char const zVersion[] =
         STR( AO_CURRENT.AO_REVISION );
 
     return zVersion;
@@ -79,16 +79,16 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
 {
     char swCh;
 
-    if (pOD->pzLastArg == NULL)
+    if (pOD->optArg.argString == NULL)
          swCh = 'v';
-    else swCh = pOD->pzLastArg[0];
+    else swCh = pOD->optArg.argString[0];
 
     if (pOpts->pzFullVersion != NULL) {
         fputs( pOpts->pzFullVersion, fp );
         fputc( '\n', fp );
 
     } else {
-        const char *pz = pOpts->pzUsageTitle;
+        char const *pz = pOpts->pzUsageTitle;
         do { fputc( *pz, fp ); } while (*(pz++) != '\n');
     }
 
@@ -146,9 +146,7 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
  *  This routine will print the version to stdout.
 =*/
 void
-optionPrintVersion( pOpts, pOD )
-    tOptions*  pOpts;
-    tOptDesc*  pOD;
+optionPrintVersion( tOptions*  pOpts, tOptDesc*  pOD )
 {
     printVersion( pOpts, pOD, stdout );
 }
@@ -164,9 +162,7 @@ optionPrintVersion( pOpts, pOD )
  *  This routine will print the version to stderr.
 =*/
 void
-optionVersionStderr( pOpts, pOD )
-    tOptions*  pOpts;
-    tOptDesc*  pOD;
+optionVersionStderr( tOptions*  pOpts, tOptDesc*  pOD )
 {
     printVersion( pOpts, pOD, stderr );
 }
@@ -175,7 +171,6 @@ optionVersionStderr( pOpts, pOD )
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/version.c */

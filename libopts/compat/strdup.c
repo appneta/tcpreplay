@@ -3,17 +3,17 @@
  */
 
 static char *
-strdup( const char *s )
+strdup( char const *s )
 {
     char *cp;
 
     if (s == NULL)
-	return NULL;
+        return NULL;
 
     cp = (char *) AGALOC((unsigned) (strlen(s)+1), "strdup");
 
     if (cp != NULL)
-	(void) strcpy(cp, s);
+        (void) strcpy(cp, s);
 
     return cp;
 }

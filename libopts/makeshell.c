@@ -1,7 +1,7 @@
 
 /*
- *  $Id: makeshell.c,v 4.8 2006/03/25 19:24:56 bkorb Exp $
- * Time-stamp:      "2005-10-29 13:23:33 bkorb"
+ *  $Id: makeshell.c,v 4.19 2007/01/27 15:07:56 bkorb Exp $
+ * Time-stamp:      "2007-01-27 06:05:45 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and create a Bourne shell script capable of parsing them.
@@ -390,7 +390,7 @@ static void
 emitLong( tOptions* pOpts );
 
 static void
-openOutput( const char* pzFile );
+openOutput( char const* pzFile );
 /* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  optionParseShell
@@ -488,7 +488,7 @@ optionParseShell( tOptions* pOpts )
     if ((pzTrailer != NULL) && (*pzTrailer != '\0'))
         fputs( pzTrailer, stdout );
     else if (ENABLED_OPT( SHELL ))
-        printf( "\nenv | egrep %s_\n", pOpts->pzPROGNAME );
+        printf( "\nenv | grep '^%s_'\n", pOpts->pzPROGNAME );
 
     fflush( stdout );
     fchmod( STDOUT_FILENO, 0755 );
@@ -499,16 +499,20 @@ optionParseShell( tOptions* pOpts )
 static void
 textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
 {
-    int  nlHoldCt = 0;
-    int  pipeFd[2];
-    FILE* fp;
-
 #   define _TT_(n) tSCC z ## n [] = #n;
     TEXTTO_TABLE
 #   undef _TT_
 #   define _TT_(n) z ## n ,
-      static const char*  apzTTNames[] = { TEXTTO_TABLE };
+      static char const*  apzTTNames[] = { TEXTTO_TABLE };
 #   undef _TT_
+
+#if defined(__windows__) && !defined(__CYGWIN__)
+    printf( "%1$s_%2$s_TEXT='no %2$s text'\n",
+            pOpts->pzPROGNAME, apzTTNames[ whichVar ]);
+#else
+    int  nlHoldCt = 0;
+    int  pipeFd[2];
+    FILE* fp;
 
     printf( "%s_%s_TEXT='", pOpts->pzPROGNAME, apzTTNames[ whichVar ]);
     fflush( stdout );
@@ -541,7 +545,11 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
             exit( EXIT_FAILURE );
 
         case TT_VERSION:
-            pOD->pzLastArg = "c";
+            if (pOD->fOptState & OPTST_ALLOC_ARG) {
+                AGFREE(pOD->optArg.argString);
+                pOD->fOptState &= ~OPTST_ALLOC_ARG;
+            }
+            pOD->optArg.argString = "c";
             optionPrintVersion( pOpts, pOD );
             /* NOTREACHED */
 
@@ -585,6 +593,7 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
 
     fputs( "'\n\n", stdout );
     close( pipeFd[0] );
+#endif
 }
 
 
@@ -609,7 +618,7 @@ emitUsage( tOptions* pOpts )
         {
             time_t    curTime = time( NULL );
             struct tm*  pTime = localtime( &curTime );
-            strftime( zTimeBuf, AO_NAME_SIZE, "%A %B %e, %Y at %r %Z", pTime );
+            strftime(zTimeBuf, AO_NAME_SIZE, "%A %B %e, %Y at %r %Z", pTime );
         }
 
         if (HAVE_OPT( SCRIPT ))
@@ -663,8 +672,8 @@ emitSetup( tOptions* pOpts )
 {
     tOptDesc* pOptDesc = pOpts->pOptDesc;
     int       optionCt = pOpts->presetOptCt;
-    const char* pzFmt;
-    const char* pzDefault;
+    char const* pzFmt;
+    char const* pzDefault;
 
     for (;optionCt > 0; pOptDesc++, --optionCt) {
         char zVal[16];
@@ -687,26 +696,36 @@ emitSetup( tOptions* pOpts )
         switch (OPTST_GET_ARGTYPE(pOptDesc->fOptState)) {
         case OPARG_TYPE_ENUMERATION:
             (*(pOptDesc->pOptProc))( (tOptions*)2UL, pOptDesc );
-            pzDefault = pOptDesc->pzLastArg;
+            pzDefault = pOptDesc->optArg.argString;
             break;
 
         /*
          *  Numeric and membership bit options are just printed as a number.
          */
         case OPARG_TYPE_NUMERIC:
-        case OPARG_TYPE_MEMBERSHIP:
-            snprintf( zVal, sizeof( zVal ), "%ld", (tAoUL)pOptDesc->pzLastArg );
+            snprintf( zVal, sizeof( zVal ), "%d",
+                      (int)pOptDesc->optArg.argInt );
             pzDefault = zVal;
             break;
 
+        case OPARG_TYPE_MEMBERSHIP:
+            snprintf( zVal, sizeof( zVal ), "%lu",
+                      (unsigned long)pOptDesc->optArg.argIntptr );
+            pzDefault = zVal;
+            break;
+
+        case OPARG_TYPE_BOOLEAN:
+            pzDefault = (pOptDesc->optArg.argBool) ? "true" : "false";
+            break;
+
         default:
-            if (pOptDesc->pzLastArg == NULL) {
+            if (pOptDesc->optArg.argString == NULL) {
                 if (pzFmt == zSingleDef)
                     pzFmt = zSingleNoDef;
                 pzDefault = NULL;
             }
             else
-                pzDefault = pOptDesc->pzLastArg;
+                pzDefault = pOptDesc->optArg.argString;
         }
 
         printf( pzFmt, pOpts->pzPROGNAME, pOptDesc->pz_NAME, pzDefault );
@@ -923,15 +942,15 @@ emitLong( tOptions* pOpts )
 
 
 static void
-openOutput( const char* pzFile )
+openOutput( char const* pzFile )
 {
     FILE* fp;
     char* pzData = NULL;
     struct stat stbf;
 
     do  {
-        char*  pzScan;
-        int    sizeLeft;
+        char*    pzScan;
+        size_t sizeLeft;
 
         /*
          *  IF we cannot stat the file,
@@ -949,17 +968,17 @@ openOutput( const char* pzFile )
             exit( EXIT_FAILURE );
         }
 
-        pzData = (char*)malloc( stbf.st_size + 1 );
+        pzData = AGALOC(stbf.st_size + 1, "file data");
         fp = fopen( pzFile, "r" FOPEN_BINARY_FLAG );
 
-        sizeLeft = stbf.st_size;
+        sizeLeft = (unsigned)stbf.st_size;
         pzScan   = pzData;
 
         /*
          *  Read in all the data as fast as our OS will let us.
          */
         for (;;) {
-            int inct = fread( (void*)pzScan, 1, sizeLeft, fp );
+            int inct = fread( (void*)pzScan, (size_t)1, sizeLeft, fp);
             if (inct == 0)
                 break;
 
@@ -1017,6 +1036,9 @@ openOutput( const char* pzFile )
 void
 genshelloptUsage( tOptions*  pOpts, int exitCode )
 {
+#if defined(__windows__) && !defined(__CYGWIN__)
+    optionUsage( pOpts, exitCode );
+#else
     /*
      *  IF not EXIT_SUCCESS,
      *  THEN emit the short form of usage.
@@ -1045,8 +1067,8 @@ genshelloptUsage( tOptions*  pOpts, int exitCode )
 
     default:
     {
-        int  stat;
-        wait( &stat );
+        int  sts;
+        wait( &sts );
     }
     }
 
@@ -1082,19 +1104,19 @@ genshelloptUsage( tOptions*  pOpts, int exitCode )
 
     default:
     {
-        int  stat;
-        wait( &stat );
+        int  sts;
+        wait( &sts );
     }
     }
 
     exit( EXIT_SUCCESS );
+#endif
 }
 
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/makeshell.c */

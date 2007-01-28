@@ -1,8 +1,8 @@
 
 /*
- *  Time-stamp:      "2005-10-29 15:06:44 bkorb"
+ *  Time-stamp:      "2007-01-17 16:37:34 bkorb"
  *
- *  autoopts.h  $Id: autoopts.h,v 4.17 2006/03/25 19:24:56 bkorb Exp $
+ *  autoopts.h  $Id: autoopts.h,v 4.21 2007/01/18 05:32:13 bkorb Exp $
  *  Time-stamp:      "2005-02-14 05:59:50 bkorb"
  *
  *  This file defines all the global structures and special values
@@ -58,23 +58,29 @@
 #include "compat/compat.h"
 
 #define AO_NAME_LIMIT    127
-#define AO_NAME_SIZE     (AO_NAME_LIMIT + 1)
+#define AO_NAME_SIZE     ((size_t)(AO_NAME_LIMIT + 1))
 
-#ifndef MAXPATHLEN
+#ifndef AG_PATH_MAX
 #  ifdef PATH_MAX
-#    define MAXPATHLEN   PATH_MAX
+#    define AG_PATH_MAX   ((size_t)PATH_MAX)
 #  else
-#    define MAXPATHLEN   4096
+#    define AG_PATH_MAX   ((size_t)4096)
 #  endif
 #else
 #  if defined(PATH_MAX) && (PATH_MAX > MAXPATHLEN)
-#     undef  MAXPATHLEN
-#     define MAXPATHLEN  PATH_MAX
+#     undef  AG_PATH_MAX
+#     define AG_PATH_MAX  ((size_t)PATH_MAX)
 #  endif
 #endif
 
 #undef  EXPORT
 #define EXPORT
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+# define DIRCH '\\'
+#else
+# define DIRCH '/'
+#endif
 
 /*
  *  Convert the number to a list usable in a printf call
@@ -101,7 +107,18 @@ typedef int tDirection;
  *
  *  USAGE:  define procedures to return "tSuccess".  Test their results
  *          with the SUCCEEDED, FAILED and HADGLITCH macros.
+ *
+ *  Microsoft sticks its nose into user space here, so for Windows' sake,
+ *  make sure all of these are undefined.
  */
+#undef  SUCCESS
+#undef  FAILURE
+#undef  PROBLEM
+#undef  SUCCEEDED
+#undef  SUCCESSFUL
+#undef  FAILED
+#undef  HADGLITCH
+
 #define SUCCESS  ((tSuccess) 0)
 #define FAILURE  ((tSuccess)-1)
 #define PROBLEM  ((tSuccess) 1)
@@ -112,6 +129,35 @@ typedef int tSuccess;
 #define SUCCESSFUL( p )    SUCCEEDED( p )
 #define FAILED( p )        ((p) <  SUCCESS)
 #define HADGLITCH( p )     ((p) >  SUCCESS)
+
+/*
+ *  When loading a line (or block) of text as an option, the value can
+ *  be processed in any of several modes:
+ *
+ *  @table @samp
+ *  @item keep
+ *  Every part of the value between the delimiters is saved.
+ *
+ *  @item uncooked
+ *  Even if the value begins with quote characters, do not do quote processing.
+ *
+ *  @item cooked
+ *  If the value looks like a quoted string, then process it.
+ *  Double quoted strings are processed the way strings are in "C" programs,
+ *  except they are treated as regular characters if the following character
+ *  is not a well-established escape sequence.
+ *  Single quoted strings (quoted with apostrophies) are handled the way
+ *  strings are handled in shell scripts, *except* that backslash escapes
+ *  are honored before backslash escapes and apostrophies.
+ *  @end table
+ */
+typedef enum {
+    OPTION_LOAD_COOKED,
+    OPTION_LOAD_UNCOOKED,
+    OPTION_LOAD_KEEP
+} tOptionLoadMode;
+
+extern tOptionLoadMode option_load_mode;
 
 /*
  *  The pager state is used by optionPagedUsage() procedure.
@@ -178,15 +224,24 @@ typedef struct {
     tCC*    pzOptFmt;
 } arg_types_t;
 
-#  define AGALOC( c, w )        malloc( c )
-#  define AGREALOC( p, c, w )   realloc( p, c )
-#  define AGFREE( p )           free( p )
-#  define AGDUPSTR( p, s, w )   p = strdup( s )
-#  define TAGMEM( m, t )
+#define AGALOC( c, w )        ao_malloc((size_t)c)
+#define AGREALOC( p, c, w )   ao_realloc((void*)p, (size_t)c)
+#define AGFREE( p )           ao_free((void*)p)
+#define AGDUPSTR( p, s, w )   (p = ao_strdup(s))
 
-#ifdef AUTOGEN_BUILD
-#  include <snprintfv/printf.h>
-#endif /* AUTOGEN_BUILD */
+static void *
+ao_malloc( size_t sz );
+
+static void *
+ao_realloc( void *p, size_t sz );
+
+static void
+ao_free( void *p );
+
+static char *
+ao_strdup( char const *str );
+
+#define TAGMEM( m, t )
 
 /*
  *  DO option handling?
@@ -292,6 +347,11 @@ typedef struct {
 # endif
 #endif
 
+#ifndef HAVE_STRCHR
+extern char* strchr( char const *s, int c);
+extern char* strrchr( char const *s, int c);
+#endif
+
 /*
  *  Define and initialize all the user visible strings.
  *  We do not do translations.  If translations are to be done, then
@@ -307,15 +367,11 @@ extern FILE* option_usage_fp;
 
 extern tOptProc optionPrintVersion, optionPagedUsage, optionLoadOpt;
 
-#define LOCAL static
-#include "proto.h"
-
 #endif /* AUTOGEN_AUTOOPTS_H */
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/autoopts.h */

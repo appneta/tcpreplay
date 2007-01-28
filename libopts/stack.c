@@ -1,8 +1,8 @@
 
 /*
  *  stack.c
- *  $Id: stack.c,v 4.6 2006/03/25 19:24:56 bkorb Exp $
- *  Time-stamp:      "2005-02-20 16:33:20 bkorb"
+ *  $Id: stack.c,v 4.12 2007/01/18 05:32:13 bkorb Exp $
+ *  Time-stamp:      "2007-01-13 10:43:21 bkorb"
  *
  *  This is a special option processing routine that will save the
  *  argument to an option in a FIFO queue.
@@ -51,7 +51,9 @@
  * If you do not wish that, delete this exception notice.
  */
 
-#include REGEX_HEADER
+#ifdef WITH_LIBREGEX
+#  include REGEX_HEADER
+#endif
 
 /*=export_func  optionUnstackArg
  * private:
@@ -76,17 +78,18 @@ optionUnstackArg(
      *  THEN indicate that we don't have any of these options
      */
     if (pAL == NULL) {
-        pOptDesc->fOptState &= OPTST_PERSISTENT;
+        pOptDesc->fOptState &= OPTST_PERSISTENT_MASK;
         if ( (pOptDesc->fOptState & OPTST_INITENABLED) == 0)
             pOptDesc->fOptState |= OPTST_DISABLED;
         return;
     }
 
+#ifdef WITH_LIBREGEX
     {
         regex_t   re;
         int       i, ct, dIdx;
 
-        if (regcomp( &re, pOptDesc->pzLastArg, REG_NOSUB ) != 0)
+        if (regcomp( &re, pOptDesc->optArg.argString, REG_NOSUB ) != 0)
             return;
 
         /*
@@ -110,6 +113,7 @@ optionUnstackArg(
                  *  and *not* putting the string pointer back into
                  *  the list.
                  */
+                AGFREE(pzSrc);
                 pAL->useCt--;
                 break;
 
@@ -130,16 +134,55 @@ optionUnstackArg(
 
         regfree( &re );
     }
+#else  /* not WITH_LIBREGEX */
+    {
+        int i, ct, dIdx;
 
+        /*
+         *  search the list for the entry(s) to remove.  Entries that
+         *  are removed are *not* copied into the result.  The source
+         *  index is incremented every time.  The destination only when
+         *  we are keeping a define.
+         */
+        for (i = 0, dIdx = 0, ct = pAL->useCt; --ct >= 0; i++) {
+            tCC*      pzSrc = pAL->apzArgs[ i ];
+            char*     pzEq  = strchr( pzSrc, '=' );
+
+            if (pzEq != NULL)
+                *pzEq = NUL;
+
+            if (strcmp( pzSrc, pOptDesc->optArg.argString ) == 0) {
+                /*
+                 *  Remove this entry by reducing the in-use count
+                 *  and *not* putting the string pointer back into
+                 *  the list.
+                 */
+                AGFREE(pzSrc);
+                pAL->useCt--;
+            } else {
+                if (pzEq != NULL)
+                    *pzEq = '=';
+
+                /*
+                 *  IF we have dropped an entry
+                 *  THEN we have to move the current one.
+                 */
+                if (dIdx != i)
+                    pAL->apzArgs[ dIdx ] = pzSrc;
+                dIdx++;
+            }
+        }
+    }
+#endif /* WITH_LIBREGEX */
     /*
      *  IF we have unstacked everything,
      *  THEN indicate that we don't have any of these options
      */
     if (pAL->useCt == 0) {
-        pOptDesc->fOptState &= OPTST_PERSISTENT;
+        pOptDesc->fOptState &= OPTST_PERSISTENT_MASK;
         if ( (pOptDesc->fOptState & OPTST_INITENABLED) == 0)
             pOptDesc->fOptState |= OPTST_DISABLED;
-        free( (void*)pAL );
+        AGFREE( (void*)pAL );
         pOptDesc->optCookie = NULL;
     }
 }
@@ -209,16 +252,18 @@ optionStackArg(
     tOptions*  pOpts,
     tOptDesc*  pOD )
 {
-    if (pOD->pzLastArg == NULL)
+    char * pz;
+
+    if (pOD->optArg.argString == NULL)
         return;
 
-    addArgListEntry( &(pOD->optCookie), (void*)pOD->pzLastArg );
+    AGDUPSTR(pz, pOD->optArg.argString, "stack arg");
+    addArgListEntry( &(pOD->optCookie), (void*)pz );
 }
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/stack.c */

@@ -1,7 +1,7 @@
 
 /*
- *  sort.c  $Id: sort.c,v 4.7 2006/03/25 19:24:56 bkorb Exp $
- * Time-stamp:      "2005-02-20 17:18:41 bkorb"
+ *  sort.c  $Id: sort.c,v 4.9 2006/10/21 15:42:49 bkorb Exp $
+ * Time-stamp:      "2006-10-18 11:29:04 bkorb"
  *
  *  This module implements argument sorting.
  */
@@ -155,7 +155,7 @@ checkShortOpts( tOptions* pOpts, char* pzArg, tOptState* pOS,
                 char** ppzOpts, int* pOptsIdx )
 {
     while (*pzArg != NUL) {
-        if (FAILED( shortOptionFind( pOpts, *pzArg, pOS )))
+        if (FAILED( shortOptionFind( pOpts, (tAoUC)*pzArg, pOS )))
             return FAILURE;
 
         /*
@@ -210,19 +210,10 @@ optionSort( tOptions* pOpts )
     tOptState os = OPTSTATE_INITIALIZER(DEFINED);
 
     /*
-     *  Disable for POSIX conformance
+     *  Disable for POSIX conformance, or if there are no operands.
      */
-    if (getenv( "POSIXLY_CORRECT" ) != NULL) {
-        errno = 0;
-        return;
-    }
-
-    errno = ENOENT;
-
-    /*
-     *  If all arguments are named, we can't sort 'em.  There are no operands.
-     */
-    if (NAMED_OPTS(pOpts))
+    if (  (getenv( "POSIXLY_CORRECT" ) != NULL)
+       || NAMED_OPTS(pOpts))
         return;
 
     /*
@@ -268,7 +259,7 @@ optionSort( tOptions* pOpts )
         switch (pzArg[1]) {
         case NUL:
             /*
-             *  A regular option.  Put it on the operand list.
+             *  A single hyphen is an operand.
              */
             ppzOpds[ opdsIdx++ ] = pOpts->origArgVect[ (pOpts->curOptIdx)++ ];
             continue;
@@ -295,12 +286,12 @@ optionSort( tOptions* pOpts )
             if ((pOpts->fOptSet & OPTPROC_SHORTOPT) == 0) {
                 res = longOptionFind( pOpts, pzArg+1, &os );
             } else {
-                res = shortOptionFind( pOpts, pzArg[1], &os );
+                res = shortOptionFind( pOpts, (tAoUC)pzArg[1], &os );
             }
             break;
         }
         if (FAILED( res )) {
-            errno = EIO;
+            errno = EINVAL;
             goto freeTemps;
         }
 
@@ -320,7 +311,7 @@ optionSort( tOptions* pOpts )
             if (  (os.optType == TOPT_SHORT)
                && FAILED( checkShortOpts( pOpts, pzArg+2, &os,
                                           ppzOpts, &optsIdx )) )  {
-                errno = EIO;
+                errno = EINVAL;
                 goto freeTemps;
             }
 
@@ -363,7 +354,6 @@ optionSort( tOptions* pOpts )
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/sort.c */

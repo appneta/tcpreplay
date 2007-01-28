@@ -4,21 +4,31 @@
 
 /*
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
+ * Time-stamp:       "2006-09-23 19:46:16 bkorb"
  * Created:          Tue Jun 24 15:07:31 1997
- * Last Modified:    $Date: 2005/07/27 17:26:32 $
+ * Last Modified:    $Date: 2006/11/27 01:52:23 $
  *            by: bkorb
  *
- * $Id: pathfind.c,v 4.4 2005/07/27 17:26:32 bkorb Exp $
+ * $Id: pathfind.c,v 4.10 2006/11/27 01:52:23 bkorb Exp $
  */
 
 /* Code: */
 
 #include "compat.h"
 #ifndef HAVE_PATHFIND
+#if defined(__windows__) && !defined(__CYGWIN__)
+char*
+pathfind( char const*  path,
+          char const*  fileName,
+          char const*  mode )
+{
+    return NULL;
+}
+#else
 
-static char* make_absolute( const char *string, const char *dot_path );
+static char* make_absolute( char const *string, char const *dot_path );
 static char* canonicalize_pathname( char *path );
-static char* extract_colon_unit( char* dir, const char *string, int *p_index );
+static char* extract_colon_unit( char* dir, char const *string, int *p_index );
 
 
 /*=export_func pathfind
@@ -27,9 +37,9 @@ static char* extract_colon_unit( char* dir, const char *string, int *p_index );
  *
  * ifndef: HAVE_PATHFIND
  *
- * arg:  + const char* + path + colon separated list of search directories +
- * arg:  + const char* + file + the name of the file to look for +
- * arg:  + const char* + mode + the mode bits that must be set to match +
+ * arg:  + char const* + path + colon separated list of search directories +
+ * arg:  + char const* + file + the name of the file to look for +
+ * arg:  + char const* + mode + the mode bits that must be set to match +
  *
  * ret_type:  char*
  * ret_desc:  the path to the located file
@@ -76,14 +86,14 @@ static char* extract_colon_unit( char* dir, const char *string, int *p_index );
  * err:  returns NULL if the file is not found.
 =*/
 char*
-pathfind( const char*  path,
-          const char*  fileName,
-          const char*  mode )
+pathfind( char const*  path,
+          char const*  fileName,
+          char const*  mode )
 {
     int   p_index   = 0;
     int   mode_bits = 0;
     char* pathName  = NULL;
-    char  zPath[ MAXPATHLEN + 1 ];
+    char  zPath[ AG_PATH_MAX + 1 ];
 
     if (strchr( mode, 'r' )) mode_bits |= R_OK;
     if (strchr( mode, 'w' )) mode_bits |= W_OK;
@@ -139,7 +149,7 @@ pathfind( const char*  path,
                 break;
             }
         }
-        
+
         closedir( dirP );
 
         if (pathName != NULL)
@@ -155,11 +165,11 @@ pathfind( const char*  path,
  * a new string, even if STRING was an absolute pathname to begin with.
  */
 static char*
-make_absolute( const char *string, const char *dot_path )
+make_absolute( char const *string, char const *dot_path )
 {
     char *result;
     int result_len;
-  
+
     if (!dot_path || *string == '/') {
         result = strdup( string );
     } else {
@@ -170,7 +180,7 @@ make_absolute( const char *string, const char *dot_path )
             if (result[result_len - 1] != '/') {
                 result[result_len++] = '/';
                 result[result_len] = '\0';
-            }    
+            }
         } else {
             result = malloc( 3 + strlen( string ) );
             result[0] = '.'; result[1] = '/'; result[2] = '\0';
@@ -279,7 +289,7 @@ canonicalize_pathname( char *path )
  * more.  Advance (P_INDEX) to the character after the colon.
  */
 static char*
-extract_colon_unit( char* pzDir, const char *string, int *p_index )
+extract_colon_unit( char* pzDir, char const *string, int *p_index )
 {
     char*  pzDest = pzDir;
     int    ix     = *p_index;
@@ -291,7 +301,7 @@ extract_colon_unit( char* pzDir, const char *string, int *p_index )
         return NULL;
 
     {
-        const char* pzSrc = string + ix;
+        char const* pzSrc = string + ix;
 
         while (*pzSrc == ':')  pzSrc++;
 
@@ -304,7 +314,7 @@ extract_colon_unit( char* pzDir, const char *string, int *p_index )
                 goto copy_done;
             }
 
-            if ((pzDest - pzDir) >= MAXPATHLEN)
+            if ((pzDest - pzDir) >= AG_PATH_MAX)
                 break;
         } copy_done:;
 
@@ -317,14 +327,13 @@ extract_colon_unit( char* pzDir, const char *string, int *p_index )
     *p_index = ix;
     return pzDir;
 }
-
+#endif /* __windows__ / __CYGWIN__ */
 #endif /* HAVE_PATHFIND */
 
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of compat/pathfind.c */

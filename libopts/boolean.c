@@ -1,7 +1,7 @@
 
 /*
- *  $Id: boolean.c,v 4.5 2006/03/25 19:24:56 bkorb Exp $
- * Time-stamp:      "2005-02-14 08:24:12 bkorb"
+ *  $Id: boolean.c,v 4.9 2007/01/18 05:32:13 bkorb Exp $
+ * Time-stamp:      "2007-01-13 10:10:39 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -67,16 +67,17 @@
 void
 optionBooleanVal( tOptions* pOpts, tOptDesc* pOD )
 {
-    long  val;
     char* pz;
     ag_bool  res = AG_TRUE;
 
-    switch (*(pOD->pzLastArg)) {
+    switch (*(pOD->optArg.argString)) {
     case '0':
-        val = strtol( pOD->pzLastArg, &pz, 0 );
+    {
+        long  val = strtol( pOD->optArg.argString, &pz, 0 );
         if ((val != 0) || (*pz != NUL))
             break;
         /* FALLTHROUGH */
+    }
     case 'N':
     case 'n':
     case 'F':
@@ -85,18 +86,21 @@ optionBooleanVal( tOptions* pOpts, tOptDesc* pOD )
         res = AG_FALSE;
         break;
     case '#':
-        if (pOD->pzLastArg[1] != 'f')
+        if (pOD->optArg.argString[1] != 'f')
             break;
         res = AG_FALSE;
     }
 
-    pOD->pzLastArg = (char*)res;
+    if (pOD->fOptState & OPTST_ALLOC_ARG) {
+        AGFREE(pOD->optArg.argString);
+        pOD->fOptState &= ~OPTST_ALLOC_ARG;
+    }
+    pOD->optArg.argBool = res;
 }
 /*
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/boolean.c */

@@ -1,7 +1,7 @@
 
 /*
- *  $Id: autoopts.c,v 4.14 2006/03/25 19:24:56 bkorb Exp $
- *  Time-stamp:      "2005-10-29 13:19:36 bkorb"
+ *  $Id: autoopts.c,v 4.21 2007/01/18 05:32:13 bkorb Exp $
+ *  Time-stamp:      "2007-01-17 16:39:29 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -52,21 +52,7 @@
  * If you do not wish that, delete this exception notice.
  */
 
-#ifndef HAVE_PATHFIND
-#  include "compat/pathfind.c"
-#endif
-
-#ifndef HAVE_LIBSNPRINTFV
-# ifndef HAVE_SNPRINTF
-#   include "compat/snprintf.c"
-# endif
-
-# ifndef HAVE_STRDUP
-#   include "compat/strdup.c"
-# endif
-#endif
-
-static const char zNil[] = "";
+static char const zNil[] = "";
 
 #define SKIP_RC_FILES(po) \
     DISABLED_OPT(&((po)->pOptDesc[ (po)->specOptIdx.save_opts+1]))
@@ -86,6 +72,72 @@ static int
 checkConsistency( tOptions* pOpts );
 /* = = = END-STATIC-FORWARD = = = */
 
+LOCAL void *
+ao_malloc( size_t sz )
+{
+    void * res = malloc(sz);
+    if (res == NULL) {
+        fprintf( stderr, "malloc of %d bytes failed\n", (int)sz );
+        exit( EXIT_FAILURE );
+    }
+    return res;
+}
+#undef  malloc
+#define malloc(_s) ao_malloc(_s)
+
+LOCAL void *
+ao_realloc( void *p, size_t sz )
+{
+    void * res = realloc(p, sz);
+    if (res == NULL) {
+        fprintf( stderr, "realloc of %d bytes at 0x%p failed\n", (int)sz, p );
+        exit( EXIT_FAILURE );
+    }
+    return res;
+}
+#undef  realloc
+#define realloc(_p,_s) ao_realloc(_p,_s)
+
+
+LOCAL void
+ao_free( void *p )
+{
+    if (p != NULL)
+        free(p);
+}
+#undef  free
+#define free(_p) ao_free(_p)
+
+
+LOCAL char *
+ao_strdup( char const *str )
+{
+    char * res = strdup(str);
+    if (res == NULL) {
+        fprintf( stderr, "strdup of %d byte string failed\n", (int)strlen(str) );
+        exit( EXIT_FAILURE );
+    }
+    return res;
+}
+#undef  strdup
+#define strdup(_p) ao_strdup(_p)
+
+#ifndef HAVE_PATHFIND
+#  include "compat/pathfind.c"
+#endif
+
+#ifndef HAVE_SNPRINTF
+#  include "compat/snprintf.c"
+#endif
+
+#ifndef HAVE_STRDUP
+#  include "compat/strdup.c"
+#endif
+
+#ifndef HAVE_STRCHR
+#  include "compat/strchr.c"
+#endif
+
 /*
  *  handleOption
  *
@@ -101,8 +153,10 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
      */
     tOptDesc* pOD = pOptState->pOD;
     tOptProc* pOP = pOD->pOptProc;
+    if (pOD->fOptState & OPTST_ALLOC_ARG)
+        AGFREE(pOD->optArg.argString);
 
-    pOD->pzLastArg =  pOptState->pzOptArg;
+    pOD->optArg.argString = pOptState->pzOptArg;
 
     /*
      *  IF we are presetting options, then we will ignore any un-presettable
@@ -167,7 +221,7 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
          *  Copy the most recent option argument.  set membership state
          *  is kept in ``p->optCookie''.  Do not overwrite.
          */
-        p->pzLastArg = pOD->pzLastArg;
+        p->optArg.argString = pOD->optArg.argString;
         pOD = p;
 
     } else {
@@ -175,8 +229,8 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
         pOD->optActualIndex = pOD->optIndex;
     }
 
-    pOD->fOptState &= OPTST_PERSISTENT;
-    pOD->fOptState |= (pOptState->flags & ~OPTST_PERSISTENT);
+    pOD->fOptState &= OPTST_PERSISTENT_MASK;
+    pOD->fOptState |= (pOptState->flags & ~OPTST_PERSISTENT_MASK);
 
     /*
      *  Keep track of count only for DEFINED (command line) options.
@@ -184,11 +238,11 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
      */
     if (  (pOD->fOptState & OPTST_DEFINED)
        && (++pOD->optOccCt > pOD->optMaxCt)  )  {
-        const char* pzEqv =
+        char const* pzEqv =
             (pOD->optEquivIndex != NO_EQUIVALENT) ? zEquiv : zNil;
 
         if ((pOpts->fOptSet & OPTPROC_ERRSTOP) != 0) {
-            const char* pzFmt = (pOD->optMaxCt > 1) ? zAtMost : zOnlyOne;
+            char const* pzFmt = (pOD->optMaxCt > 1) ? zAtMost : zOnlyOne;
             fputs( zErrOnly, stderr );
             fprintf( stderr, pzFmt, pOD->pz_Name, pzEqv,
                      pOD->optMaxCt );
@@ -350,7 +404,7 @@ longOptionFind( tOptions* pOpts, char* pzOptName, tOptState* pOptState )
  *  Find the short option descriptor for the current option
  */
 LOCAL tSuccess
-shortOptionFind( tOptions* pOpts, tAoUC optValue, tOptState* pOptState )
+shortOptionFind( tOptions* pOpts, uint_t optValue, tOptState* pOptState )
 {
     tOptDesc*  pRes = pOpts->pOptDesc;
     int        ct   = pOpts->optCt;
@@ -423,7 +477,7 @@ findOptDesc( tOptions* pOpts, tOptState* pOptState )
      *  OTHERWISE see if there is room to advance and then do so.
      */
     if ((pOpts->pzCurOpt != NULL) && (*pOpts->pzCurOpt != NUL))
-        return shortOptionFind( pOpts, *pOpts->pzCurOpt, pOptState );
+        return shortOptionFind( pOpts, (tAoUC)*(pOpts->pzCurOpt), pOptState );
 
     if (pOpts->curOptIdx >= pOpts->origArgCt)
         return PROBLEM; /* NORMAL COMPLETION */
@@ -493,7 +547,7 @@ findOptDesc( tOptions* pOpts, tOptState* pOptState )
      *  short (i.e. single character) option.
      */
     if ((pOpts->fOptSet & OPTPROC_SHORTOPT) != 0)
-        return shortOptionFind( pOpts, *pOpts->pzCurOpt, pOptState );
+        return shortOptionFind( pOpts, (tAoUC)*(pOpts->pzCurOpt), pOptState );
 
     return longOptionFind( pOpts, pOpts->pzCurOpt, pOptState );
 }
@@ -512,11 +566,13 @@ nextOption( tOptions* pOpts, tOptState* pOptState )
 {
     tSuccess res;
     enum { ARG_NONE, ARG_MAY, ARG_MUST } arg_type = ARG_NONE;
+    teOptArgType at;
 
     res = findOptDesc( pOpts, pOptState );
     if (! SUCCESSFUL( res ))
         return res;
-    pOptState->flags |= (pOptState->pOD->fOptState & OPTST_PERSISTENT);
+    pOptState->flags |= (pOptState->pOD->fOptState & OPTST_PERSISTENT_MASK);
+    at = OPTST_GET_ARGTYPE(pOptState->flags);
 
     /*
      *  Figure out what to do about option arguments.  An argument may be
@@ -526,7 +582,7 @@ nextOption( tOptions* pOpts, tOptState* pOptState )
      */
     if ((pOptState->flags & OPTST_DISABLED) != 0)
         arg_type = ARG_NONE;
-    else if (OPTST_GET_ARGTYPE(pOptState->flags) == OPARG_TYPE_NONE)
+    else if (at == OPARG_TYPE_NONE)
         arg_type = ARG_NONE;
     else if (pOptState->flags & OPTST_ARG_OPTIONAL)
         arg_type = ARG_MAY;
@@ -873,9 +929,9 @@ checkConsistency( tOptions* pOpts )
 
             errCt++;
             if (pOD->optMinCt > 1)
-                fprintf( stderr, zNotEnough, pOD->pz_Name, pOD->optMinCt );
+                 fprintf( stderr, zNotEnough, pOD->pz_Name, pOD->optMinCt );
             else fprintf( stderr, zNeedOne, pOD->pz_Name );
-           } while (0);
+        } while (0);
 
         if (--oCt <= 0)
             break;
@@ -1037,7 +1093,6 @@ optionProcess(
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/autoopts.c */

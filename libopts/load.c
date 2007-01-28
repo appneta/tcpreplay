@@ -1,7 +1,7 @@
 
 /*
- *  $Id: load.c,v 4.18 2006/03/25 19:24:56 bkorb Exp $
- *  Time-stamp:      "2005-10-29 14:45:36 bkorb"
+ *  $Id: load.c,v 4.17 2007/01/18 05:32:13 bkorb Exp $
+ *  Time-stamp:      "2007-01-17 16:46:42 bkorb"
  *
  *  This file contains the routines that deal with processing text strings
  *  for options, either from a NUL-terminated string passed in or from an
@@ -51,6 +51,8 @@
  * If you do not wish that, delete this exception notice.
  */
 
+tOptionLoadMode option_load_mode = OPTION_LOAD_UNCOOKED;
+
 /* = = = START-STATIC-FORWARD = = = */
 /* static forward declarations maintained by :mkfwd */
 static ag_bool
@@ -77,8 +79,8 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode );
  * what:  translate and construct a path
  * arg:   + char*       + pzBuf      + The result buffer +
  * arg:   + int         + bufSize    + The size of this buffer +
- * arg:   + const char* + pzName     + The input name +
- * arg:   + const char* + pzProgPath + The full path of the current program +
+ * arg:   + char const* + pzName     + The input name +
+ * arg:   + char const* + pzProgPath + The full path of the current program +
  *
  * ret-type: ag_bool
  * ret-desc: AG_TRUE if the name was handled, otherwise AG_FALSE.
@@ -102,7 +104,7 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode );
  *
  *  Please note: both @code{$$} and @code{$NAME} must be at the start of the
  *     @code{pzName} string and must either be the entire string or be followed
- *     by the @code{'/'} character.
+ *     by the @code{'/'} (backslash on windows) character.
  *
  * err:  @code{AG_FALSE} is returned if:
  *       @*
@@ -195,7 +197,7 @@ insertProgramPath(
     int     skip = 2;
 
     switch (pzName[2]) {
-    case '/':
+    case DIRCH:
         skip = 3;
     case NUL:
         break;
@@ -208,7 +210,7 @@ insertProgramPath(
      *  If it is, we're done.  Otherwise, we have to hunt
      *  for the program using "pathfind".
      */
-    if (strchr( pzProgPath, '/' ) != NULL)
+    if (strchr( pzProgPath, DIRCH ) != NULL)
         pzPath = pzProgPath;
     else {
         pzPath = pathfind( getenv( "PATH" ), (char*)pzProgPath, "rx" );
@@ -217,7 +219,7 @@ insertProgramPath(
             return AG_FALSE;
     }
 
-    pz = strrchr( pzPath, '/' );
+    pz = strrchr( pzPath, DIRCH );
 
     /*
      *  IF we cannot find a directory name separator,
@@ -235,7 +237,7 @@ insertProgramPath(
     if ((pz - pzPath)+1 + strlen(pzName) >= bufSize)
         return AG_FALSE;
 
-    memcpy( pzBuf, pzPath, (pz - pzPath)+1 );
+    memcpy( pzBuf, pzPath, (size_t)((pz - pzPath)+1) );
     strcpy( pzBuf + (pz - pzPath) + 1, pzName );
 
     /*
@@ -258,10 +260,10 @@ insertEnvVal(
     char* pzDir = pzBuf;
 
     for (;;) {
-        char ch = *++pzName;
+        int ch = (int)*++pzName;
         if (! ISNAMECHAR( ch ))
             break;
-        *(pzDir++) = ch;
+        *(pzDir++) = (char)ch;
     }
 
     if (pzDir == pzBuf)
@@ -293,16 +295,16 @@ mungeString( char* pzTxt, tOptionLoadMode mode )
     if (mode == OPTION_LOAD_KEEP)
         return;
 
-    if (isspace( *pzTxt )) {
+    if (isspace( (int)*pzTxt )) {
         char* pzS = pzTxt;
         char* pzD = pzTxt;
-        while (isspace( *++pzS ))  ;
+        while (isspace( (int)*++pzS ))  ;
         while ((*(pzD++) = *(pzS++)) != NUL)   ;
         pzE = pzD-1;
     } else
         pzE = pzTxt + strlen( pzTxt );
 
-    while ((pzE > pzTxt) && isspace( pzE[-1] ))  pzE--;
+    while ((pzE > pzTxt) && isspace( (int)pzE[-1] ))  pzE--;
     *pzE = NUL;
 
     if (mode == OPTION_LOAD_UNCOOKED)
@@ -338,7 +340,7 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode )
         return pzTxt + strlen(pzTxt);
 
     /*
-     *  If we are keeping all whitespace, then the value starts with the
+     *  If we are keeping all whitespace, then the  modevalue starts with the
      *  character that follows the end of the configurable name, regardless
      *  of which character caused it.
      */
@@ -352,13 +354,12 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode )
      *  because we'll have to skip over an immediately following ':' or '='
      *  (and the white space following *that*).
      */
-    space_break = isspace(*pzEnd);
+    space_break = isspace((int)*pzEnd);
     *(pzEnd++) = NUL;
-    while (isspace(*pzEnd))  pzEnd++;
+    while (isspace((int)*pzEnd))  pzEnd++;
     if (space_break && ((*pzEnd == ':') || (*pzEnd == '=')))
-        pzEnd++;
+        while (isspace((int)*++pzEnd))  ;
 
-    mungeString( pzEnd, mode );
     return pzEnd;
 }
 
@@ -377,7 +378,7 @@ loadOptionLine(
     tDirection  direction,
     tOptionLoadMode   load_mode )
 {
-    while (isspace( *pzLine ))  pzLine++;
+    while (isspace( (int)*pzLine ))  pzLine++;
 
     {
         char* pzArg = assembleArgValue( pzLine, load_mode );
@@ -462,15 +463,26 @@ loadOptionLine(
     } else if (pOS->pOD->fOptState & OPTST_ARG_OPTIONAL) {
         if (*pOS->pzOptArg == NUL)
              pOS->pzOptArg = NULL;
-        else AGDUPSTR( pOS->pzOptArg, pOS->pzOptArg, "option argument" );
+        else {
+            AGDUPSTR( pOS->pzOptArg, pOS->pzOptArg, "option argument" );
+            pOS->flags |= OPTST_ALLOC_ARG;
+        }
 
     } else {
         if (*pOS->pzOptArg == NUL)
              pOS->pzOptArg = zNil;
-        else AGDUPSTR( pOS->pzOptArg, pOS->pzOptArg, "option argument" );
+        else {
+            AGDUPSTR( pOS->pzOptArg, pOS->pzOptArg, "option argument" );
+            pOS->flags |= OPTST_ALLOC_ARG;
+        }
     }
 
-    handleOption( pOpts, pOS );
+    {
+        tOptionLoadMode sv = option_load_mode;
+        option_load_mode = load_mode;
+        handleOption( pOpts, pOS );
+        option_load_mode = sv;
+    }
 }
 
 
@@ -479,7 +491,7 @@ loadOptionLine(
  * what:  process a string for an option name and value
  *
  * arg:   tOptions*,   pOpts,  program options descriptor
- * arg:   const char*, pzLine, NUL-terminated text
+ * arg:   char const*, pzLine, NUL-terminated text
  *
  * doc:
  *
@@ -514,7 +526,6 @@ optionLoadLine(
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
- * tab-width: 4
  * indent-tabs-mode: nil
  * End:
  * end of autoopts/load.c */
