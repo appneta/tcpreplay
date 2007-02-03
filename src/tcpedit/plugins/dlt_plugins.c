@@ -111,6 +111,7 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
     int rcode;
 
     assert(tcpedit);
+    assert(srcdlt >= 0);
 
     ctx = (tcpeditdlt_t *)safe_malloc(sizeof(tcpeditdlt_t));
 
@@ -220,24 +221,83 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t di
     return TCPEDIT_OK;
 }
 
+
+/* 
+ * What is the output DLT type???
+ */
+int 
+tcpedit_dlt_output_dlt(tcpeditdlt_t *ctx)
+{
+   assert(ctx);
+   return ctx->decoder->dlt; 
+}
+
 /*
- * Get the L3 type.  Has to be called after processing
+ * Get the L3 type.  Returns -1 on error.  Get error via tcpedit->geterr()
  */
 int
-tcpedit_dlt_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+tcpedit_dlt_proto(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pktlen)
 {
-    return ctx->encoder->plugin_proto(ctx, packet, pktlen);
+    tcpeditdlt_plugin_t *plugin;
+
+    assert(ctx);
+    assert(dlt >= 0);
+    assert(packet);
+    assert(pktlen);
+
+    plugin = tcpedit_dlt_getplugin(ctx, dlt);
+    if (plugin == NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
+        return -1;
+    }
+    
+    return plugin->plugin_proto(ctx, packet, pktlen);
 }
 
 /*
- * Get the L3 data.  Has to be called after processing
+ * Get the L3 data.  Returns NULL on error.  Get error via tcpedit->geterr()
  */
 u_char *
-tcpedit_dlt_l3data(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen)
 {
-    return ctx->encoder->plugin_layer3(ctx, packet, pktlen);
+    tcpeditdlt_plugin_t *plugin;
 
+    assert(ctx);
+    assert(dlt >= 0);
+    assert(packet);
+    assert(pktlen);
+        
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
+        return NULL;
+    }
+
+    return plugin->plugin_get_layer3(ctx, packet, pktlen);
 }
+
+/* 
+ * Since some L2 headers aren't strictly aligned, we need to "merge" the packet w/ L2 data
+ * and the L3 buffer.  This is basically a NO-OP for things like vlan tagged ethernet (16 byte) header
+ * or Cisco HDLC (4 byte header) but is critical for std ethernet (12 byte header)
+ */
+u_char *
+tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen, u_char *l3data)
+{
+    tcpeditdlt_plugin_t *plugin;
+    assert(ctx);
+    assert(dlt >= 0);
+    assert(pktlen >= 0);
+    assert(packet);
+    assert(l3data);
+    
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
+        return NULL;
+    }
+
+    return plugin->plugin_merge_layer3(ctx, packet, pktlen, l3data);
+}
+
 
 
 /*
@@ -256,6 +316,26 @@ int
 tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char **packet, int pktlen, tcpr_dir_t direction)
 {
     return ctx->encoder->plugin_encode(ctx, packet, pktlen, direction);
+}
+
+/*
+ * what is the source (decoder) DLT type
+ */
+int 
+tcpedit_dlt_src(tcpeditdlt_t *ctx)
+{
+    assert(ctx);
+    return ctx->decoder->dlt;
+}
+
+/*
+ * What is the destination (encoder) DLT type
+ */
+int 
+tcpedit_dlt_dst(tcpeditdlt_t *ctx)
+{
+   assert(ctx);
+   return ctx->encoder->dlt; 
 }
 
 

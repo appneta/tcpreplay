@@ -83,9 +83,11 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
     plugin->plugin_parse_opts = dlt_%{plugin}_parse_opts;
     plugin->plugin_decode = dlt_%{plugin}_decode;
     plugin->plugin_encode = dlt_%{plugin}_encode;
-    plugin->plugin_layer3 = dlt_%{plugin}_layer3;
     plugin->plugin_proto = dlt_%{plugin}_proto;
     plugin->plugin_l2addr_type = dlt_%{plugin}_l2addr_type;
+    plugin->plugin_l2len = dlt_%{plugin}_l2len;
+    plugin->plugin_get_layer3 = dlt_%{plugin}_get_layer3;
+    plugin->plugin_merge_layer3 = dlt_%{plugin}_merge_layer3;
 
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(tcpedit, ctx->plugins, plugin);
@@ -223,17 +225,57 @@ dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 /*
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
-const u_char *
-dlt_%{plugin}_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+u_char *
+dlt_%{plugin}_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+{
+    int l2len;
+    assert(ctx);
+    assert(packet);
+
+    /* FIXME: Is there anything else we need to do?? */
+    l2len = dlt_%{plugin}_l2len(ctx, packet, pktlen);
+
+    assert(pktlen >= l2len);
+
+    return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
+}
+
+/*
+ * function merges the packet (containing L2 and old L3) with the l3data buffer
+ * containing the new l3 data.  Note, if L2 % 4 == 0, then they're pointing to the
+ * same buffer, otherwise there was a memcpy involved on strictly aligned architectures
+ * like SPARC
+ */
+u_char *
+dlt_%{plugin}_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+{
+    int l2len;
+    assert(ctx);
+    assert(packet);
+    assert(l3data);
+    
+    /* FIXME: Is there anything else we need to do?? */
+    l2len = dlt_%{plugin}_l2len(ctx, packet, pktlen);
+    
+    assert(pktlen >= l2len);
+    
+    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
+}
+
+/* 
+ * return the length of the L2 header of the current packet
+ */
+int
+dlt_%{plugin}_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
     assert(pktlen);
-    
-    /* FIXME: make this function work */
-    
-    return TCPEDIT_OK; /* success */
+
+    /* FIXME: return the actual length of your L2 header... parse the packet if you must */
+    return 14;
 }
+
 
 tcpeditdlt_l2addr_type_t 
 dlt_%{plugin}_l2addr_type(void)

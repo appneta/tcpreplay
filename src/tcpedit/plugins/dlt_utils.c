@@ -152,9 +152,11 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
     assert(new->plugin_init);
     assert(new->plugin_cleanup);
     assert(new->plugin_parse_opts);
-    assert(new->plugin_layer3);
     assert(new->plugin_proto);
     assert(new->plugin_l2addr_type);
+    assert(new->plugin_l2len);
+    assert(new->plugin_get_layer3);
+    assert(new->plugin_merge_layer3);
 
     
     /* add it to the end of the chain */
@@ -226,4 +228,25 @@ tcpedit_dlt_l3data_copy(tcpeditdlt_t *ctx, u_char *packet, int pktlen, int l2len
     ptr = (&(packet)[l2len]);
 #endif
     return ptr;
+}
+
+/*
+ * reverse of tcpedit_dlt_l3data_copy
+ */
+u_char *
+tcpedit_dlt_l3data_merge(tcpeditdlt_t *ctx, u_char *packet, int pktlen, const u_char *l3data, const int l2len)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen >= 0);
+    assert(l3data);
+    assert(l2len >= 0);
+#ifdef FORCE_ALIGN
+    /* 
+     * put back the layer 3 and above back in the pkt.data buffer 
+     * we can't edit the packet at layer 3 or above beyond this point
+     */
+     memcpy((&(*packet)[l2len]), l3data, pktlen - l2len);
+#endif
+    return packet;
 }

@@ -43,7 +43,8 @@ int dlt_%{plugin}_parse_opts(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 int dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen);
 int dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-const u_char *dlt_%{plugin}_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+u_char *dlt_%{plugin}_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
+u_char *dlt_%{plugin}_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
 tcpeditdlt_l2addr_type_t dlt_%{plugin}_l2addr_type(void);
 int dlt_%{plugin}_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 

@@ -35,6 +35,7 @@
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
 #include "tcpedit_stub.h"
 #include "en10mb_extra.h"
 #include "ethernet.h"
@@ -82,10 +83,11 @@ dlt_en10mb_register(tcpeditdlt_t *ctx)
     plugin->plugin_parse_opts = dlt_en10mb_parse_opts;
     plugin->plugin_decode = dlt_en10mb_decode;
     plugin->plugin_encode = dlt_en10mb_encode;
-    plugin->plugin_layer3 = dlt_en10mb_layer3;
     plugin->plugin_proto = dlt_en10mb_proto;
     plugin->plugin_l2addr_type = dlt_en10mb_l2addr_type;
-//     plugin->plugin_l2len = dlt_en10mb_l2len;
+    plugin->plugin_l2len = dlt_en10mb_l2len;
+    plugin->plugin_get_layer3 = dlt_en10mb_get_layer3;
+    plugin->plugin_merge_layer3 = dlt_en10mb_merge_layer3;
 
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
@@ -311,7 +313,6 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     tcpeditdlt_plugin_t *plugin = NULL;
     struct tcpr_ethernet_hdr *eth = NULL;
     struct tcpr_802_1q_hdr *vlan = NULL;
-    en10mb_extra_t *extra = NULL;
     en10mb_config_t *config = NULL;
     int newl2len;
     u_char tmpbuff[MAXPACKET];
@@ -478,9 +479,8 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_en10mb_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 {
-    struct tcpr_ethernet_hdr *eth;
     int l2len;
     assert(ctx);
     assert(packet);
@@ -488,6 +488,53 @@ dlt_en10mb_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
+}
+
+/*
+ * function merges the packet (containing L2 and old L3) with the l3data buffer
+ * containing the new l3 data.  Note, if L2 % 4 == 0, then they're pointing to the
+ * same buffer, otherwise there was a memcpy involved on strictly aligned architectures
+ * like SPARC
+ */
+u_char *
+dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+{
+    int l2len;
+    assert(ctx);
+    assert(packet);
+    assert(l3data);
+    
+    l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
+    
+    assert(pktlen >= l2len);
+    
+    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
+}
+
+/* 
+ * return the length of the L2 header of the current packet
+ */
+int
+dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+{
+    struct tcpr_ethernet_hdr *eth = NULL;
+    
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+    
+    eth = (struct tcpr_ethernet_hdr *)packet;
+    switch (eth->ether_type) {
+        case ETHERTYPE_VLAN:
+            return 18;
+            break;
+        
+        default:
+            return 14;
+            break;
+    }
+    tcpedit_seterr(ctx->tcpedit, "Whoops!  Bug in my code!");
+    return -1;   
 }
 
 tcpeditdlt_l2addr_type_t

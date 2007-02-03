@@ -87,8 +87,9 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_decode)(tcpeditdlt_t *, const u_char *, const int);
     int (*plugin_encode)(tcpeditdlt_t *, u_char **, int, tcpr_dir_t);
     int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
-//    int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
-    u_char *(*plugin_layer3)(tcpeditdlt_t *, const u_char *, const int);
+    int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
+    u_char *(*plugin_get_layer3)(tcpeditdlt_t *, u_char *, const int);
+    u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const int, u_char *);
     tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
     void *config; /* user configuration data for the encoder */
     
@@ -102,7 +103,9 @@ typedef struct tcpeditdlt_plugin_s tcpeditdlt_plugin_t;
  */
 struct tcpeditdlt_s {
     tcpedit_t *tcpedit;                 /* pointer to our tcpedit context */
-    u_char *l3buff;                     /* pointer for L3 buffer on strictly aligned systems */
+#ifdef FORCE_ALIGN
+    u_char *ipbuff;                     /* pointer for L3 buffer on strictly aligned systems */
+#endif
     tcpeditdlt_plugin_t *plugins;       /* registered plugins */
     tcpeditdlt_plugin_t *decoder;       /* Encoder plugin */
     tcpeditdlt_plugin_t *encoder;       /* Decoder plugin */      
@@ -128,17 +131,5 @@ struct tcpeditdlt_s {
     u_int16_t proto;                        /* layer 3 proto type?? */
     void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */
 };
-
-/*********************************************************************
- * Internal API helper functions
- ********************************************************************/
-
-/* Base functions for creating new tcpeditdlt_t nodes and finding them in the linked list */
-tcpeditdlt_plugin_t *tcpedit_dlt_getplugin(tcpeditdlt_t *ctx, int dlt);
-tcpeditdlt_plugin_t *tcpedit_dlt_getplugin_byname(tcpeditdlt_t *ctx, const char *name);
-tcpeditdlt_plugin_t *tcpedit_dlt_newplugin(void);
-int tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new);
-
-
 
 #endif

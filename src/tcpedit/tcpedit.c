@@ -69,7 +69,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 {
     ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
-    int l2len = 0, l2proto, retval;
+    int l2len = 0, l2proto, retval, dlt;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
 
     assert(tcpedit);
@@ -94,46 +94,20 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         
     /* rewrite DLT */
     if (tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction) != TCPEDIT_OK)
-        err(1, "aborting.");
+        errx(1, "%s", tcpedit_geterr(tcpedit));
 
-    /* Rewrite any Layer 2 data 
-    if ((l2len = rewrite_l2(tcpedit, pkthdr, pktdata, direction)) == 0)
-        return 0; /* packet is too long and we didn't trunc, so skip it */
-    
-    if (l2len < 0)
-        errx(1, "fatal rewrite_l2 error: %s", tcpedit_geterr(tcpedit));
-
-    if (direction == TCPR_DIR_C2S) {
-        l2proto = get_l2protocol(*pktdata, (*pkthdr)->caplen, 
-            pcap_datalink(tcpedit->runtime.pcap1));
-    } else {
-        l2proto = get_l2protocol(*pktdata, (*pkthdr)->caplen, 
-            pcap_datalink(tcpedit->runtime.pcap2));
-    }
-
+    dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
+    l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == ETHERTYPE_IP) {
-        dbg(3, "Packet has an IP header...");
-#ifdef FORCE_ALIGN
-        /* 
-         * copy layer 3 and up to our temp packet buffer
-         * for now on, we have to edit the packetbuff because
-         * just before we send the packet, we copy the packetbuff 
-         * back onto the pkt.data + l2len buffer
-         * we do all this work to prevent byte alignment issues
-         */
-        ip_hdr = (ipv4_hdr_t *)tcpedit->runtime.ipbuff;
-        memcpy(ip_hdr, (&(*pktdata)[l2len]), (*pkthdr)->caplen - l2len);
-#else
-        /*
-         * on non-strict byte align systems, don't need to memcpy(), 
-         * just point to 14 bytes into the existing buffer
-         */
-        ip_hdr = (ipv4_hdr_t *) (&(*pktdata)[l2len]);
-#endif
+        ip_hdr = tcpedit_dlt_l3data(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
+        if (ip_hdr == NULL) {
+            errx(1, "%s", tcpedit_geterr(tcpedit));
+        }        
+        dbg(3, "Packet has an IPv4 header...");
     } else {
-        dbg(3, "Packet isn't IP...");
+        dbg(3, "Packet isn't IPv4...");
         /* non-IP packets have a NULL ip_hdr struct */
         ip_hdr = NULL;
     }
@@ -204,14 +178,6 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
-#ifdef FORCE_ALIGN
-    /* 
-     * put back the layer 3 and above back in the pkt.data buffer 
-     * we can't edit the packet at layer 3 or above beyond this point
-     */
-     memcpy((&(*pktdata)[l2len]), ip_hdr, (*pkthdr)->caplen - l2len);
-#endif
-
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
     tcpedit->runtime.pkts_edited ++;
     return retval;
@@ -253,6 +219,7 @@ tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1)
  * pcap source and destination (based on DLT) can be properly rewritten
  * return 0 on sucess
  * return -1 on error
+ * DO NOT USE!
  */
 int
 tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)

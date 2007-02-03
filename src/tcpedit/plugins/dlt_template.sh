@@ -59,6 +59,7 @@ echo ""
 echo "You must also modify ./dlt_stub.def and add the line:"
 echo "#include ${PLUGIN}_opts.def"
 echo ""
-echo "You will then need to re-run automake from the root source directory"
+echo "Next, you must make the appropriate modifications to ./dlt_plugin.c"
+echo "Lastly, re-run automake from the root source directory"
 echo "and run ./configure to build your new plugin"
 exit 0

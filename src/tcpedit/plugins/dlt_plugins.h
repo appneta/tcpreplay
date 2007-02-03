@@ -52,6 +52,9 @@ tcpeditdlt_t *tcpedit_dlt_init(tcpedit_t *tcpedit, int srcdlt);
 /* cleans up after ourselves.  Called for each initalized plugin */
 void tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
 
+/* What is the output DLT type? */
+int tcpedit_dlt_output_dlt(tcpeditdlt_t *ctx);
+
 /*
  * process the given packet, by calling decode & encode
  */
@@ -67,7 +70,15 @@ int tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char **packet, int pktlen, tcpr_dir_
 /*
  * After processing each packet, you can get info about L2/L3
  */
-int tcpedit_dlt_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *tcpedit_dlt_l3data(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+int tcpedit_dlt_proto(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pktlen);
+u_char *tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen);
+
+/* merge the L2 & L3 (possibly changed?) after calling tcpedit_dlt_l3data() */
+u_char *tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen, u_char *l3data);
+
+
+
+int tcpedit_dlt_src(tcpeditdlt_t *ctx);
+int tcpedit_dlt_dst(tcpeditdlt_t *ctx);
 
 #endif
