@@ -106,7 +106,7 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 #undef HAVE_LIBGEN_H
 
-/* Enable libnet support */
+/* Do we support libnet for sending packets? */
 #undef HAVE_LIBNET
 
 /* Define to 1 if you have the `nsl' library (-lnsl). */
@@ -191,6 +191,9 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
+/* Define to 1 if you have the `strchr' function. */
+#undef HAVE_STRCHR
+
 /* Define to 1 if you have the `strdup' function. */
 #undef HAVE_STRDUP
 
@@ -211,6 +214,9 @@
 
 /* Define to 1 if you have the `strncpy' function. */
 #undef HAVE_STRNCPY
+
+/* Define to 1 if you have the `strrchr' function. */
+#undef HAVE_STRRCHR
 
 /* Define to 1 if you have the `strtol' function. */
 #undef HAVE_STRTOL
@@ -283,8 +289,14 @@
 /* Define to 1 if the system has the type `uintptr_t'. */
 #undef HAVE_UINTPTR_T
 
+/* Define to 1 if the system has the type `uint_t'. */
+#undef HAVE_UINT_T
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <utime.h> header file. */
+#undef HAVE_UTIME_H
 
 /* Define to 1 if you have the <values.h> header file. */
 #undef HAVE_VALUES_H
@@ -336,16 +348,16 @@
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
-/* The size of a `char*', as computed by sizeof. */
+/* The size of `char*', as computed by sizeof. */
 #undef SIZEOF_CHARP
 
-/* The size of a `int', as computed by sizeof. */
+/* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
-/* The size of a `long', as computed by sizeof. */
+/* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The size of a `short', as computed by sizeof. */
+/* The size of `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -362,6 +374,9 @@
 
 /* Define if using the dmalloc debugging malloc package */
 #undef WITH_DMALLOC
+
+/* Define this if a working libregex can be found */
+#undef WITH_LIBREGEX
 
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */
@@ -388,7 +403,7 @@
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc
 
-/* Define to `unsigned' if <sys/types.h> does not define. */
+/* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
 /* Define to `uint16_t' if <sys/types.h> does not define. */

@@ -150,7 +150,7 @@ enum tcpprep_mode {
 	CLIENT_MODE		/* second pass through in client (router) mode */
 };
 
-#define BROADCAST_MAC "\FF\FF\FF\FF\FF\FF"
+#define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
 
 /* MAC macros for printf */
 #define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
