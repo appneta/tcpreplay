@@ -40,7 +40,7 @@
  * available in the global options structure
  */
 
-#include "tcpedit.h"
+#include "tcpedit-int.h"
 #include "lib/sll.h"
 #include "dlt.h"
 #include "rewrite_l2.h"

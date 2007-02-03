@@ -34,7 +34,7 @@
 #include "defines.h"
 #include "common.h"
 
-#include "tcpedit.h"
+#include "tcpedit-int.h"
 #include "edit_packet.h"
 #include "checksum.h"
 #include "lib/sll.h"

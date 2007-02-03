@@ -6,25 +6,23 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libdltplugin_a_SOURCES += $(srcdir)/dlt_en10mb/en10mb.c $(srcdir)/dlt_en10mb/en10mb_extra.c
+libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_en10mb/en10mb.c $(srcdir)/plugins/dlt_en10mb/en10mb_extra.c
 
-noinst_HEADERS += $(srcdir)/dlt_en10mb/en10mb.h $(srcdir)/dlt_en10mb/en10mb_stub.h \
-	$(srcdir)/dlt_en10mb/en10mb_extra.h
+noinst_HEADERS += $(srcdir)/plugins/dlt_en10mb/en10mb.h	$(srcdir)/plugins/dlt_en10mb/en10mb_extra.h
 
-EXTRA_DIST += $(srcdir)/dlt_en10mb/en10mb_stub.def $(srcdir)/dlt_en10mb/en10mb_opts.def
+# $(srcdir)/plugins/dlt_en10mb/en10mb_stub.h 
+
+EXTRA_DIST += $(srcdir)/plugins/dlt_en10mb/en10mb_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/dlt_en10mb/en10mb.c: $(srcdir)/dlt_en10mb/en10mb_stub.h \
-	$(srcdir)/dlt_en10mb/en10mb.h $(srcdir)/dlt_plugins.h $(srcdir)/dlt_plugins-int.h
+$(srcdir)/plugins/dlt_en10mb/en10mb.c: $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins/dlt_en10mb/en10mb.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
 
+# Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 
-$(srcdir)/dlt_en10mb/en10mb_stub.h: $(srcdir)/dlt_en10mb/en10mb_opts.def \
-	dlt_en10mb/en10mb_stub.def
-	-cd $(srcdir)/dlt_en10mb && @AUTOGEN@ en10mb_stub.def
+DLT_STUB_DEPS += $(srcdir)/plugins/dlt_en10mb/en10mb_opts.def
 
-MOSTLYCLEANFILES += $(srcdir)/dlt_en10mb/*~
-
-MAINTAINERCLEANFILES += $(srcdir)/dlt_en10mb/en10mb_stub.h
+MOSTLYCLEANFILES += $(srcdir)/plugins/dlt_en10mb/*~
 
 # END OF: dlt_en10mb

@@ -35,12 +35,14 @@
   * Should not be available outside of the plugin framework
   */
 
-#include "tcpedit.h"
-#include "tcpr.h"
-#include "dlt_plugins.h"
 
 #ifndef _DLT_PLUGINS_INT_H_
 #define _DLT_PLUGINS_INT_H_
+
+#include "tcpedit-int.h"
+#include "tcpr.h"
+#include "dlt_plugins.h"
+#include "tcpedit_stub.h"
 
 
 /* 
@@ -56,7 +58,6 @@ enum tcpeditdlt_bit_mask_e {
     PLUGIN_MASK_DSTADDR       = 0x04
 };
 typedef enum tcpeditdlt_bit_mask_e tcpeditdlt_bit_mask_t;
-
 
 /* Union of all possible L2 address types */
 union tcpeditdlt_l2address_u {
@@ -137,8 +138,6 @@ tcpeditdlt_plugin_t *tcpedit_dlt_getplugin(tcpeditdlt_t *ctx, int dlt);
 tcpeditdlt_plugin_t *tcpedit_dlt_getplugin_byname(tcpeditdlt_t *ctx, const char *name);
 tcpeditdlt_plugin_t *tcpedit_dlt_newplugin(void);
 int tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new);
-
-u_char *tcpeditdlt_get_l3data(tcpeditdlt_t *ctx, u_char *packet, int ptklen, int l2len);
 
 
 

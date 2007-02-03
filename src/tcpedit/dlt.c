@@ -32,7 +32,7 @@
 #include <assert.h>
 #include "config.h"
 #include "defines.h"
-#include "tcpedit.h"
+#include "tcpedit-int.h"
 #include "dlt.h"
 
 /*
@@ -45,10 +45,11 @@ dlt2layer2len(tcpedit_t *tcpedit, int dlt)
     assert(tcpedit);
     int len;
     switch(dlt) {
+        /*
         case DLT_USER:
             len = tcpedit->l2.len;
             break;
-
+            */
         case DLT_NULL:
             len = 2;
             break;
@@ -60,11 +61,11 @@ dlt2layer2len(tcpedit_t *tcpedit, int dlt)
         case DLT_EN10MB:
             len = 12;
             break;
-
+            /*
         case DLT_VLAN:
             len = 14;
             break;
-
+            */
         case DLT_LINUX_SLL:
             len = 16;
             break;
@@ -93,9 +94,9 @@ dltrequires(tcpedit_t *tcpedit, int dlt)
     int req = TCPEDIT_DLT_OK; // no change required by default
 
     switch(dlt) {
-        case DLT_USER:
         case DLT_EN10MB:
-        case DLT_VLAN:
+/*        case DLT_USER:
+        case DLT_VLAN: */
             /* we have everthing we need in the original packet */
             break;
 
@@ -129,9 +130,9 @@ dlt2mtu(tcpedit_t *tcpedit, int dlt)
     int mtu;
     assert(tcpedit);
     switch (dlt) {
+/*        case DLT_VLAN:
+        case DLT_USER: */
         case DLT_EN10MB:
-        case DLT_VLAN:
-        case DLT_USER:
         case DLT_RAW:
         case DLT_C_HDLC:
             mtu = 1500;
@@ -167,6 +168,7 @@ layer2len(tcpedit_t *tcpedit)
    
    if (tcpedit->l2.enabled)
        return tcpedit->l2.len;
+/*            
        
    switch (tcpedit->l2.dlt) {
        case DLT_EN10MB:
@@ -175,22 +177,23 @@ layer2len(tcpedit_t *tcpedit)
         case DLT_VLAN:
             return 18;
             break;
+        case DLT_USER:
+            return tcpedit->l2.len;
+            break;
         case DLT_RAW:
         case DLT_LOOP:
             return 0;
             break;
         case DLT_LINUX_SLL:
             return 16; // is this right?
-        case DLT_USER:
-            return tcpedit->l2.len;
-            break;
         case DLT_C_HDLC:
             return 4;
             break;
         default:
-            /* this shouldn't happen... fall back to the default */
+            // this shouldn't happen... fall back to the default 
             break;
    }
+*/
    
    tcpedit_seterr(tcpedit, "Unable to determine layer2len");
    return -1;

@@ -1,9 +1,3 @@
-flag = {
-    name        = tcpedit_dlt;
-    documentation;
-    lib-name    = tcpedit_dlt;
-};
-
 /* 
  * Allow user to specify output DLT.  The values for this should
  * match the argument name prefix of your plugin.  For example:
@@ -32,11 +26,11 @@ EO_DLT_DOC;
 };
 
 flag = {
-	name		= skipbroadcast;
-	descrip		= "Skip rewriting broadcast/multicast IP's";
+	name		= skipl2broadcast;
+	descrip		= "Skip rewriting broadcast/multicast Layer 2 addresses";
 	doc			= <<- EOText
-By default, editing Layer 2 or Layer 3 addresses will rewrite 
-broadcast and multicast IP and MAC addresses.	Setting this flag
-will keep broadcast/multicast IP and MAC addresses from being rewritten.
+By default, editing Layer 2 addresses will rewrite 
+broadcast and multicast  MAC addresses.	Setting this flag
+will keep broadcast/multicast MAC addresses from being rewritten.
 EOText;
 };

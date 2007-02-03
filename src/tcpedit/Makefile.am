@@ -1,12 +1,12 @@
 # $Id$
-SUBDIRS = plugins
+#SUBDIRS = plugins
+
 noinst_LIBRARIES = libtcpedit.a
 
-libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
-	rewrite_l2.c portmap.c dlt.c checksum.c
+BUILT_SOURCES = tcpedit_stub.h
 
-libtcpedit_a_LIBADD = $(srcdir)/../common/libcommon.a
-libtcpedit_a_LIBADD += $(srcdir)/plugins/libdltplugin.a
+libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
+	portmap.c dlt.c checksum.c
 
 manpages: tcpedit.1
 
@@ -15,12 +15,15 @@ tcpedit.1: tcpedit_stub.def
 
 tcpedit.c: tcpedit_stub.h
 
-tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def
-	@AUTOGEN@ tcpedit_stub.def
+# Get AutoOpts search path
+opts_list=`find plugins -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
+
+tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def $(srcdir)/plugins/dlt_stub.def
+	@AUTOGEN@ $(opts_list) tcpedit_stub.def
 
 AM_CFLAGS = -I.. -I../common -I../.. $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS) 
 
-noinst_HEADERS = tcpedit.h edit_packet.h rewrite_l2.h portmap.h \
+noinst_HEADERS = tcpedit.h edit_packet.h portmap.h \
 	tcpedit_stub.h parse_args.h dlt.h checksum.h
 
 MOSTLYCLEANFILES = *~
@@ -28,3 +31,6 @@ MOSTLYCLEANFILES = *~
 MAINTAINERCLEANFILES = Makefile.in tcpedit_stub.h tcpedit.1
 
 EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def
+
+include $(srcdir)/plugins/Makefile.am
+

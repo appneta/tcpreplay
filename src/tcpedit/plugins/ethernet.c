@@ -1,3 +1,8 @@
+#include "tcpedit.h"
+#include "dlt_plugins-int.h"
+#include <assert.h>
+#include <string.h>
+
 /* 
  * takes a ptr to an ethernet address and returns
  * 1 if it is unicast or 0 if it is multicast or

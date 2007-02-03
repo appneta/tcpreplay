@@ -1,7 +1,7 @@
 /* $Id:$ */
 
 /*
- * Copyright (c) 2006 Aaron Turner.
+ * Copyright (c) 2006-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
-#include "en10mb_stub.h"
+#include "tcpedit_stub.h"
 #include "en10mb_extra.h"
 #include "ethernet.h"
 
@@ -56,41 +56,41 @@ static u_int16_t dlt_value = DLT_EN10MB;
  */
 int 
 dlt_en10mb_register(tcpeditdlt_t *ctx)
- {
-     tcpeditdlt_plugin_t *plugin;
-     assert(ctx);
-     
-     /* create  a new plugin structure */
-     plugin = tcpedit_dlt_newplugin();
-     
-     /* set what we provide & require */
-     plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-     plugin->requires += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
+{
+    tcpeditdlt_plugin_t *plugin;
+    assert(ctx);
 
-     /* what is our dlt type? */
-     plugin->dlt = dlt_value;
-     
-     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
-     plugin->name = safe_strdup(dlt_name);
+    /* create  a new plugin structure */
+    plugin = tcpedit_dlt_newplugin();
 
-     /* 
-      * Point to our functions, note, you need a function for EVERY method.  
-      * Even if it is only an empty stub returning success.
-      */
-     plugin->plugin_init = dlt_en10mb_init;
-     plugin->plugin_cleanup = dlt_en10mb_cleanup;
-     plugin->plugin_parse_opts = dlt_en10mb_parse_opts;
-     plugin->plugin_decode = dlt_en10mb_decode;
-     plugin->plugin_encode = dlt_en10mb_encode;
-     plugin->plugin_layer3 = dlt_en10mb_layer3;
-     plugin->plugin_proto = dlt_en10mb_proto;
-     plugin->plugin_l2addr_type = dlt_en10mb_l2addr_type;
+    /* set what we provide & require */
+    plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
+    plugin->requires += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
+
+    /* what is our dlt type? */
+    plugin->dlt = dlt_value;
+
+    /* set the prefix name of our plugin.  This is also used as the prefix for our options */
+    plugin->name = safe_strdup(dlt_name);
+
+    /* 
+     * Point to our functions, note, you need a function for EVERY method.  
+     * Even if it is only an empty stub returning success.
+     */
+    plugin->plugin_init = dlt_en10mb_init;
+    plugin->plugin_cleanup = dlt_en10mb_cleanup;
+    plugin->plugin_parse_opts = dlt_en10mb_parse_opts;
+    plugin->plugin_decode = dlt_en10mb_decode;
+    plugin->plugin_encode = dlt_en10mb_encode;
+    plugin->plugin_layer3 = dlt_en10mb_layer3;
+    plugin->plugin_proto = dlt_en10mb_proto;
+    plugin->plugin_l2addr_type = dlt_en10mb_l2addr_type;
 //     plugin->plugin_l2len = dlt_en10mb_l2len;
 
-     /* add it to the available plugin list */
-     return tcpedit_dlt_addplugin(ctx, plugin);
- }
- 
+    /* add it to the available plugin list */
+    return tcpedit_dlt_addplugin(ctx, plugin);
+}
+
  
 /*
  * Initializer function.  This function is called only once, if and only iif
@@ -206,11 +206,6 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
                 break;
         }
     }
-    
-    /* Layer 3 protocol */
-    if (HAVE_OPT(ENET_PROTO))
-        ctx->proto = OPT_VALUE_ENET_PROTO;
-
 
     /*
      * Validate 802.1q vlan args and populate tcpedit->vlan_record
@@ -320,8 +315,6 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     en10mb_config_t *config = NULL;
     int newl2len;
     u_char tmpbuff[MAXPACKET];
-
-
 
     assert(ctx);
     assert(packet_ex);
@@ -494,7 +487,7 @@ dlt_en10mb_layer3(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(pktlen);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
-    return tcpeditdlt_get_l3data(ctx, packet, pktlen, l2len);
+    return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
 
 tcpeditdlt_l2addr_type_t

@@ -1,8 +1,1 @@
-/* This documentation flag is required to be first */
-flag = {
-    name        = tcpedit_dlt_%{plugin};
-    documentation;
-    lib-name    = tcpedit_dlt_%{plugin};
-};
-
-/* Add your flags for your encoder here */
+/* Add the flag definitions for your plugin here */

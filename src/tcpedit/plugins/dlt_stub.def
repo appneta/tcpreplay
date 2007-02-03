@@ -1,6 +1,5 @@
-AutoGen definitions options;
-prog-name  = tcpeditdlt_stub;  // but is always required
-prog-title = 'libtcpedit dlt autoopts stub';  // also required
 #include dlt_opts.def
-library;
+
+/* Add your plugin option definitions here. */
+#include en10mb_opts.def
 

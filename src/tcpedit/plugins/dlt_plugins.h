@@ -43,7 +43,6 @@
 /* forward declare our context, so we can use it in the plugin struct */
 typedef struct tcpeditdlt_s tcpeditdlt_t;
 
-
 /* 
  * initialize the DLT plugin backend, and return a new context var.
  * call this once per pcap to be processed 
@@ -65,5 +64,10 @@ int tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet,
 int tcpedit_dlt_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 int tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char **packet, int pktlen, tcpr_dir_t direction);
 
+/*
+ * After processing each packet, you can get info about L2/L3
+ */
+int tcpedit_dlt_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+u_char *tcpedit_dlt_l3data(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 
 #endif

@@ -1,10 +1,12 @@
-
+#include "tcpedit.h"
+#include "dlt_plugins-int.h"
+#include "assert.h"
 
 /*
  * Ethernet supports 14 & 18 byte headers depending on if we're using 802.1Q
  * VLAN tags or not 
  */
-static int
+int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     struct tcpr_ethernet_hdr *eth;

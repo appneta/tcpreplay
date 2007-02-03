@@ -42,7 +42,7 @@
 #include <errno.h>
 
 #include "tcpreplay.h"
-#include "tcpedit.h"
+#include "tcpedit-int.h"
 #include "portmap.h"
 
 

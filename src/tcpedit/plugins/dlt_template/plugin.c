@@ -1,7 +1,7 @@
 /* $Id:$ */
 
 /*
- * Copyright (c) 2006 Aaron Turner.
+ * Copyright (c) 2006-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
  */
 
 #include "dlt_plugins-int.h"
+#include "dlt_utils.h"
 #include "%{plugin}.h"
 #include "tcpedit.h"
 #include "common.h"
@@ -85,8 +86,6 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
     plugin->plugin_layer3 = dlt_%{plugin}_layer3;
     plugin->plugin_proto = dlt_%{plugin}_proto;
     plugin->plugin_l2addr_type = dlt_%{plugin}_l2addr_type;
-    plugin->plugin_l2len = dlt_%{plugin}_l2len;
-
 
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(tcpedit, ctx->plugins, plugin);

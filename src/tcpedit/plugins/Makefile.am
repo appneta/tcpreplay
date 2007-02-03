@@ -1,22 +1,25 @@
 # $Id: $
-noinst_LIBRARIES = libdltplugin.a
 
-libdltplugin_a_SOURCES = dlt_plugins.c ethernet.c
+libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_plugins.c $(srcdir)/plugins/ethernet.c \
+	$(srcdir)/plugins/dlt_utils.c
 
-noinst_HEADERS = dlt_plugins.h dlt_stub.h ethernet.h
+noinst_HEADERS += $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/ethernet.h \
+	$(srcdir)/plugins/dlt_utils.c
 
-dlt_plugins.c: dlt_stub.h
+AM_CFLAGS += -I. -I$(srcdir)/plugins -I$(srcdir)/../common $(LIBOPTS_CFLAGS) 
 
-dlt_stub.h: dlt_opts.def dlt_stub.def
-	@AUTOGEN@ dlt_stub.def
+EXTRA_DIST += $(srcdir)/plugins/dlt_opts.def $(srcdir)/plugins/dlt_stub.def
 
-AM_CFLAGS = -I.. -I../.. -I../../.. -I../../common $(LIBOPTS_CFLAGS) 
+MOSTLYCLEANFILES += $(srcdir)/plugins/*~
 
-EXTRA_DIST =
+MAINTAINERCLEANFILES += Makefile.in 
 
-MOSTLYCLEANFILES = *~
 
-MAINTAINERCLEANFILES = Makefile.in 
+DLT_STUB_DEPS = $(srcdir)/plugins/dlt_opts.def 
 
-include $(srcdir)/dlt_en10mb/Makefile.am
+$(srcdir)/plugins/dlt_stub.def: $(DLT_STUB_DEPS)
 
+########################################################
+# Add your plugin Makefile.am's below this line
+########################################################
+include $(srcdir)/plugins/dlt_en10mb/Makefile.am

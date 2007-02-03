@@ -1,8 +1,3 @@
-flag = {
-    name        = tcpedit_dlt_en10mb;
-    documentation;
-    lib-name    = tcpedit_dlt_en10mb;
-};
 
 flag = {
     name        = enet-dmac;
@@ -40,18 +35,6 @@ Example:
 @example
 --enet-smac=00:12:13:14:15:16,00:22:33:44:55:66
 @end example
-EOText;
-};
-
-flag = {
-	name		= enet-proto;
-	arg-type	= number;
-	max			= 1;
-	descrip		= "Override ethernet protocol type";
-	arg-range	= "0->65535";
-	doc			= <<- EOText
-Force the ethernet protocol field.  Useful for when the source DLT
-doesn't contain a protocol field.
 EOText;
 };
 

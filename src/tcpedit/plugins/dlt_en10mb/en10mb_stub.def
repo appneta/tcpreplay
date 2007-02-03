@@ -1,5 +1,0 @@
-AutoGen definitions options;
-prog-name  = en10mb_stub;  // but is always required
-prog-title = 'libtcpedit DLT en10mb autoopts stub';  // also required
-#include en10mb_opts.def
-library;

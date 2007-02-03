@@ -4,49 +4,6 @@ flag = {
     lib-name    = tcpedit;
 };
 
-#ifndef TCPEDIT_MAC_DISABLE
-flag = {
-    name        = dmac;
-    value       = D;
-    arg-type    = string;
-    max         = 1;
-    descrip     = "Rewrite destination MAC addresses";
-    doc         = <<- EOText
-Takes a pair of comma deliminated ethernet MAC addresses which
-will replace the destination MAC address of outbound packets.
-The first MAC address will be used for the server traffic
-and the optional second MAC address will be used for the client
-traffic.
-
-Example:
-@example
---dmac=00:12:13:14:15:16,00:22:33:44:55:66
-@end example
-EOText;
-};
-
-
-flag = {
-    name        = smac;
-    value       = S;
-    arg-type    = string;
-    max         = 1;
-    descrip     = "Rewrite source MAC addresses";
-    doc         = <<- EOText
-Takes a pair of comma deliminated ethernet MAC addresses which
-will replace the source MAC address of outbound packets.
-The first MAC address will be used for the server traffic
-and the optional second MAC address will be used for the client traffic.
-
-Example:
-@example
---smac=00:12:13:14:15:16,00:22:33:44:55:66
-@end example
-EOText;
-};
-
-#endif
-
 #ifndef TCPEDIT_PROTO_DISABLE
 flag = {
 	name		= proto;
@@ -62,28 +19,6 @@ EOText;
 };
 #endif
 
-#ifndef TCPEDIT_DLINK_DISABLE
-flag = {
-    name        = dlink;
-    value       = l;
-    arg-type    = string;
-    max         = 2;
-    stack-arg;
-    descrip     = "Rewrite Data-Link layer with specified data";
-    doc         = <<- EOText
-Provide a series of comma deliminated hex values which will be
-used to rewrite or create the Layer 2 header of the packets.
-The first instance of this argument will rewrite both server
-and client traffic, but if this argument is specified a second
-time, it will be used for the client traffic.
-
-Example:
-@example
---dlink=01,02,03,04,05,06,00,1A,2B,3C,4D,5E,6F,08,00
-@end example
-EOText;
-};
-#endif
 
 #ifndef TCPEDIT_PORTMAP_DISABLE
 flag = {
@@ -246,57 +181,4 @@ EOText;
 };
 #endif
 
-#ifndef TCPEDIT_VLAN_DISABLE
-/* rewrite 802.1q vlan tags */
-flag = {
-    name        = vlan;
-    value       = T;
-    max         = 1;
-    descrip     = "Specify 802.1q VLAN tag mode";
-    arg-type    = string;
-    doc         = <<- EOText
-Allows you to rewrite ethernet frames to add a 802.1q header to standard 802.3
-ethernet headers or remove the 802.1q VLAN tag information.
-@table @bullet
-@item
-@var{add}
-Rewrites the existing 802.3 ethernet header as an 802.1q VLAN header
-@item
-@var{del}
-Rewrites the existing 802.1q VLAN header as an 802.3 ethernet header
-EOText;
-};
-
-flag = {
-    name        = vlan_tag;
-    value       = t;
-    max         = 1;
-    descrip     = "Specify the new 802.1q VLAN tag value";
-    arg-type    = number;
-    flags-must  = vlan;
-    arg-range   = "0->4095"; /* VID's are 12bit unsigned int's */
-    doc         = "";
-};
-
-flag = {
-    name        = vlan_cfi;
-    value       = f;
-    max         = 1;
-    descrip     = "Specify the 802.1q VLAN CFI value";
-    arg-type    = number;
-    flags-must  = vlan;
-    arg-range   = "0->1"; /* one bit */
-    doc         = "";
-};
-
-flag = {
-    name        = vlan_pri;
-    value       = p;
-    max         = 1;
-    descrip     = "Specify the 802.1q VLAN priority";
-    flags-must  = vlan;
-    arg-type    = number;
-    arg-range   = "0->7"; /* one byte */
-    doc         = "";
-};
-#endif
+#include dlt_stub.def

@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#include "tcpedit.h"
+#include "tcpedit-int.h"
 #include "tcpedit_stub.h"
 #include "portmap.h"
 #include "common.h"
@@ -54,7 +54,7 @@
 #include "lib/sll.h"
 #include "dlt.h"
 
-tOptDesc const* tcpedit_tcpedit_optDesc_p;
+tOptDesc *const tcpedit_tcpedit_optDesc_p;
 
 /* 
  * Processs a given packet and edit the pkthdr/pktdata structures
@@ -92,10 +92,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if (tcpedit->efcs)
         (*pkthdr)->caplen -= 2;
         
-    /* Rewrite any Layer 2 data */
+    /* rewrite DLT */
+    if (tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction) != TCPEDIT_OK)
+        err(1, "aborting.");
+
+    /* Rewrite any Layer 2 data 
     if ((l2len = rewrite_l2(tcpedit, pkthdr, pktdata, direction)) == 0)
         return 0; /* packet is too long and we didn't trunc, so skip it */
-
+    
     if (l2len < 0)
         errx(1, "fatal rewrite_l2 error: %s", tcpedit_geterr(tcpedit));
 
@@ -217,42 +221,31 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
  * initializes the tcpedit library.  returns 0 on success, -1 on error.
  */
 int
-tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1, pcap_t *pcap2)
+tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1)
 {
-
+    
     assert(tcpedit);
     assert(pcap1);
+    
+    tcpedit = safe_malloc(sizeof(tcpedit_t));
+
+    if ((tcpedit->dlt_ctx = tcpedit_dlt_init(tcpedit, pcap_datalink(pcap1))) == NULL)
+        return TCPEDIT_ERROR;
 
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
-    tcpedit->l2.len = dlt2layer2len(tcpedit, DLT_EN10MB);
-
-    tcpedit->l2proto = ETHERTYPE_IP;
-    tcpedit->mac_mask = 0x0;
-
+ 
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.pcap1 = pcap1;
     
-    tcpedit->l2.dlt = pcap_datalink(tcpedit->runtime.pcap1);
     dbgx(1, "Input file (1) datalink type is %s\n",
-            pcap_datalink_val_to_name(tcpedit->l2.dlt));
+            pcap_datalink_val_to_name(pcap_datalink(pcap1)));
 
-    if (pcap2 != NULL) {
-        tcpedit->runtime.pcap2 = pcap2;
-        dbgx(1, "Input file (2) datalink type is %s\n",
-            pcap_datalink_val_to_name(pcap_datalink(pcap2)));
-        if (pcap_datalink(pcap1) != pcap_datalink(pcap2)) {
-            tcpedit_seterr(tcpedit, "Sorry, currently both inputs must have the same DLT type.");
-            return -1;
-        }
-    } else {
-        tcpedit->runtime.pcap2 = pcap1;
-    }    
             
 #ifdef FORCE_ALIGN
-    if ((tcpedit->runtime.ipbuff = (u_char *)malloc(MAXPACKET)) == NULL)
-        return -1;
+    tcpedit->runtime.ipbuff = (u_char *)safe_malloc(MAXPACKET);
 #endif
-    return 1;
+
+    return TCPEDIT_OK;
 }
 
 /*
@@ -271,15 +264,6 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
         pcap_datalink_val_to_description(srcdlt));
     dbgx(1, "Output linktype is %s", 
         pcap_datalink_val_to_description(dstdlt));
-
-    /*
-     * make sure that the options in tcpedit are sane
-     */
-    if (tcpedit->mac_mask > 0x0F) {
-        tcpedit_seterr(tcpedit, "Invalid mac_mask value: 0x%04x",
-                tcpedit->mac_mask);
-        return -1;
-    }
     
     /* is bidir sane? */
     if (tcpedit->bidir != TCPEDIT_BIDIR_ON &&
@@ -287,7 +271,6 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
         tcpedit_seterr(tcpedit, "Invalid bidir value: 0x%4x");
         return -1;
     }
-
 
     /* 
      * right now, output has to be ethernet, but in the future we'll 
@@ -298,116 +281,6 @@ tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
         tcpedit_seterr(tcpedit, "Sorry, but tcpedit currently only "
                 "supports writing to DLT_EN10MB output");
         return -1;
-    }
-
-
-    /* 
-     * user specified a full L2 header, so we're all set!
-     */
-    if (tcpedit->l2.enabled)
-        return 0;
-
-    /*
-     * compare the linktype of the capture file to the information 
-     * provided on the CLI (src/dst MAC addresses)
-     */
-
-    switch (srcdlt) {
-    case DLT_USER:
-        /* user specified header, nothing to do */
-        break;
-
-    case DLT_VLAN:
-        /* same as EN10MB, just different placement of proto field */
-        break;
-
-    case DLT_EN10MB:
-        /* nothing to do here */
-        break;
-
-
-    case DLT_LINUX_SLL:
-        /* 
-         * DLT_LINUX_SLL
-         * Linux cooked socket has the source mac but not the destination mac
-         * hence we look for the destination mac(s)
-         */
-        /* single output mode */
-        if (! tcpedit->bidir) {
-            /* if SLL, then either --dlink or --dmac  are ok */
-            if ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC1) == 0) {
-                tcpedit_seterr(tcpedit, 
-                    "Input %s requires --dlink or --dmac <mac>", 
-                    pcap_datalink_val_to_description(srcdlt));
-                return -1;
-            }
-        }
-        
-        /* dual output mode */
-        else {
-            /* if using dual interfaces, make sure we have both dest MAC's */
-            if (((tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC1) == 0) || 
-                ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC2) == 0)) {
-                tcpedit_seterr(tcpedit, 
-                    "Input %s with --cachefile requires --dlink or\n"
-                    "\t--dmac <mac1>:<mac2>",  
-                    pcap_datalink_val_to_description(srcdlt));
-                return -1;
-            }
-        }            
-        break;
- 
-    case DLT_C_HDLC:
-    case DLT_RAW:
-        /* 
-         * DLT_C_HDLC
-         * Cisco HDLC doesn't contain a source or destination mac,
-         * but it does contain the L3 protocol type (just like an ethernet 
-         * header does) so we require either a full L2 or both src/dst mac's
-         *
-         * DLT_RAW is assumed always IP, so we know the protocol type
-         */
-            
-        /* single output mode */
-        if (! tcpedit->bidir) {
-            /* Need both src/dst MAC's */
-            if (((tcpedit->mac_mask & TCPEDIT_MAC_MASK_DMAC1) == 0) || 
-                ((tcpedit->mac_mask & TCPEDIT_MAC_MASK_SMAC1) == 0)) {
-                tcpedit_seterr(tcpedit, 
-                        "Input %s requires --dlink or --smac <mac> and "
-                        "--dmac <mac>", 
-                        pcap_datalink_val_to_description(srcdlt));
-                return -1;
-            }
-        }
-        
-        /* dual output mode */
-        else {
-            /* Need to have src/dst MAC's for both directions */
-            if (tcpedit->mac_mask != 
-                    TCPEDIT_MAC_MASK_SMAC1 + TCPEDIT_MAC_MASK_SMAC2 + 
-                    TCPEDIT_MAC_MASK_DMAC1 + TCPEDIT_MAC_MASK_DMAC2) {
-                tcpedit_seterr(tcpedit, 
-                     "Input %s with --cachefile requires --dlink or\n"
-                     "\t--smac <mac1>:<mac2> and --dmac <mac1>:<mac2>",
-                     pcap_datalink_val_to_description(srcdlt));
-                return -1;
-            }
-        }
-        break;
-
-    case DLT_NULL:
-        /* 
-         * we should actually support DLT_NULL (no layer2 header, but does
-         * give us the layer 3 protocol), but we don't right now,
-         * so fall through to the default and complain
-         */
-    default:
-        tcpedit_seterr(tcpedit, "Unsupported input datalink %s (0x%x)", 
-             pcap_datalink_val_to_description(srcdlt), 
-             srcdlt);
-        return -1;
-        break;
     }
 
 

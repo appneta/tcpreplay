@@ -2,7 +2,6 @@
 
 # Script to use the dlt_template subdirectory to create a new DLT plugin
 
-
 try() {
     eval $*
     if [ $? -ne 0 ]; then
@@ -40,7 +39,7 @@ for i in Makefile.am ; do
 done
 
 # Files to have their name changed
-for i in plugin.c plugin.h plugin_opts.def plugin_stub.def ; do
+for i in plugin.c plugin.h plugin_opts.def ; do
     OUTFILE=`echo $i | sed -E "s/plugin/${PLUGIN}/"`
     OUTFILE="${PLUGINDIR}/${OUTFILE}"
     if [ -f $OUTFILE ]; then
@@ -53,8 +52,13 @@ done
 
 # tell the user what to do now
 echo "Plugin template created in: $PLUGINDIR"
-echo "Pleased be sure to modify ./Makefile.am and add the line to the END OF THE FILE:"
-echo "include \$(srcdir)/${PLUGINDIR}/Makefile.am"
 echo ""
-echo "You will then need to re-run automake and ./configure to build your new plugin"
+echo "Pleased be sure to modify ./Makefile.am and add the line to the END OF THE FILE:"
+echo "include \$(srcdir)/plugins/${PLUGINDIR}/Makefile.am"
+echo ""
+echo "You must also modify ./dlt_stub.def and add the line:"
+echo "#include ${PLUGIN}_opts.def"
+echo ""
+echo "You will then need to re-run automake from the root source directory"
+echo "and run ./configure to build your new plugin"
 exit 0
