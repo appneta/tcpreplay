@@ -13,20 +13,23 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c \
 	flowreplay_opts.c tcpbridge_opts.c manpages
 
 
+# Get AutoOpts search path
+opts_list=`find tcpedit -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
+
 tcpprep.1: tcpprep_opts.def
-	@AUTOGEN@ -T agman1.tpl --base-name tcpprep tcpprep_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpprep tcpprep_opts.def
 
 tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman1.tpl --base-name tcprewrite tcprewrite_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcprewrite tcprewrite_opts.def
 
 tcpreplay.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman1.tpl --base-name tcpreplay tcpreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpreplay tcpreplay_opts.def
 
 flowreplay.1: flowreplay_opts.def
-	@AUTOGEN@ -T agman1.tpl --base-name flowreplay flowreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name flowreplay flowreplay_opts.def
 
 tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman1.tpl --base-name tcpbridge tcpbridge_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpbridge tcpbridge_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 flowreplay.1
@@ -51,15 +54,14 @@ tcpreplay_opts.h: tcpreplay_opts.c
 tcpreplay_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ tcpreplay_opts.def
 
-
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
-		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+	$(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c 
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ tcprewrite_opts.def
+	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 
 
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPPREP
@@ -83,12 +85,11 @@ flowreplay_opts.c: flowreplay_opts.def
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPBRIDGE
 tcpbridge_LDADD = ./common/libcommon.a ./tcpedit/libtcpedit.a \
 		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c 
-		
+tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c 		
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ tcpbridge_opts.def
+	@AUTOGEN@ $(opts_list) tcpbridge_opts.def
 
 noinst_HEADERS = tcpreplay.h tcpprep.h flowreplay.h bridge.h \
 		 defines.h tree.h \
