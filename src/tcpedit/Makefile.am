@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile.am 1630 2007-02-03 04:23:14Z aturner $
 #SUBDIRS = plugins
 
 noinst_LIBRARIES = libtcpedit.a
@@ -16,7 +16,7 @@ tcpedit.1: tcpedit_stub.def
 tcpedit.c: tcpedit_stub.h
 
 # Get AutoOpts search path
-opts_list=`find plugins -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
+#opts_list=`find plugins -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
 
 tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def $(srcdir)/plugins/dlt_stub.def
 	@AUTOGEN@ $(opts_list) tcpedit_stub.def

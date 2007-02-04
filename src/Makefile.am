@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile.am 1632 2007-02-03 18:46:16Z aturner $
 SUBDIRS = common tcpedit flow
 
 if SYSTEM_STRLCPY
@@ -14,7 +14,8 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c \
 
 
 # Get AutoOpts search path
-opts_list=`find tcpedit -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
+#opts_list=`find tcpedit -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
+opts_list=-L tcpedit
 
 tcpprep.1: tcpprep_opts.def
 	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpprep tcpprep_opts.def

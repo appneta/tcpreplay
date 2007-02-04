@@ -1,5 +1,5 @@
 #include dlt_opts.def
 
 /* Add your plugin option definitions here. */
-#include en10mb_opts.def
+#include dlt_en10mb/en10mb_opts.def
 

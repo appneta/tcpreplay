@@ -181,4 +181,4 @@ EOText;
 };
 #endif
 
-#include dlt_stub.def
+#include plugins/dlt_stub.def

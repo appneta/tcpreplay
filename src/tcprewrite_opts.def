@@ -1,7 +1,7 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2004-2006";
+    date        = "2004-2007";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
@@ -22,6 +22,7 @@ gnu-usage;
 help-value      = "H";
 save-opts-value = "";
 load-opts-value = "";
+
 #include tcpedit/tcpedit_opts.def
 
 detail		= <<- EOText
@@ -62,7 +63,7 @@ include         = "#include \"defines.h\"\n"
 homerc          = "$$/";
 
 
-#ifndef TCPEDIT_DLT_DISABLE
+#ifdef TCPEDIT_DLT_DISABLE
 flag = {
     name        = dlt;
     value       = L;
@@ -208,7 +209,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2006 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2001-2007 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBNET
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
