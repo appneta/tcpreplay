@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: cidr.c 1611 2006-11-06 04:01:42Z aturner $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

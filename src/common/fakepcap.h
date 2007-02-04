@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: fakepcap.h 1600 2006-10-10 15:53:54Z aturner $ */
 
 /*
  * Copyright (c) 2004 Aaron Turner.

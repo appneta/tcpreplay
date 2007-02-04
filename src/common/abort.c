@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: abort.c 1543 2006-07-29 06:20:25Z aturner $ */
 
 /*
  * Copyright (c) 2005 Aaron Turner.

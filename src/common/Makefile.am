@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile.am 1621 2006-11-09 07:01:37Z aturner $
 noinst_LIBRARIES = libcommon.a
 
 BUILT_SOURCES = svn_version.c
