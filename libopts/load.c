@@ -1,7 +1,7 @@
 
 /*
- *  $Id: load.c,v 4.17 2007/01/18 05:32:13 bkorb Exp $
- *  Time-stamp:      "2007-01-17 16:46:42 bkorb"
+ *  $Id: load.c,v 4.18 2007/02/03 19:25:35 bkorb Exp $
+ *  Time-stamp:      "2007-02-03 11:10:21 bkorb"
  *
  *  This file contains the routines that deal with processing text strings
  *  for options, either from a NUL-terminated string passed in or from an
@@ -99,8 +99,11 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode );
  *  @code{$$} is replaced with the directory name of the @code{pzProgPath},
  *  searching @code{$PATH} if necessary.
  *  @*
+ *  @code{$@} is replaced with the AutoGen package data installation directory
+ *  (aka @code{pkgdatadir}).
+ *  @*
  *  @code{$NAME} is replaced by the contents of the @code{NAME} environment
- *  variable.
+ *  variable.  If not found, the search fails.
  *
  *  Please note: both @code{$$} and @code{$NAME} must be at the start of the
  *     @code{pzName} string and must either be the entire string or be followed
@@ -110,8 +113,11 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode );
  *       @*
  *       @bullet{} The input name exceeds @code{bufSize} bytes.
  *       @*
- *       @bullet{} @code{$$} or @code{$NAME} is not the full string and
- *                 the next character is not '/'.
+ *       @bullet{} @code{$$}, @code{$@@} or @code{$NAME} is not the full string
+ *                 and the next character is not '/'.
+ *       @*
+ *       @bullet{} libopts was built without PKGDATADIR defined and @code{$@@}
+ *                 was specified.
  *       @*
  *       @bullet{} @code{NAME} is not a known environment variable
  *       @*
@@ -125,9 +131,15 @@ optionMakePath(
     tCC*    pzName,
     tCC*    pzProgPath )
 {
+    size_t  name_len = strlen( pzName );
+#ifndef PKGDATADIR
+#define PKGDATADIR ""
+#endif
+    tSCC    pkgdatadir[] = PKGDATADIR;
+
     ag_bool res = AG_TRUE;
 
-    if (bufSize <= strlen( pzName ))
+    if (bufSize <= name_len)
         return AG_FALSE;
 
     /*
@@ -151,10 +163,28 @@ optionMakePath(
      *  it must start with "$$/".  In either event, replace the "$$"
      *  with the path to the executable and append a "/" character.
      */
-    else if (pzName[1] == '$')
+    else switch (pzName[1]) {
+    case NUL:
+        return AG_FALSE;
+
+    case '$':
         res = insertProgramPath( pzBuf, bufSize, pzName, pzProgPath );
-    else
+        break;
+
+    case '@':
+        if (pkgdatadir[0] == NUL)
+            return AG_FALSE;
+
+        if (name_len + sizeof (pkgdatadir) > bufSize)
+            return AG_FALSE;
+
+        strcpy(pzBuf, pkgdatadir);
+        strcpy(pzBuf + sizeof(pkgdatadir) - 1, pzName + 2);
+        break;
+
+    default:
         res = insertEnvVal( pzBuf, bufSize, pzName, pzProgPath );
+    }
 
     if (! res)
         return AG_FALSE;
