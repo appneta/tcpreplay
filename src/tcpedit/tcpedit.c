@@ -190,13 +190,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
  * initializes the tcpedit library.  returns 0 on success, -1 on error.
  */
 int
-tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1)
+tcpedit_init(tcpedit_t **tcpedit_ex, pcap_t *pcap1)
 {
-    
-    assert(tcpedit);
+    tcpedit_t *tcpedit;
     assert(pcap1);
     
-    tcpedit = safe_malloc(sizeof(tcpedit_t));
+    *tcpedit_ex = safe_malloc(sizeof(tcpedit_t));
+    tcpedit = *tcpedit_ex;
 
     if ((tcpedit->dlt_ctx = tcpedit_dlt_init(tcpedit, pcap_datalink(pcap1))) == NULL)
         return TCPEDIT_ERROR;
@@ -225,35 +225,14 @@ tcpedit_init(tcpedit_t *tcpedit, pcap_t *pcap1)
  * DO NOT USE!
  */
 int
-tcpedit_validate(tcpedit_t *tcpedit, int srcdlt, int dstdlt)
+tcpedit_validate(tcpedit_t *tcpedit)
 {
     assert(tcpedit);
     tcpedit->validated = 1;
 
-    dbgx(1, "Input linktype is %s", 
-        pcap_datalink_val_to_description(srcdlt));
-    dbgx(1, "Output linktype is %s", 
-        pcap_datalink_val_to_description(dstdlt));
-    
-    /* is bidir sane? */
-    if (tcpedit->bidir != TCPEDIT_BIDIR_ON &&
-        tcpedit->bidir != TCPEDIT_BIDIR_OFF) {
-        tcpedit_seterr(tcpedit, "Invalid bidir value: 0x%4x");
-        return -1;
-    }
-
-    /* 
-     * right now, output has to be ethernet, but in the future we'll 
-     * support other DLT types, and we don't want to have to change the 
-     * API, so we'll do the check here
+    /* we used to do a bunch of things here, but not anymore...
+     * maybe I should find something to do or just get ride of it
      */
-    if (dstdlt != DLT_EN10MB) {
-        tcpedit_seterr(tcpedit, "Sorry, but tcpedit currently only "
-                "supports writing to DLT_EN10MB output");
-        return -1;
-    }
-
-
     return 0;
 }
 
@@ -274,20 +253,24 @@ tcpedit_geterr(tcpedit_t *tcpedit)
  * used to set the error string when there is an error
  */
 void
-tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...)
+__tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...)
 {
     va_list ap;
+    char errormsg[TCPEDIT_ERRSTR_LEN];
     
     assert(tcpedit);
 
     va_start(ap, fmt);
     if (fmt != NULL) {
         dbgx(1, fmt, ap);
-        (void)vsnprintf(tcpedit->runtime.errstr, 
+        (void)vsnprintf(errormsg, 
               (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
     }
 
     va_end(ap);
+    
+    snprintf(tcpedit->runtime.errstr, (TCPEDIT_ERRSTR_LEN -1), "From %s:%s() line %d:\n%s",
+        file, func, line, errormsg);
 }
 
 /*
@@ -309,7 +292,6 @@ void
 tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
 {
     va_list ap;
-    
     assert(tcpedit);
 
     va_start(ap, fmt);

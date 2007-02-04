@@ -195,7 +195,7 @@ layer2len(tcpedit_t *tcpedit)
    }
 */
    
-   tcpedit_seterr(tcpedit, "Unable to determine layer2len");
+   tcpedit_seterr(tcpedit, "%s", "Unable to determine layer2len");
    return -1;
    
 }

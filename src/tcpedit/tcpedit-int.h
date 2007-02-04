@@ -134,7 +134,9 @@ struct tcpedit_s {
     int maxpacket;          /* L2 header + MTU */
 };
 
-void tcpedit_seterr(tcpedit_t *tcpedit, const char *fmt, ...);
+#define tcpedit_seterr(x, y, ...) __tcpedit_seterr(x, __FUNCTION__, __LINE__, __FILE__, y, __VA_ARGS__)
+
+void __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...);
 void tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...);
 
 #endif

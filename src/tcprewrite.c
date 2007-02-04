@@ -76,7 +76,6 @@ int rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
 int main(int argc, char *argv[])
 {
     int optct, rcode;
-    tcpedit_t *tcpedit_ptr;
 
     tcprewrite_init();
 
@@ -87,15 +86,14 @@ int main(int argc, char *argv[])
 
     /* parse the tcprewrite args */
     post_args(argc, argv);
-    tcpedit_ptr = &tcpedit;
     
     /* init tcpedit context */
-    if (tcpedit_init(tcpedit, options.pin) < 0) {
+    if (tcpedit_init(&tcpedit, options.pin) < 0) {
         errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
     
     /* parse the tcpedit args */
-    rcode = tcpedit_post_args(&tcpedit_ptr);
+    rcode = tcpedit_post_args(&tcpedit);
     if (rcode < 0) {
         errx(1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
@@ -109,13 +107,11 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    /*
-    if (tcpedit_validate(tcpedit, pcap_datalink(options.pin), 
-            HAVE_OPT(DLT) ? OPT_VALUE_DLT : pcap_datalink(options.pin)) < 0) {
-        errx(1, "Unable to edit packets given options/DLT types:\n%s",
+    if (tcpedit_validate(tcpedit) < 0) {
+        errx(1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
-    */
+
     if (rewrite_packets(tcpedit, options.pin, options.pout) != 0)
         errx(1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
 

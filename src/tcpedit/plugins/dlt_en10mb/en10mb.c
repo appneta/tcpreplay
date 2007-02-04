@@ -108,7 +108,7 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     
     /* vlan tags need an additional 4 bytes */
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin en10mb");
+        tcpedit_seterr(ctx->tcpedit, "%s", "Unable to initalize unregistered plugin en10mb");
         return TCPEDIT_ERROR;
     }
     
@@ -225,7 +225,7 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
         if (config->vlan != TCPEDIT_VLAN_OFF) {
             if (config->vlan == TCPEDIT_VLAN_ADD) {
                 if (! HAVE_OPT(ENET_VLAN_TAG)) {
-                    tcpedit_seterr(ctx->tcpedit, 
+                    tcpedit_seterr(ctx->tcpedit, "%s",
                             "Must specify a new 802.1 VLAN tag if vlan "
                             "mode is add");
                     return TCPEDIT_ERROR;
@@ -362,7 +362,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
         } else {
-            tcpedit_seterr(ctx->tcpedit, "Please provide a source address");
+            tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a source address");
             return TCPEDIT_ERROR;
         }
 
@@ -372,7 +372,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
         } else {
-            tcpedit_seterr(ctx->tcpedit, "Please provide a destination address");
+            tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
             return TCPEDIT_ERROR;            
         }
     
@@ -383,7 +383,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);            
         } else {
-            tcpedit_seterr(ctx->tcpedit, "Please provide a source address");
+            tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a source address");
             return TCPEDIT_ERROR;
         }
 
@@ -394,13 +394,13 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         } else if (ctx->addr_type == ETHERNET){
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);            
         } else {
-            tcpedit_seterr(ctx->tcpedit, "Please provide a destination address");
+            tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
             return TCPEDIT_ERROR;
         }
 
         
     } else {
-        tcpedit_seterr(ctx->tcpedit, "Encoders only support C2S or C2S!");
+        tcpedit_seterr(ctx->tcpedit, "%s", "Encoders only support C2S or C2S!");
         return TCPEDIT_ERROR;
     }
     
@@ -533,7 +533,7 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             return 14;
             break;
     }
-    tcpedit_seterr(ctx->tcpedit, "Whoops!  Bug in my code!");
+    tcpedit_seterr(ctx->tcpedit, "%s", "Whoops!  Bug in my code!");
     return -1;
 }
 

@@ -61,7 +61,7 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     assert(data);
     
     if (len <= 0) {
-        tcpedit_seterr(tcpedit, "length of data must be > 0");
+        tcpedit_seterr(tcpedit, "%s", "length of data must be > 0");
         return TCPEDIT_ERROR;
     }
     

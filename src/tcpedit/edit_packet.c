@@ -60,7 +60,7 @@ static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
  * Returns 0 on sucess, -1 on error
  */
 int
-fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t * ip_hdr)
+fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
 {
     int ret1 = 0, ret2 = 0;
     assert(tcpedit);
@@ -112,7 +112,7 @@ randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
  */
 int
 randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char * pktdata, ipv4_hdr_t * ip_hdr)
+        u_char *pktdata, ipv4_hdr_t *ip_hdr)
 {
     char srcip[16], dstip[16];
 
@@ -163,7 +163,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 int
 untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char * pktdata, ipv4_hdr_t * ip_hdr)
+        u_char *pktdata, ipv4_hdr_t *ip_hdr)
 {
     int l2len;
     assert(tcpedit);

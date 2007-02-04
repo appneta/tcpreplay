@@ -109,6 +109,7 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 {
     tcpeditdlt_t *ctx;
     int rcode;
+    char *dst_dlt_name = NULL;
 
     assert(tcpedit);
     assert(srcdlt >= 0);
@@ -147,8 +148,9 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
     }
 
     /* Select the encoder plugin */
-    if ((ctx->encoder = tcpedit_dlt_getplugin_byname(ctx, OPT_ARG(DLT))) == NULL) {
-        tcpedit_seterr(tcpedit, "No output DLT plugin available for: %s", OPT_ARG(DLT));
+    dst_dlt_name = OPT_ARG(DLT) ? OPT_ARG(DLT) : ctx->decoder->name;
+    if ((ctx->encoder = tcpedit_dlt_getplugin_byname(ctx, dst_dlt_name)) == NULL) {
+        tcpedit_seterr(tcpedit, "No output DLT plugin available for: %s", dst_dlt_name);
         goto INIT_ERROR;
     }
     

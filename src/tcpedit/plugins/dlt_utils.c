@@ -160,11 +160,14 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
 
     
     /* add it to the end of the chain */
-    ptr = ctx->plugins;
-    while (ptr->next != NULL)
-        ptr = ptr->next;
+    if (ctx->plugins == NULL) {
+        ctx->plugins = new;
+    } else {
+        while (ptr->next != NULL)
+            ptr = ptr->next;
         
-    ptr->next = new;
+        ptr->next = new;
+    }
     
     /* we're done */
     return 0;
@@ -180,9 +183,10 @@ tcpedit_dlt_validate(tcpeditdlt_t *ctx)
 {
     u_int32_t bit;
     
-    for (bit = 1; bit <= UINT32_MAX; bit = bit << 2) {
+    /* loops from 1 -> UINT32_MAX by powers of 2 */
+    for (bit = 1; bit != 0; bit = bit << 2) {
         if (ctx->encoder->requires & bit && ! ctx->decoder->provides & bit) {
-            tcpedit_seterr(ctx->tcpedit, tcpeditdlt_bit_info[tcpeditdlt_bit_map[bit]]);
+            tcpedit_seterr(ctx->tcpedit, "%s", tcpeditdlt_bit_info[tcpeditdlt_bit_map[bit]]);
             return TCPEDIT_ERROR;
         }            
     }
