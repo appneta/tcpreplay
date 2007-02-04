@@ -12,7 +12,7 @@ AC_PROG_LIBTOOL
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=0
-MICRO_VERSION=beta11
+MICRO_VERSION=beta12
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -275,7 +275,19 @@ AC_ARG_ENABLE(flowreplay,
          AC_DEFINE([ENABLE_FLOWREPLAY], [1], [Enable building flowreplay (alpha)]) 
       fi])
 
-AM_CONDITIONAL(ENABLE_FLOWREPLAY, [test x$flowreplay = xyes])
+AM_CONDITIONAL([ENABLE_FLOWREPLAY], [test x$flowreplay = xyes])
+
+dnl Enable tcpbridge
+tcpbridge=no
+AC_ARG_ENABLE(tcpbridge,
+    AC_HELP_STRING([--enable-tcpbridge], [Enable building tcpbridge (beta)]),
+    [ if test x$enableval = xyes; then
+         tcpbridge=yes
+         AC_DEFINE([ENABLE_TCPBRIDGE], [1], [Enable building tcpbridge (beta)]) 
+      fi])
+
+AM_CONDITIONAL([ENABLE_TCPBRIDGE], [test x$tcpbridge = xyes])
+
 
 dnl ##################################################
 dnl Checks for libnet (shamelessly horked from dsniff)
@@ -662,7 +674,8 @@ if test $have_bpf = no -a $have_libnet = no -a $have_pf = no ; then
 	enable_tcpbridge=no
 fi
 
-AM_CONDITIONAL(ENABLE_TCPBRIDGE, [test $enable_tcpbridge = yes])
+# ADT: Commented for now
+# AM_CONDITIONAL(ENABLE_TCPBRIDGE, [test $enable_tcpbridge = yes])
 
 dnl Older versions of libpcap are missing some DLT types
 dnl If doesn't exist, we'll define them in src/common/fakepcap.h
@@ -933,7 +946,6 @@ AC_OUTPUT([Makefile
            src/Makefile
            src/common/Makefile
            src/tcpedit/Makefile
-           src/tcpedit/plugins/Makefile
            src/flow/Makefile
            src/defines.h
            test/Makefile
