@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# $Id:$
 # Script to use the dlt_template subdirectory to create a new DLT plugin
 
 try() {
@@ -57,7 +57,7 @@ echo "Pleased be sure to modify ./Makefile.am and add the line to the END OF THE
 echo "include \$(srcdir)/plugins/${PLUGINDIR}/Makefile.am"
 echo ""
 echo "You must also modify ./dlt_stub.def and add the line:"
-echo "#include ${PLUGIN}_opts.def"
+echo "#include ${PLUGINDIR}/${PLUGIN}_opts.def"
 echo ""
 echo "Next, you must make the appropriate modifications to ./dlt_plugin.c"
 echo "Lastly, re-run automake from the root source directory"
