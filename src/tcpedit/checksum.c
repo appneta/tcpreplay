@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: checksum.c 1630 2007-02-03 04:23:14Z aturner $ */
 /*
  * Copyright (c) 2006 Aaron Turner.
  * Copyright (c) 1998 - 2004 Mike D. Schiffman <mike@infonexus.com>

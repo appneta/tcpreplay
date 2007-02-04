@@ -1,8 +1,8 @@
-/* $Id$ */
+/* $Id: rewrite_l2.h 1611 2006-11-06 04:01:42Z aturner $ */
 
 
 /*
- * Copyright (c) 2005 Aaron Turner.
+ * Copyright (c) 2005-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
