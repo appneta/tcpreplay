@@ -534,7 +534,7 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             break;
     }
     tcpedit_seterr(ctx->tcpedit, "Whoops!  Bug in my code!");
-    return -1;   
+    return -1;
 }
 
 tcpeditdlt_l2addr_type_t
