@@ -1,7 +1,7 @@
-/* $Id$ */
+/* $Id: tcprewrite.c 1611 2006-11-06 04:01:42Z aturner $ */
 
 /*
- * Copyright (c) 2004-2006 Aaron Turner.
+ * Copyright (c) 2004-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@ tcpdump_t tcpdump;
 #endif
 
 tcprewrite_opt_t options;
-tcpedit_t tcpedit;
+tcpedit_t *tcpedit;
 
 /* local functions */
 void tcprewrite_init(void);
@@ -90,16 +90,16 @@ int main(int argc, char *argv[])
     tcpedit_ptr = &tcpedit;
     
     /* init tcpedit context */
-    if (tcpedit_init(&tcpedit, options.pin, NULL) < 0) {
-        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(&tcpedit));
+    if (tcpedit_init(tcpedit, options.pin) < 0) {
+        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
     
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(&tcpedit_ptr);
     if (rcode < 0) {
-        errx(1, "Unable to parse args: %s", tcpedit_geterr(&tcpedit));
+        errx(1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
-        warnx("%s", tcpedit_geterr(&tcpedit));
+        warnx("%s", tcpedit_geterr(tcpedit));
     }
 
 #ifdef HAVE_TCPDUMP
@@ -108,15 +108,16 @@ int main(int argc, char *argv[])
         tcpdump_open(&tcpdump);
     }
 #endif
-    
-    if (tcpedit_validate(&tcpedit, pcap_datalink(options.pin), 
+
+    /*
+    if (tcpedit_validate(tcpedit, pcap_datalink(options.pin), 
             HAVE_OPT(DLT) ? OPT_VALUE_DLT : pcap_datalink(options.pin)) < 0) {
         errx(1, "Unable to edit packets given options/DLT types:\n%s",
-                tcpedit_geterr(&tcpedit));
+                tcpedit_geterr(tcpedit));
     }
-
-    if (rewrite_packets(&tcpedit, options.pin, options.pout) != 0)
-        errx(1, "Error rewriting packets: %s", tcpedit_geterr(&tcpedit));
+    */
+    if (rewrite_packets(tcpedit, options.pin, options.pout) != 0)
+        errx(1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
 
 
     /* clean up after ourselves */
@@ -135,7 +136,6 @@ tcprewrite_init(void)
 {
 
     memset(&options, 0, sizeof(options));
-    memset(&tcpedit, 0, sizeof(tcpedit_t));
 
 #ifdef HAVE_TCPDUMP
     /* clear out tcpdump struct */
@@ -174,27 +174,6 @@ post_args(int argc, char *argv[])
     options.infile = safe_strdup(OPT_ARG(INFILE));
     if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
         errx(1, "Unable to open input pcap file: %s", ebuf);
-    
-
-    /* open up the output file */
-    options.outfile = safe_strdup(OPT_ARG(OUTFILE));
-    if (HAVE_OPT(DLT)) {
-        dbgx(1, "Rewriting DLT to %s",
-                pcap_datalink_val_to_name(OPT_VALUE_DLT));
-        if ((dlt_pcap = pcap_open_dead(OPT_VALUE_DLT, 65535)) == NULL)
-            err(1, "Unable to open dead pcap handle.");
-            
-        dbgx(1, "DLT of dlt_pcap is %s",
-                pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
-
-        if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL)
-            errx(1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
-        pcap_close(dlt_pcap);
-
-    } else {
-        if ((options.pout = pcap_dump_open(options.pin, options.outfile)) == NULL)
-            errx(1, "Unable to open output pcap file: %s", pcap_geterr(options.pin));
-    }
 }
 
 int

@@ -1,7 +1,7 @@
-/* $Id$ */
+/* $Id: tcpedit.c 1631 2007-02-03 18:41:33Z aturner $ */
 
 /*
- * Copyright (c) 2001-2006 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,9 +101,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == ETHERTYPE_IP) {
-        ip_hdr = tcpedit_dlt_l3data(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
+        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
         if (ip_hdr == NULL) {
-            errx(1, "%s", tcpedit_geterr(tcpedit));
+            return -1;
         }        
         dbg(3, "Packet has an IPv4 header...");
     } else {
@@ -177,6 +177,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             warnx("%s", tcpedit_getwarn(tcpedit));
         }
     }
+
+    
+    tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen, (u_char *)ip_hdr);
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
     tcpedit->runtime.pkts_edited ++;
