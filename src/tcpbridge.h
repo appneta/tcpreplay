@@ -1,7 +1,7 @@
-/* $Id$ */
+/* $Id: tcpbridge.h 1573 2006-08-05 20:26:08Z aturner $ */
 
 /*
- * Copyright (c) 2005 Aaron Turner <aturner@pobox.com>.
+ * Copyright (c) 2005 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

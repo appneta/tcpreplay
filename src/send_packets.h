@@ -1,7 +1,7 @@
-/* $Id$ */
+/* $Id: send_packets.h 1462 2006-04-13 05:10:27Z aturner $ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

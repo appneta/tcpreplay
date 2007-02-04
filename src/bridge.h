@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: bridge.h 1540 2006-07-29 06:17:04Z aturner $ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

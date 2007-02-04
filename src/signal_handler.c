@@ -1,7 +1,7 @@
-/* $Id$ */
+/* $Id: signal_handler.c 1540 2006-07-29 06:17:04Z aturner $ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner, Jeff Guttenfelder, Nathan Monteleone
+ * Copyright (c) 2001-2007 Aaron Turner, Jeff Guttenfelder, Nathan Monteleone
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

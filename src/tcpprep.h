@@ -1,7 +1,7 @@
-/* $Id$ */
+/* $Id: tcpprep.h 1482 2006-07-08 22:34:13Z aturner $ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
