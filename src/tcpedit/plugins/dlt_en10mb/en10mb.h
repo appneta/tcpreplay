@@ -52,9 +52,10 @@ tcpeditdlt_l2addr_type_t dlt_en10mb_l2addr_type(void);
 
 struct en10mb_extra_s {
     int vlan; /* set to 1 for vlan_ fields being filled out */
+    
     u_int16_t vlan_tag;
-    u_int8_t  vlan_pri;
-    u_int8_t  vlan_cfi;
+    u_int16_t  vlan_pri;
+    u_int16_t  vlan_cfi;
 };
 typedef struct en10mb_extra_s en10mb_extra_t;
 

@@ -115,12 +115,12 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     
     ctx->decoded_extra = safe_malloc(sizeof(en10mb_extra_t));
     plugin->config = safe_malloc(sizeof(en10mb_config_t));
-    config = (en10mb_config_t *)&plugin->config;
+    config = (en10mb_config_t *)plugin->config;
     
     /* init vlan user values to -1 to indicate not set */
-    config->vlan_tag = -1;
-    config->vlan_pri = -1;
-    config->vlan_cfi = -1;
+    config->vlan_tag = 65535;
+    config->vlan_pri = 255;
+    config->vlan_cfi = 255;
     
     
     return TCPEDIT_OK; /* success */
@@ -296,9 +296,10 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             
             /* Get VLAN tag info */
             extra->vlan = 1;
-            extra->vlan_tag = vlan->vlan_priority_c_vid & TCPR_802_1Q_VIDMASK;
-            extra->vlan_pri = vlan->vlan_priority_c_vid & TCPR_802_1Q_PRIMASK;
-            extra->vlan_cfi = vlan->vlan_priority_c_vid & TCPR_802_1Q_CFIMASK;
+            /* must use these mask values, rather then what's in the tcpr.h since it assumes you're shifting */
+            extra->vlan_tag = vlan->vlan_priority_c_vid & 0x0FFF;
+            extra->vlan_pri = vlan->vlan_priority_c_vid & 0xE000;
+            extra->vlan_cfi = vlan->vlan_priority_c_vid & 0x1000;
             ctx->l2len = TCPR_802_1Q_H;
             break;
         
@@ -407,7 +408,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         /* copy user supplied DMAC MAC if provided or from original packet */        
         if (config->mac_mask && TCPEDIT_MAC_MASK_DMAC2) {
             memcpy(eth->ether_dhost, config->intf2_dmac, ETHER_ADDR_LEN);
-        } else if (ctx->addr_type == ETHERNET){
+        } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);            
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
@@ -431,30 +432,29 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         vlan->vlan_tpi = ETHERTYPE_VLAN;
         
         /* are we changing VLAN info? */
-        if (config->vlan_tag > -1) {
+        if (config->vlan_tag < 65535) {
             vlan->vlan_priority_c_vid = 
                 htons((u_int16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
         } else if (extra->vlan) {
-            vlan->vlan_priority_c_vid =
-                htons((u_int16_t)extra->vlan_tag & TCPR_802_1Q_VIDMASK);
+            vlan->vlan_priority_c_vid = extra->vlan_tag;
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-tag");
             return TCPEDIT_ERROR;
         }
         
-        if (config->vlan_pri > -1) {
+        if (config->vlan_pri < 255) {
             vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_pri) << 13;
         } else if (extra->vlan) {
-            vlan->vlan_priority_c_vid += htons((u_int16_t)extra->vlan_pri) << 13;            
+            vlan->vlan_priority_c_vid += extra->vlan_pri;
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-pri");
             return TCPEDIT_ERROR;
         }
             
-        if (config->vlan_cfi > -1) {
+        if (config->vlan_cfi < 255) {
             vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_cfi) << 12;
         } else if (extra->vlan) {
-            vlan->vlan_priority_c_vid += htons((u_int16_t)extra->vlan_cfi) << 12;            
+            vlan->vlan_priority_c_vid += extra->vlan_cfi;
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-cfi");
             return TCPEDIT_ERROR;            
