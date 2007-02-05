@@ -290,8 +290,10 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
     assert(dlt >= 0);
     assert(pktlen >= 0);
     assert(packet);
-    assert(l3data);
-    
+
+    if (l3data == NULL)
+        return packet;
+        
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
         return NULL;

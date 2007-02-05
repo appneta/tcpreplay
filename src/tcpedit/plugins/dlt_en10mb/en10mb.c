@@ -355,7 +355,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     /* always set the src & dst address as the first 12 bytes */
     eth = (struct tcpr_ethernet_hdr *)packet;
     
-    if (ctx->direction == TCPR_DIR_C2S) { 
+    if (dir == TCPR_DIR_C2S) { 
         /* copy user supplied SRC MAC if provided or from original packet */
         if (config->mac_mask && TCPEDIT_MAC_MASK_SMAC1) {
             memcpy(eth->ether_shost, config->intf1_smac, ETHER_ADDR_LEN);
@@ -376,7 +376,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
             return TCPEDIT_ERROR;            
         }
     
-    } else if (ctx->direction == TCPR_DIR_S2C) {
+    } else if (dir == TCPR_DIR_S2C) {
         /* copy user supplied SRC MAC if provided or from original packet */
         if (config->mac_mask && TCPEDIT_MAC_MASK_SMAC2) {
             memcpy(eth->ether_shost, config->intf2_smac, ETHER_ADDR_LEN);

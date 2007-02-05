@@ -118,8 +118,6 @@ struct tcpeditdlt_s {
     /* original DLT */
     u_int16_t dlt;
 
-    tcpr_dir_t direction;                   /* direction of packet, passed in by user */
-    
     /*
      * These variables are filled out for each packet by the decoder
      */

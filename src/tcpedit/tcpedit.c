@@ -218,6 +218,15 @@ tcpedit_init(tcpedit_t **tcpedit_ex, pcap_t *pcap1)
 }
 
 /*
+ * return the output DLT 
+ */
+int
+tcpedit_get_output_dlt(tcpedit_t *tcpedit)
+{
+    tcpedit_dlt_output_dlt(tcpedit->dlt_ctx);
+}
+
+/*
  * Validates that given the current state of tcpedit that the given
  * pcap source and destination (based on DLT) can be properly rewritten
  * return 0 on sucess

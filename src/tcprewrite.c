@@ -76,7 +76,8 @@ int rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
 int main(int argc, char *argv[])
 {
     int optct, rcode;
-
+    pcap_t *dlt_pcap;
+    
     tcprewrite_init();
 
     /* call autoopts to process arguments */
@@ -112,6 +113,22 @@ int main(int argc, char *argv[])
                 tcpedit_geterr(tcpedit));
     }
 
+
+   /* open up the output file */
+    options.outfile = safe_strdup(OPT_ARG(OUTFILE));
+    dbgx(1, "Rewriting DLT to %s",
+            pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
+    if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL)
+        err(1, "Unable to open dead pcap handle.");
+
+    dbgx(1, "DLT of dlt_pcap is %s",
+        pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
+
+    if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL)
+        errx(1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
+    pcap_close(dlt_pcap);
+
+    /* rewrite packets */
     if (rewrite_packets(tcpedit, options.pin, options.pout) != 0)
         errx(1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
 
