@@ -69,7 +69,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 {
     ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
-    int l2len = 0, l2proto, retval, dlt;
+    int l2len = 0, l2proto, retval, dlt, pktlen;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
 
     assert(tcpedit);
@@ -93,8 +93,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         (*pkthdr)->caplen -= 2;
         
     /* rewrite DLT */
-    if (tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction) != TCPEDIT_OK)
+    if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
         errx(1, "%s", tcpedit_geterr(tcpedit));
+
+    (*pkthdr)->caplen = pktlen;
+    (*pkthdr)->len = pktlen;
 
     dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
     l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);

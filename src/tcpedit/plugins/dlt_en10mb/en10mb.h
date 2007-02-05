@@ -52,8 +52,9 @@ tcpeditdlt_l2addr_type_t dlt_en10mb_l2addr_type(void);
 
 struct en10mb_extra_s {
     int vlan; /* set to 1 for vlan_ fields being filled out */
-    u_int16_t vlan_tpi;
-    u_int16_t vlan_priority_c_vid;
+    u_int16_t vlan_tag;
+    u_int8_t  vlan_pri;
+    u_int8_t  vlan_cfi;
 };
 typedef struct en10mb_extra_s en10mb_extra_t;
 
@@ -77,9 +78,11 @@ struct en10mb_config_s {
 #define TCPEDIT_VLAN_DEL 0x1 /* strip 802.1q and rewrite as standard 
                               * 802.3 Ethernet */
 #define TCPEDIT_VLAN_ADD 0x2 /* add/replace 802.1q vlan tag */
+
+    /* user defined values, -1 means unset! */
     u_int16_t vlan_tag;
-    u_int8_t vlan_pri;
-    u_int8_t vlan_cfi;
+    u_int8_t  vlan_pri;
+    u_int8_t  vlan_cfi;
 };
 typedef struct en10mb_config_s en10mb_config_t;
 

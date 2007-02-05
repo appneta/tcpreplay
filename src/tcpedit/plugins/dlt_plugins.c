@@ -190,7 +190,7 @@ INIT_ERROR:
  
 
 /*
- * This is the recommended method to edit a packet.
+ * This is the recommended method to edit a packet.  Returns (new) total packet length
  */
 int
 tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t direction)
@@ -220,7 +220,7 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t di
         fprintf(stderr, "Warning encoding packet: %s", tcpedit_getwarn(ctx->tcpedit));
     }
        
-    return TCPEDIT_OK;
+    return rcode;
 }
 
 

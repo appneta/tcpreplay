@@ -104,6 +104,7 @@ int
 dlt_en10mb_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
+    en10mb_config_t *config;
     assert(ctx);
     
     /* vlan tags need an additional 4 bytes */
@@ -114,6 +115,13 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     
     ctx->decoded_extra = safe_malloc(sizeof(en10mb_extra_t));
     plugin->config = safe_malloc(sizeof(en10mb_config_t));
+    config = (en10mb_config_t *)&plugin->config;
+    
+    /* init vlan user values to -1 to indicate not set */
+    config->vlan_tag = -1;
+    config->vlan_pri = -1;
+    config->vlan_cfi = -1;
+    
     
     return TCPEDIT_OK; /* success */
 }
@@ -276,25 +284,27 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     eth = (struct tcpr_ethernet_hdr *)packet;
     memcpy(&(ctx->dstaddr), eth, ETHER_ADDR_LEN);
     memcpy(&(ctx->srcaddr), &(eth->ether_shost), ETHER_ADDR_LEN);
+
+    extra = (en10mb_extra_t *)ctx->decoded_extra;
+    extra->vlan = 0;
     
     /* get the L3 protocol type  & L2 len*/
     switch (eth->ether_type) {
         case ETHERTYPE_VLAN:
             vlan = (struct tcpr_802_1q_hdr *)packet;
             ctx->proto = vlan->vlan_len;
-            config->vlan = 1;
             
             /* Get VLAN tag info */
-            extra = (en10mb_extra_t *)ctx->decoded_extra;
-            extra->vlan_tpi = vlan->vlan_tpi;
-            extra->vlan_priority_c_vid = vlan->vlan_priority_c_vid;
+            extra->vlan = 1;
+            extra->vlan_tag = vlan->vlan_priority_c_vid & TCPR_802_1Q_VIDMASK;
+            extra->vlan_pri = vlan->vlan_priority_c_vid & TCPR_802_1Q_PRIMASK;
+            extra->vlan_cfi = vlan->vlan_priority_c_vid & TCPR_802_1Q_CFIMASK;
             ctx->l2len = TCPR_802_1Q_H;
             break;
         
         /* we don't properly handle SNAP encoding */
         default:
             ctx->proto = eth->ether_type;
-            config->vlan = 0;
             ctx->l2len = TCPR_802_3_H;
             break;
     }
@@ -314,6 +324,8 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     struct tcpr_ethernet_hdr *eth = NULL;
     struct tcpr_802_1q_hdr *vlan = NULL;
     en10mb_config_t *config = NULL;
+    en10mb_extra_t *extra = NULL;
+    
     int newl2len;
     u_char tmpbuff[MAXPACKET];
 
@@ -326,8 +338,9 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     config = plugin->config;
-        
-    /* ethernet -> ethernet? */
+    extra = (en10mb_extra_t *)ctx->decoded_extra;
+    
+    /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
     if (ctx->dlt == dlt_value) {
         if ((ctx->l2len == TCPR_802_1Q_H && config->vlan == TCPEDIT_VLAN_OFF) ||
             (config->vlan == TCPEDIT_VLAN_ADD)) {
@@ -338,7 +351,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         }
     } 
     
-    /* some other DLT -> ethernet */
+    /* newl2len for some other DLT -> ethernet */
     else {
         /* if add a vlan then 18, else 14 bytes */
         newl2len = config->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_802_3_H;
@@ -351,6 +364,9 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     } else if (newl2len < ctx->l2len) {
         memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
     } /* else same size, so do nothing */
+
+    /* update the total packet length */
+    pktlen += newl2len - ctx->l2len;
     
     /* always set the src & dst address as the first 12 bytes */
     eth = (struct tcpr_ethernet_hdr *)packet;
@@ -415,36 +431,41 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         vlan->vlan_tpi = ETHERTYPE_VLAN;
         
         /* are we changing VLAN info? */
-        if (config->vlan == TCPEDIT_VLAN_ADD) {
-            if (HAVE_OPT(ENET_VLAN_TAG)) {
-                vlan->vlan_priority_c_vid |= 
-                    htons((u_int16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
-            }
-        
-            /* these are optional */
-            if (HAVE_OPT(ENET_VLAN_PRI)) {
-                vlan->vlan_priority_c_vid |= 
-                     htons((u_int16_t)config->vlan_pri) << 13;
-            }
-            
-            if (HAVE_OPT(ENET_VLAN_CFI)) {
-                vlan->vlan_priority_c_vid |= 
-                    htons((u_int16_t)config->vlan_cfi) << 12;
-            } 
-            
-        } 
-        /* else just copy things over */
-        else {
-            memcpy(&(packet[12]), ctx->decoded_extra, 4);
+        if (config->vlan_tag > -1) {
+            vlan->vlan_priority_c_vid = 
+                htons((u_int16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
+        } else if (extra->vlan) {
+            vlan->vlan_priority_c_vid =
+                htons((u_int16_t)extra->vlan_tag & TCPR_802_1Q_VIDMASK);
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-tag");
+            return TCPEDIT_ERROR;
         }
         
+        if (config->vlan_pri > -1) {
+            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_pri) << 13;
+        } else if (extra->vlan) {
+            vlan->vlan_priority_c_vid += htons((u_int16_t)extra->vlan_pri) << 13;            
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-pri");
+            return TCPEDIT_ERROR;
+        }
+            
+        if (config->vlan_cfi > -1) {
+            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_cfi) << 12;
+        } else if (extra->vlan) {
+            vlan->vlan_priority_c_vid += htons((u_int16_t)extra->vlan_cfi) << 12;            
+        } else {
+            tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-cfi");
+            return TCPEDIT_ERROR;            
+        }        
         
     } else {
         tcpedit_seterr(ctx->tcpedit, "Unsupported new layer 2 length: %d", newl2len);
         return TCPEDIT_ERROR;
     }
 
-    return TCPEDIT_OK;
+    return pktlen;
 }
 
 
