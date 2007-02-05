@@ -234,6 +234,22 @@ tcpedit_dlt_output_dlt(tcpeditdlt_t *ctx)
    return ctx->decoder->dlt; 
 }
 
+int
+tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pktlen)
+{
+    tcpeditdlt_plugin_t *plugin;
+    assert(ctx);
+    assert(dlt >= 0);
+    assert(packet);
+    assert(pktlen);
+    
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
+        return -1;        
+    }
+    return plugin->plugin_l2len(ctx, packet, pktlen);
+}
+
 /*
  * Get the L3 type.  Returns -1 on error.  Get error via tcpedit->geterr()
  */
@@ -247,8 +263,7 @@ tcpedit_dlt_proto(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pk
     assert(packet);
     assert(pktlen);
 
-    plugin = tcpedit_dlt_getplugin(ctx, dlt);
-    if (plugin == NULL) {
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
         return -1;
     }

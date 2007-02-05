@@ -98,6 +98,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
     l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
+    l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == ETHERTYPE_IP) {

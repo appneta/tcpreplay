@@ -54,6 +54,7 @@ void tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
 
 /* What is the output DLT type? */
 int tcpedit_dlt_output_dlt(tcpeditdlt_t *ctx);
+int tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pktlen);
 
 /*
  * process the given packet, by calling decode & encode
