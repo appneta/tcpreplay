@@ -37,7 +37,6 @@
 #include "tcpr.h"
 #include "dlt_utils.h"
 #include "tcpedit_stub.h"
-#include "en10mb_extra.h"
 #include "ethernet.h"
 
 static char dlt_name[] = "en10mb";
