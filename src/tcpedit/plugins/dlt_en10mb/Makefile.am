@@ -6,11 +6,9 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_en10mb/en10mb.c $(srcdir)/plugins/dlt_en10mb/en10mb_extra.c
+libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_en10mb/en10mb.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_en10mb/en10mb.h	$(srcdir)/plugins/dlt_en10mb/en10mb_extra.h
-
-# $(srcdir)/plugins/dlt_en10mb/en10mb_stub.h 
+noinst_HEADERS += $(srcdir)/plugins/dlt_en10mb/en10mb.h
 
 EXTRA_DIST += $(srcdir)/plugins/dlt_en10mb/en10mb_opts.def
 
