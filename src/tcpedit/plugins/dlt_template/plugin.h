@@ -55,11 +55,11 @@ int dlt_%{plugin}_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktle
 struct %{plugin}_extra_s {
 
 };
-typedef struct %{plugin}_extra_s %{plugin}_state_t;
+typedef struct %{plugin}_extra_s %{plugin}_extra_t;
 
 
 /* 
- * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->state 
+ * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 
  * Things like: 
  * - Parsed user options
  * - State between packets

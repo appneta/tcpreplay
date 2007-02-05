@@ -36,7 +36,6 @@
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
-#include "%{plugin}_stub.h"
 
 /* FIXME: edit these variables to taste */
 static char dlt_name[] = "%{plugin}";
@@ -188,7 +187,7 @@ dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
 /*
  * Function to encode the layer 2 header back into the packet.
- * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
+ * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
 dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen)
@@ -204,7 +203,7 @@ dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen)
     /* FIXME: make this function work */
 
     
-    return TCPEDIT_OK; /* success */
+    return pktlen; /* success */
 }
 
 /*
