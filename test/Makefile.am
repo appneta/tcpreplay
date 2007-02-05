@@ -52,15 +52,15 @@ standard:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_pad -F pad
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_mac \
-		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
-		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_layer2 \
 		 -l 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_config --vlan=add --vlan-tag=45 \
 		--vlan-cfi=1 --vlan-pri=5
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip -b -s 55 \
-		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
-		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlt \
 		--dlink=0x0f,0x00,0x08,0x00 --dlt=104 
 	
@@ -198,8 +198,8 @@ rewrite_mac:
 	$(PRINTF) "%s" "[tcprewrite] Src/Dst MAC test: "
 	$(PRINTF) "%s\n" "[tcprewrite] Src/Dst MAC test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac1 \
-		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
-		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
@@ -242,8 +242,8 @@ rewrite_skip:
 	$(PRINTF) "%s" "[tcprewrite] Skip bcast test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Skip bcast test: " >>test.log
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip1 -b -s 55 \
-		-D 00:12:13:14:15:16,00:22:33:44:55:66 \
-		-S 00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
