@@ -89,7 +89,7 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
     plugin->plugin_merge_layer3 = dlt_%{plugin}_merge_layer3;
 
     /* add it to the available plugin list */
-    return tcpedit_dlt_addplugin(tcpedit, ctx->plugins, plugin);
+    return tcpedit_dlt_addplugin(ctx, plugin);
 }
 
  
@@ -103,6 +103,7 @@ int
 dlt_%{plugin}_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
+    %{plugin}_config_t *config;
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
@@ -117,7 +118,11 @@ dlt_%{plugin}_init(tcpeditdlt_t *ctx)
     /* allocate memory for our config data */
     if (sizeof(%{plugin}_config_t) > 0)
         plugin->config = safe_malloc(sizeof(%{plugin}_config_t));
-        
+    
+    config = (%{plugin}_config_t *)plugin->config;
+    
+    /* FIXME: set default config values here */
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -138,11 +143,15 @@ dlt_%{plugin}_cleanup(tcpeditdlt_t *ctx)
     }
 
     /* FIXME: make this function do something if necessary */
-    if (ctx->decoded_extra != NULL)
+    if (ctx->decoded_extra != NULL) {
         free(ctx->decoded_extra);
+        ctx->decoded_extra = NULL;
+    }
         
-    if (plugin->config != NULL)
+    if (plugin->config != NULL) {
         free(plugin->config);
+        plugin->config = NULL;
+    }
 
     return TCPEDIT_OK; /* success */
 }
@@ -190,7 +199,7 @@ dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen)
+dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
@@ -215,10 +224,11 @@ dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
     assert(pktlen > /* FIXME: our L2 length */);
-
+    int protocol; 
+    
     /* FIXME: make this function work */
     
-    return TCPEDIT_OK; /* success */
+    return protocol; 
 }
 
 /*
