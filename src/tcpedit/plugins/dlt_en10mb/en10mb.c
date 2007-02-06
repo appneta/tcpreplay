@@ -140,8 +140,15 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL)
         return TCPEDIT_OK;
 
-    if (plugin->config != NULL)
+    if (ctx->decoded_extra != NULL) {
+        free(ctx->decoded_extra);
+        ctx->decoded_extra = NULL;
+    }
+
+    if (plugin->config != NULL) {
         free(plugin->config);
+        plugin->config = NULL;
+    }
         
     return TCPEDIT_OK; /* success */
 }
