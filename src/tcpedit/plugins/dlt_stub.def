@@ -3,3 +3,4 @@
 /* Add your plugin option definitions here. */
 #include dlt_en10mb/en10mb_opts.def
 #include dlt_hdlc/hdlc_opts.def
+#include dlt_user/user_opts.def

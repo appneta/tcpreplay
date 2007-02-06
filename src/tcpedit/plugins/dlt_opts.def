@@ -1,3 +1,14 @@
+
+flag = {
+	name		= skipl2broadcast;
+	descrip		= "Skip rewriting broadcast/multicast Layer 2 addresses";
+	doc			= <<- EOText
+By default, editing Layer 2 addresses will rewrite 
+broadcast and multicast  MAC addresses.	Setting this flag
+will keep broadcast/multicast MAC addresses from being rewritten.
+EOText;
+};
+
 /* 
  * Allow user to specify output DLT.  The values for this should
  * match the argument name prefix of your plugin.  For example:
@@ -14,9 +25,8 @@ flag = {
     arg-type    = string;
     max         = 1;
     doc         = <<- EO_DLT_DOC
-By default, no DLT (data link type) or Layer 2 modifications
-will be made.  To enable these modification, you must
-first select the destination DLT by using one of the following:
+By default, no DLT (data link type) conversion will be made.  
+To change the DLT type of the output pcap, select one of the following values:
 @table @bullet
 @item
 @var{enet}
@@ -24,16 +34,9 @@ Ethernet aka DLT_EN10MB
 @item
 @var{hdlc}
 Cisco HDLC aka DLT_C_HDLC
+@item
+@var{user}
+User specified Layer 2 header aka DLT_USER0
 @end table
 EO_DLT_DOC;
-};
-
-flag = {
-	name		= skipl2broadcast;
-	descrip		= "Skip rewriting broadcast/multicast Layer 2 addresses";
-	doc			= <<- EOText
-By default, editing Layer 2 addresses will rewrite 
-broadcast and multicast  MAC addresses.	Setting this flag
-will keep broadcast/multicast MAC addresses from being rewritten.
-EOText;
 };

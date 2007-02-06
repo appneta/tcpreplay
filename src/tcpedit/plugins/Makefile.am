@@ -24,3 +24,4 @@ $(srcdir)/plugins/dlt_stub.def: $(DLT_STUB_DEPS)
 ########################################################
 include $(srcdir)/plugins/dlt_en10mb/Makefile.am
 include $(srcdir)/plugins/dlt_hdlc/Makefile.am
+include $(srcdir)/plugins/dlt_user/Makefile.am

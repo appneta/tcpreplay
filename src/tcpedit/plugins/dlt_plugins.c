@@ -38,7 +38,8 @@
  * Include plugin header files here...
  */
 #include "dlt_en10mb/en10mb.h"
-//#include "dlt_user/user.h"
+#include "dlt_user/user.h"
+#include "dlt_hdlc/hdlc.h"
 
 
 
@@ -53,7 +54,8 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     assert(ctx);
     
     retcode += dlt_en10mb_register(ctx);
- //   retcode += dlt_user_register(ctx);
+    retcode += dlt_hdlc_register(ctx);
+    retcode += dlt_user_register(ctx);
     
     if (retcode < 0)
         return -1;
