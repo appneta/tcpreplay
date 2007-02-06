@@ -62,12 +62,14 @@ typedef enum tcpeditdlt_bit_mask_e tcpeditdlt_bit_mask_t;
 /* Union of all possible L2 address types */
 union tcpeditdlt_l2address_u {
     u_char ethernet[ETHER_ADDR_LEN]; /* ethernet is 6 bytes long */
+    u_int8_t c_hdlc;                 /* Cisco HDLC is a single byte */
 };
 typedef union tcpeditdlt_l2address_u tcpeditdlt_l2address_t;
 
 /* What kind of address is the union? */
 enum tcpeditdlt_l2addr_type_e {
-    ETHERNET       /* support ethernet */
+    ETHERNET,       /* support ethernet */
+    C_HDLC          /* Cisco HDLC uses a 1 byte addr which has only two values 0x0F & 0xBF */
 };
 typedef enum tcpeditdlt_l2addr_type_e tcpeditdlt_l2addr_type_t;
 

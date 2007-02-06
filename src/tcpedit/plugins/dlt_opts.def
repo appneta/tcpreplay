@@ -21,6 +21,9 @@ first select the destination DLT by using one of the following:
 @item
 @var{enet}
 Ethernet aka DLT_EN10MB
+@item
+@var{hdlc}
+Cisco HDLC aka DLT_C_HDLC
 @end table
 EO_DLT_DOC;
 };

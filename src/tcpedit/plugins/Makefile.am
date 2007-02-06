@@ -23,3 +23,4 @@ $(srcdir)/plugins/dlt_stub.def: $(DLT_STUB_DEPS)
 # Add your plugin Makefile.am's below this line
 ########################################################
 include $(srcdir)/plugins/dlt_en10mb/Makefile.am
+include $(srcdir)/plugins/dlt_hdlc/Makefile.am
