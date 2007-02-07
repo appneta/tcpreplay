@@ -1,6 +1,6 @@
 # $Id:$
 # START OF: dlt_%{plugin}
-# Note, if you add any files to your plugin, you will need to edit dlt_<plugin>/Makefile.am
+# Note, if you add any files to your plugin, you will need to edit dlt_%{plugin}/Makefile.am
 # add your .c files to libtcpedit_a_SOURCES
 # add your .h files to noinst_HEADERS
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
