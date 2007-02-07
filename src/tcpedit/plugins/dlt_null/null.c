@@ -199,12 +199,15 @@ dlt_null_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    int proto;
     assert(ctx);
     assert(packet);
     assert(pktlen > 0);
 
-    if ((ctx->proto = dlt_null_proto(ctx, packet, pktlen)) == TCPEDIT_ERROR)
+    if ((proto = dlt_null_proto(ctx, packet, pktlen)) == TCPEDIT_ERROR)
         return TCPEDIT_ERROR;
+
+    ctx->proto = (u_int16_t)proto;
 
     return TCPEDIT_OK; /* success */
 }
@@ -244,7 +247,7 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (*af_type == PF_INET || SWAPLONG(*af_type) == PF_INET) {
         protocol = ETHERTYPE_IP;
     } else if (*af_type == PF_INET6 || SWAPLONG(*af_type) == PF_INET6) {
-        protocol = ETHERNET_IP6;
+        protocol = ETHERTYPE_IP6;
     } else {
         tcpedit_seterr(ctx->tcpedit, "Unsupported DLT_NULL/DLT_LOOP PF_ type: 0x%04x", *af_type);
         return TCPEDIT_ERROR;
