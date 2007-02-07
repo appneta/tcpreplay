@@ -339,5 +339,5 @@ dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 tcpeditdlt_l2addr_type_t 
 dlt_user_l2addr_type(void)
 {
-    return USER; /* this should be meaningless */
+    return NONE;
 }
