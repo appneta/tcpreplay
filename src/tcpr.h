@@ -531,6 +531,9 @@ struct tcpr_ethernet_hdr
 #ifndef ETHERTYPE_LOOPBACK
 #define ETHERTYPE_LOOPBACK      0x9000  /* used to test interfaces */
 #endif
+#ifndef ETHERTYPE_IP6
+#define ETHERTYPE_IP6            0x86DD /* IPv6 */
+#endif
 
 struct tcpr_ether_addr
 {

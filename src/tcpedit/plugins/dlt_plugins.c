@@ -40,6 +40,10 @@
 #include "dlt_en10mb/en10mb.h"
 #include "dlt_user/user.h"
 #include "dlt_hdlc/hdlc.h"
+#include "dlt_raw/raw.h"
+#include "dlt_null/null.h"
+#include "dlt_loop/loop.h"
+#include "dlt_linuxsll/linuxsll.h"
 
 
 
@@ -56,11 +60,15 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     retcode += dlt_en10mb_register(ctx);
     retcode += dlt_hdlc_register(ctx);
     retcode += dlt_user_register(ctx);
+    retcode += dlt_raw_register(ctx);
+    retcode += dlt_null_register(ctx);
+    retcode += dlt_loop_register(ctx);
+    retcode += dlt_linuxsll_register(ctx);
     
     if (retcode < 0)
-        return -1;
+        return TCPEDIT_ERROR;
     
-    return 0;
+    return TCPEDIT_OK;
 }
 
 
@@ -187,7 +195,7 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 INIT_ERROR:
     tcpedit_dlt_cleanup(ctx);
     free(ctx);
-    return NULL;    
+    return NULL;
 }
  
 

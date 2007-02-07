@@ -68,9 +68,9 @@ typedef union tcpeditdlt_l2address_u tcpeditdlt_l2address_t;
 
 /* What kind of address is the union? */
 enum tcpeditdlt_l2addr_type_e {
+    NONE,           /* DLT has no L2 address */
     ETHERNET,       /* support ethernet */
     C_HDLC,         /* Cisco HDLC uses a 1 byte addr which has only two values 0x0F & 0xBF */
-    USER           /* DLT_USER0 has none */
 };
 typedef enum tcpeditdlt_l2addr_type_e tcpeditdlt_l2addr_type_t;
 

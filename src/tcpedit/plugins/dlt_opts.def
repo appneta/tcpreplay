@@ -4,7 +4,7 @@ flag = {
 	descrip		= "Skip rewriting broadcast/multicast Layer 2 addresses";
 	doc			= <<- EOText
 By default, editing Layer 2 addresses will rewrite 
-broadcast and multicast  MAC addresses.	Setting this flag
+broadcast and multicast MAC addresses.	Setting this flag
 will keep broadcast/multicast MAC addresses from being rewritten.
 EOText;
 };
@@ -36,7 +36,8 @@ Ethernet aka DLT_EN10MB
 Cisco HDLC aka DLT_C_HDLC
 @item
 @var{user}
-User specified Layer 2 header aka DLT_USER0
+User specified Layer 2 header and DLT type
+@item
 @end table
 EO_DLT_DOC;
 };
