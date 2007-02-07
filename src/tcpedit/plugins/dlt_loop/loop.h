@@ -37,6 +37,7 @@
 #define _DLT_loop_H_
 
 int dlt_loop_register(tcpeditdlt_t *ctx);
+int dlt_loop_init(tcpeditdlt_t *ctx);
 
 /* empty because we use DLT_NULL */
 
