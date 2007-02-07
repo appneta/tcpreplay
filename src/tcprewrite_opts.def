@@ -5,7 +5,7 @@ copyright = {
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2004-2006 Aaron Turner
+Copyright 2004-2007 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -31,11 +31,23 @@ such as crated by tools such as @file{tcpdump(1)} and @file{ethereal(1)}.
 Once a pcap file has had it's packets rewritten, they can be replayed back 
 out on the network using @file{tcpreplay(1)}.
 
-tcprewrite currently supports the following DLT types:
-    * DLT_C_HDLC
-    * DLT_EN10MB
-    * DLT_LINUX_SSL
-    * DLT_RAW
+tcprewrite currently supports reading the following DLT types:
+@table @bullet
+@item
+@var{DLT_C_HDLC} aka Cisco HDLC
+@item
+@var{DLT_EN10MB} aka Ethernet
+@item
+@var{DLT_LINUX_SLL} aka Linux Cooked Socket
+@item
+@var{DLT_RAW} aka RAW IP
+@item
+@var{DLT_NULL} aka BSD Loopback
+@item
+@var{DLT_LOOP} aka OpenBSD Loopback
+@end table
+
+Please see the --dlt option for supported DLT types for writing.
 
 The packet editing features of tcprewrite which distinguish between "client"
 and "server" traffic requires a tcpprep(1) cache file.
