@@ -4,22 +4,6 @@ flag = {
     lib-name    = tcpedit;
 };
 
-#ifndef TCPEDIT_PROTO_DISABLE
-flag = {
-	name		= proto;
-	value		= P;
-	arg-type	= number;
-	max			= 1;
-	descrip		= "Override L2 protocol type for DLT_RAW";
-	arg-range	= "0->65535";
-	doc			= <<- EOText
-By default, pcap files encapsulated using DLT_RAW will have their protocol
-set to ETHERTYPE_IP (0x0800). 
-EOText;
-};
-#endif
-
-
 #ifndef TCPEDIT_PORTMAP_DISABLE
 flag = {
     name        = portmap;

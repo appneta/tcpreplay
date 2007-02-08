@@ -166,36 +166,5 @@ layer2len(tcpedit_t *tcpedit)
 {
    assert(tcpedit);
    
-   if (tcpedit->l2.enabled)
-       return tcpedit->l2.len;
-/*            
-       
-   switch (tcpedit->l2.dlt) {
-       case DLT_EN10MB:
-            return 14;
-            break;
-        case DLT_VLAN:
-            return 18;
-            break;
-        case DLT_USER:
-            return tcpedit->l2.len;
-            break;
-        case DLT_RAW:
-        case DLT_LOOP:
-            return 0;
-            break;
-        case DLT_LINUX_SLL:
-            return 16; // is this right?
-        case DLT_C_HDLC:
-            return 4;
-            break;
-        default:
-            // this shouldn't happen... fall back to the default 
-            break;
-   }
-*/
-   
-   tcpedit_seterr(tcpedit, "%s", "Unable to determine layer2len");
-   return -1;
-   
+   return tcpedit->dlt_ctx->l2len;
 }

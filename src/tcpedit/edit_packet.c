@@ -240,7 +240,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
     if (caplen > ntohs(ip_hdr->ip_len)) {
         datalen = ntohs(ip_hdr->ip_len);
     } else {
-        datalen = caplen - tcpedit->l2.len;
+        datalen = caplen - tcpedit->dlt_ctx->l2len;
     }
 
     /* update the datlen to not include the IP header len */

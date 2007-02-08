@@ -122,10 +122,6 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
             return -1;
         }
     }
-
-    /* Layer two protocol */
-    if (HAVE_OPT(PROTO))
-        tcpedit->l2proto = OPT_VALUE_PROTO;
     
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {

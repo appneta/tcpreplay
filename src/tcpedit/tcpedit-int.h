@@ -38,17 +38,6 @@
 #ifndef _TCPEDIT_INT_H_
 #define _TCPEDIT_INT_H_
 
-#define L2DATALEN 255           /* Max size of the L2 data file */
-    
-struct l2_s {
-    int enabled; /* are we rewritting the L2 header ? */
-    int len;  /* user data length */
-    u_char data1[L2DATALEN];
-    u_char data2[L2DATALEN];
-};
-
-typedef struct l2_s l2_t;
-
 #define TCPEDIT_ERRSTR_LEN 1024
 struct tcpedit_runtime_s {
     COUNTER packetnum;
@@ -112,13 +101,6 @@ struct tcpedit_s {
     int efcs;
 #define TCPEDIT_EFCS_OFF 0x0
 #define TCPEDIT_EFCS_ON  0x1
-
-    /* other L2 editing options */
-    u_int16_t l2proto;
-    u_int16_t l2_mem_align; /* keep things 4 byte aligned */
-
-    /* rewrite L2 data in full */
-    l2_t l2;
 
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */
