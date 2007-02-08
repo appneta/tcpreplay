@@ -209,6 +209,7 @@ tcpedit_init(tcpedit_t **tcpedit_ex, pcap_t *pcap1)
  
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.pcap1 = pcap1;
+    tcpedit->runtime.pcap2 = pcap1;
     
     dbgx(1, "Input file (1) datalink type is %s\n",
             pcap_datalink_val_to_name(pcap_datalink(pcap1)));
