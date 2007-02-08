@@ -227,7 +227,8 @@ tcpedit_init(tcpedit_t **tcpedit_ex, pcap_t *pcap1)
 int
 tcpedit_get_output_dlt(tcpedit_t *tcpedit)
 {
-    tcpedit_dlt_output_dlt(tcpedit->dlt_ctx);
+    assert(tcpedit);
+    return tcpedit_dlt_output_dlt(tcpedit->dlt_ctx);
 }
 
 /*

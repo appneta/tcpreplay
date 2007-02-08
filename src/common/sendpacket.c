@@ -85,7 +85,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#if defined HAVE_PF_PACKET
+#ifdef HAVE_PF_PACKET
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/utsname.h>
@@ -103,7 +103,9 @@ static sendpacket_t *sendpacket_open_pf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
 static int get_iface_index(int fd, const int8_t *device, char *);
 
-#elif defined HAVE_BPF
+#endif /* HAVE_PF_PACKET */
+
+#ifdef HAVE_BPF
 #include <net/bpf.h>
 #include <sys/socket.h>
 #include <net/if.h>
@@ -111,18 +113,22 @@ static int get_iface_index(int fd, const int8_t *device, char *);
 #include <pcap.h>
 #include <net/if_dl.h> // used for get_hwaddr_bpf()
 
-static sendpacket_t *sendpacket_open_bpf(const char *, char *);
-static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *);
+static sendpacket_t *sendpacket_open_bpf(const char *, char *) __attribute__((unused));
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *) __attribute__((unused));
 
-#elif defined HAVE_LIBNET
-static sendpacket_t *sendpacket_open_libnet(const char *, char *);
-static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *);
+#endif /* HAVE_BPF */
 
-#elif defined HAVE_PCAP_INJECT || defined HAVE_PACKET_SENDPACKET
+#ifdef HAVE_LIBNET
+static sendpacket_t *sendpacket_open_libnet(const char *, char *) __attribute__((unused));
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *) __attribute__((unused));
+
+#endif /* HAVE_LIBNET */
+
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PACKET_SENDPACKET)
 #include <pcap.h>
-static sendpacket_t *sendpacket_open_pcap(const char *, char *);
-static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *);
-#endif
+static sendpacket_t *sendpacket_open_pcap(const char *, char *) __attribute__((unused));
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) __attribute__((unused));
+#endif /* HAVE_PCAP_INJECT || HAVE_PACKET_SENDPACKET */
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 
@@ -266,7 +272,7 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
     assert(sp);
     
     /* if we already have our MAC address stored, just return it */
-    if (memcmp(&sp->ether, "\00\00\00\00\00\00", ETHER_ADDR_LEN) != 0)
+    if (memcmp(&sp->ether, "\x00\x00\x00\x00\x00\x00", ETHER_ADDR_LEN) != 0)
         return &sp->ether;
         
 #if defined HAVE_PF_PACKET
@@ -337,10 +343,10 @@ sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
     sendpacket_seterr(sp, "Error: sendpacket_get_hwaddr() not yet supported for pcap injection");
     return NULL;
 }
-#endif
+#endif /* HAVE_PCAP_INJECT || HAVE_PCAP_SENDPACKET */
 
 #if defined HAVE_LIBNET
-static sendpacket_t *
+static sendpacket_t * 
 sendpacket_open_libnet(const char *device, char *errbuf)
 {
     libnet_t *lnet;
@@ -374,7 +380,7 @@ sendpacket_get_hwaddr_libnet(sendpacket_t *sp)
     memcpy(&sp->ether, addr, sizeof(struct tcpr_ether_addr));
     return(&sp->ether);
 }
-#endif
+#endif /* HAVE_LIBNET */
 
 #if defined HAVE_PF_PACKET
 static sendpacket_t *
@@ -527,7 +533,7 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
     close(fd);
     return(&sp->ether);
 }
-#endif
+#endif /* HAVE_PF_PACKET */
 
 #if defined HAVE_BPF
 static sendpacket_t *
@@ -690,4 +696,4 @@ sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
     return(&sp->ether);
 }
 
-#endif
+#endif /* HAVE_BPF */

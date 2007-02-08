@@ -119,7 +119,7 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 {
     tcpeditdlt_t *ctx;
     int rcode;
-    char *dst_dlt_name = NULL;
+    const char *dst_dlt_name = NULL;
 
     assert(tcpedit);
     assert(srcdlt >= 0);

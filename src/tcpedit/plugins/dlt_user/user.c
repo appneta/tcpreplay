@@ -37,9 +37,8 @@
 #include "common.h"
 #include "tcpr.h"
 
-/* FIXME: edit these variables to taste */
 static char dlt_name[] = "user";
-static char dlt_prefix[] = "user";
+static char __attribute__((unused)) dlt_prefix[] = "user";
 static u_int16_t dlt_value = DLT_USER0;
 
 /*

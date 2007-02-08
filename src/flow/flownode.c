@@ -105,7 +105,7 @@ getnodebykey(char proto, u_char * key)
  * we then return the node or NULL on error
  */
 struct session_t *
-newnode(char proto, u_char * key, ipv4_hdr_t * ip_hdr, void *l4)
+newnode(__attribute__((unused)) char proto, u_char * key, ipv4_hdr_t * ip_hdr, void *l4)
 {
     struct sockaddr_in sa;
     struct session_t *newnode = NULL;

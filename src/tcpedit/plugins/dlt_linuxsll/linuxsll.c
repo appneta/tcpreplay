@@ -37,9 +37,8 @@
 #include "common.h"
 #include "tcpr.h"
 
-/* FIXME: edit these variables to taste */
 static char dlt_name[] = "linuxsll";
-static char dlt_prefix[] = "linuxsll";
+static char __attribute__((unused)) dlt_prefix[] = "linuxsll";
 static u_int16_t dlt_value = DLT_LINUX_SLL;
 
 /*
@@ -185,7 +184,7 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     linux_sll_header_t *linux_sll;
     assert(ctx);
     assert(packet);
-    assert(pktlen > sizeof(linux_sll_header_t));
+    assert(pktlen > (int)sizeof(linux_sll_header_t));
     
     linux_sll = (linux_sll_header_t *)packet;
     ctx->proto = linux_sll->proto;
@@ -205,7 +204,7 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, __attribute__((unused)) tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
@@ -228,7 +227,7 @@ dlt_linuxsll_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     linux_sll_header_t *linux_sll;
     assert(ctx);
     assert(packet);
-    assert(pktlen >= (sizeof(linux_sll_header_t)));
+    assert(pktlen >= (int)sizeof(linux_sll_header_t));
 
     linux_sll = (linux_sll_header_t *)packet;
     

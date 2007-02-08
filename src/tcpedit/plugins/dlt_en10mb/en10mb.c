@@ -40,7 +40,7 @@
 #include "ethernet.h"
 
 static char dlt_name[] = "en10mb";
-static char dlt_prefix[] = "enet";
+static char __attribute__((unused)) dlt_prefix[] = "enet";
 static u_int16_t dlt_value = DLT_EN10MB;
 
 /*

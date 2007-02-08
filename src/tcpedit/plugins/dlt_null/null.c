@@ -40,7 +40,7 @@
 #include <sys/socket.h> // PF_* values
 
 static char dlt_name[] = "null";
-static char dlt_prefix[] = "null";
+static char __attribute__((unused)) dlt_prefix[] = "null";
 static u_int16_t dlt_value = DLT_NULL;
 
 /*
@@ -217,7 +217,7 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_null_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_null_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, __attribute__((unused)) tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
@@ -243,7 +243,7 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     u_int32_t *af_type; 
     int protocol = 0;
     
-    af_type = packet;
+    af_type = (u_int32_t *)packet;
     if (*af_type == PF_INET || SWAPLONG(*af_type) == PF_INET) {
         protocol = ETHERTYPE_IP;
     } else if (*af_type == PF_INET6 || SWAPLONG(*af_type) == PF_INET6) {

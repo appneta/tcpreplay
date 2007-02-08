@@ -161,10 +161,9 @@ tcprewrite_init(void)
 
 
 void 
-post_args(int argc, char *argv[])
+post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 {
     char ebuf[PCAP_ERRBUF_SIZE];
-    pcap_t *dlt_pcap;
      
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))

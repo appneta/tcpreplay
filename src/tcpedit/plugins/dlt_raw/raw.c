@@ -39,7 +39,7 @@
 
 /* FIXME: edit these variables to taste */
 static char dlt_name[] = "raw";
-static char dlt_prefix[] = "raw";
+static char __attribute__((unused)) dlt_prefix[] = "raw";
 static u_int16_t dlt_value = DLT_RAW;
 
 /*
@@ -203,7 +203,7 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_raw_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_raw_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, __attribute__((unused))tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
@@ -248,10 +248,10 @@ dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 u_char *
 dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 {
-    int l2len;
     assert(ctx);
     assert(packet);
-
+    assert(pktlen);
+    
     /* raw has a zero byte header, so this is basically a non-op */
 
     return packet;
@@ -266,10 +266,10 @@ dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 u_char *
 dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
 {
-    int l2len;
     assert(ctx);
     assert(packet);
     assert(l3data);
+    assert(pktlen);
     
     /* raw has a zero byte header, so this is basically a non-op */
     

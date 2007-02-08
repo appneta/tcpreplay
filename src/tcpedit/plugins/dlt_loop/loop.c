@@ -46,7 +46,7 @@
  */
 
 static char dlt_name[] = "loop";
-static char dlt_prefix[] = "loop";
+static char __attribute__((unused)) dlt_prefix[] = "loop";
 static u_int16_t dlt_value = DLT_LOOP;
 
 /*
