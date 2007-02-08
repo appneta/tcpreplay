@@ -77,7 +77,7 @@ dlt_loop_register(tcpeditdlt_t *ctx)
     plugin->dlt = dlt_value;
 
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
-    plugin->name = safe_strdup(dlt_name);
+    plugin->name = safe_strdup(dlt_prefix);
 
     /* we actually call all the DLT_NULL functions since NULL and LOOP are basically the same thing */
     plugin->plugin_init = dlt_loop_init;

@@ -128,7 +128,7 @@ struct tcpeditdlt_s {
     /* The following fields are updated on a per-packet basis by the decoder */
     tcpeditdlt_l2address_t srcaddr;         /* filled out source address */
     tcpeditdlt_l2address_t dstaddr;         /* filled out dst address */
-    int l2len;                              /* original L2 len of this packet */
+    int l2len;                              /* set by decoder and updated by encoder */
     u_int16_t proto;                        /* layer 3 proto type?? */
     void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */
 };

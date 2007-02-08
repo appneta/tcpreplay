@@ -39,23 +39,21 @@ extern const u_int32_t tcpeditdlt_bit_map[];
 extern const char *tcpeditdlt_bit_info[];
 
 /*
- * Call parse args on all registered plugins
+ * Call parse args on src & dst plugins
  */
 int 
 tcpedit_dlt_parse_opts(tcpeditdlt_t *ctx)
 {
-    tcpeditdlt_plugin_t *plugin;
-    int rcode;
+    assert(ctx);
     
-    plugin = ctx->plugins;
-    while (plugin != NULL) {
-        rcode = plugin->plugin_parse_opts(ctx);
-        if (tcpedit_checkerror(ctx->tcpedit, rcode, NULL) == TCPEDIT_ERROR)
+    if (ctx->decoder->plugin_parse_opts(ctx) != TCPEDIT_OK)
+        return TCPEDIT_ERROR;
+        
+    if (ctx->decoder->dlt != ctx->encoder->dlt) {
+        if (ctx->encoder->plugin_parse_opts(ctx) != TCPEDIT_OK)
             return TCPEDIT_ERROR;
-
-        plugin = plugin->next;
     }
-    
+
     return TCPEDIT_OK;
 }
  
@@ -163,6 +161,7 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
     if (ctx->plugins == NULL) {
         ctx->plugins = new;
     } else {
+        ptr = ctx->plugins;
         while (ptr->next != NULL)
             ptr = ptr->next;
         

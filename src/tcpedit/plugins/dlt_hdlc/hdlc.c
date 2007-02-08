@@ -69,7 +69,7 @@ dlt_hdlc_register(tcpeditdlt_t *ctx)
     plugin->dlt = dlt_value;
 
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
-    plugin->name = safe_strdup(dlt_name);
+    plugin->name = safe_strdup(dlt_prefix);
 
     /* 
      * Point to our functions, note, you need a function for EVERY method.  
