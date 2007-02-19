@@ -1,6 +1,6 @@
 
 /*
- *  $Id: environment.c,v 4.11 2007/01/18 05:32:13 bkorb Exp $
+ *  $Id: environment.c,v 4.12 2007/02/04 17:44:12 bkorb Exp $
  * Time-stamp:      "2007-01-13 10:02:07 bkorb"
  *
  *  This file contains all of the routines that must be linked into
@@ -10,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the

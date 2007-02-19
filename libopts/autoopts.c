@@ -1,7 +1,7 @@
 
 /*
- *  $Id: autoopts.c,v 4.21 2007/01/18 05:32:13 bkorb Exp $
- *  Time-stamp:      "2007-01-17 16:39:29 bkorb"
+ *  $Id: autoopts.c,v 4.23 2007/02/13 19:43:46 bkorb Exp $
+ *  Time-stamp:      "2007-02-13 11:26:59 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -10,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -238,14 +238,17 @@ handleOption( tOptions* pOpts, tOptState* pOptState )
      */
     if (  (pOD->fOptState & OPTST_DEFINED)
        && (++pOD->optOccCt > pOD->optMaxCt)  )  {
-        char const* pzEqv =
-            (pOD->optEquivIndex != NO_EQUIVALENT) ? zEquiv : zNil;
 
         if ((pOpts->fOptSet & OPTPROC_ERRSTOP) != 0) {
-            char const* pzFmt = (pOD->optMaxCt > 1) ? zAtMost : zOnlyOne;
+            char const * pzEqv =
+                (pOD->optEquivIndex != NO_EQUIVALENT) ? zEquiv : zNil;
+
             fputs( zErrOnly, stderr );
-            fprintf( stderr, pzFmt, pOD->pz_Name, pzEqv,
-                     pOD->optMaxCt );
+
+            if (pOD->optMaxCt > 1)
+                fprintf(stderr, zAtMost, pOD->optMaxCt, pOD->pz_Name, pzEqv);
+            else
+                fprintf(stderr, zOnlyOne, pOD->pz_Name, pzEqv);
         }
 
         return FAILURE;

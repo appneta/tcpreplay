@@ -2,7 +2,7 @@
 /*
  *  Time-stamp:      "2007-01-17 16:37:34 bkorb"
  *
- *  autoopts.h  $Id: autoopts.h,v 4.21 2007/01/18 05:32:13 bkorb Exp $
+ *  autoopts.h  $Id: autoopts.h,v 4.22 2007/02/04 17:44:12 bkorb Exp $
  *  Time-stamp:      "2005-02-14 05:59:50 bkorb"
  *
  *  This file defines all the global structures and special values
@@ -10,7 +10,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the

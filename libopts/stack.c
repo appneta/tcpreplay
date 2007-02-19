@@ -1,7 +1,7 @@
 
 /*
  *  stack.c
- *  $Id: stack.c,v 4.12 2007/01/18 05:32:13 bkorb Exp $
+ *  $Id: stack.c,v 4.13 2007/02/04 17:44:12 bkorb Exp $
  *  Time-stamp:      "2007-01-13 10:43:21 bkorb"
  *
  *  This is a special option processing routine that will save the
@@ -9,7 +9,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the

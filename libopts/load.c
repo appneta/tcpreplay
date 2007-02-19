@@ -1,7 +1,7 @@
 
 /*
- *  $Id: load.c,v 4.18 2007/02/03 19:25:35 bkorb Exp $
- *  Time-stamp:      "2007-02-03 11:10:21 bkorb"
+ *  $Id: load.c,v 4.20 2007/02/04 22:17:39 bkorb Exp $
+ *  Time-stamp:      "2007-02-04 11:54:57 bkorb"
  *
  *  This file contains the routines that deal with processing text strings
  *  for options, either from a NUL-terminated string passed in or from an
@@ -9,7 +9,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -132,9 +132,11 @@ optionMakePath(
     tCC*    pzProgPath )
 {
     size_t  name_len = strlen( pzName );
-#ifndef PKGDATADIR
-#define PKGDATADIR ""
-#endif
+
+#   ifndef PKGDATADIR
+#     define PKGDATADIR ""
+#   endif
+
     tSCC    pkgdatadir[] = PKGDATADIR;
 
     ag_bool res = AG_TRUE;

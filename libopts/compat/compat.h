@@ -2,12 +2,12 @@
 
 /* --- fake the preprocessor into handlng portability */
 /*
- *  Time-stamp:      "2006-09-07 06:49:09 bkorb"
+ *  Time-stamp:      "2007-02-03 17:41:06 bkorb"
  *
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
  * Created:          Mon Jun 30 15:54:46 1997
  *
- * $Id: compat.h,v 4.14 2006/11/27 01:52:23 bkorb Exp $
+ * $Id: compat.h,v 4.15 2007/02/04 22:17:39 bkorb Exp $
  */
 #ifndef COMPAT_H_GUARD
 #define COMPAT_H_GUARD 1
@@ -47,7 +47,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#if defined( HAVE_POSIX_SYSINFO )
+#if defined( HAVE_SOLARIS_SYSINFO )
 #  include <sys/systeminfo.h>
 #elif defined( HAVE_UNAME_SYSCALL )
 #  include <sys/utsname.h>

@@ -1,11 +1,11 @@
 
 /*
- *  $Id: numeric.c,v 4.10 2007/01/18 05:32:13 bkorb Exp $
+ *  $Id: numeric.c,v 4.11 2007/02/04 17:44:12 bkorb Exp $
  *  Time-stamp:      "2007-01-13 10:28:20 bkorb"
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the

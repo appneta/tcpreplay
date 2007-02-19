@@ -1,6 +1,6 @@
 
 /*
- *  $Id: makeshell.c,v 4.19 2007/01/27 15:07:56 bkorb Exp $
+ *  $Id: makeshell.c,v 4.20 2007/02/04 17:44:12 bkorb Exp $
  * Time-stamp:      "2007-01-27 06:05:45 bkorb"
  *
  *  This module will interpret the options set in the tOptions
@@ -8,7 +8,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
