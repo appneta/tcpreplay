@@ -240,8 +240,19 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t di
 int 
 tcpedit_dlt_output_dlt(tcpeditdlt_t *ctx)
 {
-   assert(ctx);
-   return ctx->decoder->dlt; 
+    u_int16_t dlt;
+    assert(ctx);
+        
+    /* 
+     * usually we just return the DLT value of the decoder, but for DLT_USER0
+     * we return a user-specified value via --user-dlt
+     */
+    if (ctx->encoder->dlt == DLT_USER0) {
+        dlt = dlt_user_get_output_dlt(ctx);
+    } else {
+        dlt = ctx->encoder->dlt;
+    }
+    return dlt;
 }
 
 int

@@ -168,12 +168,14 @@ dlt_user_parse_opts(tcpeditdlt_t *ctx)
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     config = plugin->config;
 
-    /* --user-dlt will override the output DLT type, otherwise we'll user DLT_USER0 */
+    /*
+     * --user-dlt will override the output DLT type, otherwise we'll use 
+     * the DLT of the decoder
+     */
     if (HAVE_OPT(USER_DLT)) {
-        ctx->dlt = OPT_VALUE_USER_DLT;
+        config->dlt = OPT_VALUE_USER_DLT;
     } else {
-        tcpedit_seterr(ctx->tcpedit, "%s", "Must set --user-dlt for --dlt=user");
-        return TCPEDIT_ERROR;
+        config->dlt = ctx->decoder->dlt;
     }
 
     /* --user-dlink */
@@ -340,3 +342,20 @@ dlt_user_l2addr_type(void)
 {
     return NONE;
 }
+
+/*
+ * Need this special function for dlt_plugins.c:tcpedit_dlt_output_dlt()
+ */
+
+u_int16_t
+dlt_user_get_output_dlt(tcpeditdlt_t *ctx)
+{
+    tcpeditdlt_plugin_t *plugin;
+    user_config_t *config;
+    assert(ctx);
+
+    plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    config = plugin->config;
+    return config->dlt;    
+}
+

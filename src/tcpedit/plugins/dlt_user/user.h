@@ -48,6 +48,10 @@ u_char *dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktle
 tcpeditdlt_l2addr_type_t dlt_user_l2addr_type(void);
 int dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 
+/* extra function called directly by tcpedit_dlt_output_dlt() */
+u_int16_t dlt_user_get_output_dlt(tcpeditdlt_t *ctx);
+
+
 /*
  * FIXME: structure to hold any data parsed from the packet by the decoder.
  * Example: Ethernet VLAN tag info
@@ -69,6 +73,7 @@ typedef struct user_extra_s user_extra_t;
  *   is available to any encoder plugin.
  */
 struct user_config_s {
+    u_int16_t dlt;
     int length;
     u_char l2client[USER_L2MAXLEN];
     u_char l2server[USER_L2MAXLEN];

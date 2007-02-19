@@ -15,6 +15,7 @@ flag = {
     name        = user-dlink;
     arg-type    = string;
     max         = 2;
+	stack-arg;
     descrip     = "Rewrite Data-Link layer with user specified data";
     doc         = <<- EOText
 Provide a series of comma deliminated hex values which will be
