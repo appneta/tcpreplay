@@ -348,7 +348,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     extra = (en10mb_extra_t *)ctx->decoded_extra;
     
     /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
-    if (ctx->dlt == dlt_value) {
+    if (ctx->decoder->dlt == dlt_value) {
         if ((ctx->l2len == TCPR_802_1Q_H && config->vlan == TCPEDIT_VLAN_OFF) ||
             (config->vlan == TCPEDIT_VLAN_ADD)) {
             newl2len = TCPR_802_1Q_H;
