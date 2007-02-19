@@ -32,7 +32,6 @@ Once a pcap file has had it's packets rewritten, they can be replayed back
 out on the network using @file{tcpreplay(1)}.
 
 tcprewrite currently supports reading the following DLT types:
-@table @bullet
 @item
 @var{DLT_C_HDLC} aka Cisco HDLC
 @item
@@ -45,7 +44,6 @@ tcprewrite currently supports reading the following DLT types:
 @var{DLT_NULL} aka BSD Loopback
 @item
 @var{DLT_LOOP} aka OpenBSD Loopback
-@end table
 
 Please see the --dlt option for supported DLT types for writing.
 
