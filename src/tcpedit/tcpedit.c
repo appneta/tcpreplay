@@ -69,20 +69,36 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 {
     ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
-    int l2len = 0, l2proto, retval, dlt, pktlen;
+    int l2len = 0, l2proto, retval, dlt, pktlen, lendiff;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
-
+    static u_char *packet = NULL;   /* static buffer to hold packet data when padding out */
+    
     assert(tcpedit);
     assert(pkthdr);
     assert(*pkthdr);
     assert(pktdata);
     assert(*pktdata);
     assert(tcpedit->validated);
-    
+
+ 
     tcpedit->runtime.packetnum++;
     dbgx(2, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
-
+            
+   /* 
+     * if we are padding out the packet, we need to move the packet 
+     * data to a different buffer because the incoming **pktdata buffer
+     * most likely isn't big enough for the extra padding
+     */
+    if (HAVE_OPT(FIXLEN) && strcmp(OPT_ARG(FIXLEN), "pad") == 0) {
+        /* allocate our buffer the first time */
+        if (packet == NULL)
+            packet = safe_malloc(MAX_SNAPLEN);
+    
+        memcpy(packet, *pktdata, (*pkthdr)->caplen);
+        *pktdata = packet;
+    }
+    
     /*
      * remove the Ethernet FCS (checksum)?
      * note that this feature requires the end user to be smart and
@@ -96,8 +112,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
         errx(1, "%s", tcpedit_geterr(tcpedit));
 
-    (*pkthdr)->caplen = pktlen;
-    (*pkthdr)->len = pktlen;
+    /* update our packet lengths (real/captured) based on L2 length changes */
+    lendiff = pktlen - (*pkthdr)->caplen;
+    (*pkthdr)->caplen += lendiff;
+    (*pkthdr)->len += lendiff;
 
     dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
     l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);

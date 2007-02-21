@@ -194,10 +194,11 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     tcpr_dir_t cache_result = TCPR_DIR_C2S;     /* default to primary */
     struct pcap_pkthdr pkthdr, *pkthdr_ptr;     /* packet header */
     const u_char *pktdata = NULL;               /* packet from libpcap */
+    u_char **packet = NULL;                     /* packet from tcpedit */
     COUNTER packetnum = 0;
 
     pkthdr_ptr = &pkthdr;
-    
+
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets
@@ -225,14 +226,15 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         if (cache_result == TCPR_DIR_NOSEND)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
-        if (tcpedit_packet(tcpedit, &pkthdr_ptr, (u_char**)&pktdata, cache_result) == -1) {
+        packet = &pktdata;
+        if (tcpedit_packet(tcpedit, &pkthdr_ptr, packet, cache_result) == -1) {
             return -1;
         }
 
 
 WRITE_PACKET:
         /* write the packet */
-        pcap_dump((u_char *)pout, pkthdr_ptr, pktdata);
+        pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
 
     } /* while() */
     return 0;
