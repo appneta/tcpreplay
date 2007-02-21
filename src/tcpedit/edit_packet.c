@@ -177,6 +177,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     }
     
     if ((l2len = layer2len(tcpedit)) < 0) {
+        tcpedit_seterr(tcpedit, "Non-sensical layer 2 length: %d", l2len);
         return -1;
     }
 
@@ -188,12 +189,17 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
   	     * which seems like a corrupted pcap
   	     */
         if (pkthdr->len > pkthdr->caplen) {
+            if ((pktdata = realloc(pktdata, pkthdr->len)) == NULL) {
+                tcpedit_seterr(tcpedit, "%s", "Unable to realloc() pktdata for -F pad operation");
+                return -1;
+            }
             memset(pktdata + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
             pkthdr->caplen = pkthdr->len;
         } else if (pkthdr->len < pkthdr->caplen) {
             /* i guess this is necessary if we've got a bogus pcap */
             //ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
-            warn("WTF?  Why is your packet larger then the capture len?");
+            tcpedit_seterr(tcpedit, "%s", "WTF?  Why is your packet larger then the capture len?");
+            return -1;
         }
     }
     else if (tcpedit->fixlen == TCPEDIT_FIXLEN_TRUNC) {
@@ -202,7 +208,8 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         pkthdr->len = pkthdr->caplen;
     }
     else {
-        errx(1, "Invalid fixlen value: 0x%x", tcpedit->fixlen);
+        tcpedit_seterr(tcpedit, "Invalid fixlen value: 0x%x", tcpedit->fixlen);
+        return -1;
     }
 
     return(1);
