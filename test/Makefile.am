@@ -18,7 +18,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
-		test.rewrite_skip test.rewrite_dlt
+		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -55,14 +55,18 @@ standard:
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_layer2 \
-		 -l 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_config --vlan=add --vlan-tag=45 \
-		--vlan-cfi=1 --vlan-pri=5
+		 --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_config --enet-vlan=add --enet-vlan-tag=45 \
+		--enet-vlan-cfi=1 --enet-vlan-pri=5
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip -b -s 55 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlt \
-		--dlink=0x0f,0x00,0x08,0x00 --dlt=104 
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_dltuser --dlt=user \
+		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104 
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlthdlc --dlt=hdlc \
+		--hdlc-control=0 --hdlc-address=0x0F
+	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel \
+		--enet-vlan=del
 	
 
 
@@ -70,7 +74,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port \
 	mac comment print_info print_comment prep_config
 tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
-	rewrite_skip rewrite_dlt
+	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_accurate 
 
@@ -226,17 +230,17 @@ rewrite_seed:
 rewrite_layer2:
 	$(PRINTF) "%s" "[tcprewrite] Layer2 test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Layer2 test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -l 00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 \
 		-i test.pcap -o test.rewrite_layer21 >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_config:
-	$(PRINTF) "%s" "[tcprewrite] Config test: "
-	$(PRINTF) "%s\n" "*** [tcprewrite] Config test: " >>test.log
+	$(PRINTF) "%s" "[tcprewrite] Config/VLAN Add test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Config/VLAN Add test: " >>test.log
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_config1 --load-opts config
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 rewrite_skip:
 	$(PRINTF) "%s" "[tcprewrite] Skip bcast test: "
@@ -247,13 +251,29 @@ rewrite_skip:
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
-rewrite_dlt:
-	$(PRINTF) "%s" "[tcprewrite] DLT test: "
-	$(PRINTF) "%s\n" "*** [tcprewrite] DLT test: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlt1 \
-		--dlink=0x0f,0x00,0x08,0x00 --dlt=104 
+rewrite_dltuser:
+	$(PRINTF) "%s" "[tcprewrite] DLT User test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User test: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_dltuser1 --dlt=user \
+		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104 
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_dlthdlc:
+	$(PRINTF) "%s" "[tcprewrite] DLT Cisco HDLC test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT Cisco HDLC test: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlthdlc1 --dlt=hdlc \
+		--hdlc-control=0 --hdlc-address=0x0F
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_vlandel:
+	$(PRINTF) "%s" "[tcprewrite] VLAN Delete test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN Delete test: " >>test.log
+	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel1 \
+		--enet-vlan=del
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
