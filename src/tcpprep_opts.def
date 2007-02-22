@@ -1,11 +1,11 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2000 - 2006";
+    date        = "2000 - 2007";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2006 Aaron Turner
+Copyright 2000-2007 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
