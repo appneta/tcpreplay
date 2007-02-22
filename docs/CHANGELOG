@@ -1,6 +1,6 @@
 $Id$
 
-02/21/2007: Version 3.0.beta12
+02/22/2007: Version 3.0.beta12
 	- Fix compile under RH ES 3.x (gcc 3.2.2) (#79)
 	- Fix compile on MIPS, ARM, HPPA, etc (#81, #88)
 	- Rewrite L2/DLT code in tcpedit/tcprewrite to be plugin based (#82)
