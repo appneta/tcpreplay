@@ -66,10 +66,8 @@ dlt_raw_register(tcpeditdlt_t *ctx)
     /* create  a new plugin structure */
     plugin = tcpedit_dlt_newplugin();
 
-    /* FIXME: set what we provide & require 
-    plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-    plugin->requires += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-     */
+    /* set what we provide & require  */
+    plugin->provides += PLUGIN_MASK_PROTO;
 
      /* what is our DLT value? */
     plugin->dlt = dlt_value;
@@ -195,6 +193,8 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_ERROR;
         
     ctx->proto = (u_int16_t)proto;
+    ctx->l2len = 0;
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -230,9 +230,9 @@ dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     int protocol = 0;
 
     iphdr = (struct tcpr_ipv4_hdr *)packet;
-    if (iphdr->ip_v >> 4 == 0x04) {
+    if (iphdr->ip_v == 0x04) {
         protocol = ETHERTYPE_IP;
-    } else if (iphdr->ip_v >> 4 == 0x06) {
+    } else if (iphdr->ip_v == 0x06) {
         protocol = ETHERTYPE_IP6;
     } else {
         tcpedit_seterr(ctx->tcpedit, "%s", "Unsupported DLT_RAW packet: doesn't look like IPv4 or IPv6");
