@@ -194,6 +194,9 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
                 return TCPEDIT_ERROR;
                 break;
         }
+
+        plugin->requires -= PLUGIN_MASK_DSTADDR;
+
     }
 
     /* --smac */
@@ -221,6 +224,7 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
                 return TCPEDIT_ERROR;
                 break;
         }
+        plugin->requires -= PLUGIN_MASK_SRCADDR;
     }
 
     /*
