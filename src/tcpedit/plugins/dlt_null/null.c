@@ -208,6 +208,7 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_ERROR;
 
     ctx->proto = (u_int16_t)proto;
+    ctx->l2len = 4;
 
     return TCPEDIT_OK; /* success */
 }
