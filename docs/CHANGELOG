@@ -1,5 +1,25 @@
 $Id$
 
+02/21/2007: Version 3.0.beta12
+	- Fix compile under RH ES 3.x (gcc 3.2.2) (#79)
+	- Fix compile on MIPS, ARM, HPPA, etc (#81, #88)
+	- Rewrite L2/DLT code in tcpedit/tcprewrite to be plugin based (#82)
+		- Create Ethernet Plugin (#99)
+		- Create User Plugin (#100)
+		- Create Cisco HDLC Plugin (#101)
+		- Create DLT_LINUX_SLL Plugin (#102)
+		- Create DLT_RAW Plugin (#104)
+		- Create DLT_NULL Plugin (#105)
+		- Create DLT_LOOP Plugin (#106)
+	- Properly decode ethernet frames when they are VLAN tagged (#84)
+	- Do not install man2html (#85)
+	- Add configure --disable-libopts-install option (#86)
+	- Enhance tcpreplay --oneatatime (#90)
+	- libtcpedit can now return warnings & errors (#92)
+	- Fix tcpprep --include/exclude (#96)
+	- Upgrade AutoGen tearoff (libopts) to latest version (5.9.0) (#97)
+	- Don't do L4 checksums for non-fragment offset == 0 (#107)
+	
 08/07/2006: Version 3.0.beta11
     - Fix distribution to ship missing src/tcpr.h (#73)
     - Add support to tcprewrite to alter output file DLT (#74)
