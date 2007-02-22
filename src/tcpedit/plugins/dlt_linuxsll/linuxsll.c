@@ -188,6 +188,8 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     linux_sll = (linux_sll_header_t *)packet;
     ctx->proto = linux_sll->proto;
+    ctx->l2len = sizeof(linux_sll_header_t);
+
     
     if (ntohs(linux_sll->type) == ARPHRD_ETHER) { /* ethernet */
         memcpy(&(ctx->srcaddr), linux_sll->address, ETHER_ADDR_LEN);
