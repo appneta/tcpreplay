@@ -1,10 +1,10 @@
 # $Id: $
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_plugins.c $(srcdir)/plugins/ethernet.c \
-	$(srcdir)/plugins/dlt_utils.c
+libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_plugins.c \
+	$(srcdir)/plugins/ethernet.c $(srcdir)/plugins/dlt_utils.c
 
 noinst_HEADERS += $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/ethernet.h \
-	$(srcdir)/plugins/dlt_utils.c
+	$(srcdir)/plugins/dlt_utils.h $(srcdir)/plugins/dlt_plugins-int.h 
 
 AM_CFLAGS += -I. -I$(srcdir)/plugins -I$(srcdir)/../common $(LIBOPTS_CFLAGS) 
 
