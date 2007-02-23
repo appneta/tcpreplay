@@ -26,8 +26,9 @@ manpages: web/tcpreplay.html web/tcpprep.html web/flowreplay.html \
 	web/tcprewrite.html web/tcpbridge.html 
 
 postweb: manpages
-	rsync -e ssh --exclude '/**/.svn/' --exclude '/**~' --exclude '*~' \
-		-avz web/ aturner@voigner.synfin.net:/var/www-vhosts/tcpreplay/
+	rsync -e ssh --exclude '.svn/' --exclude '/**/.svn/' --exclude '/**~' \
+	--exclude '*~' -avz web/ \
+	aturner@voigner.synfin.net:/var/www-vhosts/tcpreplay/
 	scp CHANGELOG TODO aturner@voigner.synfin.net:/var/www-vhosts/tcpreplay/
 
 
