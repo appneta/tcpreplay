@@ -86,6 +86,12 @@ tcpreplay FAQ if you experiance this issue.
 EOMan;
 
 flag = {
+	name		= quiet;
+	value		= q;
+	descrip		= "Quiet mode";
+};
+
+flag = {
 	name		= accurate;
 	value		= a;
 	max			= 1;

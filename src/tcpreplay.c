@@ -137,8 +137,9 @@ replay_file(char *path)
         tcpdump_open(&tcpdump);
     }
 #endif
-
-    notice("processing file: %s", path);
+    
+    if (! HAVE_OPT(QUIET))
+        notice("processing file: %s", path);
 
     /* close stdin if reading from it (needed for some OS's) */
     if (strncmp(path, "-", 1) == 0)
