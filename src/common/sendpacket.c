@@ -80,8 +80,8 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
-#include <sys/sysctl.h>
-#include <net/route.h>
+//#include <sys/sysctl.h>
+//#include <net/route.h>
 #include <stdlib.h>
 #include <unistd.h>
 

@@ -417,7 +417,6 @@ AC_ARG_WITH(libpcap,
     [trypcapdir=$withval])
 
     for testdir in $trypcapdir /usr/local /usr ; do 
- 
      if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
          LPCAPINC="${testdir}/include/pcap.h"
          LPCAPINCDIR="${testdir}/include"
@@ -425,9 +424,11 @@ AC_ARG_WITH(libpcap,
              LPCAPLIB="-L${testdir}/lib -lpcap"
          elif test -f "${testdir}/lib64/libpcap.a" ; then
              LPCAPLIB="${testdir}/lib64/libpcap.a"
-         else
+         elif test -f "${testdir}/lib/libpcap.a" ; then
              LPCAPLIB="${testdir}/lib/libpcap.a"
-         fi
+         else
+             LPCAPLIB="${testdir}/lib/libwpcap.a"
+	 fi 
         foundpcap=$testdir
      fi
    done
@@ -444,7 +445,7 @@ AC_SUBST(LPCAPLIB)
 
 dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
-OLDCFLAGS="$CFLAGS"
+OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
 LIBS="$LPCAPLIB"
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
@@ -467,8 +468,13 @@ AC_RUN_IFELSE(AC_LANG_PROGRAM([[
  * returns zero if version >= 0.8.0
  * or one otherwise
  */
-    if (strncmp(pcap_lib_version, PCAP_TEST, 3) >= 0)
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
             exit(0);
+
+    /* winpcap? */
+    if (strncmp(pcap_lib_version(), "WinPcap", 7) == 0)
+	    exit(0);
+
     exit(1);
 ]]), [
     libpcap_ver8=yes
@@ -489,8 +495,10 @@ extern char pcap_version[];
  * returns zero if version >= 0.5.0
  * or one otherwise
  */
+
     if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
             exit(0);
+    
     exit(1);
 ]]), [
     libpcap_ver5=yes
@@ -875,6 +883,8 @@ else
     AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$td", [The tcpdump binary initially used])
 fi
 
+
+AM_CONDITIONAL(HAVE_TCPDUMP, test $td = yes)
 dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING( for 'make test' profile)

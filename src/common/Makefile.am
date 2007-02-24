@@ -13,8 +13,12 @@ svn_version.c:
 
 libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 		      fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c \
-		      tcpdump.c timer.c svn_version.c abort.c sendpacket.c \
+		      timer.c svn_version.c abort.c sendpacket.c \
 			  dlt_names.c mac.c
+
+if HAVE_TCPDUMP
+	libcommon_a_SOURCES += tcpdump.c
+endif
 
 AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS)
 
