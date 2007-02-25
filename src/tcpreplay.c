@@ -137,7 +137,7 @@ replay_file(char *path)
         tcpdump_open(&tcpdump);
     }
 #endif
-    
+
     if (! HAVE_OPT(QUIET))
         notice("processing file: %s", path);
 
@@ -208,10 +208,9 @@ post_args(void)
 #endif
     
     options.loop = OPT_VALUE_LOOP;
-    /* Currently disabled
+
     if (HAVE_OPT(LIMIT))
         options.limit_send = OPT_VALUE_LIMIT;
-     */
     
     if (HAVE_OPT(TOPSPEED)) {
         options.speed.mode = SPEED_TOPSPEED;
@@ -267,11 +266,10 @@ post_args(void)
             &options.comment);
         free(temp);
     }
-    
-   
-    notice("sending out %s %s", options.intf1_name,
-           options.intf2_name == NULL ? "" : options.intf2_name);
-    
+
+   if (! HAVE_OPT(QUIET))
+        notice("sending out %s %s", options.intf1_name,
+               options.intf2_name == NULL ? "" : options.intf2_name);
 }
 
 /*

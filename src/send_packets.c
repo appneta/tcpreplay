@@ -103,6 +103,10 @@ send_packets(pcap_t *pcap)
         if (didsig)
             break_now(0);
 
+        /* stop sending based on the limit -L? */
+        if (options.limit_send > 0 && pkts_sent >= options.limit_send)
+            return;
+
         packetnum++;
 
 #ifdef TCPREPLAY

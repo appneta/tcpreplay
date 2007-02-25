@@ -204,7 +204,7 @@ flag = {
 
 flag = {
     name        = pktlen;
-    value       = L;
+    value       = S;
     max         = 1;
     descrip     = "Override the snaplen and use the actual packet len";
     doc         = <<- EOText
@@ -217,24 +217,19 @@ you specify this option.
 EOText;
 };
 
-/*
-    Do we really need to support this?  Adding this support would 
-    have a slight but non-zero performance hit
-    
 flag = {
     name        = limit;
     value       = L;
     arg-type    = number;
     max         = 1;
     arg-default = -1;
-    arg-range   = "0->";
+    arg-range   = "1->";
     descrip     = "Limit the number of packets to send";
     doc         = <<- EOText
 By default, tcpreplay will send all the packets.  Alternatively, you can 
 specify a maximum number of packets to send.  
 EOText;
 };
-*/
 
 /*
  * Replay speed modifiers: -m, -p, -r, -R, -o
