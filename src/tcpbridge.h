@@ -74,24 +74,6 @@ struct tcpbridge_opt_s {
 #endif
 
     
-    /* rewrite src/dst MAC addresses */
-    tcpr_macaddr_t intf1_dmac;
-    tcpr_macaddr_t intf1_smac;
-    tcpr_macaddr_t intf2_dmac;
-    tcpr_macaddr_t intf2_smac;
-
-    int mac_mask;
-#define SMAC1 0x1
-#define SMAC2 0x2
-#define DMAC1 0x4
-#define DMAC2 0x8
-
-    /* rewrite tcp/udp ports */
-    tcpedit_portmap_t *portmap;
-    
-    /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
-    tcpr_cidrmap_t *cidrmap1;
-    tcpr_cidrmap_t *cidrmap2;
 
     /* filter options */
     tcpr_xX_t xX;
@@ -99,18 +81,9 @@ struct tcpbridge_opt_s {
     regex_t preg;
     tcpr_cidr_t *cidrdata;
     
-    /* required for rewrite_l2.c */
-    l2_t l2;
-#define FIXLEN_PAD   1
-#define FIXLEN_TRUNC 2
-    int fixlen;
     int mtu;
     int maxpacket;
     int fixcsum;
-    /* 802.1q vlan stuff */
-#define VLAN_DEL     1        /* strip 802.1q and rewrite as standard 802.3 Ethernet */
-#define VLAN_ADD     2        /* add/replace 802.1q vlan tag */
-    int vlan;
     u_int16_t l2proto;
     u_int16_t l2_mem_align; /* keep things 4 byte aligned */
 };

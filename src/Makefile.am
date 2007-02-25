@@ -84,7 +84,7 @@ flowreplay_opts.c: flowreplay_opts.def
 	@AUTOGEN@ flowreplay_opts.def
 
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPBRIDGE
-tcpbridge_LDADD = ./common/libcommon.a ./tcpedit/libtcpedit.a \
+tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c 		
 tcpbridge_OBJECTS: tcpbridge_opts.h

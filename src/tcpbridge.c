@@ -70,6 +70,7 @@ COUNTER bytes_sent, total_bytes, failed, pkts_sent, cache_packets;
 struct timeval begin, end;
 volatile int didsig;
 tcpbridge_opt_t options;
+tcpedit_t *tcpedit;
 
 /* local functions */
 void init(void);
@@ -78,7 +79,7 @@ void post_args(int argc, char *argv[]);
 int 
 main(int argc, char *argv[])
 {
-    int optct;
+    int optct, rcode;
 
     init();
 
@@ -89,6 +90,25 @@ main(int argc, char *argv[])
 
     post_args(argc, argv);
 
+   
+    /* init tcpedit context */
+    if (tcpedit_init(&tcpedit, options.listen1) < 0) {
+        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+    }
+    
+    /* parse the tcpedit args */
+    rcode = tcpedit_post_args(&tcpedit);
+    if (rcode < 0) {
+        errx(1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+    } else if (rcode == 1) {
+        warnx("%s", tcpedit_geterr(tcpedit));
+    }
+    
+    if (tcpedit_validate(tcpedit) < 0) {
+        errx(1, "Unable to edit packets given options:\n%s",
+                tcpedit_geterr(tcpedit));
+    }
+
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
         tcpdump_open_live(&tcpdump, options.listen1);
@@ -96,7 +116,7 @@ main(int argc, char *argv[])
 #endif
 
     /* process packets from one or both interfaces */
-    do_bridge(options.listen1, options.listen2);
+    do_bridge(tcpedit, options.listen1, options.listen2);
 
     /* clean up after ourselves */
     sendpacket_close(options.sp1);
@@ -124,8 +144,6 @@ init(void)
     options.snaplen = 65535;
     options.promisc = 1;
     options.to_ms = 1;
-    /*  default is ethernet */
-    options.l2.dlt = DLT_EN10MB;
 
     total_bytes = 0;
 
@@ -200,19 +218,6 @@ post_args(int argc, char *argv[])
                                               options.promisc, options.to_ms, ebuf)) == NULL)
             errx(1, "Unable to open interface %s for recieving: %s", options.intf2, ebuf);
     }
-
-    /*
-    if (HAVE_OPT(ENDPOINTS)) {
-        tcpedit->rewrite_ip = TCPEDIT_REWRITE_IP_ON;
-        if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2,
-                    OPT_ARG(ENDPOINTS))) {
-            tcpedit_seterr(tcpedit, 
-                    "Unable to parse --endpoints=%s", OPT_ARG(ENDPOINTS));
-            return -1;
-        }
-    }
-    */
-
 }
 
 

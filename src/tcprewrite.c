@@ -53,7 +53,6 @@
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
 #include "tcpedit/tcpedit.h"
-#include "tcpedit/parse_args.h"
 
 #ifdef DEBUG
 int debug;

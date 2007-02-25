@@ -100,7 +100,7 @@ new_node(void)
  */
 
 void
-do_bridge(pcap_t * pcap1, pcap_t * pcap2)
+do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
 {
     struct pollfd polls[2];     /* one for left & right pcap */
     int pollresult = 0;
@@ -127,6 +127,8 @@ do_bridge(pcap_t * pcap1, pcap_t * pcap2)
     /* register signals */
     didsig = 0;
     (void)signal(SIGINT, catcher);
+
+    livedata.tcpedit = tcpedit;
 
     /* 
      * loop until ctrl-C or we've sent enough packets
@@ -197,11 +199,8 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     ipv4_hdr_t *ip_hdr = NULL;
     sendpacket_t *sp = NULL;
     static u_char *pktdata = NULL;     /* full packet buffer */
-#ifdef FORCE_ALIGN
-    u_char *ipbuff = NULL;      /* IP header and above buffer */
-#endif
-    static int first_time = 1;
-    int newl2len, cache_mode;
+    u_char **packet;
+    int cache_mode;
     static unsigned long packetnum = 0;
     struct macsrc_t *node, finder;  /* rb tree nodes */
 #ifdef DEBUG
@@ -212,21 +211,12 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     dbgx(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
 
     /* only malloc the first time */
-    if (first_time) {
+    if (pktdata == NULL) {
         /* create packet buffers */
         pktdata = (u_char *)safe_malloc(MAXPACKET);
-
-#ifdef FORCE_ALIGN
-        ipbuff = (u_char *)safe_malloc(MAXPACKET);
-#endif
-        first_time = 0;
     } else {
         /* zero out the old packet info */
         memset(pktdata, '\0', MAXPACKET);
-
-#ifdef FORCE_ALIGN
-        memset(ipbuff, '\0', MAXPACKET);
-#endif
     }
 
 #ifdef HAVE_TCPDUMP
@@ -280,11 +270,23 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /* what is our cache mode? */
     cache_mode = livedata->source == PCAP_INT1 ? TCPR_DIR_C2S : TCPR_DIR_S2C;
 
-    /* Rewrite any Layer 2 data and copy the data to our local buffer */
-    if ((newl2len = rewrite_l2(livedata->pcap, &pkthdr, pktdata, cache_mode)) 
-        == 0) {
-        warnx("Error rewriting layer 2 data... skipping packet %d", packetnum);
-        return (1);
+    /* should we skip this packet based on CIDR match? */
+    if (tcpedit_l3proto(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len) == ETHERTYPE_IP) {
+        dbg(3, "Packet is IP");
+        ip_hdr = (ipv4_hdr_t *)tcpedit_l3data(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
+
+        /* look for include or exclude CIDR match */
+        if (options.xX.cidr != NULL) {
+            if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
+                return (1);
+            }
+        }
+
+    }
+
+    packet = &pktdata;
+    if (tcpedit_packet(livedata->tcpedit, &pkthdr, packet, cache_mode) == -1) {
+        return -1;
     }
 
     /* 
@@ -304,50 +306,6 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         errx(1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
              node->source);
     }
-
-    if (get_l2protocol(nextpkt, pkthdr->caplen, livedata->linktype) 
-        == ETHERTYPE_IP) {
-        dbg(3, "Packet is IP");
-#ifdef FORCE_ALIGN
-        /* 
-         * copy layer 3 and up to our temp packet buffer
-         * for now on, we have to edit the packetbuff because
-         * just before we send the packet, we copy the packetbuff 
-         * back onto the pkt.data + newl2len buffer
-         * we do all this work to prevent byte alignment issues
-         */
-        ip_hdr = (ipv4_hdr_t *) ipbuff;
-        memcpy(ip_hdr, (&pktdata[newl2len]), pkthdr->caplen - newl2len);
-#else
-        /*
-         * on non-strict byte align systems, don't need to memcpy(), 
-         * just point to 14 bytes into the existing buffer
-         */
-        ip_hdr = (ipv4_hdr_t *) (&pktdata[newl2len]);
-#endif
-
-        /* look for include or exclude CIDR match */
-        if (options.xX.cidr != NULL) {
-            if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
-                return (1);
-            }
-        }
-
-    }
-    else {
-        dbg(3, "Packet is not IP");
-        /* non-IP packets have a NULL ip_hdr struct */
-        ip_hdr = NULL;
-    }
-
-
-#ifdef STRICT_ALIGN
-    /* 
-     * put back the layer 3 and above back in the pkt.data buffer 
-     * we can't edit the packet at layer 3 or above beyond this point
-     */
-    memcpy(&pktdata[newl2len], ip_hdr, pkthdr->caplen - newl2len);
-#endif
 
     /*
      * write packet out on the network 

@@ -22,6 +22,7 @@ gnu-usage;
 help-value      = "H";
 save-opts-value = "";
 load-opts-value = "";
+config-header   = "config.h";
 
 #include tcpedit/tcpedit_opts.def
 
@@ -71,49 +72,6 @@ include         = "#include \"defines.h\"\n"
                 "extern tcprewrite_opt_t options;\n";
 
 homerc          = "$$/";
-
-
-#ifdef TCPEDIT_DLT_DISABLE
-flag = {
-    name        = dlt;
-    value       = L;
-    arg-type    = number;
-    arg-range   = "0->65535";
-    max         = 1;
-    descrip     = "Change DLT type for output pcap file";
-    doc         = <<- EOText
-By default, tcprewrite uses the same DLT (data link type) for the 
-output pcap as the input pcap.  However, if you are changing the 
-Layer 2 data with --dlink, then you probably also want to change the
-DLT type stored in the pcap.  Common DLT types are:
-@table @bullet
-@item
-@var{0}
-No Layer 2 header (DLT_NULL)
-@item
-@var{1}
-Ethernet (DLT_EN10MB)
-@item
-@var{10}
-FDDI (DLT_FDDI)
-@item
-@var{12}
-BSD Raw header (DLT_RAW)
-@item
-@var{104}
-Cisco HDLC (DLT_C_HDLC)
-@item
-@var{113}
-Linux SLL pseudo-header (DLT_LINUX_SLL)
-
-For a full list of DLT types, see: src/common/dlt_names.h
-
-EOText;
-};
-
-#endif
-
-
 
 flag = {
     name        = dbug;

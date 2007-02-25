@@ -32,6 +32,7 @@
 
 #include "defines.h"
 #include "common.h"
+#include "parse_args.h"
 
 #ifndef _TCPEDIT_H_
 #define _TCPEDIT_H_
@@ -54,6 +55,15 @@ int tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
 int tcpedit_close(tcpedit_t *tcpedit);
 int tcpedit_get_output_dlt(tcpedit_t *tcpedit);
+
+enum tcpedit_coder_s {
+    BEFORE_PROCESS,
+    AFTER_PROCESS
+};
+typedef enum tcpedit_coder_s tcpedit_coder_t;
+
+u_char *tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen);
+int tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, const int pktlen);
 
 COUNTER tcpedit_get_total_bytes(tcpedit_t *tcpedit);
 COUNTER tcpedit_get_pkts_edited(tcpedit_t *tcpedit);

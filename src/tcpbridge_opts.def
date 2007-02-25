@@ -35,8 +35,6 @@ include         = "#include \"defines.h\"\n"
                 "extern tcpbridge_opt_t options;\n";
 
 
-/* do not include --endpoints from tcpedit */
-#define TCPEDIT_ENDPOINTS_DISABLE 1
 #include tcpedit/tcpedit_opts.def
 
 
@@ -148,7 +146,7 @@ flag = {
 	arg-type	= number;
 	max			= 1;
 	arg-default	= -1;
-	arg-range	= "0->";
+	arg-range	= "1->";
 	descrip 	= "Limit the number of packets to send";
 	doc 		= <<- EOText
 By default, tcpbridge will send packets forever or until Ctrl-C.  Alternatively,
@@ -251,23 +249,6 @@ EOText;
 };
 
 flag = {
-    name        = endpoints;
-    value       = e;
-    arg-type    = string;
-    max         = 1;
-    descrip     = "Rewrite IP addresses to be between two endpoints";
-    doc         = <<- EOText
-Takes a pair of colon delimited IP addresses which will be used to rewrite
-all traffic to appear to be between the two IP's.
-
-Example:
-@example
---endpoints=172.16.0.1:172.16.0.2
-@end example
-EOText;
-};
-
-flag = {
     name        = pid;
     value       = P;
     descrip     = "Print the PID of tcpbridge at startup";
@@ -323,7 +304,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2006 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2001-2007 by Aaron Turner <aturner at synfin dot net>\n");
 #ifdef HAVE_LIBNET
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
 #else

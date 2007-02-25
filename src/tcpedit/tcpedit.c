@@ -49,6 +49,7 @@
 #include "edit_packet.h"
 #include "rewrite_l2.h"
 #include "parse_args.h"
+#include "plugins/dlt_plugins.h"
 
 
 #include "lib/sll.h"
@@ -388,6 +389,32 @@ tcpedit_close(tcpedit_t *tcpedit)
 
     return 0;
 }
+
+
+u_char *
+tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+{
+    u_char *result = NULL;
+    if (code == BEFORE_PROCESS) {
+        result = tcpedit_dlt_l3data(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);
+    } else {
+        result = tcpedit_dlt_l3data(tcpedit->dlt_ctx, tcpedit->dlt_ctx->encoder->dlt, packet, pktlen);
+    }
+    return result;
+}
+
+int 
+tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, const int pktlen)
+{
+    int result = 0;
+    if (code == BEFORE_PROCESS) {
+        tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);        
+    } else {
+        tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->encoder->dlt, packet, pktlen);
+    }
+    return result;
+}
+
 
 /*
  Local Variables:

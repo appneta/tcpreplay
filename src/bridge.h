@@ -35,6 +35,7 @@
 
 #include "config.h"
 #include "lib/tree.h"
+#include "tcpedit/tcpedit.h"
 
 /*
  * RBTree node object for tracking which side of tcpreplay where 
@@ -59,10 +60,11 @@ struct live_data_t {
     u_char source;
     char *l2data;
     pcap_t *pcap;
+    tcpedit_t *tcpedit;
 };
 
 void rbinit(void);
-void do_bridge(pcap_t *, pcap_t *);
+void do_bridge(tcpedit_t *, pcap_t *, pcap_t *);
 
 
 #endif
