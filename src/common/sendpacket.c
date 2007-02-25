@@ -80,8 +80,12 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
-//#include <sys/sysctl.h>
-//#include <net/route.h>
+#ifdef HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
+#ifdef HAVE_NET_ROUTE_H
+#include <net/route.h>
+#endif
 #include <stdlib.h>
 #include <unistd.h>
 
