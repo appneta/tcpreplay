@@ -16,8 +16,8 @@ libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 		      timer.c svn_version.c abort.c sendpacket.c \
 			  dlt_names.c mac.c
 
-if HAVE_TCPDUMP
-	libcommon_a_SOURCES += tcpdump.c
+if ENABLE_TCPDUMP
+libcommon_a_SOURCES += tcpdump.c
 endif
 
 AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS)

@@ -884,7 +884,7 @@ else
 fi
 
 
-AM_CONDITIONAL(HAVE_TCPDUMP, test $td = yes)
+AM_CONDITIONAL(ENABLE_TCPDUMP, test "$td" != "no")
 dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING( for 'make test' profile)
