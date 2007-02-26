@@ -1,5 +1,13 @@
 $Id$
 
+??/??/2007: Version 3.0.RC1
+    - Fix --skipl2broadcast in libtcpedit (#112)
+    - Endian-ness shouldn't impact --seed in libtcpedit (#65)
+    - Add support for quiet mode, only print final stats (#109)
+    - Fix tcpbridge and make it compile by default (#15)
+    - Clean up documentation (#66, #75)
+    - Start initial support for Win32 port (#110, #111)
+
 02/22/2007: Version 3.0.beta12
 	- Fix compile under RH ES 3.x (gcc 3.2.2) (#79)
 	- Fix compile on MIPS, ARM, HPPA, etc (#81, #88)
