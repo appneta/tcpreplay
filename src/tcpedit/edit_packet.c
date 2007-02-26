@@ -1,7 +1,7 @@
 /* $Id: edit_packet.c 1630 2007-02-03 04:23:14Z aturner $ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,7 @@ randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
     if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, ip))
         return ip;
         
-    return ((ip ^ tcpedit->seed) - (ip & tcpedit->seed));
+    return ntohl((ip ^ tcpedit->seed) - (ip & tcpedit->seed));
 }
 
 
