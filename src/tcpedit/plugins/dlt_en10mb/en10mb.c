@@ -37,10 +37,10 @@
 #include "tcpr.h"
 #include "dlt_utils.h"
 #include "tcpedit_stub.h"
-#include "ethernet.h"
+#include "../ethernet.h"
 
-static char dlt_name[] = "en10mb";
-static char __attribute__((unused)) dlt_prefix[] = "enet";
+static char __attribute__((unused)) dlt_name[] = "en10mb";
+static char dlt_prefix[] = "enet";
 static u_int16_t dlt_value = DLT_EN10MB;
 
 /*
@@ -292,8 +292,8 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     /* get our src & dst address */
     eth = (struct tcpr_ethernet_hdr *)packet;
-    memcpy(&(ctx->dstaddr), eth, ETHER_ADDR_LEN);
-    memcpy(&(ctx->srcaddr), &(eth->ether_shost), ETHER_ADDR_LEN);
+    memcpy(&(ctx->dstaddr.ethernet), eth, ETHER_ADDR_LEN);
+    memcpy(&(ctx->srcaddr.ethernet), &(eth->ether_shost), ETHER_ADDR_LEN);
 
     extra = (en10mb_extra_t *)ctx->decoded_extra;
     extra->vlan = 0;
@@ -382,10 +382,17 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     /* always set the src & dst address as the first 12 bytes */
     eth = (struct tcpr_ethernet_hdr *)packet;
     
-    if (dir == TCPR_DIR_C2S) { 
+    if (dir == TCPR_DIR_C2S) {
         /* copy user supplied SRC MAC if provided or from original packet */
-        if (config->mac_mask && TCPEDIT_MAC_MASK_SMAC1) {
-            memcpy(eth->ether_shost, config->intf1_smac, ETHER_ADDR_LEN);
+        if (config->mac_mask & TCPEDIT_MAC_MASK_SMAC1) {
+            if ((ctx->addr_type == ETHERNET && 
+                    ((ctx->skip_broadcast && 
+                      is_unicast_ethernet(ctx, ctx->srcaddr.ethernet)) || !ctx->skip_broadcast))
+                || ctx->addr_type != ETHERNET) {
+                memcpy(eth->ether_shost, config->intf1_smac, ETHER_ADDR_LEN);
+            } else {
+                memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);                
+            }
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
         } else {
@@ -394,8 +401,14 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         }
 
         /* copy user supplied DMAC MAC if provided or from original packet */        
-        if (config->mac_mask && TCPEDIT_MAC_MASK_DMAC1) {
-            memcpy(eth->ether_dhost, config->intf1_dmac, ETHER_ADDR_LEN);
+        if (config->mac_mask & TCPEDIT_MAC_MASK_DMAC1) {
+            if ((ctx->addr_type == ETHERNET && 
+                ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast))
+                || ctx->addr_type != ETHERNET) {
+                memcpy(eth->ether_dhost, config->intf1_dmac, ETHER_ADDR_LEN);
+            } else {
+                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
+            }
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
         } else {
@@ -405,8 +418,14 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     
     } else if (dir == TCPR_DIR_S2C) {
         /* copy user supplied SRC MAC if provided or from original packet */
-        if (config->mac_mask && TCPEDIT_MAC_MASK_SMAC2) {
-            memcpy(eth->ether_shost, config->intf2_smac, ETHER_ADDR_LEN);
+        if (config->mac_mask & TCPEDIT_MAC_MASK_SMAC2) {
+            if ((ctx->addr_type == ETHERNET && 
+                ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->srcaddr.ethernet)) || !ctx->skip_broadcast))
+                || ctx->addr_type != ETHERNET) {
+                memcpy(eth->ether_shost, config->intf2_smac, ETHER_ADDR_LEN);
+            } else {
+                memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
+            }
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);            
         } else {
@@ -416,10 +435,16 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
 
         
         /* copy user supplied DMAC MAC if provided or from original packet */        
-        if (config->mac_mask && TCPEDIT_MAC_MASK_DMAC2) {
-            memcpy(eth->ether_dhost, config->intf2_dmac, ETHER_ADDR_LEN);
+        if (config->mac_mask & TCPEDIT_MAC_MASK_DMAC2) {
+            if ((ctx->addr_type == ETHERNET && 
+                ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast))
+                || ctx->addr_type != ETHERNET) {
+                memcpy(eth->ether_dhost, config->intf2_dmac, ETHER_ADDR_LEN);
+            } else {
+                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);                
+            }
         } else if (ctx->addr_type == ETHERNET) {
-            memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);            
+            memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
             return TCPEDIT_ERROR;
@@ -573,4 +598,3 @@ dlt_en10mb_l2addr_type(void)
 {
     return ETHERNET;
 }
-

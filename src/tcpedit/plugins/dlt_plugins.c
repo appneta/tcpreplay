@@ -165,7 +165,7 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
     }
     
     /* Figure out if we're skipping braodcast & multicast */
-    if (HAVE_OPT(SKIPBROADCAST))
+    if (HAVE_OPT(SKIPL2BROADCAST))
         ctx->skip_broadcast = 1;
 
     /* init encoder plugin if it's not the decoder plugin */

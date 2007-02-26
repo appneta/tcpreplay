@@ -82,7 +82,7 @@ flag = {
 	value		= b;
 	descrip		= "Skip rewriting broadcast/multicast IP's";
 	doc			= <<- EOText
-By default, --dmac, --smac, --seed, --pnat and --endpoints will rewrite 
+By default --seed, --pnat and --endpoints will rewrite 
 broadcast and multicast IP and MAC addresses.	Setting this flag
 will keep broadcast/multicast IP and MAC addresses from being rewritten.
 EOText;
@@ -117,6 +117,10 @@ flag = {
     value       = E;
     descrip     = "Remove Ethernet checksums (FCS) from end of frames";
     doc         = <<- EOText
+Note, this option is pretty dangerous!  We don't actually check to see if a FCS
+actually exists in the frame, we just blindly delete the last two bytes.  Hence,
+you should only use this if you know know that your OS provides the FCS when 
+reading raw packets.
 EOText;
 };
 
