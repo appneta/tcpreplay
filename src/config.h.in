@@ -15,9 +15,6 @@
 /* Enable building flowreplay (alpha) */
 #undef ENABLE_FLOWREPLAY
 
-/* Enable building tcpbridge (beta) */
-#undef ENABLE_TCPBRIDGE
-
 /* fopen(3) accepts a 'b' in the mode flag */
 #undef FOPEN_BINARY_FLAG
 
@@ -318,6 +315,9 @@
 
 /* Define to 1 if you have the `vsnprintf' function. */
 #undef HAVE_VSNPRINTF
+
+/* Do we have WinPcap? */
+#undef HAVE_WINPCAP
 
 /* What is the path (if any) to the pcap-bpf.h header? */
 #undef INCLUDE_PCAP_BPF_HEADER
