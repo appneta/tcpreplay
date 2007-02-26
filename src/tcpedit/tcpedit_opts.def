@@ -57,8 +57,8 @@ Example:
 EOText; 
 };
 
-#ifdef INDEX_OPT_CACHEFILE
 flag = {
+	ifdef 		= HAVE_CACHEFILE_SUPPORT;
     name        = endpoints;
     value       = e;
     arg-type    = string;
@@ -75,7 +75,6 @@ Example:
 @end example
 EOText;
 };
-#endif
 
 flag = {
 	name		= skipbroadcast;

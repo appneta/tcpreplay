@@ -55,7 +55,7 @@ tcpreplay_opts.h: tcpreplay_opts.c
 tcpreplay_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ tcpreplay_opts.def
 
-tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE
+tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 	$(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c 
