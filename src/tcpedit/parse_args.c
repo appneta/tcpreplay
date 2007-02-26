@@ -144,7 +144,6 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         tcpedit->seed = random() + random() + random() + random() + random();
     }
 
-#ifdef INDEX_OPT_ENDPOINTS
     if (HAVE_OPT(ENDPOINTS)) {
         tcpedit->rewrite_ip = TCPEDIT_REWRITE_IP_ON;
         if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2,
@@ -154,7 +153,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
             return -1;
         }
     }
-#endif
+
     /* 
      * figure out the max packet len
     if (tcpedit->l2.enabled) {
