@@ -179,28 +179,28 @@ replay_accurate:
 
 rewrite_portmap:
 	$(PRINTF) "%s" "[tcprewrite] Portmap test: "
-	$(PRINTF) "%s\n" "[tcprewrite] Portmap test: " >>test.log
+	$(PRINTF) "%s\n" "*** [tcprewrite] Portmap test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_portmap1 -r 80:8080 >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
-	$(PRINTF) "%s\n" "[tcprewrite] Endpoint test: " >>test.log
+	$(PRINTF) "%s\n" "*** [tcprewrite] Endpoint test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2 -c test.auto_router
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
-	$(PRINTF) "%s\n" "[tcprewrite] Pseudo NAT test: " >>test.log
+	$(PRINTF) "%s\n" "*** [tcprewrite] Pseudo NAT test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_pnat1 -N 216.27.178.0/24:172.16.0.0/24
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_mac:
 	$(PRINTF) "%s" "[tcprewrite] Src/Dst MAC test: "
-	$(PRINTF) "%s\n" "[tcprewrite] Src/Dst MAC test: " >>test.log
+	$(PRINTF) "%s\n" "*** [tcprewrite] Src/Dst MAC test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac1 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
