@@ -310,7 +310,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /*
      * write packet out on the network 
      */
-     if (sendpacket(sp, pktdata, pkthdr->caplen) < pkthdr->caplen) {
+     if (sendpacket(sp, pktdata, pkthdr->caplen) < (int)pkthdr->caplen) {
          errx(1, "Unable to send packet out %s: %s", sp->device, sendpacket_geterr(sp));
      }
 
