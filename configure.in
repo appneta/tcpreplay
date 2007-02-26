@@ -370,11 +370,11 @@ AC_ARG_WITH(libpcap,
 	            LPCAPLIB="${testdir}/lib64/libpcap.a"
 	        elif test -f "${testdir}/lib/libpcap.a" ; then
 	            LPCAPLIB="${testdir}/lib/libpcap.a"
-	        elif test -f "${testdir}/lib/libwpcap.a"
+	        elif test -f "${testdir}/lib/libwpcap.a" ; then
 	            LPCAPLIB="${testdir}/lib/libwpcap.a"
 				AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
 		 	else
-				AC_ERROR(Unable to find matching library for header file in ${testdir})
+				AC_ERROR([Unable to find matching library for header file in ${testdir}])
 			fi
         	foundpcap=$testdir
      	fi
@@ -518,6 +518,24 @@ AC_TRY_COMPILE([
 	else
 		AC_MSG_RESULT(no)
 	fi
+],[
+	AC_MSG_RESULT(no)
+])
+
+have_pcap_version=no
+dnl Check to see if we have pcap_version[]
+AC_MSG_CHECKING(for pcap_version[])
+AC_TRY_COMPILE([
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+extern char pcap_version[];
+],[
+	printf("%s", pcap_version);
+],[
+	AC_DEFINE([HAVE_PCAP_VERSION],[1], [Does libpcap have pcap_version[]])
+	AC_MSG_RESULT(yes)
 ],[
 	AC_MSG_RESULT(no)
 ])
