@@ -69,6 +69,10 @@
 #include "common.h"
 #include "sendpacket.h"
 
+#if (defined HAVE_WINPCAP && defined HAVE_PCAP_INJECT)
+#undef HAVE_PCAP_INJECT /* configure returns true for some odd reason */
+#endif
+
 #if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF
 #error You need pcap_inject() or pcap_sendpacket() from libpcap, libnet 1.1.3+, Linux's PF_PACKET or *BSD's BPF
 #endif
@@ -128,8 +132,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *) __at
 
 #endif /* HAVE_LIBNET */
 
-#if (defined HAVE_PCAP_INJECT || defined HAVE_PACKET_SENDPACKET)
-#include <pcap.h>
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
 static sendpacket_t *sendpacket_open_pcap(const char *, char *) __attribute__((unused));
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) __attribute__((unused));
 #endif /* HAVE_PCAP_INJECT || HAVE_PACKET_SENDPACKET */

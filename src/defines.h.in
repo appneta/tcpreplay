@@ -190,5 +190,13 @@ enum tcpprep_mode {
 #define DEBUG_CODE   5          /* examines code & values, many lines per packet */
 
 
+/* Win32 doesn't know about PF_INET6 */
+#ifndef PF_INET6
+#ifdef AF_INET6
+#define PF_INET6 AF_INET6
+#else
+#define PF_INET6 30 /* stolen from OS/X */
+#endif
+#endif
 
 #endif /* DEFINES */
