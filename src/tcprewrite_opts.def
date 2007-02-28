@@ -184,7 +184,11 @@ flag = {
 #else
 	fprintf(stderr, "Not compiled with libnet.\n");
 #endif
+#ifdef HAVE_WINPCAP
+	fprintf(stderr, "Compiled against winpcap: %s\n", pcap_lib_version());
+#else
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+#endif
 #ifdef ENABLE_64BITS
     fprintf(stderr, "64 bit packet counters: enabled\n");
 #else

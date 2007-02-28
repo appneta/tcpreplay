@@ -158,6 +158,9 @@
 /* Does libpcap have pcap_sendpacket? */
 #undef HAVE_PCAP_SENDPACKET
 
+/* Does libpcap have pcap_version[] */
+#undef HAVE_PCAP_VERSION
+
 /* Do we have Linux PF_PACKET socket support? */
 #undef HAVE_PF_PACKET
 

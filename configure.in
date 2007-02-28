@@ -896,6 +896,13 @@ case $host in
     AC_MSG_RESULT(OpenBSD)
     ;;
 
+	*-*-cygwin)
+	AC_MSG_RESULT(Win32/Cygwin)
+	AC_DEFINE([WIN32],[1], [Platform is Win32/Cygwin])
+	nic1=%0
+	nic1=%0
+	;;
+	
 	*)
 	AC_MSG_RESULT([$host is unknown!  
 	Please use --with-nictest to select an interface for 'make test'])

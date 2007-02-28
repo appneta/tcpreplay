@@ -536,14 +536,18 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2006 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2001-2007 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBNET
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
 #else
 	fprintf(stderr, "Not compiled with libnet.\n");
 #endif
+#ifdef HAVE_WINPCAP
+	fprintf(stderr, "Compiled against winpcap: %s\n", pcap_lib_version());
+#else
     fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+#endif
 #ifdef ENABLE_64BITS
     fprintf(stderr, "64 bit packet counters: enabled\n");
 #else
