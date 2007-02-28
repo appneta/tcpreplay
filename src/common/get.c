@@ -41,11 +41,45 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <string.h>
 
 #ifdef DEBUG
 extern int debug;
 #endif
 
+#ifdef HAVE_PCAP_VERSION
+extern const char pcap_version[];
+#endif
+
+/*
+ * Depending on what version of libpcap/WinPcap there are different ways to get the
+ * version of the libpcap/WinPcap library.  This presents a unified way to get that
+ * information.
+ */
+const char *
+get_pcap_version(void)
+{
+
+#ifdef HAVE_PCAP_VERSION
+    return pcap_version;
+#elif defined HAVE_WINPCAP
+    static ourver[255];
+    char *last, *version, *vercpy, *str;
+    /* WinPcap returns a string like:
+     * WinPcap version 4.0 (packet.dll version 4.0.0.755), based on libpcap version 0.9.5
+     */
+    version = pcap_lib_version();
+    vercpy = safe_strdup(version);
+
+    strtok_r(vercpy, " ", &last);
+    strtok_r(vercpy, NULL, &last);
+    strlcpy(ourver, strtok_r(vercpy, NULL, &last), 255);
+    free(vercpy);
+    return ourver;
+#else
+    return pcap_lib_version();
+#endif
+}
 
 
 

@@ -49,6 +49,7 @@ const u_char *get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char 
 
 u_int32_t get_name2addr4(const char *hostname, u_int8_t dnslookup);
 const char *get_addr2name4(const u_int32_t ip, u_int8_t dnslookup);
+const char *get_pcap_version(void);
 
 #endif
 
