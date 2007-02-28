@@ -31,7 +31,6 @@ include         = "#include \"defines.h\"\n"
                 "#include \"config.h\"\n"
 				"#include <stdlib.h>\n"
 				"#include <string.h>\n"
-                "extern char pcap_version[];\n"
                 "extern tcpbridge_opt_t options;\n";
 
 
@@ -310,7 +309,11 @@ flag = {
 #else
 	fprintf(stderr, "Not compiled with libnet.\n");
 #endif
-    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+#ifdef HAVE_WINPCAP
+    fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
+#else
+    fprintf(stderr, "Compiled against libpcap: %s\n", get_pcap_version());
+#endif
 #ifdef ENABLE_64BITS
     fprintf(stderr, "64 bit packet counters: enabled\n");
 #else

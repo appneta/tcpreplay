@@ -35,7 +35,6 @@ include         = "#include \"defines.h\"\n"
 				"#include <stdlib.h>\n"
 				"#include <sys/types.h>\n"
 				"#include <unistd.h>\n"
-                "extern char pcap_version[];\n"
                 "extern tcpreplay_opt_t options;\n";
 
 homerc          = "$$/";
@@ -382,9 +381,9 @@ flag = {
 	fprintf(stderr, "Not compiled with libnet.\n");
 #endif
 #ifdef HAVE_WINPCAP
-	fprintf(stderr, "Compiled against winpcap: %s\n", pcap_lib_version());
+	fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
 #else
-    fprintf(stderr, "Compiled against libpcap: %s\n", pcap_version);
+    fprintf(stderr, "Compiled against libpcap: %s\n", get_pcap_version());
 #endif
 #ifdef ENABLE_64BITS
     fprintf(stderr, "64 bit packet counters: enabled\n");

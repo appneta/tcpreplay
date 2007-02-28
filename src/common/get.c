@@ -42,12 +42,13 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
 
 #ifdef DEBUG
 extern int debug;
 #endif
 
-#ifdef HAVE_PCAP_VERSION
+#if defined HAVE_PCAP_VERSION && ! defined WIN32
 extern const char pcap_version[];
 #endif
 
@@ -60,22 +61,21 @@ const char *
 get_pcap_version(void)
 {
 
-#ifdef HAVE_PCAP_VERSION
-    return pcap_version;
-#elif defined HAVE_WINPCAP
-    static ourver[255];
-    char *last, *version, *vercpy, *str;
+#if defined HAVE_WINPCAP
+    static char ourver[255];
+    char *last, *version;
     /* WinPcap returns a string like:
      * WinPcap version 4.0 (packet.dll version 4.0.0.755), based on libpcap version 0.9.5
      */
-    version = pcap_lib_version();
-    vercpy = safe_strdup(version);
+    version = safe_strdup(pcap_lib_version());
 
-    strtok_r(vercpy, " ", &last);
-    strtok_r(vercpy, NULL, &last);
-    strlcpy(ourver, strtok_r(vercpy, NULL, &last), 255);
-    free(vercpy);
+    strtok_r(version, " ", &last);
+    strtok_r(NULL, " ", &last);
+    strlcpy(ourver, strtok_r(NULL, " ", &last), 255);
+    free(version);
     return ourver;
+#elif defined HAVE_PCAP_VERSION
+    return pcap_version;
 #else
     return pcap_lib_version();
 #endif
@@ -268,7 +268,7 @@ u_int32_t
 get_name2addr4(const char *hostname, u_int8_t dnslookup)
 {
     struct in_addr addr;
-#ifndef HAVE_INET_ATON && defined HAVE_INET_ADDR
+#if ! defined HAVE_INET_ATON && defined HAVE_INET_ADDR
     struct hostent *host_ent; 
 #endif
     u_int32_t m;
