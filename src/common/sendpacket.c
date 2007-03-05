@@ -205,6 +205,14 @@ TRY_SEND_AGAIN:
 #elif defined HAVE_PCAP_SENDPACKET
     if ((retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len)) < 0)
         sendpacket_seterr(sp, "Error with pcap_sendpacket(): %s", pcap_geterr(sp->handle.pcap));
+
+    /* 
+     * pcap_sendpacket returns 0 on success, not the packet length! 
+     * hence, as a special case, update the counters here and return len
+     */
+    sp->bytes_sent += len;
+    sp->sent ++;
+    return len;
 #endif
 
     if (retcode < 0) {
