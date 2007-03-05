@@ -33,6 +33,15 @@ AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
 
+AC_MSG_CHECKING([for cygwin development environment])
+if test `echo $target | grep -c cygwin` -gt 0 ; then
+   AC_DEFINE([WIN32], [1], [Windows/Cygwin])
+   AC_MSG_RESULT(yes)
+else
+   AC_MSG_RESULT(no)
+fi
+
+
 AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
 
 dnl Checks for programs.
@@ -898,7 +907,6 @@ case $host in
 
 	*-*-cygwin)
 	AC_MSG_RESULT(Win32/Cygwin)
-	AC_DEFINE([WIN32],[1], [Platform is Win32/Cygwin])
 	nic1=%0
 	nic1=%0
 	;;
