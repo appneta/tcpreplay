@@ -39,7 +39,7 @@
 #define _FAKEPCAPNAV_H_
 
 #include "config.h"
-#include <pcap.h>
+#include "defines.h"
 
 #ifndef HAVE_PCAPNAV
 
