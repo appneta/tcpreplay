@@ -893,7 +893,7 @@ case $host in
 	AC_MSG_RESULT(SunOS)
 	;;
 
-	powerpc-apple-darwin*)
+	*-apple-darwin*)
 	nic1=en0
 	nic2=en0
 	AC_MSG_RESULT(Apple OS X)
