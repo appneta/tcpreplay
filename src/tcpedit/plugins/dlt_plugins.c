@@ -194,7 +194,6 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 
 INIT_ERROR:
     tcpedit_dlt_cleanup(ctx);
-    free(ctx);
     return NULL;
 }
  
