@@ -47,7 +47,6 @@
 #include "portmap.h"
 #include "common.h"
 #include "edit_packet.h"
-#include "rewrite_l2.h"
 #include "parse_args.h"
 #include "plugins/dlt_plugins.h"
 
@@ -130,7 +129,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }        
         dbg(3, "Packet has an IPv4 header...");
     } else {
-        dbg(3, "Packet isn't IPv4...");
+        dbgx(3, "Packet isn't IPv4: 0x%02x", l2proto);
         /* non-IP packets have a NULL ip_hdr struct */
         ip_hdr = NULL;
     }
