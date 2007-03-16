@@ -233,7 +233,7 @@ dlt_linuxsll_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     linux_sll = (linux_sll_header_t *)packet;
     
-    return linux_sll->proto; 
+    return ntohs(linux_sll->proto);
 }
 
 /*

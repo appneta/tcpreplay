@@ -293,7 +293,7 @@ dlt_hdlc_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     hdlc = (cisco_hdlc_t *)packet;
     
-    return hdlc->protocol;
+    return ntohs(hdlc->protocol);
 }
 
 /*

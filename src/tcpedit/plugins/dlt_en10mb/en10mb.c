@@ -521,11 +521,11 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     switch (eth->ether_type) {
         case ETHERTYPE_VLAN:
             vlan = (struct tcpr_802_1q_hdr *)packet;
-            return vlan->vlan_len;
+            return ntohs(vlan->vlan_len);
             break;
         
         default:
-            return eth->ether_type;
+            return ntohs(eth->ether_type);
             break;
     }
     return TCPEDIT_ERROR;
