@@ -384,6 +384,9 @@
 /* What is our version? */
 #undef VERSION
 
+/* Windows/Cygwin */
+#undef WIN32
+
 /* Define if using the dmalloc debugging malloc package */
 #undef WITH_DMALLOC
 
