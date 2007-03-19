@@ -48,7 +48,7 @@
 extern int debug;
 #endif
 
-#if defined HAVE_PCAP_VERSION && ! defined WIN32
+#if defined HAVE_PCAP_VERSION && ! defined HAVE_WIN32
 extern const char pcap_version[];
 #endif
 

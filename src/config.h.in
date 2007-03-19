@@ -319,6 +319,9 @@
 /* Define to 1 if you have the `vsnprintf' function. */
 #undef HAVE_VSNPRINTF
 
+/* Windows/Cygwin */
+#undef HAVE_WIN32
+
 /* Do we have WinPcap? */
 #undef HAVE_WINPCAP
 

@@ -203,7 +203,7 @@ flag = {
             
     pcap_if_ptr = pcap_if;
     printf("%s", "Available network interfaces:\n");
-#ifdef WIN32  /* Win32 has alias/name/description */
+#ifdef HAVE_WIN32  /* Win32 has alias/name/description */
 	printf("Alias\tName\n");
 #else
 	/* Unix just has a warning about being root */
@@ -213,7 +213,7 @@ flag = {
 
     while (pcap_if_ptr != NULL) {
         if (! pcap_if_ptr->flags & PCAP_IF_LOOPBACK) {
-#ifdef WIN32
+#ifdef HAVE_WIN32
             printf("%%%d\t%s\n\t%s\n", i, pcap_if_ptr->name, pcap_if_ptr->description);
 #else
 			printf("%s\n", pcap_if_ptr->name);

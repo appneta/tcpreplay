@@ -35,7 +35,7 @@ AC_SUBST(target)
 
 AC_MSG_CHECKING([for cygwin development environment])
 if test `echo $target | grep -c cygwin` -gt 0 ; then
-   AC_DEFINE([WIN32], [1], [Windows/Cygwin])
+   AC_DEFINE([HAVE_WIN32], [1], [Windows/Cygwin])
    AC_MSG_RESULT(yes)
 else
    AC_MSG_RESULT(no)
