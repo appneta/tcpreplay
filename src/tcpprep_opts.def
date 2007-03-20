@@ -58,6 +58,7 @@ EOMan;
 
 
 flag = {
+    ifdef       = DEBUG;
     name        = dbug;
     value       = d;
     arg-type    = number;

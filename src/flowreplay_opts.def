@@ -52,6 +52,7 @@ http://tcpreplay.synfin.net/wiki/manual
 EODetail;
 
 flag = {
+    ifdef       = DEBUG;
     name        = dbug;
     value       = d;
     arg-type    = number;
