@@ -18,7 +18,8 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
-		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc
+		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
+		test.rewrite_vlandel
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
