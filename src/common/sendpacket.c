@@ -712,3 +712,29 @@ sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
 }
 
 #endif /* HAVE_BPF */
+
+/*
+ * Return -1 if we can't figure it out, else return the DLT_ value
+ */
+int 
+sendpacket_get_dlt(sendpacket_t *sp)
+{
+    int dlt;
+#if defined HAVE_PF_PACKET
+    dlt = -1;
+#elif defined HAVE_BPF
+    int fh, rcode;
+
+    
+    if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
+        warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
+        return -1;
+    }
+#elif defined HAVE_LIBNET
+    dlt = -1;
+#else /* HAVE_PCAP_SENDPACKET / HAVE_PCAP_INJECT */
+    dlt = pcap_datalink(sp->handle.pcap);
+#endif
+    return dlt;
+}
+

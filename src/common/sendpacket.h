@@ -73,6 +73,7 @@ char *sendpacket_geterr(sendpacket_t *);
 char *sendpacket_getstat(sendpacket_t *);
 sendpacket_t *sendpacket_open(const char *, char *);
 struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
+int sendpacket_get_dlt(sendpacket_t *);
 
 #endif /* _SENDPACKET_H_ */
 
