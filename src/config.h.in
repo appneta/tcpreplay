@@ -158,6 +158,9 @@
 /* Does libpcap have pcap_sendpacket? */
 #undef HAVE_PCAP_SENDPACKET
 
+/* Does libpcap have pcap_snapshot_override()? */
+#undef HAVE_PCAP_SNAPSHOT_OVERRIDE
+
 /* Does libpcap have pcap_version[] */
 #undef HAVE_PCAP_VERSION
 
@@ -386,9 +389,6 @@
 
 /* What is our version? */
 #undef VERSION
-
-/* Windows/Cygwin */
-#undef WIN32
 
 /* Define if using the dmalloc debugging malloc package */
 #undef WITH_DMALLOC
