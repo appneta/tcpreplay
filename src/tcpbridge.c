@@ -155,13 +155,12 @@ init(void)
     
     if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
-    
 
 }
 
 
 void 
-post_args(int argc, char *argv[])
+post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 {
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     
