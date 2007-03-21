@@ -1,12 +1,19 @@
 $Id$
 
 ??/??/2007: Version 3.0.RC1
-    - Fix --skipl2broadcast in libtcpedit (#112)
-    - Endian-ness shouldn't impact --seed in libtcpedit (#65)
-    - Add support for quiet mode, only print final stats (#109)
     - Fix tcpbridge and make it compile by default (#15)
+
+03/22/2007: Version 3.0.beta13
+	- Fixed detection of IPv4 packets in libtcpedit on little-endian boxes (#115, #116)
+    - Fixed TCP/UDP checksum calculation on little-endian boxes (#126)
+    - Added –-quiet flag to tcpreplay for Lothar (#109)
+    - The –-seed flag should now generate the same IP’s on both little-endian & big-endian boxes (#65)
+    - The –-skipl2broadcast flag now works as documented (#112)
+    - Adding L2 header for DLT_RAW encapsulated packets now works (#16)
     - Clean up documentation (#66, #75)
     - Start initial support for Win32 port (#110, #111)
+	- Finish DLT plugin rewrite (#82)
+	- Fix compile on systems without tcpdump installed
 
 02/22/2007: Version 3.0.beta12
 	- Fix compile under RH ES 3.x (gcc 3.2.2) (#79)
