@@ -1,48 +1,6 @@
 $Id$
 
 NOTE: This information is out of date.  Please see the tcpreplay wiki
-for updated information: http://tcpreplay.synfin.net/trac/wiki/manual
+for updated information: 
 
-You'll need:
-
-- libnet 1.1.x (1.1.1 or greater is recommended)
-http://www.packetfactory.net/Projects/libnet/
-
-Note: Version 1.1.3-RC has a bug in one of the header files.  If you get
-an error during compilation:
-
-/usr/local/include/./libnet/libnet-types.h:36:23: error: ../config.h: No
-such file or directory 
-
-Then you should edit /usr/local/include/libnet/libnet-types.h (or wherever
-it is installed) and comment out or delete the three lines (should be lines
-35-38):
-
-#ifdef HAVE_CONFIG_H
-#include "../config.h"
-#endif
-
-Feel free to bitch to libnet@securityfocus.com since they seem to be
-ignoring me.
-
-- libpcap >= 0.5 (0.8 or greater is recommended)
-http://www.tcpdump.org/
-
-- tcpdump (Optional. If you want packet decoding of sent packets)
-http://www.tcpdump.org/
-
-- autogen >= 5.7.0 (Only necessary if you are building tcpreplay from 
-      subversion)
-http://autogen.sourceforge.net/
-
-If building from subversion:
-./autogen.sh
-
-Run:
-./configure ; make
-
-Run as root:
-make test -i    (optional)
-make install
-
-For more detailed information, see the FAQ.
+http://tcpreplay.synfin.net/trac/wiki/manual#GettingTcpreplayInstalled
