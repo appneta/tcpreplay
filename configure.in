@@ -12,7 +12,7 @@ AC_PROG_LIBTOOL
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=0
-MICRO_VERSION=beta13
+MICRO_VERSION=RC1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -494,6 +494,32 @@ if test $have_dlt_to_desc = yes ; then
     AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [1], 
               [Does libpcap have dlt_val_to_desc?])
 fi
+
+
+dnl Check to see if we've got pcap_snapshot_override()
+AC_MSG_CHECKING(for pcap_snapshot_override)
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+	pcap_t *pcap;
+	pcap_snapshot_override(pcap, 1);
+	exit(0);
+]]),[
+    have_pcap_snapshot_override=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_snapshot_override=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_snapshot_override = yes ; then
+    AC_DEFINE([HAVE_PCAP_SNAPSHOT_OVERRIDE], [1], 
+              [Does libpcap have pcap_snapshot_override()?])
+fi
+
 
 dnl This message is placed here for continuity purposes
 dnl but things are really set above in the libnet section

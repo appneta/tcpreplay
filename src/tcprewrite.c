@@ -198,6 +198,11 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 
     pkthdr_ptr = &pkthdr;
 
+#ifdef HAVE_PCAP_SNAPSHOT_OVERRIDE
+    /* libpcap >= 0.9.6 have this which handles broken RedHat libpcap files */
+    pcap_snapshot_override(pin, 65535);
+#endif
+
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets

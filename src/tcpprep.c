@@ -121,6 +121,11 @@ main(int argc, char *argv[])
     if ((options.pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
         errx(1, "Error opening file: %s", errbuf);
 
+#ifdef HAVE_PCAP_SNAPSHOT_OVERRIDE
+    /* libpcap >= 0.9.6 have this which handles broken RedHat libpcap files */
+    pcap_snapshot_override(pin, 65535);
+#endif
+
     /* make sure we support the DLT type */
     switch(pcap_datalink(options.pcap)) {
         case DLT_EN10MB:
@@ -306,6 +311,8 @@ process_raw_packets(pcap_t * pcap)
     poller[0].revents = 0;
 #endif
     
+    assert(pcap);
+    
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
 
@@ -315,12 +322,12 @@ process_raw_packets(pcap_t * pcap)
         if (options.xX.list != NULL) {
             if (options.xX.mode < xXExclude) {
                 if (!check_list(options.xX.list, packetnum)) {
-                    add_cache(&options.cachedata, DONT_SEND, 0);
+                    add_cache(&(options.cachedata), DONT_SEND, 0);
                     continue;
                 }
             }
             else if (check_list(options.xX.list, packetnum)) {
-                add_cache(&options.cachedata, DONT_SEND, 0);
+                add_cache(&(options.cachedata), DONT_SEND, 0);
                 continue;
             }
         }

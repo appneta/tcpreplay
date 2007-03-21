@@ -117,7 +117,6 @@ main(int argc, char *argv[])
 
     if (bytes_sent > 0)
         packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
-
     return 0;
 }                               /* main() */
 
@@ -130,6 +129,7 @@ replay_file(char *path)
 {
     pcap_t *pcap = NULL;
     char ebuf[PCAP_ERRBUF_SIZE];
+    int dlt;
 
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
@@ -149,6 +149,15 @@ replay_file(char *path)
     if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
         errx(1, "Error opening pcap file: %s", ebuf);
 
+#ifdef HAVE_PCAP_SNAPSHOT_OVERRIDE
+    /* libpcap >= 0.9.6 have this which handles broken RedHat libpcap files */
+    pcap_snapshot_override(pcap, 65535);
+#endif
+
+    dlt = sendpacket_get_dlt(options.intf1);
+    if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
+        warnx("%s DLT does not match that of the outbound interface: %s", path, options.intf1->device);
+        
     send_packets(pcap);
     pcap_close(pcap);
 #ifdef HAVE_TCPDUMP
@@ -197,6 +206,7 @@ post_args(void)
 {
     char *temp;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
+    int int1dlt, int2dlt;
     
 
 #ifdef DEBUG
@@ -251,6 +261,8 @@ post_args(void)
     if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf)) == NULL)
         errx(1, "Can't open %s: %s", options.intf1_name, ebuf);
            
+    int1dlt = sendpacket_get_dlt(options.intf1);
+    
     if (HAVE_OPT(INTF2)) {
         options.intf2_name = (char *)safe_malloc(strlen(OPT_ARG(INTF2)) + 1);
         strncpy(options.intf2_name, OPT_ARG(INTF2), strlen(OPT_ARG(INTF2)));
@@ -258,6 +270,10 @@ post_args(void)
         /* open interface for writing */
         if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf)) == NULL)
             errx(1, "Can't open %s: %s", options.intf2_name, ebuf);
+            
+        int2dlt = sendpacket_get_dlt(options.intf2);
+        if (int2dlt != int1dlt)
+            errx(1, "DLT type missmatch for %s and %s", options.intf1_name, options.intf2_name);
     }
 
     if (HAVE_OPT(CACHEFILE)) {
