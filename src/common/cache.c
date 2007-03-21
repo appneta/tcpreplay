@@ -166,6 +166,9 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     COUNTER packets = 0;
     ssize_t written = 0;
 
+    assert(cachedata);
+    assert(out_file);
+
     /* write a header to our file */
     cache_header = (tcpr_cache_file_hdr_t *)
         safe_malloc(sizeof(tcpr_cache_file_hdr_t));
@@ -265,6 +268,8 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
     char bitstring[9] = EIGHT_ZEROS;
 #endif
 
+    assert(cachedata);
+
     /* first run?  malloc our first entry, set bit count to 0 */
     if (*cachedata == NULL) {
         *cachedata = new_cache();
@@ -345,6 +350,8 @@ check_cache(char *cachedata, COUNTER packetid)
 {
     COUNTER index = 0;
     u_int32_t bit;
+
+    assert(cachedata);
 
     if (packetid == 0)
         err(1, "packetid must be > 0");
