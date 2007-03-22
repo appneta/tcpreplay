@@ -1,4 +1,4 @@
-/* $Id: fakepcapnav.c 1462 2006-04-13 05:10:27Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2005 Aaron Turner.

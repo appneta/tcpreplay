@@ -1,4 +1,4 @@
-/* $Id: get.c 1601 2006-10-10 15:56:16Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2005 Aaron Turner.
