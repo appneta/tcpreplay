@@ -148,17 +148,3 @@ FLOWREPLAY:
 - Perhaps integrate stick/snot/fpg logic into flowreplay:
   http://www.geschke-online.de/FLoP/fpg.8.html
   to do full 3way handshakes
-
-
-BUGS:
-- fix RNG for randomization of IP's
-
-- Fix tcpbridge after code refactoring
-
-- Fix spec file using patch
-
-- adding a layer 2 header to RawIP pcap's results in broken pcap's
-
-- Tcpbridge between loopback (LinuxSSL and BSD loop) and another NIC 
-  (support rewriting MAC)
-
