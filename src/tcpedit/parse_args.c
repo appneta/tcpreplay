@@ -1,4 +1,4 @@
-/* $Id: parse_args.c 1630 2007-02-03 04:23:14Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006 Aaron Turner.

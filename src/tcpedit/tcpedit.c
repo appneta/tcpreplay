@@ -1,4 +1,4 @@
-/* $Id: tcpedit.c 1631 2007-02-03 18:41:33Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2007 Aaron Turner.
