@@ -31,6 +31,8 @@ include         = "#include \"defines.h\"\n"
                 "#include \"config.h\"\n"
 				"#include <stdlib.h>\n"
 				"#include <string.h>\n"
+				"#include <sys/types.h>\n"
+				"#include <unistd.h>\n"
                 "extern tcpbridge_opt_t options;\n";
 
 
