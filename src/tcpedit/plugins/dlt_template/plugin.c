@@ -297,3 +297,4 @@ dlt_%{plugin}_l2addr_type(void)
     /* FIXME: return the tcpeditdlt_l2addr_type_t value that this DLT uses */
     return ETHERNET;
 }
+

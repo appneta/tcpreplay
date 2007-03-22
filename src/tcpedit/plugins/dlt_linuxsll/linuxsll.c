@@ -297,3 +297,4 @@ dlt_linuxsll_l2addr_type(void)
     /* we only support ethernet packets */
     return ETHERNET;
 }
+

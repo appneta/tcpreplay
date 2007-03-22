@@ -359,3 +359,4 @@ dlt_hdlc_l2addr_type(void)
 {
     return C_HDLC;
 }
+

@@ -87,3 +87,4 @@ struct cisco_hdlc_s {
 };
 typedef struct cisco_hdlc_s cisco_hdlc_t;
 #endif
+

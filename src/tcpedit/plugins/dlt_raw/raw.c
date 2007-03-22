@@ -298,3 +298,4 @@ dlt_raw_l2addr_type(void)
 {
     return NONE;
 }
+

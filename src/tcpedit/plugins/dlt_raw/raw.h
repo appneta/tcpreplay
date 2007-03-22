@@ -73,3 +73,4 @@ struct raw_config_s {
 typedef struct raw_config_s raw_config_t;
 
 #endif
+
