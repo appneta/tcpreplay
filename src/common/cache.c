@@ -1,4 +1,4 @@
-/* $Id: cache.c 1611 2006-11-06 04:01:42Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2005 Aaron Turner.
