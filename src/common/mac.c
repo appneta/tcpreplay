@@ -1,4 +1,4 @@
-/* $Id: mac.c 1621 2006-11-09 07:01:37Z aturner $ */
+/* $Id$ */
 /* Copyright 2004-2005 Aaron Turner 
  * All rights reserved.
  *

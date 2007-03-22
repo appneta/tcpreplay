@@ -1,4 +1,4 @@
-/* $Id: services.c 1543 2006-07-29 06:20:25Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2004 Aaron Turner.
