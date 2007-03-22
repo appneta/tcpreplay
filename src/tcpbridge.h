@@ -1,4 +1,4 @@
-/* $Id: tcpbridge.h 1573 2006-08-05 20:26:08Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2005 Aaron Turner.

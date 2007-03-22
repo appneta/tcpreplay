@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.h 1556 2006-07-31 06:12:01Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2007 Aaron Turner.

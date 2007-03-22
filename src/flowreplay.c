@@ -1,4 +1,4 @@
-/* $Id: flowreplay.c 1525 2006-07-19 03:29:41Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

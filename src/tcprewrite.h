@@ -1,4 +1,4 @@
-/* $Id: tcprewrite.h 1540 2006-07-29 06:17:04Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2004-2007 Aaron Turner.
