@@ -1,4 +1,4 @@
-/* $Id: tcpbridge.c 1573 2006-08-05 20:26:08Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2004-2005 Aaron Turner.
@@ -163,6 +163,9 @@ void
 post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 {
     char ebuf[SENDPACKET_ERRBUF_SIZE];
+    char *intname;
+    interface_list_t *intlist = get_interface_list();
+
     
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -188,11 +191,18 @@ post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]
     if (HAVE_OPT(LIMIT))
         options.limit_send = OPT_VALUE_LIMIT; /* default is -1 */
 
-    options.intf1 = safe_strdup(OPT_ARG(INTF1));
 
-    if (HAVE_OPT(INTF2)) 
-        options.intf2 = safe_strdup(OPT_ARG(INTF2));
+    if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
+        errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+    
+    options.intf1 = safe_strdup(intname);
 
+    if (HAVE_OPT(INTF2)) {
+        if ((intname = get_interface(intlist, OPT_ARG(INTF2))) == NULL)
+            errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
+    
+        options.intf2 = safe_strdup(intname);
+    }
     
 
     /* open up interfaces */

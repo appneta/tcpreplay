@@ -1,4 +1,4 @@
-/* $Id: tcpreplay.c 1556 2006-07-31 06:12:01Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2007 Aaron Turner.
@@ -156,7 +156,9 @@ replay_file(char *path)
 
     dlt = sendpacket_get_dlt(options.intf1);
     if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
-        warnx("%s DLT does not match that of the outbound interface: %s", path, options.intf1->device);
+        warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
+            path, pcap_datalink_val_to_name(pcap_datalink(pcap)), 
+            options.intf1->device, pcap_datalink_val_to_name(dlt));
         
     send_packets(pcap);
     pcap_close(pcap);
@@ -204,10 +206,11 @@ init(void)
 void
 post_args(void)
 {
-    char *temp;
+    char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
-    
+    interface_list_t *intlist = get_interface_list();
+
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -254,8 +257,11 @@ post_args(void)
     if (HAVE_OPT(PKTLEN))
         warn("--pktlen may cause problems.  Use with caution.");
     
-    options.intf1_name = (char *)safe_malloc(strlen(OPT_ARG(INTF1)) + 1);
-    strncpy(options.intf1_name, OPT_ARG(INTF1), strlen(OPT_ARG(INTF1)));
+    
+    if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
+        errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+    
+    options.intf1_name = safe_strdup(intname);
     
     /* open interfaces for writing */
     if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf)) == NULL)
@@ -264,8 +270,10 @@ post_args(void)
     int1dlt = sendpacket_get_dlt(options.intf1);
     
     if (HAVE_OPT(INTF2)) {
-        options.intf2_name = (char *)safe_malloc(strlen(OPT_ARG(INTF2)) + 1);
-        strncpy(options.intf2_name, OPT_ARG(INTF2), strlen(OPT_ARG(INTF2)));
+        if ((intname = get_interface(intlist, OPT_ARG(INTF2))) == NULL)
+            errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
+            
+        options.intf2_name = safe_strdup(intname);
         
         /* open interface for writing */
         if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf)) == NULL)
@@ -273,7 +281,9 @@ post_args(void)
             
         int2dlt = sendpacket_get_dlt(options.intf2);
         if (int2dlt != int1dlt)
-            errx(1, "DLT type missmatch for %s and %s", options.intf1_name, options.intf2_name);
+            errx(1, "DLT type missmatch for %s (%s) and %s (%s)", 
+                options.intf1_name, pcap_datalink_val_to_name(int1dlt), 
+                options.intf2_name, pcap_datalink_val_to_name(int2dlt));
     }
 
     if (HAVE_OPT(CACHEFILE)) {
