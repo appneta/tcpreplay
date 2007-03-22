@@ -39,6 +39,7 @@
 #include "portmap.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 
 /*

@@ -723,7 +723,7 @@ sendpacket_get_dlt(sendpacket_t *sp)
 #if defined HAVE_PF_PACKET
     dlt = -1;
 #elif defined HAVE_BPF
-    int fh, rcode;
+    int rcode;
 
     
     if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
