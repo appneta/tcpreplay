@@ -1,4 +1,4 @@
-/* $Id: sendpacket.h 1561 2006-08-01 19:24:04Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006 Aaron Turner.

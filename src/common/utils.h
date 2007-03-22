@@ -1,4 +1,4 @@
-/* $Id: utils.h 1531 2006-07-26 19:17:34Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2005 Aaron Turner.

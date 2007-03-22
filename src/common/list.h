@@ -1,4 +1,4 @@
-/* $Id: list.h 1462 2006-04-13 05:10:27Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.

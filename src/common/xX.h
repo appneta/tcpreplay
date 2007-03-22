@@ -1,4 +1,4 @@
-/* $Id: xX.h 1529 2006-07-26 18:18:13Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2004 Aaron Turner.
