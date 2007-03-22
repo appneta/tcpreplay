@@ -19,6 +19,7 @@
 #include "common/timer.h"
 #include "common/abort.h"
 #include "common/sendpacket.h"
+#include "common/interface.h"
 
 const char *svn_version(void); /* svn_version.c */
 
