@@ -725,6 +725,30 @@ AC_TRY_COMPILE([#include <sys/types.h>
                AC_MSG_RESULT(no)
                )
 
+foundbpfheader=no
+AC_MSG_CHECKING(for libpcap bpf header)
+	for testfile in $LPCAPINCDIR/pcap/bpf.h $LPCAPINCDIR/pcap-bpf.h ; do
+    	if test -f "${testfile}" -a $foundbpfheader = no ; then
+			AC_TRY_COMPILE([
+				#include <sys/types.h>
+				#include <sys/time.h>
+				#include "$testfile"],
+			[
+				int foo;
+				foo = BPF_MAJOR_VERSION;
+			],
+			[
+				foundbpfheader=yes
+				PCAP_BPF_H_FILE=$testfile
+				AC_SUBST(PCAP_BPF_H_FILE)
+				AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [1],
+					[What is the path (if any) to the libpcap bpf header file?])
+				AC_MSG_RESULT($testfile)
+			],
+				AC_MSG_RESULT(no)
+			)
+		fi
+	done
 dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
 CFLAGS="$OLDCFLAGS"
