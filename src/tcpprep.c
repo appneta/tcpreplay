@@ -1,4 +1,4 @@
-/* $Id: tcpprep.c 1621 2006-11-09 07:01:37Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2001-2007 Aaron Turner.
@@ -123,7 +123,7 @@ main(int argc, char *argv[])
 
 #ifdef HAVE_PCAP_SNAPSHOT_OVERRIDE
     /* libpcap >= 0.9.6 have this which handles broken RedHat libpcap files */
-    pcap_snapshot_override(pin, 65535);
+    pcap_snapshot_override(options.pcap, 65535);
 #endif
 
     /* make sure we support the DLT type */
