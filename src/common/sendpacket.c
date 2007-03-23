@@ -720,18 +720,23 @@ int
 sendpacket_get_dlt(sendpacket_t *sp)
 {
     int dlt;
-#if defined HAVE_PF_PACKET
-    dlt = -1;
+#if defined HAVE_PF_PACKET || defined HAVE_LIBNET
+    /* use libpcap to get dlt */
+    pcap_t *pcap;
+    char errbuf[PCAP_ERRBUF_SIZE];
+    if ((pcap = pcap_open_live(sp->device, 65535, 0, 0, errbuf)) == NULL) {
+        warnx("Unable to get DLT value for %s: %s", sp->device, errbuf);
+        return(-1);
+    }
+    dlt = pcap_datalink(pcap);
+    pcap_close(pcap);
 #elif defined HAVE_BPF
     int rcode;
 
-    
     if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
         warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
-        return -1;
+        return(-1);
     }
-#elif defined HAVE_LIBNET
-    dlt = -1;
 #else /* HAVE_PCAP_SENDPACKET / HAVE_PCAP_INJECT */
     dlt = pcap_datalink(sp->handle.pcap);
 #endif
