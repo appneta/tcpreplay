@@ -31,9 +31,18 @@ check:
 	$(PRINTF) "%s\n" "NOTICE: Tests must be run as root"
 	$(PRINTF) "%s\n" "Sending traffic on '$(nic1)' and '$(nic2)'"
 
-# the cache files to be used as the standard; be sure to do a cvs commit
-# afterwords!
-standard:
+if WORDS_BIGENDIAN
+STANDARD_REWRITE = standard_bigendian
+REWRITE_WARN = "big"
+else
+STANDARD_REWRITE = standard_littleendian
+REWRITE_WARN = "little"
+endif
+
+standard: standard_prep $(STANDARD_REWRITE)
+	$(PRINTF) "Warning: only creating %s endian standard test files\n" $(REWRITE_WARN)
+	
+standard_prep:	
 	$(TCPPREP) -i test.pcap -o test.auto_router -a router
 	$(TCPPREP) -i test.pcap -o test.auto_bridge -a bridge
 	$(TCPPREP) -i test.pcap -o test.auto_client -a client
@@ -44,6 +53,8 @@ standard:
 	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
 	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
 	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
+
+standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_endpoint \
@@ -68,7 +79,42 @@ standard:
 		--hdlc-control=0 --hdlc-address=0x0F
 	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel \
 		--enet-vlan=del
-	
+		
+standard_littleendian:
+	$(TCPPREP) -i test.pcap -o test.auto_router -a router
+	$(TCPPREP) -i test.pcap -o test.auto_bridge -a bridge
+	$(TCPPREP) -i test.pcap -o test.auto_client -a client
+	$(TCPPREP) -i test.pcap -o test.auto_server -a server
+	$(TCPPREP) --load-opts config -o test.prep_config
+	$(TCPPREP) -i test.pcap -o test.port -p
+	$(TCPPREP) -i test.pcap -o test.mac -e 00:02:3b:00:3d:ce
+	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
+	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
+	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_portmap -r 80:8080
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_endpoint \
+		-e 10.10.0.1:10.10.0.2 -c test.auto_router
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_pnat \
+		-N 216.27.178.0/24:172.16.0.0/24
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_pad -F pad
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_trunc -F trunc
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mac \
+		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_layer2 \
+		 --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_config --enet-vlan=add --enet-vlan-tag=45 \
+		--enet-vlan-cfi=1 --enet-vlan-pri=5
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_skip -b -s 55 \
+		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_dltuser --dlt=user \
+		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104 
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_dlthdlc --dlt=hdlc \
+		--hdlc-control=0 --hdlc-address=0x0F
+	$(TCPREWRITE) -i test.rewrite_config -o test2.rewrite_vlandel \
+		--enet-vlan=del
 
 
 tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port \
@@ -182,21 +228,33 @@ rewrite_portmap:
 	$(PRINTF) "%s" "[tcprewrite] Portmap test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Portmap test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_portmap1 -r 80:8080 >>test.log 2>&1
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Endpoint test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2 -c test.auto_router
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Pseudo NAT test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_pnat1 -N 216.27.178.0/24:172.16.0.0/24
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_mac:
@@ -205,27 +263,43 @@ rewrite_mac:
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac1 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_trunc:
 	$(PRINTF) "%s" "[tcprewrite] Truncate test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Truncate test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -F trunc -i test.pcap -o test.rewrite_trunc1 >>test.log 2>&1
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_pad:
 	$(PRINTF) "%s" "[tcprewrite] Pad test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Pad test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -F pad -i test.pcap -o test.rewrite_pad1 >>test.log 2>&1
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_seed:
 	$(PRINTF) "%s" "[tcprewrite] Seed IP test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Seed IP test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_seed1 -s 55 >>test.log 2>&1
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_layer2:
@@ -233,14 +307,22 @@ rewrite_layer2:
 	$(PRINTF) "%s\n" "*** [tcprewrite] Layer2 test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 \
 		-i test.pcap -o test.rewrite_layer21 >>test.log 2>&1
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 rewrite_config:
 	$(PRINTF) "%s" "[tcprewrite] Config/VLAN Add test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Config/VLAN Add test: " >>test.log
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_config1 --load-opts config
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 rewrite_skip:
@@ -249,7 +331,11 @@ rewrite_skip:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip1 -b -s 55 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_dltuser:
@@ -257,7 +343,11 @@ rewrite_dltuser:
 	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User test: " >>test.log
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_dltuser1 --dlt=user \
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104 
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_dlthdlc:
@@ -265,7 +355,11 @@ rewrite_dlthdlc:
 	$(PRINTF) "%s\n" "*** [tcprewrite] DLT Cisco HDLC test: " >>test.log
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlthdlc1 --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 rewrite_vlandel:
@@ -273,7 +367,11 @@ rewrite_vlandel:
 	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN Delete test: " >>test.log
 	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel1 \
 		--enet-vlan=del
+if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_pps:
