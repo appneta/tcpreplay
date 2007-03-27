@@ -19,7 +19,12 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
-		test.rewrite_vlandel
+		test.rewrite_vlandel \
+		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
+		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
+		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
+		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
+		test2.rewrite_vlandel
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -81,16 +86,6 @@ standard_bigendian:
 		--enet-vlan=del
 		
 standard_littleendian:
-	$(TCPPREP) -i test.pcap -o test.auto_router -a router
-	$(TCPPREP) -i test.pcap -o test.auto_bridge -a bridge
-	$(TCPPREP) -i test.pcap -o test.auto_client -a client
-	$(TCPPREP) -i test.pcap -o test.auto_server -a server
-	$(TCPPREP) --load-opts config -o test.prep_config
-	$(TCPPREP) -i test.pcap -o test.port -p
-	$(TCPPREP) -i test.pcap -o test.mac -e 00:02:3b:00:3d:ce
-	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
-	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
-	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_endpoint \
@@ -273,6 +268,7 @@ endif
 rewrite_trunc:
 	$(PRINTF) "%s" "[tcprewrite] Truncate test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Truncate test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -F trunc -i test.pcap -o test.rewrite_trunc1 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
