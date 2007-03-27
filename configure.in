@@ -100,6 +100,7 @@ AM_CONDITIONAL(SYSTEM_STRLCPY, [test x$have_strlcpy = xtrue])
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
 
 AC_C_BIGENDIAN
+AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
 
 dnl Enable debugging in code/compiler options
 debug=no
