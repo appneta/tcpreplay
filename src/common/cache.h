@@ -80,7 +80,7 @@ struct tcpr_cache_file_hdr_s {
     u_int64_t num_packets;      /* total # of packets in file */
     u_int16_t packets_per_byte;
     u_int16_t comment_len;      /* how long is the user comment? */
-};
+} __attribute__((__packed__));
 
 typedef struct tcpr_cache_file_hdr_s tcpr_cache_file_hdr_t;
 
