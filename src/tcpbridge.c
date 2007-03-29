@@ -115,6 +115,10 @@ main(int argc, char *argv[])
     }
 #endif
 
+    if (gettimeofday(&begin, NULL) < 0)
+        err(1, "gettimeofday() failed");
+
+
     /* process packets from one or both interfaces */
     do_bridge(tcpedit, options.listen1, options.listen2);
 
