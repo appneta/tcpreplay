@@ -367,6 +367,7 @@ tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
             assert(0 == 1); /* this should never happen! */
             break;
     }
+    return TCPEDIT_ERROR;
 }
 
 /*
