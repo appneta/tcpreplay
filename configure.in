@@ -959,12 +959,13 @@ case $host in
 	*-*-cygwin)
 	AC_MSG_RESULT(Win32/Cygwin)
 	nic1=%0
-	nic1=%0
+	nic2=%0
 	;;
 	
 	*)
-	AC_MSG_RESULT([$host is unknown!  
-	Please use --with-nictest to select an interface for 'make test'])
+	AC_MSG_RESULT([$host is unknown!  Using first non-loopback interface])
+	nic1=%0
+	nic2=%0
 	;;
 esac])
 
