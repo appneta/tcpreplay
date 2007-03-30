@@ -100,18 +100,11 @@ int main(int argc, char *argv[])
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
-#ifdef HAVE_TCPDUMP
-    if (options.verbose) {
-        tcpdump.filename = options.infile;
-        tcpdump_open(&tcpdump);
-    }
-#endif
 
     if (tcpedit_validate(tcpedit) < 0) {
         errx(1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
-
 
    /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
@@ -122,6 +115,12 @@ int main(int argc, char *argv[])
 
     dbgx(1, "DLT of dlt_pcap is %s",
         pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
+
+#ifdef HAVE_TCPDUMP
+    if (options.verbose) {
+        tcpdump_open(&tcpdump, dlt_pcap);
+    }
+#endif
 
     if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL)
         errx(1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));

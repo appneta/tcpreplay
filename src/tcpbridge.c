@@ -61,11 +61,6 @@ int debug;
 #endif
 
 
-#ifdef HAVE_TCPDUMP
-/* tcpdump handle */
-tcpdump_t tcpdump;
-#endif
-
 COUNTER bytes_sent, total_bytes, failed, pkts_sent, cache_packets;
 struct timeval begin, end;
 volatile int didsig;
@@ -111,7 +106,8 @@ main(int argc, char *argv[])
 
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
-        tcpdump_open_live(&tcpdump, options.listen1);
+        options.tcpdump = (tcpdump_t*)safe_malloc(sizeof(tcpdump_t));
+        tcpdump_open(options.tcpdump, options.listen1);
     }
 #endif
 
@@ -132,7 +128,7 @@ main(int argc, char *argv[])
     }
 
 #ifdef HAVE_TCPDUMP
-    tcpdump_close(&tcpdump);
+    tcpdump_close(options.tcpdump);
 #endif
 
     return 0;
@@ -151,12 +147,6 @@ init(void)
 
     total_bytes = 0;
 
-#ifdef HAVE_TCPDUMP
-    /* clear out tcpdump struct */
-    memset(&tcpdump, '\0', sizeof(tcpdump_t));
-#endif
-    
-    
     if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
 
@@ -185,7 +175,7 @@ post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]
         options.verbose = 1;
     
     if (HAVE_OPT(DECODE))
-        tcpdump.args = safe_strdup(OPT_ARG(DECODE));
+        options.tcpdump->args = safe_strdup(OPT_ARG(DECODE));
     
 #endif
 

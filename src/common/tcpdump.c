@@ -63,17 +63,22 @@ extern int debug;
 #endif
 
 char *options_vec[OPTIONS_VEC_SIZE];
+static int tcpdump_fill_in_options(char *opt);
+static int can_exec(const char *filename);
 
-void tcpdump_send_file_header(tcpdump_t *tcpdump);
-int tcpdump_fill_in_options(char *opt);
-int can_exec(const char *filename);
-
+/*
+ * given a packet, print a decode of via tcpdump
+ */
 int
 tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data)
 {
     struct pollfd poller[1];
     int result;
     char decode[TCPDUMP_DECODE_LEN];
+
+    assert(tcpdump);
+    assert(pkthdr);
+    assert(data);
 
     poller[0].fd = tcpdump->infd;
     poller[0].events = POLLOUT;
@@ -136,95 +141,44 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
 }
 
 /*
- * swaps the pcap header bytes.  Ripped right out of libpcap's file.c
+ * init our tcpdump handle using the given pcap handle
+ * Basically, this starts up tcpdump as a child and communicates
+ * to it via a pair of sockets (stdout/stdin)
  */
-static void
-swap_hdr(struct pcap_file_header *hp)
-{
-        hp->version_major = SWAPSHORT(hp->version_major);
-        hp->version_minor = SWAPSHORT(hp->version_minor);
-        hp->thiszone = SWAPLONG(hp->thiszone);
-        hp->sigfigs = SWAPLONG(hp->sigfigs);
-        hp->snaplen = SWAPLONG(hp->snaplen);
-        hp->linktype = SWAPLONG(hp->linktype);
-}
-
 int
-tcpdump_init(tcpdump_t *tcpdump)
+tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 {
-    FILE *f;
-    struct pcap_file_header *pfh;
-    u_int32_t magic;
+    int infd[2], outfd[2];
+    FILE *writer;
+    
+    assert(tcpdump);
+    assert(pcap);
 
-    dbg(2, "preping the pcap file header for tcpdump");
-    
-    if (!tcpdump || !tcpdump->filename)
-        return FALSE; /* nothing to init */
-    
+    if (tcpdump->pid != 0) {
+        warn("tcpdump process already running");
+        return FALSE;
+    }
+
     /* is tcpdump executable? */
     if (! can_exec(TCPDUMP_BINARY)) {
         errx(1, "Unable to execute tcpdump binary: %s", TCPDUMP_BINARY);
     }
     
-    /* Check if we can read the tracefile */
-    if ( (f = fopen(tcpdump->filename, "r")) == NULL)
-        errx(1, "Unable to open %s\n", tcpdump->filename);
-    
-    pfh = &(tcpdump->pfh);
-    
-    /* Read trace file header */
-    if (fread(pfh, sizeof(struct pcap_file_header), 1, f) != 1)
-        errx(1, "Unable to read pcap_file_header: %s", strerror(errno));
-
-    if (pfh->magic != TCPDUMP_MAGIC && pfh->magic != PATCHED_TCPDUMP_MAGIC) {
-        magic = SWAPLONG(pfh->magic);
-        if (magic != TCPDUMP_MAGIC && magic != PATCHED_TCPDUMP_MAGIC)
-            err(1, "Invalid pcap file magic number");
-
-        swap_hdr(pfh);
-    }
-
-    fclose(f);
-
-    /* force to standard pcap format (non-patched) */
-    pfh->magic = TCPDUMP_MAGIC;
-
-
 #ifdef DEBUG
-    if (debug >= 5)
-        strlcpy(tcpdump->debugfile, TCPDUMP_DEBUG, sizeof(tcpdump->debugfile));
+     strlcpy(tcpdump->debugfile, TCPDUMP_DEBUG, sizeof(tcpdump->debugfile));
+     if (debug >= 5) {
+         dbgx(5, "Opening tcpdump debug file: %s", tcpdump->debugfile);
+
+         if ((tcpdump->debugfd = open(tcpdump->debugfile, O_WRONLY|O_CREAT|O_TRUNC, 
+                S_IREAD|S_IWRITE|S_IRGRP|S_IROTH)) == -1) {
+            errx(1, "Error opening tcpdump debug file: %s\n%s", tcpdump->debugfile, strerror(errno));
+        }
+    }
 #endif
-    
-    return TRUE;
-}
-
-int
-tcpdump_open(tcpdump_t *tcpdump)
-{
-    int infd[2], outfd[2];
-
-    if (! tcpdump)
-        return FALSE;
-
-    if (! tcpdump_init(tcpdump))
-        return FALSE;
 
     /* copy over the args */
-    dbg(2, "[child] Prepping tcpdump options...");
+    dbg(2, "Prepping tcpdump options...");
     tcpdump_fill_in_options(tcpdump->args);
-
-#ifdef DEBUG
-    dbgx(5, "Opening tcpdump debug file: %s", tcpdump->debugfile);
-
-    if (debug >= 5) {
-        if ((tcpdump->debugfd = open(tcpdump->debugfile, O_WRONLY|O_CREAT|O_TRUNC, 
-                                     S_IREAD|S_IWRITE|S_IRGRP|S_IROTH)) == -1)
-            errx(1, "Error opening tcpdump debug file: %s\n%s", 
-                 tcpdump->debugfile, strerror(errno));
-
-    }
-#endif
-
 
     dbg(2, "Starting tcpdump...");
 
@@ -235,7 +189,8 @@ tcpdump_open(tcpdump_t *tcpdump)
     /* create our socket pair to read packet decode from tcpdump */
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, outfd) < 0)
         errx(1, "Unable to create stdout socket pair: %s", strerror(errno));
-    
+ 
+         
     if ((tcpdump->pid = fork() ) < 0)
         errx(1, "Fork failed: %s", strerror(errno));
 
@@ -244,21 +199,26 @@ tcpdump_open(tcpdump_t *tcpdump)
     if (tcpdump->pid > 0) {
         /* we're still in tcpreplay */
         dbgx(2, "[parent] closing input fd %d", infd[1]);
-        dbgx(2, "[parent] closing output fd %d", outfd[1]);
         close(infd[1]);  /* close the tcpdump side */
+        dbgx(2, "[parent] closing output fd %d", outfd[1]);
         close(outfd[1]);
         tcpdump->infd = infd[0];
         tcpdump->outfd = outfd[0];
 
+        /* send the pcap file header to tcpdump */
+        writer = fdopen(tcpdump->infd, "w");
+        if ((tcpdump->dumper = pcap_dump_fopen(pcap, writer)) == NULL) {
+            warnx("[parent] pcap_dump_fopen(): %s", pcap_geterr(pcap));
+            return FALSE;
+        }
+        pcap_dump_flush(tcpdump->dumper);
+
         if (fcntl(tcpdump->infd, F_SETFL, O_NONBLOCK) < 0)
-            errx(1, "[parent] Unable to fcntl tcpreplay socket:\n%s", strerror(errno));
+            warnx("[parent] Unable to fcntl tcpreplay socket:\n%s", strerror(errno));
 
         if (fcntl(tcpdump->outfd, F_SETFL, O_NONBLOCK) < 0)
-            errx(1, "[parent] Unable to fnctl stdout socket:\n%s", strerror(errno));
-        
-        /* send the pcap file header to tcpdump */
-        tcpdump_send_file_header(tcpdump);
-
+            warnx("[parent] Unable to fnctl stdout socket:\n%s", strerror(errno));
+            
     }
     else {
         dbg(2, "[child] started the kid");
@@ -283,7 +243,7 @@ tcpdump_open(tcpdump_t *tcpdump)
                     strerror(errno));
         }
 
-    /* exec tcpdump */
+        /* exec tcpdump */
         dbg(2, "[child] Exec'ing tcpdump...");
         if (execv(TCPDUMP_BINARY, options_vec) < 0)
             errx(1, "Unable to exec tcpdump: %s", strerror(errno));
@@ -293,54 +253,52 @@ tcpdump_open(tcpdump_t *tcpdump)
     return TRUE;
 }
 
-/*
- * Use an existing pcap handle to support decoding of 
- * packets in verbose mode
- */
-int 
-tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap) {
-
-    assert(tcpdump);
-    assert(pcap);
-
-    return 1;
-}
-
-/* write the pcap header to the tcpdump child process */
+/* shutdown tcpdump */
 void
-tcpdump_send_file_header(tcpdump_t *tcpdump)
+tcpdump_close(tcpdump_t *tcpdump)
 {
+    if (! tcpdump)
+        return;
 
-    dbgx(2, "[parent] Sending pcap file header out fd %d...", tcpdump->infd);
-    if (! tcpdump->infd) 
-        err(1, "[parent] tcpdump filehandle is zero.");
+    if (tcpdump->pid <= 0)
+        return;
 
-    if (write(tcpdump->infd, (void *)&(tcpdump->pfh), sizeof(struct pcap_file_header))
-        != sizeof(struct pcap_file_header)) {
-        errx(1, "[parent] tcpdump_send_file_header() error writing file header:\n%s", 
-             strerror(errno));
-    }
+    dbgx(2, "[parent] killing tcpdump pid: %d", tcpdump->pid);
 
-#ifdef DEBUG
-    if (debug >= 5) {
-        if (write(tcpdump->debugfd, (void *)&(tcpdump->pfh), 
-                  sizeof(struct pcap_file_header))
-            != sizeof(struct pcap_file_header)) {
-            errx(1, "[parent] tcpdump_send_file_header() error writing file debug header:\n%s", 
-                 strerror(errno));
-        }
+    kill(tcpdump->pid, SIGKILL);
+    close(tcpdump->infd);
+    close(tcpdump->outfd);
 
-    }
-#endif
+    if (waitpid(tcpdump->pid, NULL, 0) != tcpdump->pid)
+        errx(1, "[parent] Error in waitpid: %s", strerror(errno));
 
+    tcpdump->pid = 0;
+    tcpdump->infd = 0;
+    tcpdump->outfd = 0;
 }
 
-/* copy the string of args (*opt) to the vector (**opt_vec)
+/* forcefully kill tcpdump */
+void
+tcpdump_kill(tcpdump_t *tcpdump)
+{
+    if (tcpdump->pid) {
+        if (kill(tcpdump->pid, SIGTERM) != 0) {
+            kill(tcpdump->pid, SIGKILL);
+        }
+    }
+    tcpdump->infd = 0;
+    tcpdump->outfd = 0;
+    tcpdump->pid = 0;
+}
+
+
+/* 
+ * copy the string of args (*opt) to the vector (**opt_vec)
  * for a max of opt_len.  Returns the number of options
  * in the vector
  */
 
-int
+static int
 tcpdump_fill_in_options(char *opt)
 {
     char options[256];
@@ -396,30 +354,9 @@ tcpdump_fill_in_options(char *opt)
     return(i);
 }
 
-void
-tcpdump_close(tcpdump_t *tcpdump)
-{
-    if (! tcpdump)
-        return;
 
-    if (tcpdump->pid <= 0)
-        return;
-
-    dbgx(2, "[parent] killing tcpdump pid: %d", tcpdump->pid);
-
-    kill(tcpdump->pid, SIGKILL);
-    close(tcpdump->infd);
-    close(tcpdump->outfd);
-
-    if (waitpid(tcpdump->pid, NULL, 0) != tcpdump->pid)
-        errx(1, "[parent] Error in waitpid: %s", strerror(errno));
-
-    tcpdump->pid = 0;
-    tcpdump->infd = 0;
-    tcpdump->outfd = 0;
-}
-
-int
+/* can we exec the given file? */
+static int
 can_exec(const char *filename)
 {
     struct stat st;
@@ -440,12 +377,3 @@ can_exec(const char *filename)
 
     return FALSE;
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

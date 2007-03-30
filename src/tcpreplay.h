@@ -36,6 +36,7 @@
 #include "config.h"
 #include "defines.h"
 #include "common/sendpacket.h"
+#include "common/tcpdump.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -90,6 +91,7 @@ struct tcpreplay_opt_s {
     /* tcpdump verbose printing */
     int verbose;
     char *tcpdump_args;
+    tcpdump_t *tcpdump;
 #endif
 
 };

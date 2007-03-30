@@ -54,11 +54,6 @@ COUNTER bytes_sent, failed, pkts_sent;
 int cache_bit, cache_byte;
 volatile int didsig;
 
-#ifdef HAVE_TCPDUMP
-/* tcpdump handle */
-tcpdump_t tcpdump;
-#endif
-
 #ifdef DEBUG
 int debug = 0;
 #endif
@@ -131,13 +126,6 @@ replay_file(char *path)
     char ebuf[PCAP_ERRBUF_SIZE];
     int dlt;
 
-#ifdef HAVE_TCPDUMP
-    if (options.verbose) {
-        tcpdump.filename = path;
-        tcpdump_open(&tcpdump);
-    }
-#endif
-
     if (! HAVE_OPT(QUIET))
         notice("processing file: %s", path);
 
@@ -154,6 +142,14 @@ replay_file(char *path)
     pcap_snapshot_override(pcap, 65535);
 #endif
 
+
+#ifdef HAVE_TCPDUMP
+    if (options.verbose) {
+        tcpdump_open(options.tcpdump, pcap);
+    }
+#endif
+
+
     dlt = sendpacket_get_dlt(options.intf1);
     if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
         warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
@@ -163,7 +159,7 @@ replay_file(char *path)
     send_packets(pcap);
     pcap_close(pcap);
 #ifdef HAVE_TCPDUMP
-    tcpdump_close(&tcpdump);
+    tcpdump_close(options.tcpdump);
 #endif
 }
 
@@ -191,7 +187,7 @@ init(void)
 
 #ifdef HAVE_TCPDUMP
     /* clear out tcpdump struct */
-    memset(&tcpdump, '\0', sizeof(tcpdump_t));
+    options.tcpdump = (tcpdump_t *)safe_malloc(sizeof(tcpdump_t));
 #endif
 
     cache_bit = cache_byte = 0;
@@ -247,7 +243,7 @@ post_args(void)
         options.verbose = 1;
     
     if (HAVE_OPT(DECODE))
-        tcpdump.args = safe_strdup(OPT_ARG(DECODE));
+        options.tcpdump->args = safe_strdup(OPT_ARG(DECODE));
     
 #endif
 

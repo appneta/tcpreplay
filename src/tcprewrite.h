@@ -59,7 +59,6 @@ struct tcprewrite_opt_s {
     char *tcpdump_args;
 #endif
     tcpedit_t *tcpedit;
-
 };
 
 typedef struct tcprewrite_opt_s tcprewrite_opt_t;

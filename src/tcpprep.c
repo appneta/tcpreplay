@@ -145,8 +145,7 @@ main(int argc, char *argv[])
 
 #ifdef HAVE_TCPDUMP
     if (HAVE_OPT(VERBOSE)) {
-        tcpdump.filename = safe_strdup(OPT_ARG(PCAP));
-        tcpdump_open(&tcpdump);
+        tcpdump_open(&tcpdump, options.pcap);
     }
 #endif
 

@@ -41,10 +41,6 @@ extern volatile int didsig;
 extern COUNTER bytes_sent, pkts_sent, failed;
 extern struct timeval begin, end;
 
-#ifdef HAVE_TCPDUMP
-extern tcpdump_t tcpdump;
-#endif
-
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -73,13 +69,13 @@ break_now(int signo)
     if (signo == SIGINT || didsig) {
         printf("\n");
 
+/*
 #ifdef HAVE_TCPDUMP
-        /* kill tcpdump child if required */
         if (tcpdump.pid)
             if (kill(tcpdump.pid, SIGTERM) != 0)
                 kill(tcpdump.pid, SIGKILL);
 #endif
-
+*/
         packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
         exit(1);
     }

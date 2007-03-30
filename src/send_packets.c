@@ -58,10 +58,6 @@ extern struct timeval begin, end;
 extern COUNTER bytes_sent, failed, pkts_sent;
 extern volatile int didsig;
 
-#ifdef HAVE_TCPDUMP
-extern tcpdump_t tcpdump;
-#endif
-
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -133,7 +129,7 @@ send_packets(pcap_t *pcap)
         /* do we need to print the packet via tcpdump? */
 #ifdef HAVE_TCPDUMP
         if (options.verbose)
-            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+            tcpdump_print(options.tcpdump, &pkthdr, pktdata);
 #endif
         
         /*
