@@ -42,6 +42,24 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+struct packet_cache_s
+{
+	struct pcap_pkthdr pkthdr;
+	u_char *pktdata;
+	
+	struct packet_cache_s *next;
+};
+
+typedef struct packet_cache_s packet_cache_t;
+
+typedef struct
+{
+	int index;
+	int cached;
+	packet_cache_t *packet_cache;
+} file_cache_t;
+
+
 /* run-time options */
 struct tcpreplay_opt_s {
     /* input/output */
@@ -94,6 +112,9 @@ struct tcpreplay_opt_s {
     tcpdump_t *tcpdump;
 #endif
 
+    /* pcap file caching */
+	int enable_file_cache;
+	file_cache_t *file_cache;
 };
 
 typedef struct tcpreplay_opt_s tcpreplay_opt_t;

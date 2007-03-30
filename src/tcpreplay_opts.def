@@ -150,6 +150,13 @@ by tcpreplay.  The following arguments are vaild:
 EOText;
 };
 
+/* Cache files to internal memory */
+flag = {
+	name		= enable_file_cache;
+	value		= C;
+	descrip		= "Enable caching of packets to internal memory";
+};
+
 /*
  * Output modifiers: -c
  */

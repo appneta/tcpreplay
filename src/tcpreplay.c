@@ -58,7 +58,7 @@ volatile int didsig;
 int debug = 0;
 #endif
 
-void replay_file(char *path);
+void replay_file(int file_idx);
 void usage(void);
 void init(void);
 void post_args(void);
@@ -76,6 +76,25 @@ main(int argc, char *argv[])
     argv += optct;
  
     post_args();
+	if( options.enable_file_cache && ! HAVE_OPT(QUIET) ) {
+		printf("File Cache is enabled\n");
+	}
+
+	/*
+		Setup up the file cache, if required
+	*/
+	if( options.enable_file_cache ) {
+		options.file_cache = safe_malloc(argc * sizeof(file_cache_t));
+		
+		/*
+			Initialise each of the file cache structures
+		*/
+		for( i = 0; i < argc; i++ ) {
+			options.file_cache[i].index = i;
+			options.file_cache[i].cached = FALSE;
+			options.file_cache[i].packet_cache = NULL;
+		}
+	}
 
     for (i = 0; i < argc; i++)
         options.files[i] = safe_strdup(argv[i]);
@@ -94,7 +113,7 @@ main(int argc, char *argv[])
                 /* reset cache markers for each iteration */
                 cache_byte = 0;
                 cache_bit = 0;
-                replay_file(argv[i]);
+				replay_file(i);
             }
         }
     }
@@ -105,7 +124,7 @@ main(int argc, char *argv[])
                 /* reset cache markers for each iteration */
                 cache_byte = 0;
                 cache_bit = 0;
-                replay_file(argv[i]);
+                replay_file(i);
             }
         }
     }
@@ -120,8 +139,9 @@ main(int argc, char *argv[])
  * replay a pcap file out an interface
  */
 void
-replay_file(char *path)
+replay_file(int file_idx)
 {
+	char *path = options.files[file_idx];
     pcap_t *pcap = NULL;
     char ebuf[PCAP_ERRBUF_SIZE];
     int dlt;
@@ -134,30 +154,50 @@ replay_file(char *path)
         if (close(1) == -1)
             warnx("unable to close stdin: %s", strerror(errno));
 
-    if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-        errx(1, "Error opening pcap file: %s", ebuf);
+    /* read from pcap file if we haven't cached things yet */
+    if (!options.enable_file_cache) {
+        if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
+            errx(1, "Error opening pcap file: %s", ebuf);
+    } else {
+        if (!options.file_cache[file_idx].cached)
+            if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
+                errx(1, "Error opening pcap file: %s", ebuf);            
 
+    }
+    
 #ifdef HAVE_PCAP_SNAPSHOT_OVERRIDE
     /* libpcap >= 0.9.6 have this which handles broken RedHat libpcap files */
-    pcap_snapshot_override(pcap, 65535);
+    if (pcap != NULL)
+        pcap_snapshot_override(pcap, 65535);
 #endif
 
 
 #ifdef HAVE_TCPDUMP
     if (options.verbose) {
+        
+        /* in cache mode, we may not have opened the file */
+        if (pcap == NULL)
+            if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
+                errx(1, "Error opening pcap file: %s", ebuf);
+                
+        /* init tcpdump */
         tcpdump_open(options.tcpdump, pcap);
     }
 #endif
 
 
-    dlt = sendpacket_get_dlt(options.intf1);
-    if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
-        warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
-            path, pcap_datalink_val_to_name(pcap_datalink(pcap)), 
-            options.intf1->device, pcap_datalink_val_to_name(dlt));
+    if (pcap != NULL) {
+        dlt = sendpacket_get_dlt(options.intf1);
+        if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
+            warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
+                path, pcap_datalink_val_to_name(pcap_datalink(pcap)), 
+                options.intf1->device, pcap_datalink_val_to_name(dlt));
+    }
+    
+    send_packets(pcap, file_idx);
+    if (pcap != NULL)
+        pcap_close(pcap);
         
-    send_packets(pcap);
-    pcap_close(pcap);
 #ifdef HAVE_TCPDUMP
     tcpdump_close(options.tcpdump);
 #endif
@@ -246,6 +286,14 @@ post_args(void)
         options.tcpdump->args = safe_strdup(OPT_ARG(DECODE));
     
 #endif
+
+	/*
+		Check if the file cache should be enabled - if we're looping more than
+		once and the command line option has been spec'd
+	*/
+	if(HAVE_OPT(ENABLE_FILE_CACHE) && (options.loop != 1)) {
+		options.enable_file_cache = TRUE;
+	}
 
     if (HAVE_OPT(ACCURATE))
         options.accurate = 1;

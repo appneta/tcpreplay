@@ -33,7 +33,7 @@
 #ifndef __SEND_PACKETS_H__
 #define __SEND_PACKETS_H__
 
-void send_packets(pcap_t *);
+void send_packets(pcap_t *, int);
 void *cache_mode(char *, COUNTER);
 
 #endif
