@@ -80,6 +80,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
@@ -128,7 +129,6 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *) __attri
 #ifdef HAVE_LIBNET
 static sendpacket_t *sendpacket_open_libnet(const char *, char *) __attribute__((unused));
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *) __attribute__((unused));
-
 #endif /* HAVE_LIBNET */
 
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
@@ -174,7 +174,7 @@ TRY_SEND_AGAIN:
     else if (retcode < 0) {
         sendpacket_seterr(sp, "Error with pf send(): %s", strerror(errno));
     }
-    
+
 #elif defined HAVE_BPF
     retcode = write(sp->handle.fd, (void *)data, len);
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
@@ -183,7 +183,7 @@ TRY_SEND_AGAIN:
     } else if (retcode < 0) {
         sendpacket_seterr(sp, "Error with bpf write(): %s", strerror(errno));
     }
-    
+
 #elif defined HAVE_LIBNET
     retcode = libnet_adv_write_link(sp->handle.lnet, (u_int8_t*)data, (u_int32_t)len);
     if (retcode < 0 && errno == ENOBUFS && !didsig) {
@@ -193,25 +193,36 @@ TRY_SEND_AGAIN:
         sendpacket_seterr(sp, "Error with libnet write: %s", libnet_geterror(sp->handle.lnet));
     }
 
+#elif defined HAVE_PCAP_INJECT
     /* 
      * pcap methods don't seem to support ENOBUFS, so we just straight fail
      * is there a better way???
      */    
-#elif defined HAVE_PCAP_INJECT
-    if ((retcode = pcap_inject(sp->handle.pcap, (void*)data, len)) < 0)
-        sendpacket_seterr(sp, "Error with pcap_inject(): %s", pcap_geterr(sp->handle.pcap));
+    retcode = pcap_inject(sp->handle.pcap, (void*)data, len);
+    if (retcode < 0 && errno == ENOBUFS && !didsig) {
+        sp->retry ++;
+        goto TRY_SEND_AGAIN;
+    } else if (retcode < 0) {
+        sendpacket_seterr(sp, "Error with pcap_inject(packet " COUNTER_SPEC "): %s (%d)", 
+            sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
+    }
 
 #elif defined HAVE_PCAP_SENDPACKET
-    if ((retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len)) < 0)
-        sendpacket_seterr(sp, "Error with pcap_sendpacket(): %s", pcap_geterr(sp->handle.pcap));
+    retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len);
+    if (retcode < 0 && errno == ENOBUFS && !didsig) {
+        sp->retry ++;
+        goto TRY_SEND_AGAIN;
+    } else if (retcode < 0) {
+        sendpacket_seterr(sp, "Error with pcap_sendpacket(packet " COUNTER_SPEC "): %s",
+            sp->sent + 1, pcap_geterr(sp->handle.pcap));
+    } else {
+        /* 
+         * pcap_sendpacket returns 0 on success, not the packet length! 
+         * hence, we have to fix retcode to be more standard on success
+         */
+        retcode = len;
+    }
 
-    /* 
-     * pcap_sendpacket returns 0 on success, not the packet length! 
-     * hence, as a special case, update the counters here and return len
-     */
-    sp->bytes_sent += len;
-    sp->sent ++;
-    return len;
 #endif
 
     if (retcode < 0) {
@@ -258,11 +269,12 @@ sendpacket_getstat(sendpacket_t *sp)
     assert(sp);
     
     memset(buf, 0, sizeof(buf));
-    sprintf(buf, "Statistics for network device: %s\n", sp->device);
-    sprintf(buf, "Attempted packets:   " COUNTER_SPEC "\n", sp->attempt);
-    sprintf(buf, "Successful packets:  " COUNTER_SPEC "\n", sp->sent);
-    sprintf(buf, "Failed packets:      " COUNTER_SPEC "\n", sp->failed);
-    sprintf(buf, "Retried packets:     " COUNTER_SPEC "\n", sp->retry);
+    sprintf(buf, "Statistics for network device: %s\n"
+        "\tAttempted packets:   " COUNTER_SPEC "\n"
+        "\tSuccessful packets:  " COUNTER_SPEC "\n"
+        "\tFailed packets:      " COUNTER_SPEC "\n"
+        "\tRetried packets:     " COUNTER_SPEC "\n",
+        sp->device, sp->attempt, sp->sent, sp->failed, sp->retry);
     return(buf);
 }
 
@@ -336,9 +348,14 @@ sendpacket_open_pcap(const char *device, char *errbuf)
 {
     pcap_t *pcap;
     sendpacket_t *sp;
-    
+    /*
+    u_int spoof_eth_src = 1;
+    int fd;
+    */
     assert(device);
     assert(errbuf);
+
+    dbg(1, "sendpacket: using Libpcap");
     
     /* open_pcap_live automatically fills out our errbuf for us */
     if ((pcap = pcap_open_live(device, 0, 0, 0, errbuf)) == NULL)
@@ -347,6 +364,12 @@ sendpacket_open_pcap(const char *device, char *errbuf)
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.pcap = pcap;
+/*
+    fd = pcap_get_selectable_fd(pcap);
+    if (ioctl(fd, BIOCSHDRCMPLT, &spoof_eth_src) == -1) {
+        errx(1, "Unable to enable source MAC spoof support: %s", strerror(errno));
+    }
+*/    
     return sp;
 }
 
@@ -368,6 +391,8 @@ sendpacket_open_libnet(const char *device, char *errbuf)
     
     assert(device);
     assert(errbuf);
+    
+    dbg(1, "sendpacket: using Libnet");
     
     if ((lnet = libnet_init(LIBNET_LINK_ADV, device, errbuf)) == NULL)
         return NULL;
@@ -410,6 +435,8 @@ sendpacket_open_pf(const char *device, char *errbuf)
     assert(device);
     assert(errbuf);
    
+   dbg(1, "sendpacket: using PF_PACKET");
+
     /* open our socket */
     if ((mysocket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "socket: %s", strerror(errno));
@@ -567,6 +594,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     assert(errbuf);
     memset(&ifr, '\0', sizeof(struct ifreq));
     
+    dbg(1, "sendpacket: using BPF");
     /* open socket */
     mysocket = -1;
     for (dev = 0; dev <= 9; dev ++) {
@@ -719,7 +747,14 @@ int
 sendpacket_get_dlt(sendpacket_t *sp)
 {
     int dlt;
-#if defined HAVE_PF_PACKET || defined HAVE_LIBNET
+#if defined HAVE_BPF
+    int rcode;
+
+    if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
+        warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
+        return(-1);
+    }
+#elif defined HAVE_PF_PACKET || defined HAVE_LIBNET
     /* use libpcap to get dlt */
     pcap_t *pcap;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -729,17 +764,8 @@ sendpacket_get_dlt(sendpacket_t *sp)
     }
     dlt = pcap_datalink(pcap);
     pcap_close(pcap);
-#elif defined HAVE_BPF
-    int rcode;
-
-    if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
-        warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
-        return(-1);
-    }
-#else /* HAVE_PCAP_SENDPACKET / HAVE_PCAP_INJECT */
+#elif defined HAVE_PCAP_SENDPACKET || defined HAVE_PCAP_INJECT
     dlt = pcap_datalink(sp->handle.pcap);
 #endif
     return dlt;
 }
-
-
