@@ -213,8 +213,8 @@ get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx,
 			 * We should read the pcap file, and cache the results
 			 */
 			pktdata = pcap_next(pcap, pkthdr);
-			if( pktdata != NULL ) {
-				if( *prev_packet == NULL ) {
+			if (pktdata != NULL) {
+				if (*prev_packet == NULL) {
 					/*
 					 * Create the first packet in the list
 					 */
