@@ -40,3 +40,6 @@ Nick Mathewson <nickm@freehaven.net>
 Denis McLaughlin <denism@cyberus.ca>
     - Patch to allow TCP/UDP port translation
 
+Andrew Edgecombe <andrew.edgecombe@nec.com.au>
+	- Patch to support caching pcap files in memory when looping
+	  which provides a significant performance improvement
