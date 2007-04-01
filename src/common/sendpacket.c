@@ -224,8 +224,8 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pcap_inject(packet " COUNTER_SPEC "): %s (%d)", 
-            sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
+        sendpacket_seterr(sp, "Error with pcap_inject(packet #" COUNTER_SPEC "): %s", 
+            sp->sent + 1, pcap_geterr(sp->handle.pcap));
     }
 
 #elif defined HAVE_PCAP_SENDPACKET
@@ -234,7 +234,7 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pcap_sendpacket(packet " COUNTER_SPEC "): %s",
+        sendpacket_seterr(sp, "Error with pcap_sendpacket(packet #" COUNTER_SPEC "): %s",
             sp->sent + 1, pcap_geterr(sp->handle.pcap));
     } else {
         /* 
@@ -384,8 +384,9 @@ sendpacket_open_pcap(const char *device, char *errbuf)
         
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
-/*
     sp->handle.pcap = pcap;
+
+/*
     fd = pcap_get_selectable_fd(pcap);
     if (ioctl(fd, BIOCSHDRCMPLT, &spoof_eth_src) == -1) {
         errx(1, "Unable to enable source MAC spoof support: %s", strerror(errno));
