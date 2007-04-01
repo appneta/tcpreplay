@@ -69,6 +69,27 @@
 #include "common.h"
 #include "sendpacket.h"
 
+
+/* Allow users to force the injection method */
+#ifdef FORCE_INJECT_LIBNET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_PCAP_SENDPACKET
+#undef HAVE_BPF
+#elif defined FORCE_INJECT_BPF
+#undef HAVE_LIBNET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_PCAP_SENDPACKET
+#elif defined FORCE_INJECT_PCAP_INJECT
+#undef HAVE_LIBNET
+#undef HAVE_PCAP_SENDPACKET
+#undef HAVE_BPF
+#elif defined FORCE_INJECT_PCAP_SENDPACKET
+#undef HAVE_LIBNET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_BPF
+#endif
+
+
 #if (defined HAVE_WINPCAP && defined HAVE_PCAP_INJECT)
 #undef HAVE_PCAP_INJECT /* configure returns true for some odd reason */
 #endif
@@ -348,10 +369,10 @@ sendpacket_open_pcap(const char *device, char *errbuf)
 {
     pcap_t *pcap;
     sendpacket_t *sp;
-    /*
+/*
     u_int spoof_eth_src = 1;
     int fd;
-    */
+ */
     assert(device);
     assert(errbuf);
 
@@ -363,13 +384,14 @@ sendpacket_open_pcap(const char *device, char *errbuf)
         
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
-    sp->handle.pcap = pcap;
 /*
+    sp->handle.pcap = pcap;
     fd = pcap_get_selectable_fd(pcap);
     if (ioctl(fd, BIOCSHDRCMPLT, &spoof_eth_src) == -1) {
         errx(1, "Unable to enable source MAC spoof support: %s", strerror(errno));
     }
-*/    
+ */
+    
     return sp;
 }
 

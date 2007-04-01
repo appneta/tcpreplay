@@ -24,6 +24,21 @@
 /* Are we strictly aligned? */
 #undef FORCE_ALIGN
 
+/* Force using BPF for sending packet */
+#undef FORCE_INJECT_BPF
+
+/* Force using libnet for sending packets */
+#undef FORCE_INJECT_LIBNET
+
+/* Force using libpcap's pcap_inject() for sending packets */
+#undef FORCE_INJECT_PCAP_INJECT
+
+/* Force using libpcap's pcap_sendpacket() for sending packets */
+#undef FORCE_INJECT_PCAP_SENDPACKET
+
+/* Force using Linux's PF_PACKET for sending packets */
+#undef FORCE_INJECT_PF
+
 /* Enable GNU Profiler */
 #undef GPROF
 
@@ -328,7 +343,7 @@
 /* Do we have WinPcap? */
 #undef HAVE_WINPCAP
 
-/* What is the path (if any) to the pcap-bpf.h header? */
+/* What is the path (if any) to the libpcap bpf header file? */
 #undef INCLUDE_PCAP_BPF_HEADER
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.

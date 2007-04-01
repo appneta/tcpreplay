@@ -158,38 +158,26 @@ AC_ARG_ENABLE(64bits,
       fi
     ])
 
-disable_bpf=no
-dnl Turn off *BSD's BPF
-AC_ARG_ENABLE(bpf,
-	AC_HELP_STRING([--disable-bpf], [Disable BPF for sending packets]),
-	[ disable_bpf=yes ])
-	
-disable_pf=no
-dnl Turn off Linux's PF_PACKET
-AC_ARG_ENABLE(pf,
-	AC_HELP_STRING([--disable-pf], [Disable Linux PF_PACKET for sending packets]),
-	[ if test x$enableval = xno ; then
-		disable_pf=yes
-	  fi
-	])
-	
-disable_libnet=no
-dnl Turn of Libnet
-AC_ARG_ENABLE(libnet,
-	AC_HELP_STRING([--disable-libnet], [Disable Libnet for sending packets]),
-	[ if test x$enableval = xno ; then
-		disable_libnet=yes
-	  fi
-	])
-	
-disable_pcap=no
-dnl Turn off pcap for sending
-AC_ARG_ENABLE(pcap,
-	AC_HELP_STRING([--disable-pcap], [Disable Libpcap for sending packets]),
-	[ if test x$enableval = xno ; then
-		disable_pcap=yes
-	  fi
-	])
+
+AC_ARG_ENABLE(force-bpf,
+	AC_HELP_STRING([--enable-force-bpf], [Force using BPF for sending packets]),
+	[ AC_DEFINE([FORCE_INJECT_BPF], [1], [Force using BPF for sending packet])])
+
+AC_ARG_ENABLE(force-pf, 
+	AC_HELP_STRING([--enable-force-pf], [Force using Linux's PF_PACKET for sending packets]),
+	[ AC_DEFINE([FORCE_INJECT_PF], [1], [Force using Linux's PF_PACKET for sending packets])])
+
+AC_ARG_ENABLE(force-libnet,
+	AC_HELP_STRING([--enable-force-libnet], [Force using libnet for sending packets]),
+	[ AC_DEFINE([FORCE_INJECT_LIBNET], [1], [Force using libnet for sending packets])])
+		
+AC_ARG_ENABLE(force-inject,
+	AC_HELP_STRING([--enable-force-inject], [Force using libpcap's pcap_inject() for sending packets]),
+	[ AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])])
+
+AC_ARG_ENABLE(force-sendpacket,
+	AC_HELP_STRING([--enable-force-sendpacket], [Force using libpcap's pcap_sendpacket() for sending packets]),
+	[ AC_DEFINE([FORCE_INJECT_PCAP_SENDPACKET], [1], [Force using libpcap's pcap_sendpacket() for sending packets])])
 
 dnl Dynamic link libraries
 dynamic_link=no
@@ -247,41 +235,36 @@ dnl ##################################################
 dnl Checks for libnet (shamelessly horked from dsniff)
 dnl ##################################################
 foundnet=no
-if test $disable_libnet = no ; then 
+trynetdir=/usr/local
+AC_MSG_CHECKING(for libnet)
+AC_ARG_WITH(libnet,
+    AC_HELP_STRING([--with-libnet=DIR], [Use libnet in DIR]),
+    [trynetdir=$withval])
 
-	trynetdir=/usr/local
-	AC_MSG_CHECKING(for libnet)
-	AC_ARG_WITH(libnet,
-	    AC_HELP_STRING([--with-libnet=DIR], [Use libnet in DIR]),
-	    [trynetdir=$withval])
+for testdir in $trynetdir /usr/local /opt/local /usr ; do
+    if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
+     LNETINC="${testdir}/include/libnet.h"
+     LNETINCDIR="$testdir/include"
+     if test $dynamic_link = yes; then
+         LNETLIB="-L${testdir}/lib -lnet"
+     elif test -f "${testdir}/lib64/libnet.a" ; then
+         LNETLIB="${testdir}/lib64/libnet.a"
+     else
+         LNETLIB="${testdir}/lib/libnet.a"
+     fi
+     foundnet=$testdir
+    fi
+done
 
-	for testdir in $trynetdir /usr/local /usr ; do
-	    if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
-	     LNETINC="${testdir}/include/libnet.h"
-	     LNETINCDIR="$testdir/include"
-	     if test $dynamic_link = yes; then
-	         LNETLIB="-L${testdir}/lib -lnet"
-	     elif test -f "${testdir}/lib64/libnet.a" ; then
-	         LNETLIB="${testdir}/lib64/libnet.a"
-	     else
-	         LNETLIB="${testdir}/lib/libnet.a"
-	     fi
-	     foundnet=$testdir
-	    fi
-	done
-
-	if test $foundnet = no ; then
-	    AC_MSG_RESULT(no)
-	else 
-	    AC_MSG_RESULT($foundnet) 
-		AC_DEFINE([HAVE_LIBNET], [1], [Enable libnet support])
-	fi
-
-	AC_SUBST(LNETINC)
-	AC_SUBST(LNETLIB)
+if test $foundnet = no ; then
+    AC_MSG_RESULT(no)
+else 
+    AC_MSG_RESULT($foundnet) 
+	AC_DEFINE([HAVE_LIBNET], [1], [Enable libnet support])
 fi
 
-dnl END OF if $disable_libnet = no ; then
+AC_SUBST(LNETINC)
+AC_SUBST(LNETLIB)
 
 if test $foundnet = yes ; then
 	OLDLIBS="$LIBS"
@@ -370,7 +353,7 @@ AC_ARG_WITH(libpcap,
     AC_HELP_STRING([--with-libpcap=DIR], [Use libpcap in DIR]),
     [trypcapdir=$withval])
 
-	for testdir in $trypcapdir /usr/local /usr ; do 
+	for testdir in $trypcapdir /usr/local /opt/local /usr ; do 
     	if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
         	LPCAPINC="${testdir}/include/pcap.h"
 	        LPCAPINCDIR="${testdir}/include"
@@ -522,17 +505,6 @@ if test $have_pcap_snapshot_override = yes ; then
 fi
 
 
-dnl This message is placed here for continuity purposes
-dnl but things are really set above in the libnet section
-AC_MSG_CHECKING(for libnet packet sending support)
-if test $disable_libnet = no -a $foundnet != no ; then
-	AC_MSG_RESULT(yes)
-	AC_DEFINE([HAVE_LIBNET], [1], [Do we support libnet for sending packets?])
-	have_libnet=yes
-else 
-	AC_MSG_RESULT(no)
-fi
-
 have_pcap_inject=no
 dnl Check to see if we've got pcap_inject()
 AC_MSG_CHECKING(for pcap_inject sending support)
@@ -546,14 +518,10 @@ AC_TRY_COMPILE([
 	char *buf;
     pcap_inject(pcap, (void *)buf, 0);
 ],[
-	if test $disable_pcap = no ; then
-		AC_DEFINE([HAVE_PCAP_INJECT], [1], 
-	              [Does libpcap have pcap_inject?])
-		AC_MSG_RESULT(yes)
-		have_pcap_inject=yes
-	else
-		AC_MSG_RESULT(no)
-	fi
+	AC_DEFINE([HAVE_PCAP_INJECT], [1], 
+              [Does libpcap have pcap_inject?])
+	AC_MSG_RESULT(yes)
+	have_pcap_inject=yes
 ],[
 	AC_MSG_RESULT(no)
 ])
@@ -589,14 +557,10 @@ AC_TRY_COMPILE([
 	u_char *buf;
     pcap_sendpacket(pcap, buf, 0);
 ],[
-	if test $disable_pcap = no ; then
-		AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], 
-	              [Does libpcap have pcap_sendpacket?])
-		AC_MSG_RESULT(yes)
-		have_pcap_sendpacket=yes
-	else 
-		AC_MSG_RESULT(no)
-	fi
+	AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], 
+              [Does libpcap have pcap_sendpacket?])
+	AC_MSG_RESULT(yes)
+	have_pcap_sendpacket=yes
 ],[
 	AC_MSG_RESULT(no)
 ])
@@ -613,14 +577,10 @@ AC_TRY_COMPILE([
 	int pf_socket;
 	pf_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 ],[
-    if test $disable_pf = no ; then
-		AC_DEFINE([HAVE_PF_PACKET], [1],
-			[Do we have Linux PF_PACKET socket support?])
-		AC_MSG_RESULT(yes)
-		have_pf=yes
-	else
-		AC_MSG_RESULT(no)
-	fi
+	AC_DEFINE([HAVE_PF_PACKET], [1],
+		[Do we have Linux PF_PACKET socket support?])
+	AC_MSG_RESULT(yes)
+	have_pf=yes
 ],[
 	AC_MSG_RESULT(no)
 ])
@@ -658,14 +618,10 @@ main(int argc, char *argv[]) {
     exit(-1);
 }],
 	[
-	if test $disable_bpf = no ; then
-	    AC_DEFINE([HAVE_BPF], [1], 
-	              [Do we have BPF device support?])
-		AC_MSG_RESULT(yes)
-		have_bpf=yes
-	else
-		AC_MSG_RESULT(no)
-	fi
+    AC_DEFINE([HAVE_BPF], [1], 
+              [Do we have BPF device support?])
+	AC_MSG_RESULT(yes)
+	have_bpf=yes
 	])
 
 
