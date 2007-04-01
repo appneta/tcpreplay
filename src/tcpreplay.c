@@ -76,20 +76,20 @@ main(int argc, char *argv[])
     argv += optct;
  
     post_args();
-	if( options.enable_file_cache && ! HAVE_OPT(QUIET) ) {
-		printf("File Cache is enabled\n");
+	if (options.enable_file_cache && ! HAVE_OPT(QUIET)) {
+		notice("File Cache is enabled");
 	}
 
 	/*
-		Setup up the file cache, if required
-	*/
-	if( options.enable_file_cache ) {
+	 * Setup up the file cache, if required
+	 */
+	if (options.enable_file_cache) {
 		options.file_cache = safe_malloc(argc * sizeof(file_cache_t));
 		
 		/*
 			Initialise each of the file cache structures
 		*/
-		for( i = 0; i < argc; i++ ) {
+		for (i = 0; i < argc; i++) {
 			options.file_cache[i].index = i;
 			options.file_cache[i].cached = FALSE;
 			options.file_cache[i].packet_cache = NULL;
@@ -129,8 +129,12 @@ main(int argc, char *argv[])
         }
     }
 
-    if (bytes_sent > 0)
+    if (bytes_sent > 0) {
         packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
+        printf("%s", sendpacket_getstat(options.intf1));
+        if (options.intf2 != NULL)
+            printf("%s", sendpacket_getstat(options.intf2));
+    }
     return 0;
 }                               /* main() */
 

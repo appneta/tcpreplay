@@ -80,7 +80,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     const u_char *pktdata = NULL;
     sendpacket_t *sp = options.intf1;
     u_int32_t pktlen;
-	packet_cache_t *theCachedPacket = NULL;
+	packet_cache_t *cached_packet = NULL;
 	packet_cache_t **prev_packet = NULL;
     
     /* register signals */
@@ -93,7 +93,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     }
 
 	if( options.enable_file_cache ) {
-		prev_packet = &theCachedPacket;
+		prev_packet = &cached_packet;
 	} else {
 		prev_packet = NULL;
 	}
@@ -166,18 +166,18 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 }
 
 /*
-	get_next_packet
-	Gets the next packet to be sent out. This will either read from the pcap file
-	or will retrieve the packet from the internal cache.
-	
-	The parameter prev_packet is used as the parent of the new entry in the cache list.
-	This should be NULL on the first call to this function for each file and
-	will be updated as new entries are added (or retrieved) from the cache list.
-*/
-static u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, packet_cache_t **prev_packet)
+ * Gets the next packet to be sent out. This will either read from the pcap file
+ * or will retrieve the packet from the internal cache.
+ *	
+ * The parameter prev_packet is used as the parent of the new entry in the cache list.
+ * This should be NULL on the first call to this function for each file and
+ * will be updated as new entries are added (or retrieved) from the cache list.
+ */
+static u_char *
+get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, 
+    packet_cache_t **prev_packet)
 {
 	u_char *pktdata = NULL;
-	packet_cache_t *theCachedPacket = NULL;
     u_int32_t pktlen;
 
     /* pcap may be null in cache mode! */
@@ -187,15 +187,14 @@ static u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int fil
 	/*
 	 * Check if we're caching files
 	 */
-	if( options.enable_file_cache && (prev_packet != NULL) ) {
+	if (options.enable_file_cache && (prev_packet != NULL)) {
 		/*
 		 * Yes we are caching files - has this one been cached?
 		 */
-		if( options.file_cache[file_idx].cached ) {
-			if( *prev_packet == NULL ) {
+		if (options.file_cache[file_idx].cached) {
+			if (*prev_packet == NULL) {
 				/*
-				 * Get the first packet in the cache list
-				 * directly from the file
+				 * Get the first packet in the cache list directly from the file
 				 */
 				*prev_packet = options.file_cache[file_idx].packet_cache;
 			} else {
@@ -205,7 +204,7 @@ static u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int fil
 				*prev_packet = (*prev_packet)->next;
 			}
 			
-			if( *prev_packet != NULL ) {
+			if (*prev_packet != NULL) {
 				pktdata = (*prev_packet)->pktdata;
 				memcpy(pkthdr, &((*prev_packet)->pkthdr), sizeof(struct pcap_pkthdr));
 			}
@@ -229,13 +228,13 @@ static u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int fil
 					*prev_packet = (*prev_packet)->next;
 				}
 				
-				if(	*prev_packet != NULL ) {
+				if (*prev_packet != NULL) {
 					(*prev_packet)->next = NULL;
 					pktlen = pkthdr->len;
 					
 					(*prev_packet)->pktdata = safe_malloc(pktlen);
-					memcpy( (*prev_packet)->pktdata, pktdata, pktlen );
-					memcpy( &((*prev_packet)->pkthdr), pkthdr, sizeof(struct pcap_pkthdr));
+					memcpy((*prev_packet)->pktdata, pktdata, pktlen);
+					memcpy(&((*prev_packet)->pkthdr), pkthdr, sizeof(struct pcap_pkthdr));
 				}
 			}
 		}
