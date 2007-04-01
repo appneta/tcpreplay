@@ -55,7 +55,7 @@
 extern int debug;
 #endif
 
-void
+inline void
 notice(const char *fmt, ...)
 {
     va_list ap;
@@ -68,7 +68,7 @@ notice(const char *fmt, ...)
     fflush(NULL);
 }
 
-void
+inline void
 _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function, 
         const int line, const char *file, ...)
 {
@@ -93,7 +93,7 @@ _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function,
 #endif
 }
 
-void
+inline void
 _our_verbose_dbg(int dbg_level, const char *string, const char *function, const int line, const char *file)
 {
 #ifdef DEBUG
@@ -110,10 +110,10 @@ _our_verbose_dbg(int dbg_level, const char *string, const char *function, const 
 
 
 #ifdef DEBUG
-void
+inline void
 _our_verbose_err(int eval, const char *string, const char *function, const int line, const char *file) {
 #else
-void
+inline void
 _our_verbose_err(int eval, const char *string) {
 #endif
 
@@ -126,10 +126,10 @@ _our_verbose_err(int eval, const char *string) {
 }
 
 #ifdef DEBUG
-void
+inline void
 _our_verbose_warn(const char *string, const char *function, const int line, const char *file) {
 #else
-void
+inline void
 _our_verbose_warn(const char *string) {
 #endif
 
@@ -140,10 +140,10 @@ _our_verbose_warn(const char *string) {
 }
 
 #ifdef DEBUG
-void
+inline void
 _our_verbose_errx(int eval, const char *fmt, const char *function, const int line, const char *file, ...) {
 #else
-void
+inline void
 _our_verbose_errx(int eval, const char *fmt, ...) {
 #endif
 
@@ -165,10 +165,10 @@ _our_verbose_errx(int eval, const char *fmt, ...) {
 }
 
 #ifdef DEBUG
-void
+inline void
 _our_verbose_warnx(const char *fmt, const char *function, const int line, const char *file, ...) {
 #else
-void 
+inline void 
 _our_verbose_warnx(const char *fmt, ...) {
 #endif
 

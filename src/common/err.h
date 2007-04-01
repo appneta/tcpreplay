@@ -60,43 +60,43 @@
 
 
 #define dbg(x, y) _our_verbose_dbg(x, y, __FUNCTION__, __LINE__, __FILE__)
-void _our_verbose_dbg(int dbg_level, const char *string, const char *, 
+inline void _our_verbose_dbg(int dbg_level, const char *string, const char *, 
         const int, const char *);
 
 #define dbgx(x, y, ...) _our_verbose_dbgx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-void _our_verbose_dbgx(int dbg_level, const char *fmt, const char *, 
+inline void _our_verbose_dbgx(int dbg_level, const char *fmt, const char *, 
         const int, const char *, ...);
 
-void notice(const char *fmt, ...);
+inline void notice(const char *fmt, ...);
 
 
 #ifdef DEBUG /* then err, errx, warn, warnx print file, func, line */
 
 #define err(x, y) _our_verbose_err(x, y, __FUNCTION__, __LINE__, __FILE__)
-void _our_verbose_err(int eval, const char *string, const char *, const int, const char *);
+inline void _our_verbose_err(int eval, const char *string, const char *, const int, const char *);
 
 #define warn(x) _our_verbose_warn(x, __FUNCTION__, __LINE__, __FILE__)
-void _our_verbose_warn(const char *fmt, const char *, const int, const char *);
+inline void _our_verbose_warn(const char *fmt, const char *, const int, const char *);
 
 #define errx(x, y, ...) _our_verbose_errx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-void _our_verbose_errx(int eval, const char *fmt, const char *, const int, const char *, ...);
+inline void _our_verbose_errx(int eval, const char *fmt, const char *, const int, const char *, ...);
 
 #define warnx(x, ...) _our_verbose_warnx(x, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-void _our_verbose_warnx(const char *fmt, const char *, const int, const char *, ...);
+inline void _our_verbose_warnx(const char *fmt, const char *, const int, const char *, ...);
 
 #else /* no detailed DEBUG info */
 
 #define err(x, y) _our_verbose_err(x, y)
-void _our_verbose_err(int eval, const char *string);
+inline void _our_verbose_err(int eval, const char *string);
 
 #define errx(x, y, ...) _our_verbose_errx(x, y, __VA_ARGS__)
-void _our_verbose_errx(int eval, const char *fmt, ...);
+inline void _our_verbose_errx(int eval, const char *fmt, ...);
 
 #define warn(x) _our_verbose_warn(x)
-void _our_verbose_warn(const char *fmt);
+inline void _our_verbose_warn(const char *fmt);
 
 #define warnx(x, ...) _our_verbose_warnx(x, __VA_ARGS__)
-void _our_verbose_warnx(const char *fmt, ...);
+inline void _our_verbose_warnx(const char *fmt, ...);
 
 #endif /* DEBUG */
 
