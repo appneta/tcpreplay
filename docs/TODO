@@ -23,27 +23,28 @@ GENERAL:
 
 + Re-organize source tree
 
-O tcpdump decoder should print packets syncronously w/ the main process
++ tcpdump decoder should print packets syncronously w/ the main process
 
 + Better use of GNU Autotools
 
 + Improve CLI/config file parsing
-- Only tcpreplay/tcpbridge should need to run as root.
 
-- Tcpreplay should use raw sockets or BPF directly for writing rather then
++ Only tcpreplay/tcpbridge should need to run as root.
+
++ Tcpreplay should use raw sockets or BPF directly for writing rather then
       libnet where applicable for theoretically higher performance.
 
 - Detect system version of libopts b/c we need a recent version
 
-- Generalize packet editing and printing code so it can be shipped as a 
++ Generalize packet editing and printing code so it can be shipped as a 
   seperate library and plugged into tcpreplay/tcprewrite/flowreplay/etc
 
-- See about removing libnet_init() from all binaries other then tcprewrite
++ See about removing libnet_init() from all binaries other then tcprewrite
   so we don't have to run as root:
   . libnet_addr2name4 (ignore, doesn't require libnet_t context)
   + libnet_name2addr4
-  - libnet_get_hwaddr
-  - libnet_do_checksum
+  + libnet_get_hwaddr
+  + libnet_do_checksum
 
 TCPREPLAY:
 
@@ -94,7 +95,7 @@ TCPREWRITE:
 + Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
 
 - Add support for more linktypes (Prism Monitor, 802.11, FDDI, etc)
-    - Make it easier for others to add support for others
+    + Make it easier for others to add support for others
 
 + Rip out packet munger from tcpreplay and put it into another tool so
   that tcpreplay can be more optimized

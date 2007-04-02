@@ -1,4 +1,4 @@
-$Id:$
+$Id$
 This document attempts to explain how to get tcpreplay compiled and running
 under Windows.  Please note that this document is a work in progress and
 Windows support in general considered BETA right now.
@@ -7,8 +7,9 @@ Windows support in general considered BETA right now.
 Background:
 
 Tcpreplay is not a native Win32 application right now.  Hence it requires
-the Cygwin. (http://www.cygwin.com).  Cygwin creates a Linux-like on your 
-Windows system which allows Linux/UNIX programs to run after a recompile.
+the Cygwin. (http://www.cygwin.com).  Cygwin creates a Linux-like environment
+on your Windows system which allows Linux/UNIX programs to run after a
+recompile.
 
 Tcpreplay supports numerous API's for sending packets depending on the 
 operating system.  Under Windows, the only supported method of sending
@@ -55,9 +56,6 @@ Directions:
 	
 - Test:
 	make test
-	
-	Note: currently, the tcprewrite tests are broken due to how the test
-	harness is configured.  Hence, errors should be expected.
 	
 - Install:
 	make install
