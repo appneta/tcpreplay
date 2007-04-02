@@ -17,6 +17,10 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c \
 #opts_list=`find tcpedit -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
 opts_list=-L tcpedit
 
+if ENABLE_TCPREPLAY_EDIT
+opts_list += -DTCPREPLAY_EDIT
+endif
+
 tcpprep.1: tcpprep_opts.def
 	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpprep tcpprep_opts.def
 
@@ -42,13 +46,13 @@ bin_PROGRAMS += flowreplay
 endif
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREPLAY
-tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) \
+tcpreplay_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a $(LIBSTRL) \
 		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
 tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c
 tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
 tcpreplay_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ tcpreplay_opts.def
+	@AUTOGEN@ $(opts_list) tcpreplay_opts.def
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \

@@ -50,6 +50,7 @@ union sendpacket_handle {
 #define SENDPACKET_ERRBUF_SIZE 1024
 
 struct sendpacket_s {
+    tcpr_dir_t cache_dir;
     int open;
     char device[20];
     char errbuf[SENDPACKET_ERRBUF_SIZE];
@@ -71,7 +72,7 @@ int sendpacket(sendpacket_t *, const u_char *, size_t);
 int sendpacket_close(sendpacket_t *);
 char *sendpacket_geterr(sendpacket_t *);
 char *sendpacket_getstat(sendpacket_t *);
-sendpacket_t *sendpacket_open(const char *, char *);
+sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t);
 struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 int sendpacket_get_dlt(sendpacket_t *);
 

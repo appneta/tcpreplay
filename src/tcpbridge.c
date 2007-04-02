@@ -200,7 +200,7 @@ post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]
     
 
     /* open up interfaces */
-    if ((options.sp1 = sendpacket_open(options.intf1, ebuf)) == NULL)
+    if ((options.sp1 = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S)) == NULL)
         errx(1, "Unable to open interface %s for sending: %s", options.intf1, ebuf);
 
     if ((options.listen1 = pcap_open_live(options.intf1, options.snaplen, 
@@ -213,7 +213,7 @@ post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]
         if (strcmp(options.intf1, options.intf2) == 0)
             errx(1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
 
-        if ((options.sp2 = sendpacket_open(options.intf2, ebuf)) == NULL)
+        if ((options.sp2 = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
             errx(1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
         
         

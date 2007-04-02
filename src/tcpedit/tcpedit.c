@@ -180,11 +180,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         } else {
             if (direction == TCPR_DIR_C2S) {
                 if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
-                        pcap_datalink(tcpedit->runtime.pcap1)) < 0)
+                        tcpedit->runtime.dlt1) < 0)
                     return -1;
             } else {
                 if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
-                        pcap_datalink(tcpedit->runtime.pcap2)) < 0)
+                        tcpedit->runtime.dlt2) < 0)
                     return -1;
             }
         }
@@ -212,25 +212,24 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
  * initializes the tcpedit library.  returns 0 on success, -1 on error.
  */
 int
-tcpedit_init(tcpedit_t **tcpedit_ex, pcap_t *pcap1)
+tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
 {
     tcpedit_t *tcpedit;
-    assert(pcap1);
     
     *tcpedit_ex = safe_malloc(sizeof(tcpedit_t));
     tcpedit = *tcpedit_ex;
 
-    if ((tcpedit->dlt_ctx = tcpedit_dlt_init(tcpedit, pcap_datalink(pcap1))) == NULL)
+    if ((tcpedit->dlt_ctx = tcpedit_dlt_init(tcpedit, dlt)) == NULL)
         return TCPEDIT_ERROR;
 
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
  
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
-    tcpedit->runtime.pcap1 = pcap1;
-    tcpedit->runtime.pcap2 = pcap1;
+    tcpedit->runtime.dlt1 = dlt;
+    tcpedit->runtime.dlt2 = dlt;
     
     dbgx(1, "Input file (1) datalink type is %s\n",
-            pcap_datalink_val_to_name(pcap_datalink(pcap1)));
+            pcap_datalink_val_to_name(dlt));
 
             
 #ifdef FORCE_ALIGN

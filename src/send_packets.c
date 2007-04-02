@@ -49,7 +49,13 @@
 
 #ifdef TCPREPLAY
 #include "tcpreplay_opts.h"
+
+#ifdef TCPREPLAY_EDIT
+#include "tcpedit/tcpedit.h"
+extern tcpedit_t *tcpedit;
 #endif
+
+#endif /* TCPREPLAY */
 
 #include "send_packets.h"
 
@@ -82,7 +88,10 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     u_int32_t pktlen;
 	packet_cache_t *cached_packet = NULL;
 	packet_cache_t **prev_packet = NULL;
-    
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
+    struct pcap_pktdhr *pkthdr_ptr;
+#endif
+
     /* register signals */
     didsig = 0;
     if (!options.speed.mode == SPEED_ONEATATIME) {
@@ -140,7 +149,14 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         if (options.verbose)
             tcpdump_print(options.tcpdump, &pkthdr, pktdata);
 #endif
-        
+
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT        
+        pkthdr_ptr = &pkthdr;
+        if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
+            errx(1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
+        }
+#endif
+
         /*
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval 

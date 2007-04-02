@@ -58,6 +58,11 @@ volatile int didsig;
 int debug = 0;
 #endif
 
+#ifdef TCPREPLAY_EDIT
+#include "tcpedit/tcpedit.h"
+tcpedit_t *tcpedit;
+#endif
+
 void replay_file(int file_idx);
 void usage(void);
 void init(void);
@@ -68,6 +73,9 @@ int
 main(int argc, char *argv[])
 {
     int i, optct = 0;
+#ifdef TCPREPLAY_EDIT
+    int rcode;
+#endif
  
     init();                     /* init our globals */
     
@@ -76,6 +84,27 @@ main(int argc, char *argv[])
     argv += optct;
  
     post_args();
+    
+#ifdef TCPREPLAY_EDIT
+    /* init tcpedit context */
+    if (tcpedit_init(&tcpedit, sendpacket_get_dlt(options.intf1)) < 0) {
+        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+    }
+    
+    /* parse the tcpedit args */
+    rcode = tcpedit_post_args(&tcpedit);
+    if (rcode < 0) {
+        errx(1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+    } else if (rcode == 1) {
+        warnx("%s", tcpedit_geterr(tcpedit));
+    }
+
+    if (tcpedit_validate(tcpedit) < 0) {
+        errx(1, "Unable to edit packets given options:\n%s",
+                tcpedit_geterr(tcpedit));
+    }    
+#endif
+
 	if (options.enable_file_cache && ! HAVE_OPT(QUIET)) {
 		notice("File Cache is enabled");
 	}
@@ -312,7 +341,7 @@ post_args(void)
     options.intf1_name = safe_strdup(intname);
     
     /* open interfaces for writing */
-    if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf)) == NULL)
+    if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S)) == NULL)
         errx(1, "Can't open %s: %s", options.intf1_name, ebuf);
            
     int1dlt = sendpacket_get_dlt(options.intf1);
@@ -324,7 +353,7 @@ post_args(void)
         options.intf2_name = safe_strdup(intname);
         
         /* open interface for writing */
-        if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf)) == NULL)
+        if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C)) == NULL)
             errx(1, "Can't open %s: %s", options.intf2_name, ebuf);
             
         int2dlt = sendpacket_get_dlt(options.intf2);

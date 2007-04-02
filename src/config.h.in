@@ -121,7 +121,7 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 #undef HAVE_LIBGEN_H
 
-/* Do we support libnet for sending packets? */
+/* Enable libnet support */
 #undef HAVE_LIBNET
 
 /* Define to 1 if you have the `nsl' library (-lnsl). */
@@ -398,6 +398,9 @@
 
 /* The tcpdump binary initially used */
 #undef TCPDUMP_BINARY
+
+/* Link packet editing code with tcpreplay */
+#undef TCPREPLAY_EDIT
 
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 #undef TIME_WITH_SYS_TIME

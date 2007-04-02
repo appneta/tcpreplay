@@ -260,7 +260,7 @@ TRY_SEND_AGAIN:
 
 
 sendpacket_t *
-sendpacket_open(const char *device, char *errbuf)
+sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
 {
     sendpacket_t *sp;
 
@@ -278,6 +278,7 @@ sendpacket_open(const char *device, char *errbuf)
 #endif
     if (sp != NULL)
         sp->open = 1;
+    sp->cache_dir = direction;
     return sp;
 }
 

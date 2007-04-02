@@ -39,6 +39,10 @@ include         = "#include \"defines.h\"\n"
 
 homerc          = "$$/";
 
+#ifdef TCPREPLAY_EDIT
+#include tcpedit/tcpedit_opts.def
+#endif
+
 explain = <<- EOExplain
 tcpreplay is a tool for replaying network traffic from files saved with
 tcpdump or other tools which write pcap(3) files.

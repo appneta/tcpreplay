@@ -43,7 +43,7 @@
 
 typedef struct tcpedit_s tcpedit_t;
 
-int tcpedit_init(tcpedit_t **tcpedit_ex, pcap_t *pcap1);
+int tcpedit_init(tcpedit_t **tcpedit_ex, int dlt);
 char *tcpedit_geterr(tcpedit_t *tcpedit);
 char *tcpedit_getwarn(tcpedit_t *tcpedit);
 

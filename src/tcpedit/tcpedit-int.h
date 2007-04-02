@@ -43,8 +43,8 @@ struct tcpedit_runtime_s {
     COUNTER packetnum;
     COUNTER total_bytes;
     COUNTER pkts_edited;
-    pcap_t *pcap1;
-    pcap_t *pcap2;
+    int dlt1;
+    int dlt2;
     char errstr[TCPEDIT_ERRSTR_LEN];
     char warnstr[TCPEDIT_ERRSTR_LEN];
 };

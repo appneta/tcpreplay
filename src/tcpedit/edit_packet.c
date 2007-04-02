@@ -239,7 +239,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
     /* grab our IPv4 header */
     dataptr = ipbuff;
     if ((ip_hdr = (ipv4_hdr_t*)get_ipv4(pktdata, caplen, 
-                    pcap_datalink(tcpedit->runtime.pcap1), &dataptr)) == NULL)
+                    tcpedit->runtime.dlt1, &dataptr)) == NULL)
         return 0;
 
     /* figure out the actual datalen which might be < the caplen
