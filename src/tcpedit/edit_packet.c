@@ -102,7 +102,7 @@ randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
     if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, ip))
         return ip;
         
-    return ntohl((ip ^ tcpedit->seed) - (ip & tcpedit->seed));
+    return ((ip ^ htonl(tcpedit->seed)) - (ip & htonl(tcpedit->seed)));
 }
 
 
