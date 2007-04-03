@@ -89,7 +89,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 	packet_cache_t *cached_packet = NULL;
 	packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
-    struct pcap_pktdhr *pkthdr_ptr;
+    struct pcap_pkthdr *pkthdr_ptr;
 #endif
 
     /* register signals */
@@ -155,6 +155,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
         }
+        pktlen = HAVE_OPT(PKTLEN) ? pkthdr_ptr->len : pkthdr_ptr->caplen;
 #endif
 
         /*
