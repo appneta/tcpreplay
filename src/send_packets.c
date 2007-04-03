@@ -166,7 +166,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
             
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
-            errx(1, "Unable to send packet: %s", sendpacket_geterr(sp));
+            warnx("Unable to send packet: %s", sendpacket_geterr(sp));
 		
         /* 
          * track the time of the "last packet sent".  Again, because of OpenBSD

@@ -202,7 +202,8 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with bpf write(): %s", strerror(errno));
+        sendpacket_seterr(sp, "Error with bpf write(): %s (errno = %d)", 
+            strerror(errno), errno);
     }
 
 #elif defined HAVE_LIBNET
@@ -224,8 +225,9 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pcap_inject(packet #" COUNTER_SPEC "): %s", 
-            sp->sent + 1, pcap_geterr(sp->handle.pcap));
+        sendpacket_seterr(sp, "Error with pcap_inject(packet #" 
+            COUNTER_SPEC "): %s (errno = %d)", 
+            sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
     }
 
 #elif defined HAVE_PCAP_SENDPACKET
@@ -234,8 +236,9 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pcap_sendpacket(packet #" COUNTER_SPEC "): %s",
-            sp->sent + 1, pcap_geterr(sp->handle.pcap));
+        sendpacket_seterr(sp, "Error with pcap_sendpacket(packet #" 
+            COUNTER_SPEC "): %s (errno = %d)",
+            sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
     } else {
         /* 
          * pcap_sendpacket returns 0 on success, not the packet length! 
