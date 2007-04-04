@@ -193,7 +193,8 @@ TRY_SEND_AGAIN:
     } 
     /* some other kind of error */
     else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pf send(): %s", strerror(errno));
+        sendpacket_seterr(sp, "Error with pf send(): %s (errno = %d)", 
+            strerror(errno), errno);
     }
 
 #elif defined HAVE_BPF
@@ -212,7 +213,8 @@ TRY_SEND_AGAIN:
         sp->retry ++;
         goto TRY_SEND_AGAIN;
     } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with libnet write: %s", libnet_geterror(sp->handle.lnet));
+        sendpacket_seterr(sp, "Error with libnet write: %s (errno = %d)", 
+            libnet_geterror(sp->handle.lnet), errno);
     }
 
 #elif defined HAVE_PCAP_INJECT
