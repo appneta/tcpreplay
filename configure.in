@@ -370,7 +370,7 @@ AC_ARG_WITH(libpcap,
 	        if test $dynamic_link = yes; then
 				if test -f "${testdir}/lib/libpcap.a" ; then
 		            LPCAPLIB="-L${testdir}/lib -lpcap"
-				elif test -f "${testdir}/lib64/libpcap.a"
+				elif test -f "${testdir}/lib64/libpcap.a" ; then
 					LPCAPLIB="-L${testdir}/lib64 -lpcap"
 				else
 					AC_ERROR([Unable to find libpcap in ${testdir}])
