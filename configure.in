@@ -495,6 +495,32 @@ if test $have_dlt_to_desc = yes ; then
               [Does libpcap have dlt_val_to_desc?])
 fi
 
+dnl Check to see if we've got pcap_dump_fopen()
+AC_MSG_CHECKING(for pcap_dump_fopen)
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+	pcap_dumper_t *dump;
+	pcap_t *pcap;
+	FILE *foo;
+	dump = pcap_dump_fopen(pcap, foo);
+]]),[
+    have_pcap_dump_fopen=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_dump_fopen=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_dump_fopen = yes ; then
+    AC_DEFINE([HAVE_PCAP_DUMP_FOPEN], [1], 
+              [Does libpcap have pcap_dump_fopen?])
+else
+	AC_MSG_NOTICE([verbose mode requires libpcap >= 0.9.0])
+fi
 
 dnl Check to see if we've got pcap_snapshot_override()
 AC_MSG_CHECKING(for pcap_snapshot_override)
@@ -881,7 +907,7 @@ else
 fi
 
 
-AM_CONDITIONAL(ENABLE_TCPDUMP, test "$td" != "no")
+AM_CONDITIONAL([ENABLE_TCPDUMP], test "$td" != "no" -a x$have_pcap_dump_fopen = xyes)
 dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING( for 'make test' profile)
