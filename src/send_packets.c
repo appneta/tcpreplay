@@ -145,7 +145,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         }
     
         /* do we need to print the packet via tcpdump? */
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
         if (options.verbose)
             tcpdump_print(options.tcpdump, &pkthdr, pktdata);
 #endif

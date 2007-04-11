@@ -205,7 +205,7 @@ replay_file(int file_idx)
 #endif
 
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (options.verbose) {
         
         /* in cache mode, we may not have opened the file */
@@ -231,7 +231,7 @@ replay_file(int file_idx)
     if (pcap != NULL)
         pcap_close(pcap);
         
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     tcpdump_close(options.tcpdump);
 #endif
 }
@@ -258,7 +258,7 @@ init(void)
     /* disable limit send */
     options.limit_send = -1;
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     /* clear out tcpdump struct */
     options.tcpdump = (tcpdump_t *)safe_malloc(sizeof(tcpdump_t));
 #endif
@@ -311,7 +311,7 @@ post_args(void)
         options.speed.speed = atof(OPT_ARG(MULTIPLIER));
     }
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
     

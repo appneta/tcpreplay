@@ -66,7 +66,7 @@ struct tcpbridge_opt_s {
     int promisc;
     int poll_timeout;
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     /* tcpdump verbose printing */
     int verbose;
     char *tcpdump_args;

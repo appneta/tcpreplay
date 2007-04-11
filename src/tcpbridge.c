@@ -104,7 +104,7 @@ main(int argc, char *argv[])
                 tcpedit_geterr(tcpedit));
     }
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (options.verbose) {
         options.tcpdump = (tcpdump_t*)safe_malloc(sizeof(tcpdump_t));
         tcpdump_open(options.tcpdump, options.listen1);
@@ -127,7 +127,7 @@ main(int argc, char *argv[])
         pcap_close(options.listen2);
     }
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     tcpdump_close(options.tcpdump);
 #endif
 
@@ -170,7 +170,7 @@ post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]
 #endif
     
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
     

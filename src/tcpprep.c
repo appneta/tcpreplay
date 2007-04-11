@@ -70,7 +70,7 @@
 int debug = 0;
 #endif
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
 tcpdump_t tcpdump;
 #endif
 
@@ -143,7 +143,7 @@ main(int argc, char *argv[])
         err(1, "MAC mode splitting is only supported by DLT_EN10MB packet captures.");
     }
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE)) {
         tcpdump_open(&tcpdump, options.pcap);
     }
@@ -164,7 +164,7 @@ main(int argc, char *argv[])
     }
     pcap_close(options.pcap);
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     tcpdump_close(&tcpdump);
 #endif
 
@@ -302,7 +302,7 @@ process_raw_packets(pcap_t * pcap)
     COUNTER packetnum = 0;
     int l2len, cache_result = 0;
     u_char ipbuff[MAXPACKET], *buffptr;
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     struct pollfd poller[1];
     
     poller[0].fd = tcpdump.outfd;
@@ -426,7 +426,7 @@ process_raw_packets(pcap_t * pcap)
                       check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
             break;
         }
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
         if (options.verbose)
             tcpdump_print(&tcpdump, &pkthdr, pktdata);
 #endif
@@ -486,7 +486,7 @@ post_args(int argc, char *argv[])
         debug = OPT_VALUE_DBUG;
 #endif
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE)) {
         options.verbose = 1;
     }

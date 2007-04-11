@@ -124,7 +124,7 @@ EOText;
 /* Verbose decoding via tcpdump */
 
 flag = {
-    ifdef       = HAVE_TCPDUMP;
+    ifdef       = ENABLE_VERBOSE;
     name        = verbose;
     value       = v;
     max         = 1;
@@ -135,7 +135,7 @@ flag = {
 };
 
 flag = {
-    ifdef       = HAVE_TCPDUMP;
+    ifdef       = ENABLE_VERBOSE;
     name        = decode;
     flags-must  = verbose;
     value       = A;
@@ -376,7 +376,7 @@ flag = {
 #else
     fprintf(stderr, "64 bit packet counters: disabled\n");
 #endif
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     fprintf(stderr, "Verbose printing via tcpdump: enabled\n");
 #else
     fprintf(stderr, "Verbose printing via tcpdump: disabled\n");

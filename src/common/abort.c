@@ -70,7 +70,7 @@ break_now(int signo)
         printf("\n");
 
 /*
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
         if (tcpdump.pid)
             if (kill(tcpdump.pid, SIGTERM) != 0)
                 kill(tcpdump.pid, SIGKILL);

@@ -53,7 +53,7 @@ struct tcprewrite_opt_s {
     /* tcpprep cache file comment */
     char *comment; 
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     /* tcpdump verbose printing */
     int verbose;
     char *tcpdump_args;

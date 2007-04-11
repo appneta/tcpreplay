@@ -219,7 +219,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         memset(pktdata, '\0', MAXPACKET);
     }
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     /* decode packet? */
     if (options.verbose)
         tcpdump_print(options.tcpdump, pkthdr, nextpkt);

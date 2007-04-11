@@ -58,7 +58,7 @@
 int debug;
 #endif
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
 /* tcpdump handle */
 tcpdump_t tcpdump;
 #endif
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     dbgx(1, "DLT of dlt_pcap is %s",
         pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (options.verbose) {
         tcpdump_open(&tcpdump, dlt_pcap);
     }
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
     pcap_dump_close(options.pout);
     pcap_close(options.pin);
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     tcpdump_close(&tcpdump);
 #endif
 
@@ -148,7 +148,7 @@ tcprewrite_init(void)
 
     memset(&options, 0, sizeof(options));
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     /* clear out tcpdump struct */
     memset(&tcpdump, '\0', sizeof(tcpdump_t));
 #endif
@@ -172,7 +172,7 @@ post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]
 #endif
     
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
     
@@ -210,7 +210,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 
-#ifdef HAVE_TCPDUMP
+#ifdef ENABLE_VERBOSE
         if (options.verbose)
             tcpdump_print(&tcpdump, pkthdr_ptr, pktdata);
 #endif
