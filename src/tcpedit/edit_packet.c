@@ -190,10 +190,6 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
   	     * which seems like a corrupted pcap
   	     */
         if (pkthdr->len > pkthdr->caplen) {
-            if ((pktdata = realloc(pktdata, pkthdr->len)) == NULL) {
-                tcpedit_seterr(tcpedit, "%s", "Unable to realloc() pktdata for -F pad operation");
-                return -1;
-            }
             memset(pktdata + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
             pkthdr->caplen = pkthdr->len;
         } else if (pkthdr->len < pkthdr->caplen) {
