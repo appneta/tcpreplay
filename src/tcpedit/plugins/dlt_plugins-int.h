@@ -107,7 +107,7 @@ typedef struct tcpeditdlt_plugin_s tcpeditdlt_plugin_t;
 struct tcpeditdlt_s {
     tcpedit_t *tcpedit;                 /* pointer to our tcpedit context */
 #ifdef FORCE_ALIGN
-    u_char *ipbuff;                     /* pointer for L3 buffer on strictly aligned systems */
+    u_char *l3buff;                     /* pointer for L3 buffer on strictly aligned systems */
 #endif
     tcpeditdlt_plugin_t *plugins;       /* registered plugins */
     tcpeditdlt_plugin_t *decoder;       /* Encoder plugin */

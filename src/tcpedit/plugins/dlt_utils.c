@@ -251,7 +251,7 @@ tcpedit_dlt_l3data_merge(tcpeditdlt_t *ctx, u_char *packet, int pktlen, const u_
      * put back the layer 3 and above back in the pkt.data buffer 
      * we can't edit the packet at layer 3 or above beyond this point
      */
-     memcpy((&(*packet)[l2len]), l3data, pktlen - l2len);
+     memcpy((&(packet)[l2len]), l3data, pktlen - l2len);
 #endif
     return packet;
 }

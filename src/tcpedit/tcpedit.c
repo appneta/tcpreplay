@@ -231,9 +231,8 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     dbgx(1, "Input file (1) datalink type is %s\n",
             pcap_datalink_val_to_name(dlt));
 
-            
 #ifdef FORCE_ALIGN
-    tcpedit->runtime.ipbuff = (u_char *)safe_malloc(MAXPACKET);
+    tcpedit->runtime.l3buff = (u_char *)safe_malloc(MAXPACKET);
 #endif
 
     return TCPEDIT_OK;
@@ -383,7 +382,7 @@ tcpedit_close(tcpedit_t *tcpedit)
 
     /* free buffer if required */
 #ifdef FORCE_ALIGN
-    free(tcpedit->runtime.ipbuff);
+    free(tcpedit->runtime.l3buff);
 #endif
 
     return 0;

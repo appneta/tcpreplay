@@ -47,6 +47,9 @@ struct tcpedit_runtime_s {
     int dlt2;
     char errstr[TCPEDIT_ERRSTR_LEN];
     char warnstr[TCPEDIT_ERRSTR_LEN];
+#ifdef FORCE_ALIGN    
+    u_char *l3buff;
+#endif
 };
 
 typedef struct tcpedit_runtime_s tcpedit_runtime_t;

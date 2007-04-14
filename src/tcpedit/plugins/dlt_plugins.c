@@ -393,7 +393,7 @@ tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
     
     if (ctx->decoder != NULL)
         ctx->decoder->plugin_cleanup(ctx);
-        
+
 #ifdef FORCE_ALIGN
     free(ctx->l3buff);
 #endif
