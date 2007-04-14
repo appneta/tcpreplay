@@ -23,7 +23,7 @@ AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION", [What is our version?])
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
-CFLAGS="$CFLAGS -Wall -O2 -funroll-loops -std=gnu99" # -std=c99 -Wno-variadic-macros"
+CFLAGS="$CFLAGS -Wall -O2 -funroll-loops -std=gnu99"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -78,8 +78,57 @@ AC_CHECK_TYPE(u_int16_t, uint16_t)
 AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
 
+dnl Older versions of GCC don't support these options
+AC_MSG_CHECKING(for $CC -Wextra support)
+OLD_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -Wextra"
+wextra=""
+AC_COMPILE_IFELSE([#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }],
+    [ AC_MSG_RESULT(yes) 
+      wextra="-Wextra" ],
+    [ AC_MSG_RESULT(no) ])
+CFLAGS="$OLD_CFLAGS $wextra"
+
+AC_MSG_CHECKING(for $CC -Wno-variadic-macros support)
+OLD_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -Wno-variadic-macros"
+wno_variadic_macros=""
+AC_COMPILE_IFELSE([#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }],
+    [ AC_MSG_RESULT(yes) 
+      wno_variadic_macros="-Wno-variadic-macros" ],
+    [ AC_MSG_RESULT(no) ])
+CFLAGS="$OLD_CFLAGS $wno_variadic_macros"
+
+AC_MSG_CHECKING(for $CC -Wfatal-errors support)
+OLD_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -Wfatal-erors"
+wfatal_errors=""
+AC_COMPILE_IFELSE([#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }],
+    [ AC_MSG_RESULT(yes) 
+      wfatal_errors="-Wfatal-errors" ],
+    [ AC_MSG_RESULT(no) ])
+CFLAGS="$OLD_CFLAGS $wfatal_errors"
+
+
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h net/route.h sys/sysctl.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h sys/param.h])
+
+dnl OpenBSD has special requirements
+AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [
+[#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#if HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+]])
+
 
 dnl Checks for libraries.
 AC_CHECK_LIB(socket, socket)
@@ -91,34 +140,31 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
+AC_CHECK_MEMBERS([struct timeval.tv_sec])
+
 AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strchr strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
 AM_CONDITIONAL(SYSTEM_STRLCPY, [test x$have_strlcpy = xtrue])
 
-AC_CHECK_MEMBERS([struct timeval.tv_sec])
-
 AC_C_BIGENDIAN
 AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
+
 
 dnl Enable debugging in code/compiler options
 debug=no
 AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
-         debug=yes
-		# check for gcc 4.0 flags -Wfatal-errors & -Wno-variadic-macros support
-		CFLAGS="-ggdb -std=gnu99 -Wall -Wextra -Wfatal-errors -Wno-variadic-macros"
-		 AC_COMPILE_IFELSE([#include <stdlib.h>
-			int main(int argc, char *argv[]) { return(0); }], 
-			[CFLAGS="-ggdb -std=gnu99 -Wall -Wextra -Wfatal-errors -Wno-variadic-macros"],
-			[CFLAGS="-ggdb -std=gnu99 -Wall -Wextra"])
+        debug=yes
+	CFLAGS="-ggdb -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
          AC_SUBST(debug_flag)
          AC_DEFINE([DEBUG], [1], [Enable debuging code and support for the -d option]) 
       fi])
+
 
 AC_ARG_ENABLE(pedantic,
     AC_HELP_STRING([--enable-pedantic], [Enable gcc's -pedantic option]),

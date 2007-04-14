@@ -106,6 +106,10 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
+#include <sys/socket.h>
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
 #ifdef HAVE_SYS_SYSCTL_H
 #include <sys/sysctl.h>
 #endif
@@ -117,7 +121,6 @@
 
 #ifdef HAVE_PF_PACKET
 #include <fcntl.h>
-#include <sys/socket.h>
 #include <sys/utsname.h>
 #include <net/if.h>
 #include <netinet/in.h>

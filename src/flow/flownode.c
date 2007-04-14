@@ -43,6 +43,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
 
 extern struct session_tree tcproot, udproot;
 extern int nfds;

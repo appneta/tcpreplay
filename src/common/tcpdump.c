@@ -54,6 +54,9 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <string.h>
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
 
 #include "tcpdump.h"
 #include "lib/strlcpy.h"
