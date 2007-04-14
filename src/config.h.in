@@ -15,6 +15,9 @@
 /* Enable building flowreplay (alpha) */
 #undef ENABLE_FLOWREPLAY
 
+/* Do we have tcpdump and pcap_dump_fopen()? */
+#undef ENABLE_VERBOSE
+
 /* fopen(3) accepts a 'b' in the mode flag */
 #undef FOPEN_BINARY_FLAG
 
