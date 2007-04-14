@@ -954,6 +954,12 @@ fi
 
 
 AM_CONDITIONAL([ENABLE_TCPDUMP], test "$td" != "no" -a x$have_pcap_dump_fopen = xyes)
+if test x$td != xno -a x$have_pcap_dump_fopen = xyes ; then
+	AC_DEFINE([ENABLE_VERBOSE], [1], [Do we have tcpdump and pcap_dump_fopen()?])
+else
+	AC_MSG_WARN([Your version of libpcap is too old for --verbose])
+fi
+
 dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING( for 'make test' profile)
