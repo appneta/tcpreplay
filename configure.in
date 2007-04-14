@@ -489,32 +489,32 @@ AC_RUN_IFELSE(AC_LANG_PROGRAM([[
 #include <stdlib.h>
 #include <stdio.h>
 #include "$LPCAPINC"
-#define PCAP_TEST "0.5"
-extern char pcap_version[];
+#define PCAP_TEST "0.7.2"
+extern const char pcap_version[[]]; /* double up since autoconf escapes things */
 ]], [[
 /* 
  * simple proggy to test the version of libpcap
- * returns zero if version >= 0.5.0
+ * returns zero if version >= 0.7.2
  * or one otherwise
  */
 
-    if (strncmp(pcap_version, PCAP_TEST, 3) >= 0)
+    if (strncmp(pcap_version, PCAP_TEST, 5) >= 0)
             exit(0);
     
     exit(1);
 ]]), [
-    libpcap_ver5=yes
+    libpcap_ver7=yes
 ], [
-    libpcap_ver5=no
+    libpcap_ver7=no
 ])
 
 if test $libpcap_ver8 = yes ; then
     AC_MSG_RESULT(>= 0.8.0)
-elif test $libpcap_ver5 = yes ; then
-    AC_MSG_RESULT(>= 0.5.0)
+elif test $libpcap_ver7 = yes ; then
+    AC_MSG_RESULT(>= 0.7.2)
 else 
-    AC_MSG_ERROR([Libpcap versions < 0.5.0 are not supported
-    Please upgrade to version 0.5.0 or better])
+    AC_MSG_ERROR([Libpcap versions < 0.7.2 are not supported
+    Please upgrade to version 0.7.2 or better])
 fi
 
 dnl Check to see if we've got pcap_datalink_val_to_name()
