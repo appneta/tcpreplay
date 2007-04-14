@@ -565,7 +565,7 @@ if test $have_pcap_dump_fopen = yes ; then
     AC_DEFINE([HAVE_PCAP_DUMP_FOPEN], [1], 
               [Does libpcap have pcap_dump_fopen?])
 else
-	AC_MSG_NOTICE([verbose mode requires libpcap >= 0.9.0])
+	AC_MSG_NOTICE([--verbose mode requires libpcap >= 0.9.0])
 fi
 
 dnl Check to see if we've got pcap_snapshot_override()
@@ -946,7 +946,7 @@ AC_ARG_WITH(tcpdump,
 
 if test "$td" = "no"; then
     AC_MSG_WARN([Unable to find tcpdump.  Please specify --with-tcpdump.
-                 Disabling verbose reporting.])
+                 Disabling --verbose])
 else
     AC_DEFINE([HAVE_TCPDUMP], [1], [Do we have tcpdump?])
     AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$td", [The tcpdump binary initially used])
@@ -957,7 +957,7 @@ AM_CONDITIONAL([ENABLE_TCPDUMP], test "$td" != "no" -a x$have_pcap_dump_fopen = 
 if test x$td != xno -a x$have_pcap_dump_fopen = xyes ; then
 	AC_DEFINE([ENABLE_VERBOSE], [1], [Do we have tcpdump and pcap_dump_fopen()?])
 else
-	AC_MSG_WARN([Your version of libpcap is too old for --verbose])
+	AC_MSG_WARN([Your version of libpcap is too old for --verbose support])
 fi
 
 dnl No 'make test' when cross compile
