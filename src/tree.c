@@ -78,7 +78,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
     RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
 
         /* we only check types that are vaild */
-        if (bcdata->type != ANY)    /* don't check if we're adding ANY */
+        if (bcdata->type != DIR_ANY)    /* don't check if we're adding ANY */
             if (bcdata->type != node->type) /* no match, exit early */
                 return;
         /*
@@ -115,7 +115,7 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
     RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
 
         /* we only check types that are vaild */
-        if (bcdata->type != ANY)    /* don't check if we're adding ANY */
+        if (bcdata->type != DIR_ANY)    /* don't check if we're adding ANY */
             if (bcdata->type != node->type) /* no match, exit early */
                 return 0;
 
@@ -152,7 +152,7 @@ process_tree()
         dbgx(1, "Current mask: %u", mymask);
 
         /* set starting vals */
-        bcdata->type = SERVER;
+        bcdata->type = DIR_SERVER;
         bcdata->masklen = mymask;
 
         /* build cidrdata with servers */
@@ -162,7 +162,7 @@ process_tree()
         tree_calculate(&treeroot);
 
         /* try to find clients in cidrdata */
-        bcdata->type = CLIENT;
+        bcdata->type = DIR_CLIENT;
 
         if (! tree_checkincidr(&treeroot, bcdata)) { /* didn't find any clients in cidrdata */
             return (mymask);    /* success! */
@@ -207,16 +207,16 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
-    if (node == NULL && mode == UNKNOWN)
+    if (node == NULL && mode == DIR_UNKNOWN)
         errx(1, "%s (%lu) is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name4(ip, RESOLVE), ip);
 
 #ifdef DEBUG
-    if (node->type == SERVER) {
+    if (node->type == DIR_SERVER) {
         dbgx(1, "Server: %s", get_addr2name4(ip, RESOLVE));
     }
-    else if (node->type == CLIENT) {
+    else if (node->type == DIR_CLIENT) {
         dbgx(1, "Client: %s", get_addr2name4(ip, RESOLVE));
     }
     else {
@@ -230,16 +230,16 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-        if (node->type == SERVER) {
+        if (node->type == DIR_SERVER) {
             return TCPR_DIR_C2S;
-        } else if (node->type == CLIENT) {
+        } else if (node->type == DIR_CLIENT) {
             return TCPR_DIR_S2C;
         }
     }
     else {
-        if (mode == SERVER) {
+        if (mode == DIR_SERVER) {
             return TCPR_DIR_C2S;
-        } else if (mode == CLIENT) {
+        } else if (mode == DIR_CLIENT) {
             return TCPR_DIR_S2C;
         }
     }
@@ -260,7 +260,7 @@ add_tree(const unsigned long ip, const u_char * data)
 
     assert(ip == newnode->ip);
 
-    if (newnode->type == UNKNOWN) {
+    if (newnode->type == DIR_UNKNOWN) {
         /* couldn't figure out if packet was client or server */
 
         dbgx(2, "%s (%lu) unknown client/server",
@@ -275,10 +275,10 @@ add_tree(const unsigned long ip, const u_char * data)
     /* new entry required */
     if (node == NULL) {
         /* increment counters */
-        if (newnode->type == SERVER) {
+        if (newnode->type == DIR_SERVER) {
             newnode->server_cnt++;
         }
-        else if (newnode->type == CLIENT) {
+        else if (newnode->type == DIR_CLIENT) {
             newnode->client_cnt++;
         }
         /* insert it in */
@@ -290,10 +290,10 @@ add_tree(const unsigned long ip, const u_char * data)
         dbgx(2, "   node: %p\nnewnode: %p", node, newnode);
         dbgx(3, "%s", tree_printnode("update node", node));
         /* increment counter */
-        if (newnode->type == SERVER) {
+        if (newnode->type == DIR_SERVER) {
             node->server_cnt++;
         }
-        else if (newnode->type == CLIENT) {
+        else if (newnode->type == DIR_CLIENT) {
             /* temp debug code */
             node->client_cnt++;
         }
@@ -322,18 +322,18 @@ tree_calculate(tcpr_data_tree_t *treeroot)
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
             if ((double)node->server_cnt >= (double)node->client_cnt * options.ratio) {
-                node->type = SERVER;
+                node->type = DIR_SERVER;
                 dbgx(3, "Setting %s to server", 
                         get_addr2name4(node->ip, RESOLVE));
             }
             else {
-                node->type = CLIENT;
+                node->type = DIR_CLIENT;
                 dbgx(3, "Setting %s to client", 
                         get_addr2name4(node->ip, RESOLVE));
             }
         }
         else {                  /* IP had no client or server connections */
-            node->type = UNKNOWN;
+            node->type = DIR_UNKNOWN;
             dbgx(3, "Setting %s to unknown", 
                     get_addr2name4(node->ip, RESOLVE));
         }
@@ -385,7 +385,7 @@ new_tree()
     memset(node, '\0', sizeof(tcpr_tree_t));
     node->server_cnt = 0;
     node->client_cnt = 0;
-    node->type = UNKNOWN;
+    node->type = DIR_UNKNOWN;
     node->masklen = -1;
     node->ip = 0;
     return (node);
@@ -442,11 +442,11 @@ packet2tree(const u_char * data)
         }
         /* set TREE->type based on TCP flags */
         if (tcp_hdr.th_flags == TH_SYN) {
-            node->type = CLIENT;
+            node->type = DIR_CLIENT;
             dbg(3, "is a client");
         }
         else if (tcp_hdr.th_flags == (TH_SYN | TH_ACK)) {
-            node->type = SERVER;
+            node->type = DIR_SERVER;
             dbg(3, "is a server");
         }
         else {
@@ -473,14 +473,14 @@ packet2tree(const u_char * data)
 
             if (dnsv4_hdr.flags & DNS_QUERY_FLAG) {
                 /* bit set, response */
-                node->type = SERVER;
+                node->type = DIR_SERVER;
 
                 dbg(3, "is a dns server");
 
             }
             else {
                 /* bit not set, query */
-                node->type = CLIENT;
+                node->type = DIR_CLIENT;
 
                 dbg(3, "is a dns client");
             }
@@ -499,12 +499,12 @@ packet2tree(const u_char * data)
 
             if ((dnsv4_hdr.flags & 0x7FFFF) ^ DNS_QUERY_FLAG) {
                 /* bit set, response */
-                node->type = SERVER;
+                node->type = DIR_SERVER;
                 dbg(3, "is a dns server");
             }
             else {
                 /* bit not set, query */
-                node->type = CLIENT;
+                node->type = DIR_CLIENT;
                 dbg(3, "is a dns client");
             }
             return (node);
@@ -534,7 +534,7 @@ packet2tree(const u_char * data)
          */
         if ((icmp_hdr.icmp_type == ICMP_UNREACH) &&
             (icmp_hdr.icmp_code == ICMP_UNREACH_PORT)) {
-            node->type = SERVER;
+            node->type = DIR_SERVER;
             dbg(3, "is a server with a closed port");
         }
 
@@ -563,7 +563,7 @@ tree_printnode(const char *name, const tcpr_tree_t *node)
                 "-- %s: %p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
                 name, (void *)node, get_addr2name4(node->ip, RESOLVE),
                 node->masklen, node->server_cnt, node->client_cnt);
-        if (node->type == SERVER) {
+        if (node->type == DIR_SERVER) {
             strlcat(tree_print_buff, "Type: Server\n--\n", TREEPRINTBUFFLEN);
         }
         else {

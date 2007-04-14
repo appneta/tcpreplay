@@ -431,7 +431,7 @@ flag = {
     descrip     = "Send non-IP traffic out server interface";
     flag-code   = <<- EONonip
  
-    options.nonip = SERVER;
+    options.nonip = DIR_SERVER;
     
 EONonip;
     doc         = <<- EOText

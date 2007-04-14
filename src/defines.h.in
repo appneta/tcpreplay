@@ -115,10 +115,13 @@ typedef struct tcpr_speed_s tcpr_speed_t;
 #define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
 #define PCAP_TIMEOUT 100        /* 100ms pcap_open_live timeout */
 
+/* HP-UX already defines TRUE/FALSE */
+#ifndef TRUE
 enum bool_t {
 	FALSE = 0,
 	TRUE
 };
+#endif
 
 #define EBUF_SIZE 1024           /* size of our error buffers */
 #define MAC_SIZE  7             /* size of the mac[] buffer */
@@ -131,10 +134,10 @@ enum pad_t {
 #define DNS_QUERY_FLAG 0x8000
 
 enum direction_t {
-	UNKNOWN = -1,
-	CLIENT = 0,
-	SERVER = 1,
-	ANY = 2
+	DIR_UNKNOWN = -1,
+	DIR_CLIENT = 0,
+	DIR_SERVER = 1,
+	DIR_ANY = 2
 };
 
 enum tcpprep_mode {

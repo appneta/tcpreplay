@@ -397,7 +397,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: bridge mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_tree(UNKNOWN, ip_hdr->ip_src.s_addr));
+                      check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
         case SERVER_MODE:
             /* 
@@ -406,7 +406,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: server mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_tree(SERVER, ip_hdr->ip_src.s_addr));
+                      check_ip_tree(DIR_SERVER, ip_hdr->ip_src.s_addr));
             break;
         case CLIENT_MODE:
             /* 
@@ -415,7 +415,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: client mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_tree(CLIENT, ip_hdr->ip_src.s_addr));
+                      check_ip_tree(DIR_CLIENT, ip_hdr->ip_src.s_addr));
             break;
         case PORT_MODE:
             /*
