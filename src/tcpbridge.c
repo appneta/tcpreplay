@@ -87,7 +87,7 @@ main(int argc, char *argv[])
 
    
     /* init tcpedit context */
-    if (tcpedit_init(&tcpedit, options.listen1) < 0) {
+    if (tcpedit_init(&tcpedit, pcap_datalink(options.listen1)) < 0) {
         errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
     
