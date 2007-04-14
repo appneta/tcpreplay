@@ -284,9 +284,10 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
     sp = sendpacket_open_pcap(device, errbuf);
 #endif
-    if (sp != NULL)
+    if (sp != NULL) {
         sp->open = 1;
-    sp->cache_dir = direction;
+        sp->cache_dir = direction;
+    }
     return sp;
 }
 
