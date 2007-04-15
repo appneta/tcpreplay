@@ -1,5 +1,8 @@
 $Id$
 
+05/??/2007: Version 3.0
+	- By default, no longer try to use libnet.  You must now specify --enable-libnet (#148)
+
 04/14/2007: Version 3.0.RC1
     - Fix tcpbridge and make it compile by default (#15)
 	- Fix tcprewrite crash on little-endian systems (#127)
