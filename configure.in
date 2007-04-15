@@ -103,7 +103,7 @@ CFLAGS="$OLD_CFLAGS $wno_variadic_macros"
 
 AC_MSG_CHECKING(for $CC -Wfatal-errors support)
 OLD_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS -Wfatal-erors"
+CFLAGS="$CFLAGS -Wfatal-errors"
 wfatal_errors=""
 AC_COMPILE_IFELSE([#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }],
