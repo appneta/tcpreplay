@@ -1,8 +1,30 @@
 $Id$
 
-??/??/2007: Version 3.0.RC1
+04/14/2007: Version 3.0.RC1
     - Fix tcpbridge and make it compile by default (#15)
-
+	- Fix tcprewrite crash on little-endian systems (#127)
+	- Gracefully handle broken pcap files where the snaplen < caplen (#130)
+		- Note: Fix was made in libpcap and will be part of 0.9.6
+	- Fix numerous bugs with the sendpacket code (#137)
+	- Add optional support for editing packets with tcpreplay (#61)
+	- Fix 'make test' on little endian systems (#64)
+	- tcprewrite -s is no longer endian dependent (#65)
+	- /docs cleaned up (#66)
+	- Fix detection/compile of libpcap.  Now support versions >= 0.7.2 (#80, #144)
+	- Add official support Cygwin/Win32 support (#110)
+	- Clean up libpcap version code (#111)
+	- Add support for interface alias names for Win32 (#113)
+	- Warn user on DLT miss-match (#125)
+	- Fix tcprewrite segfault with --fixlen=pad (#134)
+	- Add loop/cache support for better performance (#136)
+	- inline debugging code for better performance (#138)
+	- configure now supports selecting injection method (#139)
+	- Fix configure/compile errors under OpenBSD (#146)
+	- Add tcpbridge --verbose mode (#28)
+	- Fix compile issues under HP-UX & strictly aligned systems (#141)
+	- --enable-dynamic-link supports 64bit libraries (#143)
+	
+	
 03/22/2007: Version 3.0.beta13
 	- Fixed detection of IPv4 packets in libtcpedit on little-endian boxes (#115, #116)
     - Fixed TCP/UDP checksum calculation on little-endian boxes (#126)
