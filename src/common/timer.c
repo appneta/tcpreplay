@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@
 /* Miscellaneous timeval routines */
 
 /* Divide tvp by div, storing the result in tvp */
-inline void
+void
 timerdiv(struct timeval *tvp, float div)
 {
     double interval;
@@ -56,8 +56,8 @@ timerdiv(struct timeval *tvp, float div)
 
 /*
  * converts a float to a timeval structure
- */
-inline void
+ * converted to a #define
+void
 float2timer(float time, struct timeval *tvp)
 {
     float n;
@@ -70,12 +70,4 @@ float2timer(float time, struct timeval *tvp)
     tvp->tv_usec = n * 100000;
 
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
+ */

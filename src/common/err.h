@@ -5,7 +5,7 @@
  *
  * Adapted from OpenBSD libc *err* *warn* code.
  *
- * Copyright (c) 2001-2005 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  *
  * Copyright (c) 2000 Dug Song <dugsong@monkey.org>
  *
@@ -60,54 +60,45 @@
 
 
 #define dbg(x, y) _our_verbose_dbg(x, y, __FUNCTION__, __LINE__, __FILE__)
-inline void _our_verbose_dbg(int dbg_level, const char *string, const char *, 
+void _our_verbose_dbg(int dbg_level, const char *string, const char *, 
         const int, const char *);
 
 #define dbgx(x, y, ...) _our_verbose_dbgx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-inline void _our_verbose_dbgx(int dbg_level, const char *fmt, const char *, 
+void _our_verbose_dbgx(int dbg_level, const char *fmt, const char *, 
         const int, const char *, ...);
 
-inline void notice(const char *fmt, ...);
+void notice(const char *fmt, ...);
 
 
 #ifdef DEBUG /* then err, errx, warn, warnx print file, func, line */
 
 #define err(x, y) _our_verbose_err(x, y, __FUNCTION__, __LINE__, __FILE__)
-inline void _our_verbose_err(int eval, const char *string, const char *, const int, const char *);
+void _our_verbose_err(int eval, const char *string, const char *, const int, const char *);
 
 #define warn(x) _our_verbose_warn(x, __FUNCTION__, __LINE__, __FILE__)
-inline void _our_verbose_warn(const char *fmt, const char *, const int, const char *);
+void _our_verbose_warn(const char *fmt, const char *, const int, const char *);
 
 #define errx(x, y, ...) _our_verbose_errx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-inline void _our_verbose_errx(int eval, const char *fmt, const char *, const int, const char *, ...);
+void _our_verbose_errx(int eval, const char *fmt, const char *, const int, const char *, ...);
 
 #define warnx(x, ...) _our_verbose_warnx(x, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-inline void _our_verbose_warnx(const char *fmt, const char *, const int, const char *, ...);
+void _our_verbose_warnx(const char *fmt, const char *, const int, const char *, ...);
 
 #else /* no detailed DEBUG info */
 
 #define err(x, y) _our_verbose_err(x, y)
-inline void _our_verbose_err(int eval, const char *string);
+void _our_verbose_err(int eval, const char *string);
 
 #define errx(x, y, ...) _our_verbose_errx(x, y, __VA_ARGS__)
-inline void _our_verbose_errx(int eval, const char *fmt, ...);
+void _our_verbose_errx(int eval, const char *fmt, ...);
 
 #define warn(x) _our_verbose_warn(x)
-inline void _our_verbose_warn(const char *fmt);
+void _our_verbose_warn(const char *fmt);
 
 #define warnx(x, ...) _our_verbose_warnx(x, __VA_ARGS__)
-inline void _our_verbose_warnx(const char *fmt, ...);
+void _our_verbose_warnx(const char *fmt, ...);
 
 #endif /* DEBUG */
 
 
 #endif /* !_ERR_H_ */
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

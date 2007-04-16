@@ -5,7 +5,7 @@
  *
  * Adapted from OpenBSD libc *err* *warn* code.
  *
- * Copyright (c) 2001-2005 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  *
  * Copyright (c) 2000 Dug Song <dugsong@monkey.org>
  *
@@ -55,7 +55,7 @@
 extern int debug;
 #endif
 
-inline void
+void
 notice(const char *fmt, ...)
 {
     va_list ap;
@@ -68,7 +68,7 @@ notice(const char *fmt, ...)
     fflush(NULL);
 }
 
-inline void
+void
 _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function, 
         const int line, const char *file, ...)
 {
@@ -93,7 +93,7 @@ _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function,
 #endif
 }
 
-inline void
+void
 _our_verbose_dbg(int dbg_level, const char *string, const char *function, const int line, const char *file)
 {
 #ifdef DEBUG
@@ -110,10 +110,10 @@ _our_verbose_dbg(int dbg_level, const char *string, const char *function, const 
 
 
 #ifdef DEBUG
-inline void
+void
 _our_verbose_err(int eval, const char *string, const char *function, const int line, const char *file) {
 #else
-inline void
+void
 _our_verbose_err(int eval, const char *string) {
 #endif
 
@@ -126,10 +126,10 @@ _our_verbose_err(int eval, const char *string) {
 }
 
 #ifdef DEBUG
-inline void
+void
 _our_verbose_warn(const char *string, const char *function, const int line, const char *file) {
 #else
-inline void
+void
 _our_verbose_warn(const char *string) {
 #endif
 
@@ -140,10 +140,10 @@ _our_verbose_warn(const char *string) {
 }
 
 #ifdef DEBUG
-inline void
+void
 _our_verbose_errx(int eval, const char *fmt, const char *function, const int line, const char *file, ...) {
 #else
-inline void
+void
 _our_verbose_errx(int eval, const char *fmt, ...) {
 #endif
 
@@ -165,10 +165,10 @@ _our_verbose_errx(int eval, const char *fmt, ...) {
 }
 
 #ifdef DEBUG
-inline void
+void
 _our_verbose_warnx(const char *fmt, const char *function, const int line, const char *file, ...) {
 #else
-inline void 
+void 
 _our_verbose_warnx(const char *fmt, ...) {
 #endif
 

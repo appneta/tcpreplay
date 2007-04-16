@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2007 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,12 +42,21 @@
 #include <sys/time.h>
 #include <math.h>
 
-inline void timerdiv(struct timeval *tvp, float div);
-inline void float2timer(float time, struct timeval *tvp);
+void timerdiv(struct timeval *tvp, float div);
+
+/* convert float time to struct timeval *tvp */
+#ifndef float2timer
+#define float2timer(time, tvp)                  \
+    do {                                        \
+        tvp->tv_sec = time;                     \
+        tvp->tv_usec = (time - tvp->tv_sec) * 100000; \
+    } while (0);
+#endif
+
 
 #ifndef TIMEVAL_TO_TIMESPEC
-#define TIMEVAL_TO_TIMESPEC(tv, ts) { \
-            (ts)->tv_sec = (tv)->tv_sec; \
+#define TIMEVAL_TO_TIMESPEC(tv, ts) {           \
+            (ts)->tv_sec = (tv)->tv_sec;        \
             (ts)->tv_nsec = (tv)->tv_usec * 1000; }
 #endif
 
@@ -63,55 +72,55 @@ inline void float2timer(float time, struct timeval *tvp);
 
 /* add tvp and uvp and store in vvp */
 #ifndef timeradd
-#define timeradd(tvp, uvp, vvp)                     \
-	do {                                \
+#define timeradd(tvp, uvp, vvp)                 \
+	do {                                        \
 		(vvp)->tv_sec = (tvp)->tv_sec + (uvp)->tv_sec;      \
 		(vvp)->tv_usec = (tvp)->tv_usec + (uvp)->tv_usec;   \
-		if ((vvp)->tv_usec >= 1000000) {            \
-			(vvp)->tv_sec++;                \
+		if ((vvp)->tv_usec >= 1000000) {        \
+			(vvp)->tv_sec++;                    \
 			(vvp)->tv_usec -= 1000000;          \
-		}                           \
+		}                                       \
 	} while (0)
 #endif
 
 /* subtract uvp from tvp and store in vvp */
 #ifndef timersub
-#define	timersub(tvp, uvp, vvp)						\
-	do {								\
+#define	timersub(tvp, uvp, vvp)					\
+	do {								        \
 		(vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;		\
 		(vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec;	\
 		if ((vvp)->tv_usec < 0) {				\
-			(vvp)->tv_sec--;				\
+			(vvp)->tv_sec--;				    \
 			(vvp)->tv_usec += 1000000;			\
-		}							\
+		}							            \
 	} while (0)
 #endif
 
 /* compare tvp and uvp using cmp */
 #ifndef timercmp
-#define timercmp(tvp, uvp, cmp)				\
-	(((tvp)->tv_sec == (uvp)->tv_sec) ?		\
+#define timercmp(tvp, uvp, cmp)				    \
+	(((tvp)->tv_sec == (uvp)->tv_sec) ?		    \
 	((tvp)->tv_usec cmp (uvp)->tv_usec) :		\
 	((tvp)->tv_sec cmp (uvp)->tv_sec))
 #endif
 
 /* multiply tvp by x and store in uvp */
-#define timermul(tvp, uvp, x)						\
-	do {								\
-		(uvp)->tv_sec = (tvp)->tv_sec * x;			\
-		(uvp)->tv_usec = (tvp)->tv_usec * x;			\
-		while((uvp)->tv_usec > 1000000) {			\
-			(uvp)->tv_sec++;				\
+#define timermul(tvp, uvp, x)					\
+	do {								        \
+		(uvp)->tv_sec = (tvp)->tv_sec * x;		\
+		(uvp)->tv_usec = (tvp)->tv_usec * x;	\
+		while((uvp)->tv_usec > 1000000) {		\
+			(uvp)->tv_sec++;				    \
 			(uvp)->tv_usec -= 1000000;			\
-		}							\
+		}							            \
 	} while(0)
 
 
 /* device tvp by x.  store in tvp */
 #define timerdiv2(tvp, x)						\
-	do {								\
-		(tvp)->tv_sec = (tvp)->tv_sec / x;			\
-		(tvp)->tv_usec = (tvp)->tv_usec / x;			\
+	do {								        \
+		(tvp)->tv_sec = (tvp)->tv_sec / x;		\
+		(tvp)->tv_usec = (tvp)->tv_usec / x;	\
 	} while(0)
 
 #endif
