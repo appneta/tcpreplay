@@ -294,11 +294,12 @@ dnl ##################################################
 foundnet=no
 trynetdir=no
 have_libnet=no
+use_libnet=no
 
 AC_ARG_ENABLE(libnet,
-	AC_HELP_STRING([--enable-libnet], [Enable using the libnet 1.1.x library (unsupported)]),
+	AC_HELP_STRING([--enable-libnet], [Enable using the libnet 1.1.x library (deprecated)]),
 	[ if test x$enableval = xyes; then
-		trynetdir=yes
+		use_libnet=yes
 		AC_MSG_WARN([Due to bugs in libnet, it is no longer officially supported])
 	  fi]
 )
@@ -307,18 +308,18 @@ AC_ARG_WITH(libnet,
     AC_HELP_STRING([--with-libnet=DIR], [Use libnet in DIR]),
     [trynetdir=$withval])
 
-if test x$trynetdir = xyes ; then
+if test x$use_libnet = xyes ; then
 	AC_MSG_CHECKING(for libnet)
 
-	for testdir in $trypcapdir /usr/local /opt/local /usr ; do 
+	for testdir in $trynetdir /usr/local /opt/local /usr ; do 
     	if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
         	LNETINC="${testdir}/include/libnet.h"
 	        LNETINCDIR="${testdir}/include"
 	        if test $dynamic_link = yes; then
 				if test -f "${testdir}/lib/libnet.a" ; then
-		            LPCAPLIB="-L${testdir}/lib -lnet"
+		            LNETLIB="-L${testdir}/lib -lnet"
 				elif test -f "${testdir}/lib64/libnet.a" ; then
-					LPCAPLIB="-L${testdir}/lib64 -lnet"
+					LNETLIB="-L${testdir}/lib64 -lnet"
 				else
 					AC_ERROR([Unable to find libnet in ${testdir}])
 				fi
