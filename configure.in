@@ -316,10 +316,10 @@ if test x$use_libnet = xyes ; then
         	LNETINC="${testdir}/include/libnet.h"
 	        LNETINCDIR="${testdir}/include"
 	        if test $dynamic_link = yes; then
-				if test -f "${testdir}/lib/libnet.a" ; then
-		            LNETLIB="-L${testdir}/lib -lnet"
-				elif test -f "${testdir}/lib64/libnet.a" ; then
-					LNETLIB="-L${testdir}/lib64 -lnet"
+				if test -f "${testdir}/lib64/libnet.a" ; then
+		            LNETLIB="-L${testdir}/lib64 -lnet"
+				elif test -f "${testdir}/lib/libnet.a" ; then
+					LNETLIB="-L${testdir}/lib -lnet"
 				else
 					AC_ERROR([Unable to find libnet in ${testdir}])
 				fi
@@ -441,10 +441,10 @@ AC_ARG_WITH(libpcap,
         	LPCAPINC="${testdir}/include/pcap.h"
 	        LPCAPINCDIR="${testdir}/include"
 	        if test $dynamic_link = yes; then
-				if test -f "${testdir}/lib/libpcap.a" ; then
-		            LPCAPLIB="-L${testdir}/lib -lpcap"
-				elif test -f "${testdir}/lib64/libpcap.a" ; then
-					LPCAPLIB="-L${testdir}/lib64 -lpcap"
+				if test -f "${testdir}/lib64/libpcap.a" ; then
+		            LPCAPLIB="-L${testdir}/lib64 -lpcap"
+				elif test -f "${testdir}/lib/libpcap.a" ; then
+					LPCAPLIB="-L${testdir}/lib -lpcap"
 				else
 					AC_ERROR([Unable to find libpcap in ${testdir}])
 				fi
