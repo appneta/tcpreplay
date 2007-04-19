@@ -1072,7 +1072,7 @@ AC_OUTPUT([Makefile
            tcpreplay.spec])
 
 case $host in
-	*-*-apple-darwin*)
+	*-apple-darwin*)
 	AC_MSG_WARN([OS X <= 10.4.9 has a serious problem.  Please see: http://tcpreplay.synfin.net/trac/ticket/142])
 	;;
 esac
