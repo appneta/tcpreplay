@@ -121,11 +121,6 @@ main(int argc, char *argv[])
     if ((options.pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
         errx(1, "Error opening file: %s", errbuf);
 
-#ifdef HAVE_PCAP_SNAPSHOT_OVERRIDE
-    /* libpcap >= 0.9.6 have this which handles broken RedHat libpcap files */
-    pcap_snapshot_override(options.pcap, 65535);
-#endif
-
     /* make sure we support the DLT type */
     switch(pcap_datalink(options.pcap)) {
         case DLT_EN10MB:

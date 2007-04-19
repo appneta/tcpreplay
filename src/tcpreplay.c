@@ -198,13 +198,6 @@ replay_file(int file_idx)
 
     }
     
-#ifdef HAVE_PCAP_SNAPSHOT_OVERRIDE
-    /* libpcap >= 0.9.6 have this which handles broken RedHat libpcap files */
-    if (pcap != NULL)
-        pcap_snapshot_override(pcap, 65535);
-#endif
-
-
 #ifdef ENABLE_VERBOSE
     if (options.verbose) {
         
