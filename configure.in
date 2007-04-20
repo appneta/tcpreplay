@@ -728,6 +728,8 @@ main(int argc, char *argv[]) {
               [Do we have BPF device support?])
 	AC_MSG_RESULT(yes)
 	have_bpf=yes
+	],[
+	AC_MSG_RESULT(no)
 	])
 
 
