@@ -1,7 +1,13 @@
 $Id$
 
-05/??/2007: Version 3.0
+04/20/2007: Version 3.0
 	- By default, no longer try to use libnet.  You must now specify --enable-libnet (#148)
+	- Improve documentation (#30)
+	- General code cleanup (#47)
+	- Warn when GNU Autogen version < 5.9 (#153)
+	- Remove support for pcap_snapshot_override which was never added to libpcap (#140)
+	- Fix support for C99/GCC 4.3 "inline".  Rely on -O3 for better performance. (#149)
+	- Prioritize 64 bit libraries over 32 bit counterparts (#150)
 
 04/14/2007: Version 3.0.RC1
     - Fix tcpbridge and make it compile by default (#15)
