@@ -372,12 +372,8 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     }
 
     /* Make space for our new L2 header */
-    if (newl2len > ctx->l2len) {
-        memcpy(tmpbuff, packet, pktlen);
-        memcpy(packet + newl2len, (tmpbuff + ctx->l2len), pktlen - ctx->l2len);
-    } else if (newl2len < ctx->l2len) {
+    if (newl2len != ctx->l2len)
         memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
-    } /* else same size, so do nothing */
 
     /* update the total packet length */
     pktlen += newl2len - ctx->l2len;
