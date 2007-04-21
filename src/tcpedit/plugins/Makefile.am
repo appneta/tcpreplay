@@ -29,3 +29,4 @@ include $(srcdir)/plugins/dlt_raw/Makefile.am
 include $(srcdir)/plugins/dlt_null/Makefile.am
 include $(srcdir)/plugins/dlt_loop/Makefile.am
 include $(srcdir)/plugins/dlt_linuxsll/Makefile.am
+include $(srcdir)/plugins/dlt_en802_11/Makefile.am

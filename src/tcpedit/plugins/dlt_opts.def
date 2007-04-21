@@ -34,6 +34,8 @@ Ethernet aka DLT_EN10MB
 @item
 @var{hdlc}
 Cisco HDLC aka DLT_C_HDLC
+@var{en802_11}
+802.11 aka DLT_802_11
 @item
 @var{user}
 User specified Layer 2 header and DLT type
