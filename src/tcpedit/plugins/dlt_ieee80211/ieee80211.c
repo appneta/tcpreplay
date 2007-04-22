@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id: plugin.c 1830 2007-04-21 07:33:54Z aturner $ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -35,21 +35,21 @@
 
 #include "dlt_plugins-int.h"
 #include "dlt_utils.h"
-#include "en802_11.h"
+#include "ieee80211.h"
+#include "ieee80211_hdr.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
-#include "en802_11_hdr.h"
 
 /* FIXME: edit these variables to taste */
-static char dlt_name[] = "en802_11";
-static char dlt_prefix[] = "802.11";
-static u_int16_t dlt_value = 105;
+static char dlt_name[] = "ieee80211";
+static char dlt_prefix[] = "ieee802_11";
+static u_int16_t dlt_value = DLT_IEEE802_11;
 
 /*
  * Function to register ourselves.  This function is always called, regardless
  * of what DLT types are being used, so it shouldn't be allocating extra buffers
- * or anything like that (use the dlt_en802_11_init() function below for that).
+ * or anything like that (use the dlt_ieee80211_init() function below for that).
  * Tasks:
  * - Create a new plugin struct
  * - Fill out the provides/requires bit masks.  Note:  Only specify which fields are
@@ -58,7 +58,7 @@ static u_int16_t dlt_value = 105;
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en802_11_register(tcpeditdlt_t *ctx)
+dlt_ieee80211_register(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
     assert(ctx);
@@ -66,10 +66,10 @@ dlt_en802_11_register(tcpeditdlt_t *ctx)
     /* create  a new plugin structure */
     plugin = tcpedit_dlt_newplugin();
 
-    /* FIXME: set what we provide & require */
+    /* we're a decoder only plugin */
     plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-    plugin->requires += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-
+    plugin->requires += 0;
+    
      /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
@@ -80,16 +80,16 @@ dlt_en802_11_register(tcpeditdlt_t *ctx)
      * Point to our functions, note, you need a function for EVERY method.  
      * Even if it is only an empty stub returning success.
      */
-    plugin->plugin_init = dlt_en802_11_init;
-    plugin->plugin_cleanup = dlt_en802_11_cleanup;
-    plugin->plugin_parse_opts = dlt_en802_11_parse_opts;
-    plugin->plugin_decode = dlt_en802_11_decode;
-    plugin->plugin_encode = dlt_en802_11_encode;
-    plugin->plugin_proto = dlt_en802_11_proto;
-    plugin->plugin_l2addr_type = dlt_en802_11_l2addr_type;
-    plugin->plugin_l2len = dlt_en802_11_l2len;
-    plugin->plugin_get_layer3 = dlt_en802_11_get_layer3;
-    plugin->plugin_merge_layer3 = dlt_en802_11_merge_layer3;
+    plugin->plugin_init = dlt_ieee80211_init;
+    plugin->plugin_cleanup = dlt_ieee80211_cleanup;
+    plugin->plugin_parse_opts = dlt_ieee80211_parse_opts;
+    plugin->plugin_decode = dlt_ieee80211_decode;
+    plugin->plugin_encode = dlt_ieee80211_encode;
+    plugin->plugin_proto = dlt_ieee80211_proto;
+    plugin->plugin_l2addr_type = dlt_ieee80211_l2addr_type;
+    plugin->plugin_l2len = dlt_ieee80211_l2len;
+    plugin->plugin_get_layer3 = dlt_ieee80211_get_layer3;
+    plugin->plugin_merge_layer3 = dlt_ieee80211_merge_layer3;
 
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
@@ -103,10 +103,10 @@ dlt_en802_11_register(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en802_11_init(tcpeditdlt_t *ctx)
+dlt_ieee80211_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    en802_11_config_t *config;
+    ieee80211_config_t *config;
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
@@ -115,14 +115,14 @@ dlt_en802_11_init(tcpeditdlt_t *ctx)
     }
     
     /* allocate memory for our deocde extra data */
-    if (sizeof(en802_11_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(en802_11_extra_t));
+    if (sizeof(ieee80211_extra_t) > 0)
+        ctx->decoded_extra = safe_malloc(sizeof(ieee80211_extra_t));
 
     /* allocate memory for our config data */
-    if (sizeof(en802_11_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(en802_11_config_t));
+    if (sizeof(ieee80211_config_t) > 0)
+        plugin->config = safe_malloc(sizeof(ieee80211_config_t));
     
-    config = (en802_11_config_t *)plugin->config;
+    config = (ieee80211_config_t *)plugin->config;
     
     /* FIXME: set default config values here */
 
@@ -131,11 +131,11 @@ dlt_en802_11_init(tcpeditdlt_t *ctx)
 
 /*
  * Since this is used in a library, we should manually clean up after ourselves
- * Unless you allocated some memory in dlt_en802_11_init(), this is just an stub.
+ * Unless you allocated some memory in dlt_ieee80211_init(), this is just an stub.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en802_11_cleanup(tcpeditdlt_t *ctx)
+dlt_ieee80211_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
     assert(ctx);
@@ -166,7 +166,7 @@ dlt_en802_11_cleanup(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en802_11_parse_opts(tcpeditdlt_t *ctx)
+dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx)
 {
     assert(ctx);
 
@@ -186,13 +186,11 @@ dlt_en802_11_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en802_11_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-
-    int l2len = dlt_en802_11_l2len(ctx, packet, pktlen);
-    assert(pktlen > l2len);
+    assert(pktlen > dlt_ieee80211_l2len(ctx, packet, pktlen));
 
     /* FIXME: make this function work */
 
@@ -204,22 +202,17 @@ dlt_en802_11_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_en802_11_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
     assert(packet_ex);
-
-    int l2len = dlt_en802_11_l2len(ctx, packet, pktlen);
-    assert(pktlen > l2len);
     
     packet = *packet_ex;
     assert(packet);
     
-    /* FIXME: make this function work */
-
-    
-    return pktlen; /* success */
+    tcpedit_seterr(ctx->tcpedit, "%s", "DLT_IEEE802_11 plugin does not support packet encoding");
+    return TCPEDIT_ERROR;
 }
 
 /*
@@ -228,16 +221,18 @@ dlt_en802_11_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_
  * against the ETHERTYPE_* values which are oddly in host byte order.
  */
 int 
-dlt_en802_11_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    int protocol, l2len;
+
     assert(ctx);
     assert(packet);
+
+    l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
+
+    assert(pktlen >= l2len);
     
-    int l2len = dlt_en802_11_l2len(ctx, packet, pktlen);
-    assert(pktlen > l2len);
-    int protocol; 
-    
-    /* FIXME: make this function work */
+    protocol = (u_int16_t)packet[l2len - 2];
     
     return ntohs(protocol);
 }
@@ -246,16 +241,17 @@ dlt_en802_11_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_en802_11_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 {
     int l2len;
     assert(ctx);
     assert(packet);
 
-    /* FIXME: Is there anything else we need to do?? */
-    l2len = dlt_en802_11_l2len(ctx, packet, pktlen);
+    l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
 
     assert(pktlen >= l2len);
+    
+    /* 802.11 is multi layered.  next up is an 802.3 header */
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -267,15 +263,14 @@ dlt_en802_11_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_en802_11_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
 {
     int l2len;
     assert(ctx);
     assert(packet);
     assert(l3data);
     
-    /* FIXME: Is there anything else we need to do?? */
-    l2len = dlt_en802_11_l2len(ctx, packet, pktlen);
+    l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
     
     assert(pktlen >= l2len);
     
@@ -284,33 +279,53 @@ dlt_en802_11_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u
 
 /* 
  * return the length of the L2 header of the current packet
+ * based on: http://www.tcpdump.org/lists/workers/2004/07/msg00121.html
+ * Note: Right now I don't have anything in my API which allows this function to return
+ * a soft error in the situation where the packet is a non-data packet (like a management frame)
+ *
  */
 int
-dlt_en802_11_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     const u_int16_t *frame_control;
+    struct tcpr_802_2snap_hdr *hdr;
+    int hdrlen = 0;
+
 
     assert(ctx);
     assert(packet);
     assert(pktlen);
-
-    assert(frame_control);
+    
     frame_control = (u_int16_t *)packet;
     
-    if (en802_11_USE_4(*frame_control)) {
-        return sizeof(en802_11_addr4_hdr_t);
+    if (ieee80211_USE_4(*frame_control)) {
+        hdrlen = sizeof(ieee80211_addr4_hdr_t);
     } else {
-        return sizeof(en802_11_hdr_t);
+        hdrlen = sizeof(ieee80211_hdr_t);
     }
-    tcpedit_seterr(ctx->tcpedit, "%s", "Unable to determine 802.11 layer 2 length");
-    return -1;
+    
+    /* 
+     * FIXME: 802.11e?  has a QoS feature which apparently extends the header by another
+     * 2 bytes, but I don't know how to test for that yet.
+     */
+    
+    assert(pktlen > hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr));
+    hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
+    
+    /* verify the header is 802.2SNAP not 802.2 */
+    if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA) {
+        hdrlen += (int)sizeof(struct tcpr_802_2snap_hdr);
+    } else {
+        hdrlen += (int)sizeof(struct tcpr_802_2_hdr);
+    }
+
+    return hdrlen;
 }
 
 
 tcpeditdlt_l2addr_type_t 
-dlt_en802_11_l2addr_type(void)
+dlt_ieee80211_l2addr_type(void)
 {
-    /* FIXME: return the tcpeditdlt_l2addr_type_t value that this DLT uses */
     return ETHERNET;
 }
 

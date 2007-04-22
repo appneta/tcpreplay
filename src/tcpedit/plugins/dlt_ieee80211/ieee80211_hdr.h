@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id: ieee80211_hdr.h 1828 2007-04-21 07:24:52Z aturner $ */
 
 /*
  * Copyright (c) 2007 Aaron Turner.
@@ -33,10 +33,10 @@
 
 #include "dlt_plugins-int.h"
 
-#ifndef _DLT_en802_11_hdr_H_
-#define _DLT_en802_11_hdr_H_
+#ifndef _DLT_ieee80211_hdr_H_
+#define _DLT_ieee80211_hdr_H_
 
-u_char *en802_11_get_src(const char *header);
-u_char *en802_11_get_dst(const char *header);
+u_char *ieee80211_get_src(const char *header);
+u_char *ieee80211_get_dst(const char *header);
 
 #endif

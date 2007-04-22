@@ -46,7 +46,7 @@
 #include "dlt_null/null.h"
 #include "dlt_loop/loop.h"
 #include "dlt_linuxsll/linuxsll.h"
-#include "dlt_en802_11/en802_11.h"
+#include "dlt_ieee80211/ieee80211.h"
 
 
 /*******************************************************************
@@ -66,7 +66,7 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     retcode += dlt_null_register(ctx);
     retcode += dlt_loop_register(ctx);
     retcode += dlt_linuxsll_register(ctx);
-    retcode += dlt_en802_11_register(ctx);
+    retcode += dlt_ieee80211_register(ctx);
     
     if (retcode < 0)
         return TCPEDIT_ERROR;

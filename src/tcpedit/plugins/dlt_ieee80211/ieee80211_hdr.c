@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id: ieee80211_hdr.c 1828 2007-04-21 07:24:52Z aturner $ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -34,27 +34,33 @@
 #include <string.h>
 
 #include "dlt_plugins-int.h"
-#include "en802_11.h"
+#include "ieee80211.h"
+
+/*
+ * 802.11 headers are variable length and the clients (non-AP's) have their
+ * src & dst MAC addresses in different places in the header based on the
+ * flags set in the first two bytes of the header (frame control)
+ */
 
 u_char *
-en802_11_get_src(const char *header)
+ieee80211_get_src(const char *header)
 {
-    en802_11_hdr_t *addr3;
-    en802_11_addr4_hdr_t *addr4;
+    ieee80211_hdr_t *addr3;
+    ieee80211_addr4_hdr_t *addr4;
     const u_int16_t *frame_control;
     
-    assert(frame_control);
+    assert(header);
     frame_control = (u_int16_t *)header;
 
-    if (en802_11_USE_4(*frame_control)) {
-        addr4 = (en802_11_addr4_hdr_t *)header;
+    if (ieee80211_USE_4(*frame_control)) {
+        addr4 = (ieee80211_addr4_hdr_t *)header;
         return addr4->addr4;
     } else {
-        addr3 = (en802_11_hdr_t *)header;
-        switch (*frame_control & (en802_11_FC_TO_DS_MASK + en802_11_FC_FROM_DS_MASK)) {
-            case en802_11_FC_TO_DS_MASK:
+        addr3 = (ieee80211_hdr_t *)header;
+        switch (*frame_control & (ieee80211_FC_TO_DS_MASK + ieee80211_FC_FROM_DS_MASK)) {
+            case ieee80211_FC_TO_DS_MASK:
                 return addr3->addr2;
-            case en802_11_FC_FROM_DS_MASK:
+            case ieee80211_FC_FROM_DS_MASK:
                 return addr3->addr3;
             case 0:
                 return addr3->addr2;
@@ -66,24 +72,24 @@ en802_11_get_src(const char *header)
 }
 
 u_char *
-en802_11_get_dst(const char *header)
+ieee80211_get_dst(const char *header)
 {
-    en802_11_hdr_t *addr3;
-    en802_11_addr4_hdr_t *addr4;
+    ieee80211_hdr_t *addr3;
+    ieee80211_addr4_hdr_t *addr4;
     const u_int16_t *frame_control;
     
-    assert(frame_control);
+    assert(header);
     frame_control = (u_int16_t *)header;
 
-    if (en802_11_USE_4(*frame_control)) {
-        addr4 = (en802_11_addr4_hdr_t *)header;
+    if (ieee80211_USE_4(*frame_control)) {
+        addr4 = (ieee80211_addr4_hdr_t *)header;
         return addr4->addr3;
     } else {
-        addr3 = (en802_11_hdr_t *)header;
-        switch (*frame_control & (en802_11_FC_TO_DS_MASK + en802_11_FC_FROM_DS_MASK)) {
-            case en802_11_FC_TO_DS_MASK:
+        addr3 = (ieee80211_hdr_t *)header;
+        switch (*frame_control & (ieee80211_FC_TO_DS_MASK + ieee80211_FC_FROM_DS_MASK)) {
+            case ieee80211_FC_TO_DS_MASK:
                 return addr3->addr3;
-            case en802_11_FC_FROM_DS_MASK:
+            case ieee80211_FC_FROM_DS_MASK:
                 return addr3->addr2;
             case 0:
                 return addr3->addr3;

@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id: plugin.h 1830 2007-04-21 07:33:54Z aturner $ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -33,37 +33,35 @@
 
 #include "dlt_plugins-int.h"
 
-#ifndef _DLT_en802_11_H_
-#define _DLT_en802_11_H_
+#ifndef _DLT_ieee80211_H_
+#define _DLT_ieee80211_H_
 
-int dlt_en802_11_register(tcpeditdlt_t *ctx);
-int dlt_en802_11_init(tcpeditdlt_t *ctx);
-int dlt_en802_11_cleanup(tcpeditdlt_t *ctx);
-int dlt_en802_11_parse_opts(tcpeditdlt_t *ctx);
-int dlt_en802_11_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_en802_11_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t dir);
-int dlt_en802_11_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_en802_11_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_en802_11_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_en802_11_l2addr_type(void);
-int dlt_en802_11_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-
-
+int dlt_ieee80211_register(tcpeditdlt_t *ctx);
+int dlt_ieee80211_init(tcpeditdlt_t *ctx);
+int dlt_ieee80211_cleanup(tcpeditdlt_t *ctx);
+int dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx);
+int dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+int dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t dir);
+int dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+u_char *dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
+u_char *dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
+tcpeditdlt_l2addr_type_t dlt_ieee80211_l2addr_type(void);
+int dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 
 /* 802.11 packet header w/ 3 addresses (non-WDS) */
-struct en802_11_hdr_s {
+struct ieee80211_hdr_s {
     u_int16_t frame_control;
-#define en802_11_FC_VERSION_MASK   0xC000
-#define en802_11_FC_TYPE_MASK      0x3000
-#define en802_11_FC_SUBTYPE_MASK   0x0F00
-#define en802_11_FC_TO_DS_MASK     0x0080
-#define en802_11_FC_FROM_DS_MASK   0x0040
-#define en802_11_FC_MORE_FRAG      0x0020
-#define en802_11_FC_RETRY_MASK     0x0010
-#define en802_11_FC_PWR_MGMT_MASK  0x0008
-#define en802_11_FC_MORE_DATA_MASK 0x0004
-#define en802_11_FC_WEP_MASK       0x0002
-#define en802_11_FC_ORDER_MASK     0x0001
+#define ieee80211_FC_VERSION_MASK   0xC000
+#define ieee80211_FC_TYPE_MASK      0x3000
+#define ieee80211_FC_SUBTYPE_MASK   0x0F00
+#define ieee80211_FC_TO_DS_MASK     0x0080
+#define ieee80211_FC_FROM_DS_MASK   0x0040
+#define ieee80211_FC_MORE_FRAG      0x0020
+#define ieee80211_FC_RETRY_MASK     0x0010
+#define ieee80211_FC_PWR_MGMT_MASK  0x0008
+#define ieee80211_FC_MORE_DATA_MASK 0x0004
+#define ieee80211_FC_WEP_MASK       0x0002
+#define ieee80211_FC_ORDER_MASK     0x0001
     u_int16_t duration;
     u_char addr1[6];
     u_char addr2[6];
@@ -71,9 +69,9 @@ struct en802_11_hdr_s {
     u_int16_t fragid;
     u_int16_t seqid;
 };
-typedef struct en802_11_hdr_s en802_11_hdr_t;
+typedef struct ieee80211_hdr_s ieee80211_hdr_t;
 
-struct en802_11_addr4_hdr_s {
+struct ieee80211_addr4_hdr_s {
     u_int16_t frame_control;
     u_int16_t duration;
     u_char addr1[6];
@@ -83,20 +81,20 @@ struct en802_11_addr4_hdr_s {
     u_int16_t fragid;
     u_int16_t seqid;
 };
-typedef struct en802_11_addr4_hdr_s en802_11_addr4_hdr_t;
+typedef struct ieee80211_addr4_hdr_s ieee80211_addr4_hdr_t;
 
-#define en802_11_USE_4(frame_control)                                          \
-    (frame_control & (en802_11_FC_TO_DS_MASK + en802_11_FC_FROM_DS_MASK)) ==   \
-    (en802_11_FC_TO_DS_MASK + en802_11_FC_FROM_DS_MASK)
+#define ieee80211_USE_4(frame_control)                                          \
+    (frame_control & (ieee80211_FC_TO_DS_MASK + ieee80211_FC_FROM_DS_MASK)) ==   \
+    (ieee80211_FC_TO_DS_MASK + ieee80211_FC_FROM_DS_MASK)
 
 /*
  * FIXME: structure to hold any data parsed from the packet by the decoder.
  * Example: Ethernet VLAN tag info
  */
-struct en802_11_extra_s {
+struct ieee80211_extra_s {
 
 };
-typedef struct en802_11_extra_s en802_11_extra_t;
+typedef struct ieee80211_extra_s ieee80211_extra_t;
 
 
 /* 
@@ -108,9 +106,9 @@ typedef struct en802_11_extra_s en802_11_extra_t;
  *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
  *   is available to any encoder plugin.
  */
-struct en802_11_config_s {
+struct ieee80211_config_s {
     
 };
-typedef struct en802_11_config_s en802_11_config_t;
+typedef struct ieee80211_config_s ieee80211_config_t;
 
 #endif
