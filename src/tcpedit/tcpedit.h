@@ -37,6 +37,7 @@
 #ifndef _TCPEDIT_H_
 #define _TCPEDIT_H_
 
+#define TCPEDIT_SOFT_ERROR -2
 #define TCPEDIT_ERROR  -1
 #define TCPEDIT_OK      0
 #define TCPEDIT_WARN    1

@@ -194,6 +194,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     const u_char *pktdata = NULL;               /* packet from libpcap */
     u_char **packet = NULL;                     /* packet from tcpedit */
     COUNTER packetnum = 0;
+    int rcode;
 
     pkthdr_ptr = &pkthdr;
 
@@ -225,8 +226,12 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
         packet = &pktdata;
-        if (tcpedit_packet(tcpedit, &pkthdr_ptr, packet, cache_result) == -1) {
+        if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, packet, cache_result)) == TCPEDIT_ERROR) {
             return -1;
+        } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
+            /* don't write packet */
+            dbgx(1, "Packet " COUNTER_SPEC " is suppressed from being written due to soft errors", packetnum);
+            continue;
         }
 
 

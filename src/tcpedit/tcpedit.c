@@ -59,9 +59,10 @@ tOptDesc *const tcpedit_tcpedit_optDesc_p;
 /* 
  * Processs a given packet and edit the pkthdr/pktdata structures
  * according to the rules in tcpedit
- * Returns: -1 on error
- *           0 on no change
- *           1 on change
+ * Returns: TCPEDIT_ERROR on error
+ *          TCPEDIT_SOFT_ERROR on remove packet
+ *          0 on no change
+ *          1 on change
  */
 int
 tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
@@ -111,6 +112,12 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     /* rewrite DLT */
     if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
         errx(1, "%s", tcpedit_geterr(tcpedit));
+
+    /* unable to edit packet, most likely 802.11 management frame */
+    if (pktlen == TCPEDIT_SOFT_ERROR) {
+        dbgx(1, "%s", tcpedit_geterr(tcpedit));
+        return TCPEDIT_SOFT_ERROR;
+    }
 
     /* update our packet lengths (real/captured) based on L2 length changes */
     lendiff = pktlen - (*pkthdr)->caplen;
@@ -293,7 +300,6 @@ __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const cha
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-        dbgx(1, fmt, ap);
         (void)vsnprintf(errormsg, 
               (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
     }

@@ -167,6 +167,19 @@ EOText;
 
 
 flag = {
+	name		= skip-soft-errors;
+	max 		= 1;
+	descrip		= "Skip writing packets with soft errors";
+	doc			= <<- EOText
+In some cases, packets can be decoded, but the requested editing
+is not possible.  Normally these packets are written to the output
+file unedited so that tcpprep cache files can still be used, but if
+you wish, these packets can be suppressed.
+EOText;
+};
+
+
+flag = {
     name        = version;
     value       = V;
     descrip     = "Print version information";
