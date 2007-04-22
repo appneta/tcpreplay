@@ -15,6 +15,9 @@
 /* Enable building flowreplay (alpha) */
 #undef ENABLE_FLOWREPLAY
 
+/* Enable use of pcap_findalldevs() */
+#undef ENABLE_PCAP_FINDALLDEVS
+
 /* Do we have tcpdump and pcap_dump_fopen()? */
 #undef ENABLE_VERBOSE
 

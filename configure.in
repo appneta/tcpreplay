@@ -10,7 +10,7 @@ AM_WITH_DMALLOC
 
 dnl Set version info here!
 MAJOR_VERSION=3
-MINOR_VERSION=0
+MINOR_VERSION=1
 MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
@@ -982,7 +982,7 @@ fi
 
 dnl No 'make test' when cross compile
 
-AC_MSG_CHECKING( for 'make test' profile)
+AC_MSG_CHECKING(for 'make test' profile)
 if test "$host" != "$build" ; then
 	AC_MSG_WARN(Unable to do tests when cross-compiling)
 fi
@@ -994,6 +994,12 @@ AC_ARG_WITH(testnic,
       nic2=$withval
       AC_MSG_RESULT([Using --with-testnic=$withval])],
     [
+
+dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
+dnl so under OSX we disable the interface list feature
+disable_pcap_findalldevs=no
+
+
 dnl these need to be dynamic based on OS
 case $host in
 	*-*-linux*)
@@ -1017,6 +1023,7 @@ case $host in
 	*-apple-darwin*)
 	nic1=en0
 	nic2=en0
+	disable_pcap_findalldevs=yes
 	AC_MSG_RESULT(Apple OS X)
 	;;
 
@@ -1049,6 +1056,15 @@ AC_MSG_NOTICE([Using $nic2 for 2nd test network interface card])
 AC_SUBST(nic1)
 AC_SUBST(nic2)
 
+
+AC_MSG_CHECKING([if it's ok to use pcap_findalldevs()])
+if test x$disable_pcap_findalldevs = xno ; then
+	AC_DEFINE([ENABLE_PCAP_FINDALLDEVS], [1], [Enable use of pcap_findalldevs()])
+	AC_MSG_RESULT(yes)
+else
+	AC_MSG_RESULT(no)
+fi
+
 LIBOPTS_CHECK
 
 AC_OUTPUT([Makefile
@@ -1068,5 +1084,9 @@ AC_OUTPUT([Makefile
 case $host in
 	*-apple-darwin*)
 	AC_MSG_WARN([OS X <= 10.4.9 has a serious problem.  Please see: http://tcpreplay.synfin.net/trac/ticket/142])
+	;;
+	
+	*-*-cygwin)
+	AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental.  Please report any bugs!])
 	;;
 esac

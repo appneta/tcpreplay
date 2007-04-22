@@ -158,8 +158,11 @@ post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]
 {
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     char *intname;
+#ifdef ENABLE_PCAP_FINDALLDEVS
     interface_list_t *intlist = get_interface_list();
-
+#else
+    interface_list_t *intlist = NULL;
+#endif
     
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))

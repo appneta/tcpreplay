@@ -54,20 +54,23 @@ get_interface(interface_list_t *list, const char *alias)
     interface_list_t *ptr;
     
     assert(alias);
-    assert(list);
     
-    ptr = list;
+    if (list != NULL) {        
+        ptr = list;
     
-    do {
-        /* check both the alias & name fields */
-        if (strcmp(alias, ptr->alias) == 0)
-            return(ptr->name);
+        do {
+            /* check both the alias & name fields */
+            if (strcmp(alias, ptr->alias) == 0)
+                return(ptr->name);
         
-        if (strcmp(alias, ptr->name) == 0)
-            return(ptr->name);
+            if (strcmp(alias, ptr->name) == 0)
+                return(ptr->name);
             
-        ptr = ptr->next;
-    } while (ptr != NULL);
+            ptr = ptr->next;
+        } while (ptr != NULL);
+    } else {
+        return(alias);
+    }
     
     return(NULL);
 }

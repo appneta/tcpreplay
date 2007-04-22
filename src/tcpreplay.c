@@ -271,8 +271,12 @@ post_args(void)
     char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
+    
+#ifdef ENABLE_PCAP_FINDALLDEVS
     interface_list_t *intlist = get_interface_list();
-
+#else
+    interface_list_t *intlist = NULL;
+#endif
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
