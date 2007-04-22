@@ -38,6 +38,8 @@
 #include "ieee80211.h"
 
 int ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen);
+int ieee80211_is_encrypted(tcpeditdlt_t *ctx, const void *packet, const int pktlen);
+
 char *ieee80211_get_src(const void *header);
 char *ieee80211_get_dst(const void *header);
 

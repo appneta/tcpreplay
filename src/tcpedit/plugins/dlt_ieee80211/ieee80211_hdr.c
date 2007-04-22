@@ -49,6 +49,7 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
+    assert(pktlen >= (int)sizeof(ieee80211_hdr_t));
         
     /* 
      * Fields: Version|Type|Subtype|Flags
@@ -100,12 +101,15 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
  * returns 1 if WEP is enabled, 0 if not
  */
 int
-ieee80211_is_encrypted(const ieee80211_hdr_t *hdr)
+ieee80211_is_encrypted(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 {
     u_int16_t *frame_control, fc;
-    assert(hdr);
 
-    frame_control = (u_int16_t *)hdr;
+    assert(ctx);
+    assert(packet);
+    assert(pktlen >= (int)sizeof(ieee80211_hdr_t));
+
+    frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
     
     if ((fc & 0x0002) == 0x0002) {

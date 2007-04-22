@@ -201,7 +201,7 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_SOFT_ERROR;
     }
     
-    if (ieee80211_is_encrypted((ieee80211_hdr_t *)packet)) {
+    if (ieee80211_is_encrypted(ctx, packet, pktlen)) {
         tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is encrypted.  Unable to decode frame.",
             ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
