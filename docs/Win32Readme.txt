@@ -26,22 +26,21 @@ way or another.
 What you will need:
 
 - Cygwin environment
-- GNU build chain tools (Autoconf, Automake, Autoheader)
-- GNU Autogen
 - GCC compiler and system header files
 - WinPcap 4.0 DLL
 - WinPcap 4.0 Developer Pack (headers, etc)
+
+Additional requirements if building from SVN:
+- GNU build chain tools (Autoconf, Automake, Autoheader)
+- GNU Autogen
+
 
 Directions:
 - Install all the requirements
 
 - Enter into the Cygwin environment by clicking on the Cygwin icon
 
-- Checkout the latest tcpreplay source code from the trunk branch:
-	svn co https://www.synfin.net/svn/tcpreplay/trunk tcpreplay
-
-- Run the autogen.sh bootstrapper:
-	cd tcpreplay
+- If you checked out the code from SVN, run the autogen.sh bootstrapper:
 	./autogen.sh
 
 - Configure tcpreplay:
@@ -53,9 +52,6 @@ Directions:
 
 - Build tcpreplay:	
 	make
-	
-- Test:
-	make test
 	
 - Install:
 	make install
