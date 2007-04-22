@@ -1,4 +1,4 @@
-/* $Id: plugin.h 1830 2007-04-21 07:33:54Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.

@@ -1,4 +1,4 @@
-# $Id: Makefile.am 1830 2007-04-21 07:33:54Z aturner $
+# $Id$
 # START OF: dlt_ieee80211
 # Note, if you add any files to your plugin, you will need to edit dlt_ieee80211/Makefile.am
 # add your .c files to libtcpedit_a_SOURCES

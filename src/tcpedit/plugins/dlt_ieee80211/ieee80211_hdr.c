@@ -1,4 +1,4 @@
-/* $Id: ieee80211_hdr.c 1828 2007-04-21 07:24:52Z aturner $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
