@@ -41,7 +41,11 @@
 #include "common.h"
 #include "tcpr.h"
 
-/* FIXME: edit these variables to taste */
+/*
+ * Notes about the ieee80211 plugin:
+ * 802.11 is a little different from most other L2 protocols:
+ * - Not all frames are data frames (control, data, management)
+ */
 static char dlt_name[] = "ieee80211";
 static char dlt_prefix[] = "ieee802_11";
 static u_int16_t dlt_value = DLT_IEEE802_11;
@@ -145,7 +149,6 @@ dlt_ieee80211_cleanup(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    /* FIXME: make this function do something if necessary */
     if (ctx->decoded_extra != NULL) {
         free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
@@ -170,8 +173,8 @@ dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx)
 {
     assert(ctx);
 
-    /* FIXME: make this function work */
-
+    /* we have none */
+    
     return TCPEDIT_OK; /* success */
 }
 
@@ -192,7 +195,21 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
     assert(pktlen > dlt_ieee80211_l2len(ctx, packet, pktlen));
 
-    /* FIXME: make this function work */
+    if (!ieee80211_is_data(ctx, packet, pktlen)) {
+        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is not a normal 802.11 data frame",
+            ctx->tcpedit->runtime.packetnum);
+        return TCPEDIT_SOFT_ERROR;
+    }
+    
+    if (ieee80211_is_encrypted((ieee80211_hdr_t *)packet)) {
+        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is encrypted.  Unable to decode frame.",
+            ctx->tcpedit->runtime.packetnum);
+        return TCPEDIT_SOFT_ERROR;
+    }
+
+    memcpy(&(ctx->srcaddr), ieee80211_get_src((ieee80211_hdr_t *)packet), ETHER_ADDR_LEN);
+    memcpy(&(ctx->dstaddr), ieee80211_get_dst((ieee80211_hdr_t *)packet), ETHER_ADDR_LEN);
+    ctx->proto = dlt_ieee80211_proto(ctx, packet, pktlen);
 
     return TCPEDIT_OK; /* success */
 }
@@ -251,8 +268,6 @@ dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 
     assert(pktlen >= l2len);
     
-    /* 802.11 is multi layered.  next up is an 802.3 header */
-
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
 
@@ -280,14 +295,13 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
 /* 
  * return the length of the L2 header of the current packet
  * based on: http://www.tcpdump.org/lists/workers/2004/07/msg00121.html
- * Note: Right now I don't have anything in my API which allows this function to return
- * a soft error in the situation where the packet is a non-data packet (like a management frame)
+ * Returns >= 0 or TCPEDIT_SOFT_ERROR on error
  *
  */
 int
 dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    const u_int16_t *frame_control;
+    u_int16_t *frame_control, fc;
     struct tcpr_802_2snap_hdr *hdr;
     int hdrlen = 0;
 
@@ -296,23 +310,27 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
     assert(pktlen);
     
+
     frame_control = (u_int16_t *)packet;
-    
-    if (ieee80211_USE_4(*frame_control)) {
+    fc = ntohs(*frame_control);
+
+    if (ieee80211_USE_4(fc)) {
         hdrlen = sizeof(ieee80211_addr4_hdr_t);
     } else {
         hdrlen = sizeof(ieee80211_hdr_t);
     }
-    
+
     /* 
      * FIXME: 802.11e?  has a QoS feature which apparently extends the header by another
      * 2 bytes, but I don't know how to test for that yet.
      */
     
-    assert(pktlen > hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr));
+    if (pktlen < hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr)) {
+        return TCPEDIT_SOFT_ERROR;
+    }
     hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
     
-    /* verify the header is 802.2SNAP not 802.2 */
+    /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
     if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA) {
         hdrlen += (int)sizeof(struct tcpr_802_2snap_hdr);
     } else {

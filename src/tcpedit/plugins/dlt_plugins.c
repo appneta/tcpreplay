@@ -223,6 +223,8 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t di
         return TCPEDIT_ERROR;
     } else if (rcode == TCPEDIT_WARN) {
         fprintf(stderr, "Warning decoding packet: %s", tcpedit_getwarn(ctx->tcpedit));
+    } else if (rcode == TCPEDIT_SOFT_ERROR) {
+        return rcode; /* can't edit the packet */
     }
     
     /* encode packet */

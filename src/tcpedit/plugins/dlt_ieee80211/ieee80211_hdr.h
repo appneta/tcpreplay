@@ -35,8 +35,10 @@
 
 #ifndef _DLT_ieee80211_hdr_H_
 #define _DLT_ieee80211_hdr_H_
+#include "ieee80211.h"
 
-u_char *ieee80211_get_src(const char *header);
-u_char *ieee80211_get_dst(const char *header);
+int ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen);
+char *ieee80211_get_src(const void *header);
+char *ieee80211_get_dst(const void *header);
 
 #endif
