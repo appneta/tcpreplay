@@ -223,8 +223,12 @@ tcpedit_dlt_l3data_copy(tcpeditdlt_t *ctx, u_char *packet, int pktlen, int l2len
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
-    ptr = ctx->l3buff;
-    memcpy(ptr, (&(packet)[l2len]), pktlen - l2len);
+    if (l2len % 4 == 0) {
+        ptr = (&(packet)[l2len]);
+    } else {
+        ptr = ctx->l3buff;
+        memcpy(ptr, (&(packet)[l2len]), pktlen - l2len);
+    }
 #else
     /*
      * on non-strict byte align systems, don't need to memcpy(), 
@@ -251,7 +255,8 @@ tcpedit_dlt_l3data_merge(tcpeditdlt_t *ctx, u_char *packet, int pktlen, const u_
      * put back the layer 3 and above back in the pkt.data buffer 
      * we can't edit the packet at layer 3 or above beyond this point
      */
-     memcpy((&(packet)[l2len]), l3data, pktlen - l2len);
+     if (l2len % 4 != 0)
+         memcpy((&(packet)[l2len]), l3data, pktlen - l2len);
 #endif
     return packet;
 }
