@@ -121,11 +121,8 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     /* malloc our cache block */
     header.num_packets = ntohll(header.num_packets);
-    header.packets_per_byte = ntohs(header.packets_per_byte);
+    header.packets_per_byte = ntohs(header.packets_per_byte);    
     cache_size = header.num_packets / header.packets_per_byte;
-
-    if (cache_size == 0)
-        err(1, "Cache size must be greater then zero");
         
     /* deal with any remainder, becuase above divsion is integer */
     if (header.num_packets % header.packets_per_byte)

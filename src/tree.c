@@ -213,14 +213,19 @@ check_ip_tree(const int mode, const unsigned long ip)
              get_addr2name4(ip, RESOLVE), ip);
 
 #ifdef DEBUG
-    if (node->type == DIR_SERVER) {
-        dbgx(1, "Server: %s", get_addr2name4(ip, RESOLVE));
-    }
-    else if (node->type == DIR_CLIENT) {
-        dbgx(1, "Client: %s", get_addr2name4(ip, RESOLVE));
-    }
-    else {
-        dbgx(1, "Unknown: %s", get_addr2name4(ip, RESOLVE));
+    switch (node->type) {
+    case DIR_SERVER:
+        dbgx(1, "DIR_SERVER: %s", get_addr2name4(ip, RESOLVE));
+        break;
+    case DIR_CLIENT:
+        dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
+        break;
+    case DIR_UNKNOWN:
+        dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
+        break;
+    case DIR_ANY:
+        dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
+        break;
     }
 #endif
 
@@ -230,21 +235,33 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-        if (node->type == DIR_SERVER) {
+        switch (node->type) {
+        case DIR_SERVER:
             return TCPR_DIR_C2S;
-        } else if (node->type == DIR_CLIENT) {
+            break;
+        case DIR_CLIENT:
             return TCPR_DIR_S2C;
+            break;
+        case DIR_UNKNOWN:
+        case DIR_ANY:
+            /* use our current mode to determine return code */
+            goto return_unknown; 
+        default:
+            errx(1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
         }
     }
-    else {
-        if (mode == DIR_SERVER) {
-            return TCPR_DIR_C2S;
-        } else if (mode == DIR_CLIENT) {
-            return TCPR_DIR_S2C;
-        }
+    
+    return_unknown:
+    switch (mode) {
+    case DIR_SERVER:
+        return TCPR_DIR_C2S;
+        break;
+    case DIR_CLIENT:
+        return TCPR_DIR_S2C;
+        break;
+    default:
+        return -1;
     }
-    err(1, "Uh, we shouldn't of gotten here.");
-    return(-1);
 }
 
 /*
