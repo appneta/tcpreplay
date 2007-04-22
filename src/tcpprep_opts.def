@@ -416,7 +416,7 @@ flag = {
     name        = services;
     value       = s;
     descrip     = "Load services file for server ports";
-    flag-must   = port;
+    flags-must  = port;
     arg-type    = string;
     flag-code   = <<- EOServices
     

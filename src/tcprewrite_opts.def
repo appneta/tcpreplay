@@ -45,6 +45,8 @@ tcprewrite currently supports reading the following DLT types:
 @var{DLT_NULL} aka BSD Loopback
 @item
 @var{DLT_LOOP} aka OpenBSD Loopback
+@item
+@var{DLT_IEEE802_11} aka 802.11a/b/g
 
 Please see the --dlt option for supported DLT types for writing.
 
@@ -158,10 +160,8 @@ When enabling verbose mode (@var{-v}) you may also specify one or
 more additional arguments to pass to @code{tcpdump} to modify
 the way packets are decoded.  By default, -n and -l are used.
 Be sure to quote the arguments so that they are not interpreted
-by tcprewrite.  The following arguments are valid:
-    [ -aAeNqRStuvxX ]
-    [ -E spi@ipaddr algo:secret,... ]
-    [ -s snaplen ]
+by tcprewrite.   Please see the tcpdump(1) man page for a complete list of 
+options.
 EOText;
 };
 

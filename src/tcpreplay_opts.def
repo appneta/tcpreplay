@@ -92,6 +92,7 @@ flag = {
 	name		= quiet;
 	value		= q;
 	descrip		= "Quiet mode";
+	doc			= "Print nothing except the statistics at the end of the run";
 };
 
 flag = {
@@ -147,10 +148,8 @@ When enabling verbose mode (@var{-v}) you may also specify one or more
 additional  arguments to pass to @code{tcpdump} to modify the way packets
 are decoded.  By default, -n and -l are used.   Be  sure  to
 quote the arguments like: -A "-axxx" so that they are not interpreted
-by tcpreplay.  The following arguments are vaild:
-    [ -aAeNqRStuvxX ]
-    [ -E spi@ipaddr algo:secret,... ]
-    [ -s snaplen ]
+by tcpreplay.   Please see the tcpdump(1) man page for a complete list of 
+options.
 EOText;
 };
 
@@ -158,7 +157,14 @@ EOText;
 flag = {
 	name		= enable_file_cache;
 	value		= C;
+	flags-must	= loop;
 	descrip		= "Enable caching of packets to internal memory";
+	doc			= <<- EOText
+Cache pcap file(s) the first time they are cached in RAM so that subsequent
+loops don't incurr any disk I/O latency in order to increase performance.  Make 
+sure you have enough free RAM to store the entire pcap file(s) in memory or the
+system will swap and performance will suffer.
+EOText;
 };
 
 /*
