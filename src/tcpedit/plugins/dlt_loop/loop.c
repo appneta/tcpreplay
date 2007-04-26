@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -72,7 +72,7 @@ dlt_loop_register(tcpeditdlt_t *ctx)
     /* create  a new plugin structure */
     plugin = tcpedit_dlt_newplugin();
 
-    /* FIXME: set what we provide & require */
+    /* set what we provide & require */
     plugin->provides += PLUGIN_MASK_PROTO;
     plugin->requires += 0;
 
@@ -93,7 +93,8 @@ dlt_loop_register(tcpeditdlt_t *ctx)
     plugin->plugin_l2len = dlt_null_l2len;
     plugin->plugin_get_layer3 = dlt_null_get_layer3;
     plugin->plugin_merge_layer3 = dlt_null_merge_layer3;
-
+    plugin->plugin_get_mac = dlt_null_get_mac;
+    
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
 }

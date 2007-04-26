@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -88,7 +88,8 @@ dlt_user_register(tcpeditdlt_t *ctx)
     plugin->plugin_l2len = dlt_user_l2len;
     plugin->plugin_get_layer3 = dlt_user_get_layer3;
     plugin->plugin_merge_layer3 = dlt_user_merge_layer3;
-
+    plugin->plugin_get_mac = dlt_user_get_mac;
+    
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
@@ -339,6 +340,20 @@ dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return config->length;
 }
 
+/*
+ * return a static pointer to the source/destination MAC address
+ * return NULL on error/address doesn't exist
+ */    
+u_char *
+dlt_user_get_mac(tcpeditdlt_t *ctx, __attribute__((unused)) tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+
+    /* we don't know the format of USER DLT, hence always return NULL */
+    return(NULL);
+}
 
 tcpeditdlt_l2addr_type_t 
 dlt_user_l2addr_type(void)

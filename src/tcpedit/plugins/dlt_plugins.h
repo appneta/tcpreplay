@@ -59,8 +59,7 @@ int tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const in
 /*
  * process the given packet, by calling decode & encode
  */
-int tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, 
-    int pktlen, tcpr_dir_t direction);
+int tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t direction);
 
 /*
  * or you can call them sperately if you want
@@ -76,7 +75,6 @@ u_char *tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int
 
 /* merge the L2 & L3 (possibly changed?) after calling tcpedit_dlt_l3data() */
 u_char *tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen, u_char *l3data);
-
 
 
 int tcpedit_dlt_src(tcpeditdlt_t *ctx);

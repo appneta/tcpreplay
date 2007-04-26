@@ -74,6 +74,16 @@ enum tcpeditdlt_l2addr_type_e {
 };
 typedef enum tcpeditdlt_l2addr_type_e tcpeditdlt_l2addr_type_t;
 
+/* src or dst mac */
+enum tcpeditdlt_mac_type_e {
+    SRC_MAC,
+    DST_MAC
+};
+typedef enum tcpeditdlt_mac_type_e tcpeditdlt_mac_type_t;
+
+/* MAC address buffer length */
+#define MAX_MAC_LEN 10
+
 /* 
  * Each plugin must fill this out so that we know what function
  * to call from the external API
@@ -91,9 +101,10 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_encode)(tcpeditdlt_t *, u_char **, int, tcpr_dir_t);
     int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
     int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
-    u_char *(*plugin_get_layer3)(tcpeditdlt_t *, u_char *, const int);
+    u_char *(*plugin_get_layer3)(tcpeditdlt_t *,  u_char *, const int);
     u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const int, u_char *);
     tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
+    u_char *(*plugin_get_mac)(tcpeditdlt_t *, tcpeditdlt_mac_type_t, const u_char *, const int);
     void *config; /* user configuration data for the encoder */
     
 };
@@ -131,6 +142,8 @@ struct tcpeditdlt_s {
     int l2len;                              /* set by decoder and updated by encoder */
     u_int16_t proto;                        /* layer 3 proto type?? */
     void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */
+    u_char srcmac[MAX_MAC_LEN];             /* buffers to store the src & dst MAC */
+    u_char dstmac[MAX_MAC_LEN];
 };
 
 #endif

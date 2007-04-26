@@ -63,8 +63,20 @@ enum tcpedit_coder_s {
 };
 typedef enum tcpedit_coder_s tcpedit_coder_t;
 
-u_char *tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen);
+/*
+ * semi-direct packet access methods.  Use when you're not using tcpedit_packet()
+ * all these methods either return NULL or a TCPEDIT_(SOFT_)ERROR code on error
+ */
+int tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen);
+
+/* on strictly aligned systems, this may return a pointer to a temporary static buffer */
+const u_char *tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen);
+
 int tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, const int pktlen);
+
+// u_char *tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen);
+// u_char *tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen);
+// int tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder_t code);
 
 COUNTER tcpedit_get_total_bytes(tcpedit_t *tcpedit);
 COUNTER tcpedit_get_pkts_edited(tcpedit_t *tcpedit);

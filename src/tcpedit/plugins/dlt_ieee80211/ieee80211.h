@@ -47,6 +47,7 @@ u_char *dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pk
 u_char *dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
 tcpeditdlt_l2addr_type_t dlt_ieee80211_l2addr_type(void);
 int dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+u_char *dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
 
 /* 802.11 packet header w/ 3 addresses (non-WDS) */
 struct ieee80211_hdr_s {

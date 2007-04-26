@@ -395,7 +395,7 @@ tcpedit_close(tcpedit_t *tcpedit)
 }
 
 
-u_char *
+const u_char *
 tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
 {
     u_char *result = NULL;
@@ -403,6 +403,18 @@ tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const i
         result = tcpedit_dlt_l3data(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);
     } else {
         result = tcpedit_dlt_l3data(tcpedit->dlt_ctx, tcpedit->dlt_ctx->encoder->dlt, packet, pktlen);
+    }
+    return result;
+}
+
+int 
+tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+{
+    int result = 0;
+    if (code == BEFORE_PROCESS) {
+        result = tcpedit_dlt_l2len(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);
+    } else {
+        result = tcpedit_dlt_l2len(tcpedit->dlt_ctx, tcpedit->dlt_ctx->encoder->dlt, packet, pktlen);
     }
     return result;
 }
@@ -419,12 +431,23 @@ tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, 
     return result;
 }
 
-
 /*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
+u_char *
+tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+{
+   
+}
 
+u_char *
+tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+{
+    
+}
+
+int 
+tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder_t code)
+{
+    
+}
+
+*/

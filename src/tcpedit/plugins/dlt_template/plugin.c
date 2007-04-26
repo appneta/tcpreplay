@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -73,6 +73,11 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
      /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
+    /* offset to src/dst mac's.  must be >= 0 for a valid value or -1 for non-existent */
+    plugin->srcmac_offset = -1;
+    plugin->dstmac_offset = -1;
+
+
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
     plugin->name = safe_strdup(dlt_name);
 
@@ -90,6 +95,7 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
     plugin->plugin_l2len = dlt_%{plugin}_l2len;
     plugin->plugin_get_layer3 = dlt_%{plugin}_get_layer3;
     plugin->plugin_merge_layer3 = dlt_%{plugin}_merge_layer3;
+    plugin->plugin_get_mac = dlt_%{plugin}_get_mac;
 
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
@@ -275,6 +281,35 @@ dlt_%{plugin}_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
+
+/*
+ * return a static pointer to the source/destination MAC address
+ * return NULL on error/address doesn't exist
+ */    
+u_char *
+dlt_%{plugin}_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+
+    /* FIXME: return a ptr to the source or dest mac address. */
+    switch(mac) {
+    case SRC_MAC:
+        memcpy(ctx->srcmac, packet, length);
+        return(ctx->srcmac);
+        break;
+        
+    case DST_MAC:
+        memcpy(ctx->dstmac, packet, length);
+        return(ctx->dstmac);
+        break;
+        
+    default:
+        errx(1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
+    }
+}
+
 
 /* 
  * return the length of the L2 header of the current packet

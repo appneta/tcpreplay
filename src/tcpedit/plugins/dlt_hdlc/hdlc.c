@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -88,7 +88,8 @@ dlt_hdlc_register(tcpeditdlt_t *ctx)
     plugin->plugin_l2len = dlt_hdlc_l2len;
     plugin->plugin_get_layer3 = dlt_hdlc_get_layer3;
     plugin->plugin_merge_layer3 = dlt_hdlc_merge_layer3;
-
+    plugin->plugin_get_mac = dlt_hdlc_get_mac;
+    
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
@@ -353,6 +354,33 @@ dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return 4;
 }
 
+/*
+ * return a static pointer to the source/destination MAC address
+ * return NULL on error/address doesn't exist
+ */    
+u_char *
+dlt_hdlc_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+
+    /* FIXME: return a ptr to the source or dest mac address. */
+    switch(mac) {
+    case SRC_MAC:
+        return(NULL);
+        break;
+        
+    case DST_MAC:
+        memcpy(ctx->dstmac, packet, 2);
+        return(ctx->dstmac);
+        break;
+        
+    default:
+        errx(1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
+    }
+    return(NULL);
+}
 
 tcpeditdlt_l2addr_type_t 
 dlt_hdlc_l2addr_type(void)

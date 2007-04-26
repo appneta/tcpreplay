@@ -47,7 +47,7 @@
  * - Not all frames are data frames (control, data, management)
  */
 static char dlt_name[] = "ieee80211";
-static char dlt_prefix[] = "ieee802_11";
+__attribute__((unused)) static char dlt_prefix[] = "ieee802_11";
 static u_int16_t dlt_value = DLT_IEEE802_11;
 
 /*
@@ -94,6 +94,7 @@ dlt_ieee80211_register(tcpeditdlt_t *ctx)
     plugin->plugin_l2len = dlt_ieee80211_l2len;
     plugin->plugin_get_layer3 = dlt_ieee80211_get_layer3;
     plugin->plugin_merge_layer3 = dlt_ieee80211_merge_layer3;
+    plugin->plugin_get_mac = dlt_ieee80211_get_mac;
 
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
@@ -219,11 +220,12 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, __attribute__((unused)) tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
     assert(packet_ex);
+    assert(pktlen);
     
     packet = *packet_ex;
     assert(packet);
@@ -338,6 +340,37 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     }
 
     return hdrlen;
+}
+
+/*
+ * return a static pointer to the source/destination MAC address
+ * return NULL on error/address doesn't exist
+ */    
+u_char *
+dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+    char *macaddr;
+    
+    switch(mac) {
+    case SRC_MAC:
+        macaddr = ieee80211_get_src(packet);
+        memcpy(ctx->srcmac, macaddr, ETHER_ADDR_LEN);
+        return(ctx->srcmac);
+        break;
+        
+    case DST_MAC:
+        macaddr = ieee80211_get_dst(packet);
+        memcpy(ctx->dstmac, macaddr, ETHER_ADDR_LEN);
+        return(ctx->dstmac);
+        break;
+        
+    default:
+        errx(1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
+    }
+    return(NULL);
 }
 
 

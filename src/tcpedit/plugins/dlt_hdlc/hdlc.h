@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -47,9 +47,10 @@ u_char *dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 u_char *dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
 tcpeditdlt_l2addr_type_t dlt_hdlc_l2addr_type(void);
 int dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+u_char *dlt_hdlc_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
 
 /*
- * FIXME: structure to hold any data parsed from the packet by the decoder.
+ * structure to hold any data parsed from the packet by the decoder.
  * Example: Ethernet VLAN tag info
  */
 struct hdlc_extra_s {

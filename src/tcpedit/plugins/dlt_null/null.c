@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -312,6 +312,20 @@ dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return 4;
 }
 
+/*
+ * return a static pointer to the source/destination MAC address
+ * return NULL on error/address doesn't exist
+ */    
+u_char *
+dlt_null_get_mac(tcpeditdlt_t *ctx, __attribute__((unused)) tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+
+    return(NULL);
+
+}
 
 tcpeditdlt_l2addr_type_t 
 dlt_null_l2addr_type(void)

@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -89,7 +89,8 @@ dlt_linuxsll_register(tcpeditdlt_t *ctx)
     plugin->plugin_l2len = dlt_linuxsll_l2len;
     plugin->plugin_get_layer3 = dlt_linuxsll_get_layer3;
     plugin->plugin_merge_layer3 = dlt_linuxsll_merge_layer3;
-
+    plugin->plugin_get_mac = dlt_linuxsll_get_mac;
+    
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
@@ -290,6 +291,33 @@ dlt_linuxsll_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return sizeof(linux_sll_header_t);
 }
 
+/*
+ * return a static pointer to the source/destination MAC address
+ * return NULL on error/address doesn't exist
+ */    
+u_char *
+dlt_linuxsll_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+
+    /* FIXME: return a ptr to the source or dest mac address. */
+    switch(mac) {
+    case SRC_MAC:
+        memcpy(ctx->srcmac, &packet[6], 8); /* linuxssl defines the src mac field to be 8 bytes, not 6 */
+        return(ctx->srcmac);
+        break;
+        
+    case DST_MAC:
+        return(NULL);
+        break;
+        
+    default:
+        errx(1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
+    }
+    return(NULL);
+}
 
 tcpeditdlt_l2addr_type_t 
 dlt_linuxsll_l2addr_type(void)

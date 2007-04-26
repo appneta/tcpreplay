@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -92,7 +92,8 @@ dlt_raw_register(tcpeditdlt_t *ctx)
     plugin->plugin_l2len = dlt_raw_l2len;
     plugin->plugin_get_layer3 = dlt_raw_get_layer3;
     plugin->plugin_merge_layer3 = dlt_raw_merge_layer3;
-
+    plugin->plugin_get_mac = dlt_raw_get_mac;
+    
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
@@ -292,6 +293,19 @@ dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return 0;
 }
 
+/*
+ * return a static pointer to the source/destination MAC address
+ * return NULL on error/address doesn't exist
+ */    
+u_char *
+dlt_raw_get_mac(tcpeditdlt_t *ctx, __attribute__((unused)) tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+{
+    assert(ctx);
+    assert(packet);
+    assert(pktlen);
+
+    return(NULL);
+}
 
 tcpeditdlt_l2addr_type_t 
 dlt_raw_l2addr_type(void)
