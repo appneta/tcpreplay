@@ -42,7 +42,7 @@
 #include "tcpedit_stub.h"
 #include "../ethernet.h"
 
-static char __attribute__((unused)) dlt_name[] = "en10mb";
+static char _U_ dlt_name[] = "en10mb";
 static char dlt_prefix[] = "enet";
 static u_int16_t dlt_value = DLT_EN10MB;
 

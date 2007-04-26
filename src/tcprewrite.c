@@ -159,7 +159,7 @@ tcprewrite_init(void)
 
 
 void 
-post_args(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
+post_args(_U_ int argc, _U_ char *argv[])
 {
     char ebuf[PCAP_ERRBUF_SIZE];
      

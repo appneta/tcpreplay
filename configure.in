@@ -222,6 +222,18 @@ AC_ARG_ENABLE(64bits,
     ])
 
 
+# If we're running gcc add '-D_U_="__attribute__((unused))"' to CFLAGS as well,
+# so we can use _U_ to flag unused function arguments and not get warnings
+# about them. Otherwise, add '-D_U_=""', so that _U_ used to flag an unused
+# function argument will compile with non-GCC compilers.
+#
+if test "x$GCC" = "xyes" ; then
+    CFLAGS="-D_U_=\"__attribute__((unused))\" $CFLAGS"
+else
+    CFLAGS="-D_U_=\"\" $CFLAGS"
+fi
+
+
 AC_ARG_ENABLE(force-bpf,
 	AC_HELP_STRING([--enable-force-bpf], [Force using BPF for sending packets]),
 	[ AC_DEFINE([FORCE_INJECT_BPF], [1], [Force using BPF for sending packet])])
@@ -1066,6 +1078,7 @@ else
 fi
 
 LIBOPTS_CHECK
+
 
 AC_OUTPUT([Makefile
            doxygen.cfg

@@ -41,7 +41,7 @@
 #include "tcpr.h"
 
 static char dlt_name[] = "hdlc";
-static char __attribute__((unused)) dlt_prefix[] = "hdlc";
+static char _U_ dlt_prefix[] = "hdlc";
 static u_int16_t dlt_value = DLT_C_HDLC;
 
 /*
@@ -221,7 +221,7 @@ dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, __attribute__((unused)) tcpr_dir_t dir)
+dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_t dir)
 {
     cisco_hdlc_t *hdlc;
     hdlc_config_t *config = NULL;
