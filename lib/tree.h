@@ -622,7 +622,7 @@ name##_RB_FIND(struct name *head, struct type *elm)			\
 }									\
 									\
 struct type *								\
-name##_RB_NEXT(struct name *head, struct type *elm)			\
+name##_RB_NEXT(_U_ struct name *head, struct type *elm)			\
 {									\
 	if (RB_RIGHT(elm, field)) {					\
 		elm = RB_RIGHT(elm, field);				\
