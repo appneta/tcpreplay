@@ -50,8 +50,8 @@ struct tcpr_cidrmap_s {
 };
 typedef struct tcpr_cidrmap_s tcpr_cidrmap_t;
 
-tcpr_dir_t ip_in_cidr(const tcpr_cidr_t *, const unsigned long);
-tcpr_dir_t check_ip_cidr(tcpr_cidr_t *, const unsigned long);
+int ip_in_cidr(const tcpr_cidr_t *, const unsigned long);
+int check_ip_cidr(tcpr_cidr_t *, const unsigned long);
 int parse_cidr(tcpr_cidr_t **, char *, char *delim);
 int parse_cidr_map(tcpr_cidrmap_t **, const char *);
 int parse_endpoints(tcpr_cidrmap_t **, tcpr_cidrmap_t **, const char *);

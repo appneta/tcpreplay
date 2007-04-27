@@ -364,7 +364,7 @@ process_raw_packets(pcap_t * pcap)
         case CIDR_MODE:
             dbg(2, "processing cidr mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr));
+                      check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C );
             break;
         case MAC_MODE:
             dbg(2, "processing mac mode...");

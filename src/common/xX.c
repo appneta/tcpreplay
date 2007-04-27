@@ -133,17 +133,17 @@ process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ipv4_hdr_t * ip_hdr)
             /* note: check_ip_cidr() returns TCPR_DIR_C2S for true, TCPR_DIR_S2C for false 
              * and NOT true/false or 1/0, etc!
              */
-            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) == TCPR_DIR_C2S ? DONT_SEND : SEND;
+            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ? DONT_SEND : SEND;
             break;
         case xXDest:
-            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) == TCPR_DIR_C2S ? DONT_SEND : SEND;
+            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr)  ? DONT_SEND : SEND;
         case xXBoth:
-            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) == TCPR_DIR_C2S &&
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) == TCPR_DIR_C2S) ? DONT_SEND : SEND;
+            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr)  &&
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ) ? DONT_SEND : SEND;
             break;
         case xXEither:
-            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) == TCPR_DIR_C2S ||
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) == TCPR_DIR_C2S) ? DONT_SEND : SEND;
+            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr)  ||
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ) ? DONT_SEND : SEND;
             break;
         }
     }
@@ -151,18 +151,18 @@ process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ipv4_hdr_t * ip_hdr)
         /* Include Mode */
         switch (mode) {
         case xXSource:
-            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) == TCPR_DIR_C2S ? SEND : DONT_SEND;
+            return check_ip_cidr(cidr, ip_hdr->ip_src.s_addr)  ? SEND : DONT_SEND;
             break;
         case xXDest:
-            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) == TCPR_DIR_C2S ? SEND : DONT_SEND;
+            return check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr)  ? SEND : DONT_SEND;
             break;
         case xXBoth:
-            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) == TCPR_DIR_C2S &&
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) == TCPR_DIR_C2S) ? SEND : DONT_SEND;
+            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr)  &&
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ) ? SEND : DONT_SEND;
             break;
         case xXEither:
-            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr) == TCPR_DIR_C2S ||
-                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) == TCPR_DIR_C2S) ? SEND : DONT_SEND;
+            return (check_ip_cidr(cidr, ip_hdr->ip_dst.s_addr)  ||
+                    check_ip_cidr(cidr, ip_hdr->ip_src.s_addr) ) ? SEND : DONT_SEND;
             break;
         }
     }
