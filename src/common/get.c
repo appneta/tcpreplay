@@ -340,7 +340,7 @@ const char *
 get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
 {
     struct in_addr addr;
-    char *new_string = NULL;
+    static char *new_string = NULL;
 
     if (new_string == NULL)
         new_string = (char *)safe_malloc(255);
