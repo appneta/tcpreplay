@@ -341,7 +341,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     en10mb_config_t *config = NULL;
     en10mb_extra_t *extra = NULL;
     
-    int newl2len;
+    int newl2len = 0;
 
     assert(ctx);
     assert(packet_ex);
@@ -463,7 +463,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         /* VLAN tags need a bit more */
         vlan = (struct tcpr_802_1q_hdr *)packet;
         vlan->vlan_len = ctx->proto;
-        vlan->vlan_tpi = ETHERTYPE_VLAN;
+        vlan->vlan_tpi = htons(ETHERTYPE_VLAN);
         
         /* are we changing VLAN info? */
         if (config->vlan_tag < 65535) {
@@ -477,7 +477,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         }
         
         if (config->vlan_pri < 255) {
-            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_pri) << 13;
+            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_pri << 13);
         } else if (extra->vlan) {
             vlan->vlan_priority_c_vid += extra->vlan_pri;
         } else {
@@ -486,7 +486,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
         }
             
         if (config->vlan_cfi < 255) {
-            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_cfi) << 12;
+            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_cfi << 12);
         } else if (extra->vlan) {
             vlan->vlan_priority_c_vid += extra->vlan_cfi;
         } else {
