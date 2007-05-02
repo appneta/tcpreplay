@@ -94,14 +94,13 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 
     /* register signals */
     didsig = 0;
-    if (!options.speed.mode == SPEED_ONEATATIME) {
+    if (options.speed.mode != SPEED_ONEATATIME) {
         (void)signal(SIGINT, catcher);
-    }
-    else {
+    } else {
         (void)signal(SIGINT, break_now);
     }
 
-	if( options.enable_file_cache ) {
+	if (options.enable_file_cache) {
 		prev_packet = &cached_packet;
 	} else {
 		prev_packet = NULL;
@@ -170,9 +169,13 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 		
         /* 
          * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a mempcy rather then assignment
+         * we have to do a mempcy rather then assignment. 
+         * 
+         * A number of 3rd party tools generate bad timestamps which go backwards
+         * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
+        if (timercmp(&last, &pkthdr.ts, <))
+            memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
         pkts_sent ++;
         bytes_sent += pktlen;
     } /* while */
@@ -312,6 +315,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
+#ifdef DEBUG
+    static struct timeval totalsleep = { 0, 0 };
+#endif
     struct timeval nap, now, delta;
     struct timespec ignore, sleep;
     float n;
@@ -449,8 +455,11 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
             timersub(&didsleep, &delta, &nap);
 
             sleep.tv_sec = nap.tv_sec;
-            sleep.tv_nsec = nap.tv_usec * 1000; /* convert ms to ns */
-
+            sleep.tv_nsec = nap.tv_usec * 1000; /* convert microsec to ns */
+            dbgx(4, "Sleeping " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
+#ifdef DEBUG
+            timeradd(&totalsleep, &nap, &totalsleep);
+#endif
             if (nanosleep(&sleep, &ignore) == -1) {
                 warnx("nanosleep error: %s", strerror(errno));
             }
@@ -460,6 +469,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
         loop = sleep_loop(delta);
         dbgx(3, "sleep_loop looped %u times", loop);
     }
+#ifdef DEBUG
+    dbgx(4, "Total sleep time: " TIMEVAL_FORMAT, totalsleep.tv_sec, totalsleep.tv_usec);
+#endif
 }
 
 /*

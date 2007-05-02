@@ -42,6 +42,12 @@
 #include <sys/time.h>
 #include <math.h>
 
+/*
+ * 1 sec = 1,000,000 microsec
+ * 1 microsec = 1,000 nanosec
+ * 1 sec = 1,000,000,000 nanosec
+ */
+
 void timerdiv(struct timeval *tvp, float div);
 
 /* convert float time to struct timeval *tvp */
@@ -124,12 +130,4 @@ void timerdiv(struct timeval *tvp, float div);
 	} while(0)
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
 
