@@ -70,7 +70,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 {
     ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
-    int l2len = 0, l2proto, retval, dlt, pktlen, lendiff;
+    int l2len = 0, l2proto, retval = 0, dlt, pktlen, lendiff;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
     static u_char *packet = NULL;   /* static buffer to hold packet data when padding out */
     

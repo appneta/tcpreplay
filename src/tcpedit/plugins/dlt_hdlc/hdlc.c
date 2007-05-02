@@ -228,7 +228,6 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_
     hdlc_extra_t *extra = NULL;
     tcpeditdlt_plugin_t *plugin = NULL;
     u_char *packet;
-    int l2len;
     u_char tmpbuff[MAXPACKET];
 
     assert(ctx);
@@ -238,10 +237,10 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_
     packet = *packet_ex;
     assert(packet);
 
-    /* Make room for our new l2 header if l2len != 4 */
-    if (l2len > 4) {
+    /* Make room for our new l2 header if old l2len != 4 */
+    if (ctx->l2len > 4) {
         memmove(packet + 4, packet + ctx->l2len, pktlen - ctx->l2len);
-    } else if (l2len < 4) {
+    } else if (ctx->l2len < 4) {
         memcpy(tmpbuff, packet, pktlen);
         memcpy(packet + 4, (tmpbuff + ctx->l2len), pktlen - ctx->l2len);
     }
