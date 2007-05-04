@@ -56,7 +56,9 @@
 
 tOptDesc *const tcpedit_tcpedit_optDesc_p;
 
-/* 
+/**
+ * \brief Edit the given packet
+ *
  * Processs a given packet and edit the pkthdr/pktdata structures
  * according to the rules in tcpedit
  * Returns: TCPEDIT_ERROR on error
@@ -215,7 +217,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     return retval;
 }
 
-/*
+/**
  * initializes the tcpedit library.  returns 0 on success, -1 on error.
  */
 int
@@ -245,8 +247,8 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     return TCPEDIT_OK;
 }
 
-/*
- * return the output DLT 
+/**
+ * return the output DLT type
  */
 int
 tcpedit_get_output_dlt(tcpedit_t *tcpedit)
@@ -255,7 +257,9 @@ tcpedit_get_output_dlt(tcpedit_t *tcpedit)
     return tcpedit_dlt_output_dlt(tcpedit->dlt_ctx);
 }
 
-/*
+/**
+ * \brief tcpedit option validator.  Call after tcpedit_init()
+ *
  * Validates that given the current state of tcpedit that the given
  * pcap source and destination (based on DLT) can be properly rewritten
  * return 0 on sucess
@@ -274,9 +278,9 @@ tcpedit_validate(tcpedit_t *tcpedit)
     return 0;
 }
 
-/*
+/**
  * return the error string when a tcpedit() function returns
- * an error 
+ * TCPEDIT_ERROR
  */
 char *
 tcpedit_geterr(tcpedit_t *tcpedit)
@@ -287,8 +291,12 @@ tcpedit_geterr(tcpedit_t *tcpedit)
 
 }
 
-/*
- * used to set the error string when there is an error
+/**
+ * \brief Internal function to set the tcpedit error string
+ *
+ * Used to set the error string when there is an error, result is retrieved
+ * using tcpedit_geterr().  You shouldn't ever actually call this, but use
+ * tcpedit_seterr() which is a macro wrapping this instead.
  */
 void
 __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...)
@@ -310,9 +318,9 @@ __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const cha
         file, func, line, errormsg);
 }
 
-/*
+/**
  * return the warning string when a tcpedit() function returns
- * a warning
+ * TCPEDIT_WARN
  */
 char *
 tcpedit_getwarn(tcpedit_t *tcpedit)
@@ -322,7 +330,7 @@ tcpedit_getwarn(tcpedit_t *tcpedit)
     return tcpedit->runtime.warnstr;
 }
 
-/*
+/**
  * used to set the warning string when there is an warning
  */
 void
@@ -342,11 +350,13 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
         
 }
 
-/*
+/**
  * Generic function which checks the TCPEDIT_* error code
  * and always returns OK or ERROR.  For warnings, prints the 
  * warning message and returns OK.  For any other value, fails with
  * an assert.
+ *
+ * prefix is a string prepended to the error/warning
  */
 int
 tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
@@ -357,7 +367,14 @@ tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
         case TCPEDIT_ERROR:
             return rcode;
             break;
-            
+        
+        case TCPEDIT_SOFT_ERROR:
+            if (prefix != NULL) {
+                fprintf(stderr, "Error %s: %s\n", prefix, tcpedit_geterr(tcpedit));
+            } else {
+                fprintf(stderr, "Error: %s\n", tcpedit_geterr(tcpedit));
+            }            
+            break;
         case TCPEDIT_WARN:
             if (prefix != NULL) {
                 fprintf(stderr, "Warning %s: %s\n", prefix, tcpedit_getwarn(tcpedit));
@@ -374,8 +391,10 @@ tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
     return TCPEDIT_ERROR;
 }
 
-/*
- * Cleans up after ourselves.  Return 0 on success.
+/**
+ * \brief Cleans up after ourselves.  Return 0 on success. 
+ * 
+ * Clean up after ourselves, but does not actually free the ptr.
  */
 int
 tcpedit_close(tcpedit_t *tcpedit)
@@ -394,7 +413,9 @@ tcpedit_close(tcpedit_t *tcpedit)
     return 0;
 }
 
-
+/**
+ * Return a ptr to the Layer 3 data.  Returns TCPEDIT_ERROR on error
+ */
 const u_char *
 tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
 {
@@ -407,6 +428,9 @@ tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const i
     return result;
 }
 
+/**
+ * return the length of the layer 2 header.  Returns TCPEDIT_ERROR on error
+ */
 int 
 tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
 {
@@ -419,6 +443,9 @@ tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const in
     return result;
 }
 
+/**
+ * Returns the layer 3 type, often encoded as the layer2.proto field
+ */
 int 
 tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, const int pktlen)
 {
