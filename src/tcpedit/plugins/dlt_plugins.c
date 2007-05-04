@@ -36,7 +36,7 @@
 #include "dlt_utils.h"
 #include "common.h"
 
-/*
+/**
  * Include plugin header files here...
  */
 #include "dlt_en10mb/en10mb.h"
@@ -47,12 +47,13 @@
 #include "dlt_loop/loop.h"
 #include "dlt_linuxsll/linuxsll.h"
 #include "dlt_ieee80211/ieee80211.h"
+#include "dlt_radiotap/radiotap.h"
 
 
-/*******************************************************************
+/**
  * Everyone writing a DLT plugin, must add their registration function
  * here.
- *******************************************************************/
+ */
 int 
 tcpedit_dlt_register(tcpeditdlt_t *ctx)
 {
@@ -67,6 +68,7 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     retcode += dlt_loop_register(ctx);
     retcode += dlt_linuxsll_register(ctx);
     retcode += dlt_ieee80211_register(ctx);
+    retcode += dlt_radiotap_register(ctx);
     
     if (retcode < 0)
         return TCPEDIT_ERROR;
@@ -78,6 +80,9 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
 
 /********************************************************************
  * People writing DLT plugins should stop editing here!
+ *
+ * Well actually, that's true most of the time, but feel free to take
+ * a look!
  ********************************************************************/
 
 /* 
@@ -105,7 +110,7 @@ const char *tcpeditdlt_bit_info[] = {
  * Public functions
  ********************************************************************/
  
-/*
+/**
  * initialize our plugin library.  Pass the DLT of the source pcap handle.
  * Actions:
  * - Create new tcpeditdlt_t context
@@ -201,7 +206,7 @@ INIT_ERROR:
 }
  
 
-/*
+/**
  * This is the recommended method to edit a packet.  Returns (new) total packet length
  */
 int
@@ -238,7 +243,7 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t di
 }
 
 
-/* 
+/**
  * What is the output DLT type???
  */
 int 
@@ -259,6 +264,10 @@ tcpedit_dlt_output_dlt(tcpeditdlt_t *ctx)
     return dlt;
 }
 
+/**
+ * Get the layer 2 length of the packet using the DLT plugin currently in
+ * place
+ */
 int
 tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pktlen)
 {
@@ -275,7 +284,7 @@ tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pk
     return plugin->plugin_l2len(ctx, packet, pktlen);
 }
 
-/*
+/**
  * Get the L3 type.  Returns -1 on error.  Get error via tcpedit->geterr()
  */
 int
@@ -296,7 +305,7 @@ tcpedit_dlt_proto(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pk
     return plugin->plugin_proto(ctx, packet, pktlen);
 }
 
-/*
+/**
  * Get the L3 data.  Returns NULL on error.  Get error via tcpedit->geterr()
  */
 u_char *
@@ -317,7 +326,10 @@ tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen)
     return plugin->plugin_get_layer3(ctx, packet, pktlen);
 }
 
-/* 
+/**
+ * \brief Merge the Layer 3 data back onto the mainbuffer so it's immediately
+ *   after the layer 2 header
+ * 
  * Since some L2 headers aren't strictly aligned, we need to "merge" the packet w/ L2 data
  * and the L3 buffer.  This is basically a NO-OP for things like vlan tagged ethernet (16 byte) header
  * or Cisco HDLC (4 byte header) but is critical for std ethernet (12 byte header)
@@ -344,7 +356,7 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
 
 
 
-/*
+/**
  * Call the specific plugin decode() method
  */
 int 
@@ -353,7 +365,7 @@ tcpedit_dlt_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return ctx->decoder->plugin_decode(ctx, packet, pktlen);
 }
 
-/*
+/**
  * Call the specific plugin encode() method
  */
 int 
@@ -362,8 +374,8 @@ tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char **packet, int pktlen, tcpr_dir_t di
     return ctx->encoder->plugin_encode(ctx, packet, pktlen, direction);
 }
 
-/*
- * what is the source (decoder) DLT type
+/**
+ * what is the source (decoder) DLT type?
  */
 int 
 tcpedit_dlt_src(tcpeditdlt_t *ctx)
@@ -372,7 +384,7 @@ tcpedit_dlt_src(tcpeditdlt_t *ctx)
     return ctx->decoder->dlt;
 }
 
-/*
+/**
  * What is the destination (encoder) DLT type
  */
 int 
@@ -383,7 +395,7 @@ tcpedit_dlt_dst(tcpeditdlt_t *ctx)
 }
 
 
-/*
+/**
  * cleanup after ourselves: destroys our context and all plugin data
  */
 void
