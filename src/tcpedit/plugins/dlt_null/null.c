@@ -43,7 +43,7 @@
 #include <sys/socket.h> // PF_* values
 
 static char dlt_name[] = "null";
-static char __attribute__((unused)) dlt_prefix[] = "null";
+static char _U_ dlt_prefix[] = "null";
 static u_int16_t dlt_value = DLT_NULL;
 
 /*
@@ -221,7 +221,7 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_null_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, __attribute__((unused)) tcpr_dir_t dir)
+dlt_null_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
@@ -317,7 +317,7 @@ dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_null_get_mac(tcpeditdlt_t *ctx, __attribute__((unused)) tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_null_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);

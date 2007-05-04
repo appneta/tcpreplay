@@ -42,7 +42,7 @@
 
 /* FIXME: edit these variables to taste */
 static char dlt_name[] = "raw";
-static char __attribute__((unused)) dlt_prefix[] = "raw";
+static char _U_ dlt_prefix[] = "raw";
 static u_int16_t dlt_value = DLT_RAW;
 
 /*
@@ -207,7 +207,7 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_raw_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, __attribute__((unused))tcpr_dir_t dir)
+dlt_raw_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
@@ -298,7 +298,7 @@ dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_raw_get_mac(tcpeditdlt_t *ctx, __attribute__((unused)) tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_raw_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);

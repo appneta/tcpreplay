@@ -41,7 +41,7 @@
 #include "tcpr.h"
 
 static char dlt_name[] = "user";
-static char __attribute__((unused)) dlt_prefix[] = "user";
+static char _U_ dlt_prefix[] = "user";
 static u_int16_t dlt_value = DLT_USER0;
 
 /*
@@ -345,7 +345,7 @@ dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_user_get_mac(tcpeditdlt_t *ctx, __attribute__((unused)) tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_user_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);

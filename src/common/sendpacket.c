@@ -145,19 +145,19 @@ static int get_iface_index(int fd, const int8_t *device, char *);
 #include <sys/uio.h>
 #include <net/if_dl.h> // used for get_hwaddr_bpf()
 
-static sendpacket_t *sendpacket_open_bpf(const char *, char *) __attribute__((unused));
-static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *) __attribute__((unused));
+static sendpacket_t *sendpacket_open_bpf(const char *, char *) _U_;
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *) _U_;
 
 #endif /* HAVE_BPF */
 
 #ifdef HAVE_LIBNET
-static sendpacket_t *sendpacket_open_libnet(const char *, char *) __attribute__((unused));
-static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *) __attribute__((unused));
+static sendpacket_t *sendpacket_open_libnet(const char *, char *) _U_;
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *) _U_;
 #endif /* HAVE_LIBNET */
 
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-static sendpacket_t *sendpacket_open_pcap(const char *, char *) __attribute__((unused));
-static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) __attribute__((unused));
+static sendpacket_t *sendpacket_open_pcap(const char *, char *) _U_;
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif /* HAVE_PCAP_INJECT || HAVE_PACKET_SENDPACKET */
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
