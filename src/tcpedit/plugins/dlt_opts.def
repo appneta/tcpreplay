@@ -37,7 +37,6 @@ Cisco HDLC aka DLT_C_HDLC
 @item
 @var{user}
 User specified Layer 2 header and DLT type
-@item
 @end table
 EO_DLT_DOC;
 };

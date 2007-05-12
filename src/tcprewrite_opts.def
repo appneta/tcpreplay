@@ -47,6 +47,8 @@ tcprewrite currently supports reading the following DLT types:
 @var{DLT_LOOP} aka OpenBSD Loopback
 @item
 @var{DLT_IEEE802_11} aka 802.11a/b/g
+@item
+@var{DLT_IEEE802_11_RADIO} aka 802.11a/b/g with Radiotap headers
 
 Please see the --dlt option for supported DLT types for writing.
 
@@ -171,10 +173,12 @@ flag = {
 	max 		= 1;
 	descrip		= "Skip writing packets with soft errors";
 	doc			= <<- EOText
-In some cases, packets can be decoded, but the requested editing
+In some cases, packets can't be decoded or the requested editing
 is not possible.  Normally these packets are written to the output
 file unedited so that tcpprep cache files can still be used, but if
 you wish, these packets can be suppressed.
+
+One example of this is 802.11 management frames which contain no data.
 EOText;
 };
 
