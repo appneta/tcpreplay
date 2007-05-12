@@ -49,7 +49,10 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    assert(pktlen >= (int)sizeof(ieee80211_hdr_t));
+    
+    /* Ack, Auth, NULL packets often are very small (10-30 bytes) */
+    if (pktlen >= (int)sizeof(ieee80211_hdr_t))
+        return 0;
         
     /* 
      * Fields: Version|Type|Subtype|Flags
