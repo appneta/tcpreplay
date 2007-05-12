@@ -73,11 +73,6 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
      /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
-    /* offset to src/dst mac's.  must be >= 0 for a valid value or -1 for non-existent */
-    plugin->srcmac_offset = -1;
-    plugin->dstmac_offset = -1;
-
-
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
     plugin->name = safe_strdup(dlt_name);
 
@@ -208,7 +203,7 @@ dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_t dir)
 {
     u_char *packet;
     assert(ctx);
