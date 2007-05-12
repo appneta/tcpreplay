@@ -151,6 +151,7 @@ dnl Checks for libraries.
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, gethostbyname)
 AC_CHECK_LIB(rt, nanosleep)
+AC_CHECK_LIB(resolv, resolv)
 
 dnl Checks for library functions.
 AC_FUNC_MALLOC
