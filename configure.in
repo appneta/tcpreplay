@@ -346,17 +346,17 @@ if test x$use_libnet = xyes ; then
         	LNETINC="${testdir}/include/libnet.h"
 	        LNETINCDIR="${testdir}/include"
 	        if test $dynamic_link = yes; then
-				if test -f "${testdir}/lib64/libnet.a" ; then
+				if test -f "${testdir}/lib64/libnet${shrext_cmds}" ; then
 		            LNETLIB="-L${testdir}/lib64 -lnet"
-				elif test -f "${testdir}/lib/libnet.a" ; then
+				elif test -f "${testdir}/lib/libnet${shrext_cmds}" ; then
 					LNETLIB="-L${testdir}/lib -lnet"
 				else
 					AC_ERROR([Unable to find libnet in ${testdir}])
 				fi
-	        elif test -f "${testdir}/lib64/libnet.a" ; then
-	            LNETLIB="${testdir}/lib64/libnet.a"
-	        elif test -f "${testdir}/lib/libnet.a" ; then
-	            LNETLIB="${testdir}/lib/libnet.a"
+	        elif test -f "${testdir}/lib64/libnet.${libext}" ; then
+	            LNETLIB="${testdir}/lib64/libnet.${libext}"
+	        elif test -f "${testdir}/lib/libnet.${libext}" ; then
+	            LNETLIB="${testdir}/lib/libnet.${libext}"
 		 	else
 				AC_ERROR([Unable to find matching library for header file in ${testdir}])
 			fi
@@ -471,19 +471,19 @@ AC_ARG_WITH(libpcap,
         	LPCAPINC="${testdir}/include/pcap.h"
 	        LPCAPINCDIR="${testdir}/include"
 	        if test $dynamic_link = yes; then
-				if test -f "${testdir}/lib64/libpcap.a" ; then
+				if test -f "${testdir}/lib64/libpcap${shrext_cmds}" ; then
 		            LPCAPLIB="-L${testdir}/lib64 -lpcap"
-				elif test -f "${testdir}/lib/libpcap.a" ; then
+				elif test -f "${testdir}/lib/libpcap${shrext_cmds}" ; then
 					LPCAPLIB="-L${testdir}/lib -lpcap"
 				else
 					AC_ERROR([Unable to find libpcap in ${testdir}])
 				fi
-	        elif test -f "${testdir}/lib64/libpcap.a" ; then
-	            LPCAPLIB="${testdir}/lib64/libpcap.a"
-	        elif test -f "${testdir}/lib/libpcap.a" ; then
-	            LPCAPLIB="${testdir}/lib/libpcap.a"
-	        elif test -f "${testdir}/lib/libwpcap.a" ; then
-	            LPCAPLIB="${testdir}/lib/libwpcap.a"
+	        elif test -f "${testdir}/lib64/libpcap.${libext}" ; then
+	            LPCAPLIB="${testdir}/lib64/libpcap.${libext}"
+	        elif test -f "${testdir}/lib/libpcap.${libext}" ; then
+	            LPCAPLIB="${testdir}/lib/libpcap.${libext}"
+	        elif test -f "${testdir}/lib/libwpcap.${libext}" ; then
+	            LPCAPLIB="${testdir}/lib/libwpcap.${libext}"
 				AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
 		 	else
 				AC_ERROR([Unable to find matching library for header file in ${testdir}])
