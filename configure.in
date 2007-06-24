@@ -514,6 +514,29 @@ dnl this code has been reduced a lot, but probably still could be
 dnl reduced quite a bit more if we chose too
 AC_MSG_CHECKING(for libpcap version)
 
+dnl 0.9.6 (which is still thinks it is 0.9.5 due to a bug) introduces an important
+dnl fix for OSX.  See: http://tcpreplay.synfin.net/trac/ticket/167
+libpcap_version_096=no
+AC_RUN_IFELSE(AC_LANG_PROGRAM([[
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "$LPCAPINC"
+#define PCAP_TEST "0.9.6"
+]], [[
+/* 
+ * simple proggy to test the version of libpcap
+ * returns zero if version >= 0.9.6
+ * or one otherwise
+ */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0)
+            exit(0);
+
+    exit(1);
+]]), [
+    libpcap_version_096=yes
+])
+
 AC_RUN_IFELSE(AC_LANG_PROGRAM([[
 #include <string.h>
 #include <stdlib.h>
@@ -1036,7 +1059,9 @@ case $host in
 	*-apple-darwin*)
 	nic1=en0
 	nic2=en0
-	disable_pcap_findalldevs=yes
+	if test x$libpcap_version_096 = xno ; then
+    	disable_pcap_findalldevs=yes
+    fi
 	AC_MSG_RESULT(Apple OS X)
 	;;
 
