@@ -212,11 +212,13 @@ AC_ARG_ENABLE(gprof,
       fi])
 
 dnl Use 64bits for packet counters
+use64bit_counters=no
 AC_ARG_ENABLE(64bits,
     AC_HELP_STRING([--enable-64bits], [Use 64bit packet counters]),
     [ if test x$enableval = xyes; then
          AC_DEFINE([ENABLE_64BITS], [1], [Use 64bit packet counters])
          AC_MSG_NOTICE([Using u_int64_t for packet counters])
+         use64bit_counters=yes
       else
          AC_MSG_NOTICE([Using u_int32_t for packet counters])
       fi
@@ -594,6 +596,15 @@ elif test $libpcap_ver7 = yes ; then
 else 
     AC_MSG_ERROR([Libpcap versions < 0.7.2 are not supported
     Please upgrade to version 0.7.2 or better])
+fi
+
+libpcap_version=unknown
+if test $libpcap_version_096 = yes ; then
+    libpcap_version=">= 0.9.6"
+elif test $libpcap_ver8 = yes ; then
+    libpcap_version=">= 0.8.0"
+elif test $libcap_ver7 = yes ; then
+    libpcap_version=">= 0.7.0"
 fi
 
 dnl Check to see if we've got pcap_datalink_val_to_name()
@@ -988,29 +999,29 @@ dnl ##################################################
 dnl # Check for tcpdump.
 dnl ##################################################
 
-td=no
+tcpdump_path=no
 AC_ARG_WITH(tcpdump,
     AC_HELP_STRING([--with-tcpdump=FILE], [Path to tcpdump binary]),
     [ if test -x $withval ; then
           td=$withval
-          AC_MSG_RESULT([Using tcpdump in $td])
+          AC_MSG_RESULT([Using tcpdump in $tcpdump_path])
       else
           AC_MSG_RESULT([Error: $withval does not exist or is not executable])
       fi ],
-    [ AC_PATH_PROG(td, tcpdump, "no", [$PATH:/usr/sbin:/sbin:/usr/local/sbin]) ])
+    [ AC_PATH_PROG(tcpdump_path, tcpdump, "no", [$PATH:/usr/sbin:/sbin:/usr/local/sbin]) ])
            
 
-if test "$td" = "no"; then
+if test "$tcpdump_path" = "no"; then
     AC_MSG_WARN([Unable to find tcpdump.  Please specify --with-tcpdump.
                  Disabling --verbose])
 else
     AC_DEFINE([HAVE_TCPDUMP], [1], [Do we have tcpdump?])
-    AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$td", [The tcpdump binary initially used])
+    AC_DEFINE_UNQUOTED(TCPDUMP_BINARY, "$tcpdump_path", [The tcpdump binary initially used])
 fi
 
 
-AM_CONDITIONAL([ENABLE_TCPDUMP], test "$td" != "no" -a x$have_pcap_dump_fopen = xyes)
-if test x$td != xno -a x$have_pcap_dump_fopen = xyes ; then
+AM_CONDITIONAL([ENABLE_TCPDUMP], test "$tcpdump_path" != "no" -a x$have_pcap_dump_fopen = xyes)
+if test x$tcpdump_path != xno -a x$have_pcap_dump_fopen = xyes ; then
 	AC_DEFINE([ENABLE_VERBOSE], [1], [Do we have tcpdump and pcap_dump_fopen()?])
 else
 	AC_MSG_WARN([Your version of libpcap is too old for --verbose support])
@@ -1120,12 +1131,39 @@ AC_OUTPUT([Makefile
            scripts/Makefile
            tcpreplay.spec])
 
+# Configuration results
+AC_MSG_RESULT(
+##########################################################################
+             TCPREPLAY Suite Configuration Results (${TCPREPLAY_VERSION})
+##########################################################################
+libpcap:                    ${foundpcap} (${libpcap_version})
+libnet:                     ${foundnet}
+autogen:                    ${AUTOGEN}
+64bit counter support:      ${use64bit_counters}
+tcpdump binary path:        ${tcpdump_path}
+tcpreplay edit support:     ${tcpreplay_edit}
+tcpbridge support:          ${enable_tcpbridge}
+
+Supported Packet Injection Methods (*):
+Linux PF_PACKET:            ${have_pf}
+BSD BPF:                    ${have_bpf}
+libnet:                     ${have_libnet}
+pcap_inject:                ${have_pcap_inject}
+pcap_sendpacket:            ${have_pcap_sendpacket}
+
+* In order of preference; see configure --help to override
+)
+
+
 case $host in
 	*-apple-darwin*)
-	AC_MSG_WARN([OS X <= 10.4.9 has a serious problem.  Please see: http://tcpreplay.synfin.net/trac/ticket/142])
+	AC_MSG_WARN([Apple OS X has a serious problem!
+	Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
 	;;
 	
 	*-*-cygwin)
-	AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental.  Please report any bugs!])
+	AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental.  Please report any bugs!
+	http://tcpreplay.synfin.net/trac/newticket])
 	;;
 esac
+
