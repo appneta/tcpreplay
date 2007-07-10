@@ -77,7 +77,7 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
     case 'F':                  /* bpf filter */
         str = str + 2;
         out = xXBPF;
-        bpf->filter = str;
+        bpf->filter = safe_strdup(str);
         /* 
          * note: it's temping to compile the BPF here, but we don't
          * yet know what the link type is for the file, so we have 
