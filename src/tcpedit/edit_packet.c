@@ -333,6 +333,7 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
 /*
  * rewrite IP address (layer3)
  * uses -N to rewrite (map) one subnet onto another subnet
+ * also support --srcipmap and --dstipmap
  * return 0 if no change, 1 or 2 if changed
  */
 int
@@ -344,7 +345,22 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
     assert(tcpedit);
     assert(ip_hdr);
 
-    /* anything to rewrite? */
+    /* first check the src/dst IP maps */
+    if (tcpedit->srcipmap != NULL) {
+        if (ip_in_cidr(tcpedit->srcipmap->from, ip_hdr->ip_src.s_addr)) {
+            ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, tcpedit->srcipmap->to, ip_hdr->ip_src.s_addr);
+            dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
+        }
+    }
+
+    if (tcpedit->dstipmap != NULL) {
+        if (ip_in_cidr(tcpedit->dstipmap->from, ip_hdr->ip_dst.s_addr)) {
+            ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, tcpedit->dstipmap->to, ip_hdr->ip_dst.s_addr);
+            dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
+        }
+    }
+
+    /* anything else to rewrite? */
     if (tcpedit->cidrmap1 == NULL)
         return(0);
 

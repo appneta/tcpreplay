@@ -84,6 +84,26 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
             first = 0;
         } while (--ct > 0);
     }
+    
+    /* --srcipmap */
+    if (HAVE_OPT(SRCIPMAP)) {
+        tcpedit->rewrite_ip ++;
+        if (! parse_cidr_map(&tcpedit->srcipmap, OPT_ARG(SRCIPMAP))) {
+            tcpedit_seterr(tcpedit, 
+                "Unable to parse --srcipmap=%s", OPT_ARG(SRCIPMAP));
+            return -1;
+        }
+    }
+
+    /* --dstipmap */
+    if (HAVE_OPT(DSTIPMAP)) {
+        tcpedit->rewrite_ip ++;
+        if (! parse_cidr_map(&tcpedit->dstipmap, OPT_ARG(DSTIPMAP))) {
+            tcpedit_seterr(tcpedit, 
+                "Unable to parse --dstipmap=%s", OPT_ARG(DSTIPMAP));
+            return -1;
+        }
+    }
 
     /*
      * If we have one and only one -N, then use the same map data

@@ -109,6 +109,10 @@ struct tcpedit_s {
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */
     tcpr_cidrmap_t *cidrmap2;
     
+    /* src & dst IP mapping */
+    tcpr_cidrmap_t *srcipmap;
+    tcpr_cidrmap_t *dstipmap;
+    
     /* pseudo-randomize IP addresses using a seed */
     int seed;
     

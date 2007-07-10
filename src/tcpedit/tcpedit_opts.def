@@ -42,6 +42,8 @@ flag = {
     arg-type    = string;
     max         = 2;
     stack-arg;
+    flags-cant  = srcipmap;
+    flass-cant  = dstipmap;
     descrip     = "Rewrite IP addresses using pseudo-NAT";
     doc         = <<- EOText
 Takes a comma delimited series of colon delimited CIDR
@@ -56,6 +58,33 @@ Example:
 @end example
 EOText; 
 };
+
+flag = {
+    name        = srcipmap;
+    value       = S;
+    arg-type    = string;
+    max         = 1;
+    flags-cant  = pnat;
+    descrip     = "Rewrite source IP addresses using pseudo-NAT";
+    doc         = <<- EOText
+Works just like the --pnat option, but only affects the source IP
+addresses in the IPv4 header.
+EOText;
+};
+
+flag = {
+    name        = dstipmap;
+    value       = D;
+    arg-type    = string;
+    max         = 1;
+    flags-cant  = pnat;
+    descrip     = "Rewrite destination IP addresses using pseudo-NAT";
+    doc         = <<- EOText
+Works just like the --pnat option, but only affects the destination IP
+addresses in the IPv4 header.
+EOText;
+};
+
 
 flag = {
 	ifdef 		= HAVE_CACHEFILE_SUPPORT;
