@@ -100,11 +100,11 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         (void)signal(SIGINT, break_now);
     }
 
-	if (options.enable_file_cache) {
-		prev_packet = &cached_packet;
-	} else {
-		prev_packet = NULL;
-	}
+    if (options.enable_file_cache) {
+        prev_packet = &cached_packet;
+    } else {
+        prev_packet = NULL;
+    }
 
 	
     /* MAIN LOOP 
@@ -339,7 +339,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
     dbgx(3, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
 
     /* First time through for this file */
-    if (!timerisset(last)) {
+    if (pkts_sent == 0 || ((options.speed.mode != SPEED_MBPSRATE) && (counter == 0))) {
         start = now;
         timerclear(&delta);
         timerclear(&didsleep);
@@ -372,7 +372,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
-        if (timerisset(last)) {
+        if (pkts_sent != 0) {
             n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_usec = (n - nap.tv_sec) * 1000000;
