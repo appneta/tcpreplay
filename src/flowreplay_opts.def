@@ -48,7 +48,7 @@ you have the skill and interest to help make flowreplay work better, please
 contact Aaron Turner.
 
 For more details, please see the Tcpreplay Manual at:
-http://tcpreplay.synfin.net/wiki/manual
+http://tcpreplay.synfin.net/trac/wiki/manual
 EODetail;
 
 flag = {

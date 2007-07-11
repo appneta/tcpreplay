@@ -58,7 +58,7 @@ files, filtered and edited in various ways, providing the means to test
 firewalls, NIDS and other network devices.
 
 For more details, please see the Tcpreplay Manual at:
-http://tcpreplay.synfin.net/wiki/manual
+http://tcpreplay.synfin.net/trac/wiki/manual
 EODetail;
 
 man-doc = <<- EOMan
@@ -88,23 +88,6 @@ addresses.  Please consult your operating system's documentation and the
 tcpreplay FAQ if you experiance this issue.
 EOMan;
 
-flag = {
-	name		= quiet;
-	value		= q;
-	descrip		= "Quiet mode";
-	doc			= "Print nothing except the statistics at the end of the run";
-};
-
-flag = {
-	name		= accurate;
-	value		= a;
-	max			= 1;
-	descrip		= "Enable more accurate packet timing";
-	doc			= <<- EOText
-Enables more accurate timing between packets at the cost of higher
-CPU utilization.
-EOText;
-};
 
 flag = {
     ifdef       = DEBUG;
@@ -122,8 +105,43 @@ level for debugging output.  Higher numbers increase verbosity.
 EOText;
 };
 
-/* Verbose decoding via tcpdump */
+flag = {
+	name		= quiet;
+	value		= q;
+	descrip		= "Quiet mode";
+	doc			= "Print nothing except the statistics at the end of the run";
+};
 
+flag = {
+	name		= accurate;
+	value		= a;
+	max			= 1;
+	flags-cant  = accurate2;
+	descrip		= "Enable more accurate packet timing";
+	doc			= <<- EOText
+Enables more accurate timing between packets at the cost of higher
+CPU utilization by using the gettimeofday() system call.  This method
+works better on some systems then others and may have rather non-granular
+resolution which makes it problematic for replaying at high rates of speed.
+EOText;
+};
+
+flag = {
+    name        = accurate2;
+    max         = 1;
+    flags-cant  = accurate;
+    arg-type    = number;
+    descrip     = "Enable even more accurate packet timing";
+    doc         = <<- EOText
+Enables the "even more" accurate timing at the cost of higher CPU
+utilization by using a tight loop which increments a counter.   This method
+provides the most accurate timing of any option, but requires you to specify
+a cost for each loop.  This cost value is VERY system dependent, so you will
+need to run --loop-test to get this value.
+EOText;
+};
+
+/* Verbose decoding via tcpdump */
 flag = {
     ifdef       = ENABLE_VERBOSE;
     name        = verbose;
@@ -246,7 +264,7 @@ By default, tcpreplay will send packets based on the size of the "snaplen"
 stored in the pcap file which is usually the correct thing to do.  However,
 occasionally, tools will store more bytes then told to.  By specifying this
 option, tcpreplay will ignore the snaplen field and instead try to send
-packets based on the original packet length.  Bad things (TM) may happen if
+packets based on the original packet length.  Bad things may happen if
 you specify this option.
 EOText;
 };
