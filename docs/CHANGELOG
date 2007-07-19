@@ -1,5 +1,9 @@
 $Id$
 
+07/19/2007: Version 3.1.1
+    - Upgrade libopts tearoff to 29:0:4 so that everyone else in the world can
+      compile tcpreplay (#189)
+
 07/18/2007: Version 3.1.0
     - Add tcprewrite --srcmap & --dstmap for rewriting only source or destination IP's (#185)
     - ./configure now reports configuration at end (#155)
