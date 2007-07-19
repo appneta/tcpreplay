@@ -1,5 +1,29 @@
 $Id$
 
+07/18/2007: Version 3.1.0
+    - Add tcprewrite --srcmap & --dstmap for rewriting only source or destination IP's (#185)
+    - ./configure now reports configuration at end (#155)
+    - Fix svn:keywords (#160)
+    - Optimize performance of dlt_en10mb plugin (#161)
+    - Performance improvements on strictly aligned systems (#162)
+    - Improve tcpprep error messages and handling (#163)
+    - Add support for warnings in libtcpedit (#165)
+    - Only use __attribute__((unused)) w/ GCC (#168)
+    - Fix compile issues under Solaris (#178)
+    - Gracefully handle systems w/o static libraries (#179)
+    - Fix segfault when using BPF filters (#182)
+    - Add additional DLT Plugins:
+        - 802.11 (#103)
+        - 802.11 w/ Radiotap (#177)
+
+05/01/2007: Version 3.0.1
+	- Stop tcpreplay causing OS X WiFi from disassociating (#167)
+	- --pnat incorrectly matched all IP addresses (#170)
+	- Fix serious memory leak in core common library (#175)
+	- Fix tcprewrite --enet-vlan on little endian systems (#174)
+	- Bad pcap timestamps were causing excessive delays (#169)
+	- Code cleanup (#173)
+
 04/20/2007: Version 3.0
 	- By default, no longer try to use libnet.  You must now specify --enable-libnet (#148)
 	- Improve documentation (#30)
