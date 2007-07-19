@@ -1,13 +1,13 @@
 
-/*  $Id: version.c,v 4.9 2006/09/24 02:11:16 bkorb Exp $
- * Time-stamp:      "2006-09-22 18:15:00 bkorb"
+/*  $Id: version.c,v 4.10 2007/04/28 22:19:23 bkorb Exp $
+ * Time-stamp:      "2007-04-28 10:08:34 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
  */
 
 static char const zAOV[] =
-    "Automated Options version %s, copyright (c) 1999-2006 Bruce Korb\n";
+    "Automated Options version %s, copyright (c) 1999-2007 Bruce Korb\n";
 
 /*  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the
@@ -79,9 +79,14 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
 {
     char swCh;
 
-    if (pOD->optArg.argString == NULL)
+    /*
+     *  IF the optional argument flag is off, or the argument is not provided,
+     *  then just print the version.
+     */
+    if (  ((pOD->fOptState & OPTST_ARG_OPTIONAL) == 0)
+       || (pOD->optArg.argString == NULL))
          swCh = 'v';
-    else swCh = pOD->optArg.argString[0];
+    else swCh = tolower(pOD->optArg.argString[0]);
 
     if (pOpts->pzFullVersion != NULL) {
         fputs( pOpts->pzFullVersion, fp );
@@ -89,17 +94,15 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
 
     } else {
         char const *pz = pOpts->pzUsageTitle;
-        do { fputc( *pz, fp ); } while (*(pz++) != '\n');
+        do { fputc(*pz, fp); } while (*(pz++) != '\n');
     }
 
     switch (swCh) {
-    case NUL:
+    case NUL: /* arg provided, but empty */
     case 'v':
-    case 'V':
         break;
 
     case 'c':
-    case 'C':
         if (pOpts->pzCopyright != NULL) {
             fputs( pOpts->pzCopyright, fp );
             fputc( '\n', fp );
@@ -110,7 +113,6 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
         break;
 
     case 'n':
-    case 'N':
         if (pOpts->pzCopyright != NULL) {
             fputs( pOpts->pzCopyright, fp );
             fputc( '\n', fp );

@@ -1,7 +1,7 @@
 
 /*
- *  $Id: autoopts.c,v 4.23 2007/02/13 19:43:46 bkorb Exp $
- *  Time-stamp:      "2007-02-13 11:26:59 bkorb"
+ *  $Id: autoopts.c,v 4.25 2007/04/15 19:01:18 bkorb Exp $
+ *  Time-stamp:      "2007-04-15 11:10:40 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -53,9 +53,6 @@
  */
 
 static char const zNil[] = "";
-
-#define SKIP_RC_FILES(po) \
-    DISABLED_OPT(&((po)->pOptDesc[ (po)->specOptIdx.save_opts+1]))
 
 /* = = = START-STATIC-FORWARD = = = */
 /* static forward declarations maintained by :mkfwd */
@@ -697,7 +694,7 @@ nextOption( tOptions* pOpts, tOptState* pOptState )
         case TOPT_DEFAULT:
             fputs( "AutoOpts lib error: defaulted to option with optional arg\n",
                    stderr );
-            exit( EXIT_FAILURE );
+            exit( EX_SOFTWARE );
         }
 
         /*
@@ -830,8 +827,21 @@ doRegularOpts( tOptions* pOpts )
 static tSuccess
 doPresets( tOptions* pOpts )
 {
+    tOptDesc * pOD = NULL;
+
     if (! SUCCESSFUL( doImmediateOpts( pOpts )))
         return FAILURE;
+
+    /*
+     *  IF this option set has a --save-opts option, then it also
+     *  has a --load-opts option.  See if a command line option has disabled
+     *  option presetting.
+     */
+    if (pOpts->specOptIdx.save_opts != 0) {
+        pOD = pOpts->pOptDesc + pOpts->specOptIdx.save_opts + 1;
+        if (DISABLED_OPT(pOD))
+            return SUCCESS;
+    }
 
     /*
      *  Until we return from this procedure, disable non-presettable opts
@@ -841,13 +851,22 @@ doPresets( tOptions* pOpts )
      *  IF there are no config files,
      *  THEN do any environment presets and leave.
      */
-    if (  (pOpts->papzHomeList == NULL)
-       || SKIP_RC_FILES(pOpts) )  {
+    if (pOpts->papzHomeList == NULL) {
         doEnvPresets( pOpts, ENV_ALL );
     }
     else {
         doEnvPresets( pOpts, ENV_IMM );
-        internalFileLoad( pOpts );
+
+        /*
+         *  Check to see if environment variables have disabled presetting.
+         */
+        if ((pOD != NULL) && ! DISABLED_OPT(pOD))
+            internalFileLoad( pOpts );
+
+        /*
+         *  ${PROGRAM_LOAD_OPTS} value of "no" cannot disable other environment
+         *  variable options.  Only the loading of .rc files.
+         */
         doEnvPresets( pOpts, ENV_NON_IMM );
     }
     pOpts->fOptSet &= ~OPTPROC_PRESETTING;
@@ -1031,7 +1050,7 @@ optionProcess(
     char**     argVect )
 {
     if (! SUCCESSFUL( validateOptionsStruct( pOpts, argVect[0] )))
-        exit( EXIT_FAILURE );
+        exit( EX_SOFTWARE );
 
     /*
      *  Establish the real program name, the program full path,

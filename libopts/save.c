@@ -1,7 +1,7 @@
 
 /*
- *  save.c  $Id: save.c,v 4.17 2007/02/04 17:44:12 bkorb Exp $
- * Time-stamp:      "2007-01-13 10:32:27 bkorb"
+ *  save.c  $Id: save.c,v 4.18 2007/04/15 19:01:18 bkorb Exp $
+ * Time-stamp:      "2007-04-15 11:11:10 bkorb"
  *
  *  This module's routines will take the currently set options and
  *  store them into an ".rc" file for re-interpretation the next

@@ -1,6 +1,6 @@
 
 /*
- *  $Id: streqvcmp.c,v 4.9 2006/09/24 02:11:16 bkorb Exp $
+ *  $Id: streqvcmp.c,v 4.10 2007/04/28 22:19:23 bkorb Exp $
  * Time-stamp:      "2006-07-26 18:25:53 bkorb"
  *
  *  String Equivalence Comparison
@@ -12,7 +12,7 @@
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the

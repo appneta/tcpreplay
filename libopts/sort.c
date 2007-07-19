@@ -1,13 +1,13 @@
 
 /*
- *  sort.c  $Id: sort.c,v 4.9 2006/10/21 15:42:49 bkorb Exp $
+ *  sort.c  $Id: sort.c,v 4.10 2007/04/28 22:19:23 bkorb Exp $
  * Time-stamp:      "2006-10-18 11:29:04 bkorb"
  *
  *  This module implements argument sorting.
  */
 
 /*
- *  Automated Options copyright 1992-2006 Bruce Korb
+ *  Automated Options copyright 1992-2007 Bruce Korb
  *
  *  Automated Options is free software.
  *  You may redistribute it and/or modify it under the terms of the

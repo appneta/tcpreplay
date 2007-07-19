@@ -1,6 +1,6 @@
 /*
- *  $Id: configfile.c,v 1.20 2007/02/04 17:44:12 bkorb Exp $
- *  Time-stamp:      "2007-01-13 12:49:10 bkorb"
+ *  $Id: configfile.c,v 1.21 2007/04/15 19:01:18 bkorb Exp $
+ *  Time-stamp:      "2007-04-15 11:22:46 bkorb"
  *
  *  configuration/rc/ini file handling.
  */
@@ -869,11 +869,14 @@ internalFileLoad( tOptions* pOpts )
          *  IF we are now to skip config files AND we are presetting,
          *  THEN change direction.  We must go the other way.
          */
-        if (SKIP_RC_FILES(pOpts) && PRESETTING(inc)) {
-            idx -= inc;  /* go back and reprocess current file */
-            inc =  DIRECTION_PROCESS;
+        {
+            tOptDesc * pOD = pOpts->pOptDesc + pOpts->specOptIdx.save_opts+1;
+            if (DISABLED_OPT(pOD) && PRESETTING(inc)) {
+                idx -= inc;  /* go back and reprocess current file */
+                inc =  DIRECTION_PROCESS;
+            }
         }
-    } /* For every path in the home list, ... */
+    } /* twice for every path in the home list, ... */
 }
 
 
@@ -937,11 +940,10 @@ void
 optionLoadOpt( tOptions* pOpts, tOptDesc* pOptDesc )
 {
     /*
-     *  IF the option is not being disabled,
-     *  THEN load the file.  There must be a file.
-     *  (If it is being disabled, then the disablement processing
-     *  already took place.  It must be done to suppress preloading
-     *  of ini/rc files.)
+     *  IF the option is not being disabled, THEN load the file.  There must
+     *  be a file.  (If it is being disabled, then the disablement processing
+     *  already took place.  It must be done to suppress preloading of ini/rc
+     *  files.)
      */
     if (! DISABLED_OPT( pOptDesc )) {
         struct stat sb;
@@ -951,7 +953,7 @@ optionLoadOpt( tOptions* pOpts, tOptDesc* pOptDesc )
 
             fprintf( stderr, zFSErrOptLoad, errno, strerror( errno ),
                      pOptDesc->optArg.argString );
-            (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
+            exit(EX_NOINPUT);
             /* NOT REACHED */
         }
 
@@ -960,7 +962,7 @@ optionLoadOpt( tOptions* pOpts, tOptDesc* pOptDesc )
                 return;
 
             fprintf( stderr, zNotFile, pOptDesc->optArg.argString );
-            (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
+            exit(EX_NOINPUT);
             /* NOT REACHED */
         }
 
@@ -1223,7 +1225,7 @@ validateOptionsStruct( tOptions* pOpts, char const* pzProgram )
 {
     if (pOpts == NULL) {
         fputs( zAO_Bad, stderr );
-        exit( EXIT_FAILURE );
+        exit( EX_CONFIG );
     }
 
     /*

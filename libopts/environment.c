@@ -1,7 +1,7 @@
 
 /*
- *  $Id: environment.c,v 4.12 2007/02/04 17:44:12 bkorb Exp $
- * Time-stamp:      "2007-01-13 10:02:07 bkorb"
+ *  $Id: environment.c,v 4.13 2007/04/15 19:01:18 bkorb Exp $
+ * Time-stamp:      "2007-04-15 11:50:35 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -54,6 +54,9 @@
 
 /* = = = START-STATIC-FORWARD = = = */
 /* static forward declarations maintained by :mkfwd */
+static void
+checkEnvOpt(tOptState * os, char * env_name,
+            tOptions* pOpts, teEnvPresetType type);
 /* = = = END-STATIC-FORWARD = = = */
 
 /*
@@ -145,6 +148,66 @@ doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
     pOpts->fOptSet     = sv_flag;
 }
 
+static void
+checkEnvOpt(tOptState * os, char * env_name,
+            tOptions* pOpts, teEnvPresetType type)
+{
+    os->pzOptArg = getenv( env_name );
+    if (os->pzOptArg == NULL)
+        return;
+
+    os->flags    = OPTST_PRESET | OPTST_ALLOC_ARG | os->pOD->fOptState;
+    os->optType  = TOPT_UNDEFINED;
+
+    if (  (os->pOD->pz_DisablePfx != NULL)
+       && (streqvcmp( os->pzOptArg, os->pOD->pz_DisablePfx ) == 0)) {
+        os->flags |= OPTST_DISABLED;
+        os->pzOptArg = NULL;
+    }
+
+    switch (type) {
+    case ENV_IMM:
+        /*
+         *  Process only immediate actions
+         */
+        if (DO_IMMEDIATELY(os->flags))
+            break;
+        return;
+
+    case ENV_NON_IMM:
+        /*
+         *  Process only NON immediate actions
+         */
+        if (DO_NORMALLY(os->flags) || DO_SECOND_TIME(os->flags))
+            break;
+        return;
+
+    default: /* process everything */
+        break;
+    }
+
+    /*
+     *  Make sure the option value string is persistent and consistent.
+     *
+     *  The interpretation of the option value depends
+     *  on the type of value argument the option takes
+     */
+    if (os->pzOptArg != NULL) {
+        if (OPTST_GET_ARGTYPE(os->pOD->fOptState) == OPARG_TYPE_NONE) {
+            os->pzOptArg = NULL;
+        } else if (  (os->pOD->fOptState & OPTST_ARG_OPTIONAL)
+                     && (*os->pzOptArg == NUL)) {
+            os->pzOptArg = NULL;
+        } else if (*os->pzOptArg == NUL) {
+            os->pzOptArg = zNil;
+        } else {
+            AGDUPSTR( os->pzOptArg, os->pzOptArg, "option argument" );
+            os->flags |= OPTST_ALLOC_ARG;
+        }
+    }
+
+    handleOption( pOpts, os );
+}
 
 /*
  *  doEnvPresets - check for preset values from the envrionment
@@ -194,60 +257,16 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
          *  Set up the option state
          */
         strcpy( pzFlagName, st.pOD->pz_NAME );
-        st.pzOptArg = getenv( zEnvName );
-        if (st.pzOptArg == NULL)
-            continue;
-        st.flags    = OPTST_PRESET | OPTST_ALLOC_ARG | st.pOD->fOptState;
-        st.optType  = TOPT_UNDEFINED;
+        checkEnvOpt(&st, zEnvName, pOpts, type);
+    }
 
-        if (  (st.pOD->pz_DisablePfx != NULL)
-           && (streqvcmp( st.pzOptArg, st.pOD->pz_DisablePfx ) == 0)) {
-            st.flags |= OPTST_DISABLED;
-            st.pzOptArg = NULL;
-        }
-
-        switch (type) {
-        case ENV_IMM:
-            /*
-             *  Process only immediate actions
-             */
-            if (DO_IMMEDIATELY(st.flags))
-                break;
-            continue;
-
-        case ENV_NON_IMM:
-            /*
-             *  Process only NON immediate actions
-             */
-            if (DO_NORMALLY(st.flags) || DO_SECOND_TIME(st.flags))
-                break;
-            continue;
-
-        default: /* process everything */
-            break;
-        }
-
-        /*
-         *  Make sure the option value string is persistent and consistent.
-         *
-         *  The interpretation of the option value depends
-         *  on the type of value argument the option takes
-         */
-        if (st.pzOptArg != NULL) {
-            if (OPTST_GET_ARGTYPE(st.pOD->fOptState) == OPARG_TYPE_NONE) {
-                st.pzOptArg = NULL;
-            } else if (  (st.pOD->fOptState & OPTST_ARG_OPTIONAL)
-                      && (*st.pzOptArg == NUL)) {
-                    st.pzOptArg = NULL;
-            } else if (*st.pzOptArg == NUL) {
-                st.pzOptArg = zNil;
-            } else {
-                AGDUPSTR( st.pzOptArg, st.pzOptArg, "option argument" );
-                st.flags |= OPTST_ALLOC_ARG;
-            }
-        }
-
-        handleOption( pOpts, &st );
+    /*
+     *  Special handling for ${PROGNAME_LOAD_OPTS}
+     */
+    if (pOpts->specOptIdx.save_opts != 0) {
+        st.pOD = pOpts->pOptDesc + pOpts->specOptIdx.save_opts + 1;
+        strcpy( pzFlagName, st.pOD->pz_NAME );
+        checkEnvOpt(&st, zEnvName, pOpts, type);
     }
 }
 
