@@ -1003,7 +1003,7 @@ tcpdump_path=no
 AC_ARG_WITH(tcpdump,
     AC_HELP_STRING([--with-tcpdump=FILE], [Path to tcpdump binary]),
     [ if test -x $withval ; then
-          td=$withval
+          tcpdump_path=$withval
           AC_MSG_RESULT([Using tcpdump in $tcpdump_path])
       else
           AC_MSG_RESULT([Error: $withval does not exist or is not executable])
