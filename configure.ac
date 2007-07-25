@@ -10,8 +10,8 @@ AM_WITH_DMALLOC
 
 dnl Set version info here!
 MAJOR_VERSION=3
-MINOR_VERSION=1
-MICRO_VERSION=1
+MINOR_VERSION=2
+MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -212,16 +212,15 @@ AC_ARG_ENABLE(gprof,
       fi])
 
 dnl Use 64bits for packet counters
-use64bit_counters=no
+use64bit_counters=yes
 AC_ARG_ENABLE(64bits,
-    AC_HELP_STRING([--enable-64bits], [Use 64bit packet counters]),
-    [ if test x$enableval = xyes; then
+    AC_HELP_STRING([--disable-64bits], [Do not use 64bit packet counters]),
+    [ 
+         AC_MSG_NOTICE([Using u_int32_t for packet counters])
+    ],
+    [
          AC_DEFINE([ENABLE_64BITS], [1], [Use 64bit packet counters])
          AC_MSG_NOTICE([Using u_int64_t for packet counters])
-         use64bit_counters=yes
-      else
-         AC_MSG_NOTICE([Using u_int32_t for packet counters])
-      fi
     ])
 
 
