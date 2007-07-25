@@ -393,6 +393,7 @@ flag = {
     value       = P;
     arg-type	= string;
     descrip     = "Print embedded comment in the specified cache file";
+    max         = 1;
     doc         = "";
 };
 
@@ -401,6 +402,7 @@ flag = {
     value       = I;
     arg-type	= string;
     descrip     = "Print basic info from the specified cache file";
+    max         = 1;
     doc         = "";
 };
 
@@ -409,6 +411,7 @@ flag = {
 	value		= S;
 	arg-type	= string;
 	descrip		= "Print statistical information about the specified cache file";
+    max         = 1;
 	doc			= "";
 };
 
@@ -417,9 +420,16 @@ flag = {
     value       = s;
     descrip     = "Load services file for server ports";
     flags-must  = port;
+    max         = 1;
     arg-type    = string;
+    doc         = <<- EOText
+Uses a list of ports used by servers in the same format as of /etc/services:
+<service_name>        <port>/<protocol> # comment
+
+Example:
+http            80/tcp
+EOText;
     flag-code   = <<- EOServices
-    
     parse_services(OPT_ARG(SERVICES), &options.services);
     
 EOServices;
@@ -429,6 +439,7 @@ flag = {
     name        = nonip;
     value       = N;
     descrip     = "Send non-IP traffic out server interface";
+    max         = 1;
     flag-code   = <<- EONonip
  
     options.nonip = DIR_SERVER;
