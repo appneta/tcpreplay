@@ -109,7 +109,7 @@ get_interface_list(void)
         list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
         list_ptr = list_ptr->next;
     }
-    free(list_ptr); /* free the last entry which was never used */
+    safe_free(list_ptr); /* free the last entry which was never used */
     pcap_freealldevs(pcap_if);
     return(list_head);
 }

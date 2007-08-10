@@ -103,7 +103,18 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 
 }
 
-
+/* 
+ * calls free and sets to NULL.
+ */
+void
+_our_safe_free(void *ptr, const char *funcname, const int line, const char *file)
+{
+    if (ptr == NULL)
+        _our_verbose_errx(1, "Unable to call free on a NULL ptr", funcname, line, file);
+            
+    free(ptr);
+    ptr = NULL;
+}
 
 void
 packet_stats(struct timeval *begin, struct timeval *end, 
@@ -163,7 +174,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
     l2byte = strtok_r(string, ",", &token);
     sscanf(l2byte, "%x", &value);
     if (value > 0xff)
-        errx(1, "Invalid hex byte passed to -2: %s", l2byte);
+        errx(1, "Invalid hex string byte: %s", l2byte);
     databyte = (u_char) value;
     memcpy(&hex[numbytes], &databyte, 1);
 
@@ -176,14 +187,14 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
         }
         sscanf(l2byte, "%x", &value);
         if (value > 0xff)
-            errx(1, "Invalid hex byte passed to -2: %s", l2byte);
+            errx(1, "Invalid hex string byte: %s", l2byte);
         databyte = (u_char) value;
         memcpy(&hex[numbytes], &databyte, 1);
     }
 
     numbytes++;
 
-    free(string);
+    safe_free(string);
 
     dbgx(1, "Read %d bytes of hex data", numbytes);
     return (numbytes);

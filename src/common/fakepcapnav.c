@@ -77,7 +77,7 @@ void
 pcapnav_close(pcapnav_t * pcapnav)
 {
     pcap_close(pcapnav->pcap);
-    free(pcapnav);
+    safe_free(pcapnav);
 }
 
 /* returns the pcap_t data struct */

@@ -146,12 +146,12 @@ dlt_hdlc_cleanup(tcpeditdlt_t *ctx)
     }
 
     if (ctx->decoded_extra != NULL) {
-        free(ctx->decoded_extra);
+        safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
     }
         
     if (plugin->config != NULL) {
-        free(plugin->config);
+        safe_free(plugin->config);
         plugin->config = NULL;
     }
 

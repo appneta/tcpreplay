@@ -111,10 +111,10 @@ nextbuffpkt(struct session_t *node, u_int32_t len)
      * buffmem counter, the total buffer limit, and free the buffer header
      */
     if (node->sentbuff != NULL) {
-        free(node->sentbuff->packet);
+        safe_free(node->sentbuff->packet);
         node->buffmem -= node->sentbuff->len;
         options.totalbufflim += len;
-        free(node->sentbuff);
+        safe_free(node->sentbuff);
     }
 
     /* relink the list */

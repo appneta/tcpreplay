@@ -132,7 +132,7 @@ newnode(_U_ char proto, u_char * key, ipv4_hdr_t * ip_hdr, void *l4)
 
         /* No new flows for non-Syn packets, unless NoSyn is set */
         if ((tcp_hdr->th_flags != TH_SYN) && (options.nosyn == 0)) {
-            free(newnode);
+            safe_free(newnode);
             warnx("We won't connect (%s:%d -> %s:%d) on non-Syn packets",
                   get_addr2name4(ip_hdr->ip_src.s_addr, DNS_DONT_RESOLVE),
                   ntohs(tcp_hdr->th_sport),
@@ -152,7 +152,7 @@ newnode(_U_ char proto, u_char * key, ipv4_hdr_t * ip_hdr, void *l4)
         newnode->wait = DONT_WAIT;
 
         if ((newnode->socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-            free(newnode);
+            safe_free(newnode);
             warnx("Unable to create new TCP socket: %s", strerror(errno));
             return (NULL);
         }
@@ -197,7 +197,7 @@ newnode(_U_ char proto, u_char * key, ipv4_hdr_t * ip_hdr, void *l4)
         newnode->wait = DONT_WAIT;
 
         if ((newnode->socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-            free(newnode);
+            safe_free(newnode);
             warnx("Unable to create new UDP socket: %s", strerror(errno));
             return (NULL);
         }
@@ -223,7 +223,7 @@ newnode(_U_ char proto, u_char * key, ipv4_hdr_t * ip_hdr, void *l4)
     if (connect
         (newnode->socket, (struct sockaddr *)&sa,
          sizeof(struct sockaddr_in)) < 0) {
-        free(newnode);
+        safe_free(newnode);
         warnx("Unable to connect to %s:%hu: %s", get_addr2name4(sa.sin_addr.s_addr, RESOLVE),
               ntohs(sa.sin_port), strerror(errno));
         return (NULL);

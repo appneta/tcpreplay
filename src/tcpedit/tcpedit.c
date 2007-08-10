@@ -407,7 +407,7 @@ tcpedit_close(tcpedit_t *tcpedit)
 
     /* free buffer if required */
 #ifdef FORCE_ALIGN
-    free(tcpedit->runtime.l3buff);
+    safe_free(tcpedit->runtime.l3buff);
 #endif
 
     return 0;

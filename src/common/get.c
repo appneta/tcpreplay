@@ -72,7 +72,7 @@ get_pcap_version(void)
     strtok_r(version, " ", &last);
     strtok_r(NULL, " ", &last);
     strlcpy(ourver, strtok_r(NULL, " ", &last), 255);
-    free(version);
+    safe_free(version);
     return ourver;
 #elif defined HAVE_PCAP_VERSION
     return pcap_version;

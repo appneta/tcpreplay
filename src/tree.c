@@ -104,7 +104,6 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 /*
  * uses rbwalk to check to see if a given ip address of a given type in the
  * tree is inside any of the cidrdata
- *
  */
 static int
 tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
@@ -123,9 +122,9 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        if (check_ip_cidr(options.cidrdata, node->ip)) {    /* if we exist, abort */
+        if (check_ip_cidr(options.cidrdata, node->ip))    /* if we exist, abort */
             return 1;
-        }
+
     }
     return 0;
 }
@@ -138,7 +137,7 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
  */
 
 int
-process_tree()
+process_tree(void)
 {
     int mymask = 0;
     tcpr_buildcidr_t *bcdata;
@@ -165,6 +164,7 @@ process_tree()
         bcdata->type = DIR_CLIENT;
 
         if (! tree_checkincidr(&treeroot, bcdata)) { /* didn't find any clients in cidrdata */
+            safe_free(bcdata);
             return (mymask);    /* success! */
         }
         else {
@@ -173,7 +173,9 @@ process_tree()
         }
     }
 
+    safe_free(bcdata);
     /* we failed to find a vaild cidr list */
+    dbg(1, "Unable to determine any IP addresses as a clients");
     return (0);
 }
 
@@ -315,7 +317,7 @@ add_tree(const unsigned long ip, const u_char * data)
             node->client_cnt++;
         }
         /* didn't insert it, so free it */
-        free(newnode);
+        safe_free(newnode);
     }
 
     dbg(2, "------- START NEXT -------");

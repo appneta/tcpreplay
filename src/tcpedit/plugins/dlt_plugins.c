@@ -410,14 +410,13 @@ tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
         ctx->decoder->plugin_cleanup(ctx);
 
 #ifdef FORCE_ALIGN
-    free(ctx->l3buff);
+    safe_free(ctx->l3buff);
 #endif
 
     if (ctx->decoded_extra != NULL)
-        free(ctx->decoded_extra);
+        safe_free(ctx->decoded_extra);
         
-    free(ctx);
-        
+    safe_free(ctx);
 }
 
 

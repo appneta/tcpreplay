@@ -90,7 +90,7 @@ destroy_cidr(tcpr_cidr_t * cidr)
         if (cidr->next != NULL)
             destroy_cidr(cidr->next);
 
-    free(cidr);
+    safe_free(cidr);
     return;
 
 }
@@ -311,7 +311,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
     if (! parse_cidr_map(cidrmap2, newmap))
         return 0;
     
-    free(string);
+    safe_free(string);
     return 1; /* success */
 }
 
@@ -370,7 +370,7 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
         ptr->from->next = NULL;
 
     }
-    free(string);
+    safe_free(string);
     return 1; /* success */
 }
 

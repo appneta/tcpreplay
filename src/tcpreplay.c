@@ -364,7 +364,7 @@ post_args(void)
         temp = safe_strdup(OPT_ARG(CACHEFILE));
         options.cache_packets = read_cache(&options.cachedata, temp,
             &options.comment);
-        free(temp);
+        safe_free(temp);
     }
 
    if (! HAVE_OPT(QUIET))

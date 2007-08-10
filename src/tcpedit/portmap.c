@@ -155,7 +155,7 @@ free_portmap(tcpedit_portmap_t * portmap)
     if (portmap->next != NULL)
         free_portmap(portmap->next);
 
-    free(portmap);
+    safe_free(portmap);
 }
 
 

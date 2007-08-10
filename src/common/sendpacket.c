@@ -314,7 +314,7 @@ sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
 
-    free(sp);
+    safe_free(sp);
     return 0;
 }
 
@@ -752,7 +752,7 @@ sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
 
     if (sysctl(mib, 6, buf, &len, NULL, 0) == -1) {
         sendpacket_seterr(sp, "%s(): sysctl(): %s", __func__, strerror(errno));
-        free(buf);
+        safe_free(buf);
         return NULL;
     }
     
@@ -767,7 +767,7 @@ sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
             }
         }
     }
-    free(buf);
+    safe_free(buf);
     return(&sp->ether);
 }
 

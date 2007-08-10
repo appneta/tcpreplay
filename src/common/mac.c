@@ -148,7 +148,7 @@ macinstring(const char *macstring, const u_char *mac)
     }
 
 EXIT_MACINSTRING:
-    free(ourstring);
+    safe_free(ourstring);
 #ifdef DEBUG
     if (ret == TCPR_DIR_S2C)
        dbg(3, "Packet doesn't match any MAC addresses sending out secondary.\n");

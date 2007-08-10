@@ -201,7 +201,7 @@ free_list(tcpr_list_t * list)
     if (list->next != NULL)
         free_list(list->next);
 
-    free(list);
+    safe_free(list);
 }
 
 /*
