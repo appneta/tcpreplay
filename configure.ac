@@ -1113,7 +1113,22 @@ else
 	AC_MSG_RESULT(no)
 fi
 
-LIBOPTS_CHECK
+dnl tcpreplay has (so far) been relying on leading-edge autogen.
+dnl Therefore, by default:
+dnl - use the version we ship with
+dnl - do not install it
+dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
+case "${enable_local_libopts+set}" in
+ set) ;;
+ *) enable_local_libopts=yes ;;
+esac
+
+case "${enable_libopts_install+set}" in
+ set) ;;
+ *) enable_libopts_install=no ;;
+esac
+
+LIBOPTS_CHECK(libopts)
 
 
 AC_OUTPUT([Makefile

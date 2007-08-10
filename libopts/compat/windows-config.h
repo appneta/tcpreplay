@@ -1,8 +1,25 @@
 
 /*
- * Time-stamp:        "2006-10-14 14:55:09 bkorb"
+ * Time-stamp:        "2007-07-04 09:45:44 bkorb"
  *             by: bkorb
- * Last Committed:    $Date: 2006/10/14 22:39:49 $
+ * Last Committed:    $Date: 2007/07/04 20:51:18 $
+ *
+ *  This file is part of AutoGen.
+ *
+ *  AutoGen copyright (c) 1992-2007 Bruce Korb - all rights reserved
+ *
+ *  AutoGen is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published by the
+ *  Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  AutoGen is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef WINDOWS_CONFIG_HACKERY
 #define WINDOWS_CONFIG_HACKERY 1
@@ -92,6 +109,7 @@ typedef unsigned long uintptr_t;
 /* Include Windows headers */
 #include <windows.h>
 #include <winsock2.h>
+#include <limits.h>
 
 /*
  * Compatibility declarations for Windows, assuming SYS_WINNT
