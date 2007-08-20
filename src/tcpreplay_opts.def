@@ -194,7 +194,7 @@ flag = {
     value       = c;
     arg-type    = string;
     max         = 1;
-    descrip     = "Split traffic via a tcppep cache file";
+    descrip     = "Split traffic via a tcpprep cache file";
     doc         = "";
 };
 
