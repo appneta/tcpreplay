@@ -42,7 +42,7 @@
 #include <stdlib.h>
 
 
-/*
+/**
  * returns 0 for sucess w/o errors
  * returns 1 for sucess w/ warnings
  * returns -1 for error

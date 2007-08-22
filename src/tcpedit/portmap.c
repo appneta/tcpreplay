@@ -46,7 +46,9 @@
 #include "tcpedit-int.h"
 #include "portmap.h"
 
-
+/** 
+ * mallocs a new tcpedit_portmap_t structure 
+ */
 tcpedit_portmap_t *
 new_portmap()
 {
@@ -56,7 +58,7 @@ new_portmap()
     return (newportmap);
 }
 
-/*
+/**
  * parses a string <port>:<port> and returns a new
  * tcpedit_portmap_t datastruct
  */
@@ -106,7 +108,7 @@ ports2PORT(char *ports)
     return portmap;
 }
 
-/*
+/**
  * Processes a string (ourstr) containing the portmap ("2000:4000" for
  * example) and places the data in **portmapdata and finally returns 1 for 
  * success, 0 for fail.
@@ -142,7 +144,7 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
 }
 
 
-/*
+/**
  * Free's all the memory associated with the given portmap chain
  */
 void
@@ -159,7 +161,9 @@ free_portmap(tcpedit_portmap_t * portmap)
 }
 
 
-/* This function takes a pointer to a portmap list and prints each node */
+/**
+ * This function takes a pointer to a portmap list and prints each node 
+ */
 void
 print_portmap(tcpedit_portmap_t *portmap_data)
 {
@@ -176,7 +180,8 @@ print_portmap(tcpedit_portmap_t *portmap_data)
 }
 
 
-/* This function takes a portmap and a port, and returns the mapped port,
+/**
+ * This function takes a portmap and a port, and returns the mapped port,
  * or the original port if it isn't mapped to anything.
  */
 long
@@ -201,7 +206,7 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
     return(newport);
 }
 
-/*
+/**
  * rewrites the TCP or UDP ports based on a portmap
  * returns 1 for changes made or 0 for none
  */

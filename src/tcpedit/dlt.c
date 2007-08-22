@@ -35,7 +35,7 @@
 #include "tcpedit-int.h"
 #include "dlt.h"
 
-/*
+/**
  * takes in a libpcap DLT_ type and returns the length of the layer2 header
  * returns -1 for unsupported DLT
  */
@@ -82,7 +82,7 @@ dlt2layer2len(tcpedit_t *tcpedit, int dlt)
     return len;
 }
 
-/*
+/**
  * each DLT type may require one or more user specified Layer 2 field
  * to be able to rewrite it as plain ethernet DLT_EN10MB
  * returns -1 on error or >= 0 on success
@@ -120,7 +120,7 @@ dltrequires(tcpedit_t *tcpedit, int dlt)
     return req;
 }
 
-/*
+/**
  * returns the default MTU size for the given DLT type.  Returns -1
  * for invalid DLT
  */
@@ -155,7 +155,7 @@ dlt2mtu(tcpedit_t *tcpedit, int dlt)
     return mtu;
 }
 
-/*
+/**
  * Returns the current layer 2 len based on the 
  * DLT of the pcap or the --dlink value or -1 on error.
  * You need to call this function AFTER rewriting the layer 2 header

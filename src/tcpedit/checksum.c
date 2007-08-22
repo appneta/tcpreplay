@@ -42,7 +42,7 @@
 static int do_checksum_math(u_int16_t *, int);
 
 
-/*
+/**
  * Returns -1 on error and 0 on success, 1 on warn
  */
 int
@@ -144,7 +144,9 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     return TCPEDIT_OK;
 }
 
-
+/**
+ * code to do a ones-compliment checksum
+ */
 static int
 do_checksum_math(u_int16_t *data, int len)
 {

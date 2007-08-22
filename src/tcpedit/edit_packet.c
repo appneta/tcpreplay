@@ -51,7 +51,7 @@ static u_int32_t randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip);
 static u_int32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original);
 static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
 
-/*
+/**
  * this code re-calcs the IP and Layer 4 checksums
  * the IMPORTANT THING is that the Layer 4 header 
  * is contiguious in memory after *ip_hdr we're actually
@@ -89,7 +89,7 @@ fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr
     return TCPEDIT_OK;
 }
 
-/*
+/**
  * returns a new 32bit integer which is the randomized IP 
  * based upon the user specified seed
  */
@@ -106,7 +106,7 @@ randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
 }
 
 
-/*
+/**
  * randomizes the source and destination IP addresses based on a 
  * pseudo-random number which is generated via the seed.
  * return 1 since we changed one or more IP addresses
@@ -156,7 +156,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 }
 
 
-/*
+/**
  * this code will untruncate a packet via padding it with null
  * or resetting the actual IPv4 packet len to the snaplen - L2 header.  
  * return 0 if no change, 1 if change, -1 on error.
@@ -212,7 +212,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     return(1);
 }
 
-/*
+/**
  * Extracts the layer 7 data from the packet for TCP, UDP, ICMP
  * returns the number of bytes and a pointer to the layer 7 data. 
  * Returns 0 for no data
@@ -294,7 +294,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
     return 0;
 }
 
-/*
+/**
  * takes a CIDR notation netblock and uses that to "remap" given IP
  * onto that netblock.  ie: 10.0.0.0/8 and 192.168.55.123 -> 10.168.55.123
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
@@ -330,7 +330,7 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
     return(htonl(result));
 }
 
-/*
+/**
  * rewrite IP address (layer3)
  * uses -N to rewrite (map) one subnet onto another subnet
  * also support --srcipmap and --dstipmap
@@ -416,7 +416,7 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
     return (diddst + didsrc);
 }
 
-/*
+/**
  * Randomize the IP addresses in an ARP packet based on the user seed
  * return 0 if no change, or 1 for a change
  */
@@ -459,7 +459,7 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     return 1; /* yes we changed the packet */
 }
 
-/*
+/**
  * rewrite IP address (arp)
  * uses -a to rewrite (map) one subnet onto another subnet
  * pointer must point to the WHOLE and CONTIGOUS memory buffer
@@ -565,7 +565,7 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     return(didsrc + diddst);
 }
 
-/*
+/**
  * returns 1 if the IP address is a unicast address, otherwise, returns 0
  * for broadcast/multicast addresses.  Returns -1 on error
  */

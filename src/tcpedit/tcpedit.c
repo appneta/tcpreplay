@@ -351,6 +351,8 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
 }
 
 /**
+ * \brief Checks the given error code and does the right thing
+ * 
  * Generic function which checks the TCPEDIT_* error code
  * and always returns OK or ERROR.  For warnings, prints the 
  * warning message and returns OK.  For any other value, fails with
