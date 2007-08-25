@@ -175,7 +175,7 @@ process_tree(void)
 
     safe_free(bcdata);
     /* we failed to find a vaild cidr list */
-    dbg(1, "Unable to determine any IP addresses as a clients");
+    notice("Unable to determine any IP addresses as a clients");
     return (0);
 }
 
