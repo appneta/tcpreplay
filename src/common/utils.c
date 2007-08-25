@@ -43,7 +43,7 @@
 extern int debug;
 #endif
 
-/* 
+/**
  * this is wrapped up in a #define safe_malloc
  * This function, detects failures to malloc memory and zeros out the
  * memory before returning
@@ -66,10 +66,12 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     return (void *)ptr;
 }
 
-/* 
+/**
  * this is wrapped up in a #define safe_realloc
  * This function, detects failures to realloc memory and zeros
- * out the NEW memory if len > current len
+ * out the NEW memory if len > current len.  As always, remember
+ * to use it as:
+ * ptr = safe_realloc(ptr, size)
  */
 void *
 _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, const char *file)
@@ -84,7 +86,7 @@ _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, c
     return ptr;
 }
 
-/* 
+/**
  * this is wrapped up in a #define safe_strdup
  * This function, detects failures to realloc memory
  */
@@ -103,7 +105,7 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 
 }
 
-/* 
+/**
  * calls free and sets to NULL.
  */
 void
@@ -116,6 +118,9 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
     ptr = NULL;
 }
 
+/**
+ * Print various packet statistics
+ */
 void
 packet_stats(struct timeval *begin, struct timeval *end, 
         COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
@@ -151,6 +156,11 @@ packet_stats(struct timeval *begin, struct timeval *end,
 
 }
 
+/**
+ * reads a hexstring in the format of xx,xx,xx,xx spits it back into *hex
+ * up to hexlen bytes.  Returns actual number of bytes returned.  On error
+ * it just calls errx() since all errors are fatal.
+ */
 int
 read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 {
@@ -200,8 +210,10 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
     return (numbytes);
 }
 
-/* whorishly appropriated from fragroute-1.2 */
-
+/**
+ * whorishly appropriated from fragroute-1.2.  Parse a string and 
+ * create an argv[] array.
+ */
 int
 argv_create(char *p, int argc, char *argv[])
 {

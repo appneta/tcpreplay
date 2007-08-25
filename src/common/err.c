@@ -55,6 +55,9 @@
 extern int debug;
 #endif
 
+/**
+ * writes a notice message to stderr.  Always forces a newline
+ */
 void
 notice(const char *fmt, ...)
 {
@@ -68,6 +71,12 @@ notice(const char *fmt, ...)
     fflush(NULL);
 }
 
+/**
+ * Inner call to dbgx() which prints the function, line & function along
+ * with the message to stderr.  Always forces a newline.
+ * 
+ * You don't actually want to call this!  use dbgx() instead!
+ */
 void
 _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function, 
         const int line, const char *file, ...)
@@ -93,6 +102,12 @@ _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function,
 #endif
 }
 
+/**
+ * Inner call to dbg() which prints the function, line & file along
+ * with the message to stderr.  Always forces a newline.
+ * 
+ * You don't actually want to call this!  use dbg() instead!
+ */
 void
 _our_verbose_dbg(int dbg_level, const char *string, const char *function, const int line, const char *file)
 {
@@ -109,6 +124,10 @@ _our_verbose_dbg(int dbg_level, const char *string, const char *function, const 
 }
 
 
+/**
+ * Inner call to err() which when in DEBUG mode, prints the function, line & file
+ * along with the actual error message to stderr.  Alawys forces a newline
+ */
 #ifdef DEBUG
 void
 _our_verbose_err(int eval, const char *string, const char *function, const int line, const char *file) {
@@ -125,6 +144,10 @@ _our_verbose_err(int eval, const char *string) {
     exit(eval);
 }
 
+/**
+ * Inner call to warn() which when in DEBUG mode, prints the function, line & file
+ * along with the actual warning to stderr.  Alawys forces a newline
+ */
 #ifdef DEBUG
 void
 _our_verbose_warn(const char *string, const char *function, const int line, const char *file) {
@@ -139,6 +162,10 @@ _our_verbose_warn(const char *string) {
     fprintf(stderr, "Warning: %s\n", string);
 }
 
+/**
+ * Inner call to errx() which when in DEBUG mode, prints the function, line & file
+ * along with the actual error message to stderr.  Alawys forces a newline
+ */
 #ifdef DEBUG
 void
 _our_verbose_errx(int eval, const char *fmt, const char *function, const int line, const char *file, ...) {
@@ -164,6 +191,10 @@ _our_verbose_errx(int eval, const char *fmt, ...) {
     exit(eval);
 }
 
+/**
+ * Inner call to warnx() which when in DEBUG mode, prints the function, line & file
+ * along with the actual warning to stderr.  Alawys forces a newline
+ */
 #ifdef DEBUG
 void
 _our_verbose_warnx(const char *fmt, const char *function, const int line, const char *file, ...) {

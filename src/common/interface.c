@@ -40,7 +40,7 @@
 #include "common.h"
 #include "interface.h"
 
-/*
+/**
  * Method takes a user specified device name and returns
  * the canonical name for that device.  This allows me to 
  * create named interface aliases on platforms like Windows
@@ -75,6 +75,9 @@ get_interface(interface_list_t *list, const char *alias)
     return(NULL);
 }
 
+/** 
+ * Get all available interfaces as an interface_list *
+ */
 interface_list_t *
 get_interface_list(void)
 {
@@ -114,6 +117,9 @@ get_interface_list(void)
     return(list_head);
 }
 
+/**
+ * Prints all the available interfaces found by get_interface_list()
+ */
 void
 list_interfaces(interface_list_t *list)
 {

@@ -50,7 +50,7 @@ extern int debug;
 
 static tcpr_cache_t *new_cache(void);
 
-/*
+/**
  * Takes a single char and returns a ptr to a string representation of the
  * 8 bits that make up that char.  Use BIT_STR() to print it out
  */
@@ -69,7 +69,7 @@ byte2bits(char byte, char *bitstring) {
 }
 #endif
 
-/*
+/**
  * simple function to read in a cache file created with tcpprep this let's us
  * be really damn fast in picking an interface to send the packet out returns
  * number of cache entries read
@@ -148,7 +148,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 }
 
 
-/*
+/**
  * writes out the cache file header, comment and then the
  * contents of *cachedata to out_file and then returns the number 
  * of cache entries written
@@ -235,7 +235,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     return (packets);
 }
 
-/*
+/**
  * mallocs a new CACHE struct all pre-set to sane defaults
  */
 
@@ -249,7 +249,7 @@ new_cache(void)
     return (newcache);
 }
 
-/*
+/**
  * adds the cache data for a packet to the given cachedata
  */
 
@@ -339,7 +339,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 }
 
 
-/*
+/**
  * returns the action for a given packet based on the CACHE
  */
 tcpr_dir_t

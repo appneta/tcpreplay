@@ -51,7 +51,7 @@ extern int debug;
 
 static tcpr_cidr_t *cidr2cidr(char *);
 
-/*
+/**
  * prints to the given fd all the entries in mycidr
  */
 void
@@ -79,7 +79,7 @@ print_cidr(tcpr_cidr_t * mycidr)
     fprintf(stderr, "\n");
 }
 
-/*
+/**
  * deletes all entries in a cidr and destroys the datastructure
  */
 void
@@ -95,7 +95,7 @@ destroy_cidr(tcpr_cidr_t * cidr)
 
 }
 
-/*
+/**
  * adds a new tcpr_cidr_t entry to cidrdata
  */
 void
@@ -118,7 +118,7 @@ add_cidr(tcpr_cidr_t ** cidrdata, tcpr_cidr_t ** newcidr)
     }
 }
 
-/*
+/**
  * takes in an IP and masklen, and returns a string in
  * cidr format: x.x.x.x/y.  This malloc's memory.
  */
@@ -146,7 +146,7 @@ ip2cidr(const unsigned long ip, const int masklen)
     return (network);
 }
 
-/*
+/**
  * Mallocs and sets to sane defaults a tcpr_cidr_t structure
  */
 
@@ -164,6 +164,9 @@ new_cidr(void)
     return (newcidr);
 }
 
+/**
+ * Creates a new tcpr_cidrmap_t structure.  Malloc's memory
+ */
 tcpr_cidrmap_t *
 new_cidr_map(void)
 {
@@ -178,11 +181,10 @@ new_cidr_map(void)
 }
 
 
-/*
+/**
  * Converts a single cidr (string) in the form of x.x.x.x/y into a
  * tcpr_cidr_t structure.  Will malloc the tcpr_cidr_t structure.
  */
-
 static tcpr_cidr_t *
 cidr2cidr(char *cidr)
 {
@@ -243,13 +245,12 @@ cidr2cidr(char *cidr)
     return NULL;
 }
 
-/*
+/**
  * parses a list of tcpr_cidr_t's input from the user which should be in the form
  * of x.x.x.x/y,x.x.x.x/y...
  * returns 1 for success, or fails to return on failure (exit 1)
  * since we use strtok to process cidr, it gets zeroed out.
  */
-
 int
 parse_cidr(tcpr_cidr_t ** cidrdata, char *cidrin, char *delim)
 {
@@ -278,7 +279,7 @@ parse_cidr(tcpr_cidr_t ** cidrdata, char *cidrin, char *delim)
 
 }
 
-/*
+/**
  * parses a pair of IP addresses: <IP1>:<IP2> and processes it like:
  * -N 0.0.0.0/0:<IP1> -N 0.0.0.0/0:<IP2>
  * returns 1 for success or returns 0 on failure
@@ -316,7 +317,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
 }
 
 
-/*
+/**
  * parses a list of tcpr_cidrmap_t's input from the user which should be in the form
  * of x.x.x.x/y:x.x.x.x/y,...
  * returns 1 for success, or returns 0 on failure
@@ -374,7 +375,7 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
     return 1; /* success */
 }
 
-/* 
+/**
  * checks to see if the ip address is in the cidr
  * returns 1 for true, 0 for false
  */
@@ -420,7 +421,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 }
 
 
-/*
+/**
  * iterates over cidrdata to find if a given ip matches
  * returns 1 for true, 0 for false
  */
@@ -462,7 +463,7 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
 }
 
 
-/*
+/**
  * cidr2ip takes a tcpr_cidr_t and a delimiter
  * and returns a string which lists all the IP addresses in the cidr
  * deliminated by the given char

@@ -38,7 +38,7 @@
 
 #include "mac.h"
 
-/*
+/**
  * converts a string representation of a MAC address, based on 
  * non-portable ether_aton() 
  */
@@ -67,7 +67,7 @@ mac2hex(const char *mac, u_char *dst, int len)
     }
 }
 
-/*
+/**
  * converts a string representation of TWO MAC addresses, which
  * are comma deliminated into two hex values.  Either *first or *second 
  * can be NULL if there is nothing before or after the comma.
@@ -111,7 +111,7 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
 
 }
 
-/*
+/**
  * Figures out if a MAC is listed in a comma delimited
  * string of MAC addresses.
  * returns TCPR_DIR_C2S if listed

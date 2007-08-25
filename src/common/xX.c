@@ -42,11 +42,10 @@
 #include "defines.h"
 #include "common.h"
 
-/*
+/**
  * returns the include_exclude_mode on success placing the CIDR or LIST in mybuf
  * but on failure, returns xXError
  */
-
 int
 parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
 {
@@ -116,12 +115,10 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
 
 
 
-/*
+/**
  * compare the source/destination IP address according to the mode
  * and return 1 if we should send the packet or 0 if not
  */
-
-
 int
 process_xX_by_cidr(int mode, tcpr_cidr_t * cidr, ipv4_hdr_t * ip_hdr)
 {

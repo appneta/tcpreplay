@@ -69,7 +69,7 @@ char *options_vec[OPTIONS_VEC_SIZE];
 static int tcpdump_fill_in_options(char *opt);
 static int can_exec(const char *filename);
 
-/*
+/**
  * given a packet, print a decode of via tcpdump
  */
 int
@@ -143,7 +143,7 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
     return TRUE;
 }
 
-/*
+/**
  * init our tcpdump handle using the given pcap handle
  * Basically, this starts up tcpdump as a child and communicates
  * to it via a pair of sockets (stdout/stdin)
@@ -256,7 +256,9 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
     return TRUE;
 }
 
-/* shutdown tcpdump */
+/**
+ * shutdown tcpdump 
+ */
 void
 tcpdump_close(tcpdump_t *tcpdump)
 {
@@ -280,7 +282,9 @@ tcpdump_close(tcpdump_t *tcpdump)
     tcpdump->outfd = 0;
 }
 
-/* forcefully kill tcpdump */
+/** 
+ * forcefully kill tcpdump 
+ */
 void
 tcpdump_kill(tcpdump_t *tcpdump)
 {
@@ -295,12 +299,11 @@ tcpdump_kill(tcpdump_t *tcpdump)
 }
 
 
-/* 
+/**
  * copy the string of args (*opt) to the vector (**opt_vec)
  * for a max of opt_len.  Returns the number of options
  * in the vector
  */
-
 static int
 tcpdump_fill_in_options(char *opt)
 {
@@ -358,7 +361,9 @@ tcpdump_fill_in_options(char *opt)
 }
 
 
-/* can we exec the given file? */
+/**
+ * can we exec the given file? 
+ */
 static int
 can_exec(const char *filename)
 {

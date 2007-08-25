@@ -166,7 +166,7 @@ static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 extern volatile int didsig;
 
 
-/*
+/**
  * returns number of bytes sent on success or -1 on error
  * Note: it is theoretically possible to get a return code >0 and < len
  * which for most people would be considered an error (the packet wasn't fully sent)
@@ -266,7 +266,11 @@ TRY_SEND_AGAIN:
     return retcode;
 }
 
-
+/**
+ * Open the given network device name and returns a sendpacket_t struct
+ * pass the error buffer (in case there's a problem) and the direction
+ * that this interface represents
+ */
 sendpacket_t *
 sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
 {
@@ -291,7 +295,9 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
     return sp;
 }
 
-
+/**
+ * Get packet stats for the given sendpacket_t
+ */
 char *
 sendpacket_getstat(sendpacket_t *sp)
 {
@@ -309,6 +315,9 @@ sendpacket_getstat(sendpacket_t *sp)
     return(buf);
 }
 
+/**
+ * close the given sendpacket
+ */
 int
 sendpacket_close(sendpacket_t *sp)
 {
@@ -318,7 +327,7 @@ sendpacket_close(sendpacket_t *sp)
     return 0;
 }
 
-/*
+/**
  * returns the Layer 2 address of the interface current 
  * open.  on error, return NULL
  */
@@ -344,7 +353,7 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
     return addr;
 }
 
-/*
+/**
  * returns the error string
  */
 char *
@@ -354,7 +363,7 @@ sendpacket_geterr(sendpacket_t *sp)
     return sp->errbuf;
 }
 
-/*
+/**
  * Set's the error string
  */
 static void
@@ -374,6 +383,9 @@ sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 
 
 #if defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET
+/**
+ * Inner sendpacket_open() method for using libpcap
+ */
 static sendpacket_t *
 sendpacket_open_pcap(const char *device, char *errbuf)
 {
@@ -406,6 +418,9 @@ sendpacket_open_pcap(const char *device, char *errbuf)
     return sp;
 }
 
+/**
+ * Get the hardware MAC address for the given interface using libpcap
+ */
 static struct tcpr_ether_addr *
 sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
 {
@@ -416,6 +431,9 @@ sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
 #endif /* HAVE_PCAP_INJECT || HAVE_PCAP_SENDPACKET */
 
 #if defined HAVE_LIBNET
+/**
+ * Inner sendpacket_open() method for using libnet
+ */
 static sendpacket_t * 
 sendpacket_open_libnet(const char *device, char *errbuf)
 {
@@ -436,6 +454,9 @@ sendpacket_open_libnet(const char *device, char *errbuf)
     return sp;    
 }
 
+/**
+ * Get the hardware MAC address for the given interface using libnet
+ */
 static struct tcpr_ether_addr *
 sendpacket_get_hwaddr_libnet(sendpacket_t *sp)
 {
@@ -455,6 +476,9 @@ sendpacket_get_hwaddr_libnet(sendpacket_t *sp)
 #endif /* HAVE_LIBNET */
 
 #if defined HAVE_PF_PACKET
+/**
+ * Inner sendpacket_open() method for using Linux's PF_PACKET
+ */
 static sendpacket_t *
 sendpacket_open_pf(const char *device, char *errbuf)
 {
@@ -554,7 +578,9 @@ sendpacket_open_pf(const char *device, char *errbuf)
     return sp;
 }
 
-/* get the interface index (necessary for sending packets w/ PF_PACKET) */
+/** 
+ * get the interface index (necessary for sending packets w/ PF_PACKET) 
+ */
 static int
 get_iface_index(int fd, const int8_t *device, char *errbuf) {
     struct ifreq ifr;
@@ -570,9 +596,8 @@ get_iface_index(int fd, const int8_t *device, char *errbuf) {
     return ifr.ifr_ifindex;
 }              
 
-/*
- * get's the hardware address via Linux's PF packet
- * interface
+/**
+ * get's the hardware address via Linux's PF packet interface
  */
 struct tcpr_ether_addr *
 sendpacket_get_hwaddr_pf(sendpacket_t *sp)
@@ -610,6 +635,9 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
 #endif /* HAVE_PF_PACKET */
 
 #if defined HAVE_BPF
+/**
+ * Inner sendpacket_open() method for using BSD's BPF interface
+ */
 static sendpacket_t *
 sendpacket_open_bpf(const char *device, char *errbuf)
 {
@@ -725,6 +753,9 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     return sp; 
 }
 
+/**
+ * Get the interface hardware MAC address when using BPF
+ */
 struct tcpr_ether_addr *
 sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
 {
@@ -773,7 +804,8 @@ sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
 
 #endif /* HAVE_BPF */
 
-/*
+/**
+ * Get the DLT type of the opened sendpacket
  * Return -1 if we can't figure it out, else return the DLT_ value
  */
 int 

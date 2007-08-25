@@ -40,7 +40,9 @@
 
 /* Miscellaneous timeval routines */
 
-/* Divide tvp by div, storing the result in tvp */
+/**
+ * Divide tvp by div, storing the result in tvp 
+ */
 void
 timerdiv(struct timeval *tvp, float div)
 {

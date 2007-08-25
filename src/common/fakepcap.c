@@ -45,6 +45,10 @@
 
 #ifndef HAVE_DLT_VAL_TO_DESC
 
+/**
+ * replacement for libpcap's pcap_datalink_val_to_description()
+ * which doesn't exist in all versions
+ */
 const char *
 pcap_datalink_val_to_description(int dlt)
 {
@@ -55,6 +59,10 @@ pcap_datalink_val_to_description(int dlt)
 
 }
 
+/**
+ * replacement for libpcap's pcap_datalink_val_to_name()
+ * which doesn't exist in all versions
+ */
 const char *
 pcap_datalink_val_to_name(int dlt)
 {

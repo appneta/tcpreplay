@@ -43,14 +43,17 @@
 
 #ifndef HAVE_PCAPNAV
 
-/* pcapnav_init does nothing!  */
+/**
+ * pcapnav_init does nothing!  
+ */
 void
 pcapnav_init(void)
 {
     return;
 }
 
-/* pcapnav_open_offline opens a pcap file, 
+/**
+ * pcapnav_open_offline opens a pcap file, 
  * and creates the struct for our use  
  */
 pcapnav_t *
@@ -72,7 +75,9 @@ pcapnav_open_offline(const char *filename)
     return (pcapnav);
 }
 
-/* closes our pcap file and free's the pcapnav */
+/**
+ * closes our pcap file and free's the pcapnav 
+ */
 void
 pcapnav_close(pcapnav_t * pcapnav)
 {
@@ -80,7 +85,9 @@ pcapnav_close(pcapnav_t * pcapnav)
     safe_free(pcapnav);
 }
 
-/* returns the pcap_t data struct */
+/**
+ * returns the pcap_t data struct 
+ */
 pcap_t *
 pcapnav_pcap(pcapnav_t * pcapnav)
 {

@@ -69,6 +69,10 @@ static void FAKEPOLL(int stop)
 
 #include "util.h"
 
+/**
+ * custom version of poll() using select() in the backend
+ * only used if you don't actually have poll on your system.
+ */
 int
 poll(struct pollfd *ufds, unsigned int nfds, int timeout)
 {

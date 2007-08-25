@@ -46,7 +46,7 @@ extern int debug;
 #endif
 
 
-/*
+/**
  * we've got a race condition, this is our workaround
  */
 void
@@ -57,7 +57,7 @@ catcher(int signo)
         didsig = 1;
 }
 
-/*
+/**
  * when we're sending only one packet at a time via <ENTER>
  * then there's no race and we can quit now
  * also called when didsig is set

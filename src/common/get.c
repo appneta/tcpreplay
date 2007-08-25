@@ -52,7 +52,7 @@ extern int debug;
 extern const char pcap_version[];
 #endif
 
-/*
+/**
  * Depending on what version of libpcap/WinPcap there are different ways to get the
  * version of the libpcap/WinPcap library.  This presents a unified way to get that
  * information.
@@ -83,7 +83,7 @@ get_pcap_version(void)
 
 
 
-/*
+/**
  * returns the L2 protocol (IP, ARP, etc)
  * or 0 for error
  */
@@ -136,7 +136,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 
 }
 
-/*
+/**
  * returns the length in number of bytes of the L2 header, or -1 on error
  */
 int
@@ -184,7 +184,7 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
     return -1; /* we shouldn't get here */
 }
 
-/*
+/**
  * returns a ptr to the ip header + data or NULL if it's not IP
  * we may use an extra buffer for the ip header (and above)
  * on stricly aligned systems where the layer 2 header doesn't
@@ -244,7 +244,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     return ip_hdr;
 }
 
-/*
+/**
  * returns a pointer to the layer 4 header which is just beyond the IP header
  */
 void *
@@ -258,7 +258,7 @@ get_layer4(const ipv4_hdr_t * ip_hdr)
     return ((void *)ptr);
 }
 
-/*
+/**
  * get_name2addr4()
  * stolen from LIBNET since I didn't want to have to deal with 
  * passing a libnet_t around.  Returns 0xFFFFFFFF (255.255.255.255)
@@ -336,6 +336,10 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
     }
 }
 
+/**
+ * Generic wrapper around inet_ntop() and inet_ntoa() depending on whichever
+ * is available on your system
+ */
 const char *
 get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
 {

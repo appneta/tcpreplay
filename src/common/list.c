@@ -49,6 +49,9 @@
 #include <errno.h>
 
 
+/**
+ * Creates a new tcpr_list entry.  Malloc's memory.
+ */
 tcpr_list_t *
 new_list()
 {
@@ -58,7 +61,7 @@ new_list()
     return (newlist);
 }
 
-/*
+/**
  * Processes a string (ourstr) containing the list in human readable
  * format and places the data in **list and finally returns 1 for 
  * success, 0 for fail.
@@ -153,7 +156,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
 
 
 
-/*
+/**
  * Checks to see if the given integer exists in the LIST.
  */
 tcpr_dir_t
@@ -190,7 +193,7 @@ check_list(tcpr_list_t * list, COUNTER value)
 }
 
 
-/*
+/**
  * Free's all the memory associated with the given LIST
  */
 void
