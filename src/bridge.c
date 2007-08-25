@@ -59,7 +59,7 @@ extern int debug;
 static int live_callback(struct live_data_t *,
                          struct pcap_pkthdr *, const u_char *);
 
-/*
+/**
  * First, prep our RB Tree which tracks where each (source)
  * MAC really lives so we don't create really nasty network
  * storms.  
@@ -77,12 +77,18 @@ rbmacsrc_comp(struct macsrc_t *a, struct macsrc_t *b)
 RB_PROTOTYPE(macsrc_tree, macsrc_t, node, rbmacsrc_comp)
 RB_GENERATE(macsrc_tree, macsrc_t, node, rbmacsrc_comp)
 
+/**
+ * redblack init
+ */
 void
 rbinit(void)
 {
     RB_INIT(&macsrc_root);
 }
 
+/**
+ * create a new node... Malloc's memory
+ */
 struct macsrc_t *
 new_node(void)
 {
@@ -95,10 +101,9 @@ new_node(void)
 }
 
 
-/*
+/**
  * main loop for bridging mode or unidir
  */
-
 void
 do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
 {
@@ -188,7 +193,7 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
 } /* do_bridge() */
 
 
-/*
+/**
  * This is the callback we use with pcap_dispatch to process
  * each packet recieved by libpcap on the two interfaces.
  */
@@ -321,7 +326,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
 
     return (1);
-}                               /* live_callback() */
+} /* live_callback() */
 
 /*
  Local Variables:

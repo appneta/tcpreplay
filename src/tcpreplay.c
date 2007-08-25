@@ -168,7 +168,7 @@ main(int argc, char *argv[])
 }                               /* main() */
 
 
-/* 
+/**
  * replay a pcap file out an interface
  */
 void
@@ -229,7 +229,7 @@ replay_file(int file_idx)
 #endif
 }
 
-/*
+/**
  * Initialize globals
  */
 void
@@ -262,7 +262,7 @@ init(void)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
 }
 
-/*
+/**
  * post processes the args and puts them into our options
  */
 void
@@ -321,7 +321,7 @@ post_args(void)
 		Check if the file cache should be enabled - if we're looping more than
 		once and the command line option has been spec'd
 	*/
-	if(HAVE_OPT(ENABLE_FILE_CACHE) && (options.loop != 1)) {
+	if (HAVE_OPT(ENABLE_FILE_CACHE) && (options.loop != 1)) {
 		options.enable_file_cache = TRUE;
 	}
 

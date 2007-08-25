@@ -30,15 +30,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-/*
- * Description: 
- *     This file contains routines relating to signals. 
- *
- * Modifications:
- *      01/24/2003  Added suspend signal support.
- */
-
 #include "config.h"
 #include "defines.h"
 #include "common.h"
@@ -58,7 +49,7 @@ struct timeval suspend_time;
 static struct timeval suspend_start;
 static struct timeval suspend_end;
 
-/*
+/**
  * init_signal_handlers - 
  *     Initialize signal handlers to be used in tcpreplay.
  */
@@ -71,7 +62,7 @@ init_signal_handlers()
     reset_suspend_time();
 }
 
-/*
+/**
  * reset_suspend_time -
  *     Reset time values for suspend signal.
  */
@@ -83,7 +74,7 @@ reset_suspend_time()
     timerclear(&suspend_end);
 }
 
-/*
+/**
  * suspend signal handler -
  *     Signal handler for signal SIGUSR1. SIGSTOP cannot be 
  * caught, so SIGUSR1 is caught and it throws SIGSTOP.
@@ -102,7 +93,7 @@ suspend_handler(int signo)
     kill(getpid(), SIGSTOP);
 }
 
-/*
+/**
  * continue_handler -
  *     Signal handler for continue signal.
  */

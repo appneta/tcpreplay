@@ -73,8 +73,8 @@ static void do_sleep(struct timeval *time, struct timeval *last, int len, int ac
 static u_int32_t sleep_loop(struct timeval time);
 static u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, packet_cache_t **prev_packet);
 
-/*
- * the main loop function.  This is where we figure out
+/**
+ * the main loop function for tcpreplay.  This is where we figure out
  * what to do with each packet
  */
 void
@@ -185,7 +185,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 	}
 }
 
-/*
+/**
  * Gets the next packet to be sent out. This will either read from the pcap file
  * or will retrieve the packet from the internal cache.
  *	
@@ -268,13 +268,12 @@ get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx,
 	return pktdata;
 }
 
-/*
+/**
  * determines based upon the cachedata which interface the given packet 
  * should go out.  Also rewrites any layer 2 data we might need to adjust.
  * Returns a void cased pointer to the options.intfX of the corresponding 
  * interface.
  */
-
 void *
 cache_mode(char *cachedata, COUNTER packet_num)
 {
@@ -305,7 +304,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
 }
 
 
-/*
+/**
  * Given the timestamp on the current packet and the last packet sent,
  * calculate the appropriate amount of time to sleep and do so.
  */
@@ -474,7 +473,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, send
 #endif
 }
 
-/*
+/**
  * this function will keep calling gettimeofday() until it returns
  * >= time.  This should be a lot more accurate then using nanosleep(),
  * but at the cost of being more CPU intensive.

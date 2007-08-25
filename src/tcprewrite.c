@@ -72,7 +72,8 @@ void post_args(int argc, char *argv[]);
 void verify_input_pcap(pcap_t *pcap);
 int rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
 
-int main(int argc, char *argv[])
+int 
+main(int argc, char *argv[])
 {
     int optct, rcode;
     pcap_t *dlt_pcap;
@@ -157,7 +158,9 @@ tcprewrite_init(void)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
 }
 
-
+/**
+ * post AutoGen argument processing
+ */
 void 
 post_args(_U_ int argc, _U_ char *argv[])
 {
@@ -186,6 +189,9 @@ post_args(_U_ int argc, _U_ char *argv[])
         errx(1, "Unable to open input pcap file: %s", ebuf);
 }
 
+/** 
+ * Main loop to rewrite packets
+ */
 int
 rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 {

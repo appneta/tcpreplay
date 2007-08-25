@@ -208,7 +208,7 @@ main(int argc, char *argv[])
 }
 
 
-/*
+/**
  * checks the dst port to see if this is destined for a server port.
  * returns 1 for true, 0 for false
  */
@@ -259,7 +259,7 @@ check_dst_port(ipv4_hdr_t *ip_hdr, int len)
 }
 
 
-/*
+/**
  * checks to see if an ip address matches a regex.  Returns 1 for true
  * 0 for false
  */
@@ -283,7 +283,7 @@ check_ip_regex(const unsigned long ip)
 
 }
 
-/*
+/**
  * uses libpcap library to parse the packets and build
  * the cache file.
  */
@@ -430,7 +430,7 @@ process_raw_packets(pcap_t * pcap)
     return packetnum;
 }
 
-/*
+/**
  * init our options
  */
 void 
@@ -448,7 +448,7 @@ init(void)
 
 }
 
-/* 
+/**
  * post process args
  */
 static void
@@ -550,7 +550,7 @@ post_args(int argc, char *argv[])
         err(1, "Ratio must be a non-negative number.");
 }
 
-/*
+/**
  * print the tcpprep cache file comment
  */
 static void
@@ -567,7 +567,7 @@ print_comment(const char *file)
     exit(0);
 }
 
-/*
+/**
  * prints out the cache file details
  */
 static void
@@ -599,6 +599,9 @@ print_info(const char *file)
     exit(0);
 }
 
+/**
+ * Print the per-packet statistics
+ */
 static void
 print_stats(const char *file)
 {

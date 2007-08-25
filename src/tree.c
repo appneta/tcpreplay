@@ -61,7 +61,7 @@ static int tree_checkincidr(tcpr_data_tree_t *, tcpr_buildcidr_t *);
 RB_PROTOTYPE(tcpr_data_tree_s, tcpr_tree_s, node, tree_comp)
 RB_GENERATE(tcpr_data_tree_s, tcpr_tree_s, node, tree_comp)
 
-/*
+/**
  * used with rbwalk to walk a tree and generate cidr_t * cidrdata.
  * is smart enough to prevent dupes.  void * arg is cast to bulidcidr_t
  */
@@ -101,7 +101,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 }
 
 
-/*
+/**
  * uses rbwalk to check to see if a given ip address of a given type in the
  * tree is inside any of the cidrdata
  */
@@ -129,13 +129,12 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
     return 0;
 }
 
-/*
+/**
  * processes the tree using rbwalk / tree2cidr to generate a CIDR
  * used for 2nd pass, router mode
  *
  * returns > 0 for success (the mask len), 0 for fail
  */
-
 int
 process_tree(void)
 {
@@ -192,7 +191,7 @@ tcpr_tree_to_cidr(const int masklen, const int type)
 }
  */
 
-/*
+/**
  * Checks to see if an IP is client or server by finding it in the tree
  * returns TCPR_DIR_C2S or TCPR_DIR_S2C or -1 on error
  * if mode = UNKNOWN, then abort on unknowns
@@ -266,10 +265,9 @@ check_ip_tree(const int mode, const unsigned long ip)
     }
 }
 
-/*
+/**
  * adds an entry to the tree (phase 1 of auto mode)
  */
-
 void
 add_tree(const unsigned long ip, const u_char * data)
 {
@@ -325,10 +323,9 @@ add_tree(const unsigned long ip, const u_char * data)
 }
 
 
-/*
- * calculates wether an IP is a client, server, or unknown for each node in the tree
+/**
+ * calculates wether each node in the tree is a client, server, or unknown for each node in the tree
  */
-
 void
 tree_calculate(tcpr_data_tree_t *treeroot)
 {
@@ -359,7 +356,7 @@ tree_calculate(tcpr_data_tree_t *treeroot)
     }
 }
 
-/*
+/**
  * tree_comp(), called by rbsearch compares two treees and returns:
  * 1  = first > second
  * -1 = first < second
@@ -390,10 +387,9 @@ tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
 
 }
 
-/*
+/**
  * creates a new TREE * with reasonable defaults
  */
-
 static tcpr_tree_t *
 new_tree()
 {
@@ -411,13 +407,12 @@ new_tree()
 }
 
 
-/*
+/**
  * returns a struct of TREE * from a packet header
  * and sets the type to be SERVER or CLIENT or UNKNOWN
  * if it's an undefined packet, we return -1 for the type
  * the u_char * data should be the data that is passed by pcap_dispatch()
  */
-
 tcpr_tree_t *
 packet2tree(const u_char * data)
 {
@@ -564,10 +559,9 @@ packet2tree(const u_char * data)
 }
 
 
-/*
+/**
  * prints out a node of the tree to stderr
  */
-
 static char *
 tree_printnode(const char *name, const tcpr_tree_t *node)
 {
@@ -593,10 +587,9 @@ tree_printnode(const char *name, const tcpr_tree_t *node)
     return (tree_print_buff);
 }
 
-/*
+/**
  * prints out the entire tree
  */
-
 static char *
 tree_print(tcpr_data_tree_t *treeroot)
 {
