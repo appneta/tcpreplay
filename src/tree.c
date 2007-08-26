@@ -174,7 +174,8 @@ process_tree(void)
 
     safe_free(bcdata);
     /* we failed to find a vaild cidr list */
-    notice("Unable to determine any IP addresses as a clients");
+    notice("Unable to determine any IP addresses as a clients.");
+    notice("Perhaps you should change the --ratio, --minmask/maxmask settings, or try another mode?");
     return (0);
 }
 
