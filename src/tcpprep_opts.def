@@ -100,6 +100,9 @@ flag = {
     else if (strcmp(OPT_ARG(AUTO), "server") == 0) {
         options.automode = SERVER_MODE;
     }
+    else if (strcmp(OPT_ARG(AUTO), "first") == 0) {
+        options.automode = FIRST_MODE;
+    }
     else {
         errx(1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
     }
@@ -132,6 +135,13 @@ treated as clients.  Client mode should always complete successfully.
 @var{server}
 Server mode works just like bridge mode, except that unclassified systems are
 treated as servers.  Server mode should always complete successfully.
+@item
+@var{first}
+First mode works by looking at the first time each IP is seen in the SRC and DST
+fields in the IP header.  If the host is first seen in the SRC field, it is a 
+client and if it's first seen in the DST field, it is marked as a server.   This 
+effectively replicates the processing of the tomahawk test tool.  First
+mode should always complete successfully.
 @end table
 EOText;
 };

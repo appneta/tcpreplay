@@ -52,6 +52,7 @@ standard_prep:
 	$(TCPPREP) -i test.pcap -o test.auto_bridge -a bridge
 	$(TCPPREP) -i test.pcap -o test.auto_client -a client
 	$(TCPPREP) -i test.pcap -o test.auto_server -a server
+	$(TCPPREP) -i test.pcap -o test.auto_first -a first
 	$(TCPPREP) --load-opts config -o test.prep_config
 	$(TCPPREP) -i test.pcap -o test.port -p
 	$(TCPPREP) -i test.pcap -o test.mac -e 00:02:3b:00:3d:ce
@@ -112,8 +113,8 @@ standard_littleendian:
 		--enet-vlan=del
 
 
-tcpprep: auto_router auto_bridge auto_client auto_server cidr regex port \
-	mac comment print_info print_comment prep_config
+tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
+	port mac comment print_info print_comment prep_config 
 tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
 	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel
@@ -152,6 +153,13 @@ auto_server:
 	$(PRINTF) "%s" "[tcpprep] Auto/Server mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Server mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a server 2>>test.log
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+auto_first:
+	$(PRINTF) "%s" "[tcpprep] Auto/First mode test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] Auto/First mode test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a first 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 

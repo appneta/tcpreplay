@@ -266,13 +266,71 @@ check_ip_tree(const int mode, const unsigned long ip)
 }
 
 /**
- * adds an entry to the tree (phase 1 of auto mode)
+ * Parses the IP header of the given packet (data) to get the SRC/DST IP 
+ * addresses.  If the SRC IP doesn't exist in the TREE, we add it as a
+ * client, if the DST IP doesn't exist in the TREE, we add it as a server
+ */
+void
+add_tree_first(const u_char *data)
+{
+    tcpr_tree_t *newnode = NULL, *findnode;
+    eth_hdr_t *eth_hdr = NULL;
+    ipv4_hdr_t ip_hdr;
+    
+    assert(data);
+    /* 
+     * first add/find the source IP/client 
+     */
+    newnode = new_tree();
+
+    eth_hdr = (eth_hdr_t *) (data);
+    /* prevent issues with byte alignment, must memcpy */
+    memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
+
+    /* copy over the source ip, and values to gurantee this a client */
+    newnode->ip = ip_hdr.ip_src.s_addr;
+    newnode->type = DIR_CLIENT;
+    newnode->client_cnt = 1000;
+    findnode = RB_FIND(tcpr_data_tree_s, &treeroot, newnode);
+    
+    /* if we didn't find it, add it to the tree, else free it */
+    if (findnode == NULL) {
+        RB_INSERT(tcpr_data_tree_s, &treeroot, newnode);
+    } else {
+        safe_free(newnode);
+    }
+    
+    /*
+     * now add/find the destination IP/server
+     */
+    newnode = new_tree();
+    eth_hdr = (eth_hdr_t *) (data);
+    memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
+
+    newnode->ip = ip_hdr.ip_dst.s_addr;
+    newnode->type = DIR_SERVER;
+    newnode->server_cnt = 1000;
+    findnode = RB_FIND(tcpr_data_tree_s, &treeroot, newnode);
+
+    if (findnode == NULL) {
+        RB_INSERT(tcpr_data_tree_s, &treeroot, newnode);
+    } else {
+        safe_free(newnode);
+    }
+}
+
+/**
+ * adds an entry to the tree (phase 1 of auto mode).  We add each host
+ * to the tree if it doesn't yet exist.  We go through and track:
+ * - number of times each host acts as a client or server
+ * - the way the host acted the first time we saw it (client or server)
  */
 void
 add_tree(const unsigned long ip, const u_char * data)
 {
     tcpr_tree_t *node = NULL, *newnode = NULL;
-
+    assert(data);
+    
     newnode = packet2tree(data);
 
     assert(ip == newnode->ip);
@@ -314,6 +372,7 @@ add_tree(const unsigned long ip, const u_char * data)
             /* temp debug code */
             node->client_cnt++;
         }
+                    
         /* didn't insert it, so free it */
         safe_free(newnode);
     }
@@ -553,7 +612,6 @@ packet2tree(const u_char * data)
         }
 
     }
-
 
     return (node);
 }

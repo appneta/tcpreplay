@@ -101,7 +101,7 @@ main(int argc, char *argv[])
     char errbuf[PCAP_ERRBUF_SIZE];
     int optct = 0;
  
-    init();                     /* init our globals */
+    init(); /* init our globals */
     
     optct = optionProcess(&tcpprepOptions, argc, argv);
     post_args(argc, argv);
@@ -364,7 +364,7 @@ process_raw_packets(pcap_t * pcap)
         case CIDR_MODE:
             dbg(2, "processing cidr mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C );
+                check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C );
             break;
         case MAC_MODE:
             dbg(2, "processing mac mode...");
@@ -374,7 +374,11 @@ process_raw_packets(pcap_t * pcap)
         case AUTO_MODE:
             dbg(2, "processing first pass of auto mode...");
             /* first run through in auto mode: create tree */
-            add_tree(ip_hdr->ip_src.s_addr, pktdata);
+            if (options.automode != FIRST_MODE) {
+                add_tree(ip_hdr->ip_src.s_addr, pktdata);
+            } else {
+                add_tree_first(pktdata);
+            }  
             break;
         case ROUTER_MODE:
             /* 
@@ -383,7 +387,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: router mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_tree(options.nonip, ip_hdr->ip_src.s_addr));
+                check_ip_tree(options.nonip, ip_hdr->ip_src.s_addr));
             break;
         case BRIDGE_MODE:
             /*
@@ -392,7 +396,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: bridge mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
+                check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
         case SERVER_MODE:
             /* 
@@ -401,7 +405,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: server mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_tree(DIR_SERVER, ip_hdr->ip_src.s_addr));
+                check_ip_tree(DIR_SERVER, ip_hdr->ip_src.s_addr));
             break;
         case CLIENT_MODE:
             /* 
@@ -410,7 +414,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: client mode...");
             cache_result = add_cache(&options.cachedata, SEND,
-                      check_ip_tree(DIR_CLIENT, ip_hdr->ip_src.s_addr));
+                check_ip_tree(DIR_CLIENT, ip_hdr->ip_src.s_addr));
             break;
         case PORT_MODE:
             /*
@@ -418,7 +422,16 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing port mode...");
             cache_result = add_cache(&options.cachedata, SEND, 
-                      check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
+                check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
+            break;
+        case FIRST_MODE:
+            /*
+             * First packet mode, looks at each host and picks clients
+             * by the ones which send the first packet in a session
+             */
+            dbg(2, "processing second pass of auto: first packet mode...");
+            cache_result = add_cache(&options.cachedata, SEND,
+                check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
         }
 #ifdef ENABLE_VERBOSE

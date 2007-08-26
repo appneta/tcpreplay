@@ -146,11 +146,12 @@ enum tcpprep_mode {
 	REGEX_MODE,		/* single pass, regex */
 	PORT_MODE,		/* single pass, use src/dst ports to split */
 	MAC_MODE,		/* single pass, use src mac to split */
+	FIRST_MODE,     /* single pass, use first seen to split */
 	AUTO_MODE,		/* first pass through in auto mode */
 	ROUTER_MODE,	/* second pass through in router mode */
 	BRIDGE_MODE,	/* second pass through in bridge mode */
 	SERVER_MODE,	/* second pass through in server (router) mode */
-	CLIENT_MODE		/* second pass through in client (router) mode */
+	CLIENT_MODE 	/* second pass through in client (router) mode */
 };
 
 #define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
