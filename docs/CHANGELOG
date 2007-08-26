@@ -1,5 +1,17 @@
 $Id$
 
+08/26/2007: Version 3.2
+    - Return a more useful error message when tcpprep fails (#187)
+    - Add Tomahawk test tool client/server detection algorithm (#186)
+    - Improved AutoGen support (#191)
+    - Improved documentation (#164, #198)
+    - Added Doxygen markup (#176)
+    - configure now honors --with-tcpdump flag (#192)
+    - configure now defaults to --enable-64bits which breaks backwards 
+        compatibility in certain situations.  Use --disable-64bits if this
+        concerns you (#195)
+    - Use safe_free() to detect bugs earlier in development (#197)
+
 07/19/2007: Version 3.1.1
     - Upgrade libopts tearoff to 29:0:4 so that everyone else in the world can
       compile tcpreplay (#189)
