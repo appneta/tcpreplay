@@ -85,7 +85,7 @@ AC_DEFUN([INVOKE_LIBOPTS_MACROS_FIRST],[
   # ----------------------------------------------------------------------
   AC_CHECK_LIB(gen, pathfind)
   AC_FUNC_VPRINTF
-  AC_CHECK_FUNCS([mmap canonicalize_file_name snprintf strdup strchr strrchr])
+  AC_CHECK_FUNCS([strsignal mmap canonicalize_file_name snprintf strdup strchr strrchr])
 [  INVOKE_LIBOPTS_MACROS_FIRST_done=yes
 fi]])
 
