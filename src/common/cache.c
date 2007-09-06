@@ -317,18 +317,15 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
             dbgx(2, "don't set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
             result = TCPR_DIR_S2C;
         }
-        dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c",
 
-            /* 
-             * only build the byte string when not in debug mode since
-             * the calculation is a bit expensive
-             */
 #ifdef DEBUG
-            BIT_STR(byte2bits(*byte, bitstring))
-#else
-            EIGHT_ZEROS
+        /* 
+         * only build the byte string when not in debug mode since
+         * the calculation is a bit expensive
+         */
+        dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c",
+            BIT_STR(byte2bits(*byte, bitstring)));
 #endif
-            );
     }
     else {
         dbg(1, "not setting send bit");
@@ -357,8 +354,10 @@ check_cache(char *cachedata, COUNTER packetid)
     bit = (u_int32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
         (COUNTER)CACHE_BITS_PER_PACKET) + 1;
 
+#ifdef DEBUG
     dbgx(3, "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
         cachedata[index], (cachedata[index] & (char)(1 << bit)));
+#endif
 
     if (!(cachedata[index] & (char)(1 << bit))) {
         return TCPR_DIR_NOSEND;
