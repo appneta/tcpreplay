@@ -256,7 +256,7 @@ new_cache(void)
 tcpr_dir_t
 add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 {
-    tcpr_cache_t *lastcache = NULL;
+    static tcpr_cache_t *lastcache = NULL;
     u_char *byte = NULL;
     u_int32_t bit;
     tcpr_dir_t result = TCPR_DIR_ERROR;
@@ -273,12 +273,6 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
         lastcache = *cachedata;
     }
     else {
-        lastcache = *cachedata;
-        /* existing cache, go to last entry */
-        while (lastcache->next != NULL) {
-            lastcache = lastcache->next;
-        }
-
         /* check to see if this is the last bit in this struct */
         if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
             /*
