@@ -307,17 +307,6 @@ if test x$inet_addr = no ; then
     AC_MSG_ERROR([We need inet_addr.  See bug 26])
 fi
 
-dnl Enable flowreplay
-flowreplay=no
-AC_ARG_ENABLE(flowreplay,
-    AC_HELP_STRING([--enable-flowreplay], [Enable building flowreplay (alpha)]),
-    [ if test x$enableval = xyes; then
-         flowreplay=yes
-         AC_DEFINE([ENABLE_FLOWREPLAY], [1], [Enable building flowreplay (alpha)]) 
-      fi])
-
-AM_CONDITIONAL([ENABLE_FLOWREPLAY], [test x$flowreplay = xyes])
-
 dnl ##################################################
 dnl Checks for libnet IFF you specify --enable-libnet.
 dnl We no longer by default use libnet unless you tell me to.
@@ -1138,7 +1127,6 @@ AC_OUTPUT([Makefile
            src/Makefile
            src/common/Makefile
            src/tcpedit/Makefile
-           src/flow/Makefile
            src/defines.h
            test/Makefile
            test/config
