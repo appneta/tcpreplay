@@ -131,10 +131,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
 
     /* does packet have an IP header?  if so set our pointer to it */
-    if (l2proto == ETHERTYPE_IP) {
+    if (l2proto == htons(ETHERTYPE_IP)) {
         ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
         if (ip_hdr == NULL) {
-            return -1;
+            return TCPEDIT_ERROR;
         }        
         dbg(3, "Packet has an IPv4 header...");
     } else {
@@ -148,33 +148,33 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         /* IP packets */
         if (ip_hdr != NULL) {
             if ((retval = rewrite_ipv4l3(tcpedit, ip_hdr, direction)) < 0)
-                return -1;
+                return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
 
         /* ARP packets */
-        else if (l2proto == ETHERTYPE_ARP) {
+        else if (l2proto == htons(ETHERTYPE_ARP)) {
             arp_hdr = (arp_hdr_t *)(&(*pktdata)[l2len]);
             /* unlike, rewrite_ipl3, we don't care if the packet changed
              * because we never need to recalc the checksums for an ARP
              * packet.  So ignore the return value
              */
             if (rewrite_iparp(tcpedit, arp_hdr, direction) < 0)
-                return -1;
+                return TCPEDIT_ERROR;
         }
     }
 
     /* rewrite ports */
     if (tcpedit->portmap != NULL && (ip_hdr != NULL)) {
         if ((retval = rewrite_ports(tcpedit, &ip_hdr)) < 0)
-            return -1;
+            return TCPEDIT_ERROR;
         needtorecalc += retval;
     }
 
     /* Untruncate packet? Only for IP packets */
     if ((tcpedit->fixlen) && (ip_hdr != NULL)) {
         if ((retval = untrunc_packet(tcpedit, *pkthdr, *pktdata, ip_hdr)) < 0)
-            return -1;
+            return TCPEDIT_ERROR;
         needtorecalc += retval;
     }
 
@@ -184,17 +184,17 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         if (ip_hdr != NULL) {
             if ((retval = randomize_ipv4(tcpedit, *pkthdr, *pktdata, 
                     ip_hdr)) < 0)
-                return -1;
+                return TCPEDIT_ERROR;
             needtorecalc += retval;
         } else {
             if (direction == TCPR_DIR_C2S) {
                 if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
                         tcpedit->runtime.dlt1) < 0)
-                    return -1;
+                    return TCPEDIT_ERROR;
             } else {
                 if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
                         tcpedit->runtime.dlt2) < 0)
-                    return -1;
+                    return TCPEDIT_ERROR;
             }
         }
     }

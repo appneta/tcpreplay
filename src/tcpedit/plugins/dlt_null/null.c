@@ -257,7 +257,7 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_ERROR;
     }
     
-    return protocol; 
+    return htons(protocol);
 }
 
 /*

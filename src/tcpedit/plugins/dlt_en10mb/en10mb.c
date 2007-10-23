@@ -304,7 +304,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     /* get the L3 protocol type  & L2 len*/
     switch (eth->ether_type) {
-        case ETHERTYPE_VLAN:
+        case htons(ETHERTYPE_VLAN):
             vlan = (struct tcpr_802_1q_hdr *)packet;
             ctx->proto = vlan->vlan_len;
             
@@ -518,13 +518,13 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (eth->ether_type) {
-        case ETHERTYPE_VLAN:
+        case htons(ETHERTYPE_VLAN):
             vlan = (struct tcpr_802_1q_hdr *)packet;
-            return ntohs(vlan->vlan_len);
+            return vlan->vlan_len;
             break;
         
         default:
-            return ntohs(eth->ether_type);
+            return eth->ether_type;
             break;
     }
     return TCPEDIT_ERROR;
@@ -609,7 +609,7 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (eth->ether_type) {
-        case ETHERTYPE_VLAN:
+        case htons(ETHERTYPE_VLAN):
             return 18;
             break;
         

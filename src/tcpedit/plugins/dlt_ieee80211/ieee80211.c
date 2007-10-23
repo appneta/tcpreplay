@@ -236,8 +236,6 @@ dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr
 
 /*
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
- * Make sure you return this in host byte order since all the comparisions will be
- * against the ETHERTYPE_* values which are oddly in host byte order.
  */
 int 
 dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
@@ -253,7 +251,7 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     protocol = (u_int16_t)packet[l2len - 2];
     
-    return ntohs(protocol);
+    return protocol;
 }
 
 /*

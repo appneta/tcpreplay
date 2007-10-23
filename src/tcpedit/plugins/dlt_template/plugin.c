@@ -221,8 +221,7 @@ dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr
 
 /*
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
- * Make sure you return this in host byte order since all the comparisions will be
- * against the ETHERTYPE_* values which are oddly in host byte order.
+ * Make sure you return this value in NETWORK byte order!
  */
 int 
 dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
@@ -234,7 +233,7 @@ dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     /* FIXME: make this function work */
     
-    return ntohs(protocol);
+    return protocol;
 }
 
 /*
