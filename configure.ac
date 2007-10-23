@@ -294,10 +294,6 @@ if test "$inet_ntop" = "no" -a "$inet_pton" = "no" ; then
 	AC_MSG_ERROR([We need either inet_ntop or inet_pton])
 fi
 
-if test "$inet_aton" = "no" ; then
-    AC_MSG_ERROR([We need inet_aton])
-fi
-
 AC_CHECK_FUNC(inet_addr, 
     AC_DEFINE([HAVE_INET_ADDR], [1], [Do we have inet_addr?]) 
     inet_addr=yes, 

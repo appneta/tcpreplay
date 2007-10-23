@@ -58,6 +58,12 @@ void _our_safe_free(void *ptr, const char *, const int, const char *);
 
 #define MAX_ARGS 128
 
+#ifndef HAVE_INET_ATON
+#define HAVE_INET_ATON
+#define USE_CUSTOM_INET_ATON
+int inet_aton(const char *name, struct in_addr *addr);
+#endif
+
 #endif
 
 /*
