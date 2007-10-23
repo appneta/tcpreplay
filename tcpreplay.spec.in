@@ -20,8 +20,7 @@ URL: http://tcpreplay.sf.net/
 Tcpreplay is a suite of tools to edit and replay captured network traffic.
 The tcpreplay suite includes tcpprep to pre-process pcap files, tcprewrite a
 pcap editor and tcpreplay to send packets.  Also included is tcpbridge which
-is a user-space bridge and flowreplay, a client-side agent using pcap files
-as the basis of connections.
+is a user-space bridge.
 
 %prep
 %setup -q
@@ -39,13 +38,11 @@ mkdir -p $RPM_BUILD_ROOT%{_bindir}
 mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
 install -m755 src/tcpreplay $RPM_BUILD_ROOT%{_bindir} 
 install -m755 src/tcpprep $RPM_BUILD_ROOT%{_bindir} 
-install -m755 src/flowreplay $RPM_BUILD_ROOT%{_bindir}
 install -m755 src/tcpbridge $RPM_BUILD_ROOT%{_bindir}
 install -m755 src/tcprewrite $RPM_BUILD_ROOT%{_bindir}
 
 install -m644 man/tcpreplay.1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -m644 man/tcpprep.1 $RPM_BUILD_ROOT%{_mandir}/man1
-install -m644 man/flowreplay.1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -m644 man/tcpbridge.1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -m644 man/tcprewrite.1 $RPM_BUILD_ROOT%{_mandir}/man1
 
@@ -55,7 +52,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %files
 %defattr(-,root,root)
 %doc	docs/CHANGELOG docs/LICENSE docs/README docs/TODO docs/CREDIT \
-    docs/NOTES docs/INSTALL docs/FAQ.pdf docs/manual.pdf docs/flowreplay.pdf
+    docs/NOTES docs/INSTALL docs/FAQ.pdf docs/manual.pdf
 %{_bindir}/*
 %{_mandir}/man1/*
 
