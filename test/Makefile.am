@@ -321,7 +321,7 @@ endif
 rewrite_config:
 	$(PRINTF) "%s" "[tcprewrite] Config/VLAN Add test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Config/VLAN Add test: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_config1 --load-opts config
+	$(TCPREWRITE) --load-opts config
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
