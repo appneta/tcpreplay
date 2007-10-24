@@ -83,24 +83,24 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     assert(*pktdata);
     assert(tcpedit->validated);
 
- 
+
     tcpedit->runtime.packetnum++;
     dbgx(2, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
-            
-   /* 
-     * if we are padding out the packet, we need to move the packet 
-     * data to a different buffer because the incoming **pktdata buffer
-     * most likely isn't big enough for the extra padding
+
+    /* 
+     * copy over our packet data.  Necessary because many options like padding or 
+     * adding VLAN tags makes the packet size increase and we'll get segfaults 
+     * later on
      */
-    if (HAVE_OPT(FIXLEN) && strcmp(OPT_ARG(FIXLEN), "pad") == 0) {
-        /* allocate our buffer the first time */
-        if (packet == NULL)
-            packet = safe_malloc(MAX_SNAPLEN);
-    
-        memcpy(packet, *pktdata, (*pkthdr)->caplen);
-        *pktdata = packet;
-    }
+            
+    /* allocate our buffer the first time */
+    if (packet == NULL)
+        packet = safe_malloc(MAX_SNAPLEN);
+
+    /* and copy over the packet data... */
+    memcpy(packet, *pktdata, (*pkthdr)->caplen);
+    *pktdata = packet;
     
     /*
      * remove the Ethernet FCS (checksum)?
