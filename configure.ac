@@ -160,7 +160,7 @@ AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
 
-AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strchr strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf])
+AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strchr strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf strsignal])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
