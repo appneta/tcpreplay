@@ -1,5 +1,14 @@
 $Id$
 
+10/25/2007: Version 3.2.1
+    - Fix tcprewrite segfault in 'make test' under Linux (#200)
+    - Major performance improvement in tcpprep for large pcaps (#261)
+    - Fix strsignal already defined error under Cygwin/Windows (#199)
+    - Fix compile errors for older versions of GCC (#201)
+    - Remove flowreplay code (#262)
+    - Fix DLT rewrite code causing corrupted ethernet protocol type (#268)
+    - Try to fix inet_aton() issue under Solaris (#260)
+    
 08/26/2007: Version 3.2
     - Return a more useful error message when tcpprep fails (#187)
     - Add Tomahawk test tool client/server detection algorithm (#186)
