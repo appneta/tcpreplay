@@ -100,6 +100,10 @@ get_interface_list(void)
     list_ptr = list_head;
     
     while (pcap_if_ptr != NULL) {
+        if (i > 0) {
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+        }
         strlcpy(list_ptr->name, pcap_if_ptr->name, sizeof(list_ptr->name));
         
         /* description is usually null under Unix */
@@ -109,10 +113,7 @@ get_interface_list(void)
         sprintf(list_ptr->alias, "%%%d", i++);
         list_ptr->flags = pcap_if_ptr->flags;
         pcap_if_ptr = pcap_if_ptr->next;
-        list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
-        list_ptr = list_ptr->next;
     }
-    safe_free(list_ptr); /* free the last entry which was never used */
     pcap_freealldevs(pcap_if);
     return(list_head);
 }
