@@ -1,5 +1,13 @@
 $Id$
 
+11/01/2007: Version 3.2.3
+    - Fix compile issue under Linux and other OS's (#275)
+    
+10/31/2007: Version 3.2.2
+    - Enable source MAC spoofing for OS X (#142, #151)
+        * Tcpreplay now requires OS X 10.5 (Leopard)
+    - Fix crash/memory access error with tcpreplay -N (#273)
+
 10/25/2007: Version 3.2.1
     - Fix tcprewrite segfault in 'make test' under Linux (#200)
     - Major performance improvement in tcpprep for large pcaps (#261)
@@ -86,9 +94,9 @@ $Id$
 03/22/2007: Version 3.0.beta13
 	- Fixed detection of IPv4 packets in libtcpedit on little-endian boxes (#115, #116)
     - Fixed TCP/UDP checksum calculation on little-endian boxes (#126)
-    - Added –-quiet flag to tcpreplay for Lothar (#109)
-    - The –-seed flag should now generate the same IP’s on both little-endian & big-endian boxes (#65)
-    - The –-skipl2broadcast flag now works as documented (#112)
+    - Added --quiet flag to tcpreplay for Lothar (#109)
+    - The --seed flag should now generate the same IPs on both little-endian & big-endian boxes (#65)
+    - The --skipl2broadcast flag now works as documented (#112)
     - Adding L2 header for DLT_RAW encapsulated packets now works (#16)
     - Clean up documentation (#66, #75)
     - Start initial support for Win32 port (#110, #111)

@@ -391,10 +391,11 @@ sendpacket_open_pcap(const char *device, char *errbuf)
 {
     pcap_t *pcap;
     sendpacket_t *sp;
-/*
+#ifdef BIOCSHDRCMPLT
     u_int spoof_eth_src = 1;
     int fd;
- */
+#endif
+
     assert(device);
     assert(errbuf);
 
@@ -407,14 +408,16 @@ sendpacket_open_pcap(const char *device, char *errbuf)
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.pcap = pcap;
-
-/*
-    fd = pcap_get_selectable_fd(pcap);
-    if (ioctl(fd, BIOCSHDRCMPLT, &spoof_eth_src) == -1) {
-        errx(1, "Unable to enable source MAC spoof support: %s", strerror(errno));
-    }
- */
     
+#ifdef BIOCSHDRCMPLT
+    /* 
+     * Only systems using BPF on the backend need this... 
+     * other systems don't have ioctl and will get compile errors.
+     */
+    fd = pcap_get_selectable_fd(pcap);
+    if (ioctl(fd, BIOCSHDRCMPLT, &spoof_eth_src) == -1)
+        errx(1, "Unable to enable source MAC spoof support: %s", strerror(errno));
+#endif
     return sp;
 }
 
@@ -647,7 +650,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     struct ifreq ifr;
     struct bpf_version bv;
     u_int v;
-#if defined(BIOCGHDRCMPLT) && defined(BIOCSHDRCMPLT) && !(__APPLE__)
+#if defined(BIOCGHDRCMPLT) && defined(BIOCSHDRCMPLT)
     u_int spoof_eth_src = 1;
 #endif
     
@@ -704,7 +707,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
      *  NetBSD and FreeBSD BPF have an ioctl for enabling/disabling
      *  automatic filling of the link level source address.
      */
-#if defined(BIOCGHDRCMPLT) && defined(BIOCSHDRCMPLT) && !(__APPLE__)
+#if defined(BIOCGHDRCMPLT) && defined(BIOCSHDRCMPLT)
     if (ioctl(mysocket, BIOCSHDRCMPLT, &spoof_eth_src) == -1) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
             "Unable to enable spoofing src MAC: %s", strerror(errno));
