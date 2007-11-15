@@ -1,13 +1,13 @@
 $Id$
 This document attempts to explain how to get tcpreplay compiled and running
 under Windows.  Please note that this document is a work in progress and
-Windows support in general considered BETA right now.
+Windows support in general considered EXPERIMENTAL right now.
 
 
 Background:
 
 Tcpreplay is not a native Win32 application right now.  Hence it requires
-the Cygwin. (http://www.cygwin.com).  Cygwin creates a Linux-like environment
+Cygwin. (http://www.cygwin.com).  Cygwin creates a Linux-like environment
 on your Windows system which allows Linux/UNIX programs to run after a
 recompile.
 
@@ -28,12 +28,17 @@ What you will need:
 - Cygwin environment
 - GCC compiler and system header files
 - WinPcap 4.0 DLL
-- WinPcap 4.0 Developer Pack (headers, etc)
+- WinPcap 4.0 Developer Pack aka WpdPack (headers, etc)
 
 Additional requirements if building from SVN:
 - GNU build chain tools (Autoconf, Automake, Autoheader)
 - GNU Autogen
 
+******************************* IMPORTANT ******************************
+Note: People have reported problems with WpdPack (the developer pack for
+Winpcap) being installed outside of the Cygwin root directory.  Hence, I
+strongly recommend you install WpdPack under the Cygwin root.
+******************************* IMPORTANT ******************************
 
 Directions:
 - Install all the requirements
@@ -42,6 +47,11 @@ Directions:
 
 - If you checked out the code from SVN, run the autogen.sh bootstrapper:
 	./autogen.sh
+
+    NOTE: I have a lot of problems building tcpreplay from SVN.  There's some
+    weird issue with Autogen and files which creates phantom files on the file
+    system and creates all kinds of problems.  Hence, I *HIGHLY* recommend you
+    grab a release tarball from the download page.
 
 - Configure tcpreplay:
 	./configure --with-libpcap=<path to winpcap> --enable-debug
