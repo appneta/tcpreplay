@@ -42,6 +42,9 @@
 #include <dmalloc.h>
 #endif
 
+#ifdef ENABLE_FRAGROUTE
+#include "fragroute/fragroute.h"
+#endif
 
 /* runtime options */
 struct tcprewrite_opt_s {
@@ -62,6 +65,15 @@ struct tcprewrite_opt_s {
     /* tcpdump verbose printing */
     int verbose;
     char *tcpdump_args;
+#endif
+
+#ifdef ENABLE_FRAGROUTE
+    char *fragroute_args;
+    fragroute_t *frag_ctx;
+#define FRAGROUTE_DIR_C2S  1
+#define FRAGROUTE_DIR_S2C  2
+#define FRAGROUTE_DIR_BOTH 4
+    int fragroute_dir;
 #endif
     tcpedit_t *tcpedit;
 };

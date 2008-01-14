@@ -77,7 +77,7 @@ main(int argc, char *argv[])
 {
     int optct, rcode;
     pcap_t *dlt_pcap;
-    
+    char ebuf[FRAGROUTE_ERRBUF_LEN];
     tcprewrite_init();
 
     /* call autoopts to process arguments */
@@ -116,6 +116,11 @@ main(int argc, char *argv[])
 
     dbgx(1, "DLT of dlt_pcap is %s",
         pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
+
+    if (options.fragroute_args) {
+        if ((options.frag_ctx = fragroute_init(65535, options.fragroute_args, ebuf)) == NULL)
+            errx(1, "%s", ebuf);
+    }
 
 #ifdef ENABLE_VERBOSE
     if (options.verbose) {
@@ -186,6 +191,25 @@ post_args(_U_ int argc, _U_ char *argv[])
         tcpdump.args = safe_strdup(OPT_ARG(DECODE));    
 #endif
 
+
+#ifdef ENABLE_FRAGROUTE
+    if (HAVE_OPT(FRAGROUTE))
+        options.fragroute_args = safe_strdup(OPT_ARG(FRAGROUTE));
+    
+    options.fragroute_dir = FRAGROUTE_DIR_BOTH;
+    if (HAVE_OPT(FRAGDIR)) {
+        if (strcmp(OPT_ARG(FRAGDIR), "c2s") == 0) {
+            options.fragroute_dir = FRAGROUTE_DIR_C2S;
+        } else if (strcmp(OPT_ARG(FRAGDIR), "s2c") == 0) {
+            options.fragroute_dir = FRAGROUTE_DIR_S2C;
+        } else if (strcmp(OPT_ARG(FRAGDIR), "both") == 0) {
+            options.fragroute_dir = FRAGROUTE_DIR_BOTH;
+        } else {
+            errx(1, "Unknown --fragdir value: %s", OPT_ARG(FRAGDIR));
+        }
+    }
+#endif
+
     /* open up the input file */
     options.infile = safe_strdup(OPT_ARG(INFILE));
     if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
@@ -202,8 +226,9 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     struct pcap_pkthdr pkthdr, *pkthdr_ptr;     /* packet header */
     const u_char *pktdata = NULL;               /* packet from libpcap */
     u_char **packet = NULL;                     /* packet from tcpedit */
+    char *frag = NULL;
     COUNTER packetnum = 0;
-    int rcode;
+    int rcode, frag_len;
 
     pkthdr_ptr = &pkthdr;
 
@@ -234,7 +259,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         if (cache_result == TCPR_DIR_NOSEND)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
-        packet = &pktdata;
+        packet = (u_char **)&pktdata;
         if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, packet, cache_result)) == TCPEDIT_ERROR) {
             return -1;
         } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
@@ -245,8 +270,26 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 
 
 WRITE_PACKET:
-        /* write the packet */
-        pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
+        if (options.frag_ctx == NULL) {
+            /* write the packet when there's no fragrouting to be done */
+            pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
+        } else {
+            /* packet needs to be fragmented */
+            if ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
+                    (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
+                    (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C)) {
+                fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen);
+                while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {
+                    /* frags get the same timestamp as the original packet */
+                    pkthdr_ptr->caplen = frag_len;
+                    pkthdr_ptr->len = frag_len;
+                    pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);
+                }
+            } else {
+                /* write the packet without fragroute */
+                pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
+            }
+        }
 
     } /* while() */
     return 0;

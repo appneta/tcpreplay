@@ -1,6 +1,6 @@
 # $Id: Makefile.am 1632 2007-02-03 18:46:16Z aturner $
 if COMPILE_FRAGROUTE
-    LIBFRAGROUTE = ./fragroute/libfragroute.a
+    LIBFRAGROUTE = ./fragroute/libfragroute.a @LDNETLIB@
     FRAGROUTE_DIR = fragroute
 else
     LIBFRAGROUTE = 
@@ -53,7 +53,7 @@ tcpreplay_opts.h: tcpreplay_opts.c
 tcpreplay_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ $(opts_list) tcpreplay_opts.def
 
-tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
+tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 	$(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@ \
 	$(LIBFRAGROUTE)
