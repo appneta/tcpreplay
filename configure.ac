@@ -892,7 +892,10 @@ AC_ARG_WITH(libdnet,
 
 AC_SUBST(LDNETINC)
 AC_SUBST(LDNETLIB)
-AM_CONDITIONAL(ENABLE_FRAGROUTE, [test x$founddnet != xno])
+AM_CONDITIONAL(COMPILE_FRAGROUTE, [test x$founddnet != xno])
+if test x$founddnet != xno ; then
+    AC_DEFINE(ENABLE_FRAGROUTE, [1], [Enable fragroute module])
+fi
 
 
 dnl ##################################################
