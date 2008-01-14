@@ -168,6 +168,20 @@ EOText;
 };
 
 
+/* Fragroute */
+flag = {
+    ifdef       = ENABLE_FRAGROUTE;
+    name        = frag;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Enable fragroute configuration";
+    doc         = <<- EOText
+Enable advanced evasion techniques using the built-in fragroute(8)
+engine.  See the fragroute(8) man page for more details.  Important:
+tcprewrite does not support the delay, echo or print commands.    
+EOText;
+};
+
 flag = {
 	name		= skip-soft-errors;
 	max 		= 1;

@@ -203,4 +203,32 @@ enum tcpprep_mode {
 #endif
 #endif
 
+#ifndef HAVE_UINT8_T
+typedef u_int8_t uint8_t
+typedef u_int16_t uint16_t
+typedef u_int32_t uint32_t
+#endif
+
+/* Support for flexible arrays. */
+#undef __flexarr
+#if defined(__GNUC__) && ((__GNUC__ > 2) || (__GNUC__ == 2 && __GNUC_MINOR__ >= 97))
+/* GCC 2.97 supports C99 flexible array members.  */
+# define __flexarr      []
+#else
+# ifdef __GNUC__
+#  define __flexarr     [0]
+# else
+#  if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#   define __flexarr    []
+#  elif defined(_WIN32)
+/* MS VC++ */
+#   define __flexarr    []
+#  else
+/* Some other non-C99 compiler. Approximate with [1]. */
+#   define __flexarr    [1]
+#  endif
+# endif
+#endif
+
+
 #endif /* DEFINES */
