@@ -7,9 +7,10 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
 #include <ctype.h>
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
