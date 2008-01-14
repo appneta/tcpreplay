@@ -140,6 +140,9 @@ main(int argc, char *argv[])
     tcpdump_close(&tcpdump);
 #endif
 
+#ifdef ENABLE_DMALLOC
+    dmalloc_shutdown();
+#endif
     return 0;
 }
 

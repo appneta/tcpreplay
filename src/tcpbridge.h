@@ -46,6 +46,11 @@
 #include <fcntl.h>
 #include <regex.h>
 
+#ifdef ENABLE_DMALLOC
+#include <dmalloc.h>
+#endif
+
+
 /* run-time options */
 struct tcpbridge_opt_s {
     char *intf1;

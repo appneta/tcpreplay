@@ -38,6 +38,11 @@
 #include "defines.h"
 #include "tcpedit/tcpedit.h"
 
+#ifdef ENABLE_DMALLOC
+#include <dmalloc.h>
+#endif
+
+
 /* runtime options */
 struct tcprewrite_opt_s {
     /* input and output pcap filenames & handles */

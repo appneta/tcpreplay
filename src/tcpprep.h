@@ -39,6 +39,12 @@
 
 #include <regex.h>
 
+
+#ifdef ENABLE_DMALLOC
+#include <dmalloc.h>
+#endif
+
+
 /* default ports used for servers */
 #define DEFAULT_LOW_SERVER_PORT 0
 #define DEFAULT_HIGH_SERVER_PORT 1023

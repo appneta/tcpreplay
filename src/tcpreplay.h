@@ -42,6 +42,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#ifdef ENABLE_DMALLOC
+#include <dmalloc.h>
+#endif
+
 struct packet_cache_s
 {
 	struct pcap_pkthdr pkthdr;
