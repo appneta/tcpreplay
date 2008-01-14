@@ -39,7 +39,6 @@
 #include "common.h"
 
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
-int argv_create(char *p, int argc, char *argv[]);
 void packet_stats(struct timeval *begin, struct timeval *end, 
                   COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
 

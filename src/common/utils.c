@@ -210,32 +210,6 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
     return (numbytes);
 }
 
-/**
- * whorishly appropriated from fragroute-1.2.  Parse a string and 
- * create an argv[] array.
- */
-int
-argv_create(char *p, int argc, char *argv[])
-{
-    int i;
-
-    for (i = 0; i < argc - 1; i++) {
-        while (*p != '\0' && isspace((int)*p))
-            *p++ = '\0';
-
-        if (*p == '\0')
-            break;
-        argv[i] = p;
-
-        while (*p != '\0' && !isspace((int)*p))
-            p++;
-    }
-    p[0] = '\0';
-    argv[i] = NULL;
-
-    return (i);
-}
-
 #ifdef USE_CUSTOM_INET_ATON
 int
 inet_aton(const char *name, struct in_addr *addr)
