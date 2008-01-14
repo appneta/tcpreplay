@@ -1,5 +1,13 @@
 # $Id: Makefile.am 1632 2007-02-03 18:46:16Z aturner $
-SUBDIRS = common tcpedit
+if COMPILE_FRAGROUTE
+    LIBFRAGROUTE = ./fragroute/libfragroute.a
+    FRAGROUTE_DIR = fragroute
+else
+    LIBFRAGROUTE = 
+    FRAGROUTE_DIR = 
+endif
+ 
+SUBDIRS = common tcpedit $(FRAGROUTE_DIR)
 
 if SYSTEM_STRLCPY
 LIBSTRL =
@@ -38,7 +46,7 @@ bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpbridge
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREPLAY
 tcpreplay_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a $(LIBSTRL) \
-		  @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+    @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
 tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c
 tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
@@ -47,7 +55,8 @@ tcpreplay_opts.c: tcpreplay_opts.def
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
-	$(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+	$(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@ \
+	$(LIBFRAGROUTE)
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c 
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
@@ -57,7 +66,7 @@ tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \
-		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+    $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
 tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c 
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
@@ -66,7 +75,7 @@ tcpprep_opts.c: tcpprep_opts.def
 
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPBRIDGE
 tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
-		  $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+    $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
 tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c 		
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
