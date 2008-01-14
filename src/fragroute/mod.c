@@ -85,28 +85,40 @@ mod_open(const char *script, char *errbuf)
 
 	TAILQ_INIT(&rules);
 	
+	/* open the config/script file */
 	if ((fp = fopen(script, "r")) == NULL) {
 		sprintf(errbuf, "couldn't open %s", script);
 		return (-1);
 	}
+	
+	/* read the file, one line at a time... */
 	for (i = 1; fgets(buf, sizeof(buf), fp) != NULL; i++) {
+	    
+	    /* skip comments & blank lines */
 		if (*buf == '#' || *buf == '\r' || *buf == '\n')
 			continue;
 		
+		/* parse the line into an array */
 		if ((argc = argv_create(buf, MAX_ARGS, argv)) < 1) {
 			sprintf(errbuf, "couldn't parse arguments (line %d)", i);
 			ret = -1;
 			break;
 		}
+		
+		/* check first keyword against modules */
 		for (m = mods; *m != NULL; m++) {
 			if (strcasecmp((*m)->name, argv[0]) == 0)
 				break;
 		}
+		
+		/* do we have a match? */
 		if (*m == NULL) {
 			sprintf(errbuf, "unknown directive '%s' (line %d)", argv[0], i);
 			ret = -1;
 			break;
 		}
+		
+		/* allocate memory for our rule */
 		if ((rule = calloc(1, sizeof(*rule))) == NULL) {
 			sprintf(errbuf, "calloc");
 			ret = -1;
@@ -114,6 +126,7 @@ mod_open(const char *script, char *errbuf)
 		}
 		rule->mod = *m;
 
+        /* pass the remaining args to the rule */
 		if (rule->mod->open != NULL &&
 		    (rule->data = rule->mod->open(argc, argv)) == NULL) {
 			sprintf(errbuf, "invalid argument to directive '%s' (line %d)",
@@ -121,8 +134,11 @@ mod_open(const char *script, char *errbuf)
 			ret = -1;
 			break;
 		}
+		/* append the rule to the rule list */
 		TAILQ_INSERT_TAIL(&rules, rule, next);
 	}
+	
+	/* close the file */
 	fclose(fp);
 
 	if (ret == 0) {
@@ -132,7 +148,8 @@ mod_open(const char *script, char *errbuf)
 			strlcat(buf, " -> ", sizeof(buf));
 		}
 		buf[strlen(buf) - 4] = '\0';
-		warnx("%s", buf);
+		sprintf(errbuf, "%s", buf);
+        ret = -1;
 	}
 	return (ret);
 }

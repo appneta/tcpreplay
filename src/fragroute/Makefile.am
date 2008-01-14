@@ -8,7 +8,7 @@ libfragroute_a_SOURCES = fragroute.c bget.c mod.c pkt.c argv.c \
 
 libfragroute_a_CFLAGS = -I.. -I../.. @LDNETINC@
 
-libfragroute_a_LIBS = @LDNETLIB@
+# libfragroute_a_LIBS = @LDNETLIB@
 
 noinst_HEADERS = bget.h mod.h pkt.h randutil.h fragroute.h argv.h \
 				 LICENSE README

@@ -4,6 +4,8 @@
 #ifndef __FRAGROUTE_H__
 #define __FRAGROUTE_H__
 
+#define FRAGROUTE_ERRBUF_LEN 1024
+
 /* Fragroute context. */
 struct fragroute_s {
 	struct addr	 src;
@@ -18,7 +20,7 @@ struct fragroute_s {
 //	intf_t		*intf;
 //	route_t		*route;
 //	tun_t		*tun;
-    char        errbuf[1024];
+    char        errbuf[FRAGROUTE_ERRBUF_LEN];
 	struct pktq *pktq; /* packet chain */    
 };
 

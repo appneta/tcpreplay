@@ -171,7 +171,7 @@ EOText;
 /* Fragroute */
 flag = {
     ifdef       = ENABLE_FRAGROUTE;
-    name        = frag;
+    name        = fragroute;
     arg-type    = string;
     max         = 1;
     descrip     = "Enable fragroute configuration";
@@ -179,6 +179,18 @@ flag = {
 Enable advanced evasion techniques using the built-in fragroute(8)
 engine.  See the fragroute(8) man page for more details.  Important:
 tcprewrite does not support the delay, echo or print commands.    
+EOText;
+};
+
+
+flag = {
+    ifdef       = ENABLE_FRAGROUTE;
+    name        = fragdir;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Which flows to apply fragroute to";
+    doc         = <<- EOText
+Apply the fragroute engine to packets going c2s, s2c or both.
 EOText;
 };
 
