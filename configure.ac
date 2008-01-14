@@ -10,7 +10,7 @@ AM_WITH_DMALLOC
 
 dnl Set version info here!
 MAJOR_VERSION=3
-MINOR_VERSION=2
+MINOR_VERSION=3
 MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
@@ -182,6 +182,18 @@ AC_ARG_ENABLE(debug,
          AC_SUBST(debug_flag)
          AC_DEFINE([DEBUG], [1], [Enable debuging code and support for the -d option]) 
       fi])
+
+
+AC_ARG_ENABLE(dmalloc,
+    AC_HELP_STRING([--enable-dmalloc], [Enable linking to dmalloc for better memory debugging]),
+    [ if test x$enableval = xyes ; then
+        dmalloc=yes
+        AC_DEFINE([ENABLE_DMALLOC], [1], [Enable dmalloc])
+        AC_DEFINE([DMALLOC_FUNC_CHECK], [1], [Enable dmalloc function arg checking])
+        CFLAGS="${CFLAGS} -I/opt/local/include"
+        DMALLOC_LIB="/opt/local/lib/libdmalloc.a"
+        AC_SUBST(DMALLOC_LIB)
+    fi])
 
 
 AC_ARG_ENABLE(pedantic,
@@ -849,6 +861,39 @@ dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
 CFLAGS="$OLDCFLAGS"
 
+dnl ##################################################
+dnl # Check for libdnet
+dnl ##################################################
+founddnet=no
+enable_fragroute=no
+trydnetdir=/usr/local
+AC_MSG_CHECKING(for libdnet)
+AC_ARG_WITH(libdnet,
+    AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
+    [trydnetdir=$withval])
+ 
+	for testdir in $trydnetdir /usr/local /opt/local /usr ; do 
+    	if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+            LDNETINC="`$testdir/bin/dnet-config --cflags`"
+            LDNETLIB="`$testdir/bin/dnet-config --libs`"
+
+        	founddnet=$testdir
+     	fi
+	done
+
+	if test $founddnet = no ; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([libdnet not found, disabling fragroute feature])
+	else
+		AC_MSG_RESULT($founddnet)
+		enable_fragroute=yes
+	    AC_DEFINE([HAVE_LIBDNET], [1], [Do we have libdnet?])
+	fi
+
+AC_SUBST(LDNETINC)
+AC_SUBST(LDNETLIB)
+AM_CONDITIONAL(ENABLE_FRAGROUTE, [test x$founddnet != xno])
+
 
 dnl ##################################################
 dnl # Check for pcapnav
@@ -976,7 +1021,7 @@ EOF
         esac])
     AC_MSG_RESULT($unaligned_fail)
     if test $unaligned_fail = yes ; then
-            AC_DEFINE([FORCE_ALIGN],[1],[Are we strictly aligned?])
+            AC_DEFINE([FORCE_ALIGN], [1], [Are we strictly aligned?])
     fi
 
 dnl ##################################################
@@ -1123,6 +1168,7 @@ AC_OUTPUT([Makefile
            src/Makefile
            src/common/Makefile
            src/tcpedit/Makefile
+           src/fragroute/Makefile
            src/defines.h
            test/Makefile
            test/config
@@ -1136,11 +1182,13 @@ AC_MSG_RESULT(
 ##########################################################################
 libpcap:                    ${foundpcap} (${libpcap_version})
 libnet:                     ${foundnet}
+libdnet:                    ${founddnet}
 autogen:                    ${AUTOGEN}
 64bit counter support:      ${use64bit_counters}
 tcpdump binary path:        ${tcpdump_path}
 tcpreplay edit support:     ${tcpreplay_edit}
 tcpbridge support:          ${enable_tcpbridge}
+fragroute support:          ${enable_fragroute}
 
 Supported Packet Injection Methods (*):
 Linux PF_PACKET:            ${have_pf}
@@ -1155,7 +1203,7 @@ pcap_sendpacket:            ${have_pcap_sendpacket}
 
 case $host in
 	*-apple-darwin*)
-	AC_MSG_WARN([Apple OS X has a serious problem!
+	AC_MSG_WARN([Apple OS X versions prior to 10.5 (Leopard) has a serious problem!
 	Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
 	;;
 	
