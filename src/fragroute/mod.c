@@ -90,7 +90,7 @@ mod_open(const char *script, char *errbuf)
 		sprintf(errbuf, "couldn't open %s", script);
 		return (-1);
 	}
-	
+    warn("opened config file...");
 	/* read the file, one line at a time... */
 	for (i = 1; fgets(buf, sizeof(buf), fp) != NULL; i++) {
 	    
@@ -105,10 +105,13 @@ mod_open(const char *script, char *errbuf)
 			break;
 		}
 		
+        warnx("argc = %d, %s, %s, %s", argc, argv[0], argv[1], argv[2]);
 		/* check first keyword against modules */
 		for (m = mods; *m != NULL; m++) {
-			if (strcasecmp((*m)->name, argv[0]) == 0)
+			if (strcasecmp((*m)->name, argv[0]) == 0) {
+                warnx("comparing %s to %s", argv[0], (*m)->name);
 				break;
+			}
 		}
 		
 		/* do we have a match? */
@@ -140,7 +143,8 @@ mod_open(const char *script, char *errbuf)
 	
 	/* close the file */
 	fclose(fp);
-
+    warn("close file...");
+    
 	if (ret == 0) {
 		buf[0] = '\0';
 		TAILQ_FOREACH(rule, &rules, next) {
@@ -148,8 +152,8 @@ mod_open(const char *script, char *errbuf)
 			strlcat(buf, " -> ", sizeof(buf));
 		}
 		buf[strlen(buf) - 4] = '\0';
-		sprintf(errbuf, "%s", buf);
-        ret = -1;
+		sprintf(errbuf, "wtf: %s", buf);
+        // ret = -1;
 	}
 	return (ret);
 }

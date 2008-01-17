@@ -106,7 +106,7 @@ main(int argc, char *argv[])
         errx(1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
-
+    
    /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
     dbgx(1, "Rewriting DLT to %s",
@@ -117,10 +117,12 @@ main(int argc, char *argv[])
     dbgx(1, "DLT of dlt_pcap is %s",
         pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
 
+#ifdef ENABLE_FRAGROUTE
     if (options.fragroute_args) {
         if ((options.frag_ctx = fragroute_init(65535, options.fragroute_args, ebuf)) == NULL)
             errx(1, "%s", ebuf);
     }
+#endif
 
 #ifdef ENABLE_VERBOSE
     if (options.verbose) {
@@ -226,11 +228,14 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     struct pcap_pkthdr pkthdr, *pkthdr_ptr;     /* packet header */
     const u_char *pktdata = NULL;               /* packet from libpcap */
     u_char **packet = NULL;                     /* packet from tcpedit */
-    char *frag = NULL;
+    static char *frag = NULL;
     COUNTER packetnum = 0;
-    int rcode, frag_len;
+    int rcode, frag_len, i;
 
     pkthdr_ptr = &pkthdr;
+
+    if (frag == NULL)
+        frag = (char *)safe_malloc(65535); /* mtu size */
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
@@ -278,9 +283,13 @@ WRITE_PACKET:
             if ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
                     (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
                     (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C)) {
-                fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen);
+                if (fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen) != 0) {
+                    errx(1, "Error processing packet via fragroute %s", options.frag_ctx->errbuf);
+                }
+                i = 0;
                 while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {
                     /* frags get the same timestamp as the original packet */
+                    notice("processing frag: %u", i++);
                     pkthdr_ptr->caplen = frag_len;
                     pkthdr_ptr->len = frag_len;
                     pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);

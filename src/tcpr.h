@@ -70,6 +70,7 @@
 #define TCPR_UDP_DNSV4_H      0x0c    /**< UDP DNS v4 header:   12 bytes */
 #define TCPR_TCP_DNSV4_H      0x0e    /**< TCP DNS v4 header:   14 bytes */
 #define TCPR_ETH_H            0x0e    /**< Ethernet header:     14 bytes */
+#define TCPR_ETH_MTU          1500    /**< Ethernet MTU size: 1500 bytes */
 #define TCPR_FDDI_H           0x15    /**< FDDI header:         21 bytes */
 #define TCPR_ICMPV4_H         0x04    /**< ICMP header base:     4 bytes */
 #define TCPR_ICMPV4_ECHO_H    0x08    /**< ICMP_ECHO header:     8 bytes */
@@ -1586,6 +1587,7 @@ struct tcpr_tcp_hdr
     u_int16_t th_sum;         /* checksum */
     u_int16_t th_urp;         /* urgent pointer */
 };
+
 
 /*
  *  Token Ring Header

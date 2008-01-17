@@ -1,7 +1,10 @@
-/* src/config.h.in.  Generated from configure.in by autoheader.  */
+/* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Enable debuging code and support for the -d option */
 #undef DEBUG
+
+/* Enable dmalloc function arg checking */
+#undef DMALLOC_FUNC_CHECK
 
 /* Enable Electric Fence memory debugger */
 #undef EFENCE
@@ -9,11 +12,14 @@
 /* Use 64bit packet counters */
 #undef ENABLE_64BITS
 
+/* Enable dmalloc */
+#undef ENABLE_DMALLOC
+
 /* Enable dynamically linking libs */
 #undef ENABLE_DYNAMIC_LINK
 
-/* Enable building flowreplay (alpha) */
-#undef ENABLE_FLOWREPLAY
+/* Enable fragroute module */
+#undef ENABLE_FRAGROUTE
 
 /* Enable use of pcap_findalldevs() */
 #undef ENABLE_PCAP_FINDALLDEVS
@@ -120,6 +126,9 @@
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Do we have libdnet? */
+#undef HAVE_LIBDNET
 
 /* Define to 1 if you have the `gen' library (-lgen). */
 #undef HAVE_LIBGEN
@@ -251,6 +260,9 @@
 /* Define to 1 if you have the `strrchr' function. */
 #undef HAVE_STRRCHR
 
+/* Define to 1 if you have the `strsignal' function. */
+#undef HAVE_STRSIGNAL
+
 /* Define to 1 if you have the `strtol' function. */
 #undef HAVE_STRTOL
 
@@ -259,6 +271,9 @@
 
 /* Define to 1 if `tv_sec' is member of `struct timeval'. */
 #undef HAVE_STRUCT_TIMEVAL_TV_SEC
+
+/* Define to 1 if you have the <sysexits.h> header file. */
+#undef HAVE_SYSEXITS_H
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
@@ -362,6 +377,9 @@
 /* Define to 1 if `major', `minor', and `makedev' are declared in
    <sysmacros.h>. */
 #undef MAJOR_IN_SYSMACROS
+
+/* Define this if optional arguments are disallowed */
+#undef NO_OPTIONAL_OPT_ARGS
 
 /* This is our package name */
 #undef PACKAGE
