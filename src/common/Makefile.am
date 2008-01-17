@@ -4,12 +4,12 @@ noinst_LIBRARIES = libcommon.a
 BUILT_SOURCES = svn_version.c
 
 svn_version.c:
-	echo -n 'const char SVN_Version[] = "'   > svn_version.c
+	$(ECHO) -n 'const char SVN_Version[] = "'   > svn_version.c
 	svnversion -n ../..                     >> svn_version.c
-	echo '";'								>> svn_version.c
-	echo 'const char *svn_version(void) {'  >> svn_version.c
-	echo '	return SVN_Version;'			>> svn_version.c
-	echo '}' 			      				>> svn_version.c
+	$(ECHO) '";'								>> svn_version.c
+	$(ECHO) 'const char *svn_version(void) {'  >> svn_version.c
+	$(ECHO) '	return SVN_Version;'			>> svn_version.c
+	$(ECHO) '}' 			      				>> svn_version.c
 
 libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 		      fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c \

@@ -72,7 +72,7 @@ Restart tcpreplay
 @end enumerate
 
 .SH "SEE ALSO"
-tcpdump(1), tcpprep(1), tcprewrite(1), libnet(3)
+tcpreplay-edit(1), tcpdump(1), tcpprep(1), tcprewrite(1), libnet(3)
 
 .SH "BUGS"
 tcpreplay can only send packets as fast as your computer's interface,
@@ -174,7 +174,7 @@ EOText;
 /* Cache files to internal memory */
 flag = {
 	name		= enable_file_cache;
-	value		= C;
+	value		= K;
 	flags-must	= loop;
 	descrip		= "Enable caching of packets to internal memory";
 	doc			= <<- EOText
@@ -225,7 +225,6 @@ flag = {
 flag = {
 	ifdef		= ENABLE_PCAP_FINDALLDEVS;
 	name		= listnics;
-	value		= N;
 	descrip		= "List available network interfaces and exit";
 	immediate;
 	doc			= "";
@@ -256,7 +255,6 @@ flag = {
 
 flag = {
     name        = pktlen;
-    value       = S;
     max         = 1;
     descrip     = "Override the snaplen and use the actual packet len";
     doc         = <<- EOText
@@ -294,7 +292,7 @@ flag = {
     flags-cant  = mbps;
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
-    value       = m;
+    value       = x;
     arg-type    = string;
     max         = 1;
     descrip     = "Modify replay speed to a given multiple";
@@ -405,6 +403,11 @@ flag = {
     fprintf(stderr, "Verbose printing via tcpdump: enabled\n");
 #else
     fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
+#endif
+#ifdef TCPREPLAY_EDIT
+    fprintf(stderr, "Packet editing: enabled\n");
+#else
+    fprintf(stderr, "Packet editing: disabled\n");
 #endif
     exit(0);
     

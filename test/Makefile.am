@@ -393,7 +393,7 @@ replay_rate:
 replay_multi:
 	$(PRINTF) "%s" "[tcpreplay] Multiplier test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Multiplier test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -m 25.0 test.pcap >>test.log 2>&1
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -x 25.0 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_top:

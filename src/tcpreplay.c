@@ -44,7 +44,11 @@
 #include <errno.h>
 
 #include "tcpreplay.h"
+#ifdef TCPREPLAY_EDIT
+#include "tcpreplay_edit_opts.h"
+#else
 #include "tcpreplay_opts.h"
+#endif
 #include "send_packets.h"
 #include "signal_handler.h"
 

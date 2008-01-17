@@ -1,5 +1,9 @@
 $Id$
 
+01/16/2008: Version 3.2.4
+    - Fix crash in tcpreplay when --enable-tcpreplay-edit (#281)
+    - Display if --enable-tcpreplay-edit in -V (#283)
+
 11/01/2007: Version 3.2.3
     - Fix compile issue under Linux and other OS's (#275)
     

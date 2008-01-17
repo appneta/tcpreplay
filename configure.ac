@@ -59,6 +59,7 @@ AC_PROG_MAKE_SET
 AC_EXEEXT
 AC_PATH_PROG(PRINTF, printf)
 AC_PATH_PROG(AUTOGEN, autogen)
+AC_PATH_PROG(ECHO, echo)
 
 dnl check autogen version
 if test -n "${AUTOGEN}" ; then
