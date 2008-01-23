@@ -49,15 +49,17 @@ EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1
 bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpbridge
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREPLAY
-tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
-tcpreplay_SOURCES = send_packets.c signal_handler.c tcpreplay.c
 
 if ENABLE_TCPREPLAY_EDIT
-tcpreplay_LDADD += ./tcpedit/libtcpedit.a
-tcpreplay_SOURCES += tcpreplay_edit_opts.
+tcpreplay_LDADD = ./tcpedit/libtcpedit.a
+tcpreplay_SOURCES = tcpreplay_edit_opts.c
 else
-tcpreplay_SOURCES += tcpreplay_opts.c
+tcpreplay_SOURCES = tcpreplay_opts.c
+tcpreplay_LDADD = 
 endif
+
+tcpreplay_LDADD += ./common/libcommon.a $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+tcpreplay_SOURCES += send_packets.c signal_handler.c tcpreplay.c
 
 tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
