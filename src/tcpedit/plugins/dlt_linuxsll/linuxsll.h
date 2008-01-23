@@ -54,7 +54,7 @@ u_char *dlt_linuxsll_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const
  * Example: Ethernet VLAN tag info
  */
 struct linuxsll_extra_s {
-
+    int dummy;
 };
 typedef struct linuxsll_extra_s linuxsll_extra_t;
 
@@ -68,8 +68,9 @@ typedef struct linuxsll_extra_s linuxsll_extra_t;
  *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
  *   is available to any encoder plugin.
  */
-struct linuxsll_config_s {
-    
+struct linuxsll_config_s {    
+    /* dummy entry for SunPro compiler which doesn't like empty structs */
+    int dummy;
 };
 typedef struct linuxsll_config_s linuxsll_config_t;
 

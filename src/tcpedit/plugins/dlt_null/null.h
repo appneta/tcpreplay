@@ -54,7 +54,8 @@ u_char *dlt_null_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_c
  * Example: Ethernet VLAN tag info
  */
 struct null_extra_s {
-
+    /* dummy entry for SunPro compiler which doesn't like empty structs */
+    int dummy;
 };
 typedef struct null_extra_s null_extra_t;
 
@@ -69,7 +70,8 @@ typedef struct null_extra_s null_extra_t;
  *   is available to any encoder plugin.
  */
 struct null_config_s {
-    
+    /* dummy entry for SunPro compiler which doesn't like empty structs */
+    int dummy;
 };
 typedef struct null_config_s null_config_t;
 

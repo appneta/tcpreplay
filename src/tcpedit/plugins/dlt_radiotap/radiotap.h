@@ -70,7 +70,8 @@ typedef struct radiotap_extra_s radiotap_extra_t;
  *   is available to any encoder plugin.
  */
 struct radiotap_config_s {
-    
+    /* dummy entry for SunPro compiler which doesn't like empty structs */    
+    int dummy;
 };
 typedef struct radiotap_config_s radiotap_config_t;
 

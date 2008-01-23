@@ -93,7 +93,8 @@ typedef struct ieee80211_addr4_hdr_s ieee80211_addr4_hdr_t;
  * Example: Ethernet VLAN tag info
  */
 struct ieee80211_extra_s {
-
+    /* dummy entry for SunPro compiler which doesn't like empty structs */    
+    int dummy;
 };
 typedef struct ieee80211_extra_s ieee80211_extra_t;
 
@@ -108,7 +109,8 @@ typedef struct ieee80211_extra_s ieee80211_extra_t;
  *   is available to any encoder plugin.
  */
 struct ieee80211_config_s {
-    
+    /* dummy entry for SunPro compiler which doesn't like empty structs */    
+    int dummy;
 };
 typedef struct ieee80211_config_s ieee80211_config_t;
 

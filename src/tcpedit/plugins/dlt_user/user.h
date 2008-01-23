@@ -58,7 +58,8 @@ u_int16_t dlt_user_get_output_dlt(tcpeditdlt_t *ctx);
  * Example: Ethernet VLAN tag info
  */
 struct user_extra_s {
-    /* nothing here, b/c no decoder */
+    /* dummy entry for SunPro compiler which doesn't like empty structs */
+    int dummy; 
 };
 typedef struct user_extra_s user_extra_t;
 

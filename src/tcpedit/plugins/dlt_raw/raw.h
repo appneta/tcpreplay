@@ -54,7 +54,8 @@ u_char *dlt_raw_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_ch
  * Example: Ethernet VLAN tag info
  */
 struct raw_extra_s {
-
+    /* dummy entry for SunPro compiler which doesn't like empty structs */    
+    int dummy;
 };
 typedef struct raw_extra_s raw_extra_t;
 
@@ -69,7 +70,8 @@ typedef struct raw_extra_s raw_extra_t;
  *   is available to any encoder plugin.
  */
 struct raw_config_s {
-    
+    /* dummy entry for SunPro compiler which doesn't like empty structs */    
+    int dummy;
 };
 typedef struct raw_config_s raw_config_t;
 

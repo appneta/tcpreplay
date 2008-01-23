@@ -58,6 +58,10 @@
  * notice() - Informational only via stderr, format string, one or more variables
  */
 
+/* gcc accepts __FUNCTION__, but C99 says use __func__.  Necessary for SunPro compiler */
+#if !defined(__GNUC__) && !defined(__FUNCTION__)
+#  define __FUNCTION__ __func__
+#endif
 
 #define dbg(x, y) _our_verbose_dbg(x, y, __FUNCTION__, __LINE__, __FILE__)
 void _our_verbose_dbg(int dbg_level, const char *string, const char *, 
