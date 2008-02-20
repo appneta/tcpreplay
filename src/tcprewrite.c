@@ -245,6 +245,8 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 
+        packet = (u_char **)&pktdata;
+
 #ifdef ENABLE_VERBOSE
         if (options.verbose)
             tcpdump_print(&tcpdump, pkthdr_ptr, pktdata);
@@ -264,7 +266,6 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         if (cache_result == TCPR_DIR_NOSEND)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
-        packet = (u_char **)&pktdata;
         if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, packet, cache_result)) == TCPEDIT_ERROR) {
             return -1;
         } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
