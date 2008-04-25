@@ -108,8 +108,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
      * only set this flag IFF the pcap has the FCS.  If not, then they
      * just removed 2 bytes of ACTUAL PACKET DATA.  Sucks to be them.
      */
-    if (tcpedit->efcs)
-        (*pkthdr)->caplen -= 2;
+    if (tcpedit->efcs > 0) {
+        (*pkthdr)->caplen -= 4;
+        (*pkthdr)->len -= 4;
+    }
         
     /* rewrite DLT */
     if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)

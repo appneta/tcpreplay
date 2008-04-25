@@ -116,11 +116,9 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     if (HAVE_OPT(FIXCSUM))
         tcpedit->fixcsum = 1;
 
-#ifdef ENABLE_EFCS
     /* --efcs */
     if (HAVE_OPT(EFCS)) 
         tcpedit->efcs = 1;
-#endif
 
     /* --mtu */
     if (HAVE_OPT(MTU))
