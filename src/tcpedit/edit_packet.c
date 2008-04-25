@@ -295,6 +295,45 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 }
 
 /**
+ * rewrites an IPv4 packet's TTL based on the rules
+ * return 0 if no change, 1 if changed 
+ */
+int
+rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr)
+{
+    assert(tcpedit);
+
+    /* make sure there's something to edit */
+    if (ip_hdr == NULL || tcpedit->ttl_mode == TCPEDIT_TTL_OFF)
+        return(0);
+        
+    switch(tcpedit->ttl_mode) {
+    case TCPEDIT_TTL_SET:
+        if (ip_hdr->ip_ttl == tcpedit->ttl_value)
+            return(0);           /* no change required */
+        ip_hdr->ip_ttl = tcpedit->ttl_value;
+        break;
+    case TCPEDIT_TTL_ADD:
+        if (((int)ip_hdr->ip_ttl + tcpedit->ttl_value) > 255) {
+            ip_hdr->ip_ttl = 255;
+        } else {
+            ip_hdr->ip_ttl += tcpedit->ttl_value;
+        }
+        break;
+    case TCPEDIT_TTL_SUB:
+        if (ip_hdr->ip_ttl <= tcpedit->ttl_value) {
+            ip_hdr->ip_ttl = 1;
+        } else {
+            ip_hdr->ip_ttl -= tcpedit->ttl_value;
+        }
+        break;
+    default:
+        errx(1, "invalid ttl_mode: %d", tcpedit->ttl_mode);
+    }
+    return(1);
+}
+
+/**
  * takes a CIDR notation netblock and uses that to "remap" given IP
  * onto that netblock.  ie: 10.0.0.0/8 and 192.168.55.123 -> 10.168.55.123
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123

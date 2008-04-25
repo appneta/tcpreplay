@@ -145,6 +145,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         ip_hdr = NULL;
     }
 
+    /* rewrite the TTL */
+    needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
+    
     /* rewrite IP addresses */
     if (tcpedit->rewrite_ip) {
         /* IP packets */

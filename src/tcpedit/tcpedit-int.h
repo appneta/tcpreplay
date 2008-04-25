@@ -96,15 +96,22 @@ struct tcpedit_s {
 #define TCPEDIT_REWRITE_IP_ON  0x1
     
     /* fix IP/TCP/UDP checksums */
-    int fixcsum;
+    u_int8_t fixcsum;
 #define TCPEDIT_FIXCSUM_OFF 0x0
 #define TCPEDIT_FIXCSUM_ON  0x1
 
     /* remove ethernet FCS */
-    int efcs;
+    u_int8_t efcs;
 #define TCPEDIT_EFCS_OFF 0x0
 #define TCPEDIT_EFCS_ON  0x1
 
+    u_int8_t ttl_mode;
+#define TCPEDIT_TTL_OFF 0x0
+#define TCPEDIT_TTL_SET 0x1
+#define TCPEDIT_TTL_ADD 0x2
+#define TCPEDIT_TTL_SUB 0x3
+    u_int8_t ttl_value;
+    
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */
     tcpr_cidrmap_t *cidrmap2;

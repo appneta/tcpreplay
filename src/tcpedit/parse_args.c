@@ -51,7 +51,7 @@ int
 tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     tcpedit_t *tcpedit;
     int rcode = 0;
-
+    long ttl;
     assert(tcpedit_ex);
     tcpedit = *tcpedit_ex;
     assert(tcpedit);
@@ -119,6 +119,26 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     /* --efcs */
     if (HAVE_OPT(EFCS)) 
         tcpedit->efcs = 1;
+
+    /* --ttl */
+    if (HAVE_OPT(TTL)) {
+        if (strchr(OPT_ARG(TTL), '+')) {
+            tcpedit->ttl_mode = TCPEDIT_TTL_ADD;            
+        } else if (strchr(OPT_ARG(TTL), '-')) {
+            tcpedit->ttl_mode = TCPEDIT_TTL_SUB;            
+        } else {
+            tcpedit->ttl_mode = TCPEDIT_TTL_SET;            
+        }
+
+        ttl = strtol(OPT_ARG(TTL), (char **)NULL, 10);
+        if (ttl < 0)
+            ttl *= -1; /* convert to positive value */
+            
+        if (ttl > 255)
+            errx(1, "Invalid --ttl value (must be 0-255): %ld", ttl);
+
+        tcpedit->ttl_value = (u_int8_t)ttl;
+    }
 
     /* --mtu */
     if (HAVE_OPT(MTU))

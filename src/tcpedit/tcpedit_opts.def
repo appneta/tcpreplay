@@ -153,6 +153,23 @@ EOText;
 };
 
 flag = {
+    name        = ttl;
+    descrip     = "Modify the IPv4 TTL";
+    arg-type    = string;
+    doc         = <<- EOText
+Allows you to modify the TTL of all the IPv4 packets.  Specify a number to hard-code
+the value or +/-value to increase or decrease by the value provided (limited to 1-255).    
+
+Examples:
+@example
+--ttl=10
+--ttl=+7
+--ttl=-64
+@end example
+EOText;
+};
+
+flag = {
     name        = fixlen;
     value       = F;
     arg-type    = string;
