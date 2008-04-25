@@ -2,7 +2,8 @@ $Id$
 
 ??/??/2008: Version 3.3.0
     - Fix --efcs option (#277)
-
+    - Add --ttl option (#294)
+    
 01/23/2008: Version 3.2.5
     - Fix linker error with --enable-tcpreplay-edit and --enable-dynamic-link (#288)
     - Fix compile errors with Sun Studio compiler (#286)
