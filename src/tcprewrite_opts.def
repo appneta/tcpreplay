@@ -188,7 +188,7 @@ flag = {
     name        = fragdir;
     arg-type    = string;
     max         = 1;
-    descrip     = "Which flows to apply fragroute to";
+    descrip     = "Which flows to apply fragroute to: c2s, s2c, both";
     doc         = <<- EOText
 Apply the fragroute engine to packets going c2s, s2c or both.
 EOText;
