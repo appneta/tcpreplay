@@ -19,12 +19,14 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
-		test.rewrite_vlandel \
+		test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
+		test.rewrite_2ttl test.rewrite_3ttl \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
-		test2.rewrite_vlandel
+		test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
+		test2.rewrite_2ttl test2.rewrite_3ttl 
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -85,6 +87,10 @@ standard_bigendian:
 		--hdlc-control=0 --hdlc-address=0x0F
 	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel \
 		--enet-vlan=del
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_efcs --efcs
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_1ttl --ttl=58
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_2ttl --ttl=+58
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_3ttl --ttl=-58
 		
 standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
@@ -111,13 +117,18 @@ standard_littleendian:
 		--hdlc-control=0 --hdlc-address=0x0F
 	$(TCPREWRITE) -i test.rewrite_config -o test2.rewrite_vlandel \
 		--enet-vlan=del
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_efcs --efcs
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_1ttl --ttl=58
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_2ttl --ttl=+58
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_3ttl --ttl=-58
 
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config 
 tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
-	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel
+	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel rewrite_efcs \
+	rewrite_1ttl rewrite_2ttl rewrite_3ttl
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_accurate 
 
@@ -371,6 +382,50 @@ rewrite_vlandel:
 	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN Delete test: " >>test.log
 	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel1 \
 		--enet-vlan=del
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_efcs:
+	$(PRINTF) "%s" "[tcprewrite] Remove EFCS: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Remove EFCS: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_efcs1 --efcs
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_1ttl:
+	$(PRINTF) "%s" "[tcprewrite] Force TTL: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Force TTL: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.$@1 --ttl=58
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_2ttl:
+	$(PRINTF) "%s" "[tcprewrite] Increase TTL: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Increase TTL: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.$@1 --ttl=+58
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_3ttl:
+	$(PRINTF) "%s" "[tcprewrite] Reduce TTL: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Reduce TTL: " >>test.log
+	$(TCPREWRITE) -i test.pcap -o test.$@1 --ttl=-58
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
