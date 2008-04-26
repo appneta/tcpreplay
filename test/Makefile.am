@@ -14,6 +14,7 @@ TCPBRIDGE=../src/tcpbridge
 
 EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
+		test.cidr_clients test.mac_clients test.regex_clients \
 		test.prep_config test.primary test.regex test.secondary \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
@@ -61,7 +62,10 @@ standard_prep:
 	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
 	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
 	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
-
+	$(TCPPREP) -i test.pcap -o test.mac_reverse -e 00:02:3b:00:3d:ce --reverse
+	$(TCPPREP) -i test.pcap -o test.cidr_reverse -c '216.27.178.0/24' --reverse
+	$(TCPPREP) -i test.pcap -o test.regex_reverse -r '216.27.178.*' --reverse
+	
 standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_portmap -r 80:8080
@@ -124,11 +128,14 @@ standard_littleendian:
 
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
-	port mac comment print_info print_comment prep_config 
+	port mac comment print_info print_comment prep_config \
+	mac_reverse cidr_reverse regex_reverse
+	
 tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
 	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel rewrite_efcs \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl
+
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_accurate 
 
@@ -218,6 +225,28 @@ print_info:
 	$(PRINTF) "%s" "[tcpprep] Print info mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Print info mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -I test.comment >test.$@1 2>>test.log
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+
+regex_reverse:
+	$(PRINTF) "%s" "[tcpprep] Regex reverse mode test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] Regex reverse mode test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' --reverse 2>>test.log
+	diff  test.$@ test.$@1 >>test.log 2>&1 
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+cidr_reverse:
+	$(PRINTF) "%s" "[tcpprep] CIDR reverse mode test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] CIDR reverse mode test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' --reverse 2>>test.log
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+mac_reverse:
+	$(PRINTF) "%s" "[tcpprep] MAC reverse mode test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] MAC reverse mode test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce --reverse 2>>test.log
+	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 replay_basic:

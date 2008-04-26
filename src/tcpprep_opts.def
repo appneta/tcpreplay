@@ -248,6 +248,18 @@ EOText;
 };
 
 flag = {
+    name        = reverse;
+    max         = 1;
+    descrip     = "Matches to be client instead of server";
+    doc         = <<- EOText
+Normally the @samp{--mac}, @samp{--regex} and @samp{--cidr} flags specify are used to specify
+the servers and non-IP packets are classified as clients.  By using @samp{--reverse}, these  
+features are reversed so that the flags specify clients and non-IP packets are classified as
+servers.
+EOText;
+};
+
+flag = {
     name        = comment;
     value       = C;
     arg-type    = string;
@@ -458,7 +470,8 @@ EONonip;
     doc         = <<- EOText
 By default, non-IP traffic which can not be classified as client
 or server is classified as "client".  Specifiying @samp{--nonip}
-will reclassify non-IP traffic as "server".
+will reclassify non-IP traffic as "server".  Note that the meaning
+of this flag is reversed if @samp{--reverse} is used.
 EOText;
 };
 

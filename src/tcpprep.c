@@ -168,7 +168,7 @@ main(int argc, char *argv[])
         options.mode = options.automode;
         if (options.mode == ROUTER_MODE) {  /* do we need to convert TREE->CIDR? */
             if (info)
-                fprintf(stderr, "Building network list from pre-cache...\n");
+                notice("Building network list from pre-cache...\n");
             if (!process_tree()) {
                 err(1, "Error: unable to build a valid list of servers. Aborting.");
             }
@@ -183,7 +183,7 @@ main(int argc, char *argv[])
         }
 
         if (info)
-            fprintf(stderr, "Buliding cache file...\n");
+            notice("Buliding cache file...\n");
         /* 
          * re-process files, but this time generate
          * cache 
@@ -297,6 +297,8 @@ process_raw_packets(pcap_t * pcap)
     COUNTER packetnum = 0;
     int l2len, cache_result = 0;
     u_char ipbuff[MAXPACKET], *buffptr;
+    tcpr_dir_t direction;
+    
 #ifdef ENABLE_VERBOSE
     struct pollfd poller[1];
     
@@ -358,19 +360,37 @@ process_raw_packets(pcap_t * pcap)
         switch (options.mode) {
         case REGEX_MODE:
             dbg(2, "processing regex mode...");
-            cache_result = add_cache(&options.cachedata, SEND, 
-                check_ip_regex(ip_hdr->ip_src.s_addr));
+            direction = check_ip_regex(ip_hdr->ip_src.s_addr);
+
+            /* reverse direction? */
+            if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
+                direction = direction == TCPR_DIR_C2S ? TCPR_DIR_S2C : TCPR_DIR_C2S;
+
+            cache_result = add_cache(&options.cachedata, SEND, direction); 
             break;
+
         case CIDR_MODE:
             dbg(2, "processing cidr mode...");
-            cache_result = add_cache(&options.cachedata, SEND,
-                check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C );
+            direction = check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
+
+            /* reverse direction? */
+            if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
+                direction = direction == TCPR_DIR_C2S ? TCPR_DIR_S2C : TCPR_DIR_C2S;
+
+            cache_result = add_cache(&options.cachedata, SEND, direction);
             break;
+
         case MAC_MODE:
             dbg(2, "processing mac mode...");
-            cache_result = add_cache(&options.cachedata, SEND,
-                macinstring(options.maclist, (u_char *)eth_hdr->ether_shost));
+            direction = macinstring(options.maclist, (u_char *)eth_hdr->ether_shost);
+
+            /* reverse direction? */
+            if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
+                direction = direction == TCPR_DIR_C2S ? TCPR_DIR_S2C : TCPR_DIR_C2S;
+
+            cache_result = add_cache(&options.cachedata, SEND, direction);
             break;
+
         case AUTO_MODE:
             dbg(2, "processing first pass of auto mode...");
             /* first run through in auto mode: create tree */
@@ -380,6 +400,7 @@ process_raw_packets(pcap_t * pcap)
                 add_tree_first(pktdata);
             }  
             break;
+
         case ROUTER_MODE:
             /* 
              * second run through in auto mode: create route
@@ -389,6 +410,7 @@ process_raw_packets(pcap_t * pcap)
             cache_result = add_cache(&options.cachedata, SEND,
                 check_ip_tree(options.nonip, ip_hdr->ip_src.s_addr));
             break;
+
         case BRIDGE_MODE:
             /*
              * second run through in auto mode: create bridge
@@ -398,6 +420,7 @@ process_raw_packets(pcap_t * pcap)
             cache_result = add_cache(&options.cachedata, SEND,
                 check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
+
         case SERVER_MODE:
             /* 
              * second run through in auto mode: create bridge
@@ -407,6 +430,7 @@ process_raw_packets(pcap_t * pcap)
             cache_result = add_cache(&options.cachedata, SEND,
                 check_ip_tree(DIR_SERVER, ip_hdr->ip_src.s_addr));
             break;
+
         case CLIENT_MODE:
             /* 
              * second run through in auto mode: create bridge
@@ -416,6 +440,7 @@ process_raw_packets(pcap_t * pcap)
             cache_result = add_cache(&options.cachedata, SEND,
                 check_ip_tree(DIR_CLIENT, ip_hdr->ip_src.s_addr));
             break;
+
         case PORT_MODE:
             /*
              * process ports based on their destination port
@@ -424,6 +449,7 @@ process_raw_packets(pcap_t * pcap)
             cache_result = add_cache(&options.cachedata, SEND, 
                 check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
             break;
+
         case FIRST_MODE:
             /*
              * First packet mode, looks at each host and picks clients
