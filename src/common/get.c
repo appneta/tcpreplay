@@ -110,9 +110,9 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         switch (ether_type) {
         case ETHERTYPE_VLAN: /* 802.1q */
             vlan_hdr = (vlan_hdr_t *)pktdata;
-            return vlan_hdr->vlan_len;
+            return ntohs(vlan_hdr->vlan_len);
         default:
-            return ether_type; /* yes, return it in nbo */
+            return ether_type; /* yes, return it in host byte order */
         }
         break;
 
@@ -155,15 +155,15 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_EN10MB:
-        eth_hdr = (eth_hdr_t *)pktdata;
-        ether_type = ntohs(eth_hdr->ether_type);
-        switch (ether_type) {
-        case ETHERTYPE_VLAN:            /* 802.1q */
-            return TCPR_802_1Q_H;
-            break;
-        default:              /* ethernet */
-            return TCPR_ETH_H;
-            break;
+        eth_hdr = (struct tcpr_ethernet_hdr *)pktdata;
+        switch (ntohs(eth_hdr->ether_type)) {
+            case ETHERTYPE_VLAN:
+                return 18;
+                break;
+        
+            default:
+                return 14;
+                break;
         }
         break;
         
