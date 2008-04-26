@@ -972,12 +972,12 @@ dnl
 dnl     FORCE_ALIGN (DEFINED)
 dnl
 AC_MSG_CHECKING(for requires strict byte alignment)
-AC_CACHE_VAL(unaligned_fail,
+AC_CACHE_VAL(unaligned_cv_fail,
         [case "$host_cpu" in
 
         # XXX: should also check that they don't do weird things (like on arm)
         alpha*|arm*|hp*|mips*|sparc*|ia64)
-                unaligned_fail=yes
+                unaligned_cv_fail=yes
                 ;;
 
         *)
@@ -1011,20 +1011,20 @@ EOF
                     conftest.c $LIBS >/dev/null 2>&1
                 if test ! -x conftest ; then
                         dnl failed to compile for some reason
-                        unaligned_fail=yes
+                        unaligned_cv_fail=yes
                 else
                         ./conftest >conftest.out
                         if test ! -s conftest.out ; then
-                                unaligned_fail=yes
+                                unaligned_cv_fail=yes
                         else
-                                unaligned_fail=no
+                                unaligned_cv_fail=no
                         fi
                 fi
                 rm -f conftest* core core.conftest
                 ;;
         esac])
-    AC_MSG_RESULT($unaligned_fail)
-    if test $unaligned_fail = yes ; then
+    AC_MSG_RESULT($unaligned_cv_fail)
+    if test $unaligned_cv_fail = yes ; then
             AC_DEFINE([FORCE_ALIGN], [1], [Are we strictly aligned?])
     fi
 
