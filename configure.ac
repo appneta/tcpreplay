@@ -132,7 +132,7 @@ CFLAGS="$OLD_CFLAGS $wfatal_errors"
 
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h sys/param.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h sys/param.h])
 
 dnl OpenBSD has special requirements
 AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [
@@ -747,6 +747,7 @@ AC_TRY_RUN([
 #include <fcntl.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#include <stdint.h>
 #include <net/bpf.h>
 #include <errno.h>
 
@@ -822,6 +823,7 @@ PCAP_BPF_H_FILE="$LPCAPINCDIR/pcap-bpf.h"
 AC_MSG_CHECKING(for $PCAP_BPF_H_FILE)
 AC_TRY_COMPILE([#include <sys/types.h>
                 #include <sys/time.h>
+                #include <stdint.h>
                 #include "$PCAP_BPF_H_FILE"],
                [ int foo;
                  foo = BPF_MAJOR_VERSION; ],
@@ -841,6 +843,7 @@ AC_MSG_CHECKING(for libpcap bpf header)
 			AC_TRY_COMPILE([
 				#include <sys/types.h>
 				#include <sys/time.h>
+				#include <stdint.h>
 				#include "$testfile"],
 			[
 				int foo;
