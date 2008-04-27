@@ -14,7 +14,7 @@ TCPBRIDGE=../src/tcpbridge
 
 EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
-		test.cidr_clients test.mac_clients test.regex_clients \
+		test.cidr_reverse test.mac_reverse test.regex_reverse \
 		test.prep_config test.primary test.regex test.secondary \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
