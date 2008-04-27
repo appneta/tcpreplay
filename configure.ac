@@ -11,7 +11,7 @@ AM_WITH_DMALLOC
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=3
-MICRO_VERSION=0
+MICRO_VERSION=rc1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -1211,12 +1211,12 @@ pcap_sendpacket:            ${have_pcap_sendpacket}
 case $host in
 	*-apple-darwin*)
 	AC_MSG_WARN([Apple OS X versions prior to 10.5 (Leopard) has a serious problem!
-	Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
+Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
 	;;
 	
 	*-*-cygwin)
-	AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental.  Please report any bugs!
-	http://tcpreplay.synfin.net/trac/newticket])
+	AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental. 
+Please report any bugs!	http://tcpreplay.synfin.net/trac/newticket])
 	;;
 esac
 
