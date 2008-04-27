@@ -174,7 +174,7 @@ flag = {
     name        = fragroute;
     arg-type    = string;
     max         = 1;
-    descrip     = "Enable fragroute configuration";
+    descrip     = "Parse fragroute configuration file";
     doc         = <<- EOText
 Enable advanced evasion techniques using the built-in fragroute(8)
 engine.  See the fragroute(8) man page for more details.  Important:
@@ -190,7 +190,7 @@ flag = {
     max         = 1;
     descrip     = "Which flows to apply fragroute to: c2s, s2c, both";
     doc         = <<- EOText
-Apply the fragroute engine to packets going c2s, s2c or both.
+Apply the fragroute engine to packets going c2s, s2c or both when using a cache file.
 EOText;
 };
 
