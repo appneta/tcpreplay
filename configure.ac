@@ -58,8 +58,8 @@ AC_PROG_SED
 AC_PROG_MAKE_SET
 AC_EXEEXT
 AC_PATH_PROG(PRINTF, printf)
-AC_PATH_PROG(AUTOGEN, autogen)
 AC_PATH_PROG(ECHO, echo)
+AC_PATH_PROG(AUTOGEN, autogen)
 
 dnl check autogen version
 if test -n "${AUTOGEN}" ; then
@@ -67,7 +67,7 @@ if test -n "${AUTOGEN}" ; then
 	AUTOGEN_VERSION=`${AUTOGEN} -v | ${SED} 's|.*\([[0-9\.]]\{3,\}\)$|\1|'`
 	AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${SED} 's|^\([[0-9]]\)\.[[0-9]]|\1|'`
 	AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${SED} 's|^\([[0-9]]\)\.\([[0-9]]\)|\2|'`
-	if test ${AUTOGEN_MAJOR} -le 5 && test ${AUTOGEN_MINOR} -lt 9 || test ${AUTOGEN_MAJOR} -lt 5 ; then
+	if test ((${AUTOGEN_MAJOR} -eq 5 && ${AUTOGEN_MINOR} -lt 9) || ${AUTOGEN_MAJOR} -lt 5) ; then
 		AC_MSG_RESULT(no)
 		AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from SVN.  Please upgrade to 5.9)])
 	else
@@ -75,7 +75,7 @@ if test -n "${AUTOGEN}" ; then
 	fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-    	AC_MSG_ERROR([Please install autogen >= 5.9 if you are building from SVN])
+    	AC_MSG_ERROR([Please install GNU autogen >= 5.9 if you are building from SVN])
     fi
 fi
 
