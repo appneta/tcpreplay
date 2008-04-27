@@ -2,11 +2,11 @@ $Id$
 
 ??/??/2008: Version 3.3.0
     - Fix tcprewrite --efcs option (#277)
+    - Fix tcpprep parsing of VLAN tagged frames (#290)
+    - Fix /dev/bpf detection in FreeBSD 8.0 (#292)
     - Add tcprewrite --ttl option (#294)
     - Fix autoconf AM_PROG_CC_C_O warning (#295)
     - Add tcpprep --reverse option (#297)
-    - Fix /dev/bpf detection in FreeBSD 8.0 (#292)
-    - Fix tcpprep parsing of VLAN tagged frames (#290)
     
 01/23/2008: Version 3.2.5
     - Fix linker error with --enable-tcpreplay-edit and --enable-dynamic-link (#288)
