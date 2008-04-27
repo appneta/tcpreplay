@@ -1,11 +1,11 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2004-2007";
+    date        = "2004-2008";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2004-2007 Aaron Turner
+Copyright 2004-2008 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -220,7 +220,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2007 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2001-2008 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBNET
     fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
@@ -241,6 +241,11 @@ flag = {
     fprintf(stderr, "Verbose printing via tcpdump: enabled\n");
 #else
     fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
+#endif
+#ifdef ENABLE_FRAGROUTE
+    fprintf(stderr, "Fragroute engine: enabled\n");
+#else
+    fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
     exit(0);
     
