@@ -12,10 +12,11 @@ struct fragroute_s {
 	struct addr	 dst;
 	struct addr	 smac;
 	struct addr	 dmac;
-	
+    int     dlt;
 	int		mtu;
     int     first_packet; /* have we called getfragment() yet after process()? */
-    u_char  l2header[ETH_HDR_LEN];
+    int     l2len;
+    u_char  l2header[50];
 //	arp_t		*arp;
 //	eth_t		*eth;
 //	intf_t		*intf;
@@ -29,7 +30,7 @@ typedef struct fragroute_s fragroute_t;
 
 int fragroute_process(fragroute_t *ctx, void *buf, size_t len);
 int fragroute_getfragment(fragroute_t *ctx, char **packet);
-fragroute_t * fragroute_init(const int mtu, const char *config, char *errbuf);
+fragroute_t * fragroute_init(const int mtu, const int dlt, const char *config, char *errbuf);
 void fragroute_close(fragroute_t *ctx);
 
 #endif /* __FRAGROUTE_H__ */

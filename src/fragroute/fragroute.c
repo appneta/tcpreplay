@@ -41,27 +41,26 @@ int
 fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 {
     struct pkt *pkt;
+    int l2len;
     assert(ctx);
     assert(buf);
     
     ctx->first_packet = 0;
-    
-    memcpy(ctx->l2header, buf, ETH_HDR_LEN);
+    /* save the l2 header of the original packet for later */
+    ctx->l2len = get_l2len(buf, len, ctx->dlt);
+    memcpy(ctx->l2header, buf, ctx->l2len);
     
 	if ((pkt = pkt_new()) == NULL) {
 		strcpy(ctx->errbuf, "unable to pkt_new()");
 		return -1;
 	}
-	if (ETH_HDR_LEN + len > PKT_BUF_LEN) {
-		strcpy(ctx->errbuf, "skipping oversized packet");
+	if (len > PKT_BUF_LEN) {
+        sprintf(ctx->errbuf, "skipping oversized packet: %zu", len);
 		return -1;
 	}
 
     memcpy(pkt->pkt_data, buf, len);
     pkt->pkt_end = pkt->pkt_data + len;
-    // memcpy(pkt->pkt_data + ETH_HDR_LEN, (u_char *)buf + ETH_HDR_LEN, len - ETH_HDR_LEN);
-    // pkt->pkt_end = pkt->pkt_data + len;
-
 	
 	pkt_decorate(pkt);
 	
@@ -92,11 +91,6 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
     char *pkt_data = *packet;
     u_int32_t length;
     
-    // for (pkt = TAILQ_FIRST(&pktq); pkt != TAILQ_END(&pktq); pkt = next) {
-    //  next = TAILQ_NEXT(pkt, pkt_next);
-    //  _resend_outgoing(pkt);
-    // }
-
     if (ctx->first_packet != 0) {
         pkt = next;
     } else {
@@ -107,7 +101,9 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
     if (pkt != TAILQ_END(&(ctx->pktq))) {
         next = TAILQ_NEXT(pkt, pkt_next);
         memcpy(pkt_data, pkt->pkt_data, pkt->pkt_end - pkt->pkt_data);
-        memcpy(pkt_data, ctx->l2header, ETH_HDR_LEN);
+        
+        /* return the original L2 header */
+        memcpy(pkt_data, ctx->l2header, ctx->l2len);
         length = pkt->pkt_end - pkt->pkt_data;
         pkt = next;
         return length;
@@ -117,13 +113,20 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
 }
 
 fragroute_t *
-fragroute_init(const int mtu, const char *config, char *errbuf)
+fragroute_init(const int mtu, const int dlt, const char *config, char *errbuf)
 {
     fragroute_t *ctx;
 
+    if (dlt != DLT_EN10MB) {
+        sprintf(errbuf, "Fragroute only supports DLT_EN10MB pcap files");
+        return NULL;
+    }
+        
+
     ctx = (fragroute_t *)safe_malloc(sizeof(fragroute_t));
     ctx->pktq = (struct pktq *)safe_malloc(sizeof(struct pktq));
-
+    ctx->dlt = dlt;
+    
 	pkt_init(128);
 
     ctx->mtu = mtu;

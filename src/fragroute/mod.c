@@ -90,7 +90,7 @@ mod_open(const char *script, char *errbuf)
 		sprintf(errbuf, "couldn't open %s", script);
 		return (-1);
 	}
-    warn("opened config file...");
+    dbg(1, "opened config file...");
 	/* read the file, one line at a time... */
 	for (i = 1; fgets(buf, sizeof(buf), fp) != NULL; i++) {
 	    
@@ -105,11 +105,11 @@ mod_open(const char *script, char *errbuf)
 			break;
 		}
 		
-        warnx("argc = %d, %s, %s, %s", argc, argv[0], argv[1], argv[2]);
+        dbgx(1, "argc = %d, %s, %s, %s", argc, argv[0], argv[1], argv[2]);
 		/* check first keyword against modules */
 		for (m = mods; *m != NULL; m++) {
 			if (strcasecmp((*m)->name, argv[0]) == 0) {
-                warnx("comparing %s to %s", argv[0], (*m)->name);
+                dbgx(1, "comparing %s to %s", argv[0], (*m)->name);
 				break;
 			}
 		}
@@ -143,7 +143,7 @@ mod_open(const char *script, char *errbuf)
 	
 	/* close the file */
 	fclose(fp);
-    warn("close file...");
+    dbg(1, "close file...");
     
 	if (ret == 0) {
 		buf[0] = '\0';

@@ -119,7 +119,7 @@ main(int argc, char *argv[])
 
 #ifdef ENABLE_FRAGROUTE
     if (options.fragroute_args) {
-        if ((options.frag_ctx = fragroute_init(65535, options.fragroute_args, ebuf)) == NULL)
+        if ((options.frag_ctx = fragroute_init(65535, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL)
             errx(1, "%s", ebuf);
     }
 #endif
@@ -284,13 +284,14 @@ WRITE_PACKET:
             if ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
                     (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
                     (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C)) {
-                if (fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen) < 0) {
-                    errx(1, "Error processing packet via fragroute %s", options.frag_ctx->errbuf);
-                }
+
+                if (fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen) < 0)
+                    errx(1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);
+
                 i = 0;
                 while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {
                     /* frags get the same timestamp as the original packet */
-                    notice("processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);
+                    dbgx(1, "processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);
                     pkthdr_ptr->caplen = frag_len;
                     pkthdr_ptr->len = frag_len;
                     pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);
