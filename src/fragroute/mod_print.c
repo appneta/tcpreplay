@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: mod_print.c,v 1.7 2002/04/07 22:55:20 dugsong Exp $
+ * $Id$
  */
 
 #include "config.h"

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: pkt.h,v 1.8 2002/04/07 22:55:20 dugsong Exp $
+ * $Id$
  */
 
 #ifndef PKT_H

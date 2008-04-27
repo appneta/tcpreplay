@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: randutil.h,v 1.1 2002/04/07 22:55:20 dugsong Exp $
+ * $Id$
  */
 
 #ifndef RANDUTIL_H

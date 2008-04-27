@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: mod_ip_chaff.c,v 1.5 2002/04/11 04:25:52 dugsong Exp $
+ * $Id$
  */
 
 #include "config.h"

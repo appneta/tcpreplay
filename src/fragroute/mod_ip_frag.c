@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: mod_ip_frag.c,v 1.18 2002/04/11 16:37:42 dugsong Exp $
+ * $Id$
  */
 
 #include "config.h"

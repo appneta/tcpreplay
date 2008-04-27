@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: mod_ip_ttl.c,v 1.4 2002/04/07 22:55:20 dugsong Exp $
+ * $Id$
  */
 
 #include "config.h"

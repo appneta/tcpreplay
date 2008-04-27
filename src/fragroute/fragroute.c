@@ -2,8 +2,8 @@
  * fragroute.c
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
- *
- * $Id: fragroute.c,v 1.16 2002/04/07 22:55:20 dugsong Exp $
+ * Copyright (c) 2007-2008 Aaron Turner.
+ * $Id$
  */
 
 #include "config.h"

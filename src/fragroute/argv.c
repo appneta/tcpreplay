@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: argv.c,v 1.5 2002/02/24 22:26:41 dugsong Exp $
+ * $Id$
  */
 
 #include "config.h"

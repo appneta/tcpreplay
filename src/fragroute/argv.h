@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  *
- * $Id: argv.h,v 1.1 2002/01/18 18:11:18 dugsong Exp $
+ * $Id$
  */
 
 #ifndef ARGV_H

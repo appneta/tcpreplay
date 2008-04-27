@@ -2,8 +2,9 @@
  * mod.c
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
+ * Copyright (c) 2007-2008 Aaron Turner.
  *
- * $Id: mod.c,v 1.19 2002/04/07 22:55:20 dugsong Exp $
+ * $Id$
  */
 
 #include "config.h"
