@@ -77,7 +77,9 @@ main(int argc, char *argv[])
 {
     int optct, rcode;
     pcap_t *dlt_pcap;
+#ifdef ENABLE_FRAGROUTE
     char ebuf[FRAGROUTE_ERRBUF_LEN];
+#endif
     tcprewrite_init();
 
     /* call autoopts to process arguments */
@@ -276,6 +278,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 
 
 WRITE_PACKET:
+#ifdef ENABLE_FRAGROUTE
         if (options.frag_ctx == NULL) {
             /* write the packet when there's no fragrouting to be done */
             pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
@@ -301,7 +304,11 @@ WRITE_PACKET:
                 pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
             }
         }
+#else
+    /* write the packet when there's no fragrouting to be done */
+    pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
 
+#endif
     } /* while() */
     return 0;
 }   
