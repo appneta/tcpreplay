@@ -11,7 +11,7 @@ AM_WITH_DMALLOC
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=3
-MICRO_VERSION=rc1
+MICRO_VERSION=rc2
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -74,7 +74,9 @@ if test -n "${AUTOGEN}" ; then
 		AC_MSG_RESULT(yes)
 	fi
 else
-	AC_MSG_WARN([Please install autogen >= 5.9 if you are building from SVN])
+    if test ! -f src/tcpreplay_opts.c ; then
+    	AC_MSG_ERROR([Please install autogen >= 5.9 if you are building from SVN])
+    fi
 fi
 
 AC_HEADER_STDC
