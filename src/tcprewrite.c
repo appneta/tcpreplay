@@ -284,13 +284,13 @@ WRITE_PACKET:
             if ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
                     (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
                     (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C)) {
-                if (fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen) != 0) {
+                if (fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen) < 0) {
                     errx(1, "Error processing packet via fragroute %s", options.frag_ctx->errbuf);
                 }
                 i = 0;
                 while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {
                     /* frags get the same timestamp as the original packet */
-                    notice("processing frag: %u", i++);
+                    notice("processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);
                     pkthdr_ptr->caplen = frag_len;
                     pkthdr_ptr->len = frag_len;
                     pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);

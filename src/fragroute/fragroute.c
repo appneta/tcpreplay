@@ -41,7 +41,13 @@ int
 fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 {
     struct pkt *pkt;
-	
+    assert(ctx);
+    assert(buf);
+    
+    ctx->first_packet = 0;
+    
+    memcpy(ctx->l2header, buf, ETH_HDR_LEN);
+    
 	if ((pkt = pkt_new()) == NULL) {
 		strcpy(ctx->errbuf, "unable to pkt_new()");
 		return -1;
@@ -50,8 +56,12 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 		strcpy(ctx->errbuf, "skipping oversized packet");
 		return -1;
 	}
-	memcpy(pkt->pkt_data + ETH_HDR_LEN, buf, len);
-	pkt->pkt_end = pkt->pkt_data + ETH_HDR_LEN + len;
+
+    memcpy(pkt->pkt_data, buf, len);
+    pkt->pkt_end = pkt->pkt_data + len;
+    // memcpy(pkt->pkt_data + ETH_HDR_LEN, (u_char *)buf + ETH_HDR_LEN, len - ETH_HDR_LEN);
+    // pkt->pkt_end = pkt->pkt_data + len;
+
 	
 	pkt_decorate(pkt);
 	
@@ -69,22 +79,38 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
     return 0;
 }
 
+/*
+ * keep calling this after fragroute_process() to get all the fragments.
+ * Each call returns the fragment length which is stored in **packet.
+ * Returns 0 when no more fragments remain or -1 on error
+ */
 int
 fragroute_getfragment(fragroute_t *ctx, char **packet)
 {
     static struct pkt *pkt = NULL;
     static struct pkt *next = NULL;
+    char *pkt_data = *packet;
+    u_int32_t length;
+    
+    // for (pkt = TAILQ_FIRST(&pktq); pkt != TAILQ_END(&pktq); pkt = next) {
+    //  next = TAILQ_NEXT(pkt, pkt_next);
+    //  _resend_outgoing(pkt);
+    // }
 
-    if (next != NULL) {
+    if (ctx->first_packet != 0) {
         pkt = next;
     } else {
+        ctx->first_packet = 1;
         pkt = TAILQ_FIRST(ctx->pktq);
     }
     
-    while (pkt != TAILQ_END(&(ctx->pktq))) {
-		next = TAILQ_NEXT(pkt, pkt_next);
-        memcpy(*packet, pkt->pkt_data, pkt->pkt_end - pkt->pkt_data);
-        return pkt->pkt_end - pkt->pkt_data;
+    if (pkt != TAILQ_END(&(ctx->pktq))) {
+        next = TAILQ_NEXT(pkt, pkt_next);
+        memcpy(pkt_data, pkt->pkt_data, pkt->pkt_end - pkt->pkt_data);
+        memcpy(pkt_data, ctx->l2header, ETH_HDR_LEN);
+        length = pkt->pkt_end - pkt->pkt_data;
+        pkt = next;
+        return length;
     }
 
     return 0; // nothing
@@ -95,15 +121,8 @@ fragroute_init(const int mtu, const char *config, char *errbuf)
 {
     fragroute_t *ctx;
 
-	if ((ctx = (fragroute_t *)malloc(sizeof(fragroute_t))) == NULL) {
-        strcpy(errbuf, "Unable to allocate memory for context variable");
-        return NULL;
-    }
-
-    if ((ctx->pktq = (struct pktq *)malloc(sizeof(struct pktq))) == NULL) {
-        strcpy(errbuf, "Unable to allocate memory for context variable");
-        return NULL;        
-    }
+    ctx = (fragroute_t *)safe_malloc(sizeof(fragroute_t));
+    ctx->pktq = (struct pktq *)safe_malloc(sizeof(struct pktq));
 
 	pkt_init(128);
 

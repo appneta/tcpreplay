@@ -13,8 +13,9 @@ struct fragroute_s {
 	struct addr	 smac;
 	struct addr	 dmac;
 	
-	int		 mtu;
-	
+	int		mtu;
+    int     first_packet; /* have we called getfragment() yet after process()? */
+    u_char  l2header[ETH_HDR_LEN];
 //	arp_t		*arp;
 //	eth_t		*eth;
 //	intf_t		*intf;
