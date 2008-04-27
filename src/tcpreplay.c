@@ -322,9 +322,9 @@ post_args(void)
 #endif
 
 	/*
-		Check if the file cache should be enabled - if we're looping more than
-		once and the command line option has been spec'd
-	*/
+	 * Check if the file cache should be enabled - if we're looping more than
+	 * once and the command line option has been spec'd
+	 */
 	if (HAVE_OPT(ENABLE_FILE_CACHE) && (options.loop != 1)) {
 		options.enable_file_cache = TRUE;
 	}
