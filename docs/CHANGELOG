@@ -1,6 +1,7 @@
 $Id$
 
 ??/??/2008: Version 3.3.0
+    - Improve tcpreplay timing accuracy between packets (#41)
     - Add tcprewrite fragroute support (#42)
     - Fix tcprewrite --efcs option (#277)
     - Fix tcpprep parsing of VLAN tagged frames (#290)
