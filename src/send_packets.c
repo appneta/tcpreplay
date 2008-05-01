@@ -30,8 +30,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define ADJUSTER_OFFSET 5 /* number of usec to compensate for packet timing */
-
 #include "config.h"
 #include "defines.h"
 #include "common.h"
