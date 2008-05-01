@@ -59,15 +59,18 @@ AC_PROG_MAKE_SET
 AC_EXEEXT
 AC_PATH_PROG(PRINTF, printf)
 AC_PATH_PROG(ECHO, echo)
+AC_PATH_PROG(CUT, cut)
 AC_PATH_PROG(AUTOGEN, autogen)
 
 dnl check autogen version
+AUTOGEN_VERSION=unknown
 if test -n "${AUTOGEN}" ; then
 	AC_MSG_CHECKING(for autogen version >= 5.9)
-	AUTOGEN_VERSION=`${AUTOGEN} -v | ${SED} 's|.*\([[0-9\.]]\{3,\}\)$|\1|'`
-	AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${SED} 's|^\([[0-9]]\)\.[[0-9]]|\1|'`
-	AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${SED} 's|^\([[0-9]]\)\.\([[0-9]]\)|\2|'`
-	if ( ${AUTOGEN_MAJOR} -eq 5 && ${AUTOGEN_MINOR} -lt 9 ) || ${AUTOGEN_MAJOR} -lt 5 ; then
+	${AUTOGEN} -v >autogen.version
+	AUTOGEN_VERSION=`cat autogen.version | ${SED} 's|.*\([[0-9\.]]\{5,\}\).*|\1|'`
+	AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1`
+	AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
+	if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 9 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
 		AC_MSG_RESULT(no)
 		AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from SVN.  Please upgrade to 5.9)])
 	else
@@ -78,6 +81,7 @@ else
     	AC_MSG_ERROR([Please install GNU autogen >= 5.9 if you are building from SVN])
     fi
 fi
+
 
 AC_HEADER_STDC
 AC_HEADER_MAJOR
@@ -1195,7 +1199,7 @@ AC_MSG_RESULT(
 libpcap:                    ${foundpcap} (${libpcap_version})
 libnet:                     ${foundnet}
 libdnet:                    ${founddnet}
-autogen:                    ${AUTOGEN}
+autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
 64bit counter support:      ${use64bit_counters}
 tcpdump binary path:        ${tcpdump_path}
 tcpreplay edit support:     ${tcpreplay_edit}
