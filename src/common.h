@@ -15,6 +15,7 @@
 #include "common/services.h"
 #include "common/utils.h"
 #include "common/xX.h"
+#include "common/rdtsc.h"
 #include "common/tcpdump.h"
 #include "common/timer.h"
 #include "common/abort.h"

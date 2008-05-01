@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2007 Aaron Turner.
+ * Copyright (c) 2001-2008 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,10 @@ int debug = 0;
 #ifdef TCPREPLAY_EDIT
 #include "tcpedit/tcpedit.h"
 tcpedit_t *tcpedit;
+#endif
+
+#ifdef HAVE_ABSOLUTE_TIME
+#include <CoreServices/CoreServices.h>
 #endif
 
 void replay_file(int file_idx);
@@ -275,6 +279,7 @@ post_args(void)
     char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
+    float gtod = 14.5;
     
 #ifdef ENABLE_PCAP_FINDALLDEVS
     interface_list_t *intlist = get_interface_list();
@@ -289,7 +294,7 @@ post_args(void)
     if (HAVE_OPT(DBUG))
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
-    
+        
     options.loop = OPT_VALUE_LOOP;
 
     if (HAVE_OPT(LIMIT))
@@ -329,9 +334,50 @@ post_args(void)
 		options.enable_file_cache = TRUE;
 	}
 
-    if (HAVE_OPT(ACCURATE))
-        options.accurate = 1;
-        
+    if (HAVE_OPT(TIMER)) {
+        if (strcmp(OPT_ARG(TIMER), "select") == 0) {
+#ifdef HAVE_SELECT
+            options.accurate = ACCURATE_SELECT;
+#else
+            err(1, "tcpreplay not compiled with select support");
+#endif
+        } else if (strcmp(OPT_ARG(TIMER), "rdtsc") == 0) {
+#ifdef HAVE_RDTSC
+            options.accurate = ACCURATE_RDTSC;
+#else
+            err(1, "tcpreplay not compiled with rdtsc support");
+#endif
+        } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
+#if defined HAVE_IOPERM && defined(__i386__)
+            options.accurate = ACCURATE_IOPORT;
+            ioport_sleep_init();
+#else
+            err(1, "tcpreplay not compiled with IO Port 0x80 support");
+#endif
+        } else if (strcmp(OPT_ARG(TIMER), "gtod") == 0) {
+            options.accurate = ACCURATE_GTOD;
+        } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
+            options.accurate = ACCURATE_NANOSLEEP;
+        } else if (strcmp(OPT_ARG(TIMER), "abstime") == 0) {
+#ifdef HAVE_ABSOLUTE_TIME
+            options.accurate = ACCURATE_ABS_TIME;
+            if  (!MPLibraryIsLoaded()) {
+                err(1, "The MP library did not load.\n");
+            }            
+#else
+            err(1, "tcpreplay only supports absolute time on Apple OS X");
+#endif
+        } else {
+            errx(1, "Unsupported timer mode: %s", OPT_ARG(TIMER));
+        }
+    }
+
+#ifdef HAVE_RDTSC
+    if (HAVE_OPT(RDTSC_CLICKS)) {
+        rdtsc_calibrate(OPT_VALUE_RDTSC_CLICKS);
+    }
+#endif
+
     if (HAVE_OPT(PKTLEN))
         warn("--pktlen may cause problems.  Use with caution.");
     

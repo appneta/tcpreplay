@@ -1,7 +1,7 @@
-/* $Id$ */
+/* $Id:$ */
 
 /*
- * Copyright (c) 2001-2007 Aaron Turner.
+ * Copyright (c) 2008 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,38 +34,46 @@
 #include "defines.h"
 #include "common.h"
 
-#include "timer.h"
-
+#include <sys/types.h>
+#include <errno.h>
+#include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-/* Miscellaneous timeval routines */
-
-/**
- * Divide tvp by div, storing the result in tvp 
+/*
+ * returns the # of clicks/usec
  */
-void
-timerdiv(struct timeval *tvp, float div)
+u_int64_t
+rdtsc_calibrate(u_int32_t mhz)
 {
-    double interval;
-
-    if (div == 0 || div == 1)
-        return;
-
-    interval = ((double)tvp->tv_sec * 1000000 + tvp->tv_usec) / (double)div;
-    tvp->tv_sec = interval / (int)1000000;
-    tvp->tv_usec = interval - (tvp->tv_sec * 1000000);
-}
-
-/* Divide tvs by div, storing the result in tvs */
-void timesdiv(struct timespec *tvs, float div)
-{
-    double interval;
+    static u_int64_t x = 0;
+    u_int64_t v = 0;
+    struct timeval start, end, diff;
+    u_int64_t x1, x2;
+    u_int16_t n;
     
-    if (div == 0 || div == 1)
-        return;
-        
-    interval = ((double)tvs->tv_sec * 1000000000 + tvs->tv_nsec) / (double)div;
-    tvs->tv_sec = interval / (int)1000000000;
-    tvs->tv_nsec = interval - (tvs->tv_nsec * 1000000000);
-}
+    if (x != 0) {
+        return x;
+    } else if (mhz > 0 && x == 0) {
+        x = (u_int64_t)mhz;
+        notice("Using user specification of %llu Mhz", x);
+    } else {
+        /* haven't calculated clicks/usec yet */
+        for (n=0; n<16; ++n) {
+            gettimeofday(&start, 0);
+            x1 = rdtsc();
 
+            usleep(100000);
+
+            x2 = rdtsc();
+            gettimeofday(&end, 0);
+
+            timersub(&end, &start, &diff);
+
+            v = (x2 - x1)/(diff.tv_sec * 1000000 + diff.tv_usec);
+            x = x ? (x + v)/2 : v;
+        }
+        notice("Using guessimate of %llu Mhz", x);
+    }
+    return x;
+}

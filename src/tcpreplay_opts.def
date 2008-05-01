@@ -78,6 +78,11 @@ tcpreplay-edit(1), tcpdump(1), tcpprep(1), tcprewrite(1), libnet(3)
 tcpreplay can only send packets as fast as your computer's interface,
 processor, disk and system bus will allow.
 
+Packet timing at high speeds is a black art and very OS/CPU dependent.  
+Your best bet is to use @var{--timing=rdtsc}, do your own testing and tweak the 
+@var{--rdtsc-clicks} option accordingly.  Newer CPU's and Linux kernels
+with HPET enabled may have good results with @var{--timing=gtod}.
+
 Replaying captured traffic may simulate odd or broken conditions on your
 network and cause problems.
 
@@ -113,31 +118,53 @@ flag = {
 };
 
 flag = {
-	name		= accurate;
-	value		= a;
+	name		= timer;
+	value		= T;
 	max			= 1;
-	flags-cant  = accurate2;
-	descrip		= "Enable more accurate packet timing";
+	arg-type    = string;
+	descrip		= "Select packet timing mode: select, ioport, rdtsc, gtod, nano, abstime";
 	doc			= <<- EOText
-Enables more accurate timing between packets at the cost of higher
-CPU utilization by using the gettimeofday() system call.  This method
-works better on some systems then others and may have rather non-granular
-resolution which makes it problematic for replaying at high rates of speed.
+Allows you to select the packet timing method to use:
+@enumerate
+@item nano
+- Use nanosleep() API [default]
+@item select
+- Use select() API
+@item ioport
+- Write to the i386 IO Port 0x80
+@item rdtsc  
+- Use the x86/x86_64/PPC RDTSC
+@item gtod   
+- Use a gettimeofday() loop
+@item abstime
+- Use OS X's AbsoluteTime
+@end enumerate
+
 EOText;
 };
 
 flag = {
-    name        = accurate2;
-    max         = 1;
-    flags-cant  = accurate;
+    name        = sleep-accel;
     arg-type    = number;
-    descrip     = "Enable even more accurate packet timing";
+    arg-default = 5;
+    descrip     = "Reduce the amount of time to sleep by specified usec";
     doc         = <<- EOText
-Enables the "even more" accurate timing at the cost of higher CPU
-utilization by using a tight loop which increments a counter.   This method
-provides the most accurate timing of any option, but requires you to specify
-a cost for each loop.  This cost value is VERY system dependent, so you will
-need to run --loop-test to get this value.
+Reduce the amount of time we would normally sleep between two packets by the 
+specified number of usec.  This is primarily intended to compensate for the
+overhead in tcpreplay to process & send packets.  Default is 5usec which seems
+to work well on my 2.16Ghz MacBook Pro.
+EOText;
+};
+
+flag = {
+    name        = rdtsc-clicks;
+    max         = 1;
+    arg-type    = number;
+    arg-default = 0;
+    descrip     = "Specify the RDTSC clicks/usec";
+    doc         = <<- EOText
+Override the calculated number of RDTSC clicks/usec which is often the speed of the 
+CPU in Mhz.  Only useful if you specified @var{--timer=rdtsc}
 EOText;
 };
 
@@ -171,7 +198,7 @@ options.
 EOText;
 };
 
-/* Cache files to internal memory */
+/* Cache files to internal memory */ 
 flag = {
 	name		= enable_file_cache;
 	value		= K;
@@ -221,7 +248,7 @@ flag = {
     descrip     = "Client/secondary traffic output interface";
     doc         = "";
 };
-
+/*
 flag = {
 	ifdef		= ENABLE_PCAP_FINDALLDEVS;
 	name		= listnics;
@@ -237,7 +264,7 @@ flag = {
 	
 EOFlag;
 };
-
+*/
 /*
  * Limits and loops: -l
  */

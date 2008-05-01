@@ -459,6 +459,9 @@ process_raw_packets(pcap_t * pcap)
             cache_result = add_cache(&options.cachedata, SEND,
                 check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
             break;
+            
+        default:
+            errx(1, "Whops!  What mode are we in anyways? %d", options.mode);
         }
 #ifdef ENABLE_VERBOSE
         if (options.verbose)

@@ -67,7 +67,7 @@ if test -n "${AUTOGEN}" ; then
 	AUTOGEN_VERSION=`${AUTOGEN} -v | ${SED} 's|.*\([[0-9\.]]\{3,\}\)$|\1|'`
 	AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${SED} 's|^\([[0-9]]\)\.[[0-9]]|\1|'`
 	AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${SED} 's|^\([[0-9]]\)\.\([[0-9]]\)|\2|'`
-	if test ((${AUTOGEN_MAJOR} -eq 5 && ${AUTOGEN_MINOR} -lt 9) || ${AUTOGEN_MAJOR} -lt 5) ; then
+	if ( ${AUTOGEN_MAJOR} -eq 5 && ${AUTOGEN_MINOR} -lt 9 ) || ${AUTOGEN_MAJOR} -lt 5 ; then
 		AC_MSG_RESULT(no)
 		AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from SVN.  Please upgrade to 5.9)])
 	else
@@ -1084,7 +1084,7 @@ dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC t
 dnl so under OSX we disable the interface list feature
 disable_pcap_findalldevs=no
 
-
+osx_frameworks=no
 dnl these need to be dynamic based on OS
 case $host in
 	*-*-linux*)
@@ -1111,6 +1111,8 @@ case $host in
 	if test x$libpcap_version_096 = xno ; then
     	disable_pcap_findalldevs=yes
     fi
+    AC_DEFINE([HAVE_ABSOLUTE_TIME], [1], [Have OS X UpTime()/AbsoluteTime high-precision timing])
+    osx_frameworks=yes
 	AC_MSG_RESULT(Apple OS X)
 	;;
 
@@ -1133,6 +1135,7 @@ case $host in
 	;;
 esac])
 
+AM_CONDITIONAL([ENABLE_OSX_FRAMEWORKS], test "$osx_frameworks" == "yes")
 
 AC_ARG_WITH(testnic2,
     AC_HELP_STRING([--with-testnic2=NIC2], [Select an optional 2nd network card to use for testing]),

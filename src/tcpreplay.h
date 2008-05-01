@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2007 Aaron Turner.
+ * Copyright (c) 2001-2008 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,8 +46,7 @@
 #include <dmalloc.h>
 #endif
 
-struct packet_cache_s
-{
+struct packet_cache_s {
 	struct pcap_pkthdr pkthdr;
 	u_char *pktdata;
 	
@@ -56,8 +55,7 @@ struct packet_cache_s
 
 typedef struct packet_cache_s packet_cache_t;
 
-typedef struct
-{
+typedef struct {
 	int index;
 	int cached;
 	packet_cache_t *packet_cache;
@@ -71,16 +69,7 @@ struct tcpreplay_opt_s {
     char *intf2_name;
     sendpacket_t *intf1;
     sendpacket_t *intf2;
-/* disable data dump mode
-    pcap_t *savepcap1;
-    pcap_t *savepcap2;
-    pcap_dumper_t *savedumper1;
-    pcap_dumper_t *savedumper2;
 
-    int datadump_mode;
-    int datadumpfile1;
-    int datadumpfile2;
-*/
     tcpr_speed_t speed;
     u_int32_t loop;
 
@@ -93,22 +82,18 @@ struct tcpreplay_opt_s {
     int mtu;
     int truncate;
     
-    /* use gettimeofday() instead of sleeping between packets */
+    /* accurate mode to use */
     int accurate;
+#define ACCURATE_NANOSLEEP  0
+#define ACCURATE_SELECT     1
+#define ACCURATE_RDTSC      2
+#define ACCURATE_IOPORT     3
+#define ACCURATE_GTOD       4
+#define ACCURATE_ABS_TIME   5
     
     char *files[MAX_FILES];
     COUNTER limit_send;
     
-    
-/* disable bridge mode
-    pcap_t *listen1;
-    pcap_t *listen2;
-    int sniff_snaplen;
-    int sniff_bridge;
-    int promisc;
-    int poll_timeout;
-*/
-
 #ifdef ENABLE_VERBOSE
     /* tcpdump verbose printing */
     int verbose;
