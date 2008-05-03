@@ -11,7 +11,7 @@ AM_WITH_DMALLOC
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=3
-MICRO_VERSION=rc2
+MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -65,22 +65,24 @@ AC_PATH_PROG(AUTOGEN, autogen)
 dnl check autogen version
 AUTOGEN_VERSION=unknown
 if test -n "${AUTOGEN}" ; then
-	AC_MSG_CHECKING(for autogen version >= 5.9)
+	AC_MSG_CHECKING(for autogen version >= 5.9.x)
 	${AUTOGEN} -v >autogen.version
 	AUTOGEN_VERSION=`cat autogen.version | ${SED} 's|.*\([[0-9\.]]\{5,\}\).*|\1|'`
 	AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1`
 	AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
 	if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 9 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
 		AC_MSG_RESULT(no)
-		AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from SVN.  Please upgrade to 5.9)])
+		AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from SVN.  Please upgrade to 5.9.x)])
 	else
 		AC_MSG_RESULT(yes)
 	fi
+	rm -f autogen.version
 else
     if test ! -f src/tcpreplay_opts.c ; then
-    	AC_MSG_ERROR([Please install GNU autogen >= 5.9 if you are building from SVN])
+    	AC_MSG_ERROR([Please install GNU autogen >= 5.9.x if you are building from SVN])
     fi
 fi
+AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
 
 
 AC_HEADER_STDC
