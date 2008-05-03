@@ -8,6 +8,9 @@ AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
 
+dnl People building from SVN need the same version of Autogen as I'm using
+MAINTAINER_AUTOGEN_VERSION=5.9.2
+
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=3
@@ -77,13 +80,19 @@ if test -n "${AUTOGEN}" ; then
 		AC_MSG_RESULT(yes)
 	fi
 	rm -f autogen.version
+	
+	dnl Compare the installed version with the maintainer version if building from SVN
+    if test ! -f src/tcpreplay_opts.c ; then
+        if test $MAINTAINER_AUTOGEN_VERSION != $AUTOGEN_VERSION ; then
+            AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)])
+        fi
+    fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
     	AC_MSG_ERROR([Please install GNU autogen >= 5.9.x if you are building from SVN])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
-
 
 AC_HEADER_STDC
 AC_HEADER_MAJOR
