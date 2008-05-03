@@ -137,7 +137,7 @@ tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
-	replay_config replay_multi replay_accurate 
+	replay_config replay_multi
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
