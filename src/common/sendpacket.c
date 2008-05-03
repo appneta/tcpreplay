@@ -370,7 +370,7 @@ sendpacket_getstat(sendpacket_t *sp)
         "\tAttempted packets:         " COUNTER_SPEC "\n"
         "\tSuccessful packets:        " COUNTER_SPEC "\n"
         "\tFailed packets:            " COUNTER_SPEC "\n"
-        "\tRetried packets (ENOBUFS): " COUNTER_SPEC "\n",
+        "\tRetried packets (ENOBUFS): " COUNTER_SPEC "\n"
         "\tRetried packets (EAGAIN):  " COUNTER_SPEC "\n",
         sp->device, sp->attempt, sp->sent, sp->failed, sp->retry_enobufs, sp->retry_eagain);
     return(buf);
