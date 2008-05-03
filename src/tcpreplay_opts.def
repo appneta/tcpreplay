@@ -79,18 +79,15 @@ tcpreplay can only send packets as fast as your computer's interface,
 processor, disk and system bus will allow.
 
 Packet timing at high speeds is a black art and very OS/CPU dependent.  
-Your best bet is to use @var{--timing=rdtsc}, do your own testing and tweak the 
-@var{--rdtsc-clicks} option accordingly.  Newer CPU's and Linux kernels
-with HPET enabled may have good results with @var{--timing=gtod}.
 
 Replaying captured traffic may simulate odd or broken conditions on your
-network and cause problems.
+network and cause all sorts of problems.
 
 In most cases, you can not replay traffic back to/at a server.
 
 Some operating systems by default do not allow for forging source MAC
 addresses.  Please consult your operating system's documentation and the
-tcpreplay FAQ if you experiance this issue.
+tcpreplay FAQ if you experience this issue.
 EOMan;
 
 
@@ -120,6 +117,7 @@ flag = {
 flag = {
 	name		= timer;
 	value		= T;
+	arg-default = "gtod";
 	max			= 1;
 	arg-type    = string;
 	descrip		= "Select packet timing mode: select, ioport, rdtsc, gtod, nano, abstime";
@@ -127,17 +125,17 @@ flag = {
 Allows you to select the packet timing method to use:
 @enumerate
 @item nano
-- Use nanosleep() API [default]
+- Use nanosleep() API
 @item select
 - Use select() API
 @item ioport
 - Write to the i386 IO Port 0x80
 @item rdtsc  
 - Use the x86/x86_64/PPC RDTSC
-@item gtod   
+@item gtod [default]
 - Use a gettimeofday() loop
 @item abstime
-- Use OS X's AbsoluteTime
+- Use OS X's AbsoluteTime API
 @end enumerate
 
 EOText;
@@ -146,13 +144,12 @@ EOText;
 flag = {
     name        = sleep-accel;
     arg-type    = number;
-    arg-default = 5;
+    arg-default = 0;
     descrip     = "Reduce the amount of time to sleep by specified usec";
     doc         = <<- EOText
 Reduce the amount of time we would normally sleep between two packets by the 
-specified number of usec.  This is primarily intended to compensate for the
-overhead in tcpreplay to process & send packets.  Default is 5usec which seems
-to work well on my 2.16Ghz MacBook Pro.
+specified number of usec.  This provides a "fuzz factor" to compensate for
+running on a non-RTOS and other processes using CPU time.  Default is disabled.
 EOText;
 };
 
@@ -435,6 +432,11 @@ flag = {
     fprintf(stderr, "Packet editing: enabled\n");
 #else
     fprintf(stderr, "Packet editing: disabled\n");
+#endif
+#ifdef ENABLE_FRAGROUTE
+    fprintf(stderr, "Fragroute engine: enabled\n");
+#else
+    fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
     exit(0);
     
