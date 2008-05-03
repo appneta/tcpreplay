@@ -70,23 +70,28 @@
 #include "sendpacket.h"
 
 
-/* Allow users to force the injection method */
+/* Allow users to force the injection method, default is linux PF_PACKET */
+#define INJECT_METHOD "PF_PACKET send()"
 #ifdef FORCE_INJECT_LIBNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#define INJECT_METHOD "libnet send()"
 #elif defined FORCE_INJECT_BPF
 #undef HAVE_LIBNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
+#define INJECT_METHOD "bpf send()"
 #elif defined FORCE_INJECT_PCAP_INJECT
 #undef HAVE_LIBNET
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#define INJECT_METHOD "pcap_inject()"
 #elif defined FORCE_INJECT_PCAP_SENDPACKET
 #undef HAVE_LIBNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_BPF
+#define INJECT_METHOD "pcap_sendpacket()"
 #endif
 
 
@@ -171,6 +176,10 @@ extern volatile int didsig;
  * Note: it is theoretically possible to get a return code >0 and < len
  * which for most people would be considered an error (the packet wasn't fully sent)
  * so you may want to test for recode != len too.
+ *
+ * Most socket API's have two interesting errors: ENOBUFS & EAGAIN.  ENOBUFS
+ * is usually due to the kernel buffers being full.  EAGAIN happens when you
+ * try to send traffic faster then the PHY allows.
  */
 int
 sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
@@ -188,36 +197,67 @@ TRY_SEND_AGAIN:
 
 #if defined HAVE_PF_PACKET 
     retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
-        
-    /* out of buffers, silently retry */
-    if (retcode < 0 && errno == ENOBUFS && !didsig) {
-        sp->retry ++;
-        goto TRY_SEND_AGAIN;
+
+    /* out of buffers, or hit max PHY speed, silently retry */
+    if (retcode < 0 && !didsig) {
+        switch (errno) {
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
+                
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                    INJECT_METHOD, sp->sent + 1, strerror(errno), errno);
+        }
     } 
-    /* some other kind of error */
-    else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pf send(): %s (errno = %d)", 
-            strerror(errno), errno);
-    }
 
 #elif defined HAVE_BPF
     retcode = write(sp->handle.fd, (void *)data, len);
-    if (retcode < 0 && errno == ENOBUFS && !didsig) {
-        sp->retry ++;
-        goto TRY_SEND_AGAIN;
-    } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with bpf write(): %s (errno = %d)", 
-            strerror(errno), errno);
+
+    /* out of buffers, or hit max PHY speed, silently retry */
+    if (retcode < 0 && !didsig) {
+        switch (errno) {
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
+
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
+                
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                    INJECT_METHOD, sp->sent + 1, strerror(errno), errno);
+        }
     }
 
 #elif defined HAVE_LIBNET
     retcode = libnet_adv_write_link(sp->handle.lnet, (u_int8_t*)data, (u_int32_t)len);
-    if (retcode < 0 && errno == ENOBUFS && !didsig) {
-        sp->retry ++;
-        goto TRY_SEND_AGAIN;
-    } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with libnet write: %s (errno = %d)", 
-            libnet_geterror(sp->handle.lnet), errno);
+
+    /* out of buffers, or hit max PHY speed, silently retry */
+    if (retcode < 0 && !didsig) {
+        switch (errno) {
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
+
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
+                
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                    INJECT_METHOD, sp->sent + 1, strerror(errno), errno);
+        }
     }
 
 #elif defined HAVE_PCAP_INJECT
@@ -226,31 +266,51 @@ TRY_SEND_AGAIN:
      * is there a better way???
      */    
     retcode = pcap_inject(sp->handle.pcap, (void*)data, len);
-    if (retcode < 0 && errno == ENOBUFS && !didsig) {
-        sp->retry ++;
-        goto TRY_SEND_AGAIN;
-    } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pcap_inject(packet #" 
-            COUNTER_SPEC "): %s (errno = %d)", 
-            sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
+    /* out of buffers, or hit max PHY speed, silently retry */
+    if (retcode < 0 && !didsig) {
+        switch (errno) {
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
+
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
+                
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                    INJECT_METHOD, sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
+        }
     }
 
 #elif defined HAVE_PCAP_SENDPACKET
     retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len);
-    if (retcode < 0 && errno == ENOBUFS && !didsig) {
-        sp->retry ++;
-        goto TRY_SEND_AGAIN;
-    } else if (retcode < 0) {
-        sendpacket_seterr(sp, "Error with pcap_sendpacket(packet #" 
-            COUNTER_SPEC "): %s (errno = %d)",
-            sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
-    } else {
-        /* 
-         * pcap_sendpacket returns 0 on success, not the packet length! 
-         * hence, we have to fix retcode to be more standard on success
-         */
-        retcode = len;
+    /* out of buffers, or hit max PHY speed, silently retry */
+    if (retcode < 0 && !didsig) {
+        switch (errno) {
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
+
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
+                
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                    INJECT_METHOD, sp->sent + 1, pcap_geterr(sp->handle.pcap), errno);
+         }
     }
+    /* 
+     * pcap_sendpacket returns 0 on success, not the packet length! 
+     * hence, we have to fix retcode to be more standard on success
+     */
+    if (retcode == 0)
+        retcode = len;
 
 #endif
 
@@ -307,11 +367,12 @@ sendpacket_getstat(sendpacket_t *sp)
     
     memset(buf, 0, sizeof(buf));
     sprintf(buf, "Statistics for network device: %s\n"
-        "\tAttempted packets:   " COUNTER_SPEC "\n"
-        "\tSuccessful packets:  " COUNTER_SPEC "\n"
-        "\tFailed packets:      " COUNTER_SPEC "\n"
-        "\tRetried packets:     " COUNTER_SPEC "\n",
-        sp->device, sp->attempt, sp->sent, sp->failed, sp->retry);
+        "\tAttempted packets:         " COUNTER_SPEC "\n"
+        "\tSuccessful packets:        " COUNTER_SPEC "\n"
+        "\tFailed packets:            " COUNTER_SPEC "\n"
+        "\tRetried packets (ENOBUFS): " COUNTER_SPEC "\n",
+        "\tRetried packets (EAGAIN):  " COUNTER_SPEC "\n",
+        sp->device, sp->attempt, sp->sent, sp->failed, sp->retry_enobufs, sp->retry_eagain);
     return(buf);
 }
 

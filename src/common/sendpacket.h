@@ -54,7 +54,8 @@ struct sendpacket_s {
     int open;
     char device[20];
     char errbuf[SENDPACKET_ERRBUF_SIZE];
-    COUNTER retry;
+    COUNTER retry_enobufs;
+    COUNTER retry_eagain;
     COUNTER failed;
     COUNTER sent;
     COUNTER bytes_sent;
