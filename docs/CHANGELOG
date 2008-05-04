@@ -1,14 +1,20 @@
 $Id$
 
-??/??/2008: Version 3.3.0
+05/04/2008: Version 3.3.0
     - Improve tcpreplay timing accuracy between packets (#41)
     - Add tcprewrite fragroute support (#42)
     - Fix tcprewrite --efcs option (#277)
-    - Fix tcpprep parsing of VLAN tagged frames (#290)
+    - Updated Win32/Cygwin documentation (#280)
+    - Add dmalloc support (#282)
+    - Fix tcpprep broken handling of VLAN tagged frames (#290)
+    - Fix tcprewrite crash when cache file has NO_SEND packets (#291)
     - Fix /dev/bpf detection in FreeBSD 8.0 (#292)
-    - Add tcprewrite --ttl option (#294)
+    - Add tcprewrite --ttl editing option (#294)
     - Fix autoconf AM_PROG_CC_C_O warning (#295)
-    - Add tcpprep --reverse option (#297)
+    - Add tcpprep --reverse option to split by matching client addresses (#297)
+    - Update version of autoconf to 1.10.1 (#298)
+    - Improved GNU Autogen detection and warnings (#299)
+    - Track EAGAIN errors separately from ENOBUFS (#301)
 
 01/23/2008: Version 3.2.5
     - Fix linker error with --enable-tcpreplay-edit and --enable-dynamic-link (#288)
