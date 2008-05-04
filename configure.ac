@@ -482,7 +482,7 @@ AC_ARG_WITH(libpcap,
     AC_HELP_STRING([--with-libpcap=DIR], [Use libpcap in DIR]),
     [trypcapdir=$withval])
 
-	for testdir in $trypcapdir /usr/local /opt/local /usr ; do 
+	for testdir in $trypcapdir /usr/local /opt/local /usr /wpdpack ; do 
     	if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
         	LPCAPINC="${testdir}/include/pcap.h"
 	        LPCAPINCDIR="${testdir}/include"

@@ -15,6 +15,7 @@ $Id$
     - Update version of autoconf to 1.10.1 (#298)
     - Improved GNU Autogen detection and warnings (#299)
     - Track EAGAIN errors separately from ENOBUFS (#301)
+    - Automatically detect Winpcap on Cygwin (#303)
 
 01/23/2008: Version 3.2.5
     - Fix linker error with --enable-tcpreplay-edit and --enable-dynamic-link (#288)
