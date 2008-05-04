@@ -81,10 +81,10 @@ if test -n "${AUTOGEN}" ; then
 	fi
 	rm -f autogen.version
 	
-	dnl Compare the installed version with the maintainer version if building from SVN
-    if test ! -f src/tcpreplay_opts.c ; then
+	dnl Compare the installed version with the maintainer version if building from SVN and not using system libopts
+    if test ! -f src/tcpreplay_opts.c && test $enable_local_libopts == yes ; then
         if test $MAINTAINER_AUTOGEN_VERSION != $AUTOGEN_VERSION ; then
-            AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)])
+            AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)  Either install the correct version or specify --disable-local-libopts])
         fi
     fi
 else
@@ -93,6 +93,12 @@ else
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
+
+if test $enable_local_libopts == yes ; then
+    AC_MSG_NOTICE([Using included libopts tearoff])
+else
+    AC_MSG_NOTICE([Using system libopts])
+fi
 
 AC_HEADER_STDC
 AC_HEADER_MAJOR
@@ -1211,6 +1217,7 @@ libpcap:                    ${foundpcap} (${libpcap_version})
 libnet:                     ${foundnet}
 libdnet:                    ${founddnet}
 autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
+Use libopts tearoff:        ${enable_local_libopts}
 64bit counter support:      ${use64bit_counters}
 tcpdump binary path:        ${tcpdump_path}
 tcpreplay edit support:     ${tcpreplay_edit}
