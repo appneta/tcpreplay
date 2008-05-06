@@ -35,9 +35,43 @@ Additional requirements if building from SVN:
 - GNU Autogen
 
 ******************************* IMPORTANT ******************************
-Note: People have reported problems with WpdPack (the developer pack for
+Note 1: 
+People have reported problems with WpdPack (the developer pack for
 Winpcap) being installed outside of the Cygwin root directory.  Hence, I
-strongly recommend you install WpdPack under the Cygwin root.
+strongly recommend you install it under the Cygwin root as /WpdPack.
+
+Note 2:
+There's a big problem with the Cygwin Guile package which breaks
+GNU Autogen which tcpreplay depends on when building from Subversion. 
+
+What this means is that to build from Subversion you must do the following:
+- Download GNU Guile from http://www.gnu.org/software/guile/guile.html
+
+- Extract the tarball and do the following:
+libtoolize --copy --force
+./configure
+make
+make install
+
+This will install guile in /usr/local.
+
+The other problem is that guile-config returns the linker flags in the wrong 
+order.  To fix this, rename /usr/local/bin/guile-config to 
+/usr/local/bin/guile-config.original and create a new shell script in it's
+place:
+
+---- BEGIN SHELL SCRIPT ----
+#!/bin/bash
+# Replacement /usr/local/bin/guile-config script
+if test -z "$1" ; then
+       guile-config.original
+elif test "$1" == "link"; then
+       echo "-L/usr/local/lib -lguile -lltdl -lgmp -lcrypt -lm -lltdl"
+else
+       guile-config.original $1
+fi
+---- END SHELL SCRIPT ----
+
 ******************************* IMPORTANT ******************************
 
 Directions:
@@ -45,20 +79,12 @@ Directions:
 
 - Enter into the Cygwin environment by clicking on the Cygwin icon
 
-- If you checked out the code from SVN, run the autogen.sh bootstrapper:
+- If you checked out the code from SVN, see Note 2 above and then run 
+  the autogen.sh bootstrapper:
 	./autogen.sh
 
-    NOTE: I have a lot of problems building tcpreplay from SVN.  There's some
-    weird issue with Autogen and files which creates phantom files on the file
-    system and creates all kinds of problems.  Hence, I *HIGHLY* recommend you
-    grab a release tarball from the download page.
-
 - Configure tcpreplay:
-	./configure --with-libpcap=<path to winpcap> --enable-debug
-	
-	Note: The winpcap developer pack needs to be accessible from the Cygwin 
-	environment.  On my system, it's called /WpdPack, but due to how cygwin
-	works, I have to use all lowercase: --with-libpcap=/wpdpack
+	./configure --enable-debug
 
 - Build tcpreplay:	
 	make
@@ -67,3 +93,7 @@ Directions:
 	make install
 	
 - Try it out!
+
+
+
+
