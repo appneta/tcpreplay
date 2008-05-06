@@ -72,25 +72,40 @@
 
 /* Allow users to force the injection method, default is linux PF_PACKET */
 #define INJECT_METHOD "PF_PACKET send()"
+
 #ifdef FORCE_INJECT_LIBNET
+#undef HAVE_PF_PACKET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef INJECT_METHOD
 #define INJECT_METHOD "libnet send()"
-#elif defined FORCE_INJECT_BPF
+#endif
+
+#ifdef FORCE_INJECT_BPF
 #undef HAVE_LIBNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
+#undef HAVE_PF_PACKET
+#undef INJECT_METHOD
 #define INJECT_METHOD "bpf send()"
-#elif defined FORCE_INJECT_PCAP_INJECT
+#endif
+
+#ifdef FORCE_INJECT_PCAP_INJECT
 #undef HAVE_LIBNET
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_PF_PACKET
+#undef INJECT_METHOD
 #define INJECT_METHOD "pcap_inject()"
-#elif defined FORCE_INJECT_PCAP_SENDPACKET
+#endif
+
+#ifdef FORCE_INJECT_PCAP_SENDPACKET
 #undef HAVE_LIBNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_BPF
+#undef HAVE_PF_PACKET
+#undef INJECT_METHOD
 #define INJECT_METHOD "pcap_sendpacket()"
 #endif
 
@@ -605,6 +620,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
         return NULL;
     }
 
+#if 0 /* why is this check necessary??? */
     /* make sure it's ethernet */
     switch (ifr.ifr_hwaddr.sa_family) {
         case ARPHRD_ETHER:
@@ -615,7 +631,8 @@ sendpacket_open_pf(const char *device, char *errbuf)
             close(mysocket);
             return NULL;
     }
-  
+#endif
+
 #ifdef SO_BROADCAST
     /*
      * man 7 socket
