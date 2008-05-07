@@ -1,5 +1,10 @@
 $Id$
 
+05/??/2008: Version 3.3.1
+    - Fix limitation of PF_PACKET only supporting Ethernet (#123)
+    - Document building code from Subversion under Cygwin (#304)
+    - Fix --enable-force-* under Linux (#305)
+
 05/04/2008: Version 3.3.0
     - Improve tcpreplay timing accuracy between packets (#41)
     - Add tcprewrite fragroute support (#42)
