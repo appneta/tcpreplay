@@ -122,7 +122,7 @@ main(int argc, char *argv[])
     sendpacket_close(options.sp1);
     pcap_close(options.listen1);
 
-    if (! options.unidir) {
+    if (options.unidir) {
         sendpacket_close(options.sp2);
         pcap_close(options.listen2);
     }
