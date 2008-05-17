@@ -9,6 +9,7 @@ AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
 
 dnl People building from SVN need the same version of Autogen as I'm using
+dnl or specify --disable-local-libopts
 MAINTAINER_AUTOGEN_VERSION=5.9.2
 
 dnl Set version info here!
@@ -764,7 +765,6 @@ AC_MSG_CHECKING(for BPF device sending support)
 AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
-#include <net/bpf.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
