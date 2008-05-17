@@ -1,6 +1,6 @@
 $Id$
 
-05/??/2008: Version 3.3.1
+05/17/2008: Version 3.3.1
     - Fix limitation of PF_PACKET only supporting Ethernet (#123)
     - Fix (again) /dev/bpf detection in FreeBSD 8.0 (#292)
     - Document building code from Subversion under Cygwin (#304)
