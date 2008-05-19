@@ -21,7 +21,7 @@ tcpedit.c: tcpedit_stub.h
 tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def $(srcdir)/plugins/dlt_stub.def
 	@AUTOGEN@ $(opts_list) tcpedit_stub.def
 
-AM_CFLAGS = -I.. -I../common -I../.. $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS) 
+AM_CFLAGS = -I.. -I../common -I../.. @LDNETINC@ $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS)
 
 noinst_HEADERS = tcpedit.h edit_packet.h portmap.h \
 	tcpedit_stub.h parse_args.h dlt.h checksum.h tcpedit-int.h

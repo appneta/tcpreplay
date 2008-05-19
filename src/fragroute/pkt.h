@@ -14,13 +14,14 @@
 #include "../../lib/queue.h"
 #include <sys/time.h>
 
-/* need to undef these which are pulled in via defines.h prior to import dnet.h */
+#ifdef HAVE_LIBDNET
+/* need to undef these which are pulled in via defines.h, prior to importing dnet.h */
 #undef icmp_id
 #undef icmp_seq
 #undef icmp_data
 #undef icmp_mask
 #include <dnet.h>
-// #include <event.h>
+#endif
 
 #define PKT_BUF_LEN	(ETH_HDR_LEN + ETH_MTU)
 #define PKT_BUF_ALIGN	2

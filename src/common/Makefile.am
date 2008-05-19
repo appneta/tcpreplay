@@ -20,7 +20,7 @@ if ENABLE_TCPDUMP
 libcommon_a_SOURCES += tcpdump.c
 endif
 
-AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS)
+AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS) @LDNETINC@
 
 libcommon_a_LIBADD = ../../lib/libstrl.a
 

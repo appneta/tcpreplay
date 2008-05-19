@@ -16,12 +16,14 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef HAVE_LIBDNET
 /* need to undef these which are pulled in via defines.h, prior to importing dnet.h */
 #undef icmp_id
 #undef icmp_seq
 #undef icmp_data
 #undef icmp_mask
 #include <dnet.h>
+#endif
 
 #include "fragroute.h"
 #include "pkt.h"

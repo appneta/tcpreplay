@@ -13,8 +13,8 @@ dnl or specify --disable-local-libopts
 MAINTAINER_AUTOGEN_VERSION=5.9.2
 
 dnl Set version info here!
-MAJOR_VERSION=3
-MINOR_VERSION=3
+MAJOR_VERSION=4
+MINOR_VERSION=0
 MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
@@ -281,9 +281,9 @@ AC_ARG_ENABLE(force-pf,
 	AC_HELP_STRING([--enable-force-pf], [Force using Linux's PF_PACKET for sending packets]),
 	[ AC_DEFINE([FORCE_INJECT_PF], [1], [Force using Linux's PF_PACKET for sending packets])])
 
-AC_ARG_ENABLE(force-libnet,
-	AC_HELP_STRING([--enable-force-libnet], [Force using libnet for sending packets]),
-	[ AC_DEFINE([FORCE_INJECT_LIBNET], [1], [Force using libnet for sending packets])])
+AC_ARG_ENABLE(force-libdnet,
+	AC_HELP_STRING([--enable-force-libdnet], [Force using libdnet for sending packets]),
+	[ AC_DEFINE([FORCE_INJECT_LIBDNET], [1], [Force using libdnet for sending packets])])
 		
 AC_ARG_ENABLE(force-inject,
 	AC_HELP_STRING([--enable-force-inject], [Force using libpcap's pcap_inject() for sending packets]),
@@ -339,145 +339,6 @@ AC_CHECK_FUNC(inet_addr,
 if test x$inet_addr = no ; then
     AC_MSG_ERROR([We need inet_addr.  See bug 26])
 fi
-
-dnl ##################################################
-dnl Checks for libnet IFF you specify --enable-libnet.
-dnl We no longer by default use libnet unless you tell me to.
-dnl ##################################################
-foundnet=no
-trynetdir=no
-have_libnet=no
-use_libnet=no
-
-AC_ARG_ENABLE(libnet,
-	AC_HELP_STRING([--enable-libnet], [Enable using the libnet 1.1.x library (deprecated)]),
-	[ if test x$enableval = xyes; then
-		use_libnet=yes
-		AC_MSG_WARN([Due to bugs in libnet, it is no longer officially supported])
-	  fi]
-)
-
-AC_ARG_WITH(libnet,
-    AC_HELP_STRING([--with-libnet=DIR], [Use libnet in DIR]),
-    [trynetdir=$withval])
-
-if test x$use_libnet = xyes ; then
-	AC_MSG_CHECKING(for libnet)
-
-	for testdir in $trynetdir /usr/local /opt/local /usr ; do 
-    	if test -f "${testdir}/include/libnet.h" -a $foundnet = no ; then
-        	LNETINC="${testdir}/include/libnet.h"
-	        LNETINCDIR="${testdir}/include"
-	        if test $dynamic_link = yes; then
-				if test -f "${testdir}/lib64/libnet${shrext_cmds}" ; then
-		            LNETLIB="-L${testdir}/lib64 -lnet"
-				elif test -f "${testdir}/lib/libnet${shrext_cmds}" ; then
-					LNETLIB="-L${testdir}/lib -lnet"
-				else
-					AC_ERROR([Unable to find libnet in ${testdir}])
-				fi
-	        elif test -f "${testdir}/lib64/libnet.${libext}" ; then
-	            LNETLIB="${testdir}/lib64/libnet.${libext}"
-	        elif test -f "${testdir}/lib/libnet.${libext}" ; then
-	            LNETLIB="${testdir}/lib/libnet.${libext}"
-		 	else
-				AC_ERROR([Unable to find matching library for header file in ${testdir}])
-			fi
-        	foundnet=$testdir
-     	fi
-	done
-	
-
-	if test x$foundnet = xno ; then
-	    AC_MSG_RESULT(no)
-	else
-	    AC_MSG_RESULT($foundnet)
-		have_libnet=yes
-		AC_DEFINE([HAVE_LIBNET], [1], [Enable libnet support])
-	fi
-
-fi
-
-
-AC_SUBST(LNETINC)
-AC_SUBST(LNETLIB)
-
-if test $foundnet != no ; then
-	OLDLIBS="$LIBS"
-	OLDCFLAGS="$CFLAGS"
-	LIBS="$LNETLIB"
-	CFLAGS="$CFLAGS -I$LNETINCDIR"
-
-
-	dnl Check to see what version of libnet
-	dnl this code has been reduced a lot, but probably still could be
-	dnl reduced quite a bit more if we chose too
-	AC_MSG_CHECKING(for libnet version)
-
-	AC_TRY_RUN([
-#include <string.h>
-#define LIBNET_LIL_ENDIAN 1
-#include "$LNETINC"
-#define LIB_TEST "1.0"
-	/* 
-	 * simple proggy to test the version of libnet
-	 * returns zero if it's 1.0.x 
-	 * or one otherwise
-	 */
-	int
-	main (int argc, char *argv[])
-	{
-	        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
-	                exit(0);
-	        exit(1);
-	}],
-	        libnet_ver_10=yes
-	        AC_MSG_RESULT(1.0.x), 
-	        libnet_ver_10=no,
-	        libnet_ver_10=no
-	        )
-
-	AC_TRY_RUN([
-#include <string.h>
-#include "$LNETINC"
-#define LIB_TEST "1.1"
-	/* 
-	 * simple proggy to test the version of libnet
-	 * returns zero if it's 1.0.x 
-	 * or one otherwise
-	 */
-	int
-	main (int argc, char *argv[])
-	{
-	        if (strncmp(LIB_TEST, LIBNET_VERSION, 3) == 0)
-	                exit(0);
-	        exit(1);
-	}],
-	        libnet_ver_11=yes
-	        AC_MSG_RESULT(1.1.x), 
-	        libnet_ver_11=no,
-	        libnet_ver_11=no
-	        )
-
-
-	if test $libnet_ver_10 = no -a $libnet_ver_11 = no ; then
-	        AC_MSG_RESULT(unknown)
-	        AC_MSG_ERROR(Unable to determine version of libnet)
-	fi
-
-	if test $libnet_ver_10 = yes ; then
-	          AC_MSG_ERROR(Libnet version 1.0.x is no longer supported.
-	                Please upgrade to 1.1.0 or better)
-	fi
-
-
-	dnl restore LIBS & CFLAGS
-	LIBS="$OLDLIBS"
-	CFLAGS="$OLDCFLAGS"
-
-fi 
-
-dnl END OF if test $foundnet = yes
 
 dnl #####################################################
 dnl Checks for libpcap
@@ -801,17 +662,57 @@ main(int argc, char *argv[]) {
 	])
 
 
+dnl ##################################################
+dnl # Check for libdnet
+dnl ##################################################
+founddnet=no
+have_libdnet=no
+enable_fragroute=no
+trydnetdir=/usr/local
+AC_MSG_CHECKING(for libdnet)
+AC_ARG_WITH(libdnet,
+    AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
+    [trydnetdir=$withval])
+ 
+	for testdir in $trydnetdir /usr/local /opt/local /usr ; do 
+    	if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+            LDNETINC="`$testdir/bin/dnet-config --cflags`"
+            LDNETLIB="`$testdir/bin/dnet-config --libs`"
+
+        	founddnet=$testdir
+     	fi
+	done
+
+	if test $founddnet = no ; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([libdnet not found, disabling fragroute feature])
+	else
+		AC_MSG_RESULT($founddnet)
+		enable_fragroute=yes
+		have_libdnet=yes
+	    AC_DEFINE([HAVE_LIBDNET], [1], [Do we have libdnet?])
+	fi
+
+AC_SUBST(LDNETINC)
+AC_SUBST(LDNETLIB)
+
+AM_CONDITIONAL(COMPILE_FRAGROUTE, [test x$founddnet != xno])
+if test x$founddnet != xno ; then
+    AC_DEFINE(ENABLE_FRAGROUTE, [1], [Enable fragroute module])
+fi
+
+
 dnl Make sure we have a valid packet injection mechanisim
 if test $have_bpf = no -a $have_pcap_inject = no -a $have_pcap_sendpacket = no \
-	-a $have_libnet = no -a $have_pf = no ; then
-	AC_MSG_ERROR([Unable to find a supported method to send packets.  Please upgrade your libpcap or enable libnet])
+	-a $have_libdnet = no -a $have_pf = no ; then
+	AC_MSG_ERROR([Unable to find a supported method to send packets.  Please upgrade your libpcap or enable libdnet])
 fi
 
 dnl Libpcap support doesn't give us a method to get the hardware address of the
 dnl interfaces which prevents us from doing proper filtering to prevent bridging loops
 enable_tcpbridge=yes
-if test $have_bpf = no -a $have_libnet = no -a $have_pf = no ; then
-	AC_MSG_NOTICE([tcpbridge support disabled without BPF, Libnet or Linux PF_PACKET])
+if test $have_bpf = no -a $have_libdnet = no -a $have_pf = no ; then
+	AC_MSG_NOTICE([tcpbridge support disabled without BPF, Libdnet or Linux PF_PACKET])
 	enable_tcpbridge=no
 fi
 
@@ -887,42 +788,6 @@ AC_MSG_CHECKING(for libpcap bpf header)
 dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
 CFLAGS="$OLDCFLAGS"
-
-dnl ##################################################
-dnl # Check for libdnet
-dnl ##################################################
-founddnet=no
-enable_fragroute=no
-trydnetdir=/usr/local
-AC_MSG_CHECKING(for libdnet)
-AC_ARG_WITH(libdnet,
-    AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
-    [trydnetdir=$withval])
- 
-	for testdir in $trydnetdir /usr/local /opt/local /usr ; do 
-    	if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-            LDNETINC="`$testdir/bin/dnet-config --cflags`"
-            LDNETLIB="`$testdir/bin/dnet-config --libs`"
-
-        	founddnet=$testdir
-     	fi
-	done
-
-	if test $founddnet = no ; then
-		AC_MSG_RESULT(no)
-		AC_MSG_WARN([libdnet not found, disabling fragroute feature])
-	else
-		AC_MSG_RESULT($founddnet)
-		enable_fragroute=yes
-	    AC_DEFINE([HAVE_LIBDNET], [1], [Do we have libdnet?])
-	fi
-
-AC_SUBST(LDNETINC)
-AC_SUBST(LDNETLIB)
-AM_CONDITIONAL(COMPILE_FRAGROUTE, [test x$founddnet != xno])
-if test x$founddnet != xno ; then
-    AC_DEFINE(ENABLE_FRAGROUTE, [1], [Enable fragroute module])
-fi
 
 
 dnl ##################################################
@@ -1214,7 +1079,6 @@ AC_MSG_RESULT(
              TCPREPLAY Suite Configuration Results (${TCPREPLAY_VERSION})
 ##########################################################################
 libpcap:                    ${foundpcap} (${libpcap_version})
-libnet:                     ${foundnet}
 libdnet:                    ${founddnet}
 autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
 Use libopts tearoff:        ${enable_local_libopts}
@@ -1227,7 +1091,7 @@ fragroute support:          ${enable_fragroute}
 Supported Packet Injection Methods (*):
 Linux PF_PACKET:            ${have_pf}
 BSD BPF:                    ${have_bpf}
-libnet:                     ${have_libnet}
+libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}
 pcap_sendpacket:            ${have_pcap_sendpacket}
 

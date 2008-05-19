@@ -40,7 +40,7 @@
  */
  
  /* sendpacket.[ch] is my attempt to write a universal packet injection
-  * API for BPF, libpcap, libnet, and Linux's PF_PACKET.  I got sick
+  * API for BPF, libpcap, libdnet, and Linux's PF_PACKET.  I got sick
   * and tired dealing with libnet bugs and its lack of active maintenence,
   * but unfortunately, libpcap frame injection support is relatively new 
   * and not everyone uses Linux, so I decided to support all four as
@@ -50,7 +50,7 @@
   * Anyways, long story short, for now the order of preference is:
   * 1. PF_PACKET
   * 2. BPF
-  * 3. libnet
+  * 3. libdnet
   * 4. pcap_inject()
   * 5. pcap_sendpacket()
   *
@@ -73,17 +73,17 @@
 /* Allow users to force the injection method, default is linux PF_PACKET */
 #define INJECT_METHOD "PF_PACKET send()"
 
-#ifdef FORCE_INJECT_LIBNET
+#ifdef FORCE_INJECT_LIBDNET
 #undef HAVE_PF_PACKET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
 #undef INJECT_METHOD
-#define INJECT_METHOD "libnet send()"
+#define INJECT_METHOD "libdnet eth_send()"
 #endif
 
 #ifdef FORCE_INJECT_BPF
-#undef HAVE_LIBNET
+#undef HAVE_LIBDNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_PF_PACKET
@@ -92,7 +92,7 @@
 #endif
 
 #ifdef FORCE_INJECT_PCAP_INJECT
-#undef HAVE_LIBNET
+#undef HAVE_LIBDNET
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
@@ -101,7 +101,7 @@
 #endif
 
 #ifdef FORCE_INJECT_PCAP_SENDPACKET
-#undef HAVE_LIBNET
+#undef HAVE_LIBDNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
@@ -109,13 +109,12 @@
 #define INJECT_METHOD "pcap_sendpacket()"
 #endif
 
-
 #if (defined HAVE_WINPCAP && defined HAVE_PCAP_INJECT)
 #undef HAVE_PCAP_INJECT /* configure returns true for some odd reason */
 #endif
 
-#if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF
-#error You need pcap_inject() or pcap_sendpacket() from libpcap, libnet 1.1.3+, Linux's PF_PACKET or *BSD's BPF
+#if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF
+#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET or *BSD's BPF
 #endif
 
 #include <string.h>
@@ -170,10 +169,17 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *) _U_;
 
 #endif /* HAVE_BPF */
 
-#ifdef HAVE_LIBNET
-static sendpacket_t *sendpacket_open_libnet(const char *, char *) _U_;
-static struct tcpr_ether_addr *sendpacket_get_hwaddr_libnet(sendpacket_t *) _U_;
-#endif /* HAVE_LIBNET */
+#ifdef HAVE_LIBDNET
+/* need to undef these which are pulled in via defines.h, prior to importing dnet.h */
+#undef icmp_id
+#undef icmp_seq
+#undef icmp_data
+#undef icmp_mask
+#include <dnet.h>
+
+static sendpacket_t *sendpacket_open_libdnet(const char *, char *) _U_;
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_libdnet(sendpacket_t *) _U_;
+#endif /* HAVE_LIBDNET */
 
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
 static sendpacket_t *sendpacket_open_pcap(const char *, char *) _U_;
@@ -253,8 +259,8 @@ TRY_SEND_AGAIN:
         }
     }
 
-#elif defined HAVE_LIBNET
-    retcode = libnet_adv_write_link(sp->handle.lnet, (u_int8_t*)data, (u_int32_t)len);
+#elif defined HAVE_LIBDNET
+    retcode = eth_send(sp->handle.ldnet, (void*)data, (size_t)len);
 
     /* out of buffers, or hit max PHY speed, silently retry */
     if (retcode < 0 && !didsig) {
@@ -358,8 +364,8 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
     sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
     sp = sendpacket_open_bpf(device, errbuf);
-#elif defined HAVE_LIBNET
-    sp = sendpacket_open_libnet(device, errbuf);
+#elif defined HAVE_LIBDNET
+    sp = sendpacket_open_libdnet(device, errbuf);
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
     sp = sendpacket_open_pcap(device, errbuf);
 #endif
@@ -398,7 +404,13 @@ int
 sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
-
+#ifdef HAVE_LIBDNET
+    eth_close(sp->handle.ldnet);
+#elif defined HAVE_LIBPCAP
+    pcap_close(sp->pcap);
+#else
+    close(sp->fd);
+#endif
     safe_free(sp);
     return 0;
 }
@@ -421,8 +433,8 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
     addr = sendpacket_get_hwaddr_pf(sp);
 #elif defined HAVE_BPF
     addr = sendpacket_get_hwaddr_bpf(sp);
-#elif defined HAVE_LIBNET
-    addr = sendpacket_get_hwaddr_libnet(sp);
+#elif defined HAVE_LIBDNET
+    addr = sendpacket_get_hwaddr_libdnet(sp);
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
     addr = sendpacket_get_hwaddr_pcap(sp);
 #endif
@@ -511,48 +523,49 @@ sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
 
 #if defined HAVE_LIBNET
 /**
- * Inner sendpacket_open() method for using libnet
+ * Inner sendpacket_open() method for using libdnet
  */
 static sendpacket_t * 
-sendpacket_open_libnet(const char *device, char *errbuf)
+sendpacket_open_libdnet(const char *device, char *errbuf)
 {
-    libnet_t *lnet;
+    eth_t *ldnet;
     sendpacket_t *sp;
     
     assert(device);
     assert(errbuf);
     
-    dbg(1, "sendpacket: using Libnet");
+    dbg(1, "sendpacket: using Libdnet");
     
-    if ((lnet = libnet_init(LIBNET_LINK_ADV, device, errbuf)) == NULL)
+    if ((ldnet = eth_open(device)) == NULL)
         return NULL;
 
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
-    sp->handle.lnet = lnet;
+    sp->handle.ldnet = ldnet;
     return sp;    
 }
 
 /**
- * Get the hardware MAC address for the given interface using libnet
+ * Get the hardware MAC address for the given interface using libdnet
  */
 static struct tcpr_ether_addr *
-sendpacket_get_hwaddr_libnet(sendpacket_t *sp)
+sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
 {
     struct tcpr_ether_addr *addr;
+    int ret;
     assert(sp);
     
-    addr = (struct tcpr_ether_addr *)libnet_get_hwaddr(sp->handle.lnet);
+    ret = eth_get(sp->handle.ldnet, addr);
     
-    if (addr == NULL) {
-        sendpacket_seterr(sp, "Error getting hwaddr via libnet: %s", libnet_geterror(sp->handle.lnet));
+    if (addr == NULL || ret < 0) {
+        sendpacket_seterr(sp, "Error getting hwaddr via libdnet: %s", strerror(errno));
         return NULL;
     }
     
     memcpy(&sp->ether, addr, sizeof(struct tcpr_ether_addr));
     return(&sp->ether);
 }
-#endif /* HAVE_LIBNET */
+#endif /* HAVE_LIBDNET */
 
 #if defined HAVE_PF_PACKET
 /**
@@ -900,7 +913,7 @@ sendpacket_get_dlt(sendpacket_t *sp)
         warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
         return(-1);
     }
-#elif defined HAVE_PF_PACKET || defined HAVE_LIBNET
+#elif defined HAVE_PF_PACKET || defined HAVE_LIBDNET
     /* use libpcap to get dlt */
     pcap_t *pcap;
     char errbuf[PCAP_ERRBUF_SIZE];

@@ -48,7 +48,7 @@ man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1
 bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpbridge
 
-tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREPLAY
+tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
 
 if ENABLE_TCPREPLAY_EDIT
 tcpreplay_LDADD = ./tcpedit/libtcpedit.a
@@ -58,7 +58,7 @@ tcpreplay_SOURCES = tcpreplay_opts.c
 tcpreplay_LDADD = 
 endif
 
-tcpreplay_LDADD += ./common/libcommon.a $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD)
+tcpreplay_LDADD += ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
 tcpreplay_SOURCES += send_packets.c signal_handler.c tcpreplay.c sleep.c
 
 if ENABLE_OSX_FRAMEWORKS
@@ -76,7 +76,7 @@ tcpreplay_edit_opts.c: tcpreplay_opts.def
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
-	$(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@ \
+	$(LIBSTRL) @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@ \
 	$(LIBFRAGROUTE)
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c 
 tcprewrite_OBJECTS: tcprewrite_opts.h
@@ -85,18 +85,18 @@ tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 
 
-tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPPREP
+tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \
-    $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
+    $(LIBSTRL) @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
 tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c 
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def
 	@AUTOGEN@ tcpprep_opts.def
 
-tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPBRIDGE
+tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPBRIDGE
 tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
-    $(LIBSTRL) @LNETLIB@ @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
+    $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
 if ENABLE_OSX_FRAMEWORKS
 tcpbridge_LDFLAGS = -framework CoreServices -framework Carbon
 endif

@@ -36,14 +36,23 @@
 #include <netpacket/packet.h>
 #endif
 
+#ifdef HAVE_LIBDNET
+/* need to undef these which are pulled in via defines.h, prior to importing dnet.h */
+#undef icmp_id
+#undef icmp_seq
+#undef icmp_data
+#undef icmp_mask
+#include <dnet.h>
+#endif
+
 #ifndef _SENDPACKET_H_
 #define _SENDPACKET_H_
 
 union sendpacket_handle {
     pcap_t *pcap;
     int fd;
-#ifdef HAVE_LIBNET
-    libnet_t *lnet;
+#ifdef HAVE_LIBDNET
+    eth_t *ldnet;
 #endif
 };
 
