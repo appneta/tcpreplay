@@ -667,6 +667,7 @@ dnl # Check for libdnet
 dnl ##################################################
 founddnet=no
 have_libdnet=no
+libdnet_version=
 enable_fragroute=no
 trydnetdir=/usr/local
 AC_MSG_CHECKING(for libdnet)
@@ -678,7 +679,7 @@ AC_ARG_WITH(libdnet,
     	if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
             LDNETINC="`$testdir/bin/dnet-config --cflags`"
             LDNETLIB="`$testdir/bin/dnet-config --libs`"
-
+            libdnet_version="`$testdir/bin/dnet-config --version`"
         	founddnet=$testdir
      	fi
 	done
@@ -695,6 +696,7 @@ AC_ARG_WITH(libdnet,
 
 AC_SUBST(LDNETINC)
 AC_SUBST(LDNETLIB)
+AC_DEFINE_UNQUOTED([LIBDNET_VERSION], "$libdnet_version", [Version of libdnet])
 
 AM_CONDITIONAL(COMPILE_FRAGROUTE, [test x$founddnet != xno])
 if test x$founddnet != xno ; then
@@ -1079,7 +1081,7 @@ AC_MSG_RESULT(
              TCPREPLAY Suite Configuration Results (${TCPREPLAY_VERSION})
 ##########################################################################
 libpcap:                    ${foundpcap} (${libpcap_version})
-libdnet:                    ${founddnet}
+libdnet:                    ${founddnet} (${libdnet_version})
 autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
 Use libopts tearoff:        ${enable_local_libopts}
 64bit counter support:      ${use64bit_counters}
