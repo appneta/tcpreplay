@@ -222,10 +222,10 @@ flag = {
     fprintf(stderr, "\n");
     fprintf(stderr, "Copyright 2001-2008 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
-#ifdef HAVE_LIBNET
-    fprintf(stderr, "Compiled against libnet: %s\n", LIBNET_VERSION);
+#ifdef HAVE_LIBDNET
+    fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
 #else
-	fprintf(stderr, "Not compiled with libnet.\n");
+	fprintf(stderr, "Not compiled with libdnet.\n");
 #endif
 #ifdef HAVE_WINPCAP
 	fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
