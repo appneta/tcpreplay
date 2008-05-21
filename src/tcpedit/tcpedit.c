@@ -458,11 +458,11 @@ tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, 
 {
     int result = 0;
     if (code == BEFORE_PROCESS) {
-        tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);        
+        result = tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);        
     } else {
-        tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->encoder->dlt, packet, pktlen);
+        result = tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->encoder->dlt, packet, pktlen);
     }
-    return result;
+    return ntohs(result);
 }
 
 /*

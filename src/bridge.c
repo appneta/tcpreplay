@@ -146,7 +146,7 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
             exit(1);
         }
 
-        dbgx(1, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
+        dbgx(3, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
             options.limit_send, pkts_sent);
 
         /* poll for a packet on the two interfaces */
@@ -156,7 +156,7 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
         if (pollresult > 0) {
             /* success, got one or more packets */
             if (polls[PCAP_INT1].revents > 0) {
-                dbg(2, "Processing first interface");
+                dbg(5, "Processing first interface");
                 livedata.source = source1;
                 livedata.pcap = pcap1;
                 pcap_dispatch(pcap1, -1, (pcap_handler) live_callback,
@@ -165,7 +165,7 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
 
             /* check the other interface?? */
             if (! options.unidir && polls[PCAP_INT2].revents > 0) {
-                dbg(2, "Processing second interface");
+                dbg(5, "Processing second interface");
                 livedata.source = source2;
                 livedata.pcap = pcap2;
                 pcap_dispatch(pcap2, -1, (pcap_handler) live_callback,
@@ -211,6 +211,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #ifdef DEBUG
     u_char dstmac[ETHER_ADDR_LEN];
 #endif
+    u_int16_t l2proto;
 
     packetnum++;
     dbgx(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
@@ -224,6 +225,10 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         memset(pktdata, '\0', MAXPACKET);
     }
 
+    /* copy the packet to our buffer */
+    memcpy(pktdata, nextpkt, pkthdr->caplen);
+
+
 #ifdef ENABLE_VERBOSE
     /* decode packet? */
     if (options.verbose)
@@ -235,18 +240,18 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     memcpy(&finder.key, &pktdata[ETHER_ADDR_LEN], ETHER_ADDR_LEN);
 #ifdef DEBUG
     memcpy(&dstmac, pktdata, ETHER_ADDR_LEN);
-    dbgx(1, "Source MAC: " MAC_FORMAT "\tDestin MAC: " MAC_FORMAT,
+    dbgx(1, "SRC MAC: " MAC_FORMAT "\tDST MAC: " MAC_FORMAT,
         MAC_STR(finder.key), MAC_STR(dstmac));
 #endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
     if ((memcmp(sendpacket_get_hwaddr(options.sp1), &finder.key, 
-                ETHER_ADDR_LEN)) == 0) {
+            ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf1);
         return (1);
     }
     else if ((memcmp(sendpacket_get_hwaddr(options.sp2), &finder.key,
-                     ETHER_ADDR_LEN)) == 0) {
+            ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf2);
         return (1);
     }
@@ -275,14 +280,17 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /* what is our cache mode? */
     cache_mode = livedata->source == PCAP_INT1 ? TCPR_DIR_C2S : TCPR_DIR_S2C;
 
+    l2proto = tcpedit_l3proto(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
+    dbgx(2, "Packet protocol: %04hx", l2proto);
     /* should we skip this packet based on CIDR match? */
-    if (tcpedit_l3proto(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len) == ETHERTYPE_IP) {
+    if (l2proto == ETHERTYPE_IP) {
         dbg(3, "Packet is IP");
         ip_hdr = (ipv4_hdr_t *)tcpedit_l3data(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
 
         /* look for include or exclude CIDR match */
         if (options.xX.cidr != NULL) {
             if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
+                dbg(2, "Skipping packet due to CIDR match");
                 return (1);
             }
         }

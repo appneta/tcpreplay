@@ -384,6 +384,9 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 {
     unsigned long ipaddr = 0, network = 0, mask = 0;
     int ret = 0;
+#ifdef DEBUG
+    char netstr[20];
+#endif
     
     /* always return 1 if 0.0.0.0/0 */
     if (mycidr->masklen == 0 && mycidr->network == 0)
@@ -399,20 +402,23 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 
     network = htonl(mycidr->network) & mask;
 
+
+#ifdef DEBUG
+    /* copy this for debug purposes, since it's not re-entrant */
+    strlcpy(netstr, get_addr2name4(htonl(mycidr->network), RESOLVE), 20);
+#endif
+
     /* if they're the same, then ip is in network */
     if (network == ipaddr) {
 
         dbgx(1, "The ip %s is inside of %s/%d",
-            get_addr2name4(ip, RESOLVE),
-            get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
+            get_addr2name4(ip, RESOLVE), netstr, mycidr->masklen);
 
         ret = 1;
     }
     else {
-
         dbgx(1, "The ip %s is not inside of %s/%d",
-            get_addr2name4(ip, RESOLVE),
-            get_addr2name4(htonl(network), RESOLVE), mycidr->masklen);
+            get_addr2name4(ip, RESOLVE), netstr, mycidr->masklen);
 
         ret = 0;
     }

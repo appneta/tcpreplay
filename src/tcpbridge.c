@@ -211,15 +211,14 @@ post_args(_U_ int argc, _U_ char *argv[])
         errx(1, "Unable to open interface %s for recieving: %s", options.intf1, ebuf);
 
 
-    /* open interfaces bi-directionally ?? */
-    if (!options.unidir) {
-        if (strcmp(options.intf1, options.intf2) == 0)
-            errx(1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
+    if (strcmp(options.intf1, options.intf2) == 0)
+        errx(1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
 
-        if ((options.sp2 = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
-            errx(1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
-        
-        
+    if ((options.sp2 = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
+        errx(1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
+
+    /* open 2nd interface for listening? (not in unidir mode) */
+    if (!options.unidir) {
         if ((options.listen2 = pcap_open_live(options.intf2, options.snaplen,
                                               options.promisc, options.to_ms, ebuf)) == NULL)
             errx(1, "Unable to open interface %s for recieving: %s", options.intf2, ebuf);

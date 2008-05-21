@@ -1,5 +1,11 @@
 $Id$
 
+05/??/2008: Version 3.3.2
+    - Fix tcpbridge --unidir assert error for real this time (#308)
+    - Fix tcpbridge bug where all packets that were sent were all zeros
+    - Fix tcpbrdige not honoring --include/exclude flags (#311)
+    - Fix ip_in_cidr() debug messages (#312)
+    
 05/17/2008: Version 3.3.1
     - Fix limitation of PF_PACKET only supporting Ethernet (#123)
     - Fix (again) /dev/bpf detection in FreeBSD 8.0 (#292)
