@@ -336,7 +336,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
 
 
 #ifdef TCPREPLAY
-    adjuster.tv_nsec = OPT_VALUE_SLEEP_ACCEL * 1000;
+    adjuster.tv_nsec = options.sleep_accel * 1000;
     dbgx(2, "Adjuster: " TIMEVAL_FORMAT, adjuster.tv_sec, adjuster.tv_nsec);
 #else
     adjuster.tv_nsec = 0;
@@ -365,30 +365,27 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         timersub(&now, &start, &sleep_until);
     }
 
+    /* If top speed, you shouldn't even be here */
+    assert(options.speed.mode != SPEED_TOPSPEED);
+
     switch(options.speed.mode) {
-    /* 
-     * If top speed, you shouldn't even be here, but handle it anyways
-     */
-    case SPEED_TOPSPEED:
-        notice("you shouldn't call do_sleep() in top speed mode.");
-        return;
-        break;
-        
     case SPEED_MULTIPLIER:
         /* 
          * Replay packets a factor of the time they were originally sent.
          */
-        if (timerisset(last) && timercmp(time, last, >)) {
-            timersub(time, last, &nap_for);
-            TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
-            timesdiv(&nap, options.speed.speed);
-        }
-        else {
-            /* 
-             * Don't sleep if this is our first packet, or if the
-             * this packet appears to have been sent before the 
-             * last packet.
-             */
+        if (timerisset(last)) {
+            if (timercmp(time, last, <)) {
+                /* Packet has gone back in time!  Don't sleep and warn user */
+                warnx("Packet #" COUNTER_SPEC " has gone back in time!", counter);
+                timesclear(&nap); 
+            } else {
+                /* time has increased or is the same, so handle normally */
+                timersub(time, last, &nap_for);
+                TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
+                timesdiv(&nap, options.speed.speed);
+            }
+        } else {
+            /* Don't sleep if this is our first packet */
             timesclear(&nap);
         }        
         break;

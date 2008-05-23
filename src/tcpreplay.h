@@ -72,7 +72,8 @@ struct tcpreplay_opt_s {
 
     tcpr_speed_t speed;
     u_int32_t loop;
-
+    int sleep_accel;
+    
     /* tcpprep cache data */
     COUNTER cache_packets;
     char *cachedata;
@@ -93,7 +94,7 @@ struct tcpreplay_opt_s {
     
     char *files[MAX_FILES];
     COUNTER limit_send;
-    
+
 #ifdef ENABLE_VERBOSE
     /* tcpdump verbose printing */
     int verbose;
