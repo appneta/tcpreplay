@@ -7,6 +7,7 @@ $Id$
     - Fix ip_in_cidr() debug messages (#312)
     - Report packets which have timestamps which go backwards in time (#315)
     - Clean up --sleep-accel code to use options struct (#316)
+    - Remove really old and out of date RPM .spec file (#317)
     
 05/17/2008: Version 3.3.1
     - Fix limitation of PF_PACKET only supporting Ethernet (#123)

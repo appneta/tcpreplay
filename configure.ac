@@ -1072,8 +1072,7 @@ AC_OUTPUT([Makefile
            src/defines.h
            test/Makefile
            test/config
-           scripts/Makefile
-           tcpreplay.spec])
+           scripts/Makefile])
 
 # Configuration results
 AC_MSG_RESULT(
