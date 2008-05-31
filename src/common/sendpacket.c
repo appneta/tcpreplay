@@ -633,18 +633,10 @@ sendpacket_open_pf(const char *device, char *errbuf)
         return NULL;
     }
 
-#if 0 /* why is this check necessary??? */
-    /* make sure it's ethernet */
-    switch (ifr.ifr_hwaddr.sa_family) {
-        case ARPHRD_ETHER:
-            break;
-        default:
-            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
-                "unsupported pysical layer type 0x%x", ifr.ifr_hwaddr.sa_family);
-            close(mysocket);
-            return NULL;
-    }
-#endif
+    /* make sure it's not loopback (PF_PACKET doesn't support it) */
+    if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER)
+        warnx("Unsupported physical layer type 0x%04x on %s.  Maybe it works, maybe it wont."
+        "  See tickets #123/318", ifr.ifr_hwaddr.sa_family, device);
 
 #ifdef SO_BROADCAST
     /*
@@ -657,7 +649,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
      */ 
     if (setsockopt(mysocket, SOL_SOCKET, SO_BROADCAST, &n, sizeof(n)) == -1) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE,
-                "SO_BROADCAS: %s\n", strerror(errno));
+                "SO_BROADCAST: %s\n", strerror(errno));
         close(mysocket);
         return NULL;
     }

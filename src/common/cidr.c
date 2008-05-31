@@ -410,16 +410,17 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 
     /* if they're the same, then ip is in network */
     if (network == ipaddr) {
-
+#ifdef DEBUG
         dbgx(1, "The ip %s is inside of %s/%d",
             get_addr2name4(ip, RESOLVE), netstr, mycidr->masklen);
-
+#endif
         ret = 1;
     }
     else {
+#ifdef DEBUG
         dbgx(1, "The ip %s is not inside of %s/%d",
             get_addr2name4(ip, RESOLVE), netstr, mycidr->masklen);
-
+#endif
         ret = 0;
     }
     return ret;
