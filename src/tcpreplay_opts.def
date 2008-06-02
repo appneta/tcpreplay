@@ -245,7 +245,7 @@ flag = {
     descrip     = "Client/secondary traffic output interface";
     doc         = "";
 };
-/*
+
 flag = {
 	ifdef		= ENABLE_PCAP_FINDALLDEVS;
 	name		= listnics;
@@ -261,7 +261,7 @@ flag = {
 	
 EOFlag;
 };
-*/
+
 /*
  * Limits and loops: -l
  */
