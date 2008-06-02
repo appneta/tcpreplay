@@ -3,13 +3,14 @@ $Id$
 05/??/2008: Version 3.3.2
     - Fix (again) tcpbridge --unidir assert error (#308)
     - Fix tcpbridge bug where all packets that were sent were all zeros
-    - Fix tcpbrdige not honoring --include/exclude flags (#311)
+    - Fix tcpbridge not honoring --include/exclude flags (#311)
     - Fix ip_in_cidr() debug messages (#312)
     - Report packets which have timestamps which go backwards in time (#315)
     - Clean up --sleep-accel code to use options struct (#316)
     - Remove really old and out of date RPM .spec file (#317)
     - Warn when sending on non-Ethernet interface (#318)
-
+    - Re-enable tcpreplay --listnics (#319)
+    
 05/17/2008: Version 3.3.1
     - Fix limitation of PF_PACKET only supporting Ethernet (#123)
     - Fix (again) /dev/bpf detection in FreeBSD 8.0 (#292)
