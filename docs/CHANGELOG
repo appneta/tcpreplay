@@ -1,6 +1,6 @@
 $Id$
 
-05/??/2008: Version 3.3.2
+06/20/2008: Version 3.3.2
     - Fix (again) tcpbridge --unidir assert error (#308)
     - Fix tcpbridge bug where all packets that were sent were all zeros
     - Fix tcpbridge not honoring --include/exclude flags (#311)
@@ -10,6 +10,8 @@ $Id$
     - Remove really old and out of date RPM .spec file (#317)
     - Warn when sending on non-Ethernet interface (#318)
     - Re-enable tcpreplay --listnics (#319)
+    - Fix sendpacket always reporting using PF_PACKET, even when it doesn't (#322)
+    - Fix major packet timing issue under old versions of glibc (#324)
     
 05/17/2008: Version 3.3.1
     - Fix limitation of PF_PACKET only supporting Ethernet (#123)
