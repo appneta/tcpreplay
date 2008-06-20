@@ -210,6 +210,8 @@ start_delta_time(delta_t *ctx)
 #endif
 }
 
+void init_delta_time(delta_t *ctx);
+
 /* 
  * returns the amount of time that has passed since the 
  * last time you called start_delta_time()

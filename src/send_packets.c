@@ -93,6 +93,8 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
     delta_t delta_ctx;
+
+    init_delta_time(&delta_ctx);
     
     /* register signals */
     didsig = 0;

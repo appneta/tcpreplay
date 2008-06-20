@@ -69,3 +69,13 @@ void timesdiv(struct timespec *tvs, float div)
     tvs->tv_nsec = interval - (tvs->tv_nsec * 1000000000);
 }
 
+void
+init_delta_time(delta_t *ctx)
+{
+#ifdef HAVE_ABSOLUTE_TIME
+    SetZero(*ctx);
+#else
+    timerclear(ctx);
+#endif 
+}
+
