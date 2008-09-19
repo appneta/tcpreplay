@@ -412,9 +412,9 @@ sendpacket_close(sendpacket_t *sp)
 #ifdef HAVE_LIBDNET
     eth_close(sp->handle.ldnet);
 #elif defined HAVE_LIBPCAP
-    pcap_close(sp->pcap);
+    pcap_close(sp->handle.pcap);
 #else
-    close(sp->fd);
+    close(sp->handle.fd);
 #endif
     safe_free(sp);
     return 0;
