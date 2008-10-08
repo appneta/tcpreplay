@@ -147,7 +147,7 @@ packet_stats(struct timeval *begin, struct timeval *end,
 
     notice("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds",
             pkts_sent, bytes_sent, begin->tv_sec, bits);
-    notice("Rated: %.1f bps, %.2f Mbps/sec, %.2f pps\n",
+    notice("Rated: %.1f bps, %.2f Mbps, %.2f pps\n",
            bytes_sec, mb_sec, pkts_sec);
 
     if (failed)
