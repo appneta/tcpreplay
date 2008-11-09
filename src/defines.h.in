@@ -95,6 +95,7 @@ struct tcpr_speed_s {
 #define SPEED_TOPSPEED   4
 #define SPEED_ONEATATIME 5
     float speed;
+    int pps_multi;
 };
 typedef struct tcpr_speed_s tcpr_speed_t;
 
