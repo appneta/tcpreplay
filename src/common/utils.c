@@ -54,8 +54,10 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
 {
     u_char *ptr;
 
-    if ((ptr = malloc(len)) == NULL)
-        _our_verbose_errx(1, "Unable to malloc() %d bytes", funcname, line, file, len);
+    if ((ptr = malloc(len)) == NULL) {
+        fprintf(stderr, "Unable to malloc() %d bytes", funcname, line, file, len);
+        exit(-1);
+    }
     
     /* zero memory */
     memset(ptr, 0, len);
@@ -77,9 +79,10 @@ void *
 _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, const char *file)
 {
 
-    if ((ptr = realloc(ptr, len)) == NULL)
-        _our_verbose_errx(1, "Unable to remalloc() buffer to %d bytes",
-            funcname, line, file, len);
+    if ((ptr = realloc(ptr, len)) == NULL) {
+        fprintf(stderr, "Unable to remalloc() buffer to %d bytes", funcname, line, file, len);
+        exit(-1);
+    }
 
     dbgx(5, "Remalloc'd buffer to %d bytes in %s:%s() line %d", len, file, funcname, line);
 
@@ -95,9 +98,10 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 {
     char *newstr;
 
-    if ((newstr = (char *)malloc(strlen(str) + 1)) == NULL)
-        _our_verbose_errx(1, "Unable to strdup() %d bytes\n",
-                funcname, line, file, strlen(str));
+    if ((newstr = (char *)malloc(strlen(str) + 1)) == NULL) {
+        fprintf(stderr, "Unable to strdup() %d bytes\n", funcname, line, file, strlen(str));
+        exit(-1);
+    }
 
     memcpy(newstr, str, strlen(str) + 1);
     
@@ -111,8 +115,10 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 void
 _our_safe_free(void *ptr, const char *funcname, const int line, const char *file)
 {
-    if (ptr == NULL)
-        _our_verbose_errx(1, "Unable to call free on a NULL ptr", funcname, line, file);
+    if (ptr == NULL) {
+        fprintf(stderr, "Unable to call free on a NULL ptr", funcname, line, file);
+        exit(-1);
+    }
             
     free(ptr);
     ptr = NULL;
@@ -126,32 +132,31 @@ packet_stats(struct timeval *begin, struct timeval *end,
         COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
 {
     float bytes_sec = 0.0, mb_sec = 0.0, pkts_sec = 0.0;
-    char bits[3];
+    double frac_sec;
 
     if (gettimeofday(end, NULL) < 0)
-        errx(1, "Unable to gettimeofday(): %s", strerror(errno));
+        errx(-1, "Unable to gettimeofday(): %s", strerror(errno));
 
     timersub(end, begin, begin);
+    timer2float(begin, frac_sec);
+    
     if (timerisset(begin)) {
         if (bytes_sent) {
             bytes_sec =
-                bytes_sent / (begin->tv_sec + (float)begin->tv_usec / 1000000);
+                bytes_sent / frac_sec;
             mb_sec = (bytes_sec * 8) / (1024 * 1024);
         }
         if (pkts_sent)
             pkts_sec =
-                pkts_sent / (begin->tv_sec + (float)begin->tv_usec / 1000000);
+                pkts_sent / frac_sec;
     }
-
-    snprintf(bits, sizeof(bits), "%u", begin->tv_usec);
-
-    notice("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %d.%s seconds",
-            pkts_sent, bytes_sent, begin->tv_sec, bits);
-    notice("Rated: %.1f bps, %.2f Mbps, %.2f pps\n",
+    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds\n",
+            pkts_sent, bytes_sent, frac_sec);
+    printf("Rated: %.1f bps, %.2f Mbps, %.2f pps\n",
            bytes_sec, mb_sec, pkts_sec);
 
     if (failed)
-        warnx(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
+        printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
               failed);
 
 }
@@ -174,7 +179,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
     string = safe_strdup(l2string);
 
     if (hexlen <= 0)
-        err(1, "Hex buffer must be > 0");
+        err(-1, "Hex buffer must be > 0");
 
     memset(hex, '\0', hexlen);
 
@@ -184,7 +189,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
     l2byte = strtok_r(string, ",", &token);
     sscanf(l2byte, "%x", &value);
     if (value > 0xff)
-        errx(1, "Invalid hex string byte: %s", l2byte);
+        errx(-1, "Invalid hex string byte: %s", l2byte);
     databyte = (u_char) value;
     memcpy(&hex[numbytes], &databyte, 1);
 
@@ -197,7 +202,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
         }
         sscanf(l2byte, "%x", &value);
         if (value > 0xff)
-            errx(1, "Invalid hex string byte: %s", l2byte);
+            errx(-1, "Invalid hex string byte: %s", l2byte);
         databyte = (u_char) value;
         memcpy(&hex[numbytes], &databyte, 1);
     }
@@ -219,12 +224,3 @@ inet_aton(const char *name, struct in_addr *addr)
     return a != (in_addr_t)-1;
 }
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
