@@ -115,7 +115,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         
     /* rewrite DLT */
     if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
-        errx(1, "%s", tcpedit_geterr(tcpedit));
+        errx(-1, "%s", tcpedit_geterr(tcpedit));
 
     /* unable to edit packet, most likely 802.11 management frame */
     if (pktlen == TCPEDIT_SOFT_ERROR) {
@@ -345,11 +345,8 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
     assert(tcpedit);
 
     va_start(ap, fmt);
-    if (fmt != NULL) {
-        dbgx(1, fmt, ap);
-        (void)vsnprintf(tcpedit->runtime.warnstr, 
-              (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
-    }
+    if (fmt != NULL)
+        (void)vsnprintf(tcpedit->runtime.warnstr, (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
 
     va_end(ap);
         
