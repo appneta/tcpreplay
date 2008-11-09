@@ -66,7 +66,7 @@ void timesdiv(struct timespec *tvs, float div)
         
     interval = ((double)tvs->tv_sec * 1000000000 + tvs->tv_nsec) / (double)div;
     tvs->tv_sec = interval / (int)1000000000;
-    tvs->tv_nsec = interval - (tvs->tv_nsec * 1000000000);
+    tvs->tv_nsec = interval - (tvs->tv_sec * 1000000000);
 }
 
 void
