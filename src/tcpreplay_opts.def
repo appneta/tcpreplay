@@ -384,6 +384,21 @@ EOText;
 };
 
 flag = {
+    name        = pps-multi;
+    arg-type    = number;
+    flags-must  = pps;
+    arg-default = 1;
+    arg-range   = "1->";
+    descrip     = "Number of packets to send for each time interval";
+    doc         = <<- EOText
+When trying to send packets at very high rates, the time between each packet
+can be so short that it is impossible to accurately sleep for the required
+period of time.  This option allows you to send multiple packets at a time,
+thus allowing for longer sleep times which can be more accurately implemented.
+EOText;
+};
+
+flag = {
     name        = pid;
     value       = P;
     descrip     = "Print the PID of tcpreplay at startup";

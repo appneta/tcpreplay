@@ -156,7 +156,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT        
         pkthdr_ptr = &pkthdr;
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
-            errx(1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
+            errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
         }
         pktlen = HAVE_OPT(PKTLEN) ? pkthdr_ptr->len : pkthdr_ptr->caplen;
 #endif
@@ -168,9 +168,10 @@ send_packets(pcap_t *pcap, int cache_file_idx)
          */
         if (options.speed.mode != SPEED_TOPSPEED)
             do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum, &delta_ctx);
-        
-        /* mark the time when we send the packet */
+
+        /* mark the time when we send the last packet */
         start_delta_time(&delta_ctx);
+        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
         
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
@@ -291,7 +292,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
     int result;
 
     if (packet_num > options.cache_packets)
-        err(1, "Exceeded number of packets in cache file.");
+        err(-1, "Exceeded number of packets in cache file.");
 
     result = check_cache(cachedata, packet_num);
     if (result == TCPR_DIR_NOSEND) {
@@ -307,7 +308,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
         sp = options.intf2;
     }
     else {
-        err(1, "check_cache() returned an error.  Aborting...");
+        err(-1, "check_cache() returned an error.  Aborting...");
     }
 
     return sp;
@@ -332,14 +333,16 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     struct timeval nap_for, now, sleep_until;
     struct timespec nap_this_time;
     static int32_t nsec_adjuster = -1, nsec_times = -1;
+    static int pps_multi = 0;
     float n;
     static u_int32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
     u_int64_t ppnsec; /* packets per usec */
+    static int first_time = 1;      /* need to track the first time through for the pps accelerator */
 
 
 #ifdef TCPREPLAY
     adjuster.tv_nsec = options.sleep_accel * 1000;
-    dbgx(2, "Adjuster: " TIMEVAL_FORMAT, adjuster.tv_sec, adjuster.tv_nsec);
+    dbgx(4, "Adjuster: " TIMEVAL_FORMAT, adjuster.tv_sec, adjuster.tv_nsec);
 #else
     adjuster.tv_nsec = 0;
 #endif
@@ -349,11 +352,24 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         send --;
         return;
     }
+    
+    /* 
+     * pps_multi accelerator.    This uses the existing send accelerator above
+     * and hence requires the funky math to get the expected timings.
+     */
+    if (options.speed.mode == SPEED_PACKETRATE && options.speed.pps_multi) {
+        send = options.speed.pps_multi - 1;
+        if (first_time) {
+            first_time = 0;
+            return;
+        }
+    }
         
-    dbgx(4, "Last time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
+    dbgx(4, "This packet time: " TIMEVAL_FORMAT, time->tv_sec, time->tv_usec);
+    dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
     if (gettimeofday(&now, NULL) < 0)
-        errx(1, "Error gettimeofday: %s", strerror(errno));
+        errx(-1, "Error gettimeofday: %s", strerror(errno));
 
     dbgx(4, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
 
@@ -383,8 +399,12 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
             } else {
                 /* time has increased or is the same, so handle normally */
                 timersub(time, last, &nap_for);
+                dbgx(3, "original packet delta time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
+                
                 TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
+                dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
                 timesdiv(&nap, options.speed.speed);
+                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
             }
         } else {
             /* Don't sleep if this is our first packet */
@@ -415,10 +435,10 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         /* only need to calculate this the first time */
         if (! timesisset(&nap)) {
             /* run in packets/sec */
-            ppnsec = 1000000000 / options.speed.speed;
+            ppnsec = 1000000000 / options.speed.speed * (options.speed.pps_multi > 0 ? options.speed.pps_multi : 1);
             NANOSEC_TO_TIMESPEC(ppnsec, &nap);
-            dbgx(1, "sending 1 packet per %lu nsec", nap.tv_nsec);
-        }
+            dbgx(1, "sending %d packet(s) per %lu nsec", (options.speed.pps_multi > 0 ? options.speed.pps_multi : 1), nap.tv_nsec);
+        }        
         break;
         
     case SPEED_ONEATATIME:
@@ -438,7 +458,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         break;
 
     default:
-        errx(1, "Unknown/supported speed mode: %d", options.speed.mode);
+        errx(-1, "Unknown/supported speed mode: %d", options.speed.mode);
         break;
     }
 
@@ -447,6 +467,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
      */
     nap_this_time.tv_sec = nap.tv_sec;
     nap_this_time.tv_nsec = nap.tv_nsec;
+
+    dbgx(2, "nap_time before rounding:   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
+
 
     if (accurate != ACCURATE_ABS_TIME) {
 
@@ -476,13 +499,13 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
                 break;
                 
             default:
-                errx(1, "Unknown/supported speed mode: %d", options.speed.mode);
+                errx(-1, "Unknown/supported speed mode: %d", options.speed.mode);
         }
     }
 
-
+    dbgx(2, "nap_time before delta calc: " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
     get_delta_time(delta_ctx, &delta_time);
-    dbgx(2, "delta: " TIMESPEC_FORMAT, delta_time.tv_sec, delta_time.tv_nsec);
+    dbgx(2, "delta:                      " TIMESPEC_FORMAT, delta_time.tv_sec, delta_time.tv_nsec);
 
     if (timesisset(&delta_time)) {
         if (timescmp(&nap_this_time, &delta_time, >)) {
@@ -503,7 +526,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         }
     }
     
-    dbgx(2, "Sleeping: " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
+    dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
 
     /* don't sleep if nap = {0, 0} */
     if (!timesisset(&nap_this_time))
@@ -565,7 +588,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         break;
         */
     default:
-        errx(1, "Unknown timer mode %d", accurate);
+        errx(-1, "Unknown timer mode %d", accurate);
     }
 
 #ifdef DEBUG
@@ -577,9 +600,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
 }
 
 /**
- * this function will keep calling gettimeofday() until it returns
- * >= time.  This should be a lot more accurate then using nanosleep(),
- * but at the cost of being more CPU intensive.
+ * Ask the user how many packets they want to send.
  */
 static u_int32_t
 get_user_count(sendpacket_t *sp, COUNTER counter) 
@@ -596,11 +617,11 @@ get_user_count(sendpacket_t *sp, COUNTER counter)
     poller[0].revents = 0;
 
     if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK)) 
-           errx(1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
+           errx(-1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
 
     /* wait for the input */
     if (poll(poller, 1, -1) < 0)
-        errx(1, "Error reading user input from stdin: %s", strerror(errno));
+        errx(-1, "Error reading user input from stdin: %s", strerror(errno));
     
     /*
      * read to the end of the line or EBUF_SIZE,
@@ -609,7 +630,7 @@ get_user_count(sendpacket_t *sp, COUNTER counter)
      * results.  fuck them.
      */
     if (fgets(input, sizeof(input), stdin) == NULL) {
-        errx(1, "Unable to process user input for fd %d: %s", fileno(stdin), strerror(errno));
+        errx(-1, "Unable to process user input for fd %d: %s", fileno(stdin), strerror(errno));
     } else if (strlen(input) > 1) {
         send = strtoul(input, NULL, 0);
     }
