@@ -241,7 +241,7 @@ cidr2cidr(char *cidr)
     memset(ebuf, '\0', EBUF_SIZE);
     strcpy(ebuf, "Unable to parse as a vaild CIDR: ");
     strlcat(ebuf, cidr, EBUF_SIZE);
-    errx(1, "%s", ebuf);
+    errx(-1, "%s", ebuf);
     return NULL;
 }
 

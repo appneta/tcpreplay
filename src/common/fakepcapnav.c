@@ -64,12 +64,12 @@ pcapnav_open_offline(const char *filename)
 
     pcapnav = (pcapnav_t *) malloc(sizeof(pcapnav_t));
     if (pcapnav == NULL) {
-        err(1, "malloc() error: unable to malloc pcapnav_t");
+        err(-1, "malloc() error: unable to malloc pcapnav_t");
     }
 
     pcapnav->pcap = pcap_open_offline(filename, errbuf);
     if (pcapnav->pcap == NULL) {
-        errx(1, "Error opening pcap file %s: %s", filename, errbuf);
+        errx(-1, "Error opening pcap file %s: %s", filename, errbuf);
     }
 
     return (pcapnav);

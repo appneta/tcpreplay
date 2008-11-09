@@ -88,7 +88,7 @@ suspend_handler(int signo)
     }
 
     if (gettimeofday(&suspend_start, NULL) < 0)
-        errx(1, "gettimeofday(): %s", strerror(errno));
+        errx(-1, "gettimeofday(): %s", strerror(errno));
 
     kill(getpid(), SIGSTOP);
 }
@@ -108,7 +108,7 @@ continue_handler(int signo)
     }
     
     if (gettimeofday(&suspend_end, NULL) < 0)
-        errx(1, "gettimeofday(): %s", strerror(errno));
+        errx(-1, "gettimeofday(): %s", strerror(errno));
 
     timersub(&suspend_end, &suspend_start, &suspend_delta);
     timeradd(&suspend_time, &suspend_delta, &suspend_time);

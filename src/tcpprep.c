@@ -113,13 +113,13 @@ main(int argc, char *argv[])
     /* open the cache file */
     if ((out_file = open(OPT_ARG(CACHEFILE), O_WRONLY | O_CREAT | O_TRUNC,
             S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP | S_IROTH)) == -1)
-        errx(1, "Unable to open cache file %s for writing: %s", 
+        errx(-1, "Unable to open cache file %s for writing: %s", 
             OPT_ARG(CACHEFILE), strerror(errno));
 
   readpcap:
     /* open the pcap file */
     if ((options.pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
-        errx(1, "Error opening file: %s", errbuf);
+        errx(-1, "Error opening file: %s", errbuf);
 
     /* make sure we support the DLT type */
     switch(pcap_datalink(options.pcap)) {
@@ -129,13 +129,13 @@ main(int argc, char *argv[])
         case DLT_C_HDLC:
             break; /* do nothing because all is good */
         default:
-            errx(1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
+            errx(-1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
     }
 
     /* Can only split based on MAC address for ethernet */
     if ((pcap_datalink(options.pcap) != DLT_EN10MB) &&
         (options.mode == MAC_MODE)) {
-        err(1, "MAC mode splitting is only supported by DLT_EN10MB packet captures.");
+        err(-1, "MAC mode splitting is only supported by DLT_EN10MB packet captures.");
     }
 
 #ifdef ENABLE_VERBOSE
@@ -148,14 +148,14 @@ main(int argc, char *argv[])
     if (options.bpf.filter != NULL) {
         if (pcap_compile(options.pcap, &options.bpf.program, options.bpf.filter,
                          options.bpf.optimize, 0) != 0) {
-            errx(1, "Error compiling BPF filter: %s", pcap_geterr(options.pcap));
+            errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options.pcap));
         }
         pcap_setfilter(options.pcap, &options.bpf.program);
     }
 
     if ((totpackets = process_raw_packets(options.pcap)) == 0) {
         pcap_close(options.pcap);
-        err(1, "No packets were processed.  Filter too limiting?");
+        err(-1, "No packets were processed.  Filter too limiting?");
     }
     pcap_close(options.pcap);
 
@@ -170,7 +170,7 @@ main(int argc, char *argv[])
             if (info)
                 notice("Building network list from pre-cache...\n");
             if (!process_tree()) {
-                err(1, "Error: unable to build a valid list of servers. Aborting.");
+                err(-1, "Error: unable to build a valid list of servers. Aborting.");
             }
         }
         else {
@@ -461,7 +461,7 @@ process_raw_packets(pcap_t * pcap)
             break;
             
         default:
-            errx(1, "Whops!  What mode are we in anyways? %d", options.mode);
+            errx(-1, "Whops!  What mode are we in anyways? %d", options.mode);
         }
 #ifdef ENABLE_VERBOSE
         if (options.verbose)
@@ -513,10 +513,10 @@ post_args(int argc, char *argv[])
         print_stats(OPT_ARG(PRINT_STATS));
         
     if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(PCAP))
-        err(1, "Must specify an output cachefile (-o) and input pcap (-i)");
+        err(-1, "Must specify an output cachefile (-o) and input pcap (-i)");
     
     if (! options.mode)
-        err(1, "Must specify a processing mode: -a, -c, -r, -p");
+        err(-1, "Must specify a processing mode: -a, -c, -r, -p");
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -584,12 +584,12 @@ post_args(int argc, char *argv[])
     options.max_mask = OPT_VALUE_MAXMASK;
     
     if (! options.min_mask > options.max_mask)
-        errx(1, "Min network mask len (%d) must be less then max network mask len (%d)",
+        errx(-1, "Min network mask len (%d) must be less then max network mask len (%d)",
         options.min_mask, options.max_mask);
 
     options.ratio = atof(OPT_ARG(RATIO));
     if (options.ratio < 0)
-        err(1, "Ratio must be a non-negative number.");
+        err(-1, "Ratio must be a non-negative number.");
 }
 
 /**
@@ -633,7 +633,7 @@ print_info(const char *file)
             printf("Packet " COUNTER_SPEC " -> Don't Send\n", i);
             break;
         default:
-            err(1, "Invalid cachedata value!");
+            err(-1, "Invalid cachedata value!");
             break;
         }
 
@@ -666,7 +666,7 @@ print_stats(const char *file)
                 nosend ++;
                 break;
             default:
-                errx(1, "Unknown cache value: %d", cacheval);
+                errx(-1, "Unknown cache value: %d", cacheval);
         }
     }
     printf("Primary packets:\t" COUNTER_SPEC "\n", pri);

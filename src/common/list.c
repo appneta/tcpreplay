@@ -82,7 +82,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     /* compile the regex first */
     if ((rcode = regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB)) != 0) {
         regerror(rcode, &preg, ebuf, sizeof(ebuf));
-        errx(1, "Unable to compile regex (%s): %s", regex, ebuf);
+        errx(-1, "Unable to compile regex (%s): %s", regex, ebuf);
     }
 
     /* first iteration */

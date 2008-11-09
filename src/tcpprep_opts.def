@@ -104,7 +104,7 @@ flag = {
         options.automode = FIRST_MODE;
     }
     else {
-        errx(1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
+        errx(-1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
     }
 EOAuto;
     doc         = <<- EOText
@@ -162,7 +162,7 @@ flag = {
     char *cidr = safe_strdup(OPT_ARG(CIDR));
     options.mode = CIDR_MODE;
     if (!parse_cidr(&options.cidrdata, cidr, ","))
-        errx(1, "Unable to parse CIDR map: %s", OPT_ARG(CIDR));
+        errx(-1, "Unable to parse CIDR map: %s", OPT_ARG(CIDR));
     free(cidr);
 
 EOCidr;
@@ -192,7 +192,7 @@ flag = {
     if ((regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
         REG_EXTENDED|REG_NOSUB))) {
         regerror(regex_error, &options.preg, ebuf, EBUF_SIZE);
-        errx(1, "Unable to compile regex: %s", ebuf);
+        errx(-1, "Unable to compile regex: %s", ebuf);
     }
     
 EORegex;
@@ -269,7 +269,7 @@ flag = {
 
     /* our comment_len is only 16bit - myargs[] */
     if (strlen(OPT_ARG(COMMENT)) > ((1 << 16) - 1 - MYARGS_LEN))
-                errx(1, "Comment length %d is longer then max allowed (%d)", 
+                errx(-1, "Comment length %d is longer then max allowed (%d)", 
                 strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
     
     /* save the comment */
@@ -315,7 +315,7 @@ flag = {
     options.xX.mode = xX_MODE_INCLUDE;
         
     if ((options.xX.mode = parse_xX_str(&options.xX, include, &options.bpf)) == xXError)
-        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
 
     free(include);
     
@@ -362,7 +362,7 @@ flag = {
     options.xX.mode = xX_MODE_EXCLUDE;
     
     if ((options.xX.mode = parse_xX_str(&options.xX, exclude, &options.bpf)) == xXError)
-        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
     
     free(exclude);
     

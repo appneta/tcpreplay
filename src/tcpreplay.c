@@ -96,19 +96,19 @@ main(int argc, char *argv[])
 #ifdef TCPREPLAY_EDIT
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, sendpacket_get_dlt(options.intf1)) < 0) {
-        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+        errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
     
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(&tcpedit);
     if (rcode < 0) {
-        errx(1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+        errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
-        errx(1, "Unable to edit packets given options:\n%s",
+        errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }    
 #endif
@@ -140,7 +140,7 @@ main(int argc, char *argv[])
     init_signal_handlers();
 
     if (gettimeofday(&begin, NULL) < 0)
-        err(1, "gettimeofday() failed");
+        err(-1, "gettimeofday() failed");
 
     /* main loop for non-bridge mode */
     if (options.loop > 0) {
@@ -198,11 +198,11 @@ replay_file(int file_idx)
     /* read from pcap file if we haven't cached things yet */
     if (!options.enable_file_cache) {
         if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-            errx(1, "Error opening pcap file: %s", ebuf);
+            errx(-1, "Error opening pcap file: %s", ebuf);
     } else {
         if (!options.file_cache[file_idx].cached)
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-                errx(1, "Error opening pcap file: %s", ebuf);            
+                errx(-1, "Error opening pcap file: %s", ebuf);            
 
     }
     
@@ -212,7 +212,7 @@ replay_file(int file_idx)
         /* in cache mode, we may not have opened the file */
         if (pcap == NULL)
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-                errx(1, "Error opening pcap file: %s", ebuf);
+                errx(-1, "Error opening pcap file: %s", ebuf);
                 
         /* init tcpdump */
         tcpdump_open(options.tcpdump, pcap);
@@ -340,20 +340,20 @@ post_args(void)
 #ifdef HAVE_SELECT
             options.accurate = ACCURATE_SELECT;
 #else
-            err(1, "tcpreplay not compiled with select support");
+            err(-1, "tcpreplay not compiled with select support");
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "rdtsc") == 0) {
 #ifdef HAVE_RDTSC
             options.accurate = ACCURATE_RDTSC;
 #else
-            err(1, "tcpreplay not compiled with rdtsc support");
+            err(-1, "tcpreplay not compiled with rdtsc support");
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
 #if defined HAVE_IOPERM && defined(__i386__)
             options.accurate = ACCURATE_IOPORT;
             ioport_sleep_init();
 #else
-            err(1, "tcpreplay not compiled with IO Port 0x80 support");
+            err(-1, "tcpreplay not compiled with IO Port 0x80 support");
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "gtod") == 0) {
             options.accurate = ACCURATE_GTOD;
@@ -363,13 +363,13 @@ post_args(void)
 #ifdef HAVE_ABSOLUTE_TIME
             options.accurate = ACCURATE_ABS_TIME;
             if  (!MPLibraryIsLoaded()) {
-                err(1, "The MP library did not load.\n");
+                err(-1, "The MP library did not load.\n");
             }            
 #else
-            err(1, "tcpreplay only supports absolute time on Apple OS X");
+            err(-1, "tcpreplay only supports absolute time on Apple OS X");
 #endif
         } else {
-            errx(1, "Unsupported timer mode: %s", OPT_ARG(TIMER));
+            errx(-1, "Unsupported timer mode: %s", OPT_ARG(TIMER));
         }
     }
 
@@ -384,29 +384,29 @@ post_args(void)
     
     
     if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
-        errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+        errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
     
     options.intf1_name = safe_strdup(intname);
     
     /* open interfaces for writing */
     if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S)) == NULL)
-        errx(1, "Can't open %s: %s", options.intf1_name, ebuf);
+        errx(-1, "Can't open %s: %s", options.intf1_name, ebuf);
            
     int1dlt = sendpacket_get_dlt(options.intf1);
     
     if (HAVE_OPT(INTF2)) {
         if ((intname = get_interface(intlist, OPT_ARG(INTF2))) == NULL)
-            errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
+            errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
             
         options.intf2_name = safe_strdup(intname);
         
         /* open interface for writing */
         if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C)) == NULL)
-            errx(1, "Can't open %s: %s", options.intf2_name, ebuf);
+            errx(-1, "Can't open %s: %s", options.intf2_name, ebuf);
             
         int2dlt = sendpacket_get_dlt(options.intf2);
         if (int2dlt != int1dlt)
-            errx(1, "DLT type missmatch for %s (%s) and %s (%s)", 
+            errx(-1, "DLT type missmatch for %s (%s) and %s (%s)", 
                 options.intf1_name, pcap_datalink_val_to_name(int1dlt), 
                 options.intf2_name, pcap_datalink_val_to_name(int2dlt));
     }

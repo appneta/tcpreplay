@@ -210,7 +210,7 @@ check_ip_tree(const int mode, const unsigned long ip)
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
     if (node == NULL && mode == DIR_UNKNOWN)
-        errx(1, "%s (%lu) is an unknown system... aborting.!\n"
+        errx(-1, "%s (%lu) is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name4(ip, RESOLVE), ip);
 
@@ -249,7 +249,7 @@ check_ip_tree(const int mode, const unsigned long ip)
             /* use our current mode to determine return code */
             goto return_unknown; 
         default:
-            errx(1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
+            errx(-1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
         }
     }
     

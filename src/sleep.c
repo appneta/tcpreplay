@@ -62,7 +62,7 @@ ioport_sleep_init(void)
     ioperm(0x80,1,1);
     ioport_sleep_value = inb(0x80);    
 #else
-    err(1, "Platform does not support IO Port for timing");
+    err(-1, "Platform does not support IO Port for timing");
 #endif
 }
 
@@ -96,6 +96,6 @@ ioport_sleep(const struct timespec nap)
     	outb(ioport_sleep_value, 0x80);
     }
 #else
-    err(1, "Platform does not support IO Port for timing");
+    err(-1, "Platform does not support IO Port for timing");
 #endif
 }

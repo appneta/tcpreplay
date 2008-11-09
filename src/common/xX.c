@@ -98,14 +98,14 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
 
 
     default:
-        errx(1, "Invalid -%c option: %c", xX->mode, *str);
+        errx(-1, "Invalid -%c option: %c", xX->mode, *str);
         break;
     }
 
     if (xX->mode == 'X') {          /* run in exclude mode */
         out += xXExclude;
         if (bpf->filter != NULL)
-            err(1, "Using a BPF filter with -X doesn't work.\n"
+            err(-1, "Using a BPF filter with -X doesn't work.\n"
                 "Try using -xF:\"not <filter>\" instead");
     }
 

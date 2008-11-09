@@ -88,19 +88,19 @@ main(int argc, char *argv[])
    
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, pcap_datalink(options.listen1)) < 0) {
-        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+        errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
     
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(&tcpedit);
     if (rcode < 0) {
-        errx(1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+        errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
     
     if (tcpedit_validate(tcpedit) < 0) {
-        errx(1, "Unable to edit packets given options:\n%s",
+        errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
 
@@ -112,7 +112,7 @@ main(int argc, char *argv[])
 #endif
 
     if (gettimeofday(&begin, NULL) < 0)
-        err(1, "gettimeofday() failed");
+        err(-1, "gettimeofday() failed");
 
 
     /* process packets from one or both interfaces */
@@ -190,13 +190,13 @@ post_args(_U_ int argc, _U_ char *argv[])
 
 
     if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
-        errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+        errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
     
     options.intf1 = safe_strdup(intname);
 
     if (HAVE_OPT(INTF2)) {
         if ((intname = get_interface(intlist, OPT_ARG(INTF2))) == NULL)
-            errx(1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
+            errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
     
         options.intf2 = safe_strdup(intname);
     }
@@ -204,24 +204,24 @@ post_args(_U_ int argc, _U_ char *argv[])
 
     /* open up interfaces */
     if ((options.sp1 = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S)) == NULL)
-        errx(1, "Unable to open interface %s for sending: %s", options.intf1, ebuf);
+        errx(-1, "Unable to open interface %s for sending: %s", options.intf1, ebuf);
 
     if ((options.listen1 = pcap_open_live(options.intf1, options.snaplen, 
                                           options.promisc, options.to_ms, ebuf)) == NULL)
-        errx(1, "Unable to open interface %s for recieving: %s", options.intf1, ebuf);
+        errx(-1, "Unable to open interface %s for recieving: %s", options.intf1, ebuf);
 
 
     if (strcmp(options.intf1, options.intf2) == 0)
-        errx(1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
+        errx(-1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
 
     if ((options.sp2 = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
-        errx(1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
+        errx(-1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
 
     /* open 2nd interface for listening? (not in unidir mode) */
     if (!options.unidir) {
         if ((options.listen2 = pcap_open_live(options.intf2, options.snaplen,
                                               options.promisc, options.to_ms, ebuf)) == NULL)
-            errx(1, "Unable to open interface %s for recieving: %s", options.intf2, ebuf);
+            errx(-1, "Unable to open interface %s for recieving: %s", options.intf2, ebuf);
     }
 }
 

@@ -92,20 +92,20 @@ main(int argc, char *argv[])
     
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, pcap_datalink(options.pin)) < 0) {
-        errx(1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+        errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
     
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(&tcpedit);
     if (rcode < 0) {
-        errx(1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+        errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
 
     if (tcpedit_validate(tcpedit) < 0) {
-        errx(1, "Unable to edit packets given options:\n%s",
+        errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
     
@@ -114,7 +114,7 @@ main(int argc, char *argv[])
     dbgx(1, "Rewriting DLT to %s",
             pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
     if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL)
-        err(1, "Unable to open dead pcap handle.");
+        err(-1, "Unable to open dead pcap handle.");
 
     dbgx(1, "DLT of dlt_pcap is %s",
         pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
@@ -122,7 +122,7 @@ main(int argc, char *argv[])
 #ifdef ENABLE_FRAGROUTE
     if (options.fragroute_args) {
         if ((options.frag_ctx = fragroute_init(65535, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL)
-            errx(1, "%s", ebuf);
+            errx(-1, "%s", ebuf);
     }
 #endif
 
@@ -133,12 +133,12 @@ main(int argc, char *argv[])
 #endif
 
     if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL)
-        errx(1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
+        errx(-1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
     pcap_close(dlt_pcap);
 
     /* rewrite packets */
     if (rewrite_packets(tcpedit, options.pin, options.pout) != 0)
-        errx(1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
+        errx(-1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
 
 
     /* clean up after ourselves */
@@ -209,7 +209,7 @@ post_args(_U_ int argc, _U_ char *argv[])
         } else if (strcmp(OPT_ARG(FRAGDIR), "both") == 0) {
             options.fragroute_dir = FRAGROUTE_DIR_BOTH;
         } else {
-            errx(1, "Unknown --fragdir value: %s", OPT_ARG(FRAGDIR));
+            errx(-1, "Unknown --fragdir value: %s", OPT_ARG(FRAGDIR));
         }
     }
 #endif
@@ -217,7 +217,7 @@ post_args(_U_ int argc, _U_ char *argv[])
     /* open up the input file */
     options.infile = safe_strdup(OPT_ARG(INFILE));
     if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
-        errx(1, "Unable to open input pcap file: %s", ebuf);
+        errx(-1, "Unable to open input pcap file: %s", ebuf);
 }
 
 /** 
@@ -289,7 +289,7 @@ WRITE_PACKET:
                     (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C)) {
 
                 if (fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen) < 0)
-                    errx(1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);
+                    errx(-1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);
 
                 i = 0;
                 while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {

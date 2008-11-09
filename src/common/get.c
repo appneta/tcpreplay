@@ -127,7 +127,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     default:
-        errx(1, "Unable to process unsupported DLT type: %s (0x%x)", 
+        errx(-1, "Unable to process unsupported DLT type: %s (0x%x)", 
              pcap_datalink_val_to_description(datalink), datalink);
 
     }
@@ -176,7 +176,7 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     default:
-        errx(1, "Unable to process unsupported DLT type: %s (0x%x)", 
+        errx(-1, "Unable to process unsupported DLT type: %s (0x%x)", 
              pcap_datalink_val_to_description(datalink), datalink);
         break;
     }

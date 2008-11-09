@@ -62,12 +62,12 @@ parse_services(const char *file, tcpr_services_t *services)
     memset(services->udp, '\0', NUM_PORTS);
 
     if ((service = fopen(file, "r")) == NULL) {
-        errx(1, "Unable to open service file: %s\n%s", file, strerror(errno));
+        errx(-1, "Unable to open service file: %s\n%s", file, strerror(errno));
     }
     
     /* compile our regexes */
     if ((regcomp(&preg, regex, REG_ICASE|REG_EXTENDED)) != 0) {
-        errx(1, "Unable to compile regex: %s", regex);
+        errx(-1, "Unable to compile regex: %s", regex);
     }
 
     /* parse the entire file */
@@ -82,7 +82,7 @@ parse_services(const char *file, tcpr_services_t *services)
         /* look for format of 1234/tcp */
         if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
             if (nmatch < 2) {
-                err(1, "WTF?  I matched the line, but I don't know where!");
+                err(-1, "WTF?  I matched the line, but I don't know where!");
             }
 
             /* strip out the port & proto from the line */

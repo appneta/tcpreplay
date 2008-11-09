@@ -509,7 +509,7 @@ sendpacket_open_pcap(const char *device, char *errbuf)
      */
     fd = pcap_get_selectable_fd(pcap);
     if (ioctl(fd, BIOCSHDRCMPLT, &spoof_eth_src) == -1)
-        errx(1, "Unable to enable source MAC spoof support: %s", strerror(errno));
+        errx(-1, "Unable to enable source MAC spoof support: %s", strerror(errno));
 #endif
     return sp;
 }

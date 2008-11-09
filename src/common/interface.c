@@ -93,7 +93,7 @@ get_interface_list(void)
 #endif
 
     if (pcap_findalldevs(&pcap_if, ebuf) < 0)
-        errx(1, "Error: %s", ebuf);
+        errx(-1, "Error: %s", ebuf);
             
     pcap_if_ptr = pcap_if;
     list_head = (interface_list_t *)safe_malloc(sizeof(interface_list_t));

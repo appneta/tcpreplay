@@ -173,7 +173,7 @@ flag = {
     options.xX.mode = xX_MODE_INCLUDE;
         
     if ((options.xX.mode = parse_xX_str(&options.xX, include, &options.bpf)) == xXError)
-        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
 
     free(include);
     
@@ -220,7 +220,7 @@ flag = {
     options.xX.mode = xX_MODE_EXCLUDE;
     
     if ((options.xX.mode = parse_xX_str(&options.xX, exclude, &options.bpf)) == xXError)
-        errx(1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
     
     free(exclude);
     

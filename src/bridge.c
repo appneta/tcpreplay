@@ -316,7 +316,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
             options.intf1);
         sp = options.sp1;
     } else {
-        errx(1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
+        errx(-1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
              node->source);
     }
 
@@ -324,7 +324,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
      * write packet out on the network 
      */
      if (sendpacket(sp, pktdata, pkthdr->caplen) < (int)pkthdr->caplen) {
-         errx(1, "Unable to send packet out %s: %s", sp->device, sendpacket_geterr(sp));
+         errx(-1, "Unable to send packet out %s: %s", sp->device, sendpacket_geterr(sp));
      }
 
     bytes_sent += pkthdr->caplen;
