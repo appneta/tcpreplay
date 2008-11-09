@@ -307,6 +307,7 @@ post_args(void)
     } else if (HAVE_OPT(PPS)) {
         options.speed.mode = SPEED_PACKETRATE;
         options.speed.speed = (float)OPT_VALUE_PPS;
+        options.speed.pps_multi = OPT_VALUE_PPS_MULTI;
     } else if (HAVE_OPT(ONEATATIME)) {
         options.speed.mode = SPEED_ONEATATIME;
         options.speed.speed = 0.0;
