@@ -137,7 +137,7 @@ tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
-	replay_config replay_multi
+	replay_config replay_multi replay_pps_multi
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -478,6 +478,12 @@ replay_multi:
 	$(PRINTF) "%s" "[tcpreplay] Multiplier test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Multiplier test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -x 25.0 test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+replay_pps_multi:
+	$(PRINTF) "%s" "[tcpreplay] Packets/sec Multiplier test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Packets/sec Multiplier test: " >>test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -p 100 --pps-multi=5 test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_top:
