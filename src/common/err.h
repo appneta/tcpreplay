@@ -46,6 +46,9 @@
 #ifndef _ERR_H_
 #define _ERR_H_
 
+#ifdef DEBUG
+extern int debug;
+#endif
 
 /*
  * We define five functions for reporting errors, warnings and debug messages:
@@ -63,45 +66,53 @@
 #  define __FUNCTION__ __func__
 #endif
 
-#define dbg(x, y) _our_verbose_dbg(x, y, __FUNCTION__, __LINE__, __FILE__)
-void _our_verbose_dbg(int dbg_level, const char *string, const char *, 
-        const int, const char *);
-
-#define dbgx(x, y, ...) _our_verbose_dbgx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-void _our_verbose_dbgx(int dbg_level, const char *fmt, const char *, 
-        const int, const char *, ...);
-
 void notice(const char *fmt, ...);
-
 
 #ifdef DEBUG /* then err, errx, warn, warnx print file, func, line */
 
-#define err(x, y) _our_verbose_err(x, y, __FUNCTION__, __LINE__, __FILE__)
-void _our_verbose_err(int eval, const char *string, const char *, const int, const char *);
+#define dbg(x, y) do { \
+    if (debug >= x) \
+        fprintf(stderr, "DEBUG%d in %s:%s() line %d: %s\n", x, __FILE__, __FUNCTION__, __LINE__, y); \
+    } while(0)
+    
+#define dbgx(x, y, ...) do { \
+    if (debug >= x) { \
+        fprintf(stderr, "DEBUG%d in %s:%s() line %d: " y "\n", x, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__); \
+    } \
+} while(0)
+        
 
-#define warn(x) _our_verbose_warn(x, __FUNCTION__, __LINE__, __FILE__)
-void _our_verbose_warn(const char *fmt, const char *, const int, const char *);
+#define warn(x) fprintf(stderr, "Warning in %s:%s() line %d:\n%s\n", __FILE__, __FUNCTION__, __LINE__, x)
 
-#define errx(x, y, ...) _our_verbose_errx(x, y, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-void _our_verbose_errx(int eval, const char *fmt, const char *, const int, const char *, ...);
 
-#define warnx(x, ...) _our_verbose_warnx(x, __FUNCTION__, __LINE__, __FILE__, __VA_ARGS__)
-void _our_verbose_warnx(const char *fmt, const char *, const int, const char *, ...);
+#define warnx(x, ...) fprintf(stderr, "Warning in %s:%s() line %d:\n" x "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+#define err(x, y) do { \
+        fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n%s\n", __FILE__, __FUNCTION__, __LINE__, y); \
+        exit(x); \
+    } while (0)
+
+#define errx(x, y, ...) do {\
+        fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n " y "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__); \
+        exit(x); \
+    } while (0)
 
 #else /* no detailed DEBUG info */
 
-#define err(x, y) _our_verbose_err(x, y)
-void _our_verbose_err(int eval, const char *string);
+/* dbg() and dbgx() become no-ops for non-DEBUG builds */
+#define dbg(x, y) { }
+#define dbgx(x, y, ...) { }
 
-#define errx(x, y, ...) _our_verbose_errx(x, y, __VA_ARGS__)
-void _our_verbose_errx(int eval, const char *fmt, ...);
+#define warn(x) fprintf(stderr, "Warning: %s\n", x)
 
-#define warn(x) _our_verbose_warn(x)
-void _our_verbose_warn(const char *fmt);
+#define warnx(x, ...) fprintf(stderr, "Warning: " x "\n", __VA_ARGS__)
 
-#define warnx(x, ...) _our_verbose_warnx(x, __VA_ARGS__)
-void _our_verbose_warnx(const char *fmt, ...);
+#define err(x, y) fprintf(stderr, "\nFatal Error:\n%s\n", y); exit(x)
 
+#define errx(x, y, ...) do {\
+        fprintf(stderr, "\nFatal Error: " y "\n", __VA_ARGS__); \
+        exit(x); \
+    } while (0)
 #endif /* DEBUG */
 
 

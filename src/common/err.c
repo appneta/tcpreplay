@@ -77,11 +77,11 @@ notice(const char *fmt, ...)
  * 
  * You don't actually want to call this!  use dbgx() instead!
  */
+#ifdef DEBUG
 void
 _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function, 
         const int line, const char *file, ...)
 {
-#ifdef DEBUG
     va_list ap;
 
     if (debug < dbg_level)
@@ -97,70 +97,8 @@ _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function,
     (void)fprintf(stderr, "\n");
     va_end(ap);
     fflush(NULL);
-#else
-    return;
-#endif
 }
-
-/**
- * Inner call to dbg() which prints the function, line & file along
- * with the message to stderr.  Always forces a newline.
- * 
- * You don't actually want to call this!  use dbg() instead!
- */
-void
-_our_verbose_dbg(int dbg_level, const char *string, const char *function, const int line, const char *file)
-{
-#ifdef DEBUG
-
-    if (debug < dbg_level)
-        return;
-
-    fprintf(stderr, "DEBUG%d in %s:%s() line %d: %s\n", dbg_level, file, 
-            function, line, string);
-#else
-    return;
 #endif
-}
-
-
-/**
- * Inner call to err() which when in DEBUG mode, prints the function, line & file
- * along with the actual error message to stderr.  Alawys forces a newline
- */
-#ifdef DEBUG
-void
-_our_verbose_err(int eval, const char *string, const char *function, const int line, const char *file) {
-#else
-void
-_our_verbose_err(int eval, const char *string) {
-#endif
-
-    fprintf(stderr, "%s", "\n");
-#ifdef DEBUG
-    fprintf(stderr, "Fatal Error in %s:%s() line %d:\n", file, function, line);
-#endif
-    fprintf(stderr, "%s\n", string);
-    exit(eval);
-}
-
-/**
- * Inner call to warn() which when in DEBUG mode, prints the function, line & file
- * along with the actual warning to stderr.  Alawys forces a newline
- */
-#ifdef DEBUG
-void
-_our_verbose_warn(const char *string, const char *function, const int line, const char *file) {
-#else
-void
-_our_verbose_warn(const char *string) {
-#endif
-
-#ifdef DEBUG
-    fprintf(stderr, "Warning in %s:%s() line %d:\n", file, function, line);
-#endif
-    fprintf(stderr, "Warning: %s\n", string);
-}
 
 /**
  * Inner call to errx() which when in DEBUG mode, prints the function, line & file
@@ -217,12 +155,3 @@ _our_verbose_warnx(const char *fmt, ...) {
     (void)fprintf(stderr, "\n");
     va_end(ap);
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
