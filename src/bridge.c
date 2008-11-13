@@ -116,6 +116,15 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
     
     assert(pcap1); /* must be set */
 
+    /* do we apply a bpf filter? */
+    if (options.bpf.filter != NULL) {
+        dbgx(2, "Try to compile pcap bpf filter: %s". options.bpf.filter);
+        if (pcap_compile(pcap1, &options.bpf.program, options.bpf.filter, options.bpf.optimize, 0) != 0) {
+            errx(-1, "Error compiling BPF filter: %s", pcap_geterr(pcap1));
+        }
+        pcap_setfilter(pcap1, &options.bpf.program);
+    }
+
     /* define polls */
     polls[PCAP_INT1].fd = pcap_fileno(pcap1);
     polls[PCAP_INT1].events = POLLIN | POLLPRI;
@@ -127,6 +136,16 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
         polls[PCAP_INT2].events = POLLIN | POLLPRI;
         polls[PCAP_INT2].revents = 0;
         pollcount = 2;
+
+        /* do we apply a bpf filter? */
+        if (options.bpf.filter != NULL) {
+            dbgx(2, "Try to compile pcap bpf filter: %s". options.bpf.filter);
+            if (pcap_compile(pcap2, &options.bpf.program, options.bpf.filter, options.bpf.optimize, 0) != 0) {
+                errx(-1, "Error compiling BPF filter: %s", pcap_geterr(pcap2));
+            }
+            pcap_setfilter(pcap2, &options.bpf.program);
+        }
+
     }
 
     /* register signals */
