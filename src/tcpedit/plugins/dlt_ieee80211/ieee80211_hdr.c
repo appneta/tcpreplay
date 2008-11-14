@@ -51,9 +51,11 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
     assert(packet);
     
     /* Ack, Auth, NULL packets often are very small (10-30 bytes) */
-    if (pktlen >= (int)sizeof(ieee80211_hdr_t))
+    if (pktlen <= (int)sizeof(ieee80211_hdr_t)) {
+        dbgx(1, "**** packet " COUNTER_SPEC " is too small (%d)", ctx->tcpedit->runtime.packetnum, pktlen);
         return 0;
-        
+    }
+
     /* 
      * Fields: Version|Type|Subtype|Flags
      * Bytes: 2|2|4|8
@@ -64,14 +66,22 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
      * 0010 - Data + Poll
      * 0011 - Data + Ack + Poll
      * 01?? - Data + Null (no data)
-     * 1??? - Reserved
+     * 1100 - QoS (no data)
+     * 1??? - Reserved (beacon, etc)
      * FIXME:
      * So right now, we only look for pure data frames, since I'm not sure what to do with ACK/Poll
      */
      
     frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
-    if ((fc & 0x2000) != 0x2000) {
+    
+    /* check for data */
+    if ((fc & ieee80211_FC_TYPE_MASK) != ieee80211_FC_TYPE_DATA) {
+        return 0;
+    }
+    
+    /* QoS is set by the high bit, all the lower bits are QoS sub-types */
+    if ((fc & ieee80211_FC_SUBTYPE_MASK) >= ieee80211_FC_SUBTYPE_QOS) {
         return 0;
     }
     
@@ -81,11 +91,7 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
     } else {
         hdrlen = sizeof(ieee80211_hdr_t);
     }
-
-    /* 
-     * FIXME: 802.11e?  has a QoS feature which apparently extends the header by another
-     * 2 bytes, but I don't know how to test for that yet.
-     */
+        
     if (pktlen < hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr)) {
         return 0; /* not long enough for SNAP */
     }
@@ -97,6 +103,8 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
         return 1;
     } 
     
+    warnx("Packet " COUNTER_SPEC " is unknown reason for non-data", ctx->tcpedit->runtime.packetnum);
+
     return 0;
 }
 
@@ -115,7 +123,7 @@ ieee80211_is_encrypted(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
     frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
     
-    if ((fc & 0x0002) == 0x0002) {
+    if ((fc & ieee80211_FC_WEP_MASK) == ieee80211_FC_WEP_MASK) {
         return 1;
     }
     return 0;
@@ -151,7 +159,7 @@ ieee80211_get_src(const void *header)
             case 0:
                 return addr3->addr2;
             default:
-                err(1, "Whoops... we shouldn't of gotten here.");
+                err(-1, "Whoops... we shouldn't of gotten here.");
         }
     }
     return NULL;
@@ -177,11 +185,11 @@ ieee80211_get_dst(const void *header)
             case ieee80211_FC_TO_DS_MASK:
                 return addr3->addr3;
             case ieee80211_FC_FROM_DS_MASK:
-                return addr3->addr2;
+                return addr3->addr1;
             case 0:
                 return addr3->addr3;
             default:
-                err(1, "Whoops... we shouldn't of gotten here.");
+                err(-1, "Whoops... we shouldn't of gotten here.");
         }
     }
     return NULL;

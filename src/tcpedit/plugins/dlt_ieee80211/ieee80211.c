@@ -44,7 +44,9 @@
 /*
  * Notes about the ieee80211 plugin:
  * 802.11 is a little different from most other L2 protocols:
- * - Not all frames are data frames (control, data, management)
+ * - Not all frames are data frames (control, data, management) (data frame == L3 or higher included)
+ * - Not all data frames have data (QoS frames are "data" frames, but have no L3 header)
+ * - L2 header is 802.11 + an 802.2/802.2SNAP header
  */
 static char dlt_name[] = "ieee80211";
 _U_ static char dlt_prefix[] = "ieee802_11";
@@ -194,9 +196,10 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen > dlt_ieee80211_l2len(ctx, packet, pktlen));
+    assert(pktlen >= dlt_ieee80211_l2len(ctx, packet, pktlen));
 
-    if (!ieee80211_is_data(ctx, packet, pktlen)) {
+    dbgx(3, "Decoding 802.11 packet " COUNTER_SPEC, ctx->tcpedit->runtime.packetnum);
+    if (! ieee80211_is_data(ctx, packet, pktlen)) {
         tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is not a normal 802.11 data frame",
             ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
@@ -208,6 +211,7 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_SOFT_ERROR;
     }
 
+    ctx->l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
     memcpy(&(ctx->srcaddr), ieee80211_get_src((ieee80211_hdr_t *)packet), ETHER_ADDR_LEN);
     memcpy(&(ctx->dstaddr), ieee80211_get_dst((ieee80211_hdr_t *)packet), ETHER_ADDR_LEN);
     ctx->proto = dlt_ieee80211_proto(ctx, packet, pktlen);
@@ -240,18 +244,43 @@ dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr
 int 
 dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    int protocol, l2len;
+    int l2len, hdrlen;
+    u_int16_t *frame_control, fc;
+    struct tcpr_802_2snap_hdr *hdr;
 
     assert(ctx);
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-
     assert(pktlen >= l2len);
+
+    /* check 802.11 frame control field */
+    frame_control = (u_int16_t *)packet;
+    fc = ntohs(*frame_control);
+
+    /* Not all 802.11 frames have data */
+    if ((fc & ieee80211_FC_TYPE_MASK) != ieee80211_FC_TYPE_DATA)
+        return TCPEDIT_SOFT_ERROR;
     
-    protocol = (u_int16_t)packet[l2len - 2];
+    /* Some data frames are QoS and have no data */
+    if (((fc & ieee80211_FC_SUBTYPE_MASK) & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS)
+        return TCPEDIT_SOFT_ERROR;
     
-    return protocol;
+    /* figure out the actual header length */
+    if (ieee80211_USE_4(fc)) {
+        hdrlen = sizeof(ieee80211_addr4_hdr_t);
+    } else {
+        hdrlen = sizeof(ieee80211_hdr_t);
+    }
+    
+    hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
+
+    /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
+    if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA)
+        return hdr->snap_type;
+    
+
+    return TCPEDIT_SOFT_ERROR; /* 802.2 has no type field */
 }
 
 /*
@@ -267,6 +296,7 @@ dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
 
     assert(pktlen >= l2len);
+    dbgx(1, "Getting data for packet " COUNTER_SPEC " from offset: %d", ctx->tcpedit->runtime.packetnum, l2len);
     
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -284,6 +314,7 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     assert(ctx);
     assert(packet);
     assert(l3data);
+
     
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
     
@@ -310,6 +341,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
     assert(pktlen);
     
+    dbgx(2, "packet = %p\t\tplen = %d", packet, pktlen);
 
     frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
@@ -319,11 +351,15 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     } else {
         hdrlen = sizeof(ieee80211_hdr_t);
     }
-
-    /* 
-     * FIXME: 802.11e?  has a QoS feature which apparently extends the header by another
-     * 2 bytes, but I don't know how to test for that yet.
-     */
+    
+    /* if Data/QoS, then L2 len is +2 bytes and there isn't anything else */
+    if (((fc & ieee80211_FC_SUBTYPE_MASK) & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS) {
+        dbgx(2, "total header length (fc %04x) (802.11 + QoS data): %d", ntohs(fc), hdrlen + 2);
+        return hdrlen + 2;
+    }
+        
+    
+    dbgx(2, "header length: %d", hdrlen);
     
     if (pktlen < hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr)) {
         return TCPEDIT_SOFT_ERROR;
@@ -333,10 +369,11 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
     if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA) {
         hdrlen += (int)sizeof(struct tcpr_802_2snap_hdr);
+        dbgx(2, "total header length (802.11 + 802.2SNAP): %d", hdrlen);
     } else {
         hdrlen += (int)sizeof(struct tcpr_802_2_hdr);
+        dbgx(2, "total header length (802.11 + 802.2): %d (%02x/%02x)", hdrlen, hdr->snap_dsap, hdr->snap_ssap);
     }
-
     return hdrlen;
 }
 

@@ -52,23 +52,36 @@ u_char *dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, cons
 /* 802.11 packet header w/ 3 addresses (non-WDS) */
 struct ieee80211_hdr_s {
     u_int16_t frame_control;
-#define ieee80211_FC_VERSION_MASK   0xC000
-#define ieee80211_FC_TYPE_MASK      0x3000
-#define ieee80211_FC_SUBTYPE_MASK   0x0F00
-#define ieee80211_FC_TO_DS_MASK     0x0080
-#define ieee80211_FC_FROM_DS_MASK   0x0040
-#define ieee80211_FC_MORE_FRAG      0x0020
-#define ieee80211_FC_RETRY_MASK     0x0010
-#define ieee80211_FC_PWR_MGMT_MASK  0x0008
-#define ieee80211_FC_MORE_DATA_MASK 0x0004
-#define ieee80211_FC_WEP_MASK       0x0002
-#define ieee80211_FC_ORDER_MASK     0x0001
+/* version is first two bytes */
+#define ieee80211_FC_VERSION_MASK   0x0300
+
+/* type is second 2 bytes */
+#define ieee80211_FC_TYPE_MASK      0x0C00
+#define ieee80211_FC_TYPE_DATA      0x0800
+#define ieee80211_FC_TYPE_MGMT      0x0000
+#define ieee80211_FC_TYPE_CONTROL   0x0400
+#define ieee80211_FC_TYPE_RESERVED  0x0C00
+
+/* subtype is the 4 high bytes */
+#define ieee80211_FC_SUBTYPE_MASK   0xF000
+#define ieee80211_FC_SUBTYPE_QOS    0xC000 /* high bit is QoS, but there are sub-sub types for QoS */
+
+
+/* Direction */
+#define ieee80211_FC_TO_DS_MASK     0x0001
+#define ieee80211_FC_FROM_DS_MASK   0x0002
+/* Flags */
+#define ieee80211_FC_MORE_FRAG      0x0004
+#define ieee80211_FC_RETRY_MASK     0x0008
+#define ieee80211_FC_PWR_MGMT_MASK  0x0010
+#define ieee80211_FC_MORE_DATA_MASK 0x0020
+#define ieee80211_FC_WEP_MASK       0x0040
+#define ieee80211_FC_ORDER_MASK     0x0080
     u_int16_t duration;
     u_char addr1[6];
     u_char addr2[6];
     u_char addr3[6];
     u_int16_t fragid;
-    u_int16_t seqid;
 };
 typedef struct ieee80211_hdr_s ieee80211_hdr_t;
 
@@ -80,7 +93,6 @@ struct ieee80211_addr4_hdr_s {
     u_char addr3[6];
     u_char addr4[6];
     u_int16_t fragid;
-    u_int16_t seqid;
 };
 typedef struct ieee80211_addr4_hdr_s ieee80211_addr4_hdr_t;
 
