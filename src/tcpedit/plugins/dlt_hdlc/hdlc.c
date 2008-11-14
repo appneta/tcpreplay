@@ -376,7 +376,7 @@ dlt_hdlc_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *pac
         break;
         
     default:
-        errx(1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
+        errx(-1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
     }
     return(NULL);
 }
