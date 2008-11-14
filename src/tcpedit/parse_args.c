@@ -135,7 +135,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
             ttl *= -1; /* convert to positive value */
             
         if (ttl > 255)
-            errx(1, "Invalid --ttl value (must be 0-255): %ld", ttl);
+            errx(-1, "Invalid --ttl value (must be 0-255): %ld", ttl);
 
         tcpedit->ttl_value = (u_int8_t)ttl;
     }
