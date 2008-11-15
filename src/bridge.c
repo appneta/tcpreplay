@@ -130,6 +130,7 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
     polls[PCAP_INT1].events = POLLIN;
     polls[PCAP_INT1].revents = 0;
 
+    /* don't add 2nd interface to poll() only if in unidir mode */
     if (! options.unidir) {
         assert(pcap2);
         polls[PCAP_INT2].fd = pcap_fileno(pcap2);
