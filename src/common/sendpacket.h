@@ -48,6 +48,14 @@
 #ifndef _SENDPACKET_H_
 #define _SENDPACKET_H_
 
+enum sendpacket_type_t {
+    SP_TYPE_LIBNET,
+    SP_TYPE_LIBDNET,
+    SP_TYPE_LIBPCAP,
+    SP_TYPE_BPF,
+    SP_TYPE_PF_PACKET
+};
+
 union sendpacket_handle {
     pcap_t *pcap;
     int fd;
@@ -69,6 +77,7 @@ struct sendpacket_s {
     COUNTER sent;
     COUNTER bytes_sent;
     COUNTER attempt;
+    enum sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
 #ifdef HAVE_PF_PACKET

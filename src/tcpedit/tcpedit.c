@@ -72,7 +72,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 {
     ipv4_hdr_t *ip_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
-    int l2len = 0, l2proto, retval = 0, dlt, pktlen, lendiff;
+    int l2len = 0, l2proto, retval = 0, dst_dlt, src_dlt, pktlen, lendiff;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
     static u_char *packet = NULL;   /* static buffer to hold packet data when padding out */
     
@@ -85,7 +85,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
 
     tcpedit->runtime.packetnum++;
-    dbgx(2, "packet " COUNTER_SPEC " caplen %d", 
+    dbgx(3, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
 
     /* 
@@ -112,14 +112,23 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         (*pkthdr)->caplen -= 4;
         (*pkthdr)->len -= 4;
     }
+
+    src_dlt = tcpedit_dlt_src(tcpedit->dlt_ctx);
+    
+    /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
+    if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, *pktdata, (*pkthdr)->caplen)) < 0) {
+        dbg(2, "Packet has no L3+ header");
+    } else {
+        dbgx(2, "Layer 3 protocol type is: 0x%04x", ntohs(l2proto));
+    }
         
-    /* rewrite DLT */
+    /* rewrite Layer 2 */
     if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
         errx(-1, "%s", tcpedit_geterr(tcpedit));
 
-    /* unable to edit packet, most likely 802.11 management frame */
+    /* unable to edit packet, most likely 802.11 management or data QoS frame */
     if (pktlen == TCPEDIT_SOFT_ERROR) {
-        dbgx(1, "%s", tcpedit_geterr(tcpedit));
+        dbgx(3, "%s", tcpedit_geterr(tcpedit));
         return TCPEDIT_SOFT_ERROR;
     }
 
@@ -127,20 +136,21 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     lendiff = pktlen - (*pkthdr)->caplen;
     (*pkthdr)->caplen += lendiff;
     (*pkthdr)->len += lendiff;
+    
+    dst_dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
+    l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dst_dlt, *pktdata, (*pkthdr)->caplen);
 
-    dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
-    l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
-    l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
+    dbgx(2, "dst_dlt = %04x\tsrc_dlt = %04x\tproto = %04x\tl2len = %d", dst_dlt, src_dlt, ntohs(l2proto), l2len);
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == htons(ETHERTYPE_IP)) {
-        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen);
+        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, *pktdata, (*pkthdr)->caplen);
         if (ip_hdr == NULL) {
             return TCPEDIT_ERROR;
         }        
-        dbg(3, "Packet has an IPv4 header...");
+        dbgx(3, "Packet has an IPv4 header: %p...", ip_hdr);
     } else {
-        dbgx(3, "Packet isn't IPv4: 0x%02x", l2proto);
+        dbgx(3, "Packet isn't IPv4: 0x%04x", l2proto);
         /* non-IP packets have a NULL ip_hdr struct */
         ip_hdr = NULL;
     }
@@ -215,7 +225,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     }
 
     
-    tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx, dlt, *pktdata, (*pkthdr)->caplen, (u_char *)ip_hdr);
+    tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx, dst_dlt, *pktdata, (*pkthdr)->caplen, (u_char *)ip_hdr);
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
     tcpedit->runtime.pkts_edited ++;

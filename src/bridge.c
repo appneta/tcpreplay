@@ -113,12 +113,12 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
     u_char source2 = PCAP_INT2;
     struct live_data_t livedata;
     int pollcount = 1;          /* default to unidir mode */
-    
+
     assert(pcap1); /* must be set */
 
     /* do we apply a bpf filter? */
     if (options.bpf.filter != NULL) {
-        dbgx(2, "Try to compile pcap bpf filter: %s". options.bpf.filter);
+        dbgx(2, "Try to compile pcap bpf filter: %s", options.bpf.filter);
         if (pcap_compile(pcap1, &options.bpf.program, options.bpf.filter, options.bpf.optimize, 0) != 0) {
             errx(-1, "Error compiling BPF filter: %s", pcap_geterr(pcap1));
         }
@@ -127,19 +127,19 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
 
     /* define polls */
     polls[PCAP_INT1].fd = pcap_fileno(pcap1);
-    polls[PCAP_INT1].events = POLLIN | POLLPRI;
+    polls[PCAP_INT1].events = POLLIN;
     polls[PCAP_INT1].revents = 0;
 
     if (! options.unidir) {
         assert(pcap2);
         polls[PCAP_INT2].fd = pcap_fileno(pcap2);
-        polls[PCAP_INT2].events = POLLIN | POLLPRI;
+        polls[PCAP_INT2].events = POLLIN;
         polls[PCAP_INT2].revents = 0;
         pollcount = 2;
 
         /* do we apply a bpf filter? */
         if (options.bpf.filter != NULL) {
-            dbgx(2, "Try to compile pcap bpf filter: %s". options.bpf.filter);
+            dbgx(2, "Try to compile pcap bpf filter: %s", options.bpf.filter);
             if (pcap_compile(pcap2, &options.bpf.program, options.bpf.filter, options.bpf.optimize, 0) != 0) {
                 errx(-1, "Error compiling BPF filter: %s", pcap_geterr(pcap2));
             }
@@ -203,9 +203,15 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
 
         /* reset the result codes */
         polls[PCAP_INT1].revents = 0;
-        if (! options.unidir)
+        polls[PCAP_INT1].events = POLLIN;
+        polls[PCAP_INT1].fd = pcap_fileno(pcap1);
+        
+        if (! options.unidir) {
             polls[PCAP_INT2].revents = 0;
-
+            polls[PCAP_INT2].events = POLLIN;
+            polls[PCAP_INT2].fd = pcap_fileno(pcap2);
+           
+        }
         /* go back to the top of the loop */
     }
 
@@ -221,7 +227,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
               const u_char * nextpkt)
 {
     ipv4_hdr_t *ip_hdr = NULL;
-    sendpacket_t *sp = NULL;
+    pcap_t *send = NULL;
     static u_char *pktdata = NULL;     /* full packet buffer */
     u_char **packet;
     int cache_mode;
@@ -233,7 +239,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     u_int16_t l2proto;
 
     packetnum++;
-    dbgx(2, "packet %d caplen %d", packetnum, pkthdr->caplen);
+    dbgx(2, "packet %lu caplen %d", packetnum, pkthdr->caplen);
 
     /* only malloc the first time */
     if (pktdata == NULL) {
@@ -264,13 +270,11 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
-    if ((memcmp(sendpacket_get_hwaddr(options.sp1), &finder.key, 
-            ETHER_ADDR_LEN)) == 0) {
+    if ((memcmp(options.intf1_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf1);
         return (1);
     }
-    else if ((memcmp(sendpacket_get_hwaddr(options.sp2), &finder.key,
-            ETHER_ADDR_LEN)) == 0) {
+    else if ((memcmp(options.intf2_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf2);
         return (1);
     }
@@ -328,12 +332,12 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     if (node->source == PCAP_INT1) {
         dbgx(2, "Packet source was %s... sending out on %s", options.intf1, 
             options.intf2);
-        sp = options.sp2;
+        send = options.pcap2;
     }
     else if (node->source == PCAP_INT2) {
         dbgx(2, "Packet source was %s... sending out on %s", options.intf2, 
             options.intf1);
-        sp = options.sp1;
+        send = options.pcap1;
     } else {
         errx(-1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
              node->source);
@@ -342,10 +346,15 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /*
      * write packet out on the network 
      */
-     if (sendpacket(sp, pktdata, pkthdr->caplen) < (int)pkthdr->caplen) {
-         errx(-1, "Unable to send packet out %s: %s", sp->device, sendpacket_geterr(sp));
-     }
-
+#ifdef HAVE_PCAP_INJECT
+     if (pcap_inject(send, pktdata, pkthdr->caplen) < (int)pkthdr->caplen)
+         errx(-1, "Unable to send packet out %s: %s", send == options.pcap1 ? options.intf1 : options.intf2, pcap_geterr(send));
+#elif defined HAVE_PCAP_SENDPACKET
+     if (pcap_inject(send, pktdata, pkthdr->caplen) < 0)
+         errx(-1, "Unable to send packet out %s: %s", send == options.pcap1 ? options.intf1 : options.intf2, pcap_geterr(send));
+#else
+#error Can not compile tcpbridge without pcap_inject() or pcap_sendpacket()
+#endif
     bytes_sent += pkthdr->caplen;
     pkts_sent++;
 
@@ -354,12 +363,3 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
     return (1);
 } /* live_callback() */
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

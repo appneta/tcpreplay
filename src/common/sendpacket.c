@@ -409,13 +409,32 @@ int
 sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
-#ifdef HAVE_LIBDNET
-    eth_close(sp->handle.ldnet);
-#elif defined HAVE_LIBPCAP
-    pcap_close(sp->handle.pcap);
-#else
-    close(sp->handle.fd);
+    switch(sp->handle_type) {
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+        case SP_TYPE_BPF:
+            close(sp->handle.fd);
+            break;
 #endif
+
+#ifdef HAVE_PF_PACKET
+        case SP_TYPE_PF_PACKET:
+            close(sp->handle.fd);
+            break;
+#endif
+
+#ifdef HAVE_LIBPCAP
+        case SP_TYPE_LIBPCAP:
+            pcap_close(sp->handle.pcap);
+            break;
+#endif
+           
+#ifdef HAVE_LIBDNET            
+        case SP_TYPE_LIBDNET:
+            eth_close(sp->handle.ldnet);
+            break;
+#endif
+
+    }
     safe_free(sp);
     return 0;
 }
@@ -511,6 +530,8 @@ sendpacket_open_pcap(const char *device, char *errbuf)
     if (ioctl(fd, BIOCSHDRCMPLT, &spoof_eth_src) == -1)
         errx(-1, "Unable to enable source MAC spoof support: %s", strerror(errno));
 #endif
+    sp->handle_type = SP_TYPE_LIBPCAP;
+
     return sp;
 }
 
@@ -547,6 +568,7 @@ sendpacket_open_libdnet(const char *device, char *errbuf)
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.ldnet = ldnet;
+    sp->handle_type = SP_TYPE_LIBDNET;    
     return sp;    
 }
 
@@ -664,7 +686,8 @@ sendpacket_open_pf(const char *device, char *errbuf)
     /* prep & return our sp handle */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
-    sp->handle.fd = mysocket;   
+    sp->handle.fd = mysocket;
+    sp->handle_type = SP_TYPE_PF_PACKET;
     
     return sp;
 }
@@ -840,6 +863,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     sp->handle.fd = mysocket;
     //sp->link_type = link_type;
     //sp->link_offset = link_offset;
+    sp->handle_type = SP_TYPE_BPF;
     
     return sp; 
 }

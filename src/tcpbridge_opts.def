@@ -156,6 +156,25 @@ you can specify a maximum number of packets to send.
 EOText;
 };
 
+/*
+ * Windows users need to provide the MAC addresses of the interfaces
+ * so we can prevent looping (since winpcap doesn't have an API to query)
+ * the MAC address of the NIC's
+ */
+flag = {
+    name        = mac;
+    value       = M;
+    arg-type    = string;
+    max         = 2;
+    stack-arg;
+    descrip     = "MAC addresses of local NIC's";
+    doc         = <<- EOText
+tcpbridge does not support detecting the MAC addresses of the local network
+interfaces under Windows.  Please specify both MAC addresses of the interfaces
+used in the bridge: -M <intf1 mac> -M <intf2 mac>
+EOText;
+};
+
 
 /* Include/Exclude */
 flag = {

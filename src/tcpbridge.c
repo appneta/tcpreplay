@@ -87,7 +87,7 @@ main(int argc, char *argv[])
 
    
     /* init tcpedit context */
-    if (tcpedit_init(&tcpedit, pcap_datalink(options.listen1)) < 0) {
+    if (tcpedit_init(&tcpedit, pcap_datalink(options.pcap1)) < 0) {
         errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
     
@@ -107,7 +107,7 @@ main(int argc, char *argv[])
 #ifdef ENABLE_VERBOSE
     if (options.verbose) {
         options.tcpdump = (tcpdump_t*)safe_malloc(sizeof(tcpdump_t));
-        tcpdump_open(options.tcpdump, options.listen1);
+        tcpdump_open(options.tcpdump, options.pcap1);
     }
 #endif
 
@@ -116,15 +116,13 @@ main(int argc, char *argv[])
 
 
     /* process packets from one or both interfaces */
-    do_bridge(tcpedit, options.listen1, options.listen2);
+    do_bridge(tcpedit, options.pcap1, options.pcap2);
 
     /* clean up after ourselves */
-    sendpacket_close(options.sp1);
-    pcap_close(options.listen1);
+    pcap_close(options.pcap1);
 
     if (options.unidir) {
-        sendpacket_close(options.sp2);
-        pcap_close(options.listen2);
+        pcap_close(options.pcap2);
     }
 
 #ifdef ENABLE_VERBOSE
@@ -157,7 +155,9 @@ void
 post_args(_U_ int argc, _U_ char *argv[])
 {
     char ebuf[SENDPACKET_ERRBUF_SIZE];
+    char *eth_buff;
     char *intname;
+    sendpacket_t *sp;
 #ifdef ENABLE_PCAP_FINDALLDEVS
     interface_list_t *intlist = get_interface_list();
 #else
@@ -202,11 +202,35 @@ post_args(_U_ int argc, _U_ char *argv[])
     }
     
 
-    /* open up interfaces */
-    if ((options.sp1 = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S)) == NULL)
-        errx(-1, "Unable to open interface %s for sending: %s", options.intf1, ebuf);
+    if (HAVE_OPT(MAC)) {
+        int ct = STACKCT_OPT(MAC);
+        char **list = STACKLST_OPT(MAC);
+        int first = 1;
+        do {
+            char *p = *list++;
+            if (first)
+                mac2hex(p, (u_char *)options.intf1_mac, ETHER_ADDR_LEN);
+            else
+                mac2hex(p, (u_char *)options.intf2_mac, ETHER_ADDR_LEN);
+            first = 0;
+        } while (--ct > 0);
+    }
 
-    if ((options.listen1 = pcap_open_live(options.intf1, options.snaplen, 
+
+    /* open up interfaces */
+
+    /* if user doesn't specify MAC address on CLI, query for it */
+    if (memcmp(options.intf1_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
+        if ((sp = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S)) == NULL)
+            errx(-1, "Unable to open interface %s for sending: %s", options.intf1, ebuf);
+
+        if ((eth_buff = sendpacket_get_hwaddr(sp)) == NULL)
+            errx(-1, "Unable to get MAC address: %s", sendpacket_geterr(sp));
+        sendpacket_close(sp);
+        memcpy(options.intf1_mac, eth_buff, ETHER_ADDR_LEN);
+    }
+    
+    if ((options.pcap1 = pcap_open_live(options.intf1, options.snaplen, 
                                           options.promisc, options.to_ms, ebuf)) == NULL)
         errx(-1, "Unable to open interface %s for recieving: %s", options.intf1, ebuf);
 
@@ -214,15 +238,27 @@ post_args(_U_ int argc, _U_ char *argv[])
     if (strcmp(options.intf1, options.intf2) == 0)
         errx(-1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
 
-    if ((options.sp2 = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
-        errx(-1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
+
+    /* if user doesn't specify second MAC address on CLI, query for it */
+    if (memcmp(options.intf2_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
+        if ((sp = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
+            errx(-1, "Unable to open interface %s for sending: %s", options.intf2, ebuf);
+
+        if ((eth_buff = sendpacket_get_hwaddr(sp)) == NULL)
+            errx(-1, "Unable to get MAC address: %s", sendpacket_geterr(sp));
+        sendpacket_close(sp);
+        memcpy(options.intf2_mac, eth_buff, ETHER_ADDR_LEN);        
+    }
+
 
     /* open 2nd interface for listening? (not in unidir mode) */
     if (!options.unidir) {
-        if ((options.listen2 = pcap_open_live(options.intf2, options.snaplen,
+        if ((options.pcap2 = pcap_open_live(options.intf2, options.snaplen,
                                               options.promisc, options.to_ms, ebuf)) == NULL)
             errx(-1, "Unable to open interface %s for recieving: %s", options.intf2, ebuf);
     }
+    
+    options.poll_timeout = -1;
 }
 
 
