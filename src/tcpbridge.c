@@ -259,15 +259,6 @@ post_args(_U_ int argc, _U_ char *argv[])
                                           options.promisc, options.to_ms, ebuf)) == NULL)
         errx(-1, "Unable to open interface %s: %s", options.intf2, ebuf);
     
+    /* poll should be -1 to wait indefinitely */
     options.poll_timeout = -1;
 }
-
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
