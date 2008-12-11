@@ -174,6 +174,8 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
 
         /* poll has returned, process the result */
         if (pollresult > 0) {
+            dbgx(3, "pollresult: %d", pollresult);
+            
             /* success, got one or more packets */
             if (polls[PCAP_INT1].revents > 0) {
                 dbg(5, "Processing first interface");
