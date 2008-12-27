@@ -12,6 +12,8 @@ dnl People building from SVN need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts
 MAINTAINER_AUTOGEN_VERSION=5.9.2
 
+AC_CONFIG_MACRO_DIR([m4])
+
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=4
@@ -56,7 +58,7 @@ AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_LN_S
-AC_PROG_RANLIB
+#AC_PROG_RANLIB
 AC_PROG_AWK
 AC_PROG_SED
 AC_PROG_MAKE_SET
@@ -83,7 +85,7 @@ if test -n "${AUTOGEN}" ; then
 	rm -f autogen.version
 	
 	dnl Compare the installed version with the maintainer version if building from SVN and not using system libopts
-    if test ! -f src/tcpreplay_opts.c && test $enable_local_libopts == yes ; then
+    if test ! -f src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
         if test $MAINTAINER_AUTOGEN_VERSION != $AUTOGEN_VERSION ; then
             AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)  Either install the correct version or specify --disable-local-libopts])
         fi
@@ -95,7 +97,7 @@ else
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
 
-if test $enable_local_libopts == yes ; then
+if test "x$enable_local_libopts" = "xyes" ; then
     AC_MSG_NOTICE([Using included libopts tearoff])
 else
     AC_MSG_NOTICE([Using system libopts])
