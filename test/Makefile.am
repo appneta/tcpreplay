@@ -144,88 +144,88 @@ prep_config:
 	$(PRINTF) "%s\n" "*** [tcpprep] Config mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) --load-opts=config -o test.$@1 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Router mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a router 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_bridge:
 	$(PRINTF) "%s" "[tcpprep] Auto/Bridge mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Bridge mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a bridge 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_client:
 	$(PRINTF) "%s" "[tcpprep] Auto/Client mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Client mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a client 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_server:
 	$(PRINTF) "%s" "[tcpprep] Auto/Server mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Server mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a server 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_first:
 	$(PRINTF) "%s" "[tcpprep] Auto/First mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/First mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a first 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 regex:
 	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' 2>>test.log
 	diff  test.$@ test.$@1 >>test.log 2>&1 
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 cidr:
 	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 port:
 	$(PRINTF) "%s" "[tcpprep] Port mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Port mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -p 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 mac:
 	$(PRINTF) "%s" "[tcpprep] MAC mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] MAC mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 comment:
 	$(PRINTF) "%s" "[tcpprep] Comment mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Comment mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -C "This is a comment" -p 2>>test.log
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 print_comment:
 	$(PRINTF) "%s" "[tcpprep] Print comment mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Print comment mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -P test.comment >test.$@1 2>>test.log
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 print_info:
 	$(PRINTF) "%s" "[tcpprep] Print info mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Print info mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -I test.comment >test.$@1 2>>test.log
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 
 regex_reverse:
@@ -233,39 +233,39 @@ regex_reverse:
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex reverse mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' --reverse 2>>test.log
 	diff  test.$@ test.$@1 >>test.log 2>&1 
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 cidr_reverse:
 	$(PRINTF) "%s" "[tcpprep] CIDR reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR reverse mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' --reverse 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 mac_reverse:
 	$(PRINTF) "%s" "[tcpprep] MAC reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] MAC reverse mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce --reverse 2>>test.log
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Basic test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_cache:
 	$(PRINTF) "%s" "[tcpreplay] Cache test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Cache test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -c test.cidr -i $(nic1) -I $(nic2) -t test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_accurate:
 	$(PRINTF) "%s" "[tcpreplay] Accurate test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Accurate test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -a -i $(nic1) test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_portmap:
 	$(PRINTF) "%s" "[tcprewrite] Portmap test: "
@@ -276,7 +276,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 	
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
@@ -287,7 +287,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 	
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
@@ -298,7 +298,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 	
 rewrite_mac:
 	$(PRINTF) "%s" "[tcprewrite] Src/Dst MAC test: "
@@ -311,7 +311,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_trunc:
 	$(PRINTF) "%s" "[tcprewrite] Truncate test: "
@@ -322,7 +322,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_pad:
 	$(PRINTF) "%s" "[tcprewrite] Pad test: "
@@ -333,7 +333,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t\t%s\n" "OK"; fi
 
 rewrite_seed:
 	$(PRINTF) "%s" "[tcprewrite] Seed IP test: "
@@ -344,7 +344,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_layer2:
 	$(PRINTF) "%s" "[tcprewrite] Layer2 test: "
@@ -356,7 +356,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 	
 rewrite_config:
 	$(PRINTF) "%s" "[tcprewrite] Config/VLAN Add test: "
@@ -367,7 +367,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_skip:
 	$(PRINTF) "%s" "[tcprewrite] Skip bcast test: "
@@ -380,7 +380,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_dltuser:
 	$(PRINTF) "%s" "[tcprewrite] DLT User test: "
@@ -392,7 +392,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_dlthdlc:
 	$(PRINTF) "%s" "[tcprewrite] DLT Cisco HDLC test: "
@@ -404,7 +404,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_vlandel:
 	$(PRINTF) "%s" "[tcprewrite] VLAN Delete test: "
@@ -416,7 +416,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_efcs:
 	$(PRINTF) "%s" "[tcprewrite] Remove EFCS: "
@@ -427,7 +427,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_1ttl:
 	$(PRINTF) "%s" "[tcprewrite] Force TTL: "
@@ -438,7 +438,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_2ttl:
 	$(PRINTF) "%s" "[tcprewrite] Increase TTL: "
@@ -449,7 +449,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_3ttl:
 	$(PRINTF) "%s" "[tcprewrite] Reduce TTL: "
@@ -460,49 +460,49 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Packets/sec test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -p 25 test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_rate:
 	$(PRINTF) "%s" "[tcpreplay] Mbps test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Mbps test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -M 25.0 test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t\t%s\n" "OK"; fi
 
 replay_multi:
 	$(PRINTF) "%s" "[tcpreplay] Multiplier test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Multiplier test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -x 25.0 test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_pps_multi:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec Multiplier test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Packets/sec Multiplier test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -p 100 --pps-multi=5 test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 replay_top:
 	$(PRINTF) "%s" "[tcpreplay] Topspeed test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Topspeed test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 datadump_mode:
 	$(PRINTF) "%s" "[tcpreplay] Data dump test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Data dump mode test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -D -i $(nic1) -j $(nic2) -w primary.data -W secondary.data -c test.cidr -R test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_config:
 	$(PRINTF) "%s" "[tcpreplay] Config file/VLAN add test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Config file/VLAN add test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) --load-opts=config test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 clean:
 	rm -f *1 test.log core* *~ primary.data secondary.data
