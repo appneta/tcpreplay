@@ -206,6 +206,9 @@
 /* Do we have Linux PF_PACKET socket support? */
 #undef HAVE_PF_PACKET
 
+/* Define to 1 if the system has the type `pid_t'. */
+#undef HAVE_PID_T
+
 /* Define to 1 if you have the `poll' function. */
 #undef HAVE_POLL
 
@@ -218,11 +221,17 @@
 /* Define to 1 if you have the `regcomp' function. */
 #undef HAVE_REGCOMP
 
+/* Define to 1 if you have the <runetype.h> header file. */
+#undef HAVE_RUNETYPE_H
+
 /* Define to 1 if you have the <setjmp.h> header file. */
 #undef HAVE_SETJMP_H
 
 /* Define to 1 if you have the <signal.h> header file. */
 #undef HAVE_SIGNAL_H
+
+/* Define to 1 if the system has the type `size_t'. */
+#undef HAVE_SIZE_T
 
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
@@ -367,11 +376,20 @@
 /* Define to 1 if you have the `vsnprintf' function. */
 #undef HAVE_VSNPRINTF
 
+/* Define to 1 if you have the <wchar.h> header file. */
+#undef HAVE_WCHAR_H
+
+/* Define to 1 if the system has the type `wchar_t'. */
+#undef HAVE_WCHAR_T
+
 /* Windows/Cygwin */
 #undef HAVE_WIN32
 
 /* Do we have WinPcap? */
 #undef HAVE_WINPCAP
+
+/* Define to 1 if the system has the type `wint_t'. */
+#undef HAVE_WINT_T
 
 /* What is the path (if any) to the libpcap bpf header file? */
 #undef INCLUDE_PCAP_BPF_HEADER
@@ -500,6 +518,3 @@
 
 /* Define to `uint8_t' if <sys/types.h> does not define. */
 #undef u_int8_t
-
-/* Alternate uintptr_t for systems without it. */
-#undef uintptr_t
