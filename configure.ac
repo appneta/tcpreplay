@@ -10,7 +10,7 @@ AM_WITH_DMALLOC
 
 dnl People building from SVN need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts
-MAINTAINER_AUTOGEN_VERSION=5.9.2
+MAINTAINER_AUTOGEN_VERSION=5.9.7
 
 AC_CONFIG_MACRO_DIR([m4])
 
