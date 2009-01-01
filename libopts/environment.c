@@ -1,6 +1,6 @@
 
 /*
- *  $Id: environment.c,v 4.15 2007/07/04 21:36:37 bkorb Exp $
+ *  $Id: environment.c,v 4.17 2008/06/14 22:24:22 bkorb Exp $
  * Time-stamp:      "2007-07-04 11:33:50 bkorb"
  *
  *  This file contains all of the routines that must be linked into
@@ -10,7 +10,8 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -30,7 +31,7 @@
  */
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static void
 checkEnvOpt(tOptState * os, char * env_name,
             tOptions* pOpts, teEnvPresetType type);

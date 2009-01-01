@@ -1,7 +1,7 @@
 
 /*
- *  $Id: load.c,v 4.22 2007/07/04 21:36:37 bkorb Exp $
- *  Time-stamp:      "2007-07-04 10:22:44 bkorb"
+ *  $Id: load.c,v 4.27 2008/12/20 18:35:27 bkorb Exp $
+ *  Time-stamp:      "2008-12-06 10:16:05 bkorb"
  *
  *  This file contains the routines that deal with processing text strings
  *  for options, either from a NUL-terminated string passed in or from an
@@ -9,7 +9,8 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -31,7 +32,7 @@
 tOptionLoadMode option_load_mode = OPTION_LOAD_UNCOOKED;
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static ag_bool
 insertProgramPath(
     char*   pzBuf,
@@ -63,8 +64,8 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode );
  * ret-desc: AG_TRUE if the name was handled, otherwise AG_FALSE.
  *           If the name does not start with ``$'', then it is handled
  *           simply by copying the input name to the output buffer and
- *           resolving the name with either @code{canonicalize_file_name(3GLIBC)}
- *           or @code{realpath(3C)}.
+ *           resolving the name with either
+ *           @code{canonicalize_file_name(3GLIBC)} or @code{realpath(3C)}.
  *
  * doc:
  *
@@ -254,7 +255,7 @@ insertProgramPath(
      *  allocated and we need to deallocate it.
      */
     if (pzPath != pzProgPath)
-        free( (void*)pzPath );
+        AGFREE(pzPath);
     return AG_TRUE;
 }
 
@@ -270,7 +271,7 @@ insertEnvVal(
 
     for (;;) {
         int ch = (int)*++pzName;
-        if (! ISNAMECHAR( ch ))
+        if (! IS_VALUE_NAME_CHAR(ch))
             break;
         *(pzDir++) = (char)ch;
     }
@@ -304,16 +305,16 @@ mungeString( char* pzTxt, tOptionLoadMode mode )
     if (mode == OPTION_LOAD_KEEP)
         return;
 
-    if (isspace( (int)*pzTxt )) {
+    if (IS_WHITESPACE_CHAR(*pzTxt)) {
         char* pzS = pzTxt;
         char* pzD = pzTxt;
-        while (isspace( (int)*++pzS ))  ;
+        while (IS_WHITESPACE_CHAR(*++pzS))  ;
         while ((*(pzD++) = *(pzS++)) != NUL)   ;
         pzE = pzD-1;
     } else
         pzE = pzTxt + strlen( pzTxt );
 
-    while ((pzE > pzTxt) && isspace( (int)pzE[-1] ))  pzE--;
+    while ((pzE > pzTxt) && IS_WHITESPACE_CHAR(pzE[-1]))  pzE--;
     *pzE = NUL;
 
     if (mode == OPTION_LOAD_UNCOOKED)
@@ -338,7 +339,7 @@ mungeString( char* pzTxt, tOptionLoadMode mode )
 static char*
 assembleArgValue( char* pzTxt, tOptionLoadMode mode )
 {
-    tSCC zBrk[] = " \t:=";
+    tSCC zBrk[] = " \t\n:=";
     char* pzEnd = strpbrk( pzTxt, zBrk );
     int   space_break;
 
@@ -363,11 +364,11 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode )
      *  because we'll have to skip over an immediately following ':' or '='
      *  (and the white space following *that*).
      */
-    space_break = isspace((int)*pzEnd);
+    space_break = IS_WHITESPACE_CHAR(*pzEnd);
     *(pzEnd++) = NUL;
-    while (isspace((int)*pzEnd))  pzEnd++;
+    while (IS_WHITESPACE_CHAR(*pzEnd))  pzEnd++;
     if (space_break && ((*pzEnd == ':') || (*pzEnd == '=')))
-        while (isspace((int)*++pzEnd))  ;
+        while (IS_WHITESPACE_CHAR(*++pzEnd))  ;
 
     return pzEnd;
 }
@@ -387,7 +388,7 @@ loadOptionLine(
     tDirection  direction,
     tOptionLoadMode   load_mode )
 {
-    while (isspace( (int)*pzLine ))  pzLine++;
+    while (IS_WHITESPACE_CHAR(*pzLine))  pzLine++;
 
     {
         char* pzArg = assembleArgValue( pzLine, load_mode );

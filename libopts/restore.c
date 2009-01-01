@@ -1,6 +1,6 @@
 
 /*
- *  restore.c  $Id: restore.c,v 4.12 2007/07/04 21:36:38 bkorb Exp $
+ *  restore.c  $Id: restore.c,v 4.13 2008/01/23 00:36:05 bkorb Exp $
  * Time-stamp:      "2007-07-04 11:34:40 bkorb"
  *
  *  This module's routines will save the current option state to memory
@@ -9,7 +9,8 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control

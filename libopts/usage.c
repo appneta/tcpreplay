@@ -1,7 +1,7 @@
 
 /*
- *  usage.c  $Id: usage.c,v 4.20 2007/07/16 00:17:31 bkorb Exp $
- * Time-stamp:      "2007-07-15 09:43:04 bkorb"
+ *  usage.c  $Id: usage.c,v 4.28 2008/11/02 18:51:27 bkorb Exp $
+ * Time-stamp:      "2008-11-01 20:09:17 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
@@ -15,7 +15,8 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -43,7 +44,7 @@ static char    zOptFmtLine[ 16 ];
 static ag_bool displayEnum;
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static ag_bool
 checkGNUUsage( tOptions* pOpts );
 
@@ -321,13 +322,23 @@ printExtendedUsage(
         fprintf( option_usage_fp, zDis, pOD->pz_DisableName );
 
     /*
-     *  IF the numeric option has a special callback,
-     *  THEN call it, requesting the range or other special info
+     *  Check for argument types that have callbacks with magical properties
      */
-    if (  (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_NUMERIC)
-       && (pOD->pOptProc != NULL)
-       && (pOD->pOptProc != optionNumericVal) ) {
-        (*(pOD->pOptProc))( pOptions, NULL );
+    switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
+    case OPARG_TYPE_NUMERIC:
+        /*
+         *  IF the numeric option has a special callback,
+         *  THEN call it, requesting the range or other special info
+         */
+        if (  (pOD->pOptProc != NULL)
+           && (pOD->pOptProc != optionNumericVal) ) {
+            (*(pOD->pOptProc))(OPTPROC_EMIT_USAGE, pOD);
+        }
+        break;
+
+    case OPARG_TYPE_FILE:
+        (*(pOD->pOptProc))(OPTPROC_EMIT_USAGE, pOD);
+        break;
     }
 
     /*
@@ -469,7 +480,7 @@ printOneUsage(
      */
     if ((pOptions->fOptSet & OPTPROC_SHORTOPT) == 0)
         fputs( pAT->pzSpc, option_usage_fp );
-    else if (! isgraph( pOD->optValue)) {
+    else if (! IS_GRAPHIC_CHAR(pOD->optValue)) {
         if (  (pOptions->fOptSet & (OPTPROC_GNUUSAGE|OPTPROC_LONGOPT))
            == (OPTPROC_GNUUSAGE|OPTPROC_LONGOPT))
             fputc( ' ', option_usage_fp );
@@ -495,11 +506,13 @@ printOneUsage(
         } else switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
         case OPARG_TYPE_NONE:        pzArgType = pAT->pzNo;   break;
         case OPARG_TYPE_ENUMERATION: pzArgType = pAT->pzKey;  break;
+        case OPARG_TYPE_FILE       : pzArgType = pAT->pzFile; break;
         case OPARG_TYPE_MEMBERSHIP:  pzArgType = pAT->pzKeyL; break;
         case OPARG_TYPE_BOOLEAN:     pzArgType = pAT->pzBool; break;
         case OPARG_TYPE_NUMERIC:     pzArgType = pAT->pzNum;  break;
         case OPARG_TYPE_HIERARCHY:   pzArgType = pAT->pzNest; break;
         case OPARG_TYPE_STRING:      pzArgType = pAT->pzStr;  break;
+        case OPARG_TYPE_TIME:        pzArgType = pAT->pzTime; break;
         default:                     goto bogus_desc;
         }
 
@@ -558,9 +571,9 @@ printOptionUsage(
          *  THEN document that the remaining options are not user opts
          */
         if (  (pOpts->presetOptCt == optNo)
-              && (ex_code == EXIT_SUCCESS)
-              && (docCt > 0)
-              && ((pOD[-1].fOptState & OPTST_DOCUMENT) == 0) )
+           && (ex_code == EXIT_SUCCESS)
+           && (docCt > 0)
+           && ((pOD[-1].fOptState & OPTST_DOCUMENT) == 0) )
             fprintf( option_usage_fp, argTypes.pzBrk, zAuto, pOptTitle );
 
         printOneUsage( pOpts, pOD, &argTypes );
@@ -619,7 +632,7 @@ printProgramDetails( tOptions* pOptions )
             switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
             case OPARG_TYPE_ENUMERATION:
             case OPARG_TYPE_MEMBERSHIP:
-                (*(pOD->pOptProc))( NULL, pOD );
+                (*(pOD->pOptProc))(OPTPROC_EMIT_USAGE, pOD);
             }
         }  while (pOD++, optNo++, (--ct > 0));
     }
@@ -657,6 +670,8 @@ setGnuOptFmts( tOptions* pOpts, tCC** ppT )
     argTypes.pzNum  = zGnuNumArg;
     argTypes.pzKey  = zGnuKeyArg;
     argTypes.pzKeyL = zGnuKeyLArg;
+    argTypes.pzTime = zGnuTimeArg;
+    argTypes.pzFile = zGnuFileArg;
     argTypes.pzBool = zGnuBoolArg;
     argTypes.pzNest = zGnuNestArg;
     argTypes.pzOpt  = zGnuOptArg;
@@ -694,6 +709,8 @@ setStdOptFmts( tOptions* pOpts, tCC** ppT )
     argTypes.pzNum  = zStdNumArg;
     argTypes.pzKey  = zStdKeyArg;
     argTypes.pzKeyL = zStdKeyLArg;
+    argTypes.pzTime = zStdTimeArg;
+    argTypes.pzFile = zStdFileArg;
     argTypes.pzBool = zStdBoolArg;
     argTypes.pzNest = zStdNestArg;
     argTypes.pzOpt  = zStdOptArg;

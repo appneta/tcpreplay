@@ -1,13 +1,14 @@
 
 /*
- *  $Id: nested.c,v 4.16 2007/07/04 21:36:37 bkorb Exp $
- *  Time-stamp:      "2007-07-04 10:22:17 bkorb"
+ *  $Id: nested.c,v 4.26 2008/08/02 16:10:07 bkorb Exp $
+ *  Time-stamp:      "2008-07-28 19:18:28 bkorb"
  *
  *   Automated Options Nested Values module.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -26,10 +27,24 @@
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
+typedef struct {
+    int     xml_ch;
+    int     xml_len;
+    char    xml_txt[8];
+} xml_xlate_t;
+
+static xml_xlate_t const xml_xlate[] = {
+    { '&', 4, "amp;"  },
+    { '<', 3, "lt;"   },
+    { '>', 3, "gt;"   },
+    { '"', 5, "quot;" },
+    { '\'',5, "apos;" }
+};
+
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static void
-removeBackslashes( char* pzSrc );
+removeLineContinue( char* pzSrc );
 
 static char const*
 scanQuotedString( char const* pzTxt );
@@ -63,27 +78,42 @@ static void
 sortNestedList( tArgList* pAL );
 /* = = = END-STATIC-FORWARD = = = */
 
-/*  removeBackslashes
+/*  removeLineContinue
  *
- *  This function assumes that all newline characters were preceeded by
- *  backslashes that need removal.
+ *  Backslashes are used for line continuations.  We keep the newline
+ *  characters, but trim out the backslash:
  */
 static void
-removeBackslashes( char* pzSrc )
+removeLineContinue( char* pzSrc )
 {
-    char* pzD = strchr(pzSrc, '\n');
+    char* pzD;
 
-    if (pzD == NULL)
-        return;
-    *--pzD = '\n';
+    do  {
+        while (*pzSrc == '\n')  pzSrc++;
+        pzD = strchr(pzSrc, '\n');
+        if (pzD == NULL)
+            return;
 
+        /*
+         *  pzD has skipped at least one non-newline character and now
+         *  points to a newline character.  It now becomes the source and
+         *  pzD goes to the previous character.
+         */
+        pzSrc = pzD--;
+        if (*pzD != '\\')
+            pzD++;
+    } while (pzD == pzSrc);
+
+    /*
+     *  Start shifting text.
+     */
     for (;;) {
         char ch = ((*pzD++) = *(pzSrc++));
         switch (ch) {
-        case '\n': *--pzD = ch; break;
         case NUL:  return;
-        default:
-            ;
+        case '\\':
+            if (*pzSrc == '\n')
+                --pzD; /* rewrite on next iteration */
         }
     }
 }
@@ -148,9 +178,24 @@ addStringValue( void** pp, char const* pzName, size_t nameLen,
 
     } else {
         pNV->valType = OPARG_TYPE_STRING;
-        if (dataLen > 0)
-            memcpy( pNV->v.strVal, pzValue, dataLen );
-        pNV->v.strVal[dataLen] = NUL;
+        if (dataLen > 0) {
+            char const * pzSrc = pzValue;
+            char * pzDst = pNV->v.strVal;
+            int    ct    = dataLen;
+            do  {
+                int ch = *(pzSrc++) & 0xFF;
+                if (ch == NUL) goto data_copy_done;
+                if (ch == '&')
+                    ch = get_special_char(&pzSrc, &ct);
+                *(pzDst++) = ch;
+            } while (--ct > 0);
+        data_copy_done:
+            *pzDst = NUL;
+
+        } else {
+            pNV->v.strVal[0] = NUL;
+        }
+
         pNV->pzName = pNV->v.strVal + dataLen + 1;
     }
 
@@ -175,22 +220,16 @@ addBoolValue( void** pp, char const* pzName, size_t nameLen,
     pNV = AGALOC( sz, "option name/bool value pair" );
     if (pNV == NULL)
         return NULL;
-    while (isspace( (int)*pzValue ) && (dataLen > 0)) {
+    while (IS_WHITESPACE_CHAR(*pzValue) && (dataLen > 0)) {
         dataLen--; pzValue++;
     }
     if (dataLen == 0)
         pNV->v.boolVal = 0;
-    else if (isdigit( (int)*pzValue ))
-        pNV->v.boolVal = atoi( pzValue );
-    else switch (*pzValue) {
-    case 'f':
-    case 'F':
-    case 'n':
-    case 'N':
-        pNV->v.boolVal = 0; break;
-    default:
-        pNV->v.boolVal = 1;
-    }
+
+    else if (IS_DEC_DIGIT_CHAR(*pzValue))
+        pNV->v.boolVal = atoi(pzValue);
+
+    else pNV->v.boolVal = ! IS_FALSE_TYPE_CHAR(*pzValue);
 
     pNV->valType = OPARG_TYPE_BOOLEAN;
     pNV->pzName = (char*)(pNV + 1);
@@ -215,16 +254,16 @@ addNumberValue( void** pp, char const* pzName, size_t nameLen,
     pNV = AGALOC( sz, "option name/bool value pair" );
     if (pNV == NULL)
         return NULL;
-    while (isspace( (int)*pzValue ) && (dataLen > 0)) {
+    while (IS_WHITESPACE_CHAR(*pzValue) && (dataLen > 0)) {
         dataLen--; pzValue++;
     }
     if (dataLen == 0)
-        pNV->v.boolVal = 0;
+        pNV->v.longVal = 0;
     else
-        pNV->v.boolVal = atoi( pzValue );
+        pNV->v.longVal = strtol(pzValue, 0, 0);
 
     pNV->valType = OPARG_TYPE_NUMERIC;
-    pNV->pzName = (char*)(pNV + 1);
+    pNV->pzName  = (char*)(pNV + 1);
     memcpy( pNV->pzName, pzName, nameLen );
     pNV->pzName[ nameLen ] = NUL;
     addArgListEntry( pp, pNV );
@@ -273,46 +312,39 @@ static char const*
 scanNameEntry(char const* pzName, tOptionValue* pRes)
 {
     tOptionValue* pNV;
-    char const * pzScan = pzName+1;
+    char const * pzScan = pzName+1; /* we know first char is a name char */
     char const * pzVal;
     size_t       nameLen = 1;
     size_t       dataLen = 0;
 
-    while (ISNAMECHAR( (int)*pzScan ))  { pzScan++; nameLen++; }
+    /*
+     *  Scan over characters that name a value.  These names may not end
+     *  with a colon, but they may contain colons.
+     */
+    while (IS_VALUE_NAME_CHAR(*pzScan))   { pzScan++; nameLen++; }
+    if (pzScan[-1] == ':')                { pzScan--; nameLen--; }
+    while (IS_HORIZ_WHITE_CHAR(*pzScan))    pzScan++;
 
-    while (isspace( (int)*pzScan )) {
-        char ch = *(pzScan++);
-        if ((ch == '\n') || (ch == ',')) {
-            addStringValue(&(pRes->v.nestVal), pzName, nameLen, NULL,(size_t)0);
-            return pzScan - 1;
-        }
-    }
-
+re_switch:
     switch (*pzScan) {
     case '=':
     case ':':
-        while (isspace( (int)*++pzScan ))  ;
-        switch (*pzScan) {
-        case ',':  goto comma_char;
-        case '"':
-        case '\'': goto quote_char;
-        case NUL:  goto nul_byte;
-        default:   goto default_char;
-        }
+        while (IS_HORIZ_WHITE_CHAR( (int)*++pzScan ))  ;
+        if ((*pzScan == '=') || (*pzScan == ':'))
+            goto default_char;
+        goto re_switch;
 
+    case '\n':
     case ',':
-    comma_char:
         pzScan++;
         /* FALLTHROUGH */
 
     case NUL:
-    nul_byte:
         addStringValue(&(pRes->v.nestVal), pzName, nameLen, NULL, (size_t)0);
         break;
 
     case '"':
     case '\'':
-    quote_char:
         pzVal = pzScan;
         pzScan = scanQuotedString( pzScan );
         dataLen = pzScan - pzVal;
@@ -351,7 +383,7 @@ scanNameEntry(char const* pzName, tOptionValue* pRes)
                 pNV = addStringValue( &(pRes->v.nestVal), pzName, nameLen,
                                       pzVal, dataLen );
                 if (pNV != NULL)
-                    removeBackslashes( pNV->v.strVal );
+                    removeLineContinue( pNV->v.strVal );
                 goto leave_scan_name;
             }
         }
@@ -378,7 +410,7 @@ scanXmlEntry( char const* pzName, tOptionValue* pRes )
     tOptionValue* pNewVal;
     tOptionLoadMode save_mode = option_load_mode;
 
-    if (! isalpha((int)*pzName)) {
+    if (! IS_VAR_FIRST_CHAR(*pzName)) {
         switch (*pzName) {
         default:
             pzName = NULL;
@@ -399,7 +431,8 @@ scanXmlEntry( char const* pzName, tOptionValue* pRes )
         return pzName;
     }
 
-    while (isalpha( (int)*++pzScan ))  nameLen++;
+    pzScan++;
+    while (IS_VALUE_NAME_CHAR( (int)*pzScan ))  { pzScan++; nameLen++; }
     if (nameLen > 64)
         return NULL;
     valu.valType = OPARG_TYPE_STRING;
@@ -427,7 +460,7 @@ scanXmlEntry( char const* pzName, tOptionValue* pRes )
         }
         addStringValue(&(pRes->v.nestVal), pzName, nameLen, NULL, (size_t)0);
         option_load_mode = save_mode;
-        return pzScan+2;
+        return pzScan+1;
 
     default:
         option_load_mode = save_mode;
@@ -462,7 +495,7 @@ scanXmlEntry( char const* pzName, tOptionValue* pRes )
         }
         valLen = (pzScan - pzVal);
         pzScan += nameLen + 3;
-        while (isspace(  (int)*pzScan ))  pzScan++;
+        while (IS_WHITESPACE_CHAR(*pzScan))  pzScan++;
     }
 
     switch (valu.valType) {
@@ -629,7 +662,7 @@ optionLoadNested(char const* pzTxt, char const* pzName, size_t nameLen)
         errno = EINVAL;
         return NULL;
     }
-    while (isspace( (int)*pzTxt ))  pzTxt++;
+    while (IS_WHITESPACE_CHAR(*pzTxt))  pzTxt++;
     if (*pzTxt == NUL) {
         errno = ENOENT;
         return NULL;
@@ -657,13 +690,14 @@ optionLoadNested(char const* pzTxt, char const* pzName, size_t nameLen)
      *  Scan until we hit a NUL.
      */
     do  {
-        while (isspace( (int)*pzTxt ))  pzTxt++;
-        if (isalpha( (int)*pzTxt )) {
+        while (IS_WHITESPACE_CHAR( (int)*pzTxt ))  pzTxt++;
+        if (IS_VAR_FIRST_CHAR( (int)*pzTxt )) {
             pzTxt = scanNameEntry( pzTxt, pRes );
         }
         else switch (*pzTxt) {
         case NUL: goto scan_done;
         case '<': pzTxt = scanXmlEntry( pzTxt, pRes );
+                  if (pzTxt == NULL) goto woops;
                   if (*pzTxt == ',') pzTxt++;     break;
         case '#': pzTxt = strchr( pzTxt, '\n' );  break;
         default:  goto woops;
@@ -694,14 +728,113 @@ optionLoadNested(char const* pzTxt, char const* pzName, size_t nameLen)
  *  Nested value was found on the command line
 =*/
 void
-optionNestedVal( tOptions* pOpts, tOptDesc* pOD )
+optionNestedVal(tOptions* pOpts, tOptDesc* pOD)
 {
-    tOptionValue* pOV = optionLoadNested(
-        pOD->optArg.argString, pOD->pz_Name, strlen(pOD->pz_Name));
+    if (pOpts < OPTPROC_EMIT_LIMIT)
+        return;
 
-    if (pOV != NULL)
-        addArgListEntry( &(pOD->optCookie), (void*)pOV );
+    if (pOD->fOptState & OPTST_RESET) {
+        tArgList* pAL = pOD->optCookie;
+        int       ct;
+        tCC **    av;
+
+        if (pAL == NULL)
+            return;
+        ct = pAL->useCt;
+        av = pAL->apzArgs;
+
+        while (--ct >= 0) {
+            void * p = (void *)*(av++);
+            optionUnloadNested((tOptionValue const *)p);
+        }
+
+        AGFREE(pOD->optCookie);
+
+    } else {
+        tOptionValue* pOV = optionLoadNested(
+            pOD->optArg.argString, pOD->pz_Name, strlen(pOD->pz_Name));
+
+        if (pOV != NULL)
+            addArgListEntry( &(pOD->optCookie), (void*)pOV );
+    }
 }
+
+
+/*
+ * get_special_char
+ */
+LOCAL int
+get_special_char(char const ** ppz, int * ct)
+{
+    char const * pz = *ppz;
+
+    if (*ct < 3)
+        return '&';
+
+    if (*pz == '#') {
+        int base = 10;
+        int retch;
+
+        pz++;
+        if (*pz == 'x') {
+            base = 16;
+            pz++;
+        }
+        retch = (int)strtoul(pz, (char **)&pz, base);
+        if (*pz != ';')
+            return '&';
+        base = ++pz - *ppz;
+        if (base > *ct)
+            return '&';
+
+        *ct -= base;
+        *ppz = pz;
+        return retch;
+    }
+
+    {
+        int ctr = sizeof(xml_xlate) / sizeof(xml_xlate[0]);
+        xml_xlate_t const * xlatp = xml_xlate;
+
+        for (;;) {
+            if (  (*ct >= xlatp->xml_len)
+               && (strncmp(pz, xlatp->xml_txt, xlatp->xml_len) == 0)) {
+                *ppz += xlatp->xml_len;
+                *ct  -= xlatp->xml_len;
+                return xlatp->xml_ch;
+            }
+
+            if (--ctr <= 0)
+                break;
+            xlatp++;
+        }
+    }
+    return '&';
+}
+
+
+/*
+ * emit_special_char
+ */
+LOCAL void
+emit_special_char(FILE * fp, int ch)
+{
+    int ctr = sizeof(xml_xlate) / sizeof(xml_xlate[0]);
+    xml_xlate_t const * xlatp = xml_xlate;
+
+    putc('&', fp);
+    for (;;) {
+        if (ch == xlatp->xml_ch) {
+            fputs(xlatp->xml_txt, fp);
+            return;
+        }
+        if (--ctr <= 0)
+            break;
+        xlatp++;
+    }
+    fprintf(fp, "#x%02X;", (ch & 0xFF));
+}
+
 /*
  * Local Variables:
  * mode: C

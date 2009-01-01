@@ -1,15 +1,16 @@
 
 /*
- *  Time-stamp:      "2007-07-04 11:33:08 bkorb"
+ *  Time-stamp:      "2008-11-01 20:08:06 bkorb"
  *
- *  autoopts.h  $Id: autoopts.h,v 4.25 2007/07/04 21:36:36 bkorb Exp $
+ *  autoopts.h  $Id: autoopts.h,v 4.29 2008/11/02 18:51:26 bkorb Exp $
  *
  *  This file defines all the global structures and special values
  *  used in the automated option processing library.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -32,6 +33,7 @@
 #define AUTOGEN_AUTOOPTS_H
 
 #include "compat/compat.h"
+#include "ag-char-map.h"
 
 #define AO_NAME_LIMIT           127
 #define AO_NAME_SIZE            ((size_t)(AO_NAME_LIMIT + 1))
@@ -85,8 +87,6 @@ typedef int tDirection;
 
 #define PROCESSING(d)           ((d)>0)
 #define PRESETTING(d)           ((d)<0)
-
-#define ISNAMECHAR( c )         (isalnum(c) || ((c) == '_') || ((c) == '-'))
 
 /*
  *  Procedure success codes
@@ -198,6 +198,7 @@ typedef struct {
     tCC*    pzStr;
     tCC*    pzReq;
     tCC*    pzNum;
+    tCC*    pzFile;
     tCC*    pzKey;
     tCC*    pzKeyL;
     tCC*    pzBool;
@@ -208,11 +209,12 @@ typedef struct {
     tCC*    pzNoF;
     tCC*    pzSpc;
     tCC*    pzOptFmt;
+    tCC*    pzTime;
 } arg_types_t;
 
 #define AGALOC( c, w )          ao_malloc((size_t)c)
 #define AGREALOC( p, c, w )     ao_realloc((void*)p, (size_t)c)
-#define AGFREE( p )             ao_free((void*)p)
+#define AGFREE(_p)              do{void*X=(void*)_p;ao_free(X);}while(0)
 #define AGDUPSTR( p, s, w )     (p = ao_strdup(s))
 
 static void *

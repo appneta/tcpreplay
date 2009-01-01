@@ -1,11 +1,12 @@
 /*
- * $Id: text_mmap.c,v 4.17 2007/07/04 21:36:38 bkorb Exp $
+ * $Id: text_mmap.c,v 4.18 2008/01/23 00:36:05 bkorb Exp $
  *
  * Time-stamp:      "2007-07-04 11:35:49 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control

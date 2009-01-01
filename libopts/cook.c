@@ -1,14 +1,14 @@
-
 /*
- *  $Id: cook.c,v 4.12 2007/07/04 21:36:37 bkorb Exp $
- *  Time-stamp:      "2007-07-04 11:33:34 bkorb"
+ *  $Id: cook.c,v 4.16 2008/01/23 00:36:04 bkorb Exp $
+ *  Time-stamp:      "2007-11-16 22:49:11 bkorb"
  *
  *  This file contains the routines that deal with processing quoted strings
  *  into an internal format.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -28,7 +28,7 @@
  */
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 /* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  ao_string_cook_escape_char
@@ -82,79 +82,42 @@ ao_string_cook_escape_char( char const* pzIn, char* pRes, u_int nl )
     case 't': *pRes = '\t'; break;
     case 'v': *pRes = '\v'; break;
 
-    case 'x':         /* HEX Escape       */
-        if (isxdigit( (int)*pzIn ))  {
-            unsigned int  val;
-            unsigned char ch = *pzIn++;
+    case 'x':
+    case 'X':         /* HEX Escape       */
+        if (IS_HEX_DIGIT_CHAR(*pzIn))  {
+            char z[4], *pz = z;
 
-            if ((ch >= 'A') && (ch <= 'F'))
-                val = 10 + (ch - 'A');
-            else if ((ch >= 'a') && (ch <= 'f'))
-                val = 10 + (ch - 'a');
-            else val = ch - '0';
-
-            ch = *pzIn;
-
-            if (! isxdigit( ch )) {
-                *pRes = val;
-                res   = 2;
-                break;
-            }
-            val <<= 4;
-            if ((ch >= 'A') && (ch <= 'F'))
-                val += 10 + (ch - 'A');
-            else if ((ch >= 'a') && (ch <= 'f'))
-                val += 10 + (ch - 'a');
-            else val += ch - '0';
-
-            res = 3;
-            *pRes = val;
+            do *(pz++) = *(pzIn++);
+            while (IS_HEX_DIGIT_CHAR(*pzIn) && (pz < z + 2));
+            *pz = NUL;
+            *pRes = (unsigned char)strtoul(z, NULL, 16);
+            res += pz - z;
         }
         break;
 
-    default:
+    case '0': case '1': case '2': case '3':
+    case '4': case '5': case '6': case '7':
+    {
         /*
          *  IF the character copied was an octal digit,
          *  THEN set the output character to an octal value
          */
-        if (isdigit( (int)*pRes ) && (*pRes < '8'))  {
-            unsigned int  val = *pRes - '0';
-            unsigned char ch  = *pzIn++;
+        char z[4], *pz = z + 1;
+        unsigned long val;
+        z[0] = *pRes;
 
-            /*
-             *  IF the second character is *not* an octal digit,
-             *  THEN save the value and bail
-             */
-            if ((ch < '0') || (ch > '7')) {
-                *pRes = val;
-                break;
-            }
+        while (IS_OCT_DIGIT_CHAR(*pzIn) && (pz < z + 3))
+            *(pz++) = *(pzIn++);
+        *pz = NUL;
+        val = strtoul(z, NULL, 8);
+        if (val > 0xFF)
+            val = 0xFF;
+        *pRes = (unsigned char)val;
+        res = pz - z;
+        break;
+    }
 
-            val = (val<<3) + (ch - '0');
-            ch  = *pzIn;
-            res = 2;
-
-            /*
-             *  IF the THIRD character is *not* an octal digit,
-             *  THEN save the value and bail
-             */
-            if ((ch < '0') || (ch > '7')) {
-                *pRes = val;
-                break;
-            }
-
-            /*
-             *  IF the new value would not be too large,
-             *  THEN add on the third and last character value
-             */
-            if ((val<<3) < 0xFF) {
-                val = (val<<3) + (ch - '0');
-                res = 3;
-            }
-
-            *pRes = val;
-            break;
-        }
+    default: ;
     }
 
     return res;
@@ -216,7 +179,7 @@ ao_string_cook( char* pzScan, int* pLineCt )
             pzS++;
 
         scan_for_quote:
-            while (isspace((int)*pzS))
+            while (IS_WHITESPACE_CHAR(*pzS))
                 if (*(pzS++) == '\n')
                     (*pLineCt)++;
 

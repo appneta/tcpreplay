@@ -1,7 +1,7 @@
 
 /*
- *  save.c  $Id: save.c,v 4.20 2007/07/04 21:36:38 bkorb Exp $
- * Time-stamp:      "2007-07-04 11:34:46 bkorb"
+ *  save.c  $Id: save.c,v 4.28 2008/09/28 23:23:36 bkorb Exp $
+ * Time-stamp:      "2008-09-23 14:24:58 bkorb"
  *
  *  This module's routines will take the currently set options and
  *  store them into an ".rc" file for re-interpretation the next
@@ -9,7 +9,8 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -28,10 +29,11 @@
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
-tSCC  zWarn[] = "%s WARNING:  cannot save options - ";
+static char const  zWarn[] = "%s WARNING:  cannot save options - ";
+static char const close_xml[] = "</%s>\n";
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static tCC*
 findDirName( tOptions* pOpts, int* p_free );
 
@@ -43,6 +45,36 @@ printEntry(
     FILE *     fp,
     tOptDesc * p,
     tCC*       pzLA );
+
+static void
+print_a_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp);
+
+static void
+print_a_string(FILE * fp, char const * name, char const * pz);
+
+static void
+printValueList(FILE * fp, char const * name, tArgList * al);
+
+static void
+printHierarchy(FILE * fp, tOptDesc * p);
+
+static FILE *
+openSaveFile( tOptions* pOpts );
+
+static void
+printNoArgOpt(FILE * fp, tOptDesc * p, tOptDesc * pOD);
+
+static void
+printStringArg(FILE * fp, tOptDesc * pOD);
+
+static void
+printEnumArg(FILE * fp, tOptDesc * pOD);
+
+static void
+printSetMemberArg(FILE * fp, tOptDesc * pOD);
+
+static void
+printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts);
 /* = = = END-STATIC-FORWARD = = = */
 
 static tCC*
@@ -308,39 +340,194 @@ printEntry(
 }
 
 
-/*=export_func  optionSaveFile
- *
- * what:  saves the option state to a file
- *
- * arg:   tOptions*,   pOpts,  program options descriptor
- *
- * doc:
- *
- * This routine will save the state of option processing to a file.  The name
- * of that file can be specified with the argument to the @code{--save-opts}
- * option, or by appending the @code{rcfile} attribute to the last
- * @code{homerc} attribute.  If no @code{rcfile} attribute was specified, it
- * will default to @code{.@i{programname}rc}.  If you wish to specify another
- * file, you should invoke the @code{SET_OPT_SAVE_OPTS( @i{filename} )} macro.
- *
- * err:
- *
- * If no @code{homerc} file was specified, this routine will silently return
- * and do nothing.  If the output file cannot be created or updated, a message
- * will be printed to @code{stderr} and the routine will return.
-=*/
-void
-optionSaveFile( tOptions* pOpts )
+static void
+print_a_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
 {
-    tOptDesc* pOD;
-    int       ct;
+    static char const bool_atr[]  = "<%1$s type=boolean>%2$s</%1$s>\n";
+    static char const numb_atr[]  = "<%1$s type=integer>0x%2$lX</%1$s>\n";
+    static char const type_atr[]  = "<%s type=%s>";
+    static char const null_atr[]  = "<%s/>\n";
+
+    while (--depth >= 0)
+        putc(' ', fp), putc(' ', fp);
+
+    switch (ovp->valType) {
+    default:
+    case OPARG_TYPE_NONE:
+        fprintf(fp, null_atr, ovp->pzName);
+        break;
+
+    case OPARG_TYPE_STRING:
+        print_a_string(fp, ovp->pzName, ovp->v.strVal);
+        break;
+
+    case OPARG_TYPE_ENUMERATION:
+    case OPARG_TYPE_MEMBERSHIP:
+        if (pOD != NULL) {
+            tAoUI     opt_state = pOD->fOptState;
+            uintptr_t val = pOD->optArg.argEnum;
+            char const * typ = (ovp->valType == OPARG_TYPE_ENUMERATION)
+                ? "keyword" : "set-membership";
+
+            fprintf(fp, type_atr, ovp->pzName, typ);
+
+            /*
+             *  This is a magic incantation that will convert the
+             *  bit flag values back into a string suitable for printing.
+             */
+            (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD );
+            if (pOD->optArg.argString != NULL) {
+                fputs(pOD->optArg.argString, fp);
+
+                if (ovp->valType != OPARG_TYPE_ENUMERATION) {
+                    /*
+                     *  set membership strings get allocated
+                     */
+                    AGFREE( (void*)pOD->optArg.argString );
+                }
+            }
+
+            pOD->optArg.argEnum = val;
+            pOD->fOptState = opt_state;
+            fprintf(fp, close_xml, ovp->pzName);
+            break;
+        }
+        /* FALLTHROUGH */
+
+    case OPARG_TYPE_NUMERIC:
+        fprintf(fp, numb_atr, ovp->pzName, ovp->v.longVal);
+        break;
+
+    case OPARG_TYPE_BOOLEAN:
+        fprintf(fp, bool_atr, ovp->pzName,
+                ovp->v.boolVal ? "true" : "false");
+        break;
+
+    case OPARG_TYPE_HIERARCHY:
+        printValueList(fp, ovp->pzName, ovp->v.nestVal);
+        break;
+    }
+}
+
+
+static void
+print_a_string(FILE * fp, char const * name, char const * pz)
+{
+    static char const open_atr[]  = "<%s>";
+
+    fprintf(fp, open_atr, name);
+    for (;;) {
+        int ch = ((int)*(pz++)) & 0xFF;
+
+        switch (ch) {
+        case NUL: goto string_done;
+
+        case '&':
+        case '<':
+        case '>':
+#if __GNUC__ >= 4
+        case 1 ... (' ' - 1):
+        case ('~' + 1) ... 0xFF:
+#endif
+            emit_special_char(fp, ch);
+            break;
+
+        default:
+#if __GNUC__ < 4
+            if (  ((ch >= 1) && (ch <= (' ' - 1)))
+               || ((ch >= ('~' + 1)) && (ch <= 0xFF)) ) {
+                emit_special_char(fp, ch);
+                break;
+            }
+#endif
+            putc(ch, fp);
+        }
+    } string_done:;
+    fprintf(fp, close_xml, name);
+}
+
+
+static void
+printValueList(FILE * fp, char const * name, tArgList * al)
+{
+    static int depth = 1;
+
+    int sp_ct;
+    int opt_ct;
+    void ** opt_list;
+
+    if (al == NULL)
+        return;
+    opt_ct   = al->useCt;
+    opt_list = (void **)al->apzArgs;
+
+    if (opt_ct <= 0) {
+        fprintf(fp, "<%s/>\n", name);
+        return;
+    }
+
+    fprintf(fp, "<%s type=nested>\n", name);
+
+    depth++;
+    while (--opt_ct >= 0) {
+        tOptionValue const * ovp = *(opt_list++);
+
+        print_a_value(fp, depth, NULL, ovp);
+    }
+    depth--;
+
+    for (sp_ct = depth; --sp_ct >= 0;)
+        putc(' ', fp), putc(' ', fp);
+    fprintf(fp, "</%s>\n", name);
+}
+
+
+static void
+printHierarchy(FILE * fp, tOptDesc * p)
+{
+    int opt_ct;
+    tArgList * al = p->optCookie;
+    void ** opt_list;
+
+    if (al == NULL)
+        return;
+
+    opt_ct   = al->useCt;
+    opt_list = (void **)al->apzArgs;
+
+    if (opt_ct <= 0)
+        return;
+
+    do  {
+        tOptionValue const * base = *(opt_list++);
+        tOptionValue const * ovp = optionGetValue(base, NULL);
+
+        if (ovp == NULL)
+            continue;
+
+        fprintf(fp, "<%s type=nested>\n", p->pz_Name);
+
+        do  {
+            print_a_value(fp, 1, p, ovp);
+
+        } while (ovp = optionNextValue(base, ovp),
+                 ovp != NULL);
+
+        fprintf(fp, "</%s>\n", p->pz_Name);
+    } while (--opt_ct > 0);
+}
+
+
+static FILE *
+openSaveFile( tOptions* pOpts )
+{
     FILE*     fp;
 
     {
         int   free_name = 0;
         tCC*  pzFName = findFileName( pOpts, &free_name );
         if (pzFName == NULL)
-            return;
+            return NULL;
 
         fp = fopen( pzFName, "w" FOPEN_BINARY_FLAG );
         if (fp == NULL) {
@@ -348,7 +535,7 @@ optionSaveFile( tOptions* pOpts )
             fprintf( stderr, zNoCreat, errno, strerror( errno ), pzFName );
             if (free_name)
                 AGFREE((void*) pzFName );
-            return;
+            return fp;
         }
 
         if (free_name)
@@ -376,13 +563,156 @@ optionSaveFile( tOptions* pOpts )
 #endif
     }
 
+    return fp;
+}
+
+static void
+printNoArgOpt(FILE * fp, tOptDesc * p, tOptDesc * pOD)
+{
+    /*
+     * The aliased to argument indicates whether or not the option
+     * is "disabled".  However, the original option has the name
+     * string, so we get that there, not with "p".
+     */
+    char const * pznm =
+        (DISABLED_OPT( p )) ? pOD->pz_DisableName : pOD->pz_Name;
+    /*
+     *  If the option was disabled and the disablement name is NULL,
+     *  then the disablement was caused by aliasing.
+     *  Use the name as the string to emit.
+     */
+    if (pznm == NULL)
+        pznm = pOD->pz_Name;
+
+    fprintf(fp, "%s\n", pznm);
+}
+
+static void
+printStringArg(FILE * fp, tOptDesc * pOD)
+{
+    if (pOD->fOptState & OPTST_STACKED) {
+        tArgList*  pAL = (tArgList*)pOD->optCookie;
+        int        uct = pAL->useCt;
+        tCC**      ppz = pAL->apzArgs;
+
+        /*
+         *  un-disable multiple copies of disabled options.
+         */
+        if (uct > 1)
+            pOD->fOptState &= ~OPTST_DISABLED;
+
+        while (uct-- > 0)
+            printEntry( fp, pOD, *(ppz++) );
+    } else {
+        printEntry( fp, pOD, pOD->optArg.argString );
+    }
+}
+
+static void
+printEnumArg(FILE * fp, tOptDesc * pOD)
+{
+    uintptr_t val = pOD->optArg.argEnum;
+
+    /*
+     *  This is a magic incantation that will convert the
+     *  bit flag values back into a string suitable for printing.
+     */
+    (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
+    printEntry( fp, pOD, (void*)(pOD->optArg.argString));
+
+    pOD->optArg.argEnum = val;
+}
+
+static void
+printSetMemberArg(FILE * fp, tOptDesc * pOD)
+{
+    uintptr_t val = pOD->optArg.argEnum;
+
+    /*
+     *  This is a magic incantation that will convert the
+     *  bit flag values back into a string suitable for printing.
+     */
+    (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
+    printEntry( fp, pOD, (void*)(pOD->optArg.argString));
+
+    if (pOD->optArg.argString != NULL) {
+        /*
+         *  set membership strings get allocated
+         */
+        AGFREE( (void*)pOD->optArg.argString );
+        pOD->fOptState &= ~OPTST_ALLOC_ARG;
+    }
+
+    pOD->optArg.argEnum = val;
+}
+
+static void
+printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
+{
+    /*
+     *  If the cookie is not NULL, then it has the file name, period.
+     *  Otherwise, if we have a non-NULL string argument, then....
+     */
+    if (pOD->optCookie != NULL)
+        printEntry(fp, pOD, pOD->optCookie);
+
+    else if (HAS_originalOptArgArray(pOpts)) {
+        char const * orig =
+            pOpts->originalOptArgArray[pOD->optIndex].argString;
+
+        if (pOD->optArg.argString == orig)
+            return;
+
+        printEntry(fp, pOD, pOD->optArg.argString);
+    }
+}
+
+
+/*=export_func  optionSaveFile
+ *
+ * what:  saves the option state to a file
+ *
+ * arg:   tOptions*,   pOpts,  program options descriptor
+ *
+ * doc:
+ *
+ * This routine will save the state of option processing to a file.  The name
+ * of that file can be specified with the argument to the @code{--save-opts}
+ * option, or by appending the @code{rcfile} attribute to the last
+ * @code{homerc} attribute.  If no @code{rcfile} attribute was specified, it
+ * will default to @code{.@i{programname}rc}.  If you wish to specify another
+ * file, you should invoke the @code{SET_OPT_SAVE_OPTS( @i{filename} )} macro.
+ *
+ * The recommend usage is as follows:
+ * @example
+ *    optionProcess(&progOptions, argc, argv);
+ *    if (i_want_a_non_standard_place_for_this)
+ *        SET_OPT_SAVE_OPTS("myfilename");
+ *    optionSaveFile(&progOptions);
+ * @end example
+ *
+ * err:
+ *
+ * If no @code{homerc} file was specified, this routine will silently return
+ * and do nothing.  If the output file cannot be created or updated, a message
+ * will be printed to @code{stderr} and the routine will return.
+=*/
+void
+optionSaveFile( tOptions* pOpts )
+{
+    tOptDesc* pOD;
+    int       ct;
+    FILE*     fp = openSaveFile(pOpts);
+
+    if (fp == NULL)
+        return;
+
     /*
      *  FOR each of the defined options, ...
      */
     ct  = pOpts->presetOptCt;
     pOD = pOpts->pOptDesc;
     do  {
-        int arg_state;
         tOptDesc*  p;
 
         /*
@@ -390,87 +720,59 @@ optionSaveFile( tOptions* pOpts )
          *     OR it does not take an initialization value
          *     OR it is equivalenced to another option
          *  THEN continue (ignore it)
+         *
+         *  Equivalenced options get picked up when the equivalenced-to
+         *  option is processed.
          */
         if (UNUSED_OPT( pOD ))
             continue;
 
-        if ((pOD->fOptState & (OPTST_NO_INIT|OPTST_DOCUMENT|OPTST_OMITTED))
-            != 0)
+        if ((pOD->fOptState & OPTST_DO_NOT_SAVE_MASK) != 0)
             continue;
 
         if (  (pOD->optEquivIndex != NO_EQUIVALENT)
-              && (pOD->optEquivIndex != pOD->optIndex))
+           && (pOD->optEquivIndex != pOD->optIndex))
             continue;
 
         /*
-         *  Set a temporary pointer to the real option description
-         *  (i.e. account for equivalencing)
+         *  The option argument data are found at the equivalenced-to option,
+         *  but the actual option argument type comes from the original
+         *  option descriptor.  Be careful!
          */
         p = ((pOD->fOptState & OPTST_EQUIVALENCE) != 0)
             ? (pOpts->pOptDesc + pOD->optActualIndex) : pOD;
 
-        /*
-         *  IF    no arguments are allowed
-         *  THEN just print the name and continue
-         */
-        if (OPTST_GET_ARGTYPE(pOD->fOptState) == OPARG_TYPE_NONE) {
-            fprintf( fp, "%s\n",
-                     (DISABLED_OPT( p )) ? p->pz_DisableName : p->pz_Name );
-            continue;
-        }
+        switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
+        case OPARG_TYPE_NONE:
+            printNoArgOpt(fp, p, pOD);
+            break;
 
-        arg_state = OPTST_GET_ARGTYPE(p->fOptState);
-        switch (arg_state) {
-        case 0:
         case OPARG_TYPE_NUMERIC:
             printEntry( fp, p, (void*)(p->optArg.argInt));
             break;
 
         case OPARG_TYPE_STRING:
-            if (p->fOptState & OPTST_STACKED) {
-                tArgList*  pAL = (tArgList*)p->optCookie;
-                int        uct = pAL->useCt;
-                tCC**      ppz = pAL->apzArgs;
-
-                /*
-                 *  Disallow multiple copies of disabled options.
-                 */
-                if (uct > 1)
-                    p->fOptState &= ~OPTST_DISABLED;
-
-                while (uct-- > 0)
-                    printEntry( fp, p, *(ppz++) );
-            } else {
-                printEntry( fp, p, p->optArg.argString );
-            }
+            printStringArg(fp, p);
             break;
 
         case OPARG_TYPE_ENUMERATION:
-        case OPARG_TYPE_MEMBERSHIP:
-        {
-            uintptr_t val = p->optArg.argEnum;
-            /*
-             *  This is a magic incantation that will convert the
-             *  bit flag values back into a string suitable for printing.
-             */
-            (*(p->pOptProc))( (tOptions*)2UL, p );
-            printEntry( fp, p, (void*)(p->optArg.argString));
-
-            if (  (p->optArg.argString != NULL)
-               && (arg_state != OPARG_TYPE_ENUMERATION)) {
-                /*
-                 *  set membership strings get allocated
-                 */
-                AGFREE( (void*)p->optArg.argString );
-                p->fOptState &= ~OPTST_ALLOC_ARG;
-            }
-
-            p->optArg.argEnum = val;
+            printEnumArg(fp, p);
             break;
-        }
+
+        case OPARG_TYPE_MEMBERSHIP:
+            printSetMemberArg(fp, p);
+            break;
 
         case OPARG_TYPE_BOOLEAN:
             printEntry( fp, p, p->optArg.argBool ? "true" : "false" );
+            break;
+
+        case OPARG_TYPE_HIERARCHY:
+            printHierarchy(fp, p);
+            break;
+
+        case OPARG_TYPE_FILE:
+            printFileArg(fp, p, pOpts);
             break;
 
         default:

@@ -2,14 +2,15 @@
 
 /* compat.h --- fake the preprocessor into handlng portability
  *
- *  Time-stamp:      "2007-07-04 09:51:34 bkorb"
+ *  Time-stamp:      "2008-06-14 09:36:25 bkorb"
  *
- * $Id: compat.h,v 4.17 2007/07/04 20:51:18 bkorb Exp $
+ * $Id: compat.h,v 4.20 2008/06/14 22:24:22 bkorb Exp $
  *
  *  compat.h is free software.
  *  This file is part of AutoGen.
  *
- *  AutoGen copyright (c) 1992-2007 Bruce Korb - all rights reserved
+ *  AutoGen copyright (c) 1992-2008 Bruce Korb - all rights reserved
+ *  AutoGen copyright (c) 1992-2008 Bruce Korb - all rights reserved
  *
  *  AutoGen is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by the
@@ -304,6 +305,15 @@
 #endif
 #ifndef HAVE_UINTPTR_T
   typedef unsigned long uintptr_t;
+#endif
+#ifndef HAVE_SIZE_T
+  typedef unsigned int  size_t;
+#endif
+#ifndef HAVE_WINT_T
+  typedef unsigned int  wint_t;
+#endif
+#ifndef HAVE_PID_T
+  typedef signed int    pid_t;
 #endif
 
 /* redefine these for BSD style string libraries */

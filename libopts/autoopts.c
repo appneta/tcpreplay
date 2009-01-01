@@ -1,7 +1,7 @@
 
 /*
- *  $Id: autoopts.c,v 4.27 2007/07/04 21:36:36 bkorb Exp $
- *  Time-stamp:      "2007-07-04 14:33:39 bkorb"
+ *  $Id: autoopts.c,v 4.36 2008/12/20 18:35:26 bkorb Exp $
+ *  Time-stamp:      "2008-12-16 14:52:28 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -10,7 +10,8 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -32,7 +33,7 @@
 static char const zNil[] = "";
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static tSuccess
 findOptDesc( tOptions* pOpts, tOptState* pOptState );
 
@@ -261,15 +262,21 @@ longOptionFind( tOptions* pOpts, char* pzOptName, tOptState* pOptState )
     int        matchCt  = 0;
     int        matchIdx = 0;
     int        nameLen;
+    char       opt_name_buf[128];
 
     /*
      *  IF the value is attached to the name,
-     *  THEN clip it off.
-     *  Either way, figure out how long our name is
+     *  copy it off so we can NUL terminate.
      */
     if (pzEq != NULL) {
         nameLen = (int)(pzEq - pzOptName);
-        *pzEq = NUL;
+        if (nameLen >= sizeof(opt_name_buf))
+            return FAILURE;
+        memcpy(opt_name_buf, pzOptName, nameLen);
+        opt_name_buf[nameLen] = NUL;
+        pzOptName = opt_name_buf;
+        pzEq++;
+
     } else nameLen = strlen( pzOptName );
 
     do  {
@@ -325,9 +332,6 @@ longOptionFind( tOptions* pOpts, char* pzOptName, tOptState* pOptState )
 
     } while (pOD++, (++idx < idxLim));
 
-    if (pzEq != NULL)
-        *(pzEq++) = '=';
-
     /*
      *  Make sure we either found an exact match or found only one partial
      */
@@ -366,8 +370,8 @@ longOptionFind( tOptions* pOpts, char* pzOptName, tOptState* pOptState )
      *  THEN call the usage procedure.
      */
     if ((pOpts->fOptSet & OPTPROC_ERRSTOP) != 0) {
-        fprintf( stderr, zIllOptStr, pOpts->pzProgPath,
-                 (matchCt == 0) ? zIllegal : zAmbiguous, pzOptName );
+        fprintf(stderr, (matchCt == 0) ? zIllOptStr : zAmbigOptStr,
+                pOpts->pzProgPath, pzOptName);
         (*pOpts->pUsageProc)( pOpts, EXIT_FAILURE );
     }
 
@@ -418,7 +422,7 @@ shortOptionFind( tOptions* pOpts, uint_t optValue, tOptState* pOptState )
      *  THEN the result is the "option" itself and the
      *       option is the specially marked "number" option.
      */
-    if (  isdigit( optValue )
+    if (  IS_DEC_DIGIT_CHAR(optValue)
        && (pOpts->specOptIdx.number_option != NO_EQUIVALENT) ) {
         pOptState->pOD = \
         pRes           = pOpts->pOptDesc + pOpts->specOptIdx.number_option;
@@ -465,16 +469,28 @@ findOptDesc( tOptions* pOpts, tOptState* pOptState )
      *  IF all arguments must be named options, ...
      */
     if (NAMED_OPTS(pOpts)) {
-        char* pz = pOpts->pzCurOpt;
+        char *   pz  = pOpts->pzCurOpt;
+        int      def;
+        tSuccess res; 
+        tAoUS *  def_opt;
+
         pOpts->curOptIdx++;
 
-        /*
-         *  Skip over any flag/option markers.
-         *  In this mode, they are not required.
-         */
-        while (*pz == '-') pz++;
+        if (*pz != '-')
+            return longOptionFind(pOpts, pz, pOptState);
 
-        return longOptionFind( pOpts, pz, pOptState );
+        /*
+         *  The name is prefixed with one or more hyphens.  Strip them off
+         *  and disable the "default_opt" setting.  Use heavy recasting to
+         *  strip off the "const" quality of the "default_opt" field.
+         */
+        while (*(++pz) == '-')   ;
+        def_opt = (void *)&(pOpts->specOptIdx.default_opt);
+        def = *def_opt;
+        *def_opt = NO_EQUIVALENT;
+        res = longOptionFind(pOpts, pz, pOptState);
+        *def_opt = def;
+        return res;
     }
 
     /*
@@ -669,8 +685,8 @@ nextOption( tOptions* pOpts, tOptState* pOptState )
 
         default:
         case TOPT_DEFAULT:
-            fputs( "AutoOpts lib error: defaulted to option with optional arg\n",
-                   stderr );
+            fputs("AutoOpts lib error: defaulted to option with optional arg\n",
+                  stderr );
             exit( EX_SOFTWARE );
         }
 
@@ -814,7 +830,8 @@ doPresets( tOptions* pOpts )
      *  has a --load-opts option.  See if a command line option has disabled
      *  option presetting.
      */
-    if (pOpts->specOptIdx.save_opts != 0) {
+    if (  (pOpts->specOptIdx.save_opts != NO_EQUIVALENT)
+       && (pOpts->specOptIdx.save_opts != 0)) {
         pOD = pOpts->pOptDesc + pOpts->specOptIdx.save_opts + 1;
         if (DISABLED_OPT(pOD))
             return SUCCESS;
@@ -1041,6 +1058,20 @@ optionProcess(
         if (! SUCCESSFUL( doPresets( pOpts )))
             return 0;
 
+        /*
+         *  IF option name conversion was suppressed but it is not suppressed
+         *  for the command line, then it's time to translate option names.
+         *  Usage text will not get retranslated.
+         */
+        if (  ((pOpts->fOptSet & OPTPROC_TRANSLATE) != 0)
+           && (pOpts->pTransProc != NULL)
+           && ((pOpts->fOptSet & OPTPROC_NO_XLAT_MASK)
+              == OPTPROC_NXLAT_OPT_CFG)  )  {
+
+            pOpts->fOptSet &= ~OPTPROC_NXLAT_OPT_CFG;
+            (*pOpts->pTransProc)();
+        }
+
         if ((pOpts->fOptSet & OPTPROC_REORDER) != 0)
             optionSort( pOpts );
 
@@ -1067,7 +1098,8 @@ optionProcess(
      *  THEN do that now before testing for conflicts.
      *       (conflicts are ignored in preset options)
      */
-    if (pOpts->specOptIdx.save_opts != 0) {
+    if (  (pOpts->specOptIdx.save_opts != NO_EQUIVALENT)
+       && (pOpts->specOptIdx.save_opts != 0)) {
         tOptDesc*  pOD = pOpts->pOptDesc + pOpts->specOptIdx.save_opts;
 
         if (SELECTED_OPT( pOD )) {

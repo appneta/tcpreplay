@@ -1,10 +1,11 @@
 /*
  *  This file defines the string_tokenize interface
- * Time-stamp:      "2007-07-04 10:09:43 bkorb"
+ * Time-stamp:      "2007-11-12 20:40:36 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -23,7 +24,6 @@
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
-#include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
 
@@ -31,7 +31,7 @@
 #define ch_t   unsigned char
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static void
 copy_cooked( ch_t** ppDest, char const ** ppSrc );
 
@@ -192,7 +192,7 @@ ao_string_tokenize( char const* str )
      *  Trim leading white space.  Use "ENOENT" and a NULL return to indicate
      *  an empty string was passed.
      */
-    while (isspace( (ch_t)*str ))  str++;
+    while (IS_WHITESPACE_CHAR(*str))  str++;
     if (*str == NUL) {
     bogus_str:
         errno = ENOENT;
@@ -209,9 +209,9 @@ ao_string_tokenize( char const* str )
 
         do {
             max_token_ct++;
-            while (! isspace( *++pz ))
+            while (! IS_WHITESPACE_CHAR(*++pz))
                 if (*pz == NUL) goto found_nul;
-            while (isspace( *pz ))  pz++;
+            while (IS_WHITESPACE_CHAR(*pz))  pz++;
         } while (*pz != NUL);
 
     found_nul:
@@ -235,9 +235,9 @@ ao_string_tokenize( char const* str )
             res->tkn_list[ res->tkn_ct++ ] = pzDest;
             for (;;) {
                 int ch = (ch_t)*str;
-                if (isspace( ch )) {
+                if (IS_WHITESPACE_CHAR(ch)) {
                 found_white_space:
-                    while (isspace( (ch_t)*++str ))  ;
+                    while (IS_WHITESPACE_CHAR(*++str))  ;
                     break;
                 }
 
@@ -249,7 +249,7 @@ ao_string_tokenize( char const* str )
                         errno = EINVAL;
                         return NULL;
                     }
-                    if (isspace( (ch_t)*str ))
+                    if (IS_WHITESPACE_CHAR(*str))
                         goto found_white_space;
                     break;
 
@@ -260,7 +260,7 @@ ao_string_tokenize( char const* str )
                         errno = EINVAL;
                         return NULL;
                     }
-                    if (isspace( (ch_t)*str ))
+                    if (IS_WHITESPACE_CHAR(*str))
                         goto found_white_space;
                     break;
 

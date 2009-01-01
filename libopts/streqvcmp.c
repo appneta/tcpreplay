@@ -1,7 +1,7 @@
 
 /*
- *  $Id: streqvcmp.c,v 4.12 2007/07/04 21:36:38 bkorb Exp $
- * Time-stamp:      "2007-07-04 11:35:12 bkorb"
+ *  $Id: streqvcmp.c,v 4.14 2008/12/29 06:14:25 bkorb Exp $
+ * Time-stamp:      "2008-12-26 10:15:46 bkorb"
  *
  *  String Equivalence Comparison
  *
@@ -12,7 +12,8 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -244,6 +245,8 @@ strequate( char const* s )
  * character is put into the output.
  * This function name is mapped to option_strtransform so as to not conflict
  * with the POSIX name space.
+ *
+ * The source and destination may be the same.
  *
  * err:  none.
 =*/

@@ -1,14 +1,15 @@
 
 /*
- *  $Id: makeshell.c,v 4.22 2007/07/04 21:36:37 bkorb Exp $
- * Time-stamp:      "2007-07-04 10:22:32 bkorb"
+ *  $Id: makeshell.c,v 4.27 2008/07/28 04:51:29 bkorb Exp $
+ * Time-stamp:      "2008-07-26 16:10:51 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and create a Bourne shell script capable of parsing them.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -341,7 +342,7 @@ static char*  pzLeader  = NULL;
 static char*  pzTrailer = NULL;
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static void
 textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD );
 
@@ -672,7 +673,7 @@ emitSetup( tOptions* pOpts )
          */
         switch (OPTST_GET_ARGTYPE(pOptDesc->fOptState)) {
         case OPARG_TYPE_ENUMERATION:
-            (*(pOptDesc->pOptProc))( (tOptions*)2UL, pOptDesc );
+            (*(pOptDesc->pOptProc))(OPTPROC_EMIT_SHELL, pOptDesc );
             pzDefault = pOptDesc->optArg.argString;
             break;
 
@@ -792,7 +793,7 @@ emitFlag( tOptions* pOpts )
         if (SKIP_OPT(pOptDesc))
             continue;
 
-        if (isprint( pOptDesc->optValue )) {
+        if (IS_GRAPHIC_CHAR(pOptDesc->optValue)) {
             printf( zOptionFlag, pOptDesc->optValue );
             printOptionAction( pOpts, pOptDesc );
         }

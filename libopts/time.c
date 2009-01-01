@@ -1,12 +1,7 @@
 
 /*
- *  $Id: boolean.c,v 4.15 2008/08/04 01:01:52 bkorb Exp $
- * Time-stamp:      "2008-08-03 13:06:02 bkorb"
- *
- *   Automated Options Paged Usage module.
- *
- *  This routine will run run-on options through a pager so the
- *  user may examine, print or edit them at their leisure.
+ *  $Id: time.c,v 4.2 2008/11/16 23:56:59 bkorb Exp $
+ *  Time-stamp:      "2008-11-16 14:51:48 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
@@ -30,58 +25,60 @@
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
-/*=export_func  optionBooleanVal
+#ifndef HAVE_PARSE_DURATION
+#include <time.h>
+
+static inline char *
+ao_xstrdup(char const * pz)
+{
+    char * str;
+    AGDUPSTR(str, pz, "time val str");
+    return str;
+}
+
+#define xstrdup(_s) ao_xstrdup(_s)
+
+#include "parse-duration.c"
+
+#undef xstrdup
+#endif
+
+/*=export_func  optionTimeVal
  * private:
  *
- * what:  Decipher a boolean value
+ * what:  process an option with a time value.
  * arg:   + tOptions* + pOpts    + program options descriptor +
  * arg:   + tOptDesc* + pOptDesc + the descriptor for this arg +
  *
  * doc:
- *  Decipher a true or false value for a boolean valued option argument.
- *  The value is true, unless it starts with 'n' or 'f' or "#f" or
- *  it is an empty string or it is a number that evaluates to zero.
+ *  Decipher a time duration value.
 =*/
 void
-optionBooleanVal( tOptions* pOpts, tOptDesc* pOD )
+optionTimeVal(tOptions* pOpts, tOptDesc* pOD )
 {
-    char* pz;
-    ag_bool  res = AG_TRUE;
+    long  val;
 
     if ((pOD->fOptState & OPTST_RESET) != 0)
         return;
 
-    if (pOD->optArg.argString == NULL) {
-        pOD->optArg.argBool = AG_FALSE;
-        return;
-    }
-
-    switch (*(pOD->optArg.argString)) {
-    case '0':
-    {
-        long  val = strtol( pOD->optArg.argString, &pz, 0 );
-        if ((val != 0) || (*pz != NUL))
-            break;
-        /* FALLTHROUGH */
-    }
-    case 'N':
-    case 'n':
-    case 'F':
-    case 'f':
-    case NUL:
-        res = AG_FALSE;
-        break;
-    case '#':
-        if (pOD->optArg.argString[1] != 'f')
-            break;
-        res = AG_FALSE;
-    }
+    val = parse_duration(pOD->optArg.argString);
+    if (errno != 0)
+        goto bad_time;
 
     if (pOD->fOptState & OPTST_ALLOC_ARG) {
         AGFREE(pOD->optArg.argString);
         pOD->fOptState &= ~OPTST_ALLOC_ARG;
     }
-    pOD->optArg.argBool = res;
+
+    pOD->optArg.argInt = val;
+    return;
+
+bad_time:
+    fprintf( stderr, zNotNumber, pOpts->pzProgName, pOD->optArg.argString );
+    if ((pOpts->fOptSet & OPTPROC_ERRSTOP) != 0)
+        (*(pOpts->pUsageProc))(pOpts, EXIT_FAILURE);
+
+    pOD->optArg.argInt = ~0;
 }
 /*
  * Local Variables:
@@ -89,4 +86,4 @@ optionBooleanVal( tOptions* pOpts, tOptDesc* pOD )
  * c-file-style: "stroustrup"
  * indent-tabs-mode: nil
  * End:
- * end of autoopts/boolean.c */
+ * end of autoopts/numeric.c */

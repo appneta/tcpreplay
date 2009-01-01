@@ -1,19 +1,16 @@
 
-/*  $Id: version.c,v 4.12 2007/07/04 21:36:39 bkorb Exp $
- * Time-stamp:      "2007-07-04 13:42:04 bkorb"
+/*  $Id: version.c,v 4.15 2008/07/28 04:51:30 bkorb Exp $
+ * Time-stamp:      "2008-07-27 10:11:30 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
  */
 
-static char const zAOV[] =
-    "Automated Options version %s\n"
-    "\tcopyright (c) 1999-2007 Bruce Korb - all rights reserved\n";
-
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2007 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -33,7 +30,7 @@ static char const zAOV[] =
  */
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by :mkfwd */
+/* static forward declarations maintained by mk-fwd */
 static void
 printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp );
 /* = = = END-STATIC-FORWARD = = = */
@@ -90,7 +87,7 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
             fputs( pOpts->pzCopyright, fp );
             fputc( '\n', fp );
         }
-        fprintf( fp, zAOV, optionVersion() );
+        fprintf( fp, zAO_Ver, optionVersion() );
         if (pOpts->pzBugAddr != NULL)
             fprintf( fp, zPlsSendBugs, pOpts->pzBugAddr );
         break;
@@ -107,7 +104,7 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
             fputc( '\n', fp );
         }
 
-        fprintf( fp, zAOV, optionVersion() );
+        fprintf( fp, zAO_Ver, optionVersion() );
         if (pOpts->pzBugAddr != NULL)
             fprintf( fp, zPlsSendBugs, pOpts->pzBugAddr );
         break;

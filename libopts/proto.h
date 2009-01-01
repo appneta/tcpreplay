@@ -1,17 +1,20 @@
 /* -*- buffer-read-only: t -*- vi: set ro:
  *
  * Prototypes for autoopts
- * Generated Sat Jul 28 13:01:46 PDT 2007
+ * Generated Wed Dec 31 19:07:16 PST 2008
  */
 #ifndef AUTOOPTS_PROTO_H_GUARD
 #define AUTOOPTS_PROTO_H_GUARD 1
+
 #ifndef LOCAL
 #  define LOCAL extern
 #  define REDEF_LOCAL 1
 #else
 #  undef  REDEF_LOCAL
 #endif
-/*\n *  Extracted from autoopts.c\n */
+/*
+ *  Extracted from autoopts.c
+ */
 LOCAL void *
 ao_malloc( size_t sz );
 
@@ -39,7 +42,9 @@ doImmediateOpts( tOptions* pOpts );
 LOCAL tSuccess
 doRegularOpts( tOptions* pOpts );
 
-/*\n *  Extracted from configfile.c\n */
+/*
+ *  Extracted from configfile.c
+ */
 LOCAL void
 internalFileLoad( tOptions* pOpts );
 
@@ -53,14 +58,18 @@ parseAttributes(
 LOCAL tSuccess
 validateOptionsStruct( tOptions* pOpts, char const* pzProgram );
 
-/*\n *  Extracted from environment.c\n */
+/*
+ *  Extracted from environment.c
+ */
 LOCAL void
 doPrognameEnv( tOptions* pOpts, teEnvPresetType type );
 
 LOCAL void
 doEnvPresets( tOptions* pOpts, teEnvPresetType type );
 
-/*\n *  Extracted from load.c\n */
+/*
+ *  Extracted from load.c
+ */
 LOCAL void
 mungeString( char* pzTxt, tOptionLoadMode mode );
 
@@ -72,15 +81,27 @@ loadOptionLine(
     tDirection  direction,
     tOptionLoadMode   load_mode );
 
-/*\n *  Extracted from nested.c\n */
+/*
+ *  Extracted from nested.c
+ */
 LOCAL tOptionValue*
 optionLoadNested(char const* pzTxt, char const* pzName, size_t nameLen);
 
-/*\n *  Extracted from sort.c\n */
+LOCAL int
+get_special_char(char const ** ppz, int * ct);
+
+LOCAL void
+emit_special_char(FILE * fp, int ch);
+
+/*
+ *  Extracted from sort.c
+ */
 LOCAL void
 optionSort( tOptions* pOpts );
 
-/*\n *  Extracted from stack.c\n */
+/*
+ *  Extracted from stack.c
+ */
 LOCAL void
 addArgListEntry( void** ppAL, void* entry );
 
