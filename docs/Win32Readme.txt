@@ -32,7 +32,14 @@ What you will need:
 
 Additional requirements if building from SVN:
 - GNU build chain tools (Autoconf, Automake, Autoheader)
-- GNU Autogen
+- GNU Autogen  (*)
+
+* NOTE: The guile package which comes with Cygwin is broken and breaks
+Autogen, so you'll need to compile guile from scratch to fix.  Hence, I
+strongly suggest you build Tcpreplay from the tarball and not SVN.  See 
+below for how to "fix" this issue if you want to compile from SVN.
+
+
 
 ******************************* IMPORTANT ******************************
 Note 1: 
@@ -42,7 +49,7 @@ strongly recommend you install it under the Cygwin root as /WpdPack.
 
 Note 2:
 There's a big problem with the Cygwin Guile package which breaks
-GNU Autogen which tcpreplay depends on when building from Subversion. 
+GNU Autogen which Tcpreplay depends on when building from Subversion. 
 
 What this means is that to build from Subversion you must do the following:
 - Download GNU Guile from http://www.gnu.org/software/guile/guile.html
