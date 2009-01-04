@@ -115,8 +115,9 @@ int
 randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         u_char *pktdata, ipv4_hdr_t *ip_hdr)
 {
+#ifdef DEBUG
     char srcip[16], dstip[16];
-
+#endif
     assert(tcpedit);
     assert(pkthdr);
     assert(pktdata);
