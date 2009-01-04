@@ -89,11 +89,13 @@ void notice(const char *fmt, ...);
 
 #define err(x, y) do { \
         fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n%s\n", __FILE__, __FUNCTION__, __LINE__, y); \
+        fflush(NULL); \
         exit(x); \
     } while (0)
 
 #define errx(x, y, ...) do {\
         fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n " y "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__); \
+        fflush(NULL); \
         exit(x); \
     } while (0)
 
@@ -107,10 +109,15 @@ void notice(const char *fmt, ...);
 
 #define warnx(x, ...) fprintf(stderr, "Warning: " x "\n", __VA_ARGS__)
 
-#define err(x, y) fprintf(stderr, "\nFatal Error:\n%s\n", y); exit(x)
+#define err(x, y) do {\
+        fprintf(stderr, "\nFatal Error:\n%s\n", y); \
+        fflush(NULL); \
+        exit(x); \
+    } while(0)
 
 #define errx(x, y, ...) do {\
         fprintf(stderr, "\nFatal Error: " y "\n", __VA_ARGS__); \
+        fflush(NULL); \
         exit(x); \
     } while (0)
 #endif /* DEBUG */
