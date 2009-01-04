@@ -269,7 +269,7 @@ flag = {
 
     /* our comment_len is only 16bit - myargs[] */
     if (strlen(OPT_ARG(COMMENT)) > ((1 << 16) - 1 - MYARGS_LEN))
-                errx(-1, "Comment length %d is longer then max allowed (%d)", 
+                errx(-1, "Comment length %zu is longer then max allowed (%d)", 
                 strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
     
     /* save the comment */
