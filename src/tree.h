@@ -65,7 +65,8 @@ typedef struct tcpr_buildcidr_s tcpr_buildcidr_t;
 
 #define DNS_QUERY_FLAG 0x8000
 
-void add_tree(const unsigned long, const u_char *); /* done */
+void add_tree(const unsigned long, const u_char *);
+void add_tree_first(const u_char *);
 tcpr_dir_t check_ip_tree(const int, const unsigned long);
 int process_tree();
 void tree_calculate(tcpr_data_tree_t *);
