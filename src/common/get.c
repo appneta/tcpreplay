@@ -143,7 +143,6 @@ int
 get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 {
     eth_hdr_t *eth_hdr;
-    u_int16_t ether_type;
     
     assert(pktdata);
     assert(datalen);

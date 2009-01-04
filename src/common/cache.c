@@ -113,7 +113,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     
     if ((read_size = read(cachefd, *comment, header.comment_len)) 
             != header.comment_len)
-        errx(-1, "Unable to read %d bytes of data for the comment (%d) %s", 
+        errx(-1, "Unable to read %d bytes of data for the comment (%zu) %s", 
             header.comment_len, read_size, 
             read_size == -1 ? strerror(read_size) : "");
 
@@ -139,7 +139,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     if ((COUNTER)(read_size = read(cachefd, *cachedata, cache_size)) 
             != cache_size)
         errx(-1, "Cache data length (%ld bytes) doesn't match "
-            "cache header (%ld bytes)", read_size, cache_size);
+            "cache header (" COUNTER_SPEC " bytes)", read_size, cache_size);
 
     dbgx(1, "Loaded in %llu packets from cache.", header.num_packets);
 
@@ -185,7 +185,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     dbgx(1, "Wrote %d bytes of cache file header", written);
 
     if (written != sizeof(tcpr_cache_file_hdr_t))
-        errx(-1, "Only wrote %d of %d bytes of the cache file header!\n%s",
+        errx(-1, "Only wrote %zu of %zu bytes of the cache file header!\n%s",
              written, sizeof(tcpr_cache_file_hdr_t),
              written == -1 ? strerror(errno) : "");
 
@@ -195,7 +195,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
         dbgx(1, "Wrote %d bytes of comment", written);
         
         if (written != (ssize_t)strlen(comment))
-            errx(-1, "Only wrote %d of %d bytes of the comment!\n%s",
+            errx(-1, "Only wrote %zu of %zu bytes of the comment!\n%s",
                  written, strlen(comment), 
                  written == -1 ? strerror(errno) : "");
     }
@@ -218,7 +218,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
         written = write(out_file, mycache->data, chars);
         dbgx(1, "Wrote %i bytes of cache data", written);
         if (written != (ssize_t)chars)
-            errx(-1, "Only wrote %i of %i bytes to cache file!", written, chars);
+            errx(-1, "Only wrote %zu of %i bytes to cache file!", written, chars);
 
         /*
          * if that was the last, stop processing, otherwise wash,

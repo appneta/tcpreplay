@@ -55,7 +55,7 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     u_char *ptr;
 
     if ((ptr = malloc(len)) == NULL) {
-        fprintf(stderr, "Unable to malloc() %d bytes", funcname, line, file, len);
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes", file, funcname, line, len);
         exit(-1);
     }
     
@@ -80,7 +80,7 @@ _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, c
 {
 
     if ((ptr = realloc(ptr, len)) == NULL) {
-        fprintf(stderr, "Unable to remalloc() buffer to %d bytes", funcname, line, file, len);
+        fprintf(stderr, "ERROR: in %s:%s() line %d: Unable to remalloc() buffer to %zu bytes", file, funcname, line, len);
         exit(-1);
     }
 
@@ -99,7 +99,7 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
     char *newstr;
 
     if ((newstr = (char *)malloc(strlen(str) + 1)) == NULL) {
-        fprintf(stderr, "Unable to strdup() %d bytes\n", funcname, line, file, strlen(str));
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to strdup() %zu bytes\n", file, funcname, line, strlen(str));
         exit(-1);
     }
 
@@ -116,7 +116,7 @@ void
 _our_safe_free(void *ptr, const char *funcname, const int line, const char *file)
 {
     if (ptr == NULL) {
-        fprintf(stderr, "Unable to call free on a NULL ptr", funcname, line, file);
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to call free on a NULL ptr", file, funcname, line);
         exit(-1);
     }
             

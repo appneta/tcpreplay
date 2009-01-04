@@ -410,30 +410,33 @@ sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
     switch(sp->handle_type) {
-#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
         case SP_TYPE_BPF:
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
             close(sp->handle.fd);
-            break;
 #endif
+            break;
 
-#ifdef HAVE_PF_PACKET
         case SP_TYPE_PF_PACKET:
+#ifdef HAVE_PF_PACKET
             close(sp->handle.fd);
-            break;
 #endif
+            break;
 
-#ifdef HAVE_LIBPCAP
         case SP_TYPE_LIBPCAP:
+#ifdef HAVE_LIBPCAP
             pcap_close(sp->handle.pcap);
-            break;
 #endif
+            break;
            
-#ifdef HAVE_LIBDNET            
         case SP_TYPE_LIBDNET:
+#ifdef HAVE_LIBDNET            
             eth_close(sp->handle.ldnet);
-            break;
 #endif
+            break;
 
+        case SP_TYPE_LIBNET:
+            err(-1, "Libnet is no longer supported!");
+            break;
     }
     safe_free(sp);
     return 0;
@@ -547,7 +550,7 @@ sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
 }
 #endif /* HAVE_PCAP_INJECT || HAVE_PCAP_SENDPACKET */
 
-#if defined HAVE_LIBNET
+#if defined HAVE_LIBDNET
 /**
  * Inner sendpacket_open() method for using libdnet
  */
@@ -582,7 +585,7 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
     int ret;
     assert(sp);
     
-    ret = eth_get(sp->handle.ldnet, addr);
+    ret = eth_get(sp->handle.ldnet, (eth_addr_t *)addr);
     
     if (addr == NULL || ret < 0) {
         sendpacket_seterr(sp, "Error getting hwaddr via libdnet: %s", strerror(errno));
