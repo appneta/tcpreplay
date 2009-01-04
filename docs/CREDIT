@@ -43,3 +43,13 @@ Denis McLaughlin <denism@cyberus.ca>
 Andrew Edgecombe <andrew.edgecombe@nec.com.au>
 	- Patch to support caching pcap files in memory when looping
 	  which provides a significant performance improvement
+    - Patch to fix issue with -M option
+
+Joerg Mayer  <jmayer@loplof.de>
+   - Patch for auto* to fix various warnings & errors
+
+Jim West <jim_west@agilent.com>
+   - Patch to fix Solaris compiling issues
+
+Bojan Smojver <bojan@rexursive.com>
+   - For maintaining the RPM package and helping with portability issues
