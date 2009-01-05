@@ -63,7 +63,7 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     memset(ptr, 0, len);
     
     /* wrapped inside an #ifdef for better performance */
-    dbgx(5, "Malloc'd %d bytes in %s:%s() line %d", len, file, funcname, line);
+    dbgx(5, "Malloc'd %zu bytes in %s:%s() line %d", len, file, funcname, line);
     
     return (void *)ptr;
 }
@@ -84,7 +84,7 @@ _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, c
         exit(-1);
     }
 
-    dbgx(5, "Remalloc'd buffer to %d bytes in %s:%s() line %d", len, file, funcname, line);
+    dbgx(5, "Remalloc'd buffer to %zu bytes in %s:%s() line %d", len, file, funcname, line);
 
     return ptr;
 }
