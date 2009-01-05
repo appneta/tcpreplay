@@ -47,11 +47,14 @@
  * which use horrifically long interface names
  * 
  * Returns NULL on error
+ * 
+ * On success, it *may* malloc() memory equal to the length of *alias.
  */
 char *
 get_interface(interface_list_t *list, const char *alias)
 {
     interface_list_t *ptr;
+    char *name;
     
     assert(alias);
     
@@ -69,7 +72,9 @@ get_interface(interface_list_t *list, const char *alias)
             ptr = ptr->next;
         } while (ptr != NULL);
     } else {
-        return(alias);
+        name = (char *)safe_malloc(strlen(alias) + 1);
+        strlcpy(name, alias, sizeof(name));
+        return(name);
     }
     
     return(NULL);
