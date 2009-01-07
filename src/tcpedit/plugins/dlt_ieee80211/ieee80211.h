@@ -60,16 +60,16 @@ struct ieee80211_hdr_s {
 #define ieee80211_FC_TYPE_DATA      0x0800
 #define ieee80211_FC_TYPE_MGMT      0x0000
 #define ieee80211_FC_TYPE_CONTROL   0x0400
-#define ieee80211_FC_TYPE_RESERVED  0x0C00
 
 /* subtype is the 4 high bytes */
-#define ieee80211_FC_SUBTYPE_MASK   0x0F00
+#define ieee80211_FC_SUBTYPE_MASK   0xF000
 #define ieee80211_FC_SUBTYPE_QOS    0x8000 /* high bit is QoS, but there are sub-sub types for QoS */
-
+#define ieee80211_FC_SUBTYPE_NULL   0xC000 /* no data */
 
 /* Direction */
 #define ieee80211_FC_TO_DS_MASK     0x0001
 #define ieee80211_FC_FROM_DS_MASK   0x0002
+
 /* Flags */
 #define ieee80211_FC_MORE_FRAG      0x0004
 #define ieee80211_FC_RETRY_MASK     0x0008

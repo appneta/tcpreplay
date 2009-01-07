@@ -331,8 +331,6 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
 /* 
  * return the length of the L2 header of the current packet
  * based on: http://www.tcpdump.org/lists/workers/2004/07/msg00121.html
- * Returns >= 0 or TCPEDIT_SOFT_ERROR on error
- *
  */
 int
 dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
@@ -364,20 +362,20 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         hdrlen += 2;
     }
 
-    if (pktlen < hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr)) {
-        return TCPEDIT_SOFT_ERROR;
-    }
-    hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
+    if (pktlen >= (hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr))) {
     
-    /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
-    if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA) {
-        hdrlen += (int)sizeof(struct tcpr_802_2snap_hdr);
-        dbgx(2, "total header length (802.11 + 802.2SNAP): %d", hdrlen);
-    } else {
-        hdrlen += (int)sizeof(struct tcpr_802_2_hdr);
-        dbgx(2, "total header length (802.11 + 802.2): %d (%02x/%02x)", hdrlen, hdr->snap_dsap, hdr->snap_ssap);
+        hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
+    
+        /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
+        if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA) {
+            hdrlen += (int)sizeof(struct tcpr_802_2snap_hdr);
+            dbgx(2, "total header length (802.11 + 802.2SNAP): %d", hdrlen);
+        } else {
+            hdrlen += (int)sizeof(struct tcpr_802_2_hdr);
+            dbgx(2, "total header length (802.11 + 802.2): %d (%02x/%02x)", hdrlen, hdr->snap_dsap, hdr->snap_ssap);
+        }
     }
-
+    
     dbgx(2, "header length: %d", hdrlen);
     return hdrlen;
 }

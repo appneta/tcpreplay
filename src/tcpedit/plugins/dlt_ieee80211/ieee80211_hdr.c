@@ -76,8 +76,15 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
     frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
 
+    /* reserved == no data */
+    if ((fc & ieee80211_FC_SUBTYPE_MASK) == ieee80211_FC_SUBTYPE_NULL) {
+        dbg(2, "packet is NULL");
+        return 1;
+    }
+
     /* check for data */
     if ((fc & ieee80211_FC_TYPE_MASK) == ieee80211_FC_TYPE_DATA) {
+        dbg(2, "packet has data bit set");
         return 1;
     }
 
@@ -102,6 +109,7 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 
     /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
     if (snap->snap_dsap == 0xAA && snap->snap_ssap == 0xAA) {
+        dbg(2, "packet is 802.2SNAP which I think always has data");
         return 1;
     } 
 
