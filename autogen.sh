@@ -6,9 +6,9 @@ if test -x "`which libtoolize`" ; then
     libtoolize
 else
     # Necessary under OS X
-    glibtoolize
+    glibtoolize --copy
 fi
 autoheader
-automake
+automake --add-missing --copy
 autoconf
 
