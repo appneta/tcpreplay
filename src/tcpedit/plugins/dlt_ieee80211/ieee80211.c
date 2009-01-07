@@ -226,12 +226,8 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 int 
 dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
-    // u_char *packet;
     assert(ctx);
-    // assert(packet_ex);
     assert(pktlen);
-    
-    // packet = *packet_ex;
     assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_IEEE802_11 plugin does not support packet encoding");

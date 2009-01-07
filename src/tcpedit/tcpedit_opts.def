@@ -170,6 +170,17 @@ EOText;
 };
 
 flag = {
+    name        = tos;
+    descrip     = "Set the IPv4 TOS/DiffServ/ECN byte";
+    arg-type    = number;
+    arg-range   = "0->255";
+    max         = 1;
+    doc         = <<- EOText
+Allows you to override the TOS (also known as DiffServ/ECN) value in IPv4 packets.    
+EOText;
+};
+
+flag = {
     name        = fixlen;
     value       = F;
     arg-type    = string;

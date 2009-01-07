@@ -140,10 +140,32 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         ip_hdr = NULL;
     }
 
-    /* rewrite the TTL */
-    needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
+    /* The following edits only apply for IPv4 */
+    if (ip_hdr != NULL) {
+        
+        /* set TOS ? */
+        if (tcpedit->tos > -1)
+            ip_hdr->ip_tos = tcpedit->tos;
+            
+        /* rewrite the TTL */
+        needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
+
+        /* rewrite TCP/UDP ports */
+        if (tcpedit->portmap != NULL) {
+            if ((retval = rewrite_ports(tcpedit, &ip_hdr)) < 0)
+                return TCPEDIT_ERROR;
+            needtorecalc += retval;
+        }
+
+        /* Untruncate packet? Only works for IP packets */
+        if (tcpedit->fixlen) {
+            if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr)) < 0)
+                return TCPEDIT_ERROR;
+            needtorecalc += retval;
+        }
+    }
     
-    /* rewrite IP addresses */
+    /* rewrite IP addresses in IPv4 or ARP */
     if (tcpedit->rewrite_ip) {
         /* IP packets */
         if (ip_hdr != NULL) {
@@ -164,29 +186,18 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
-    /* rewrite ports */
-    if (tcpedit->portmap != NULL && (ip_hdr != NULL)) {
-        if ((retval = rewrite_ports(tcpedit, &ip_hdr)) < 0)
-            return TCPEDIT_ERROR;
-        needtorecalc += retval;
-    }
 
-    /* Untruncate packet? Only for IP packets */
-    if ((tcpedit->fixlen) && (ip_hdr != NULL)) {
-        if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr)) < 0)
-            return TCPEDIT_ERROR;
-        needtorecalc += retval;
-    }
-
-
-    /* do we need to spoof the src/dst IP address? */
+    /* do we need to spoof the src/dst IP address in IPv4 or ARP? */
     if (tcpedit->seed) {
+        /* IPv4 Packets */
         if (ip_hdr != NULL) {
             if ((retval = randomize_ipv4(tcpedit, *pkthdr, packet, 
                     ip_hdr)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
-        } else {
+
+        /* ARP packets */
+        } else if (l2proto == htons(ETHERTYPE_ARP)) {
             if (direction == TCPR_DIR_C2S) {
                 if (randomize_iparp(tcpedit, *pkthdr, packet, 
                         tcpedit->runtime.dlt1) < 0)
@@ -199,7 +210,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
-    /* do we need to fix checksums? */
+    /* do we need to fix checksums? -- must always do this last! */
     if ((tcpedit->fixcsum || needtorecalc) && (ip_hdr != NULL)) {
         retval = fix_checksums(tcpedit, *pkthdr, ip_hdr);
         if (retval < 0) {
@@ -232,6 +243,7 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
         return TCPEDIT_ERROR;
 
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
+    tcpedit->tos = -1; /* disabled by default */
  
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.dlt1 = dlt;

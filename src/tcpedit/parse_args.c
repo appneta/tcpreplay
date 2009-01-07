@@ -139,6 +139,10 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
 
         tcpedit->ttl_value = (u_int8_t)ttl;
     }
+    
+    /* --tos */
+    if (HAVE_OPT(TOS))
+        tcpedit->tos = OPT_VALUE_TOS;
 
     /* --mtu */
     if (HAVE_OPT(MTU))

@@ -111,6 +111,9 @@ struct tcpedit_s {
 #define TCPEDIT_TTL_ADD 0x2
 #define TCPEDIT_TTL_SUB 0x3
     u_int8_t ttl_value;
+
+    /* TOS/DiffServ/ECN */
+    int tos;  /* -1 is disabled, else copy value */
     
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */

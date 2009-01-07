@@ -27,7 +27,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
 		test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
-		test2.rewrite_2ttl test2.rewrite_3ttl 
+		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -68,6 +68,7 @@ standard_prep:
 	
 standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_tos --tos=50
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
@@ -98,6 +99,7 @@ standard_bigendian:
 		
 standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_tos --tos=50	
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
@@ -134,7 +136,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
 	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel rewrite_efcs \
-	rewrite_1ttl rewrite_2ttl rewrite_3ttl
+	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi
@@ -142,110 +144,110 @@ tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Config mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) --load-opts=config -o test.$@1 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) --load-opts=config -o test.$@1  >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 auto_router:
 	$(PRINTF) "%s" "[tcpprep] Auto/Router mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Router mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a router 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a router  >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_bridge:
 	$(PRINTF) "%s" "[tcpprep] Auto/Bridge mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Bridge mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a bridge 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a bridge  >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_client:
 	$(PRINTF) "%s" "[tcpprep] Auto/Client mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Client mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a client 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a client  >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_server:
 	$(PRINTF) "%s" "[tcpprep] Auto/Server mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/Server mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a server 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a server >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 auto_first:
 	$(PRINTF) "%s" "[tcpprep] Auto/First mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Auto/First mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a first 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -a first >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 regex:
 	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' >>test.log 2>&1
 	diff  test.$@ test.$@1 >>test.log 2>&1 
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 cidr:
 	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 port:
 	$(PRINTF) "%s" "[tcpprep] Port mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Port mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -p 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -p >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 mac:
 	$(PRINTF) "%s" "[tcpprep] MAC mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] MAC mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 comment:
 	$(PRINTF) "%s" "[tcpprep] Comment mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Comment mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -C "This is a comment" -p 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -C "This is a comment" -p >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 print_comment:
 	$(PRINTF) "%s" "[tcpprep] Print comment mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Print comment mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -P test.comment >test.$@1 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -P test.comment >test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 print_info:
 	$(PRINTF) "%s" "[tcpprep] Print info mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Print info mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -I test.comment >test.$@1 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -I test.comment >test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 
 regex_reverse:
 	$(PRINTF) "%s" "[tcpprep] Regex reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex reverse mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' --reverse 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' --reverse >>test.log 2>&1
 	diff  test.$@ test.$@1 >>test.log 2>&1 
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 cidr_reverse:
 	$(PRINTF) "%s" "[tcpprep] CIDR reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR reverse mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' --reverse 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' --reverse >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 mac_reverse:
 	$(PRINTF) "%s" "[tcpprep] MAC reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] MAC reverse mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce --reverse 2>>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce --reverse >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
@@ -281,7 +283,8 @@ endif
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Endpoint test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2 -c test.auto_router
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2 \
+	    -c test.auto_router  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -292,7 +295,8 @@ endif
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Pseudo NAT test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_pnat1 -N 216.27.178.0/24:172.16.0.0/24
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_pnat1 \
+	    -N 216.27.178.0/24:172.16.0.0/24  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -305,7 +309,7 @@ rewrite_mac:
 	$(PRINTF) "%s\n" "*** [tcprewrite] Src/Dst MAC test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac1 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
-		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -361,7 +365,7 @@ endif
 rewrite_config:
 	$(PRINTF) "%s" "[tcprewrite] Config/VLAN Add test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Config/VLAN Add test: " >>test.log
-	$(TCPREWRITE) --load-opts config
+	$(TCPREWRITE) $(ENABLE_DEBUG) --load-opts config  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -372,9 +376,9 @@ endif
 rewrite_skip:
 	$(PRINTF) "%s" "[tcprewrite] Skip bcast test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Skip bcast test: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_skip1 -b -s 55 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_skip1 -b -s 55 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
-		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -385,8 +389,8 @@ endif
 rewrite_dltuser:
 	$(PRINTF) "%s" "[tcprewrite] DLT User test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User test: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_dltuser1 --dlt=user \
-		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104 
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_dltuser1 --dlt=user \
+		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -397,8 +401,8 @@ endif
 rewrite_dlthdlc:
 	$(PRINTF) "%s" "[tcprewrite] DLT Cisco HDLC test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] DLT Cisco HDLC test: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlthdlc1 --dlt=hdlc \
-		--hdlc-control=0 --hdlc-address=0x0F
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_dlthdlc1 --dlt=hdlc \
+		--hdlc-control=0 --hdlc-address=0x0F  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -409,8 +413,8 @@ endif
 rewrite_vlandel:
 	$(PRINTF) "%s" "[tcprewrite] VLAN Delete test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN Delete test: " >>test.log
-	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel1 \
-		--enet-vlan=del
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.rewrite_config -o test.rewrite_vlandel1 \
+		--enet-vlan=del  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -421,7 +425,7 @@ endif
 rewrite_efcs:
 	$(PRINTF) "%s" "[tcprewrite] Remove EFCS: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Remove EFCS: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_efcs1 --efcs
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_efcs1 --efcs >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -432,7 +436,7 @@ endif
 rewrite_1ttl:
 	$(PRINTF) "%s" "[tcprewrite] Force TTL: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Force TTL: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.$@1 --ttl=58
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --ttl=58  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -443,7 +447,7 @@ endif
 rewrite_2ttl:
 	$(PRINTF) "%s" "[tcprewrite] Increase TTL: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Increase TTL: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.$@1 --ttl=+58
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --ttl=+58  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -454,13 +458,24 @@ endif
 rewrite_3ttl:
 	$(PRINTF) "%s" "[tcprewrite] Reduce TTL: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Reduce TTL: " >>test.log
-	$(TCPREWRITE) -i test.pcap -o test.$@1 --ttl=-58
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --ttl=-58  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+rewrite_tos:
+	$(PRINTF) "%s" "[tcprewrite] TOS test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] TOS test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --tos=50  >>test.log 2>&1
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t\t%s\n" "OK"; fi
 
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
