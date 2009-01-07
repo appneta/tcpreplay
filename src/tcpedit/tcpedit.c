@@ -74,13 +74,12 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0, l2proto, retval = 0, dst_dlt, src_dlt, pktlen, lendiff;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
-    static u_char *packet = NULL;   /* static buffer to hold packet data when padding out */
-    
+    u_char *packet = *pktdata;
     assert(tcpedit);
     assert(pkthdr);
     assert(*pkthdr);
     assert(pktdata);
-    assert(*pktdata);
+    assert(packet);
     assert(tcpedit->validated);
 
 
@@ -88,20 +87,6 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     dbgx(3, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
 
-    /* 
-     * copy over our packet data.  Necessary because many options like padding or 
-     * adding VLAN tags makes the packet size increase and we'll get segfaults 
-     * later on
-     */
-            
-    /* allocate our buffer the first time */
-    if (packet == NULL)
-        packet = safe_malloc(MAX_SNAPLEN);
-
-    /* and copy over the packet data... */
-    memcpy(packet, *pktdata, (*pkthdr)->caplen);
-    *pktdata = packet;
-    
     /*
      * remove the Ethernet FCS (checksum)?
      * note that this feature requires the end user to be smart and
@@ -116,14 +101,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     src_dlt = tcpedit_dlt_src(tcpedit->dlt_ctx);
     
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
-    if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, *pktdata, (*pkthdr)->caplen)) < 0) {
+    if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen)) < 0) {
         dbg(2, "Packet has no L3+ header");
     } else {
         dbgx(2, "Layer 3 protocol type is: 0x%04x", ntohs(l2proto));
     }
         
     /* rewrite Layer 2 */
-    if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, *pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
+    if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
         errx(-1, "%s", tcpedit_geterr(tcpedit));
 
     /* unable to edit packet, most likely 802.11 management or data QoS frame */
@@ -138,13 +123,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     (*pkthdr)->len += lendiff;
     
     dst_dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
-    l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dst_dlt, *pktdata, (*pkthdr)->caplen);
+    l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
 
     dbgx(2, "dst_dlt = %04x\tsrc_dlt = %04x\tproto = %04x\tl2len = %d", dst_dlt, src_dlt, ntohs(l2proto), l2len);
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == htons(ETHERTYPE_IP)) {
-        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, *pktdata, (*pkthdr)->caplen);
+        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen);
         if (ip_hdr == NULL) {
             return TCPEDIT_ERROR;
         }        
@@ -169,7 +154,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         /* ARP packets */
         else if (l2proto == htons(ETHERTYPE_ARP)) {
-            arp_hdr = (arp_hdr_t *)(&(*pktdata)[l2len]);
+            arp_hdr = (arp_hdr_t *)&(packet[l2len]);
             /* unlike, rewrite_ipl3, we don't care if the packet changed
              * because we never need to recalc the checksums for an ARP
              * packet.  So ignore the return value
@@ -188,7 +173,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* Untruncate packet? Only for IP packets */
     if ((tcpedit->fixlen) && (ip_hdr != NULL)) {
-        if ((retval = untrunc_packet(tcpedit, *pkthdr, *pktdata, ip_hdr)) < 0)
+        if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr)) < 0)
             return TCPEDIT_ERROR;
         needtorecalc += retval;
     }
@@ -197,17 +182,17 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     /* do we need to spoof the src/dst IP address? */
     if (tcpedit->seed) {
         if (ip_hdr != NULL) {
-            if ((retval = randomize_ipv4(tcpedit, *pkthdr, *pktdata, 
+            if ((retval = randomize_ipv4(tcpedit, *pkthdr, packet, 
                     ip_hdr)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         } else {
             if (direction == TCPR_DIR_C2S) {
-                if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
+                if (randomize_iparp(tcpedit, *pkthdr, packet, 
                         tcpedit->runtime.dlt1) < 0)
                     return TCPEDIT_ERROR;
             } else {
-                if (randomize_iparp(tcpedit, *pkthdr, *pktdata, 
+                if (randomize_iparp(tcpedit, *pkthdr, packet, 
                         tcpedit->runtime.dlt2) < 0)
                     return TCPEDIT_ERROR;
             }
@@ -225,7 +210,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     }
 
     
-    tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx, dst_dlt, *pktdata, (*pkthdr)->caplen, (u_char *)ip_hdr);
+    tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen, (u_char *)ip_hdr);
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
     tcpedit->runtime.pkts_edited ++;

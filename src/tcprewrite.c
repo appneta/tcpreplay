@@ -228,30 +228,40 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 {
     tcpr_dir_t cache_result = TCPR_DIR_C2S;     /* default to primary */
     struct pcap_pkthdr pkthdr, *pkthdr_ptr;     /* packet header */
-    const u_char *pktdata = NULL;               /* packet from libpcap */
-    u_char **packet = NULL;                     /* packet from tcpedit */
+    const u_char *pktconst = NULL;              /* packet from libpcap */
+    u_char **pktdata = NULL;
+    static u_char *pktdata_buff;
     static char *frag = NULL;
     COUNTER packetnum = 0;
     int rcode, frag_len, i;
-
+    
     pkthdr_ptr = &pkthdr;
 
+    if (pktdata_buff == NULL)
+        pktdata_buff = (u_char *)safe_malloc(MAXPACKET);
+        
+    pktdata = &pktdata_buff;
+    
     if (frag == NULL)
-        frag = (char *)safe_malloc(65535); /* mtu size */
+        frag = (char *)safe_malloc(MAXPACKET);
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktdata = pcap_next(pin, pkthdr_ptr)) != NULL) {
+    while ((pktconst = pcap_next(pin, pkthdr_ptr)) != NULL) {
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 
-        packet = (u_char **)&pktdata;
-
+        /* 
+         * copy over the packet so we can pad it out if necessary and
+         * because pcap_next() returns a const ptr
+         */
+        memcpy(*pktdata, pktconst, pkthdr.caplen);
+        
 #ifdef ENABLE_VERBOSE
         if (options.verbose)
-            tcpdump_print(&tcpdump, pkthdr_ptr, pktdata);
+            tcpdump_print(&tcpdump, pkthdr_ptr, *pktdata);
 #endif
 
         /* Dual nic processing? */
@@ -268,7 +278,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         if (cache_result == TCPR_DIR_NOSEND)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
-        if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, packet, cache_result)) == TCPEDIT_ERROR) {
+        if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, pktdata, cache_result)) == TCPEDIT_ERROR) {
             return -1;
         } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
             /* don't write packet */
@@ -281,14 +291,14 @@ WRITE_PACKET:
 #ifdef ENABLE_FRAGROUTE
         if (options.frag_ctx == NULL) {
             /* write the packet when there's no fragrouting to be done */
-            pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
+            pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
         } else {
             /* packet needs to be fragmented */
             if ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
                     (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
                     (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C)) {
 
-                if (fragroute_process(options.frag_ctx, *packet, pkthdr_ptr->caplen) < 0)
+                if (fragroute_process(options.frag_ctx, *pktdata, pkthdr_ptr->caplen) < 0)
                     errx(-1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);
 
                 i = 0;
@@ -301,12 +311,12 @@ WRITE_PACKET:
                 }
             } else {
                 /* write the packet without fragroute */
-                pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
+                pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
             }
         }
 #else
     /* write the packet when there's no fragrouting to be done */
-    pcap_dump((u_char *)pout, pkthdr_ptr, *packet);
+    pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
 
 #endif
     } /* while() */

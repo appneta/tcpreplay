@@ -125,7 +125,7 @@
 
 /**
  * IEEE 802.1Q (Virtual Local Area Network) VLAN header, static header 
- * size: 18 bytes
+ * size: 8 bytes
  */
 struct tcpr_802_1q_hdr
 {
@@ -158,7 +158,7 @@ struct tcpr_802_1x_hdr
 /*
  *  IEEE 802.2 LLC header
  *  Link Layer Control
- *  static header size: 3 bytes
+ *  static header size: 4 bytes
  */
 struct tcpr_802_2_hdr
 {
@@ -166,7 +166,7 @@ struct tcpr_802_2_hdr
     u_int8_t llc_ssap;            /* source service access point */
 #define TCPR_SAP_STP          0x42
 #define TCPR_SAP_SNAP         0xaa
-    u_int8_t llc_control;         /* control field */
+    u_int16_t llc_control;         /* control field */
 };
 
 

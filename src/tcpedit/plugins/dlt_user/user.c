@@ -225,19 +225,15 @@ dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_user_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 {
-    u_char *packet;
     int l2len;
     user_config_t *config;
     tcpeditdlt_plugin_t *plugin;
     u_char tmpbuff[MAXPACKET];
 
     assert(ctx);
-    assert(packet_ex);
     assert(pktlen > 0);
-    
-    packet = *packet_ex;
     assert(packet);
     
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);

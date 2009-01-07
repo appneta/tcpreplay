@@ -41,7 +41,7 @@ int dlt_radiotap_init(tcpeditdlt_t *ctx);
 int dlt_radiotap_cleanup(tcpeditdlt_t *ctx);
 int dlt_radiotap_parse_opts(tcpeditdlt_t *ctx);
 int dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t dir);
+int dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
 int dlt_radiotap_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_radiotap_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
 u_char *dlt_radiotap_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);

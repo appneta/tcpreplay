@@ -98,7 +98,7 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_cleanup)(tcpeditdlt_t *);
     int (*plugin_parse_opts)(tcpeditdlt_t *);
     int (*plugin_decode)(tcpeditdlt_t *, const u_char *, const int);
-    int (*plugin_encode)(tcpeditdlt_t *, u_char **, int, tcpr_dir_t);
+    int (*plugin_encode)(tcpeditdlt_t *, u_char *, int, tcpr_dir_t);
     int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
     int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
     u_char *(*plugin_get_layer3)(tcpeditdlt_t *,  u_char *, const int);

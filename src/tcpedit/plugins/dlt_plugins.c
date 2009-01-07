@@ -210,9 +210,10 @@ INIT_ERROR:
 
 /**
  * This is the recommended method to edit a packet.  Returns (new) total packet length
+ * FIXME: This is *broken*.  taking packet as a u_char*, but using it as a u_char **!
  */
 int
-tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t direction)
+tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t direction)
 {
     int rcode;
     
@@ -226,7 +227,7 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t di
         return pktlen;
     
     /* decode packet */    
-    if ((rcode = tcpedit_dlt_decode(ctx, packet, pktlen)) == TCPEDIT_ERROR) {
+    if ((rcode = tcpedit_dlt_decode(ctx, *packet, pktlen)) == TCPEDIT_ERROR) {
         return TCPEDIT_ERROR;
     } else if (rcode == TCPEDIT_WARN) {
         warnx("Warning decoding packet: %s", tcpedit_getwarn(ctx->tcpedit));
@@ -235,7 +236,7 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t di
     }
     
     /* encode packet */
-    if ((rcode = tcpedit_dlt_encode(ctx, &packet, pktlen, direction)) == TCPEDIT_ERROR) {
+    if ((rcode = tcpedit_dlt_encode(ctx, *packet, pktlen, direction)) == TCPEDIT_ERROR) {
         return TCPEDIT_ERROR;
     } else if (rcode == TCPEDIT_WARN) {
         warnx("Warning encoding packet: %s", tcpedit_getwarn(ctx->tcpedit));
@@ -371,7 +372,7 @@ tcpedit_dlt_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Call the specific plugin encode() method
  */
 int 
-tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char **packet, int pktlen, tcpr_dir_t direction)
+tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char *packet, int pktlen, tcpr_dir_t direction)
 {
     return ctx->encoder->plugin_encode(ctx, packet, pktlen, direction);
 }

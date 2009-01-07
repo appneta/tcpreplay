@@ -59,13 +59,13 @@ int tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const in
 /*
  * process the given packet, by calling decode & encode
  */
-int tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t direction);
+int tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t direction);
 
 /*
  * or you can call them sperately if you want
  */
 int tcpedit_dlt_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char **packet, int pktlen, tcpr_dir_t direction);
+int tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char *packet, int pktlen, tcpr_dir_t direction);
 
 /*
  * After processing each packet, you can get info about L2/L3

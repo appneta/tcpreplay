@@ -41,7 +41,7 @@ int dlt_linuxsll_init(tcpeditdlt_t *ctx);
 int dlt_linuxsll_cleanup(tcpeditdlt_t *ctx);
 int dlt_linuxsll_parse_opts(tcpeditdlt_t *ctx);
 int dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t dir);
+int dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
 int dlt_linuxsll_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_linuxsll_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
 u_char *dlt_linuxsll_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);

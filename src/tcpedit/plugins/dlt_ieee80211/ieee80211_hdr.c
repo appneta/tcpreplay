@@ -45,11 +45,11 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 {
     u_int16_t *frame_control, fc;
     struct tcpr_802_2snap_hdr *snap;
-    int hdrlen;
-    
+    int hdrlen = 0;
+
     assert(ctx);
     assert(packet);
-    
+
     /* Ack, Auth, NULL packets often are very small (10-30 bytes) */
     if (pktlen <= (int)sizeof(ieee80211_hdr_t)) {
         dbgx(1, "**** packet " COUNTER_SPEC " is too small (%d)", ctx->tcpedit->runtime.packetnum, pktlen);
@@ -66,43 +66,45 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
      * 0010 - Data + Poll
      * 0011 - Data + Ack + Poll
      * 01?? - Data + Null (no data)
+     * 1000 - QoS (w/ data)
      * 1100 - QoS (no data)
      * 1??? - Reserved (beacon, etc)
      * FIXME:
      * So right now, we only look for pure data frames, since I'm not sure what to do with ACK/Poll
      */
-     
+
     frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
-    
+
     /* check for data */
-    if ((fc & ieee80211_FC_TYPE_MASK) != ieee80211_FC_TYPE_DATA) {
-        return 0;
+    if ((fc & ieee80211_FC_TYPE_MASK) == ieee80211_FC_TYPE_DATA) {
+        return 1;
     }
-    
-    /* QoS is set by the high bit, all the lower bits are QoS sub-types */
+
+    /* QoS is set by the high bit, all the lower bits are QoS sub-types 
+       QoS seems to add 2 bytes of data at the end of the 802.11 hdr */
     if ((fc & ieee80211_FC_SUBTYPE_MASK) >= ieee80211_FC_SUBTYPE_QOS) {
-        return 0;
+        hdrlen += 2;
     }
-    
+
     /* frame must also have a 802.2 SNAP header */
     if (ieee80211_USE_4(fc)) {
-        hdrlen = sizeof(ieee80211_addr4_hdr_t);
+        hdrlen += sizeof(ieee80211_addr4_hdr_t);
     } else {
-        hdrlen = sizeof(ieee80211_hdr_t);
+        hdrlen += sizeof(ieee80211_hdr_t);
     }
-        
+
     if (pktlen < hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr)) {
         return 0; /* not long enough for SNAP */
     }
-    
+
     snap = (struct tcpr_802_2snap_hdr *)&((u_char *)packet)[hdrlen];
-    
+
     /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
     if (snap->snap_dsap == 0xAA && snap->snap_ssap == 0xAA) {
         return 1;
     } 
-    
+
     warnx("Packet " COUNTER_SPEC " is unknown reason for non-data", ctx->tcpedit->runtime.packetnum);
 
     return 0;
@@ -122,7 +124,7 @@ ieee80211_is_encrypted(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 
     frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
-    
+
     if ((fc & ieee80211_FC_WEP_MASK) == ieee80211_FC_WEP_MASK) {
         return 1;
     }
@@ -141,7 +143,7 @@ ieee80211_get_src(const void *header)
     ieee80211_hdr_t *addr3;
     ieee80211_addr4_hdr_t *addr4;
     u_int16_t *frame_control, fc;
-    
+
     assert(header);
     frame_control = (u_int16_t *)header;
     fc = ntohs(*frame_control);
@@ -171,7 +173,7 @@ ieee80211_get_dst(const void *header)
     ieee80211_hdr_t *addr3;
     ieee80211_addr4_hdr_t *addr4;
     u_int16_t *frame_control, fc;
-    
+
     assert(header);
     frame_control = (u_int16_t *)header;
     fc = ntohs(*frame_control);

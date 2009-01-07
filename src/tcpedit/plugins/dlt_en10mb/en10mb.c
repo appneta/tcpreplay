@@ -332,9 +332,8 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t dir)
+dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 {
-    u_char *packet;
     tcpeditdlt_plugin_t *plugin = NULL;
     struct tcpr_ethernet_hdr *eth = NULL;
     struct tcpr_802_1q_hdr *vlan = NULL;
@@ -344,10 +343,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, tcpr_dir_t 
     int newl2len = 0;
 
     assert(ctx);
-    assert(packet_ex);
     assert(pktlen >= 14);
-    
-    packet = *packet_ex;
     assert(packet);
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);

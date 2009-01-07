@@ -221,20 +221,17 @@ dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_t dir)
+dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     cisco_hdlc_t *hdlc;
     hdlc_config_t *config = NULL;
     hdlc_extra_t *extra = NULL;
     tcpeditdlt_plugin_t *plugin = NULL;
-    u_char *packet;
     u_char tmpbuff[MAXPACKET];
+    int newpktlen;
 
     assert(ctx);
-    assert(packet_ex);
     assert(pktlen >= 4);
-    
-    packet = *packet_ex;
     assert(packet);
 
     /* Make room for our new l2 header if old l2len != 4 */
@@ -246,7 +243,7 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_
     }
     
     /* update the total packet length */
-    pktlen += 4 - ctx->l2len;
+    newpktlen = pktlen + 4 - ctx->l2len;
     
     /* 
      * HDLC doesn't support direction, since we have no real src/dst addresses
@@ -280,7 +277,7 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_
     /* copy over our protocol */
     hdlc->protocol = ctx->proto;
     
-    return pktlen; /* success */
+    return newpktlen; /* success */
 }
 
 /*

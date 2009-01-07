@@ -224,14 +224,14 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_t dir)
+dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
-    u_char *packet;
+    // u_char *packet;
     assert(ctx);
-    assert(packet_ex);
+    // assert(packet_ex);
     assert(pktlen);
     
-    packet = *packet_ex;
+    // packet = *packet_ex;
     assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_IEEE802_11 plugin does not support packet encoding");
@@ -244,7 +244,8 @@ dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr
 int 
 dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    int l2len, hdrlen;
+    int l2len;
+    int hdrlen = 0;
     u_int16_t *frame_control, fc;
     struct tcpr_802_2snap_hdr *hdr;
 
@@ -262,15 +263,19 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if ((fc & ieee80211_FC_TYPE_MASK) != ieee80211_FC_TYPE_DATA)
         return TCPEDIT_SOFT_ERROR;
     
-    /* Some data frames are QoS and have no data */
-    if (((fc & ieee80211_FC_SUBTYPE_MASK) & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS)
+    /* Some data frames are QoS and have no data 
+        if (((fc & ieee80211_FC_SUBTYPE_MASK) & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS)
         return TCPEDIT_SOFT_ERROR;
+    */
+    if ((fc & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS) {
+        hdrlen += 2;
+    }
     
     /* figure out the actual header length */
     if (ieee80211_USE_4(fc)) {
-        hdrlen = sizeof(ieee80211_addr4_hdr_t);
+        hdrlen += sizeof(ieee80211_addr4_hdr_t);
     } else {
-        hdrlen = sizeof(ieee80211_hdr_t);
+        hdrlen += sizeof(ieee80211_hdr_t);
     }
     
     hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
@@ -346,21 +351,19 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     frame_control = (u_int16_t *)packet;
     fc = ntohs(*frame_control);
 
+    
     if (ieee80211_USE_4(fc)) {
         hdrlen = sizeof(ieee80211_addr4_hdr_t);
     } else {
         hdrlen = sizeof(ieee80211_hdr_t);
     }
     
-    /* if Data/QoS, then L2 len is +2 bytes and there isn't anything else */
-    if (((fc & ieee80211_FC_SUBTYPE_MASK) & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS) {
-        dbgx(2, "total header length (fc %04x) (802.11 + QoS data): %d", ntohs(fc), hdrlen + 2);
-        return hdrlen + 2;
+    /* if Data/QoS, then L2 len is + 2 bytes */
+    if ((fc & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS) {
+        dbgx(2, "total header length (fc %04x) (802.11 + QoS data): %d", fc, hdrlen + 2);
+        hdrlen += 2;
     }
-        
-    
-    dbgx(2, "header length: %d", hdrlen);
-    
+
     if (pktlen < hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr)) {
         return TCPEDIT_SOFT_ERROR;
     }
@@ -374,6 +377,8 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         hdrlen += (int)sizeof(struct tcpr_802_2_hdr);
         dbgx(2, "total header length (802.11 + 802.2): %d (%02x/%02x)", hdrlen, hdr->snap_dsap, hdr->snap_ssap);
     }
+
+    dbgx(2, "header length: %d", hdrlen);
     return hdrlen;
 }
 

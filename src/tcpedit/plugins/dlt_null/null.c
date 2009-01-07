@@ -221,14 +221,10 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_null_encode(tcpeditdlt_t *ctx, u_char **packet_ex, int pktlen, _U_ tcpr_dir_t dir)
+dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
-    u_char *packet;
     assert(ctx);
-    assert(packet_ex);
     assert(pktlen > 0);
-    
-    packet = *packet_ex;
     assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_NULL and DLT_LOOP plugins do not support packet encoding");

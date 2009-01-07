@@ -140,7 +140,7 @@ main(int argc, char *argv[])
     init_signal_handlers();
 
     if (gettimeofday(&begin, NULL) < 0)
-        err(-1, "gettimeofday() failed");
+        errx(-1, "gettimeofday() failed: %s",  strerror(errno));
 
     /* main loop for non-bridge mode */
     if (options.loop > 0) {

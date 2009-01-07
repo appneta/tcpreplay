@@ -41,7 +41,7 @@ int dlt_ieee80211_init(tcpeditdlt_t *ctx);
 int dlt_ieee80211_cleanup(tcpeditdlt_t *ctx);
 int dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx);
 int dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t dir);
+int dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
 int dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
 u_char *dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
@@ -56,15 +56,15 @@ struct ieee80211_hdr_s {
 #define ieee80211_FC_VERSION_MASK   0x0300
 
 /* type is second 2 bytes */
-#define ieee80211_FC_TYPE_MASK      0x0C00
+#define ieee80211_FC_TYPE_MASK      0x0F00
 #define ieee80211_FC_TYPE_DATA      0x0800
 #define ieee80211_FC_TYPE_MGMT      0x0000
 #define ieee80211_FC_TYPE_CONTROL   0x0400
 #define ieee80211_FC_TYPE_RESERVED  0x0C00
 
 /* subtype is the 4 high bytes */
-#define ieee80211_FC_SUBTYPE_MASK   0xF000
-#define ieee80211_FC_SUBTYPE_QOS    0xC000 /* high bit is QoS, but there are sub-sub types for QoS */
+#define ieee80211_FC_SUBTYPE_MASK   0x0F00
+#define ieee80211_FC_SUBTYPE_QOS    0x8000 /* high bit is QoS, but there are sub-sub types for QoS */
 
 
 /* Direction */
@@ -125,5 +125,6 @@ struct ieee80211_config_s {
     int dummy;
 };
 typedef struct ieee80211_config_s ieee80211_config_t;
+
 
 #endif

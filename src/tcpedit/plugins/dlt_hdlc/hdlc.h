@@ -41,7 +41,7 @@ int dlt_hdlc_init(tcpeditdlt_t *ctx);
 int dlt_hdlc_cleanup(tcpeditdlt_t *ctx);
 int dlt_hdlc_parse_opts(tcpeditdlt_t *ctx);
 int dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t dir);
+int dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
 int dlt_hdlc_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
 u_char *dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
