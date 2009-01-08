@@ -155,7 +155,7 @@ void
 post_args(_U_ int argc, _U_ char *argv[])
 {
     char ebuf[SENDPACKET_ERRBUF_SIZE];
-    char *eth_buff;
+    struct tcpr_ether_addr *eth_buff;
     char *intname;
     sendpacket_t *sp;
 #ifdef ENABLE_PCAP_FINDALLDEVS
@@ -222,7 +222,7 @@ post_args(_U_ int argc, _U_ char *argv[])
     /* if user doesn't specify MAC address on CLI, query for it */
     if (memcmp(options.intf1_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
         if ((sp = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S)) == NULL)
-            errx(-1, "Unable to open interface: %s", options.intf1, ebuf);
+            errx(-1, "Unable to open interface %s: %s", options.intf1, ebuf);
 
         if ((eth_buff = sendpacket_get_hwaddr(sp)) == NULL) {
             warnx("Unable to get MAC address: %s", sendpacket_geterr(sp));
@@ -244,7 +244,7 @@ post_args(_U_ int argc, _U_ char *argv[])
     /* if user doesn't specify second MAC address on CLI, query for it */
     if (memcmp(options.intf2_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
         if ((sp = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
-            errx(-1, "Unable to open interface: %s", options.intf2, ebuf);
+            errx(-1, "Unable to open interface %s: %s", options.intf2, ebuf);
 
         if ((eth_buff = sendpacket_get_hwaddr(sp)) == NULL) {
             warnx("Unable to get MAC address: %s", sendpacket_geterr(sp));

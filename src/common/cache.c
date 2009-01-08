@@ -182,7 +182,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     }
 
     written = write(out_file, cache_header, sizeof(tcpr_cache_file_hdr_t));
-    dbgx(1, "Wrote %d bytes of cache file header", written);
+    dbgx(1, "Wrote %zu bytes of cache file header", written);
 
     if (written != sizeof(tcpr_cache_file_hdr_t))
         errx(-1, "Only wrote %zu of %zu bytes of the cache file header!\n%s",
@@ -192,7 +192,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     /* don't write comment if there is none */
     if (comment != NULL) {
         written = write(out_file, comment, strlen(comment));
-        dbgx(1, "Wrote %d bytes of comment", written);
+        dbgx(1, "Wrote %zu bytes of comment", written);
         
         if (written != (ssize_t)strlen(comment))
             errx(-1, "Only wrote %zu of %zu bytes of the comment!\n%s",
@@ -216,7 +216,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
 
         /* write to file, and verify it wrote properly */
         written = write(out_file, mycache->data, chars);
-        dbgx(1, "Wrote %i bytes of cache data", written);
+        dbgx(1, "Wrote %zu bytes of cache data", written);
         if (written != (ssize_t)chars)
             errx(-1, "Only wrote %zu of %i bytes to cache file!", written, chars);
 

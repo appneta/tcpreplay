@@ -75,6 +75,9 @@
 /* Define to 1 if you have the `ctime' function. */
 #undef HAVE_CTIME
 
+/* Building Apple/Darwin */
+#undef HAVE_DARWIN
+
 /* Define this if /dev/zero is readable device */
 #undef HAVE_DEV_ZERO
 

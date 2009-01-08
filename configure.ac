@@ -1003,6 +1003,7 @@ case $host in
     fi
     AC_DEFINE([HAVE_ABSOLUTE_TIME], [1], [Have OS X UpTime()/AbsoluteTime high-precision timing])
     osx_frameworks=yes
+    AC_DEFINE([HAVE_DARWIN], [1], [Building Apple/Darwin])
 	AC_MSG_RESULT(Apple OS X)
 	;;
 

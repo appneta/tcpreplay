@@ -557,7 +557,7 @@ post_args(int argc, char *argv[])
         /* remove trailing space */
         myargs[strlen(myargs) - 1] = 0;
 
-        dbgx(1, "Comment args length: %d", strlen(myargs));
+        dbgx(1, "Comment args length: %zu", strlen(myargs));
     }
 
     /* setup or options.comment buffer so that that we get args\ncomment */
@@ -576,7 +576,7 @@ post_args(int argc, char *argv[])
         strlcpy(options.comment, myargs, bufsize);
     }
         
-    dbgx(1, "Final comment length: %d", strlen(options.comment));
+    dbgx(1, "Final comment length: %zu", strlen(options.comment));
 
     /* copy over our min/max mask */
     options.min_mask = OPT_VALUE_MINMASK;

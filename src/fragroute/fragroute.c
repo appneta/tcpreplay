@@ -43,7 +43,6 @@ int
 fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 {
     struct pkt *pkt;
-    int l2len;
     assert(ctx);
     assert(buf);
     

@@ -333,7 +333,6 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     struct timeval nap_for, now, sleep_until;
     struct timespec nap_this_time;
     static int32_t nsec_adjuster = -1, nsec_times = -1;
-    static int pps_multi = 0;
     float n;
     static u_int32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
     u_int64_t ppnsec; /* packets per usec */
@@ -342,7 +341,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
 
 #ifdef TCPREPLAY
     adjuster.tv_nsec = options.sleep_accel * 1000;
-    dbgx(4, "Adjuster: " TIMEVAL_FORMAT, adjuster.tv_sec, adjuster.tv_nsec);
+    dbgx(4, "Adjuster: " TIMESPEC_FORMAT, adjuster.tv_sec, adjuster.tv_nsec);
 #else
     adjuster.tv_nsec = 0;
 #endif
@@ -422,7 +421,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
             nap.tv_sec = n;
             nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
             
-            dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMEVAL_FORMAT, len, n, 
+            dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n, 
                 nap.tv_sec, nap.tv_nsec);
         }
         else {
@@ -495,7 +494,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
                     nap_this_time.tv_nsec -= (nap_this_time.tv_nsec % 1000);
                 }
     
-                dbgx(3, "(%ld)\tnsec_times = %ld\tnap adjust: %lu -> %lu", nsec_adjuster, nsec_times, nap.tv_nsec, nap_this_time.tv_nsec);            
+                dbgx(3, "(%d)\tnsec_times = %d\tnap adjust: %lu -> %lu", nsec_adjuster, nsec_times, nap.tv_nsec, nap_this_time.tv_nsec);            
                 break;
                 
             default:
