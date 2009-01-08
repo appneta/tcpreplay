@@ -1,5 +1,24 @@
 $Id$
 
+01/15/2009: Version 3.4.0
+    - Add libdnet and remove libnet support for sending packets (#302)
+    - Fix numerous 802.11 decoder bugs (#325)
+    - Fix compile issue under Linux (#326)
+    - Fix Mbps/sec nonsense (#327)
+    - Make tcprewrite more robust against packets with no L3+ data (#328)
+    - Clean up err.c/err.h code and improve performance for non-debug builds (#331)
+    - Fix timesdiv() timer code (#332)
+    - Improve high-performance packet sending via multiple packets/interval (#334)
+    - Fix statistics report errors (#335)
+    - Fix BPF filters not being used in tcpbridge (#336)
+    - Fix autotools usage errors (#340)
+    - Clean up 'make test' results (#341)
+    - Update to AutoGen/AutoOpts 5.9.7 (#342)
+    - Clean up compiler warnings from GCC 4.2 (#344)
+    - Fix numerous memory corruption bugs in libtcpedit DLT plugin code (#345)
+    - Add support for editing IPv4 TOS/DiffServ/ECN (#348)
+    - Update autotools to more recent versions (#349)
+
 06/20/2008: Version 3.3.2
     - Fix (again) tcpbridge --unidir assert error (#308)
     - Fix tcpbridge bug where all packets that were sent were all zeros
