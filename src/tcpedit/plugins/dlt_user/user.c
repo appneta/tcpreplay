@@ -227,7 +227,6 @@ dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 int 
 dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 {
-    int l2len;
     user_config_t *config;
     tcpeditdlt_plugin_t *plugin;
     u_char tmpbuff[MAXPACKET];
@@ -240,9 +239,9 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     config = plugin->config;
 
     /* Make room for our new l2 header if l2len != config->length */
-    if (l2len > config->length) {
+    if (ctx->l2len > config->length) {
         memmove(packet + config->length, packet + ctx->l2len, pktlen - ctx->l2len);
-    } else if (l2len < config->length) {
+    } else if (ctx->l2len < config->length) {
         memcpy(tmpbuff, packet, pktlen);
         memcpy(packet + config->length, (tmpbuff + ctx->l2len), pktlen - ctx->l2len);
     }
