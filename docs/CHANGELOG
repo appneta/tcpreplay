@@ -19,6 +19,7 @@ $Id$
     - Add support for editing IPv4 TOS/DiffServ/ECN (#348)
     - Update autotools to more recent versions (#349)
     - Report injection method via -V (#352)
+    - Fix DLT_USER l2len check bug (#353)
 
 06/20/2008: Version 3.3.2
     - Fix (again) tcpbridge --unidir assert error (#308)
