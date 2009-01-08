@@ -952,3 +952,9 @@ sendpacket_get_dlt(sendpacket_t *sp)
 #endif
     return dlt;
 }
+
+const char *
+sendpacket_get_method()
+{
+    return INJECT_METHOD;
+}

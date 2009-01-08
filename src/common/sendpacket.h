@@ -94,6 +94,7 @@ char *sendpacket_getstat(sendpacket_t *);
 sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t);
 struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 int sendpacket_get_dlt(sendpacket_t *);
+const char *sendpacket_get_method();
 
 #endif /* _SENDPACKET_H_ */
 
