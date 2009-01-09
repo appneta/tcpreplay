@@ -39,10 +39,12 @@ AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
 
+have_cygwin=no
 AC_MSG_CHECKING([for cygwin development environment])
 if test `echo $target | grep -c cygwin` -gt 0 ; then
-   AC_DEFINE([HAVE_WIN32], [1], [Windows/Cygwin])
-   AC_MSG_RESULT(yes)
+   	AC_DEFINE([HAVE_WIN32], [1], [Windows/Cygwin])
+   	AC_MSG_RESULT(yes)
+	have_cygwin=yes
 else
    AC_MSG_RESULT(no)
 fi
@@ -677,25 +679,27 @@ main(int argc, char *argv[]) {
 
 
 dnl ##################################################
-dnl # Check for libdnet
+dnl # Check for libdnet, but only if not Cygwin! 
 dnl ##################################################
 founddnet=no
 have_libdnet=no
 libdnet_version=
 enable_fragroute=no
 trydnetdir=/usr/local
-AC_MSG_CHECKING(for libdnet)
-AC_ARG_WITH(libdnet,
-    AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
-    [trydnetdir=$withval])
+
+if test $have_cygwin == no ; then
+	AC_MSG_CHECKING(for libdnet)
+	AC_ARG_WITH(libdnet,
+	    AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
+	    [trydnetdir=$withval])
  
 	for testdir in $trydnetdir /usr/local /opt/local /usr ; do 
-    	if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-            LDNETINC="`$testdir/bin/dnet-config --cflags`"
-            LDNETLIB="`$testdir/bin/dnet-config --libs`"
-            libdnet_version="`$testdir/bin/dnet-config --version`"
-        	founddnet=$testdir
-     	fi
+	   	if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+	           LDNETINC="`$testdir/bin/dnet-config --cflags`"
+	           LDNETLIB="`$testdir/bin/dnet-config --libs`"
+	           libdnet_version="`$testdir/bin/dnet-config --version`"
+	       	founddnet=$testdir
+	    	fi
 	done
 
 	if test $founddnet = no ; then
@@ -707,6 +711,11 @@ AC_ARG_WITH(libdnet,
 		have_libdnet=yes
 	    AC_DEFINE([HAVE_LIBDNET], [1], [Do we have libdnet?])
 	fi
+
+else
+	AC_MSG_NOTICE([Skipping libdnet check under Cygwin for compatibility reasons])
+fi
+
 
 AC_SUBST(LDNETINC)
 AC_SUBST(LDNETLIB)
@@ -723,17 +732,6 @@ if test $have_bpf = no -a $have_pcap_inject = no -a $have_pcap_sendpacket = no \
 	-a $have_libdnet = no -a $have_pf = no ; then
 	AC_MSG_ERROR([Unable to find a supported method to send packets.  Please upgrade your libpcap or enable libdnet])
 fi
-
-dnl Libpcap support doesn't give us a method to get the hardware address of the
-dnl interfaces which prevents us from doing proper filtering to prevent bridging loops
-enable_tcpbridge=yes
-if test $have_bpf = no -a $have_libdnet = no -a $have_pf = no ; then
-	AC_MSG_NOTICE([tcpbridge support disabled without BPF, Libdnet or Linux PF_PACKET])
-	enable_tcpbridge=no
-fi
-
-# ADT: Commented for now
-# AM_CONDITIONAL(ENABLE_TCPBRIDGE, [test $enable_tcpbridge = yes])
 
 dnl Older versions of libpcap are missing some DLT types
 dnl If doesn't exist, we'll define them in src/common/fakepcap.h
@@ -1101,7 +1099,6 @@ Use libopts tearoff:        ${enable_local_libopts}
 64bit counter support:      ${use64bit_counters}
 tcpdump binary path:        ${tcpdump_path}
 tcpreplay edit support:     ${tcpreplay_edit}
-tcpbridge support:          ${enable_tcpbridge}
 fragroute support:          ${enable_fragroute}
 
 Supported Packet Injection Methods (*):
