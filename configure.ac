@@ -516,6 +516,10 @@ if test $have_dlt_to_desc = yes ; then
               [Does libpcap have dlt_val_to_desc?])
 fi
 
+dnl Important: winpcap apparently defines functions in it's header files
+dnl which aren't actually in the library.  Totally fucked up.  Hence, we
+dnl must actually LINK the code, not just compile it.
+
 dnl Check to see if we've got pcap_dump_fopen()
 AC_MSG_CHECKING(for pcap_dump_fopen)
 AC_LINK_IFELSE(AC_LANG_PROGRAM([[
@@ -546,23 +550,50 @@ fi
 have_pcap_inject=no
 dnl Check to see if we've got pcap_inject()
 AC_MSG_CHECKING(for pcap_inject sending support)
-AC_TRY_COMPILE([
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "$LPCAPINC"
-],[
+]],[[
 	pcap_t *pcap;
 	char *buf;
     pcap_inject(pcap, (void *)buf, 0);
-],[
-	AC_DEFINE([HAVE_PCAP_INJECT], [1], 
-              [Does libpcap have pcap_inject?])
-	AC_MSG_RESULT(yes)
-	have_pcap_inject=yes
-],[
-	AC_MSG_RESULT(no)
+]]),[
+    have_pcap_inject=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_inject=no
+    AC_MSG_RESULT(no)
 ])
+
+if test $have_pcap_inject = yes ; then
+	AC_DEFINE([HAVE_PCAP_INJECT], [1], [Does libpcap have pcap_inject?])
+fi
+
+have_pcap_sendpacket=no
+dnl Check to see if we've got pcap_sendpacket()
+AC_MSG_CHECKING(for pcap_sendpacket sending support)
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+	pcap_t *pcap;
+	u_char *buf;
+    pcap_sendpacket(pcap, buf, 0);
+]]),[
+    have_pcap_sendpacket=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_sendpacket=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_sendpacket = yes ; then
+	AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], [Does libpcap have pcap_sendpacket?])
+fi
 
 have_pcap_version=no
 dnl Check to see if we have pcap_version[]
@@ -582,26 +613,6 @@ extern char pcap_version[];
 	AC_MSG_RESULT(no)
 ])
 
-have_pcap_sendpacket=no
-dnl Check to see if we've got pcap_sendpacket()
-AC_MSG_CHECKING(for pcap_sendpacket sending support)
-AC_TRY_COMPILE([
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "$LPCAPINC"
-],[
-	pcap_t *pcap;
-	u_char *buf;
-    pcap_sendpacket(pcap, buf, 0);
-],[
-	AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], 
-              [Does libpcap have pcap_sendpacket?])
-	AC_MSG_RESULT(yes)
-	have_pcap_sendpacket=yes
-],[
-	AC_MSG_RESULT(no)
-])
 
 have_pf=no
 dnl Check for linux PF_PACKET support
