@@ -67,6 +67,7 @@ AC_PATH_PROG(PRINTF, printf)
 AC_PATH_PROG(ECHO, echo)
 AC_PATH_PROG(CUT, cut)
 AC_PATH_PROG(AUTOGEN, autogen)
+AC_PATH_PROG(GROFF, groff)
 
 dnl check autogen version
 AUTOGEN_VERSION=unknown

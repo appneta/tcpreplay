@@ -20,6 +20,7 @@ $Id$
     - Update autotools to more recent versions (#349)
     - Report injection method via -V (#352)
     - Fix DLT_USER l2len check bug (#353)
+    - Replace man2html w/ groff (#354)
 
 06/20/2008: Version 3.3.2
     - Fix (again) tcpbridge --unidir assert error (#308)
