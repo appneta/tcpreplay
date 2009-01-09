@@ -353,7 +353,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
      if (pcap_inject(send, pktdata, pkthdr->caplen) < (int)pkthdr->caplen)
          errx(-1, "Unable to send packet out %s: %s", send == options.pcap1 ? options.intf1 : options.intf2, pcap_geterr(send));
 #elif defined HAVE_PCAP_SENDPACKET
-     if (pcap_inject(send, pktdata, pkthdr->caplen) < 0)
+     if (pcap_sendpacket(send, pktdata, pkthdr->caplen) < 0)
          errx(-1, "Unable to send packet out %s: %s", send == options.pcap1 ? options.intf1 : options.intf2, pcap_geterr(send));
 #else
 #error Can not compile tcpbridge without pcap_inject() or pcap_sendpacket()
