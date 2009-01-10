@@ -108,10 +108,11 @@ new_node(void)
 static void
 do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 {
-    assert(options);
-    assert(tcpedit);
     struct live_data_t livedata;
     int retcode;
+
+    assert(options);
+    assert(tcpedit);
     
     livedata.tcpedit = tcpedit;
     livedata.source = PCAP_INT1;
