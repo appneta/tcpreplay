@@ -23,7 +23,7 @@ $Id$
     - Report injection method via -V (#352)
     - Fix DLT_USER l2len check bug (#353)
     - Replace man2html w/ groff (#354)
-	- Fix false pcap_inject() detection under Winpcap (#355)
+	- Fix false pcap_inject() detection under Windows/Winpcap (#355)
 	- tcpbridge now builds under Win32/Cygwin
 	- libdnet is no longer an option for Win32/Cygwin (#57)
 	- tcpbridge now supports --listnics (#357)
