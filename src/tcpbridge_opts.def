@@ -138,6 +138,23 @@ be sent uni-directionally.
 EOText;
 };
 
+flag = {
+	ifdef		= ENABLE_PCAP_FINDALLDEVS;
+	name		= listnics;
+	descrip		= "List available network interfaces and exit";
+	immediate;
+	doc			= "";
+	flag-code	= <<- EOFlag
+	
+	interface_list_t *list = get_interface_list();
+	list_interfaces(list);
+	free(list);
+    exit(0);
+	
+EOFlag;
+};
+
+
 /*
  * Select which packets to process
  */

@@ -26,6 +26,7 @@ $Id$
 	- Fix false pcap_inject() detection under Winpcap (#355)
 	- tcpbridge now builds under Win32/Cygwin
 	- libdnet is no longer an option for Win32/Cygwin (#57)
+	- tcpbridge now supports --listnics (#357)
 
 06/20/2008: Version 3.3.2
     - Fix (again) tcpbridge --unidir assert error (#308)
