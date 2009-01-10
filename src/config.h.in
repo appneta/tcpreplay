@@ -30,6 +30,9 @@
 /* Enable use of pcap_findalldevs() */
 #undef ENABLE_PCAP_FINDALLDEVS
 
+/* Compile tcpbridge */
+#undef ENABLE_TCPBRIDGE
+
 /* Do we have tcpdump and pcap_dump_fopen()? */
 #undef ENABLE_VERBOSE
 
@@ -193,6 +196,9 @@
 
 /* Do we have libpcapnav? */
 #undef HAVE_PCAPNAV
+
+/* Does libpcap have pcap_breakloop? */
+#undef HAVE_PCAP_BREAKLOOP
 
 /* Does libpcap have pcap_dump_fopen? */
 #undef HAVE_PCAP_DUMP_FOPEN
