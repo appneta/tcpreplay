@@ -20,6 +20,9 @@ update:
 
 DOCS_DIR = $(top_builddir)/docs
 
+manpages:
+	cd src && make manpages
+
 docs: manpages
 	echo Making docs in $(DOCS_DIR)
 	cd $(DOCS_DIR) && make docs
@@ -27,11 +30,8 @@ docs: manpages
 clean-docs:
 	cd $(DOCS_DIR) && make clean-docs
 
-postweb: manpages doxygen
+postweb: docs doxygen
 	cd $(DOCS_DIR) && make postweb
-
-manpages:
-	cd src && make manpages
 
 TEST_DIR = $(top_builddir)/test
 

@@ -2,8 +2,7 @@ MAKEFLAGS=-s
 
 .PHONY: manpages
 
-docs: manpages
-
+docs: clean-docs manpages
 
 web/tcpreplay.html:
 	@GROFF@ -Thtml -mman ../src/tcpreplay.1 > web/tcpreplay.html
@@ -24,7 +23,7 @@ manpages: web/tcpreplay.html web/tcpprep.html web/tcprewrite.html \
     web/tcpbridge.html web/tcpreplay-edit.html
 
 postweb: manpages
-	rsync -e ssh --exclude '.svn/' --exclude '/**/.svn/' --exclude '/**~' \
+	rsync -qe ssh --exclude '.svn/' --exclude '/**/.svn/' --exclude '/**~' \
 	--exclude '*~' -avz web/ \
 	aturner@malbec.synfin.net:/var/vhosts/tcpreplay/
 	scp CHANGELOG TODO aturner@malbec.synfin.net:/var/vhosts/tcpreplay/
