@@ -111,14 +111,17 @@ do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
     assert(options);
     assert(tcpedit);
     struct live_data_t livedata;
-
+    int retcode;
+    
     livedata.tcpedit = tcpedit;
     livedata.source = PCAP_INT1;
     livedata.pcap = options->pcap1;
     livedata.options = options;
 
-    pcap_loop(options->pcap1, options->limit_send, 
-        (pcap_handler) live_callback, (u_char *) &livedata);
+    if ((retcode = pcap_loop(options->pcap1, options->limit_send, 
+            (pcap_handler)live_callback, (u_char *) &livedata)) < 0) {
+        warnx("Error in pcap_loop(): %s", pcap_geterr(options->pcap1));
+    }
     
 }
 
@@ -263,6 +266,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 /**
  * This is the callback we use with pcap_dispatch to process
  * each packet recieved by libpcap on the two interfaces.
+ * Need to return > 0 to denote success
  */
 static int
 live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
