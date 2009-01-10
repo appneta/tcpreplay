@@ -134,25 +134,14 @@ static void
 do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 {
     struct pollfd polls[2];     /* one for left & right pcap */
-    int pollresult = 0;
+    int pollresult, pollcount, timeout;
     struct live_data_t livedata;
-    int pollcount = 2;
-    int timeout;
     
     assert(options);
     assert(tcpedit);
 
     livedata.tcpedit = tcpedit;
     livedata.options = options;
-
-    /* define polls */
-    polls[PCAP_INT1].fd = pcap_fileno(options->pcap1);
-    polls[PCAP_INT1].events = POLLIN;
-    polls[PCAP_INT1].revents = 0;
-
-    polls[PCAP_INT2].fd = pcap_fileno(options->pcap2);
-    polls[PCAP_INT2].events = POLLIN;
-    polls[PCAP_INT2].revents = 0;
 
 
     /* 
@@ -167,8 +156,19 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         dbgx(3, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
             options->limit_send, pkts_sent);
 
-        /* poll for a packet on the two interfaces */
+        /* reset the result codes */
+        polls[PCAP_INT1].revents = 0;
+        polls[PCAP_INT1].events = POLLIN;
+        polls[PCAP_INT1].fd = pcap_fileno(options->pcap1);
+        
+        polls[PCAP_INT2].revents = 0;
+        polls[PCAP_INT2].events = POLLIN;
+        polls[PCAP_INT2].fd = pcap_fileno(options->pcap2);
+
         timeout = options->poll_timeout;
+        pollcount = 2;
+
+        /* poll for a packet on the two interfaces */
         pollresult = poll(polls, pollcount, timeout);
 
         /* poll has returned, process the result */
@@ -185,7 +185,7 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
             }
 
             /* check the other interface?? */
-            if (! options->unidir && polls[PCAP_INT2].revents > 0) {
+            if (polls[PCAP_INT2].revents > 0) {
                 dbg(5, "Processing second interface");
                 livedata.source = PCAP_INT2;
                 livedata.pcap = options->pcap2;
@@ -202,15 +202,6 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
             /* poll error, probably a Ctrl-C */
             warnx("poll() error: %s", strerror(errno));
         }
-
-        /* reset the result codes */
-        polls[PCAP_INT1].revents = 0;
-        polls[PCAP_INT1].events = POLLIN;
-        polls[PCAP_INT1].fd = pcap_fileno(options->pcap1);
-        
-        polls[PCAP_INT2].revents = 0;
-        polls[PCAP_INT2].events = POLLIN;
-        polls[PCAP_INT2].fd = pcap_fileno(options->pcap2);
 
         /* go back to the top of the loop */
     }
@@ -276,8 +267,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     ipv4_hdr_t *ip_hdr = NULL;
     pcap_t *send = NULL;
     static u_char *pktdata = NULL;     /* full packet buffer */
-    u_char **packet;
-    int cache_mode;
+    int cache_mode, retcode;
     static unsigned long packetnum = 0;
     struct macsrc_t *node, finder;  /* rb tree nodes */
 #ifdef DEBUG
@@ -335,10 +325,11 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         node->source = livedata->source;
         memcpy(&node->key, &finder.key, ETHER_ADDR_LEN);
         RB_INSERT(macsrc_tree, &macsrc_root, node);
-    }                           /* otherwise compare sources */
+    }
+    
+    /* otherwise compare sources */
     else if (node->source != livedata->source) {
-        dbg(1,
-            "Found the MAC and we had a source missmatch... skipping packet");
+        dbg(1, "Found the dest MAC in the tree and it doesn't match this source NIC... skipping packet");
         /*
          * IMPORTANT!!!
          * Never send a packet out the same interface we sourced it on!
@@ -351,6 +342,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
     l2proto = tcpedit_l3proto(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
     dbgx(2, "Packet protocol: %04hx", l2proto);
+    
     /* should we skip this packet based on CIDR match? */
     if (l2proto == ETHERTYPE_IP) {
         dbg(3, "Packet is IP");
@@ -366,9 +358,12 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
     }
 
-    packet = &pktdata;
-    if (tcpedit_packet(livedata->tcpedit, &pkthdr, packet, cache_mode) == -1) {
-        return -1;
+    if ((retcode = tcpedit_packet(livedata->tcpedit, &pkthdr, &pktdata, cache_mode)) < 0) {
+        if (retcode == TCPEDIT_SOFT_ERROR) {
+            return 1;
+        } else { /* TCPEDIT_ERROR */
+            return -1;
+        }
     }
 
     /* 
