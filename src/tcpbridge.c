@@ -115,8 +115,8 @@ main(int argc, char *argv[])
         err(-1, "gettimeofday() failed");
 
 
-    /* process packets from one or both interfaces */
-    do_bridge(tcpedit, options.pcap1, options.pcap2);
+    /* process packets */
+    do_bridge(&options, tcpedit);
 
     /* clean up after ourselves */
     pcap_close(options.pcap1);
@@ -216,10 +216,10 @@ post_args(_U_ int argc, _U_ char *argv[])
         } while (--ct > 0);
     }
 
-
-    /* open up interfaces */
-
-    /* if user doesn't specify MAC address on CLI, query for it */
+    /* 
+     * Figure out MAC addresses of sending interface(s)
+     * if user doesn't specify MAC address on CLI, query for it 
+     */
     if (memcmp(options.intf1_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
         if ((sp = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S)) == NULL)
             errx(-1, "Unable to open interface %s: %s", options.intf1, ebuf);
@@ -231,17 +231,7 @@ post_args(_U_ int argc, _U_ char *argv[])
         sendpacket_close(sp);
         memcpy(options.intf1_mac, eth_buff, ETHER_ADDR_LEN);
     }
-    
-    if ((options.pcap1 = pcap_open_live(options.intf1, options.snaplen, 
-                                          options.promisc, options.to_ms, ebuf)) == NULL)
-        errx(-1, "Unable to open interface %s: %s", options.intf1, ebuf);
 
-
-    if (strcmp(options.intf1, options.intf2) == 0)
-        errx(-1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
-
-
-    /* if user doesn't specify second MAC address on CLI, query for it */
     if (memcmp(options.intf2_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
         if ((sp = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
             errx(-1, "Unable to open interface %s: %s", options.intf2, ebuf);
@@ -253,6 +243,18 @@ post_args(_U_ int argc, _U_ char *argv[])
         sendpacket_close(sp);
         memcpy(options.intf2_mac, eth_buff, ETHER_ADDR_LEN);        
     }
+
+    /* 
+     * Open interfaces for sending & receiving 
+     */
+    if ((options.pcap1 = pcap_open_live(options.intf1, options.snaplen, 
+                                          options.promisc, options.to_ms, ebuf)) == NULL)
+        errx(-1, "Unable to open interface %s: %s", options.intf1, ebuf);
+
+
+    if (strcmp(options.intf1, options.intf2) == 0)
+        errx(-1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
+
 
     /* we always have to open the other pcap handle to send, but we may not listen */
     if ((options.pcap2 = pcap_open_live(options.intf2, options.snaplen,

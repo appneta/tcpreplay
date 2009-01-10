@@ -102,75 +102,68 @@ new_node(void)
 
 
 /**
- * main loop for bridging mode or unidir
+ * main loop for bridging in only one direction
+ * optimized to not use poll(), but rather libpcap's builtin pcap_loop()
  */
-void
-do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
+static void
+do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
+{
+    assert(options);
+    assert(tcpedit);
+    struct live_data_t livedata;
+
+    livedata.tcpedit = tcpedit;
+    livedata.source = PCAP_INT1;
+    livedata.pcap = options->pcap1;
+    livedata.options = options;
+
+    pcap_loop(options->pcap1, options->limit_send, 
+        (pcap_handler) live_callback, (u_char *) &livedata);
+    
+}
+
+/**
+ * main loop for bridging in both directions.  Since we dealing with two handles
+ * we need to poll() on them which isn't the most efficent
+ */
+static void
+do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 {
     struct pollfd polls[2];     /* one for left & right pcap */
     int pollresult = 0;
-    u_char source1 = PCAP_INT1;
-    u_char source2 = PCAP_INT2;
     struct live_data_t livedata;
-    int pollcount = 1;          /* default to unidir mode */
+    int pollcount = 2;
 
-    assert(pcap1); /* must be set */
+    assert(options);
+    assert(tcpedit);
 
-    /* do we apply a bpf filter? */
-    if (options.bpf.filter != NULL) {
-        dbgx(2, "Try to compile pcap bpf filter: %s", options.bpf.filter);
-        if (pcap_compile(pcap1, &options.bpf.program, options.bpf.filter, options.bpf.optimize, 0) != 0) {
-            errx(-1, "Error compiling BPF filter: %s", pcap_geterr(pcap1));
-        }
-        pcap_setfilter(pcap1, &options.bpf.program);
-    }
+    livedata.tcpedit = tcpedit;
+    livedata.options = options;
 
     /* define polls */
-    polls[PCAP_INT1].fd = pcap_fileno(pcap1);
+    polls[PCAP_INT1].fd = pcap_fileno(options->pcap1);
     polls[PCAP_INT1].events = POLLIN;
     polls[PCAP_INT1].revents = 0;
 
-    /* don't add 2nd interface to poll() only if in unidir mode */
-    if (! options.unidir) {
-        assert(pcap2);
-        polls[PCAP_INT2].fd = pcap_fileno(pcap2);
-        polls[PCAP_INT2].events = POLLIN;
-        polls[PCAP_INT2].revents = 0;
-        pollcount = 2;
+    polls[PCAP_INT2].fd = pcap_fileno(options->pcap2);
+    polls[PCAP_INT2].events = POLLIN;
+    polls[PCAP_INT2].revents = 0;
 
-        /* do we apply a bpf filter? */
-        if (options.bpf.filter != NULL) {
-            dbgx(2, "Try to compile pcap bpf filter: %s", options.bpf.filter);
-            if (pcap_compile(pcap2, &options.bpf.program, options.bpf.filter, options.bpf.optimize, 0) != 0) {
-                errx(-1, "Error compiling BPF filter: %s", pcap_geterr(pcap2));
-            }
-            pcap_setfilter(pcap2, &options.bpf.program);
-        }
-
-    }
-
-    /* register signals */
-    didsig = 0;
-    (void)signal(SIGINT, catcher);
-
-    livedata.tcpedit = tcpedit;
 
     /* 
      * loop until ctrl-C or we've sent enough packets
      * note that if -L wasn't specified, limit_send is
      * set to 0 so this will loop infinately
      */
-    while ((options.limit_send == 0) || (options.limit_send != pkts_sent)) {
-        if (didsig) {
-            packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
-            exit(1);
-        }
+    while ((options->limit_send == 0) || (options->limit_send != pkts_sent)) {
+        if (didsig)
+            break;
 
         dbgx(3, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
-            options.limit_send, pkts_sent);
+            options->limit_send, pkts_sent);
 
         /* poll for a packet on the two interfaces */
-        pollresult = poll(polls, pollcount, options.poll_timeout);
+        pollresult = poll(polls, pollcount, options->poll_timeout);
 
         /* poll has returned, process the result */
         if (pollresult > 0) {
@@ -179,19 +172,19 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
             /* success, got one or more packets */
             if (polls[PCAP_INT1].revents > 0) {
                 dbg(5, "Processing first interface");
-                livedata.source = source1;
-                livedata.pcap = pcap1;
-                pcap_dispatch(pcap1, -1, (pcap_handler) live_callback,
-                              (u_char *) & livedata);
+                livedata.source = PCAP_INT1;
+                livedata.pcap = options->pcap1;
+                pcap_dispatch(options->pcap1, -1, (pcap_handler) live_callback,
+                              (u_char *) &livedata);
             }
 
             /* check the other interface?? */
-            if (! options.unidir && polls[PCAP_INT2].revents > 0) {
+            if (! options->unidir && polls[PCAP_INT2].revents > 0) {
                 dbg(5, "Processing second interface");
-                livedata.source = source2;
-                livedata.pcap = pcap2;
-                pcap_dispatch(pcap2, -1, (pcap_handler) live_callback,
-                              (u_char *) & livedata);
+                livedata.source = PCAP_INT2;
+                livedata.pcap = options->pcap2;
+                pcap_dispatch(options->pcap2, -1, (pcap_handler) live_callback,
+                              (u_char *) &livedata);
             }
 
         }
@@ -207,18 +200,62 @@ do_bridge(tcpedit_t *tcpedit, pcap_t * pcap1, pcap_t * pcap2)
         /* reset the result codes */
         polls[PCAP_INT1].revents = 0;
         polls[PCAP_INT1].events = POLLIN;
-        polls[PCAP_INT1].fd = pcap_fileno(pcap1);
+        polls[PCAP_INT1].fd = pcap_fileno(options->pcap1);
         
-        if (! options.unidir) {
-            polls[PCAP_INT2].revents = 0;
-            polls[PCAP_INT2].events = POLLIN;
-            polls[PCAP_INT2].fd = pcap_fileno(pcap2);
-           
-        }
+        polls[PCAP_INT2].revents = 0;
+        polls[PCAP_INT2].events = POLLIN;
+        polls[PCAP_INT2].fd = pcap_fileno(options->pcap2);
+
         /* go back to the top of the loop */
     }
 
-} /* do_bridge() */
+} /* do_bridge_bidirectional() */
+
+
+/**
+ * Main entry point to bridging.  Does some initial setup and then calls the 
+ * correct loop (unidirectional or bidirectional)
+ */
+void
+do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
+{   
+    /* do we apply a bpf filter? */
+    if (options->bpf.filter != NULL) {
+        /* compile filter */
+        dbgx(2, "Try to compile pcap bpf filter: %s", options->bpf.filter);
+        if (pcap_compile(options->pcap1, &options->bpf.program, options->bpf.filter, options->bpf.optimize, 0) != 0) {
+            errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options->pcap1));
+        }
+        
+        /* apply filter */
+        pcap_setfilter(options->pcap1, &options->bpf.program);
+
+        /* same for other interface if applicable */
+        if (options->unidir == 0) {
+            /* compile filter */
+            dbgx(2, "Try to compile pcap bpf filter: %s", options->bpf.filter);
+            if (pcap_compile(options->pcap2, &options->bpf.program, options->bpf.filter, options->bpf.optimize, 0) != 0) {
+                errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options->pcap2));
+            }
+        
+            /* apply filter */
+            pcap_setfilter(options->pcap2, &options->bpf.program);
+        }
+    }
+
+    /* register signals */
+    didsig = 0;
+    (void)signal(SIGINT, catcher);
+
+
+    if (options->unidir == 1) {
+        do_bridge_unidirectional(options, tcpedit);
+    } else {
+        do_bridge_bidirectional(options, tcpedit);
+    }
+            
+    packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
+}
 
 
 /**
@@ -259,8 +296,8 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
 #ifdef ENABLE_VERBOSE
     /* decode packet? */
-    if (options.verbose)
-        tcpdump_print(options.tcpdump, pkthdr, nextpkt);
+    if (livedata->options->verbose)
+        tcpdump_print(livedata->options->tcpdump, pkthdr, nextpkt);
 #endif
 
 
@@ -273,16 +310,17 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 #endif
 
     /* first, is this a packet sent locally?  If so, ignore it */
-    if ((memcmp(options.intf1_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
-        dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf1);
+    if ((memcmp(livedata->options->intf1_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
+        dbgx(1, "Packet matches the MAC of %s, skipping.", livedata->options->intf1);
         return (1);
     }
-    else if ((memcmp(options.intf2_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
-        dbgx(1, "Packet matches the MAC of %s, skipping.", options.intf2);
+    else if ((memcmp(livedata->options->intf2_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
+        dbgx(1, "Packet matches the MAC of %s, skipping.", livedata->options->intf2);
         return (1);
     }
 
     node = RB_FIND(macsrc_tree, &macsrc_root, &finder);
+    
     /* if we can't find the node, build a new one */
     if (node == NULL) {
         dbg(1, "Unable to find MAC in the tree");
@@ -301,8 +339,6 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         return (1);
     }
 
-
-
     /* what is our cache mode? */
     cache_mode = livedata->source == PCAP_INT1 ? TCPR_DIR_C2S : TCPR_DIR_S2C;
 
@@ -314,8 +350,8 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         ip_hdr = (ipv4_hdr_t *)tcpedit_l3data(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
 
         /* look for include or exclude CIDR match */
-        if (options.xX.cidr != NULL) {
-            if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
+        if (livedata->options->xX.cidr != NULL) {
+            if (!process_xX_by_cidr(livedata->options->xX.mode, livedata->options->xX.cidr, ip_hdr)) {
                 dbg(2, "Skipping packet due to CIDR match");
                 return (1);
             }
@@ -332,32 +368,31 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
      * send packets out the OTHER interface
      * and update the dst mac if necessary
      */
-    if (node->source == PCAP_INT1) {
-        dbgx(2, "Packet source was %s... sending out on %s", options.intf1, 
-            options.intf2);
-        send = options.pcap2;
-    }
-    else if (node->source == PCAP_INT2) {
-        dbgx(2, "Packet source was %s... sending out on %s", options.intf2, 
-            options.intf1);
-        send = options.pcap1;
-    } else {
-        errx(-1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
-             node->source);
+    switch(node->source) {
+        case PCAP_INT1:
+            dbgx(2, "Packet source was %s... sending out on %s", livedata->options->intf1, 
+                livedata->options->intf2);
+            send = livedata->options->pcap2;
+            break;
+
+        case PCAP_INT2:
+            dbgx(2, "Packet source was %s... sending out on %s", livedata->options->intf2, 
+                livedata->options->intf1);
+            send = livedata->options->pcap1;
+            break;
+        
+        default:
+            errx(-1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
+                 node->source);        
     }
 
     /*
      * write packet out on the network 
      */
-#ifdef HAVE_PCAP_INJECT
-     if (pcap_inject(send, pktdata, pkthdr->caplen) < (int)pkthdr->caplen)
-         errx(-1, "Unable to send packet out %s: %s", send == options.pcap1 ? options.intf1 : options.intf2, pcap_geterr(send));
-#elif defined HAVE_PCAP_SENDPACKET
      if (pcap_sendpacket(send, pktdata, pkthdr->caplen) < 0)
-         errx(-1, "Unable to send packet out %s: %s", send == options.pcap1 ? options.intf1 : options.intf2, pcap_geterr(send));
-#else
-#error Can not compile tcpbridge without pcap_inject() or pcap_sendpacket()
-#endif
+         errx(-1, "Unable to send packet out %s: %s", 
+            send == livedata->options->pcap1 ? livedata->options->intf1 : livedata->options->intf2, pcap_geterr(send));
+
     bytes_sent += pkthdr->caplen;
     pkts_sent++;
 
@@ -366,3 +401,5 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
     return (1);
 } /* live_callback() */
+
+

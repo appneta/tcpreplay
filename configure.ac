@@ -397,7 +397,6 @@ OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
 LIBS="$LPCAPLIB"
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
-
 dnl Check to see what version of libpcap
 dnl this code has been reduced a lot, but probably still could be
 dnl reduced quite a bit more if we chose too
@@ -597,6 +596,29 @@ if test $have_pcap_sendpacket = yes ; then
 	AC_DEFINE([HAVE_PCAP_SENDPACKET], [1], [Does libpcap have pcap_sendpacket?])
 fi
 
+have_pcap_breakloop=no
+AC_MSG_CHECKING(for pcap_breakloop)
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+	pcap_t *pcap;
+    pcap_sendpacket(pcap);
+]]),[
+    have_pcap_breakloop=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_breakloop=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_breakloop = yes ; then
+	AC_DEFINE([HAVE_PCAP_BREAKLOOP], [1], [Does libpcap have pcap_breakloop?])
+fi
+
+
 have_pcap_version=no
 dnl Check to see if we have pcap_version[]
 AC_MSG_CHECKING(for pcap_version[])
@@ -614,6 +636,19 @@ extern char pcap_version[];
 ],[
 	AC_MSG_RESULT(no)
 ])
+
+
+# Tcpbridge requires libpcap and pcap_sendpacket()
+enable_tcpbridge=no
+if test x$foundpcap != xno -a x$have_pcap_sendpacket = xyes ; then
+    AC_DEFINE(ENABLE_TCPBRIDGE, [1], [Compile tcpbridge])
+	enable_tcpbridge=yes
+	AC_MSG_NOTICE([Building tcpbridge])
+else
+	AC_MSG_WARN([Unable to build tcpbridge.  Try installing latest libpcap!])
+fi
+AM_CONDITIONAL(COMPILE_TCPBRIDGE, [test x$enable_tcpbridge = xyes ])
+
 
 
 have_pf=no
@@ -1100,15 +1135,17 @@ Use libopts tearoff:        ${enable_local_libopts}
 tcpdump binary path:        ${tcpdump_path}
 tcpreplay edit support:     ${tcpreplay_edit}
 fragroute support:          ${enable_fragroute}
+tcpbridge support:          ${enable_tcpbridge}
 
 Supported Packet Injection Methods (*):
 Linux PF_PACKET:            ${have_pf}
 BSD BPF:                    ${have_bpf}
 libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}
-pcap_sendpacket:            ${have_pcap_sendpacket}
+pcap_sendpacket:            ${have_pcap_sendpacket} **
 
 * In order of preference; see configure --help to override
+** Required for tcpbridge
 )
 
 

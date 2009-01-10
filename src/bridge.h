@@ -61,10 +61,11 @@ struct live_data_t {
     char *l2data;
     pcap_t *pcap;
     tcpedit_t *tcpedit;
+    tcpbridge_opt_t *options;
 };
 
 void rbinit(void);
-void do_bridge(tcpedit_t *, pcap_t *, pcap_t *);
+void do_bridge(tcpbridge_opt_t *, tcpedit_t *);
 
 
 #endif
