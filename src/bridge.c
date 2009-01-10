@@ -133,7 +133,8 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
     int pollresult = 0;
     struct live_data_t livedata;
     int pollcount = 2;
-
+    int timeout;
+    
     assert(options);
     assert(tcpedit);
 
@@ -155,7 +156,7 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
      * note that if -L wasn't specified, limit_send is
      * set to 0 so this will loop infinately
      */
-    while ((options->limit_send == 0) || (options->limit_send != pkts_sent)) {
+    while ((options->limit_send == 0) || (options->limit_send > pkts_sent)) {
         if (didsig)
             break;
 
@@ -163,7 +164,8 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
             options->limit_send, pkts_sent);
 
         /* poll for a packet on the two interfaces */
-        pollresult = poll(polls, pollcount, options->poll_timeout);
+        timeout = options->poll_timeout;
+        pollresult = poll(polls, pollcount, timeout);
 
         /* poll has returned, process the result */
         if (pollresult > 0) {
