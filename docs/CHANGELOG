@@ -11,8 +11,8 @@ $Id$
     - Improve high-performance packet sending via multiple packets/interval (#334)
     - Fix statistics report errors (#335)
     - Fix BPF filters not being used in tcpbridge (#336)
-	- Improve tcpbridge performance (#337)
-	- Only use two libpcap handles for tcpbridge (#338)
+    - Improve tcpbridge performance (#337)
+    - Only use two libpcap handles for tcpbridge (#338)
     - Fix autotools usage errors (#340)
     - Clean up 'make test' results (#341)
     - Update to AutoGen/AutoOpts 5.9.7 (#342)
@@ -23,10 +23,10 @@ $Id$
     - Report injection method via -V (#352)
     - Fix DLT_USER l2len check bug (#353)
     - Replace man2html w/ groff (#354)
-	- Fix false pcap_inject() detection under Windows/Winpcap (#355)
-	- tcpbridge now builds under Win32/Cygwin
-	- libdnet is no longer an option for Win32/Cygwin (#57)
-	- tcpbridge now supports --listnics (#357)
+    - Fix false pcap_inject() detection under Windows/Winpcap (#355)
+    - tcpbridge now builds under Win32/Cygwin
+    - libdnet is no longer an option for Win32/Cygwin (#57)
+    - tcpbridge now supports --listnics (#357)
 
 06/20/2008: Version 3.3.2
     - Fix (again) tcpbridge --unidir assert error (#308)
