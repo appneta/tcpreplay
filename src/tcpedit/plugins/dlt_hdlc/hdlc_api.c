@@ -30,29 +30,61 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "defines.h"
+#include "common.h"
 
+#include "tcpedit.h"
+#include "hdlc.h"
 
-#ifndef _DLT_null_H_
-#define _DLT_null_H_
+#include "hdlc_api.h"
 
-#include "plugins_types.h"
+/**
+ * \breif Set the HDLC control value
+ *
+ * Reasonable values are 0-255
+ */
+int 
+tcpedit_hdlc_set_control(tcpedit_t *tcpedit, u_int8_t control)
+{
+    tcpeditdlt_t *ctx;
+    tcpeditdlt_plugin_t *plugin;
+    hdlc_config_t *config;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    assert(tcpedit);
 
-int dlt_null_register(tcpeditdlt_t *ctx);
-int dlt_null_init(tcpeditdlt_t *ctx);
-int dlt_null_cleanup(tcpeditdlt_t *ctx);
-int dlt_null_parse_opts(tcpeditdlt_t *ctx);
-int dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_null_l2addr_type(void);
-int dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+    ctx = tcpedit->dlt_ctx;
+    assert(ctx);
+    plugin = ctx->decoder;
+    assert(plugin);
+    config = (hdlc_config_t *)plugin->config;
 
-#endif
+    config->control = control;
+    return TCPEDIT_OK;
+    
+}
 
+/**
+ * \brief Set the HDLC address value
+ *
+ * Reasonable values are 0x000F (unicast) and 0x00BF (broadcast), but we
+ * accept any value
+ */
+int
+tcpedit_hdlc_set_address(tcpedit_t *tcpedit, u_int8_t address)
+{
+    tcpeditdlt_t *ctx;
+    tcpeditdlt_plugin_t *plugin;
+    hdlc_config_t *config;
+
+    assert(tcpedit);
+
+    ctx = tcpedit->dlt_ctx;
+    assert(ctx);
+    plugin = ctx->decoder;
+    assert(plugin);
+    config = (hdlc_config_t *)plugin->config;
+
+    config->address = address;
+    return TCPEDIT_OK;
+    
+}

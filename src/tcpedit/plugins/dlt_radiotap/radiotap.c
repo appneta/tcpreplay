@@ -33,13 +33,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "radiotap.h"
-#include "../dlt_ieee80211/ieee80211.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "radiotap.h"
+#include "../dlt_ieee80211/ieee80211.h"
 
 /* edit these variables to taste */
 static char dlt_name[] = "radiotap";

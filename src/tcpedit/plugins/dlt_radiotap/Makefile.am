@@ -14,7 +14,7 @@ EXTRA_DIST += $(srcdir)/plugins/dlt_radiotap/radiotap_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_radiotap/radiotap.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_radiotap/radiotap.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_radiotap/radiotap.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 

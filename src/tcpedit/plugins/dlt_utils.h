@@ -34,6 +34,8 @@
 #ifndef _DLT_UTILS_H_
 #define _DLT_UTILS_H_
 
+#include "plugins_types.h"
+
 u_char *tcpedit_dlt_l3data_copy(tcpeditdlt_t *ctx, u_char *packet, int ptklen, int l2len);
 u_char *tcpedit_dlt_l3data_merge(tcpeditdlt_t *ctx, u_char *packet, int pktlen, const u_char *l3data, const int l2len);
 

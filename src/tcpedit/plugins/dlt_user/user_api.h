@@ -30,29 +30,33 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _DLT_user_API_H_
+#define _DLT_user_API_H_
 
-
-#ifndef _DLT_null_H_
-#define _DLT_null_H_
-
+#include "tcpedit_types.h"
 #include "plugins_types.h"
+#include "user_types.h"
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int dlt_null_register(tcpeditdlt_t *ctx);
-int dlt_null_init(tcpeditdlt_t *ctx);
-int dlt_null_cleanup(tcpeditdlt_t *ctx);
-int dlt_null_parse_opts(tcpeditdlt_t *ctx);
-int dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_null_l2addr_type(void);
-int dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+/**
+ * \brief User Plugin API functions for creating a user specified DLT/Layer 2 header
+ *
+ * setters always return TCPEDIT_OK on success or TCPEDIT_ERROR 
+ * if there is a problem.  You can use tcpedit_geterr() to get the reason
+ * for the failure
+ */
 
+int tcpedit_user_set_dlt_type(tcpedit_t *tcpedit, u_int16_t type);
+int tcpedit_user_set_dlink(tcpedit_t *tcpedit, u_char *data, int datalen, tcpedit_user_dlt_direction direction);
+
+
+#ifdef __cplusplus
+}
 #endif
 
+
+#endif

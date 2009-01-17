@@ -33,13 +33,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "loop.h"
-#include "../dlt_null/null.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "loop.h"
+#include "../dlt_null/null.h"
 
 /* 
  * Basically, DLT_LOOP and DLT_NULL are the same thing except that the PF_ value
@@ -109,7 +109,6 @@ int
 dlt_loop_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    null_config_t *config;
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
@@ -117,17 +116,6 @@ dlt_loop_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    /* allocate memory for our deocde extra data */
-    if (sizeof(null_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(null_extra_t));
-
-    /* allocate memory for our config data */
-    if (sizeof(null_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(null_config_t));
-    
-    config = (null_config_t *)plugin->config;
-    
-
     return TCPEDIT_OK; /* success */
 }
 

@@ -1,4 +1,4 @@
-# $Id:$
+# $Id$
 # START OF: dlt_loop
 # Note, if you add any files to your plugin, you will need to edit dlt_<plugin>/Makefile.am
 # add your .c files to libtcpedit_a_SOURCES
@@ -14,7 +14,7 @@ EXTRA_DIST += $(srcdir)/plugins/dlt_loop/loop_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_loop/loop.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_loop/loop.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_loop/loop.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 

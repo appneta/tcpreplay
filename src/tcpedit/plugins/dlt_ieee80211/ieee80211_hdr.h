@@ -31,16 +31,24 @@
  */
 
 
-#include "dlt_plugins-int.h"
-
 #ifndef _DLT_ieee80211_hdr_H_
 #define _DLT_ieee80211_hdr_H_
-#include "ieee80211.h"
+
+#include "plugins_types.h"
+#include "ieee80211_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen);
 int ieee80211_is_encrypted(tcpeditdlt_t *ctx, const void *packet, const int pktlen);
 
-char *ieee80211_get_src(const void *header);
-char *ieee80211_get_dst(const void *header);
+u_char *ieee80211_get_src(const void *header);
+u_char *ieee80211_get_dst(const void *header);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -33,12 +33,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "hdlc.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "hdlc.h"
 
 static char dlt_name[] = "hdlc";
 static char _U_ dlt_prefix[] = "hdlc";

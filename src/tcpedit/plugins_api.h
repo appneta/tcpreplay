@@ -1,7 +1,6 @@
 /* $Id$ */
-
 /*
- * Copyright (c) 2006-2007 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,18 +29,18 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Main DLT Plugin Header.   You should only include this file outside
- * of the plugin API.  dlt_plugin-int.h is used internal to the plugin ONLY. 
- */
+#ifndef _PLUGINS_API_H_
+#define _PLUGINS_API_H_
 
-#include "tcpedit.h" 
 
-#ifndef _DLT_PLUGINS_H_
-#define _DLT_PLUGINS_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* forward declare our context, so we can use it in the plugin struct */
-typedef struct tcpeditdlt_s tcpeditdlt_t;
+
+/* Used to parse arguments if you have AutoGen */
+int tcpedit_dlt_post_args(tcpedit_t *tcpedit);
+
 
 /* 
  * initialize the DLT plugin backend, and return a new context var.
@@ -79,5 +78,9 @@ u_char *tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, con
 
 int tcpedit_dlt_src(tcpeditdlt_t *ctx);
 int tcpedit_dlt_dst(tcpeditdlt_t *ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

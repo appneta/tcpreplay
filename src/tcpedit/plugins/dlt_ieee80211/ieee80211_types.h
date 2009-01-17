@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006-2007 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,35 +31,74 @@
  */
 
 
-
-#ifndef _DLT_raw_H_
-#define _DLT_raw_H_
+#ifndef _DLT_ieee80211_TYPES_H_
+#define _DLT_ieee80211_TYPES_H_
 
 #include "plugins_types.h"
 
-int dlt_raw_register(tcpeditdlt_t *ctx);
-int dlt_raw_init(tcpeditdlt_t *ctx);
-int dlt_raw_cleanup(tcpeditdlt_t *ctx);
-int dlt_raw_parse_opts(tcpeditdlt_t *ctx);
-int dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_raw_l2addr_type(void);
-int dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_raw_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+/* 802.11 packet header w/ 3 addresses (non-WDS) */
+typedef struct {
+    u_int16_t frame_control;
+/* version is first two bytes */
+#define ieee80211_FC_VERSION_MASK   0x0300
+
+/* type is second 2 bytes */
+#define ieee80211_FC_TYPE_MASK      0x0F00
+#define ieee80211_FC_TYPE_DATA      0x0800
+#define ieee80211_FC_TYPE_MGMT      0x0000
+#define ieee80211_FC_TYPE_CONTROL   0x0400
+
+/* subtype is the 4 high bytes */
+#define ieee80211_FC_SUBTYPE_MASK   0xF000
+#define ieee80211_FC_SUBTYPE_QOS    0x8000 /* high bit is QoS, but there are sub-sub types for QoS */
+#define ieee80211_FC_SUBTYPE_NULL   0xC000 /* no data */
+
+/* Direction */
+#define ieee80211_FC_TO_DS_MASK     0x0001
+#define ieee80211_FC_FROM_DS_MASK   0x0002
+
+/* Flags */
+#define ieee80211_FC_MORE_FRAG      0x0004
+#define ieee80211_FC_RETRY_MASK     0x0008
+#define ieee80211_FC_PWR_MGMT_MASK  0x0010
+#define ieee80211_FC_MORE_DATA_MASK 0x0020
+#define ieee80211_FC_WEP_MASK       0x0040
+#define ieee80211_FC_ORDER_MASK     0x0080
+    u_int16_t duration;
+    u_char addr1[6];
+    u_char addr2[6];
+    u_char addr3[6];
+    u_int16_t fragid;
+} ieee80211_hdr_t;
+
+typedef struct {
+    u_int16_t frame_control;
+    u_int16_t duration;
+    u_char addr1[6];
+    u_char addr2[6];
+    u_char addr3[6];
+    u_char addr4[6];
+    u_int16_t fragid;
+} ieee80211_addr4_hdr_t;
+
+
+#define ieee80211_USE_4(frame_control)                                          \
+    (frame_control & (ieee80211_FC_TO_DS_MASK + ieee80211_FC_FROM_DS_MASK)) ==   \
+    (ieee80211_FC_TO_DS_MASK + ieee80211_FC_FROM_DS_MASK)
 
 /*
- * structure to hold any data parsed from the packet by the decoder.
+ * FIXME: structure to hold any data parsed from the packet by the decoder.
  * Example: Ethernet VLAN tag info
  */
-struct raw_extra_s {
+typedef struct {
     /* dummy entry for SunPro compiler which doesn't like empty structs */    
     int dummy;
-};
-typedef struct raw_extra_s raw_extra_t;
-
+} ieee80211_extra_t;
 
 /* 
  * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 
@@ -70,11 +109,14 @@ typedef struct raw_extra_s raw_extra_t;
  *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
  *   is available to any encoder plugin.
  */
-struct raw_config_s {
+typedef struct {
     /* dummy entry for SunPro compiler which doesn't like empty structs */    
     int dummy;
-};
-typedef struct raw_config_s raw_config_t;
+} ieee80211_config_t;
 
+#ifdef __cplusplus
+}
 #endif
 
+
+#endif

@@ -33,7 +33,7 @@
 #ifndef _PARSE_ARGS_H_
 #define _PARSE_ARGS_H_
 
-#include "tcpedit.h"
+#include "tcpedit_types.h"
 
 int tcpedit_post_args(tcpedit_t **tcpedit_ex);
 

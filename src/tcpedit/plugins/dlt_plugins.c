@@ -34,7 +34,9 @@
 
 #include <stdlib.h>
 
-#include "dlt_plugins-int.h"
+#include "tcpedit.h"
+#include "plugins.h"
+#include "tcpedit_stub.h"
 #include "dlt_utils.h"
 #include "common.h"
 
@@ -129,7 +131,6 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 {
     tcpeditdlt_t *ctx;
     int rcode;
-    const char *dst_dlt_name = NULL;
 
     assert(tcpedit);
     assert(srcdlt >= 0);
@@ -146,13 +147,15 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 
     /* register all our plugins */
     if (tcpedit_dlt_register(ctx) != TCPEDIT_OK) {
-        goto INIT_ERROR;
+        tcpedit_dlt_cleanup(ctx);
+        return NULL;
     }
 
     /* Choose decode plugin */
     if ((ctx->decoder = tcpedit_dlt_getplugin(ctx, srcdlt)) == NULL) {
         tcpedit_seterr(tcpedit, "No DLT plugin available for source DLT: 0x%x", srcdlt);
-        goto INIT_ERROR;
+        tcpedit_dlt_cleanup(ctx);
+        return NULL;
     }
 
     /* set our dlt type */
@@ -164,14 +167,39 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
     /* initalize decoder plugin */
     rcode = ctx->decoder->plugin_init(ctx);
     if (tcpedit_checkerror(ctx->tcpedit, rcode, NULL) != TCPEDIT_OK) {
-        goto INIT_ERROR;
+        tcpedit_dlt_cleanup(ctx);
+        return NULL;
     }
 
+
+    /* we're OK */
+    return ctx;
+}
+
+/**
+ * \brief Call this to parse AutoOpts arguments for the DLT encoder plugin
+ *
+ * Was previously part of tcpedit_dlt_init(), but moved into it's own function
+ * to allow a full programtic API.  Basically, if you're not using this function
+ * you'll need to roll your own!
+ * Returns 0 on success, -1 on error
+ */
+int 
+tcpedit_dlt_post_args(tcpedit_t *tcpedit)
+{
+    tcpeditdlt_t *ctx;
+    const char *dst_dlt_name = NULL;
+    int rcode;
+    
+    assert(tcpedit);
+    ctx = tcpedit->dlt_ctx;
+    assert(ctx);
+    
     /* Select the encoder plugin */
     dst_dlt_name = OPT_ARG(DLT) ? OPT_ARG(DLT) : ctx->decoder->name;
     if ((ctx->encoder = tcpedit_dlt_getplugin_byname(ctx, dst_dlt_name)) == NULL) {
         tcpedit_seterr(tcpedit, "No output DLT plugin available for: %s", dst_dlt_name);
-        goto INIT_ERROR;
+        return -1;    
     }
     
     /* Figure out if we're skipping braodcast & multicast */
@@ -180,37 +208,24 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 
     /* init encoder plugin if it's not the decoder plugin */
     if (ctx->encoder->dlt != ctx->decoder->dlt) {
-        rcode = ctx->encoder->plugin_init(ctx);
-        if (tcpedit_checkerror(ctx->tcpedit, rcode, NULL) != TCPEDIT_OK) {
-            goto INIT_ERROR;
+        if ((rcode = ctx->encoder->plugin_init(ctx)) != TCPEDIT_OK) {
+            /* plugin should generate the error */
+            return -1;    
         }
     }
 
     /* parse the DLT specific options */
-    rcode = tcpedit_dlt_parse_opts(ctx);
-    if (tcpedit_checkerror(ctx->tcpedit, rcode, "parsing options") != TCPEDIT_OK) {
-        goto INIT_ERROR;
-    }
-
-
-    /* validate that the SRC/DST DLT + options give us enough info */
-    rcode = tcpedit_dlt_validate(ctx);
-    if (tcpedit_checkerror(ctx->tcpedit, rcode, "validating options") != TCPEDIT_OK) {
-        goto INIT_ERROR;
+    if ((rcode = tcpedit_dlt_parse_opts(ctx)) != TCPEDIT_OK) {
+        /* parser should generate the error */
+        return -1;    
     }
 
     /* we're OK */
-    return ctx;
-
-INIT_ERROR:
-    tcpedit_dlt_cleanup(ctx);
-    return NULL;
-}
- 
+    return 0;
+} 
 
 /**
  * This is the recommended method to edit a packet.  Returns (new) total packet length
- * FIXME: This is *broken*.  taking packet as a u_char*, but using it as a u_char **!
  */
 int
 tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t direction)

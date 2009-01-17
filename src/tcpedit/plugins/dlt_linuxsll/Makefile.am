@@ -1,4 +1,4 @@
-# $Id:$
+# $Id$
 # START OF: dlt_linuxsll
 # Note, if you add any files to your plugin, you will need to edit dlt_<plugin>/Makefile.am
 # add your .c files to libtcpedit_a_SOURCES
@@ -8,13 +8,13 @@
 
 libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_linuxsll/linuxsll.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_linuxsll/linuxsll.h
+noinst_HEADERS += $(srcdir)/plugins/dlt_linuxsll/linuxsll.h $(srcdir)/plugins/dlt_linuxsll/linuxsll_types.h
 
 EXTRA_DIST += $(srcdir)/plugins/dlt_linuxsll/linuxsll_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_linuxsll/linuxsll.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h  $(srcdir)/plugins/dlt_linuxsll/linuxsll_types.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 

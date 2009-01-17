@@ -36,10 +36,10 @@
  * Generic functions for ethernet addresses
  */
 
-#include "dlt_plugins.h"
-
 #ifndef _ETHERNET_H_
 #define _ETHERNET_H_
+
+#include "plugins_types.h"
 
 int is_unicast_ethernet(tcpeditdlt_t *, const u_char *);
 

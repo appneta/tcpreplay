@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006-2007 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,45 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#ifndef _TCPEDIT_TYPES_H_
+#define _TCPEDIT_TYPES_H_
+
+
 #include "defines.h"
 #include "common.h"
-#include "tcpedit.h"
-#include "plugins/dlt_plugins-int.h"
 
-#ifndef _TCPEDIT_INT_H_
-#define _TCPEDIT_INT_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define TCPEDIT_SOFT_ERROR -2
+#define TCPEDIT_ERROR  -1
+#define TCPEDIT_OK      0
+#define TCPEDIT_WARN    1
+
+typedef enum {
+    TCPEDIT_FIXLEN_OFF      = 0,
+    TCPEDIT_FIXLEN_PAD,
+    TCPEDIT_FIXLEN_TRUNC,
+    TCPEDIT_FIXLEN_DEL
+} tcpedit_fixlen;
+
+typedef enum {
+    TCPEDIT_TTL_MODE_OFF    = 0,
+    TCPEDIT_TTL_MODE_SET,
+    TCPEDIT_TTL_MODE_ADD,
+    TCPEDIT_TTL_MODE_SUB
+} tcpedit_ttl_mode;
+
+typedef enum {
+    BEFORE_PROCESS,
+    AFTER_PROCESS
+} tcpedit_coder;
+
 
 #define TCPEDIT_ERRSTR_LEN 1024
-struct tcpedit_runtime_s {
+typedef struct {
     COUNTER packetnum;
     COUNTER total_bytes;
     COUNTER pkts_edited;
@@ -50,66 +79,43 @@ struct tcpedit_runtime_s {
 #ifdef FORCE_ALIGN    
     u_char *l3buff;
 #endif
-};
-
-typedef struct tcpedit_runtime_s tcpedit_runtime_t;
+} tcpedit_runtime_t;
 
 /*
  * portmap data struct
  */
-struct tcpedit_portmap_s {
+typedef struct {
     long from;
     long to;
     struct tcpedit_portmap_s *next;
-};
-typedef struct tcpedit_portmap_s tcpedit_portmap_t;
-
+} tcpedit_portmap_t;
 
 /*
  * all the arguments that the packet editing library supports
  */
-struct tcpedit_s {
-    int validated;  /* have we run tcpedit_validate()? */
+typedef struct {
+    bool validated;  /* have we run tcpedit_validate()? */
     struct tcpeditdlt_s *dlt_ctx;
     
     /* runtime variables, don't mess with these */
     tcpedit_runtime_t runtime;
     
     /* skip rewriting IP/MAC's which are broadcast or multicast? */
-    int skip_broadcast;
-
-    /* rewrite traffic bi-directionally */
-    int bidir;
-#define TCPEDIT_BIDIR_OFF 0x0
-#define TCPEDIT_BIDIR_ON  0x1
+    bool skip_broadcast;
 
     /* pad or truncate packets */
-    int fixlen;
-#define TCPEDIT_FIXLEN_OFF   0x0
-#define TCPEDIT_FIXLEN_PAD   0x1
-#define TCPEDIT_FIXLEN_TRUNC 0x2
-#define TCPEDIT_FIXLEN_DEL   0x3
+    tcpedit_fixlen fixlen;
 
     /* rewrite ip? */
-    int rewrite_ip;
-#define TCPEDIT_REWRITE_IP_OFF 0x0
-#define TCPEDIT_REWRITE_IP_ON  0x1
+    bool rewrite_ip;
     
     /* fix IP/TCP/UDP checksums */
-    u_int8_t fixcsum;
-#define TCPEDIT_FIXCSUM_OFF 0x0
-#define TCPEDIT_FIXCSUM_ON  0x1
+    bool fixcsum;
 
     /* remove ethernet FCS */
-    u_int8_t efcs;
-#define TCPEDIT_EFCS_OFF 0x0
-#define TCPEDIT_EFCS_ON  0x1
+    bool efcs;
 
-    u_int8_t ttl_mode;
-#define TCPEDIT_TTL_OFF 0x0
-#define TCPEDIT_TTL_SET 0x1
-#define TCPEDIT_TTL_ADD 0x2
-#define TCPEDIT_TTL_SUB 0x3
+    tcpedit_ttl_mode ttl_mode;
     u_int8_t ttl_value;
 
     /* TOS/DiffServ/ECN */
@@ -131,11 +137,13 @@ struct tcpedit_s {
     
     int mtu;                /* Deal with different MTU's */
     int maxpacket;          /* L2 header + MTU */
-};
+} tcpedit_t;
 
-#define tcpedit_seterr(x, y, ...) __tcpedit_seterr(x, __FUNCTION__, __LINE__, __FILE__, y, __VA_ARGS__)
 
-void __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...);
-void tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...);
+#ifdef __cplusplus
+}
+#endif
+
+
 
 #endif

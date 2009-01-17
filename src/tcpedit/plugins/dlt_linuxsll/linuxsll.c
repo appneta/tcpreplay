@@ -33,12 +33,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "linuxsll.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "../ethernet.h"
+#include "linuxsll.h"
+
 
 static char dlt_name[] = "linuxsll";
 static char _U_ dlt_prefix[] = "linuxsll";

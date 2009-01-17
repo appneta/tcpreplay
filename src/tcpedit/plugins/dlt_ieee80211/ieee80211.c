@@ -33,13 +33,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "ieee80211.h"
-#include "ieee80211_hdr.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "ieee80211.h"
+#include "ieee80211_hdr.h"
 
 /*
  * Notes about the ieee80211 plugin:
@@ -386,7 +386,7 @@ dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char
     assert(ctx);
     assert(packet);
     assert(pktlen);
-    char *macaddr;
+    u_char *macaddr;
     
     switch(mac) {
     case SRC_MAC:

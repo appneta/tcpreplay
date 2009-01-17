@@ -8,14 +8,15 @@
 
 libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_ieee80211/ieee80211.c $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_ieee80211/ieee80211.h $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h
+noinst_HEADERS += $(srcdir)/plugins/dlt_ieee80211/ieee80211.h $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
+    $(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h
 
 EXTRA_DIST += $(srcdir)/plugins/dlt_ieee80211/ieee80211_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_ieee80211/ieee80211.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
-	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h  $(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 

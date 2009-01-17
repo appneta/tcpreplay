@@ -32,7 +32,7 @@
 #include <assert.h>
 #include "config.h"
 #include "defines.h"
-#include "tcpedit-int.h"
+#include "tcpedit.h"
 #include "dlt.h"
 
 /**

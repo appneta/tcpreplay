@@ -33,12 +33,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "%{plugin}.h"
-#include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "tcpedit.h"
+#include "%{plugin}_types.h"
 
 /* FIXME: edit these variables to taste */
 static char dlt_name[] = "%{plugin}";

@@ -32,7 +32,7 @@
 
 #include <string.h>
 
-#include "dlt_plugins-int.h"  
+#include "tcpedit.h"
 #include "dlt_utils.h"
 #include "common.h"
 

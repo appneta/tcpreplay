@@ -34,7 +34,7 @@
 #include "defines.h"
 #include "common.h"
 
-#include "tcpedit-int.h"
+#include "tcpedit.h"
 #include "edit_packet.h"
 #include "checksum.h"
 #include "lib/sll.h"
@@ -305,23 +305,23 @@ rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr)
     assert(tcpedit);
 
     /* make sure there's something to edit */
-    if (ip_hdr == NULL || tcpedit->ttl_mode == TCPEDIT_TTL_OFF)
+    if (ip_hdr == NULL || tcpedit->ttl_mode == false)
         return(0);
         
     switch(tcpedit->ttl_mode) {
-    case TCPEDIT_TTL_SET:
+    case TCPEDIT_TTL_MODE_SET:
         if (ip_hdr->ip_ttl == tcpedit->ttl_value)
             return(0);           /* no change required */
         ip_hdr->ip_ttl = tcpedit->ttl_value;
         break;
-    case TCPEDIT_TTL_ADD:
+    case TCPEDIT_TTL_MODE_ADD:
         if (((int)ip_hdr->ip_ttl + tcpedit->ttl_value) > 255) {
             ip_hdr->ip_ttl = 255;
         } else {
             ip_hdr->ip_ttl += tcpedit->ttl_value;
         }
         break;
-    case TCPEDIT_TTL_SUB:
+    case TCPEDIT_TTL_MODE_SUB:
         if (ip_hdr->ip_ttl <= tcpedit->ttl_value) {
             ip_hdr->ip_ttl = 1;
         } else {

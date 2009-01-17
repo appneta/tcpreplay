@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006-2007 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,36 +29,26 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+ 
+#ifndef _DLT_linuxsll_TYPES_H_
+#define _DLT_linuxsll_TYPES_H_
 
-
-
-#ifndef _DLT_raw_H_
-#define _DLT_raw_H_
-
+#include "tcpedit_types.h"
 #include "plugins_types.h"
 
-int dlt_raw_register(tcpeditdlt_t *ctx);
-int dlt_raw_init(tcpeditdlt_t *ctx);
-int dlt_raw_cleanup(tcpeditdlt_t *ctx);
-int dlt_raw_parse_opts(tcpeditdlt_t *ctx);
-int dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_raw_l2addr_type(void);
-int dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_raw_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * structure to hold any data parsed from the packet by the decoder.
  * Example: Ethernet VLAN tag info
  */
-struct raw_extra_s {
+typedef struct {
     /* dummy entry for SunPro compiler which doesn't like empty structs */    
     int dummy;
-};
-typedef struct raw_extra_s raw_extra_t;
+} linuxsll_extra_t;
 
 
 /* 
@@ -70,11 +60,25 @@ typedef struct raw_extra_s raw_extra_t;
  *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
  *   is available to any encoder plugin.
  */
-struct raw_config_s {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */    
+typedef struct {    
+    /* dummy entry for SunPro compiler which doesn't like empty structs */
     int dummy;
-};
-typedef struct raw_config_s raw_config_t;
+} linuxsll_config_t;
 
+
+typedef struct {
+    u_int16_t source;       /* values 0-4 determine where the packet came and where it's going */
+    u_int16_t type;         /* linux ARPHRD_* values for link-layer device type.  See:
+                             * http://www.gelato.unsw.edu.au/lxr/source/include/linux/if_arp.h
+                             */
+#define ARPHRD_ETHER    1   /* ethernet */
+    u_int16_t length;       /* source address length */
+    u_char address[8];      /* first 8 bytes of source address (may be truncated) */
+    u_int16_t proto;        /* Ethernet protocol type */
+} linux_sll_header_t;
+
+#ifdef __cplusplus
+}
 #endif
 
+#endif

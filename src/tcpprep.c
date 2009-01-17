@@ -56,7 +56,6 @@
 #include <errno.h>
 
 #include "tcpprep.h"
-#include "tcpedit/tcpedit.h"
 #include "tcpprep_opts.h"
 #include "lib/tree.h"
 #include "tree.h"

@@ -39,7 +39,7 @@ for i in Makefile.am ; do
 done
 
 # Files to have their name changed
-for i in plugin.c plugin.h plugin_opts.def ; do
+for i in plugin.c plugin.h plugin_opts.def plugin_api.c plugin_api.h ; do
     OUTFILE=`echo $i | sed -E "s/plugin/${PLUGIN}/"`
     OUTFILE="${PLUGINDIR}/${OUTFILE}"
     if [ -f $OUTFILE ]; then
@@ -59,7 +59,12 @@ echo ""
 echo "You must also modify ./dlt_stub.def and add the line:"
 echo "#include ${PLUGINDIR}/${PLUGIN}_opts.def"
 echo ""
+echo "Next, put any configuration parsing functions in ${PLUGINDIR}/${PLUGIN}_api.[ch]"
+echo ""
 echo "Next, you must make the appropriate modifications to ./dlt_plugin.c"
+echo "You'll want to use your configuration parsing functions from above in your"
+echo "tcpedit_${PLUGIN}_parse_opts() function"
+echo ""
 echo "Lastly, re-run automake from the root source directory"
 echo "and run ./configure to build your new plugin"
 exit 0

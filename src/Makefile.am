@@ -53,7 +53,7 @@ bin_PROGRAMS += tcpbridge
 man_MANS += tcpbridge.1
 endif
 
-tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
+tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -Itcpedit $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
 
 if ENABLE_TCPREPLAY_EDIT
 tcpreplay_LDADD = ./tcpedit/libtcpedit.a
@@ -79,7 +79,7 @@ tcpreplay_edit_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ $(opts_list) -DTCPREPLAY_EDIT -b tcpreplay_edit_opts \
 		tcpreplay_opts.def
 
-tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
+tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -Itcpedit @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 	$(LIBSTRL) @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@ \
 	$(LIBFRAGROUTE)
@@ -99,7 +99,7 @@ tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def
 	@AUTOGEN@ tcpprep_opts.def
 
-tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPBRIDGE
+tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -Itcpedit $(LNAV_CFLAGS) @LDNETINC@ -DTCPBRIDGE
 tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
     $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
 if ENABLE_OSX_FRAMEWORKS

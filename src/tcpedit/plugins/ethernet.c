@@ -31,10 +31,11 @@
  */
 
 
-#include "tcpedit.h"
-#include "dlt_plugins-int.h"
+
 #include <assert.h>
 #include <string.h>
+
+#include "ethernet.h"
 
 /* 
  * takes a ptr to an ethernet address and returns

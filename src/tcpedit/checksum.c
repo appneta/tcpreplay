@@ -36,7 +36,7 @@
  */
  
 #include "config.h"
-#include "tcpedit-int.h"
+#include "tcpedit.h"
 #include "checksum.h"
 
 static int do_checksum_math(u_int16_t *, int);

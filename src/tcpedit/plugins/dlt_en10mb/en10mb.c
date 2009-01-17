@@ -33,14 +33,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "en10mb.h"
-#include "dlt_plugins-int.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
 #include "dlt_utils.h"
 #include "tcpedit_stub.h"
 #include "../ethernet.h"
+#include "en10mb.h"
+
 
 static char _U_ dlt_name[] = "en10mb";
 static char dlt_prefix[] = "enet";

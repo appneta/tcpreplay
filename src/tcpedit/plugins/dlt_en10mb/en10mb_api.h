@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006-2007 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,27 +32,33 @@
 
 
 
-#ifndef _DLT_null_H_
-#define _DLT_null_H_
+#ifndef _DLT_en10mb_API_H_
+#define _DLT_en10mb_API_H_
 
+#include "tcpedit_types.h"
 #include "plugins_types.h"
+#include "en10mb_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int dlt_null_register(tcpeditdlt_t *ctx);
-int dlt_null_init(tcpeditdlt_t *ctx);
-int dlt_null_cleanup(tcpeditdlt_t *ctx);
-int dlt_null_parse_opts(tcpeditdlt_t *ctx);
-int dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_null_l2addr_type(void);
-int dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
 
+/**
+ * \brief EN10MB (Ethernet) Plugin API functions for modifying the 802.3 Ethernet header
+ *
+ * setters always return TCPEDIT_OK on success or TCPEDIT_ERROR 
+ * if there is a problem.  You can use tcpedit_geterr() to get the reason
+ * for the failure
+ */
+int tcpedit_en10mb_set_mac(tcpedit_t *tcpedit, char *mac, tcpedit_mac_mask mask);
+int tcpedit_en10mb_set_vlan_mode(tcpedit_t *tcpedit, tcpedit_vlan vlan);
+int tcpedit_en10mb_set_vlan_tag(tcpedit_t *tcpedit, u_int16_t tag);
+int tcpedit_en10mb_set_vlan_priority(tcpedit_t *tcpedit, u_int8_t priority);
+int tcpedit_en10mb_set_vlan_cfi(tcpedit_t *tcpedit, u_int8_t cfi);
+
+#ifdef __cplusplus
+}
 #endif
 
+#endif

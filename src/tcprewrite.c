@@ -102,8 +102,7 @@ main(int argc, char *argv[])
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
-
-
+    
     if (tcpedit_validate(tcpedit) < 0) {
         errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));

@@ -31,10 +31,10 @@
  */
 
 
-#include "dlt_plugins-int.h"
-
 #ifndef _DLT_radiotap_H_
 #define _DLT_radiotap_H_
+
+#include "plugins_types.h"
 
 int dlt_radiotap_register(tcpeditdlt_t *ctx);
 int dlt_radiotap_init(tcpeditdlt_t *ctx);

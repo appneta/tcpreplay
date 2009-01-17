@@ -1,4 +1,4 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
@@ -31,15 +31,25 @@
  */
 
 
-#include "dlt_plugins-int.h"
 
 #ifndef _DLT_loop_H_
 #define _DLT_loop_H_
+
+#include "plugins_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 int dlt_loop_register(tcpeditdlt_t *ctx);
 int dlt_loop_init(tcpeditdlt_t *ctx);
 
 /* empty because we use DLT_NULL */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

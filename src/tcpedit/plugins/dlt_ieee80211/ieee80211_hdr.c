@@ -33,8 +33,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
+#include "tcpedit.h"
+#include "common.h"
+#include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
 #include "ieee80211.h"
+#include "ieee80211_hdr.h"
 
 /*
  * Does the given 802.11 header have data?

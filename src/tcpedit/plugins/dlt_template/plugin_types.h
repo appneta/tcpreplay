@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006-2007 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,36 +30,22 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _DLT_%{plugin}_TYPES_H_
+#define _DLT_%{plugin}_TYPES_H_
 
+/* any includes go here */
 
-#ifndef _DLT_raw_H_
-#define _DLT_raw_H_
-
-#include "plugins_types.h"
-
-int dlt_raw_register(tcpeditdlt_t *ctx);
-int dlt_raw_init(tcpeditdlt_t *ctx);
-int dlt_raw_cleanup(tcpeditdlt_t *ctx);
-int dlt_raw_parse_opts(tcpeditdlt_t *ctx);
-int dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_raw_l2addr_type(void);
-int dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_raw_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
- * structure to hold any data parsed from the packet by the decoder.
+ * FIXME: structure to hold any data parsed from the packet by the decoder.
  * Example: Ethernet VLAN tag info
  */
-struct raw_extra_s {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */    
-    int dummy;
-};
-typedef struct raw_extra_s raw_extra_t;
+typedef struct {
 
+} %{plugin}_extra_t;
 
 /* 
  * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 
@@ -70,11 +56,14 @@ typedef struct raw_extra_s raw_extra_t;
  *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
  *   is available to any encoder plugin.
  */
-struct raw_config_s {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */    
-    int dummy;
-};
-typedef struct raw_config_s raw_config_t;
+typedef struct {
+    
+} %{plugin}_config_t;
 
+
+#ifdef __cplusplus
+}
 #endif
 
+
+#endif

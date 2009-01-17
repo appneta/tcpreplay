@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006-2007 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,28 +31,17 @@
  */
 
 
+/*
+ * FIXME: If you are creating an encoder plugin with any options
+ * then you need to create API calls for each option so that the 
+ * GUI or other programs using libtcpedit can set those values.
+ *
+ * Just uncomment the following headers, declare your methods in
+ * %{plugin}_api.h and write them here...
+ 
+#include "common.h"
+#include "tcpr.h"
+#include "tcpedit.h"
+#include "%{plugin}_types.h"
 
-#ifndef _DLT_null_H_
-#define _DLT_null_H_
-
-#include "plugins_types.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int dlt_null_register(tcpeditdlt_t *ctx);
-int dlt_null_init(tcpeditdlt_t *ctx);
-int dlt_null_cleanup(tcpeditdlt_t *ctx);
-int dlt_null_parse_opts(tcpeditdlt_t *ctx);
-int dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-tcpeditdlt_l2addr_type_t dlt_null_l2addr_type(void);
-int dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_null_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
-
-#endif
-
+*/

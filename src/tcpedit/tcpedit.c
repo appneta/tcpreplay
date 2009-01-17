@@ -42,19 +42,16 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#include "tcpedit-int.h"
+#include "tcpedit.h"
 #include "tcpedit_stub.h"
 #include "portmap.h"
 #include "common.h"
 #include "edit_packet.h"
 #include "parse_args.h"
-#include "plugins/dlt_plugins.h"
-
 
 #include "lib/sll.h"
 #include "dlt.h"
 
-tOptDesc *const tcpedit_tcpedit_optDesc_p;
 
 /**
  * \brief Edit the given packet
@@ -428,7 +425,7 @@ tcpedit_close(tcpedit_t *tcpedit)
  * Return a ptr to the Layer 3 data.  Returns TCPEDIT_ERROR on error
  */
 const u_char *
-tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
     u_char *result = NULL;
     if (code == BEFORE_PROCESS) {
@@ -440,10 +437,12 @@ tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const i
 }
 
 /**
- * return the length of the layer 2 header.  Returns TCPEDIT_ERROR on error
+ * \brief return the length of the layer 2 header.  Returns TCPEDIT_ERROR on error
+ * 
+ * probably the only time you'd call this is when you're not calling tcpedit_packet()
  */
 int 
-tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
     int result = 0;
     if (code == BEFORE_PROCESS) {
@@ -455,10 +454,12 @@ tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const in
 }
 
 /**
- * Returns the layer 3 type, often encoded as the layer2.proto field
+ * \brief Returns the layer 3 type, often encoded as the layer2.proto field
+ * 
+ * probably the only time you'd call this is when you're not calling tcpedit_packet()
  */
 int 
-tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, const int pktlen)
+tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, const int pktlen)
 {
     int result = 0;
     if (code == BEFORE_PROCESS) {
@@ -469,21 +470,247 @@ tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, 
     return ntohs(result);
 }
 
+/**
+ * Returns the total number of bytes processed so far
+ */
+COUNTER 
+tcpedit_get_total_bytes(tcpedit_t *tcpedit)
+{
+    assert(tcpedit);
+    return tcpedit->runtime.total_bytes;   
+}
+
+/**
+ * Returns the number of packets edited so far
+ */
+COUNTER 
+tcpedit_get_pkts_edited(tcpedit_t *tcpedit)
+{
+    assert(tcpedit);
+    return tcpedit->runtime.pkts_edited;
+}
+
+
+/**
+ * Set wether we should edit broadcast & multicast IP addresses
+ */
+int 
+tcpedit_set_skip_broadcast(tcpedit_t *tcpedit, bool value)
+{
+    assert(tcpedit);
+    tcpedit->skip_broadcast = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief force fixing L3 & L4 data by padding or truncating packets
+ */
+int
+tcpedit_set_fixlen(tcpedit_t *tcpedit, tcpedit_fixlen value)
+{
+    assert(tcpedit);
+    tcpedit->fixlen = value;    
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief should we always recalculate L3 & L4 checksums?
+ */
+int 
+tcpedit_set_fixcsum(tcpedit_t *tcpedit, bool value)
+{
+    assert(tcpedit);
+    tcpedit->fixcsum = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief should we remove the EFCS from the frame?
+ */
+int 
+tcpedit_set_efcs(tcpedit_t *tcpedit, bool value)
+{
+    assert(tcpedit);
+    tcpedit->efcs = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief set the IPv4 TTL mode 
+ */
+int
+tcpedit_set_ttl_mode(tcpedit_t *tcpedit, tcpedit_ttl_mode value)
+{
+    assert(tcpedit);
+    tcpedit->ttl_mode = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief set the IPv4 ttl value
+ */
+int
+tcpedit_set_ttl_value(tcpedit_t *tcpedit, u_int8_t value)
+{
+    assert(tcpedit);
+    tcpedit->ttl_value = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief set the IPv4 TOS/DiffServ/ECN byte value 
+ */
+int 
+tcpedit_set_tos(tcpedit_t *tcpedit, u_int8_t value)
+{
+    assert(tcpedit);
+    tcpedit->tos = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * Set the IPv4 IP address randomization seed
+ */
+int 
+tcpedit_set_seed(tcpedit_t *tcpedit, int value)
+{
+    assert(tcpedit);
+
+    tcpedit->rewrite_ip = true;
+    srandom(value);
+    tcpedit->seed = random() + random() + random() + random() + random();
+
+    return TCPEDIT_OK;
+}
+
+/**
+ * Set the MTU of the frames
+ */
+int 
+tcpedit_set_mtu(tcpedit_t *tcpedit, int value)
+{
+    assert(tcpedit);
+    tcpedit->mtu = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * Set the maxpacket- currently not supported
+ */
+int 
+tcpedit_set_maxpacket(tcpedit_t *tcpedit, int value)
+{
+    assert(tcpedit);
+    tcpedit->maxpacket = value;
+    return TCPEDIT_OK;
+}
+
+
+/**
+ * \brief Set the server to client (primary) CIDR map (Pseudo NAT)
+ *
+ * Set the server to client (primary) CIDR map using the given string
+ * which is in the format of:
+ * <match cidr>:<target cidr>,...
+ * 192.168.0.0/16:10.77.0.0/16,172.16.0.0/12:10.1.0.0/24
+ */
+int
+tcpedit_set_cidrmap_s2c(tcpedit_t *tcpedit, char *value)
+{
+    assert(tcpedit);
+
+    tcpedit->rewrite_ip ++;    
+    if (! parse_cidr_map(&tcpedit->cidrmap1, value)) {
+        tcpedit_seterr(tcpedit, "Unable to parse: %s", value);
+        return TCPEDIT_ERROR;
+    }
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief Set the client to server (secondary) CIDR map (Pseudo NAT)
+ *
+ * Set the client to server (secondary) CIDR map using the given string
+ * which is in the format of:
+ * <match cidr>:<target cidr>,...
+ * 192.168.0.0/16:10.77.0.0/16,172.16.0.0/12:10.1.0.0/24
+ */
+int
+tcpedit_set_cidrmap_c2s(tcpedit_t *tcpedit, char *value)
+{
+    assert(tcpedit);
+    
+    tcpedit->rewrite_ip ++;    
+    if (! parse_cidr_map(&tcpedit->cidrmap2, value)) {
+        tcpedit_seterr(tcpedit, "Unable to parse: %s", value);
+        return TCPEDIT_ERROR;
+    }
+    return TCPEDIT_OK;    
+}
+
+/**
+ * Rewrite the Source IP of any packet 
+ */
+int
+tcpedit_set_srcip_map(tcpedit_t *tcpedit, char *value)
+{
+    assert(tcpedit);
+    
+    tcpedit->rewrite_ip ++;    
+    if (! parse_cidr_map(&tcpedit->srcipmap, value)) {
+        tcpedit_seterr(tcpedit, "Unable to parse source ip map: %s", value);
+        return TCPEDIT_ERROR;
+    }    
+    return TCPEDIT_OK;
+}
+
+/**
+ * Rewrite the Destination IP of any packet 
+ */
+int
+tcpedit_set_dstip_map(tcpedit_t *tcpedit, char *value)
+{
+    assert(tcpedit);
+    
+    tcpedit->rewrite_ip ++;    
+    if (! parse_cidr_map(&tcpedit->dstipmap, value)) {
+        tcpedit_seterr(tcpedit, "Unable to parse destination ip map: %s", value);
+        return TCPEDIT_ERROR;
+    }
+    return TCPEDIT_OK;    
+}
+
+/**
+ * Rewrite TCP/UDP ports using the following format:
+ * <src>:<dst>,...
+ */
+int 
+tcpedit_set_port_map(tcpedit_t *tcpedit, char *value)
+{
+    assert(tcpedit);
+    if (! parse_portmap(&tcpedit->portmap, value)) {
+        tcpedit_seterr(tcpedit, 
+                "Unable to parse portmap: %s", value);
+        return TCPEDIT_ERROR;
+    }
+    return TCPEDIT_OK;
+}
+
 /*
 u_char *
-tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
    
 }
 
 u_char *
-tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
     
 }
 
 int 
-tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder_t code)
+tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder code)
 {
     
 }
