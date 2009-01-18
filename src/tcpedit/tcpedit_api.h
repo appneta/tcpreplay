@@ -37,32 +37,13 @@
 extern "C" {
 #endif
 
-int tcpedit_init(tcpedit_t **tcpedit_ex, int dlt);
-char *tcpedit_geterr(tcpedit_t *tcpedit);
-char *tcpedit_getwarn(tcpedit_t *tcpedit);
-
-int tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix);
-int tcpedit_validate(tcpedit_t *tcpedit);
-
-int tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
-        u_char **pktdata, tcpr_dir_t direction);
-
-int tcpedit_close(tcpedit_t *tcpedit);
-int tcpedit_get_output_dlt(tcpedit_t *tcpedit);
-
-int tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen);
-const u_char *tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen);
-
-int tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, const int pktlen);
-
-COUNTER tcpedit_get_total_bytes(tcpedit_t *tcpedit);
-COUNTER tcpedit_get_pkts_edited(tcpedit_t *tcpedit);
-
-/*
-u_char *tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen);
-u_char *tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen);
-int tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder code);
-*/
+/**
+ * Selection of the encoder plugin is usually done by tcpedit_post_args()
+ * so when using the config API you must manually specifiy it using one of
+ * the following functions
+ */
+int tcpedit_set_encoder_dltplugin_byid(tcpedit_t *, int);
+int tcpedit_set_encoder_dltplugin_byname(tcpedit_t *, const char *);
 
 
 /**
@@ -80,18 +61,12 @@ int tcpedit_set_tos(tcpedit_t *, u_int8_t);
 int tcpedit_set_seed(tcpedit_t *, int);
 int tcpedit_set_mtu(tcpedit_t *, int);
 int tcpedit_set_maxpacket(tcpedit_t *, int);
-int tcpedit_set_cidrmap_s2c(tcpedit_t *tcpedit, char *value);
-int tcpedit_set_cidrmap_c2s(tcpedit_t *tcpedit, char *value);
-int tcpedit_set_srcip_map(tcpedit_t *tcpedit, char *value);
-int tcpedit_set_dstip_map(tcpedit_t *tcpedit, char *value);
-int tcpedit_set_port_map(tcpedit_t *tcpedit, char *value);
+int tcpedit_set_cidrmap_s2c(tcpedit_t *, char *);
+int tcpedit_set_cidrmap_c2s(tcpedit_t *, char *);
+int tcpedit_set_srcip_map(tcpedit_t *, char *);
+int tcpedit_set_dstip_map(tcpedit_t *, char *);
+int tcpedit_set_port_map(tcpedit_t *, char *);
 
-
-
-#define tcpedit_seterr(x, y, ...) __tcpedit_seterr(x, __FUNCTION__, __LINE__, __FILE__, y, __VA_ARGS__)
-
-void __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...);
-void tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...);
 
 #ifdef __cplusplus
 }

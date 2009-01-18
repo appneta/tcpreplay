@@ -39,6 +39,86 @@
 #include "defines.h"
 #include "tcpedit.h"
 #include "portmap.h"
+#include "dlt_utils.h"
+
+/**
+ * Set output DLT plugin by using it's DLT_<type>.  Note that the user plugin
+ * is DLT_USER0.
+ */
+int
+tcpedit_set_encoder_dltplugin_byid(tcpedit_t *tcpedit, int dlt)
+{
+    tcpeditdlt_plugin_t *plugin;
+    tcpeditdlt_t *ctx;
+    
+    assert(tcpedit);
+
+    ctx = tcpedit->dlt_ctx;
+    assert(ctx);
+    
+    if (ctx->encoder) {
+        tcpedit_seterr(tcpedit, "You have already selected a DLT encoder: %s", ctx->encoder->name);
+        return TCPEDIT_ERROR;
+    }
+
+    plugin = tcpedit_dlt_getplugin(ctx, dlt);
+    if (plugin == NULL) {
+        tcpedit_seterr(tcpedit, "No output DLT plugin decoder with DLT type: 0x%04x", dlt);
+        return TCPEDIT_ERROR;
+    }
+    
+    ctx->encoder = plugin;
+
+    /* init the encoder plugin if it's not the decoder plugin too */
+    if (ctx->encoder->dlt != ctx->decoder->dlt) {
+        if (ctx->encoder->plugin_init(ctx) != TCPEDIT_OK) {
+            /* plugin should generate the error */
+            return TCPEDIT_ERROR;    
+        }
+    }
+
+    return TCPEDIT_OK;
+}
+
+/**
+ * same as tcpedit_set_encoder_plugin_byid() except we take the DLT_<name>
+ * as a string to select it
+ */
+int
+tcpedit_set_encoder_dltplugin_byname(tcpedit_t *tcpedit, const char *name)
+{
+    tcpeditdlt_plugin_t *plugin;
+    tcpeditdlt_t *ctx;
+    
+    assert(tcpedit);
+
+    ctx = tcpedit->dlt_ctx;
+    assert(ctx);
+    
+    if (ctx->encoder) {
+        tcpedit_seterr(tcpedit, "You have already selected a DLT encoder: %s", ctx->encoder->name);
+        return TCPEDIT_ERROR;
+    }
+
+    plugin = tcpedit_dlt_getplugin_byname(ctx, name);
+    if (plugin == NULL) {
+        tcpedit_seterr(tcpedit, "No output DLT plugin available for: %s", name);
+        return TCPEDIT_ERROR;
+    }
+    
+    ctx->encoder = plugin;
+
+    /* init the encoder plugin if it's not the decoder plugin too */
+    if (ctx->encoder->dlt != ctx->decoder->dlt) {
+        if (ctx->encoder->plugin_init(ctx) != TCPEDIT_OK) {
+            /* plugin should generate the error */
+            return TCPEDIT_ERROR;    
+        }
+    }
+
+    return TCPEDIT_OK;    
+}
+
 
 /**
  * Set wether we should edit broadcast & multicast IP addresses
