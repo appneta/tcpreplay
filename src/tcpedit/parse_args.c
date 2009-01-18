@@ -48,12 +48,10 @@
  * returns -1 for error
  */
 int 
-tcpedit_post_args(tcpedit_t **tcpedit_ex) {
-    tcpedit_t *tcpedit;
+tcpedit_post_args(tcpedit_t *tcpedit) {
     int rcode = 0;
     long ttl;
-    assert(tcpedit_ex);
-    tcpedit = *tcpedit_ex;
+
     assert(tcpedit);
 
 

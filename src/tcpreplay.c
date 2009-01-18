@@ -100,7 +100,7 @@ main(int argc, char *argv[])
     }
     
     /* parse the tcpedit args */
-    rcode = tcpedit_post_args(&tcpedit);
+    rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
