@@ -72,7 +72,6 @@ int tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder code);
  */
 int tcpedit_set_skip_broadcast(tcpedit_t *, bool);
 int tcpedit_set_fixlen(tcpedit_t *, tcpedit_fixlen);
-int tcpedit_set_rewrite_ip(tcpedit_t *, bool);
 int tcpedit_set_fixcsum(tcpedit_t *, bool);
 int tcpedit_set_efcs(tcpedit_t *, bool);
 int tcpedit_set_ttl_mode(tcpedit_t *, tcpedit_ttl_mode);

@@ -619,7 +619,7 @@ tcpedit_set_cidrmap_s2c(tcpedit_t *tcpedit, char *value)
 {
     assert(tcpedit);
 
-    tcpedit->rewrite_ip ++;    
+    tcpedit->rewrite_ip = true;    
     if (! parse_cidr_map(&tcpedit->cidrmap1, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse: %s", value);
         return TCPEDIT_ERROR;
@@ -640,7 +640,7 @@ tcpedit_set_cidrmap_c2s(tcpedit_t *tcpedit, char *value)
 {
     assert(tcpedit);
     
-    tcpedit->rewrite_ip ++;    
+    tcpedit->rewrite_ip = true;
     if (! parse_cidr_map(&tcpedit->cidrmap2, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse: %s", value);
         return TCPEDIT_ERROR;
@@ -656,7 +656,7 @@ tcpedit_set_srcip_map(tcpedit_t *tcpedit, char *value)
 {
     assert(tcpedit);
     
-    tcpedit->rewrite_ip ++;    
+    tcpedit->rewrite_ip = true;
     if (! parse_cidr_map(&tcpedit->srcipmap, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse source ip map: %s", value);
         return TCPEDIT_ERROR;
@@ -672,7 +672,8 @@ tcpedit_set_dstip_map(tcpedit_t *tcpedit, char *value)
 {
     assert(tcpedit);
     
-    tcpedit->rewrite_ip ++;    
+    tcpedit->rewrite_ip = true;
+    
     if (! parse_cidr_map(&tcpedit->dstipmap, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse destination ip map: %s", value);
         return TCPEDIT_ERROR;
@@ -688,6 +689,7 @@ int
 tcpedit_set_port_map(tcpedit_t *tcpedit, char *value)
 {
     assert(tcpedit);
+
     if (! parse_portmap(&tcpedit->portmap, value)) {
         tcpedit_seterr(tcpedit, 
                 "Unable to parse portmap: %s", value);
