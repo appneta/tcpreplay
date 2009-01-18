@@ -6,7 +6,7 @@ noinst_LIBRARIES = libtcpedit.a
 BUILT_SOURCES = tcpedit_stub.h
 
 libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
-	portmap.c dlt.c checksum.c
+	portmap.c dlt.c checksum.c tcpedit_api.c
 
 manpages: tcpedit.1
 
