@@ -84,11 +84,12 @@ typedef struct {
 /*
  * portmap data struct
  */
-typedef struct {
+struct tcpedit_portmap_s {
     long from;
     long to;
     struct tcpedit_portmap_s *next;
-} tcpedit_portmap_t;
+};
+typedef struct tcpedit_portmap_s tcpedit_portmap_t;
 
 /*
  * all the arguments that the packet editing library supports
