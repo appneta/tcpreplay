@@ -39,11 +39,6 @@
  */
 #include "common/dlt_names.h"
 
-
-#ifdef HAVE_LIBNET
-#include "@LNETINC@"
-#endif
-
 typedef struct tcpr_ipv4_hdr ipv4_hdr_t;
 typedef struct tcpr_ipv6_hdr ipv6_hdr_t;
 typedef struct tcpr_tcp_hdr tcp_hdr_t;
