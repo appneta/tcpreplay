@@ -327,33 +327,42 @@ process_raw_packets(pcap_t * pcap)
                 continue;
             }
         }
-        
+
+        /*
+         * If the packet doesn't include an IPv4 header we should just treat
+         * it as a non-IP packet, UNLESS we're in MAC mode, in which case
+         * we should let the MAC matcher below handle it
+         */
+
         eth_hdr = (eth_hdr_t *)pktdata;
 
-        /* get the IP header (if any) */
-        buffptr = ipbuff;
-        ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
-                pcap_datalink(pcap), &buffptr);
+        if (options.mode != MAC_MODE) {
+
+            /* get the IP header (if any) */
+            buffptr = ipbuff;
+            ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
+                    pcap_datalink(pcap), &buffptr);
         
-        if (ip_hdr == NULL) {
-            dbg(2, "Packet isn't IP");
+            if (ip_hdr == NULL) {
+                dbg(2, "Packet isn't IP");
 
-            /* we don't want to cache these packets twice */
-            if (options.mode != AUTO_MODE) {
-                dbg(3, "Adding to cache using options for Non-IP packets");
-                add_cache(&options.cachedata, SEND, options.nonip);
-            }
+                /* we don't want to cache these packets twice */
+                if (options.mode != AUTO_MODE) {
+                    dbg(3, "Adding to cache using options for Non-IP packets");
+                    add_cache(&options.cachedata, SEND, options.nonip);
+                }
 
-            continue;
-        }
-
-        l2len = get_l2len(pktdata, pkthdr.caplen, pcap_datalink(pcap));
-
-        /* look for include or exclude CIDR match */
-        if (options.xX.cidr != NULL) {
-            if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
-                add_cache(&options.cachedata, DONT_SEND, 0);
                 continue;
+            }
+        
+            l2len = get_l2len(pktdata, pkthdr.caplen, pcap_datalink(pcap));
+
+            /* look for include or exclude CIDR match */
+            if (options.xX.cidr != NULL) {
+                if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
+                    add_cache(&options.cachedata, DONT_SEND, 0);
+                    continue;
+                }
             }
         }
 
