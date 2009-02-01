@@ -48,6 +48,7 @@
 #include "defines.h"
 #include "common.h"
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>

@@ -73,7 +73,7 @@ get_interface(interface_list_t *list, const char *alias)
         } while (ptr != NULL);
     } else {
         name = (char *)safe_malloc(strlen(alias) + 1);
-        strlcpy(name, alias, sizeof(name));
+        strlcpy(name, alias, (strlen(alias) + 1));
         return(name);
     }
     

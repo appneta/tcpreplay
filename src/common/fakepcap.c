@@ -43,7 +43,7 @@
 
 #include <stdlib.h>
 
-#ifndef HAVE_DLT_VAL_TO_DESC
+#ifndef HAVE_PCAP_DATALINK_VAL_TO_DESC
 
 /**
  * replacement for libpcap's pcap_datalink_val_to_description()

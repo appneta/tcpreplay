@@ -4,64 +4,10 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 if NEED_LIBOPTS
-SUBDIRS = scripts lib $(LIBOPTS_DIR) src
-else
-SUBDIRS = scripts lib src
+SUBDIRS = $(LIBOPTS_DIR)
 endif
 
-DIST_SUBDIRS = scripts lib libopts src docs test
-.PHONY: manpages docs test man2html
+DIST_SUBDIRS = libopts
 
 
-dist-hook: version manpages update
-
-update:
-	svn update
-
-DOCS_DIR = $(top_builddir)/docs
-
-manpages:
-	cd src && make manpages
-
-docs: manpages
-	echo Making docs in $(DOCS_DIR)
-	cd $(DOCS_DIR) && make docs
-
-clean-docs:
-	cd $(DOCS_DIR) && make clean-docs
-
-postweb: docs doxygen
-	cd $(DOCS_DIR) && make postweb
-
-TEST_DIR = $(top_builddir)/test
-
-autoopts:
-	cd src && make autoopts
-
-test:
-	echo Making test in $(TEST_DIR)
-	cd $(TEST_DIR) && make test
-
-dlt_names:
-	cat @SAVEFILE_C@ | $(top_builddir)/scripts/dlt2name.pl src/dlt_names.h
-
-version:
-	-rm -f src/common/svn_version.c
-	cd src/common && make svn_version.c
-
-distclean-local:
-	-rm -rf autom4te.cache doxygen
-
-doxygen: version
-	doxygen doxygen.cfg
-
-ncc:
-	CC=ncc make
-
-MOSTLYCLEANFILES = tcpreplay.spec *~
-
-DISTCLEANFILES = .tm_project.cache stamp-h1 *.tar.*
-
-MAINTAINERCLEANFILES = Makefile.in configure *.bak
-
-EXTRA_DIST = doxygen.cfg.in autogen.sh
+MAINTAINERCLEANFILES = Makefile.in configure 

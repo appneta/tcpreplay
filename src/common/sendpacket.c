@@ -64,6 +64,16 @@
   * Please note that some of this code was copied from Libnet 1.1.3
   */
 
+#include <string.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/file.h>
+#include <sys/socket.h>
+
 #include "config.h"
 #include "defines.h"
 #include "common.h"
@@ -106,15 +116,7 @@
 #error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET or *BSD's BPF
 #endif
 
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <sys/file.h>
-#include <sys/socket.h>
+
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -154,7 +156,8 @@ static int get_iface_index(int fd, const int8_t *device, char *);
 #define INJECT_METHOD "bpf send()"
 
 #include <net/bpf.h>
-#include <sys/socket.h>
+#include <sys/sysctl.h>
+#include <net/route.h>
 #include <net/if.h>
 #include <sys/uio.h>
 #include <net/if_dl.h> // used for get_hwaddr_bpf()

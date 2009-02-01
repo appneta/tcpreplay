@@ -1,8 +1,46 @@
-#ifndef __DEFINES_H__
-#define __DEFINES_H__
+#include <stdint.h>
+#include <stddef.h>
+#include <sys/types.h>
+#include <inttypes.h>
 
 #include "config.h"
 #include "tcpr.h"
+
+#ifdef HAVE_BPF
+#include <net/bpf.h>
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+#endif
+
+#if defined INCLUDE_PCAP_BPF_H_FILE && !defined PCAP_DONT_INCLUDE_PCAP_BPF_H
+#include "@INCLUDE_PCAP_BPF_HEADER@"
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1 /* don't re-include it in pcap.h */
+#endif
+
+#include "@LPCAPINC@"
+
+#include "lib/strlcpy.h"
+
+/* 
+ * net/bpf.h doesn't include DLT types, but pcap-bpf.h does.  
+ * Unfortunately, pcap-bpf.h also includes things in net/bpf.h
+ * while also missing some key things (wow, that sucks)
+ * The result is that I stole the DLT types from pcap-bpf.h and 
+ * put them in here.
+ */
+#include "common/dlt_names.h"
+
+#ifdef HAVE_BOOL_H 
+#include <bool.h> 
+#endif
+
+#ifdef HAVE_STDBOOL_H
+#include <stdbool.h>
+#endif
+
+
+#ifndef __DEFINES_H__
+#define __DEFINES_H__
+
 
 /* should packet counters be 32 or 64 bit? --enable-64bit */
 #ifdef ENABLE_64BITS
@@ -13,31 +51,9 @@
 #define COUNTER_SPEC "%lu"
 #endif
 
-
-#ifdef HAVE_BPF
-#include <net/bpf.h>
-#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
-#endif
-
-#if defined INCLUDE_PCAP_BPF_H_FILE && !defined PCAP_DONT_INCLUDE_PCAP_BPF_H
-#include "@PCAP_BPF_H_FILE@"
-#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1 /* don't re-include it in pcap.h */
-#endif
-
-#include "@LPCAPINC@"
-
-#include "lib/strlcpy.h"
 #include "common/list.h"
 #include "common/cidr.h"
 
-/* 
- * net/bpf.h doesn't include DLT types, but pcap-bpf.h does.  
- * Unfortunately, pcap-bpf.h also includes things in net/bpf.h
- * while also missing some key things (wow, that sucks)
- * The result is that I stole the DLT types from pcap-bpf.h and 
- * put them in here.
- */
-#include "common/dlt_names.h"
 
 typedef struct tcpr_ipv4_hdr ipv4_hdr_t;
 typedef struct tcpr_ipv6_hdr ipv6_hdr_t;
@@ -205,10 +221,15 @@ enum tcpprep_mode {
 #endif
 #endif
 
-#ifndef HAVE_UINT8_T
+
+
+#ifndef UINT8_T
 typedef u_int8_t uint8_t
 typedef u_int16_t uint16_t
 typedef u_int32_t uint32_t
+#endif
+#ifndef UINT64_T
+typedef u_int64_t uint64_t
 #endif
 
 /* Support for flexible arrays. */

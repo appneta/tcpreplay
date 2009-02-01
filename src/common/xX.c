@@ -38,6 +38,8 @@
  * tcpreplay/do_packets and tcpprep.
  */
 
+#include <stdlib.h>
+
 #include "config.h"
 #include "defines.h"
 #include "common.h"

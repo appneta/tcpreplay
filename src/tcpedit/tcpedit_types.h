@@ -34,7 +34,6 @@
 #ifndef _TCPEDIT_TYPES_H_
 #define _TCPEDIT_TYPES_H_
 
-
 #include "defines.h"
 #include "common.h"
 

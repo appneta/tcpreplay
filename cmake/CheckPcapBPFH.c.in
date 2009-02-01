@@ -1,0 +1,10 @@
+#include <stdlib.h>
+#include "@TEMP_PCAP_BPF_H_FILE@"
+
+int
+main(int argc, char *argv[])
+{
+    int foo;
+    foo = BPF_MAJOR_VERSION;
+    exit(0);
+}

@@ -34,6 +34,7 @@
 #include "defines.h"
 #include "common.h"
 
+#include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <stdio.h>
