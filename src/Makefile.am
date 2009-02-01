@@ -22,12 +22,7 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c manpages \
 
 
 # Get AutoOpts search path
-#opts_list=`find tcpedit -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
 opts_list=-L tcpedit
-
-if ENABLE_TCPREPLAY_EDIT
-opts_list += -DTCPREPLAY_EDIT
-endif
 
 tcpprep.1: tcpprep_opts.def
 	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpprep tcpprep_opts.def
@@ -46,38 +41,37 @@ tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1
-bin_PROGRAMS = tcpreplay tcpprep tcprewrite
+bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit
 
 if COMPILE_TCPBRIDGE
 bin_PROGRAMS += tcpbridge
 man_MANS += tcpbridge.1
 endif
 
-tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
-
-if ENABLE_TCPREPLAY_EDIT
-tcpreplay_LDADD = ./tcpedit/libtcpedit.a
-tcpreplay_SOURCES = tcpreplay_edit_opts.c
-else
-tcpreplay_SOURCES = tcpreplay_opts.c
-tcpreplay_LDADD = 
-endif
-
-tcpreplay_LDADD += ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
-tcpreplay_SOURCES += send_packets.c signal_handler.c tcpreplay.c sleep.c
-
-if ENABLE_OSX_FRAMEWORKS
-tcpreplay_LDFLAGS = -framework CoreServices -framework Carbon
-endif
-
-tcpreplay_OBJECTS: tcpreplay_opts.h
-tcpreplay_opts.h: tcpreplay_opts.c
+tcpreplay_edit_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY -DTCPREPLAY_EDIT
+tcpreplay_edit_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
+tcpreplay_edit_SOURCES = tcpreplay_edit_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c
+tcpreplay_edit_OBJECTS: tcpreplay_opts.h
 tcpreplay_edit_opts.h: tcpreplay_edit_opts.c
-tcpreplay_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ $(opts_list) tcpreplay_opts.def
+
 tcpreplay_edit_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ $(opts_list) -DTCPREPLAY_EDIT -b tcpreplay_edit_opts \
 		tcpreplay_opts.def
+
+tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
+tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c
+tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
+tcpreplay_OBJECTS: tcpreplay_opts.h
+tcpreplay_opts.h: tcpreplay_opts.c
+
+tcpreplay_opts.c: tcpreplay_opts.def
+	@AUTOGEN@ $(opts_list) tcpreplay_opts.def
+
+if ENABLE_OSX_FRAMEWORKS
+tcpreplay_LDFLAGS = -framework CoreServices -framework Carbon
+tcpreplay_edit_LDFLAGS = -framework CoreServices -framework Carbon
+endif
+
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
 tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \

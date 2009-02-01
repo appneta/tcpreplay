@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=4
-MICRO_VERSION=0
+MICRO_VERSION=1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -297,16 +297,6 @@ AC_ARG_ENABLE(force-inject,
 AC_ARG_ENABLE(force-sendpacket,
 	AC_HELP_STRING([--enable-force-sendpacket], [Force using libpcap's pcap_sendpacket() for sending packets]),
 	[ AC_DEFINE([FORCE_INJECT_PCAP_SENDPACKET], [1], [Force using libpcap's pcap_sendpacket() for sending packets])])
-
-tcpreplay_edit=no
-AC_ARG_ENABLE(tcpreplay-edit,
-	AC_HELP_STRING([--enable-tcpreplay-edit], [Link packet editing code with tcpreplay]),
-	[ AC_DEFINE([TCPREPLAY_EDIT], [1], [Link packet editing code with tcpreplay])
-	tcpreplay_edit=yes
-	])
-
-AM_CONDITIONAL([ENABLE_TCPREPLAY_EDIT], [test x$tcpreplay_edit = xyes])
-
 
 dnl Dynamic link libraries
 dynamic_link=no
