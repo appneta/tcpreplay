@@ -515,6 +515,9 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     u_int32_t newip = 0;
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
+#ifdef FORCE_ALIGN
+    u_int32_t iptemp;
+#endif
 
     assert(tcpedit);
     assert(arp_hdr);
@@ -546,7 +549,14 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
         ip1 = (u_int32_t *)add_hdr;
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
+#ifdef FORCE_ALIGN
+        /* copy IP2 to a temporary buffer for processing */
+        memcpy(&iptemp, add_hdr, sizeof(u_int32_t));
+        ip2 = &iptemp;
+#else
         ip2 = (u_int32_t *)add_hdr;
+#endif
+        
 
         /* loop through the cidrmap to rewrite */
         do {
@@ -576,7 +586,11 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
                     didsrc = 1;
                 }
             }
-            
+
+#ifdef FORCE_ALIGN
+            /* copy temporary IP to IP2 location in buffer */
+            memcpy(add_hdr, &iptemp, sizeof(u_int32_t));
+#endif
 
             /*
              * loop while we haven't modified both src/dst AND

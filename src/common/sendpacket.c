@@ -149,7 +149,7 @@ static int get_iface_index(int fd, const int8_t *device, char *);
 
 #endif /* HAVE_PF_PACKET */
 
-#ifdef HAVE_BPF
+#if defined HAVE_BPF && ! defined INJECT_METHOD
 #undef INJECT_METHOD
 #define INJECT_METHOD "bpf send()"
 
@@ -164,7 +164,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *) _U_;
 
 #endif /* HAVE_BPF */
 
-#ifdef HAVE_LIBDNET
+#if defined HAVE_LIBDNET && ! defined INJECT_METHOD
 #undef INJECT_METHOD
 #define INJECT_METHOD "libdnet eth_send()"
 /* need to undef these which are pulled in via defines.h, prior to importing dnet.h */
@@ -178,15 +178,15 @@ static sendpacket_t *sendpacket_open_libdnet(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_libdnet(sendpacket_t *) _U_;
 #endif /* HAVE_LIBDNET */
 
-#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) && ! defined INJECT_METHOD
 static sendpacket_t *sendpacket_open_pcap(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif /* HAVE_PCAP_INJECT || HAVE_PACKET_SENDPACKET */
 
-#ifdef HAVE_PCAP_INJECT
+#if defined HAVE_PCAP_INJECT && ! defined INJECT_METHOD
 #undef INJECT_METHOD
 #define INJECT_METHOD "pcap_inject()"
-#elif defined HAVE_PCAP_SENDPACKET
+#elif defined HAVE_PCAP_SENDPACKET && ! defined INJECT_METHOD
 #undef INJECT_METHOD
 #define INJECT_METHOD "pcap_sendpacket()"
 #endif

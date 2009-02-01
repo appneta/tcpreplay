@@ -7,8 +7,9 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,14 +44,14 @@ void *
 ip_frag_open(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("need fragment <size> in bytes");
+		warn("need fragment <size> in bytes");
 		return (NULL);
 	}
 	ip_frag_data.rnd = rand_open();
 	ip_frag_data.size = atoi(argv[1]);
 	
 	if (ip_frag_data.size == 0 || (ip_frag_data.size % 8) != 0) {
-		warnx("fragment size must be a multiple of 8");
+		warn("fragment size must be a multiple of 8");
 		return (ip_frag_close(&ip_frag_data));
 	}
 	if (argc == 3) {

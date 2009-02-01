@@ -7,8 +7,9 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,7 +42,7 @@ tcp_opt_open(int argc, char *argv[])
 		opt->opt_len = TCP_OPT_LEN + 2;
 
 		if ((i = atoi(argv[2])) <= 0 || i > 0xffff) {
-			warnx("mss <size> must be from 0-65535");
+			warn("mss <size> must be from 0-65535");
 			return (tcp_opt_close(opt));
 		}
 		opt->opt_data.mss = htons(i);
@@ -50,7 +51,7 @@ tcp_opt_open(int argc, char *argv[])
 		opt->opt_len = TCP_OPT_LEN + 2;
 		
 		if ((i = atoi(argv[2])) <= 0 || i > 0xff) {
-			warnx("wscale <size> must be from 0-255");
+			warn("wscale <size> must be from 0-255");
 			return (tcp_opt_close(opt));
 		}
 		opt->opt_data.wscale = i;

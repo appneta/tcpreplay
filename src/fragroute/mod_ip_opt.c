@@ -7,8 +7,9 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +46,7 @@ ip_opt_open(int argc, char *argv[])
 		return (ip_opt_close(opt));
 	
 	if ((i = atoi(argv[2])) < 4 || i > 0xff) {
-		warnx("<ptr> must be >= 4, and should be a multiple of 4");
+		warn("<ptr> must be >= 4, and should be a multiple of 4");
 		return (ip_opt_close(opt));
 	}
 	opt->opt_data.rr.ptr = i;
