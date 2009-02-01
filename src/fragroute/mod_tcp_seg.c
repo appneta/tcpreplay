@@ -7,8 +7,9 @@
  */
 
 #include "config.h"
+#include "defines.h"
+#include "common.h"
 
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,7 +44,7 @@ void *
 tcp_seg_open(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("need segment <size> in bytes");
+		warn("need segment <size> in bytes");
 		return (NULL);
 	}
 	tcp_seg_data.rnd = rand_open();
