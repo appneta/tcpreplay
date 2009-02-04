@@ -483,6 +483,32 @@ elif test $libcap_ver7 = yes ; then
     libpcap_version=">= 0.7.0"
 fi
 
+dnl Check for pcap_setnonblock()
+AC_MSG_CHECKING(for pcap_setnonblock)
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+    pcap_t *p;
+    char *errbuf;
+    
+    pcap_setnonblock(p, 1, errbuf);
+    exit(0);
+]]), [
+    have_pcap_setnonblock=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_setnonblock=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_setnonblock = yes ; then
+    AC_DEFINE([HAVE_PCAP_SETNONBLOCK], [1], 
+              [Does libpcap have pcap_setnonblock?])
+fi
+
 dnl Check to see if we've got pcap_datalink_val_to_name()
 AC_MSG_CHECKING(for pcap_datalink_val_to_description)
 AC_LINK_IFELSE(AC_LANG_PROGRAM([[
@@ -504,7 +530,32 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
 
 if test $have_dlt_to_desc = yes ; then
     AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [1], 
-              [Does libpcap have dlt_val_to_desc?])
+              [Does libpcap have pcap_datalink_val_to_description?])
+fi
+
+dnl Check for pcap_get_selectable_fd()
+AC_MSG_CHECKING(for pcap_get_selectable_fd)
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]], [[
+    int f;
+    pcap_t *p;
+    f = pcap_get_selectable_fd(p);
+    exit(0);
+]]), [
+    have_pcap_get_selectable_fd=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_get_selectable_fd=no
+    AC_MSG_RESULT(no)
+])
+
+if test x$have_pcap_get_selectable_fd = xyes ; then
+    AC_DEFINE([HAVE_PCAP_GET_SELECTABLE_FD], [1], 
+        [Does libpcap have pcap_get_selectable_fd?])
 fi
 
 dnl Important: winpcap apparently defines functions in it's header files
@@ -631,11 +682,21 @@ extern char pcap_version[];
 # Tcpbridge requires libpcap and pcap_sendpacket()
 enable_tcpbridge=no
 if test x$foundpcap != xno -a x$have_pcap_sendpacket = xyes ; then
-    AC_DEFINE(ENABLE_TCPBRIDGE, [1], [Compile tcpbridge])
-	enable_tcpbridge=yes
-	AC_MSG_NOTICE([Building tcpbridge])
-else
-	AC_MSG_WARN([Unable to build tcpbridge.  Try installing latest libpcap!])
+
+    # if we have pcap_sendpacket() then we can build tcpbridge on non-BPF systems
+    if test x$have_bpf = xno; then
+        AC_DEFINE(ENABLE_TCPBRIDGE, [1], [Compile tcpbridge])
+    	enable_tcpbridge=yes
+    	AC_MSG_NOTICE([Building tcpbridge])
+    	
+    # BPF systems need to also have pcap_setnonblock()
+    elif test x$have_pcap_setnonblock = xyes ; then
+        AC_DEFINE(ENABLE_TCPBRIDGE, [1], [Compile tcpbridge])
+    	enable_tcpbridge=yes
+    	AC_MSG_NOTICE([Building tcpbridge])    
+    else
+    	AC_MSG_WARN([Unable to build tcpbridge.  Try installing latest libpcap!])
+    fi
 fi
 AM_CONDITIONAL(COMPILE_TCPBRIDGE, [test x$enable_tcpbridge = xyes ])
 

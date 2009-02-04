@@ -97,7 +97,7 @@
 /* Does pcap.h include a header with DLT_LINUX_SLL? */
 #undef HAVE_DLT_LINUX_SLL
 
-/* Does libpcap have dlt_val_to_desc? */
+/* Does libpcap have pcap_datalink_val_to_description? */
 #undef HAVE_DLT_VAL_TO_DESC
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
@@ -203,11 +203,17 @@
 /* Does libpcap have pcap_dump_fopen? */
 #undef HAVE_PCAP_DUMP_FOPEN
 
+/* Does libpcap have pcap_get_selectable_fd? */
+#undef HAVE_PCAP_GET_SELECTABLE_FD
+
 /* Does libpcap have pcap_inject? */
 #undef HAVE_PCAP_INJECT
 
 /* Does libpcap have pcap_sendpacket? */
 #undef HAVE_PCAP_SENDPACKET
+
+/* Does libpcap have pcap_setnonblock? */
+#undef HAVE_PCAP_SETNONBLOCK
 
 /* Does libpcap have pcap_version[] */
 #undef HAVE_PCAP_VERSION
@@ -468,9 +474,6 @@
 
 /* The tcpdump binary initially used */
 #undef TCPDUMP_BINARY
-
-/* Link packet editing code with tcpreplay */
-#undef TCPREPLAY_EDIT
 
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 #undef TIME_WITH_SYS_TIME
