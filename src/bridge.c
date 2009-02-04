@@ -42,6 +42,10 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#ifdef HAVE_BPF
+#include <sys/select.h> /* necessary for using select() for BPF devices */
+#endif
+
 #include "tcpbridge.h"
 #include "bridge.h"
 #include "send_packets.h"
@@ -126,9 +130,13 @@ do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
     
 }
 
+#ifndef HAVE_BPF
 /**
  * main loop for bridging in both directions.  Since we dealing with two handles
- * we need to poll() on them which isn't the most efficent
+ * we need to poll() on them which isn't the most efficent. 
+ *
+ * Note that this function is only used on systems which do not have a BPF
+ * device because poll() behaves poorly with /dev/bpf
  */
 static void
 do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
@@ -208,6 +216,95 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 
 } /* do_bridge_bidirectional() */
 
+#elif defined HAVE_BPF && defined HAVE_PCAP_SETNONBLOCK 
+/**
+ * main loop for bridging in both directions with BPF.  We'll be using
+ * select() because that works better on older *BSD and OSX
+ *
+ * See this for details behind this maddness:
+ * http://article.gmane.org/gmane.network.tcpdump.devel/3581
+ */
+static void
+do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
+{
+    fd_set readfds, writefds, errorfds;
+    struct live_data_t livedata;
+    int fd, nfds, ret;
+    struct timeval timeout = { 0, 100 }; /* default to 100ms timeout */
+    char ebuf[PCAP_ERRBUF_SIZE];
+    
+    assert(options);
+    assert(tcpedit);
+
+    livedata.tcpedit = tcpedit;
+    livedata.options = options;
+
+    /* 
+     * loop until ctrl-C or we've sent enough packets
+     * note that if -L wasn't specified, limit_send is
+     * set to 0 so this will loop infinately
+     */
+    while ((options->limit_send == 0) || (options->limit_send > pkts_sent)) {
+        if (didsig)
+            break;
+
+        dbgx(3, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
+            options->limit_send, pkts_sent);
+
+        /* reset the result codes */
+        FD_ZERO(&readfds);
+        FD_ZERO(&writefds);
+        FD_ZERO(&errorfds);
+
+        /* set for reading */
+#ifdef HAVE_PCAP_GET_SELECTABLE_FD
+        fd = pcap_get_selectable_fd(options->pcap1);
+#else
+        fd = pcap_fileno(options->pcap1);
+#endif
+        if ((pcap_setnonblock(options->pcap1, 1, ebuf)) < 0)
+            errx(1, "Unable to set %s into nonblocking mode: %s", options->intf1, ebuf);
+        FD_SET(fd, &readfds);
+            
+#ifdef HAVE_PCAP_GET_SELECTABLE_FD
+        fd = pcap_get_selectable_fd(options->pcap2);
+#else
+        fd = pcap_fileno(options->pcap2);
+#endif
+        if ((pcap_setnonblock(options->pcap2, 1, ebuf)) < 0)
+            errx(1, "Unable to set %s into nonblocking mode: %s", options->intf2, ebuf);
+        FD_SET(fd, &readfds);
+        
+        nfds = 2;
+
+        /* wait for a packet on the two interfaces */
+        ret = select(nfds, &readfds, &writefds, &errorfds, &timeout);
+
+        /* 
+         * There is a problem with OS X and certian *BSD's when using
+         * select() on a character device like /dev/bpf.  Hence we always
+         * must attempt to read off each fd after the timeout.  This is why
+         * we put the fd's in nonblocking mode above!
+         */
+         
+        dbg(5, "Processing first interface");
+        livedata.source = PCAP_INT1;
+        livedata.pcap = options->pcap1;
+        pcap_dispatch(options->pcap1, -1, (pcap_handler) live_callback,
+                      (u_char *) &livedata);
+         
+        dbg(5, "Processing second interface");
+        livedata.source = PCAP_INT2;
+        livedata.pcap = options->pcap2;
+        pcap_dispatch(options->pcap2, -1, (pcap_handler) live_callback,
+                      (u_char *) &livedata);
+
+        /* go back to the top of the loop */
+    }    
+} 
+#else
+#error "Your system needs a libpcap with pcap_setnonblock().  Please upgrade libpcap."
+#endif
 
 /**
  * Main entry point to bridging.  Does some initial setup and then calls the 
