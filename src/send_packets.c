@@ -126,9 +126,9 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 
         packetnum++;
 
-#ifdef TCPREPLAY
+#if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
-        pktlen = HAVE_OPT(PKTLEN) ? pkthdr.len : pkthdr.caplen;
+        pktlen = options.use_pkthdr_len ? pkthdr.len : pkthdr.caplen;
 #elif TCPBRIDGE
         pktlen = pkthdr.caplen;
 #else

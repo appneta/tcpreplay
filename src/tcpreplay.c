@@ -379,9 +379,10 @@ post_args(void)
     }
 #endif
 
-    if (HAVE_OPT(PKTLEN))
+    if (HAVE_OPT(PKTLEN)) {
+        options.use_pkthdr_len = 1;
         warn("--pktlen may cause problems.  Use with caution.");
-    
+    }
     
     if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
         errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
