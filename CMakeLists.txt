@@ -313,5 +313,6 @@ ENDIF(INSIDE_SVN_WORKING_DIRECTORY)
 # cause another cmake executable to run. The same process will walk through 
 # the project's entire directory structure. 
 ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(libopts)
 # ADD_SUBDIRECTORY (docs)
 # ADD_SUBDIRECTORY (test)

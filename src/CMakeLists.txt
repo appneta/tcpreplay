@@ -11,6 +11,7 @@ ENDIF(NOT HAVE_SYSTEM_STRLCPY)
 
 SET(tcprewrite_srcs tcprewrite.c)
 SET(tcpreplay_srcs tcpreplay.c send_packets.c signal_handler.c sleep.c)
+SET(tcpreplay_edit_srcs tcpreplay.c send_packets.c signal_handler.c sleep.c)
 SET(tcpprep_srcs tcpprep.c tree.c)
 SET(tcpbridge_srcs tcpbridge.c bridge.c)
 
@@ -18,6 +19,8 @@ SET(tcpbridge_srcs tcpbridge.c bridge.c)
 IF(WIN32)
     SET(tcprewrite_srcs ${tcprewrite_srcs} tcprewrite.h)
     SET(tcpreplay_srcs ${tcpreplay_srcs} tcpreplay.h send_packets.h 
+        signal_handler.h sleep.h)
+    SET(tcpreplay_edit_srcs ${tcpreplay_srcs} tcpreplay.h send_packets.h 
         signal_handler.h sleep.h)
     SET(tcpprep_srcs ${tcpprep_srcs} tcpprep.h tree.h)
     SET(tcpbridge_srcs ${tcpbridge_srcs} tcpbridge.h bridge.h)
@@ -53,13 +56,8 @@ IF(USE_AUTOOPTS)
         DEPENDS tcpbridge_opts.def
     )
 
-    # Which _opts.c file should we include?
-    IF(TCPREPLAY_EDIT)
-        SET(tcpreplay_srcs ${tcpreplay_srcs} tcpreplay_edit_opts.c)
-    ELSE(TCPREPLAY_EDIT)
-        SET(tcpreplay_srcs ${tcpreplay_srcs} tcpreplay_opts.c)
-    ENDIF(TCPREPLAY_EDIT)
-
+    SET(tcpreplay_edit_srcs ${tcpreplay_edit_srcs} tcpreplay_edit_opts.c)
+    SET(tcpreplay_srcs ${tcpreplay_srcs} tcpreplay_opts.c)
     SET(tcprewrite_srcs ${tcprewrite_srcs} tcprewrite_opts.c)
     SET(tcpprep_srcs ${tcpprep_srcs} tcpprep_opts.c)
     SET(tcpbridge_srcs ${tcpbridge_srcs} tcpbridge_opts.c)
@@ -68,13 +66,8 @@ IF(USE_AUTOOPTS)
 ENDIF(USE_AUTOOPTS)
 
 
-# Do we include tcpedit support in tcpreplay?
-IF(TCPREPLAY_EDIT)
-    SET(tcpreplay_libs tcpedit ${baselibs})
-ELSE(TCPREPLAY_EDIT)
-    SET(tcpreplay_libs ${baselibs})
-ENDIF(TCPREPLAY_EDIT)
-
+SET(tcpreplay_edit_libs tcpedit ${baselibs})
+SET(tcpreplay_libs ${baselibs})
 SET(tcprewrite_libs tcpedit ${baselibs})
 SET(tcpprep_libs ${baselibs})
 SET(tcpbridge_libs tcpedit ${baselibs})
@@ -85,10 +78,7 @@ IF(ENABLE_FRAGROUTE AND HAVE_LIBDNET)
     SET(tcprewrite_libs ${tcprewrite_libs} fragroute)
     SET(tcpbridge_libs ${tcpbridge_libs} fragroute)
 
-    # Do we include tcpedit support in tcpreplay?
-    IF(TCPREPLAY_EDIT)
-        SET(tcpreplay_libs ${tcpreplay_libs} fragroute)
-    ENDIF(TCPREPLAY_EDIT)
+    SET(tcpreplay_edit_libs ${tcpreplay_edit_libs} fragroute)
 
     SET_TARGET_PROPERTIES(fragroute
         PROPERTIES COMPILE_FLAGS ${DNET_CFLAGS})    
@@ -98,11 +88,13 @@ ENDIF(ENABLE_FRAGROUTE AND HAVE_LIBDNET)
 IF(WIN32)
     SET(tcprewrite_libs ${tcprewrite_libs} winpcap)
     SET(tcpreplay_libs ${tcpreplay_libs} winpcap)
+    SET(tcpreplay_edit_libs ${tcpreplay_edit_libs} winpcap)
     SET(tcpbridge_libs ${tcpbridge_libs} winpcap)
     SET(tcpprep_libs ${tcpprep_libs} winpcap)
 ELSE(WIN32)
     SET(tcprewrite_libs ${tcprewrite_libs} pcap)
     SET(tcpreplay_libs ${tcpreplay_libs} pcap)
+    SET(tcpreplay_edit_libs ${tcpreplay_edit_libs} pcap)
     SET(tcpbridge_libs ${tcpbridge_libs} pcap)
     SET(tcpprep_libs ${tcpprep_libs} pcap)
 ENDIF(WIN32)
@@ -118,11 +110,17 @@ SET_TARGET_PROPERTIES(tcprewrite
 ADD_EXECUTABLE(tcpreplay ${tcpreplay_srcs})
 TARGET_LINK_LIBRARIES(tcpreplay ${tcpreplay_libs})
 
+ADD_EXECUTABLE(tcpreplay-edit ${tcpreplay_edit_srcs})
+TARGET_LINK_LIBRARIES(tcpreplay-edit ${tcpreplay_edit_libs})
+
 SET_TARGET_PROPERTIES(tcpreplay
     PROPERTIES COMPILE_FLAGS "-DTCPREPLAY -DHAVE_CACHEFILE_SUPPORT")
 
+SET_TARGET_PROPERTIES(tcpreplay-edit
+    PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT")
+
 IF(HAVE_LIBDNET)
-    SET_TARGET_PROPERTIES(tcprewrite tcpreplay
+    SET_TARGET_PROPERTIES(tcprewrite tcpreplay tcpreplay-edit
         PROPERTIES LINK_FLAGS ${DNET_LIBS})    
 ENDIF(HAVE_LIBDNET)
 
