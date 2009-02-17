@@ -9,9 +9,7 @@
 # Takes the path to the tearoff directory & the version of autogen
 MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     SET(AUTOGEN_VERSION ${__AUTOGEN_VERSION})
-
-    ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})
-
+    
     INCLUDE(CheckFunctionExists)
     INCLUDE(CheckIncludeFile)
     INCLUDE(CheckSymbolExists)
@@ -91,12 +89,13 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_type_size("pid_t"             HAVE_PID_T)
     check_type_size("size_t"            HAVE_SIZE_T)
     check_type_size("wchar_t"           HAVE_WCHAR_T)
-IF(APPLE AND HAVE_RUNETYPE_H)
-    # OS X has wint_t, but check_type_size won't find it.  This is an ugly hack around the problem
-    SET(HAVE_WINT_T 1)
-ELSE(APPLE AND HAVE_RUNETYPE_H)
-    check_type_size("wint_t"            HAVE_WINT_T)
-ENDIF(APPLE AND HAVE_RUNETYPE_H)
+
+    IF(APPLE AND HAVE_RUNETYPE_H)
+        # OS X has wint_t, but check_type_size won't find it.  This is an ugly hack around the problem
+        SET(HAVE_WINT_T 1)
+    ELSE(APPLE AND HAVE_RUNETYPE_H)
+        check_type_size("wint_t"            HAVE_WINT_T)
+    ENDIF(APPLE AND HAVE_RUNETYPE_H)
 
     check_function_exists(strftime      HAVE_STRFTIME)
     check_function_exists(canonicalize_file_name HAVE_CANONICALIZE_FILE_NAME)
@@ -108,12 +107,13 @@ ENDIF(APPLE AND HAVE_RUNETYPE_H)
     check_function_exists(strrchr       HAVE_STRRCHR)
     check_function_exists(strsignal     HAVE_STRSIGNAL)
     check_function_exists(vprintf       HAVE_VPRINTF)
+    
+    # only check for _doprnt if vfprintf doesn't exist
     IF(NOT HAVE_VPRINTF)
         check_function_exists(_doprnt   HAVE_DOPRNT)
     ENDIF(NOT HAVE_VPRINTF)
-        
 
-    # Check for fopen 'b' mode flag
+    # Check for fopen 'b' mode flag, set to "b" if available
     SET(FOPEN_BINARY_FLAG "")
     configure_file(${CMAKE_MODULE_PATH}/check_fopen_b.c.in ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_b.c)
     try_run(FOPEN_BINARY_FLAG_RESULT FOPEN_BINARY_COMPILE_FLAG
@@ -123,9 +123,8 @@ ENDIF(APPLE AND HAVE_RUNETYPE_H)
     IF(FOPEN_BINARY_FLAG_RESULT STREQUAL 0)
         SET(FOPEN_BINARY_FLAG "\"b\"")
     ENDIF(FOPEN_BINARY_FLAG_RESULT STREQUAL 0)
-        
     
-    # Check for fopen 't' mode flag
+    # Check for fopen 't' mode flag, set to "t" if available
     SET(FOPEN_TEXT_FLAG "")
     configure_file(${CMAKE_MODULE_PATH}/check_fopen_t.c.in ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_t.c)
     try_run(FOPEN_TEXT_FLAG_RESULT FOPEN_TEXT_COMPILE_FLAG
@@ -136,6 +135,5 @@ ENDIF(APPLE AND HAVE_RUNETYPE_H)
         SET(FOPEN_TEXT_FLAG "\"t\"")
     ENDIF(FOPEN_TEXT_FLAG_RESULT STREQUAL 0)
 
-    CONFIGURE_FILE(${LIBOPTS_TEAROFF_PATH}/config.h.cmake ${LIBOPTS_TEAROFF_PATH}/config.h @ONLY)
-
+    ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})    
 ENDMACRO(CHECK_LIBOPTS_TEAROFF)

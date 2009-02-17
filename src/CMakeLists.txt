@@ -99,44 +99,46 @@ ELSE(WIN32)
     SET(tcpprep_libs ${tcpprep_libs} pcap)
 ENDIF(WIN32)
 
-# Build our binaries
-ADD_EXECUTABLE(tcprewrite ${tcprewrite_srcs})
-TARGET_LINK_LIBRARIES(tcprewrite ${tcprewrite_libs})
+# Build our CLI binaries
+IF(USE_AUTOOPTS)
+    ADD_EXECUTABLE(tcprewrite ${tcprewrite_srcs})
+    TARGET_LINK_LIBRARIES(tcprewrite ${tcprewrite_libs})
 
-# Necessary since tcpedit's features change for tcprewrite vs. tcpbridge
-SET_TARGET_PROPERTIES(tcprewrite
-    PROPERTIES COMPILE_FLAGS "-DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT")
+    # Necessary since tcpedit's features change for tcprewrite vs. tcpbridge
+    SET_TARGET_PROPERTIES(tcprewrite
+        PROPERTIES COMPILE_FLAGS "-DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT")
 
-ADD_EXECUTABLE(tcpreplay ${tcpreplay_srcs})
-TARGET_LINK_LIBRARIES(tcpreplay ${tcpreplay_libs})
+    ADD_EXECUTABLE(tcpreplay ${tcpreplay_srcs})
+    TARGET_LINK_LIBRARIES(tcpreplay ${tcpreplay_libs})
 
-ADD_EXECUTABLE(tcpreplay-edit ${tcpreplay_edit_srcs})
-TARGET_LINK_LIBRARIES(tcpreplay-edit ${tcpreplay_edit_libs})
+    SET_TARGET_PROPERTIES(tcpreplay
+        PROPERTIES COMPILE_FLAGS "-DTCPREPLAY -DHAVE_CACHEFILE_SUPPORT")
 
-SET_TARGET_PROPERTIES(tcpreplay
-    PROPERTIES COMPILE_FLAGS "-DTCPREPLAY -DHAVE_CACHEFILE_SUPPORT")
+    ADD_EXECUTABLE(tcpreplay-edit ${tcpreplay_edit_srcs})
+    TARGET_LINK_LIBRARIES(tcpreplay-edit ${tcpreplay_edit_libs})
 
-SET_TARGET_PROPERTIES(tcpreplay-edit
-    PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT")
+    SET_TARGET_PROPERTIES(tcpreplay-edit
+        PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT")
 
-IF(HAVE_LIBDNET)
-    SET_TARGET_PROPERTIES(tcprewrite tcpreplay tcpreplay-edit
-        PROPERTIES LINK_FLAGS ${DNET_LIBS})    
-ENDIF(HAVE_LIBDNET)
+    IF(HAVE_LIBDNET)
+        SET_TARGET_PROPERTIES(tcprewrite tcpreplay tcpreplay-edit
+            PROPERTIES LINK_FLAGS ${DNET_LIBS})    
+    ENDIF(HAVE_LIBDNET)
 
-ADD_EXECUTABLE(tcpprep ${tcpprep_srcs})
-TARGET_LINK_LIBRARIES(tcpprep ${tcpprep_libs})
+    ADD_EXECUTABLE(tcpprep ${tcpprep_srcs})
+    TARGET_LINK_LIBRARIES(tcpprep ${tcpprep_libs})
 
-# Only build tcpbridge if we have pcap_sendpacket()
-IF(HAVE_PCAP_SENDPACKET)
-    ADD_EXECUTABLE(tcpbridge ${tcpbridge_srcs})
-    TARGET_LINK_LIBRARIES(tcpbridge ${tcpbridge_libs})
+    # Only build tcpbridge if we have pcap_sendpacket()
+    IF(HAVE_PCAP_SENDPACKET)
+        ADD_EXECUTABLE(tcpbridge ${tcpbridge_srcs})
+        TARGET_LINK_LIBRARIES(tcpbridge ${tcpbridge_libs})
 
-    SET_TARGET_PROPERTIES(tcpbridge
-        PROPERTIES COMPILE_FLAGS -DTCPBRIDGE)
+        SET_TARGET_PROPERTIES(tcpbridge
+            PROPERTIES COMPILE_FLAGS -DTCPBRIDGE)
 
-    SET_TARGET_PROPERTIES(tcpbridge
-        PROPERTIES LINK_FLAGS ${DNET_LIBS})    
+        SET_TARGET_PROPERTIES(tcpbridge
+            PROPERTIES LINK_FLAGS ${DNET_LIBS})    
 
-ENDIF(HAVE_PCAP_SENDPACKET)
+    ENDIF(HAVE_PCAP_SENDPACKET)
+ENDIF(USE_AUTOOPTS)
 

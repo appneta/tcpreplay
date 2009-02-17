@@ -5,8 +5,7 @@ SET_TARGET_PROPERTIES(opts
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libopts)
 
-CONFIGURE_FILE(config.h.cmake config.h @ONLY)
-
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/libopts/config.h.cmake ${CMAKE_SOURCE_DIR}/libopts/config.h @ONLY)
 
 ADD_DEPENDENCIES(opts 
     config.h
@@ -18,11 +17,10 @@ ADD_DEPENDENCIES(opts
     cook.c                  enumeration.c           environment.c
     file.c                  genshell.c              genshell.c
     load.c                  makeshell.c             nested.c                
-    numeric.c
-    parse-duration.c        parse-duration.h        pgusage.c
-    proto.h                 putshell.c              reset.c
-    restore.c               save.c                  sort.c
-    stack.c                 streqvcmp.c             text_mmap.c
-    time.c                  tokenize.c              usage.c
-    value-type.c            value-type.h            version.c
-    xat-attribute.c         xat-attribute.h)
+    numeric.c               parse-duration.c        parse-duration.h
+    pgusage.c               proto.h                 putshell.c
+    reset.c                 restore.c               save.c
+    sort.c                  stack.c                 streqvcmp.c
+    text_mmap.c             time.c                  tokenize.c
+    usage.c                 value-type.c            value-type.h
+    version.c               xat-attribute.c         xat-attribute.h)
