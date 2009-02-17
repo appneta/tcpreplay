@@ -77,3 +77,4 @@ rdtsc_calibrate(u_int32_t mhz)
     }
     return x;
 }
+

@@ -138,7 +138,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     /* read in the cache */
     if ((COUNTER)(read_size = read(cachefd, *cachedata, cache_size)) 
             != cache_size)
-        errx(-1, "Cache data length (%ld bytes) doesn't match "
+        errx(-1, "Cache data length (%zu bytes) doesn't match "
             "cache header (" COUNTER_SPEC " bytes)", read_size, cache_size);
 
     dbgx(1, "Loaded in %llu packets from cache.", header.num_packets);
