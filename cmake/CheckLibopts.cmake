@@ -14,6 +14,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     INCLUDE(CheckIncludeFile)
     INCLUDE(CheckSymbolExists)
     INCLUDE(CheckTypeSize)
+    INCLUDE(CheckCSourceRuns)
 
     # Check for /dev/zero
     SET(HAVE_DEV_ZERO 0)
@@ -115,25 +116,57 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
 
     # Check for fopen 'b' mode flag, set to "b" if available
     SET(FOPEN_BINARY_FLAG "")
-    configure_file(${CMAKE_MODULE_PATH}/check_fopen_b.c.in ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_b.c)
-    try_run(FOPEN_BINARY_FLAG_RESULT FOPEN_BINARY_COMPILE_FLAG
-        ${CMAKE_BINARY_DIR}
-        ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_b.c
-    )
-    IF(FOPEN_BINARY_FLAG_RESULT STREQUAL 0)
+    check_c_source_runs("
+#include <stdio.h>
+#include <stdlib.h>
+
+int
+main(int argc, char *argv[])
+{
+    FILE *fd;
+    
+    if ((fd = fopen(\"foo\", \"w+b\")) < 0)
+        return 1;
+    else
+        fclose(fd);
+    return 0;
+}
+"
+    FOPEN_BINARY_FLAG_RESULT)
+
+    IF(FOPEN_BINARY_FLAG_RESULT EQUAL 0)
+        message(STATUS "fopen supports the \"b\" flag")
         SET(FOPEN_BINARY_FLAG "\"b\"")
-    ENDIF(FOPEN_BINARY_FLAG_RESULT STREQUAL 0)
+    ELSE(FOPEN_BINARY_FLAG_RESULT EQUAL 0)
+        message(STATUS "fopen does not support the \"b\" flag")
+    ENDIF(FOPEN_BINARY_FLAG_RESULT EQUAL 0)
     
     # Check for fopen 't' mode flag, set to "t" if available
     SET(FOPEN_TEXT_FLAG "")
-    configure_file(${CMAKE_MODULE_PATH}/check_fopen_t.c.in ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_t.c)
-    try_run(FOPEN_TEXT_FLAG_RESULT FOPEN_TEXT_COMPILE_FLAG
-        ${CMAKE_BINARY_DIR}
-        ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_t.c
-    )
-    IF(FOPEN_TEXT_FLAG_RESULT STREQUAL 0)
+    check_c_source_runs("
+#include <stdio.h>
+#include <stdlib.h>
+
+int
+main(int argc, char *argv[])
+{
+    FILE *fd;
+    
+    if ((fd = fopen(\"foo\", \"w+t\")) < 0)
+        return 1;
+    else
+        fclose(fd);
+    return 0;
+}
+"
+    FOPEN_TEXT_FLAG_RESULT)
+
+    IF(FOPEN_TEXT_FLAG_RESULT EQUAL 0)
+        message(STATUS "fopen supports the \"t\" flag")
         SET(FOPEN_TEXT_FLAG "\"t\"")
-    ENDIF(FOPEN_TEXT_FLAG_RESULT STREQUAL 0)
+    ELSE(FOPEN_TEXT_FLAG_RESULT EQUAL 0)
+        message(STATUS "fopen does not support the \"t\" flag")
+    ENDIF(FOPEN_TEXT_FLAG_RESULT EQUAL 0)
 
     ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})    
 ENDMACRO(CHECK_LIBOPTS_TEAROFF)
