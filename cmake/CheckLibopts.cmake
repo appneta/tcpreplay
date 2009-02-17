@@ -2,8 +2,6 @@
 # checking if libopts/AutoGen/AutoOpts is installed on your system, but 
 # rather for doing a compatibility check for your libopts tearoff
 
-# You may need to set these
-
 ########################################################
 # You probably don't want to change anything below here!
 ########################################################
@@ -30,6 +28,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_include_file("dlfcn.h"        HAVE_DLFCN_H)
     check_include_file("errno.h"        HAVE_ERRNO_H)
     check_include_file("fcntl.h"        HAVE_FCNTL_H)
+    check_include_file("float.h"        HAVE_FLOAT_H)
     check_include_file("inttypes.h"     HAVE_INTTYPES_H)
     check_include_file("libgen.h"       HAVE_LIBGEN_H)
     check_include_file("limits.h"       HAVE_LIMITS_H)
@@ -66,6 +65,15 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_include_file("varargs.h"      HAVE_VARARGS_H)
     check_include_file("wchar.h"        HAVE_WCHAR_H)
     
+    # Not quite as good as the real autoconf AC_HEADER_STDC test, but prolly good enough
+    IF(HAVE_STDLIB_H AND HAVE_STDARG_H AND HAVE_STRING_H AND HAVE_FLOAT_H)
+        check_function_exists(free          HAVE_FREE)
+        check_function_exists(memchr        HAVE_MEMCHR)
+        IF(HAVE_FREE AND HAVE_MEMCHR)
+            SET(STDC_HEADERS 1)
+        ENDIF(HAVE_FREE AND HAVE_MEMCHR)
+    ENDIF(HAVE_STDLIB_H AND HAVE_STDARG_H AND HAVE_STRING_H AND HAVE_FLOAT_H)
+
     # Check for various types
     check_type_size("char *"            SIZEOF_CHARP)
     check_type_size("int"               SIZEOF_INT)
@@ -84,7 +92,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_type_size("size_t"            HAVE_SIZE_T)
     check_type_size("wchar_t"           HAVE_WCHAR_T)
 IF(APPLE AND HAVE_RUNETYPE_H)
-    # OS X has wint_t, but check_type_size won't find it
+    # OS X has wint_t, but check_type_size won't find it.  This is an ugly hack around the problem
     SET(HAVE_WINT_T 1)
 ELSE(APPLE AND HAVE_RUNETYPE_H)
     check_type_size("wint_t"            HAVE_WINT_T)
@@ -100,6 +108,10 @@ ENDIF(APPLE AND HAVE_RUNETYPE_H)
     check_function_exists(strrchr       HAVE_STRRCHR)
     check_function_exists(strsignal     HAVE_STRSIGNAL)
     check_function_exists(vprintf       HAVE_VPRINTF)
+    IF(NOT HAVE_VPRINTF)
+        check_function_exists(_doprnt   HAVE_DOPRNT)
+    ENDIF(NOT HAVE_VPRINTF)
+        
 
     # Check for fopen 'b' mode flag
     SET(FOPEN_BINARY_FLAG "")

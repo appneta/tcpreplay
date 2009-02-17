@@ -62,7 +62,7 @@ IF(USE_AUTOOPTS)
     SET(tcpprep_srcs ${tcpprep_srcs} tcpprep_opts.c)
     SET(tcpbridge_srcs ${tcpbridge_srcs} tcpbridge_opts.c)
     
-    SET(baselibs ${baselibs} ${CMAKE_SOURCE_DIR}/libopts/.libs/libopts.a)
+    SET(baselibs ${baselibs} ${CMAKE_SOURCE_DIR}/libopts/libopts.a)
 ENDIF(USE_AUTOOPTS)
 
 
