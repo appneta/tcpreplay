@@ -1,8 +1,11 @@
+
 ADD_LIBRARY(opts STATIC libopts.c)
 SET_TARGET_PROPERTIES(opts
     PROPERTIES LINK_FLAGS "-version-info  32:0:7 -DHAVE_CONFIG_H")
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libopts)
+
+CONFIGURE_FILE(config.h.cmake config.h @ONLY)
 
 
 ADD_DEPENDENCIES(opts 

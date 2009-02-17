@@ -9,10 +9,10 @@
 #cmakedefine DEBUG 1
 
 /* fopen(3) accepts a 'b' in the mode flag */
-#cmakedefine FOPEN_BINARY_FLAG 1
+#cmakedefine FOPEN_BINARY_FLAG @FOPEN_BINARY_FLAG@
 
 /* fopen(3) accepts a 't' in the mode flag */
-#cmakedefine FOPEN_TEXT_FLAG 1
+#cmakedefine FOPEN_TEXT_FLAG @FOPEN_TEXT_FLAG@
 
 /* Define to 1 if you have the `canonicalize_file_name` function. */
 #cmakedefine HAVE_CANONICALIZE_FILE_NAME 1
@@ -94,6 +94,9 @@
 
 /* Define to 1 if you have the <stdarg.h> header file. */
 #cmakedefine HAVE_STDARG_H 1
+
+/* Define to 1 if you have the <stddef.h> header file. */
+#cmakedefine HAVE_STDDEF_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #cmakedefine HAVE_STDINT_H 1

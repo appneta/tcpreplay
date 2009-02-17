@@ -10,14 +10,21 @@
 
 # Takes the path to the tearoff directory & the version of autogen
 MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
-    CONFIGURE_FILE(${LIBOPTS_TEAROFF_PATH}/config.h.cmake ${LIBOPTS_TEAROFF_PATH}/config.h @ONLY)
     SET(AUTOGEN_VERSION ${__AUTOGEN_VERSION})
-    
+
+    ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})
+
     INCLUDE(CheckFunctionExists)
     INCLUDE(CheckIncludeFile)
     INCLUDE(CheckSymbolExists)
     INCLUDE(CheckTypeSize)
 
+    # Check for /dev/zero
+    SET(HAVE_DEV_ZERO 0)
+    IF(EXISTS /dev/zero)
+        SET(HAVE_DEV_ZERO 1)
+    ENDIF(EXISTS /dev/zero)
+    
     # Check for header files!
     check_include_file("dirent.h"       HAVE_DIRENT_H)
     check_include_file("dlfcn.h"        HAVE_DLFCN_H)
@@ -32,6 +39,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_include_file("runetype.h"     HAVE_RUNETYPE_H)
     check_include_file("setjmp.h"       HAVE_SETJMP_H)
     check_include_file("stdarg.h"       HAVE_STDARG_H)
+    check_include_file("stddef.h"       HAVE_STDDEF_H)
     check_include_file("stdint.h"       HAVE_STDINT_H)
     check_include_file("stdlib.h"       HAVE_STDLIB_H)
     check_include_file("strings.h"      HAVE_STRINGS_H)
@@ -61,7 +69,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     # Check for various types
     check_type_size("char *"            SIZEOF_CHARP)
     check_type_size("int"               SIZEOF_INT)
-    check_type_size("uint"              HAVE_UINT_T)
+    check_type_size("uint_t"            HAVE_UINT_T)
     check_type_size("long"              SIZEOF_LONG)
     check_type_size("short"             SIZEOF_SHORT)
     check_type_size("int16_t"           HAVE_INT16_T)
@@ -75,8 +83,47 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_type_size("pid_t"             HAVE_PID_T)
     check_type_size("size_t"            HAVE_SIZE_T)
     check_type_size("wchar_t"           HAVE_WCHAR_T)
+IF(APPLE AND HAVE_RUNETYPE_H)
+    # OS X has wint_t, but check_type_size won't find it
+    SET(HAVE_WINT_T 1)
+ELSE(APPLE AND HAVE_RUNETYPE_H)
     check_type_size("wint_t"            HAVE_WINT_T)
-    
+ENDIF(APPLE AND HAVE_RUNETYPE_H)
+
+    check_function_exists(strftime      HAVE_STRFTIME)
+    check_function_exists(canonicalize_file_name HAVE_CANONICALIZE_FILE_NAME)
+    check_function_exists(mmap          HAVE_MMAP)
+    check_function_exists(realpath      HAVE_REALPATH)
+    check_function_exists(snprintf      HAVE_SNPRINTF)
+    check_function_exists(strchr        HAVE_STRCHR)
+    check_function_exists(strdup        HAVE_STRDUP)
+    check_function_exists(strrchr       HAVE_STRRCHR)
+    check_function_exists(strsignal     HAVE_STRSIGNAL)
     check_function_exists(vprintf       HAVE_VPRINTF)
+
+    # Check for fopen 'b' mode flag
+    SET(FOPEN_BINARY_FLAG "")
+    configure_file(${CMAKE_MODULE_PATH}/check_fopen_b.c.in ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_b.c)
+    try_run(FOPEN_BINARY_FLAG_RESULT FOPEN_BINARY_COMPILE_FLAG
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_b.c
+    )
+    IF(FOPEN_BINARY_FLAG_RESULT STREQUAL 0)
+        SET(FOPEN_BINARY_FLAG "\"b\"")
+    ENDIF(FOPEN_BINARY_FLAG_RESULT STREQUAL 0)
+        
     
-ENDMACRO(CHECK_LIBOPTS)
+    # Check for fopen 't' mode flag
+    SET(FOPEN_TEXT_FLAG "")
+    configure_file(${CMAKE_MODULE_PATH}/check_fopen_t.c.in ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_t.c)
+    try_run(FOPEN_TEXT_FLAG_RESULT FOPEN_TEXT_COMPILE_FLAG
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/check_fopen_t.c
+    )
+    IF(FOPEN_TEXT_FLAG_RESULT STREQUAL 0)
+        SET(FOPEN_TEXT_FLAG "\"t\"")
+    ENDIF(FOPEN_TEXT_FLAG_RESULT STREQUAL 0)
+
+    CONFIGURE_FILE(${LIBOPTS_TEAROFF_PATH}/config.h.cmake ${LIBOPTS_TEAROFF_PATH}/config.h @ONLY)
+
+ENDMACRO(CHECK_LIBOPTS_TEAROFF)

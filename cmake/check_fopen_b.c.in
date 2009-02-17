@@ -1,0 +1,16 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MY_FILE "@CMAKE_BINARY_DIR@/@CMAKE_FILES_DIRECTORY@/CMakeTmp/test.bin"
+
+int
+main(int argc, char *argv[])
+{
+    FILE *fd;
+    
+    if ((fd = fopen(MY_FILE, "w+b")) < 0)
+        return 1;
+    else
+        fclose(fd);
+    return 0;
+}
