@@ -34,6 +34,7 @@ IF(USE_AUTOOPTS)
     ENDIF(WIN32)
 
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libopts)
+    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
 
     ADD_CUSTOM_COMMAND(OUTPUT tcprewrite_opts.c tcprewrite_opts.h
         COMMAND ${AUTOGEN} -L tcpedit tcprewrite_opts.def
@@ -129,7 +130,7 @@ IF(USE_AUTOOPTS)
     TARGET_LINK_LIBRARIES(tcpprep ${tcpprep_libs})
 
     # Only build tcpbridge if we have pcap_sendpacket()
-    IF(HAVE_PCAP_SENDPACKET)
+    IF(HAVE_LIBPCAP_SENDPACKET)
         ADD_EXECUTABLE(tcpbridge ${tcpbridge_srcs})
         TARGET_LINK_LIBRARIES(tcpbridge ${tcpbridge_libs})
 
@@ -139,6 +140,6 @@ IF(USE_AUTOOPTS)
         SET_TARGET_PROPERTIES(tcpbridge
             PROPERTIES LINK_FLAGS ${DNET_LIBS})    
 
-    ENDIF(HAVE_PCAP_SENDPACKET)
+    ENDIF(HAVE_LIBPCAP_SENDPACKET)
 ENDIF(USE_AUTOOPTS)
 
