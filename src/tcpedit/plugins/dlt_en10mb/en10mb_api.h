@@ -62,3 +62,4 @@ int tcpedit_en10mb_set_vlan_cfi(tcpedit_t *tcpedit, u_int8_t cfi);
 #endif
 
 #endif
+

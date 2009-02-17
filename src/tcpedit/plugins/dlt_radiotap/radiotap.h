@@ -83,4 +83,6 @@ struct radiotap_hdr_s {
     u_int32_t present; /* flags of present headers */
 };
 typedef struct radiotap_hdr_s radiotap_hdr_t;
+
 #endif
+

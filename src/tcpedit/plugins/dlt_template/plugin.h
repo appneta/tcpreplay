@@ -50,3 +50,4 @@ int dlt_%{plugin}_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktle
 u_char *dlt_%{plugin}_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
 
 #endif
+

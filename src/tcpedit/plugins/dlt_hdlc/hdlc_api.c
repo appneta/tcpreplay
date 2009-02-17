@@ -88,3 +88,4 @@ tcpedit_hdlc_set_address(tcpedit_t *tcpedit, u_int8_t address)
     return TCPEDIT_OK;
     
 }
+

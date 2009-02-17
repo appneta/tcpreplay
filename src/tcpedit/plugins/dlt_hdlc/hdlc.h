@@ -51,6 +51,5 @@ tcpeditdlt_l2addr_type_t dlt_hdlc_l2addr_type(void);
 int dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_hdlc_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
 
-
 #endif
 

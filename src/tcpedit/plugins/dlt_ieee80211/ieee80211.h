@@ -60,3 +60,4 @@ u_char *dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, cons
 #endif
 
 #endif
+
