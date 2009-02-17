@@ -68,7 +68,6 @@ OPTION(FORCE_INJECT_PCAP_SENDPACKET "Force using winpcap/libpcap's pcap_sendpack
 OPTION(USE_AUTOOPTS "Compile with GNU AutoOpts support (enables CLI tools)" ${USE_AUTOOPTS})
 OPTION(ENABLE_64BITS "Enable 64bit packet counters" ON)
 OPTION(TCPDUMP_BINARY "Set the path to tcpdump binary" "/usr/sbin/tcpdump")
-OPTION(TCPREPLAY_EDIT, "Compile tcpreplay with packet editing support" OFF)
 
 MARK_AS_ADVANCED(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET 
     FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET AUTOCONF AUTOGEN AUTOMAKE
@@ -235,7 +234,7 @@ IF(USE_AUTOOPTS)
     INCLUDE(CheckLibopts)
     CHECK_LIBOPTS_TEAROFF(${CMAKE_SOURCE_DIR}/libopts 5.9.7)
 ELSE(USE_AUTOOPTS)
-    message(STATUS "Skipping libopts tearoff (USE_AUTOOPTS = ${USE_AUTOOPTS})")
+    message(STATUS "Skipping libopts tearoff")
 ENDIF(USE_AUTOOPTS)
 
 CONFIGURE_FILE(src/config.h.cmake src/config.h @ONLY)
@@ -246,62 +245,6 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src/tcpedit)
 INCLUDE_DIRECTORIES(${PCAP_INCLUDE_DIRS})
-
-# Build libopts on everything but Win32
-# IF(USE_LIBOPTS)
-    # ADD_CUSTOM_TARGET(libopts ALL
-    #     DEPENDS ${CMAKE_SOURCE_DIR}/libopts/.libs/libopts.a)
-    # 
-    # ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_SOURCE_DIR}/libopts/Makefile
-    #     ${CMAKE_SOURCE_DIR}/libopts/config.h
-    #     ${CMAKE_SOURCE_DIR}/test/Makefile
-    #     ${CMAKE_SOURCE_DIR}/docs/Makefile)
-        # DEPENDS ${CMAKE_SOURCE_DIR}/configure
-        # COMMAND ${CMAKE_SOURCE_DIR}/configure)
-
-    # Only build configure from configure.ac if we have autotools
-    # IF(${AUTOCONF} AND ${AUTOMAKE})
-    #     ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_SOURCE_DIR}/configure
-    #         COMMAND ${AUTOMAKE}
-    #         COMMAND ${AUTOCONF}
-    #         DEPENDS ${CMAKE_SOURCE_DIR}/configure.ac)
-    # ENDIF(${AUTOCONF} AND ${AUTOMAKE})
-        
-    # ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_SOURCE_DIR}/libopts/.libs/libopts.a
-    #     PRE_BUILD
-    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libopts
-    #     COMMAND ${MAKE}
-    #     DEPENDS ${CMAKE_SOURCE_DIR}/libopts/Makefile)
-    
-    # ADD_CUSTOM_TARGET(clean_libopts
-    #     COMMAND ${MAKE} clean
-    #     COMMAND rm -f Makefile
-    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libopts)
-
-    # Create a list of all the object & temp files 'make' creates in libopts
-    # LIST(APPEND extra_libopts_clean_files
-    #     ./libopts/.libs/libopts.o
-    #     ./libopts/.libs/libopts.la    
-    #     ./libopts/.libs
-    #     ./libopts/.deps/libopts.Plo
-    #     ./libopts/.deps/libopts_la-libopts.Plo
-    #     ./libopts/.deps
-    #     ./libopts/libopts.la
-    #     ./libopts/libopts.o
-    #     ./libopts/libopts.lo
-    #     ./libopts/so_locations
-    #     ./libopts/stamp-h1
-    # )
-    #  
-    # SET_DIRECTORY_PROPERTIES(PROPERTIES
-    #     ADDITIONAL_MAKE_CLEAN_FILES "${extra_libopts_clean_files}")
-# ENDIF(USE_AUTOOPTS)
-
-
-# Target for make test
-ADD_CUSTOM_TARGET(test
-    COMMAND ${MAKE} test
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
 
 IF(INSIDE_SVN_WORKING_DIRECTORY)
     # Targets to build src/common/svn_version.c

@@ -1,3 +1,8 @@
+# $Id:$
+# Copyright 2009 Aaron Turner
+# This code is licensed under the same terms as GNU Autogen and/or the libopts 
+# tearoff.
+
 # All the tests necessary for libopts go here.  Note that this is not for
 # checking if libopts/AutoGen/AutoOpts is installed on your system, but 
 # rather for doing a compatibility check for your libopts tearoff
@@ -15,6 +20,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     INCLUDE(CheckSymbolExists)
     INCLUDE(CheckTypeSize)
     INCLUDE(CheckCSourceRuns)
+    INCLUDE(CheckCSourceCompiles)
 
     # Check for /dev/zero
     SET(HAVE_DEV_ZERO 0)
@@ -93,8 +99,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_type_size("wint_t"            HAVE_WINT_T)
 
     # OSX doesn't define wint_t in one of the standard include headers
-    IF(NOT HAVE_WINT_T AND HAVE_WCHAR_H)
-        check_c_source_compiles("
+    check_c_source_compiles("
 #include <wchar.h>
 static void testcb(wint_t w) { }
 int main() {
@@ -102,9 +107,12 @@ int main() {
   testcb(w);
   return 0;
 }
-"
-           HAVE_WINT_T)
-    ENDIF(NOT HAVE_WINT_T AND HAVE_WCHAR_H)
+"           
+    HAVE_WCHAR_WINT_T)
+    IF(HAVE_WCHAR_WINT_T AND NOT HAVE_WINT_T)
+        message(STATUS "Found wint_t in wchar.h")
+        SET(HAVE_WINT_T 1 FORCE) # need to force it!
+    ENDIF(HAVE_WCHAR_WINT_T AND NOT HAVE_WINT_T)
 
     check_function_exists(strftime      HAVE_STRFTIME)
     check_function_exists(canonicalize_file_name HAVE_CANONICALIZE_FILE_NAME)
