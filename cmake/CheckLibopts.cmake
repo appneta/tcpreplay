@@ -90,13 +90,21 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_type_size("pid_t"             HAVE_PID_T)
     check_type_size("size_t"            HAVE_SIZE_T)
     check_type_size("wchar_t"           HAVE_WCHAR_T)
+    check_type_size("wint_t"            HAVE_WINT_T)
 
-    IF(APPLE AND HAVE_RUNETYPE_H)
-        # OS X has wint_t, but check_type_size won't find it.  This is an ugly hack around the problem
-        SET(HAVE_WINT_T 1)
-    ELSE(APPLE AND HAVE_RUNETYPE_H)
-        check_type_size("wint_t"            HAVE_WINT_T)
-    ENDIF(APPLE AND HAVE_RUNETYPE_H)
+    # OSX doesn't define wint_t in one of the standard include headers
+    IF(NOT HAVE_WINT_T AND HAVE_WCHAR_H)
+        check_c_source_compiles("
+#include <wchar.h>
+static void testcb(wint_t w) { }
+int main() {
+  wint_t w = 0;
+  testcb(w);
+  return 0;
+}
+"
+           HAVE_WINT_T)
+    ENDIF(NOT HAVE_WINT_T AND HAVE_WCHAR_H)
 
     check_function_exists(strftime      HAVE_STRFTIME)
     check_function_exists(canonicalize_file_name HAVE_CANONICALIZE_FILE_NAME)
@@ -134,12 +142,12 @@ main(int argc, char *argv[])
 "
     FOPEN_BINARY_FLAG_RESULT)
 
-    IF(FOPEN_BINARY_FLAG_RESULT EQUAL 0)
+    IF(FOPEN_BINARY_FLAG_RESULT EQUAL 1)
         message(STATUS "fopen supports the \"b\" flag")
         SET(FOPEN_BINARY_FLAG "\"b\"")
-    ELSE(FOPEN_BINARY_FLAG_RESULT EQUAL 0)
-        message(STATUS "fopen does not support the \"b\" flag")
-    ENDIF(FOPEN_BINARY_FLAG_RESULT EQUAL 0)
+    ELSE(FOPEN_BINARY_FLAG_RESULT EQUAL 1)
+        message(STATUS "fopen does not support the \"b\"")
+    ENDIF(FOPEN_BINARY_FLAG_RESULT EQUAL 1)
     
     # Check for fopen 't' mode flag, set to "t" if available
     SET(FOPEN_TEXT_FLAG "")
@@ -161,12 +169,12 @@ main(int argc, char *argv[])
 "
     FOPEN_TEXT_FLAG_RESULT)
 
-    IF(FOPEN_TEXT_FLAG_RESULT EQUAL 0)
+    IF(FOPEN_TEXT_FLAG_RESULT EQUAL 1)
         message(STATUS "fopen supports the \"t\" flag")
         SET(FOPEN_TEXT_FLAG "\"t\"")
-    ELSE(FOPEN_TEXT_FLAG_RESULT EQUAL 0)
+    ELSE(FOPEN_TEXT_FLAG_RESULT EQUAL 1)
         message(STATUS "fopen does not support the \"t\" flag")
-    ENDIF(FOPEN_TEXT_FLAG_RESULT EQUAL 0)
+    ENDIF(FOPEN_TEXT_FLAG_RESULT EQUAL 1)
 
     ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})    
 ENDMACRO(CHECK_LIBOPTS_TEAROFF)
