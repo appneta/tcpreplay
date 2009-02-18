@@ -27,6 +27,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
 		test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
+		test2.rewrite_mtutrunc \
 		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos
 
 test: all
@@ -127,6 +128,7 @@ standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
 
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
@@ -136,7 +138,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
 	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel rewrite_efcs \
-	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos
+	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos rewrite_mtutrunc
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi
@@ -476,6 +478,17 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t\t%s\n" "OK"; fi
+
+rewrite_mtutrunc:
+	$(PRINTF) "%s" "[tcprewrite] MTU Truncate test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] MTU Truncate test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1  --mtu-trunc --mtu=300 >>test.log 2>&1
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
