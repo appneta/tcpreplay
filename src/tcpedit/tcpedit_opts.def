@@ -136,7 +136,18 @@ flag = {
     default     = DEFAULT_MTU;
     descrip     = "Override default MTU length (1500 bytes)";
     doc         = <<- EOText
-Override the default 1500 byte MTU size for determining the maximum padding length.
+Override the default 1500 byte MTU size for determining the maximum padding length 
+(--fixlen=pad) or when truncating (--mtu-trunc).
+EOText;
+};
+
+flag = {
+    name        = mtu-trunc;
+    max         = 1;
+    descrip     = "Truncate packets larger then specified MTU";
+    doc         = <<- EOText
+Similar to --fixlen, this option will truncate data in packets from Layer 3 and above to be 
+no larger then the MTU.
 EOText;
 };
 
