@@ -1,11 +1,13 @@
 $Id$
 
-02/??/2009: Version 3.4.1
+02/18/2009: Version 3.4.1
+    - Sendpacket method did not match documentation (#361)
     - Fix compile issue on systems without err.h (#363)
     - Fix tcpprep --mac not processing non-IPv4 packets (#369)
     - Always build tcpreplay w/ editing features as tcpreplay-edit (#372)
     - Fix potential tcpbridge issues under OS X & *BSD (#373)
     - Fix crash on 4 byte strictly aligned systems (#377)
+    - Add MTU truncation to tcprewrite/tcpreplay-edit (#379)
 
 01/15/2009: Version 3.4.0
     - Add libdnet and remove libnet support for sending packets (#302)
