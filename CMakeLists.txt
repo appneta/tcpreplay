@@ -1,20 +1,13 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6) 
 PROJECT (TCPREPLAY) 
 
-# First check to see if we're building from inside the SVN working directory.
-# If not, then we have to tweak the build slightly for the svn_version.c
-SET(INSIDE_SVN_WORKING_DIRECTORY OFF)
-IF(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.svn)
-    SET(INSIDE_SVN_WORKING_DIRECTORY ON)
-ENDIF(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.svn)
-
-
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckIncludeFile)
 INCLUDE(CheckCCompilerFlag)
 INCLUDE(CheckSymbolExists)
 INCLUDE(CheckTypeSize)
 INCLUDE(FindCygwin)
+INCLUDE(FindSubversion)
 
 #packaging
 SET(CPACK_PACKAGE_NAME tcpreplay)
@@ -84,6 +77,7 @@ ENDIF(ENABLE_DEBUG)
 SET(ENABLE_VERBOSE "")
 IF(EXISTS ${TCPDUMP_BINARY})
     IF(NOT WIN32)
+        message(STATUS "Enabling tcpreplay verbose mode using ${TCPDUMP_BINARY}")
         SET(ENABLE_VERBOSE 1)
     ENDIF(NOT WIN32)
 ENDIF(EXISTS ${TCPDUMP_BINARY})
@@ -123,7 +117,34 @@ ELSE(CMAKE_COMPILER_IS_GNUCC)
   add_definitions(-DHAVE_CONFIG_H -D_U_=\"\")
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
+# Build for x64?
+CHECK_C_COMPILER_FLAG(-m64 SUPPORTS_64BIT_FLAG)
+IF(SUPPORTS_64BIT_FLAG)
+    # Actually make sure the code runs!
+    SET(CMAKE_REQUIRED_FLAGS_SAVE ${CMAKE_REQUIRED_FLAGS})
+    SET(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -m64)
+    CHECK_C_SOURCE_RUNS("
+#include <stdlib.h>
+int
+main(int argc, char *argv[])
+{
+    printf(\"Hello world!\\\\n\");
+    return 0;
+}
+"
+        CAN_EXECUTE_M64_FLAG_CODE)
 
+    SET(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_SAVE})
+        
+    IF(CAN_EXECUTE_M64_FLAG_CODE EQUAL 1)
+        message(STATUS "Building 64bit binaries via CFLAGS=-m64")
+        SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -m64)
+        SET(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -m64)
+        SET(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -m64)
+        SET(CMAKE_MODULE_LINKER_FLAGS ${CMAKE_MODULE_LINKER_FLAGS} -m64)
+        SET(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -m64)
+    ENDIF(CAN_EXECUTE_M64_FLAG_CODE EQUAL 1)
+ENDIF(SUPPORTS_64BIT_FLAG)
 
 # check for big endian
 #Big or little endian ?
@@ -249,15 +270,18 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src/tcpedit)
 INCLUDE_DIRECTORIES(${PCAP_INCLUDE_DIRS})
 
-IF(INSIDE_SVN_WORKING_DIRECTORY)
-    # Targets to build src/common/svn_version.c
-    ADD_CUSTOM_TARGET(version ALL
-        COMMAND rm -f ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/common
-        DEPENDS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
-    )
-    ADD_DEPENDENCIES(version svn_version)
-ENDIF(INSIDE_SVN_WORKING_DIRECTORY)
+IF(Subversion_FOUND)
+    Subversion_WC_INFO(${CMAKE_SOURCE_DIR} SVN_INFO)
+    IF(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
+        # Targets to build src/common/svn_version.c
+        ADD_CUSTOM_TARGET(version ALL
+            COMMAND rm -f ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/common
+            DEPENDS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
+        )
+        ADD_DEPENDENCIES(version svn_version)
+    ENDIF(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
+ENDIF(Subversion_FOUND)
 
 # Recurse into the subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 

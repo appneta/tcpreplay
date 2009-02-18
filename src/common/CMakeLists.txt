@@ -16,21 +16,36 @@ ADD_LIBRARY(common STATIC abort.c cache.c cidr.c dlt_names.c err.c fakepcap.c
 	sendpacket.c services.c timer.c utils.c xX.c ${tcpdump_src} svn_version.c)
 
 # Only rebuild svn_version.c if we're inside the svn working dir
-IF(INSIDE_SVN_WORKING_DIRECTORY)
-    ADD_CUSTOM_TARGET(prepare_svn_version
-        rm -f svn_version.c)  # first delete the old source file
+IF(Subversion_FOUND)
+    IF(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
+        ADD_CUSTOM_TARGET(prepare_svn_version
+            rm -f svn_version.c)  # first delete the old source file
 
-    ADD_CUSTOM_TARGET(svn_version
-        DEPENDS svn_version.c)
+        ADD_CUSTOM_TARGET(svn_version
+            DEPENDS svn_version.c)
 
-    ADD_CUSTOM_COMMAND(OUTPUT svn_version.c
-        COMMAND rm -f svn_version.c
-        COMMAND ${ECHO} -n const char SVN_Version[] = \"     > svn_version.c 
-    	COMMAND ${SVNVERSION} -n ${CMAKE_SOURCE_DIR}        >> svn_version.c
-    	COMMAND ${ECHO} \"\;  								>> svn_version.c
-    	COMMAND ${ECHO} const char *svn_version\(void\) {   >> svn_version.c
-    	COMMAND ${ECHO} 	return SVN_Version\;		    >> svn_version.c
-    	COMMAND ${ECHO} } 			      				    >> svn_version.c
-    	VERBATIM)
+        IF(SVNVERSION)
+            EXECUTE_PROCESS(COMMAND ${SVNVERSION} -n .
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE SVNVERSION_REVISION)
+                
+            SET_TARGET_PROPERTIES(common
+                PROPERTIES COMPILE_FLAGS -DWC_Revision=\\\"${SVNVERSION_REVISION}\\\")
+
+        ELSE(SVNVERSION)
+            # Using SVN_INFO_WC_REVISION isn't accurate, so don't even try
+            SET_TARGET_PROPERTIES(common
+                PROPERTIES COMPILE_FLAGS -DWC_Revision=\\\"unknown\\\")
+        ENDIF(SVNVERSION)
+        
+
+        ADD_CUSTOM_COMMAND(OUTPUT svn_version.c
+            COMMAND rm -f svn_version.c
+            COMMAND ${ECHO} const char SVN_Version[] = WC_Revision\;   > svn_version.c 
+        	COMMAND ${ECHO} const char *svn_version\(void\) {           >> svn_version.c
+        	COMMAND ${ECHO} 	return SVN_Version\;		            >> svn_version.c
+        	COMMAND ${ECHO} } 			      				            >> svn_version.c
+        	VERBATIM)
     
-ENDIF(INSIDE_SVN_WORKING_DIRECTORY)
+    ENDIF(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
+ENDIF(Subversion_FOUND)
