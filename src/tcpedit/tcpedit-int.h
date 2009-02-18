@@ -130,7 +130,7 @@ struct tcpedit_s {
     tcpedit_portmap_t *portmap;
     
     int mtu;                /* Deal with different MTU's */
-    int maxpacket;          /* L2 header + MTU */
+    int mtu_truncate;       /* Should frames > MTU be truncated? */
 };
 
 #define tcpedit_seterr(x, y, ...) __tcpedit_seterr(x, __FUNCTION__, __LINE__, __FILE__, y, __VA_ARGS__)

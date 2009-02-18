@@ -171,11 +171,12 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(tcpedit);
     assert(pkthdr);
     assert(pktdata);
-    assert(ip_hdr);
 
     /* if actual len == cap len or there's no IP header, don't do anything */
     if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL)) {
-        return(0);
+        /* unless we're in MTU truncate mode */
+        if (! tcpedit->mtu_truncate)
+            return(0);
     }
     
     if ((l2len = layer2len(tcpedit)) < 0) {
@@ -204,6 +205,20 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         if (pkthdr->len != pkthdr->caplen)
             ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
         pkthdr->len = pkthdr->caplen;
+    }
+    else if (tcpedit->mtu_truncate) {
+        if (pkthdr->len > (tcpedit->mtu + l2len)) {
+            /* first truncate the packet */
+            pkthdr->len = pkthdr->caplen = l2len + tcpedit->mtu;
+            
+            /* if ip_hdr exists, update the length */
+            if (ip_hdr != NULL) {
+                ip_hdr->ip_len = htons(tcpedit->mtu);
+            } else {
+                 /* for non-IP frames, don't try to fix checksums */  
+                return 0;
+            }
+        }
     }
     else {
         tcpedit_seterr(tcpedit, "Invalid fixlen value: 0x%x", tcpedit->fixlen);

@@ -157,12 +157,12 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             needtorecalc += retval;
         }
 
-        /* Untruncate packet? Only works for IP packets */
-        if (tcpedit->fixlen) {
-            if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr)) < 0)
-                return TCPEDIT_ERROR;
-            needtorecalc += retval;
-        }
+    }
+    /* (Un)truncate or MTU truncate packet? */
+    if (tcpedit->fixlen || tcpedit->mtu_truncate) {
+        if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr)) < 0)
+            return TCPEDIT_ERROR;
+        needtorecalc += retval;
     }
     
     /* rewrite IP addresses in IPv4 or ARP */
