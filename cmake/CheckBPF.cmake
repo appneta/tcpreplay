@@ -37,17 +37,42 @@
 # - Find out if the system supports the BPF device
 # compile and run test
 
-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CheckBPF.c.in"
-      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/CheckBPF.c" IMMEDIATE @ONLY)
-TRY_RUN(RUN_RESULT_VAR COMPILE_RESULT_VAR
-    ${CMAKE_BINARY_DIR}
-    ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/CheckBPF.c
-    OUTPUT_VARIABLE OUTPUT)
-    
+INCLUDE(CheckCSourceRuns)
+check_c_source_runs("
+/* runtime test to check for /dev/bpf device which can be used to inject packets */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <errno.h>
+#include <fcntl.h>
+
+int 
+main(int argc, char *argv[]) 
+{
+    int fd;
+
+    fd = open(\"/dev/bpf0\", O_RDONLY, 0);
+
+    /* if we opened it, we're good */
+    if (fd > 1)
+        exit(0);
+
+    /* if we got EBUSY or permission denied it exists, so we're good */
+    if (fd < 0 && (errno == EBUSY || errno == 13))
+        exit(0);
+
+    /* else suck, no good */
+    exit(-1);
+}
+"
+    BPF_RUN_RESULT)
+
 SET(HAVE_BPF "")
-IF(${RUN_RESULT_VAR} STREQUAL "0")
+IF(BPF_RUN_RESULT EQUAL 1)
     SET(HAVE_BPF 1)
     MESSAGE(STATUS "System has BPF sockets")
-ELSE(${RUN_RESULT_VAR} STREQUAL "0")
+ELSE(BPF_RUN_RESULT EQUAL 1)
     MESSAGE(STATUS "System does not have BPF sockets")
-ENDIF(${RUN_RESULT_VAR} STREQUAL "0")
+ENDIF(BPF_RUN_RESULT EQUAL 1)

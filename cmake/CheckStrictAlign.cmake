@@ -39,16 +39,57 @@
 # Sets:
 # FORCE_ALIGN 1  if true
 
-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CheckStrictAlign.c.in"
-      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/CheckStrictAlign.c" IMMEDIATE @ONLY)
-TRY_RUN(RUN_RESULT_VAR COMPILE_RESULT_VAR
-    ${CMAKE_BINARY_DIR}
-    ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/CheckStrictAlign.c
-    OUTPUT_VARIABLE OUTPUT)
-    
-IF(${RUN_RESULT_VAR} STREQUAL "0")
+
+INCLUDE(CheckCSourceRuns)
+check_c_source_runs("
+/* 
+ * Code to check for strictly aligned systems like SPARC.  Code based on that
+ * from libpcap
+ */
+
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+unsigned char a[5] = { 1, 2, 3, 4, 5 };
+
+int main(int argc, char *argv[]) 
+{
+    unsigned int i;
+    pid_t pid;
+    int status;
+
+    /* avoid core dumped message, by using fork() */
+    pid = fork();
+
+    if (pid <  0)
+        exit(2);
+
+    if (pid > 0) {
+        /* parent */
+        pid = waitpid(pid, &status, 0);
+
+        if (pid < 0)
+            exit(3);
+
+        exit(!WIFEXITED(status));
+    }
+
+    /* child */
+    i = *(unsigned int *)&a[1];
+    printf(\"%d\\\\n\", i);
+
+    exit(0); /* success! */
+}
+"
+    STRICT_ALIGN_RUN_RESULT)
+
+
+SET(FORCE_ALIGN OFF)
+IF(STRICT_ALIGN_RUN_RESULT EQUAL 1)
     MESSAGE(STATUS "System architecture is NOT strictly aligned")
-ELSE(${RUN_RESULT_VAR} STREQUAL "0")
-    SET(FORCE_ALIGN 1)
+ELSE(STRICT_ALIGN_RUN_RESULT EQUAL 1)
+    SET(FORCE_ALIGN 1 FORCE)
     MESSAGE(STATUS "System architecture IS strictly aligned")
-ENDIF(${RUN_RESULT_VAR} STREQUAL "0")
+ENDIF(STRICT_ALIGN_RUN_RESULT EQUAL 1)

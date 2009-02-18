@@ -37,17 +37,31 @@
 # - Find out if the system supports Linux's PF_PACKET socket API
 # we only try compiling the test since that looks for PF_PACKET
 
-CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/cmake/CheckPFPacket.c.in"
-      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/CheckPFPacket.c" IMMEDIATE @ONLY)
-TRY_RUN(RUN_RESULT_VAR COMPILE_RESULT_VAR
-    ${CMAKE_BINARY_DIR}
-    ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/CheckPFPacket.c
-    OUTPUT_VARIABLE OUTPUT)
 
-SET(HAVE_PF_PACKET "")
-IF(${RUN_RESULT_VAR} STREQUAL "0" AND ${COMPILE_RESULT_VAR} STREQUAL "0")
+INCLUDE(CheckCSourceRuns)
+      
+CHECK_C_SOURCE_RUNS("
+#include <sys/socket.h>
+#include <netpacket/packet.h>
+#include <net/ethernet.h>     /* the L2 protocols */
+#include <netinet/in.h>       /* htons */
+#include <stdlib.h>
+
+
+int
+main(int argc, char *argv[])
+{
+	int pf_socket;
+	pf_socket = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_ALL));
+    exit(0);
+}
+"
+    PFPACKET_RUN_RESULT)
+
+SET(HAVE_PF_PACKET OFF)
+IF(PFPACKET_RUN_RESULT EQUAL 1)
     SET(HAVE_PF_PACKET 1)
     MESSAGE(STATUS "System has PF_PACKET sockets")
-ELSE(${RUN_RESULT_VAR} STREQUAL "0" AND ${COMPILE_RESULT_VAR} STREQUAL "0")
+ELSE(PFPACKET_RUN_RESULT EQUAL 1)
     MESSAGE(STATUS "System does not have PF_PACKET sockets")
-ENDIF(${RUN_RESULT_VAR} STREQUAL "0" AND ${COMPILE_RESULT_VAR} STREQUAL "0")
+ENDIF(PFPACKET_RUN_RESULT EQUAL 1)

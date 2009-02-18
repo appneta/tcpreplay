@@ -1,8 +1,39 @@
-# $Id:$
-# Copyright 2009 Aaron Turner
-# This code is licensed under the same terms as GNU Autogen and/or the libopts 
-# tearoff.
-
+###################################################################
+#  $Id:$
+#
+#  Copyright (c) 2009 Aaron Turner, <aturner at synfin dot net>
+#  All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# * Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in
+#   the documentation and/or other materials provided with the
+#   distribution.
+#
+# * Neither the name of the Aaron Turner nor the names of its
+#   contributors may be used to endorse or promote products derived
+#   from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+###################################################################
 # All the tests necessary for libopts go here.  Note that this is not for
 # checking if libopts/AutoGen/AutoOpts is installed on your system, but 
 # rather for doing a compatibility check for your libopts tearoff
@@ -150,12 +181,12 @@ main(int argc, char *argv[])
 "
     FOPEN_BINARY_FLAG_RESULT)
 
-    IF(FOPEN_BINARY_FLAG_RESULT EQUAL 1)
+    IF(${FOPEN_BINARY_FLAG_RESULT} EQUAL 1)
         message(STATUS "fopen supports the \"b\" flag")
         SET(FOPEN_BINARY_FLAG "\"b\"")
-    ELSE(FOPEN_BINARY_FLAG_RESULT EQUAL 1)
+    ELSE(${FOPEN_BINARY_FLAG_RESULT} EQUAL 1)
         message(STATUS "fopen does not support the \"b\"")
-    ENDIF(FOPEN_BINARY_FLAG_RESULT EQUAL 1)
+    ENDIF(${FOPEN_BINARY_FLAG_RESULT} EQUAL 1)
     
     # Check for fopen 't' mode flag, set to "t" if available
     SET(FOPEN_TEXT_FLAG "")
@@ -177,12 +208,12 @@ main(int argc, char *argv[])
 "
     FOPEN_TEXT_FLAG_RESULT)
 
-    IF(FOPEN_TEXT_FLAG_RESULT EQUAL 1)
+    IF(${FOPEN_TEXT_FLAG_RESULT} EQUAL 1)
         message(STATUS "fopen supports the \"t\" flag")
         SET(FOPEN_TEXT_FLAG "\"t\"")
-    ELSE(FOPEN_TEXT_FLAG_RESULT EQUAL 1)
+    ELSE(${FOPEN_TEXT_FLAG_RESULT} EQUAL 1)
         message(STATUS "fopen does not support the \"t\" flag")
-    ENDIF(FOPEN_TEXT_FLAG_RESULT EQUAL 1)
+    ENDIF(${FOPEN_TEXT_FLAG_RESULT} EQUAL 1)
 
     ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})    
 ENDMACRO(CHECK_LIBOPTS_TEAROFF)
