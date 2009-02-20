@@ -44,7 +44,7 @@ struct GuiTcpEdit::Private
 
 
 GuiTcpEdit::GuiTcpEdit(QWidget *parent) :
-    QDockWidget(parent), d(new GuiTcpEdit::Private)
+        QDockWidget(parent), d(new GuiTcpEdit::Private)
 {
     d->ui.setupUi(this);
 }
@@ -82,21 +82,21 @@ TcpEdit const & GuiTcpEdit::tcpEdit() const
 
 void GuiTcpEdit::on_pushButton_apply_clicked(bool)
 {
-  d->edit.setSkipBroadcast(d->ui.checkBox_skipBroadcast->isChecked());
-  //d->edit.setFixlen(tcpedit_fixlen);
-  d->edit.setFixCsum(!d->ui.checkBox_redoChecksums->isChecked());
-  d->edit.setEfcs(!d->ui.checkBox_removeEFCS->isChecked());
-  //d->edit.setTtlMode(tcpedit_ttl_mode);
-  d->edit.setTtlValue(d->ui.lineEdit_ttl->text().toUShort());
-  d->edit.setTos(d->ui.lineEdit_tos->text().toUShort());
-  d->edit.setSeed(d->ui.lineEdit_ipAddressSeed->text().toInt());
-  d->edit.setMtu(d->ui.lineEdit_mtu->text().toInt());
-  d->edit.setMaxpacket(d->ui.lineEdit_packetSize->text().toInt());
-  d->edit.setCidrmap_s2c(d->ui.lineEdit_primaryCIDR->text());
-  d->edit.setCidrmap_c2s(d->ui.lineEdit_primaryCIDR->text());
-  d->edit.setSrcIpMap(d->ui.lineEdit_ipAddressSrc->text());
-  d->edit.setDstIpMap(d->ui.lineEdit_ipAddressDest->text());
-  d->edit.setPortMap(d->ui.lineEdit_port->text());
+    d->edit.setSkipBroadcast(d->ui.checkBox_skipBroadcast->isChecked());
+    //d->edit.setFixlen(tcpedit_fixlen);
+    d->edit.setFixCsum(!d->ui.checkBox_redoChecksums->isChecked());
+    d->edit.setEfcs(!d->ui.checkBox_removeEFCS->isChecked());
+    //d->edit.setTtlMode(tcpedit_ttl_mode);
+    d->edit.setTtlValue(d->ui.lineEdit_ttl->text().toUShort());
+    d->edit.setTos(d->ui.lineEdit_tos->text().toUShort());
+    d->edit.setSeed(d->ui.lineEdit_ipAddressSeed->text().toInt());
+    d->edit.setMtu(d->ui.lineEdit_mtu->text().toInt());
+    d->edit.setMaxpacket(d->ui.lineEdit_packetSize->text().toInt());
+    d->edit.setCidrmap_s2c(d->ui.lineEdit_primaryCIDR->text());
+    d->edit.setCidrmap_c2s(d->ui.lineEdit_primaryCIDR->text());
+    d->edit.setSrcIpMap(d->ui.lineEdit_ipAddressSrc->text());
+    d->edit.setDstIpMap(d->ui.lineEdit_ipAddressDest->text());
+    d->edit.setPortMap(d->ui.lineEdit_port->text());
 }
 
 

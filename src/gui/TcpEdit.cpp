@@ -91,7 +91,6 @@ bool TcpEdit::skipBroadcast() const
 }
 
 
-
 //int TcpEdit::setFixlen(tcpedit_fixlen value)
 //{
 //    return tcpedit_set_fixlen(d->tcpedit, value);
@@ -135,7 +134,6 @@ int TcpEdit::setTtlValue(unsigned char value)
 }
 
 
-
 unsigned char TcpEdit::ttlValue() const
 {
     return d->tcpedit->ttl_value;
@@ -154,12 +152,10 @@ unsigned char TcpEdit::tos() const
 }
 
 
-
 int TcpEdit::setSeed(int value)
 {
     return tcpedit_set_seed(d->tcpedit, value);
 }
-
 
 
 int TcpEdit::seed() const
