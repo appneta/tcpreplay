@@ -9,8 +9,7 @@ SOURCES += GuiTcpReplay.cpp  \
     main.cpp \
     TcpEdit.cpp
 
-HEADERS += TcpReplay.h \
-    GuiTcpReplay.h  \
+HEADERS += GuiTcpReplay.h  \
     GuiTcpEdit.h \
     TcpEdit.h
 FORMS += TcpReplay.ui \
