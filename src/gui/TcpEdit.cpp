@@ -67,21 +67,39 @@ TcpEdit::~TcpEdit()
 }
 
 
-int TcpEdit::addPlugin(int plugin_id)
+static void handleError(tcpedit_t * tcpedit, int res)
 {
-    return tcpedit_set_encoder_dltplugin_byid(d->tcpedit, plugin_id);
+    static QString msg;
+    switch (res) {
+    case TCPEDIT_OK: return;
+    case TCPEDIT_ERROR:
+    case TCPEDIT_WARN:
+    case TCPEDIT_SOFT_ERROR:
+        msg = tcpedit_geterr(tcpedit);
+    }
+    // FIXME: create a proper standard exception...
+    throw msg;
 }
 
 
-int TcpEdit::addPlugin(QString const & plugin_name)
+void TcpEdit::addPlugin(int plugin_id)
 {
-    return tcpedit_set_encoder_dltplugin_byname(d->tcpedit, plugin_name.toLocal8Bit().data());
+    int const res = tcpedit_set_encoder_dltplugin_byid(d->tcpedit, plugin_id);
+    handleError(d->tcpedit, res);
 }
 
 
-int TcpEdit::setSkipBroadcast(bool value)
+void TcpEdit::addPlugin(QString const & plugin_name)
 {
-    return tcpedit_set_skip_broadcast(d->tcpedit, value);
+    int const res = tcpedit_set_encoder_dltplugin_byname(d->tcpedit, plugin_name.toLocal8Bit().data());
+    handleError(d->tcpedit, res);
+}
+
+
+void TcpEdit::setSkipBroadcast(bool value)
+{
+    int const res = tcpedit_set_skip_broadcast(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -91,15 +109,17 @@ bool TcpEdit::skipBroadcast() const
 }
 
 
-//int TcpEdit::setFixlen(tcpedit_fixlen value)
+//void TcpEdit::setFixlen(tcpedit_fixlen value)
 //{
-//    return tcpedit_set_fixlen(d->tcpedit, value);
+//    int const res = tcpedit_set_fixlen(d->tcpedit, value);
+//    handleError(d->tcpedit, res);
 //}
 
 
-int TcpEdit::setFixCsum(bool value)
+void TcpEdit::setFixCsum(bool value)
 {
-    return tcpedit_set_fixcsum(d->tcpedit, value);
+    int const res = tcpedit_set_fixcsum(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -109,9 +129,10 @@ bool TcpEdit::fixCsum() const
 }
 
 
-int TcpEdit::setEfcs(bool value)
+void TcpEdit::setEfcs(bool value)
 {
-    return tcpedit_set_efcs(d->tcpedit, value);
+    int const res = tcpedit_set_efcs(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -122,15 +143,17 @@ bool TcpEdit::efcs() const
 }
 
 
-//int TcpEdit::setTtlMode(tcpedit_ttl_mode)
+//void TcpEdit::setTtlMode(tcpedit_ttl_mode)
 //{
-//    return tcpedit_set_ttl_mode(d->tcpedit, value);
+//    int const res = tcpedit_set_ttl_mode(d->tcpedit, value);
+//    handleError(d->tcpedit, res);
 //}
 
 
-int TcpEdit::setTtlValue(unsigned char value)
+void TcpEdit::setTtlValue(unsigned char value)
 {
-    return tcpedit_set_ttl_value(d->tcpedit, value);
+    int const res = tcpedit_set_ttl_value(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -140,9 +163,10 @@ unsigned char TcpEdit::ttlValue() const
 }
 
 
-int TcpEdit::setTos(unsigned char value)
+void TcpEdit::setTos(unsigned char value)
 {
-    return tcpedit_set_tos(d->tcpedit, value);
+    int const res = tcpedit_set_tos(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -152,9 +176,10 @@ unsigned char TcpEdit::tos() const
 }
 
 
-int TcpEdit::setSeed(int value)
+void TcpEdit::setSeed(int value)
 {
-    return tcpedit_set_seed(d->tcpedit, value);
+    int const res = tcpedit_set_seed(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -164,9 +189,10 @@ int TcpEdit::seed() const
 }
 
 
-int TcpEdit::setMtu(int value)
+void TcpEdit::setMtu(int value)
 {
-    return tcpedit_set_mtu(d->tcpedit, value);
+    int const res = tcpedit_set_mtu(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -176,9 +202,10 @@ int TcpEdit::mtu() const
 }
 
 
-int TcpEdit::setMaxpacket(int value)
+void TcpEdit::setMaxpacket(int value)
 {
-    return tcpedit_set_maxpacket(d->tcpedit, value);
+    int const res = tcpedit_set_maxpacket(d->tcpedit, value);
+    handleError(d->tcpedit, res);
 }
 
 
@@ -190,9 +217,10 @@ int TcpEdit::maxpacket() const
 
 
 
-int TcpEdit::setCidrmap_s2c(QString const & value)
+void TcpEdit::setCidrmap_s2c(QString const & value)
 {
-    return tcpedit_set_cidrmap_s2c(d->tcpedit, value.toLocal8Bit().data());
+    int const res = tcpedit_set_cidrmap_s2c(d->tcpedit, value.toLocal8Bit().data());
+    handleError(d->tcpedit, res);
 }
 
 
@@ -200,12 +228,14 @@ QString const & TcpEdit::cidrmap_s2c()
 {
     // FIXME
     //return d->tcpedit->cidrmap_s2c;
+    return QString();
 }
 
 
-int TcpEdit::setCidrmap_c2s(QString const & value)
+void TcpEdit::setCidrmap_c2s(QString const & value)
 {
-    return tcpedit_set_cidrmap_c2s(d->tcpedit, value.toAscii().data());
+    int const res = tcpedit_set_cidrmap_c2s(d->tcpedit, value.toAscii().data());
+    handleError(d->tcpedit, res);
 }
 
 
@@ -217,11 +247,11 @@ QString const & TcpEdit::cidrmap_c2s() const
 }
 
 
-int TcpEdit::setSrcIpMap(QString const & value)
+void TcpEdit::setSrcIpMap(QString const & value)
 {
-    return tcpedit_set_srcip_map(d->tcpedit, value.toAscii().data());
+    int const res = tcpedit_set_srcip_map(d->tcpedit, value.toAscii().data());
+    handleError(d->tcpedit, res);
 }
-
 
 
 QString const & TcpEdit::srcIpMap() const
@@ -232,9 +262,10 @@ QString const & TcpEdit::srcIpMap() const
 }
 
 
-int TcpEdit::setDstIpMap(QString const & value)
+void TcpEdit::setDstIpMap(QString const & value)
 {
-    return tcpedit_set_dstip_map(d->tcpedit, value.toAscii().data());
+    int const res = tcpedit_set_dstip_map(d->tcpedit, value.toAscii().data());
+    handleError(d->tcpedit, res);
 }
 
 
@@ -246,9 +277,10 @@ QString const & TcpEdit::dstIpMap() const
 }
 
 
-int TcpEdit::setPortMap(QString const & value)
+void TcpEdit::setPortMap(QString const & value)
 {
-    return tcpedit_set_port_map(d->tcpedit, value.toAscii().data());
+    int const res = tcpedit_set_port_map(d->tcpedit, value.toAscii().data());
+    handleError(d->tcpedit, res);
 }
 
 

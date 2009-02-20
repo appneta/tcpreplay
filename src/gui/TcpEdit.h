@@ -43,51 +43,52 @@ public:
     ~TcpEdit();
 
     /// Add a plugin by its id.
-    int addPlugin(int plugin_id);
+    void addPlugin(int plugin_id);
 
     /// Add a plugin by its name.
-    int addPlugin(QString const & plugin_name);
+    void addPlugin(QString const & plugin_name);
 
-    int setSkipBroadcast(bool);
+    void setSkipBroadcast(bool);
     bool skipBroadcast() const;
 
-    //int setFixlen(tcpedit_fixlen);
+    //void setFixlen(tcpedit_fixlen);
 
-    int setFixCsum(bool);
+    void setFixCsum(bool);
     bool fixCsum() const;
 
-    int setEfcs(bool);
+    void setEfcs(bool);
     bool efcs() const;
 
-    //int setTtlMode(tcpedit_ttl_mode);
-    int setTtlValue(unsigned char);
+    //void setTtlMode(tcpedit_ttl_mode);
+
+    void setTtlValue(unsigned char);
     unsigned char ttlValue() const;
 
-    int setTos(unsigned char);
+    void setTos(unsigned char);
     unsigned char tos() const;
 
-    int setSeed(int);
+    void setSeed(int);
     int seed() const;
 
-    int setMtu(int);
+    void setMtu(int);
     int mtu() const;
 
-    int setMaxpacket(int);
+    void setMaxpacket(int);
     int maxpacket() const;;
 
-    int setCidrmap_s2c(QString const &);
+    void setCidrmap_s2c(QString const &);
     QString const & cidrmap_s2c();
 
-    int setCidrmap_c2s(QString const &);
+    void setCidrmap_c2s(QString const &);
     QString const & cidrmap_c2s() const;
 
-    int setSrcIpMap(QString const &);
+    void setSrcIpMap(QString const &);
     QString const & srcIpMap() const;
 
-    int setDstIpMap(QString const &);
+    void setDstIpMap(QString const &);
     QString const & dstIpMap() const;
 
-    int setPortMap(QString const &);
+    void setPortMap(QString const &);
     QString const & portMap() const;
 
 private:
