@@ -51,7 +51,8 @@ public:
     void setSkipBroadcast(bool);
     bool skipBroadcast() const;
 
-    //void setFixlen(tcpedit_fixlen);
+    void setFixLength(int);
+    int fixLength() const;
 
     void setFixCsum(bool);
     bool fixCsum() const;
@@ -59,7 +60,8 @@ public:
     void setEfcs(bool);
     bool efcs() const;
 
-    //void setTtlMode(tcpedit_ttl_mode);
+    void setTtlMode(int);
+    int ttlMode() const;
 
     void setTtlValue(unsigned char);
     unsigned char ttlValue() const;

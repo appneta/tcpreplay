@@ -109,11 +109,17 @@ bool TcpEdit::skipBroadcast() const
 }
 
 
-//void TcpEdit::setFixlen(tcpedit_fixlen value)
-//{
-//    int const res = tcpedit_set_fixlen(d->tcpedit, value);
-//    handleError(d->tcpedit, res);
-//}
+void TcpEdit::setFixLength(int value)
+{
+    int const res = tcpedit_set_fixlen(d->tcpedit, (tcpedit_fixlen) value);
+    handleError(d->tcpedit, res);
+}
+
+
+int TcpEdit::fixLength() const
+{
+    return d->tcpedit->fixlen;
+}
 
 
 void TcpEdit::setFixCsum(bool value)
@@ -143,11 +149,17 @@ bool TcpEdit::efcs() const
 }
 
 
-//void TcpEdit::setTtlMode(tcpedit_ttl_mode)
-//{
-//    int const res = tcpedit_set_ttl_mode(d->tcpedit, value);
-//    handleError(d->tcpedit, res);
-//}
+void TcpEdit::setTtlMode(int value)
+{
+    int const res = tcpedit_set_ttl_mode(d->tcpedit, (tcpedit_ttl_mode) value);
+    handleError(d->tcpedit, res);
+}
+
+
+int TcpEdit::ttlMode() const
+{
+    return d->tcpedit->ttl_mode;
+}
 
 
 void TcpEdit::setTtlValue(unsigned char value)
