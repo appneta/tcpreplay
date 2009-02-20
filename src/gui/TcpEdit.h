@@ -39,34 +39,60 @@ class QString;
 class TcpEdit
 {
 public:
-  TcpEdit();
-  ~TcpEdit();
+    TcpEdit();
+    ~TcpEdit();
 
-  /// Add a plugin by its id.
-  int addPlugin(int plugin_id);
+    /// Add a plugin by its id.
+    int addPlugin(int plugin_id);
 
-  /// Add a plugin by its name.
-  int addPlugin(QString const & plugin_name);
+    /// Add a plugin by its name.
+    int addPlugin(QString const & plugin_name);
 
-  int setSkipBroadcast(bool);
-  //int setFixlen(tcpedit_fixlen);
-  int setFixCsum(bool);
-  int setEfcs(bool);
-  //int setTtlMode(tcpedit_ttl_mode);
-  int setTtlValue(unsigned char);
-  int setTos(unsigned char);
-  int setSeed(int);
-  int setMtu(int);
-  int setMaxpacket(int);
-  int setCidrmap_s2c(QString const &);
-  int setCidrmap_c2s(QString const &);
-  int setSrcIpMap(QString const &);
-  int setDstIpMap(QString const &);
-  int setPortMap(QString const &);
+    int setSkipBroadcast(bool);
+    bool skipBroadcast() const;
+
+    //int setFixlen(tcpedit_fixlen);
+
+    int setFixCsum(bool);
+    bool fixCsum() const;
+
+    int setEfcs(bool);
+    bool efcs() const;
+
+    //int setTtlMode(tcpedit_ttl_mode);
+    int setTtlValue(unsigned char);
+    unsigned char ttlValue() const;
+
+    int setTos(unsigned char);
+    unsigned char tos() const;
+
+    int setSeed(int);
+    int seed() const;
+
+    int setMtu(int);
+    int mtu() const;
+
+    int setMaxpacket(int);
+    int maxpacket() const;;
+
+    int setCidrmap_s2c(QString const &);
+    QString const & cidrmap_s2c();
+
+    int setCidrmap_c2s(QString const &);
+    QString const & cidrmap_c2s() const;
+
+    int setSrcIpMap(QString const &);
+    QString const & srcIpMap() const;
+
+    int setDstIpMap(QString const &);
+    QString const & dstIpMap() const;
+
+    int setPortMap(QString const &);
+    QString const & portMap() const;
 
 private:
-  struct Private;
-  Private * d;
+    struct Private;
+    Private * d;
 };
 
 #endif // _TCP_EDIT_H_
