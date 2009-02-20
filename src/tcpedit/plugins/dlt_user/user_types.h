@@ -33,6 +33,10 @@
 #ifndef _DLT_user_TYPES_H_
 #define _DLT_user_TYPES_H_
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     TCPEDIT_USER_DLT_BOTH,
     TCPEDIT_USER_DLT_S2C,
