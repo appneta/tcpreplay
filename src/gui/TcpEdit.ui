@@ -6,96 +6,182 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>661</width>
-    <height>293</height>
+    <width>758</width>
+    <height>328</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>DockWidget</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
-   <layout class="QGridLayout" name="gridLayout_3">
-    <item row="0" column="0">
-     <widget class="QCheckBox" name="checkBox_skipBroadcast">
-      <property name="text">
-       <string>Skip &amp;Broadcast</string>
+   <layout class="QGridLayout" name="gridLayout_4">
+    <item row="0" column="0" rowspan="4">
+     <widget class="QGroupBox" name="groupBox_3">
+      <property name="title">
+       <string>Ethernet</string>
       </property>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="4" column="0" colspan="2">
+        <widget class="QLabel" name="label_12">
+         <property name="text">
+          <string>L3 and L4 data length fixing method</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="3">
+        <widget class="QComboBox" name="comboBox_fixLength"/>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>MTU of the frames</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="3">
+        <widget class="QLineEdit" name="lineEdit_mtu"/>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Max packet size</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="3">
+        <widget class="QLineEdit" name="lineEdit_packetSize"/>
+       </item>
+       <item row="7" column="0" colspan="2">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Server to client (primary) CIDR map</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="3">
+        <widget class="QLineEdit" name="lineEdit_primaryCIDR"/>
+       </item>
+       <item row="8" column="0" colspan="3">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Client to server (secondary) CIDR map</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="3">
+        <widget class="QLineEdit" name="lineEdit_secondaryCIDR"/>
+       </item>
+       <item row="3" column="0">
+        <widget class="QCheckBox" name="checkBox_removeEFCS">
+         <property name="text">
+          <string>Always remove the EFCS from the frame</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="checkBox_redoChecksums">
+         <property name="text">
+          <string>Always &amp;recalculate L3 and L4 checksums</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="checkBox_forceFixedLength">
+         <property name="text">
+          <string>Force fixed &amp;length for L3 and L4 data</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="checkBox_skipBroadcast">
+         <property name="text">
+          <string>Skip &amp;Broadcast</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
-    <item row="0" column="2" rowspan="4">
+    <item row="0" column="1" rowspan="3">
      <widget class="QGroupBox" name="groupBox">
       <property name="title">
        <string>IPv4 configuration</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>TTL value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
+       <item row="1" column="1">
         <widget class="QLineEdit" name="lineEdit_ttl"/>
        </item>
-       <item row="1" column="0">
+       <item row="2" column="0">
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>TOS/DiffServ/ECN</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
+       <item row="2" column="1">
         <widget class="QLineEdit" name="lineEdit_tos"/>
        </item>
-       <item row="2" column="0">
+       <item row="3" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>IP address randomization seed</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
+       <item row="3" column="1">
         <widget class="QLineEdit" name="lineEdit_ipAddressSeed"/>
+       </item>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="comboBox_ttlMode"/>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>TTL mode</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>TTL value</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
     </item>
-    <item row="1" column="0" colspan="2">
-     <widget class="QCheckBox" name="checkBox_forceFixedLength">
+    <item row="0" column="2">
+     <widget class="QPushButton" name="pushButton_apply">
       <property name="text">
-       <string>Force fixed &amp;length for L3 and L4 data</string>
+       <string>&amp;Apply</string>
       </property>
      </widget>
     </item>
-    <item row="2" column="0" colspan="2">
-     <widget class="QCheckBox" name="checkBox_redoChecksums">
+    <item row="1" column="2">
+     <widget class="QPushButton" name="pushButton_revert">
       <property name="text">
-       <string>Always &amp;recalculate L3 and L4 checksums</string>
+       <string>&amp;Revert</string>
       </property>
      </widget>
     </item>
-    <item row="3" column="0" colspan="2">
-     <widget class="QCheckBox" name="checkBox_removeEFCS">
-      <property name="text">
-       <string>Always remove the EFCS from the frame</string>
+    <item row="2" column="2">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
       </property>
-     </widget>
-    </item>
-    <item row="4" column="0">
-     <widget class="QLabel" name="label_5">
-      <property name="text">
-       <string>MTU of the frames</string>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
       </property>
-     </widget>
+     </spacer>
     </item>
-    <item row="4" column="1">
-     <widget class="QLineEdit" name="lineEdit_mtu"/>
-    </item>
-    <item row="4" column="2" rowspan="4">
+    <item row="3" column="1">
      <widget class="QGroupBox" name="groupBox_2">
       <property name="title">
-       <string>Source</string>
+       <string>IP configuration</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="0" column="0">
@@ -131,49 +217,18 @@
       </layout>
      </widget>
     </item>
-    <item row="5" column="0">
-     <widget class="QLabel" name="label_6">
-      <property name="text">
-       <string>Max packet size</string>
+    <item row="3" column="2">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
       </property>
-     </widget>
-    </item>
-    <item row="5" column="1">
-     <widget class="QLineEdit" name="lineEdit_packetSize"/>
-    </item>
-    <item row="6" column="0">
-     <widget class="QLabel" name="label_4">
-      <property name="text">
-       <string>Server to client (primary) CIDR map</string>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
       </property>
-     </widget>
-    </item>
-    <item row="6" column="1">
-     <widget class="QLineEdit" name="lineEdit_primaryCIDR"/>
-    </item>
-    <item row="7" column="0">
-     <widget class="QLabel" name="label_7">
-      <property name="text">
-       <string>Client to server (secondary) CIDR map</string>
-      </property>
-     </widget>
-    </item>
-    <item row="7" column="1">
-     <widget class="QLineEdit" name="lineEdit_secondaryCIDR"/>
-    </item>
-    <item row="0" column="3">
-     <widget class="QPushButton" name="pushButton_apply">
-      <property name="text">
-       <string>&amp;Apply</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="3">
-     <widget class="QPushButton" name="pushButton_revert">
-      <property name="text">
-       <string>&amp;Revert</string>
-      </property>
-     </widget>
+     </spacer>
     </item>
    </layout>
   </widget>
