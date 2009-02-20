@@ -16,7 +16,7 @@
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QGridLayout" name="gridLayout_3">
     <item row="0" column="0">
-     <widget class="QCheckBox" name="checkBox">
+     <widget class="QCheckBox" name="checkBox_skipBroadcast">
       <property name="text">
        <string>Skip &amp;Broadcast</string>
       </property>
@@ -36,7 +36,7 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit"/>
+        <widget class="QLineEdit" name="lineEdit_ttl"/>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_3">
@@ -46,7 +46,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_3"/>
+        <widget class="QLineEdit" name="lineEdit_tos"/>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_2">
@@ -56,27 +56,27 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit_2"/>
+        <widget class="QLineEdit" name="lineEdit_ipAddressSeed"/>
        </item>
       </layout>
      </widget>
     </item>
     <item row="1" column="0" colspan="2">
-     <widget class="QCheckBox" name="checkBox_3">
+     <widget class="QCheckBox" name="checkBox_forceFixedLength">
       <property name="text">
        <string>Force fixed &amp;length for L3 and L4 data</string>
       </property>
      </widget>
     </item>
     <item row="2" column="0" colspan="2">
-     <widget class="QCheckBox" name="checkBox_4">
+     <widget class="QCheckBox" name="checkBox_redoChecksums">
       <property name="text">
        <string>Always &amp;recalculate L3 and L4 checksums</string>
       </property>
      </widget>
     </item>
     <item row="3" column="0" colspan="2">
-     <widget class="QCheckBox" name="checkBox_5">
+     <widget class="QCheckBox" name="checkBox_removeEFCS">
       <property name="text">
        <string>Always remove the EFCS from the frame</string>
       </property>
@@ -90,7 +90,7 @@
      </widget>
     </item>
     <item row="4" column="1">
-     <widget class="QLineEdit" name="lineEdit_5"/>
+     <widget class="QLineEdit" name="lineEdit_mtu"/>
     </item>
     <item row="4" column="2" rowspan="4">
      <widget class="QGroupBox" name="groupBox_2">
@@ -106,7 +106,7 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit_8"/>
+        <widget class="QLineEdit" name="lineEdit_ipAddressSrc"/>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_11">
@@ -116,7 +116,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_11"/>
+        <widget class="QLineEdit" name="lineEdit_ipAddressDest"/>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_10">
@@ -126,7 +126,7 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit_10"/>
+        <widget class="QLineEdit" name="lineEdit_port"/>
        </item>
       </layout>
      </widget>
@@ -134,32 +134,46 @@
     <item row="5" column="0">
      <widget class="QLabel" name="label_6">
       <property name="text">
-       <string>max packet size</string>
+       <string>Max packet size</string>
       </property>
      </widget>
     </item>
     <item row="5" column="1">
-     <widget class="QLineEdit" name="lineEdit_6"/>
+     <widget class="QLineEdit" name="lineEdit_packetSize"/>
     </item>
     <item row="6" column="0">
      <widget class="QLabel" name="label_4">
       <property name="text">
-       <string> server to client (primary) CIDR map</string>
+       <string>Server to client (primary) CIDR map</string>
       </property>
      </widget>
     </item>
     <item row="6" column="1">
-     <widget class="QLineEdit" name="lineEdit_4"/>
+     <widget class="QLineEdit" name="lineEdit_primaryCIDR"/>
     </item>
     <item row="7" column="0">
      <widget class="QLabel" name="label_7">
       <property name="text">
-       <string> server to client (primary) CIDR map</string>
+       <string>Client to server (secondary) CIDR map</string>
       </property>
      </widget>
     </item>
     <item row="7" column="1">
-     <widget class="QLineEdit" name="lineEdit_7"/>
+     <widget class="QLineEdit" name="lineEdit_secondaryCIDR"/>
+    </item>
+    <item row="0" column="3">
+     <widget class="QPushButton" name="pushButton_apply">
+      <property name="text">
+       <string>&amp;Apply</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="3">
+     <widget class="QPushButton" name="pushButton_revert">
+      <property name="text">
+       <string>&amp;Revert</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

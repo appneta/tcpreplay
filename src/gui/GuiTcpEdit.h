@@ -51,6 +51,10 @@ public:
 protected:
     virtual void changeEvent(QEvent *e);
 
+private Q_SLOTS:
+    void on_pushButton_apply_clicked(bool);
+    void on_pushButton_revert_clicked(bool);
+
 private:
     struct Private;
     Private * d;

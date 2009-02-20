@@ -15,9 +15,9 @@ HEADERS += GuiTcpReplay.h  \
 FORMS += TcpReplay.ui \
     TcpEdit.ui
 
-LIBS += -L../tcpedit -ltcpedit
 LIBS += -L../../lib -lstrl
 LIBS += -L../common -lcommon
+LIBS += -L../tcpedit -ltcpedit
 
 INCLUDEPATH += ..
 INCLUDEPATH += ../..
