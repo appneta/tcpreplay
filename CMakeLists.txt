@@ -9,6 +9,7 @@ INCLUDE(CheckTypeSize)
 INCLUDE(FindCygwin)
 INCLUDE(FindSubversion)
 INCLUDE(CTest)
+INCLUDE(CheckCSourceRuns)
 
 #packaging
 SET(CPACK_PACKAGE_NAME tcpreplay)
