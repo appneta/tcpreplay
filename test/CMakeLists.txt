@@ -50,7 +50,7 @@ add_custom_target(standard)
 
 configure_file(${CMAKE_SOURCE_DIR}/test/Standard.cmake.in ${CMAKE_SOURCE_DIR}/test/Standard.cmake @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/test/RunUnitTest.cmake.in ${CMAKE_SOURCE_DIR}/test/RunUnitTest.cmake @ONLY)
-
+configure_file(${CMAKE_SOURCE_DIR}/test/config.in ${CMAKE_SOURCE_DIR}/test/config @ONLY)
 add_custom_command(TARGET standard
     COMMAND cmake -P Standard.cmake
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test

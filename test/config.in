@@ -10,7 +10,6 @@ topspeed
 
 [TCPREWRITE]
 infile      test.pcap
-outfile     test.rewrite_config1
 cachefile   test.auto_bridge
 enet-vlan        add
 enet-vlan-tag    45
