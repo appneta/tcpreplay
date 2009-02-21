@@ -68,6 +68,7 @@
 #cmakedefine HAVE_NETDB_H 1
 #cmakedefine HAVE_PORTAUDIO_H 1
 #cmakedefine HAVE_POLL_H 1
+#cmakedefine HAVE_SIGNAL_H 1
 #cmakedefine HAVE_STDARG_H 1
 #cmakedefine HAVE_STDDEF_H 1
 #cmakedefine HAVE_STDINT_H 1
@@ -85,7 +86,6 @@
 #cmakedefine HAVE_SYS_UTSNAME_H 1
 #cmakedefine HAVE_SYS_WAIT_H 1
 #cmakedefine HAVE_UNISTD_H 1
-#cmakedefine HAVE_SIGNAL 1
 
 #cmakedefine HAVE_CHOWN 1
 #cmakedefine HAVE_GETHOSTBYNAME2 1
