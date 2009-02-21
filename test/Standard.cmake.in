@@ -1,0 +1,12 @@
+
+message(STATUS "Cleaning @endian@ tests...")
+foreach(__file @tcpprep_tests@ @tcprewrite_tests@)
+    FILE(REMOVE test@TEST_VER@.${__file})
+endforeach(__file)
+
+INCLUDE(RunUnitTest.cmake)
+
+# Create custom commands for standards
+foreach(__test @tcpprep_tests@ @tcprewrite_tests@)
+        run_unit_test(${__test} 1)
+endforeach(__test)

@@ -1,0 +1,139 @@
+
+set(auto_bridge "-i test.pcap -o __file__ -a bridge")
+set(auto_router "-i test.pcap -o __file__ -a router")
+set(auto_client "-i test.pcap -o __file__ -a client")
+set(auto_server "-i test.pcap -o __file__ -a server")
+set(auto_first "-i test.pcap -o __file__ -a first")
+set(cidr "-i test.pcap -o __file__ --cidr=216.27.178.0/24")
+set(cidr_reverse "-i test.pcap -o __file__ --cidr=216.27.178.0/24 --reverse")
+set(comment "-i test.pcap -o __file__ --comment='This_is_a_comment' --port")
+set(mac "-i test.pcap -o __file__ --mac=00:02:3b:00:3d:ce")
+set(mac_reverse "-i test.pcap -o __file__ --mac=00:02:3b:00:3d:ce --reverse")
+set(port "-i test.pcap -o __file__ --port")
+set(prep_config "--load_opts config -o __file__")
+set(regex "-i test.pcap -o __file__ --regex='216.27.178.*'")
+set(regex_reverse "-i test.pcap -o __file__ --regex='216.27.178.*' --reverse")
+
+set(rewrite_1ttl "-i test.pcap -o __file__ --ttl=58")
+set(rewrite_2ttl "-i test.pcap -o __file__ --ttl=+58")
+set(rewrite_3ttl "-i test.pcap -o __file__ --ttl=-58")
+set(rewrite_config "-i test.pcap -o __file__ --load-opts=config")
+set(rewrite_dlthdlc "-i test.pcap -o __file__ --dlt=hdlc --hdlc-control=0 --hdlc-address=0x0F")
+set(rewrite_dltuser "-i test.pcap -o __file__ --dlt=user --user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104")
+set(rewrite_efcs "-i test.pcap -o __file__ --efcs")
+set(rewrite_endpoint "-i test.pcap -o __file__ --endpoints=10.10.0.1:10.10.0.2 -c test.auto_router")
+set(rewrite_layer2 "-i test.pcap -o __file__ --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0")
+set(rewrite_mac "-i test.pcap -o __file__  --enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66"
+    " --enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router")
+set(rewrite_pad "-i test.pcap -o __file__ --fixlen=pad")
+set(rewrite_pnat "-i test.pcap -o __file__ --pnat=216.27.178.0/24:172.16.0.0/24")
+set(rewrite_portmap "-i test.pcap -o __file__ --portmap=80:8080")
+set(rewrite_seed "-i test.pcap -o __file__ --seed=55")
+set(rewrite_skip "-i test.pcap -o __file__ --skipbroadcast --seed=55"
+    " --enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66"
+    " --enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router")
+set(rewrite_tos "-i test.pcap -o __file__ --tos=55")
+set(rewrite_trunc "-i test.pcap -o __file__ --fixlen=trunc")
+set(rewrite_vlandel "-i test.pcap -o __file__ --enet-vlan=del")
+set(rewrite_mtutrunc "-i test.pcap -o __file__ --mtu=300 --mtu-trunc")
+
+# tcpreplay tests
+set(replay_basic "-i @NIC1@ test.pcap")
+set(replay_cache "-i @NIC1@ -I @NIC2@ --cachefile=test.cidr --topspeed test.pcap")
+set(replay_pps "-i @NIC1@ --pps=25 test.pcap")
+set(replay_rate "-i @NIC1@ --mbps=25.0 test.pcap")
+set(replay_top "-i @NIC1@ --topspeed test.pcap")
+set(replay_config "-i @NIC1@ --load-opts=config")
+set(replay_multi "-i @NIC1@ --multiplier=25.0 test.pcap")
+set(repla_pps_multi "-i @NIC1@ --pps=100 --pps-multi=5 test.pcap")
+
+
+
+#########################################################
+# Function: run_unit_test
+# Pass true to standard argument to create standardized output
+#########################################################
+function(run_unit_test __test standard)
+    if(__test MATCHES "rewrite_")
+        set(standard_file "test@TEST_VER@.${__test}")
+    else(__test MATCHES "rewrite_")
+        set(standard_file "test.${__test}")
+    endif(__test MATCHES "rewrite_")
+    set(output_file "${standard_file}1")
+
+    if (${standard})
+        message(STATUS "Creating @endian@ standard for ${__test} (${standard_file})")
+        string(REPLACE __file__ ${standard_file} new_command "${${__test}}")
+    else(${standard})
+        message(STATUS "Running ${__test}")
+        string(REPLACE __file__ ${output_file} new_command "${${__test}}")
+    endif(${standard})
+        
+
+    set(stderr "")
+    set(stdout "")
+    set(rcode 0)
+    
+    
+    if(__test MATCHES "rewrite_")
+        # tcprewrite test!
+#        message(STATUS "Running: @TCPREWRITE@ @DEBUG_FLAG@ ${new_command}")
+        separate_arguments(new_command)
+
+        execute_process(COMMAND @TCPREWRITE@ @DEBUG_FLAG@ ${new_command} 
+            WORKING_DIRECTORY @CMAKE_SOURCE_DIR@/test
+            OUTPUT_VARIABLE stdout
+            RESULT_VARIABLE rcode
+            ERROR_VARIABLE stderr
+            TIMEOUT 10
+            ERROR_STRIP_TRAILING_WHITESPACE
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    elseif(__test MATCHES "replay_")
+        if(NOT ${standard})
+            # tcpreplay test!  Do not run for standard
+#            message(STATUS "Running: @TCPREPLAY@ @DEBUG_FLAG@ ${new_command}")
+            separate_arguments(new_command)
+
+            execute_process(COMMAND @TCPREPLAY@ @DEBUG_FLAG@ ${new_command} 
+                WORKING_DIRECTORY @CMAKE_SOURCE_DIR@/test
+                OUTPUT_VARIABLE stdout
+                RESULT_VARIABLE rcode
+                ERROR_VARIABLE stderr
+                TIMEOUT 10
+                ERROR_STRIP_TRAILING_WHITESPACE
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+        endif(NOT ${standard})
+    else(__test MATCHES "rewrite_")
+        # tcpprep test!
+#        message(STATUS "Running: @TCPPREP@ @DEBUG_FLAG@ ${new_command}")
+        separate_arguments(new_command)
+
+        execute_process(COMMAND @TCPPREP@ @DEBUG_FLAG@ ${new_command} 
+            WORKING_DIRECTORY @CMAKE_SOURCE_DIR@/test
+            OUTPUT_VARIABLE stdout
+            RESULT_VARIABLE rcode
+            ERROR_VARIABLE stderr
+            TIMEOUT 10
+            ERROR_STRIP_TRAILING_WHITESPACE
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif(__test MATCHES "rewrite_")
+    
+    if(rcode EQUAL 0)
+        if(EXISTS ${output_file})
+            if(@DIFF@)
+                execute_process(COMMAND @DIFF@ ${standard_file} ${output_file}
+                RESULT_VARIABLE diff_rcode)
+            
+                if(${diff_rcode} EQUAL 0)
+                    message(STATUS "Running ${__test}: OK!")
+                else(${diff_rcode} EQUAL 0)
+                    message(SEND_ERROR "Running ${__test}: FAILED!  <file missmatch>")
+                endif(${diff_rcode} EQUAL 0)
+            endif(@DIFF@)
+        endif(EXISTS ${output_file})
+            
+    else(rcode EQUAL 0)
+        message(STATUS "Running ${__test}: FAILED!  Error code: ${rcode}")
+        message(STATUS "Test ${__test} results:\n${stdout}\n----\n${stderr}")
+    endif(rcode EQUAL 0)
+endfunction(run_unit_test)
