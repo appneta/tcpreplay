@@ -243,6 +243,13 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
     tcpedit->tos = -1; /* disabled by default */
  
+    tcpedit->validated = false;
+    tcpedit->skip_broadcast = false;
+    tcpedit->rewrite_ip = false;
+    tcpedit->fixcsum = false;
+    tcpedit->efcs = false;
+    tcpedit->mtu_truncate = false;
+ 
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.dlt1 = dlt;
     tcpedit->runtime.dlt2 = dlt;

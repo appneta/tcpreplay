@@ -150,7 +150,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         
     /* --mtu-trunc */
     if (HAVE_OPT(MTU_TRUNC))
-        tcpedit->mtu_truncate = 1;
+        tcpedit->mtu_truncate = true;
         
     /* --skipbroadcast */
     if (HAVE_OPT(SKIPBROADCAST))

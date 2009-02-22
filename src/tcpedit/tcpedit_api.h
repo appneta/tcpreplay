@@ -60,6 +60,7 @@ int tcpedit_set_ttl_value(tcpedit_t *, u_int8_t);
 int tcpedit_set_tos(tcpedit_t *, u_int8_t);
 int tcpedit_set_seed(tcpedit_t *, int);
 int tcpedit_set_mtu(tcpedit_t *, int);
+int tcpedit_set_mtu_truncate(tcpedit_t *, bool);
 int tcpedit_set_maxpacket(tcpedit_t *, int);
 int tcpedit_set_cidrmap_s2c(tcpedit_t *, char *);
 int tcpedit_set_cidrmap_c2s(tcpedit_t *, char *);

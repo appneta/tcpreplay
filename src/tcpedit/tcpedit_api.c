@@ -223,6 +223,16 @@ tcpedit_set_mtu(tcpedit_t *tcpedit, int value)
     return TCPEDIT_OK;
 }
 
+/** 
+ * Enable trucating packets to the MTU lenght
+ */
+int tcpedit_set_mtu_truncate(tcpedit_t *tcpedit, bool value)
+{
+    assert(tcpedit);
+    tcpedit->mtu_truncate = value;
+    return TCPEDIT_OK;
+}
+
 /**
  * Set the maxpacket- currently not supported
  */

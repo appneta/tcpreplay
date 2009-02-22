@@ -136,7 +136,7 @@ typedef struct {
     tcpedit_portmap_t *portmap;
     
     int mtu;                /* Deal with different MTU's */
-    int mtu_truncate;       /* Should we truncate frames > MTU? */
+    bool mtu_truncate;       /* Should we truncate frames > MTU? */
     int maxpacket;          /* L2 header + MTU */
 } tcpedit_t;
 
