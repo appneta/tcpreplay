@@ -163,8 +163,13 @@ main(int argc, char *argv[])
 endif(SUPPORTS_64BIT_FLAG)
 
 # Big or little endian ?
-include(TestBigEndian)
-test_big_endian(WORDS_BIGENDIAN)
+if(WIN32)
+    # Windows is always little endian
+    set(WORDS_BIGENDIAN FALSE)
+else(NOT WIN32)
+    include(TestBigEndian)
+    test_big_endian(WORDS_BIGENDIAN)
+endif(NOT WIN32)
 
 include(FindPCAP)
 if(NOT HAVE_PCAP_SENDPACKET)
