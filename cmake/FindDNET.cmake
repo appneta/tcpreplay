@@ -47,7 +47,7 @@
 #  LIBDNET_VERSION   - version of libdnet
 
 SET(founddnet false)
-FOREACH(testdir $ENV{DNETDIR} /usr/local /opt/local /usr) 
+FOREACH(testdir ${LIBDNET_DIR} /usr/local /opt/local /usr) 
     EXECUTE_PROCESS(COMMAND ${testdir}/bin/dnet-config --cflags
         RESULT_VARIABLE exit_code
         OUTPUT_VARIABLE DNET_CFLAGS

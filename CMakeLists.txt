@@ -63,11 +63,13 @@ option(FORCE_INJECT_PCAP_SENDPACKET "Force using winpcap/libpcap's pcap_sendpack
 option(USE_AUTOOPTS "Compile with GNU AutoOpts support (enables CLI tools)" ${USE_AUTOOPTS})
 option(ENABLE_64BITS "Enable 64bit packet counters" ON)
 option(TCPDUMP_BINARY "Set the path to tcpdump binary" "/usr/sbin/tcpdump")
+option(LIBPCAP_DIR "Path to libpcap headers/library")
+option(LIBDNET_DIR "Path to libdnet headers/library")
 
 mark_as_advanced(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET 
     FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET AUTOCONF AUTOGEN AUTOMAKE
     CMAKE_BUILD_TYPE ECHO SVNVERSION MAKE TCPDUMP_BINARY ENABLE_64BITS
-    USE_AUTOOPTS)
+    USE_AUTOOPTS LIBPCAP_DIR LIBDNET_DIR)
 
 if(ENABLE_DEBUG)
     set(__GGDB -g)

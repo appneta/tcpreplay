@@ -45,26 +45,24 @@
 #  HAVE_LIBPCAP     - True if pcap found.
 #  PCAP_BPF_H_FILE  - path to the pcap-bpf.h
 
-IF(EXISTS $ENV{PCAPDIR})
+IF(EXISTS ${LIBPCAP_DIR})
     FIND_PATH(PCAP_INCLUDE_DIR 
         NAMES
         pcap/pcap.h
         pcap.h
-        PATHS
-        $ENV{PCAPDIR}
+        PATHS LIBPCAP_DIR
         NO_DEFAULT_PATH
     )
   
     FIND_LIBRARY(PCAP_LIBRARY
         NAMES 
         pcap
-        PATHS
-        $ENV{PCAPDIR}
+        PATHS LIBPCAP_DIR
         NO_DEFAULT_PATH
     )
   
 
-ELSE(EXISTS $ENV{PCAPDIR})
+ELSE(EXISTS ${LIBPCAP_DIR})
     FIND_PATH(PCAP_INCLUDE_DIR 
         NAMES
         pcap/pcap.h
@@ -75,7 +73,7 @@ ELSE(EXISTS $ENV{PCAPDIR})
         NAMES 
         pcap
     )
-ENDIF(EXISTS $ENV{PCAPDIR})
+ENDIF(EXISTS ${LIBPCAP_DIR})
 
 SET(PCAP_INCLUDE_DIRS ${PCAP_INCLUDE_DIR})
 SET(PCAP_LIBRARIES ${PCAP_LIBRARY})
