@@ -62,6 +62,7 @@ add_custom_command(TARGET standard
 #########################################################
 # TARGET: test
 #########################################################
+ENABLE_TESTING()
 if(BUILD_TESTING)
 
 endif(BUILD_TESTING)
