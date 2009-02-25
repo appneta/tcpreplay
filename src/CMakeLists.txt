@@ -6,6 +6,15 @@ ADD_SUBDIRECTORY(tcpedit)
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
 
+# External libraries to link to which we can't use TARGET_LINK_LIBRARIES() for
+set(link_flags)
+set(abstime_libs "-framework Carbon -framework CoreServices")
+if(HAVE_LIBDNET)
+    set(link_flags "${DNET_LIBS} ${abstime_libs}")
+else(HAVE_LIBDNET)
+    set(link_flags ${abstime_libs})
+endif(HAVE_LIBDNET)
+
 SET(baselibs "common")
 IF(NOT HAVE_SYSTEM_STRLCPY)
     SET(baselibs ${baselibs} ${CMAKE_SOURCE_DIR}/lib/libstrl.a)
@@ -28,11 +37,11 @@ IF(WIN32)
     SET(tcpbridge_srcs ${tcpbridge_srcs} tcpbridge.h bridge.h)
 ENDIF(WIN32)
 
-SET(autoopts_libs "")
+SET(autoopts_libs)
 # Do we link to libopts and compile in AutoOpts support?
 IF(USE_AUTOOPTS)
     IF(WIN32)
-        MESSAGE(FATAL " AutoOpts doesn't support the Win32 environment")
+        MESSAGE(FATAL "AutoOpts doesn't support the Win32 environment")
     ENDIF(WIN32)
 
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libopts)
@@ -114,18 +123,16 @@ IF(USE_AUTOOPTS)
     TARGET_LINK_LIBRARIES(tcpreplay ${tcpreplay_libs})
 
     SET_TARGET_PROPERTIES(tcpreplay
-        PROPERTIES COMPILE_FLAGS "-DTCPREPLAY -DHAVE_CACHEFILE_SUPPORT")
+        PROPERTIES COMPILE_FLAGS "-DTCPREPLAY -DHAVE_CACHEFILE_SUPPORT ${abstime_flags}")
 
     ADD_EXECUTABLE(tcpreplay-edit ${tcpreplay_edit_srcs})
     TARGET_LINK_LIBRARIES(tcpreplay-edit ${tcpreplay_edit_libs})
 
     SET_TARGET_PROPERTIES(tcpreplay-edit
-        PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT")
+        PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT ${abstime_flags}")
 
-    IF(HAVE_LIBDNET)
-        SET_TARGET_PROPERTIES(tcprewrite tcpreplay tcpreplay-edit
-            PROPERTIES LINK_FLAGS ${DNET_LIBS})    
-    ENDIF(HAVE_LIBDNET)
+    SET_TARGET_PROPERTIES(tcprewrite tcpreplay tcpreplay-edit
+        PROPERTIES LINK_FLAGS ${link_flags})
 
     ADD_EXECUTABLE(tcpprep ${tcpprep_srcs})
     TARGET_LINK_LIBRARIES(tcpprep ${tcpprep_libs})
@@ -136,11 +143,12 @@ IF(USE_AUTOOPTS)
         TARGET_LINK_LIBRARIES(tcpbridge ${tcpbridge_libs})
 
         SET_TARGET_PROPERTIES(tcpbridge
-            PROPERTIES COMPILE_FLAGS -DTCPBRIDGE)
+            PROPERTIES COMPILE_FLAGS -DTCPBRIDGE ${abstime_flags})
 
         SET_TARGET_PROPERTIES(tcpbridge
-            PROPERTIES LINK_FLAGS ${DNET_LIBS})    
+            PROPERTIES LINK_FLAGS ${link_flags})    
 
     ENDIF(HAVE_PCAP_SENDPACKET)
+    
 ENDIF(USE_AUTOOPTS)
 
