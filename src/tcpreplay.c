@@ -250,7 +250,7 @@ init(void)
     options.loop = 1;
     
     /* Default mode is to replay pcap once in real-time */
-    options.speed.mode = SPEED_MULTIPLIER;
+    options.speed.mode = speed_multiplier;
     options.speed.speed = 1.0;
 
     /* set the default MTU size */
@@ -301,20 +301,20 @@ post_args(void)
         options.limit_send = OPT_VALUE_LIMIT;
     
     if (HAVE_OPT(TOPSPEED)) {
-        options.speed.mode = SPEED_TOPSPEED;
+        options.speed.mode = speed_topspeed;
         options.speed.speed = 0.0;
     } else if (HAVE_OPT(PPS)) {
-        options.speed.mode = SPEED_PACKETRATE;
+        options.speed.mode = speed_packetrate;
         options.speed.speed = (float)OPT_VALUE_PPS;
         options.speed.pps_multi = OPT_VALUE_PPS_MULTI;
     } else if (HAVE_OPT(ONEATATIME)) {
-        options.speed.mode = SPEED_ONEATATIME;
+        options.speed.mode = speed_oneatatime;
         options.speed.speed = 0.0;
     } else if (HAVE_OPT(MBPS)) {
-        options.speed.mode = SPEED_MBPSRATE;
+        options.speed.mode = speed_mbpsrate;
         options.speed.speed = atof(OPT_ARG(MBPS));
     } else if (HAVE_OPT(MULTIPLIER)) {
-        options.speed.mode = SPEED_MULTIPLIER;
+        options.speed.mode = speed_multiplier;
         options.speed.speed = atof(OPT_ARG(MULTIPLIER));
     }
 
@@ -338,30 +338,30 @@ post_args(void)
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
 #ifdef HAVE_SELECT
-            options.accurate = ACCURATE_SELECT;
+            options.accurate = accurate_select;
 #else
             err(-1, "tcpreplay not compiled with select support");
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "rdtsc") == 0) {
 #ifdef HAVE_RDTSC
-            options.accurate = ACCURATE_RDTSC;
+            options.accurate = accurate_rdtsc;
 #else
             err(-1, "tcpreplay not compiled with rdtsc support");
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
 #if defined HAVE_IOPERM && defined(__i386__)
-            options.accurate = ACCURATE_IOPORT;
+            options.accurate = accurate_ioport;
             ioport_sleep_init();
 #else
             err(-1, "tcpreplay not compiled with IO Port 0x80 support");
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "gtod") == 0) {
-            options.accurate = ACCURATE_GTOD;
+            options.accurate = accurate_gtod;
         } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
-            options.accurate = ACCURATE_NANOSLEEP;
+            options.accurate = accurate_nanosleep;
         } else if (strcmp(OPT_ARG(TIMER), "abstime") == 0) {
 #ifdef HAVE_ABSOLUTE_TIME
-            options.accurate = ACCURATE_ABS_TIME;
+            options.accurate = accurate_abs_time;
             if  (!MPLibraryIsLoaded()) {
                 err(-1, "The MP library did not load.\n");
             }            

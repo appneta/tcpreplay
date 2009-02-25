@@ -69,7 +69,7 @@ extern int debug;
 #endif
 
 static void do_sleep(struct timeval *time, struct timeval *last, int len, 
-    int accurate, sendpacket_t *sp, COUNTER counter, delta_t *ctx);
+    tcpreplay_accurate accurate, sendpacket_t *sp, COUNTER counter, delta_t *ctx);
 static const u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, 
     int file_idx, packet_cache_t **prev_packet);
 static u_int32_t get_user_count(sendpacket_t *sp, COUNTER counter);
@@ -98,7 +98,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     
     /* register signals */
     didsig = 0;
-    if (options.speed.mode != SPEED_ONEATATIME) {
+    if (options.speed.mode != speed_oneatatime) {
         (void)signal(SIGINT, catcher);
     } else {
         (void)signal(SIGINT, break_now);
@@ -166,7 +166,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (options.speed.mode != SPEED_TOPSPEED)
+        if (options.speed.mode != speed_topspeed)
             do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum, &delta_ctx);
 
         /* mark the time when we send the last packet */
@@ -320,7 +320,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep and do so.
  */
 static void
-do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, 
+do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate accurate, 
     sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx)
 {
     static struct timeval didsleep = { 0, 0 };
@@ -356,7 +356,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
      * pps_multi accelerator.    This uses the existing send accelerator above
      * and hence requires the funky math to get the expected timings.
      */
-    if (options.speed.mode == SPEED_PACKETRATE && options.speed.pps_multi) {
+    if (options.speed.mode == speed_packetrate && options.speed.pps_multi) {
         send = options.speed.pps_multi - 1;
         if (first_time) {
             first_time = 0;
@@ -373,7 +373,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     dbgx(4, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
 
     /* First time through for this file */
-    if (pkts_sent == 0 || ((options.speed.mode != SPEED_MBPSRATE) && (counter == 0))) {
+    if (pkts_sent == 0 || ((options.speed.mode != speed_mbpsrate) && (counter == 0))) {
         start = now;
         timerclear(&sleep_until);
         timerclear(&didsleep);
@@ -383,10 +383,10 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     }
 
     /* If top speed, you shouldn't even be here */
-    assert(options.speed.mode != SPEED_TOPSPEED);
+    assert(options.speed.mode != speed_topspeed);
 
     switch(options.speed.mode) {
-    case SPEED_MULTIPLIER:
+    case speed_multiplier:
         /* 
          * Replay packets a factor of the time they were originally sent.
          */
@@ -411,7 +411,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         }        
         break;
 
-    case SPEED_MBPSRATE:
+    case speed_mbpsrate:
         /* 
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
@@ -430,7 +430,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         }
         break;
 
-    case SPEED_PACKETRATE:
+    case speed_packetrate:
         /* only need to calculate this the first time */
         if (! timesisset(&nap)) {
             /* run in packets/sec */
@@ -440,7 +440,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         }        
         break;
         
-    case SPEED_ONEATATIME:
+    case speed_oneatatime:
         /* do we skip prompting for a key press? */
         if (send == 0) {
             send = get_user_count(sp, counter);
@@ -470,17 +470,17 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     dbgx(2, "nap_time before rounding:   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
 
 
-    if (accurate != ACCURATE_ABS_TIME) {
+    if (accurate != accurate_abs_time) {
 
         switch (options.speed.mode) {
             /* Mbps & Multipler are dynamic timings, so we round to the nearest usec */
-            case SPEED_MBPSRATE:
-            case SPEED_MULTIPLIER:
+            case speed_mbpsrate:
+            case speed_multiplier:
                 ROUND_TIMESPEC_TO_MICROSEC(&nap_this_time);
                 break;
 
             /* Packets/sec is static, so we weight packets for .1usec accuracy */
-            case SPEED_PACKETRATE:
+            case speed_packetrate:
                 if (nsec_adjuster < 0)
                     nsec_adjuster = (nap_this_time.tv_nsec % 10000) / 1000;
         
@@ -537,34 +537,34 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
      */
     switch (accurate) {
 #ifdef HAVE_SELECT
-    case ACCURATE_SELECT:
+    case accurate_select:
         select_sleep(nap_this_time);
         break;
 #endif
 
-#ifdef HAVE_IOPERM
-    case ACCURATE_IOPORT:
+#ifdef HAVE_IOPORT
+    case accurate_ioport:
         ioport_sleep(nap_this_time);
         break;
 #endif
 
 #ifdef HAVE_RDTSC        
-    case ACCURATE_RDTSC:
+    case accurate_rdtsc:
         rdtsc_sleep(nap_this_time);
         break;
 #endif
 
 #ifdef HAVE_ABSOLUTE_TIME
-    case ACCURATE_ABS_TIME:
+    case accurate_abs_time:
         absolute_time_sleep(nap_this_time);
         break;
 #endif
 
-    case ACCURATE_GTOD:
+    case accurate_gtod:
         gettimeofday_sleep(nap_this_time);
         break;
 
-    case ACCURATE_NANOSLEEP:
+    case accurate_nanosleep:
         nanosleep_sleep(nap_this_time);
         break;
         /*

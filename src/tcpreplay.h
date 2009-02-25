@@ -46,14 +46,12 @@
 #include <dmalloc.h>
 #endif
 
-struct packet_cache_s {
+typedef struct {
 	struct pcap_pkthdr pkthdr;
 	u_char *pktdata;
 	
 	struct packet_cache_s *next;
-};
-
-typedef struct packet_cache_s packet_cache_t;
+} packet_cache_t;
 
 typedef struct {
 	int index;
@@ -61,7 +59,38 @@ typedef struct {
 	packet_cache_t *packet_cache;
 } file_cache_t;
 
+typedef enum {
+    speed_multiplier = 1,
+    speed_mbpsrate,
+    speed_packetrate,
+    speed_topspeed,
+    speed_oneatatime    
+} tcpreplay_speed_mode;
+    
+typedef struct {
+    /* speed modifiers */
+    tcpreplay_speed_mode mode;
+    float speed;
+    int pps_multi;
+} tcpreplay_speed_t;
 
+typedef enum {
+    accurate_gtod = 0,
+#ifdef HAVE_SELECT
+    accurate_select = 1,
+#endif
+#ifdef HAVE_RDTSC
+    accurate_rdtsc = 2,
+#endif
+#if defined HAVE_IOPERM && defined(__i386__)    
+    accurate_ioport = 3,
+#endif
+    accurate_nanosleep = 4,
+#ifdef HAVE_ABSOLUTE_TIME
+    accurate_abs_time = 5
+#endif
+} tcpreplay_accurate;
+    
 /* run-time options */
 struct tcpreplay_opt_s {
     /* input/output */
@@ -70,7 +99,7 @@ struct tcpreplay_opt_s {
     sendpacket_t *intf1;
     sendpacket_t *intf2;
 
-    tcpr_speed_t speed;
+    tcpreplay_speed_t speed;
     u_int32_t loop;
     int sleep_accel;
     
@@ -83,23 +112,16 @@ struct tcpreplay_opt_s {
 
     /* deal with MTU/packet len issues */
     int mtu;
-    int truncate;
     
     /* accurate mode to use */
-    int accurate;
-#define ACCURATE_NANOSLEEP  0
-#define ACCURATE_SELECT     1
-#define ACCURATE_RDTSC      2
-#define ACCURATE_IOPORT     3
-#define ACCURATE_GTOD       4
-#define ACCURATE_ABS_TIME   5
+    tcpreplay_accurate accurate;
     
     char *files[MAX_FILES];
     COUNTER limit_send;
 
 #ifdef ENABLE_VERBOSE
     /* tcpdump verbose printing */
-    int verbose;
+    bool verbose;
     char *tcpdump_args;
     tcpdump_t *tcpdump;
 #endif
