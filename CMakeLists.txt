@@ -25,6 +25,7 @@ set(VERSION ${CPACK_PACKAGE_VERSION})
 set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_IGNORE_FILES /CMakeFiles/;/\\.svn/;\\.swp$;.*~$;\\.\#;.*~;cscope.*;\\.tmproj$;\\.o$;/\\.deps/)
 include(CPack)
 
 
@@ -298,19 +299,6 @@ include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/src/tcpedit)
 include_directories(${PCAP_INCLUDE_DIRS})
-
-# find_program(REMOVE rm)
-# if(NOT ${REMOVE})
-#     find_program(REMOVE del)
-# endif(NOT ${REMOVE})
-#     
-# add_custom_target(version)
-# add_custom_command(TARGET version
-#     COMMAND ${REMOVE} ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
-# )
-# add_dependencies(version svn_version)
-
-
 
 # Recurse into the subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 
