@@ -299,18 +299,18 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/src/tcpedit)
 include_directories(${PCAP_INCLUDE_DIRS})
 
-if(Subversion_FOUND)
-    Subversion_WC_INFO(${CMAKE_SOURCE_DIR} SVN_INFO)
-    if(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
-        # Targets to build src/common/svn_version.c
-        add_custom_target(version ALL
-            COMMAND rm -f ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/common
-            DEPENDS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
-        )
-        add_dependencies(version svn_version)
-    endif(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
-endif(Subversion_FOUND)
+# find_program(REMOVE rm)
+# if(NOT ${REMOVE})
+#     find_program(REMOVE del)
+# endif(NOT ${REMOVE})
+#     
+# add_custom_target(version)
+# add_custom_command(TARGET version
+#     COMMAND ${REMOVE} ${CMAKE_SOURCE_DIR}/src/common/svn_version.c
+# )
+# add_dependencies(version svn_version)
+
+
 
 # Recurse into the subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 

@@ -15,44 +15,33 @@ add_library(common STATIC abort.c cache.c cidr.c dlt_names.c err.c fakepcap.c
 	fakepcapnav.c fakepoll.c get.c interface.c list.c mac.c rdtsc.c
 	sendpacket.c services.c timer.c utils.c xX.c ${tcpdump_src} svn_version.c)
 
-# Only rebuild svn_version.c if we're inside the svn working dir
-if(EXISTS .svn)
-    if(Subversion_FOUND)
-        if(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
-            add_custom_target(prepare_svn_version
-                rm -f svn_version.c)  # first delete the old source file
+if(Subversion_FOUND)
+    Subversion_WC_INFO(${CMAKE_SOURCE_DIR} SVN_INFO)
+    if(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
 
-            add_custom_target(svn_version
-                DEPENDS svn_version.c)
+        # Targets to build src/common/svn_version.c
+        add_custom_target(svn_version_c
+            DEPENDS svn_version.c)
 
-            if(SVNVERSION)
-                execute_process(COMMAND ${SVNVERSION} -n .
-                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                    OUTPUT_VARIABLE SVNVERSION_REVISION)
-                
-                set_target_properties(common
-                    PROPERTIES COMPILE_FLAGS -DWC_Revision=\\\"${SVNVERSION_REVISION}\\\")
+        add_custom_command(OUTPUT svn_version.c
+            COMMAND cmake -P GenerateVersion.cmake
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/common
+            DEPENDS ${CMAKE_SOURCE_DIR}/src/common/GenerateVersion.cmake ${CMAKE_SOURCE_DIR}/src/common/svn_version.tmpl
+            VERBATIM)
+    endif(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
 
-            else(SVNVERSION)
-                # Using SVN_INFO_WC_REVISION isn't accurate, so don't even try
-                set_target_properties(common
-                    PROPERTIES COMPILE_FLAGS -DWC_Revision=\\\"unknown\\\")
-            endif(SVNVERSION)
-            
-        ENDIF(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
-    else(Subversion_FOUND)
-        set_target_properties(common
-            PROPERTIES COMPILE_FLAGS -DWC_Revision=\\\"unknown\\\")        
-    endif(Subversion_FOUND)
-else(EXISTS .svn)
-    set_target_properties(common
-        PROPERTIES COMPILE_FLAGS -DWC_Revision=\\\"unknown\\\")
-endif(EXISTS .svn)    
-    
-add_custom_command(OUTPUT svn_version.c
-    COMMAND rm -f svn_version.c
-    COMMAND ${ECHO} const char SVN_Version[] = WC_Revision\;   > svn_version.c 
-	COMMAND ${ECHO} const char *svn_version\(void\) {           >> svn_version.c
-	COMMAND ${ECHO} 	return SVN_Version\;		            >> svn_version.c
-	COMMAND ${ECHO} } 			      				            >> svn_version.c
-	VERBATIM)
+    add_custom_target(version)
+    add_custom_command(TARGET version
+        COMMAND cmake -P DeleteVersion.cmake)
+    add_dependencies(version svn_version_c)
+endif(Subversion_FOUND)
+
+
+# 
+# if(NOT EXISTS svn_version.c)
+# execute_process(COMMAND ${CMAKE_C_COMPILER} -E -DWC_REVISION=\"${WC_REVISION}\" -
+#     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/common
+#     INPUT_FILE svn_version.tmpl
+#     OUTPUT_FILE svn_version.c
+# )
+# endif(NOT EXISTS svn_version.c)
