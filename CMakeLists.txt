@@ -25,7 +25,28 @@ set(VERSION ${CPACK_PACKAGE_VERSION})
 set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_IGNORE_FILES /CMakeFiles/;/\\.svn/;\\.swp$;.*~$;\\.\#;.*~;cscope.*;\\.tmproj$;\\.o$;/\\.deps/)
+set(CPACK_SOURCE_IGNORE_FILES 
+    /CMakeFiles/ 
+    /.svn/ 
+    /docs/web/ 
+    /.deps/
+    CMakeCache.txt 
+    cmake_install.cmake 
+    .gdb_history
+    .*.a$
+    .*.o$
+    .*~$
+    .tmproj
+    Makefile
+    doxygen.cfg$
+    /src/tcpreplay$
+    /src/tcpreplay-edit$
+    /src/tcprewrite$
+    /src/tcpprep$
+    /src/tcpbridge$
+    /test/Standard.cmake$
+    .*tar.gz$
+)
 include(CPack)
 
 
