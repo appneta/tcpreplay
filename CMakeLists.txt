@@ -63,10 +63,10 @@ option(FORCE_INJECT_PCAP_INJECT "Force using libpcap pcap_inject() to send frame
 option(FORCE_INJECT_PCAP_SENDPACKET "Force using winpcap/libpcap's pcap_sendpacket() to send frames" OFF)
 option(USE_AUTOOPTS "Compile with GNU AutoOpts support (enables CLI tools)" ${USE_AUTOOPTS})
 option(ENABLE_64BITS "Enable 64bit packet counters" ON)
-option(TCPDUMP_BINARY "Set the path to tcpdump binary" "/usr/sbin/tcpdump")
-option(LIBPCAP_DIR "Path to libpcap headers/library")
-option(LIBDNET_DIR "Path to libdnet headers/library")
-
+#option(TCPDUMP_BINARY "Set the path to tcpdump binary" "/usr/sbin/tcpdump")
+#option(LIBPCAP_DIR "Path to libpcap headers/library")
+#option(LIBDNET_DIR "Path to libdnet headers/library")
+option(BUILD_64BIT_BINARY "Build a 64bit binary")
 mark_as_advanced(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET 
     FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET AUTOCONF AUTOGEN AUTOMAKE
     CMAKE_BUILD_TYPE ECHO SVNVERSION MAKE TCPDUMP_BINARY ENABLE_64BITS
@@ -134,7 +134,8 @@ else(CMAKE_COMPILER_IS_GNUCC)
   add_definitions(-DHAVE_CONFIG_H -D_U_=\"\")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-# Build for x64?
+# Build for x64?. 
+if(BUILD_64BIT_BINARY)
 check_c_compiler_flag(-m64 SUPPORTS_64BIT_FLAG)
 if(SUPPORTS_64BIT_FLAG)
     # Actually make sure the code runs!
@@ -162,6 +163,7 @@ main(int argc, char *argv[])
         set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -m64)
     endif(CAN_EXECUTE_M64_FLAG_CODE EQUAL 1)
 endif(SUPPORTS_64BIT_FLAG)
+endif(BUILD_64BIT_BINARY)
 
 # Big or little endian ?
 if(WIN32)

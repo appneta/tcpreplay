@@ -48,16 +48,17 @@
 IF(EXISTS ${LIBPCAP_DIR})
     FIND_PATH(PCAP_INCLUDE_DIR 
         NAMES
-        pcap/pcap.h
         pcap.h
-        PATHS LIBPCAP_DIR
+        pcap/pcap.h
+        PATHS ${LIBPCAP_DIR}/include
         NO_DEFAULT_PATH
     )
   
     FIND_LIBRARY(PCAP_LIBRARY
         NAMES 
         pcap
-        PATHS LIBPCAP_DIR
+        wpcap.lib
+        PATHS ${LIBPCAP_DIR}/lib
         NO_DEFAULT_PATH
     )
   
@@ -72,21 +73,23 @@ ELSE(EXISTS ${LIBPCAP_DIR})
     FIND_LIBRARY(PCAP_LIBRARY
         NAMES 
         pcap
+        wpcap.lib
     )
 ENDIF(EXISTS ${LIBPCAP_DIR})
 
 SET(PCAP_INCLUDE_DIRS ${PCAP_INCLUDE_DIR})
 SET(PCAP_LIBRARIES ${PCAP_LIBRARY})
-
 INCLUDE(CheckCSourceRuns)
 SET(PCAP_BPF_H_FILE "")
 SET(CMAKE_REQUIRED_DEFINITIONS_SAVE ${CMAKE_REQUIRED_DEFINITIONS})
 SET(CMAKE_REQUIRED_INCLUDES_SAVE ${CMAKE_REQUIRED_INCLUDES})
-FOREACH(file ${PCAP_INCLUDE_DIR}/pcap-bpf.h ${PCAP_INCLUDE_DIR}/pcap/pcap-bpf.h)    
+SET(CMAKE_REQUIRED_INCLUDES ${PCAP_INCLUDE_DIRS})
+FOREACH(file pcap.h pcap/pcap.h)    
     SET(CMAKE_REQUIRED_DEFINITIONS -DHEADER_FILE="${file}")
     SET(CMAKE_REQUIRED_INCLUDES ${PCAP_INCLUDE_DIR})
     check_c_source_runs("
 #include <stdlib.h>
+#include <stdio.h>
 #include HEADER_FILE
 
 int
@@ -138,9 +141,6 @@ CHECK_FUNCTION_EXISTS("pcap_dump_fopen" HAVE_PCAP_DUMP_FOPEN)
 CHECK_FUNCTION_EXISTS("pcap_inject" HAVE_PCAP_INJECT)
 CHECK_FUNCTION_EXISTS("pcap_sendpacket" HAVE_PCAP_SENDPACKET)
 
-# Is pcap found ?
-MESSAGE(STATUS "pcap_include_dir ${PCAP_INCLUDE_DIRS}")
-MESSAGE(STATUS "pcap_library ${PCAP_LIBRARY}")
 IF(PCAP_INCLUDE_DIRS AND PCAP_LIBRARY)
     SET(HAVE_LIBPCAP 1 PARENT_SCOPE)
     SET(LPCAPINC ${PCAP_INCLUDE_DIRS}/pcap.h)
