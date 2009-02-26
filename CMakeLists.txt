@@ -52,7 +52,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(USE_AUTOOPTS ON)
 if(WIN32 AND NOT CYGWIN)
     set(USE_AUTOOPTS OFF)
-    message(STATUS "Disabling autoopts on Win32 platform")
+    message(STATUS "Disabling GNU AutoOpts on Win32 platform")
 endif(WIN32 AND NOT CYGWIN)
 
 option(ENABLE_DEBUG "Enable debug support" OFF)
@@ -63,9 +63,6 @@ option(FORCE_INJECT_PCAP_INJECT "Force using libpcap pcap_inject() to send frame
 option(FORCE_INJECT_PCAP_SENDPACKET "Force using winpcap/libpcap's pcap_sendpacket() to send frames" OFF)
 option(USE_AUTOOPTS "Compile with GNU AutoOpts support (enables CLI tools)" ${USE_AUTOOPTS})
 option(ENABLE_64BITS "Enable 64bit packet counters" ON)
-#option(TCPDUMP_BINARY "Set the path to tcpdump binary" "/usr/sbin/tcpdump")
-#option(LIBPCAP_DIR "Path to libpcap headers/library")
-#option(LIBDNET_DIR "Path to libdnet headers/library")
 option(BUILD_64BIT_BINARY "Build a 64bit binary")
 mark_as_advanced(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET 
     FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET AUTOCONF AUTOGEN AUTOMAKE
@@ -177,6 +174,8 @@ endif(WIN32)
 include(FindPCAP)
 if(NOT HAVE_PCAP_SENDPACKET)
     message(STATUS "libpcap does not have pcap_sendpacket(): skipping tcpbridge")
+else(NOT HAVE_PCAP_SENDPACKET)
+    message(STATUS "We will build tcpbridge")
 endif(NOT HAVE_PCAP_SENDPACKET)
 
 include(FindDNET)
