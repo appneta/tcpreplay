@@ -46,6 +46,9 @@ set(CPACK_SOURCE_IGNORE_FILES
     /src/tcpbridge$
     /test/Standard.cmake$
     .*tar.gz$
+    /_CPack_Packages/
+    CPackSourceConfig.cmake$
+    CPackConfig.cmake$
 )
 include(CPack)
 
