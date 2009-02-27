@@ -1269,7 +1269,7 @@ struct tcpr_auth_hdr
     u_int16_t ospf_auth_null; /* NULL */
     u_int8_t ospf_auth_keyid; /* authentication key ID */
     u_int8_t ospf_auth_len;   /* auth data length */
-    u_int ospf_auth_seq;    /* cryptographic sequence number */
+    u_int32_t ospf_auth_seq;    /* cryptographic sequence number */
 };
 
 
@@ -1284,7 +1284,7 @@ struct tcpr_ospf_hello_hdr
     u_int16_t hello_intrvl;       /* num of seconds between routers last packet */
     u_int8_t hello_opts;          /* Options for HELLO packets (look above) */
     u_int8_t hello_rtr_pri;       /* router's priority (if 0, can't be backup) */
-    u_int hello_dead_intvl;     /* # of secs a router is silent till deemed down */
+    u_int32_t hello_dead_intvl;     /* # of secs a router is silent till deemed down */
     struct in_addr hello_des_rtr;   /* Designated router on the network */
     struct in_addr hello_bkup_rtr;  /* Backup router */
     struct in_addr hello_nbr;       /* neighbor router, memcpy more as needed */
@@ -1302,7 +1302,7 @@ struct tcpr_dbd_hdr
 #define TCPR_DBD_IBI      0x01    /* init */
 #define TCPR_DBD_MBIT     0x02    /* more DBD packets are to come */
 #define TCPR_DBD_MSBIT    0x04    /* If 1, sender is the master in the exchange */
-    u_int  dbd_seq;         /* DBD sequence number */
+    u_int32_t dbd_seq;         /* DBD sequence number */
 };
 
 
@@ -1321,8 +1321,8 @@ struct tcpr_dbd_hdr
  */
 struct tcpr_lsr_hdr
 {
-    u_int lsr_type;             /* type of LS being requested */
-    u_int lsr_lsid;             /* link state ID */
+    u_int32_t lsr_type;             /* type of LS being requested */
+    u_int32_t lsr_lsid;             /* link state ID */
     struct in_addr lsr_adrtr;   /* advertising router (memcpy more as needed) */
 };
 
@@ -1332,7 +1332,7 @@ struct tcpr_lsr_hdr
  */
 struct tcpr_lsu_hdr
 {
-    u_int lsu_num;              /* number of LSAs that will be broadcasted */
+    u_int32_t lsu_num;              /* number of LSAs that will be broadcasted */
 };
 
 
@@ -1344,9 +1344,9 @@ struct tcpr_lsa_hdr
     u_int16_t lsa_age;        /* time in seconds since the LSA was originated */
     u_int8_t lsa_opts;        /* look above for OPTS_* */
     u_int8_t lsa_type;        /* look below for LS_TYPE_* */
-    u_int lsa_id;           /* link State ID */
+    u_int32_t lsa_id;           /* link State ID */
     struct in_addr lsa_adv; /* router ID of Advertising router */
-    u_int lsa_seq;          /* LSA sequence number to detect old/bad ones */
+    u_int32_t lsa_seq;          /* LSA sequence number to detect old/bad ones */
     u_int16_t lsa_sum;      /* "Fletcher Checksum" of all fields minus age */
     u_int16_t lsa_len;        /* length in bytes including the 20 byte header */
 };
@@ -1365,11 +1365,11 @@ struct tcpr_rtr_lsa_hdr
 #define TCPR_RTR_FLAGS_E  0x0200  /* E bit */
 #define TCPR_RTR_FLAGS_B  0x0400  /* B bit */
     u_int16_t rtr_num;        /* number of links within that packet */
-    u_int rtr_link_id;      /* describes link_data (look below) */
+    u_int32_t rtr_link_id;      /* describes link_data (look below) */
 #define TCPR_LINK_ID_NBR_ID   1   /* Neighbors router ID, also can be 4 */
 #define TCPR_LINK_ID_IP_DES   2   /* IP address of designated router */
 #define TCPR_LINK_ID_SUB      3   /* IP subnet number */
-    u_int rtr_link_data;    /* Depending on link_id, info is here */
+    u_int32_t rtr_link_data;    /* Depending on link_id, info is here */
     u_int8_t rtr_type;        /* Description of router link */
 #define TCPR_RTR_TYPE_PTP     1   /* Point-To-Point */
 #define TCPR_RTR_TYPE_TRANS   2   /* Connection to a "transit network" */
@@ -1386,7 +1386,7 @@ struct tcpr_rtr_lsa_hdr
 struct tcpr_net_lsa_hdr
 {
     struct in_addr net_nmask;   /* Netmask for that network */
-    u_int  net_rtr_id;          /* ID of router attached to that network */
+    u_int32_t  net_rtr_id;          /* ID of router attached to that network */
 };
  
  
@@ -1396,8 +1396,8 @@ struct tcpr_net_lsa_hdr
 struct tcpr_sum_lsa_hdr
 {
     struct in_addr sum_nmask;   /* Netmask of destination IP address */
-    u_int  sum_metric;          /* Same as in rtr_lsa (&0xfff to use last 24bit */
-    u_int  sum_tos_metric;      /* first 8bits are TOS, 24bits are TOS Metric */
+    u_int32_t sum_metric;          /* Same as in rtr_lsa (&0xfff to use last 24bit */
+    u_int32_t sum_tos_metric;      /* first 8bits are TOS, 24bits are TOS Metric */
 };
  
  
@@ -1408,10 +1408,10 @@ struct tcpr_sum_lsa_hdr
 struct tcpr_as_lsa_hdr
 {
     struct in_addr as_nmask;    /* Netmask for advertised destination */
-    u_int  as_metric;           /* May have to set E bit in first 8bits */
+    u_int32_t as_metric;           /* May have to set E bit in first 8bits */
 #define TCPR_AS_E_BIT_ON 0x80000000  /* as_metric */
     struct in_addr as_fwd_addr; /* Forwarding address */
-    u_int  as_rte_tag;          /* External route tag */
+    u_int32_t as_rte_tag;          /* External route tag */
 };
 
 

@@ -1,3 +1,6 @@
+#ifndef __DEFINES_H__
+#define __DEFINES_H__
+
 #include <stdint.h>
 #include <stddef.h>
 #include <sys/types.h>
@@ -36,10 +39,6 @@
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #endif
-
-
-#ifndef __DEFINES_H__
-#define __DEFINES_H__
 
 
 /* should packet counters be 32 or 64 bit? --enable-64bit */
