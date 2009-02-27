@@ -17,7 +17,7 @@ add_library(common STATIC abort.c cache.c cidr.c dlt_names.c err.c fakepcap.c
 
 add_custom_target(version)
 
-if(Subversion_FOUND)
+if(Subversion_FOUND AND EXISTS .svn)
     Subversion_WC_INFO(${CMAKE_SOURCE_DIR} SVN_INFO)
     if(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
 
@@ -39,15 +39,8 @@ if(Subversion_FOUND)
         COMMAND cmake -P DeleteVersion.cmake)
 
     add_dependencies(version delete_version svn_version_c)
-
-endif(Subversion_FOUND)
-
-
-# 
-# if(NOT EXISTS svn_version.c)
-# execute_process(COMMAND ${CMAKE_C_COMPILER} -E -DWC_REVISION=\"${WC_REVISION}\" -
-#     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/common
-#     INPUT_FILE svn_version.tmpl
-#     OUTPUT_FILE svn_version.c
-# )
-# endif(NOT EXISTS svn_version.c)
+else(Subversion_FOUND AND EXISTS .svn)
+    if(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c)
+        message(FATAL_ERROR "Unable to build svn_version.c- not in svn repository!")
+    endif(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c)
+endif(Subversion_FOUND AND EXISTS .svn)
