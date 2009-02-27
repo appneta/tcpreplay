@@ -24,8 +24,8 @@ IF(USE_AUTOOPTS)
 
     
     ADD_CUSTOM_COMMAND(OUTPUT tcpedit_stub.h
-        COMMAND ${AUTOGEN} tcpedit_stub.def
-        DEPENDS tcpedit_stub.def)
+        COMMAND ${AUTOGEN} ${CMAKE_SOURCE_DIR}/src/tcpedit/tcpedit_stub.def
+        DEPENDS ${CMAKE_SOURCE_DIR}/src/tcpedit/tcpedit_stub.def)
 
     SET_SOURCE_FILES_PROPERTIES(tcpedit_stub.h
         PROPERTIES HEADER_FILE_ONLY true
