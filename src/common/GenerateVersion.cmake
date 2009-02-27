@@ -12,4 +12,4 @@ else(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
     set(WC_REVISION exported)
 endif(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
 
-configure_file(${CMAKE_SOURCE_DIR}/svn_version.tmpl ${CMAKE_SOURCE_DIR}/svn_version.c @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/svn_version.tmpl ${CMAKE_BINARY_DIR}/svn_version.c @ONLY)
