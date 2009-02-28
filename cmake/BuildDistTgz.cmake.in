@@ -1,0 +1,17 @@
+message(STATUS "Enforce '${CMAKE_BUILD_TOOL} version' re-run...")
+execute_process(COMMAND ${CMAKE_BUILD_TOOL} version
+               TIMEOUT 60
+               WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+message(STATUS "Enforce '${CMAKE_BUILD_TOOL} version' re-run...Done.")
+
+message(STATUS "Package Source running cpack...")
+execute_process(COMMAND cpack -G TGZ --config CPackSourceConfig.cmake
+               TIMEOUT 300
+               WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+message(STATUS "Moving ${CPACK_SOURCE_PACKAGE_FILE_NAME}-Source.tar.gz --> ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}.tar.gz")
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy
+    ${CPACK_SOURCE_PACKAGE_FILE_NAME}-Source.tar.gz
+    ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}.tar.gz)
+file(REMOVE ${CPACK_SOURCE_PACKAGE_FILE_NAME}-Source.tar.gz)
+message(STATUS "Package backup done in: ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}.tar.gz")
