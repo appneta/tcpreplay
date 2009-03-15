@@ -4,8 +4,8 @@
 #
 [TCPREPLAY]
 cachefile           test.auto_bridge
-intf1               @nic1@
-intf2               @nic2@
+intf1               @NIC1@
+intf2               @NIC2@
 topspeed
 
 [TCPREWRITE]

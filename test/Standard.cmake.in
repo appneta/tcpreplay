@@ -8,5 +8,5 @@ INCLUDE(RunUnitTest.cmake)
 
 # Create custom commands for standards
 foreach(__test @tcpprep_tests@ @tcprewrite_tests@)
-        run_unit_test(${__test} 1)
+        run_unit_test(${__test} true)
 endforeach(__test)

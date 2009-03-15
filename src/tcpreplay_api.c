@@ -299,7 +299,7 @@ tcpreplay_post_args(tcpreplay_t *ctx)
 
     return 0;
 }
-#endif
+#endif /* USE_AUTOOPTS */
 
 /**
  * Closes & free's all memory related to a tcpreplay context
@@ -602,7 +602,7 @@ tcpreplay_set_tcpdump(tcpreplay_t *ctx, tcpdump_t *value)
     return 0;
 }
 
-#endif
+#endif /* ENABLE_VERBOSE */
 
 /**
  * \brief Internal function to set the tcpedit error string
