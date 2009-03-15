@@ -34,8 +34,7 @@ include         = "#include \"defines.h\"\n"
                 "#include \"config.h\"\n"
 				"#include <stdlib.h>\n"
 				"#include <sys/types.h>\n"
-				"#include <unistd.h>\n"
-                "extern tcpreplay_opt_t options;\n";
+				"#include <unistd.h>\n";
 
 homerc          = "$$/";
 

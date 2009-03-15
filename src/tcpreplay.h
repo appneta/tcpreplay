@@ -35,9 +35,6 @@
 
 #include "config.h"
 #include "defines.h"
-#include "common/sendpacket.h"
-#include "common/tcpdump.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -46,93 +43,6 @@
 #include <dmalloc.h>
 #endif
 
-typedef struct {
-	struct pcap_pkthdr pkthdr;
-	u_char *pktdata;
-	
-	struct packet_cache_s *next;
-} packet_cache_t;
-
-typedef struct {
-	int index;
-	int cached;
-	packet_cache_t *packet_cache;
-} file_cache_t;
-
-typedef enum {
-    speed_multiplier = 1,
-    speed_mbpsrate,
-    speed_packetrate,
-    speed_topspeed,
-    speed_oneatatime    
-} tcpreplay_speed_mode;
-    
-typedef struct {
-    /* speed modifiers */
-    tcpreplay_speed_mode mode;
-    float speed;
-    int pps_multi;
-} tcpreplay_speed_t;
-
-typedef enum {
-    accurate_gtod = 0,
-#ifdef HAVE_SELECT
-    accurate_select = 1,
-#endif
-#ifdef HAVE_RDTSC
-    accurate_rdtsc = 2,
-#endif
-#if defined HAVE_IOPERM && defined(__i386__)    
-    accurate_ioport = 3,
-#endif
-    accurate_nanosleep = 4,
-#ifdef HAVE_ABSOLUTE_TIME
-    accurate_abs_time = 5
-#endif
-} tcpreplay_accurate;
-    
-/* run-time options */
-struct tcpreplay_opt_s {
-    /* input/output */
-    char *intf1_name;
-    char *intf2_name;
-    sendpacket_t *intf1;
-    sendpacket_t *intf2;
-
-    tcpreplay_speed_t speed;
-    u_int32_t loop;
-    int sleep_accel;
-    
-    int use_pkthdr_len;
-    
-    /* tcpprep cache data */
-    COUNTER cache_packets;
-    char *cachedata;
-    char *comment; /* tcpprep comment */
-
-    /* deal with MTU/packet len issues */
-    int mtu;
-    
-    /* accurate mode to use */
-    tcpreplay_accurate accurate;
-    
-    char *files[MAX_FILES];
-    COUNTER limit_send;
-
-#ifdef ENABLE_VERBOSE
-    /* tcpdump verbose printing */
-    bool verbose;
-    char *tcpdump_args;
-    tcpdump_t *tcpdump;
-#endif
-
-    /* pcap file caching */
-	int enable_file_cache;
-	file_cache_t *file_cache;
-};
-
-typedef struct tcpreplay_opt_s tcpreplay_opt_t;
-    
 #endif
 
 /*

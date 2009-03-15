@@ -44,7 +44,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "tcpreplay.h"
+#include "tcpreplay_api.h"
 
 #ifdef TCPREPLAY
 #include "tcpreplay_opts.h"
@@ -59,7 +59,7 @@ extern tcpedit_t *tcpedit;
 #include "send_packets.h"
 #include "sleep.h"
 
-extern tcpreplay_opt_t options;
+extern tcpreplay_t *ctx;
 extern struct timeval begin, end;
 extern COUNTER bytes_sent, failed, pkts_sent;
 extern volatile int didsig;
@@ -85,7 +85,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
-    sendpacket_t *sp = options.intf1;
+    sendpacket_t *sp = ctx->options->intf1;
     u_int32_t pktlen;
 	packet_cache_t *cached_packet = NULL;
 	packet_cache_t **prev_packet = NULL;
@@ -98,13 +98,13 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     
     /* register signals */
     didsig = 0;
-    if (options.speed.mode != speed_oneatatime) {
+    if (ctx->options->speed.mode != speed_oneatatime) {
         (void)signal(SIGINT, catcher);
     } else {
         (void)signal(SIGINT, break_now);
     }
 
-    if (options.enable_file_cache) {
+    if (ctx->options->enable_file_cache) {
         prev_packet = &cached_packet;
     } else {
         prev_packet = NULL;
@@ -121,14 +121,14 @@ send_packets(pcap_t *pcap, int cache_file_idx)
             break_now(0);
 
         /* stop sending based on the limit -L? */
-        if (options.limit_send > 0 && pkts_sent >= options.limit_send)
+        if (ctx->options->limit_send > 0 && pkts_sent >= ctx->options->limit_send)
             return;
 
         packetnum++;
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
-        pktlen = options.use_pkthdr_len ? pkthdr.len : pkthdr.caplen;
+        pktlen = ctx->options->use_pkthdr_len ? pkthdr.len : pkthdr.caplen;
 #elif TCPBRIDGE
         pktlen = pkthdr.caplen;
 #else
@@ -138,9 +138,9 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
         
         /* Dual nic processing */
-        if (options.intf2 != NULL) {
+        if (ctx->options->intf2 != NULL) {
 
-            sp = (sendpacket_t *) cache_mode(options.cachedata, packetnum);
+            sp = (sendpacket_t *) cache_mode(ctx->options->cachedata, packetnum);
         
             /* sometimes we should not send the packet */
             if (sp == TCPR_DIR_NOSEND)
@@ -149,8 +149,8 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     
         /* do we need to print the packet via tcpdump? */
 #ifdef ENABLE_VERBOSE
-        if (options.verbose)
-            tcpdump_print(options.tcpdump, &pkthdr, pktdata);
+        if (ctx->options->verbose)
+            tcpdump_print(ctx->options->tcpdump, &pkthdr, pktdata);
 #endif
 
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT        
@@ -166,8 +166,8 @@ send_packets(pcap_t *pcap, int cache_file_idx)
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (options.speed.mode != speed_topspeed)
-            do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum, &delta_ctx);
+        if (ctx->options->speed.mode != speed_topspeed)
+            do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, ctx->options->accurate, sp, packetnum, &delta_ctx);
 
         /* mark the time when we send the last packet */
         start_delta_time(&delta_ctx);
@@ -190,8 +190,8 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         bytes_sent += pktlen;
     } /* while */
 
-	if (options.enable_file_cache) {
-		options.file_cache[cache_file_idx].cached = TRUE;
+	if (ctx->options->enable_file_cache) {
+		ctx->options->file_cache[cache_file_idx].cached = TRUE;
 	}
 }
 
@@ -217,16 +217,16 @@ get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx,
 	/*
 	 * Check if we're caching files
 	 */
-	if (options.enable_file_cache && (prev_packet != NULL)) {
+	if (ctx->options->enable_file_cache && (prev_packet != NULL)) {
 		/*
 		 * Yes we are caching files - has this one been cached?
 		 */
-		if (options.file_cache[file_idx].cached) {
+		if (ctx->options->file_cache[file_idx].cached) {
 			if (*prev_packet == NULL) {
 				/*
 				 * Get the first packet in the cache list directly from the file
 				 */
-				*prev_packet = options.file_cache[file_idx].packet_cache;
+				*prev_packet = ctx->options->file_cache[file_idx].packet_cache;
 			} else {
 				/*
 				 * Get the next packet in the cache list
@@ -249,7 +249,7 @@ get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx,
 					 * Create the first packet in the list
 					 */
 					*prev_packet = safe_malloc(sizeof(packet_cache_t));
-					options.file_cache[file_idx].packet_cache = *prev_packet;
+					ctx->options->file_cache[file_idx].packet_cache = *prev_packet;
 				} else {
 					/*
 					 * Add a packet to the end of the list
@@ -282,7 +282,7 @@ get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx,
 /**
  * determines based upon the cachedata which interface the given packet 
  * should go out.  Also rewrites any layer 2 data we might need to adjust.
- * Returns a void cased pointer to the options.intfX of the corresponding 
+ * Returns a void cased pointer to the ctx->options->intfX of the corresponding 
  * interface.
  */
 void *
@@ -291,7 +291,7 @@ cache_mode(char *cachedata, COUNTER packet_num)
     void *sp = NULL;
     int result;
 
-    if (packet_num > options.cache_packets)
+    if (packet_num > ctx->options->cache_packets)
         err(-1, "Exceeded number of packets in cache file.");
 
     result = check_cache(cachedata, packet_num);
@@ -301,11 +301,11 @@ cache_mode(char *cachedata, COUNTER packet_num)
     }
     else if (result == TCPR_DIR_C2S) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
-        sp = options.intf1;
+        sp = ctx->options->intf1;
     }
     else if (result == TCPR_DIR_S2C) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
-        sp = options.intf2;
+        sp = ctx->options->intf2;
     }
     else {
         err(-1, "check_cache() returned an error.  Aborting...");
@@ -340,7 +340,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
 
 
 #ifdef TCPREPLAY
-    adjuster.tv_nsec = options.sleep_accel * 1000;
+    adjuster.tv_nsec = ctx->options->sleep_accel * 1000;
     dbgx(4, "Adjuster: " TIMESPEC_FORMAT, adjuster.tv_sec, adjuster.tv_nsec);
 #else
     adjuster.tv_nsec = 0;
@@ -356,8 +356,8 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
      * pps_multi accelerator.    This uses the existing send accelerator above
      * and hence requires the funky math to get the expected timings.
      */
-    if (options.speed.mode == speed_packetrate && options.speed.pps_multi) {
-        send = options.speed.pps_multi - 1;
+    if (ctx->options->speed.mode == speed_packetrate && ctx->options->speed.pps_multi) {
+        send = ctx->options->speed.pps_multi - 1;
         if (first_time) {
             first_time = 0;
             return;
@@ -373,7 +373,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
     dbgx(4, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
 
     /* First time through for this file */
-    if (pkts_sent == 0 || ((options.speed.mode != speed_mbpsrate) && (counter == 0))) {
+    if (pkts_sent == 0 || ((ctx->options->speed.mode != speed_mbpsrate) && (counter == 0))) {
         start = now;
         timerclear(&sleep_until);
         timerclear(&didsleep);
@@ -383,9 +383,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
     }
 
     /* If top speed, you shouldn't even be here */
-    assert(options.speed.mode != speed_topspeed);
+    assert(ctx->options->speed.mode != speed_topspeed);
 
-    switch(options.speed.mode) {
+    switch(ctx->options->speed.mode) {
     case speed_multiplier:
         /* 
          * Replay packets a factor of the time they were originally sent.
@@ -402,7 +402,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
                 
                 TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
                 dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
-                timesdiv(&nap, options.speed.speed);
+                timesdiv(&nap, ctx->options->speed.speed);
                 dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
             }
         } else {
@@ -417,7 +417,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
          * a constant 'rate' (bytes per second).
          */
         if (pkts_sent != 0) {
-            n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
+            n = (float)len / (ctx->options->speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
             
@@ -434,9 +434,9 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
         /* only need to calculate this the first time */
         if (! timesisset(&nap)) {
             /* run in packets/sec */
-            ppnsec = 1000000000 / options.speed.speed * (options.speed.pps_multi > 0 ? options.speed.pps_multi : 1);
+            ppnsec = 1000000000 / ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : 1);
             NANOSEC_TO_TIMESPEC(ppnsec, &nap);
-            dbgx(1, "sending %d packet(s) per %lu nsec", (options.speed.pps_multi > 0 ? options.speed.pps_multi : 1), nap.tv_nsec);
+            dbgx(1, "sending %d packet(s) per %lu nsec", (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : 1), nap.tv_nsec);
         }        
         break;
         
@@ -448,7 +448,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
 
         /* decrement our send counter */
         printf("Sending packet " COUNTER_SPEC " out: %s\n", counter,
-               sp == options.intf1 ? options.intf1_name : options.intf2_name);
+               sp == ctx->options->intf1 ? ctx->options->intf1_name : ctx->options->intf2_name);
         send --;
 
         /* leave do_sleep() */
@@ -457,7 +457,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
         break;
 
     default:
-        errx(-1, "Unknown/supported speed mode: %d", options.speed.mode);
+        errx(-1, "Unknown/supported speed mode: %d", ctx->options->speed.mode);
         break;
     }
 
@@ -472,7 +472,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
 
     if (accurate != accurate_abs_time) {
 
-        switch (options.speed.mode) {
+        switch (ctx->options->speed.mode) {
             /* Mbps & Multipler are dynamic timings, so we round to the nearest usec */
             case speed_mbpsrate:
             case speed_multiplier:
@@ -498,7 +498,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
                 break;
                 
             default:
-                errx(-1, "Unknown/supported speed mode: %d", options.speed.mode);
+                errx(-1, "Unknown/supported speed mode: %d", ctx->options->speed.mode);
         }
     }
 
@@ -609,7 +609,7 @@ get_user_count(sendpacket_t *sp, COUNTER counter)
     u_int32_t send = 0;
     
     printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
-        counter, (sp == options.intf1 ? options.intf1_name : options.intf2_name));
+        counter, (sp == ctx->options->intf1 ? ctx->options->intf1_name : ctx->options->intf2_name));
     fflush(NULL);
     poller[0].fd = STDIN_FILENO;
     poller[0].events = POLLIN | POLLPRI | POLLNVAL;

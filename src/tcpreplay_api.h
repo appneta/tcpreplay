@@ -33,32 +33,142 @@
 #ifndef _TCPREPLAY_API_H_
 #define _TCPREPLAY_API_H_
 
-#include "tcpreplay.h"
+#include "config.h"
+#include "defines.h"
+#include "common/sendpacket.h"
+#include "common/tcpdump.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#ifdef ENABLE_DMALLOC
+#include <dmalloc.h>
+#endif
+
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct packet_cache_s {
+	struct pcap_pkthdr pkthdr;
+	u_char *pktdata;
+	
+	struct packet_cache_s *next;
+} packet_cache_t;
+
+typedef struct file_cache_s {
+	int index;
+	int cached;
+	packet_cache_t *packet_cache;
+} file_cache_t;
+
 typedef enum {
-    intf1;
-    intf2;
+    speed_multiplier = 1,
+    speed_mbpsrate,
+    speed_packetrate,
+    speed_topspeed,
+    speed_oneatatime    
+} tcpreplay_speed_mode;
+    
+typedef struct {
+    /* speed modifiers */
+    tcpreplay_speed_mode mode;
+    float speed;
+    int pps_multi;
+} tcpreplay_speed_t;
+
+typedef enum {
+    accurate_gtod = 0,
+#ifdef HAVE_SELECT
+    accurate_select = 1,
+#endif
+#ifdef HAVE_RDTSC
+    accurate_rdtsc = 2,
+#endif
+#if defined HAVE_IOPERM && defined(__i386__)    
+    accurate_ioport = 3,
+#endif
+    accurate_nanosleep = 4,
+#ifdef HAVE_ABSOLUTE_TIME
+    accurate_abs_time = 5
+#endif
+} tcpreplay_accurate;
+    
+/* run-time options */
+typedef struct tcpreplay_opt_s {
+    /* input/output */
+    char *intf1_name;
+    char *intf2_name;
+    sendpacket_t *intf1;
+    sendpacket_t *intf2;
+
+    tcpreplay_speed_t speed;
+    u_int32_t loop;
+    int sleep_accel;
+    
+    int use_pkthdr_len;
+    
+    /* tcpprep cache data */
+    COUNTER cache_packets;
+    char *cachedata;
+    char *comment; /* tcpprep comment */
+
+    /* deal with MTU/packet len issues */
+    int mtu;
+    
+    /* accurate mode to use */
+    tcpreplay_accurate accurate;
+    
+    char *files[MAX_FILES];
+    COUNTER limit_send;
+
+#ifdef ENABLE_VERBOSE
+    /* tcpdump verbose printing */
+    bool verbose;
+    char *tcpdump_args;
+    tcpdump_t *tcpdump;
+#endif
+
+    /* pcap file caching */
+	int enable_file_cache;
+	file_cache_t *file_cache;
+} tcpreplay_opt_t;
+    
+
+
+typedef enum {
+    intf1 = 1,
+    intf2
 } tcpreplay_intf;
 
 #define TCPREPLAY_ERRSTR_LEN 1024
-struct {
-    tcpreplay_t *options;
+typedef struct tcpreplay_s {
+    struct tcpreplay_opt_s *options;
+    interface_list_t *intlist;
     char errstr[TCPREPLAY_ERRSTR_LEN];
     char warnstr[TCPREPLAY_ERRSTR_LEN];
+    /* status trackers */
+    int cache_bit;
+    int cache_byte;
+    u_int32_t file_cnt;
 } tcpreplay_t;
 
 char *tcpreplay_geterr(tcpreplay_t *);
 char *tcpreplay_getwarn(tcpreplay_t *);
 
 tcpreplay_t *tcpreplay_init();
+void tcpreplay_close(tcpreplay_t *);
+
+#ifdef USE_AUTOOPTS
+int tcpreplay_post_args(tcpreplay_t *);
+#endif
 
 /* all these functions return 0 on success and < 0 on error. */
-int tcpreplay_set_interface(tcpreplay_t *, tcpreplay_intf, char *name);
-int tcpreplay_set_speed_mode(tcpreplay_t *, tcpreplay_speed_mode_t);
+int tcpreplay_set_interface(tcpreplay_t *, tcpreplay_intf, char *);
+int tcpreplay_set_speed_mode(tcpreplay_t *, tcpreplay_speed_mode);
 int tcpreplay_set_speed_speed(tcpreplay_t *, float);
 int tcpreplay_set_speed_pps_multi(tcpreplay_t *, int);
 int tcpreplay_set_loop(tcpreplay_t *, u_int32_t);
@@ -67,7 +177,7 @@ int tcpreplay_set_use_pkthdr_len(tcpreplay_t *, bool);
 int tcpreplay_set_mtu(tcpreplay_t *, int);
 int tcpreplay_set_accurate(tcpreplay_t *, tcpreplay_accurate);
 int tcpreplay_add_file(tcpreplay_t *, char *);
-int tcpreplay_set_limit_send(tcpreplay_t *, int);
+int tcpreplay_set_limit_send(tcpreplay_t *, COUNTER);
 int tcpreplay_set_file_cache(tcpreplay_t *, file_cache_t *);
 
 #ifdef ENABLE_VERBOSE
@@ -89,3 +199,5 @@ void tcpreplay_setwarn(tcpreplay_t *ctx, const char *fmt, ...);
 #ifdef __cplusplus
 }
 #endif
+
+#endif //_TCPREPLAY_API_H_

@@ -21,17 +21,17 @@ IF(NOT SYSTEM_STRLCPY)
 ENDIF(NOT SYSTEM_STRLCPY)
 
 SET(tcprewrite_srcs tcprewrite.c)
-SET(tcpreplay_srcs tcpreplay.c send_packets.c signal_handler.c sleep.c)
-SET(tcpreplay_edit_srcs tcpreplay.c send_packets.c signal_handler.c sleep.c)
+SET(tcpreplay_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
+SET(tcpreplay_edit_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
 SET(tcpprep_srcs tcpprep.c tree.c)
 SET(tcpbridge_srcs tcpbridge.c bridge.c)
 
 # VC++ needs the .h files listed as sources so they show up
 IF(WIN32)
     SET(tcprewrite_srcs ${tcprewrite_srcs} tcprewrite.h)
-    SET(tcpreplay_srcs ${tcpreplay_srcs} tcpreplay.h send_packets.h 
+    SET(tcpreplay_srcs ${tcpreplay_srcs} tcpreplay.h tcpreplay_api.h send_packets.h 
         signal_handler.h sleep.h)
-    SET(tcpreplay_edit_srcs ${tcpreplay_srcs} tcpreplay.h send_packets.h 
+    SET(tcpreplay_edit_srcs ${tcpreplay_srcs} tcpreplay.h tcpreplay_api.h send_packets.h 
         signal_handler.h sleep.h)
     SET(tcpprep_srcs ${tcpprep_srcs} tcpprep.h tree.h)
     SET(tcpbridge_srcs ${tcpbridge_srcs} tcpbridge.h bridge.h)

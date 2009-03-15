@@ -1,3 +1,6 @@
+#cmakedefine ENABLE_VERBOSE 1
+#cmakedefine USE_AUTOOPTS 1
+
 /* use 64bit packet counters */
 #cmakedefine ENABLE_64BITS 1
 
