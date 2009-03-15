@@ -319,7 +319,8 @@ tcpreplay_close(tcpreplay_t *ctx)
     safe_free(options->intf1_name);
     safe_free(options->intf2_name);
     sendpacket_close(options->intf1);
-    sendpacket_close(options->intf2);
+    if (options->intf2)
+        sendpacket_close(options->intf2);
     safe_free(options->cachedata);
     safe_free(options->comment);
 

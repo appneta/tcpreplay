@@ -115,10 +115,8 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 void
 _our_safe_free(void *ptr, const char *funcname, const int line, const char *file)
 {
-    if (ptr == NULL) {
-        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to call free on a NULL ptr", file, funcname, line);
-        exit(-1);
-    }
+    if (ptr == NULL)
+        return;
             
     free(ptr);
     ptr = NULL;

@@ -171,6 +171,7 @@ main(int argc, char *argv[])
         if (ctx->options->intf2 != NULL)
             printf("%s", sendpacket_getstat(ctx->options->intf2));
     }
+    tcpreplay_close(ctx);
     return 0;
 }                               /* main() */
 
