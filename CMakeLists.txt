@@ -331,8 +331,8 @@ add_subdirectory(src)
 # add_subdirectory(docs)
 add_subdirectory(test)
 
-configure_file(${CMAKE_BINARY_DIR}/cmake/BuildDistTgz.cmake.in ${CMAKE_BINARY_DIR}/cmake/BuildDistTgz.cmake)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/BuildDistTgz.cmake.in ${CMAKE_BINARY_DIR}/cmake/BuildDistTgz.cmake)
 add_custom_target(dist-gzip
-   COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake/BuildDistTgz.cmake
+   COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/BuildDistTgz.cmake
 )
 
