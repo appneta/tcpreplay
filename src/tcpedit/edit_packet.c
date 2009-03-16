@@ -207,7 +207,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         pkthdr->len = pkthdr->caplen;
     }
     else if (tcpedit->mtu_truncate) {
-        if (pkthdr->len > (tcpedit->mtu + l2len)) {
+        if (pkthdr->len > (u_int32_t)(tcpedit->mtu + l2len)) {
             /* first truncate the packet */
             pkthdr->len = pkthdr->caplen = l2len + tcpedit->mtu;
             
