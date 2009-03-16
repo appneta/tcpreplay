@@ -85,6 +85,4 @@ foreach(__test @tcpprep_tests@ @tcprewrite_tests@)
     set_property(DIRECTORY ${CMAKE_SOURCE_DIR}/test
         APPEND
         PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${output_file})
-endforeach(__test)
-message(STATUS "additional clean files: ${ADDITIONAL_MAKE_CLEAN_FILES}")
-    
+endforeach(__test)    
