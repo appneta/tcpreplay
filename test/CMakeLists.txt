@@ -72,3 +72,19 @@ add_custom_command(TARGET tests
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
     DEPENDS Tests.cmake
     VERBATIM)
+    
+# Add output files of tests to ADDITIONAL_MAKE_CLEAN_FILES
+foreach(__test @tcpprep_tests@ @tcprewrite_tests@)
+    if(__test MATCHES "rewrite_")
+        set(standard_file "test@TEST_VER@.${__test}")
+    else(__test MATCHES "rewrite_")
+        set(standard_file "test.${__test}")
+    endif(__test MATCHES "rewrite_")
+
+    set(output_file "${CMAKE_SOURCE_DIR}/test/${standard_file}1")
+    set_property(DIRECTORY ${CMAKE_SOURCE_DIR}/test
+        APPEND
+        PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${output_file})
+endforeach(__test)
+message(STATUS "additional clean files: ${ADDITIONAL_MAKE_CLEAN_FILES}")
+    
