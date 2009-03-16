@@ -1,3 +1,5 @@
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/src)
+
 # Check to see if we build with tcpdump/verbose support
 set(tcpdump_src)
 if(TCPDUMP_BINARY)
