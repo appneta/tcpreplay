@@ -753,6 +753,9 @@ struct tcpr_in6_addr
     } __u6_addr;            /* 128-bit IP6 address */
 };
 #define tcpr_s6_addr __u6_addr.__u6_addr8
+#define tcpr_s6_addr8 __u6_addr.__u6_addr8
+#define tcpr_s6_addr16 __u6_addr.__u6_addr16
+#define tcpr_s6_addr32 __u6_addr.__u6_addr32
 
 /*
  *  IPv6 header
