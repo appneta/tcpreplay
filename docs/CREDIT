@@ -53,3 +53,6 @@ Jim West <jim_west@agilent.com>
 
 Bojan Smojver <bojan@rexursive.com>
    - For maintaining the RPM package and helping with portability issues
+
+Stas Grabois <sagig@radware.com>
+    - For his efforts to add IPv6 support to tcpprep and the tcpedit engine
