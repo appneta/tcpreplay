@@ -362,6 +362,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
               const u_char * nextpkt)
 {
     ipv4_hdr_t *ip_hdr = NULL;
+    ipv6_hdr_t *ip6_hdr = NULL;
     pcap_t *send = NULL;
     static u_char *pktdata = NULL;     /* full packet buffer */
     int cache_mode, retcode;
@@ -442,13 +443,26 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     
     /* should we skip this packet based on CIDR match? */
     if (l2proto == ETHERTYPE_IP) {
-        dbg(3, "Packet is IP");
+        dbg(3, "Packet is IPv4");
         ip_hdr = (ipv4_hdr_t *)tcpedit_l3data(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
 
         /* look for include or exclude CIDR match */
         if (livedata->options->xX.cidr != NULL) {
-            if (!process_xX_by_cidr(livedata->options->xX.mode, livedata->options->xX.cidr, ip_hdr)) {
-                dbg(2, "Skipping packet due to CIDR match");
+            if (!process_xX_by_cidr_ipv4(livedata->options->xX.mode, livedata->options->xX.cidr, ip_hdr)) {
+                dbg(2, "Skipping IPv4 packet due to CIDR match");
+                return (1);
+            }
+        }
+
+    }
+    else if (l2proto == ETHERTYPE_IP6) {
+        dbg(3, "Packet is IPv6");
+        ip6_hdr = (ipv6_hdr_t *)tcpedit_l3data(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
+
+        /* look for include or exclude CIDR match */
+        if (livedata->options->xX.cidr != NULL) {
+            if (!process_xX_by_cidr_ipv6(livedata->options->xX.mode, livedata->options->xX.cidr, ip6_hdr)) {
+                dbg(2, "Skipping IPv6 packet due to CIDR match");
                 return (1);
             }
         }
