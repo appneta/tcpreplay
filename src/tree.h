@@ -37,48 +37,42 @@
 
 #define TREEPRINTBUFFLEN 2048
 
-struct tcpr_tree_s {
+typedef struct tcpr_tree_s {
     RB_ENTRY(tcpr_tree_s) node;
-    unsigned long ip;           /* ip/network address in network byte order */
+    int family;
+    union {
+        unsigned long ip;           /* ip/network address in network byte order */
+        struct tcpr_in6_addr ip6;
+    } u;
     u_char mac[ETHER_ADDR_LEN]; /* mac address of system */
     int masklen;                /* CIDR network mask length */
     int server_cnt;             /* count # of times this entry was flagged server */
     int client_cnt;             /* flagged client */
     int type;                   /* 1 = server, 0 = client, -1 = undefined */
-};
-typedef struct tcpr_tree_s tcpr_tree_t;
+} tcpr_tree_t;
 
 /*
  * replacement for RB_HEAD() which doesn't actually declare the root
  */
-struct tcpr_data_tree_s {
+typedef struct tcpr_data_tree_s {
     tcpr_tree_t *rbh_root;
-};
-typedef struct tcpr_data_tree_s tcpr_data_tree_t;
+} tcpr_data_tree_t;
 
-struct tcpr_buildcidr_s {
+typedef struct tcpr_buildcidr_s {
     int type;                   /* SERVER|CLIENT|UNKNOWN|ANY */
     int masklen;                /* mask size to use to build the CIDR */
-};
-
-typedef struct tcpr_buildcidr_s tcpr_buildcidr_t;
+} tcpr_buildcidr_t;
 
 #define DNS_QUERY_FLAG 0x8000
 
-void add_tree(const unsigned long, const u_char *);
-void add_tree_first(const u_char *);
+void add_tree_ipv4(const unsigned long, const u_char *);
+void add_tree_ipv6(const struct tcpr_in6_addr *, const u_char *);
+void add_tree_first_ipv4(const u_char *);
+void add_tree_first_ipv6(const u_char *);
 tcpr_dir_t check_ip_tree(const int, const unsigned long);
+tcpr_dir_t check_ip6_tree(const int, const struct tcpr_in6_addr *);
 int process_tree();
 void tree_calculate(tcpr_data_tree_t *);
 int tree_comp(tcpr_tree_t *, tcpr_tree_t *);
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
