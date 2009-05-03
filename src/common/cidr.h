@@ -36,7 +36,11 @@
 #define __CIDR_H__
 
 struct tcpr_cidr_s {
+    int family;                 /* AF_INET or AF_INET6 */
+    union {
     u_int32_t network;
+        struct tcpr_in6_addr network6;
+    } u;
     int masklen;
     struct tcpr_cidr_s *next;
 };
@@ -52,6 +56,7 @@ typedef struct tcpr_cidrmap_s tcpr_cidrmap_t;
 
 int ip_in_cidr(const tcpr_cidr_t *, const unsigned long);
 int check_ip_cidr(tcpr_cidr_t *, const unsigned long);
+int check_ip6_cidr(tcpr_cidr_t *, const struct tcpr_in6_addr *addr);
 int parse_cidr(tcpr_cidr_t **, char *, char *delim);
 int parse_cidr_map(tcpr_cidrmap_t **, const char *);
 int parse_endpoints(tcpr_cidrmap_t **, tcpr_cidrmap_t **, const char *);
@@ -62,6 +67,10 @@ tcpr_cidrmap_t *new_cidr_map(void);
 void destroy_cidr(tcpr_cidr_t *);
 void print_cidr(tcpr_cidr_t *);
 char *cidr2iplist(tcpr_cidr_t *, char);
+
+int ip6_in_cidr(const tcpr_cidr_t * mycidr, const struct tcpr_in6_addr *addr);
+int check_ip6_cidr(tcpr_cidr_t *, const struct tcpr_in6_addr *addr);
+
 #endif
 
 /*
