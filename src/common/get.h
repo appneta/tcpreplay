@@ -38,17 +38,6 @@
 #include "defines.h"
 #include "common.h"
 
-typedef enum _enum {
-    ipv6_hopbyhop = 0,
-    ipv6_ipv6 = 41,
-    ipv6_routing = 43,
-    ipv6_fragment = 44,
-    ipv6_esp = 50,
-    ipv6_ah = 51,
-    ipv6_no_next = 59,
-    ipv6_dest_opts = 60
-} ipv6_ext_headers_e;
-
 
 int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
 

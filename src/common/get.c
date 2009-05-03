@@ -316,19 +316,13 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr)
 void *
 get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
 {
-    u_char *ptr = (u_char *)ip6_hdr + 40;
+    u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
     u_int8_t proto = ip6_hdr->ip_nh;
     struct tcpr_ipv6_ext_hdr_base *exthdr;
     
     while (true) {        
         switch (proto) {        
-            /* no further processing */
-            case TCPR_IPV6_NH_FRAGMENT:
-            case TCPR_IPV6_NH_ESP:
-                return (void *)ptr;
-                break;
-        
-            /* recurse */
+            /* recurse due to v6-in-v6 */
             case TCPR_IPV6_NH_IPV6:
                 return get_layer4_v6((ipv6_hdr_t *)ptr);
                 break;
@@ -343,7 +337,12 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
                 ptr = ptr + exthdr->ip_len;
                 break;
                 
-            /* should be TCP, UDP or the like */
+            /*
+             * no further processing, either TCP, UDP or an unparsable
+             * IPv6 fragment/encrypted data
+             */
+            case TCPR_IPV6_NH_FRAGMENT:
+            case TCPR_IPV6_NH_ESP:
             default:
                 return get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr);
         }
@@ -388,7 +387,7 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
 u_int8_t 
 get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
 {
-    u_char *ptr = (u_char *)ip6_hdr + 40;
+    u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
     u_int8_t proto = ip6_hdr->ip_nh;
     struct tcpr_ipv6_ext_hdr_base *exthdr;
     
