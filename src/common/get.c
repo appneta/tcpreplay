@@ -52,6 +52,7 @@ extern int debug;
 extern const char pcap_version[];
 #endif
 
+
 /**
  * Depending on what version of libpcap/WinPcap there are different ways to get the
  * version of the libpcap/WinPcap library.  This presents a unified way to get that
@@ -243,11 +244,62 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     return ip_hdr;
 }
 
+const u_char *
+get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
+{
+    const u_char *ip6_hdr = NULL;
+    int l2_len = 0;
+    u_int16_t proto;
+
+    assert(pktdata);
+    assert(datalen);
+    assert(*newbuff);
+
+    l2_len = get_l2len(pktdata, datalen, datalink);
+
+    /* sanity... datalen must be > l2_len + IP header len*/
+    if (l2_len + TCPR_IPV6_H > datalen) {
+        dbg(1, "get_ipv4(): Layer 2 len > total packet len, hence no IPv6 header");
+        return NULL;
+    }
+
+    proto = get_l2protocol(pktdata, datalen, datalink);
+
+    if (proto != ETHERTYPE_IP6)
+        return NULL;
+
+#ifdef FORCE_ALIGN
+    /*
+     * copy layer 3 and up to our temp packet buffer
+     * for now on, we have to edit the packetbuff because
+     * just before we send the packet, we copy the packetbuff
+     * back onto the pkt.data + l2len buffer
+     * we do all this work to prevent byte alignment issues
+     */
+    if (l2_len % 4) {
+        ip6_hdr = *newbuff;
+        memcpy(ip6_hdr, (pktdata + l2_len), (datalen - l2_len));
+    } else {
+
+        /* we don't have to do a memcpy if l2_len lands on a boundry */
+        ip6_hdr = (pktdata + l2_len);
+    }
+#else
+    /*
+     * on non-strict byte align systems, don't need to memcpy(),
+     * just point to l2len bytes into the existing buffer
+     */
+    ip6_hdr = (pktdata + l2_len);
+#endif
+
+    return ip6_hdr;
+}
+
 /**
- * returns a pointer to the layer 4 header which is just beyond the IP header
+ * returns a pointer to the layer 4 header which is just beyond the IPv4 header
  */
 void *
-get_layer4(const ipv4_hdr_t * ip_hdr)
+get_layer4_v4(const ipv4_hdr_t *ip_hdr)
 {
     void *ptr;
 
@@ -255,6 +307,119 @@ get_layer4(const ipv4_hdr_t * ip_hdr)
 
     ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
     return ((void *)ptr);
+}
+
+/**
+ * returns a pointer to the layer 4 header which is just beyond the IPv6 header
+ * and any exension headers or NULL when there is none.  Function is recursive.
+ */
+void *
+get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
+{
+    u_char *ptr = (u_char *)ip6_hdr + 40;
+    u_int8_t proto = ip6_hdr->ip_nh;
+    struct tcpr_ipv6_ext_hdr_base *exthdr;
+    
+    while (true) {        
+        switch (proto) {        
+            /* no further processing */
+            case TCPR_IPV6_NH_FRAGMENT:
+            case TCPR_IPV6_NH_ESP:
+                return (void *)ptr;
+                break;
+        
+            /* recurse */
+            case TCPR_IPV6_NH_IPV6:
+                return get_layer4_v6((ipv6_hdr_t *)ptr);
+                break;
+            
+            /* loop again */            
+            case TCPR_IPV6_NH_AH:
+            case TCPR_IPV6_NH_ROUTING:
+            case TCPR_IPV6_NH_DESTOPTS:
+            case TCPR_IPV6_NH_HBH:
+                exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr);
+                proto = exthdr->ip_nh;
+                ptr = ptr + exthdr->ip_len;
+                break;
+                
+            /* should be TCP, UDP or the like */
+            default:
+                return get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr);
+        }
+    }
+}
+
+
+/**
+ * returns the next payload or header of the current extention header
+ * returns NULL for none.
+ */
+void *
+get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
+{
+    switch (exthdr->ip_nh) {
+        /* no further processing */
+        case TCPR_IPV6_NH_NO_NEXT:
+        case TCPR_IPV6_NH_ESP:
+            return NULL;
+            break;
+
+        /* fragment header is fixed size */
+        case TCPR_IPV6_NH_FRAGMENT:
+            return (void *)((u_char *)exthdr + sizeof(struct tcpr_ipv6_frag_hdr));
+            break;
+
+        /* all the rest require us to go deeper using the ip_len field */
+        case TCPR_IPV6_NH_IPV6:
+        case TCPR_IPV6_NH_ROUTING:
+        case TCPR_IPV6_NH_DESTOPTS:
+        case TCPR_IPV6_NH_HBH:
+        case TCPR_IPV6_NH_AH:        
+        default:
+            return (void *)((u_char *)exthdr + exthdr->ip_len);
+    }
+}
+
+/**
+ * returns the protocol of the actual layer4 header by processing through
+ * the extension headers
+ */
+u_int8_t 
+get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
+{
+    u_char *ptr = (u_char *)ip6_hdr + 40;
+    u_int8_t proto = ip6_hdr->ip_nh;
+    struct tcpr_ipv6_ext_hdr_base *exthdr;
+    
+    while (true) {        
+        switch (proto) {        
+            /* no further processing for IPV6 types with nothing beyond them */
+            case TCPR_IPV6_NH_FRAGMENT:
+            case TCPR_IPV6_NH_ESP:
+                return proto;
+                break;
+        
+            /* recurse */
+            case TCPR_IPV6_NH_IPV6:
+                return get_ipv6_l4proto((ipv6_hdr_t *)ptr);
+                break;
+
+            /* loop again */            
+            case TCPR_IPV6_NH_AH:
+            case TCPR_IPV6_NH_ROUTING:
+            case TCPR_IPV6_NH_DESTOPTS:
+            case TCPR_IPV6_NH_HBH:
+                exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr);
+                proto = exthdr->ip_nh;
+                ptr = ptr + exthdr->ip_len;
+                break;
+                
+            /* should be TCP, UDP or the like */
+            default:
+                return proto;
+        }
+    }    
 }
 
 /**
@@ -335,6 +500,19 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
     }
 }
 
+int
+get_name2addr6(const char *hostname, u_int8_t dnslookup, struct tcpr_in6_addr *addr)
+{
+    (void)dnslookup;
+
+#ifdef HAVE_INET_PTON
+    return inet_pton(AF_INET6, hostname, addr);
+#else
+#error "Unable to support get_name2addr6."
+#endif
+    return -1;
+}
+
 /**
  * Generic wrapper around inet_ntop() and inet_ntoa() depending on whichever
  * is available on your system
@@ -358,7 +536,7 @@ get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
     }
     return new_string;
 #elif defined HAVE_INET_NTOA
-    return inet_pton(&addr);
+    return inet_ntoa(&addr);
 #else
 #error "Unable to support get_addr2name4."
 #endif
@@ -368,11 +546,41 @@ get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
     }
     return new_string;
 }
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
 
+const char *
+get_addr2name6(const struct tcpr_in6_addr *addr, u_int8_t dnslookup)
+{
+    static char *new_string = NULL;
+
+    if (new_string == NULL)
+        new_string = (char *)safe_malloc(255);
+
+    new_string[0] = '\0';
+
+#ifdef HAVE_INET_NTOP
+    if (inet_ntop(AF_INET6, addr, new_string, 255) == NULL) {
+        warn("Unable to convert addr to a string");
+        strlcpy(new_string, "", sizeof(new_string));
+    }
+    return new_string;
+#else
+#error "Unable to support get_addr2name6."
+#endif
+
+    if (dnslookup != DNS_DONT_RESOLVE) {
+        warn("Sorry, we don't support name resolution.");
+    }
+    return new_string;
+}
+
+const char *
+get_cidr2name(const tcpr_cidr_t *cidr_ptr, u_int8_t dnslookup)
+{
+    if (cidr_ptr->family == AF_INET) {
+        return get_addr2name4(cidr_ptr->u.network, dnslookup);
+    } else if (cidr_ptr->family == AF_INET6) {
+        return get_addr2name6(&cidr_ptr->u.network6, dnslookup);
+    } else {
+        return NULL;
+    }
+}
