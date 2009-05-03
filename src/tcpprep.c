@@ -233,6 +233,8 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
 
         proto = get_ipv6_l4proto(ip6_hdr);
         l4 = get_layer4_v6(ip6_hdr);
+        
+        dbgx(3, "Found proto %u at offset %p.  base %p (%u)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
     } else {
         assert(0);
     }
@@ -367,19 +369,27 @@ process_raw_packets(pcap_t * pcap)
         eth_hdr = (eth_hdr_t *)pktdata;
 
         if (options.mode != MAC_MODE) {
-
+            dbg(3, "Looking for IPv4/v6 header in non-MAC mode");
+            
             /* get the IP header (if any) */
             buffptr = ipbuff;
-            ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
-                pcap_datalink(pcap), &buffptr);
-        
-            if (ip_hdr == NULL) {
-                ip6_hdr = (ipv6_hdr_t *)get_ipv6(pktdata, pkthdr.caplen,
-                    pcap_datalink(pcap), &buffptr);
-            }
-
-            if (!ip_hdr && !ip6_hdr) {
-                dbg(2, "Packet isn't IP");
+    
+            /* first look for IPv4 */
+            if ((ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
+                    pcap_datalink(pcap), &buffptr))) {
+                dbg(2, "Packet is IPv4");
+                    
+            } 
+            
+            /* then look for IPv6 */
+            else if ((ip6_hdr = (ipv6_hdr_t *)get_ipv6(pktdata, pkthdr.caplen,
+                    pcap_datalink(pcap), &buffptr))) {
+                dbg(2, "Packet is IPv6");    
+            } 
+            
+            /* we're something else... */
+            else {
+                dbg(2, "Packet isn't IPv4/v6");
 
                 /* we don't want to cache these packets twice */
                 if (options.mode != AUTO_MODE) {
@@ -387,9 +397,10 @@ process_raw_packets(pcap_t * pcap)
                     add_cache(&options.cachedata, SEND, options.nonip);
                 }
 
+                /* go to next packet */
                 continue;
             }
-        
+    
             l2len = get_l2len(pktdata, pkthdr.caplen, pcap_datalink(pcap));
 
             /* look for include or exclude CIDR match */
