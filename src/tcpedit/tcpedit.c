@@ -71,6 +71,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char **pktdata, tcpr_dir_t direction)
 {
     ipv4_hdr_t *ip_hdr = NULL;
+    ipv6_hdr_t *ip6_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0, l2proto, retval = 0, dst_dlt, src_dlt, pktlen, lendiff;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
@@ -134,8 +135,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             return TCPEDIT_ERROR;
         }        
         dbgx(3, "Packet has an IPv4 header: %p...", ip_hdr);
+    } else if (l2proto == htons(ETHERTYPE_IP6)) {
+        ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen);
+        if (ip6_hdr == NULL) {
+            return TCPEDIT_ERROR;
+        }
+        dbgx(3, "Packet has an IPv6 header: %p...", ip6_hdr);
     } else {
-        dbgx(3, "Packet isn't IPv4: 0x%04x", l2proto);
+        dbgx(3, "Packet isn't IPv4 or IPv6: 0x%04x", l2proto);
         /* non-IP packets have a NULL ip_hdr struct */
         ip_hdr = NULL;
     }
@@ -152,24 +159,38 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
-            if ((retval = rewrite_ports(tcpedit, &ip_hdr)) < 0)
+            if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
 
     }
+    if (ip6_hdr != NULL) {
+        /* rewrite the hop limit */
+        needtorecalc += rewrite_ipv6_hlim(tcpedit, ip6_hdr);
+
+        if (tcpedit->portmap != NULL) {
+            if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr)) < 0)
+                return TCPEDIT_ERROR;
+            needtorecalc += retval;
+        }
+    }
     /* (Un)truncate or MTU truncate packet? */
     if (tcpedit->fixlen || tcpedit->mtu_truncate) {
-        if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr)) < 0)
+        if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr, ip6_hdr)) < 0)
             return TCPEDIT_ERROR;
         needtorecalc += retval;
     }
     
-    /* rewrite IP addresses in IPv4 or ARP */
+    /* rewrite IP addresses in IPv4/IPv6 or ARP */
     if (tcpedit->rewrite_ip) {
         /* IP packets */
         if (ip_hdr != NULL) {
             if ((retval = rewrite_ipv4l3(tcpedit, ip_hdr, direction)) < 0)
+                return TCPEDIT_ERROR;
+            needtorecalc += retval;
+        } else if (ip6_hdr != NULL) {
+            if ((retval = rewrite_ipv6l3(tcpedit, ip6_hdr, direction)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
@@ -196,6 +217,12 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
 
+        } else if (ip6_hdr != NULL) {
+            if ((retval = randomize_ipv6(tcpedit, *pkthdr, packet,
+                    ip6_hdr)) < 0)
+                return TCPEDIT_ERROR;
+            needtorecalc += retval;
+
         /* ARP packets */
         } else if (l2proto == htons(ETHERTYPE_ARP)) {
             if (direction == TCPR_DIR_C2S) {
@@ -211,8 +238,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     }
 
     /* do we need to fix checksums? -- must always do this last! */
-    if ((tcpedit->fixcsum || needtorecalc) && (ip_hdr != NULL)) {
-        retval = fix_checksums(tcpedit, *pkthdr, ip_hdr);
+    if ((tcpedit->fixcsum || needtorecalc)) {
+        if (ip_hdr != NULL) {
+            retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr);
+        } else if (ip6_hdr != NULL) {
+            retval = fix_ipv6_checksums(tcpedit, *pkthdr, ip6_hdr);
+        } else {
+            retval = TCPEDIT_OK;
+        }
         if (retval < 0) {
             return TCPEDIT_ERROR;
         } else if (retval == TCPEDIT_WARN) {
@@ -220,7 +253,6 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
-    
     tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen, (u_char *)ip_hdr);
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
