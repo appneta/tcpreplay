@@ -51,6 +51,10 @@ static u_int32_t randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip);
 static u_int32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original);
 static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
 
+static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
+static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
+static int is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
+
 /**
  * this code re-calcs the IP and Layer 4 checksums
  * the IMPORTANT THING is that the Layer 4 header 
@@ -61,7 +65,7 @@ static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
  * Returns 0 on sucess, -1 on error
  */
 int
-fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
+fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
 {
     int ret1 = 0, ret2 = 0;
     assert(tcpedit);
@@ -89,6 +93,30 @@ fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr
     return TCPEDIT_OK;
 }
 
+int
+fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr)
+{
+    int ret = 0;
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(ip6_hdr);
+
+
+    /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
+    if (pkthdr->caplen == pkthdr->len) {
+        ret = do_checksum(tcpedit, (u_char *) ip6_hdr, ip6_hdr->ip_nh,
+            htons(ip6_hdr->ip_len));
+        if (ret < 0)
+            return TCPEDIT_ERROR;
+    }
+
+    /* what do we return? */
+    if (ret == TCPEDIT_WARN)
+        return TCPEDIT_WARN;
+
+    return TCPEDIT_OK;
+}
+
 /**
  * returns a new 32bit integer which is the randomized IP 
  * based upon the user specified seed
@@ -103,6 +131,30 @@ randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
         return ip;
         
     return ((ip ^ htonl(tcpedit->seed)) - (ip & htonl(tcpedit->seed)));
+}
+
+static void
+randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
+{
+    u_int32_t *p;
+    int i;
+    u_char was_multicast;
+
+    assert(tcpedit);
+
+    p = &addr->__u6_addr.__u6_addr32[0];
+
+    was_multicast = is_multicast_ipv6(tcpedit, addr);
+
+    for (i = 0; i < 4; ++i) {
+        p[i] = ((p[i] ^ htonl(tcpedit->seed)) - (p[i] & htonl(tcpedit->seed)));
+    }
+
+    if (was_multicast) {
+        addr->tcpr_s6_addr[0] = 0xff;
+    } else if (is_multicast_ipv6(tcpedit, addr)) {
+        addr->tcpr_s6_addr[0] = 0xaa;
+    }
 }
 
 
@@ -124,10 +176,8 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(ip_hdr);
 
 #ifdef DEBUG
-    strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, 
-                RESOLVE), 16);
-    strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, 
-                RESOLVE), 16);
+    strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE), 16);
+    strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE), 16);
 #endif
 
     /* randomize IP addresses based on the value of random */
@@ -145,10 +195,8 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     }
 
 #ifdef DEBUG    
-    strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, 
-                RESOLVE), 16);
-    strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, 
-                RESOLVE), 16);
+    strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE), 16);
+    strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE), 16);
 #endif
 
     dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
@@ -156,6 +204,46 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     return(1);
 }
 
+int
+randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
+        u_char *pktdata, ipv6_hdr_t *ip6_hdr)
+{
+#ifdef DEBUG
+    char srcip[INET6_ADDRSTRLEN], dstip[INET6_ADDRSTRLEN];
+#endif
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(pktdata);
+    assert(ip6_hdr);
+
+#ifdef DEBUG
+    strlcpy(srcip, get_addr2name6(&ip6_hdr->ip_src, RESOLVE), INET6_ADDRSTRLEN);
+    strlcpy(dstip, get_addr2name6(&ip6_hdr->ip_dst, RESOLVE), INET6_ADDRSTRLEN);
+#endif
+
+    /* randomize IP addresses based on the value of random */
+    dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
+
+    /* don't rewrite broadcast addresses */
+    if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_dst))
+        || !tcpedit->skip_broadcast) {
+        randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_dst);
+    }
+
+    if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_src))
+        || !tcpedit->skip_broadcast) {
+        randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_src);
+    }
+
+#ifdef DEBUG
+    strlcpy(srcip, get_addr2name6(&ip6_hdr->ip_src, RESOLVE), INET6_ADDRSTRLEN);
+    strlcpy(dstip, get_addr2name6(&ip6_hdr->ip_dst, RESOLVE), INET6_ADDRSTRLEN);
+#endif
+
+    dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
+
+    return(1);
+}
 
 /**
  * this code will untruncate a packet via padding it with null
@@ -165,7 +253,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 int
 untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, ipv4_hdr_t *ip_hdr)
+        u_char *pktdata, ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr)
 {
     int l2len;
     assert(tcpedit);
@@ -173,7 +261,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(pktdata);
 
     /* if actual len == cap len or there's no IP header, don't do anything */
-    if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL)) {
+    if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL && ip6_hdr == NULL)) {
         /* unless we're in MTU truncate mode */
         if (! tcpedit->mtu_truncate)
             return(0);
@@ -207,13 +295,15 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         pkthdr->len = pkthdr->caplen;
     }
     else if (tcpedit->mtu_truncate) {
-        if (pkthdr->len > (tcpedit->mtu + l2len)) {
+        if (pkthdr->len > (u_int16_t)(tcpedit->mtu + l2len)) {
             /* first truncate the packet */
             pkthdr->len = pkthdr->caplen = l2len + tcpedit->mtu;
             
             /* if ip_hdr exists, update the length */
             if (ip_hdr != NULL) {
                 ip_hdr->ip_len = htons(tcpedit->mtu);
+            } else if (ip6_hdr != NULL) {
+                ip6_hdr->ip_len = htons(tcpedit->mtu - sizeof(*ip6_hdr));
             } else {
                  /* for non-IP frames, don't try to fix checksums */  
                 return 0;
@@ -237,7 +327,7 @@ int
 extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen, 
         char *l7data[])
 {
-    int datalen = 0;
+    int datalen = 0; /* amount of data beyond ip header */
     ipv4_hdr_t *ip_hdr = NULL;
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
@@ -254,7 +344,8 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
                     tcpedit->runtime.dlt1, &dataptr)) == NULL)
         return 0;
 
-    /* figure out the actual datalen which might be < the caplen
+    /* 
+     * figure out the actual datalen which might be < the caplen
      * due to ethernet padding 
      */
     if (caplen > ntohs(ip_hdr->ip_len)) {
@@ -271,7 +362,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 
     /* TCP ? */
     if (ip_hdr->ip_p == IPPROTO_TCP) {
-        tcp_hdr = (tcp_hdr_t *) get_layer4(ip_hdr);
+        tcp_hdr = (tcp_hdr_t *) get_layer4_v4(ip_hdr);
         datalen -= tcp_hdr->th_off << 2;
         if (datalen <= 0)
             goto nodata;
@@ -281,7 +372,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 
     /* UDP ? */
     else if (ip_hdr->ip_p == IPPROTO_UDP) {
-        udp_hdr = (udp_hdr_t *) get_layer4(ip_hdr);
+        udp_hdr = (udp_hdr_t *) get_layer4_v4(ip_hdr);
         datalen -= TCPR_UDP_H;
         if (datalen <= 0)
             goto nodata;
@@ -350,6 +441,45 @@ rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr)
 }
 
 /**
+ * rewrites an IPv6 packet's hop limit based on the rules
+ * return 0 if no change, 1 if changed
+ */
+int
+rewrite_ipv6_hlim(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr)
+{
+    assert(tcpedit);
+
+    /* make sure there's something to edit */
+    if (ip6_hdr == NULL || tcpedit->ttl_mode == TCPEDIT_TTL_OFF)
+        return(0);
+
+    switch(tcpedit->ttl_mode) {
+    case TCPEDIT_TTL_SET:
+        if (ip6_hdr->ip_hl == tcpedit->ttl_value)
+            return(0);           /* no change required */
+        ip6_hdr->ip_hl = tcpedit->ttl_value;
+        break;
+    case TCPEDIT_TTL_ADD:
+        if (((int)ip6_hdr->ip_hl + tcpedit->ttl_value) > 255) {
+            ip6_hdr->ip_hl = 255;
+        } else {
+            ip6_hdr->ip_hl += tcpedit->ttl_value;
+        }
+        break;
+    case TCPEDIT_TTL_SUB:
+        if (ip6_hdr->ip_hl <= tcpedit->ttl_value) {
+            ip6_hdr->ip_hl = 1;
+        } else {
+            ip6_hdr->ip_hl -= tcpedit->ttl_value;
+        }
+        break;
+    default:
+        errx(1, "invalid ttl_mode: %d", tcpedit->ttl_mode);
+    }
+    return(1);
+}
+
+/**
  * takes a CIDR notation netblock and uses that to "remap" given IP
  * onto that netblock.  ie: 10.0.0.0/8 and 192.168.55.123 -> 10.168.55.123
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
@@ -362,6 +492,10 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
     assert(tcpedit);
     assert(cidr);
     
+    if (cidr->family != AF_INET) {
+        return 0;
+    }
+
     /* don't rewrite broadcast addresses */
     if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, original))
         return original;
@@ -372,7 +506,7 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
     mask = mask << (32 - cidr->masklen);
 
     /* apply the mask to the network */
-    network = htonl(cidr->network) & mask;
+    network = htonl(cidr->u.network) & mask;
 
     /* apply the reverse of the mask to the IP */
     mask = mask ^ 0xffffffff;
@@ -383,6 +517,39 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
     
     /* return the result in network byte order */
     return(htonl(result));
+}
+
+static int
+remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
+{
+    int i, j, k;
+
+    assert(tcpedit);
+    assert(cidr);
+
+    if (cidr->family != AF_INET6) {
+        return 0;
+    }
+
+    /* don't rewrite broadcast addresses */
+    if (tcpedit->skip_broadcast && is_multicast_ipv6(tcpedit, addr))
+        return 0;
+
+    j = cidr->masklen / 8;
+
+    for (i = 0; i < j; i++)
+        addr->tcpr_s6_addr[i] = cidr->u.network6.tcpr_s6_addr[i];
+
+    if ((k = cidr->masklen % 8) == 0)
+        return 1;
+
+    k = ~0 << (8 - k);
+    i = addr->tcpr_s6_addr[i] & k;
+
+    addr->tcpr_s6_addr[i] = (cidr->u.network6.tcpr_s6_addr[j] & (0xff << (8 - k))) |
+      (addr->tcpr_s6_addr[i] & (0xff >> k));
+
+    return 1;
 }
 
 /**
@@ -439,6 +606,86 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
         if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
             ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, cidrmap1->to, ip_hdr->ip_src.s_addr);
             dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
+            didsrc = 1;
+        }
+
+        /*
+         * loop while we haven't modified both src/dst AND
+         * at least one of the cidr maps have a next pointer
+         */
+        if ((! (diddst && didsrc)) &&
+            (! ((cidrmap1->next == NULL) && (cidrmap2->next == NULL)))) {
+
+            /* increment our ptr's if possible */
+            if (cidrmap1->next != NULL)
+                cidrmap1 = cidrmap1->next;
+
+            if (cidrmap2->next != NULL)
+                cidrmap2 = cidrmap2->next;
+
+        } else {
+            loop = 0;
+        }
+
+        /* Later on we should support various IP protocols which embed
+         * the IP address in the application layer.  Things like
+         * DNS and FTP.
+         */
+
+    } while (loop);
+
+    /* return how many changes we made */
+    return (diddst + didsrc);
+}
+
+int
+rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
+{
+    tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
+    int didsrc = 0, diddst = 0, loop = 1;
+
+    assert(tcpedit);
+    assert(ip6_hdr);
+
+    /* first check the src/dst IP maps */
+    if (tcpedit->srcipmap != NULL) {
+        if (ip6_in_cidr(tcpedit->srcipmap->from, &ip6_hdr->ip_src)) {
+            remap_ipv6(tcpedit, tcpedit->srcipmap->to, &ip6_hdr->ip_src);
+            dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
+        }
+    }
+
+    if (tcpedit->dstipmap != NULL) {
+        if (ip6_in_cidr(tcpedit->dstipmap->from, &ip6_hdr->ip_dst)) {
+            remap_ipv6(tcpedit, tcpedit->dstipmap->to, &ip6_hdr->ip_dst);
+            dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
+        }
+    }
+
+    /* anything else to rewrite? */
+    if (tcpedit->cidrmap1 == NULL)
+        return(0);
+
+    /* don't play with the main pointers */
+    if (direction == TCPR_DIR_C2S) {
+        cidrmap1 = tcpedit->cidrmap1;
+        cidrmap2 = tcpedit->cidrmap2;
+    } else {
+        cidrmap1 = tcpedit->cidrmap2;
+        cidrmap2 = tcpedit->cidrmap1;
+    }
+
+
+    /* loop through the cidrmap to rewrite */
+    do {
+        if ((! diddst) && ip6_in_cidr(cidrmap2->from, &ip6_hdr->ip_dst)) {
+            remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
+            dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
+            diddst = 1;
+        }
+        if ((! didsrc) && ip6_in_cidr(cidrmap1->from, &ip6_hdr->ip_src)) {
+            remap_ipv6(tcpedit, cidrmap1->to, &ip6_hdr->ip_src);
+            dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
             didsrc = 1;
         }
 
@@ -649,11 +896,19 @@ is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip)
         
     return 1;
 }
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
+
+/**
+ * returns 1 if the IPv6 address is a multicast address, otherwise, returns 0
+ * for unicast/anycast addresses.  Returns -1 on error
+ */
+static int
+is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
+{
+    assert(tcpedit);
+
+    if (addr->tcpr_s6_addr[0] == 0xff)
+        return 1;
+
+    return 0;
+}
 
