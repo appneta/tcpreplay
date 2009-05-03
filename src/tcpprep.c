@@ -85,9 +85,10 @@ static void post_args(int, char *[]);
 static void print_comment(const char *);
 static void print_info(const char *);
 static void print_stats(const char *);
-static int check_ip_regex(const unsigned long ip);
+static int check_ipv4_regex(const unsigned long ip);
+static int check_ipv6_regex(const struct tcpr_in6_addr *addr);
 static COUNTER process_raw_packets(pcap_t * pcap);
-static int check_dst_port(ipv4_hdr_t *ip_hdr, int len);
+static int check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len);
 
 
 /*
@@ -213,21 +214,33 @@ main(int argc, char *argv[])
  * returns 1 for true, 0 for false
  */
 static int 
-check_dst_port(ipv4_hdr_t *ip_hdr, int len)
+check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
+    u_char proto;
+    u_char *l4;
 
-    assert(ip_hdr);
+    if (ip_hdr) {
+        if (len < ((ip_hdr->ip_hl * 4) + 4))
+            return 0; /* not enough data in the packet to know */
 
-    if (len < ((ip_hdr->ip_hl * 4) + 4))
-        return 0; /* not enough data in the packet to know */
+        proto = ip_hdr->ip_p;
+        l4 = get_layer4_v4(ip_hdr);
+    } else if (ip6_hdr) {
+        if (len < (TCPR_IPV6_H + 4))
+            return 0; /* not enough data in the packet to know */
 
+        proto = get_ipv6_l4proto(ip6_hdr);
+        l4 = get_layer4_v6(ip6_hdr);
+    } else {
+        assert(0);
+    }
 
     dbg(3, "Checking the destination port...");
 
-    if (ip_hdr->ip_p == IPPROTO_TCP) {
-        tcp_hdr = (tcp_hdr_t *)get_layer4(ip_hdr);
+    if (proto == IPPROTO_TCP) {
+        tcp_hdr = (tcp_hdr_t *)l4;
 
         /* is a service? */
         if (options.services.tcp[ntohs(tcp_hdr->th_dport)]) {
@@ -238,8 +251,8 @@ check_dst_port(ipv4_hdr_t *ip_hdr, int len)
         /* nope */
         dbgx(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
         return 0;
-    } else if (ip_hdr->ip_p == IPPROTO_UDP) {
-        udp_hdr = (udp_hdr_t *)get_layer4(ip_hdr);
+    } else if (proto == IPPROTO_UDP) {
+        udp_hdr = (udp_hdr_t *)l4;
 
         /* is a service? */
         if (options.services.udp[ntohs(udp_hdr->uh_dport)]) {
@@ -264,7 +277,7 @@ check_dst_port(ipv4_hdr_t *ip_hdr, int len)
  * 0 for false
  */
 static int
-check_ip_regex(const unsigned long ip)
+check_ipv4_regex(const unsigned long ip)
 {
     int eflags = 0;
     u_char src_ip[16];
@@ -275,12 +288,28 @@ check_ip_regex(const unsigned long ip)
     strlcpy((char *)src_ip, (char *)get_addr2name4(ip, RESOLVE),
             sizeof(src_ip));
     if (regexec(&options.preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
-        return (1);
-    }
-    else {
-        return (0);
+        return 1;
+    } else {
+        return 0;
     }
 
+}
+
+static int
+check_ipv6_regex(const struct tcpr_in6_addr *addr)
+{
+    int eflags = 0;
+    u_char src_ip[INET6_ADDRSTRLEN];
+    size_t nmatch = 0;
+    regmatch_t *pmatch = NULL;
+
+    memset(src_ip, '\0', 16);
+    strlcpy((char *)src_ip, (char *)get_addr2name6(addr, RESOLVE), sizeof(src_ip));
+    if (regexec(&options.preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 /**
@@ -291,6 +320,7 @@ static COUNTER
 process_raw_packets(pcap_t * pcap)
 {
     ipv4_hdr_t *ip_hdr = NULL;
+    ipv6_hdr_t *ip6_hdr = NULL;
     eth_hdr_t *eth_hdr = NULL;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
@@ -341,9 +371,14 @@ process_raw_packets(pcap_t * pcap)
             /* get the IP header (if any) */
             buffptr = ipbuff;
             ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
-                    pcap_datalink(pcap), &buffptr);
+                pcap_datalink(pcap), &buffptr);
         
             if (ip_hdr == NULL) {
+                ip6_hdr = (ipv6_hdr_t *)get_ipv6(pktdata, pkthdr.caplen,
+                    pcap_datalink(pcap), &buffptr);
+            }
+
+            if (!ip_hdr && !ip6_hdr) {
                 dbg(2, "Packet isn't IP");
 
                 /* we don't want to cache these packets twice */
@@ -359,9 +394,16 @@ process_raw_packets(pcap_t * pcap)
 
             /* look for include or exclude CIDR match */
             if (options.xX.cidr != NULL) {
-                if (!process_xX_by_cidr(options.xX.mode, options.xX.cidr, ip_hdr)) {
-                    add_cache(&options.cachedata, DONT_SEND, 0);
-                    continue;
+                if (ip_hdr) {
+                    if (!process_xX_by_cidr_ipv4(options.xX.mode, options.xX.cidr, ip_hdr)) {
+                        add_cache(&options.cachedata, DONT_SEND, 0);
+                        continue;
+                    }
+                } else if (ip6_hdr) {
+                    if (!process_xX_by_cidr_ipv6(options.xX.mode, options.xX.cidr, ip6_hdr)) {
+                        add_cache(&options.cachedata, DONT_SEND, 0);
+                        continue;
+                    }
                 }
             }
         }
@@ -369,7 +411,11 @@ process_raw_packets(pcap_t * pcap)
         switch (options.mode) {
         case REGEX_MODE:
             dbg(2, "processing regex mode...");
-            direction = check_ip_regex(ip_hdr->ip_src.s_addr);
+            if (ip_hdr) {
+                direction = check_ipv4_regex(ip_hdr->ip_src.s_addr);
+            } else if (ip6_hdr) {
+                direction = check_ipv6_regex(&ip6_hdr->ip_src);
+            }
 
             /* reverse direction? */
             if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
@@ -380,7 +426,11 @@ process_raw_packets(pcap_t * pcap)
 
         case CIDR_MODE:
             dbg(2, "processing cidr mode...");
-            direction = check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
+            if (ip_hdr) {
+                direction = check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
+            } else if (ip6_hdr) {
+                direction = check_ip6_cidr(options.cidrdata, &ip6_hdr->ip_src) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
+            }
 
             /* reverse direction? */
             if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
@@ -404,9 +454,17 @@ process_raw_packets(pcap_t * pcap)
             dbg(2, "processing first pass of auto mode...");
             /* first run through in auto mode: create tree */
             if (options.automode != FIRST_MODE) {
-                add_tree(ip_hdr->ip_src.s_addr, pktdata);
+                if (ip_hdr) {
+                    add_tree_ipv4(ip_hdr->ip_src.s_addr, pktdata);
+                } else if (ip6_hdr) {
+                    add_tree_ipv6(&ip6_hdr->ip_src, pktdata);
+                }
             } else {
-                add_tree_first(pktdata);
+                if (ip_hdr) {
+                    add_tree_first_ipv4(pktdata);
+                } else if (ip6_hdr) {
+                    add_tree_first_ipv6(pktdata);
+                }
             }  
             break;
 
@@ -416,8 +474,13 @@ process_raw_packets(pcap_t * pcap)
              * based cache
              */
             dbg(2, "processing second pass of auto: router mode...");
-            cache_result = add_cache(&options.cachedata, SEND,
-                check_ip_tree(options.nonip, ip_hdr->ip_src.s_addr));
+            if (ip_hdr) {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip_tree(options.nonip, ip_hdr->ip_src.s_addr));
+            } else {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip6_tree(options.nonip, &ip6_hdr->ip_src));
+            }
             break;
 
         case BRIDGE_MODE:
@@ -426,8 +489,13 @@ process_raw_packets(pcap_t * pcap)
              * based cache
              */
             dbg(2, "processing second pass of auto: bridge mode...");
-            cache_result = add_cache(&options.cachedata, SEND,
-                check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
+            if (ip_hdr) {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
+            } else {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip6_tree(DIR_UNKNOWN, &ip6_hdr->ip_src));
+            }
             break;
 
         case SERVER_MODE:
@@ -436,8 +504,13 @@ process_raw_packets(pcap_t * pcap)
              * where unknowns are servers
              */
             dbg(2, "processing second pass of auto: server mode...");
-            cache_result = add_cache(&options.cachedata, SEND,
-                check_ip_tree(DIR_SERVER, ip_hdr->ip_src.s_addr));
+            if (ip_hdr) {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip_tree(DIR_SERVER, ip_hdr->ip_src.s_addr));
+            } else {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip6_tree(DIR_SERVER, &ip6_hdr->ip_src));
+            }
             break;
 
         case CLIENT_MODE:
@@ -446,8 +519,13 @@ process_raw_packets(pcap_t * pcap)
              * where unknowns are clients
              */
             dbg(2, "processing second pass of auto: client mode...");
-            cache_result = add_cache(&options.cachedata, SEND,
-                check_ip_tree(DIR_CLIENT, ip_hdr->ip_src.s_addr));
+            if (ip_hdr) {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip_tree(DIR_CLIENT, ip_hdr->ip_src.s_addr));
+            } else {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip6_tree(DIR_CLIENT, &ip6_hdr->ip_src));
+            }
             break;
 
         case PORT_MODE:
@@ -456,7 +534,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing port mode...");
             cache_result = add_cache(&options.cachedata, SEND, 
-                check_dst_port(ip_hdr, (pkthdr.caplen - l2len)));
+                check_dst_port(ip_hdr, ip6_hdr, (pkthdr.caplen - l2len)));
             break;
 
         case FIRST_MODE:
@@ -465,8 +543,13 @@ process_raw_packets(pcap_t * pcap)
              * by the ones which send the first packet in a session
              */
             dbg(2, "processing second pass of auto: first packet mode...");
-            cache_result = add_cache(&options.cachedata, SEND,
-                check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
+            if (ip_hdr) {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
+            } else {
+                cache_result = add_cache(&options.cachedata, SEND,
+                    check_ip6_tree(DIR_UNKNOWN, &ip6_hdr->ip_src));
+            }
             break;
             
         default:
@@ -685,12 +768,3 @@ print_stats(const char *file)
     printf("Total packets:\t\t" COUNTER_SPEC "\n", count);
     exit(0);
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
