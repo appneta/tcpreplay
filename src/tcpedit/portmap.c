@@ -211,8 +211,8 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
  * returns 1 for changes made or 0 for none
  */
 
-int
-rewrite_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
+static int
+rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
@@ -224,10 +224,8 @@ rewrite_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
     assert(tcpedit->portmap);
     portmap = tcpedit->portmap;
 
-    if (*ip_hdr == NULL) {
-        return 0;
-    } else if ((*ip_hdr)->ip_p == IPPROTO_TCP) {
-        tcp_hdr = (tcp_hdr_t *)get_layer4(*ip_hdr);
+    if (protocol == IPPROTO_TCP) {
+        tcp_hdr = (tcp_hdr_t *)layer4;
 
         /* check if we need to remap the destination port */
         newport = map_port(portmap, tcp_hdr->th_dport);
@@ -243,8 +241,8 @@ rewrite_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
             changes ++;
         }
         
-    } else if ((*ip_hdr)->ip_p == IPPROTO_UDP) {
-        udp_hdr = (udp_hdr_t *)get_layer4(*ip_hdr);
+    } else if (protocol == IPPROTO_UDP) {
+        udp_hdr = (udp_hdr_t *)layer4;
 
         /* check if we need to remap the destination port */
         newport = map_port(portmap, udp_hdr->uh_dport);
@@ -263,6 +261,33 @@ rewrite_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
 
     }
     return changes;
+}
+
+int
+rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
+{
+    assert(tcpedit);
+
+    if (*ip_hdr == NULL) {
+        return 0;
+    } else if ((*ip_hdr)->ip_p == IPPROTO_TCP || (*ip_hdr)->ip_p == IPPROTO_UDP) {
+        return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, get_layer4_v4(*ip_hdr));
+    }
+
+    return 0;
+}
+
+int
+rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr)
+{
+    assert(tcpedit);
+
+    if (*ip6_hdr == NULL) {
+        return 0;
+    } else if ((*ip6_hdr)->ip_nh == IPPROTO_TCP || (*ip6_hdr)->ip_nh == IPPROTO_UDP) {
+        return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, ((u_char*)*ip6_hdr) + TCPR_IPV6_H);
+    }
+    return 0;
 }
 
 /*
