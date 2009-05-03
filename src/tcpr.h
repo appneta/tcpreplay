@@ -769,8 +769,19 @@ struct tcpr_ipv6_hdr
     u_int8_t ip_nh;           /* next header */
     u_int8_t ip_hl;           /* hop limit */
     struct tcpr_in6_addr ip_src, ip_dst; /* source and dest address */
-
 };
+
+struct tcpr_ipv6_ext_hdr_base
+{
+    u_int8_t ip_nh;          /* next header */
+    u_int8_t ip_len;         /* length of header in 8 octet units (sans 1st) */
+    /* some more bytes are always here, but we don't know what kind */
+};
+
+#define TCPR_IPV6_NH_NO_NEXT 59
+#define TCPR_IPV6_NH_IPV6    41
+#define TCPR_IPV6_NH_ESP     50
+#define TCPR_IPV6_NH_AH      51
 
 /*
  *  IPv6 frag header
