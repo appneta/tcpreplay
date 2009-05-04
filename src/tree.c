@@ -309,7 +309,7 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
     tcpr_tree_t *node = NULL, *finder = NULL;
 
     finder = new_tree();
-    finder->family = AF_INET;
+    finder->family = AF_INET6;
     finder->u.ip6 = *addr;
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
