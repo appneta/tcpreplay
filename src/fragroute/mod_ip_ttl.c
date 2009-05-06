@@ -53,6 +53,9 @@ ip_ttl_apply(void *d, struct pktq *pktq)
 	int ttldec;
 
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
+		uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
+
+		if (eth_type == ETH_TYPE_IP) {
 		ttldec = pkt->pkt_ip->ip_ttl - data->ttl;
 		pkt->pkt_ip->ip_ttl = data->ttl;
 		
@@ -60,6 +63,9 @@ ip_ttl_apply(void *d, struct pktq *pktq)
 			pkt->pkt_ip->ip_sum += htons(ttldec << 8) + 1;
 		else
 			pkt->pkt_ip->ip_sum += htons(ttldec << 8);
+		} else if (eth_type == ETH_TYPE_IPV6) {
+			pkt->pkt_ip6->ip6_hlim = data->ttl;
+		}
 	}
 	return (0);
 }

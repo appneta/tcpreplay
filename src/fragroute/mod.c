@@ -39,6 +39,8 @@ extern struct mod	 mod_ip_frag;
 extern struct mod	 mod_ip_opt;
 extern struct mod	 mod_ip_ttl;
 extern struct mod	 mod_ip_tos;
+extern struct mod	 mod_ip6_qos;
+extern struct mod	 mod_ip6_opt;
 extern struct mod	 mod_order;
 extern struct mod	 mod_print;
 extern struct mod	 mod_tcp_chaff;
@@ -55,6 +57,8 @@ static struct mod *mods[] = {
 	&mod_ip_opt,
 	&mod_ip_ttl,
 	&mod_ip_tos,
+	&mod_ip6_qos,
+	&mod_ip6_opt,
 	&mod_order,
 	&mod_print,
 	&mod_tcp_chaff,

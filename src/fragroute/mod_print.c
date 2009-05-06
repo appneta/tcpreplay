@@ -15,6 +15,10 @@
 #include "mod.h"
 #include "pkt.h"
 
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 46
+#endif
+
 #define EXTRACT_16BITS(p)	((uint16_t)ntohs(*(uint16_t *)(p)))
 #define EXTRACT_32BITS(p)	((uint32_t)ntohl(*(uint32_t *)(p)))
 
@@ -34,20 +38,49 @@ _print_icmp(u_char *p, int length)
 	printf(" icmp: type %d code %d", icmp->icmp_type, icmp->icmp_code);
 }
 
-void
-_print_tcp(unsigned char *p, int length)
+static void
+_print_icmp6(u_char *p, int length)
 {
-	struct ip_hdr *ip;
+	struct ip6_hdr *ip6;
+	struct icmp_hdr *icmp;
+
+	ip6 = (struct ip6_hdr *)p;
+	icmp = (struct icmp_hdr *)(p + IP6_HDR_LEN);
+
+	/* XXX - truncation? */
+	printf("%s > %s:", ip6_ntoa(&ip6->ip6_src), ip6_ntoa(&ip6->ip6_dst));
+	printf(" icmp: type %hhu code %hhu", icmp->icmp_type, icmp->icmp_code);
+}
+
+void
+_print_tcp(int family, unsigned char *p, int length)
+{
 	struct tcp_hdr *tcp;
 	u_short sport, dport, win, urp;
 	u_long seq, ack;
 	int len, tcp_hl;
 	register char ch;
 	
+	char src[INET6_ADDRSTRLEN], dst[INET6_ADDRSTRLEN];
+
+	if (family == AF_INET6) {
+			struct ip6_hdr *ip6 = (struct ip6_hdr *)p;
+			tcp = (struct tcp_hdr *)(p + IP6_HDR_LEN);
+			len = length;
+
+			ip6_ntop(&ip6->ip6_src, src, sizeof(src));
+			ip6_ntop(&ip6->ip6_dst, dst, sizeof(dst));
+	} else {
+			struct ip_hdr *ip;
+
 	ip = (struct ip_hdr *)p;
 	tcp = (struct tcp_hdr *)(p + (ip->ip_hl * 4));
 	len = length - (ip->ip_hl * 4);
 	
+			ip_ntop(&ip->ip_src, src, sizeof(src));
+			ip_ntop(&ip->ip_dst, dst, sizeof(dst));
+	}
+
 	if (len < TCP_HDR_LEN) {
 		printf("truncated-tcp %d", len);
 		return;
@@ -60,8 +93,7 @@ _print_tcp(unsigned char *p, int length)
 	urp = ntohs(tcp->th_urp);
 	tcp_hl = tcp->th_off * 4;
 	
-	printf("%s.%d > %s.%d: ", ip_ntoa(&ip->ip_src), sport,
-	    ip_ntoa(&ip->ip_dst), dport);
+	printf("%s.%d > %s.%d: ", src, sport, dst, dport);
 	
 	if (tcp->th_flags & (TH_SYN|TH_FIN|TH_RST|TH_PUSH)) {
 		if (tcp->th_flags & TH_SYN)	putchar('S');
@@ -218,19 +250,50 @@ _print_tcp(unsigned char *p, int length)
 }
 
 static void
-_print_udp(u_char *p, int length)
+_print_udp(int family, u_char *p, int length)
 {
-	struct ip_hdr *ip;
 	struct udp_hdr *udp;
+	char src[INET6_ADDRSTRLEN], dst[INET6_ADDRSTRLEN];
+
+	if (family == AF_INET6) {
+			struct ip6_hdr *ip6 = (struct ip6_hdr *)p;
+			udp = (struct udp_hdr *)(p + IP6_HDR_LEN);
+
+			ip6_ntop(&ip6->ip6_src, src, sizeof(src));
+			ip6_ntop(&ip6->ip6_dst, dst, sizeof(dst));
+	} else {
+			struct ip_hdr *ip;
 	
 	ip = (struct ip_hdr *)p;
 	udp = (struct udp_hdr *)(p + (ip->ip_hl * 4));
 
-	/* XXX - truncation? */
-	printf("%s.%d > %s.%d:", ip_ntoa(&ip->ip_src), ntohs(udp->uh_sport),
-	    ip_ntoa(&ip->ip_dst), ntohs(udp->uh_dport));
+			ip_ntop(&ip->ip_src, src, sizeof(src));
+			ip_ntop(&ip->ip_dst, dst, sizeof(dst));
+	}
 	
+	/* XXX - truncation? */
+	printf("%s.%d > %s.%d:", src, ntohs(udp->uh_sport),
+		dst, ntohs(udp->uh_dport));
 	printf(" udp %d", ntohs(udp->uh_ulen) - UDP_HDR_LEN);
+}
+
+static void
+_print_frag6(u_char *p, int length)
+{
+	struct ip6_hdr *ip6;
+	struct ip6_ext_hdr *ext;
+	int off;
+
+	ip6 = (struct ip6_hdr *)p;
+	ext = (struct ip6_ext_hdr *)(p + IP6_HDR_LEN);
+
+	off = htons(ext->ext_data.fragment.offlg & IP6_OFF_MASK);
+
+	printf("%s > %s:", ip6_ntoa(&ip6->ip6_src), ip6_ntoa(&ip6->ip6_dst));
+	printf(" fragment: next %hhu offset %d%s ident 0x%08x",
+		ext->ext_nxt, off,
+		(ext->ext_data.fragment.offlg & IP6_MORE_FRAG) ? " MF" : "", 
+		htonl(ext->ext_data.fragment.ident));
 }
 
 static void
@@ -258,10 +321,10 @@ _print_ip(u_char *p, int length)
 	if ((ip_off & IP_OFFMASK) == 0) {
 		switch (ip->ip_p) {
 		case IP_PROTO_TCP:
-			_print_tcp(p, ip_len);
+			_print_tcp(AF_INET, p, ip_len);
 			break;
 		case IP_PROTO_UDP:
-			_print_udp(p, ip_len);
+			_print_udp(AF_INET, p, ip_len);
 			break;
 		case IP_PROTO_ICMP:
 			_print_icmp(p, ip_len);
@@ -289,6 +352,56 @@ _print_ip(u_char *p, int length)
 		printf(" [ttl %d]", ip->ip_ttl);
 }
 
+static void
+_print_ip6(u_char *p, int length)
+{
+	struct ip6_hdr *ip6;
+	int plen;
+
+	ip6 = (struct ip6_hdr *)p;
+
+	if (length < IP6_HDR_LEN) {
+		printf("truncated-ip6 %d", length);
+		return;
+	}
+
+	plen = htons(ip6->ip6_plen);
+
+	switch (ip6->ip6_nxt) {
+		case IP_PROTO_TCP:
+			_print_tcp(AF_INET6, p, plen);
+			break;
+		case IP_PROTO_UDP:
+			_print_udp(AF_INET6, p, plen);
+			break;
+		case IP_PROTO_ICMPV6:
+			_print_icmp6(p, plen);
+			break;
+		case IP_PROTO_FRAGMENT:
+			_print_frag6(p, plen);
+			break;
+		default:
+			printf("%s > %s:", ip6_ntoa(&ip6->ip6_src),
+				ip6_ntoa(&ip6->ip6_dst));
+			printf(" ip-proto-%hhu ttl %hhu  payload len %hu", ip6->ip6_nxt,
+				ip6->ip6_hlim, plen);
+			break;
+	}
+
+	if (ip6->ip6_hlim <= 1)
+		printf(" [ttl %d]", ip6->ip6_hlim);
+}
+
+static void
+_print_eth(struct eth_hdr* e, int length)
+{
+		char d[20], s[20];
+		eth_ntop(&e->eth_dst, &d[0], sizeof(d));
+		eth_ntop(&e->eth_src, &s[0], sizeof(s));
+
+		printf("%s > %s type 0x%04hx length %d", d, s, htons(e->eth_type), length);
+}
+
 static char *
 timerntoa(struct timeval *tv)
 {
@@ -309,7 +422,14 @@ print_apply(void *d, struct pktq *pktq)
 	struct pkt *pkt;
 
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
+		uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
+
+		if (eth_type == ETH_TYPE_IP)
 		_print_ip(pkt->pkt_eth_data, pkt->pkt_end - pkt->pkt_eth_data);
+		else if (eth_type == ETH_TYPE_IPV6)
+		  _print_ip6(pkt->pkt_eth_data, pkt->pkt_end - pkt->pkt_eth_data);
+		else
+			_print_eth(pkt->pkt_eth, pkt->pkt_end - pkt->pkt_data);
 		if (timerisset(&pkt->pkt_ts))
 			printf(" [delay %s]", timerntoa(&pkt->pkt_ts));
 		printf("\n");

@@ -25,10 +25,18 @@
 #define FAVOR_OLD	1
 #define FAVOR_NEW	2
 
-static struct ip_frag_data {
+static int
+ip_frag_apply_ipv4(void *d, struct pktq *pktq);
+
+static int
+ip_frag_apply_ipv6(void *d, struct pktq *pktq);
+
+static struct ip_frag_data
+{
 	rand_t	*rnd;
 	int	 size;
 	int	 overlap;
+	uint32_t ident;
 } ip_frag_data;
 
 void *
@@ -64,11 +72,34 @@ ip_frag_open(int argc, char *argv[])
 		else
 			return (ip_frag_close(&ip_frag_data));
 	}
+
+	ip_frag_data.ident = rand_uint32(ip_frag_data.rnd);
+
 	return (&ip_frag_data);
 }
 
 int
 ip_frag_apply(void *d, struct pktq *pktq)
+{
+	struct pkt *pkt;
+
+	/* Select eth protocol via first packet in que: */
+	pkt = TAILQ_FIRST(pktq);
+	if (pkt != TAILQ_END(pktq)) {
+		uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
+
+		if (eth_type == ETH_TYPE_IP) {
+			ip_frag_apply_ipv4(d, pktq);
+		} else if (eth_type == ETH_TYPE_IPV6) {
+			ip_frag_apply_ipv6(d, pktq);
+		}
+		return 0;
+	}
+	return 0;
+}
+
+static int
+ip_frag_apply_ipv4(void *d, struct pktq *pktq)
 {
 	struct pkt *pkt, *new, *next, tmp;
 	int hl, fraglen, off;
@@ -109,6 +140,7 @@ ip_frag_apply(void *d, struct pktq *pktq)
 		
 		for (p = pkt->pkt_ip_data; p < pkt->pkt_end; ) {
 			new = pkt_new();
+			memcpy(new->pkt_eth, pkt->pkt_eth, (u_char*)pkt->pkt_eth_data - (u_char*)pkt->pkt_eth);
 			memcpy(new->pkt_ip, pkt->pkt_ip, hl);
 			new->pkt_ip_data = new->pkt_eth_data + hl;
 			
@@ -161,6 +193,118 @@ ip_frag_apply(void *d, struct pktq *pktq)
 		pkt_free(pkt);
 	}
 	return (0);
+}
+
+
+static int
+ip_frag_apply_ipv6(void *d, struct pktq *pktq)
+{
+	struct pkt *pkt, *new, *next, tmp;
+	struct ip6_ext_hdr *ext;
+	int hl, fraglen, off;
+	u_char *p, *p1, *p2;
+	uint8_t next_hdr;
+
+	ip_frag_data.ident++;
+
+	for (pkt = TAILQ_FIRST(pktq); pkt != TAILQ_END(pktq); pkt = next) {
+		next = TAILQ_NEXT(pkt, pkt_next);
+
+		if (pkt->pkt_ip == NULL || pkt->pkt_ip_data == NULL)
+			continue;
+
+		hl = IP6_HDR_LEN;
+
+		/*
+		 * Preserve transport protocol header in first frag,
+		 * to bypass filters that block `short' fragments.
+		 */
+		switch (pkt->pkt_ip->ip_p) {
+		case IP_PROTO_ICMP:
+			fraglen = MAX(ICMP_LEN_MIN, ip_frag_data.size);
+			break;
+		case IP_PROTO_UDP:
+			fraglen = MAX(UDP_HDR_LEN, ip_frag_data.size);
+			break;
+		case IP_PROTO_TCP:
+			fraglen = MAX(pkt->pkt_tcp->th_off << 2,
+			    ip_frag_data.size);
+			break;
+		default:
+			fraglen = ip_frag_data.size;
+			break;
+		}
+		if (fraglen & 7)
+			fraglen = (fraglen & ~7) + 8;
+
+		if (pkt->pkt_end - pkt->pkt_ip_data < fraglen)
+			continue;
+
+		next_hdr = pkt->pkt_ip6->ip6_nxt;
+
+		for (p = pkt->pkt_ip_data; p < pkt->pkt_end; ) {
+			new = pkt_new();
+			memcpy(new->pkt_eth, pkt->pkt_eth, (u_char*)pkt->pkt_eth_data - (u_char*)pkt->pkt_eth);
+			memcpy(new->pkt_ip, pkt->pkt_ip, hl);
+			ext = (struct ip6_ext_hdr *)((u_char*)new->pkt_eth_data + hl);
+			new->pkt_ip_data = (u_char *)(ext) + 2 + 
+				sizeof(struct ip6_ext_data_fragment);
+			new->pkt_ip6->ip6_nxt = IP_PROTO_FRAGMENT;
+
+			ext->ext_nxt = next_hdr;
+			ext->ext_len = 0; /* ip6 fragf reserved */
+			ext->ext_data.fragment.ident = ip_frag_data.ident;
+
+
+			p1 = p, p2 = NULL;
+			off = (p - pkt->pkt_ip_data) >> 3;
+
+			if (ip_frag_data.overlap != 0 && (off & 1) != 0 &&
+			    p + (fraglen << 1) < pkt->pkt_end) {
+				rand_strset(ip_frag_data.rnd, tmp.pkt_buf,
+				    fraglen);
+				if (ip_frag_data.overlap == FAVOR_OLD) {
+					p1 = p + fraglen;
+					p2 = tmp.pkt_buf;
+				} else if (ip_frag_data.overlap == FAVOR_NEW) {
+					p1 = tmp.pkt_buf;
+					p2 = p + fraglen;
+				}
+				ext->ext_data.fragment.offlg = 
+					htons((off /*+ (fraglen >> 3)*/) << 3) | IP6_MORE_FRAG;
+			} else {
+				ext->ext_data.fragment.offlg = htons(off << 3) |
+						((p + fraglen < pkt->pkt_end) ? IP6_MORE_FRAG : 0);
+			}
+			new->pkt_ip6->ip6_plen = htons(fraglen + 8);
+
+			memcpy(new->pkt_ip_data, p1, fraglen);
+			new->pkt_end = new->pkt_ip_data + fraglen;
+			TAILQ_INSERT_BEFORE(pkt, new, pkt_next);
+
+			if (p2 != NULL) {
+				new = pkt_dup(new);
+				new->pkt_ts.tv_usec = 1;
+
+				ext->ext_data.fragment.offlg = htons(off << 3) | IP6_MORE_FRAG;
+				new->pkt_ip6->ip6_plen = htons((fraglen << 1) + 8);
+
+				memcpy(new->pkt_ip_data, p, fraglen);
+				memcpy(new->pkt_ip_data + fraglen, p2, fraglen);
+				new->pkt_end = new->pkt_ip_data + (fraglen << 1);
+				TAILQ_INSERT_BEFORE(pkt, new, pkt_next);
+				p += (fraglen << 1);
+			} else {
+				p += fraglen;
+			}
+
+			if ((fraglen = pkt->pkt_end - p) > ip_frag_data.size)
+				fraglen = ip_frag_data.size;
+		}
+		TAILQ_REMOVE(pktq, pkt, pkt_next);
+		pkt_free(pkt);
+	}
+	return 0;
 }
 
 struct mod mod_ip_frag = {

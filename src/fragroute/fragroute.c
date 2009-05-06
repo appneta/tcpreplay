@@ -69,7 +69,9 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 		strcpy(ctx->errbuf, "skipping non-IP packet");
 		return -1;
 	}
+	if (pkt->pkt_eth && htons(pkt->pkt_eth->eth_type) == ETH_TYPE_IP) {
 	ip_checksum(pkt->pkt_ip, len);
+	}
 
 	TAILQ_INIT(ctx->pktq);
 	TAILQ_INSERT_TAIL(ctx->pktq, pkt, pkt_next);

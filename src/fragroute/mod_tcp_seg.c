@@ -17,6 +17,7 @@
 #include "mod.h"
 #include "pkt.h"
 #include "randutil.h"
+#include "iputil.h"
 
 #ifndef MIN
 #define MIN(a,b)	(((a)<(b))?(a):(b))
@@ -73,22 +74,45 @@ tcp_seg_apply(void *d, struct pktq *pktq)
 	uint32_t seq;
 	int hl, tl, len;	
 	u_char *p, *p1, *p2;
+	uint16_t eth_type;
+	uint8_t nxt;
 
 	for (pkt = TAILQ_FIRST(pktq); pkt != TAILQ_END(pktq); pkt = next) {
 		next = TAILQ_NEXT(pkt, pkt_next);
 		
-		if (pkt->pkt_ip == NULL || pkt->pkt_ip->ip_p != IP_PROTO_TCP ||
+		eth_type = htons(pkt->pkt_eth->eth_type);
+
+		if (pkt->pkt_ip == NULL)
+			continue;
+
+		if (eth_type == ETH_TYPE_IP) {
+			nxt = pkt->pkt_ip->ip_p;
+		} else if (eth_type == ETH_TYPE_IPV6) {
+			nxt = pkt->pkt_ip6->ip6_nxt;
+		} else {
+			continue;
+		}
+
+		if (nxt != IP_PROTO_TCP ||
 		    pkt->pkt_tcp == NULL || pkt->pkt_tcp_data == NULL ||
 		    (pkt->pkt_tcp->th_flags & TH_ACK) == 0 ||
 		    pkt->pkt_end - pkt->pkt_tcp_data <= tcp_seg_data.size)
 			continue;
 		
+		if (eth_type == ETH_TYPE_IP) {
 		hl = pkt->pkt_ip->ip_hl << 2;
+		} else if (eth_type == ETH_TYPE_IPV6) {
+			hl = IP6_HDR_LEN;
+		} else {
+			continue;
+		}
+
 		tl = pkt->pkt_tcp->th_off << 2;
 		seq = ntohl(pkt->pkt_tcp->th_seq);
 	
 		for (p = pkt->pkt_tcp_data; p < pkt->pkt_end; p += len) {
 			new = pkt_new();
+			memcpy(new->pkt_eth, pkt->pkt_eth, (u_char*)pkt->pkt_eth_data - (u_char*)pkt->pkt_eth);
 			p1 = p, p2 = NULL;
 			len = MIN(pkt->pkt_end - p, tcp_seg_data.size);
 		
@@ -112,25 +136,32 @@ tcp_seg_apply(void *d, struct pktq *pktq)
 			memcpy(new->pkt_tcp_data, p1, len);
 			new->pkt_end = new->pkt_tcp_data + len;
 			
+			if (eth_type == ETH_TYPE_IP) {
 			new->pkt_ip->ip_id = rand_uint16(tcp_seg_data.rnd);
 			new->pkt_ip->ip_len = htons(hl + tl + len);
+			} else {
+				new->pkt_ip6->ip6_plen = htons(tl + len);
+			}
+
 			new->pkt_tcp->th_seq = htonl(seq);
-			ip_checksum(new->pkt_ip, hl + tl + len);
+			inet_checksum(eth_type, new->pkt_ip, hl + tl + len);
 			TAILQ_INSERT_BEFORE(pkt, new, pkt_next);
 			
 			if (p2 != NULL) {
 				new = pkt_dup(new);
 				new->pkt_ts.tv_usec = 1;
-				new->pkt_ip->ip_id =
-				    rand_uint16(tcp_seg_data.rnd);
-				new->pkt_ip->ip_len = htons(hl + tl +
-				    (len << 1));
+				if (eth_type == ETH_TYPE_IP) {
+					new->pkt_ip->ip_id = rand_uint16(tcp_seg_data.rnd);
+					new->pkt_ip->ip_len = htons(hl + tl + (len << 1));
+				} else if (eth_type == ETH_TYPE_IPV6) {
+					new->pkt_ip6->ip6_plen = htons(tl + (len << 1));
+				}
 				new->pkt_tcp->th_seq = htonl(seq - len);
 				
 				memcpy(new->pkt_tcp_data, p, len);
 				memcpy(new->pkt_tcp_data + len, p2, len);
 				new->pkt_end = new->pkt_tcp_data + (len << 1);
-				ip_checksum(new->pkt_ip, hl + tl + (len << 1));
+				inet_checksum(eth_type, new->pkt_ip, hl + tl + (len << 1));
 				TAILQ_INSERT_BEFORE(pkt, new, pkt_next);
 				p += len;
 			}

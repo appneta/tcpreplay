@@ -34,6 +34,7 @@ struct pkt {
 	union {
 		u_char		*eth_data;
 		struct ip_hdr	*ip;
+		struct ip6_hdr	*ip6;
 	} pkt_n_hdr_u;
 	union {
 		u_char		*ip_data;
@@ -53,6 +54,7 @@ struct pkt {
 	TAILQ_ENTRY(pkt) pkt_next;
 };
 #define pkt_ip		 pkt_n_hdr_u.ip
+#define pkt_ip6		 pkt_n_hdr_u.ip6
 #define pkt_eth_data	 pkt_n_hdr_u.eth_data
 
 #define pkt_icmp	 pkt_t_hdr_u.icmp
