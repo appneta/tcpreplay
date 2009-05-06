@@ -311,7 +311,8 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr)
 
 /**
  * returns a pointer to the layer 4 header which is just beyond the IPv6 header
- * and any exension headers or NULL when there is none.  Function is recursive.
+ * and any exension headers or NULL when there is none as in the case of
+ * v6 Frag or ESP header.  Function is recursive.
  */
 void *
 get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
@@ -347,12 +348,17 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
             break;
             
         /*
-         * no further processing, either TCP, UDP or an unparsable
-         * IPv6 fragment/encrypted data
+         * Can't handle.  Unparsable IPv6 fragment/encrypted data
          */
-        default:
         case TCPR_IPV6_NH_FRAGMENT:
         case TCPR_IPV6_NH_ESP:
+            return NULL;
+            break;
+
+        /*
+         * no further processing, either TCP, UDP, ICMP, etc...
+         */
+        default:
             if (proto != ip6_hdr->ip_nh) {
                 dbgx(3, "Returning byte offset of this ext header: %u", IPV6_EXTLEN_TO_BYTES(next->ip_len));
                 return (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
@@ -368,7 +374,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
 
 /**
  * returns the next payload or header of the current extention header
- * returns NULL for none.
+ * returns NULL for none/ESP.
  */
 void *
 get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
