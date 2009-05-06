@@ -1,7 +1,8 @@
 $Id$
 
 05/??/2009: Version 3.4.2
-    - Added extensive IPv6 support
+    - Added extensive IPv6 support to tcprewrite (#11)
+    - Add IPv6 fragroute support (#388)
 
 02/18/2009: Version 3.4.1
     - Sendpacket method did not match documentation (#361)
