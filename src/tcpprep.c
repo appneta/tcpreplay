@@ -232,6 +232,7 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
             return 0; /* not enough data in the packet to know */
 
         proto = get_ipv6_l4proto(ip6_hdr);
+        dbgx(3, "Our layer4 proto is 0x%hhu", proto);
         l4 = get_layer4_v6(ip6_hdr);
         
         dbgx(3, "Found proto %u at offset %p.  base %p (%u)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
