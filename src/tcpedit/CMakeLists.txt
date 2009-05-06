@@ -15,6 +15,7 @@ SET(tcpedit_srcs
     plugins/dlt_user/user.c  plugins/dlt_user/user_api.c
     plugins/dlt_hdlc/hdlc.c  plugins/dlt_hdlc/hdlc_api.c
     plugins/dlt_ieee80211/ieee80211.c plugins/dlt_ieee80211/ieee80211_hdr.c 
+    plugins/dlt_jnpr_ether/jnpr_ether.c
     plugins/dlt_linuxsll/linuxsll.c 
     plugins/dlt_loop/loop.c 
     plugins/dlt_null/null.c

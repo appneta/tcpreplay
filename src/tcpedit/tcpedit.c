@@ -127,7 +127,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == htons(ETHERTYPE_IP)) {
-        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen);
+        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
         if (ip_hdr == NULL) {
             return TCPEDIT_ERROR;
         }        
