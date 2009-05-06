@@ -317,15 +317,17 @@ void *
 get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
 {
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
-    u_int8_t proto = ip6_hdr->ip_nh;
+    u_int8_t proto;
     
     assert(ip6_hdr);
     
     /* jump to the end of the IPv6 header */ 
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);    
+    proto = ip6_hdr->ip_nh;
     
     while (true) {
         dbgx(3, "Processing proto: 0x%hx", proto);
+        
         switch (proto) {        
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */
         case TCPR_IPV6_NH_IPV6:
@@ -338,7 +340,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
         case TCPR_IPV6_NH_ROUTING:
         case TCPR_IPV6_NH_DESTOPTS:
         case TCPR_IPV6_NH_HBH:
-            dbgx(3, "Going deeper due to extension header 0x%hhx", proto);
+            dbgx(3, "Going deeper due to extension header 0x%02X", proto);
             exthdr = get_ipv6_next(next);
             proto = exthdr->ip_nh;
             next = exthdr;
@@ -348,18 +350,17 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
          * no further processing, either TCP, UDP or an unparsable
          * IPv6 fragment/encrypted data
          */
+        default:
         case TCPR_IPV6_NH_FRAGMENT:
         case TCPR_IPV6_NH_ESP:
-#ifdef DEBUG
-            exthdr = next;
-            dbgx(3, "returning end of this ext header: %hhu", IPV6_EXTLEN_TO_BYTES(exthdr->ip_len));
-#endif
-            return get_ipv6_next(next);
+            if (proto != ip6_hdr->ip_nh) {
+                dbgx(3, "Returning byte offset of this ext header: %u", IPV6_EXTLEN_TO_BYTES(next->ip_len));
+                return (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
+            } else {
+                dbgx(3, "%s", "Returning end of IPv6 Header");
+                return next;
+            }
             break;
-            
-        default:
-            dbg(3, "Found end of IPv6/Ext Headers");
-            return next;
         } /* switch */
     } /* while */
 }
@@ -387,7 +388,7 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
 
     /* fragment header is fixed size */
     case TCPR_IPV6_NH_FRAGMENT:
-        dbg(3, "Fragment!  Returning some data.");
+        dbg(3, "Looks like were a fragment header. Returning some frag'd data.");
         return (void *)((u_char *)exthdr + sizeof(struct tcpr_ipv6_frag_hdr));
         break;
 
@@ -397,10 +398,13 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
     case TCPR_IPV6_NH_DESTOPTS:
     case TCPR_IPV6_NH_HBH:
     case TCPR_IPV6_NH_AH:
-    default:
         len = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
-        dbgx(3, "Looks like we're a 0x%hhx.  Jumping %u bytes to the end", exthdr->ip_nh, len);
+        dbgx(3, "Looks like we're an ext header (0x%hhx).  Jumping %u bytes to the next", exthdr->ip_nh, len);
         return (void *)((u_char *)exthdr + len);
+
+    default:
+        dbg(3, "Must not be a v6 extension header... returning self");
+        return (void *)exthdr;
     }
 }
 
@@ -412,10 +416,10 @@ u_int8_t
 get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
 {
     u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
-    u_int8_t proto, last;
+    u_int8_t proto;
     struct tcpr_ipv6_ext_hdr_base *exthdr = NULL;
     
-    last = proto = ip6_hdr->ip_nh;
+    proto = ip6_hdr->ip_nh;
     assert(ip6_hdr);
         
     while (true) {
@@ -439,17 +443,16 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
             case TCPR_IPV6_NH_ROUTING:
             case TCPR_IPV6_NH_DESTOPTS:
             case TCPR_IPV6_NH_HBH:
-                dbgx(3, "Jumping to next header (0x%hhx)", proto);
+                dbgx(3, "Jumping to next extension header (0x%hhx)", proto);
                 exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr);
-                last = proto;
                 proto = exthdr->ip_nh;
                 ptr = (u_char *)exthdr;
                 break;
                 
             /* should be TCP, UDP or the like */
             default:
-                dbgx(3, "Selecting next L4 Proto as: 0x%02x", last);
-                return last;
+                dbgx(3, "Selecting next L4 Proto as: 0x%02x", proto);
+                return proto;
         }
     }    
 }
