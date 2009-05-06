@@ -53,9 +53,13 @@ ip_tos_apply(void *d, struct pktq *pktq)
 	struct pkt *pkt;
 
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
+		uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
+
+		if (eth_type == ETH_TYPE_IP) {
 		pkt->pkt_ip->ip_tos = data->tos;
 		/* XXX - do incremental checksum */
 		ip_checksum(pkt->pkt_ip, pkt->pkt_ip_data - pkt->pkt_eth_data);
+	}
 	}
 	return (0);
 }

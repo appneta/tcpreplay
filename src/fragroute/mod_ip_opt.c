@@ -16,6 +16,7 @@
 
 #include "pkt.h"
 #include "mod.h"
+#include "iputil.h"
 
 void *
 ip_opt_close(void *d)
@@ -42,6 +43,11 @@ ip_opt_open(int argc, char *argv[])
 		opt->opt_type = IP_OPT_LSRR;
 	} else if (strcasecmp(argv[1], "ssrr") == 0) {
 		opt->opt_type = IP_OPT_SSRR;
+	} else if (strcasecmp(argv[1], "raw") == 0) {
+		if (raw_ip_opt_parse(argc - 2, &argv[2], &opt->opt_type, &opt->opt_len,
+					&opt->opt_data.data8[0], sizeof(opt->opt_data.data8)) != 0)
+			return (ip_opt_close(opt));
+		return opt;
 	} else
 		return (ip_opt_close(opt));
 	
@@ -70,6 +76,9 @@ ip_opt_apply(void *d, struct pktq *pktq)
 	size_t len;
 
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
+		uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
+
+		if (eth_type == ETH_TYPE_IP) {
 		len = ip_add_option(pkt->pkt_ip, PKT_BUF_LEN - ETH_HDR_LEN,
 		    IP_PROTO_IP, opt, opt->opt_len);
 
@@ -80,12 +89,13 @@ ip_opt_apply(void *d, struct pktq *pktq)
 			    pkt->pkt_end - pkt->pkt_eth_data);
 		}
 	}
+	}
 	return (0);
 }
 
 struct mod mod_ip_opt = {
 	"ip_opt",					/* name */
-	"ip_opt lsrr|ssrr <ptr> <ip-addr> ...",		/* usage */
+	"ip_opt [lsrr|ssrr <ptr> <ip-addr> ...] | [raw <byte stream>]",		/* usage */
 	ip_opt_open,					/* open */
 	ip_opt_apply,					/* apply */
 	ip_opt_close					/* close */

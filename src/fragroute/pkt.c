@@ -79,11 +79,18 @@ pkt_dup(struct pkt *pkt)
 	return (new);
 }
 
+#define IP6_IS_EXT(n)   \
+	((n) == IP_PROTO_HOPOPTS || (n) == IP_PROTO_DSTOPTS || \
+	 (n) == IP_PROTO_ROUTING || (n) == IP_PROTO_FRAGMENT)
+
 void
 pkt_decorate(struct pkt *pkt)
 {
 	u_char *p;
+	uint16_t eth_type;
 	int hl, len, off;
+	uint8_t next_hdr;
+	struct ip6_ext_hdr *ext;
 
 	pkt->pkt_data = pkt->pkt_buf + PKT_BUF_ALIGN;
 	pkt->pkt_eth = NULL;
@@ -99,6 +106,9 @@ pkt_decorate(struct pkt *pkt)
 	pkt->pkt_eth = (struct eth_hdr *)p;
 	p += ETH_HDR_LEN;
 
+	eth_type = htons(pkt->pkt_eth->eth_type);
+
+	if (eth_type == ETH_TYPE_IP) {
 	if (p + IP_HDR_LEN > pkt->pkt_end)
 		return;
 	
@@ -122,10 +132,29 @@ pkt_decorate(struct pkt *pkt)
 	
 	pkt->pkt_end = p + len;
 	p += hl;
+		next_hdr = pkt->pkt_ip->ip_p;
+	} else if (eth_type == ETH_TYPE_IPV6) {
+		if (p + IP6_HDR_LEN > pkt->pkt_end)
+			return;
+
+		pkt->pkt_eth_data = p;
+		p += IP6_HDR_LEN;
+		next_hdr = pkt->pkt_ip6->ip6_nxt;
+
+		for (; IP6_IS_EXT(next_hdr); p += (ext->ext_len + 1) << 3) {
+			if (p > pkt->pkt_end)
+				return;
+			ext = (struct ip6_ext_hdr *)p;
+			next_hdr = ext->ext_nxt;
+		}
+	} else {
+		return;
+	}
 
 	/* If transport layer header is longer than packet length, stop. */
-	switch (pkt->pkt_ip->ip_p) {
+	switch (next_hdr) {
 	case IP_PROTO_ICMP:
+	case IP_PROTO_ICMPV6:
 		hl = ICMP_HDR_LEN;
 		break;
 	case IP_PROTO_TCP:
@@ -146,7 +175,7 @@ pkt_decorate(struct pkt *pkt)
 	p += hl;
 
 	/* Check for transport layer data. */
-	switch (pkt->pkt_ip->ip_p) {
+	switch (next_hdr) {
 	case IP_PROTO_ICMP:
 		pkt->pkt_icmp_msg = (union icmp_msg *)p;
 		
@@ -195,6 +224,9 @@ pkt_decorate(struct pkt *pkt)
 		}
 		if (p + hl > pkt->pkt_end)
 			pkt->pkt_icmp_msg = NULL;
+		break;
+	case IP_PROTO_ICMPV6:
+		pkt->pkt_icmp_msg = (union icmp_msg *)p;
 		break;
 	case IP_PROTO_TCP:
 		if (p < pkt->pkt_end)

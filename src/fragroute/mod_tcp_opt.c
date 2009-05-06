@@ -16,6 +16,7 @@
 
 #include "pkt.h"
 #include "mod.h"
+#include "iputil.h"
 
 void *
 tcp_opt_close(void *d)
@@ -55,6 +56,10 @@ tcp_opt_open(int argc, char *argv[])
 			return (tcp_opt_close(opt));
 		}
 		opt->opt_data.wscale = i;
+	} else if (strcasecmp(argv[1], "raw") == 0) {
+		if (raw_ip_opt_parse(argc - 2, &argv[2], &opt->opt_type, &opt->opt_len,
+					&opt->opt_data.data8[0], sizeof(opt->opt_data.data8)) != 0)
+			return (tcp_opt_close(opt));
 	} else
 		return (tcp_opt_close(opt));
 	
@@ -69,15 +74,16 @@ tcp_opt_apply(void *d, struct pktq *pktq)
 	size_t len;
 
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
-		len = ip_add_option(pkt->pkt_ip,
+		uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
+
+		len = inet_add_option(eth_type, pkt->pkt_ip,
 		    sizeof(pkt->pkt_data) - ETH_HDR_LEN,
 		    IP_PROTO_TCP, opt, opt->opt_len);
 
 		if (len > 0) {
 			pkt->pkt_end += len;
 			pkt_decorate(pkt);
-			ip_checksum(pkt->pkt_ip, pkt->pkt_end -
-			    pkt->pkt_eth_data);
+			inet_checksum(eth_type, pkt->pkt_ip, pkt->pkt_end - pkt->pkt_eth_data);
 		}
 	}
 	return (0);
@@ -85,7 +91,7 @@ tcp_opt_apply(void *d, struct pktq *pktq)
 
 struct mod mod_tcp_opt = {
 	"tcp_opt",					/* name */
-	"tcp_opt mss|wscale <size>",			/* usage */
+	"tcp_opt mss|wscale <size>|raw <byte stream>",			/* usage */
 	tcp_opt_open,					/* open */
 	tcp_opt_apply,					/* apply */
 	tcp_opt_close					/* close */

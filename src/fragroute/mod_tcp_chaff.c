@@ -15,6 +15,7 @@
 #include "pkt.h"
 #include "mod.h"
 #include "randutil.h"
+#include "iputil.h"
 
 #define CHAFF_TYPE_CKSUM	1
 #define CHAFF_TYPE_NULL		2
@@ -82,11 +83,26 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
 	struct pkt *pkt, *new, *next;
 	struct tcp_opt opt;
 	int i;
+	uint16_t eth_type;
+	uint8_t nxt;
 	
 	for (pkt = TAILQ_FIRST(pktq); pkt != TAILQ_END(pktq); pkt = next) {
 		next = TAILQ_NEXT(pkt, pkt_next);
 		
-		if (pkt->pkt_ip == NULL || pkt->pkt_ip->ip_p != IP_PROTO_TCP ||
+		eth_type = htons(pkt->pkt_eth->eth_type);
+
+		if (pkt->pkt_ip == NULL)
+			continue;
+
+		if (eth_type == ETH_TYPE_IP) {
+			nxt = pkt->pkt_ip->ip_p;
+		} else if (eth_type == ETH_TYPE_IPV6) {
+			nxt = pkt->pkt_ip6->ip6_nxt;
+		} else {
+			continue;
+		}
+
+		if (nxt != IP_PROTO_TCP ||
 		    pkt->pkt_tcp == NULL || pkt->pkt_tcp_data == NULL ||
 		    (pkt->pkt_tcp->th_flags & TH_ACK) == 0)
 			continue;
@@ -97,14 +113,14 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
 	
 		switch (data->type) {
 		case CHAFF_TYPE_CKSUM:
-			ip_checksum(new->pkt_ip,
+			inet_checksum(eth_type, new->pkt_ip,
 			    new->pkt_ip_data - new->pkt_eth_data);
 			new->pkt_tcp->th_sum = rand_uint16(data->rnd);
 			break;
 		case CHAFF_TYPE_NULL:
 			new->pkt_tcp->th_flags = 0;
-			ip_checksum(new->pkt_ip, new->pkt_end -
-			    new->pkt_eth_data);
+			inet_checksum(eth_type, new->pkt_ip,
+					new->pkt_ip_data - new->pkt_eth_data);
 			break;
 		case CHAFF_TYPE_PAWS:
 			/* Delete any existing TCP options. */
@@ -119,28 +135,28 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
 			opt.opt_len = TCP_OPT_LEN + 8;
 			opt.opt_data.timestamp[0] = 0;
 			opt.opt_data.timestamp[1] = 0;
-			if ((i = ip_add_option(new->pkt_ip,
+			if ((i = inet_add_option(eth_type, new->pkt_ip,
 			    PKT_BUF_LEN - ETH_HDR_LEN,
 			    IP_PROTO_TCP, &opt, opt.opt_len)) < 0) {
 				pkt_free(new);
 				continue;
 			}
 			new->pkt_end += i;
-			ip_checksum(new->pkt_ip, new->pkt_end -
-			    new->pkt_eth_data);
+			inet_checksum(eth_type, new->pkt_ip,
+					new->pkt_ip_data - new->pkt_eth_data);
 			pkt_decorate(new);
 			break;
 		case CHAFF_TYPE_REXMIT:
 			new->pkt_ts.tv_usec = 1;
-			ip_checksum(new->pkt_ip, new->pkt_end -
-			    new->pkt_eth_data);
+			inet_checksum(eth_type, new->pkt_ip,
+					new->pkt_ip_data - new->pkt_eth_data);
 			break;
 		case CHAFF_TYPE_SEQ:
 			/* XXX - dunno recv window? */
 			new->pkt_tcp->th_seq = htonl(666);
 			new->pkt_tcp->th_ack = htonl(666);
-			ip_checksum(new->pkt_ip, new->pkt_end -
-			    new->pkt_eth_data);
+			inet_checksum(eth_type, new->pkt_ip,
+					new->pkt_ip_data - new->pkt_eth_data);
 			break;
 		case CHAFF_TYPE_SYN:
 			new->pkt_tcp->th_flags = TH_SYN;
@@ -150,13 +166,17 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
 			new->pkt_tcp_data = NULL;
 			new->pkt_ip->ip_len = htons(new->pkt_end -
 			    new->pkt_eth_data);
-			ip_checksum(new->pkt_ip, new->pkt_end -
-			    new->pkt_eth_data);
+			inet_checksum(eth_type, new->pkt_ip,
+					new->pkt_ip_data - new->pkt_eth_data);
 			break;
 		case CHAFF_TYPE_TTL:
+			if (eth_type == ETH_TYPE_IP) {
 			new->pkt_ip->ip_ttl = data->ttl;
-			ip_checksum(new->pkt_ip, new->pkt_end -
-			    new->pkt_eth_data);
+				ip_checksum(new->pkt_ip,
+						new->pkt_ip_data - new->pkt_eth_data);
+			} else if (eth_type == ETH_TYPE_IPV6) {
+				new->pkt_ip6->ip6_hlim = data->ttl;
+			}
 			break;
 		}
 		/* Minimal random reordering. */
