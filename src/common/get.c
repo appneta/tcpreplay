@@ -392,7 +392,11 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
         return NULL;
         break;
 
-    /* fragment header is fixed size */
+    /* 
+     * fragment header is fixed size 
+     * FIXME: Frag header has further ext headers (has a ip_nh field)
+     * but I don't support it because there's never a full L4 + payload beyond.
+     */
     case TCPR_IPV6_NH_FRAGMENT:
         dbg(3, "Looks like were a fragment header. Returning some frag'd data.");
         return (void *)((u_char *)exthdr + sizeof(struct tcpr_ipv6_frag_hdr));
@@ -407,10 +411,12 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
         len = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
         dbgx(3, "Looks like we're an ext header (0x%hhx).  Jumping %u bytes to the next", exthdr->ip_nh, len);
         return (void *)((u_char *)exthdr + len);
-
+        break;
+        
     default:
         dbg(3, "Must not be a v6 extension header... returning self");
         return (void *)exthdr;
+        break;
     }
 }
 
