@@ -36,6 +36,7 @@
 
 #include "defines.h"
 #include "common.h"
+#include "tcpr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,14 +82,29 @@ typedef struct {
 } tcpedit_runtime_t;
 
 /*
+ * need to track some packet info at runtime
+ */
+typedef struct {
+    int l2len;
+    int l3len;
+    int datalen;
+    u_int8_t l4proto;
+    u_char *l4data;
+    u_int16_t sport, dport;
+    union {
+        u_int32_t ipv4;
+        struct tcpr_in6_addr ipv6;
+    } sip, dip;
+} tcpedit_packet_t;
+
+/*
  * portmap data struct
  */
-struct tcpedit_portmap_s {
+typedef struct tcpedit_portmap_s {
     long from;
     long to;
     struct tcpedit_portmap_s *next;
-};
-typedef struct tcpedit_portmap_s tcpedit_portmap_t;
+} tcpedit_portmap_t;
 
 /*
  * all the arguments that the packet editing library supports
@@ -96,6 +112,7 @@ typedef struct tcpedit_portmap_s tcpedit_portmap_t;
 typedef struct {
     bool validated;  /* have we run tcpedit_validate()? */
     struct tcpeditdlt_s *dlt_ctx;
+    tcpedit_packet_t *packet;
     
     /* runtime variables, don't mess with these */
     tcpedit_runtime_t runtime;

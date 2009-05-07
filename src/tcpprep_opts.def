@@ -30,7 +30,8 @@ include         = "#include \"defines.h\"\n"
                 "#include \"tcpprep.h\"\n"
 				"#include <stdlib.h>\n"
 				"#include <string.h>\n"
-                "extern tcpprep_opt_t options;\n";
+				"#include \"tcpprep_api.h\"\n"
+                "extern tcpprep_t *tcpprep;\n";
 
 homerc          = "$$/";
 
@@ -87,21 +88,21 @@ flag = {
 	flags-cant	= mac;
     flag-code   = <<- EOAuto
     
-    options.mode = AUTO_MODE;
+    tcpprep->options->mode = AUTO_MODE;
     if (strcmp(OPT_ARG(AUTO), "bridge") == 0) {
-        options.automode = BRIDGE_MODE;
+        tcpprep->options->automode = BRIDGE_MODE;
     }
     else if (strcmp(OPT_ARG(AUTO), "router") == 0) {
-        options.automode = ROUTER_MODE;
+        tcpprep->options->automode = ROUTER_MODE;
     }
     else if (strcmp(OPT_ARG(AUTO), "client") == 0) {
-        options.automode = CLIENT_MODE;
+        tcpprep->options->automode = CLIENT_MODE;
     }
     else if (strcmp(OPT_ARG(AUTO), "server") == 0) {
-        options.automode = SERVER_MODE;
+        tcpprep->options->automode = SERVER_MODE;
     }
     else if (strcmp(OPT_ARG(AUTO), "first") == 0) {
-        options.automode = FIRST_MODE;
+        tcpprep->options->automode = FIRST_MODE;
     }
     else {
         errx(-1, "Invalid auto mode type: %s", OPT_ARG(AUTO));
@@ -160,8 +161,8 @@ flag = {
     flag-code   = <<- EOCidr
   
     char *cidr = safe_strdup(OPT_ARG(CIDR));
-    options.mode = CIDR_MODE;
-    if (!parse_cidr(&options.cidrdata, cidr, ","))
+    tcpprep->options->mode = CIDR_MODE;
+    if (!parse_cidr(&tcpprep->options->cidrdata, cidr, ","))
         errx(-1, "Unable to parse CIDR map: %s", OPT_ARG(CIDR));
     free(cidr);
 
@@ -188,10 +189,10 @@ flag = {
     int regex_error;
     char ebuf[EBUF_SIZE];
     
-    options.mode = REGEX_MODE;
-    if ((regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
+    tcpprep->options->mode = REGEX_MODE;
+    if ((regex_error = regcomp(&tcpprep->options->preg, OPT_ARG(REGEX), 
         REG_EXTENDED|REG_NOSUB))) {
-        regerror(regex_error, &options.preg, ebuf, EBUF_SIZE);
+        regerror(regex_error, &tcpprep->options->preg, ebuf, EBUF_SIZE);
         errx(-1, "Unable to compile regex: %s", ebuf);
     }
     
@@ -213,7 +214,7 @@ flag = {
 	flags-cant	= mac;
     flag-code   = <<- EOPort
     
-    options.mode = PORT_MODE;
+    tcpprep->options->mode = PORT_MODE;
     
 EOPort;
     doc         = <<- EOText
@@ -234,8 +235,8 @@ flag = {
 	flags-cant	= port;
 	flag-code	= <<- EOMac
 	
-	options.mode = MAC_MODE;
-	options.maclist = safe_strdup(OPT_ARG(MAC));
+	tcpprep->options->mode = MAC_MODE;
+	tcpprep->options->maclist = safe_strdup(OPT_ARG(MAC));
 	
 
 EOMac;
@@ -273,8 +274,8 @@ flag = {
                 strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
     
     /* save the comment */
-    options.comment = (char *)safe_malloc(strlen(OPT_ARG(COMMENT)) + 1);
-    strcpy(options.comment, OPT_ARG(COMMENT));
+    tcpprep->options->comment = (char *)safe_malloc(strlen(OPT_ARG(COMMENT)) + 1);
+    strcpy(tcpprep->options->comment, OPT_ARG(COMMENT));
     
 EOComment;
     doc         = <<- EOText
@@ -289,7 +290,7 @@ flag = {
 	descrip		= "Do not embed any cache file comment";
 	flag-code	= <<- EOCode
 
-options.nocomment = 1;
+tcpprep->options->nocomment = 1;
 EOCode;
 	doc			= <<- EOText
 By default, tcpprep includes the arguments passed on the command line
@@ -312,9 +313,9 @@ flag = {
     char *include;
     
     include = safe_strdup(OPT_ARG(INCLUDE));
-    options.xX.mode = xX_MODE_INCLUDE;
+    tcpprep->options->xX.mode = xX_MODE_INCLUDE;
         
-    if ((options.xX.mode = parse_xX_str(&options.xX, include, &options.bpf)) == xXError)
+    if ((tcpprep->options->xX.mode = parse_xX_str(&tcpprep->options->xX, include, &tcpprep->options->bpf)) == xXError)
         errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
 
     free(include);
@@ -359,9 +360,9 @@ flag = {
     char *exclude;
     
     exclude = safe_strdup(OPT_ARG(EXCLUDE));
-    options.xX.mode = xX_MODE_EXCLUDE;
+    tcpprep->options->xX.mode = xX_MODE_EXCLUDE;
     
-    if ((options.xX.mode = parse_xX_str(&options.xX, exclude, &options.bpf)) == xXError)
+    if ((tcpprep->options->xX.mode = parse_xX_str(&tcpprep->options->xX, exclude, &tcpprep->options->bpf)) == xXError)
         errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
     
     free(exclude);
@@ -452,7 +453,7 @@ Example:
 http            80/tcp
 EOText;
     flag-code   = <<- EOServices
-    parse_services(OPT_ARG(SERVICES), &options.services);
+    parse_services(OPT_ARG(SERVICES), &tcpprep->options->services);
     
 EOServices;
 };
@@ -464,7 +465,7 @@ flag = {
     max         = 1;
     flag-code   = <<- EONonip
  
-    options.nonip = DIR_SERVER;
+    tcpprep->options->nonip = DIR_SERVER;
     
 EONonip;
     doc         = <<- EOText

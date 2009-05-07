@@ -41,9 +41,10 @@
 #include "tree.h"
 #include "tcpprep.h"
 #include "tcpprep_opts.h"
+#include "tcpprep_api.h"
 
 extern tcpr_data_tree_t treeroot;
-extern tcpprep_opt_t options;
+extern tcpprep_t *tcpprep;
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -72,6 +73,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
     tcpr_cidr_t *newcidr = NULL;
     unsigned long network = 0;
     unsigned long mask = ~0;    /* turn on all bits */
+    tcpprep_opt_t *options = tcpprep->options;
 
     dbg(1, "Running: tree_buildcidr()");
 
@@ -86,7 +88,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
          * necessary
          */
         dbgx(4, "Checking if %s exists in cidrdata...", get_addr2name4(node->ip, RESOLVE));
-        if (!check_ip_cidr(options.cidrdata, node->ip)) {   /* if we exist, abort */
+        if (!check_ip_cidr(options->cidrdata, node->ip)) {   /* if we exist, abort */
             dbgx(3, "Node %s doesn't exist... creating.", 
                     get_addr2name4(node->ip, RESOLVE));
             newcidr = new_cidr();
@@ -95,7 +97,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
             dbgx(3, "Using network: %s", 
                     get_addr2name4(network, RESOLVE));
             newcidr->network = network;
-            add_cidr(&options.cidrdata, &newcidr);
+            add_cidr(&options->cidrdata, &newcidr);
         }
     }
 }
@@ -109,6 +111,7 @@ static int
 tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 {
     tcpr_tree_t *node = NULL;
+    tcpprep_opt_t *options = tcpprep->options;
 
 
     RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
@@ -122,7 +125,7 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        if (check_ip_cidr(options.cidrdata, node->ip))    /* if we exist, abort */
+        if (check_ip_cidr(options->cidrdata, node->ip))    /* if we exist, abort */
             return 1;
 
     }
@@ -140,13 +143,14 @@ process_tree(void)
 {
     int mymask = 0;
     tcpr_buildcidr_t *bcdata;
+    tcpprep_opt_t *options = tcpprep->options;
 
 
     dbg(1, "Running: process_tree()");
 
     bcdata = (tcpr_buildcidr_t *)safe_malloc(sizeof(tcpr_buildcidr_t));
 
-    for (mymask = options.max_mask; mymask <= options.min_mask; mymask++) {
+    for (mymask = options->max_mask; mymask <= options->min_mask; mymask++) {
         dbgx(1, "Current mask: %u", mymask);
 
         /* set starting vals */
@@ -167,8 +171,8 @@ process_tree(void)
             return (mymask);    /* success! */
         }
         else {
-            destroy_cidr(options.cidrdata); /* clean up after our mess */
-            options.cidrdata = NULL;
+            destroy_cidr(options->cidrdata); /* clean up after our mess */
+            options->cidrdata = NULL;
         }
     }
 
@@ -390,6 +394,7 @@ void
 tree_calculate(tcpr_data_tree_t *treeroot)
 {
     tcpr_tree_t *node;
+    tcpprep_opt_t *options = tcpprep->options;
 
     dbg(1, "Running tree_calculate()");
 
@@ -397,7 +402,7 @@ tree_calculate(tcpr_data_tree_t *treeroot)
         dbgx(4, "Processing %s", get_addr2name4(node->ip, RESOLVE));
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
-            if ((double)node->server_cnt >= (double)node->client_cnt * options.ratio) {
+            if ((double)node->server_cnt >= (double)node->client_cnt * options->ratio) {
                 node->type = DIR_SERVER;
                 dbgx(3, "Setting %s to server", 
                         get_addr2name4(node->ip, RESOLVE));

@@ -44,42 +44,4 @@
 #include <dmalloc.h>
 #endif
 
-
-/* default ports used for servers */
-#define DEFAULT_LOW_SERVER_PORT 0
-#define DEFAULT_HIGH_SERVER_PORT 1023
-#define MYARGS_LEN 1024
-
-struct tcpprep_opt_s {
-    pcap_t *pcap;
-    int verbose;    
-    char *tcpdump_args;
-
-    tcpr_cache_t *cachedata;
-    tcpr_cidr_t *cidrdata;
-    char *maclist;
-    tcpr_xX_t xX;
-    tcpr_bpf_t bpf;
-    tcpr_services_t services;
-    char *comment; /* cache file comment */
-    int nocomment; /* don't include the cli in the comment */
-    int mode;      /* our overall mode */
-    int automode;  /* our auto mode */
-    int min_mask;
-    int max_mask;
-    double ratio;
-    regex_t preg;
-    int nonip;
-};
-typedef struct tcpprep_opt_s tcpprep_opt_t;
-
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

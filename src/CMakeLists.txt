@@ -23,7 +23,7 @@ ENDIF(NOT SYSTEM_STRLCPY)
 SET(tcprewrite_srcs tcprewrite.c)
 SET(tcpreplay_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
 SET(tcpreplay_edit_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
-SET(tcpprep_srcs tcpprep.c tree.c)
+SET(tcpprep_srcs tcpprep.c tree.c tcpprep_api.c)
 SET(tcpbridge_srcs tcpbridge.c bridge.c)
 
 # VC++ needs the .h files listed as sources so they show up

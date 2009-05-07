@@ -54,7 +54,7 @@
 
 #define TCPDUMP_DECODE_LEN 65535
 
-struct tcpdump_s {
+typedef struct tcpdump_s {
     char *filename;
     char *args;
     struct pcap_file_header pfh;
@@ -70,9 +70,7 @@ struct tcpdump_s {
     int debugfd;
     char debugfile[255];
 #endif
-};
-
-typedef struct tcpdump_s tcpdump_t;
+} tcpdump_t;
 
 //int tcpdump_init(tcpdump_t *tcpdump);
 int tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap);
@@ -82,12 +80,3 @@ void tcpdump_close(tcpdump_t *tcpdump);
 void tcpdump_kill(tcpdump_t *tcpdump);
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
