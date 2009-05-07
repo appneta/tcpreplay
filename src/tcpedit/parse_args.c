@@ -144,6 +144,10 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     if (HAVE_OPT(TOS))
         tcpedit->tos = OPT_VALUE_TOS;
 
+    /* --flowlabel */
+    if (HAVE_OPT(FLOWLABEL))
+        tcpedit->flowlabel = OPT_VALUE_FLOWLABEL;
+
     /* --mtu */
     if (HAVE_OPT(MTU))
         tcpedit->mtu = OPT_VALUE_MTU;

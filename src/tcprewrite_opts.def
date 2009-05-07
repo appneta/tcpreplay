@@ -186,6 +186,7 @@ EOText;
 flag = {
     ifdef       = ENABLE_FRAGROUTE;
     name        = fragdir;
+    flags-must  = cachefile;
     arg-type    = string;
     max         = 1;
     descrip     = "Which flows to apply fragroute to: c2s, s2c, both";

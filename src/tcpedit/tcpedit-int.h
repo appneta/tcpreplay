@@ -115,6 +115,9 @@ struct tcpedit_s {
     /* TOS/DiffServ/ECN */
     int tos;  /* -1 is disabled, else copy value */
     
+    /* IPv6 FlowLabel */
+    int flowlabel; /* -1 is disabled, else copy value */
+    
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */
     tcpr_cidrmap_t *cidrmap2;

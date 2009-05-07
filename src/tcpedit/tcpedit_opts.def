@@ -202,6 +202,18 @@ EOText;
 };
 
 flag = {
+    name        = flowlabel;
+    descrip     = "Set the IPv6 Flow Label";
+    arg-type    = number;
+    arg-range   = "0->1048575";
+    max         = 1;
+    doc         = <<- EOText
+Allows you to override the 20bit IPv6 Flow Label field.  Has no effect on IPv4 
+packets.
+EOText;
+};
+
+flag = {
     name        = fixlen;
     value       = F;
     arg-type    = string;
