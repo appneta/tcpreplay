@@ -192,6 +192,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             memcpy(&ipflags, &ip6_hdr->ip_flags, 4);
             ipflags = ntohl(ipflags) & 0xfff00000;
             ipflags += tcpedit->flowlabel;
+            ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
         }
 
