@@ -170,6 +170,15 @@ EOCidr;
 Specify a comma delimited list of CIDR netblocks to match against
 the source IP of each packet.  Packets matching any of the CIDR's
 are classified as servers.
+
+IPv4 Example:
+@example
+--cidr=192.168.0.0/16,172.16.0.0/12,10.0.0.0/8
+@end example
+IPv6 Example:
+@example
+--cidr=[::ffff:0:0/96],[fe80::/16]
+@end example
 EOText;
 };
 
@@ -217,8 +226,8 @@ flag = {
     
 EOPort;
     doc         = <<- EOText
-Specifies that TCP and UDP traffic should be classified as client
-or server based upon the destination port of the header.
+Specifies that TCP and UDP traffic over IPv4 and IPv6 should be classified 
+as client or server based upon the destination port of the header.
 EOText;
 };
 
@@ -326,13 +335,13 @@ send/edit packets which match the provided rule.  Rules can be one of:
 
 @table @bullet
 @item S:<CIDR1>,... 
-- Source IP must match specified CIDR(s)
+- Source IP must match specified IPv4/v6 CIDR(s)
 @item D:<CIDR1>,... 
-- Destination IP must match specified CIDR(s)
+- Destination IP must match specified IPv4/v6 CIDR(s)
 @item B:<CIDR1>,... 
-- Both source and destination IP must match specified CIDR(s)
+- Both source and destination IP must match specified IPv4/v6 CIDR(s)
 @item E:<CIDR1>,... 
-- Either IP must match specified CIDR(s)
+- Either IP must match specified IPv4/v6 CIDR(s)
 @item P:<LIST>      
 - Must be one of the listed packets where the list
 corresponds to the packet number in the capture file.
@@ -373,13 +382,13 @@ send/edit packets which do NOT match the provided rule.  Rules can be one of:
 
 @table @bullet
 @item S:<CIDR1>,... 
-- Source IP must not match specified CIDR(s)
+- Source IP must not match specified IPv4/v6 CIDR(s)
 @item D:<CIDR1>,... 
-- Destination IP must not match specified CIDR(s)
+- Destination IP must not match specified IPv4/v6 CIDR(s)
 @item B:<CIDR1>,... 
-- Both source and destination IP must not match specified CIDR(s)
+- Both source and destination IP must not match specified IPv4/v6 CIDR(s)
 @item E:<CIDR1>,... 
-- Either IP must not match specified CIDR(s)
+- Either IP must not match specified IPv4/v6 CIDR(s)
 @item P:<LIST>      
 - Must not be one of the listed packets where the list
 corresponds to the packet number in the capture file.
