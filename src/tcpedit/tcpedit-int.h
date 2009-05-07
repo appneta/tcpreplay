@@ -112,11 +112,14 @@ struct tcpedit_s {
 #define TCPEDIT_TTL_SUB 0x3
     u_int8_t ttl_value;
 
-    /* TOS/DiffServ/ECN */
-    int tos;  /* -1 is disabled, else copy value */
+    /* TOS/DiffServ/ECN, -1 is disabled, else copy value */
+    int tos;
     
-    /* IPv6 FlowLabel */
-    int flowlabel; /* -1 is disabled, else copy value */
+    /* IPv6 FlowLabel, -1 is disabled, else copy value */
+    int flowlabel;
+    
+    /* IPv6 TClass, -1 is disabled, else copy value */
+    int tclass;
     
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */

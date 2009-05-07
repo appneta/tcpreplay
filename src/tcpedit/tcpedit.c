@@ -171,9 +171,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         needtorecalc += rewrite_ipv6_hlim(tcpedit, ip6_hdr);
 
         /* set traffic class? */
-        if (tcpedit->tos > -1) {
+        if (tcpedit->tclass > -1) {
             /* calculate the bits */
-            tclass = tcpedit->tos << 20;
+            tclass = tcpedit->tclass << 20;
             
             /* convert our 4 bytes to an int */
             memcpy(&ipflags, &ip6_hdr->ip_flags, 4);
@@ -303,7 +303,11 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
         return TCPEDIT_ERROR;
 
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
-    tcpedit->tos = -1; /* disabled by default */
+
+    /* disabled by default */
+    tcpedit->tos = -1;
+    tcpedit->tclass = -1;
+    tcpedit->flowlabel = -1;
  
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.dlt1 = dlt;
