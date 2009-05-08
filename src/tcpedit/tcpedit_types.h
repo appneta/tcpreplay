@@ -135,8 +135,14 @@ typedef struct {
     tcpedit_ttl_mode ttl_mode;
     u_int8_t ttl_value;
 
-    /* TOS/DiffServ/ECN */
-    int tos;  /* -1 is disabled, else copy value */
+    /* TOS/DiffServ/ECN, -1 is disabled, else copy value */
+    int tos;
+    
+    /* IPv6 FlowLabel, -1 is disabled, else copy value */
+    int flowlabel;
+    
+    /* IPv6 TClass, -1 is disabled, else copy value */
+    int tclass;
     
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */

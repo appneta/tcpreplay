@@ -72,6 +72,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     ipv6_hdr_t *ip6_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0, l2proto, retval = 0, dst_dlt, src_dlt, pktlen, lendiff;
+    int ipflags = 0, tclass = 0;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
     u_char *packet = *pktdata;
     assert(tcpedit);
@@ -161,18 +162,46 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
-
     }
-    if (ip6_hdr != NULL) {
+    /* IPv6 edits */
+    else if (ip6_hdr != NULL) {
         /* rewrite the hop limit */
         needtorecalc += rewrite_ipv6_hlim(tcpedit, ip6_hdr);
 
+        /* set traffic class? */
+        if (tcpedit->tclass > -1) {
+            /* calculate the bits */
+            tclass = tcpedit->tclass << 20;
+            
+            /* convert our 4 bytes to an int */
+            memcpy(&ipflags, &ip6_hdr->ip_flags, 4);
+            
+            /* strip out the old tclass bits */
+            ipflags = ntohl(ipflags) & 0xf00fffff;
+
+            /* add the tclass bits back */
+            ipflags += tclass; 
+            ipflags = htonl(ipflags);
+            memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
+        }
+
+        /* set the flow label? */
+        if (tcpedit->flowlabel > -1) {
+            memcpy(&ipflags, &ip6_hdr->ip_flags, 4);
+            ipflags = ntohl(ipflags) & 0xfff00000;
+            ipflags += tcpedit->flowlabel;
+            ipflags = htonl(ipflags);
+            memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
+        }
+
+        /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
             if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
     }
+
     /* (Un)truncate or MTU truncate packet? */
     if (tcpedit->fixlen || tcpedit->mtu_truncate) {
         if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr, ip6_hdr)) < 0)
@@ -273,7 +302,11 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
         return TCPEDIT_ERROR;
 
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
-    tcpedit->tos = -1; /* disabled by default */
+
+    /* disabled by default */
+    tcpedit->tos = -1;
+    tcpedit->tclass = -1;
+    tcpedit->flowlabel = -1;
  
     tcpedit->validated = false;
     tcpedit->skip_broadcast = false;

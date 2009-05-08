@@ -311,21 +311,24 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr)
 
 /**
  * returns a pointer to the layer 4 header which is just beyond the IPv6 header
- * and any exension headers or NULL when there is none.  Function is recursive.
+ * and any exension headers or NULL when there is none as in the case of
+ * v6 Frag or ESP header.  Function is recursive.
  */
 void *
 get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
 {
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
-    u_int8_t proto = ip6_hdr->ip_nh;
+    u_int8_t proto;
     
     assert(ip6_hdr);
     
     /* jump to the end of the IPv6 header */ 
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);    
+    proto = ip6_hdr->ip_nh;
     
     while (true) {
         dbgx(3, "Processing proto: 0x%hx", proto);
+        
         switch (proto) {        
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */
         case TCPR_IPV6_NH_IPV6:
@@ -338,28 +341,32 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
         case TCPR_IPV6_NH_ROUTING:
         case TCPR_IPV6_NH_DESTOPTS:
         case TCPR_IPV6_NH_HBH:
-            dbgx(3, "Going deeper due to extension header 0x%hhx", proto);
+            dbgx(3, "Going deeper due to extension header 0x%02X", proto);
             exthdr = get_ipv6_next(next);
             proto = exthdr->ip_nh;
             next = exthdr;
             break;
             
         /*
-         * no further processing, either TCP, UDP or an unparsable
-         * IPv6 fragment/encrypted data
+         * Can't handle.  Unparsable IPv6 fragment/encrypted data
          */
         case TCPR_IPV6_NH_FRAGMENT:
         case TCPR_IPV6_NH_ESP:
-#ifdef DEBUG
-            exthdr = next;
-            dbgx(3, "returning end of this ext header: %hhu", IPV6_EXTLEN_TO_BYTES(exthdr->ip_len));
-#endif
-            return get_ipv6_next(next);
+            return NULL;
             break;
-            
+
+        /*
+         * no further processing, either TCP, UDP, ICMP, etc...
+         */
         default:
-            dbg(3, "Found end of IPv6/Ext Headers");
-            return next;
+            if (proto != ip6_hdr->ip_nh) {
+                dbgx(3, "Returning byte offset of this ext header: %u", IPV6_EXTLEN_TO_BYTES(next->ip_len));
+                return (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
+            } else {
+                dbgx(3, "%s", "Returning end of IPv6 Header");
+                return next;
+            }
+            break;
         } /* switch */
     } /* while */
 }
@@ -367,7 +374,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
 
 /**
  * returns the next payload or header of the current extention header
- * returns NULL for none.
+ * returns NULL for none/ESP.
  */
 void *
 get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
@@ -385,9 +392,13 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
         return NULL;
         break;
 
-    /* fragment header is fixed size */
+    /* 
+     * fragment header is fixed size 
+     * FIXME: Frag header has further ext headers (has a ip_nh field)
+     * but I don't support it because there's never a full L4 + payload beyond.
+     */
     case TCPR_IPV6_NH_FRAGMENT:
-        dbg(3, "Fragment!  Returning some data.");
+        dbg(3, "Looks like were a fragment header. Returning some frag'd data.");
         return (void *)((u_char *)exthdr + sizeof(struct tcpr_ipv6_frag_hdr));
         break;
 
@@ -397,10 +408,15 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
     case TCPR_IPV6_NH_DESTOPTS:
     case TCPR_IPV6_NH_HBH:
     case TCPR_IPV6_NH_AH:
-    default:
         len = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
-        dbgx(3, "Looks like we're a 0x%hhx.  Jumping %u bytes to the end", exthdr->ip_nh, len);
+        dbgx(3, "Looks like we're an ext header (0x%hhx).  Jumping %u bytes to the next", exthdr->ip_nh, len);
         return (void *)((u_char *)exthdr + len);
+        break;
+        
+    default:
+        dbg(3, "Must not be a v6 extension header... returning self");
+        return (void *)exthdr;
+        break;
     }
 }
 
@@ -412,10 +428,10 @@ u_int8_t
 get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
 {
     u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
-    u_int8_t proto, last;
+    u_int8_t proto;
     struct tcpr_ipv6_ext_hdr_base *exthdr = NULL;
     
-    last = proto = ip6_hdr->ip_nh;
+    proto = ip6_hdr->ip_nh;
     assert(ip6_hdr);
         
     while (true) {
@@ -439,17 +455,16 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
             case TCPR_IPV6_NH_ROUTING:
             case TCPR_IPV6_NH_DESTOPTS:
             case TCPR_IPV6_NH_HBH:
-                dbgx(3, "Jumping to next header (0x%hhx)", proto);
+                dbgx(3, "Jumping to next extension header (0x%hhx)", proto);
                 exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr);
-                last = proto;
                 proto = exthdr->ip_nh;
                 ptr = (u_char *)exthdr;
                 break;
                 
             /* should be TCP, UDP or the like */
             default:
-                dbgx(3, "Selecting next L4 Proto as: 0x%02x", last);
-                return last;
+                dbgx(3, "Selecting next L4 Proto as: 0x%02x", proto);
+                return proto;
         }
     }    
 }
