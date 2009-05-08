@@ -144,7 +144,7 @@ tcpreplay_post_args(tcpreplay_t *ctx)
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
-        options->debug = OPT_VALUE_DBUG;
+        debug = OPT_VALUE_DBUG;
 #else
     if (HAVE_OPT(DBUG)) {
         warn ++;
