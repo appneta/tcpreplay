@@ -79,6 +79,7 @@ dlt_%{plugin}_register(tcpeditdlt_t *ctx)
      * Even if it is only an empty stub returning success.
      */
     plugin->plugin_init = dlt_%{plugin}_init;
+    plugin->plugin_post_init = dlt_%{plugin}_init;
     plugin->plugin_cleanup = dlt_%{plugin}_cleanup;
     plugin->plugin_parse_opts = dlt_%{plugin}_parse_opts;
     plugin->plugin_decode = dlt_%{plugin}_decode;
@@ -126,6 +127,29 @@ dlt_%{plugin}_init(tcpeditdlt_t *ctx)
     /* FIXME: set default config values here */
 
     return TCPEDIT_OK; /* success */
+}
+
+/**
+ * Post init function.  This function is called only once after init() and parse_opts()
+ * It basically allows decoders to properly initialize sub-plugins.
+ */
+int 
+dlt_%{plugin}_post_init(tcpeditdlt_t *ctx)
+{
+/* FIXME: Only needs to do something if we're using a sub-plugin
+ * See the jnpr_ether_plugin for an example of this
+
+    %{plugin}_config_t *config;
+    
+    // do nothing if we're not the decoder
+    if (ctx->decoder->dlt != dlt_value)
+        return TCPEDIT_OK;
+    
+    // init our subcontext & decoder
+    config = (%{plugin}_config_t *)ctx->encoder->config;
+    config->subctx = tcpedit_dlt_init(ctx->tcpedit, SUB_PLUGIN_DLT_TYPE);
+*/      
+    return TCPEDIT_OK;
 }
 
 /*

@@ -38,6 +38,7 @@
 
 int dlt_%{plugin}_register(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_init(tcpeditdlt_t *ctx);
+int dlt_%{plugin}_post_init(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_cleanup(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_parse_opts(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);

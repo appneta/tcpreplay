@@ -90,6 +90,7 @@ struct tcpeditdlt_plugin_s {
     int requires; /* bit mask for which fields this plugin encoder requires */
     int provides; /* bit mask for which fields this plugin decoder provides */
     int (*plugin_init)(tcpeditdlt_t *);
+    int (*plugin_post_init)(tcpeditdlt_t *);
     int (*plugin_cleanup)(tcpeditdlt_t *);
     int (*plugin_parse_opts)(tcpeditdlt_t *);
     int (*plugin_decode)(tcpeditdlt_t *, const u_char *, const int);
@@ -101,7 +102,6 @@ struct tcpeditdlt_plugin_s {
     tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
     u_char *(*plugin_get_mac)(tcpeditdlt_t *, tcpeditdlt_mac_type_t, const u_char *, const int);
     void *config; /* user configuration data for the encoder */
-    
 };
 
 
@@ -118,7 +118,8 @@ struct tcpeditdlt_s {
     tcpeditdlt_plugin_t *plugins;       /* registered plugins */
     tcpeditdlt_plugin_t *decoder;       /* Encoder plugin */
     tcpeditdlt_plugin_t *encoder;       /* Decoder plugin */      
-                    /* decoder validator tells us which kind of address we're processing */
+
+    /* decoder validator tells us which kind of address we're processing */
     tcpeditdlt_l2addr_type_t addr_type;    
 
     /* skip rewriting IP/MAC's which are broadcast or multicast? */
@@ -130,8 +131,6 @@ struct tcpeditdlt_s {
     /*
      * These variables are filled out for each packet by the decoder
      */
-    
-    /* The following fields are updated on a per-packet basis by the decoder */
     tcpeditdlt_l2address_t srcaddr;         /* filled out source address */
     tcpeditdlt_l2address_t dstaddr;         /* filled out dst address */
     int l2len;                              /* set by decoder and updated by encoder */

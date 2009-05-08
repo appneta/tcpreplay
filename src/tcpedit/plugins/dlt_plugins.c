@@ -200,7 +200,7 @@ tcpedit_dlt_post_args(tcpedit_t *tcpedit)
     dst_dlt_name = OPT_ARG(DLT) ? OPT_ARG(DLT) : ctx->decoder->name;
     if ((ctx->encoder = tcpedit_dlt_getplugin_byname(ctx, dst_dlt_name)) == NULL) {
         tcpedit_seterr(tcpedit, "No output DLT plugin available for: %s", dst_dlt_name);
-        return -1;    
+        return TCPEDIT_ERROR;    
     }
     
     /* Figure out if we're skipping braodcast & multicast */
@@ -211,18 +211,18 @@ tcpedit_dlt_post_args(tcpedit_t *tcpedit)
     if (ctx->encoder->dlt != ctx->decoder->dlt) {
         if ((rcode = ctx->encoder->plugin_init(ctx)) != TCPEDIT_OK) {
             /* plugin should generate the error */
-            return -1;    
+            return TCPEDIT_ERROR;
         }
     }
 
     /* parse the DLT specific options */
     if ((rcode = tcpedit_dlt_parse_opts(ctx)) != TCPEDIT_OK) {
         /* parser should generate the error */
-        return -1;    
+        return TCPEDIT_ERROR;
     }
 
     /* we're OK */
-    return 0;
+    return tcpedit_dlt_post_init(ctx);
 } 
 
 /**
@@ -259,6 +259,29 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t d
     }
        
     return rcode;
+}
+
+/**
+ * \brief Call after tcpedit_dlt_post_args() to allow plugins to do special things
+ * 
+ * Useful for plugins to initalize sub-plugins and what not.
+ * Returns the standard TCPEDIT_OK|ERROR|WARN
+ */
+int 
+tcpedit_dlt_post_init(tcpeditdlt_t *tcpedit)
+{
+    
+    /* first init decoder */
+    if (tcpedit->decoder->plugin_post_init != NULL)
+        if (tcpedit->decoder->plugin_post_init(tcpedit) == TCPEDIT_ERROR)
+            return TCPEDIT_ERROR;
+            
+    /* the encoder */
+    if (tcpedit->encoder->plugin_post_init != NULL)
+        if (tcpedit->encoder->plugin_post_init(tcpedit) == TCPEDIT_ERROR)
+            return TCPEDIT_ERROR;
+    
+    return TCPEDIT_OK;
 }
 
 

@@ -48,6 +48,13 @@ int tcpedit_dlt_post_args(tcpedit_t *tcpedit);
  */
 tcpeditdlt_t *tcpedit_dlt_init(tcpedit_t *tcpedit, int srcdlt);
 
+/*
+ * Called after tcpedit_dlt_post_args() to allow plugins to do special things
+ * like init sub-plugins.  You'll need to call this manual if you're not using
+ * tcpedit_dlt_post_args();
+ */
+int tcpedit_dlt_post_init(tcpeditdlt_t *tcpedit);
+
 /* cleans up after ourselves.  Called for each initalized plugin */
 void tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
 

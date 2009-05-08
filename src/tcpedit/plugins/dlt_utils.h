@@ -48,5 +48,6 @@ tcpeditdlt_plugin_t *tcpedit_dlt_getplugin_byname(tcpeditdlt_t *ctx, const char 
 
 int tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new);
 
+int tcpedit_dlt_copy_decoder_state(tcpeditdlt_t *ctx, tcpeditdlt_t *subctx);
 
 #endif

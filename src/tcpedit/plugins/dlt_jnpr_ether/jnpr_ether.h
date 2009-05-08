@@ -54,6 +54,7 @@ extern "C" {
 
 int dlt_jnpr_ether_register(tcpeditdlt_t *ctx);
 int dlt_jnpr_ether_init(tcpeditdlt_t *ctx);
+int dlt_jnpr_ether_post_init(tcpeditdlt_t *ctx);
 int dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx);
 int dlt_jnpr_ether_parse_opts(tcpeditdlt_t *ctx);
 int dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
@@ -69,16 +70,13 @@ u_char *dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, con
  * structure to hold any data parsed from the packet by the decoder.
  */
 typedef struct jnpr_ether_extra_s {
-    int vlan; /* set to 1 for vlan_ fields being filled out */
-    uint16_t vlan_tag;
-    uint16_t vlan_pri;
-    uint16_t vlan_cfi;
+    ;
 } jnpr_ether_extra_t;
 
 
 /* we have no user config data */
 typedef struct jnpr_ether_config_s {
-    ;
+    tcpeditdlt_t *subctx;
 } jnpr_ether_config_t;
 
 #ifdef __cplusplus
