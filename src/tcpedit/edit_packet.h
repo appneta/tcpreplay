@@ -37,25 +37,35 @@
 #include "common.h"
 
 int untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, ipv4_hdr_t *ip_hdr);
+        u_char *pktdata, ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr);
 
 int randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pktdhr, 
         u_char *pktdata, ipv4_hdr_t *ip_hdr);
 
+int randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pktdhr,
+        u_char *pktdata, ipv6_hdr_t *ip_hdr);
+
 int randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         u_char *pktdata, int datalink);
 
-int fix_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr, 
+int fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr,
         ipv4_hdr_t *ip_hdr);
+
+int fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr,
+        ipv6_hdr_t *ip_hdr);
 
 int extract_data(tcpedit_t *tcpedit, const u_char *pktdata, 
         int caplen, char *l7data[]);
 
 int rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction);
 
+int rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip_hdr, tcpr_dir_t direction);
+
 int rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int direction);
 
 int rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr);
+
+int rewrite_ipv6_hlim(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr);
 
 #define BROADCAST_IP 4294967295
 

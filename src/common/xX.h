@@ -38,7 +38,8 @@
  */
 
 int parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf);
-int process_xX_by_cidr(int, tcpr_cidr_t *, ipv4_hdr_t *);
+int process_xX_by_cidr_ipv4(int, tcpr_cidr_t *, ipv4_hdr_t *);
+int process_xX_by_cidr_ipv6(int, tcpr_cidr_t *, ipv6_hdr_t *);
 
 /*
  * Include/Exclude (xXmode) values

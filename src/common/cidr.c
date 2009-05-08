@@ -64,8 +64,7 @@ print_cidr(tcpr_cidr_t * mycidr)
     cidr_ptr = mycidr;
     while (cidr_ptr != NULL) {
         /* print it */
-        fprintf(stderr, "%s/%d, ",
-                get_addr2name4(cidr_ptr->network, RESOLVE),
+        fprintf(stderr, "%s/%d, ", get_cidr2name(cidr_ptr, RESOLVE),
                 cidr_ptr->masklen);
 
         /* go to the next */
@@ -106,13 +105,11 @@ add_cidr(tcpr_cidr_t ** cidrdata, tcpr_cidr_t ** newcidr)
 
     if (*cidrdata == NULL) {
         *cidrdata = *newcidr;
-    }
-    else {
+    } else {
         cidr_ptr = *cidrdata;
 
-        while (cidr_ptr->next != NULL) {
+        while (cidr_ptr->next != NULL)
             cidr_ptr = cidr_ptr->next;
-        }
 
         cidr_ptr->next = *newcidr;
     }
@@ -137,8 +134,7 @@ ip2cidr(const unsigned long ip, const int masklen)
     if (masklen < 10) {
         snprintf(mask, 1, "%d", masklen);
         strncat((char *)network, mask, 1);
-    }
-    else {
+    } else {
         snprintf(mask, 2, "%d", masklen);
         strncat((char *)network, mask, 2);
     }
@@ -192,57 +188,111 @@ cidr2cidr(char *cidr)
     unsigned int octets[4];     /* used in sscanf */
     tcpr_cidr_t *newcidr;
     char networkip[16], tempoctet[4], ebuf[EBUF_SIZE];
+    int family;
+    char* p;
 
     assert(cidr);
     assert(strlen(cidr) <= EBUF_SIZE);
 
     newcidr = new_cidr();
 
+    for (p = cidr; *p; ++p) {
+        if (*p == '#') {
+            *p = ':';
+        } else if (*p == ']') {
+            *p = 0;
+            break;
+        }
+    }
+
     /*
      * scan it, and make sure it scanned correctly, also copy over the
      * masklen
      */
     count = sscanf(cidr, "%u.%u.%u.%u/%d", &octets[0], &octets[1],
-                   &octets[2], &octets[3], &newcidr->masklen);
+        &octets[2], &octets[3], &newcidr->masklen);
+
     if (count == 4) {
         newcidr->masklen = 32;
-    } else if (count != 5) {
-        goto error;
-    }
+        family = AF_INET;
+    } else if (count == 5) {
+        family = AF_INET;
+    } else {
+        p = strstr(cidr, "/");
+        if (p) {
+            *p = 0;
+            ++p;
+            count = sscanf(p, "%d", &newcidr->masklen);
+        } else {
+            newcidr->masklen = 128;
+        }
 
-    /* masklen better be 0 =< masklen <= 32 */
-    if (newcidr->masklen > 32)
-        goto error;
-
-    /* copy in the ip address */
-    memset(networkip, '\0', 16);
-    for (count = 0; count < 4; count++) {
-        if (octets[count] > 255)
+        if (newcidr->masklen < 0 || newcidr->masklen > 128)
             goto error;
 
-        snprintf(tempoctet, sizeof(octets[count]), "%d", octets[count]);
-        strcat(networkip, tempoctet);
-        /* we don't want a '.' at the end of the last octet */
-        if (count < 3)
-            strcat(networkip, ".");
+        if (get_name2addr6(cidr, RESOLVE, &newcidr->u.network6) > 0) {
+            family = AF_INET6;
+        } else {
+            goto error;
+        }
     }
 
-    /* copy over the network address and return */
-#ifdef HAVE_INET_ATON
-    inet_aton(networkip, (struct in_addr *)&newcidr->network);
-#elif HAVE_INET_ADDR
-    newcidr->network = inet_addr(networkip);
-#endif
+    if (family == AF_INET) {
+        /* masklen better be 0 =< masklen <= 32 */
+        if (newcidr->masklen > 32)
+            goto error;
 
+        /* copy in the ip address */
+        memset(networkip, '\0', 16);
+        for (count = 0; count < 4; count++) {
+            if (octets[count] > 255)
+                goto error;
+
+            snprintf(tempoctet, sizeof(octets[count]), "%d", octets[count]);
+            strcat(networkip, tempoctet);
+            /* we don't want a '.' at the end of the last octet */
+            if (count < 3)
+                strcat(networkip, ".");
+        }
+
+        /* copy over the network address and return */
+#ifdef HAVE_INET_ATON
+        inet_aton(networkip, (struct in_addr *)&newcidr->u.network);
+#elif HAVE_INET_ADDR
+        newcidr->network = inet_addr(networkip);
+#endif
+    } else if (family == AF_INET6) {
+        /* Everything's done */
+    } else {
+        goto error;
+    }
+
+    newcidr->family = family;
     return (newcidr);
 
     /* we only get here on error parsing input */
-  error:
+error:
     memset(ebuf, '\0', EBUF_SIZE);
     strcpy(ebuf, "Unable to parse as a vaild CIDR: ");
     strlcat(ebuf, cidr, EBUF_SIZE);
     errx(-1, "%s", ebuf);
     return NULL;
+}
+
+static void 
+mask_cidr6(char **cidrin, char* delim)
+{
+    char *p;
+
+    if (**cidrin == '[' && *delim == ':') {
+        ++*cidrin;
+        /* make strtok happy */
+        for (p = *cidrin; *p && *p != ']'; ++p) {
+            if (*p == ':') {
+                *p = '#';
+            }
+        }
+    }
 }
 
 /**
@@ -258,6 +308,8 @@ parse_cidr(tcpr_cidr_t ** cidrdata, char *cidrin, char *delim)
     char *network = NULL;
     char *token = NULL;
 
+    mask_cidr6(&cidrin, delim);
+
     /* first itteration of input using strtok */
     network = strtok_r(cidrin, delim, &token);
 
@@ -266,6 +318,9 @@ parse_cidr(tcpr_cidr_t ** cidrdata, char *cidrin, char *delim)
 
     /* do the same with the rest of the input */
     while (1) {
+        if (token)
+            mask_cidr6(&token, delim);
+
         network = strtok_r(NULL, delim, &token);
         /* if that was the last CIDR, then kickout */
         if (network == NULL)
@@ -288,29 +343,56 @@ parse_cidr(tcpr_cidr_t ** cidrdata, char *cidrin, char *delim)
 int
 parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const char *optarg)
 {
-#define NEWMAP_LEN 32
+#define NEWMAP_LEN (INET6_ADDRSTRLEN * 2)
     char *map = NULL, newmap[NEWMAP_LEN];
     char *token = NULL;
     char *string;
+    char *p;
 
     string = safe_strdup(optarg);
 
-    memset(newmap, '\0', NEWMAP_LEN);
-    map = strtok_r(string, ":", &token);
+    if (*string == '[') {
+        /* ipv6 mode */
+        memset(newmap, '\0', NEWMAP_LEN);
+        p = strstr(string, "]:[");
+        if (!p)
+            return 0;
+            
+        *p = 0;
+        strlcpy(newmap, "[::/0]:", NEWMAP_LEN);
+        strlcat(newmap, string, NEWMAP_LEN);
+        strlcat(newmap, "]", NEWMAP_LEN);
+        
+        if (! parse_cidr_map(cidrmap1, newmap))
+            return 0;
 
-    strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
-    strlcat(newmap, map, NEWMAP_LEN);
-    if (! parse_cidr_map(cidrmap1, newmap))
-        return 0;
+        /* do again with the second IP */
+        memset(newmap, '\0', NEWMAP_LEN);
+        strlcpy(newmap, "[::/0]:", NEWMAP_LEN);
+        strlcat(newmap, p + 2, NEWMAP_LEN);
+
+        if (! parse_cidr_map(cidrmap2, newmap))
+            return 0;
+
+    } else {
+        /* ipv4 mode */
+        memset(newmap, '\0', NEWMAP_LEN);
+        map = strtok_r(string, ":", &token);
+
+        strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
+        strlcat(newmap, map, NEWMAP_LEN);
+        if (! parse_cidr_map(cidrmap1, newmap))
+            return 0;
     
-    /* do again with the second IP */
-    memset(newmap, '\0', NEWMAP_LEN);
-    map = strtok_r(NULL, ":", &token);
+        /* do again with the second IP */
+        memset(newmap, '\0', NEWMAP_LEN);
+        map = strtok_r(NULL, ":", &token);
     
-    strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
-    strlcat(newmap, map, NEWMAP_LEN);
-    if (! parse_cidr_map(cidrmap2, newmap))
-        return 0;
+        strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
+        strlcat(newmap, map, NEWMAP_LEN);
+        if (! parse_cidr_map(cidrmap2, newmap))
+            return 0;
+    }
     
     safe_free(string);
     return 1; /* success */
@@ -320,6 +402,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
 /**
  * parses a list of tcpr_cidrmap_t's input from the user which should be in the form
  * of x.x.x.x/y:x.x.x.x/y,...
+ * IPv6 syntax: [addr/y]:[addr/y],...
  * returns 1 for success, or returns 0 on failure
  * since we use strtok to process optarg, it gets zeroed out.
  */
@@ -369,8 +452,8 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
         ptr->from = cidr;
         ptr->to = cidr->next;
         ptr->from->next = NULL;
-
     }
+    
     safe_free(string);
     return 1; /* success */
 }
@@ -388,8 +471,11 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
     char netstr[20];
 #endif
     
+    if (mycidr->family != AF_INET)
+        return 0;
+
     /* always return 1 if 0.0.0.0/0 */
-    if (mycidr->masklen == 0 && mycidr->network == 0)
+    if (mycidr->masklen == 0 && mycidr->u.network == 0)
         return 1;
 
     mask = ~0;                  /* turn on all the bits */
@@ -400,12 +486,12 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
     /* apply the mask to the network and ip */
     ipaddr = ntohl(ip) & mask;
 
-    network = htonl(mycidr->network) & mask;
+    network = htonl(mycidr->u.network) & mask;
 
 
 #ifdef DEBUG
     /* copy this for debug purposes, since it's not re-entrant */
-    strlcpy(netstr, get_addr2name4(htonl(mycidr->network), RESOLVE), 20);
+    strlcpy(netstr, get_addr2name4(htonl(mycidr->u.network), RESOLVE), 20);
 #endif
 
     /* if they're the same, then ip is in network */
@@ -415,13 +501,76 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
             get_addr2name4(ip, RESOLVE), netstr, mycidr->masklen);
 #endif
         ret = 1;
-    }
-    else {
+    } else {
 #ifdef DEBUG
         dbgx(1, "The ip %s is not inside of %s/%d",
             get_addr2name4(ip, RESOLVE), netstr, mycidr->masklen);
 #endif
         ret = 0;
+    }
+    return ret;
+
+}
+
+static int
+ip6_addr_is_unspec(const struct tcpr_in6_addr *addr)
+{
+    return addr->tcpr_s6_addr32[0] == 0 && addr->tcpr_s6_addr32[1] == 0 &&
+      addr->tcpr_s6_addr32[2] == 0 && addr->tcpr_s6_addr32[3] == 0;
+}
+
+int
+ip6_in_cidr(const tcpr_cidr_t * mycidr, const struct tcpr_in6_addr *addr)
+{
+    int ret = 0;
+#ifdef DEBUG
+    char netstr[INET6_ADDRSTRLEN];
+#endif
+    int i, j, k;
+
+    if (mycidr->family != AF_INET6)
+        return 0;
+
+    /* always return 1 if ::/0 */
+    if (mycidr->masklen == 0 && ip6_addr_is_unspec(addr))
+        return 1;
+
+    j = mycidr->masklen / 8;
+
+    for (i = 0; i < j; i++) {
+        if (addr->tcpr_s6_addr[i] != mycidr->u.network6.tcpr_s6_addr[i]) {
+            ret = 0;
+            goto out;
+        }
+    }
+    
+    if ((k = mycidr->masklen % 8) == 0) {
+        ret = 1;
+        goto out;
+    }
+
+    k = ~0 << (8 - k);
+    i = addr->tcpr_s6_addr[j] & k;
+    j = mycidr->u.network6.tcpr_s6_addr[j] & k;
+    ret = i == j;
+out:
+
+#ifdef DEBUG
+    /* copy this for debug purposes, since it's not re-entrant */
+    strlcpy(netstr, get_addr2name6(&mycidr->u.network6, RESOLVE), INET6_ADDRSTRLEN);
+#endif
+
+    /* if they're the same, then ip is in network */
+    if (ret) {
+#ifdef DEBUG
+        dbgx(1, "The ip %s is inside of %s/%d",
+            get_addr2name6(addr, RESOLVE), netstr, mycidr->masklen);
+#endif
+    } else {
+#ifdef DEBUG
+        dbgx(1, "The ip %s is not inside of %s/%d",
+            get_addr2name6(addr, RESOLVE), netstr, mycidr->masklen);
+#endif
     }
     return ret;
 
@@ -441,10 +590,9 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
     /* if we have no cidrdata, of course it isn't in there 
      * this actually should happen occasionally, so don't put an assert here
      */
-    if (cidrdata == NULL) {
+    if (cidrdata == NULL)
         return 1;
-    }
-
+        
     mycidr = cidrdata;
 
     /* loop through cidr */
@@ -455,17 +603,53 @@ check_ip_cidr(tcpr_cidr_t * cidrdata, const unsigned long ip)
             dbgx(3, "Found %s in cidr", get_addr2name4(ip, RESOLVE));
             return 1;
         }
+        
         /* check for next record */
         if (mycidr->next != NULL) {
             mycidr = mycidr->next;
-        }
-        else {
+        } else {
             break;
         }
     }
 
     /* if we get here, no match */
     dbgx(3, "Didn't find %s in cidr", get_addr2name4(ip, RESOLVE));
+    return 0;
+}
+
+int
+check_ip6_cidr(tcpr_cidr_t * cidrdata, const struct tcpr_in6_addr *addr)
+{
+    tcpr_cidr_t *mycidr;
+
+    /* if we have no cidrdata, of course it isn't in there
+     * this actually should happen occasionally, so don't put an assert here
+     */
+    if (cidrdata == NULL) {
+        return 1;
+    }
+
+    mycidr = cidrdata;
+
+    /* loop through cidr */
+    while (1) {
+
+        /* if match, return 1 */
+        if (ip6_in_cidr(mycidr, addr)) {
+            dbgx(3, "Found %s in cidr", get_addr2name6(addr, RESOLVE));
+            return 1;
+        }
+        
+        /* check for next record */
+        if (mycidr->next != NULL) {
+            mycidr = mycidr->next;
+        } else {
+            break;
+        }
+    }
+
+    /* if we get here, no match */
+    dbgx(3, "Didn't find %s in cidr", get_addr2name6(addr, RESOLVE));
     return 0;
 }
 
@@ -488,9 +672,9 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
      * # of IP's = 2^(32-masklen)
      */
     numips = 2;
-    for (int i = 2; i <= (32 - cidr->masklen); i++) {
+    for (int i = 2; i <= (32 - cidr->masklen); i++)
         numips *= 2;
-    }
+
     size = 16 * numips;
 
     list = (char *)safe_malloc(size);
@@ -498,7 +682,7 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
     memset(list, 0, size);
 
     /* first and last should not include network or broadcast */
-    first = ntohl(cidr->network) + 1;
+    first = ntohl(cidr->u.network) + 1;
     last = first + numips - 3;
 
     dbgx(1, "First: %u\t\tLast: %u", first, last);
@@ -518,12 +702,3 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
 
     return list;
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

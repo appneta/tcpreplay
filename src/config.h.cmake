@@ -103,3 +103,6 @@
 
 #cmakedefine HAVE_INET_NTOP 1
 #cmakedefine HAVE_INET_NTOA 1
+#cmakedefine HAVE_INET_PTON 1
+#cmakedefine HAVE_INET_ADDR 1
+#cmakedefine HAVE_ISSETUGID 1
