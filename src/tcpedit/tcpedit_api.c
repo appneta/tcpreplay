@@ -190,10 +190,32 @@ tcpedit_set_ttl_value(tcpedit_t *tcpedit, u_int8_t value)
  * \brief set the IPv4 TOS/DiffServ/ECN byte value 
  */
 int 
-tcpedit_set_tos(tcpedit_t *tcpedit, u_int8_t value)
+tcpedit_set_tos(tcpedit_t *tcpedit, uint8_t value)
 {
     assert(tcpedit);
     tcpedit->tos = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief set the IPv6 Traffic Class byte value 
+ */
+int 
+tcpedit_set_tclass(tcpedit_t *tcpedit, uint8_t value)
+{
+    assert(tcpedit);
+    tcpedit->tclass = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief set the IPv6 Flow Label 20bit value 
+ */
+int 
+tcpedit_set_flowlabel(tcpedit_t *tcpedit, uint32_t value)
+{
+    assert(tcpedit);
+    tcpedit->flowlabel = value;
     return TCPEDIT_OK;
 }
 
