@@ -33,7 +33,7 @@ PROJECT_NAME           = TCPREPLAY
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER         = @TCPREPLAY_VERSION@
+PROJECT_NUMBER         = @VERSION@
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 
@@ -462,7 +462,19 @@ libopts/autoopts \
 src \
 src/common \
 src/tcpedit \
-src/flow 
+src/tcpedit/plugins \
+src/tcpedit/plugins/dlt_en10mb \
+src/tcpedit/plugins/dlt_hdlc \
+src/tcpedit/plugins/dlt_ieee80211 \
+src/tcpedit/plugins/dlt_jnpr_ether \
+src/tcpedit/plugins/dlt_linuxsll \
+src/tcpedit/plugins/dlt_loop \
+src/tcpedit/plugins/dlt_null \
+src/tcpedit/plugins/dlt_radiotap \
+src/tcpedit/plugins/dlt_raw \
+src/tcpedit/plugins/dlt_user \
+src/gui \
+src/fragroute
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
@@ -495,7 +507,7 @@ EXCLUDE_SYMLINKS       = NO
 # EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude 
 # certain files from those directories.
 
-EXCLUDE_PATTERNS       = 
+EXCLUDE_PATTERNS       = .svn
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or 
 # directories that contain example code fragments that are included (see 
@@ -568,7 +580,7 @@ INLINE_SOURCES         = NO
 # doxygen to hide any special comment blocks from generated source code 
 # fragments. Normal C and C++ comments will always remain visible.
 
-STRIP_CODE_COMMENTS    = YES
+STRIP_CODE_COMMENTS    = NO
 
 # If the REFERENCED_BY_RELATION tag is set to YES (the default) 
 # then for each documented function all documented 
