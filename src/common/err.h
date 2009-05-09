@@ -46,6 +46,8 @@
 #ifndef _ERR_H_
 #define _ERR_H_
 
+#include <stdlib.h>
+
 #ifdef DEBUG
 extern int debug;
 #endif
