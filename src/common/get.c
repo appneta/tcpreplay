@@ -326,7 +326,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);    
     proto = ip6_hdr->ip_nh;
     
-    while (true) {
+    while (TRUE) {
         dbgx(3, "Processing proto: 0x%hx", proto);
         
         switch (proto) {        
@@ -434,7 +434,7 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
     proto = ip6_hdr->ip_nh;
     assert(ip6_hdr);
         
-    while (true) {
+    while (TRUE) {
         dbgx(3, "Processing next proto 0x%02X", proto);
         switch (proto) {
             /* no further processing for IPV6 types with nothing beyond them */
