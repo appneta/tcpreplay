@@ -98,7 +98,6 @@
 #cmakedefine HAVE_MMAP 1
 #cmakedefine HAVE_MPROTECT 1
 #cmakedefine HAVE_SYSCONF 1
-#cmakedefine HAVE_POLL 1
 #cmakedefine HAVE_ABSOLUTE_TIME 1
 
 #cmakedefine HAVE_INET_NTOP 1
