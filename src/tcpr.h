@@ -1047,9 +1047,9 @@ struct tcpr_icmpv4_hdr
     {
         struct
         {
-            n_time its_otime;
-            n_time its_rtime;
-            n_time its_ttime;
+            uint32_t its_otime;
+            uint32_t its_rtime;
+            uint32_t its_ttime;
         } ts;
         struct
         {
