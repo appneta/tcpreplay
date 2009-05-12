@@ -39,7 +39,30 @@
 */
 
 #include "config.h"
-#include "defines.h"
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#else if WIN32
+#include "msvc_inttypes.h"
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#else if WIN32
+#include "msvc_stdint.h"
+#endif
+
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
 
 #ifndef _TCPR_H_
 #define _TCPR_H_

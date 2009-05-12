@@ -89,6 +89,8 @@
 #cmakedefine HAVE_SYS_UTSNAME_H 1
 #cmakedefine HAVE_SYS_WAIT_H 1
 #cmakedefine HAVE_UNISTD_H 1
+#cmakedefine HAVE_TIME_H 1
+#cmakedefine HAVE_NETINET_IN_SYSTM_H 1
 
 #cmakedefine HAVE_CHOWN 1
 #cmakedefine HAVE_GETHOSTBYNAME2 1

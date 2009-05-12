@@ -253,6 +253,8 @@ check_include_file("sys/utsname.h"       HAVE_SYS_UTSNAME_H)
 check_include_file("sys/wait.h"          HAVE_SYS_WAIT_H)
 check_include_file("unistd.h"            HAVE_UNISTD_H)
 check_include_file("inttypes.h"          HAVE_INTTYPES_H)
+check_include_file("time.h"              HAVE_TIME_H)
+check_include_file("netinet/in_systm.h"  HAVE_NETINET_IN_SYSTM_H)
 
 # look for types
 check_type_size(uint8_t UINT8_T)
