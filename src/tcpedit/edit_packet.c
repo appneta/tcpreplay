@@ -47,9 +47,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-static u_int32_t randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip);
-static u_int32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original);
-static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
+static uint32_t randomize_ipv4_addr(tcpedit_t *tcpedit, uint32_t ip);
+static uint32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const uint32_t original);
+static int is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip);
 
 static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
@@ -121,8 +121,8 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
  * returns a new 32bit integer which is the randomized IP 
  * based upon the user specified seed
  */
-static u_int32_t
-randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
+static uint32_t
+randomize_ipv4_addr(tcpedit_t *tcpedit, uint32_t ip)
 {
     assert(tcpedit);
     
@@ -136,7 +136,7 @@ randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip)
 static void
 randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
 {
-    u_int32_t *p;
+    uint32_t *p;
     int i;
     u_char was_multicast;
 
@@ -184,12 +184,12 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
     /* don't rewrite broadcast addresses */
-    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_dst.s_addr)) 
+    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (uint32_t)ip_hdr->ip_dst.s_addr)) 
         || !tcpedit->skip_broadcast) {
         ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
     }
     
-    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr))
+    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (uint32_t)ip_hdr->ip_src.s_addr))
         || !tcpedit->skip_broadcast) {
         ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
     }
@@ -295,7 +295,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         pkthdr->len = pkthdr->caplen;
     }
     else if (tcpedit->mtu_truncate) {
-        if (pkthdr->len > (u_int32_t)(tcpedit->mtu + l2len)) {
+        if (pkthdr->len > (uint32_t)(tcpedit->mtu + l2len)) {
             /* first truncate the packet */
             pkthdr->len = pkthdr->caplen = l2len + tcpedit->mtu;
             
@@ -484,10 +484,10 @@ rewrite_ipv6_hlim(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr)
  * onto that netblock.  ie: 10.0.0.0/8 and 192.168.55.123 -> 10.168.55.123
  * while 10.150.9.0/24 and 192.168.55.123 -> 10.150.9.123
  */
-static u_int32_t
-remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original)
+static uint32_t
+remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const uint32_t original)
 {
-    u_int32_t ipaddr = 0, network = 0, mask = 0, result = 0;
+    uint32_t ipaddr = 0, network = 0, mask = 0, result = 0;
 
     assert(tcpedit);
     assert(cidr);
@@ -728,7 +728,7 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 {
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0;
-    u_int32_t *ip, tempip;
+    uint32_t *ip, tempip;
     u_char *add_hdr;
 
     assert(tcpedit);
@@ -748,14 +748,14 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         /* jump to the addresses */
         add_hdr = (u_char *)arp_hdr;
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
-        ip = (u_int32_t *)add_hdr;
+        ip = (uint32_t *)add_hdr;
         tempip = randomize_ipv4_addr(tcpedit, *ip);
-        memcpy(ip, &tempip, sizeof(u_int32_t));
+        memcpy(ip, &tempip, sizeof(uint32_t));
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
-        ip = (u_int32_t *)add_hdr;
+        ip = (uint32_t *)add_hdr;
         tempip = randomize_ipv4_addr(tcpedit, *ip);
-        memcpy(ip, &tempip, sizeof(u_int32_t));
+        memcpy(ip, &tempip, sizeof(uint32_t));
     }
 
     return 1; /* yes we changed the packet */
@@ -773,12 +773,12 @@ int
 rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
 {
     u_char *add_hdr = NULL;
-    u_int32_t *ip1 = NULL, *ip2 = NULL;
-    u_int32_t newip = 0;
+    uint32_t *ip1 = NULL, *ip2 = NULL;
+    uint32_t newip = 0;
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
 #ifdef FORCE_ALIGN
-    u_int32_t iptemp;
+    uint32_t iptemp;
 #endif
 
     assert(tcpedit);
@@ -809,14 +809,14 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
         /* jump to the addresses */
         add_hdr = (u_char *)arp_hdr;
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
-        ip1 = (u_int32_t *)add_hdr;
+        ip1 = (uint32_t *)add_hdr;
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
 #ifdef FORCE_ALIGN
         /* copy IP2 to a temporary buffer for processing */
-        memcpy(&iptemp, add_hdr, sizeof(u_int32_t));
+        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
         ip2 = &iptemp;
 #else
-        ip2 = (u_int32_t *)add_hdr;
+        ip2 = (uint32_t *)add_hdr;
 #endif
         
 
@@ -851,7 +851,7 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
 
 #ifdef FORCE_ALIGN
             /* copy temporary IP to IP2 location in buffer */
-            memcpy(add_hdr, &iptemp, sizeof(u_int32_t));
+            memcpy(add_hdr, &iptemp, sizeof(uint32_t));
 #endif
 
             /*
@@ -886,7 +886,7 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
  * for broadcast/multicast addresses.  Returns -1 on error
  */
 static int
-is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip)
+is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip)
 {
     assert(tcpedit);
    

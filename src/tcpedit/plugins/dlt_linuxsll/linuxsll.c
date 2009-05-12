@@ -44,7 +44,7 @@
 
 static char dlt_name[] = "linuxsll";
 static char _U_ dlt_prefix[] = "linuxsll";
-static u_int16_t dlt_value = DLT_LINUX_SLL;
+static uint16_t dlt_value = DLT_LINUX_SLL;
 
 /*
  * Function to register ourselves.  This function is always called, regardless

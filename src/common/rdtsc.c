@@ -44,13 +44,13 @@
  * returns the # of clicks/usec
  */
 u_int64_t
-rdtsc_calibrate(u_int32_t mhz)
+rdtsc_calibrate(uint32_t mhz)
 {
     static u_int64_t x = 0;
     u_int64_t v = 0;
     struct timeval start, end, diff;
     u_int64_t x1, x2;
-    u_int16_t n;
+    uint16_t n;
     
     if (x != 0) {
         return x;

@@ -217,7 +217,7 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
     int changes = 0;
-    u_int16_t newport;
+    uint16_t newport;
     tcpedit_portmap_t *portmap;
 
     assert(tcpedit);

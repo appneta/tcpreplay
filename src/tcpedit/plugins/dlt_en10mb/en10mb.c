@@ -44,7 +44,7 @@
 
 static char _U_ dlt_name[] = "en10mb";
 static char dlt_prefix[] = "enet";
-static u_int16_t dlt_value = DLT_EN10MB;
+static uint16_t dlt_value = DLT_EN10MB;
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -464,7 +464,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         /* are we changing VLAN info? */
         if (config->vlan_tag < 65535) {
             vlan->vlan_priority_c_vid = 
-                htons((u_int16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
+                htons((uint16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
         } else if (extra->vlan) {
             vlan->vlan_priority_c_vid = extra->vlan_tag;
         } else {
@@ -473,7 +473,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         }
         
         if (config->vlan_pri < 255) {
-            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_pri << 13);
+            vlan->vlan_priority_c_vid += htons((uint16_t)config->vlan_pri << 13);
         } else if (extra->vlan) {
             vlan->vlan_priority_c_vid += extra->vlan_pri;
         } else {
@@ -482,7 +482,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         }
             
         if (config->vlan_cfi < 255) {
-            vlan->vlan_priority_c_vid += htons((u_int16_t)config->vlan_cfi << 12);
+            vlan->vlan_priority_c_vid += htons((uint16_t)config->vlan_cfi << 12);
         } else if (extra->vlan) {
             vlan->vlan_priority_c_vid += extra->vlan_cfi;
         } else {

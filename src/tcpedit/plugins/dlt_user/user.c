@@ -42,7 +42,7 @@
 
 static char dlt_name[] = "user";
 static char _U_ dlt_prefix[] = "user";
-static u_int16_t dlt_value = DLT_USER0;
+static uint16_t dlt_value = DLT_USER0;
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -362,7 +362,7 @@ dlt_user_l2addr_type(void)
  * Need this special function for dlt_plugins.c:tcpedit_dlt_output_dlt()
  */
 
-u_int16_t
+uint16_t
 dlt_user_get_output_dlt(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;

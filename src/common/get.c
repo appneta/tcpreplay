@@ -88,14 +88,14 @@ get_pcap_version(void)
  * returns the L2 protocol (IP, ARP, etc)
  * or 0 for error
  */
-u_int16_t
+uint16_t
 get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 {
     eth_hdr_t *eth_hdr;
     vlan_hdr_t *vlan_hdr;
     hdlc_hdr_t *hdlc_hdr;
     sll_hdr_t *sll_hdr;
-    u_int16_t ether_type;
+    uint16_t ether_type;
 
     assert(pktdata);
     assert(datalen);
@@ -198,7 +198,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 {
     const u_char *ip_hdr = NULL;
     int l2_len = 0;
-    u_int16_t proto;
+    uint16_t proto;
 
     assert(pktdata);
     assert(datalen);
@@ -249,7 +249,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 {
     const u_char *ip6_hdr = NULL;
     int l2_len = 0;
-    u_int16_t proto;
+    uint16_t proto;
 
     assert(pktdata);
     assert(datalen);
@@ -305,7 +305,7 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr)
 
     assert(ip_hdr);
 
-    ptr = (u_int32_t *) ip_hdr + ip_hdr->ip_hl;
+    ptr = (uint32_t *) ip_hdr + ip_hdr->ip_hl;
     return ((void *)ptr);
 }
 
@@ -318,7 +318,7 @@ void *
 get_layer4_v6(const ipv6_hdr_t *ip6_hdr)
 {
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
-    u_int8_t proto;
+    uint8_t proto;
     
     assert(ip6_hdr);
     
@@ -424,11 +424,11 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr)
  * returns the protocol of the actual layer4 header by processing through
  * the extension headers
  */
-u_int8_t 
+uint8_t 
 get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
 {
     u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
-    u_int8_t proto;
+    uint8_t proto;
     struct tcpr_ipv6_ext_hdr_base *exthdr = NULL;
     
     proto = ip6_hdr->ip_nh;
@@ -475,14 +475,14 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr)
  * passing a libnet_t around.  Returns 0xFFFFFFFF (255.255.255.255)
  * on error
  */
-u_int32_t
-get_name2addr4(const char *hostname, u_int8_t dnslookup)
+uint32_t
+get_name2addr4(const char *hostname, uint8_t dnslookup)
 {
     struct in_addr addr;
 #if ! defined HAVE_INET_ATON && defined HAVE_INET_ADDR
     struct hostent *host_ent; 
 #endif
-    u_int32_t m;
+    uint32_t m;
     u_int val;
     int i;
 
@@ -548,7 +548,7 @@ get_name2addr4(const char *hostname, u_int8_t dnslookup)
 }
 
 int
-get_name2addr6(const char *hostname, u_int8_t dnslookup, struct tcpr_in6_addr *addr)
+get_name2addr6(const char *hostname, uint8_t dnslookup, struct tcpr_in6_addr *addr)
 {
     (void)dnslookup;
 
@@ -565,7 +565,7 @@ get_name2addr6(const char *hostname, u_int8_t dnslookup, struct tcpr_in6_addr *a
  * is available on your system
  */
 const char *
-get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
+get_addr2name4(const uint32_t ip, uint8_t dnslookup)
 {
     struct in_addr addr;
     static char *new_string = NULL;
@@ -595,7 +595,7 @@ get_addr2name4(const u_int32_t ip, u_int8_t dnslookup)
 }
 
 const char *
-get_addr2name6(const struct tcpr_in6_addr *addr, u_int8_t dnslookup)
+get_addr2name6(const struct tcpr_in6_addr *addr, uint8_t dnslookup)
 {
     static char *new_string = NULL;
 
@@ -621,7 +621,7 @@ get_addr2name6(const struct tcpr_in6_addr *addr, u_int8_t dnslookup)
 }
 
 const char *
-get_cidr2name(const tcpr_cidr_t *cidr_ptr, u_int8_t dnslookup)
+get_cidr2name(const tcpr_cidr_t *cidr_ptr, uint8_t dnslookup)
 {
     if (cidr_ptr->family == AF_INET) {
         return get_addr2name4(cidr_ptr->u.network, dnslookup);

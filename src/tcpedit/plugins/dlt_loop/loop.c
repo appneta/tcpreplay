@@ -50,7 +50,7 @@
 
 static char dlt_name[] = "loop";
 static char _U_ dlt_prefix[] = "loop";
-static u_int16_t dlt_value = DLT_LOOP;
+static uint16_t dlt_value = DLT_LOOP;
 
 /*
  * Function to register ourselves.  This function is always called, regardless

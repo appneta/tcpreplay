@@ -44,7 +44,7 @@
 
 static char dlt_name[] = "null";
 static char _U_ dlt_prefix[] = "null";
-static u_int16_t dlt_value = DLT_NULL;
+static uint16_t dlt_value = DLT_NULL;
 
 /*
  * From the libpcap man page:
@@ -198,7 +198,7 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if ((proto = dlt_null_proto(ctx, packet, pktlen)) == TCPEDIT_ERROR)
         return TCPEDIT_ERROR;
 
-    ctx->proto = (u_int16_t)proto;
+    ctx->proto = (uint16_t)proto;
     ctx->l2len = 4;
 
     return TCPEDIT_OK; /* success */
@@ -228,10 +228,10 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
     assert(pktlen > 0);
-    u_int32_t *af_type; 
+    uint32_t *af_type; 
     int protocol = 0;
     
-    af_type = (u_int32_t *)packet;
+    af_type = (uint32_t *)packet;
     if (*af_type == PF_INET || SWAPLONG(*af_type) == PF_INET) {
         protocol = ETHERTYPE_IP;
     } else if (*af_type == PF_INET6 || SWAPLONG(*af_type) == PF_INET6) {

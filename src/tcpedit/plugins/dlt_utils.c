@@ -37,7 +37,7 @@
 #include "common.h"
 
 /* from dlt_plugins.c */
-extern const u_int32_t tcpeditdlt_bit_map[];
+extern const uint32_t tcpeditdlt_bit_map[];
 extern const char *tcpeditdlt_bit_info[];
 
 /*
@@ -182,7 +182,7 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
 int
 tcpedit_dlt_validate(tcpeditdlt_t *ctx)
 {
-    u_int32_t bit;
+    uint32_t bit;
     
     /* loops from 1 -> UINT32_MAX by powers of 2 */
     for (bit = 1; bit != 0; bit = bit << 2) {

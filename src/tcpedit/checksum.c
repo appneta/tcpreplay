@@ -39,14 +39,14 @@
 #include "tcpedit.h"
 #include "checksum.h"
 
-static int do_checksum_math(u_int16_t *, int);
+static int do_checksum_math(uint16_t *, int);
 
 
 /**
  * Returns -1 on error and 0 on success, 1 on warn
  */
 int
-do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
+do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
     ipv4_hdr_t *ipv4;
     ipv6_hdr_t *ipv6;
     tcp_hdr_t *tcp;
@@ -88,12 +88,12 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
              * length is 2x a single IP
              */
             if (ipv6 != NULL) {
-                sum = do_checksum_math((u_int16_t *)&ipv6->ip_src, 32);
+                sum = do_checksum_math((uint16_t *)&ipv6->ip_src, 32);
             } else {
-                sum = do_checksum_math((u_int16_t *)&ipv4->ip_src, 8);
+                sum = do_checksum_math((uint16_t *)&ipv4->ip_src, 8);
             }
             sum += ntohs(IPPROTO_TCP + len);
-            sum += do_checksum_math((u_int16_t *)tcp, len);
+            sum += do_checksum_math((uint16_t *)tcp, len);
             tcp->th_sum = CHECKSUM_CARRY(sum);
             break;
         
@@ -101,12 +101,12 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
             udp = (udp_hdr_t *)(data + ip_hl);
             udp->uh_sum = 0;
             if (ipv6 != NULL) {
-                sum = do_checksum_math((u_int16_t *)&ipv6->ip_src, 32);
+                sum = do_checksum_math((uint16_t *)&ipv6->ip_src, 32);
             } else {
-                sum = do_checksum_math((u_int16_t *)&ipv4->ip_src, 8);
+                sum = do_checksum_math((uint16_t *)&ipv4->ip_src, 8);
             }
             sum += ntohs(IPPROTO_UDP + len);
-            sum += do_checksum_math((u_int16_t *)udp, len);
+            sum += do_checksum_math((uint16_t *)udp, len);
             udp->uh_sum = CHECKSUM_CARRY(sum);
             break;
         
@@ -114,17 +114,17 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
             icmp = (icmpv4_hdr_t *)(data + ip_hl);
             icmp->icmp_sum = 0;
             if (ipv6 != NULL) {
-                sum = do_checksum_math((u_int16_t *)&ipv6->ip_src, 32);
+                sum = do_checksum_math((uint16_t *)&ipv6->ip_src, 32);
                 icmp->icmp_sum = CHECKSUM_CARRY(sum);                
             }
-            sum += do_checksum_math((u_int16_t *)icmp, len);
+            sum += do_checksum_math((uint16_t *)icmp, len);
             icmp->icmp_sum = CHECKSUM_CARRY(sum);
             break;
         
      
         case IPPROTO_IP:
             ipv4->ip_sum = 0;
-            sum = do_checksum_math((u_int16_t *)data, ip_hl);
+            sum = do_checksum_math((uint16_t *)data, ip_hl);
             ipv4->ip_sum = CHECKSUM_CARRY(sum);
             break;
        
@@ -148,12 +148,12 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
  * code to do a ones-compliment checksum
  */
 static int
-do_checksum_math(u_int16_t *data, int len)
+do_checksum_math(uint16_t *data, int len)
 {
     int sum = 0;
     union {
-        u_int16_t s;
-        u_int8_t b[2];
+        uint16_t s;
+        uint8_t b[2];
     } pad;
     
     while (len > 1) {
@@ -162,7 +162,7 @@ do_checksum_math(u_int16_t *data, int len)
     }
     
     if (len == 1) {
-        pad.b[0] = *(u_int8_t *)data;
+        pad.b[0] = *(uint8_t *)data;
         pad.b[1] = 0;
         sum += pad.s;
     }

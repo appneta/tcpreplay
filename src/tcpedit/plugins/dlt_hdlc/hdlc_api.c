@@ -44,7 +44,7 @@
  * Reasonable values are 0-255
  */
 int 
-tcpedit_hdlc_set_control(tcpedit_t *tcpedit, u_int8_t control)
+tcpedit_hdlc_set_control(tcpedit_t *tcpedit, uint8_t control)
 {
     tcpeditdlt_t *ctx;
     tcpeditdlt_plugin_t *plugin;
@@ -70,7 +70,7 @@ tcpedit_hdlc_set_control(tcpedit_t *tcpedit, u_int8_t control)
  * accept any value
  */
 int
-tcpedit_hdlc_set_address(tcpedit_t *tcpedit, u_int8_t address)
+tcpedit_hdlc_set_address(tcpedit_t *tcpedit, uint8_t address)
 {
     tcpeditdlt_t *ctx;
     tcpeditdlt_plugin_t *plugin;

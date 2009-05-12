@@ -94,7 +94,7 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
  * mapping for bit_mask to bit_info.  If you're making changes here
  * then you almost certainly need to modify tcpeditdlt_t in dlt_plugins-int.h
  */
-const u_int32_t tcpeditdlt_bit_map[] = {
+const uint32_t tcpeditdlt_bit_map[] = {
     PLUGIN_MASK_PROTO,
     PLUGIN_MASK_SRCADDR,
     PLUGIN_MASK_DSTADDR
@@ -291,7 +291,7 @@ tcpedit_dlt_post_init(tcpeditdlt_t *tcpedit)
 int 
 tcpedit_dlt_output_dlt(tcpeditdlt_t *ctx)
 {
-    u_int16_t dlt;
+    uint16_t dlt;
     assert(ctx);
         
     /* 

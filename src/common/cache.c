@@ -159,7 +159,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
 {
     tcpr_cache_t *mycache = NULL;
     tcpr_cache_file_hdr_t *cache_header = NULL;
-    u_int32_t chars, last = 0;
+    uint32_t chars, last = 0;
     COUNTER packets = 0;
     ssize_t written = 0;
 
@@ -176,7 +176,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
 
     /* we can't strlen(NULL) so ... */
     if (comment != NULL) {
-        cache_header->comment_len = htons((u_int16_t)strlen(comment));
+        cache_header->comment_len = htons((uint16_t)strlen(comment));
     } else {
         cache_header->comment_len = 0;
     }
@@ -258,7 +258,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 {
     static tcpr_cache_t *lastcache = NULL;
     u_char *byte = NULL;
-    u_int32_t bit;
+    uint32_t bit;
     tcpr_dir_t result = TCPR_DIR_ERROR;
     COUNTER index;
 #ifdef DEBUG
@@ -337,7 +337,7 @@ tcpr_dir_t
 check_cache(char *cachedata, COUNTER packetid)
 {
     COUNTER index = 0;
-    u_int32_t bit;
+    uint32_t bit;
 
     assert(cachedata);
 
@@ -345,7 +345,7 @@ check_cache(char *cachedata, COUNTER packetid)
         err(-1, "packetid must be > 0");
 
     index = (packetid - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
-    bit = (u_int32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
+    bit = (uint32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
         (COUNTER)CACHE_BITS_PER_PACKET) + 1;
 
 #ifdef DEBUG

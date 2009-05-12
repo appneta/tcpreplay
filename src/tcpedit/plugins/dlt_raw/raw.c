@@ -43,7 +43,7 @@
 /* FIXME: edit these variables to taste */
 static char dlt_name[] = "raw";
 static char _U_ dlt_prefix[] = "raw";
-static u_int16_t dlt_value = DLT_RAW;
+static uint16_t dlt_value = DLT_RAW;
 
 /*
  * DLT_RAW is basically a zero length L2 header for IPv4 & IPv6 packets
@@ -196,7 +196,7 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if ((proto = dlt_raw_proto(ctx, packet, pktlen)) == TCPEDIT_ERROR)
         return TCPEDIT_ERROR;
         
-    ctx->proto = (u_int16_t)proto;
+    ctx->proto = (uint16_t)proto;
     ctx->l2len = 0;
 
     return TCPEDIT_OK; /* success */

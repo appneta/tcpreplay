@@ -179,7 +179,7 @@ tcpedit_set_ttl_mode(tcpedit_t *tcpedit, tcpedit_ttl_mode value)
  * \brief set the IPv4 ttl value
  */
 int
-tcpedit_set_ttl_value(tcpedit_t *tcpedit, u_int8_t value)
+tcpedit_set_ttl_value(tcpedit_t *tcpedit, uint8_t value)
 {
     assert(tcpedit);
     tcpedit->ttl_value = value;

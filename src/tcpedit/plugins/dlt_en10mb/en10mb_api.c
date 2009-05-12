@@ -133,7 +133,7 @@ tcpedit_en10mb_set_vlan_mode(tcpedit_t *tcpedit, tcpedit_vlan vlan)
  * Sets the VLAN tag value in add or edit mode
  */
 int 
-tcpedit_en10mb_set_vlan_tag(tcpedit_t *tcpedit, u_int16_t tag)
+tcpedit_en10mb_set_vlan_tag(tcpedit_t *tcpedit, uint16_t tag)
 {
     tcpeditdlt_t *ctx;
     tcpeditdlt_plugin_t *plugin;
@@ -156,7 +156,7 @@ tcpedit_en10mb_set_vlan_tag(tcpedit_t *tcpedit, u_int16_t tag)
  * Sets the VLAN priority field in add or edit mode
  */
 int 
-tcpedit_en10mb_set_vlan_priority(tcpedit_t *tcpedit, u_int8_t priority)
+tcpedit_en10mb_set_vlan_priority(tcpedit_t *tcpedit, uint8_t priority)
 {
     tcpeditdlt_t *ctx;
     tcpeditdlt_plugin_t *plugin;
@@ -179,7 +179,7 @@ tcpedit_en10mb_set_vlan_priority(tcpedit_t *tcpedit, u_int8_t priority)
  * Sets the VLAN CFI field in add or edit mode
  */
 int 
-tcpedit_en10mb_set_vlan_cfi(tcpedit_t *tcpedit, u_int8_t cfi)
+tcpedit_en10mb_set_vlan_cfi(tcpedit_t *tcpedit, uint8_t cfi)
 {
     tcpeditdlt_t *ctx;
     tcpeditdlt_plugin_t *plugin;

@@ -45,7 +45,7 @@
  * \brief Define the libpcap DLT Type value
  */
 int 
-tcpedit_user_set_dlt_type(tcpedit_t *tcpedit, u_int16_t type)
+tcpedit_user_set_dlt_type(tcpedit_t *tcpedit, uint16_t type)
 {
     tcpeditdlt_t *ctx;
     tcpeditdlt_plugin_t *plugin;

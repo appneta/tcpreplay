@@ -48,7 +48,7 @@
 int
 ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen) 
 {
-    u_int16_t *frame_control, fc;
+    uint16_t *frame_control, fc;
     struct tcpr_802_2snap_hdr *snap;
     int hdrlen = 0;
 
@@ -78,7 +78,7 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
      * So right now, we only look for pure data frames, since I'm not sure what to do with ACK/Poll
      */
 
-    frame_control = (u_int16_t *)packet;
+    frame_control = (uint16_t *)packet;
     fc = ntohs(*frame_control);
 
     /* reserved == no data */
@@ -129,13 +129,13 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 int
 ieee80211_is_encrypted(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 {
-    u_int16_t *frame_control, fc;
+    uint16_t *frame_control, fc;
 
     assert(ctx);
     assert(packet);
     assert(pktlen >= (int)sizeof(ieee80211_hdr_t));
 
-    frame_control = (u_int16_t *)packet;
+    frame_control = (uint16_t *)packet;
     fc = ntohs(*frame_control);
 
     if ((fc & ieee80211_FC_WEP_MASK) == ieee80211_FC_WEP_MASK) {
@@ -155,10 +155,10 @@ ieee80211_get_src(const void *header)
 {
     ieee80211_hdr_t *addr3;
     ieee80211_addr4_hdr_t *addr4;
-    u_int16_t *frame_control, fc;
+    uint16_t *frame_control, fc;
 
     assert(header);
-    frame_control = (u_int16_t *)header;
+    frame_control = (uint16_t *)header;
     fc = ntohs(*frame_control);
 
     if (ieee80211_USE_4(fc)) {
@@ -185,10 +185,10 @@ ieee80211_get_dst(const void *header)
 {
     ieee80211_hdr_t *addr3;
     ieee80211_addr4_hdr_t *addr4;
-    u_int16_t *frame_control, fc;
+    uint16_t *frame_control, fc;
 
     assert(header);
-    frame_control = (u_int16_t *)header;
+    frame_control = (uint16_t *)header;
     fc = ntohs(*frame_control);
 
     if (ieee80211_USE_4(fc)) {
