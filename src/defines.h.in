@@ -251,6 +251,11 @@ typedef u_int32_t uint32_t
 typedef u_int64_t uint64_t
 #endif
 
+/* Should be defined in netinet/in_systm.h, but isn't there on Win32 */
+#ifndef n_time
+typedef uint32_t n_time;
+#endif
+
 /* Support for flexible arrays. */
 #undef __flexarr
 #if defined(__GNUC__) && ((__GNUC__ > 2) || (__GNUC__ == 2 && __GNUC_MINOR__ >= 97))
