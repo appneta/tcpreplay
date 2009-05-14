@@ -48,7 +48,7 @@ bin_PROGRAMS += tcpbridge
 man_MANS += tcpbridge.1
 endif
 
-tcpreplay_edit_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY -DTCPREPLAY_EDIT
+tcpreplay_edit_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY -DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT
 tcpreplay_edit_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
 tcpreplay_edit_SOURCES = tcpreplay_edit_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c
 tcpreplay_edit_OBJECTS: tcpreplay_opts.h
