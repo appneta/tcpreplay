@@ -52,6 +52,7 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     tcp_hdr_t *tcp;
     udp_hdr_t *udp;
     icmpv4_hdr_t *icmp;
+    icmpv6_hdr_t *icmp6;
     int ip_hl;
     int sum;
     
@@ -69,7 +70,14 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     if (ipv4->ip_v == 6) {
         ipv6 = (ipv6_hdr_t *)data;
         ipv4 = NULL;
-        ip_hl = 40;
+
+        proto = get_ipv6_l4proto(ipv6);
+        dbgx(3, "layer4 proto is 0x%hhu", proto);
+
+        ip_hl = (u_char*)get_layer4_v6(ipv6) - (u_char*)data;
+        dbgx(3, "ip_hl proto is 0x%d", ip_hl);
+
+        len -= (ip_hl - TCPR_IPV6_H);
     } else {
         ip_hl = ipv4->ip_hl << 2;
     }
@@ -121,6 +129,17 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
             icmp->icmp_sum = CHECKSUM_CARRY(sum);
             break;
         
+        case IPPROTO_ICMP6:
+            icmp6 = (icmpv6_hdr_t *)(data + ip_hl);
+            icmp6->icmp_sum = 0;
+            if (ipv6 != NULL) {
+                sum = do_checksum_math((u_int16_t *)&ipv6->ip_src, 32);
+            }
+            sum += ntohs(IPPROTO_ICMP6 + len);
+            sum += do_checksum_math((u_int16_t *)icmp6, len);
+            icmp6->icmp_sum = CHECKSUM_CARRY(sum);
+            break;
+
      
         case IPPROTO_IP:
             ipv4->ip_sum = 0;
