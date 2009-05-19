@@ -28,16 +28,10 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
 		test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
 		test2.rewrite_mtutrunc \
-		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos \
-		test6.pcap test6.auto_bridge test6.auto_client test6.auto_router \
-		test6.auto_server test6.auto_first test6.cidr test6.comment \
-		test6.port test6.mac test6.cidr_reverse test6.mac_reverse \
-		test6.regex_reverse \
-		test6.rewrite_portmap6 test6.rewrite_endpoint6 \
-		test2.rewrite_portmap6 test2.rewrite_endpoint6
+		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos
 
 test: all
-all: clearlog check tcpprep tcpreplay tcprewrite tcprewrite6
+all: clearlog check tcpprep tcpreplay tcprewrite
 
 clearlog:
 	-rm test.log
@@ -72,15 +66,6 @@ standard_prep:
 	$(TCPPREP) -i test.pcap -o test.mac_reverse -e 00:02:3b:00:3d:ce --reverse
 	$(TCPPREP) -i test.pcap -o test.cidr_reverse -c '216.27.178.0/24' --reverse
 	$(TCPPREP) -i test.pcap -o test.regex_reverse -r '216.27.178.*' --reverse
-	$(TCPPREP) -i test6.pcap -o test6.auto_bridge -a bridge
-	$(TCPPREP) -i test6.pcap -o test6.auto_client -a client
-	$(TCPPREP) -i test6.pcap -o test6.auto_server -a server
-	$(TCPPREP) -i test6.pcap -o test6.auto_first -a first
-	$(TCPPREP) -i test6.pcap -o test6.port -p
-	$(TCPPREP) -i test6.pcap -o test6.mac -e '00:11:25:13:ec:dd'
-
-# Not working - yet
-# $(TCPPREP) -i test6.pcap -o test6.auto_router -a router
 	
 standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
@@ -112,12 +97,6 @@ standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_3ttl --ttl=-58
-# IPv6 tests
-	$(TCPREWRITE) -i test6.pcap -o test.rewrite_portmap6 -r 80:8080
-	$(TCPREWRITE) -i test6.pcap -o test.rewrite_endpoint6 -e test6.mac \
-		-e '[2002::202]:[3003::303]'
-	$(TCPREWRITE) -i test6.pcap -o test.rewrite_pnat6 \
-	    -N '[1001::/64]:[2002:/64]'
 		
 standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
@@ -150,13 +129,6 @@ standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_3ttl --ttl=-58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
-# IPv6 tests
-	$(TCPREWRITE) -i test6.pcap -o test2.rewrite_portmap6 -r 80:8080
-	$(TCPREWRITE) -i test6.pcap -o test2.rewrite_endpoint6 -c test6.mac \
-		-e '[2002::202]:[3003::303]'
-	$(TCPREWRITE) -i test6.pcap -o test2.rewrite_pnat6 \
-	    -N '[1001::/64]:[2002:/64]'
-
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
@@ -166,8 +138,6 @@ tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
 	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel rewrite_efcs \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos rewrite_mtutrunc
-
-tcprewrite6: rewrite_portmap6 rewrite_endpoint6 rewrite_pnat6
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi
@@ -518,42 +488,6 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
-
-rewrite_portmap6:
-	$(PRINTF) "%s" "[tcprewrite6] Portmap test: "
-	$(PRINTF) "%s\n" "*** [tcprewrite6] Portmap test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test6.pcap -o test.$@1 -r 80:8080 >>test.log 2>&1
-if WORDS_BIGENDIAN
-	diff test.$@ test.$@1 >>test.log 2>&1
-else
-	diff test2.$@ test.$@1 >>test.log 2>&1
-endif
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-
-rewrite_endpoint6:
-	$(PRINTF) "%s" "[tcprewrite6] Endpoint test: "
-	$(PRINTF) "%s\n" "*** [tcprewrite6] Endpoint test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test6.pcap -o test6.$@1 \
-	    -e [2002::202]:[3003::303] \
-	    -c test6.mac  >>test.log 2>&1
-if WORDS_BIGENDIAN
-	diff test.$@ test.$@1 >>test.log 2>&1
-else
-	diff test2.$@ test.$@1 >>test.log 2>&1
-endif
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-
-rewrite_pnat6:
-	$(PRINTF) "%s" "[tcprewrite6] Pseudo NAT test: "
-	$(PRINTF) "%s\n" "*** [tcprewrite6] Pseudo NAT test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test6.pcap -o test6.$@1 \
-	    -N '[1001::/64]:[2002::/64]' >>test.log 2>&1
-if WORDS_BIGENDIAN
-	diff test.$@ test.$@1 >>test.log 2>&1
-else
-	diff test2.$@ test.$@1 >>test.log 2>&1
-endif
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
