@@ -72,14 +72,15 @@ standard_prep:
 	$(TCPPREP) -i test.pcap -o test.mac_reverse -e 00:02:3b:00:3d:ce --reverse
 	$(TCPPREP) -i test.pcap -o test.cidr_reverse -c '216.27.178.0/24' --reverse
 	$(TCPPREP) -i test.pcap -o test.regex_reverse -r '216.27.178.*' --reverse
-	# Not working - yet
-	# $(TCPPREP) -i test6.pcap -o test6.auto_router -a router
 	$(TCPPREP) -i test6.pcap -o test6.auto_bridge -a bridge
 	$(TCPPREP) -i test6.pcap -o test6.auto_client -a client
 	$(TCPPREP) -i test6.pcap -o test6.auto_server -a server
 	$(TCPPREP) -i test6.pcap -o test6.auto_first -a first
 	$(TCPPREP) -i test6.pcap -o test6.port -p
 	$(TCPPREP) -i test6.pcap -o test6.mac -e '00:11:25:13:ec:dd'
+
+# Not working - yet
+# $(TCPPREP) -i test6.pcap -o test6.auto_router -a router
 	
 standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
@@ -111,7 +112,7 @@ standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_3ttl --ttl=-58
-	# IPv6 tests
+# IPv6 tests
 	$(TCPREWRITE) -i test6.pcap -o test.rewrite_portmap6 -r 80:8080
 	$(TCPREWRITE) -i test6.pcap -o test.rewrite_endpoint6 -e test6.mac \
 		-e '[2002::202]:[3003::303]'
@@ -149,7 +150,7 @@ standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_3ttl --ttl=-58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
-	# IPv6 tests
+# IPv6 tests
 	$(TCPREWRITE) -i test6.pcap -o test2.rewrite_portmap6 -r 80:8080
 	$(TCPREWRITE) -i test6.pcap -o test2.rewrite_endpoint6 -c test6.mac \
 		-e '[2002::202]:[3003::303]'
