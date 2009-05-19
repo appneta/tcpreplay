@@ -1,9 +1,11 @@
 $Id$
 
-05/??/2009: Version 3.4.2
-    - Added extensive IPv6 support to tcprewrite (#11)
+05/20/2009: Version 3.4.2
+    - Added extensive IPv6 support to tcprewrite & tcpreplay-edit (#11)
     - Add IPv6 fragroute support (#388)
     - Add IPv6 decoding support to tcpprep (#11)
+    - Fix compile time error in err.h (#390)
+    - Add --endpoints support in tcpreplay-edit (#393)
 
 02/18/2009: Version 3.4.1
     - Sendpacket method did not match documentation (#361)
