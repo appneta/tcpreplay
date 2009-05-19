@@ -44,11 +44,15 @@
 #include <errno.h>
 
 #include "tcpreplay.h"
+
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
+#include "tcpedit/tcpedit.h"
+tcpedit_t *tcpedit;
 #else
 #include "tcpreplay_opts.h"
 #endif
+
 #include "send_packets.h"
 #include "signal_handler.h"
 
@@ -60,11 +64,6 @@ volatile int didsig;
 
 #ifdef DEBUG
 int debug = 0;
-#endif
-
-#ifdef TCPREPLAY_EDIT
-#include "tcpedit/tcpedit.h"
-tcpedit_t *tcpedit;
 #endif
 
 #ifdef HAVE_ABSOLUTE_TIME
