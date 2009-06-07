@@ -53,16 +53,16 @@ extern "C" {
 #endif
 
 typedef struct packet_cache_s {
-	struct pcap_pkthdr pkthdr;
-	u_char *pktdata;
-	
-	struct packet_cache_s *next;
+    struct pcap_pkthdr pkthdr;
+    u_char *pktdata;
+
+    struct packet_cache_s *next;
 } packet_cache_t;
 
 typedef struct file_cache_s {
-	int index;
-	int cached;
-	packet_cache_t *packet_cache;
+    int index;
+    int cached;
+    packet_cache_t *packet_cache;
 } file_cache_t;
 
 typedef enum {
@@ -70,9 +70,9 @@ typedef enum {
     speed_mbpsrate,
     speed_packetrate,
     speed_topspeed,
-    speed_oneatatime    
+    speed_oneatatime
 } tcpreplay_speed_mode;
-    
+
 typedef struct {
     /* speed modifiers */
     tcpreplay_speed_mode mode;
@@ -88,7 +88,7 @@ typedef enum {
 #ifdef HAVE_RDTSC
     accurate_rdtsc = 2,
 #endif
-#if defined HAVE_IOPERM && defined(__i386__)    
+#if defined HAVE_IOPERM && defined(__i386__)
     accurate_ioport = 3,
 #endif
     accurate_nanosleep = 4,
@@ -96,7 +96,7 @@ typedef enum {
     accurate_abs_time = 5
 #endif
 } tcpreplay_accurate;
-    
+
 /* run-time options */
 typedef struct tcpreplay_opt_s {
     /* input/output */
@@ -108,9 +108,9 @@ typedef struct tcpreplay_opt_s {
     tcpreplay_speed_t speed;
     u_int32_t loop;
     int sleep_accel;
-    
+
     int use_pkthdr_len;
-    
+
     /* tcpprep cache data */
     COUNTER cache_packets;
     char *cachedata;
@@ -118,10 +118,10 @@ typedef struct tcpreplay_opt_s {
 
     /* deal with MTU/packet len issues */
     int mtu;
-    
+
     /* accurate mode to use */
     tcpreplay_accurate accurate;
-    
+
     char *files[MAX_FILES];
     COUNTER limit_send;
 
@@ -133,10 +133,10 @@ typedef struct tcpreplay_opt_s {
 #endif
 
     /* pcap file caching */
-	int enable_file_cache;
-	file_cache_t *file_cache;
+    int enable_file_cache;
+    file_cache_t *file_cache;
 } tcpreplay_opt_t;
-    
+
 
 
 typedef enum {
