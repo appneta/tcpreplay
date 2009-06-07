@@ -25,13 +25,13 @@ set(VERSION ${CPACK_PACKAGE_VERSION})
 set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_IGNORE_FILES 
-    /CMakeFiles/ 
-    /.svn/ 
-    /docs/web/ 
+set(CPACK_SOURCE_IGNORE_FILES
+    /CMakeFiles/
+    /.svn/
+    /docs/web/
     /.deps/
-    CMakeCache.txt 
-    cmake_install.cmake 
+    CMakeCache.txt
+    cmake_install.cmake
     .gdb_history
     .*.a$
     .*.o$
@@ -70,6 +70,8 @@ find_program(SVNVERSION svnversion)
 find_program(DIFF diff)
 find_program(AUTOGEN autogen)
 find_program(TCPDUMP_BINARY tcpdump)
+find_program(CTAGS ctags)
+find_program(ETAGS etags)
 
 # Where to find local cmake scripts
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -100,7 +102,7 @@ if(ENABLE_DEBUG)
     if(GCC_GDB)
         set(__GGDB -ggdb)
     endif(GCC_GDB)
-    ADD_DEFINITIONS("-DDEBUG ${__GGDB}")
+    add_definitions("-DDEBUG ${__GGDB}")
 endif(ENABLE_DEBUG)
 
 set(ENABLE_VERBOSE "")
@@ -156,7 +158,7 @@ else(CMAKE_COMPILER_IS_GNUCC)
   add_definitions(-DHAVE_CONFIG_H -D_U_=\"\")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-# Build for x64?. 
+# Build for x64?.
 if(BUILD_64BIT_BINARY)
 check_c_compiler_flag(-m64 SUPPORTS_64BIT_FLAG)
 if(SUPPORTS_64BIT_FLAG)
@@ -175,7 +177,7 @@ main(int argc, char *argv[])
         CAN_EXECUTE_M64_FLAG_CODE)
 
     set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_SAVE})
-        
+
     if(CAN_EXECUTE_M64_FLAG_CODE EQUAL 1)
         message(STATUS "Building 64bit binaries via CFLAGS=-m64")
         set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -m64)
@@ -328,7 +330,7 @@ include_directories(${PCAP_INCLUDE_DIRS})
 
 # Recurse into the subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 
-# the project's entire directory structure. 
+# the project's entire directory structure 
 add_subdirectory(src)
 # add_subdirectory(docs)
 add_subdirectory(test)
@@ -338,5 +340,15 @@ add_custom_target(dist-gzip
    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/BuildDistTgz.cmake
 )
 
+# Create ctags for vim, etc
+add_custom_target(ctags
+    COMMAND ${CTAGS} -R src lib libopts
+)
+
+# Create etags for emacs
+add_custom_target(etags
+    COMMAND ${ETAGS} -R src lib libopts
+)
+
 # Doxygen & make docs
-INCLUDE("${CMAKE_MODULE_PATH}/TargetDoc.cmake" OPTIONAL)
+include("${CMAKE_MODULE_PATH}/TargetDoc.cmake" OPTIONAL)
