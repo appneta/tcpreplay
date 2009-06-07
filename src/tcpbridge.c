@@ -29,7 +29,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 /*
  * Purpose: Modify packets in a pcap file based on rules provided by the
  * user to offload work from tcpreplay and provide a easier means of 
@@ -85,12 +85,11 @@ main(int argc, char *argv[])
 
     post_args(argc, argv);
 
-   
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, pcap_datalink(options.pcap1)) < 0) {
         errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
-    
+
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
@@ -98,7 +97,7 @@ main(int argc, char *argv[])
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
-    
+
     if (tcpedit_validate(tcpedit) < 0) {
         errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
@@ -135,10 +134,10 @@ main(int argc, char *argv[])
 void 
 init(void)
 {
-    
+
     bytes_sent = total_bytes = failed = pkts_sent = cache_packets = 0;
     memset(&options, 0, sizeof(options));
-    
+
     options.snaplen = 65535;
     options.promisc = 1;
     options.to_ms = 1;
@@ -163,7 +162,7 @@ post_args(_U_ int argc, _U_ char *argv[])
 #else
     interface_list_t *intlist = NULL;
 #endif
-    
+
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;
@@ -171,15 +170,14 @@ post_args(_U_ int argc, _U_ char *argv[])
     if (HAVE_OPT(DBUG))
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
-    
+
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
-    
+
     if (HAVE_OPT(DECODE))
         options.tcpdump->args = safe_strdup(OPT_ARG(DECODE));
-    
 #endif
 
     if (HAVE_OPT(UNIDIR))
@@ -191,16 +189,15 @@ post_args(_U_ int argc, _U_ char *argv[])
 
     if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
         errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
-    
+
     options.intf1 = safe_strdup(intname);
 
     if (HAVE_OPT(INTF2)) {
         if ((intname = get_interface(intlist, OPT_ARG(INTF2))) == NULL)
             errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
-    
+
         options.intf2 = safe_strdup(intname);
     }
-    
 
     if (HAVE_OPT(MAC)) {
         int ct = STACKCT_OPT(MAC);
@@ -241,7 +238,7 @@ post_args(_U_ int argc, _U_ char *argv[])
             err(-1, "Please consult the man page for using the -M option.");
         }
         sendpacket_close(sp);
-        memcpy(options.intf2_mac, eth_buff, ETHER_ADDR_LEN);        
+        memcpy(options.intf2_mac, eth_buff, ETHER_ADDR_LEN);
     }
 
     /* 
@@ -260,7 +257,7 @@ post_args(_U_ int argc, _U_ char *argv[])
     if ((options.pcap2 = pcap_open_live(options.intf2, options.snaplen,
                                           options.promisc, options.to_ms, ebuf)) == NULL)
         errx(-1, "Unable to open interface %s: %s", options.intf2, ebuf);
-    
+
     /* poll should be -1 to wait indefinitely */
     options.poll_timeout = -1;
 }

@@ -55,16 +55,16 @@
 struct tcpbridge_opt_s {
     char *intf1;
     char *intf2;
-    
+
     /* store the mac address of each interface here to prevent loops */
     char intf1_mac[ETHER_ADDR_LEN];
     char intf2_mac[ETHER_ADDR_LEN];
-    
+
     /* truncate packet ? */
     int truncate;
-    
+
     COUNTER limit_send;
-    
+
     pcap_t *pcap1;
     pcap_t *pcap2;
     int unidir;
@@ -80,14 +80,12 @@ struct tcpbridge_opt_s {
     tcpdump_t *tcpdump;
 #endif
 
-    
-
     /* filter options */
     tcpr_xX_t xX;
     tcpr_bpf_t bpf;
     regex_t preg;
     tcpr_cidr_t *cidrdata;
-    
+
     int mtu;
     int maxpacket;
     int fixcsum;
@@ -96,14 +94,5 @@ struct tcpbridge_opt_s {
 };
 
 typedef struct tcpbridge_opt_s tcpbridge_opt_t;
-    
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
 
