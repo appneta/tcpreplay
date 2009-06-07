@@ -95,7 +95,7 @@ new_node(void)
     struct macsrc_t *node;
 
     node = (struct macsrc_t *)safe_malloc(sizeof(struct macsrc_t));
-    
+
     memset(node, '\0', sizeof(struct macsrc_t));
     return (node);
 }
@@ -113,7 +113,7 @@ do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 
     assert(options);
     assert(tcpedit);
-    
+
     livedata.tcpedit = tcpedit;
     livedata.source = PCAP_INT1;
     livedata.pcap = options->pcap1;
@@ -123,7 +123,6 @@ do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
             (pcap_handler)live_callback, (u_char *) &livedata)) < 0) {
         warnx("Error in pcap_loop(): %s", pcap_geterr(options->pcap1));
     }
-    
 }
 
 /**
@@ -136,7 +135,7 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
     struct pollfd polls[2];     /* one for left & right pcap */
     int pollresult, pollcount, timeout;
     struct live_data_t livedata;
-    
+
     assert(options);
     assert(tcpedit);
 
@@ -160,7 +159,7 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         polls[PCAP_INT1].revents = 0;
         polls[PCAP_INT1].events = POLLIN;
         polls[PCAP_INT1].fd = pcap_fileno(options->pcap1);
-        
+
         polls[PCAP_INT2].revents = 0;
         polls[PCAP_INT2].events = POLLIN;
         polls[PCAP_INT2].fd = pcap_fileno(options->pcap2);
@@ -174,7 +173,7 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         /* poll has returned, process the result */
         if (pollresult > 0) {
             dbgx(3, "pollresult: %d", pollresult);
-            
+
             /* success, got one or more packets */
             if (polls[PCAP_INT1].revents > 0) {
                 dbg(5, "Processing first interface");
@@ -215,7 +214,7 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
  */
 void
 do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
-{   
+{
     /* do we apply a bpf filter? */
     if (options->bpf.filter != NULL) {
         /* compile filter */
@@ -223,7 +222,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         if (pcap_compile(options->pcap1, &options->bpf.program, options->bpf.filter, options->bpf.optimize, 0) != 0) {
             errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options->pcap1));
         }
-        
+
         /* apply filter */
         pcap_setfilter(options->pcap1, &options->bpf.program);
 
@@ -234,7 +233,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
             if (pcap_compile(options->pcap2, &options->bpf.program, options->bpf.filter, options->bpf.optimize, 0) != 0) {
                 errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options->pcap2));
             }
-        
+
             /* apply filter */
             pcap_setfilter(options->pcap2, &options->bpf.program);
         }
@@ -250,7 +249,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
     } else {
         do_bridge_bidirectional(options, tcpedit);
     }
-            
+
     packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
 }
 
@@ -318,7 +317,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     }
 
     node = RB_FIND(macsrc_tree, &macsrc_root, &finder);
-    
+
     /* if we can't find the node, build a new one */
     if (node == NULL) {
         dbg(1, "Unable to find MAC in the tree");
@@ -327,7 +326,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         memcpy(&node->key, &finder.key, ETHER_ADDR_LEN);
         RB_INSERT(macsrc_tree, &macsrc_root, node);
     }
-    
+
     /* otherwise compare sources */
     else if (node->source != livedata->source) {
         dbg(1, "Found the dest MAC in the tree and it doesn't match this source NIC... skipping packet");
@@ -343,7 +342,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
     l2proto = tcpedit_l3proto(livedata->tcpedit, BEFORE_PROCESS, pktdata, pkthdr->len);
     dbgx(2, "Packet protocol: %04hx", l2proto);
-    
+
     /* should we skip this packet based on CIDR match? */
     if (l2proto == ETHERTYPE_IP) {
         dbg(3, "Packet is IPv4");
@@ -396,10 +395,10 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
                 livedata->options->intf1);
             send = livedata->options->pcap1;
             break;
-        
+
         default:
             errx(-1, "wtf?  our node->source != PCAP_INT1 and != PCAP_INT2: %c", 
-                 node->source);        
+                 node->source);
     }
 
     /*
@@ -417,5 +416,4 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
     return (1);
 } /* live_callback() */
-
 
