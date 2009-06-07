@@ -32,9 +32,9 @@ include         = "#include \"defines.h\"\n"
                 "#include \"tcpreplay.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"config.h\"\n"
-				"#include <stdlib.h>\n"
-				"#include <sys/types.h>\n"
-				"#include <unistd.h>\n";
+                "#include <stdlib.h>\n"
+                "#include <sys/types.h>\n"
+                "#include <unistd.h>\n";
 
 homerc          = "$$/";
 
@@ -107,20 +107,20 @@ EOText;
 };
 
 flag = {
-	name		= quiet;
-	value		= q;
-	descrip		= "Quiet mode";
-	doc			= "Print nothing except the statistics at the end of the run";
+    name        = quiet;
+    value       = q;
+    descrip     = "Quiet mode";
+    doc         = "Print nothing except the statistics at the end of the run";
 };
 
 flag = {
-	name		= timer;
-	value		= T;
-	arg-default = "gtod";
-	max			= 1;
-	arg-type    = string;
-	descrip		= "Select packet timing mode: select, ioport, rdtsc, gtod, nano, abstime";
-	doc			= <<- EOText
+    name        = timer;
+    value       = T;
+    arg-default = "gtod";
+    max         = 1;
+    arg-type    = string;
+    descrip     = "Select packet timing mode: select, ioport, rdtsc, gtod, nano, abstime";
+    doc         = <<- EOText
 Allows you to select the packet timing method to use:
 @enumerate
 @item nano
@@ -196,11 +196,11 @@ EOText;
 
 /* Cache files to internal memory */ 
 flag = {
-	name		= enable_file_cache;
-	value		= K;
-	flags-must	= loop;
-	descrip		= "Enable caching of packets to internal memory";
-	doc			= <<- EOText
+    name        = enable_file_cache;
+    value       = K;
+    flags-must  = loop;
+    descrip     = "Enable caching of packets to internal memory";
+    doc         = <<- EOText
 Cache pcap file(s) the first time they are cached in RAM so that subsequent
 loops don't incurr any disk I/O latency in order to increase performance.  Make 
 sure you have enough free RAM to store the entire pcap file(s) in memory or the
@@ -246,18 +246,18 @@ flag = {
 };
 
 flag = {
-	ifdef		= ENABLE_PCAP_FINDALLDEVS;
-	name		= listnics;
-	descrip		= "List available network interfaces and exit";
-	immediate;
-	doc			= "";
-	flag-code	= <<- EOFlag
-	
-	interface_list_t *list = get_interface_list();
-	list_interfaces(list);
-	free(list);
+    ifdef       = ENABLE_PCAP_FINDALLDEVS;
+    name        = listnics;
+    descrip     = "List available network interfaces and exit";
+    immediate;
+    doc         = "";
+    flag-code   = <<- EOFlag
+
+    interface_list_t *list = get_interface_list();
+    list_interfaces(list);
+    free(list);
     exit(0);
-	
+
 EOFlag;
 };
 
@@ -402,9 +402,9 @@ flag = {
     value       = P;
     descrip     = "Print the PID of tcpreplay at startup";
     flag-code   = <<- EOPid
-    
+
     fprintf(stderr, "PID: %hu\n", getpid());
-    
+
 EOPid;
     doc         = "";
 };
@@ -414,7 +414,7 @@ flag = {
     value       = V;
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
-    
+
     fprintf(stderr, "tcpreplay version: %s (build %s)", VERSION, svn_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
@@ -425,10 +425,10 @@ flag = {
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
 #else
-	fprintf(stderr, "Not compiled with libdnet.\n");
+    fprintf(stderr, "Not compiled with libdnet.\n");
 #endif
 #ifdef HAVE_WINPCAP
-	fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
+    fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
 #else
     fprintf(stderr, "Compiled against libpcap: %s\n", get_pcap_version());
 #endif
