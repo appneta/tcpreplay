@@ -53,9 +53,10 @@ extern "C" {
 
 typedef struct tcpprep_opt_s {
     pcap_t *pcap;
-    int verbose;    
+#ifdef ENABLE_VERBOSE
+    bool verbose;
     char *tcpdump_args;
-
+#endif
     tcpr_cache_t *cachedata;
     tcpr_cidr_t *cidrdata;
     char *maclist;
@@ -82,7 +83,7 @@ typedef struct tcpprep_s {
 #ifdef ENABLE_VERBOSE
     tcpdump_t tcpdump;
 #endif
-    
+
 } tcpprep_t;
 
 
@@ -93,7 +94,7 @@ tcpprep_t *tcpprep_init();
 void tcpprep_close(tcpprep_t *);
 
 #ifdef USE_AUTOOPTS
-tcpprep_post_args(tcpprep_t *, int, char *[]);
+int tcpprep_post_args(tcpprep_t *, int, char *[]);
 #endif
 
 

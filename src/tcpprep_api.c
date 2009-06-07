@@ -66,7 +66,7 @@ tcpprep_init()
 {
     tcpprep_t *ctx;
     int i;
-    
+
     ctx = safe_malloc(sizeof(tcpprep_t));
     ctx->options = safe_malloc(sizeof(tcpprep_opt_t));
 
@@ -76,11 +76,12 @@ tcpprep_init()
         ctx->options->services.tcp[i] = 1;
         ctx->options->services.udp[i] = 1;
     }
-    
+
     return ctx;
 }
 
-void 
+
+void
 tcpprep_close(tcpprep_t *ctx)
 {
     assert(ctx);
@@ -88,7 +89,7 @@ tcpprep_close(tcpprep_t *ctx)
 }
 
 
-int 
+int
 tcpprep_set_pcap_file(tcpprep_t *ctx, char *value)
 {
     assert(ctx);
@@ -97,7 +98,7 @@ tcpprep_set_pcap_file(tcpprep_t *ctx, char *value)
     return 0;
 }
 
-int 
+int
 tcpprep_set_output_file(tcpprep_t *ctx, char *value)
 {
     assert(ctx);
@@ -106,7 +107,7 @@ tcpprep_set_output_file(tcpprep_t *ctx, char *value)
     return 0;
 }
 
-int 
+int
 tcpprep_set_comment(tcpprep_t *ctx, char *value)
 {
     assert(ctx);
@@ -115,7 +116,7 @@ tcpprep_set_comment(tcpprep_t *ctx, char *value)
     return 0;
 }
 
-int 
+int
 tcpprep_set_nocomment(tcpprep_t *ctx, bool value)
 {
     assert(ctx);
@@ -123,7 +124,7 @@ tcpprep_set_nocomment(tcpprep_t *ctx, bool value)
     return 0;
 }
 
-int 
+int
 tcpprep_set_mode(tcpprep_t *ctx, tcpprep_mode_t value)
 {
     assert(ctx);
@@ -131,7 +132,7 @@ tcpprep_set_mode(tcpprep_t *ctx, tcpprep_mode_t value)
     return 0;
 }
 
-int 
+int
 tcpprep_set_automode(tcpprep_t *ctx, tcpprep_mode_t value)
 {
     assert(ctx);
@@ -139,58 +140,84 @@ tcpprep_set_automode(tcpprep_t *ctx, tcpprep_mode_t value)
     return 0;
 }
 
-int 
+int
 tcpprep_set_min_mask(tcpprep_t *ctx, int value)
 {
+    assert(ctx);
+    ctx->options->min_mask = value;
     return 0;
 }
 
-int 
+int
 tcpprep_set_max_mask(tcpprep_t *ctx, int value)
 {
+    assert(ctx);
+    ctx->options->max_mask = value;
     return 0;
 }
 
-int 
+int
 tcpprep_set_ratio(tcpprep_t *ctx, double value)
 {
+    assert(ctx);
+    ctx->options->ratio = value;
     return 0;
 }
 
-int 
+int
 tcpprep_set_regex(tcpprep_t *ctx, char *value)
 {
+    int regex_error;
+    char ebuf[EBUF_SIZE];
+
+    assert(ctx);
+
+    if ((regex_error = regcomp(&ctx->options->preg, value,
+                    REG_EXTENDED|REG_NOSUB))) {
+        regerror(regex_error, &ctx->options->preg, ebuf, EBUF_SIZE);
+        tcpprep_seterr(ctx, "Unable to compile regex (%s): %s", value, regex_error);
+        return -1;
+    }
+
     return 0;
 }
 
-int 
+int
 tcpprep_set_nonip_is_secondary(tcpprep_t *ctx, bool value)
 {
+    assert(ctx);
+    ctx->options->nonip = value;
     return 0;
 }
 
 #ifdef ENABLE_VERBOSE
-int 
+int
 tcpprep_set_verbose(tcpprep_t *ctx, bool value)
 {
+    assert(ctx);
+    ctx->options->verbose = value;
     return 0;
 }
 
-int 
+int
 tcpprep_set_tcpdump_args(tcpprep_t *ctx, char *value)
 {
+    assert(ctx);
+    ctx->options->tcpdump_args = safe_strdup(value);
     return 0;
 }
 
-int 
+int
 tcpprep_set_tcpdump(tcpprep_t *ctx, tcpdump_t *value)
 {
+    assert(ctx);
+    memcpy(&ctx->tcpdump, value, sizeof(tcpdump_t));
     return 0;
 }
 #endif
 
 /**
- * \brief Returns a string describing the last error.  
+ * \brief Returns a string describing the last error.
  *
  * Value when the last call does not result in an error is undefined 
  * (may be NULL, may be garbage)
@@ -199,11 +226,11 @@ char *
 tcpprep_geterr(tcpprep_t *ctx)
 {
     assert(ctx);
-    return(ctx->errstr);    
+    return(ctx->errstr);
 }
 
 /**
- * \brief Returns a string describing the last warning.  
+ * \brief Returns a string describing the last warning.
  *
  * Value when the last call does not result in an warning is undefined 
  * (may be NULL, may be garbage)
@@ -212,24 +239,65 @@ char *
 tcpprep_getwarn(tcpprep_t *ctx)
 {
     assert(ctx);
-    return(ctx->warnstr);    
+    return(ctx->warnstr);
 }
 
 
-void 
-__tcpprep_seterr(tcpprep_t *ctx, const char *func, const int line, const char *file, const char *fmt, ...)
+/**
+ * \brief Internal function to set the tcpprep error string
+ *
+ * Used to set the error string when there is an error, result is retrieved
+ * using tcpedit_geterr().  You shouldn't ever actually call this, but use
+ * tcpreplay_seterr() which is a macro wrapping this instead.
+ */
+void
+__tcpprep_seterr(tcpprep_t *ctx, const char *func, const int line, 
+        const char *file, const char *fmt, ...)
 {
+    va_list ap;
+    char errormsg[TCPREPLAY_ERRSTR_LEN];
+
+    assert(ctx);
+
+    va_start(ap, fmt);
+    if (fmt != NULL) {
+        (void)vsnprintf(errormsg,
+              (TCPREPLAY_ERRSTR_LEN - 1), fmt, ap);
+    }
+
+    va_end(ap);
+
+    snprintf(ctx->errstr, (TCPREPLAY_ERRSTR_LEN -1), "From %s:%s() line %d:\n%s",
+        file, func, line, errormsg);
 }
 
-void 
+/**
+ * \brief Internal function to set the tcpedit warning string
+ *
+ * Used to set the warning string when there is an non-fatal issue, result is 
+ * retrieved using tcpedit_getwarn().
+ */
+void
 tcpprep_setwarn(tcpprep_t *ctx, const char *fmt, ...)
 {
+    va_list ap;
+    assert(ctx);
+
+    va_start(ap, fmt);
+    if (fmt != NULL)
+        (void)vsnprintf(ctx->warnstr, (TCPREPLAY_ERRSTR_LEN - 1), fmt, ap);
+
+    va_end(ap);
 }
 
 
 
 #ifdef USE_AUTOOPTS
-int 
+/** 
+ * \brief When using AutoOpts, call to do post argument processing
+ * Used to process the autoopts arguments
+ */
+int
 tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
 {
     char myargs[MYARGS_LEN];
@@ -247,10 +315,10 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
 
     if (HAVE_OPT(PRINT_STATS))
         print_stats(OPT_ARG(PRINT_STATS));
-        
+
     if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(PCAP))
         err(-1, "Must specify an output cachefile (-o) and input pcap (-i)");
-    
+
     if (! ctx->options->mode)
         err(-1, "Must specify a processing mode: -a, -c, -r, -p");
 
@@ -266,10 +334,6 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
 
     if (HAVE_OPT(DECODE))
         ctx->tcpdump.args = safe_strdup(OPT_ARG(DECODE));
-   
-    /*
-     * put the open after decode options so they are passed to tcpdump
-     */
 #endif
 
 
@@ -285,7 +349,7 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
                 i += 2;
                 continue;
             }
-            
+
             strlcat(myargs, argv[i], MYARGS_LEN);
             strlcat(myargs, " ", MYARGS_LEN);
         }
@@ -302,7 +366,7 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
         bufsize = strlen(ctx->options->comment) + strlen(myargs) + 1;
         ctx->options->comment = (char *)safe_realloc(ctx->options->comment, 
             bufsize);
-        
+
         tempstr = strdup(ctx->options->comment);
         strlcpy(ctx->options->comment, myargs, bufsize);
         strlcat(ctx->options->comment, tempstr, bufsize);
@@ -311,14 +375,14 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
         ctx->options->comment = (char *)safe_malloc(bufsize);
         strlcpy(ctx->options->comment, myargs, bufsize);
     }
-        
+
     dbgx(1, "Final comment length: %zu", strlen(ctx->options->comment));
 
     /* copy over our min/max mask */
     ctx->options->min_mask = OPT_VALUE_MINMASK;
-    
+
     ctx->options->max_mask = OPT_VALUE_MAXMASK;
-    
+
     if (! ctx->options->min_mask > ctx->options->max_mask)
         errx(-1, "Min network mask len (%d) must be less then max network mask len (%d)",
         ctx->options->min_mask, ctx->options->max_mask);
