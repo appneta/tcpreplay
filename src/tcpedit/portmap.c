@@ -257,7 +257,6 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
             udp_hdr->uh_sport = newport;
             changes ++;
         }
-        
 
     }
     return changes;
@@ -267,11 +266,13 @@ int
 rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
 {
     assert(tcpedit);
+    u_char *l4;
 
     if (*ip_hdr == NULL) {
         return 0;
     } else if ((*ip_hdr)->ip_p == IPPROTO_TCP || (*ip_hdr)->ip_p == IPPROTO_UDP) {
-        return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, get_layer4_v4(*ip_hdr));
+        l4 = get_layer4_v4(*ip_hdr, 65536);
+        return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4);
     }
 
     return 0;
@@ -281,11 +282,13 @@ int
 rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr)
 {
     assert(tcpedit);
+    u_char *l4;
 
     if (*ip6_hdr == NULL) {
         return 0;
     } else if ((*ip6_hdr)->ip_nh == IPPROTO_TCP || (*ip6_hdr)->ip_nh == IPPROTO_UDP) {
-        return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, ((u_char*)*ip6_hdr) + TCPR_IPV6_H);
+        l4 = get_layer4_v6(*ip6_hdr, 65535);
+        return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4);
     }
     return 0;
 }

@@ -362,7 +362,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 
     /* TCP ? */
     if (ip_hdr->ip_p == IPPROTO_TCP) {
-        tcp_hdr = (tcp_hdr_t *) get_layer4_v4(ip_hdr);
+        tcp_hdr = (tcp_hdr_t *) get_layer4_v4(ip_hdr, datalen);
         datalen -= tcp_hdr->th_off << 2;
         if (datalen <= 0)
             goto nodata;
@@ -372,7 +372,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 
     /* UDP ? */
     else if (ip_hdr->ip_p == IPPROTO_UDP) {
-        udp_hdr = (udp_hdr_t *) get_layer4_v4(ip_hdr);
+        udp_hdr = (udp_hdr_t *) get_layer4_v4(ip_hdr, datalen);
         datalen -= TCPR_UDP_H;
         if (datalen <= 0)
             goto nodata;

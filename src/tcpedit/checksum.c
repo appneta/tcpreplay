@@ -55,35 +55,35 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
     icmpv6_hdr_t *icmp6;
     int ip_hl;
     int sum;
-    
+
     sum = 0;
     ipv4 = NULL;
     ipv6 = NULL;
     assert(data);
-    
+
     if (len <= 0) {
         tcpedit_seterr(tcpedit, "%s", "length of data must be > 0");
         return TCPEDIT_ERROR;
     }
-    
+
     ipv4 = (ipv4_hdr_t *)data;
     if (ipv4->ip_v == 6) {
         ipv6 = (ipv6_hdr_t *)data;
         ipv4 = NULL;
 
-        proto = get_ipv6_l4proto(ipv6);
+        proto = get_ipv6_l4proto(ipv6, len);
         dbgx(3, "layer4 proto is 0x%hhu", proto);
 
-        ip_hl = (u_char*)get_layer4_v6(ipv6) - (u_char*)data;
+        ip_hl = (u_char*)get_layer4_v6(ipv6, len) - (u_char*)data;
         dbgx(3, "ip_hl proto is 0x%d", ip_hl);
 
         len -= (ip_hl - TCPR_IPV6_H);
     } else {
         ip_hl = ipv4->ip_hl << 2;
     }
-    
+
     switch (proto) {
-        
+
         case IPPROTO_TCP:
             tcp = (tcp_hdr_t *)(data + ip_hl);
 #ifdef STUPID_SOLARIS_CHECKSUM_BUG
@@ -91,7 +91,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             return (TCPEDIT_OK);
 #endif
             tcp->th_sum = 0;
-            
+
             /* Note, we do both src & dst IP's at the same time, that's why the
              * length is 2x a single IP
              */
@@ -104,7 +104,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             sum += do_checksum_math((uint16_t *)tcp, len);
             tcp->th_sum = CHECKSUM_CARRY(sum);
             break;
-        
+
         case IPPROTO_UDP:
             udp = (udp_hdr_t *)(data + ip_hl);
             udp->uh_sum = 0;
@@ -117,7 +117,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             sum += do_checksum_math((uint16_t *)udp, len);
             udp->uh_sum = CHECKSUM_CARRY(sum);
             break;
-        
+
         case IPPROTO_ICMP:
             icmp = (icmpv4_hdr_t *)(data + ip_hl);
             icmp->icmp_sum = 0;
@@ -128,7 +128,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             sum += do_checksum_math((uint16_t *)icmp, len);
             icmp->icmp_sum = CHECKSUM_CARRY(sum);
             break;
-        
+
         case IPPROTO_ICMP6:
             icmp6 = (icmpv6_hdr_t *)(data + ip_hl);
             icmp6->icmp_sum = 0;
@@ -140,14 +140,13 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             icmp6->icmp_sum = CHECKSUM_CARRY(sum);
             break;
 
-     
+
         case IPPROTO_IP:
             ipv4->ip_sum = 0;
             sum = do_checksum_math((uint16_t *)data, ip_hl);
             ipv4->ip_sum = CHECKSUM_CARRY(sum);
             break;
-       
-       
+
         case IPPROTO_IGMP:
         case IPPROTO_GRE:
         case IPPROTO_OSPF:
@@ -159,7 +158,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             tcpedit_setwarn(tcpedit, "Unsupported protocol for checksum: 0x%x", proto);
             return TCPEDIT_WARN;
     }
-    
+
     return TCPEDIT_OK;
 }
 
@@ -174,18 +173,18 @@ do_checksum_math(uint16_t *data, int len)
         uint16_t s;
         uint8_t b[2];
     } pad;
-    
+
     while (len > 1) {
         sum += *data++;
         len -= 2;
     }
-    
+
     if (len == 1) {
         pad.b[0] = *(uint8_t *)data;
         pad.b[1] = 0;
         sum += pad.s;
     }
-    
+
     return (sum);
 }
 

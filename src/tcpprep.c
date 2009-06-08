@@ -223,15 +223,18 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
             return 0; /* not enough data in the packet to know */
 
         proto = ip_hdr->ip_p;
-        l4 = get_layer4_v4(ip_hdr);
+        l4 = get_layer4_v4(ip_hdr, len);
     } else if (ip6_hdr) {
         if (len < (TCPR_IPV6_H + 4))
             return 0; /* not enough data in the packet to know */
 
-        proto = get_ipv6_l4proto(ip6_hdr);
+        if ((proto = get_ipv6_l4proto(ip6_hdr, len)) == -1)
+            return 0;
+
         dbgx(3, "Our layer4 proto is 0x%hhu", proto);
-        l4 = get_layer4_v6(ip6_hdr);
-        
+        if ((l4 = get_layer4_v6(ip6_hdr, len)) == -1)
+            return 0;
+
         dbgx(3, "Found proto %u at offset %p.  base %p (%u)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
     } else {
         assert(0);
