@@ -372,20 +372,27 @@ for testdir in $trypcapdir /usr/local /opt/local /usr /wpdpack ; do
 done
 
 if test $foundpcap = no ; then
-        AC_MSG_RESULT(no)
-        AC_ERROR(libpcap not found)
+    AC_MSG_RESULT(no)
+    AC_ERROR(libpcap not found)
 else
-        AC_MSG_RESULT($foundpcap)
+    AC_MSG_RESULT($foundpcap)
 fi
-
-AC_SUBST(LPCAPINC)
-AC_SUBST(LPCAPLIB)
 
 dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
 LIBS="$LPCAPLIB"
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
+
+# Does libpcap require libnl?
+AC_SEARCH_LIBS([pcap_close], [pcap],
+    LPCAPLIB="$LPCAPLIB",
+    AC_ERROR([Unable to link libpcap in ${foundpcap}]),
+    -lnl)
+
+AC_SUBST(LPCAPINC)
+AC_SUBST(LPCAPLIB)
+
 
 dnl Check to see what version of libpcap
 dnl this code has been reduced a lot, but probably still could be
@@ -415,6 +422,7 @@ AC_RUN_IFELSE(AC_LANG_PROGRAM([[
     libpcap_version_096=yes
 ])
 
+libpcap_ver8=no
 AC_RUN_IFELSE(AC_LANG_PROGRAM([[
 #include <string.h>
 #include <stdlib.h>
@@ -428,7 +436,7 @@ AC_RUN_IFELSE(AC_LANG_PROGRAM([[
  * or one otherwise
  */
     if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
-            exit(0);
+        exit(0);
 
     /* winpcap? */
     if (strncmp(pcap_lib_version(), "WinPcap", 7) == 0)
@@ -441,6 +449,7 @@ AC_RUN_IFELSE(AC_LANG_PROGRAM([[
     libpcap_ver8=no
 ])
 
+libpcap_ver7=no
 AC_RUN_IFELSE(AC_LANG_PROGRAM([[
 #include <string.h>
 #include <stdlib.h>
@@ -465,9 +474,9 @@ extern const char pcap_version[[]]; /* double up since autoconf escapes things *
     libpcap_ver7=no
 ])
 
-if test $libpcap_ver8 = yes ; then
+if test x$libpcap_ver8 = xyes ; then
     AC_MSG_RESULT(>= 0.8.0)
-elif test $libpcap_ver7 = yes ; then
+elif test x$libpcap_ver7 = xyes ; then
     AC_MSG_RESULT(>= 0.7.2)
 else 
     AC_MSG_ERROR([Libpcap versions < 0.7.2 are not supported
@@ -475,11 +484,11 @@ else
 fi
 
 libpcap_version=unknown
-if test $libpcap_version_096 = yes ; then
+if test x$libpcap_version_096 = xyes ; then
     libpcap_version=">= 0.9.6"
-elif test $libpcap_ver8 = yes ; then
+elif test x$libpcap_ver8 = xyes ; then
     libpcap_version=">= 0.8.0"
-elif test $libcap_ver7 = yes ; then
+elif test x$libcap_ver7 = xyes ; then
     libpcap_version=">= 0.7.0"
 fi
 
