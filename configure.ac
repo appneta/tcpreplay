@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=4
-MICRO_VERSION=2
+MICRO_VERSION=3
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 
 dnl Release is only used for the RPM spec file
@@ -42,8 +42,8 @@ AC_SUBST(target)
 have_cygwin=no
 AC_MSG_CHECKING([for cygwin development environment])
 if test `echo $target | grep -c cygwin` -gt 0 ; then
-   	AC_DEFINE([HAVE_WIN32], [1], [Windows/Cygwin])
-   	AC_MSG_RESULT(yes)
+	AC_DEFINE([HAVE_WIN32], [1], [Windows/Cygwin])
+	AC_MSG_RESULT(yes)
 	have_cygwin=yes
 else
    AC_MSG_RESULT(no)
