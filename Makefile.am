@@ -9,7 +9,7 @@ else
 SUBDIRS = scripts lib src
 endif
 
-DIST_SUBDIRS = scripts lib libopts src docs test
+DIST_SUBDIRS = scripts lib libopts src docs test m4
 .PHONY: manpages docs test man2html
 
 
