@@ -9,7 +9,7 @@ else
 SUBDIRS = scripts lib src
 endif
 
-DIST_SUBDIRS = scripts lib libopts src docs test m4
+DIST_SUBDIRS = scripts lib libopts src docs test
 .PHONY: manpages docs test man2html
 
 
@@ -64,4 +64,6 @@ DISTCLEANFILES = .tm_project.cache stamp-h1 *.tar.*
 
 MAINTAINERCLEANFILES = Makefile.in configure *.bak
 
-EXTRA_DIST = doxygen.cfg.in autogen.sh
+EXTRA_DIST = doxygen.cfg.in autogen.sh \
+	m4/libtool.m4 m4/ltoptions.m4 m4/ltsugar.m4 \
+	m4/ltversion.m4 m4/lt~obsolete.m4
