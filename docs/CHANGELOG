@@ -1,5 +1,11 @@
 $Id$
 
+06/23/09: Version 3.4.3
+    - Link libnl when newer versions of libpcap require it (#397)
+    - Ship m4 directory (#398)
+    - Upgrade to latest autotools scripts (#400)
+    - Fix error message when running autogen.sh (#401)
+
 05/20/2009: Version 3.4.2
     - Added extensive IPv6 support to tcprewrite & tcpreplay-edit (#11)
     - Add IPv6 fragroute support (#388)
