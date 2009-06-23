@@ -386,7 +386,7 @@ CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
 # Does libpcap require libnl?
 AC_SEARCH_LIBS([pcap_close], [pcap],
-    LPCAPLIB="$LPCAPLIB",
+    LPCAPLIB="$LIBS",
     AC_ERROR([Unable to link libpcap in ${foundpcap}]),
     -lnl)
 
