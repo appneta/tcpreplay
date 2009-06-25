@@ -1,6 +1,6 @@
 $Id$
 
-06/23/09: Version 3.4.3
+06/25/09: Version 3.4.3
     - Link libnl when newer versions of libpcap require it (#397)
     - Ship m4 directory (#398)
     - Upgrade to latest autotools scripts (#400)
