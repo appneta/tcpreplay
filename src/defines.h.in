@@ -12,25 +12,24 @@
 #endif
 
 #ifdef WIN32
-
- #include "msvc_inttypes.h"
- #include "msvc_stdint.h"
-
+#include "msvc_inttypes.h"
+#include "msvc_stdint.h"
 #else
 
- #ifdef HAVE_INTTYPES_H
-  #include <inttypes.h>
- #endif
-
- #ifdef HAVE_STDINT_H
-  #include <stdint.h>
- #endif
-
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
 #endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
+#endif /* WIN32 */
 
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
+
 #ifdef HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
 #endif
@@ -170,23 +169,23 @@ typedef enum pad_e {
 
 typedef enum direction_e {
     DIR_UNKNOWN = -1,
-    DIR_CLIENT = 0,
-    DIR_SERVER = 1,
-    DIR_ANY = 2
+    DIR_CLIENT  = 0,
+    DIR_SERVER  = 1,
+    DIR_ANY     = 2
 } direction_t;
 
 typedef enum tcpprep_mode_e {
     ERROR_MODE,     /* Some kind of error has occurred */
-    CIDR_MODE,     	/* single pass, CIDR netblock */
-    REGEX_MODE,		/* single pass, regex */
-    PORT_MODE,		/* single pass, use src/dst ports to split */
-    MAC_MODE,		/* single pass, use src mac to split */
+    CIDR_MODE,      /* single pass, CIDR netblock */
+    REGEX_MODE,     /* single pass, regex */
+    PORT_MODE,      /* single pass, use src/dst ports to split */
+    MAC_MODE,       /* single pass, use src mac to split */
     FIRST_MODE,     /* single pass, use first seen to split */
-    AUTO_MODE,		/* first pass through in auto mode */
-    ROUTER_MODE,	/* second pass through in router mode */
-    BRIDGE_MODE,	/* second pass through in bridge mode */
-    SERVER_MODE,	/* second pass through in server (router) mode */
-    CLIENT_MODE 	/* second pass through in client (router) mode */
+    AUTO_MODE,      /* first pass through in auto mode */
+    ROUTER_MODE,    /* second pass through in router mode */
+    BRIDGE_MODE,    /* second pass through in bridge mode */
+    SERVER_MODE,    /* second pass through in server (router) mode */
+    CLIENT_MODE     /* second pass through in client (router) mode */
 } tcpprep_mode_t;
 
 #define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
@@ -306,7 +305,7 @@ typedef u_int64_t uint64_t
 #define NANOSEC_TO_TIMEVAL(x, tv)           \
     do {                                    \
         (tv)->tv_sec =  (x) / 1000000000;   \
-        (tv)->tv_usec = ((x) % 1000000000) / 1000);   \
+        (tv)->tv_usec = ((x) % 1000000000) / 1000;   \
     } while(0)
 
 #define NANOSEC_TO_TIMESPEC(x, ts)          \
