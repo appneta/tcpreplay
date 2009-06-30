@@ -44,16 +44,21 @@
 #include <sys/types.h>
 #endif
 
-#ifdef HAVE_INTTYPES_H
-#include <inttypes.h>
-#else if WIN32
-#include "msvc_inttypes.h"
-#endif
+#ifdef WIN32
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else if WIN32
-#include "msvc_stdint.h"
+ #include "msvc_inttypes.h"
+ #include "msvc_stdint.h"
+
+#else
+
+ #ifdef HAVE_INTTYPES_H
+  #include <inttypes.h>
+ #endif
+
+ #ifdef HAVE_STDINT_H
+  #include <stdint.h>
+ #endif
+
 #endif
 
 #ifdef HAVE_NETINET_IN_H
