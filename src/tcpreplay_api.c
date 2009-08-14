@@ -100,6 +100,15 @@ tcpreplay_init()
     ctx->options->speed.mode = speed_multiplier;
     ctx->options->speed.speed = 1.0;
 
+    /* Set the default timing method */
+#ifdef HAVE_ABSOLUTE_TIME
+    /* This is always the best (if the OS supports it) */
+    ctx->options->accurate = accurate_abs_time;
+#else
+    /* This is probably the second best solution */
+    ctx->options->accurate = accurate_gtod;
+#endif
+
     /* set the default MTU size */
     ctx->options->mtu = DEFAULT_MTU;
 
