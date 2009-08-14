@@ -1,6 +1,9 @@
 $Id$
 
-06/25/09: Version 3.4.3
+??/??/??: Version 3.4.4
+    - Set default timing method to either gtod or abstime (#404)
+
+06/25/2009: Version 3.4.3
     - Link libnl when newer versions of libpcap require it (#397)
     - Ship m4 directory (#398)
     - Upgrade to latest autotools scripts (#400)

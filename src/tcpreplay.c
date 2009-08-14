@@ -247,10 +247,19 @@ init(void)
 
     /* replay packets only once */
     options.loop = 1;
-    
+
     /* Default mode is to replay pcap once in real-time */
     options.speed.mode = SPEED_MULTIPLIER;
     options.speed.speed = 1.0;
+
+    /* Set the default timing method */
+#ifdef HAVE_ABSOLUTE_TIME
+    /* This is always the best (if the OS supports it) */
+    options.accurate = ACCURATE_ABS_TIME;
+#else
+    /* This is probably the second best solution */
+    options.accurate = ACCURATE_GTOD;
+#endif
 
     /* set the default MTU size */
     options.mtu = DEFAULT_MTU;
