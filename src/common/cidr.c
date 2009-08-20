@@ -230,6 +230,10 @@ cidr2cidr(char *cidr)
         if (newcidr->masklen < 0 || newcidr->masklen > 128)
             goto error;
 
+        /* skip past the opening [ */
+        if (*cidr == '[')
+            cidr ++;
+
         if (get_name2addr6(cidr, RESOLVE, &newcidr->u.network6) > 0) {
             family = AF_INET6;
         } else {
