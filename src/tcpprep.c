@@ -215,7 +215,7 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
     tcpprep_opt_t *options = tcpprep->options;
-    u_char proto;
+    uint8_t proto;
     u_char *l4;
 
     if (ip_hdr) {
@@ -228,11 +228,8 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
         if (len < (TCPR_IPV6_H + 4))
             return 0; /* not enough data in the packet to know */
 
-        if ((proto = get_ipv6_l4proto(ip6_hdr, len)) == -1)
-            return 0;
-
         dbgx(3, "Our layer4 proto is 0x%hhu", proto);
-        if ((l4 = get_layer4_v6(ip6_hdr, len)) == -1)
+        if ((l4 = get_layer4_v6(ip6_hdr, len)) == NULL)
             return 0;
 
         dbgx(3, "Found proto %u at offset %p.  base %p (%u)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
@@ -242,36 +239,40 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
 
     dbg(3, "Checking the destination port...");
 
-    if (proto == IPPROTO_TCP) {
-        tcp_hdr = (tcp_hdr_t *)l4;
+    switch(proto) {
+        case IPPROTO_TCP:
+            tcp_hdr = (tcp_hdr_t *)l4;
 
-        /* is a service? */
-        if (options->services.tcp[ntohs(tcp_hdr->th_dport)]) {
-            dbgx(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
-            return 1;
-        }
+            /* is a service? */
+            if (options->services.tcp[ntohs(tcp_hdr->th_dport)]) {
+                dbgx(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
+                return 1;
+            }
 
-        /* nope */
-        dbgx(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
-        return 0;
-    } else if (proto == IPPROTO_UDP) {
-        udp_hdr = (udp_hdr_t *)l4;
+            /* nope */
+            dbgx(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
+            return 0;
+            break;
 
-        /* is a service? */
-        if (options->services.udp[ntohs(udp_hdr->uh_dport)]) {
-            dbgx(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
-            return 1;
-        }
+        case IPPROTO_UDP:
+            udp_hdr = (udp_hdr_t *)l4;
 
-        /* nope */
-        dbgx(1, "UDP packet is NOT destined for a server port: %d", ntohs(udp_hdr->uh_dport));
-        return 0;
+            /* is a service? */
+            if (options->services.udp[ntohs(udp_hdr->uh_dport)]) {
+                dbgx(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
+                return 1;
+            }
+
+            /* nope */
+            dbgx(1, "UDP packet is NOT destined for a server port: %d", ntohs(udp_hdr->uh_dport));
+            return 0;
+            break;
+
+        default:
+            /* not a TCP or UDP packet... return as non_ip */
+            dbg(1, "Packet isn't a UDP or TCP packet... no port to process.");
+            return options->nonip;
     }
-
-    
-    /* not a TCP or UDP packet... return as non_ip */
-    dbg(1, "Packet isn't a UDP or TCP packet... no port to process.");
-    return options->nonip;
 }
 
 
