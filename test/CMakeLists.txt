@@ -4,7 +4,7 @@ set(TCPREPLAY ${CMAKE_SOURCE_DIR}/src/tcpreplay)
 set(DEBUG_FLAG)
 if(ENABLE_DEBUG)
     set(DEBUG_FLAG -d 5)
-endif(ENABLE_DEBUG)    
+endif(ENABLE_DEBUG)
 
 if(NOT NIC1)
     if(LINUX)
@@ -51,10 +51,14 @@ set(tcpreplay_tests replay_basic replay_cache replay_pps replay_rate replay_top
 #########################################################
 add_custom_target(standard_tests)
 
-configure_file(${CMAKE_SOURCE_DIR}/test/Standard.cmake.in ${CMAKE_SOURCE_DIR}/test/Standard.cmake @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/test/Tests.cmake.in ${CMAKE_SOURCE_DIR}/test/Tests.cmake @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/test/RunUnitTest.cmake.in ${CMAKE_SOURCE_DIR}/test/RunUnitTest.cmake @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/test/config.in ${CMAKE_SOURCE_DIR}/test/config @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/test/Standard.cmake.in 
+    ${CMAKE_SOURCE_DIR}/test/Standard.cmake @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/test/Tests.cmake.in 
+    ${CMAKE_SOURCE_DIR}/test/Tests.cmake @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/test/RunUnitTest.cmake.in 
+    ${CMAKE_SOURCE_DIR}/test/RunUnitTest.cmake @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/test/config.in 
+    ${CMAKE_SOURCE_DIR}/test/config @ONLY)
 add_custom_command(TARGET standard_tests
     COMMAND cmake -P Standard.cmake
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
@@ -72,7 +76,7 @@ add_custom_command(TARGET tests
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
     DEPENDS Tests.cmake
     VERBATIM)
-    
+
 # Add output files of tests to ADDITIONAL_MAKE_CLEAN_FILES
 foreach(__test @tcpprep_tests@ @tcprewrite_tests@)
     if(__test MATCHES "rewrite_")
@@ -85,4 +89,4 @@ foreach(__test @tcpprep_tests@ @tcprewrite_tests@)
     set_property(DIRECTORY ${CMAKE_SOURCE_DIR}/test
         APPEND
         PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${output_file})
-endforeach(__test)    
+endforeach(__test)
