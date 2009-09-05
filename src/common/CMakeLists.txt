@@ -4,7 +4,7 @@ INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/src)
 set(tcpdump_src)
 if(TCPDUMP_BINARY)
     if(WIN32)
-        message(STATUS "Unable to build verbose support under Win32")    
+        message(STATUS "Unable to build verbose support under Win32")
     else(WIN32)
         set(tcpdump_src tcpdump.c)
     endif(WIN32)
@@ -13,9 +13,9 @@ else(TCPDUMP_BINARY)
 endif(TCPDUMP_BINARY)
 
 
-add_library(common STATIC abort.c cache.c cidr.c dlt_names.c err.c fakepcap.c 
-	fakepcapnav.c fakepoll.c get.c interface.c list.c mac.c rdtsc.c
-	sendpacket.c services.c timer.c utils.c xX.c ${tcpdump_src} svn_version.c)
+add_library(common STATIC abort.c cache.c cidr.c dlt_names.c err.c fakepcap.c
+    fakepcapnav.c fakepoll.c get.c interface.c list.c mac.c rdtsc.c
+    sendpacket.c services.c timer.c utils.c xX.c ${tcpdump_src} svn_version.c)
 
 add_custom_target(version)
 
@@ -43,6 +43,6 @@ if(Subversion_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.svn)
     add_dependencies(version delete_version svn_version_c)
 else(Subversion_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.svn)
     if(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c)
-        message(FATAL_ERROR "Unable to build svn_version.c- not in svn repository!")
+        message(FATAL_ERROR "Unable to build svn_version.c: not in svn repository!")
     endif(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c)
 endif(Subversion_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.svn)
