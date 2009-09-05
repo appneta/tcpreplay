@@ -38,9 +38,9 @@
 # Find the libdnet includes and library
 # http://libdnet.sourceforge.net/
 #
-# The environment variable DNETDIR allows to specify where to find 
+# The environment variable LIBDNET_DIR allows to specify where to find 
 # libdnet in non standard location.
-#  
+#
 #  DNET_CFLAGS - where to find dnet.h, etc.
 #  DNET_LIBS   - List of libraries when using libdnet.
 #  HAVE_LIBDNET       - True if libdnet found.
@@ -67,17 +67,17 @@ IF(founddnet)
     EXECUTE_PROCESS(COMMAND ${founddnet}/bin/dnet-config --version
         OUTPUT_VARIABLE version
     )
-    
+
     # remove new line from --version
     STRING(REGEX REPLACE "\n" "" newversion ${version})
     SET(LIBDNET_VERSION ${newversion})
-    
+
     STRING(REGEX REPLACE "\n" "" newlibs ${libs})
     SET(DNET_LIBS ${newlibs})
-    
+
     STRING(REGEX REPLACE "\n" "" newcflags ${cflags})
     SET(DNET_CFLAGS ${newcflags})
-    
+
     SET(HAVE_LIBDNET 1)
     MESSAGE(STATUS "Using libdnet from ${founddnet}")
 ELSE(founddnet)
