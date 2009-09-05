@@ -10,8 +10,8 @@ annoyed reply from the author.
 If your problem has to do with COMPILING tcpreplay:
 - Version of tcpreplay you are trying to compile
 - Platform (Red Hat Linux 9 on x86, Solaris 7 on SPARC, OS X on PPC, etc)
-- ./configure arguments
-- Contents of config.log
+- cmake options
+- Contents of CMakeCache.txt
 - Output from 'make'
 - Any additional information you think that would be useful.
 
