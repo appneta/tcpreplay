@@ -86,8 +86,8 @@ tcpprep_init()
 void
 tcpprep_close(tcpprep_t *ctx)
 {
-    tcpr_cache_t *cache, cache_nxt;
-    tcpr_cidr_t *cidr, cidr_nxt;
+    tcpr_cache_t *cache, *cache_nxt;
+    tcpr_cidr_t *cidr, *cidr_nxt;
     tcpprep_opt_t *options;
 
     assert(ctx);
@@ -97,7 +97,7 @@ tcpprep_close(tcpprep_t *ctx)
         pcap_close(options->pcap);
 
 #ifdef ENABLE_VERBOSE
-    safe_free(options->tcpdump_args;
+    safe_free(options->tcpdump_args);
 #endif
     safe_free(options->comment);
     safe_free(options->maclist);
