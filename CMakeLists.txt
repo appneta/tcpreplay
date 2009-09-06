@@ -201,10 +201,12 @@ else(WIN32)
 endif(WIN32)
 
 include(FindPCAP)
+set(ENABLE_TCPBRIDGE 0)
 if(NOT HAVE_PCAP_SENDPACKET)
     message(STATUS "libpcap does not have pcap_sendpacket(): skipping tcpbridge")
 else(NOT HAVE_PCAP_SENDPACKET)
     message(STATUS "We will build tcpbridge")
+    set(ENABLE_TCPBRIDGE 1)
 endif(NOT HAVE_PCAP_SENDPACKET)
 
 include(FindEvent)
@@ -338,7 +340,7 @@ include_directories(${PCAP_INCLUDE_DIRS})
 # cause another cmake executable to run. The same process will walk through 
 # the project's entire directory structure 
 add_subdirectory(src)
-# add_subdirectory(docs)
+add_subdirectory(docs)
 add_subdirectory(test)
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/BuildDistTgz.cmake.in ${CMAKE_BINARY_DIR}/cmake/BuildDistTgz.cmake)
@@ -364,5 +366,5 @@ if(USE_AUTOOPTS)
         VERBATIM)
 endif(USE_AUTOOPTS)
 
-# Doxygen & make docs
+# make doxygen
 include("${CMAKE_MODULE_PATH}/TargetDoc.cmake" OPTIONAL)
