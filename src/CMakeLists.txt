@@ -151,20 +151,22 @@ if(USE_AUTOOPTS)
     ENDIF(HAVE_PCAP_SENDPACKET)
 ENDIF(USE_AUTOOPTS)
 
+set(autogen_opts -T agman1.tpl -L tcpedit)
+
 ADD_CUSTOM_COMMAND(OUTPUT tcpreplay.1
-    COMMAND ${AUTOGEN} -T agman1.tpl -L tcpedit --basename tcpreplay tcpreplay_opts.def
+    COMMAND ${AUTOGEN} ${autogen_opts} -b tcpreplay tcpreplay_opts.def
     DEPENDS tcpreplay_opts.def)
 ADD_CUSTOM_COMMAND(OUTPUT tcpreplay-edit.1
-    COMMAND ${AUTOGEN} -T agman1.tpl -L tcpedit -DTCPREPLAY_EDIT --basename tcpreplay-edit tcpreplay_opts.def
+    COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -b tcpreplay-edit tcpreplay_opts.def
     DEPENDS tcpreplay_opts.def)
 ADD_CUSTOM_COMMAND(OUTPUT tcpprep.1
-    COMMAND ${AUTOGEN} -T agman1.tpl -L tcpedit --basename tcpprep tcpprep_opts.def
+    COMMAND ${AUTOGEN} ${autogen_opts} -b tcpprep tcpprep_opts.def
     DEPENDS tcpprep_opts.def)
 ADD_CUSTOM_COMMAND(OUTPUT tcprewrite.1
-    COMMAND ${AUTOGEN} -T agman1.tpl -L tcpedit --basename tcprewrite tcprewrite_opts.def
+    COMMAND ${AUTOGEN} ${autogen_opts} -b tcprewrite tcprewrite_opts.def
     DEPENDS tcprewrite_opts.def)
 ADD_CUSTOM_COMMAND(OUTPUT tcpbridge.1
-    COMMAND ${AUTOGEN} -T agman1.tpl -L tcpedit --basename tcpbridge tcpbridge_opts.def
+    COMMAND ${AUTOGEN} ${autogen_opts} -b tcpbridge tcpbridge_opts.def
     DEPENDS tcpbridge_opts.def)
 
 ADD_CUSTOM_TARGET(man_pages

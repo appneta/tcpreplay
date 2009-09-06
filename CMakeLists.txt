@@ -72,6 +72,8 @@ find_program(AUTOGEN autogen)
 find_program(TCPDUMP_BINARY tcpdump)
 find_program(CTAGS ctags)
 find_program(ETAGS etags)
+find_program(GROFF groff)
+
 
 # Where to find local cmake scripts
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -353,6 +355,14 @@ add_custom_target(ctags
 add_custom_target(etags
     COMMAND ${ETAGS} -R src lib libopts
 )
+
+if(USE_AUTOOPTS)
+    add_custom_target(clean_autogen
+        COMMAND cmake -P ${CMAKE_SOURCE_DIR}/cmake/CleanAutogen.cmake
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
+        DEPENDS cmake/CleanAutogen.cmake
+        VERBATIM)
+endif(USE_AUTOOPTS)
 
 # Doxygen & make docs
 include("${CMAKE_MODULE_PATH}/TargetDoc.cmake" OPTIONAL)
