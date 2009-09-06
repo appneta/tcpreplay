@@ -80,15 +80,52 @@ tcpprep_init()
     return ctx;
 }
 
-
+/**
+ * Closes & free's all memory related to a tcpprep context
+ */
 void
 tcpprep_close(tcpprep_t *ctx)
 {
+    tcpr_cache_t *cache, cache_nxt;
+    tcpr_cidr_t *cidr, cidr_nxt;
+    tcpprep_opt_t *options;
+
     assert(ctx);
-    errx(1, "%s", "not defined");
+    options = ctx->options;
+
+    if (options->pcap != NULL)
+        pcap_close(options->pcap);
+
+#ifdef ENABLE_VERBOSE
+    safe_free(options->tcpdump_args;
+#endif
+    safe_free(options->comment);
+    safe_free(options->maclist);
+
+    cache = options->cachedata;
+    while (cache != NULL) {
+        cache_nxt = cache->next;
+        safe_free(cache);
+        cache = cache_nxt;
+    }
+
+    cidr = options->cidrdata;
+    while (cidr != NULL) {
+        cidr_nxt = cidr->next;
+        safe_free(cidr);
+        cidr = cidr_nxt;
+    }
+
+    safe_free(options);
+
+    safe_free(ctx->outfile);
+    safe_free(ctx->pcapfile);
+    safe_free(ctx);
 }
 
-
+/**
+ * Specify the pcap file to process
+ */
 int
 tcpprep_set_pcap_file(tcpprep_t *ctx, char *value)
 {
@@ -98,6 +135,9 @@ tcpprep_set_pcap_file(tcpprep_t *ctx, char *value)
     return 0;
 }
 
+/**
+ * Specify the tcpprep cache file to generate
+ */
 int
 tcpprep_set_output_file(tcpprep_t *ctx, char *value)
 {
@@ -107,6 +147,9 @@ tcpprep_set_output_file(tcpprep_t *ctx, char *value)
     return 0;
 }
 
+/**
+ * Specify a cache file comment
+ */
 int
 tcpprep_set_comment(tcpprep_t *ctx, char *value)
 {
@@ -116,6 +159,12 @@ tcpprep_set_comment(tcpprep_t *ctx, char *value)
     return 0;
 }
 
+/**
+ * \brief Disable comments in the tcpprep cachefile
+ *
+ * Indicate that there should not be any comment or option info
+ * embedded in the generated tcpprep cache file
+ */
 int
 tcpprep_set_nocomment(tcpprep_t *ctx, bool value)
 {
@@ -124,6 +173,9 @@ tcpprep_set_nocomment(tcpprep_t *ctx, bool value)
     return 0;
 }
 
+/**
+ * Specify the tcpprep main mode
+ */
 int
 tcpprep_set_mode(tcpprep_t *ctx, tcpprep_mode_t value)
 {
@@ -132,6 +184,9 @@ tcpprep_set_mode(tcpprep_t *ctx, tcpprep_mode_t value)
     return 0;
 }
 
+/**
+ * Specify the submode for automode
+ */
 int
 tcpprep_set_automode(tcpprep_t *ctx, tcpprep_mode_t value)
 {
@@ -140,6 +195,9 @@ tcpprep_set_automode(tcpprep_t *ctx, tcpprep_mode_t value)
     return 0;
 }
 
+/**
+ * Set the minimum CIDR mask length for auto modes
+ */
 int
 tcpprep_set_min_mask(tcpprep_t *ctx, int value)
 {
@@ -148,6 +206,9 @@ tcpprep_set_min_mask(tcpprep_t *ctx, int value)
     return 0;
 }
 
+/**
+ * Set the maximum CIDR mask length for auto modes
+ */
 int
 tcpprep_set_max_mask(tcpprep_t *ctx, int value)
 {
@@ -156,6 +217,9 @@ tcpprep_set_max_mask(tcpprep_t *ctx, int value)
     return 0;
 }
 
+/**
+ * Set the client/server ratio for auto modes
+ */
 int
 tcpprep_set_ratio(tcpprep_t *ctx, double value)
 {
@@ -164,6 +228,9 @@ tcpprep_set_ratio(tcpprep_t *ctx, double value)
     return 0;
 }
 
+/**
+ * Specify the regex for regex mode
+ */
 int
 tcpprep_set_regex(tcpprep_t *ctx, char *value)
 {
@@ -182,6 +249,9 @@ tcpprep_set_regex(tcpprep_t *ctx, char *value)
     return 0;
 }
 
+/**
+ * Override default: Send all non-IP traffic out the secondary interface
+ */
 int
 tcpprep_set_nonip_is_secondary(tcpprep_t *ctx, bool value)
 {
@@ -191,6 +261,9 @@ tcpprep_set_nonip_is_secondary(tcpprep_t *ctx, bool value)
 }
 
 #ifdef ENABLE_VERBOSE
+/**
+ * Enable verbose (tcpdump)
+ */
 int
 tcpprep_set_verbose(tcpprep_t *ctx, bool value)
 {
@@ -199,6 +272,9 @@ tcpprep_set_verbose(tcpprep_t *ctx, bool value)
     return 0;
 }
 
+/**
+ * Specify tcpdump args for verbose = ON
+ */
 int
 tcpprep_set_tcpdump_args(tcpprep_t *ctx, char *value)
 {
@@ -207,6 +283,9 @@ tcpprep_set_tcpdump_args(tcpprep_t *ctx, char *value)
     return 0;
 }
 
+/**
+ * Specify path to tcpdump binary
+ */
 int
 tcpprep_set_tcpdump(tcpprep_t *ctx, tcpdump_t *value)
 {
@@ -293,7 +372,7 @@ tcpprep_setwarn(tcpprep_t *ctx, const char *fmt, ...)
 
 
 #ifdef USE_AUTOOPTS
-/** 
+/**
  * \brief When using AutoOpts, call to do post argument processing
  * Used to process the autoopts arguments
  */

@@ -427,7 +427,7 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
     return 0;
 }
 
-/*
+/**
  * Set the replay speed mode.
  */
 int
@@ -439,7 +439,7 @@ tcpreplay_set_speed_mode(tcpreplay_t *ctx, tcpreplay_speed_mode value)
     return 0;
 }
 
-/*
+/**
  * Set the approprate speed value.  Value is interpreted based on 
  * how tcpreplay_set_speed_mode() value
  */
@@ -452,7 +452,7 @@ tcpreplay_set_speed_speed(tcpreplay_t *ctx, float value)
 }
 
 
-/*
+/**
  * Sending under packets/sec requires an integer value, not float.
  * you must first call tcpreplay_set_speed_mode(ctx, speed_packetrate)
  */
@@ -464,7 +464,7 @@ tcpreplay_set_speed_pps_multi(tcpreplay_t *ctx, int value)
     return 0;
 }
 
-/*
+/**
  * How many times should we loop through all the pcap files?
  */
 int
@@ -475,7 +475,7 @@ tcpreplay_set_loop(tcpreplay_t *ctx, u_int32_t value)
     return 0;
 }
 
-/*
+/**
  * Set the sleep accellerator fudge factor
  */
 int
@@ -486,7 +486,7 @@ tcpreplay_set_sleep_accel(tcpreplay_t *ctx, int value)
     return 0;
 }
 
-/*
+/**
  * Tell tcpreplay to ignore the snaplen (default) and use the "actual"
  * packet len instead
  */
@@ -498,8 +498,8 @@ tcpreplay_set_use_pkthdr_len(tcpreplay_t *ctx, bool value)
     return 0;
 }
 
-/*
- * Sets the outbound MTU
+/**
+ * Override the outbound MTU
  */
 int
 tcpreplay_set_mtu(tcpreplay_t *ctx, int value)
@@ -509,7 +509,7 @@ tcpreplay_set_mtu(tcpreplay_t *ctx, int value)
     return 0;
 }
 
-/*
+/**
  * Sets the accurate timing mode
  */
 int
@@ -542,7 +542,7 @@ tcpreplay_add_file(tcpreplay_t *ctx, char *value)
     return 0;
 }
 
-/*
+/**
  * Limit the total number of packets to send
  */
 int
@@ -553,6 +553,9 @@ tcpreplay_set_limit_send(tcpreplay_t *ctx, COUNTER value)
     return 0;
 }
 
+/**
+ * Specify the tcpprep cache file to use for replaying with two NICs
+ */
 int
 tcpreplay_set_file_cache(tcpreplay_t *ctx, file_cache_t *value)
 {
