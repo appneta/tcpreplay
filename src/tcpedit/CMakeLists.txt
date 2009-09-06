@@ -7,7 +7,7 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src/tcpedit/plugins)
 INCLUDE_DIRECTORIES(${PCAP_INCLUDE_DIRS})
 
 # grab all the plugin .c files
-file(GLOB_RECURSE tcpedit_srcs ${CMAKE_SOURCE_DIR}/src/tcpedit/plugins *.c)
+file(GLOB_RECURSE tcpedit_srcs plugins/*.c)
 
 # add the tcpedit base files
 SET(tcpedit_srcs ${tcpedit_srcs} tcpedit.c dlt.c edit_packet.c checksum.c
