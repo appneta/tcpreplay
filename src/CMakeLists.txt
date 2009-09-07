@@ -1,8 +1,12 @@
 add_subdirectory(common)
+add_subdirectory(tcpedit)
+
 if(ENABLE_FRAGROUTE AND HAVE_LIBDNET)
     add_subdirectory(fragroute)
 endif(ENABLE_FRAGROUTE AND HAVE_LIBDNET)
-add_subdirectory(tcpedit)
+
+# don't clean *_opts.[ch]
+set_property(DIRECTORY PROPERTY CLEAN_NO_CUSTOM true)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
@@ -25,6 +29,8 @@ set(tcpreplay_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c s
 set(tcpreplay_edit_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
 set(tcpprep_srcs tcpprep.c tree.c tcpprep_api.c)
 set(tcpbridge_srcs tcpbridge.c bridge.c)
+set(libtcpreplay_srcs tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
+set(libtcpprep_srcs tree.c tcpprep_api.c)
 
 # VC++ needs the .h files listed as sources so they show up
 if(WIN32)
@@ -72,6 +78,8 @@ if(USE_AUTOOPTS)
     set(tcprewrite_srcs ${tcprewrite_srcs} tcprewrite_opts.c)
     set(tcpprep_srcs ${tcpprep_srcs} tcpprep_opts.c)
     set(tcpbridge_srcs ${tcpbridge_srcs} tcpbridge_opts.c)
+    set(libtcpreplay_srcs ${libtcpreplay_srcs} tcpreplay_opts.c)
+    set(libtcpprep_srcs ${libtcpprep_srcs} tcpprep_opts.c)
 
     set(baselibs ${baselibs} ${CMAKE_SOURCE_DIR}/libopts/libopts.a)
 endif(USE_AUTOOPTS)
@@ -126,48 +134,62 @@ if(USE_AUTOOPTS)
         PROPERTIES COMPILE_FLAGS "-DTCPREPLAY -DHAVE_CACHEFILE_SUPPORT ${abstime_flags}")
 
     add_executable(tcpreplay-edit ${tcpreplay_edit_srcs})
-    TARGET_LINK_LIBRARIES(tcpreplay-edit ${tcpreplay_edit_libs})
+    target_link_libraries(tcpreplay-edit ${tcpreplay_edit_libs})
 
-    SET_TARGET_PROPERTIES(tcpreplay-edit
+    set_target_properties(tcpreplay-edit
         PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT ${abstime_flags}")
 
-    SET_TARGET_PROPERTIES(tcprewrite tcpreplay tcpreplay-edit
+    set_target_properties(tcprewrite tcpreplay tcpreplay-edit
         PROPERTIES LINK_FLAGS ${link_flags})
 
-    ADD_EXECUTABLE(tcpprep ${tcpprep_srcs})
-    TARGET_LINK_LIBRARIES(tcpprep ${tcpprep_libs})
+    add_executable(tcpprep ${tcpprep_srcs})
+    target_link_libraries(tcpprep ${tcpprep_libs})
 
     # Only build tcpbridge if we have pcap_sendpacket()
-    IF(HAVE_PCAP_SENDPACKET)
-        ADD_EXECUTABLE(tcpbridge ${tcpbridge_srcs})
-        TARGET_LINK_LIBRARIES(tcpbridge ${tcpbridge_libs})
+    if(HAVE_PCAP_SENDPACKET)
+        add_executable(tcpbridge ${tcpbridge_srcs})
+        target_link_libraries(tcpbridge ${tcpbridge_libs})
 
-        SET_TARGET_PROPERTIES(tcpbridge
-            PROPERTIES COMPILE_FLAGS -DTCPBRIDGE ${abstime_flags})
+        set_target_properties(tcpbridge
+            PROPERTIES COMPILE_FLAGS -DTCPBRIDGE ${abstime_flags}
+            LINK_FLAGS ${link_flags})
 
-        SET_TARGET_PROPERTIES(tcpbridge
-            PROPERTIES LINK_FLAGS ${link_flags})
+    endif(HAVE_PCAP_SENDPACKET)
 
-    ENDIF(HAVE_PCAP_SENDPACKET)
-ENDIF(USE_AUTOOPTS)
+    file(GLOB autogen_headers *_opts.h)
+    set_source_files_properties(${autogen_headers}
+        PROPERTIES GENERATED true)
 
+endif(USE_AUTOOPTS)
+
+# disable this for now.
+if(false)
+    # build the libraries
+    add_library(replay STATIC ${libtcpreplay_srcs})
+    set_target_properties(replay
+        PROPERTIES COMPILE_FLAGS "-DTCPREPLAY -DHAVE_CACHEFILE_SUPPORT ${abstime_flags}")
+
+    add_library(prep STATIC ${libtcpprep_srcs})
+endif(false)
+
+# Generate man pages
 set(autogen_opts -T agman1.tpl -L tcpedit)
 
-ADD_CUSTOM_COMMAND(OUTPUT tcpreplay.1
+add_custom_command(OUTPUT tcpreplay.1
     COMMAND ${AUTOGEN} ${autogen_opts} -b tcpreplay tcpreplay_opts.def
     DEPENDS tcpreplay_opts.def)
-ADD_CUSTOM_COMMAND(OUTPUT tcpreplay-edit.1
+add_custom_command(OUTPUT tcpreplay-edit.1
     COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -b tcpreplay-edit tcpreplay_opts.def
     DEPENDS tcpreplay_opts.def)
-ADD_CUSTOM_COMMAND(OUTPUT tcpprep.1
+add_custom_command(OUTPUT tcpprep.1
     COMMAND ${AUTOGEN} ${autogen_opts} -b tcpprep tcpprep_opts.def
     DEPENDS tcpprep_opts.def)
-ADD_CUSTOM_COMMAND(OUTPUT tcprewrite.1
+add_custom_command(OUTPUT tcprewrite.1
     COMMAND ${AUTOGEN} ${autogen_opts} -b tcprewrite tcprewrite_opts.def
     DEPENDS tcprewrite_opts.def)
-ADD_CUSTOM_COMMAND(OUTPUT tcpbridge.1
+add_custom_command(OUTPUT tcpbridge.1
     COMMAND ${AUTOGEN} ${autogen_opts} -b tcpbridge tcpbridge_opts.def
     DEPENDS tcpbridge_opts.def)
 
-ADD_CUSTOM_TARGET(man_pages
+add_custom_target(man_pages
     DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1 tcpbridge.1)
