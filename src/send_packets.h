@@ -33,16 +33,7 @@
 #ifndef __SEND_PACKETS_H__
 #define __SEND_PACKETS_H__
 
-void send_packets(pcap_t *, int);
-void *cache_mode(char *, COUNTER);
+void send_packets(tcpreplay_t *ctx, pcap_t *, int);
+void *cache_mode(tcpreplay_t *ctx, char *, COUNTER);
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

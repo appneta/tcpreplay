@@ -54,7 +54,6 @@
 #include "tcpbridge_opts.h"
 #include "bridge.h"
 #include "tcpedit/tcpedit.h"
-#include "send_packets.h"
 
 #ifdef DEBUG
 int debug;

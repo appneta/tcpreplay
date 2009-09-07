@@ -61,7 +61,6 @@ extern tcpedit_t *tcpedit;
 #include "send_packets.h"
 #include "sleep.h"
 
-extern tcpreplay_t *ctx;
 extern struct timeval begin, end;
 extern COUNTER bytes_sent, failed, pkts_sent;
 extern volatile int didsig;
@@ -70,18 +69,19 @@ extern volatile int didsig;
 extern int debug;
 #endif
 
-static void do_sleep(struct timeval *time, struct timeval *last, int len, 
-    tcpreplay_accurate accurate, sendpacket_t *sp, COUNTER counter, delta_t *ctx);
-static const u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, 
-    int file_idx, packet_cache_t **prev_packet);
-static u_int32_t get_user_count(sendpacket_t *sp, COUNTER counter);
+static void do_sleep(tcpreplay_t *ctx, struct timeval *time, 
+        struct timeval *last, int len, tcpreplay_accurate accurate, 
+        sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx);
+static const u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, 
+        struct pcap_pkthdr *pkthdr, int file_idx, packet_cache_t **prev_packet);
+static u_int32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
 
 /**
  * the main loop function for tcpreplay.  This is where we figure out
  * what to do with each packet
  */
 void
-send_packets(pcap_t *pcap, int cache_file_idx)
+send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
 {
     struct timeval last = { 0, 0 };
     COUNTER packetnum = 0;
@@ -89,15 +89,15 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     const u_char *pktdata = NULL;
     sendpacket_t *sp = ctx->options->intf1;
     u_int32_t pktlen;
-	packet_cache_t *cached_packet = NULL;
-	packet_cache_t **prev_packet = NULL;
+    packet_cache_t *cached_packet = NULL;
+    packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
     delta_t delta_ctx;
 
     init_delta_time(&delta_ctx);
-    
+
     /* register signals */
     didsig = 0;
     if (ctx->options->speed.mode != speed_oneatatime) {
@@ -112,12 +112,11 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         prev_packet = NULL;
     }
 
-	
-    /* MAIN LOOP 
+    /* MAIN LOOP
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktdata = get_next_packet(pcap, &pkthdr, cache_file_idx, prev_packet)) != NULL) {
+    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, cache_file_idx, prev_packet)) != NULL) {
         /* die? */
         if (didsig)
             break_now(0);
@@ -138,17 +137,17 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 #endif
 
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
-        
+
         /* Dual nic processing */
         if (ctx->options->intf2 != NULL) {
 
-            sp = (sendpacket_t *) cache_mode(ctx->options->cachedata, packetnum);
-        
+            sp = (sendpacket_t *) cache_mode(ctx, ctx->options->cachedata, packetnum);
+
             /* sometimes we should not send the packet */
             if (sp == TCPR_DIR_NOSEND)
                 continue;
         }
-    
+
         /* do we need to print the packet via tcpdump? */
 #ifdef ENABLE_VERBOSE
         if (ctx->options->verbose)
@@ -169,12 +168,13 @@ send_packets(pcap_t *pcap, int cache_file_idx)
          * Only sleep if we're not in top speed mode (-t)
          */
         if (ctx->options->speed.mode != speed_topspeed)
-            do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, ctx->options->accurate, sp, packetnum, &delta_ctx);
+            do_sleep(ctx, (struct timeval *)&pkthdr.ts, &last, pktlen, 
+                    ctx->options->accurate, sp, packetnum, &delta_ctx);
 
         /* mark the time when we send the last packet */
         start_delta_time(&delta_ctx);
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
-        
+
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
@@ -192,93 +192,93 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         bytes_sent += pktlen;
     } /* while */
 
-	if (ctx->options->enable_file_cache) {
-		ctx->options->file_cache[cache_file_idx].cached = TRUE;
-	}
+    if (ctx->options->enable_file_cache) {
+        ctx->options->file_cache[cache_file_idx].cached = TRUE;
+    }
 }
 
 /**
  * Gets the next packet to be sent out. This will either read from the pcap file
  * or will retrieve the packet from the internal cache.
- *	
+ *
  * The parameter prev_packet is used as the parent of the new entry in the cache list.
  * This should be NULL on the first call to this function for each file and
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
 static const u_char *
-get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, 
+get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, 
     packet_cache_t **prev_packet)
 {
-	u_char *pktdata = NULL;
+    u_char *pktdata = NULL;
     u_int32_t pktlen;
 
     /* pcap may be null in cache mode! */
     /* packet_cache_t may be null in file read mode! */
     assert(pkthdr);
 
-	/*
-	 * Check if we're caching files
-	 */
-	if (ctx->options->enable_file_cache && (prev_packet != NULL)) {
-		/*
-		 * Yes we are caching files - has this one been cached?
-		 */
-		if (ctx->options->file_cache[file_idx].cached) {
-			if (*prev_packet == NULL) {
-				/*
-				 * Get the first packet in the cache list directly from the file
-				 */
-				*prev_packet = ctx->options->file_cache[file_idx].packet_cache;
-			} else {
-				/*
-				 * Get the next packet in the cache list
-				 */
-				*prev_packet = (*prev_packet)->next;
-			}
-			
-			if (*prev_packet != NULL) {
-				pktdata = (*prev_packet)->pktdata;
-				memcpy(pkthdr, &((*prev_packet)->pkthdr), sizeof(struct pcap_pkthdr));
-			}
-		} else {
-			/*
-			 * We should read the pcap file, and cache the results
-			 */
-			pktdata = (u_char *)pcap_next(pcap, pkthdr);
-			if (pktdata != NULL) {
-				if (*prev_packet == NULL) {
-					/*
-					 * Create the first packet in the list
-					 */
-					*prev_packet = safe_malloc(sizeof(packet_cache_t));
-					ctx->options->file_cache[file_idx].packet_cache = *prev_packet;
-				} else {
-					/*
-					 * Add a packet to the end of the list
-					 */
-					(*prev_packet)->next = safe_malloc(sizeof(packet_cache_t));
-					*prev_packet = (*prev_packet)->next;
-				}
-				
-				if (*prev_packet != NULL) {
-					(*prev_packet)->next = NULL;
-					pktlen = pkthdr->len;
-					
-					(*prev_packet)->pktdata = safe_malloc(pktlen);
-					memcpy((*prev_packet)->pktdata, pktdata, pktlen);
-					memcpy(&((*prev_packet)->pkthdr), pkthdr, sizeof(struct pcap_pkthdr));
-				}
-			}
-		}
-	} else {
-		/*
-		 * Read pcap file as normal
-		 */
-		pktdata = (u_char *)pcap_next(pcap, pkthdr);
-	}
+    /*
+     * Check if we're caching files
+     */
+    if (ctx->options->enable_file_cache && (prev_packet != NULL)) {
+        /*
+         * Yes we are caching files - has this one been cached?
+         */
+        if (ctx->options->file_cache[file_idx].cached) {
+            if (*prev_packet == NULL) {
+                /*
+                 * Get the first packet in the cache list directly from the file
+                 */
+                *prev_packet = ctx->options->file_cache[file_idx].packet_cache;
+            } else {
+                /*
+                 * Get the next packet in the cache list
+                 */
+                *prev_packet = (*prev_packet)->next;
+            }
+
+            if (*prev_packet != NULL) {
+                pktdata = (*prev_packet)->pktdata;
+                memcpy(pkthdr, &((*prev_packet)->pkthdr), sizeof(struct pcap_pkthdr));
+            }
+        } else {
+            /*
+             * We should read the pcap file, and cache the results
+             */
+            pktdata = (u_char *)pcap_next(pcap, pkthdr);
+            if (pktdata != NULL) {
+                if (*prev_packet == NULL) {
+                    /*
+                     * Create the first packet in the list
+                     */
+                    *prev_packet = safe_malloc(sizeof(packet_cache_t));
+                    ctx->options->file_cache[file_idx].packet_cache = *prev_packet;
+                } else {
+                    /*
+                     * Add a packet to the end of the list
+                     */
+                    (*prev_packet)->next = safe_malloc(sizeof(packet_cache_t));
+                    *prev_packet = (*prev_packet)->next;
+                }
+
+                if (*prev_packet != NULL) {
+                    (*prev_packet)->next = NULL;
+                    pktlen = pkthdr->len;
+
+                    (*prev_packet)->pktdata = safe_malloc(pktlen);
+                    memcpy((*prev_packet)->pktdata, pktdata, pktlen);
+                    memcpy(&((*prev_packet)->pkthdr), pkthdr, sizeof(struct pcap_pkthdr));
+                }
+            }
+        }
+    } else {
+        /*
+         * Read pcap file as normal
+         */
+        pktdata = (u_char *)pcap_next(pcap, pkthdr);
+    }
 
     /* this get's casted to a const on the way out */
-	return pktdata;
+    return pktdata;
 }
 
 /**
@@ -288,7 +288,7 @@ get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx,
  * interface.
  */
 void *
-cache_mode(char *cachedata, COUNTER packet_num)
+cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
 {
     void *sp = NULL;
     int result;
@@ -322,8 +322,9 @@ cache_mode(char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep and do so.
  */
 static void
-do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate accurate, 
-    sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx)
+do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last, 
+        int len, tcpreplay_accurate accurate, sendpacket_t *sp, 
+        COUNTER counter, delta_t *delta_ctx)
 {
     static struct timeval didsleep = { 0, 0 };
     static struct timeval start = { 0, 0 };
@@ -347,13 +348,13 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
 #else
     adjuster.tv_nsec = 0;
 #endif
-    
+
     /* acclerator time? */
     if (send > 0) {
         send --;
         return;
     }
-    
+
     /* 
      * pps_multi accelerator.    This uses the existing send accelerator above
      * and hence requires the funky math to get the expected timings.
@@ -365,7 +366,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
             return;
         }
     }
-        
+
     dbgx(4, "This packet time: " TIMEVAL_FORMAT, time->tv_sec, time->tv_usec);
     dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
@@ -401,7 +402,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
                 /* time has increased or is the same, so handle normally */
                 timersub(time, last, &nap_for);
                 dbgx(3, "original packet delta time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
-                
+
                 TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
                 dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
                 timesdiv(&nap, ctx->options->speed.speed);
@@ -410,7 +411,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
         } else {
             /* Don't sleep if this is our first packet */
             timesclear(&nap);
-        }        
+        }
         break;
 
     case speed_mbpsrate:
@@ -422,7 +423,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
             n = (float)len / (ctx->options->speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
-            
+
             dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n, 
                 nap.tv_sec, nap.tv_nsec);
         }
@@ -439,13 +440,13 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
             ppnsec = 1000000000 / ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : 1);
             NANOSEC_TO_TIMESPEC(ppnsec, &nap);
             dbgx(1, "sending %d packet(s) per %lu nsec", (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : 1), nap.tv_nsec);
-        }        
+        }
         break;
-        
+
     case speed_oneatatime:
         /* do we skip prompting for a key press? */
         if (send == 0) {
-            send = get_user_count(sp, counter);
+            send = get_user_count(ctx, sp, counter);
         }
 
         /* decrement our send counter */
@@ -604,12 +605,12 @@ do_sleep(struct timeval *time, struct timeval *last, int len, tcpreplay_accurate
  * Ask the user how many packets they want to send.
  */
 static u_int32_t
-get_user_count(sendpacket_t *sp, COUNTER counter) 
+get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter) 
 {
     struct pollfd poller[1];        /* use poll to read from the keyboard */
     char input[EBUF_SIZE];
     u_int32_t send = 0;
-    
+
     printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
         counter, (sp == ctx->options->intf1 ? ctx->options->intf1_name : ctx->options->intf2_name));
     fflush(NULL);
@@ -623,7 +624,7 @@ get_user_count(sendpacket_t *sp, COUNTER counter)
     /* wait for the input */
     if (poll(poller, 1, -1) < 0)
         errx(-1, "Error reading user input from stdin: %s", strerror(errno));
-    
+
     /*
      * read to the end of the line or EBUF_SIZE,
      * Note, if people are stupid, and type in more text then EBUF_SIZE
@@ -643,15 +644,6 @@ get_user_count(sendpacket_t *sp, COUNTER counter)
         /* assume send only one packet */
         send = 1;
     }
-    
     return send;
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
 

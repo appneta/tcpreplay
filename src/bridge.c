@@ -44,7 +44,6 @@
 
 #include "tcpbridge.h"
 #include "bridge.h"
-#include "send_packets.h"
 #include "tcpedit/tcpedit.h"
 
 extern tcpbridge_opt_t options;

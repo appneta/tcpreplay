@@ -178,7 +178,7 @@ int tcpreplay_set_mtu(tcpreplay_t *, int);
 int tcpreplay_set_accurate(tcpreplay_t *, tcpreplay_accurate);
 int tcpreplay_add_file(tcpreplay_t *, char *);
 int tcpreplay_set_limit_send(tcpreplay_t *, COUNTER);
-int tcpreplay_set_file_cache(tcpreplay_t *, file_cache_t *);
+int tcpreplay_set_file_cache(tcpreplay_t *, bool);
 
 #ifdef ENABLE_VERBOSE
 int tcpreplay_set_verbose(tcpreplay_t *, bool);

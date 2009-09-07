@@ -70,7 +70,7 @@ int debug = 0;
 #include <CoreServices/CoreServices.h>
 #endif
 
-void replay_file(int file_idx);
+void replay_file(tcpreplay_t *ctx, int file_idx);
 void usage(void);
 
 int
@@ -137,7 +137,7 @@ main(int argc, char *argv[])
     if (gettimeofday(&begin, NULL) < 0)
         errx(-1, "gettimeofday() failed: %s",  strerror(errno));
 
-    /* main loop for non-bridge mode */
+    /* main loop, when not looping forever */
     if (ctx->options->loop > 0) {
         while (ctx->options->loop--) {  /* limited loop */
             /* process each pcap file in order */
@@ -145,7 +145,7 @@ main(int argc, char *argv[])
                 /* reset cache markers for each iteration */
                 ctx->cache_byte = 0;
                 ctx->cache_bit = 0;
-                replay_file(i);
+                replay_file(ctx, i);
             }
         }
     }
@@ -156,7 +156,7 @@ main(int argc, char *argv[])
                 /* reset cache markers for each iteration */
                 ctx->cache_byte = 0;
                 ctx->cache_bit = 0;
-                replay_file(i);
+                replay_file(ctx, i);
             }
         }
     }
@@ -176,7 +176,7 @@ main(int argc, char *argv[])
  * replay a pcap file out an interface
  */
 void
-replay_file(int file_idx)
+replay_file(tcpreplay_t *ctx, int file_idx)
 {
     char *path = ctx->options->files[file_idx];
     pcap_t *pcap = NULL;
@@ -223,7 +223,7 @@ replay_file(int file_idx)
                     ctx->options->intf1->device, pcap_datalink_val_to_name(dlt));
     }
 
-    send_packets(pcap, file_idx);
+    send_packets(ctx, pcap, file_idx);
     if (pcap != NULL)
         pcap_close(pcap);
 

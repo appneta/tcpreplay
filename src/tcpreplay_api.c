@@ -557,10 +557,22 @@ tcpreplay_set_limit_send(tcpreplay_t *ctx, COUNTER value)
  * Specify the tcpprep cache file to use for replaying with two NICs
  */
 int
-tcpreplay_set_file_cache(tcpreplay_t *ctx, file_cache_t *value)
+tcpreplay_set_file_cache(tcpreplay_t *ctx, bool value)
 {
     assert(ctx);
-    assert(value);
+
+    ctx->options->enable_file_cache = value;
+
+    /*
+     * Setup up the file cache, if required
+     */
+    if (ctx->options->enable_file_cache) {
+        ctx->options->file_cache = safe_malloc(sizeof(file_cache_t));
+        /* There is only one file via the API, so init it's cache struct */
+        ctx->options->file_cache->index = 0;
+        ctx->options->file_cache->cached = FALSE;
+        ctx->options->file_cache->packet_cache = NULL;
+    }
 
     return 0;
 }
@@ -614,6 +626,17 @@ tcpreplay_set_tcpdump(tcpreplay_t *ctx, tcpdump_t *value)
 }
 
 #endif /* ENABLE_VERBOSE */
+
+
+int 
+tcpreplay_set_replay_file(tcpreplay_t *ctx, char *file_path)
+{
+    assert(ctx);
+    assert(file_path);
+
+    ctx->options->files[0] = safe_strdup(file_path);
+    return 0;
+}
 
 /**
  * \brief Internal function to set the tcpreplay error string
