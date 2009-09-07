@@ -33,6 +33,9 @@ if(Subversion_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.svn)
         add_custom_target(svn_version_c
             DEPENDS svn_version.c)
 
+        set_source_files_properties(svn_version.c
+            PROPERTIES GENERATED true)
+
     endif(NOT SVN_INFO_WC_REVISION STREQUAL "exported")
 
 
