@@ -38,9 +38,18 @@
 #include "defines.h"
 #include "common.h"
 
+typedef struct {
+    char *active_pcap;
+    COUNTER bytes_sent;
+    COUNTER pkts_sent;
+    COUNTER failed;
+    struct timeval start_time;
+    struct timeval end_time;
+} tcpreplay_stats_t;
+
+
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
-void packet_stats(struct timeval *begin, struct timeval *end, 
-                  COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);
+void packet_stats(const tcpreplay_stats_t *stats);
 
 /* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
@@ -64,12 +73,3 @@ int inet_aton(const char *name, struct in_addr *addr);
 #endif
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

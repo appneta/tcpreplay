@@ -25,11 +25,11 @@ if(NOT SYSTEM_STRLCPY)
 endif(NOT SYSTEM_STRLCPY)
 
 set(tcprewrite_srcs tcprewrite.c)
-set(tcpreplay_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
-set(tcpreplay_edit_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
+set(tcpreplay_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c replay.c)
+set(tcpreplay_edit_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c replay.c)
 set(tcpprep_srcs tcpprep.c tree.c tcpprep_api.c)
 set(tcpbridge_srcs tcpbridge.c bridge.c)
-set(libtcpreplay_srcs tcpreplay_api.c send_packets.c signal_handler.c sleep.c)
+set(libtcpreplay_srcs tcpreplay_api.c send_packets.c signal_handler.c sleep.c replay.c)
 set(libtcpprep_srcs tree.c tcpprep_api.c)
 
 # VC++ needs the .h files listed as sources so they show up

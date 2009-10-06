@@ -30,6 +30,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <pcap.h>
+#include "tcpreplay_api.h"
+
 #ifndef __SEND_PACKETS_H__
 #define __SEND_PACKETS_H__
 

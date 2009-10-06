@@ -18,7 +18,6 @@
 #include "common/rdtsc.h"
 #include "common/tcpdump.h"
 #include "common/timer.h"
-#include "common/abort.h"
 #include "common/sendpacket.h"
 #include "common/interface.h"
 

@@ -197,10 +197,6 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 
-/* You need to define didsig in your main .c file.  Set to 1 if CTRL-C was pressed */
-extern volatile int didsig;
-
-
 /**
  * returns number of bytes sent on success or -1 on error
  * Note: it is theoretically possible to get a return code >0 and < len
@@ -228,8 +224,11 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 #if defined HAVE_PF_PACKET
     retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
 
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
+    /*
+     * out of buffers, or hit max PHY speed, silently retry 
+     * as long as we're not told to abort
+     */
+    if (retcode < 0 && !sp->abort) {
         switch (errno) {
         case EAGAIN:
             sp->retry_eagain ++;
@@ -249,8 +248,11 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 #elif defined HAVE_BPF
     retcode = write(sp->handle.fd, (void *)data, len);
 
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
+    /*
+     * out of buffers, or hit max PHY speed, silently retry 
+     * as long as we're not told to abort
+     */
+    if (retcode < 0 && !sp->abort) {
         switch (errno) {
         case EAGAIN:
             sp->retry_eagain ++;
@@ -263,16 +265,21 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
             break;
 
         default:
-            sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
-                              INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
+            sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: "
+                    "%s (errno = %d)",
+                    INJECT_METHOD, sp->sent + sp->failed + 1, 
+                    strerror(errno), errno);
         }
     }
 
 #elif defined HAVE_LIBDNET
     retcode = eth_send(sp->handle.ldnet, (void*)data, (size_t)len);
 
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
+    /*
+     * out of buffers, or hit max PHY speed, silently retry 
+     * as long as we're not told to abort
+     */
+    if (retcode < 0 && !sp->abort) {
         switch (errno) {
         case EAGAIN:
             sp->retry_eagain ++;
@@ -296,8 +303,11 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
      * is there a better way???
      */
     retcode = pcap_inject(sp->handle.pcap, (void*)data, len);
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
+    /*
+     * out of buffers, or hit max PHY speed, silently retry 
+     * as long as we're not told to abort
+     */
+    if (retcode < 0 && !sp->abort) {
         switch (errno) {
         case EAGAIN:
             sp->retry_eagain ++;
@@ -317,8 +327,11 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 
 #elif defined HAVE_PCAP_SENDPACKET
     retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len);
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
+    /*
+     * out of buffers, or hit max PHY speed, silently retry 
+     * as long as we're not told to abort
+     */
+    if (retcode < 0 && !sp->abort) {
         switch (errno) {
         case EAGAIN:
             sp->retry_eagain ++;
@@ -957,8 +970,22 @@ sendpacket_get_dlt(sendpacket_t *sp)
     return dlt;
 }
 
+/**
+ * \brief Returns a string of the name of the injection method being used
+ */
 const char *
 sendpacket_get_method()
 {
     return INJECT_METHOD;
+}
+
+/**
+ * \brief Cause the currently running sendpacket() call
+ */
+void
+sendpacket_abort(sendpacket_t *sp)
+{
+    assert(sp);
+
+    sp->abort = true;
 }

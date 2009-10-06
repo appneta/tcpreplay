@@ -13,7 +13,7 @@ else(TCPDUMP_BINARY)
 endif(TCPDUMP_BINARY)
 
 
-add_library(common STATIC abort.c cache.c cidr.c dlt_names.c err.c fakepcap.c
+add_library(common STATIC cache.c cidr.c dlt_names.c err.c fakepcap.c
     fakepcapnav.c fakepoll.c get.c interface.c list.c mac.c rdtsc.c
     sendpacket.c services.c timer.c utils.c xX.c ${tcpdump_src} svn_version.c)
 

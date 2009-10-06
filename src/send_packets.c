@@ -61,10 +61,6 @@ extern tcpedit_t *tcpedit;
 #include "send_packets.h"
 #include "sleep.h"
 
-extern struct timeval begin, end;
-extern COUNTER bytes_sent, failed, pkts_sent;
-extern volatile int didsig;
-
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -87,7 +83,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
     COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
-    sendpacket_t *sp = ctx->options->intf1;
+    sendpacket_t *sp = ctx->intf1;
     u_int32_t pktlen;
     packet_cache_t *cached_packet = NULL;
     packet_cache_t **prev_packet = NULL;
@@ -97,14 +93,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
     delta_t delta_ctx;
 
     init_delta_time(&delta_ctx);
-
-    /* register signals */
-    didsig = 0;
-    if (ctx->options->speed.mode != speed_oneatatime) {
-        (void)signal(SIGINT, catcher);
-    } else {
-        (void)signal(SIGINT, break_now);
-    }
 
     if (ctx->options->enable_file_cache) {
         prev_packet = &cached_packet;
@@ -118,14 +106,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
      */
     while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, cache_file_idx, prev_packet)) != NULL) {
         /* die? */
-        if (didsig)
-            break_now(0);
-
-        /* stop sending based on the limit -L? */
-        if (ctx->options->limit_send > 0 && pkts_sent >= ctx->options->limit_send)
+        if (ctx->abort)
             return;
 
-        packetnum++;
+        /* stop sending based on the limit -L? */
+        packetnum = ctx->stats.pkts_sent + 1;
+        if (ctx->options->limit_send > 0 && packetnum > ctx->options->limit_send)
+            return;
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
@@ -139,7 +126,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
 
         /* Dual nic processing */
-        if (ctx->options->intf2 != NULL) {
+        if (ctx->intf2 != NULL) {
 
             sp = (sendpacket_t *) cache_mode(ctx, ctx->options->cachedata, packetnum);
 
@@ -154,7 +141,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
             tcpdump_print(ctx->options->tcpdump, &pkthdr, pktdata);
 #endif
 
-#if defined TCPREPLAY && defined TCPREPLAY_EDIT        
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
         pkthdr_ptr = &pkthdr;
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
@@ -188,8 +175,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
          */
         if (timercmp(&last, &pkthdr.ts, <))
             memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
-        pkts_sent ++;
-        bytes_sent += pktlen;
+        ctx->stats.pkts_sent ++;
+        ctx->stats.bytes_sent += pktlen;
     } /* while */
 
     if (ctx->options->enable_file_cache) {
@@ -284,7 +271,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
 /**
  * determines based upon the cachedata which interface the given packet 
  * should go out.  Also rewrites any layer 2 data we might need to adjust.
- * Returns a void cased pointer to the ctx->options->intfX of the corresponding 
+ * Returns a void cased pointer to the ctx->intfX of the corresponding 
  * interface.
  */
 void *
@@ -303,11 +290,11 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
     }
     else if (result == TCPR_DIR_C2S) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
-        sp = ctx->options->intf1;
+        sp = ctx->intf1;
     }
     else if (result == TCPR_DIR_S2C) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
-        sp = ctx->options->intf2;
+        sp = ctx->intf2;
     }
     else {
         err(-1, "check_cache() returned an error.  Aborting...");
@@ -376,7 +363,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
     dbgx(4, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
 
     /* First time through for this file */
-    if (pkts_sent == 0 || ((ctx->options->speed.mode != speed_mbpsrate) && (counter == 0))) {
+    if (ctx->stats.pkts_sent == 0 || ((ctx->options->speed.mode != speed_mbpsrate) && (counter == 0))) {
         start = now;
         timerclear(&sleep_until);
         timerclear(&didsleep);
@@ -419,7 +406,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
-        if (pkts_sent != 0) {
+        if (ctx->stats.pkts_sent != 0) {
             n = (float)len / (ctx->options->speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
@@ -451,7 +438,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
 
         /* decrement our send counter */
         printf("Sending packet " COUNTER_SPEC " out: %s\n", counter,
-               sp == ctx->options->intf1 ? ctx->options->intf1_name : ctx->options->intf2_name);
+               sp == ctx->intf1 ? ctx->options->intf1_name : ctx->options->intf2_name);
         send --;
 
         /* leave do_sleep() */
@@ -486,20 +473,20 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
             case speed_packetrate:
                 if (nsec_adjuster < 0)
                     nsec_adjuster = (nap_this_time.tv_nsec % 10000) / 1000;
-        
+
                 /* update in the range of 0-9 */
                 nsec_times = (nsec_times + 1) % 10;
-        
+
                 if (nsec_times < nsec_adjuster) {
                     /* sorta looks like a no-op, but gives us a nice round usec number */
                     nap_this_time.tv_nsec = (nap_this_time.tv_nsec / 1000 * 1000) + 1000;
                 } else {
                     nap_this_time.tv_nsec -= (nap_this_time.tv_nsec % 1000);
                 }
-    
+
                 dbgx(3, "(%d)\tnsec_times = %d\tnap adjust: %lu -> %lu", nsec_adjuster, nsec_times, nap.tv_nsec, nap_this_time.tv_nsec);            
                 break;
-                
+
             default:
                 errx(-1, "Unknown/supported speed mode: %d", ctx->options->speed.mode);
         }
@@ -527,13 +514,13 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
             timesclear(&nap_this_time);
         }
     }
-    
+
     dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
 
     /* don't sleep if nap = {0, 0} */
     if (!timesisset(&nap_this_time))
         return;
-        
+
     /*
      * Depending on the accurate method & packet rate computation method
      * We have multiple methods of sleeping, pick the right one...
@@ -551,7 +538,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
         break;
 #endif
 
-#ifdef HAVE_RDTSC        
+#ifdef HAVE_RDTSC
     case accurate_rdtsc:
         rdtsc_sleep(nap_this_time);
         break;
@@ -570,25 +557,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
     case accurate_nanosleep:
         nanosleep_sleep(nap_this_time);
         break;
-        /*
-        timeradd(&didsleep, &nap_this_time, &didsleep);
 
-        dbgx(4, "I will sleep " TIMEVAL_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_usec);
-
-        if (timercmp(&didsleep, &sleep_until, >)) {
-            timersub(&didsleep, &sleep_until, &nap_this_time);
-            
-            TIMEVAL_TO_TIMESPEC(&nap_this_time, &sleep);
-            dbgx(4, "Sleeping " TIMEVAL_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_usec);
-#ifdef DEBUG
-            timeradd(&totalsleep, &nap_this_time, &totalsleep);
-#endif
-            if (nanosleep(&sleep, &ignore) == -1) {
-                warnx("nanosleep error: %s", strerror(errno));
-            }
-        }
-        break;
-        */
     default:
         errx(-1, "Unknown timer mode %d", accurate);
     }
@@ -612,14 +581,14 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
     u_int32_t send = 0;
 
     printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
-        counter, (sp == ctx->options->intf1 ? ctx->options->intf1_name : ctx->options->intf2_name));
+        counter, (sp == ctx->intf1 ? ctx->options->intf1_name : ctx->options->intf2_name));
     fflush(NULL);
     poller[0].fd = STDIN_FILENO;
     poller[0].events = POLLIN | POLLPRI | POLLNVAL;
     poller[0].revents = 0;
 
     if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK)) 
-           errx(-1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
+        errx(-1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
 
     /* wait for the input */
     if (poll(poller, 1, -1) < 0)
@@ -647,3 +616,4 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
     return send;
 }
 
+/* vim: set tabstop=8 expandtab shiftwidth=4 softtabstop=4: */

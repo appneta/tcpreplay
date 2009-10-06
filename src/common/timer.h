@@ -50,17 +50,20 @@
 #ifndef NonZero
 #define NonZero(x) ((x).hi | (x).lo)
 #endif
+
 #ifndef SetZero
 #define SetZero(x) do { (x).hi = 0 ; (x).lo = 0; } while(0)
 #endif
+
 #ifndef CopyAbsolute
 #define CopyAbsolute(x, y) do { (x).lo = (y).lo ; (x).hi = (y).hi; } while (0)
 #endif
+
 #ifndef AbsoluteCmp
-#define AbsoluteCmp(left, right, cmp)       \
-	(((left)->hi == (right)->hi) ?		    \
-	((left)->lo cmp (right)->lo) :		    \
-	((left)->hi cmp (right)->hi))
+#define AbsoluteCmp(left, right, cmp)    \
+    (((left)->hi == (right)->hi) ?       \
+     ((left)->lo cmp (right)->lo) :      \
+     ((left)->hi cmp (right)->hi))
 #endif
 
 /*
@@ -76,25 +79,25 @@ void timesdiv(struct timespec *tvs, float div);
 
 /* convert float time to struct timeval *tvp */
 #ifndef float2timer
-#define float2timer(time, tvp)                  \
-    do {                                        \
-        tvp->tv_sec = time;                     \
-        tvp->tv_usec = (time - tvp->tv_sec) * 100000; \
+#define float2timer(time, tvp)                            \
+    do {                                                  \
+        (tvp)->tv_sec = time;                             \
+        (tvp)->tv_usec = (time - (tvp)->tv_sec) * 100000; \
     } while (0)
 #endif
 
 /* timesec to float */
 #ifndef timer2float
-#define timer2float(tvp, time)                  \
-    do {                                        \
-        time = tvp->tv_sec;                     \
-        time += (float)(tvp->tv_usec / 10000) * 0.01;  \
+#define timer2float(tvp, time)                           \
+    do {                                                 \
+        time = (tvp)->tv_sec;                            \
+        time += (float)((tvp)->tv_usec / 10000) * 0.01;  \
     } while (0)
 #endif
 
 #ifndef TIMEVAL_TO_TIMESPEC
-#define TIMEVAL_TO_TIMESPEC(tv, ts) {           \
-            (ts)->tv_sec = (tv)->tv_sec;        \
+#define TIMEVAL_TO_TIMESPEC(tv, ts) {                 \
+            (ts)->tv_sec = (tv)->tv_sec;              \
             (ts)->tv_nsec = (tv)->tv_usec * 1000; }
 #endif
 
@@ -105,9 +108,11 @@ void timesdiv(struct timespec *tvs, float div);
 #endif
 
 #ifndef ROUND_TIMESPEC_TO_MICROSEC
-#define ROUND_TIMESPEC_TO_MICROSEC(ts)      \
-    do {                                    \
-        (ts)->tv_nsec = ((((ts)->tv_nsec / 1000) + ((ts)->tv_nsec % 1000 >= 500 ? 1 : 0)) * 1000);   \
+#define ROUND_TIMESPEC_TO_MICROSEC(ts)             \
+    do {                                           \
+        (ts)->tv_nsec = ((((ts)->tv_nsec / 1000) + \
+            ((ts)->tv_nsec % 1000 >= 500 ? 1 : 0)) \
+            * 1000);   \
     } while (0)
 #endif
 
@@ -115,7 +120,7 @@ void timesdiv(struct timespec *tvs, float div);
 
 /* zero out a timer */
 #ifndef timerclear
-#define timerclear(tvp)		(tvp)->tv_sec = (tvp)->tv_usec = 0
+#define timerclear(tvp)     (tvp)->tv_sec = (tvp)->tv_usec = 0
 #endif
 
 /* zero out a timespec */
@@ -125,78 +130,78 @@ void timesdiv(struct timespec *tvs, float div);
 
 /* is timer non-zero? */
 #ifndef timerisset
-#define timerisset(tvp)		((tvp)->tv_sec || (tvp)->tv_usec)
+#define timerisset(tvp)     ((tvp)->tv_sec || (tvp)->tv_usec)
 #endif
 
 /* is timespec non-zero? */
 #ifndef timesisset
-#define timesisset(tvs)		((tvs)->tv_sec || (tvs)->tv_nsec)
+#define timesisset(tvs)     ((tvs)->tv_sec || (tvs)->tv_nsec)
 #endif
 
 
 /* add tvp and uvp and store in vvp */
 #ifndef timeradd
-#define timeradd(tvp, uvp, vvp)                 \
-	do {                                        \
-		(vvp)->tv_sec = (tvp)->tv_sec + (uvp)->tv_sec;      \
-		(vvp)->tv_usec = (tvp)->tv_usec + (uvp)->tv_usec;   \
-		if ((vvp)->tv_usec >= 1000000) {        \
-			(vvp)->tv_sec++;                    \
-			(vvp)->tv_usec -= 1000000;          \
-		}                                       \
-	} while (0)
+#define timeradd(tvp, uvp, vvp)                             \
+    do {                                                    \
+        (vvp)->tv_sec = (tvp)->tv_sec + (uvp)->tv_sec;      \
+        (vvp)->tv_usec = (tvp)->tv_usec + (uvp)->tv_usec;   \
+        if ((vvp)->tv_usec >= 1000000) {                    \
+            (vvp)->tv_sec++;                                \
+            (vvp)->tv_usec -= 1000000;                      \
+        }                                                   \
+    } while (0)
 #endif
 
 /* subtract uvp from tvp and store in vvp */
 #ifndef timersub
-#define	timersub(tvp, uvp, vvp)					\
-	do {								        \
-		(vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;		\
-		(vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec;	\
-		if ((vvp)->tv_usec < 0) {				\
-			(vvp)->tv_sec--;				    \
-			(vvp)->tv_usec += 1000000;			\
-		}							            \
-	} while (0)
+#define	timersub(tvp, uvp, vvp)                             \
+    do {                                                    \
+        (vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;      \
+        (vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec;   \
+        if ((vvp)->tv_usec < 0) {                           \
+            (vvp)->tv_sec--;                                \
+            (vvp)->tv_usec += 1000000;                      \
+        }                                                   \
+    } while (0)
 #endif
 
 #ifndef timessub
-#define	timessub(tsp, usp, vsp)					\
-	do {								        \
-		(vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;		\
-		(vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec;	\
-		if ((vsp)->tv_nsec < 0) {				\
-			(vsp)->tv_sec--;				    \
-			(vsp)->tv_nsec += 1000000000;		\
-		}							            \
-	} while (0)
+#define	timessub(tsp, usp, vsp)                            \
+    do {                                                   \
+        (vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;     \
+        (vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec;  \
+        if ((vsp)->tv_nsec < 0) {                          \
+            (vsp)->tv_sec--;                               \
+            (vsp)->tv_nsec += 1000000000;                  \
+        }                                                  \
+    } while (0)
 #endif
 
 /* compare tvp and uvp using cmp */
 #ifndef timercmp
-#define timercmp(tvp, uvp, cmp)				    \
-	(((tvp)->tv_sec == (uvp)->tv_sec) ?		    \
-	((tvp)->tv_usec cmp (uvp)->tv_usec) :		\
-	((tvp)->tv_sec cmp (uvp)->tv_sec))
+#define timercmp(tvp, uvp, cmp)            \
+    (((tvp)->tv_sec == (uvp)->tv_sec) ?    \
+     ((tvp)->tv_usec cmp (uvp)->tv_usec) : \
+     ((tvp)->tv_sec cmp (uvp)->tv_sec))
 #endif
 
 #ifndef timescmp
-#define timescmp(tsp, usp, cmp)				    \
-	(((tsp)->tv_sec == (usp)->tv_sec) ?		    \
-	((tsp)->tv_nsec cmp (usp)->tv_nsec) :		\
-	((tsp)->tv_sec cmp (usp)->tv_sec))
+#define timescmp(tsp, usp, cmp)              \
+    (((tsp)->tv_sec == (usp)->tv_sec) ?      \
+     ((tsp)->tv_nsec cmp (usp)->tv_nsec) :   \
+     ((tsp)->tv_sec cmp (usp)->tv_sec))
 #endif
 
 /* multiply tvp by x and store in uvp */
-#define timermul(tvp, uvp, x)					\
-	do {								        \
-		(uvp)->tv_sec = (tvp)->tv_sec * x;		\
-		(uvp)->tv_usec = (tvp)->tv_usec * x;	\
-		while((uvp)->tv_usec > 1000000) {		\
-			(uvp)->tv_sec++;				    \
-			(uvp)->tv_usec -= 1000000;			\
-		}							            \
-	} while(0)
+#define timermul(tvp, uvp, x)                   \
+    do {                                        \
+        (uvp)->tv_sec = (tvp)->tv_sec * x;      \
+        (uvp)->tv_usec = (tvp)->tv_usec * x;    \
+        while((uvp)->tv_usec > 1000000) {       \
+            (uvp)->tv_sec++;                    \
+            (uvp)->tv_usec -= 1000000;          \
+        }                                       \
+    } while(0)
 
 #ifdef HAVE_ABSOLUTE_TIME
     typedef AbsoluteTime delta_t;
@@ -231,9 +236,9 @@ get_delta_time(delta_t *ctx, struct timespec *ret)
 #ifdef HAVE_ABSOLUTE_TIME
     AbsoluteTime now, delta;
     Nanoseconds nano;
-    
+
     now = UpTime();
-    
+
     if (! NonZero(*ctx)) {
         timesclear(ret);
     } else {
@@ -241,11 +246,11 @@ get_delta_time(delta_t *ctx, struct timespec *ret)
         nano = AbsoluteToNanoseconds(delta);
         NANOSEC_TO_TIMESPEC(UnsignedWideToUInt64(nano) / 10, ret);
     }
-    
-/* Everyone else just uses gettimeofday */
+
+    /* Everyone else just uses gettimeofday */
 #else
     struct timeval now, delta;
-    
+
     gettimeofday(&now, NULL);
 
     if (!timerisset(ctx)) {
@@ -258,3 +263,4 @@ get_delta_time(delta_t *ctx, struct timespec *ret)
 }
 
 #endif /* _TIMER_H_ */
+

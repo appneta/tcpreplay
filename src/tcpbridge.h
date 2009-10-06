@@ -52,7 +52,7 @@
 
 
 /* run-time options */
-struct tcpbridge_opt_s {
+typedef struct {
     char *intf1;
     char *intf2;
 
@@ -91,8 +91,8 @@ struct tcpbridge_opt_s {
     int fixcsum;
     u_int16_t l2proto;
     u_int16_t l2_mem_align; /* keep things 4 byte aligned */
-};
+} tcpbridge_opt_t;
 
-typedef struct tcpbridge_opt_s tcpbridge_opt_t;
+
 #endif
 

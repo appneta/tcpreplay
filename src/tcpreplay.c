@@ -58,9 +58,11 @@ tcpedit_t *tcpedit;
 #include "signal_handler.h"
 
 tcpreplay_t *ctx;
-volatile int didsig;
-COUNTER bytes_sent, pkts_sent, failed;
-struct timeval begin, end;
+
+/* globals pointing to context counters 
+COUNTER *bytes_sent, *pkts_sent, *failed;
+struct timeval *begin, *end;
+volatile bool *abort; */
 
 #ifdef DEBUG
 int debug = 0;
@@ -80,6 +82,15 @@ main(int argc, char *argv[])
     int rcode;
 
     ctx = tcpreplay_init();
+
+    /* point our globals at our context counters 
+    bytes_sent = &ctx->bytes_sent;
+    pkts_sent = &ctx->pkts_sent;
+    failed = &ctx->failed;
+    begin = &ctx->begin;
+    end = &ctx->end;
+    abort = &ctx->abort;
+    */
     optct = optionProcess(&tcpreplayOptions, argc, argv);
     argc -= optct;
     argv += optct;
@@ -93,7 +104,7 @@ main(int argc, char *argv[])
 
 #ifdef TCPREPLAY_EDIT
     /* init tcpedit context */
-    if (tcpedit_init(&tcpedit, sendpacket_get_dlt(ctx->options->intf1)) < 0) {
+    if (tcpedit_init(&tcpedit, sendpacket_get_dlt(ctx->intf1)) < 0) {
         errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
 
@@ -119,7 +130,6 @@ main(int argc, char *argv[])
      * Setup up the file cache, if required
      */
     if (ctx->options->enable_file_cache) {
-        ctx->options->file_cache = safe_malloc(argc * sizeof(file_cache_t));
         /* Initialise each of the file cache structures */
         for (i = 0; i < argc; i++) {
             ctx->options->file_cache[i].index = i;
@@ -129,12 +139,12 @@ main(int argc, char *argv[])
     }
 
     for (i = 0; i < argc; i++)
-        ctx->options->files[i] = safe_strdup(argv[i]);
+        ctx->options->sources[i].filename = safe_strdup(argv[i]);
 
     /* init the signal handlers */
     init_signal_handlers();
 
-    if (gettimeofday(&begin, NULL) < 0)
+    if (gettimeofday(&ctx->stats.start_time, NULL) < 0)
         errx(-1, "gettimeofday() failed: %s",  strerror(errno));
 
     /* main loop, when not looping forever */
@@ -161,75 +171,16 @@ main(int argc, char *argv[])
         }
     }
 
-    if (bytes_sent > 0) {
-        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
-        printf("%s", sendpacket_getstat(ctx->options->intf1));
-        if (ctx->options->intf2 != NULL)
-            printf("%s", sendpacket_getstat(ctx->options->intf2));
+    if (ctx->stats.bytes_sent > 0) {
+        packet_stats(&ctx->stats);
+        printf("%s", sendpacket_getstat(ctx->intf1));
+        if (ctx->intf2 != NULL)
+            printf("%s", sendpacket_getstat(ctx->intf2));
     }
     tcpreplay_close(ctx);
     return 0;
 }   /* main() */
 
 
-/**
- * replay a pcap file out an interface
- */
-void
-replay_file(tcpreplay_t *ctx, int file_idx)
-{
-    char *path = ctx->options->files[file_idx];
-    pcap_t *pcap = NULL;
-    char ebuf[PCAP_ERRBUF_SIZE];
-    int dlt;
-
-    if (! HAVE_OPT(QUIET))
-        notice("processing file: %s", path);
-
-    /* close stdin if reading from it (needed for some OS's) */
-    if (strncmp(path, "-", 1) == 0)
-        if (close(1) == -1)
-            warnx("unable to close stdin: %s", strerror(errno));
-
-    /* read from pcap file if we haven't cached things yet */
-    if (!ctx->options->enable_file_cache) {
-        if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-            errx(-1, "Error opening pcap file: %s", ebuf);
-    } else {
-        if (!ctx->options->file_cache[file_idx].cached)
-            if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-                errx(-1, "Error opening pcap file: %s", ebuf);
-
-    }
-
-#ifdef ENABLE_VERBOSE
-    if (ctx->options->verbose) {
-        /* in cache mode, we may not have opened the file */
-        if (pcap == NULL)
-            if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-                errx(-1, "Error opening pcap file: %s", ebuf);
-
-        /* init tcpdump */
-        tcpdump_open(ctx->options->tcpdump, pcap);
-    }
-#endif
-
-
-    if (pcap != NULL) {
-        dlt = sendpacket_get_dlt(ctx->options->intf1);
-        if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
-            warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)",
-                    path, pcap_datalink_val_to_name(pcap_datalink(pcap)),
-                    ctx->options->intf1->device, pcap_datalink_val_to_name(dlt));
-    }
-
-    send_packets(ctx, pcap, file_idx);
-    if (pcap != NULL)
-        pcap_close(pcap);
-
-#ifdef ENABLE_VERBOSE
-    tcpdump_close(ctx->options->tcpdump);
-#endif
-}
-
 /* vim: set tabstop=8 expandtab shiftwidth=4 softtabstop=4: */
+

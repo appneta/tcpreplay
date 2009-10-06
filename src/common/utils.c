@@ -58,13 +58,13 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
         fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes", file, funcname, line, len);
         exit(-1);
     }
-    
+
     /* zero memory */
     memset(ptr, 0, len);
-    
+
     /* wrapped inside an #ifdef for better performance */
     dbgx(5, "Malloc'd %zu bytes in %s:%s() line %d", len, file, funcname, line);
-    
+
     return (void *)ptr;
 }
 
@@ -104,7 +104,7 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
     }
 
     memcpy(newstr, str, strlen(str) + 1);
-    
+
     return newstr;
 
 }
@@ -115,9 +115,13 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 void
 _our_safe_free(void *ptr, const char *funcname, const int line, const char *file)
 {
+    assert(funcname);
+    assert(line);
+    assert(file);
+
     if (ptr == NULL)
         return;
-            
+
     free(ptr);
     ptr = NULL;
 }
@@ -126,36 +130,37 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
  * Print various packet statistics
  */
 void
-packet_stats(struct timeval *begin, struct timeval *end, 
-        COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
+packet_stats(const tcpreplay_stats_t *stats)
 {
+    tcpreplay_stats_t *stats_copy;
     float bytes_sec = 0.0, mb_sec = 0.0, pkts_sec = 0.0;
     double frac_sec;
 
-    if (gettimeofday(end, NULL) < 0)
+    assert(stats);
+    memcpy(stats_copy, stats, sizeof(tcpreplay_stats_t));
+
+    if (gettimeofday(&stats_copy->end_time, NULL) < 0)
         errx(-1, "Unable to gettimeofday(): %s", strerror(errno));
 
-    timersub(end, begin, begin);
-    timer2float(begin, frac_sec);
-    
-    if (timerisset(begin)) {
-        if (bytes_sent) {
-            bytes_sec =
-                bytes_sent / frac_sec;
+    timersub(&stats_copy->end_time, &stats_copy->start_time, &stats_copy->start_time);
+    timer2float(&stats_copy->start_time, frac_sec);
+
+    if (timerisset(&stats_copy->start_time)) {
+        if (stats_copy->bytes_sent) {
+            bytes_sec = stats_copy->bytes_sent / frac_sec;
             mb_sec = (bytes_sec * 8) / (1024 * 1024);
         }
-        if (pkts_sent)
-            pkts_sec =
-                pkts_sent / frac_sec;
+        if (stats_copy->pkts_sent)
+            pkts_sec = stats_copy->pkts_sent / frac_sec;
     }
     printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds\n",
-            pkts_sent, bytes_sent, frac_sec);
+            stats_copy->pkts_sent, stats_copy->bytes_sent, frac_sec);
     printf("Rated: %.1f bps, %.2f Mbps, %.2f pps\n",
            bytes_sec, mb_sec, pkts_sec);
 
-    if (failed)
+    if (stats_copy->failed)
         printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
-              failed);
+              stats_copy->failed);
 
 }
 
@@ -217,7 +222,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 int
 inet_aton(const char *name, struct in_addr *addr)
 {
-    in_addr_t a = inet_addr (name);
+    in_addr_t a = inet_addr(name);
     addr->s_addr = a;
     return a != (in_addr_t)-1;
 }

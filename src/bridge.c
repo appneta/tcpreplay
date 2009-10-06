@@ -47,21 +47,21 @@
 #include "tcpedit/tcpedit.h"
 
 extern tcpbridge_opt_t options;
-extern struct timeval begin, end;
-extern COUNTER bytes_sent, failed, pkts_sent;
-extern volatile int didsig;
-
+extern tcpreplay_stats_t stats;
 #ifdef DEBUG
 extern int debug;
 #endif
+volatile bool didsig;
 
 static int live_callback(struct live_data_t *,
                          struct pcap_pkthdr *, const u_char *);
 
+static void signal_catcher(int signo);
+
 /**
  * First, prep our RB Tree which tracks where each (source)
  * MAC really lives so we don't create really nasty network
- * storms.  
+ * storms.
  */
 static struct macsrc_t *new_node(void);
 
@@ -147,12 +147,12 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
      * note that if -L wasn't specified, limit_send is
      * set to 0 so this will loop infinately
      */
-    while ((options->limit_send == 0) || (options->limit_send > pkts_sent)) {
+    while ((options->limit_send == 0) || (options->limit_send > stats.pkts_sent)) {
         if (didsig)
             break;
 
         dbgx(3, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
-            options->limit_send, pkts_sent);
+            options->limit_send, stats.pkts_sent);
 
         /* reset the result codes */
         polls[PCAP_INT1].revents = 0;
@@ -240,7 +240,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 
     /* register signals */
     didsig = 0;
-    (void)signal(SIGINT, catcher);
+    (void)signal(SIGINT, signal_catcher);
 
 
     if (options->unidir == 1) {
@@ -249,7 +249,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         do_bridge_bidirectional(options, tcpedit);
     }
 
-    packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
+    packet_stats(&stats);
 }
 
 
@@ -407,12 +407,20 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
          errx(-1, "Unable to send packet out %s: %s", 
             send == livedata->options->pcap1 ? livedata->options->intf1 : livedata->options->intf2, pcap_geterr(send));
 
-    bytes_sent += pkthdr->caplen;
-    pkts_sent++;
+    stats.bytes_sent += pkthdr->caplen;
+    stats.pkts_sent++;
 
-    dbgx(1, "Sent packet " COUNTER_SPEC, pkts_sent);
+    dbgx(1, "Sent packet " COUNTER_SPEC, stats.pkts_sent);
 
 
     return (1);
 } /* live_callback() */
 
+static void
+signal_catcher(int signo)
+{
+    /* stdio in signal handlers causes a race condition, instead set a flag */
+    if (signo == SIGINT)
+        didsig = true;
+
+}

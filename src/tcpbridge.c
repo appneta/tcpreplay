@@ -60,9 +60,8 @@ int debug;
 #endif
 
 
-COUNTER bytes_sent, total_bytes, failed, pkts_sent, cache_packets;
-struct timeval begin, end;
-volatile int didsig;
+COUNTER cache_packets;
+tcpreplay_stats_t stats;
 tcpbridge_opt_t options;
 tcpedit_t *tcpedit;
 
@@ -109,7 +108,7 @@ main(int argc, char *argv[])
     }
 #endif
 
-    if (gettimeofday(&begin, NULL) < 0)
+    if (gettimeofday(&stats.start_time, NULL) < 0)
         err(-1, "gettimeofday() failed");
 
 
@@ -134,14 +133,12 @@ void
 init(void)
 {
 
-    bytes_sent = total_bytes = failed = pkts_sent = cache_packets = 0;
+    memset(&stats, 0, sizeof(stats));
     memset(&options, 0, sizeof(options));
 
     options.snaplen = 65535;
     options.promisc = 1;
     options.to_ms = 1;
-
-    total_bytes = 0;
 
     if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));

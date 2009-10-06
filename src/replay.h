@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2005 Aaron Turner.
+ * Copyright (c) 2009 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,20 +30,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ABORT_H__
-#define __ABORT_H__
+#ifndef _REPLAY_H_
+#define _REPLAY_H_
 
-void catcher(int signo);
-void break_now(int signo);
+int replay_file(tcpreplay_t *ctx, int idx);
+int replay_cache(tcpreplay_t *ctx, int idx);
+int replay_fd(tcpreplay_t *ctx, int idx);
 
-#endif
-
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
+#endif /* _REPLAY_H_ */
