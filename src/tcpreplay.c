@@ -70,11 +70,12 @@ int debug = 0;
 #include <CoreServices/CoreServices.h>
 #endif
 
+void preload_pcap_file(int file_idx);
 void replay_file(int file_idx);
 void usage(void);
 void init(void);
 void post_args(void);
-   
+
 
 int
 main(int argc, char *argv[])
@@ -83,21 +84,21 @@ main(int argc, char *argv[])
 #ifdef TCPREPLAY_EDIT
     int rcode;
 #endif
- 
+
     init();                     /* init our globals */
-    
+
     optct = optionProcess(&tcpreplayOptions, argc, argv);
     argc -= optct;
     argv += optct;
- 
+
     post_args();
-    
+
 #ifdef TCPREPLAY_EDIT
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, sendpacket_get_dlt(options.intf1)) < 0) {
         errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
-    
+
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(&tcpedit);
     if (rcode < 0) {
@@ -109,31 +110,37 @@ main(int argc, char *argv[])
     if (tcpedit_validate(tcpedit) < 0) {
         errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
-    }    
+    }
 #endif
 
-	if (options.enable_file_cache && ! HAVE_OPT(QUIET)) {
-		notice("File Cache is enabled");
-	}
+    if ((options.enable_file_cache || options.preload_pcap) && ! HAVE_OPT(QUIET)) {
+        notice("File Cache is enabled");
+    }
 
-	/*
-	 * Setup up the file cache, if required
-	 */
-	if (options.enable_file_cache) {
-		options.file_cache = safe_malloc(argc * sizeof(file_cache_t));
-		
-		/*
-			Initialise each of the file cache structures
-		*/
-		for (i = 0; i < argc; i++) {
-			options.file_cache[i].index = i;
-			options.file_cache[i].cached = FALSE;
-			options.file_cache[i].packet_cache = NULL;
-		}
-	}
+    /*
+     * Setup up the file cache, if required
+     */
+    if (options.enable_file_cache || options.preload_pcap) {
+        options.file_cache = safe_malloc(argc * sizeof(file_cache_t));
 
-    for (i = 0; i < argc; i++)
+        /*
+         *  Initialise each of the file cache structures
+         */
+        for (i = 0; i < argc; i++) {
+            options.file_cache[i].index = i;
+            options.file_cache[i].cached = FALSE;
+            options.file_cache[i].packet_cache = NULL;
+        }
+    }
+
+    for (i = 0; i < argc; i++) {
         options.files[i] = safe_strdup(argv[i]);
+
+        /* preload our pcap file? */
+        if (options.preload_pcap) {
+            preload_pcap_file(i);
+        }
+    }
 
     /* init the signal handlers */
     init_signal_handlers();
@@ -149,7 +156,7 @@ main(int argc, char *argv[])
                 /* reset cache markers for each iteration */
                 cache_byte = 0;
                 cache_bit = 0;
-				replay_file(i);
+                replay_file(i);
             }
         }
     }
@@ -172,8 +179,43 @@ main(int argc, char *argv[])
             printf("%s", sendpacket_getstat(options.intf2));
     }
     return 0;
-}                               /* main() */
+}   /* main() */
 
+/**
+ * \brief Preloads the memory cache for the given pcap file_idx 
+ *
+ * Preloading can be used with or without --loop and implies using
+ * --enable-file-cache
+ */
+void
+preload_pcap_file(int file_idx)
+{
+    char *path = options.files[file_idx];
+    pcap_t *pcap = NULL;
+    char ebuf[PCAP_ERRBUF_SIZE];
+    const u_char *pktdata = NULL;
+    struct pcap_pkthdr pkthdr;
+    packet_cache_t *cached_packet = NULL;
+    packet_cache_t **prev_packet = &cached_packet;
+    COUNTER packetnum = 0;
+
+    /* close stdin if reading from it (needed for some OS's) */
+    if (strncmp(path, "-", 1) == 0)
+        if (close(1) == -1)
+            warnx("unable to close stdin: %s", strerror(errno));
+
+    if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
+        errx(-1, "Error opening pcap file: %s", ebuf);
+
+    /* loop through the pcap.  get_next_packet() builds the cache for us! */
+    while ((pktdata = get_next_packet(pcap, &pkthdr, file_idx, prev_packet)) != NULL) {
+        packetnum++;
+    }
+
+    /* mark this file as cached */
+    options.file_cache[file_idx].cached = TRUE;
+    pcap_close(pcap);
+}
 
 /**
  * replay a pcap file out an interface
@@ -181,7 +223,7 @@ main(int argc, char *argv[])
 void
 replay_file(int file_idx)
 {
-	char *path = options.files[file_idx];
+    char *path = options.files[file_idx];
     pcap_t *pcap = NULL;
     char ebuf[PCAP_ERRBUF_SIZE];
     int dlt;
@@ -195,24 +237,24 @@ replay_file(int file_idx)
             warnx("unable to close stdin: %s", strerror(errno));
 
     /* read from pcap file if we haven't cached things yet */
-    if (!options.enable_file_cache) {
+    if (! (options.enable_file_cache || options.preload_pcap)) {
         if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
             errx(-1, "Error opening pcap file: %s", ebuf);
     } else {
         if (!options.file_cache[file_idx].cached)
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
-                errx(-1, "Error opening pcap file: %s", ebuf);            
+                errx(-1, "Error opening pcap file: %s", ebuf);
 
     }
-    
+
 #ifdef ENABLE_VERBOSE
     if (options.verbose) {
-        
+
         /* in cache mode, we may not have opened the file */
         if (pcap == NULL)
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
                 errx(-1, "Error opening pcap file: %s", ebuf);
-                
+
         /* init tcpdump */
         tcpdump_open(options.tcpdump, pcap);
     }
@@ -226,11 +268,11 @@ replay_file(int file_idx)
                 path, pcap_datalink_val_to_name(pcap_datalink(pcap)), 
                 options.intf1->device, pcap_datalink_val_to_name(dlt));
     }
-    
+
     send_packets(pcap, file_idx);
     if (pcap != NULL)
         pcap_close(pcap);
-        
+
 #ifdef ENABLE_VERBOSE
     tcpdump_close(options.tcpdump);
 #endif
@@ -287,7 +329,7 @@ post_args(void)
     char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
-    
+
 #ifdef ENABLE_PCAP_FINDALLDEVS
     interface_list_t *intlist = get_interface_list();
 #else
@@ -301,13 +343,13 @@ post_args(void)
     if (HAVE_OPT(DBUG))
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
-        
+
     options.loop = OPT_VALUE_LOOP;
     options.sleep_accel = OPT_VALUE_SLEEP_ACCEL;
 
     if (HAVE_OPT(LIMIT))
         options.limit_send = OPT_VALUE_LIMIT;
-    
+
     if (HAVE_OPT(TOPSPEED)) {
         options.speed.mode = SPEED_TOPSPEED;
         options.speed.speed = 0.0;
@@ -329,19 +371,22 @@ post_args(void)
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
-    
+
     if (HAVE_OPT(DECODE))
         options.tcpdump->args = safe_strdup(OPT_ARG(DECODE));
-    
+
 #endif
 
-	/*
-	 * Check if the file cache should be enabled - if we're looping more than
-	 * once and the command line option has been spec'd
-	 */
-	if (HAVE_OPT(ENABLE_FILE_CACHE) && (options.loop != 1)) {
-		options.enable_file_cache = TRUE;
-	}
+    /*
+     * Check if the file cache should be enabled - if we're looping more than
+     * once and the command line option has been spec'd
+     */
+    if (HAVE_OPT(ENABLE_FILE_CACHE) && (options.loop != 1)) {
+        options.enable_file_cache = TRUE;
+    }
+
+    if (HAVE_OPT(PRELOAD_PCAP))
+        options.preload_pcap = TRUE;
 
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
@@ -372,7 +417,7 @@ post_args(void)
             options.accurate = ACCURATE_ABS_TIME;
             if  (!MPLibraryIsLoaded()) {
                 err(-1, "The MP library did not load.\n");
-            }            
+            }
 #else
             err(-1, "tcpreplay only supports absolute time on Apple OS X");
 #endif
@@ -389,53 +434,53 @@ post_args(void)
 
     if (HAVE_OPT(PKTLEN))
         warn("--pktlen may cause problems.  Use with caution.");
-    
-    
+
+
     if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
         errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
-    
+
     options.intf1_name = safe_strdup(intname);
-    
+
     /* open interfaces for writing */
     if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S)) == NULL)
         errx(-1, "Can't open %s: %s", options.intf1_name, ebuf);
-           
+
     int1dlt = sendpacket_get_dlt(options.intf1);
-    
+
     if (HAVE_OPT(INTF2)) {
         if ((intname = get_interface(intlist, OPT_ARG(INTF2))) == NULL)
             errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
-            
+
         options.intf2_name = safe_strdup(intname);
-        
+
         /* open interface for writing */
         if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C)) == NULL)
             errx(-1, "Can't open %s: %s", options.intf2_name, ebuf);
-            
+
         int2dlt = sendpacket_get_dlt(options.intf2);
         if (int2dlt != int1dlt)
             errx(-1, "DLT type missmatch for %s (%s) and %s (%s)", 
-                options.intf1_name, pcap_datalink_val_to_name(int1dlt), 
-                options.intf2_name, pcap_datalink_val_to_name(int2dlt));
+                    options.intf1_name, pcap_datalink_val_to_name(int1dlt), 
+                    options.intf2_name, pcap_datalink_val_to_name(int2dlt));
     }
 
     if (HAVE_OPT(CACHEFILE)) {
         temp = safe_strdup(OPT_ARG(CACHEFILE));
         options.cache_packets = read_cache(&options.cachedata, temp,
-            &options.comment);
+                &options.comment);
         safe_free(temp);
     }
 
-   if (! HAVE_OPT(QUIET))
+    if (! HAVE_OPT(QUIET))
         notice("sending out %s %s", options.intf1_name,
-               options.intf2_name == NULL ? "" : options.intf2_name);
+                options.intf2_name == NULL ? "" : options.intf2_name);
 }
 
 /*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
+   Local Variables:
+mode:c
+indent-tabs-mode:nil
+c-basic-offset:4
+End:
 */
 
