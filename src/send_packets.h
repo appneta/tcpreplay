@@ -35,6 +35,8 @@
 
 void send_packets(pcap_t *, int);
 void *cache_mode(char *, COUNTER);
+const u_char * get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, 
+        int file_idx, packet_cache_t **prev_packet);
 
 #endif
 

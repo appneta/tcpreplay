@@ -72,8 +72,6 @@ extern int debug;
 
 static void do_sleep(struct timeval *time, struct timeval *last, int len, 
     int accurate, sendpacket_t *sp, COUNTER counter, delta_t *ctx);
-static const u_char *get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, 
-    int file_idx, packet_cache_t **prev_packet);
 static u_int32_t get_user_count(sendpacket_t *sp, COUNTER counter);
 
 /**
@@ -89,15 +87,15 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     const u_char *pktdata = NULL;
     sendpacket_t *sp = options.intf1;
     u_int32_t pktlen;
-	packet_cache_t *cached_packet = NULL;
-	packet_cache_t **prev_packet = NULL;
+    packet_cache_t *cached_packet = NULL;
+    packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
     delta_t delta_ctx;
 
     init_delta_time(&delta_ctx);
-    
+
     /* register signals */
     didsig = 0;
     if (options.speed.mode != SPEED_ONEATATIME) {
@@ -112,7 +110,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         prev_packet = NULL;
     }
 
-	
+
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets
@@ -138,24 +136,24 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 #endif
 
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
-        
+
         /* Dual nic processing */
         if (options.intf2 != NULL) {
 
             sp = (sendpacket_t *) cache_mode(options.cachedata, packetnum);
-        
+
             /* sometimes we should not send the packet */
             if (sp == TCPR_DIR_NOSEND)
                 continue;
         }
-    
+
         /* do we need to print the packet via tcpdump? */
 #ifdef ENABLE_VERBOSE
         if (options.verbose)
             tcpdump_print(options.tcpdump, &pkthdr, pktdata);
 #endif
 
-#if defined TCPREPLAY && defined TCPREPLAY_EDIT        
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
         pkthdr_ptr = &pkthdr;
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
@@ -174,7 +172,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         /* mark the time when we send the last packet */
         start_delta_time(&delta_ctx);
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
-        
+
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
@@ -192,93 +190,93 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         bytes_sent += pktlen;
     } /* while */
 
-	if (options.enable_file_cache) {
-		options.file_cache[cache_file_idx].cached = TRUE;
-	}
+    if (options.enable_file_cache) {
+        options.file_cache[cache_file_idx].cached = TRUE;
+    }
 }
 
 /**
  * Gets the next packet to be sent out. This will either read from the pcap file
  * or will retrieve the packet from the internal cache.
- *	
+ *
  * The parameter prev_packet is used as the parent of the new entry in the cache list.
  * This should be NULL on the first call to this function for each file and
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
-static const u_char *
+const u_char *
 get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, 
     packet_cache_t **prev_packet)
 {
-	u_char *pktdata = NULL;
+    u_char *pktdata = NULL;
     u_int32_t pktlen;
 
     /* pcap may be null in cache mode! */
     /* packet_cache_t may be null in file read mode! */
     assert(pkthdr);
 
-	/*
-	 * Check if we're caching files
-	 */
-	if (options.enable_file_cache && (prev_packet != NULL)) {
-		/*
-		 * Yes we are caching files - has this one been cached?
-		 */
-		if (options.file_cache[file_idx].cached) {
-			if (*prev_packet == NULL) {
-				/*
-				 * Get the first packet in the cache list directly from the file
-				 */
-				*prev_packet = options.file_cache[file_idx].packet_cache;
-			} else {
-				/*
-				 * Get the next packet in the cache list
-				 */
-				*prev_packet = (*prev_packet)->next;
-			}
-			
-			if (*prev_packet != NULL) {
-				pktdata = (*prev_packet)->pktdata;
-				memcpy(pkthdr, &((*prev_packet)->pkthdr), sizeof(struct pcap_pkthdr));
-			}
-		} else {
-			/*
-			 * We should read the pcap file, and cache the results
-			 */
-			pktdata = (u_char *)pcap_next(pcap, pkthdr);
-			if (pktdata != NULL) {
-				if (*prev_packet == NULL) {
-					/*
-					 * Create the first packet in the list
-					 */
-					*prev_packet = safe_malloc(sizeof(packet_cache_t));
-					options.file_cache[file_idx].packet_cache = *prev_packet;
-				} else {
-					/*
-					 * Add a packet to the end of the list
-					 */
-					(*prev_packet)->next = safe_malloc(sizeof(packet_cache_t));
-					*prev_packet = (*prev_packet)->next;
-				}
-				
-				if (*prev_packet != NULL) {
-					(*prev_packet)->next = NULL;
-					pktlen = pkthdr->len;
-					
-					(*prev_packet)->pktdata = safe_malloc(pktlen);
-					memcpy((*prev_packet)->pktdata, pktdata, pktlen);
-					memcpy(&((*prev_packet)->pkthdr), pkthdr, sizeof(struct pcap_pkthdr));
-				}
-			}
-		}
-	} else {
-		/*
-		 * Read pcap file as normal
-		 */
-		pktdata = (u_char *)pcap_next(pcap, pkthdr);
-	}
+    /*
+     * Check if we're caching files
+     */
+    if ((options.enable_file_cache || options.preload_pcap) && (prev_packet != NULL)) {
+        /*
+         * Yes we are caching files - has this one been cached?
+         */
+        if (options.file_cache[file_idx].cached) {
+            if (*prev_packet == NULL) {
+                /*
+                 * Get the first packet in the cache list directly from the file
+                 */
+                *prev_packet = options.file_cache[file_idx].packet_cache;
+            } else {
+                /*
+                 * Get the next packet in the cache list
+                 */
+                *prev_packet = (*prev_packet)->next;
+            }
+
+            if (*prev_packet != NULL) {
+                pktdata = (*prev_packet)->pktdata;
+                memcpy(pkthdr, &((*prev_packet)->pkthdr), sizeof(struct pcap_pkthdr));
+            }
+        } else {
+            /*
+             * We should read the pcap file, and cache the results
+             */
+            pktdata = (u_char *)pcap_next(pcap, pkthdr);
+            if (pktdata != NULL) {
+                if (*prev_packet == NULL) {
+                    /*
+                     * Create the first packet in the list
+                     */
+                    *prev_packet = safe_malloc(sizeof(packet_cache_t));
+                    options.file_cache[file_idx].packet_cache = *prev_packet;
+                } else {
+                    /*
+                     * Add a packet to the end of the list
+                     */
+                    (*prev_packet)->next = safe_malloc(sizeof(packet_cache_t));
+                    *prev_packet = (*prev_packet)->next;
+                }
+
+                if (*prev_packet != NULL) {
+                    (*prev_packet)->next = NULL;
+                    pktlen = pkthdr->len;
+
+                    (*prev_packet)->pktdata = safe_malloc(pktlen);
+                    memcpy((*prev_packet)->pktdata, pktdata, pktlen);
+                    memcpy(&((*prev_packet)->pkthdr), pkthdr, sizeof(struct pcap_pkthdr));
+                }
+            }
+        }
+    } else {
+        /*
+         * Read pcap file as normal
+         */
+        pktdata = (u_char *)pcap_next(pcap, pkthdr);
+    }
 
     /* this get's casted to a const on the way out */
-	return pktdata;
+    return pktdata;
 }
 
 /**
