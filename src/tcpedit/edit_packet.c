@@ -266,7 +266,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         if (! tcpedit->mtu_truncate)
             return(0);
     }
-    
+
     if ((l2len = layer2len(tcpedit)) < 0) {
         tcpedit_seterr(tcpedit, "Non-sensical layer 2 length: %d", l2len);
         return -1;
@@ -276,9 +276,9 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     if (tcpedit->fixlen == TCPEDIT_FIXLEN_PAD) {
         /*
          * this should be an unnecessary check
-  	     * but I've gotten a report that sometimes the caplen > len
-  	     * which seems like a corrupted pcap
-  	     */
+         * but I've gotten a report that sometimes the caplen > len
+         * which seems like a corrupted pcap
+         */
         if (pkthdr->len > pkthdr->caplen) {
             memset(pktdata + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
             pkthdr->caplen = pkthdr->len;
@@ -298,7 +298,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         if (pkthdr->len > (u_int16_t)(tcpedit->mtu + l2len)) {
             /* first truncate the packet */
             pkthdr->len = pkthdr->caplen = l2len + tcpedit->mtu;
-            
+
             /* if ip_hdr exists, update the length */
             if (ip_hdr != NULL) {
                 ip_hdr->ip_len = htons(tcpedit->mtu);
