@@ -47,18 +47,18 @@
 #endif
 
 struct packet_cache_s {
-	struct pcap_pkthdr pkthdr;
-	u_char *pktdata;
-	
-	struct packet_cache_s *next;
+    struct pcap_pkthdr pkthdr;
+    u_char *pktdata;
+
+    struct packet_cache_s *next;
 };
 
 typedef struct packet_cache_s packet_cache_t;
 
 typedef struct {
-	int index;
-	int cached;
-	packet_cache_t *packet_cache;
+    int index;
+    int cached;
+    packet_cache_t *packet_cache;
 } file_cache_t;
 
 
@@ -73,7 +73,7 @@ struct tcpreplay_opt_s {
     tcpr_speed_t speed;
     u_int32_t loop;
     int sleep_accel;
-    
+
     /* tcpprep cache data */
     COUNTER cache_packets;
     char *cachedata;
@@ -82,7 +82,7 @@ struct tcpreplay_opt_s {
     /* deal with MTU/packet len issues */
     int mtu;
     int truncate;
-    
+
     /* accurate mode to use */
     int accurate;
 #define ACCURATE_NANOSLEEP  0
@@ -91,7 +91,7 @@ struct tcpreplay_opt_s {
 #define ACCURATE_IOPORT     3
 #define ACCURATE_GTOD       4
 #define ACCURATE_ABS_TIME   5
-    
+
     char *files[MAX_FILES];
     COUNTER limit_send;
 
@@ -103,12 +103,13 @@ struct tcpreplay_opt_s {
 #endif
 
     /* pcap file caching */
-	int enable_file_cache;
-	file_cache_t *file_cache;
+    int enable_file_cache;
+    file_cache_t *file_cache;
+    int preload_pcap;
 };
 
 typedef struct tcpreplay_opt_s tcpreplay_opt_t;
-    
+
 #endif
 
 /*
