@@ -1,12 +1,12 @@
 
 /*
- * Time-stamp:        "2007-07-04 09:45:44 bkorb"
+ * Time-stamp:        "2009-07-22 18:53:59 bkorb"
  *             by: bkorb
- * Last Committed:    $Date: 2007/07/04 20:51:18 $
+ * Last Committed:    $Date: 2009/07/23 02:05:55 $
  *
  *  This file is part of AutoGen.
  *
- *  AutoGen copyright (c) 1992-2007 Bruce Korb - all rights reserved
+ *  AutoGen copyright (c) 1992-2009 by Bruce Korb - all rights reserved
  *
  *  AutoGen is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by the

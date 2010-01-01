@@ -2,15 +2,14 @@
 /*
  *  Time-stamp:      "2008-11-01 20:08:06 bkorb"
  *
- *  autoopts.h  $Id: autoopts.h,v 4.29 2008/11/02 18:51:26 bkorb Exp $
+ *  autoopts.h  $Id: autoopts.h,v 4.42 2009/08/01 17:43:05 bkorb Exp $
  *
  *  This file defines all the global structures and special values
  *  used in the automated option processing library.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -24,8 +23,8 @@
  *
  *  These files have the following md5sums:
  *
- *  239588c55c22c60ffe159946a760a33e pkg/libopts/COPYING.gplv3
- *  fa82ca978890795162346e661b47161a pkg/libopts/COPYING.lgplv3
+ *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
+ *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 

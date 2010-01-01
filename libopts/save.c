@@ -1,7 +1,7 @@
 
 /*
- *  save.c  $Id: save.c,v 4.28 2008/09/28 23:23:36 bkorb Exp $
- * Time-stamp:      "2008-09-23 14:24:58 bkorb"
+ *  save.c  $Id: save.c,v 4.36 2009/08/01 17:43:06 bkorb Exp $
+ * Time-stamp:      "2009-07-20 20:40:28 bkorb"
  *
  *  This module's routines will take the currently set options and
  *  store them into an ".rc" file for re-interpretation the next
@@ -9,8 +9,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -24,8 +23,8 @@
  *
  *  These files have the following md5sums:
  *
- *  239588c55c22c60ffe159946a760a33e pkg/libopts/COPYING.gplv3
- *  fa82ca978890795162346e661b47161a pkg/libopts/COPYING.lgplv3
+ *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
+ *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
@@ -82,7 +81,8 @@ findDirName( tOptions* pOpts, int* p_free )
 {
     tCC*  pzDir;
 
-    if (pOpts->specOptIdx.save_opts == 0)
+    if (  (pOpts->specOptIdx.save_opts == NO_EQUIVALENT)
+       || (pOpts->specOptIdx.save_opts == 0))
         return NULL;
 
     pzDir = pOpts->pOptDesc[ pOpts->specOptIdx.save_opts ].optArg.argString;

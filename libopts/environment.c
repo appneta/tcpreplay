@@ -1,7 +1,7 @@
 
 /*
- *  $Id: environment.c,v 4.17 2008/06/14 22:24:22 bkorb Exp $
- * Time-stamp:      "2007-07-04 11:33:50 bkorb"
+ *  $Id: environment.c,v 4.21 2009/08/01 17:43:06 bkorb Exp $
+ * Time-stamp:      "2009-07-20 20:12:24 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -10,8 +10,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -25,8 +24,8 @@
  *
  *  These files have the following md5sums:
  *
- *  239588c55c22c60ffe159946a760a33e pkg/libopts/COPYING.gplv3
- *  fa82ca978890795162346e661b47161a pkg/libopts/COPYING.lgplv3
+ *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
+ *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
@@ -53,15 +52,9 @@ doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
     char**        sv_argv;
 
     /*
-     *  IF there is no such environment variable
-     *   *or* there is, but we are doing immediate opts and there are
-     *        no immediate opts to do (--help inside $PROGNAME is silly,
-     *        but --no-load-defs is not, so that is marked)
-     *  THEN bail out now.  (
+     *  No such beast?  Then bail now.
      */
-    if (  (pczOptStr == NULL)
-       || (  (type == ENV_IMM)
-          && ((pOpts->fOptSet & OPTPROC_HAS_IMMED) == 0)  )  )
+    if (pczOptStr == NULL)
         return;
 
     /*
@@ -94,27 +87,17 @@ doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
 
     switch (type) {
     case ENV_IMM:
-        /*
-         *  We know the OPTPROC_HAS_IMMED bit is set.
-         */
         (void)doImmediateOpts( pOpts );
         break;
 
+    case ENV_ALL:
+        (void)doImmediateOpts( pOpts );
+        pOpts->curOptIdx = 1;
+        pOpts->pzCurOpt  = NULL;
+        /* FALLTHROUGH */
+
     case ENV_NON_IMM:
         (void)doRegularOpts( pOpts );
-        break;
-
-    default:
-        /*
-         *  Only to immediate opts if the OPTPROC_HAS_IMMED bit is set.
-         */
-        if (pOpts->fOptSet & OPTPROC_HAS_IMMED) {
-            (void)doImmediateOpts( pOpts );
-            pOpts->curOptIdx = 1;
-            pOpts->pzCurOpt  = NULL;
-        }
-        (void)doRegularOpts( pOpts );
-        break;
     }
 
     /*
@@ -241,7 +224,8 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
     /*
      *  Special handling for ${PROGNAME_LOAD_OPTS}
      */
-    if (pOpts->specOptIdx.save_opts != 0) {
+    if (  (pOpts->specOptIdx.save_opts != NO_EQUIVALENT)
+       && (pOpts->specOptIdx.save_opts != 0)) {
         st.pOD = pOpts->pOptDesc + pOpts->specOptIdx.save_opts + 1;
         strcpy( pzFlagName, st.pOD->pz_NAME );
         checkEnvOpt(&st, zEnvName, pOpts, type);
