@@ -208,6 +208,17 @@ system will swap and performance will suffer.
 EOText;
 };
 
+flag = {
+    name        = preload_pcap;
+    descrip     = "Preloads packets into RAM before sending";
+    doc         = <<- EOText
+This option loads the specified pcap(s) into RAM before starting to send in order
+to improve replay performance while introducing a startup performance hit.
+Preloading can be used with or without @var{--loop} and implies 
+@var{--enable-file-cache}.
+EOText;
+};
+
 /*
  * Output modifiers: -c
  */
@@ -454,7 +465,7 @@ flag = {
 #endif
     fprintf(stderr, "Injection method: %s\n", sendpacket_get_method());
     exit(0);
-    
+
 EOVersion;
     doc         = "";
 };
@@ -465,7 +476,7 @@ flag = {
     immediate;
     descrip     = "Display less usage information and exit";
     flag-code   = <<- EOHelp
-  
+
     USAGE(EXIT_FAILURE);
 
 EOHelp;

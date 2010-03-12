@@ -38,5 +38,6 @@
 
 void send_packets(tcpreplay_t *ctx, pcap_t *, int);
 void *cache_mode(tcpreplay_t *ctx, char *, COUNTER);
+void preload_pcap_file(tcpreplay_t *ctx, int file_idx);
 
 #endif

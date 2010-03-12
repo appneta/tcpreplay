@@ -75,6 +75,7 @@ int debug = 0;
 void replay_file(tcpreplay_t *ctx, int file_idx);
 void usage(void);
 
+
 int
 main(int argc, char *argv[])
 {
@@ -82,15 +83,6 @@ main(int argc, char *argv[])
     int rcode;
 
     ctx = tcpreplay_init();
-
-    /* point our globals at our context counters 
-    bytes_sent = &ctx->bytes_sent;
-    pkts_sent = &ctx->pkts_sent;
-    failed = &ctx->failed;
-    begin = &ctx->begin;
-    end = &ctx->end;
-    abort = &ctx->abort;
-    */
     optct = optionProcess(&tcpreplayOptions, argc, argv);
     argc -= optct;
     argv += optct;
@@ -122,14 +114,15 @@ main(int argc, char *argv[])
     }
 #endif
 
-    if (ctx->options->enable_file_cache && ! HAVE_OPT(QUIET)) {
+    if ((ctx->options->enable_file_cache || 
+               ctx->options->preload_pcap) && ! HAVE_OPT(QUIET)) {
         notice("File Cache is enabled");
     }
 
     /*
      * Setup up the file cache, if required
      */
-    if (ctx->options->enable_file_cache) {
+    if (ctx->options->enable_file_cache || ctx->options->preload_pcap) {
         /* Initialise each of the file cache structures */
         for (i = 0; i < argc; i++) {
             ctx->options->file_cache[i].index = i;
@@ -138,8 +131,14 @@ main(int argc, char *argv[])
         }
     }
 
-    for (i = 0; i < argc; i++)
+    for (i = 0; i < argc; i++) {
         ctx->options->sources[i].filename = safe_strdup(argv[i]);
+
+        /* preload our pcap file? */
+        if (ctx->options->preload_pcap) {
+            preload_pcap_file(ctx, i);
+        }
+    }
 
     /* init the signal handlers */
     init_signal_handlers();
@@ -180,7 +179,6 @@ main(int argc, char *argv[])
     tcpreplay_close(ctx);
     return 0;
 }   /* main() */
-
 
 /* vim: set tabstop=8 expandtab shiftwidth=4 softtabstop=4: */
 

@@ -73,6 +73,43 @@ static const u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
 static u_int32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
 
 /**
+ * \brief Preloads the memory cache for the given pcap file_idx 
+ *
+ * Preloading can be used with or without --loop and implies using
+ * --enable-file-cache
+ */
+void
+preload_pcap_file(tcpreplay_t *ctx, int file_idx)
+{
+    char *path = ctx->options->sources[file_idx].filename;
+    pcap_t *pcap = NULL;
+    char ebuf[PCAP_ERRBUF_SIZE];
+    const u_char *pktdata = NULL;
+    struct pcap_pkthdr pkthdr;
+    packet_cache_t *cached_packet = NULL;
+    packet_cache_t **prev_packet = &cached_packet;
+    COUNTER packetnum = 0;
+
+
+    /* close stdin if reading from it (needed for some OS's) */
+    if (strncmp(path, "-", 1) == 0)
+        if (close(1) == -1)
+            warnx("unable to close stdin: %s", strerror(errno));
+
+    if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
+        errx(-1, "Error opening pcap file: %s", ebuf);
+
+    /* loop through the pcap.  get_next_packet() builds the cache for us! */
+    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, file_idx, prev_packet)) != NULL) {
+        packetnum++;
+    }
+
+    /* mark this file as cached */
+    ctx->options->file_cache[file_idx].cached = TRUE;
+    pcap_close(pcap);
+}
+
+/**
  * the main loop function for tcpreplay.  This is where we figure out
  * what to do with each packet
  */
@@ -192,7 +229,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
  * This should be NULL on the first call to this function for each file and
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
-static const u_char *
+const u_char *
 get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, 
     packet_cache_t **prev_packet)
 {

@@ -61,7 +61,7 @@ replay_file(tcpreplay_t *ctx, int idx)
         close(1);
 
     /* read from pcap file if we haven't cached things yet */
-    if (!ctx->options->enable_file_cache) {
+    if (!(ctx->options->enable_file_cache || ctx->options->preload_pcap)) {
         if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;

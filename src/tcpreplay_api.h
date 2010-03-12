@@ -145,6 +145,7 @@ typedef struct tcpreplay_opt_s {
     /* pcap file caching */
     bool enable_file_cache;
     file_cache_t file_cache[MAX_FILES];
+    int preload_pcap;
 
     /* pcap files/sources to replay */
     int source_cnt;
