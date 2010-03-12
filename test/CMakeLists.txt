@@ -44,7 +44,7 @@ set(tcprewrite_tests rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_config
     rewrite_skip rewrite_tos rewrite_trunc rewrite_vlandel rewrite_mtutrunc)
 
 set(tcpreplay_tests replay_basic replay_cache replay_pps replay_rate replay_top
-    replay_config replay_multi replay_pps_multi)
+    replay_config replay_multi replay_pps_multi replay_precache)
 
 #########################################################
 # TARGET: standard
@@ -75,7 +75,17 @@ add_custom_command(TARGET tests
     COMMAND cmake -P Tests.cmake
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
     DEPENDS Tests.cmake
+    COMMENT "Run all unit tests"
     VERBATIM)
+foreach(__test @tcpprep_tests@ @tcpreplay_tests@ @tcprewrite_tests@)
+    add_custom_target(${__test})
+    add_custom_command(TARGET ${__test}
+        COMMAND cmake -D RUN_SINGLE:STRING=${__test} -P Tests.cmake
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
+        DEPENDS Tests.cmake 
+        COMMENT "Run single unit test: ${__test}"
+        VERBATIM)
+endforeach(__test)
 
 # Add output files of tests to ADDITIONAL_MAKE_CLEAN_FILES
 foreach(__test @tcpprep_tests@ @tcprewrite_tests@)

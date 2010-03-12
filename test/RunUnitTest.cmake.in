@@ -46,6 +46,7 @@ set(replay_top "-i @NIC1@ --topspeed test.pcap")
 set(replay_config "--load-opts=config test.pcap")
 set(replay_multi "-i @NIC1@ --multiplier=25.0 test.pcap")
 set(replay_pps_multi "-i @NIC1@ --pps=100 --pps-multi=5 test.pcap")
+set(replay_precache "-i @NIC1@ --preload-pcap test.pcap")
 
 set(DIFF @DIFF@)
 
@@ -68,13 +69,11 @@ function(run_unit_test __test standard)
         message(STATUS "Running ${__test}")
         string(REPLACE __file__ ${output_file} new_command "${${__test}}")
     endif(standard)
-        
 
     set(stderr "")
     set(stdout "")
     set(rcode 0)
-    
-    
+
     if(__test MATCHES "rewrite_")
         # tcprewrite test!
 #        message(STATUS "Running: @TCPREWRITE@ @DEBUG_FLAG@ ${new_command}")
@@ -117,14 +116,14 @@ function(run_unit_test __test standard)
             ERROR_STRIP_TRAILING_WHITESPACE
             OUTPUT_STRIP_TRAILING_WHITESPACE)
     endif(__test MATCHES "rewrite_")
-    
+
     if(NOT standard)
         if(rcode EQUAL 0)
             if(EXISTS ${output_file})
                 if(DIFF)
                     execute_process(COMMAND @DIFF@ ${standard_file} ${output_file}
                     RESULT_VARIABLE diff_rcode)
-            
+
                     if(${diff_rcode} EQUAL 0)
                         message(STATUS "Running ${__test}: OK!")
                     else(${diff_rcode} EQUAL 0)
@@ -134,9 +133,9 @@ function(run_unit_test __test standard)
                     message(STATUS "Running ${__test}: Skipping diff check")
                 endif(DIFF)
             else(EXISTS ${output_file})
-                message(STATUS "Running ${__test}: OK!")            
+                message(STATUS "Running ${__test}: OK!")
             endif(EXISTS ${output_file})
-            
+
         else(rcode EQUAL 0)
             message(STATUS "Running ${__test}: FAILED!  Error code: ${rcode}")
             message(STATUS "Test ${__test} results:\n${stdout}\n----\n${stderr}")
