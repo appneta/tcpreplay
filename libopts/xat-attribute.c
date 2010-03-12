@@ -1,4 +1,4 @@
-/* ANSI-C code produced by gperf version 3.0.3 */
+/* ANSI-C code produced by gperf version 3.0.2 */
 
 
 #if 0 /* gperf build options: */
@@ -82,9 +82,6 @@ static const xat_attribute_map_t xat_attribute_table[] =
   };
 
 #ifdef __GNUC__
-#ifdef __GNUC_STDC_INLINE__
-__attribute__ ((__gnu_inline__))
-#endif
 #endif
 static inline const xat_attribute_map_t *
 find_xat_attribute_name (register const char *str, register unsigned int len)

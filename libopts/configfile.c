@@ -1,13 +1,12 @@
 /*
- *  $Id: configfile.c,v 1.32 2008/08/04 01:01:52 bkorb Exp $
- *  Time-stamp:      "2008-08-03 11:00:30 bkorb"
+ *  $Id: configfile.c,v 4.47 2009/08/01 17:43:05 bkorb Exp $
+ *  Time-stamp:      "2009-01-18 10:21:58 bkorb"
  *
  *  configuration/rc/ini file handling.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -21,8 +20,8 @@
  *
  *  These files have the following md5sums:
  *
- *  239588c55c22c60ffe159946a760a33e pkg/libopts/COPYING.gplv3
- *  fa82ca978890795162346e661b47161a pkg/libopts/COPYING.lgplv3
+ *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
+ *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
@@ -753,7 +752,11 @@ handleStructure(
      */
     memset(pcNulPoint, ' ', pzData - pcNulPoint);
 
-    if ((pOS->pOD->fOptState & OPTST_ARG_TYPE_MASK) == OPARG_TYPE_STRING) {
+    /*
+     *  If we are getting a "string" value, the process the XML-ish
+     *  %XX hex characters.
+     */
+    if (valu.valType == OPARG_TYPE_STRING) {
         char * pzSrc = pzData;
         char * pzDst = pzData;
         char bf[4];
@@ -798,12 +801,21 @@ handleStructure(
 LOCAL void
 internalFileLoad( tOptions* pOpts )
 {
-    int     idx;
-    int     inc = DIRECTION_PRESET;
-    char    zFileName[ AG_PATH_MAX+1 ];
+    uint32_t  svfl;
+    int       idx;
+    int       inc;
+    char      zFileName[ AG_PATH_MAX+1 ];
 
     if (pOpts->papzHomeList == NULL)
         return;
+
+    svfl = pOpts->fOptSet;
+    inc  = DIRECTION_PRESET;
+
+    /*
+     *  Never stop on errors in config files.
+     */
+    pOpts->fOptSet &= ~OPTPROC_ERRSTOP;
 
     /*
      *  Find the last RC entry (highest priority entry)
@@ -877,6 +889,8 @@ internalFileLoad( tOptions* pOpts )
             }
         }
     } /* twice for every path in the home list, ... */
+
+    pOpts->fOptSet = svfl;
 }
 
 

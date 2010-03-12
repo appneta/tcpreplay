@@ -1,7 +1,7 @@
 
 /*
  *  stack.c
- *  $Id: stack.c,v 4.17 2008/08/02 16:10:07 bkorb Exp $
+ *  $Id: stack.c,v 4.19 2009/08/01 17:43:06 bkorb Exp $
  *  Time-stamp:      "2008-07-30 16:56:32 bkorb"
  *
  *  This is a special option processing routine that will save the
@@ -9,8 +9,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
- *  AutoOpts is copyright (c) 1992-2008 by Bruce Korb - all rights reserved
+ *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -24,8 +23,8 @@
  *
  *  These files have the following md5sums:
  *
- *  239588c55c22c60ffe159946a760a33e pkg/libopts/COPYING.gplv3
- *  fa82ca978890795162346e661b47161a pkg/libopts/COPYING.lgplv3
+ *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
+ *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
