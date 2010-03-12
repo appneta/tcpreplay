@@ -206,6 +206,16 @@ tcpreplay_post_args(tcpreplay_t *ctx)
         options->enable_file_cache = true;
     }
 
+    /*
+     * If we're preloading the pcap before the first run, then
+     * we're forcing the file cache to be true
+     */
+
+    if (HAVE_OPT(PRELOAD_PCAP)) {
+        options->preload_pcap = true;
+        options->enable_file_cache = true;
+    }
+
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
 #ifdef HAVE_SELECT
@@ -532,6 +542,24 @@ tcpreplay_set_file_cache(tcpreplay_t *ctx, bool value)
 {
     assert(ctx);
     ctx->options->enable_file_cache = value;
+    return 0;
+}
+
+
+/**
+ * \brief Enable or disable preloading the file cache 
+ *
+ * Note: This is a global option and forces all pcaps
+ * to be preloaded for this context.  If you turn this
+ * on, then it forces set_file_cache(true)
+ */
+int
+tcpreplay_set_preload_pcap(tcpreplay_t *ctx, bool value)
+{
+    assert(ctx);
+    ctx->options->preload_pcap = value;
+    if (value)
+        tcpreplay_set_file_cache(ctx, true);
     return 0;
 }
 
