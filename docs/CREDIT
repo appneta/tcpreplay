@@ -36,13 +36,13 @@ Nick Mathewson <nickm@freehaven.net>
     - Kindly giving me his BSD licensed implimentation of poll()
       using select() so I don't have to worry about cross platform
       issues.
-          
+
 Denis McLaughlin <denism@cyberus.ca>
     - Patch to allow TCP/UDP port translation
 
 Andrew Edgecombe <andrew.edgecombe@nec.com.au>
-	- Patch to support caching pcap files in memory when looping
-	  which provides a significant performance improvement
+    - Patch to support caching pcap files in memory when looping
+      which provides a significant performance improvement
     - Patch to fix issue with -M option
 
 Joerg Mayer  <jmayer@loplof.de>
