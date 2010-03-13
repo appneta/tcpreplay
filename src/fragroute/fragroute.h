@@ -1,7 +1,7 @@
-/* $Id:$ */
+/* $Id$ */
 
 /*
- * Copyright (c) 2007-2008 Aaron Turner.
+ * Copyright (c) 2007-2010 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

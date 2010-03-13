@@ -1,5 +1,6 @@
 /* $Id$ */
-/* Copyright 2004 Aaron Turner 
+
+/* Copyright 2004-2010 Aaron Turner 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

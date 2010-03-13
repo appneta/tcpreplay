@@ -2,7 +2,7 @@
  * mod.c
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
- * Copyright (c) 2007-2008 Aaron Turner.
+ * Copyright (c) 2007-2010 Aaron Turner.
  *
  * $Id$
  */

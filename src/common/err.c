@@ -5,7 +5,7 @@
  *
  * Adapted from OpenBSD libc *err* *warn* code.
  *
- * Copyright (c) 2001-2007 Aaron Turner.
+ * Copyright (c) 2001-2010 Aaron Turner.
  *
  * Copyright (c) 2000 Dug Song <dugsong@monkey.org>
  *
