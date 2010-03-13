@@ -343,8 +343,14 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     int newl2len = 0;
 
     assert(ctx);
-    assert(pktlen >= 14);
     assert(packet);
+
+    if (pktlen < 14) {
+        tcpedit_seterr(ctx->tcpedit, 
+                "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.", 
+                ctx->tcpedit->runtime.packetnum);
+        return TCPEDIT_ERROR;
+    }
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     config = plugin->config;
