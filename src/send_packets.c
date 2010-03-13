@@ -335,7 +335,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     static int32_t nsec_adjuster = -1, nsec_times = -1;
     float n;
     static u_int32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
-    u_int64_t ppnsec; /* packets per usec */
+    u_int32_t ppnsec;               /* packets per usec */
     static int first_time = 1;      /* need to track the first time through for the pps accelerator */
 
 
@@ -345,14 +345,14 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
 #else
     adjuster.tv_nsec = 0;
 #endif
-    
+
     /* acclerator time? */
     if (send > 0) {
         send --;
         return;
     }
-    
-    /* 
+
+    /*
      * pps_multi accelerator.    This uses the existing send accelerator above
      * and hence requires the funky math to get the expected timings.
      */
@@ -363,7 +363,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
             return;
         }
     }
-        
+
     dbgx(4, "This packet time: " TIMEVAL_FORMAT, time->tv_sec, time->tv_usec);
     dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
@@ -385,9 +385,12 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     /* If top speed, you shouldn't even be here */
     assert(options.speed.mode != SPEED_TOPSPEED);
 
+    /*
+     * 1. First, figure out how long we should sleep for...
+     */
     switch(options.speed.mode) {
     case SPEED_MULTIPLIER:
-        /* 
+        /*
          * Replay packets a factor of the time they were originally sent.
          */
         if (timerisset(last)) {
@@ -399,7 +402,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
                 /* time has increased or is the same, so handle normally */
                 timersub(time, last, &nap_for);
                 dbgx(3, "original packet delta time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
-                
+
                 TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
                 dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
                 timesdiv(&nap, options.speed.speed);
@@ -408,11 +411,11 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         } else {
             /* Don't sleep if this is our first packet */
             timesclear(&nap);
-        }        
+        }
         break;
 
     case SPEED_MBPSRATE:
-        /* 
+        /*
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
@@ -420,7 +423,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
             n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
-            
+
             dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n, 
                 nap.tv_sec, nap.tv_nsec);
         }
@@ -431,16 +434,23 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         break;
 
     case SPEED_PACKETRATE:
-        /* only need to calculate this the first time */
+        /*
+         * Only need to calculate this the first time since this is a
+         * constant time function
+         */
         if (! timesisset(&nap)) {
             /* run in packets/sec */
             ppnsec = 1000000000 / options.speed.speed * (options.speed.pps_multi > 0 ? options.speed.pps_multi : 1);
             NANOSEC_TO_TIMESPEC(ppnsec, &nap);
             dbgx(1, "sending %d packet(s) per %lu nsec", (options.speed.pps_multi > 0 ? options.speed.pps_multi : 1), nap.tv_nsec);
-        }        
+        }
         break;
-        
+
     case SPEED_ONEATATIME:
+        /*
+         * Prompt the user for sending each packet(s)
+         */
+
         /* do we skip prompting for a key press? */
         if (send == 0) {
             send = get_user_count(sp, counter);
@@ -451,8 +461,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
                sp == options.intf1 ? options.intf1_name : options.intf2_name);
         send --;
 
-        /* leave do_sleep() */
-        return;
+        return; /* leave do_sleep() */
 
         break;
 
@@ -461,7 +470,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         break;
     }
 
-    /* 
+    /*
      * since we apply the adjuster to the sleep time, we can't modify nap
      */
     nap_this_time.tv_sec = nap.tv_sec;
@@ -473,30 +482,33 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     if (accurate != ACCURATE_ABS_TIME) {
 
         switch (options.speed.mode) {
-            /* Mbps & Multipler are dynamic timings, so we round to the nearest usec */
+            /*
+             * We used to round to the nearest uset for Mbps & Multipler 
+             * because they are "dynamic timings", but that seems stupid
+             * so I'm turning that off and we do nothing now
+             */
             case SPEED_MBPSRATE:
             case SPEED_MULTIPLIER:
-                ROUND_TIMESPEC_TO_MICROSEC(&nap_this_time);
                 break;
 
             /* Packets/sec is static, so we weight packets for .1usec accuracy */
             case SPEED_PACKETRATE:
                 if (nsec_adjuster < 0)
                     nsec_adjuster = (nap_this_time.tv_nsec % 10000) / 1000;
-        
+
                 /* update in the range of 0-9 */
                 nsec_times = (nsec_times + 1) % 10;
-        
+
                 if (nsec_times < nsec_adjuster) {
                     /* sorta looks like a no-op, but gives us a nice round usec number */
                     nap_this_time.tv_nsec = (nap_this_time.tv_nsec / 1000 * 1000) + 1000;
                 } else {
                     nap_this_time.tv_nsec -= (nap_this_time.tv_nsec % 1000);
                 }
-    
+
                 dbgx(3, "(%d)\tnsec_times = %d\tnap adjust: %lu -> %lu", nsec_adjuster, nsec_times, nap.tv_nsec, nap_this_time.tv_nsec);            
                 break;
-                
+
             default:
                 errx(-1, "Unknown/supported speed mode: %d", options.speed.mode);
         }
@@ -524,13 +536,13 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
             timesclear(&nap_this_time);
         }
     }
-    
+
     dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
 
     /* don't sleep if nap = {0, 0} */
     if (!timesisset(&nap_this_time))
         return;
-        
+
     /*
      * Depending on the accurate method & packet rate computation method
      * We have multiple methods of sleeping, pick the right one...
@@ -548,7 +560,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         break;
 #endif
 
-#ifdef HAVE_RDTSC        
+#ifdef HAVE_RDTSC
     case ACCURATE_RDTSC:
         rdtsc_sleep(nap_this_time);
         break;
