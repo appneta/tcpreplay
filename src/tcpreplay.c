@@ -385,8 +385,10 @@ post_args(void)
         options.enable_file_cache = TRUE;
     }
 
-    if (HAVE_OPT(PRELOAD_PCAP))
+    if (HAVE_OPT(PRELOAD_PCAP)) {
         options.preload_pcap = TRUE;
+        options.enable_file_cache = TRUE;
+    }
 
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
