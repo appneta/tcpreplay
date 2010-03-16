@@ -170,7 +170,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     cache_header = (tcpr_cache_file_hdr_t *)
         safe_malloc(sizeof(tcpr_cache_file_hdr_t));
     strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
-    strncpy(cache_header->version, CACHEVERSION, strlen(CACHEMAGIC));
+    strncpy(cache_header->version, CACHEVERSION, strlen(CACHEVERSION));
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
     cache_header->num_packets = htonll((u_int64_t)numpackets);
 
