@@ -1,11 +1,11 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2000-2008";
+    date        = "2000-2010";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2008 Aaron Turner
+Copyright 2000-2010 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -28,8 +28,8 @@ include         = "#include \"defines.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"config.h\"\n"
                 "#include \"tcpprep.h\"\n"
-				"#include <stdlib.h>\n"
-				"#include <string.h>\n"
+                "#include <stdlib.h>\n"
+                "#include <string.h>\n"
                 "extern tcpprep_opt_t options;\n";
 
 homerc          = "$$/";
@@ -84,9 +84,9 @@ flag = {
     flags-cant  = cidr;
     flags-cant  = port;
     flags-cant  = regex;
-	flags-cant	= mac;
+    flags-cant  = mac;
     flag-code   = <<- EOAuto
-    
+
     options.mode = AUTO_MODE;
     if (strcmp(OPT_ARG(AUTO), "bridge") == 0) {
         options.automode = BRIDGE_MODE;
@@ -156,9 +156,9 @@ flag = {
     flags-cant  = auto;
     flags-cant  = port;
     flags-cant  = regex;
-	flags-cant	= mac;
+    flags-cant  = mac;
     flag-code   = <<- EOCidr
-  
+
     char *cidr = safe_strdup(OPT_ARG(CIDR));
     options.mode = CIDR_MODE;
     if (!parse_cidr(&options.cidrdata, cidr, ","))
@@ -191,19 +191,19 @@ flag = {
     flags-cant  = auto;
     flags-cant  = port;
     flags-cant  = cidr;
-	flags-cant	= mac;
+    flags-cant  = mac;
     flag-code   = <<- EORegex
-    
+
     int regex_error;
     char ebuf[EBUF_SIZE];
-    
+
     options.mode = REGEX_MODE;
     if ((regex_error = regcomp(&options.preg, OPT_ARG(REGEX), 
         REG_EXTENDED|REG_NOSUB))) {
         regerror(regex_error, &options.preg, ebuf, EBUF_SIZE);
         errx(-1, "Unable to compile regex: %s", ebuf);
     }
-    
+
 EORegex;
     doc         = <<- EOText
 Specify a regular expression to match against the source IP of each
@@ -212,18 +212,18 @@ EOText;
 };
 
 flag = {
-    name        = port;
-    value       = p;
-    descrip     = "Port-split mode";
-	max			= 1;
-    flags-cant  = auto;
-    flags-cant  = regex;
-    flags-cant  = cidr;
-	flags-cant	= mac;
-    flag-code   = <<- EOPort
-    
+    name         = port;
+    value        = p;
+    descrip      = "Port-split mode";
+    max          = 1;
+    flags-cant   = auto;
+    flags-cant   = regex;
+    flags-cant   = cidr;
+    flags-cant   = mac;
+    flag-code    = <<- EOPort
+
     options.mode = PORT_MODE;
-    
+
 EOPort;
     doc         = <<- EOText
 Specifies that TCP and UDP traffic over IPv4 and IPv6 should be classified 
@@ -232,28 +232,27 @@ EOText;
 };
 
 flag = {
-	name		= mac;
-	value		= e;
-	arg-type	= string;
-	max			= 1;
-	descrip		= "Source MAC split mode";
-	flags-cant	= auto;
-	flags-cant	= regex;
-	flags-cant	= cidr;
-	flags-cant	= port;
-	flag-code	= <<- EOMac
-	
-	options.mode = MAC_MODE;
-	options.maclist = safe_strdup(OPT_ARG(MAC));
-	
+    name       = mac;
+    value      = e;
+    arg-type   = string;
+    max        = 1;
+    descrip    = "Source MAC split mode";
+    flags-cant = auto;
+    flags-cant = regex;
+    flags-cant = cidr;
+    flags-cant = port;
+    flag-code  = <<- EOMac
+
+options.mode = MAC_MODE;
+options.maclist = safe_strdup(OPT_ARG(MAC));
 
 EOMac;
-	doc			= <<- EOText
+    doc        = <<- EOText
 Specify a list of MAC addresses to match against the source MAC
 of each packet.  Packets matching one of the values are classified
-as servers.	
+as servers.
 EOText;
-	
+
 };
 
 flag = {
@@ -280,11 +279,11 @@ flag = {
     if (strlen(OPT_ARG(COMMENT)) > ((1 << 16) - 1 - MYARGS_LEN))
                 errx(-1, "Comment length %zu is longer then max allowed (%d)", 
                 strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
-    
+
     /* save the comment */
     options.comment = (char *)safe_malloc(strlen(OPT_ARG(COMMENT)) + 1);
     strcpy(options.comment, OPT_ARG(COMMENT));
-    
+
 EOComment;
     doc         = <<- EOText
 Specify a comment to be imbedded within the output cache file and later
@@ -293,14 +292,14 @@ EOText;
 };
 
 flag = {
-	name		= no-arg-comment;
-	max			= 1;
-	descrip		= "Do not embed any cache file comment";
-	flag-code	= <<- EOCode
+    name      = no-arg-comment;
+    max       = 1;
+    descrip   = "Do not embed any cache file comment";
+    flag-code = <<- EOCode
 
 options.nocomment = 1;
 EOCode;
-	doc			= <<- EOText
+    doc       = <<- EOText
 By default, tcpprep includes the arguments passed on the command line
 in the cache file comment (in addition to any user specified --comment).
 If for some reason you do not wish to include this, specify this option.
@@ -317,32 +316,32 @@ flag = {
     descrip     = "Include only packets matching rule";
     flags-cant  = exclude;
     flag-code   = <<- EOInclude
-    
+
     char *include;
-    
+
     include = safe_strdup(OPT_ARG(INCLUDE));
     options.xX.mode = xX_MODE_INCLUDE;
-        
+
     if ((options.xX.mode = parse_xX_str(&options.xX, include, &options.bpf)) == xXError)
         errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
 
     free(include);
-    
+
 EOInclude;
     doc         = <<- EOText
 Override default of processing all packets stored in the capture file and only
 send/edit packets which match the provided rule.  Rules can be one of:
 
 @table @bullet
-@item S:<CIDR1>,... 
+@item S:<CIDR1>,...
 - Source IP must match specified IPv4/v6 CIDR(s)
-@item D:<CIDR1>,... 
+@item D:<CIDR1>,...
 - Destination IP must match specified IPv4/v6 CIDR(s)
-@item B:<CIDR1>,... 
+@item B:<CIDR1>,...
 - Both source and destination IP must match specified IPv4/v6 CIDR(s)
-@item E:<CIDR1>,... 
+@item E:<CIDR1>,...
 - Either IP must match specified IPv4/v6 CIDR(s)
-@item P:<LIST>      
+@item P:<LIST>
 - Must be one of the listed packets where the list
 corresponds to the packet number in the capture file.
 @example
@@ -364,32 +363,32 @@ flag = {
     descrip     = "Exclude any packet matching this rule";
     flags-cant  = include;
     flag-code   = <<- EOExclude
-    
+
     char *exclude;
-    
+
     exclude = safe_strdup(OPT_ARG(EXCLUDE));
     options.xX.mode = xX_MODE_EXCLUDE;
-    
+
     if ((options.xX.mode = parse_xX_str(&options.xX, exclude, &options.bpf)) == xXError)
         errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
-    
+
     free(exclude);
-    
+
 EOExclude;
     doc         = <<- EOText
 Override default of processing all packets stored in the capture file and only
 send/edit packets which do NOT match the provided rule.  Rules can be one of:
 
 @table @bullet
-@item S:<CIDR1>,... 
+@item S:<CIDR1>,...
 - Source IP must not match specified IPv4/v6 CIDR(s)
-@item D:<CIDR1>,... 
+@item D:<CIDR1>,...
 - Destination IP must not match specified IPv4/v6 CIDR(s)
-@item B:<CIDR1>,... 
+@item B:<CIDR1>,...
 - Both source and destination IP must not match specified IPv4/v6 CIDR(s)
-@item E:<CIDR1>,... 
+@item E:<CIDR1>,...
 - Either IP must not match specified IPv4/v6 CIDR(s)
-@item P:<LIST>      
+@item P:<LIST>
 - Must not be one of the listed packets where the list
 corresponds to the packet number in the capture file.
 @example
@@ -422,7 +421,7 @@ flag = {
 flag = {
     name        = print-comment;
     value       = P;
-    arg-type	= string;
+    arg-type    = string;
     descrip     = "Print embedded comment in the specified cache file";
     max         = 1;
     doc         = "";
@@ -431,19 +430,19 @@ flag = {
 flag = {
     name        = print-info;
     value       = I;
-    arg-type	= string;
+    arg-type    = string;
     descrip     = "Print basic info from the specified cache file";
     max         = 1;
     doc         = "";
 };
 
 flag = {
-	name		= print-stats;
-	value		= S;
-	arg-type	= string;
-	descrip		= "Print statistical information about the specified cache file";
-    max         = 1;
-	doc			= "";
+    name     = print-stats;
+    value    = S;
+    arg-type = string;
+    descrip  = "Print statistical information about the specified cache file";
+    max      = 1;
+    doc      = "";
 };
 
 flag = {
@@ -462,7 +461,7 @@ http            80/tcp
 EOText;
     flag-code   = <<- EOServices
     parse_services(OPT_ARG(SERVICES), &options.services);
-    
+
 EOServices;
 };
 
@@ -472,9 +471,9 @@ flag = {
     descrip     = "Send non-IP traffic out server interface";
     max         = 1;
     flag-code   = <<- EONonip
- 
+
     options.nonip = DIR_SERVER;
-    
+
 EONonip;
     doc         = <<- EOText
 By default, non-IP traffic which can not be classified as client
@@ -573,21 +572,21 @@ flag = {
     value       = V;
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
-    
+
     fprintf(stderr, "tcpprep version: %s (build %s)", VERSION, svn_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2009 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
 #else
-	fprintf(stderr, "Not compiled with libdnet.\n");
+    fprintf(stderr, "Not compiled with libdnet.\n");
 #endif
 #ifdef HAVE_WINPCAP
-	fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
+    fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
 #else
     fprintf(stderr, "Compiled against libpcap: %s\n", get_pcap_version());
 #endif
@@ -602,7 +601,7 @@ flag = {
     fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
 #endif
     exit(0);
-    
+
 EOVersion;
     doc         = "";
 };
@@ -613,7 +612,7 @@ flag = {
     immediate;
     descrip     = "Display less usage information and exit";
     flag-code   = <<- EOHelp
-  
+
     USAGE(EXIT_FAILURE);
 
 EOHelp;

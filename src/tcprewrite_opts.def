@@ -1,11 +1,11 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2004-2008";
+    date        = "2000-2010";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2004-2008 Aaron Turner
+Copyright 2000-2010 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -26,10 +26,10 @@ config-header   = "config.h";
 
 #include tcpedit/tcpedit_opts.def
 
-detail		= <<- EOText
-Tcprewrite is a tool to rewrite packets stored in @file{pcap(3)} file format, 
-such as crated by tools such as @file{tcpdump(1)} and @file{ethereal(1)}.  
-Once a pcap file has had it's packets rewritten, they can be replayed back 
+detail = <<- EOText
+Tcprewrite is a tool to rewrite packets stored in @file{pcap(3)} file format,
+such as crated by tools such as @file{tcpdump(1)} and @file{ethereal(1)}.
+Once a pcap file has had it's packets rewritten, they can be replayed back
 out on the network using @file{tcpreplay(1)}.
 
 tcprewrite currently supports reading the following DLT types:
@@ -70,8 +70,8 @@ include         = "#include \"defines.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"config.h\"\n"
                 "#include \"tcprewrite.h\"\n"
-				"#include <stdlib.h>\n"
-				"#include <string.h>\n"
+                "#include <stdlib.h>\n"
+                "#include <string.h>\n"
                 "extern tcprewrite_opt_t options;\n";
 
 homerc          = "$$/";
@@ -105,13 +105,13 @@ flag = {
 };
 
 flag = {
-    name        = outfile;
-    value       = o;
-    arg-type    = string;
-    descrip     = "Output pcap file";
-    max         = 1;
+    name      = outfile;
+    value     = o;
+    arg-type  = string;
+    descrip   = "Output pcap file";
+    max       = 1;
     must-set;
-    doc		    = "";
+    doc       = "";
     /* options.outfile is set in post_args, because we need to make
      * sure that options.infile is processed first
      */
@@ -125,11 +125,11 @@ flag = {
     descrip     = "Split traffic via tcpprep cache file";
     settable;
     flag-code   = <<- EOCachefile
-    
-    options.cache_packets = 
+
+    options.cache_packets =
         read_cache(&options.cachedata, OPT_ARG(CACHEFILE), &options.comment);
 
-EOCachefile;    
+EOCachefile;
     doc         = <<- EOText
 Use tcpprep cache file to split traffic based upon client/server relationships.
 EOText;
@@ -162,7 +162,7 @@ When enabling verbose mode (@var{-v}) you may also specify one or
 more additional arguments to pass to @code{tcpdump} to modify
 the way packets are decoded.  By default, -n and -l are used.
 Be sure to quote the arguments so that they are not interpreted
-by tcprewrite.   Please see the tcpdump(1) man page for a complete list of 
+by tcprewrite.   Please see the tcpdump(1) man page for a complete list of
 options.
 EOText;
 };
@@ -178,7 +178,7 @@ flag = {
     doc         = <<- EOText
 Enable advanced evasion techniques using the built-in fragroute(8)
 engine.  See the fragroute(8) man page for more details.  Important:
-tcprewrite does not support the delay, echo or print commands.    
+tcprewrite does not support the delay, echo or print commands.
 EOText;
 };
 
@@ -191,15 +191,16 @@ flag = {
     max         = 1;
     descrip     = "Which flows to apply fragroute to: c2s, s2c, both";
     doc         = <<- EOText
-Apply the fragroute engine to packets going c2s, s2c or both when using a cache file.
+Apply the fragroute engine to packets going c2s, s2c or both when
+using a cache file.
 EOText;
 };
 
 flag = {
-	name		= skip-soft-errors;
-	max 		= 1;
-	descrip		= "Skip writing packets with soft errors";
-	doc			= <<- EOText
+    name    = skip-soft-errors;
+    max     = 1;
+    descrip = "Skip writing packets with soft errors";
+    doc     = <<- EOText
 In some cases, packets can't be decoded or the requested editing
 is not possible.  Normally these packets are written to the output
 file unedited so that tcpprep cache files can still be used, but if
@@ -215,21 +216,21 @@ flag = {
     value       = V;
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
-    
+
     fprintf(stderr, "tcprewrite version: %s (build %s)", VERSION, svn_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2009 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
 #else
-	fprintf(stderr, "Not compiled with libdnet.\n");
+    fprintf(stderr, "Not compiled with libdnet.\n");
 #endif
 #ifdef HAVE_WINPCAP
-	fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
+    fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
 #else
     fprintf(stderr, "Compiled against libpcap: %s\n", get_pcap_version());
 #endif
@@ -249,7 +250,7 @@ flag = {
     fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
     exit(0);
-    
+
 EOVersion;
     doc         = "";
 };
@@ -260,7 +261,7 @@ flag = {
     immediate;
     descrip     = "Display less usage information and exit";
     flag-code   = <<- EOHelp
-  
+
     USAGE(EXIT_FAILURE);
 
 EOHelp;

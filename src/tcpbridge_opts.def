@@ -2,11 +2,11 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2005-2008";
+    date        = "2000-2010";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2008 Aaron Turner
+Copyright 2000-2010 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -29,10 +29,10 @@ include         = "#include \"defines.h\"\n"
                 "#include \"tcpbridge.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"config.h\"\n"
-				"#include <stdlib.h>\n"
-				"#include <string.h>\n"
-				"#include <sys/types.h>\n"
-				"#include <unistd.h>\n"
+                "#include <stdlib.h>\n"
+                "#include <string.h>\n"
+                "#include <sys/types.h>\n"
+                "#include <unistd.h>\n"
                 "extern tcpbridge_opt_t options;\n";
 
 
@@ -127,11 +127,11 @@ flag = {
 };
 
 flag = {
-	name		= unidir;
-	value		= u;
-	max		= 1;
-	descrip		= "Send and receive in only one direction";
-	doc		= <<- EOText
+    name    = unidir;
+    value   = u;
+    max     = 1;
+    descrip = "Send and receive in only one direction";
+    doc     = <<- EOText
 Normally, tcpbridge will send and receive traffic in both directions 
 (bi-directionally).  However, if you choose this option, traffic will 
 be sent uni-directionally.
@@ -139,18 +139,18 @@ EOText;
 };
 
 flag = {
-	ifdef		= ENABLE_PCAP_FINDALLDEVS;
-	name		= listnics;
-	descrip		= "List available network interfaces and exit";
-	immediate;
-	doc			= "";
-	flag-code	= <<- EOFlag
-	
-	interface_list_t *list = get_interface_list();
-	list_interfaces(list);
-	free(list);
-    exit(0);
-	
+    ifdef      = ENABLE_PCAP_FINDALLDEVS;
+    name       = listnics;
+    descrip    = "List available network interfaces and exit";
+    immediate;
+    doc        = "";
+    flag-code  = <<- EOFlag
+
+interface_list_t *list = get_interface_list();
+list_interfaces(list);
+free(list);
+exit(0);
+
 EOFlag;
 };
 
@@ -160,14 +160,14 @@ EOFlag;
  */
 
 flag = {
-	name		= limit;
-	value		= L;
-	arg-type	= number;
-	max			= 1;
-	arg-default	= -1;
-	arg-range	= "1->";
-	descrip 	= "Limit the number of packets to send";
-	doc 		= <<- EOText
+    name        = limit;
+    value       = L;
+    arg-type    = number;
+    max         = 1;
+    arg-default = -1;
+    arg-range   = "1->";
+    descrip     = "Limit the number of packets to send";
+    doc         = <<- EOText
 By default, tcpbridge will send packets forever or until Ctrl-C.  Alternatively,
 you can specify a maximum number of packets to send.
 EOText;
@@ -202,32 +202,32 @@ flag = {
     descrip     = "Include only packets matching rule";
     flags-cant  = exclude;
     flag-code   = <<- EOInclude
-    
+
     char *include;
-    
+
     include = safe_strdup(OPT_ARG(INCLUDE));
     options.xX.mode = xX_MODE_INCLUDE;
-        
+
     if ((options.xX.mode = parse_xX_str(&options.xX, include, &options.bpf)) == xXError)
         errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
 
     free(include);
-    
+
 EOInclude;
     doc         = <<- EOText
 Override default of sending all packets stored in the capture file and only
 send packets which match the provided rule.  Rules can be one of:
 
 @table @bullet
-@item S:<CIDR1>,... 
+@item S:<CIDR1>,...
 - Source IP must match specified CIDR(s)
-@item D:<CIDR1>,... 
+@item D:<CIDR1>,...
 - Destination IP must match specified CIDR(s)
-@item B:<CIDR1>,... 
+@item B:<CIDR1>,...
 - Both source and destination IP must match specified CIDR(s)
-@item E:<CIDR1>,... 
+@item E:<CIDR1>,...
 - Either IP must match specified CIDR(s)
-@item P:<LIST>      
+@item P:<LIST>
 - Must be one of the listed packets where the list
 corresponds to the packet number in the capture file.
 @example
@@ -249,32 +249,32 @@ flag = {
     descrip     = "Exclude any packet matching this rule";
     flags-cant  = include;
     flag-code   = <<- EOExclude
-    
+
     char *exclude;
-    
+
     exclude = safe_strdup(OPT_ARG(EXCLUDE));
     options.xX.mode = xX_MODE_EXCLUDE;
-    
+
     if ((options.xX.mode = parse_xX_str(&options.xX, exclude, &options.bpf)) == xXError)
         errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
-    
+
     free(exclude);
-    
+
 EOExclude;
     doc         = <<- EOText
 Override default of sending all packets stored in the capture file and only
 send packets which do not match the provided rule.  Rules can be one of:
 
 @table @bullet
-@item S:<CIDR1>,... 
+@item S:<CIDR1>,...
 - Source IP must not match specified CIDR(s)
-@item D:<CIDR1>,... 
+@item D:<CIDR1>,...
 - Destination IP must not match specified CIDR(s)
-@item B:<CIDR1>,... 
+@item B:<CIDR1>,...
 - Both source and destination IP must not match specified CIDR(s)
-@item E:<CIDR1>,... 
+@item E:<CIDR1>,...
 - Either IP must not match specified CIDR(s)
-@item P:<LIST>      
+@item P:<LIST>
 - Must not be one of the listed packets where the list
 corresponds to the packet number in the capture file.
 @example
@@ -291,9 +291,9 @@ flag = {
     value       = P;
     descrip     = "Print the PID of tcpbridge at startup";
     flag-code   = <<- EOPid
-    
+
     fprintf(stderr, "PID: %hu\n", getpid());
-    
+
 EOPid;
     doc         = "";
 };
@@ -336,17 +336,17 @@ flag = {
     value       = V;
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
-    
+
     fprintf(stderr, "tcpbridge version: %s (build %s)", VERSION, svn_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2009 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
 #else
-	fprintf(stderr, "Not compiled with libdnet.\n");
+    fprintf(stderr, "Not compiled with libdnet.\n");
 #endif
 #ifdef HAVE_WINPCAP
     fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
@@ -364,9 +364,9 @@ flag = {
     fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
 #endif
     fprintf(stderr, "Injection method: %s\n", sendpacket_get_method());
-    
+
     exit(0);
-    
+
 EOVersion;
     doc         = "";
 };
@@ -377,7 +377,7 @@ flag = {
     immediate;
     descrip     = "Display less usage information and exit";
     flag-code   = <<- EOHelp
-  
+
     USAGE(EXIT_FAILURE);
 
 EOHelp;

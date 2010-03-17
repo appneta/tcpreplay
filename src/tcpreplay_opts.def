@@ -2,11 +2,11 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2008";
+    date        = "2000-2010";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2008 Aaron Turner
+Copyright 2000-2010 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -130,7 +130,7 @@ Allows you to select the packet timing method to use:
 - Use select() API
 @item ioport
 - Write to the i386 IO Port 0x80
-@item rdtsc  
+@item rdtsc
 - Use the x86/x86_64/PPC RDTSC
 @item gtod [default]
 - Use a gettimeofday() loop
@@ -195,7 +195,7 @@ options.
 EOText;
 };
 
-/* Cache files to internal memory */ 
+/* Cache files to internal memory */
 flag = {
     name        = enable_file_cache;
     value       = K;
@@ -432,7 +432,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2001-2009 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
