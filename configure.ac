@@ -688,6 +688,33 @@ extern char pcap_version[];
     AC_MSG_RESULT(no)
 ])
 
+have_pcap_snapshot=no
+dnl Check for pcap_snapshot()
+AC_MSG_CHECKING(for pcap_snapshot)
+AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+    pcap_t *p;
+    int len;
+
+    len = pcap_snapshot(p);
+    exit(0);
+]]), [
+    have_pcap_snapshot=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_snapshot=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_snapshot = yes ; then
+    AC_DEFINE([HAVE_PCAP_SNAPSHOT], [1], 
+              [Does libpcap have pcap_snapshot?])
+fi
+
 
 # Tcpbridge requires libpcap and pcap_sendpacket()
 enable_tcpbridge=no

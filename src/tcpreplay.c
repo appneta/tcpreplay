@@ -207,6 +207,12 @@ preload_pcap_file(int file_idx)
     if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
         errx(-1, "Error opening pcap file: %s", ebuf);
 
+#ifdef HAVE_PCAP_SNAPSHOT
+    if (pcap_snapshot(pcap) < 65535)
+        warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                path, pcap_snapshot(pcap));
+#endif
+
     /* loop through the pcap.  get_next_packet() builds the cache for us! */
     while ((pktdata = get_next_packet(pcap, &pkthdr, file_idx, prev_packet)) != NULL) {
         packetnum++;

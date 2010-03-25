@@ -215,6 +215,9 @@
 /* Does libpcap have pcap_setnonblock? */
 #undef HAVE_PCAP_SETNONBLOCK
 
+/* Does libpcap have pcap_snapshot? */
+#undef HAVE_PCAP_SNAPSHOT
+
 /* Does libpcap have pcap_version[] */
 #undef HAVE_PCAP_VERSION
 

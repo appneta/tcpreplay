@@ -101,16 +101,15 @@ main(int argc, char *argv[])
     COUNTER totpackets = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
     int optct = 0;
- 
+
     init(); /* init our globals */
-    
+
     optct = optionProcess(&tcpprepOptions, argc, argv);
     post_args(argc, argv);
 
     argc -= optct;
     argv += optct;
- 
-  
+
     /* open the cache file */
     if ((out_file = open(OPT_ARG(CACHEFILE), O_WRONLY | O_CREAT | O_TRUNC,
             S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP | S_IROTH)) == -1)
@@ -121,6 +120,12 @@ main(int argc, char *argv[])
     /* open the pcap file */
     if ((options.pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
         errx(-1, "Error opening file: %s", errbuf);
+
+#ifdef HAVE_PCAP_SNAPSHOT
+    if (pcap_snapshot(options.pcap) < 65535)
+        warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                OPT_ARG(PCAP), pcap_snapshot(options.pcap));
+#endif
 
     /* make sure we support the DLT type */
     switch(pcap_datalink(options.pcap)) {
@@ -234,8 +239,8 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
         proto = get_ipv6_l4proto(ip6_hdr);
         dbgx(3, "Our layer4 proto is 0x%hhu", proto);
         l4 = get_layer4_v6(ip6_hdr);
-        
-        dbgx(3, "Found proto %u at offset %p.  base %p (%u)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
+
+        dbgx(3, "Found proto %u at offset %p.  base %p (%ld)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
     } else {
         assert(0);
     }
