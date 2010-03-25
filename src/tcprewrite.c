@@ -89,12 +89,12 @@ main(int argc, char *argv[])
 
     /* parse the tcprewrite args */
     post_args(argc, argv);
-    
+
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, pcap_datalink(options.pin)) < 0) {
         errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
     }
-    
+
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
@@ -102,12 +102,12 @@ main(int argc, char *argv[])
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
-    
+
     if (tcpedit_validate(tcpedit) < 0) {
         errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
-    
+
    /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
     dbgx(1, "Rewriting DLT to %s",
@@ -176,7 +176,7 @@ void
 post_args(_U_ int argc, _U_ char *argv[])
 {
     char ebuf[PCAP_ERRBUF_SIZE];
-     
+
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;
@@ -184,21 +184,21 @@ post_args(_U_ int argc, _U_ char *argv[])
     if (HAVE_OPT(DBUG))
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
-    
+
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
-    
+
     if (HAVE_OPT(DECODE))
-        tcpdump.args = safe_strdup(OPT_ARG(DECODE));    
+        tcpdump.args = safe_strdup(OPT_ARG(DECODE));
 #endif
 
 
 #ifdef ENABLE_FRAGROUTE
     if (HAVE_OPT(FRAGROUTE))
         options.fragroute_args = safe_strdup(OPT_ARG(FRAGROUTE));
-    
+
     options.fragroute_dir = FRAGROUTE_DIR_BOTH;
     if (HAVE_OPT(FRAGDIR)) {
         if (strcmp(OPT_ARG(FRAGDIR), "c2s") == 0) {
@@ -217,6 +217,13 @@ post_args(_U_ int argc, _U_ char *argv[])
     options.infile = safe_strdup(OPT_ARG(INFILE));
     if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
         errx(-1, "Unable to open input pcap file: %s", ebuf);
+
+#ifdef HAVE_PCAP_SNAPSHOT
+    if (pcap_snapshot(options.pin) < 65535)
+        warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                options.infile, pcap_snapshot(options.pin));
+#endif
+
 }
 
 /** 

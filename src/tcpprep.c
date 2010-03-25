@@ -118,6 +118,12 @@ main(int argc, char *argv[])
     if ((options->pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
         errx(-1, "Error opening file: %s", errbuf);
 
+#ifdef HAVE_PCAP_SNAPSHOT
+    if (pcap_snapshot(options->pcap) < 65535)
+        warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                OPT_ARG(PCAP), pcap_snapshot(options->pcap));
+#endif
+
     /* make sure we support the DLT type */
     switch(pcap_datalink(options->pcap)) {
         case DLT_EN10MB:

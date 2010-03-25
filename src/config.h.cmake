@@ -27,6 +27,7 @@
 #cmakedefine HAVE_PCAP_OPEN_DEAD 1
 #cmakedefine HAVE_PCAP_SET_DATALINK 1
 #cmakedefine HAVE_PCAP_DUMP_FOPEN 1
+#cmakedefine HAVE_PCAP_SNAPSHOT 1
 
 
 /* set to true to override the default */

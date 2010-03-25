@@ -66,6 +66,13 @@ replay_file(tcpreplay_t *ctx, int idx)
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;
         }
+
+#ifdef HAVE_PCAP_SNAPSHOT
+        if (pcap_snapshot(pcap) < 65535)
+            warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                    path, pcap_snapshot(pcap));
+#endif
+
     } else {
         if (!ctx->options->file_cache[idx].cached)
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
