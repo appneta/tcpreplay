@@ -46,7 +46,7 @@
 #include "tcpedit-int.h"
 #include "portmap.h"
 
-/** 
+/**
  * mallocs a new tcpedit_portmap_t structure 
  */
 tcpedit_portmap_t *
@@ -59,18 +59,28 @@ new_portmap()
 }
 
 /**
- * parses a string <port>:<port> and returns a new
- * tcpedit_portmap_t datastruct
+ * \brief parses a string <port>:<port> and returns a new tcpedit_portmap_t struct
+ *
+ * We support the following formats:
+ * <port>:<port>         - map a single port to a new port
+ * <port>-<port>:<port>  - map a range of ports to a new port 
+ * <port>+<port>+...:<port> - map a list of ports to a single ports 
+ *
+ * In the case of port ranges or port lists, we actually return a 
+ * chain of tcpedit_portmap_t's
  */
 static tcpedit_portmap_t *
 ports2PORT(char *ports)
 {
-    tcpedit_portmap_t *portmap = NULL;
-    char *from_s, *to_s, *badchar;
-    long from_l, to_l;
-    char *token = NULL;
+    tcpedit_portmap_t *portmap = NULL, *portmap_head = NULL;
+    char *from_s, *to_s, *from_begin, *from_end, *badchar;
+    long from_l, to_l, from_b, from_e, i;
+    char *token = NULL, *token2 = NULL;
 
     assert(ports);
+
+    from_begin = NULL;
+    from_end = NULL;
 
     /* first split the port numbers */
     from_s = strtok_r(ports, ":", &token);
@@ -84,28 +94,75 @@ ports2PORT(char *ports)
     if (from_s == NULL || to_s == NULL)
         return NULL;
 
-    /* convert the strings to longs: if badchar points to anything
-     * after, then it was a bad string
-     */
-    from_l = strtol(from_s, &badchar, 10);
-    if (strlen(badchar) != 0)
+    /* source map can have - (range) or + (and), but not both */
+    if (strchr(from_s, '-') && strchr(from_s, '+'))
         return NULL;
 
+    /* process to the to port */
     to_l = strtol(to_s, &badchar, 10);
     if (strlen(badchar) != 0)
         return NULL;
 
-    portmap = new_portmap();
-
-    /* put the new portmap info into the new node 
+    /*
+     * put the new portmap info into the new node 
      * while we convert to network-byte order, b/c its better
      * to do it once now, rather then each time we have to do a lookup
      */
-    portmap->from = htons(from_l);
-    portmap->to = htons(to_l);
+    portmap_head = new_portmap();
+    portmap = portmap_head;
+
+    /* process a range, setting from_begin & from_end */
+    if (strchr(from_s, '-')) {
+        from_begin = strtok_r(from_s, "-", &token2);
+        from_end = strtok_r(NULL, "-", &token2);
+        from_b = strtol(from_begin, &badchar, 10);
+        if (strlen(badchar) != 0)
+            return NULL;
+        from_e = strtol(from_end, &badchar, 10);
+        if (strlen(badchar) != 0)
+            return NULL;
+
+        for (i = from_b; from_b <= from_e; i++) {
+            portmap->from = htons(from_l);
+            portmap->to = htons(i);
+            portmap->next = new_portmap();
+            portmap = portmap->next;
+        }
+        free(portmap);
+    }
+    /* process a list, filling in list[] */
+    else if (strchr(from_s, '+')) {
+        from_begin = strtok_r(from_s, "+", &token2);
+        from_l = strtol(from_begin, &badchar, 10);
+        if (strlen(badchar) != 0)
+            return NULL;
+        portmap->to = htons(to_l);
+        portmap->from = htons(from_l);
+
+        while ((from_begin = strtok_r(NULL, "+", &token2)) != NULL) {
+            portmap->next = new_portmap();
+            portmap = portmap->next;
+            from_l = strtol(from_begin, &badchar, 10);
+            if (strlen(badchar) != 0)
+                return NULL;
+            portmap->to = htons(to_l);
+            portmap->from = htons(from_l);
+        }
+    }
+    /* this is just the old port:port format */
+    else {
+        /*
+        * convert the strings to longs: if badchar points to anything
+        * after, then it was a bad string
+        */
+        from_l = strtol(from_s, &badchar, 10);
+        if (strlen(badchar) != 0)
+            return NULL;
+        portmap->from = htons(from_l);
+    }
 
     /* return 1 for success */
-    return portmap;
+    return portmap_head;
 }
 
 /**
@@ -135,9 +192,12 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
         if (substr == NULL)
             break;
 
-        /* next record */
+        /* process next record */
         portmap_ptr->next = ports2PORT(substr);
-        portmap_ptr = portmap_ptr->next;
+
+        /* ports2PORT may return a chain, so find the end of it */
+        while (portmap_ptr->next != NULL)
+            portmap_ptr = portmap_ptr->next;
     }
 
     return 1;

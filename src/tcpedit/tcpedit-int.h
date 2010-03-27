@@ -71,10 +71,10 @@ typedef struct tcpedit_portmap_s tcpedit_portmap_t;
 struct tcpedit_s {
     int validated;  /* have we run tcpedit_validate()? */
     struct tcpeditdlt_s *dlt_ctx;
-    
+
     /* runtime variables, don't mess with these */
     tcpedit_runtime_t runtime;
-    
+
     /* skip rewriting IP/MAC's which are broadcast or multicast? */
     int skip_broadcast;
 
@@ -94,7 +94,7 @@ struct tcpedit_s {
     int rewrite_ip;
 #define TCPEDIT_REWRITE_IP_OFF 0x0
 #define TCPEDIT_REWRITE_IP_ON  0x1
-    
+
     /* fix IP/TCP/UDP checksums */
     u_int8_t fixcsum;
 #define TCPEDIT_FIXCSUM_OFF 0x0
@@ -114,27 +114,27 @@ struct tcpedit_s {
 
     /* TOS/DiffServ/ECN, -1 is disabled, else copy value */
     int tos;
-    
+
     /* IPv6 FlowLabel, -1 is disabled, else copy value */
     int flowlabel;
-    
+
     /* IPv6 TClass, -1 is disabled, else copy value */
     int tclass;
-    
+
     /* rewrite end-point IP addresses between cidrmap1 & cidrmap2 */
     tcpr_cidrmap_t *cidrmap1;       /* tcpprep cache data */
     tcpr_cidrmap_t *cidrmap2;
-    
+
     /* src & dst IP mapping */
     tcpr_cidrmap_t *srcipmap;
     tcpr_cidrmap_t *dstipmap;
-    
+
     /* pseudo-randomize IP addresses using a seed */
     int seed;
-    
+
     /* rewrite tcp/udp ports */
     tcpedit_portmap_t *portmap;
-    
+
     int mtu;                /* Deal with different MTU's */
     int mtu_truncate;       /* Should frames > MTU be truncated? */
 };
