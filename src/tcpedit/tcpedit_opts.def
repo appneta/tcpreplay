@@ -8,7 +8,8 @@ flag = {
     name        = portmap;
     value       = r;
     arg-type    = string;
-    max         = 1;
+    max         = -1;
+    stack-arg;
     descrip     = "Rewrite TCP/UDP ports";
     doc         = <<- EOText
 Specify a list of comma delimited port mappingings consisting of
@@ -17,9 +18,9 @@ consists of the port to match followed by the port number to rewrite.
 
 Examples:
 @example
---portmap=80:8000,8080:80    # 80->8000 and 8080->80
---portmap=8000+8080+88888:80 # 3 different ports become 80
---portmap=8000-8999:80       # ports 8000 to 8999 become 80
+--portmap=80:8000 --portmap=8080:80    # 80->8000 and 8080->80
+--portmap=8000,8080,88888:80           # 3 different ports become 80
+--portmap=8000-8999:80                 # ports 8000 to 8999 become 80
 @end example
 EOText;
 };

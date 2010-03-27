@@ -173,14 +173,36 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
             return -1;
         }
     }
-    
+
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
-        if (! parse_portmap(&tcpedit->portmap, OPT_ARG(PORTMAP))) {
-            tcpedit_seterr(tcpedit, 
-                    "Unable to parse --portmap=%s", OPT_ARG(PORTMAP));
-            return -1;
-        }
+        int ct = STACKCT_OPT(PORTMAP);
+        char **list = STACKLST_OPT(PORTMAP);
+        int first = 1;
+        tcpedit_portmap_t *portmap_head, *portmap;
+
+        do {
+            char *p = *list++;
+            if (first) {
+                if (! parse_portmap(&tcpedit->portmap, p)) {
+                    tcpedit_seterr(tcpedit, "Unable to parse --portmap=%s", p);
+                    return -1;
+                }
+            } else {
+                if (! parse_portmap(&portmap, p)) {
+                    tcpedit_seterr(tcpedit, "Unable to parse --portmap=%s", p);
+                    return -1;
+                }
+
+                /* append to end of tcpedit->portmap linked list */
+                portmap_head = tcpedit->portmap;
+                while (portmap_head->next != NULL)
+                    portmap_head = portmap_head->next;
+                portmap_head->next = portmap;
+
+            }
+            first = 0;
+        } while (--ct > 0);
     }
 
     /*

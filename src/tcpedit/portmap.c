@@ -72,7 +72,7 @@ new_portmap()
 static tcpedit_portmap_t *
 ports2PORT(char *ports)
 {
-    tcpedit_portmap_t *portmap = NULL, *portmap_head = NULL;
+    tcpedit_portmap_t *portmap = NULL, *portmap_head = NULL, *portmap_last = NULL;
     char *from_s, *to_s, *from_begin, *from_end, *badchar;
     long from_l, to_l, from_b, from_e, i;
     char *token = NULL, *token2 = NULL;
@@ -94,13 +94,16 @@ ports2PORT(char *ports)
     if (from_s == NULL || to_s == NULL)
         return NULL;
 
-    /* source map can have - (range) or + (and), but not both */
+    /* source map can have - (range) or , (and), but not both */
     if (strchr(from_s, '-') && strchr(from_s, '+'))
         return NULL;
 
     /* process to the to port */
     to_l = strtol(to_s, &badchar, 10);
     if (strlen(badchar) != 0)
+        return NULL;
+
+    if (to_l > 65535 || to_l < 0)
         return NULL;
 
     /*
@@ -122,15 +125,20 @@ ports2PORT(char *ports)
         if (strlen(badchar) != 0)
             return NULL;
 
-        for (i = from_b; from_b <= from_e; i++) {
-            portmap->from = htons(from_l);
-            portmap->to = htons(i);
+        if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0)
+            return NULL;
+
+        for (i = from_b; i <= from_e; i++) {
+            portmap->from = htons(i);
+            portmap->to = htons(to_l);
             portmap->next = new_portmap();
+            portmap_last = portmap;
             portmap = portmap->next;
         }
+        portmap_last = NULL;
         free(portmap);
     }
-    /* process a list, filling in list[] */
+    /* process a list via +, filling in list[] */
     else if (strchr(from_s, '+')) {
         from_begin = strtok_r(from_s, "+", &token2);
         from_l = strtol(from_begin, &badchar, 10);
@@ -140,11 +148,13 @@ ports2PORT(char *ports)
         portmap->from = htons(from_l);
 
         while ((from_begin = strtok_r(NULL, "+", &token2)) != NULL) {
-            portmap->next = new_portmap();
-            portmap = portmap->next;
             from_l = strtol(from_begin, &badchar, 10);
             if (strlen(badchar) != 0)
                 return NULL;
+            if (from_l > 65535 || from_l < 0)
+                return NULL;
+            portmap->next = new_portmap();
+            portmap = portmap->next;
             portmap->to = htons(to_l);
             portmap->from = htons(from_l);
         }
@@ -158,6 +168,9 @@ ports2PORT(char *ports)
         from_l = strtol(from_s, &badchar, 10);
         if (strlen(badchar) != 0)
             return NULL;
+        if (from_l > 65535 || from_l < 0)
+            return NULL;
+        portmap->to = htons(to_l);
         portmap->from = htons(from_l);
     }
 
@@ -186,6 +199,11 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
         return 0;
 
     portmap_ptr = *portmap;
+
+    /* ports2PORT may return a chain, so find the end of it */
+    while (portmap_ptr->next != NULL)
+        portmap_ptr = portmap_ptr->next;
+
     while (1) {
         substr = strtok_r(NULL, ",", &token);
         /* if that was the last one, kick out */
@@ -300,7 +318,7 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
             tcp_hdr->th_sport = newport;
             changes ++;
         }
-        
+
     } else if (protocol == IPPROTO_UDP) {
         udp_hdr = (udp_hdr_t *)layer4;
 
@@ -317,7 +335,6 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
             udp_hdr->uh_sport = newport;
             changes ++;
         }
-        
 
     }
     return changes;
