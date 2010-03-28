@@ -58,13 +58,13 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
         fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes", file, funcname, line, len);
         exit(-1);
     }
-    
+
     /* zero memory */
     memset(ptr, 0, len);
-    
+
     /* wrapped inside an #ifdef for better performance */
     dbgx(5, "Malloc'd %zu bytes in %s:%s() line %d", len, file, funcname, line);
-    
+
     return (void *)ptr;
 }
 
@@ -104,7 +104,7 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
     }
 
     memcpy(newstr, str, strlen(str) + 1);
-    
+
     return newstr;
 
 }
@@ -119,7 +119,7 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
         fprintf(stderr, "ERROR in %s:%s() line %d: Unable to call free on a NULL ptr", file, funcname, line);
         exit(-1);
     }
-            
+
     free(ptr);
     ptr = NULL;
 }
@@ -128,31 +128,27 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
  * Print various packet statistics
  */
 void
-packet_stats(struct timeval *begin, struct timeval *end, 
+packet_stats(struct timeval *begin, struct timeval *end,
         COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
 {
     float bytes_sec = 0.0, mb_sec = 0.0, pkts_sec = 0.0;
     double frac_sec;
+    struct timeval diff;
 
-    if (gettimeofday(end, NULL) < 0)
-        errx(-1, "Unable to gettimeofday(): %s", strerror(errno));
+    timersub(end, begin, &diff);
+    timer2float(&diff, frac_sec);
 
-    timersub(end, begin, begin);
-    timer2float(begin, frac_sec);
-    
-    if (timerisset(begin)) {
-        if (bytes_sent) {
-            bytes_sec =
-                bytes_sent / frac_sec;
+    if (timerisset(&diff)) {
+        if (bytes_sent){
+            bytes_sec = bytes_sent / frac_sec;
             mb_sec = (bytes_sec * 8) / (1024 * 1024);
         }
         if (pkts_sent)
-            pkts_sec =
-                pkts_sent / frac_sec;
+            pkts_sec = pkts_sent / frac_sec;
     }
-    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds\n",
+    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds.",
             pkts_sent, bytes_sent, frac_sec);
-    printf("Rated: %.1f bps, %.2f Mbps, %.2f pps\n",
+    printf("\t\tRated: %.1f bps, %.2f Mbps, %.2f pps\n",
            bytes_sec, mb_sec, pkts_sec);
 
     if (failed)

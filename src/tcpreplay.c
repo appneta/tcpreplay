@@ -173,7 +173,11 @@ main(int argc, char *argv[])
     }
 
     if (bytes_sent > 0) {
+        if (gettimeofday(&end, NULL) < 0)
+            errx(-1, "Unable to gettimeofday(): %s", strerror(errno));
+
         packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
+
         printf("%s", sendpacket_getstat(options.intf1));
         if (options.intf2 != NULL)
             printf("%s", sendpacket_getstat(options.intf2));
@@ -373,6 +377,9 @@ post_args(void)
         options.speed.mode = SPEED_MULTIPLIER;
         options.speed.speed = atof(OPT_ARG(MULTIPLIER));
     }
+
+    if (HAVE_OPT(STATS))
+        options.stats = OPT_ARG(STATS);
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))

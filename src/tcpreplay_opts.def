@@ -422,6 +422,17 @@ EOPid;
 };
 
 flag = {
+    name        = stats;
+    arg-type    = number;
+    arg-range   = "1->";
+    descrip     = "Print statistics every X seconds";
+    doc         = <<- EOText
+Note that this is very much a "best effort" and long delays between
+sending packets may cause equally long delays between printing statistics.
+EOText;
+};
+
+flag = {
     name        = version;
     value       = V;
     descrip     = "Print version information";

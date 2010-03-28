@@ -74,6 +74,8 @@ struct tcpreplay_opt_s {
     u_int32_t loop;
     int sleep_accel;
 
+    int stats;
+
     /* tcpprep cache data */
     COUNTER cache_packets;
     char *cachedata;
