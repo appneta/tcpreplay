@@ -145,7 +145,7 @@ tcpreplay_init()
  * optionProcess() and it will parse all the options for you.  As always,
  * returns 0 on success, and -1 on error & -2 on warning.
  */
-int 
+int
 tcpreplay_post_args(tcpreplay_t *ctx)
 {
     char *temp, *intname;
@@ -197,6 +197,9 @@ tcpreplay_post_args(tcpreplay_t *ctx)
     if (HAVE_OPT(DECODE))
         options->tcpdump->args = safe_strdup(OPT_ARG(DECODE));
 #endif
+
+    if (HAVE_OPT(STATS))
+        options->stats = OPT_ARG(STATS);
 
     /*
      * Check if the file cache should be enabled - if we're looping more than
@@ -528,6 +531,17 @@ tcpreplay_set_accurate(tcpreplay_t *ctx, tcpreplay_accurate value)
 {
     assert(ctx);
     ctx->options->accurate = value;
+    return 0;
+}
+
+/**
+ * Sets the number of seconds between printing stats
+ */
+int
+tcpreplay_set_stats(tcpreplay_t *ctx, int value)
+{
+    assert(ctx);
+    ctx->options->stats = value;
     return 0;
 }
 

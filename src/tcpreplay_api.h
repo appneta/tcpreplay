@@ -126,6 +126,7 @@ typedef struct tcpreplay_opt_s {
     u_int32_t loop;
     int sleep_accel;
 
+    int stats;
     bool use_pkthdr_len;
 
     /* tcpprep cache data */

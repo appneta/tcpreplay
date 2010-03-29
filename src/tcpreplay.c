@@ -171,6 +171,8 @@ main(int argc, char *argv[])
     }
 
     if (ctx->stats.bytes_sent > 0) {
+        if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
+            errx(-1, "gettimeofday() failed: %s",  strerror(errno));
         packet_stats(&ctx->stats);
         printf("%s", sendpacket_getstat(ctx->intf1));
         if (ctx->intf2 != NULL)

@@ -132,35 +132,30 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
 void
 packet_stats(const tcpreplay_stats_t *stats)
 {
-    tcpreplay_stats_t *stats_copy;
+    struct timeval diff;
     float bytes_sec = 0.0, mb_sec = 0.0, pkts_sec = 0.0;
     double frac_sec;
 
     assert(stats);
-    memcpy(stats_copy, stats, sizeof(tcpreplay_stats_t));
 
-    if (gettimeofday(&stats_copy->end_time, NULL) < 0)
-        errx(-1, "Unable to gettimeofday(): %s", strerror(errno));
+    timersub(&stats->end_time, &stats->start_time, &diff);
+    timer2float(&diff, frac_sec);
 
-    timersub(&stats_copy->end_time, &stats_copy->start_time, &stats_copy->start_time);
-    timer2float(&stats_copy->start_time, frac_sec);
-
-    if (timerisset(&stats_copy->start_time)) {
-        if (stats_copy->bytes_sent) {
-            bytes_sec = stats_copy->bytes_sent / frac_sec;
+    if (timerisset(&diff)) {
+        if (stats->bytes_sent) {
+            bytes_sec = stats->bytes_sent / frac_sec;
             mb_sec = (bytes_sec * 8) / (1024 * 1024);
         }
-        if (stats_copy->pkts_sent)
-            pkts_sec = stats_copy->pkts_sent / frac_sec;
+        if (stats->pkts_sent)
+            pkts_sec = stats->pkts_sent / frac_sec;
     }
-    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds\n",
-            stats_copy->pkts_sent, stats_copy->bytes_sent, frac_sec);
-    printf("Rated: %.1f bps, %.2f Mbps, %.2f pps\n",
-           bytes_sec, mb_sec, pkts_sec);
+    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds"
+            "\t\tRated: %.1f bps, %.2f Mbps, %.2f pps\n",
+            stats->pkts_sent, stats->bytes_sent, frac_sec, bytes_sec, mb_sec, pkts_sec);
 
-    if (stats_copy->failed)
+    if (stats->failed)
         printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
-              stats_copy->failed);
+              stats->failed);
 
 }
 

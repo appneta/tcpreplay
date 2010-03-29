@@ -116,7 +116,7 @@ preload_pcap_file(tcpreplay_t *ctx, int file_idx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
 {
-    struct timeval last = { 0, 0 };
+    struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta;
     COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
@@ -203,10 +203,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
         if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
 
-        /* 
+        /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a mempcy rather then assignment. 
-         * 
+         * we have to do a mempcy rather then assignment.
+         *
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
@@ -214,6 +214,22 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
             memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
         ctx->stats.pkts_sent ++;
         ctx->stats.bytes_sent += pktlen;
+
+        /* print stats during the run? */
+        if (ctx->options->stats > 0) {
+            if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
+                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+
+            if (! timerisset(&last_print_time)) {
+                memcpy(&last_print_time, &ctx->stats.end_time, sizeof(struct timeval));
+            } else {
+                timersub(&ctx->stats.end_time, &last_print_time, &print_delta);
+                if (print_delta.tv_sec >= ctx->options->stats) {
+                    packet_stats(&ctx->stats);
+                    memcpy(&last_print_time, &ctx->stats.end_time, sizeof(struct timeval));
+                }
+            }
+        }
     } /* while */
 
     if (ctx->options->enable_file_cache) {
