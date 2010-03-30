@@ -716,29 +716,40 @@ packet2tree(const u_char * data)
     /* prevent issues with byte alignment, must memcpy */
     memcpy(&ether_type, (u_char*)eth_hdr + 12, 2);
 
+    /* drop VLAN info if it exists before the IP info */
+    if (ether_type == htons(ETHERTYPE_VLAN)) {
+       dbg(4,"Processing as VLAN traffic...");
+
+       /* prevent issues with byte alignment, must memcpy */
+       memcpy(&ether_type, (u_char*)eth_hdr + 16, 2);
+       hl += 4;
+    }
+
     if (ether_type == htons(ETHERTYPE_IP)) {
-        memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
+        memcpy(&ip_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV4_H);
 
         node->family = AF_INET;
         node->u.ip = ip_hdr.ip_src.s_addr;
         proto = ip_hdr.ip_p;
-        hl = ip_hdr.ip_hl * 4;
+        hl += ip_hdr.ip_hl * 4;
 
 #ifdef DEBUG
         strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr,
                     RESOLVE), 16);
 #endif
     } else if (ether_type == htons(ETHERTYPE_IP6)) {
-        memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
+        memcpy(&ip6_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV6_H);
 
         node->family = AF_INET6;
         node->u.ip6 = ip6_hdr.ip_src;
         proto = ip6_hdr.ip_nh;
-        hl = TCPR_IPV6_H;
+        hl += TCPR_IPV6_H;
 
 #ifdef DEBUG
         strlcpy(srcip, get_addr2name6(&ip6_hdr.ip_src, RESOLVE), INET6_ADDRSTRLEN);
 #endif
+    } else {
+       dbgx(2,"Unrecognized ether_type (%x)", ether_type);
     }
 
 
