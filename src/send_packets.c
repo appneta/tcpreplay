@@ -489,8 +489,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     /*
      * since we apply the adjuster to the sleep time, we can't modify nap
      */
-    nap_this_time.tv_sec = nap.tv_sec;
-    nap_this_time.tv_nsec = nap.tv_nsec;
+    memcpy(&nap_this_time, &nap, sizeof(nap_this_time));
 
     dbgx(2, "nap_time before rounding:   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
 
