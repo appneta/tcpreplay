@@ -44,7 +44,7 @@ set(tcprewrite_tests rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_config
     rewrite_skip rewrite_tos rewrite_trunc rewrite_vlandel rewrite_mtutrunc)
 
 set(tcpreplay_tests replay_basic replay_cache replay_pps replay_rate replay_top
-    replay_config replay_multi replay_pps_multi replay_precache)
+    replay_config replay_multi replay_pps_multi replay_precache replay_stats)
 
 #########################################################
 # TARGET: standard

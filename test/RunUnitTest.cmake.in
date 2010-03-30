@@ -47,6 +47,7 @@ set(replay_config "--load-opts=config test.pcap")
 set(replay_multi "-i @NIC1@ --multiplier=25.0 test.pcap")
 set(replay_pps_multi "-i @NIC1@ --pps=100 --pps-multi=5 test.pcap")
 set(replay_precache "-i @NIC1@ --preload-pcap test.pcap")
+set(replay_stats "-i @NIC1@ --stats=1 test.pcap")
 
 set(DIFF @DIFF@)
 
