@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2007 Aaron Turner.
+ * Copyright (c) 2001-2010 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -148,11 +148,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* The following edits only apply for IPv4 */
     if (ip_hdr != NULL) {
-        
+
         /* set TOS ? */
         if (tcpedit->tos > -1)
             ip_hdr->ip_tos = tcpedit->tos;
-            
+
         /* rewrite the TTL */
         needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
 
@@ -172,10 +172,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         if (tcpedit->tclass > -1) {
             /* calculate the bits */
             tclass = tcpedit->tclass << 20;
-            
+
             /* convert our 4 bytes to an int */
             memcpy(&ipflags, &ip6_hdr->ip_flags, 4);
-            
+
             /* strip out the old tclass bits */
             ipflags = ntohl(ipflags) & 0xf00fffff;
 
@@ -559,7 +559,7 @@ COUNTER
 tcpedit_get_total_bytes(tcpedit_t *tcpedit)
 {
     assert(tcpedit);
-    return tcpedit->runtime.total_bytes;   
+    return tcpedit->runtime.total_bytes;
 }
 
 /**
@@ -576,19 +576,19 @@ tcpedit_get_pkts_edited(tcpedit_t *tcpedit)
 u_char *
 tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
-   
+
 }
 
 u_char *
 tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
-    
+
 }
 
 int 
 tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder code)
 {
-    
+
 }
 
 */

@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006 Aaron Turner.
+ * Copyright (c) 2006-2010 Aaron Turner.
  * Copyright (c) 1998 - 2004 Mike D. Schiffman <mike@infonexus.com>
  * Copyright (c) 2000 Torsten Landschoff <torsten@debian.org>
  *                    Sebastian Krahmer  <krahmer@cs.uni-potsdam.de>

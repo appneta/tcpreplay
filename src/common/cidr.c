@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2001-2004 Aaron Turner.
+ * Copyright (c) 2001-2010 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -667,7 +667,7 @@ char *
 cidr2iplist(tcpr_cidr_t * cidr, char delim)
 {
     char *list = NULL;
-    char ipaddr[16];
+    char ipaddr[18];
     uint32_t size, addr, first, last, numips;
     struct in_addr in;
 
@@ -679,7 +679,7 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
     for (int i = 2; i <= (32 - cidr->masklen); i++)
         numips *= 2;
 
-    size = 16 * numips;
+    size = 17 * numips - 1;
 
     list = (char *)safe_malloc(size);
 
@@ -694,14 +694,14 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
     /* loop through all but the last one */
     for (addr = first; addr < last; addr++) {
         in.s_addr = htonl(addr);
-        snprintf(ipaddr, 17, "%s%c", inet_ntoa(in), delim);
+        snprintf(ipaddr, 18, "%s%c", inet_ntoa(in), delim);
         dbgx(2, "%s", ipaddr);
         strlcat(list, ipaddr, size);
     }
 
     /* last is a special case, end in \0 */
     in.s_addr = htonl(addr);
-    snprintf(ipaddr, 16, "%s", inet_ntoa(in));
+    snprintf(ipaddr, 17, "%s", inet_ntoa(in));
     strlcat(list, ipaddr, size);
 
     return list;

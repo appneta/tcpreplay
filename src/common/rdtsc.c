@@ -1,7 +1,7 @@
 /* $Id:$ */
 
 /*
- * Copyright (c) 2008 Aaron Turner.
+ * Copyright (c) 2008-2010 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ rdtsc_calibrate(uint32_t mhz)
     struct timeval start, end, diff;
     u_int64_t x1, x2;
     uint16_t n;
-    
+
     if (x != 0) {
         return x;
     } else if (mhz > 0 && x == 0) {
