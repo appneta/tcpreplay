@@ -140,7 +140,8 @@ tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos rewrite_mtutrunc
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
-	replay_config replay_multi replay_pps_multi replay_precache
+	replay_config replay_multi replay_pps_multi replay_precache \
+	replay_stats
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -268,6 +269,12 @@ replay_accurate:
 	$(PRINTF) "%s" "[tcpreplay] Accurate test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Accurate test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -a -i $(nic1) test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_stats:
+	$(PRINTF) "%s" "[tcpreplay] Statistics test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Statistics test: " >>test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) --stats=1 -i $(nic1) test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 rewrite_portmap:
