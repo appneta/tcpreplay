@@ -1,6 +1,6 @@
 $Id$
 
-03/??/2010 Version 3.4.4
+04/04/2010 Version 3.4.4
     - Set default timing method to either gtod or abstime (#404)
     - Fix IPv6 parsing of CIDR's (#405)
     - Add support for preloading the memory cache (#410)
@@ -12,6 +12,7 @@ $Id$
     - Update autotools (#423)
     - Add support for printing statistics periodically during the run (#424)
     - Warn user when pcap snaplen < 65535 (#425)
+    - Add 802.1q processing support tcpprep (#428)
 
 06/25/2009: Version 3.4.3
     - Link libnl when newer versions of libpcap require it (#397)
