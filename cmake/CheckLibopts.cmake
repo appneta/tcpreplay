@@ -35,7 +35,7 @@
 #
 ###################################################################
 # All the tests necessary for libopts go here.  Note that this is not for
-# checking if libopts/AutoGen/AutoOpts is installed on your system, but 
+# checking if libopts/AutoGen/AutoOpts is installed on your system, but
 # rather for doing a compatibility check for your libopts tearoff
 
 ########################################################
@@ -45,7 +45,7 @@
 # Takes the path to the tearoff directory & the version of autogen
 MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     SET(AUTOGEN_VERSION ${__AUTOGEN_VERSION})
-    
+
     INCLUDE(CheckFunctionExists)
     INCLUDE(CheckIncludeFile)
     INCLUDE(CheckSymbolExists)
@@ -58,7 +58,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     IF(EXISTS /dev/zero)
         SET(HAVE_DEV_ZERO 1)
     ENDIF(EXISTS /dev/zero)
-    
+
     # Check for header files!
     check_include_file("dirent.h"       HAVE_DIRENT_H)
     check_include_file("dlfcn.h"        HAVE_DLFCN_H)
@@ -100,7 +100,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
     check_include_file("values.h"       HAVE_VALUES_H)
     check_include_file("varargs.h"      HAVE_VARARGS_H)
     check_include_file("wchar.h"        HAVE_WCHAR_H)
-    
+
     # Not quite as good as the real autoconf AC_HEADER_STDC test, but prolly good enough
     IF(HAVE_STDLIB_H AND HAVE_STDARG_H AND HAVE_STRING_H AND HAVE_FLOAT_H)
         check_function_exists(free          HAVE_FREE)
@@ -138,7 +138,7 @@ int main() {
   testcb(w);
   return 0;
 }
-"           
+"
     HAVE_WCHAR_WINT_T)
     IF(HAVE_WCHAR_WINT_T AND NOT HAVE_WINT_T)
         message(STATUS "Found wint_t in wchar.h")
@@ -155,7 +155,7 @@ int main() {
     check_function_exists(strrchr       HAVE_STRRCHR)
     check_function_exists(strsignal     HAVE_STRSIGNAL)
     check_function_exists(vprintf       HAVE_VPRINTF)
-    
+
     # only check for _doprnt if vfprintf doesn't exist
     IF(NOT HAVE_VPRINTF)
         check_function_exists(_doprnt   HAVE_DOPRNT)
@@ -171,7 +171,7 @@ int
 main(int argc, char *argv[])
 {
     FILE *fd;
-    
+
     if ((fd = fopen(\"foo\", \"w+b\")) < 0)
         return 1;
     else
@@ -187,7 +187,7 @@ main(int argc, char *argv[])
     ELSE(${FOPEN_BINARY_FLAG_RESULT} EQUAL 1)
         message(STATUS "fopen does not support the \"b\"")
     ENDIF(${FOPEN_BINARY_FLAG_RESULT} EQUAL 1)
-    
+
     # Check for fopen 't' mode flag, set to "t" if available
     SET(FOPEN_TEXT_FLAG "")
     check_c_source_runs("
@@ -198,7 +198,7 @@ int
 main(int argc, char *argv[])
 {
     FILE *fd;
-    
+
     if ((fd = fopen(\"foo\", \"w+t\")) < 0)
         return 1;
     else
@@ -215,5 +215,6 @@ main(int argc, char *argv[])
         message(STATUS "fopen does not support the \"t\" flag")
     ENDIF(${FOPEN_TEXT_FLAG_RESULT} EQUAL 1)
 
-    ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})    
+    ADD_SUBDIRECTORY(${LIBOPTS_TEAROFF_PATH})
+    FILE(REMOVE foo)
 ENDMACRO(CHECK_LIBOPTS_TEAROFF)
