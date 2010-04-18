@@ -53,7 +53,7 @@ subnets.  All packets received on one interface are sent via the other.
 Optionally, packets can be edited in a variety of ways according to your needs.
 
 For more details, please see the Tcpreplay Manual at:
-http://tcpreplay.synfin.net/trac/wiki/manual
+http://tcpreplay.synfin.net/wiki/manual
 EODetail;
 
 man-doc = <<- EOMan

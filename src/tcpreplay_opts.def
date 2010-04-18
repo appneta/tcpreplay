@@ -58,7 +58,7 @@ files, filtered and edited in various ways, providing the means to test
 firewalls, NIDS and other network devices.
 
 For more details, please see the Tcpreplay Manual at:
-http://tcpreplay.synfin.net/trac/wiki/manual
+http://tcpreplay.synfin.net/wiki/manual
 EODetail;
 
 man-doc = <<- EOMan
