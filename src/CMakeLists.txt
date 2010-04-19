@@ -13,7 +13,14 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 
 # External libraries to link to which we can't use TARGET_LINK_LIBRARIES() for
 set(link_flags)
-set(abstime_libs "-framework Carbon -framework CoreServices")
+
+if(APPLE)
+    set(abstime_libs "-framework Carbon -framework CoreServices")
+else(APPLE)
+    # FIXME: link_flags needs not to be empty (see line 151 and 162)! So putting "-L" as a dummy content.
+    set(abstime_libs "-L")
+endif(APPLE)
+
 if(HAVE_LIBDNET)
     set(link_flags "${DNET_LIBS} ${abstime_libs}")
 else(HAVE_LIBDNET)
