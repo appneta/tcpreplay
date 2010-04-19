@@ -1,5 +1,6 @@
 add_subdirectory(common)
 add_subdirectory(tcpedit)
+add_subdirectory(gui)
 
 if(ENABLE_FRAGROUTE AND HAVE_LIBDNET)
     add_subdirectory(fragroute)
