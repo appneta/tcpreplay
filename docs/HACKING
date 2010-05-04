@@ -49,7 +49,7 @@ The file layout is pretty simple:
 libtcpedit supports a plugin based architecture for handling different DLT
 types.  If you wish to add support for another DLT type, you should read:
 
-http://tcpreplay.synfin.net/trac/wiki/tcpeditDeveloper
+http://tcpreplay.synfin.net/wiki/tcpeditDeveloper
 
 Which contains information on creating new DLT plugins.
 

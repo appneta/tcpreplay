@@ -34,7 +34,7 @@ GENERAL:
 + Tcpreplay should use raw sockets or BPF directly for writing rather then
       libnet where applicable for theoretically higher performance.
 
-- Detect system version of libopts b/c we need a recent version
++ Detect system version of libopts b/c we need a recent version
 
 + Generalize packet editing and printing code so it can be shipped as a 
   seperate library and plugged into tcpreplay/tcprewrite/flowreplay/etc
@@ -53,7 +53,7 @@ TCPREPLAY:
   detects and blocks attacks. (TP's tomahawk does this even better then
   described here, so why re-invent the wheel?)
 
-- Rewrite do_sleep() to handle sub sleep times by only nanosleep()'ing
+O Rewrite do_sleep() to handle sub sleep times by only nanosleep()'ing
   once for multiple packets when the timestamps are close enough.  We
   also need to time nanosleep, since different architectures have lower
   minimum sleep times (Linux/Alpha is 1ms vs. 10ms for Linux/x86)
@@ -62,15 +62,15 @@ TCPREPLAY:
 
 TCPBRIDGE:
 
-- Duplicate all tcprewrite functionality
++ Duplicate all tcprewrite functionality
 
 TCPREWRITE:
 
-- Support fragrouter like features 
-    - basic IP fragmenation
-    - TCP fudging 
-    - then more advanced stuff
-    - Can we integrate FR's code?
++ Support fragrouter like features
+    + basic IP fragmenation
+    + TCP fudging
+    + then more advanced stuff
+    + Can we integrate FR's code?
 
 + Look at VLAN (802.1q) packets
     - others non-vanilla types?
@@ -94,13 +94,13 @@ TCPREWRITE:
 
 + Fix MAC rewriting to allow sending packets with a MAC of 00:00:00:00:00:00
 
-- Add support for more linktypes (Prism Monitor, 802.11, FDDI, etc)
++ Add support for more linktypes (Prism Monitor, 802.11, FDDI, etc)
     + Make it easier for others to add support for others
 
 + Rip out packet munger from tcpreplay and put it into another tool so
   that tcpreplay can be more optimized
     ? perhaps use libnetdude?
-    ? make into a library?
+    O make into a library?
     + definately put it into a seperate binary (tcprewrite)
 
 - Add the ability to modify packet data via regex(es) in tcprewrite
@@ -116,7 +116,7 @@ TCPREWRITE:
 - Bump Syn/Ack numbers by a pseudo random or given value so that running 
   the same pcap will behave as different streams.
 
-- IPv6 support?  People ask for this every few months, but nobody actually
+o IPv6 support?  People ask for this every few months, but nobody actually
   says they "need" or "really want" it; seems more of "gee, wouldn't it be
   nice".  What does that mean anyways???
 
@@ -138,14 +138,14 @@ TCPPREP:
 
 FLOWREPLAY:
 
-- Improve flowreplay so it actually works
+. Improve flowreplay so it actually works
   . Use libnids to read the pcaps.  This seems DOA at this time since
     libnids is GPL and the author is unwilling to make it support multiple
     threads which flowreplay probably needs to be.  The only other option is
     a major rewrite which would break API compatibility.  Doesn't seem worth
     it.
-  - Allow handoff to a socket after user specified client/server exchanges
+  . Allow handoff to a socket after user specified client/server exchanges
 
-- Perhaps integrate stick/snot/fpg logic into flowreplay:
+. Perhaps integrate stick/snot/fpg logic into flowreplay:
   http://www.geschke-online.de/FLoP/fpg.8.html
   to do full 3way handshakes
