@@ -125,7 +125,12 @@ replay_file(tcpreplay_t *ctx, int idx)
     return 0;
 }
 
-int 
+/**
+ * \brief Replay index using existing memory cache 
+ *
+ * FIXME
+ */
+int
 replay_cache(tcpreplay_t *ctx, int idx)
 {
 
@@ -134,7 +139,11 @@ replay_cache(tcpreplay_t *ctx, int idx)
     return 0;
 }
 
-
+/**
+ * \brief Replay index which is a file descriptor 
+ *
+ * FIXME
+ */
 int
 replay_fd(tcpreplay_t *ctx, int idx)
 {
