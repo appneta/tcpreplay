@@ -513,8 +513,11 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
     dbgx(2, "nap_time before rounding:   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
 
 
-    if (accurate != accurate_abs_time) {
-
+    /* only need this if logic under OS X */
+#ifdef HAVE_ABSOLUTE_TIME
+    if (accurate != accurate_abs_time)
+#endif
+    {
         switch (ctx->options->speed.mode) {
             /* Mbps & Multipler are dynamic timings, so we round to the nearest usec */
             case speed_mbpsrate:

@@ -43,6 +43,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #include "tcpprep_api.h"
 

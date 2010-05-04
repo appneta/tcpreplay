@@ -42,6 +42,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #include "send_packets.h"
 #include "tcpreplay_api.h"

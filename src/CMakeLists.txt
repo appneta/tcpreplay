@@ -16,9 +16,6 @@ set(link_flags)
 
 if(APPLE)
     set(abstime_libs "-framework Carbon -framework CoreServices")
-else(APPLE)
-    # FIXME: link_flags needs not to be empty (see line 151 and 162)! So putting "-L" as a dummy content.
-    set(abstime_libs "-L")
 endif(APPLE)
 
 if(HAVE_LIBDNET)
@@ -147,8 +144,10 @@ if(USE_AUTOOPTS)
     set_target_properties(tcpreplay-edit
         PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT ${abstime_flags}")
 
-    set_target_properties(tcprewrite tcpreplay tcpreplay-edit
-        PROPERTIES LINK_FLAGS ${link_flags})
+    if (link_flags)
+        set_target_properties(tcprewrite tcpreplay tcpreplay-edit
+            PROPERTIES LINK_FLAGS ${link_flags})
+    endif(link_flags)
 
     add_executable(tcpprep ${tcpprep_srcs})
     target_link_libraries(tcpprep ${tcpprep_libs})
@@ -158,9 +157,11 @@ if(USE_AUTOOPTS)
         add_executable(tcpbridge ${tcpbridge_srcs})
         target_link_libraries(tcpbridge ${tcpbridge_libs})
 
-        set_target_properties(tcpbridge
-            PROPERTIES COMPILE_FLAGS -DTCPBRIDGE ${abstime_flags}
-            LINK_FLAGS ${link_flags})
+        if(link_flags)
+            set_target_properties(tcpbridge
+                PROPERTIES COMPILE_FLAGS -DTCPBRIDGE ${abstime_flags}
+                LINK_FLAGS ${link_flags})
+        endif(link_flags)
 
     endif(HAVE_PCAP_SENDPACKET)
 
