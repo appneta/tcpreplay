@@ -2,6 +2,11 @@
 #define __COMMON_H__
 #include <assert.h>
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common/pcap_dlt.h"
 #include "common/cache.h"
 #include "common/cidr.h"
@@ -22,6 +27,10 @@
 #include "common/interface.h"
 
 const char *svn_version(void); /* svn_version.c */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
