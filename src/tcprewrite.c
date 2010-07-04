@@ -240,7 +240,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     static u_char *pktdata_buff;
     static char *frag = NULL;
     COUNTER packetnum = 0;
-    int rcode, frag_len, i;
+    int rcode, frag_len, i, proto;
 
     pkthdr_ptr = &pkthdr;
 
@@ -300,10 +300,14 @@ WRITE_PACKET:
             /* write the packet when there's no fragrouting to be done */
             pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
         } else {
-            /* packet needs to be fragmented */
-            if ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
-                    (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
-                    (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C)) {
+            /* get the L3 protocol of the packet */
+            proto = tcpedit_l3proto(tcpedit, AFTER_PROCESS, *pktdata, pkthdr_ptr->caplen);
+
+            /* packet is IPv4/IPv6 AND needs to be fragmented */
+            if ((proto ==  ETHERTYPE_IP || proto == ETHERTYPE_IP6) &&
+                ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
+                 (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
+                 (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C))) {
 
                 if (fragroute_process(options.frag_ctx, *pktdata, pkthdr_ptr->caplen) < 0)
                     errx(-1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);
