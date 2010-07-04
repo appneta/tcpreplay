@@ -463,9 +463,6 @@
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
-/* The size of `char*', as computed by sizeof. */
-#undef SIZEOF_CHARP
-
 /* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
