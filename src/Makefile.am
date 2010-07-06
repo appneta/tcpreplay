@@ -6,7 +6,7 @@ else
     LIBFRAGROUTE = 
     FRAGROUTE_DIR = 
 endif
- 
+
 SUBDIRS = common tcpedit $(FRAGROUTE_DIR)
 
 if SYSTEM_STRLCPY
@@ -41,7 +41,7 @@ tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1
-bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit
+bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit tcpcapinfo
 
 if COMPILE_TCPBRIDGE
 bin_PROGRAMS += tcpbridge
@@ -83,6 +83,10 @@ tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 
+tcpcapinfo_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPCAPINFO
+tcpcapinfo_LDADD = ./common/libcommon.a \
+    $(LIBSTRL) @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
+tcpcapinfo_SOURCES = tcpcapinfo.c
 
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \

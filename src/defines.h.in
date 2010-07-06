@@ -81,7 +81,7 @@ typedef struct tcpr_xX_s tcpr_xX_t;
 /* number of ports 0-65535 */
 #define NUM_PORTS 65536
 struct tcpr_services_s {
-    char tcp[NUM_PORTS];    
+    char tcp[NUM_PORTS];
     char udp[NUM_PORTS];
 };
 typedef struct tcpr_services_s tcpr_services_t;
@@ -119,8 +119,8 @@ typedef struct tcpr_speed_s tcpr_speed_t;
 /* HP-UX already defines TRUE/FALSE */
 #ifndef TRUE
 enum bool_t {
-	FALSE = 0,
-	TRUE
+    FALSE = 0,
+    TRUE
 };
 #endif
 
@@ -128,31 +128,31 @@ enum bool_t {
 #define MAC_SIZE  7             /* size of the mac[] buffer */
 
 enum pad_t {
-	PAD_PACKET,
-	TRUNC_PACKET
+    PAD_PACKET,
+    TRUNC_PACKET
 };
 
 #define DNS_QUERY_FLAG 0x8000
 
 enum direction_t {
-	DIR_UNKNOWN = -1,
-	DIR_CLIENT = 0,
-	DIR_SERVER = 1,
-	DIR_ANY = 2
+    DIR_UNKNOWN = -1,
+    DIR_CLIENT = 0,
+    DIR_SERVER = 1,
+    DIR_ANY = 2
 };
 
 enum tcpprep_mode {
-	ERROR_MODE,     /* Some kind of error has occurred */
-	CIDR_MODE,     	/* single pass, CIDR netblock */
-	REGEX_MODE,		/* single pass, regex */
-	PORT_MODE,		/* single pass, use src/dst ports to split */
-	MAC_MODE,		/* single pass, use src mac to split */
-	FIRST_MODE,     /* single pass, use first seen to split */
-	AUTO_MODE,		/* first pass through in auto mode */
-	ROUTER_MODE,	/* second pass through in router mode */
-	BRIDGE_MODE,	/* second pass through in bridge mode */
-	SERVER_MODE,	/* second pass through in server (router) mode */
-	CLIENT_MODE 	/* second pass through in client (router) mode */
+    ERROR_MODE,  /* Some kind of error has occurred */
+    CIDR_MODE,   /* single pass, CIDR netblock */
+    REGEX_MODE,  /* single pass, regex */
+    PORT_MODE,   /* single pass, use src/dst ports to split */
+    MAC_MODE,    /* single pass, use src mac to split */
+    FIRST_MODE,  /* single pass, use first seen to split */
+    AUTO_MODE,   /* first pass through in auto mode */
+    ROUTER_MODE, /* second pass through in router mode */
+    BRIDGE_MODE, /* second pass through in bridge mode */
+    SERVER_MODE, /* second pass through in server (router) mode */
+    CLIENT_MODE  /* second pass through in client (router) mode */
 };
 
 #define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
@@ -259,7 +259,7 @@ typedef u_int32_t uint32_t
         (tv)->tv_sec = (x) / 1000;          \
         (tv)->tv_usec = (x * 1000) - ((tv)->tv_sec * 1000000);   \
     } while(0)
-    
+
 #define MICROSEC_TO_TIMEVAL(x, tv)          \
     do {                                    \
         (tv)->tv_sec = (x) / 1000000;       \
