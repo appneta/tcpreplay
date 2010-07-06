@@ -1,5 +1,12 @@
 $Id$
 
+??/??/2010 Version 3.4.5
+    - Warn users when processing LINUX_SLL frames w/o an Ethernet source MAC (#434)
+    - Update to GNU Autoconf 2.66 (#436)
+    - Don't try to fragroute non-IPv4/v6 packets so we don't error out (#432)
+    - Add tcpcapinfo which dumps information about the pcap header/packets (#437)
+
+
 04/04/2010 Version 3.4.4
     - Set default timing method to either gtod or abstime (#404)
     - Fix IPv6 parsing of CIDR's (#405)
