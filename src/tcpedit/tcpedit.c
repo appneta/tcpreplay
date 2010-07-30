@@ -152,8 +152,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if (ip_hdr != NULL) {
         
         /* set TOS ? */
-        if (tcpedit->tos > -1)
+        if (tcpedit->tos > -1) {
             ip_hdr->ip_tos = tcpedit->tos;
+            needtorecalc += 1;
+        }
             
         /* rewrite the TTL */
         needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
@@ -185,6 +187,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             ipflags += tclass; 
             ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
+            needtorecalc ++;
         }
 
         /* set the flow label? */
@@ -194,6 +197,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             ipflags += tcpedit->flowlabel;
             ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
+            needtorecalc ++;
         }
 
         /* rewrite TCP/UDP ports */
