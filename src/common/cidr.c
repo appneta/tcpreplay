@@ -85,11 +85,12 @@ void
 destroy_cidr(tcpr_cidr_t * cidr)
 {
 
-    if (cidr != NULL)
+    if (cidr != NULL) {
         if (cidr->next != NULL)
             destroy_cidr(cidr->next);
 
-    safe_free(cidr);
+        safe_free(cidr);
+    }
     return;
 
 }
@@ -667,7 +668,7 @@ char *
 cidr2iplist(tcpr_cidr_t * cidr, char delim)
 {
     char *list = NULL;
-    char ipaddr[16];
+    char ipaddr[16], tempbuff[20];
     u_int32_t size, addr, first, last, numips;
     struct in_addr in;
 
@@ -694,7 +695,8 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
     /* loop through all but the last one */
     for (addr = first; addr < last; addr++) {
         in.s_addr = htonl(addr);
-        snprintf(ipaddr, 17, "%s%c", inet_ntoa(in), delim);
+        snprintf(tempbuff, 17, "%s%c", inet_ntoa(in), delim);
+        memcpy(ipaddr, tempbuff, 16);
         dbgx(2, "%s", ipaddr);
         strlcat(list, ipaddr, size);
     }
