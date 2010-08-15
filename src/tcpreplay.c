@@ -72,9 +72,10 @@ int debug = 0;
 
 void preload_pcap_file(int file_idx);
 void replay_file(int file_idx);
+void replay_two_files(int file_idx1, int file_idx2);
 void usage(void);
 void init(void);
-void post_args(void);
+void post_args(int argc);
 
 
 int
@@ -91,7 +92,7 @@ main(int argc, char *argv[])
     argc -= optct;
     argv += optct;
 
-    post_args();
+    post_args(argc);
 
 #ifdef TCPREPLAY_EDIT
     /* init tcpedit context */
@@ -151,12 +152,21 @@ main(int argc, char *argv[])
     /* main loop for non-bridge mode */
     if (options.loop > 0) {
         while (options.loop--) {  /* limited loop */
-            /* process each pcap file in order */
-            for (i = 0; i < argc; i++) {
-                /* reset cache markers for each iteration */
-                cache_byte = 0;
-                cache_bit = 0;
-                replay_file(i);
+
+
+            if (options.dualfile) {
+                /* process two files at a time for network taps */
+                for (i = 0; i < argc; i += 2) {
+                    replay_two_files(i, (i+1));
+                }
+            } else {
+                /* process each pcap file in order */
+                for (i = 0; i < argc; i++) {
+                    /* reset cache markers for each iteration */
+                    cache_byte = 0;
+                    cache_bit = 0;
+                    replay_file(i);
+                }
             }
         }
     }
@@ -288,6 +298,96 @@ replay_file(int file_idx)
 #endif
 }
 
+
+/**
+ * replay two pcap files out two interfaces
+ */
+void
+replay_two_files(int file_idx1, int file_idx2)
+{
+    char *path1 = options.files[file_idx1];
+    char *path2 = options.files[file_idx2];
+    pcap_t *pcap1  = NULL, *pcap2 = NULL;
+    char ebuf[PCAP_ERRBUF_SIZE];
+    int dlt1, dlt2;
+
+    if (! HAVE_OPT(QUIET))
+        notice("processing files: %s (%s) / %s (%s)",
+              path1, options.intf1_name, path2, options.intf2_name);
+
+    /* can't use stdin in dualfile mode */
+    if (strncmp(path1, "-", 1) == 0)
+        err(-1, "Sorry, can't read STDIN in --dualfile mode");
+    if (strncmp(path2, "-", 1) == 0)
+        err(-1, "Sorry, can't read STDIN in --dualfile mode");
+
+    /* read from first pcap file if we haven't cached things yet */
+    if (! (options.enable_file_cache || options.preload_pcap)) {
+        if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL)
+            errx(-1, "Error opening pcap file: %s", ebuf);
+    } else {
+        if (!options.file_cache[file_idx1].cached)
+            if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL)
+                errx(-1, "Error opening pcap file: %s", ebuf);
+    }
+
+    /* read from second pcap file if we haven't cached things yet */
+    if (! (options.enable_file_cache || options.preload_pcap)) {
+        if ((pcap2 = pcap_open_offline(path2, ebuf)) == NULL)
+            errx(-1, "Error opening pcap file: %s", ebuf);
+    } else {
+        if (!options.file_cache[file_idx2].cached)
+            if ((pcap2 = pcap_open_offline(path2, ebuf)) == NULL)
+                errx(-1, "Error opening pcap file: %s", ebuf);
+    }
+
+
+    if (pcap1 != NULL) {
+        dlt1 = sendpacket_get_dlt(options.intf1);
+        if ((dlt1 > 0) && (dlt1 != pcap_datalink(pcap1)))
+            warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
+                path1, pcap_datalink_val_to_name(pcap_datalink(pcap1)), 
+                options.intf1->device, pcap_datalink_val_to_name(dlt1));
+
+        dlt2 = sendpacket_get_dlt(options.intf2);
+        if ((dlt2 > 0) && (dlt2 != pcap_datalink(pcap2)))
+            warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
+                path2, pcap_datalink_val_to_name(pcap_datalink(pcap2)), 
+                options.intf2->device, pcap_datalink_val_to_name(dlt2));
+
+        if (dlt1 != dlt2)
+            errx(-1, "DLT missmatch for %s (%d) and %s (%d)", path1, dlt1, path2, dlt2);
+    }
+
+#ifdef ENABLE_VERBOSE
+    if (options.verbose) {
+
+        /* in cache mode, we may not have opened the file */
+        if (pcap1 == NULL)
+            if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL)
+                errx(-1, "Error opening pcap file: %s", ebuf);
+
+        /* init tcpdump */
+        tcpdump_open(options.tcpdump, pcap1);
+    }
+#endif
+
+
+    send_dual_packets(pcap1, file_idx1, pcap2, file_idx2);
+
+    if (pcap1 != NULL)
+        pcap_close(pcap1);
+
+    if (pcap2 != NULL)
+        pcap_close(pcap2);
+
+#ifdef ENABLE_VERBOSE
+    tcpdump_close(options.tcpdump);
+#endif
+
+}
+
+
 /**
  * Initialize globals
  */
@@ -334,7 +434,7 @@ init(void)
  * post processes the args and puts them into our options
  */
 void
-post_args(void)
+post_args(int argc)
 {
     char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
@@ -403,6 +503,14 @@ post_args(void)
         options.enable_file_cache = TRUE;
     }
 
+    if (HAVE_OPT(DUALFILE)) {
+        options.dualfile = TRUE;
+        if (argc < 2)
+            err(-1, "--dualfile mode requires at least two pcap files");
+        if (argc % 2 != 0)
+            err(-1, "--dualfile mode requires an even number of pcap files");
+    }
+
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
 #ifdef HAVE_SELECT
@@ -463,6 +571,9 @@ post_args(void)
     int1dlt = sendpacket_get_dlt(options.intf1);
 
     if (HAVE_OPT(INTF2)) {
+        if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(DUALFILE))
+            err(-1, "--intf2 requires either --cachefile or --dualfile");
+
         if ((intname = get_interface(intlist, OPT_ARG(INTF2))) == NULL)
             errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
 

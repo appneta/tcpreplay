@@ -135,7 +135,7 @@ Allows you to select the packet timing method to use:
 @item gtod [default]
 - Use a gettimeofday() loop
 @item abstime
-- Use OS X's AbsoluteTime API
+- Use OS X AbsoluteTime API
 @end enumerate
 
 EOText;
@@ -160,8 +160,8 @@ flag = {
     arg-default = 0;
     descrip     = "Specify the RDTSC clicks/usec";
     doc         = <<- EOText
-Override the calculated number of RDTSC clicks/usec which is often the speed of the 
-CPU in Mhz.  Only useful if you specified @var{--timer=rdtsc}
+Override the calculated number of RDTSC clicks/usec which is often the speed of
+the CPU in Mhz.  Only useful if you specified @var{--timer=rdtsc}
 EOText;
 };
 
@@ -203,7 +203,7 @@ flag = {
     descrip     = "Enable caching of packets to internal memory";
     doc         = <<- EOText
 Cache pcap file(s) the first time they are cached in RAM so that subsequent
-loops don't incurr any disk I/O latency in order to increase performance.  Make 
+loops do not incurr any disk I/O latency in order to increase performance.  Make 
 sure you have enough free RAM to store the entire pcap file(s) in memory or the
 system will swap and performance will suffer.
 EOText;
@@ -228,9 +228,31 @@ flag = {
     name        = cachefile;
     value       = c;
     arg-type    = string;
+    flags-cant  = dualfile;
+    flags-must  = intf2;
     max         = 1;
     descrip     = "Split traffic via a tcpprep cache file";
-    doc         = "";
+    doc         = <<- EOText
+If you have a pcap file you would like to use to send bi-directional
+traffic through a device (firewall, router, IDS, etc) then using tcpprep
+you can create a cachefile which tcpreplay will use to split the traffic
+across two network interfaces.
+EOText;
+};
+
+flag = {
+    name        = dualfile;
+    value       = 2;
+    max         = 1;
+    flags-cant  = cachefile;
+    flags-must  = intf2;
+    descrip     = "Replay two files at a time from a network tap";
+    doc         = <<- EOText
+If you captured network traffic using a network tap, then you can end up with
+two pcap files- one for each direction.  This option will replay two these two
+files at the same time, one on each interface and inter-mix them using the 
+timestamps in each.
+EOText;
 };
 
 /*
@@ -252,10 +274,10 @@ flag = {
     value       = I;
     arg-type    = string;
     max         = 1;
-    flags-must  = cachefile;
     descrip     = "Client/secondary traffic output interface";
     doc         = "";
 };
+
 
 flag = {
     ifdef       = ENABLE_PCAP_FINDALLDEVS;

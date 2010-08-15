@@ -108,6 +108,9 @@ struct tcpreplay_opt_s {
     int enable_file_cache;
     file_cache_t *file_cache;
     int preload_pcap;
+
+    /* dual file mode */
+    int dualfile;
 };
 
 typedef struct tcpreplay_opt_s tcpreplay_opt_t;
