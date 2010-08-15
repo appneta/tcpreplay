@@ -41,6 +41,8 @@
 #include <pcap.h>
 #include <sys/stat.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 static int do_checksum_math(u_int16_t *data, int len);
 
