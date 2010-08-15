@@ -42,17 +42,19 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#include "tcpedit.h"
+#include "tcpedit-int.h"
 #include "tcpedit_stub.h"
 #include "portmap.h"
 #include "common.h"
 #include "edit_packet.h"
 #include "parse_args.h"
-#include "dlt_utils.h"
+#include "plugins/dlt_plugins.h"
+
 
 #include "lib/sll.h"
 #include "dlt.h"
 
+tOptDesc *const tcpedit_tcpedit_optDesc_p;
 
 /**
  * \brief Edit the given packet
@@ -129,7 +131,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == htons(ETHERTYPE_IP)) {
-        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
+        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen);
         if (ip_hdr == NULL) {
             return TCPEDIT_ERROR;
         }        
@@ -148,11 +150,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* The following edits only apply for IPv4 */
     if (ip_hdr != NULL) {
-
+        
         /* set TOS ? */
-        if (tcpedit->tos > -1)
+        if (tcpedit->tos > -1) {
             ip_hdr->ip_tos = tcpedit->tos;
-
+            needtorecalc += 1;
+        }
+            
         /* rewrite the TTL */
         needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
 
@@ -172,10 +176,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         if (tcpedit->tclass > -1) {
             /* calculate the bits */
             tclass = tcpedit->tclass << 20;
-
+            
             /* convert our 4 bytes to an int */
             memcpy(&ipflags, &ip6_hdr->ip_flags, 4);
-
+            
             /* strip out the old tclass bits */
             ipflags = ntohl(ipflags) & 0xf00fffff;
 
@@ -183,6 +187,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             ipflags += tclass; 
             ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
+            needtorecalc ++;
         }
 
         /* set the flow label? */
@@ -192,6 +197,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             ipflags += tcpedit->flowlabel;
             ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
+            needtorecalc ++;
         }
 
         /* rewrite TCP/UDP ports */
@@ -308,13 +314,6 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     tcpedit->tclass = -1;
     tcpedit->flowlabel = -1;
  
-    tcpedit->validated = false;
-    tcpedit->skip_broadcast = false;
-    tcpedit->rewrite_ip = false;
-    tcpedit->fixcsum = false;
-    tcpedit->efcs = false;
-    tcpedit->mtu_truncate = false;
- 
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.dlt1 = dlt;
     tcpedit->runtime.dlt2 = dlt;
@@ -346,26 +345,17 @@ tcpedit_get_output_dlt(tcpedit_t *tcpedit)
  * pcap source and destination (based on DLT) can be properly rewritten
  * return 0 on sucess
  * return -1 on error
+ * DO NOT USE!
  */
 int
 tcpedit_validate(tcpedit_t *tcpedit)
 {
-    tcpeditdlt_t *ctx;
-    
     assert(tcpedit);
-    ctx = tcpedit->dlt_ctx;
-    assert(ctx);
-    
     tcpedit->validated = 1;
 
-
-    /* if you didn't define the encoder, use the same as the decoder */
-    if (ctx->encoder == NULL)
-        ctx->decoder = ctx->encoder;
-    
-    if (tcpedit_dlt_validate(ctx) < 0)
-        return -1;
-
+    /* we used to do a bunch of things here, but not anymore...
+     * maybe I should find something to do or just get ride of it
+     */
     return 0;
 }
 
@@ -507,7 +497,7 @@ tcpedit_close(tcpedit_t *tcpedit)
  * Return a ptr to the Layer 3 data.  Returns TCPEDIT_ERROR on error
  */
 const u_char *
-tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
+tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
 {
     u_char *result = NULL;
     if (code == BEFORE_PROCESS) {
@@ -519,12 +509,10 @@ tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int
 }
 
 /**
- * \brief return the length of the layer 2 header.  Returns TCPEDIT_ERROR on error
- * 
- * probably the only time you'd call this is when you're not calling tcpedit_packet()
+ * return the length of the layer 2 header.  Returns TCPEDIT_ERROR on error
  */
 int 
-tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
+tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
 {
     int result = 0;
     if (code == BEFORE_PROCESS) {
@@ -536,12 +524,10 @@ tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int 
 }
 
 /**
- * \brief Returns the layer 3 type, often encoded as the layer2.proto field
- * 
- * probably the only time you'd call this is when you're not calling tcpedit_packet()
+ * Returns the layer 3 type, often encoded as the layer2.proto field
  */
 int 
-tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, const int pktlen)
+tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, const int pktlen)
 {
     int result = 0;
     if (code == BEFORE_PROCESS) {
@@ -552,44 +538,23 @@ tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, co
     return ntohs(result);
 }
 
-/**
- * Returns the total number of bytes processed so far
- */
-COUNTER 
-tcpedit_get_total_bytes(tcpedit_t *tcpedit)
-{
-    assert(tcpedit);
-    return tcpedit->runtime.total_bytes;
-}
-
-/**
- * Returns the number of packets edited so far
- */
-COUNTER 
-tcpedit_get_pkts_edited(tcpedit_t *tcpedit)
-{
-    assert(tcpedit);
-    return tcpedit->runtime.pkts_edited;
-}
-
 /*
 u_char *
-tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
+tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
 {
-
+   
 }
 
 u_char *
-tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
+tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
 {
-
+    
 }
 
 int 
-tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder code)
+tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder_t code)
 {
-
+    
 }
 
 */
-
