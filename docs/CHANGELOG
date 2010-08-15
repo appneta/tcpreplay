@@ -1,10 +1,15 @@
 $Id$
 
-??/??/2010 Version 3.4.5
+08/15/2010 Version 3.4.5beta1
+    - First pass at fixing 'make test' on many little-endian systems (#429)
     - Warn users when processing LINUX_SLL frames w/o an Ethernet source MAC (#434)
-    - Update to GNU Autoconf 2.66 (#436)
     - Don't try to fragroute non-IPv4/v6 packets so we don't error out (#432)
+    - Initial Linux TX_RING sending support (#435)
+    - Update to GNU Autoconf 2.67 (#436)
     - Add tcpcapinfo which dumps information about the pcap header/packets (#437)
+    - Add --dualfile support for replaying two files at the same time (#439)
+    - Fix bug where --tos=0 didn't do anything (#440)
+    - Fix crash when processing CIDR data (#441)
 
 
 04/04/2010 Version 3.4.4
