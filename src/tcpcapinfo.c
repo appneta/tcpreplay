@@ -202,11 +202,11 @@ main(int argc, char *argv[])
             pcap_fh.linktype = SWAPLONG(pcap_fh.linktype);
         }
 
-        printf("version    = %hu.%hu\n", pcap_fh.version_major, pcap_fh.version_minor);
-        printf("thiszone   = 0x%08"PRIx32"\n", pcap_fh.thiszone);
-        printf("sigfigs    = 0x%08"PRIx32"\n", pcap_fh.sigfigs);
-        printf("snaplen    = %"PRIu32"\n", pcap_fh.snaplen);
-        printf("linktype   = 0x%08"PRIx32"\n", pcap_fh.linktype);
+        printf("version     = %hu.%hu\n", pcap_fh.version_major, pcap_fh.version_minor);
+        printf("thiszone    = 0x%08"PRIx32"\n", pcap_fh.thiszone);
+        printf("sigfigs     = 0x%08"PRIx32"\n", pcap_fh.sigfigs);
+        printf("snaplen     = %"PRIu32"\n", pcap_fh.snaplen);
+        printf("linktype    = 0x%08"PRIx32"\n", pcap_fh.linktype);
 
         if (pcap_fh.version_major != 2 && pcap_fh.version_minor != 4) {
             printf("Sorry, we only support file format version 2.4\n");
