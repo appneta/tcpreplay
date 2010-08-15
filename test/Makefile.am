@@ -141,7 +141,7 @@ tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats
+	replay_stats replay_dualfile
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -535,7 +535,7 @@ replay_precache:
 datadump_mode:
 	$(PRINTF) "%s" "[tcpreplay] Data dump test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Data dump mode test: " >>test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -D -i $(nic1) -j $(nic2) -w primary.data -W secondary.data -c test.cidr -R test.pcap >>test.log 2>&1
+	$(TCPREPLAY) $(ENABLE_DEBUG) -D -i $(nic1) -I $(nic2) -w primary.data -W secondary.data -c test.cidr -R test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_config:
@@ -543,6 +543,12 @@ replay_config:
 	$(PRINTF) "%s\n" "*** [tcpreplay] Config file/VLAN add test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) --load-opts=config test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+replay_dualfile:
+	$(PRINTF) "%s" "[tcpreplay] Dual file test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Dual file test: " >>test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -I $(nic2) --dualfile test.pcap test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 clean:
 	rm -f *1 test.log core* *~ primary.data secondary.data
