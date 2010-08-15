@@ -10,14 +10,14 @@ AM_WITH_DMALLOC
 
 dnl People building from SVN need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts
-MAINTAINER_AUTOGEN_VERSION=5.9.7
+MAINTAINER_AUTOGEN_VERSION=5.9.9
 
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=4
-MICRO_VERSION=5
+MICRO_VERSION=5beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.synfin.net/
 
