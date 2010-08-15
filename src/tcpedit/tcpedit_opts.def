@@ -94,7 +94,7 @@ EOText;
 
 
 flag = {
-	ifdef 		= HAVE_CACHEFILE_SUPPORT;
+    ifdef       = HAVE_CACHEFILE_SUPPORT;
     name        = endpoints;
     value       = e;
     arg-type    = string;
@@ -103,7 +103,7 @@ flag = {
     descrip     = "Rewrite IP addresses to be between two endpoints";
     doc         = <<- EOText
 Takes a pair of colon delimited IPv4/v6 addresses which will be used to rewrite
-all traffic to appear to be between the two IP's.
+all traffic to appear to be between the two IP addresses.
 
 IPv4 Example:
 @example
@@ -118,10 +118,10 @@ EOText;
 };
 
 flag = {
-	name		= skipbroadcast;
-	value		= b;
-	descrip		= "Skip rewriting broadcast/multicast IPv4/v6 addresses";
-	doc			= <<- EOText
+    name        = skipbroadcast;
+    value       = b;
+    descrip     = "Skip rewriting broadcast/multicast IPv4/v6 addresses";
+    doc         = <<- EOText
 By default --seed, --pnat and --endpoints will rewrite 
 broadcast and multicast IPv4/v6 and MAC addresses.	Setting this flag
 will keep broadcast/multicast IPv4/v6 and MAC addresses from being rewritten.
@@ -133,7 +133,7 @@ flag = {
     value       = C;
     descrip     = "Force recalculation of IPv4/TCP/UDP header checksums";
     doc         = <<- EOText
-Causes each IPv4/v6 packet to have it's checksums recalcualted and
+Causes each IPv4/v6 packet to have their checksums recalcualted and
 fixed.  Automatically enabled for packets modified with @samp{--seed}, 
 @samp{--pnat}, @samp{--endpoints} or @samp{--fixlen}.
 EOText;
@@ -168,7 +168,7 @@ flag = {
     value       = E;
     descrip     = "Remove Ethernet checksums (FCS) from end of frames";
     doc         = <<- EOText
-Note, this option is pretty dangerous!  We don't actually check to see if a FCS
+Note, this option is pretty dangerous!  We do not actually check to see if a FCS
 actually exists in the frame, we just blindly delete the last two bytes.  Hence,
 you should only use this if you know know that your OS provides the FCS when 
 reading raw packets.
@@ -181,7 +181,7 @@ flag = {
     arg-type    = string;
     doc         = <<- EOText
 Allows you to modify the TTL/Hop Limit of all the IPv4/v6 packets.  Specify a number to hard-code
-the value or +/-value to increase or decrease by the value provided (limited to 1-255).    
+the value or +/-value to increase or decrease by the value provided (limited to 1-255).
 
 Examples:
 @example
