@@ -1,7 +1,7 @@
 /* $Id$ */
 
-/*
- * Copyright (c) 2006-2010 Aaron Turner.
+/* Copyright (c) 2010 Dmitriy Gerasimov <gesser@demlabs.ru>
+ * Copyright (c) 2010 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,81 +30,34 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#ifndef COMMON_TXRING_H
+#define COMMON_TXRING_H
 #include "config.h"
 #include "defines.h"
 
-#ifdef HAVE_PF_PACKET
+#if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
 #include <netpacket/packet.h>
+#include <net/ethernet.h>       /* the L2 protocols */
+#else
+#include <asm/types.h>
+#include <linux/if_packet.h>
+#include <linux/if_ether.h>     /* The L2 protocols */
 #endif
+#include <pthread.h>
 
-#ifdef HAVE_TX_RING
-#include "txring.h"
-#endif
+struct txring_s
+{
+    pthread_t tx_send; /*Poll TX thread*/
 
-#ifdef HAVE_LIBDNET
-/* need to undef these which are pulled in via defines.h, prior to importing dnet.h */
-#undef icmp_id
-#undef icmp_seq
-#undef icmp_data
-#undef icmp_mask
-#include <dnet.h>
-#endif
-
-#ifndef _SENDPACKET_H_
-#define _SENDPACKET_H_
-
-enum sendpacket_type_t {
-    SP_TYPE_LIBNET,
-    SP_TYPE_LIBDNET,
-    SP_TYPE_LIBPCAP,
-    SP_TYPE_BPF,
-    SP_TYPE_PF_PACKET,
-    SP_TYPE_TX_RING
+    volatile struct tpacket_hdr * tx_head; /* Pointer to mmaped memory with TX ring */
+    struct tpacket_req* treq; /* TX ring parametrs */
+    volatile unsigned int tx_index; /* TX index */
+    int tx_size; /* Size of mmaped TX ring */
 };
+typedef struct txring_s txring_t;
 
-union sendpacket_handle {
-    pcap_t *pcap;
-    int fd;
-#ifdef HAVE_LIBDNET
-    eth_t *ldnet;
+int txring_put(txring_t *txp, const void * data, size_t length);
+txring_t* txring_init(int fd, unsigned int mtu);
+
 #endif
-};
-
-#define SENDPACKET_ERRBUF_SIZE 1024
-
-struct sendpacket_s {
-    tcpr_dir_t cache_dir;
-    int open;
-    char device[20];
-    char errbuf[SENDPACKET_ERRBUF_SIZE];
-    COUNTER retry_enobufs;
-    COUNTER retry_eagain;
-    COUNTER failed;
-    COUNTER sent;
-    COUNTER bytes_sent;
-    COUNTER attempt;
-    enum sendpacket_type_t handle_type;
-    union sendpacket_handle handle;
-    struct tcpr_ether_addr ether;
-#ifdef HAVE_PF_PACKET
-    struct sockaddr_ll sa;
-#ifdef HAVE_TX_RING
-    txring_t * tx_ring;
-#endif
-#endif
-};
-
-typedef struct sendpacket_s sendpacket_t;
-
-int sendpacket(sendpacket_t *, const u_char *, size_t);
-int sendpacket_close(sendpacket_t *);
-char *sendpacket_geterr(sendpacket_t *);
-char *sendpacket_getstat(sendpacket_t *);
-sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t);
-struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
-int sendpacket_get_dlt(sendpacket_t *);
-const char *sendpacket_get_method();
-
-#endif /* _SENDPACKET_H_ */
-
-

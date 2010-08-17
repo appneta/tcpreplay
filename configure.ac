@@ -759,6 +759,27 @@ AC_TRY_COMPILE([
     AC_MSG_RESULT(no)
 ])
 
+have_tx_ring=no
+dnl Check for older Linux TX_RING support
+AC_MSG_CHECKING(for TX_RING socket sending support)
+AC_TRY_COMPILE([
+#include <sys/socket.h>
+#include <netpacket/packet.h>
+#include <net/ethernet.h>     /* the L2 protocols */
+#include <netinet/in.h>       /* htons */
+#include <linux/if_packet.h>
+],[
+    int test;
+    test = TP_STATUS_WRONG_FORMAT
+],[
+    AC_DEFINE([HAVE_TX_RING], [1],
+            [Do we have Linux TX_RING socket support?])
+    AC_MSG_RESULT(yes)
+    have_tx_ring=yes
+],[
+    AC_MSG_RESULT(no)
+])
+
 have_bpf=no
 dnl Check for BSD's BPF
 AC_MSG_CHECKING(for BPF device sending support)
@@ -1223,11 +1244,11 @@ autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
 Use libopts tearoff:        ${enable_local_libopts}
 64bit counter support:      ${use64bit_counters}
 tcpdump binary path:        ${tcpdump_path}
-tcpreplay edit support:     ${tcpreplay_edit}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
 
 Supported Packet Injection Methods (*):
+Linux TX_RING:              ${have_tx_ring}
 Linux PF_PACKET:            ${have_pf}
 BSD BPF:                    ${have_bpf}
 libdnet:                    ${have_libdnet}
