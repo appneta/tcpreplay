@@ -30,6 +30,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tcpedit_types.h"
 
 #ifndef __PORTMAP_H__
 #define __PORTMAP_H__

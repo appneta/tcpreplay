@@ -42,13 +42,11 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#include "tcpedit-int.h"
 #include "tcpedit_stub.h"
 #include "portmap.h"
 #include "common.h"
 #include "edit_packet.h"
 #include "parse_args.h"
-#include "plugins/dlt_plugins.h"
 
 
 #include "lib/sll.h"
@@ -497,7 +495,7 @@ tcpedit_close(tcpedit_t *tcpedit)
  * Return a ptr to the Layer 3 data.  Returns TCPEDIT_ERROR on error
  */
 const u_char *
-tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
     u_char *result = NULL;
     if (code == BEFORE_PROCESS) {
@@ -512,7 +510,7 @@ tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const i
  * return the length of the layer 2 header.  Returns TCPEDIT_ERROR on error
  */
 int 
-tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
     int result = 0;
     if (code == BEFORE_PROCESS) {
@@ -527,7 +525,7 @@ tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const in
  * Returns the layer 3 type, often encoded as the layer2.proto field
  */
 int 
-tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, const int pktlen)
+tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, const int pktlen)
 {
     int result = 0;
     if (code == BEFORE_PROCESS) {
@@ -540,19 +538,19 @@ tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder_t code, const u_char *packet, 
 
 /*
 u_char *
-tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_srcmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
    
 }
 
 u_char *
-tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder_t code, u_char *packet, const int pktlen)
+tcpedit_dstmac(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
 {
     
 }
 
 int 
-tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder_t code)
+tcpedit_maclen(tcpedit_t *tcpedit, tcpedit_coder code)
 {
     
 }
