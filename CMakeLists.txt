@@ -78,25 +78,28 @@ find_program(GROFF groff)
 # Where to find local cmake scripts
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-set(USE_AUTOOPTS ON)
+set(USE_AUTOOPTS YES)
 if(WIN32 AND NOT CYGWIN)
-    set(USE_AUTOOPTS OFF)
+    set(USE_AUTOOPTS NO)
     message(STATUS "Disabling GNU AutoOpts on Win32 platform")
 endif(WIN32 AND NOT CYGWIN)
 
-option(ENABLE_DEBUG "Enable debug support" OFF)
-option(FORCE_INJECT_PF "Force using Linux's PF_PACKET API to send frames" OFF)
-option(FORCE_INJECT_BPF "Force using *BSD's BPF API to send frames" OFF)
-option(FORCE_INJECT_LIBDNET "Force using libdnet to send frames" OFF)
-option(FORCE_INJECT_PCAP_INJECT "Force using libpcap pcap_inject() to send frames" OFF)
-option(FORCE_INJECT_PCAP_SENDPACKET "Force using winpcap/libpcap's pcap_sendpacket() to send frames" OFF)
+option(ENABLE_DEBUG "Enable debug support" NO)
+option(FORCE_INJECT_PF "Force using Linux's PF_PACKET API to send frames" NO)
+option(FORCE_INJECT_BPF "Force using *BSD's BPF API to send frames" NO)
+option(FORCE_INJECT_LIBDNET "Force using libdnet to send frames" NO)
+option(FORCE_INJECT_PCAP_INJECT "Force using libpcap pcap_inject() to send frames" NO)
+option(FORCE_INJECT_PCAP_SENDPACKET "Force using winpcap/libpcap's pcap_sendpacket() to send frames" NO)
 option(USE_AUTOOPTS "Compile with GNU AutoOpts support (enables CLI tools)" ${USE_AUTOOPTS})
-option(ENABLE_64BITS "Enable 64bit packet counters" ON)
+option(ENABLE_64BITS "Enable 64bit packet counters" YES)
 option(BUILD_64BIT_BINARY "Build a 64bit binary")
+option(BUILD_QT_GUI "Build QT4 GUI version of tcpreplay tools" NO)
 mark_as_advanced(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET 
     FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET AUTOCONF AUTOGEN AUTOMAKE
     CMAKE_BUILD_TYPE ECHO SVNVERSION MAKE TCPDUMP_BINARY ENABLE_64BITS
     USE_AUTOOPTS LIBPCAP_DIR LIBDNET_DIR)
+
+set(HAVE_TX_RING NO)
 
 if(ENABLE_DEBUG)
     set(__GGDB -g)
@@ -204,20 +207,20 @@ else(WIN32)
 endif(WIN32)
 
 include(FindPCAP)
-set(ENABLE_TCPBRIDGE 0)
+set(ENABLE_TCPBRIDGE NO)
 if(NOT HAVE_PCAP_SENDPACKET)
     message(STATUS "libpcap does not have pcap_sendpacket(): skipping tcpbridge")
 else(NOT HAVE_PCAP_SENDPACKET)
     message(STATUS "We will build tcpbridge")
-    set(ENABLE_TCPBRIDGE 1)
+    set(ENABLE_TCPBRIDGE YES)
 endif(NOT HAVE_PCAP_SENDPACKET)
 
 include(FindEvent)
 
 include(FindDNET)
-set(ENABLE_FRAGROUTE 0)
+set(ENABLE_FRAGROUTE NO)
 if(HAVE_LIBDNET)
-    set(ENABLE_FRAGROUTE 1)
+    set(ENABLE_FRAGROUTE YES)
     set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${DNET_CFLAGS})
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${DNET_CFLAGS})
 endif(HAVE_LIBDNET)
@@ -371,3 +374,65 @@ endif(USE_AUTOOPTS)
 
 # make doxygen
 include("${CMAKE_MODULE_PATH}/TargetDoc.cmake" OPTIONAL)
+
+# Clean up to be yes/no not 1/0
+if(HAVE_PCAP_INJECT)
+   set(HAVE_PCAP_INJECT YES)
+else(HAVE_PCAP_INJECT)
+   set(HAVE_PCAP_INJECT NO)
+endif(HAVE_PCAP_INJECT)
+
+if(HAVE_PCAP_SENDPACKET)
+   set(HAVE_PCAP_SENDPACKET YES)
+else(HAVE_PCAP_SENDPACKET)
+   set(HAVE_PCAP_SENDPACKET NO)
+endif(HAVE_PCAP_SENDPACKET)
+
+if(HAVE_BPF)
+    set(HAVE_BPF YES)
+else(HAVE_BPF)
+    set(HAVE_BPF NO)
+endif(HAVE_BPF)
+
+if(ENABLE_64BITS)
+    set(ENABLE_64BITS YES)
+else(ENABLE_64BITS)
+    set(ENABLE_64BITS NO)
+endif(ENABLE_64BITS)
+
+Subversion_WC_INFO(${CMAKE_SOURCE_DIR} TCPREPLAY_SVN)
+
+set(REPO_VERSION "")
+if(EXISTS .svn AND Subversion_FOUND)
+    set(REPO_VERSION (r${TCPREPLAY_SVN_WC_REVISION}))
+    string(REPLACE ";" "" REPO_VERSION ${REPO_VERSION})
+endif(EXISTS .svn AND Subversion_FOUND)
+
+
+message(STATUS
+"
+##########################################################################
+             TCPREPLAY Suite Configuration Results ${VERSION} ${REPO_VERSION}
+##########################################################################
+install location:           ${CPACK_PACKAGE_INSTALL_DIRECTORY}
+libpcap:                    ${HAVE_LIBPCAP} ${PCAP_LIBRARIES}
+libdnet:                    ${HAVE_LIBDNET} ${DNET_LIBS} (${LIBDNET_VERSION})
+libevent:                   ${HAVE_LIBEVENT} ${EVENT_LIBRARIES}
+autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
+64bit counter support:      ${ENABLE_64BITS}
+tcpdump binary path:        ${TCPDUMP_BINARY}
+fragroute support:          ${ENABLE_FRAGROUTE}
+tcpbridge support:          ${ENABLE_TCPBRIDGE}
+
+Supported Packet Injection Methods (*):
+Linux TX_RING:              ${HAVE_TX_RING}
+Linux PF_PACKET:            ${HAVE_PF_PACKET}
+BSD BPF:                    ${HAVE_BPF}
+libdnet:                    ${HAVE_LIBDNET}
+pcap_inject:                ${HAVE_PCAP_INJECT}
+pcap_sendpacket:            ${HAVE_PCAP_SENDPACKET} **
+
+* In order of preference; see configure --help to override
+** Required for tcpbridge"
+)
+
