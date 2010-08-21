@@ -55,6 +55,7 @@ tcpedit_t *tcpedit;
 #endif
 
 #include "send_packets.h"
+#include "replay.h"
 #include "signal_handler.h"
 
 tcpreplay_t *ctx;
@@ -72,9 +73,11 @@ int debug = 0;
 #include <CoreServices/CoreServices.h>
 #endif
 
+/*
 void replay_file(tcpreplay_t *ctx, int file_idx);
+void replay_two_files(int file_idx1, int file_idx2);
 void usage(void);
-
+*/
 
 int
 main(int argc, char *argv[])
@@ -87,8 +90,8 @@ main(int argc, char *argv[])
     argc -= optct;
     argv += optct;
 
-    rcode = tcpreplay_post_args(ctx);
-    if (rcode == -2) {
+    rcode = tcpreplay_post_args(ctx, argc);
+    if (rcode <= -2) {
         warnx("%s", tcpreplay_getwarn(ctx));
     } else if (rcode == -1) {
         errx(-1, "Unable to parse args: %s", tcpreplay_geterr(ctx));
@@ -149,23 +152,38 @@ main(int argc, char *argv[])
     /* main loop, when not looping forever */
     if (ctx->options->loop > 0) {
         while (ctx->options->loop--) {  /* limited loop */
-            /* process each pcap file in order */
-            for (i = 0; i < argc; i++) {
-                /* reset cache markers for each iteration */
-                ctx->cache_byte = 0;
-                ctx->cache_bit = 0;
-                replay_file(ctx, i);
+            if (ctx->options->dualfile) {
+                /* process two files at a time for network taps */
+                for (i = 0; i < argc; i += 2) {
+                    tcpr_replay_index(ctx, i);
+                }
+            } else {
+                /* process each pcap file in order */
+                for (i = 0; i < argc; i++) {
+                    /* reset cache markers for each iteration */
+                    ctx->cache_byte = 0;
+                    ctx->cache_bit = 0;
+                    tcpr_replay_index(ctx, i);
+                }
             }
         }
     }
     else {
         /* loop forever */
         while (1) {
-            for (i = 0; i < argc; i++) {
-                /* reset cache markers for each iteration */
-                ctx->cache_byte = 0;
-                ctx->cache_bit = 0;
-                replay_file(ctx, i);
+            if (ctx->options->dualfile) {
+                /* process two files at a time for network taps */
+                for (i = 0; i < argc; i += 2) {
+                    tcpr_replay_index(ctx, i);
+                }
+            } else {
+                /* process each pcap file in order */
+                for (i = 0; i < argc; i++) {
+                    /* reset cache markers for each iteration */
+                    ctx->cache_byte = 0;
+                    ctx->cache_bit = 0;
+                    tcpr_replay_index(ctx, i);
+                }
             }
         }
     }
@@ -183,4 +201,3 @@ main(int argc, char *argv[])
 }   /* main() */
 
 /* vim: set tabstop=8 expandtab shiftwidth=4 softtabstop=4: */
-

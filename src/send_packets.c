@@ -54,7 +54,7 @@
 extern tcpedit_t *tcpedit;
 #else
 #include "tcpreplay_opts.h"
-#endif
+#endif /* TCPREPLAY_EDIT */
 
 #endif /* TCPREPLAY */
 
@@ -79,9 +79,9 @@ static u_int32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER coun
  * --enable-file-cache
  */
 void
-preload_pcap_file(tcpreplay_t *ctx, int file_idx)
+preload_pcap_file(tcpreplay_t *ctx, int idx)
 {
-    char *path = ctx->options->sources[file_idx].filename;
+    char *path = ctx->options->sources[idx].filename;
     pcap_t *pcap = NULL;
     char ebuf[PCAP_ERRBUF_SIZE];
     const u_char *pktdata = NULL;
@@ -100,12 +100,12 @@ preload_pcap_file(tcpreplay_t *ctx, int file_idx)
         errx(-1, "Error opening pcap file: %s", ebuf);
 
     /* loop through the pcap.  get_next_packet() builds the cache for us! */
-    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, file_idx, prev_packet)) != NULL) {
+    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         packetnum++;
     }
 
     /* mark this file as cached */
-    ctx->options->file_cache[file_idx].cached = TRUE;
+    ctx->options->file_cache[idx].cached = TRUE;
     pcap_close(pcap);
 }
 
@@ -114,7 +114,7 @@ preload_pcap_file(tcpreplay_t *ctx, int file_idx)
  * what to do with each packet
  */
 void
-send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
+send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
     struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta;
     COUNTER packetnum = 0;
@@ -141,7 +141,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, cache_file_idx, prev_packet)) != NULL) {
+    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         /* die? */
         if (ctx->abort)
             return;
@@ -172,18 +172,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
                 continue;
         }
 
-        /* do we need to print the packet via tcpdump? */
-#ifdef ENABLE_VERBOSE
-        if (ctx->options->verbose)
-            tcpdump_print(ctx->options->tcpdump, &pkthdr, pktdata);
-#endif
-
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
         pkthdr_ptr = &pkthdr;
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
         }
-        pktlen = HAVE_OPT(PKTLEN) ? pkthdr_ptr->len : pkthdr_ptr->caplen;
+        pktlen = ctx->options->use_pkthdr_len ? pkthdr_ptr->len : pkthdr_ptr->caplen;
+#endif
+
+        /* do we need to print the packet via tcpdump? */
+#ifdef ENABLE_VERBOSE
+        if (ctx->options->verbose)
+            tcpdump_print(ctx->options->tcpdump, &pkthdr, pktdata);
 #endif
 
         /*
@@ -233,9 +233,184 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
     } /* while */
 
     if (ctx->options->enable_file_cache) {
-        ctx->options->file_cache[cache_file_idx].cached = TRUE;
+        ctx->options->file_cache[idx].cached = TRUE;
     }
 }
+
+/**
+ * the alternate main loop function for tcpreplay.  This is where we figure out
+ * what to do with each packet when processing two files a the same time
+ */
+void 
+send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int idx1, pcap_t *pcap2, int idx2)
+{
+    struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta;
+    COUNTER packetnum = 0;
+    struct pcap_pkthdr pkthdr1, pkthdr2, *pkthdr_ptr;
+    const u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
+    sendpacket_t *sp = ctx->intf1;
+    u_int32_t pktlen;
+    packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL, *cached_packet = NULL;
+    packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
+    delta_t delta_ctx;
+    /* ???? */
+    int idx;
+    pcap_t *pcap;
+
+    init_delta_time(&delta_ctx);
+
+    if (ctx->options->enable_file_cache) {
+        prev_packet1 = &cached_packet1;
+        prev_packet2 = &cached_packet2;
+    } else {
+        prev_packet1 = NULL;
+        prev_packet2 = NULL;
+    }
+
+
+    pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, idx1, prev_packet1);
+    pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, idx2, prev_packet2);
+
+    /* MAIN LOOP 
+     * Keep sending while we have packets or until
+     * we've sent enough packets
+     */
+    while (! (pktdata1 == NULL && pktdata2 == NULL)) {
+        /* die? */
+        if (ctx->abort)
+            return;
+
+        /* stop sending based on the limit -L? */
+        packetnum = ctx->stats.pkts_sent + 1;
+        if (ctx->options->limit_send > 0 && packetnum > ctx->options->limit_send)
+            return;
+
+        /* figure out which pcap file we need to process next 
+         * when get_next_packet() returns null for pktdata, the pkthdr 
+         * will still have the old values from the previous call.  This
+         * means we can't always trust the timestamps to tell us which
+         * file to process.
+         */
+        if (pktdata1 == NULL) {
+            /* file 2 is next */
+            sp = ctx->intf2;
+            pcap = pcap2;
+            pkthdr_ptr = &pkthdr2;
+            prev_packet = prev_packet2;
+            idx = idx2;
+            pktdata = pktdata2;
+        } else if (pktdata2 == NULL) {
+            /* file 1 is next */
+            sp = ctx->intf1;
+            pcap = pcap1;
+            pkthdr_ptr = &pkthdr1;
+            prev_packet = prev_packet1;
+            idx = idx1;
+            pktdata = pktdata1;
+        } else if (timercmp(&pkthdr1.ts, &pkthdr2.ts, <=)) {
+            /* file 1 is next */
+            sp = ctx->intf1;
+            pcap = pcap1;
+            pkthdr_ptr = &pkthdr1;
+            prev_packet = prev_packet1;
+            idx = idx1;
+            pktdata = pktdata1;
+        } else {
+            /* file 2 is next */
+            sp = ctx->intf2;
+            pcap = pcap2;
+            pkthdr_ptr = &pkthdr2;
+            prev_packet = prev_packet2;
+            idx = idx2;
+            pktdata = pktdata2;
+        }
+
+#if defined TCPREPLAY || defined TCPREPLAY_EDIT
+        /* do we use the snaplen (caplen) or the "actual" packet len? */
+        pktlen = ctx->options->use_pkthdr_len ? pkthdr_ptr->len : pkthdr_ptr->caplen;
+#elif TCPBRIDGE
+        pktlen = pkthdr_ptr->caplen;
+#else
+#error WTF???  We should not be here!
+#endif
+
+
+        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pktlen);
+
+
+#if defined TCPREPLAY && defined TCPREPLAY_EDIT
+        if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
+            errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
+        }
+        pktlen = ctx->options->use_pkthdr_len ? pkthdr_ptr->len : pkthdr_ptr->caplen;
+#endif
+
+        /* do we need to print the packet via tcpdump? */
+#ifdef ENABLE_VERBOSE
+        if (ctx->options->verbose)
+            tcpdump_print(ctx->options->tcpdump, pkthdr_ptr, pktdata);
+#endif
+
+        /*
+         * we have to cast the ts, since OpenBSD sucks
+         * had to be special and use bpf_timeval.
+         * Only sleep if we're not in top speed mode (-t)
+         */
+        if (ctx->options->speed.mode != speed_topspeed)
+            do_sleep(ctx, (struct timeval *)&pkthdr_ptr->ts, &last, pktlen,
+                    ctx->options->accurate, sp, packetnum, &delta_ctx);
+
+        /* mark the time when we send the last packet */
+        start_delta_time(&delta_ctx);
+        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
+
+        /* write packet out on network */
+        if (sendpacket(sp, pktdata, pktlen) < (int)pktlen)
+            warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+
+        /*
+         * track the time of the "last packet sent".  Again, because of OpenBSD
+         * we have to do a mempcy rather then assignment.
+         *
+         * A number of 3rd party tools generate bad timestamps which go backwards
+         * in time.  Hence, don't update the "last" unless pkthdr.ts > last
+         */
+        if (timercmp(&last, &pkthdr_ptr->ts, <))
+            memcpy(&last, &pkthdr_ptr->ts, sizeof(struct timeval));
+        ctx->stats.pkts_sent ++;
+        ctx->stats.bytes_sent += pktlen;
+
+        /* print stats during the run? */
+        if (ctx->options->stats > 0) {
+            if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
+                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+
+            if (! timerisset(&last_print_time)) {
+                memcpy(&last_print_time, &ctx->stats.end_time, sizeof(struct timeval));
+            } else {
+                timersub(&ctx->stats.end_time, &last_print_time, &print_delta);
+                if (print_delta.tv_sec >= ctx->options->stats) {
+                    packet_stats(&ctx->stats);
+                    memcpy(&last_print_time, &ctx->stats.end_time, sizeof(struct timeval));
+                }
+            }
+        }
+
+        /* get the next packet for this file handle depending on which we last used */
+        if (sp == ctx->intf2) {
+            pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, idx2, prev_packet2);
+        } else {
+            pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, idx1, prev_packet1);
+        }
+    } /* while */
+
+    if (ctx->options->enable_file_cache) {
+        ctx->options->file_cache[idx1].cached = TRUE;
+        ctx->options->file_cache[idx2].cached = TRUE;
+    }
+}
+
+
 
 /**
  * Gets the next packet to be sent out. This will either read from the pcap file
@@ -246,7 +421,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int cache_file_idx)
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
 const u_char *
-get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, 
+get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int idx, 
     packet_cache_t **prev_packet)
 {
     u_char *pktdata = NULL;
@@ -263,12 +438,12 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
         /*
          * Yes we are caching files - has this one been cached?
          */
-        if (ctx->options->file_cache[file_idx].cached) {
+        if (ctx->options->file_cache[idx].cached) {
             if (*prev_packet == NULL) {
                 /*
                  * Get the first packet in the cache list directly from the file
                  */
-                *prev_packet = ctx->options->file_cache[file_idx].packet_cache;
+                *prev_packet = ctx->options->file_cache[idx].packet_cache;
             } else {
                 /*
                  * Get the next packet in the cache list
@@ -291,7 +466,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
                      * Create the first packet in the list
                      */
                     *prev_packet = safe_malloc(sizeof(packet_cache_t));
-                    ctx->options->file_cache[file_idx].packet_cache = *prev_packet;
+                    ctx->options->file_cache[idx].packet_cache = *prev_packet;
                 } else {
                     /*
                      * Add a packet to the end of the list
@@ -350,7 +525,8 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
         sp = ctx->intf2;
     }
     else {
-        err(-1, "check_cache() returned an error.  Aborting...");
+        tcpreplay_seterr(ctx, "Invalid cache value: %i", result);
+        return -1;
     }
 
     return sp;

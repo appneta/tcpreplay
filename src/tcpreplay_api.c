@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2009 Aaron Turner.
+ * Copyright (c) 2009-2010 Aaron Turner.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,8 @@
 #include <errno.h>
 #include <stdarg.h>
 
-#include "send_packets.h"
 #include "tcpreplay_api.h"
+#include "send_packets.h"
 #include "replay.h"
 
 #ifdef USE_AUTOOPTS
@@ -113,6 +113,7 @@ tcpreplay_init()
     /* This is probably the second best solution */
     ctx->options->accurate = accurate_gtod;
 #endif
+    ctx->options->rdtsc_clicks = -1;
 
     /* set the default MTU size */
     ctx->options->mtu = DEFAULT_MTU;
@@ -138,7 +139,6 @@ tcpreplay_init()
     return ctx;
 }
 
-#ifdef USE_AUTOOPTS
 /**
  * \brief Parses the GNU AutoOpts options for tcpreplay
  *
@@ -147,7 +147,7 @@ tcpreplay_init()
  * returns 0 on success, and -1 on error & -2 on warning.
  */
 int
-tcpreplay_post_args(tcpreplay_t *ctx)
+tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 {
     char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
@@ -155,6 +155,7 @@ tcpreplay_post_args(tcpreplay_t *ctx)
     tcpreplay_opt_t *options;
     int warn = 0;
 
+#ifdef USE_AUTOOPTS
     options = ctx->options;
 
 #ifdef DEBUG
@@ -200,7 +201,7 @@ tcpreplay_post_args(tcpreplay_t *ctx)
 #endif
 
     if (HAVE_OPT(STATS))
-        options->stats = OPT_ARG(STATS);
+        options->stats = OPT_VALUE_STATS;
 
     /*
      * Check if the file cache should be enabled - if we're looping more than
@@ -219,6 +220,20 @@ tcpreplay_post_args(tcpreplay_t *ctx)
         options->preload_pcap = true;
         options->enable_file_cache = true;
     }
+
+    /* Dual file mode */
+    if (HAVE_OPT(DUALFILE)) {
+        options->dualfile = true;
+        if (argc < 2) {
+            tcpreplay_seterr(ctx, "%s", "--dualfile mode requires at least two pcap files");
+            return -1;
+        }
+        if (argc % 2 != 0) {
+            tcpreplay_seterr(ctx, "%s", "--dualfile mode requires an even number of pcap files");
+            return -1;
+        }
+    }
+
 
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
@@ -325,8 +340,13 @@ tcpreplay_post_args(tcpreplay_t *ctx)
         return -2;
 
     return 0;
-}
+
+#else
+    tcpreplay_seterr(ctx, "autopts support not compiled in.  tcpreplay_post_args() not supported");
+    return -1;
 #endif /* USE_AUTOOPTS */
+
+}
 
 /**
  * Closes & free's all memory related to a tcpreplay context
@@ -382,8 +402,8 @@ tcpreplay_close(tcpreplay_t *ctx)
  * \brief Specifies an interface to use for sending.
  *
  * You may call this up to two (2) times with different interfaces
- * when using a tcpprep cache file.  Note, both interfaces must use
- * the same DLT type
+ * when using a tcpprep cache file or dualfile mode.  Note, both interfaces
+ * must use the same DLT type
  */
 int
 tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
@@ -536,6 +556,17 @@ tcpreplay_set_accurate(tcpreplay_t *ctx, tcpreplay_accurate value)
 }
 
 /**
+ * Sets the number of RDTSC clicks
+ */
+int
+tcpreplay_set_rdtsc_clicks(tcpreplay_t *ctx, int value)
+{
+    assert(ctx);
+    ctx->options->rdtsc_clicks = value;
+    return 0;
+}
+
+/**
  * Sets the number of seconds between printing stats
  */
 int
@@ -560,6 +591,20 @@ tcpreplay_set_file_cache(tcpreplay_t *ctx, bool value)
     return 0;
 }
 
+/**
+ * \brief Enable or disable dual file mode
+ *
+ * In dual file mode, we read two files at the same time and use
+ * one file for each interface.
+ */
+
+int 
+tcpreplay_set_dualfile(tcpreplay_t *ctx, bool value)
+{
+    assert(ctx);
+    ctx->options->dualfile = value;
+    return 0;
+}
 
 /**
  * \brief Enable or disable preloading the file cache 
@@ -655,7 +700,6 @@ tcpreplay_set_tcpprep_cache(tcpreplay_t *ctx, char *file)
  * Verbose mode requires fork() and tcpdump binary, hence won't work
  * under Win32 without Cygwin
  */
-#ifdef ENABLE_VERBOSE
 
 /**
  * Enable verbose mode
@@ -664,8 +708,13 @@ int
 tcpreplay_set_verbose(tcpreplay_t *ctx, bool value)
 {
     assert(ctx);
+#ifdef ENABLE_VERBOSE
     ctx->options->verbose = value;
     return 0;
+#else
+    tcpreplay_seterr(ctx, "verbose mode not supported");
+    return -1;
+#endif
 }
 
 /**
@@ -678,9 +727,14 @@ int
 tcpreplay_set_tcpdump_args(tcpreplay_t *ctx, char *value)
 {
     assert(ctx);
+#ifdef ENABLE_VERBOSE
     assert(value);
     ctx->options->tcpdump_args = safe_strdup(value);
     return 0;
+#else
+    tcpreplay_seterr(ctx, "verbose mode not supported");
+    return -1;
+#endif
 }
 
 /**
@@ -693,13 +747,16 @@ int
 tcpreplay_set_tcpdump(tcpreplay_t *ctx, tcpdump_t *value)
 {
     assert(ctx);
+#ifdef ENABLE_VERBOSE
     assert(value);
     ctx->options->verbose = true;
     ctx->options->tcpdump = value;
     return 0;
+#else
+    tcpreplay_seterr(ctx, "verbose mode not supported");
+    return -1;
+#endif
 }
-
-#endif /* ENABLE_VERBOSE */
 
 
 /**
@@ -830,22 +887,121 @@ tcpreplay_setwarn(tcpreplay_t *ctx, const char *fmt, ...)
 
 
 /**
- * \brief sends the traffic out the interfaces
+ * \brief Does all the prep work before calling tcpreplay_replay()
  *
- * Designed to be called in a separate thread if you need to.  Blocks until
- * the replay is complete or you call tcpreplay_abort() in another thread.
- * Pass the index of the pcap you want to replay, or -1 for all pcaps
+ * Technically this validates our config options, preloads the tcpprep
+ * cache file, loads the packet cache and anything else which might
+ * cause a delay for starting to send packets with tcpreplay_replay()
  */
-int
-tcpreplay_replay(tcpreplay_t *ctx, int idx)
+int 
+tcpreplay_prepare(tcpreplay_t *ctx)
 {
-    int i, rcode;
+    char *intname, ebuf[SENDPACKET_ERRBUF_SIZE];
+    int int1dlt, int2dlt, i;
 
     assert(ctx);
 
-    if (idx < 0 || idx > ctx->options->source_cnt) {
-        tcpreplay_seterr(ctx, "invalid source index value: %d", idx);
+    /*
+     * First, process the validations, basically the same we do in 
+     * tcpreplay_post_args() and AutoOpts
+     */
+    if (ctx->options->intf1_name == NULL) {
+        tcpreplay_seterr(ctx, "%s", "You must specify at least one network interface");
         return -1;
+    }
+
+    if (ctx->options->source_cnt == 0) {
+        tcpreplay_seterr(ctx, "%s", "You must specify at least one source pcap");
+        return -1;
+    }
+
+    if (ctx->options->dualfile) {
+        if (! ctx->options->source_cnt >= 2) {
+            tcpreplay_seterr(ctx, "%s", "Dual file mode requires 2 or more pcap files");
+            return -1;
+        }
+
+        if (ctx->options->source_cnt % 2 != 0) {
+            tcpreplay_seterr(ctx, "%s", "Dual file mode requires an even number of pcap files");
+            return -1;
+        }
+    }
+
+    if (ctx->options->dualfile && ctx->options->cachedata != NULL) {
+        tcpreplay_seterr(ctx, "%s", "Can't use dual file mode and tcpprep cache file together");
+        return -1;
+    }
+
+    if ((ctx->options->dualfile || ctx->options->cachedata != NULL) && 
+           ctx->options->intf2_name == NULL) {
+        tcpreplay_seterr(ctx, "%s", "dual file mode and tcpprep cache files require two interfaces");
+    }
+
+
+#ifndef HAVE_SELECT
+    if (ctx->options->accurate == accurate_select) {
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with select support");
+        return -1;
+    }
+#endif
+#ifndef HAVE_RDTSC
+    if (ctx->options->accurate == accurate_rdtsc) {
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with rdtsc support");
+        return -1;
+    }
+#else
+    if (ctx->options->rdtsc_clicks > 0)
+        rdtsc_calibrate(ctx->options->rdtsc_clicks);
+#endif
+#ifndef HAVE_IOPERM
+    if (ctx->options->accurate == accurate_ioport) {
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with IO Port 0x80 support");
+        return -1;
+    }
+#else
+    if (ctx->options->accurate == accurate_ioport) {
+        ioport_sleep_init();
+    }
+#endif
+#ifndef HAVE_ABSOLUTE_TIME
+    if (ctx->options->accurate == accurate_abs_time) {
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api only supports absolute time on Apple OS X");
+        return -1;
+    }
+#endif
+
+    if ((intname = get_interface(ctx->intlist, ctx->options->intf1_name)) == NULL) {
+        tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+        return -1;
+    }
+
+    /* open interfaces for writing */
+    if ((ctx->intf1 = sendpacket_open(ctx->options->intf1_name, ebuf, TCPR_DIR_C2S)) == NULL) {
+        tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf1_name, ebuf);
+        return -1;
+    }
+
+    int1dlt = sendpacket_get_dlt(ctx->intf1);
+
+    if (ctx->options->intf2_name != NULL) {
+        if ((intname = get_interface(ctx->intlist, ctx->options->intf2_name)) == NULL) {
+            tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
+            return -1;
+        }
+
+        /* open interfaces for writing */
+        if ((ctx->intf2 = sendpacket_open(ctx->options->intf2_name, ebuf, TCPR_DIR_C2S)) == NULL) {
+            tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf2_name, ebuf);
+            return -1;
+        }
+
+        int2dlt = sendpacket_get_dlt(ctx->intf2);
+        if (int2dlt != int1dlt) {
+            tcpreplay_seterr(ctx, "DLT type missmatch for %s (%s) and %s (%s)", 
+                ctx->options->intf1_name, pcap_datalink_val_to_name(int1dlt), 
+                ctx->options->intf2_name, pcap_datalink_val_to_name(int2dlt));
+            return -1;
+        }
     }
 
     /*
@@ -860,6 +1016,36 @@ tcpreplay_replay(tcpreplay_t *ctx, int idx)
         }
     }
 
+    return 0;
+}
+
+/**
+ * \brief sends the traffic out the interfaces
+ *
+ * Designed to be called in a separate thread if you need to.  Blocks until
+ * the replay is complete or you call tcpreplay_abort() in another thread.
+ * Pass the index of the pcap you want to replay, or -1 for all pcaps.
+ *
+ * In dualfile mode, we will process idx and idx+1
+ */
+int
+tcpreplay_replay(tcpreplay_t *ctx, int idx)
+{
+    int rcode;
+
+    assert(ctx);
+
+    if (idx < 0 || idx > ctx->options->source_cnt) {
+        tcpreplay_seterr(ctx, "invalid source index value: %d", idx);
+        return -1;
+    }
+
+    if (ctx->options->dualfile && ((idx + 1) > ctx->options->source_cnt)) {
+        tcpreplay_seterr(ctx, "invalid dualfile source index value: %d", (idx + 1));
+        return -1;
+    }
+
+
     if (gettimeofday(&ctx->stats.start_time, NULL) < 0) {
         tcpreplay_seterr(ctx, "gettimeofday() failed: %s",  strerror(errno));
         return -1;
@@ -870,63 +1056,13 @@ tcpreplay_replay(tcpreplay_t *ctx, int idx)
     /* main loop, when not looping forever */
     if (ctx->options->loop > 0) {
         while (ctx->options->loop--) {  /* limited loop */
-            /* process each pcap file in order */
-            for (ctx->current_source = 0;
-                    ctx->current_source < ctx->options->source_cnt;
-                    ctx->current_source++) {
-                /* reset cache markers for each iteration */
-                ctx->cache_byte = 0;
-                ctx->cache_bit = 0;
-                switch(ctx->options->sources[ctx->current_source].type) {
-                    case source_filename:
-                        rcode = replay_file(ctx, ctx->current_source);
-                        break;
-                    case source_fd:
-                        rcode = replay_fd(ctx, ctx->current_source);
-                        break;
-                    case source_cache:
-                        rcode = replay_cache(ctx, ctx->current_source);
-                        break;
-                    default:
-                        tcpreplay_seterr(ctx, "Invalid source type: %d", ctx->options->sources[ctx->current_source].type);
-                        rcode = -1;
-                }
-                if (rcode < 0) {
-                    ctx->running = false;
-                    return -1;
-                }
-
-            }
+            if ((rcode = tcpr_replay_index(ctx, idx)) < 0)
+                return rcode;
         }
-    }
-    else {
-        /* loop forever */
-        while (1) {
-            for (ctx->current_source = 0;
-                    ctx->current_source < ctx->options->source_cnt;
-                    ctx->current_source++) {
-                /* reset cache markers for each iteration */
-                ctx->cache_byte = 0;
-                ctx->cache_bit = 0;
-                switch(ctx->options->sources[ctx->current_source].type) {
-                    case source_filename:
-                        rcode = replay_file(ctx, ctx->current_source);
-                        break;
-                    case source_fd:
-                        rcode = replay_fd(ctx, ctx->current_source);
-                        break;
-                    case source_cache:
-                        rcode = replay_cache(ctx, ctx->current_source);
-                        break;
-                    default:
-                        tcpreplay_seterr(ctx, "Invalid source type: %d", ctx->options->sources[ctx->current_source].type);
-                        rcode = -1;
-                }
-                if (rcode < 0) {
-                    ctx->running = false;
-                    return -1;
-                }
-            }
+    } else {
+        while (1) { /* loop forever */
+            if ((rcode = tcpr_replay_index(ctx, idx)) < 0)
+                return rcode;
         }
     }
 

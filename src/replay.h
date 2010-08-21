@@ -33,8 +33,6 @@
 #ifndef _REPLAY_H_
 #define _REPLAY_H_
 
-int replay_file(tcpreplay_t *ctx, int idx);
-int replay_cache(tcpreplay_t *ctx, int idx);
-int replay_fd(tcpreplay_t *ctx, int idx);
+int tcpr_replay_index(tcpreplay_t *ctx, int idx);
 
 #endif /* _REPLAY_H_ */

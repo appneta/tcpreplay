@@ -89,19 +89,11 @@ typedef struct {
 /* accurate mode selector */
 typedef enum {
     accurate_gtod = 0,
-#ifdef HAVE_SELECT
     accurate_select = 1,
-#endif
-#ifdef HAVE_RDTSC
     accurate_rdtsc = 2,
-#endif
-#if defined HAVE_IOPERM && defined(__i386__)
     accurate_ioport = 3,
-#endif
     accurate_nanosleep = 4,
-#ifdef HAVE_ABSOLUTE_TIME
     accurate_abs_time = 5
-#endif
 } tcpreplay_accurate;
 
 typedef enum {
@@ -139,6 +131,7 @@ typedef struct tcpreplay_opt_s {
 
     /* accurate mode to use */
     tcpreplay_accurate accurate;
+    int rdtsc_clicks;
 
     /* limit # of packets to send */
     COUNTER limit_send;
@@ -158,6 +151,9 @@ typedef struct tcpreplay_opt_s {
     char *tcpdump_args;
     tcpdump_t *tcpdump;
 #endif
+
+    /* dual file mode */
+    bool dualfile;
 
 } tcpreplay_opt_t;
 
@@ -213,9 +209,8 @@ char *tcpreplay_getwarn(tcpreplay_t *);
 tcpreplay_t *tcpreplay_init();
 void tcpreplay_close(tcpreplay_t *);
 
-#ifdef USE_AUTOOPTS
-int tcpreplay_post_args(tcpreplay_t *);
-#endif
+/* only valid for using with GNU Autogen/AutoOpts */
+int tcpreplay_post_args(tcpreplay_t *, int argc);
 
 /* all these configuration functions return 0 on success and < 0 on error. */
 int tcpreplay_set_interface(tcpreplay_t *, tcpreplay_intf, char *);
@@ -227,8 +222,10 @@ int tcpreplay_set_sleep_accel(tcpreplay_t *, int);
 int tcpreplay_set_use_pkthdr_len(tcpreplay_t *, bool);
 int tcpreplay_set_mtu(tcpreplay_t *, int);
 int tcpreplay_set_accurate(tcpreplay_t *, tcpreplay_accurate);
+int tcpreplay_set_rdtsc_clicks(tcpreplay_t *, int);
 int tcpreplay_set_limit_send(tcpreplay_t *, COUNTER);
 int tcpreplay_set_file_cache(tcpreplay_t *, bool);
+int tcpreplay_set_dualfile(tcpreplay_t *, bool);
 int tcpreplay_set_tcpprep_cache(tcpreplay_t *, char *);
 int tcpreplay_add_pcapfile(tcpreplay_t *, char *);
 int tcpreplay_set_preload_pcap(tcpreplay_t *, bool);
@@ -238,6 +235,7 @@ int tcpreplay_get_source_count(tcpreplay_t *);
 int tcpreplay_get_current_source(tcpreplay_t *);
 
 /* functions controlling execution */
+int tcpreplay_prepare(tcpreplay_t *);
 int tcpreplay_replay(tcpreplay_t *, int);
 const tcpreplay_stats_t *tcpreplay_get_stats(tcpreplay_t *);
 int tcpreplay_abort(tcpreplay_t *);
@@ -256,11 +254,9 @@ COUNTER tcpreplay_get_failed(tcpreplay_t *ctx);
 const struct timeval *tcpreplay_get_start_time(tcpreplay_t *ctx);
 const struct timeval *tcpreplay_get_end_time(tcpreplay_t *ctx);
 
-#ifdef ENABLE_VERBOSE
 int tcpreplay_set_verbose(tcpreplay_t *, bool);
 int tcpreplay_set_tcpdump_args(tcpreplay_t *, char *);
 int tcpreplay_set_tcpdump(tcpreplay_t *, tcpdump_t *);
-#endif
 
 /*
  * These functions are seen by the outside world, but nobody should ever use them
