@@ -141,14 +141,14 @@ packet_stats(struct timeval *begin, struct timeval *end,
     if (timerisset(&diff)) {
         if (bytes_sent){
             bytes_sec = bytes_sent / frac_sec;
-            mb_sec = (bytes_sec * 8) / (1024 * 1024);
+            mb_sec = (bytes_sec * 8) / (1000 * 1000);
         }
         if (pkts_sent)
             pkts_sec = pkts_sent / frac_sec;
     }
-    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds.",
+    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds.\n",
             pkts_sent, bytes_sent, frac_sec);
-    printf("\t\tRated: %.1f bps, %.2f Mbps, %.2f pps\n",
+    printf("Rated: %.1f Bps, %.2f Mbps, %.2f pps\n",
            bytes_sec, mb_sec, pkts_sec);
 
     if (failed)
