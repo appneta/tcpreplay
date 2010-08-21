@@ -144,14 +144,15 @@ packet_stats(const tcpreplay_stats_t *stats)
     if (timerisset(&diff)) {
         if (stats->bytes_sent) {
             bytes_sec = stats->bytes_sent / frac_sec;
-            mb_sec = (bytes_sec * 8) / (1024 * 1024);
+            mb_sec = (bytes_sec * 8) / (1000 * 1000);
         }
         if (stats->pkts_sent)
             pkts_sec = stats->pkts_sent / frac_sec;
     }
-    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds"
-            "\t\tRated: %.1f bps, %.2f Mbps, %.2f pps\n",
-            stats->pkts_sent, stats->bytes_sent, frac_sec, bytes_sec, mb_sec, pkts_sec);
+    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds.\n",
+            stats->pkts_sent, stats->bytes_sent, frac_sec);
+    printf("Rated: %.1f Bps, %.2f Mbps, %.2f pps\n",
+           bytes_sec, mb_sec, pkts_sec);
 
     if (stats->failed)
         printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",

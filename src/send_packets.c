@@ -636,7 +636,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
          * a constant 'rate' (bytes per second).
          */
         if (ctx->stats.pkts_sent != 0) {
-            n = (float)len / (ctx->options->speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
+            n = (float)len / (ctx->options->speed.speed * 1000 * 1000 / 8); /* convert Mbps to bps */
             nap.tv_sec = n;
             nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
 
