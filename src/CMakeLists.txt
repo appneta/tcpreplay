@@ -207,15 +207,15 @@ if(USE_AUTOOPTS)
         install(TARGETS tcpbridge RUNTIME
             DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
-        add_custom_target(man_pages
-            DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1 tcpbridge.1)
+        add_custom_target(man_pages ALL
+            DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpcapinfo.1)
 
         install(FILES tcpbridge.1
             DESTINATION ${CMAKE_INSTALL_PREFIX}/man/man1)
 
     else(HAVE_PCAP_SENDPACKET)
-        add_custom_target(man_pages
-            DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1)
+        add_custom_target(man_pages ALL
+            DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1 tcpcapinfo.1)
 
     endif(HAVE_PCAP_SENDPACKET)
 
