@@ -4,7 +4,8 @@ autogen definitions options;
 copyright = {
     date        = "2000-2010";
     owner       = "Aaron Turner";
-    type        = "bsd";
+    type        = GPL;
+    eaddr       = "tcpreplay-users@lists.sourceforge.net";
     author      = <<- EOText
 Copyright 2000-2010 Aaron Turner
 
@@ -71,7 +72,7 @@ Restart tcpreplay
 @end enumerate
 
 .SH "SEE ALSO"
-tcpreplay-edit(1), tcpdump(1), tcpprep(1), tcprewrite(1), libnet(3)
+tcpdump(1), tcpbridge(1), tcprewrite(1), tcpprep(1), tcpcapinfo(1)
 
 .SH "BUGS"
 tcpreplay can only send packets as fast as your computer's interface,

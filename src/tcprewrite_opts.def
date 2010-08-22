@@ -3,7 +3,8 @@ autogen definitions options;
 copyright = {
     date        = "2000-2010";
     owner       = "Aaron Turner";
-    type        = "bsd";
+    type        = GPL;
+    eaddr       = "tcpreplay-users@lists.sourceforge.net";
     author      = <<- EOText
 Copyright 2000-2010 Aaron Turner
 
@@ -63,7 +64,7 @@ EOText;
 
 man-doc = <<- EOMan
 .SH "SEE ALSO"
-tcpdump(1), tcpprep(1), tcpreplay(1)
+tcpdump(1), tcpbridge(1), tcpreplay(1), tcpprep(1), tcpcapinfo(1)
 EOMan;
 
 

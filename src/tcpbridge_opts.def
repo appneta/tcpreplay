@@ -4,7 +4,8 @@ autogen definitions options;
 copyright = {
     date        = "2000-2010";
     owner       = "Aaron Turner";
-    type        = "bsd";
+    type        = GPL;
+    eaddr       = "tcpreplay-users@lists.sourceforge.net";
     author      = <<- EOText
 Copyright 2000-2010 Aaron Turner
 
@@ -67,7 +68,7 @@ Restart tcpbridge
 @end enumerate
 
 .SH "SEE ALSO"
-tcpdump(1), tcpprep(1), tcprewrite(1), tcpreplay(1)
+tcpdump(1), tcpprep(1), tcprewrite(1), tcpreplay(1), tcpcapinfo(1)
 
 .SH "BUGS"
 tcpbridge can only send packets as fast as your computer's interface,
