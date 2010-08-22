@@ -164,17 +164,61 @@ if(USE_AUTOOPTS)
                 PROPERTIES COMPILE_FLAGS -DTCPBRIDGE ${abstime_flags}
                 LINK_FLAGS ${link_flags})
         endif(link_flags)
-
     endif(HAVE_PCAP_SENDPACKET)
 
     file(GLOB autogen_headers *_opts.h)
     set_source_files_properties(${autogen_headers}
         PROPERTIES GENERATED true)
 
+    # Generate man pages
+    set(autogen_opts -T agman1.tpl -L tcpedit)
+
+    add_custom_command(OUTPUT tcpreplay.1
+        COMMAND ${AUTOGEN} ${autogen_opts} -b tcpreplay tcpreplay_opts.def
+        DEPENDS tcpreplay_opts.def)
+    add_custom_command(OUTPUT tcpreplay-edit.1
+        COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -b tcpreplay-edit tcpreplay_opts.def
+        DEPENDS tcpreplay_opts.def)
+    add_custom_command(OUTPUT tcpprep.1
+        COMMAND ${AUTOGEN} ${autogen_opts} -b tcpprep tcpprep_opts.def
+        DEPENDS tcpprep_opts.def)
+    add_custom_command(OUTPUT tcprewrite.1
+        COMMAND ${AUTOGEN} ${autogen_opts} -b tcprewrite tcprewrite_opts.def
+        DEPENDS tcprewrite_opts.def)
+
+    # Build/install tcpbridge & man page
+    if(HAVE_PCAP_SENDPACKET)
+        add_custom_command(OUTPUT tcpbridge.1
+            COMMAND ${AUTOGEN} ${autogen_opts} -b tcpbridge tcpbridge_opts.def
+            DEPENDS tcpbridge_opts.def)
+
+        install(TARGETS tcpbridge RUNTIME
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
+        add_custom_target(man_pages
+            DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1 tcpbridge.1)
+
+        install(FILES tcpbridge.1
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/man/man1)
+
+    else(HAVE_PCAP_SENDPACKET)
+        add_custom_target(man_pages
+            DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1)
+
+    endif(HAVE_PCAP_SENDPACKET)
+
+    install(FILES tcpreplay.1 tcpreplay-edit.1 tcprewrite.1 tcpprep.1
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/man/man1)
+
+    install(TARGETS tcpreplay tcpreplay-edit tcprewrite tcpprep  RUNTIME
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
 endif(USE_AUTOOPTS)
 
 add_executable(tcpcapinfo ${tcpcapinfo_srcs})
 target_link_libraries(tcpcapinfo ${tcpcapinfo_libs})
+install(PROGRAMS tcpcapinfo
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # disable this for now.
 if(false)
@@ -186,24 +230,3 @@ if(false)
     add_library(prep STATIC ${libtcpprep_srcs})
 endif(false)
 
-# Generate man pages
-set(autogen_opts -T agman1.tpl -L tcpedit)
-
-add_custom_command(OUTPUT tcpreplay.1
-    COMMAND ${AUTOGEN} ${autogen_opts} -b tcpreplay tcpreplay_opts.def
-    DEPENDS tcpreplay_opts.def)
-add_custom_command(OUTPUT tcpreplay-edit.1
-    COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -b tcpreplay-edit tcpreplay_opts.def
-    DEPENDS tcpreplay_opts.def)
-add_custom_command(OUTPUT tcpprep.1
-    COMMAND ${AUTOGEN} ${autogen_opts} -b tcpprep tcpprep_opts.def
-    DEPENDS tcpprep_opts.def)
-add_custom_command(OUTPUT tcprewrite.1
-    COMMAND ${AUTOGEN} ${autogen_opts} -b tcprewrite tcprewrite_opts.def
-    DEPENDS tcprewrite_opts.def)
-add_custom_command(OUTPUT tcpbridge.1
-    COMMAND ${AUTOGEN} ${autogen_opts} -b tcpbridge tcpbridge_opts.def
-    DEPENDS tcpbridge_opts.def)
-
-add_custom_target(man_pages
-    DEPENDS tcpreplay.1 tcpreplay-edit.1 tcpprep.1 tcprewrite.1 tcpbridge.1)
