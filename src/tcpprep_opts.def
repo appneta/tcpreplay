@@ -599,6 +599,7 @@ flag = {
 #endif
     fprintf(stderr, "\n");
     fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);

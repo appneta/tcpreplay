@@ -90,7 +90,21 @@ struct pcap_sf_patched_pkthdr {
 void
 usage(void)
 {
-    printf("tcpcapinfo <files>\n");
+    printf("tcpcapinfo [options] <files>\n");
+    printf("-V\t\tPrint version and licensing information\n");
+    exit(0);
+}
+
+void
+version(void)
+{
+    printf("tcpcapinfo version: %s (build %s)", VERSION, svn_version());
+#ifdef DEBUG
+    printf(" (debug)");
+#endif
+    printf("\n");
+    printf("Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
+    printf("The entire Tcpreplay Suite is licensed under the GPLv3\n");
     exit(0);
 }
 
@@ -108,6 +122,9 @@ main(int argc, char *argv[])
 
     if (argc < 2)
         usage();
+
+    if (strcmp(argv[1], "-V") == 0)
+        version();
 
     for (i = 1; i < argc; i++) {
         dbgx(1, "processing:  %s\n", argv[i]);
