@@ -17,8 +17,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-/* sendpacket.[ch] is my attempt to write a universal packet injection
+ /* sendpacket.[ch] is my attempt to write a universal packet injection
   * API for BPF, libpcap, libdnet, and Linux's PF_PACKET.  I got sick
   * and tired dealing with libnet bugs and its lack of active maintenence,
   * but unfortunately, libpcap frame injection support is relatively new
@@ -27,11 +26,12 @@
   * injection method, then by all means add it here (and send me a patch).
   *
   * Anyways, long story short, for now the order of preference is:
-  * 1. PF_PACKET
-  * 2. BPF
-  * 3. libdnet
-  * 4. pcap_inject()
-  * 5. pcap_sendpacket()
+  * 1. TX_RING
+  * 2. PF_PACKET
+  * 3. BPF
+  * 4. libdnet
+  * 5. pcap_inject()
+  * 6. pcap_sendpacket()
   *
   * Right now, one big problem with the pcap_* methods is that libpcap
   * doesn't provide a reliable method of getting the MAC address of
@@ -58,8 +58,24 @@
 #include "common.h"
 #include "sendpacket.h"
 
+#ifdef FORCE_INJECT_TX_RING
+/* TX_RING uses PF_PACKET API so don't undef it here */
+#undef HAVE_LIBDNET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_PCAP_SENDPACKET
+#undef HAVE_BPF
+#endif
+
+#ifdef FORCE_INJECT_PF_PACKET
+#undef HAVE_TX_RING
+#undef HAVE_LIBDNET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_PCAP_SENDPACKET
+#undef HAVE_BPF
+#endif
 
 #ifdef FORCE_INJECT_LIBDNET
+#undef HAVE_TX_RING
 #undef HAVE_PF_PACKET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
@@ -67,6 +83,7 @@
 #endif
 
 #ifdef FORCE_INJECT_BPF
+#undef HAVE_TX_RING
 #undef HAVE_LIBDNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
@@ -74,6 +91,7 @@
 #endif
 
 #ifdef FORCE_INJECT_PCAP_INJECT
+#undef HAVE_TX_RING
 #undef HAVE_LIBDNET
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
@@ -81,6 +99,7 @@
 #endif
 
 #ifdef FORCE_INJECT_PCAP_SENDPACKET
+#undef HAVE_TX_RING
 #undef HAVE_LIBDNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_BPF
@@ -91,8 +110,8 @@
 #undef HAVE_PCAP_INJECT /* configure returns true for some odd reason */
 #endif
 
-#if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF
-#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET or *BSD's BPF
+#if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF && !defined TX_RING
+#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING or *BSD's BPF
 #endif
 
 
@@ -110,7 +129,13 @@
 
 #ifdef HAVE_PF_PACKET
 #undef INJECT_METHOD
+
+/* give priority to TX_RING */
+#ifndef HAVE_TX_RING
 #define INJECT_METHOD "PF_PACKET send()"
+#else
+#define INJECT_METHOD "PF_PACKET / TX_RING"
+#endif
 
 #include <fcntl.h>
 #include <sys/utsname.h>
@@ -120,6 +145,10 @@
 #include <linux/if_ether.h>
 #include <net/if_arp.h>
 #include <netpacket/packet.h>
+
+#ifdef HAVE_TX_RING
+#include "txring.h"
+#endif
 
 #ifndef __GLIBC__
 typedef int socklen_t;
@@ -197,11 +226,15 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
     if (len <= 0)
         return -1;
 
-    TRY_SEND_AGAIN:
+TRY_SEND_AGAIN:
     sp->attempt ++;
 
 #if defined HAVE_PF_PACKET
+#ifdef HAVE_TX_RING
+    retcode = (int)txring_put(sp->tx_ring, data, len);
+#else
     retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
+#endif
 
     /*
      * out of buffers, or hit max PHY speed, silently retry 
@@ -209,18 +242,20 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
      */
     if (retcode < 0 && !sp->abort) {
         switch (errno) {
-        case EAGAIN:
-            sp->retry_eagain ++;
-            goto TRY_SEND_AGAIN;
-            break;
-        case ENOBUFS:
-            sp->retry_enobufs ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        default:
-            sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
-                              INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: "
+                        "%s (errno = %d)", 
+                        INJECT_METHOD, sp->sent + sp->failed + 1, 
+                        strerror(errno), errno);
         }
     }
 
@@ -233,21 +268,21 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
      */
     if (retcode < 0 && !sp->abort) {
         switch (errno) {
-        case EAGAIN:
-            sp->retry_eagain ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        case ENOBUFS:
-            sp->retry_enobufs ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        default:
-            sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: "
-                    "%s (errno = %d)",
-                    INJECT_METHOD, sp->sent + sp->failed + 1, 
-                    strerror(errno), errno);
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: "
+                        "%s (errno = %d)",
+                        INJECT_METHOD, sp->sent + sp->failed + 1, 
+                        strerror(errno), errno);
         }
     }
 
@@ -260,19 +295,21 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
      */
     if (retcode < 0 && !sp->abort) {
         switch (errno) {
-        case EAGAIN:
-            sp->retry_eagain ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        case ENOBUFS:
-            sp->retry_enobufs ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        default:
-            sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
-                              INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: "
+                        "%s (errno = %d)",
+                            INJECT_METHOD, sp->sent + sp->failed + 1, 
+                            strerror(errno), errno);
         }
     }
 
@@ -288,19 +325,21 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
      */
     if (retcode < 0 && !sp->abort) {
         switch (errno) {
-        case EAGAIN:
-            sp->retry_eagain ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        case ENOBUFS:
-            sp->retry_enobufs ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        default:
-            sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
-                              INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: "
+                        "%s (errno = %d)", 
+                        INJECT_METHOD, sp->sent + sp->failed + 1, 
+                        pcap_geterr(sp->handle.pcap), errno);
         }
     }
 
@@ -312,20 +351,22 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
      */
     if (retcode < 0 && !sp->abort) {
         switch (errno) {
-        case EAGAIN:
-            sp->retry_eagain ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case EAGAIN:
+                sp->retry_eagain ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        case ENOBUFS:
-            sp->retry_enobufs ++;
-            goto TRY_SEND_AGAIN;
-            break;
+            case ENOBUFS:
+                sp->retry_enobufs ++;
+                goto TRY_SEND_AGAIN;
+                break;
 
-        default:
-            sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
-                              INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
-        }
+            default:
+                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: "
+                        "%s (errno = %d)",
+                        INJECT_METHOD, sp->sent + sp->failed + 1, 
+                        pcap_geterr(sp->handle.pcap), errno);
+            }
     }
     /*
      * pcap_sendpacket returns 0 on success, not the packet length!
@@ -360,7 +401,6 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
 
     assert(device);
     assert(errbuf);
-
 #if defined HAVE_PF_PACKET
     sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
@@ -413,6 +453,7 @@ sendpacket_close(sendpacket_t *sp)
         break;
 
     case SP_TYPE_PF_PACKET:
+        case SP_TYPE_TX_RING:
 #ifdef HAVE_PF_PACKET
         close(sp->handle.fd);
 #endif
@@ -595,7 +636,7 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
 
 #if defined HAVE_PF_PACKET
 /**
- * Inner sendpacket_open() method for using Linux's PF_PACKET
+ * Inner sendpacket_open() method for using Linux's PF_PACKET or TX_RING
  */
 static sendpacket_t *
 sendpacket_open_pf(const char *device, char *errbuf)
@@ -606,13 +647,18 @@ sendpacket_open_pf(const char *device, char *errbuf)
     struct sockaddr_ll sa;
     int n = 1, err;
     socklen_t errlen = sizeof(err);
+    unsigned int mtu=1500;
 
     assert(device);
     assert(errbuf);
 
+#if defined TX_RING
+    dbg(1, "sendpacket: using TX_RING");
+#else
     dbg(1, "sendpacket: using PF_PACKET");
+#endif
 
-    /* open our socket */
+   /* open our socket */
     if ((mysocket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "socket: %s", strerror(errno));
         return NULL;
@@ -655,7 +701,8 @@ sendpacket_open_pf(const char *device, char *errbuf)
 
     if (ioctl(mysocket, SIOCGIFHWADDR, &ifr) < 0) {
         close(mysocket);
-        sendpacket_seterr(sp, "Error getting hardware type: %s", strerror(errno));
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Error getting hardware type: %s", 
+                strerror(errno));
         return NULL;
     }
 
@@ -675,19 +722,39 @@ sendpacket_open_pf(const char *device, char *errbuf)
      */
     if (setsockopt(mysocket, SOL_SOCKET, SO_BROADCAST, &n, sizeof(n)) == -1) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE,
-                 "SO_BROADCAST: %s\n", strerror(errno));
+                "SO_BROADCAST: %s", strerror(errno));
         close(mysocket);
         return NULL;
     }
 #endif  /*  SO_BROADCAST  */
 
-
     /* prep & return our sp handle */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
-    sp->handle_type = SP_TYPE_PF_PACKET;
 
+#ifdef HAVE_TX_RING
+    /* Look up for MTU */
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+
+    if (ioctl(mysocket, SIOCGIFMTU, &ifr) < 0) {
+        close(mysocket);
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Error getting MTU: %s", strerror(errno));
+        return NULL;
+    }
+    mtu = ifr.ifr_ifru.ifru_mtu;
+
+    /* Init TX ring for sp->handle.fd socket */
+    if ((sp->tx_ring = txring_init(sp->handle.fd, mtu)) == 0) { 
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "txring_init: %s", strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+    sp->handle_type = SP_TYPE_TX_RING;
+#else
+    sp->handle_type = SP_TYPE_PF_PACKET;
+#endif
     return sp;
 }
 

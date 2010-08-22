@@ -1,6 +1,7 @@
 $Id$
 
 ??/??/2009: Version 4.0.0
+    - Switch from BSD to GPLv3 license (#371)
     - Replace GNU autotools build scripts with CMake (#351)
     - Native Win32 Support (#133)
     - New QT4 based GUI (#314)
@@ -10,6 +11,7 @@ $Id$
     - Add IPv6 packet editing support (#386)
     - Add IPv6 fragroute support (#388)
     - Add support for Juniper Encapsulated Ethernet DLT (#387)
+    - Properly process IPv6 extension headers (#396)
     - Change default timing method to abstime/gtod (#404)
 
 01/15/2009: Version 3.4.0

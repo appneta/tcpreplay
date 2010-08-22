@@ -19,8 +19,13 @@
 
 #include "config.h"
 #include "defines.h"
+
 #ifdef HAVE_PF_PACKET
 #include <netpacket/packet.h>
+#endif
+
+#ifdef HAVE_TX_RING
+#include "txring.h"
 #endif
 
 #ifdef HAVE_LIBDNET
@@ -40,7 +45,8 @@ enum sendpacket_type_t {
     SP_TYPE_LIBDNET,
     SP_TYPE_LIBPCAP,
     SP_TYPE_BPF,
-    SP_TYPE_PF_PACKET
+    SP_TYPE_PF_PACKET,
+    SP_TYPE_TX_RING
 };
 
 union sendpacket_handle {
@@ -69,6 +75,9 @@ struct sendpacket_s {
     struct tcpr_ether_addr ether;
 #ifdef HAVE_PF_PACKET
     struct sockaddr_ll sa;
+#endif
+#ifdef HAVE_TX_RING
+    txring_t * tx_ring;
 #endif
     bool abort;
 };

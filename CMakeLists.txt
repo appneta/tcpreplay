@@ -99,8 +99,6 @@ mark_as_advanced(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET
     CMAKE_BUILD_TYPE ECHO SVNVERSION MAKE TCPDUMP_BINARY ENABLE_64BITS
     USE_AUTOOPTS LIBPCAP_DIR LIBDNET_DIR)
 
-set(HAVE_TX_RING NO)
-
 if(ENABLE_DEBUG)
     set(__GGDB -g)
     CHECK_C_COMPILER_FLAG(-ggdb GCC_GDB)
@@ -226,6 +224,7 @@ if(HAVE_LIBDNET)
 endif(HAVE_LIBDNET)
 include(CheckBPF)
 include(CheckPFPacket)
+include(CheckTxRing)
 
 if(NOT HAVE_LIBPCAP AND NOT HAVE_BPF AND NOT HAVE_LIBDNET AND NOT HAVE_PF_PACKET)
     message(FATAL_ERROR "You must have libpcap, libdnet, /dev/bpf or PF_PACKET socket support")
@@ -323,6 +322,7 @@ endif(CoreServices_FRAMEWORKS AND Carbon_FRAMEWORKS)
 
 include(FindDoxygen)
 include(FindUnixCommands)
+
 
 
 if(USE_AUTOOPTS)
