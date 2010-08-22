@@ -29,6 +29,7 @@ if(NOT SYSTEM_STRLCPY)
     set(baselibs ${baselibs} ${CMAKE_SOURCE_DIR}/lib/libstrl.a)
 endif(NOT SYSTEM_STRLCPY)
 
+set(tcpcapinfo_srcs tcpcapinfo.c)
 set(tcprewrite_srcs tcprewrite.c)
 set(tcpreplay_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c replay.c)
 set(tcpreplay_edit_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c replay.c)
@@ -95,6 +96,7 @@ set(tcpreplay_libs ${baselibs})
 set(tcprewrite_libs tcpedit ${baselibs})
 set(tcpprep_libs ${baselibs})
 set(tcpbridge_libs tcpedit ${baselibs})
+set(tcpcapinfo_libs ${baselibs})
 
 
 # Do we include fragroute support?
@@ -170,6 +172,9 @@ if(USE_AUTOOPTS)
         PROPERTIES GENERATED true)
 
 endif(USE_AUTOOPTS)
+
+add_executable(tcpcapinfo ${tcpcapinfo_srcs})
+target_link_libraries(tcpcapinfo ${tcpcapinfo_libs})
 
 # disable this for now.
 if(false)
