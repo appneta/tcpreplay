@@ -28,7 +28,10 @@
 #cmakedefine HAVE_PCAP_SET_DATALINK 1
 #cmakedefine HAVE_PCAP_DUMP_FOPEN 1
 #cmakedefine HAVE_PCAP_SNAPSHOT 1
+#cmakedefine HAVE_PCAP_SETDIRECTION 1
 
+/* Linux TX_RING support */
+#cmakedefine HAVE_TX_RING 1
 
 /* set to true to override the default */
 #cmakedefine FORCE_INJECT_BPF 1
