@@ -250,7 +250,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int idx1, pcap_t *pcap2, int 
     const u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     u_int32_t pktlen;
-    packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL, *cached_packet = NULL;
+    packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
     delta_t delta_ctx;
     /* ???? */
@@ -500,7 +500,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
  * determines based upon the cachedata which interface the given packet 
  * should go out.  Also rewrites any layer 2 data we might need to adjust.
  * Returns a void cased pointer to the ctx->intfX of the corresponding 
- * interface.
+ * interface or NULL on error
  */
 void *
 cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
@@ -508,8 +508,10 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
     void *sp = NULL;
     int result;
 
-    if (packet_num > ctx->options->cache_packets)
-        err(-1, "Exceeded number of packets in cache file.");
+    if (packet_num > ctx->options->cache_packets) {
+        tcpreplay_seterr(ctx, "%s", "Exceeded number of packets in cache file.");
+        return NULL;
+    }
 
     result = check_cache(cachedata, packet_num);
     if (result == TCPR_DIR_NOSEND) {
@@ -526,7 +528,7 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
     }
     else {
         tcpreplay_seterr(ctx, "Invalid cache value: %i", result);
-        return -1;
+        return NULL;
     }
 
     return sp;
