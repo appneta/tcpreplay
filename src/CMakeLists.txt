@@ -29,7 +29,7 @@ if(NOT SYSTEM_STRLCPY)
     set(baselibs ${baselibs} ${CMAKE_SOURCE_DIR}/lib/libstrl.a)
 endif(NOT SYSTEM_STRLCPY)
 
-set(tcpcapinfo_srcs tcpcapinfo.c)
+set(tcpcapinfo_srcs tcpcapinfo.c tcpcapinfo_opts.c)
 set(tcprewrite_srcs tcprewrite.c)
 set(tcpreplay_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c replay.c)
 set(tcpreplay_edit_srcs tcpreplay.c tcpreplay_api.c send_packets.c signal_handler.c sleep.c replay.c)
@@ -64,19 +64,24 @@ if(USE_AUTOOPTS)
     )
 
     add_custom_command(OUTPUT tcpreplay_opts.c tcpreplay_opts.h tcpreplay_edit_opts.c tcpreplay_edit_opts.h
-        COMMAND ${AUTOGEN} -L tcpedit tcpreplay_opts.def
+        COMMAND ${AUTOGEN} tcpreplay_opts.def
         COMMAND ${AUTOGEN} -L tcpedit -DTCPREPLAY_EDIT -b tcpreplay_edit_opts tcpreplay_opts.def
         DEPENDS tcpreplay_opts.def
     )
 
     add_custom_command(OUTPUT tcpprep_opts.c tcpprep_opts.h
-        COMMAND ${AUTOGEN} -L tcpedit tcpprep_opts.def
+        COMMAND ${AUTOGEN} tcpprep_opts.def
         DEPENDS tcpprep_opts.def
     )
 
     add_custom_command(OUTPUT tcpbridge_opts.c tcpbridge_opts.h
         COMMAND ${AUTOGEN} -L tcpedit tcpbridge_opts.def
         DEPENDS tcpbridge_opts.def
+    )
+
+    add_custom_command(OUTPUT tcpcapinfo_opts.c tcpcapinfo_opts.h
+        COMMAND ${AUTOGEN} tcpcapinfo_opts.def
+        DEPENDS tcpcapinfo_opts.def
     )
 
     set(tcpreplay_edit_srcs ${tcpreplay_edit_srcs} tcpreplay_edit_opts.c)
@@ -146,8 +151,11 @@ if(USE_AUTOOPTS)
     set_target_properties(tcpreplay-edit
         PROPERTIES COMPILE_FLAGS "-DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT ${abstime_flags}")
 
+    add_executable(tcpcapinfo ${tcpcapinfo_srcs})
+    target_link_libraries(tcpcapinfo ${tcpcapinfo_libs})
+
     if (link_flags)
-        set_target_properties(tcprewrite tcpreplay tcpreplay-edit
+        set_target_properties(tcprewrite tcpreplay tcpreplay-edit tcpcapinfo
             PROPERTIES LINK_FLAGS ${link_flags})
     endif(link_flags)
 
@@ -165,6 +173,7 @@ if(USE_AUTOOPTS)
                 LINK_FLAGS ${link_flags})
         endif(link_flags)
     endif(HAVE_PCAP_SENDPACKET)
+
 
     file(GLOB autogen_headers *_opts.h)
     set_source_files_properties(${autogen_headers}
@@ -184,6 +193,9 @@ if(USE_AUTOOPTS)
         DEPENDS tcpprep_opts.def)
     add_custom_command(OUTPUT tcprewrite.1
         COMMAND ${AUTOGEN} ${autogen_opts} -b tcprewrite tcprewrite_opts.def
+        DEPENDS tcprewrite_opts.def)
+    add_custom_command(OUTPUT tcpcapinfo.1
+        COMMAND ${AUTOGEN} ${autogen_opts} -b tcpcapinfo tcpcapinfo_opts.def
         DEPENDS tcprewrite_opts.def)
 
     # Build/install tcpbridge & man page
@@ -207,18 +219,15 @@ if(USE_AUTOOPTS)
 
     endif(HAVE_PCAP_SENDPACKET)
 
-    install(FILES tcpreplay.1 tcpreplay-edit.1 tcprewrite.1 tcpprep.1
+    install(FILES tcpreplay.1 tcpreplay-edit.1 tcprewrite.1 tcpprep.1 tcpcapinfo.1
         DESTINATION ${CMAKE_INSTALL_PREFIX}/man/man1)
 
-    install(TARGETS tcpreplay tcpreplay-edit tcprewrite tcpprep  RUNTIME
+    install(TARGETS tcpreplay tcpreplay-edit tcprewrite tcpprep tcpcapinfo 
+        RUNTIME
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 endif(USE_AUTOOPTS)
 
-add_executable(tcpcapinfo ${tcpcapinfo_srcs})
-target_link_libraries(tcpcapinfo ${tcpcapinfo_libs})
-install(PROGRAMS tcpcapinfo
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # disable this for now.
 if(false)

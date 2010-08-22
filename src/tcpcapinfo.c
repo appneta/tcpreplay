@@ -31,6 +31,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "tcpcapinfo_opts.h"
+
 static int do_checksum_math(u_int16_t *data, int len);
 
 #ifdef DEBUG
@@ -87,31 +89,11 @@ struct pcap_sf_patched_pkthdr {
  */
 #define NSEC_TCPDUMP_MAGIC      0xa1b23c4d
 
-void
-usage(void)
-{
-    printf("tcpcapinfo [options] <files>\n");
-    printf("-V\t\tPrint version and licensing information\n");
-    exit(0);
-}
-
-void
-version(void)
-{
-    printf("tcpcapinfo version: %s (build %s)", VERSION, svn_version());
-#ifdef DEBUG
-    printf(" (debug)");
-#endif
-    printf("\n");
-    printf("Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
-    printf("The entire Tcpreplay Suite is licensed under the GPLv3\n");
-    exit(0);
-}
 
 int
 main(int argc, char *argv[])
 {
-    int i, fd, swapped, pkthdrlen, ret;
+    int i, fd, swapped, pkthdrlen, ret, optct;
     struct pcap_file_header pcap_fh;
     struct pcap_pkthdr pcap_ph;
     struct pcap_sf_patched_pkthdr pcap_patched_ph; /* Kuznetzov */
@@ -120,13 +102,16 @@ main(int argc, char *argv[])
     uint64_t pktcnt;
     uint32_t readword, caplen;
 
-    if (argc < 2)
-        usage();
+    optct = optionProcess(&tcpcapinfoOptions, argc, argv);
+    argc -= optct;
+    argv += optct;
 
-    if (strcmp(argv[1], "-V") == 0)
-        version();
+#ifdef DEBUG
+    if (HAVE_OPT(DBUG))
+        debug = OPT_VALUE_DBUG;
+#endif
 
-    for (i = 1; i < argc; i++) {
+    for (i = 0; i < argc; i++) {
         dbgx(1, "processing:  %s\n", argv[i]);
         if ((fd = open(argv[i], O_RDONLY)) < 0)
             errx(-1, "Error opening file %s: %s", argv[i], strerror(errno));
