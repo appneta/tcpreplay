@@ -511,6 +511,16 @@ struct tcpr_dnsv4udp_hdr
 };
 
 /*
+ * PPP over Serial with HDLC encapsulation for NetBSD
+ */
+struct tcpr_pppserial_hdr
+{
+    uint8_t  address;
+    uint8_t  control;
+    uint16_t protocol;
+};
+
+/*
  *  Ethernet II header
  *  Static header size: 14 bytes
  */
