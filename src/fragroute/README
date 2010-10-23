@@ -1,13 +1,12 @@
 This code is heavily based on, even stolen from Dug Song's excellent fragroute 
 utility.  I've taken a perfectly good application and converted it into a 
 packet editing library for my own needs.  Any bugs are my fault.  Any praises
-really should go to Dug.  
+really should go to Dug.
 
 Please consider all files here under the original fragroute LICENSE, with the
 added caveat that any changes are:
 
-Copyright 2008, Aaron Turner
-
+Copyright 2008-2010, Aaron Turner
 
 Notes:
 Fragroute runs as a daemon which intercepts packets by modifying the host
@@ -31,3 +30,4 @@ while ((ret = fragroute_read(ctx, char **fragment)) > 0) {
 } else {
     // no more fragments
 }
+
