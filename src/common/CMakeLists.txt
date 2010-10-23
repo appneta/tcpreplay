@@ -43,7 +43,8 @@ if(Subversion_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.svn)
     add_custom_command(TARGET delete_version
         COMMAND cmake -P DeleteVersion.cmake)
 
-    add_dependencies(version delete_version svn_version_c)
+    # dependancy order is BACKWARDS!
+    add_dependencies(version svn_version_c delete_version)
 else(Subversion_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.svn)
     if(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/common/svn_version.c)
         message(FATAL_ERROR "Unable to build svn_version.c: not in svn repository!")
