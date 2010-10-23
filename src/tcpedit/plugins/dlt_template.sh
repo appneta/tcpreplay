@@ -28,18 +28,8 @@ if [ ! -d $PLUGINDIR ]; then
     try mkdir $PLUGINDIR
 fi
 
-
-# Files to not change their name
-for i in Makefile.am ; do
-    if [ -f ${PLUGINDIR}/$i ]; then
-        echo "Skipping ${PLUGINDIR}/$i"
-        continue;
-    fi
-    try sed -E "s/%{plugin}/$PLUGIN/g" dlt_template/$i >${PLUGINDIR}/$i
-done
-
 # Files to have their name changed
-for i in plugin.c.tmpl plugin.h plugin_opts.def plugin_api.c.tmpl plugin_api.h ; do
+for i in plugin.c.tmpl plugin.h plugin_opts.def plugin_api.c.tmpl plugin_api.h plugin_types.h ; do
     OUTFILE=`echo $i | sed -E "s/plugin/${PLUGIN}/"`
     OUTFILE=`echo $OUTFILE | sed -E "s/\.tmpl//"`
     OUTFILE="${PLUGINDIR}/${OUTFILE}"
