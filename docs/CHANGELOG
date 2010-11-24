@@ -1,5 +1,10 @@
 $Id$
 
+??/??/2010 Version 3.4.5
+    - Update URL's to point to new tcpreplay website (#430)
+    - Fix statistics to be more industry standard (#443)
+    - Add --nofixcsum (#449)
+
 08/15/2010 Version 3.4.5beta1
     - First pass at fixing 'make test' on many little-endian systems (#429)
     - Warn users when processing LINUX_SLL frames w/o an Ethernet source MAC (#434)

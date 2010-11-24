@@ -131,11 +131,23 @@ EOText;
 flag = {
     name        = fixcsum;
     value       = C;
-    descrip     = "Force recalculation of IPv4/TCP/UDP header checksums";
+    descrip     = "Force recalculation of IP/TCP/UDP/ICMP header checksums";
+    flags-cant  = nofixcsum;
     doc         = <<- EOText
 Causes each IPv4/v6 packet to have their checksums recalcualted and
 fixed.  Automatically enabled for packets modified with @samp{--seed}, 
 @samp{--pnat}, @samp{--endpoints} or @samp{--fixlen}.
+EOText;
+};
+
+flag = {
+    name        = nofixcsum;
+    descrip     = "Disable recalcuation of IP/TCP/UDP/ICMP header checksums";
+    flags-cant  = fixcsum;
+    doc         = <<- EOText
+Normally, checksums will be automatically re-calcuated and fixed as necessary
+when editing packets.  However, if you wish to disable fixing of checksums
+then specify this option.
 EOText;
 };
 

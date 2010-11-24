@@ -270,8 +270,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
-    /* do we need to fix checksums? -- must always do this last! */
-    if ((tcpedit->fixcsum || needtorecalc)) {
+    /* do we need to fix checksums? -- must always do this last! 
+     * We recalc if:
+     * user specified --fixcsum
+     * packet was edited AND user did NOT specify --nofixcsum
+     */
+    if ((tcpedit->fixcsum == TCPEDIT_FIXCSUM_ON || 
+            (needtorecalc && tcpedit->fixcsum != TCPEDIT_FIXCSUM_DISABLE))) {
         if (ip_hdr != NULL) {
             retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr);
         } else if (ip6_hdr != NULL) {

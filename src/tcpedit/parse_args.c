@@ -113,8 +113,11 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         tcpedit->cidrmap2 = tcpedit->cidrmap1;
 
     /* --fixcsum */
-    if (HAVE_OPT(FIXCSUM))
-        tcpedit->fixcsum = 1;
+    if (HAVE_OPT(FIXCSUM)) {
+        tcpedit->fixcsum = TCPEDIT_FIXCSUM_ON;
+    } else if (HAVE_OPT(NOFIXCSUM)) {
+        tcpedit->fixcsum = TCPEDIT_FIXCSUM_DISABLE;
+    }
 
     /* --efcs */
     if (HAVE_OPT(EFCS)) 

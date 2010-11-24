@@ -95,10 +95,11 @@ struct tcpedit_s {
 #define TCPEDIT_REWRITE_IP_OFF 0x0
 #define TCPEDIT_REWRITE_IP_ON  0x1
 
-    /* fix IP/TCP/UDP checksums */
+    /* fix IP/TCP/UDP/ICMP checksums */
     u_int8_t fixcsum;
 #define TCPEDIT_FIXCSUM_OFF 0x0
 #define TCPEDIT_FIXCSUM_ON  0x1
+#define TCPEDIT_FIXCSUM_DISABLE  0xFF /* never fix via --nofixcsum */
 
     /* remove ethernet FCS */
     u_int8_t efcs;
