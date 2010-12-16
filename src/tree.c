@@ -38,6 +38,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HAVE_SYS_SOCKET
+#include <sys/socket.h>
+#endif
+
 #include "tree.h"
 #include "tcpprep.h"
 #include "tcpprep_opts.h"
