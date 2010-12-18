@@ -50,33 +50,35 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
     /* save the l2 header of the original packet for later */
     ctx->l2len = get_l2len(buf, len, ctx->dlt);
     memcpy(ctx->l2header, buf, ctx->l2len);
-    
-	if ((pkt = pkt_new()) == NULL) {
-		strcpy(ctx->errbuf, "unable to pkt_new()");
-		return -1;
-	}
-	if (len > PKT_BUF_LEN) {
+
+    if ((pkt = pkt_new()) == NULL) {
+        strcpy(ctx->errbuf, "unable to pkt_new()");
+        return -1;
+    }
+    if (len > PKT_BUF_LEN) {
         sprintf(ctx->errbuf, "skipping oversized packet: %zu", len);
-		return -1;
-	}
+        return -1;
+    }
 
     memcpy(pkt->pkt_data, buf, len);
     pkt->pkt_end = pkt->pkt_data + len;
-	
-	pkt_decorate(pkt);
-	
-	if (pkt->pkt_ip == NULL) {
-		strcpy(ctx->errbuf, "skipping non-IP packet");
-		return -1;
-	}
-	if (pkt->pkt_eth && htons(pkt->pkt_eth->eth_type) == ETH_TYPE_IP) {
-	ip_checksum(pkt->pkt_ip, len);
-	}
 
-	TAILQ_INIT(ctx->pktq);
-	TAILQ_INSERT_TAIL(ctx->pktq, pkt, pkt_next);
-	
-	mod_apply(ctx->pktq);
+    pkt_decorate(pkt);
+
+    if (pkt->pkt_ip == NULL) {
+        strcpy(ctx->errbuf, "skipping non-IP packet");
+        return -1;
+    }
+/*  Don't always checksum packets before being fragged
+    if (pkt->pkt_eth && htons(pkt->pkt_eth->eth_type) == ETH_TYPE_IP) {
+        ip_checksum(pkt->pkt_ip, len);
+    }
+*/
+
+    TAILQ_INIT(ctx->pktq);
+    TAILQ_INSERT_TAIL(ctx->pktq, pkt, pkt_next);
+
+    mod_apply(ctx->pktq);
 
     return 0;
 }
@@ -129,16 +131,16 @@ fragroute_init(const int mtu, const int dlt, const char *config, char *errbuf)
     ctx = (fragroute_t *)safe_malloc(sizeof(fragroute_t));
     ctx->pktq = (struct pktq *)safe_malloc(sizeof(struct pktq));
     ctx->dlt = dlt;
-    
-	pkt_init(128);
+
+    pkt_init(128);
 
     ctx->mtu = mtu;
 
-	/* parse the config */
-	if (mod_open(config, errbuf) < 0) {
+    /* parse the config */
+    if (mod_open(config, errbuf) < 0) {
         fragroute_close(ctx);
         return NULL;
-	}
-	
+    }
+
     return ctx;
 }
