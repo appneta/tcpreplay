@@ -110,14 +110,15 @@ usage(void)
 int
 main(int argc, char *argv[])
 {
-    int i, fd, swapped, pkthdrlen, ret;
+    int i, fd, swapped, pkthdrlen, ret, backwards, caplentoobig;
     struct pcap_file_header pcap_fh;
     struct pcap_pkthdr pcap_ph;
     struct pcap_sf_patched_pkthdr pcap_patched_ph; /* Kuznetzov */
     char buf[10000];
     struct stat statinfo;
     uint64_t pktcnt;
-    uint32_t readword, caplen;
+    uint32_t readword;
+    int32_t last_sec, last_usec, caplen;
 
     if (argc < 2)
         usage();
@@ -219,17 +220,22 @@ main(int argc, char *argv[])
         dbgx(5, "Packet header len: %d", pkthdrlen);
 
         if (pkthdrlen == 24) {
-            printf("Packet\tOrigLen\t\tCaplen\t\tTimestamp\t\tIndex\tProto\tPktType\tPktCsum\n");
+            printf("Packet\tOrigLen\t\tCaplen\t\tTimestamp\t\tIndex\tProto\tPktType\tPktCsum\tNote\n");
         } else {
-            printf("Packet\tOrigLen\t\tCaplen\t\tTimestamp\tCsum\n");
+            printf("Packet\tOrigLen\t\tCaplen\t\tTimestamp\tCsum\tNote\n");
         }
 
         pktcnt = 0;
+        last_sec = 0;
+        last_usec = 0;
         while ((ret = read(fd, &buf, pkthdrlen)) == pkthdrlen) {
             pktcnt ++;
+            backwards = 0;
+            caplentoobig = 0;
             dbgx(3, "Read %d bytes for packet %"PRIu64" header", ret, pktcnt);
-            if (pkthdrlen == sizeof(pcap_patched_ph)) {
 
+            /* see what packet header we're using */
+            if (pkthdrlen == sizeof(pcap_patched_ph)) {
                 memcpy(&pcap_patched_ph, &buf, sizeof(pcap_patched_ph));
 
                 if (swapped == 1) {
@@ -241,12 +247,15 @@ main(int argc, char *argv[])
                     pcap_patched_ph.index = SWAPLONG(pcap_patched_ph.index);
                     pcap_patched_ph.protocol = SWAPSHORT(pcap_patched_ph.protocol);
                 }
-                printf("%"PRIu64"\t%4"PRIu32"\t\t%4"PRIu32"%s\t\t%"
+                printf("%"PRIu64"\t%4"PRIu32"\t\t%4"PRIu32"\t\t%"
                         PRIx32".%"PRIx32"\t\t%4"PRIu32"\t%4hu\t%4hhu", 
                         pktcnt, pcap_patched_ph.len, pcap_patched_ph.caplen, 
-                        pcap_fh.snaplen < pcap_patched_ph.caplen ? "**" : "",
                         pcap_patched_ph.ts.tv_sec, pcap_patched_ph.ts.tv_usec,
                         pcap_patched_ph.index, pcap_patched_ph.protocol, pcap_patched_ph.pkt_type);
+
+                if (pcap_fh.snaplen < pcap_patched_ph.caplen) {
+                    caplentoobig = 1;
+                }
 
                 caplen = pcap_patched_ph.caplen;
 
@@ -266,15 +275,33 @@ main(int argc, char *argv[])
                     pcap_ph.ts.tv_sec = SWAPLONG(pcap_ph.ts.tv_sec);
                     pcap_ph.ts.tv_usec = SWAPLONG(pcap_ph.ts.tv_usec);
                 }
-                printf("%"PRIu64"\t%4"PRIu32"\t\t%4"PRIu32"%s\t\t%"
-                        PRIx32".%"PRIx32"",
+                printf("%"PRIu64"\t%4"PRIu32"\t\t%4"PRIu32"\t\t%"
+                        PRIx32".%"PRIx32,
                         pktcnt, pcap_ph.caplen, pcap_ph.len, 
-                        pcap_fh.snaplen < pcap_ph.caplen ? "**" : "",
                         pcap_ph.ts.tv_sec, pcap_ph.ts.tv_usec);
-
+                if (pcap_fh.snaplen < pcap_ph.caplen) {
+                    caplentoobig = 1;
+                }
                 caplen = pcap_ph.caplen;
             }
 
+            /* check to make sure timestamps don't go backwards */
+            if (last_sec > 0 && last_usec > 0) {
+                if ((pcap_ph.ts.tv_sec == last_sec) ? 
+                        (pcap_ph.ts.tv_usec < last_usec) : 
+                        (pcap_ph.ts.tv_sec < last_sec)) {
+                    backwards = 1;
+                }
+            }
+            if (pkthdrlen == sizeof(pcap_patched_ph)) {
+                last_sec = pcap_patched_ph.ts.tv_sec;
+                last_usec = pcap_patched_ph.ts.tv_usec;
+            } else {
+                last_sec = pcap_ph.ts.tv_sec;
+                last_usec = pcap_ph.ts.tv_usec;
+            }
+
+            /* read the frame */
             if ((ret = read(fd, &buf, caplen)) != caplen) {
                 if (ret < 0) {
                     printf("Error reading file: %s: %s\n", argv[i], strerror(errno));
@@ -286,7 +313,19 @@ main(int argc, char *argv[])
                 continue;
             }
 
-            printf("\t%x\n", do_checksum_math((u_int16_t *)buf, caplen));
+            /* print the frame checksum */
+            printf("\t%x\t", do_checksum_math((u_int16_t *)buf, caplen));
+
+            /* print the Note */
+            if (! backwards && ! caplentoobig) {
+                printf("OK\n");
+            } else if (backwards && ! caplentoobig) {
+                printf("BAD_TS\n");
+            } else if (caplentoobig && ! backwards) {
+                printf("TOOBIG\n");
+            } else if (backwards && caplentoobig) {
+                printf("BAD_TS|TOOBIG");
+            } 
 
         }
 
