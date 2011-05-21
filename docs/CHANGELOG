@@ -6,6 +6,7 @@ $Id$
     - Add --nofixcsum (#449)
     - Fix compile failure under FreeBSD 9.0 (#450)
     - Don't checksum packets before going through fragroute engine (#452)
+    - Fix segfault when rewriting multiple ports (#459)
 
 
 08/15/2010 Version 3.4.5beta1

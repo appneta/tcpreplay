@@ -135,7 +135,7 @@ ports2PORT(char *ports)
             portmap_last = portmap;
             portmap = portmap->next;
         }
-        portmap_last = NULL;
+        portmap_last->next = NULL;
         free(portmap);
     }
     /* process a list via +, filling in list[] */
