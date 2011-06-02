@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 static int do_checksum_math(u_int16_t *data, int len);
 
@@ -277,7 +278,7 @@ main(int argc, char *argv[])
                 }
                 printf("%"PRIu64"\t%4"PRIu32"\t\t%4"PRIu32"\t\t%"
                         PRIx32".%"PRIx32,
-                        pktcnt, pcap_ph.caplen, pcap_ph.len, 
+                        pktcnt, pcap_ph.len, pcap_ph.caplen, 
                         pcap_ph.ts.tv_sec, pcap_ph.ts.tv_usec);
                 if (pcap_fh.snaplen < pcap_ph.caplen) {
                     caplentoobig = 1;
