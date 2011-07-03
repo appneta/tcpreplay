@@ -103,7 +103,7 @@ tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 if ENABLE_OSX_FRAMEWORKS
 tcpbridge_LDFLAGS = -framework CoreServices -framework Carbon
 endif
-tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c sleep.c
+tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c sleep.c
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def

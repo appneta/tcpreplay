@@ -36,6 +36,7 @@
 
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 extern volatile int didsig;
 extern COUNTER bytes_sent, pkts_sent, failed;
@@ -76,7 +77,9 @@ break_now(int signo)
                 kill(tcpdump.pid, SIGKILL);
 #endif
 */
+        gettimeofday(&end, NULL);
         packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
+
         exit(1);
     }
 }
