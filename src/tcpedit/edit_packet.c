@@ -891,7 +891,7 @@ is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip)
     assert(tcpedit);
    
     /* multicast/broadcast is 224.0.0.0 or greater */
-    if (ip > 3758096384)
+    if (ntohl(ip) > 3758096384)
         return 0;
         
     return 1;
