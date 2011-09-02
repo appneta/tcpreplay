@@ -42,6 +42,32 @@
 tOptDesc *const tcpedit_tcpedit_optDesc_p;
 
 /**
+ * \brief Checks to see if you should make an edit
+ *
+ * Given the packet direction, this lets you know if you should make an edit
+ *
+ * packet: C2S & editdir = client == 1
+ * packet: C2S & editdir = server == 0
+ * packet: S2C & editdir = client == 0
+ * packet: S2C & editdir = server == 1
+ * packet: S2C & editdir = both   == 1
+ * packet: C2S & editdir = both   == 1
+ */
+int
+tcpedit_checkdir(tcpedit_t *tcpedit, tcpr_dir_t direction)
+{
+
+    /* Should we edit this packet? */
+    if ((tcpedit->editdir == TCPEDIT_EDIT_BOTH) ||
+        (tcpedit->editdir == TCPEDIT_EDIT_C2S && direction == TCPR_DIR_C2S) ||
+        (tcpedit->editdir == TCPR_EDIT_S2C && direction == TCPR_DIR_S2C)) {
+        return 1;
+    }
+    return 0;
+}
+
+
+/**
  * \brief Edit the given packet
  *
  * Processs a given packet and edit the pkthdr/pktdata structures
@@ -73,6 +99,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     tcpedit->runtime.packetnum++;
     dbgx(3, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
+
 
     /*
      * remove the Ethernet FCS (checksum)?
@@ -116,13 +143,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* does packet have an IP header?  if so set our pointer to it */
     if (l2proto == htons(ETHERTYPE_IP)) {
-        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen);
+        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
         if (ip_hdr == NULL) {
             return TCPEDIT_ERROR;
         }        
         dbgx(3, "Packet has an IPv4 header: %p...", ip_hdr);
     } else if (l2proto == htons(ETHERTYPE_IP6)) {
-        ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen);
+        ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
         if (ip6_hdr == NULL) {
             return TCPEDIT_ERROR;
         }
@@ -298,6 +325,7 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     tcpedit->tos = -1;
     tcpedit->tclass = -1;
     tcpedit->flowlabel = -1;
+    tcpedit->editdir = TCPEDIT_EDIT_BOTH;
  
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.dlt1 = dlt;
