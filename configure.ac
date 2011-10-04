@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=4
-MICRO_VERSION=5beta3
+MICRO_VERSION=5beta4
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.synfin.net/
 
@@ -131,8 +131,8 @@ AC_MSG_CHECKING(for $CC -Wextra support)
 OLD_CFLAGS=$CFLAGS
 CFLAGS="$CFLAGS -Wextra"
 wextra=""
-AC_COMPILE_IFELSE([#include <stdlib.h>
-    int main(int argc, char *argv[]) { return(0); }],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }]])],
     [ AC_MSG_RESULT(yes) 
       wextra="-Wextra" ],
     [ AC_MSG_RESULT(no) ])
@@ -142,8 +142,8 @@ AC_MSG_CHECKING(for $CC -Wno-variadic-macros support)
 OLD_CFLAGS=$CFLAGS
 CFLAGS="$CFLAGS -Wno-variadic-macros"
 wno_variadic_macros=""
-AC_COMPILE_IFELSE([#include <stdlib.h>
-    int main(int argc, char *argv[]) { return(0); }],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }]])],
     [ AC_MSG_RESULT(yes) 
       wno_variadic_macros="-Wno-variadic-macros" ],
     [ AC_MSG_RESULT(no) ])
@@ -153,8 +153,8 @@ AC_MSG_CHECKING(for $CC -Wfatal-errors support)
 OLD_CFLAGS=$CFLAGS
 CFLAGS="$CFLAGS -Wfatal-errors"
 wfatal_errors=""
-AC_COMPILE_IFELSE([#include <stdlib.h>
-    int main(int argc, char *argv[]) { return(0); }],
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }]])],
     [ AC_MSG_RESULT(yes) 
       wfatal_errors="-Wfatal-errors" ],
     [ AC_MSG_RESULT(no) ])
@@ -162,7 +162,7 @@ CFLAGS="$OLD_CFLAGS $wfatal_errors"
 
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h sys/param.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h])
 
 dnl OpenBSD has special requirements
 AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [
@@ -402,8 +402,7 @@ AC_MSG_CHECKING(for libpcap version)
 
 dnl 0.9.6 (which is still thinks it is 0.9.5 due to a bug) introduces an important
 dnl fix for OSX.  See: http://tcpreplay.synfin.net/trac/ticket/167
-libpcap_version_096=no
-AC_RUN_IFELSE(AC_LANG_PROGRAM([[
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -419,12 +418,13 @@ AC_RUN_IFELSE(AC_LANG_PROGRAM([[
             exit(0);
 
     exit(1);
-]]), [
-    libpcap_version_096=yes
-])
+]])],
+ [libpcap_version_096=yes],
+ [libpcap_version_096=no],
+ [libpcap_version_096=yes]
+)
 
-libpcap_ver8=no
-AC_RUN_IFELSE(AC_LANG_PROGRAM([[
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -444,14 +444,13 @@ AC_RUN_IFELSE(AC_LANG_PROGRAM([[
         exit(0);
 
     exit(1);
-]]), [
-    libpcap_ver8=yes
-], [
-    libpcap_ver8=no
-])
+]])],
+ [libpcap_ver8=yes],
+ [libpcap_ver8=no],
+ [libpcap_ver8=yes]
+)
 
-libpcap_ver7=no
-AC_RUN_IFELSE(AC_LANG_PROGRAM([[
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -469,11 +468,11 @@ extern const char pcap_version[[]]; /* double up since autoconf escapes things *
             exit(0);
 
     exit(1);
-]]), [
-    libpcap_ver7=yes
-], [
-    libpcap_ver7=no
-])
+]])],
+ [libpcap_ver7=yes],
+ [libpcap_ver7=no],
+ [libpcap_ver7=yes]
+)
 
 if test x$libpcap_ver8 = xyes ; then
     AC_MSG_RESULT(>= 0.8.0)
@@ -495,7 +494,7 @@ fi
 
 dnl Check for pcap_setnonblock()
 AC_MSG_CHECKING(for pcap_setnonblock)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -506,7 +505,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
 
     pcap_setnonblock(p, 1, errbuf);
     exit(0);
-]]), [
+]])], [
     have_pcap_setnonblock=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -521,7 +520,7 @@ fi
 
 dnl Check to see if we've got pcap_datalink_val_to_name()
 AC_MSG_CHECKING(for pcap_datalink_val_to_description)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -530,7 +529,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
     if (strcmp(pcap_datalink_val_to_description(1), "Ethernet (10Mb)") == 0)
         exit(0);
     exit(1);
-]]),[
+]])],[
     have_dlt_to_desc=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -545,7 +544,7 @@ fi
 
 dnl Check for pcap_get_selectable_fd()
 AC_MSG_CHECKING(for pcap_get_selectable_fd)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -555,7 +554,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
     pcap_t *p;
     f = pcap_get_selectable_fd(p);
     exit(0);
-]]), [
+]])], [
     have_pcap_get_selectable_fd=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -574,7 +573,7 @@ dnl must actually LINK the code, not just compile it.
 
 dnl Check to see if we've got pcap_dump_fopen()
 AC_MSG_CHECKING(for pcap_dump_fopen)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -584,7 +583,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
     pcap_t *pcap;
     FILE *foo;
     dump = pcap_dump_fopen(pcap, foo);
-]]),[
+]])],[
     have_pcap_dump_fopen=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -602,7 +601,7 @@ fi
 have_pcap_inject=no
 dnl Check to see if we've got pcap_inject()
 AC_MSG_CHECKING(for pcap_inject sending support)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -611,7 +610,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
     pcap_t *pcap;
     char *buf;
     pcap_inject(pcap, (void *)buf, 0);
-]]),[
+]])],[
     have_pcap_inject=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -626,7 +625,7 @@ fi
 have_pcap_sendpacket=no
 dnl Check to see if we've got pcap_sendpacket()
 AC_MSG_CHECKING(for pcap_sendpacket sending support)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -635,7 +634,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
     pcap_t *pcap;
     u_char *buf;
     pcap_sendpacket(pcap, buf, 0);
-]]),[
+]])],[
     have_pcap_sendpacket=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -649,7 +648,7 @@ fi
 
 have_pcap_breakloop=no
 AC_MSG_CHECKING(for pcap_breakloop)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -657,7 +656,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
 ]],[[
     pcap_t *pcap;
     pcap_sendpacket(pcap);
-]]),[
+]])],[
     have_pcap_breakloop=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -691,7 +690,7 @@ extern char pcap_version[];
 have_pcap_snapshot=no
 dnl Check for pcap_snapshot()
 AC_MSG_CHECKING(for pcap_snapshot)
-AC_LINK_IFELSE(AC_LANG_PROGRAM([[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -702,7 +701,7 @@ AC_LINK_IFELSE(AC_LANG_PROGRAM([[
 
     len = pcap_snapshot(p);
     exit(0);
-]]), [
+]])], [
     have_pcap_snapshot=yes
     AC_MSG_RESULT(yes)
 ], [
@@ -782,8 +781,8 @@ AC_TRY_COMPILE([
 
 have_bpf=no
 dnl Check for BSD's BPF
-AC_MSG_CHECKING(for BPF device sending support)
-AC_TRY_RUN([
+AC_CACHE_CHECK([for BPF device sending support], ac_cv_have_bpf,
+[AC_TRY_RUN([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -811,16 +810,21 @@ main(int argc, char *argv[]) {
 
     /* else suck, no good */
     exit(-1);
-}],
+}]],
 [
-    AC_DEFINE([HAVE_BPF], [1], 
-            [Do we have BPF device support?])
     AC_MSG_RESULT(yes)
     have_bpf=yes
-],[
-    AC_MSG_RESULT(no)
+],
+[AC_MSG_RESULT(no)],
+[AC_MSG_ERROR([cross-compiling,
+  presetting ac_cv_have_bpf=(yes|no) will help])]
+)
 ])
 
+if test $have_bpf = yes ; then
+    AC_DEFINE([HAVE_BPF], [1], 
+            [Do we have BPF device support?])
+fi
 
 dnl ##################################################
 dnl # Check for libdnet, but only if not Cygwin! 
@@ -831,7 +835,7 @@ libdnet_version=
 enable_fragroute=no
 trydnetdir=/usr/local
 
-if test $have_cygwin == no ; then
+if test $have_cygwin = no ; then
     AC_MSG_CHECKING(for libdnet)
     AC_ARG_WITH(libdnet,
         AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
@@ -1182,7 +1186,7 @@ case $host in
     ;;
 esac])
 
-AM_CONDITIONAL([ENABLE_OSX_FRAMEWORKS], test "$osx_frameworks" == "yes")
+AM_CONDITIONAL([ENABLE_OSX_FRAMEWORKS], test "$osx_frameworks" = "yes")
 
 AC_ARG_WITH(testnic2,
     AC_HELP_STRING([--with-testnic2=NIC2], [Select an optional 2nd network card to use for testing]),
