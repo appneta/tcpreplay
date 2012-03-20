@@ -1,5 +1,5 @@
 /* Parse a time duration and return a seconds count
-   Copyright (C) 2008 Free Software Foundation, Inc.
+   Copyright (C) 2008-2010 Free Software Foundation, Inc.
    Written by Bruce Korb <bkorb@gnu.org>, 2008.
 
    This program is free software: you can redistribute it and/or modify
@@ -579,4 +579,4 @@ parse_duration (char const * pz)
  * c-file-style: "gnu"
  * indent-tabs-mode: nil
  * End:
- * end of parse-duration.c */
+ * end of autoopts/parse-duration.c */

@@ -109,6 +109,9 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define to 1 if you have the `fork' function. */
+#undef HAVE_FORK
+
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
 #undef HAVE_FSEEKO
 
@@ -391,6 +394,12 @@
 /* Define to 1 if you have the <varargs.h> header file. */
 #undef HAVE_VARARGS_H
 
+/* Define to 1 if you have the `vfork' function. */
+#undef HAVE_VFORK
+
+/* Define to 1 if you have the <vfork.h> header file. */
+#undef HAVE_VFORK_H
+
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
 
@@ -411,6 +420,12 @@
 
 /* Define to 1 if the system has the type `wint_t'. */
 #undef HAVE_WINT_T
+
+/* Define to 1 if `fork' works. */
+#undef HAVE_WORKING_FORK
+
+/* Define to 1 if `vfork' works. */
+#undef HAVE_WORKING_VFORK
 
 /* What is the path (if any) to the libpcap bpf header file? */
 #undef INCLUDE_PCAP_BPF_HEADER
@@ -529,6 +544,9 @@
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc
 
+/* Define to `int' if <sys/types.h> does not define. */
+#undef pid_t
+
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
@@ -543,3 +561,6 @@
 
 /* Define to `uint8_t' if <sys/types.h> does not define. */
 #undef u_int8_t
+
+/* Define as `fork' if `vfork' does not work. */
+#undef vfork

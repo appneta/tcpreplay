@@ -22,6 +22,9 @@
 #include "common/sendpacket.h"
 #include "common/interface.h"
 
+// Y.H.S
+#include "tcpreplay_newconn.h"
+
 const char *svn_version(void); /* svn_version.c */
 
 #endif

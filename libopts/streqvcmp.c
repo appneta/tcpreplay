@@ -1,7 +1,8 @@
 
-/*
- *  $Id: streqvcmp.c,v 4.17 2009/08/01 17:43:06 bkorb Exp $
- * Time-stamp:      "2008-12-26 10:15:46 bkorb"
+/**
+ * \file streqvcmp.c
+ *
+ * Time-stamp:      "2010-07-17 10:16:24 bkorb"
  *
  *  String Equivalence Comparison
  *
@@ -12,7 +13,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -97,7 +98,7 @@ static unsigned char charmap[] = {
  * err:  none checked.  Caller responsible for seg faults.
 =*/
 int
-strneqvcmp( tCC* s1, tCC* s2, int ct )
+strneqvcmp(tCC* s1, tCC* s2, int ct)
 {
     for (; ct > 0; --ct) {
         unsigned char u1 = (unsigned char) *s1++;
@@ -136,7 +137,7 @@ strneqvcmp( tCC* s1, tCC* s2, int ct )
  * err:  none checked.  Caller responsible for seg faults.
 =*/
 int
-streqvcmp( tCC* s1, tCC* s2 )
+streqvcmp(tCC* s1, tCC* s2)
 {
     for (;;) {
         unsigned char u1 = (unsigned char) *s1++;
@@ -169,7 +170,7 @@ streqvcmp( tCC* s1, tCC* s2 )
  * are incremented and the process repeated until @code{ct} entries have been
  * set. For example,
  * @example
- *    streqvmap( 'a', 'A', 26 );
+ *    streqvmap('a', 'A', 26);
  * @end example
  * @noindent
  * will alter the mapping so that all English lower case letters
@@ -181,10 +182,10 @@ streqvcmp( tCC* s1, tCC* s2 )
  * err:  none.
 =*/
 void
-streqvmap( char From, char To, int ct )
+streqvmap(char From, char To, int ct)
 {
     if (ct == 0) {
-        ct = sizeof( charmap ) - 1;
+        ct = sizeof(charmap) - 1;
         do  {
             charmap[ ct ] = ct;
         } while (--ct >= 0);
@@ -198,7 +199,7 @@ streqvmap( char From, char To, int ct )
             charmap[ chFrom ] = (unsigned)chTo;
             chFrom++;
             chTo++;
-            if ((chFrom >= sizeof( charmap )) || (chTo >= sizeof( charmap )))
+            if ((chFrom >= sizeof(charmap)) || (chTo >= sizeof(charmap)))
                 break;
         } while (--ct > 0);
     }
@@ -221,7 +222,7 @@ streqvmap( char From, char To, int ct )
  * err:  none.
 =*/
 void
-strequate( char const* s )
+strequate(char const* s)
 {
     if ((s != NULL) && (*s != NUL)) {
         unsigned char equiv = (unsigned)*s;
@@ -250,7 +251,7 @@ strequate( char const* s )
  * err:  none.
 =*/
 void
-strtransform( char* d, char const* s )
+strtransform(char* d, char const* s)
 {
     do  {
         *(d++) = (char)charmap[ (unsigned)*s ];

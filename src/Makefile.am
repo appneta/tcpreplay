@@ -6,7 +6,7 @@ else
     LIBFRAGROUTE = 
     FRAGROUTE_DIR = 
 endif
-
+ 
 SUBDIRS = common tcpedit $(FRAGROUTE_DIR)
 
 if SYSTEM_STRLCPY
@@ -41,7 +41,7 @@ tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1
-bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit tcpcapinfo
+bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit
 
 if COMPILE_TCPBRIDGE
 bin_PROGRAMS += tcpbridge
@@ -50,7 +50,7 @@ endif
 
 tcpreplay_edit_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY -DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT
 tcpreplay_edit_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
-tcpreplay_edit_SOURCES = tcpreplay_edit_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c
+tcpreplay_edit_SOURCES = tcpreplay_edit_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c tcpreplay_newconn.c
 tcpreplay_edit_OBJECTS: tcpreplay_opts.h
 tcpreplay_edit_opts.h: tcpreplay_edit_opts.c
 
@@ -59,7 +59,7 @@ tcpreplay_edit_opts.c: tcpreplay_opts.def
 		tcpreplay_opts.def
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
-tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c
+tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c tcpreplay_newconn.c
 tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
 tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
@@ -83,10 +83,6 @@ tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 
-tcpcapinfo_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPCAPINFO
-tcpcapinfo_LDADD = ./common/libcommon.a \
-    $(LIBSTRL) @LPCAPLIB@ $(LIBOPTS_LDADD) @DMALLOC_LIB@
-tcpcapinfo_SOURCES = tcpcapinfo.c
 
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \
@@ -103,7 +99,7 @@ tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 if ENABLE_OSX_FRAMEWORKS
 tcpbridge_LDFLAGS = -framework CoreServices -framework Carbon
 endif
-tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c sleep.c
+tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c send_packets.c sleep.c tcpreplay_newconn.c
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
@@ -113,7 +109,7 @@ noinst_HEADERS = tcpreplay.h tcpprep.h bridge.h defines.h tree.h \
 		 send_packets.h signal_handler.h common.h tcpreplay_opts.h \
 		 tcpreplay_edit_opts.h tcprewrite.h tcprewrite_opts.h tcpprep_opts.h \
 		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def \
-		 tcpbridge_opts.def tcpbridge.h tcpbridge_opts.h tcpr.h sleep.h
+		 tcpbridge_opts.def tcpbridge.h tcpbridge_opts.h tcpr.h sleep.h tcpreplay_newconn.h
 
 
 MOSTLYCLEANFILES = *~ *.o
@@ -123,4 +119,4 @@ MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c \
 		       tcpprep_opts.h tcpprep.1 tcpreplay.1 tcprewrite.1 \
 		       tcpbridge.1 tcpbridge_opts.h tcpbridge_opts.c \
 			   tcpreplay_edit_opts.c tcpreplay_edit_opts.h \
-			   tcpreplay-edit.1
+			   tcpreplay-edit.1 

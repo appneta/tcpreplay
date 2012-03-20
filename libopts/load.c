@@ -1,7 +1,7 @@
 
-/*
- *  $Id: load.c,v 4.38 2009/08/01 17:43:06 bkorb Exp $
- *  Time-stamp:      "2008-12-06 10:16:05 bkorb"
+/**
+ *  \file load.c
+ *  Time-stamp:      "2010-12-06 14:03:01 bkorb"
  *
  *  This file contains the routines that deal with processing text strings
  *  for options, either from a NUL-terminated string passed in or from an
@@ -9,7 +9,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -31,23 +31,16 @@
 tOptionLoadMode option_load_mode = OPTION_LOAD_UNCOOKED;
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 static ag_bool
-insertProgramPath(
-    char*   pzBuf,
-    int     bufSize,
-    tCC*    pzName,
-    tCC*    pzProgPath );
+insertProgramPath(char * pzBuf, int bufSize, char const * pzName,
+                  char const * pzProgPath);
 
 static ag_bool
-insertEnvVal(
-    char*   pzBuf,
-    int     bufSize,
-    tCC*    pzName,
-    tCC*    pzProgPath );
+insertEnvVal(char * pzBuf, int bufSize, char const * pzName,
+             char const * pzProgPath);
 
 static char*
-assembleArgValue( char* pzTxt, tOptionLoadMode mode );
+assembleArgValue(char* pzTxt, tOptionLoadMode mode);
 /* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  optionMakePath
@@ -102,19 +95,16 @@ assembleArgValue( char* pzTxt, tOptionLoadMode mode );
  *                 errors (cannot resolve the resulting path).
 =*/
 ag_bool
-optionMakePath(
-    char*   pzBuf,
-    int     bufSize,
-    tCC*    pzName,
-    tCC*    pzProgPath )
+optionMakePath(char * pzBuf, int bufSize, char const * pzName,
+               char const * pzProgPath)
 {
-    size_t  name_len = strlen( pzName );
+    size_t  name_len = strlen(pzName);
 
 #   ifndef PKGDATADIR
 #     define PKGDATADIR ""
 #   endif
 
-    tSCC    pkgdatadir[] = PKGDATADIR;
+    static char const pkgdatadir[] = PKGDATADIR;
 
     ag_bool res = AG_TRUE;
 
@@ -125,7 +115,7 @@ optionMakePath(
      *  IF not an environment variable, just copy the data
      */
     if (*pzName != '$') {
-        tCC*  pzS = pzName;
+        char const*  pzS = pzName;
         char* pzD = pzBuf;
         int   ct  = bufSize;
 
@@ -147,7 +137,7 @@ optionMakePath(
         return AG_FALSE;
 
     case '$':
-        res = insertProgramPath( pzBuf, bufSize, pzName, pzProgPath );
+        res = insertProgramPath(pzBuf, bufSize, pzName, pzProgPath);
         break;
 
     case '@':
@@ -162,7 +152,7 @@ optionMakePath(
         break;
 
     default:
-        res = insertEnvVal( pzBuf, bufSize, pzName, pzProgPath );
+        res = insertEnvVal(pzBuf, bufSize, pzName, pzProgPath);
     }
 
     if (! res)
@@ -182,11 +172,11 @@ optionMakePath(
     {
         char z[ PATH_MAX+1 ];
 
-        if (realpath( pzBuf, z ) == NULL)
+        if (realpath(pzBuf, z) == NULL)
             return AG_FALSE;
 
         if (strlen(z) < bufSize)
-            strcpy( pzBuf, z );
+            strcpy(pzBuf, z);
     }
 #endif
 
@@ -195,14 +185,11 @@ optionMakePath(
 
 
 static ag_bool
-insertProgramPath(
-    char*   pzBuf,
-    int     bufSize,
-    tCC*    pzName,
-    tCC*    pzProgPath )
+insertProgramPath(char * pzBuf, int bufSize, char const * pzName,
+                  char const * pzProgPath)
 {
-    tCC*    pzPath;
-    tCC*    pz;
+    char const*    pzPath;
+    char const*    pz;
     int     skip = 2;
 
     switch (pzName[2]) {
@@ -219,16 +206,16 @@ insertProgramPath(
      *  If it is, we're done.  Otherwise, we have to hunt
      *  for the program using "pathfind".
      */
-    if (strchr( pzProgPath, DIRCH ) != NULL)
+    if (strchr(pzProgPath, DIRCH) != NULL)
         pzPath = pzProgPath;
     else {
-        pzPath = pathfind( getenv( "PATH" ), (char*)pzProgPath, "rx" );
+        pzPath = pathfind(getenv("PATH"), (char*)pzProgPath, "rx");
 
         if (pzPath == NULL)
             return AG_FALSE;
     }
 
-    pz = strrchr( pzPath, DIRCH );
+    pz = strrchr(pzPath, DIRCH);
 
     /*
      *  IF we cannot find a directory name separator,
@@ -246,8 +233,8 @@ insertProgramPath(
     if ((pz - pzPath)+1 + strlen(pzName) >= bufSize)
         return AG_FALSE;
 
-    memcpy( pzBuf, pzPath, (size_t)((pz - pzPath)+1) );
-    strcpy( pzBuf + (pz - pzPath) + 1, pzName );
+    memcpy(pzBuf, pzPath, (size_t)((pz - pzPath)+1));
+    strcpy(pzBuf + (pz - pzPath) + 1, pzName);
 
     /*
      *  If the "pzPath" path was gotten from "pathfind()", then it was
@@ -260,11 +247,8 @@ insertProgramPath(
 
 
 static ag_bool
-insertEnvVal(
-    char*   pzBuf,
-    int     bufSize,
-    tCC*    pzName,
-    tCC*    pzProgPath )
+insertEnvVal(char * pzBuf, int bufSize, char const * pzName,
+             char const * pzProgPath)
 {
     char* pzDir = pzBuf;
 
@@ -280,7 +264,7 @@ insertEnvVal(
 
     *pzDir = NUL;
 
-    pzDir = getenv( pzBuf );
+    pzDir = getenv(pzBuf);
 
     /*
      *  Environment value not found -- skip the home list entry
@@ -288,16 +272,16 @@ insertEnvVal(
     if (pzDir == NULL)
         return AG_FALSE;
 
-    if (strlen( pzDir ) + 1 + strlen( pzName ) >= bufSize)
+    if (strlen(pzDir) + 1 + strlen(pzName) >= bufSize)
         return AG_FALSE;
 
-    sprintf( pzBuf, "%s%s", pzDir, pzName );
+    sprintf(pzBuf, "%s%s", pzDir, pzName);
     return AG_TRUE;
 }
 
 
 LOCAL void
-mungeString( char* pzTxt, tOptionLoadMode mode )
+mungeString(char* pzTxt, tOptionLoadMode mode)
 {
     char* pzE;
 
@@ -311,7 +295,7 @@ mungeString( char* pzTxt, tOptionLoadMode mode )
         while ((*(pzD++) = *(pzS++)) != NUL)   ;
         pzE = pzD-1;
     } else
-        pzE = pzTxt + strlen( pzTxt );
+        pzE = pzTxt + strlen(pzTxt);
 
     while ((pzE > pzTxt) && IS_WHITESPACE_CHAR(pzE[-1]))  pzE--;
     *pzE = NUL;
@@ -331,15 +315,15 @@ mungeString( char* pzTxt, tOptionLoadMode mode )
     case '\'': break;
     }
 
-    (void)ao_string_cook( pzTxt, NULL );
+    (void)ao_string_cook(pzTxt, NULL);
 }
 
 
 static char*
-assembleArgValue( char* pzTxt, tOptionLoadMode mode )
+assembleArgValue(char* pzTxt, tOptionLoadMode mode)
 {
-    tSCC zBrk[] = " \t\n:=";
-    char* pzEnd = strpbrk( pzTxt, zBrk );
+    static char const zBrk[] = " \t\n:=";
+    char* pzEnd = strpbrk(pzTxt, zBrk);
     int   space_break;
 
     /*
@@ -390,9 +374,9 @@ loadOptionLine(
     while (IS_WHITESPACE_CHAR(*pzLine))  pzLine++;
 
     {
-        char* pzArg = assembleArgValue( pzLine, load_mode );
+        char* pzArg = assembleArgValue(pzLine, load_mode);
 
-        if (! SUCCESSFUL( longOptionFind( pOpts, pzLine, pOS )))
+        if (! SUCCESSFUL(longOptionFind(pOpts, pzLine, pOS)))
             return;
         if (pOS->flags & OPTST_NO_INIT)
             return;
@@ -473,7 +457,7 @@ loadOptionLine(
         if (*pOS->pzOptArg == NUL)
              pOS->pzOptArg = NULL;
         else {
-            AGDUPSTR( pOS->pzOptArg, pOS->pzOptArg, "option argument" );
+            AGDUPSTR(pOS->pzOptArg, pOS->pzOptArg, "option argument");
             pOS->flags |= OPTST_ALLOC_ARG;
         }
 
@@ -481,7 +465,7 @@ loadOptionLine(
         if (*pOS->pzOptArg == NUL)
              pOS->pzOptArg = zNil;
         else {
-            AGDUPSTR( pOS->pzOptArg, pOS->pzOptArg, "option argument" );
+            AGDUPSTR(pOS->pzOptArg, pOS->pzOptArg, "option argument");
             pOS->flags |= OPTST_ALLOC_ARG;
         }
     }
@@ -489,7 +473,7 @@ loadOptionLine(
     {
         tOptionLoadMode sv = option_load_mode;
         option_load_mode = load_mode;
-        handleOption( pOpts, pOS );
+        handle_opt(pOpts, pOS);
         option_load_mode = sv;
     }
 }
@@ -521,15 +505,13 @@ loadOptionLine(
  *        will cause a warning to print, but the function should return.
 =*/
 void
-optionLoadLine(
-    tOptions*  pOpts,
-    tCC*       pzLine )
+optionLoadLine(tOptions * pOpts, char const * pzLine)
 {
     tOptState st = OPTSTATE_INITIALIZER(SET);
     char* pz;
-    AGDUPSTR( pz, pzLine, "user option line" );
-    loadOptionLine( pOpts, &st, pz, DIRECTION_PROCESS, OPTION_LOAD_COOKED );
-    AGFREE( pz );
+    AGDUPSTR(pz, pzLine, "user option line");
+    loadOptionLine(pOpts, &st, pz, DIRECTION_PROCESS, OPTION_LOAD_COOKED);
+    AGFREE(pz);
 }
 /*
  * Local Variables:

@@ -1,8 +1,19 @@
 /*
- *   Character mapping generated 08/08/09 10:14:55
+ *   Character mapping generated 12/13/10 00:09:23
  *
  *  This file contains the character classifications
  *  used by AutoGen and AutoOpts for identifying tokens.
+ *  This file is part of AutoGen.
+ *  AutoGen Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoGen is free software: you can redistribute it and/or modify it under the
+ *  terms of the GNU General Public License as published by the Free Software
+ *  Foundation, either version 3 of the License, or (at your option) any later
+ *  version.
+ *  AutoGen is distributed in the hope that it will be useful, but WITHOUT ANY
+ *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ *  A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef AG_CHAR_MAP_H_GUARD
 #define AG_CHAR_MAP_H_GUARD 1
@@ -62,8 +73,23 @@
 // %table          opt-char-cat
 // 
 // %comment
-//         This file contains the character classifications
-//         used by AutoGen and AutoOpts for identifying tokens.
+//   This file contains the character classifications
+//   used by AutoGen and AutoOpts for identifying tokens.
+// 
+//   This file is part of AutoGen.
+//   AutoGen Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+// 
+//   AutoGen is free software: you can redistribute it and/or modify it under the
+//   terms of the GNU General Public License as published by the Free Software
+//   Foundation, either version 3 of the License, or (at your option) any later
+//   version.
+// 
+//   AutoGen is distributed in the hope that it will be useful, but WITHOUT ANY
+//   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+//   A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// 
+//   You should have received a copy of the GNU General Public License along
+//   with this program.  If not, see <http://www.gnu.org/licenses/>.
 // %
 // 
 // lower-case      "a-z"
@@ -88,6 +114,9 @@
 // suffix          "-._"         +alphanumeric
 // suffix-fmt      "%/"          +suffix     
 // false-type      "nNfF0\x00"
+// file-name       "/"           +suffix
+// end-token       "\x00"        +whitespace
+// end-list-entry  ","           +end-token
 //
 #endif /* 0 -- mapping spec. source */
 
@@ -98,63 +127,66 @@ static inline int is_opt_char_cat_char(char ch, opt_char_cat_mask_t mask) {
     unsigned int ix = (unsigned char)ch;
     return ((ix < 0x7F) && ((opt_char_cat[ix] & mask) != 0)); }
 
-#define IS_LOWER_CASE_CHAR(_c)     is_opt_char_cat_char((_c), 0x00001)
-#define IS_UPPER_CASE_CHAR(_c)     is_opt_char_cat_char((_c), 0x00002)
-#define IS_ALPHABETIC_CHAR(_c)     is_opt_char_cat_char((_c), 0x00003)
-#define IS_OCT_DIGIT_CHAR(_c)      is_opt_char_cat_char((_c), 0x00004)
-#define IS_DEC_DIGIT_CHAR(_c)      is_opt_char_cat_char((_c), 0x0000C)
-#define IS_HEX_DIGIT_CHAR(_c)      is_opt_char_cat_char((_c), 0x0001C)
-#define IS_ALPHANUMERIC_CHAR(_c)   is_opt_char_cat_char((_c), 0x0000F)
-#define IS_VAR_FIRST_CHAR(_c)      is_opt_char_cat_char((_c), 0x00023)
-#define IS_VARIABLE_NAME_CHAR(_c)  is_opt_char_cat_char((_c), 0x0002F)
-#define IS_OPTION_NAME_CHAR(_c)    is_opt_char_cat_char((_c), 0x0006F)
-#define IS_VALUE_NAME_CHAR(_c)     is_opt_char_cat_char((_c), 0x000EF)
-#define IS_HORIZ_WHITE_CHAR(_c)    is_opt_char_cat_char((_c), 0x00100)
-#define IS_COMPOUND_NAME_CHAR(_c)  is_opt_char_cat_char((_c), 0x003EF)
-#define IS_WHITESPACE_CHAR(_c)     is_opt_char_cat_char((_c), 0x00500)
-#define IS_UNQUOTABLE_CHAR(_c)     is_opt_char_cat_char((_c), 0x00800)
-#define IS_END_XML_TOKEN_CHAR(_c)  is_opt_char_cat_char((_c), 0x01500)
-#define IS_GRAPHIC_CHAR(_c)        is_opt_char_cat_char((_c), 0x02000)
-#define IS_PLUS_N_SPACE_CHAR(_c)   is_opt_char_cat_char((_c), 0x04500)
-#define IS_PUNCTUATION_CHAR(_c)    is_opt_char_cat_char((_c), 0x08000)
-#define IS_SUFFIX_CHAR(_c)         is_opt_char_cat_char((_c), 0x1000F)
-#define IS_SUFFIX_FMT_CHAR(_c)     is_opt_char_cat_char((_c), 0x3000F)
-#define IS_FALSE_TYPE_CHAR(_c)     is_opt_char_cat_char((_c), 0x40000)
+#define IS_LOWER_CASE_CHAR(_c)      is_opt_char_cat_char((_c), 0x000001)
+#define IS_UPPER_CASE_CHAR(_c)      is_opt_char_cat_char((_c), 0x000002)
+#define IS_ALPHABETIC_CHAR(_c)      is_opt_char_cat_char((_c), 0x000003)
+#define IS_OCT_DIGIT_CHAR(_c)       is_opt_char_cat_char((_c), 0x000004)
+#define IS_DEC_DIGIT_CHAR(_c)       is_opt_char_cat_char((_c), 0x00000C)
+#define IS_HEX_DIGIT_CHAR(_c)       is_opt_char_cat_char((_c), 0x00001C)
+#define IS_ALPHANUMERIC_CHAR(_c)    is_opt_char_cat_char((_c), 0x00000F)
+#define IS_VAR_FIRST_CHAR(_c)       is_opt_char_cat_char((_c), 0x000023)
+#define IS_VARIABLE_NAME_CHAR(_c)   is_opt_char_cat_char((_c), 0x00002F)
+#define IS_OPTION_NAME_CHAR(_c)     is_opt_char_cat_char((_c), 0x00006F)
+#define IS_VALUE_NAME_CHAR(_c)      is_opt_char_cat_char((_c), 0x0000EF)
+#define IS_HORIZ_WHITE_CHAR(_c)     is_opt_char_cat_char((_c), 0x000100)
+#define IS_COMPOUND_NAME_CHAR(_c)   is_opt_char_cat_char((_c), 0x0003EF)
+#define IS_WHITESPACE_CHAR(_c)      is_opt_char_cat_char((_c), 0x000500)
+#define IS_UNQUOTABLE_CHAR(_c)      is_opt_char_cat_char((_c), 0x000800)
+#define IS_END_XML_TOKEN_CHAR(_c)   is_opt_char_cat_char((_c), 0x001500)
+#define IS_GRAPHIC_CHAR(_c)         is_opt_char_cat_char((_c), 0x002000)
+#define IS_PLUS_N_SPACE_CHAR(_c)    is_opt_char_cat_char((_c), 0x004500)
+#define IS_PUNCTUATION_CHAR(_c)     is_opt_char_cat_char((_c), 0x008000)
+#define IS_SUFFIX_CHAR(_c)          is_opt_char_cat_char((_c), 0x01000F)
+#define IS_SUFFIX_FMT_CHAR(_c)      is_opt_char_cat_char((_c), 0x03000F)
+#define IS_FALSE_TYPE_CHAR(_c)      is_opt_char_cat_char((_c), 0x040000)
+#define IS_FILE_NAME_CHAR(_c)       is_opt_char_cat_char((_c), 0x09000F)
+#define IS_END_TOKEN_CHAR(_c)       is_opt_char_cat_char((_c), 0x100500)
+#define IS_END_LIST_ENTRY_CHAR(_c)  is_opt_char_cat_char((_c), 0x300500)
 
 #ifdef AUTOOPTS_INTERNAL
 opt_char_cat_mask_t const opt_char_cat[128] = {
-  /*x00*/ 0x40000, /*x01*/ 0x00000, /*x02*/ 0x00000, /*x03*/ 0x00000,
-  /*x04*/ 0x00000, /*x05*/ 0x00000, /*x06*/ 0x00000, /*\a */ 0x00000,
-  /*\b */ 0x00400, /*\t */ 0x00100, /*\n */ 0x00400, /*\v */ 0x00400,
-  /*\f */ 0x00400, /*\r */ 0x00400, /*x0E*/ 0x00000, /*x0F*/ 0x00000,
-  /*x10*/ 0x00000, /*x11*/ 0x00000, /*x12*/ 0x00000, /*x13*/ 0x00000,
-  /*x14*/ 0x00000, /*x15*/ 0x00000, /*x16*/ 0x00000, /*x17*/ 0x00000,
-  /*x18*/ 0x00000, /*x19*/ 0x00000, /*x1A*/ 0x00000, /*x1B*/ 0x00000,
-  /*x1C*/ 0x00000, /*x1D*/ 0x00000, /*x1E*/ 0x00000, /*x1F*/ 0x00000,
-  /*   */ 0x00100, /* ! */ 0x0A800, /* " */ 0x0A000, /* # */ 0x0A000,
-  /* $ */ 0x0A800, /* % */ 0x2A800, /* & */ 0x0A800, /* ' */ 0x0A000,
-  /* ( */ 0x0A000, /* ) */ 0x0A000, /* * */ 0x0A000, /* + */ 0x0E800,
-  /* , */ 0x0A000, /* - */ 0x1A840, /* . */ 0x1AA00, /* / */ 0x2B800,
-  /* 0 */ 0x42804, /* 1 */ 0x02804, /* 2 */ 0x02804, /* 3 */ 0x02804,
-  /* 4 */ 0x02804, /* 5 */ 0x02804, /* 6 */ 0x02804, /* 7 */ 0x02804,
-  /* 8 */ 0x02808, /* 9 */ 0x02808, /* : */ 0x0A880, /* ; */ 0x0A000,
-  /* < */ 0x0A000, /* = */ 0x0A000, /* > */ 0x0B000, /* ? */ 0x0A000,
-  /* @ */ 0x0A800, /* A */ 0x02812, /* B */ 0x02812, /* C */ 0x02812,
-  /* D */ 0x02812, /* E */ 0x02812, /* F */ 0x42812, /* G */ 0x02802,
-  /* H */ 0x02802, /* I */ 0x02802, /* J */ 0x02802, /* K */ 0x02802,
-  /* L */ 0x02802, /* M */ 0x02802, /* N */ 0x42802, /* O */ 0x02802,
-  /* P */ 0x02802, /* Q */ 0x02802, /* R */ 0x02802, /* S */ 0x02802,
-  /* T */ 0x02802, /* U */ 0x02802, /* V */ 0x02802, /* W */ 0x02802,
-  /* X */ 0x02802, /* Y */ 0x02802, /* Z */ 0x02802, /* [ */ 0x0A200,
-  /* \ */ 0x0A000, /* ] */ 0x0A200, /* ^ */ 0x0A840, /* _ */ 0x12820,
-  /* ` */ 0x0A000, /* a */ 0x02811, /* b */ 0x02811, /* c */ 0x02811,
-  /* d */ 0x02811, /* e */ 0x02811, /* f */ 0x42811, /* g */ 0x02801,
-  /* h */ 0x02801, /* i */ 0x02801, /* j */ 0x02801, /* k */ 0x02801,
-  /* l */ 0x02801, /* m */ 0x02801, /* n */ 0x42801, /* o */ 0x02801,
-  /* p */ 0x02801, /* q */ 0x02801, /* r */ 0x02801, /* s */ 0x02801,
-  /* t */ 0x02801, /* u */ 0x02801, /* v */ 0x02801, /* w */ 0x02801,
-  /* x */ 0x02801, /* y */ 0x02801, /* z */ 0x02801, /* { */ 0x0A000,
-  /* | */ 0x0A800, /* } */ 0x0A000, /* ~ */ 0x0A800, /*x7F*/ 0x00000
+  /*x00*/ 0x140000, /*x01*/ 0x000000, /*x02*/ 0x000000, /*x03*/ 0x000000,
+  /*x04*/ 0x000000, /*x05*/ 0x000000, /*x06*/ 0x000000, /*\a */ 0x000000,
+  /*\b */ 0x000400, /*\t */ 0x000100, /*\n */ 0x000400, /*\v */ 0x000400,
+  /*\f */ 0x000400, /*\r */ 0x000400, /*x0E*/ 0x000000, /*x0F*/ 0x000000,
+  /*x10*/ 0x000000, /*x11*/ 0x000000, /*x12*/ 0x000000, /*x13*/ 0x000000,
+  /*x14*/ 0x000000, /*x15*/ 0x000000, /*x16*/ 0x000000, /*x17*/ 0x000000,
+  /*x18*/ 0x000000, /*x19*/ 0x000000, /*x1A*/ 0x000000, /*x1B*/ 0x000000,
+  /*x1C*/ 0x000000, /*x1D*/ 0x000000, /*x1E*/ 0x000000, /*x1F*/ 0x000000,
+  /*   */ 0x000100, /* ! */ 0x00A800, /* " */ 0x00A000, /* # */ 0x00A000,
+  /* $ */ 0x00A800, /* % */ 0x02A800, /* & */ 0x00A800, /* ' */ 0x00A000,
+  /* ( */ 0x00A000, /* ) */ 0x00A000, /* * */ 0x00A000, /* + */ 0x00E800,
+  /* , */ 0x20A000, /* - */ 0x01A840, /* . */ 0x01AA00, /* / */ 0x0AB800,
+  /* 0 */ 0x042804, /* 1 */ 0x002804, /* 2 */ 0x002804, /* 3 */ 0x002804,
+  /* 4 */ 0x002804, /* 5 */ 0x002804, /* 6 */ 0x002804, /* 7 */ 0x002804,
+  /* 8 */ 0x002808, /* 9 */ 0x002808, /* : */ 0x00A880, /* ; */ 0x00A000,
+  /* < */ 0x00A000, /* = */ 0x00A000, /* > */ 0x00B000, /* ? */ 0x00A000,
+  /* @ */ 0x00A800, /* A */ 0x002812, /* B */ 0x002812, /* C */ 0x002812,
+  /* D */ 0x002812, /* E */ 0x002812, /* F */ 0x042812, /* G */ 0x002802,
+  /* H */ 0x002802, /* I */ 0x002802, /* J */ 0x002802, /* K */ 0x002802,
+  /* L */ 0x002802, /* M */ 0x002802, /* N */ 0x042802, /* O */ 0x002802,
+  /* P */ 0x002802, /* Q */ 0x002802, /* R */ 0x002802, /* S */ 0x002802,
+  /* T */ 0x002802, /* U */ 0x002802, /* V */ 0x002802, /* W */ 0x002802,
+  /* X */ 0x002802, /* Y */ 0x002802, /* Z */ 0x002802, /* [ */ 0x00A200,
+  /* \ */ 0x00A000, /* ] */ 0x00A200, /* ^ */ 0x00A840, /* _ */ 0x012820,
+  /* ` */ 0x00A000, /* a */ 0x002811, /* b */ 0x002811, /* c */ 0x002811,
+  /* d */ 0x002811, /* e */ 0x002811, /* f */ 0x042811, /* g */ 0x002801,
+  /* h */ 0x002801, /* i */ 0x002801, /* j */ 0x002801, /* k */ 0x002801,
+  /* l */ 0x002801, /* m */ 0x002801, /* n */ 0x042801, /* o */ 0x002801,
+  /* p */ 0x002801, /* q */ 0x002801, /* r */ 0x002801, /* s */ 0x002801,
+  /* t */ 0x002801, /* u */ 0x002801, /* v */ 0x002801, /* w */ 0x002801,
+  /* x */ 0x002801, /* y */ 0x002801, /* z */ 0x002801, /* { */ 0x00A000,
+  /* | */ 0x00A800, /* } */ 0x00A000, /* ~ */ 0x00A800, /*x7F*/ 0x000000
 };
 #endif /* AUTOOPTS_INTERNAL */
 #endif /* AG_CHAR_MAP_H_GUARD */

@@ -1,13 +1,14 @@
-/*
- *  $Id: cook.c,v 4.17 2009/08/01 17:43:06 bkorb Exp $
- *  Time-stamp:      "2007-11-16 22:49:11 bkorb"
+/**
+ * \file cook.c
+ *
+ *  Time-stamp:      "2010-07-10 11:01:32 bkorb"
  *
  *  This file contains the routines that deal with processing quoted strings
  *  into an internal format.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -27,7 +28,6 @@
  */
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 /* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  ao_string_cook_escape_char

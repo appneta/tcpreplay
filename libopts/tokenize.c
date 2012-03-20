@@ -1,10 +1,10 @@
 /*
  *  This file defines the string_tokenize interface
- * Time-stamp:      "2007-11-12 20:40:36 bkorb"
+ * Time-stamp:      "2010-07-17 10:40:26 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -30,16 +30,18 @@
 #define ch_t   unsigned char
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 static void
-copy_cooked( ch_t** ppDest, char const ** ppSrc );
+copy_cooked(ch_t** ppDest, char const ** ppSrc);
 
 static void
-copy_raw( ch_t** ppDest, char const ** ppSrc );
+copy_raw(ch_t** ppDest, char const ** ppSrc);
+
+static token_list_t *
+alloc_token_list(char const * str);
 /* = = = END-STATIC-FORWARD = = = */
 
 static void
-copy_cooked( ch_t** ppDest, char const ** ppSrc )
+copy_cooked(ch_t** ppDest, char const ** ppSrc)
 {
     ch_t* pDest = (ch_t*)*ppDest;
     const ch_t* pSrc  = (const ch_t*)(*ppSrc + 1);
@@ -50,7 +52,7 @@ copy_cooked( ch_t** ppDest, char const ** ppSrc )
         case NUL:   *ppSrc = NULL; return;
         case '"':   goto done;
         case '\\':
-            pSrc += ao_string_cook_escape_char( (char*)pSrc, (char*)&ch, 0x7F );
+            pSrc += ao_string_cook_escape_char((char*)pSrc, (char*)&ch, 0x7F);
             if (ch == 0x7F)
                 break;
             /* FALLTHROUGH */
@@ -67,7 +69,7 @@ copy_cooked( ch_t** ppDest, char const ** ppSrc )
 
 
 static void
-copy_raw( ch_t** ppDest, char const ** ppSrc )
+copy_raw(ch_t** ppDest, char const ** ppSrc)
 {
     ch_t* pDest = *ppDest;
     cc_t* pSrc  = (cc_t*) (*ppSrc + 1);
@@ -113,6 +115,53 @@ copy_raw( ch_t** ppDest, char const ** ppSrc )
     *ppSrc  = (char const *) pSrc;  /* char following closing quote    */
 }
 
+static token_list_t *
+alloc_token_list(char const * str)
+{
+    token_list_t * res;
+
+    int max_token_ct = 2; /* allow for trailing NULL pointer & NUL on string */
+
+    if (str == NULL) goto enoent_res;
+
+    /*
+     *  Trim leading white space.  Use "ENOENT" and a NULL return to indicate
+     *  an empty string was passed.
+     */
+    while (IS_WHITESPACE_CHAR(*str))  str++;
+    if (*str == NUL)  goto enoent_res;
+
+    /*
+     *  Take an approximate count of tokens.  If no quoted strings are used,
+     *  it will be accurate.  If quoted strings are used, it will be a little
+     *  high and we'll squander the space for a few extra pointers.
+     */
+    {
+        cc_t* pz = (cc_t*)str;
+
+        do {
+            max_token_ct++;
+            while (! IS_WHITESPACE_CHAR(*++pz))
+                if (*pz == NUL) goto found_nul;
+            while (IS_WHITESPACE_CHAR(*pz))  pz++;
+        } while (*pz != NUL);
+
+    found_nul:
+        res = malloc(sizeof(*res) + (pz - (cc_t*)str)
+                     + (max_token_ct * sizeof(ch_t*)));
+    }
+
+    if (res == NULL)
+        errno = ENOMEM;
+    else res->tkn_list[0] = (ch_t*)(res->tkn_list + (max_token_ct - 1));
+
+    return res;
+
+    enoent_res:
+
+    errno = ENOENT;
+    return NULL;
+}
 
 /*=export_func ao_string_tokenize
  *
@@ -161,10 +210,10 @@ copy_raw( ch_t** ppDest, char const ** ppSrc )
  * @example
  *    #include <stdlib.h>
  *    int ix;
- *    token_list_t* ptl = ao_string_tokenize( some_string )
+ *    token_list_t* ptl = ao_string_tokenize(some_string)
  *    for (ix = 0; ix < ptl->tkn_ct; ix++)
- *       do_something_with_tkn( ptl->tkn_list[ix] );
- *    free( ptl );
+ *       do_something_with_tkn(ptl->tkn_list[ix]);
+ *    free(ptl);
  * @end example
  * Note that everything is freed with the one call to @code{free(3C)}.
  *
@@ -180,106 +229,69 @@ copy_raw( ch_t** ppDest, char const ** ppSrc )
  *  @end itemize
 =*/
 token_list_t*
-ao_string_tokenize( char const* str )
+ao_string_tokenize(char const* str)
 {
-    int max_token_ct = 1; /* allow for trailing NUL on string */
-    token_list_t* res;
-
-    if (str == NULL)  goto bogus_str;
-
-    /*
-     *  Trim leading white space.  Use "ENOENT" and a NULL return to indicate
-     *  an empty string was passed.
-     */
-    while (IS_WHITESPACE_CHAR(*str))  str++;
-    if (*str == NUL) {
-    bogus_str:
-        errno = ENOENT;
-        return NULL;
-    }
-
-    /*
-     *  Take an approximate count of tokens.  If no quoted strings are used,
-     *  it will be accurate.  If quoted strings are used, it will be a little
-     *  high and we'll squander the space for a few extra pointers.
-     */
-    {
-        cc_t* pz = (cc_t*)str;
-
-        do {
-            max_token_ct++;
-            while (! IS_WHITESPACE_CHAR(*++pz))
-                if (*pz == NUL) goto found_nul;
-            while (IS_WHITESPACE_CHAR(*pz))  pz++;
-        } while (*pz != NUL);
-
-    found_nul:
-        ;
-    }
-
-    res = malloc( sizeof(*res) + strlen(str) + (max_token_ct * sizeof(ch_t*)) );
-    if (res == NULL) {
-        errno = ENOMEM;
-        return res;
-    }
+    token_list_t* res = alloc_token_list(str);
+    ch_t* pzDest;
 
     /*
      *  Now copy each token into the output buffer.
      */
-    {
-        ch_t* pzDest = (ch_t*)(res->tkn_list + (max_token_ct + 1));
-        res->tkn_ct  = 0;
+    if (res == NULL)
+        return res;
 
-        do  {
-            res->tkn_list[ res->tkn_ct++ ] = pzDest;
-            for (;;) {
-                int ch = (ch_t)*str;
-                if (IS_WHITESPACE_CHAR(ch)) {
-                found_white_space:
-                    while (IS_WHITESPACE_CHAR(*++str))  ;
-                    break;
+    pzDest = (ch_t*)(res->tkn_list[0]);
+    res->tkn_ct  = 0;
+
+    do  {
+        res->tkn_list[ res->tkn_ct++ ] = pzDest;
+        for (;;) {
+            int ch = (ch_t)*str;
+            if (IS_WHITESPACE_CHAR(ch)) {
+            found_white_space:
+                while (IS_WHITESPACE_CHAR(*++str))  ;
+                break;
+            }
+
+            switch (ch) {
+            case '"':
+                copy_cooked(&pzDest, &str);
+                if (str == NULL) {
+                    free(res);
+                    errno = EINVAL;
+                    return NULL;
                 }
+                if (IS_WHITESPACE_CHAR(*str))
+                    goto found_white_space;
+                break;
 
-                switch (ch) {
-                case '"':
-                    copy_cooked( &pzDest, &str );
-                    if (str == NULL) {
-                        free(res);
-                        errno = EINVAL;
-                        return NULL;
-                    }
-                    if (IS_WHITESPACE_CHAR(*str))
-                        goto found_white_space;
-                    break;
-
-                case '\'':
-                    copy_raw( &pzDest, &str );
-                    if (str == NULL) {
-                        free(res);
-                        errno = EINVAL;
-                        return NULL;
-                    }
-                    if (IS_WHITESPACE_CHAR(*str))
-                        goto found_white_space;
-                    break;
-
-                case NUL:
-                    goto copy_done;
-
-                default:
-                    str++;
-                    *(pzDest++) = ch;
+            case '\'':
+                copy_raw(&pzDest, &str);
+                if (str == NULL) {
+                    free(res);
+                    errno = EINVAL;
+                    return NULL;
                 }
-            } copy_done:;
+                if (IS_WHITESPACE_CHAR(*str))
+                    goto found_white_space;
+                break;
 
-            /*
-             * NUL terminate the last token and see if we have any more tokens.
-             */
-            *(pzDest++) = NUL;
-        } while (*str != NUL);
+            case NUL:
+                goto copy_done;
 
-        res->tkn_list[ res->tkn_ct ] = NULL;
-    }
+            default:
+                str++;
+                *(pzDest++) = ch;
+            }
+        } copy_done:;
+
+        /*
+         * NUL terminate the last token and see if we have any more tokens.
+         */
+        *(pzDest++) = NUL;
+    } while (*str != NUL);
+
+    res->tkn_list[ res->tkn_ct ] = NULL;
 
     return res;
 }
@@ -289,7 +301,7 @@ ao_string_tokenize( char const* str )
 #include <string.h>
 
 int
-main( int argc, char** argv )
+main(int argc, char** argv)
 {
     if (argc == 1) {
         printf("USAGE:  %s arg [ ... ]\n", *argv);
@@ -297,15 +309,15 @@ main( int argc, char** argv )
     }
     while (--argc > 0) {
         char* arg = *(++argv);
-        token_list_t* p = ao_string_tokenize( arg );
+        token_list_t* p = ao_string_tokenize(arg);
         if (p == NULL) {
-            printf( "Parsing string ``%s'' failed:\n\terrno %d (%s)\n",
-                    arg, errno, strerror( errno ));
+            printf("Parsing string ``%s'' failed:\n\terrno %d (%s)\n",
+                   arg, errno, strerror(errno));
         } else {
             int ix = 0;
-            printf( "Parsed string ``%s''\ninto %d tokens:\n", arg, p->tkn_ct );
+            printf("Parsed string ``%s''\ninto %d tokens:\n", arg, p->tkn_ct);
             do {
-                printf( " %3d:  ``%s''\n", ix+1, p->tkn_list[ix] );
+                printf(" %3d:  ``%s''\n", ix+1, p->tkn_list[ix]);
             } while (++ix < p->tkn_ct);
             free(p);
         }
