@@ -1,15 +1,15 @@
 
 /*
- *  Time-stamp:      "2008-11-01 20:08:06 bkorb"
+ *  \file autoopts.h
  *
- *  autoopts.h  $Id: autoopts.h,v 4.42 2009/08/01 17:43:05 bkorb Exp $
+ *  Time-stamp:      "2010-07-17 10:39:18 bkorb"
  *
  *  This file defines all the global structures and special values
  *  used in the automated option processing library.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -110,10 +110,13 @@ typedef int tDirection;
 
 typedef int tSuccess;
 
-#define SUCCEEDED( p )          ((p) == SUCCESS)
-#define SUCCESSFUL( p )         SUCCEEDED( p )
-#define FAILED( p )             ((p) <  SUCCESS)
-#define HADGLITCH( p )          ((p) >  SUCCESS)
+#define SUCCEEDED(p)          ((p) == SUCCESS)
+#define SUCCESSFUL(p)         SUCCEEDED(p)
+#define FAILED(p)             ((p) <  SUCCESS)
+#define HADGLITCH(p)          ((p) >  SUCCESS)
+
+#define ShellAsString(_s)  #_s
+#define DEFAULT_SHELL ShellAsString(CONFIG_SHELL)
 
 /*
  *  When loading a line (or block) of text as an option, the value can
@@ -183,9 +186,9 @@ typedef struct {
     { NULL, NULL, OPTST_ ## st, TOPT_UNDEFINED }
 
 #define TEXTTO_TABLE \
-        _TT_( LONGUSAGE ) \
-        _TT_( USAGE ) \
-        _TT_( VERSION )
+        _TT_(LONGUSAGE) \
+        _TT_(USAGE) \
+        _TT_(VERSION)
 #define _TT_(n) \
         TT_ ## n ,
 
@@ -211,24 +214,24 @@ typedef struct {
     tCC*    pzTime;
 } arg_types_t;
 
-#define AGALOC( c, w )          ao_malloc((size_t)c)
-#define AGREALOC( p, c, w )     ao_realloc((void*)p, (size_t)c)
-#define AGFREE(_p)              do{void*X=(void*)_p;ao_free(X);}while(0)
-#define AGDUPSTR( p, s, w )     (p = ao_strdup(s))
+#define AGALOC(c, w)          ao_malloc((size_t)c)
+#define AGREALOC(p, c, w)     ao_realloc((void*)p, (size_t)c)
+#define AGFREE(_p)            do{void*X=(void*)_p;ao_free(X);}while(0)
+#define AGDUPSTR(p, s, w)     (p = ao_strdup(s))
 
 static void *
-ao_malloc( size_t sz );
+ao_malloc(size_t sz);
 
 static void *
-ao_realloc( void *p, size_t sz );
+ao_realloc(void *p, size_t sz);
 
 static void
-ao_free( void *p );
+ao_free(void *p);
 
 static char *
-ao_strdup( char const *str );
+ao_strdup(char const *str);
 
-#define TAGMEM( m, t )
+#define TAGMEM(m, t)
 
 /*
  *  DO option handling?
@@ -335,8 +338,8 @@ ao_strdup( char const *str );
 #endif
 
 #ifndef HAVE_STRCHR
-extern char* strchr( char const *s, int c);
-extern char* strrchr( char const *s, int c);
+extern char* strchr(char const *s, int c);
+extern char* strrchr(char const *s, int c);
 #endif
 
 /*

@@ -1,11 +1,12 @@
 
-/*
- *  $Id: reset.c,v 4.7 2009/08/01 17:43:06 bkorb Exp $
- *  Time-stamp:      "2008-08-02 12:25:18 bkorb"
+/**
+ * \file reset.c
+ *
+ *  Time-stamp:      "2010-07-10 10:56:34 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -86,6 +87,8 @@ optionResetOpt( tOptions* pOpts, tOptDesc* pOD )
     if ((pzArg == NULL) || (*pzArg == NUL)) {
         fputs(zNoResetArg, stderr);
         pOpts->pUsageProc(pOpts, EXIT_FAILURE);
+        /* NOTREACHED */
+        assert(0 == 1);
     }
 
     reset_active = AG_TRUE;
@@ -101,12 +104,16 @@ optionResetOpt( tOptions* pOpts, tOptDesc* pOD )
         if (! SUCCESSFUL(succ)) {
             fprintf(stderr, zIllOptChr, pOpts->pzProgPath, *pzArg);
             pOpts->pUsageProc(pOpts, EXIT_FAILURE);
+            /* NOTREACHED */
+            assert(0 == 1);
         }
     } else {
         succ = longOptionFind(pOpts, (char *)pzArg, &opt_state);
         if (! SUCCESSFUL(succ)) {
             fprintf(stderr, zIllOptStr, pOpts->pzProgPath, pzArg);
             pOpts->pUsageProc(pOpts, EXIT_FAILURE);
+            /* NOTREACHED */
+            assert(0 == 1);
         }
     }
 

@@ -1,14 +1,15 @@
 
-/*
- *  $Id: makeshell.c,v 4.30 2009/08/01 17:43:06 bkorb Exp $
- * Time-stamp:      "2008-07-26 16:10:51 bkorb"
+/**
+ * \file makeshell.c
+ *
+ * Time-stamp:      "2010-09-05 05:58:57 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and create a Bourne shell script capable of parsing them.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -33,19 +34,19 @@ tOptions*  pShellParseOptions = NULL;
  *
  *  Setup Format Strings
  */
-tSCC zStartMarker[] =
+static char const zStartMarker[] =
 "# # # # # # # # # # -- do not modify this marker --\n#\n"
 "#  DO NOT EDIT THIS SECTION";
 
-tSCC zPreamble[] =
+static char const zPreamble[] =
 "%s OF %s\n#\n"
 "#  From here to the next `-- do not modify this marker --',\n"
 "#  the text has been generated %s\n";
 
-tSCC zEndPreamble[] =
+static char const zEndPreamble[] =
 "#  From the %s option definitions\n#\n";
 
-tSCC zMultiDef[] = "\n"
+static char const zMultiDef[] = "\n"
 "if test -z \"${%1$s_%2$s}\"\n"
 "then\n"
 "  %1$s_%2$s_CT=0\n"
@@ -55,12 +56,12 @@ tSCC zMultiDef[] = "\n"
 "fi\n"
 "export %1$s_%2$s_CT";
 
-tSCC zSingleDef[] = "\n"
+static char const zSingleDef[] = "\n"
 "%1$s_%2$s=\"${%1$s_%2$s-'%3$s'}\"\n"
 "%1$s_%2$s_set=false\n"
 "export %1$s_%2$s\n";
 
-tSCC zSingleNoDef[] = "\n"
+static char const zSingleNoDef[] = "\n"
 "%1$s_%2$s=\"${%1$s_%2$s}\"\n"
 "%1$s_%2$s_set=false\n"
 "export %1$s_%2$s\n";
@@ -73,7 +74,7 @@ tSCC zSingleNoDef[] = "\n"
  *  all options are named options (loop only)
  *  regular, marked option processing.
  */
-tSCC zLoopCase[] = "\n"
+static char const zLoopCase[] = "\n"
 "OPT_PROCESS=true\n"
 "OPT_ARG=\"$1\"\n\n"
 "while ${OPT_PROCESS} && [ $# -gt 0 ]\ndo\n"
@@ -88,7 +89,7 @@ tSCC zLoopCase[] = "\n"
 "        shift\n"
 "        ;;\n\n";
 
-tSCC zLoopOnly[] = "\n"
+static char const zLoopOnly[] = "\n"
 "OPT_ARG=\"$1\"\n\n"
 "while [ $# -gt 0 ]\ndo\n"
 "    OPT_ELEMENT=''\n"
@@ -103,16 +104,16 @@ tSCC zLoopOnly[] = "\n"
  *  then we must have selectors for each acceptable option
  *  type (long option, flag character and non-option)
  */
-tSCC zLongSelection[] =
+static char const zLongSelection[] =
 "    --* )\n";
 
-tSCC zFlagSelection[] =
+static char const zFlagSelection[] =
 "    -* )\n";
 
-tSCC zEndSelection[] =
+static char const zEndSelection[] =
 "        ;;\n\n";
 
-tSCC zNoSelection[] =
+static char const zNoSelection[] =
 "    * )\n"
 "         OPT_PROCESS=false\n"
 "         ;;\n"
@@ -122,7 +123,7 @@ tSCC zNoSelection[] =
  *
  *  LOOP END
  */
-tSCC zLoopEnd[] =
+static char const zLoopEnd[] =
 "    if [ -n \"${OPT_ARG_VAL}\" ]\n"
 "    then\n"
 "        eval %1$s_${OPT_NAME}${OPT_ELEMENT}=\"'${OPT_ARG_VAL}'\"\n"
@@ -137,7 +138,7 @@ tSCC zLoopEnd[] =
 "unset OPT_CODE || :\n"
 "unset OPT_ARG_VAL || :\n%2$s";
 
-tSCC zTrailerMarker[] = "\n"
+static char const zTrailerMarker[] = "\n"
 "# # # # # # # # # #\n#\n"
 "#  END OF AUTOMATED OPTION PROCESSING\n"
 "#\n# # # # # # # # # # -- do not modify this marker --\n";
@@ -146,22 +147,22 @@ tSCC zTrailerMarker[] = "\n"
  *
  *  OPTION SELECTION
  */
-tSCC zOptionCase[] =
+static char const zOptionCase[] =
 "        case \"${OPT_CODE}\" in\n";
 
-tSCC zOptionPartName[] =
+static char const zOptionPartName[] =
 "        '%s' | \\\n";
 
-tSCC zOptionFullName[] =
+static char const zOptionFullName[] =
 "        '%s' )\n";
 
-tSCC zOptionFlag[] =
+static char const zOptionFlag[] =
 "        '%c' )\n";
 
-tSCC zOptionEndSelect[] =
+static char const zOptionEndSelect[] =
 "            ;;\n\n";
 
-tSCC zOptionUnknown[] =
+static char const zOptionUnknown[] =
 "        * )\n"
 "            echo Unknown %s: \"${OPT_CODE}\" >&2\n"
 "            echo \"$%s_USAGE_TEXT\"\n"
@@ -175,29 +176,29 @@ tSCC zOptionUnknown[] =
  *
  *  Formats for emitting the text for handling particular options
  */
-tSCC zTextExit[] =
+static char const zTextExit[] =
 "            echo \"$%s_%s_TEXT\"\n"
 "            exit 0\n";
 
-tSCC zPagedUsageExit[] =
+static char const zPagedUsageExit[] =
 "            echo \"$%s_LONGUSAGE_TEXT\" | ${PAGER-more}\n"
 "            exit 0\n";
 
-tSCC zCmdFmt[] =
+static char const zCmdFmt[] =
 "            %s\n";
 
-tSCC zCountTest[] =
+static char const zCountTest[] =
 "            if [ $%1$s_%2$s_CT -ge %3$d ] ; then\n"
 "                echo Error:  more than %3$d %2$s options >&2\n"
 "                echo \"$%1$s_USAGE_TEXT\"\n"
 "                exit 1 ; fi\n";
 
-tSCC zMultiArg[] =
+static char const zMultiArg[] =
 "            %1$s_%2$s_CT=`expr ${%1$s_%2$s_CT} + 1`\n"
 "            OPT_ELEMENT=\"_${%1$s_%2$s_CT}\"\n"
 "            OPT_NAME='%2$s'\n";
 
-tSCC zSingleArg[] =
+static char const zSingleArg[] =
 "            if [ -n \"${%1$s_%2$s}\" ] && ${%1$s_%2$s_set} ; then\n"
 "                echo Error:  duplicate %2$s option >&2\n"
 "                echo \"$%1$s_USAGE_TEXT\"\n"
@@ -205,14 +206,14 @@ tSCC zSingleArg[] =
 "            %1$s_%2$s_set=true\n"
 "            OPT_NAME='%2$s'\n";
 
-tSCC zNoMultiArg[] =
+static char const zNoMultiArg[] =
 "            %1$s_%2$s_CT=0\n"
 "            OPT_ELEMENT=''\n"
 "            %1$s_%2$s='%3$s'\n"
 "            export %1$s_%2$s\n"
 "            OPT_NAME='%2$s'\n";
 
-tSCC zNoSingleArg[] =
+static char const zNoSingleArg[] =
 "            if [ -n \"${%1$s_%2$s}\" ] && ${%1$s_%2$s_set} ; then\n"
 "                echo Error:  duplicate %2$s option >&2\n"
 "                echo \"$%1$s_USAGE_TEXT\"\n"
@@ -222,15 +223,15 @@ tSCC zNoSingleArg[] =
 "            export %1$s_%2$s\n"
 "            OPT_NAME='%2$s'\n";
 
-tSCC zMayArg[]  =
+static char const zMayArg[]  =
 "            eval %1$s_%2$s${OPT_ELEMENT}=true\n"
 "            export %1$s_%2$s${OPT_ELEMENT}\n"
 "            OPT_ARG_NEEDED=OK\n";
 
-tSCC zMustArg[] =
+static char const zMustArg[] =
 "            OPT_ARG_NEEDED=YES\n";
 
-tSCC zCantArg[] =
+static char const zCantArg[] =
 "            eval %1$s_%2$s${OPT_ELEMENT}=true\n"
 "            export %1$s_%2$s${OPT_ELEMENT}\n"
 "            OPT_ARG_NEEDED=NO\n";
@@ -241,7 +242,7 @@ tSCC zCantArg[] =
  *
  *  Formats for emitting the text for handling long option types
  */
-tSCC zLongOptInit[] =
+static char const zLongOptInit[] =
 "        OPT_CODE=`echo \"X${OPT_ARG}\"|sed 's/^X-*//'`\n"
 "        shift\n"
 "        OPT_ARG=\"$1\"\n\n"
@@ -249,7 +250,7 @@ tSCC zLongOptInit[] =
 "            OPT_ARG_VAL=`echo \"${OPT_CODE}\"|sed 's/^[^=]*=//'`\n"
 "            OPT_CODE=`echo \"${OPT_CODE}\"|sed 's/=.*$//'` ;; esac\n\n";
 
-tSCC zLongOptArg[] =
+static char const zLongOptArg[] =
 "        case \"${OPT_ARG_NEEDED}\" in\n"
 "        NO )\n"
 "            OPT_ARG_VAL=''\n"
@@ -285,11 +286,11 @@ tSCC zLongOptArg[] =
  *
  *  Formats for emitting the text for handling flag option types
  */
-tSCC zFlagOptInit[] =
+static char const zFlagOptInit[] =
 "        OPT_CODE=`echo \"X${OPT_ARG}\" | sed 's/X-\\(.\\).*/\\1/'`\n"
 "        OPT_ARG=` echo \"X${OPT_ARG}\" | sed 's/X-.//'`\n\n";
 
-tSCC zFlagOptArg[] =
+static char const zFlagOptArg[] =
 "        case \"${OPT_ARG_NEEDED}\" in\n"
 "        NO )\n"
 "            if [ -n \"${OPT_ARG}\" ]\n"
@@ -341,33 +342,32 @@ static char*  pzLeader  = NULL;
 static char*  pzTrailer = NULL;
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 static void
-textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD );
+textToVariable(tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD);
 
 static void
-emitUsage( tOptions* pOpts );
+emitUsage(tOptions* pOpts);
 
 static void
-emitSetup( tOptions* pOpts );
+emitSetup(tOptions* pOpts);
 
 static void
-printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc );
+printOptionAction(tOptions* pOpts, tOptDesc* pOptDesc);
 
 static void
-printOptionInaction( tOptions* pOpts, tOptDesc* pOptDesc );
+printOptionInaction(tOptions* pOpts, tOptDesc* pOptDesc);
 
 static void
-emitFlag( tOptions* pOpts );
+emitFlag(tOptions* pOpts);
 
 static void
-emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts );
+emitMatchExpr(tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts);
 
 static void
-emitLong( tOptions* pOpts );
+emitLong(tOptions* pOpts);
 
 static void
-openOutput( char const* pzFile );
+openOutput(char const* pzFile);
 /* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  optionParseShell
@@ -380,101 +380,105 @@ openOutput( char const* pzFile );
  *  Emit a shell script that will parse the command line options.
 =*/
 void
-optionParseShell( tOptions* pOpts )
+optionParseShell(tOptions* pOpts)
 {
     /*
      *  Check for our SHELL option now.
      *  IF the output file contains the "#!" magic marker,
      *  it will override anything we do here.
      */
-    if (HAVE_OPT( SHELL ))
-        pzShell = OPT_ARG( SHELL );
+    if (HAVE_OPT(SHELL))
+        pzShell = OPT_ARG(SHELL);
 
-    else if (! ENABLED_OPT( SHELL ))
+    else if (! ENABLED_OPT(SHELL))
         pzShell = NULL;
 
-    else if ((pzShell = getenv( "SHELL" )),
+    else if ((pzShell = getenv("SHELL")),
              pzShell == NULL)
 
-        pzShell = "/bin/sh";
+        pzShell = DEFAULT_SHELL;
 
     /*
      *  Check for a specified output file
      */
-    if (HAVE_OPT( SCRIPT ))
-        openOutput( OPT_ARG( SCRIPT ));
+    if (HAVE_OPT(SCRIPT))
+        openOutput(OPT_ARG(SCRIPT));
 
-    emitUsage( pOpts );
-    emitSetup( pOpts );
+    emitUsage(pOpts);
+    emitSetup(pOpts);
 
     /*
      *  There are four modes of option processing.
      */
     switch (pOpts->fOptSet & (OPTPROC_LONGOPT|OPTPROC_SHORTOPT)) {
     case OPTPROC_LONGOPT:
-        fputs( zLoopCase,        stdout );
+        fputs(zLoopCase,        stdout);
 
-        fputs( zLongSelection,   stdout );
-        fputs( zLongOptInit,     stdout );
-        emitLong( pOpts );
-        printf( zLongOptArg,     pOpts->pzPROGNAME );
-        fputs( zEndSelection,    stdout );
+        fputs(zLongSelection,   stdout);
+        fputs(zLongOptInit,     stdout);
+        emitLong(pOpts);
+        printf(zLongOptArg,     pOpts->pzPROGNAME);
+        fputs(zEndSelection,    stdout);
 
-        fputs( zNoSelection,     stdout );
+        fputs(zNoSelection,     stdout);
         break;
 
     case 0:
-        fputs( zLoopOnly,        stdout );
-        fputs( zLongOptInit,     stdout );
-        emitLong( pOpts );
-        printf( zLongOptArg,     pOpts->pzPROGNAME );
+        fputs(zLoopOnly,        stdout);
+        fputs(zLongOptInit,     stdout);
+        emitLong(pOpts);
+        printf(zLongOptArg,     pOpts->pzPROGNAME);
         break;
 
     case OPTPROC_SHORTOPT:
-        fputs( zLoopCase,        stdout );
+        fputs(zLoopCase,        stdout);
 
-        fputs( zFlagSelection,   stdout );
-        fputs( zFlagOptInit,     stdout );
-        emitFlag( pOpts );
-        printf( zFlagOptArg,     pOpts->pzPROGNAME );
-        fputs( zEndSelection,    stdout );
+        fputs(zFlagSelection,   stdout);
+        fputs(zFlagOptInit,     stdout);
+        emitFlag(pOpts);
+        printf(zFlagOptArg,     pOpts->pzPROGNAME);
+        fputs(zEndSelection,    stdout);
 
-        fputs( zNoSelection,     stdout );
+        fputs(zNoSelection,     stdout);
         break;
 
     case OPTPROC_LONGOPT|OPTPROC_SHORTOPT:
-        fputs( zLoopCase,        stdout );
+        fputs(zLoopCase,        stdout);
 
-        fputs( zLongSelection,   stdout );
-        fputs( zLongOptInit,     stdout );
-        emitLong( pOpts );
-        printf( zLongOptArg,     pOpts->pzPROGNAME );
-        fputs( zEndSelection,    stdout );
+        fputs(zLongSelection,   stdout);
+        fputs(zLongOptInit,     stdout);
+        emitLong(pOpts);
+        printf(zLongOptArg,     pOpts->pzPROGNAME);
+        fputs(zEndSelection,    stdout);
 
-        fputs( zFlagSelection,   stdout );
-        fputs( zFlagOptInit,     stdout );
-        emitFlag( pOpts );
-        printf( zFlagOptArg,     pOpts->pzPROGNAME );
-        fputs( zEndSelection,    stdout );
+        fputs(zFlagSelection,   stdout);
+        fputs(zFlagOptInit,     stdout);
+        emitFlag(pOpts);
+        printf(zFlagOptArg,     pOpts->pzPROGNAME);
+        fputs(zEndSelection,    stdout);
 
-        fputs( zNoSelection,     stdout );
+        fputs(zNoSelection,     stdout);
         break;
     }
 
-    printf( zLoopEnd, pOpts->pzPROGNAME, zTrailerMarker );
+    printf(zLoopEnd, pOpts->pzPROGNAME, zTrailerMarker);
     if ((pzTrailer != NULL) && (*pzTrailer != '\0'))
-        fputs( pzTrailer, stdout );
-    else if (ENABLED_OPT( SHELL ))
-        printf( "\nenv | grep '^%s_'\n", pOpts->pzPROGNAME );
+        fputs(pzTrailer, stdout);
+    else if (ENABLED_OPT(SHELL))
+        printf("\nenv | grep '^%s_'\n", pOpts->pzPROGNAME);
 
-    fflush( stdout );
-    fchmod( STDOUT_FILENO, 0755 );
-    fclose( stdout );
+    fflush(stdout);
+    fchmod(STDOUT_FILENO, 0755);
+    fclose(stdout);
+    if (ferror(stdout)) {
+        fputs(zOutputFail, stderr);
+        exit(EXIT_FAILURE);
+    }
 }
 
 
 static void
-textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
+textToVariable(tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD)
 {
 #   define _TT_(n) tSCC z ## n [] = #n;
     TEXTTO_TABLE
@@ -483,43 +487,43 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
       static char const*  apzTTNames[] = { TEXTTO_TABLE };
 #   undef _TT_
 
-#if defined(__windows__) && !defined(__CYGWIN__)
-    printf( "%1$s_%2$s_TEXT='no %2$s text'\n",
-            pOpts->pzPROGNAME, apzTTNames[ whichVar ]);
+#if ! defined(HAVE_WORKING_FORK)
+    printf("%1$s_%2$s_TEXT='no %2$s text'\n",
+           pOpts->pzPROGNAME, apzTTNames[ whichVar ]);
 #else
     int  nlHoldCt = 0;
     int  pipeFd[2];
     FILE* fp;
 
-    printf( "%s_%s_TEXT='", pOpts->pzPROGNAME, apzTTNames[ whichVar ]);
-    fflush( stdout );
+    printf("%s_%s_TEXT='", pOpts->pzPROGNAME, apzTTNames[ whichVar ]);
+    fflush(stdout);
 
-    if (pipe( pipeFd ) != 0) {
-        fprintf( stderr, zBadPipe, errno, strerror( errno ));
-        exit( EXIT_FAILURE );
+    if (pipe(pipeFd) != 0) {
+        fprintf(stderr, zBadPipe, errno, strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
     switch (fork()) {
     case -1:
-        fprintf( stderr, zForkFail, errno, strerror(errno), pOpts->pzProgName);
-        exit( EXIT_FAILURE );
+        fprintf(stderr, zForkFail, errno, strerror(errno), pOpts->pzProgName);
+        exit(EXIT_FAILURE);
         break;
 
     case 0:
-        dup2( pipeFd[1], STDERR_FILENO );
-        dup2( pipeFd[1], STDOUT_FILENO );
-        close( pipeFd[0] );
+        dup2(pipeFd[1], STDERR_FILENO);
+        dup2(pipeFd[1], STDOUT_FILENO);
+        close(pipeFd[0]);
 
         switch (whichVar) {
         case TT_LONGUSAGE:
-            (*(pOpts->pUsageProc))( pOpts, EXIT_SUCCESS );
+            (*(pOpts->pUsageProc))(pOpts, EXIT_SUCCESS);
             /* NOTREACHED */
-            exit( EXIT_FAILURE );
+            exit(EXIT_FAILURE);
 
         case TT_USAGE:
-            (*(pOpts->pUsageProc))( pOpts, EXIT_FAILURE );
+            (*(pOpts->pUsageProc))(pOpts, EXIT_FAILURE);
             /* NOTREACHED */
-            exit( EXIT_FAILURE );
+            exit(EXIT_FAILURE);
 
         case TT_VERSION:
             if (pOD->fOptState & OPTST_ALLOC_ARG) {
@@ -527,20 +531,20 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
                 pOD->fOptState &= ~OPTST_ALLOC_ARG;
             }
             pOD->optArg.argString = "c";
-            optionPrintVersion( pOpts, pOD );
+            optionPrintVersion(pOpts, pOD);
             /* NOTREACHED */
 
         default:
-            exit( EXIT_FAILURE );
+            exit(EXIT_FAILURE);
         }
 
     default:
-        close( pipeFd[1] );
-        fp = fdopen( pipeFd[0], "r" FOPEN_BINARY_FLAG );
+        close(pipeFd[1]);
+        fp = fdopen(pipeFd[0], "r" FOPEN_BINARY_FLAG);
     }
 
     for (;;) {
-        int  ch = fgetc( fp );
+        int  ch = fgetc(fp);
         switch (ch) {
 
         case '\n':
@@ -549,10 +553,10 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
 
         case '\'':
             while (nlHoldCt > 0) {
-                fputc( '\n', stdout );
+                fputc('\n', stdout);
                 nlHoldCt--;
             }
-            fputs( "'\\''", stdout );
+            fputs("'\\''", stdout);
             break;
 
         case EOF:
@@ -560,24 +564,24 @@ textToVariable( tOptions* pOpts, teTextTo whichVar, tOptDesc* pOD )
 
         default:
             while (nlHoldCt > 0) {
-                fputc( '\n', stdout );
+                fputc('\n', stdout);
                 nlHoldCt--;
             }
-            fputc( ch, stdout );
+            fputc(ch, stdout);
             break;
         }
     } endCharLoop:;
 
-    fputs( "'\n\n", stdout );
-    close( pipeFd[0] );
+    fputs("'\n\n", stdout);
+    close(pipeFd[0]);
 #endif
 }
 
 
 static void
-emitUsage( tOptions* pOpts )
+emitUsage(tOptions* pOpts)
 {
-    char     zTimeBuf[ AO_NAME_SIZE ];
+    char zTimeBuf[AO_NAME_SIZE];
 
     /*
      *  First, switch stdout to the output file name.
@@ -586,26 +590,26 @@ emitUsage( tOptions* pOpts )
      *  executable name).  Down case the upper cased name.
      */
     if (pzLeader != NULL)
-        fputs( pzLeader, stdout );
+        fputs(pzLeader, stdout);
 
     {
         tSCC    zStdout[] = "stdout";
         tCC*    pzOutName;
 
         {
-            time_t    curTime = time( NULL );
-            struct tm*  pTime = localtime( &curTime );
+            time_t    curTime = time(NULL);
+            struct tm*  pTime = localtime(&curTime);
             strftime(zTimeBuf, AO_NAME_SIZE, "%A %B %e, %Y at %r %Z", pTime );
         }
 
-        if (HAVE_OPT( SCRIPT ))
-             pzOutName = OPT_ARG( SCRIPT );
+        if (HAVE_OPT(SCRIPT))
+             pzOutName = OPT_ARG(SCRIPT);
         else pzOutName = zStdout;
 
         if ((pzLeader == NULL) && (pzShell != NULL))
-            printf( "#! %s\n", pzShell );
+            printf("#! %s\n", pzShell);
 
-        printf( zPreamble, zStartMarker, pzOutName, zTimeBuf );
+        printf(zPreamble, zStartMarker, pzOutName, zTimeBuf);
     }
 
     /*
@@ -615,16 +619,16 @@ emitUsage( tOptions* pOpts )
         char* pzPN = zTimeBuf;
         tCC*  pz   = pOpts->pzPROGNAME;
         for (;;) {
-            if ((*pzPN++ = tolower( *pz++ )) == '\0')
+            if ((*pzPN++ = tolower(*pz++)) == '\0')
                 break;
         }
     }
 
-    printf( zEndPreamble, pOpts->pzPROGNAME );
+    printf(zEndPreamble, pOpts->pzPROGNAME);
 
     pOpts->pzProgPath = pOpts->pzProgName = zTimeBuf;
-    textToVariable( pOpts, TT_LONGUSAGE, NULL );
-    textToVariable( pOpts, TT_USAGE,     NULL );
+    textToVariable(pOpts, TT_LONGUSAGE, NULL);
+    textToVariable(pOpts, TT_USAGE,     NULL);
 
     {
         tOptDesc* pOptDesc = pOpts->pOptDesc;
@@ -632,7 +636,7 @@ emitUsage( tOptions* pOpts )
 
         for (;;) {
             if (pOptDesc->pOptProc == optionPrintVersion) {
-                textToVariable( pOpts, TT_VERSION, pOptDesc );
+                textToVariable(pOpts, TT_VERSION, pOptDesc);
                 break;
             }
 
@@ -645,7 +649,7 @@ emitUsage( tOptions* pOpts )
 
 
 static void
-emitSetup( tOptions* pOpts )
+emitSetup(tOptions* pOpts)
 {
     tOptDesc* pOptDesc = pOpts->pOptDesc;
     int       optionCt = pOpts->presetOptCt;
@@ -680,14 +684,14 @@ emitSetup( tOptions* pOpts )
          *  Numeric and membership bit options are just printed as a number.
          */
         case OPARG_TYPE_NUMERIC:
-            snprintf( zVal, sizeof( zVal ), "%d",
-                      (int)pOptDesc->optArg.argInt );
+            snprintf(zVal, sizeof(zVal), "%d",
+                     (int)pOptDesc->optArg.argInt);
             pzDefault = zVal;
             break;
 
         case OPARG_TYPE_MEMBERSHIP:
-            snprintf( zVal, sizeof( zVal ), "%lu",
-                      (unsigned long)pOptDesc->optArg.argIntptr );
+            snprintf(zVal, sizeof(zVal), "%lu",
+                     (unsigned long)pOptDesc->optArg.argIntptr);
             pzDefault = zVal;
             break;
 
@@ -705,87 +709,87 @@ emitSetup( tOptions* pOpts )
                 pzDefault = pOptDesc->optArg.argString;
         }
 
-        printf( pzFmt, pOpts->pzPROGNAME, pOptDesc->pz_NAME, pzDefault );
+        printf(pzFmt, pOpts->pzPROGNAME, pOptDesc->pz_NAME, pzDefault);
     }
 }
 
 
 static void
-printOptionAction( tOptions* pOpts, tOptDesc* pOptDesc )
+printOptionAction(tOptions* pOpts, tOptDesc* pOptDesc)
 {
     if (pOptDesc->pOptProc == optionPrintVersion)
-        printf( zTextExit, pOpts->pzPROGNAME, "VERSION" );
+        printf(zTextExit, pOpts->pzPROGNAME, "VERSION");
 
     else if (pOptDesc->pOptProc == optionPagedUsage)
-        printf( zPagedUsageExit, pOpts->pzPROGNAME );
+        printf(zPagedUsageExit, pOpts->pzPROGNAME);
 
     else if (pOptDesc->pOptProc == optionLoadOpt) {
-        printf( zCmdFmt, "echo 'Warning:  Cannot load options files' >&2" );
-        printf( zCmdFmt, "OPT_ARG_NEEDED=YES" );
+        printf(zCmdFmt, "echo 'Warning:  Cannot load options files' >&2");
+        printf(zCmdFmt, "OPT_ARG_NEEDED=YES");
 
     } else if (pOptDesc->pz_NAME == NULL) {
 
         if (pOptDesc->pOptProc == NULL) {
-            printf( zCmdFmt, "echo 'Warning:  Cannot save options files' "
-                    ">&2" );
-            printf( zCmdFmt, "OPT_ARG_NEEDED=OK" );
+            printf(zCmdFmt, "echo 'Warning:  Cannot save options files' "
+                    ">&2");
+            printf(zCmdFmt, "OPT_ARG_NEEDED=OK");
         } else
-            printf( zTextExit, pOpts->pzPROGNAME, "LONGUSAGE" );
+            printf(zTextExit, pOpts->pzPROGNAME, "LONGUSAGE");
 
     } else {
         if (pOptDesc->optMaxCt == 1)
-            printf( zSingleArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME );
+            printf(zSingleArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME);
         else {
             if ((unsigned)pOptDesc->optMaxCt < NOLIMIT)
-                printf( zCountTest, pOpts->pzPROGNAME,
-                        pOptDesc->pz_NAME, pOptDesc->optMaxCt );
+                printf(zCountTest, pOpts->pzPROGNAME,
+                       pOptDesc->pz_NAME, pOptDesc->optMaxCt);
 
-            printf( zMultiArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME );
+            printf(zMultiArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME);
         }
 
         /*
          *  Fix up the args.
          */
         if (OPTST_GET_ARGTYPE(pOptDesc->fOptState) == OPARG_TYPE_NONE) {
-            printf( zCantArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME );
+            printf(zCantArg, pOpts->pzPROGNAME, pOptDesc->pz_NAME);
 
         } else if (pOptDesc->fOptState & OPTST_ARG_OPTIONAL) {
-            printf( zMayArg,  pOpts->pzPROGNAME, pOptDesc->pz_NAME );
+            printf(zMayArg,  pOpts->pzPROGNAME, pOptDesc->pz_NAME);
 
         } else {
-            fputs( zMustArg, stdout );
+            fputs(zMustArg, stdout);
         }
     }
-    fputs( zOptionEndSelect, stdout );
+    fputs(zOptionEndSelect, stdout);
 }
 
 
 static void
-printOptionInaction( tOptions* pOpts, tOptDesc* pOptDesc )
+printOptionInaction(tOptions* pOpts, tOptDesc* pOptDesc)
 {
     if (pOptDesc->pOptProc == optionLoadOpt) {
-        printf( zCmdFmt, "echo 'Warning:  Cannot suppress the loading of "
-                "options files' >&2" );
+        printf(zCmdFmt, "echo 'Warning:  Cannot suppress the loading of "
+                "options files' >&2");
 
     } else if (pOptDesc->optMaxCt == 1)
-        printf( zNoSingleArg, pOpts->pzPROGNAME,
-                pOptDesc->pz_NAME, pOptDesc->pz_DisablePfx );
+        printf(zNoSingleArg, pOpts->pzPROGNAME,
+               pOptDesc->pz_NAME, pOptDesc->pz_DisablePfx);
     else
-        printf( zNoMultiArg, pOpts->pzPROGNAME,
-                pOptDesc->pz_NAME, pOptDesc->pz_DisablePfx );
+        printf(zNoMultiArg, pOpts->pzPROGNAME,
+               pOptDesc->pz_NAME, pOptDesc->pz_DisablePfx);
 
-    printf( zCmdFmt, "OPT_ARG_NEEDED=NO" );
-    fputs( zOptionEndSelect, stdout );
+    printf(zCmdFmt, "OPT_ARG_NEEDED=NO");
+    fputs(zOptionEndSelect, stdout);
 }
 
 
 static void
-emitFlag( tOptions* pOpts )
+emitFlag(tOptions* pOpts)
 {
     tOptDesc* pOptDesc = pOpts->pOptDesc;
     int       optionCt = pOpts->optCt;
 
-    fputs( zOptionCase, stdout );
+    fputs(zOptionCase, stdout);
 
     for (;optionCt > 0; pOptDesc++, --optionCt) {
 
@@ -793,11 +797,11 @@ emitFlag( tOptions* pOpts )
             continue;
 
         if (IS_GRAPHIC_CHAR(pOptDesc->optValue)) {
-            printf( zOptionFlag, pOptDesc->optValue );
-            printOptionAction( pOpts, pOptDesc );
+            printf(zOptionFlag, pOptDesc->optValue);
+            printOptionAction(pOpts, pOptDesc);
         }
     }
-    printf( zOptionUnknown, "flag", pOpts->pzPROGNAME );
+    printf(zOptionUnknown, "flag", pOpts->pzPROGNAME);
 }
 
 
@@ -805,7 +809,7 @@ emitFlag( tOptions* pOpts )
  *  Emit the match text for a long option
  */
 static void
-emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
+emitMatchExpr(tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts)
 {
     tOptDesc* pOD = pOpts->pOptDesc;
     int       oCt = pOpts->optCt;
@@ -831,8 +835,8 @@ emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
          *  They must not be the same.  They cannot be, because it would
          *  not compile correctly if they were.
          */
-        while (  toupper( pOD->pz_Name[matchCt] )
-              == toupper( pzMatchName[matchCt] ))
+        while (  toupper(pOD->pz_Name[matchCt])
+              == toupper(pzMatchName[matchCt]))
             matchCt++;
 
         if (matchCt > min)
@@ -843,8 +847,8 @@ emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
          */
         if (pOD->pz_DisableName != NULL) {
             matchCt = 0;
-            while (  toupper( pOD->pz_DisableName[matchCt] )
-                  == toupper( pzMatchName[matchCt] ))
+            while (  toupper(pOD->pz_DisableName[matchCt])
+                  == toupper(pzMatchName[matchCt]))
                 matchCt++;
             if (matchCt > min)
                 min = matchCt;
@@ -860,7 +864,7 @@ emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
      */
     if (  (pzMatchName[min  ] == NUL)
        || (pzMatchName[min+1] == NUL) )
-        printf( zOptionFullName, pzMatchName );
+        printf(zOptionFullName, pzMatchName);
 
     else {
         int matchCt = 0;
@@ -869,11 +873,11 @@ emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
 
         for (;;) {
             *pz = NUL;
-            printf( zOptionPartName, zName );
+            printf(zOptionPartName, zName);
             *pz++ = pzMatchName[matchCt++];
             if (pzMatchName[matchCt] == NUL) {
                 *pz = NUL;
-                printf( zOptionFullName, zName );
+                printf(zOptionFullName, zName);
                 break;
             }
         }
@@ -885,12 +889,12 @@ emitMatchExpr( tCC* pzMatchName, tOptDesc* pCurOpt, tOptions* pOpts )
  *  Emit GNU-standard long option handling code
  */
 static void
-emitLong( tOptions* pOpts )
+emitLong(tOptions* pOpts)
 {
     tOptDesc* pOD = pOpts->pOptDesc;
     int       ct  = pOpts->optCt;
 
-    fputs( zOptionCase, stdout );
+    fputs(zOptionCase, stdout);
 
     /*
      *  do each option, ...
@@ -902,24 +906,24 @@ emitLong( tOptions* pOpts )
         if (SKIP_OPT(pOD))
             continue;
 
-        emitMatchExpr( pOD->pz_Name, pOD, pOpts );
-        printOptionAction( pOpts, pOD );
+        emitMatchExpr(pOD->pz_Name, pOD, pOpts);
+        printOptionAction(pOpts, pOD);
 
         /*
          *  Now, do the same thing for the disablement version of the option.
          */
         if (pOD->pz_DisableName != NULL) {
-            emitMatchExpr( pOD->pz_DisableName, pOD, pOpts );
-            printOptionInaction( pOpts, pOD );
+            emitMatchExpr(pOD->pz_DisableName, pOD, pOpts);
+            printOptionInaction(pOpts, pOD);
         }
     } while (pOD++, --ct > 0);
 
-    printf( zOptionUnknown, "option", pOpts->pzPROGNAME );
+    printf(zOptionUnknown, "option", pOpts->pzPROGNAME);
 }
 
 
 static void
-openOutput( char const* pzFile )
+openOutput(char const* pzFile)
 {
     FILE* fp;
     char* pzData = NULL;
@@ -934,19 +938,19 @@ openOutput( char const* pzFile )
          *  THEN assume we are creating a new file.
          *       Skip the loading of the old data.
          */
-        if (stat( pzFile, &stbf ) != 0)
+        if (stat(pzFile, &stbf) != 0)
             break;
 
         /*
          *  The file must be a regular file
          */
-        if (! S_ISREG( stbf.st_mode )) {
-            fprintf( stderr, zNotFile, pzFile );
-            exit( EXIT_FAILURE );
+        if (! S_ISREG(stbf.st_mode)) {
+            fprintf(stderr, zNotFile, pzFile);
+            exit(EXIT_FAILURE);
         }
 
         pzData = AGALOC(stbf.st_size + 1, "file data");
-        fp = fopen( pzFile, "r" FOPEN_BINARY_FLAG );
+        fp = fopen(pzFile, "r" FOPEN_BINARY_FLAG);
 
         sizeLeft = (unsigned)stbf.st_size;
         pzScan   = pzData;
@@ -955,7 +959,7 @@ openOutput( char const* pzFile )
          *  Read in all the data as fast as our OS will let us.
          */
         for (;;) {
-            int inct = fread( (void*)pzScan, (size_t)1, sizeLeft, fp);
+            int inct = fread((void*)pzScan, (size_t)1, sizeLeft, fp);
             if (inct == 0)
                 break;
 
@@ -970,29 +974,32 @@ openOutput( char const* pzFile )
          *  NUL-terminate the leader and look for the trailer
          */
         *pzScan = '\0';
-        fclose( fp );
-        pzScan  = strstr( pzData, zStartMarker );
+        fclose(fp);
+        pzScan  = strstr(pzData, zStartMarker);
         if (pzScan == NULL) {
             pzTrailer = pzData;
             break;
         }
 
         *(pzScan++) = NUL;
-        pzScan  = strstr( pzScan, zTrailerMarker );
+        pzScan  = strstr(pzScan, zTrailerMarker);
         if (pzScan == NULL) {
             pzTrailer = pzData;
             break;
         }
 
         /*
-         *  Check to see if the data contains
-         *  our marker.  If it does, then we will skip over it
+         *  Check to see if the data contains our marker.
+         *  If it does, then we will skip over it
          */
-        pzTrailer = pzScan + sizeof( zTrailerMarker ) - 1;
+        pzTrailer = pzScan + sizeof(zTrailerMarker) - 1;
         pzLeader  = pzData;
     } while (AG_FALSE);
 
-    freopen( pzFile, "w" FOPEN_BINARY_FLAG, stdout );
+    if (freopen(pzFile, "w" FOPEN_BINARY_FLAG, stdout) != stdout) {
+        fprintf(stderr, zFreopenFail, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 }
 
 
@@ -1011,19 +1018,21 @@ openOutput( char const* pzFile )
  *  and create shell script variables containing the two types of text.
 =*/
 void
-genshelloptUsage( tOptions*  pOpts, int exitCode )
+genshelloptUsage(tOptions*  pOpts, int exitCode)
 {
-#if defined(__windows__) && !defined(__CYGWIN__)
-    optionUsage( pOpts, exitCode );
+#if ! defined(HAVE_WORKING_FORK)
+    optionUsage(pOpts, exitCode);
 #else
     /*
      *  IF not EXIT_SUCCESS,
      *  THEN emit the short form of usage.
      */
     if (exitCode != EXIT_SUCCESS)
-        optionUsage( pOpts, exitCode );
-    fflush( stderr );
-    fflush( stdout );
+        optionUsage(pOpts, exitCode);
+    fflush(stderr);
+    fflush(stdout);
+    if (ferror(stdout) || ferror(stderr))
+        exit(EXIT_FAILURE);
 
     option_usage_fp = stdout;
 
@@ -1032,20 +1041,20 @@ genshelloptUsage( tOptions*  pOpts, int exitCode )
      */
     switch (fork()) {
     case -1:
-        optionUsage( pOpts, EXIT_FAILURE );
-        /*NOTREACHED*/
-        _exit( EXIT_FAILURE );
+        optionUsage(pOpts, EXIT_FAILURE);
+        /* NOTREACHED */
+        _exit(EXIT_FAILURE);
 
     case 0:
         pagerState = PAGER_STATE_CHILD;
-        optionUsage( pOpts, EXIT_SUCCESS );
-        /*NOTREACHED*/
-        _exit( EXIT_FAILURE );
+        optionUsage(pOpts, EXIT_SUCCESS);
+        /* NOTREACHED */
+        _exit(EXIT_FAILURE);
 
     default:
     {
         int  sts;
-        wait( &sts );
+        wait(&sts);
     }
     }
 
@@ -1055,10 +1064,10 @@ genshelloptUsage( tOptions*  pOpts, int exitCode )
      */
     {
         char* pz;
-        AGDUPSTR( pz, pShellParseOptions->pzPROGNAME, "program name" );
+        AGDUPSTR(pz, pShellParseOptions->pzPROGNAME, "program name");
         pShellParseOptions->pzProgName = pz;
         while (*pz != NUL) {
-            *pz = tolower( *pz );
+            *pz = tolower(*pz);
             pz++;
         }
     }
@@ -1066,8 +1075,8 @@ genshelloptUsage( tOptions*  pOpts, int exitCode )
     /*
      *  Separate the makeshell usage from the client usage
      */
-    fprintf( option_usage_fp, zGenshell, pShellParseOptions->pzProgName );
-    fflush( option_usage_fp );
+    fprintf(option_usage_fp, zGenshell, pShellParseOptions->pzProgName);
+    fflush(option_usage_fp);
 
     /*
      *  Now, print the client usage.
@@ -1077,16 +1086,22 @@ genshelloptUsage( tOptions*  pOpts, int exitCode )
         pagerState = PAGER_STATE_CHILD;
         /*FALLTHROUGH*/
     case -1:
-        optionUsage( pShellParseOptions, EXIT_FAILURE );
+        optionUsage(pShellParseOptions, EXIT_FAILURE);
 
     default:
     {
         int  sts;
-        wait( &sts );
+        wait(&sts);
     }
     }
 
-    exit( EXIT_SUCCESS );
+    fflush(stdout);
+    if (ferror(stdout)) {
+        fputs(zOutputFail, stderr);
+        exit(EXIT_FAILURE);
+    }
+
+    exit(EXIT_SUCCESS);
 #endif
 }
 

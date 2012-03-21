@@ -1,6 +1,6 @@
 
-/*  $Id: version.c,v 4.19 2009/08/01 17:43:06 bkorb Exp $
- * Time-stamp:      "2008-07-27 10:11:30 bkorb"
+/*
+ * Time-stamp:      "2010-09-05 05:53:20 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
@@ -9,7 +9,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -29,9 +29,8 @@
  */
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 static void
-printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp );
+printVersion(tOptions* pOpts, tOptDesc* pOD, FILE* fp);
 /* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  optionVersion
@@ -44,17 +43,17 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp );
  *  The returned string cannot be modified.
 =*/
 char const*
-optionVersion( void )
+optionVersion(void)
 {
     static char const zVersion[] =
-        STR( AO_CURRENT.AO_REVISION );
+        STR(AO_CURRENT.AO_REVISION);
 
     return zVersion;
 }
 
 
 static void
-printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
+printVersion(tOptions* pOpts, tOptDesc* pOD, FILE* fp)
 {
     char swCh;
 
@@ -68,8 +67,8 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
     else swCh = tolower(pOD->optArg.argString[0]);
 
     if (pOpts->pzFullVersion != NULL) {
-        fputs( pOpts->pzFullVersion, fp );
-        fputc( '\n', fp );
+        fputs(pOpts->pzFullVersion, fp);
+        fputc('\n', fp);
 
     } else {
         char const *pz = pOpts->pzUsageTitle;
@@ -83,37 +82,42 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
 
     case 'c':
         if (pOpts->pzCopyright != NULL) {
-            fputs( pOpts->pzCopyright, fp );
-            fputc( '\n', fp );
+            fputs(pOpts->pzCopyright, fp);
+            fputc('\n', fp);
         }
-        fprintf( fp, zAO_Ver, optionVersion() );
+        fprintf(fp, zAO_Ver, optionVersion());
         if (pOpts->pzBugAddr != NULL)
-            fprintf( fp, zPlsSendBugs, pOpts->pzBugAddr );
+            fprintf(fp, zPlsSendBugs, pOpts->pzBugAddr);
         break;
 
     case 'n':
         if (pOpts->pzCopyright != NULL) {
-            fputs( pOpts->pzCopyright, fp );
-            fputc( '\n', fp );
-            fputc( '\n', fp );
+            fputs(pOpts->pzCopyright, fp);
+            fputc('\n', fp);
+            fputc('\n', fp);
         }
 
         if (pOpts->pzCopyNotice != NULL) {
-            fputs( pOpts->pzCopyNotice, fp );
-            fputc( '\n', fp );
+            fputs(pOpts->pzCopyNotice, fp);
+            fputc('\n', fp);
         }
 
-        fprintf( fp, zAO_Ver, optionVersion() );
+        fprintf(fp, zAO_Ver, optionVersion());
         if (pOpts->pzBugAddr != NULL)
-            fprintf( fp, zPlsSendBugs, pOpts->pzBugAddr );
+            fprintf(fp, zPlsSendBugs, pOpts->pzBugAddr);
         break;
 
     default:
-        fprintf( stderr, zBadVerArg, swCh );
-        exit( EXIT_FAILURE );
+        fprintf(stderr, zBadVerArg, swCh);
+        exit(EXIT_FAILURE);
     }
 
-    exit( EXIT_SUCCESS );
+    fflush(fp);
+    if (ferror(fp) != 0) {
+        fputs(zOutputFail, stderr);
+        exit(EXIT_FAILURE);
+    }
+    exit(EXIT_SUCCESS);
 }
 
 /*=export_func  optionPrintVersion
@@ -127,9 +131,9 @@ printVersion( tOptions* pOpts, tOptDesc* pOD, FILE* fp )
  *  This routine will print the version to stdout.
 =*/
 void
-optionPrintVersion( tOptions*  pOpts, tOptDesc*  pOD )
+optionPrintVersion(tOptions*  pOpts, tOptDesc*  pOD)
 {
-    printVersion( pOpts, pOD, stdout );
+    printVersion(pOpts, pOD, stdout);
 }
 
 /*=export_func  optionVersionStderr
@@ -143,9 +147,9 @@ optionPrintVersion( tOptions*  pOpts, tOptDesc*  pOD )
  *  This routine will print the version to stderr.
 =*/
 void
-optionVersionStderr( tOptions*  pOpts, tOptDesc*  pOD )
+optionVersionStderr(tOptions*  pOpts, tOptDesc*  pOD)
 {
-    printVersion( pOpts, pOD, stderr );
+    printVersion(pOpts, pOD, stderr);
 }
 
 /*

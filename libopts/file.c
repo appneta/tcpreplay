@@ -1,11 +1,12 @@
 
-/*
- *  $Id: file.c,v 4.9 2009/08/01 17:43:06 bkorb Exp $
- *  Time-stamp:      "2009-07-23 17:23:46 bkorb"
+/**
+ * \file file.c
+ *
+ *  Time-stamp:      "2010-07-10 11:00:59 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control

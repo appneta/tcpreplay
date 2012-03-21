@@ -1,7 +1,8 @@
 
 /*
- *  save.c  $Id: save.c,v 4.36 2009/08/01 17:43:06 bkorb Exp $
- * Time-stamp:      "2009-07-20 20:40:28 bkorb"
+ * \file save.c
+ *
+ * Time-stamp:      "2010-07-17 10:27:48 bkorb"
  *
  *  This module's routines will take the currently set options and
  *  store them into an ".rc" file for re-interpretation the next
@@ -9,7 +10,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -32,12 +33,11 @@ static char const  zWarn[] = "%s WARNING:  cannot save options - ";
 static char const close_xml[] = "</%s>\n";
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 static tCC*
-findDirName( tOptions* pOpts, int* p_free );
+findDirName(tOptions* pOpts, int* p_free);
 
 static tCC*
-findFileName( tOptions* pOpts, int* p_free_name );
+findFileName(tOptions* pOpts, int* p_free_name);
 
 static void
 printEntry(
@@ -58,7 +58,7 @@ static void
 printHierarchy(FILE * fp, tOptDesc * p);
 
 static FILE *
-openSaveFile( tOptions* pOpts );
+openSaveFile(tOptions* pOpts);
 
 static void
 printNoArgOpt(FILE * fp, tOptDesc * p, tOptDesc * pOD);
@@ -77,7 +77,7 @@ printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts);
 /* = = = END-STATIC-FORWARD = = = */
 
 static tCC*
-findDirName( tOptions* pOpts, int* p_free )
+findDirName(tOptions* pOpts, int* p_free)
 {
     tCC*  pzDir;
 
@@ -109,7 +109,7 @@ findDirName( tOptions* pOpts, int* p_free )
         return pzDir;
 
     {
-        tCC*  pzEndDir = strchr( ++pzDir, DIRCH );
+        tCC*  pzEndDir = strchr(++pzDir, DIRCH);
         char* pzFileName;
         char* pzEnv;
 
@@ -117,21 +117,21 @@ findDirName( tOptions* pOpts, int* p_free )
             char z[ AO_NAME_SIZE ];
             if ((pzEndDir - pzDir) > AO_NAME_LIMIT )
                 return NULL;
-            strncpy( z, pzDir, (size_t)(pzEndDir - pzDir) );
+            strncpy(z, pzDir, (size_t)(pzEndDir - pzDir));
             z[ (pzEndDir - pzDir) ] = NUL;
-            pzEnv = getenv( z );
+            pzEnv = getenv(z);
         } else {
 
             /*
              *  Make sure we can get the env value (after stripping off
              *  any trailing directory or file names)
              */
-            pzEnv = getenv( pzDir );
+            pzEnv = getenv(pzDir);
         }
 
         if (pzEnv == NULL) {
-            fprintf( stderr, zWarn, pOpts->pzProgName );
-            fprintf( stderr, zNotDef, pzDir );
+            fprintf(stderr, zWarn, pOpts->pzProgName);
+            fprintf(stderr, zNotDef, pzDir);
             return NULL;
         }
 
@@ -139,8 +139,8 @@ findDirName( tOptions* pOpts, int* p_free )
             return pzEnv;
 
         {
-            size_t sz = strlen( pzEnv ) + strlen( pzEndDir ) + 2;
-            pzFileName = (char*)AGALOC( sz, "dir name" );
+            size_t sz = strlen(pzEnv) + strlen(pzEndDir) + 2;
+            pzFileName = (char*)AGALOC(sz, "dir name");
         }
 
         if (pzFileName == NULL)
@@ -151,20 +151,20 @@ findDirName( tOptions* pOpts, int* p_free )
          *  Glue together the full name into the allocated memory.
          *  FIXME: We lose track of this memory.
          */
-        sprintf( pzFileName, "%s/%s", pzEnv, pzEndDir );
+        sprintf(pzFileName, "%s/%s", pzEnv, pzEndDir);
         return pzFileName;
     }
 }
 
 
 static tCC*
-findFileName( tOptions* pOpts, int* p_free_name )
+findFileName(tOptions* pOpts, int* p_free_name)
 {
     tCC*   pzDir;
     struct stat stBuf;
     int    free_dir_name = 0;
 
-    pzDir = findDirName( pOpts, &free_dir_name );
+    pzDir = findDirName(pOpts, &free_dir_name);
     if (pzDir == NULL)
         return NULL;
 
@@ -172,7 +172,7 @@ findFileName( tOptions* pOpts, int* p_free_name )
      *  See if we can find the specified directory.  We use a once-only loop
      *  structure so we can bail out early.
      */
-    if (stat( pzDir, &stBuf ) != 0) do {
+    if (stat(pzDir, &stBuf) != 0) do {
 
         /*
          *  IF we could not, check to see if we got a full
@@ -185,17 +185,17 @@ findFileName( tOptions* pOpts, int* p_free_name )
              *  Strip off the last component, stat the remaining string and
              *  that string must name a directory
              */
-            char* pzDirCh = strrchr( pzDir, DIRCH );
+            char* pzDirCh = strrchr(pzDir, DIRCH);
             if (pzDirCh == NULL) {
                 stBuf.st_mode = S_IFREG;
                 continue;  /* bail out of error condition */
             }
 
-            strncpy( z, pzDir, (size_t)(pzDirCh - pzDir));
+            strncpy(z, pzDir, (size_t)(pzDirCh - pzDir));
             z[ pzDirCh - pzDir ] = NUL;
 
-            if (  (stat( z, &stBuf ) == 0)
-               && S_ISDIR( stBuf.st_mode )) {
+            if (  (stat(z, &stBuf) == 0)
+               && S_ISDIR(stBuf.st_mode)) {
 
                 /*
                  *  We found the directory.  Restore the file name and
@@ -209,10 +209,10 @@ findFileName( tOptions* pOpts, int* p_free_name )
         /*
          *  We got a bogus name.
          */
-        fprintf( stderr, zWarn, pOpts->pzProgName );
-        fprintf( stderr, zNoStat, errno, strerror( errno ), pzDir );
+        fprintf(stderr, zWarn, pOpts->pzProgName);
+        fprintf(stderr, zNoStat, errno, strerror(errno), pzDir);
         if (free_dir_name)
-            AGFREE( (void*)pzDir );
+            AGFREE((void*)pzDir);
         return NULL;
     } while (0);
 
@@ -220,18 +220,18 @@ findFileName( tOptions* pOpts, int* p_free_name )
      *  IF what we found was a directory,
      *  THEN tack on the config file name
      */
-    if (S_ISDIR( stBuf.st_mode )) {
-        size_t sz = strlen( pzDir ) + strlen( pOpts->pzRcName ) + 2;
+    if (S_ISDIR(stBuf.st_mode)) {
+        size_t sz = strlen(pzDir) + strlen(pOpts->pzRcName) + 2;
 
         {
-            char*  pzPath = (char*)AGALOC( sz, "file name" );
+            char*  pzPath = (char*)AGALOC(sz, "file name");
 #ifdef HAVE_SNPRINTF
-            snprintf( pzPath, sz, "%s/%s", pzDir, pOpts->pzRcName );
+            snprintf(pzPath, sz, "%s/%s", pzDir, pOpts->pzRcName);
 #else
-            sprintf( pzPath, "%s/%s", pzDir, pOpts->pzRcName );
+            sprintf(pzPath, "%s/%s", pzDir, pOpts->pzRcName);
 #endif
             if (free_dir_name)
-                AGFREE( (void*)pzDir );
+                AGFREE((void*)pzDir);
             pzDir = pzPath;
             free_dir_name = 1;
         }
@@ -240,12 +240,12 @@ findFileName( tOptions* pOpts, int* p_free_name )
          *  IF we cannot stat the object for any reason other than
          *     it does not exist, then we bail out
          */
-        if (stat( pzDir, &stBuf ) != 0) {
+        if (stat(pzDir, &stBuf) != 0) {
             if (errno != ENOENT) {
-                fprintf( stderr, zWarn, pOpts->pzProgName );
-                fprintf( stderr, zNoStat, errno, strerror( errno ),
-                         pzDir );
-                AGFREE( (void*)pzDir );
+                fprintf(stderr, zWarn, pOpts->pzProgName);
+                fprintf(stderr, zNoStat, errno, strerror(errno),
+                        pzDir);
+                AGFREE((void*)pzDir);
                 return NULL;
             }
 
@@ -260,18 +260,18 @@ findFileName( tOptions* pOpts, int* p_free_name )
      *  Make sure that whatever we ultimately found, that it either is
      *  or will soon be a file.
      */
-    if (! S_ISREG( stBuf.st_mode )) {
-        fprintf( stderr, zWarn, pOpts->pzProgName );
-        fprintf( stderr, zNotFile, pzDir );
+    if (! S_ISREG(stBuf.st_mode)) {
+        fprintf(stderr, zWarn, pOpts->pzProgName);
+        fprintf(stderr, zNotFile, pzDir);
         if (free_dir_name)
-            AGFREE( (void*)pzDir );
+            AGFREE((void*)pzDir);
         return NULL;
     }
 
     /*
      *  Get rid of the old file
      */
-    unlink( pzDir );
+    unlink(pzDir);
     *p_free_name = free_dir_name;
     return pzDir;
 }
@@ -303,18 +303,18 @@ printEntry(
      *  THEN the char pointer is really the number
      */
     if (OPTST_GET_ARGTYPE(p->fOptState) == OPARG_TYPE_NUMERIC)
-        fprintf( fp, "  %d\n", (int)(t_word)pzLA );
+        fprintf(fp, "  %d\n", (int)(t_word)pzLA);
 
     /*
      *  OTHERWISE, FOR each line of the value text, ...
      */
     else if (pzLA == NULL)
-        fputc( '\n', fp );
+        fputc('\n', fp);
 
     else {
-        fputc( ' ', fp ); fputc( ' ', fp );
+        fputc(' ', fp); fputc(' ', fp);
         for (;;) {
-            tCC* pzNl = strchr( pzLA, '\n' );
+            tCC* pzNl = strchr(pzLA, '\n');
 
             /*
              *  IF this is the last line
@@ -326,16 +326,16 @@ printEntry(
             /*
              *  Print the continuation and the text from the current line
              */
-            (void)fwrite( pzLA, (size_t)(pzNl - pzLA), (size_t)1, fp );
+            (void)fwrite(pzLA, (size_t)(pzNl - pzLA), (size_t)1, fp);
             pzLA = pzNl+1; /* advance the Last Arg pointer */
-            fputs( "\\\n", fp );
+            fputs("\\\n", fp);
         }
 
         /*
          *  Terminate the entry
          */
-        fputs( pzLA, fp );
-        fputc( '\n', fp );
+        fputs(pzLA, fp);
+        fputc('\n', fp);
     }
 }
 
@@ -383,7 +383,7 @@ print_a_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
                     /*
                      *  set membership strings get allocated
                      */
-                    AGFREE( (void*)pOD->optArg.argString );
+                    AGFREE((void*)pOD->optArg.argString);
                 }
             }
 
@@ -519,47 +519,47 @@ printHierarchy(FILE * fp, tOptDesc * p)
 
 
 static FILE *
-openSaveFile( tOptions* pOpts )
+openSaveFile(tOptions* pOpts)
 {
     FILE*     fp;
 
     {
         int   free_name = 0;
-        tCC*  pzFName = findFileName( pOpts, &free_name );
+        tCC*  pzFName = findFileName(pOpts, &free_name);
         if (pzFName == NULL)
             return NULL;
 
-        fp = fopen( pzFName, "w" FOPEN_BINARY_FLAG );
+        fp = fopen(pzFName, "w" FOPEN_BINARY_FLAG);
         if (fp == NULL) {
-            fprintf( stderr, zWarn, pOpts->pzProgName );
-            fprintf( stderr, zNoCreat, errno, strerror( errno ), pzFName );
+            fprintf(stderr, zWarn, pOpts->pzProgName);
+            fprintf(stderr, zNoCreat, errno, strerror(errno), pzFName);
             if (free_name)
                 AGFREE((void*) pzFName );
             return fp;
         }
 
         if (free_name)
-            AGFREE( (void*)pzFName );
+            AGFREE((void*)pzFName);
     }
 
     {
         char const*  pz = pOpts->pzUsageTitle;
-        fputs( "#  ", fp );
-        do { fputc( *pz, fp ); } while (*(pz++) != '\n');
+        fputs("#  ", fp);
+        do { fputc(*pz, fp); } while (*(pz++) != '\n');
     }
 
     {
-        time_t  timeVal = time( NULL );
-        char*   pzTime  = ctime( &timeVal );
+        time_t  timeVal = time(NULL);
+        char*   pzTime  = ctime(&timeVal);
 
-        fprintf( fp, zPresetFile, pzTime );
+        fprintf(fp, zPresetFile, pzTime);
 #ifdef HAVE_ALLOCATED_CTIME
         /*
          *  The return values for ctime(), localtime(), and gmtime()
          *  normally point to static data that is overwritten by each call.
          *  The test to detect allocated ctime, so we leak the memory.
          */
-        AGFREE( (void*)pzTime );
+        AGFREE((void*)pzTime);
 #endif
     }
 
@@ -575,7 +575,7 @@ printNoArgOpt(FILE * fp, tOptDesc * p, tOptDesc * pOD)
      * string, so we get that there, not with "p".
      */
     char const * pznm =
-        (DISABLED_OPT( p )) ? pOD->pz_DisableName : pOD->pz_Name;
+        (DISABLED_OPT(p)) ? pOD->pz_DisableName : pOD->pz_Name;
     /*
      *  If the option was disabled and the disablement name is NULL,
      *  then the disablement was caused by aliasing.
@@ -602,9 +602,9 @@ printStringArg(FILE * fp, tOptDesc * pOD)
             pOD->fOptState &= ~OPTST_DISABLED;
 
         while (uct-- > 0)
-            printEntry( fp, pOD, *(ppz++) );
+            printEntry(fp, pOD, *(ppz++));
     } else {
-        printEntry( fp, pOD, pOD->optArg.argString );
+        printEntry(fp, pOD, pOD->optArg.argString);
     }
 }
 
@@ -618,7 +618,7 @@ printEnumArg(FILE * fp, tOptDesc * pOD)
      *  bit flag values back into a string suitable for printing.
      */
     (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
-    printEntry( fp, pOD, (void*)(pOD->optArg.argString));
+    printEntry(fp, pOD, (void*)(pOD->optArg.argString));
 
     pOD->optArg.argEnum = val;
 }
@@ -633,13 +633,13 @@ printSetMemberArg(FILE * fp, tOptDesc * pOD)
      *  bit flag values back into a string suitable for printing.
      */
     (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
-    printEntry( fp, pOD, (void*)(pOD->optArg.argString));
+    printEntry(fp, pOD, (void*)(pOD->optArg.argString));
 
     if (pOD->optArg.argString != NULL) {
         /*
          *  set membership strings get allocated
          */
-        AGFREE( (void*)pOD->optArg.argString );
+        AGFREE((void*)pOD->optArg.argString);
         pOD->fOptState &= ~OPTST_ALLOC_ARG;
     }
 
@@ -681,7 +681,7 @@ printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
  * option, or by appending the @code{rcfile} attribute to the last
  * @code{homerc} attribute.  If no @code{rcfile} attribute was specified, it
  * will default to @code{.@i{programname}rc}.  If you wish to specify another
- * file, you should invoke the @code{SET_OPT_SAVE_OPTS( @i{filename} )} macro.
+ * file, you should invoke the @code{SET_OPT_SAVE_OPTS(@i{filename})} macro.
  *
  * The recommend usage is as follows:
  * @example
@@ -698,7 +698,7 @@ printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
  * will be printed to @code{stderr} and the routine will return.
 =*/
 void
-optionSaveFile( tOptions* pOpts )
+optionSaveFile(tOptions* pOpts)
 {
     tOptDesc* pOD;
     int       ct;
@@ -724,7 +724,7 @@ optionSaveFile( tOptions* pOpts )
          *  Equivalenced options get picked up when the equivalenced-to
          *  option is processed.
          */
-        if (UNUSED_OPT( pOD ))
+        if (UNUSED_OPT(pOD))
             continue;
 
         if ((pOD->fOptState & OPTST_DO_NOT_SAVE_MASK) != 0)
@@ -748,7 +748,7 @@ optionSaveFile( tOptions* pOpts )
             break;
 
         case OPARG_TYPE_NUMERIC:
-            printEntry( fp, p, (void*)(p->optArg.argInt));
+            printEntry(fp, p, (void*)(p->optArg.argInt));
             break;
 
         case OPARG_TYPE_STRING:
@@ -764,7 +764,7 @@ optionSaveFile( tOptions* pOpts )
             break;
 
         case OPARG_TYPE_BOOLEAN:
-            printEntry( fp, p, p->optArg.argBool ? "true" : "false" );
+            printEntry(fp, p, p->optArg.argBool ? "true" : "false");
             break;
 
         case OPARG_TYPE_HIERARCHY:
@@ -778,9 +778,9 @@ optionSaveFile( tOptions* pOpts )
         default:
             break; /* cannot handle - skip it */
         }
-    } while ( (pOD++), (--ct > 0));
+    } while (pOD++, (--ct > 0));
 
-    fclose( fp );
+    fclose(fp);
 }
 /*
  * Local Variables:
