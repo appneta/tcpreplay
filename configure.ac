@@ -77,7 +77,7 @@ AUTOGEN_VERSION=unknown
 if test -n "${AUTOGEN}" ; then
     AC_MSG_CHECKING(for autogen version >= 5.9.x)
     ${AUTOGEN} -v >autogen.version
-    AUTOGEN_VERSION=`cat autogen.version | ${SED} 's|.*\([[0-9\.]]\{5,\}\).*|\1|'`
+    AUTOGEN_VERSION=`cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|'`
     AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1`
     AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
     if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 9 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
@@ -96,7 +96,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen >= 5.9.x if you are building from SVN])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from SVN])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
