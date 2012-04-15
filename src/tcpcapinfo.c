@@ -44,6 +44,8 @@
 #include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
 
 static int do_checksum_math(u_int16_t *data, int len);
 
