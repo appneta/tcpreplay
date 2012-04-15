@@ -181,7 +181,7 @@ flag = {
     descrip     = "Remove Ethernet checksums (FCS) from end of frames";
     doc         = <<- EOText
 Note, this option is pretty dangerous!  We do not actually check to see if a FCS
-actually exists in the frame, we just blindly delete the last two bytes.  Hence,
+actually exists in the frame, we just blindly delete the last 4 bytes.  Hence,
 you should only use this if you know know that your OS provides the FCS when 
 reading raw packets.
 EOText;
