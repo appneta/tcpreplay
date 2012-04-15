@@ -863,7 +863,10 @@ if test $have_cygwin = no ; then
         have_libdnet=yes
         AC_DEFINE([HAVE_LIBDNET], [1], [Do we have libdnet?])
         dnl Debian uses dumbnet.h instead of dnet.h due to naming conflict
+        old_cflags=$CFLAGS
+        CFLAGS=$LDNETINC
         AC_CHECK_HEADERS([dumbnet.h dnet.h])
+        CFLAGS=$old_cflags
     fi
 
 else
