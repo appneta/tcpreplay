@@ -31,6 +31,9 @@
 #include <string.h>
 #include <errno.h>
 
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
+
 #include "tcpcapinfo_opts.h"
 
 static int do_checksum_math(u_int16_t *data, int len);
