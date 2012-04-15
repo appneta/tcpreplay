@@ -154,6 +154,18 @@ EOText;
 };
 
 flag = {
+    name        = maxsleep;
+    arg-type    = number;
+    arg-default = 0;
+    descrip     = "Sleep for no more then X milliseconds between packets";
+    doc         = <<- EOText
+Set a limit for the maximum number of milliseconds that tcpreplay will sleep
+between packets.  Effectively prevents long delays between packets without
+effecting the majority of packets.  Default is disabled.
+EOText;
+};
+
+flag = {
     name        = rdtsc-clicks;
     max         = 1;
     arg-type    = number;

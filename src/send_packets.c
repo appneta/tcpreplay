@@ -179,7 +179,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a mempcy rather then assignment.
+         * we have to do a memcpy rather then assignment.
          *
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
@@ -351,7 +351,7 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
 
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a mempcy rather then assignment.
+         * we have to do a memcpy rather then assignment.
          *
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
@@ -731,6 +731,16 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
             timessub(&nap_this_time, &adjuster, &nap_this_time);
         } else { 
             timesclear(&nap_this_time);
+        }
+    }
+
+    /* do we need to limit the total time we sleep? */
+    if (HAVE_OPT(MAXSLEEP)) {
+        if (timescmp(&nap_this_time, &(options.maxsleep), >)) {
+            dbgx(2, "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT, 
+                nap_this_time.tv_sec, nap_this_time.tv_nsec, options.maxsleep.tv_sec,
+                options.maxsleep.tv_nsec);
+            memcpy(&nap_this_time, &(options.maxsleep), sizeof(struct timespec));
         }
     }
 
