@@ -201,7 +201,12 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_bpf(sendpacket_t *) _U_;
 #undef icmp_seq
 #undef icmp_data
 #undef icmp_mask
+#ifdef HAVE_DNET_H
 #include <dnet.h>
+#endif
+#ifdef HAVE_DUMBNET_H
+#include <dumbnet.h>
+#endif
 
 static sendpacket_t *sendpacket_open_libdnet(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_libdnet(sendpacket_t *) _U_;

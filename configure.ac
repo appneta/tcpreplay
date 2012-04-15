@@ -355,11 +355,15 @@ for testdir in $trypcapdir /usr/local /opt/local /usr /wpdpack ; do
                 LPCAPLIB="-L${testdir}/lib64 -lpcap"
             elif test -f "${testdir}/lib/libpcap${shrext_cmds}" ; then
                 LPCAPLIB="-L${testdir}/lib -lpcap"
+            elif test -f "${testdir}/lib/i386-linux-gnu/libpcap${shrext_cmds}" ; then
+                LPCAPLIB="-L${testdir}/lib/i386-linux-gnu -lpcap"
             else
                 AC_ERROR([Unable to find libpcap in ${testdir}])
             fi
         elif test -f "${testdir}/lib64/libpcap.${libext}" ; then
             LPCAPLIB="${testdir}/lib64/libpcap.${libext}"
+        elif test -f "${testdir}/lib/i386-linux-gnu/libpcap.${libext}" ; then
+            LPCAPLIB="${testdir}/lib/i386-linux-gnu/libpcap.${libext}"
         elif test -f "${testdir}/lib/libpcap.${libext}" ; then
             LPCAPLIB="${testdir}/lib/libpcap.${libext}"
         elif test -f "${testdir}/lib/libwpcap.${libext}" ; then
@@ -858,6 +862,8 @@ if test $have_cygwin = no ; then
         enable_fragroute=yes
         have_libdnet=yes
         AC_DEFINE([HAVE_LIBDNET], [1], [Do we have libdnet?])
+        dnl Debian uses dumbnet.h instead of dnet.h due to naming conflict
+        AC_CHECK_HEADERS([dumbnet.h dnet.h])
     fi
 
 else

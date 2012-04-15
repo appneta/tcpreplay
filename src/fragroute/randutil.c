@@ -14,7 +14,12 @@
 #undef icmp_seq
 #undef icmp_data
 #undef icmp_mask
+#ifdef HAVE_DNET_H
 #include <dnet.h>
+#endif
+#ifdef HAVE_DUMBNET_H
+#include <dumbnet.h>
+#endif
 #endif
 
 #include <stdio.h>

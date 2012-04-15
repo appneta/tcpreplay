@@ -2,7 +2,12 @@
 #include "defines.h"
 #include "common.h"
 #include "iputil.h"
+#ifdef HAVE_DNET_H
 #include <dnet.h>
+#endif
+#ifdef HAVE_DUMBNET_H
+#include <dumbnet.h>
+#endif
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
