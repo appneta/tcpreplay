@@ -62,8 +62,8 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
     assert(data);
     
     if (len <= 0) {
-        tcpedit_seterr(tcpedit, "%s", "length of data must be > 0");
-        return TCPEDIT_ERROR;
+        tcpedit_setwarn(tcpedit, "%s", "Unable to checksum packets with no L3+ data");
+        return TCPEDIT_WARN;
     }
     
     ipv4 = (ipv4_hdr_t *)data;
@@ -107,6 +107,9 @@ do_checksum(tcpedit_t *tcpedit, u_int8_t *data, int proto, int len) {
         
         case IPPROTO_UDP:
             udp = (udp_hdr_t *)(data + ip_hl);
+            /* No need to recalculate UDP checksums if already 0 */
+            if (udp->uh_sum == 0) 
+                break; 
             udp->uh_sum = 0;
             if (ipv6 != NULL) {
                 sum = do_checksum_math((u_int16_t *)&ipv6->ip_src, 32);
