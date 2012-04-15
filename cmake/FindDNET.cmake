@@ -78,6 +78,10 @@ IF(founddnet)
     STRING(REGEX REPLACE "\n" "" newcflags ${cflags})
     SET(DNET_CFLAGS ${newcflags})
 
+    # Normally is dnet.h, but Debian renamed it due to a naming conflict
+    check_include_file("dnet.h"              HAVE_DNET_H)
+    check_include_file("dumbnet.h"           HAVE_DUMBNET_H)
+
     SET(HAVE_LIBDNET YES)
     MESSAGE(STATUS "Using libdnet from ${founddnet}")
 ELSE(founddnet)

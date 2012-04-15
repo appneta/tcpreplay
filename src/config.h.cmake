@@ -42,6 +42,8 @@
 
 /* FindDNET */
 #cmakedefine HAVE_LIBDNET 1
+#cmakedefine HAVE_DNET_H 1
+#cmakedefine HAVE_DUMBNET_H 1
 
 /* Does your OS have strlcpy() ? */
 #cmakedefine HAVE_SYSTEM_STRLCPY 1
