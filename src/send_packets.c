@@ -735,13 +735,11 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     }
 
     /* do we need to limit the total time we sleep? */
-    if (HAVE_OPT(MAXSLEEP)) {
-        if (timescmp(&nap_this_time, &(options.maxsleep), >)) {
-            dbgx(2, "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT, 
-                nap_this_time.tv_sec, nap_this_time.tv_nsec, options.maxsleep.tv_sec,
-                options.maxsleep.tv_nsec);
-            memcpy(&nap_this_time, &(options.maxsleep), sizeof(struct timespec));
-        }
+    if (HAVE_OPT(MAXSLEEP) && (timescmp(&nap_this_time, &(options.maxsleep), >))) {
+        dbgx(2, "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT, 
+            nap_this_time.tv_sec, nap_this_time.tv_nsec, options.maxsleep.tv_sec,
+            options.maxsleep.tv_nsec);
+        memcpy(&nap_this_time, &(options.maxsleep), sizeof(struct timespec));
     }
 
     dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);

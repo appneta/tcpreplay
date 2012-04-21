@@ -479,7 +479,12 @@ post_args(int argc)
     }
 
     if (HAVE_OPT(STATS))
-        options.stats = OPT_ARG(STATS);
+        options.stats = OPT_VALUE_STATS;
+
+    if (HAVE_OPT(MAXSLEEP)) {
+        options.maxsleep.tv_sec = OPT_VALUE_MAXSLEEP / 1000;
+        options.maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000;
+    }
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
