@@ -516,6 +516,14 @@ post_args(int argc)
             err(-1, "--dualfile mode requires an even number of pcap files");
     }
 
+    if (strcmp(OPT_ARG(SLEEPMODE), "current") == 0) {
+        options.sleep_mode = REPLAY_CURRENT;
+    } else if (strcmp(OPT_ARG(SLEEPMODE), "ver325") == 0) {
+        options.sleep_mode = REPLAY_V325;
+    } else {
+        errx(-1, "Invalid value --sleepmode=%s", OPT_ARG(SLEEPMODE));
+    }
+
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
 #ifdef HAVE_SELECT

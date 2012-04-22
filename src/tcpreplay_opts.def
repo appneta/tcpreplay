@@ -2,11 +2,11 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2010";
+    date        = "2000-2012";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2010 Aaron Turner
+Copyright 2000-2012 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -152,6 +152,20 @@ specified number of usec.  This provides a "fuzz factor" to compensate for
 running on a non-RTOS and other processes using CPU time.  Default is disabled.
 EOText;
 };
+
+flag = {
+    name        = sleepmode;
+    arg-type    = string;
+    arg-default = "current";
+    max         = 1;
+    descrip     = "Select the sleep mode: current | ver325";
+    doc         = <<- EOText
+Select the algoritim used for sleeping between packets.  Valid options are
+"current" and "ver325".  Current tends to be best for very high speeds, while
+the older ver325 mode works best when trying to reproduce the most accurate timings
+which is necessary for VOIP and other time sensitive protocols.
+EOText;
+}
 
 flag = {
     name        = maxsleep;
@@ -477,7 +491,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
@@ -509,7 +523,7 @@ flag = {
 #else
     fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
-    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method());
+    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
     exit(0);
 
 EOVersion;
