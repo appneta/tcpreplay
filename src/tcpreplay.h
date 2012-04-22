@@ -61,6 +61,10 @@ typedef struct {
     packet_cache_t *packet_cache;
 } file_cache_t;
 
+enum sleep_mode_t {
+    REPLAY_CURRENT,
+    REPLAY_V325
+};
 
 /* run-time options */
 struct tcpreplay_opt_s {
@@ -71,6 +75,7 @@ struct tcpreplay_opt_s {
     sendpacket_t *intf2;
 
     tcpr_speed_t speed;
+    enum sleep_mode_t sleep_mode;
     u_int32_t loop;
     int sleep_accel;
     struct timespec maxsleep;
