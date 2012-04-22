@@ -496,7 +496,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 
 #ifdef DEBUG
     /* copy this for debug purposes, since it's not re-entrant */
-    strlcpy(netstr, get_addr2name4(htonl(mycidr->u.network), RESOLVE), 20);
+    strlcpy(netstr, get_addr2name4(mycidr->u.network, RESOLVE), 20);
 #endif
 
     /* if they're the same, then ip is in network */
