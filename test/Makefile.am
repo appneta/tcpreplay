@@ -554,7 +554,7 @@ replay_maxsleep:
 	$(PRINTF) "%s" "[tcpreplay] Maximum sleep test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Maximum sleep test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --maxsleep=20 test.pcap test.pcap >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 clean:
 	rm -f *1 test.log core* *~ primary.data secondary.data
