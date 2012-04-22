@@ -2,11 +2,11 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2010";
+    date        = "2000-2012";
     owner       = "Aaron Turner";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2000-2010 Aaron Turner
+Copyright 2000-2012 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -342,7 +342,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
 #else
@@ -363,7 +363,7 @@ flag = {
 #else
     fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
 #endif
-    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method());
+    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
 
     exit(0);
 
