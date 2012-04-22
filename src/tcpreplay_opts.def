@@ -165,7 +165,7 @@ Select the algoritim used for sleeping between packets.  Valid options are
 the older ver325 mode works best when trying to reproduce the most accurate timings
 which is necessary for VOIP and other time sensitive protocols.
 EOText;
-}
+};
 
 flag = {
     name        = maxsleep;

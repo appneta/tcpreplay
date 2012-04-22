@@ -70,7 +70,6 @@ extern volatile int didsig;
 extern int debug;
 #endif
 
-static u_int32_t get_user_count(sendpacket_t *sp, COUNTER counter);
 
 /**
  * the main loop function for tcpreplay.  This is where we figure out
@@ -165,7 +164,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
          * Only sleep if we're not in top speed mode (-t)
          */
         if (options.speed.mode != SPEED_TOPSPEED) {
-            if (options.sleep_mode == SLEEP_325) {
+            if (options.sleep_mode == REPLAY_V325) {
                 do_sleep_325((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum);
             } else {
                 do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum, &delta_ctx);
@@ -343,10 +342,10 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
          * Only sleep if we're not in top speed mode (-t)
          */
         if (options.speed.mode != SPEED_TOPSPEED) {
-            if (options.sleep_mode == SLEEP_325) {
-                do_sleep_325((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum);
+            if (options.sleep_mode == REPLAY_V325) {
+                do_sleep_325((struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options.accurate, sp, packetnum);
             } else {
-                do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum, &delta_ctx);
+                do_sleep((struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options.accurate, sp, packetnum, &delta_ctx);
         
                 /* mark the time when we send the last packet */
                 start_delta_time(&delta_ctx);
@@ -519,53 +518,6 @@ cache_mode(char *cachedata, COUNTER packet_num)
     }
 
     return sp;
-}
-
-/**
- * Ask the user how many packets they want to send.
- */
-static u_int32_t
-get_user_count(sendpacket_t *sp, COUNTER counter) 
-{
-    struct pollfd poller[1];        /* use poll to read from the keyboard */
-    char input[EBUF_SIZE];
-    u_int32_t send = 0;
-    
-    printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
-        counter, (sp == options.intf1 ? options.intf1_name : options.intf2_name));
-    fflush(NULL);
-    poller[0].fd = STDIN_FILENO;
-    poller[0].events = POLLIN | POLLPRI | POLLNVAL;
-    poller[0].revents = 0;
-
-    if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK)) 
-           errx(-1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
-
-    /* wait for the input */
-    if (poll(poller, 1, -1) < 0)
-        errx(-1, "Error reading user input from stdin: %s", strerror(errno));
-    
-    /*
-     * read to the end of the line or EBUF_SIZE,
-     * Note, if people are stupid, and type in more text then EBUF_SIZE
-     * then the next fgets() will pull in that data, which will have poor 
-     * results.  fuck them.
-     */
-    if (fgets(input, sizeof(input), stdin) == NULL) {
-        errx(-1, "Unable to process user input for fd %d: %s", fileno(stdin), strerror(errno));
-    } else if (strlen(input) > 1) {
-        send = strtoul(input, NULL, 0);
-    }
-
-    /* how many packets should we send? */
-    if (send == 0) {
-        dbg(1, "Input was less then 1 or non-numeric, assuming 1");
-
-        /* assume send only one packet */
-        send = 1;
-    }
-
-    return send;
 }
 
 /*

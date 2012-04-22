@@ -33,6 +33,7 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
+#include "sleep.h"
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -53,6 +54,12 @@
 
 float gettimeofday_sleep_value;
 int ioport_sleep_value;
+
+static u_int32_t sleep_loop(struct timeval);
+static u_int32_t get_user_count(sendpacket_t *, COUNTER);
+
+extern tcpreplay_opt_t options;
+extern COUNTER bytes_sent, failed, pkts_sent;
 
 
 void 
@@ -324,7 +331,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     }
 
     /* do we need to limit the total time we sleep? */
-    if (HAVE_OPT(MAXSLEEP) && (timescmp(&nap_this_time, &(options.maxsleep), >))) {
+    if (timesisset(&(options.maxsleep)) && (timescmp(&nap_this_time, &(options.maxsleep), >))) {
         dbgx(2, "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT, 
             nap_this_time.tv_sec, nap_this_time.tv_nsec, options.maxsleep.tv_sec,
             options.maxsleep.tv_nsec);
@@ -575,4 +582,68 @@ do_sleep_325(struct timeval *time, struct timeval *last, int len,
 #ifdef DEBUG
     dbgx(4, "Total sleep time: " TIMEVAL_FORMAT, totalsleep.tv_sec, totalsleep.tv_usec);
 #endif
+}
+
+/**
+ * Ask the user how many packets they want to send.
+ */
+static u_int32_t
+get_user_count(sendpacket_t *sp, COUNTER counter) 
+{
+    struct pollfd poller[1];        /* use poll to read from the keyboard */
+    char input[EBUF_SIZE];
+    u_int32_t send = 0;
+    
+    printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
+        counter, (sp == options.intf1 ? options.intf1_name : options.intf2_name));
+    fflush(NULL);
+    poller[0].fd = STDIN_FILENO;
+    poller[0].events = POLLIN | POLLPRI | POLLNVAL;
+    poller[0].revents = 0;
+
+    if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK)) 
+           errx(-1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
+
+    /* wait for the input */
+    if (poll(poller, 1, -1) < 0)
+        errx(-1, "Error reading user input from stdin: %s", strerror(errno));
+    
+    /*
+     * read to the end of the line or EBUF_SIZE,
+     * Note, if people are stupid, and type in more text then EBUF_SIZE
+     * then the next fgets() will pull in that data, which will have poor 
+     * results.  fuck them.
+     */
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        errx(-1, "Unable to process user input for fd %d: %s", fileno(stdin), strerror(errno));
+    } else if (strlen(input) > 1) {
+        send = strtoul(input, NULL, 0);
+    }
+
+    /* how many packets should we send? */
+    if (send == 0) {
+        dbg(1, "Input was less then 1 or non-numeric, assuming 1");
+
+        /* assume send only one packet */
+        send = 1;
+    }
+
+    return send;
+}
+
+/**
+ * this function will keep calling gettimeofday() until it returns
+ * >= time.  This should be a lot more accurate then using nanosleep(),
+ * but at the cost of being more CPU intensive.
+ */
+static u_int32_t 
+sleep_loop(struct timeval time)
+{
+   struct timeval now;
+   u_int32_t loop = 0;
+   do {
+        gettimeofday(&now, NULL);
+        loop ++;
+   } while (now.tv_sec < time.tv_sec || now.tv_usec < time.tv_usec);
+   return loop;
 }
