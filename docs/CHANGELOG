@@ -1,14 +1,24 @@
 $Id$
 
-??/??/2011 Version 3.4.5
+??/??/2012 Version 3.5.0
+    - Add --sleepmode option to handle high precision timing (#421)
     - Update URL's to point to new tcpreplay website (#430)
+    - Improve & fix bugs in tcpcapinfo (#437)
     - Fix statistics to be more industry standard (#443)
     - Add --nofixcsum (#449)
     - Fix compile failure under FreeBSD 9.0 (#450)
     - Don't checksum packets before going through fragroute engine (#452)
+    - Add support for --maxsleep option to tcpreplay (#453)
     - Fix segfault when rewriting multiple ports (#459)
+    - Fix bug with printing stats after CTRL-C (#482)
+    - Update autotools (#483)
+    - Don't recalculate UDP checksums if it's value is 0 (#490)
+    - Fix documentation of --efcs option to be 4, not 2 bytes (#495)
     - Fix libdnet header detection under Debian distros (#499)
-
+    - Update GNU Autogen to 5.11.5 (#501)
+    - Fix --stats option for tcpreplay (#503)
+    - Add support for injecting directly via custom Linux kernel module (#505)
+    - Fix cidr code debugging (#506)
 
 08/15/2010 Version 3.4.5beta1
     - First pass at fixing 'make test' on many little-endian systems (#429)
@@ -20,7 +30,6 @@ $Id$
     - Add --dualfile support for replaying two files at the same time (#439)
     - Fix bug where --tos=0 didn't do anything (#440)
     - Fix crash when processing CIDR data (#441)
-
 
 04/04/2010 Version 3.4.4
     - Set default timing method to either gtod or abstime (#404)
