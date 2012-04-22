@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2006-2010 Aaron Turner.
+ * Copyright (c) 2006-2012 Aaron Turner.
  * Copyright (c) 1998 - 2004 Mike D. Schiffman <mike@infonexus.com>
  * Copyright (c) 2000 Torsten Landschoff <torsten@debian.org>
  *                    Sebastian Krahmer  <krahmer@cs.uni-potsdam.de>
@@ -267,13 +267,15 @@ TRY_SEND_AGAIN:
 
             /* tell the kernel module which direction the traffic is going */
             if (sp->cache_dir == TCPR_DIR_C2S) {  /* aka PRIMARY */
-                if (ioctl(sp->handle.fd, TESTDEV_SET_DIRECTION, TESTDEV_DIRECTION_RX) < 0) {
+                /* FIXME: ioctl values are broken! */
+                if (ioctl(sp->handle.fd, 0, 0) < 0) {
                     sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
                             sp->device, strerror(errno), errno);
                     return -1;
                 }
             } else {
-                if (ioctl(sp->handle.fd, TESTDEV_SET_DIRECTION, TESTDEV_DIRECTION_TX) < 0) {
+                /* FIXME: ioctl values are broken! */
+                if (ioctl(sp->handle.fd, 0, 0) < 0) {
                     sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
                             sp->device, strerror(errno), errno);
                     return -1;
