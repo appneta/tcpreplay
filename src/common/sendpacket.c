@@ -39,31 +39,31 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /* sendpacket.[ch] is my attempt to write a universal packet injection
-  * API for BPF, libpcap, libdnet, and Linux's PF_PACKET.  I got sick
-  * and tired dealing with libnet bugs and its lack of active maintenence,
-  * but unfortunately, libpcap frame injection support is relatively new 
-  * and not everyone uses Linux, so I decided to support all four as
-  * best as possible.  If your platform/OS/hardware supports an additional
-  * injection method, then by all means add it here (and send me a patch).
-  *
-  * Anyways, long story short, for now the order of preference is:
-  * 1. TX_RING
-  * 2. PF_PACKET
-  * 3. BPF
-  * 4. libdnet
-  * 5. pcap_inject()
-  * 6. pcap_sendpacket()
-  *
-  * Right now, one big problem with the pcap_* methods is that libpcap 
-  * doesn't provide a reliable method of getting the MAC address of 
-  * an interface (required for tcpbridge).  
-  * You can use PF_PACKET or BPF to get that, but if your system suports 
-  * those, might as well inject directly without going through another 
-  * level of indirection.
-  * 
-  * Please note that some of this code was copied from Libnet 1.1.3
-  */
+/* sendpacket.[ch] is my attempt to write a universal packet injection
+ * API for BPF, libpcap, libdnet, and Linux's PF_PACKET.  I got sick
+ * and tired dealing with libnet bugs and its lack of active maintenence,
+ * but unfortunately, libpcap frame injection support is relatively new 
+ * and not everyone uses Linux, so I decided to support all four as
+ * best as possible.  If your platform/OS/hardware supports an additional
+ * injection method, then by all means add it here (and send me a patch).
+ *
+ * Anyways, long story short, for now the order of preference is:
+ * 1. TX_RING
+ * 2. PF_PACKET
+ * 3. BPF
+ * 4. libdnet
+ * 5. pcap_inject()
+ * 6. pcap_sendpacket()
+ *
+ * Right now, one big problem with the pcap_* methods is that libpcap 
+ * doesn't provide a reliable method of getting the MAC address of 
+ * an interface (required for tcpbridge).  
+ * You can use PF_PACKET or BPF to get that, but if your system suports 
+ * those, might as well inject directly without going through another 
+ * level of indirection.
+ * 
+ * Please note that some of this code was copied from Libnet 1.1.3
+ */
 
 #include "config.h"
 #include "defines.h"
@@ -226,6 +226,8 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
+static sendpacket_t * sendpacket_open_chardev(const char *, char *) _U_;
+static struct tcpr_ether_addr * sendpacket_get_hwaddr_chardev(sendpacket_t *) _U_;
 
 /* You need to define didsig in your main .c file.  Set to 1 if CTRL-C was pressed */
 extern volatile int didsig;
@@ -242,9 +244,10 @@ extern volatile int didsig;
  * try to send traffic faster then the PHY allows.
  */
 int
-sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
+sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr *pkthdr)
 {
     int retcode;
+    u_char buffer[10000]; /* 10K bytes, enough for jumbo frames + pkthdr */
 
     assert(sp);
     assert(data);
@@ -255,134 +258,187 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 TRY_SEND_AGAIN:
     sp->attempt ++;
 
+
+    switch (sp->handle_type) {
+        case SP_TYPE_CHARDEV:
+
+            memcpy(buffer, pkthdr, sizeof(struct pcap_pkthdr));
+            memcpy(buffer + sizeof(struct pcap_pkthdr), data, len);
+
+            /* tell the kernel module which direction the traffic is going */
+            if (sp->cache_dir == TCPR_DIR_C2S) {  /* aka PRIMARY */
+                if (ioctl(sp->handle.fd, TESTDEV_SET_DIRECTION, TESTDEV_DIRECTION_RX) < 0) {
+                    sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
+                            sp->device, strerror(errno), errno);
+                    return -1;
+                }
+            } else {
+                if (ioctl(sp->handle.fd, TESTDEV_SET_DIRECTION, TESTDEV_DIRECTION_TX) < 0) {
+                    sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
+                            sp->device, strerror(errno), errno);
+                    return -1;
+                }
+            }
+
+            /* write the pkthdr + packet data all at once */
+            retcode = write(sp->handle.fd, (void *)buffer, sizeof(struct pcap_pkthdr) + len);
+                    
+            if (retcode < 0 && !didsig) {
+                switch(errno) {
+                    case EAGAIN:
+                        sp->retry_eagain ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
+                    case ENOBUFS:
+                        sp->retry_enobufs ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
+                    default:
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
+                                "chardev", sp->sent + sp->failed + 1, strerror(errno), errno);
+                }
+                break;
+            }
+
+            /* Linux PF_PACKET and TX_RING */
+        case SP_TYPE_PF_PACKET:
+        case SP_TYPE_TX_RING:
 #if defined HAVE_PF_PACKET
 #ifdef HAVE_TX_RING
-    retcode = (int)txring_put(sp->tx_ring, data, len);
+            retcode = (int)txring_put(sp->tx_ring, data, len);
 #else
-    retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
+            retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
 #endif
 
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
-        switch (errno) {
-            case EAGAIN:
-                sp->retry_eagain ++;
-                goto TRY_SEND_AGAIN;
-                break;
-            case ENOBUFS:
-                sp->retry_enobufs ++;
-                goto TRY_SEND_AGAIN;
-                break;
+            /* out of buffers, or hit max PHY speed, silently retry */
+            if (retcode < 0 && !didsig) {
+                switch (errno) {
+                    case EAGAIN:
+                        sp->retry_eagain ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
+                    case ENOBUFS:
+                        sp->retry_enobufs ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
 
-            default:
-                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
-                    INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
-        }
-    }
+                    default:
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                                INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
+                }
+            }
 
-#elif defined HAVE_BPF
-    retcode = write(sp->handle.fd, (void *)data, len);
+#endif /* HAVE_PF_PACKET */
 
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
-        switch (errno) {
-            case EAGAIN:
-                sp->retry_eagain ++;
-                goto TRY_SEND_AGAIN;
-                break;
+            break;
 
-            case ENOBUFS:
-                sp->retry_enobufs ++;
-                goto TRY_SEND_AGAIN;
-                break;
 
-            default:
-                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
-                    INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
-        }
-    }
+        /* BPF */
+        case SP_TYPE_BPF:
+#if defined HAVE_BPF
+            retcode = write(sp->handle.fd, (void *)data, len);
 
-#elif defined HAVE_LIBDNET
-    retcode = eth_send(sp->handle.ldnet, (void*)data, (size_t)len);
+            /* out of buffers, or hit max PHY speed, silently retry */
+            if (retcode < 0 && !didsig) {
+                switch (errno) {
+                    case EAGAIN:
+                        sp->retry_eagain ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
 
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
-        switch (errno) {
-            case EAGAIN:
-                sp->retry_eagain ++;
-                goto TRY_SEND_AGAIN;
-                break;
+                    case ENOBUFS:
+                        sp->retry_enobufs ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
 
-            case ENOBUFS:
-                sp->retry_enobufs ++;
-                goto TRY_SEND_AGAIN;
-                break;
+                    default:
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                                INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
+                }
+            }
+#endif
+            break;
 
-            default:
-                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
-                    INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
-        }
-    }
+        /* Libdnet */
+        case SP_TYPE_LIBDNET:
 
-#elif defined HAVE_PCAP_INJECT
-    /* 
-     * pcap methods don't seem to support ENOBUFS, so we just straight fail
-     * is there a better way???
-     */
-    retcode = pcap_inject(sp->handle.pcap, (void*)data, len);
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
-        switch (errno) {
-            case EAGAIN:
-                sp->retry_eagain ++;
-                goto TRY_SEND_AGAIN;
-                break;
+#if defined HAVE_LIBDNET
+            retcode = eth_send(sp->handle.ldnet, (void*)data, (size_t)len);
 
-            case ENOBUFS:
-                sp->retry_enobufs ++;
-                goto TRY_SEND_AGAIN;
-                break;
+            /* out of buffers, or hit max PHY speed, silently retry */
+            if (retcode < 0 && !didsig) {
+                switch (errno) {
+                    case EAGAIN:
+                        sp->retry_eagain ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
 
-            default:
-                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
-                    INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
-        }
-    }
+                    case ENOBUFS:
+                        sp->retry_enobufs ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
 
+                    default:
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                                INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
+                }
+            }
+#endif
+            break;
+
+        case SP_TYPE_LIBPCAP:
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+#if defined HAVE_PCAP_INJECT
+            /* 
+             * pcap methods don't seem to support ENOBUFS, so we just straight fail
+             * is there a better way???
+             */
+            retcode = pcap_inject(sp->handle.pcap, (void*)data, len);
 #elif defined HAVE_PCAP_SENDPACKET
-    retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len);
-    /* out of buffers, or hit max PHY speed, silently retry */
-    if (retcode < 0 && !didsig) {
-        switch (errno) {
-            case EAGAIN:
-                sp->retry_eagain ++;
-                goto TRY_SEND_AGAIN;
-                break;
-
-            case ENOBUFS:
-                sp->retry_enobufs ++;
-                goto TRY_SEND_AGAIN;
-                break;
-
-            default:
-                sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
-                    INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
-         }
-    }
-    /* 
-     * pcap_sendpacket returns 0 on success, not the packet length! 
-     * hence, we have to fix retcode to be more standard on success
-     */
-    if (retcode == 0)
-        retcode = len;
-
+            retcode = pcap_sendpacket(sp->handle.pcap, data, (int)len);
 #endif
+
+            /* out of buffers, or hit max PHY speed, silently retry */
+            if (retcode < 0 && !didsig) {
+                switch (errno) {
+                    case EAGAIN:
+                        sp->retry_eagain ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
+
+                    case ENOBUFS:
+                        sp->retry_enobufs ++;
+                        goto TRY_SEND_AGAIN;
+                        break;
+
+                    default:
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                                INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
+                }
+            }
+#if defined HAVE_PCAP_SENDPACKET
+            /* 
+             * pcap_sendpacket returns 0 on success, not the packet length! 
+             * hence, we have to fix retcode to be more standard on success
+             */
+            if (retcode == 0)
+                retcode = len;
+#endif /* HAVE_PCAP_SENDPACKET */
+
+#endif /* HAVE_PCAP_INJECT || HAVE_PCAP_SENDPACKET */
+
+            break;
+
+        default:
+            errx(1, "Unsupported sp->handle_type = %d", sp->handle_type);
+    } /* end case */
 
     if (retcode < 0) {
         sp->failed ++;
     } else if (retcode != (int)len) {
         sendpacket_seterr(sp, "Only able to write %d bytes out of %u bytes total",
-            retcode, len);
+                retcode, len);
+        sp->trunc_packets ++;
     } else {
         sp->bytes_sent += len;
         sp->sent ++;
@@ -399,18 +455,34 @@ sendpacket_t *
 sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
 {
     sendpacket_t *sp;
+    struct stat sdata;
 
     assert(device);
     assert(errbuf);
+
+    /* chardev is universal */
+    if (stat(device, &sdata) == 0) {
+        if (((sdata.st_mode & S_IFMT) == S_IFCHR) &&
+                (major(sdata.st_dev) == SP_CHARDEV_MAJOR)) {
+
+            sp = sendpacket_open_chardev(device, errbuf);
+        } else {
+            err(1, "%s is not a valid Tcpreplay character device");
+        }
+    } else {
 #if defined HAVE_PF_PACKET
-    sp = sendpacket_open_pf(device, errbuf);
+        sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
-    sp = sendpacket_open_bpf(device, errbuf);
+        sp = sendpacket_open_bpf(device, errbuf);
 #elif defined HAVE_LIBDNET
-    sp = sendpacket_open_libdnet(device, errbuf);
+        sp = sendpacket_open_libdnet(device, errbuf);
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-    sp = sendpacket_open_pcap(device, errbuf);
+        sp = sendpacket_open_pcap(device, errbuf);
+#else
+#error "No defined packet injection method for sendpacket_open()"
 #endif
+    }
+
     if (sp != NULL) {
         sp->open = 1;
         sp->cache_dir = direction;
@@ -425,17 +497,19 @@ char *
 sendpacket_getstat(sendpacket_t *sp)
 {
     static char buf[1024];
-    
+
     assert(sp);
-    
+
     memset(buf, 0, sizeof(buf));
     sprintf(buf, "Statistics for network device: %s\n"
-        "\tAttempted packets:         " COUNTER_SPEC "\n"
-        "\tSuccessful packets:        " COUNTER_SPEC "\n"
-        "\tFailed packets:            " COUNTER_SPEC "\n"
-        "\tRetried packets (ENOBUFS): " COUNTER_SPEC "\n"
-        "\tRetried packets (EAGAIN):  " COUNTER_SPEC "\n",
-        sp->device, sp->attempt, sp->sent, sp->failed, sp->retry_enobufs, sp->retry_eagain);
+            "\tAttempted packets:         " COUNTER_SPEC "\n"
+            "\tSuccessful packets:        " COUNTER_SPEC "\n"
+            "\tFailed packets:            " COUNTER_SPEC "\n"
+            "\tTruncated packets:         " COUNTER_SPEC "\n"
+            "\tRetried packets (ENOBUFS): " COUNTER_SPEC "\n"
+            "\tRetried packets (EAGAIN):  " COUNTER_SPEC "\n",
+            sp->device, sp->attempt, sp->sent, sp->failed, sp->trunc_packets,
+            sp->retry_enobufs, sp->retry_eagain);
     return(buf);
 }
 
@@ -447,6 +521,10 @@ sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
     switch(sp->handle_type) {
+        case SP_TYPE_CHARDEV:
+            close(sp->handle.fd);
+            break;
+
         case SP_TYPE_BPF:
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
             close(sp->handle.fd);
@@ -465,7 +543,7 @@ sendpacket_close(sendpacket_t *sp)
             pcap_close(sp->handle.pcap);
 #endif
             break;
-           
+
         case SP_TYPE_LIBDNET:
 #ifdef HAVE_LIBDNET            
             eth_close(sp->handle.ldnet);
@@ -489,20 +567,24 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
 {
     struct tcpr_ether_addr *addr;    
     assert(sp);
-    
+
     /* if we already have our MAC address stored, just return it */
     if (memcmp(&sp->ether, "\x00\x00\x00\x00\x00\x00", ETHER_ADDR_LEN) != 0)
         return &sp->ether;
-        
+
+    if (sp->handle_type == SP_TYPE_CHARDEV) {
+        addr = sendpacket_get_hwaddr_chardev(sp);
+    } else {    
 #if defined HAVE_PF_PACKET
-    addr = sendpacket_get_hwaddr_pf(sp);
+        addr = sendpacket_get_hwaddr_pf(sp);
 #elif defined HAVE_BPF
-    addr = sendpacket_get_hwaddr_bpf(sp);
+        addr = sendpacket_get_hwaddr_bpf(sp);
 #elif defined HAVE_LIBDNET
-    addr = sendpacket_get_hwaddr_libdnet(sp);
+        addr = sendpacket_get_hwaddr_libdnet(sp);
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-    addr = sendpacket_get_hwaddr_pcap(sp);
+        addr = sendpacket_get_hwaddr_pcap(sp);
 #endif
+    }
     return addr;
 }
 
@@ -523,14 +605,14 @@ static void
 sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 {
     va_list ap;
-    
+
     assert(sp);
-    
+
     va_start(ap, fmt);
     if (fmt != NULL)
         (void)vsnprintf(sp->errbuf, SENDPACKET_ERRBUF_SIZE, fmt, ap);
     va_end(ap);
-    
+
     sp->errbuf[(SENDPACKET_ERRBUF_SIZE-1)] = '\0'; // be safe
 }
 
@@ -553,15 +635,15 @@ sendpacket_open_pcap(const char *device, char *errbuf)
     assert(errbuf);
 
     dbg(1, "sendpacket: using Libpcap");
-    
+
     /* open_pcap_live automatically fills out our errbuf for us */
     if ((pcap = pcap_open_live(device, 0, 0, 0, errbuf)) == NULL)
         return NULL;
-        
+
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.pcap = pcap;
-    
+
 #ifdef BIOCSHDRCMPLT
     /* 
      * Only systems using BPF on the backend need this... 
@@ -597,12 +679,12 @@ sendpacket_open_libdnet(const char *device, char *errbuf)
 {
     eth_t *ldnet;
     sendpacket_t *sp;
-    
+
     assert(device);
     assert(errbuf);
-    
+
     dbg(1, "sendpacket: using Libdnet");
-    
+
     if ((ldnet = eth_open(device)) == NULL)
         return NULL;
 
@@ -659,7 +741,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
     dbg(1, "sendpacket: using PF_PACKET");
 #endif
 
-   /* open our socket */
+    /* open our socket */
     if ((mysocket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "socket: %s", strerror(errno));
         return NULL;
@@ -684,14 +766,14 @@ sendpacket_open_pf(const char *device, char *errbuf)
     /* check for errors, network down, etc... */
     if (getsockopt(mysocket, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening %s: %s", device, 
-            strerror(errno));
+                strerror(errno));
         close(mysocket);
         return NULL;
     }
 
     if (err > 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening %s: %s", device, 
-            strerror(err));
+                strerror(err));
         close(mysocket);
         return NULL;
     }
@@ -710,7 +792,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
     /* make sure it's not loopback (PF_PACKET doesn't support it) */
     if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER)
         warnx("Unsupported physical layer type 0x%04x on %s.  Maybe it works, maybe it wont."
-        "  See tickets #123/318", ifr.ifr_hwaddr.sa_family, device);
+                "  See tickets #123/318", ifr.ifr_hwaddr.sa_family, device);
 
 #ifdef SO_BROADCAST
     /*
@@ -850,7 +932,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     /* error?? */
     if (mysocket < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
-            "Unable to open /dev/bpfX: %s", strerror(errno));
+                "Unable to open /dev/bpfX: %s", strerror(errno));
         errbuf[SENDPACKET_ERRBUF_SIZE -1] = '\0';
         return NULL;
     }
@@ -869,15 +951,15 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     /* attach to device */
     strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
     if (ioctl(mysocket, BIOCSETIF, (caddr_t)&ifr) < 0) {
-       snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to bind %s to %s: %s", 
-           bpf_dev, device, strerror(errno));
-       return NULL;
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to bind %s to %s: %s", 
+                bpf_dev, device, strerror(errno));
+        return NULL;
     }
 
     /* get datalink type */
     if (ioctl(mysocket, BIOCGDLT, (caddr_t)&v) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to get datalink type: %s",
-            strerror(errno));
+                strerror(errno));
         return NULL;
     }
 
@@ -888,7 +970,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
 #if defined(BIOCGHDRCMPLT) && defined(BIOCSHDRCMPLT)
     if (ioctl(mysocket, BIOCSHDRCMPLT, &spoof_eth_src) == -1) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, 
-            "Unable to enable spoofing src MAC: %s", strerror(errno));
+                "Unable to enable spoofing src MAC: %s", strerror(errno));
         return NULL;
     }
 #endif
@@ -1021,7 +1103,49 @@ sendpacket_get_dlt(sendpacket_t *sp)
  * Returns a string stating the compiled in injection method
  */
 const char *
-sendpacket_get_method()
+sendpacket_get_method(sendpacket_t *sp)
 {
-    return INJECT_METHOD;
+    if (sp == NULL) {
+        return INJECT_METHOD;
+    } else if (sp->handle_type == SP_TYPE_CHARDEV) {
+        return "chardev";
+    } else {
+        return INJECT_METHOD;
+    }
+}
+
+/**
+ * Opens a character device for injecting packets directly into 
+ * your kernel via a custom driver
+ */
+static sendpacket_t *
+sendpacket_open_chardev(const char *device, char *errbuf)
+{
+    int mysocket;
+    sendpacket_t *sp;
+
+    assert(device);
+    assert(errbuf);
+
+    if ((mysocket = open(device, O_WRONLY|O_EXLOCK)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening chardev device: %s", strerror(errno));
+        return NULL;
+    }
+
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.fd = mysocket;
+    sp->handle_type = SP_TYPE_CHARDEV;
+    return sp;
+}
+
+/**
+ * Get the hardware MAC address for the given interface using chardev
+ */
+static struct tcpr_ether_addr *
+sendpacket_get_hwaddr_chardev(sendpacket_t *sp)
+{
+    assert(sp);
+    sendpacket_seterr(sp, "Error: sendpacket_get_hwaddr() not yet supported for character devices");
+    return NULL;
 }

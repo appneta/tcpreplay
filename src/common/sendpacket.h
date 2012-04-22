@@ -64,8 +64,11 @@ enum sendpacket_type_t {
     SP_TYPE_LIBPCAP,
     SP_TYPE_BPF,
     SP_TYPE_PF_PACKET,
-    SP_TYPE_TX_RING
+    SP_TYPE_TX_RING,
+    SP_TYPE_CHARDEV
 };
+
+#define SP_CHARDEV_MAJOR 666
 
 union sendpacket_handle {
     pcap_t *pcap;
@@ -85,6 +88,7 @@ struct sendpacket_s {
     COUNTER retry_enobufs;
     COUNTER retry_eagain;
     COUNTER failed;
+    COUNTER trunc_packets;
     COUNTER sent;
     COUNTER bytes_sent;
     COUNTER attempt;
@@ -101,14 +105,14 @@ struct sendpacket_s {
 
 typedef struct sendpacket_s sendpacket_t;
 
-int sendpacket(sendpacket_t *, const u_char *, size_t);
+int sendpacket(sendpacket_t *, const u_char *, size_t, struct pcap_pkthdr *);
 int sendpacket_close(sendpacket_t *);
 char *sendpacket_geterr(sendpacket_t *);
 char *sendpacket_getstat(sendpacket_t *);
 sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t);
 struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 int sendpacket_get_dlt(sendpacket_t *);
-const char *sendpacket_get_method();
+const char *sendpacket_get_method(sendpacket_t *);
 
 #endif /* _SENDPACKET_H_ */
 
