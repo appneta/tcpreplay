@@ -174,7 +174,7 @@ typedef int socklen_t;
 
 static sendpacket_t *sendpacket_open_pf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
-static int get_iface_index(int fd, const int8_t *device, char *);
+static int get_iface_index(int fd, const char *device, char *);
 
 #endif /* HAVE_PF_PACKET */
 
@@ -226,8 +226,8 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
-static sendpacket_t * sendpacket_open_chardev(const char *, char *) _U_;
-static struct tcpr_ether_addr * sendpacket_get_hwaddr_chardev(sendpacket_t *) _U_;
+static sendpacket_t * sendpacket_open_khial(const char *, char *) _U_;
+static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
 
 /* You need to define didsig in your main .c file.  Set to 1 if CTRL-C was pressed */
 extern volatile int didsig;
@@ -248,6 +248,7 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
 {
     int retcode;
     u_char buffer[10000]; /* 10K bytes, enough for jumbo frames + pkthdr */
+    int val;
 
     assert(sp);
     assert(data);
@@ -260,7 +261,7 @@ TRY_SEND_AGAIN:
 
 
     switch (sp->handle_type) {
-        case SP_TYPE_CHARDEV:
+        case SP_TYPE_KHIAL:
 
             memcpy(buffer, pkthdr, sizeof(struct pcap_pkthdr));
             memcpy(buffer + sizeof(struct pcap_pkthdr), data, len);
@@ -268,14 +269,16 @@ TRY_SEND_AGAIN:
             /* tell the kernel module which direction the traffic is going */
             if (sp->cache_dir == TCPR_DIR_C2S) {  /* aka PRIMARY */
                 /* FIXME: ioctl values are broken! */
-                if (ioctl(sp->handle.fd, 0, 0) < 0) {
+                val = KHIAL_DIRECTION_RX;
+                if (ioctl(sp->handle.fd, KHIAL_SET_DIRECTION, (void *)&val) < 0) {
                     sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
                             sp->device, strerror(errno), errno);
                     return -1;
                 }
             } else {
                 /* FIXME: ioctl values are broken! */
-                if (ioctl(sp->handle.fd, 0, 0) < 0) {
+                val = KHIAL_DIRECTION_TX;
+                if (ioctl(sp->handle.fd, KHIAL_SET_DIRECTION, (void *)&val) < 0) {
                     sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
                             sp->device, strerror(errno), errno);
                     return -1;
@@ -297,10 +300,12 @@ TRY_SEND_AGAIN:
                         break;
                     default:
                         sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
-                                "chardev", sp->sent + sp->failed + 1, strerror(errno), errno);
+                                "khial", sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
                 break;
             }
+
+            break;
 
             /* Linux PF_PACKET and TX_RING */
         case SP_TYPE_PF_PACKET:
@@ -462,12 +467,11 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
     assert(device);
     assert(errbuf);
 
-    /* chardev is universal */
+    /* khial is universal */
     if (stat(device, &sdata) == 0) {
-        if (((sdata.st_mode & S_IFMT) == S_IFCHR) &&
-                (major(sdata.st_dev) == SP_CHARDEV_MAJOR)) {
+        if (((sdata.st_mode & S_IFMT) == S_IFCHR)) { 
 
-            sp = sendpacket_open_chardev(device, errbuf);
+            sp = sendpacket_open_khial(device, errbuf);
         } else {
             err(1, "%s is not a valid Tcpreplay character device");
         }
@@ -523,7 +527,7 @@ sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
     switch(sp->handle_type) {
-        case SP_TYPE_CHARDEV:
+        case SP_TYPE_KHIAL:
             close(sp->handle.fd);
             break;
 
@@ -574,8 +578,8 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
     if (memcmp(&sp->ether, "\x00\x00\x00\x00\x00\x00", ETHER_ADDR_LEN) != 0)
         return &sp->ether;
 
-    if (sp->handle_type == SP_TYPE_CHARDEV) {
-        addr = sendpacket_get_hwaddr_chardev(sp);
+    if (sp->handle_type == SP_TYPE_KHIAL) {
+        addr = sendpacket_get_hwaddr_khial(sp);
     } else {    
 #if defined HAVE_PF_PACKET
         addr = sendpacket_get_hwaddr_pf(sp);
@@ -847,7 +851,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
  * get the interface index (necessary for sending packets w/ PF_PACKET) 
  */
 static int
-get_iface_index(int fd, const int8_t *device, char *errbuf) {
+get_iface_index(int fd, const char *device, char *errbuf) {
     struct ifreq ifr;
 
     memset(&ifr, 0, sizeof(ifr));
@@ -1109,8 +1113,8 @@ sendpacket_get_method(sendpacket_t *sp)
 {
     if (sp == NULL) {
         return INJECT_METHOD;
-    } else if (sp->handle_type == SP_TYPE_CHARDEV) {
-        return "chardev";
+    } else if (sp->handle_type == SP_TYPE_KHIAL) {
+        return "khial";
     } else {
         return INJECT_METHOD;
     }
@@ -1121,7 +1125,7 @@ sendpacket_get_method(sendpacket_t *sp)
  * your kernel via a custom driver
  */
 static sendpacket_t *
-sendpacket_open_chardev(const char *device, char *errbuf)
+sendpacket_open_khial(const char *device, char *errbuf)
 {
     int mysocket;
     sendpacket_t *sp;
@@ -1129,23 +1133,23 @@ sendpacket_open_chardev(const char *device, char *errbuf)
     assert(device);
     assert(errbuf);
 
-    if ((mysocket = open(device, O_WRONLY|O_EXLOCK)) < 0) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening chardev device: %s", strerror(errno));
+    if ((mysocket = open(device, O_WRONLY|O_EXCL)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening khial device: %s", strerror(errno));
         return NULL;
     }
 
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
-    sp->handle_type = SP_TYPE_CHARDEV;
+    sp->handle_type = SP_TYPE_KHIAL;
     return sp;
 }
 
 /**
- * Get the hardware MAC address for the given interface using chardev
+ * Get the hardware MAC address for the given interface using khial
  */
 static struct tcpr_ether_addr *
-sendpacket_get_hwaddr_chardev(sendpacket_t *sp)
+sendpacket_get_hwaddr_khial(sendpacket_t *sp)
 {
     assert(sp);
     sendpacket_seterr(sp, "Error: sendpacket_get_hwaddr() not yet supported for character devices");

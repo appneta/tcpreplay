@@ -440,18 +440,18 @@ post_args(int argc)
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
 
-#ifdef ENABLE_PCAP_FINDALLDEVS
-    interface_list_t *intlist = get_interface_list();
-#else
-    interface_list_t *intlist = NULL;
-#endif
-
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;
 #else
     if (HAVE_OPT(DBUG))
         warn("not configured with --enable-debug.  Debugging disabled.");
+#endif
+
+#ifdef ENABLE_PCAP_FINDALLDEVS
+    interface_list_t *intlist = get_interface_list();
+#else
+    interface_list_t *intlist = NULL;
 #endif
 
     options.loop = OPT_VALUE_LOOP;

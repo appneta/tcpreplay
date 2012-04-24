@@ -65,10 +65,19 @@ enum sendpacket_type_t {
     SP_TYPE_BPF,
     SP_TYPE_PF_PACKET,
     SP_TYPE_TX_RING,
-    SP_TYPE_CHARDEV
+    SP_TYPE_KHIAL
 };
 
-#define SP_CHARDEV_MAJOR 666
+/* these are the file_operations ioctls */
+#define KHIAL_SET_DIRECTION  (0x1)
+#define KHIAL_GET_DIRECTION  (0x2)
+
+/* these are the directions */
+typedef enum {
+    KHIAL_DIRECTION_RX = 0,
+    KHIAL_DIRECTION_TX,
+} khial_direction_t;
+
 
 union sendpacket_handle {
     pcap_t *pcap;
@@ -83,7 +92,7 @@ union sendpacket_handle {
 struct sendpacket_s {
     tcpr_dir_t cache_dir;
     int open;
-    char device[20];
+    char device[50];
     char errbuf[SENDPACKET_ERRBUF_SIZE];
     COUNTER retry_enobufs;
     COUNTER retry_eagain;

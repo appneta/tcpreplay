@@ -34,11 +34,16 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <dirent.h>
 
 #include "config.h"
 #include "defines.h"
 #include "common.h"
 #include "interface.h"
+
+#ifdef DEBUG
+extern int debug;
+#endif
 
 /**
  * Method takes a user specified device name and returns
@@ -87,9 +92,11 @@ interface_list_t *
 get_interface_list(void)
 {
     interface_list_t *list_head, *list_ptr;
-    char ebuf[PCAP_ERRBUF_SIZE];
+    char ebuf[PCAP_ERRBUF_SIZE], testnic[255];
     pcap_if_t *pcap_if, *pcap_if_ptr;
     int i = 0;
+    DIR *dir;
+    struct dirent *dirdata;
     
 #ifndef HAVE_WIN32
 	/* Unix just has a warning about being root */
@@ -110,6 +117,7 @@ get_interface_list(void)
             list_ptr = list_ptr->next;
         }
         strlcpy(list_ptr->name, pcap_if_ptr->name, sizeof(list_ptr->name));
+        dbgx(3, "Adding %s to interface list", list_ptr->name);
         
         /* description is usually null under Unix */
         if (pcap_if_ptr->description != NULL)
@@ -118,8 +126,31 @@ get_interface_list(void)
         sprintf(list_ptr->alias, "%%%d", i++);
         list_ptr->flags = pcap_if_ptr->flags;
         pcap_if_ptr = pcap_if_ptr->next;
+        i += 1;
     }
     pcap_freealldevs(pcap_if);
+
+    /* look for khial device: https://github.com/boundary/khial */
+    if ((dir = opendir("/dev/char")) != NULL) {
+        while ((dirdata = readdir(dir)) != NULL) {
+            if (strncmp(dirdata->d_name, "testpackets", strlen("testpackets")) == 0) {
+                if (i > 0) {
+                    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                    list_ptr = list_ptr->next;
+                }
+                dbgx(3, "Adding %s to interface list", dirdata->d_name);
+                snprintf(testnic, 254, "/dev/char/%s", dirdata->d_name);
+                strlcpy(list_ptr->name, testnic, 255);
+                snprintf(testnic, 255, "khial pseudo-nic: %s", dirdata->d_name);
+                strlcpy(list_ptr->description, testnic, 255);
+                strlcpy(list_ptr->alias, dirdata->d_name, 255);
+                i += 1;
+            }
+        }
+
+    }
+
+
     return(list_head);
 }
 
