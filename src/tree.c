@@ -272,18 +272,14 @@ check_ip_tree(const int mode, const unsigned long ip)
     }
 #endif
 
-    /*
-     * FIXME: Is this logic correct?  I think this might be backwards :(
-     */
-
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
         switch (node->type) {
         case DIR_SERVER:
-            return TCPR_DIR_C2S;
+            return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
-            return TCPR_DIR_S2C;
+            return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
         case DIR_ANY:
@@ -297,10 +293,10 @@ check_ip_tree(const int mode, const unsigned long ip)
     return_unknown:
     switch (mode) {
     case DIR_SERVER:
-        return TCPR_DIR_C2S;
+        return TCPR_DIR_S2C;
         break;
     case DIR_CLIENT:
-        return TCPR_DIR_S2C;
+        return TCPR_DIR_C2S;
         break;
     default:
         return -1;

@@ -162,8 +162,8 @@ flag = {
     doc         = <<- EOText
 Select the algoritim used for sleeping between packets.  Valid options are
 "current" and "ver325".  Current tends to be best for very high speeds, while
-the older ver325 mode works best when trying to reproduce the most accurate timings
-which is necessary for VOIP and other time sensitive protocols.
+the older ver325 mode works best when trying to reproduce the most accurate 
+timings which is necessary for VOIP and other time sensitive protocols.
 EOText;
 };
 
@@ -291,8 +291,12 @@ flag = {
     arg-type    = string;
     max         = 1;
     must-set;
-    descrip     = "Server/primary traffic output interface";
-    doc         = "";
+    descrip     = "Client to server/RX/primary traffic output interface";
+    doc         = <<- EOText
+Required network interface used to send either all traffic or traffic which is 
+marked as 'primary' via tcpprep.  Primary traffic is usually client-to-server 
+or inbound (RX) on khial virtual interfaces.
+EOText;
 };
 
 flag = {
@@ -300,8 +304,13 @@ flag = {
     value       = I;
     arg-type    = string;
     max         = 1;
-    descrip     = "Client/secondary traffic output interface";
-    doc         = "";
+    descrip     = "Server to client/TX/secondary traffic output interface";
+    doc         = <<- EOText
+Optional network interface used to send traffic which is marked as 'secondary' 
+via tcpprep.  Secondary traffic is usually server-to-client or outbound 
+(TX) on khial virtual interfaces.  Generally, it only makes sense to use this
+option with --cachefile.
+EOText;
 };
 
 
