@@ -226,7 +226,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
-static sendpacket_t * sendpacket_open_khial(const char *, char *) _U_;
+static sendpacket_t * sendpacket_open_khial(const char *, char *, tcpr_dir_t) _U_;
 static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
 
 /* You need to define didsig in your main .c file.  Set to 1 if CTRL-C was pressed */
@@ -248,7 +248,6 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
 {
     int retcode;
     u_char buffer[10000]; /* 10K bytes, enough for jumbo frames + pkthdr */
-    int val;
 
     assert(sp);
     assert(data);
@@ -266,27 +265,9 @@ TRY_SEND_AGAIN:
             memcpy(buffer, pkthdr, sizeof(struct pcap_pkthdr));
             memcpy(buffer + sizeof(struct pcap_pkthdr), data, len);
 
-            /* tell the kernel module which direction the traffic is going */
-            if (sp->cache_dir == TCPR_DIR_C2S) {  /* aka PRIMARY */
-                /* FIXME: ioctl values are broken! */
-                val = KHIAL_DIRECTION_RX;
-                if (ioctl(sp->handle.fd, KHIAL_SET_DIRECTION, (void *)&val) < 0) {
-                    sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
-                            sp->device, strerror(errno), errno);
-                    return -1;
-                }
-            } else {
-                /* FIXME: ioctl values are broken! */
-                val = KHIAL_DIRECTION_TX;
-                if (ioctl(sp->handle.fd, KHIAL_SET_DIRECTION, (void *)&val) < 0) {
-                    sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
-                            sp->device, strerror(errno), errno);
-                    return -1;
-                }
-            }
-
             /* write the pkthdr + packet data all at once */
             retcode = write(sp->handle.fd, (void *)buffer, sizeof(struct pcap_pkthdr) + len);
+            retcode -= sizeof(struct pcap_pkthdr); /* only record packet bytes we sent, not pcap data too */
                     
             if (retcode < 0 && !didsig) {
                 switch(errno) {
@@ -471,7 +452,7 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
     if (stat(device, &sdata) == 0) {
         if (((sdata.st_mode & S_IFMT) == S_IFCHR)) { 
 
-            sp = sendpacket_open_khial(device, errbuf);
+            sp = sendpacket_open_khial(device, errbuf, direction);
         } else {
             err(1, "%s is not a valid Tcpreplay character device");
         }
@@ -1082,26 +1063,32 @@ int
 sendpacket_get_dlt(sendpacket_t *sp)
 {
     int dlt;
-#if defined HAVE_BPF
-    int rcode;
 
-    if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
-        warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
-        return(-1);
-    }
+    if (sp->handle_type == SP_TYPE_KHIAL) {
+        /* always EN10MB */
+        dlt = DLT_EN10MB;
+    } else {
+#if defined HAVE_BPF
+        int rcode;
+
+        if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
+            warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
+            return(-1);
+        }
 #elif defined HAVE_PF_PACKET || defined HAVE_LIBDNET
-    /* use libpcap to get dlt */
-    pcap_t *pcap;
-    char errbuf[PCAP_ERRBUF_SIZE];
-    if ((pcap = pcap_open_live(sp->device, 65535, 0, 0, errbuf)) == NULL) {
-        warnx("Unable to get DLT value for %s: %s", sp->device, errbuf);
-        return(-1);
-    }
-    dlt = pcap_datalink(pcap);
-    pcap_close(pcap);
+        /* use libpcap to get dlt */
+        pcap_t *pcap;
+        char errbuf[PCAP_ERRBUF_SIZE];
+        if ((pcap = pcap_open_live(sp->device, 65535, 0, 0, errbuf)) == NULL) {
+            warnx("Unable to get DLT value for %s: %s", sp->device, errbuf);
+            return(-1);
+        }
+        dlt = pcap_datalink(pcap);
+        pcap_close(pcap);
 #elif defined HAVE_PCAP_SENDPACKET || defined HAVE_PCAP_INJECT
-    dlt = pcap_datalink(sp->handle.pcap);
+        dlt = pcap_datalink(sp->handle.pcap);
 #endif
+    }
     return dlt;
 }
 
@@ -1125,10 +1112,11 @@ sendpacket_get_method(sendpacket_t *sp)
  * your kernel via a custom driver
  */
 static sendpacket_t *
-sendpacket_open_khial(const char *device, char *errbuf)
+sendpacket_open_khial(const char *device, char *errbuf, tcpr_dir_t direction)
 {
     int mysocket;
     sendpacket_t *sp;
+    int val;
 
     assert(device);
     assert(errbuf);
@@ -1142,6 +1130,26 @@ sendpacket_open_khial(const char *device, char *errbuf)
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
     sp->handle_type = SP_TYPE_KHIAL;
+
+    /* tell the kernel module which direction the traffic is going */
+    if (direction == TCPR_DIR_C2S) {  /* aka PRIMARY */
+        val = KHIAL_DIRECTION_RX;
+        if (ioctl(sp->handle.fd, KHIAL_SET_DIRECTION, (void *)&val) < 0) {
+            sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
+                    sp->device, strerror(errno), errno);
+            return -1;
+        }
+    } else if (direction == TCPR_DIR_S2C) {
+        val = KHIAL_DIRECTION_TX;
+        if (ioctl(sp->handle.fd, KHIAL_SET_DIRECTION, (void *)&val) < 0) {
+            sendpacket_seterr(sp, "Error setting direction on %s: %s (%d)",
+                    sp->device, strerror(errno), errno);
+            return -1;
+        }
+    } else {
+        errx(1, "Invalid direction passed to sendpacket_open_khial(): %d", (int)direction);
+    }
+
     return sp;
 }
 
