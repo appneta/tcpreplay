@@ -19,6 +19,7 @@ $Id$
     - Fix --stats option for tcpreplay (#503)
     - Add support for injecting directly via custom Linux kernel module (#505)
     - Fix cidr code debugging (#506)
+    - Standardize on primary/secondary meaning of interfaces/tcpprep split (#507)
 
 08/15/2010 Version 3.4.5beta1
     - First pass at fixing 'make test' on many little-endian systems (#429)
