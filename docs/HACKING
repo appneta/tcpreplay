@@ -26,14 +26,16 @@ etc.
 
 The file layout is pretty simple:
 
-/            - Base directory
-/lib         - 3rd party libraries stolen verbatim
-/libopts     - GNU AutoOpts tearoff
-/src         - Main code routines
-/src/common  - Common routines for all binaries
-/src/tcpedit - libtcpedit
-/docs        - Where to find documentation
-/test        - Test scripts and stuff which is used during 'make test'
+/                    - Base directory
+/lib                 - 3rd party libraries stolen verbatim
+/libopts             - GNU AutoOpts tearoff
+/src                 - Main code routines
+/src/common          - Common routines for all binaries
+/src/tcpedit         - libtcpedit
+/src/tcpedit/plugins - plugins for libtcpedit (mostly DLT)
+/docs                - Where to find documentation
+/test                - Test scripts and stuff which is used during 'make test'
+/cmake               - CMake scripts
 
 3. Coding Standards
 1) Indent 4 spaces using spaces, not tabs

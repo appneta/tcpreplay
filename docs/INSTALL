@@ -4,9 +4,26 @@ $Id$
 
 cmake -G "Unix Makefiles"
 make
-make install
+sudo make install
 
-2. Simple directions for everyone else:
+2. More details
+
+As of Tcpreplay 4.0, the build system has moved from GNU Autoconf to CMake.
+While Autoconf may be the closest thing to an "industry standard", it's 
+also unfortunately very difficult for developers to use and does not allow for 
+building native Windows applications.
+
+The 'cmake' application replaces the old './configure' command.  In most 
+cases you can just run 'cmake' without any arguments and it will detect 
+your system and generate the appropriate Makefiles.
+
+If you want more control over the configuration process you can run 
+'cmake -i' (prompts for configuration options) or 'ccmake' (a curses UI 
+configurator).
+
+For more information about CMake, visit: http://www.cmake.org
+
+3. Simple directions for everyone else:
 
 Sorry you're out of luck.
 
@@ -14,12 +31,3 @@ Right now, Tcpreplay 4.0-Alpha only supports Unix based systems like Linux and
 OS X.  I hope to add support for Windows as well, but I haven't gotten there yet.
 If you're a Windows developer and are interested in helping port Tcpreplay to
 Windows, please contact me!
-
-3. Background
-
-As of Tcpreplay 4.0, the build system has moved from GNU Autoconf to CMake.
-While Autoconf may be the closest thing to an "industry standard", it's 
-also unfortunately very difficult to use and does not allow for building
-native Windows applications.
-
-For more information about CMake, visit http://www.cmake.org
