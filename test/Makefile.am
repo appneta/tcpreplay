@@ -141,7 +141,7 @@ tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep
+	replay_stats replay_dualfile replay_maxsleep replay_speed325
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -554,6 +554,12 @@ replay_maxsleep:
 	$(PRINTF) "%s" "[tcpreplay] Maximum sleep test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Maximum sleep test: " >>test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --maxsleep=20 test.pcap test.pcap >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+replay_sleep325:
+	$(PRINTF) "%s" "[tcpreplay] Sleep 3.2.5 mode test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Sleep 3.2.5 mode test: " >>test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --sleepmode=ver325 test.pcap test.pcap >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 clean:
