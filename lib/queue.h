@@ -334,6 +334,14 @@ struct {								\
 	(head)->tqh_last = &(head)->tqh_first;				\
 } while (0)
 
+#define TAILQ_COPY(dst, src, field) do {						\
+	*(dst) = *(src);											\
+	if (((dst)->tqh_first) != NULL)								\
+		(dst)->tqh_first->field.tqe_prev = &(dst)->tqh_first;	\
+	else														\
+		(dst)->tqh_last = &(dst)->tqh_first;					\
+} while (0)
+
 #define TAILQ_INSERT_HEAD(head, elm, field) do {			\
 	if (((elm)->field.tqe_next = (head)->tqh_first) != NULL)	\
 		(head)->tqh_first->field.tqe_prev =			\
