@@ -257,7 +257,7 @@ pktq_reverse(struct pktq *pktq)
 		next = TAILQ_NEXT(pkt, pkt_next);
 		TAILQ_INSERT_HEAD(&tmpq, pkt, pkt_next);
 	}
-	*pktq = tmpq;
+	TAILQ_COPY(pktq, &tmpq, pkt_next);
 }
 
 void
