@@ -10,7 +10,7 @@ AM_WITH_DMALLOC
 
 dnl People building from SVN need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts
-MAINTAINER_AUTOGEN_VERSION=5.11.5
+MAINTAINER_AUTOGEN_VERSION=5.16.2
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -351,13 +351,16 @@ for testdir in $trypcapdir /usr/local /opt/local /usr /wpdpack ; do
         LPCAPINC="${testdir}/include/pcap.h"
         LPCAPINCDIR="${testdir}/include"
         if test $dynamic_link = yes; then
-            if test -f "${testdir}/lib64/libpcap${shrext_cmds}" ; then
-                LPCAPLIB="-L${testdir}/lib64 -lpcap"
-            elif test -f "${testdir}/lib/libpcap${shrext_cmds}" ; then
-                LPCAPLIB="-L${testdir}/lib -lpcap"
-            elif test -f "${testdir}/lib/i386-linux-gnu/libpcap${shrext_cmds}" ; then
-                LPCAPLIB="-L${testdir}/lib/i386-linux-gnu -lpcap"
-            else
+            for ext in .dylib .so ; do 
+                if test -f "${testdir}/lib64/libpcap${ext}" ; then
+                    LPCAPLIB="-L${testdir}/lib64 -lpcap"
+                elif test -f "${testdir}/lib/libpcap${ext}" ; then
+                    LPCAPLIB="-L${testdir}/lib -lpcap"
+                elif test -f "${testdir}/lib/i386-linux-gnu/libpcap${ext}" ; then
+                    LPCAPLIB="-L${testdir}/lib/i386-linux-gnu -lpcap"
+                fi
+            done
+            if test "x$LPCAPLIB" == "x" ; then
                 AC_ERROR([Unable to find libpcap in ${testdir}])
             fi
         elif test -f "${testdir}/lib64/libpcap.${libext}" ; then
