@@ -1,10 +1,10 @@
 /*
  *  This file defines the string_tokenize interface
- * Time-stamp:      "2010-07-17 10:40:26 bkorb"
+ * Time-stamp:      "2012-03-04 13:23:50 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -87,11 +87,11 @@ copy_raw(ch_t** ppDest, char const ** ppSrc)
             switch (*pSrc) {
             case NUL:   *ppSrc = NULL; return;
             case '\r':
-                if (*(++pSrc) == '\n')
+                if (*(++pSrc) == NL)
                     ++pSrc;
                 continue;
 
-            case '\n':
+            case NL:
                 ++pSrc;
                 continue;
 
@@ -128,7 +128,7 @@ alloc_token_list(char const * str)
      *  Trim leading white space.  Use "ENOENT" and a NULL return to indicate
      *  an empty string was passed.
      */
-    while (IS_WHITESPACE_CHAR(*str))  str++;
+    str = SPN_WHITESPACE_CHARS(str);
     if (*str == NUL)  goto enoent_res;
 
     /*
@@ -137,17 +137,15 @@ alloc_token_list(char const * str)
      *  high and we'll squander the space for a few extra pointers.
      */
     {
-        cc_t* pz = (cc_t*)str;
+        char const * pz = str;
 
         do {
             max_token_ct++;
-            while (! IS_WHITESPACE_CHAR(*++pz))
-                if (*pz == NUL) goto found_nul;
-            while (IS_WHITESPACE_CHAR(*pz))  pz++;
+            pz = BRK_WHITESPACE_CHARS(pz+1);
+            pz = SPN_WHITESPACE_CHARS(pz);
         } while (*pz != NUL);
 
-    found_nul:
-        res = malloc(sizeof(*res) + (pz - (cc_t*)str)
+        res = malloc(sizeof(*res) + (pz - str)
                      + (max_token_ct * sizeof(ch_t*)));
     }
 
@@ -249,7 +247,7 @@ ao_string_tokenize(char const* str)
             int ch = (ch_t)*str;
             if (IS_WHITESPACE_CHAR(ch)) {
             found_white_space:
-                while (IS_WHITESPACE_CHAR(*++str))  ;
+                str = SPN_WHITESPACE_CHARS(str+1);
                 break;
             }
 
@@ -281,7 +279,7 @@ ao_string_tokenize(char const* str)
 
             default:
                 str++;
-                *(pzDest++) = ch;
+                *(pzDest++) = (unsigned char)ch;
             }
         } copy_done:;
 

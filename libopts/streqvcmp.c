@@ -2,7 +2,7 @@
 /**
  * \file streqvcmp.c
  *
- * Time-stamp:      "2010-07-17 10:16:24 bkorb"
+ * Time-stamp:      "2012-03-31 13:17:39 bkorb"
  *
  *  String Equivalence Comparison
  *
@@ -13,7 +13,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -36,8 +36,8 @@
  * based upon ascii character sequences.
  */
 static unsigned char charmap[] = {
-    0x00, 0x01, 0x02, 0x03,  0x04, 0x05, 0x06, '\a',
-    '\b', '\t', '\n', '\v',  '\f', '\r', 0x0E, 0x0F,
+    NUL,  0x01, 0x02, 0x03,  0x04, 0x05, 0x06, '\a',
+    '\b', '\t', NL,   '\v',  '\f', '\r', 0x0E, 0x0F,
     0x10, 0x11, 0x12, 0x13,  0x14, 0x15, 0x16, 0x17,
     0x18, 0x19, 0x1A, 0x1B,  0x1C, 0x1D, 0x1E, 0x1F,
 
@@ -187,16 +187,16 @@ streqvmap(char From, char To, int ct)
     if (ct == 0) {
         ct = sizeof(charmap) - 1;
         do  {
-            charmap[ ct ] = ct;
+            charmap[ct] = (unsigned char)ct;
         } while (--ct >= 0);
     }
 
     else {
-        int  chTo   = (int)To   & 0xFF;
-        int  chFrom = (int)From & 0xFF;
+        unsigned int chTo   = (int)To   & 0xFF;
+        unsigned int chFrom = (int)From & 0xFF;
 
         do  {
-            charmap[ chFrom ] = (unsigned)chTo;
+            charmap[chFrom] = (unsigned char)chTo;
             chFrom++;
             chTo++;
             if ((chFrom >= sizeof(charmap)) || (chTo >= sizeof(charmap)))

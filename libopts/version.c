@@ -1,6 +1,6 @@
 
 /*
- * Time-stamp:      "2010-09-05 05:53:20 bkorb"
+ * Time-stamp:      "2012-08-11 08:41:53 bkorb"
  *
  *  This module implements the default usage procedure for
  *  Automated Options.  It may be overridden, of course.
@@ -9,7 +9,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -27,11 +27,6 @@
  *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
-
-/* = = = START-STATIC-FORWARD = = = */
-static void
-printVersion(tOptions* pOpts, tOptDesc* pOD, FILE* fp);
-/* = = = END-STATIC-FORWARD = = = */
 
 /*=export_func  optionVersion
  *
@@ -51,64 +46,122 @@ optionVersion(void)
     return zVersion;
 }
 
-
+/**
+ * Select among various ways to emit version information.
+ *
+ * @param opts  the option descriptor
+ * @param fp    the output stream
+ */
 static void
-printVersion(tOptions* pOpts, tOptDesc* pOD, FILE* fp)
+emit_simple_ver(tOptions * opts, FILE * fp)
 {
-    char swCh;
+    /*
+     *  Use the supplied string
+     */
+    if (opts->pzFullVersion != NULL)
+        fputs(opts->pzFullVersion, fp);
 
     /*
-     *  IF the optional argument flag is off, or the argument is not provided,
-     *  then just print the version.
+     *  Extract the interesting part of the copyright string
      */
-    if (  ((pOD->fOptState & OPTST_ARG_OPTIONAL) == 0)
-       || (pOD->optArg.argString == NULL))
-         swCh = 'v';
-    else swCh = tolower(pOD->optArg.argString[0]);
-
-    if (pOpts->pzFullVersion != NULL) {
-        fputs(pOpts->pzFullVersion, fp);
-        fputc('\n', fp);
-
-    } else {
-        char const *pz = pOpts->pzUsageTitle;
-        do { fputc(*pz, fp); } while (*(pz++) != '\n');
+    else if (opts->pzCopyright != NULL) {
+        char const * pe = strchr(opts->pzCopyright, NL);
+        if (pe == NULL)
+            pe = opts->pzCopyright + strlen(opts->pzCopyright);
+        fwrite(opts->pzCopyright, 1, pe - opts->pzCopyright, fp);
     }
 
-    switch (swCh) {
+    /*
+     *  Extract the interesting part of the usage title string
+     */
+    else {
+        char const * pe = strchr(opts->pzUsageTitle, NL);
+        if (pe == NULL)
+            pe = opts->pzUsageTitle + strlen(opts->pzUsageTitle);
+        fwrite(opts->pzUsageTitle, 1, pe - opts->pzUsageTitle, fp);
+    }
+    fputc(NL, fp);
+}
+
+static void
+emit_copy_ver(tOptions * opts, FILE * fp)
+{
+    if (opts->pzCopyright != NULL)
+        fputs(opts->pzCopyright, fp);
+
+    else if (opts->pzFullVersion != NULL)
+        fputs(opts->pzFullVersion, fp);
+
+    else {
+        char const * pe = strchr(opts->pzUsageTitle, NL);
+        if (pe == NULL)
+            pe = opts->pzUsageTitle + strlen(opts->pzUsageTitle);
+        fwrite(opts->pzUsageTitle, 1, pe - opts->pzCopyright, fp);
+    }
+
+    fputc(NL, fp);
+
+    if (HAS_pzPkgDataDir(opts) && (opts->pzPackager != NULL))
+        fputs(opts->pzPackager, fp);
+
+    else if (opts->pzBugAddr != NULL)
+        fprintf(fp, zPlsSendBugs, opts->pzBugAddr);
+}
+
+static void
+emit_copy_note(tOptions * opts, FILE * fp)
+{
+    if (opts->pzCopyright != NULL) {
+        fputs(opts->pzCopyright, fp);
+        fputc(NL, fp);
+    }
+
+    if (opts->pzCopyNotice != NULL) {
+        fputs(opts->pzCopyNotice, fp);
+        fputc(NL, fp);
+    }
+
+    fprintf(fp, zAO_Ver, optionVersion());
+
+    if (HAS_pzPkgDataDir(opts) && (opts->pzPackager != NULL))
+        fputs(opts->pzPackager, fp);
+
+    else if (opts->pzBugAddr != NULL)
+        fprintf(fp, zPlsSendBugs, opts->pzBugAddr);
+}
+
+static void
+print_ver(tOptions * opts, tOptDesc * od, FILE * fp)
+{
+    char ch;
+
+    if (opts <= OPTPROC_EMIT_LIMIT)
+        return;
+
+    /*
+     *  IF we have an argument for this option, use it
+     *  Otherwise, default to version only or copyright note,
+     *  depending on whether the layout is GNU standard form or not.
+     */
+    if (  (od->fOptState & OPTST_ARG_OPTIONAL)
+       && (od->optArg.argString != NULL)
+       && (od->optArg.argString[0] != NUL))
+
+        ch = od->optArg.argString[0];
+
+    else {
+        set_usage_flags(opts, NULL);
+        ch = (opts->fOptSet & OPTPROC_GNUUSAGE) ? 'c' : 'v';
+    }
+
+    switch (ch) {
     case NUL: /* arg provided, but empty */
-    case 'v':
-        break;
-
-    case 'c':
-        if (pOpts->pzCopyright != NULL) {
-            fputs(pOpts->pzCopyright, fp);
-            fputc('\n', fp);
-        }
-        fprintf(fp, zAO_Ver, optionVersion());
-        if (pOpts->pzBugAddr != NULL)
-            fprintf(fp, zPlsSendBugs, pOpts->pzBugAddr);
-        break;
-
-    case 'n':
-        if (pOpts->pzCopyright != NULL) {
-            fputs(pOpts->pzCopyright, fp);
-            fputc('\n', fp);
-            fputc('\n', fp);
-        }
-
-        if (pOpts->pzCopyNotice != NULL) {
-            fputs(pOpts->pzCopyNotice, fp);
-            fputc('\n', fp);
-        }
-
-        fprintf(fp, zAO_Ver, optionVersion());
-        if (pOpts->pzBugAddr != NULL)
-            fprintf(fp, zPlsSendBugs, pOpts->pzBugAddr);
-        break;
+    case 'v': case 'V': emit_simple_ver(opts, fp); break;
+    case 'c': case 'C': emit_copy_ver(  opts, fp); break;
+    case 'n': case 'N': emit_copy_note( opts, fp); break;
 
     default:
-        fprintf(stderr, zBadVerArg, swCh);
+        fprintf(stderr, zBadVerArg, ch);
         exit(EXIT_FAILURE);
     }
 
@@ -124,32 +177,32 @@ printVersion(tOptions* pOpts, tOptDesc* pOD, FILE* fp)
  * private:
  *
  * what:  Print the program version
- * arg:   + tOptions* + pOpts    + program options descriptor +
- * arg:   + tOptDesc* + pOptDesc + the descriptor for this arg +
+ * arg:   + tOptions* + opts + program options descriptor +
+ * arg:   + tOptDesc* + od   + the descriptor for this arg +
  *
  * doc:
  *  This routine will print the version to stdout.
 =*/
 void
-optionPrintVersion(tOptions*  pOpts, tOptDesc*  pOD)
+optionPrintVersion(tOptions * opts, tOptDesc * od)
 {
-    printVersion(pOpts, pOD, stdout);
+    print_ver(opts, od, stdout);
 }
 
 /*=export_func  optionVersionStderr
  * private:
  *
  * what:  Print the program version to stderr
- * arg:   + tOptions* + pOpts    + program options descriptor +
- * arg:   + tOptDesc* + pOptDesc + the descriptor for this arg +
+ * arg:   + tOptions* + opts + program options descriptor +
+ * arg:   + tOptDesc* + od   + the descriptor for this arg +
  *
  * doc:
  *  This routine will print the version to stderr.
 =*/
 void
-optionVersionStderr(tOptions*  pOpts, tOptDesc*  pOD)
+optionVersionStderr(tOptions * opts, tOptDesc * od)
 {
-    printVersion(pOpts, pOD, stderr);
+    print_ver(opts, od, stderr);
 }
 
 /*

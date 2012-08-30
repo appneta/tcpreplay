@@ -1,24 +1,35 @@
 
-/*
- * Time-stamp:        "2010-02-24 08:39:04 bkorb"
+/**
+ * \file autoopts.c
  *
- *  This file is part of AutoGen.
+ *  Time-stamp:      "2012-06-15 12:31:28 bkorb"
  *
- *  AutoGen Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  This file contains all of the routines that must be linked into
+ *  an executable to use the generated option processing.  The optional
+ *  routines are in separately compiled modules so that they will not
+ *  necessarily be linked in.
  *
- *  AutoGen is free software: you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by the
- *  Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ *  This file is part of AutoOpts, a companion to AutoGen.
+ *  AutoOpts is free software.
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
- *  AutoGen is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- *  See the GNU General Public License for more details.
+ *  AutoOpts is available under any one of two licenses.  The license
+ *  in use must be one of these two and the choice is under the control
+ *  of the user of the license.
  *
- *  You should have received a copy of the GNU General Public License along
- *  with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *   The GNU Lesser General Public License, version 3 or later
+ *      See the files "COPYING.lgplv3" and "COPYING.gplv3"
+ *
+ *   The Modified Berkeley Software Distribution License
+ *      See the file "COPYING.mbsd"
+ *
+ *  These files have the following md5sums:
+ *
+ *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
+ *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
+ *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
+
 #ifndef WINDOWS_CONFIG_HACKERY
 #define WINDOWS_CONFIG_HACKERY 1
 

@@ -2,7 +2,7 @@
 /**
  * \file putshell.c
  *
- * Time-stamp:      "2010-09-05 06:10:56 bkorb"
+ * Time-stamp:      "2012-03-31 13:14:18 bkorb"
  *
  *  This module will interpret the options set in the tOptions
  *  structure and print them to standard out in a fashion that
@@ -10,7 +10,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -28,13 +28,10 @@
  *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
-static char const zOptValFmt[] = "%s_%s=";
-static char const zOptEnd[]    = "\nexport %s_%s\n";
-static char const zOptNumFmt[] = "%1$s_%2$s=%3$d # 0x%3$X\nexport %1$s_%2$s\n";
 
 /* = = = START-STATIC-FORWARD = = = */
 static void
-print_quot_str(tCC* pzStr);
+print_quot_str(char const * pzStr);
 
 static void
 print_enumeration(tOptions * pOpts, tOptDesc * pOD);
@@ -54,13 +51,13 @@ print_reordering(tOptions * pOpts);
  *  been emitted and the closing quote will be upon return.
  */
 static void
-print_quot_str(tCC* pzStr)
+print_quot_str(char const * pzStr)
 {
     /*
      *  Handle empty strings to make the rest of the logic simpler.
      */
     if ((pzStr == NULL) || (*pzStr == NUL)) {
-        fputs("''", stdout);
+        fputs(EMPTY_ARG, stdout);
         return;
     }
 
@@ -69,7 +66,7 @@ print_quot_str(tCC* pzStr)
      *  bail if that is all we need to do.
      */
     while (*pzStr == '\'') {
-        fputs("\\'", stdout);
+        fputs(QUOT_APOS, stdout);
         pzStr++;
     }
     if (*pzStr == NUL)
@@ -80,7 +77,7 @@ print_quot_str(tCC* pzStr)
      */
     fputc('\'', stdout);
     for (;;) {
-        tCC* pz = strchr(pzStr, '\'');
+        char const * pz = strchr(pzStr, '\'');
         if (pz == NULL)
             break;
 
@@ -114,18 +111,18 @@ static void
 print_enumeration(tOptions * pOpts, tOptDesc * pOD)
 {
     uintptr_t e_val = pOD->optArg.argEnum;
-    printf(zOptValFmt, pOpts->pzPROGNAME, pOD->pz_NAME);
+    printf(OPT_VAL_FMT, pOpts->pzPROGNAME, pOD->pz_NAME);
 
     /*
      *  Convert value to string, print that and restore numeric value.
      */
     (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
-    printf("'%s'", pOD->optArg.argString);
+    printf(QUOT_ARG_FMT, pOD->optArg.argString);
     if (pOD->fOptState & OPTST_ALLOC_ARG)
         AGFREE(pOD->optArg.argString);
     pOD->optArg.argEnum = e_val;
 
-    printf(zOptEnd, pOpts->pzPROGNAME, pOD->pz_NAME);
+    printf(OPT_END_FMT, pOpts->pzPROGNAME, pOD->pz_NAME);
 }
 
 static void
@@ -145,7 +142,7 @@ print_membership(tOptions * pOpts, tOptDesc * pOD)
     pz = pOD->optArg.argString + 7;
     while (*pz != NUL) {
         printf("typeset -x -i %s_", pOD->pz_NAME);
-        while (IS_PLUS_N_SPACE_CHAR(*pz))  pz++;
+        pz = SPN_PLUS_N_SPACE_CHARS(pz);
 
         for (;;) {
             int ch = *(pz++);
@@ -155,7 +152,7 @@ print_membership(tOptions * pOpts, tOptDesc * pOD)
             else if (ch == NUL)        { pz--; goto name_done; }
             else fputc('_', stdout);
         } name_done:;
-        printf("=%1$lu # 0x%1$lX\n", (unsigned long)val);
+        printf(SHOW_VAL_FMT, (unsigned long)val);
         val <<= 1;
     }
 
@@ -167,8 +164,6 @@ print_membership(tOptions * pOpts, tOptDesc * pOD)
 static void
 print_stacked_arg(tOptions * pOpts, tOptDesc * pOD)
 {
-    tSCC zOptCookieCt[] = "%1$s_%2$s_CT=%3$d\nexport %1$s_%2$s_CT\n";
-
     tArgList*    pAL = (tArgList*)pOD->optCookie;
     tCC**        ppz = pAL->apzArgs;
     int          ct  = pAL->useCt;
@@ -176,13 +171,10 @@ print_stacked_arg(tOptions * pOpts, tOptDesc * pOD)
     printf(zOptCookieCt, pOpts->pzPROGNAME, pOD->pz_NAME, ct);
 
     while (--ct >= 0) {
-        tSCC numarg_z[] = "%s_%s_%d=";
-        tSCC end_z[]    = "\nexport %s_%s_%d\n";
-
-        printf(numarg_z, pOpts->pzPROGNAME, pOD->pz_NAME,
+        printf(ARG_BY_NUM_FMT, pOpts->pzPROGNAME, pOD->pz_NAME,
                pAL->useCt - ct);
         print_quot_str(*(ppz++));
-        printf(end_z, pOpts->pzPROGNAME, pOD->pz_NAME,
+        printf(EXPORT_ARG_FMT, pOpts->pzPROGNAME, pOD->pz_NAME,
                pAL->useCt - ct);
     }
 }
@@ -190,23 +182,25 @@ print_stacked_arg(tOptions * pOpts, tOptDesc * pOD)
 static void
 print_reordering(tOptions * pOpts)
 {
-    int  optIx;
+    unsigned int optIx;
 
-    fputs("set --", stdout);
+    fputs(set_dash, stdout);
 
-    for (optIx = pOpts->curOptIdx; optIx < pOpts->origArgCt; optIx++) {
+    for (optIx = pOpts->curOptIdx;
+         optIx < pOpts->origArgCt;
+         optIx++) {
 
         char* pzArg = pOpts->origArgVect[ optIx ];
 
         if (strchr(pzArg, '\'') == NULL)
-            printf(" '%s'", pzArg);
+            printf(arg_fmt, pzArg);
 
         else {
             fputs(" '", stdout);
             for (;;) {
                 char ch = *(pzArg++);
                 switch (ch) {
-                case '\'':  fputs("'\\''", stdout); break;
+                case '\'':  fputs(apostrophy, stdout); break;
                 case NUL:   goto arg_done;
                 default:    fputc(ch, stdout); break;
                 }
@@ -214,7 +208,7 @@ print_reordering(tOptions * pOpts)
             fputc('\'', stdout);
         }
     }
-    fputs("\nOPTION_CT=0\n", stdout);
+    fputs(init_optct, stdout);
 }
 
 /*=export_func  optionPutShell
@@ -228,17 +222,13 @@ void
 optionPutShell(tOptions* pOpts)
 {
     int  optIx = 0;
-    tSCC zOptCtFmt[]  = "OPTION_CT=%d\nexport OPTION_CT\n";
-    tSCC zOptDisabl[] = "%1$s_%2$s=%3$s\nexport %1$s_%2$s\n";
-    tSCC zFullOptFmt[]= "%1$s_%2$s='%3$s'\nexport %1$s_%2$s\n";
-    tSCC zEquivMode[] = "%1$s_%2$s_MODE='%3$s'\nexport %1$s_%2$s_MODE\n";
 
     printf(zOptCtFmt, pOpts->curOptIdx-1);
 
     do  {
         tOptDesc* pOD = pOpts->pOptDesc + optIx;
 
-        if (SKIP_OPT(pOD))
+        if ((pOD->fOptState & OPTST_NO_OUTPUT_MASK) != 0)
             continue;
 
         /*
@@ -281,9 +271,8 @@ optionPutShell(tOptions* pOpts)
          *  The idea is that if someone defines an option to initialize
          *  enabled, we should tell our shell script that it is enabled.
          */
-        if (UNUSED_OPT(pOD) && DISABLED_OPT(pOD)) {
+        if (UNUSED_OPT(pOD) && DISABLED_OPT(pOD))
             continue;
-        }
 
         /*
          *  Handle stacked arguments
@@ -350,9 +339,9 @@ optionPutShell(tOptions* pOpts)
         /*
          *  This option has a text value
          */
-        printf(zOptValFmt, pOpts->pzPROGNAME, pOD->pz_NAME);
+        printf(OPT_VAL_FMT, pOpts->pzPROGNAME, pOD->pz_NAME);
         print_quot_str(pOD->optArg.argString);
-        printf(zOptEnd, pOpts->pzPROGNAME, pOD->pz_NAME);
+        printf(OPT_END_FMT, pOpts->pzPROGNAME, pOD->pz_NAME);
 
     } while (++optIx < pOpts->presetOptCt );
 

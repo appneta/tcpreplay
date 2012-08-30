@@ -4,7 +4,7 @@
 
 /*
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
- * Time-stamp:       "2010-07-17 09:50:32 bkorb"
+ * Time-stamp:       "2012-08-11 08:19:39 bkorb"
  */
 
 /* Code: */
@@ -305,11 +305,12 @@ extract_colon_unit( char* pzDir, char const *string, int *p_index )
             switch (ch) {
             case ':':
                 pzDest[-1] = NUL;
+                /* FALLTHROUGH */
             case NUL:
                 goto copy_done;
             }
 
-            if ((pzDest - pzDir) >= AG_PATH_MAX)
+            if ((unsigned long)(pzDest - pzDir) >= AG_PATH_MAX)
                 break;
         } copy_done:;
 

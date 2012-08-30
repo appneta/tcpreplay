@@ -2,7 +2,7 @@
 /**
  * \file pgusage.c
  *
- * Time-stamp:      "2010-07-17 10:42:53 bkorb"
+ * Time-stamp:      "2012-02-28 19:49:32 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -11,7 +11,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -30,8 +30,6 @@
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
-tePagerState pagerState = PAGER_STATE_INITIAL;
-
 /*=export_func  optionPagedUsage
  * private:
  *
@@ -45,7 +43,7 @@ tePagerState pagerState = PAGER_STATE_INITIAL;
  *  This is disabled on platforms without a working fork() function.
 =*/
 void
-optionPagedUsage(tOptions* pOptions, tOptDesc* pOD)
+optionPagedUsage(tOptions * pOptions, tOptDesc * pOD)
 {
 #if ! defined(HAVE_WORKING_FORK)
     if ((pOD->fOptState & OPTST_RESET) != 0)
@@ -68,11 +66,7 @@ optionPagedUsage(tOptions* pOptions, tOptDesc* pOD)
             return;
 
         my_pid  = getpid();
-#ifdef HAVE_SNPRINTF
-        snprintf(zPageUsage, sizeof(zPageUsage), "/tmp/use.%lu", (tAoUL)my_pid);
-#else
-        sprintf(zPageUsage, "/tmp/use.%lu", (tAoUL)my_pid);
-#endif
+        snprintf(zPageUsage, sizeof(zPageUsage), TMP_USAGE_FMT, (tAoUL)my_pid);
         unlink(zPageUsage);
 
         /*
@@ -101,23 +95,19 @@ optionPagedUsage(tOptions* pOptions, tOptDesc* pOD)
 
     case PAGER_STATE_READY:
     {
-        tSCC zPage[]  = "%1$s /tmp/use.%2$lu ; rm -f /tmp/use.%2$lu";
-        tCC* pzPager  = (tCC*)getenv("PAGER");
+        tCC* pzPager  = (tCC*)getenv(PAGER_NAME);
 
         /*
          *  Use the "more(1)" program if "PAGER" has not been defined
          */
         if (pzPager == NULL)
-            pzPager = "more";
+            pzPager = MORE_STR;
 
         /*
          *  Page the file and remove it when done.
          */
-#ifdef HAVE_SNPRINTF
-        snprintf(zPageUsage, sizeof(zPageUsage), zPage, pzPager, (tAoUL)my_pid);
-#else
-        sprintf(zPageUsage, zPage, pzPager, (tAoUL)my_pid);
-#endif
+        snprintf(zPageUsage, sizeof(zPageUsage), PAGE_USAGE_FMT, pzPager,
+                 (tAoUL)my_pid);
         fclose(stderr);
         dup2(STDOUT_FILENO, STDERR_FILENO);
 

@@ -2,7 +2,7 @@
 /**
  * \file boolean.c
  *
- * Time-stamp:      "2010-07-10 11:02:10 bkorb"
+ * Time-stamp:      "2012-08-11 08:34:39 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -11,7 +11,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -43,16 +43,21 @@
  *  it is an empty string or it is a number that evaluates to zero.
 =*/
 void
-optionBooleanVal( tOptions* pOpts, tOptDesc* pOD )
+optionBooleanVal(tOptions * pOpts, tOptDesc * pOD )
 {
     char* pz;
-    ag_bool  res = AG_TRUE;
+    bool  res = true;
+
+    (void)pOpts;
+
+    if (pOpts <= OPTPROC_EMIT_LIMIT)
+        return;
 
     if ((pOD->fOptState & OPTST_RESET) != 0)
         return;
 
     if (pOD->optArg.argString == NULL) {
-        pOD->optArg.argBool = AG_FALSE;
+        pOD->optArg.argBool = false;
         return;
     }
 
@@ -69,12 +74,12 @@ optionBooleanVal( tOptions* pOpts, tOptDesc* pOD )
     case 'F':
     case 'f':
     case NUL:
-        res = AG_FALSE;
+        res = false;
         break;
     case '#':
         if (pOD->optArg.argString[1] != 'f')
             break;
-        res = AG_FALSE;
+        res = false;
     }
 
     if (pOD->fOptState & OPTST_ALLOC_ARG) {

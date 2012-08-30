@@ -2,7 +2,7 @@
 /*
  * \file save.c
  *
- * Time-stamp:      "2010-07-17 10:27:48 bkorb"
+ * Time-stamp:      "2012-03-31 13:15:19 bkorb"
  *
  *  This module's routines will take the currently set options and
  *  store them into an ".rc" file for re-interpretation the next
@@ -10,7 +10,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -29,57 +29,51 @@
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
-static char const  zWarn[] = "%s WARNING:  cannot save options - ";
-static char const close_xml[] = "</%s>\n";
-
 /* = = = START-STATIC-FORWARD = = = */
-static tCC*
-findDirName(tOptions* pOpts, int* p_free);
+static char const *
+find_dir_name(tOptions * pOpts, int * p_free);
 
-static tCC*
-findFileName(tOptions* pOpts, int* p_free_name);
-
-static void
-printEntry(
-    FILE *     fp,
-    tOptDesc * p,
-    tCC*       pzLA );
+static char const *
+find_file_name(tOptions * pOpts, int * p_free_name);
 
 static void
-print_a_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp);
+prt_entry(FILE * fp, tOptDesc * p, char const * pzLA);
 
 static void
-print_a_string(FILE * fp, char const * name, char const * pz);
+prt_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp);
 
 static void
-printValueList(FILE * fp, char const * name, tArgList * al);
+prt_string(FILE * fp, char const * name, char const * pz);
 
 static void
-printHierarchy(FILE * fp, tOptDesc * p);
+prt_val_list(FILE * fp, char const * name, tArgList * al);
+
+static void
+prt_nested(FILE * fp, tOptDesc * p);
 
 static FILE *
-openSaveFile(tOptions* pOpts);
+open_sv_file(tOptions* pOpts);
 
 static void
-printNoArgOpt(FILE * fp, tOptDesc * p, tOptDesc * pOD);
+prt_no_arg_opt(FILE * fp, tOptDesc * p, tOptDesc * pOD);
 
 static void
-printStringArg(FILE * fp, tOptDesc * pOD);
+prt_str_arg(FILE * fp, tOptDesc * pOD);
 
 static void
-printEnumArg(FILE * fp, tOptDesc * pOD);
+prt_enum_arg(FILE * fp, tOptDesc * pOD);
 
 static void
-printSetMemberArg(FILE * fp, tOptDesc * pOD);
+prt_set_arg(FILE * fp, tOptDesc * pOD);
 
 static void
-printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts);
+prt_file_arg(FILE * fp, tOptDesc * pOD, tOptions* pOpts);
 /* = = = END-STATIC-FORWARD = = = */
 
-static tCC*
-findDirName(tOptions* pOpts, int* p_free)
+static char const *
+find_dir_name(tOptions * pOpts, int * p_free)
 {
-    tCC*  pzDir;
+    char const * pzDir;
 
     if (  (pOpts->specOptIdx.save_opts == NO_EQUIVALENT)
        || (pOpts->specOptIdx.save_opts == 0))
@@ -94,7 +88,7 @@ findDirName(tOptions* pOpts, int* p_free)
      *  we can stash the RC (INI) file.
      */
     {
-        tCC* const* papz = pOpts->papzHomeList;
+        char const * const* papz = pOpts->papzHomeList;
         if (papz == NULL)
             return NULL;
 
@@ -109,16 +103,16 @@ findDirName(tOptions* pOpts, int* p_free)
         return pzDir;
 
     {
-        tCC*  pzEndDir = strchr(++pzDir, DIRCH);
-        char* pzFileName;
-        char* pzEnv;
+        char const * pzEndDir = strchr(++pzDir, DIRCH);
+        char * pzFileName;
+        char * pzEnv;
 
         if (pzEndDir != NULL) {
             char z[ AO_NAME_SIZE ];
             if ((pzEndDir - pzDir) > AO_NAME_LIMIT )
                 return NULL;
-            strncpy(z, pzDir, (size_t)(pzEndDir - pzDir));
-            z[ (pzEndDir - pzDir) ] = NUL;
+            memcpy(z, pzDir, (size_t)(pzEndDir - pzDir));
+            z[pzEndDir - pzDir] = NUL;
             pzEnv = getenv(z);
         } else {
 
@@ -130,7 +124,7 @@ findDirName(tOptions* pOpts, int* p_free)
         }
 
         if (pzEnv == NULL) {
-            fprintf(stderr, zWarn, pOpts->pzProgName);
+            fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
             fprintf(stderr, zNotDef, pzDir);
             return NULL;
         }
@@ -157,14 +151,13 @@ findDirName(tOptions* pOpts, int* p_free)
 }
 
 
-static tCC*
-findFileName(tOptions* pOpts, int* p_free_name)
+static char const *
+find_file_name(tOptions * pOpts, int * p_free_name)
 {
-    tCC*   pzDir;
     struct stat stBuf;
     int    free_dir_name = 0;
 
-    pzDir = findDirName(pOpts, &free_dir_name);
+    char const * pzDir = find_dir_name(pOpts, &free_dir_name);
     if (pzDir == NULL)
         return NULL;
 
@@ -173,48 +166,42 @@ findFileName(tOptions* pOpts, int* p_free_name)
      *  structure so we can bail out early.
      */
     if (stat(pzDir, &stBuf) != 0) do {
+        char z[AG_PATH_MAX];
+        char * dirchp;
 
         /*
          *  IF we could not, check to see if we got a full
          *  path to a file name that has not been created yet.
          */
-        if (errno == ENOENT) {
-            char z[AG_PATH_MAX];
-
-            /*
-             *  Strip off the last component, stat the remaining string and
-             *  that string must name a directory
-             */
-            char* pzDirCh = strrchr(pzDir, DIRCH);
-            if (pzDirCh == NULL) {
-                stBuf.st_mode = S_IFREG;
-                continue;  /* bail out of error condition */
-            }
-
-            strncpy(z, pzDir, (size_t)(pzDirCh - pzDir));
-            z[ pzDirCh - pzDir ] = NUL;
-
-            if (  (stat(z, &stBuf) == 0)
-               && S_ISDIR(stBuf.st_mode)) {
-
-                /*
-                 *  We found the directory.  Restore the file name and
-                 *  mark the full name as a regular file
-                 */
-                stBuf.st_mode = S_IFREG;
-                continue;  /* bail out of error condition */
-            }
+        if (errno != ENOENT) {
+        bogus_name:
+            fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
+            fprintf(stderr, zNoStat, errno, strerror(errno), pzDir);
+            if (free_dir_name)
+                AGFREE((void*)pzDir);
+            return NULL;
         }
 
         /*
-         *  We got a bogus name.
+         *  Strip off the last component, stat the remaining string and
+         *  that string must name a directory
          */
-        fprintf(stderr, zWarn, pOpts->pzProgName);
-        fprintf(stderr, zNoStat, errno, strerror(errno), pzDir);
-        if (free_dir_name)
-            AGFREE((void*)pzDir);
-        return NULL;
-    } while (0);
+        dirchp = strrchr(pzDir, DIRCH);
+        if (dirchp == NULL) {
+            stBuf.st_mode = S_IFREG;
+            break; /* found directory -- viz.,  "." */
+        }
+
+        if ((size_t)(dirchp - pzDir) >= sizeof(z))
+            goto bogus_name;
+
+        memcpy(z, pzDir, (size_t)(dirchp - pzDir));
+        z[dirchp - pzDir] = NUL;
+
+        if ((stat(z, &stBuf) != 0) || ! S_ISDIR(stBuf.st_mode))
+            goto bogus_name;
+        stBuf.st_mode = S_IFREG; /* file within this directory */
+    } while (false);
 
     /*
      *  IF what we found was a directory,
@@ -224,7 +211,7 @@ findFileName(tOptions* pOpts, int* p_free_name)
         size_t sz = strlen(pzDir) + strlen(pOpts->pzRcName) + 2;
 
         {
-            char*  pzPath = (char*)AGALOC(sz, "file name");
+            char * pzPath = (char*)AGALOC(sz, "file name");
 #ifdef HAVE_SNPRINTF
             snprintf(pzPath, sz, "%s/%s", pzDir, pOpts->pzRcName);
 #else
@@ -242,7 +229,7 @@ findFileName(tOptions* pOpts, int* p_free_name)
          */
         if (stat(pzDir, &stBuf) != 0) {
             if (errno != ENOENT) {
-                fprintf(stderr, zWarn, pOpts->pzProgName);
+                fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
                 fprintf(stderr, zNoStat, errno, strerror(errno),
                         pzDir);
                 AGFREE((void*)pzDir);
@@ -261,7 +248,7 @@ findFileName(tOptions* pOpts, int* p_free_name)
      *  or will soon be a file.
      */
     if (! S_ISREG(stBuf.st_mode)) {
-        fprintf(stderr, zWarn, pOpts->pzProgName);
+        fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
         fprintf(stderr, zNotFile, pzDir);
         if (free_dir_name)
             AGFREE((void*)pzDir);
@@ -278,10 +265,7 @@ findFileName(tOptions* pOpts, int* p_free_name)
 
 
 static void
-printEntry(
-    FILE *     fp,
-    tOptDesc * p,
-    tCC*       pzLA )
+prt_entry(FILE * fp, tOptDesc * p, char const * pzLA)
 {
     /*
      *  There is an argument.  Pad the name so values line up.
@@ -309,12 +293,12 @@ printEntry(
      *  OTHERWISE, FOR each line of the value text, ...
      */
     else if (pzLA == NULL)
-        fputc('\n', fp);
+        fputc(NL, fp);
 
     else {
         fputc(' ', fp); fputc(' ', fp);
         for (;;) {
-            tCC* pzNl = strchr(pzLA, '\n');
+            char const * pzNl = strchr(pzLA, NL);
 
             /*
              *  IF this is the last line
@@ -335,30 +319,25 @@ printEntry(
          *  Terminate the entry
          */
         fputs(pzLA, fp);
-        fputc('\n', fp);
+        fputc(NL, fp);
     }
 }
 
 
 static void
-print_a_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
+prt_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
 {
-    static char const bool_atr[]  = "<%1$s type=boolean>%2$s</%1$s>\n";
-    static char const numb_atr[]  = "<%1$s type=integer>0x%2$lX</%1$s>\n";
-    static char const type_atr[]  = "<%s type=%s>";
-    static char const null_atr[]  = "<%s/>\n";
-
     while (--depth >= 0)
         putc(' ', fp), putc(' ', fp);
 
     switch (ovp->valType) {
     default:
     case OPARG_TYPE_NONE:
-        fprintf(fp, null_atr, ovp->pzName);
+        fprintf(fp, NULL_ATR_FMT, ovp->pzName);
         break;
 
     case OPARG_TYPE_STRING:
-        print_a_string(fp, ovp->pzName, ovp->v.strVal);
+        prt_string(fp, ovp->pzName, ovp->v.strVal);
         break;
 
     case OPARG_TYPE_ENUMERATION:
@@ -369,7 +348,7 @@ print_a_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
             char const * typ = (ovp->valType == OPARG_TYPE_ENUMERATION)
                 ? "keyword" : "set-membership";
 
-            fprintf(fp, type_atr, ovp->pzName, typ);
+            fprintf(fp, TYPE_ATR_FMT, ovp->pzName, typ);
 
             /*
              *  This is a magic incantation that will convert the
@@ -389,33 +368,31 @@ print_a_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
 
             pOD->optArg.argEnum = val;
             pOD->fOptState = opt_state;
-            fprintf(fp, close_xml, ovp->pzName);
+            fprintf(fp, END_XML_FMT, ovp->pzName);
             break;
         }
         /* FALLTHROUGH */
 
     case OPARG_TYPE_NUMERIC:
-        fprintf(fp, numb_atr, ovp->pzName, ovp->v.longVal);
+        fprintf(fp, NUMB_ATR_FMT, ovp->pzName, ovp->v.longVal);
         break;
 
     case OPARG_TYPE_BOOLEAN:
-        fprintf(fp, bool_atr, ovp->pzName,
+        fprintf(fp, BOOL_ATR_FMT, ovp->pzName,
                 ovp->v.boolVal ? "true" : "false");
         break;
 
     case OPARG_TYPE_HIERARCHY:
-        printValueList(fp, ovp->pzName, ovp->v.nestVal);
+        prt_val_list(fp, ovp->pzName, ovp->v.nestVal);
         break;
     }
 }
 
 
 static void
-print_a_string(FILE * fp, char const * name, char const * pz)
+prt_string(FILE * fp, char const * name, char const * pz)
 {
-    static char const open_atr[]  = "<%s>";
-
-    fprintf(fp, open_atr, name);
+    fprintf(fp, OPEN_XML_FMT, name);
     for (;;) {
         int ch = ((int)*(pz++)) & 0xFF;
 
@@ -443,12 +420,12 @@ print_a_string(FILE * fp, char const * name, char const * pz)
             putc(ch, fp);
         }
     } string_done:;
-    fprintf(fp, close_xml, name);
+    fprintf(fp, END_XML_FMT, name);
 }
 
 
 static void
-printValueList(FILE * fp, char const * name, tArgList * al)
+prt_val_list(FILE * fp, char const * name, tArgList * al)
 {
     static int depth = 1;
 
@@ -462,17 +439,17 @@ printValueList(FILE * fp, char const * name, tArgList * al)
     opt_list = (void **)al->apzArgs;
 
     if (opt_ct <= 0) {
-        fprintf(fp, "<%s/>\n", name);
+        fprintf(fp, OPEN_CLOSE_FMT, name);
         return;
     }
 
-    fprintf(fp, "<%s type=nested>\n", name);
+    fprintf(fp, NESTED_OPT_FMT, name);
 
     depth++;
     while (--opt_ct >= 0) {
         tOptionValue const * ovp = *(opt_list++);
 
-        print_a_value(fp, depth, NULL, ovp);
+        prt_value(fp, depth, NULL, ovp);
     }
     depth--;
 
@@ -483,7 +460,7 @@ printValueList(FILE * fp, char const * name, tArgList * al)
 
 
 static void
-printHierarchy(FILE * fp, tOptDesc * p)
+prt_nested(FILE * fp, tOptDesc * p)
 {
     int opt_ct;
     tArgList * al = p->optCookie;
@@ -505,10 +482,10 @@ printHierarchy(FILE * fp, tOptDesc * p)
         if (ovp == NULL)
             continue;
 
-        fprintf(fp, "<%s type=nested>\n", p->pz_Name);
+        fprintf(fp, NESTED_OPT_FMT, p->pz_Name);
 
         do  {
-            print_a_value(fp, 1, p, ovp);
+            prt_value(fp, 1, p, ovp);
 
         } while (ovp = optionNextValue(base, ovp),
                  ovp != NULL);
@@ -519,19 +496,19 @@ printHierarchy(FILE * fp, tOptDesc * p)
 
 
 static FILE *
-openSaveFile(tOptions* pOpts)
+open_sv_file(tOptions* pOpts)
 {
-    FILE*     fp;
+    FILE * fp;
 
     {
         int   free_name = 0;
-        tCC*  pzFName = findFileName(pOpts, &free_name);
+        char const * pzFName = find_file_name(pOpts, &free_name);
         if (pzFName == NULL)
             return NULL;
 
         fp = fopen(pzFName, "w" FOPEN_BINARY_FLAG);
         if (fp == NULL) {
-            fprintf(stderr, zWarn, pOpts->pzProgName);
+            fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
             fprintf(stderr, zNoCreat, errno, strerror(errno), pzFName);
             if (free_name)
                 AGFREE((void*) pzFName );
@@ -543,14 +520,14 @@ openSaveFile(tOptions* pOpts)
     }
 
     {
-        char const*  pz = pOpts->pzUsageTitle;
+        char const * pz = pOpts->pzUsageTitle;
         fputs("#  ", fp);
-        do { fputc(*pz, fp); } while (*(pz++) != '\n');
+        do { fputc(*pz, fp); } while (*(pz++) != NL);
     }
 
     {
         time_t  timeVal = time(NULL);
-        char*   pzTime  = ctime(&timeVal);
+        char *  pzTime  = ctime(&timeVal);
 
         fprintf(fp, zPresetFile, pzTime);
 #ifdef HAVE_ALLOCATED_CTIME
@@ -567,7 +544,7 @@ openSaveFile(tOptions* pOpts)
 }
 
 static void
-printNoArgOpt(FILE * fp, tOptDesc * p, tOptDesc * pOD)
+prt_no_arg_opt(FILE * fp, tOptDesc * p, tOptDesc * pOD)
 {
     /*
      * The aliased to argument indicates whether or not the option
@@ -588,12 +565,12 @@ printNoArgOpt(FILE * fp, tOptDesc * p, tOptDesc * pOD)
 }
 
 static void
-printStringArg(FILE * fp, tOptDesc * pOD)
+prt_str_arg(FILE * fp, tOptDesc * pOD)
 {
     if (pOD->fOptState & OPTST_STACKED) {
-        tArgList*  pAL = (tArgList*)pOD->optCookie;
+        tArgList * pAL = (tArgList*)pOD->optCookie;
         int        uct = pAL->useCt;
-        tCC**      ppz = pAL->apzArgs;
+        char const ** ppz = pAL->apzArgs;
 
         /*
          *  un-disable multiple copies of disabled options.
@@ -602,14 +579,14 @@ printStringArg(FILE * fp, tOptDesc * pOD)
             pOD->fOptState &= ~OPTST_DISABLED;
 
         while (uct-- > 0)
-            printEntry(fp, pOD, *(ppz++));
+            prt_entry(fp, pOD, *(ppz++));
     } else {
-        printEntry(fp, pOD, pOD->optArg.argString);
+        prt_entry(fp, pOD, pOD->optArg.argString);
     }
 }
 
 static void
-printEnumArg(FILE * fp, tOptDesc * pOD)
+prt_enum_arg(FILE * fp, tOptDesc * pOD)
 {
     uintptr_t val = pOD->optArg.argEnum;
 
@@ -618,13 +595,13 @@ printEnumArg(FILE * fp, tOptDesc * pOD)
      *  bit flag values back into a string suitable for printing.
      */
     (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
-    printEntry(fp, pOD, (void*)(pOD->optArg.argString));
+    prt_entry(fp, pOD, (void*)(pOD->optArg.argString));
 
     pOD->optArg.argEnum = val;
 }
 
 static void
-printSetMemberArg(FILE * fp, tOptDesc * pOD)
+prt_set_arg(FILE * fp, tOptDesc * pOD)
 {
     uintptr_t val = pOD->optArg.argEnum;
 
@@ -633,7 +610,7 @@ printSetMemberArg(FILE * fp, tOptDesc * pOD)
      *  bit flag values back into a string suitable for printing.
      */
     (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
-    printEntry(fp, pOD, (void*)(pOD->optArg.argString));
+    prt_entry(fp, pOD, (void*)(pOD->optArg.argString));
 
     if (pOD->optArg.argString != NULL) {
         /*
@@ -647,14 +624,14 @@ printSetMemberArg(FILE * fp, tOptDesc * pOD)
 }
 
 static void
-printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
+prt_file_arg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
 {
     /*
      *  If the cookie is not NULL, then it has the file name, period.
      *  Otherwise, if we have a non-NULL string argument, then....
      */
     if (pOD->optCookie != NULL)
-        printEntry(fp, pOD, pOD->optCookie);
+        prt_entry(fp, pOD, pOD->optCookie);
 
     else if (HAS_originalOptArgArray(pOpts)) {
         char const * orig =
@@ -663,7 +640,7 @@ printFileArg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
         if (pOD->optArg.argString == orig)
             return;
 
-        printEntry(fp, pOD, pOD->optArg.argString);
+        prt_entry(fp, pOD, pOD->optArg.argString);
     }
 }
 
@@ -702,7 +679,7 @@ optionSaveFile(tOptions* pOpts)
 {
     tOptDesc* pOD;
     int       ct;
-    FILE*     fp = openSaveFile(pOpts);
+    FILE *    fp = open_sv_file(pOpts);
 
     if (fp == NULL)
         return;
@@ -713,7 +690,7 @@ optionSaveFile(tOptions* pOpts)
     ct  = pOpts->presetOptCt;
     pOD = pOpts->pOptDesc;
     do  {
-        tOptDesc*  p;
+        tOptDesc * p;
 
         /*
          *  IF    the option has not been defined
@@ -744,35 +721,35 @@ optionSaveFile(tOptions* pOpts)
 
         switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
         case OPARG_TYPE_NONE:
-            printNoArgOpt(fp, p, pOD);
+            prt_no_arg_opt(fp, p, pOD);
             break;
 
         case OPARG_TYPE_NUMERIC:
-            printEntry(fp, p, (void*)(p->optArg.argInt));
+            prt_entry(fp, p, (void*)(p->optArg.argInt));
             break;
 
         case OPARG_TYPE_STRING:
-            printStringArg(fp, p);
+            prt_str_arg(fp, p);
             break;
 
         case OPARG_TYPE_ENUMERATION:
-            printEnumArg(fp, p);
+            prt_enum_arg(fp, p);
             break;
 
         case OPARG_TYPE_MEMBERSHIP:
-            printSetMemberArg(fp, p);
+            prt_set_arg(fp, p);
             break;
 
         case OPARG_TYPE_BOOLEAN:
-            printEntry(fp, p, p->optArg.argBool ? "true" : "false");
+            prt_entry(fp, p, p->optArg.argBool ? "true" : "false");
             break;
 
         case OPARG_TYPE_HIERARCHY:
-            printHierarchy(fp, p);
+            prt_nested(fp, p);
             break;
 
         case OPARG_TYPE_FILE:
-            printFileArg(fp, p, pOpts);
+            prt_file_arg(fp, p, pOpts);
             break;
 
         default:

@@ -1,5 +1,5 @@
 # liboptschk.m4 serial 2 (autogen - 5.11.4)
-dnl Copyright (c) 2005-2010 by Bruce Korb - all rights reserved
+dnl Copyright (c) 2005-2012 by Bruce Korb - all rights reserved
 dnl
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,

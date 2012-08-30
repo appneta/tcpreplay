@@ -2,11 +2,11 @@
 /**
  * \file reset.c
  *
- *  Time-stamp:      "2010-07-10 10:56:34 bkorb"
+ *  Time-stamp:      "2012-08-11 08:35:11 bkorb"
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -69,11 +69,14 @@ optionResetEverything(tOptions * pOpts)
 void
 optionResetOpt( tOptions* pOpts, tOptDesc* pOD )
 {
-    static ag_bool reset_active = AG_FALSE;
+    static bool reset_active = false;
 
     tOptState opt_state = OPTSTATE_INITIALIZER(DEFINED);
     char const * pzArg = pOD->optArg.argString;
     tSuccess     succ;
+
+    if (pOpts <= OPTPROC_EMIT_LIMIT)
+        return;
 
     if (reset_active)
         return;
@@ -91,16 +94,16 @@ optionResetOpt( tOptions* pOpts, tOptDesc* pOD )
         assert(0 == 1);
     }
 
-    reset_active = AG_TRUE;
+    reset_active = true;
 
     if (pzArg[1] == NUL) {
         if (*pzArg == '*') {
             optionResetEverything(pOpts);
-            reset_active = AG_FALSE;
+            reset_active = false;
             return;
         }
 
-        succ = shortOptionFind(pOpts, (tAoUC)*pzArg, &opt_state);
+        succ = opt_find_short(pOpts, (tAoUC)*pzArg, &opt_state);
         if (! SUCCESSFUL(succ)) {
             fprintf(stderr, zIllOptChr, pOpts->pzProgPath, *pzArg);
             pOpts->pUsageProc(pOpts, EXIT_FAILURE);
@@ -108,7 +111,7 @@ optionResetOpt( tOptions* pOpts, tOptDesc* pOD )
             assert(0 == 1);
         }
     } else {
-        succ = longOptionFind(pOpts, (char *)pzArg, &opt_state);
+        succ = opt_find_long(pOpts, (char *)pzArg, &opt_state);
         if (! SUCCESSFUL(succ)) {
             fprintf(stderr, zIllOptStr, pOpts->pzProgPath, pzArg);
             pOpts->pUsageProc(pOpts, EXIT_FAILURE);
@@ -124,7 +127,7 @@ optionResetOpt( tOptions* pOpts, tOptDesc* pOD )
      *  Finally, clear the reset flag, too.
      */
     optionReset(pOpts, opt_state.pOD);
-    reset_active = AG_FALSE;
+    reset_active = false;
 }
 /*
  * Local Variables:

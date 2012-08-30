@@ -2,14 +2,14 @@
 /**
  * \file stack.c
  *
- *  Time-stamp:      "2010-07-17 10:42:27 bkorb"
+ *  Time-stamp:      "2012-08-11 08:35:28 bkorb"
  *
  *  This is a special option processing routine that will save the
  *  argument to an option in a FIFO queue.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -43,16 +43,18 @@
  *  Invoked for options that are equivalenced to stacked options.
 =*/
 void
-optionUnstackArg(
-    tOptions*  pOpts,
-    tOptDesc*  pOptDesc )
+optionUnstackArg(tOptions * pOpts, tOptDesc * pOptDesc)
 {
-    int       res;
+    tArgList * pAL;
 
-    tArgList* pAL;
+    (void)pOpts;
+
+    if (pOpts <= OPTPROC_EMIT_LIMIT)
+        return;
 
     if ((pOptDesc->fOptState & OPTST_RESET) != 0)
         return;
+
     pAL = (tArgList*)pOptDesc->optCookie;
 
     /*
@@ -81,8 +83,10 @@ optionUnstackArg(
          *  we are keeping a define.
          */
         for (i = 0, dIdx = 0, ct = pAL->useCt; --ct >= 0; i++) {
-            tCC*      pzSrc = pAL->apzArgs[ i ];
-            char*     pzEq  = strchr(pzSrc, '=');
+            char const * pzSrc = pAL->apzArgs[ i ];
+            char *       pzEq  = strchr(pzSrc, '=');
+            int          res;
+
 
             if (pzEq != NULL)
                 *pzEq = NUL;
@@ -230,11 +234,12 @@ addArgListEntry(void** ppAL, void* entry)
  *  Keep an entry-ordered list of option arguments.
 =*/
 void
-optionStackArg(
-    tOptions*  pOpts,
-    tOptDesc*  pOD )
+optionStackArg(tOptions * pOpts, tOptDesc * pOD)
 {
     char * pz;
+
+    if (pOpts <= OPTPROC_EMIT_LIMIT)
+        return;
 
     if ((pOD->fOptState & OPTST_RESET) != 0) {
         tArgList* pAL = (void*)pOD->optCookie;

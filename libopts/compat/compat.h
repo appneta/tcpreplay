@@ -3,12 +3,12 @@
 /**
  * \file compat.h --- fake the preprocessor into handlng portability
  *
- *  Time-stamp:      "2010-07-16 15:11:57 bkorb"
+ *  Time-stamp:      "2012-08-11 08:17:36 bkorb"
  *
  *  compat.h is free software.
  *  This file is part of AutoGen.
  *
- *  AutoGen Copyright (c) 1992-2010 by Bruce Korb - all rights reserved
+ *  AutoGen Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoGen is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by the
@@ -62,7 +62,9 @@
 
 
 #ifndef HAVE_STRSIGNAL
-   char * strsignal( int signo );
+# ifndef HAVE_RAW_DECL_STRSIGNAL
+   char * strsignal(int signo);
+# endif
 #endif
 
 #define  _GNU_SOURCE    1 /* for strsignal in GNU's libc */
@@ -82,7 +84,9 @@
 #  include <sys/procset.h>
 #endif
 #include <sys/stat.h>
-#include <sys/wait.h>
+#ifdef HAVE_SYS_WAIT_H
+#  include <sys/wait.h>
+#endif
 
 #if defined( HAVE_SOLARIS_SYSINFO )
 #  include <sys/systeminfo.h>
@@ -179,15 +183,15 @@
 #include <setjmp.h>
 #include <signal.h>
 
-#if defined( HAVE_STDINT_H )
+#if defined(HAVE_STDINT_H)
 #  include <stdint.h>
-#elif defined( HAVE_INTTYPES_H )
+
+#elif defined(HAVE_INTTYPES_H)
 #  include <inttypes.h>
 #endif
 
 #include <stdlib.h>
 #include <string.h>
-
 #include <time.h>
 
 #ifdef HAVE_UTIME_H
@@ -196,6 +200,17 @@
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
+#endif
+
+#ifdef HAVE_STDBOOL_H
+#  include <stdbool.h>
+#else
+   typedef enum { false = 0, true = 1 } _Bool;
+#  define bool _Bool
+
+   /* The other macros must be usable in preprocessor directives.  */
+#  define false 0
+#  define true 1
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

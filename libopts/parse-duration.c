@@ -1,21 +1,24 @@
 /* Parse a time duration and return a seconds count
-   Copyright (C) 2008-2010 Free Software Foundation, Inc.
+   Copyright (C) 2008-2012 Free Software Foundation, Inc.
    Written by Bruce Korb <bkorb@gnu.org>, 2008.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation; either version 2.1 of the License, or
    (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   GNU Lesser General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
+   You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
+
+/* Specification.  */
+#include "parse-duration.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -23,12 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "parse-duration.h"
-
-#ifndef _
-#define _(_s)  _s
-#endif
 
 #ifndef NUL
 #define NUL '\0'
@@ -56,18 +53,23 @@ typedef enum {
 
 #define TIME_MAX        0x7FFFFFFF
 
+/* Wrapper around strtoul that does not require a cast.  */
 static unsigned long inline
 str_const_to_ul (cch_t * str, cch_t ** ppz, int base)
 {
   return strtoul (str, (char **)ppz, base);
 }
 
+/* Wrapper around strtol that does not require a cast.  */
 static long inline
 str_const_to_l (cch_t * str, cch_t ** ppz, int base)
 {
   return strtol (str, (char **)ppz, base);
 }
 
+/* Returns BASE + VAL * SCALE, interpreting BASE = BAD_TIME
+   with errno set as an error situation, and returning BAD_TIME
+   with errno set in an error situation.  */
 static time_t inline
 scale_n_add (time_t base, time_t val, int scale)
 {
@@ -94,6 +96,7 @@ scale_n_add (time_t base, time_t val, int scale)
   return base + val;
 }
 
+/* After a number HH has been parsed, parse subsequent :MM or :MM:SS.  */
 static time_t
 parse_hr_min_sec (time_t start, cch_t * pz)
 {
@@ -117,7 +120,8 @@ parse_hr_min_sec (time_t start, cch_t * pz)
     }
 
   /* allow for trailing spaces */
-  while (isspace ((unsigned char)*pz))   pz++;
+  while (isspace ((unsigned char)*pz))
+    pz++;
   if (*pz != NUL)
     {
       errno = EINVAL;
@@ -127,6 +131,9 @@ parse_hr_min_sec (time_t start, cch_t * pz)
   return start;
 }
 
+/* Parses a value and returns BASE + value * SCALE, interpreting
+   BASE = BAD_TIME with errno set as an error situation, and returning
+   BAD_TIME with errno set in an error situation.  */
 static time_t
 parse_scaled_value (time_t base, cch_t ** ppz, cch_t * endp, int scale)
 {
@@ -140,17 +147,20 @@ parse_scaled_value (time_t base, cch_t ** ppz, cch_t * endp, int scale)
   val = str_const_to_ul (pz, &pz, 10);
   if (errno != 0)
     return BAD_TIME;
-  while (isspace ((unsigned char)*pz))   pz++;
+  while (isspace ((unsigned char)*pz))
+    pz++;
   if (pz != endp)
     {
       errno = EINVAL;
       return BAD_TIME;
     }
 
-  *ppz =  pz;
+  *ppz = pz;
   return scale_n_add (base, val, scale);
 }
 
+/* Parses the syntax YEAR-MONTH-DAY.
+   PS points into the string, after "YEAR", before "-MONTH-DAY".  */
 static time_t
 parse_year_month_day (cch_t * pz, cch_t * ps)
 {
@@ -158,7 +168,8 @@ parse_year_month_day (cch_t * pz, cch_t * ps)
 
   res = parse_scaled_value (0, &pz, ps, SEC_PER_YEAR);
 
-  ps = strchr (++pz, '-');
+  pz++; /* over the first '-' */
+  ps = strchr (pz, '-');
   if (ps == NULL)
     {
       errno = EINVAL;
@@ -166,11 +177,12 @@ parse_year_month_day (cch_t * pz, cch_t * ps)
     }
   res = parse_scaled_value (res, &pz, ps, SEC_PER_MONTH);
 
-  pz++;
+  pz++; /* over the second '-' */
   ps = pz + strlen (pz);
   return parse_scaled_value (res, &pz, ps, SEC_PER_DAY);
 }
 
+/* Parses the syntax YYYYMMDD.  */
 static time_t
 parse_yearmonthday (cch_t * in_pz)
 {
@@ -200,6 +212,7 @@ parse_yearmonthday (cch_t * in_pz)
   return parse_scaled_value (res, &pz, buf + 2, SEC_PER_DAY);
 }
 
+/* Parses the syntax yy Y mm M ww W dd D.  */
 static time_t
 parse_YMWD (cch_t * pz)
 {
@@ -232,7 +245,8 @@ parse_YMWD (cch_t * pz)
       pz++;
     }
 
-  while (isspace ((unsigned char)*pz))   pz++;
+  while (isspace ((unsigned char)*pz))
+    pz++;
   if (*pz != NUL)
     {
       errno = EINVAL;
@@ -242,6 +256,8 @@ parse_YMWD (cch_t * pz)
   return res;
 }
 
+/* Parses the syntax HH:MM:SS.
+   PS points into the string, after "HH", before ":MM:SS".  */
 static time_t
 parse_hour_minute_second (cch_t * pz, cch_t * ps)
 {
@@ -249,7 +265,8 @@ parse_hour_minute_second (cch_t * pz, cch_t * ps)
 
   res = parse_scaled_value (0, &pz, ps, SEC_PER_HR);
 
-  ps = strchr (++pz, ':');
+  pz++;
+  ps = strchr (pz, ':');
   if (ps == NULL)
     {
       errno = EINVAL;
@@ -263,6 +280,7 @@ parse_hour_minute_second (cch_t * pz, cch_t * ps)
   return parse_scaled_value (res, &pz, ps, 1);
 }
 
+/* Parses the syntax HHMMSS.  */
 static time_t
 parse_hourminutesecond (cch_t * in_pz)
 {
@@ -292,6 +310,7 @@ parse_hourminutesecond (cch_t * in_pz)
   return parse_scaled_value (res, &pz, buf + 2, 1);
 }
 
+/* Parses the syntax hh H mm M ss S.  */
 static time_t
 parse_HMS (cch_t * pz)
 {
@@ -317,7 +336,8 @@ parse_HMS (cch_t * pz)
       pz++;
     }
 
-  while (isspace ((unsigned char)*pz))   pz++;
+  while (isspace ((unsigned char)*pz))
+    pz++;
   if (*pz != NUL)
     {
       errno = EINVAL;
@@ -327,6 +347,7 @@ parse_HMS (cch_t * pz)
   return res;
 }
 
+/* Parses a time (hours, minutes, seconds) specification in either syntax.  */
 static time_t
 parse_time (cch_t * pz)
 {
@@ -358,16 +379,20 @@ parse_time (cch_t * pz)
   return res;
 }
 
+/* Returns a substring of the given string, with spaces at the beginning and at
+   the end destructively removed, per SNOBOL.  */
 static char *
-trim(char * pz)
+trim (char * pz)
 {
   /* trim leading white space */
-  while (isspace ((unsigned char)*pz))  pz++;
+  while (isspace ((unsigned char)*pz))
+    pz++;
 
   /* trim trailing white space */
   {
     char * pe = pz + strlen (pz);
-    while ((pe > pz) && isspace ((unsigned char)pe[-1])) pe--;
+    while ((pe > pz) && isspace ((unsigned char)pe[-1]))
+      pe--;
     *pe = NUL;
   }
 
@@ -380,13 +405,20 @@ trim(char * pz)
 static time_t
 parse_period (cch_t * in_pz)
 {
-  char * pz   = xstrdup (in_pz);
-  char * pT   = strchr (pz, 'T');
+  char * pT;
   char * ps;
+  char * pz   = strdup (in_pz);
   void * fptr = pz;
   time_t res  = 0;
 
-  if (pT != NUL)
+  if (pz == NULL)
+    {
+      errno = ENOMEM;
+      return BAD_TIME;
+    }
+
+  pT = strchr (pz, 'T');
+  if (pT != NULL)
     {
       *(pT++) = NUL;
       pz = trim (pz);
@@ -426,7 +458,7 @@ parse_period (cch_t * in_pz)
 }
 
 static time_t
-parse_non_iso8601(cch_t * pz)
+parse_non_iso8601 (cch_t * pz)
 {
   whats_done_t whatd_we_do = NOTHING_IS_DONE;
 
@@ -461,7 +493,8 @@ parse_non_iso8601(cch_t * pz)
       unsigned int mult;
 
       /*  Skip over white space following the number we just parsed. */
-      while (isspace ((unsigned char)*pz))   pz++;
+      while (isspace ((unsigned char)*pz))
+        pz++;
 
       switch (*pz)
         {
@@ -519,7 +552,9 @@ parse_non_iso8601(cch_t * pz)
 
       res = scale_n_add (res, val, mult);
 
-      while (isspace ((unsigned char)*++pz))   ;
+      pz++;
+      while (isspace ((unsigned char)*pz))
+        pz++;
       if (*pz == NUL)
         return res;
 
@@ -537,40 +572,24 @@ parse_non_iso8601(cch_t * pz)
 time_t
 parse_duration (char const * pz)
 {
-  time_t res = 0;
+  while (isspace ((unsigned char)*pz))
+    pz++;
 
-  while (isspace ((unsigned char)*pz)) pz++;
+  switch (*pz)
+    {
+    case 'P':
+      return parse_period (pz + 1);
 
-  do {
-    if (*pz == 'P')
-      {
-        res = parse_period (pz + 1);
-        if ((errno != 0) || (res == BAD_TIME))
-          break;
-        return res;
-      }
+    case 'T':
+      return parse_time (pz + 1);
 
-    if (*pz == 'T')
-      {
-        res = parse_time (pz + 1);
-        if ((errno != 0) || (res == BAD_TIME))
-          break;
-        return res;
-      }
+    default:
+      if (isdigit ((unsigned char)*pz))
+        return parse_non_iso8601 (pz);
 
-    if (! isdigit ((unsigned char)*pz))
-      break;
-
-    res = parse_non_iso8601 (pz);
-    if ((errno == 0) && (res != BAD_TIME))
-      return res;
-
-  } while (0);
-
-  fprintf (stderr, _("Invalid time duration:  %s\n"), pz);
-  if (errno == 0)
-    errno = EINVAL;
-  return BAD_TIME;
+      errno = EINVAL;
+      return BAD_TIME;
+    }
 }
 
 /*
@@ -579,4 +598,4 @@ parse_duration (char const * pz)
  * c-file-style: "gnu"
  * indent-tabs-mode: nil
  * End:
- * end of autoopts/parse-duration.c */
+ * end of parse-duration.c */
