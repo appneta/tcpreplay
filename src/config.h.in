@@ -33,6 +33,9 @@
 /* Compile tcpbridge */
 #undef ENABLE_TCPBRIDGE
 
+/* Compile tcpliveplay */
+#undef ENABLE_TCPLIVEPLAY
+
 /* Do we have tcpdump and pcap_dump_fopen()? */
 #undef ENABLE_VERBOSE
 

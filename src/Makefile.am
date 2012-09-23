@@ -15,9 +15,9 @@ else
 LIBSTRL = ../lib/libstrl.a
 endif
 
-manpages: tcpprep.1 tcprewrite.1 tcpreplay.1 tcpbridge.1 tcpreplay-edit.1
+manpages: tcpprep.1 tcprewrite.1 tcpreplay.1 tcpbridge.1 tcpreplay-edit.1 tcpliveplay.1
 
-autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c manpages \
+autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c tcpliveplay_opts.c manpages \
 	tcpreplay_edit_opts.c
 
 
@@ -39,13 +39,21 @@ tcpreplay.1: tcpreplay_opts.def
 tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpbridge tcpbridge_opts.def
 
+tcpliveplay.1: tcpliveplay_opts.def 
+	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpliveplay tcpliveplay_opts.def
+
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1
 bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit tcpcapinfo
 
 if COMPILE_TCPBRIDGE
-bin_PROGRAMS += tcpbridge
+bin_PROGRAMS += tcpbridge 
 man_MANS += tcpbridge.1
+endif
+
+if COMPILE_TCPLIVEPLAY
+bin_PROGRAMS += tcpliveplay 
+man_MANS += tcpliveplay.1
 endif
 
 tcpreplay_edit_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY -DTCPREPLAY_EDIT -DHAVE_CACHEFILE_SUPPORT
@@ -71,6 +79,15 @@ if ENABLE_OSX_FRAMEWORKS
 tcpreplay_LDFLAGS = -framework CoreServices -framework Carbon
 tcpreplay_edit_LDFLAGS = -framework CoreServices -framework Carbon
 endif
+
+tcpliveplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY -DTCPLIVEPLAY
+tcpliveplay_SOURCES = tcpliveplay.c tcpliveplay_opts.c
+tcpliveplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
+tcpliveplay_OBJECTS: tcpliveplay_opts.h
+tcpliveplay_opts.h: tcpliveplay_opts.c
+
+tcpliveplay_opts.c: tcpliveplay_opts.def
+	@AUTOGEN@ $(opts_list) tcpliveplay_opts.def
 
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
@@ -109,18 +126,18 @@ tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcpbridge_opts.def
 
-noinst_HEADERS = tcpreplay.h tcpprep.h bridge.h defines.h tree.h \
-		 send_packets.h signal_handler.h common.h tcpreplay_opts.h \
+noinst_HEADERS = tcpreplay.h tcpprep.h bridge.h defines.h tree.h tcpliveplay.h \
+		 send_packets.h signal_handler.h common.h tcpreplay_opts.h tcpliveplay_opts.h \
 		 tcpreplay_edit_opts.h tcprewrite.h tcprewrite_opts.h tcpprep_opts.h \
-		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def \
+		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def tcpliveplay_opts.def \
 		 tcpbridge_opts.def tcpbridge.h tcpbridge_opts.h tcpr.h sleep.h
 
 
 MOSTLYCLEANFILES = *~ *.o
 
-MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c \
-		       tcprewrite_opts.c tcprewrite_opts.h tcpprep_opts.c \
-		       tcpprep_opts.h tcpprep.1 tcpreplay.1 tcprewrite.1 \
+MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c tcpliveplay_opts.c \
+		       tcprewrite_opts.c tcprewrite_opts.h tcpprep_opts.c tcpliveplay_opts.h \
+		       tcpprep_opts.h tcpprep.1 tcpreplay.1 tcprewrite.1 tcpliveplay.1 \
 		       tcpbridge.1 tcpbridge_opts.h tcpbridge_opts.c \
 			   tcpreplay_edit_opts.c tcpreplay_edit_opts.h \
 			   tcpreplay-edit.1

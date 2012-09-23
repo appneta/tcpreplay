@@ -461,8 +461,7 @@ libopts/compat \
 libopts/autoopts \
 src \
 src/common \
-src/tcpedit \
-src/flow 
+src/tcpedit
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 

@@ -309,6 +309,13 @@ AC_ARG_ENABLE(dynamic-link,
       fi
     ])
 
+case $host in
+    *-apple-darwin*)
+    dynamic_link=yes
+    AC_MSG_NOTICE([Forcing dynamic linking on OS X])
+    ;;
+esac
+
 dnl Check for inet_aton and inet_pton
 AC_CHECK_FUNC(inet_aton, 
     AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?]) 
@@ -742,6 +749,24 @@ if test x$foundpcap != xno -a x$have_pcap_sendpacket = xyes ; then
     fi
 fi
 AM_CONDITIONAL(COMPILE_TCPBRIDGE, [test x$enable_tcpbridge = xyes ])
+
+
+
+# tcpliveplay requires linux OS to function properly 
+enable_tcpliveplay=no
+case $host in
+    *-*-linux*)
+    AC_DEFINE(ENABLE_TCPLIVEPLAY, [1], [Compile tcpliveplay])
+    enable_tcpliveplay=yes
+    AC_MSG_NOTICE([Building tcpliveplay])
+    ;;
+
+    *)
+    AC_MSG_WARN([Unable to build tcpliveplay.  This tool is only enabled on linux environments.])
+    ;;
+esac
+
+AM_CONDITIONAL(COMPILE_TCPLIVEPLAY, [test x$enable_tcpliveplay = xyes ])
 
 
 
@@ -1262,6 +1287,7 @@ Use libopts tearoff:        ${enable_local_libopts}
 tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
+tcpliveplay support:        ${enable_tcpliveplay}
 
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}
