@@ -32,6 +32,7 @@
 #define BUFSIZ_PLUS 		BUFSIZ
 #define ALARM_TIMEOUT		10
 #define SUCCESS			1 
+#define ERROR			-1
 #define manpage_cmds	        (strcmp(argv[1], "-V")==0) || (strcmp(argv[1], "-v")==0) || (strcmp(argv[1], "-H")==0) || (strcmp(argv[1], "-h")==0)
 
 /***********From tcpedit.h*****/
