@@ -247,7 +247,7 @@ main(int argc, char **argv)
 
     /* Start replay by sending the first packet, the SYN, from the schedule */
     else if(sched[0].local){  /* Send first packet*/
-        sendpacket(sp, sched[sched_index].packet_ptr, sched[sched_index].pkthdr.len);
+        sendpacket(sp, sched[sched_index].packet_ptr, sched[sched_index].pkthdr.len, &sched[sched_index].pkthdr);
         printf("Sending Local Packet...............	[%d]\n",sched_index+1);
         sched_index++; /* Proceed in the schedule */
     }
@@ -323,7 +323,7 @@ main(int argc, char **argv)
             }
 
             /* If nothing goes wrong, then send the packet scheduled to be sent, then proceed in the schedule */
-            sendpacket(sp, sched[sched_index].packet_ptr, sched[sched_index].pkthdr.len);
+            sendpacket(sp, sched[sched_index].packet_ptr, sched[sched_index].pkthdr.len, &sched[sched_index].pkthdr);
             sched[sched_index].sent_counter++; /* Keep track of how many times this specific packet was attempted */
             sched_index++;   /* proceed */
         }
