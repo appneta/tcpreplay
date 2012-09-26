@@ -155,7 +155,7 @@ flag = {
 #else
     fprintf(stderr, "Verbose printing via tcpdump: disabled\n");
 #endif
-    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method());
+    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
 
     exit(0);
 
