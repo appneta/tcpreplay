@@ -6,7 +6,7 @@ copyright = {
     owner       = "Yazan Siam";
     type        = "bsd";
     author      = <<- EOText
-Copyright 2012 Yazan Sian
+Copyright 2012 Yazan Siam
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
