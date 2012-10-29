@@ -82,7 +82,7 @@ endif
 
 tcpliveplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) -DTCPREPLAY -DTCPLIVEPLAY
 tcpliveplay_SOURCES = tcpliveplay_opts.c tcpliveplay.c
-tcpliveplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ $(LIBOPTS_LDADD)
+tcpliveplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
 tcpliveplay_OBJECTS: tcpliveplay_opts.h
 tcpliveplay_opts.h: tcpliveplay_opts.c
 
