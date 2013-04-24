@@ -36,3 +36,7 @@
 Icon?
 ehthumbs.db
 Thumbs.db
+
+# Temporary files 
+*.tmp
+.*.swp
