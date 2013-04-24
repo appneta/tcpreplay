@@ -6,9 +6,7 @@ The new home for Tcpreplay is on Github!
 
 ### Simple directions for Unix users:
 
-cmake -G "Unix Makefiles"
-make
-sudo make install
+cmake -G "Unix Makefiles" && make && sudo make install
 
 ### More details
 
