@@ -1,16 +1,16 @@
-Tcpreplay
-=========
+# Tcpreplay
 
-Install
--------
+The new home for Tcpreplay is on Github!
 
-1. Simple directions for Unix users:
+## Install
+
+### Simple directions for Unix users:
 
 cmake -G "Unix Makefiles"
 make
 sudo make install
 
-2. More details
+### More details
 
 As of Tcpreplay 4.0, the build system has moved from GNU Autoconf to CMake.
 While Autoconf may be the closest thing to an "industry standard", it's 
@@ -27,7 +27,7 @@ configurator).
 
 For more information about CMake, visit: http://www.cmake.org
 
-3. Simple directions for everyone else:
+### Simple directions for everyone else:
 
 Sorry you're out of luck.
 
@@ -36,8 +36,7 @@ OS X.  I hope to add support for Windows as well, but I haven't gotten there yet
 If you're a Windows developer and are interested in helping port Tcpreplay to
 Windows, please contact me!
 
-Support
--------
+## Support
 
 If you have a question or think you are experiancing a bug, it is important
 that you provide enough information for us to help you.  Failure to provide
@@ -77,8 +76,7 @@ Lastly, please don't email the author directly with your questions.  Doing so
 prevents others from potentially helping you and your question/answer from
 showing up in the list archives.
 
-License
--------
+## License
 
 Tcpreplay 4.0 is GPLv3 and includes software developed by the University of
 California, Berkeley, Lawrence Berkeley Laboratory and its contributors.
