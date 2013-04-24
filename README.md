@@ -29,12 +29,15 @@ For more information about CMake, visit: http://www.cmake.org
 
 ### Simple directions for everyone else:
 
-Sorry you're out of luck.
+Sorry you're out of luck for using 4.0. 
 
 Right now, Tcpreplay 4.0-Alpha only supports Unix based systems like Linux and
 OS X.  I hope to add support for Windows as well, but I haven't gotten there yet.
 If you're a Windows developer and are interested in helping port Tcpreplay to
 Windows, please contact me!
+
+Windows users or anyone having problems with CMake can use the 3.4.x release 
+available in the 3.4 branch.
 
 ## Support
 
