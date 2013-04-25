@@ -7,9 +7,14 @@ include(CheckCCompilerFlag)
 include(CheckSymbolExists)
 include(CheckTypeSize)
 include(FindCygwin)
-include(FindSubversion)
+include(FindGit)
 include(CheckCSourceRuns)
 include(CMakeFindFrameworks)
+
+# Where to find local cmake scripts
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake-modules")
+
 
 #packaging
 set(CPACK_PACKAGE_NAME tcpreplay)
@@ -52,7 +57,6 @@ set(CPACK_SOURCE_IGNORE_FILES
 )
 include(CPack)
 
-
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local")
 set(CPACK_GENERATOR "TGZ")
@@ -75,8 +79,6 @@ find_program(ETAGS etags)
 find_program(GROFF groff)
 
 
-# Where to find local cmake scripts
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 set(USE_AUTOOPTS YES)
 if(WIN32 AND NOT CYGWIN)

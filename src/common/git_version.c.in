@@ -1,0 +1,4 @@
+const char GIT_Version[] = "git:@GIT_SHA1@";
+const char *git_version(void) {
+    return GIT_Version;
+}

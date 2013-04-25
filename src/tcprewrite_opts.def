@@ -225,7 +225,7 @@ flag = {
     max     = 1;
     descrip = "Skip writing packets with soft errors";
     doc     = <<- EOText
-In some cases, packets can't be decoded or the requested editing
+In some cases, packets can not be decoded or the requested editing
 is not possible.  Normally these packets are written to the output
 file unedited so that tcpprep cache files can still be used, but if
 you wish, these packets can be suppressed.
@@ -241,7 +241,7 @@ flag = {
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
 
-    fprintf(stderr, "tcprewrite version: %s (build %s)", VERSION, svn_version());
+    fprintf(stderr, "tcprewrite version: %s (build %s)", VERSION, git_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif

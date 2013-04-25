@@ -1,1 +1,1 @@
-file(REMOVE svn_version.c)
+file(REMOVE git_version.c)
