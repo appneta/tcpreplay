@@ -6,3 +6,4 @@ tcpreplay-edit
 flowreplay
 tcpbridge
 defines.h
+config.h
