@@ -43,17 +43,18 @@ Thumbs.db
 .*.swp
 *.tmproj
 
+# CMake files 
+*.cmake
+CMakeFiles
+CMakeCache.txt
+_CPack_Packages
+
+# Misc files
 tcpreplay.spec
 tcpreplay.pws
 .tm_project.cache
 doxygen.cfg
 TAGS
 .gdb_history
-CMakeFiles
-CMakeCache.txt
-_CPack_Packages
 Makefile
 types_c.vim
-cmake_install.cmake 
-CPackConfig.cmake
-CPackSourceConfig.cmake
