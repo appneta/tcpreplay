@@ -1,7 +1,8 @@
 
-/*
- *  $Id: environment.c,v 4.21 2009/08/01 17:43:06 bkorb Exp $
- * Time-stamp:      "2009-07-20 20:12:24 bkorb"
+/**
+ * \file environment.c
+ *
+ * Time-stamp:      "2012-08-11 08:18:25 bkorb"
  *
  *  This file contains all of the routines that must be linked into
  *  an executable to use the generated option processing.  The optional
@@ -10,7 +11,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -30,26 +31,25 @@
  */
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 static void
-checkEnvOpt(tOptState * os, char * env_name,
-            tOptions* pOpts, teEnvPresetType type);
+do_env_opt(tOptState * os, char * env_name,
+            tOptions * pOpts, teEnvPresetType type);
 /* = = = END-STATIC-FORWARD = = = */
 
 /*
  *  doPrognameEnv - check for preset values from the ${PROGNAME}
  *  environment variable.  This is accomplished by parsing the text into
  *  tokens, temporarily replacing the arg vector and calling
- *  doImmediateOpts and/or doRegularOpts.
+ *  immediate_opts and/or regular_opts.
  */
 LOCAL void
-doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
+doPrognameEnv(tOptions * pOpts, teEnvPresetType type)
 {
-    char const*   pczOptStr = getenv( pOpts->pzPROGNAME );
+    char const *  pczOptStr = getenv(pOpts->pzPROGNAME);
     token_list_t* pTL;
     int           sv_argc;
     tAoUI         sv_flag;
-    char**        sv_argv;
+    char **       sv_argv;
 
     /*
      *  No such beast?  Then bail now.
@@ -61,7 +61,7 @@ doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
      *  Tokenize the string.  If there's nothing of interest, we'll bail
      *  here immediately.
      */
-    pTL = ao_string_tokenize( pczOptStr );
+    pTL = ao_string_tokenize(pczOptStr);
     if (pTL == NULL)
         return;
 
@@ -78,7 +78,10 @@ doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
      *  The option scanning code will skip the "program name" at the start
      *  of this list of tokens, so we accommodate this way ....
      */
-    pOpts->origArgVect = (char**)(pTL->tkn_list - 1);
+    {
+        uintptr_t v = (uintptr_t)(pTL->tkn_list);
+        pOpts->origArgVect = (void *)(v - sizeof(char *));
+    }
     pOpts->origArgCt   = pTL->tkn_ct   + 1;
     pOpts->fOptSet    &= ~OPTPROC_ERRSTOP;
 
@@ -87,43 +90,45 @@ doPrognameEnv( tOptions* pOpts, teEnvPresetType type )
 
     switch (type) {
     case ENV_IMM:
-        (void)doImmediateOpts( pOpts );
+        (void)immediate_opts(pOpts);
         break;
 
     case ENV_ALL:
-        (void)doImmediateOpts( pOpts );
+        (void)immediate_opts(pOpts);
         pOpts->curOptIdx = 1;
         pOpts->pzCurOpt  = NULL;
         /* FALLTHROUGH */
 
     case ENV_NON_IMM:
-        (void)doRegularOpts( pOpts );
+        (void)regular_opts(pOpts);
     }
 
     /*
      *  Free up the temporary arg vector and restore the original program args.
      */
-    free( pTL );
+    free(pTL);
     pOpts->origArgVect = sv_argv;
     pOpts->origArgCt   = sv_argc;
     pOpts->fOptSet     = sv_flag;
 }
 
 static void
-checkEnvOpt(tOptState * os, char * env_name,
-            tOptions* pOpts, teEnvPresetType type)
+do_env_opt(tOptState * os, char * env_name,
+            tOptions * pOpts, teEnvPresetType type)
 {
-    os->pzOptArg = getenv( env_name );
+    os->pzOptArg = getenv(env_name);
     if (os->pzOptArg == NULL)
         return;
 
-    os->flags    = OPTST_PRESET | OPTST_ALLOC_ARG | os->pOD->fOptState;
-    os->optType  = TOPT_UNDEFINED;
+    os->flags   = OPTST_PRESET | OPTST_ALLOC_ARG | os->pOD->fOptState;
+    os->optType = TOPT_UNDEFINED;
 
     if (  (os->pOD->pz_DisablePfx != NULL)
-       && (streqvcmp( os->pzOptArg, os->pOD->pz_DisablePfx ) == 0)) {
+       && (streqvcmp(os->pzOptArg, os->pOD->pz_DisablePfx) == 0)) {
         os->flags |= OPTST_DISABLED;
         os->pzOptArg = NULL;
+        handle_opt(pOpts, os);
+        return;
     }
 
     switch (type) {
@@ -153,29 +158,35 @@ checkEnvOpt(tOptState * os, char * env_name,
      *  The interpretation of the option value depends
      *  on the type of value argument the option takes
      */
-    if (os->pzOptArg != NULL) {
-        if (OPTST_GET_ARGTYPE(os->pOD->fOptState) == OPARG_TYPE_NONE) {
-            os->pzOptArg = NULL;
-        } else if (  (os->pOD->fOptState & OPTST_ARG_OPTIONAL)
-                     && (*os->pzOptArg == NUL)) {
-            os->pzOptArg = NULL;
-        } else if (*os->pzOptArg == NUL) {
-            os->pzOptArg = zNil;
-        } else {
-            AGDUPSTR( os->pzOptArg, os->pzOptArg, "option argument" );
-            os->flags |= OPTST_ALLOC_ARG;
-        }
+    if (OPTST_GET_ARGTYPE(os->pOD->fOptState) == OPARG_TYPE_NONE) {
+        /*
+         *  Ignore any value.
+         */
+        os->pzOptArg = NULL;
+
+    } else if (os->pzOptArg[0] == NUL) {
+        /*
+         * If the argument is the empty string and the argument is
+         * optional, then treat it as if the option was not specified.
+         */
+        if ((os->pOD->fOptState & OPTST_ARG_OPTIONAL) == 0)
+            return;
+        os->pzOptArg = NULL;
+
+    } else {
+        AGDUPSTR(os->pzOptArg, os->pzOptArg, "option argument");
+        os->flags |= OPTST_ALLOC_ARG;
     }
 
-    handleOption( pOpts, os );
+    handle_opt(pOpts, os);
 }
 
 /*
- *  doEnvPresets - check for preset values from the envrionment
+ *  env_presets - check for preset values from the envrionment
  *  This routine should process in all, immediate or normal modes....
  */
 LOCAL void
-doEnvPresets( tOptions* pOpts, teEnvPresetType type )
+env_presets(tOptions * pOpts, teEnvPresetType type)
 {
     int        ct;
     tOptState  st;
@@ -190,16 +201,18 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
     if ((pOpts->fOptSet & OPTPROC_ENVIRON) == 0)
         return;
 
-    doPrognameEnv( pOpts, type );
+    doPrognameEnv(pOpts, type);
 
     ct  = pOpts->presetOptCt;
     st.pOD = pOpts->pOptDesc;
 
     pzFlagName = zEnvName
-        + snprintf( zEnvName, sizeof( zEnvName ), "%s_", pOpts->pzPROGNAME );
+        + snprintf(zEnvName, sizeof(zEnvName), "%s_", pOpts->pzPROGNAME);
     spaceLeft = AO_NAME_SIZE - (pzFlagName - zEnvName) - 1;
 
     for (;ct-- > 0; st.pOD++) {
+        size_t nln;
+
         /*
          *  If presetting is disallowed, then skip this entry
          */
@@ -211,14 +224,14 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
          *  IF there is no such environment variable,
          *  THEN skip this entry, too.
          */
-        if (strlen( st.pOD->pz_NAME ) >= spaceLeft)
-            continue;
-
-        /*
-         *  Set up the option state
-         */
-        strcpy( pzFlagName, st.pOD->pz_NAME );
-        checkEnvOpt(&st, zEnvName, pOpts, type);
+        nln = strlen(st.pOD->pz_NAME) + 1;
+        if (nln <= spaceLeft) {
+            /*
+             *  Set up the option state
+             */
+            memcpy(pzFlagName, st.pOD->pz_NAME, nln);
+            do_env_opt(&st, zEnvName, pOpts, type);
+        }
     }
 
     /*
@@ -226,9 +239,19 @@ doEnvPresets( tOptions* pOpts, teEnvPresetType type )
      */
     if (  (pOpts->specOptIdx.save_opts != NO_EQUIVALENT)
        && (pOpts->specOptIdx.save_opts != 0)) {
+        size_t nln;
         st.pOD = pOpts->pOptDesc + pOpts->specOptIdx.save_opts + 1;
-        strcpy( pzFlagName, st.pOD->pz_NAME );
-        checkEnvOpt(&st, zEnvName, pOpts, type);
+
+        if (st.pOD->pz_NAME == NULL)
+            return;
+
+        nln = strlen(st.pOD->pz_NAME) + 1;
+            
+        if (nln > spaceLeft)
+            return;
+
+        memcpy(pzFlagName, st.pOD->pz_NAME, nln);
+        do_env_opt(&st, zEnvName, pOpts, type);
     }
 }
 

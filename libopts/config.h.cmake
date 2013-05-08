@@ -5,6 +5,9 @@
 /* What version of autogen is installed on this system */
 #cmakedefine AUTOGEN_VERSION @AUTOGEN_VERSION@
 
+/* define to a working POSIX compliant shell */
+#cmakedefine POSIX_SHELL "@POSIX_SHELL@"
+
 /* Enable debuging code and support for the -d option */
 #cmakedefine DEBUG 1
 
@@ -94,6 +97,9 @@
 
 /* Define to 1 if you have the <stdarg.h> header file. */
 #cmakedefine HAVE_STDARG_H 1
+
+/* Define to 1 if you have the <stdbool.h> header file. */
+#cmakedefine HAVE_STDBOOL_H 1
 
 /* Define to 1 if you have the <stddef.h> header file. */
 #cmakedefine HAVE_STDDEF_H 1

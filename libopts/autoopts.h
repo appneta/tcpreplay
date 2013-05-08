@@ -1,15 +1,15 @@
 
 /*
- *  Time-stamp:      "2008-11-01 20:08:06 bkorb"
+ *  \file autoopts.h
  *
- *  autoopts.h  $Id: autoopts.h,v 4.42 2009/08/01 17:43:05 bkorb Exp $
+ *  Time-stamp:      "2012-03-04 19:05:01 bkorb"
  *
  *  This file defines all the global structures and special values
  *  used in the automated option processing library.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -30,9 +30,6 @@
 
 #ifndef AUTOGEN_AUTOOPTS_H
 #define AUTOGEN_AUTOOPTS_H
-
-#include "compat/compat.h"
-#include "ag-char-map.h"
 
 #define AO_NAME_LIMIT           127
 #define AO_NAME_SIZE            ((size_t)(AO_NAME_LIMIT + 1))
@@ -59,15 +56,21 @@
 # define DIRCH                  '/'
 #endif
 
+#define AO_EXIT_REQ_USAGE       64
 #ifndef EX_NOINPUT
+   /**
+    *  option state was requested from a file that cannot be loaded.
+    */
 #  define EX_NOINPUT            66
 #endif
 #ifndef EX_SOFTWARE
+   /**
+    *  AutoOpts Software failure.
+    */
 #  define EX_SOFTWARE           70
 #endif
-#ifndef EX_CONFIG
-#  define EX_CONFIG             78
-#endif
+
+#define NL '\n'
 
 /*
  *  Convert the number to a list usable in a printf call
@@ -77,7 +80,7 @@
 #define NAMED_OPTS(po) \
         (((po)->fOptSet & (OPTPROC_SHORTOPT | OPTPROC_LONGOPT)) == 0)
 
-#define SKIP_OPT(p)  (((p)->fOptState & (OPTST_DOCUMENT|OPTST_OMITTED)) != 0)
+#define SKIP_OPT(p)  (((p)->fOptState & OPTST_IMMUTABLE_MASK) != 0)
 
 typedef int tDirection;
 #define DIRECTION_PRESET        -1
@@ -86,34 +89,6 @@ typedef int tDirection;
 
 #define PROCESSING(d)           ((d)>0)
 #define PRESETTING(d)           ((d)<0)
-
-/*
- *  Procedure success codes
- *
- *  USAGE:  define procedures to return "tSuccess".  Test their results
- *          with the SUCCEEDED, FAILED and HADGLITCH macros.
- *
- *  Microsoft sticks its nose into user space here, so for Windows' sake,
- *  make sure all of these are undefined.
- */
-#undef  SUCCESS
-#undef  FAILURE
-#undef  PROBLEM
-#undef  SUCCEEDED
-#undef  SUCCESSFUL
-#undef  FAILED
-#undef  HADGLITCH
-
-#define SUCCESS                 ((tSuccess) 0)
-#define FAILURE                 ((tSuccess)-1)
-#define PROBLEM                 ((tSuccess) 1)
-
-typedef int tSuccess;
-
-#define SUCCEEDED( p )          ((p) == SUCCESS)
-#define SUCCESSFUL( p )         SUCCEEDED( p )
-#define FAILED( p )             ((p) <  SUCCESS)
-#define HADGLITCH( p )          ((p) >  SUCCESS)
 
 /*
  *  When loading a line (or block) of text as an option, the value can
@@ -142,7 +117,7 @@ typedef enum {
     OPTION_LOAD_KEEP
 } tOptionLoadMode;
 
-extern tOptionLoadMode option_load_mode;
+static tOptionLoadMode option_load_mode;
 
 /*
  *  The pager state is used by optionPagedUsage() procedure.
@@ -157,8 +132,6 @@ typedef enum {
     PAGER_STATE_READY,
     PAGER_STATE_CHILD
 } tePagerState;
-
-extern tePagerState pagerState;
 
 typedef enum {
     ENV_ALL,
@@ -183,9 +156,9 @@ typedef struct {
     { NULL, NULL, OPTST_ ## st, TOPT_UNDEFINED }
 
 #define TEXTTO_TABLE \
-        _TT_( LONGUSAGE ) \
-        _TT_( USAGE ) \
-        _TT_( VERSION )
+        _TT_(LONGUSAGE) \
+        _TT_(USAGE) \
+        _TT_(VERSION)
 #define _TT_(n) \
         TT_ ## n ,
 
@@ -194,41 +167,38 @@ typedef enum { TEXTTO_TABLE COUNT_TT } teTextTo;
 #undef _TT_
 
 typedef struct {
-    tCC*    pzStr;
-    tCC*    pzReq;
-    tCC*    pzNum;
-    tCC*    pzFile;
-    tCC*    pzKey;
-    tCC*    pzKeyL;
-    tCC*    pzBool;
-    tCC*    pzNest;
-    tCC*    pzOpt;
-    tCC*    pzNo;
-    tCC*    pzBrk;
-    tCC*    pzNoF;
-    tCC*    pzSpc;
-    tCC*    pzOptFmt;
-    tCC*    pzTime;
+    char const * pzStr;
+    char const * pzReq;
+    char const * pzNum;
+    char const * pzFile;
+    char const * pzKey;
+    char const * pzKeyL;
+    char const * pzBool;
+    char const * pzNest;
+    char const * pzOpt;
+    char const * pzNo;
+    char const * pzBrk;
+    char const * pzNoF;
+    char const * pzSpc;
+    char const * pzOptFmt;
+    char const * pzTime;
 } arg_types_t;
 
-#define AGALOC( c, w )          ao_malloc((size_t)c)
-#define AGREALOC( p, c, w )     ao_realloc((void*)p, (size_t)c)
-#define AGFREE(_p)              do{void*X=(void*)_p;ao_free(X);}while(0)
-#define AGDUPSTR( p, s, w )     (p = ao_strdup(s))
+#define AGALOC(c, w)          ao_malloc((size_t)c)
+#define AGREALOC(p, c, w)     ao_realloc((void*)p, (size_t)c)
+#define AGFREE(_p)            free((void *)_p)
+#define AGDUPSTR(p, s, w)     (p = ao_strdup(s))
 
 static void *
-ao_malloc( size_t sz );
+ao_malloc(size_t sz);
 
 static void *
-ao_realloc( void *p, size_t sz );
+ao_realloc(void *p, size_t sz);
 
-static void
-ao_free( void *p );
+#define ao_free(_p) free((void *)_p)
 
 static char *
-ao_strdup( char const *str );
-
-#define TAGMEM( m, t )
+ao_strdup(char const *str);
 
 /*
  *  DO option handling?
@@ -335,8 +305,8 @@ ao_strdup( char const *str );
 #endif
 
 #ifndef HAVE_STRCHR
-extern char* strchr( char const *s, int c);
-extern char* strrchr( char const *s, int c);
+extern char* strchr(char const *s, int c);
+extern char* strrchr(char const *s, int c);
 #endif
 
 /*
@@ -350,7 +320,8 @@ extern char* strrchr( char const *s, int c);
 /*
  *  File pointer for usage output
  */
-extern FILE* option_usage_fp;
+FILE * option_usage_fp;
+static char const * program_pkgdatadir;
 
 extern tOptProc optionPrintVersion, optionPagedUsage, optionLoadOpt;
 

@@ -1,15 +1,14 @@
 /*  -*- Mode: C -*-  */
 
-/* compat.h --- fake the preprocessor into handlng portability
+/**
+ * \file compat.h --- fake the preprocessor into handlng portability
  *
- *  Time-stamp:      "2008-06-14 09:36:25 bkorb"
- *
- * $Id: compat.h,v 4.22 2009/01/01 16:49:26 bkorb Exp $
+ *  Time-stamp:      "2012-08-11 08:17:36 bkorb"
  *
  *  compat.h is free software.
  *  This file is part of AutoGen.
  *
- *  AutoGen copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoGen Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoGen is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by the
@@ -63,7 +62,9 @@
 
 
 #ifndef HAVE_STRSIGNAL
-   char * strsignal( int signo );
+# ifndef HAVE_RAW_DECL_STRSIGNAL
+   char * strsignal(int signo);
+# endif
 #endif
 
 #define  _GNU_SOURCE    1 /* for strsignal in GNU's libc */
@@ -83,7 +84,9 @@
 #  include <sys/procset.h>
 #endif
 #include <sys/stat.h>
-#include <sys/wait.h>
+#ifdef HAVE_SYS_WAIT_H
+#  include <sys/wait.h>
+#endif
 
 #if defined( HAVE_SOLARIS_SYSINFO )
 #  include <sys/systeminfo.h>
@@ -180,15 +183,15 @@
 #include <setjmp.h>
 #include <signal.h>
 
-#if defined( HAVE_STDINT_H )
+#if defined(HAVE_STDINT_H)
 #  include <stdint.h>
-#elif defined( HAVE_INTTYPES_H )
+
+#elif defined(HAVE_INTTYPES_H)
 #  include <inttypes.h>
 #endif
 
 #include <stdlib.h>
 #include <string.h>
-
 #include <time.h>
 
 #ifdef HAVE_UTIME_H
@@ -197,6 +200,17 @@
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
+#endif
+
+#ifdef HAVE_STDBOOL_H
+#  include <stdbool.h>
+#else
+   typedef enum { false = 0, true = 1 } _Bool;
+#  define bool _Bool
+
+   /* The other macros must be usable in preprocessor directives.  */
+#  define false 0
+#  define true 1
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -259,65 +273,89 @@
 #endif
 
 #ifndef SHORT_MAX
-#  define SHORT_MAX     ~(1 << (8*sizeof(short) -1))
+#  define SHORT_MAX     ~(1 << (8*sizeof(short) - 1))
 #else
 #  define USHORT_MAX    ~(OUS)
 #endif
 
 #ifndef HAVE_INT8_T
-  typedef signed char       int8_t;
+  typedef signed char           int8_t;
+# define  HAVE_INT8_T           1
 #endif
 #ifndef HAVE_UINT8_T
-  typedef unsigned char     uint8_t;
+  typedef unsigned char         uint8_t;
+# define  HAVE_UINT8_T          1
 #endif
 #ifndef HAVE_INT16_T
-  typedef signed short      int16_t;
+  typedef signed short          int16_t;
+# define  HAVE_INT16_T          1
 #endif
 #ifndef HAVE_UINT16_T
-  typedef unsigned short    uint16_t;
-#endif
-#ifndef HAVE_UINT_T
-  typedef unsigned int      uint_t;
+  typedef unsigned short        uint16_t;
+# define  HAVE_UINT16_T         1
 #endif
 
 #ifndef HAVE_INT32_T
-# if SIZEOF_INT == 4
-        typedef signed int      int32_t;
-# elif SIZEOF_LONG == 4
-        typedef signed long     int32_t;
+# if SIZEOF_INT ==              4
+    typedef signed int          int32_t;
+# elif SIZEOF_LONG ==           4
+    typedef signed long         int32_t;
 # endif
+# define  HAVE_INT32_T          1
 #endif
 
 #ifndef HAVE_UINT32_T
-# if SIZEOF_INT == 4
-        typedef unsigned int    uint32_t;
-# elif SIZEOF_LONG == 4
-        typedef unsigned long   uint32_t;
+# if SIZEOF_INT ==              4
+    typedef unsigned int        uint32_t;
+# elif SIZEOF_LONG ==           4
+    typedef unsigned long       uint32_t;
 # else
 #   error Cannot create a uint32_t type.
+    Choke Me.
 # endif
+# define  HAVE_UINT32_T         1
 #endif
 
 #ifndef HAVE_INTPTR_T
-  typedef signed long   intptr_t;
+# if SIZEOF_CHARP == SIZEOF_LONG
+    typedef signed long         intptr_t;
+# else
+    typedef signed int          intptr_t;
+# endif
+# define  HAVE_INTPTR_T         1
 #endif
+
 #ifndef HAVE_UINTPTR_T
-  typedef unsigned long uintptr_t;
+# if SIZEOF_CHARP == SIZEOF_LONG
+    typedef unsigned long       intptr_t;
+# else
+    typedef unsigned int        intptr_t;
+# endif
+# define  HAVE_INTPTR_T         1
 #endif
+
+#ifndef HAVE_UINT_T
+  typedef unsigned int          uint_t;
+# define  HAVE_UINT_T           1
+#endif
+
 #ifndef HAVE_SIZE_T
-  typedef unsigned int  size_t;
+  typedef unsigned int          size_t;
+# define  HAVE_SIZE_T           1
 #endif
 #ifndef HAVE_WINT_T
-  typedef unsigned int  wint_t;
+  typedef unsigned int          wint_t;
+# define  HAVE_WINT_T           1
 #endif
 #ifndef HAVE_PID_T
-  typedef signed int    pid_t;
+  typedef signed int            pid_t;
+# define  HAVE_PID_T            1
 #endif
 
 /* redefine these for BSD style string libraries */
 #ifndef HAVE_STRCHR
-#  define strchr        index
-#  define strrchr       rindex
+#  define strchr            index
+#  define strrchr           rindex
 #endif
 
 #ifdef USE_FOPEN_BINARY

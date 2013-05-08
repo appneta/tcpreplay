@@ -1,7 +1,8 @@
 
-/*
- *  $Id: pgusage.c,v 4.18 2009/08/01 17:43:06 bkorb Exp $
- * Time-stamp:      "2008-07-27 21:08:42 bkorb"
+/**
+ * \file pgusage.c
+ *
+ * Time-stamp:      "2012-02-28 19:49:32 bkorb"
  *
  *   Automated Options Paged Usage module.
  *
@@ -10,7 +11,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -29,8 +30,6 @@
  *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
  */
 
-tePagerState pagerState = PAGER_STATE_INITIAL;
-
 /*=export_func  optionPagedUsage
  * private:
  *
@@ -41,15 +40,16 @@ tePagerState pagerState = PAGER_STATE_INITIAL;
  * doc:
  *  Run the usage output through a pager.
  *  This is very handy if it is very long.
+ *  This is disabled on platforms without a working fork() function.
 =*/
 void
-optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
+optionPagedUsage(tOptions * pOptions, tOptDesc * pOD)
 {
-#if defined(__windows__) && !defined(__CYGWIN__)
+#if ! defined(HAVE_WORKING_FORK)
     if ((pOD->fOptState & OPTST_RESET) != 0)
         return;
 
-    (*pOptions->pUsageProc)( pOptions, EXIT_SUCCESS );
+    (*pOptions->pUsageProc)(pOptions, EXIT_SUCCESS);
 #else
     static pid_t     my_pid;
     char zPageUsage[ 1024 ];
@@ -66,60 +66,52 @@ optionPagedUsage( tOptions* pOptions, tOptDesc* pOD )
             return;
 
         my_pid  = getpid();
-#ifdef HAVE_SNPRINTF
-        snprintf(zPageUsage, sizeof(zPageUsage), "/tmp/use.%lu", (tAoUL)my_pid);
-#else
-        sprintf( zPageUsage, "/tmp/use.%lu", (tAoUL)my_pid );
-#endif
-        unlink( zPageUsage );
+        snprintf(zPageUsage, sizeof(zPageUsage), TMP_USAGE_FMT, (tAoUL)my_pid);
+        unlink(zPageUsage);
 
         /*
          *  Set usage output to this temporary file
          */
-        option_usage_fp = fopen( zPageUsage, "w" FOPEN_BINARY_FLAG );
+        option_usage_fp = fopen(zPageUsage, "w" FOPEN_BINARY_FLAG);
         if (option_usage_fp == NULL)
-            _exit( EXIT_FAILURE );
+            _exit(EXIT_FAILURE);
 
         pagerState = PAGER_STATE_READY;
 
         /*
          *  Set up so this routine gets called during the exit logic
          */
-        atexit( (void(*)(void))optionPagedUsage );
+        atexit((void(*)(void))optionPagedUsage);
 
         /*
          *  The usage procedure will now put the usage information into
          *  the temporary file we created above.
          */
-        (*pOptions->pUsageProc)( pOptions, EXIT_SUCCESS );
+        (*pOptions->pUsageProc)(pOptions, EXIT_SUCCESS);
 
-        /*NOTREACHED*/
-        _exit( EXIT_FAILURE );
+        /* NOTREACHED */
+        _exit(EXIT_FAILURE);
     }
 
     case PAGER_STATE_READY:
     {
-        tSCC zPage[]  = "%1$s /tmp/use.%2$lu ; rm -f /tmp/use.%2$lu";
-        tCC* pzPager  = (tCC*)getenv( "PAGER" );
+        tCC* pzPager  = (tCC*)getenv(PAGER_NAME);
 
         /*
          *  Use the "more(1)" program if "PAGER" has not been defined
          */
         if (pzPager == NULL)
-            pzPager = "more";
+            pzPager = MORE_STR;
 
         /*
          *  Page the file and remove it when done.
          */
-#ifdef HAVE_SNPRINTF
-        snprintf(zPageUsage, sizeof(zPageUsage), zPage, pzPager, (tAoUL)my_pid);
-#else
-        sprintf( zPageUsage, zPage, pzPager, (tAoUL)my_pid );
-#endif
-        fclose( stderr );
-        dup2( STDOUT_FILENO, STDERR_FILENO );
+        snprintf(zPageUsage, sizeof(zPageUsage), PAGE_USAGE_FMT, pzPager,
+                 (tAoUL)my_pid);
+        fclose(stderr);
+        dup2(STDOUT_FILENO, STDERR_FILENO);
 
-        (void)system( zPageUsage );
+        (void)system(zPageUsage);
     }
 
     case PAGER_STATE_CHILD:

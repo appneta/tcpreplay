@@ -311,12 +311,12 @@ set(PRIo64 "${FORMAT_64BIT}o")
 set(PRIu64 "${FORMAT_64BIT}u")
 
 # OS X has absolute time
-CMAKE_FIND_FRAMEWORKS(Carbon)
-CMAKE_FIND_FRAMEWORKS(CoreServices)
-if(CoreServices_FRAMEWORKS AND Carbon_FRAMEWORKS)
-    set(HAVE_ABSOLUTE_TIME 1)
-    message(STATUS "Enabling OS X's absolute_time()")
-endif(CoreServices_FRAMEWORKS AND Carbon_FRAMEWORKS)
+#CMAKE_FIND_FRAMEWORKS(Carbon)
+#CMAKE_FIND_FRAMEWORKS(CoreServices)
+#if(CoreServices_FRAMEWORKS AND Carbon_FRAMEWORKS)
+#    set(HAVE_ABSOLUTE_TIME 1)
+#    message(STATUS "Enabling OS X's absolute_time()")
+#endif(CoreServices_FRAMEWORKS AND Carbon_FRAMEWORKS)
 
 include(FindDoxygen)
 include(FindUnixCommands)

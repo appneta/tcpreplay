@@ -1,15 +1,15 @@
 
-/*
- *  stack.c
- *  $Id: stack.c,v 4.19 2009/08/01 17:43:06 bkorb Exp $
- *  Time-stamp:      "2008-07-30 16:56:32 bkorb"
+/**
+ * \file stack.c
+ *
+ *  Time-stamp:      "2012-08-11 08:35:28 bkorb"
  *
  *  This is a special option processing routine that will save the
  *  argument to an option in a FIFO queue.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -43,16 +43,18 @@
  *  Invoked for options that are equivalenced to stacked options.
 =*/
 void
-optionUnstackArg(
-    tOptions*  pOpts,
-    tOptDesc*  pOptDesc )
+optionUnstackArg(tOptions * pOpts, tOptDesc * pOptDesc)
 {
-    int       res;
+    tArgList * pAL;
 
-    tArgList* pAL;
+    (void)pOpts;
+
+    if (pOpts <= OPTPROC_EMIT_LIMIT)
+        return;
 
     if ((pOptDesc->fOptState & OPTST_RESET) != 0)
         return;
+
     pAL = (tArgList*)pOptDesc->optCookie;
 
     /*
@@ -61,7 +63,7 @@ optionUnstackArg(
      */
     if (pAL == NULL) {
         pOptDesc->fOptState &= OPTST_PERSISTENT_MASK;
-        if ( (pOptDesc->fOptState & OPTST_INITENABLED) == 0)
+        if ((pOptDesc->fOptState & OPTST_INITENABLED) == 0)
             pOptDesc->fOptState |= OPTST_DISABLED;
         return;
     }
@@ -71,7 +73,7 @@ optionUnstackArg(
         regex_t   re;
         int       i, ct, dIdx;
 
-        if (regcomp( &re, pOptDesc->optArg.argString, REG_NOSUB ) != 0)
+        if (regcomp(&re, pOptDesc->optArg.argString, REG_NOSUB) != 0)
             return;
 
         /*
@@ -81,13 +83,15 @@ optionUnstackArg(
          *  we are keeping a define.
          */
         for (i = 0, dIdx = 0, ct = pAL->useCt; --ct >= 0; i++) {
-            tCC*      pzSrc = pAL->apzArgs[ i ];
-            char*     pzEq  = strchr( pzSrc, '=' );
+            char const * pzSrc = pAL->apzArgs[ i ];
+            char *       pzEq  = strchr(pzSrc, '=');
+            int          res;
+
 
             if (pzEq != NULL)
                 *pzEq = NUL;
 
-            res = regexec( &re, pzSrc, (size_t)0, NULL, 0 );
+            res = regexec(&re, pzSrc, (size_t)0, NULL, 0);
             switch (res) {
             case 0:
                 /*
@@ -114,7 +118,7 @@ optionUnstackArg(
             }
         }
 
-        regfree( &re );
+        regfree(&re);
     }
 #else  /* not WITH_LIBREGEX */
     {
@@ -128,12 +132,12 @@ optionUnstackArg(
          */
         for (i = 0, dIdx = 0, ct = pAL->useCt; --ct >= 0; i++) {
             tCC*      pzSrc = pAL->apzArgs[ i ];
-            char*     pzEq  = strchr( pzSrc, '=' );
+            char*     pzEq  = strchr(pzSrc, '=');
 
             if (pzEq != NULL)
                 *pzEq = NUL;
 
-            if (strcmp( pzSrc, pOptDesc->optArg.argString ) == 0) {
+            if (strcmp(pzSrc, pOptDesc->optArg.argString) == 0) {
                 /*
                  *  Remove this entry by reducing the in-use count
                  *  and *not* putting the string pointer back into
@@ -162,9 +166,9 @@ optionUnstackArg(
      */
     if (pAL->useCt == 0) {
         pOptDesc->fOptState &= OPTST_PERSISTENT_MASK;
-        if ( (pOptDesc->fOptState & OPTST_INITENABLED) == 0)
+        if ((pOptDesc->fOptState & OPTST_INITENABLED) == 0)
             pOptDesc->fOptState |= OPTST_DISABLED;
-        AGFREE( (void*)pAL );
+        AGFREE((void*)pAL);
         pOptDesc->optCookie = NULL;
     }
 }
@@ -176,7 +180,7 @@ optionUnstackArg(
  *  as an opaque address.
  */
 LOCAL void
-addArgListEntry( void** ppAL, void* entry )
+addArgListEntry(void** ppAL, void* entry)
 {
     tArgList* pAL = *(void**)ppAL;
 
@@ -185,7 +189,7 @@ addArgListEntry( void** ppAL, void* entry )
      *  THEN allocate one now
      */
     if (pAL == NULL) {
-        pAL = (tArgList*)AGALOC( sizeof( *pAL ), "new option arg stack" );
+        pAL = (tArgList*)AGALOC(sizeof(*pAL), "new option arg stack");
         if (pAL == NULL)
             return;
         pAL->useCt   = 0;
@@ -198,7 +202,7 @@ addArgListEntry( void** ppAL, void* entry )
      *  THEN make it bigger
      */
     else if (pAL->useCt >= pAL->allocCt) {
-        size_t sz = sizeof( *pAL );
+        size_t sz = sizeof(*pAL);
         pAL->allocCt += INCR_ARG_ALLOC_CT;
 
         /*
@@ -206,7 +210,7 @@ addArgListEntry( void** ppAL, void* entry )
          *  pointers.  We subtract it off to find our augment size.
          */
         sz += sizeof(char*) * (pAL->allocCt - MIN_ARG_ALLOC_CT);
-        pAL = (tArgList*)AGREALOC( (void*)pAL, sz, "expanded opt arg stack" );
+        pAL = (tArgList*)AGREALOC((void*)pAL, sz, "expanded opt arg stack");
         if (pAL == NULL)
             return;
         *ppAL = (void*)pAL;
@@ -230,11 +234,12 @@ addArgListEntry( void** ppAL, void* entry )
  *  Keep an entry-ordered list of option arguments.
 =*/
 void
-optionStackArg(
-    tOptions*  pOpts,
-    tOptDesc*  pOD )
+optionStackArg(tOptions * pOpts, tOptDesc * pOD)
 {
     char * pz;
+
+    if (pOpts <= OPTPROC_EMIT_LIMIT)
+        return;
 
     if ((pOD->fOptState & OPTST_RESET) != 0) {
         tArgList* pAL = (void*)pOD->optCookie;
@@ -252,7 +257,7 @@ optionStackArg(
             return;
 
         AGDUPSTR(pz, pOD->optArg.argString, "stack arg");
-        addArgListEntry( &(pOD->optCookie), (void*)pz );
+        addArgListEntry(&(pOD->optCookie), (void*)pz);
     }
 }
 /*

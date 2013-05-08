@@ -4,11 +4,7 @@
 
 /*
  * Author:           Gary V Vaughan <gvaughan@oranda.demon.co.uk>
- * Time-stamp:       "2006-09-23 19:46:16 bkorb"
- * Last Modified:    $Date: 2007/10/07 16:54:54 $
- *            by: bkorb
- *
- * $Id: pathfind.c,v 4.12 2007/10/07 16:54:54 bkorb Exp $
+ * Time-stamp:       "2012-08-11 08:19:39 bkorb"
  */
 
 /* Code: */
@@ -309,11 +305,12 @@ extract_colon_unit( char* pzDir, char const *string, int *p_index )
             switch (ch) {
             case ':':
                 pzDest[-1] = NUL;
+                /* FALLTHROUGH */
             case NUL:
                 goto copy_done;
             }
 
-            if ((pzDest - pzDir) >= AG_PATH_MAX)
+            if ((unsigned long)(pzDest - pzDir) >= AG_PATH_MAX)
                 break;
         } copy_done:;
 

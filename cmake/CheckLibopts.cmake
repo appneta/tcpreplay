@@ -60,6 +60,7 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __LIBOPTS_VERSION)
     ENDIF(EXISTS /dev/zero)
 
     # Check for header files!
+    check_include_file("stdbool.h"      HAVE_STDBOOL_H) 
     check_include_file("dirent.h"       HAVE_DIRENT_H)
     check_include_file("dlfcn.h"        HAVE_DLFCN_H)
     check_include_file("errno.h"        HAVE_ERRNO_H)
@@ -128,6 +129,12 @@ MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __LIBOPTS_VERSION)
     check_type_size("size_t"            HAVE_SIZE_T)
     check_type_size("wchar_t"           HAVE_WCHAR_T)
     check_type_size("wint_t"            HAVE_WINT_T)
+
+    # Look for POSIX_SHELL
+    find_program(POSIX_SHELL_PATH NAMES bash dash sh 
+        DOC "define to a working POSIX compliant shell")
+    message(STATUS "Found POSIX_SHELL: ${POSIX_SHELL_PATH}")
+    set(POSIX_SHELL ${POSIX_SHELL_PATH})
 
     # OSX doesn't define wint_t in one of the standard include headers
     check_c_source_compiles("

@@ -1,12 +1,13 @@
-/*
- *  $Id: configfile.c,v 4.47 2009/08/01 17:43:05 bkorb Exp $
- *  Time-stamp:      "2009-01-18 10:21:58 bkorb"
+/**
+ * \file configfile.c
+ *
+ *  Time-stamp:      "2012-08-11 08:34:55 bkorb"
  *
  *  configuration/rc/ini file handling.
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is copyright (c) 1992-2009 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -26,59 +27,50 @@
  */
 
 /* = = = START-STATIC-FORWARD = = = */
-/* static forward declarations maintained by mk-fwd */
 static void
-filePreset(
-    tOptions*     pOpts,
-    char const*   pzFileName,
-    int           direction );
+file_preset(tOptions * opts, char const * fname, int dir);
 
 static char*
-handleComment( char* pzText );
+handle_comment(char* pzText);
+
+static char *
+handle_cfg(tOptions * pOpts, tOptState * pOS, char * pzText, int dir);
+
+static char *
+handle_directive(tOptions * pOpts, char * pzText);
+
+static char *
+aoflags_directive(tOptions * pOpts, char * pzText);
+
+static char *
+program_directive(tOptions * pOpts, char * pzText);
+
+static char *
+handle_section(tOptions * pOpts, char * pzText);
+
+static int
+parse_xml_encoding(char ** ppz);
+
+static char *
+trim_xml_text(char * intxt, char const * pznm, tOptionLoadMode mode);
+
+static void
+cook_xml_text(char * pzData);
+
+static char *
+handle_struct(tOptions * pOpts, tOptState * pOS, char * pzText, int dir);
 
 static char*
-handleConfig(
-    tOptions*     pOpts,
-    tOptState*    pOS,
-    char*         pzText,
-    int           direction );
+parse_keyword(tOptions * pOpts, char * pzText, tOptionValue * pType);
 
 static char*
-handleDirective(
-    tOptions*     pOpts,
-    char*         pzText );
+parse_set_mem(tOptions * pOpts, char * pzText, tOptionValue * pType);
 
-static char*
-handleProgramSection(
-    tOptions*     pOpts,
-    char*         pzText );
+static char *
+parse_value(char * pzText, tOptionValue * pType);
 
-static char*
-handleStructure(
-    tOptions*     pOpts,
-    tOptState*    pOS,
-    char*         pzText,
-    int           direction );
-
-static char*
-parseKeyWordType(
-    tOptions*     pOpts,
-    char*         pzText,
-    tOptionValue* pType );
-
-static char*
-parseSetMemType(
-    tOptions*     pOpts,
-    char*         pzText,
-    tOptionValue* pType );
-
-static char*
-parseValueType(
-    char*         pzText,
-    tOptionValue* pType );
-
-static char*
-skipUnknown( char* pzText );
+static char *
+skip_unkn(char* pzText);
 /* = = = END-STATIC-FORWARD = = = */
 
 
@@ -105,7 +97,9 @@ skipUnknown( char* pzText );
  *  @code{mmap(2)} or other file system calls, or it may be:
  *  @itemize @bullet
  *  @item
- *  @code{ENOENT} - the file was empty.
+ *  @code{ENOENT} - the file was not found.
+ *  @item
+ *  @code{ENOMSG} - the file was empty.
  *  @item
  *  @code{EINVAL} - the file contents are invalid -- not properly formed.
  *  @item
@@ -113,14 +107,14 @@ skipUnknown( char* pzText );
  *  @end itemize
 =*/
 const tOptionValue*
-configFileLoad( char const* pzFile )
+configFileLoad(char const* pzFile)
 {
     tmap_info_t   cfgfile;
     tOptionValue* pRes = NULL;
     tOptionLoadMode save_mode = option_load_mode;
 
     char* pzText =
-        text_mmap( pzFile, PROT_READ, MAP_PRIVATE, &cfgfile );
+        text_mmap(pzFile, PROT_READ, MAP_PRIVATE, &cfgfile);
 
     if (TEXT_MMAP_FAILED_ADDR(pzText))
         return NULL; /* errno is set */
@@ -130,10 +124,10 @@ configFileLoad( char const* pzFile )
 
     if (pRes == NULL) {
         int err = errno;
-        text_munmap( &cfgfile );
+        text_munmap(&cfgfile);
         errno = err;
     } else
-        text_munmap( &cfgfile );
+        text_munmap(&cfgfile);
 
     option_load_mode = save_mode;
     return pRes;
@@ -165,8 +159,8 @@ configFileLoad( char const* pzFile )
  *  @end itemize
 =*/
 const tOptionValue*
-optionFindValue( const tOptDesc* pOptDesc,
-                 char const* pzName, char const* pzVal )
+optionFindValue(const tOptDesc* pOptDesc, char const* pzName,
+                char const* pzVal)
 {
     const tOptionValue* pRes = NULL;
 
@@ -196,7 +190,7 @@ optionFindValue( const tOptDesc* pOptDesc,
 
         while (--ct >= 0) {
             const tOptionValue* pOV = *(ppOV++);
-            const tOptionValue* pRV = optionGetValue( pOV, pzName );
+            const tOptionValue* pRV = optionGetValue(pOV, pzName);
 
             if (pRV == NULL)
                 continue;
@@ -208,13 +202,15 @@ optionFindValue( const tOptDesc* pOptDesc,
         }
         if (pRes == NULL)
             errno = ENOENT;
-    } while (0);
+    } while (false);
 
     return pRes;
 }
 
 
 /*=export_func  optionFindNextValue
+ *
+ * FIXME: the handling of 'pzName' and 'pzVal' is just wrong.
  *
  * what:  find a hierarcicaly valued option instance
  * arg:   + const tOptDesc* + pOptDesc + an option with a nested arg type +
@@ -240,12 +236,15 @@ optionFindValue( const tOptDesc* pOptDesc,
  *  @code{ENOENT} - no entry matched the given name.
  *  @end itemize
 =*/
-const tOptionValue*
-optionFindNextValue( const tOptDesc* pOptDesc, const tOptionValue* pPrevVal,
-                 char const* pzName, char const* pzVal )
+tOptionValue const *
+optionFindNextValue(const tOptDesc * pOptDesc, const tOptionValue * pPrevVal,
+                    char const * pzName, char const * pzVal)
 {
-    int foundOldVal = 0;
+    bool old_found = false;
     tOptionValue* pRes = NULL;
+
+    (void)pzName;
+    (void)pzVal;
 
     if (  (pOptDesc == NULL)
        || (OPTST_GET_ARGTYPE(pOptDesc->fOptState) != OPARG_TYPE_HIERARCHY))  {
@@ -261,23 +260,18 @@ optionFindNextValue( const tOptDesc* pOptDesc, const tOptionValue* pPrevVal,
         int    ct   = pAL->useCt;
         void** ppOV = (void**)pAL->apzArgs;
 
-        if (ct == 0) {
-            errno = ENOENT;
-            break;
-        }
-
         while (--ct >= 0) {
             tOptionValue* pOV = *(ppOV++);
-            if (foundOldVal) {
+            if (old_found) {
                 pRes = pOV;
                 break;
             }
             if (pOV == pPrevVal)
-                foundOldVal = 1;
+                old_found = true;
         }
         if (pRes == NULL)
             errno = ENOENT;
-    } while (0);
+    } while (false);
 
     return pRes;
 }
@@ -296,7 +290,9 @@ optionFindNextValue( const tOptDesc* pOptDesc, const tOptionValue* pPrevVal,
  *  This routine will find an entry in a nested value option or configurable.
  *  If "valueName" is NULL, then the first entry is returned.  Otherwise,
  *  the first entry with a name that exactly matches the argument will be
- *  returned.
+ *  returned.  If there is no matching value, NULL is returned and errno is
+ *  set to ENOENT. If the provided option value is not a hierarchical value,
+ *  NULL is also returned and errno is set to EINVAL.
  *
  * err:
  *  The returned result is NULL and errno is set:
@@ -309,28 +305,27 @@ optionFindNextValue( const tOptDesc* pOptDesc, const tOptionValue* pPrevVal,
  *  @end itemize
 =*/
 const tOptionValue*
-optionGetValue( const tOptionValue* pOld, char const* pzValName )
+optionGetValue(tOptionValue const * pOld, char const * pzValName)
 {
-    tArgList*     pAL;
-    tOptionValue* pRes = NULL;
+    tArgList *     pAL;
+    tOptionValue * pRes = NULL;
 
     if ((pOld == NULL) || (pOld->valType != OPARG_TYPE_HIERARCHY)) {
         errno = EINVAL;
-        return NULL;
+        return pRes;
     }
     pAL = pOld->v.nestVal;
 
     if (pAL->useCt > 0) {
-        int    ct    = pAL->useCt;
-        void** papOV = (void**)(pAL->apzArgs);
+        int     ct    = pAL->useCt;
+        void ** papOV = (void**)(pAL->apzArgs);
 
         if (pzValName == NULL) {
             pRes = (tOptionValue*)*papOV;
-        }
 
-        else do {
-            tOptionValue* pOV = *(papOV++);
-            if (strcmp( pOV->pzName, pzValName ) == 0) {
+        } else do {
+            tOptionValue * pOV = *(papOV++);
+            if (strcmp(pOV->pzName, pzValName) == 0) {
                 pRes = pOV;
                 break;
             }
@@ -405,27 +400,24 @@ optionNextValue(tOptionValue const * pOVList,tOptionValue const * pOldOV )
 }
 
 
-/*  filePreset
- *
+/**
  *  Load a file containing presetting information (a configuration file).
  */
 static void
-filePreset(
-    tOptions*     pOpts,
-    char const*   pzFileName,
-    int           direction )
+file_preset(tOptions * opts, char const * fname, int dir)
 {
     tmap_info_t   cfgfile;
     tOptState     optst = OPTSTATE_INITIALIZER(PRESET);
-    char*         pzFileText =
-        text_mmap( pzFileName, PROT_READ|PROT_WRITE, MAP_PRIVATE, &cfgfile );
+    unsigned long st_flags = optst.flags;
+    char *        ftext =
+        text_mmap(fname, PROT_READ|PROT_WRITE, MAP_PRIVATE, &cfgfile);
 
-    if (TEXT_MMAP_FAILED_ADDR(pzFileText))
+    if (TEXT_MMAP_FAILED_ADDR(ftext))
         return;
 
-    if (direction == DIRECTION_CALLED) {
-        optst.flags = OPTST_DEFINED;
-        direction   = DIRECTION_PROCESS;
+    if (dir == DIRECTION_CALLED) {
+        st_flags = OPTST_DEFINED;
+        dir   = DIRECTION_PROCESS;
     }
 
     /*
@@ -434,33 +426,33 @@ filePreset(
      *  If this is called via "optionFileLoad", then the bit is not set
      *  and we consider stuff set herein to be "set" by the client program.
      */
-    if ((pOpts->fOptSet & OPTPROC_PRESETTING) == 0)
-        optst.flags = OPTST_SET;
+    if ((opts->fOptSet & OPTPROC_PRESETTING) == 0)
+        st_flags = OPTST_SET;
 
     do  {
-        while (IS_WHITESPACE_CHAR(*pzFileText))  pzFileText++;
+        optst.flags = st_flags;
+        ftext = SPN_WHITESPACE_CHARS(ftext);
 
-        if (IS_VAR_FIRST_CHAR(*pzFileText)) {
-            pzFileText = handleConfig(pOpts, &optst, pzFileText, direction);
+        if (IS_VAR_FIRST_CHAR(*ftext)) {
+            ftext = handle_cfg(opts, &optst, ftext, dir);
 
-        } else switch (*pzFileText) {
+        } else switch (*ftext) {
         case '<':
-            if (IS_VAR_FIRST_CHAR(pzFileText[1]))
-                pzFileText =
-                    handleStructure(pOpts, &optst, pzFileText, direction);
+            if (IS_VAR_FIRST_CHAR(ftext[1]))
+                ftext = handle_struct(opts, &optst, ftext, dir);
 
-            else switch (pzFileText[1]) {
+            else switch (ftext[1]) {
             case '?':
-                pzFileText = handleDirective( pOpts, pzFileText );
+                ftext = handle_directive(opts, ftext);
                 break;
 
             case '!':
-                pzFileText = handleComment( pzFileText );
+                ftext = handle_comment(ftext);
                 break;
 
             case '/':
-                pzFileText = strchr( pzFileText+2, '>' );
-                if (pzFileText++ != NULL)
+                ftext = strchr(ftext + 2, '>');
+                if (ftext++ != NULL)
                     break;
 
             default:
@@ -469,65 +461,59 @@ filePreset(
             break;
 
         case '[':
-            pzFileText = handleProgramSection( pOpts, pzFileText );
+            ftext = handle_section(opts, ftext);
             break;
 
         case '#':
-            pzFileText = strchr( pzFileText+1, '\n' );
+            ftext = strchr(ftext + 1, NL);
             break;
 
         default:
             goto all_done; /* invalid format */
         }
-    } while (pzFileText != NULL);
+    } while (ftext != NULL);
 
- all_done:
-    text_munmap( &cfgfile );
+all_done:
+    text_munmap(&cfgfile);
 }
 
 
-/*  handleComment
- *
+/**
  *  "pzText" points to a "<!" sequence.
  *  Theoretically, we should ensure that it begins with "<!--",
  *  but actually I don't care that much.  It ends with "-->".
  */
 static char*
-handleComment( char* pzText )
+handle_comment(char* pzText)
 {
-    char* pz = strstr( pzText, "-->" );
+    char* pz = strstr(pzText, "-->");
     if (pz != NULL)
         pz += 3;
     return pz;
 }
 
 
-/*  handleConfig
- *
+/**
  *  "pzText" points to the start of some value name.
  *  The end of the entry is the end of the line that is not preceded by
  *  a backslash escape character.  The string value is always processed
  *  in "cooked" mode.
  */
-static char*
-handleConfig(
-    tOptions*     pOpts,
-    tOptState*    pOS,
-    char*         pzText,
-    int           direction )
+static char *
+handle_cfg(tOptions * pOpts, tOptState * pOS, char * pzText, int dir)
 {
     char* pzName = pzText++;
-    char* pzEnd  = strchr( pzText, '\n' );
+    char* pzEnd  = strchr(pzText, NL);
 
     if (pzEnd == NULL)
         return pzText + strlen(pzText);
 
-    while (IS_VALUE_NAME_CHAR(*pzText)) pzText++;
-    while (IS_WHITESPACE_CHAR(*pzText)) pzText++;
+    pzText = SPN_VALUE_NAME_CHARS(pzText);
+    pzText = SPN_WHITESPACE_CHARS(pzText);
     if (pzText > pzEnd) {
     name_only:
         *pzEnd++ = NUL;
-        loadOptionLine( pOpts, pOS, pzName, direction, OPTION_LOAD_UNCOOKED );
+        loadOptionLine(pOpts, pOS, pzName, dir, OPTION_LOAD_UNCOOKED);
         return pzEnd;
     }
 
@@ -537,7 +523,7 @@ handleConfig(
      *  is an invalid format and we give up parsing the text.
      */
     if ((*pzText == '=') || (*pzText == ':')) {
-        while (IS_WHITESPACE_CHAR(*++pzText))   ;
+        pzText = SPN_WHITESPACE_CHARS(pzText+1);
         if (pzText > pzEnd)
             goto name_only;
     } else if (! IS_WHITESPACE_CHAR(pzText[-1]))
@@ -556,16 +542,16 @@ handleConfig(
             switch (ch) {
             case NUL:
                 pcS = NULL;
+                /* FALLTHROUGH */
 
-            case '\n':
+            case NL:
                 *pcD = NUL;
                 pzEnd = pcS;
                 goto copy_done;
 
             case '\\':
-                if (*pcS == '\n') {
+                if (*pcS == NL)
                     ch = *(pcS++);
-                }
                 /* FALLTHROUGH */
             default:
                 *(pcD++) = ch;
@@ -583,100 +569,325 @@ handleConfig(
      *  "pzName" points to what looks like text for one option/configurable.
      *  It is NUL terminated.  Process it.
      */
-    loadOptionLine( pOpts, pOS, pzName, direction, OPTION_LOAD_UNCOOKED );
+    loadOptionLine(pOpts, pOS, pzName, dir, OPTION_LOAD_UNCOOKED);
 
     return pzEnd;
 }
 
 
-/*  handleDirective
- *
+/**
  *  "pzText" points to a "<?" sequence.
- *  For the moment, we only handle "<?program" directives.
+ *  We handle "<?program" and "<?auto-options" directives.
+ *  All others are treated as comments.
  */
-static char*
-handleDirective(
-    tOptions*     pOpts,
-    char*         pzText )
+static char *
+handle_directive(tOptions * pOpts, char * pzText)
 {
-    char   ztitle[32] = "<?";
-    size_t title_len = strlen( zProg );
-    size_t name_len;
+#   define DIRECTIVE_TABLE                      \
+    _dt_(zCfgProg,     program_directive)       \
+    _dt_(zCfgAO_Flags, aoflags_directive)
 
-    if (  (strncmp( pzText+2, zProg, title_len ) != 0)
-       || (! IS_WHITESPACE_CHAR(pzText[title_len+2])) )  {
-        pzText = strchr( pzText+2, '>' );
-        if (pzText != NULL)
-            pzText++;
-        return pzText;
+    typedef char * (directive_func_t)(tOptions *, char *);
+#   define _dt_(_s, _fn) _fn,
+    static directive_func_t * dir_disp[] = {
+        DIRECTIVE_TABLE
+    };
+#   undef  _dt_
+
+#   define _dt_(_s, _fn) 1 +
+    static int  const   dir_ct  = DIRECTIVE_TABLE 0;
+    static char const * dir_names[DIRECTIVE_TABLE 0];
+#   undef _dt_
+
+    int    ix;
+
+    if (dir_names[0] == NULL) {
+        ix = 0;
+#   define _dt_(_s, _fn) dir_names[ix++] = _s;
+        DIRECTIVE_TABLE;
+#   undef _dt_
     }
 
-    name_len = strlen( pOpts->pzProgName );
-    strcpy( ztitle+2, zProg );
-    title_len += 2;
+    for (ix = 0; ix < dir_ct; ix++) {
+        size_t len = strlen(dir_names[ix]);
+        if (  (strncmp(pzText + 2, dir_names[ix], len) == 0)
+           && (! IS_VALUE_NAME_CHAR(pzText[len+2])) )
+            return dir_disp[ix](pOpts, pzText + len + 2);
+    }
+
+    /*
+     *  We don't know what this is.  Skip it.
+     */
+    pzText = strchr(pzText+2, '>');
+    if (pzText != NULL)
+        pzText++;
+    return pzText;
+}
+
+/**
+ *  handle AutoOpts mode flags
+ */
+static char *
+aoflags_directive(tOptions * pOpts, char * pzText)
+{
+    char * pz;
+
+    pz = SPN_WHITESPACE_CHARS(pzText+1);
+    pzText = strchr(pz, '>');
+    if (pzText != NULL) {
+
+        size_t len  = pzText - pz;
+        char * ftxt = AGALOC(len + 1, "aoflags");
+
+        memcpy(ftxt, pz, len);
+        ftxt[len] = NUL;
+        set_usage_flags(pOpts, ftxt);
+        AGFREE(ftxt);
+
+        pzText++;
+    }
+
+    return pzText;
+}
+
+/**
+ * handle program segmentation of config file.
+ */
+static char *
+program_directive(tOptions * pOpts, char * pzText)
+{
+    static char const ttlfmt[] = "<?";
+    size_t ttl_len  = sizeof(ttlfmt) + strlen(zCfgProg);
+    char * ttl      = AGALOC(ttl_len, "prog title");
+    size_t name_len = strlen(pOpts->pzProgName);
+
+    memcpy(ttl, ttlfmt, sizeof(ttlfmt) - 1);
+    memcpy(ttl + sizeof(ttlfmt) - 1, zCfgProg, ttl_len - (sizeof(ttlfmt) - 1));
 
     do  {
-        pzText += title_len;
+        pzText = SPN_WHITESPACE_CHARS(pzText+1);
 
-        if (IS_WHITESPACE_CHAR(*pzText)) {
-            while (IS_WHITESPACE_CHAR(*++pzText))  ;
-            if (  (strneqvcmp( pzText, pOpts->pzProgName, (int)name_len) == 0)
-               && (pzText[name_len] == '>'))  {
-                pzText += name_len + 1;
-                break;
-            }
+        if (  (strneqvcmp(pzText, pOpts->pzProgName, (int)name_len) == 0)
+           && (IS_END_XML_TOKEN_CHAR(pzText[name_len])) ) {
+            pzText += name_len;
+            break;
         }
 
-        pzText = strstr( pzText, ztitle );
+        pzText = strstr(pzText, ttl);
     } while (pzText != NULL);
+
+    AGFREE(ttl);
+    if (pzText != NULL)
+        for (;;) {
+            if (*pzText == NUL) {
+                pzText = NULL;
+                break;
+            }
+            if (*(pzText++) == '>')
+                break;
+        }
 
     return pzText;
 }
 
 
-/*  handleProgramSection
- *
+/**
  *  "pzText" points to a '[' character.
  *  The "traditional" [PROG_NAME] segmentation of the config file.
  *  Do not ever mix with the "<?program prog-name>" variation.
  */
-static char*
-handleProgramSection(
-    tOptions*     pOpts,
-    char*         pzText )
+static char *
+handle_section(tOptions * pOpts, char * pzText)
 {
-    size_t len = strlen( pOpts->pzPROGNAME );
-    if (   (strncmp( pzText+1, pOpts->pzPROGNAME, len ) == 0)
+    size_t len = strlen(pOpts->pzPROGNAME);
+    if (   (strncmp(pzText+1, pOpts->pzPROGNAME, len) == 0)
         && (pzText[len+1] == ']'))
-        return strchr( pzText + len + 2, '\n' );
+        return strchr(pzText + len + 2, NL);
 
     if (len > 16)
         return NULL;
 
     {
         char z[24];
-        sprintf( z, "[%s]", pOpts->pzPROGNAME );
-        pzText = strstr( pzText, z );
+        sprintf(z, "[%s]", pOpts->pzPROGNAME);
+        pzText = strstr(pzText, z);
     }
 
     if (pzText != NULL)
-        pzText = strchr( pzText, '\n' );
+        pzText = strchr(pzText, NL);
     return pzText;
 }
 
+/**
+ * parse XML encodings
+ */
+static int
+parse_xml_encoding(char ** ppz)
+{
+#   define XMLTABLE             \
+        _xmlNm_(amp,   '&')     \
+        _xmlNm_(lt,    '<')     \
+        _xmlNm_(gt,    '>')     \
+        _xmlNm_(ff,    '\f')    \
+        _xmlNm_(ht,    '\t')    \
+        _xmlNm_(cr,    '\r')    \
+        _xmlNm_(vt,    '\v')    \
+        _xmlNm_(bel,   '\a')    \
+        _xmlNm_(nl,    NL)      \
+        _xmlNm_(space, ' ')     \
+        _xmlNm_(quot,  '"')     \
+        _xmlNm_(apos,  '\'')
 
-/*  handleStructure
- *
+    static struct {
+        char const * const  nm_str;
+        unsigned short      nm_len;
+        short               nm_val;
+    } const xml_names[] = {
+#   define _xmlNm_(_n, _v) { #_n ";", sizeof(#_n), _v },
+        XMLTABLE
+#   undef  _xmlNm_
+#   undef XMLTABLE
+    };
+
+    static int const nm_ct = sizeof(xml_names) / sizeof(xml_names[0]);
+    int    base = 10;
+
+    char * pz = *ppz;
+
+    if (*pz == '#') {
+        pz++;
+        goto parse_number;
+    }
+
+    if (IS_DEC_DIGIT_CHAR(*pz)) {
+        unsigned long v;
+
+    parse_number:
+        switch (*pz) {
+        case 'x': case 'X':
+            /*
+             * Some forms specify hex with:  &#xNN;
+             */
+            base = 16;
+            pz++;
+            break;
+
+        case '0':
+            /*
+             *  &#0022; is hex and &#22; is decimal.  Cool.
+             *  Ya gotta love it.
+             */
+            if (pz[1] == '0')
+                base = 16;
+            break;
+        }
+
+        v = strtoul(pz, &pz, base);
+        if ((*pz != ';') || (v > 0x7F))
+            return NUL;
+        *ppz = pz + 1;
+        return (int)v;
+    }
+
+    {
+        int ix = 0;
+        do  {
+            if (strncmp(pz, xml_names[ix].nm_str, xml_names[ix].nm_len)
+                == 0) {
+                *ppz = pz + xml_names[ix].nm_len;
+                return xml_names[ix].nm_val;
+            }
+        } while (++ix < nm_ct);
+    }
+
+    return NUL;
+}
+
+/**
+ * Find the end marker for the named section of XML.
+ * Trim that text there, trimming trailing white space for all modes
+ * except for OPTION_LOAD_UNCOOKED.
+ */
+static char *
+trim_xml_text(char * intxt, char const * pznm, tOptionLoadMode mode)
+{
+    static char const fmt[] = "</%s>";
+    size_t len = strlen(pznm) + sizeof(fmt) - 2 /* for %s */;
+    char * etext;
+
+    {
+        char z[64], *pz = z;
+        if (len >= sizeof(z))
+            pz = AGALOC(len, "scan name");
+
+        len = sprintf(pz, fmt, pznm);
+        *intxt = ' ';
+        etext = strstr(intxt, pz);
+        if (pz != z) AGFREE(pz);
+    }
+
+    if (etext == NULL)
+        return etext;
+
+    {
+        char * result = etext + len;
+
+        if (mode != OPTION_LOAD_UNCOOKED)
+            etext = SPN_WHITESPACE_BACK(intxt, etext);
+
+        *etext = NUL;
+        return result;
+    }
+}
+
+/**
+ */
+static void
+cook_xml_text(char * pzData)
+{
+    char * pzs = pzData;
+    char * pzd = pzData;
+    char   bf[4];
+    bf[2] = NUL;
+
+    for (;;) {
+        int ch = ((int)*(pzs++)) & 0xFF;
+        switch (ch) {
+        case NUL:
+            *pzd = NUL;
+            return;
+
+        case '&':
+            ch = parse_xml_encoding(&pzs);
+            *(pzd++) = (char)ch;
+            if (ch == NUL)
+                return;
+            break;
+
+        case '%':
+            bf[0] = *(pzs++);
+            bf[1] = *(pzs++);
+            if ((bf[0] == NUL) || (bf[1] == NUL)) {
+                *pzd = NUL;
+                return;
+            }
+
+            ch = strtoul(bf, NULL, 16);
+            /* FALLTHROUGH */
+
+        default:
+            *(pzd++) = (char)ch;
+        }
+    }
+}
+
+/**
  *  "pzText" points to a '<' character, followed by an alpha.
  *  The end of the entry is either the "/>" following the name, or else a
  *  "</name>" string.
  */
-static char*
-handleStructure(
-    tOptions*     pOpts,
-    tOptState*    pOS,
-    char*         pzText,
-    int           direction )
+static char *
+handle_struct(tOptions * pOpts, tOptState * pOS, char * pzText, int dir)
 {
     tOptionLoadMode mode = option_load_mode;
     tOptionValue    valu;
@@ -685,14 +896,14 @@ handleStructure(
     char* pzData;
     char* pcNulPoint;
 
-    while (IS_VALUE_NAME_CHAR(*pzText))  pzText++;
+    pzText = SPN_VALUE_NAME_CHARS(pzText);
     pcNulPoint = pzText;
     valu.valType = OPARG_TYPE_STRING;
 
     switch (*pzText) {
     case ' ':
     case '\t':
-        pzText = parseAttributes( pOpts, pzText, &mode, &valu );
+        pzText = parse_attrs(pOpts, pzText, &mode, &valu);
         if (*pzText == '>')
             break;
         if (*pzText != '/')
@@ -704,14 +915,14 @@ handleStructure(
             return NULL;
         *pzText = NUL;
         pzText += 2;
-        loadOptionLine( pOpts, pOS, pzName, direction, mode );
+        loadOptionLine(pOpts, pOS, pzName, dir, mode);
         return pzText;
 
     case '>':
         break;
 
     default:
-        pzText = strchr( pzText, '>');
+        pzText = strchr(pzText, '>');
         if (pzText != NULL)
             pzText++;
         return pzText;
@@ -723,83 +934,41 @@ handleStructure(
      */
     *pcNulPoint = NUL;
     pzData = ++pzText;
-
-    /*
-     *  Find the end of the option text and NUL terminate it
-     */
-    {
-        char   z[64], *pz = z;
-        size_t len = strlen(pzName) + 4;
-        if (len > sizeof(z))
-            pz = AGALOC(len, "scan name");
-
-        sprintf( pz, "</%s>", pzName );
-        *pzText = ' ';
-        pzText = strstr( pzText, pz );
-        if (pz != z) AGFREE(pz);
-
-        if (pzText == NULL)
-            return pzText;
-
-        *pzText = NUL;
-
-        pzText += len-1;
-    }
+    pzText = trim_xml_text(pzText, pzName, mode);
+    if (pzText == NULL)
+        return pzText;
 
     /*
      *  Rejoin the name and value for parsing by "loadOptionLine()".
-     *  Erase any attributes parsed by "parseAttributes()".
+     *  Erase any attributes parsed by "parse_attrs()".
      */
     memset(pcNulPoint, ' ', pzData - pcNulPoint);
 
     /*
-     *  If we are getting a "string" value, the process the XML-ish
-     *  %XX hex characters.
+     *  If we are getting a "string" value that is to be cooked,
+     *  then process the XML-ish &xx; XML-ish and %XX hex characters.
      */
-    if (valu.valType == OPARG_TYPE_STRING) {
-        char * pzSrc = pzData;
-        char * pzDst = pzData;
-        char bf[4];
-        bf[2] = NUL;
-
-        for (;;) {
-            int ch = ((int)*(pzSrc++)) & 0xFF;
-            switch (ch) {
-            case NUL: goto string_fixup_done;
-
-            case '%':
-                bf[0] = *(pzSrc++);
-                bf[1] = *(pzSrc++);
-                if ((bf[0] == NUL) || (bf[1] == NUL))
-                    goto string_fixup_done;
-                ch = strtoul(bf, NULL, 16);
-                /* FALLTHROUGH */
-
-            default:
-                *(pzDst++) = ch;
-            }
-        } string_fixup_done:;
-        *pzDst = NUL;
-    }
+    if (  (valu.valType == OPARG_TYPE_STRING)
+       && (mode == OPTION_LOAD_COOKED))
+        cook_xml_text(pzData);
 
     /*
      *  "pzName" points to what looks like text for one option/configurable.
      *  It is NUL terminated.  Process it.
      */
-    loadOptionLine( pOpts, pOS, pzName, direction, mode );
+    loadOptionLine(pOpts, pOS, pzName, dir, mode);
 
     return pzText;
 }
 
 
-/*  internalFileLoad
- *
+/**
  *  Load a configuration file.  This may be invoked either from
  *  scanning the "homerc" list, or from a specific file request.
  *  (see "optionFileLoad()", the implementation for --load-opts)
  */
 LOCAL void
-internalFileLoad( tOptions* pOpts )
+intern_file_load(tOptions* pOpts)
 {
     uint32_t  svfl;
     int       idx;
@@ -850,8 +1019,8 @@ internalFileLoad( tOptions* pOpts )
 
         idx += inc;
 
-        if (! optionMakePath( zFileName, (int)sizeof(zFileName),
-                              pzPath, pOpts->pzProgPath ))
+        if (! optionMakePath(zFileName, (int)sizeof(zFileName),
+                             pzPath, pOpts->pzProgPath))
             continue;
 
         /*
@@ -859,23 +1028,23 @@ internalFileLoad( tOptions* pOpts )
          *  THEN append the Resource Configuration file name
          *  ELSE we must have the complete file name
          */
-        if (stat( zFileName, &StatBuf ) != 0)
+        if (stat(zFileName, &StatBuf) != 0)
             continue; /* bogus name - skip the home list entry */
 
-        if (S_ISDIR( StatBuf.st_mode )) {
-            size_t len = strlen( zFileName );
-            char* pz;
+        if (S_ISDIR(StatBuf.st_mode)) {
+            size_t len = strlen(zFileName);
+            size_t nln = strlen(pOpts->pzRcName) + 1;
+            char * pz  = zFileName + len;
 
-            if (len + 1 + strlen( pOpts->pzRcName ) >= sizeof( zFileName ))
+            if (len + 1 + nln >= sizeof(zFileName))
                 continue;
 
-            pz = zFileName + len;
             if (pz[-1] != DIRCH)
                 *(pz++) = DIRCH;
-            strcpy( pz, pOpts->pzRcName );
+            memcpy(pz, pOpts->pzRcName, nln);
         }
 
-        filePreset( pOpts, zFileName, inc );
+        file_preset(pOpts, zFileName, inc);
 
         /*
          *  IF we are now to skip config files AND we are presetting,
@@ -928,13 +1097,18 @@ internalFileLoad( tOptions* pOpts )
  *       always be returned.
 =*/
 int
-optionFileLoad( tOptions* pOpts, char const* pzProgram )
+optionFileLoad(tOptions * pOpts, char const * pzProgram)
 {
-    if (! SUCCESSFUL( validateOptionsStruct( pOpts, pzProgram )))
+    if (! SUCCESSFUL(validate_struct(pOpts, pzProgram)))
         return -1;
 
-    pOpts->pzProgName = pzProgram;
-    internalFileLoad( pOpts );
+    {
+        char const ** pp =
+            (char const **)(void *)&(pOpts->pzProgName);
+        *pp = pzProgram;
+    }
+
+    intern_file_load(pOpts);
     return 0;
 }
 
@@ -951,9 +1125,12 @@ optionFileLoad( tOptions* pOpts, char const* pzProgram )
  *  pOptDesc->optArg.argString.
 =*/
 void
-optionLoadOpt( tOptions* pOpts, tOptDesc* pOptDesc )
+optionLoadOpt(tOptions * pOpts, tOptDesc * pOptDesc)
 {
     struct stat sb;
+
+    if (pOpts <= OPTPROC_EMIT_LIMIT)
+        return;
 
     /*
      *  IF the option is not being disabled, THEN load the file.  There must
@@ -965,39 +1142,35 @@ optionLoadOpt( tOptions* pOpts, tOptDesc* pOptDesc )
        || ((pOptDesc->fOptState & OPTST_RESET) != 0))
         return;
 
-    if (stat( pOptDesc->optArg.argString, &sb ) != 0) {
+    if (stat(pOptDesc->optArg.argString, &sb) != 0) {
         if ((pOpts->fOptSet & OPTPROC_ERRSTOP) == 0)
             return;
 
-        fprintf( stderr, zFSErrOptLoad, errno, strerror( errno ),
-                 pOptDesc->optArg.argString );
+        fprintf(stderr, zFSErrOptLoad, errno, strerror(errno),
+                pOptDesc->optArg.argString);
         exit(EX_NOINPUT);
         /* NOT REACHED */
     }
 
-    if (! S_ISREG( sb.st_mode )) {
+    if (! S_ISREG(sb.st_mode)) {
         if ((pOpts->fOptSet & OPTPROC_ERRSTOP) == 0)
             return;
 
-        fprintf( stderr, zNotFile, pOptDesc->optArg.argString );
+        fprintf(stderr, zNotFile, pOptDesc->optArg.argString);
         exit(EX_NOINPUT);
         /* NOT REACHED */
     }
 
-    filePreset(pOpts, pOptDesc->optArg.argString, DIRECTION_CALLED);
+    file_preset(pOpts, pOptDesc->optArg.argString, DIRECTION_CALLED);
 }
 
 
-/*  parseAttributes
- *
+/**
  *  Parse the various attributes of an XML-styled config file entry
  */
 LOCAL char*
-parseAttributes(
-    tOptions*           pOpts,
-    char*               pzText,
-    tOptionLoadMode*    pMode,
-    tOptionValue*       pType )
+parse_attrs(tOptions * pOpts, char * pzText, tOptionLoadMode * pMode,
+            tOptionValue * pType)
 {
     size_t len;
 
@@ -1005,27 +1178,27 @@ parseAttributes(
         if (! IS_WHITESPACE_CHAR(*pzText))
             switch (*pzText) {
             case '/': pType->valType = OPARG_TYPE_NONE;
+                      /* FALLTHROUGH */
             case '>': return pzText;
 
             default:
             case NUL: return NULL;
             }
 
-        while (IS_WHITESPACE_CHAR(*++pzText))     ;
-        len = 0;
-        while (IS_LOWER_CASE_CHAR(pzText[len]))   len++;
+        pzText = SPN_WHITESPACE_CHARS(pzText+1);
+        len = SPN_LOWER_CASE_CHARS(pzText) - pzText;
 
         switch (find_xat_attribute_id(pzText, len)) {
         case XAT_KWD_TYPE:
-            pzText = parseValueType( pzText+len, pType );
+            pzText = parse_value(pzText+len, pType);
             break;
 
         case XAT_KWD_WORDS:
-            pzText = parseKeyWordType( pOpts, pzText+len, pType );
+            pzText = parse_keyword(pOpts, pzText+len, pType);
             break;
 
         case XAT_KWD_MEMBERS:
-            pzText = parseSetMemType( pOpts, pzText+len, pType );
+            pzText = parse_set_mem(pOpts, pzText+len, pType);
             break;
 
         case XAT_KWD_COOKED:
@@ -1056,7 +1229,7 @@ parseAttributes(
         case XAT_KWD_INVALID:
         invalid_kwd:
             pType->valType = OPARG_TYPE_NONE;
-            return skipUnknown( pzText );
+            return skip_unkn(pzText);
         }
     } while (pzText != NULL);
 
@@ -1064,61 +1237,55 @@ parseAttributes(
 }
 
 
-/*  parseKeyWordType
- *
+/**
  *  "pzText" points to the character after "words=".
  *  What should follow is a name of a keyword (enumeration) list.
  */
 static char*
-parseKeyWordType(
-    tOptions*     pOpts,
-    char*         pzText,
-    tOptionValue* pType )
+parse_keyword(tOptions * pOpts, char * pzText, tOptionValue * pType)
 {
-    return skipUnknown( pzText );
+    (void)pOpts;
+    (void)pType;
+
+    return skip_unkn(pzText);
 }
 
 
-/*  parseSetMemType
- *
+/**
  *  "pzText" points to the character after "members="
  *  What should follow is a name of a "set membership".
  *  A collection of bit flags.
  */
 static char*
-parseSetMemType(
-    tOptions*     pOpts,
-    char*         pzText,
-    tOptionValue* pType )
+parse_set_mem(tOptions * pOpts, char * pzText, tOptionValue * pType)
 {
-    return skipUnknown( pzText );
+    (void)pOpts;
+    (void)pType;
+
+    return skip_unkn(pzText);
 }
 
 
-/*  parseValueType
- *
+/**
  *  "pzText" points to the character after "type="
  */
-static char*
-parseValueType(
-    char*         pzText,
-    tOptionValue* pType )
+static char *
+parse_value(char * pzText, tOptionValue * pType)
 {
     size_t len = 0;
 
     if (*(pzText++) != '=')
         goto woops;
 
-    while (IS_OPTION_NAME_CHAR(pzText[len]))  len++;
-    pzText += len;
+    len = SPN_OPTION_NAME_CHARS(pzText) - pzText;
 
-    if ((len == 0) || (! IS_END_XML_TOKEN_CHAR(*pzText))) {
+    if ((len == 0) || (! IS_END_XML_TOKEN_CHAR(pzText[len]))) {
     woops:
         pType->valType = OPARG_TYPE_NONE;
-        return skipUnknown( pzText );
+        return skip_unkn(pzText + len);
     }
 
-    switch (find_value_type_id(pzText - len, len)) {
+    switch (find_value_type_id(pzText, len)) {
     default:
     case VTP_KWD_INVALID: goto woops;
 
@@ -1149,16 +1316,15 @@ parseValueType(
         pType->valType = OPARG_TYPE_HIERARCHY;
     }
 
-    return pzText;
+    return pzText + len;
 }
 
 
-/*  skipUnknown
- *
+/**
  *  Skip over some unknown attribute
  */
-static char*
-skipUnknown( char* pzText )
+static char *
+skip_unkn(char* pzText)
 {
     for (;; pzText++) {
         if (IS_END_XML_TOKEN_CHAR(*pzText))  return pzText;
@@ -1167,20 +1333,25 @@ skipUnknown( char* pzText )
 }
 
 
-/*  validateOptionsStruct
- *
+/**
  *  Make sure the option descriptor is there and that we understand it.
  *  This should be called from any user entry point where one needs to
  *  worry about validity.  (Some entry points are free to assume that
  *  the call is not the first to the library and, thus, that this has
  *  already been called.)
+ *
+ *  Upon successful completion, pzProgName and pzProgPath are set.
+ *
+ *  @param pOpts      program options descriptor
+ *  @param pzProgram  name of program, from argv[]
+ *  @returns SUCCESS or FAILURE
  */
 LOCAL tSuccess
-validateOptionsStruct( tOptions* pOpts, char const* pzProgram )
+validate_struct(tOptions * pOpts, char const * pzProgram)
 {
     if (pOpts == NULL) {
-        fputs( zAO_Bad, stderr );
-        exit( EX_CONFIG );
+        fputs(zAO_Bad, stderr);
+        return FAILURE;
     }
 
     /*
@@ -1209,13 +1380,16 @@ validateOptionsStruct( tOptions* pOpts, char const* pzProgram )
        && (  (pOpts->structVersion > OPTIONS_STRUCT_VERSION  )
           || (pOpts->structVersion < OPTIONS_MINIMUM_VERSION )
        )  )  {
+        static char const aover[] =
+            STR(AO_CURRENT)":"STR(AO_REVISION)":"STR(AO_AGE)"\n";
 
         fprintf(stderr, zAO_Err, pzProgram, NUM_TO_VER(pOpts->structVersion));
         if (pOpts->structVersion > OPTIONS_STRUCT_VERSION )
-            fputs( zAO_Big, stderr );
+            fputs(zAO_Big, stderr);
         else
-            fputs( zAO_Sml, stderr );
+            fputs(zAO_Sml, stderr);
 
+        fwrite(aover, sizeof(aover) - 1, 1, stderr);
         return FAILURE;
     }
 
@@ -1224,18 +1398,26 @@ validateOptionsStruct( tOptions* pOpts, char const* pzProgram )
      *  and the set of equivalent characters.
      */
     if (pOpts->pzProgName == NULL) {
-        char const* pz = strrchr( pzProgram, DIRCH );
+        char const *  pz = strrchr(pzProgram, DIRCH);
+        char const ** pp =
+            (char const **)(void **)&(pOpts->pzProgName);
 
-        if (pz == NULL)
-             pOpts->pzProgName = pzProgram;
-        else pOpts->pzProgName = pz+1;
+        if (pz != NULL) {
+            *pp = pz+1;
+        } else {
+            *pp = pzProgram;
+            pz = pathfind(getenv("PATH"), (char *)pzProgram, "rx");
+            if (pz != NULL)
+                pzProgram = (void *)pz;
+        }
 
-        pOpts->pzProgPath = pzProgram;
+        pp  = (char const **)(void **)&(pOpts->pzProgPath);
+        *pp = pzProgram;
 
         /*
          *  when comparing long names, these are equivalent
          */
-        strequate( zSepChars );
+        strequate(zSepChars);
     }
 
     return SUCCESS;
