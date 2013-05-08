@@ -60,7 +60,7 @@ tcpedit_checkdir(tcpedit_t *tcpedit, tcpr_dir_t direction)
     /* Should we edit this packet? */
     if ((tcpedit->editdir == TCPEDIT_EDIT_BOTH) ||
         (tcpedit->editdir == TCPEDIT_EDIT_C2S && direction == TCPR_DIR_C2S) ||
-        (tcpedit->editdir == TCPR_EDIT_S2C && direction == TCPR_DIR_S2C)) {
+        (tcpedit->editdir == TCPEDIT_EDIT_S2C && direction == TCPR_DIR_S2C)) {
         return 1;
     }
     return 0;

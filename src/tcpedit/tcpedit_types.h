@@ -48,6 +48,12 @@ typedef enum {
 } tcpedit_ttl_mode;
 
 typedef enum {
+    TCPEDIT_EDIT_BOTH       = 0,
+    TCPEDIT_EDIT_C2S,
+    TCPEDIT_EDIT_S2C 
+} tcpedit_direction;
+
+typedef enum {
     BEFORE_PROCESS,
     AFTER_PROCESS
 } tcpedit_coder;
@@ -108,6 +114,7 @@ typedef struct {
 
     /* pad or truncate packets */
     tcpedit_fixlen fixlen;
+    tcpedit_direction editdir;
 
     /* rewrite ip? */
     bool rewrite_ip;
