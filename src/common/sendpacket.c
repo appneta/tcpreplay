@@ -779,7 +779,7 @@ get_iface_index(int fd, const int8_t *device, char *errbuf) {
 /**
  * get's the hardware address via Linux's PF packet interface
  */
-struct tcpr_ether_addr *
+static struct tcpr_ether_addr *
 sendpacket_get_hwaddr_pf(sendpacket_t *sp)
 {
     struct ifreq ifr;
@@ -937,7 +937,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
 /**
  * Get the interface hardware MAC address when using BPF
  */
-struct tcpr_ether_addr *
+static struct tcpr_ether_addr *
 sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
 {
     int mib[6];
