@@ -159,7 +159,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
     -Wall -Wpointer-arith -std=gnu99 ${gcc_extras}
   )
 else(CMAKE_COMPILER_IS_GNUCC)
-  add_definitions(-DHAVE_CONFIG_H -D_U_=\"\")
+  add_definitions(-DHAVE_CONFIG_H -D_U_=)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # Build for x64?.
