@@ -36,7 +36,11 @@ EOText;
 };
 
 package         = "tcpreplay";
+#ifdef TCPREPLAY_EDIT
+prog-name       = "tcpreplay-edit";
+#else 
 prog-name       = "tcpreplay";
+#endif
 prog-title      = "Replay network traffic stored in pcap files";
 long-opts;
 gnu-usage;
@@ -456,7 +460,7 @@ flag = {
     descrip     = "Print the PID of tcpreplay at startup";
     flag-code   = <<- EOPid
 
-    fprintf(stderr, "PID: %hu\n", getpid());
+    fprintf(stderr, "PID: %d\n", getpid());
 
 EOPid;
     doc         = "";

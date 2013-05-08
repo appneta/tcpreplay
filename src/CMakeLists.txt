@@ -183,7 +183,7 @@ if(USE_AUTOOPTS)
     set(autogen_opts -T agman1.tpl -L tcpedit)
 
     add_custom_command(OUTPUT tcpreplay.1
-        COMMAND ${AUTOGEN} ${autogen_opts} -b tcpreplay tcpreplay_opts.def
+        COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY -b tcpreplay tcpreplay_opts.def
         DEPENDS tcpreplay_opts.def)
     add_custom_command(OUTPUT tcpreplay-edit.1
         COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -b tcpreplay-edit tcpreplay_opts.def
