@@ -2,6 +2,8 @@
 
 The new home for Tcpreplay is on Github!
 
+Looking for the stable 3.4 branch?  Go here: https://github.com/synfinatic/tcpreplay/tree/3.4
+
 ## Install
 
 ### Simple directions for Unix users:
