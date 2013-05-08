@@ -43,8 +43,8 @@
 ########################################################
 
 # Takes the path to the tearoff directory & the version of autogen
-MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __AUTOGEN_VERSION)
-    SET(AUTOGEN_VERSION ${__AUTOGEN_VERSION})
+MACRO(CHECK_LIBOPTS_TEAROFF LIBOPTS_TEAROFF_PATH __LIBOPTS_VERSION)
+    SET(LIBOPTS_VERSION ${__LIBOPTS_VERSION})
 
     INCLUDE(CheckFunctionExists)
     INCLUDE(CheckIncludeFile)

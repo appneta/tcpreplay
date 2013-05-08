@@ -72,13 +72,10 @@ endif(NOT SYSTEM_STRLCPY)
 find_program(ECHO echo)
 find_program(SVNVERSION svnversion)
 find_program(DIFF diff)
-find_program(AUTOGEN autogen)
 find_program(TCPDUMP_BINARY tcpdump)
 find_program(CTAGS ctags)
 find_program(ETAGS etags)
 find_program(GROFF groff)
-
-
 
 set(USE_AUTOOPTS YES)
 if(WIN32 AND NOT CYGWIN)
@@ -326,7 +323,7 @@ include(FindDoxygen)
 include(FindUnixCommands)
 
 
-
+include(CheckAutogen)
 if(USE_AUTOOPTS)
     message(STATUS "Configuring libopts tearoff...")
     include(CheckLibopts)
@@ -402,13 +399,12 @@ else(ENABLE_64BITS)
     set(ENABLE_64BITS NO)
 endif(ENABLE_64BITS)
 
-set(REPO_VERSION "")
-if(EXISTS .svn AND Subversion_FOUND)
-    Subversion_WC_INFO(${CMAKE_SOURCE_DIR} TCPREPLAY_SVN)
-    set(REPO_VERSION (r${TCPREPLAY_SVN_WC_REVISION}))
-    string(REPLACE ";" "" REPO_VERSION ${REPO_VERSION})
-endif(EXISTS .svn AND Subversion_FOUND)
-
+string(COMPARE EQUAL AUTOGEN_VERSION LIBOPTS_VERSION AUTOGEN_VER_MATCH)
+if(AUTOGEN_VER_MATCH)
+    set(AUTOGEN_VER_MATCH "matches libopts tearoff")
+else(AUTOGEN_VER_MATCH)
+    set(AUTOGEN_VER_MATCH "warning! libopts tearoff is version ${LIBOPTS_VERSION}")
+endif(AUTOGEN_VER_MATCH)
 
 message(STATUS
 "
@@ -419,7 +415,7 @@ install location:           ${CPACK_PACKAGE_INSTALL_DIRECTORY}
 libpcap:                    ${HAVE_LIBPCAP} ${PCAP_LIBRARIES}
 libdnet:                    ${HAVE_LIBDNET} ${DNET_LIBS} (${LIBDNET_VERSION})
 libevent:                   ${HAVE_LIBEVENT} ${EVENT_LIBRARIES}
-autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
+autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION}) ${AUTOGEN_VER_MATCH}
 64bit counter support:      ${ENABLE_64BITS}
 tcpdump binary path:        ${TCPDUMP_BINARY}
 fragroute support:          ${ENABLE_FRAGROUTE}

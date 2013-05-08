@@ -45,10 +45,16 @@ Thumbs.db
 *.tmproj
 
 # CMake files 
-*.cmake
 CMakeFiles
 CMakeCache.txt
 _CPack_Packages
+cmake_install.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+cmake/BuildDistTgz.cmake
+test/RunUnitTest.cmake
+test/Standard.cmake
+test/Tests.cmake
 
 # Misc files
 tcpreplay.spec
