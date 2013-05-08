@@ -18,12 +18,14 @@
  */
 
 #include <unistd.h>
+#include <string.h>
 
 #include "config.h"
 #include "defines.h"
 #include "common.h"
 #include "tcpreplay_api.h"
 #include "send_packets.h"
+
 
 static int replay_file(tcpreplay_t *ctx, int idx);
 static int replay_two_files(tcpreplay_t *ctx, int idx1, int idx2);

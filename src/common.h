@@ -46,7 +46,7 @@ extern "C" {
 #include "common/sendpacket.h"
 #include "common/interface.h"
 
-const char *svn_version(void); /* svn_version.c */
+const char *git_version(void); /* git_version.c */
 
 #ifdef __cplusplus
 }
