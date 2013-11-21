@@ -1,8 +1,8 @@
 ###################################################################
 #  $Id:$
 #
-#  Copyright (c) 2013 Aaron Turner, <aturner at synfin dot net>
 #  Copyright (c) 2013 AppNeta Inc - Fred Klassen, <fklassen at appneta dot com>
+#  Copyright (c) 2013 Aaron Turner, <aturner at synfin dot net>
 #  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -46,10 +46,10 @@
 #  HAVE_NETMAP     - True if netmap found.
  
 SET(foundnetmap false)
-FOREACH(testdir /usr/include /usr/src/netmap /usr/src/netmap-release ${NETMAP_DIR} $ENV{NETMAP_DIR})
+FOREACH(testdir /usr/src/netmap /usr/src/netmap-release ${NETMAP_DIR} $ENV{NETMAP_DIR})
     IF(EXISTS ${testdir}/sys/net/netmap.h)
         SET(foundnetmap ${testdir})
-    ENDIF(EXISTS ${testdir}/net/netmap.h)
+    ENDIF()
 ENDFOREACH()
 
 IF(foundnetmap)
