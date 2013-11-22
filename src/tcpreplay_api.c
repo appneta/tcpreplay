@@ -371,7 +371,6 @@ tcpreplay_close(tcpreplay_t *ctx)
             safe_free(packet_cache);
             packet_cache = next;
         }
-        safe_free(options->file_cache);
     }
 
     /* free our interface list */
