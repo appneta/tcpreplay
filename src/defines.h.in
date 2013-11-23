@@ -52,7 +52,10 @@
 
 #include "@LPCAPINC@"
 
+/* include our own strlcat/strlcpy? */
+#ifndef HAVE_SYSTEM_STRLCPY
 #include "lib/strlcpy.h"
+#endif
 
 /*
  * net/bpf.h doesn't include DLT types, but pcap-bpf.h does.
