@@ -623,6 +623,7 @@ tcpreplay_add_pcapfile(tcpreplay_t *ctx, char *pcap_file)
 
     if (ctx->options->source_cnt < MAX_FILES) {
         ctx->options->sources[ctx->options->source_cnt].filename = safe_strdup(pcap_file);
+        ctx->options->sources[ctx->options->source_cnt].type = source_filename;
 
         /*
          * prepare the cache info data struct.  This doesn't actually enable
