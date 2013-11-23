@@ -62,12 +62,6 @@ set(CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local")
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_SOURCE_GENERATOR "TGZ")
 
-check_function_exists(strlcpy SYSTEM_STRLCPY)
-if(NOT SYSTEM_STRLCPY)
-    add_subdirectory(lib)
-    include_directories(${CMAKE_SOURCE_DIR}/lib)
-endif(NOT SYSTEM_STRLCPY)
-
 
 find_program(ECHO echo)
 find_program(DIFF diff)
@@ -290,6 +284,13 @@ check_function_exists("mmap"             HAVE_MMAP)
 check_function_exists("mprotect"         HAVE_MPROTECT)
 check_function_exists("sysconf"          HAVE_SYSCONF)
 check_function_exists("poll"             HAVE_POLL)
+check_function_exists("strlcat"          HAVE_STRLCAT)
+check_function_exists("strlcpy"          HAVE_SYSTEM_STRLCPY)
+
+if(NOT HAVE_SYSTEM_STRLCPY)
+    add_subdirectory(lib)
+    include_directories(${CMAKE_SOURCE_DIR}/lib)
+endif(NOT HAVE_SYSTEM_STRLCPY)
 
 # is system strictly aligned?
 include(CheckStrictAlign)

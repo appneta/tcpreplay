@@ -48,7 +48,10 @@
 #include "lib/tree.h"
 #include "tree.h"
 #include "lib/sll.h"
+
+#ifndef HAVE_SYSTEM_STRLCPY
 #include "lib/strlcpy.h"
+#endif
 
 /*
  * global variables
