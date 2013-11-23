@@ -25,9 +25,9 @@ else(HAVE_LIBDNET)
 endif(HAVE_LIBDNET)
 
 set(baselibs "common")
-if(NOT SYSTEM_STRLCPY)
+if(NOT HAVE_SYSTEM_STRLCPY)
     set(baselibs ${baselibs} ${CMAKE_SOURCE_DIR}/lib/libstrl.a)
-endif(NOT SYSTEM_STRLCPY)
+endif(NOT HAVE_SYSTEM_STRLCPY)
 
 set(tcpcapinfo_srcs tcpcapinfo.c tcpcapinfo_opts.c)
 set(tcprewrite_srcs tcprewrite.c)
