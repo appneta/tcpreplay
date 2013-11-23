@@ -461,9 +461,7 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
     assert(errbuf);
 #if defined HAVE_NETMAP
     sp = sendpacket_open_netmap(device, errbuf);
-    if (sp)
-        notice("Using netmap...");
-    else
+    if (!sp)
 #endif
 #if defined HAVE_PF_PACKET
     sp = sendpacket_open_pf(device, errbuf);
@@ -541,6 +539,8 @@ sendpacket_close(sendpacket_t *sp)
 
     case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
+        fprintf(stderr, "Switching network driver to normal mode... ");
+        fflush(NULL);
           /* flush any remaining packets */
         ioctl (sp->handle.fd, NIOCTXSYNC, NULL);
 
@@ -553,6 +553,7 @@ sendpacket_close(sendpacket_t *sp)
         ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
         munmap(sp->mmap_addr, sp->mmap_size);
         close(sp->handle.fd);
+        notice("done!");
 #endif
         break;
 
@@ -856,9 +857,12 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     sp->nmr = nmr;
     sp->handle_type = SP_TYPE_NETMAP;
 
+    fprintf(stderr, "Switching network driver to netmap bypass mode... ");
+    fflush(NULL);
     dbg(3, "Waiting 4 seconds for phy reset...");
     sleep (4);
     dbg(3, "Ready!");
+    notice("done!");
 
     nm_do_ioctl(sp, SIOCGIFFLAGS, 0);
     if ((sp->if_flags & IFF_UP) == 0) {
