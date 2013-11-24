@@ -126,7 +126,7 @@ main(int argc, char *argv[])
     }
 
     for (i = 0; i < argc; i++) {
-        ctx->options->sources[i].filename = safe_strdup(argv[i]);
+        tcpreplay_add_pcapfile(ctx, argv[i]);
 
         /* preload our pcap file? */
         if (ctx->options->preload_pcap) {
