@@ -173,7 +173,7 @@ tcpedit_dlt_validate(tcpeditdlt_t *ctx)
     
     /* loops from 1 -> UINT32_MAX by powers of 2 */
     for (bit = 1; bit != 0; bit = bit << 2) {
-        if (ctx->encoder->requires & bit && ! ctx->decoder->provides & bit) {
+        if ((ctx->encoder->requires & bit) && ! (ctx->decoder->provides & bit)) {
             tcpedit_seterr(ctx->tcpedit, "%s", tcpeditdlt_bit_info[tcpeditdlt_bit_map[bit]]);
             return TCPEDIT_ERROR;
         }            
