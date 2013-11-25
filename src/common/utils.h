@@ -60,7 +60,6 @@ void _our_safe_free(void *ptr, const char *, const int, const char *);
 int inet_aton(const char *name, struct in_addr *addr);
 #endif
 
-#ifndef do_div
 #if __BITS_PER_LONG == 64
 # define do_div(n,base) ({          \
     uint32_t __base = (base);       \
@@ -74,7 +73,7 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 # define do_div(n,base) ({        \
     uint32_t __base = (base);     \
     uint32_t __rem;         \
-    if (likely(((n) >> 32) == 0)) {     \
+    if (((n) >> 32) == 0) {     \
         __rem = (uint32_t)(n) % __base;   \
         (n) = (uint32_t)(n) / __base;   \
     } else            \
@@ -85,5 +84,3 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 # error do_div() does not yet support the C64
 #endif /* __BITS_PER_LONG */
 #endif /* do_div */
-
-#endif
