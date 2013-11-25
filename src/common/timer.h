@@ -61,8 +61,8 @@
  * 1 microsec = 1,000 nanosec
  */
 
-void timerdiv(struct timeval *tvp, float div);
-void timesdiv(struct timespec *tvs, float div);
+void timerdiv(struct timeval *tvp, COUNTER div);
+void timesdiv(struct timespec *tvs, COUNTER div);
 
 /* convert float time to struct timeval *tvp */
 #ifndef float2timer
@@ -97,9 +97,7 @@ void timesdiv(struct timespec *tvs, float div);
 #ifndef ROUND_TIMESPEC_TO_MICROSEC
 #define ROUND_TIMESPEC_TO_MICROSEC(ts)             \
     do {                                           \
-        (ts)->tv_nsec = ((((ts)->tv_nsec / 1000) + \
-            ((ts)->tv_nsec % 1000 >= 500 ? 1 : 0)) \
-            * 1000);   \
+        (ts)->tv_nsec = (((ts)->tv_nsec + 500) / 1000);   \
     } while (0)
 #endif
 
@@ -224,11 +222,11 @@ get_delta_time(delta_t *ctx, struct timespec *ret)
     AbsoluteTime now, delta;
     Nanoseconds nano;
 
-    now = UpTime();
 
     if (! NonZero(*ctx)) {
         timesclear(ret);
     } else {
+        now = UpTime();
         delta = SubAbsoluteFromAbsolute(now, *ctx);
         nano = AbsoluteToNanoseconds(delta);
         NANOSEC_TO_TIMESPEC(UnsignedWideToUInt64(nano) / 10, ret);
@@ -238,11 +236,10 @@ get_delta_time(delta_t *ctx, struct timespec *ret)
 #else
     struct timeval now, delta;
 
-    gettimeofday(&now, NULL);
-
     if (!timerisset(ctx)) {
         timesclear(ret);
     } else {
+        gettimeofday(&now, NULL);
         timersub(&now, ctx, &delta);
         TIMEVAL_TO_TIMESPEC(&delta, ret);
     }

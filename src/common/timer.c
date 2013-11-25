@@ -31,28 +31,30 @@
  * Divide tvp by div, storing the result in tvp 
  */
 void
-timerdiv(struct timeval *tvp, float div)
+timerdiv(struct timeval *tvp, COUNTER div)
 {
-    double interval;
+  uint64_t interval;
 
     if (div == 0 || div == 1)
         return;
 
-    interval = ((double)tvp->tv_sec * 1000000 + tvp->tv_usec) / (double)div;
-    tvp->tv_sec = interval / (int)1000000;
+    interval = (uint64_t)tvp->tv_sec * 1000000 + tvp->tv_usec;
+    do_div(interval, div);
+    tvp->tv_sec = interval / 1000000;
     tvp->tv_usec = interval - (tvp->tv_sec * 1000000);
 }
 
 /* Divide tvs by div, storing the result in tvs */
-void timesdiv(struct timespec *tvs, float div)
+void timesdiv(struct timespec *tvs, COUNTER div)
 {
-    double interval;
+    uint64_t interval;
     
     if (div == 0 || div == 1)
         return;
         
-    interval = ((double)tvs->tv_sec * 1000000000 + tvs->tv_nsec) / (double)div;
-    tvs->tv_sec = interval / (int)1000000000;
+    interval = (uint64_t)tvs->tv_sec * 1000000000 + tvs->tv_nsec;
+    do_div(interval, div);
+    tvs->tv_sec = interval / 1000000000;
     tvs->tv_nsec = interval - (tvs->tv_sec * 1000000000);
 }
 

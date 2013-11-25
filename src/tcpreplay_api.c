@@ -465,7 +465,7 @@ tcpreplay_set_speed_mode(tcpreplay_t *ctx, tcpreplay_speed_mode value)
  * how tcpreplay_set_speed_mode() value
  */
 int
-tcpreplay_set_speed_speed(tcpreplay_t *ctx, float value)
+tcpreplay_set_speed_speed(tcpreplay_t *ctx, COUNTER value)
 {
     assert(ctx);
     ctx->options->speed.speed = value;

@@ -309,9 +309,6 @@
     typedef unsigned int        uint32_t;
 # elif SIZEOF_LONG ==           4
     typedef unsigned long       uint32_t;
-# else
-#   error Cannot create a uint32_t type.
-    Choke Me.
 # endif
 # define  HAVE_UINT32_T         1
 #endif
