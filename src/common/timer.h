@@ -61,6 +61,8 @@
  * 1 microsec = 1,000 nanosec
  */
 
+void timerdiv_float(struct timeval *tvp, float div);
+void timesdiv_float(struct timespec *tvs, float div);
 void timerdiv(struct timeval *tvp, COUNTER div);
 void timesdiv(struct timespec *tvs, COUNTER div);
 

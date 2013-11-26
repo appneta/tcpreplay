@@ -69,6 +69,7 @@ typedef struct {
     /* speed modifiers */
     tcpreplay_speed_mode mode;
     COUNTER speed;
+    float multiplier;
     int pps_multi;
     u_int32_t (*manual_callback)(struct tcpreplay_s *, char *, COUNTER);
 } tcpreplay_speed_t;

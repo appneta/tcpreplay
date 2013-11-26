@@ -180,7 +180,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (ctx->options->speed.mode != speed_topspeed && ctx->options->speed.speed) {
+        if (ctx->options->speed.mode != speed_topspeed &&
+        		!(ctx->options->speed.mode == speed_mbpsrate && !ctx->options->speed.speed)) {
             do_sleep(ctx, (struct timeval *)&pkthdr.ts, &last, pktlen, 
                     ctx->options->accurate, sp, packetnum, &delta_ctx,
                     &skip_timestamp);
@@ -350,7 +351,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int idx1, pcap_t *pcap2, int 
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (ctx->options->speed.mode != speed_topspeed && ctx->options->speed.speed) {
+        if (ctx->options->speed.mode != speed_topspeed &&
+        		!(ctx->options->speed.mode == speed_mbpsrate && !ctx->options->speed.speed)) {
             do_sleep(ctx, (struct timeval *)&pkthdr_ptr->ts, &last, pktlen,
                     ctx->options->accurate, sp, packetnum, &delta_ctx, &skip_timestamp);
 
@@ -550,7 +552,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
     struct timespec nap_this_time;
     static int32_t nsec_adjuster = -1, nsec_times = -1;
     static u_int32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
-    u_int64_t ppnsec; /* packets per usec */
+    u_int64_t ppnsec; /* packets per nsec */
     static int first_time = 1;      /* need to track the first time through for the pps accelerator */
     static COUNTER skip_length = 0;
 
@@ -618,7 +620,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
 
                 TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
                 dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
-                timesdiv(&nap, ctx->options->speed.speed);
+                timesdiv_float(&nap, ctx->options->speed.multiplier);
                 dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
             }
         } else {
@@ -633,10 +635,10 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
          * a constant 'rate' (bytes per second).
          */
         if (timerisset(delta_ctx)) {
-            COUNTER next_tx_us = (ctx->stats.bytes_sent + len) * 8;
+            COUNTER next_tx_us = (ctx->stats.bytes_sent + len) * 8 * 1000000;
             do_div(next_tx_us, ctx->options->speed.speed);  /* bits divided by Mbps = microseconds */
             COUNTER tx_us = TIMEVAL_TO_MICROSEC(delta_ctx) - TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
-            COUNTER delta_us = (next_tx_us > tx_us) ? next_tx_us - tx_us : 0;
+            COUNTER delta_us = (next_tx_us >= tx_us) ? next_tx_us - tx_us : 0;
             if (delta_us)
                 /* have to sleep */
                 NANOSEC_TO_TIMESPEC(delta_us * 1000, &nap);
@@ -647,7 +649,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
                  */
                 timesclear(&nap);
                 skip_length = (tx_us - next_tx_us) * ctx->options->speed.speed;
-                do_div(skip_length, 8);
+                do_div(skip_length, 8 * 1000000);
                 *skip_timestamp = true;
             }
         }

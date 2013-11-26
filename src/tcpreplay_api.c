@@ -90,7 +90,8 @@ tcpreplay_init()
 
     /* Default mode is to replay pcap once in real-time */
     ctx->options->speed.mode = speed_multiplier;
-    ctx->options->speed.speed = 1.0;
+    ctx->options->speed.speed = 0;
+    ctx->options->speed.multiplier = 1.0;
 
     /* Set the default timing method */
 #ifdef HAVE_ABSOLUTE_TIME
@@ -141,6 +142,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     int int1dlt, int2dlt;
     tcpreplay_opt_t *options;
     int warn = 0;
+    float n;
 
 #ifdef USE_AUTOOPTS
     options = ctx->options;
@@ -163,20 +165,21 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(TOPSPEED)) {
         options->speed.mode = speed_topspeed;
-        options->speed.speed = 0.0;
+        options->speed.speed = 0;
     } else if (HAVE_OPT(PPS)) {
         options->speed.mode = speed_packetrate;
         options->speed.speed = (float)OPT_VALUE_PPS;
         options->speed.pps_multi = OPT_VALUE_PPS_MULTI;
     } else if (HAVE_OPT(ONEATATIME)) {
         options->speed.mode = speed_oneatatime;
-        options->speed.speed = 0.0;
+        options->speed.speed = 0;
     } else if (HAVE_OPT(MBPS)) {
         options->speed.mode = speed_mbpsrate;
-        options->speed.speed = atof(OPT_ARG(MBPS));
+        n = atof(OPT_ARG(MBPS));
+        options->speed.speed = (COUNTER)(n * 1000000.0);
     } else if (HAVE_OPT(MULTIPLIER)) {
         options->speed.mode = speed_multiplier;
-        options->speed.speed = atof(OPT_ARG(MULTIPLIER));
+        options->speed.multiplier = atof(OPT_ARG(MULTIPLIER));
     }
 
 #ifdef ENABLE_VERBOSE
