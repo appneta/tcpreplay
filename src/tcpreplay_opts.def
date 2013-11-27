@@ -463,7 +463,7 @@ This feature will detect netmap capable network drivers on Linux and BSD
 systems. If detected, the network driver is bypassed for the execution
 duration, and network buffers will be written to directly. This will allow
 you to achieve full line rates on commodity network adapters, similar to rates
-achieved by commercial network test hardware. Note that bypassing the network
+achieved by commercial network traffic generators. Note that bypassing the network
 driver will disrupt other applications connected through the test interface. See
 INSTALL for more information.
 EOText;

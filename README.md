@@ -36,7 +36,7 @@ systems. If detected, the network driver is bypassed for the execution
 duration of tcpreplay and tcpreplay-edit, and network buffers will be 
 written to directly. This will allow you to achieve full line rates on 
 commodity network adapters, similar to rates achieved by commercial network 
-test hardware.
+traffic generators.
 
 Note that bypassing the network driver will disrupt other applications connected
 through the test interface. Don't test on the same interface you ssh'ed into.
