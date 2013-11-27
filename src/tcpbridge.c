@@ -201,7 +201,7 @@ post_args(_U_ int argc, _U_ char *argv[])
      * if user doesn't specify MAC address on CLI, query for it 
      */
     if (memcmp(options.intf1_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
-        if ((sp = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S)) == NULL)
+        if ((sp = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE)) == NULL)
             errx(-1, "Unable to open interface %s: %s", options.intf1, ebuf);
 
         if ((eth_buff = sendpacket_get_hwaddr(sp)) == NULL) {
@@ -213,7 +213,7 @@ post_args(_U_ int argc, _U_ char *argv[])
     }
 
     if (memcmp(options.intf2_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
-        if ((sp = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C)) == NULL)
+        if ((sp = sendpacket_open(options.intf2, ebuf, TCPR_DIR_S2C, SP_TYPE_NONE)) == NULL)
             errx(-1, "Unable to open interface %s: %s", options.intf2, ebuf);
 
         if ((eth_buff = sendpacket_get_hwaddr(sp)) == NULL) {

@@ -35,7 +35,7 @@ This feature will detect netmap capable network drivers on Linux and BSD
 systems. If detected, the network driver is bypassed for the execution 
 duration of tcpreplay and tcpreplay-edit, and network buffers will be 
 written to directly. This will allow you to achieve full line rates on 
-commodity network adapters, similar torates achieved by commercial network 
+commodity network adapters, similar to rates achieved by commercial network 
 test hardware.
 
 Note that bypassing the network driver will disrupt other applications connected

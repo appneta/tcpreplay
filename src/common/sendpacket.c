@@ -26,13 +26,14 @@
   * injection method, then by all means add it here (and send me a patch).
   *
   * Anyways, long story short, for now the order of preference is:
-  * 1. netmap
-  * 2. TX_RING
-  * 3. PF_PACKET
-  * 4. BPF
-  * 5. libdnet
-  * 6. pcap_inject()
-  * 7. pcap_sendpacket()
+  * 1. TX_RING
+  * 2. PF_PACKET
+  * 3. BPF
+  * 4. libdnet
+  * 5. pcap_inject()
+  * 6. pcap_sendpacket()
+  *
+  * The --netmap option will override the default injector.
   *
   * Right now, one big problem with the pcap_* methods is that libpcap
   * doesn't provide a reliable method of getting the MAC address of
@@ -138,19 +139,11 @@ static sendpacket_t *sendpacket_open_netmap(const char *device, char *errbuf);
 #ifdef HAVE_PF_PACKET
 #undef INJECT_METHOD
 
-/* give priority to netmap, then TX_RING */
+/* give priority to TX_RING */
 #ifndef HAVE_TX_RING
-#ifdef HAVE_NETMAP
-# define INJECT_METHOD "netmap / PF_PACKET send()"
+#define INJECT_METHOD "PF_PACKET send()"
 #else
-# define INJECT_METHOD "PF_PACKET send()"
-#endif
-#else
-#ifdef HAVE_NETMAP
-# define INJECT_METHOD "netmap / PF_PACKET / TX_RING"
-#else
-# define INJECT_METHOD "PF_PACKET / TX_RING"
-#endif
+#define INJECT_METHOD "PF_PACKET / TX_RING"
 #endif
 
 #include <fcntl.h>
@@ -453,15 +446,16 @@ TRY_NETMAP_SEND_AGAIN:
  * that this interface represents
  */
 sendpacket_t *
-sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
+sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction, sendpacket_type_t sendpacket_type)
 {
     sendpacket_t *sp;
 
     assert(device);
     assert(errbuf);
 #if defined HAVE_NETMAP
-    sp = sendpacket_open_netmap(device, errbuf);
-    if (!sp)
+    if (sendpacket_type == SP_TYPE_NETMAP)
+    	sp = sendpacket_open_netmap(device, errbuf);
+    else
 #endif
 #if defined HAVE_PF_PACKET
     sp = sendpacket_open_pf(device, errbuf);
@@ -555,6 +549,10 @@ sendpacket_close(sendpacket_t *sp)
         close(sp->handle.fd);
         notice("done!");
 #endif
+        break;
+
+    case SP_TYPE_NONE:
+        err(-1, "No injector type specified!");
         break;
 
     }
@@ -721,7 +719,7 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
 /**
  * ioctl support for netmap
  */
-int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
+int nm_do_ioctl(sendpacket_t *sp, u_long what, int subcmd) {
     struct ifreq ifr;
     int error;
     struct ethtool_value eval;
@@ -729,14 +727,14 @@ int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
 
     assert(sp);
 
-    fd = socket (AF_INET, SOCK_DGRAM, 0);
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
         dbg(1, "ioctl error: cannot get device control socket.\n");
         return -1;
     }
 
-    bzero (&ifr, sizeof(ifr));
-    strncpy (ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+    bzero(&ifr, sizeof(ifr));
+    strncpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
 
     switch (what) {
     case SIOCSIFFLAGS:
@@ -752,7 +750,7 @@ int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
         break;
     }
 
-    error = ioctl (fd, what, &ifr);
+    error = ioctl(fd, what, &ifr);
     if (error)
         goto done;
 
@@ -765,7 +763,7 @@ int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
     }
 
 done:
-    close (fd);
+    close(fd);
 
     if (error)
         dbgx(1, "ioctl error %d %lu:%d", error, what, subcmd);
@@ -797,18 +795,19 @@ sendpacket_open_netmap(const char *device, char *errbuf)
      * which in turn may take some time for the PHY to
      * reconfigure.
      */
-    if ((fd = open ("/dev/netmap", O_RDWR)) < 0) {
+    if ((fd = open("/dev/netmap", O_RDWR)) < 0) {
         dbg(1, "sendpacket_open_netmap: Unable to access netmap");
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to access netmap. See INSTALL to learn how to set up netmap-capable network drivers.");
         return NULL ;
     }
 
-    bzero (&nmr, sizeof(nmr));
+    bzero(&nmr, sizeof(nmr));
     nmr.nr_version = NETMAP_API;
-    strncpy (nmr.nr_name, device, sizeof(nmr.nr_name));
-    if ((ioctl (fd, NIOCGINFO, &nmr)) == -1) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl NIOCGINFO: %s",
-                strerror (errno));
-        close (fd);
+    strncpy(nmr.nr_name, device, sizeof(nmr.nr_name));
+    if ((ioctl(fd, NIOCGINFO, &nmr)) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl NIOCGINFO: %s",
+                strerror(errno));
+        close(fd);
         return NULL ;
     }
 
@@ -817,23 +816,23 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     /* prep & return our sp handle */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     if (!sp) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "safe_malloc: %s",
-                strerror (errno));
-        close (fd);
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "safe_malloc: %s",
+                strerror(errno));
+        close(fd);
         return NULL ;
     }
-    bzero (sp, sizeof(*sp));
+    bzero(sp, sizeof(*sp));
     sp->handle.fd = fd;
     sp->mmap_size = nmr.nr_memsize;
 
     dbgx(1, "sendpacket_open_netmap: mapping %d Kbytes", sp->mmap_size >> 10);
-    sp->mmap_addr = (struct netmap_d *)mmap (0, sp->mmap_size,
+    sp->mmap_addr = (struct netmap_d *)mmap(0, sp->mmap_size,
             PROT_WRITE | PROT_READ, MAP_SHARED, sp->handle.fd, 0);
 
     if (sp->mmap_addr == MAP_FAILED ) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "mmap: %s", strerror (errno));
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "mmap: %s", strerror(errno));
         safe_free(sp);
-        close (fd);
+        close(fd);
         return NULL ;
     }
 
@@ -845,14 +844,14 @@ sendpacket_open_netmap(const char *device, char *errbuf)
      * Cards take a long time to reset the PHY.
      */
     nmr.nr_version = NETMAP_API;
-    if (ioctl (sp->handle.fd, NIOCREGIF, &nmr) == -1) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl: %s",
-                strerror (errno));
+    if (ioctl(sp->handle.fd, NIOCREGIF, &nmr) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl: %s",
+                strerror(errno));
         safe_free(sp);
-        close (fd);
+        close(fd);
         return NULL ;
     }
-    strlcpy (sp->device, device, sizeof(sp->device));
+    strlcpy(sp->device, device, sizeof(sp->device));
     sp->nm_if = NETMAP_IF(sp->mmap_addr, nmr.nr_offset);
     sp->nmr = nmr;
     sp->handle_type = SP_TYPE_NETMAP;
@@ -860,7 +859,7 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     fprintf(stderr, "Switching network driver to netmap bypass mode... ");
     fflush(NULL);
     dbg(3, "Waiting 4 seconds for phy reset...");
-    sleep (4);
+    sleep(4);
     dbg(3, "Ready!");
     notice("done!");
 

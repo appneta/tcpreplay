@@ -37,7 +37,8 @@
 ###################################################################
 # - Find netmap
 # Find the netmap includes
-# http://info.iet.unipi.it/~luigi/netmap/
+#
+# For more information on netmap visit http://info.iet.unipi.it/~luigi/netmap/
 #
 # The environment variable NETMAP_DIR allows to specify where to find 
 # libevent in non standard location.
