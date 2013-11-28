@@ -26,7 +26,9 @@
 
 #include "@LPCAPINC@"
 
+#ifndef HAVE_STRLCPY
 #include "lib/strlcpy.h"
+#endif
 #include "common/list.h"
 #include "common/cidr.h"
 

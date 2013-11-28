@@ -34,7 +34,9 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
+#ifndef HAVE_STRLCPY
 #include "lib/strlcpy.h"
+#endif 
 
 #include <stdio.h>
 #include <stdlib.h>

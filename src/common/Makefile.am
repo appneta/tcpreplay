@@ -22,7 +22,9 @@ endif
 
 AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS) @LDNETINC@
 
+if ! SYSTEM_STRLCPY
 libcommon_a_LIBADD = ../../lib/libstrl.a
+endif
 
 noinst_HEADERS = cidr.h err.h list.h cache.h services.h get.h \
 		 fakepcap.h fakepcapnav.h fakepoll.h xX.h utils.h \

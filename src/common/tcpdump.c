@@ -59,7 +59,10 @@
 #endif
 
 #include "tcpdump.h"
+
+#ifndef HAVE_STRLCPY
 #include "lib/strlcpy.h"
+#endif 
 
 #ifdef DEBUG
 extern int debug;
