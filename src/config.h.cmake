@@ -112,3 +112,7 @@
 #cmakedefine HAVE_INET_NTOA 1
 #cmakedefine HAVE_INET_PTON 1
 #cmakedefine HAVE_INET_ADDR 1
+
+@LONG_SIZE_CODE@                                                          
+#define BITS_PER_LONG LONG_SIZE * 8
+
