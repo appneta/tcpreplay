@@ -33,6 +33,8 @@
   * 5. pcap_inject()
   * 6. pcap_sendpacket()
   *
+  * The --netmap option will override the default injector.
+  *
   * Right now, one big problem with the pcap_* methods is that libpcap
   * doesn't provide a reliable method of getting the MAC address of
   * an interface (required for tcpbridge).
@@ -127,6 +129,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifdef HAVE_NETMAP
+#include <sys/mman.h>
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
+static sendpacket_t *sendpacket_open_netmap(const char *device, char *errbuf);
+#endif /* HAVE_NETMAP */
+
 #ifdef HAVE_PF_PACKET
 #undef INJECT_METHOD
 
@@ -219,6 +228,12 @@ int
 sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 {
     int retcode;
+#ifdef HAVE_NETMAP
+    struct netmap_ring *txring;
+    struct netmap_slot *slot;
+    char *p;
+    unsigned int cur;
+#endif
 
     assert(sp);
     assert(data);
@@ -228,6 +243,40 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len)
 
 TRY_SEND_AGAIN:
     sp->attempt ++;
+
+#ifdef HAVE_NETMAP
+    if (sp->handle_type == SP_TYPE_NETMAP) {
+TRY_NETMAP_SEND_AGAIN:
+        txring = NETMAP_TXRING(sp->nm_if, 0);
+        if (txring->avail == 0) {
+            struct pollfd x[1];
+
+            /* send TX interrupt signal - tells
+             * netmap that packets are ready to TX
+             */
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+            x[0].fd = sp->handle.fd;
+            x[0].events = POLLOUT;
+            poll(x, 1, 1000);
+            goto TRY_NETMAP_SEND_AGAIN;
+        }
+        cur = txring->cur;
+        slot = &txring->slot[cur];
+        p = NETMAP_BUF(txring, slot->buf_idx);
+        memcpy(p, data, min(len, txring->nr_buf_size));
+        slot->len = len;
+        dbgx(2, "cur=%d slot index=%d flags=0x%x empty=%d bufsize=%d\n",
+                cur, slot->buf_idx, slot->flags,
+                NETMAP_TX_RING_EMPTY(txring), txring->nr_buf_size);
+        if (txring->avail % 100 == 0)
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* generate TX interrupt */
+
+        cur = NETMAP_RING_NEXT(txring, cur);
+        txring->avail--;
+        txring->cur = cur;
+        retcode = len;
+    } else {
+#endif /* HAVE_NETMAP */
 
 #if defined HAVE_PF_PACKET
 #ifdef HAVE_TX_RING
@@ -376,7 +425,9 @@ TRY_SEND_AGAIN:
         retcode = len;
 
 #endif
-
+#ifdef HAVE_NETMAP
+    }
+#endif
     if (retcode < 0) {
         sp->failed ++;
     } else if (retcode != (int)len) {
@@ -395,12 +446,17 @@ TRY_SEND_AGAIN:
  * that this interface represents
  */
 sendpacket_t *
-sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction)
+sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction, sendpacket_type_t sendpacket_type)
 {
     sendpacket_t *sp;
 
     assert(device);
     assert(errbuf);
+#if defined HAVE_NETMAP
+    if (sendpacket_type == SP_TYPE_NETMAP)
+    	sp = sendpacket_open_netmap(device, errbuf);
+    else
+#endif
 #if defined HAVE_PF_PACKET
     sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
@@ -474,6 +530,31 @@ sendpacket_close(sendpacket_t *sp)
     case SP_TYPE_LIBNET:
         err(-1, "Libnet is no longer supported!");
         break;
+
+    case SP_TYPE_NETMAP:
+#ifdef HAVE_NETMAP
+        fprintf(stderr, "Switching network driver to normal mode... ");
+        fflush(NULL);
+          /* flush any remaining packets */
+        ioctl (sp->handle.fd, NIOCTXSYNC, NULL);
+
+        /* final part: wait for the TX queue to be empty. */
+        while (!NETMAP_TX_RING_EMPTY(NETMAP_TXRING(sp->nm_if, 0))) {
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+            usleep(1); /* wait 1 tick */
+        }
+
+        ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
+        munmap(sp->mmap_addr, sp->mmap_size);
+        close(sp->handle.fd);
+        notice("done!");
+#endif
+        break;
+
+    case SP_TYPE_NONE:
+        err(-1, "No injector type specified!");
+        break;
+
     }
     safe_free(sp);
     return 0;
@@ -633,6 +714,179 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
     return(&sp->ether);
 }
 #endif /* HAVE_LIBDNET */
+
+#ifdef HAVE_NETMAP
+/**
+ * ioctl support for netmap
+ */
+int nm_do_ioctl(sendpacket_t *sp, u_long what, int subcmd) {
+    struct ifreq ifr;
+    int error;
+    struct ethtool_value eval;
+    int fd;
+
+    assert(sp);
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        dbg(1, "ioctl error: cannot get device control socket.\n");
+        return -1;
+    }
+
+    bzero(&ifr, sizeof(ifr));
+    strncpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+
+    switch (what) {
+    case SIOCSIFFLAGS:
+        ifr.ifr_flags = sp->if_flags >> 16;
+        ifr.ifr_flags = sp->if_flags & 0xffff;
+        break;
+
+    case SIOCETHTOOL:
+        dbgx(1, "ioctl SIOCETHTOOL subcmd=%d", subcmd);
+        eval.cmd = subcmd;
+        eval.data = 0;
+        ifr.ifr_data = (caddr_t)&eval;
+        break;
+    }
+
+    error = ioctl(fd, what, &ifr);
+    if (error)
+        goto done;
+
+    switch (what) {
+    case SIOCGIFFLAGS:
+        sp->if_flags = (ifr.ifr_flags << 16) | (0xffff & ifr.ifr_flags);
+        dbgx(1, "SIOCGIFFLAGS flags are 0x%x", sp->if_flags);
+        break;
+
+    }
+
+done:
+    close(fd);
+
+    if (error)
+        dbgx(1, "ioctl error %d %lu:%d", error, what, subcmd);
+    return error;
+}
+
+/**
+ * Inner sendpacket_open() method for using Linux version of netmap
+ */
+static sendpacket_t *
+sendpacket_open_netmap(const char *device, char *errbuf)
+{
+    sendpacket_t *sp = NULL;
+    struct nmreq nmr;
+    int fd;
+    int devqueues = 1;
+
+    assert(device);
+    assert(errbuf);
+
+    dbg(1, "sendpacket: using netmap");
+
+    /*
+     * Open the netmap device to fetch the number of queues of our
+     * interface.
+     *
+     * The first NIOCREGIF also detaches the card from the
+     * protocol stack and may cause a reset of the card,
+     * which in turn may take some time for the PHY to
+     * reconfigure.
+     */
+    if ((fd = open("/dev/netmap", O_RDWR)) < 0) {
+        dbg(1, "sendpacket_open_netmap: Unable to access netmap");
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to access netmap. See INSTALL to learn how to set up netmap-capable network drivers.");
+        return NULL ;
+    }
+
+    bzero(&nmr, sizeof(nmr));
+    nmr.nr_version = NETMAP_API;
+    strncpy(nmr.nr_name, device, sizeof(nmr.nr_name));
+    if ((ioctl(fd, NIOCGINFO, &nmr)) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl NIOCGINFO: %s",
+                strerror(errno));
+        close(fd);
+        return NULL ;
+    }
+
+    devqueues = nmr.nr_tx_rings;
+
+    /* prep & return our sp handle */
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    if (!sp) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "safe_malloc: %s",
+                strerror(errno));
+        close(fd);
+        return NULL ;
+    }
+    bzero(sp, sizeof(*sp));
+    sp->handle.fd = fd;
+    sp->mmap_size = nmr.nr_memsize;
+
+    dbgx(1, "sendpacket_open_netmap: mapping %d Kbytes", sp->mmap_size >> 10);
+    sp->mmap_addr = (struct netmap_d *)mmap(0, sp->mmap_size,
+            PROT_WRITE | PROT_READ, MAP_SHARED, sp->handle.fd, 0);
+
+    if (sp->mmap_addr == MAP_FAILED ) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "mmap: %s", strerror(errno));
+        safe_free(sp);
+        close(fd);
+        return NULL ;
+    }
+
+    /*
+     * Register the interface on the netmap device: from now on,
+     * we can operate on the network interface without any
+     * interference from the legacy network stack.
+     *
+     * Cards take a long time to reset the PHY.
+     */
+    nmr.nr_version = NETMAP_API;
+    if (ioctl(sp->handle.fd, NIOCREGIF, &nmr) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl: %s",
+                strerror(errno));
+        safe_free(sp);
+        close(fd);
+        return NULL ;
+    }
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->nm_if = NETMAP_IF(sp->mmap_addr, nmr.nr_offset);
+    sp->nmr = nmr;
+    sp->handle_type = SP_TYPE_NETMAP;
+
+    fprintf(stderr, "Switching network driver to netmap bypass mode... ");
+    fflush(NULL);
+    dbg(3, "Waiting 4 seconds for phy reset...");
+    sleep(4);
+    dbg(3, "Ready!");
+    notice("done!");
+
+    nm_do_ioctl(sp, SIOCGIFFLAGS, 0);
+    if ((sp->if_flags & IFF_UP) == 0) {
+        dbgx(1, "%s is down, bringing up...", device);
+        sp->if_flags |= IFF_UP;
+    }
+
+    /* set promiscuous mode */
+    sp->if_flags |= IFF_PROMISC;
+    nm_do_ioctl(sp, SIOCSIFFLAGS, 0);
+
+    /* disable:
+     * - generic-segmentation-offload
+     * - tcp-segmentation-offload
+     * - rx-checksumming
+     * - tx-checksumming
+     */
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM);
+
+    return sp;
+}
+#endif /* HAVE_NETMAP */
 
 #if defined HAVE_PF_PACKET
 /**

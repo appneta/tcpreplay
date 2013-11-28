@@ -34,6 +34,17 @@ typedef struct {
     struct timeval end_time;
 } tcpreplay_stats_t;
 
+#ifdef HAVE_NETMAP
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _b : _a; })
+#endif /* HAVE_NETMAP */
 
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 void packet_stats(const tcpreplay_stats_t *stats);

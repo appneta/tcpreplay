@@ -20,6 +20,12 @@
 #include "config.h"
 #include "defines.h"
 
+#if defined HAVE_NETMAP
+#include <net/if.h>
+#include <net/netmap.h>
+#include <net/netmap_user.h>
+#endif
+
 #ifdef HAVE_PF_PACKET
 #include <netpacket/packet.h>
 #endif
@@ -40,14 +46,17 @@
 #ifndef _SENDPACKET_H_
 #define _SENDPACKET_H_
 
-enum sendpacket_type_t {
+enum sendpacket_type_e {
+    SP_TYPE_NONE,
     SP_TYPE_LIBNET,
     SP_TYPE_LIBDNET,
     SP_TYPE_LIBPCAP,
     SP_TYPE_BPF,
     SP_TYPE_PF_PACKET,
-    SP_TYPE_TX_RING
+    SP_TYPE_TX_RING,
+    SP_TYPE_NETMAP
 };
+typedef enum sendpacket_type_e sendpacket_type_t;
 
 union sendpacket_handle {
     pcap_t *pcap;
@@ -70,9 +79,16 @@ struct sendpacket_s {
     COUNTER sent;
     COUNTER bytes_sent;
     COUNTER attempt;
-    enum sendpacket_type_t handle_type;
+    sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
+#ifdef HAVE_NETMAP
+    struct netmap_if *nm_if;
+    struct nmreq nmr;
+    void *mmap_addr;
+    int mmap_size;
+    uint32_t if_flags;
+#endif
 #ifdef HAVE_PF_PACKET
     struct sockaddr_ll sa;
 #endif
@@ -88,7 +104,7 @@ int sendpacket(sendpacket_t *, const u_char *, size_t);
 int sendpacket_close(sendpacket_t *);
 char *sendpacket_geterr(sendpacket_t *);
 char *sendpacket_getstat(sendpacket_t *);
-sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t);
+sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t, sendpacket_type_t);
 struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 int sendpacket_get_dlt(sendpacket_t *);
 const char *sendpacket_get_method();

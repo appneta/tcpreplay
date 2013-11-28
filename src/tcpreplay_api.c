@@ -142,6 +142,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     int int1dlt, int2dlt;
     tcpreplay_opt_t *options;
     int warn = 0;
+    sendpacket_type_t sendpacket_type = SP_TYPE_NONE;
     float n;
 
 #ifdef USE_AUTOOPTS
@@ -224,6 +225,12 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         }
     }
 
+#ifdef HAVE_NETMAP
+    if (HAVE_OPT(NETMAP)) {
+    	options->netmap = 1;
+    	sendpacket_type = SP_TYPE_NETMAP;
+    }
+#endif
 
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
@@ -289,7 +296,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     options->intf1_name = safe_strdup(intname);
 
     /* open interfaces for writing */
-    if ((ctx->intf1 = sendpacket_open(options->intf1_name, ebuf, TCPR_DIR_C2S)) == NULL) {
+    if ((ctx->intf1 = sendpacket_open(options->intf1_name, ebuf, TCPR_DIR_C2S, sendpacket_type)) == NULL) {
         tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf1_name, ebuf);
         return -1;
     }
@@ -305,7 +312,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->intf2_name = safe_strdup(intname);
 
         /* open interface for writing */
-        if ((ctx->intf2 = sendpacket_open(options->intf2_name, ebuf, TCPR_DIR_S2C)) == NULL) {
+        if ((ctx->intf2 = sendpacket_open(options->intf2_name, ebuf, TCPR_DIR_S2C, sendpacket_type)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf2_name, ebuf);
         }
 
@@ -413,7 +420,7 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
         ctx->options->intf1_name = safe_strdup(intname);
 
         /* open interfaces for writing */
-        if ((ctx->intf1 = sendpacket_open(ctx->options->intf1_name, ebuf, TCPR_DIR_C2S)) == NULL) {
+        if ((ctx->intf1 = sendpacket_open(ctx->options->intf1_name, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf1_name, ebuf);
             return -1;
         }
@@ -428,7 +435,7 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
         ctx->options->intf2_name = safe_strdup(intname);
 
         /* open interface for writing */
-        if ((ctx->intf2 = sendpacket_open(ctx->options->intf2_name, ebuf, TCPR_DIR_S2C)) == NULL) {
+        if ((ctx->intf2 = sendpacket_open(ctx->options->intf2_name, ebuf, TCPR_DIR_S2C, SP_TYPE_NONE)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf2_name, ebuf);
             return -1;
         }
@@ -966,7 +973,7 @@ tcpreplay_prepare(tcpreplay_t *ctx)
     }
 
     /* open interfaces for writing */
-    if ((ctx->intf1 = sendpacket_open(ctx->options->intf1_name, ebuf, TCPR_DIR_C2S)) == NULL) {
+    if ((ctx->intf1 = sendpacket_open(ctx->options->intf1_name, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE)) == NULL) {
         tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf1_name, ebuf);
         return -1;
     }
@@ -980,7 +987,7 @@ tcpreplay_prepare(tcpreplay_t *ctx)
         }
 
         /* open interfaces for writing */
-        if ((ctx->intf2 = sendpacket_open(ctx->options->intf2_name, ebuf, TCPR_DIR_C2S)) == NULL) {
+        if ((ctx->intf2 = sendpacket_open(ctx->options->intf2_name, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf2_name, ebuf);
             return -1;
         }

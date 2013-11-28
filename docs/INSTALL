@@ -23,7 +23,27 @@ configurator).
 
 For more information about CMake, visit: http://www.cmake.org
 
-3. Simple directions for everyone else:
+3. Build netmap feature
+
+This feature will detect netmap capable network drivers on Linux and BSD 
+systems. If detected, the network driver is bypassed for the execution 
+duration of tcpreplay and tcpreplay-edit, and network buffers will be 
+written to directly. This will allow you to achieve full line rates on 
+commodity network adapters, similar to rates achieved by commercial network 
+traffic generators.
+
+Note that bypassing the network driver will disrupt other applications connected
+through the test interface. Don't test on the same interface you ssh'ed into.
+
+Download latest netmap sources from http://info.iet.unipi.it/~luigi/netmap/
+If you extracted netmap into /usr/src/ you can build normally. Otherwise you 
+will have to specify the netmap source directory, for example:
+
+NETMAP_DIR=/home/fklassen/git/netmap/ cmake -G "Unix Makefiles"
+make
+sudo make install
+
+4. Simple directions for everyone else:
 
 Sorry you're out of luck.
 

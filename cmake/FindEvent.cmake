@@ -38,7 +38,7 @@
 # Find the libevent includes and library
 # http://libdnet.sourceforge.net/
 #
-# The environment variable LIBEVENET_DIR allows to specify where to find 
+# The environment variable LIBEVENT_DIR allows to specify where to find 
 # libevent in non standard location.
 #
 #  EVENT_INCLUDE_DIRS - where to find event.h, etc.

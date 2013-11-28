@@ -63,11 +63,19 @@ if(USE_AUTOOPTS)
         DEPENDS tcprewrite_opts.def
     )
 
-    add_custom_command(OUTPUT tcpreplay_opts.c tcpreplay_opts.h tcpreplay_edit_opts.c tcpreplay_edit_opts.h
-        COMMAND ${AUTOGEN} tcpreplay_opts.def
-        COMMAND ${AUTOGEN} -L tcpedit -DTCPREPLAY_EDIT -b tcpreplay_edit_opts tcpreplay_opts.def
-        DEPENDS tcpreplay_opts.def
-    )
+    if(HAVE_NETMAP)
+        add_custom_command(OUTPUT tcpreplay_opts.c tcpreplay_opts.h tcpreplay_edit_opts.c tcpreplay_edit_opts.h
+        	COMMAND ${AUTOGEN} -DHAVE_NETMAP tcpreplay_opts.def
+            COMMAND ${AUTOGEN} -L tcpedit -DTCPREPLAY_EDIT -DHAVE_NETMAP -b tcpreplay_edit_opts tcpreplay_opts.def
+            DEPENDS tcpreplay_opts.def
+        )
+    else(HAVE_NETMAP)
+        add_custom_command(OUTPUT tcpreplay_opts.c tcpreplay_opts.h tcpreplay_edit_opts.c tcpreplay_edit_opts.h
+        	COMMAND ${AUTOGEN} tcpreplay_opts.def
+            COMMAND ${AUTOGEN} -L tcpedit -DTCPREPLAY_EDIT -b tcpreplay_edit_opts tcpreplay_opts.def
+            DEPENDS tcpreplay_opts.def
+        )
+    endif(HAVE_NETMAP)
 
     add_custom_command(OUTPUT tcpprep_opts.c tcpprep_opts.h
         COMMAND ${AUTOGEN} tcpprep_opts.def
@@ -182,12 +190,21 @@ if(USE_AUTOOPTS)
     # Generate man pages
     set(autogen_opts -T agman1.tpl -L tcpedit)
 
-    add_custom_command(OUTPUT tcpreplay.1
-        COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY -b tcpreplay tcpreplay_opts.def
-        DEPENDS tcpreplay_opts.def)
-    add_custom_command(OUTPUT tcpreplay-edit.1
-        COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -b tcpreplay-edit tcpreplay_opts.def
-        DEPENDS tcpreplay_opts.def)
+    if(HAVE_NETMAP)
+        add_custom_command(OUTPUT tcpreplay.1
+            COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY -DHAVE_NETMAP -b tcpreplay tcpreplay_opts.def
+            DEPENDS tcpreplay_opts.def)
+        add_custom_command(OUTPUT tcpreplay-edit.1
+            COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -DHAVE_NETMAP -b tcpreplay-edit tcpreplay_opts.def
+            DEPENDS tcpreplay_opts.def)
+    else(HAVE_NETMAP)
+        add_custom_command(OUTPUT tcpreplay.1
+            COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY -b tcpreplay tcpreplay_opts.def
+            DEPENDS tcpreplay_opts.def)
+        add_custom_command(OUTPUT tcpreplay-edit.1
+            COMMAND ${AUTOGEN} ${autogen_opts} -DTCPREPLAY_EDIT -b tcpreplay-edit tcpreplay_opts.def
+            DEPENDS tcpreplay_opts.def)
+    endif(HAVE_NETMAP)
     add_custom_command(OUTPUT tcpprep.1
         COMMAND ${AUTOGEN} ${autogen_opts} -b tcpprep tcpprep_opts.def
         DEPENDS tcpprep_opts.def)

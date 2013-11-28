@@ -82,11 +82,12 @@ option(FORCE_INJECT_BPF "Force using *BSD's BPF API to send frames" NO)
 option(FORCE_INJECT_LIBDNET "Force using libdnet to send frames" NO)
 option(FORCE_INJECT_PCAP_INJECT "Force using libpcap pcap_inject() to send frames" NO)
 option(FORCE_INJECT_PCAP_SENDPACKET "Force using winpcap/libpcap's pcap_sendpacket() to send frames" NO)
+option(FORCE_INJECT_NETMAP "Force using netmap to send frames" NO)
 option(USE_AUTOOPTS "Compile with GNU AutoOpts support (enables CLI tools)" ${USE_AUTOOPTS})
 option(ENABLE_64BITS "Enable 64bit packet counters" YES)
 option(BUILD_64BIT_BINARY "Build a 64bit binary")
 option(BUILD_QT_GUI "Build QT4 GUI version of tcpreplay tools" NO)
-mark_as_advanced(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET 
+mark_as_advanced(FORCE_INJECT_PF FORCE_INJECT_BPF FORCE_INJECT_LIBDNET FORCE_INJECT_NETMAP
     FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET AUTOCONF AUTOGEN AUTOMAKE
     CMAKE_BUILD_TYPE ECHO MAKE TCPDUMP_BINARY ENABLE_64BITS
     USE_AUTOOPTS LIBPCAP_DIR LIBDNET_DIR)
@@ -218,10 +219,11 @@ endif(HAVE_LIBDNET)
 include(CheckBPF)
 include(CheckPFPacket)
 include(CheckTxRing)
+include(FindNetmap)
 
-if(NOT HAVE_LIBPCAP AND NOT HAVE_BPF AND NOT HAVE_LIBDNET AND NOT HAVE_PF_PACKET)
-    message(FATAL_ERROR "You must have libpcap, libdnet, /dev/bpf or PF_PACKET socket support")
-endif(NOT HAVE_LIBPCAP AND NOT HAVE_BPF AND NOT HAVE_LIBDNET AND NOT HAVE_PF_PACKET)
+if(NOT HAVE_LIBPCAP AND NOT HAVE_BPF AND NOT HAVE_LIBDNET AND NOT HAVE_PF_PACKET AND NOT HAVE_NETMAP)
+    message(FATAL_ERROR "You must have libpcap, libdnet, /dev/bpf PF_PACKET socket or netmap support")
+endif(NOT HAVE_LIBPCAP AND NOT HAVE_BPF AND NOT HAVE_LIBDNET AND NOT HAVE_PF_PACKET AND NOT HAVE_NETMAP)
 
 #check system for includes
 check_include_file("arpa/inet.h"         HAVE_ARPA_INET_H)
@@ -341,6 +343,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/src/tcpedit)
 include_directories(${PCAP_INCLUDE_DIRS})
+include_directories(${NETMAP_INCLUDE_DIRS}/sys)
 
 # Recurse into the subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 
@@ -423,6 +426,7 @@ fragroute support:          ${ENABLE_FRAGROUTE}
 tcpbridge support:          ${ENABLE_TCPBRIDGE}
 
 Supported Packet Injection Methods (*):
+Linux netmap:               ${HAVE_NETMAP} ${NETMAP_INCLUDE_DIRS}
 Linux TX_RING:              ${HAVE_TX_RING}
 Linux PF_PACKET:            ${HAVE_PF_PACKET}
 BSD BPF:                    ${HAVE_BPF}

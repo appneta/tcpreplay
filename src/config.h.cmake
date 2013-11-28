@@ -11,6 +11,7 @@
 #cmakedefine HAVE_BPF 1
 #cmakedefine HAVE_PF_PACKET 1
 #cmakedefine HAVE_LIBDNET 1
+#cmakedefine HAVE_NETMAP 1
 
 /* checks by FindPCAP */
 #cmakedefine HAVE_PCAP_INJECT 1

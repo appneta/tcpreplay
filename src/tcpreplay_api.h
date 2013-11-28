@@ -140,6 +140,9 @@ typedef struct tcpreplay_opt_s {
     tcpdump_t *tcpdump;
 #endif
 
+#ifdef HAVE_NETMAP
+    bool netmap;
+#endif
     /* dual file mode */
     bool dualfile;
 

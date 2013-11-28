@@ -454,6 +454,22 @@ thus allowing for longer sleep times which can be more accurately implemented.
 EOText;
 };
 
+#ifdef HAVE_NETMAP
+flag = {
+    name        = netmap;
+    descrip     = "Write packets directly to netmap enabled network adapter";
+    doc         = <<- EOText
+This feature will detect netmap capable network drivers on Linux and BSD
+systems. If detected, the network driver is bypassed for the execution
+duration, and network buffers will be written to directly. This will allow
+you to achieve full line rates on commodity network adapters, similar to rates
+achieved by commercial network traffic generators. Note that bypassing the network
+driver will disrupt other applications connected through the test interface. See
+INSTALL for more information.
+EOText;
+};
+#endif
+
 flag = {
     name        = pid;
     value       = P;
@@ -521,7 +537,12 @@ flag = {
 #else
     fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
+#ifdef HAVE_NETMAP
+    fprintf(stderr, "Default injection method: %s\n", sendpacket_get_method());
+    fprintf(stderr, "Optional injection method: netmap\n");
+#else
     fprintf(stderr, "Injection method: %s\n", sendpacket_get_method());
+#endif
     exit(0);
 
 EOVersion;
