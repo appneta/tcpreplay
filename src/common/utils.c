@@ -211,7 +211,7 @@ inet_aton(const char *name, struct in_addr *addr)
 }
 #endif
 
-#if __BITS_PER_LONG == 32
+#if BITS_PER_LONG == 32
 uint32_t __div64_32(uint64_t *n, uint32_t base)
 {
     uint64_t rem = *n;
@@ -244,4 +244,4 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
     *n = res;
     return rem;
 }
-#endif /*__ BITS_PER_LONG == 32 */
+#endif /* BITS_PER_LONG == 32 */

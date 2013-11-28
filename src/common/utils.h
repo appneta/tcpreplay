@@ -21,7 +21,6 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
-#include <asm/bitsperlong.h>
 #include "config.h"
 #include "defines.h"
 #include "common.h"
@@ -60,7 +59,7 @@ void _our_safe_free(void *ptr, const char *, const int, const char *);
 int inet_aton(const char *name, struct in_addr *addr);
 #endif
 
-#if __BITS_PER_LONG == 64
+#if BITS_PER_LONG == 64
 # define do_div(n,base) ({          \
     uint32_t __base = (base);       \
     uint32_t __rem;           \
@@ -68,7 +67,7 @@ int inet_aton(const char *name, struct in_addr *addr);
     (n) = ((uint64_t)(n)) / __base;       \
     __rem;              \
    })
-#elif __BITS_PER_LONG == 32
+#elif BITS_PER_LONG == 32
 extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 # define do_div(n,base) ({        \
     uint32_t __base = (base);     \
@@ -80,7 +79,7 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
         __rem = __div64_32(&(n), __base);  \
     __rem;            \
    })
-#else /* __BITS_PER_LONG == ?? */
+#else /* BITS_PER_LONG == ?? */
 # error do_div() does not yet support the C64
-#endif /* __BITS_PER_LONG */
+#endif /* BITS_PER_LONG */
 #endif /* do_div */
