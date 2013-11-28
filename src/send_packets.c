@@ -55,7 +55,7 @@ extern int debug;
 
 static void do_sleep(tcpreplay_t *ctx, struct timeval *time, 
         struct timeval *last, int len, tcpreplay_accurate accurate, 
-        sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx);
+        sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx, bool *skip_timestamp);
 static const u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, 
         struct pcap_pkthdr *pkthdr, int file_idx, packet_cache_t **prev_packet);
 static u_int32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
@@ -116,6 +116,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
     delta_t delta_ctx;
+    bool skip_timestamp = false;
 
     init_delta_time(&delta_ctx);
 
@@ -179,12 +180,17 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (ctx->options->speed.mode != speed_topspeed)
+        if (ctx->options->speed.mode != speed_topspeed &&
+        		!(ctx->options->speed.mode == speed_mbpsrate && !ctx->options->speed.speed)) {
             do_sleep(ctx, (struct timeval *)&pkthdr.ts, &last, pktlen, 
-                    ctx->options->accurate, sp, packetnum, &delta_ctx);
+                    ctx->options->accurate, sp, packetnum, &delta_ctx,
+                    &skip_timestamp);
 
-        /* mark the time when we send the last packet */
-        start_delta_time(&delta_ctx);
+            if (!skip_timestamp)
+                /* mark the time when we send the last packet */
+                start_delta_time(&delta_ctx);
+        }
+
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
 
         /* write packet out on network */
@@ -193,7 +199,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a mempcy rather then assignment.
+         * we have to do a memcpy rather then assignment.
          *
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
@@ -244,6 +250,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int idx1, pcap_t *pcap2, int 
     /* ???? */
     int idx;
     pcap_t *pcap;
+    bool skip_timestamp = false;
 
     init_delta_time(&delta_ctx);
 
@@ -344,12 +351,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int idx1, pcap_t *pcap2, int 
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (ctx->options->speed.mode != speed_topspeed)
+        if (ctx->options->speed.mode != speed_topspeed &&
+        		!(ctx->options->speed.mode == speed_mbpsrate && !ctx->options->speed.speed)) {
             do_sleep(ctx, (struct timeval *)&pkthdr_ptr->ts, &last, pktlen,
-                    ctx->options->accurate, sp, packetnum, &delta_ctx);
+                    ctx->options->accurate, sp, packetnum, &delta_ctx, &skip_timestamp);
 
-        /* mark the time when we send the last packet */
-        start_delta_time(&delta_ctx);
+            if (!skip_timestamp)
+                /* mark the time when we send the last packet */
+                start_delta_time(&delta_ctx);
+        }
+
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
 
         /* write packet out on network */
@@ -358,7 +369,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int idx1, pcap_t *pcap2, int 
 
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a mempcy rather then assignment.
+         * we have to do a memcpy rather then assignment.
          *
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
@@ -530,22 +541,20 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
 static void
 do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last, 
         int len, tcpreplay_accurate accurate, sendpacket_t *sp, 
-        COUNTER counter, delta_t *delta_ctx)
+        COUNTER counter, delta_t *delta_ctx, bool *skip_timestamp)
 {
-    static struct timeval didsleep = { 0, 0 };
-    static struct timeval start = { 0, 0 };
 #ifdef DEBUG
     static struct timeval totalsleep = { 0, 0 };
 #endif
     struct timespec adjuster = { 0, 0 };
     static struct timespec nap = { 0, 0 }, delta_time = {0, 0};
-    struct timeval nap_for, now, sleep_until;
+    struct timeval nap_for;
     struct timespec nap_this_time;
     static int32_t nsec_adjuster = -1, nsec_times = -1;
-    float n;
     static u_int32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
-    u_int64_t ppnsec; /* packets per usec */
+    u_int64_t ppnsec; /* packets per nsec */
     static int first_time = 1;      /* need to track the first time through for the pps accelerator */
+    static COUNTER skip_length = 0;
 
 
 #ifdef TCPREPLAY
@@ -555,7 +564,22 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
     adjuster.tv_nsec = 0;
 #endif
 
-    /* acclerator time? */
+    /*
+     * this accelerator improves performance by avoiding expensive
+     * time stamps during periods where we have fallen behind in our
+     * sending
+     */
+    if (*skip_timestamp) {
+        if ((COUNTER)len < skip_length) {
+            skip_length -= len;
+            return;
+        }
+
+        skip_length = 0;
+        *skip_timestamp = false;
+    }
+
+    /* accelerator time? */
     if (send > 0) {
         send --;
         return;
@@ -575,21 +599,6 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
 
     dbgx(4, "This packet time: " TIMEVAL_FORMAT, time->tv_sec, time->tv_usec);
     dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
-
-    if (gettimeofday(&now, NULL) < 0)
-        errx(-1, "Error gettimeofday: %s", strerror(errno));
-
-    dbgx(4, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
-
-    /* First time through for this file */
-    if (ctx->stats.pkts_sent == 0 || ((ctx->options->speed.mode != speed_mbpsrate) && (counter == 0))) {
-        start = now;
-        timerclear(&sleep_until);
-        timerclear(&didsleep);
-    }
-    else {
-        timersub(&now, &start, &sleep_until);
-    }
 
     /* If top speed, you shouldn't even be here */
     assert(ctx->options->speed.mode != speed_topspeed);
@@ -611,7 +620,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
 
                 TIMEVAL_TO_TIMESPEC(&nap_for, &nap);
                 dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
-                timesdiv(&nap, ctx->options->speed.speed);
+                timesdiv_float(&nap, ctx->options->speed.multiplier);
                 dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, nap.tv_sec, nap.tv_nsec);
             }
         } else {
@@ -625,18 +634,26 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
-        if (ctx->stats.pkts_sent != 0) {
-            n = (float)len / (ctx->options->speed.speed * 1000 * 1000 / 8); /* convert Mbps to bps */
-            nap.tv_sec = n;
-            nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
-
-            dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n, 
-                nap.tv_sec, nap.tv_nsec);
+        if (timerisset(delta_ctx)) {
+            COUNTER next_tx_us = (ctx->stats.bytes_sent + len) * 8 * 1000000;
+            do_div(next_tx_us, ctx->options->speed.speed);  /* bits divided by Mbps = microseconds */
+            COUNTER tx_us = TIMEVAL_TO_MICROSEC(delta_ctx) - TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
+            COUNTER delta_us = (next_tx_us >= tx_us) ? next_tx_us - tx_us : 0;
+            if (delta_us)
+                /* have to sleep */
+                NANOSEC_TO_TIMESPEC(delta_us * 1000, &nap);
+            else {
+                /*
+                 * calculate how many bytes we are behind and don't bother
+                 * time stamping until we have caught up
+                 */
+                timesclear(&nap);
+                skip_length = (tx_us - next_tx_us) * ctx->options->speed.speed;
+                do_div(skip_length, 8 * 1000000);
+                *skip_timestamp = true;
+            }
         }
-        else {
-            /* don't sleep at all for the first packet */
-            timesclear(&nap);
-        }
+        dbgx(3, "packet size %d\t\tnap " TIMESPEC_FORMAT, len, nap.tv_sec, nap.tv_nsec);
         break;
 
     case speed_packetrate:
@@ -714,6 +731,10 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
         }
     }
 
+    /* don't sleep if nap = {0, 0} */
+    if (!timesisset(&nap_this_time))
+        return;
+
     dbgx(2, "nap_time before delta calc: " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
     get_delta_time(delta_ctx, &delta_time);
     dbgx(2, "delta:                      " TIMESPEC_FORMAT, delta_time.tv_sec, delta_time.tv_nsec);
@@ -738,10 +759,6 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
     }
 
     dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
-
-    /* don't sleep if nap = {0, 0} */
-    if (!timesisset(&nap_this_time))
-        return;
 
     /*
      * Depending on the accurate method & packet rate computation method

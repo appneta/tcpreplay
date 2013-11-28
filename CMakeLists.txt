@@ -112,7 +112,8 @@ if(EXISTS ${TCPDUMP_BINARY})
     endif(NOT WIN32)
 endif(EXISTS ${TCPDUMP_BINARY})
 
-
+# Required to help decide how to divide 64 bit integers
+check_type_size(long LONG_SIZE BUILTIN_TYPES_ONLY)
 
 
 # Most of the stuff below is stolen from Wireshark which released this under GPLv2 & BSD
