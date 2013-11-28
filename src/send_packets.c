@@ -630,8 +630,7 @@ do_sleep(tcpreplay_t *ctx, struct timeval *time, struct timeval *last,
             nap.tv_sec = n;
             nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
 
-            dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n, 
-                nap.tv_sec, nap.tv_nsec);
+            dbgx(3, "packet size %d\t\tnap " TIMESPEC_FORMAT, len, nap.tv_sec, nap.tv_nsec);
         }
         else {
             /* don't sleep at all for the first packet */
