@@ -68,7 +68,8 @@ typedef enum {
 typedef struct {
     /* speed modifiers */
     tcpreplay_speed_mode mode;
-    float speed;
+    COUNTER speed;
+    float multiplier;
     int pps_multi;
     u_int32_t (*manual_callback)(struct tcpreplay_s *, char *, COUNTER);
 } tcpreplay_speed_t;
@@ -202,7 +203,7 @@ int tcpreplay_post_args(tcpreplay_t *, int argc);
 /* all these configuration functions return 0 on success and < 0 on error. */
 int tcpreplay_set_interface(tcpreplay_t *, tcpreplay_intf, char *);
 int tcpreplay_set_speed_mode(tcpreplay_t *, tcpreplay_speed_mode);
-int tcpreplay_set_speed_speed(tcpreplay_t *, float);
+int tcpreplay_set_speed_speed(tcpreplay_t *, COUNTER);
 int tcpreplay_set_speed_pps_multi(tcpreplay_t *, int);
 int tcpreplay_set_loop(tcpreplay_t *, u_int32_t);
 int tcpreplay_set_sleep_accel(tcpreplay_t *, int);
