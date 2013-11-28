@@ -99,7 +99,8 @@ void timesdiv(struct timespec *tvs, COUNTER div);
 #ifndef ROUND_TIMESPEC_TO_MICROSEC
 #define ROUND_TIMESPEC_TO_MICROSEC(ts)             \
     do {                                           \
-        (ts)->tv_nsec = (((ts)->tv_nsec + 500) / 1000);   \
+        (ts)->tv_nsec = ((((ts)->tv_nsec + 500)    \
+                / 1000) * 1000);                   \
     } while (0)
 #endif
 
