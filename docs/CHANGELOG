@@ -1,6 +1,7 @@
 $Id$
 
-??/??/2012 Version 3.5.0
+??/??/2013 Version 3.5.0
+    - Add netmap injector (appneta #1)
     - Add --sleepmode option to handle high precision timing (#421)
     - Update URL's to point to new tcpreplay website (#430)
     - Improve & fix bugs in tcpcapinfo (#437)

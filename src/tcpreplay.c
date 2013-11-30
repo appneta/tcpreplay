@@ -192,6 +192,15 @@ main(int argc, char *argv[])
         if (options.intf2 != NULL)
             printf("%s", sendpacket_getstat(options.intf2));
     }
+
+    if (options.intf1) {
+        sendpacket_close(options.intf1);
+    }
+
+    if (options.intf2) {
+        sendpacket_close(options.intf2);
+    }
+
     return 0;
 }   /* main() */
 
@@ -439,6 +448,7 @@ post_args(int argc)
     char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
+    sendpacket_type_t sendpacket_type = SP_TYPE_NONE;
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -516,6 +526,13 @@ post_args(int argc)
             err(-1, "--dualfile mode requires an even number of pcap files");
     }
 
+#ifdef HAVE_NETMAP
+    if (HAVE_OPT(NETMAP)) {
+    	options.netmap = 1;
+    	sendpacket_type = SP_TYPE_NETMAP;
+    }
+#endif
+
     if (strcmp(OPT_ARG(SLEEPMODE), "current") == 0) {
         options.sleep_mode = REPLAY_CURRENT;
     } else if (strcmp(OPT_ARG(SLEEPMODE), "ver325") == 0) {
@@ -578,7 +595,7 @@ post_args(int argc)
     options.intf1_name = safe_strdup(intname);
 
     /* open interfaces for writing */
-    if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S)) == NULL)
+    if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S, sendpacket_type)) == NULL)
         errx(-1, "Can't open %s: %s", options.intf1_name, ebuf);
 
     int1dlt = sendpacket_get_dlt(options.intf1);
@@ -593,7 +610,7 @@ post_args(int argc)
         options.intf2_name = safe_strdup(intname);
 
         /* open interface for writing */
-        if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C)) == NULL)
+        if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C, sendpacket_type)) == NULL)
             errx(-1, "Can't open %s: %s", options.intf2_name, ebuf);
 
         int2dlt = sendpacket_get_dlt(options.intf2);

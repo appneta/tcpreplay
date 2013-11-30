@@ -4,9 +4,11 @@ autogen definitions options;
 copyright = {
     date        = "2000-2012";
     owner       = "Aaron Turner";
-    type        = "bsd";
+    type        = bsd;
+    eaddr       = "tcpreplay-users@lists.sourceforge.net";
     author      = <<- EOText
 Copyright 2000-2012 Aaron Turner
+Copyright 2013 Fred Klassen - AppNeta Inc.
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -466,6 +468,22 @@ thus allowing for longer sleep times which can be more accurately implemented.
 EOText;
 };
 
+#ifdef HAVE_NETMAP
+flag = {
+    name        = netmap;
+    descrip     = "Write packets directly to netmap enabled network adapter";
+    doc         = <<- EOText
+This feature will detect netmap capable network drivers on Linux and BSD
+systems. If detected, the network driver is bypassed for the execution
+duration, and network buffers will be written to directly. This will allow
+you to achieve full line rates on commodity network adapters, similar to rates
+achieved by commercial network traffic generators. Note that bypassing the network
+driver will disrupt other applications connected through the test interface. See
+INSTALL for more information.
+EOText;
+};
+#endif
+
 flag = {
     name        = pid;
     value       = P;
@@ -500,7 +518,8 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2013 by AppNeta Inc. - Fred Klassen <fklassen at appneta dot com>\n");
+    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
@@ -532,7 +551,12 @@ flag = {
 #else
     fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
+#ifdef HAVE_NETMAP
+    fprintf(stderr, "Default injection method: %s\n", sendpacket_get_method(NULL));
+    fprintf(stderr, "Optional injection method: netmap\n");
+#else
     fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
+#endif
     exit(0);
 
 EOVersion;

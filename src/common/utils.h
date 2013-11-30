@@ -38,6 +38,16 @@
 #include "defines.h"
 #include "common.h"
 
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _b : _a; })
+
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 void packet_stats(struct timeval *begin, struct timeval *end, 
                   COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed);

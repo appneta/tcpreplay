@@ -115,23 +115,22 @@ ioport_sleep(const struct timespec nap)
  */
 void
 do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, 
-    sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx)
+    sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx,
+    COUNTER *start_us, unsigned int *skip_timestamp)
 {
-    static struct timeval didsleep = { 0, 0 };
-    static struct timeval start = { 0, 0 };
 #ifdef DEBUG
     static struct timeval totalsleep = { 0, 0 };
 #endif
     struct timespec adjuster = { 0, 0 };
     static struct timespec nap = { 0, 0 }, delta_time = {0, 0};
-    struct timeval nap_for, now, sleep_until;
+    struct timeval nap_for;
     struct timespec nap_this_time;
     static int32_t nsec_adjuster = -1, nsec_times = -1;
-    float n;
     static u_int32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
     u_int32_t ppnsec;               /* packets per usec */
     static int first_time = 1;      /* need to track the first time through for the pps accelerator */
-
+    COUNTER skip_length = 0;
+    COUNTER now_us, mbps;
 
 #ifdef TCPREPLAY
     adjuster.tv_nsec = options.sleep_accel * 1000;
@@ -144,6 +143,17 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     if (send > 0) {
         send --;
         return;
+    }
+
+    /* also an accelerator, but exposed externally to avoid expensive "now" timestamp */
+    if (*skip_timestamp) {
+        if (len < skip_length) {
+            skip_length -= len;
+            return;
+        }
+
+        skip_length = 0;
+        *skip_timestamp = 0;
     }
 
     /*
@@ -160,21 +170,6 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
 
     dbgx(4, "This packet time: " TIMEVAL_FORMAT, time->tv_sec, time->tv_usec);
     dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
-
-    if (gettimeofday(&now, NULL) < 0)
-        errx(-1, "Error gettimeofday: %s", strerror(errno));
-
-    dbgx(4, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
-
-    /* First time through for this file */
-    if (pkts_sent == 0 || ((options.speed.mode != SPEED_MBPSRATE) && (counter == 0))) {
-        start = now;
-        timerclear(&sleep_until);
-        timerclear(&didsleep);
-    }
-    else {
-        timersub(&now, &start, &sleep_until);
-    }
 
     /* If top speed, you shouldn't even be here */
     assert(options.speed.mode != SPEED_TOPSPEED);
@@ -213,19 +208,24 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
-        if (pkts_sent != 0) {
-            n = (float)len / (options.speed.speed * 1000 * 1000 / 8); /* convert Mbps to bps */
-            nap.tv_sec = n;
-            nap.tv_nsec = (n - nap.tv_sec)  * 1000000000;
-
-            dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n, 
-                nap.tv_sec, nap.tv_nsec);
-        }
-        else {
-            /* don't sleep at all for the first packet */
-            timesclear(&nap);
-        }
-        break;
+          timesclear(&nap_this_time);
+          now_us = TIMEVAL_TO_MICROSEC(delta_ctx);
+          if (now_us) {
+              mbps = (COUNTER)options.speed.speed;
+              COUNTER bits_sent = (bytes_sent * 8);
+              COUNTER next_tx_us = bits_sent / mbps;    /* bits divided by Mbps = microseconds */
+              COUNTER tx_us = now_us - *start_us;
+              COUNTER delta_us = (next_tx_us > tx_us) ? next_tx_us - tx_us : 0;
+              if (delta_us)
+                  NANOSEC_TO_TIMESPEC(delta_us* 1000, &nap_this_time);
+              else {
+                  skip_length = ((tx_us - next_tx_us) * mbps) / 8;
+                  *skip_timestamp = 1;
+              }
+          }
+          dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n,
+              nap.tv_sec, nap.tv_nsec);
+          goto SLEEP_NOW;
 
     case SPEED_PACKETRATE:
         /*
@@ -338,6 +338,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         memcpy(&nap_this_time, &(options.maxsleep), sizeof(struct timespec));
     }
 
+SLEEP_NOW:
     dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
 
     /* don't sleep if nap = {0, 0} */
@@ -483,7 +484,7 @@ do_sleep_325(struct timeval *time, struct timeval *last, int len,
          * a constant 'rate' (bytes per second).
          */
         if (pkts_sent != 0) {
-            n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps */
+            n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps (same calc as final report) */
             nap.tv_sec = n;
             nap.tv_usec = (n - nap.tv_sec) * 1000000;
             dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMEVAL_FORMAT, len, n, 
