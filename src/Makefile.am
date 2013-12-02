@@ -31,10 +31,10 @@ tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ -T agman1.tpl $(opts_list) tcprewrite_opts.def
 
 tcpreplay-edit.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman1.tpl $(opts_list) -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) @NETMAPFLAGS@ -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def
 
 tcpreplay.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman1.tpl $(opts_list) tcpreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def
 
 tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ -T agman1.tpl $(opts_list) tcpbridge_opts.def
@@ -63,7 +63,7 @@ tcpreplay_edit_OBJECTS: tcpreplay_opts.h
 tcpreplay_edit_opts.h: tcpreplay_edit_opts.c
 
 tcpreplay_edit_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ $(opts_list) -DTCPREPLAY_EDIT -b tcpreplay_edit_opts \
+	@AUTOGEN@ $(opts_list)  @NETMAPFLAGS@ -DTCPREPLAY_EDIT -b tcpreplay_edit_opts \
 		tcpreplay_opts.def
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
@@ -73,7 +73,7 @@ tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
 
 tcpreplay_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ $(opts_list) tcpreplay_opts.def
+	@AUTOGEN@ $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def
 
 if ENABLE_OSX_FRAMEWORKS
 tcpreplay_LDFLAGS = -framework CoreServices -framework Carbon

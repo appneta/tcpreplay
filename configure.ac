@@ -8,7 +8,7 @@ AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
 
-dnl People building from SVN need the same version of Autogen as I'm using
+dnl People building from GitHub need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts
 MAINTAINER_AUTOGEN_VERSION=5.16.2
 
@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=5
-MICRO_VERSION=0beta1
+MICRO_VERSION=0beta2
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.synfin.net/
 
@@ -82,13 +82,13 @@ if test -n "${AUTOGEN}" ; then
     AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
     if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 9 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
-        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from SVN.  Please upgrade to 5.9.x)])
+        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from GitHub.  Please upgrade to 5.16.2)])
     else
         AC_MSG_RESULT(yes)
     fi
     rm -f autogen.version
 
-    dnl Compare the installed version with the maintainer version if building from SVN and not using system libopts
+    dnl Compare the installed version with the maintainer version if building from GitHub and not using system libopts
     if test ! -f src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
         if test $MAINTAINER_AUTOGEN_VERSION != $AUTOGEN_VERSION ; then
             AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)  Either install the correct version or specify --disable-local-libopts])
@@ -96,7 +96,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from SVN])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
@@ -770,6 +770,38 @@ AM_CONDITIONAL(COMPILE_TCPLIVEPLAY, [test x$enable_tcpliveplay = xyes ])
 
 
 
+dnl #####################################################
+dnl Check for netmap support
+dnl #####################################################
+have_netmap=no
+trynetmapdir=/opt/netmap
+AC_MSG_CHECKING(for Netmap socket sending support)
+AC_ARG_WITH(netmap,
+    AC_HELP_STRING([--with-netmap=DIR], [Use netmap in DIR]),
+    [trynetmapdir=$withval])
+
+for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap ; do 
+    if test -f "${testdir}/sys/net/netmap.h"  ; then
+        if test $have_netmap = no ; then
+            NETMAPINC="${testdir}/sys/net/netmap.h"
+            NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
+            NETMAPINCDIR="${testdir}/sys"
+            NETMAPFLAGS="-DHAVE_NETMAP"
+            OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
+            CFLAGS="$CFLAGS -I$NETMAPINCDIR"
+            
+            AC_SUBST(NETMAPINC)
+            AC_SUBST(NETMAPUSERINC)
+            AC_SUBST(NETMAPINCDIR)
+            AC_SUBST(NETMAPFLAGS)
+            AC_DEFINE([HAVE_NETMAP], [1],
+                   [Do we have netmap support?])
+            have_netmap="yes $testdir"
+            AC_MSG_RESULT($have_netmap)
+        fi
+    fi
+done
+
 have_pf=no
 dnl Check for linux PF_PACKET support
 AC_MSG_CHECKING(for PF_PACKET socket sending support)
@@ -1296,6 +1328,7 @@ BSD BPF:                    ${have_bpf}
 libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}
 pcap_sendpacket:            ${have_pcap_sendpacket} **
+Linux/BSD netmap:           ${have_netmap}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge

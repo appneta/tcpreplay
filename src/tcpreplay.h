@@ -115,6 +115,10 @@ struct tcpreplay_opt_s {
     file_cache_t *file_cache;
     int preload_pcap;
 
+#ifdef HAVE_NETMAP
+    int netmap;
+#endif
+
     /* dual file mode */
     int dualfile;
 };

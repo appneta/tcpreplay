@@ -192,6 +192,15 @@ main(int argc, char *argv[])
         if (options.intf2 != NULL)
             printf("%s", sendpacket_getstat(options.intf2));
     }
+
+    if (options.intf1) {
+        sendpacket_close(options.intf1);
+    }
+
+    if (options.intf2) {
+        sendpacket_close(options.intf2);
+    }
+
     return 0;
 }   /* main() */
 
@@ -519,6 +528,13 @@ post_args(int argc)
         if (argc % 2 != 0)
             err(-1, "--dualfile mode requires an even number of pcap files");
     }
+
+#ifdef HAVE_NETMAP
+    if (HAVE_OPT(NETMAP)) {
+    	options.netmap = 1;
+    	sendpacket_type = SP_TYPE_NETMAP;
+    }
+#endif
 
     if (strcmp(OPT_ARG(SLEEPMODE), "current") == 0) {
         options.sleep_mode = REPLAY_CURRENT;

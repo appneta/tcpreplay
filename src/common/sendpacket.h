@@ -33,6 +33,12 @@
 #include "config.h"
 #include "defines.h"
 
+#if defined HAVE_NETMAP
+#include <net/if.h>
+#include <net/netmap.h>
+#include <net/netmap_user.h>
+#endif
+
 #ifdef HAVE_PF_PACKET
 #include <netpacket/packet.h>
 #endif
@@ -107,6 +113,13 @@ struct sendpacket_s {
     sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
+#ifdef HAVE_NETMAP
+    struct netmap_if *nm_if;
+    struct nmreq nmr;
+    void *mmap_addr;
+    int mmap_size;
+    uint32_t if_flags;
+#endif
 #ifdef HAVE_PF_PACKET
     struct sockaddr_ll sa;
 #ifdef HAVE_TX_RING
