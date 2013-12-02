@@ -98,7 +98,7 @@ void timesdiv(struct timespec *tvs, COUNTER div)
 }
 
 void
-init_delta_time(delta_t *ctx)
+init_timestamp(timestamp_t *ctx)
 {
 #ifdef HAVE_ABSOLUTE_TIME
     SetZero(*ctx);

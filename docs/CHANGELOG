@@ -1,6 +1,7 @@
 $Id$
 
 ??/??/2013 Version 3.5.0
+    - Removed sleep-accel option (anneta #2) 
     - Enhance accuracy and performance of --mbps option (appneta #2)
     - Add netmap injector (appneta #1)
     - Add --sleepmode option to handle high precision timing (#421)

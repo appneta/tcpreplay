@@ -77,7 +77,6 @@ struct tcpreplay_opt_s {
     tcpr_speed_t speed;
     enum sleep_mode_t sleep_mode;
     u_int32_t loop;
-    int sleep_accel;
     struct timespec maxsleep;
 
     int stats;

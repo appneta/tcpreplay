@@ -255,7 +255,7 @@ extern volatile int didsig;
 int
 sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr *pkthdr)
 {
-    int retcode, val;
+    int retcode = 0, val;
     u_char buffer[10000]; /* 10K bytes, enough for jumbo frames + pkthdr */
 #ifdef HAVE_NETMAP
     struct netmap_ring *txring;
@@ -702,7 +702,7 @@ sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 }
 
 
-#if defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) && ! defined INJECT_METHOD
 /**
  * Inner sendpacket_open() method for using libpcap
  */
@@ -996,7 +996,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
     struct sockaddr_ll sa;
     int n = 1, err;
     socklen_t errlen = sizeof(err);
-    unsigned int mtu=1500;
+    unsigned int UNUSED(mtu) = 1500;
 
     assert(device);
     assert(errbuf);

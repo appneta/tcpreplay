@@ -6,7 +6,7 @@ if test -x "`which glibtoolize`" ; then
     # Necessary under OS X
     glibtoolize --copy --automake --force
 else
-    libtoolize --copy
+    libtoolize --copy --force
 fi
 autoheader
 automake --add-missing --copy

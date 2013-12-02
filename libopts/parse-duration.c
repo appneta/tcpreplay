@@ -54,14 +54,14 @@ typedef enum {
 #define TIME_MAX        0x7FFFFFFF
 
 /* Wrapper around strtoul that does not require a cast.  */
-static unsigned long inline
+static inline unsigned long
 str_const_to_ul (cch_t * str, cch_t ** ppz, int base)
 {
   return strtoul (str, (char **)ppz, base);
 }
 
 /* Wrapper around strtol that does not require a cast.  */
-static long inline
+static inline long
 str_const_to_l (cch_t * str, cch_t ** ppz, int base)
 {
   return strtol (str, (char **)ppz, base);
@@ -70,7 +70,7 @@ str_const_to_l (cch_t * str, cch_t ** ppz, int base)
 /* Returns BASE + VAL * SCALE, interpreting BASE = BAD_TIME
    with errno set as an error situation, and returning BAD_TIME
    with errno set in an error situation.  */
-static time_t inline
+static inline time_t
 scale_n_add (time_t base, time_t val, int scale)
 {
   if (base == BAD_TIME)

@@ -201,17 +201,17 @@ void timesdiv(struct timespec *tvs, COUNTER div);
     } while(0)
 
 #ifdef HAVE_ABSOLUTE_TIME
-    typedef AbsoluteTime delta_t;
+    typedef AbsoluteTime timestamp_t;
 #else
-    typedef struct timeval delta_t;
+    typedef struct timeval timestamp_t;
 #endif
 
 /*
- * starts a timer so we can figure out how much time has passed
- * when we call get_delta_timer()
+ * starts a timer so we can figure out how long we have
+ * bee transmitting
  */
 static inline void
-start_delta_time(delta_t *ctx)
+get_packet_timestamp(timestamp_t *ctx)
 {
 #ifdef HAVE_ABSOLUTE_TIME
     *ctx = UpTime();
@@ -220,42 +220,7 @@ start_delta_time(delta_t *ctx)
 #endif
 }
 
-void init_delta_time(delta_t *ctx);
+void init_timestamp(timestamp_t *ctx);
 
-/*
- * returns the amount of time that has passed since the 
- * last time you called start_delta_time()
- */
-static inline void
-get_delta_time(delta_t *ctx, struct timespec *ret)
-{
-/* OS X has absolute time */
-#ifdef HAVE_ABSOLUTE_TIME
-    AbsoluteTime now, delta;
-    Nanoseconds nano;
-
-
-    if (! NonZero(*ctx)) {
-        timesclear(ret);
-    } else {
-        now = UpTime();
-        delta = SubAbsoluteFromAbsolute(now, *ctx);
-        nano = AbsoluteToNanoseconds(delta);
-        NANOSEC_TO_TIMESPEC(UnsignedWideToUInt64(nano) / 10, ret);
-    }
-
-    /* Everyone else just uses gettimeofday */
-#else
-    struct timeval now, delta;
-
-    if (!timerisset(ctx)) {
-        timesclear(ret);
-    } else {
-        gettimeofday(&now, NULL);
-        timersub(&now, ctx, &delta);
-        TIMEVAL_TO_TIMESPEC(&delta, ret);
-    }
-#endif
-}
 
 #endif /* _TIMER_H_ */

@@ -467,7 +467,6 @@ post_args(int argc)
 #endif
 
     options.loop = OPT_VALUE_LOOP;
-    options.sleep_accel = OPT_VALUE_SLEEP_ACCEL;
 
     if (HAVE_OPT(LIMIT))
         options.limit_send = OPT_VALUE_LIMIT;

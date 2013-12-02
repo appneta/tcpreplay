@@ -144,7 +144,7 @@ void ioport_sleep_init(void);
 void ioport_sleep(const struct timespec nap);
 
 void do_sleep(struct timeval *time, struct timeval *last, int len, 
-        int accurate, sendpacket_t *sp, COUNTER counter, delta_t *delta_ctx,
+        int accurate, sendpacket_t *sp, COUNTER counter, timestamp_t *delta_ctx,
         COUNTER *start_us, COUNTER *skip_length);
 void do_sleep_325(struct timeval *time, struct timeval *last, int len, 
         int accurate, sendpacket_t *sp, COUNTER counter);

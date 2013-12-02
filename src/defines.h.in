@@ -285,4 +285,28 @@ typedef u_int32_t uint32_t
 #define TIMESPEC_TO_MICROSEC(x)  (((x)->tv_sec * 1000000) + (x)->tv_nsec / 1000)
 #define TIMESPEC_TO_NANOSEC(x) ((u_int64_t)((x)->tv_sec * 1000000000) + ((u_int64_t)(x)->tv_nsec))
 
+/* help suppress some compiler warnings */
+#ifdef UNUSED 
+#elif defined(__GNUC__) 
+# define UNUSED(x) UNUSED_ ## x __attribute__((unused)) 
+#elif defined(__LCLINT__) 
+# define UNUSED(x) /*@unused@*/ x 
+#else 
+# define UNUSED(x) x 
+#endif
+
+#ifndef max
+#  define max(a,b) \
+       ({ __typeof__ (a) _a = (a); \
+           __typeof__ (b) _b = (b); \
+       _a > _b ? _a : _b; })
+#endif
+
+#ifndef min
+#  define min(a,b) \
+       ({ __typeof__ (a) _a = (a); \
+           __typeof__ (b) _b = (b); \
+       _a > _b ? _b : _a; })
+#endif
+
 #endif /* DEFINES */

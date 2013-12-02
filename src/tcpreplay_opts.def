@@ -148,18 +148,6 @@ EOText;
 };
 
 flag = {
-    name        = sleep-accel;
-    arg-type    = number;
-    arg-default = 0;
-    descrip     = "Reduce the amount of time to sleep by specified usec";
-    doc         = <<- EOText
-Reduce the amount of time we would normally sleep between two packets by the 
-specified number of usec.  This provides a "fuzz factor" to compensate for
-running on a non-RTOS and other processes using CPU time.  Default is disabled.
-EOText;
-};
-
-flag = {
     name        = sleepmode;
     arg-type    = string;
     arg-default = "current";
@@ -395,7 +383,7 @@ flag = {
     max         = 1;
     descrip     = "Modify replay speed to a given multiple";
     doc         = <<- EOText
-Specify a floating point value to modify the packet replay speed.
+Specify a value to modify the packet replay speed.
 Examples:
 @example
     2.0 will replay traffic at twice the speed captured

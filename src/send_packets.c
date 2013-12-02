@@ -89,11 +89,12 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
-    delta_t delta_ctx;
     COUNTER skip_length = 0;
     COUNTER start_us;
+    bool do_not_timestamp = options.speed.mode == SPEED_TOPSPEED ||
+            (options.speed.mode == SPEED_MBPSRATE && !options.speed.speed);
 
-    init_delta_time(&delta_ctx);
+    init_timestamp(&end);
     start_us = TIMEVAL_TO_MICROSEC(&begin);
 
     /* register signals */
@@ -166,25 +167,45 @@ send_packets(pcap_t *pcap, int cache_file_idx)
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (options.speed.mode != SPEED_TOPSPEED &&
-                !(options.speed.mode == SPEED_MBPSRATE && !options.speed.speed)) {
+
+        if (!do_not_timestamp) {
+            /*
+             * this accelerator improves performance by avoiding expensive
+             * time stamps during periods where we have fallen behind in our
+             * sending
+             */
+            if (skip_length) {
+                if ((COUNTER)pktlen < skip_length) {
+                    skip_length -= pktlen;
+                    goto SEND_NOW;
+                }
+
+                get_packet_timestamp(&end);
+                skip_length = 0;
+            }
+
             if (options.sleep_mode == REPLAY_V325) {
                 do_sleep_325((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum);
             } else {
                 do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum,
-                        &delta_ctx, &start_us, &skip_length);
+                        &end, &start_us, &skip_length);
         
                 /* mark the time when we send the last packet */
                 if (!skip_length)
-                    start_delta_time(&delta_ctx);
+                    get_packet_timestamp(&end);
             }
         }
 
+SEND_NOW:
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
 
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+
+        /* mark the time when we send the last packet */
+        if (!do_not_timestamp && !skip_length)
+            get_packet_timestamp(&end);
 
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
@@ -238,11 +259,12 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
-    delta_t delta_ctx;
     COUNTER start_us;
     COUNTER skip_length = 0;
+    bool do_not_timestamp = options.speed.mode == SPEED_TOPSPEED ||
+            (options.speed.mode == SPEED_MBPSRATE && !options.speed.speed);
 
-    init_delta_time(&delta_ctx);
+    init_timestamp(&end);
     start_us = TIMEVAL_TO_MICROSEC(&begin);
 
     /* register signals */
@@ -350,25 +372,41 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
          * had to be special and use bpf_timeval.
          * Only sleep if we're not in top speed mode (-t)
          */
-        if (options.speed.mode != SPEED_TOPSPEED &&
-                !(options.speed.mode == SPEED_MBPSRATE && !options.speed.speed)) {
+        if (!do_not_timestamp) {
+            /*
+             * this accelerator improves performance by avoiding expensive
+             * time stamps during periods where we have fallen behind in our
+             * sending
+             */
+            if (skip_length) {
+                if ((COUNTER)pktlen < skip_length) {
+                    skip_length -= pktlen;
+                    goto SEND_NOW;
+                }
+
+                get_packet_timestamp(&end);
+                skip_length = 0;
+            }
+
             if (options.sleep_mode == REPLAY_V325) {
                 do_sleep_325((struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options.accurate, sp, packetnum);
             } else {
                 do_sleep((struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options.accurate, sp, packetnum,
-                        &delta_ctx, &start_us, &skip_length);
+                        &end, &start_us, &skip_length);
         
-                /* mark the time when we send the last packet */
-                if (!skip_length)
-                    start_delta_time(&delta_ctx);
             }
         }
 
+SEND_NOW:
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
 
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+
+        /* mark the time when we send the last packet */
+        if (!do_not_timestamp && !skip_length)
+            get_packet_timestamp(&end);
 
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD

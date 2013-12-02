@@ -81,7 +81,7 @@ mac2hex(const char *mac, u_char *dst, int len)
 int
 dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
 {
-    char *tok, *temp, *string;
+    char *tok = NULL, *temp, *string;
     int ret = 0;
 
     string = safe_strdup(dualmac);
@@ -121,7 +121,7 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
 tcpr_dir_t
 macinstring(const char *macstring, const u_char *mac)
 {
-    char *tok, *tempstr, *ourstring;
+    char *tok = NULL, *tempstr, *ourstring;
     u_char tempmac[6];
     int len = 6, ret = TCPR_DIR_S2C;
     

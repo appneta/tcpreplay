@@ -240,7 +240,10 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     static u_char *pktdata_buff;
     static char *frag = NULL;
     COUNTER packetnum = 0;
-    int rcode, frag_len, i, proto;
+    int rcode;
+#ifdef ENABLE_FRAGROUTE
+    int frag_len, i, proto;
+#endif
 
     pkthdr_ptr = &pkthdr;
 
