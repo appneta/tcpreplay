@@ -180,7 +180,7 @@ main(int argc, char **argv)
     iface_addrs(iface, &myip, &mymac);	/* Extract MAC of interface replay is being request on */
 
     /* open send function socket*/
-    if ((sp = sendpacket_open(iface, ebuf, TCPR_DIR_C2S)) == NULL)
+    if ((sp = sendpacket_open(iface, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE)) == NULL)
         errx(-1, "Can't open %s: %s", argv[1], ebuf);
 
     /* random dport vs. specified dport operation*/

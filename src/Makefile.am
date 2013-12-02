@@ -25,22 +25,22 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c tcpliveplay_opts.c
 opts_list=-L tcpedit
 
 tcpprep.1: tcpprep_opts.def
-	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpprep tcpprep_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) tcpprep_opts.def
 
 tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcprewrite tcprewrite_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) tcprewrite_opts.def
 
 tcpreplay-edit.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman1.tpl $(opts_list) -DTCPREPLAY_EDIT --base-name tcpreplay-edit tcpreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def
 
 tcpreplay.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpreplay tcpreplay_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) tcpreplay_opts.def
 
 tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpbridge tcpbridge_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) tcpbridge_opts.def
 
 tcpliveplay.1: tcpliveplay_opts.def 
-	@AUTOGEN@ -T agman1.tpl $(opts_list) --base-name tcpliveplay tcpliveplay_opts.def
+	@AUTOGEN@ -T agman1.tpl $(opts_list) tcpliveplay_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1

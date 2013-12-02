@@ -402,7 +402,8 @@ init(void)
 
     /* Default mode is to replay pcap once in real-time */
     options.speed.mode = SPEED_MULTIPLIER;
-    options.speed.speed = 1.0;
+    options.speed.multiplier = 1.0;
+    options.speed.speed = 0;
 
     /* Set the default timing method */
 #ifdef HAVE_ABSOLUTE_TIME
@@ -439,6 +440,8 @@ post_args(int argc)
     char *temp, *intname;
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
+    sendpacket_type_t sendpacket_type = SP_TYPE_NONE;
+    float n;
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -462,20 +465,21 @@ post_args(int argc)
 
     if (HAVE_OPT(TOPSPEED)) {
         options.speed.mode = SPEED_TOPSPEED;
-        options.speed.speed = 0.0;
+        options.speed.speed = 0;
     } else if (HAVE_OPT(PPS)) {
         options.speed.mode = SPEED_PACKETRATE;
-        options.speed.speed = (float)OPT_VALUE_PPS;
+        options.speed.speed = OPT_VALUE_PPS;
         options.speed.pps_multi = OPT_VALUE_PPS_MULTI;
     } else if (HAVE_OPT(ONEATATIME)) {
         options.speed.mode = SPEED_ONEATATIME;
-        options.speed.speed = 0.0;
+        options.speed.speed = 0;
     } else if (HAVE_OPT(MBPS)) {
         options.speed.mode = SPEED_MBPSRATE;
-        options.speed.speed = atof(OPT_ARG(MBPS));
+        n = atof(OPT_ARG(MBPS));
+        options.speed.speed = (COUNTER)(n * 1000000.0); /* convert to bps */
     } else if (HAVE_OPT(MULTIPLIER)) {
         options.speed.mode = SPEED_MULTIPLIER;
-        options.speed.speed = atof(OPT_ARG(MULTIPLIER));
+        options.speed.multiplier = atof(OPT_ARG(MULTIPLIER));
     }
 
     if (HAVE_OPT(STATS))
@@ -578,7 +582,7 @@ post_args(int argc)
     options.intf1_name = safe_strdup(intname);
 
     /* open interfaces for writing */
-    if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S)) == NULL)
+    if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S, sendpacket_type)) == NULL)
         errx(-1, "Can't open %s: %s", options.intf1_name, ebuf);
 
     int1dlt = sendpacket_get_dlt(options.intf1);
@@ -593,7 +597,7 @@ post_args(int argc)
         options.intf2_name = safe_strdup(intname);
 
         /* open interface for writing */
-        if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C)) == NULL)
+        if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C, sendpacket_type)) == NULL)
             errx(-1, "Can't open %s: %s", options.intf2_name, ebuf);
 
         int2dlt = sendpacket_get_dlt(options.intf2);

@@ -16,7 +16,11 @@ EOText;
 };
 
 package         = "tcpreplay";
+#ifdef TCPREPLAY_EDIT_MAN
+prog-name       = "tcpreplay-edit";
+#else 
 prog-name       = "tcpreplay";
+#endif
 prog-title      = "Replay network traffic stored in pcap files";
 long-opts;
 gnu-usage;

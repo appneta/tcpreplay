@@ -96,7 +96,8 @@ struct tcpr_speed_s {
 #define SPEED_PACKETRATE 3
 #define SPEED_TOPSPEED   4
 #define SPEED_ONEATATIME 5
-    float speed;
+    COUNTER speed;
+    float multiplier;
     int pps_multi;
 };
 typedef struct tcpr_speed_s tcpr_speed_t;
