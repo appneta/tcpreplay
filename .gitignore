@@ -46,7 +46,6 @@ Thumbs.db
 # configure files
 config.status
 *.in
-m4
 libtool
 .deps
 autom4te.cache
