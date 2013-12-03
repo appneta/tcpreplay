@@ -1,7 +1,7 @@
 /*
  *   $Id$
  *
- *   Copyright (c) 2013 Fred Klassen <fklasse at appneta dot com> AppNeta Inc.
+ *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> AppNeta Inc.
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
