@@ -45,6 +45,7 @@
 #include <fcntl.h>
 
 #include "tcpreplay.h"
+#include "timestamp_trace.h"
 
 #ifdef TCPREPLAY
 
@@ -175,7 +176,8 @@ send_packets(pcap_t *pcap, int cache_file_idx)
              * sending
              */
             if (skip_length) {
-                if ((COUNTER)pktlen < skip_length) {
+                if ((COUNTER)pktlen < skip_length) { //&&
+                        //!((options.limit_send > 0 && (pkts_sent + skip_length) >= options.limit_send))) {
                     skip_length -= pktlen;
                     goto SEND_NOW;
                 }
@@ -189,10 +191,6 @@ send_packets(pcap_t *pcap, int cache_file_idx)
             } else {
                 do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum,
                         &end, &start_us, &skip_length);
-        
-                /* mark the time when we send the last packet */
-                if (!skip_length)
-                    get_packet_timestamp(&end);
             }
         }
 
@@ -207,6 +205,7 @@ SEND_NOW:
         if (!do_not_timestamp && !skip_length)
             get_packet_timestamp(&end);
 
+        add_timestamp_trace_entry(pktlen, &end, skip_length);
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
          * we have to do a memcpy rather then assignment.
@@ -379,7 +378,8 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
              * sending
              */
             if (skip_length) {
-                if ((COUNTER)pktlen < skip_length) {
+                if ((COUNTER)pktlen < skip_length &&
+                        !((options.limit_send > 0 && (pkts_sent + skip_length) >= options.limit_send))) {
                     skip_length -= pktlen;
                     goto SEND_NOW;
                 }

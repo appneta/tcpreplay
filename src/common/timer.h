@@ -85,15 +85,6 @@ void timesdiv(struct timespec *tvs, COUNTER div);
     } while (0)
 #endif
 
-/* timesec to float */
-#ifndef timer2float
-#define timer2float(tvp, time)                  \
-    do {                                        \
-        time = (tvp)->tv_sec;                     \
-        time += (float)((tvp)->tv_usec / 10000) * 0.01;  \
-    } while (0)
-#endif
-
 #ifndef TIMEVAL_TO_TIMESPEC
 #define TIMEVAL_TO_TIMESPEC(tv, ts) {           \
             (ts)->tv_sec = (tv)->tv_sec;        \

@@ -509,6 +509,9 @@ flag = {
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
+#ifdef TIMESTAMP_TRACE
+    fprintf(stderr, " (timestamp-trace)");
+#endif
     fprintf(stderr, "\n");
     fprintf(stderr, "Copyright 2013 by AppNeta Inc. - Fred Klassen <fklassen at appneta dot com>\n");
     fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");

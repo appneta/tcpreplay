@@ -34,6 +34,7 @@
 #include "defines.h"
 #include "common.h"
 #include "sleep.h"
+#include "timestamp_trace.h"
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -191,17 +192,17 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         if (now_us) {
             COUNTER bps = (COUNTER)options.speed.speed;
             COUNTER bits_sent = ((bytes_sent + (COUNTER)len) * 8LL);
-            COUNTER next_tx_us = (bits_sent * 1000000) / (bps);    /* bits * 1000000 divided by bps = microseconds */
+            /* bits * 1000000 divided by bps = microseconds */
+            COUNTER next_tx_us = (bits_sent * 1000000) / bps;
             COUNTER tx_us = now_us - *start_us;
             if (next_tx_us > tx_us)
                 NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000LL, &nap);
             else if (tx_us > next_tx_us) {
-                now_us = TIMEVAL_TO_MICROSEC(sent_timestamp);
                 tx_us = now_us - *start_us;
-                *skip_length = ((tx_us - next_tx_us) * bps) / 8000000LL;
+                *skip_length = ((tx_us - next_tx_us) * bps) / 8000000;
             }
+            update_current_timestamp_trace_entry(bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
         }
-
 
         dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n,
                 nap.tv_sec, nap.tv_nsec);

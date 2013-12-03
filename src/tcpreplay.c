@@ -44,6 +44,7 @@
 #include <errno.h>
 
 #include "tcpreplay.h"
+#include "timestamp_trace.h"
 
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
@@ -201,6 +202,7 @@ main(int argc, char *argv[])
         sendpacket_close(options.intf2);
     }
 
+    dump_timestamp_trace_array(&begin, &end, options.speed.speed);
     return 0;
 }   /* main() */
 

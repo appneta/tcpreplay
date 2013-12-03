@@ -139,7 +139,7 @@ int do_checksum_math_liveplay(u_int16_t *data, int len);
 int 
 main(int argc, char **argv) 
 {
-
+    unsigned int k;
     unsigned int num_packets=0;	           
 
     char port_mode[10];    /* does user specify random port generation?*/
@@ -345,7 +345,7 @@ main(int argc, char **argv)
     sendpacket_close(sp);  /* Close Send socket*/
     remove("newfile.pcap"); /* Remote the rewritten file that was created*/
 
-    for(unsigned int k=0; k<pkts_scheduled; k++){
+    for(k=0; k<pkts_scheduled; k++){
         retransmissions+=sched[k].sent_counter; 
     }
 
@@ -403,7 +403,7 @@ random_port() {
 
 int
 relative_sched(struct tcp_sched* sched, u_int32_t first_rseq, int num_packets){
-
+    int i;
     u_int32_t lseq_adjust; 
     srand(time(NULL));
     lseq_adjust = rand();  /*Local SEQ number for SYN packet*/
@@ -412,7 +412,7 @@ relative_sched(struct tcp_sched* sched, u_int32_t first_rseq, int num_packets){
 
    u_int32_t first_lseq = sched[0].curr_lseq;   /* SYN Packet SEQ number */
    /* Fix schedule to relative and absolute */
-   for(int i = 0; i < num_packets; i++){
+   for(i = 0; i < num_packets; i++){
        if(sched[i].local){
             sched[i].curr_lseq = sched[i].curr_lseq - first_lseq; /* Fix current local SEQ to relative */
             sched[i].curr_lseq = sched[i].curr_lseq + lseq_adjust; /* Make absolute. lseq_adjust is the locally generated random number */
@@ -723,7 +723,8 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
     flags = tcphdr->th_flags;
     /* Check correct SYN-ACK expecation, if so then proceed in fixing entire schedule from relative to absolute SEQs+ACKs */
-    if((flags == (TH_SYN|TH_ACK)) && (sched_index==1) && (tcphdr->th_ack==htonl(sched[sched_index-1].curr_lseq + 1))){	
+    if((flags == (TH_SYN|TH_ACK)) && (sched_index==1) && (tcphdr->th_ack==htonl(sched[sched_index-1].curr_lseq + 1))){
+        unsigned int j;
         printf("Received Remote Packet...............	[%d]\n",sched_index+1);
         printf("Remote Pakcet Expectation met.\nProceeding in replay....\n");
         //printf("SYN-ACKed Random SEQ set!\n");
@@ -731,7 +732,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         //printf("initial_rseq: %u\n", initial_rseq);
         /* After we receiving the first SYN-ACK, then adjust the entire sched to be absolute rather than relative #s*/
         sched[1].exp_rseq = sched[1].exp_rseq + initial_rseq;
-        for(unsigned int j = 2; j<pkts_scheduled; j++){ /* Based on correctly recieving the random SEQ from the SYN-ACK packet, do the following:*/
+        for(j = 2; j<pkts_scheduled; j++){ /* Based on correctly recieving the random SEQ from the SYN-ACK packet, do the following:*/
             if(sched[j].local){ /* Set local ACKs for entire sched to be absolute #s*/
                 sched[j].curr_lack = sched[j].curr_lack + initial_rseq; 
             }
@@ -1088,9 +1089,10 @@ rewrite(in_addr* new_remoteip, struct mac_addr* new_remotemac, in_addr* myip, st
  */
 int
 extmac(char* new_rmac_ptr, struct mac_addr* new_remotemac){
+    int i;
 
     u_int8_t new_rmac[6]; 
-    for (int i = 0; i < 6; i++){
+    for (i = 0; i < 6; i++){
         long b = strtol(new_rmac_ptr+(3*i), (char **) NULL, 16);
         new_rmac[i] = (char)b;
     }

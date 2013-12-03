@@ -8,3 +8,6 @@ flowreplay
 tcpbridge
 defines.h
 config.h
+tcpedit_stub.h
+*.1
+*_opts.c

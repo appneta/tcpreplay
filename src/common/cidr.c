@@ -673,13 +673,14 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
     char ipaddr[16], tempbuff[20];
     u_int32_t size, addr, first, last, numips;
     struct in_addr in;
+    int i;
 
     /* 
      * 16 bytes per IP + delim
      * # of IP's = 2^(32-masklen)
      */
     numips = 2;
-    for (int i = 2; i <= (32 - cidr->masklen); i++)
+    for (i = 2; i <= (32 - cidr->masklen); i++)
         numips *= 2;
 
     size = 16 * numips;

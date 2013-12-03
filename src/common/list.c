@@ -77,6 +77,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     char ebuf[EBUF_SIZE];
     char regex[] = "^[0-9]+(-[0-9]+)?$";
     char *token = NULL;
+    u_int i;
 
 
     /* compile the regex first */
@@ -101,7 +102,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     list_ptr = *listdata;
     listcur = list_ptr;
 
-    for (u_int i = 0; i < strlen(this); i++) {
+    for (i = 0; i < strlen(this); i++) {
         if (this[i] == '-') {
             this[i] = '\0';
             second = &this[i + 1];
@@ -134,7 +135,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
         listcur->next = new_list();
         listcur = listcur->next;
 
-        for (u_int i = 0; i < strlen(this); i++) {
+        for (i = 0; i < strlen(this); i++) {
             if (this[i] == '-') {
                 this[i] = '\0';
                 second = &this[i + 1];
