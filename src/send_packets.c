@@ -176,8 +176,8 @@ send_packets(pcap_t *pcap, int cache_file_idx)
              * sending
              */
             if (skip_length) {
-                if ((COUNTER)pktlen < skip_length) { //&&
-                        //!((options.limit_send > 0 && (pkts_sent + skip_length) >= options.limit_send))) {
+                if ((COUNTER)pktlen < skip_length &&
+                        !((options.limit_send > 0 && (pkts_sent + skip_length) >= options.limit_send))) {
                     skip_length -= pktlen;
                     goto SEND_NOW;
                 }
