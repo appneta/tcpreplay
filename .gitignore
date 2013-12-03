@@ -52,7 +52,13 @@ src/config.h
 src/defines.h
 src/stamp-h1
 test/config
-Makefile.in
+compile
+config.guess
+config.sub
+depcomp
+install-sh
+missing
+*.m4
 
 # Temporary files 
 *.tmp
