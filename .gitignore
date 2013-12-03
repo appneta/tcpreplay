@@ -45,7 +45,6 @@ Thumbs.db
 
 # configure files
 config.status
-*.in
 libtool
 .deps
 autom4te.cache
@@ -53,6 +52,7 @@ src/config.h
 src/defines.h
 src/stamp-h1
 test/config
+Makefile.in
 
 # Temporary files 
 *.tmp
