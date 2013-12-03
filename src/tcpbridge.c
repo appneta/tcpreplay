@@ -203,7 +203,7 @@ post_args(_U_ int argc, _U_ char *argv[])
 
     if (HAVE_OPT(MAC)) {
         int ct = STACKCT_OPT(MAC);
-        char **list = STACKLST_OPT(MAC);
+        char **list = (char**)STACKLST_OPT(MAC);
         int first = 1;
         do {
             char *p = *list++;

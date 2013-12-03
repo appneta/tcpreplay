@@ -60,7 +60,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     /* --pnat */
     if (HAVE_OPT(PNAT)) {
         int ct = STACKCT_OPT(PNAT);
-        char **list = STACKLST_OPT(PNAT);
+        char **list = (char**)STACKLST_OPT(PNAT);
         int first = 1;
 
         tcpedit->rewrite_ip ++;
@@ -180,7 +180,7 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
         int ct = STACKCT_OPT(PORTMAP);
-        char **list = STACKLST_OPT(PORTMAP);
+        char **list = (char**)STACKLST_OPT(PORTMAP);
         int first = 1;
         tcpedit_portmap_t *portmap_head, *portmap;
 

@@ -131,30 +131,61 @@ void
 packet_stats(struct timeval *begin, struct timeval *end,
         COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
 {
-    float bytes_sec = 0.0, mb_sec = 0.0, pkts_sec = 0.0;
-    double frac_sec;
     struct timeval diff;
+    COUNTER diff_us;
+    COUNTER bytes_sec = 0;
+    u_int32_t bytes_sec_10ths = 0;
+    COUNTER mb_sec = 0;
+    u_int32_t mb_sec_100ths = 0;
+    u_int32_t mb_sec_1000ths = 0;
+    COUNTER pkts_sec = 0;
+    u_int32_t pkts_sec_100ths = 0;
 
     timersub(end, begin, &diff);
-    timer2float(&diff, frac_sec);
+    diff_us = TIMEVAL_TO_MICROSEC(&diff);
 
-    if (timerisset(&diff)) {
+    if (diff_us) {
         if (bytes_sent){
-            bytes_sec = bytes_sent / frac_sec;
-            mb_sec = (bytes_sec * 8) / (1000 * 1000);
+            COUNTER bytes_sec_X10;
+            COUNTER mb_sec_X100;
+
+            bytes_sec_X10 = (bytes_sent * 10 * 1000 * 1000) / diff_us;
+            bytes_sec = bytes_sec_X10 / 10;
+            bytes_sec_10ths = bytes_sec_X10 % 10;
+
+            mb_sec_X100 = (bytes_sec * 8) / (10 * 1000);
+            mb_sec = mb_sec_X100 / 100;
+            mb_sec_100ths = mb_sec_X100 % 100;
+            mb_sec_1000ths = (bytes_sec * 8) / 1000;
         }
-        if (pkts_sent)
-            pkts_sec = pkts_sent / frac_sec;
+        if (pkts_sent) {
+            COUNTER pkts_sec_X100;
+
+            pkts_sec_X100 = (pkts_sent * 100 * 1000 * 1000) / diff_us;
+            pkts_sec = pkts_sec_X100 / 100;
+            pkts_sec_100ths = pkts_sec_X100 % 100;
+        }
     }
-    printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %.02f seconds.\n",
-            pkts_sent, bytes_sent, frac_sec);
-    printf("Rated: %.1f Bps, %.2f Mbps, %.2f pps\n",
-           bytes_sec, mb_sec, pkts_sec);
+
+    if (diff_us >= 1000000)
+        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds.\n",
+                pkts_sent, bytes_sent, diff.tv_sec, diff.tv_usec / (100 * 1000));
+    else
+        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds.\n",
+                pkts_sent, bytes_sent, diff.tv_sec, diff.tv_usec);
+
+
+    if (mb_sec >= 1)
+        printf("Rated: %llu.%1u Bps, %llu.%02u Mbps, %llu.%02u pps\n",
+               bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_100ths, pkts_sec, pkts_sec_100ths);
+    else
+        printf("Rated: %llu.%1u Bps, %llu.%03u Mbps, %llu.%02u pps\n",
+               bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_1000ths, pkts_sec, pkts_sec_100ths);
+
 
     if (failed)
         printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
               failed);
-
 }
 
 /**
@@ -220,3 +251,38 @@ inet_aton(const char *name, struct in_addr *addr)
     return a != (in_addr_t)-1;
 }
 #endif
+
+#if SIZEOF_CHARP  == 4
+uint32_t __div64_32(uint64_t *n, uint32_t base)
+{
+    uint64_t rem = *n;
+    uint64_t b = base;
+    uint64_t res, d = 1;
+    uint32_t high = rem >> 32;
+
+    /* Reduce the thing a bit first */
+    res = 0;
+    if (high >= base) {
+        high /= base;
+        res = (uint64_t) high << 32;
+        rem -= (uint64_t) (high*base) << 32;
+    }
+
+    while ((int64_t)b > 0 && b < rem) {
+        b = b+b;
+        d = d+d;
+    }
+
+    do {
+        if (rem >= b) {
+            rem -= b;
+            res += d;
+        }
+        b >>= 1;
+        d >>= 1;
+    } while (d);
+
+    *n = res;
+    return rem;
+}
+#endif /* SIZEOF_CHARP  == 4 */

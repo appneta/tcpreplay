@@ -18,7 +18,11 @@ EOText;
 };
 
 package         = "tcpreplay";
+#ifdef TCPREPLAY_EDIT_MAN
+prog-name       = "tcpreplay-edit";
+#else 
 prog-name       = "tcpreplay";
+#endif
 prog-title      = "Replay network traffic stored in pcap files";
 long-opts;
 gnu-usage;
@@ -140,18 +144,6 @@ Allows you to select the packet timing method to use:
 - Use OS X AbsoluteTime API
 @end enumerate
 
-EOText;
-};
-
-flag = {
-    name        = sleep-accel;
-    arg-type    = number;
-    arg-default = 0;
-    descrip     = "Reduce the amount of time to sleep by specified usec";
-    doc         = <<- EOText
-Reduce the amount of time we would normally sleep between two packets by the 
-specified number of usec.  This provides a "fuzz factor" to compensate for
-running on a non-RTOS and other processes using CPU time.  Default is disabled.
 EOText;
 };
 
@@ -391,7 +383,7 @@ flag = {
     max         = 1;
     descrip     = "Modify replay speed to a given multiple";
     doc         = <<- EOText
-Specify a floating point value to modify the packet replay speed.
+Specify a value to modify the packet replay speed.
 Examples:
 @example
     2.0 will replay traffic at twice the speed captured
@@ -516,6 +508,9 @@ flag = {
     fprintf(stderr, "tcpreplay version: %s (build %s)", VERSION, svn_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
+#endif
+#ifdef TIMESTAMP_TRACE
+    fprintf(stderr, " (timestamp-trace)");
 #endif
     fprintf(stderr, "\n");
     fprintf(stderr, "Copyright 2013 by AppNeta Inc. - Fred Klassen <fklassen at appneta dot com>\n");

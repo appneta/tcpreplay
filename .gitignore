@@ -7,6 +7,10 @@
 *.o
 *.so 
 *.a
+*.la
+*.lo
+*_opts.h
+.libs
 
 # Packages #
 ############
@@ -64,3 +68,5 @@ TAGS
 .gdb_history
 Makefile
 types_c.vim
+.project
+.cproject

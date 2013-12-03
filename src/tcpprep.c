@@ -337,7 +337,7 @@ process_raw_packets(pcap_t * pcap)
     COUNTER packetnum = 0;
     int l2len, cache_result = 0;
     u_char ipbuff[MAXPACKET], *buffptr;
-    tcpr_dir_t direction;
+    tcpr_dir_t direction = TCPR_DIR_ERROR;
     
 #ifdef ENABLE_VERBOSE
     struct pollfd poller[1];
@@ -762,9 +762,10 @@ print_stats(const char *file)
     char *comment = NULL;
     COUNTER count = 0;
     COUNTER pri = 0, sec = 0, nosend = 0;
+    COUNTER i;
     
     count = read_cache(&cachedata, file, &comment);
-    for (COUNTER i = 1; i <= count; i ++) {
+    for (i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {
             case TCPR_DIR_C2S:

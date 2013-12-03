@@ -185,7 +185,7 @@ dlt_user_parse_opts(tcpeditdlt_t *ctx)
     /* --user-dlink */
     if (HAVE_OPT(USER_DLINK)) {
         int  ct = STACKCT_OPT(USER_DLINK);
-        char **list = STACKLST_OPT(USER_DLINK);
+        char **list = (char**)STACKLST_OPT(USER_DLINK);
         int first = 1;
         
         do  {

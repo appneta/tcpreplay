@@ -44,6 +44,7 @@
 #include <errno.h>
 
 #include "tcpreplay.h"
+#include "timestamp_trace.h"
 
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
@@ -201,6 +202,7 @@ main(int argc, char *argv[])
         sendpacket_close(options.intf2);
     }
 
+    dump_timestamp_trace_array(&begin, &end, options.speed.speed);
     return 0;
 }   /* main() */
 
@@ -411,7 +413,8 @@ init(void)
 
     /* Default mode is to replay pcap once in real-time */
     options.speed.mode = SPEED_MULTIPLIER;
-    options.speed.speed = 1.0;
+    options.speed.multiplier = 1.0;
+    options.speed.speed = 0;
 
     /* Set the default timing method */
 #ifdef HAVE_ABSOLUTE_TIME
@@ -449,6 +452,7 @@ post_args(int argc)
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int int1dlt, int2dlt;
     sendpacket_type_t sendpacket_type = SP_TYPE_NONE;
+    float n;
 
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
@@ -465,27 +469,27 @@ post_args(int argc)
 #endif
 
     options.loop = OPT_VALUE_LOOP;
-    options.sleep_accel = OPT_VALUE_SLEEP_ACCEL;
 
     if (HAVE_OPT(LIMIT))
         options.limit_send = OPT_VALUE_LIMIT;
 
     if (HAVE_OPT(TOPSPEED)) {
         options.speed.mode = SPEED_TOPSPEED;
-        options.speed.speed = 0.0;
+        options.speed.speed = 0;
     } else if (HAVE_OPT(PPS)) {
         options.speed.mode = SPEED_PACKETRATE;
-        options.speed.speed = (float)OPT_VALUE_PPS;
+        options.speed.speed = OPT_VALUE_PPS;
         options.speed.pps_multi = OPT_VALUE_PPS_MULTI;
     } else if (HAVE_OPT(ONEATATIME)) {
         options.speed.mode = SPEED_ONEATATIME;
-        options.speed.speed = 0.0;
+        options.speed.speed = 0;
     } else if (HAVE_OPT(MBPS)) {
         options.speed.mode = SPEED_MBPSRATE;
-        options.speed.speed = atof(OPT_ARG(MBPS));
+        n = atof(OPT_ARG(MBPS));
+        options.speed.speed = (COUNTER)(n * 1000000.0); /* convert to bps */
     } else if (HAVE_OPT(MULTIPLIER)) {
         options.speed.mode = SPEED_MULTIPLIER;
-        options.speed.speed = atof(OPT_ARG(MULTIPLIER));
+        options.speed.multiplier = atof(OPT_ARG(MULTIPLIER));
     }
 
     if (HAVE_OPT(STATS))

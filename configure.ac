@@ -211,7 +211,18 @@ AC_ARG_ENABLE(debug,
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         AC_SUBST(debug_flag)
-        AC_DEFINE([DEBUG], [1], [Enable debuging code and support for the -d option]) 
+        AC_DEFINE([DEBUG], [1], [Enable debugging code and support for the -d option]) 
+    fi])
+
+dnl Enable timestamp_trace in code/compiler options
+timestamp_trace=no
+AC_ARG_ENABLE(timestamp-trace,
+    AC_HELP_STRING([--timestamp-trace], [Enable dumping of trace timestamps at the end of a test]),
+    [ if test x$enableval = xyes; then
+        timestamp_trace=yes
+        CFLAGS="${USER_CFLAGS} -DTIMESTAMP_TRACE"
+        AC_SUBST(timestamp_trace_flag)
+        AC_DEFINE([TIMESTAMP_TRACE], [1], [Enable dumping of trace timestamps at the end of a test]) 
     fi])
 
 
