@@ -73,6 +73,9 @@ struct tcpreplay_opt_s {
     char *intf2_name;
     sendpacket_t *intf1;
     sendpacket_t *intf2;
+    int int1dlt;
+    int int2dlt;
+
 
     tcpr_speed_t speed;
     enum sleep_mode_t sleep_mode;
@@ -117,6 +120,8 @@ struct tcpreplay_opt_s {
 #ifdef HAVE_NETMAP
     int netmap;
 #endif
+
+    int unique_ip;
 
     /* dual file mode */
     int dualfile;

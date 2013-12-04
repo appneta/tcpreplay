@@ -71,6 +71,134 @@ extern volatile int didsig;
 extern int debug;
 #endif
 
+/**
+ * Fast flow packet edit - IPv4
+ */
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+void
+fast_edit_ipv4_packet(u_char **pktdata, u_int32_t iteration)
+{
+    ipv4_hdr_t *ip_hdr;
+    u_int32_t src_ip, dst_ip;
+
+    assert(pktdata && *pktdata);
+
+    ip_hdr = (ipv4_hdr_t*)*pktdata;
+
+    if (ip_hdr->ip_v != 4) {
+        dbg(2, "Non IPv4 packet");
+        return;
+    }
+
+    dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
+    src_ip = ntohl(ip_hdr->ip_src.s_addr);
+
+    if (dst_ip > src_ip) {
+        dst_ip += iteration;
+        src_ip -= iteration;
+        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
+        ip_hdr->ip_src.s_addr = htonl(src_ip);
+    } else {
+        src_ip += iteration;
+        dst_ip -= iteration;
+        ip_hdr->ip_src.s_addr = htonl(src_ip);
+        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
+    }
+}
+
+/**
+ * Fast flow packet edit - IPv6
+ */
+void
+fast_edit_ipv6_packet(u_char **pktdata, u_int32_t iteration)
+{
+    ipv6_hdr_t *ip6_hdr;
+    ipv4_hdr_t *ip_hdr;
+    u_int32_t src_ip, dst_ip;
+
+    assert(pktdata && *pktdata);
+
+    ip_hdr = (ipv4_hdr_t*)*pktdata;
+
+    if (ip_hdr->ip_v != 6) {
+        dbg(2, "Non IPv6 packet");
+        return;
+    }
+
+    /* manipulate last 32 bits of IPv6 address */
+    ip6_hdr = (ipv6_hdr_t*)*pktdata;
+    dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
+    src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
+
+    if (dst_ip > src_ip) {
+        dst_ip += iteration;
+        src_ip -= iteration;
+        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
+        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
+    } else {
+        src_ip += iteration;
+        dst_ip -= iteration;
+        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
+        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
+    }
+}
+
+/**
+ * Fast flow packet edit
+ *
+ * Attempts to alter the packet IP addresses without
+ * changing CRC, which will avoid overhead of tcpreplay-edit
+ */
+void
+fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata, u_int32_t iteration, int datalink)
+{
+    u_char *packet;
+    int l2_len;
+    u_int16_t proto;
+    int datalen;
+
+    assert(pkthdr);
+    assert(pktdata && *pktdata);
+
+    packet = *pktdata;
+    datalen = pkthdr->caplen;
+    if (datalen < TCPR_IPV6_H) {
+        dbgx(2, "Packet too short for Fast Flows: %u", pkthdr->caplen);
+        return;
+    }
+
+    l2_len = get_l2len(packet, datalen, datalink);
+    if (l2_len < 0) {
+        dbg(2, "Unable to decipher L2 in packet");
+        return;
+    }
+
+    if (datalink == DLT_EN10MB) {
+        eth_hdr_t *eth_hdr = (eth_hdr_t*)packet;
+
+        /* Don't do Ethernet broadcast packets */
+        if (!memcmp(eth_hdr->ether_dhost, BROADCAST_MAC, ETHER_ADDR_LEN)) {
+            dbg(2, "Packet is Ethernet broadcast");
+            return;
+        }
+    }
+
+    proto = get_l2protocol(packet, datalen, datalink);
+    packet += l2_len;
+    switch (proto) {
+    case ETHERTYPE_IP:
+        fast_edit_ipv4_packet(&packet, iteration);
+        break;
+
+    case ETHERTYPE_IP6:
+        fast_edit_ipv6_packet(&packet, iteration);
+        break;
+
+    default:
+        dbgx(2, "Packet has no IP header - proto=0x%04x", proto);
+    }
+}
+#endif /* TCPREPLAY && !TCPREPLAY_EDIT */
 
 /**
  * the main loop function for tcpreplay.  This is where we figure out
@@ -89,6 +217,10 @@ send_packets(pcap_t *pcap, int cache_file_idx)
     packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
+#endif
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+    static u_int32_t iteration = 0;
+    int datalink = options.int1dlt;
 #endif
     COUNTER skip_length = 0;
     COUNTER start_us;
@@ -162,6 +294,12 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         }
         pktlen = HAVE_OPT(PKTLEN) ? pkthdr_ptr->len : pkthdr_ptr->caplen;
 #endif
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+        if (iteration && options.unique_ip) {
+            /* edit packet to ensure every pass is unique */
+            fast_edit_packet(&pkthdr, (u_char **)&pktdata, iteration, datalink);
+        }
+#endif
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -201,7 +339,7 @@ SEND_NOW:
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
 
-        /* mark the time when we send the last packet */
+        /* mark the time when we sent the last packet */
         if (!do_not_timestamp && !skip_length)
             get_packet_timestamp(&end);
 
@@ -235,6 +373,9 @@ SEND_NOW:
         }
     } /* while */
 
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+        ++iteration;
+#endif
     if (options.enable_file_cache) {
         options.file_cache[cache_file_idx].cached = TRUE;
     }
@@ -258,6 +399,10 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+    static u_int32_t iteration = 0;
+    int datalink = options.int1dlt;
+#endif
     COUNTER start_us;
     COUNTER skip_length = 0;
     bool do_not_timestamp = options.speed.mode == SPEED_TOPSPEED ||
@@ -310,6 +455,9 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
         if (pktdata1 == NULL) {
             /* file 2 is next */
             sp = options.intf2;
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+            datalink = options.int2dlt;
+#endif
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
             prev_packet = prev_packet2;
@@ -318,6 +466,9 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
         } else if (pktdata2 == NULL) {
             /* file 1 is next */
             sp = options.intf1;
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+            datalink = options.int1dlt;
+#endif
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
             prev_packet = prev_packet1;
@@ -326,6 +477,9 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
         } else if (timercmp(&pkthdr1.ts, &pkthdr2.ts, <=)) {
             /* file 1 is next */
             sp = options.intf1;
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+            datalink = options.int1dlt;
+#endif
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
             prev_packet = prev_packet1;
@@ -334,6 +488,9 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
         } else {
             /* file 2 is next */
             sp = options.intf2;
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+            datalink = options.int2dlt;
+#endif
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
             prev_packet = prev_packet2;
@@ -366,6 +523,12 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
             tcpdump_print(options.tcpdump, pkthdr_ptr, pktdata);
 #endif
 
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+        if (iteration && options.unique_ip) {
+            /* edit packet to ensure every pass is unique */
+            fast_edit_packet(pkthdr_ptr, (u_char **)&pktdata, iteration, datalink);
+        }
+#endif
         /*
          * we have to cast the ts, since OpenBSD sucks
          * had to be special and use bpf_timeval.
@@ -404,7 +567,7 @@ SEND_NOW:
         if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
 
-        /* mark the time when we send the last packet */
+        /* mark the time when we sent the last packet */
         if (!do_not_timestamp && !skip_length)
             get_packet_timestamp(&end);
 
@@ -442,6 +605,9 @@ SEND_NOW:
         } else {
             pktdata1 = get_next_packet(pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
         }
+#if defined TCPREPLAY && !defined TCPREPLAY_EDIT
+        ++iteration;
+#endif
     } /* while */
 
     if (options.enable_file_cache) {

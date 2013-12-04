@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=3
 MINOR_VERSION=5
-MICRO_VERSION=0beta2
+MICRO_VERSION=0beta3
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.synfin.net/
 
@@ -82,7 +82,7 @@ if test -n "${AUTOGEN}" ; then
     AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
     if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 9 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
-        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from GitHub.  Please upgrade to 5.16.2)])
+        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.16.2)])
     else
         AC_MSG_RESULT(yes)
     fi
