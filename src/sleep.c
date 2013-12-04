@@ -204,7 +204,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
             update_current_timestamp_trace_entry(bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
         }
 
-        dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMESPEC_FORMAT, len, n,
+        dbgx(3, "packet size %d\t\tequals\tnap " TIMESPEC_FORMAT, len,
                 nap.tv_sec, nap.tv_nsec);
         break;
 
@@ -324,7 +324,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
     dbgx(4, "Total sleep time: " TIMEVAL_FORMAT, totalsleep.tv_sec, totalsleep.tv_usec);
 #endif
 
-    dbgx(2, "sleep delta: " TIMESPEC_FORMAT, delta_time.tv_sec, delta_time.tv_nsec);
+    dbgx(2, "sleep delta: " TIMEVAL_FORMAT, sent_timestamp->tv_sec, sent_timestamp->tv_usec);
 
 }
 
