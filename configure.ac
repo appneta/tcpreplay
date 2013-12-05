@@ -73,7 +73,7 @@ AC_PATH_PROG(AUTOGEN, autogen)
 AC_PATH_PROG(GROFF, groff)
 
 dnl check autogen version
-AUTOGEN_VERSION=unknown
+AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
     AC_MSG_CHECKING(for autogen version >= 5.9.x)
     ${AUTOGEN} -v >autogen.version
