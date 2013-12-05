@@ -220,7 +220,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
 #endif
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
     static u_int32_t iteration = 0;
-    int datalink = options.int1dlt;
+    int datalink = options.intf1dlt;
 #endif
     COUNTER skip_length = 0;
     COUNTER start_us;
@@ -401,7 +401,7 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
     struct pcap_pkthdr *pkthdr_ptr;
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
     static u_int32_t iteration = 0;
-    int datalink = options.int1dlt;
+    int datalink = options.intf1dlt;
 #endif
     COUNTER start_us;
     COUNTER skip_length = 0;
@@ -456,7 +456,7 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
             /* file 2 is next */
             sp = options.intf2;
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
-            datalink = options.int2dlt;
+            datalink = options.intf2dlt;
 #endif
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
@@ -467,7 +467,7 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
             /* file 1 is next */
             sp = options.intf1;
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
-            datalink = options.int1dlt;
+            datalink = options.intf1dlt;
 #endif
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
@@ -478,7 +478,7 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
             /* file 1 is next */
             sp = options.intf1;
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
-            datalink = options.int1dlt;
+            datalink = options.intf1dlt;
 #endif
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
@@ -489,7 +489,7 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
             /* file 2 is next */
             sp = options.intf2;
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
-            datalink = options.int2dlt;
+            datalink = options.intf2dlt;
 #endif
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;

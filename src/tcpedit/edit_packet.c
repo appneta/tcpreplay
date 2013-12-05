@@ -117,6 +117,70 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
     return TCPEDIT_OK;
 }
 
+#define IP_DF       0x4000      /* Flag: "Don't Fragment"   */
+#define IP_MF       0x2000      /* Flag: "More Fragments"   */
+#define IP_OFFSET   0x1FFF      /* "Fragment Offset" part   */
+int chksum_replace_ipv4(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, u_int32_t from, u_int32_t to)
+{
+    if (tcpedit->fixcsum == TCPEDIT_FIXCSUM_DISABLE)
+        return 1;
+
+    chksum_replace4(&ip_hdr->ip_sum, from, to);
+    return 0;
+}
+
+static int transport_pseudo_chksum_ipv4(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr,
+        u_int32_t from, u_int32_t to)
+{
+    int ihl;
+    u_char *transport;
+    u_int8_t protocol;
+
+    if (tcpedit->fixcsum == TCPEDIT_FIXCSUM_DISABLE)
+        return 0;
+
+    ihl = ip_hdr->ip_hl * 4;
+    transport = ((u_char *)ip_hdr) + ihl;
+    protocol = ip_hdr->ip_p;
+
+    chksum_replace4(&ip_hdr->ip_sum, from, to);
+
+    /* reject IP fragments */
+    if (ip_hdr->ip_off & htons(IP_OFFSET))
+        return 1;
+
+    switch (protocol) {
+    case IPPROTO_TCP:
+    {
+        struct tcpr_tcp_hdr *tcph;
+
+        tcph = (struct tcpr_tcp_hdr *)transport;
+        chksum_replace4(&tcph->th_sum, from, to);
+        break;
+    }
+    case IPPROTO_UDP:
+    {
+        struct tcpr_udp_hdr *udph;
+
+        udph = (struct tcpr_udp_hdr *)transport;
+        if (udph->uh_sum) {
+            chksum_replace4(&udph->uh_sum, from, to);
+            if (!udph->uh_sum)
+                udph->uh_sum = 0xffff; /* mangled checksum */
+        }
+        break;
+    }
+
+    case IPPROTO_ICMP:
+        break;
+
+    default:
+        return 1;
+    }
+
+    return 0;
+}
+
 /**
  * returns a new 32bit integer which is the randomized IP 
  * based upon the user specified seed
@@ -170,6 +234,8 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 #ifdef DEBUG
     char srcip[16], dstip[16];
 #endif
+    int needtorecalc = 0;
+
     assert(tcpedit);
     assert(pkthdr);
     assert(pktdata);
@@ -185,13 +251,17 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
     /* don't rewrite broadcast addresses */
     if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_dst.s_addr)) 
-        || !tcpedit->skip_broadcast) {
+            || !tcpedit->skip_broadcast) {
+        in_addr_t old_dst_ip = ip_hdr->ip_dst.s_addr;
         ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
+        needtorecalc += transport_pseudo_chksum_ipv4(tcpedit, ip_hdr, old_dst_ip, ip_hdr->ip_dst.s_addr);
     }
     
     if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr))
-        || !tcpedit->skip_broadcast) {
+            || !tcpedit->skip_broadcast) {
+        in_addr_t old_src_ip = ip_hdr->ip_src.s_addr;
         ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
+        needtorecalc += transport_pseudo_chksum_ipv4(tcpedit, ip_hdr, old_src_ip, ip_hdr->ip_src.s_addr);
     }
 
 #ifdef DEBUG    
@@ -201,7 +271,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
     dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
 
-    return(1);
+    return(needtorecalc);
 }
 
 int
