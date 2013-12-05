@@ -293,7 +293,7 @@ replay_file(int file_idx)
 
 
     if (pcap != NULL) {
-        dlt = sendpacket_get_dlt(options.intf1);
+        dlt = options.intf1dlt;
         if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
             warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
                 path, pcap_datalink_val_to_name(pcap_datalink(pcap)), 
@@ -606,7 +606,7 @@ post_args(int argc)
     if ((options.intf1 = sendpacket_open(options.intf1_name, ebuf, TCPR_DIR_C2S, sendpacket_type)) == NULL)
         errx(-1, "Can't open %s: %s", options.intf1_name, ebuf);
 
-    options.int1dlt = sendpacket_get_dlt(options.intf1);
+    options.intf1dlt = sendpacket_get_dlt(options.intf1);
 
     if (HAVE_OPT(INTF2)) {
         if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(DUALFILE))
@@ -621,11 +621,11 @@ post_args(int argc)
         if ((options.intf2 = sendpacket_open(options.intf2_name, ebuf, TCPR_DIR_S2C, sendpacket_type)) == NULL)
             errx(-1, "Can't open %s: %s", options.intf2_name, ebuf);
 
-        options.int2dlt = sendpacket_get_dlt(options.intf2);
-        if (options.int2dlt != options.int1dlt)
+        options.intf2dlt = sendpacket_get_dlt(options.intf2);
+        if (options.intf2dlt != options.intf1dlt)
             errx(-1, "DLT type missmatch for %s (%s) and %s (%s)", 
-                    options.intf1_name, pcap_datalink_val_to_name(options.int1dlt),
-                    options.intf2_name, pcap_datalink_val_to_name(options.int2dlt));
+                    options.intf1_name, pcap_datalink_val_to_name(options.intf1dlt),
+                    options.intf2_name, pcap_datalink_val_to_name(options.intf2dlt));
     }
 
     if (HAVE_OPT(CACHEFILE)) {

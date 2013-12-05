@@ -73,8 +73,8 @@ struct tcpreplay_opt_s {
     char *intf2_name;
     sendpacket_t *intf1;
     sendpacket_t *intf2;
-    int int1dlt;
-    int int2dlt;
+    int intf1dlt;
+    int intf2dlt;
 
 
     tcpr_speed_t speed;

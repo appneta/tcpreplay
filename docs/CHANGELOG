@@ -1,7 +1,9 @@
 $Id$
 
 ??/??/2013 Version 3.5.0
-    - Removed sleep-accel option (anneta #2) 
+    - Implement pseudo-CRC to improve tcpedit performance (appneta #8)
+    - Add --fast-flows option to tcpreplay (appneta #4)
+    - Removed sleep-accel option (appneta #2) 
     - Enhance accuracy and performance of --mbps option (appneta #2)
     - Add netmap injector (appneta #1)
     - Add --sleepmode option to handle high precision timing (#421)

@@ -41,6 +41,55 @@
 
 static int do_checksum_math(u_int16_t *, int);
 
+/*
+ * Fold a partial checksum
+ *
+ * shamelessly stolen from Linux kernel and modified
+ * to run in user land
+ */
+static inline u_int16_t csum_fold(u_int32_t csum)
+{
+    u_int32_t sum = csum;
+    sum = (sum & 0xffff) + (sum >> 16);
+    sum = (sum & 0xffff) + (sum >> 16);
+    return (u_int16_t)~sum;
+}
+
+static inline u_int32_t csum_partial(void *buff, int len, u_int32_t wsum)
+{
+    unsigned int sum = (unsigned int)wsum;
+    unsigned int result = do_checksum_math(buff, len);
+
+    /* add in old sum, and carry.. */
+    result += sum;
+    if (sum > result)
+        result += 1;
+    return (u_int32_t)result;
+}
+
+static inline void __chksum_replace4(u_int16_t *sum, u_int32_t from, u_int32_t to)
+{
+    u_int32_t diff[] = { ~from, to };
+    *sum = csum_fold(csum_partial(diff, sizeof(diff), ~((u_int32_t)(*sum))));
+}
+
+/**
+ * Apply modifications to an existing checksum based on
+ * 32-bit before and after values
+ */
+void chksum_replace4(u_int16_t *sum, u_int32_t from, u_int32_t to)
+{
+    __chksum_replace4(sum, from, to);
+}
+
+/**
+ * Apply modifications to an existing checksum based on
+ * 32-bit before and after values
+ */
+void chksum_replace2(u_int16_t *sum, u_int16_t from, u_int16_t to)
+{
+    __chksum_replace4(sum, (u_int32_t)from, (u_int32_t)to);
+}
 
 /**
  * Returns -1 on error and 0 on success, 1 on warn

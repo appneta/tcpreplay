@@ -278,16 +278,19 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if ((tcpedit->fixcsum == TCPEDIT_FIXCSUM_ON || 
             (needtorecalc && tcpedit->fixcsum != TCPEDIT_FIXCSUM_DISABLE))) {
         if (ip_hdr != NULL) {
+            dbgx(3, "doing IPv4 checksum: needtorecalc=%d", needtorecalc);
             retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr);
         } else if (ip6_hdr != NULL) {
+            dbgx(3, "doing IPv6 checksum: needtorecalc=%d", needtorecalc);
             retval = fix_ipv6_checksums(tcpedit, *pkthdr, ip6_hdr);
         } else {
+            dbgx(3, "checksum not performed: needtorecalc=%d", needtorecalc);
             retval = TCPEDIT_OK;
         }
         if (retval < 0) {
             return TCPEDIT_ERROR;
         } else if (retval == TCPEDIT_WARN) {
-            warnx("%s", tcpedit_getwarn(tcpedit));
+            dbgx(3, "%s", tcpedit_getwarn(tcpedit));
         }
     }
 
