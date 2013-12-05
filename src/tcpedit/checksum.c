@@ -86,7 +86,7 @@ void chksum_replace4(u_int16_t *sum, u_int32_t from, u_int32_t to)
  * Apply modifications to an existing checksum based on
  * 32-bit before and after values
  */
-void cksum_replace2(u_int16_t *sum, u_int16_t from, u_int16_t to)
+void chksum_replace2(u_int16_t *sum, u_int16_t from, u_int16_t to)
 {
     __chksum_replace4(sum, (u_int32_t)from, (u_int32_t)to);
 }

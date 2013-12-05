@@ -123,7 +123,7 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
 int chksum_replace_ipv4(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, u_int32_t from, u_int32_t to)
 {
     if (tcpedit->fixcsum == TCPEDIT_FIXCSUM_DISABLE)
-        return 1;
+        return 0;
 
     chksum_replace4(&ip_hdr->ip_sum, from, to);
     return 0;
