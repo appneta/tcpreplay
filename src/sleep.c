@@ -122,7 +122,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
 #ifdef DEBUG
     static struct timeval totalsleep = { 0, 0 };
 #endif
-    static struct timespec nap = { 0, 0 };  //, delta_time = {0, 0};
+    static struct timespec nap = { 0, 0 };
     struct timeval nap_for;
     struct timespec nap_this_time;
     static u_int32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */

@@ -343,7 +343,9 @@ SEND_NOW:
         if (!do_not_timestamp && !skip_length)
             get_packet_timestamp(&end);
 
+#ifdef TIMESTAMP_TRACE
         add_timestamp_trace_entry(pktlen, &end, skip_length);
+#endif
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
          * we have to do a memcpy rather then assignment.
