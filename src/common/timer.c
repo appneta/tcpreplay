@@ -101,7 +101,7 @@ void
 init_timestamp(timestamp_t *ctx)
 {
 #ifdef HAVE_ABSOLUTE_TIME
-    SetZero(*ctx);
+    ctx = 0;
 #else
     timerclear(ctx);
 #endif 

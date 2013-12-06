@@ -84,26 +84,21 @@ gettimeofday_sleep(struct timespec nap)
 
 
 #ifdef HAVE_ABSOLUTE_TIME
-#include <CoreServices/CoreServices.h>
 
 /* 
- * Apple's AbsoluteTime functions give at least .1usec precision
+ * Apple's mach_absolute_time function gives nsec precision
  * which is pretty damn sweet
  */
 static inline void
 absolute_time_sleep(struct timespec nap)
 {
-    AbsoluteTime sleep_until, naptime, time_left;
-    Nanoseconds nanosec;
+    timestamp_t sleep_until, time_left;
 
-    nanosec = UInt64ToUnsignedWide(TIMESPEC_TO_NANOSEC(&nap));
-    naptime = NanosecondsToAbsolute(nanosec);
-
-    sleep_until = AddAbsoluteToAbsolute(UpTime(), naptime);
+    sleep_until = getUpTime() + TIMESPEC_TO_NANOSEC(&nap);
 
     do {
-        time_left = SubAbsoluteFromAbsolute(sleep_until, UpTime());
-    } while (NonZero(time_left));
+        time_left = sleep_until - getUpTime();
+    } while (time_left < 0);
 }
 
 #endif /* HAVE_ABSOLUTE_TIME */

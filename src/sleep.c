@@ -188,7 +188,7 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
-        now_us = TIMEVAL_TO_MICROSEC(sent_timestamp);
+        now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
         if (now_us) {
             COUNTER bps = (COUNTER)options.speed.speed;
             COUNTER bits_sent = ((bytes_sent + (COUNTER)len) * 8LL);

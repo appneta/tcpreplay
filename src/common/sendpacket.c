@@ -702,7 +702,7 @@ sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 }
 
 
-#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) && ! defined INJECT_METHOD
+#if defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET
 /**
  * Inner sendpacket_open() method for using libpcap
  */
