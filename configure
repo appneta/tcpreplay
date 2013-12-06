@@ -15744,7 +15744,7 @@ fi
 
 
 
-AUTOGEN_VERSION=unknown
+AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for autogen version >= 5.9.x" >&5
 $as_echo_n "checking for autogen version >= 5.9.x... " >&6; }
@@ -15755,8 +15755,8 @@ $as_echo_n "checking for autogen version >= 5.9.x... " >&6; }
     if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 9 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: ${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from GitHub.  Please upgrade to 5.16.2)" >&5
-$as_echo "$as_me: WARNING: ${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from GitHub.  Please upgrade to 5.16.2)" >&2;}
+        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: ${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.16.2)" >&5
+$as_echo "$as_me: WARNING: ${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.16.2)" >&2;}
     else
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
