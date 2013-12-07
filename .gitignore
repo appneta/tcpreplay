@@ -76,3 +76,5 @@ Makefile
 types_c.vim
 .project
 .cproject
+*.1
+src/tcpedit/tcpedit_stub.h

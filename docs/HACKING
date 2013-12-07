@@ -9,7 +9,8 @@ was significantly long ago, this document may be out of date.]
 If you contribute code the following will happen:
     a) You will be given credit in the CREDITS file
     b) Your code will be licensed under the same license as that of tcpreplay
-    c) You will be assigning your copyright to me- Aaron Turner
+    c) You will be assigning your copyright to Aaron Turner 
+       and Fred Klassen - Appneta Inc.
 
 If you have any questions regarding any of the three above stipulations,
 feel free to email the list at: tcpreplay-users@lists.sourceforge.net
@@ -49,7 +50,7 @@ The file layout is pretty simple:
 libtcpedit supports a plugin based architecture for handling different DLT
 types.  If you wish to add support for another DLT type, you should read:
 
-http://tcpreplay.synfin.net/trac/wiki/tcpeditDeveloper
+http://tcpreplay.synfin.net/wiki/tcpeditDeveloper
 
 Which contains information on creating new DLT plugins.
 

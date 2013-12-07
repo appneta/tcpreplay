@@ -1,19 +1,40 @@
+/* $Id$ */
+
+/*
+ *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
+ *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.
+ *
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it 
+ *   and/or modify it under the terms of the GNU General Public License as 
+ *   published by the Free Software Foundation, either version 3 of the 
+ *   License, or with the authors permission any later version.
+ *
+ *   The Tcpreplay Suite is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 autogen definitions options;
 
 
 copyright = {
     date        = "2000-2012";
-    owner       = "Aaron Turner";
-    type        = bsd;
-    eaddr       = "tcpreplay-users@lists.sourceforge.net";
+    owner       = "Aaron Turner and Fred Klassen";
+    eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
+    type        = gpl;
     author      = <<- EOText
 Copyright 2000-2012 Aaron Turner
+
 Copyright 2013 Fred Klassen - AppNeta Inc.
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
 The latest version of this software is always available from:
-http://tcpreplay.synfin.net/
+http://tcpreplay.appneta.com/
 EOText;
 };
 
@@ -78,7 +99,7 @@ Restart tcpreplay
 @end enumerate
 
 .SH "SEE ALSO"
-tcpreplay-edit(1), tcpdump(1), tcpprep(1), tcprewrite(1), libnet(3)
+tcpdump(1), tcpbridge(1), tcprewrite(1), tcpprep(1), tcpcapinfo(1)
 
 .SH "BUGS"
 tcpreplay can only send packets as fast as your computer's interface,
@@ -496,7 +517,7 @@ flag = {
     descrip     = "Print the PID of tcpreplay at startup";
     flag-code   = <<- EOPid
 
-fprintf(stderr, "PID: %hu\n", getpid());
+    fprintf(stderr, "PID: %d\n", getpid());
 
 EOPid;
     doc         = "";
@@ -519,7 +540,7 @@ flag = {
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
 
-    fprintf(stderr, "tcpreplay version: %s (build %s)", VERSION, svn_version());
+    fprintf(stderr, "tcpreplay version: %s (build %s)", VERSION, git_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
@@ -527,8 +548,9 @@ flag = {
     fprintf(stderr, " (timestamp-trace)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013 by AppNeta Inc. - Fred Klassen <fklassen at appneta dot com>\n");
-    fprintf(stderr, "Copyright 2000-2010 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2013 by Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.\n");
+    fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");  
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);

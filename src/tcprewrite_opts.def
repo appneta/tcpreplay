@@ -1,16 +1,39 @@
+/* $Id$ */
+
+/*
+ *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
+ *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.
+ *
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it 
+ *   and/or modify it under the terms of the GNU General Public License as 
+ *   published by the Free Software Foundation, either version 3 of the 
+ *   License, or with the authors permission any later version.
+ *
+ *   The Tcpreplay Suite is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 autogen definitions options;
 
 copyright = {
     date        = "2000-2012";
-    owner       = "Aaron Turner";
-    type        = "bsd";
+    owner       = "Aaron Turner and Fred Klassen";
+    eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
+    type        = gpl;
     author      = <<- EOText
 Copyright 2000-2012 Aaron Turner
+
+Copyright 2013 Fred Klassen - AppNeta Inc.
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
 The latest version of this software is always available from:
-http://tcpreplay.synfin.net/
+http://tcpreplay.appneta.com/
 EOText;
 };
 
@@ -61,7 +84,7 @@ EOText;
 
 man-doc = <<- EOMan
 .SH "SEE ALSO"
-tcpdump(1), tcpprep(1), tcpreplay(1)
+tcpdump(1), tcpbridge(1), tcpreplay(1), tcpprep(1)
 EOMan;
 
 
@@ -201,7 +224,7 @@ flag = {
     max     = 1;
     descrip = "Skip writing packets with soft errors";
     doc     = <<- EOText
-In some cases, packets can't be decoded or the requested editing
+In some cases, packets can not be decoded or the requested editing
 is not possible.  Normally these packets are written to the output
 file unedited so that tcpprep cache files can still be used, but if
 you wish, these packets can be suppressed.
@@ -217,12 +240,14 @@ flag = {
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
 
-    fprintf(stderr, "tcprewrite version: %s (build %s)", VERSION, svn_version());
+    fprintf(stderr, "tcprewrite version: %s (build %s)", VERSION, git_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
+    fprintf(stderr, "Copyright 2013 by Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.\n");
+    fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");  
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);

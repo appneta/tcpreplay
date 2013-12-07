@@ -129,7 +129,7 @@ flag = {
     descrip     = "Print version information";
     flag-code   = <<- EOVersion
 
-    fprintf(stderr, "tcpliveplay version: %s (build %s)", VERSION, svn_version());
+    fprintf(stderr, "tcpliveplay version: %s (build %s)", VERSION, git_version());
 #ifdef DEBUG
     fprintf(stderr, " (debug)");
 #endif
