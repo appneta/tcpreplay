@@ -31,10 +31,10 @@ tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcprewrite_opts.def || true
 
 tcpreplay-edit.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) @NETMAPFLAGS@ -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def || true
 
 tcpreplay.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpreplay_opts.def || true
 
 tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpbridge_opts.def || true

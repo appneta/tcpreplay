@@ -49,11 +49,6 @@ typedef struct {
     packet_cache_t *packet_cache;
 } file_cache_t;
 
-enum sleep_mode_t {
-    REPLAY_CURRENT,
-    REPLAY_V325
-};
-
 /* run-time options */
 struct tcpreplay_opt_s {
     /* input/output */
@@ -66,7 +61,6 @@ struct tcpreplay_opt_s {
 
 
     tcpr_speed_t speed;
-    enum sleep_mode_t sleep_mode;
     u_int32_t loop;
     struct timespec maxsleep;
 
@@ -85,10 +79,9 @@ struct tcpreplay_opt_s {
     int accurate;
 #define ACCURATE_NANOSLEEP  0
 #define ACCURATE_SELECT     1
-#define ACCURATE_RDTSC      2
-#define ACCURATE_IOPORT     3
-#define ACCURATE_GTOD       4
-#define ACCURATE_ABS_TIME   5
+#define ACCURATE_IOPORT     2
+#define ACCURATE_GTOD       3
+#define ACCURATE_ABS_TIME   4
 
     char *files[MAX_FILES];
     COUNTER limit_send;

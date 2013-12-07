@@ -56,7 +56,7 @@ libcommon_a_AR = $(AR) $(ARFLAGS)
 am__libcommon_a_SOURCES_DIST = cidr.c err.c list.c cache.c services.c \
 	get.c fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c timer.c \
 	git_version.c abort.c sendpacket.c dlt_names.c mac.c \
-	interface.c rdtsc.c tcpdump.c
+	interface.c tcpdump.c
 @ENABLE_TCPDUMP_TRUE@am__objects_1 = tcpdump.$(OBJEXT)
 am_libcommon_a_OBJECTS = cidr.$(OBJEXT) err.$(OBJEXT) list.$(OBJEXT) \
 	cache.$(OBJEXT) services.$(OBJEXT) get.$(OBJEXT) \
@@ -64,7 +64,7 @@ am_libcommon_a_OBJECTS = cidr.$(OBJEXT) err.$(OBJEXT) list.$(OBJEXT) \
 	xX.$(OBJEXT) utils.$(OBJEXT) timer.$(OBJEXT) \
 	git_version.$(OBJEXT) abort.$(OBJEXT) sendpacket.$(OBJEXT) \
 	dlt_names.$(OBJEXT) mac.$(OBJEXT) interface.$(OBJEXT) \
-	rdtsc.$(OBJEXT) $(am__objects_1)
+	$(am__objects_1)
 libcommon_a_OBJECTS = $(am_libcommon_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -242,13 +242,13 @@ BUILT_SOURCES = git_version.c
 libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 	fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c timer.c \
 	git_version.c abort.c sendpacket.c dlt_names.c mac.c \
-	interface.c rdtsc.c $(am__append_1)
+	interface.c $(am__append_1)
 AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS) @LDNETINC@
 @SYSTEM_STRLCPY_FALSE@libcommon_a_LIBADD = ../../lib/libstrl.a
 noinst_HEADERS = cidr.h err.h list.h cache.h services.h get.h \
 		 fakepcap.h fakepcapnav.h fakepoll.h xX.h utils.h \
 		 tcpdump.h timer.h abort.h pcap_dlt.h sendpacket.h \
-		 dlt_names.h mac.h interface.h rdtsc.h
+		 dlt_names.h mac.h interface.h
 
 MOSTLYCLEANFILES = *~
 MAINTAINERCLEANFILES = Makefile.in git_version.c
@@ -314,7 +314,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rdtsc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sendpacket.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/services.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tcpdump.Po@am__quote@

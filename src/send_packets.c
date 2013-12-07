@@ -312,12 +312,8 @@ send_packets(pcap_t *pcap, int cache_file_idx)
                 skip_length = 0;
             }
 
-            if (options.sleep_mode == REPLAY_V325) {
-                do_sleep_325((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum);
-            } else {
-                do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum,
-                        &end, &start_us, &skip_length);
-            }
+            do_sleep((struct timeval *)&pkthdr.ts, &last, pktlen, options.accurate, sp, packetnum,
+                    &end, &start_us, &skip_length);
         }
 
 SEND_NOW:
@@ -541,13 +537,8 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
                 skip_length = 0;
             }
 
-            if (options.sleep_mode == REPLAY_V325) {
-                do_sleep_325((struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options.accurate, sp, packetnum);
-            } else {
-                do_sleep((struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options.accurate, sp, packetnum,
-                        &end, &start_us, &skip_length);
-        
-            }
+            do_sleep((struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options.accurate, sp, packetnum,
+                    &end, &start_us, &skip_length);
         }
 
 SEND_NOW:

@@ -44,7 +44,6 @@
 float gettimeofday_sleep_value;
 int ioport_sleep_value;
 
-static u_int32_t sleep_loop(struct timeval);
 static u_int32_t get_user_count(sendpacket_t *, COUNTER);
 
 extern tcpreplay_opt_t options;
@@ -99,8 +98,7 @@ ioport_sleep(const struct timespec UNUSED(nap))
 
 /**
  * Given the timestamp on the current packet and the last packet sent,
- * calculate the appropriate amount of time to sleep and do so.  This is
- * the new method as of v3.3.0
+ * calculate the appropriate amount of time to sleep and do so.
  */
 void
 do_sleep(struct timeval *time, struct timeval *last, int len, int accurate, 
@@ -266,12 +264,6 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
         break;
 #endif
 
-#ifdef HAVE_RDTSC
-    case ACCURATE_RDTSC:
-        rdtsc_sleep(nap_this_time);
-        break;
-#endif
-
 #ifdef HAVE_ABSOLUTE_TIME
     case ACCURATE_ABS_TIME:
         absolute_time_sleep(nap_this_time);
@@ -314,179 +306,6 @@ do_sleep(struct timeval *time, struct timeval *last, int len, int accurate,
 
     dbgx(2, "sleep delta: " TIMEVAL_FORMAT, sent_timestamp->tv_sec, sent_timestamp->tv_usec);
 
-}
-
-
-
-/**
- * Given the timestamp on the current packet and the last packet sent,
- * calculate the appropriate amount of time to sleep and do so.
- *
- * This is the old method from v3.2.5
- */
-void
-do_sleep_325(struct timeval *time, struct timeval *last, int len, 
-        int accurate, sendpacket_t *sp, COUNTER counter)
-{
-    static struct timeval didsleep = { 0, 0 };
-    static struct timeval start = { 0, 0 };
-#ifdef DEBUG
-    static struct timeval totalsleep = { 0, 0 };
-#endif
-    struct timeval nap, now, delta;
-    struct timespec ignore, sleep;
-    float n;
-    struct pollfd poller[1];        /* use poll to read from the keyboard */
-    char input[EBUF_SIZE];
-    static u_int32_t send = 0;      /* remember # of packets to send btw calls */
-    u_int32_t loop;
-
-    /* just return if topspeed */
-    if (options.speed.mode == SPEED_TOPSPEED)
-        return;
-
-    dbgx(3, "Last time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
-
-    if (gettimeofday(&now, NULL) < 0) {
-        errx(1, "Error gettimeofday: %s", strerror(errno));
-    }
-
-    dbgx(3, "Now time: " TIMEVAL_FORMAT, now.tv_sec, now.tv_usec);
-
-    /* First time through for this file */
-    if (pkts_sent == 0 || ((options.speed.mode != SPEED_MBPSRATE) && (counter == 0))) {
-        start = now;
-        timerclear(&delta);
-        timerclear(&didsleep);
-    }
-    else {
-        timersub(&now, &start, &delta);
-    }
-
-    switch(options.speed.mode) {
-    case SPEED_MULTIPLIER:
-        /* 
-         * Replay packets a factor of the time they were originally sent.
-         */
-        if (timerisset(last) && timercmp(time, last, >)) {
-            timersub(time, last, &nap);
-            timerdiv(&nap, options.speed.speed);
-        }
-        else {
-            /* 
-             * Don't sleep if this is our first packet, or if the
-             * this packet appears to have been sent before the 
-             * last packet.
-             */
-            timerclear(&nap);
-        }
-        break;
-
-    case SPEED_MBPSRATE:
-        /* 
-         * Ignore the time supplied by the capture file and send data at
-         * a constant 'rate' (bytes per second).
-         */
-        if (pkts_sent != 0) {
-            n = (float)len / (options.speed.speed * 1024 * 1024 / 8); /* convert Mbps to bps (same calc as final report) */
-            nap.tv_sec = n;
-            nap.tv_usec = (n - nap.tv_sec) * 1000000;
-            dbgx(3, "packet size %d\t\tequals %f bps\t\tnap " TIMEVAL_FORMAT, len, n, 
-                nap.tv_sec, nap.tv_usec);
-        }
-        else {
-            timerclear(&nap);
-        }
-        break;
-
-    case SPEED_PACKETRATE:
-        /* run in packets/sec */
-        n = 1 / options.speed.speed;
-        nap.tv_sec = n;
-        n -= nap.tv_sec;
-        nap.tv_usec = n * 1000000;
-        break;
-
-    case SPEED_ONEATATIME:
-        /* do we skip prompting for a key press? */
-        if (send == 0) {
-            printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
-                counter, (sp == options.intf1 ? options.intf1_name : options.intf2_name));
-            fflush(NULL);
-            poller[0].fd = STDIN_FILENO;
-            poller[0].events = POLLIN | POLLPRI | POLLNVAL;
-            poller[0].revents = 0;
-
-            if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK)) 
-                   errx(1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
-
-            /* wait for the input */
-            if (poll(poller, 1, -1) < 0)
-                errx(1, "Error reading user input from stdin: %s", strerror(errno));
-            
-            /*
-             * read to the end of the line or EBUF_SIZE,
-             * Note, if people are stupid, and type in more text then EBUF_SIZE
-             * then the next fgets() will pull in that data, which will have poor 
-             * results.  fuck them.
-             */
-            if (fgets(input, sizeof(input), stdin) == NULL) {
-                errx(1, "Unable to process user input for fd %d: %s", fileno(stdin), strerror(errno));
-            } else if (strlen(input) > 1) {
-                send = strtoul(input, NULL, 0);
-            }
-
-            /* how many packets should we send? */
-            if (send == 0) {
-                dbg(1, "Input was less then 1 or non-numeric, assuming 1");
-
-                /* assume send only one packet */
-                send = 1;
-            }
-            
-        }
-
-        /* decrement our send counter */
-        printf("Sending packet " COUNTER_SPEC " out: %s\n", counter,
-               sp == options.intf1 ? options.intf1_name : options.intf2_name);
-        send --;
-
-        /* leave do_sleep() */
-        return;
-
-        break;
-
-    default:
-        errx(1, "Unknown/supported speed mode: %d", options.speed.mode);
-        break;
-    }
-
-    if (!accurate) {
-        timeradd(&didsleep, &nap, &didsleep);
-
-        dbgx(4, "I will sleep " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
-
-        if (timercmp(&didsleep, &delta, >)) {
-            timersub(&didsleep, &delta, &nap);
-
-            sleep.tv_sec = nap.tv_sec;
-            sleep.tv_nsec = nap.tv_usec * 1000; /* convert microsec to ns */
-            dbgx(4, "Sleeping " TIMEVAL_FORMAT, nap.tv_sec, nap.tv_usec);
-#ifdef DEBUG
-            timeradd(&totalsleep, &nap, &totalsleep);
-#endif
-            if (nanosleep(&sleep, &ignore) == -1) {
-                warnx("nanosleep error: %s", strerror(errno));
-            }
-        }
-    } else {
-        timeradd(&now, &nap, &delta);
-        loop = sleep_loop(delta);
-        dbgx(3, "sleep_loop looped %u times", loop);
-    }
-#ifdef DEBUG
-    dbgx(4, "Total sleep time: " TIMEVAL_FORMAT, totalsleep.tv_sec, totalsleep.tv_usec);
-#endif
 }
 
 /**
@@ -534,21 +353,4 @@ get_user_count(sendpacket_t *sp, COUNTER counter)
     }
 
     return send;
-}
-
-/**
- * this function will keep calling gettimeofday() until it returns
- * >= time.  This should be a lot more accurate then using nanosleep(),
- * but at the cost of being more CPU intensive.
- */
-static u_int32_t 
-sleep_loop(struct timeval time)
-{
-   struct timeval now;
-   u_int32_t loop = 0;
-   do {
-        gettimeofday(&now, NULL);
-        loop ++;
-   } while (now.tv_sec < time.tv_sec || now.tv_usec < time.tv_usec);
-   return loop;
 }

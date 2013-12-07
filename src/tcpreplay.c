@@ -517,25 +517,19 @@ post_args(int argc)
             err(-1, "--dualfile mode requires an even number of pcap files");
     }
 
-#ifdef HAVE_NETMAP
     if (HAVE_OPT(NETMAP)) {
+#ifdef HAVE_NETMAP
     	options.netmap = 1;
     	sendpacket_type = SP_TYPE_NETMAP;
-    }
+#else
+    	 err(-1, "--netmap feature was not compiled in. See INSTALL.");
 #endif
+    }
 
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
     if (HAVE_OPT(UNIQUE_IP))
         options.unique_ip = 1;
 #endif
-
-    if (strcmp(OPT_ARG(SLEEPMODE), "current") == 0) {
-        options.sleep_mode = REPLAY_CURRENT;
-    } else if (strcmp(OPT_ARG(SLEEPMODE), "ver325") == 0) {
-        options.sleep_mode = REPLAY_V325;
-    } else {
-        errx(-1, "Invalid value --sleepmode=%s", OPT_ARG(SLEEPMODE));
-    }
 
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
@@ -543,12 +537,6 @@ post_args(int argc)
             options.accurate = ACCURATE_SELECT;
 #else
             err(-1, "tcpreplay not compiled with select support");
-#endif
-        } else if (strcmp(OPT_ARG(TIMER), "rdtsc") == 0) {
-#ifdef HAVE_RDTSC
-            options.accurate = ACCURATE_RDTSC;
-#else
-            err(-1, "tcpreplay not compiled with rdtsc support");
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
 #if defined HAVE_IOPERM && defined(__i386__)
@@ -574,12 +562,6 @@ post_args(int argc)
             errx(-1, "Unsupported timer mode: %s", OPT_ARG(TIMER));
         }
     }
-
-#ifdef HAVE_RDTSC
-    if (HAVE_OPT(RDTSC_CLICKS)) {
-        rdtsc_calibrate(OPT_VALUE_RDTSC_CLICKS);
-    }
-#endif
 
     if (HAVE_OPT(PKTLEN))
         warn("--pktlen may cause problems.  Use with caution.");
