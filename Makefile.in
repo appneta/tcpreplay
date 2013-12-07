@@ -786,8 +786,8 @@ dlt_names:
 	cat @SAVEFILE_C@ | $(top_builddir)/scripts/dlt2name.pl src/dlt_names.h
 
 version:
-	-rm -f src/common/svn_version.c
-	cd src/common && make svn_version.c
+	-rm -f src/common/git_version.c
+	cd src/common && make git_version.c
 
 distclean-local:
 	-rm -rf autom4te.cache doxygen

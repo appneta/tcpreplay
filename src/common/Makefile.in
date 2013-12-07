@@ -55,14 +55,14 @@ libcommon_a_AR = $(AR) $(ARFLAGS)
 @SYSTEM_STRLCPY_FALSE@libcommon_a_DEPENDENCIES = ../../lib/libstrl.a
 am__libcommon_a_SOURCES_DIST = cidr.c err.c list.c cache.c services.c \
 	get.c fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c timer.c \
-	svn_version.c abort.c sendpacket.c dlt_names.c mac.c \
+	git_version.c abort.c sendpacket.c dlt_names.c mac.c \
 	interface.c rdtsc.c tcpdump.c
 @ENABLE_TCPDUMP_TRUE@am__objects_1 = tcpdump.$(OBJEXT)
 am_libcommon_a_OBJECTS = cidr.$(OBJEXT) err.$(OBJEXT) list.$(OBJEXT) \
 	cache.$(OBJEXT) services.$(OBJEXT) get.$(OBJEXT) \
 	fakepcap.$(OBJEXT) fakepcapnav.$(OBJEXT) fakepoll.$(OBJEXT) \
 	xX.$(OBJEXT) utils.$(OBJEXT) timer.$(OBJEXT) \
-	svn_version.$(OBJEXT) abort.$(OBJEXT) sendpacket.$(OBJEXT) \
+	git_version.$(OBJEXT) abort.$(OBJEXT) sendpacket.$(OBJEXT) \
 	dlt_names.$(OBJEXT) mac.$(OBJEXT) interface.$(OBJEXT) \
 	rdtsc.$(OBJEXT) $(am__objects_1)
 libcommon_a_OBJECTS = $(am_libcommon_a_OBJECTS)
@@ -238,10 +238,10 @@ top_srcdir = @top_srcdir@
 
 # $Id: Makefile.am 1621 2006-11-09 07:01:37Z aturner $
 noinst_LIBRARIES = libcommon.a
-BUILT_SOURCES = svn_version.c
+BUILT_SOURCES = git_version.c
 libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 	fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c timer.c \
-	svn_version.c abort.c sendpacket.c dlt_names.c mac.c \
+	git_version.c abort.c sendpacket.c dlt_names.c mac.c \
 	interface.c rdtsc.c $(am__append_1)
 AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS) @LDNETINC@
 @SYSTEM_STRLCPY_FALSE@libcommon_a_LIBADD = ../../lib/libstrl.a
@@ -251,7 +251,7 @@ noinst_HEADERS = cidr.h err.h list.h cache.h services.h get.h \
 		 dlt_names.h mac.h interface.h rdtsc.h
 
 MOSTLYCLEANFILES = *~
-MAINTAINERCLEANFILES = Makefile.in svn_version.c
+MAINTAINERCLEANFILES = Makefile.in git_version.c
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -310,13 +310,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakepcapnav.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakepoll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/get.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/git_version.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rdtsc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sendpacket.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/services.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/svn_version.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tcpdump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utils.Po@am__quote@
@@ -552,13 +552,13 @@ uninstall-am:
 	pdf pdf-am ps ps-am tags uninstall uninstall-am
 
 
-svn_version.c:
-	$(ECHO) -n 'const char SVN_Version[] = "'   > svn_version.c
-	svnversion -n ../..                     >> svn_version.c
-	$(ECHO) '";'								>> svn_version.c
-	$(ECHO) 'const char *svn_version(void) {'  >> svn_version.c
-	$(ECHO) '	return SVN_Version;'			>> svn_version.c
-	$(ECHO) '}' 			      				>> svn_version.c
+git_version.c:
+	$(ECHO) -n 'const char GIT_Version[] = "git:'   > git_version.c
+	git describe --always --abbrev=0 --dirty  | tr -d '\n' | tr -d '\r' >> git_version.c
+	$(ECHO) '";'			>> git_version.c
+	$(ECHO) 'const char *git_version(void) {'  >> git_version.c
+	$(ECHO) '	return GIT_Version;'	>> git_version.c
+	$(ECHO) '}' 			      	>> git_version.c
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

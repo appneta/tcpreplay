@@ -1,19 +1,19 @@
 # $Id: Makefile.am 1621 2006-11-09 07:01:37Z aturner $
 noinst_LIBRARIES = libcommon.a
 
-BUILT_SOURCES = svn_version.c
+BUILT_SOURCES = git_version.c
 
-svn_version.c:
-	$(ECHO) -n 'const char SVN_Version[] = "'   > svn_version.c
-	svnversion -n ../..                     >> svn_version.c
-	$(ECHO) '";'								>> svn_version.c
-	$(ECHO) 'const char *svn_version(void) {'  >> svn_version.c
-	$(ECHO) '	return SVN_Version;'			>> svn_version.c
-	$(ECHO) '}' 			      				>> svn_version.c
+git_version.c:
+	$(ECHO) -n 'const char GIT_Version[] = "git:'   > git_version.c
+	git describe --always --abbrev=0 --dirty  | tr -d '\n' | tr -d '\r' >> git_version.c
+	$(ECHO) '";'			>> git_version.c
+	$(ECHO) 'const char *git_version(void) {'  >> git_version.c
+	$(ECHO) '	return GIT_Version;'	>> git_version.c
+	$(ECHO) '}' 			      	>> git_version.c
 
 libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 		      fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c \
-		      timer.c svn_version.c abort.c sendpacket.c \
+		      timer.c git_version.c abort.c sendpacket.c \
 			  dlt_names.c mac.c interface.c rdtsc.c
 
 if ENABLE_TCPDUMP
@@ -33,4 +33,4 @@ noinst_HEADERS = cidr.h err.h list.h cache.h services.h get.h \
 
 MOSTLYCLEANFILES = *~
 
-MAINTAINERCLEANFILES = Makefile.in svn_version.c
+MAINTAINERCLEANFILES = Makefile.in git_version.c

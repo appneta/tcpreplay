@@ -1,3 +1,2 @@
 cmake_install.cmake
 git_version.c
-svn_version.c

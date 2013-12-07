@@ -2,6 +2,7 @@
 
 /* Copyright (c) 2010 Dmitriy Gerasimov <gesser@demlabs.ru>
  * Copyright (c) 2010 Aaron Turner.
+ * Copyright (c) 2023 Fred Klassen - AppNet Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
