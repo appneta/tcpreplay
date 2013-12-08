@@ -208,20 +208,6 @@ options.
 EOText;
 };
 
-/* Cache files to internal memory */
-flag = {
-    name        = enable_file_cache;
-    value       = K;
-    flags-must  = loop;
-    descrip     = "Enable caching of packets to internal memory";
-    doc         = <<- EOText
-Cache pcap file(s) the first time they are cached in RAM so that subsequent
-loops do not incurr any disk I/O latency in order to increase performance.  Make 
-sure you have enough free RAM to store the entire pcap file(s) in memory or the
-system will swap and performance will suffer.
-EOText;
-};
-
 flag = {
     name        = preload_pcap;
     descrip     = "Preloads packets into RAM before sending";

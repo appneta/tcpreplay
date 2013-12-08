@@ -93,8 +93,7 @@ struct tcpreplay_opt_s {
     tcpdump_t *tcpdump;
 #endif
 
-    /* pcap file caching */
-    int enable_file_cache;
+    /* cache pcap file before running */
     file_cache_t *file_cache;
     int preload_pcap;
 

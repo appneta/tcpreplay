@@ -1,6 +1,7 @@
 $Id$
 
 ??/??/2013 Version 3.5.0
+    - Deprecated file-cache option - use preload-pcap instead (appneta #17)
     - Removed obsolete sleep-mode and sleep-accel options (appneta #16)
     - Remove unreliable RDTSC option (appneta #16)
     - Implement pseudo-CRC to improve tcpedit performance (appneta #8)

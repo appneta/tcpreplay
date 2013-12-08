@@ -103,14 +103,14 @@ main(int argc, char *argv[])
     }
 #endif
 
-    if ((options.enable_file_cache || options.preload_pcap) && ! HAVE_OPT(QUIET)) {
+    if (options.preload_pcap && ! HAVE_OPT(QUIET)) {
         notice("File Cache is enabled");
     }
 
     /*
      * Setup up the file cache, if required
      */
-    if (options.enable_file_cache || options.preload_pcap) {
+    if (options.preload_pcap) {
         options.file_cache = safe_malloc(argc * sizeof(file_cache_t));
 
         /*
@@ -256,7 +256,7 @@ replay_file(int file_idx)
             warnx("unable to close stdin: %s", strerror(errno));
 
     /* read from pcap file if we haven't cached things yet */
-    if (! (options.enable_file_cache || options.preload_pcap)) {
+    if (!options.preload_pcap) {
         if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
             errx(-1, "Error opening pcap file: %s", ebuf);
     } else {
@@ -321,7 +321,7 @@ replay_two_files(int file_idx1, int file_idx2)
         err(-1, "Sorry, can't read STDIN in --dualfile mode");
 
     /* read from first pcap file if we haven't cached things yet */
-    if (! (options.enable_file_cache || options.preload_pcap)) {
+    if (!options.preload_pcap) {
         if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL)
             errx(-1, "Error opening pcap file: %s", ebuf);
     } else {
@@ -331,7 +331,7 @@ replay_two_files(int file_idx1, int file_idx2)
     }
 
     /* read from second pcap file if we haven't cached things yet */
-    if (! (options.enable_file_cache || options.preload_pcap)) {
+    if (!options.preload_pcap) {
         if ((pcap2 = pcap_open_offline(path2, ebuf)) == NULL)
             errx(-1, "Error opening pcap file: %s", ebuf);
     } else {
@@ -496,17 +496,8 @@ post_args(int argc)
 
 #endif
 
-    /*
-     * Check if the file cache should be enabled - if we're looping more than
-     * once and the command line option has been spec'd
-     */
-    if (HAVE_OPT(ENABLE_FILE_CACHE) && (options.loop != 1)) {
-        options.enable_file_cache = TRUE;
-    }
-
     if (HAVE_OPT(PRELOAD_PCAP)) {
         options.preload_pcap = TRUE;
-        options.enable_file_cache = TRUE;
     }
 
     if (HAVE_OPT(DUALFILE)) {

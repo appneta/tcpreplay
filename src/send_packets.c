@@ -226,7 +226,7 @@ send_packets(pcap_t *pcap, int cache_file_idx)
         (void)signal(SIGINT, break_now);
     }
 
-    if (options.enable_file_cache) {
+    if (options.preload_pcap) {
         prev_packet = &cached_packet;
     } else {
         prev_packet = NULL;
@@ -362,7 +362,7 @@ SEND_NOW:
 #if defined TCPREPLAY && !defined TCPREPLAY_EDIT
         ++iteration;
 #endif
-    if (options.enable_file_cache) {
+    if (options.preload_pcap) {
         options.file_cache[cache_file_idx].cached = TRUE;
     }
 }
@@ -405,7 +405,7 @@ send_dual_packets(pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_f
         (void)signal(SIGINT, break_now);
     }
 
-    if (options.enable_file_cache) {
+    if (options.preload_pcap) {
         prev_packet1 = &cached_packet1;
         prev_packet2 = &cached_packet2;
     } else {
@@ -591,7 +591,7 @@ SEND_NOW:
 #endif
     } /* while */
 
-    if (options.enable_file_cache) {
+    if (options.preload_pcap) {
         options.file_cache[cache_file_idx1].cached = TRUE;
         options.file_cache[cache_file_idx2].cached = TRUE;
     }
@@ -621,7 +621,7 @@ get_next_packet(pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx,
     /*
      * Check if we're caching files
      */
-    if ((options.enable_file_cache || options.preload_pcap) && (prev_packet != NULL)) {
+    if (options.preload_pcap && (prev_packet != NULL)) {
         /*
          * Yes we are caching files - has this one been cached?
          */
