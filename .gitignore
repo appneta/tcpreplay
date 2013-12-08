@@ -48,9 +48,6 @@ config.status
 libtool
 .deps
 autom4te.cache
-src/config.h
-src/defines.h
-src/stamp-h1
 test/config
 compile
 config.guess
@@ -77,4 +74,3 @@ types_c.vim
 .project
 .cproject
 *.1
-src/tcpedit/tcpedit_stub.h

@@ -18,31 +18,41 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* sendpacket.[ch] is my attempt to write a universal packet injection
- * API for BPF, libpcap, libdnet, and Linux's PF_PACKET.  I got sick
- * and tired dealing with libnet bugs and its lack of active maintenence,
- * but unfortunately, libpcap frame injection support is relatively new 
- * and not everyone uses Linux, so I decided to support all four as
- * best as possible.  If your platform/OS/hardware supports an additional
- * injection method, then by all means add it here (and send me a patch).
- *
- * Anyways, long story short, for now the order of preference is:
- * 1. TX_RING
- * 2. PF_PACKET
- * 3. BPF
- * 4. libdnet
- * 5. pcap_inject()
- * 6. pcap_sendpacket()
- *
- * Right now, one big problem with the pcap_* methods is that libpcap 
- * doesn't provide a reliable method of getting the MAC address of 
- * an interface (required for tcpbridge).  
- * You can use PF_PACKET or BPF to get that, but if your system suports 
- * those, might as well inject directly without going through another 
- * level of indirection.
- * 
- * Please note that some of this code was copied from Libnet 1.1.3
- */
+ /* sendpacket.[ch] is my attempt to write a universal packet injection
+  * API for BPF, libpcap, libdnet, and Linux's PF_PACKET.  I got sick
+  * and tired dealing with libnet bugs and its lack of active maintenence,
+  * but unfortunately, libpcap frame injection support is relatively new
+  * and not everyone uses Linux, so I decided to support all four as
+  * best as possible.  If your platform/OS/hardware supports an additional
+  * injection method, then by all means add it here (and send me a patch).
+  *
+  * Anyways, long story short, for now the order of preference is:
+  * 1. TX_RING
+  * 2. PF_PACKET
+  * 3. BPF
+  * 4. libdnet
+  * 5. pcap_inject()
+  * 6. pcap_sendpacket()
+  *
+  * Right now, one big problem with the pcap_* methods is that libpcap
+  * doesn't provide a reliable method of getting the MAC address of
+  * an interface (required for tcpbridge).
+  * You can use PF_PACKET or BPF to get that, but if your system suports
+  * those, might as well inject directly without going through another
+  * level of indirection.
+  *
+  * Please note that some of this code was copied from Libnet 1.1.3
+  */
+
+#include <string.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/file.h>
+#include <sys/socket.h>
 
 #include "config.h"
 #include "defines.h"
@@ -50,6 +60,7 @@
 #include "sendpacket.h"
 
 #ifdef FORCE_INJECT_TX_RING
+/* TX_RING uses PF_PACKET API so don't undef it here */
 #undef HAVE_LIBDNET
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
@@ -104,15 +115,7 @@
 #error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING or *BSD's BPF
 #endif
 
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <sys/file.h>
-#include <sys/socket.h>
+
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -171,7 +174,8 @@ static int get_iface_index(int fd, const char *device, char *);
 #define INJECT_METHOD "bpf send()"
 
 #include <net/bpf.h>
-#include <sys/socket.h>
+#include <sys/sysctl.h>
+#include <net/route.h>
 #include <net/if.h>
 #include <sys/uio.h>
 #include <net/if_dl.h> // used for get_hwaddr_bpf()

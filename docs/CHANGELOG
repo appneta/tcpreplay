@@ -9,7 +9,7 @@ $Id$
     - Removed sleep-accel option (appneta #2) 
     - Enhance accuracy and performance of --mbps option (appneta #2)
     - Add netmap injector (appneta #1)
-    - Add --sleepmode option to handle high precision timing (#421)
+    - Properly process IPv6 extension headers (#396)
     - Update URL's to point to new tcpreplay website (#430)
     - Improve & fix bugs in tcpcapinfo (#437)
     - Fix statistics to be more industry standard (#443)

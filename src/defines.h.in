@@ -2,17 +2,43 @@
 #define __DEFINES_H__
 
 #include "config.h"
-#include "tcpr.h"
 
-/* should packet counters be 32 or 64 bit? --enable-64bit */
-#ifdef ENABLE_64BITS
-#define COUNTER unsigned long long
-#define COUNTER_SPEC "%llu"
-#else
-#define COUNTER unsigned long
-#define COUNTER_SPEC "%lu"
+#ifdef HAVE_STDDEF_H
+#include <stddef.h>
 #endif
 
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#ifdef WIN32
+#include "msvc_inttypes.h"
+#include "msvc_stdint.h"
+#else
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
+#endif /* WIN32 */
+
+#ifdef HAVE_SYS_SOCKET
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
+
+#include "tcpr.h"
 
 #ifdef HAVE_BPF
 #include <net/bpf.h>
@@ -29,22 +55,37 @@
 #ifndef HAVE_STRLCPY
 #include "lib/strlcpy.h"
 #endif
-#include "common/list.h"
-#include "common/cidr.h"
 
-/* 
- * net/bpf.h doesn't include DLT types, but pcap-bpf.h does.  
+/*
+ * net/bpf.h doesn't include DLT types, but pcap-bpf.h does.
  * Unfortunately, pcap-bpf.h also includes things in net/bpf.h
  * while also missing some key things (wow, that sucks)
- * The result is that I stole the DLT types from pcap-bpf.h and 
+ * The result is that I stole the DLT types from pcap-bpf.h and
  * put them in here.
  */
 #include "common/dlt_names.h"
 
-
-#ifdef HAVE_LIBNET
-#include "@LNETINC@"
+#ifdef HAVE_BOOL_H
+#include <bool.h>
 #endif
+
+#ifdef HAVE_STDBOOL_H
+#include <stdbool.h>
+#endif
+
+
+/* should packet counters be 32 or 64 bit? --enable-64bit */
+#ifdef ENABLE_64BITS
+#define COUNTER unsigned long long
+#define COUNTER_SPEC "%llu"
+#else
+#define COUNTER unsigned long
+#define COUNTER_SPEC "%lu"
+#endif
+
+#include "common/list.h"
+#include "common/cidr.h"
+
 
 typedef struct tcpr_ipv4_hdr ipv4_hdr_t;
 typedef struct tcpr_ipv6_hdr ipv6_hdr_t;
@@ -61,14 +102,13 @@ typedef struct tcpr_dnsv4_hdr dnsv4_hdr_t;
 /* our custom typdefs/structs */
 typedef u_char tcpr_macaddr_t[TCPR_ETH_H];
 
-struct tcpr_bpf_s {
+typedef struct tcpr_bpf_s {
     char *filter;
     int optimize;
     struct bpf_program program;
-};
-typedef struct tcpr_bpf_s tcpr_bpf_t;
+} tcpr_bpf_t;
 
-struct tcpr_xX_s {
+typedef struct tcpr_xX_s {
 #define xX_MODE_INCLUDE 'x'
 #define xX_MODE_EXCLUDE 'X'
     int mode;
@@ -77,18 +117,16 @@ struct tcpr_xX_s {
 #define xX_TYPE_LIST 1
 #define xX_TYPE_CIDR 2
     int type;
-};
-typedef struct tcpr_xX_s tcpr_xX_t;
+} tcpr_xX_t;
 
 /* number of ports 0-65535 */
 #define NUM_PORTS 65536
-struct tcpr_services_s {
+typedef struct tcpr_services_s {
     char tcp[NUM_PORTS];
     char udp[NUM_PORTS];
-};
-typedef struct tcpr_services_s tcpr_services_t;
+} tcpr_services_t;
 
-struct tcpr_speed_s {
+typedef struct tcpr_speed_s {
     /* speed modifiers */
     int mode;
 #define SPEED_MULTIPLIER 1
@@ -99,15 +137,14 @@ struct tcpr_speed_s {
     COUNTER speed;
     float multiplier;
     int pps_multi;
-};
-typedef struct tcpr_speed_s tcpr_speed_t;
+} tcpr_speed_t;
 
 #define MAX_FILES   1024        /* Max number of files we can pass to tcpreplay */
 
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
 
-#define MAXPACKET 65535         /* was 16436 linux loopback, but maybe something is bigger then 
+#define MAXPACKET 65535         /* was 16436 linux loopback, but maybe something is bigger then
                                    linux loopback */
 
 #define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */
@@ -121,42 +158,42 @@ typedef struct tcpr_speed_s tcpr_speed_t;
 
 /* HP-UX already defines TRUE/FALSE */
 #ifndef TRUE
-enum bool_t {
+typedef enum bool_e {
     FALSE = 0,
     TRUE
-};
+} bool_t;
 #endif
 
 #define EBUF_SIZE 1024           /* size of our error buffers */
 #define MAC_SIZE  7             /* size of the mac[] buffer */
 
-enum pad_t {
+typedef enum pad_e {
     PAD_PACKET,
     TRUNC_PACKET
-};
+} pad_t;
 
 #define DNS_QUERY_FLAG 0x8000
 
-enum direction_t {
+typedef enum direction_e {
     DIR_UNKNOWN = -1,
-    DIR_CLIENT = 0,
-    DIR_SERVER = 1,
-    DIR_ANY = 2
-};
+    DIR_CLIENT  = 0,
+    DIR_SERVER  = 1,
+    DIR_ANY     = 2
+} direction_t;
 
-enum tcpprep_mode {
-    ERROR_MODE,  /* Some kind of error has occurred */
-    CIDR_MODE,   /* single pass, CIDR netblock */
-    REGEX_MODE,  /* single pass, regex */
-    PORT_MODE,   /* single pass, use src/dst ports to split */
-    MAC_MODE,    /* single pass, use src mac to split */
-    FIRST_MODE,  /* single pass, use first seen to split */
-    AUTO_MODE,   /* first pass through in auto mode */
-    ROUTER_MODE, /* second pass through in router mode */
-    BRIDGE_MODE, /* second pass through in bridge mode */
-    SERVER_MODE, /* second pass through in server (router) mode */
-    CLIENT_MODE  /* second pass through in client (router) mode */
-};
+typedef enum tcpprep_mode_e {
+    ERROR_MODE,     /* Some kind of error has occurred */
+    CIDR_MODE,      /* single pass, CIDR netblock */
+    REGEX_MODE,     /* single pass, regex */
+    PORT_MODE,      /* single pass, use src/dst ports to split */
+    MAC_MODE,       /* single pass, use src mac to split */
+    FIRST_MODE,     /* single pass, use first seen to split */
+    AUTO_MODE,      /* first pass through in auto mode */
+    ROUTER_MODE,    /* second pass through in router mode */
+    BRIDGE_MODE,    /* second pass through in bridge mode */
+    SERVER_MODE,    /* second pass through in server (router) mode */
+    CLIENT_MODE     /* second pass through in client (router) mode */
+} tcpprep_mode_t;
 
 #define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
 
@@ -277,7 +314,7 @@ typedef u_int32_t uint32_t
 #define NANOSEC_TO_TIMEVAL(x, tv)           \
     do {                                    \
         (tv)->tv_sec =  (x) / 1000000000;   \
-        (tv)->tv_usec = ((x) % 1000000000) / 1000);   \
+        (tv)->tv_usec = ((x) % 1000000000) / 1000;   \
     } while(0)
 
 #define NANOSEC_TO_TIMESPEC(x, ts)          \

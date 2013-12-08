@@ -8,7 +8,7 @@ git_version.c:
 	git describe --always --abbrev=0  | tr -d '\n' | tr -d '\r' >> git_version.c
 	$(ECHO) '";'			>> git_version.c
 	$(ECHO) 'const char *git_version(void) {'  >> git_version.c
-	$(ECHO) '	return GIT_Version;'	>> git_version.c
+	$(ECHO) '    return GIT_Version;'	>> git_version.c
 	$(ECHO) '}' 			      	>> git_version.c
 
 libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \

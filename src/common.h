@@ -1,3 +1,5 @@
+/* $Id$ */
+
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.
@@ -15,6 +17,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 
 #ifndef __COMMON_H__
 #define __COMMON_H__
