@@ -58,13 +58,3 @@ void do_bridge(tcpbridge_opt_t *, tcpedit_t *);
 
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
-

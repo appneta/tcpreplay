@@ -1,4 +1,5 @@
 /* $Id$ */
+
 /*
  * fakepoll.c
  *
@@ -39,7 +40,6 @@
 #include "defines.h"
 #include "common.h"
 
-#ifdef USE_FAKE_POLL
 /* prevents ISO C error */
 static void FAKEPOLL(int stop)
 { 
@@ -49,6 +49,7 @@ static void FAKEPOLL(int stop)
 
 } 
 
+#ifdef USE_FAKE_POLL
 #include <sys/types.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -136,13 +137,3 @@ poll(struct pollfd *ufds, unsigned int nfds, int timeout)
     return r;
 }
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
-

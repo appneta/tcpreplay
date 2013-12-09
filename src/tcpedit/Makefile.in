@@ -23,7 +23,7 @@
 # $Id:$
 # START OF: dlt_en10mb
 # Note, if you add any files to your plugin, you will need to edit dlt_<plugin>/Makefile.am
-# add your .c files to libdltplugin_a_SOURCES
+# add your .c files to libtcpedit_a_SOURCES
 # add your .h files to noinst_HEADERS
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
@@ -140,11 +140,12 @@ libtcpedit_a_AR = $(AR) $(ARFLAGS)
 libtcpedit_a_LIBADD =
 am_libtcpedit_a_OBJECTS = tcpedit.$(OBJEXT) parse_args.$(OBJEXT) \
 	edit_packet.$(OBJEXT) portmap.$(OBJEXT) dlt.$(OBJEXT) \
-	checksum.$(OBJEXT) dlt_plugins.$(OBJEXT) ethernet.$(OBJEXT) \
-	dlt_utils.$(OBJEXT) en10mb.$(OBJEXT) hdlc.$(OBJEXT) \
-	user.$(OBJEXT) raw.$(OBJEXT) null.$(OBJEXT) loop.$(OBJEXT) \
-	linuxsll.$(OBJEXT) ieee80211.$(OBJEXT) ieee80211_hdr.$(OBJEXT) \
-	radiotap.$(OBJEXT)
+	checksum.$(OBJEXT) tcpedit_api.$(OBJEXT) dlt_plugins.$(OBJEXT) \
+	ethernet.$(OBJEXT) dlt_utils.$(OBJEXT) en10mb.$(OBJEXT) \
+	en10mb_api.$(OBJEXT) hdlc.$(OBJEXT) hdlc_api.$(OBJEXT) \
+	user.$(OBJEXT) user_api.$(OBJEXT) raw.$(OBJEXT) null.$(OBJEXT) \
+	loop.$(OBJEXT) linuxsll.$(OBJEXT) ieee80211.$(OBJEXT) \
+	ieee80211_hdr.$(OBJEXT) radiotap.$(OBJEXT)
 libtcpedit_a_OBJECTS = $(am_libtcpedit_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -318,11 +319,14 @@ top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libtcpedit.a
 BUILT_SOURCES = tcpedit_stub.h
 libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c portmap.c \
-	dlt.c checksum.c $(srcdir)/plugins/dlt_plugins.c \
+	dlt.c checksum.c tcpedit_api.c $(srcdir)/plugins/dlt_plugins.c \
 	$(srcdir)/plugins/ethernet.c $(srcdir)/plugins/dlt_utils.c \
 	$(srcdir)/plugins/dlt_en10mb/en10mb.c \
+	$(srcdir)/plugins/dlt_en10mb/en10mb_api.c \
 	$(srcdir)/plugins/dlt_hdlc/hdlc.c \
+	$(srcdir)/plugins/dlt_hdlc/hdlc_api.c \
 	$(srcdir)/plugins/dlt_user/user.c \
+	$(srcdir)/plugins/dlt_user/user_api.c \
 	$(srcdir)/plugins/dlt_raw/raw.c \
 	$(srcdir)/plugins/dlt_null/null.c \
 	$(srcdir)/plugins/dlt_loop/loop.c \
@@ -334,21 +338,30 @@ AM_CFLAGS = -I.. -I../common -I../.. @LDNETINC@ $(LIBOPTS_CFLAGS) \
 	$(LNAV_CFLAGS) -I. -I$(srcdir)/plugins -I$(srcdir)/../common \
 	$(LIBOPTS_CFLAGS)
 noinst_HEADERS = tcpedit.h edit_packet.h portmap.h tcpedit_stub.h \
-	parse_args.h dlt.h checksum.h tcpedit-int.h \
-	$(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/ethernet.h \
-	$(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_plugins-int.h \
+	parse_args.h dlt.h checksum.h tcpedit_api.h tcpedit_types.h \
+	$(srcdir)/plugins/ethernet.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins/ethernet.h \
 	$(srcdir)/plugins/dlt_en10mb/en10mb.h \
-	$(srcdir)/plugins/dlt_hdlc/hdlc.h \
+	$(srcdir)/plugins/dlt_en10mb/en10mb_api.h \
+	$(srcdir)/plugins/dlt_en10mb/en10mb_types.h \
+	$(srcdir)/tcpedit_types.h $(srcdir)/plugins/dlt_hdlc/hdlc.h \
+	$(srcdir)/plugins/dlt_hdlc/hdlc_api.h \
+	$(srcdir)/plugins/dlt_hdlc/hdlc_types.h \
 	$(srcdir)/plugins/dlt_user/user.h \
+	$(srcdir)/plugins/dlt_user/user_api.h \
 	$(srcdir)/plugins/dlt_raw/raw.h \
 	$(srcdir)/plugins/dlt_null/null.h \
 	$(srcdir)/plugins/dlt_loop/loop.h \
 	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
+	$(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h \
 	$(srcdir)/plugins/dlt_radiotap/radiotap.h
 
+# Note:
+# You probably don't want to touch anything below this line until the end of the plugin
+
+# Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 MOSTLYCLEANFILES = *~ $(srcdir)/plugins/*~ \
 	$(srcdir)/plugins/dlt_en10mb/*~ $(srcdir)/plugins/dlt_hdlc/*~ \
@@ -371,9 +384,6 @@ EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_opts.def \
 	$(srcdir)/plugins/dlt_radiotap/radiotap_opts.def
 
-# Note:
-# You probably don't want to touch anything below this line until the end of the plugin
-
 # You probably don't want to touch anything below this line until the end of the plugin
 
 # You probably don't want to touch anything below this line until the end of the plugin
@@ -388,7 +398,6 @@ EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 DLT_STUB_DEPS = $(srcdir)/plugins/dlt_opts.def \
-	$(srcdir)/plugins/dlt_en10mb/en10mb_opts.def \
 	$(srcdir)/plugins/dlt_user/user_opts.def \
 	$(srcdir)/plugins/dlt_raw/raw_opts.def \
 	$(srcdir)/plugins/dlt_null/null_opts.def \
@@ -451,8 +460,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dlt_utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edit_packet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/en10mb.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/en10mb_api.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ethernet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc_api.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ieee80211.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ieee80211_hdr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linuxsll.Po@am__quote@
@@ -463,7 +474,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/radiotap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/raw.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tcpedit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tcpedit_api.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/user.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/user_api.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -542,6 +555,20 @@ en10mb.obj: $(srcdir)/plugins/dlt_en10mb/en10mb.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o en10mb.obj `if test -f '$(srcdir)/plugins/dlt_en10mb/en10mb.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_en10mb/en10mb.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_en10mb/en10mb.c'; fi`
 
+en10mb_api.o: $(srcdir)/plugins/dlt_en10mb/en10mb_api.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT en10mb_api.o -MD -MP -MF $(DEPDIR)/en10mb_api.Tpo -c -o en10mb_api.o `test -f '$(srcdir)/plugins/dlt_en10mb/en10mb_api.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_en10mb/en10mb_api.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/en10mb_api.Tpo $(DEPDIR)/en10mb_api.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_en10mb/en10mb_api.c' object='en10mb_api.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o en10mb_api.o `test -f '$(srcdir)/plugins/dlt_en10mb/en10mb_api.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_en10mb/en10mb_api.c
+
+en10mb_api.obj: $(srcdir)/plugins/dlt_en10mb/en10mb_api.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT en10mb_api.obj -MD -MP -MF $(DEPDIR)/en10mb_api.Tpo -c -o en10mb_api.obj `if test -f '$(srcdir)/plugins/dlt_en10mb/en10mb_api.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_en10mb/en10mb_api.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_en10mb/en10mb_api.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/en10mb_api.Tpo $(DEPDIR)/en10mb_api.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_en10mb/en10mb_api.c' object='en10mb_api.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o en10mb_api.obj `if test -f '$(srcdir)/plugins/dlt_en10mb/en10mb_api.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_en10mb/en10mb_api.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_en10mb/en10mb_api.c'; fi`
+
 hdlc.o: $(srcdir)/plugins/dlt_hdlc/hdlc.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT hdlc.o -MD -MP -MF $(DEPDIR)/hdlc.Tpo -c -o hdlc.o `test -f '$(srcdir)/plugins/dlt_hdlc/hdlc.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_hdlc/hdlc.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/hdlc.Tpo $(DEPDIR)/hdlc.Po
@@ -556,6 +583,20 @@ hdlc.obj: $(srcdir)/plugins/dlt_hdlc/hdlc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o hdlc.obj `if test -f '$(srcdir)/plugins/dlt_hdlc/hdlc.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_hdlc/hdlc.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_hdlc/hdlc.c'; fi`
 
+hdlc_api.o: $(srcdir)/plugins/dlt_hdlc/hdlc_api.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT hdlc_api.o -MD -MP -MF $(DEPDIR)/hdlc_api.Tpo -c -o hdlc_api.o `test -f '$(srcdir)/plugins/dlt_hdlc/hdlc_api.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_hdlc/hdlc_api.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/hdlc_api.Tpo $(DEPDIR)/hdlc_api.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_hdlc/hdlc_api.c' object='hdlc_api.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o hdlc_api.o `test -f '$(srcdir)/plugins/dlt_hdlc/hdlc_api.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_hdlc/hdlc_api.c
+
+hdlc_api.obj: $(srcdir)/plugins/dlt_hdlc/hdlc_api.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT hdlc_api.obj -MD -MP -MF $(DEPDIR)/hdlc_api.Tpo -c -o hdlc_api.obj `if test -f '$(srcdir)/plugins/dlt_hdlc/hdlc_api.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_hdlc/hdlc_api.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_hdlc/hdlc_api.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/hdlc_api.Tpo $(DEPDIR)/hdlc_api.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_hdlc/hdlc_api.c' object='hdlc_api.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o hdlc_api.obj `if test -f '$(srcdir)/plugins/dlt_hdlc/hdlc_api.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_hdlc/hdlc_api.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_hdlc/hdlc_api.c'; fi`
+
 user.o: $(srcdir)/plugins/dlt_user/user.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT user.o -MD -MP -MF $(DEPDIR)/user.Tpo -c -o user.o `test -f '$(srcdir)/plugins/dlt_user/user.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_user/user.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/user.Tpo $(DEPDIR)/user.Po
@@ -569,6 +610,20 @@ user.obj: $(srcdir)/plugins/dlt_user/user.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_user/user.c' object='user.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o user.obj `if test -f '$(srcdir)/plugins/dlt_user/user.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_user/user.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_user/user.c'; fi`
+
+user_api.o: $(srcdir)/plugins/dlt_user/user_api.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT user_api.o -MD -MP -MF $(DEPDIR)/user_api.Tpo -c -o user_api.o `test -f '$(srcdir)/plugins/dlt_user/user_api.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_user/user_api.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/user_api.Tpo $(DEPDIR)/user_api.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_user/user_api.c' object='user_api.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o user_api.o `test -f '$(srcdir)/plugins/dlt_user/user_api.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_user/user_api.c
+
+user_api.obj: $(srcdir)/plugins/dlt_user/user_api.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT user_api.obj -MD -MP -MF $(DEPDIR)/user_api.Tpo -c -o user_api.obj `if test -f '$(srcdir)/plugins/dlt_user/user_api.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_user/user_api.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_user/user_api.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/user_api.Tpo $(DEPDIR)/user_api.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_user/user_api.c' object='user_api.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o user_api.obj `if test -f '$(srcdir)/plugins/dlt_user/user_api.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_user/user_api.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_user/user_api.c'; fi`
 
 raw.o: $(srcdir)/plugins/dlt_raw/raw.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT raw.o -MD -MP -MF $(DEPDIR)/raw.Tpo -c -o raw.o `test -f '$(srcdir)/plugins/dlt_raw/raw.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_raw/raw.c
@@ -893,57 +948,76 @@ tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def $(srcdir)/plugins/dlt_stub.def
 $(srcdir)/plugins/dlt_stub.def: $(DLT_STUB_DEPS)
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_en10mb/en10mb.c: $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_en10mb/en10mb.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+$(srcdir)/plugins/dlt_en10mb/en10mb.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_en10mb/en10mb.h $(srcdir)/plugins/dlt_en10mb/en10mb_api.h \
+	$(srcdir)/plugins/dlt_en10mb/en10mb_types.h
 
 # END OF: dlt_en10mb
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_hdlc/hdlc.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_hdlc/hdlc.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_hdlc/hdlc.h $(srcdir)/plugins/dlt_hdlc/hdlc_api.h \
+	$(srcdir)/plugins/dlt_hdlc/hdlc_types.h
 
 # END OF: dlt_hdlc
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_user/user.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_user/user.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_user/user.h 	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_user/user_api.h
 
 # END OF: dlt_user
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_raw/raw.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_raw/raw.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_raw/raw.h $	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h 
 
 # END OF: dlt_raw
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_null/null.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_null/null.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_null/null.h 	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h 
 
 # END OF: dlt_null
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_loop/loop.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_loop/loop.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_loop/loop.h 	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h 
 
 # END OF: dlt_loop
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_linuxsll/linuxsll.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h $(srcdir)/plugins/dlt_linuxsll/linuxsll_types.h \
+	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h 
 
 # END OF: dlt_linuxsll
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_ieee80211/ieee80211.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
-	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+$(srcdir)/plugins/dlt_ieee80211/ieee80211.c: $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c \
+	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h $(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h \
+	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h
 
 # END OF: dlt_ieee80211
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_radiotap/radiotap.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_radiotap/radiotap.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_radiotap/radiotap.h 	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h 
 
 # END OF: dlt_radiotap
 

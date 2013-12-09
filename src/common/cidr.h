@@ -60,12 +60,3 @@ int ip6_in_cidr(const tcpr_cidr_t * mycidr, const struct tcpr_in6_addr *addr);
 int check_ip6_cidr(tcpr_cidr_t *, const struct tcpr_in6_addr *addr);
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

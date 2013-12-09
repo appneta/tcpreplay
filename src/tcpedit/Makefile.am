@@ -6,7 +6,7 @@ noinst_LIBRARIES = libtcpedit.a
 BUILT_SOURCES = tcpedit_stub.h
 
 libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
-	portmap.c dlt.c checksum.c
+	portmap.c dlt.c checksum.c tcpedit_api.c
 
 manpages: tcpedit.1
 
@@ -24,7 +24,8 @@ tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def $(srcdir)/plugins/dlt_stub.def
 AM_CFLAGS = -I.. -I../common -I../.. @LDNETINC@ $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS)
 
 noinst_HEADERS = tcpedit.h edit_packet.h portmap.h \
-	tcpedit_stub.h parse_args.h dlt.h checksum.h tcpedit-int.h
+	tcpedit_stub.h parse_args.h dlt.h checksum.h tcpedit_api.h \
+	tcpedit_types.h
 
 MOSTLYCLEANFILES = *~
 

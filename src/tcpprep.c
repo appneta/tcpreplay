@@ -44,7 +44,7 @@
 #include <errno.h>
 
 #include "tcpprep.h"
-#include "tcpedit/tcpedit.h"
+#include "tcpprep_api.h"
 #include "tcpprep_opts.h"
 #include "lib/tree.h"
 #include "tree.h"
@@ -60,21 +60,15 @@
 int debug = 0;
 #endif
 
-#ifdef ENABLE_VERBOSE
-tcpdump_t tcpdump;
-#endif
-
-tcpprep_opt_t options;
+tcpprep_t *tcpprep;
 int info = 0;
 char *ourregex = NULL;
 char *cidr = NULL;
 tcpr_data_tree_t treeroot;
 
-static void init(void);
-static void post_args(int, char *[]);
-static void print_comment(const char *);
-static void print_info(const char *);
-static void print_stats(const char *);
+void print_comment(const char *);
+void print_info(const char *);
+void print_stats(const char *);
 static int check_ipv4_regex(const unsigned long ip);
 static int check_ipv6_regex(const struct tcpr_in6_addr *addr);
 static COUNTER process_raw_packets(pcap_t * pcap);
@@ -91,11 +85,13 @@ main(int argc, char *argv[])
     COUNTER totpackets = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
     int optct = 0;
-
-    init(); /* init our globals */
-
+    tcpprep_opt_t *options;
+ 
+    tcpprep = tcpprep_init();
+    options = tcpprep->options;
+    
     optct = optionProcess(&tcpprepOptions, argc, argv);
-    post_args(argc, argv);
+    tcpprep_post_args(tcpprep, argc, argv);
 
     argc -= optct;
     argv += optct;
@@ -108,61 +104,61 @@ main(int argc, char *argv[])
 
   readpcap:
     /* open the pcap file */
-    if ((options.pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
+    if ((options->pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL)
         errx(-1, "Error opening file: %s", errbuf);
 
 #ifdef HAVE_PCAP_SNAPSHOT
-    if (pcap_snapshot(options.pcap) < 65535)
+    if (pcap_snapshot(options->pcap) < 65535)
         warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
-                OPT_ARG(PCAP), pcap_snapshot(options.pcap));
+                OPT_ARG(PCAP), pcap_snapshot(options->pcap));
 #endif
 
     /* make sure we support the DLT type */
-    switch(pcap_datalink(options.pcap)) {
+    switch(pcap_datalink(options->pcap)) {
         case DLT_EN10MB:
         case DLT_LINUX_SLL:
         case DLT_RAW:
         case DLT_C_HDLC:
             break; /* do nothing because all is good */
         default:
-            errx(-1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options.pcap));
+            errx(-1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options->pcap));
     }
 
     /* Can only split based on MAC address for ethernet */
-    if ((pcap_datalink(options.pcap) != DLT_EN10MB) &&
-        (options.mode == MAC_MODE)) {
+    if ((pcap_datalink(options->pcap) != DLT_EN10MB) &&
+        (options->mode == MAC_MODE)) {
         err(-1, "MAC mode splitting is only supported by DLT_EN10MB packet captures.");
     }
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE)) {
-        tcpdump_open(&tcpdump, options.pcap);
+        tcpdump_open(&tcpprep->tcpdump, options->pcap);
     }
 #endif
 
     /* do we apply a bpf filter? */
-    if (options.bpf.filter != NULL) {
-        if (pcap_compile(options.pcap, &options.bpf.program, options.bpf.filter,
-                         options.bpf.optimize, 0) != 0) {
-            errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options.pcap));
+    if (options->bpf.filter != NULL) {
+        if (pcap_compile(options->pcap, &options->bpf.program, options->bpf.filter,
+                         options->bpf.optimize, 0) != 0) {
+            errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options->pcap));
         }
-        pcap_setfilter(options.pcap, &options.bpf.program);
+        pcap_setfilter(options->pcap, &options->bpf.program);
     }
 
-    if ((totpackets = process_raw_packets(options.pcap)) == 0) {
-        pcap_close(options.pcap);
+    if ((totpackets = process_raw_packets(options->pcap)) == 0) {
+        pcap_close(options->pcap);
         err(-1, "No packets were processed.  Filter too limiting?");
     }
-    pcap_close(options.pcap);
+    pcap_close(options->pcap);
 
 #ifdef ENABLE_VERBOSE
-    tcpdump_close(&tcpdump);
+    tcpdump_close(&tcpprep->tcpdump);
 #endif
 
     /* we need to process the pcap file twice in HASH/AUTO mode */
-    if (options.mode == AUTO_MODE) {
-        options.mode = options.automode;
-        if (options.mode == ROUTER_MODE) {  /* do we need to convert TREE->CIDR? */
+    if (options->mode == AUTO_MODE) {
+        options->mode = options->automode;
+        if (options->mode == ROUTER_MODE) {  /* do we need to convert TREE->CIDR? */
             if (info)
                 notice("Building network list from pre-cache...\n");
             if (!process_tree()) {
@@ -187,13 +183,13 @@ main(int argc, char *argv[])
         goto readpcap;
     }
 #ifdef DEBUG
-    if (debug && (options.cidrdata != NULL))
-        print_cidr(options.cidrdata);
+    if (debug && (options->cidrdata != NULL))
+        print_cidr(options->cidrdata);
 #endif
 
     /* write cache data */
-    totpackets = write_cache(options.cachedata, out_file, totpackets, 
-        options.comment);
+    totpackets = write_cache(options->cachedata, out_file, totpackets, 
+        options->comment);
     if (info)
         notice("Done.\nCached " COUNTER_SPEC " packets.\n", totpackets);
 
@@ -213,7 +209,8 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
-    u_char proto;
+    tcpprep_opt_t *options = tcpprep->options;
+    uint8_t proto;
     u_char *l4;
 
     if (ip_hdr) {
@@ -221,52 +218,57 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
             return 0; /* not enough data in the packet to know */
 
         proto = ip_hdr->ip_p;
-        l4 = get_layer4_v4(ip_hdr);
+        l4 = get_layer4_v4(ip_hdr, len);
     } else if (ip6_hdr) {
         if (len < (TCPR_IPV6_H + 4))
             return 0; /* not enough data in the packet to know */
 
-        proto = get_ipv6_l4proto(ip6_hdr);
+        proto = get_ipv6_l4proto(ip6_hdr, len);
         dbgx(3, "Our layer4 proto is 0x%hhu", proto);
-        l4 = get_layer4_v6(ip6_hdr);
+        if ((l4 = get_layer4_v6(ip6_hdr, len)) == NULL)
+            return 0;
 
-        dbgx(3, "Found proto %u at offset %p.  base %p (%ld)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
+        dbgx(3, "Found proto %u at offset %p.  base %p (%u)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
     } else {
         assert(0);
     }
 
     dbg(3, "Checking the destination port...");
 
-    if (proto == IPPROTO_TCP) {
-        tcp_hdr = (tcp_hdr_t *)l4;
+    switch(proto) {
+        case IPPROTO_TCP:
+            tcp_hdr = (tcp_hdr_t *)l4;
 
-        /* is a service? */
-        if (options.services.tcp[ntohs(tcp_hdr->th_dport)]) {
-            dbgx(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
-            return 1;
-        }
+            /* is a service? */
+            if (options->services.tcp[ntohs(tcp_hdr->th_dport)]) {
+                dbgx(1, "TCP packet is destined for a server port: %d", ntohs(tcp_hdr->th_dport));
+                return 1;
+            }
 
-        /* nope */
-        dbgx(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
-        return 0;
-    } else if (proto == IPPROTO_UDP) {
-        udp_hdr = (udp_hdr_t *)l4;
+            /* nope */
+            dbgx(1, "TCP packet is NOT destined for a server port: %d", ntohs(tcp_hdr->th_dport));
+            return 0;
+            break;
 
-        /* is a service? */
-        if (options.services.udp[ntohs(udp_hdr->uh_dport)]) {
-            dbgx(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
-            return 1;
-        }
+        case IPPROTO_UDP:
+            udp_hdr = (udp_hdr_t *)l4;
 
-        /* nope */
-        dbgx(1, "UDP packet is NOT destined for a server port: %d", ntohs(udp_hdr->uh_dport));
-        return 0;
+            /* is a service? */
+            if (options->services.udp[ntohs(udp_hdr->uh_dport)]) {
+                dbgx(1, "UDP packet is destined for a server port: %d", ntohs(udp_hdr->uh_dport));
+                return 1;
+            }
+
+            /* nope */
+            dbgx(1, "UDP packet is NOT destined for a server port: %d", ntohs(udp_hdr->uh_dport));
+            return 0;
+            break;
+
+        default:
+            /* not a TCP or UDP packet... return as non_ip */
+            dbg(1, "Packet isn't a UDP or TCP packet... no port to process.");
+            return options->nonip;
     }
-
-    
-    /* not a TCP or UDP packet... return as non_ip */
-    dbg(1, "Packet isn't a UDP or TCP packet... no port to process.");
-    return options.nonip;
 }
 
 
@@ -281,11 +283,12 @@ check_ipv4_regex(const unsigned long ip)
     u_char src_ip[16];
     size_t nmatch = 0;
     regmatch_t *pmatch = NULL;
+    tcpprep_opt_t *options = tcpprep->options;
 
     memset(src_ip, '\0', 16);
     strlcpy((char *)src_ip, (char *)get_addr2name4(ip, RESOLVE),
             sizeof(src_ip));
-    if (regexec(&options.preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
+    if (regexec(&options->preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
         return 1;
     } else {
         return 0;
@@ -300,10 +303,11 @@ check_ipv6_regex(const struct tcpr_in6_addr *addr)
     u_char src_ip[INET6_ADDRSTRLEN];
     size_t nmatch = 0;
     regmatch_t *pmatch = NULL;
+    tcpprep_opt_t *options = tcpprep->options;
 
     memset(src_ip, '\0', 16);
     strlcpy((char *)src_ip, (char *)get_addr2name6(addr, RESOLVE), sizeof(src_ip));
-    if (regexec(&options.preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
+    if (regexec(&options->preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
         return 1;
     } else {
         return 0;
@@ -326,11 +330,12 @@ process_raw_packets(pcap_t * pcap)
     int l2len, cache_result = 0;
     u_char ipbuff[MAXPACKET], *buffptr;
     tcpr_dir_t direction = TCPR_DIR_ERROR;
-    
+    tcpprep_opt_t *options = tcpprep->options;
+
 #ifdef ENABLE_VERBOSE
     struct pollfd poller[1];
     
-    poller[0].fd = tcpdump.outfd;
+    poller[0].fd = tcpprep->tcpdump.outfd;
     poller[0].events = POLLIN;
     poller[0].revents = 0;
 #endif
@@ -343,15 +348,15 @@ process_raw_packets(pcap_t * pcap)
         dbgx(1, "Packet " COUNTER_SPEC, packetnum);
 
         /* look for include or exclude LIST match */
-        if (options.xX.list != NULL) {
-            if (options.xX.mode < xXExclude) {
-                if (!check_list(options.xX.list, packetnum)) {
-                    add_cache(&(options.cachedata), DONT_SEND, 0);
+        if (options->xX.list != NULL) {
+            if (options->xX.mode < xXExclude) {
+                if (!check_list(options->xX.list, packetnum)) {
+                    add_cache(&(options->cachedata), DONT_SEND, 0);
                     continue;
                 }
             }
-            else if (check_list(options.xX.list, packetnum)) {
-                add_cache(&(options.cachedata), DONT_SEND, 0);
+            else if (check_list(options->xX.list, packetnum)) {
+                add_cache(&(options->cachedata), DONT_SEND, 0);
                 continue;
             }
         }
@@ -364,7 +369,7 @@ process_raw_packets(pcap_t * pcap)
 
         eth_hdr = (eth_hdr_t *)pktdata;
 
-        if (options.mode != MAC_MODE) {
+        if (options->mode != MAC_MODE) {
             dbg(3, "Looking for IPv4/v6 header in non-MAC mode");
             
             /* get the IP header (if any) */
@@ -388,9 +393,9 @@ process_raw_packets(pcap_t * pcap)
                 dbg(2, "Packet isn't IPv4/v6");
 
                 /* we don't want to cache these packets twice */
-                if (options.mode != AUTO_MODE) {
+                if (options->mode != AUTO_MODE) {
                     dbg(3, "Adding to cache using options for Non-IP packets");
-                    add_cache(&options.cachedata, SEND, options.nonip);
+                    add_cache(&options->cachedata, SEND, options->nonip);
                 }
 
                 /* go to next packet */
@@ -400,22 +405,22 @@ process_raw_packets(pcap_t * pcap)
             l2len = get_l2len(pktdata, pkthdr.caplen, pcap_datalink(pcap));
 
             /* look for include or exclude CIDR match */
-            if (options.xX.cidr != NULL) {
+            if (options->xX.cidr != NULL) {
                 if (ip_hdr) {
-                    if (!process_xX_by_cidr_ipv4(options.xX.mode, options.xX.cidr, ip_hdr)) {
-                        add_cache(&options.cachedata, DONT_SEND, 0);
+                    if (!process_xX_by_cidr_ipv4(options->xX.mode, options->xX.cidr, ip_hdr)) {
+                        add_cache(&options->cachedata, DONT_SEND, 0);
                         continue;
                     }
                 } else if (ip6_hdr) {
-                    if (!process_xX_by_cidr_ipv6(options.xX.mode, options.xX.cidr, ip6_hdr)) {
-                        add_cache(&options.cachedata, DONT_SEND, 0);
+                    if (!process_xX_by_cidr_ipv6(options->xX.mode, options->xX.cidr, ip6_hdr)) {
+                        add_cache(&options->cachedata, DONT_SEND, 0);
                         continue;
                     }
                 }
             }
         }
 
-        switch (options.mode) {
+        switch (options->mode) {
         case REGEX_MODE:
             dbg(2, "processing regex mode...");
             if (ip_hdr) {
@@ -428,39 +433,39 @@ process_raw_packets(pcap_t * pcap)
             if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
                 direction = direction == TCPR_DIR_C2S ? TCPR_DIR_S2C : TCPR_DIR_C2S;
 
-            cache_result = add_cache(&options.cachedata, SEND, direction); 
+            cache_result = add_cache(&options->cachedata, SEND, direction); 
             break;
 
         case CIDR_MODE:
             dbg(2, "processing cidr mode...");
             if (ip_hdr) {
-                direction = check_ip_cidr(options.cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
+                direction = check_ip_cidr(options->cidrdata, ip_hdr->ip_src.s_addr) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
             } else if (ip6_hdr) {
-                direction = check_ip6_cidr(options.cidrdata, &ip6_hdr->ip_src) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
+                direction = check_ip6_cidr(options->cidrdata, &ip6_hdr->ip_src) ? TCPR_DIR_C2S : TCPR_DIR_S2C;
             }
 
             /* reverse direction? */
             if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
                 direction = direction == TCPR_DIR_C2S ? TCPR_DIR_S2C : TCPR_DIR_C2S;
 
-            cache_result = add_cache(&options.cachedata, SEND, direction);
+            cache_result = add_cache(&options->cachedata, SEND, direction);
             break;
 
         case MAC_MODE:
             dbg(2, "processing mac mode...");
-            direction = macinstring(options.maclist, (u_char *)eth_hdr->ether_shost);
+            direction = macinstring(options->maclist, (u_char *)eth_hdr->ether_shost);
 
             /* reverse direction? */
             if (HAVE_OPT(REVERSE) && (direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C))
                 direction = direction == TCPR_DIR_C2S ? TCPR_DIR_S2C : TCPR_DIR_C2S;
 
-            cache_result = add_cache(&options.cachedata, SEND, direction);
+            cache_result = add_cache(&options->cachedata, SEND, direction);
             break;
 
         case AUTO_MODE:
             dbg(2, "processing first pass of auto mode...");
             /* first run through in auto mode: create tree */
-            if (options.automode != FIRST_MODE) {
+            if (options->automode != FIRST_MODE) {
                 if (ip_hdr) {
                     add_tree_ipv4(ip_hdr->ip_src.s_addr, pktdata);
                 } else if (ip6_hdr) {
@@ -482,11 +487,11 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: router mode...");
             if (ip_hdr) {
-                cache_result = add_cache(&options.cachedata, SEND,
-                    check_ip_tree(options.nonip, ip_hdr->ip_src.s_addr));
+                cache_result = add_cache(&options->cachedata, SEND,
+                    check_ip_tree(options->nonip, ip_hdr->ip_src.s_addr));
             } else {
-                cache_result = add_cache(&options.cachedata, SEND,
-                    check_ip6_tree(options.nonip, &ip6_hdr->ip_src));
+                cache_result = add_cache(&options->cachedata, SEND,
+                    check_ip6_tree(options->nonip, &ip6_hdr->ip_src));
             }
             break;
 
@@ -497,10 +502,10 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: bridge mode...");
             if (ip_hdr) {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
             } else {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip6_tree(DIR_UNKNOWN, &ip6_hdr->ip_src));
             }
             break;
@@ -512,10 +517,10 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: server mode...");
             if (ip_hdr) {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip_tree(DIR_SERVER, ip_hdr->ip_src.s_addr));
             } else {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip6_tree(DIR_SERVER, &ip6_hdr->ip_src));
             }
             break;
@@ -527,10 +532,10 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: client mode...");
             if (ip_hdr) {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip_tree(DIR_CLIENT, ip_hdr->ip_src.s_addr));
             } else {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip6_tree(DIR_CLIENT, &ip6_hdr->ip_src));
             }
             break;
@@ -540,7 +545,7 @@ process_raw_packets(pcap_t * pcap)
              * process ports based on their destination port
              */
             dbg(2, "processing port mode...");
-            cache_result = add_cache(&options.cachedata, SEND, 
+            cache_result = add_cache(&options->cachedata, SEND, 
                 check_dst_port(ip_hdr, ip6_hdr, (pkthdr.caplen - l2len)));
             break;
 
@@ -551,150 +556,31 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing second pass of auto: first packet mode...");
             if (ip_hdr) {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip_tree(DIR_UNKNOWN, ip_hdr->ip_src.s_addr));
             } else {
-                cache_result = add_cache(&options.cachedata, SEND,
+                cache_result = add_cache(&options->cachedata, SEND,
                     check_ip6_tree(DIR_UNKNOWN, &ip6_hdr->ip_src));
             }
             break;
             
         default:
-            errx(-1, "Whops!  What mode are we in anyways? %d", options.mode);
+            errx(-1, "Whops!  What mode are we in anyways? %d", options->mode);
         }
 #ifdef ENABLE_VERBOSE
-        if (options.verbose)
-            tcpdump_print(&tcpdump, &pkthdr, pktdata);
+        if (options->verbose)
+            tcpdump_print(&tcpprep->tcpdump, &pkthdr, pktdata);
 #endif
     }
 
     return packetnum;
 }
 
-/**
- * init our options
- */
-void 
-init(void)
-{
-    int i;
-
-    memset(&options, '\0', sizeof(options));
-    options.bpf.optimize = BPF_OPTIMIZE;
-
-    for (i = DEFAULT_LOW_SERVER_PORT; i <= DEFAULT_HIGH_SERVER_PORT; i++) {
-        options.services.tcp[i] = 1;
-        options.services.udp[i] = 1;
-    }
-
-}
-
-/**
- * post process args
- */
-static void
-post_args(int argc, char *argv[])
-{
-    char myargs[MYARGS_LEN];
-    int i, bufsize;
-    char *tempstr;
-
-    memset(myargs, 0, MYARGS_LEN);
-
-    /* print_comment and print_info don't return */
-    if (HAVE_OPT(PRINT_COMMENT))
-        print_comment(OPT_ARG(PRINT_COMMENT));
-
-    if (HAVE_OPT(PRINT_INFO))
-        print_info(OPT_ARG(PRINT_INFO));
-
-    if (HAVE_OPT(PRINT_STATS))
-        print_stats(OPT_ARG(PRINT_STATS));
-        
-    if (! HAVE_OPT(CACHEFILE) && ! HAVE_OPT(PCAP))
-        err(-1, "Must specify an output cachefile (-o) and input pcap (-i)");
-    
-    if (! options.mode)
-        err(-1, "Must specify a processing mode: -a, -c, -r, -p");
-
-#ifdef DEBUG
-    if (HAVE_OPT(DBUG))
-        debug = OPT_VALUE_DBUG;
-#endif
-
-#ifdef ENABLE_VERBOSE
-    if (HAVE_OPT(VERBOSE)) {
-        options.verbose = 1;
-    }
-
-    if (HAVE_OPT(DECODE))
-        tcpdump.args = safe_strdup(OPT_ARG(DECODE));
-   
-    /*
-     * put the open after decode options so they are passed to tcpdump
-     */
-#endif
-
-
-    /* 
-     * if we are to include the cli args, then prep it for the
-     * cache file header
-     */
-    if (! options.nocomment) {
-        /* copy all of our args to myargs */
-        for (i = 1; i < argc; i ++) {
-            /* skip the -C <comment> */
-            if (strcmp(argv[i], "-C") == 0) {
-                i += 2;
-                continue;
-            }
-            
-            strlcat(myargs, argv[i], MYARGS_LEN);
-            strlcat(myargs, " ", MYARGS_LEN);
-        }
-
-        /* remove trailing space */
-        myargs[strlen(myargs) - 1] = 0;
-
-        dbgx(1, "Comment args length: %zu", strlen(myargs));
-    }
-
-    /* setup or options.comment buffer so that that we get args\ncomment */
-    if (options.comment != NULL) {
-        strlcat(myargs, "\n", MYARGS_LEN);
-        bufsize = strlen(options.comment) + strlen(myargs) + 1;
-        options.comment = (char *)safe_realloc(options.comment, 
-            bufsize);
-        
-        tempstr = strdup(options.comment);
-        strlcpy(options.comment, myargs, bufsize);
-        strlcat(options.comment, tempstr, bufsize);
-    } else {
-        bufsize = strlen(myargs) + 1;
-        options.comment = (char *)safe_malloc(bufsize);
-        strlcpy(options.comment, myargs, bufsize);
-    }
-        
-    dbgx(1, "Final comment length: %zu", strlen(options.comment));
-
-    /* copy over our min/max mask */
-    options.min_mask = OPT_VALUE_MINMASK;
-    
-    options.max_mask = OPT_VALUE_MAXMASK;
-    
-    if (! options.min_mask > options.max_mask)
-        errx(-1, "Min network mask len (%d) must be less then max network mask len (%d)",
-        options.min_mask, options.max_mask);
-
-    options.ratio = atof(OPT_ARG(RATIO));
-    if (options.ratio < 0)
-        err(-1, "Ratio must be a non-negative number.");
-}
 
 /**
  * print the tcpprep cache file comment
  */
-static void
+void
 print_comment(const char *file)
 {
     char *cachedata = NULL;
@@ -711,7 +597,7 @@ print_comment(const char *file)
 /**
  * prints out the cache file details
  */
-static void
+void
 print_info(const char *file)
 {
     char *cachedata = NULL;
@@ -743,17 +629,16 @@ print_info(const char *file)
 /**
  * Print the per-packet statistics
  */
-static void
+void
 print_stats(const char *file)
 {
     char *cachedata = NULL;
     char *comment = NULL;
     COUNTER count = 0;
     COUNTER pri = 0, sec = 0, nosend = 0;
-    COUNTER i;
     
     count = read_cache(&cachedata, file, &comment);
-    for (i = 1; i <= count; i ++) {
+    for (COUNTER i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {
             case TCPR_DIR_C2S:

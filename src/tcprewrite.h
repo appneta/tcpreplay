@@ -68,13 +68,3 @@ struct tcprewrite_opt_s {
 typedef struct tcprewrite_opt_s tcprewrite_opt_t;
 
 #endif /* __TCPREWRITE_H__ */
-
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

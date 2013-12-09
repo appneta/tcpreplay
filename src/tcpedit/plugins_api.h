@@ -18,24 +18,31 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Main DLT Plugin Header.   You should only include this file outside
- * of the plugin API.  dlt_plugin-int.h is used internal to the plugin ONLY. 
- */
+#ifndef _PLUGINS_API_H_
+#define _PLUGINS_API_H_
 
-#include "tcpedit.h" 
 
-#ifndef _DLT_PLUGINS_H_
-#define _DLT_PLUGINS_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* forward declare our context, so we can use it in the plugin struct */
-typedef struct tcpeditdlt_s tcpeditdlt_t;
+
+/* Used to parse arguments if you have AutoGen */
+int tcpedit_dlt_post_args(tcpedit_t *tcpedit);
+
 
 /* 
  * initialize the DLT plugin backend, and return a new context var.
  * call this once per pcap to be processed 
  */
 tcpeditdlt_t *tcpedit_dlt_init(tcpedit_t *tcpedit, int srcdlt);
+
+/*
+ * Called after tcpedit_dlt_post_args() to allow plugins to do special things
+ * like init sub-plugins.  You'll need to call this manual if you're not using
+ * tcpedit_dlt_post_args();
+ */
+int tcpedit_dlt_post_init(tcpeditdlt_t *tcpedit);
 
 /* cleans up after ourselves.  Called for each initalized plugin */
 void tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
@@ -68,4 +75,9 @@ u_char *tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, con
 int tcpedit_dlt_src(tcpeditdlt_t *ctx);
 int tcpedit_dlt_dst(tcpeditdlt_t *ctx);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif
+

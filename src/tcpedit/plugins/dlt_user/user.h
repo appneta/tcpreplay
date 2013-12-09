@@ -18,11 +18,15 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include "dlt_plugins-int.h"
-
 #ifndef _DLT_user_H_
 #define _DLT_user_H_
+
+#include "plugins_types.h"
+#include "user_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int dlt_user_register(tcpeditdlt_t *ctx);
 int dlt_user_init(tcpeditdlt_t *ctx);
@@ -40,35 +44,9 @@ u_char *dlt_user_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_c
 /* extra function called directly by tcpedit_dlt_output_dlt() */
 u_int16_t dlt_user_get_output_dlt(tcpeditdlt_t *ctx);
 
-
-/*
- * FIXME: structure to hold any data parsed from the packet by the decoder.
- * Example: Ethernet VLAN tag info
- */
-struct user_extra_s {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */
-    int dummy; 
-};
-typedef struct user_extra_s user_extra_t;
-
-#define USER_L2MAXLEN 255
-
-/* 
- * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 
- * Things like: 
- * - Parsed user options
- * - State between packets
- * - Note, you should only use this for the encoder function, decoder functions should place
- *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
- *   is available to any encoder plugin.
- */
-struct user_config_s {
-    u_int16_t dlt;
-    int length;
-    u_char l2client[USER_L2MAXLEN];
-    u_char l2server[USER_L2MAXLEN];
-};
-typedef struct user_config_s user_config_t;
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

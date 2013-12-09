@@ -18,14 +18,14 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include "dlt_plugins-int.h"
-
 #ifndef _DLT_%{plugin}_H_
 #define _DLT_%{plugin}_H_
 
+#include "%{plugin}_types.h"
+
 int dlt_%{plugin}_register(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_init(tcpeditdlt_t *ctx);
+int dlt_%{plugin}_post_init(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_cleanup(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_parse_opts(tcpeditdlt_t *ctx);
 int dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
@@ -37,28 +37,5 @@ tcpeditdlt_l2addr_type_t dlt_%{plugin}_l2addr_type(void);
 int dlt_%{plugin}_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_%{plugin}_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
 
-/*
- * FIXME: structure to hold any data parsed from the packet by the decoder.
- * Example: Ethernet VLAN tag info
- */
-struct %{plugin}_extra_s {
-
-};
-typedef struct %{plugin}_extra_s %{plugin}_extra_t;
-
-
-/* 
- * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 
- * Things like: 
- * - Parsed user options
- * - State between packets
- * - Note, you should only use this for the encoder function, decoder functions should place
- *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
- *   is available to any encoder plugin.
- */
-struct %{plugin}_config_s {
-    
-};
-typedef struct %{plugin}_config_s %{plugin}_config_t;
-
 #endif
+

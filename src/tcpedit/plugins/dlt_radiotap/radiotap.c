@@ -21,18 +21,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "radiotap.h"
-#include "../dlt_ieee80211/ieee80211.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "radiotap.h"
+#include "../dlt_ieee80211/ieee80211.h"
 
 /* edit these variables to taste */
 static char dlt_name[] = "radiotap";
 _U_ static char dlt_prefix[] = "radiotap";
-static u_int16_t dlt_value = DLT_IEEE802_11_RADIO;
+static uint16_t dlt_value = DLT_IEEE802_11_RADIO;
 
 /*
  * The Radiotap header plugin utilizes the 802.11 plugin internally to do all the work
@@ -300,7 +300,7 @@ dlt_radiotap_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char 
 int
 dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    u_int16_t radiolen;
+    uint16_t radiolen;
     assert(ctx);
     assert(packet);
     assert(pktlen);

@@ -45,13 +45,3 @@ pcap_t *pcapnav_pcap(pcapnav_t *);
 #endif
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
-

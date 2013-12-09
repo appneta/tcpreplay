@@ -61,8 +61,7 @@ include         = "#include \"defines.h\"\n"
                 "#include \"config.h\"\n"
                 "#include <stdlib.h>\n"
                 "#include <sys/types.h>\n"
-                "#include <unistd.h>\n"
-                "extern tcpreplay_opt_t options;\n";
+                "#include <unistd.h>\n";
 
 homerc          = "$$/";
 
@@ -147,7 +146,7 @@ flag = {
     arg-default = "gtod";
     max	        = 1;
     arg-type    = string;
-    descrip     = "Select packet timing mode: select, ioport, rdtsc, gtod, nano, abstime";
+    descrip     = "Select packet timing mode: select, ioport, gtod, nano, abstime";
     doc	        = <<- EOText
 Allows you to select the packet timing method to use:
 @enumerate
@@ -157,28 +156,12 @@ Allows you to select the packet timing method to use:
 - Use select() API
 @item ioport
 - Write to the i386 IO Port 0x80
-@item rdtsc
-- Use the x86/x86_64/PPC RDTSC
 @item gtod [default]
 - Use a gettimeofday() loop
 @item abstime
 - Use OS X AbsoluteTime API
 @end enumerate
 
-EOText;
-};
-
-flag = {
-    name        = sleepmode;
-    arg-type    = string;
-    arg-default = "current";
-    max         = 1;
-    descrip     = "Select the sleep mode: current | ver325";
-    doc         = <<- EOText
-Select the algoritim used for sleeping between packets.  Valid options are
-"current" and "ver325".  Current tends to be best for very high speeds, while
-the older ver325 mode works best when trying to reproduce the most accurate 
-timings which is necessary for VOIP and other time sensitive protocols.
 EOText;
 };
 
@@ -191,18 +174,6 @@ flag = {
 Set a limit for the maximum number of milliseconds that tcpreplay will sleep
 between packets.  Effectively prevents long delays between packets without
 effecting the majority of packets.  Default is disabled.
-EOText;
-};
-
-flag = {
-    name        = rdtsc-clicks;
-    max         = 1;
-    arg-type    = number;
-    arg-default = 0;
-    descrip     = "Specify the RDTSC clicks/usec";
-    doc         = <<- EOText
-Override the calculated number of RDTSC clicks/usec which is often the speed of
-the CPU in Mhz.  Only useful if you specified @var{--timer=rdtsc}
 EOText;
 };
 
@@ -233,20 +204,6 @@ are decoded.  By default, -n and -l are used.   Be  sure  to
 quote the arguments like: -A "-axxx" so that they are not interpreted
 by tcpreplay.   Please see the tcpdump(1) man page for a complete list of 
 options.
-EOText;
-};
-
-/* Cache files to internal memory */
-flag = {
-    name        = enable_file_cache;
-    value       = K;
-    flags-must  = loop;
-    descrip     = "Enable caching of packets to internal memory";
-    doc         = <<- EOText
-Cache pcap file(s) the first time they are cached in RAM so that subsequent
-loops do not incurr any disk I/O latency in order to increase performance.  Make 
-sure you have enough free RAM to store the entire pcap file(s) in memory or the
-system will swap and performance will suffer.
 EOText;
 };
 
@@ -290,7 +247,7 @@ flag = {
     descrip     = "Replay two files at a time from a network tap";
     doc         = <<- EOText
 If you captured network traffic using a network tap, then you can end up with
-two pcap files- one for each direction.  This option will replay two these two
+two pcap files- one for each direction.  This option will replay these two
 files at the same time, one on each interface and inter-mix them using the 
 timestamps in each.
 EOText;
@@ -481,7 +438,6 @@ thus allowing for longer sleep times which can be more accurately implemented.
 EOText;
 };
 
-#ifndef TCPREPLAY_EDIT
 flag = {
     name        = unique-ip;
     flags-must  = loop;
@@ -493,9 +449,7 @@ not affect performance. This option will significantly increase the flows/sec ov
 generated over multiple loop iterations.
 EOText;
 };
-#endif
 
-#ifdef HAVE_NETMAP
 flag = {
     name        = netmap;
     descrip     = "Write packets directly to netmap enabled network adapter";
@@ -509,7 +463,6 @@ driver will disrupt other applications connected through the test interface. See
 INSTALL for more information.
 EOText;
 };
-#endif
 
 flag = {
     name        = pid;

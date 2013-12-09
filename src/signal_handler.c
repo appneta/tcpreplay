@@ -22,6 +22,7 @@
 #include "defines.h"
 #include "common.h"
 
+#include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <stdio.h>
@@ -37,9 +38,15 @@ struct timeval suspend_time;
 static struct timeval suspend_start;
 static struct timeval suspend_end;
 
+/***************************************************************
+ * This code is for pausing/restarting tcpreplay using SIGUSR1 *
+ * for the abort code on SIGINT, see src/common/abort.c        *
+ ***************************************************************/
+
 /**
- * init_signal_handlers - 
- *     Initialize signal handlers to be used in tcpreplay.
+ * \brief init_signal_handlers
+ *
+ * Initialize signal handlers to be used in tcpreplay.
  */
 void
 init_signal_handlers()
@@ -51,8 +58,9 @@ init_signal_handlers()
 }
 
 /**
- * reset_suspend_time -
- *     Reset time values for suspend signal.
+ * \brief reset_suspend_time
+ *
+ * Reset time values for suspend signal.
  */
 void
 reset_suspend_time()
@@ -63,8 +71,9 @@ reset_suspend_time()
 }
 
 /**
- * suspend signal handler -
- *     Signal handler for signal SIGUSR1. SIGSTOP cannot be 
+ * \brief suspend signal handler
+ *
+ * Signal handler for signal SIGUSR1. SIGSTOP cannot be 
  * caught, so SIGUSR1 is caught and it throws SIGSTOP.
  */
 void
@@ -82,32 +91,24 @@ suspend_handler(int signo)
 }
 
 /**
- * continue_handler -
- *     Signal handler for continue signal.
+ * \brief continue_handler
+ *
+ * Signal handler for continue signal.
  */
 void
 continue_handler(int signo)
 {
     struct timeval suspend_delta;
-    
+
     if (signo != SIGCONT) {
         warnx("continue_handler() got the wrong signal: %d", signo);
         return;
     }
-    
+
     if (gettimeofday(&suspend_end, NULL) < 0)
         errx(-1, "gettimeofday(): %s", strerror(errno));
 
     timersub(&suspend_end, &suspend_start, &suspend_delta);
     timeradd(&suspend_time, &suspend_delta, &suspend_time);
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
 

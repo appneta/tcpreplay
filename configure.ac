@@ -162,7 +162,7 @@ CFLAGS="$OLD_CFLAGS $wfatal_errors"
 
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h])
 
 dnl OpenBSD has special requirements
 AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [

@@ -101,13 +101,3 @@ tcpr_dir_t check_cache(char *, COUNTER);
 #define EIGHT_ZEROS "\060\060\060\060\060\060\060\060"
 
 #endif
-
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

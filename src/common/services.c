@@ -37,7 +37,7 @@ parse_services(const char *file, tcpr_services_t *services)
     FILE *service = NULL;
     char service_line[MAXLINE], port[10], proto[10];
     regex_t preg;
-    u_int16_t portc;
+    uint16_t portc;
     size_t nmatch = 3;
     regmatch_t pmatch[3];
     char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1], service pmatch[2] */
@@ -78,7 +78,7 @@ parse_services(const char *file, tcpr_services_t *services)
             strncpy(proto, &service_line[pmatch[2].rm_so], (pmatch[2].rm_eo - pmatch[2].rm_so));
 
             /* convert port[] into an integer */
-            portc = (u_int16_t)atoi(port);
+            portc = (uint16_t)atoi(port);
 
             /* update appropriate service array with the server port */
             if (strcmp(proto, "tcp") == 0) {
@@ -93,12 +93,3 @@ parse_services(const char *file, tcpr_services_t *services)
         }
     }
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

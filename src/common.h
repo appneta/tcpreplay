@@ -1,3 +1,5 @@
+/* $Id$ */
+
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.
@@ -16,10 +18,16 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #ifndef __COMMON_H__
 #define __COMMON_H__
 #include <assert.h>
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common/pcap_dlt.h"
 #include "common/cache.h"
 #include "common/cidr.h"
@@ -33,14 +41,16 @@
 #include "common/services.h"
 #include "common/utils.h"
 #include "common/xX.h"
-#include "common/rdtsc.h"
 #include "common/tcpdump.h"
 #include "common/timer.h"
-#include "common/abort.h"
 #include "common/sendpacket.h"
 #include "common/interface.h"
 
 const char *git_version(void); /* git_version.c */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

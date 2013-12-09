@@ -485,7 +485,7 @@ ip_in_cidr(const tcpr_cidr_t * mycidr, const unsigned long ip)
 
 #ifdef DEBUG
     /* copy this for debug purposes, since it's not re-entrant */
-    strlcpy(netstr, get_addr2name4(mycidr->u.network, RESOLVE), 20);
+    strlcpy(netstr, get_addr2name4(htonl(mycidr->u.network), RESOLVE), 20);
 #endif
 
     /* if they're the same, then ip is in network */
@@ -670,7 +670,7 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
     for (i = 2; i <= (32 - cidr->masklen); i++)
         numips *= 2;
 
-    size = 16 * numips;
+    size = 17 * numips - 1;
 
     list = (char *)safe_malloc(size);
 
@@ -693,7 +693,7 @@ cidr2iplist(tcpr_cidr_t * cidr, char delim)
 
     /* last is a special case, end in \0 */
     in.s_addr = htonl(addr);
-    snprintf(ipaddr, 16, "%s", inet_ntoa(in));
+    snprintf(ipaddr, 17, "%s", inet_ntoa(in));
     strlcat(list, ipaddr, size);
 
     return list;

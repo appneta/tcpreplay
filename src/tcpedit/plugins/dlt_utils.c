@@ -20,12 +20,12 @@
 
 #include <string.h>
 
-#include "dlt_plugins-int.h"  
+#include "tcpedit.h"
 #include "dlt_utils.h"
 #include "common.h"
 
 /* from dlt_plugins.c */
-extern const u_int32_t tcpeditdlt_bit_map[];
+extern const uint32_t tcpeditdlt_bit_map[];
 extern const char *tcpeditdlt_bit_info[];
 
 /*
@@ -170,11 +170,11 @@ tcpedit_dlt_addplugin(tcpeditdlt_t *ctx, tcpeditdlt_plugin_t *new)
 int
 tcpedit_dlt_validate(tcpeditdlt_t *ctx)
 {
-    u_int32_t bit;
+    uint32_t bit;
     
     /* loops from 1 -> UINT32_MAX by powers of 2 */
     for (bit = 1; bit != 0; bit = bit << 2) {
-        if ((ctx->encoder->requires & bit) && ! (ctx->decoder->provides & bit)) {
+        if (ctx->encoder->requires & bit && ! ctx->decoder->provides & bit) {
             tcpedit_seterr(ctx->tcpedit, "%s", tcpeditdlt_bit_info[tcpeditdlt_bit_map[bit]]);
             return TCPEDIT_ERROR;
         }            
@@ -250,3 +250,32 @@ tcpedit_dlt_l3data_merge(tcpeditdlt_t *ctx, u_char *packet, int pktlen, const u_
 #endif
     return packet;
 }
+
+/**
+ * When using subdecoders, we need to transfer the sub decoder state
+ * to our state so that our primary encoder has it available.
+ */
+int
+tcpedit_dlt_copy_decoder_state(tcpeditdlt_t *ctx, tcpeditdlt_t *subctx)
+{
+    assert(ctx);
+    assert(subctx);
+
+    memcpy(&ctx->srcaddr, &subctx->srcaddr, sizeof(ctx->srcaddr));
+    memcpy(&ctx->dstaddr, &subctx->dstaddr, sizeof(ctx->dstaddr));
+    ctx->proto = subctx->proto;
+    memcpy(&ctx->srcmac, &subctx->srcmac, MAX_MAC_LEN);
+    memcpy(&ctx->dstmac, &subctx->dstmac, MAX_MAC_LEN);
+    
+    /* just need to copy the ptr */
+    ctx->decoded_extra = subctx->decoded_extra;
+
+    /* 
+     * the first decoder should of alraedy specified it's l2len, so we need to
+     * add to it the l2len determined by the sub-plugin
+     */
+    ctx->l2len += subctx->l2len;
+    
+    return TCPEDIT_OK;
+}
+

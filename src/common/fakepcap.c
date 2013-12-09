@@ -62,13 +62,3 @@ pcap_datalink_val_to_name(int dlt)
 }
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
-

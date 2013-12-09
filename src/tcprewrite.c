@@ -84,13 +84,12 @@ main(int argc, char *argv[])
     }
 
     /* parse the tcpedit args */
-    rcode = tcpedit_post_args(&tcpedit);
+    rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
-
 
     if (tcpedit_validate(tcpedit) < 0) {
         errx(-1, "Unable to edit packets given options:\n%s",
@@ -324,13 +323,3 @@ WRITE_PACKET:
     } /* while() */
     return 0;
 }
-
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
