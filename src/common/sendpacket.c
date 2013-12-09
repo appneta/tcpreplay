@@ -492,7 +492,7 @@ TRY_NETMAP_SEND_AGAIN:
  */
 sendpacket_t *
 sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
-        sendpacket_type_t UNUSED(sendpacket_type))
+        sendpacket_type_t sendpacket_type)
 {
     sendpacket_t *sp;
     struct stat sdata;

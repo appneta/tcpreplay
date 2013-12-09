@@ -218,7 +218,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(NETMAP)) {
 #ifdef HAVE_NETMAP
-        options.netmap = 1;
+        options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
 #else
          err(-1, "--netmap feature was not compiled in. See INSTALL.");
@@ -504,7 +504,7 @@ tcpreplay_set_unique_ip(tcpreplay_t *ctx, int value)
  * Set netmap mode
  */
 int
-tcpreplay_set_netmap(tcpreplay_t *ctx, bool UNUSED(value))
+tcpreplay_set_netmap(tcpreplay_t *ctx, bool value)
 {
     assert(ctx);
 #ifdef HAVE_NETMAP
