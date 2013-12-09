@@ -23,6 +23,11 @@
 #define __COMMON_H__
 #include <assert.h>
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common/pcap_dlt.h"
 #include "common/cache.h"
 #include "common/cidr.h"
@@ -38,11 +43,14 @@
 #include "common/xX.h"
 #include "common/tcpdump.h"
 #include "common/timer.h"
-#include "common/abort.h"
 #include "common/sendpacket.h"
 #include "common/interface.h"
 
 const char *git_version(void); /* git_version.c */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

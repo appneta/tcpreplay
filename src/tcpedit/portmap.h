@@ -18,6 +18,8 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "tcpedit_types.h"
+
 #ifndef __PORTMAP_H__
 #define __PORTMAP_H__
 
@@ -30,12 +32,3 @@ int rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr);
 int rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip_hdr);
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

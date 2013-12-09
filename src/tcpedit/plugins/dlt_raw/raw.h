@@ -18,11 +18,10 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include "dlt_plugins-int.h"
-
 #ifndef _DLT_raw_H_
 #define _DLT_raw_H_
+
+#include "plugins_types.h"
 
 int dlt_raw_register(tcpeditdlt_t *ctx);
 int dlt_raw_init(tcpeditdlt_t *ctx);

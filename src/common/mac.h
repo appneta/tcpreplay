@@ -26,13 +26,3 @@ int dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len);
 tcpr_dir_t macinstring(const char *macstring, const u_char *mac);
 
 #endif /* __MAC_H__ */
-
-
-/*
-  Local Variables:
-  mode:c
-  indent-tabs-mode:nil
-  c-basic-offset:4
-  End:
-*/
-

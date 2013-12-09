@@ -46,13 +46,3 @@ const char *pcap_datalink_val_to_name(int dlt);
 #endif
 
 #endif /* end of _FAKEPCAP_H_ */
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
-

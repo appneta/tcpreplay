@@ -46,12 +46,13 @@
 #endif
 
 #if defined INCLUDE_PCAP_BPF_H_FILE && !defined PCAP_DONT_INCLUDE_PCAP_BPF_H
-#include "@PCAP_BPF_H_FILE@"
+#include "@INCLUDE_PCAP_BPF_HEADER@"
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1 /* don't re-include it in pcap.h */
 #endif
 
 #include "@LPCAPINC@"
 
+/* include our own strlcat/strlcpy? */
 #ifndef HAVE_STRLCPY
 #include "lib/strlcpy.h"
 #endif
@@ -327,7 +328,10 @@ typedef u_int32_t uint32_t
 #define TIMESPEC_TO_MICROSEC(x)  (((x)->tv_sec * 1000000) + (x)->tv_nsec / 1000)
 #define TIMESPEC_TO_NANOSEC(x) ((u_int64_t)((x)->tv_sec * 1000000000) + ((u_int64_t)(x)->tv_nsec))
 
-/* help suppress some compiler warnings */
+/* 
+ * Help suppress some compiler warnings
+ * No problem if variable is actually used 
+*/
 #ifdef UNUSED 
 #elif defined(__GNUC__) 
 # define UNUSED(x) UNUSED_ ## x __attribute__((unused)) 

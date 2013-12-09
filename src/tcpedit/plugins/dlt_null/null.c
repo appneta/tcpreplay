@@ -21,18 +21,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "null.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "null.h"
 
 #include <sys/socket.h> // PF_* values
 
 static char dlt_name[] = "null";
 static char _U_ dlt_prefix[] = "null";
-static u_int16_t dlt_value = DLT_NULL;
+static uint16_t dlt_value = DLT_NULL;
 
 /*
  * From the libpcap man page:
@@ -111,24 +111,12 @@ int
 dlt_null_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    null_config_t *config;
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
-    }
-    
-    /* allocate memory for our deocde extra data */
-    if (sizeof(null_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(null_extra_t));
-
-    /* allocate memory for our config data */
-    if (sizeof(null_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(null_config_t));
-    
-    config = (null_config_t *)plugin->config;
-    
+    }    
 
     return TCPEDIT_OK; /* success */
 }
@@ -198,7 +186,7 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if ((proto = dlt_null_proto(ctx, packet, pktlen)) == TCPEDIT_ERROR)
         return TCPEDIT_ERROR;
 
-    ctx->proto = (u_int16_t)proto;
+    ctx->proto = (uint16_t)proto;
     ctx->l2len = 4;
 
     return TCPEDIT_OK; /* success */
@@ -228,10 +216,10 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
     assert(pktlen > 0);
-    u_int32_t *af_type; 
+    uint32_t *af_type; 
     int protocol = 0;
     
-    af_type = (u_int32_t *)packet;
+    af_type = (uint32_t *)packet;
     if (*af_type == PF_INET || SWAPLONG(*af_type) == PF_INET) {
         protocol = ETHERTYPE_IP;
     } else if (*af_type == PF_INET6 || SWAPLONG(*af_type) == PF_INET6) {

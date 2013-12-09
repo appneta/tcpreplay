@@ -195,13 +195,3 @@ free_list(tcpr_list_t * list)
 
     safe_free(list);
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
-

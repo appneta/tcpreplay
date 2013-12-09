@@ -32,7 +32,7 @@ struct hdlc_hdr_s {
     u_int16_t address;
     u_int16_t protocol;
 };
-typedef struct hdlc_hdr_s hdlc_hdr_t;     
+typedef struct hdlc_hdr_s hdlc_hdr_t;
 
 
 #endif /* _PCAP_DLT_H_ */

@@ -1,6 +1,7 @@
 $Id$
 
 ??/??/2013 Version 3.5.0
+    - Merge code cleanups from old 4.0alpha1 project (appneta #18)
     - Deprecated file-cache option - use preload-pcap instead (appneta #17)
     - Removed obsolete sleep-mode and sleep-accel options (appneta #16)
     - Remove unreliable RDTSC option (appneta #16)

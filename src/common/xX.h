@@ -43,12 +43,3 @@ int process_xX_by_cidr_ipv6(int, tcpr_cidr_t *, ipv6_hdr_t *);
 
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

@@ -25,13 +25,3 @@ void catcher(int signo);
 void break_now(int signo);
 
 #endif
-
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

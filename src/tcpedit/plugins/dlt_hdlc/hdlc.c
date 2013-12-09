@@ -21,16 +21,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "hdlc.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "hdlc.h"
 
 static char dlt_name[] = "hdlc";
 static char _U_ dlt_prefix[] = "hdlc";
-static u_int16_t dlt_value = DLT_C_HDLC;
+static uint16_t dlt_value = DLT_C_HDLC;
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -163,11 +163,11 @@ dlt_hdlc_parse_opts(tcpeditdlt_t *ctx)
     config = plugin->config;
     
     if (HAVE_OPT(HDLC_CONTROL)) {
-        config->control = (u_int16_t)OPT_VALUE_HDLC_CONTROL;
+        config->control = (uint16_t)OPT_VALUE_HDLC_CONTROL;
     }
     
     if (HAVE_OPT(HDLC_ADDRESS)) {
-        config->address = (u_int16_t)OPT_VALUE_HDLC_ADDRESS;
+        config->address = (uint16_t)OPT_VALUE_HDLC_ADDRESS;
     }
     
     return TCPEDIT_OK; /* success */
@@ -244,7 +244,7 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
 
     /* set the address field */
     if (config->address < 65535) {
-        hdlc->address = (u_int8_t)config->address;
+        hdlc->address = (uint8_t)config->address;
     } else if (extra->hdlc) {
         hdlc->address = extra->hdlc;
     } else {
@@ -254,7 +254,7 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
     
     /* set the control field */
     if (config->control < 65535) {
-        hdlc->control = (u_int8_t)config->control;
+        hdlc->control = (uint8_t)config->control;
     } else if (extra->hdlc) {
         hdlc->control = extra->hdlc;
     } else {

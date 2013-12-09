@@ -24,11 +24,9 @@
 
 #include <signal.h>
 #include <stdlib.h>
-#include <sys/time.h>
 
-extern volatile int didsig;
-extern COUNTER bytes_sent, pkts_sent, failed;
-extern struct timeval begin, end;
+#include "tcpreplay_api.h"
+extern tcpreplay_t *ctx;
 
 #ifdef DEBUG
 extern int debug;
@@ -43,7 +41,7 @@ catcher(int signo)
 {
     /* stdio in signal handlers causes a race condition, instead set a flag */
     if (signo == SIGINT)
-        didsig = 1;
+        ctx->abort = true;
 }
 
 /**
@@ -54,30 +52,13 @@ catcher(int signo)
 void
 break_now(int signo)
 {
+    const tcpreplay_stats_t *stats;
 
-    if (signo == SIGINT || didsig) {
+    if (signo == SIGINT || ctx->abort) {
         printf("\n");
-
-/*
-#ifdef ENABLE_VERBOSE
-        if (tcpdump.pid)
-            if (kill(tcpdump.pid, SIGTERM) != 0)
-                kill(tcpdump.pid, SIGKILL);
-#endif
-*/
-        gettimeofday(&end, NULL);
-        packet_stats(&begin, &end, bytes_sent, pkts_sent, failed);
-
+        stats = tcpreplay_get_stats(ctx);
+        packet_stats(stats);
         exit(1);
     }
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
 

@@ -103,10 +103,12 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 void
 _our_safe_free(void *ptr, const char *funcname, const int line, const char *file)
 {
-    if (ptr == NULL) {
-        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to call free on a NULL ptr", file, funcname, line);
-        exit(-1);
-    }
+    assert(funcname);
+    assert(line);
+    assert(file);
+
+    if (ptr == NULL)
+        return;
 
     free(ptr);
     ptr = NULL;
@@ -116,8 +118,7 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
  * Print various packet statistics
  */
 void
-packet_stats(struct timeval *begin, struct timeval *end,
-        COUNTER bytes_sent, COUNTER pkts_sent, COUNTER failed)
+packet_stats(const tcpreplay_stats_t *stats)
 {
     struct timeval diff;
     COUNTER diff_us;
@@ -129,15 +130,15 @@ packet_stats(struct timeval *begin, struct timeval *end,
     COUNTER pkts_sec = 0;
     u_int32_t pkts_sec_100ths = 0;
 
-    timersub(end, begin, &diff);
+    timersub(&stats->end_time, &stats->start_time, &diff);
     diff_us = TIMEVAL_TO_MICROSEC(&diff);
 
     if (diff_us) {
-        if (bytes_sent){
+        if (stats->bytes_sent){
             COUNTER bytes_sec_X10;
             COUNTER mb_sec_X100;
 
-            bytes_sec_X10 = (bytes_sent * 10 * 1000 * 1000) / diff_us;
+            bytes_sec_X10 = (stats->bytes_sent * 10 * 1000 * 1000) / diff_us;
             bytes_sec = bytes_sec_X10 / 10;
             bytes_sec_10ths = bytes_sec_X10 % 10;
 
@@ -146,10 +147,10 @@ packet_stats(struct timeval *begin, struct timeval *end,
             mb_sec_100ths = mb_sec_X100 % 100;
             mb_sec_1000ths = (bytes_sec * 8) / 1000;
         }
-        if (pkts_sent) {
+        if (stats->pkts_sent) {
             COUNTER pkts_sec_X100;
 
-            pkts_sec_X100 = (pkts_sent * 100 * 1000 * 1000) / diff_us;
+            pkts_sec_X100 = (stats->pkts_sent * 100 * 1000 * 1000) / diff_us;
             pkts_sec = pkts_sec_X100 / 100;
             pkts_sec_100ths = pkts_sec_X100 % 100;
         }
@@ -157,10 +158,10 @@ packet_stats(struct timeval *begin, struct timeval *end,
 
     if (diff_us >= 1000000)
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds.\n",
-                pkts_sent, bytes_sent, diff.tv_sec, diff.tv_usec / (100 * 1000));
+                stats->pkts_sent, stats->bytes_sent, diff.tv_sec, diff.tv_usec / (100 * 1000));
     else
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds.\n",
-                pkts_sent, bytes_sent, diff.tv_sec, diff.tv_usec);
+                stats->pkts_sent, stats->bytes_sent, diff.tv_sec, diff.tv_usec);
 
 
     if (mb_sec >= 1)
@@ -171,9 +172,9 @@ packet_stats(struct timeval *begin, struct timeval *end,
                bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_1000ths, pkts_sec, pkts_sec_100ths);
 
 
-    if (failed)
+    if (stats->failed)
         printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
-              failed);
+                stats->failed);
 }
 
 /**
@@ -234,7 +235,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 int
 inet_aton(const char *name, struct in_addr *addr)
 {
-    in_addr_t a = inet_addr (name);
+    in_addr_t a = inet_addr(name);
     addr->s_addr = a;
     return a != (in_addr_t)-1;
 }

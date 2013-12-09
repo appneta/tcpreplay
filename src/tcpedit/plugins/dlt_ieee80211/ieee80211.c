@@ -21,13 +21,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "ieee80211.h"
-#include "ieee80211_hdr.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "ieee80211.h"
+#include "ieee80211_hdr.h"
 
 /*
  * Notes about the ieee80211 plugin:
@@ -38,7 +38,7 @@
  */
 static char dlt_name[] = "ieee80211";
 _U_ static char dlt_prefix[] = "ieee802_11";
-static u_int16_t dlt_value = DLT_IEEE802_11;
+static uint16_t dlt_value = DLT_IEEE802_11;
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -230,7 +230,7 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     int l2len;
     int hdrlen = 0;
-    u_int16_t *frame_control, fc;
+    uint16_t *frame_control, fc;
     struct tcpr_802_2snap_hdr *hdr;
 
     assert(ctx);
@@ -240,7 +240,7 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(pktlen >= l2len);
 
     /* check 802.11 frame control field */
-    frame_control = (u_int16_t *)packet;
+    frame_control = (uint16_t *)packet;
     fc = ntohs(*frame_control);
 
     /* Not all 802.11 frames have data */
@@ -319,7 +319,7 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
 int
 dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    u_int16_t *frame_control, fc;
+    uint16_t *frame_control, fc;
     struct tcpr_802_2snap_hdr *hdr;
     int hdrlen = 0;
 
@@ -330,7 +330,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     dbgx(2, "packet = %p\t\tplen = %d", packet, pktlen);
 
-    frame_control = (u_int16_t *)packet;
+    frame_control = (uint16_t *)packet;
     fc = ntohs(*frame_control);
 
     
@@ -374,7 +374,7 @@ dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char
     assert(ctx);
     assert(packet);
     assert(pktlen);
-    char *macaddr;
+    u_char *macaddr;
     
     switch(mac) {
     case SRC_MAC:

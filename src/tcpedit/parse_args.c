@@ -21,7 +21,7 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
-#include "tcpedit-int.h"
+#include "tcpedit.h"
 #include "tcpedit_stub.h"
 #include "parse_args.h"
 #include "portmap.h"
@@ -36,12 +36,10 @@
  * returns -1 for error
  */
 int 
-tcpedit_post_args(tcpedit_t **tcpedit_ex) {
-    tcpedit_t *tcpedit;
+tcpedit_post_args(tcpedit_t *tcpedit) {
     int rcode = 0;
     long ttl;
-    assert(tcpedit_ex);
-    tcpedit = *tcpedit_ex;
+
     assert(tcpedit);
 
 
@@ -101,32 +99,31 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         tcpedit->cidrmap2 = tcpedit->cidrmap1;
 
     /* --fixcsum */
-    if (HAVE_OPT(FIXCSUM)) {
-        tcpedit->fixcsum = TCPEDIT_FIXCSUM_ON;
-    } else if (HAVE_OPT(NOFIXCSUM)) {
-        tcpedit->fixcsum = TCPEDIT_FIXCSUM_DISABLE;
-    }
+    if (HAVE_OPT(FIXCSUM))
+        tcpedit->fixcsum = true;
 
     /* --efcs */
     if (HAVE_OPT(EFCS)) 
-        tcpedit->efcs = 1;
+        tcpedit->efcs = true;
 
     /* --ttl */
     if (HAVE_OPT(TTL)) {
         if (strchr(OPT_ARG(TTL), '+')) {
-            tcpedit->ttl_mode = TCPEDIT_TTL_ADD;            
+            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_ADD;            
         } else if (strchr(OPT_ARG(TTL), '-')) {
-            tcpedit->ttl_mode = TCPEDIT_TTL_SUB;            
+            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_SUB;            
         } else {
-            tcpedit->ttl_mode = TCPEDIT_TTL_SET;            
+            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_SET;           
         }
 
         ttl = strtol(OPT_ARG(TTL), (char **)NULL, 10);
         if (ttl < 0)
             ttl *= -1; /* convert to positive value */
             
-        if (ttl > 255)
-            errx(-1, "Invalid --ttl value (must be 0-255): %ld", ttl);
+        if (ttl > 255) {
+            tcpedit_seterr(tcpedit, "Invalid --ttl value (must be 0-255): %ld", ttl);
+            return -1;
+        }
 
         tcpedit->ttl_value = (u_int8_t)ttl;
     }
@@ -135,6 +132,10 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
     if (HAVE_OPT(TOS))
         tcpedit->tos = OPT_VALUE_TOS;
 
+    /* --tclass */
+    if (HAVE_OPT(TCLASS))
+        tcpedit->tclass = OPT_VALUE_TCLASS;
+        
     /* --flowlabel */
     if (HAVE_OPT(FLOWLABEL))
         tcpedit->flowlabel = OPT_VALUE_FLOWLABEL;
@@ -145,11 +146,11 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         
     /* --mtu-trunc */
     if (HAVE_OPT(MTU_TRUNC))
-        tcpedit->mtu_truncate = 1;
+        tcpedit->mtu_truncate = true;
         
     /* --skipbroadcast */
     if (HAVE_OPT(SKIPBROADCAST))
-        tcpedit->skip_broadcast = 1;
+        tcpedit->skip_broadcast = true;
 
     /* --fixlen */
     if (HAVE_OPT(FIXLEN)) {
@@ -203,13 +204,13 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
      * close to 32bit integers.
      */
     if (HAVE_OPT(SEED)) {
-        tcpedit->rewrite_ip = TCPEDIT_REWRITE_IP_ON;
+        tcpedit->rewrite_ip = true;
         srandom(OPT_VALUE_SEED);
         tcpedit->seed = random() + random() + random() + random() + random();
     }
 
     if (HAVE_OPT(ENDPOINTS)) {
-        tcpedit->rewrite_ip = TCPEDIT_REWRITE_IP_ON;
+        tcpedit->rewrite_ip = true;
         if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2,
                     OPT_ARG(ENDPOINTS))) {
             tcpedit_seterr(tcpedit, 
@@ -239,8 +240,17 @@ tcpedit_post_args(tcpedit_t **tcpedit_ex) {
         rcode = 1;
     }
      */
+     
+    /* parse the tcpedit dlt args */
+    rcode = tcpedit_dlt_post_args(tcpedit);
+    if (rcode < 0) {
+        errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+    } else if (rcode == 1) {
+        warnx("%s", tcpedit_geterr(tcpedit));
+    }
+     
 
-    return rcode;
+    return 0;
 }
 
 

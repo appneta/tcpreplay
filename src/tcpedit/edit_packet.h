@@ -60,12 +60,3 @@ int chksum_replace_ipv4(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, u_int32_t from, 
 #define BROADCAST_IP 4294967295
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

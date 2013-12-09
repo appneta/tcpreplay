@@ -128,12 +128,3 @@ struct sll_header {
 #define LINUX_SLL_P_802_2	0x0004  /* 802.2 frames (not D/I/X Ethernet) */
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

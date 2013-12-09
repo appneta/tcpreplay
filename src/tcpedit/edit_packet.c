@@ -22,7 +22,7 @@
 #include "defines.h"
 #include "common.h"
 
-#include "tcpedit-int.h"
+#include "tcpedit.h"
 #include "edit_packet.h"
 #include "checksum.h"
 #include "lib/sll.h"
@@ -35,9 +35,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-static u_int32_t randomize_ipv4_addr(tcpedit_t *tcpedit, u_int32_t ip);
-static u_int32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const u_int32_t original);
-static int is_unicast_ipv4(tcpedit_t *tcpedit, u_int32_t ip);
+static uint32_t randomize_ipv4_addr(tcpedit_t *tcpedit, uint32_t ip);
+static uint32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const uint32_t original);
+static int is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip);
 
 static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
@@ -110,8 +110,8 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
 #define IP_OFFSET   0x1FFF      /* "Fragment Offset" part   */
 int chksum_replace_ipv4(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, u_int32_t from, u_int32_t to)
 {
-    if (tcpedit->fixcsum == TCPEDIT_FIXCSUM_DISABLE)
-        return 0;
+    if (tcpedit->fixcsum)
+        return 1;
 
     chksum_replace4(&ip_hdr->ip_sum, from, to);
     return 0;
@@ -124,8 +124,8 @@ static int transport_pseudo_chksum_ipv4(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr,
     u_char *transport;
     u_int8_t protocol;
 
-    if (tcpedit->fixcsum == TCPEDIT_FIXCSUM_DISABLE)
-        return 0;
+    if (tcpedit->fixcsum)
+        return 1;
 
     ihl = ip_hdr->ip_hl * 4;
     transport = ((u_char *)ip_hdr) + ihl;
@@ -469,23 +469,23 @@ rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr)
     assert(tcpedit);
 
     /* make sure there's something to edit */
-    if (ip_hdr == NULL || tcpedit->ttl_mode == TCPEDIT_TTL_OFF)
+    if (ip_hdr == NULL || tcpedit->ttl_mode == false)
         return(0);
         
     switch(tcpedit->ttl_mode) {
-    case TCPEDIT_TTL_SET:
+    case TCPEDIT_TTL_MODE_SET:
         if (ip_hdr->ip_ttl == tcpedit->ttl_value)
             return(0);           /* no change required */
         ip_hdr->ip_ttl = tcpedit->ttl_value;
         break;
-    case TCPEDIT_TTL_ADD:
+    case TCPEDIT_TTL_MODE_ADD:
         if (((int)ip_hdr->ip_ttl + tcpedit->ttl_value) > 255) {
             ip_hdr->ip_ttl = 255;
         } else {
             ip_hdr->ip_ttl += tcpedit->ttl_value;
         }
         break;
-    case TCPEDIT_TTL_SUB:
+    case TCPEDIT_TTL_MODE_SUB:
         if (ip_hdr->ip_ttl <= tcpedit->ttl_value) {
             ip_hdr->ip_ttl = 1;
         } else {
@@ -508,23 +508,23 @@ rewrite_ipv6_hlim(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr)
     assert(tcpedit);
 
     /* make sure there's something to edit */
-    if (ip6_hdr == NULL || tcpedit->ttl_mode == TCPEDIT_TTL_OFF)
+    if (ip6_hdr == NULL || tcpedit->ttl_mode == TCPEDIT_TTL_MODE_OFF)
         return(0);
 
     switch(tcpedit->ttl_mode) {
-    case TCPEDIT_TTL_SET:
+    case TCPEDIT_TTL_MODE_SET:
         if (ip6_hdr->ip_hl == tcpedit->ttl_value)
             return(0);           /* no change required */
         ip6_hdr->ip_hl = tcpedit->ttl_value;
         break;
-    case TCPEDIT_TTL_ADD:
+    case TCPEDIT_TTL_MODE_ADD:
         if (((int)ip6_hdr->ip_hl + tcpedit->ttl_value) > 255) {
             ip6_hdr->ip_hl = 255;
         } else {
             ip6_hdr->ip_hl += tcpedit->ttl_value;
         }
         break;
-    case TCPEDIT_TTL_SUB:
+    case TCPEDIT_TTL_MODE_SUB:
         if (ip6_hdr->ip_hl <= tcpedit->ttl_value) {
             ip6_hdr->ip_hl = 1;
         } else {

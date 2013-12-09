@@ -31,7 +31,7 @@
 #include <errno.h>
 
 #include "tcpreplay.h"
-#include "tcpedit-int.h"
+#include "tcpedit.h"
 #include "portmap.h"
 
 /**
@@ -358,12 +358,3 @@ rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr)
     }
     return 0;
 }
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-

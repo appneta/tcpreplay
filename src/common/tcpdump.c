@@ -36,6 +36,7 @@
 #include "defines.h"
 #include "common.h"
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -50,7 +51,7 @@
 
 #ifndef HAVE_STRLCPY
 #include "lib/strlcpy.h"
-#endif 
+#endif
 
 #ifdef DEBUG
 extern int debug;
@@ -144,7 +145,7 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 {
     int infd[2], outfd[2];
     FILE *writer;
-    
+
     assert(tcpdump);
     assert(pcap);
 
@@ -157,7 +158,7 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
     if (! can_exec(TCPDUMP_BINARY)) {
         errx(-1, "Unable to execute tcpdump binary: %s", TCPDUMP_BINARY);
     }
-    
+
 #ifdef DEBUG
      strlcpy(tcpdump->debugfile, TCPDUMP_DEBUG, sizeof(tcpdump->debugfile));
      if (debug >= 5) {
@@ -183,13 +184,12 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
     /* create our socket pair to read packet decode from tcpdump */
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, outfd) < 0)
         errx(-1, "Unable to create stdout socket pair: %s", strerror(errno));
- 
-         
+
     if ((tcpdump->pid = fork() ) < 0)
         errx(-1, "Fork failed: %s", strerror(errno));
 
     dbgx(2, "tcpdump pid: %d", tcpdump->pid);
-    
+
     if (tcpdump->pid > 0) {
         /* we're still in tcpreplay */
         dbgx(2, "[parent] closing input fd %d", infd[1]);
@@ -212,7 +212,7 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 
         if (fcntl(tcpdump->outfd, F_SETFL, O_NONBLOCK) < 0)
             warnx("[parent] Unable to fnctl stdout socket:\n%s", strerror(errno));
-            
+
     }
     else {
         dbg(2, "[child] started the kid");
@@ -222,14 +222,14 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
         dbgx(2, "[child] closing out fd %d", outfd[0]);
         close(infd[0]); /* close the tcpreplay side */
         close(outfd[0]);
-    
+
         /* copy our side of the socketpair to our stdin */
         if (infd[1] != STDIN_FILENO) {
             if (dup2(infd[1], STDIN_FILENO) != STDIN_FILENO)
                 errx(-1, "[child] Unable to copy socket to stdin: %s", 
                     strerror(errno));
         }
-    
+
         /* copy our side of the socketpair to our stdout */
         if (outfd[1] != STDOUT_FILENO) {
             if (dup2(outfd[1], STDOUT_FILENO) != STDOUT_FILENO)
@@ -243,7 +243,7 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
             errx(-1, "Unable to exec tcpdump: %s", strerror(errno));
 
     }
-    
+
     return TRUE;
 }
 

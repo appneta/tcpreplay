@@ -52,7 +52,7 @@
 #ifndef _SENDPACKET_H_
 #define _SENDPACKET_H_
 
-enum sendpacket_type_e {
+typedef enum sendpacket_type_e {
     SP_TYPE_NONE,
     SP_TYPE_LIBNET,
     SP_TYPE_LIBDNET,
@@ -62,15 +62,14 @@ enum sendpacket_type_e {
     SP_TYPE_TX_RING,
     SP_TYPE_KHIAL,
     SP_TYPE_NETMAP,
-};
-typedef enum sendpacket_type_e sendpacket_type_t;
+} sendpacket_type_t;
 
 /* these are the file_operations ioctls */
 #define KHIAL_SET_DIRECTION  (0x1)
 #define KHIAL_GET_DIRECTION  (0x2)
 
 /* these are the directions */
-typedef enum {
+typedef enum khial_direction_e {
     KHIAL_DIRECTION_RX = 0,
     KHIAL_DIRECTION_TX,
 } khial_direction_t;
@@ -114,6 +113,7 @@ struct sendpacket_s {
     txring_t * tx_ring;
 #endif
 #endif
+    bool abort;
 };
 
 typedef struct sendpacket_s sendpacket_t;
@@ -126,6 +126,7 @@ sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t, sendpacket_type_
 struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 int sendpacket_get_dlt(sendpacket_t *);
 const char *sendpacket_get_method(sendpacket_t *);
+void sendpacket_abort(sendpacket_t *);
 
 #endif /* _SENDPACKET_H_ */
 

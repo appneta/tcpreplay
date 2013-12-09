@@ -21,16 +21,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dlt_plugins-int.h"
-#include "dlt_utils.h"
-#include "linuxsll.h"
 #include "tcpedit.h"
 #include "common.h"
 #include "tcpr.h"
+#include "dlt_utils.h"
+#include "tcpedit_stub.h"
+#include "../ethernet.h"
+#include "linuxsll.h"
+
 
 static char dlt_name[] = "linuxsll";
 static char _U_ dlt_prefix[] = "linuxsll";
-static u_int16_t dlt_value = DLT_LINUX_SLL;
+static uint16_t dlt_value = DLT_LINUX_SLL;
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -131,6 +133,7 @@ dlt_linuxsll_cleanup(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
+    /* FIXME: make this function do something if necessary */
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
@@ -172,7 +175,6 @@ dlt_linuxsll_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    static int already_warned_user = 0;
     linux_sll_header_t *linux_sll;
     assert(ctx);
     assert(packet);
@@ -185,16 +187,9 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     if (ntohs(linux_sll->type) == ARPHRD_ETHER) { /* ethernet */
         memcpy(&(ctx->srcaddr), linux_sll->address, ETHER_ADDR_LEN);
-    } else if (! already_warned_user) {
-        /*
-         * Plugins have to decide at init time if they provide source MAC addresses
-         * or not, but LINUX_SLL headers the source MAC is optional.  Hence,
-         * if we can't parse out the source MAC during processing, we'll generate
-         * this warning for the user so they know to specify it on the CLI
-         */
-        already_warned_user = 1;
-        tcpedit_setwarn(ctx->tcpedit, "%s", "Unable to use source MAC in LINUX_SLL header; maybe you should specify one?");
-        return TCPEDIT_WARN;
+    } else {
+        tcpedit_seterr(ctx->tcpedit, "%s", "DLT_LINUX_SLL pcap's must contain only ethernet packets");
+        return TCPEDIT_ERROR;
     }
 
     return TCPEDIT_OK; /* success */
@@ -293,6 +288,7 @@ dlt_linuxsll_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char 
     assert(packet);
     assert(pktlen);
 
+    /* FIXME: return a ptr to the source or dest mac address. */
     switch(mac) {
     case SRC_MAC:
         memcpy(ctx->srcmac, &packet[6], 8); /* linuxssl defines the src mac field to be 8 bytes, not 6 */

@@ -14,7 +14,10 @@ EXTRA_DIST += $(srcdir)/plugins/dlt_linuxsll/linuxsll_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_linuxsll/linuxsll.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h $(srcdir)/plugins/dlt_plugins.h $(srcdir)/plugins/dlt_plugins-int.h
+	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h $(srcdir)/plugins/dlt_linuxsll/linuxsll_types.h \
+	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h 
 
 # You probably don't want to touch anything below this line until the end of the plugin
 

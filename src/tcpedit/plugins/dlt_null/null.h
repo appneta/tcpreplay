@@ -18,11 +18,14 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include "dlt_plugins-int.h"
-
 #ifndef _DLT_null_H_
 #define _DLT_null_H_
+
+#include "plugins_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int dlt_null_register(tcpeditdlt_t *ctx);
 int dlt_null_init(tcpeditdlt_t *ctx);
@@ -36,32 +39,6 @@ u_char *dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktle
 tcpeditdlt_l2addr_type_t dlt_null_l2addr_type(void);
 int dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_null_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
-
-/*
- * structure to hold any data parsed from the packet by the decoder.
- * Example: Ethernet VLAN tag info
- */
-struct null_extra_s {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */
-    int dummy;
-};
-typedef struct null_extra_s null_extra_t;
-
-
-/* 
- * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 
- * Things like: 
- * - Parsed user options
- * - State between packets
- * - Note, you should only use this for the encoder function, decoder functions should place
- *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
- *   is available to any encoder plugin.
- */
-struct null_config_s {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */
-    int dummy;
-};
-typedef struct null_config_s null_config_t;
 
 #endif
 

@@ -61,8 +61,7 @@ include         = "#include \"defines.h\"\n"
                 "#include \"config.h\"\n"
                 "#include <stdlib.h>\n"
                 "#include <sys/types.h>\n"
-                "#include <unistd.h>\n"
-                "extern tcpreplay_opt_t options;\n";
+                "#include <unistd.h>\n";
 
 homerc          = "$$/";
 
@@ -439,7 +438,6 @@ thus allowing for longer sleep times which can be more accurately implemented.
 EOText;
 };
 
-#ifndef TCPREPLAY_EDIT
 flag = {
     name        = unique-ip;
     flags-must  = loop;
@@ -451,7 +449,6 @@ not affect performance. This option will significantly increase the flows/sec ov
 generated over multiple loop iterations.
 EOText;
 };
-#endif
 
 flag = {
     name        = netmap;

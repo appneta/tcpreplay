@@ -51,12 +51,3 @@ const char *get_cidr2name(const tcpr_cidr_t *cidr_ptr, bool dnslookup);
 
 
 #endif
-
-/*
- Local Variables:
- mode:c
- indent-tabs-mode:nil
- c-basic-offset:4
- End:
-*/
-
