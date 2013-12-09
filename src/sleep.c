@@ -59,7 +59,7 @@ ioport_sleep_init(void)
 void 
 ioport_sleep(const struct timespec UNUSED(nap))
 {
-#ifdef HAVE_IOPORT
+#ifdef HAVE_IOPERM
     uint32_t usec;
     struct timeval nap_for;
     time_t i;

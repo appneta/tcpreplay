@@ -236,13 +236,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with select support");
             return -1;
 #endif
-        } else if (strcmp(OPT_ARG(TIMER), "rdtsc") == 0) {
-#ifdef HAVE_RDTSC
-            options->accurate = accurate_rdtsc;
-#else
-            tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with rdtsc support");
-            return -1;
-#endif
         } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
 #if defined HAVE_IOPERM && defined(__i386__)
             options->accurate = accurate_ioport;
@@ -823,8 +816,8 @@ tcpreplay_get_end_time(tcpreplay_t *ctx)
  * tcpreplay_seterr() which is a macro wrapping this instead.
  */
 void
-__tcpreplay_seterr(tcpreplay_t *ctx, const char *func, const int line, 
-    const char *file, const char *fmt, ...)
+__tcpreplay_seterr(tcpreplay_t *ctx, const char *func,
+        const int line, const char *file, const char *fmt, ...)
 {
     va_list ap;
     char errormsg[TCPREPLAY_ERRSTR_LEN];
@@ -839,8 +832,12 @@ __tcpreplay_seterr(tcpreplay_t *ctx, const char *func, const int line,
 
     va_end(ap);
 
+#ifdef DEBUG
     snprintf(ctx->errstr, (TCPREPLAY_ERRSTR_LEN -1), "From %s:%s() line %d:\n%s",
         file, func, line, errormsg);
+#else
+    snprintf(ctx->errstr, (TCPREPLAY_ERRSTR_LEN -1), "%s", errormsg);
+#endif
 }
 
 /**
@@ -920,15 +917,6 @@ tcpreplay_prepare(tcpreplay_t *ctx)
         tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with select support");
         return -1;
     }
-#endif
-#ifndef HAVE_RDTSC
-    if (ctx->options->accurate == accurate_rdtsc) {
-        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with rdtsc support");
-        return -1;
-    }
-#else
-    if (ctx->options->rdtsc_clicks > 0)
-        rdtsc_calibrate(ctx->options->rdtsc_clicks);
 #endif
 #ifndef HAVE_IOPERM
     if (ctx->options->accurate == accurate_ioport) {

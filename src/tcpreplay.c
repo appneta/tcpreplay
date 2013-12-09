@@ -141,12 +141,13 @@ main(int argc, char *argv[])
         errx(-1, "gettimeofday() failed: %s",  strerror(errno));
 
     /* main loop, when not looping forever */
+    rcode = 0;
     if (ctx->options->loop > 0) {
-        while (ctx->options->loop--) {  /* limited loop */
+        while (rcode == 0 && ctx->options->loop--) {  /* limited loop */
             if (ctx->options->dualfile) {
                 /* process two files at a time for network taps */
                 for (i = 0; i < argc; i += 2) {
-                    tcpr_replay_index(ctx, i);
+                    rcode = tcpr_replay_index(ctx, i);
                 }
             } else {
                 /* process each pcap file in order */
@@ -154,18 +155,18 @@ main(int argc, char *argv[])
                     /* reset cache markers for each iteration */
                     ctx->cache_byte = 0;
                     ctx->cache_bit = 0;
-                    tcpr_replay_index(ctx, i);
+                    rcode = tcpr_replay_index(ctx, i);
                 }
             }
         }
     }
     else {
         /* loop forever */
-        while (1) {
+        while (rcode == 0) {
             if (ctx->options->dualfile) {
                 /* process two files at a time for network taps */
                 for (i = 0; i < argc; i += 2) {
-                    tcpr_replay_index(ctx, i);
+                    rcode = tcpr_replay_index(ctx, i);
                 }
             } else {
                 /* process each pcap file in order */
@@ -173,10 +174,17 @@ main(int argc, char *argv[])
                     /* reset cache markers for each iteration */
                     ctx->cache_byte = 0;
                     ctx->cache_bit = 0;
-                    tcpr_replay_index(ctx, i);
+                    rcode = tcpr_replay_index(ctx, i);
                 }
             }
         }
+    }
+
+    if (rcode < 0) {
+        notice("\nFailed: %s\n", tcpreplay_geterr(ctx));
+        exit(rcode);
+    } else if (rcode == 1) {
+        notice("\nWarning: %s\n", tcpreplay_getwarn(ctx));
     }
 
     if (ctx->stats.bytes_sent > 0) {

@@ -886,7 +886,7 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         break;
 #endif
 
-#ifdef HAVE_IOPORT
+#ifdef HAVE_IOPERM
     case accurate_ioport:
         /* TODO investigate - I don't think this can ever get called */
         ioport_sleep(nap_this_time);
