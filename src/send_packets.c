@@ -71,21 +71,21 @@ static uint32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER count
  * Attempts to alter the packet IP addresses without
  * changing CRC, which will avoid overhead of tcpreplay-edit
  *
- * Inlined for speed at the cost of some bloating
+ * This code is a bit bloated but it is the result of
+ * optimizing. Test performance on 10GigE+ networks if
+ * modifying.
  */
-static inline void
-fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
+static void
+fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         uint32_t iteration, bool cached, int datalink)
 {
     u_char *packet;
     int l2_len = 0;
-    eth_hdr_t *eth_hdr;
-    uint16_t ether_type;
     ipv4_hdr_t *ip_hdr;
     ipv6_hdr_t *ip6_hdr;
-    uint32_t *src_ptr, *dst_ptr;
+    uint32_t *src_ptr = NULL, *dst_ptr = NULL;
     uint32_t src_ip, dst_ip;
-
+    u_int32_t src_ip_orig, dst_ip_orig;
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
@@ -94,47 +94,6 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     packet = *pktdata;
 
     switch (datalink) {
-    case DLT_EN10MB:
-        /* Don't do Ethernet broadcast packets */
-        eth_hdr = (eth_hdr_t*)packet;
-        if (!memcmp(eth_hdr->ether_dhost, BROADCAST_MAC, ETHER_ADDR_LEN)) {
-            dbg(1, "Packet is Ethernet broadcast");
-            return;
-        }
-
-        ether_type = ntohs(eth_hdr->ether_type);
-        if (ether_type == ETHERTYPE_VLAN) {
-            ether_type = ntohs(((vlan_hdr_t *)packet)->vlan_len);
-            ip_hdr = (ipv4_hdr_t*)(packet + sizeof(vlan_hdr_t));
-        } else
-            ip_hdr = (ipv4_hdr_t*)(packet + sizeof(eth_hdr_t));
-
-        switch (ether_type) {
-            case ETHERTYPE_IP:
-                if (ip_hdr->ip_v != 4) {
-                    dbg(1, "Unexpected non IPv4 packet");
-                    return;
-                }
-                src_ptr = (uint32_t*)&ip_hdr->ip_src;
-                dst_ptr = (uint32_t*)&ip_hdr->ip_dst;
-                break;
-
-            case ETHERTYPE_IP6:
-                if (ip_hdr->ip_v != 6) {
-                    dbg(1, "Unexpected non IPv6 packet");
-                    return;
-                }
-                ip6_hdr = (ipv6_hdr_t*)ip_hdr;
-                src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
-                dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
-                break;
-
-            default:
-                /* non-IP packet */
-                return;
-        }
-        break;
-
     case DLT_LINUX_SLL:
         l2_len = 12;    /* actually 16 */
         /* fall through */
@@ -169,19 +128,30 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         break;
     }
 
-    dst_ip = ntohl(*dst_ptr);
-    src_ip = ntohl(*src_ptr);
+    src_ip_orig = src_ip = ntohl(*src_ptr);
+    dst_ip_orig = dst_ip = ntohl(*dst_ptr);
 
-    if (dst_ip > src_ip) {
+    /* swap src/dst IP's in a manner that does not affect CRC */
+    if ((!cached && dst_ip > src_ip) ||
+            (cached && (dst_ip - iteration) > (src_ip - 1 - iteration))) {
         if (cached) {
-            ++dst_ip;
             --src_ip;
+            ++dst_ip;
         } else {
-            dst_ip += iteration;
             src_ip -= iteration;
+            dst_ip += iteration;
         }
-        *dst_ptr = htonl(dst_ip);
-        *src_ptr = htonl(src_ip);
+
+        /* CRC compensations  for wrap conditions */
+        if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            --src_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            ++dst_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        }
     } else {
         if (cached) {
             ++src_ip;
@@ -190,8 +160,125 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
             src_ip += iteration;
             dst_ip -= iteration;
         }
-        *src_ptr = htonl(src_ip);
-        *dst_ptr = htonl(dst_ip);
+
+        /* CRC compensations  for wrap conditions */
+        if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            --dst_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            ++src_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        }
+    }
+
+    dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+
+    *src_ptr = htonl(src_ip);
+    *dst_ptr = htonl(dst_ip);
+}
+
+static inline void
+fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
+        uint32_t iteration, bool cached, int datalink)
+{
+    u_int16_t ether_type;
+    ipv4_hdr_t *ip_hdr = NULL;
+    ipv6_hdr_t *ip6_hdr = NULL;
+    u_int32_t src_ip, dst_ip;
+    u_int32_t src_ip_orig, dst_ip_orig;
+    int l2_len;
+
+    if (datalink != DLT_EN10MB)
+        fast_edit_packet_dl(pkthdr, pktdata, iteration, cached, datalink);
+
+    if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
+        dbgx(2, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
+        return;
+    }
+
+    /* assume Ethernet, IPv4 for now */
+    ether_type = ntohs(((eth_hdr_t*)*pktdata)->ether_type);
+    if (ether_type == ETHERTYPE_VLAN) {
+        ether_type = ntohs(((vlan_hdr_t *)*pktdata)->vlan_len);
+        l2_len = sizeof(vlan_hdr_t);
+    } else
+        l2_len = sizeof(eth_hdr_t);
+
+    switch (ether_type) {
+    case ETHERTYPE_IP:
+        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
+        dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
+        break;
+
+    case ETHERTYPE_IP6:
+        ip6_hdr = (ipv6_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
+        dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
+        break;
+
+    default:
+        return; /* non-IP */
+    }
+
+    dbgx(2, "Layer 3 protocol type is: 0x%04x", ether_type);
+
+    /* swap src/dst IP's in a manner that does not affect CRC */
+    if ((!cached && dst_ip > src_ip) ||
+            (cached && (dst_ip - iteration) > (src_ip - 1 - iteration))) {
+        if (cached) {
+            --src_ip;
+            ++dst_ip;
+        } else {
+            src_ip -= iteration;
+            dst_ip += iteration;
+        }
+
+        /* CRC compensations  for wrap conditions */
+        if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            --src_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            ++dst_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        }
+    } else {
+        if (cached) {
+            ++src_ip;
+            --dst_ip;
+        } else {
+            src_ip += iteration;
+            dst_ip -= iteration;
+        }
+
+        /* CRC compensations  for wrap conditions */
+        if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            --dst_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            ++src_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        }
+    }
+
+    dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+
+    switch (ether_type) {
+    case ETHERTYPE_IP:
+        ip_hdr->ip_src.s_addr = htonl(src_ip);
+        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
+        break;
+
+    case ETHERTYPE_IP6:
+        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
+        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
+        break;
     }
 }
 
@@ -282,7 +369,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         /* stop sending based on the limit -L? */
         packetnum++;
-        if (limit_send > 0 && packetnum > limit_send)
+        if (limit_send > 0 && packetnum > (COUNTER)limit_send)
             break;
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -453,7 +540,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         /* stop sending based on the limit -L? */
         packetnum++;
-        if (limit_send > 0 && packetnum > limit_send)
+        if (limit_send > 0 && packetnum > (COUNTER)limit_send)
             break;
 
         /* figure out which pcap file we need to process next 
