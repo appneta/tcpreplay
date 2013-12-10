@@ -116,7 +116,6 @@ replay_file(tcpreplay_t *ctx, int idx)
     char *path;
     pcap_t *pcap = NULL;
     char ebuf[PCAP_ERRBUF_SIZE];
-    int dlt;
 
     assert(ctx);
     assert(ctx->options->sources[idx].type = source_filename);
@@ -169,12 +168,13 @@ replay_file(tcpreplay_t *ctx, int idx)
 #endif
 
     if (pcap != NULL) {
-        dlt = sendpacket_get_dlt(ctx->intf1);
+        if (ctx->intf1dlt == -1)
+            ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
 #if 0
-        if ((dlt > 0) && (dlt != pcap_datalink(pcap)))
+        if ((ctx->intf1dlt >= 0) && (ctx->intf1dlt != pcap_datalink(pcap)))
             warnx("%s DLT (%s) does not match that of the outbound interface: %s (%s)",
                     path, pcap_datalink_val_to_name(pcap_datalink(pcap)),
-                    ctx->options->intf1->device, pcap_datalink_val_to_name(dlt));
+                    ctx->options->intf1->device, pcap_datalink_val_to_name(ctx->intf1dlt));
 #endif
     }
 
@@ -204,7 +204,7 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
     char *path1, *path2;
     pcap_t *pcap1  = NULL, *pcap2 = NULL;
     char ebuf[PCAP_ERRBUF_SIZE];
-    int dlt1, dlt2, rcode = 0;
+    int rcode = 0;
 
     assert(ctx);
     assert(ctx->options->sources[idx1].type = source_filename);
@@ -262,24 +262,27 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
 
 
     if (pcap1 != NULL) {
-        dlt1 = sendpacket_get_dlt(ctx->intf1);
-        if ((dlt1 > 0) && (dlt1 != pcap_datalink(pcap1))) {
+        if (ctx->intf1dlt == -1)
+            ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
+        if ((ctx->intf1dlt >= 0) && (ctx->intf1dlt != pcap_datalink(pcap1))) {
             tcpreplay_setwarn(ctx, "%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
                 path1, pcap_datalink_val_to_name(pcap_datalink(pcap1)), 
-                ctx->intf1->device, pcap_datalink_val_to_name(dlt1));
+                ctx->intf1->device, pcap_datalink_val_to_name(ctx->intf1dlt));
             rcode = -2;
         }
 
-        dlt2 = sendpacket_get_dlt(ctx->intf2);
-        if ((dlt2 > 0) && (dlt2 != pcap_datalink(pcap2))) {
+        if (ctx->intf2dlt == -1)
+            ctx->intf2dlt = sendpacket_get_dlt(ctx->intf2);
+        if ((ctx->intf2dlt >= 0) && (ctx->intf2dlt != pcap_datalink(pcap2))) {
             tcpreplay_setwarn(ctx, "%s DLT (%s) does not match that of the outbound interface: %s (%s)", 
                 path2, pcap_datalink_val_to_name(pcap_datalink(pcap2)), 
-                ctx->intf2->device, pcap_datalink_val_to_name(dlt2));
+                ctx->intf2->device, pcap_datalink_val_to_name(ctx->intf2dlt));
             rcode = -2;
         }
 
-        if (dlt1 != dlt2) {
-            tcpreplay_seterr(ctx, "DLT missmatch for %s (%d) and %s (%d)", path1, dlt1, path2, dlt2);
+        if (ctx->intf1dlt != ctx->intf2dlt) {
+            tcpreplay_seterr(ctx, "DLT missmatch for %s (%d) and %s (%d)",
+                    path1, ctx->intf1dlt, path2, ctx->intf2dlt);
             return -1;
         }
     }

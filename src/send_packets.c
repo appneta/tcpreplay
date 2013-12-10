@@ -59,136 +59,143 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         struct timeval *last, int len, tcpreplay_accurate accurate, 
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length);
-static const u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
+static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
         packet_cache_t **prev_packet);
 static uint32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
 
 /**
- * Fast flow packet edit - IPv4
- */
-void
-fast_edit_ipv4_packet(u_char **pktdata, uint32_t iteration)
-{
-    ipv4_hdr_t *ip_hdr;
-    uint32_t src_ip, dst_ip;
-
-    assert(pktdata && *pktdata);
-
-    ip_hdr = (ipv4_hdr_t*)*pktdata;
-
-    if (ip_hdr->ip_v != 4) {
-        dbg(2, "Non IPv4 packet");
-        return;
-    }
-
-    dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
-    src_ip = ntohl(ip_hdr->ip_src.s_addr);
-
-    if (dst_ip > src_ip) {
-        dst_ip += iteration;
-        src_ip -= iteration;
-        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
-        ip_hdr->ip_src.s_addr = htonl(src_ip);
-    } else {
-        src_ip += iteration;
-        dst_ip -= iteration;
-        ip_hdr->ip_src.s_addr = htonl(src_ip);
-        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
-    }
-}
-
-/**
- * Fast flow packet edit - IPv6
- */
-void
-fast_edit_ipv6_packet(u_char **pktdata, uint32_t iteration)
-{
-    ipv6_hdr_t *ip6_hdr;
-    ipv4_hdr_t *ip_hdr;
-    uint32_t src_ip, dst_ip;
-
-    assert(pktdata && *pktdata);
-
-    ip_hdr = (ipv4_hdr_t*)*pktdata;
-
-    if (ip_hdr->ip_v != 6) {
-        dbg(2, "Non IPv6 packet");
-        return;
-    }
-
-    /* manipulate last 32 bits of IPv6 address */
-    ip6_hdr = (ipv6_hdr_t*)*pktdata;
-    dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
-    src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
-
-    if (dst_ip > src_ip) {
-        dst_ip += iteration;
-        src_ip -= iteration;
-        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
-        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
-    } else {
-        src_ip += iteration;
-        dst_ip -= iteration;
-        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
-        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
-    }
-}
-
-/**
  * Fast flow packet edit
  *
  * Attempts to alter the packet IP addresses without
  * changing CRC, which will avoid overhead of tcpreplay-edit
+ *
+ * Inlined for speed at the cost of some bloating
  */
-void
-fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata, uint32_t iteration, int datalink)
+static inline void
+fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
+        uint32_t iteration, bool cached, int datalink)
 {
     u_char *packet;
-    int l2_len;
-    uint16_t proto;
-    int datalen;
+    int l2_len = 0;
+    eth_hdr_t *eth_hdr;
+    uint16_t ether_type;
+    ipv4_hdr_t *ip_hdr;
+    ipv6_hdr_t *ip6_hdr;
+    uint32_t *src_ptr, *dst_ptr;
+    uint32_t src_ip, dst_ip;
 
     assert(pkthdr);
     assert(pktdata && *pktdata);
 
     packet = *pktdata;
-    datalen = pkthdr->caplen;
-    if (datalen < TCPR_IPV6_H) {
-        dbgx(2, "Packet too short for Fast Flows: %u", pkthdr->caplen);
+    if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
+        dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
         return;
     }
 
-    l2_len = get_l2len(packet, datalen, datalink);
-    if (l2_len < 0) {
-        dbg(2, "Unable to decipher L2 in packet");
-        return;
-    }
-
-    if (datalink == DLT_EN10MB) {
-        eth_hdr_t *eth_hdr = (eth_hdr_t*)packet;
-
+    switch (datalink) {
+    case DLT_EN10MB:
         /* Don't do Ethernet broadcast packets */
+        eth_hdr = (struct tcpr_ethernet_hdr *)packet;
         if (!memcmp(eth_hdr->ether_dhost, BROADCAST_MAC, ETHER_ADDR_LEN)) {
-            dbg(2, "Packet is Ethernet broadcast");
+            dbg(1, "Packet is Ethernet broadcast");
             return;
         }
-    }
 
-    proto = get_l2protocol(packet, datalen, datalink);
-    packet += l2_len;
-    switch (proto) {
-    case ETHERTYPE_IP:
-        fast_edit_ipv4_packet(&packet, iteration);
+        ether_type = ntohs(eth_hdr->ether_type);
+        if (ether_type == ETHERTYPE_VLAN) {
+            ether_type = ntohs(((vlan_hdr_t *)packet)->vlan_len);
+            ip_hdr = (ipv4_hdr_t*)(packet + sizeof(vlan_hdr_t));
+        } else
+            ip_hdr = (ipv4_hdr_t*)(packet + sizeof(eth_hdr_t));
+
+        switch (ether_type) {
+            case ETHERTYPE_IP:
+                if (ip_hdr->ip_v != 4) {
+                    dbg(1, "Unexpected non IPv4 packet");
+                    return;
+                }
+                src_ptr = (uint32_t*)&ip_hdr->ip_src;
+                dst_ptr = (uint32_t*)&ip_hdr->ip_dst;
+                break;
+
+            case ETHERTYPE_IP6:
+                if (ip_hdr->ip_v != 6) {
+                    dbg(1, "Unexpected non IPv6 packet");
+                    return;
+                }
+                ip6_hdr = (ipv6_hdr_t*)ip_hdr;
+                ip_hdr = NULL;
+                src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
+                dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
+                break;
+
+            default:
+                /* non-IP packet */
+                return;
+        }
         break;
 
-    case ETHERTYPE_IP6:
-        fast_edit_ipv6_packet(&packet, iteration);
+    case DLT_LINUX_SLL:
+        l2_len = 12;    /* actually 16 */
+        /* fall through */
+    case DLT_C_HDLC:
+        l2_len += 4;
+        /* fall through */
+    case DLT_RAW:
+        /* pktdata IS the ip header! */
+        ip_hdr = (ipv4_hdr_t*)(packet + l2_len);
+
+        switch (ip_hdr->ip_v) {
+        case 4:
+            src_ptr = (uint32_t*)&ip_hdr->ip_src;
+            dst_ptr = (uint32_t*)&ip_hdr->ip_dst;
+            break;
+
+        case 6:
+            ip6_hdr = (ipv6_hdr_t*)ip_hdr;
+            ip_hdr = NULL;
+            src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
+            dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
+            break;
+
+        default:
+            /* non-IP packet */
+            return;
+        }
         break;
 
     default:
-        dbgx(2, "Packet has no IP header - proto=0x%04x", proto);
+        warnx("Unable to process unsupported DLT type: %s (0x%x)",
+             pcap_datalink_val_to_description(datalink), datalink);
+        break;
+    }
+
+    dst_ip = ntohl(*dst_ptr);
+    src_ip = ntohl(*src_ptr);
+
+    if (dst_ip > src_ip) {
+        if (cached) {
+            ++dst_ip;
+            --src_ip;
+        } else {
+            dst_ip += iteration;
+            src_ip -= iteration;
+        }
+        *dst_ptr = htonl(dst_ip);
+        *src_ptr = htonl(src_ip);
+    } else {
+        if (cached) {
+            ++src_ip;
+            --dst_ip;
+        } else {
+            src_ip += iteration;
+            dst_ip -= iteration;
+        }
+        *src_ptr = htonl(src_ip);
+        *dst_ptr = htonl(dst_ip);
     }
 }
 
@@ -241,7 +248,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
     struct pcap_pkthdr pkthdr;
-    const u_char *pktdata = NULL;
+    u_char *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     uint32_t pktlen;
     packet_cache_t *cached_packet = NULL;
@@ -252,6 +259,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     int datalink = ctx->intf1dlt;
     COUNTER skip_length = 0;
     COUNTER start_us;
+    bool file_cached = options->file_cache[idx].cached;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
@@ -271,12 +279,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         /* die? */
         if (ctx->abort)
-            return;
+            break;
 
         /* stop sending based on the limit -L? */
         packetnum = ctx->stats.pkts_sent + 1;
         if (options->limit_send > 0 && packetnum > options->limit_send)
-            return;
+            break;
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
@@ -313,10 +321,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
-        if (ctx->iteration && options->unique_ip) {
+        if (ctx->iteration && options->unique_ip)
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(&pkthdr, (u_char **)&pktdata, ctx->iteration, datalink);
-        }
+            fast_edit_packet(&pkthdr, &pktdata, ctx->iteration,
+                    file_cached, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -367,7 +375,7 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (timercmp(&last, &pkthdr.ts, <))
+        if (!do_not_timestamp && timercmp(&last, &pkthdr.ts, <))
             memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
         ctx->stats.pkts_sent ++;
         ctx->stats.bytes_sent += pktlen;
@@ -390,9 +398,6 @@ SEND_NOW:
     } /* while */
 
     ++ctx->iteration;
-    if (options->preload_pcap) {
-        options->file_cache[idx].cached = TRUE;
-    }
 }
 
 /**
@@ -408,7 +413,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     int cache_file_idx;
     pcap_t *pcap;
     struct pcap_pkthdr pkthdr1, pkthdr2;
-    const u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
+    u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     uint32_t pktlen;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
@@ -442,11 +447,11 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     while (! (pktdata1 == NULL && pktdata2 == NULL)) {
         /* die? */
         if (ctx->abort)
-            return;
+            break;
 
         /* stop sending based on the limit -L? */
         if (options->limit_send > 0 && ctx->stats.pkts_sent >= options->limit_send)
-            return;
+            break;
 
         packetnum++;
 
@@ -519,10 +524,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
 #endif
 
-        if (ctx->iteration && options->unique_ip) {
+        if (ctx->iteration && options->unique_ip)
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, (u_char **)&pktdata, ctx->iteration, datalink);
-        }
+            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
+                    options->file_cache[cache_file_idx].cached, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -568,7 +573,7 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (timercmp(&last, &pkthdr_ptr->ts, <))
+        if (!do_not_timestamp && timercmp(&last, &pkthdr_ptr->ts, <))
             memcpy(&last, &pkthdr_ptr->ts, sizeof(struct timeval));
         ctx->stats.pkts_sent ++;
         ctx->stats.bytes_sent += pktlen;
@@ -598,11 +603,6 @@ SEND_NOW:
     } /* while */
 
     ++ctx->iteration;
-
-    if (options->preload_pcap) {
-        options->file_cache[cache_file_idx1].cached = TRUE;
-        options->file_cache[cache_file_idx2].cached = TRUE;
-    }
 }
 
 
@@ -615,7 +615,7 @@ SEND_NOW:
  * This should be NULL on the first call to this function for each file and
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
-const u_char *
+u_char *
 get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int idx, 
     packet_cache_t **prev_packet)
 {

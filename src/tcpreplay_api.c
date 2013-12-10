@@ -123,6 +123,8 @@ tcpreplay_init()
 
     ctx->sp_type = SP_TYPE_NONE;
     ctx->iteration = 0;
+    ctx->intf1dlt = -1;
+    ctx->intf2dlt = -1;
     ctx->abort = false;
     return ctx;
 }
