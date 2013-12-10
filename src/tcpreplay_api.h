@@ -167,7 +167,7 @@ typedef struct tcpreplay_s {
     sendpacket_t *intf2;
     int intf1dlt;
     int intf2dlt;
-    int iteration;
+    u_int32_t iteration;
     sendpacket_type_t sp_type;
     char errstr[TCPREPLAY_ERRSTR_LEN];
     char warnstr[TCPREPLAY_ERRSTR_LEN];

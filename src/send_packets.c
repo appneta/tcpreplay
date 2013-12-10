@@ -86,19 +86,17 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     uint32_t *src_ptr, *dst_ptr;
     uint32_t src_ip, dst_ip;
 
-    assert(pkthdr);
-    assert(pktdata && *pktdata);
 
-    packet = *pktdata;
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
         return;
     }
+    packet = *pktdata;
 
     switch (datalink) {
     case DLT_EN10MB:
         /* Don't do Ethernet broadcast packets */
-        eth_hdr = (struct tcpr_ethernet_hdr *)packet;
+        eth_hdr = (eth_hdr_t*)packet;
         if (!memcmp(eth_hdr->ether_dhost, BROADCAST_MAC, ETHER_ADDR_LEN)) {
             dbg(1, "Packet is Ethernet broadcast");
             return;
@@ -127,7 +125,6 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
                     return;
                 }
                 ip6_hdr = (ipv6_hdr_t*)ip_hdr;
-                ip_hdr = NULL;
                 src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
                 dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
                 break;
@@ -156,7 +153,6 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         case 6:
             ip6_hdr = (ipv6_hdr_t*)ip_hdr;
-            ip_hdr = NULL;
             src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
             dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
             break;
@@ -246,7 +242,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
     struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = 0;
+    COUNTER packetnum = ctx->stats.pkts_sent;
+    int limit_send = options->limit_send;
     struct pcap_pkthdr pkthdr;
     u_char *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
@@ -259,6 +256,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     int datalink = ctx->intf1dlt;
     COUNTER skip_length = 0;
     COUNTER start_us;
+    uint32_t iteration = ctx->iteration;
+    bool unique_ip = options->unique_ip;
     bool file_cached = options->file_cache[idx].cached;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
@@ -282,8 +281,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             break;
 
         /* stop sending based on the limit -L? */
-        packetnum = ctx->stats.pkts_sent + 1;
-        if (options->limit_send > 0 && packetnum > options->limit_send)
+        packetnum++;
+        if (limit_send > 0 && packetnum > limit_send)
             break;
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -321,9 +320,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
-        if (ctx->iteration && options->unique_ip)
+        if (unique_ip && iteration)
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(&pkthdr, &pktdata, ctx->iteration,
+            fast_edit_packet(&pkthdr, &pktdata, iteration,
                     file_cached, datalink);
 
         /*
@@ -409,13 +408,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 {
     struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = 0;
+    COUNTER packetnum = ctx->stats.pkts_sent;
+    int limit_send = options->limit_send;
     int cache_file_idx;
     pcap_t *pcap;
     struct pcap_pkthdr pkthdr1, pkthdr2;
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     uint32_t pktlen;
+    uint32_t iteration = ctx->iteration;
+    bool unique_ip = options->unique_ip;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
@@ -450,10 +452,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             break;
 
         /* stop sending based on the limit -L? */
-        if (options->limit_send > 0 && ctx->stats.pkts_sent >= options->limit_send)
-            break;
-
         packetnum++;
+        if (limit_send > 0 && packetnum > limit_send)
+            break;
 
         /* figure out which pcap file we need to process next 
          * when get_next_packet() returns null for pktdata, the pkthdr 
@@ -524,7 +525,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
 #endif
 
-        if (ctx->iteration && options->unique_ip)
+        if (unique_ip && iteration)
             /* edit packet to ensure every pass is unique */
             fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
                     options->file_cache[cache_file_idx].cached, datalink);
