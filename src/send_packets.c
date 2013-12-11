@@ -59,136 +59,226 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         struct timeval *last, int len, tcpreplay_accurate accurate, 
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length);
-static const u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
+static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
         packet_cache_t **prev_packet);
 static uint32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
 
 /**
- * Fast flow packet edit - IPv4
- */
-void
-fast_edit_ipv4_packet(u_char **pktdata, uint32_t iteration)
-{
-    ipv4_hdr_t *ip_hdr;
-    uint32_t src_ip, dst_ip;
-
-    assert(pktdata && *pktdata);
-
-    ip_hdr = (ipv4_hdr_t*)*pktdata;
-
-    if (ip_hdr->ip_v != 4) {
-        dbg(2, "Non IPv4 packet");
-        return;
-    }
-
-    dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
-    src_ip = ntohl(ip_hdr->ip_src.s_addr);
-
-    if (dst_ip > src_ip) {
-        dst_ip += iteration;
-        src_ip -= iteration;
-        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
-        ip_hdr->ip_src.s_addr = htonl(src_ip);
-    } else {
-        src_ip += iteration;
-        dst_ip -= iteration;
-        ip_hdr->ip_src.s_addr = htonl(src_ip);
-        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
-    }
-}
-
-/**
- * Fast flow packet edit - IPv6
- */
-void
-fast_edit_ipv6_packet(u_char **pktdata, uint32_t iteration)
-{
-    ipv6_hdr_t *ip6_hdr;
-    ipv4_hdr_t *ip_hdr;
-    uint32_t src_ip, dst_ip;
-
-    assert(pktdata && *pktdata);
-
-    ip_hdr = (ipv4_hdr_t*)*pktdata;
-
-    if (ip_hdr->ip_v != 6) {
-        dbg(2, "Non IPv6 packet");
-        return;
-    }
-
-    /* manipulate last 32 bits of IPv6 address */
-    ip6_hdr = (ipv6_hdr_t*)*pktdata;
-    dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
-    src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
-
-    if (dst_ip > src_ip) {
-        dst_ip += iteration;
-        src_ip -= iteration;
-        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
-        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
-    } else {
-        src_ip += iteration;
-        dst_ip -= iteration;
-        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
-        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
-    }
-}
-
-/**
  * Fast flow packet edit
  *
  * Attempts to alter the packet IP addresses without
  * changing CRC, which will avoid overhead of tcpreplay-edit
+ *
+ * This code is a bit bloated but it is the result of
+ * optimizing. Test performance on 10GigE+ networks if
+ * modifying.
  */
-void
-fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata, uint32_t iteration, int datalink)
+static void
+fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
+        uint32_t iteration, bool cached, int datalink)
 {
     u_char *packet;
-    int l2_len;
-    uint16_t proto;
-    int datalen;
+    int l2_len = 0;
+    ipv4_hdr_t *ip_hdr;
+    ipv6_hdr_t *ip6_hdr;
+    uint32_t *src_ptr = NULL, *dst_ptr = NULL;
+    uint32_t src_ip, dst_ip;
+    u_int32_t src_ip_orig, dst_ip_orig;
 
-    assert(pkthdr);
-    assert(pktdata && *pktdata);
-
+    if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
+        dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
+        return;
+    }
     packet = *pktdata;
-    datalen = pkthdr->caplen;
-    if (datalen < TCPR_IPV6_H) {
-        dbgx(2, "Packet too short for Fast Flows: %u", pkthdr->caplen);
-        return;
-    }
 
-    l2_len = get_l2len(packet, datalen, datalink);
-    if (l2_len < 0) {
-        dbg(2, "Unable to decipher L2 in packet");
-        return;
-    }
+    switch (datalink) {
+    case DLT_LINUX_SLL:
+        l2_len = 12;    /* actually 16 */
+        /* fall through */
+    case DLT_C_HDLC:
+        l2_len += 4;
+        /* fall through */
+    case DLT_RAW:
+        /* pktdata IS the ip header! */
+        ip_hdr = (ipv4_hdr_t*)(packet + l2_len);
 
-    if (datalink == DLT_EN10MB) {
-        eth_hdr_t *eth_hdr = (eth_hdr_t*)packet;
+        switch (ip_hdr->ip_v) {
+        case 4:
+            src_ptr = (uint32_t*)&ip_hdr->ip_src;
+            dst_ptr = (uint32_t*)&ip_hdr->ip_dst;
+            break;
 
-        /* Don't do Ethernet broadcast packets */
-        if (!memcmp(eth_hdr->ether_dhost, BROADCAST_MAC, ETHER_ADDR_LEN)) {
-            dbg(2, "Packet is Ethernet broadcast");
+        case 6:
+            ip6_hdr = (ipv6_hdr_t*)ip_hdr;
+            src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
+            dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
+            break;
+
+        default:
+            /* non-IP packet */
             return;
         }
-    }
-
-    proto = get_l2protocol(packet, datalen, datalink);
-    packet += l2_len;
-    switch (proto) {
-    case ETHERTYPE_IP:
-        fast_edit_ipv4_packet(&packet, iteration);
-        break;
-
-    case ETHERTYPE_IP6:
-        fast_edit_ipv6_packet(&packet, iteration);
         break;
 
     default:
-        dbgx(2, "Packet has no IP header - proto=0x%04x", proto);
+        warnx("Unable to process unsupported DLT type: %s (0x%x)",
+             pcap_datalink_val_to_description(datalink), datalink);
+        break;
+    }
+
+    src_ip_orig = src_ip = ntohl(*src_ptr);
+    dst_ip_orig = dst_ip = ntohl(*dst_ptr);
+
+    /* swap src/dst IP's in a manner that does not affect CRC */
+    if ((!cached && dst_ip > src_ip) ||
+            (cached && (dst_ip - iteration) > (src_ip - 1 - iteration))) {
+        if (cached) {
+            --src_ip;
+            ++dst_ip;
+        } else {
+            src_ip -= iteration;
+            dst_ip += iteration;
+        }
+
+        /* CRC compensations  for wrap conditions */
+        if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            --src_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            ++dst_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        }
+    } else {
+        if (cached) {
+            ++src_ip;
+            --dst_ip;
+        } else {
+            src_ip += iteration;
+            dst_ip -= iteration;
+        }
+
+        /* CRC compensations  for wrap conditions */
+        if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            --dst_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            ++src_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        }
+    }
+
+    dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+
+    *src_ptr = htonl(src_ip);
+    *dst_ptr = htonl(dst_ip);
+}
+
+static inline void
+fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
+        uint32_t iteration, bool cached, int datalink)
+{
+    u_int16_t ether_type;
+    ipv4_hdr_t *ip_hdr = NULL;
+    ipv6_hdr_t *ip6_hdr = NULL;
+    u_int32_t src_ip, dst_ip;
+    u_int32_t src_ip_orig, dst_ip_orig;
+    int l2_len;
+
+    if (datalink != DLT_EN10MB)
+        fast_edit_packet_dl(pkthdr, pktdata, iteration, cached, datalink);
+
+    if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
+        dbgx(2, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
+        return;
+    }
+
+    /* assume Ethernet, IPv4 for now */
+    ether_type = ntohs(((eth_hdr_t*)*pktdata)->ether_type);
+    if (ether_type == ETHERTYPE_VLAN) {
+        ether_type = ntohs(((vlan_hdr_t *)*pktdata)->vlan_len);
+        l2_len = sizeof(vlan_hdr_t);
+    } else
+        l2_len = sizeof(eth_hdr_t);
+
+    switch (ether_type) {
+    case ETHERTYPE_IP:
+        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
+        dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
+        break;
+
+    case ETHERTYPE_IP6:
+        ip6_hdr = (ipv6_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
+        dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
+        break;
+
+    default:
+        return; /* non-IP */
+    }
+
+    dbgx(2, "Layer 3 protocol type is: 0x%04x", ether_type);
+
+    /* swap src/dst IP's in a manner that does not affect CRC */
+    if ((!cached && dst_ip > src_ip) ||
+            (cached && (dst_ip - iteration) > (src_ip - 1 - iteration))) {
+        if (cached) {
+            --src_ip;
+            ++dst_ip;
+        } else {
+            src_ip -= iteration;
+            dst_ip += iteration;
+        }
+
+        /* CRC compensations  for wrap conditions */
+        if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            --src_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
+            dbgx(1, "dst_ip > src_ip(%u): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            ++dst_ip;
+            dbgx(1, "dst_ip > src_ip(%u): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+        }
+    } else {
+        if (cached) {
+            ++src_ip;
+            --dst_ip;
+        } else {
+            src_ip += iteration;
+            dst_ip -= iteration;
+        }
+
+        /* CRC compensations  for wrap conditions */
+        if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            --dst_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
+            dbgx(1, "src_ip > dst_ip(%u): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            ++src_ip;
+            dbgx(1, "src_ip > dst_ip(%u): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+        }
+    }
+
+    dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+
+    switch (ether_type) {
+    case ETHERTYPE_IP:
+        ip_hdr->ip_src.s_addr = htonl(src_ip);
+        ip_hdr->ip_dst.s_addr = htonl(dst_ip);
+        break;
+
+    case ETHERTYPE_IP6:
+        ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
+        ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
+        break;
     }
 }
 
@@ -239,9 +329,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
     struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = 0;
+    COUNTER packetnum = ctx->stats.pkts_sent;
+    int limit_send = options->limit_send;
     struct pcap_pkthdr pkthdr;
-    const u_char *pktdata = NULL;
+    u_char *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     uint32_t pktlen;
     packet_cache_t *cached_packet = NULL;
@@ -252,6 +343,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     int datalink = ctx->intf1dlt;
     COUNTER skip_length = 0;
     COUNTER start_us;
+    uint32_t iteration = ctx->iteration;
+    bool unique_ip = options->unique_ip;
+    bool file_cached = options->file_cache[idx].cached;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
@@ -271,12 +365,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         /* die? */
         if (ctx->abort)
-            return;
+            break;
 
         /* stop sending based on the limit -L? */
-        packetnum = ctx->stats.pkts_sent + 1;
-        if (options->limit_send > 0 && packetnum > options->limit_send)
-            return;
+        packetnum++;
+        if (limit_send > 0 && packetnum > (COUNTER)limit_send)
+            break;
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
@@ -313,10 +407,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
-        if (ctx->iteration && options->unique_ip) {
+        if (unique_ip && iteration)
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(&pkthdr, (u_char **)&pktdata, ctx->iteration, datalink);
-        }
+            fast_edit_packet(&pkthdr, &pktdata, iteration,
+                    file_cached, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -367,7 +461,7 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (timercmp(&last, &pkthdr.ts, <))
+        if (!do_not_timestamp && timercmp(&last, &pkthdr.ts, <))
             memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
         ctx->stats.pkts_sent ++;
         ctx->stats.bytes_sent += pktlen;
@@ -390,9 +484,6 @@ SEND_NOW:
     } /* while */
 
     ++ctx->iteration;
-    if (options->preload_pcap) {
-        options->file_cache[idx].cached = TRUE;
-    }
 }
 
 /**
@@ -404,13 +495,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 {
     struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = 0;
+    COUNTER packetnum = ctx->stats.pkts_sent;
+    int limit_send = options->limit_send;
     int cache_file_idx;
     pcap_t *pcap;
     struct pcap_pkthdr pkthdr1, pkthdr2;
-    const u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
+    u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     uint32_t pktlen;
+    uint32_t iteration = ctx->iteration;
+    bool unique_ip = options->unique_ip;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
@@ -442,13 +536,12 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     while (! (pktdata1 == NULL && pktdata2 == NULL)) {
         /* die? */
         if (ctx->abort)
-            return;
+            break;
 
         /* stop sending based on the limit -L? */
-        if (options->limit_send > 0 && ctx->stats.pkts_sent >= options->limit_send)
-            return;
-
         packetnum++;
+        if (limit_send > 0 && packetnum > (COUNTER)limit_send)
+            break;
 
         /* figure out which pcap file we need to process next 
          * when get_next_packet() returns null for pktdata, the pkthdr 
@@ -519,10 +612,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
 #endif
 
-        if (ctx->iteration && options->unique_ip) {
+        if (unique_ip && iteration)
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, (u_char **)&pktdata, ctx->iteration, datalink);
-        }
+            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
+                    options->file_cache[cache_file_idx].cached, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -568,7 +661,7 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (timercmp(&last, &pkthdr_ptr->ts, <))
+        if (!do_not_timestamp && timercmp(&last, &pkthdr_ptr->ts, <))
             memcpy(&last, &pkthdr_ptr->ts, sizeof(struct timeval));
         ctx->stats.pkts_sent ++;
         ctx->stats.bytes_sent += pktlen;
@@ -598,11 +691,6 @@ SEND_NOW:
     } /* while */
 
     ++ctx->iteration;
-
-    if (options->preload_pcap) {
-        options->file_cache[cache_file_idx1].cached = TRUE;
-        options->file_cache[cache_file_idx2].cached = TRUE;
-    }
 }
 
 
@@ -615,7 +703,7 @@ SEND_NOW:
  * This should be NULL on the first call to this function for each file and
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
-const u_char *
+u_char *
 get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int idx, 
     packet_cache_t **prev_packet)
 {
