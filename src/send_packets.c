@@ -85,7 +85,7 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     ipv6_hdr_t *ip6_hdr;
     uint32_t *src_ptr = NULL, *dst_ptr = NULL;
     uint32_t src_ip, dst_ip;
-    u_int32_t src_ip_orig, dst_ip_orig;
+    uint32_t src_ip_orig, dst_ip_orig;
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
@@ -183,11 +183,12 @@ static inline void
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         uint32_t iteration, bool cached, int datalink)
 {
-    u_int16_t ether_type;
+    uint16_t ether_type;
+    vlan_hdr_t *vlan_hdr;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
-    u_int32_t src_ip, dst_ip;
-    u_int32_t src_ip_orig, dst_ip_orig;
+    uint32_t src_ip, dst_ip;
+    uint32_t src_ip_orig, dst_ip_orig;
     int l2_len;
 
     if (datalink != DLT_EN10MB)
@@ -200,11 +201,13 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     /* assume Ethernet, IPv4 for now */
     ether_type = ntohs(((eth_hdr_t*)*pktdata)->ether_type);
-    if (ether_type == ETHERTYPE_VLAN) {
-        ether_type = ntohs(((vlan_hdr_t *)*pktdata)->vlan_len);
-        l2_len = sizeof(vlan_hdr_t);
-    } else
-        l2_len = sizeof(eth_hdr_t);
+    l2_len = 0;
+    while (ether_type == ETHERTYPE_VLAN) {
+        vlan_hdr = (vlan_hdr_t *)(*pktdata + l2_len);
+        ether_type = ntohs(vlan_hdr->vlan_len);
+        l2_len += 4;
+    }
+    l2_len += sizeof(eth_hdr_t);
 
     switch (ether_type) {
     case ETHERTYPE_IP:
@@ -283,6 +286,42 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 }
 
 /**
+ * \brief Update flow stats
+ *
+ * Finds out if flow is unique and updates stats.
+ */
+static inline void update_flow_stats(tcpreplay_t *ctx, const struct pcap_pkthdr *pkthdr,
+        const u_char *pktdata, int datalink)
+{
+    flow_entry_type_t res = flow_decode(ctx->flow_hash_table,
+            pkthdr, pktdata, datalink, ctx->options->flow_expiry);
+
+    switch (res) {
+    case FLOW_ENTRY_NEW:
+        ++ctx->stats.flows;
+        ++ctx->stats.flow_packets;
+        break;
+
+    case FLOW_ENTRY_EXISTING:
+        ++ctx->stats.flow_packets;
+        break;
+
+    case FLOW_ENTRY_EXPIRED:
+        ++ctx->stats.flows_expired;
+        ++ctx->stats.flows;
+        ++ctx->stats.flow_packets;
+         break;
+
+    case FLOW_ENTRY_NON_IP:
+        ++ctx->stats.flow_non_flow_packets;
+        break;
+
+    case FLOW_ENTRY_INVALID:
+        ++ctx->stats.flows_invalid_packets;
+        break;
+    }
+}
+/**
  * \brief Preloads the memory cache for the given pcap file_idx 
  *
  * Preloading can be used with or without --loop and implies using
@@ -300,7 +339,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     packet_cache_t *cached_packet = NULL;
     packet_cache_t **prev_packet = &cached_packet;
     COUNTER packetnum = 0;
-
+    int dlt;
 
     /* close stdin if reading from it (needed for some OS's) */
     if (strncmp(path, "-", 1) == 0)
@@ -310,9 +349,12 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
         errx(-1, "Error opening pcap file: %s", ebuf);
 
+    dlt = pcap_datalink(pcap);
     /* loop through the pcap.  get_next_packet() builds the cache for us! */
     while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         packetnum++;
+        if (options->flow_stats)
+            update_flow_stats(ctx, &pkthdr, pktdata, dlt);
     }
 
     /* mark this file as cached */
@@ -411,6 +453,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             /* edit packet to ensure every pass is unique */
             fast_edit_packet(&pkthdr, &pktdata, iteration,
                     file_cached, datalink);
+
+        /* update flow stats for the first iteration only */
+        if (options->flow_stats && !file_cached && !iteration)
+            update_flow_stats(ctx, &pkthdr, pktdata, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -616,6 +662,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             /* edit packet to ensure every pass is unique */
             fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
                     options->file_cache[cache_file_idx].cached, datalink);
+
+        /* update flow stats for the first iteration only */
+        if (options->flow_stats && !options->file_cache[cache_file_idx].cached && !iteration)
+            update_flow_stats(ctx, pkthdr_ptr, pktdata, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -837,7 +887,7 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
     struct timeval nap_for;
     struct timespec nap_this_time;
     static uint32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
-    u_int64_t ppnsec; /* packets per nsec */
+    uint64_t ppnsec; /* packets per nsec */
     static int first_time = 1;      /* need to track the first time through for the pps accelerator */
     COUNTER now_us;
 

@@ -33,6 +33,11 @@ typedef struct {
     COUNTER failed;
     struct timeval start_time;
     struct timeval end_time;
+    COUNTER flow_non_flow_packets;
+    COUNTER flows;
+    COUNTER flow_packets;
+    COUNTER flows_expired;
+    COUNTER flows_invalid_packets;
 } tcpreplay_stats_t;
 
 

@@ -148,6 +148,10 @@ typedef struct tcpreplay_opt_s {
     int netmap;
 #endif
 
+    /* print flow statistic */
+    bool flow_stats;
+    int flow_expiry;
+
     int unique_ip;
 } tcpreplay_opt_t;
 
@@ -179,6 +183,9 @@ typedef struct tcpreplay_s {
     /* counter stats */
     tcpreplay_stats_t stats;
     tcpreplay_stats_t static_stats; /* stats returned by tcpreplay_get_stats() */
+
+    /* flow statistics */
+    flow_hash_table_t *flow_hash_table;
 
     /* abort, suspend & running flags */
     volatile bool abort;
