@@ -163,7 +163,7 @@ static sendpacket_t *sendpacket_open_netmap(const char *device, char *errbuf);
 typedef int socklen_t;
 #endif
 
-static sendpacket_t *sendpacket_open_pf(const int8_t *, char *);
+static sendpacket_t *sendpacket_open_pf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
 static int get_iface_index(int fd, const int8_t *device, char *);
 
@@ -973,7 +973,7 @@ sendpacket_open_netmap(const char *device, char *errbuf)
  * Inner sendpacket_open() method for using Linux's PF_PACKET or TX_RING
  */
 static sendpacket_t *
-sendpacket_open_pf(const int8_t *device, char *errbuf)
+sendpacket_open_pf(const char *device, char *errbuf)
 {
     int mysocket;
     sendpacket_t *sp;

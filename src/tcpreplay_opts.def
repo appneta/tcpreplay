@@ -441,6 +441,9 @@ EOText;
 flag = {
     name        = unique-ip;
     flags-must  = loop;
+#ifdef TCPREPLAY_EDIT
+	flags-cant	= seed;
+#endif    
     descrip     = "Modify IP addresses each loop iteration to generate unique flows";
     doc         = <<- EOText
 Ensure IPv4 and IPv6 packets will be unique for each @var{--loop} iteration. 
@@ -463,6 +466,52 @@ driver will disrupt other applications connected through the test interface. See
 INSTALL for more information.
 EOText;
 };
+
+flag = {
+    name        = no-flow-stats;
+    descrip     = "Suppress printing and tracking flow count, rates and expirations";
+    doc         = <<- EOText
+Suppress the collection and printing of flow statistics. This option may
+improve performance when not using @var{--preload-pcap} option, otherwise
+its only function is to suppress printing. 
+
+The flow feature will track and print statistics of the flows being sent. 
+A flow is loosely defined as a unique combination of a 5-tuple, i.e. 
+source IP, destination IP, source port, destination port and protocol.
+
+If @var{--loop} is specified, the flows from one iteration to the next
+will not be unique, unless the packets are altered. Use @var{--unique-ip}
+or @var{tcpreplay-edit} to alter packets between iterations. 
+EOText;
+};
+
+flag = {
+    name        = flow-expiry;
+    arg-type    = number;
+    flags-cant  = no-flow-stats;
+    arg-default = 0;
+    arg-range   = "0->";
+    descrip     = "Number of inactive seconds before a flow is considered expired";
+    doc         = <<- EOText
+This option will track and report flow expirations based on the flow idle
+times. The timestamps within the pcap file are used to determine the expiry,
+not the actual timestamp of the packets are replayed. For example, a value of
+30 suggests that if no traffic is seen on a flow for 30 seconds, any
+subsequent traffic would be considered a new flow, and thereby will increment
+the flows and flows per second (fps) statistics. 
+
+This option can be used to optimize flow timeout settings for flow products.
+Setting the timeout low may lead to flows being dropped when in fact the flow
+is simply slow to respond. Configuring your flow timeouts too high may
+increase resources required by your flow product.
+
+Note that using this option while replaying at higher than original speeds
+can lead to inflated flows and fps counts.
+
+Default is 0 (no expiry) and a typical value is 30-120 seconds.
+EOText;
+};
+
 
 flag = {
     name        = pid;

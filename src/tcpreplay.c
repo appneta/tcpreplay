@@ -46,13 +46,6 @@ tcpedit_t *tcpedit;
 #include "replay.h"
 #include "signal_handler.h"
 
-tcpreplay_t *ctx;
-
-/* globals pointing to context counters 
-COUNTER *bytes_sent, *pkts_sent, *failed;
-struct timeval *begin, *end;
-volatile bool *abort; */
-
 #ifdef DEBUG
 int debug = 0;
 #endif
@@ -61,15 +54,12 @@ int debug = 0;
 #include <CoreServices/CoreServices.h>
 #endif
 
-/*
-void replay_file(tcpreplay_t *ctx, int file_idx);
-void replay_two_files(int file_idx1, int file_idx2);
-void usage(void);
-*/
+void flow_stats(const tcpreplay_t *ctx, bool unique_ip);
 
 int
 main(int argc, char *argv[])
 {
+    tcpreplay_t *ctx;
     int i, optct = 0;
     int rcode;
 
@@ -191,6 +181,12 @@ main(int argc, char *argv[])
         if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
             errx(-1, "gettimeofday() failed: %s",  strerror(errno));
         packet_stats(&ctx->stats);
+        if (ctx->options->flow_stats)
+            flow_stats(ctx, ctx->options->unique_ip
+#ifdef TCPREPLAY_EDIT
+                    || tcpedit->seed
+#endif
+                    );
         printf("%s", sendpacket_getstat(ctx->intf1));
         if (ctx->intf2 != NULL)
             printf("%s", sendpacket_getstat(ctx->intf2));
@@ -198,5 +194,60 @@ main(int argc, char *argv[])
     tcpreplay_close(ctx);
     return 0;
 }   /* main() */
+
+/**
+ * Print various flow statistics
+ */
+void
+flow_stats(const tcpreplay_t *ctx, bool unique_ip)
+{
+    struct timeval diff;
+    COUNTER diff_us;
+    const tcpreplay_stats_t *stats = &ctx->stats;
+    COUNTER flows = stats->flows;
+    COUNTER flows_expired = stats->flows_expired;
+    COUNTER flow_packets;
+    COUNTER flow_non_flow_packets;
+    COUNTER flows_sec = 0;
+    u_int32_t flows_sec_100ths = 0;
+
+    timersub(&stats->end_time, &stats->start_time, &diff);
+    diff_us = TIMEVAL_TO_MICROSEC(&diff);
+
+    if (!flows || !ctx->iteration)
+        return;
+
+    /*
+     * Flows are only counted in first iteration or
+     * when they are read into cache. If flows are
+     * unique from one loop iteration to the next
+     * then multiply by the number of successful
+     * iterations.
+     */
+    if (unique_ip) {
+        flows *= ctx->iteration;
+        flows_expired *= ctx->iteration;
+    }
+
+    flow_packets  = stats->flow_packets * ctx->iteration;
+    flow_non_flow_packets = stats->flow_non_flow_packets * ctx->iteration;
+
+    if (diff_us) {
+        COUNTER flows_sec_X100;
+
+        flows_sec_X100 = (flows * 100 * 1000 * 1000) / diff_us;
+        flows_sec = flows_sec_X100 / 100;
+        flows_sec_100ths = flows_sec_X100 % 100;
+    }
+
+    if (ctx->options->flow_expiry)
+        printf("Flows: " COUNTER_SPEC " flows, " COUNTER_SPEC " expired, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
+                flows, flows_expired, flows_sec, flows_sec_100ths, flow_packets,
+                flow_non_flow_packets);
+    else
+        printf("Flows: " COUNTER_SPEC " flows, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
+                flows, flows_sec, flows_sec_100ths, flow_packets,
+                flow_non_flow_packets);
+}
 
 /* vim: set tabstop=8 expandtab shiftwidth=4 softtabstop=4: */

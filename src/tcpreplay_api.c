@@ -121,6 +121,10 @@ tcpreplay_init()
     ctx->intlist = NULL;
 #endif
 
+    /* set up flows - on by default*/
+    ctx->options->flow_stats = 1;
+    ctx->flow_hash_table = flow_hash_table_init(DEFAULT_FLOW_HASH_BUCKET_SIZE);
+
     ctx->sp_type = SP_TYPE_NONE;
     ctx->iteration = 0;
     ctx->intf1dlt = -1;
@@ -229,6 +233,14 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(UNIQUE_IP))
         options->unique_ip = 1;
+
+    /* flow statistics */
+    if (HAVE_OPT(NO_FLOW_STATS))
+        options->flow_stats = 0;
+
+    if (HAVE_OPT(FLOW_EXPIRY)) {
+        options->flow_expiry = OPT_VALUE_FLOW_EXPIRY;
+    }
 
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
@@ -356,6 +368,9 @@ tcpreplay_close(tcpreplay_t *ctx)
     safe_free(options->tcpdump_args);
     tcpdump_close(options->tcpdump);
 #endif
+
+    /* free the flow hash table */
+    flow_hash_table_release(ctx->flow_hash_table);
 
     /* free the file cache */
     if (options->file_cache != NULL) {
