@@ -361,41 +361,70 @@ foundpcap=no
 trypcapdir=/usr/local
 AC_MSG_CHECKING(for libpcap)
 AC_ARG_WITH(libpcap,
-    AC_HELP_STRING([--with-libpcap=DIR], [Use libpcap in DIR]),
-    [trypcapdir=$withval])
-
-for testdir in $trypcapdir /usr/local /opt/local /usr /wpdpack ; do 
-    if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
-        LPCAPINC="${testdir}/include/pcap.h"
-        LPCAPINCDIR="${testdir}/include"
+    AC_HELP_STRING([--with-libpcap=DIR], 
+        [Use libpcap in DIR]),
+[
+    trypcapdir=$withval
+    if test -f "${withval}/pcap.h" ; then
+        LPCAPINC="${withval}/pcap.h"
+        LPCAPINCDIR="${withval}"
         if test $dynamic_link = yes; then
             for ext in .dylib .so ; do 
-                if test -f "${testdir}/lib64/libpcap${ext}" ; then
-                    LPCAPLIB="-L${testdir}/lib64 -lpcap"
-                elif test -f "${testdir}/lib/libpcap${ext}" ; then
-                    LPCAPLIB="-L${testdir}/lib -lpcap"
-                elif test -f "${testdir}/lib/i386-linux-gnu/libpcap${ext}" ; then
-                    LPCAPLIB="-L${testdir}/lib/i386-linux-gnu -lpcap"
+                if test -f "${withval}/libpcap${ext}" ; then
+                    LPCAPLIB="-L${withval}/ -lpcap"
+                elif test -f "${withval}/lib/libpcap${ext}" ; then
+                    LPCAPLIB="-L${withval}/lib/ -lpcap"
                 fi
             done
             if test "x$LPCAPLIB" == "x" ; then
-                AC_ERROR([Unable to find libpcap in ${testdir}])
+                AC_ERROR([Unable to find libpcap in ${withval}])
             fi
-        elif test -f "${testdir}/lib64/libpcap.${libext}" ; then
-            LPCAPLIB="${testdir}/lib64/libpcap.${libext}"
-        elif test -f "${testdir}/lib/i386-linux-gnu/libpcap.${libext}" ; then
-            LPCAPLIB="${testdir}/lib/i386-linux-gnu/libpcap.${libext}"
-        elif test -f "${testdir}/lib/libpcap.${libext}" ; then
-            LPCAPLIB="${testdir}/lib/libpcap.${libext}"
-        elif test -f "${testdir}/lib/libwpcap.${libext}" ; then
-            LPCAPLIB="${testdir}/lib/libwpcap.${libext}"
+        elif test -f "${withval}/libpcap.${libext}" ; then
+            LPCAPLIB="${withval}/libpcap.${libext}"
+        elif test -f "${withval}/lib/libpcap.${libext}" ; then
+            LPCAPLIB="${withval}/lib/libpcap.${libext}"
+        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
+            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
             AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
         else
-            AC_ERROR([Unable to find matching library for header file in ${testdir}])
+            AC_ERROR([Unable to find matching library for header file in ${withval}])
         fi
-        foundpcap=$testdir
+        foundpcap=$withval
     fi
-done
+],[
+    for testdir in /usr/local /opt/local /usr /wpdpack ; do 
+        if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
+            LPCAPINC="${testdir}/include/pcap.h"
+            LPCAPINCDIR="${testdir}/include"
+            if test $dynamic_link = yes; then
+                for ext in .dylib .so ; do 
+                    if test -f "${testdir}/lib64/libpcap${ext}" ; then
+                        LPCAPLIB="-L${testdir}/lib64 -lpcap"
+                    elif test -f "${testdir}/lib/libpcap${ext}" ; then
+                        LPCAPLIB="-L${testdir}/lib -lpcap"
+                    elif test -f "${testdir}/lib/i386-linux-gnu/libpcap${ext}" ; then
+                        LPCAPLIB="-L${testdir}/lib/i386-linux-gnu -lpcap"
+                    fi
+                done
+                if test "x$LPCAPLIB" == "x" ; then
+                    AC_ERROR([Unable to find libpcap in ${testdir}])
+                fi
+            elif test -f "${testdir}/lib64/libpcap.${libext}" ; then
+                LPCAPLIB="${testdir}/lib64/libpcap.${libext}"
+            elif test -f "${testdir}/lib/i386-linux-gnu/libpcap.${libext}" ; then
+                LPCAPLIB="${testdir}/lib/i386-linux-gnu/libpcap.${libext}"
+            elif test -f "${testdir}/lib/libpcap.${libext}" ; then
+                LPCAPLIB="${testdir}/lib/libpcap.${libext}"
+            elif test -f "${testdir}/lib/libwpcap.${libext}" ; then
+                LPCAPLIB="${testdir}/lib/libwpcap.${libext}"
+                AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
+            else
+                AC_ERROR([Unable to find matching library for header file in ${testdir}])
+            fi
+            foundpcap=$testdir
+        fi
+    done
+])
 
 if test $foundpcap = no ; then
     AC_MSG_RESULT(no)
@@ -1354,7 +1383,7 @@ Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
 
     *-*-cygwin)
         AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental. 
-Please report any bugs!	http://tcpreplay.synfin.net/trac/newticket])
+Please report any bugs! http://tcpreplay.synfin.net/trac/newticket])
     ;;
 esac
 

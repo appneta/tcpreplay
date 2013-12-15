@@ -37,6 +37,8 @@
 #include "config.h"
 #include "defines.h"
 
+#ifdef HAVE_TX_RING
+
 #if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
 #include <netpacket/packet.h>
 #include <net/ethernet.h>       /* the L2 protocols */
@@ -60,5 +62,6 @@ typedef struct txring_s txring_t;
 
 int txring_put(txring_t *txp, const void * data, size_t length);
 txring_t* txring_init(int fd, unsigned int mtu);
+#endif /* HAVE_TX_RING */
 
-#endif
+#endif /*COMMON_TXRING_H */

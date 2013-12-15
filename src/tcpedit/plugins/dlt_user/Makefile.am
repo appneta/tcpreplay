@@ -10,7 +10,8 @@ libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_user/user.c \
 	$(srcdir)/plugins/dlt_user/user_api.c
 
 noinst_HEADERS += $(srcdir)/plugins/dlt_user/user.h \
-	$(srcdir)/plugins/dlt_user/user_api.h
+	$(srcdir)/plugins/dlt_user/user_api.h \
+	$(srcdir)/plugins/dlt_user/user_types.h
 
 EXTRA_DIST += $(srcdir)/plugins/dlt_user/user_opts.def
 

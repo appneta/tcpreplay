@@ -8,7 +8,8 @@
 
 libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_linuxsll/linuxsll.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_linuxsll/linuxsll.h
+noinst_HEADERS += $(srcdir)/plugins/dlt_linuxsll/linuxsll.h \
+	$(srcdir)/plugins/dlt_linuxsll/linuxsll_types.h
 
 EXTRA_DIST += $(srcdir)/plugins/dlt_linuxsll/linuxsll_opts.def
 
