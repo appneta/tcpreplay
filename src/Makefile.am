@@ -47,7 +47,7 @@ tcpcapinfo.1: tcpcapinfo_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1 tcpcapinfo.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1 \
-	tcpliveplay.1 tcpcapinfo.1 timestamp_trace.h
+	tcpliveplay.1 tcpcapinfo.1
 bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit tcpcapinfo
 
 if COMPILE_TCPBRIDGE
@@ -110,7 +110,6 @@ tcpcapinfo_LDADD = ./common/libcommon.a \
 tcpcapinfo_SOURCES = tcpcapinfo_opts.c tcpcapinfo.c
 tcpcapinfo_OBJECTS: tcpcapinfo_opts.h
 tcpcapinfo_opts.h: tcpcapinfo_opts.c
-
 tcpcapinfo_opts.c: tcpcapinfo_opts.def
 	@AUTOGEN@ $(opts_list) tcpcapinfo_opts.def || true
 
@@ -139,8 +138,9 @@ noinst_HEADERS = tcpreplay.h tcpprep.h bridge.h defines.h tree.h tcpliveplay.h \
 		 send_packets.h signal_handler.h common.h tcpreplay_opts.h tcpliveplay_opts.h \
 		 tcpreplay_edit_opts.h tcprewrite.h tcprewrite_opts.h tcpprep_opts.h \
 		 tcpprep_opts.def tcprewrite_opts.def tcpreplay_opts.def tcpliveplay_opts.def \
-		 tcpbridge_opts.def tcpbridge.h tcpbridge_opts.h tcpr.h sleep.h tcpcapinfo_opts.h
-
+		 tcpbridge_opts.def tcpbridge.h tcpbridge_opts.h tcpr.h sleep.h tcpcapinfo_opts.h \
+		 tcpcapinfo_opts.def replay.h tcpreplay_api.h tcpprep_api.h timestamp_trace.h \
+		 msvc_inttypes.h msvc_stdint.h
 
 MOSTLYCLEANFILES = *~ *.o
 

@@ -31,6 +31,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef HAVE_TX_RING
+
 #include "err.h"
 #include "utils.h"
 #include "txring.h"
@@ -235,3 +237,5 @@ txring_init(int fd, unsigned int mtu)
 
     return txp;
 }
+
+#endif /* HAVE_TX_RING */

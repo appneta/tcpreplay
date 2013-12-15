@@ -339,6 +339,7 @@ AM_CFLAGS = -I.. -I../common -I../.. @LDNETINC@ $(LIBOPTS_CFLAGS) \
 	$(LIBOPTS_CFLAGS)
 noinst_HEADERS = tcpedit.h edit_packet.h portmap.h tcpedit_stub.h \
 	parse_args.h dlt.h checksum.h tcpedit_api.h tcpedit_types.h \
+	plugins.h plugins_api.h plugins_types.h \
 	$(srcdir)/plugins/ethernet.h $(srcdir)/plugins/dlt_utils.h \
 	$(srcdir)/plugins/ethernet.h \
 	$(srcdir)/plugins/dlt_en10mb/en10mb.h \
@@ -349,10 +350,12 @@ noinst_HEADERS = tcpedit.h edit_packet.h portmap.h tcpedit_stub.h \
 	$(srcdir)/plugins/dlt_hdlc/hdlc_types.h \
 	$(srcdir)/plugins/dlt_user/user.h \
 	$(srcdir)/plugins/dlt_user/user_api.h \
+	$(srcdir)/plugins/dlt_user/user_types.h \
 	$(srcdir)/plugins/dlt_raw/raw.h \
 	$(srcdir)/plugins/dlt_null/null.h \
 	$(srcdir)/plugins/dlt_loop/loop.h \
 	$(srcdir)/plugins/dlt_linuxsll/linuxsll.h \
+	$(srcdir)/plugins/dlt_linuxsll/linuxsll_types.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h \
