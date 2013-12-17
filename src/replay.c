@@ -49,7 +49,7 @@ tcpr_replay_index(tcpreplay_t *ctx, int idx)
     /* only process a single file */
     if (! ctx->options->dualfile) {
         /* process each pcap file in order */
-        for (idx = 0; idx < ctx->options->source_cnt; idx++) {
+        for (idx = 0; idx < ctx->options->source_cnt && !ctx->abort; idx++) {
             /* reset cache markers for each iteration */
             ctx->cache_byte = 0;
             ctx->cache_bit = 0;
@@ -73,7 +73,7 @@ tcpr_replay_index(tcpreplay_t *ctx, int idx)
     /* dual file mode: two files, two interfaces */
     else {
         /* process each pcap file in order */
-        for (idx = 0; idx < ctx->options->source_cnt; idx += 2) {
+        for (idx = 0; idx < ctx->options->source_cnt && !ctx->abort; idx += 2) {
             if (ctx->options->sources[idx].type != ctx->options->sources[(idx+1)].type) {
                 tcpreplay_seterr(ctx, "Both source indexes (%d, %d) must be of the same type", idx, (idx+1));
                 return -1;

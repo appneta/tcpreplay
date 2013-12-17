@@ -54,12 +54,13 @@ int debug = 0;
 #include <CoreServices/CoreServices.h>
 #endif
 
+tcpreplay_t *ctx;
+
 void flow_stats(const tcpreplay_t *ctx, bool unique_ip);
 
 int
 main(int argc, char *argv[])
 {
-    tcpreplay_t *ctx;
     int i, optct = 0;
     int rcode;
 

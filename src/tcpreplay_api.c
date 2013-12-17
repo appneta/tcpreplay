@@ -1065,6 +1065,8 @@ tcpreplay_abort(tcpreplay_t *ctx)
     assert(ctx);
     ctx->abort = true;
 
+    printf("sendpacket_abort\n");
+
     if (ctx->intf1 != NULL)
         sendpacket_abort(ctx->intf1);
 

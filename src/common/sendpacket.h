@@ -84,6 +84,7 @@ union sendpacket_handle {
 };
 
 #define SENDPACKET_ERRBUF_SIZE 1024
+#define NETMAP_BACKOFF (1 << 4)     /* 16 - must be power of 2 */
 
 struct sendpacket_s {
     tcpr_dir_t cache_dir;
@@ -106,7 +107,14 @@ struct sendpacket_s {
     void *mmap_addr;
     int mmap_size;
     uint32_t if_flags;
-#endif
+#ifdef linux
+    uint32_t data;
+    uint32_t gso;
+    uint32_t tso;
+    uint32_t rxcsum;
+    uint32_t txcsum;
+#endif /* linux */
+#endif /* HAVE_NETMAP */
 #ifdef HAVE_PF_PACKET
     struct sockaddr_ll sa;
 #ifdef HAVE_TX_RING

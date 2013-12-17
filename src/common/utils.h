@@ -65,8 +65,6 @@ void _our_safe_free(void *ptr, const char *, const int, const char *);
 int inet_aton(const char *name, struct in_addr *addr);
 #endif
 
-#endif
-
 #if SIZEOF_CHARP  == 8
 # define do_div(n,base) ({          \
     uint32_t __base = (base);       \
@@ -90,3 +88,6 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 #else /* SIZEOF_CHARP == ?? */
 # error do_div() does not yet support the C64
 #endif /* SIZEOF_CHARP  */
+
+#endif /* _UTILS_H_ */
+
