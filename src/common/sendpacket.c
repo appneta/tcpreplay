@@ -134,6 +134,7 @@
 #   include <linux/ethtool.h>
 #   include <linux/sockios.h>
 #endif /* linux */
+static int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd);
 static sendpacket_t *sendpacket_open_netmap(const char *device, char *errbuf);
 #endif /* HAVE_NETMAP */
 
@@ -244,7 +245,8 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
     struct netmap_ring *txring;
     struct netmap_slot *slot;
     char *p;
-    unsigned int cur;
+    uint32_t cur;
+    bool tx_queue_empty;
 #endif
 
     assert(sp);
@@ -436,35 +438,59 @@ TRY_SEND_AGAIN:
 
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
-TRY_NETMAP_SEND_AGAIN:
             txring = NETMAP_TXRING(sp->nm_if, 0);
             if (txring->avail == 0) {
                 struct pollfd x[1];
 
-                /* send TX interrupt signal - tells
-                 * netmap that packets are ready to TX
-                 */
+                /* send TX interrupt signal just in case */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
                 x[0].fd = sp->handle.fd;
                 x[0].events = POLLOUT;
-                poll(x, 1, 1000);
-                goto TRY_NETMAP_SEND_AGAIN;
+                x[0].revents = 0;
+                if (poll(x, 1, 100) <= 0) {
+                    dbgx(2, "netmap timeout cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
+                            cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
+                            txring->avail, txring->nr_buf_size);
+                    goto TRY_SEND_AGAIN;
+                }
+
+                /*
+                 * Do not remove this even though it looks redundant.
+                 * Overall performance is increased with this restart
+                 * of the TX queue.
+                 */
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+                dbgx(2, "netmap poll cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
+                        cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
+                        txring->avail, txring->nr_buf_size);
             }
+
+            /*
+             * send
+             */
+            tx_queue_empty = NETMAP_TX_RING_EMPTY(txring);
             cur = txring->cur;
             slot = &txring->slot[cur];
             p = NETMAP_BUF(txring, slot->buf_idx);
             memcpy(p, data, min(len, txring->nr_buf_size));
             slot->len = len;
-            dbgx(2, "cur=%d slot index=%d flags=0x%x empty=%d bufsize=%d\n",
-                    cur, slot->buf_idx, slot->flags,
-                    NETMAP_TX_RING_EMPTY(txring), txring->nr_buf_size);
-            if (txring->avail % 100 == 0)
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* generate TX interrupt */
 
+            dbgx(2, "netmap cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
+                    cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
+                    txring->avail, txring->nr_buf_size);
+
+            /* let kernel know that packet is available */
             cur = NETMAP_RING_NEXT(txring, cur);
             txring->avail--;
             txring->cur = cur;
             retcode = len;
+
+            /*
+             *  If the queue is empty, tell netmap that packets are ready to TX
+             */
+            if (tx_queue_empty)
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* generate TX interrupt */
+
 #endif /* HAVE_NETMAP */
             break;
 
@@ -613,11 +639,29 @@ sendpacket_close(sendpacket_t *sp)
                 usleep(1); /* wait 1 tick */
             }
 
+#ifdef linux
+            /* restore original settings:
+             * - generic-segmentation-offload
+             * - tcp-segmentation-offload
+             * - rx-checksumming
+             * - tx-checksumming
+             */
+            sp->data = sp->gso;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
+            sp->data = sp->tso;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
+            sp->data = sp->rxcsum;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);
+            sp->data = sp->txcsum;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM);
+#endif /* linux */
+
+            /* restor interface to normal mode */
             ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
             munmap(sp->mmap_addr, sp->mmap_size);
             close(sp->handle.fd);
             notice("done!");
-#endif
+#endif /* HAVE_NETMAP */
             break;
 
         case SP_TYPE_NONE:
@@ -789,9 +833,9 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
 
 #ifdef HAVE_NETMAP
 /**
- * ioctl support for NetMap
+ * ioctl support for netmap
  */
-int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
+static int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
     struct ifreq ifr;
     int error;
     int fd;
@@ -818,10 +862,10 @@ int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
 
 #ifdef linux
     case SIOCETHTOOL:
-        dbgx(1, "ioctl SIOCETHTOOL subcmd=%d", subcmd);
         eval.cmd = subcmd;
-        eval.data = 0;
+        eval.data = sp->data;
         ifr.ifr_data = (caddr_t)&eval;
+        dbgx(1, "ioctl SIOCETHTOOL subcmd=%d data=%u", subcmd, eval.data);
         break;
 #endif
     }
@@ -836,18 +880,44 @@ int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
         dbgx(1, "SIOCGIFFLAGS flags are 0x%x", sp->if_flags);
         break;
 
+#ifdef linux
+    case SIOCETHTOOL:
+        switch (subcmd) {
+        case ETHTOOL_GGSO:
+            sp->gso = eval.data;
+            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GGSO=%u", eval.data);
+            break;
+
+        case ETHTOOL_GTSO:
+            sp->tso = eval.data;
+            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GTSO=%u", eval.data);
+            break;
+
+        case ETHTOOL_GRXCSUM:
+            sp->rxcsum = eval.data;
+            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GRXCSUM=%u", eval.data);
+            break;
+
+        case ETHTOOL_GTXCSUM:
+            sp->txcsum = eval.data;
+            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GTXCSUM=%u", eval.data);
+            break;
+        }
+        break;
+#endif
+
     }
 
 done:
     close (fd);
 
     if (error)
-        dbgx(1, "ioctl error %d %lu:%d", error, what, subcmd);
+        warnx("ioctl error %d %lu:%d", error, what, subcmd);
     return error;
 }
 
 /**
- * Inner sendpacket_open() method for using Linux version of NetMap
+ * Inner sendpacket_open() method for using Linux version of netmap
  */
 static sendpacket_t *
 sendpacket_open_netmap(const char *device, char *errbuf)
@@ -954,8 +1024,12 @@ sendpacket_open_netmap(const char *device, char *errbuf)
      * - tcp-segmentation-offload
      * - rx-checksumming
      * - tx-checksumming
-     * XXX check how to set back the caps.
      */
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GGSO);
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTSO);
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GRXCSUM);
+    nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTXCSUM);
+    sp->data = 0;
     nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
     nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
     nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);

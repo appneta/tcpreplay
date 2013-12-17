@@ -64,4 +64,8 @@ Fred Klassen - AppNeta Inc. <fklassen at appneta dot com>
     - Improve accuracy and performance of the --mbps option
     - Implement pseudo-CRC to improve tcpedit performance
     - Add --fast-flows option to tcpreplay
+
+Luigi Rizzo <rizzo@iet.unipi.it>
+	- Creator of netmap
+	- Assisted with netmap performance tuning
     
