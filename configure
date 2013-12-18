@@ -17413,34 +17413,36 @@ $as_echo_n "checking for libpcap... " >&6; }
 if test "${with_libpcap+set}" = set; then :
   withval=$with_libpcap;
     trypcapdir=$withval
-    if test -f "${withval}/pcap.h" ; then
-        LPCAPINC="${withval}/pcap.h"
-        LPCAPINCDIR="${withval}"
-        if test $dynamic_link = yes; then
-            for ext in .dylib .so ; do
-                if test -f "${withval}/libpcap${ext}" ; then
-                    LPCAPLIB="-L${withval}/ -lpcap"
-                elif test -f "${withval}/lib/libpcap${ext}" ; then
-                    LPCAPLIB="-L${withval}/lib/ -lpcap"
-                fi
-            done
-            if test "x$LPCAPLIB" == "x" ; then
-                as_fn_error "Unable to find libpcap in ${withval}" "$LINENO" 5
-            fi
-        elif test -f "${withval}/libpcap.${libext}" ; then
-            LPCAPLIB="${withval}/libpcap.${libext}"
-        elif test -f "${withval}/lib/libpcap.${libext}" ; then
-            LPCAPLIB="${withval}/lib/libpcap.${libext}"
-        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
-            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
+    for testdir in ${withval} ${withval}/include ; do
+	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
+	        LPCAPINC="${testdir}/pcap.h"
+	        LPCAPINCDIR="${testdir}"
+	        if test $dynamic_link = yes; then
+	            for ext in .dylib .so ; do
+	                if test -f "${withval}/libpcap${ext}" ; then
+	                    LPCAPLIB="-L${withval}/ -lpcap"
+	                elif test -f "${withval}/lib/libpcap${ext}" ; then
+	                    LPCAPLIB="-L${withval}/lib/ -lpcap"
+	                fi
+	            done
+	            if test "x$LPCAPLIB" == "x" ; then
+	                as_fn_error "Unable to find libpcap in ${withval}" "$LINENO" 5
+	            fi
+	        elif test -f "${withval}/libpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/libpcap.${libext}"
+	        elif test -f "${withval}/lib/libpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/lib/libpcap.${libext}"
+	        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
 
 $as_echo "#define HAVE_WINPCAP 1" >>confdefs.h
 
-        else
-            as_fn_error "Unable to find matching library for header file in ${withval}" "$LINENO" 5
-        fi
-        foundpcap=$withval
-    fi
+	        else
+	            as_fn_error "Unable to find matching library for header file in ${withval}" "$LINENO" 5
+	        fi
+	        foundpcap=$withval
+	    fi
+    done
 
 else
 
@@ -17552,7 +17554,7 @@ if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
   LPCAPLIB="$LIBS"
 else
-  as_fn_error "Unable to link libpcap in ${foundpcap}" "$LINENO" 5
+  as_fn_error "xxUnable to link libpcap in ${foundpcap}" "$LINENO" 5
 fi
 
 
