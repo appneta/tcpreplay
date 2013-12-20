@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -367,7 +367,7 @@ flag = {
 #endif
     fprintf(stderr, "\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
-    fprintf(stderr, "Copyright 2013 by Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.\n");
+    fprintf(stderr, "Copyright 2013 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);

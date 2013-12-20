@@ -15,9 +15,9 @@ MAINTAINER_AUTOGEN_VERSION=5.16.2
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Set version info here!
-MAJOR_VERSION=3
-MINOR_VERSION=5
-MICRO_VERSION=0beta3
+MAJOR_VERSION=4
+MINOR_VERSION=0
+MICRO_VERSION=0beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.synfin.net/
 
@@ -365,32 +365,34 @@ AC_ARG_WITH(libpcap,
         [Use libpcap in DIR]),
 [
     trypcapdir=$withval
-    if test -f "${withval}/pcap.h" ; then
-        LPCAPINC="${withval}/pcap.h"
-        LPCAPINCDIR="${withval}"
-        if test $dynamic_link = yes; then
-            for ext in .dylib .so ; do 
-                if test -f "${withval}/libpcap${ext}" ; then
-                    LPCAPLIB="-L${withval}/ -lpcap"
-                elif test -f "${withval}/lib/libpcap${ext}" ; then
-                    LPCAPLIB="-L${withval}/lib/ -lpcap"
-                fi
-            done
-            if test "x$LPCAPLIB" == "x" ; then
-                AC_ERROR([Unable to find libpcap in ${withval}])
-            fi
-        elif test -f "${withval}/libpcap.${libext}" ; then
-            LPCAPLIB="${withval}/libpcap.${libext}"
-        elif test -f "${withval}/lib/libpcap.${libext}" ; then
-            LPCAPLIB="${withval}/lib/libpcap.${libext}"
-        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
-            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
-            AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
-        else
-            AC_ERROR([Unable to find matching library for header file in ${withval}])
-        fi
-        foundpcap=$withval
-    fi
+    for testdir in ${withval} ${withval}/include ; do
+	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
+	        LPCAPINC="${testdir}/pcap.h"
+	        LPCAPINCDIR="${testdir}"
+	        if test $dynamic_link = yes; then
+	            for ext in .dylib .so ; do 
+	                if test -f "${withval}/libpcap${ext}" ; then
+	                    LPCAPLIB="-L${withval}/ -lpcap"
+	                elif test -f "${withval}/lib/libpcap${ext}" ; then
+	                    LPCAPLIB="-L${withval}/lib/ -lpcap"
+	                fi
+	            done
+	            if test "x$LPCAPLIB" == "x" ; then
+	                AC_ERROR([Unable to find libpcap in ${withval}])
+	            fi
+	        elif test -f "${withval}/libpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/libpcap.${libext}"
+	        elif test -f "${withval}/lib/libpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/lib/libpcap.${libext}"
+	        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
+	            AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
+	        else
+	            AC_ERROR([Unable to find matching library for header file in ${withval}])
+	        fi
+	        foundpcap=$withval
+	    fi
+    done
 ],[
     for testdir in /usr/local /opt/local /usr /wpdpack ; do 
         if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
@@ -439,7 +441,7 @@ OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
 LIBS="$LPCAPLIB"
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
-# Does libpcap require libnl?
+dnl Does libpcap require libnl?
 AC_SEARCH_LIBS([pcap_close], [pcap],
     LPCAPLIB="$LIBS",
     AC_ERROR([Unable to link libpcap in ${foundpcap}]),

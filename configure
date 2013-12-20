@@ -2918,9 +2918,9 @@ MAINTAINER_AUTOGEN_VERSION=5.16.2
 
 
 
-MAJOR_VERSION=3
-MINOR_VERSION=5
-MICRO_VERSION=0beta3
+MAJOR_VERSION=4
+MINOR_VERSION=0
+MICRO_VERSION=0beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.synfin.net/
 
@@ -17413,34 +17413,36 @@ $as_echo_n "checking for libpcap... " >&6; }
 if test "${with_libpcap+set}" = set; then :
   withval=$with_libpcap;
     trypcapdir=$withval
-    if test -f "${withval}/pcap.h" ; then
-        LPCAPINC="${withval}/pcap.h"
-        LPCAPINCDIR="${withval}"
-        if test $dynamic_link = yes; then
-            for ext in .dylib .so ; do
-                if test -f "${withval}/libpcap${ext}" ; then
-                    LPCAPLIB="-L${withval}/ -lpcap"
-                elif test -f "${withval}/lib/libpcap${ext}" ; then
-                    LPCAPLIB="-L${withval}/lib/ -lpcap"
-                fi
-            done
-            if test "x$LPCAPLIB" == "x" ; then
-                as_fn_error "Unable to find libpcap in ${withval}" "$LINENO" 5
-            fi
-        elif test -f "${withval}/libpcap.${libext}" ; then
-            LPCAPLIB="${withval}/libpcap.${libext}"
-        elif test -f "${withval}/lib/libpcap.${libext}" ; then
-            LPCAPLIB="${withval}/lib/libpcap.${libext}"
-        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
-            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
+    for testdir in ${withval} ${withval}/include ; do
+	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
+	        LPCAPINC="${testdir}/pcap.h"
+	        LPCAPINCDIR="${testdir}"
+	        if test $dynamic_link = yes; then
+	            for ext in .dylib .so ; do
+	                if test -f "${withval}/libpcap${ext}" ; then
+	                    LPCAPLIB="-L${withval}/ -lpcap"
+	                elif test -f "${withval}/lib/libpcap${ext}" ; then
+	                    LPCAPLIB="-L${withval}/lib/ -lpcap"
+	                fi
+	            done
+	            if test "x$LPCAPLIB" == "x" ; then
+	                as_fn_error "Unable to find libpcap in ${withval}" "$LINENO" 5
+	            fi
+	        elif test -f "${withval}/libpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/libpcap.${libext}"
+	        elif test -f "${withval}/lib/libpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/lib/libpcap.${libext}"
+	        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
+	            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
 
 $as_echo "#define HAVE_WINPCAP 1" >>confdefs.h
 
-        else
-            as_fn_error "Unable to find matching library for header file in ${withval}" "$LINENO" 5
-        fi
-        foundpcap=$withval
-    fi
+	        else
+	            as_fn_error "Unable to find matching library for header file in ${withval}" "$LINENO" 5
+	        fi
+	        foundpcap=$withval
+	    fi
+    done
 
 else
 
@@ -17496,7 +17498,6 @@ OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
 LIBS="$LPCAPLIB"
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
-# Does libpcap require libnl?
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing pcap_close" >&5
 $as_echo_n "checking for library containing pcap_close... " >&6; }
 if test "${ac_cv_search_pcap_close+set}" = set; then :
