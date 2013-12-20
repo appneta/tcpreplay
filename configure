@@ -17498,7 +17498,6 @@ OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
 LIBS="$LPCAPLIB"
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
-# Does libpcap require libnl?
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing pcap_close" >&5
 $as_echo_n "checking for library containing pcap_close... " >&6; }
 if test "${ac_cv_search_pcap_close+set}" = set; then :
@@ -17554,7 +17553,7 @@ if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
   LPCAPLIB="$LIBS"
 else
-  as_fn_error "xxUnable to link libpcap in ${foundpcap}" "$LINENO" 5
+  as_fn_error "Unable to link libpcap in ${foundpcap}" "$LINENO" 5
 fi
 
 
