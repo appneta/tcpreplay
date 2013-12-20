@@ -1,11 +1,11 @@
-Tcpreplay is a suite of [GPLv3][gplv3] licensed tools for UNIX (and Win32 under  Cygwin) operating systems which gives you the ability to use previously captured traffic in  libpcap format to test a variety of network devices. It allows you to classify traffic as client or server, rewrite Layer 2, 3 and 4 headers and finally replay the traffic back onto the network and through other devices such as switches, routers, firewalls, NIDS and IPS's. Tcpreplay supports both single and dual NIC modes for testing both sniffing and in-line devices.
+Tcpreplay is a suite of [GPLv3](http://www.gnu.org/licenses/gpl-3.0.html) licensed tools for UNIX (and Win32 under  Cygwin) operating systems which gives you the ability to use previously captured traffic in  libpcap format to test a variety of network devices. It allows you to classify traffic as client or server, rewrite Layer 2, 3 and 4 headers and finally replay the traffic back onto the network and through other devices such as switches, routers, firewalls, NIDS and IPS's. Tcpreplay supports both single and dual NIC modes for testing both sniffing and in-line devices.
 
 Tcpreplay is used by numerous firewall, IDS, IPS, NetFlow and other networking vendors, enterprises, universities, labs and open source projects. If your organization uses Tcpreplay, please let me know who you are and what you use it for so that I can continue to add features which are useful.
 
 Version 4.0.0 is the first version delivered by Fred Klassen of AppNeta Inc. Many thanks to the author of Tcpreplay,
 Aaron Turner who has supplied the world with a a solid and full-featured test product thus far. The new author
 strives to take Tcprelay performance to levels normally only seen in commercial network test equipment. For 
-example, using commodity hardware with stock Intel 10GigE adapters with [netmap][nm] modified network drivers you can generate full wire rate pcap file playback. With new [NetFlow][flow] features you can generate up to 18 
+example, using commodity hardware with stock Intel 10GigE adapters with [netmap](http://info.iet.unipi.it/~luigi/netmap/) modified network drivers you can generate full wire rate pcap file playback. With new [NetFlow](http://www.cisco.com/go/netflow) features you can generate up to 18 
 million flows per second.
 
 ## Products
@@ -25,7 +25,7 @@ The Tcpreplay suite includes the following tools:
 * **tcpcapinfo** - raw pcap file decoder and debugger
 
 ## Install package
-Please visit our [wiki](https://github.com/appneta/tcpreplay/wiki).
+Please visit our [wiki](https://tcpreplay.appneta.com) for product information and detailed installation instructions.
 
 ## Install from source code
 Select the [TAR](https://github.com/appneta/tcpreplay/tarball/master) or [ZIP](https://github.com/appneta/tcpreplay/zipball/master) to download. Detailed installation instructions are available in the INSTALL document in the tar ball.
@@ -105,7 +105,9 @@ git clone git@github.com:appneta/tcpreplay.git
 ```
 However you will find that you will not be able to contribute to the Tcpreplay project directly if you
 use this method. If you believe that you may someday contribute to the repository, GitHub provides
-an innovative approach. Forking the @appneta/tcpreplay repository allows you to work on your own copy of the repository and submit code changes without first asking permission from the authors:
+an innovative approach. Forking the @appneta/tcpreplay repository allows you to work 
+on your own copy of the repository and submit code changes without first asking permission 
+from the authors. Forking is also considered to be a compliment so fork away:
 * if you haven't already done so, get yourself a free [GitHub](https://github.com) ID and visit @appneta/tcpreplay
 * click the **Fork** button to get your own private copy of the repository
 * on your build system clone your private repository:
@@ -121,8 +123,6 @@ git clone git@github.com:<your ID>/tcpreplay.git
 We will review and possibly discuss the changes with you through GitHub services. If we accept the submission, it will instantly be applied to the production **master** branch.
 
 ## Additional information
-Please visit our [wiki](https://github.com/appneta/tcpreplay/wiki).
+Please visit our [wiki](https://tcpreplay.appneta.com).
 
-[gplv3]:	http://www.gnu.org/licenses/gpl-3.0.html
-[nm]:		http://info.iet.unipi.it/~luigi/netmap/
-[flow]:		http://www.cisco.com/go/netflow
+
