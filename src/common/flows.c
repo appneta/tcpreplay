@@ -128,7 +128,7 @@ static inline flow_entry_type_t hash_put_data(flow_hash_table_t *fht, const uint
 
     if (he) {
         /* this is not a new flow */
-        if (expiry && tv->tv_sec > ((__time_t)expiry + he->ts_last_seen.tv_sec))
+        if (expiry && tv->tv_sec > (expiry + he->ts_last_seen.tv_sec))
             res = FLOW_ENTRY_EXPIRED;
         else
             res = FLOW_ENTRY_EXISTING;

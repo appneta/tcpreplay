@@ -31,6 +31,7 @@
 #include <math.h>
 
 #ifdef HAVE_ABSOLUTE_TIME
+#include <CoreServices/CoreServices.h>
 #include <mach/mach_time.h>
 #endif
 
