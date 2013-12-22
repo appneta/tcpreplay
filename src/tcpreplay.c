@@ -134,7 +134,7 @@ main(int argc, char *argv[])
     /* main loop, when not looping forever */
     rcode = 0;
     if (ctx->options->loop > 0) {
-        while (rcode == 0 && ctx->options->loop--) {  /* limited loop */
+        while (rcode == 0 && ctx->options->loop-- && !ctx->abort) {  /* limited loop */
             if (ctx->options->dualfile) {
                 /* process two files at a time for network taps */
                 for (i = 0; i < argc; i += 2) {
@@ -153,7 +153,7 @@ main(int argc, char *argv[])
     }
     else {
         /* loop forever */
-        while (rcode == 0) {
+        while (rcode == 0 && !ctx->abort) {
             if (ctx->options->dualfile) {
                 /* process two files at a time for network taps */
                 for (i = 0; i < argc; i += 2) {
