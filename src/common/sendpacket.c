@@ -346,7 +346,7 @@ TRY_SEND_AGAIN:
             retcode = write(sp->handle.fd, (void *)data, len);
 
             /* out of buffers, or hit max PHY speed, silently retry */
-            if (retcode < 0 && !didsig) {
+            if (retcode < 0 && !sp->abort) {
                 switch (errno) {
                     case EAGAIN:
                         sp->retry_eagain ++;
@@ -373,7 +373,7 @@ TRY_SEND_AGAIN:
             retcode = eth_send(sp->handle.ldnet, (void*)data, (size_t)len);
 
             /* out of buffers, or hit max PHY speed, silently retry */
-            if (retcode < 0 && !didsig) {
+            if (retcode < 0 && !sp->abort) {
                 switch (errno) {
                     case EAGAIN:
                         sp->retry_eagain ++;
