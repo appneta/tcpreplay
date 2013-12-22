@@ -33,6 +33,8 @@ typedef struct {
     COUNTER failed;
     struct timeval start_time;
     struct timeval end_time;
+    struct timeval last_time;
+    struct timeval last_print;
     COUNTER flow_non_flow_packets;
     COUNTER flows;
     COUNTER flow_packets;

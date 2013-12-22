@@ -369,7 +369,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
-    struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta, now;
+    struct timeval print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = ctx->stats.pkts_sent;
     int limit_send = options->limit_send;
@@ -482,7 +482,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                 skip_length = 0;
             }
 
-            do_sleep(ctx, (struct timeval *)&pkthdr.ts, &last, pktlen, options->accurate, sp, packetnum,
+            do_sleep(ctx, (struct timeval *)&pkthdr.ts, &ctx->stats.last_time, pktlen, options->accurate, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
         }
 
@@ -507,8 +507,8 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (!do_not_timestamp && timercmp(&last, &pkthdr.ts, <))
-            memcpy(&last, &pkthdr.ts, sizeof(struct timeval));
+        if (!do_not_timestamp && timercmp(&ctx->stats.last_time, &pkthdr.ts, <)) 
+            memcpy(&ctx->stats.last_time, &pkthdr.ts, sizeof(struct timeval));
         ctx->stats.pkts_sent ++;
         ctx->stats.bytes_sent += pktlen;
 
@@ -517,13 +517,13 @@ SEND_NOW:
             if (gettimeofday(&now, NULL) < 0)
                 errx(-1, "gettimeofday() failed: %s",  strerror(errno));
 
-            if (! timerisset(&last_print_time)) {
-                memcpy(&last_print_time, &now, sizeof(struct timeval));
+            if (! timerisset(&ctx->stats.last_print)) {
+                memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
             } else {
-                timersub(&now, &last_print_time, &print_delta);
+                timersub(&now, &ctx->stats.last_print, &print_delta);
                 if (print_delta.tv_sec >= options->stats) {
                     packet_stats(&ctx->stats);
-                    memcpy(&last_print_time, &now, sizeof(struct timeval));
+                    memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
                 }
             }
         }
@@ -539,7 +539,7 @@ SEND_NOW:
 void
 send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_file_idx2)
 {
-    struct timeval last = { 0, 0 }, last_print_time = { 0, 0 }, print_delta, now;
+    struct timeval print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = ctx->stats.pkts_sent;
     int limit_send = options->limit_send;
@@ -689,7 +689,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                 skip_length = 0;
             }
 
-            do_sleep(ctx, (struct timeval *)&pkthdr_ptr->ts, &last, pktlen, options->accurate, sp, packetnum,
+            do_sleep(ctx, (struct timeval *)&pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, options->accurate, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
         }
 
@@ -711,8 +711,9 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (!do_not_timestamp && timercmp(&last, &pkthdr_ptr->ts, <))
-            memcpy(&last, &pkthdr_ptr->ts, sizeof(struct timeval));
+        if (!do_not_timestamp && timercmp(&ctx->stats.last_time, &pkthdr_ptr->ts, <))
+            memcpy(&ctx->stats.last_time, &pkthdr_ptr->ts, sizeof(struct timeval));
+
         ctx->stats.pkts_sent ++;
         ctx->stats.bytes_sent += pktlen;
 
@@ -721,13 +722,13 @@ SEND_NOW:
             if (gettimeofday(&now, NULL) < 0)
                 errx(-1, "gettimeofday() failed: %s",  strerror(errno));
 
-            if (! timerisset(&last_print_time)) {
-                memcpy(&last_print_time, &now, sizeof(struct timeval));
+            if (! timerisset(&ctx->stats.last_print)) {
+                memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
             } else {
-                timersub(&now, &last_print_time, &print_delta);
+                timersub(&now, &ctx->stats.last_print, &print_delta);
                 if (print_delta.tv_sec >= options->stats) {
                     packet_stats(&ctx->stats);
-                    memcpy(&last_print_time, &now, sizeof(struct timeval));
+                    memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
                 }
             }
         }
