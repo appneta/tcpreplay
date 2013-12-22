@@ -137,6 +137,3 @@ Please visit our [wiki](http://tcpreplay.appneta.com).
 
 or visit our [developers wiki](https://github.com/appneta/tcpreplay/wiki)
 
-vis
-
-
