@@ -1,6 +1,11 @@
 $Id$
 
-12/23/2013 Version 4.0.0beta1
+12/22/2013 Version 4.0.0beta2
+	- Restored -K option which somehow disappeared (appneta #35)
+	- Improve printing with small pcaps at high rates (appneta #34)
+	- Fixed build errors on BSD and Fedora 20 (appneta #32 #33)
+
+12/20/2013 Version 4.0.0beta1
     - Compile and cross compile on ARM (appneta #26)
     - Add flow statistics (appneta #23)
     - Merge code cleanups from old 4.0alpha1 project (appneta #18)
