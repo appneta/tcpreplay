@@ -209,6 +209,7 @@ EOText;
 
 flag = {
     name        = preload_pcap;
+    value       = K;
     descrip     = "Preloads packets into RAM before sending";
     doc         = <<- EOText
 This option loads the specified pcap(s) into RAM before starting to send in order
