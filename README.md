@@ -25,7 +25,7 @@ The Tcpreplay suite includes the following tools:
 * **tcpcapinfo** - raw pcap file decoder and debugger
 
 ## Install package
-Please visit our [wiki](https://tcpreplay.appneta.com) for product information and detailed installation instructions.
+Please visit our [wiki](http://tcpreplay.appneta.com) for product information and detailed installation instructions.
 
 ## Install from source code
 Select the [TAR](https://github.com/appneta/tcpreplay/tarball/master) or [ZIP](https://github.com/appneta/tcpreplay/zipball/master) to download. Detailed installation instructions are available in the INSTALL document in the tar ball.
@@ -88,7 +88,15 @@ tcpreplay-users email list:
 
 http://lists.sourceforge.net/lists/listinfo/tcpreplay-users
 
-Lastly, please don't email the author directly with your questions.  Doing so
+If you have a bug to report you can submit it here:
+
+https://github.com/appneta/tcpreplay/issues
+
+If you want to help with development, visit our developers wiki:
+
+https://github.com/appneta/tcpreplay/wiki
+
+Lastly, please don't email the authors directly with your questions.  Doing so
 prevents others from potentially helping you and your question/answer from
 showing up in the list archives.
 
@@ -97,7 +105,9 @@ Tcpreplay 3.5 is GPLv3 and includes software developed by the University of
 California, Berkeley, Lawrence Berkeley Laboratory and its contributors.
 
 ## Authors and Contributors
-Tcpreplay is authored by Aaron Turner(@synfinatic). In 2013 Fred Klassen (@fklassen), Founder and VP Network Technology, [AppNeta Inc.](http://appneta.com) added performance features and enhancements, and ultimately took over the maintenance of Tcpreplay.
+Tcpreplay is authored by Aaron Turner. In 2013 Fred Klassen, Founder and VP Network Technology,
+[AppNeta Inc.](http://appneta.com) added performance features and enhancements,
+and ultimately took over the maintenance of Tcpreplay.
 
 The source code repository has moved to GitHub. You can get a working copy of the repository by installing **git** and executing:
 ```
@@ -123,6 +133,10 @@ git clone git@github.com:<your ID>/tcpreplay.git
 We will review and possibly discuss the changes with you through GitHub services. If we accept the submission, it will instantly be applied to the production **master** branch.
 
 ## Additional information
-Please visit our [wiki](https://tcpreplay.appneta.com).
+Please visit our [wiki](http://tcpreplay.appneta.com).
+
+or visit our [developers wiki](https://github.com/appneta/tcpreplay/wiki)
+
+vis
 
 

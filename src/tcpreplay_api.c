@@ -321,7 +321,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
         ctx->intf2dlt = sendpacket_get_dlt(ctx->intf2);
         if (ctx->intf2dlt != ctx->intf1dlt) {
-            tcpreplay_seterr(ctx, "DLT type missmatch for %s (%s) and %s (%s)", 
+            tcpreplay_seterr(ctx, "DLT type mismatch for %s (%s) and %s (%s)",
                 options->intf1_name, pcap_datalink_val_to_name(ctx->intf1dlt),
                 options->intf2_name, pcap_datalink_val_to_name(ctx->intf2dlt));
             return -1;
@@ -448,7 +448,7 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
      */
     if (int1dlt != -1 && int2dlt != -1) {
         if (int1dlt != int2dlt) {
-            tcpreplay_seterr(ctx, "DLT type missmatch for %s (%s) and %s (%s)", 
+            tcpreplay_seterr(ctx, "DLT type mismatch for %s (%s) and %s (%s)",
                 ctx->options->intf1_name, pcap_datalink_val_to_name(int1dlt), 
                 ctx->options->intf2_name, pcap_datalink_val_to_name(int2dlt));
             return -1;
@@ -979,7 +979,7 @@ tcpreplay_prepare(tcpreplay_t *ctx)
 
         int2dlt = sendpacket_get_dlt(ctx->intf2);
         if (int2dlt != int1dlt) {
-            tcpreplay_seterr(ctx, "DLT type missmatch for %s (%s) and %s (%s)", 
+            tcpreplay_seterr(ctx, "DLT type mismatch for %s (%s) and %s (%s)",
                 ctx->options->intf1_name, pcap_datalink_val_to_name(int1dlt), 
                 ctx->options->intf2_name, pcap_datalink_val_to_name(int2dlt));
             return -1;

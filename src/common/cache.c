@@ -90,7 +90,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     /* verify version */
     if (atoi(header.version) != atoi(CACHEVERSION))
-        errx(-1, "Unable to process %s: cache file version missmatch",
+        errx(-1, "Unable to process %s: cache file version mismatch",
              cachefile);
 
     /* read the comment */

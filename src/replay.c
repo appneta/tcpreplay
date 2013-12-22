@@ -281,7 +281,7 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
         }
 
         if (ctx->intf1dlt != ctx->intf2dlt) {
-            tcpreplay_seterr(ctx, "DLT missmatch for %s (%d) and %s (%d)",
+            tcpreplay_seterr(ctx, "DLT mismatch for %s (%d) and %s (%d)",
                     path1, ctx->intf1dlt, path2, ctx->intf2dlt);
             return -1;
         }
