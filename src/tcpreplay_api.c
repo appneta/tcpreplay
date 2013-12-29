@@ -1173,3 +1173,46 @@ tcpreplay_get_current_source(tcpreplay_t *ctx)
 
 /* vim: set tabstop=8 expandtab shiftwidth=4 softtabstop=4: */
 
+
+/**
+ * \brief Sets printing of flow statistics
+ */
+int tcpreplay_set_flow_stats(tcpreplay_t *ctx, bool value)
+{
+    assert(ctx);
+
+    ctx->options->flow_stats = value;
+    return 0;
+}
+
+/**
+ * \brief Sets the flow expiry in seconds
+ */
+int tcpreplay_set_flow_expiry(tcpreplay_t *ctx, int value)
+{
+    assert(ctx);
+
+    ctx->options->flow_expiry = value;
+    return 0;
+}
+
+/**
+ * \brief Get whether to printof flow statistics
+ */
+bool tcpreplay_get_flow_stats(tcpreplay_t *ctx)
+{
+    assert(ctx);
+
+    return ctx->options->flow_stats;
+    return 0;
+}
+
+/**
+ * \brief Gets the flow expiry in seconds
+ */
+int tcpreplay_get_flow_expiry(tcpreplay_t *ctx)
+{
+    assert(ctx);
+
+    return ctx->options->flow_expiry;
+}

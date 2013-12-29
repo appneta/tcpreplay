@@ -237,6 +237,10 @@ int tcpreplay_set_preload_pcap(tcpreplay_t *, bool);
 /* information */
 int tcpreplay_get_source_count(tcpreplay_t *);
 int tcpreplay_get_current_source(tcpreplay_t *);
+int tcpreplay_set_flow_stats(tcpreplay_t *, bool);
+int tcpreplay_set_flow_expiry(tcpreplay_t *,int);
+bool tcpreplay_get_flow_stats(tcpreplay_t *);
+int tcpreplay_get_flow_expiry(tcpreplay_t *);
 
 /* functions controlling execution */
 int tcpreplay_prepare(tcpreplay_t *);
