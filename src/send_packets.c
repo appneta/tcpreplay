@@ -290,8 +290,8 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
  *
  * Finds out if flow is unique and updates stats.
  */
-static inline void update_flow_stats(tcpreplay_t *ctx, const struct pcap_pkthdr *pkthdr,
-        const u_char *pktdata, int datalink)
+static inline void update_flow_stats(tcpreplay_t *ctx, sendpacket_t *sp,
+        const struct pcap_pkthdr *pkthdr, const u_char *pktdata, int datalink)
 {
     flow_entry_type_t res = flow_decode(ctx->flow_hash_table,
             pkthdr, pktdata, datalink, ctx->options->flow_expiry);
@@ -300,32 +300,46 @@ static inline void update_flow_stats(tcpreplay_t *ctx, const struct pcap_pkthdr 
     case FLOW_ENTRY_NEW:
         ++ctx->stats.flows;
         ++ctx->stats.flow_packets;
+        if (sp) {
+            ++sp->flows;
+            ++sp->flow_packets;
+        }
         break;
 
     case FLOW_ENTRY_EXISTING:
         ++ctx->stats.flow_packets;
+        if (sp)
+            ++sp->flow_packets;
         break;
 
     case FLOW_ENTRY_EXPIRED:
         ++ctx->stats.flows_expired;
         ++ctx->stats.flows;
         ++ctx->stats.flow_packets;
+        if (sp) {
+            ++sp->flows_expired;
+            ++sp->flows;
+            ++sp->flow_packets;
+        }
          break;
 
     case FLOW_ENTRY_NON_IP:
         ++ctx->stats.flow_non_flow_packets;
+        if (sp)
+            ++sp->flow_non_flow_packets;
         break;
 
     case FLOW_ENTRY_INVALID:
         ++ctx->stats.flows_invalid_packets;
+        if (sp)
+            ++sp->flows_invalid_packets;
         break;
     }
 }
 /**
  * \brief Preloads the memory cache for the given pcap file_idx 
  *
- * Preloading can be used with or without --loop and implies using
- * --enable-file-cache
+ * Preloading can be used with or without --loop
  */
 void
 preload_pcap_file(tcpreplay_t *ctx, int idx)
@@ -354,7 +368,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         packetnum++;
         if (options->flow_stats)
-            update_flow_stats(ctx, &pkthdr, pktdata, dlt);
+            update_flow_stats(ctx, NULL, &pkthdr, pktdata, dlt);
     }
 
     /* mark this file as cached */
@@ -454,9 +468,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             fast_edit_packet(&pkthdr, &pktdata, iteration,
                     file_cached, datalink);
 
-        /* update flow stats for the first iteration only */
-        if (options->flow_stats && !file_cached && !iteration)
-            update_flow_stats(ctx, &pkthdr, pktdata, datalink);
+        /* update flow stats if not caching */
+        if (options->flow_stats && !file_cached)
+            update_flow_stats(ctx, NULL, &pkthdr, pktdata, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -663,9 +677,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
                     options->file_cache[cache_file_idx].cached, datalink);
 
-        /* update flow stats for the first iteration only */
-        if (options->flow_stats && !options->file_cache[cache_file_idx].cached && !iteration)
-            update_flow_stats(ctx, pkthdr_ptr, pktdata, datalink);
+        /* update flow stats */
+        if (options->flow_stats && !options->file_cache[cache_file_idx].cached)
+            update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks

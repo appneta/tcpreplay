@@ -98,6 +98,11 @@ struct sendpacket_s {
     COUNTER sent;
     COUNTER bytes_sent;
     COUNTER attempt;
+    COUNTER flow_non_flow_packets;
+    COUNTER flows;
+    COUNTER flow_packets;
+    COUNTER flows_expired;
+    COUNTER flows_invalid_packets;
     sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;

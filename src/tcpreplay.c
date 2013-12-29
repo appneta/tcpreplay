@@ -219,13 +219,13 @@ flow_stats(const tcpreplay_t *ctx, bool unique_ip)
         return;
 
     /*
-     * Flows are only counted in first iteration or
-     * when they are read into cache. If flows are
-     * unique from one loop iteration to the next
-     * then multiply by the number of successful
-     * iterations.
+     * When packets are read into cache,  flows
+     * are only counted in first iteration
+     * If flows are unique from one loop iteration
+     * to the next then multiply by the number of
+     * successful iterations.
      */
-    if (unique_ip) {
+    if (unique_ip && ctx->options->preload_pcap) {
         flows *= ctx->iteration;
         flows_expired *= ctx->iteration;
     }
