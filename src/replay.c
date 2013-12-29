@@ -245,23 +245,21 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
             }
         }
     }
-#ifdef HAVE_PCAP_SNAPSHOT
-    if (pcap_snapshot(pcap1) < 65535) {
-        tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
-                path1, pcap_snapshot(pcap1));
-        rcode = -2;
-    }
-
-    if (pcap_snapshot(pcap2) < 65535) {
-        tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
-                path2, pcap_snapshot(pcap2));
-        rcode = -2;
-    }
-
-#endif
-
 
     if (pcap1 != NULL) {
+#ifdef HAVE_PCAP_SNAPSHOT
+        if (pcap_snapshot(pcap1) < 65535) {
+            tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                    path1, pcap_snapshot(pcap1));
+            rcode = -2;
+        }
+
+        if (pcap_snapshot(pcap2) < 65535) {
+            tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                    path2, pcap_snapshot(pcap2));
+            rcode = -2;
+        }
+#endif
         if (ctx->intf1dlt == -1)
             ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
         if ((ctx->intf1dlt >= 0) && (ctx->intf1dlt != pcap_datalink(pcap1))) {

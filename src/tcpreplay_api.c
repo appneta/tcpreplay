@@ -307,6 +307,10 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
 
     if (HAVE_OPT(INTF2)) {
+        if (!HAVE_OPT(CACHEFILE) && !HAVE_OPT(DUALFILE)) {
+            tcpreplay_seterr(ctx, "--intf2=%s requires either --cachefile or --dualfile", OPT_ARG(INTF2));
+            return -1;
+        }
         if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF2))) == NULL) {
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
             return -1;

@@ -641,7 +641,8 @@ sendpacket_close(sendpacket_t *sp)
 
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
-            fprintf(stderr, "Switching network driver to normal mode... ");
+            fprintf(stderr, "Switching network driver for %s to normal mode... ",
+                    sp->device);
             fflush(NULL);
               /* flush any remaining packets */
             ioctl (sp->handle.fd, NIOCTXSYNC, NULL);
@@ -969,7 +970,8 @@ sendpacket_open_netmap(const char *device, char *errbuf)
      *
      * Cards take a long time to reset the PHY.
      */
-    fprintf(stderr, "Switching network driver to netmap bypass mode... ");
+    fprintf(stderr, "Switching network driver for %s to netmap bypass mode... ",
+            device);
     fflush(NULL);
 
     bzero (&nmr, sizeof(nmr));
