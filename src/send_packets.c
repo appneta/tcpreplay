@@ -401,7 +401,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER start_us;
     uint32_t iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
-    bool file_cached = options->file_cache[idx].cached;
+    bool preload = options->file_cache[idx].cached;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
@@ -466,11 +466,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if (unique_ip && iteration)
             /* edit packet to ensure every pass is unique */
             fast_edit_packet(&pkthdr, &pktdata, iteration,
-                    file_cached, datalink);
+                    preload, datalink);
 
-        /* update flow stats if not caching */
-        if (options->flow_stats && !file_cached)
-            update_flow_stats(ctx, NULL, &pkthdr, pktdata, datalink);
+        /* update flow stats */
+        if (options->flow_stats && !preload)
+            update_flow_stats(ctx,
+                    options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
