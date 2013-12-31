@@ -40,6 +40,7 @@
 #include "dlt_linuxsll/linuxsll.h"
 #include "dlt_ieee80211/ieee80211.h"
 #include "dlt_radiotap/radiotap.h"
+#include "dlt_jnpr_ether/jnpr_ether.h"
 
 
 /**
@@ -61,6 +62,7 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     retcode += dlt_linuxsll_register(ctx);
     retcode += dlt_ieee80211_register(ctx);
     retcode += dlt_radiotap_register(ctx);
+    retcode += dlt_jnpr_ether_register(ctx);
     
     if (retcode < 0)
         return TCPEDIT_ERROR;

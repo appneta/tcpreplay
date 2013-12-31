@@ -34,6 +34,8 @@ Ethernet aka DLT_EN10MB
 @item
 @var{hdlc}
 Cisco HDLC aka DLT_C_HDLC
+@var{jnpr_ether}
+Juniper Ethernet DLT_C_JNPR_ETHER
 @item
 @var{user}
 User specified Layer 2 header and DLT type

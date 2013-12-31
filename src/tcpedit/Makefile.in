@@ -92,6 +92,14 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
+# $Id:$
+# START OF: dlt_jnpr_ether
+# Note, if you add any files to your plugin, you will need to edit dlt_jnpr_ether/Makefile.am
+# add your .c files to libtcpedit_a_SOURCES
+# add your .h files to noinst_HEADERS
+# add any other files (like documentation, notes, etc) to EXTRA_DIST
+# add your dependancy information (see comment below)
+
 
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
@@ -118,6 +126,7 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/plugins/dlt_en10mb/Makefile.am \
 	$(srcdir)/plugins/dlt_hdlc/Makefile.am \
 	$(srcdir)/plugins/dlt_ieee80211/Makefile.am \
+	$(srcdir)/plugins/dlt_jnpr_ether/Makefile.am \
 	$(srcdir)/plugins/dlt_linuxsll/Makefile.am \
 	$(srcdir)/plugins/dlt_loop/Makefile.am \
 	$(srcdir)/plugins/dlt_null/Makefile.am \
@@ -145,7 +154,8 @@ am_libtcpedit_a_OBJECTS = tcpedit.$(OBJEXT) parse_args.$(OBJEXT) \
 	en10mb_api.$(OBJEXT) hdlc.$(OBJEXT) hdlc_api.$(OBJEXT) \
 	user.$(OBJEXT) user_api.$(OBJEXT) raw.$(OBJEXT) null.$(OBJEXT) \
 	loop.$(OBJEXT) linuxsll.$(OBJEXT) ieee80211.$(OBJEXT) \
-	ieee80211_hdr.$(OBJEXT) radiotap.$(OBJEXT)
+	ieee80211_hdr.$(OBJEXT) radiotap.$(OBJEXT) \
+	jnpr_ether.$(OBJEXT)
 libtcpedit_a_OBJECTS = $(am_libtcpedit_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -333,7 +343,8 @@ libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c portmap.c \
 	$(srcdir)/plugins/dlt_linuxsll/linuxsll.c \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211.c \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c \
-	$(srcdir)/plugins/dlt_radiotap/radiotap.c
+	$(srcdir)/plugins/dlt_radiotap/radiotap.c \
+	$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c
 AM_CFLAGS = -I.. -I../common -I../.. @LDNETINC@ $(LIBOPTS_CFLAGS) \
 	$(LNAV_CFLAGS) -I. -I$(srcdir)/plugins -I$(srcdir)/../common \
 	$(LIBOPTS_CFLAGS)
@@ -359,7 +370,8 @@ noinst_HEADERS = tcpedit.h edit_packet.h portmap.h tcpedit_stub.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h \
-	$(srcdir)/plugins/dlt_radiotap/radiotap.h
+	$(srcdir)/plugins/dlt_radiotap/radiotap.h \
+	$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.h
 
 # Note:
 # You probably don't want to touch anything below this line until the end of the plugin
@@ -372,7 +384,8 @@ MOSTLYCLEANFILES = *~ $(srcdir)/plugins/*~ \
 	$(srcdir)/plugins/dlt_null/*~ $(srcdir)/plugins/dlt_loop/*~ \
 	$(srcdir)/plugins/dlt_linuxsll/*~ \
 	$(srcdir)/plugins/dlt_ieee80211/*~ \
-	$(srcdir)/plugins/dlt_radiotap/*~
+	$(srcdir)/plugins/dlt_radiotap/*~ \
+	$(srcdir)/plugins/dlt_jnpr_ether/*~
 MAINTAINERCLEANFILES = Makefile.in tcpedit_stub.h tcpedit.1 \
 	Makefile.in
 EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def \
@@ -385,7 +398,10 @@ EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def \
 	$(srcdir)/plugins/dlt_loop/loop_opts.def \
 	$(srcdir)/plugins/dlt_linuxsll/linuxsll_opts.def \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_opts.def \
-	$(srcdir)/plugins/dlt_radiotap/radiotap_opts.def
+	$(srcdir)/plugins/dlt_radiotap/radiotap_opts.def \
+	$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether_opts.def
+
+# You probably don't want to touch anything below this line until the end of the plugin
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
@@ -407,13 +423,14 @@ DLT_STUB_DEPS = $(srcdir)/plugins/dlt_opts.def \
 	$(srcdir)/plugins/dlt_loop/loop_opts.def \
 	$(srcdir)/plugins/dlt_linuxsll/linuxsll_opts.def \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_opts.def \
-	$(srcdir)/plugins/dlt_radiotap/radiotap_opts.def
+	$(srcdir)/plugins/dlt_radiotap/radiotap_opts.def \
+	$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether_opts.def
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/plugins/Makefile.am $(srcdir)/plugins/dlt_en10mb/Makefile.am $(srcdir)/plugins/dlt_hdlc/Makefile.am $(srcdir)/plugins/dlt_user/Makefile.am $(srcdir)/plugins/dlt_raw/Makefile.am $(srcdir)/plugins/dlt_null/Makefile.am $(srcdir)/plugins/dlt_loop/Makefile.am $(srcdir)/plugins/dlt_linuxsll/Makefile.am $(srcdir)/plugins/dlt_ieee80211/Makefile.am $(srcdir)/plugins/dlt_radiotap/Makefile.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/plugins/Makefile.am $(srcdir)/plugins/dlt_en10mb/Makefile.am $(srcdir)/plugins/dlt_hdlc/Makefile.am $(srcdir)/plugins/dlt_user/Makefile.am $(srcdir)/plugins/dlt_raw/Makefile.am $(srcdir)/plugins/dlt_null/Makefile.am $(srcdir)/plugins/dlt_loop/Makefile.am $(srcdir)/plugins/dlt_linuxsll/Makefile.am $(srcdir)/plugins/dlt_ieee80211/Makefile.am $(srcdir)/plugins/dlt_radiotap/Makefile.am $(srcdir)/plugins/dlt_jnpr_ether/Makefile.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -469,6 +486,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hdlc_api.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ieee80211.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ieee80211_hdr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jnpr_ether.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linuxsll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/null.Po@am__quote@
@@ -725,6 +743,20 @@ radiotap.obj: $(srcdir)/plugins/dlt_radiotap/radiotap.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_radiotap/radiotap.c' object='radiotap.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o radiotap.obj `if test -f '$(srcdir)/plugins/dlt_radiotap/radiotap.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_radiotap/radiotap.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_radiotap/radiotap.c'; fi`
+
+jnpr_ether.o: $(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT jnpr_ether.o -MD -MP -MF $(DEPDIR)/jnpr_ether.Tpo -c -o jnpr_ether.o `test -f '$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/jnpr_ether.Tpo $(DEPDIR)/jnpr_ether.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c' object='jnpr_ether.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o jnpr_ether.o `test -f '$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c' || echo '$(srcdir)/'`$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c
+
+jnpr_ether.obj: $(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT jnpr_ether.obj -MD -MP -MF $(DEPDIR)/jnpr_ether.Tpo -c -o jnpr_ether.obj `if test -f '$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/jnpr_ether.Tpo $(DEPDIR)/jnpr_ether.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c' object='jnpr_ether.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o jnpr_ether.obj `if test -f '$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c'; then $(CYGPATH_W) '$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1023,6 +1055,14 @@ $(srcdir)/plugins/dlt_radiotap/radiotap.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/p
 	$(srcdir)/tcpedit_api.h 
 
 # END OF: dlt_radiotap
+
+# dependancies for your plugin source code.  Edit as necessary
+$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins/dlt_jnpr_ether/jnpr_ether.h $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
+	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
+	$(srcdir)/tcpedit_api.h 
+
+# END OF: dlt_jnpr_ether
 
 ########################################################
 # Add your plugin Makefile.am's below this line
