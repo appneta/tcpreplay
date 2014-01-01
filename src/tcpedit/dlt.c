@@ -63,6 +63,10 @@ dlt2layer2len(tcpedit_t *tcpedit, int dlt)
             len = 4;
             break;
 
+        case DLT_JUNIPER_ETHER:
+            len = 36;
+            break;
+
         default:
             tcpedit_seterr(tcpedit, "Invalid DLT Type: %d", dlt);
             len = -1;
@@ -124,6 +128,7 @@ dlt2mtu(tcpedit_t *tcpedit, int dlt)
         case DLT_EN10MB:
         case DLT_RAW:
         case DLT_C_HDLC:
+        case DLT_JUNIPER_ETHER:
             mtu = 1500;
             break;
 

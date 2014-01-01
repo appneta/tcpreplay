@@ -164,7 +164,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     udp_hdr_t *udp_hdr;
     icmpv4_hdr_t *icmp_hdr;
     flow_entry_data_t entry;
-    int l2_len = 0;
+    uint16_t l2_len = 0;
     int ip_len;
     uint8_t protocol;
     uint32_t hash;
@@ -192,16 +192,25 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
             ether_type = ETHERTYPE_IP6;
         break;
 
-    case DLT_EN10MB:
-        ether_type = ntohs(((eth_hdr_t*)pktdata)->ether_type);
+    case DLT_JUNIPER_ETHER:
+        if (memcmp(pktdata, "MGC", 3))
+            warnx("No Magic Number found: %s (0x%x)",
+                 pcap_datalink_val_to_description(datalink), datalink);
 
-        if (ether_type == ETHERTYPE_VLAN) {
-            while (ether_type == ETHERTYPE_VLAN) {
-                vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-                entry.vlan = vlan_hdr->vlan_priority_c_vid & htons(0xfff);
-                ether_type = ntohs(vlan_hdr->vlan_len);
-                l2_len += 4;
-            }
+        if ((pktdata[3] & 0x80) == 0x80) {
+            l2_len = ntohs(*((uint16_t*)&pktdata[4]));
+            l2_len += 6;
+        } else
+            l2_len = 4; /* no header extensions */
+        /* fall through */
+    case DLT_EN10MB:
+        ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
+
+        while (ether_type == ETHERTYPE_VLAN) {
+            vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+            entry.vlan = vlan_hdr->vlan_priority_c_vid & htons(0xfff);
+            ether_type = ntohs(vlan_hdr->vlan_len);
+            l2_len += 4;
         }
 
         l2_len += sizeof(eth_hdr_t);

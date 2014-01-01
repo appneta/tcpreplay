@@ -60,6 +60,8 @@ echo ""
 echo "You must also modify ./dlt_stub.def and add the line:"
 echo "#include ${PLUGINDIR}/${PLUGIN}_opts.def"
 echo ""
+echo "You may also need to update dlt.c, flows.c, dlt_opts.def and tcprewrite_opts.def
+echo ""
 echo "Next, you must make the appropriate modifications to ./dlt_plugin.c"
 echo "Lastly, re-run automake from the root source directory"
 echo "and run ./configure to build your new plugin"
