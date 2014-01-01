@@ -25,25 +25,25 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c tcpliveplay_opts.c
 opts_list=-L tcpedit
 
 tcpprep.1: tcpprep_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpprep_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpprep_opts.def
 
 tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcprewrite_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcprewrite_opts.def
 
 tcpreplay-edit.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def
 
 tcpreplay.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpreplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpreplay_opts.def
 
 tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpbridge_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpbridge_opts.def
 
 tcpliveplay.1: tcpliveplay_opts.def 
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpliveplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpliveplay_opts.def
 
 tcpcapinfo.1: tcpcapinfo_opts.def 
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpcapinfo_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpcapinfo_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1 tcpcapinfo.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1 \
@@ -67,8 +67,7 @@ tcpreplay_edit_OBJECTS: tcpreplay_opts.h
 tcpreplay_edit_opts.h: tcpreplay_edit_opts.c
 
 tcpreplay_edit_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ $(opts_list)  @NETMAPFLAGS@ -DTCPREPLAY_EDIT -b tcpreplay_edit_opts \
-		tcpreplay_opts.def || true
+	@AUTOGEN@ $(opts_list)  @NETMAPFLAGS@ -DTCPREPLAY_EDIT -b tcpreplay_edit_opts tcpreplay_opts.def
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
 tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c sleep.c tcpreplay_api.c replay.c
@@ -77,7 +76,7 @@ tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
 
 tcpreplay_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def || true
+	@AUTOGEN@ $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def
 
 if ENABLE_OSX_FRAMEWORKS
 tcpreplay_LDFLAGS = -framework CoreServices -framework Carbon
@@ -91,7 +90,7 @@ tcpliveplay_OBJECTS: tcpliveplay_opts.h
 tcpliveplay_opts.h: tcpliveplay_opts.c
 
 tcpliveplay_opts.c: tcpliveplay_opts.def
-	@AUTOGEN@ $(opts_list) tcpliveplay_opts.def || true
+	@AUTOGEN@ $(opts_list) tcpliveplay_opts.def
 
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -Itcpedit @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
@@ -102,7 +101,7 @@ tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ $(opts_list) tcprewrite_opts.def || true
+	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 
 tcpcapinfo_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPCAPINFO
 tcpcapinfo_LDADD = ./common/libcommon.a \
@@ -111,7 +110,7 @@ tcpcapinfo_SOURCES = tcpcapinfo_opts.c tcpcapinfo.c
 tcpcapinfo_OBJECTS: tcpcapinfo_opts.h
 tcpcapinfo_opts.h: tcpcapinfo_opts.c
 tcpcapinfo_opts.c: tcpcapinfo_opts.def
-	@AUTOGEN@ $(opts_list) tcpcapinfo_opts.def || true
+	@AUTOGEN@ $(opts_list) tcpcapinfo_opts.def
 
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \
@@ -120,7 +119,7 @@ tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c tcpprep_api.c
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def
-	@AUTOGEN@ tcpprep_opts.def || true
+	@AUTOGEN@ tcpprep_opts.def
 
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I.. -Itcpedit $(LNAV_CFLAGS) @LDNETINC@ -DTCPBRIDGE
 tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
@@ -132,7 +131,7 @@ tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c sleep.c
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ $(opts_list) tcpbridge_opts.def || true
+	@AUTOGEN@ $(opts_list) tcpbridge_opts.def
 
 noinst_HEADERS = tcpreplay.h tcpprep.h bridge.h defines.h tree.h tcpliveplay.h \
 		 send_packets.h signal_handler.h common.h tcpreplay_opts.h tcpliveplay_opts.h \
