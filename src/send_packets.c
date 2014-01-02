@@ -35,6 +35,7 @@
 
 #include "tcpreplay_api.h"
 #include "timestamp_trace.h"
+#include "../lib/sll.h"
 
 #ifdef TCPREPLAY
 
@@ -83,9 +84,13 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     int l2_len = 0;
     ipv4_hdr_t *ip_hdr;
     ipv6_hdr_t *ip6_hdr;
+    hdlc_hdr_t *hdlc_hdr;
+    sll_hdr_t *sll_hdr;
+    struct tcpr_pppserial_hdr *ppp;
     uint32_t *src_ptr = NULL, *dst_ptr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
+    uint16_t ether_type;
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
@@ -95,41 +100,78 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     switch (datalink) {
     case DLT_LINUX_SLL:
-        l2_len = 12;    /* actually 16 */
-        /* fall through */
+        l2_len = 16;
+        sll_hdr = (sll_hdr_t *)*pktdata;
+        ether_type = sll_hdr->sll_protocol;
+        break;
+
+    case DLT_PPP_SERIAL:
+        l2_len = 4;
+        ppp = (struct tcpr_pppserial_hdr *)*pktdata;
+        if (ntohs(ppp->protocol) == 0x0021)
+            ether_type = htonl(ETHERTYPE_IP);
+        else
+            ether_type = ppp->protocol;
+        break;
+
     case DLT_C_HDLC:
-        l2_len += 4;
-        /* fall through */
+        l2_len = 4;
+        hdlc_hdr = (hdlc_hdr_t *)*pktdata;
+        ether_type = hdlc_hdr->protocol;
+        break;
+
     case DLT_RAW:
-        /* pktdata IS the ip header! */
-        ip_hdr = (ipv4_hdr_t*)(packet + l2_len);
-
-        switch (ip_hdr->ip_v) {
-        case 4:
-            src_ptr = (uint32_t*)&ip_hdr->ip_src;
-            dst_ptr = (uint32_t*)&ip_hdr->ip_dst;
-            break;
-
-        case 6:
-            ip6_hdr = (ipv6_hdr_t*)ip_hdr;
-            src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
-            dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
-            break;
-
-        default:
-            /* non-IP packet */
-            return;
-        }
+        if ((*pktdata[0] >> 4) == 4)
+            ether_type = ETHERTYPE_IP;
+        else if ((*pktdata[0] >> 4) == 6)
+            ether_type = ETHERTYPE_IP6;
         break;
 
     default:
         warnx("Unable to process unsupported DLT type: %s (0x%x)",
              pcap_datalink_val_to_description(datalink), datalink);
-        break;
+            return;
     }
 
-    src_ip_orig = src_ip = ntohl(*src_ptr);
-    dst_ip_orig = dst_ip = ntohl(*dst_ptr);
+    switch (ether_type) {
+    case ETHERTYPE_IP:
+        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+
+        if (ip_hdr->ip_v != 4) {
+            dbgx(2, "expected IPv4 but got: %u", ip_hdr->ip_v);
+            return;
+        }
+
+        if (pkthdr->caplen < (bpf_u_int32)sizeof(*ip_hdr)) {
+            dbgx(2, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
+            return;
+        }
+
+        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
+        dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
+        break;
+
+    case ETHERTYPE_IP6:
+
+        if ((*pktdata[0] >> 4) != 6) {
+            dbgx(2, "expected IPv6 but got: %u", *pktdata[0] >> 4);
+            return;
+        }
+
+        if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
+            dbgx(2, "Packet too short for Unique IPv6 feature: %u", pkthdr->caplen);
+            return;
+        }
+
+        ip6_hdr = (ipv6_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
+        dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
+        break;
+
+    default:
+        return; /* non-IP */
+    }
 
     /* swap src/dst IP's in a manner that does not affect CRC */
     if ((!cached && dst_ip > src_ip) ||

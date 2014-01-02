@@ -83,13 +83,17 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
     hdlc_hdr_t *hdlc_hdr;
     sll_hdr_t *sll_hdr;
     uint16_t ether_type;
+    struct tcpr_pppserial_hdr *ppp;
 
     assert(pktdata);
     assert(datalen);
 
     switch (datalink) {
     case DLT_RAW:
-        return ETHERTYPE_IP;
+        if ((pktdata[0] >> 4) == 4)
+            return ETHERTYPE_IP;
+        else if ((pktdata[0] >> 4) == 6)
+            return ETHERTYPE_IP6;
         break;
 
     case DLT_EN10MB:
@@ -102,6 +106,14 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         default:
             return ether_type; /* yes, return it in host byte order */
         }
+        break;
+
+    case DLT_PPP_SERIAL:
+        ppp = (struct tcpr_pppserial_hdr *)pktdata;
+        if (ntohs(ppp->protocol) == 0x0021)
+            return htonl(ETHERTYPE_IP);
+        else
+            return ppp->protocol;
         break;
 
     case DLT_C_HDLC:

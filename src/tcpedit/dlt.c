@@ -59,6 +59,7 @@ dlt2layer2len(tcpedit_t *tcpedit, int dlt)
             len = 16;
             break;
 
+        case DLT_PPP_SERIAL:
         case DLT_C_HDLC:
             len = 4;
             break;
@@ -92,6 +93,7 @@ dltrequires(tcpedit_t *tcpedit, int dlt)
         case DLT_NULL:
         case DLT_RAW:
         case DLT_C_HDLC:
+        case DLT_PPP_SERIAL:
             req = TCPEDIT_DLT_SRC + TCPEDIT_DLT_DST;
             /* we just have the proto */
             break;
@@ -121,6 +123,7 @@ dlt2mtu(tcpedit_t *tcpedit, int dlt)
     switch (dlt) {
 /*        case DLT_VLAN:
         case DLT_USER: */
+        case DLT_PPP_SERIAL:
         case DLT_EN10MB:
         case DLT_RAW:
         case DLT_C_HDLC:

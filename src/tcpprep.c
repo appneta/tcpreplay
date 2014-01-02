@@ -119,6 +119,7 @@ main(int argc, char *argv[])
         case DLT_LINUX_SLL:
         case DLT_RAW:
         case DLT_C_HDLC:
+        case DLT_PPP_SERIAL:
             break; /* do nothing because all is good */
         default:
             errx(-1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options->pcap));

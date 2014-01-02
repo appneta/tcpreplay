@@ -35,7 +35,7 @@ Ethernet aka DLT_EN10MB
 @var{hdlc}
 @item
 @var{pppserial}
-PPP Serial aka DLT_PPPSERIAL
+PPP Serial aka DLT_PPP_SERIAL
 @item
 @var{user}
 User specified Layer 2 header and DLT type
