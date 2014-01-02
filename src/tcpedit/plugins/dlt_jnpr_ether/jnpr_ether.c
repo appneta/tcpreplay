@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
- * Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ * Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
