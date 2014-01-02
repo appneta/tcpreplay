@@ -190,8 +190,9 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
     int l2_len;
+    u_char *packet = *pktdata;
 
-    if (datalink != DLT_EN10MB)
+    if (datalink != DLT_EN10MB && datalink != DLT_JUNIPER_ETHER)
         fast_edit_packet_dl(pkthdr, pktdata, iteration, cached, datalink);
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
@@ -199,11 +200,23 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         return;
     }
 
-    /* assume Ethernet, IPv4 for now */
-    ether_type = ntohs(((eth_hdr_t*)*pktdata)->ether_type);
     l2_len = 0;
+    if (datalink == DLT_JUNIPER_ETHER) {
+        if (memcmp(packet, "MGC", 3))
+            warnx("No Magic Number found: %s (0x%x)",
+                 pcap_datalink_val_to_description(datalink), datalink);
+
+        if ((packet[3] & 0x80) == 0x80) {
+            l2_len = ntohs(*((uint16_t*)&packet[4]));
+            l2_len += 6;
+        } else
+            l2_len = 4; /* no header extensions */
+    }
+
+    /* assume Ethernet, IPv4 for now */
+    ether_type = ntohs(((eth_hdr_t*)(packet + l2_len))->ether_type);
     while (ether_type == ETHERTYPE_VLAN) {
-        vlan_hdr = (vlan_hdr_t *)(*pktdata + l2_len);
+        vlan_hdr = (vlan_hdr_t *)(packet + l2_len);
         ether_type = ntohs(vlan_hdr->vlan_len);
         l2_len += 4;
     }
@@ -211,13 +224,13 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     switch (ether_type) {
     case ETHERTYPE_IP:
-        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+        ip_hdr = (ipv4_hdr_t *)(packet + l2_len);
         src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
         dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
         break;
 
     case ETHERTYPE_IP6:
-        ip6_hdr = (ipv6_hdr_t *)(*pktdata + l2_len);
+        ip6_hdr = (ipv6_hdr_t *)(packet + l2_len);
         src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
         dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
         break;
@@ -373,6 +386,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
 
     /* mark this file as cached */
     options->file_cache[idx].cached = TRUE;
+    options->file_cache[idx].dlt = dlt;
     pcap_close(pcap);
 }
 
@@ -396,7 +410,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
-    int datalink = ctx->intf1dlt;
+    int datalink = options->file_cache[idx].dlt;
     COUNTER skip_length = 0;
     COUNTER start_us;
     uint32_t iteration = ctx->iteration;
@@ -569,7 +583,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
-    int datalink = ctx->intf1dlt;
+    int datalink = options->file_cache[cache_file_idx1].dlt;
     COUNTER start_us;
     COUNTER skip_length = 0;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
@@ -613,7 +627,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (pktdata1 == NULL) {
             /* file 2 is next */
             sp = ctx->intf2;
-            datalink = ctx->intf2dlt;
+            datalink = options->file_cache[cache_file_idx2].dlt;
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
             prev_packet = prev_packet2;
@@ -622,7 +636,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         } else if (pktdata2 == NULL) {
             /* file 1 is next */
             sp = ctx->intf1;
-            datalink = ctx->intf1dlt;
+            datalink = options->file_cache[cache_file_idx1].dlt;
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
             prev_packet = prev_packet1;
@@ -631,7 +645,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         } else if (timercmp(&pkthdr1.ts, &pkthdr2.ts, <=)) {
             /* file 1 is next */
             sp = ctx->intf1;
-            datalink = ctx->intf1dlt;
+            datalink = options->file_cache[cache_file_idx1].dlt;
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
             prev_packet = prev_packet1;
@@ -640,7 +654,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         } else {
             /* file 2 is next */
             sp = ctx->intf2;
-            datalink = ctx->intf2dlt;
+            datalink = options->file_cache[cache_file_idx2].dlt;
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
             prev_packet = prev_packet2;

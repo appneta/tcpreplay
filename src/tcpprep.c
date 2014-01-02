@@ -119,6 +119,7 @@ main(int argc, char *argv[])
         case DLT_LINUX_SLL:
         case DLT_RAW:
         case DLT_C_HDLC:
+        case DLT_JUNIPER_ETHER:
             break; /* do nothing because all is good */
         default:
             errx(-1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options->pcap));
@@ -228,7 +229,7 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
         if ((l4 = get_layer4_v6(ip6_hdr, len)) == NULL)
             return 0;
 
-        dbgx(3, "Found proto %u at offset %p.  base %p (%u)", proto, (void *)l4, (void *)ip6_hdr, (l4 - (u_char *)ip6_hdr));
+        dbgx(3, "Found proto %u at offset %p.  base %p (%p)", proto, (void *)l4, (void *)ip6_hdr, (void*)(l4 - (u_char *)ip6_hdr));
     } else {
         assert(0);
     }
