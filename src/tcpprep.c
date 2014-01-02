@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -120,6 +120,7 @@ main(int argc, char *argv[])
         case DLT_RAW:
         case DLT_C_HDLC:
         case DLT_JUNIPER_ETHER:
+        case DLT_PPP_SERIAL:
             break; /* do nothing because all is good */
         default:
             errx(-1, "Unsupported pcap DLT type: 0x%x", pcap_datalink(options->pcap));

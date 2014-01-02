@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../lib/sll.h"
 
 /* 5-tuple plus VLAN ID */
 typedef struct flow_entry_data {
@@ -163,8 +164,11 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     tcp_hdr_t *tcp_hdr;
     udp_hdr_t *udp_hdr;
     icmpv4_hdr_t *icmp_hdr;
+    hdlc_hdr_t *hdlc_hdr;
+    sll_hdr_t *sll_hdr;
+    struct tcpr_pppserial_hdr *ppp;
     flow_entry_data_t entry;
-    uint16_t l2_len = 0;
+    int l2_len = 0;
     int ip_len;
     uint8_t protocol;
     uint32_t hash;
@@ -180,11 +184,26 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
 
     switch (datalink) {
     case DLT_LINUX_SLL:
-        l2_len = 12; /* actually 16 */
-        /* fall through */
+        l2_len = 16;
+        sll_hdr = (sll_hdr_t *)pktdata;
+        ether_type = sll_hdr->sll_protocol;
+        break;
+
+    case DLT_PPP_SERIAL:
+        l2_len = 4;
+        ppp = (struct tcpr_pppserial_hdr *)pktdata;
+        if (ntohs(ppp->protocol) == 0x0021)
+            ether_type = htonl(ETHERTYPE_IP);
+        else
+            ether_type = ppp->protocol;
+        break;
+
     case DLT_C_HDLC:
-        l2_len += 4;
-        /* fall through */
+        l2_len = 4;
+        hdlc_hdr = (hdlc_hdr_t *)pktdata;
+        ether_type = hdlc_hdr->protocol;
+        break;
+
     case DLT_RAW:
         if ((pktdata[0] >> 4) == 4)
             ether_type = ETHERTYPE_IP;
@@ -221,7 +240,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
              pcap_datalink_val_to_description(datalink), datalink);
         return FLOW_ENTRY_INVALID;
     }
-
 
     if (ether_type == ETHERTYPE_IP) {
         ip_hdr = (ipv4_hdr_t *)(pktdata + l2_len);

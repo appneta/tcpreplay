@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -41,6 +41,7 @@
 #include "dlt_ieee80211/ieee80211.h"
 #include "dlt_radiotap/radiotap.h"
 #include "dlt_jnpr_ether/jnpr_ether.h"
+#include "dlt_pppserial/pppserial.h"
 
 
 /**
@@ -63,6 +64,7 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     retcode += dlt_ieee80211_register(ctx);
     retcode += dlt_radiotap_register(ctx);
     retcode += dlt_jnpr_ether_register(ctx);
+    retcode += dlt_pppserial_register(ctx);
     
     if (retcode < 0)
         return TCPEDIT_ERROR;

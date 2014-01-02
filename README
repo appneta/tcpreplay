@@ -93,9 +93,11 @@ will have to specify the netmap source directory, for example:
 	make
 	sudo make install
 
+You can also find netmap source here (http://code.google.com/p/netmap/).
+
 Detailed installation instructions are available in the INSTALL document in the tar ball.
 
-Install from source code
+Install Tcpreplay from source code
 ------------------------
 Download the tar ball (https://github.com/appneta/tcpreplay/tarball/master) or 
 zip (https://github.com/appneta/tcpreplay/zipball/master) file. Optionally clone the git

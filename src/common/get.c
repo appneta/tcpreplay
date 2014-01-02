@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -84,13 +84,17 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
     sll_hdr_t *sll_hdr;
     uint16_t ether_type;
     uint16_t eth_hdr_offset = 0;
+    struct tcpr_pppserial_hdr *ppp;
 
     assert(pktdata);
     assert(datalen);
 
     switch (datalink) {
     case DLT_RAW:
-        return ETHERTYPE_IP;
+        if ((pktdata[0] >> 4) == 4)
+            return ETHERTYPE_IP;
+        else if ((pktdata[0] >> 4) == 6)
+            return ETHERTYPE_IP6;
         break;
 
     case DLT_JUNIPER_ETHER:
@@ -114,6 +118,14 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         default:
             return ether_type; /* yes, return it in host byte order */
         }
+        break;
+
+    case DLT_PPP_SERIAL:
+        ppp = (struct tcpr_pppserial_hdr *)pktdata;
+        if (ntohs(ppp->protocol) == 0x0021)
+            return htonl(ETHERTYPE_IP);
+        else
+            return ppp->protocol;
         break;
 
     case DLT_C_HDLC:
@@ -170,6 +182,10 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         l2_len += sizeof(eth_hdr_t);
 
         return l2_len;
+        break;
+
+    case DLT_PPP_SERIAL:
+        return 4;
         break;
 
     case DLT_C_HDLC:

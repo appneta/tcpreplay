@@ -1385,57 +1385,56 @@ autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c tcpliveplay_opts.c
 	manpages tcpreplay_edit_opts.c
 
 tcpprep.1: tcpprep_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpprep_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpprep_opts.def
 
 tcprewrite.1: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcprewrite_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcprewrite_opts.def
 
 tcpreplay-edit.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN tcpreplay_opts.def
 
 tcpreplay.1: tcpreplay_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpreplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpreplay_opts.def
 
 tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpbridge_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpbridge_opts.def
 
 tcpliveplay.1: tcpliveplay_opts.def 
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpliveplay_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpliveplay_opts.def
 
 tcpcapinfo.1: tcpcapinfo_opts.def 
-	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpcapinfo_opts.def || true
+	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpcapinfo_opts.def
 tcpreplay_edit_OBJECTS: tcpreplay_opts.h
 tcpreplay_edit_opts.h: tcpreplay_edit_opts.c
 
 tcpreplay_edit_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ $(opts_list)  @NETMAPFLAGS@ -DTCPREPLAY_EDIT -b tcpreplay_edit_opts \
-		tcpreplay_opts.def || true
+	@AUTOGEN@ $(opts_list)  @NETMAPFLAGS@ -DTCPREPLAY_EDIT -b tcpreplay_edit_opts tcpreplay_opts.def
 tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
 
 tcpreplay_opts.c: tcpreplay_opts.def
-	@AUTOGEN@ $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def || true
+	@AUTOGEN@ $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def
 tcpliveplay_OBJECTS: tcpliveplay_opts.h
 tcpliveplay_opts.h: tcpliveplay_opts.c
 
 tcpliveplay_opts.c: tcpliveplay_opts.def
-	@AUTOGEN@ $(opts_list) tcpliveplay_opts.def || true
+	@AUTOGEN@ $(opts_list) tcpliveplay_opts.def
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ $(opts_list) tcprewrite_opts.def || true
+	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 tcpcapinfo_OBJECTS: tcpcapinfo_opts.h
 tcpcapinfo_opts.h: tcpcapinfo_opts.c
 tcpcapinfo_opts.c: tcpcapinfo_opts.def
-	@AUTOGEN@ $(opts_list) tcpcapinfo_opts.def || true
+	@AUTOGEN@ $(opts_list) tcpcapinfo_opts.def
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
 tcpprep_opts.c: tcpprep_opts.def
-	@AUTOGEN@ tcpprep_opts.def || true
+	@AUTOGEN@ tcpprep_opts.def
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	@AUTOGEN@ $(opts_list) tcpbridge_opts.def || true
+	@AUTOGEN@ $(opts_list) tcpbridge_opts.def
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
