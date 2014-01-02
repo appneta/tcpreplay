@@ -154,7 +154,8 @@ am_libtcpedit_a_OBJECTS = tcpedit.$(OBJEXT) parse_args.$(OBJEXT) \
 	en10mb_api.$(OBJEXT) hdlc.$(OBJEXT) hdlc_api.$(OBJEXT) \
 	user.$(OBJEXT) user_api.$(OBJEXT) raw.$(OBJEXT) null.$(OBJEXT) \
 	loop.$(OBJEXT) linuxsll.$(OBJEXT) ieee80211.$(OBJEXT) \
-	ieee80211_hdr.$(OBJEXT) radiotap.$(OBJEXT) pppserial.$(OBJEXT)
+	ieee80211_hdr.$(OBJEXT) radiotap.$(OBJEXT) pppserial.$(OBJEXT) \
+	pppserial.$(OBJEXT)
 libtcpedit_a_OBJECTS = $(am_libtcpedit_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -343,6 +344,7 @@ libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c portmap.c \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211.c \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c \
 	$(srcdir)/plugins/dlt_radiotap/radiotap.c \
+	$(srcdir)/plugins/dlt_pppserial/pppserial.c \
 	$(srcdir)/plugins/dlt_pppserial/pppserial.c
 AM_CFLAGS = -I.. -I../common -I../.. @LDNETINC@ $(LIBOPTS_CFLAGS) \
 	$(LNAV_CFLAGS) -I. -I$(srcdir)/plugins -I$(srcdir)/../common \
@@ -370,7 +372,9 @@ noinst_HEADERS = tcpedit.h edit_packet.h portmap.h tcpedit_stub.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
 	$(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h \
 	$(srcdir)/plugins/dlt_radiotap/radiotap.h \
-	$(srcdir)/plugins/dlt_pppserial/pppserial.h
+	$(srcdir)/plugins/dlt_pppserial/pppserial.h \
+	$(srcdir)/plugins/dlt_pppserial/pppserial_api.h \
+	$(srcdir)/plugins/dlt_pppserial/pppserial_types.h
 
 # Note:
 # You probably don't want to touch anything below this line until the end of the plugin
@@ -414,6 +418,7 @@ EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
+# Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 DLT_STUB_DEPS = $(srcdir)/plugins/dlt_opts.def \
 	$(srcdir)/plugins/dlt_user/user_opts.def \
@@ -1057,9 +1062,9 @@ $(srcdir)/plugins/dlt_radiotap/radiotap.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/p
 
 # dependancies for your plugin source code.  Edit as necessary
 $(srcdir)/plugins/dlt_pppserial/pppserial.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_pppserial/pppserial.h $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
 	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
-	$(srcdir)/tcpedit_api.h 
+	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_pppserial/pppserial.h $(srcdir)/plugins/dlt_pppserial/pppserial_api.h \
+	$(srcdir)/plugins/dlt_pppserial/pppserial_types.h
 
 # END OF: dlt_pppserial
 

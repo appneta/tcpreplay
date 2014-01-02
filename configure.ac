@@ -75,12 +75,12 @@ AC_PATH_PROG(GROFF, groff)
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
-    AC_MSG_CHECKING(for autogen version >= 5.9.x)
+    AC_MSG_CHECKING(for autogen version >= 5.16.x)
     ${AUTOGEN} -v >autogen.version
     AUTOGEN_VERSION=`cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|'`
     AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1`
     AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
-    if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 9 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
+    if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 16 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
         AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.16.2)])
     else
