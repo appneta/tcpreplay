@@ -33,6 +33,7 @@ To change the DLT type of the output pcap, select one of the following values:
 Ethernet aka DLT_EN10MB
 @item
 @var{hdlc}
+Cisco HDLC aka DLT_C_HDLC
 @item
 @var{pppserial}
 PPP Serial aka DLT_PPP_SERIAL

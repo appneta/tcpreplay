@@ -53,6 +53,7 @@ typedef struct packet_cache_s {
 typedef struct file_cache_s {
     int index;
     int cached;
+    int dlt;
     packet_cache_t *packet_cache;
 } file_cache_t;
 
