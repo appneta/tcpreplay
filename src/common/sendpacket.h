@@ -101,6 +101,7 @@ struct sendpacket_s {
     COUNTER flow_non_flow_packets;
     COUNTER flows;
     COUNTER flow_packets;
+    COUNTER flows_unique;
     COUNTER flows_expired;
     COUNTER flows_invalid_packets;
     sendpacket_type_t handle_type;

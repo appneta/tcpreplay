@@ -342,9 +342,11 @@ static inline void update_flow_stats(tcpreplay_t *ctx, sendpacket_t *sp,
     switch (res) {
     case FLOW_ENTRY_NEW:
         ++ctx->stats.flows;
+        ++ctx->stats.flows_unique;
         ++ctx->stats.flow_packets;
         if (sp) {
             ++sp->flows;
+            ++sp->flows_unique;
             ++sp->flow_packets;
         }
         break;

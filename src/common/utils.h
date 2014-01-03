@@ -37,6 +37,7 @@ typedef struct {
     struct timeval last_print;
     COUNTER flow_non_flow_packets;
     COUNTER flows;
+    COUNTER flows_unique;
     COUNTER flow_packets;
     COUNTER flows_expired;
     COUNTER flows_invalid_packets;

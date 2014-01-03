@@ -586,12 +586,13 @@ sendpacket_getstat(sendpacket_t *sp)
 
     if (sp->flow_packets && offset > 0) {
         sprintf(&buf[offset],
-                "\tFlows:                     " COUNTER_SPEC "\n"
+                "\tFlows total:               " COUNTER_SPEC "\n"
+                "\tFlows unique:              " COUNTER_SPEC "\n"
                 "\tFlows expired:             " COUNTER_SPEC "\n"
                 "\tFlow packets:              " COUNTER_SPEC "\n"
                 "\tNon-flow packets:          " COUNTER_SPEC "\n"
                 "\tInvalid flow packets:      " COUNTER_SPEC "\n",
-                sp->flows, sp->flows_expired, sp->flow_packets,
+                sp->flows, sp->flows_expired, sp->flows_expired, sp->flow_packets,
                 sp->flow_non_flow_packets, sp->flows_invalid_packets);
     }
 
