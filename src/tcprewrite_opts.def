@@ -73,6 +73,8 @@ tcprewrite currently supports reading the following DLT types:
 @item
 @var{DLT_IEEE802_11_RADIO} aka 802.11a/b/g with Radiotap headers
 @item
+@var{DLT_JUNIPER_ETHER} aka Juniper Encapsulated Ethernet
+@item
 @var{DLT_PPP_SERIAL} aka PPP over Serial
 
 Please see the --dlt option for supported DLT types for writing.

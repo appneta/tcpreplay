@@ -234,7 +234,7 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     int l2_len;
     u_char *packet = *pktdata;
 
-    if (datalink != DLT_EN10MB)
+    if (datalink != DLT_EN10MB && datalink != DLT_JUNIPER_ETHER)
         fast_edit_packet_dl(pkthdr, pktdata, iteration, cached, datalink);
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
@@ -243,6 +243,18 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     }
 
     l2_len = 0;
+    if (datalink == DLT_JUNIPER_ETHER) {
+        if (memcmp(packet, "MGC", 3))
+            warnx("No Magic Number found: %s (0x%x)",
+                 pcap_datalink_val_to_description(datalink), datalink);
+
+        if ((packet[3] & 0x80) == 0x80) {
+            l2_len = ntohs(*((uint16_t*)&packet[4]));
+            l2_len += 6;
+        } else
+            l2_len = 4; /* no header extensions */
+    }
+
     /* assume Ethernet, IPv4 for now */
     ether_type = ntohs(((eth_hdr_t*)(packet + l2_len))->ether_type);
     while (ether_type == ETHERTYPE_VLAN) {

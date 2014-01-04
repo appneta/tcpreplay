@@ -83,6 +83,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
     hdlc_hdr_t *hdlc_hdr;
     sll_hdr_t *sll_hdr;
     uint16_t ether_type;
+    uint16_t eth_hdr_offset = 0;
     struct tcpr_pppserial_hdr *ppp;
 
     assert(pktdata);
@@ -96,8 +97,19 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
             return ETHERTYPE_IP6;
         break;
 
+    case DLT_JUNIPER_ETHER:
+        if (memcmp(pktdata, "MGC", 3))
+            warnx("No Magic Number found: %s (0x%x)",
+                 pcap_datalink_val_to_description(datalink), datalink);
+
+        if ((pktdata[3] & 0x80) == 0x80) {
+            eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
+            eth_hdr_offset += 6;
+        } else
+            eth_hdr_offset = 4; /* no header extensions */
+        /* fall through */
     case DLT_EN10MB:
-        eth_hdr = (eth_hdr_t *)pktdata;
+        eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
         ether_type = ntohs(eth_hdr->ether_type);
         switch (ether_type) {
         case ETHERTYPE_VLAN: /* 802.1q */
@@ -142,7 +154,9 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 int
 get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 {
-    eth_hdr_t *eth_hdr;
+    uint16_t ether_type = 0;
+    vlan_hdr_t *vlan_hdr;
+    int l2_len = 0;
 
     assert(pktdata);
     assert(datalen);
@@ -153,17 +167,25 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         return 0;
         break;
 
+    case DLT_JUNIPER_ETHER:
+        l2_len = 24;
+        /* fall through */
     case DLT_EN10MB:
-        eth_hdr = (struct tcpr_ethernet_hdr *)pktdata;
-        switch (ntohs(eth_hdr->ether_type)) {
-            case ETHERTYPE_VLAN:
-                return 18;
-                break;
+        ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
-            default:
-                return 14;
-                break;
+        while (ether_type == ETHERTYPE_VLAN) {
+            vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+            ether_type = ntohs(vlan_hdr->vlan_len);
+            l2_len += 4;
         }
+
+        l2_len += sizeof(eth_hdr_t);
+
+        return l2_len;
+        break;
+
+    case DLT_PPP_SERIAL:
+        return 4;
         break;
 
     case DLT_C_HDLC:
