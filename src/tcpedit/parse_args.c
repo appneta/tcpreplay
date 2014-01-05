@@ -207,6 +207,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         tcpedit->rewrite_ip = true;
         srandom(OPT_VALUE_SEED);
         tcpedit->seed = random() + random() + random() + random() + random();
+        printf("seed=0x%x\n", tcpedit->seed);
     }
 
     if (HAVE_OPT(ENDPOINTS)) {
