@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -214,8 +214,10 @@ flag = {
     doc         = <<- EOText
 This option loads the specified pcap(s) into RAM before starting to send in order
 to improve replay performance while introducing a startup performance hit.
-Preloading can be used with or without @var{--loop} and implies 
-@var{--enable-file-cache}.
+Preloading can be used with or without @var{--loop}. This option also suppresses
+flow statistics collection for every iteration, which can significantly reduce
+memory usage. Flow statistics are predicted based on options supplied and
+statistics collected from the first loop iteration.
 EOText;
 };
 

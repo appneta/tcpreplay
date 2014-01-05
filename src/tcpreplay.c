@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -205,7 +205,8 @@ flow_stats(const tcpreplay_t *ctx, bool unique_ip)
     struct timeval diff;
     COUNTER diff_us;
     const tcpreplay_stats_t *stats = &ctx->stats;
-    COUNTER flows = stats->flows;
+    COUNTER flows_total = stats->flows;
+    COUNTER flows_unique = stats->flows_unique;
     COUNTER flows_expired = stats->flows_expired;
     COUNTER flow_packets;
     COUNTER flow_non_flow_packets;
@@ -215,18 +216,19 @@ flow_stats(const tcpreplay_t *ctx, bool unique_ip)
     timersub(&stats->end_time, &stats->start_time, &diff);
     diff_us = TIMEVAL_TO_MICROSEC(&diff);
 
-    if (!flows || !ctx->iteration)
+    if (!flows_total || !ctx->iteration)
         return;
 
     /*
-     * Flows are only counted in first iteration or
-     * when they are read into cache. If flows are
-     * unique from one loop iteration to the next
-     * then multiply by the number of successful
-     * iterations.
+     * When packets are read into cache,  flows
+     * are only counted in first iteration
+     * If flows are unique from one loop iteration
+     * to the next then multiply by the number of
+     * successful iterations.
      */
-    if (unique_ip) {
-        flows *= ctx->iteration;
+    if (unique_ip && ctx->options->preload_pcap) {
+        flows_total *= ctx->iteration;
+        flows_unique *= ctx->iteration;
         flows_expired *= ctx->iteration;
     }
 
@@ -236,18 +238,18 @@ flow_stats(const tcpreplay_t *ctx, bool unique_ip)
     if (diff_us) {
         COUNTER flows_sec_X100;
 
-        flows_sec_X100 = (flows * 100 * 1000 * 1000) / diff_us;
+        flows_sec_X100 = (flows_total * 100 * 1000 * 1000) / diff_us;
         flows_sec = flows_sec_X100 / 100;
         flows_sec_100ths = flows_sec_X100 % 100;
     }
 
     if (ctx->options->flow_expiry)
-        printf("Flows: " COUNTER_SPEC " flows, " COUNTER_SPEC " expired, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
-                flows, flows_expired, flows_sec, flows_sec_100ths, flow_packets,
+        printf("Flows: " COUNTER_SPEC " flows, " COUNTER_SPEC " unique, "COUNTER_SPEC " expired, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
+                flows_total, flows_unique, flows_expired, flows_sec, flows_sec_100ths, flow_packets,
                 flow_non_flow_packets);
     else
         printf("Flows: " COUNTER_SPEC " flows, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
-                flows, flows_sec, flows_sec_100ths, flow_packets,
+                flows_total, flows_sec, flows_sec_100ths, flow_packets,
                 flow_non_flow_packets);
 }
 

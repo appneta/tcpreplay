@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -25,7 +25,5 @@
     (x = (x >> 16) + (x & 0xffff), (~(x + (x >> 16)) & 0xffff))
 
 int do_checksum(tcpedit_t *, u_int8_t *, int, int);
-void chksum_replace4(u_int16_t *sum, u_int32_t from, u_int32_t to);
-void ckksum_replace2(u_int16_t *sum, u_int16_t from, u_int16_t to);
 
 #endif

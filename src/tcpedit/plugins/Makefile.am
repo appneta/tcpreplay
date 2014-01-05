@@ -31,3 +31,6 @@ include $(srcdir)/plugins/dlt_loop/Makefile.am
 include $(srcdir)/plugins/dlt_linuxsll/Makefile.am
 include $(srcdir)/plugins/dlt_ieee80211/Makefile.am
 include $(srcdir)/plugins/dlt_radiotap/Makefile.am
+include $(srcdir)/plugins/dlt_jnpr_ether/Makefile.am
+include $(srcdir)/plugins/dlt_pppserial/Makefile.am
+

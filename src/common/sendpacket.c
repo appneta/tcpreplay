@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -568,12 +568,13 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
 char *
 sendpacket_getstat(sendpacket_t *sp)
 {
-    static char buf[1024];
+    char buf[1024];
+    int offset;
 
     assert(sp);
 
     memset(buf, 0, sizeof(buf));
-    sprintf(buf, "Statistics for network device: %s\n"
+    offset = sprintf(buf, "Statistics for network device: %s\n"
             "\tAttempted packets:         " COUNTER_SPEC "\n"
             "\tSuccessful packets:        " COUNTER_SPEC "\n"
             "\tFailed packets:            " COUNTER_SPEC "\n"
@@ -582,6 +583,19 @@ sendpacket_getstat(sendpacket_t *sp)
             "\tRetried packets (EAGAIN):  " COUNTER_SPEC "\n",
             sp->device, sp->attempt, sp->sent, sp->failed, sp->trunc_packets,
             sp->retry_enobufs, sp->retry_eagain);
+
+    if (sp->flow_packets && offset > 0) {
+        sprintf(&buf[offset],
+                "\tFlows total:               " COUNTER_SPEC "\n"
+                "\tFlows unique:              " COUNTER_SPEC "\n"
+                "\tFlows expired:             " COUNTER_SPEC "\n"
+                "\tFlow packets:              " COUNTER_SPEC "\n"
+                "\tNon-flow packets:          " COUNTER_SPEC "\n"
+                "\tInvalid flow packets:      " COUNTER_SPEC "\n",
+                sp->flows, sp->flows_expired, sp->flows_expired, sp->flow_packets,
+                sp->flow_non_flow_packets, sp->flows_invalid_packets);
+    }
+
     return(buf);
 }
 
@@ -628,7 +642,8 @@ sendpacket_close(sendpacket_t *sp)
 
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
-            fprintf(stderr, "Switching network driver to normal mode... ");
+            fprintf(stderr, "Switching network driver for %s to normal mode... ",
+                    sp->device);
             fflush(NULL);
               /* flush any remaining packets */
             ioctl (sp->handle.fd, NIOCTXSYNC, NULL);
@@ -956,7 +971,8 @@ sendpacket_open_netmap(const char *device, char *errbuf)
      *
      * Cards take a long time to reset the PHY.
      */
-    fprintf(stderr, "Switching network driver to netmap bypass mode... ");
+    fprintf(stderr, "Switching network driver for %s to netmap bypass mode... ",
+            device);
     fflush(NULL);
 
     bzero (&nmr, sizeof(nmr));

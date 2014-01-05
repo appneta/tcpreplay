@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -307,6 +307,10 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
 
     if (HAVE_OPT(INTF2)) {
+        if (!HAVE_OPT(CACHEFILE) && !HAVE_OPT(DUALFILE)) {
+            tcpreplay_seterr(ctx, "--intf2=%s requires either --cachefile or --dualfile", OPT_ARG(INTF2));
+            return -1;
+        }
         if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF2))) == NULL) {
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
             return -1;
@@ -1173,3 +1177,46 @@ tcpreplay_get_current_source(tcpreplay_t *ctx)
 
 /* vim: set tabstop=8 expandtab shiftwidth=4 softtabstop=4: */
 
+
+/**
+ * \brief Sets printing of flow statistics
+ */
+int tcpreplay_set_flow_stats(tcpreplay_t *ctx, bool value)
+{
+    assert(ctx);
+
+    ctx->options->flow_stats = value;
+    return 0;
+}
+
+/**
+ * \brief Sets the flow expiry in seconds
+ */
+int tcpreplay_set_flow_expiry(tcpreplay_t *ctx, int value)
+{
+    assert(ctx);
+
+    ctx->options->flow_expiry = value;
+    return 0;
+}
+
+/**
+ * \brief Get whether to printof flow statistics
+ */
+bool tcpreplay_get_flow_stats(tcpreplay_t *ctx)
+{
+    assert(ctx);
+
+    return ctx->options->flow_stats;
+    return 0;
+}
+
+/**
+ * \brief Gets the flow expiry in seconds
+ */
+int tcpreplay_get_flow_expiry(tcpreplay_t *ctx)
+{
+    assert(ctx);
+
+    return ctx->options->flow_expiry;
+}

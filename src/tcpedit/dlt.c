@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -59,8 +59,13 @@ dlt2layer2len(tcpedit_t *tcpedit, int dlt)
             len = 16;
             break;
 
+        case DLT_PPP_SERIAL:
         case DLT_C_HDLC:
             len = 4;
+            break;
+
+        case DLT_JUNIPER_ETHER:
+            len = 36;
             break;
 
         default:
@@ -83,6 +88,7 @@ dltrequires(tcpedit_t *tcpedit, int dlt)
     int req = TCPEDIT_DLT_OK; // no change required by default
 
     switch(dlt) {
+        case DLT_JUNIPER_ETHER:
         case DLT_EN10MB:
 /*        case DLT_USER:
         case DLT_VLAN: */
@@ -92,6 +98,7 @@ dltrequires(tcpedit_t *tcpedit, int dlt)
         case DLT_NULL:
         case DLT_RAW:
         case DLT_C_HDLC:
+        case DLT_PPP_SERIAL:
             req = TCPEDIT_DLT_SRC + TCPEDIT_DLT_DST;
             /* we just have the proto */
             break;
@@ -121,9 +128,11 @@ dlt2mtu(tcpedit_t *tcpedit, int dlt)
     switch (dlt) {
 /*        case DLT_VLAN:
         case DLT_USER: */
+        case DLT_PPP_SERIAL:
         case DLT_EN10MB:
         case DLT_RAW:
         case DLT_C_HDLC:
+        case DLT_JUNIPER_ETHER:
             mtu = 1500;
             break;
 

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -72,6 +72,10 @@ tcprewrite currently supports reading the following DLT types:
 @var{DLT_IEEE802_11} aka 802.11a/b/g
 @item
 @var{DLT_IEEE802_11_RADIO} aka 802.11a/b/g with Radiotap headers
+@item
+@var{DLT_JUNIPER_ETHER} aka Juniper Encapsulated Ethernet
+@item
+@var{DLT_PPP_SERIAL} aka PPP over Serial
 
 Please see the --dlt option for supported DLT types for writing.
 

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -133,6 +133,8 @@ replay_file(tcpreplay_t *ctx, int idx)
             return -1;
         }
 
+        ctx->options->file_cache[idx].dlt = pcap_datalink(pcap);
+
 #ifdef HAVE_PCAP_SNAPSHOT
         if (pcap_snapshot(pcap) < 65535)
             warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
@@ -140,11 +142,13 @@ replay_file(tcpreplay_t *ctx, int idx)
 #endif
 
     } else {
-        if (!ctx->options->file_cache[idx].cached)
+        if (!ctx->options->file_cache[idx].cached) {
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
+            ctx->options->file_cache[idx].dlt = pcap_datalink(pcap);
+        }
     }
 
 #if 0
@@ -161,6 +165,7 @@ replay_file(tcpreplay_t *ctx, int idx)
                return -1;
             }
 
+        ctx->options->file_cache[idx].dlt = pcap_datalink(pcap);
         /* init tcpdump */
         tcpdump_open(ctx->options->tcpdump, pcap);
     }
@@ -176,6 +181,10 @@ replay_file(tcpreplay_t *ctx, int idx)
                     path, pcap_datalink_val_to_name(pcap_datalink(pcap)),
                     ctx->options->intf1->device, pcap_datalink_val_to_name(ctx->intf1dlt));
 #endif
+        if (ctx->intf1dlt != ctx->options->file_cache[idx].dlt)
+            tcpreplay_setwarn(ctx, "%s DLT (%s) does not match that of the outbound interface: %s (%s)",
+                path, pcap_datalink_val_to_name(pcap_datalink(pcap)),
+                ctx->intf1->device, pcap_datalink_val_to_name(ctx->intf1dlt));
     }
 
     ctx->stats.active_pcap = ctx->options->sources[idx].filename;
@@ -227,41 +236,43 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;
         }
+        ctx->options->file_cache[idx1].dlt = pcap_datalink(pcap1);
         if ((pcap2 = pcap_open_offline(path2, ebuf)) == NULL) {
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;
         }
+        ctx->options->file_cache[idx2].dlt = pcap_datalink(pcap2);
     } else {
         if (!ctx->options->file_cache[idx1].cached) {
             if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
+            ctx->options->file_cache[idx1].dlt = pcap_datalink(pcap1);
         }
         if (!ctx->options->file_cache[idx2].cached) {
             if ((pcap2 = pcap_open_offline(path2, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
+            ctx->options->file_cache[idx2].dlt = pcap_datalink(pcap2);
         }
     }
-#ifdef HAVE_PCAP_SNAPSHOT
-    if (pcap_snapshot(pcap1) < 65535) {
-        tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
-                path1, pcap_snapshot(pcap1));
-        rcode = -2;
-    }
-
-    if (pcap_snapshot(pcap2) < 65535) {
-        tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
-                path2, pcap_snapshot(pcap2));
-        rcode = -2;
-    }
-
-#endif
-
 
     if (pcap1 != NULL) {
+#ifdef HAVE_PCAP_SNAPSHOT
+        if (pcap_snapshot(pcap1) < 65535) {
+            tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                    path1, pcap_snapshot(pcap1));
+            rcode = -2;
+        }
+
+        if (pcap_snapshot(pcap2) < 65535) {
+            tcpreplay_setwarn(ctx, "%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
+                    path2, pcap_snapshot(pcap2));
+            rcode = -2;
+        }
+#endif
         if (ctx->intf1dlt == -1)
             ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
         if ((ctx->intf1dlt >= 0) && (ctx->intf1dlt != pcap_datalink(pcap1))) {
@@ -291,12 +302,13 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
     if (ctx->options->verbose) {
 
         /* in cache mode, we may not have opened the file */
-        if (pcap1 == NULL)
+        if (pcap1 == NULL) {
             if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
-
+            ctx->options->file_cache[idx1].dlt = pcap_datalink(pcap1);
+        }
         /* init tcpdump */
         tcpdump_open(ctx->options->tcpdump, pcap1);
     }

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -53,6 +53,7 @@ typedef struct packet_cache_s {
 typedef struct file_cache_s {
     int index;
     int cached;
+    int dlt;
     packet_cache_t *packet_cache;
 } file_cache_t;
 
@@ -237,6 +238,10 @@ int tcpreplay_set_preload_pcap(tcpreplay_t *, bool);
 /* information */
 int tcpreplay_get_source_count(tcpreplay_t *);
 int tcpreplay_get_current_source(tcpreplay_t *);
+int tcpreplay_set_flow_stats(tcpreplay_t *, bool);
+int tcpreplay_set_flow_expiry(tcpreplay_t *,int);
+bool tcpreplay_get_flow_stats(tcpreplay_t *);
+int tcpreplay_get_flow_expiry(tcpreplay_t *);
 
 /* functions controlling execution */
 int tcpreplay_prepare(tcpreplay_t *);

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -98,6 +98,12 @@ struct sendpacket_s {
     COUNTER sent;
     COUNTER bytes_sent;
     COUNTER attempt;
+    COUNTER flow_non_flow_packets;
+    COUNTER flows;
+    COUNTER flow_packets;
+    COUNTER flows_unique;
+    COUNTER flows_expired;
+    COUNTER flows_invalid_packets;
     sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;

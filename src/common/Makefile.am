@@ -5,7 +5,7 @@ BUILT_SOURCES = git_version.c
 
 git_version.c:
 	$(ECHO) -n 'const char GIT_Version[] = "git:'   > git_version.c
-	git describe --always --abbrev=0  | tr -d '\n' | tr -d '\r' >> git_version.c
+	git describe --always | tr -d '\n' | tr -d '\r' >> git_version.c
 	$(ECHO) '";'			>> git_version.c
 	$(ECHO) 'const char *git_version(void) {'  >> git_version.c
 	$(ECHO) '    return GIT_Version;'	>> git_version.c

@@ -10,3 +10,5 @@
 #include dlt_linuxsll/linuxsll_opts.def
 #include dlt_ieee80211/ieee80211_opts.def
 #include dlt_radiotap/radiotap_opts.def
+#include dlt_jnpr_ether/jnpr_ether_opts.def
+#include dlt_pppserial/pppserial_opts.def

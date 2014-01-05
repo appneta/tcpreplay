@@ -3,7 +3,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -35,6 +35,7 @@
 
 #include "tcpreplay_api.h"
 #include "timestamp_trace.h"
+#include "../lib/sll.h"
 
 #ifdef TCPREPLAY
 
@@ -83,9 +84,13 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     int l2_len = 0;
     ipv4_hdr_t *ip_hdr;
     ipv6_hdr_t *ip6_hdr;
+    hdlc_hdr_t *hdlc_hdr;
+    sll_hdr_t *sll_hdr;
+    struct tcpr_pppserial_hdr *ppp;
     uint32_t *src_ptr = NULL, *dst_ptr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
+    uint16_t ether_type;
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
@@ -95,41 +100,78 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     switch (datalink) {
     case DLT_LINUX_SLL:
-        l2_len = 12;    /* actually 16 */
-        /* fall through */
+        l2_len = 16;
+        sll_hdr = (sll_hdr_t *)*pktdata;
+        ether_type = sll_hdr->sll_protocol;
+        break;
+
+    case DLT_PPP_SERIAL:
+        l2_len = 4;
+        ppp = (struct tcpr_pppserial_hdr *)*pktdata;
+        if (ntohs(ppp->protocol) == 0x0021)
+            ether_type = htonl(ETHERTYPE_IP);
+        else
+            ether_type = ppp->protocol;
+        break;
+
     case DLT_C_HDLC:
-        l2_len += 4;
-        /* fall through */
+        l2_len = 4;
+        hdlc_hdr = (hdlc_hdr_t *)*pktdata;
+        ether_type = hdlc_hdr->protocol;
+        break;
+
     case DLT_RAW:
-        /* pktdata IS the ip header! */
-        ip_hdr = (ipv4_hdr_t*)(packet + l2_len);
-
-        switch (ip_hdr->ip_v) {
-        case 4:
-            src_ptr = (uint32_t*)&ip_hdr->ip_src;
-            dst_ptr = (uint32_t*)&ip_hdr->ip_dst;
-            break;
-
-        case 6:
-            ip6_hdr = (ipv6_hdr_t*)ip_hdr;
-            src_ptr = (uint32_t*)&ip6_hdr->ip_src.__u6_addr.__u6_addr32[3];
-            dst_ptr = (uint32_t*)&ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3];
-            break;
-
-        default:
-            /* non-IP packet */
-            return;
-        }
+        if ((*pktdata[0] >> 4) == 4)
+            ether_type = ETHERTYPE_IP;
+        else if ((*pktdata[0] >> 4) == 6)
+            ether_type = ETHERTYPE_IP6;
         break;
 
     default:
         warnx("Unable to process unsupported DLT type: %s (0x%x)",
              pcap_datalink_val_to_description(datalink), datalink);
-        break;
+            return;
     }
 
-    src_ip_orig = src_ip = ntohl(*src_ptr);
-    dst_ip_orig = dst_ip = ntohl(*dst_ptr);
+    switch (ether_type) {
+    case ETHERTYPE_IP:
+        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+
+        if (ip_hdr->ip_v != 4) {
+            dbgx(2, "expected IPv4 but got: %u", ip_hdr->ip_v);
+            return;
+        }
+
+        if (pkthdr->caplen < (bpf_u_int32)sizeof(*ip_hdr)) {
+            dbgx(2, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
+            return;
+        }
+
+        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
+        dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
+        break;
+
+    case ETHERTYPE_IP6:
+
+        if ((*pktdata[0] >> 4) != 6) {
+            dbgx(2, "expected IPv6 but got: %u", *pktdata[0] >> 4);
+            return;
+        }
+
+        if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
+            dbgx(2, "Packet too short for Unique IPv6 feature: %u", pkthdr->caplen);
+            return;
+        }
+
+        ip6_hdr = (ipv6_hdr_t *)(*pktdata + l2_len);
+        src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
+        dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
+        break;
+
+    default:
+        return; /* non-IP */
+    }
 
     /* swap src/dst IP's in a manner that does not affect CRC */
     if ((!cached && dst_ip > src_ip) ||
@@ -190,8 +232,9 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
     int l2_len;
+    u_char *packet = *pktdata;
 
-    if (datalink != DLT_EN10MB)
+    if (datalink != DLT_EN10MB && datalink != DLT_JUNIPER_ETHER)
         fast_edit_packet_dl(pkthdr, pktdata, iteration, cached, datalink);
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
@@ -199,11 +242,23 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         return;
     }
 
-    /* assume Ethernet, IPv4 for now */
-    ether_type = ntohs(((eth_hdr_t*)*pktdata)->ether_type);
     l2_len = 0;
+    if (datalink == DLT_JUNIPER_ETHER) {
+        if (memcmp(packet, "MGC", 3))
+            warnx("No Magic Number found: %s (0x%x)",
+                 pcap_datalink_val_to_description(datalink), datalink);
+
+        if ((packet[3] & 0x80) == 0x80) {
+            l2_len = ntohs(*((uint16_t*)&packet[4]));
+            l2_len += 6;
+        } else
+            l2_len = 4; /* no header extensions */
+    }
+
+    /* assume Ethernet, IPv4 for now */
+    ether_type = ntohs(((eth_hdr_t*)(packet + l2_len))->ether_type);
     while (ether_type == ETHERTYPE_VLAN) {
-        vlan_hdr = (vlan_hdr_t *)(*pktdata + l2_len);
+        vlan_hdr = (vlan_hdr_t *)(packet + l2_len);
         ether_type = ntohs(vlan_hdr->vlan_len);
         l2_len += 4;
     }
@@ -211,13 +266,13 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     switch (ether_type) {
     case ETHERTYPE_IP:
-        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
+        ip_hdr = (ipv4_hdr_t *)(packet + l2_len);
         src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
         dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
         break;
 
     case ETHERTYPE_IP6:
-        ip6_hdr = (ipv6_hdr_t *)(*pktdata + l2_len);
+        ip6_hdr = (ipv6_hdr_t *)(packet + l2_len);
         src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
         dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
         break;
@@ -290,8 +345,8 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
  *
  * Finds out if flow is unique and updates stats.
  */
-static inline void update_flow_stats(tcpreplay_t *ctx, const struct pcap_pkthdr *pkthdr,
-        const u_char *pktdata, int datalink)
+static inline void update_flow_stats(tcpreplay_t *ctx, sendpacket_t *sp,
+        const struct pcap_pkthdr *pkthdr, const u_char *pktdata, int datalink)
 {
     flow_entry_type_t res = flow_decode(ctx->flow_hash_table,
             pkthdr, pktdata, datalink, ctx->options->flow_expiry);
@@ -299,33 +354,49 @@ static inline void update_flow_stats(tcpreplay_t *ctx, const struct pcap_pkthdr 
     switch (res) {
     case FLOW_ENTRY_NEW:
         ++ctx->stats.flows;
+        ++ctx->stats.flows_unique;
         ++ctx->stats.flow_packets;
+        if (sp) {
+            ++sp->flows;
+            ++sp->flows_unique;
+            ++sp->flow_packets;
+        }
         break;
 
     case FLOW_ENTRY_EXISTING:
         ++ctx->stats.flow_packets;
+        if (sp)
+            ++sp->flow_packets;
         break;
 
     case FLOW_ENTRY_EXPIRED:
         ++ctx->stats.flows_expired;
         ++ctx->stats.flows;
         ++ctx->stats.flow_packets;
+        if (sp) {
+            ++sp->flows_expired;
+            ++sp->flows;
+            ++sp->flow_packets;
+        }
          break;
 
     case FLOW_ENTRY_NON_IP:
         ++ctx->stats.flow_non_flow_packets;
+        if (sp)
+            ++sp->flow_non_flow_packets;
         break;
 
     case FLOW_ENTRY_INVALID:
         ++ctx->stats.flows_invalid_packets;
+        if (sp)
+            ++sp->flows_invalid_packets;
         break;
     }
 }
 /**
  * \brief Preloads the memory cache for the given pcap file_idx 
  *
- * Preloading can be used with or without --loop and implies using
- * --enable-file-cache
+ * Preloading can be used with or without --loop
  */
 void
 preload_pcap_file(tcpreplay_t *ctx, int idx)
@@ -354,11 +425,12 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         packetnum++;
         if (options->flow_stats)
-            update_flow_stats(ctx, &pkthdr, pktdata, dlt);
+            update_flow_stats(ctx, NULL, &pkthdr, pktdata, dlt);
     }
 
     /* mark this file as cached */
     options->file_cache[idx].cached = TRUE;
+    options->file_cache[idx].dlt = dlt;
     pcap_close(pcap);
 }
 
@@ -382,12 +454,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
-    int datalink = ctx->intf1dlt;
+    int datalink = options->file_cache[idx].dlt;
     COUNTER skip_length = 0;
     COUNTER start_us;
     uint32_t iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
-    bool file_cached = options->file_cache[idx].cached;
+    bool preload = options->file_cache[idx].cached;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
@@ -452,11 +524,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if (unique_ip && iteration)
             /* edit packet to ensure every pass is unique */
             fast_edit_packet(&pkthdr, &pktdata, iteration,
-                    file_cached, datalink);
+                    preload, datalink);
 
-        /* update flow stats for the first iteration only */
-        if (options->flow_stats && !file_cached && !iteration)
-            update_flow_stats(ctx, &pkthdr, pktdata, datalink);
+        /* update flow stats */
+        if (options->flow_stats && !preload)
+            update_flow_stats(ctx,
+                    options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks
@@ -554,7 +627,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
-    int datalink = ctx->intf1dlt;
+    int datalink = options->file_cache[cache_file_idx1].dlt;
     COUNTER start_us;
     COUNTER skip_length = 0;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
@@ -598,7 +671,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (pktdata1 == NULL) {
             /* file 2 is next */
             sp = ctx->intf2;
-            datalink = ctx->intf2dlt;
+            datalink = options->file_cache[cache_file_idx2].dlt;
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
             prev_packet = prev_packet2;
@@ -607,7 +680,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         } else if (pktdata2 == NULL) {
             /* file 1 is next */
             sp = ctx->intf1;
-            datalink = ctx->intf1dlt;
+            datalink = options->file_cache[cache_file_idx1].dlt;
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
             prev_packet = prev_packet1;
@@ -616,7 +689,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         } else if (timercmp(&pkthdr1.ts, &pkthdr2.ts, <=)) {
             /* file 1 is next */
             sp = ctx->intf1;
-            datalink = ctx->intf1dlt;
+            datalink = options->file_cache[cache_file_idx1].dlt;
             pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
             prev_packet = prev_packet1;
@@ -625,7 +698,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         } else {
             /* file 2 is next */
             sp = ctx->intf2;
-            datalink = ctx->intf2dlt;
+            datalink = options->file_cache[cache_file_idx2].dlt;
             pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
             prev_packet = prev_packet2;
@@ -663,9 +736,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
                     options->file_cache[cache_file_idx].cached, datalink);
 
-        /* update flow stats for the first iteration only */
-        if (options->flow_stats && !options->file_cache[cache_file_idx].cached && !iteration)
-            update_flow_stats(ctx, pkthdr_ptr, pktdata, datalink);
+        /* update flow stats */
+        if (options->flow_stats && !options->file_cache[cache_file_idx].cached)
+            update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink);
 
         /*
          * we have to cast the ts, since OpenBSD sucks

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -215,7 +215,6 @@ tcpedit_set_seed(tcpedit_t *tcpedit, int value)
     assert(tcpedit);
 
     tcpedit->rewrite_ip = true;
-    srandom(value);
     tcpedit->seed = random() + random() + random() + random() + random();
 
     return TCPEDIT_OK;
