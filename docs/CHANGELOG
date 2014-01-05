@@ -1,5 +1,11 @@
 $Id$
 
+01/05/2014 Version 4.0.0
+	- Implemented wiki page for 4.X - http://tcpreplay.appneta.com
+	- Support for ARM aarch64 (appneta #43)
+	- Add Juniper Encapsulated Ethernet DLT (appneta #42)
+	- Fixed seg fault on -K and --dualfile options (appneta #41)
+
 12/22/2013 Version 4.0.0beta2
 	- Restored -K option which somehow disappeared (appneta #35)
 	- Improve printing with small pcaps at high rates (appneta #34)
@@ -12,7 +18,6 @@ $Id$
     - Deprecated file-cache option - use preload-pcap instead (appneta #17)
     - Removed obsolete sleep-mode and sleep-accel options (appneta #16)
     - Remove unreliable RDTSC option (appneta #16)
-    - Implement pseudo-CRC to improve tcpedit performance (appneta #8)
     - Switch from BSD to GPLv3 license (appneta #5)
     - Add --unique-ip option to tcpreplay (appneta #4)
     - Removed sleep-accel option (appneta #2) 

@@ -23,14 +23,14 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2012";
+    date        = "2000-2014";
     owner       = "Aaron Turner and Fred Klassen";
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
     author      = <<- EOText
-Copyright 2000-2012 Aaron Turner
+Copyright 2013-2014 Fred Klassen - AppNeta Inc.
 
-Copyright 2013 Fred Klassen - AppNeta Inc.
+Copyright 2000-2012 Aaron Turner
 
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
@@ -366,8 +366,8 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
+    fprintf(stderr, "Copyright 2013-2014 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
-    fprintf(stderr, "Copyright 2013 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta Inc.\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");
 #ifdef HAVE_LIBDNET
     fprintf(stderr, "Compiled against libdnet: %s\n", LIBDNET_VERSION);
