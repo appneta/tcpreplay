@@ -394,7 +394,7 @@ uninstall-am:
 docs: clean-docs manpages
 
 web/tcpreplay.html:
-	@GROFF@ -Thtml -mman ../src/tcpreplay.1 > web/tcpreplay.html
+	mkdir -p web; @GROFF@ -Thtml -mman ../src/tcpreplay.1 > web/tcpreplay.html
 
 web/tcpprep.html:
 	@GROFF@ -Thtml -mman ../src/tcpprep.1 > web/tcpprep.html
@@ -408,8 +408,15 @@ web/tcpbridge.html:
 web/tcpreplay-edit.html:
 	@GROFF@ -Thtml -mman ../src/tcpreplay-edit.1 > web/tcpreplay-edit.html
 
+web/tcpliveplay.html:
+	@GROFF@ -Thtml -mman ../src/tcpliveplay.1 > web/tcpliveplay.html
+
+web/tcpcapinfo.html:
+	@GROFF@ -Thtml -mman ../src/tcpcapinfo.1 > web/tcpcapinfo.html
+
 manpages: web/tcpreplay.html web/tcpprep.html web/tcprewrite.html \
-    web/tcpbridge.html web/tcpreplay-edit.html
+    web/tcpbridge.html web/tcpreplay-edit.html web/tcpliveplay.html \
+    web/tcpcapinfo.html
 
 postweb: manpages
 	rsync -qe ssh --exclude '.svn/' --exclude '/**/.svn/' --exclude '/**~' \

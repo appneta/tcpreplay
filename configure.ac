@@ -19,7 +19,7 @@ MAJOR_VERSION=4
 MINOR_VERSION=0
 MICRO_VERSION=0
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
-PACKAGE_URL=http://tcpreplay.synfin.net/
+PACKAGE_URL=http://tcpreplay.appneta.com/
 
 dnl Release is only used for the RPM spec file
 TCPREPLAY_RELEASE=1

@@ -83,7 +83,7 @@ The packet editing features of tcprewrite which distinguish between "client"
 and "server" traffic requires a tcpprep(1) cache file.
 
 For more details, please see the Tcpreplay Manual at:
-http://tcpreplay.synfin.net/wiki/manual
+http://tcpreplay.appneta.com
 EOText;
 
 man-doc = <<- EOMan

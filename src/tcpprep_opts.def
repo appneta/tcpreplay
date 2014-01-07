@@ -72,7 +72,7 @@ tells tcpreplay wether or not to send each packet and which interface the
 packet should be sent out of.
 
 For more details, please see the Tcpreplay Manual at:
-http://tcpreplay.synfin.net/wiki/manual
+http://tcpreplay.appneta.com
 EODetail;
 
 man-doc = <<- EOMan

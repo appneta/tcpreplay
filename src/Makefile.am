@@ -36,7 +36,7 @@ tcpreplay-edit.1: tcpreplay_opts.def
 tcpreplay.1: tcpreplay_opts.def
 	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpreplay_opts.def
 
-tcpbridge.1: tcpbridge_opts.def tcpedit/tcpedit_opts.def
+tcpbridge.1: tcpbridge_opts.def
 	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) tcpbridge_opts.def
 
 tcpliveplay.1: tcpliveplay_opts.def 

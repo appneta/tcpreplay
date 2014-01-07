@@ -11,7 +11,7 @@ Copyright 2012 Yazan Siam
 For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
 
 The latest version of this software is always available from:
-http://tcpreplay.synfin.net/
+http://tcpreplay.appneta.com
 EOText;
 };
 
@@ -65,7 +65,7 @@ SYN packet for correct operation making this packet be the first action in
 the event schedule of local host doing the replay. 
 
 For more details, please see the Tcpreplay Manual at:
-http://tcpreplay.synfin.net/wiki/manual
+http://tcpreplay.appneta.com
 EODetail;
 
 man-doc = <<- EOMan
