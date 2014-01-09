@@ -439,7 +439,7 @@ TRY_SEND_AGAIN:
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
             txring = NETMAP_TXRING(sp->nm_if, 0);
-            if (txring->avail == 0) {
+            while (txring->avail == 0) {
                 struct pollfd x[1];
 
                 /* send TX interrupt signal just in case */
@@ -448,6 +448,9 @@ TRY_SEND_AGAIN:
                 x[0].events = POLLOUT;
                 x[0].revents = 0;
                 if (poll(x, 1, 100) <= 0) {
+                    if (sp->abort)
+                        return retcode;
+
                     dbgx(2, "netmap timeout empty=%d avail=%u bufsize=%d\n",
                             NETMAP_TX_RING_EMPTY(txring),
                             txring->avail, txring->nr_buf_size);
@@ -976,11 +979,19 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     fflush(NULL);
 
     bzero (&nmr, sizeof(nmr));
-    nmr.nr_version = NETMAP_API;
     strncpy (nmr.nr_name, device, sizeof(nmr.nr_name));
+    nmr.nr_version = NETMAP_API;
+
+    /*
+     * The first NIOCREGIF also detaches the card from the
+     * protocol stack and may cause a reset of the card,
+     * which in turn may take some time for the PHY to
+     * reconfigure.
+     */
     if (ioctl (sp->handle.fd, NIOCREGIF, &nmr) == -1) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl: %s",
-                strerror (errno));
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Failure accessing netmap.\n"
+                "Request for netmap version %u failed. Make sure netmap driver is version %u. Error=%s\n",
+                NETMAP_API, NETMAP_API, strerror(errno));
         goto NETMAP_UP_FAILED;
     }
 
@@ -1005,6 +1016,9 @@ sendpacket_open_netmap(const char *device, char *errbuf)
         goto MMAP_FAILED;
     }
 
+    bzero (&nmr, sizeof(nmr));
+    strncpy (nmr.nr_name, device, sizeof(nmr.nr_name));
+    nmr.nr_version = NETMAP_API;
     strlcpy (sp->device, device, sizeof(sp->device));
     sp->nm_if = NETMAP_IF(sp->mmap_addr, nmr.nr_offset);
     sp->nmr = nmr;
