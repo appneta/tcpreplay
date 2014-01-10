@@ -88,10 +88,6 @@ void timesdiv(struct timespec *tvs, COUNTER div)
 void
 init_timestamp(timestamp_t *ctx)
 {
-#ifdef HAVE_ABSOLUTE_TIME
-    ctx = 0;
-#else
     timerclear(ctx);
-#endif 
 }
 

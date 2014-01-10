@@ -50,10 +50,6 @@ tcpedit_t *tcpedit;
 int debug = 0;
 #endif
 
-#ifdef HAVE_ABSOLUTE_TIME
-#include <CoreServices/CoreServices.h>
-#endif
-
 tcpreplay_t *ctx;
 
 void flow_stats(const tcpreplay_t *ctx, bool unique_ip);

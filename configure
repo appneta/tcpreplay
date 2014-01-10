@@ -18951,9 +18951,6 @@ $as_echo "SunOS" >&6; }
     if test x$libpcap_version_096 = xno ; then
         disable_pcap_findalldevs=yes
     fi
-
-$as_echo "#define HAVE_ABSOLUTE_TIME 1" >>confdefs.h
-
     osx_frameworks=yes
 
 $as_echo "#define HAVE_DARWIN 1" >>confdefs.h

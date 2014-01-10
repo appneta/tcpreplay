@@ -93,13 +93,7 @@ tcpreplay_init()
     ctx->options->speed.multiplier = 1.0;
 
     /* Set the default timing method */
-#ifdef HAVE_ABSOLUTE_TIME
-    /* This is always the best (if the OS supports it) */
-    ctx->options->accurate = accurate_abs_time;
-#else
-    /* This is probably the second best solution */
     ctx->options->accurate = accurate_gtod;
-#endif
 
     /* set the default MTU size */
     ctx->options->mtu = DEFAULT_MTU;
@@ -263,16 +257,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
             options->accurate = accurate_nanosleep;
         } else if (strcmp(OPT_ARG(TIMER), "abstime") == 0) {
-#ifdef HAVE_ABSOLUTE_TIME
-            options->accurate = accurate_abs_time;
-            if  (!MPLibraryIsLoaded()) {
-                tcpreplay_seterr(ctx, "%s", "The MP library did not load.\n");
-                return -1;
-            }
-#else
-            tcpreplay_seterr(ctx, "%s", "tcpreplay_api only supports absolute time on Apple OS X");
+            tcpreplay_seterr(ctx, "%s", "abstime is deprecated");
             return -1;
-#endif
         } else {
             tcpreplay_seterr(ctx, "Unsupported timer mode: %s", OPT_ARG(TIMER));
             return -1;
@@ -952,12 +938,10 @@ tcpreplay_prepare(tcpreplay_t *ctx)
         ioport_sleep_init();
     }
 #endif
-#ifndef HAVE_ABSOLUTE_TIME
     if (ctx->options->accurate == accurate_abs_time) {
         tcpreplay_seterr(ctx, "%s", "tcpreplay_api only supports absolute time on Apple OS X");
         return -1;
     }
-#endif
 
     if ((intname = get_interface(ctx->intlist, ctx->options->intf1_name)) == NULL) {
         tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));

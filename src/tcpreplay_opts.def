@@ -146,7 +146,7 @@ flag = {
     arg-default = "gtod";
     max	        = 1;
     arg-type    = string;
-    descrip     = "Select packet timing mode: select, ioport, gtod, nano, abstime";
+    descrip     = "Select packet timing mode: select, ioport, gtod, nano";
     doc	        = <<- EOText
 Allows you to select the packet timing method to use:
 @enumerate
@@ -158,8 +158,6 @@ Allows you to select the packet timing method to use:
 - Write to the i386 IO Port 0x80
 @item gtod [default]
 - Use a gettimeofday() loop
-@item abstime
-- Use OS X AbsoluteTime API
 @end enumerate
 
 EOText;

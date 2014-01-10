@@ -30,11 +30,6 @@
 #include <sys/time.h>
 #include <math.h>
 
-#ifdef HAVE_ABSOLUTE_TIME
-#include <CoreServices/CoreServices.h>
-#include <mach/mach_time.h>
-#endif
-
 
 /*
  * 1 sec = 1,0000 millisec (ms)
@@ -173,24 +168,7 @@ void timesdiv(struct timespec *tvs, COUNTER div);
         }                                       \
     } while(0)
 
-#ifdef HAVE_ABSOLUTE_TIME
-    typedef int64_t timestamp_t;
-
-static inline timestamp_t getUpTime(void)
-{
-    static mach_timebase_info_data_t s_timebase_info;
-
-    if (s_timebase_info.denom == 0) {
-        (void) mach_timebase_info(&s_timebase_info);
-    }
-
-    /* returns nsec (billionth of seconds) */
-    return (timestamp_t)((mach_absolute_time() * (timestamp_t)s_timebase_info.numer) /
-            s_timebase_info.denom);
-}
-#else
     typedef struct timeval timestamp_t;
-#endif
 
 /*
  * starts a timer so we can figure out how long we have
@@ -199,11 +177,7 @@ static inline timestamp_t getUpTime(void)
 static inline void
 get_packet_timestamp(timestamp_t *ctx)
 {
-#ifdef HAVE_ABSOLUTE_TIME
-    *ctx = getUpTime();
-#else
     gettimeofday(ctx, NULL);
-#endif
 }
 
 void init_timestamp(timestamp_t *ctx);

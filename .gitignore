@@ -76,3 +76,4 @@ types_c.vim
 .project
 .cproject
 *.1
+.settings/

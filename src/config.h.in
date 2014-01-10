@@ -66,9 +66,6 @@
 /* Enable GNU Profiler */
 #undef GPROF
 
-/* Have OS X UpTime()/AbsoluteTime high-precision timing */
-#undef HAVE_ABSOLUTE_TIME
-
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 

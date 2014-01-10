@@ -294,11 +294,7 @@ typedef u_int32_t uint32_t
 #define TIMEVAL_TO_MILLISEC(x)  (((x)->tv_sec * 1000) + ((x)->tv_usec / 1000))
 #define TIMEVAL_TO_MICROSEC(x)  (((x)->tv_sec * 1000000) + (x)->tv_usec)
 #define TIMEVAL_TO_NANOSEC(x)   ((u_int64_t)((x)->tv_sec * 1000000000) + ((u_int64_t)(x)->tv_usec * 1000))
-#ifdef HAVE_ABSOLUTE_TIME
-#	define TIMSTAMP_TO_MICROSEC(x) ((COUNTER)(*(x) / 1000))
-#else
-#	define TIMSTAMP_TO_MICROSEC(x) (TIMEVAL_TO_MICROSEC(x))
-#endif
+#define TIMSTAMP_TO_MICROSEC(x) (TIMEVAL_TO_MICROSEC(x))
 
 #define MILLISEC_TO_TIMEVAL(x, tv)          \
     do {                                    \

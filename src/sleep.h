@@ -70,29 +70,6 @@ gettimeofday_sleep(struct timespec nap)
     } while (timercmp(&now, &sleep_until, <));
 }
 
-
-#ifdef HAVE_ABSOLUTE_TIME
-
-/* 
- * Apple's mach_absolute_time function gives nsec precision
- * which is pretty damn sweet
- */
-static inline void
-absolute_time_sleep(struct timespec nap)
-{
-    timestamp_t sleep_until, time_left;
-
-    sleep_until = getUpTime() + TIMESPEC_TO_NANOSEC(&nap);
-
-    do {
-        time_left = sleep_until - getUpTime();
-    } while (time_left < 0);
-}
-
-#endif /* HAVE_ABSOLUTE_TIME */
-
-
-
 #ifdef HAVE_SELECT
 /* 
  * sleep for some time using the select() call timeout method.   This is 
