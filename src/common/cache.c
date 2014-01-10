@@ -116,7 +116,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
-    dbgx(1, "Cache file contains %u packets in %u bytes",
+    dbgx(1, "Cache file contains %" PRIu64 " packets in " COUNTER_SPEC " bytes",
         header.num_packets, cache_size);
 
     dbgx(1, "Cache uses %d packets per byte", header.packets_per_byte);
@@ -129,7 +129,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
         errx(-1, "Cache data length (%zu bytes) doesn't match "
             "cache header (" COUNTER_SPEC " bytes)", read_size, cache_size);
 
-    dbgx(1, "Loaded in %llu packets from cache.", header.num_packets);
+    dbgx(1, "Loaded in %" PRIu64 " packets from cache.", header.num_packets);
 
     close(cachefd);
     return (header.num_packets);

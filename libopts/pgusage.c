@@ -111,7 +111,8 @@ optionPagedUsage(tOptions * pOptions, tOptDesc * pOD)
         fclose(stderr);
         dup2(STDOUT_FILENO, STDERR_FILENO);
 
-        (void)system(zPageUsage);
+        if (system(zPageUsage) < 0)
+            printf("PAGER_STATE_READY failure\n");
     }
 
     case PAGER_STATE_CHILD:
