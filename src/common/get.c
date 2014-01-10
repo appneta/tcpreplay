@@ -374,7 +374,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
     proto = ip6_hdr->ip_nh;
 
     while (TRUE) {
-        dbgx(3, "Processing proto: 0x%hx", proto);
+        dbgx(3, "Processing proto: 0x%hx", (uint16_t)proto);
 
         switch (proto) {
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */

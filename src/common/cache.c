@@ -338,7 +338,7 @@ check_cache(char *cachedata, COUNTER packetid)
 
 #ifdef DEBUG
     dbgx(3, "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
-        cachedata[index], (cachedata[index] & (char)(1 << bit)));
+        cachedata[index], (uint8_t)(cachedata[index] & (char)(1 << bit)));
 #endif
 
     if (!(cachedata[index] & (char)(1 << bit))) {

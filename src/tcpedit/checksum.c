@@ -60,7 +60,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         ipv4 = NULL;
 
         proto = get_ipv6_l4proto(ipv6, len);
-        dbgx(3, "layer4 proto is 0x%hhu", proto);
+        dbgx(3, "layer4 proto is 0x%hx", (uint16_t)proto);
 
         ip_hl = (u_char*)get_layer4_v6(ipv6, len) - (u_char*)data;
         dbgx(3, "ip_hl proto is 0x%d", ip_hl);
