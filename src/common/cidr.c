@@ -657,7 +657,7 @@ char *
 cidr2iplist(tcpr_cidr_t * cidr, char delim)
 {
     char *list = NULL;
-    char ipaddr[16], tempbuff[20];
+    char ipaddr[18], tempbuff[20];
     u_int32_t size, addr, first, last, numips;
     struct in_addr in;
     int i;

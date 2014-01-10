@@ -44,7 +44,6 @@
 #include "pppserial_types.h"
 
 static char dlt_name[] = "pppserial";
-static char dlt_prefix[] = "pppserial";
 static u_int16_t dlt_value = 0x0032;
 
 /*
@@ -344,7 +343,7 @@ dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_pppserial_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_pppserial_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t UNUSED(mac), const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);

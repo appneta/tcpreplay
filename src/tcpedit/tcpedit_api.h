@@ -48,7 +48,7 @@ int tcpedit_set_ttl_value(tcpedit_t *, uint8_t);
 int tcpedit_set_tos(tcpedit_t *, uint8_t);
 int tcpedit_set_tclass(tcpedit_t *, uint8_t);
 int tcpedit_set_flowlabel(tcpedit_t *, uint32_t);
-int tcpedit_set_seed(tcpedit_t *, int);
+int tcpedit_set_seed(tcpedit_t *);
 int tcpedit_set_mtu(tcpedit_t *, int);
 int tcpedit_set_mtu_truncate(tcpedit_t *, bool);
 int tcpedit_set_maxpacket(tcpedit_t *, int);

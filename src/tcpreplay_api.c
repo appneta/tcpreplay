@@ -844,6 +844,9 @@ __tcpreplay_seterr(tcpreplay_t *ctx, const char *func,
     char errormsg[TCPREPLAY_ERRSTR_LEN];
 
     assert(ctx);
+    assert(file);
+    assert(func);
+    assert(line);
 
     va_start(ap, fmt);
     if (fmt != NULL) {

@@ -194,7 +194,7 @@ static inline timestamp_t getUpTime(void)
 
 /*
  * starts a timer so we can figure out how long we have
- * bee transmitting
+ * been transmitting
  */
 static inline void
 get_packet_timestamp(timestamp_t *ctx)

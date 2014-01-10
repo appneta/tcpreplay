@@ -228,14 +228,16 @@ main(int argc, char *argv[])
             caplentoobig = 0;
             dbgx(3, "Read %d bytes for packet %"PRIu64" header", ret, pktcnt);
 
+            memset(&pcap_ph, 0, sizeof(pcap_ph));
+
             /* see what packet header we're using */
             if (pkthdrlen == sizeof(pcap_patched_ph)) {
                 memcpy(&pcap_patched_ph, &buf, sizeof(pcap_patched_ph));
 
                 if (swapped == 1) {
                     dbg(3, "Swapping packet header bytes...");
-                    pcap_patched_ph.caplen = SWAPLONG(pcap_ph.caplen);
-                    pcap_patched_ph.len = SWAPLONG(pcap_ph.len);
+                    pcap_patched_ph.caplen = SWAPLONG(pcap_patched_ph.caplen);
+                    pcap_patched_ph.len = SWAPLONG(pcap_patched_ph.len);
                     pcap_patched_ph.ts.tv_sec = SWAPLONG(pcap_patched_ph.ts.tv_sec);
                     pcap_patched_ph.ts.tv_usec = SWAPLONG(pcap_patched_ph.ts.tv_usec);
                     pcap_patched_ph.index = SWAPLONG(pcap_patched_ph.index);
@@ -272,7 +274,7 @@ main(int argc, char *argv[])
                 printf("%"PRIu64"\t%4"PRIu32"\t\t%4"PRIu32"\t\t%"
                         PRIx32".%"PRIx32,
                         pktcnt, pcap_ph.len, pcap_ph.caplen, 
-                        (unsigned int)pcap_ph.ts.tv_sec, pcap_ph.ts.tv_usec);
+                        (unsigned int)pcap_ph.ts.tv_sec, (unsigned int)pcap_ph.ts.tv_usec);
                 if (pcap_fh.snaplen < pcap_ph.caplen) {
                     caplentoobig = 1;
                 }

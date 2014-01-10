@@ -193,7 +193,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         l2_len = 4;
         ppp = (struct tcpr_pppserial_hdr *)pktdata;
         if (ntohs(ppp->protocol) == 0x0021)
-            ether_type = htonl(ETHERTYPE_IP);
+            ether_type = htons(ETHERTYPE_IP);
         else
             ether_type = ppp->protocol;
         break;

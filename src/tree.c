@@ -42,8 +42,10 @@ char tree_print_buff[TREEPRINTBUFFLEN];
 
 static tcpr_tree_t *new_tree();
 static tcpr_tree_t *packet2tree(const u_char *);
+#ifdef DEBUG        /* prevent compile warnings */
 static char *tree_print(tcpr_data_tree_t *);
 static char *tree_printnode(const char *, const tcpr_tree_t *);
+#endif /* DEBUG */
 static void tree_buildcidr(tcpr_data_tree_t *, tcpr_buildcidr_t *);
 static int tree_checkincidr(tcpr_data_tree_t *, tcpr_buildcidr_t *);
 
@@ -856,7 +858,7 @@ packet2tree(const u_char * data)
     return (node);
 }
 
-
+#ifdef DEBUG
 /**
  * prints out a node of the tree to stderr
  */
@@ -901,3 +903,4 @@ tree_print(tcpr_data_tree_t *treeroot)
     return (tree_print_buff);
 
 }
+#endif /* DEBUG */

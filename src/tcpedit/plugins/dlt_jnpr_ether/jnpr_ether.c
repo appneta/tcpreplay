@@ -46,7 +46,6 @@
 #include "../dlt_en10mb/en10mb.h"
 
 static char dlt_name[] = "jnpr_eth";
-static char dlt_prefix[] = "jnpr_ether";
 static uint16_t dlt_value = DLT_JUNIPER_ETHER;
 
 /*
@@ -114,7 +113,7 @@ dlt_jnpr_ether_init(tcpeditdlt_t *ctx)
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin %s", dlt_name);
+        tcpedit_seterr(ctx->tcpedit, "Unable to initialize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
     

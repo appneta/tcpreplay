@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=4
 MINOR_VERSION=0
-MICRO_VERSION=0
+MICRO_VERSION=1beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -129,7 +129,7 @@ AC_CHECK_TYPE(u_int64_t, uint64_t)
 dnl Older versions of GCC don't support these options
 AC_MSG_CHECKING(for $CC -Wextra support)
 OLD_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS -Wextra"
+CFLAGS="$CFLAGS -Wextra -Werror"
 wextra=""
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }]])],
@@ -140,7 +140,7 @@ CFLAGS="$OLD_CFLAGS $wextra"
 
 AC_MSG_CHECKING(for $CC -Wno-variadic-macros support)
 OLD_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS -Wno-variadic-macros"
+CFLAGS="$CFLAGS -Wno-variadic-macros -Werror"
 wno_variadic_macros=""
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }]])],
@@ -151,7 +151,7 @@ CFLAGS="$OLD_CFLAGS $wno_variadic_macros"
 
 AC_MSG_CHECKING(for $CC -Wfatal-errors support)
 OLD_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS -Wfatal-errors"
+CFLAGS="$CFLAGS -Wfatal-errors -Werror"
 wfatal_errors=""
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }]])],
@@ -160,6 +160,16 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     [ AC_MSG_RESULT(no) ])
 CFLAGS="$OLD_CFLAGS $wfatal_errors"
 
+AC_MSG_CHECKING(for $CC -Wno-format-contains-nul support)
+OLD_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -Wno-format-contains-nul -Werror"
+wno_format_contains_nul=""
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }]])],
+    [ AC_MSG_RESULT(yes) 
+      wno_format_contains_nul="-Wno-format-contains-nul" ],
+    [ AC_MSG_RESULT(no) ])
+CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 dnl Check for other header files
 AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h])
@@ -207,7 +217,7 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -ggdb -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros"
+        CFLAGS="${USER_CFLAGS} -ggdb -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         AC_SUBST(debug_flag)
@@ -823,24 +833,22 @@ AC_ARG_WITH(netmap,
     [trynetmapdir=$withval])
 
 for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap ; do 
-    if test -f "${testdir}/sys/net/netmap.h"  ; then
-        if test $have_netmap = no ; then
-            NETMAPINC="${testdir}/sys/net/netmap.h"
-            NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
-            NETMAPINCDIR="${testdir}/sys"
-            NETMAPFLAGS="-DHAVE_NETMAP"
-            OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
-            CFLAGS="$CFLAGS -I$NETMAPINCDIR"
-            
-            AC_SUBST(NETMAPINC)
-            AC_SUBST(NETMAPUSERINC)
-            AC_SUBST(NETMAPINCDIR)
-            AC_SUBST(NETMAPFLAGS)
-            AC_DEFINE([HAVE_NETMAP], [1],
-                   [Do we have netmap support?])
-            have_netmap="yes $testdir"
-            AC_MSG_RESULT($have_netmap)
-        fi
+    if test -f "${testdir}/sys/net/netmap.h" -a $have_netmap = no ; then
+        NETMAPINC="${testdir}/sys/net/netmap.h"
+        NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
+        NETMAPINCDIR="${testdir}/sys"
+        NETMAPFLAGS="-DHAVE_NETMAP"
+        OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
+        CFLAGS="$CFLAGS -I$NETMAPINCDIR"
+        
+        AC_SUBST(NETMAPINC)
+        AC_SUBST(NETMAPUSERINC)
+        AC_SUBST(NETMAPINCDIR)
+        AC_SUBST(NETMAPFLAGS)
+        AC_DEFINE([HAVE_NETMAP], [1],
+               [Do we have netmap support?])
+        have_netmap="yes $testdir"
+        AC_MSG_RESULT($have_netmap)
     fi
 done
 

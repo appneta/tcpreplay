@@ -41,6 +41,7 @@
 #include "common.h"
 
 /* prevents ISO C error */
+#ifdef USE_FAKE_POLL
 static void FAKEPOLL(int stop)
 { 
     if (! stop)
@@ -49,7 +50,6 @@ static void FAKEPOLL(int stop)
 
 } 
 
-#ifdef USE_FAKE_POLL
 #include <sys/types.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

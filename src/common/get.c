@@ -123,7 +123,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
     case DLT_PPP_SERIAL:
         ppp = (struct tcpr_pppserial_hdr *)pktdata;
         if (ntohs(ppp->protocol) == 0x0021)
-            return htonl(ETHERTYPE_IP);
+            return htons(ETHERTYPE_IP);
         else
             return ppp->protocol;
         break;
@@ -367,8 +367,8 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
 
     /* sanity check */
-    maxlen = (uint32_t)((u_char *)ip6_hdr + len);
-    if ((uint32_t)((u_char *)next) > maxlen)
+    maxlen = *((uint32_t*)((u_char *)ip6_hdr + len));
+    if (*((uint32_t*)((u_char *)next)) > maxlen)
         return NULL;
 
     proto = ip6_hdr->ip_nh;
@@ -433,7 +433,7 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
     void *ptr;
     assert(exthdr);
 
-    maxlen = (int)((u_char *)exthdr + len);
+    maxlen = *((int*)((u_char *)exthdr + len));
 
     dbgx(3, "Jumping to next IPv6 header.  Processing 0x%02x", exthdr->ip_nh);
     switch (exthdr->ip_nh) {
@@ -452,7 +452,7 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
     case TCPR_IPV6_NH_FRAGMENT:
         dbg(3, "Looks like were a fragment header. Returning some frag'd data.");
         ptr = (void *)((u_char *)exthdr + sizeof(struct tcpr_ipv6_frag_hdr));
-        if ((int)ptr > maxlen)
+        if (*(int*)ptr > maxlen)
             return NULL;
         return ptr;
         break;
@@ -467,7 +467,7 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
         dbgx(3, "Looks like we're an ext header (0x%hhx).  Jumping %u bytes"
                " to the next", exthdr->ip_nh, extlen);
         ptr = (void *)((u_char *)exthdr + extlen);
-        if ((int)ptr > maxlen)
+        if (*(int*)ptr > maxlen)
             return NULL;
         return ptr;
         break;

@@ -90,7 +90,7 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     uint32_t *src_ptr = NULL, *dst_ptr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
-    uint16_t ether_type;
+    uint16_t ether_type = 0;
 
     if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
@@ -109,7 +109,7 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         l2_len = 4;
         ppp = (struct tcpr_pppserial_hdr *)*pktdata;
         if (ntohs(ppp->protocol) == 0x0021)
-            ether_type = htonl(ETHERTYPE_IP);
+            ether_type = htons(ETHERTYPE_IP);
         else
             ether_type = ppp->protocol;
         break;
@@ -632,6 +632,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER skip_length = 0;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
+    timestamp_t sent_timestamp;
 
     init_timestamp(&ctx->stats.end_time);
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -953,19 +954,16 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length)
 {
-#ifdef DEBUG
-    static struct timeval totalsleep = { 0, 0 };
-#endif
     tcpreplay_opt_t *options = ctx->options;
     static struct timespec nap = { 0, 0 };
     struct timeval nap_for;
     struct timespec nap_this_time;
-    static uint32_t send = 0;      /* accellerator.   # of packets to send w/o sleeping */
-    uint64_t ppnsec; /* packets per nsec */
+    static uint32_t send = 0;       /* accelerator.   # of packets to send w/o sleeping */
+    uint64_t ppnsec;                /* packets per nsec */
     static int first_time = 1;      /* need to track the first time through for the pps accelerator */
     COUNTER now_us;
 
-    /* acclerator time? */
+    /* accelerator time? */
     if (send > 0) {
         send --;
         return;
@@ -1122,10 +1120,6 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
     default:
         errx(-1, "Unknown timer mode %d", accurate);
     }
-
-#ifdef DEBUG
-    dbgx(4, "Total sleep time: " TIMEVAL_FORMAT, totalsleep.tv_sec, totalsleep.tv_usec);
-#endif
 
     dbgx(2, "sleep delta: " TIMEVAL_FORMAT, sent_timestamp->tv_sec, sent_timestamp->tv_usec);
 

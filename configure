@@ -2920,7 +2920,7 @@ MAINTAINER_AUTOGEN_VERSION=5.16.2
 
 MAJOR_VERSION=4
 MINOR_VERSION=0
-MICRO_VERSION=0
+MICRO_VERSION=1beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -15770,7 +15770,7 @@ $as_echo "yes" >&6; }
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        as_fn_error "Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub" "$LINENO" 5
+        as_fn_error "Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://sourceforge.net/projects/tcpreplay/" "$LINENO" 5
     fi
 fi
 
@@ -16432,7 +16432,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CC -Wextra support" >&5
 $as_echo_n "checking for $CC -Wextra support... " >&6; }
 OLD_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS -Wextra"
+CFLAGS="$CFLAGS -Wextra -Werror"
 wextra=""
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -16453,7 +16453,7 @@ CFLAGS="$OLD_CFLAGS $wextra"
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CC -Wno-variadic-macros support" >&5
 $as_echo_n "checking for $CC -Wno-variadic-macros support... " >&6; }
 OLD_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS -Wno-variadic-macros"
+CFLAGS="$CFLAGS -Wno-variadic-macros -Werror"
 wno_variadic_macros=""
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -16474,7 +16474,7 @@ CFLAGS="$OLD_CFLAGS $wno_variadic_macros"
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CC -Wfatal-errors support" >&5
 $as_echo_n "checking for $CC -Wfatal-errors support... " >&6; }
 OLD_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS -Wfatal-errors"
+CFLAGS="$CFLAGS -Wfatal-errors -Werror"
 wfatal_errors=""
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -16492,6 +16492,26 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 CFLAGS="$OLD_CFLAGS $wfatal_errors"
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CC -Wno-format-contains-nul support" >&5
+$as_echo_n "checking for $CC -Wno-format-contains-nul support... " >&6; }
+OLD_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -Wno-format-contains-nul -Werror"
+wno_format_contains_nul=""
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <stdlib.h>
+    int main(int argc, char *argv[]) { return(0); }
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+      wno_format_contains_nul="-Wno-format-contains-nul"
+else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 for ac_header in fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h
 do :
@@ -17183,7 +17203,7 @@ debug=no
 if test "${enable_debug+set}" = set; then :
   enableval=$enable_debug;  if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -ggdb -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros"
+        CFLAGS="${USER_CFLAGS} -ggdb -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
 
@@ -18196,14 +18216,13 @@ fi
 
 
 for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap ; do
-    if test -f "${testdir}/sys/net/netmap.h"  ; then
-        if test $have_netmap = no ; then
-            NETMAPINC="${testdir}/sys/net/netmap.h"
-            NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
-            NETMAPINCDIR="${testdir}/sys"
-            NETMAPFLAGS="-DHAVE_NETMAP"
-            OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
-            CFLAGS="$CFLAGS -I$NETMAPINCDIR"
+    if test -f "${testdir}/sys/net/netmap.h" -a $have_netmap = no ; then
+        NETMAPINC="${testdir}/sys/net/netmap.h"
+        NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
+        NETMAPINCDIR="${testdir}/sys"
+        NETMAPFLAGS="-DHAVE_NETMAP"
+        OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
+        CFLAGS="$CFLAGS -I$NETMAPINCDIR"
 
 
 
@@ -18212,10 +18231,9 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
 
 $as_echo "#define HAVE_NETMAP 1" >>confdefs.h
 
-            have_netmap="yes $testdir"
-            { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_netmap" >&5
+        have_netmap="yes $testdir"
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_netmap" >&5
 $as_echo "$have_netmap" >&6; }
-        fi
     fi
 done
 

@@ -205,7 +205,7 @@ static sendpacket_t *sendpacket_open_libdnet(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_libdnet(sendpacket_t *) _U_;
 #endif /* HAVE_LIBDNET */
 
-#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) && ! defined INJECT_METHOD
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) && !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET)
 static sendpacket_t *sendpacket_open_pcap(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif /* HAVE_PCAP_INJECT || HAVE_PACKET_SENDPACKET */
@@ -568,16 +568,16 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
 /**
  * Get packet stats for the given sendpacket_t
  */
-char *
-sendpacket_getstat(sendpacket_t *sp)
+size_t
+sendpacket_getstat(sendpacket_t *sp, char *buf, size_t buf_size)
 {
-    char buf[1024];
-    int offset;
+    size_t offset;
 
     assert(sp);
+    assert(buf);
 
-    memset(buf, 0, sizeof(buf));
-    offset = sprintf(buf, "Statistics for network device: %s\n"
+    memset(buf, 0, buf_size);
+    offset = snprintf(buf, buf_size, "Statistics for network device: %s\n"
             "\tAttempted packets:         " COUNTER_SPEC "\n"
             "\tSuccessful packets:        " COUNTER_SPEC "\n"
             "\tFailed packets:            " COUNTER_SPEC "\n"
@@ -588,7 +588,7 @@ sendpacket_getstat(sendpacket_t *sp)
             sp->retry_enobufs, sp->retry_eagain);
 
     if (sp->flow_packets && offset > 0) {
-        sprintf(&buf[offset],
+        offset += snprintf(&buf[offset], buf_size - offset,
                 "\tFlows total:               " COUNTER_SPEC "\n"
                 "\tFlows unique:              " COUNTER_SPEC "\n"
                 "\tFlows expired:             " COUNTER_SPEC "\n"
@@ -599,7 +599,7 @@ sendpacket_getstat(sendpacket_t *sp)
                 sp->flow_non_flow_packets, sp->flows_invalid_packets);
     }
 
-    return(buf);
+    return offset;
 }
 
 /**
@@ -749,7 +749,7 @@ sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 }
 
 
-#if defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET
+#if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) && !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET)
 /**
  * Inner sendpacket_open() method for using libpcap
  */

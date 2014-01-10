@@ -210,7 +210,7 @@ tcpedit_set_flowlabel(tcpedit_t *tcpedit, uint32_t value)
  * Set the IPv4 IP address randomization seed
  */
 int
-tcpedit_set_seed(tcpedit_t *tcpedit, int value)
+tcpedit_set_seed(tcpedit_t *tcpedit)
 {
     assert(tcpedit);
 

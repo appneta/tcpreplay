@@ -63,6 +63,7 @@ main(int argc, char *argv[])
 {
     int i, optct = 0;
     int rcode;
+    char buf[1024];
 
     ctx = tcpreplay_init();
 #ifdef TCPREPLAY
@@ -188,9 +189,12 @@ main(int argc, char *argv[])
                     || tcpedit->seed
 #endif
                     );
-        printf("%s", sendpacket_getstat(ctx->intf1));
-        if (ctx->intf2 != NULL)
-            printf("%s", sendpacket_getstat(ctx->intf2));
+        sendpacket_getstat(ctx->intf1, buf, sizeof(buf));
+        printf("%s", buf);
+        if (ctx->intf2 != NULL) {
+            sendpacket_getstat(ctx->intf2, buf, sizeof(buf));
+            printf("%s", buf);
+        }
     }
     tcpreplay_close(ctx);
     return 0;

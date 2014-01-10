@@ -112,11 +112,11 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     header.packets_per_byte = ntohs(header.packets_per_byte);    
     cache_size = header.num_packets / header.packets_per_byte;
         
-    /* deal with any remainder, becuase above divsion is integer */
+    /* deal with any remainder, because above division is integer */
     if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
-    dbgx(1, "Cache file contains %llu packets in %llu bytes",
+    dbgx(1, "Cache file contains %u packets in %u bytes",
         header.num_packets, cache_size);
 
     dbgx(1, "Cache uses %d packets per byte", header.packets_per_byte);
