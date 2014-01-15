@@ -30,7 +30,7 @@ manpages: web/tcpreplay.html web/tcpprep.html web/tcprewrite.html \
     web/tcpcapinfo.html
 
 postweb: manpages
-	rsync -qe ssh --exclude '.svn/' --exclude '/**/.svn/' --exclude '/**~' \
+	rsync -qe ssh --exclude '.git/' --exclude '/**/.git/' --exclude '/**~' \
 	--exclude '*~' -avz web/ \
 	aturner@malbec.synfin.net:/var/vhosts/tcpreplay/
 	scp CHANGELOG TODO aturner@malbec.synfin.net:/var/vhosts/tcpreplay/

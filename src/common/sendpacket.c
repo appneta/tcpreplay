@@ -136,6 +136,12 @@
 #endif /* linux */
 static int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd);
 static sendpacket_t *sendpacket_open_netmap(const char *device, char *errbuf);
+#if NETMAP_API >= 10
+#define NETMAP_TX_RING_EMPTY nm_ring_empty
+#else
+#define nm_ring_space(ring) \
+    (ring->avail)
+#endif /* NETMAP_API < 10 */
 #endif /* HAVE_NETMAP */
 
 #ifdef HAVE_PF_PACKET
@@ -245,7 +251,7 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
     struct netmap_ring *txring;
     struct netmap_slot *slot;
     char *p;
-    uint32_t cur;
+    uint32_t cur, avail;
     bool tx_queue_empty;
 #endif
 
@@ -439,7 +445,8 @@ TRY_SEND_AGAIN:
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
             txring = NETMAP_TXRING(sp->nm_if, 0);
-            while (txring->avail == 0) {
+            avail = nm_ring_space(txring);
+            while (avail == 0) {
                 struct pollfd x[1];
 
                 /* send TX interrupt signal just in case */
@@ -453,7 +460,7 @@ TRY_SEND_AGAIN:
 
                     dbgx(2, "netmap timeout empty=%d avail=%u bufsize=%d\n",
                             NETMAP_TX_RING_EMPTY(txring),
-                            txring->avail, txring->nr_buf_size);
+                            avail, txring->nr_buf_size);
                     goto TRY_SEND_AGAIN;
                 }
 
@@ -463,9 +470,11 @@ TRY_SEND_AGAIN:
                  * of the TX queue.
                  */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+
+                avail = nm_ring_space(txring);
                 dbgx(2, "netmap pollempty=%d avail=%u bufsize=%d\n",
                         NETMAP_TX_RING_EMPTY(txring),
-                        txring->avail, txring->nr_buf_size);
+                        avail, txring->nr_buf_size);
             }
 
             /*
@@ -482,9 +491,15 @@ TRY_SEND_AGAIN:
                     txring->avail, txring->nr_buf_size);
 
             /* let kernel know that packet is available */
+#if NETMAP_API >= 10
+            cur = nm_ring_next(txring, cur);
+            tx_queue_empty = nm_ring_empty(txring);
+            txring->head = cur;
+#else
             cur = NETMAP_RING_NEXT(txring, cur);
             tx_queue_empty = NETMAP_TX_RING_EMPTY(txring);
             txring->avail--;
+#endif
             txring->cur = cur;
             retcode = len;
 
@@ -647,15 +662,17 @@ sendpacket_close(sendpacket_t *sp)
 #ifdef HAVE_NETMAP
             fprintf(stderr, "Switching network driver for %s to normal mode... ",
                     sp->device);
+#if NETMAP_API < 10
             fflush(NULL);
               /* flush any remaining packets */
-            ioctl (sp->handle.fd, NIOCTXSYNC, NULL);
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
 
             /* final part: wait for the TX queue to be empty. */
             while (!NETMAP_TX_RING_EMPTY(NETMAP_TXRING(sp->nm_if, 0))) {
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
                 usleep(1); /* wait 1 tick */
             }
+#endif
 
 #ifdef linux
             /* restore original settings:
@@ -675,7 +692,9 @@ sendpacket_close(sendpacket_t *sp)
 #endif /* linux */
 
             /* restore interface to normal mode */
+#if NETMAP_API < 10
             ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
+#endif
             munmap(sp->mmap_addr, sp->mmap_size);
             close(sp->handle.fd);
             notice("done!");
@@ -982,15 +1001,9 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     strncpy (nmr.nr_name, device, sizeof(nmr.nr_name));
     nmr.nr_version = NETMAP_API;
 
-    /*
-     * The first NIOCREGIF also detaches the card from the
-     * protocol stack and may cause a reset of the card,
-     * which in turn may take some time for the PHY to
-     * reconfigure.
-     */
     if (ioctl (sp->handle.fd, NIOCREGIF, &nmr) == -1) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Failure accessing netmap.\n"
-                "Request for netmap version %u failed. Make sure netmap driver is version %u. Error=%s\n",
+                "\tRequest for netmap version %u failed.\n\tMake sure netmap driver is version %u.\n\tError=%s\n",
                 NETMAP_API, NETMAP_API, strerror(errno));
         goto NETMAP_UP_FAILED;
     }
@@ -1072,7 +1085,9 @@ NM_DO_IOCTL_FAILED:
     munmap(sp->mmap_addr, sp->mmap_size);
 MMAP_FAILED:
 NETMAP_IOCTL_FAILED:
+#if NETMAP_API < 10
     ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
+#endif
 NETMAP_UP_FAILED:
     close (sp->handle.fd);
 OPEN_FAILED:

@@ -15,9 +15,6 @@ DIST_SUBDIRS = scripts lib libopts src docs test
 
 dist-hook: version manpages update
 
-update:
-	svn update
-
 DOCS_DIR = $(top_builddir)/docs
 
 manpages:

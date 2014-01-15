@@ -759,9 +759,6 @@ uninstall-am:
 
 dist-hook: version manpages update
 
-update:
-	svn update
-
 manpages:
 	cd src && make manpages
 
