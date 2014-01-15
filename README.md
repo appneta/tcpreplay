@@ -55,8 +55,9 @@ client or server and splits them into creates output files for use by tcpreplay 
 
 Install package
 ===============
-Please visit our [wiki](http://tcpreplay.appneta.com) for product information and detailed
-installation instructions.
+Please visit our [downloads](http://tcpreplay.appneta.com/wiki/installation.html#downloads)
+page on our [wiki](http://tcpreplay.appneta.com) 
+for detailed download and installation instructions.
 
 
 Simple directions for Unix users:
