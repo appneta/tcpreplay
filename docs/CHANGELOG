@@ -1,15 +1,22 @@
 $Id$
 
+01/16/2014 Version
+    - Support for netmap version 10 API (#53)
+    - Remove deprecated "absolute time" for OS X (#52)
+    - Make dosleep() rentrant to support API concurrency (#51)  
+    - Remove compiler warnings (#50)
+    - Fix slow netmap in Intel GigE "igb" server NICS (#49)
+ 
 01/05/2014 Version 4.0.0
-	- Implemented wiki page for 4.X - http://tcpreplay.appneta.com
-	- Support for ARM aarch64 (appneta #43)
-	- Add Juniper Encapsulated Ethernet DLT (appneta #42)
-	- Fixed seg fault on -K and --dualfile options (appneta #41)
+    - Implemented wiki page for 4.X - http://tcpreplay.appneta.com
+    - Support for ARM aarch64 (appneta #43)
+    - Add Juniper Encapsulated Ethernet DLT (appneta #42)
+    - Fixed seg fault on -K and --dualfile options (appneta #41)
 
 12/22/2013 Version 4.0.0beta2
-	- Restored -K option which somehow disappeared (appneta #35)
-	- Improve printing with small pcaps at high rates (appneta #34)
-	- Fixed build errors on BSD and Fedora 20 (appneta #32 #33)
+    - Restored -K option which somehow disappeared (appneta #35)
+    - Improve printing with small pcaps at high rates (appneta #34)
+    - Fixed build errors on BSD and Fedora 20 (appneta #32 #33)
 
 12/20/2013 Version 4.0.0beta1
     - Compile and cross compile on ARM (appneta #26)
@@ -213,49 +220,49 @@ $Id$
         - 802.11 w/ Radiotap (#177)
 
 05/01/2007: Version 3.0.1
-	- Stop tcpreplay causing OS X WiFi from disassociating (#167)
-	- --pnat incorrectly matched all IP addresses (#170)
-	- Fix serious memory leak in core common library (#175)
-	- Fix tcprewrite --enet-vlan on little endian systems (#174)
-	- Bad pcap timestamps were causing excessive delays (#169)
-	- Code cleanup (#173)
+    - Stop tcpreplay causing OS X WiFi from disassociating (#167)
+    - --pnat incorrectly matched all IP addresses (#170)
+    - Fix serious memory leak in core common library (#175)
+    - Fix tcprewrite --enet-vlan on little endian systems (#174)
+    - Bad pcap timestamps were causing excessive delays (#169)
+    - Code cleanup (#173)
 
 04/20/2007: Version 3.0
-	- By default, no longer try to use libnet.  You must now specify --enable-libnet (#148)
-	- Improve documentation (#30)
-	- General code cleanup (#47)
-	- Warn when GNU Autogen version < 5.9 (#153)
-	- Remove support for pcap_snapshot_override which was never added to libpcap (#140)
-	- Fix support for C99/GCC 4.3 "inline".  Rely on -O3 for better performance. (#149)
-	- Prioritize 64 bit libraries over 32 bit counterparts (#150)
+    - By default, no longer try to use libnet.  You must now specify --enable-libnet (#148)
+    - Improve documentation (#30)
+    - General code cleanup (#47)
+    - Warn when GNU Autogen version < 5.9 (#153)
+    - Remove support for pcap_snapshot_override which was never added to libpcap (#140)
+    - Fix support for C99/GCC 4.3 "inline".  Rely on -O3 for better performance. (#149)
+    - Prioritize 64 bit libraries over 32 bit counterparts (#150)
 
 04/14/2007: Version 3.0.RC1
     - Fix tcpbridge and make it compile by default (#15)
-	- Fix tcprewrite crash on little-endian systems (#127)
-	- Gracefully handle broken pcap files where the snaplen < caplen (#130)
-		- Note: Fix was made in libpcap and will be part of 0.9.6
-	- Fix numerous bugs with the sendpacket code (#137)
-	- Add optional support for editing packets with tcpreplay (#61)
-	- Fix 'make test' on little endian systems (#64)
-	- tcprewrite -s is no longer endian dependent (#65)
-	- /docs cleaned up (#66)
-	- Fix detection/compile of libpcap.  Now support versions >= 0.7.2 (#80, #144)
-	- Add official support Cygwin/Win32 support (#110)
-	- Clean up libpcap version code (#111)
-	- Add support for interface alias names for Win32 (#113)
-	- Warn user on DLT miss-match (#125)
-	- Fix tcprewrite segfault with --fixlen=pad (#134)
-	- Add loop/cache support for better performance (#136)
-	- inline debugging code for better performance (#138)
-	- configure now supports selecting injection method (#139)
-	- Fix configure/compile errors under OpenBSD (#146)
-	- Add tcpbridge --verbose mode (#28)
-	- Fix compile issues under HP-UX & strictly aligned systems (#141)
-	- --enable-dynamic-link supports 64bit libraries (#143)
-	
-	
+    - Fix tcprewrite crash on little-endian systems (#127)
+    - Gracefully handle broken pcap files where the snaplen < caplen (#130)
+        - Note: Fix was made in libpcap and will be part of 0.9.6
+    - Fix numerous bugs with the sendpacket code (#137)
+    - Add optional support for editing packets with tcpreplay (#61)
+    - Fix 'make test' on little endian systems (#64)
+    - tcprewrite -s is no longer endian dependent (#65)
+    - /docs cleaned up (#66)
+    - Fix detection/compile of libpcap.  Now support versions >= 0.7.2 (#80, #144)
+    - Add official support Cygwin/Win32 support (#110)
+    - Clean up libpcap version code (#111)
+    - Add support for interface alias names for Win32 (#113)
+    - Warn user on DLT miss-match (#125)
+    - Fix tcprewrite segfault with --fixlen=pad (#134)
+    - Add loop/cache support for better performance (#136)
+    - inline debugging code for better performance (#138)
+    - configure now supports selecting injection method (#139)
+    - Fix configure/compile errors under OpenBSD (#146)
+    - Add tcpbridge --verbose mode (#28)
+    - Fix compile issues under HP-UX & strictly aligned systems (#141)
+    - --enable-dynamic-link supports 64bit libraries (#143)
+    
+    
 03/22/2007: Version 3.0.beta13
-	- Fixed detection of IPv4 packets in libtcpedit on little-endian boxes (#115, #116)
+    - Fixed detection of IPv4 packets in libtcpedit on little-endian boxes (#115, #116)
     - Fixed TCP/UDP checksum calculation on little-endian boxes (#126)
     - Added --quiet flag to tcpreplay for Lothar (#109)
     - The --seed flag should now generate the same IPs on both little-endian & big-endian boxes (#65)
@@ -263,29 +270,29 @@ $Id$
     - Adding L2 header for DLT_RAW encapsulated packets now works (#16)
     - Clean up documentation (#66, #75)
     - Start initial support for Win32 port (#110, #111)
-	- Finish DLT plugin rewrite (#82)
-	- Fix compile on systems without tcpdump installed
+    - Finish DLT plugin rewrite (#82)
+    - Fix compile on systems without tcpdump installed
 
 02/22/2007: Version 3.0.beta12
-	- Fix compile under RH ES 3.x (gcc 3.2.2) (#79)
-	- Fix compile on MIPS, ARM, HPPA, etc (#81, #88)
-	- Rewrite L2/DLT code in tcpedit/tcprewrite to be plugin based (#82)
-		- Create Ethernet Plugin (#99)
-		- Create User Plugin (#100)
-		- Create Cisco HDLC Plugin (#101)
-		- Create DLT_LINUX_SLL Plugin (#102)
-		- Create DLT_RAW Plugin (#104)
-		- Create DLT_NULL Plugin (#105)
-		- Create DLT_LOOP Plugin (#106)
-	- Properly decode ethernet frames when they are VLAN tagged (#84)
-	- Do not install man2html (#85)
-	- Add configure --disable-libopts-install option (#86)
-	- Enhance tcpreplay --oneatatime (#90)
-	- libtcpedit can now return warnings & errors (#92)
-	- Fix tcpprep --include/exclude (#96)
-	- Upgrade AutoGen tearoff (libopts) to latest version (5.9.0) (#97)
-	- Don't do L4 checksums for non-fragment offset == 0 (#107)
-	
+    - Fix compile under RH ES 3.x (gcc 3.2.2) (#79)
+    - Fix compile on MIPS, ARM, HPPA, etc (#81, #88)
+    - Rewrite L2/DLT code in tcpedit/tcprewrite to be plugin based (#82)
+        - Create Ethernet Plugin (#99)
+        - Create User Plugin (#100)
+        - Create Cisco HDLC Plugin (#101)
+        - Create DLT_LINUX_SLL Plugin (#102)
+        - Create DLT_RAW Plugin (#104)
+        - Create DLT_NULL Plugin (#105)
+        - Create DLT_LOOP Plugin (#106)
+    - Properly decode ethernet frames when they are VLAN tagged (#84)
+    - Do not install man2html (#85)
+    - Add configure --disable-libopts-install option (#86)
+    - Enhance tcpreplay --oneatatime (#90)
+    - libtcpedit can now return warnings & errors (#92)
+    - Fix tcpprep --include/exclude (#96)
+    - Upgrade AutoGen tearoff (libopts) to latest version (5.9.0) (#97)
+    - Don't do L4 checksums for non-fragment offset == 0 (#107)
+    
 08/07/2006: Version 3.0.beta11
     - Fix distribution to ship missing src/tcpr.h (#73)
     - Add support to tcprewrite to alter output file DLT (#74)
