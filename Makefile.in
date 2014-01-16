@@ -757,7 +757,7 @@ uninstall-am:
 
 .PHONY: manpages docs test man2html
 
-dist-hook: version manpages update
+dist-hook: version manpages
 
 manpages:
 	cd src && make manpages
