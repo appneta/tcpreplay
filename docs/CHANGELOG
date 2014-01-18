@@ -1,6 +1,9 @@
 $Id$
 
-01/16/2014 Version
+01/17/2014 Version 4.0.1
+    - Fix hangs with --mbps command (#54)
+
+01/16/2014 Version 4.0.1
     - Support for netmap version 10 API (#53)
     - Remove deprecated "absolute time" for OS X (#52)
     - Make dosleep() rentrant to support API concurrency (#51)  
