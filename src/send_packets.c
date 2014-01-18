@@ -59,8 +59,7 @@ extern int debug;
 static void do_sleep(tcpreplay_t *ctx, struct timeval *time, 
         struct timeval *last, int len, tcpreplay_accurate accurate, 
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
-        COUNTER *start_us, COUNTER *skip_length, struct timespec *nap,
-        uint32_t *skip_packets, int *first_time);
+        COUNTER *start_us, COUNTER *skip_length);
 static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
@@ -452,9 +451,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     uint32_t pktlen;
     packet_cache_t *cached_packet = NULL;
     packet_cache_t **prev_packet = NULL;
-    struct timespec nap = { 0, 0 };
-    uint32_t skip_packets = 0;      /* accelerator.   # of packets to send w/o sleeping */
-    int first_time = 1;             /* need to track the first time through for the pps accelerator */
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
@@ -560,7 +556,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             }
 
             do_sleep(ctx, (struct timeval *)&pkthdr.ts, &ctx->stats.last_time, pktlen, options->accurate, sp, packetnum,
-                    &ctx->stats.end_time, &start_us, &skip_length, &nap, &skip_packets, &first_time);
+                    &ctx->stats.end_time, &start_us, &skip_length);
         }
 
 SEND_NOW:
@@ -630,9 +626,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     bool unique_ip = options->unique_ip;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
-    struct timespec nap = { 0, 0 };
-    uint32_t skip_packets = 0;      /* accelerator.   # of packets to send w/o sleeping */
-    int first_time = 1;             /* need to track the first time through for the pps accelerator */
     struct pcap_pkthdr *pkthdr_ptr;
     int datalink = options->file_cache[cache_file_idx1].dlt;
     COUNTER start_us;
@@ -770,7 +763,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             }
 
             do_sleep(ctx, (struct timeval *)&pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, options->accurate, sp, packetnum,
-                    &ctx->stats.end_time, &start_us, &skip_length, &nap, &skip_packets, &first_time);
+                    &ctx->stats.end_time, &start_us, &skip_length);
         }
 
 SEND_NOW:
@@ -958,8 +951,7 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
 static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         struct timeval *last, int len, tcpreplay_accurate accurate,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
-        COUNTER *start_us, COUNTER *skip_length, struct timespec *nap,
-        uint32_t *skip_packets, int *first_time)
+        COUNTER *start_us, COUNTER *skip_length)
 {
     tcpreplay_opt_t *options = ctx->options;
     struct timeval nap_for;
@@ -968,8 +960,8 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
     COUNTER now_us;
 
     /* accelerator time? */
-    if (*skip_packets > 0) {
-        (*skip_packets)--;
+    if (ctx->skip_packets > 0) {
+        (ctx->skip_packets)--;
         return;
     }
 
@@ -978,9 +970,9 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
      * and hence requires the funky math to get the expected timings.
      */
     if (options->speed.mode == speed_packetrate && options->speed.pps_multi) {
-        *skip_packets = options->speed.pps_multi - 1;
-        if (*first_time) {
-            *first_time = 0;
+        ctx->skip_packets = options->speed.pps_multi - 1;
+        if (ctx->first_time) {
+            ctx->first_time = 0;
             return;
         }
     }
@@ -1000,20 +992,20 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
             if (timercmp(time, last, <)) {
                 /* Packet has gone back in time!  Don't sleep and warn user */
                 warnx("Packet #" COUNTER_SPEC " has gone back in time!", counter);
-                timesclear(nap);
+                timesclear(&ctx->nap);
             } else {
                 /* time has increased or is the same, so handle normally */
                 timersub(time, last, &nap_for);
                 dbgx(3, "original packet delta time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
 
-                TIMEVAL_TO_TIMESPEC(&nap_for, nap);
-                dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, nap->tv_sec, nap->tv_nsec);
-                timesdiv_float(nap, options->speed.multiplier);
-                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, nap->tv_sec, nap->tv_nsec);
+                TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
+                dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
+                timesdiv_float(&ctx->nap, options->speed.multiplier);
+                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
             }
         } else {
             /* Don't sleep if this is our first packet */
-            timesclear(nap);
+            timesclear(&ctx->nap);
         }
         break;
 
@@ -1030,7 +1022,7 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
             COUNTER next_tx_us = (bits_sent * 1000000) / bps;
             COUNTER tx_us = now_us - *start_us;
             if (next_tx_us > tx_us)
-                NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000LL, nap);
+                NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000LL, &ctx->nap);
             else if (tx_us > next_tx_us) {
                 tx_us = now_us - *start_us;
                 *skip_length = ((tx_us - next_tx_us) * bps) / 8000000;
@@ -1039,29 +1031,29 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         }
 
         dbgx(3, "packet size %d\t\tequals\tnap " TIMESPEC_FORMAT, len,
-                nap->tv_sec, nap->tv_nsec);
+                ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
     case speed_packetrate:
         /* only need to calculate this the first time */
-        if (! timesisset(nap)) {
+        if (! timesisset(&ctx->nap)) {
             /* run in packets/sec */
             ppnsec = 1000000000 / options->speed.speed * (options->speed.pps_multi > 0 ? options->speed.pps_multi : 1);
-            NANOSEC_TO_TIMESPEC(ppnsec, nap);
-            dbgx(1, "sending %d packet(s) per %lu nsec", (options->speed.pps_multi > 0 ? options->speed.pps_multi : 1), nap->tv_nsec);
+            NANOSEC_TO_TIMESPEC(ppnsec, &ctx->nap);
+            dbgx(1, "sending %d packet(s) per %lu nsec", (options->speed.pps_multi > 0 ? options->speed.pps_multi : 1), ctx->nap.tv_nsec);
         }
         break;
 
     case speed_oneatatime:
         /* do we skip prompting for a key press? */
-        if (*skip_packets == 0) {
-            *skip_packets = get_user_count(ctx, sp, counter);
+        if (ctx->skip_packets == 0) {
+            ctx->skip_packets = get_user_count(ctx, sp, counter);
         }
 
         /* decrement our send counter */
         printf("Sending packet " COUNTER_SPEC " out: %s\n", counter,
                sp == ctx->intf1 ? options->intf1_name : options->intf2_name);
-        (*skip_packets)--;
+        ctx->skip_packets--;
 
         /* leave do_sleep() */
         return;
@@ -1073,7 +1065,7 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         break;
     }
 
-    memcpy(&nap_this_time, &nap, sizeof(nap_this_time));
+    memcpy(&nap_this_time, &ctx->nap, sizeof(nap_this_time));
 
     /* don't sleep if nap = {0, 0} */
     if (!timesisset(&nap_this_time))
