@@ -124,6 +124,7 @@ tcpreplay_init()
     ctx->intf1dlt = -1;
     ctx->intf2dlt = -1;
     ctx->abort = false;
+    ctx->first_time = 1;
     return ctx;
 }
 

@@ -181,6 +181,11 @@ typedef struct tcpreplay_s {
     int cache_byte;
     int current_source; /* current source input being replayed */
 
+    /* do_sleep helpers */
+    struct timespec nap;
+    uint32_t skip_packets;
+    int first_time;
+
     /* counter stats */
     tcpreplay_stats_t stats;
     tcpreplay_stats_t static_stats; /* stats returned by tcpreplay_get_stats() */
