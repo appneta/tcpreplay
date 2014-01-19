@@ -416,6 +416,8 @@ AC_ARG_WITH(libpcap,
                         LPCAPLIB="-L${testdir}/lib -lpcap"
                     elif test -f "${testdir}/lib/i386-linux-gnu/libpcap${ext}" ; then
                         LPCAPLIB="-L${testdir}/lib/i386-linux-gnu -lpcap"
+                    elif test -f "${testdir}/lib/x86_64-linux-gnu/libpcap${ext}" ; then
+                        LPCAPLIB="-L ${testdir}/lib/x86_64-linux-gnu -lpcap"
                     fi
                 done
                 if test "x$LPCAPLIB" == "x" ; then
@@ -425,6 +427,8 @@ AC_ARG_WITH(libpcap,
                 LPCAPLIB="${testdir}/lib64/libpcap.${libext}"
             elif test -f "${testdir}/lib/i386-linux-gnu/libpcap.${libext}" ; then
                 LPCAPLIB="${testdir}/lib/i386-linux-gnu/libpcap.${libext}"
+            elif test -f "${testdir}/lib/x86_64-linux-gnu/libpcap.${libext}" ; then
+                LPCAPLIB="${testdir}/lib/x86_64-linux-gnu/libpcap.${libext}"
             elif test -f "${testdir}/lib/libpcap.${libext}" ; then
                 LPCAPLIB="${testdir}/lib/libpcap.${libext}"
             elif test -f "${testdir}/lib/libwpcap.${libext}" ; then
