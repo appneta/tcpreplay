@@ -690,7 +690,7 @@ tcpreplay_set_verbose(tcpreplay_t *ctx, bool value)
     ctx->options->verbose = value;
     return 0;
 #else
-    tcpreplay_seterr(ctx, "verbose mode not supported");
+    tcpreplay_seterr(ctx, "%s", "verbose mode not supported");
     return -1;
 #endif
 }
@@ -710,7 +710,7 @@ tcpreplay_set_tcpdump_args(tcpreplay_t *ctx, char *value)
     ctx->options->tcpdump_args = safe_strdup(value);
     return 0;
 #else
-    tcpreplay_seterr(ctx, "verbose mode not supported");
+    tcpreplay_seterr(ctx, "%s", "verbose mode not supported");
     return -1;
 #endif
 }
@@ -731,7 +731,7 @@ tcpreplay_set_tcpdump(tcpreplay_t *ctx, tcpdump_t *value)
     ctx->options->tcpdump = value;
     return 0;
 #else
-    tcpreplay_seterr(ctx, "verbose mode not supported");
+    tcpreplay_seterr(ctx, "%s", "verbose mode not supported");
     return -1;
 #endif
 }
