@@ -1,6 +1,10 @@
 $Id$
 
-01/17/2014 Version 4.0.1
+02/04/2014 Version 4.0.3
+    - Fix build errors when ENABLE_VERBOSE is not set (#60)
+    - Build error on host without tcpdump (#59)
+    
+01/17/2014 Version 4.0.2
     - Fix hangs with --mbps command (#54)
 
 01/16/2014 Version 4.0.1
