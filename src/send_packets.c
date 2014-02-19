@@ -586,17 +586,18 @@ SEND_NOW:
         ctx->stats.bytes_sent += pktlen;
 
         /* print stats during the run? */
-        if (options->stats > 0) {
+        if (!skip_length && options->stats > 0) {
             if (gettimeofday(&now, NULL) < 0)
                 errx(-1, "gettimeofday() failed: %s",  strerror(errno));
 
             if (! timerisset(&ctx->stats.last_print)) {
-                memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
+                memcpy(&ctx->stats.last_print, &now, sizeof(ctx->stats.last_print));
             } else {
                 timersub(&now, &ctx->stats.last_print, &print_delta);
                 if (print_delta.tv_sec >= options->stats) {
+                    memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
                     packet_stats(&ctx->stats);
-                    memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
+                    memcpy(&ctx->stats.last_print, &now, sizeof(ctx->stats.last_print));
                 }
             }
         }
