@@ -113,11 +113,68 @@ get_interface_list(void)
             
         sprintf(list_ptr->alias, "%%%d", i++);
         list_ptr->flags = pcap_if_ptr->flags;
+#ifdef HAVE_LIBPCAP_NETMAP
+        /*
+         * add the syntaxes supported by netmap-libpcap
+         *
+         * available at http://code.google.com/p/netmap-libpcap/
+         */
+        if (strcmp("lo", pcap_if_ptr->name) && strcmp("any", pcap_if_ptr->name)) {
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s", pcap_if_ptr->name);
+
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:-%s", pcap_if_ptr->name);
+
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:{%s", pcap_if_ptr->name);
+
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:}%s", pcap_if_ptr->name);
+
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "vale:%s", pcap_if_ptr->name);
+
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "vale:-%s", pcap_if_ptr->name);
+
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "vale:{%s", pcap_if_ptr->name);
+
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "vale:}%s", pcap_if_ptr->name);
+        }
+#endif /* HAVE_LIBPCAP_NETMAP */
         pcap_if_ptr = pcap_if_ptr->next;
         i += 1;
     }
     pcap_freealldevs(pcap_if);
 
+#ifdef HAVE_LIBPCAP_NETMAP
+    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+    list_ptr = list_ptr->next;
+    strlcpy(list_ptr->name, "netmap:*", sizeof(list_ptr->name));
+
+    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+    list_ptr = list_ptr->next;
+    strlcpy(list_ptr->name, "netmap:^", sizeof(list_ptr->name));
+
+    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+    list_ptr = list_ptr->next;
+    strlcpy(list_ptr->name, "vale:*", sizeof(list_ptr->name));
+
+    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+    list_ptr = list_ptr->next;
+    strlcpy(list_ptr->name, "vale:^", sizeof(list_ptr->name));
+#endif
     /* look for khial device: https://github.com/boundary/khial */
     if ((dir = opendir("/dev/char")) != NULL) {
         while ((dirdata = readdir(dir)) != NULL) {
