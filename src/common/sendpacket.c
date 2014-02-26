@@ -486,16 +486,18 @@ TRY_SEND_AGAIN:
             memcpy(p, data, min(len, txring->nr_buf_size));
             slot->len = len;
 
-            dbgx(2, "netmap cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
-                    cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
-                    txring->avail, txring->nr_buf_size);
-
             /* let kernel know that packet is available */
 #if NETMAP_API >= 10
+            dbgx(2, "netmap cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
+                    cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
+                    nm_ring_space(txring), txring->nr_buf_size);
             cur = nm_ring_next(txring, cur);
             tx_queue_empty = nm_ring_empty(txring);
             txring->head = cur;
 #else
+            dbgx(2, "netmap cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
+                    cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
+                    txring->avail, txring->nr_buf_size);
             cur = NETMAP_RING_NEXT(txring, cur);
             tx_queue_empty = NETMAP_TX_RING_EMPTY(txring);
             txring->avail--;
