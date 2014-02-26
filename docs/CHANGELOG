@@ -1,5 +1,10 @@
 $Id$
 
+xx/xx/xxxx Version 4.0.4
+    - Missing interfaces with --listnics option (#67)
+    - Compile issue with netmap v10 and debugging (#66)
+    - Bad values with --stats and -t options (#65)
+
 02/04/2014 Version 4.0.3
     - Fix build errors when ENABLE_VERBOSE is not set (#60)
     - Build error on host without tcpdump (#59)

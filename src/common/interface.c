@@ -165,7 +165,7 @@ list_interfaces(interface_list_t *list)
     ptr = list;
 
     do {
-        if (! ptr->flags & PCAP_IF_LOOPBACK) {
+        if (!(ptr->flags & PCAP_IF_LOOPBACK)) {
 #ifdef HAVE_WIN32
             printf("%s\t%s\n\t%s\n", ptr->alias, ptr->name, ptr->description);
 #else
