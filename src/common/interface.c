@@ -23,6 +23,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <sys/ioctl.h>
+#include <sys/file.h>
+#include <sys/socket.h>
 
 #include "config.h"
 #include "defines.h"
@@ -113,8 +116,58 @@ get_interface_list(void)
             
         sprintf(list_ptr->alias, "%%%d", i++);
         list_ptr->flags = pcap_if_ptr->flags;
+#ifdef HAVE_LIBPCAP_NETMAP
+        /*
+         * add the syntaxes supported by netmap-libpcap
+         *
+         * available at http://code.google.com/p/netmap-libpcap/
+         */
+        if (!(pcap_if_ptr->flags & PCAP_IF_LOOPBACK)
+                && strcmp("any", pcap_if_ptr->name)) {
+#ifdef HAVE_NETMAP
+            struct nmreq nmr;
+            int fd;
+
+            bzero (&nmr, sizeof(nmr));
+            strncpy (nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
+            nmr.nr_version = NETMAP_API;
+            if ((fd = open ("/dev/netmap", O_RDWR)) > 0
+                    && (ioctl(fd, NIOCGINFO, &nmr) == 0)) {
+                int x;
+
+#endif /* HAVE_NETMAP */
+                list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                list_ptr = list_ptr->next;
+                snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s", pcap_if_ptr->name);
+                sprintf(list_ptr->alias, "%%%d", i++);
+                list_ptr->flags = pcap_if_ptr->flags;
+
+                list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                list_ptr = list_ptr->next;
+                snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s*", pcap_if_ptr->name);
+                sprintf(list_ptr->alias, "%%%d", i++);
+                list_ptr->flags = pcap_if_ptr->flags;
+
+                list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                list_ptr = list_ptr->next;
+                snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s^", pcap_if_ptr->name);
+                sprintf(list_ptr->alias, "%%%d", i++);
+                list_ptr->flags = pcap_if_ptr->flags;
+
+#ifdef HAVE_NETMAP
+                for (x = 0; x < nmr.nr_rx_rings; ++x) {
+                    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                    list_ptr = list_ptr->next;
+                    snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s-%d", pcap_if_ptr->name, x);
+                    sprintf(list_ptr->alias, "%%%d", i++);
+                    list_ptr->flags = pcap_if_ptr->flags;
+                }
+                close(fd);
+            }
+#endif /* HAVE_NETMAP */
+        }
+#endif /* HAVE_LIBPCAP_NETMAP */
         pcap_if_ptr = pcap_if_ptr->next;
-        i += 1;
     }
     pcap_freealldevs(pcap_if);
 

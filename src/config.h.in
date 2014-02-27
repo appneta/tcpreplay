@@ -172,6 +172,9 @@
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #undef HAVE_LIBNSL
 
+/* Does this version of libpcap support netmap? */
+#undef HAVE_LIBPCAP_NETMAP
+
 /* Define to 1 if you have the `resolv' library (-lresolv). */
 #undef HAVE_LIBRESOLV
 
@@ -208,6 +211,12 @@
 
 /* Do we have netmap support? */
 #undef HAVE_NETMAP
+
+/* Does netmap have nm_open function? */
+#undef HAVE_NETMAP_NM_OPEN
+
+/* Define to 1 if you have the <net/netmap_user.h> header file. */
+#undef HAVE_NET_NETMAP_USER_H
 
 /* Define to 1 if you have the <net/route.h> header file. */
 #undef HAVE_NET_ROUTE_H
@@ -289,6 +298,9 @@
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H

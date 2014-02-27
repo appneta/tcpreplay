@@ -401,6 +401,9 @@ AC_ARG_WITH(libpcap,
 	            AC_ERROR([Unable to find matching library for header file in ${withval}])
 	        fi
 	        foundpcap=$withval
+	        ## Assume that user wants to use libpcap injector when specifying
+            ## --with-libpcap options
+            AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])    
 	    fi
     done
 ],[
@@ -447,6 +450,10 @@ if test $foundpcap = no ; then
     AC_ERROR(libpcap not found)
 else
     AC_MSG_RESULT($foundpcap)
+
+    # libpcap can require libnl
+    AC_SEARCH_LIBS([nl_handle_alloc], [nl], 
+            [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
 fi
 
 dnl Checks to see what version of libpcap we've got
@@ -457,8 +464,7 @@ CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 
 dnl Does libpcap require libnl?
 AC_SEARCH_LIBS([pcap_close], [pcap],
-    LPCAPLIB="$LIBS",
-    AC_ERROR([Unable to link libpcap in ${foundpcap}]),
+    , AC_ERROR([Unable to link libpcap in ${foundpcap}]),
     -lnl)
 
 AC_SUBST(LPCAPINC)
@@ -836,14 +842,14 @@ AC_ARG_WITH(netmap,
     AC_HELP_STRING([--with-netmap=DIR], [Use netmap in DIR]),
     [trynetmapdir=$withval])
 
-for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap ; do 
-    if test -f "${testdir}/sys/net/netmap.h" -a $have_netmap = no ; then
+for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include; do
+    if test -f "${testdir}/sys/net/netmap.h" -a "$have_netmap" = no ; then
         NETMAPINC="${testdir}/sys/net/netmap.h"
         NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
         NETMAPINCDIR="${testdir}/sys"
         NETMAPFLAGS="-DHAVE_NETMAP"
         OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
-        CFLAGS="$CFLAGS -I$NETMAPINCDIR"
+        CFLAGS="$CFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
         
         AC_SUBST(NETMAPINC)
         AC_SUBST(NETMAPUSERINC)
@@ -852,9 +858,31 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
         AC_DEFINE([HAVE_NETMAP], [1],
                [Do we have netmap support?])
         have_netmap="yes $testdir"
-        AC_MSG_RESULT($have_netmap)
+    fi
+    if test "$trynetmapdir" != /opt/netmap ; then
+        break
     fi
 done
+
+AC_MSG_RESULT($have_netmap)
+
+dnl ###########################################################
+dnl Check for nm_open() function available in netmap version 10
+dnl ###########################################################
+OLDCPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
+AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
+if test "$have_netmap" != no ; then
+    have_nm_open=no
+    AC_CHECK_DECL([nm_open],[have_nm_open=yes], , [[
+        #include <stdio.h>
+        #include "${NETMAPUSERINC}"
+    ]])
+    if test "$have_nm_open" = yes ; then
+        AC_DEFINE([HAVE_NETMAP_NM_OPEN], [1], [Does netmap have nm_open function?])
+    fi
+fi
+CPPFLAGS="$OLDCPPFLAGS"
 
 have_pf=no
 dnl Check for linux PF_PACKET support
@@ -1070,6 +1098,19 @@ for testfile in $LPCAPINCDIR/pcap/bpf.h $LPCAPINCDIR/pcap-bpf.h ; do
             )
     fi
 done
+
+dnl ## Test for netmap-libpcap
+have_pcap_netmap=no
+if test $foundpcap != no ; then
+    PCAP_NETMAP_C_FILE="$LPCAPINCDIR/pcap-netmap.c"
+    AC_CHECK_FILE($PCAP_NETMAP_C_FILE,
+                 [ 
+                    AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
+                               [Does this version of libpcap support netmap?])
+                    have_pcap_netmap=yes
+                 ],[])
+fi
+
 dnl restore LIBS & CFLAGS
 LIBS="$OLDLIBS"
 CFLAGS="$OLDCFLAGS"
@@ -1381,6 +1422,7 @@ BSD BPF:                    ${have_bpf}
 libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}
 pcap_sendpacket:            ${have_pcap_sendpacket} **
+pcap_netmap                 ${have_pcap_netmap}
 Linux/BSD netmap:           ${have_netmap}
 
 * In order of preference; see configure --help to override
