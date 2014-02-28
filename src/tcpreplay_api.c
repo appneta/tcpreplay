@@ -146,6 +146,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     options = ctx->options;
 
+    dbg(2, "tcpreplay_post_args: parsing command arguments");
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;

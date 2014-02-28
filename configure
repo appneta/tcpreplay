@@ -18323,10 +18323,21 @@ fi
 
 
 for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include; do
-    if test -f "${testdir}/sys/net/netmap.h" -a "$have_netmap" = no ; then
+    if test -f "${testdir}/sys/net/netmap.h" ; then
         NETMAPINC="${testdir}/sys/net/netmap.h"
         NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
         NETMAPINCDIR="${testdir}/sys"
+        have_netmap="yes $testdir"
+    else
+        if test -f "${testdir}/net/netmap.h" ; then
+            NETMAPINC="${testdir}/net/netmap.h"
+            NETMAPUSERINC="${testdir}/net/netmap_user.h"
+            NETMAPINCDIR="${testdir}"
+            have_netmap="yes $testdir"
+        fi
+    fi
+
+    if test "$have_netmap" != no ; then
         NETMAPFLAGS="-DHAVE_NETMAP"
         OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
         CFLAGS="$CFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
@@ -18339,6 +18350,7 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
 $as_echo "#define HAVE_NETMAP 1" >>confdefs.h
 
         have_netmap="yes $testdir"
+        break;
     fi
     if test "$trynetmapdir" != /opt/netmap ; then
         break
