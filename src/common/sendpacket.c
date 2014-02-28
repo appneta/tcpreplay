@@ -445,7 +445,11 @@ TRY_SEND_AGAIN:
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
             txring = NETMAP_TXRING(sp->nm_if, 0);
+#if NETMAP_API > 4
             avail = nm_ring_space(txring);
+#else
+            avail = txring->avail;
+#endif
             while (avail == 0) {
                 struct pollfd x[1];
 
@@ -471,7 +475,11 @@ TRY_SEND_AGAIN:
                  */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
 
+#if NETMAP_API > 4
                 avail = nm_ring_space(txring);
+#else
+                avail = txring->avail;
+#endif
                 dbgx(2, "netmap pollempty=%d avail=%u bufsize=%d\n",
                         NETMAP_TX_RING_EMPTY(txring),
                         avail, txring->nr_buf_size);
@@ -554,7 +562,8 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
             sp = sendpacket_open_khial(device, errbuf);
 
         } else {
-            err(1, "%s is not a valid Tcpreplay character device");
+            errx(1, "%s is not a valid Tcpreplay character device",
+                    device);
         }
     } else {
 #ifdef HAVE_NETMAP
@@ -575,9 +584,11 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
 #endif
     }
 
-    if (sp != NULL) {
+    if (sp) {
         sp->open = 1;
         sp->cache_dir = direction;
+    } else {
+        errx(1, "failed to open device %s", device);
     }
     return sp;
 }
@@ -664,17 +675,9 @@ sendpacket_close(sendpacket_t *sp)
 #ifdef HAVE_NETMAP
             fprintf(stderr, "Switching network driver for %s to normal mode... ",
                     sp->device);
-#if NETMAP_API < 10
             fflush(NULL);
               /* flush any remaining packets */
             ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-
-            /* final part: wait for the TX queue to be empty. */
-            while (!NETMAP_TX_RING_EMPTY(NETMAP_TXRING(sp->nm_if, 0))) {
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-                usleep(1); /* wait 1 tick */
-            }
-#endif
 
 #ifdef linux
             /* restore original settings:
@@ -967,7 +970,7 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     assert(device);
     assert(errbuf);
 
-    dbg(1, "sendpacket: using netmap");
+    dbg(1, "sendpacket_open_netmap: using netmap");
 
     /* prep & return our sp handle */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
@@ -1010,15 +1013,6 @@ sendpacket_open_netmap(const char *device, char *errbuf)
         goto NETMAP_UP_FAILED;
     }
 
-    /*
-     * Query netmap
-     */
-    if ((ioctl (sp->handle.fd, NIOCGINFO, &nmr)) == -1) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl NIOCGINFO: %s",
-                strerror (errno));
-        goto NETMAP_IOCTL_FAILED;
-    }
-
     sp->mmap_size = nmr.nr_memsize;
 
     dbgx(1, "sendpacket_open_netmap: mapping %d Kbytes queues=%d",
@@ -1039,9 +1033,9 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     sp->nmr = nmr;
     sp->handle_type = SP_TYPE_NETMAP;
 
-    dbg(3, "Waiting 4 seconds for phy reset...");
+    dbg(2, "Waiting 4 seconds for phy reset...");
     sleep (4);
-    dbg(3, "Ready!");
+    dbg(2, "Ready!");
 
     if (nm_do_ioctl(sp, SIOCGIFFLAGS, 0) < 0)
         goto NM_DO_IOCTL_FAILED;
@@ -1086,7 +1080,6 @@ NM_DO_IOCTL_FAILED:
     snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "nm_do_ioctl: %s", strerror (errno));
     munmap(sp->mmap_addr, sp->mmap_size);
 MMAP_FAILED:
-NETMAP_IOCTL_FAILED:
 #if NETMAP_API < 10
     ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
 #endif
@@ -1458,11 +1451,12 @@ sendpacket_get_hwaddr_bpf(sendpacket_t *sp)
 int
 sendpacket_get_dlt(sendpacket_t *sp)
 {
-    int dlt;
+    int dlt = DLT_EN10MB;
 
-    if (sp->handle_type == SP_TYPE_KHIAL) {
+    if (sp->handle_type == SP_TYPE_KHIAL ||
+            sp->handle_type == SP_TYPE_NETMAP) {
         /* always EN10MB */
-        dlt = DLT_EN10MB;
+        ;
     } else {
 #if defined HAVE_BPF
     int rcode;
