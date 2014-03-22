@@ -139,14 +139,16 @@ int
 tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 {
     char *temp, *intname;
-    char ebuf[SENDPACKET_ERRBUF_SIZE];
+    char *ebuf;
     tcpreplay_opt_t *options;
     int warn = 0;
     float n;
+    int ret = 0;
 
     options = ctx->options;
 
     dbg(2, "tcpreplay_post_args: parsing command arguments");
+    ebuf = safe_malloc(SENDPACKET_ERRBUF_SIZE);
 #ifdef DEBUG
     if (HAVE_OPT(DBUG))
         debug = OPT_VALUE_DBUG;
@@ -210,11 +212,13 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->dualfile = true;
         if (argc < 2) {
             tcpreplay_seterr(ctx, "%s", "--dualfile mode requires at least two pcap files");
-            return -1;
+            ret = -1;
+            goto out;
         }
         if (argc % 2 != 0) {
             tcpreplay_seterr(ctx, "%s", "--dualfile mode requires an even number of pcap files");
-            return -1;
+            ret = -1;
+            goto out;
         }
     }
 
@@ -244,7 +248,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             options->accurate = accurate_select;
 #else
             tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with select support");
-            return -1;
+            ret = -1;
+            goto out;
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
 #if defined HAVE_IOPERM && defined(__i386__)
@@ -252,7 +257,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ioport_sleep_init();
 #else
             tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with IO Port 0x80 support");
-            return -1;
+            ret = -1;
+            goto out;
 #endif
         } else if (strcmp(OPT_ARG(TIMER), "gtod") == 0) {
             options->accurate = accurate_gtod;
@@ -260,10 +266,12 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             options->accurate = accurate_nanosleep;
         } else if (strcmp(OPT_ARG(TIMER), "abstime") == 0) {
             tcpreplay_seterr(ctx, "%s", "abstime is deprecated");
-            return -1;
+            ret = -1;
+            goto out;
         } else {
             tcpreplay_seterr(ctx, "Unsupported timer mode: %s", OPT_ARG(TIMER));
-            return -1;
+            ret = -1;
+            goto out;
         }
     }
 
@@ -281,7 +289,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF1))) == NULL) {
         tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     options->intf1_name = safe_strdup(intname);
@@ -289,7 +298,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     /* open interfaces for writing */
     if ((ctx->intf1 = sendpacket_open(options->intf1_name, ebuf, TCPR_DIR_C2S, ctx->sp_type)) == NULL) {
         tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf1_name, ebuf);
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
@@ -297,11 +307,13 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     if (HAVE_OPT(INTF2)) {
         if (!HAVE_OPT(CACHEFILE) && !HAVE_OPT(DUALFILE)) {
             tcpreplay_seterr(ctx, "--intf2=%s requires either --cachefile or --dualfile", OPT_ARG(INTF2));
-            return -1;
+            ret = -1;
+            goto out;
         }
         if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF2))) == NULL) {
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
-            return -1;
+            ret = -1;
+            goto out;
         }
 
         options->intf2_name = safe_strdup(intname);
@@ -316,7 +328,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             tcpreplay_seterr(ctx, "DLT type mismatch for %s (%s) and %s (%s)",
                 options->intf1_name, pcap_datalink_val_to_name(ctx->intf1dlt),
                 options->intf2_name, pcap_datalink_val_to_name(ctx->intf2dlt));
-            return -1;
+            ret = -1;
+            goto out;
         }
     }
 
@@ -329,9 +342,12 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     /* return -2 on warnings */
     if (warn > 0)
-        return -2;
+        ret = -2;
 
-    return 0;
+out:
+    safe_free(ebuf);
+
+    return ret;
 }
 
 /**
@@ -398,15 +414,19 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
 {
     static int int1dlt = -1, int2dlt = -1;
     char *intname;
-    char ebuf[SENDPACKET_ERRBUF_SIZE];
+    char *ebuf;
+    int ret = 0;
 
     assert(ctx);
     assert(value);
 
+    ebuf = safe_malloc(SENDPACKET_ERRBUF_SIZE);
+
     if (intf == intf1) {
         if ((intname = get_interface(ctx->intlist, value)) == NULL) {
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", value);
-            return -1;
+            ret = -1;
+            goto out;
         }
 
         ctx->options->intf1_name = safe_strdup(intname);
@@ -414,14 +434,16 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
         /* open interfaces for writing */
         if ((ctx->intf1 = sendpacket_open(ctx->options->intf1_name, ebuf, TCPR_DIR_C2S, ctx->sp_type)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf1_name, ebuf);
-            return -1;
+            ret = -1;
+            goto out;
         }
 
         int1dlt = sendpacket_get_dlt(ctx->intf1);
     } else if (intf == intf2) {
         if ((intname = get_interface(ctx->intlist, value)) == NULL) {
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", ctx->options->intf2_name);
-            return -1;
+            ret = -1;
+            goto out;
         }
 
         ctx->options->intf2_name = safe_strdup(intname);
@@ -429,7 +451,8 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
         /* open interface for writing */
         if ((ctx->intf2 = sendpacket_open(ctx->options->intf2_name, ebuf, TCPR_DIR_S2C, ctx->sp_type)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf2_name, ebuf);
-            return -1;
+            ret = -1;
+            goto out;
         }
         int2dlt = sendpacket_get_dlt(ctx->intf2);
     }
@@ -443,11 +466,14 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
             tcpreplay_seterr(ctx, "DLT type mismatch for %s (%s) and %s (%s)",
                 ctx->options->intf1_name, pcap_datalink_val_to_name(int1dlt), 
                 ctx->options->intf2_name, pcap_datalink_val_to_name(int2dlt));
-            return -1;
+            ret = -1;
+            goto out;
         }
     }
 
-    return 0;
+out:
+    safe_free(ebuf);
+    return ret;
 }
 
 /**
@@ -882,10 +908,13 @@ tcpreplay_setwarn(tcpreplay_t *ctx, const char *fmt, ...)
 int 
 tcpreplay_prepare(tcpreplay_t *ctx)
 {
-    char *intname, ebuf[SENDPACKET_ERRBUF_SIZE];
+    char *intname, *ebuf;
     int int1dlt, int2dlt, i;
+    int ret = 0;
 
     assert(ctx);
+
+    ebuf = safe_malloc(SENDPACKET_ERRBUF_SIZE);
 
     /*
      * First, process the validations, basically the same we do in 
@@ -893,29 +922,34 @@ tcpreplay_prepare(tcpreplay_t *ctx)
      */
     if (ctx->options->intf1_name == NULL) {
         tcpreplay_seterr(ctx, "%s", "You must specify at least one network interface");
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     if (ctx->options->source_cnt == 0) {
         tcpreplay_seterr(ctx, "%s", "You must specify at least one source pcap");
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     if (ctx->options->dualfile) {
         if (! ctx->options->source_cnt >= 2) {
             tcpreplay_seterr(ctx, "%s", "Dual file mode requires 2 or more pcap files");
-            return -1;
+            ret = -1;
+            goto out;
         }
 
         if (ctx->options->source_cnt % 2 != 0) {
             tcpreplay_seterr(ctx, "%s", "Dual file mode requires an even number of pcap files");
-            return -1;
+            ret = -1;
+            goto out;
         }
     }
 
     if (ctx->options->dualfile && ctx->options->cachedata != NULL) {
         tcpreplay_seterr(ctx, "%s", "Can't use dual file mode and tcpprep cache file together");
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     if ((ctx->options->dualfile || ctx->options->cachedata != NULL) && 
@@ -927,13 +961,15 @@ tcpreplay_prepare(tcpreplay_t *ctx)
 #ifndef HAVE_SELECT
     if (ctx->options->accurate == accurate_select) {
         tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with select support");
-        return -1;
+        ret = -1;
+        goto out;
     }
 #endif
 #ifndef HAVE_IOPERM
     if (ctx->options->accurate == accurate_ioport) {
         tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with IO Port 0x80 support");
-        return -1;
+        ret = -1;
+        goto out;
     }
 #else
     if (ctx->options->accurate == accurate_ioport) {
@@ -942,18 +978,21 @@ tcpreplay_prepare(tcpreplay_t *ctx)
 #endif
     if (ctx->options->accurate == accurate_abs_time) {
         tcpreplay_seterr(ctx, "%s", "tcpreplay_api only supports absolute time on Apple OS X");
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     if ((intname = get_interface(ctx->intlist, ctx->options->intf1_name)) == NULL) {
         tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     /* open interfaces for writing */
     if ((ctx->intf1 = sendpacket_open(ctx->options->intf1_name, ebuf, TCPR_DIR_C2S, ctx->sp_type)) == NULL) {
         tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf1_name, ebuf);
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     int1dlt = sendpacket_get_dlt(ctx->intf1);
@@ -961,13 +1000,15 @@ tcpreplay_prepare(tcpreplay_t *ctx)
     if (ctx->options->intf2_name != NULL) {
         if ((intname = get_interface(ctx->intlist, ctx->options->intf2_name)) == NULL) {
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
-            return -1;
+            ret = -1;
+            goto out;
         }
 
         /* open interfaces for writing */
         if ((ctx->intf2 = sendpacket_open(ctx->options->intf2_name, ebuf, TCPR_DIR_C2S, ctx->sp_type)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", ctx->options->intf2_name, ebuf);
-            return -1;
+            ret = -1;
+            goto out;
         }
 
         int2dlt = sendpacket_get_dlt(ctx->intf2);
@@ -975,7 +1016,8 @@ tcpreplay_prepare(tcpreplay_t *ctx)
             tcpreplay_seterr(ctx, "DLT type mismatch for %s (%s) and %s (%s)",
                 ctx->options->intf1_name, pcap_datalink_val_to_name(int1dlt), 
                 ctx->options->intf2_name, pcap_datalink_val_to_name(int2dlt));
-            return -1;
+            ret = -1;
+            goto out;
         }
     }
 
@@ -991,7 +1033,9 @@ tcpreplay_prepare(tcpreplay_t *ctx)
         }
     }
 
-    return 0;
+out:
+    safe_free(ebuf);
+    return ret;
 }
 
 /**
