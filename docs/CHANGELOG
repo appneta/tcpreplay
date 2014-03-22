@@ -1,7 +1,7 @@
-$Id$
 
 xx/xx/xxxx Version 4.0.4
     - Number of packets inaccurate when using --netmap method (#76)
+    - Unexpected packet counts with --loop and --cachefile enabled (#75)
     - Improved error messages when interface is a file (#74)
     - Missing interfaces with --listnics option (#67)
     - Compile issue with netmap v10 and debugging (#66)

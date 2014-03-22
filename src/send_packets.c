@@ -449,7 +449,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
     struct timeval print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = ctx->stats.pkts_sent;
+    COUNTER packetnum = 0;
     int limit_send = options->limit_send;
     struct pcap_pkthdr pkthdr;
     u_char *pktdata = NULL;
@@ -488,10 +488,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             return;
 
         /* stop sending based on the limit -L? */
-        packetnum++;
-        if (limit_send > 0 && packetnum > (COUNTER)limit_send)
+        if (limit_send > 0 && ctx->stats.pkts_sent > (COUNTER)limit_send)
             break;
 
+        packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
         pktlen = options->use_pkthdr_len ? pkthdr.len : pkthdr.caplen;
@@ -588,7 +588,7 @@ SEND_NOW:
          */
         if (!do_not_timestamp && timercmp(&ctx->stats.last_time, &pkthdr.ts, <)) 
             memcpy(&ctx->stats.last_time, &pkthdr.ts, sizeof(struct timeval));
-        ctx->stats.pkts_sent ++;
+        ctx->stats.pkts_sent++;
         ctx->stats.bytes_sent += pktlen;
 
         /* print stats during the run? */
@@ -626,7 +626,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 {
     struct timeval print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = ctx->stats.pkts_sent;
+    COUNTER packetnum = 0;
     int limit_send = options->limit_send;
     int cache_file_idx;
     pcap_t *pcap;
@@ -670,9 +670,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             return;
 
         /* stop sending based on the limit -L? */
-        packetnum++;
-        if (limit_send > 0 && packetnum > (COUNTER)limit_send)
+        if (limit_send > 0 && ctx->stats.pkts_sent > (COUNTER)limit_send)
             break;
+
+        packetnum++;
 
         /* figure out which pcap file we need to process next 
          * when get_next_packet() returns null for pktdata, the pkthdr 
@@ -799,7 +800,7 @@ SEND_NOW:
         if (!do_not_timestamp && timercmp(&ctx->stats.last_time, &pkthdr_ptr->ts, <))
             memcpy(&ctx->stats.last_time, &pkthdr_ptr->ts, sizeof(struct timeval));
 
-        ctx->stats.pkts_sent ++;
+        ctx->stats.pkts_sent++;
         ctx->stats.bytes_sent += pktlen;
 
         /* print stats during the run? */
