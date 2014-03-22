@@ -37,6 +37,12 @@
 #include "timestamp_trace.h"
 #include "../lib/sll.h"
 
+#if defined HAVE_NETMAP
+#include <sys/ioctl.h>
+#include <net/netmap.h>
+#include <net/netmap_user.h>
+#endif
+
 #ifdef TCPREPLAY
 
 #ifdef TCPREPLAY_EDIT
@@ -603,6 +609,11 @@ SEND_NOW:
         }
     } /* while */
 
+#ifdef HAVE_NETMAP
+    /* flush any remaining netmap packets */
+    if (options->netmap)
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+#endif
     ++ctx->iteration;
 }
 
@@ -814,6 +825,14 @@ SEND_NOW:
             pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
         }
     } /* while */
+
+#ifdef HAVE_NETMAP
+    /* flush any remaining netmap packets */
+    if (options->netmap) {
+        ioctl(ctx->intf1->handle.fd, NIOCTXSYNC, NULL);
+        ioctl(ctx->intf2->handle.fd, NIOCTXSYNC, NULL);
+    }
+#endif
 
     ++ctx->iteration;
 }
