@@ -529,7 +529,7 @@ TRY_SEND_AGAIN:
             break;
 
         default:
-            errx(1, "Unsupported sp->handle_type = %d", sp->handle_type);
+            errx(-1, "Unsupported sp->handle_type = %d", sp->handle_type);
     } /* end case */
 
     if (retcode < 0) {
@@ -568,8 +568,33 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
             sp = sendpacket_open_khial(device, errbuf);
 
         } else {
-            errx(1, "%s is not a valid Tcpreplay character device",
-                    device);
+            switch (sdata.st_mode & S_IFMT) {
+              case S_IFBLK:
+                  errx(-1, "\"%s\" is a block device and is not a valid Tcpreplay device",
+                      device);
+                  break;
+                  break;
+              case S_IFDIR:
+                  errx(-1, "\"%s\" is a directory and is not a valid Tcpreplay device",
+                      device);
+                  break;
+              case S_IFIFO:
+                  errx(-1, "\"%s\" is a FIFO and is not a valid Tcpreplay device",
+                      device);
+                  break;
+              case S_IFLNK:
+                  errx(-1, "\"%s\" is a symbolic link and is not a valid Tcpreplay device",
+                      device);
+                  break;
+              case S_IFREG:
+                  errx(-1, "\"%s\" is a file and is not a valid Tcpreplay device",
+                      device);
+                  break;
+              default:
+                  errx(-1, "\"%s\" is not a valid Tcpreplay device",
+                      device);
+                break;
+              }
         }
     } else {
 #ifdef HAVE_NETMAP
@@ -594,7 +619,7 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
         sp->open = 1;
         sp->cache_dir = direction;
     } else {
-        errx(1, "failed to open device %s", device);
+        errx(-1, "failed to open device %s", device);
     }
     return sp;
 }
