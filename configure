@@ -936,6 +936,7 @@ enable_force_pf
 enable_force_libdnet
 enable_force_inject
 enable_force_sendpacket
+enable_force_pcap
 enable_dynamic_link
 with_libpcap
 with_netmap
@@ -1611,6 +1612,7 @@ Optional Features:
   --enable-force-sendpacket
                           Force using libpcap's pcap_sendpacket() for sending
                           packets
+  --enable-force_pcap     Force libpcap usage
   --enable-dynamic-link   Dynamically link libraries
   --enable-local-libopts  Use the supplied libopts tearoff code
   --enable-libopts-install
@@ -5169,13 +5171,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:5172: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:5174: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5175: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:5177: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5178: output\"" >&5)
+  (eval echo "\"\$as_me:5180: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6381,7 +6383,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6384 "configure"' > conftest.$ac_ext
+  echo '#line 6386 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7907,11 +7909,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7910: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7912: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7914: \$? = $ac_status" >&5
+   echo "$as_me:7916: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8246,11 +8248,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8249: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8251: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8253: \$? = $ac_status" >&5
+   echo "$as_me:8255: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8351,11 +8353,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8354: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8356: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8358: \$? = $ac_status" >&5
+   echo "$as_me:8360: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8406,11 +8408,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8409: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8411: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8413: \$? = $ac_status" >&5
+   echo "$as_me:8415: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10790,7 +10792,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10793 "configure"
+#line 10795 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10886,7 +10888,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10889 "configure"
+#line 10891 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14191,11 +14193,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14194: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14196: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14198: \$? = $ac_status" >&5
+   echo "$as_me:14200: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14290,11 +14292,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14293: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14295: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14297: \$? = $ac_status" >&5
+   echo "$as_me:14299: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14342,11 +14344,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14345: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14347: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14349: \$? = $ac_status" >&5
+   echo "$as_me:14351: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17392,6 +17394,13 @@ $as_echo "#define FORCE_INJECT_PCAP_SENDPACKET 1" >>confdefs.h
 fi
 
 
+force_pcap=no
+# Check whether --enable-force_pcap was given.
+if test "${enable_force_pcap+set}" = set; then :
+  enableval=$enable_force_pcap;
+fi
+
+
 dynamic_link=no
 # Check whether --enable-dynamic-link was given.
 if test "${enable_dynamic_link+set}" = set; then :
@@ -17471,6 +17480,7 @@ $as_echo_n "checking for libpcap... " >&6; }
 # Check whether --with-libpcap was given.
 if test "${with_libpcap+set}" = set; then :
   withval=$with_libpcap;
+    force_pcap=yes
     trypcapdir=$withval
     for testdir in ${withval} ${withval}/include ; do
 	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
@@ -18395,6 +18405,7 @@ $as_echo "#define HAVE_NETMAP_NM_OPEN 1" >>confdefs.h
 fi
 CPPFLAGS="$OLDCPPFLAGS"
 
+if test "${force_pcap}" = "no"; then :
 have_pf=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for PF_PACKET socket sending support" >&5
 $as_echo_n "checking for PF_PACKET socket sending support... " >&6; }
@@ -18540,6 +18551,7 @@ if test $have_bpf = yes ; then
 
 $as_echo "#define HAVE_BPF 1" >>confdefs.h
 
+fi
 fi
 
 founddnet=no

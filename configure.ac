@@ -320,6 +320,10 @@ AC_ARG_ENABLE(force-sendpacket,
     AC_HELP_STRING([--enable-force-sendpacket], [Force using libpcap's pcap_sendpacket() for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PCAP_SENDPACKET], [1], [Force using libpcap's pcap_sendpacket() for sending packets])])
 
+force_pcap=no
+AC_ARG_ENABLE(force_pcap, 
+    AC_HELP_STRING([--enable-force_pcap], [Force libpcap usage]))
+
 dnl Dynamic link libraries
 dynamic_link=no
 AC_ARG_ENABLE(dynamic-link,
@@ -374,6 +378,7 @@ AC_ARG_WITH(libpcap,
     AC_HELP_STRING([--with-libpcap=DIR], 
         [Use libpcap in DIR]),
 [
+    force_pcap=yes
     trypcapdir=$withval
     for testdir in ${withval} ${withval}/include ; do
 	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
@@ -896,6 +901,7 @@ if test "$have_netmap" != no ; then
 fi
 CPPFLAGS="$OLDCPPFLAGS"
 
+if test "${force_pcap}" = "no"; then :
 have_pf=no
 dnl Check for linux PF_PACKET support
 AC_MSG_CHECKING(for PF_PACKET socket sending support)
@@ -982,6 +988,7 @@ main(int argc, char *argv[]) {
 if test $have_bpf = yes ; then
     AC_DEFINE([HAVE_BPF], [1], 
             [Do we have BPF device support?])
+fi
 fi
 
 dnl ##################################################
