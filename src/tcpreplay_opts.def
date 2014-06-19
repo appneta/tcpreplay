@@ -562,6 +562,8 @@ flag = {
 #endif
 #ifdef HAVE_WINPCAP
     fprintf(stderr, "Compiled against winpcap: %s\n", get_pcap_version());
+#elif defined HAVE_PF_RING_PCAP
+    fprintf(stderr, "Compiled against PF_RING libpcap: %s\n", get_pcap_version());
 #else
     fprintf(stderr, "Compiled against libpcap: %s\n", get_pcap_version());
 #endif

@@ -2959,7 +2959,7 @@ MAINTAINER_AUTOGEN_VERSION=5.16.2
 
 MAJOR_VERSION=4
 MINOR_VERSION=0
-MICRO_VERSION=4
+MICRO_VERSION=5-beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -17464,6 +17464,7 @@ if test x$inet_addr = no ; then
 fi
 
 foundpcap=no
+pf_ring_found=no
 trypcapdir=/usr/local
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libpcap" >&5
 $as_echo_n "checking for libpcap... " >&6; }
@@ -17618,12 +17619,160 @@ if test "$ac_res" != no; then :
 $as_echo "$as_me: Unable to find nl library - may be needed by libpcap" >&6;}
 fi
 
+
+    ## See if prereqs for PF_RING exist
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for numa_available in -lnuma" >&5
+$as_echo_n "checking for numa_available in -lnuma... " >&6; }
+if test "${ac_cv_lib_numa_numa_available+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnuma  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char numa_available ();
+int
+main ()
+{
+return numa_available ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_numa_numa_available=yes
+else
+  ac_cv_lib_numa_numa_available=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_numa_numa_available" >&5
+$as_echo "$ac_cv_lib_numa_numa_available" >&6; }
+if test "x$ac_cv_lib_numa_numa_available" = x""yes; then :
+  numa_found=yes
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_create in -lpthread" >&5
+$as_echo_n "checking for pthread_create in -lpthread... " >&6; }
+if test "${ac_cv_lib_pthread_pthread_create+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpthread  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pthread_create ();
+int
+main ()
+{
+return pthread_create ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pthread_pthread_create=yes
+else
+  ac_cv_lib_pthread_pthread_create=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_create" >&5
+$as_echo "$ac_cv_lib_pthread_pthread_create" >&6; }
+if test "x$ac_cv_lib_pthread_pthread_create" = x""yes; then :
+  pthread_found=yes
+fi
+
+    if test $numa_found = yes && test $pthread_found = yes && test -f "${foundpcap}/../lib/libpfring.a"; then
+        pf_ring_found=yes
+    fi
 fi
 
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
-LIBS="$LPCAPLIB"
+if test $pf_ring_found = yes ; then
+    LIBS="$LPCAPLIB ${foundpcap}/../lib/libpfring.a -lnuma -lpthread"
+    LPCAPLIB=$LIBS
+else
+    LIBS="$LPCAPLIB"
+fi
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing pcap_get_pfring_id" >&5
+$as_echo_n "checking for library containing pcap_get_pfring_id... " >&6; }
+if test "${ac_cv_search_pcap_get_pfring_id+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pcap_get_pfring_id ();
+int
+main ()
+{
+return pcap_get_pfring_id ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' pcap; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_pcap_get_pfring_id=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if test "${ac_cv_search_pcap_get_pfring_id+set}" = set; then :
+  break
+fi
+done
+if test "${ac_cv_search_pcap_get_pfring_id+set}" = set; then :
+
+else
+  ac_cv_search_pcap_get_pfring_id=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_pcap_get_pfring_id" >&5
+$as_echo "$ac_cv_search_pcap_get_pfring_id" >&6; }
+ac_res=$ac_cv_search_pcap_get_pfring_id
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+$as_echo "#define HAVE_PF_RING_PCAP 1" >>confdefs.h
+
+fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing pcap_close" >&5
 $as_echo_n "checking for library containing pcap_close... " >&6; }
@@ -17713,8 +17862,10 @@ main ()
  * returns zero if version >= 0.9.6
  * or one otherwise
  */
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0)
-            exit(0);
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0) {
+        printf("%s ", pcap_lib_version());
+        exit(0);
+    }
 
     exit(1);
 

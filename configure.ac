@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=4
 MINOR_VERSION=0
-MICRO_VERSION=4
+MICRO_VERSION=5-beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -368,6 +368,7 @@ dnl #####################################################
 dnl Checks for libpcap
 dnl #####################################################
 foundpcap=no
+pf_ring_found=no
 trypcapdir=/usr/local
 AC_MSG_CHECKING(for libpcap)
 AC_ARG_WITH(libpcap,
@@ -454,13 +455,26 @@ else
     # libpcap can require libnl
     AC_SEARCH_LIBS([nl_handle_alloc], [nl], 
             [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
+
+    ## See if prereqs for PF_RING exist
+    AC_CHECK_LIB(numa, numa_available, [numa_found=yes])
+    AC_CHECK_LIB(pthread, pthread_create, [pthread_found=yes])
+    if test $numa_found = yes && test $pthread_found = yes && test -f "${foundpcap}/../lib/libpfring.a"; then
+        pf_ring_found=yes
+    fi
 fi
 
 dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
-LIBS="$LPCAPLIB"
+if test $pf_ring_found = yes ; then
+    LIBS="$LPCAPLIB ${foundpcap}/../lib/libpfring.a -lnuma -lpthread"
+    LPCAPLIB=$LIBS
+else
+    LIBS="$LPCAPLIB"
+fi
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
+AC_SEARCH_LIBS([pcap_get_pfring_id], [pcap], AC_DEFINE([HAVE_PF_RING_PCAP], [1], [Do we have PF_RING libpcap support?]))
 
 dnl Does libpcap require libnl?
 AC_SEARCH_LIBS([pcap_close], [pcap],
@@ -490,8 +504,10 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
  * returns zero if version >= 0.9.6
  * or one otherwise
  */
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0)
-            exit(0);
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0) {
+        printf("%s ", pcap_lib_version());
+        exit(0);
+    }
 
     exit(1);
 ]])],
