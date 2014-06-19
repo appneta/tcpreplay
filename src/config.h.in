@@ -257,6 +257,9 @@
 /* Do we have Linux PF_PACKET socket support? */
 #undef HAVE_PF_PACKET
 
+/* Do we have PF_RING libpcap support? */
+#undef HAVE_PF_RING_PCAP
+
 /* Define to 1 if the system has the type `pid_t'. */
 #undef HAVE_PID_T
 

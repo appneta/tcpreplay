@@ -936,7 +936,6 @@ enable_force_pf
 enable_force_libdnet
 enable_force_inject
 enable_force_sendpacket
-enable_force_pcap
 enable_dynamic_link
 with_libpcap
 with_netmap
@@ -1612,7 +1611,6 @@ Optional Features:
   --enable-force-sendpacket
                           Force using libpcap's pcap_sendpacket() for sending
                           packets
-  --enable-force_pcap     Force libpcap usage
   --enable-dynamic-link   Dynamically link libraries
   --enable-local-libopts  Use the supplied libopts tearoff code
   --enable-libopts-install
@@ -2961,7 +2959,7 @@ MAINTAINER_AUTOGEN_VERSION=5.16.2
 
 MAJOR_VERSION=4
 MINOR_VERSION=0
-MICRO_VERSION=4
+MICRO_VERSION=5-beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -5171,13 +5169,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:5174: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:5172: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5177: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:5175: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5180: output\"" >&5)
+  (eval echo "\"\$as_me:5178: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6383,7 +6381,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6386 "configure"' > conftest.$ac_ext
+  echo '#line 6384 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7909,11 +7907,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7912: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7910: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7916: \$? = $ac_status" >&5
+   echo "$as_me:7914: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8248,11 +8246,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8251: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8249: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8255: \$? = $ac_status" >&5
+   echo "$as_me:8253: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8353,11 +8351,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8356: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8354: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8360: \$? = $ac_status" >&5
+   echo "$as_me:8358: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8408,11 +8406,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8411: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8409: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8415: \$? = $ac_status" >&5
+   echo "$as_me:8413: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10792,7 +10790,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10795 "configure"
+#line 10793 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10888,7 +10886,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10891 "configure"
+#line 10889 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14193,11 +14191,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14196: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14194: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14200: \$? = $ac_status" >&5
+   echo "$as_me:14198: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14292,11 +14290,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14295: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14293: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14299: \$? = $ac_status" >&5
+   echo "$as_me:14297: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14344,11 +14342,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14347: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14345: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14351: \$? = $ac_status" >&5
+   echo "$as_me:14349: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17394,13 +17392,6 @@ $as_echo "#define FORCE_INJECT_PCAP_SENDPACKET 1" >>confdefs.h
 fi
 
 
-force_pcap=no
-# Check whether --enable-force_pcap was given.
-if test "${enable_force_pcap+set}" = set; then :
-  enableval=$enable_force_pcap;
-fi
-
-
 dynamic_link=no
 # Check whether --enable-dynamic-link was given.
 if test "${enable_dynamic_link+set}" = set; then :
@@ -17473,6 +17464,7 @@ if test x$inet_addr = no ; then
 fi
 
 foundpcap=no
+pf_ring_found=no
 trypcapdir=/usr/local
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libpcap" >&5
 $as_echo_n "checking for libpcap... " >&6; }
@@ -17480,7 +17472,6 @@ $as_echo_n "checking for libpcap... " >&6; }
 # Check whether --with-libpcap was given.
 if test "${with_libpcap+set}" = set; then :
   withval=$with_libpcap;
-    force_pcap=yes
     trypcapdir=$withval
     for testdir in ${withval} ${withval}/include ; do
 	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
@@ -17628,12 +17619,160 @@ if test "$ac_res" != no; then :
 $as_echo "$as_me: Unable to find nl library - may be needed by libpcap" >&6;}
 fi
 
+
+    ## See if prereqs for PF_RING exist
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for numa_available in -lnuma" >&5
+$as_echo_n "checking for numa_available in -lnuma... " >&6; }
+if test "${ac_cv_lib_numa_numa_available+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnuma  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char numa_available ();
+int
+main ()
+{
+return numa_available ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_numa_numa_available=yes
+else
+  ac_cv_lib_numa_numa_available=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_numa_numa_available" >&5
+$as_echo "$ac_cv_lib_numa_numa_available" >&6; }
+if test "x$ac_cv_lib_numa_numa_available" = x""yes; then :
+  numa_found=yes
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_create in -lpthread" >&5
+$as_echo_n "checking for pthread_create in -lpthread... " >&6; }
+if test "${ac_cv_lib_pthread_pthread_create+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpthread  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pthread_create ();
+int
+main ()
+{
+return pthread_create ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pthread_pthread_create=yes
+else
+  ac_cv_lib_pthread_pthread_create=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_create" >&5
+$as_echo "$ac_cv_lib_pthread_pthread_create" >&6; }
+if test "x$ac_cv_lib_pthread_pthread_create" = x""yes; then :
+  pthread_found=yes
+fi
+
+    if test $numa_found = yes && test $pthread_found = yes && test -f "${foundpcap}/../lib/libpfring.a"; then
+        pf_ring_found=yes
+    fi
 fi
 
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
-LIBS="$LPCAPLIB"
+if test $pf_ring_found = yes ; then
+    LIBS="$LPCAPLIB ${foundpcap}/../lib/libpfring.a -lnuma -lpthread"
+    LPCAPLIB=$LIBS
+else
+    LIBS="$LPCAPLIB"
+fi
 CFLAGS="$CFLAGS -I$LPCAPINCDIR"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing pcap_get_pfring_id" >&5
+$as_echo_n "checking for library containing pcap_get_pfring_id... " >&6; }
+if test "${ac_cv_search_pcap_get_pfring_id+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pcap_get_pfring_id ();
+int
+main ()
+{
+return pcap_get_pfring_id ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' pcap; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_pcap_get_pfring_id=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if test "${ac_cv_search_pcap_get_pfring_id+set}" = set; then :
+  break
+fi
+done
+if test "${ac_cv_search_pcap_get_pfring_id+set}" = set; then :
+
+else
+  ac_cv_search_pcap_get_pfring_id=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_pcap_get_pfring_id" >&5
+$as_echo "$ac_cv_search_pcap_get_pfring_id" >&6; }
+ac_res=$ac_cv_search_pcap_get_pfring_id
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+$as_echo "#define HAVE_PF_RING_PCAP 1" >>confdefs.h
+
+fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing pcap_close" >&5
 $as_echo_n "checking for library containing pcap_close... " >&6; }
@@ -17723,8 +17862,10 @@ main ()
  * returns zero if version >= 0.9.6
  * or one otherwise
  */
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0)
-            exit(0);
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0) {
+        printf("%s ", pcap_lib_version());
+        exit(0);
+    }
 
     exit(1);
 
@@ -18405,7 +18546,6 @@ $as_echo "#define HAVE_NETMAP_NM_OPEN 1" >>confdefs.h
 fi
 CPPFLAGS="$OLDCPPFLAGS"
 
-if test "${force_pcap}" = "no"; then :
 have_pf=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for PF_PACKET socket sending support" >&5
 $as_echo_n "checking for PF_PACKET socket sending support... " >&6; }
@@ -18551,7 +18691,6 @@ if test $have_bpf = yes ; then
 
 $as_echo "#define HAVE_BPF 1" >>confdefs.h
 
-fi
 fi
 
 founddnet=no
