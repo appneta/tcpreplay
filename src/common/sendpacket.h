@@ -113,6 +113,7 @@ struct sendpacket_s {
     void *mmap_addr;
     int mmap_size;
     uint32_t if_flags;
+    uint32_t is_vale;
 #ifdef linux
     uint32_t data;
     uint32_t gso;

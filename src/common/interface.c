@@ -54,6 +54,9 @@ get_interface(interface_list_t *list, const char *alias)
     
     assert(alias);
     
+    if (strncmp("vale", alias, 4) == 0)
+        goto vale;
+
     if (list != NULL) {        
         ptr = list;
     
@@ -68,6 +71,7 @@ get_interface(interface_list_t *list, const char *alias)
             ptr = ptr->next;
         } while (ptr != NULL);
     } else {
+vale:
         name = (char *)safe_malloc(strlen(alias) + 1);
         strlcpy(name, alias, sizeof(name));
         return(name);
