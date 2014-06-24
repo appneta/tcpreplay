@@ -711,20 +711,22 @@ sendpacket_close(sendpacket_t *sp)
             ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
 
 #ifdef linux
-            /* restore original settings:
-             * - generic-segmentation-offload
-             * - tcp-segmentation-offload
-             * - rx-checksumming
-             * - tx-checksumming
-             */
-            sp->data = sp->gso;
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
-            sp->data = sp->tso;
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
-            sp->data = sp->rxcsum;
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);
-            sp->data = sp->txcsum;
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM);
+            if (sp->is_vale == 0) {          
+                /* restore original settings:
+                 * - generic-segmentation-offload
+                 * - tcp-segmentation-offload
+                 * - rx-checksumming
+                 * - tx-checksumming
+                 */
+                sp->data = sp->gso;
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
+                sp->data = sp->tso;
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
+                sp->data = sp->rxcsum;
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);
+                sp->data = sp->txcsum;
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM);
+            }
 #endif /* linux */
 
             /* restore interface to normal mode */
@@ -1068,41 +1070,47 @@ sendpacket_open_netmap(const char *device, char *errbuf)
     sleep (4);
     dbg(2, "Ready!");
 
-    if (nm_do_ioctl(sp, SIOCGIFFLAGS, 0) < 0)
-        goto NM_DO_IOCTL_FAILED;
+    if (strncmp("vale", device, 4) == 0)
+        sp->is_vale = 1;
+
+    if (sp->is_vale == 0) {
+        if (nm_do_ioctl(sp, SIOCGIFFLAGS, 0) < 0)
+            goto NM_DO_IOCTL_FAILED;
+    }
 
     if ((sp->if_flags & IFF_UP) == 0) {
         dbgx(1, "%s is down, bringing up...", device);
         sp->if_flags |= IFF_UP;
     }
 
-    /* set promiscuous mode */
-    sp->if_flags |= IFF_PROMISC;
-    if (nm_do_ioctl(sp, SIOCSIFFLAGS, 0) < 0)
-        goto NM_DO_IOCTL_FAILED;
+    if (sp->is_vale == 0) {
+
+        /* set promiscuous mode */
+        sp->if_flags |= IFF_PROMISC;
+        if (nm_do_ioctl(sp, SIOCSIFFLAGS, 0) < 0)
+            goto NM_DO_IOCTL_FAILED;
 
 #ifdef linux
-    /* disable:
-     * - generic-segmentation-offload
-     * - tcp-segmentation-offload
-     * - rx-checksumming
-     * - tx-checksumming
-     */
-    if (nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GGSO) < 0 ||
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTSO) < 0 ||
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GRXCSUM) < 0 ||
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTXCSUM) < 0)
-        goto NM_DO_IOCTL_FAILED;
+        /* disable:
+         * - generic-segmentation-offload
+         * - tcp-segmentation-offload
+         * - rx-checksumming
+         * - tx-checksumming
+         */
+        if (nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GGSO) < 0 ||
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTSO) < 0 ||
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GRXCSUM) < 0 ||
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTXCSUM) < 0)
+            goto NM_DO_IOCTL_FAILED;
 
-    sp->data = 0;
-    if (nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO) < 0 ||
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO) < 0 ||
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM) < 0 ||
-            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM))
-        goto NM_DO_IOCTL_FAILED;
-
+        sp->data = 0;
+        if (nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO) < 0 ||
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO) < 0 ||
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM) < 0 ||
+                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM))
+            goto NM_DO_IOCTL_FAILED;
 #endif
-
+    }
     notice("done!");
 
     return sp;
