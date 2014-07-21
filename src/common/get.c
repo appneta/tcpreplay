@@ -351,7 +351,7 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int len)
 
 /**
  * returns a pointer to the layer 4 header which is just beyond the IPv6 header
- * and any exension headers or NULL when there is none as in the case of
+ * and any extension headers or NULL when there is none as in the case of
  * v6 Frag or ESP header.  Function is recursive.
  */
 void *
@@ -365,12 +365,6 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
 
     /* jump to the end of the IPv6 header */ 
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
-
-    /* sanity check */
-    maxlen = *((uint32_t*)((u_char *)ip6_hdr + len));
-    if (*((uint32_t*)((u_char *)next)) > maxlen)
-        return NULL;
-
     proto = ip6_hdr->ip_nh;
 
     while (TRUE) {
@@ -490,8 +484,8 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int len)
     uint8_t proto;
     struct tcpr_ipv6_ext_hdr_base *exthdr = NULL;
 
-    proto = ip6_hdr->ip_nh;
     assert(ip6_hdr);
+    proto = ip6_hdr->ip_nh;
 
     while (TRUE) {
         dbgx(3, "Processing next proto 0x%02X", proto);
