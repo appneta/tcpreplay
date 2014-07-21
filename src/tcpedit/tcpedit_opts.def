@@ -151,7 +151,7 @@ flag = {
     value       = C;
     descrip     = "Force recalculation of IPv4/TCP/UDP header checksums";
     doc         = <<- EOText
-Causes each IPv4/v6 packet to have their checksums recalcualted and
+Causes each IPv4/v6 packet to have their checksums recalculated and
 fixed.  Automatically enabled for packets modified with @samp{--seed}, 
 @samp{--pnat}, @samp{--endpoints} or @samp{--fixlen}.
 EOText;
