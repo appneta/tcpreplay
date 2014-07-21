@@ -21,10 +21,21 @@
 #include "config.h"
 #include "defines.h"
 
+#include <sys/socket.h>
+
+#ifdef __NetBSD__
+#include <net/if_ether.h>
+#else
+#include <netinet/if_ether.h>
+#endif
+
 #if defined HAVE_NETMAP
 #include <net/if.h>
 #include <net/netmap.h>
 #include <net/netmap_user.h>
+#ifndef NETMAP_API
+#define NETMAP_API 0
+#endif
 #endif
 
 #ifdef HAVE_PF_PACKET
@@ -84,7 +95,6 @@ union sendpacket_handle {
 };
 
 #define SENDPACKET_ERRBUF_SIZE 1024
-#define NETMAP_BACKOFF (1 << 4)     /* 16 - must be power of 2 */
 
 struct sendpacket_s {
     tcpr_dir_t cache_dir;

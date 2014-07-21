@@ -1,3 +1,8 @@
+06/21/2014 Version 4.0.5beta1
+    - Support for Vale Switch (#91)
+    - Fix max replay rate for all loops except first when omitting --mbps (#85)
+    - Support for PF_RING DNA version of libpcap (#82)
+    - Fix build for FreeBSD version 8.4 (#78)
 
 06/19/2014 Version 4.0.5-beta1
     - Second loop iteration at full speed (#85)

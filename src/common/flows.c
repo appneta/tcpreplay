@@ -115,7 +115,7 @@ static inline flow_entry_type_t hash_put_data(flow_hash_table_t *fht, const uint
         const flow_entry_data_t *hash_entry, const struct timeval *tv, const int expiry)
 {
     uint32_t hash_value = key & (fht->num_buckets - 1);
-    flow_hash_entry_t *he = NULL;
+    flow_hash_entry_t *he;
     flow_entry_type_t res = FLOW_ENTRY_INVALID;
 
     for (he = fht->buckets[hash_value]; he; he = he->next) {

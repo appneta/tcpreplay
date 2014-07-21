@@ -158,7 +158,6 @@ static sendpacket_t *sendpacket_open_netmap(const char *device, char *errbuf);
 #include <sys/utsname.h>
 #include <net/if.h>
 #include <netinet/in.h>
-#include <linux/if_ether.h>
 #include <net/if_arp.h>
 #include <netpacket/packet.h>
 
