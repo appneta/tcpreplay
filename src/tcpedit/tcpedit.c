@@ -223,7 +223,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* (Un)truncate or MTU truncate packet? */
     if (tcpedit->fixlen || tcpedit->mtu_truncate) {
-        if ((retval = untrunc_packet(tcpedit, *pkthdr, packet, ip_hdr, ip6_hdr)) < 0)
+        if ((retval = untrunc_packet(tcpedit, *pkthdr, pktdata, ip_hdr, ip6_hdr)) < 0)
             return TCPEDIT_ERROR;
         needtorecalc += retval;
     }

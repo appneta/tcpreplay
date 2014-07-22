@@ -241,12 +241,16 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 int
 untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr)
+        u_char **pktdata, ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr)
 {
     int l2len;
+    u_char *packet;
     assert(tcpedit);
     assert(pkthdr);
     assert(pktdata);
+
+    packet = *pktdata;
+    assert(packet);
 
     /* if actual len == cap len or there's no IP header, don't do anything */
     if ((pkthdr->caplen == pkthdr->len) || (ip_hdr == NULL && ip6_hdr == NULL)) {
@@ -268,7 +272,8 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
   	     * which seems like a corrupted pcap
   	     */
         if (pkthdr->len > pkthdr->caplen) {
-            memset(pktdata + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
+            packet = safe_realloc(packet, pkthdr->len);
+            memset(packet + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
             pkthdr->caplen = pkthdr->len;
         } else if (pkthdr->len < pkthdr->caplen) {
             /* i guess this is necessary if we've got a bogus pcap */
