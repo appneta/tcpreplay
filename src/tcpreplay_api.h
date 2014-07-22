@@ -250,7 +250,7 @@ int tcpreplay_get_flow_expiry(tcpreplay_t *);
 
 /* functions controlling execution */
 int tcpreplay_prepare(tcpreplay_t *);
-int tcpreplay_replay(tcpreplay_t *, int);
+int tcpreplay_replay(tcpreplay_t *);
 const tcpreplay_stats_t *tcpreplay_get_stats(tcpreplay_t *);
 int tcpreplay_abort(tcpreplay_t *);
 int tcpreplay_suspend(tcpreplay_t *);

@@ -1043,24 +1043,21 @@ out:
  *
  * Designed to be called in a separate thread if you need to.  Blocks until
  * the replay is complete or you call tcpreplay_abort() in another thread.
- * Pass the index of the pcap you want to replay, or -1 for all pcaps.
- *
- * In dualfile mode, we will process idx and idx+1
  */
 int
-tcpreplay_replay(tcpreplay_t *ctx, int idx)
+tcpreplay_replay(tcpreplay_t *ctx)
 {
     int rcode;
 
     assert(ctx);
 
-    if (idx < 0 || idx > ctx->options->source_cnt) {
-        tcpreplay_seterr(ctx, "invalid source index value: %d", idx);
+    if (!ctx->options->source_cnt) {
+        tcpreplay_seterr(ctx, "invalid source count: %d", ctx->options->source_cnt);
         return -1;
     }
 
-    if (ctx->options->dualfile && ((idx + 1) > ctx->options->source_cnt)) {
-        tcpreplay_seterr(ctx, "invalid dualfile source index value: %d", (idx + 1));
+    if (ctx->options->dualfile && ctx->options->source_cnt < 2) {
+        tcpreplay_seterr(ctx, "invalid dualfile source count: %d", ctx->options->source_cnt);
         return -1;
     }
 
@@ -1075,12 +1072,12 @@ tcpreplay_replay(tcpreplay_t *ctx, int idx)
     /* main loop, when not looping forever */
     if (ctx->options->loop > 0) {
         while (ctx->options->loop--) {  /* limited loop */
-            if ((rcode = tcpr_replay_index(ctx, idx)) < 0)
+            if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
         }
     } else {
         while (1) { /* loop forever */
-            if ((rcode = tcpr_replay_index(ctx, idx)) < 0)
+            if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
         }
     }

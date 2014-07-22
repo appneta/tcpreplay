@@ -21,6 +21,6 @@
 #ifndef _REPLAY_H_
 #define _REPLAY_H_
 
-int tcpr_replay_index(tcpreplay_t *ctx, int idx);
+int tcpr_replay_index(tcpreplay_t *ctx);
 
 #endif /* _REPLAY_H_ */

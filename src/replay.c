@@ -41,9 +41,10 @@ static int replay_two_fds(tcpreplay_t *ctx, int idx1, int idx2);
  * This is used by tcpreplay_replay() to actually send the packets
  */
 int 
-tcpr_replay_index(tcpreplay_t *ctx, int idx)
+tcpr_replay_index(tcpreplay_t *ctx)
 {
     int rcode = 0;
+    int idx;
     assert(ctx);
 
     /* only process a single file */
