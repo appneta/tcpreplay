@@ -125,48 +125,8 @@ main(int argc, char *argv[])
     /* init the signal handlers */
     init_signal_handlers();
 
-    if (gettimeofday(&ctx->stats.start_time, NULL) < 0)
-        errx(-1, "gettimeofday() failed: %s",  strerror(errno));
-
-    /* main loop, when not looping forever */
-    rcode = 0;
-    if (ctx->options->loop > 0) {
-        while (rcode == 0 && ctx->options->loop-- && !ctx->abort) {  /* limited loop */
-            if (ctx->options->dualfile) {
-                /* process two files at a time for network taps */
-                for (i = 0; i < argc; i += 2) {
-                    rcode = tcpr_replay_index(ctx, i);
-                }
-            } else {
-                /* process each pcap file in order */
-                for (i = 0; i < argc; i++) {
-                    /* reset cache markers for each iteration */
-                    ctx->cache_byte = 0;
-                    ctx->cache_bit = 0;
-                    rcode = tcpr_replay_index(ctx, i);
-                }
-            }
-        }
-    }
-    else {
-        /* loop forever */
-        while (rcode == 0 && !ctx->abort) {
-            if (ctx->options->dualfile) {
-                /* process two files at a time for network taps */
-                for (i = 0; i < argc; i += 2) {
-                    rcode = tcpr_replay_index(ctx, i);
-                }
-            } else {
-                /* process each pcap file in order */
-                for (i = 0; i < argc; i++) {
-                    /* reset cache markers for each iteration */
-                    ctx->cache_byte = 0;
-                    ctx->cache_bit = 0;
-                    rcode = tcpr_replay_index(ctx, i);
-                }
-            }
-        }
-    }
+    /* main loop */
+    rcode = tcpreplay_replay(ctx);
 
     if (rcode < 0) {
         notice("\nFailed: %s\n", tcpreplay_geterr(ctx));
