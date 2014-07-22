@@ -175,6 +175,8 @@ make_absolute( char const *string, char const *dot_path )
     } else {
         if (dot_path && dot_path[0]) {
             result = malloc( 2 + strlen( dot_path ) + strlen( string ) );
+            if (result == NULL) /* oops, malloc() failed */
+               goto make_absolute_done;
             strcpy( result, dot_path );
             result_len = strlen( result );
             if (result[result_len - 1] != '/') {
@@ -183,6 +185,8 @@ make_absolute( char const *string, char const *dot_path )
             }
         } else {
             result = malloc( 3 + strlen( string ) );
+            if (result == NULL) /* oops, malloc() failed */
+                goto make_absolute_done;
             result[0] = '.'; result[1] = '/'; result[2] = '\0';
             result_len = 2;
         }
@@ -190,6 +194,7 @@ make_absolute( char const *string, char const *dot_path )
         strcpy( result + result_len, string );
     }
 
+make_absolute_done:
     return result;
 }
 
