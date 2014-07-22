@@ -618,7 +618,7 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
         sp->open = 1;
         sp->cache_dir = direction;
     } else {
-        errx(-1, "failed to open device %s", device);
+        errx(-1, "failed to open device %s: %s", device, errbuf);
     }
     return sp;
 }
@@ -1082,6 +1082,12 @@ sendpacket_open_netmap(const char *device, char *errbuf)
         sp->if_flags |= IFF_UP;
     }
 
+    if ((sp->if_flags & IFF_RUNNING) == 0) {
+        dbgx(1, "sendpacket_open_netmap: %s is not running", device);
+        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "interface %s is not running - check cables\n", device);
+        goto NETMAP_IF_NOT_RUNNING;
+    }
+
     if (sp->is_vale == 0) {
 
         /* set promiscuous mode */
@@ -1116,6 +1122,10 @@ sendpacket_open_netmap(const char *device, char *errbuf)
 
 NM_DO_IOCTL_FAILED:
     snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "nm_do_ioctl: %s", strerror (errno));
+NETMAP_IF_NOT_RUNNING:
+    fprintf(stderr, " failed!!\nSwitching network driver for %s to normal mode... ",
+            sp->device);
+    fflush(NULL);
     munmap(sp->mmap_addr, sp->mmap_size);
 MMAP_FAILED:
 #if NETMAP_API < 10

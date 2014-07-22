@@ -1,4 +1,5 @@
 06/21/2014 Version 4.0.5beta1
+    - Fix netmap hang if network cables unplugged (#96)
     - Support for Vale Switch (#91)
     - Prevent file retransmissions when selecting multiple files (#86)
     - Fix max replay rate for all loops except first when omitting --mbps (#85)
