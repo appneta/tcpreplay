@@ -131,6 +131,7 @@ abort_handler(int signo)
     if (signo == SIGINT && ctx) {
         notice(" User interrupt...");
         ctx->abort = true;
+        tcpreplay_abort(ctx);
     }
 }
 
