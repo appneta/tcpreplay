@@ -458,19 +458,19 @@ TRY_SEND_AGAIN:
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
             txring = NETMAP_TXRING(sp->nm_if, 0);
-            avail = get_netmap_buf_avail(txring);
-            while (avail == 0) {
+            while ((avail = get_netmap_buf_avail(txring)) == 0) {
                 struct pollfd pfd;
 
                 /* send TX interrupt signal just in case */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+
+                if (sp->abort)
+                    return retcode;
+
                 pfd.fd = sp->handle.fd;
                 pfd.events = POLLOUT;
                 pfd.revents = 0;
                 if (poll(&pfd, 1, 1000) <= 0) {
-                    if (sp->abort)
-                        return retcode;
-
                     dbgx(2, "netmap timeout empty=%d avail=%u bufsize=%d\n",
                             NETMAP_TX_RING_EMPTY(txring),
                             avail, txring->nr_buf_size);
@@ -483,7 +483,6 @@ TRY_SEND_AGAIN:
                  * of the TX queue.
                  */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-                avail = get_netmap_buf_avail(txring);
 
                 dbgx(2, "netmap poll empty=%d avail=%u bufsize=%d\n",
                         NETMAP_TX_RING_EMPTY(txring),
@@ -495,6 +494,7 @@ TRY_SEND_AGAIN:
              */
             cur = txring->cur;
             slot = &txring->slot[cur];
+            slot->flags = 0;
             p = NETMAP_BUF(txring, slot->buf_idx);
             memcpy(p, data, min(len, txring->nr_buf_size));
             slot->len = len;
@@ -1116,6 +1116,10 @@ sendpacket_open_netmap(const char *device, char *errbuf)
             goto NM_DO_IOCTL_FAILED;
 #endif
     }
+
+    if(sp->abort)
+        goto NETMAP_ABORT;
+
     notice("done!");
 
     return sp;
@@ -1123,7 +1127,9 @@ sendpacket_open_netmap(const char *device, char *errbuf)
 NM_DO_IOCTL_FAILED:
     snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "nm_do_ioctl: %s", strerror (errno));
 NETMAP_IF_NOT_RUNNING:
-    fprintf(stderr, " failed!!\nSwitching network driver for %s to normal mode... ",
+    notice("failed!");
+NETMAP_ABORT:
+    fprintf(stderr, " Switching network driver for %s to normal mode... ",
             sp->device);
     fflush(NULL);
     munmap(sp->mmap_addr, sp->mmap_size);
@@ -1136,7 +1142,7 @@ NETMAP_UP_FAILED:
 OPEN_FAILED:
     safe_free(sp);
 
-    notice("failed!");
+    notice("done!");
     return NULL;
 }
 #endif /* HAVE_NETMAP */

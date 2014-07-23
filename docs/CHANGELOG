@@ -7,6 +7,7 @@
     - Seg fault on some IPv6 files when using -C option with tcprewrite (#83)
     - Support for PF_RING DNA version of libpcap (#82)
     - Fix segfault when using '-F pad' (#80)
+    - Disallow netmap on multiple interfaces (#79)
     - Fix build for FreeBSD version 8.4 (#78)
 
 06/19/2014 Version 4.0.5-beta1

@@ -224,6 +224,16 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(NETMAP)) {
 #ifdef HAVE_NETMAP
+        if (HAVE_OPT(INTF2)) {
+            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in netmap mode");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(CACHEFILE)) {
+            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in netmap mode");
+            ret = -1;
+            goto out;
+        }
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
 #else
