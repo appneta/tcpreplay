@@ -198,14 +198,18 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     /*
      * Sort out interface names
      *
-     * ifname   (netmap:foo or vale:foo) is the port name
+     * ifname   (foo, netmap:foo or vale:foo) is the port name
+     *      foo         bind to a single NIC hardware queue
+     *      netmap:foo  bind to a single NIC hardware queue
+     *      vale:foo    bind to the Vale virtual interface
      *
      * for netmap version 10+ a suffix can indicate the following:
-     *      ^       bind the host (sw) ring pair
-     *      *       bind host and NIC ring pairs (transparent)
-     *      -NN     bind individual NIC ring pair
-     *      {NN     bind master side of pipe NN
-     *      }NN     bind slave side of pipe NN
+     *      netmap:foo!     bind to all NIC hardware queues (may cause TX reordering)
+     *      netmap:foo^     bind to the host (sw) ring pair
+     *      netmap:foo*     bind to the host (sw) and NIC ring pairs (transparent)
+     *      netmap:foo-NN   bind to the individual NIC ring pair (queue) where NN = the ring number
+     *      netmap:foo{NN   bind to the master side of pipe NN
+     *      netmap:foo}NN   bind to the slave side of pipe NN
      */
     if (strncmp(device, "netmap:", 7) && strncmp(device, "vale", 4)) {
         snprintf(ifname_buf, sizeof(ifname_buf), "netmap:%s", device);
@@ -221,12 +225,12 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
         ifname += 7;
 
     /* scan for a separator */
-    for (port = ifname; *port && !index("-*^{}", *port); port++)
+    for (port = ifname; *port && !index("!-*^{}", *port); port++)
         ;
 
     namelen = port - ifname;
     if (namelen > sizeof(nmr.nr_name)) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Interface name is to long: %s\n", ifname);
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Interface name is to long: %s\n", device);
         goto IFACENAME_INVALID;
     }
     /*
@@ -292,8 +296,12 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
             nr_ringid = atoi(port + 1);
             break;
 
-        default:  /* '\0', no suffix */
+        case '!':
             nr_flags = NR_REG_ALL_NIC;
+            break;
+
+        default:  /* '\0', no suffix */
+            nr_flags = NR_REG_DEFAULT;
             break;
         }
 
@@ -309,6 +317,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     nmr.nr_version = sp->netmap_version;
     memcpy(nmr.nr_name, ifname, namelen);
     nmr.nr_name[namelen] = '\0';
+    strlcpy (sp->device, nmr.nr_name, sizeof(sp->device));
 
     /*
      * Register the interface on the netmap device: from now on,
@@ -318,7 +327,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
      * Cards take a long time to reset the PHY.
      */
     fprintf(stderr, "Switching network driver for %s to netmap bypass mode... ",
-            device);
+            sp->device);
     fflush(NULL);
     sleep(1);   /* ensure message prints when user is connected via ssh */
 
@@ -342,7 +351,6 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     dbgx(1, "sendpacket_open_netmap: mapping %d Kbytes queues=%d",
             sp->mmap_size >> 10, nmr.nr_tx_rings);
 
-    strlcpy (sp->device, ifname, sizeof(sp->device));
     sp->nm_if = NETMAP_IF(sp->mmap_addr, nmr.nr_offset);
     sp->nmr = nmr;
     sp->handle_type = SP_TYPE_NETMAP;
@@ -350,41 +358,44 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     /* set up ring IDs */
     sp->cur_tx_ring = 0;
     switch(nr_flags) {
-    case NR_REG_DEFAULT:    /* legacy (pre-API version 10) */
+    case NR_REG_DEFAULT:    /* only use one queue to prevent TX reordering */
+        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
+        break;
+
     case NR_REG_ALL_NIC:
-        sp->first_tx_ring = 0;
+        sp->first_tx_ring = sp->cur_tx_ring = 0;
         sp->last_tx_ring = nmr.nr_tx_rings - 1;
         break;
 
     case NR_REG_SW:
-        sp->first_tx_ring = sp->last_tx_ring = nmr.nr_tx_rings;
+        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = nmr.nr_tx_rings;
         break;
 
     case NR_REG_NIC_SW:
-        sp->first_tx_ring = 0;
+        sp->first_tx_ring = sp->cur_tx_ring = 0;
         sp->last_tx_ring = nmr.nr_tx_rings;
         break;
 
     case NR_REG_ONE_NIC:
-        sp->first_tx_ring = sp->last_tx_ring = nr_ringid;
+        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = nr_ringid;
         break;
 
     default:
-        sp->first_tx_ring = sp->last_tx_ring = 0;
+        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
     }
     {
         /* debugging code */
         int i;
 
-        dbgx(2, "%s tx first=%d last=%d  num=%d", ifname,
+        dbgx(1, "%s tx first=%d last=%d  num=%d", ifname,
                 sp->first_tx_ring, sp->last_tx_ring, sp->nmr.nr_tx_rings);
         for (i = 0; i <= sp->nmr.nr_tx_rings; i++) {
 #ifdef HAVE_NETMAP_RING_HEAD_TAIL
-            dbgx(2, "TX%d 0x%p head=%d cur=%d tail=%d", i, NETMAP_TXRING(sp->nm_if, i),
+            dbgx(1, "TX%d 0x%p head=%d cur=%d tail=%d", i, NETMAP_TXRING(sp->nm_if, i),
                     (NETMAP_TXRING(sp->nm_if, i))->head,
                     (NETMAP_TXRING(sp->nm_if, i))->cur, (NETMAP_TXRING(sp->nm_if, i))->tail);
 #else
-            dbgx(2, "TX%d 0x%p cur=%d avail=%d", i, NETMAP_TXRING(sp->nm_if, i),
+            dbgx(1, "TX%d 0x%p cur=%d avail=%d", i, NETMAP_TXRING(sp->nm_if, i),
                     (NETMAP_TXRING(sp->nm_if, i))->cur, (NETMAP_TXRING(sp->nm_if, i))->avail);
 #endif
         }
@@ -400,15 +411,15 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     }
 
     if ((sp->if_flags & IFF_UP) == 0) {
-        dbgx(1, "%s is down, bringing up...", device);
+        dbgx(1, "%s is down, bringing up...", sp->device);
         sp->if_flags |= IFF_UP;
     }
 
 
     if (!sp->is_vale) {
         if ((sp->if_flags & IFF_RUNNING) == 0) {
-            dbgx(1, "sendpacket_open_netmap: %s is not running", device);
-            snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "interface %s is not running - check cables\n", device);
+            dbgx(1, "sendpacket_open_netmap: %s is not running", sp->device);
+            snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "interface %s is not running - check cables\n", sp->device);
             goto NETMAP_IF_NOT_RUNNING;
         }
 
@@ -521,7 +532,7 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
         return retcode;
 
     txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
-    if ((avail = nm_ring_space(txring)) == 0) {
+    while ((avail = nm_ring_space(txring)) == 0) {
         /* out of space on current TX queue - go to next */
         ++sp->cur_tx_ring;
         if (sp->cur_tx_ring > sp->last_tx_ring) {
@@ -536,6 +547,16 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
 
             sp->cur_tx_ring = sp->first_tx_ring;
 
+            /* send TX interrupt signal
+             *
+             * On Linux this makes one slot free on the
+             * ring, which increases speed by about 10Mbps.
+             *
+             * But it will never free up all the slots. For
+             * that we must poll and call again.
+             */
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+
             pfd.fd = sp->handle.fd;
             pfd.events = POLLOUT;
             pfd.revents = 0;
@@ -547,6 +568,16 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
             }
 
             sp->tx_timeouts = 0;
+
+            /*
+             * Do not remove this even though it looks redundant.
+             * Overall performance is increased with this restart
+             * of the TX queue.
+             *
+             * This call increases the number of available slots from
+             * 1 to all that are truly available.
+             */
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
         }
 
         txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);

@@ -159,6 +159,12 @@ get_interface_list(void)
                 if (netmap_version >= 10) {
                     list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
                     list_ptr = list_ptr->next;
+                    snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s!", pcap_if_ptr->name);
+                    sprintf(list_ptr->alias, "%%%d", i++);
+                    list_ptr->flags = pcap_if_ptr->flags;
+
+                    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                    list_ptr = list_ptr->next;
                     snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s*", pcap_if_ptr->name);
                     sprintf(list_ptr->alias, "%%%d", i++);
                     list_ptr->flags = pcap_if_ptr->flags;
