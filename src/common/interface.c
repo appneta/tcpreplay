@@ -96,7 +96,7 @@ get_interface_list(void)
 #ifndef HAVE_WIN32
 	/* Unix just has a warning about being root */
 	if (geteuid() != 0)
-		warn("May need to run as root to get complete list.");
+		warn("May need to run as root to get access to all network interfaces.");
 #endif
 
     if (pcap_findalldevs(&pcap_if, ebuf) < 0)
