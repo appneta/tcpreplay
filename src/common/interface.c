@@ -31,6 +31,9 @@
 #include "defines.h"
 #include "common.h"
 #include "interface.h"
+#ifdef HAVE_NETMAP
+#include "common/netmap.h"
+#endif
 
 #ifdef DEBUG
 extern int debug;
@@ -43,20 +46,14 @@ extern int debug;
  * which use horrifically long interface names
  * 
  * Returns NULL on error
- * 
- * On success, it *may* malloc() memory equal to the length of *alias.
  */
 char *
 get_interface(interface_list_t *list, const char *alias)
 {
     interface_list_t *ptr;
-    char *name;
     
     assert(alias);
     
-    if (strncmp("vale", alias, 4) == 0)
-        goto vale;
-
     if (list != NULL) {        
         ptr = list;
     
@@ -70,13 +67,8 @@ get_interface(interface_list_t *list, const char *alias)
             
             ptr = ptr->next;
         } while (ptr != NULL);
-    } else {
-vale:
-        name = (char *)safe_malloc(strlen(alias) + 1);
-        strlcpy(name, alias, sizeof(name));
-        return(name);
     }
-    
+
     return(NULL);
 }
 
@@ -92,11 +84,23 @@ get_interface_list(void)
     int i = 0;
     DIR *dir;
     struct dirent *dirdata;
+#ifdef HAVE_NETMAP
+    int fd = -1;
+    nmreq_t nmr;
+#endif
+#if defined HAVE_LIBPCAP_NETMAP || defined HAVE_NETMAP
+    u_int32_t netmap_version = -1;
+#endif
     
 #ifndef HAVE_WIN32
 	/* Unix just has a warning about being root */
 	if (geteuid() != 0)
 		warn("May need to run as root to get complete list.");
+#endif
+
+#ifdef HAVE_NETMAP
+    if ((fd = open ("/dev/netmap", O_RDWR)) > 0)
+        netmap_version = get_netmap_version(fd);
 #endif
 
     if (pcap_findalldevs(&pcap_if, ebuf) < 0)
@@ -128,47 +132,57 @@ get_interface_list(void)
          */
         if (!(pcap_if_ptr->flags & PCAP_IF_LOOPBACK)
                 && strcmp("any", pcap_if_ptr->name)) {
+#endif
 #ifdef HAVE_NETMAP
-            struct nmreq nmr;
-            int fd;
-
-            bzero (&nmr, sizeof(nmr));
-            strncpy (nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
-            nmr.nr_version = NETMAP_API;
-            if ((fd = open ("/dev/netmap", O_RDWR)) > 0
+            if (fd > 0
+                    && netmap_version != -1
                     && (ioctl(fd, NIOCGINFO, &nmr) == 0)) {
                 int x;
+                bzero (&nmr, sizeof(nmr));
+                strncpy (nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
+                nmr.nr_version = netmap_version;
 
 #endif /* HAVE_NETMAP */
+#if defined HAVE_LIBPCAP_NETMAP || defined HAVE_NETMAP
+                list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                list_ptr = list_ptr->next;
+                snprintf(list_ptr->name, sizeof(list_ptr->name), "vale:%s", pcap_if_ptr->name);
+                sprintf(list_ptr->alias, "%%%d", i++);
+                list_ptr->flags = pcap_if_ptr->flags;
+
                 list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
                 list_ptr = list_ptr->next;
                 snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s", pcap_if_ptr->name);
                 sprintf(list_ptr->alias, "%%%d", i++);
                 list_ptr->flags = pcap_if_ptr->flags;
 
-                list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
-                list_ptr = list_ptr->next;
-                snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s*", pcap_if_ptr->name);
-                sprintf(list_ptr->alias, "%%%d", i++);
-                list_ptr->flags = pcap_if_ptr->flags;
-
-                list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
-                list_ptr = list_ptr->next;
-                snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s^", pcap_if_ptr->name);
-                sprintf(list_ptr->alias, "%%%d", i++);
-                list_ptr->flags = pcap_if_ptr->flags;
-
-#ifdef HAVE_NETMAP
-                for (x = 0; x < nmr.nr_rx_rings; ++x) {
+                if (netmap_version >= 10) {
                     list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
                     list_ptr = list_ptr->next;
-                    snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s-%d", pcap_if_ptr->name, x);
+                    snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s*", pcap_if_ptr->name);
+                    sprintf(list_ptr->alias, "%%%d", i++);
+                    list_ptr->flags = pcap_if_ptr->flags;
+
+                    list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                    list_ptr = list_ptr->next;
+                    snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s^", pcap_if_ptr->name);
                     sprintf(list_ptr->alias, "%%%d", i++);
                     list_ptr->flags = pcap_if_ptr->flags;
                 }
-                close(fd);
+#endif /* HAVE_LIBPCAP_NETMAP  || HAVE_NETMAP */
+#ifdef HAVE_NETMAP
+                if (netmap_version >= 10) {
+                    for (x = 0; x < nmr.nr_rx_rings; ++x) {
+                        list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+                        list_ptr = list_ptr->next;
+                        snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s-%d", pcap_if_ptr->name, x);
+                        sprintf(list_ptr->alias, "%%%d", i++);
+                        list_ptr->flags = pcap_if_ptr->flags;
+                    }
+                }
             }
 #endif /* HAVE_NETMAP */
+#ifdef HAVE_LIBPCAP_NETMAP
         }
 #endif /* HAVE_LIBPCAP_NETMAP */
         pcap_if_ptr = pcap_if_ptr->next;
@@ -195,7 +209,12 @@ get_interface_list(void)
 
     }
 
+#ifdef HAVE_NETMAP
+    if (fd > 0)
+        close(fd);
+#endif
 
+    dbg(1, "xxx get_interface_list end");
     return(list_head);
 }
 

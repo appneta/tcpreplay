@@ -303,6 +303,13 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         goto out;
     }
 
+#ifdef HAVE_NETMAP
+    if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+        options->netmap = 1;
+        ctx->sp_type = SP_TYPE_NETMAP;
+    }
+#endif
+
     options->intf1_name = safe_strdup(intname);
 
     /* open interfaces for writing */
@@ -325,6 +332,13 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ret = -1;
             goto out;
         }
+#ifdef HAVE_NETMAP
+    if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+        tcpreplay_seterr(ctx, "netmap/vale interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
+        ret = -1;
+        goto out;
+    }
+#endif
 
         options->intf2_name = safe_strdup(intname);
 
@@ -559,7 +573,6 @@ tcpreplay_set_netmap(tcpreplay_t *ctx, bool value)
     warn("netmap not compiled in");
     return -1;
 #endif
-    return 0;
 }
 
 /**

@@ -61,6 +61,8 @@ main(int argc, char *argv[])
     int rcode;
     char buf[1024];
 
+    fflush(NULL);
+
     ctx = tcpreplay_init();
 #ifdef TCPREPLAY
     optct = optionProcess(&tcpreplayOptions, argc, argv);
@@ -70,6 +72,7 @@ main(int argc, char *argv[])
     argc -= optct;
     argv += optct;
 
+    fflush(NULL);
     rcode = tcpreplay_post_args(ctx, argc);
     if (rcode <= -2) {
         warnx("%s", tcpreplay_getwarn(ctx));
@@ -77,6 +80,7 @@ main(int argc, char *argv[])
         errx(-1, "Unable to parse args: %s", tcpreplay_geterr(ctx));
     }
 
+    fflush(NULL);
 #ifdef TCPREPLAY_EDIT
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, sendpacket_get_dlt(ctx->intf1)) < 0) {

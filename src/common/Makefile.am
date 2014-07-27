@@ -21,6 +21,10 @@ if ENABLE_TCPDUMP
 libcommon_a_SOURCES += tcpdump.c
 endif
 
+if COMPILE_NETMAP
+libcommon_a_SOURCES += netmap.c
+endif
+
 AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS) @LDNETINC@
 
 if ! SYSTEM_STRLCPY

@@ -852,8 +852,9 @@ dnl #####################################################
 dnl Check for netmap support
 dnl #####################################################
 have_netmap=no
+enable_netmap=no
 trynetmapdir=/opt/netmap
-AC_MSG_CHECKING(for Netmap socket sending support)
+AC_MSG_CHECKING(for netmap socket sending support)
 AC_ARG_WITH(netmap,
     AC_HELP_STRING([--with-netmap=DIR], [Use netmap in DIR]),
     [trynetmapdir=$withval])
@@ -864,12 +865,14 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
         NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
         NETMAPINCDIR="${testdir}/sys"
         have_netmap="yes $testdir"
+        enable_netmap=yes
     else 
         if test -f "${testdir}/net/netmap.h" ; then
             NETMAPINC="${testdir}/net/netmap.h"
             NETMAPUSERINC="${testdir}/net/netmap_user.h"
             NETMAPINCDIR="${testdir}"
             have_netmap="yes $testdir"
+            enable_netmap=yes
         fi
     fi
     
@@ -885,6 +888,7 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
         AC_DEFINE([HAVE_NETMAP], [1],
                [Do we have netmap support?])
         have_netmap="yes $testdir"
+        enable_netmap=yes
         break;
     fi
     if test "$trynetmapdir" != /opt/netmap ; then
@@ -893,23 +897,100 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
 done
 
 AC_MSG_RESULT($have_netmap)
+AM_CONDITIONAL(COMPILE_NETMAP, [test x$enable_netmap = xyes ])
+
 
 dnl ###########################################################
-dnl Check for nm_open() function available in netmap version 10
+dnl Check for nm_open() function available in netmap version 5
+dnl Also check for other version-specific netmap definitions and structures 
 dnl ###########################################################
 OLDCPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
 AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
+
+have_nm_open=no
+have_nm_nr_reg_mask=no
+have_nm_nr_flags=no
+have_nmring_head_tail=no
 if test "$have_netmap" != no ; then
-    have_nm_open=no
+    dnl check for nm_open()
     AC_CHECK_DECL([nm_open],[have_nm_open=yes], , [[
         #include <stdio.h>
         #include "${NETMAPUSERINC}"
     ]])
-    if test "$have_nm_open" = yes ; then
-        AC_DEFINE([HAVE_NETMAP_NM_OPEN], [1], [Does netmap have nm_open function?])
-    fi
+    
+    dnl check for #define NR_REG_MASK
+    AC_MSG_CHECKING(for netmap NR_REG_MASK definition)
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([[
+                #include <stdint.h>
+                #include <sys/socket.h>
+                #include <net/if.h>
+                #include <net/netmap.h>
+            ]],
+            [[ 
+                #ifdef NR_REG_MASK
+                    /* OK */
+                #else
+                    # error NR_REG_MASK not found
+                #endif
+            ]])
+        ],
+        [have_nm_nr_reg_mask=yes], 
+        [])
+    AC_MSG_RESULT($have_nm_nr_reg_mask)
+    
+    dnl check for nr_flags in struct nmreq
+    AC_MSG_CHECKING(for netmap nr_flags definition)
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([[
+                #include <stdint.h>
+                #include <sys/socket.h>
+                #include <net/if.h>
+                #include <net/netmap.h>
+            ]],
+            [[ 
+                struct nmreq nmr;
+                nmr.nr_flags = 0;
+            ]])
+        ],
+        [have_nm_nr_flags=yes], 
+        [])
+    AC_MSG_RESULT($have_nm_nr_flags)
+    
+    dnl check for head/tail in struct netmap_ring
+    AC_MSG_CHECKING(for netmap ring head/tail definitions)
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([[
+                #include <stdint.h>
+                #include <sys/socket.h>
+                #include <net/if.h>
+                #include <net/netmap.h>
+            ]],
+            [[ 
+                struct netmap_ring r;
+                r.head = r.tail = 0;
+            ]])
+        ],
+        [have_nmring_head_tail=yes], 
+        [])
+    AC_MSG_RESULT($have_nmring_head_tail)
+    
 fi
+
+if test "$have_nm_open" = yes ; then
+    AC_DEFINE([HAVE_NETMAP_NM_OPEN], [1], [Does netmap have nm_open function?])
+fi
+if test "$have_nm_nr_reg_mask" = yes ; then
+    AC_DEFINE([HAVE_NETMAP_NR_REG], [1], [Does netmap have NR_REG_MASK defined?])
+fi
+if test "$have_nm_nr_flags" = yes ; then
+    AC_DEFINE([HAVE_NETMAP_NR_FLAGS], [1], [Does netmap struct nmreq have nr_flags defined?])
+fi
+if test "$have_nmring_head_tail" = yes ; then
+    AC_DEFINE([HAVE_NETMAP_RING_HEAD_TAIL], [1], [Does structure netmap_ring have head/tail defined?])
+fi
+
 CPPFLAGS="$OLDCPPFLAGS"
 
 have_pf=no
