@@ -767,6 +767,8 @@ COMPILE_FRAGROUTE_FALSE
 COMPILE_FRAGROUTE_TRUE
 LDNETLIB
 LDNETINC
+COMPILE_NETMAP_FALSE
+COMPILE_NETMAP_TRUE
 NETMAPFLAGS
 NETMAPINCDIR
 NETMAPUSERINC
@@ -5169,13 +5171,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:5172: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:5174: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5175: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:5177: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5178: output\"" >&5)
+  (eval echo "\"\$as_me:5180: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6381,7 +6383,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6384 "configure"' > conftest.$ac_ext
+  echo '#line 6386 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7907,11 +7909,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7910: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7912: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7914: \$? = $ac_status" >&5
+   echo "$as_me:7916: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8246,11 +8248,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8249: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8251: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8253: \$? = $ac_status" >&5
+   echo "$as_me:8255: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8351,11 +8353,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8354: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8356: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8358: \$? = $ac_status" >&5
+   echo "$as_me:8360: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8406,11 +8408,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8409: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8411: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8413: \$? = $ac_status" >&5
+   echo "$as_me:8415: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10790,7 +10792,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10793 "configure"
+#line 10795 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10886,7 +10888,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10889 "configure"
+#line 10891 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14191,11 +14193,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14194: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14196: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14198: \$? = $ac_status" >&5
+   echo "$as_me:14200: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14290,11 +14292,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14293: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14295: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14297: \$? = $ac_status" >&5
+   echo "$as_me:14299: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14342,11 +14344,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14345: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14347: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14349: \$? = $ac_status" >&5
+   echo "$as_me:14351: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -18463,9 +18465,10 @@ fi
 
 
 have_netmap=no
+enable_netmap=no
 trynetmapdir=/opt/netmap
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Netmap socket sending support" >&5
-$as_echo_n "checking for Netmap socket sending support... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap socket sending support" >&5
+$as_echo_n "checking for netmap socket sending support... " >&6; }
 
 # Check whether --with-netmap was given.
 if test "${with_netmap+set}" = set; then :
@@ -18479,12 +18482,14 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
         NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
         NETMAPINCDIR="${testdir}/sys"
         have_netmap="yes $testdir"
+        enable_netmap=yes
     else
         if test -f "${testdir}/net/netmap.h" ; then
             NETMAPINC="${testdir}/net/netmap.h"
             NETMAPUSERINC="${testdir}/net/netmap_user.h"
             NETMAPINCDIR="${testdir}"
             have_netmap="yes $testdir"
+            enable_netmap=yes
         fi
     fi
 
@@ -18501,6 +18506,7 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
 $as_echo "#define HAVE_NETMAP 1" >>confdefs.h
 
         have_netmap="yes $testdir"
+        enable_netmap=yes
         break;
     fi
     if test "$trynetmapdir" != /opt/netmap ; then
@@ -18510,6 +18516,15 @@ done
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_netmap" >&5
 $as_echo "$have_netmap" >&6; }
+ if test x$enable_netmap = xyes ; then
+  COMPILE_NETMAP_TRUE=
+  COMPILE_NETMAP_FALSE='#'
+else
+  COMPILE_NETMAP_TRUE='#'
+  COMPILE_NETMAP_FALSE=
+fi
+
+
 
 OLDCPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
@@ -18527,9 +18542,13 @@ fi
 
 done
 
+
+have_nm_open=no
+have_nm_nr_reg_mask=no
+have_nm_nr_flags=no
+have_nmring_head_tail=no
 if test "$have_netmap" != no ; then
-    have_nm_open=no
-    ac_fn_c_check_decl "$LINENO" "nm_open" "ac_cv_have_decl_nm_open" "
+        ac_fn_c_check_decl "$LINENO" "nm_open" "ac_cv_have_decl_nm_open" "
         #include <stdio.h>
         #include \"${NETMAPUSERINC}\"
 
@@ -18538,12 +18557,120 @@ if test "x$ac_cv_have_decl_nm_open" = x""yes; then :
   have_nm_open=yes
 fi
 
-    if test "$have_nm_open" = yes ; then
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap NR_REG_MASK definition" >&5
+$as_echo_n "checking for netmap NR_REG_MASK definition... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+                #include <stdint.h>
+                #include <sys/socket.h>
+                #include <net/if.h>
+                #include <net/netmap.h>
+
+int
+main ()
+{
+
+                #ifdef NR_REG_MASK
+                    /* OK */
+                #else
+                    # error NR_REG_MASK not found
+                #endif
+
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  have_nm_nr_reg_mask=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_reg_mask" >&5
+$as_echo "$have_nm_nr_reg_mask" >&6; }
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap nr_flags definition" >&5
+$as_echo_n "checking for netmap nr_flags definition... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+                #include <stdint.h>
+                #include <sys/socket.h>
+                #include <net/if.h>
+                #include <net/netmap.h>
+
+int
+main ()
+{
+
+                struct nmreq nmr;
+                nmr.nr_flags = 0;
+
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  have_nm_nr_flags=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_flags" >&5
+$as_echo "$have_nm_nr_flags" >&6; }
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap ring head/tail definitions" >&5
+$as_echo_n "checking for netmap ring head/tail definitions... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+                #include <stdint.h>
+                #include <sys/socket.h>
+                #include <net/if.h>
+                #include <net/netmap.h>
+
+int
+main ()
+{
+
+                struct netmap_ring r;
+                r.head = r.tail = 0;
+
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  have_nmring_head_tail=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nmring_head_tail" >&5
+$as_echo "$have_nmring_head_tail" >&6; }
+
+fi
+
+if test "$have_nm_open" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_NM_OPEN 1" >>confdefs.h
 
-    fi
 fi
+if test "$have_nm_nr_reg_mask" = yes ; then
+
+$as_echo "#define HAVE_NETMAP_NR_REG 1" >>confdefs.h
+
+fi
+if test "$have_nm_nr_flags" = yes ; then
+
+$as_echo "#define HAVE_NETMAP_NR_FLAGS 1" >>confdefs.h
+
+fi
+if test "$have_nmring_head_tail" = yes ; then
+
+$as_echo "#define HAVE_NETMAP_RING_HEAD_TAIL 1" >>confdefs.h
+
+fi
+
 CPPFLAGS="$OLDCPPFLAGS"
 
 have_pf=no
@@ -21087,6 +21214,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_TCPLIVEPLAY_TRUE}" && test -z "${COMPILE_TCPLIVEPLAY_FALSE}"; then
   as_fn_error "conditional \"COMPILE_TCPLIVEPLAY\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${COMPILE_NETMAP_TRUE}" && test -z "${COMPILE_NETMAP_FALSE}"; then
+  as_fn_error "conditional \"COMPILE_NETMAP\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_FRAGROUTE_TRUE}" && test -z "${COMPILE_FRAGROUTE_FALSE}"; then

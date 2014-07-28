@@ -128,22 +128,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#ifdef HAVE_NETMAP
-#include <sys/mman.h>
-#ifdef linux
-#   include <linux/ethtool.h>
-#   include <linux/sockios.h>
-#endif /* linux */
-static int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd);
-static sendpacket_t *sendpacket_open_netmap(const char *device, char *errbuf);
-#if NETMAP_API >= 10
-#define NETMAP_TX_RING_EMPTY nm_ring_empty
-#else
-#define nm_ring_space(ring) \
-    (ring->avail)
-#endif /* NETMAP_API < 10 */
-#endif /* HAVE_NETMAP */
-
 #ifdef HAVE_PF_PACKET
 #undef INJECT_METHOD
 
@@ -227,20 +211,6 @@ static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t * sendpacket_open_khial(const char *, char *) _U_;
 static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
 
-#ifdef HAVE_NETMAP
-static inline uint32_t get_netmap_buf_avail(struct netmap_ring *ring)
-{
-    uint32_t avail;
-#if NETMAP_API > 4
-            avail = nm_ring_space(ring);
-#else
-            avail = ring->avail;
-#endif
-
-    return avail;
-}
-#endif /* HAVE_NETMAP */
-
 /**
  * returns number of bytes sent on success or -1 on error
  * Note: it is theoretically possible to get a return code >0 and < len
@@ -260,13 +230,6 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
                                   * prevent page misses on stack
                                   */
     static const size_t buffer_payload_size = sizeof(buffer) + sizeof(struct pcap_pkthdr);
-#ifdef HAVE_NETMAP
-    struct netmap_ring *txring;
-    struct netmap_slot *slot;
-    char *p;
-    uint32_t cur, avail;
-    bool tx_queue_empty;
-#endif
 
     assert(sp);
     assert(data);
@@ -276,7 +239,6 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
 
 TRY_SEND_AGAIN:
     sp->attempt ++;
-
 
     switch (sp->handle_type) {
         case SP_TYPE_KHIAL:
@@ -457,73 +419,15 @@ TRY_SEND_AGAIN:
 
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
-            txring = NETMAP_TXRING(sp->nm_if, 0);
-            while ((avail = get_netmap_buf_avail(txring)) == 0) {
-                struct pollfd pfd;
+            retcode = sendpacket_send_netmap(sp, data, len);
 
-                /* send TX interrupt signal just in case */
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-
-                if (sp->abort)
-                    return retcode;
-
-                pfd.fd = sp->handle.fd;
-                pfd.events = POLLOUT;
-                pfd.revents = 0;
-                if (poll(&pfd, 1, 1000) <= 0) {
-                    dbgx(2, "netmap timeout empty=%d avail=%u bufsize=%d\n",
-                            NETMAP_TX_RING_EMPTY(txring),
-                            avail, txring->nr_buf_size);
-                    goto TRY_SEND_AGAIN;
-                }
-
-                /*
-                 * Do not remove this even though it looks redundant.
-                 * Overall performance is increased with this restart
-                 * of the TX queue.
-                 */
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-
-                dbgx(2, "netmap poll empty=%d avail=%u bufsize=%d\n",
-                        NETMAP_TX_RING_EMPTY(txring),
-                        avail, txring->nr_buf_size);
+            if (retcode == -1) {
+                sendpacket_seterr(sp, "interface hung!!");
+            } else if (retcode == -2) {
+                /* this indicates that a retry was requested - this is not a failure */
+                retcode = 0;
+                goto TRY_SEND_AGAIN;
             }
-
-            /*
-             * send
-             */
-            cur = txring->cur;
-            slot = &txring->slot[cur];
-            slot->flags = 0;
-            p = NETMAP_BUF(txring, slot->buf_idx);
-            memcpy(p, data, min(len, txring->nr_buf_size));
-            slot->len = len;
-
-            /* let kernel know that packet is available */
-#if NETMAP_API >= 10
-            dbgx(3, "netmap cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
-                    cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
-                    nm_ring_space(txring), txring->nr_buf_size);
-            cur = nm_ring_next(txring, cur);
-            tx_queue_empty = nm_ring_empty(txring);
-            txring->head = cur;
-#else
-            dbgx(3, "netmap cur=%d slot index=%d flags=0x%x empty=%d avail=%u bufsize=%d\n",
-                    cur, slot->buf_idx, slot->flags, NETMAP_TX_RING_EMPTY(txring),
-                    txring->avail, txring->nr_buf_size);
-            cur = NETMAP_RING_NEXT(txring, cur);
-            tx_queue_empty = NETMAP_TX_RING_EMPTY(txring);
-            txring->avail--;
-#endif
-            txring->cur = cur;
-            retcode = len;
-
-            /*
-             *  If the queue is empty, tell netmap that packets are ready to TX
-             */
-            if (tx_queue_empty)
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* generate TX interrupt */
-
 #endif /* HAVE_NETMAP */
             break;
 
@@ -598,7 +502,7 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
     } else {
 #ifdef HAVE_NETMAP
         if (sendpacket_type == SP_TYPE_NETMAP)
-            sp = sendpacket_open_netmap(device, errbuf);
+            sp = (sendpacket_t*)sendpacket_open_netmap(device, errbuf);
         else
 #endif
 #if defined HAVE_PF_PACKET
@@ -703,38 +607,7 @@ sendpacket_close(sendpacket_t *sp)
 
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
-            fprintf(stderr, "Switching network driver for %s to normal mode... ",
-                    sp->device);
-            fflush(NULL);
-              /* flush any remaining packets */
-            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-
-#ifdef linux
-            if (sp->is_vale == 0) {          
-                /* restore original settings:
-                 * - generic-segmentation-offload
-                 * - tcp-segmentation-offload
-                 * - rx-checksumming
-                 * - tx-checksumming
-                 */
-                sp->data = sp->gso;
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
-                sp->data = sp->tso;
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
-                sp->data = sp->rxcsum;
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);
-                sp->data = sp->txcsum;
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM);
-            }
-#endif /* linux */
-
-            /* restore interface to normal mode */
-#if NETMAP_API < 10
-            ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
-#endif
-            munmap(sp->mmap_addr, sp->mmap_size);
-            close(sp->handle.fd);
-            notice("done!");
+            sendpacket_close_netmap(sp);
 #endif /* HAVE_NETMAP */
             break;
 
@@ -906,245 +779,6 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
 #endif /* HAVE_LIBDNET */
 
 #ifdef HAVE_NETMAP
-/**
- * ioctl support for netmap
- */
-static int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd) {
-    struct ifreq ifr;
-    int error;
-    int fd;
-#ifdef linux
-    struct ethtool_value eval;
-#endif
-
-    assert(sp);
-
-    fd = socket (AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) {
-        dbg(1, "ioctl error: cannot get device control socket.\n");
-        return -1;
-    }
-
-    bzero (&ifr, sizeof(ifr));
-    strncpy (ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
-
-    switch (what) {
-    case SIOCSIFFLAGS:
-        ifr.ifr_flags = sp->if_flags >> 16;
-        ifr.ifr_flags = sp->if_flags & 0xffff;
-        break;
-
-#ifdef linux
-    case SIOCETHTOOL:
-        eval.cmd = subcmd;
-        eval.data = sp->data;
-        ifr.ifr_data = (caddr_t)&eval;
-        dbgx(1, "ioctl SIOCETHTOOL subcmd=%d data=%u", subcmd, eval.data);
-        break;
-#endif
-    }
-
-    error = ioctl (fd, what, &ifr);
-    if (error)
-        goto done;
-
-    switch (what) {
-    case SIOCGIFFLAGS:
-        sp->if_flags = (ifr.ifr_flags << 16) | (0xffff & ifr.ifr_flags);
-        dbgx(1, "SIOCGIFFLAGS flags are 0x%x", sp->if_flags);
-        break;
-
-#ifdef linux
-    case SIOCETHTOOL:
-        switch (subcmd) {
-        case ETHTOOL_GGSO:
-            sp->gso = eval.data;
-            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GGSO=%u", eval.data);
-            break;
-
-        case ETHTOOL_GTSO:
-            sp->tso = eval.data;
-            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GTSO=%u", eval.data);
-            break;
-
-        case ETHTOOL_GRXCSUM:
-            sp->rxcsum = eval.data;
-            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GRXCSUM=%u", eval.data);
-            break;
-
-        case ETHTOOL_GTXCSUM:
-            sp->txcsum = eval.data;
-            dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GTXCSUM=%u", eval.data);
-            break;
-        }
-        break;
-#endif
-
-    }
-
-done:
-    close (fd);
-
-    if (error)
-        warnx("ioctl error %d %lu:%d", error, what, subcmd);
-    return error;
-}
-
-/**
- * Inner sendpacket_open() method for using Linux version of netmap
- */
-static sendpacket_t *
-sendpacket_open_netmap(const char *device, char *errbuf)
-{
-    sendpacket_t *sp = NULL;
-    struct nmreq nmr;
-
-    assert(device);
-    assert(errbuf);
-
-    dbg(1, "sendpacket_open_netmap: using netmap");
-
-    /* prep & return our sp handle */
-    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
-
-    /*
-     * Open the netmap device to fetch the number of queues of our
-     * interface.
-     *
-     * The first NIOCREGIF also detaches the card from the
-     * protocol stack and may cause a reset of the card,
-     * which in turn may take some time for the PHY to
-     * reconfigure.
-     */
-    if ((sp->handle.fd = open ("/dev/netmap", O_RDWR)) < 0) {
-        dbg(1, "sendpacket_open_netmap: Unable to access netmap");
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to access netmap.\n"
-                "See INSTALL to learn how to set up netmap-capable network drivers.");
-        goto OPEN_FAILED;
-    }
-
-    /*
-     * Register the interface on the netmap device: from now on,
-     * we can operate on the network interface without any
-     * interference from the legacy network stack.
-     *
-     * Cards take a long time to reset the PHY.
-     */
-    fprintf(stderr, "Switching network driver for %s to netmap bypass mode... ",
-            device);
-    fflush(NULL);
-
-    bzero (&nmr, sizeof(nmr));
-    strncpy (nmr.nr_name, device, sizeof(nmr.nr_name));
-    nmr.nr_version = NETMAP_API;
-
-    if (ioctl (sp->handle.fd, NIOCREGIF, &nmr) == -1) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Failure accessing netmap.\n"
-                "\tRequest for netmap version %u failed.\n\tMake sure netmap driver is version %u.\n\tError=%s\n",
-                NETMAP_API, NETMAP_API, strerror(errno));
-        goto NETMAP_UP_FAILED;
-    }
-
-    sp->mmap_size = nmr.nr_memsize;
-
-    dbgx(1, "sendpacket_open_netmap: mapping %d Kbytes queues=%d",
-            sp->mmap_size >> 10, nmr.nr_tx_rings);
-    sp->mmap_addr = (struct netmap_d *)mmap (0, sp->mmap_size,
-            PROT_WRITE | PROT_READ, MAP_SHARED, sp->handle.fd, 0);
-
-    if (sp->mmap_addr == MAP_FAILED ) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "mmap: %s", strerror (errno));
-        goto MMAP_FAILED;
-    }
-
-    bzero (&nmr, sizeof(nmr));
-    strncpy (nmr.nr_name, device, sizeof(nmr.nr_name));
-    nmr.nr_version = NETMAP_API;
-    strlcpy (sp->device, device, sizeof(sp->device));
-    sp->nm_if = NETMAP_IF(sp->mmap_addr, nmr.nr_offset);
-    sp->nmr = nmr;
-    sp->handle_type = SP_TYPE_NETMAP;
-
-    dbg(2, "Waiting 4 seconds for phy reset...");
-    sleep (4);
-    dbg(2, "Ready!");
-
-    if (strncmp("vale", device, 4) == 0)
-        sp->is_vale = 1;
-
-    if (sp->is_vale == 0) {
-        if (nm_do_ioctl(sp, SIOCGIFFLAGS, 0) < 0)
-            goto NM_DO_IOCTL_FAILED;
-    }
-
-    if ((sp->if_flags & IFF_UP) == 0) {
-        dbgx(1, "%s is down, bringing up...", device);
-        sp->if_flags |= IFF_UP;
-    }
-
-    if ((sp->if_flags & IFF_RUNNING) == 0) {
-        dbgx(1, "sendpacket_open_netmap: %s is not running", device);
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "interface %s is not running - check cables\n", device);
-        goto NETMAP_IF_NOT_RUNNING;
-    }
-
-    if (sp->is_vale == 0) {
-
-        /* set promiscuous mode */
-        sp->if_flags |= IFF_PROMISC;
-        if (nm_do_ioctl(sp, SIOCSIFFLAGS, 0) < 0)
-            goto NM_DO_IOCTL_FAILED;
-
-#ifdef linux
-        /* disable:
-         * - generic-segmentation-offload
-         * - tcp-segmentation-offload
-         * - rx-checksumming
-         * - tx-checksumming
-         */
-        if (nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GGSO) < 0 ||
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTSO) < 0 ||
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GRXCSUM) < 0 ||
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_GTXCSUM) < 0)
-            goto NM_DO_IOCTL_FAILED;
-
-        sp->data = 0;
-        if (nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO) < 0 ||
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO) < 0 ||
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM) < 0 ||
-                nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM))
-            goto NM_DO_IOCTL_FAILED;
-#endif
-    }
-
-    if(sp->abort)
-        goto NETMAP_ABORT;
-
-    notice("done!");
-
-    return sp;
-
-NM_DO_IOCTL_FAILED:
-    snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "nm_do_ioctl: %s", strerror (errno));
-NETMAP_IF_NOT_RUNNING:
-    notice("failed!");
-NETMAP_ABORT:
-    fprintf(stderr, " Switching network driver for %s to normal mode... ",
-            sp->device);
-    fflush(NULL);
-    munmap(sp->mmap_addr, sp->mmap_size);
-MMAP_FAILED:
-#if NETMAP_API < 10
-    ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
-#endif
-NETMAP_UP_FAILED:
-    close (sp->handle.fd);
-OPEN_FAILED:
-    safe_free(sp);
-
-    notice("done!");
-    return NULL;
-}
 #endif /* HAVE_NETMAP */
 
 #if defined HAVE_PF_PACKET

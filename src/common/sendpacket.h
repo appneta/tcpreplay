@@ -30,12 +30,8 @@
 #endif
 
 #if defined HAVE_NETMAP
-#include <net/if.h>
+#include "common/netmap.h"
 #include <net/netmap.h>
-#include <net/netmap_user.h>
-#ifndef NETMAP_API
-#define NETMAP_API 0
-#endif
 #endif
 
 #ifdef HAVE_PF_PACKET
@@ -95,11 +91,12 @@ union sendpacket_handle {
 };
 
 #define SENDPACKET_ERRBUF_SIZE 1024
+#define MAX_IFNAMELEN   64
 
 struct sendpacket_s {
     tcpr_dir_t cache_dir;
     int open;
-    char device[50];
+    char device[MAX_IFNAMELEN];
     char errbuf[SENDPACKET_ERRBUF_SIZE];
     COUNTER retry_enobufs;
     COUNTER retry_eagain;
@@ -119,11 +116,14 @@ struct sendpacket_s {
     struct tcpr_ether_addr ether;
 #ifdef HAVE_NETMAP
     struct netmap_if *nm_if;
-    struct nmreq nmr;
+    nmreq_t nmr;
     void *mmap_addr;
     int mmap_size;
     uint32_t if_flags;
     uint32_t is_vale;
+    int netmap_version;
+    int tx_timeouts;
+    uint16_t first_tx_ring, last_tx_ring, cur_tx_ring;
 #ifdef linux
     uint32_t data;
     uint32_t gso;

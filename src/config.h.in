@@ -215,6 +215,15 @@
 /* Does netmap have nm_open function? */
 #undef HAVE_NETMAP_NM_OPEN
 
+/* Does netmap struct nmreq have nr_flags defined? */
+#undef HAVE_NETMAP_NR_FLAGS
+
+/* Does netmap have NR_REG_MASK defined? */
+#undef HAVE_NETMAP_NR_REG
+
+/* Does structure netmap_ring have head/tail defined? */
+#undef HAVE_NETMAP_RING_HEAD_TAIL
+
 /* Define to 1 if you have the <net/netmap_user.h> header file. */
 #undef HAVE_NET_NETMAP_USER_H
 
