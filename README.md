@@ -173,7 +173,7 @@ It's easy. Basically you...
 
 * [Set up git][git]
 * [Fork]
-* Edit (we that you create a branch per issue)
+* Edit (we create a branch per issue)
 * [Send a PR][pr]
 
 <br />
