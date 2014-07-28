@@ -1,3 +1,6 @@
+06/28/2014 Version 4.0.5beta2
+    - Add missing header to distribution (#108)
+
 06/21/2014 Version 4.0.5beta1
     - Make --netmap version agnostic (#106)
     - Fix netmap hang in FreeBSD 11 (#103)
