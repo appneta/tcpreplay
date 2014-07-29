@@ -44,12 +44,14 @@ static int nm_do_ioctl (sendpacket_t *sp, u_long what, int subcmd);
  * Returns -1 on error
  */
 int
-get_netmap_version(int fd)
+get_netmap_version()
 {
     u_int32_t netmap_version = -1;
     nmreq_t nmr;
+    int fd;
 
-    assert(fd > 0);
+    if ((fd = open ("/dev/netmap", O_RDWR)) < 0)
+        return -1;
 
     /* netmap version discovery */
     bzero (&nmr, sizeof(nmr));
@@ -78,6 +80,8 @@ get_netmap_version(int fd)
             }
         }
     }
+
+    close(fd);
 
     return netmap_version;
 }
@@ -195,6 +199,15 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
         goto IFACENAME_INVALID;
     }
 
+
+    /* get the version of the netmap driver. If < 0, driver is not installed */
+    sp->netmap_version = get_netmap_version();
+    if (sp->netmap_version < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to determine the running netmap version.\n"
+                "Try installing or upgrading the netmap driver.");
+        goto NETMAP_NOT_INSTALLED;
+    }
+
     /*
      * Sort out interface names
      *
@@ -242,7 +255,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
      * which in turn may take some time for the PHY to
      * reconfigure.
      */
-    if ((sp->handle.fd = open ("/dev/netmap", O_RDWR)) < 0) {
+    if ((sp->handle.fd = open("/dev/netmap", O_RDWR)) < 0) {
         dbg(1, "sendpacket_open_netmap: Unable to access netmap");
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to access netmap.\n"
                 "See INSTALL to learn how to set up netmap-capable network drivers.");
@@ -255,14 +268,6 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
      * running machine. Discover the true netmap API version, and be careful to call
      * fuctions that are available on all netmap versions.
      */
-
-    sp->netmap_version = get_netmap_version(sp->handle.fd);
-    if (sp->netmap_version < 0) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to determine the running netmap version.\n"
-                "Try upgrading netmap and recompiling on the running machine.");
-        goto NETMAP_VERSION_FAILED;
-    }
-
     if (sp->netmap_version >= 10) {
         switch (*port) {
         case '-': /* one NIC */
@@ -313,6 +318,10 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
         nmr.nr_ringid = nr_ringid;
         nmr.nr_flags = nr_flags;
     }
+
+    /* prevent a useless warning from the kernel module */
+    if (nr_flags == NR_REG_DEFAULT && sp->netmap_version >= 10)
+        nmr.nr_flags = NR_REG_ALL_NIC;
 
     nmr.nr_version = sp->netmap_version;
     memcpy(nmr.nr_name, ifname, namelen);
@@ -472,11 +481,11 @@ MMAP_FAILED:
 #endif
 NETMAP_UP_FAILED:
 NETMAP_IF_PARSE_FAIL:
-NETMAP_VERSION_FAILED:
     close (sp->handle.fd);
 OPEN_FAILED:
     safe_free(sp);
 IFACENAME_INVALID:
+NETMAP_NOT_INSTALLED:
 
     return NULL;
 }
