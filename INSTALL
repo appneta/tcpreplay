@@ -2,10 +2,16 @@ Installation Instructions
 *************************
 
 Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002, 2004, 2005,
-2006 Free Software Foundation, Inc.
+2006, 2014 Free Software Foundation, Inc.
 
 This file is free documentation; the Free Software Foundation gives
 unlimited permission to copy, distribute and modify it.
+
+
+Advanced Installation
+=====================
+Visit http://tcpreplay.appneta.com/wiki/installation.html
+
 
 Basic Installation
 ==================
@@ -74,19 +80,45 @@ The simplest way to compile this package is:
 Build netmap feature
 ====================
 
-This feature will detect netmap capable network drivers on Linux and BSD 
-systems. If detected, the network driver is bypassed for the execution 
-duration of tcpreplay and tcpreplay-edit, and network buffers will be 
-written to directly. This will allow you to achieve full line rates on 
-commodity network adapters, similar to rates achieved by commercial network 
-traffic generators.
+This feature will detect netmap capable network drivers on Linux and
+BSD systems. If detected, the network driver is bypassed for the
+execution duration of tcpreplay and tcpreplay-edit, and network buffers
+will be written to directly. This will allow you to achieve full 10GigE
+line rates on commodity 10GigE network adapters, similar to rates 
+achieved by commercial network traffic generators.
 
-Note that bypassing the network driver will disrupt other applications connected
-through the test interface. Don't test on the same interface you ssh'ed into.
+Note that bypassing the network driver will disrupt other applications
+connected through the test interface. Use caution when testing on the
+same interface you ssh'ed into.
 
-Download latest netmap sources from http://info.iet.unipi.it/~luigi/netmap/
-If you extracted netmap into /usr/src/ you can build normally. Otherwise you 
-will have to specify the netmap source directory, for example:
+Ensure that you have supported NICs installed. Most Intel and nForce 
+(nVidia) adapters will work. Some virtual adapters are supported.
+
+FreeBSD 10 and higher already contains netmap capabilities and should
+be detected automatically by "configure". But first you must enable netmap on the system 
+by adding 'device netmap' to your kernel config and rebuilding the kernel. When
+complete, /dev/netmap will be available.
+
+For Linux, download latest netmap sources from http://info.iet.unipi.it/~luigi/netmap/
+or run 'git clone https://code.google.com/p/netmap/'. You will also need to have 
+kernel sources installed so the build system can patch the sources and build 
+netmap-enabled drivers. If kernel sources are in /a/b/c/linux-A.B.C/ , then you
+should do:
+
+    cd netmap/LINUX
+    make KSRC=/a/b/c/linux-A.B.C/       # builds the kernel modules
+    make KSRC=/a/b/c/linux-A.B.C/ apps  # builds sample applications
+
+You can omit KSRC if your kernel sources are in a standard place.
+
+Once you load the netmap.lin.ko module on your Linux machine, /dev/netmap 
+will be available. You will also need to replace your existing network drivers
+(beyond the scope of this document).
+
+Building netmap-aware Tcpreplay suite is relatively straight forward. For
+FreeBSD, build normally. For Linux, if you extracted netmap into /usr/src/ you 
+can also build normally. Otherwise you will have to specify the netmap source
+directory, for example:
 
     ./configure --with-netmap=/home/fklassen/git/netmap
     make

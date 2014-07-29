@@ -204,7 +204,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     sp->netmap_version = get_netmap_version();
     if (sp->netmap_version < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to determine the running netmap version.\n"
-                "Try installing or upgrading the netmap driver.");
+                "See INSTALL document for details on installing or upgrading netmap.");
         goto NETMAP_NOT_INSTALLED;
     }
 
@@ -258,7 +258,8 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     if ((sp->handle.fd = open("/dev/netmap", O_RDWR)) < 0) {
         dbg(1, "sendpacket_open_netmap: Unable to access netmap");
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to access netmap.\n"
-                "See INSTALL to learn how to set up netmap-capable network drivers.");
+                "See INSTALL to learn which NICs are supported and\n"
+                "how to set up netmap-capable network drivers.");
         goto OPEN_FAILED;
     }
 
