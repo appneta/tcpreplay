@@ -99,8 +99,7 @@ get_interface_list(void)
 #endif
 
 #ifdef HAVE_NETMAP
-    if ((fd = open ("/dev/netmap", O_RDWR)) > 0)
-        netmap_version = get_netmap_version(fd);
+    netmap_version = get_netmap_version();
 #endif
 
     if (pcap_findalldevs(&pcap_if, ebuf) < 0)
@@ -134,12 +133,12 @@ get_interface_list(void)
                 && strcmp("any", pcap_if_ptr->name)) {
 #endif
 #ifdef HAVE_NETMAP
+            if (netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
+                continue;
             bzero (&nmr, sizeof(nmr));
             strncpy (nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
             nmr.nr_version = netmap_version;
-            if (fd > 0
-                    && netmap_version != -1
-                    && (ioctl(fd, NIOCGINFO, &nmr) == 0)) {
+            if (ioctl(fd, NIOCGINFO, &nmr) == 0) {
                 int x;
 
 #endif /* HAVE_NETMAP */
@@ -187,6 +186,7 @@ get_interface_list(void)
                     }
                 }
             }
+            close(fd);
 #endif /* HAVE_NETMAP */
 #ifdef HAVE_LIBPCAP_NETMAP
         }
@@ -214,11 +214,6 @@ get_interface_list(void)
         }
 
     }
-
-#ifdef HAVE_NETMAP
-    if (fd > 0)
-        close(fd);
-#endif
 
     dbg(1, "xxx get_interface_list end");
     return(list_head);
