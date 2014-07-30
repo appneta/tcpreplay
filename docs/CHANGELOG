@@ -17,10 +17,6 @@
     - Disallow netmap on multiple interfaces (#79)
     - Fix build for FreeBSD version 8.4 (#78)
 
-06/19/2014 Version 4.0.5-beta1
-    - Second loop iteration at full speed (#85)
-    - PF_RING libpcap support (#82)
-
 03/22/2014 Version 4.0.4
     - Number of packets inaccurate when using --netmap method (#76)
     - Unexpected packet counts with --loop and --cachefile enabled (#75)
