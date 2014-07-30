@@ -183,6 +183,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     size_t namelen;
     u_int32_t nr_ringid = 0;
     u_int32_t nr_flags = NR_REG_DEFAULT;
+    int is_default = 0;
 
     assert(device);
     assert(errbuf);
@@ -307,7 +308,8 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
             break;
 
         default:  /* '\0', no suffix */
-            nr_flags = NR_REG_DEFAULT;
+            nr_flags = NR_REG_ALL_NIC;
+            is_default = 1;
             break;
         }
 
@@ -319,10 +321,6 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
         nmr.nr_ringid = nr_ringid;
         nmr.nr_flags = nr_flags;
     }
-
-    /* prevent a useless warning from the kernel module */
-    if (nr_flags == NR_REG_DEFAULT && sp->netmap_version >= 10)
-        nmr.nr_flags = NR_REG_ALL_NIC;
 
     nmr.nr_version = sp->netmap_version;
     memcpy(nmr.nr_name, ifname, namelen);
@@ -341,12 +339,17 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     fflush(NULL);
     sleep(1);   /* ensure message prints when user is connected via ssh */
 
-
     if (ioctl (sp->handle.fd, NIOCREGIF, &nmr)) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Failure accessing netmap.\n"
                 "\tRequest for netmap version %u failed.\n\tCompiled netmap driver is version %u.\n\tError=%s\n",
                 sp->netmap_version, NETMAP_API, strerror(errno));
-        goto NETMAP_UP_FAILED;
+        goto NETMAP_IF_FAILED;
+    }
+
+    if (!nmr.nr_memsize) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Netmap interface '%s' not configured.\n",
+                device, NETMAP_API, strerror(errno));
+        goto NETMAP_IF_FAILED;
     }
 
     sp->mmap_size = nmr.nr_memsize;
@@ -373,8 +376,12 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
         break;
 
     case NR_REG_ALL_NIC:
-        sp->first_tx_ring = sp->cur_tx_ring = 0;
-        sp->last_tx_ring = nmr.nr_tx_rings - 1;
+        if (is_default) {
+            sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
+        } else {
+            sp->first_tx_ring = sp->cur_tx_ring = 0;
+            sp->last_tx_ring = nmr.nr_tx_rings - 1;
+        }
         break;
 
     case NR_REG_SW:
@@ -418,19 +425,16 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     if (!sp->is_vale) {
         if (nm_do_ioctl(sp, SIOCGIFFLAGS, 0) < 0)
             goto NM_DO_IOCTL_FAILED;
-    }
 
-    if ((sp->if_flags & IFF_UP) == 0) {
-        dbgx(1, "%s is down, bringing up...", sp->device);
-        sp->if_flags |= IFF_UP;
-    }
-
-
-    if (!sp->is_vale) {
         if ((sp->if_flags & IFF_RUNNING) == 0) {
             dbgx(1, "sendpacket_open_netmap: %s is not running", sp->device);
             snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "interface %s is not running - check cables\n", sp->device);
             goto NETMAP_IF_NOT_RUNNING;
+        }
+
+        if ((sp->if_flags & IFF_UP) == 0) {
+            dbgx(1, "%s is down, bringing up...", sp->device);
+            sp->if_flags |= IFF_UP;
         }
 
         /* set promiscuous mode */
@@ -480,7 +484,7 @@ MMAP_FAILED:
 #if NETMAP_API < 10
     ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
 #endif
-NETMAP_UP_FAILED:
+NETMAP_IF_FAILED:
 NETMAP_IF_PARSE_FAIL:
     close (sp->handle.fd);
 OPEN_FAILED:
