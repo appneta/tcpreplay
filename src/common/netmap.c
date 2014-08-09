@@ -348,7 +348,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
 
     if (!nmr.nr_memsize) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Netmap interface '%s' not configured.\n",
-                device, NETMAP_API, strerror(errno));
+                device);
         goto NETMAP_IF_FAILED;
     }
 
