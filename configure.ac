@@ -468,7 +468,7 @@ dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
 OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
 if test $pf_ring_found = yes ; then
-    LIBS="$LPCAPLIB ${foundpcap}/../lib/libpfring.a -lnuma -lpthread"
+    LIBS="$LPCAPLIB ${foundpcap}/../lib/libpfring.a -lnuma -lpthread -lrt"
     LPCAPLIB=$LIBS
 else
     LIBS="$LPCAPLIB"

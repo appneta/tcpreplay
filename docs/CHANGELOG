@@ -12,7 +12,7 @@
     - Fix max replay rate for all loops except first when omitting --mbps (#85)
     - Add missing sanity check in libopt (#84)
     - Seg fault on some IPv6 files when using -C option with tcprewrite (#83)
-    - Support for PF_RING DNA version of libpcap (#82)
+    - Support for PF_RING DNA version of libpcap (#81)
     - Fix segfault when using '-F pad' (#80)
     - Disallow netmap on multiple interfaces (#79)
     - Fix build for FreeBSD version 8.4 (#78)
