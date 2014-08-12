@@ -191,6 +191,13 @@ get_interface_list(void)
 #ifdef HAVE_LIBPCAP_NETMAP
         }
 #endif /* HAVE_LIBPCAP_NETMAP */
+#ifdef HAVE_PF_RING_PCAP
+        list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+        list_ptr = list_ptr->next;
+        snprintf(list_ptr->name, sizeof(list_ptr->name), "zc:%s", pcap_if_ptr->name);
+        sprintf(list_ptr->alias, "%%%d", i++);
+        list_ptr->flags = pcap_if_ptr->flags;
+#endif
         pcap_if_ptr = pcap_if_ptr->next;
     }
     pcap_freealldevs(pcap_if);
