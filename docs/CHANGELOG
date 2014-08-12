@@ -1,4 +1,5 @@
 08/09/2014 Version 4.0.5beta3
+    - Fix unable to use Zero Copy interfaces on PF_RING (#118)
     - Corrected build for latest version of PF_RING (#81)
 
 07/28/2014 Version 4.0.5beta2
