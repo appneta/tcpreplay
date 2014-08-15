@@ -13,128 +13,71 @@
 #define MAX_QUICK_TX_DEV 32
 #define GOODCOPY_LEN 128
 #define DEVICENAME "quick_tx"
+#define QUICK_TX_WORKQUEUE "quick_tx_workqueue"
+
+#define QT_RING_READ_VAL 	1 << 0
+#define QT_RING_WRITE_VAL	1 << 1
+
+struct quick_tx_ring {
+	void *start_pointer;
+	void *end_pointer;
+
+	void *public_read_pointer;
+	void *private_read_pointer;
+
+	void *write_pointer;
+
+	u32 flags;
+} __attribute__((aligned(8)));
 
 struct quick_tx_dev {
 	struct miscdevice quick_tx_misc;
+
 	struct net_device *netdev;
 	u64 dropped;
 	u64 sent_packets;
 	u64 sent_bytes;
 
+	void *data;
+	struct quick_tx_ring *ring;
+	struct work_struct tx_work;
+	struct workqueue_struct* tx_workqueue;
+
 	bool registered;
+	bool currently_used;
+	bool quit_work;
 };
 
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 
-static int zerocopy_sg_from_iovec(struct sk_buff *skb, void __user *packet_start, __kernel_size_t packet_len,
-				  int offset)
-{
-	int len = packet_len - offset;
-	int copy = skb_headlen(skb);
-	int size, offset1 = 0;
-	int i = 0;
+static bool quick_tx_next_read(struct quick_tx_ring *ring, u32 size) {
+	void* safe_read_p;
+	int overflow = 0;
+	u32 safe_flags = ring->flags;
 
-	size = min_t(unsigned int, copy, packet_len - offset);
-	if (copy_from_user(skb->data + offset1, packet_start + offset,
-			   size))
-		return -EFAULT;
-	offset += size;
-
-	if (len == offset)
-		return 0;
-
-	struct page *page[MAX_SKB_FRAGS];
-	int num_pages;
-	unsigned long base;
-	unsigned long truesize;
-
-	len = packet_len - offset;
-	base = (unsigned long)packet_start + offset;
-	size = ((base & ~PAGE_MASK) + len + ~PAGE_MASK) >> PAGE_SHIFT;
-	if (i + size > MAX_SKB_FRAGS)
-		return -EMSGSIZE;
-	num_pages = get_user_pages_fast(base, size, 0, &page[i]);
-	if (num_pages != size) {
-		int j;
-
-		for (j = 0; j < num_pages; j++)
-			put_page(page[i + j]);
-		return -EFAULT;
-	}
-	truesize = size * PAGE_SIZE;
-	skb->data_len += len;
-	skb->len += len;
-	skb->truesize += truesize;
-	while (len) {
-		int off = base & ~PAGE_MASK;
-		int size = min_t(int, len, PAGE_SIZE - off);
-		__skb_fill_page_desc(skb, i, page[i], off, size);
-		skb_shinfo(skb)->nr_frags++;
-		/* increase sk_wmem_alloc */
-		base += size;
-		len -= size;
-		i++;
-	}
-
-	return 0;
-}
-
-static struct sk_buff *quick_tx_alloc_skb(size_t prepad, size_t len,
-		size_t linear, int noblock)
-{
-	struct sk_buff *skb;
-	int err;
-	int header_len;
-	int data_len;
-	int npages;
-
-	/* Under a page?  Don't bother with paged skb. */
-	if (prepad + len < PAGE_SIZE || !linear)
-		linear = len;
-
-	header_len = prepad + linear;
-	data_len = len - linear;
-	npages = (data_len + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
-
-	skb = alloc_skb(header_len, GFP_ATOMIC);
-	if (skb) {
-		int i;
-
-		if (data_len) {
-			skb->truesize += data_len;
-			skb_shinfo(skb)->nr_frags = npages;
-			for (i = 0; i < npages; i++) {
-				struct page *page;
-
-				page = alloc_pages(GFP_ATOMIC, 0);
-				if (!page) {
-					err = -ENOBUFS;
-					skb_shinfo(skb)->nr_frags = i;
-					kfree_skb(skb);
-					goto failure;
-				}
-
-				__skb_fill_page_desc(skb, i,
-						page, 0,
-						(data_len >= PAGE_SIZE ?
-						 PAGE_SIZE :
-						 data_len));
-				data_len -= PAGE_SIZE;
-			}
-		}
+	if (ring->private_read_pointer + size <= ring->end_pointer) {
+		safe_read_p = ring->private_read_pointer;
 	} else {
-		goto failure;
+		safe_read_p =  ring->start_pointer;
+		safe_flags ^= QT_RING_READ_VAL;
+		overflow = 1;
 	}
 
-	skb_reserve(skb, prepad);
-	skb_put(skb, linear);
-	skb->data_len = len - linear;
-	skb->len += len - linear;
+	/* If they are both pointers are on the same ring iteration */
+	if ((safe_flags & QT_RING_READ_VAL) == ((ring->flags & QT_RING_WRITE_VAL) >> 2)) {
+		if (safe_read_p < ring->write_pointer) {
+			ring->private_read_pointer = safe_read_p;
+			if (overflow == 1)
+				ring->flags ^= QT_RING_READ_VAL;
+			return true;
+		}
 
-	return skb;
+	} else {
+		ring->private_read_pointer = safe_read_p;
+		return true;
+	}
 
-failure:
-	return ERR_PTR(err);
+	return false;
 }
 
 static int send_skb(struct sk_buff* skb, struct net_device *netdev) {
@@ -161,179 +104,138 @@ static int send_skb(struct sk_buff* skb, struct net_device *netdev) {
 	return status;
 }
 
-static unsigned long iov_pages(void __user *packet_start, __kernel_size_t packet_len, int offset)
+static void quick_tx_worker( struct work_struct *work)
 {
-	unsigned long base;
-	int pages = 0, len, size;
-
-	base = (unsigned long)packet_start + offset;
-	len = packet_len - offset;
-	size = ((base & ~PAGE_MASK) + len + ~PAGE_MASK) >> PAGE_SHIFT;
-	pages += size;
-	offset = 0;
-
-	return pages;
-}
-
-/* Get packet from user space buffer */
-static ssize_t send_user_packet(struct quick_tx_dev *dev,
-			    void *msg_control, const struct iovec *iv,
-			    size_t total_len, size_t count, int noblock)
-{
-
-	struct sk_buff *skb;
-	size_t linear;
-	int good_linear = SKB_MAX_HEAD(NET_SKB_PAD);
-	int offset = 0;
-	int copylen;
-	bool zerocopy = false;
-	int err;
-
-	struct page *page[MAX_SKB_FRAGS];
-	int num_pages;
-	unsigned long base;
-	unsigned long truesize;
-	base = (unsigned long) iv->iov_base;
-	int size = ((base & ~PAGE_MASK) + iv->iov_len + ~PAGE_MASK) >> PAGE_SHIFT;
-
-	num_pages = get_user_pages_fast(base, size, 0, &page[0]);
-	if (num_pages != size) {
-		int j;
-
-		for (j = 0; j < num_pages; j++)
-			put_page(page[j]);
-		return -EFAULT;
-	}
-
+	struct quick_tx_dev *dev = container_of(work, struct quick_tx_dev, tx_work);
 	struct pcap_pkthdr *pcap_hdr;
-	void __user *packet_start = iv->iov_base;
-	__kernel_size_t packet_len;
+	void* packet_buffer;
+	struct sk_buff *skb;
 
-	offset = sizeof(struct pcap_file_header);
-	struct pcap_pkthdr tmp_copy;
+	while (dev->currently_used) {
+		if (quick_tx_next_read(dev->ring, sizeof(struct pcap_pkthdr))) {
+			pcap_hdr = (struct pcap_pkthdr*)dev->ring->private_read_pointer;
+			dev->ring->private_read_pointer += sizeof(struct pcap_pkthdr);
 
-	int i;
-	for (i = 0; i < num_pages; i++) {
-		char *data_pointer = page_to_phys(page[i]);
-		packet_start = data_pointer + offset;
+			while (!quick_tx_next_read(dev->ring, pcap_hdr->caplen));
+			packet_buffer = dev->ring->private_read_pointer;
 
-		while(offset < PAGE_SIZE) {
+			skb = build_skb(packet_buffer, pcap_hdr->caplen);
+			send_skb(skb, dev->netdev);
 
-			if (sizeof(struct pcap_pkthdr) > PAGE_SIZE - offset)
-
-
-			pcap_hdr = (struct pcap_pkthdr *)packet_start;
-			packet_start += sizeof(struct pcap_pkthdr);
-			packet_len = pcap_hdr->caplen;
-
-			pr_err("Sending packet with ts=%ld, len=%u, caplen=%u\n",
-					pcap_hdr->ts.hts_sec + pcap_hdr->ts.hts_usec,
-					pcap_hdr->len, pcap_hdr->caplen);
-
-			packet_start += packet_len;
-
-			PAGE_SIZE
-
-			skb = build_skb(packet_start, packet_len);
-
-#if 0
-
-		copylen = good_linear;
-		linear = copylen;
-		if (iov_pages(packet_start, packet_len, offset + copylen) <= MAX_SKB_FRAGS)
-			zerocopy = true;
-
-		if (!zerocopy) {
-			copylen = packet_len;
-			linear = good_linear;
+			dev->ring->public_read_pointer = dev->ring->private_read_pointer;
 		}
-
-		skb = quick_tx_alloc_skb(0, copylen, linear, noblock);
-
-		pr_err("Allocated an skb %p \n", skb);
-
-		if (IS_ERR(skb)) {
-			if (PTR_ERR(skb) != -EAGAIN)
-				dev->dropped++;
-			return PTR_ERR(skb);
-		}
-
-		if (zerocopy) {
-			pr_err("Doing zerocopy \n");
-			err = zerocopy_sg_from_iovec(skb, packet_start, packet_len, offset);
-		} else {
-			pr_err("Doing copy \n");
-			err = skb_copy_datagram_from_iovec(skb, 0, iv, offset, packet_len);
-			if (!err && msg_control) {
-				struct ubuf_info *uarg = msg_control;
-				uarg->callback(uarg, false);
-			}
-		}
-
-		if (err) {
-			dev->dropped++;
-			kfree_skb(skb);
-			return -EFAULT;
-		}
-
-		skb_reset_network_header(skb);
-		skb_probe_transport_header(skb, 0);
-
-#endif
-
-		if (skb != NULL) {
-			pr_err("Sending skb \n");
-			if (send_skb(skb, dev->netdev) == NETDEV_TX_OK) {
-				pr_err("Successfully sent skb \n");
-				dev->sent_packets++;
-				dev->sent_bytes += packet_len;
-			}
-		} else {
-			pr_err("SKB is null \n");
-		}
-
-		packet_start += packet_len;
 	}
+	return;
 }
+
+
+static int quick_tx_open(struct inode * inode, struct file * file) {
 
 
 	return 0;
 }
 
-static ssize_t quick_tx_write(struct kiocb *iocb, const struct iovec *iv,
-			      unsigned long count, loff_t pos)
-{
-	pr_err("Received a write operation! \n");
+int quick_tx_mmap(struct file * filp, struct vm_area_struct * vma) {
+	u32 pfn;
+	int ret;
+	void* vmalloc_ptr;
+	u32 vm_start;
+	u32 vm_length;
+	struct quick_tx_ring* ring;
 
-	struct file *file = iocb->ki_filp;
-	struct miscdevice *miscdev = file->private_data;
-	struct quick_tx_dev *quick_tx_dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+	struct miscdevice* miscdev = filp->private_data;
+	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+	u32 size = vma->vm_end - vma->vm_start;
 
-	ssize_t result;
-
-	if (!quick_tx_dev) {
-		pr_err("Bad file! \n");
-		return -EBADFD;
+	if (!dev->currently_used) {
+		dev->currently_used = true;
+	} else {
+		pr_err("This device is currently in use! \n");
+		ret = -EAGAIN;
+		goto error;
 	}
 
-	result = send_user_packet(quick_tx_dev, NULL, iv, iov_length(iv, count),
-			      count, file->f_flags & O_NONBLOCK);
+	if ((vma->vm_flags & (VM_WRITE | VM_READ | VM_SHARED)) != (VM_WRITE | VM_READ | VM_SHARED)) {
+		pr_err("Incorrect flags passed in,  use PROT_WRITE | PROT_READ and MAP_SHARED \n");
+		ret = -EINVAL;
+		goto error;
+	}
 
-	return result;
+	if (size % PAGE_SIZE != 0) {
+		pr_err("Size must be a multiple of PAGE_SIZE = %lu \n", PAGE_SIZE);
+		ret = -EINVAL;
+		goto error;
+	}
+
+	dev->data = vmalloc(size);
+	if (dev->data == NULL) {
+		ret = -EAGAIN;
+		goto error;
+	}
+
+	vmalloc_ptr = dev->data;
+	vm_start = vma->vm_start;
+	vm_length = size;
+
+    while (vm_length) {
+    	pfn = vmalloc_to_pfn(vmalloc_ptr);
+    	if ((ret = remap_pfn_range(vma, vm_start, pfn, PAGE_SIZE, PAGE_SHARED)) < 0) {
+    		pr_err("An error (%d) occured while mapping pages, \n", ret);
+			goto error_vfree;
+		}
+		vm_start += PAGE_SIZE;
+		dev->data += PAGE_SIZE;
+		vm_length -= PAGE_SIZE;
+    }
+
+    ring = (struct quick_tx_ring*)dev->data;
+    ring->start_pointer = dev->data + sizeof(struct quick_tx_ring);
+    ring->end_pointer = ring->start_pointer + size;
+    ring->write_pointer = ring->start_pointer;
+    ring->public_read_pointer = ring->start_pointer;
+    ring->private_read_pointer = ring->start_pointer;
+    ring->flags = QT_RING_READ_VAL | QT_RING_READ_VAL;
+
+    dev->quit_work = false;
+
+    INIT_WORK(&dev->tx_work, quick_tx_worker);
+    dev->tx_workqueue = create_workqueue(QUICK_TX_WORKQUEUE);
+
+    queue_work(dev->tx_workqueue, &dev->tx_work);
+    schedule_work(&dev->tx_work);
+
+	return 0;
+
+error_vfree:
+	vfree(dev->data);
+
+error:
+	dev->currently_used = false;
+	return ret;
 }
 
-static int quick_tx_open(struct inode * inode, struct file * file) {
+int quick_tx_release (struct inode * inodp, struct file * filp) {
+	struct miscdevice* miscdev = filp->private_data;
+	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+
+	dev->quit_work = true;
+	flush_work(&dev->tx_work);
+	destroy_workqueue(dev->tx_workqueue);
+
+	vfree(dev->data);
+
+	dev->currently_used = false;
 	return 0;
 }
 
 static const struct file_operations quick_tx_fops = {
 	.owner  = THIS_MODULE,
 	.llseek = no_llseek,
-	.aio_write = quick_tx_write,
+	//.aio_write = quick_tx_write,
 	.open   = quick_tx_open,
+	.mmap = quick_tx_mmap,
+	.release = quick_tx_release
 };
-
-
 
 
 static int quick_tx_init(void)
@@ -366,6 +268,7 @@ static int quick_tx_init(void)
 				error = true;
 			} else {
 				quick_tx_devs[i].registered = true;
+				quick_tx_devs[i].currently_used = false;
 				pr_info("QuickTX device registered: /dev/%s --> %s \n",
 						quick_tx_devs[i].quick_tx_misc.nodename, dev->name);
 			}

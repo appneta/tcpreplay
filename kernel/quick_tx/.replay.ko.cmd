@@ -1,1 +1,0 @@
-cmd_/home/aindeev/dev/tcpreplay/kernel/fast-tx/replay.ko := ld -r -m elf_x86_64 -T /home/aindeev/dev/pvc-appliance/Appliances/Common64/Kernel-3.10/linux-3.10.33/scripts/module-common.lds --build-id  -o /home/aindeev/dev/tcpreplay/kernel/fast-tx/replay.ko /home/aindeev/dev/tcpreplay/kernel/fast-tx/replay.o /home/aindeev/dev/tcpreplay/kernel/fast-tx/replay.mod.o

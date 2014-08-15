@@ -1,1 +1,0 @@
-cmd_/home/aindeev/dev/tcpreplay/kernel/quick_tx/quick_tx.o := ld -m elf_x86_64   -r -o /home/aindeev/dev/tcpreplay/kernel/quick_tx/quick_tx.o /home/aindeev/dev/tcpreplay/kernel/quick_tx/quick_tx_main.o 
