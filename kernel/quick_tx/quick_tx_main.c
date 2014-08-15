@@ -11,6 +11,7 @@
 #include "pcap_hdr.h"
 
 #define MAX_QUICK_TX_DEV 32
+#define MIN_PACKET_SIZE 20
 #define GOODCOPY_LEN 128
 #define DEVICENAME "quick_tx"
 #define QUICK_TX_WORKQUEUE "quick_tx_workqueue"
@@ -25,7 +26,8 @@ struct quick_tx_ring {
 	void *public_read_pointer;
 	void *private_read_pointer;
 
-	void *write_pointer;
+	void *public_write_pointer;
+	void *private_write_pointer;
 
 	u32 flags;
 } __attribute__((aligned(8)));
@@ -50,10 +52,33 @@ struct quick_tx_dev {
 
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 
+static void *rvmalloc(unsigned long size)
+{
+	void *mem;
+	unsigned long adr;
+
+	size = PAGE_ALIGN(size);
+	mem = vmalloc_32(size);
+	if (!mem)
+		return NULL;
+
+	memset(mem, 0, size); /* Clear the ram out, no junk to the user */
+	adr = (unsigned long) mem;
+	while (size > 0) {
+		SetPageReserved(vmalloc_to_page((void *)adr));
+		adr += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+
+	return mem;
+}
+
 static bool quick_tx_next_read(struct quick_tx_ring *ring, u32 size) {
 	void* safe_read_p;
 	int overflow = 0;
 	u32 safe_flags = ring->flags;
+
+	pr_err("ring->flags = %d \n", ring->flags);
 
 	if (ring->private_read_pointer + size <= ring->end_pointer) {
 		safe_read_p = ring->private_read_pointer;
@@ -65,7 +90,8 @@ static bool quick_tx_next_read(struct quick_tx_ring *ring, u32 size) {
 
 	/* If they are both pointers are on the same ring iteration */
 	if ((safe_flags & QT_RING_READ_VAL) == ((ring->flags & QT_RING_WRITE_VAL) >> 2)) {
-		if (safe_read_p < ring->write_pointer) {
+		if (safe_read_p < ring->public_write_pointer) {
+			pr_err("safe_read_p = %p, public_write_pointer = %p \n", safe_read_p ,ring->public_write_pointer);
 			ring->private_read_pointer = safe_read_p;
 			if (overflow == 1)
 				ring->flags ^= QT_RING_READ_VAL;
@@ -111,16 +137,29 @@ static void quick_tx_worker( struct work_struct *work)
 	void* packet_buffer;
 	struct sk_buff *skb;
 
+	ssleep(25);
+
 	while (dev->currently_used) {
 		if (quick_tx_next_read(dev->ring, sizeof(struct pcap_pkthdr))) {
 			pcap_hdr = (struct pcap_pkthdr*)dev->ring->private_read_pointer;
 			dev->ring->private_read_pointer += sizeof(struct pcap_pkthdr);
 
+			if (pcap_hdr->caplen < MIN_PACKET_SIZE) {
+				continue;
+			}
+
+			pr_err("pcap_hdr->caplen = %d, pcap_hdr->len = %d \n", pcap_hdr->caplen, pcap_hdr->len);
+
 			while (!quick_tx_next_read(dev->ring, pcap_hdr->caplen));
 			packet_buffer = dev->ring->private_read_pointer;
 
+
 			skb = build_skb(packet_buffer, pcap_hdr->caplen);
-			send_skb(skb, dev->netdev);
+
+			if (skb != NULL)
+				send_skb(skb, dev->netdev);
+			else
+				pr_err("SKB is null :( \n");
 
 			dev->ring->public_read_pointer = dev->ring->private_read_pointer;
 		}
@@ -141,7 +180,6 @@ int quick_tx_mmap(struct file * filp, struct vm_area_struct * vma) {
 	void* vmalloc_ptr;
 	u32 vm_start;
 	u32 vm_length;
-	struct quick_tx_ring* ring;
 
 	struct miscdevice* miscdev = filp->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
@@ -167,7 +205,7 @@ int quick_tx_mmap(struct file * filp, struct vm_area_struct * vma) {
 		goto error;
 	}
 
-	dev->data = vmalloc(size);
+	dev->data = rvmalloc(size);
 	if (dev->data == NULL) {
 		ret = -EAGAIN;
 		goto error;
@@ -184,17 +222,18 @@ int quick_tx_mmap(struct file * filp, struct vm_area_struct * vma) {
 			goto error_vfree;
 		}
 		vm_start += PAGE_SIZE;
-		dev->data += PAGE_SIZE;
+		vmalloc_ptr += PAGE_SIZE;
 		vm_length -= PAGE_SIZE;
     }
 
-    ring = (struct quick_tx_ring*)dev->data;
-    ring->start_pointer = dev->data + sizeof(struct quick_tx_ring);
-    ring->end_pointer = ring->start_pointer + size;
-    ring->write_pointer = ring->start_pointer;
-    ring->public_read_pointer = ring->start_pointer;
-    ring->private_read_pointer = ring->start_pointer;
-    ring->flags = QT_RING_READ_VAL | QT_RING_READ_VAL;
+    dev->ring = (struct quick_tx_ring*)dev->data;
+    dev->ring->start_pointer = dev->data + sizeof(struct quick_tx_ring);
+    dev->ring->end_pointer = dev->ring->start_pointer + size;
+    dev->ring->public_write_pointer = dev->ring->start_pointer;
+    dev->ring->private_write_pointer = dev->ring->start_pointer;
+    dev->ring->public_read_pointer = dev->ring->start_pointer;
+    dev->ring->private_read_pointer = dev->ring->start_pointer;
+    dev->ring->flags = QT_RING_READ_VAL | QT_RING_READ_VAL;
 
     dev->quit_work = false;
 
@@ -202,7 +241,7 @@ int quick_tx_mmap(struct file * filp, struct vm_area_struct * vma) {
     dev->tx_workqueue = create_workqueue(QUICK_TX_WORKQUEUE);
 
     queue_work(dev->tx_workqueue, &dev->tx_work);
-    schedule_work(&dev->tx_work);
+    //schedule_work(&dev->tx_work);
 
 	return 0;
 
