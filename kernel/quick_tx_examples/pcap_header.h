@@ -14,9 +14,8 @@
 #define __u16 u_int16_t
 #define __s32 int32_t
 #define __le32 int32_t
-
-#define QT_RING_READ_VAL 	1 << 0
-#define QT_RING_WRITE_VAL	1 << 1
+#define __u8 u_int8_t
+#define u8 __u8
 
 typedef enum { false, true } bool;
 
@@ -30,7 +29,8 @@ struct quick_tx_ring {
 	void *public_write_pointer;
 	void *private_write_pointer;
 
-	__u32 flags;
+	u8 read_bit;
+	u8 write_bit;
 } __attribute__((aligned(8)));
 
 struct pcap_file_header {

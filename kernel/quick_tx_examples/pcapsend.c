@@ -20,28 +20,29 @@ void init_buffer(void** buffer) {
 bool get_next_write(struct quick_tx_ring *ring, int size) {
 	void* safe_write_p;
 	int overflow = 0;
-	__u32 safe_flags = ring->flags;
+	u8 temp_write_bit = ring->write_bit;
+
+	printf("ring->read_bit = %d, ring->write_bit = %d \n", ring->read_bit, ring->write_bit);
 
 	if (ring->private_write_pointer + size <= ring->end_pointer) {
 		safe_write_p = ring->private_write_pointer;
-	/* we can only skip t next stage if we are on the same iteration as the reader */
-	} else if ((safe_flags & QT_RING_READ_VAL) == ((safe_flags & QT_RING_WRITE_VAL) >> 2)){
-		safe_write_p =  ring->private_write_pointer;
-		safe_flags ^= QT_RING_WRITE_VAL;
+	} else if (ring->read_bit == ring->write_bit) {
+		safe_write_p = ring->private_write_pointer;
+		temp_write_bit ^= 1;
 		printf("Write pointer has overflowed \n");
 		overflow = 1;
 	} else {
-
 		return false;
 	}
 
 	/* If they are both pointers are on the same ring iteration */
-	if ((safe_flags & QT_RING_READ_VAL) == ((ring->flags & QT_RING_WRITE_VAL) >> 2)) {
-		if (safe_write_p > ring->public_read_pointer) {
+	if (ring->read_bit == temp_write_bit) {
+		if (safe_write_p >= ring->public_read_pointer) {
 			printf("safe_write_p = %p, public_write_pointer = %p \n",safe_write_p,ring->public_write_pointer);
 			ring->private_write_pointer = safe_write_p;
-			if (overflow == 1)
-				ring->flags ^= QT_RING_WRITE_VAL;
+			if (overflow) {
+				ring->write_bit ^= 1;
+			}
 			return true;
 		}
 
@@ -51,6 +52,9 @@ bool get_next_write(struct quick_tx_ring *ring, int size) {
 		 */
 		if (safe_write_p < ring->public_read_pointer) {
 			ring->private_write_pointer = safe_write_p;
+			if (overflow) {
+				ring->write_bit ^= 1;
+			}
 			return true;
 		}
 	}
@@ -92,7 +96,7 @@ int main (int argc, char* argv[])
 	int fd = open(DEVICE, O_RDWR);
 	long pagesize = sysconf(_SC_PAGE_SIZE);
 	int *map;  /* mmapped array of int's */
-	map = mmap(0, pagesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	map = mmap(0, 5 * pagesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (map == MAP_FAILED) {
 		close(fd);
 		perror("Error mmapping the file");
@@ -108,15 +112,18 @@ int main (int argc, char* argv[])
 			ring->start_pointer, ring->end_pointer - ring->start_pointer,
 			ring->private_read_pointer);
 
-	exit(-1);
-
 	void* offset = buff;
-	while(offset < buff) {
+	while(offset < buff + numbytes) {
 		sleep(1);
 		pcap_hdr = (struct pcap_pkthdr*) offset;
 		printf("pcap_hdr->caplen = %d \n", pcap_hdr->caplen);
+
+		char c[90];
+		scanf ("%s", c);
+
 		while (!get_next_write(ring, sizeof(struct pcap_pkthdr) + pcap_hdr->caplen));
 		memcpy(ring->private_write_pointer, (const void*)offset, sizeof(struct pcap_pkthdr) + pcap_hdr->caplen);
+		ring->private_write_pointer += sizeof(struct pcap_pkthdr) + pcap_hdr->caplen;
 		ring->public_write_pointer = ring->private_write_pointer;
 		offset += sizeof(struct pcap_pkthdr) + pcap_hdr->caplen;
 	}
