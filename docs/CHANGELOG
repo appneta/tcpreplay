@@ -1,4 +1,5 @@
 09/05/2014 Version 4.0.5
+    - Fix build failure with latest netmap 11 (#123)
     - Fix unable to use Zero Copy interfaces on PF_RING (#118)
     - Corrected build for latest version of PF_RING (#81)
     - Proper error message when vale is unconfigured (#113)
