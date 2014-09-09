@@ -7,8 +7,10 @@
 #include <linux/miscdevice.h>
 #include <linux/aio.h>
 #include <linux/if.h>
+#include <linux/ip.h>
+#include <asm/cacheflush.h>
 
-#include "pcap_hdr.h"
+#include "pcap_header.h"
 
 #define MAX_QUICK_TX_DEV 32
 #define MIN_PACKET_SIZE 20
@@ -16,19 +18,51 @@
 #define DEVICENAME "quick_tx"
 #define QUICK_TX_WORKQUEUE "quick_tx_workqueue"
 
-struct quick_tx_ring {
-	void *start_pointer;
-	void *end_pointer;
+void hexdump(const void * buf, size_t size)
+{
+  const u_char * cbuf = (const u_char *) buf;
+  const ulong BYTES_PER_LINE = 16;
+  ulong offset, minioffset;
 
-	void *public_read_pointer;
-	void *private_read_pointer;
+  for (offset = 0; offset < size; offset += BYTES_PER_LINE)
+  {
+    // OFFSETXX  xx xx xx xx xx xx xx xx  xx xx . . .
+    //     . . . xx xx xx xx xx xx   abcdefghijklmnop
+    printk("%08x  ", (unsigned int)(cbuf + offset));
+    for (minioffset = offset;
+      minioffset < offset + BYTES_PER_LINE;
+      minioffset++)
+    {
+      if (minioffset - offset == (BYTES_PER_LINE / 2)) {
+        printk(" ");
+      }
 
-	void *public_write_pointer;
-	void *private_write_pointer;
+      if (minioffset < size) {
+        printk("%02x ", cbuf[minioffset]);
+      } else {
+        printk("   ");
+      }
+    }
+    printk("  ");
 
-	u8 read_bit;
-	u8 write_bit;
-} __attribute__((aligned(8)));
+    for (minioffset = offset;
+      minioffset < offset + BYTES_PER_LINE;
+      minioffset++)
+    {
+      if (minioffset >= size)
+        break;
+
+      if (cbuf[minioffset] < 0x20 ||
+        cbuf[minioffset] > 0x7e)
+      {
+        printk(".");
+      } else {
+        printk("%c", cbuf[minioffset]);
+      }
+    }
+    printk("\n");
+  }
+}
 
 struct quick_tx_dev {
 	struct miscdevice quick_tx_misc;
@@ -46,33 +80,38 @@ struct quick_tx_dev {
 	bool registered;
 	bool currently_used;
 	bool quit_work;
+
+	wait_queue_head_t reader_wait_queue;
+	atomic_t write_ready;
 };
 
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 
-static bool quick_tx_next_read(struct quick_tx_ring *ring, u32 size) {
-	void* safe_read_p;
+
+static bool quick_tx_next_read(struct quick_tx_ring *ring, u32 size)
+{
+	int safe_read_offset;
 	int overflow = 0;
 	u32 temp_read_bit = ring->read_bit;
 
 	pr_err("ring->read_bit = %d ring->write_bit = %d \n", ring->read_bit, ring->write_bit);
 
-	if (ring->private_read_pointer + size <= ring->end_pointer) {
+	if (ring->private_read_offset + size < ring->length) {
 		pr_err("less than end!");
-		safe_read_p = ring->private_read_pointer;
+		safe_read_offset = ring->private_read_offset;
 	} else {
 		pr_err("start is > end :(");
-		safe_read_p = ring->start_pointer;
+		safe_read_offset = 0;
 		temp_read_bit ^= 1;
 		overflow = 1;
 	}
 
-	/* If they are both pointers are on the same ring iteration */
+	// If they are both pointers are on the same ring iteration
 	if (temp_read_bit == ring->write_bit) {
-		pr_err("bit are the same!");
-		if (safe_read_p < ring->public_write_pointer) {
-			pr_err("safe_read_p = %p, public_write_pointer = %p \n", safe_read_p ,ring->public_write_pointer);
-			ring->private_read_pointer = safe_read_p;
+		pr_err("bit are the same! \n");
+		if (safe_read_offset < ring->public_write_offset) {
+			pr_err("safe_read_offset = %du, public_write_offset = %du \n", safe_read_offset, ring->public_write_offset);
+			ring->private_read_offset = safe_read_offset;
 			if (overflow == 1)
 				ring->read_bit ^= 1;
 			return true;
@@ -80,15 +119,22 @@ static bool quick_tx_next_read(struct quick_tx_ring *ring, u32 size) {
 
 	} else {
 		pr_err("bit are different!");
-		ring->private_read_pointer = safe_read_p;
-		return true;
+		if (safe_read_offset < ring->public_write_offset) {
+			if (overflow == 1) {
+				ring->private_read_offset = safe_read_offset;
+				ring->public_read_offset = ring->private_read_offset;
+				ring->read_bit ^= 1;
+				return false;
+			}
+		}
+		return false;
 	}
 
 	return false;
 }
 
-static int send_skb(struct sk_buff* skb, struct net_device *netdev) {
-
+static int send_skb(struct sk_buff* skb, struct net_device *netdev)
+{
 	netdev_tx_t status = NETDEV_TX_BUSY;
 	const struct net_device_ops *ops = netdev->netdev_ops;
 	unsigned long flags;
@@ -116,51 +162,140 @@ static void quick_tx_worker( struct work_struct *work)
 	struct quick_tx_dev *dev = container_of(work, struct quick_tx_dev, tx_work);
 	struct pcap_pkthdr *pcap_hdr;
 	void* packet_buffer;
-	struct sk_buff *skb;
+	struct sk_buff *skb = NULL;
+	struct skb_shared_info* shinfo;
+	struct quick_tx_ring *ring = dev->ring;
+	u32 second_read_len;
+	u32 first_read_len = sizeof(struct pcap_pkthdr) + ring->size_of_start_padding;
 
-	while (dev->currently_used) {
-		if (quick_tx_next_read(dev->ring, sizeof(struct pcap_pkthdr))) {
-			pcap_hdr = (struct pcap_pkthdr*)dev->ring->private_read_pointer;
-			dev->ring->private_read_pointer += sizeof(struct pcap_pkthdr);
+	set_task_state(current, TASK_INTERRUPTIBLE);
+
+	skb = kmalloc(sizeof(struct sk_buff), GFP_ATOMIC);
+	prefetch(skb);
+
+	memset(skb, 0, offsetof(struct sk_buff, tail));
+	atomic_set(&skb->users, 1);
+
+	while (!dev->quit_work) {
+		rmb();
+
+		if (quick_tx_next_read(dev->ring, first_read_len)) {
+
+			printk("&ring->private_read_offset - ring->kernel_addr = %ld \n", (void *)&ring->private_read_offset - ring->kernel_addr);
+			hexdump(ring->kernel_addr + ring->private_read_offset, sizeof(struct pcap_pkthdr));
+
+			pcap_hdr = (struct pcap_pkthdr*)(ring->kernel_addr + ring->private_read_offset);
+			pr_err("pcap_hdr->caplen = %d, pcap_hdr->len = %d \n", pcap_hdr->caplen, pcap_hdr->len);
 
 			if (pcap_hdr->caplen < MIN_PACKET_SIZE) {
+				pr_err("caplen is too short! ..trying again! ");
+				wait_event_interruptible(dev->reader_wait_queue, atomic_read(&dev->write_ready) == 1);
+				atomic_set(&dev->write_ready, 0);
 				continue;
 			}
 
-			pr_err("pcap_hdr->caplen = %d, pcap_hdr->len = %d \n", pcap_hdr->caplen, pcap_hdr->len);
+			ring->private_read_offset += first_read_len;
 
-			while (!quick_tx_next_read(dev->ring, pcap_hdr->caplen));
-			packet_buffer = dev->ring->private_read_pointer;
+			second_read_len = pcap_hdr->caplen + ring->size_of_end_padding;
 
+			while (!quick_tx_next_read(dev->ring, second_read_len));
+			packet_buffer = (ring->kernel_addr + ring->private_read_offset - ring->size_of_start_padding);
+			ring->private_read_offset += second_read_len;
+goto skip_send;
+			skb->len = 0;
+			skb->head_frag = ring->size_of_start_padding + second_read_len;
+			skb->truesize = SKB_TRUESIZE(ring->size_of_start_padding + pcap_hdr->caplen);
+			skb->head = packet_buffer;
+			skb->data = packet_buffer;
+			skb_reset_tail_pointer(skb);
+			skb->end = skb->tail + ring->size_of_start_padding + second_read_len;
+#ifdef NET_SKBUFF_DATA_USES_OFFSET
+			skb->mac_header = ~0U;
+			skb->transport_header = ~0U;
+#endif
+			shinfo = skb_shinfo(skb);
+			memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
+			atomic_set(&shinfo->dataref, 1);
+			kmemcheck_annotate_variable(shinfo->destructor_arg);
 
-			skb = build_skb(packet_buffer, pcap_hdr->caplen);
+			atomic_inc(&skb->users);
+			skb_reserve(skb, NET_SKB_PAD);
+			skb_put(skb, pcap_hdr->caplen);
 
 			if (skb != NULL)
 				send_skb(skb, dev->netdev);
 			else
 				pr_err("SKB is null :( \n");
 
-			dev->ring->public_read_pointer = dev->ring->private_read_pointer;
+			pr_err("SKB was sent :) \n");
+skip_send:
+			wmb();
+			ring->public_read_offset = ring->private_read_offset;
 		} else {
-			ssleep(1);
+			pr_err("Nothing to read yet :( \n");
+			wait_event_interruptible(dev->reader_wait_queue, atomic_read(&dev->write_ready) == 1);
+			atomic_set(&dev->write_ready, 0);
 		}
 	}
+
+	if (skb != NULL) {
+		kfree(skb);
+	}
+
 	return;
 }
 
 
-static int quick_tx_open(struct inode * inode, struct file * file) {
+static int quick_tx_open(struct inode * inode, struct file * file)
+{
+    return 0;
+}
 
+int quick_tx_release (struct inode * inodp, struct file * filp)
+{
+	return 0;
+}
+
+unsigned int quick_tx_poll (struct file* file, struct poll_table_struct* pt)
+{
+	struct miscdevice* miscdev = file->private_data;
+	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+
+	printk("POLL CALLED! \n");
+
+	atomic_set(&dev->write_ready, 1);
+	wake_up_interruptible(&dev->reader_wait_queue);
 
 	return 0;
 }
 
-int quick_tx_mmap(struct file * filp, struct vm_area_struct * vma) {
-	int ret = 0;
+int quick_tx_vm_close(struct vm_area_struct *vma)
+{
+	struct quick_tx_dev* dev = (struct quick_tx_dev*)vma->vm_private_data;
 
-	struct miscdevice* miscdev = filp->private_data;
+	dev->quit_work = true;
+	flush_work(&dev->tx_work);
+	destroy_workqueue(dev->tx_workqueue);
+
+	dev->currently_used = false;
+
+	printk("CLOSE CALLED FOR VMA \n");
+	return 0;
+}
+
+static const struct vm_operations_struct quick_tx_vma_ops = {
+	.close = quick_tx_vm_close
+};
+
+int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
+{
+	int ret = 0;
+	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
-	u32 size = vma->vm_end - vma->vm_start;
+    long length = vma->vm_end - vma->vm_start;
+    unsigned long start = vma->vm_start;
+    void* dev_data_ptr = dev->data;
+    unsigned long pfn;
 
 	if (!dev->currently_used) {
 		dev->currently_used = true;
@@ -170,38 +305,53 @@ int quick_tx_mmap(struct file * filp, struct vm_area_struct * vma) {
 		goto error;
 	}
 
-	if ((vma->vm_flags & (VM_WRITE | VM_READ | VM_SHARED)) != (VM_WRITE | VM_READ | VM_SHARED)) {
-		pr_err("Incorrect flags passed in,  use PROT_WRITE | PROT_READ and MAP_SHARED \n");
-		ret = -EINVAL;
-		goto error;
-	}
+	if (length > NPAGES * PAGE_SIZE) {
+    	pr_err("Requested size is too large! \n");
+    	return -EIO;
+    }
 
-	if (size % PAGE_SIZE != 0) {
-		pr_err("Size must be a multiple of PAGE_SIZE = %lu \n", PAGE_SIZE);
-		ret = -EINVAL;
-		goto error;
-	}
+	vma->vm_flags |= VM_IO | VM_SHARED | VM_DONTEXPAND | VM_LOCKED;
+	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
 
-	vma->vm_flags |= VM_LOCKED | VM_DONTEXPAND | VM_DONTDUMP;
 
-	dev->data = vmalloc_user(PAGE_ALIGN(vma->vm_end - vma->vm_start));
-	ret = remap_vmalloc_range(vma, dev->data , 0);
-	if (ret < 0) {
-	                 printk(KERN_ERR "mmap: remap failed with error %d. ", ret);
-	                 vfree(dev->data );
-	                 goto error;
-	}
+    while (length > 0) {
+            pfn = vmalloc_to_pfn(dev_data_ptr);
+            if ((ret = remap_pfn_range(vma, start, pfn, PAGE_SIZE,
+                                       PAGE_SHARED)) < 0) {
+                    return ret;
+            }
+            start += PAGE_SIZE;
+            dev_data_ptr += PAGE_SIZE;
+            length -= PAGE_SIZE;
+    }
+
+
+
+	/*
+    if ((ret = remap_pfn_range(vma,
+                               vma->vm_start,
+                               virt_to_phys((void *)dev_data_ptr) >> PAGE_SHIFT,
+                               length,
+                               vma->vm_page_prot)) < 0) {
+            return ret;
+    }
+    */
+
+
+    vma->vm_private_data = dev;
+    vma->vm_ops = &quick_tx_vma_ops;
 
     dev->ring = (struct quick_tx_ring*)dev->data;
-    dev->ring->start_pointer = dev->data + sizeof(struct quick_tx_ring);
-    dev->ring->end_pointer = dev->ring->start_pointer + size;
-    dev->ring->public_write_pointer = dev->ring->start_pointer;
-    dev->ring->private_write_pointer = dev->ring->start_pointer;
-    dev->ring->public_read_pointer = dev->ring->start_pointer;
-    dev->ring->private_read_pointer = dev->ring->start_pointer;
+    dev->ring->kernel_addr = dev->data + sizeof(struct quick_tx_ring);
+    dev->ring->length = vma->vm_end - vma->vm_start;
+    dev->ring->public_write_offset = 0;
+    dev->ring->private_write_offset = 0;
+    dev->ring->public_read_offset = 0;
+    dev->ring->private_read_offset = 0;
     dev->ring->write_bit = 1;
     dev->ring->read_bit = 1;
-
+    dev->ring->size_of_start_padding = NET_SKB_PAD;
+    dev->ring->size_of_end_padding = SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
     dev->quit_work = false;
 
     INIT_WORK(&dev->tx_work, quick_tx_worker);
@@ -217,34 +367,21 @@ error:
 	return ret;
 }
 
-int quick_tx_release (struct inode * inodp, struct file * filp) {
-	struct miscdevice* miscdev = filp->private_data;
-	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
 
-	dev->quit_work = true;
-	flush_work(&dev->tx_work);
-	destroy_workqueue(dev->tx_workqueue);
-
-	vfree(dev->data);
-
-	dev->currently_used = false;
-	return 0;
-}
 
 static const struct file_operations quick_tx_fops = {
 	.owner  = THIS_MODULE,
-	.llseek = no_llseek,
-	//.aio_write = quick_tx_write,
 	.open   = quick_tx_open,
+	.release = quick_tx_release,
 	.mmap = quick_tx_mmap,
-	.release = quick_tx_release
+	.poll = quick_tx_poll
 };
 
 
 static int quick_tx_init(void)
 {
 	int ret = 0;
-	int i = 0;
+	int i = 0, j;
 	bool error = false;
 	struct net_device *dev;
 
@@ -276,6 +413,23 @@ static int quick_tx_init(void)
 						quick_tx_devs[i].quick_tx_misc.nodename, dev->name);
 			}
 
+			/*
+			 * Pre-allocate pages and reserve them for each
+			 * network interface
+			 */
+			if ((quick_tx_devs[i].data = vmalloc_user(NPAGES * PAGE_SIZE)) == NULL) {
+			//if ((quick_tx_devs[i].data = kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL)) == NULL) {
+				error = true;
+			}
+		    /*for (j = 0; j < NPAGES * PAGE_SIZE; j+= PAGE_SIZE) {
+		    	//SetPageReserved(vmalloc_to_page((void *)(((unsigned long)quick_tx_devs[i].data) + j)));
+		    	SetPageReserved(virt_to_page(((unsigned long)quick_tx_devs[i].data) + j));
+		    	int rettt = set_memory_uc((unsigned long)quick_tx_devs[i].data, NPAGES);
+		    	pr_err("rettt =  %d \n", rettt);
+		    }*/
+
+		    init_waitqueue_head(&quick_tx_devs[i].reader_wait_queue);
+
 			i++;
 		}
 	}
@@ -285,6 +439,13 @@ static int quick_tx_init(void)
 		pr_err("Error occured while initilizing, cleaning up..\n");
 		while (i > 0) {
 			--i;
+			/*for (j = 0; j < NPAGES * PAGE_SIZE; j+= PAGE_SIZE) {
+		    	//ClearPageReserved(vmalloc_to_page((void *)(((unsigned long)quick_tx_devs[i].data) + j)));
+		    	ClearPageReserved(virt_to_page(((unsigned long)quick_tx_devs[i].data) + j));
+		    }*/
+			vfree(quick_tx_devs[i].data);
+			//kfree(quick_tx_devs[i].data);
+
 			pr_info("Removing QuickTx device %s \n", quick_tx_devs[i].quick_tx_misc.nodename);
 			kfree(quick_tx_devs[i].quick_tx_misc.name);
 			kfree(quick_tx_devs[i].quick_tx_misc.nodename);
@@ -298,9 +459,17 @@ static int quick_tx_init(void)
 
 static void quick_tx_cleanup(void)
 {
-	int i;
+	int i, j;
 	for (i = 0; i < MAX_QUICK_TX_DEV; i++) {
 		if (quick_tx_devs[i].registered == true) {
+
+			/*for (j = 0; j < NPAGES * PAGE_SIZE; j+= PAGE_SIZE) {
+		    	//ClearPageReserved(vmalloc_to_page((void *)(((unsigned long)quick_tx_devs[i].data) + j)));
+		    	ClearPageReserved(virt_to_page(((unsigned long)quick_tx_devs[i].data) + j));
+		    }*/
+			vfree(quick_tx_devs[i].data);
+		    //kfree(quick_tx_devs[i].data);
+
 			pr_info("Removing QuickTx device %s \n", quick_tx_devs[i].quick_tx_misc.nodename);
 			kfree(quick_tx_devs[i].quick_tx_misc.name);
 			kfree(quick_tx_devs[i].quick_tx_misc.nodename);

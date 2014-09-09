@@ -8,29 +8,43 @@
 #ifndef PCAP_HEADER_H_
 #define PCAP_HEADER_H_
 
-#include <sys/types.h>
+#define NPAGES 1
+#define LOOKUP_TABLE_SIZE 128
 
+#ifdef QUICK_TX_KERNEL_MODULE
+#include <linux/time.h>
+#define set_start_addr(addr) ring->kernel_addr = addr
+#define start_addr ring->kernel_addr
+#else
+#include <sys/types.h>
+#define set_start_addr(addr) ring->user_addr = addr
+#define start_addr ring->user_addr
+typedef enum { false, true } bool;
 #define __u32 u_int32_t
 #define __u16 u_int16_t
 #define __s32 int32_t
 #define __le32 int32_t
 #define __u8 u_int8_t
-#define u8 __u8
+#endif
 
-typedef enum { false, true } bool;
+struct quick_tx_shared_data {
+	void *kernel_addr;
+	void *user_addr;
 
-struct quick_tx_ring {
-	void *start_pointer;
-	void *end_pointer;
+	__u32 length;
 
-	void *public_read_pointer;
-	void *private_read_pointer;
+	struct quick_tx_offset_len_pair[LOOKUP_TABLE_SIZE];
+	__u32 producer_index;
+	__u32 consumer_index;
 
-	void *public_write_pointer;
-	void *private_write_pointer;
+	__u32 size_of_start_padding;
+	__u32 size_of_end_padding;
+} __attribute__((aligned(8)));
 
-	u8 read_bit;
-	u8 write_bit;
+struct quick_tx_offset_len_pair {
+	__u16 offset;		/* offset from kernel_addr or user_addr */
+	__u16 len;			/* length of the entry in data */
+	__u8 consumed;		/* 1 - consumed, 0 - not yet consumed */
 } __attribute__((aligned(8)));
 
 struct pcap_file_header {
