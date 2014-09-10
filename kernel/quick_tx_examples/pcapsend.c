@@ -10,10 +10,12 @@
 #include <string.h>
 #include <errno.h>
 #include <poll.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
 
 #include "../quick_tx/pcap_header.h"
 
-#define DEVICE "/dev/net/quick_tx_eth0"
+#define DEVICE "/dev/net/quick_tx_eth7"
 
 void hexdump(const void * buf, size_t size)
 {
@@ -61,49 +63,15 @@ void hexdump(const void * buf, size_t size)
   }
 }
 
-bool get_next_write(struct quick_tx_ring *ring, int size) {
-	__u32 safe_write_offset;
-	int overflow = 0;
-	__u8 temp_write_bit = ring->write_bit;
-
-	printf("ring->read_bit = %d, ring->write_bit = %d \n", ring->read_bit, ring->write_bit);
-
-	if (ring->private_write_offset + size < ring->length) {
-		safe_write_offset = ring->private_write_offset;
-	} else if (ring->read_bit == ring->write_bit) {
-		safe_write_offset = 0;
-		temp_write_bit ^= 1;
-		printf("Write pointer has overflowed \n");
-		overflow = 1;
+__u32 get_write_offset_and_inc(struct quick_tx_shared_data *data, int len) {
+	__u32 next_offset = data->data_offset;
+	if (data->producer_offset + len < data->length) {
+		next_offset = data->producer_offset;
+		data->producer_offset += len;
 	} else {
-		return false;
+		data->producer_offset = data->data_offset + len;
 	}
-
-	/* If they are both pointers are on the same ring iteration */
-	if (ring->read_bit == temp_write_bit) {
-		if (safe_write_offset >= ring->public_read_offset) {
-			printf("safe_write_offset = %du, public_write_offset = %du \n", safe_write_offset, ring->public_write_offset);
-			ring->private_write_offset = safe_write_offset;
-			if (overflow) {
-				ring->write_bit ^= 1;
-			}
-			return true;
-		}
-
-	} else {
-		/* Since write pointer is already on the next iteration it needs to
-		 * wait before the reader
-		 */
-		if (safe_write_offset < ring->public_read_offset) {
-			ring->private_write_offset = safe_write_offset;
-			if (overflow) {
-				ring->write_bit ^= 1;
-			}
-			return true;
-		}
-	}
-
-	return false;
+	return next_offset;
 }
 
 bool read_pcap_file(char* filename, void** buffer, long *length) {
@@ -144,18 +112,25 @@ static inline void *bytecopy(void *const dest, void const *const src, size_t byt
 
 int main (int argc, char* argv[]) 
 {
-	if (argc != 2) {
-		printf("Usage: ./pcapsend <path-to-pcap> \n");
+	if (argc != 2 && argc != 3) {
+		printf("Usage: ./pcapsend <path-to-pcap> [loops] \n");
 	}
 
 	int fd;
 	unsigned int *map;
 	void* buffer;
 	long length;
+	int loops;
 
 	if (!read_pcap_file(argv[1], &buffer, &length)) {
 		perror("Failed to read file! ");
 		exit(-1);
+	}
+
+	if (argc == 3) {
+		loops = atoi(argv[2]);
+	} else {
+		loops = 1;
 	}
 
 	int len = NPAGES * getpagesize();
@@ -173,50 +148,77 @@ int main (int argc, char* argv[])
 		exit(-1);
 	}
 
-	struct quick_tx_ring *ring = (struct quick_tx_ring *)map;
-	ring->user_addr = (void*)((__u8*)map + sizeof(struct quick_tx_ring));
+	struct quick_tx_shared_data *data = (struct quick_tx_shared_data*)map;
+	data->user_addr = (void*)data;
 
 	struct pcap_pkthdr* pcap_hdr;
+	struct quick_tx_offset_len_pair* entry;
 	struct pollfd pfd;
 	pfd.fd = fd;
 	pfd.events = POLLIN;
 
-	void* offset = buffer + sizeof(struct pcap_file_header);
-	while(offset < buffer + length) {
-		pcap_hdr = (struct pcap_pkthdr*) offset;
-		printf("pcap_hdr->caplen = %d \n", pcap_hdr->caplen);
-		printf("about to run get_next_write \n");
+	__u64 packets_sent = 0;
+	__u64 packet_bytes = 0;
 
-		while (!get_next_write(ring, sizeof(struct pcap_pkthdr)));
-		void* pcap_hdr_dest = ring->user_addr + ring->private_write_offset;
-		memcpy(pcap_hdr_dest, (const void*)offset, sizeof(struct pcap_pkthdr));
-		ring->private_write_offset += sizeof(struct pcap_pkthdr);
+	struct timeval tv_start;
+	gettimeofday(&tv_start,NULL);
 
-		hexdump(ring->user_addr + ring->private_write_offset, sizeof(struct pcap_pkthdr));
+	int i;
+	for (i = 0; i < loops; i++)
+	{
+		void* offset = buffer + sizeof(struct pcap_file_header);
+		while(offset < buffer + length) {
+			pcap_hdr = (struct pcap_pkthdr*) offset;
 
-		while (!get_next_write(ring, ring->size_of_start_padding + pcap_hdr->caplen + ring->size_of_end_padding));
-		void* packet_dest = ring->user_addr + ring->private_write_offset + ring->size_of_start_padding;
-		memcpy(packet_dest, (const void*)offset + sizeof(struct pcap_pkthdr), pcap_hdr->caplen);
-		ring->private_write_offset += ring->size_of_start_padding + pcap_hdr->caplen + ring->size_of_end_padding;
+			data->producer_index %= LOOKUP_TABLE_SIZE;
+			entry = data->lookup_table + data->producer_index;
 
-		/*
-		printf("packet successfully written to %p = with length = %lu! \n", ring->user_addr + ring->private_write_offset,
-				sizeof(struct pcap_pkthdr) + pcap_hdr->caplen);
-		printf("&ring->private_read_offset - ring->user_addr = %ld \n", (void*)&ring->private_read_offset - ring->user_addr);
-		*/
+			if (entry->consumed == 1 || (entry->offset == 0 && entry->len == 0)) {
+				entry->len = data->size_of_start_padding + pcap_hdr->caplen + data->size_of_end_padding;
+				entry->offset = get_write_offset_and_inc(data, entry->len);
 
-		poll(&pfd, 1, 0);
+				memcpy(data->user_addr + entry->offset + data->size_of_start_padding,
+						(const void*)offset + sizeof(struct pcap_pkthdr),
+						entry->len);
 
-		offset += sizeof(struct pcap_pkthdr) + pcap_hdr->caplen;
-		ring->public_write_offset = ring->private_write_offset;
+				offset += sizeof(struct pcap_pkthdr) + pcap_hdr->caplen;
+
+				entry->consumed = 0;
+
+				//usleep(10000);
+//				printf("Wrote entry at index = %d, offset = %d, len = %d \n",
+//						data->producer_index, entry->offset, entry->len);
+
+				packets_sent++;
+				packet_bytes+= pcap_hdr->caplen;
+
+				data->producer_index++;
+			} else {
+				usleep(10);
+			}
+		}
 	}
 
-	while (ring->public_read_offset < ring->public_write_offset || ring->read_bit != ring->write_bit) {
-		poll(&pfd, 1, 0);
-		sleep(1);
-		printf("ring->user_addr = %p \nring->length = %du \nring->private_write_offset = %du \nring->private_read_offset = %du\n",
-				ring->user_addr, ring->length, ring->private_write_offset, ring->private_read_offset);
+	entry = data->lookup_table + data->producer_index;
+	while (data->consumer_index != data->producer_index || (entry->len > 0 && entry->consumed == 0)) {
+		//printf("data->consumer_index = %d, data->producer_index = %d, offset = %d, len = %d \n",
+		//		data->consumer_index, data->producer_index, entry->offset, entry->len);
+		usleep(1000);
 	}
+
+	struct timeval tv_end;
+	gettimeofday(&tv_end,NULL);
+	__u64 seconds = tv_end.tv_sec - tv_start.tv_sec;
+	__u64 microseconds = seconds * 1000 * 1000 + (tv_end.tv_usec - tv_start.tv_usec);
+	__u64 bits_per_second = packet_bytes * 8 * 1000 * 1000 / microseconds;
+
+	printf("Took %lu seconds \n", seconds);
+	printf("Took %lu microseconds \n", microseconds);
+	printf("Sent %lu packets, %lu bytes \n", packets_sent, packet_bytes);
+	printf("Speed = %lu bits / second \n", bits_per_second);
+
+	if (bits_per_second > 1000000)
+		printf("Speed = %lu Mbits / second \n", bits_per_second / (1000 * 1000));
 
 	if (munmap (map, len) == -1) {
 		perror ("munmap");
