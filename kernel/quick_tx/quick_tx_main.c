@@ -119,41 +119,16 @@ static inline int send_skb(struct sk_buff* skb, struct net_device *netdev)
 static void quick_tx_worker( struct work_struct *work)
 {
 	struct quick_tx_dev *dev = container_of(work, struct quick_tx_dev, tx_work);
-	struct sk_buff *skb = NULL;
-	struct skb_shared_info* shinfo;
+	struct sk_buff *skb;
 	struct quick_tx_shared_data *data = dev->shared_data;
 
 	void* packet_buffer;
 	u32 packet_len;
 	struct quick_tx_offset_len_pair* entry;
 
-	pr_err("Starting work \n");
-
-	//skb = dev->skb_placeholder;
-	//prefetch(skb);
-
-	//memset(skb, 0, offsetof(struct sk_buff, tail));
-	//atomic_set(&skb->users, 1);
 	u8 queue_mapping = 0;
 
-	netdev_tx_t status = NETDEV_TX_BUSY;
-	const struct net_device_ops *ops = dev->netdev->netdev_ops;
-	unsigned long flags;
-	struct netdev_queue *txq;
-
-	if (!netif_device_present(dev->netdev) || !netif_running(dev->netdev))
-			return;
-
-	txq = netdev_get_tx_queue(dev->netdev, 0);
-
-	local_irq_save(flags);
-	__netif_tx_lock(txq, smp_processor_id());
-
 	while (!dev->quit_work) {
-
-		//if (data->consumer_index >= LOOKUP_TABLE_SIZE) {
-		//	pr_err("index out of bounds = %d", data->consumer_index);
-		//}
 
 		BUG_ON(data->consumer_index >= LOOKUP_TABLE_SIZE);
 		entry = data->lookup_table + data->consumer_index;
@@ -163,64 +138,27 @@ static void quick_tx_worker( struct work_struct *work)
 			packet_len = entry->len - data->size_of_start_padding - data->size_of_end_padding;
 			BUG_ON (packet_len < 0);
 
-#if 1
-			skb = kmem_cache_alloc_node(qtx_skbuff_head_cache, GFP_NOWAIT & ~__GFP_DMA, numa_node_id());
-
-			if (unlikely(!skb)) {
-				pr_err("Could not allocated skb!");
-				break;
+			skb = __alloc_skb(entry->len -data->size_of_end_padding, GFP_NOWAIT, 0, numa_node_id());
+			if (likely(skb)) {
+				skb_reserve(skb, NET_SKB_PAD);
+				skb->dev = dev->netdev;
 			}
 
-			prefetchw(skb);
-			memset(skb, 0, offsetof(struct sk_buff, tail));
-			atomic_set(&skb->users, 3);
-#endif
+			prefetchw(skb->data);
 
-			skb->truesize = SKB_TRUESIZE(data->size_of_start_padding + packet_len);
-			skb->head = packet_buffer;
-			skb->data = packet_buffer;
-			skb_reset_tail_pointer(skb);
-			skb->end = skb->tail + entry->len;
-#ifdef NET_SKBUFF_DATA_USES_OFFSET
-			skb->mac_header = ~0U;
-			skb->transport_header = ~0U;
-#endif
-			shinfo = skb_shinfo(skb);
-			memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
-			atomic_set(&shinfo->dataref, 1);
-			kmemcheck_annotate_variable(shinfo->destructor_arg);
-
-			//atomic_inc(&skb->users);
-
-			skb_reserve(skb, NET_SKB_PAD);
+			memcpy(skb->data, packet_buffer + data->size_of_start_padding, packet_len);
 			skb_put(skb, packet_len);
 
-			//skb->dev = dev->netdev;
-			//queue_mapping = (queue_mapping + 1) % dev->netdev->num_tx_queues;
+			queue_mapping = (queue_mapping + 1) % dev->netdev->num_tx_queues;
 			skb->queue_mapping = queue_mapping;
 
 			//hexdump(skb->data, skb->len);
-
 			//schedule_timeout_interruptible(10000);
 
-			if (!netif_xmit_frozen_or_stopped(txq))
-				status = ops->ndo_start_xmit(skb, dev->netdev);
-
-			//int status = send_skb(skb, dev->netdev);
-//			if (status == NETDEV_TX_BUSY) {
-//				pr_err("NETDEV_TX_BUSY returned \n");
-//			} else if (status == NETDEV_TX_LOCKED) {
-//				pr_err("NETDEV_TX_LOCKED returned \n");
-//			} else if (status == NETDEV_TX_OK) {
-//				pr_err("NETDEV_TX_OK returned \n");
-//			} else {
-//				pr_err("Status returned is %d  \n", status);
-//			}
+			send_skb(skb, dev->netdev);
 
 			//pr_err("Consumed entry at index = %d, offset = %d, len = %d \n",
 			//		data->consumer_index, entry->offset, entry->len);
-
-			//kmem_cache_free(qtx_skbuff_head_cache, skb);
 
 			entry->consumed = 1;
 			data->consumer_index = (data->consumer_index + 1) % LOOKUP_TABLE_SIZE;
@@ -229,10 +167,6 @@ static void quick_tx_worker( struct work_struct *work)
 			schedule_timeout_interruptible(1);
 		}
 	}
-
-
-	__netif_tx_unlock(txq);
-	local_irq_restore(flags);
 
 	return;
 }
@@ -248,19 +182,6 @@ int quick_tx_release (struct inode * inodp, struct file * filp)
 	return 0;
 }
 
-//unsigned int quick_tx_poll (struct file* file, struct poll_table_struct* pt)
-//{
-//	struct miscdevice* miscdev = file->private_data;
-//	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
-//
-//	printk("POLL CALLED! \n");
-//
-//	atomic_set(&dev->write_ready, 1);
-//	wake_up_interruptible(&dev->reader_wait_queue);
-//
-//	return 0;
-//}
-
 int quick_tx_vm_close(struct vm_area_struct *vma)
 {
 	struct quick_tx_dev* dev = (struct quick_tx_dev*)vma->vm_private_data;
@@ -272,7 +193,6 @@ int quick_tx_vm_close(struct vm_area_struct *vma)
 
 	dev->currently_used = false;
 
-	printk("CLOSE CALLED FOR VMA \n");
 	return 0;
 }
 
@@ -286,9 +206,9 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
     long length = vma->vm_end - vma->vm_start;
-    unsigned long start = vma->vm_start;
+    //unsigned long start = vma->vm_start;
     void* dev_data_ptr = dev->data;
-    unsigned long pfn;
+    //unsigned long pfn;
 
 	if (!dev->currently_used) {
 		dev->currently_used = true;
@@ -318,8 +238,6 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
             length -= PAGE_SIZE;
     }
 */
-
-
 
     if ((ret = remap_pfn_range(vma,
                                vma->vm_start,
@@ -368,13 +286,12 @@ static const struct file_operations quick_tx_fops = {
 	.open   = quick_tx_open,
 	.release = quick_tx_release,
 	.mmap = quick_tx_mmap,
-//	.poll = quick_tx_poll
 };
 
 static int quick_tx_init(void)
 {
 	int ret = 0;
-	int i = 0, j;
+	int i = 0;
 	bool error = false;
 	struct net_device *dev;
 
@@ -414,14 +331,7 @@ static int quick_tx_init(void)
 			if ((quick_tx_devs[i].data = kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL)) == NULL) {
 				error = true;
 			}
-		    /*for (j = 0; j < NPAGES * PAGE_SIZE; j+= PAGE_SIZE) {
-		    	//SetPageReserved(vmalloc_to_page((void *)(((unsigned long)quick_tx_devs[i].data) + j)));
-		    	SetPageReserved(virt_to_page(((unsigned long)quick_tx_devs[i].data) + j));
-		    	int rettt = set_memory_uc((unsigned long)quick_tx_devs[i].data, NPAGES);
-		    	pr_err("rettt =  %d \n", rettt);
-		    }*/
 
-			//quick_tx_devs[i].skb_placeholder = kmalloc(sizeof(struct sk_buff), GFP_KERNEL);
 			i++;
 		}
 	}
@@ -437,10 +347,6 @@ static int quick_tx_init(void)
 		pr_err("Error occured while initilizing, cleaning up..\n");
 		while (i > 0) {
 			--i;
-			/*for (j = 0; j < NPAGES * PAGE_SIZE; j+= PAGE_SIZE) {
-		    	//ClearPageReserved(vmalloc_to_page((void *)(((unsigned long)quick_tx_devs[i].data) + j)));
-		    	ClearPageReserved(virt_to_page(((unsigned long)quick_tx_devs[i].data) + j));
-		    }*/
 			//vfree(quick_tx_devs[i].data);
 			kfree(quick_tx_devs[i].data);
 
@@ -457,16 +363,10 @@ static int quick_tx_init(void)
 
 static void quick_tx_cleanup(void)
 {
-	int i, j;
+	int i;
 	for (i = 0; i < MAX_QUICK_TX_DEV; i++) {
 		if (quick_tx_devs[i].registered == true) {
-
-			/*for (j = 0; j < NPAGES * PAGE_SIZE; j+= PAGE_SIZE) {
-		    	//ClearPageReserved(vmalloc_to_page((void *)(((unsigned long)quick_tx_devs[i].data) + j)));
-		    	ClearPageReserved(virt_to_page(((unsigned long)quick_tx_devs[i].data) + j));
-		    }*/
 			//vfree(quick_tx_devs[i].data);
-			//kfree(quick_tx_devs[i].skb_placeholder);
 		    kfree(quick_tx_devs[i].data);
 
 			pr_info("Removing QuickTx device %s \n", quick_tx_devs[i].quick_tx_misc.nodename);
