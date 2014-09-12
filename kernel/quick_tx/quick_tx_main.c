@@ -29,7 +29,7 @@
 	printk(KERN_ERR pr_fmt("[quick_tx] ERROR: "fmt"\n"), ##__VA_ARGS__)
 
 #define qtx_info(fmt, ...) \
-	printk(KERN_INFO pr_fmt("[quick_tx] INFO: "fmt"\n"), ##__VA_ARGS__)
+	printk(KERN_INFO pr_fmt("[quick_tx] INFO:  "fmt"\n"), ##__VA_ARGS__)
 
 #define MAX_QUICK_TX_DEV 				32
 #define MIN_PACKET_SIZE 				20
@@ -42,6 +42,7 @@
 #define NETDEV_NOT_RUNNING				NETDEV_TX_LOCKED + 0x20
 
 #define TX_NUM_ATTEMPTS 				200
+#define MAX_SKB_LIST_SIZE				10000
 
 #define USE_VMALLOC_PAGES
 
@@ -64,11 +65,7 @@ struct quick_tx_dev {
 	bool currently_used;
 	bool quit_work;
 
-	struct sk_buff* skb_placeholder;
-
-	struct task_struct* sleeping_task;
-	wait_queue_head_t reader_wait_queue;
-	atomic_t write_ready;
+	struct sk_buff_head queued_list;
 
 	/* Statistics */
 	u64 num_tq_frozen_or_stopped;
@@ -82,7 +79,7 @@ struct quick_tx_dev {
 
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 
-static inline int send_skb(struct sk_buff* skb, struct quick_tx_dev *dev)
+static inline int send_skb(struct sk_buff* skb, struct quick_tx_dev *dev, bool force_all)
 {
 	netdev_tx_t status = NETDEV_TX_BUSY;
 	struct net_device* netdev = dev->netdev;
@@ -97,6 +94,23 @@ static inline int send_skb(struct sk_buff* skb, struct quick_tx_dev *dev)
 		return NETDEV_NOT_RUNNING;
 	}
 
+next_skb:
+	if (!skb_queue_empty(&dev->queued_list)) {
+		if (skb) {
+			skb_queue_tail(&dev->queued_list, skb);
+#ifdef QUICK_TX_DEBUG
+			qtx_error("Queued new skb = %p", skb);
+#endif
+		}
+		skb = skb_dequeue(&dev->queued_list);
+#ifdef QUICK_TX_DEBUG
+			qtx_error("Using item from queue = %p", skb);
+#endif
+	}
+
+	if (!skb)
+		return NETDEV_TX_OK;
+
 	txq = netdev_get_tx_queue(netdev, skb_get_queue_mapping(skb));
 
 	local_irq_save(flags);
@@ -105,6 +119,11 @@ static inline int send_skb(struct sk_buff* skb, struct quick_tx_dev *dev)
 	if (!netif_xmit_frozen_or_stopped(txq)) {
 		do {
 			atomic_inc(&skb->users);
+			if (skb->queue_mapping > dev->netdev->num_tx_queues) {
+				qtx_error("Queue mapping is = %d, num_tx_queues = %d",
+						skb->queue_mapping, dev->netdev->num_tx_queues);
+			}
+			BUG_ON(skb->queue_mapping > dev->netdev->num_tx_queues);
 			status = ops->ndo_start_xmit(skb, netdev);
 			attempts++;
 		} while (status != NETDEV_TX_OK && attempts < TX_NUM_ATTEMPTS);
@@ -125,12 +144,33 @@ static inline int send_skb(struct sk_buff* skb, struct quick_tx_dev *dev)
 		}
 
 		kfree_skb(skb);
+		skb = NULL;
+
+		goto next_skb;
 	} else {
 		__netif_tx_unlock(txq);
 		local_irq_restore(flags);
 
 		dev->num_tq_frozen_or_stopped++;
-		return NETDEV_TQ_FROZEN_OR_STOPPED;
+		skb->queue_mapping = (skb->queue_mapping + 1) % dev->netdev->num_tx_queues;
+
+#ifdef QUICK_TX_DEBUG
+			qtx_error("Queue frozen, changed queue mapping to = %d", skb->queue_mapping);
+#endif
+
+		skb_queue_tail(&dev->queued_list, skb);
+
+#ifdef QUICK_TX_DEBUG
+			qtx_error("Queued up skb (%p) again", skb);
+#endif
+
+		skb = NULL;
+		if (force_all)
+			goto next_skb;
+		if (!force_all && skb_queue_len(&dev->queued_list) > MAX_SKB_LIST_SIZE) {
+			schedule_timeout_interruptible(1);
+			goto next_skb;
+		}
 	}
 
 	return status;
@@ -167,16 +207,10 @@ static void quick_tx_worker( struct work_struct *work)
 			queue_mapping = (queue_mapping + 1) % dev->netdev->num_tx_queues;
 			skb->queue_mapping = queue_mapping;
 
-			for (i = 0; i < dev->netdev->num_tx_queues; i++) {
-				ret = send_skb(skb, dev);
-				if (unlikely(ret == NETDEV_NOT_RUNNING)) {
-					data->error_flags |= QUICK_TX_ERR_NOT_RUNNING;
-					return;
-				} else if (likely(ret != NETDEV_TQ_FROZEN_OR_STOPPED)) {
-					break;
-				} else {
-					queue_mapping = (queue_mapping + 1) % dev->netdev->num_tx_queues;
-				}
+			ret = send_skb(skb, dev, false);
+			if (unlikely(ret == NETDEV_NOT_RUNNING)) {
+				data->error_flags |= QUICK_TX_ERR_NOT_RUNNING;
+				return;
 			}
 
 #ifdef QUICK_TX_DEBUG
@@ -187,11 +221,14 @@ static void quick_tx_worker( struct work_struct *work)
 			entry->consumed = 1;
 			data->consumer_index = (data->consumer_index + 1) % LOOKUP_TABLE_SIZE;
 		} else {
+			if (dev->quit_work) {
+				/* flush all remaining SKB's in the list before exiting */
+				send_skb(NULL, dev, true);
+				break;
+			}
 #ifdef QUICK_TX_DEBUG
 			qtx_error("No packets to process, sleeping");
 #endif
-			if (dev->quit_work)
-				break;
 			schedule_timeout_interruptible(1);
 		}
 	}
@@ -392,7 +429,7 @@ static int quick_tx_init(void)
 			dev = &quick_tx_devs[i];
 			dev->netdev = netdev;
 
-			if ((ret = quick_tx_init_name(&quick_tx_devs[i])) < 0)
+			if ((ret = quick_tx_init_name(dev)) < 0)
 				goto error;
 
 			dev->quick_tx_misc.minor = MISC_DYNAMIC_MINOR;
@@ -419,6 +456,8 @@ static int quick_tx_init(void)
 				qtx_error("Could not allocate memory for device, exiting");
 				goto error_page_alloc;
 			}
+
+			skb_queue_head_init(&dev->queued_list);
 
 			i++;
 		}

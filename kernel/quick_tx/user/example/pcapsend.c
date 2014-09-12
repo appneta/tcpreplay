@@ -47,8 +47,8 @@ bool read_pcap_file(char* filename, void** buffer, long *length) {
 
 int main (int argc, char* argv[]) 
 {
-	if (argc != 2 && argc != 3) {
-		printf("Usage: ./pcapsend <path-to-pcap> [loops] \n");
+	if (argc != 3 && argc != 4) {
+		printf("Usage: ./pcapsend <path-to-pcap> <interface> [loops] \n");
 	}
 
 	void* buffer;
@@ -60,14 +60,18 @@ int main (int argc, char* argv[])
 		exit(-1);
 	}
 
-	if (argc == 3) {
-		loops = atoi(argv[2]);
+	struct quick_tx *qtx = quick_tx_open(argv[2]);
+	struct pcap_pkthdr* pcap_hdr;
+
+	if (argc == 4) {
+		loops = atoi(argv[3]);
 	} else {
 		loops = 1;
 	}
 
-	struct quick_tx *qtx = quick_tx_open(DEVICE);
-	struct pcap_pkthdr* pcap_hdr;
+	if (qtx == NULL) {
+		printf("Could not register the device \n");
+	}
 
 	__u64 packets_sent = 0;
 	__u64 packet_bytes = 0;
