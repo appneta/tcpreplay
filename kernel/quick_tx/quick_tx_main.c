@@ -261,9 +261,12 @@ int quick_tx_vm_close(struct vm_area_struct *vma)
 	pr_info("\t Bytes successfully sent: \t\t%llu \n", dev->num_tx_ok_bytes);
 
 	/* Reset statistics  */
-	memset(dev + offsetof(struct quick_tx_dev, num_tq_frozen_or_stopped),
-			0, offsetof(struct quick_tx_dev, num_tx_ok_bytes) -
-			offsetof(struct quick_tx_dev, num_tq_frozen_or_stopped) + sizeof(u64));
+	dev->num_tq_frozen_or_stopped = 0;
+	dev->num_tx_locked = 0;
+	dev->num_tx_busy = 0;
+	dev->num_failed_attempts = 0;
+	dev->num_tx_ok_packets = 0;
+	 dev->num_tx_ok_bytes = 0;
 
 	dev->currently_used = false;
 
