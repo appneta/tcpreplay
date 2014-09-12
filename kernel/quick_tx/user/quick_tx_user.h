@@ -15,8 +15,6 @@
 
 #ifdef QUICK_TX_KERNEL_MODULE
 #include <linux/time.h>
-#define set_start_addr(addr) ring->kernel_addr = addr
-#define start_addr ring->kernel_addr
 #else
 #include <sys/types.h>
 #include <fcntl.h>
@@ -32,8 +30,6 @@
 #include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#define set_start_addr(addr) ring->user_addr = addr
-#define start_addr ring->user_addr
 typedef enum { false, true } bool;
 #define __u64 u_int64_t
 #define __u32 u_int32_t
@@ -46,6 +42,8 @@ typedef enum { false, true } bool;
 #define DEV_NAME_PREFIX "quick_tx_"
 #define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
 #define FULL_PATH_PREFIX "/dev/"FOLDER_NAME_PREFIX
+
+#define QUICK_TX_ERR_NOT_RUNNING 1 << 0
 
 struct quick_tx_offset_len_pair {
 	__u32 offset;		/* offset from kernel_addr or user_addr */
@@ -65,8 +63,8 @@ struct quick_tx_shared_data {
 	__u32 producer_offset;
 	__u32 data_offset;
 
-	__u32 size_of_start_padding;
-	__u32 size_of_end_padding;
+	__u32 error_flags;
+
 } __attribute__((aligned(8)));
 
 struct pcap_file_header {
@@ -158,43 +156,53 @@ __u32 inline __get_write_offset_and_inc(struct quick_tx_shared_data *data, int l
 	return next_offset;
 }
 
+bool inline __check_error_flags(struct quick_tx_shared_data* data) {
+	if (__builtin_expect(data->error_flags, 0)) {
+		if (data->error_flags & QUICK_TX_ERR_NOT_RUNNING) {
+			printf("[quick_tx] Error: the interface is not currently running \n");
+			return false;
+		} else {
+			return false;
+		}
+	}
+	return true;
+}
+
 /*
  * Send packet on quick_tx device
  * @param qtx 		pointer to a quick_tx structure
  * @param buffer 	full packet data starting at the ETH frame
  * @param length 	length of packet
- * @param retry 	if true then will retry until the packet is written,
- * 					if false give up after first failed attempt
- * @return quick_tx object
+ * @return 	true if the packet was successfully queued, false if a critical error occurred
+ * 			and we close needs to be called
  */
-bool inline quick_tx_send_packet(struct quick_tx* qtx, void* buffer, int length, bool retry) {
+bool inline quick_tx_send_packet(struct quick_tx* qtx, void* buffer, int length) {
 	struct quick_tx_shared_data *data = qtx->data;
 	struct quick_tx_offset_len_pair* entry = data->lookup_table + data->producer_index;
 
 send_retry:
 	if (entry->consumed == 1 || (entry->offset == 0 && entry->len == 0)) {
-		entry->len = data->size_of_start_padding + length + data->size_of_end_padding;
+		entry->len = length;
 		entry->offset = __get_write_offset_and_inc(data, entry->len);
 
-		memcpy(data->user_addr + entry->offset + data->size_of_start_padding,
-				(const void*)buffer + sizeof(struct pcap_pkthdr),
-				entry->len);
+		memcpy(data->user_addr + entry->offset, (const void*)buffer, entry->len);
 
 		entry->consumed = 0;
 
 #ifdef QUICK_TX_DEBUG
-		printf("Wrote entry at index = %d, offset = %d, len = %d \n",
+		printf("[quick_tx] Wrote entry at index = %d, offset = %d, len = %d \n",
 				data->producer_index, entry->offset, entry->len);
 #endif
 
 		data->producer_index = (data->producer_index + 1) % LOOKUP_TABLE_SIZE;
-		return true;
+
+		return __check_error_flags(qtx->data);
 	} else {
-		if (retry) {
-			usleep(10);
-			goto send_retry;
-		}
-		return false;
+		if (!__check_error_flags(qtx->data))
+			return false;
+
+		usleep(10);
+		goto send_retry;
 	}
 }
 

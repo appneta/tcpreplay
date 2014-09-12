@@ -83,7 +83,9 @@ int main (int argc, char* argv[])
 			pcap_hdr = (struct pcap_pkthdr*) offset;
 			offset += sizeof(struct pcap_pkthdr);
 
-			quick_tx_send_packet(qtx, offset, pcap_hdr->caplen, true);
+			if (!quick_tx_send_packet(qtx, offset, pcap_hdr->caplen)) {
+				goto quick_tx_error;
+			}
 
 			offset += pcap_hdr->caplen;
 			packets_sent++;
@@ -91,6 +93,7 @@ int main (int argc, char* argv[])
 		}
 	}
 
+quick_tx_error:
 	quick_tx_close(qtx);
 
 	struct timeval tv_end;
@@ -104,8 +107,8 @@ int main (int argc, char* argv[])
 	printf("Sent %lu packets, %lu bytes \n", packets_sent, packet_bytes);
 	printf("Speed = %lu bits / second \n", bits_per_second);
 
-	if (bits_per_second > 1000000)
-		printf("Speed = %lu Mbits / second \n", bits_per_second / (1000 * 1000));
+	if (bits_per_second > 1024 * 1024)
+		printf("Speed = %lu Mbits / second \n", bits_per_second / (1024 * 1024));
 
 	free(buffer);
 	return 0;
