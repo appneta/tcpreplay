@@ -10,13 +10,19 @@
 #include <linux/ip.h>
 #include <asm/cacheflush.h>
 
-#include "pcap_header.h"
+#define QUICK_TX_KERNEL_MODULE 1
+#include "user/quick_tx_user.h"
 
 #define MAX_QUICK_TX_DEV 32
 #define MIN_PACKET_SIZE 20
 #define GOODCOPY_LEN 128
 #define DEVICENAME "quick_tx"
 #define QUICK_TX_WORKQUEUE "quick_tx_workqueue"
+
+#define NETDEV_TQ_FROZEN_OR_STOPPED NETDEV_TX_LOCKED + 0x10
+#define TX_NUM_ATTEMPTS 200
+
+#define USE_VMALLOC_PAGES
 
 struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 
@@ -88,16 +94,27 @@ struct quick_tx_dev {
 	struct task_struct* sleeping_task;
 	wait_queue_head_t reader_wait_queue;
 	atomic_t write_ready;
+
+	/* Statistics */
+	u64 num_tq_frozen_or_stopped;
+	u64 num_tx_locked;
+	u64 num_tx_busy;
+	u64 num_failed_attempts;
+
+	u64 num_tx_ok_packets;
+	u64 num_tx_ok_bytes;
 };
 
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 
-static inline int send_skb(struct sk_buff* skb, struct net_device *netdev)
+static inline int send_skb(struct sk_buff* skb, struct quick_tx_dev *dev)
 {
 	netdev_tx_t status = NETDEV_TX_BUSY;
+	struct net_device* netdev = dev->netdev;
 	const struct net_device_ops *ops = netdev->netdev_ops;
 	unsigned long flags;
 	struct netdev_queue *txq;
+	int attempts = 0;
 
 	if (!netif_device_present(netdev) || !netif_running(netdev))
 			return NETDEV_TX_BUSY;
@@ -107,11 +124,36 @@ static inline int send_skb(struct sk_buff* skb, struct net_device *netdev)
 	local_irq_save(flags);
 	__netif_tx_lock(txq, smp_processor_id());
 
-	if (!netif_xmit_frozen_or_stopped(txq))
-		status = ops->ndo_start_xmit(skb, netdev);
+	if (!netif_xmit_frozen_or_stopped(txq)) {
+		do {
+			atomic_inc(&skb->users);
+			status = ops->ndo_start_xmit(skb, netdev);
+			attempts++;
+		} while (status != NETDEV_TX_OK && attempts < TX_NUM_ATTEMPTS);
 
-	__netif_tx_unlock(txq);
-	local_irq_restore(flags);
+		__netif_tx_unlock(txq);
+		local_irq_restore(flags);
+
+		if (likely(status == NETDEV_TX_OK)) {
+			dev->num_tx_ok_packets++;
+			dev->num_tx_ok_bytes += skb->len;
+		} else {
+			dev->num_failed_attempts += attempts;
+			if (status == NETDEV_TX_BUSY) {
+				dev->num_tx_busy++;
+			} else if (status == NETDEV_TX_LOCKED) {
+				dev->num_tx_locked++;
+			}
+		}
+
+		kfree_skb(skb);
+	} else {
+		__netif_tx_unlock(txq);
+		local_irq_restore(flags);
+
+		dev->num_tq_frozen_or_stopped++;
+		return NETDEV_TQ_FROZEN_OR_STOPPED;
+	}
 
 	return status;
 }
@@ -127,8 +169,9 @@ static void quick_tx_worker( struct work_struct *work)
 	struct quick_tx_offset_len_pair* entry;
 
 	u8 queue_mapping = 0;
+	int i;
 
-	while (!dev->quit_work) {
+	while (true) {
 
 		BUG_ON(data->consumer_index >= LOOKUP_TABLE_SIZE);
 		entry = data->lookup_table + data->consumer_index;
@@ -152,18 +195,31 @@ static void quick_tx_worker( struct work_struct *work)
 			queue_mapping = (queue_mapping + 1) % dev->netdev->num_tx_queues;
 			skb->queue_mapping = queue_mapping;
 
-			//hexdump(skb->data, skb->len);
-			//schedule_timeout_interruptible(10000);
+#ifdef QUICK_TX_DEBUG
+			hexdump(skb->data, skb->len);
+#endif
 
-			send_skb(skb, dev->netdev);
+			for (i = 0; i < dev->netdev->num_tx_queues; i++) {
+				if (likely(send_skb(skb, dev) != NETDEV_TQ_FROZEN_OR_STOPPED)) {
+					break;
+				} else{
+					queue_mapping = (queue_mapping + 1) % dev->netdev->num_tx_queues;
+				}
+			}
 
-			//pr_err("Consumed entry at index = %d, offset = %d, len = %d \n",
-			//		data->consumer_index, entry->offset, entry->len);
+#ifdef QUICK_TX_DEBUG
+			pr_err("Consumed entry at index = %d, offset = %d, len = %d \n",
+					data->consumer_index, entry->offset, entry->len);
+#endif
 
 			entry->consumed = 1;
 			data->consumer_index = (data->consumer_index + 1) % LOOKUP_TABLE_SIZE;
 		} else {
-			//pr_err("Sleeping on the job as always \n");
+#ifdef QUICK_TX_DEBUG
+			pr_err("No packets to process, sleeping \n");
+#endif
+			if (dev->quit_work)
+				break;
 			schedule_timeout_interruptible(1);
 		}
 	}
@@ -186,10 +242,28 @@ int quick_tx_vm_close(struct vm_area_struct *vma)
 {
 	struct quick_tx_dev* dev = (struct quick_tx_dev*)vma->vm_private_data;
 
+	/*
+	 * User is disconnecting, stop worker thread and
+	 * print out all the statistics
+	 */
+
 	dev->quit_work = true;
 
 	cancel_work_sync(&dev->tx_work);
 	destroy_workqueue(dev->tx_workqueue);
+
+	pr_info("Quick TX stopping, printing TX statistics for %s: \n", dev->quick_tx_misc.name);
+	pr_info("\t TX Queue was frozen of stopped: \t%llu \n", dev->num_tq_frozen_or_stopped);
+	pr_info("\t TX returned locked: \t\t\t%llu \n", dev->num_tx_locked);
+	pr_info("\t TX returned busy after retries: \t%llu \n", dev->num_tx_busy);
+	pr_info("\t Number of failed, retried attempts: \t%llu \n", dev->num_failed_attempts);
+	pr_info("\t Packets successfully sent: \t\t%llu \n", dev->num_tx_ok_packets);
+	pr_info("\t Bytes successfully sent: \t\t%llu \n", dev->num_tx_ok_bytes);
+
+	/* Reset statistics  */
+	memset(dev + offsetof(struct quick_tx_dev, num_tq_frozen_or_stopped),
+			0, offsetof(struct quick_tx_dev, num_tx_ok_bytes) -
+			offsetof(struct quick_tx_dev, num_tq_frozen_or_stopped) + sizeof(u64));
 
 	dev->currently_used = false;
 
@@ -206,9 +280,11 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
     long length = vma->vm_end - vma->vm_start;
-    //unsigned long start = vma->vm_start;
     void* dev_data_ptr = dev->data;
-    //unsigned long pfn;
+#ifdef USE_VMALLOC_PAGES
+    unsigned long start = vma->vm_start;
+    unsigned long pfn;
+#endif
 
 	if (!dev->currently_used) {
 		dev->currently_used = true;
@@ -218,7 +294,7 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 		goto error;
 	}
 
-	if (length > NPAGES * PAGE_SIZE) {
+	if (length > NUM_PAGES * PAGE_SIZE) {
     	pr_err("Requested size is too large! \n");
     	return -EIO;
     }
@@ -226,7 +302,7 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 	vma->vm_flags |= VM_IO | VM_SHARED | VM_DONTEXPAND | VM_LOCKED;
 	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
 
-/*
+#ifdef USE_VMALLOC_PAGES
     while (length > 0) {
             pfn = vmalloc_to_pfn(dev_data_ptr);
             if ((ret = remap_pfn_range(vma, start, pfn, PAGE_SIZE,
@@ -237,8 +313,7 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
             dev_data_ptr += PAGE_SIZE;
             length -= PAGE_SIZE;
     }
-*/
-
+#else
     if ((ret = remap_pfn_range(vma,
                                vma->vm_start,
                                virt_to_phys((void *)dev_data_ptr) >> PAGE_SHIFT,
@@ -246,8 +321,7 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
                                vma->vm_page_prot)) < 0) {
             return ret;
     }
-
-
+#endif
 
     vma->vm_private_data = dev;
     vma->vm_ops = &quick_tx_vma_ops;
@@ -301,12 +375,12 @@ static int quick_tx_init(void)
 			quick_tx_devs[i].netdev = dev;
 
 			quick_tx_devs[i].quick_tx_misc.name =
-					kmalloc(strlen(dev->name) + strlen("quick_tx_") + 1, GFP_KERNEL);
+					kmalloc(strlen(DEV_NAME_PREFIX) + strlen(dev->name) + 1, GFP_KERNEL);
 			quick_tx_devs[i].quick_tx_misc.nodename =
-					kmalloc(strlen("net/") + strlen(dev->name) + strlen("quick_tx_") + 1, GFP_KERNEL);
+					kmalloc(strlen(FOLDER_NAME_PREFIX) + strlen(dev->name) + 1, GFP_KERNEL);
 
-			sprintf((char *)quick_tx_devs[i].quick_tx_misc.name, "quick_tx_%s", dev->name);
-			sprintf((char *)quick_tx_devs[i].quick_tx_misc.nodename, "net/quick_tx_%s", dev->name);
+			sprintf((char *)quick_tx_devs[i].quick_tx_misc.name, "%s%s", DEV_NAME_PREFIX, dev->name);
+			sprintf((char *)quick_tx_devs[i].quick_tx_misc.nodename, "%s%s", FOLDER_NAME_PREFIX, dev->name);
 
 			quick_tx_devs[i].quick_tx_misc.minor = MISC_DYNAMIC_MINOR;
 			quick_tx_devs[i].quick_tx_misc.fops = &quick_tx_fops;
@@ -327,8 +401,13 @@ static int quick_tx_init(void)
 			 * Pre-allocate pages and reserve them for each
 			 * network interface
 			 */
-			//if ((quick_tx_devs[i].data = vmalloc_user(NPAGES * PAGE_SIZE)) == NULL) {
-			if ((quick_tx_devs[i].data = kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL)) == NULL) {
+#ifdef USE_VMALLOC_PAGES
+			if ((quick_tx_devs[i].data = vmalloc_user(NUM_PAGES * PAGE_SIZE)) == NULL)
+#else
+			if ((quick_tx_devs[i].data = kmalloc(NUM_PAGES * PAGE_SIZE, GFP_KERNEL)) == NULL)
+#endif
+			{
+				pr_err("Could not allocate memory for device, exiting \n");
 				error = true;
 			}
 
@@ -347,8 +426,11 @@ static int quick_tx_init(void)
 		pr_err("Error occured while initilizing, cleaning up..\n");
 		while (i > 0) {
 			--i;
-			//vfree(quick_tx_devs[i].data);
+#ifdef USE_VMALLOC_PAGES
+			vfree(quick_tx_devs[i].data);
+#else
 			kfree(quick_tx_devs[i].data);
+#endif
 
 			pr_info("Removing QuickTx device %s \n", quick_tx_devs[i].quick_tx_misc.nodename);
 			kfree(quick_tx_devs[i].quick_tx_misc.name);
@@ -366,8 +448,11 @@ static void quick_tx_cleanup(void)
 	int i;
 	for (i = 0; i < MAX_QUICK_TX_DEV; i++) {
 		if (quick_tx_devs[i].registered == true) {
-			//vfree(quick_tx_devs[i].data);
+#ifdef USE_VMALLOC_PAGES
+			vfree(quick_tx_devs[i].data);
+#else
 		    kfree(quick_tx_devs[i].data);
+#endif
 
 			pr_info("Removing QuickTx device %s \n", quick_tx_devs[i].quick_tx_misc.nodename);
 			kfree(quick_tx_devs[i].quick_tx_misc.name);
