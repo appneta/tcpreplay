@@ -10,8 +10,9 @@
 
 #include <linux/ioctl.h>
 
-#define NUM_PAGES 200
-#define LOOKUP_TABLE_SIZE 512
+#define NUM_PAGES 1000
+#define LOOKUP_TABLE_BITS 12
+#define LOOKUP_TABLE_SIZE 1 << LOOKUP_TABLE_BITS // 4096
 
 #ifdef QUICK_TX_KERNEL_MODULE
 #include <linux/time.h>
@@ -37,6 +38,12 @@ typedef enum { false, true } bool;
 #define __s32 int32_t
 #define __le32 int32_t
 #define __u8 u_int8_t
+
+#ifndef SKB_DATA_ALIGN
+#define SKB_DATA_ALIGN(X, SMP_CACHE_BYTES)	(((X) + (SMP_CACHE_BYTES - 1)) & \
+				 ~(SMP_CACHE_BYTES - 1))
+#endif
+
 #endif /* QUICK_TX_KERNEL_MODULE */
 
 #define DEV_NAME_PREFIX "quick_tx_"
@@ -51,6 +58,10 @@ struct quick_tx_offset_len_pair {
 	__u8 consumed;		/* 1 - consumed, 0 - not yet consumed */
 } __attribute__((aligned(8)));
 
+static int numsleeps = 0;
+static int num_skb_alloced = 0;
+static int num_skb_freed = 0;
+
 struct quick_tx_shared_data {
 	void *kernel_addr;
 	void *user_addr;
@@ -58,12 +69,17 @@ struct quick_tx_shared_data {
 	__u32 length;
 
 	struct quick_tx_offset_len_pair lookup_table[LOOKUP_TABLE_SIZE];
-	__u32 consumer_index;
-	__u32 producer_index;
+	__u16 consumer_index;
+	__u32 safe_offset;
+	__u16 producer_index;
 	__u32 producer_offset;
 	__u32 data_offset;
 
 	__u32 error_flags;
+
+	__u32 smp_cache_bytes;
+	__u32 prefix_len;
+	__u32 postfix_len;
 
 } __attribute__((aligned(8)));
 
@@ -72,7 +88,7 @@ struct pcap_file_header {
 	__u16 version_major;
 	__u16 version_minor;
 	__s32 thiszone;	/* gmt to local correction */
-	__u32 sigfigs;	/* accuracy of timestamps */
+	__u32 sigfigs;	/* accuracy of timL1 cache bytes userspaceestamps */
 	__u32 snaplen;	/* max length saved portion of each pkt */
 	__u32 linktype;	/* data link type (LINKTYPE_*) */
 } __attribute__((aligned(8)));
@@ -147,6 +163,9 @@ struct quick_tx* quick_tx_open(char* name) {
 
 __u32 inline __get_write_offset_and_inc(struct quick_tx_shared_data *data, int len) {
 	__u32 next_offset = data->data_offset;
+	if (next_offset > data->safe_offset || next_offset + len < data->safe_offset)
+
+
 	if (data->producer_offset + len < data->length) {
 		next_offset = data->producer_offset;
 		data->producer_offset += len;
@@ -179,13 +198,16 @@ bool inline __check_error_flags(struct quick_tx_shared_data* data) {
 bool inline quick_tx_send_packet(struct quick_tx* qtx, void* buffer, int length) {
 	struct quick_tx_shared_data *data = qtx->data;
 	struct quick_tx_offset_len_pair* entry = data->lookup_table + data->producer_index;
+	int full_length;
 
 send_retry:
 	if (entry->consumed == 1 || (entry->offset == 0 && entry->len == 0)) {
+		full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes);
+		full_length = SKB_DATA_ALIGN(entry->len + data->postfix_len, data->smp_cache_bytes);
 		entry->len = length;
-		entry->offset = __get_write_offset_and_inc(data, entry->len);
+		entry->offset = __get_write_offset_and_inc(data, full_length);
 
-		memcpy(data->user_addr + entry->offset, (const void*)buffer, entry->len);
+		memcpy(data->user_addr + entry->offset + data->prefix_len, (const void*)buffer, entry->len);
 
 		entry->consumed = 0;
 
@@ -202,6 +224,7 @@ send_retry:
 			return false;
 
 		usleep(10);
+		numsleeps++;
 		goto send_retry;
 	}
 }

@@ -114,6 +114,8 @@ quick_tx_error:
 	if (bits_per_second > 1024 * 1024)
 		printf("Speed = %lu Mbits / second \n", bits_per_second / (1024 * 1024));
 
+	printf("NUM sleeps = %d \n", numsleeps);
+
 	free(buffer);
 	return 0;
 } 
