@@ -53,6 +53,12 @@ typedef enum { false, true } bool;
 
 static int numsleeps = 0;
 
+typedef struct {
+	int counter;
+} atomic_t;
+
+#define atomic_read(v) ((v)->counter)
+
 #endif /* QUICK_TX_KERNEL_MODULE */
 
 #define RUN_AT_INVERVAL(code, num, interval_name) \
@@ -87,7 +93,7 @@ struct quick_tx_dma_block_entry {
 	void *user_addr;		/* address of block in userspace memory */
 	__u32 producer_offset;	/* offset (bytes) that the packet is written at  */
 	__u32 length;			/* length of the DMA block */
-	__u16 users;			/* number of users (skbs with memory mapped to this block but still in use) */
+	atomic_t users;			/* number of users (skbs with memory mapped to this block but still in use) */
 } __attribute__((aligned(8)));
 
 struct quick_tx_shared_data {
@@ -105,6 +111,9 @@ struct quick_tx_shared_data {
 	__u32 smp_cache_bytes;
 	__u32 prefix_len;
 	__u32 postfix_len;
+
+	__u8 wait_dma_flag;
+	__u8 wait_lookup_flag;
 
 } __attribute__((aligned(8)));
 
@@ -144,8 +153,8 @@ struct pcap_pkthdr {
 #define QTX_MASTER_PAGE_NUM			(PAGE_ALIGN(sizeof(struct quick_tx_shared_data)) >> PAGE_SHIFT)
 #define QTX_DMA_BLOCK_PAGE_NUM		100
 
-#define POLLDMA		0x0003
-#define POLLLOOKUP	0x0005
+#define POLL_DMA		POLLHUP
+#define POLL_LOOKUP		POLLNVAL
 
 #ifndef QUICK_TX_KERNEL_MODULE
 
@@ -299,7 +308,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 			} else {
 				printf("Block allocated! \n");
 			}
-		} else if (next_dma_block->users != 0) {
+		} else if (atomic_read(&next_dma_block->users) != 0) {
 			/* If the block has not yet been freed then all we can do is return with error */
 			//printf("Block still in use! \n");
 			return false;
@@ -364,13 +373,17 @@ send_retry:
 
 		/* Find the next suitable location for this packet */
 		if (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
-//			struct pollfd pfd;
-//			pfd.events = POLLOUT | POLLDMA;
-//			pfd.fd = dev->fd;
-//			poll(&pfd, 0, -1);
+			struct pollfd pfd;
+			pfd.events = POLL_DMA;
+			pfd.fd = dev->fd;
+			poll(&pfd, 0, 100);
 
-			usleep(10);
-			numsleeps++;
+			if (!(pfd.revents & (POLLOUT | POLL_DMA))) {
+				printf("Timeout for DMA poll! \n");
+			}
+
+//			usleep(1);
+//			numsleeps++;
 
 			goto send_retry;
 		}
@@ -404,13 +417,17 @@ send_retry:
 		//printf("Stuck on dma_producer_index = %d, dma_producer_offset = %d \n", data->dma_producer_index, data->dma_producer_offset);
 		//printf("Number of users on first block = %d \n", data->dma_blocks[0].users);
 
-//		struct pollfd pfd;
-//		pfd.events = POLLOUT | POLLLOOKUP;
-//		pfd.fd = dev->fd;
-//		poll(&pfd, 0, -1);
+		struct pollfd pfd;
+		pfd.events = POLL_LOOKUP;
+		pfd.fd = dev->fd;
+		poll(&pfd, 0, 100);
 
-		usleep(10);
-		numsleeps++;
+		if (!(pfd.revents & (POLLOUT | POLL_LOOKUP))) {
+			printf("Timeout for lookup! \n");
+		}
+
+//		usleep(1);
+//		numsleeps++;
 
 		goto send_retry;
 	}

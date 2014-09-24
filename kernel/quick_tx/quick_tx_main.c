@@ -34,12 +34,12 @@ int quick_tx_napi_poll(struct napi_struct *napi, int weight)
 	wmb();
 
 	if (dev) {
-		//qtx_error("Polling driver");
 		ret = dev->driver_poll(napi, weight);
-//		if (quick_tx_free_skb(dev) > 0) {
-//			//qtx_error("Waking up interruptable");
-//			wake_up_interruptible(&dev->dma_outq);
-//		}
+		if (quick_tx_free_skb(dev) > 0) {
+			dev->shared_data->wait_dma_flag = 0;
+			wmb();
+			wake_up_all(&dev->outq);
+		}
 	} else {
 		qtx_error("quick_tx structure could not be found");
 	}
@@ -70,14 +70,22 @@ static unsigned int quick_tx_poll(struct file *file, struct poll_table_struct *w
 {
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+	unsigned int mask = 0;
 
 	unsigned long events = poll_requested_events(wait);
-	if (events & (POLLOUT|POLLDMA))
-		poll_wait(file, &dev->dma_outq, wait);
-	else if (events & (POLLOUT|POLLLOOKUP))
-		poll_wait(file, &dev->lookup_outq, wait);
+	if (events & POLL_DMA)
+		dev->shared_data->wait_dma_flag = 1;
+	if (events & POLL_LOOKUP)
+		dev->shared_data->wait_lookup_flag = 1;
 
-	return POLLOUT;
+	poll_wait(file, &dev->outq, wait);
+
+	if (dev->shared_data->wait_dma_flag == 0)
+		mask |= (POLLOUT & POLL_DMA);
+	if (dev->shared_data->wait_lookup_flag == 0)
+		mask |= (POLLOUT & POLL_LOOKUP);
+
+	return mask;
 }
 
 
@@ -173,8 +181,7 @@ static int quick_tx_init(void)
 			skb_queue_head_init(&dev->free_skb_list);
 			atomic_set(&dev->free_skb_working, 0);
 
-			init_waitqueue_head(&dev->dma_outq);
-			init_waitqueue_head(&dev->lookup_outq);
+			init_waitqueue_head(&dev->outq);
 
 			i++;
 		}
