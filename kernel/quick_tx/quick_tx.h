@@ -84,6 +84,7 @@ struct quick_tx_dev {
 	 * dma_outq - indicates when the SKBs are freed
 	 * lookup_outq - indicates when an entry in the lookup table is freed */
 	wait_queue_head_t outq;
+	struct mutex mtx;
 
 	/* Device driver napi function */
 	int	(*driver_poll)(struct napi_struct *, int);

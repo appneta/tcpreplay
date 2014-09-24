@@ -10,12 +10,7 @@
 struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 u32 num_quick_tx_devs;
-
-#define lambda(return_type, function_body) \
-({ \
-      return_type __fn__ function_body \
-          __fn__; \
-})
+DEFINE_MUTEX(init_mutex);
 
 int quick_tx_napi_poll(struct napi_struct *napi, int weight)
 {
@@ -24,14 +19,10 @@ int quick_tx_napi_poll(struct napi_struct *napi, int weight)
 
 	int i;
 	for (i = 0; i < num_quick_tx_devs; i++) {
-		if (!napi || !napi->dev)
-			qtx_error("napi or napi->dev is NULL");
 		if (napi->dev == quick_tx_devs[i].netdev) {
 			dev = &quick_tx_devs[i];
 		}
 	}
-
-	wmb();
 
 	if (dev) {
 		ret = dev->driver_poll(napi, weight);
@@ -71,8 +62,11 @@ static unsigned int quick_tx_poll(struct file *file, struct poll_table_struct *w
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
 	unsigned int mask = 0;
+	unsigned long events;
 
-	unsigned long events = poll_requested_events(wait);
+	mutex_lock(&dev->mtx);
+
+	events = poll_requested_events(wait);
 	if (events & POLL_DMA)
 		dev->shared_data->wait_dma_flag = 1;
 	if (events & POLL_LOOKUP)
@@ -84,6 +78,8 @@ static unsigned int quick_tx_poll(struct file *file, struct poll_table_struct *w
 		mask |= (POLLOUT & POLL_DMA);
 	if (dev->shared_data->wait_lookup_flag == 0)
 		mask |= (POLLOUT & POLL_LOOKUP);
+
+	mutex_unlock(&dev->mtx);
 
 	return mask;
 }
@@ -156,6 +152,8 @@ static int quick_tx_init(void)
 	struct net_device *netdev;
 	struct quick_tx_dev *dev;
 
+	mutex_lock(&init_mutex);
+
 	read_lock(&dev_base_lock);
 	for_each_netdev(&init_net, netdev) {
 		if (i < MAX_QUICK_TX_DEV) {
@@ -182,6 +180,7 @@ static int quick_tx_init(void)
 			atomic_set(&dev->free_skb_working, 0);
 
 			init_waitqueue_head(&dev->outq);
+			mutex_init(&dev->mtx);
 
 			i++;
 		}
@@ -194,6 +193,9 @@ static int quick_tx_init(void)
 					      0,
 					      SLAB_HWCACHE_ALIGN|SLAB_PANIC,
 					      NULL);
+
+	mutex_unlock(&init_mutex);
+
 	return 0;
 
 error_misc_register:
@@ -206,6 +208,8 @@ error:
 	}
 
 	qtx_error("Error occurred while initializing, quick_tx is exiting");
+
+	mutex_unlock(&init_mutex);
 
 	return ret;
 }
