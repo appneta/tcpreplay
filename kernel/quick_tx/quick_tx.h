@@ -26,6 +26,8 @@
 #include <linux/ioctl.h>
 #include "kcompat.h"
 
+#define DMA_COHERENT 1
+
 /*
  * The definition QUICK_TX_KERNEL_MODULE is required for differentiating between
  * the user elements in the shared header file and the kernel elements.
@@ -79,7 +81,8 @@ struct quick_tx_dev {
 	atomic_t free_skb_working;
 	struct work_struct free_skb_work;
 	struct workqueue_struct* free_skb_workqueue;
-	struct sk_buff_head free_skb_list;
+	struct sk_buff_head skb_wait_list;
+	struct sk_buff_head skb_freed_list;
 
 	/* Poll wait_queue for writing to device
 	 * dma_outq - indicates when the SKBs are freed
@@ -111,7 +114,7 @@ struct quick_tx_dev {
 
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
-extern inline int quick_tx_free_skb(struct quick_tx_dev* dev);
+extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
 extern void quick_tx_reset_napi(struct quick_tx_dev *dev);
 extern void quick_tx_setup_napi(struct quick_tx_dev *dev);
 extern int quick_tx_mmap(struct file * file, struct vm_area_struct * vma);

@@ -61,6 +61,8 @@ typedef struct {
 
 #define atomic_read(v) ((v)->counter)
 
+#define DMA_COHERENT 1
+
 #endif /* QUICK_TX_KERNEL_MODULE */
 
 #define PRIN_MAGIC 'Q'
@@ -99,6 +101,9 @@ struct quick_tx_dma_block_entry {
 	__u32 producer_offset;	/* offset (bytes) that the packet is written at  */
 	__u32 length;			/* length of the DMA block */
 	atomic_t users;			/* number of users (skbs with memory mapped to this block but still in use) */
+#ifdef DMA_COHERENT
+	__u64 dma_handle;
+#endif
 } __attribute__((aligned(8)));
 
 struct quick_tx_shared_data {
@@ -117,10 +122,11 @@ struct quick_tx_shared_data {
 	__u32 prefix_len;
 	__u32 postfix_len;
 
+	__u32 dma_block_page_num;
+
 	__u32 mbps;
 
 	__u8 lookup_flag;
-	__u8 producer_poll_flag;
 
 } __attribute__((aligned(8)));
 
@@ -158,7 +164,6 @@ struct pcap_pkthdr {
 #endif
 
 #define QTX_MASTER_PAGE_NUM			(PAGE_ALIGN(sizeof(struct quick_tx_shared_data)) >> PAGE_SHIFT)
-#define QTX_DMA_BLOCK_PAGE_NUM		100
 
 #define POLL_FIRST		POLLOUT
 #define POLL_LOOKUP		POLLIN
@@ -179,14 +184,14 @@ struct quick_tx {
 bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
 	if (dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
 		unsigned int *map;
-		map = mmap(0, QTX_DMA_BLOCK_PAGE_NUM * PAGE_SIZE,
+		map = mmap(0, dev->data->dma_block_page_num * PAGE_SIZE,
 				PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, 0);
 
 		if (map != MAP_FAILED) {
 			dev->data->dma_blocks[dev->data->num_dma_blocks - 1].user_addr = (void *)map;
 			return true;
 		} else {
-			printf("MAP_FAILED for index %d\n", dev->data->num_dma_blocks - 1);
+			printf("MAP_FAILED for index %d\n", dev->data->num_dma_blocks);
 		}
 	}
 	return false;
@@ -288,6 +293,7 @@ struct quick_tx* quick_tx_open(char* name) {
 	dev->data = data;
 
 	if (!quick_tx_mmap_dma_block(dev)) {
+		perror("[quick_tx] error while mapping DMA block");
 		munmap ((void*)dev->data, dev->map_length);
 		return NULL;
 	}
@@ -380,22 +386,6 @@ send_retry:
 
 		/* Find the next suitable location for this packet */
 		if (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
-
-//			struct pollfd pfd;
-//			memset(&pfd, 0, sizeof(pfd));
-//			pfd.events = POLL_DMA;
-//			pfd.fd = dev->fd;
-//			dev->data->wait_dma_flag = 1;
-//			wmb();
-//			poll(&pfd, 1, 1000);
-//
-//			if (!(pfd.revents & (POLL_DMA))) {
-//				printf("Timeout for DMA poll! \n");
-//			}
-
-			usleep(1);
-			numsleeps++;
-
 			goto send_retry;
 		}
 
@@ -412,7 +402,7 @@ send_retry:
 		entry->consumed = 0;
 
 		static int qtx_s = 0;
-		if (qtx_s % 1000 == 0) {
+		if (qtx_s % (DMA_BLOCK_TABLE_SIZE >> 4) == 0) {
 			ioctl(dev->fd, START_TX);
 		}
 		qtx_s++;
@@ -430,11 +420,6 @@ send_retry:
 	} else {
 		if (!__check_error_flags(dev->data))
 			return false;
-
-		//printf("Stuck on data->producer_index = %d, entry->consumed = %d\n", data->lookup_producer_index, entry->consumed);
-		//printf("Stuck on dma_producer_index = %d, dma_producer_offset = %d \n", data->dma_producer_index, data->dma_producer_offset);
-		//printf("Number of users on first block = %d \n", data->dma_blocks[0].users);
-
 
 //		struct pollfd pfd;
 //		memset(&pfd, 0, sizeof(pfd));
@@ -468,7 +453,6 @@ send_retry:
 void quick_tx_close(struct quick_tx* dev) {
 	if (dev) {
 		int i;
-
 		for (i = (dev->data->num_dma_blocks - 1); i >= 0; i--) {
 			struct quick_tx_dma_block_entry* dma_block = &dev->data->dma_blocks[i];
 			if (munmap (dma_block->user_addr, dma_block->length) == -1) {

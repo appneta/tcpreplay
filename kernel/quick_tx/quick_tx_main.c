@@ -34,56 +34,9 @@ void quick_tx_print_stats(struct quick_tx_dev *dev) {
 	qtx_info("\t numsleeps = \t\t\t\t%llu", dev->numsleeps);
 	qtx_info("\t num_skb_freed = \t\t\t%llu", dev->num_skb_freed);
 	qtx_info("\t num_skb_alloced = \t\t\t%llu", dev->num_skb_alloced);
-	qtx_info("\t Size of list = \t\t\t%d", skb_queue_len(&dev->free_skb_list));
-
+	qtx_info("\t Size of list = \t\t\t%d", skb_queue_len(&dev->skb_wait_list));
 
 	qtx_info("\t Speed: \t\t\t\t%d Mbps", dev->shared_data->mbps);
-}
-
-
-int quick_tx_napi_poll(struct napi_struct *napi, int weight)
-{
-	int ret = 0;
-	struct quick_tx_dev *dev = NULL;
-
-	int i;
-	for (i = 0; i < num_quick_tx_devs; i++) {
-		if (napi->dev == quick_tx_devs[i].netdev) {
-			dev = &quick_tx_devs[i];
-		}
-	}
-
-	if (dev) {
-		ret = dev->driver_poll(napi, weight);
-		if (quick_tx_free_skb(dev) > 0) {
-			//dev->shared_data->wait_dma_flag = 0;
-			wmb();
-			wake_up_all(&dev->outq);
-		}
-	} else {
-		qtx_error("quick_tx structure could not be found");
-	}
-
-	return ret;
-}
-
-void quick_tx_setup_napi(struct quick_tx_dev *dev)
-{
-	struct napi_struct *napi;
-	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-		if (napi->poll) {
-			dev->driver_poll = napi->poll;
-			napi->poll = quick_tx_napi_poll;
-		}
-	}
-}
-
-void quick_tx_reset_napi(struct quick_tx_dev *dev)
-{
-	struct napi_struct *napi;
-	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-		napi->poll = dev->driver_poll;
-	}
 }
 
 static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
@@ -91,40 +44,34 @@ static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long a
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
 
-	//qtx_error("Came to ioctl!");
-
 	switch(cmd) {
 	case START_TX:
-		//qtx_error("START_TX");
 		dev->shared_data->lookup_flag = 1;
 		wmb();
 		wake_up_all(&dev->consumer_q);
-		//qtx_error("WOKE UP CONSUMER");
 		break;
 	}
 
 	return 0;
 }
 
-static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
-{
-	struct miscdevice* miscdev = file->private_data;
-	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
-	unsigned int mask = 0;
-	unsigned long events;
-
-	mutex_lock(&dev->mtx);
-
-	poll_wait(file, &dev->outq, wait);
-
-	if (dev->shared_data->producer_poll_flag == 1)
-		mask |= (POLL_LOOKUP);
-
-	mutex_unlock(&dev->mtx);
-
-	return mask;
-}
-
+//static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
+//{
+//	struct miscdevice* miscdev = file->private_data;
+//	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+//	unsigned int mask = 0;
+//
+//	mutex_lock(&dev->mtx);
+//
+//	poll_wait(file, &dev->outq, wait);
+//
+//	if (dev->shared_data->producer_poll_flag == 1)
+//		mask |= (POLL_LOOKUP);
+//
+//	mutex_unlock(&dev->mtx);
+//
+//	return mask;
+//}
 
 static int quick_tx_open(struct inode * inode, struct file * file)
 {
@@ -181,7 +128,7 @@ static const struct file_operations quick_tx_fops = {
 	.open   = quick_tx_open,
 	.release = quick_tx_release,
 	.mmap = quick_tx_mmap,
-	.poll = quick_tx_poll,
+//	.poll = quick_tx_poll,
 	.unlocked_ioctl = quick_tx_ioctl
 };
 
@@ -218,7 +165,8 @@ static int quick_tx_init(void)
 			qtx_info("Device registered: /dev/%s --> %s", dev->quick_tx_misc.nodename, dev->netdev->name);
 
 			skb_queue_head_init(&dev->queued_list);
-			skb_queue_head_init(&dev->free_skb_list);
+			skb_queue_head_init(&dev->skb_wait_list);
+			skb_queue_head_init(&dev->skb_freed_list);
 			atomic_set(&dev->free_skb_working, 0);
 
 			init_waitqueue_head(&dev->outq);
@@ -259,12 +207,16 @@ error:
 
 static void quick_tx_cleanup(void)
 {
+	mutex_lock(&init_mutex);
+
 	int i;
 	for (i = 0; i < MAX_QUICK_TX_DEV; i++) {
 		quick_tx_remove_device(&quick_tx_devs[i]);
 	}
 
 	kmem_cache_destroy(qtx_skbuff_head_cache);
+
+	mutex_unlock(&init_mutex);
 }
 
 module_init(quick_tx_init);

@@ -36,6 +36,8 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 
 	if (!dev->quit_work) {
 		dev->quit_work = true;
+		dev->shared_data->lookup_flag = 1;
+		wmb();
 		wake_up_all(&dev->consumer_q);
 		cancel_work_sync(&dev->tx_work);
 		destroy_workqueue(dev->tx_workqueue);
@@ -54,7 +56,6 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 
 	/* kfree the memory allocated for master page */
 	kfree(dev->data);
-	//quick_tx_reset_napi(dev);
 
 	dev->currently_used = false;
 
@@ -81,7 +82,13 @@ void quick_tx_vm_dma_close(struct vm_area_struct *vma)
 	}
 
 	if (dev->shared_data->num_dma_blocks > 0) {
+#if DMA_COHERENT
+		dma_free_coherent(&dev->netdev->dev, dev->shared_data->dma_block_page_num * PAGE_SIZE,
+				dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].kernel_addr,
+				(dma_addr_t)dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].dma_handle);
+#else
 		kfree(dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].kernel_addr);
+#endif
 		dev->shared_data->num_dma_blocks--;
 	} else {
 		qtx_error("Cannot unmap a DMA block! no more blocks to unmap");
@@ -101,7 +108,8 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
     long length = vma->vm_end - vma->vm_start;
-    void* dev_data_ptr = NULL;
+
+    mutex_lock(&dev->mtx);
 
 	if (!dev->currently_used) {
 		dev->currently_used = true;
@@ -131,7 +139,8 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
                                virt_to_phys((void *)dev->data) >> PAGE_SHIFT,
                                length,
                                vma->vm_page_prot)) < 0) {
-            goto error;
+    	qtx_error("Error while mapping pages to virtual memory");
+    	goto error_map;
     }
 
     vma->vm_private_data = dev;
@@ -144,18 +153,25 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
     dev->shared_data->prefix_len = NET_SKB_PAD;
     dev->shared_data->postfix_len = sizeof(struct skb_shared_info);
 
+    dev->shared_data->dma_block_page_num = 2 * (PAGE_ALIGN(dev->netdev->mtu) >> PAGE_SHIFT);
     dev->quit_work = false;
+    wmb();
 
-    //quick_tx_setup_napi(dev);
+    qtx_error("pages per DMA block set to %d", dev->shared_data->dma_block_page_num);
 
     INIT_WORK(&dev->tx_work, quick_tx_worker);
     dev->tx_workqueue = alloc_workqueue(QUICK_TX_WORKQUEUE, WQ_UNBOUND | WQ_CPU_INTENSIVE | WQ_HIGHPRI, 1);
     queue_work(dev->tx_workqueue, &dev->tx_work);
 
-	return 0;
+    mutex_unlock(&dev->mtx);
 
+	return ret;
+
+error_map:
+	kfree(dev->data);
 error:
 	dev->currently_used = false;
+	mutex_unlock(&dev->mtx);
 	return ret;
 }
 
@@ -167,9 +183,8 @@ int quick_tx_mmap_dma_block(struct file * file, struct vm_area_struct * vma)
     long length = vma->vm_end - vma->vm_start;
     struct quick_tx_dma_block_entry* entry;
     void* dma_block_p = NULL;
-#if 0
-    dma_addr_t *dma_handle;
-#endif
+
+    mutex_lock(&dev->mtx);
 
     if (dev->shared_data && dev->shared_data->num_dma_blocks >= DMA_BLOCK_TABLE_SIZE) {
     	qtx_error("This device already has the maximum number of DMA blocks mapped to it");
@@ -179,14 +194,19 @@ int quick_tx_mmap_dma_block(struct file * file, struct vm_area_struct * vma)
 	vma->vm_flags |= VM_IO | VM_SHARED | VM_DONTEXPAND | VM_LOCKED;
 	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
 
-#if 1
-	if ((dma_block_p = kmalloc(QTX_DMA_BLOCK_PAGE_NUM * PAGE_SIZE, GFP_KERNEL)) == NULL)
+	entry = &dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks];
+
+#if DMA_COHERENT
+	if ((dma_block_p = dma_alloc_coherent(dev->netdev->dev.parent, dev->shared_data->dma_block_page_num * PAGE_SIZE, (dma_addr_t*)&entry->dma_handle, GFP_KERNEL)) == NULL)
 #else
-	if ((dma_block_p = dma_alloc_coherent(dev->netdev->dev, QTX_DMA_BLOCK_PAGE_NUM * PAGE_SIZE, dma_handle, GFP_KERNEL)) == NULL)
+	if ((dma_block_p = kmalloc(dev->shared_data->dma_block_page_num * PAGE_SIZE, GFP_KERNEL)) == NULL)
 #endif
 	{
 		qtx_error("Could not allocate memory for device, exiting");
-		return -ENOMEM;
+		qtx_error("Dma mappping errors: %d", dma_mapping_error(dev->netdev->dev.parent, (dma_addr_t)&entry->dma_handle));
+		ret = -ENOMEM;
+		goto error;
+
 	}
 
     if ((ret = remap_pfn_range(vma,
@@ -194,29 +214,43 @@ int quick_tx_mmap_dma_block(struct file * file, struct vm_area_struct * vma)
                                virt_to_phys(dma_block_p) >> PAGE_SHIFT,
                                length,
                                vma->vm_page_prot)) < 0) {
-            return ret;
+    	goto error_map;
     }
 
     vma->vm_private_data = dev;
     vma->vm_ops = &quick_tx_vma_ops_dma;
 
-    entry = &dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks];
     entry->kernel_addr = dma_block_p;
-    entry->length = QTX_DMA_BLOCK_PAGE_NUM * PAGE_SIZE;
+    entry->length = dev->shared_data->dma_block_page_num * PAGE_SIZE;
 
     dev->shared_data->num_dma_blocks++;
-
     wmb();
 
-	return 0;
+    mutex_unlock(&dev->mtx);
+
+	return ret;
+
+error_map:
+#if DMA_COHERENT
+	dma_free_coherent(&dev->netdev->dev, dev->shared_data->dma_block_page_num * PAGE_SIZE, dma_block_p, (dma_addr_t)entry->dma_handle);
+#else
+	kfree(dma_block_p);
+#endif
+error:
+	mutex_unlock(&dev->mtx);
+	return ret;
+
 }
 
 int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 {
+	struct miscdevice* miscdev = file->private_data;
+	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+
 	int num_pages = PAGE_ALIGN(vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
 	if (num_pages == QTX_MASTER_PAGE_NUM) {
 		return quick_tx_mmap_master(file, vma);
-	} else if (num_pages == QTX_DMA_BLOCK_PAGE_NUM) {
+	} else if ((dev->shared_data) && num_pages == dev->shared_data->dma_block_page_num) {
 		return quick_tx_mmap_dma_block(file, vma);
 	} else {
 		qtx_error("Invalid map size!");

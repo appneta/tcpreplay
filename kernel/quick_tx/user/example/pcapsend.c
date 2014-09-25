@@ -67,15 +67,13 @@ int main (int argc, char* argv[])
 	}
 
 	struct quick_tx *qtx = quick_tx_open(argv[2]);
-	quick_tx_alloc_dma_space(qtx, length * loops);
+
+	if (qtx != NULL)
+		quick_tx_alloc_dma_space(qtx, length * loops);
+	else
+		exit(1);
 
 	struct pcap_pkthdr* pcap_hdr;
-
-
-	if (qtx == NULL) {
-		printf("Could not register the device \n");
-		exit(1);
-	}
 
 	__u64 packets_sent = 0;
 	__u64 packet_bytes = 0;
@@ -86,16 +84,16 @@ int main (int argc, char* argv[])
 
 	struct timeval tv_start;
 	gettimeofday(&tv_start,NULL);
-
-	struct pcap_pkthdr* first_hdr;
-	int first_caplen;
+//
+//	struct pcap_pkthdr* first_hdr;
+//	int first_caplen;
 
 	int i;
 	for (i = 0; i < loops; i++)
 	{
 		void* offset = buffer + sizeof(struct pcap_file_header);
-		first_hdr = (struct pcap_pkthdr*) offset;
-		first_caplen = first_hdr->caplen;
+//		first_hdr = (struct pcap_pkthdr*) offset;
+//		first_caplen = first_hdr->caplen;
 		//printf("offset = %p, buffer = %p pcap_caplen = %du \n", offset, buffer, first_hdr->caplen);
 
 		while(offset < buffer + length) {
@@ -110,13 +108,13 @@ int main (int argc, char* argv[])
 			offset += pcap_hdr->caplen;
 			packets_sent++;
 			packet_bytes+= pcap_hdr->caplen;
-
-			if (first_caplen != first_hdr->caplen) {
-				printf("pcap_caplen = %d \n", first_hdr->caplen);
-				printf("offset = %p \n", offset);
-				first_caplen = first_hdr->caplen;
-				//break;
-			}
+//
+//			if (first_caplen != first_hdr->caplen) {
+//				printf("pcap_caplen = %d \n", first_hdr->caplen);
+//				printf("offset = %p \n", offset);
+//				first_caplen = first_hdr->caplen;
+//				//break;
+//			}
 		}
 	}
 
@@ -124,6 +122,8 @@ int main (int argc, char* argv[])
 
 quick_tx_error:
 	quick_tx_close(qtx);
+
+
 
 	struct timeval tv_end;
 	gettimeofday(&tv_end,NULL);
