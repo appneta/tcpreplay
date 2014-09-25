@@ -72,14 +72,8 @@ next_skb:
 	__netif_tx_lock(txq, smp_processor_id());
 
 	if (!netif_xmit_frozen_or_stopped(txq)) {
-		if (atomic_read(&skb->users) == 1)
-			skb_get(skb);
-		if (skb->queue_mapping > dev->netdev->num_tx_queues) {
-			qtx_error("Queue mapping is = %d, num_tx_queues = %d",
-					skb->queue_mapping, dev->netdev->num_tx_queues);
-		}
-		BUG_ON(skb->queue_mapping > dev->netdev->num_tx_queues);
-
+		if (atomic_read(&skb->users) != 2)
+			atomic_set(&skb->users, 2);
 #if 1
 		status = ops->ndo_start_xmit(skb, netdev);
 #else
@@ -95,7 +89,6 @@ next_skb:
 			dev->num_tx_ok_bytes += skb->len;
 
 			__skb_queue_tail(&dev->free_skb_list, skb);
-//			skb_queue_tail(&dev->free_skb_list, skb);
 			skb = NULL;
 
 			done++;
@@ -114,8 +107,6 @@ next_skb:
 		dev->num_tq_frozen_or_stopped++;
 	}
 
-	skb->queue_mapping = (skb->queue_mapping + 1) % dev->netdev->num_tx_queues;
-
 #ifdef QUICK_TX_DEBUG
 		qtx_error("Queue frozen, changed queue mapping to = %d", skb->queue_mapping);
 #endif
@@ -131,6 +122,7 @@ next_skb:
 		goto next_skb;
 	else if (skb_queue_len(&dev->queued_list) > MAX_SKB_LIST_SIZE) {
 		quick_tx_free_skb(dev);
+		schedule_timeout_interruptible(1);
 		goto next_skb;
 	}
 
@@ -183,10 +175,14 @@ void quick_tx_worker(struct work_struct *work)
 	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_consumer_index;
 	struct quick_tx_dma_block_entry* dma_block;
 	u32 full_size = 0;
-	u8 queue_mapping = 0;
+	//u8 queue_mapping = 0;
 	int ret;
 
 	qtx_error("Starting quick_tx_worker");
+
+	dev->shared_data->lookup_flag = 0;
+	wait_event(dev->consumer_q, dev->shared_data->lookup_flag == 1);
+	dev->time_start_tx = ktime_get_real();
 
 	while (true) {
 
@@ -197,9 +193,6 @@ void quick_tx_worker(struct work_struct *work)
 			/* Get the DMA block our packet is in */
 			dma_block = &data->dma_blocks[entry->dma_block_index];
 			atomic_inc(&dma_block->users);
-
-			//qtx_error("Increment on %d. Users at = %d",
-			//		entry->dma_block_index, dev->shared_data->dma_blocks[entry->dma_block_index].users);
 
 			/* Write memory barrier so that users++ gets executed beforehand */
 			wmb();
@@ -219,9 +212,8 @@ void quick_tx_worker(struct work_struct *work)
 			/* Copy over the bits of the DMA block index */
 			*(u16*)(skb->cb + (sizeof(skb->cb) - sizeof(u16))) = entry->dma_block_index;
 
-			/* Increment queue mapping */
-			queue_mapping = (queue_mapping + 1) % dev->netdev->num_tx_queues;
-			skb->queue_mapping = queue_mapping;
+			/* Set queue mapping */
+			skb->queue_mapping = 0;
 			skb->dev = dev->netdev;
 
 			ret = quick_tx_send_skb(skb, dev, 1, false);
@@ -248,19 +240,23 @@ void quick_tx_worker(struct work_struct *work)
 		} else {
 			if (dev->quit_work) {
 
-				qtx_error("Quitting quick_tx_worker");
-
 				/* flush all remaining SKB's in the list before exiting */
 				quick_tx_send_skb(NULL, dev, 0, true);
+				dev->time_end_tx = ktime_get_real();
 
-				qtx_error("Done sending all packets!");
+				qtx_error("All packets have been transmitted successfully, exiting.");
 
 				/* wait until cleaning the SKB list is finished
 				 * as well before exiting so we do not have any memory leaks */
 				while(!skb_queue_empty(&dev->free_skb_list)) {
 					quick_tx_free_skb(dev);
-					schedule_timeout_interruptible(1);
+					schedule_timeout_interruptible(HZ);
 				}
+
+				qtx_error("Done freeing free_skb_list");
+
+				quick_tx_calc_mbps(dev);
+				quick_tx_print_stats(dev);
 
 				break;
 			}
@@ -271,10 +267,10 @@ void quick_tx_worker(struct work_struct *work)
 
 			dev->shared_data->lookup_flag = 0;
 			wmb();
-			wake_up_all(&dev->outq);
+			//wake_up_all(&dev->outq);
 			//qtx_error("Woke up producer");
 
-			quick_tx_send_skb(NULL, dev, 1000, false);
+			//quick_tx_send_skb(NULL, dev, 1000, false);
 
 			dev->numsleeps++;
 			//qtx_error("consumer is waiting");

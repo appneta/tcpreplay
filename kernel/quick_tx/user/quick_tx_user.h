@@ -117,7 +117,10 @@ struct quick_tx_shared_data {
 	__u32 prefix_len;
 	__u32 postfix_len;
 
+	__u32 mbps;
+
 	__u8 lookup_flag;
+	__u8 producer_poll_flag;
 
 } __attribute__((aligned(8)));
 
@@ -390,8 +393,8 @@ send_retry:
 //				printf("Timeout for DMA poll! \n");
 //			}
 
-//			usleep(1);
-//			numsleeps++;
+			usleep(1);
+			numsleeps++;
 
 			goto send_retry;
 		}
@@ -407,6 +410,12 @@ send_retry:
 		   Set consumed to 0 for entry, indicates it can be used by the quick_tx module */
 		wmb();
 		entry->consumed = 0;
+
+		static int qtx_s = 0;
+		if (qtx_s % 1000 == 0) {
+			ioctl(dev->fd, START_TX);
+		}
+		qtx_s++;
 
 #ifdef QUICK_TX_DEBUG
 		printf("[quick_tx] Wrote entry at index = %d, dma_block_index = %d, offset = %d, len = %d \n",
@@ -427,25 +436,25 @@ send_retry:
 		//printf("Number of users on first block = %d \n", data->dma_blocks[0].users);
 
 
-		struct pollfd pfd;
-		memset(&pfd, 0, sizeof(pfd));
-		pfd.events = POLL_LOOKUP;
-		pfd.fd = dev->fd;
+//		struct pollfd pfd;
+//		memset(&pfd, 0, sizeof(pfd));
+//		pfd.events = POLL_LOOKUP;
+//		pfd.fd = dev->fd;
 
-		//printf("Sending ioctl \n");
 		ioctl(dev->fd, START_TX);
 
-		wmb();
-		//printf("Sending poll \n");
-		poll(&pfd, 1, 1000);
-		//printf("Back from poll \n");
 
-		if (!(pfd.revents & (POLL_LOOKUP))) {
-			printf("Timeout for lookup! \n");
-		}
+		//wmb();
+//		data->producer_poll_flag = 0;
+//		wmb();
 
-//		usleep(1);
-//		numsleeps++;
+//		poll(&pfd, 1, 1000);
+//		if (!(pfd.revents & (POLL_LOOKUP))) {
+//			printf("Timeout for lookup! \n");
+//		}
+
+		usleep(1);
+		numsleeps++;
 
 		goto send_retry;
 	}

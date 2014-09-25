@@ -12,6 +12,35 @@ struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 u32 num_quick_tx_devs;
 DEFINE_MUTEX(init_mutex);
 
+void quick_tx_calc_mbps(struct quick_tx_dev *dev)
+{
+	u64 ns = ktime_to_ns(dev->time_end_tx) - ktime_to_ns(dev->time_start_tx);
+	if (ns >= 1000) {
+		dev->shared_data->mbps = div_u64(dev->num_tx_ok_bytes * 8, div_u64(ns, 1000));
+	} else {
+		dev->shared_data->mbps = div_u64(dev->num_tx_ok_bytes * 8 * 1000, ns);
+	}
+}
+
+void quick_tx_print_stats(struct quick_tx_dev *dev) {
+	qtx_info("Run complete, printing TX statistics for %s:", dev->quick_tx_misc.name);
+	qtx_info("\t TX Queue was frozen of stopped: \t%llu", dev->num_tq_frozen_or_stopped);
+	qtx_info("\t TX returned locked: \t\t\t%llu", dev->num_tx_locked);
+	qtx_info("\t TX returned busy: \t\t\t%llu", dev->num_tx_busy);
+	qtx_info("\t Number of failed, retried attempts: \t%llu", dev->num_failed_attempts);
+	qtx_info("\t Packets successfully sent: \t\t%llu", dev->num_tx_ok_packets);
+	qtx_info("\t Bytes successfully sent: \t\t%llu", dev->num_tx_ok_bytes);
+
+	qtx_info("\t numsleeps = \t\t\t\t%llu", dev->numsleeps);
+	qtx_info("\t num_skb_freed = \t\t\t%llu", dev->num_skb_freed);
+	qtx_info("\t num_skb_alloced = \t\t\t%llu", dev->num_skb_alloced);
+	qtx_info("\t Size of list = \t\t\t%d", skb_queue_len(&dev->free_skb_list));
+
+
+	qtx_info("\t Speed: \t\t\t\t%d Mbps", dev->shared_data->mbps);
+}
+
+
 int quick_tx_napi_poll(struct napi_struct *napi, int weight)
 {
 	int ret = 0;
@@ -88,7 +117,7 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 
 	poll_wait(file, &dev->outq, wait);
 
-	if (dev->shared_data->lookup_flag == 0)
+	if (dev->shared_data->producer_poll_flag == 1)
 		mask |= (POLL_LOOKUP);
 
 	mutex_unlock(&dev->mtx);

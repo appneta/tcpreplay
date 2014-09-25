@@ -41,19 +41,6 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 		destroy_workqueue(dev->tx_workqueue);
 	}
 
-	qtx_info("Run complete, printing TX statistics for %s:", dev->quick_tx_misc.name);
-	qtx_info("\t TX Queue was frozen of stopped: \t%llu", dev->num_tq_frozen_or_stopped);
-	qtx_info("\t TX returned locked: \t\t\t%llu", dev->num_tx_locked);
-	qtx_info("\t TX returned busy: \t\t\t%llu", dev->num_tx_busy);
-	qtx_info("\t Number of failed, retried attempts: \t%llu", dev->num_failed_attempts);
-	qtx_info("\t Packets successfully sent: \t\t%llu", dev->num_tx_ok_packets);
-	qtx_info("\t Bytes successfully sent: \t\t%llu", dev->num_tx_ok_bytes);
-
-	qtx_info("\t numsleeps = %llu", dev->numsleeps);
-	qtx_info("\t num_skb_freed = %llu", dev->num_skb_freed);
-	qtx_info("\t num_skb_alloced = %llu", dev->num_skb_alloced);
-	qtx_info("\t Size of list = %llu", skb_queue_len(&dev->free_skb_list));
-
 	/* Reset statistics  */
 	dev->num_tq_frozen_or_stopped = 0;
 	dev->num_tx_locked = 0;
@@ -70,6 +57,8 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 	//quick_tx_reset_napi(dev);
 
 	dev->currently_used = false;
+
+	qtx_error("exiting quick_tx_vm_master_close");
 }
 
 void quick_tx_vm_dma_close(struct vm_area_struct *vma)

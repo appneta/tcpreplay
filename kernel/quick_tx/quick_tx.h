@@ -104,8 +104,13 @@ struct quick_tx_dev {
 	u64 num_skb_alloced;
 	u64 num_skb_freed;
 
+	ktime_t time_start_tx;
+	ktime_t time_end_tx;
+
 };
 
+extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
+extern void quick_tx_print_stats(struct quick_tx_dev *dev);
 extern inline int quick_tx_free_skb(struct quick_tx_dev* dev);
 extern void quick_tx_reset_napi(struct quick_tx_dev *dev);
 extern void quick_tx_setup_napi(struct quick_tx_dev *dev);
