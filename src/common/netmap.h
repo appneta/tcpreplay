@@ -48,6 +48,7 @@
 
 #ifndef HAVE_NETMAP_NR_REG
 #define NR_REG_MASK     0xf     /* values for nr_flags */
+#if NETMAP_API < 11
 enum {  NR_REG_DEFAULT  = 0,    /* backward compat, used in older versions. */
     NR_REG_ALL_NIC,
     NR_REG_SW,
@@ -56,6 +57,7 @@ enum {  NR_REG_DEFAULT  = 0,    /* backward compat, used in older versions. */
     NR_REG_PIPE_MASTER,
     NR_REG_PIPE_SLAVE,
 };
+#endif /* NETMAP_API < 11 */
 #endif
 
 #ifndef NETMAP_HW_RING
