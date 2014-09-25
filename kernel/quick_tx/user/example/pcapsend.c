@@ -120,6 +120,8 @@ int main (int argc, char* argv[])
 		}
 	}
 
+	printf("Done, closing everything!");
+
 quick_tx_error:
 	quick_tx_close(qtx);
 

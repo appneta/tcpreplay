@@ -36,6 +36,7 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 
 	if (!dev->quit_work) {
 		dev->quit_work = true;
+		wake_up_all(&dev->consumer_q);
 		cancel_work_sync(&dev->tx_work);
 		destroy_workqueue(dev->tx_workqueue);
 	}
@@ -66,7 +67,7 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 
 	/* kfree the memory allocated for master page */
 	kfree(dev->data);
-	quick_tx_reset_napi(dev);
+	//quick_tx_reset_napi(dev);
 
 	dev->currently_used = false;
 }
@@ -83,6 +84,9 @@ void quick_tx_vm_dma_close(struct vm_area_struct *vma)
 
 	if (!dev->quit_work) {
 		dev->quit_work = true;
+		dev->shared_data->lookup_flag = 1;
+		wmb();
+		wake_up_all(&dev->consumer_q);
 		cancel_work_sync(&dev->tx_work);
 		destroy_workqueue(dev->tx_workqueue);
 	}
@@ -153,12 +157,11 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
 
     dev->quit_work = false;
 
-    quick_tx_setup_napi(dev);
+    //quick_tx_setup_napi(dev);
 
     INIT_WORK(&dev->tx_work, quick_tx_worker);
-    dev->tx_workqueue = create_workqueue(QUICK_TX_WORKQUEUE);
+    dev->tx_workqueue = alloc_workqueue(QUICK_TX_WORKQUEUE, WQ_UNBOUND | WQ_CPU_INTENSIVE | WQ_HIGHPRI, 1);
     queue_work(dev->tx_workqueue, &dev->tx_work);
-    schedule_work(&dev->tx_work);
 
 	return 0;
 

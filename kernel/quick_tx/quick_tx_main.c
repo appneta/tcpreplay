@@ -27,7 +27,7 @@ int quick_tx_napi_poll(struct napi_struct *napi, int weight)
 	if (dev) {
 		ret = dev->driver_poll(napi, weight);
 		if (quick_tx_free_skb(dev) > 0) {
-			dev->shared_data->wait_dma_flag = 0;
+			//dev->shared_data->wait_dma_flag = 0;
 			wmb();
 			wake_up_all(&dev->outq);
 		}
@@ -57,7 +57,27 @@ void quick_tx_reset_napi(struct quick_tx_dev *dev)
 	}
 }
 
-static unsigned int quick_tx_poll(struct file *file, struct poll_table_struct *wait)
+static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
+{
+	struct miscdevice* miscdev = file->private_data;
+	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+
+	//qtx_error("Came to ioctl!");
+
+	switch(cmd) {
+	case START_TX:
+		//qtx_error("START_TX");
+		dev->shared_data->lookup_flag = 1;
+		wmb();
+		wake_up_all(&dev->consumer_q);
+		//qtx_error("WOKE UP CONSUMER");
+		break;
+	}
+
+	return 0;
+}
+
+static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 {
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
@@ -66,18 +86,10 @@ static unsigned int quick_tx_poll(struct file *file, struct poll_table_struct *w
 
 	mutex_lock(&dev->mtx);
 
-	events = poll_requested_events(wait);
-	if (events & POLL_DMA)
-		dev->shared_data->wait_dma_flag = 1;
-	if (events & POLL_LOOKUP)
-		dev->shared_data->wait_lookup_flag = 1;
-
 	poll_wait(file, &dev->outq, wait);
 
-	if (dev->shared_data->wait_dma_flag == 0)
-		mask |= (POLLOUT & POLL_DMA);
-	if (dev->shared_data->wait_lookup_flag == 0)
-		mask |= (POLLOUT & POLL_LOOKUP);
+	if (dev->shared_data->lookup_flag == 0)
+		mask |= (POLL_LOOKUP);
 
 	mutex_unlock(&dev->mtx);
 
@@ -141,6 +153,7 @@ static const struct file_operations quick_tx_fops = {
 	.release = quick_tx_release,
 	.mmap = quick_tx_mmap,
 	.poll = quick_tx_poll,
+	.unlocked_ioctl = quick_tx_ioctl
 };
 
 
@@ -180,6 +193,7 @@ static int quick_tx_init(void)
 			atomic_set(&dev->free_skb_working, 0);
 
 			init_waitqueue_head(&dev->outq);
+			init_waitqueue_head(&dev->consumer_q);
 			mutex_init(&dev->mtx);
 
 			i++;

@@ -27,6 +27,8 @@
 #include <sys/time.h>
 #include <sys/user.h>
 #include <math.h>
+#include <sys/ioctl.h>
+#include <asm-generic/ioctl.h>
 typedef enum { false, true } bool;
 
 #define __u64 	u_int64_t
@@ -60,6 +62,9 @@ typedef struct {
 #define atomic_read(v) ((v)->counter)
 
 #endif /* QUICK_TX_KERNEL_MODULE */
+
+#define PRIN_MAGIC 'Q'
+#define START_TX _IO(PRIN_MAGIC, 0)
 
 #define RUN_AT_INVERVAL(code, num, interval_name) \
 	do { 								\
@@ -112,8 +117,7 @@ struct quick_tx_shared_data {
 	__u32 prefix_len;
 	__u32 postfix_len;
 
-	__u8 wait_dma_flag;
-	__u8 wait_lookup_flag;
+	__u8 lookup_flag;
 
 } __attribute__((aligned(8)));
 
@@ -153,8 +157,8 @@ struct pcap_pkthdr {
 #define QTX_MASTER_PAGE_NUM			(PAGE_ALIGN(sizeof(struct quick_tx_shared_data)) >> PAGE_SHIFT)
 #define QTX_DMA_BLOCK_PAGE_NUM		100
 
-#define POLL_DMA		POLLHUP
-#define POLL_LOOKUP		POLLNVAL
+#define POLL_FIRST		POLLOUT
+#define POLL_LOOKUP		POLLIN
 
 #ifndef QUICK_TX_KERNEL_MODULE
 
@@ -373,14 +377,18 @@ send_retry:
 
 		/* Find the next suitable location for this packet */
 		if (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
-			struct pollfd pfd;
-			pfd.events = POLL_DMA;
-			pfd.fd = dev->fd;
-			poll(&pfd, 0, 100);
 
-			if (!(pfd.revents & (POLLOUT | POLL_DMA))) {
-				printf("Timeout for DMA poll! \n");
-			}
+//			struct pollfd pfd;
+//			memset(&pfd, 0, sizeof(pfd));
+//			pfd.events = POLL_DMA;
+//			pfd.fd = dev->fd;
+//			dev->data->wait_dma_flag = 1;
+//			wmb();
+//			poll(&pfd, 1, 1000);
+//
+//			if (!(pfd.revents & (POLL_DMA))) {
+//				printf("Timeout for DMA poll! \n");
+//			}
 
 //			usleep(1);
 //			numsleeps++;
@@ -407,6 +415,7 @@ send_retry:
 
 		/* Increment the lookup index for next packet */
 		data->lookup_producer_index = (data->lookup_producer_index + 1) % LOOKUP_TABLE_SIZE;
+		wmb();
 
 		return __check_error_flags(dev->data);
 	} else {
@@ -417,12 +426,21 @@ send_retry:
 		//printf("Stuck on dma_producer_index = %d, dma_producer_offset = %d \n", data->dma_producer_index, data->dma_producer_offset);
 		//printf("Number of users on first block = %d \n", data->dma_blocks[0].users);
 
+
 		struct pollfd pfd;
+		memset(&pfd, 0, sizeof(pfd));
 		pfd.events = POLL_LOOKUP;
 		pfd.fd = dev->fd;
-		poll(&pfd, 0, 100);
 
-		if (!(pfd.revents & (POLLOUT | POLL_LOOKUP))) {
+		//printf("Sending ioctl \n");
+		ioctl(dev->fd, START_TX);
+
+		wmb();
+		//printf("Sending poll \n");
+		poll(&pfd, 1, 1000);
+		//printf("Back from poll \n");
+
+		if (!(pfd.revents & (POLL_LOOKUP))) {
 			printf("Timeout for lookup! \n");
 		}
 

@@ -23,6 +23,7 @@
 #include <linux/time.h>
 #include <linux/poll.h>
 #include <asm/cacheflush.h>
+#include <linux/ioctl.h>
 #include "kcompat.h"
 
 /*
@@ -83,6 +84,7 @@ struct quick_tx_dev {
 	/* Poll wait_queue for writing to device
 	 * dma_outq - indicates when the SKBs are freed
 	 * lookup_outq - indicates when an entry in the lookup table is freed */
+	wait_queue_head_t consumer_q;
 	wait_queue_head_t outq;
 	struct mutex mtx;
 
@@ -101,6 +103,7 @@ struct quick_tx_dev {
 	u64 numsleeps;
 	u64 num_skb_alloced;
 	u64 num_skb_freed;
+
 };
 
 extern inline int quick_tx_free_skb(struct quick_tx_dev* dev);
