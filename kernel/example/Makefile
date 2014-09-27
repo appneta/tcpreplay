@@ -1,7 +1,12 @@
 TARGET = pcapsend
 LIBS = -lm
 CC = gcc
-CFLAGS = -g -Wall
+PWD?=$(shell pwd)
+M:=$(PWD)
+CFLAGS = -Wall -I$(M)/../include 
+ifneq (,$(QUICK_TX_DEBUG))
+CFLAGS += -g -O0 -DHAVE_QUICK_TX_DEBUG
+endif
 
 .PHONY: default all clean
 

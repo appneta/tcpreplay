@@ -1,11 +1,22 @@
 /*
- * quick_tx_main.c
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2014 Alexey Indeev <aindeev at appneta dot com> - AppNeta
  *
- *  Created on: Aug 15, 2014
- *      Author: aindeev
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or with the authors permission any later version.
+ *
+ *   The Tcpreplay Suite is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <misc/quick_tx.h>
+#include <linux/quick_tx.h>
 
 struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
