@@ -5,7 +5,7 @@
  *      Author: aindeev
  */
 
-#include "quick_tx.h"
+#include <misc/quick_tx.h>
 
 struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
@@ -207,9 +207,10 @@ error:
 
 static void quick_tx_cleanup(void)
 {
+	int i;
+
 	mutex_lock(&init_mutex);
 
-	int i;
 	for (i = 0; i < MAX_QUICK_TX_DEV; i++) {
 		quick_tx_remove_device(&quick_tx_devs[i]);
 	}
