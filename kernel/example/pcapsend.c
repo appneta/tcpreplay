@@ -140,25 +140,6 @@ int main (int argc, char* argv[])
 quick_tx_error:
 	quick_tx_close(qtx);
 
-
-
-	struct timeval tv_end;
-	gettimeofday(&tv_end,NULL);
-	__u64 seconds = tv_end.tv_sec - tv_start.tv_sec;
-	__u64 microseconds = seconds * 1000 * 1000 + (tv_end.tv_usec - tv_start.tv_usec);
-	__u64 bits_per_second = packet_bytes * 8 * 1000 * 1000 / microseconds;
-
-	printf("Took %lu seconds \n", seconds);
-	printf("Took %lu microseconds \n", microseconds);
-	printf("Sent %lu packets, %lu bytes \n", packets_sent, packet_bytes);
-	printf("Speed = %lu bits / second \n", bits_per_second);
-
-	if (bits_per_second > 1024 * 1024)
-		printf("Speed = %lu Mbits / second \n", bits_per_second / (1024 * 1024));
-
-	printf("NUM sleeps = %d \n", numsleeps);
-
-	printf("Freeing buffer! \n");
 	free(buffer);
 	return 0;
 } 

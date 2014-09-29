@@ -45,7 +45,6 @@ void quick_tx_print_stats(struct quick_tx_dev *dev) {
 	qtx_info("\t numsleeps = \t\t\t\t%llu", dev->numsleeps);
 	qtx_info("\t num_skb_freed = \t\t\t%llu", dev->num_skb_freed);
 	qtx_info("\t num_skb_alloced = \t\t\t%llu", dev->num_skb_alloced);
-	qtx_info("\t Size of list = \t\t\t%d", skb_queue_len(&dev->skb_wait_list));
 
 	qtx_info("\t Speed: \t\t\t\t%d Mbps", dev->shared_data->mbps);
 }
@@ -57,8 +56,9 @@ static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long a
 
 	switch(cmd) {
 	case START_TX:
-		dev->shared_data->lookup_flag = 1;
-		wmb();
+		//qtx_error("Recevied START_TX");
+		//dev->shared_data->lookup_flag = 1;
+		rmb();
 		wake_up_all(&dev->consumer_q);
 		break;
 	}
@@ -175,9 +175,9 @@ static int quick_tx_init(void)
 			dev->currently_used = false;
 			qtx_info("Device registered: /dev/%s --> %s", dev->quick_tx_misc.nodename, dev->netdev->name);
 
-			skb_queue_head_init(&dev->queued_list);
-			skb_queue_head_init(&dev->skb_wait_list);
-			skb_queue_head_init(&dev->skb_freed_list);
+			INIT_LIST_HEAD(&dev->skb_queued_list.list);
+			INIT_LIST_HEAD(&dev->skb_wait_list.list);
+			INIT_LIST_HEAD(&dev->skb_freed_list.list);
 			atomic_set(&dev->free_skb_working, 0);
 
 			init_waitqueue_head(&dev->outq);
@@ -191,7 +191,7 @@ static int quick_tx_init(void)
 
 	num_quick_tx_devs = i;
 	qtx_skbuff_head_cache = kmem_cache_create("skbuff_head_cache",
-					      sizeof(struct sk_buff),
+					      sizeof(struct quick_tx_skb),
 					      0,
 					      SLAB_HWCACHE_ALIGN|SLAB_PANIC,
 					      NULL);
