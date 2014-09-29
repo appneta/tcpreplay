@@ -234,6 +234,6 @@ static void quick_tx_cleanup(void)
 module_init(quick_tx_init);
 module_exit(quick_tx_cleanup);
 
-MODULE_AUTHOR("Alexey Indeev, AppNeta Inc.");
+MODULE_AUTHOR("Alexey Indeev, AppNeta");
 MODULE_DESCRIPTION("QuickTX - designed for transmitting raw packets near wire rates");
 MODULE_LICENSE("GPL");

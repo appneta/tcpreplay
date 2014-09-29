@@ -33,8 +33,6 @@
 
 #include <linux/quick_tx.h>
 
-#define DEVICE "eth7"
-
 bool read_pcap_file(char* filename, void** buffer, long *length) {
 	FILE *infile;
 	long length_read;
@@ -67,6 +65,7 @@ int main (int argc, char* argv[])
 {
 	if (argc != 3 && argc != 4) {
 		printf("Usage: ./pcapsend <path-to-pcap> <interface> [loops] \n");
+		exit(-1);
 	}
 
 	void* buffer;

@@ -260,23 +260,23 @@ struct pcap_file_header {
 	__u32 sigfigs;	/* accuracy of timL1 cache bytes userspaceestamps */
 	__u32 snaplen;	/* max length saved portion of each pkt */
 	__u32 linktype;	/* data link type (LINKTYPE_*) */
-} __attribute__((aligned(8)));
+} __attribute__((aligned(packed)));
 
 struct pcap_pkthdr_ts {
 	__le32 hts_sec;
 	__le32 hts_usec;
-}  __attribute__((aligned(8)));
+}  __attribute__((aligned(packed)));
 
 struct pcap_pkthdr {
 	struct  pcap_pkthdr_ts ts;	/* time stamp */
 	__le32 caplen;				/* length of portion present */
 	__le32 length;					/* length this packet (off wire) */
-}  __attribute__((aligned(8)));
+}  __attribute__((aligned(packed)));
 
 
 #ifndef PAGE_ALIGN
-#define __ALIGN(x, a)				__ALIGN_MASK(x, (typeof(x))(a) - 1)
 #define __ALIGN_MASK(x, mask)		(((x) + (mask)) & ~(mask))
+#define __ALIGN(x, a)				__ALIGN_MASK(x, (typeof(x))(a) - 1)
 #define PAGE_ALIGN(x)		 	__ALIGN(x, PAGE_SIZE)
 #endif /* PAGE_ALIGN */
 
@@ -502,7 +502,7 @@ send_retry:
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
-		full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes);
+		full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes); // TODO review
 		full_length = SKB_DATA_ALIGN(entry->length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
