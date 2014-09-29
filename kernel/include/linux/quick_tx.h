@@ -260,18 +260,18 @@ struct pcap_file_header {
 	__u32 sigfigs;	/* accuracy of timL1 cache bytes userspaceestamps */
 	__u32 snaplen;	/* max length saved portion of each pkt */
 	__u32 linktype;	/* data link type (LINKTYPE_*) */
-} __attribute__((aligned(packed)));
+} __attribute__((packed));
 
 struct pcap_pkthdr_ts {
 	__le32 hts_sec;
 	__le32 hts_usec;
-}  __attribute__((aligned(packed)));
+}  __attribute__((packed));
 
 struct pcap_pkthdr {
 	struct  pcap_pkthdr_ts ts;	/* time stamp */
 	__le32 caplen;				/* length of portion present */
 	__le32 length;					/* length this packet (off wire) */
-}  __attribute__((aligned(packed)));
+}  __attribute__((packed));
 
 
 #ifndef PAGE_ALIGN
