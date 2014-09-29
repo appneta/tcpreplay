@@ -1,16 +1,27 @@
 /*
- * quick_tx_user.h
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2014 Alexey Indeev <aindeev at appneta dot com> - AppNeta
  *
- *  Created on: Aug 15, 2014
- *      Author: aindeev
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or with the authors permission any later version.
+ *
+ *   The Tcpreplay Suite is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef QUICK_TX_USER_H_
-#define QUICK_TX_USER_H_
+#ifndef QUICK_TX_H_
+#define QUICK_TX_H_
 
-//#define QUICK_TX_DEBUG
+#define DMA_COHERENT 1
 
-#ifndef QUICK_TX_KERNEL_MODULE
+#ifndef __KERNEL__
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -60,10 +71,121 @@ typedef struct {
 } atomic_t;
 
 #define atomic_read(v) ((v)->counter)
+#endif /* ! __KERNEL */
 
-#define DMA_COHERENT 1
+#ifdef __KERNEL__
+/*
+ * The definition __KERNEL__ is for differentiating between
+ * the user elements in the shared header file and the kernel elements.
+ */
+#include <linux/errno.h>
+#include <linux/kernel.h>
+#include <linux/netdevice.h>
+#include <linux/if.h>
+#include <linux/ip.h>
+#include <linux/sched.h>
+#include <linux/time.h>
+#include <linux/poll.h>
+#include <linux/ioctl.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/skbuff.h>
+#include <linux/miscdevice.h>
+#include <linux/netpoll.h>
+#include <linux/aio.h>
+#include <asm/cacheflush.h>
+#include "kcompat.h"
 
-#endif /* QUICK_TX_KERNEL_MODULE */
+
+extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
+
+
+
+//#define QUICK_TX_KERNEL_MODULE
+//#include "user/quick_tx_user.h"
+
+#define qtx_error(fmt, ...) \
+	printk(KERN_ERR pr_fmt("[quick_tx] ERROR: "fmt"\n"), ##__VA_ARGS__)
+
+#define qtx_info(fmt, ...) \
+	printk(KERN_INFO pr_fmt("[quick_tx] INFO:  "fmt"\n"), ##__VA_ARGS__)
+
+#define MAX_NAPI_PER_DEV				32
+#define MAX_QUICK_TX_DEV 				32
+#define MIN_PACKET_SIZE 				20
+#define GOODCOPY_LEN 					128
+
+#define DEVICENAME 						"quick_tx"
+#define QUICK_TX_WORKQUEUE 				"quick_tx_workqueue"
+
+#define NETDEV_TQ_FROZEN_OR_STOPPED 	NETDEV_TX_LOCKED + 0x10
+#define NETDEV_NOT_RUNNING				NETDEV_TX_LOCKED + 0x20
+
+#define TX_NUM_ATTEMPTS 				200
+#define MAX_SKB_LIST_SIZE				10000
+
+struct quick_tx_dev {
+	struct miscdevice quick_tx_misc;
+
+	struct net_device *netdev;
+	struct device* device;
+	u64 dropped;
+	u64 sent_packets;
+	u64 sent_bytes;
+
+	void *data;
+	struct quick_tx_shared_data *shared_data;
+	struct work_struct tx_work;
+	struct workqueue_struct* tx_workqueue;
+
+	bool registered;
+	bool currently_used;
+	bool quit_work;
+
+	struct sk_buff_head queued_list;
+
+	atomic_t free_skb_working;
+	struct work_struct free_skb_work;
+	struct workqueue_struct* free_skb_workqueue;
+	struct sk_buff_head skb_wait_list;
+	struct sk_buff_head skb_freed_list;
+
+	/* Poll wait_queue for writing to device
+	 * dma_outq - indicates when the SKBs are freed
+	 * lookup_outq - indicates when an entry in the lookup table is freed */
+	wait_queue_head_t consumer_q;
+	wait_queue_head_t outq;
+	struct mutex mtx;
+
+	/* Device driver napi function */
+	int	(*driver_poll)(struct napi_struct *, int);
+
+	/* Statistics */
+	u64 num_tq_frozen_or_stopped;
+	u64 num_tx_locked;
+	u64 num_tx_busy;
+	u64 num_failed_attempts;
+
+	u64 num_tx_ok_packets;
+	u64 num_tx_ok_bytes;
+
+	u64 numsleeps;
+	u64 num_skb_alloced;
+	u64 num_skb_freed;
+
+	ktime_t time_start_tx;
+	ktime_t time_end_tx;
+
+};
+
+extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
+extern void quick_tx_print_stats(struct quick_tx_dev *dev);
+extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
+extern void quick_tx_reset_napi(struct quick_tx_dev *dev);
+extern void quick_tx_setup_napi(struct quick_tx_dev *dev);
+extern int quick_tx_mmap(struct file * file, struct vm_area_struct * vma);
+extern void quick_tx_worker(struct work_struct *work);
+#endif /* __KERNEL__ */
 
 #define PRIN_MAGIC 'Q'
 #define START_TX _IO(PRIN_MAGIC, 0)
@@ -138,23 +260,23 @@ struct pcap_file_header {
 	__u32 sigfigs;	/* accuracy of timL1 cache bytes userspaceestamps */
 	__u32 snaplen;	/* max length saved portion of each pkt */
 	__u32 linktype;	/* data link type (LINKTYPE_*) */
-} __attribute__((aligned(8)));
+} __attribute__((aligned(packed)));
 
 struct pcap_pkthdr_ts {
 	__le32 hts_sec;
 	__le32 hts_usec;
-}  __attribute__((aligned(8)));
+}  __attribute__((aligned(packed)));
 
 struct pcap_pkthdr {
 	struct  pcap_pkthdr_ts ts;	/* time stamp */
 	__le32 caplen;				/* length of portion present */
 	__le32 length;					/* length this packet (off wire) */
-}  __attribute__((aligned(8)));
+}  __attribute__((aligned(packed)));
 
 
 #ifndef PAGE_ALIGN
-#define __ALIGN(x, a)				__ALIGN_MASK(x, (typeof(x))(a) - 1)
 #define __ALIGN_MASK(x, mask)		(((x) + (mask)) & ~(mask))
+#define __ALIGN(x, a)				__ALIGN_MASK(x, (typeof(x))(a) - 1)
 #define PAGE_ALIGN(x)		 	__ALIGN(x, PAGE_SIZE)
 #endif /* PAGE_ALIGN */
 
@@ -168,8 +290,7 @@ struct pcap_pkthdr {
 #define POLL_FIRST		POLLOUT
 #define POLL_LOOKUP		POLLIN
 
-#ifndef QUICK_TX_KERNEL_MODULE
-
+#ifndef __KERNEL__
 struct quick_tx {
 	int fd;
 	int map_length;
@@ -381,7 +502,7 @@ send_retry:
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
-		full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes);
+		full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes); // TODO review
 		full_length = SKB_DATA_ALIGN(entry->length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
@@ -468,7 +589,6 @@ void quick_tx_close(struct quick_tx* dev) {
 		printf("[quick_tx] cannot close a NULL quick_tx \n");
 	}
 }
+#endif /* ! __KERNEL__ */
 
-#endif /* !QUICK_TX_KERNEL_MODULE */
-
-#endif /* QUICK_TX_USER_H_ */
+#endif /* QUICK_TX_H_ */

@@ -1,3 +1,21 @@
+/*
+ *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2014 Alexey Indeev <aindeev at appneta dot com> - AppNeta
+ *
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or with the authors permission any later version.
+ *
+ *   The Tcpreplay Suite is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <fcntl.h> 
 #include <stdlib.h> 
 #include <sys/stat.h> 
@@ -13,9 +31,7 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 
-#include "../quick_tx_user.h"
-
-#define DEVICE "eth7"
+#include <linux/quick_tx.h>
 
 bool read_pcap_file(char* filename, void** buffer, long *length) {
 	FILE *infile;
@@ -49,6 +65,7 @@ int main (int argc, char* argv[])
 {
 	if (argc != 3 && argc != 4) {
 		printf("Usage: ./pcapsend <path-to-pcap> <interface> [loops] \n");
+		exit(-1);
 	}
 
 	void* buffer;

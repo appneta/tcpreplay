@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>quick_tx_examples</name>
+	<name>quick_tx_example</name>
 	<comment></comment>
 	<projects>
-		<project>quick_tx</project>
+		<project>tcpreplay</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
