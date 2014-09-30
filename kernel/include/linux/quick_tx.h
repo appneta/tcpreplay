@@ -309,6 +309,7 @@ struct quick_tx {
 	int fd;
 	int map_length;
 	struct quick_tx_shared_data* data;
+	bool stop_mapping;
 };
 
 /*
@@ -327,6 +328,7 @@ bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
 			return true;
 		} else {
 			printf("MAP_FAILED for index %d\n", dev->data->num_dma_blocks);
+			dev->stop_mapping = true;
 		}
 	}
 	return false;
@@ -426,6 +428,7 @@ struct quick_tx* quick_tx_open(char* name) {
 	dev->map_length = map_length;
 	dev->fd = fd;
 	dev->data = data;
+	dev->stop_mapping = false;
 
 	if (!quick_tx_mmap_dma_block(dev)) {
 		perror("[quick_tx] error while mapping DMA block");
@@ -445,23 +448,29 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 		*dma_block_index = data->dma_producer_index;
 		data->dma_producer_offset = PAGE_ALIGN(data->dma_producer_offset + length);
 	} else {
+		__u32 new_dma_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
 		rmb();
+		new_dma_producer_index = (data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE;
 		struct quick_tx_dma_block_entry* next_dma_block =
-				&data->dma_blocks[(data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE];
+				&data->dma_blocks[new_dma_producer_index];
+
 		if (next_dma_block->length == 0) {
-			/* If this block has not yet been created, then map it */
-			if (!quick_tx_mmap_dma_block(dev)) {
-				printf("Cannot make another block! \n");
-				return false;
-			} else {
-				printf("Block allocated! \n");
+			if (!dev->stop_mapping) {
+				/* If this block has not yet been created, then map it */
+				if (!quick_tx_mmap_dma_block(dev)) {
+					dev->stop_mapping = true;
+				}
 			}
-		} else if (atomic_read(&next_dma_block->users) != 0) {
+			if (dev->stop_mapping) {
+				/* Cannot not map any more blocks so go back to zero */
+				new_dma_producer_index = 0;
+				next_dma_block = &data->dma_blocks[new_dma_producer_index];
+			}
+		}
+
+		if (atomic_read(&next_dma_block->users) != 0) {
 			/* If the block has not yet been freed then all we can do is return with error */
-			//printf("atomic_read(&next_dma_block->users) = %d \n", atomic_read(&next_dma_block->users));
-			//usleep(100000);
-			//printf("Waiting for index = %d \n", (data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE);
 			return false;
 		}
 
@@ -472,7 +481,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 		}
 
 		/* Increment the offset counters and dma block index */
-		data->dma_producer_index = (data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE;
+		data->dma_producer_index = new_dma_producer_index;
 		data->dma_producer_offset = PAGE_ALIGN(length);
 
 		/* Set return values, 0 since we are starting at the beginning of the block*/

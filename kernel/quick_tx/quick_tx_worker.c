@@ -77,7 +77,7 @@ static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device
 	 */
 	rcu_read_lock_bh();
 
-	if (dev->flags & IFF_UP) {
+	if (likely(dev->flags & IFF_UP)) {
 		HARD_TX_LOCK(dev, txq, smp_processor_id());
 
 		if (!netif_xmit_stopped(txq)) {
@@ -147,7 +147,7 @@ send_next:
 	do {
 		status = quick_tx_send_one_skb(next_qtx_skb, txq, dev, &done_inc, 128, all);
 
-		if (status == NETDEV_TX_OK) {
+		if (likely(status == NETDEV_TX_OK)) {
 			list_del_init(&next_qtx_skb->list);
 			list_add_tail(&next_qtx_skb->list, &dev->skb_wait_list.list);
 			next_qtx_skb = NULL;
@@ -173,13 +173,13 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	struct quick_tx_skb *qtx_skb;
 	struct sk_buff *skb;
 
-	if (!list_empty(&dev->skb_freed_list.list)) {
-		qtx_skb = list_entry(dev->skb_freed_list.list.next, struct quick_tx_skb, list);
-		list_del_init(&qtx_skb->list);
-	} else {
+	if (unlikely(list_empty(&dev->skb_freed_list.list))) {
 		dev->num_skb_alloced++;
 		qtx_skb = kmem_cache_alloc_node(qtx_skbuff_head_cache, gfp_mask & ~__GFP_DMA, node);
 		INIT_LIST_HEAD(&qtx_skb->list);
+	} else {
+		qtx_skb = list_first_entry(&dev->skb_freed_list.list, struct quick_tx_skb, list);
+		list_del_init(&qtx_skb->list);
 	}
 
 	if (!qtx_skb)
@@ -217,7 +217,7 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	return qtx_skb;
 }
 
-void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq)
+static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq)
 {
 	/* flush all remaining SKB's in the list before exiting */
 	quick_tx_do_transmit(NULL, txq, dev, 0, true);
@@ -312,7 +312,7 @@ void quick_tx_worker(struct work_struct *work)
 			data->lookup_consumer_index = (data->lookup_consumer_index + 1) % LOOKUP_TABLE_SIZE;
 			entry = data->lookup_table + data->lookup_consumer_index;
 		} else {
-			if (dev->quit_work) {
+			if (unlikely(dev->quit_work)) {
 				quick_tx_finish_work(dev, txq);
 				break;
 			}
@@ -326,10 +326,9 @@ void quick_tx_worker(struct work_struct *work)
 			wmb();
 
 			/* Free some DMA blocks before going to sleep */
-			quick_tx_free_skb(dev, false);
-
 			if(!list_empty(&dev->skb_queued_list.list))
 				quick_tx_do_transmit(NULL, txq, dev, 1, false);
+			quick_tx_free_skb(dev, false);
 
 			wait_event(dev->consumer_q, dev->shared_data->lookup_flag == 1);
 		}
