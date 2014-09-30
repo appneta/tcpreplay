@@ -533,8 +533,6 @@ send_retry:
 		if (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
 			/* need to wake up kernel to process older skb's */
 			__wake_up_module(dev);
-			//usleep(1);
-			//usleep(1);
 			num_dma_fail++;
 			goto send_retry;
 		}

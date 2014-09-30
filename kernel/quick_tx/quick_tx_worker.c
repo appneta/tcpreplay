@@ -34,13 +34,11 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 {
 	struct quick_tx_skb *qtx_skb;
 	int freed = 0;
-	atomic_t users;
 
 	if (!list_empty(&dev->skb_wait_list.list)) {
 		qtx_skb = list_first_entry(&dev->skb_wait_list.list, struct quick_tx_skb, list);
 		while (qtx_skb != &dev->skb_wait_list) {
-			atomic_set(&users, atomic_read(&qtx_skb->skb.users));
-			if (atomic_read(&users) == 1) {
+			if (atomic_read(&qtx_skb->skb.users) == 1) {
 				u32 *dma_block_index = (u32*)(qtx_skb->skb.cb + (sizeof(qtx_skb->skb.cb) - sizeof(u32)));
 				atomic_dec(&dev->shared_data->dma_blocks[*dma_block_index].users);
 				wmb();
@@ -56,10 +54,6 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 
 				qtx_skb = list_first_entry(&dev->skb_wait_list.list, struct quick_tx_skb, list);
 			} else {
-//				if (atomic_read(&users) < SKB_USERS_BASE)
-//					if (net_ratelimit()) {
-//						qtx_error("Strange users value = %d", atomic_read(&users));
-//					};
 				break;
 			}
 		}
@@ -74,10 +68,8 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 	return freed;
 }
 
-static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct netdev_queue *txq)
+static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq)
 {
-	struct net_device *dev = skb->dev;
-	struct Qdisc *q;
 	int status = -ENETDOWN;
 
 	/* Disable soft irqs for various locks below. Also
@@ -90,19 +82,10 @@ static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct netdev_que
 
 		if (!netif_xmit_stopped(txq)) {
 			status = dev->netdev_ops->ndo_start_xmit(skb, dev);
-			//if (status == NETDEV_TX_OK) {
-			//	HARD_TX_UNLOCK(dev, txq);
-			//	goto out;
-			//}
 		}
 		HARD_TX_UNLOCK(dev, txq);
 	}
 
-	//rcu_read_unlock_bh();
-
-	//atomic_dec(&skb->users);
-	//return status;
-out:
 	rcu_read_unlock_bh();
 	return status;
 }
@@ -112,29 +95,32 @@ static inline int quick_tx_send_one_skb(struct quick_tx_skb *qtx_skb,
 		struct netdev_queue *txq, struct quick_tx_dev *dev, int *done, int budget, bool all)
 {
 	netdev_tx_t status = NETDEV_TX_BUSY;
+	struct net_device *netdev = qtx_skb->skb.dev;
 
-	do {
-		(*done)++;
-		atomic_set(&qtx_skb->skb.users, 2);
-		status = quick_tx_dev_queue_xmit(&qtx_skb->skb, txq);
+	atomic_set(&qtx_skb->skb.users, 2);
 
-		switch(status) {
-		case NETDEV_TX_OK:
-			dev->num_tx_ok_packets++;
-			dev->num_tx_ok_bytes += qtx_skb->skb.len;
-			return status;
-		case NETDEV_TX_BUSY:
-			dev->num_tx_busy++;
-			break;
-		case NETDEV_TX_LOCKED:
-			dev->num_tx_locked++;
-			break;
-		default:
-			dev->num_tq_frozen_or_stopped++;
-		}
-	} while (*done < budget || all);
+retry_send:
+	status = quick_tx_dev_queue_xmit(&qtx_skb->skb, netdev, txq);
+	(*done)++;
 
-	//return NETDEV_TX_OK;
+	switch(status) {
+	case NETDEV_TX_OK:
+		dev->num_tx_ok_packets++;
+		dev->num_tx_ok_bytes += qtx_skb->skb.len;
+		return status;
+	case NETDEV_TX_BUSY:
+		dev->num_tx_busy++;
+		break;
+	case NETDEV_TX_LOCKED:
+		dev->num_tx_locked++;
+		break;
+	default:
+		dev->num_tq_frozen_or_stopped++;
+	}
+
+	if (*done < budget || all)
+		goto retry_send;
+
 	return status;
 }
 
@@ -145,7 +131,9 @@ static inline int quick_tx_do_transmit(struct quick_tx_skb *qtx_skb, struct netd
 	int done = 0;
 	int done_inc = 0;
 
-	if (qtx_skb)
+	if (list_empty(&dev->skb_queued_list.list))
+		next_qtx_skb = qtx_skb;
+	else if (qtx_skb)
 		list_add_tail(&qtx_skb->list, &dev->skb_queued_list.list);
 
 send_next:
@@ -170,8 +158,11 @@ send_next:
 		done += done_inc;
 	} while (done < budget || all);
 
+	if (list_empty(&dev->skb_queued_list.list))
+		list_add_tail(&qtx_skb->list, &dev->skb_queued_list.list);
+
 out:
-	RUN_AT_INVERVAL(quick_tx_free_skb(dev, false), 100, dummy);
+	RUN_AT_INVERVAL(quick_tx_free_skb(dev, false), 100, quick_tx_free_skb_dummy);
 	return status;
 }
 
@@ -223,7 +214,6 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 
 	skb_reset_mac_header(skb);
 
-out:
 	return qtx_skb;
 }
 
@@ -337,7 +327,9 @@ void quick_tx_worker(struct work_struct *work)
 
 			/* Free some DMA blocks before going to sleep */
 			quick_tx_free_skb(dev, false);
-			quick_tx_do_transmit(NULL, txq, dev, 256, false);
+
+			if(!list_empty(&dev->skb_queued_list.list))
+				quick_tx_do_transmit(NULL, txq, dev, 1, false);
 
 			wait_event(dev->consumer_q, dev->shared_data->lookup_flag == 1);
 		}
