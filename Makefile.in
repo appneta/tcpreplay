@@ -43,7 +43,7 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	config/mkinstalldirs
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/libopts/m4/libopts.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -142,6 +142,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+KERNEL_DIR = @KERNEL_DIR@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LDNETINC = @LDNETINC@
@@ -198,6 +199,7 @@ abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
+ac_pkss_mktemp = @ac_pkss_mktemp@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -225,6 +227,8 @@ htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
+kerneldir = @kerneldir@
+kernelext = @kernelext@
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
@@ -258,17 +262,19 @@ top_srcdir = @top_srcdir@
 # $Id$
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4 -I libopts/m4
-@NEED_LIBOPTS_FALSE@SUBDIRS = scripts lib src
-@NEED_LIBOPTS_TRUE@SUBDIRS = scripts lib $(LIBOPTS_DIR) src
-DIST_SUBDIRS = scripts lib libopts src docs test
+@NEED_LIBOPTS_FALSE@SUBDIRS = $(KERNEL_DIR) scripts lib src
+@NEED_LIBOPTS_TRUE@SUBDIRS = $(KERNEL_DIR) scripts lib $(LIBOPTS_DIR) src
+DIST_SUBDIRS = scripts lib libopts src docs test kernel
 DOCS_DIR = $(top_builddir)/docs
 TEST_DIR = $(top_builddir)/test
+LINUX_MODULE_DIR = $(top_builddir)/kernel
+LINUX_MODULE_EXAMPLE_DIR = $(top_builddir)/kernel/linux/example
 MOSTLYCLEANFILES = tcpreplay.spec *~
 DISTCLEANFILES = .tm_project.cache stamp-h1 *.tar.*
 MAINTAINERCLEANFILES = Makefile.in configure *.bak
 EXTRA_DIST = doxygen.cfg.in autogen.sh \
 	m4/libtool.m4 m4/ltoptions.m4 m4/ltsugar.m4 \
-	m4/ltversion.m4 m4/lt~obsolete.m4
+	m4/ltversion.m4 m4/lt~obsolete.m4 acinclude.m4
 
 all: all-recursive
 
@@ -794,6 +800,13 @@ doxygen: version
 
 ncc:
 	CC=ncc make
+
+kernel:
+	echo Making Linux quick_tx module in $(LINUX_MODULE_DIR)
+	cd $(LINUX_MODULE_DIR) && make
+kernel_example:
+	echo Making Linux quick_tx sample program in $(LINUX_MODULE_EXAMPLE_DIR)
+	cd $(LINUX_MODULE_EXAMPLE_DIR) && make all
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

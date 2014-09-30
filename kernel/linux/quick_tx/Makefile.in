@@ -15,6 +15,8 @@
 
 @SET_MAKE@
 
+# kernel/linux/quick_tx/Makefile.am
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -35,8 +37,10 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-subdir = libopts
-DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+EXTRA_PROGRAMS = automake_dummy$(EXEEXT)
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.common \
+	$(srcdir)/Makefile.in
+subdir = kernel/linux/quick_tx
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/libopts/m4/libopts.m4 \
 	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.ac
@@ -46,6 +50,25 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/src/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+am_automake_dummy_OBJECTS = quick_tx_main.$(OBJEXT) \
+	quick_tx_mmap.$(OBJEXT) quick_tx_worker.$(OBJEXT)
+automake_dummy_OBJECTS = $(am_automake_dummy_OBJECTS)
+automake_dummy_LDADD = $(LDADD)
+DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
+depcomp = $(SHELL) $(top_srcdir)/config/depcomp
+am__depfiles_maybe = depfiles
+am__mv = mv -f
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+SOURCES = $(automake_dummy_SOURCES)
+DIST_SOURCES = $(automake_dummy_SOURCES)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -67,31 +90,8 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(libdir)"
-LTLIBRARIES = $(lib_LTLIBRARIES) $(noinst_LTLIBRARIES)
-libopts_la_LIBADD =
-am_libopts_la_OBJECTS = libopts_la-libopts.lo
-libopts_la_OBJECTS = $(am_libopts_la_OBJECTS)
-libopts_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(libopts_la_LDFLAGS) $(LDFLAGS) -o $@
-@INSTALL_LIBOPTS_FALSE@am_libopts_la_rpath =
-@INSTALL_LIBOPTS_TRUE@am_libopts_la_rpath = -rpath $(libdir)
-DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
-depcomp = $(SHELL) $(top_srcdir)/config/depcomp
-am__depfiles_maybe = depfiles
-am__mv = mv -f
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
-SOURCES = $(libopts_la_SOURCES)
-DIST_SOURCES = $(libopts_la_SOURCES)
+am__installdirs = "$(DESTDIR)$(moduledir)"
+DATA = $(module_DATA)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -249,38 +249,28 @@ timestamp_trace_flag = @timestamp_trace_flag@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-MAINTAINERCLEANFILES = Makefile.in
-@INSTALL_LIBOPTS_TRUE@lib_LTLIBRARIES = libopts.la
-@INSTALL_LIBOPTS_FALSE@noinst_LTLIBRARIES = libopts.la
-libopts_la_SOURCES = libopts.c
-libopts_la_CPPFLAGS = -I$(top_srcdir)
-libopts_la_LDFLAGS = -version-info  36:5:11
-EXTRA_DIST = \
-    COPYING.gplv3           COPYING.lgplv3          COPYING.mbsd  \
-    MakeDefs.inc            README                  ag-char-map.h  \
-    alias.c                 ao-strs.c               ao-strs.h  \
-    autoopts/options.h      autoopts/project.h      autoopts/usage-txt.h  \
-    autoopts.c              autoopts.h              boolean.c  \
-    check.c                 compat/compat.h         compat/pathfind.c  \
-    compat/snprintf.c       compat/strchr.c         compat/strdup.c  \
-    compat/windows-config.h configfile.c            cook.c  \
-    enum.c                  env.c                   file.c  \
-    find.c                  genshell.c              genshell.h  \
-    load.c                  m4/libopts.m4           m4/liboptschk.m4  \
-    makeshell.c             nested.c                numeric.c  \
-    parse-duration.c        parse-duration.h        pgusage.c  \
-    proto.h                 putshell.c              reset.c  \
-    restore.c               save.c                  sort.c  \
-    stack.c                 streqvcmp.c             text_mmap.c  \
-    time.c                  tokenize.c              usage.c  \
-    value-type.c            value-type.h            version.c  \
-    xat-attribute.c         xat-attribute.h
+automake_dummy_SOURCES = quick_tx_main.c \
+						quick_tx_mmap.c \
+						quick_tx_worker.c
 
+module_DATA = quick_tx.o 
+module_OBJECTS = quick_tx_main.o \
+				quick_tx_mmap.o \
+				quick_tx_worker.o
+
+
+# Makefile.common
+moduledir = @moduledir@
+KERNEL_LOCATION = @kerneldir@
+KBUILD_VERBOSE = 0
+MOD_DEVDIR = $(PWD)
+MOSTLYCLEANFILES = $(module_DATA) .$(module_DATA).flags $(module_DATA:.o=.mod.c) $(module_DATA:.o=.@kernelext@) *~
+MAINTAINERCLEANFILES = Makefile.in
 all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/Makefile.common $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -289,9 +279,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu libopts/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu kernel/linux/quick_tx/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu libopts/Makefile
+	  $(AUTOMAKE) --gnu kernel/linux/quick_tx/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -310,48 +300,9 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-libLTLIBRARIES: $(lib_LTLIBRARIES)
-	@$(NORMAL_INSTALL)
-	test -z "$(libdir)" || $(MKDIR_P) "$(DESTDIR)$(libdir)"
-	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
-	list2=; for p in $$list; do \
-	  if test -f $$p; then \
-	    list2="$$list2 $$p"; \
-	  else :; fi; \
-	done; \
-	test -z "$$list2" || { \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
-	}
-
-uninstall-libLTLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
-	for p in $$list; do \
-	  $(am__strip_dir) \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
-	done
-
-clean-libLTLIBRARIES:
-	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
-	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
-	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
-	  test "$$dir" != "$$p" || dir=.; \
-	  echo "rm -f \"$${dir}/so_locations\""; \
-	  rm -f "$${dir}/so_locations"; \
-	done
-
-clean-noinstLTLIBRARIES:
-	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
-	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do \
-	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
-	  test "$$dir" != "$$p" || dir=.; \
-	  echo "rm -f \"$${dir}/so_locations\""; \
-	  rm -f "$${dir}/so_locations"; \
-	done
-libopts.la: $(libopts_la_OBJECTS) $(libopts_la_DEPENDENCIES) 
-	$(libopts_la_LINK) $(am_libopts_la_rpath) $(libopts_la_OBJECTS) $(libopts_la_LIBADD) $(LIBS)
+automake_dummy$(EXEEXT): $(automake_dummy_OBJECTS) $(automake_dummy_DEPENDENCIES) 
+	@rm -f automake_dummy$(EXEEXT)
+	$(LINK) $(automake_dummy_OBJECTS) $(automake_dummy_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -359,7 +310,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libopts_la-libopts.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/quick_tx_main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/quick_tx_mmap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/quick_tx_worker.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -382,18 +335,31 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-libopts_la-libopts.lo: libopts.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libopts_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libopts_la-libopts.lo -MD -MP -MF $(DEPDIR)/libopts_la-libopts.Tpo -c -o libopts_la-libopts.lo `test -f 'libopts.c' || echo '$(srcdir)/'`libopts.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libopts_la-libopts.Tpo $(DEPDIR)/libopts_la-libopts.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libopts.c' object='libopts_la-libopts.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libopts_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libopts_la-libopts.lo `test -f 'libopts.c' || echo '$(srcdir)/'`libopts.c
-
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-moduleDATA: $(module_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(moduledir)" || $(MKDIR_P) "$(DESTDIR)$(moduledir)"
+	@list='$(module_DATA)'; test -n "$(moduledir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(moduledir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(moduledir)" || exit $$?; \
+	done
+
+uninstall-moduleDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(module_DATA)'; test -n "$(moduledir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(moduledir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(moduledir)" && rm -f $$files
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -479,9 +445,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)"; do \
+	for dir in "$(DESTDIR)$(moduledir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -499,6 +465,7 @@ install-strip:
 	  `test -z '$(STRIP)' || \
 	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
 mostlyclean-generic:
+	-test -z "$(MOSTLYCLEANFILES)" || rm -f $(MOSTLYCLEANFILES)
 
 clean-generic:
 
@@ -512,8 +479,7 @@ maintainer-clean-generic:
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
-clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
-	clean-noinstLTLIBRARIES mostlyclean-am
+clean-am: clean-generic clean-libtool mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -533,13 +499,13 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-moduleDATA
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-libLTLIBRARIES
+install-exec-am:
 
 install-html: install-html-am
 
@@ -579,24 +545,36 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-libLTLIBRARIES
+uninstall-am: uninstall-moduleDATA
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libLTLIBRARIES clean-libtool clean-noinstLTLIBRARIES \
-	ctags distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-libLTLIBRARIES install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-libLTLIBRARIES
+	clean-libtool ctags distclean distclean-compile \
+	distclean-generic distclean-libtool distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-moduleDATA \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags uninstall uninstall-am \
+	uninstall-moduleDATA
 
+
+export module_DATA
+export module_OBJECTS
+
+$(module_DATA): $(automake_dummy_SOURCES) 
+	mv Makefile Makefile.automake 
+	cp $(srcdir)/Makefile.kernel $(srcdir)/Makefile 
+	CPPFLAGS="" CFLAGS="" LDFLAGS="" \
+	$(MAKE) -C $(KERNEL_LOCATION) \
+        CC="gcc" M=$(PWD) modules\
+		KBUILD_VERBOSE=$(KBUILD_VERBOSE) 
+	mv Makefile.automake Makefile 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

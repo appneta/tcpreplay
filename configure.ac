@@ -1,9 +1,9 @@
 
 dnl $Id$
 
-AC_INIT(tcpreplay)
-AC_CONFIG_SRCDIR(src/tcpreplay.c)
-AM_CONFIG_HEADER(src/config.h)
+AC_INIT([tcpreplay], [4.0.6])
+AC_CONFIG_SRCDIR([src/tcpreplay.c])
+AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=4
 MINOR_VERSION=0
-MICRO_VERSION=5
+MICRO_VERSION=6beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -51,7 +51,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
+AM_INIT_AUTOMAKE
 
 dnl Checks for programs.
 AC_PROG_INSTALL
@@ -111,7 +111,20 @@ AC_HEADER_STDC
 AC_HEADER_MAJOR
 
 dnl Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_INLINE
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT64_T
+AC_TYPE_INT8_T
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
 AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+AC_TYPE_UINT8_T
 AC_HEADER_TIME
 AC_C_CONST
 AC_C_INLINE
@@ -195,13 +208,17 @@ AC_CHECK_LIB(rt, nanosleep)
 AC_CHECK_LIB(resolv, resolv)
 
 dnl Checks for library functions.
+AC_FUNC_FORK
+AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
+AC_FUNC_MKTIME
+AC_FUNC_MMAP
+AC_FUNC_REALLOC
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
-
-AC_CHECK_FUNCS([gettimeofday ctime memset regcomp strdup strchr strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf strsignal])
+AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday inet_ntoa memmove memset munmap pow putenv realpath regcomp select socket strcasecmp strchr strcspn strdup strerror strpbrk strrchr strspn strstr strtol strtoul strtoull])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
@@ -1082,6 +1099,17 @@ if test $have_bpf = yes ; then
 fi
 
 dnl ##################################################
+dnl # Check for Linux kernel support 
+dnl ##################################################
+AC_PATH_KERNEL_SOURCE
+
+KERNEL_DIR=
+if test x${no_kernel} != xyes; then
+    KERNEL_DIR='kernel'    
+fi
+AC_SUBST(KERNEL_DIR)
+
+dnl ##################################################
 dnl # Check for libdnet, but only if not Cygwin! 
 dnl ##################################################
 founddnet=no
@@ -1413,18 +1441,21 @@ case $host in
     *-*-linux*)
     nic1=eth0
     nic2=eth0
+    AC_DEFINE([HAVE_LINUX], [1], [Building Linux])
     AC_MSG_RESULT(Linux)
     ;;
 
     *-*-solaris*)
     nic1=hme0
     nic2=hme0
+    AC_DEFINE([HAVE_SOLARIS], [1], [Building Solaris])
     AC_MSG_RESULT(Solaris)
     ;;
 
     *-*-sunos*)
     nic1=hme0
     nic2=hme0
+    AC_DEFINE([HAVE_SUNOS], [1], [Building SunOS])
     AC_MSG_RESULT(SunOS)
     ;;
 
@@ -1442,6 +1473,7 @@ case $host in
     *-*-openbsd*)
     nic1=xl0
     nic2=xl0
+    AC_DEFINE([HAVE_OPENBSD], [1], [Building Open BSD])
     AC_MSG_RESULT(OpenBSD)
     ;;
 
@@ -1449,6 +1481,7 @@ case $host in
     AC_MSG_RESULT(Win32/Cygwin)
     nic1=%0
     nic2=%0
+    AC_DEFINE([HAVE_CYGWIN], [1], [Building Cygwin])
     ;;
 
     *)
@@ -1495,11 +1528,14 @@ esac
 
 LIBOPTS_CHECK(libopts)
 
-
-AC_OUTPUT([Makefile
+AC_CONFIG_FILES([Makefile
            doxygen.cfg
            lib/Makefile
            docs/Makefile
+           kernel/Makefile
+           kernel/linux/Makefile
+           kernel/linux/example/Makefile
+           kernel/linux/quick_tx/Makefile
            src/Makefile
            src/common/Makefile
            src/tcpedit/Makefile
@@ -1508,6 +1544,7 @@ AC_OUTPUT([Makefile
            test/Makefile
            test/config
            scripts/Makefile])
+AC_OUTPUT
 
 # Configuration results
 AC_MSG_RESULT(
@@ -1523,6 +1560,7 @@ tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
 tcpliveplay support:        ${enable_tcpliveplay}
+Linux kernel directory:     ${kerneldir}
 
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}
@@ -1547,7 +1585,7 @@ Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
 
     *-*-cygwin)
         AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental. 
-Please report any bugs! http://tcpreplay.synfin.net/trac/newticket])
+Please report any bugs! https://github.com/appneta/tcpreplay/issues])
     ;;
 esac
 
