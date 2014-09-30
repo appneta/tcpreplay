@@ -59,12 +59,15 @@ typedef enum { false, true } bool;
 #endif /* SKB_DATA_ALIGN */
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
-#define wmb() __asm__ volatile ("sfence")
+#define mb() 	__asm__ volatile("mfence":::"memory")
+#define rmb()	__asm__ volatile("lfence":::"memory")
+#define wmb()	__asm__ volatile("sfence" ::: "memory")
 #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC__)
 #define wmb() __asm__ volatile ("lwsync")
 #endif
 
-static int numsleeps = 0;
+static int num_lookup_sleeps = 0;
+static int num_dma_fail = 0;
 
 typedef struct {
 	int counter;
@@ -121,8 +124,10 @@ extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 #define NETDEV_TQ_FROZEN_OR_STOPPED 	NETDEV_TX_LOCKED + 0x10
 #define NETDEV_NOT_RUNNING				NETDEV_TX_LOCKED + 0x20
 
-#define TX_NUM_ATTEMPTS 				200
-#define MAX_SKB_LIST_SIZE				10000
+struct quick_tx_skb {
+	struct list_head list;
+	struct sk_buff skb;
+};
 
 struct quick_tx_dev {
 	struct miscdevice quick_tx_misc;
@@ -142,13 +147,13 @@ struct quick_tx_dev {
 	bool currently_used;
 	bool quit_work;
 
-	struct sk_buff_head queued_list;
-
 	atomic_t free_skb_working;
 	struct work_struct free_skb_work;
 	struct workqueue_struct* free_skb_workqueue;
-	struct sk_buff_head skb_wait_list;
-	struct sk_buff_head skb_freed_list;
+
+	struct quick_tx_skb skb_queued_list;
+	struct quick_tx_skb skb_wait_list;
+	struct quick_tx_skb skb_freed_list;
 
 	/* Poll wait_queue for writing to device
 	 * dma_outq - indicates when the SKBs are freed
@@ -173,6 +178,10 @@ struct quick_tx_dev {
 	u64 num_skb_alloced;
 	u64 num_skb_freed;
 
+	u64 num_queued_list;
+	u64 num_wait_list;
+	u64 num_freed_list;
+
 	ktime_t time_start_tx;
 	ktime_t time_end_tx;
 
@@ -194,7 +203,7 @@ extern void quick_tx_worker(struct work_struct *work);
 	do { 								\
 		static int interval_name = 1;	\
 		if(interval_name % num == 0) { 	\
-			code 						\
+			code; 						\
 			interval_name = 1;			\
 		}								\
 		interval_name++;				\
@@ -202,7 +211,7 @@ extern void quick_tx_worker(struct work_struct *work);
 	while(0)
 
 #define LOOKUP_TABLE_SIZE			(1 << 17)
-#define DMA_BLOCK_TABLE_SIZE		(8196)
+#define DMA_BLOCK_TABLE_SIZE		(1 << 15)
 
 #define DEV_NAME_PREFIX "quick_tx_"
 #define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
@@ -295,6 +304,7 @@ struct quick_tx {
 	int fd;
 	int map_length;
 	struct quick_tx_shared_data* data;
+	bool stop_mapping;
 };
 
 /*
@@ -313,6 +323,7 @@ bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
 			return true;
 		} else {
 			printf("MAP_FAILED for index %d\n", dev->data->num_dma_blocks);
+			dev->stop_mapping = true;
 		}
 	}
 	return false;
@@ -336,10 +347,10 @@ bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
 int quick_tx_alloc_dma_space(struct quick_tx* dev, __s64 bytes) {
 	if (dev && dev->data) {
 		int num = 0;
-		bytes = ((bytes >> 8) + SKB_DATA_ALIGN(dev->data->prefix_len + 256, dev->data->smp_cache_bytes)) << 8;
-		while (bytes > 0 && dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
+		int num_pages = bytes / 256;
+		while (num_pages > 0 && dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
 			if (quick_tx_mmap_dma_block(dev)) {
-				bytes -= PAGE_SIZE;
+				num_pages -= dev->data->dma_block_page_num;
 				num++;
 			} else
 				break;
@@ -412,6 +423,7 @@ struct quick_tx* quick_tx_open(char* name) {
 	dev->map_length = map_length;
 	dev->fd = fd;
 	dev->data = data;
+	dev->stop_mapping = false;
 
 	if (!quick_tx_mmap_dma_block(dev)) {
 		perror("[quick_tx] error while mapping DMA block");
@@ -431,20 +443,29 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 		*dma_block_index = data->dma_producer_index;
 		data->dma_producer_offset = PAGE_ALIGN(data->dma_producer_offset + length);
 	} else {
+		__u32 new_dma_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
+		rmb();
+		new_dma_producer_index = (data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE;
 		struct quick_tx_dma_block_entry* next_dma_block =
-				&data->dma_blocks[(data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE];
+				&data->dma_blocks[new_dma_producer_index];
+
 		if (next_dma_block->length == 0) {
-			/* If this block has not yet been created, then map it */
-			if (!quick_tx_mmap_dma_block(dev)) {
-				printf("Cannot make another block! \n");
-				return false;
-			} else {
-				printf("Block allocated! \n");
+			if (!dev->stop_mapping) {
+				/* If this block has not yet been created, then map it */
+				if (!quick_tx_mmap_dma_block(dev)) {
+					dev->stop_mapping = true;
+				}
 			}
-		} else if (atomic_read(&next_dma_block->users) != 0) {
+			if (dev->stop_mapping) {
+				/* Cannot not map any more blocks so go back to zero */
+				new_dma_producer_index = 0;
+				next_dma_block = &data->dma_blocks[new_dma_producer_index];
+			}
+		}
+
+		if (atomic_read(&next_dma_block->users) != 0) {
 			/* If the block has not yet been freed then all we can do is return with error */
-			//printf("Block still in use! \n");
 			return false;
 		}
 
@@ -455,8 +476,8 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 		}
 
 		/* Increment the offset counters and dma block index */
-		data->dma_producer_index = (data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE;
-		data->dma_producer_offset = length;
+		data->dma_producer_index = new_dma_producer_index;
+		data->dma_producer_offset = PAGE_ALIGN(length);
 
 		/* Set return values, 0 since we are starting at the beginning of the block*/
 		*write_offset = 0;
@@ -481,6 +502,12 @@ bool inline __check_error_flags(struct quick_tx_shared_data* data) {
 	return true;
 }
 
+void __wake_up_module(struct quick_tx* dev) {
+	dev->data->lookup_flag = 1;
+	wmb();
+	ioctl(dev->fd, START_TX);
+}
+
 /*
  * Send packet on quick_tx device
  * @param qtx 		pointer to a quick_tx structure
@@ -499,6 +526,7 @@ bool inline quick_tx_send_packet(struct quick_tx* dev, const void* buffer, int l
 
 send_retry:
 	/* Entry with length 0 indicates that it has never been filled before */
+	rmb();
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
@@ -507,6 +535,9 @@ send_retry:
 
 		/* Find the next suitable location for this packet */
 		if (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
+			/* need to wake up kernel to process older skb's */
+			__wake_up_module(dev);
+			num_dma_fail++;
 			goto send_retry;
 		}
 
@@ -521,10 +552,11 @@ send_retry:
 		   Set consumed to 0 for entry, indicates it can be used by the quick_tx module */
 		wmb();
 		entry->consumed = 0;
+		wmb();
 
 		static int qtx_s = 0;
 		if (qtx_s % (DMA_BLOCK_TABLE_SIZE >> 4) == 0) {
-			ioctl(dev->fd, START_TX);
+			__wake_up_module(dev);
 		}
 		qtx_s++;
 
@@ -535,7 +567,6 @@ send_retry:
 
 		/* Increment the lookup index for next packet */
 		data->lookup_producer_index = (data->lookup_producer_index + 1) % LOOKUP_TABLE_SIZE;
-		wmb();
 
 		return __check_error_flags(dev->data);
 	} else {
@@ -547,8 +578,9 @@ send_retry:
 //		pfd.events = POLL_LOOKUP;
 //		pfd.fd = dev->fd;
 
-		ioctl(dev->fd, START_TX);
 
+		__wake_up_module(dev);
+		//printf("Sent ioctl from sleep %d\n", numsleeps);
 
 		//wmb();
 //		data->producer_poll_flag = 0;
@@ -560,7 +592,7 @@ send_retry:
 //		}
 
 		usleep(1);
-		numsleeps++;
+		num_lookup_sleeps++;
 
 		goto send_retry;
 	}
@@ -573,6 +605,9 @@ send_retry:
  */
 void quick_tx_close(struct quick_tx* dev) {
 	if (dev) {
+
+		__check_error_flags(dev->data);
+
 		int i;
 		for (i = (dev->data->num_dma_blocks - 1); i >= 0; i--) {
 			struct quick_tx_dma_block_entry* dma_block = &dev->data->dma_blocks[i];
