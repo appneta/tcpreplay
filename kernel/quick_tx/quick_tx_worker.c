@@ -118,8 +118,10 @@ retry_send:
 		dev->num_tq_frozen_or_stopped++;
 	}
 
-	if (*done < budget || all)
+	if (*done < budget || all) {
+		cpu_relax();
 		goto retry_send;
+	}
 
 	return status;
 }

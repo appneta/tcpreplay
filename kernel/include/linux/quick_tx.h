@@ -124,11 +124,6 @@ extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 #define NETDEV_TQ_FROZEN_OR_STOPPED 	NETDEV_TX_LOCKED + 0x10
 #define NETDEV_NOT_RUNNING				NETDEV_TX_LOCKED + 0x20
 
-#define TX_NUM_ATTEMPTS 				200
-#define MAX_SKB_LIST_SIZE				10000
-
-#define SKB_USERS_BASE					100
-
 struct quick_tx_skb {
 	struct list_head list;
 	struct sk_buff skb;
