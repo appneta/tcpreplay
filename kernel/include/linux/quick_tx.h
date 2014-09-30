@@ -66,7 +66,8 @@ typedef enum { false, true } bool;
 #define wmb() __asm__ volatile ("lwsync")
 #endif
 
-static int numsleeps = 0;
+static int num_lookup_sleeps = 0;
+static int num_dma_fail = 0;
 
 typedef struct {
 	int counter;
@@ -125,6 +126,8 @@ extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 
 #define TX_NUM_ATTEMPTS 				200
 #define MAX_SKB_LIST_SIZE				10000
+
+#define SKB_USERS_BASE					100
 
 struct quick_tx_skb {
 	struct list_head list;
@@ -205,7 +208,7 @@ extern void quick_tx_worker(struct work_struct *work);
 	do { 								\
 		static int interval_name = 1;	\
 		if(interval_name % num == 0) { 	\
-			code 						\
+			code; 						\
 			interval_name = 1;			\
 		}								\
 		interval_name++;				\
@@ -213,7 +216,7 @@ extern void quick_tx_worker(struct work_struct *work);
 	while(0)
 
 #define LOOKUP_TABLE_SIZE			(1 << 17)
-#define DMA_BLOCK_TABLE_SIZE		(8196)
+#define DMA_BLOCK_TABLE_SIZE		(1 << 15)
 
 #define DEV_NAME_PREFIX "quick_tx_"
 #define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
@@ -443,6 +446,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 		data->dma_producer_offset = PAGE_ALIGN(data->dma_producer_offset + length);
 	} else {
 		/* We will have to use the next available DMA block of memory */
+		rmb();
 		struct quick_tx_dma_block_entry* next_dma_block =
 				&data->dma_blocks[(data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE];
 		if (next_dma_block->length == 0) {
@@ -455,6 +459,9 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 			}
 		} else if (atomic_read(&next_dma_block->users) != 0) {
 			/* If the block has not yet been freed then all we can do is return with error */
+			//printf("atomic_read(&next_dma_block->users) = %d \n", atomic_read(&next_dma_block->users));
+			//usleep(100000);
+			//printf("Waiting for index = %d \n", (data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE);
 			return false;
 		}
 
@@ -526,6 +533,9 @@ send_retry:
 		if (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
 			/* need to wake up kernel to process older skb's */
 			__wake_up_module(dev);
+			//usleep(1);
+			//usleep(1);
+			num_dma_fail++;
 			goto send_retry;
 		}
 
@@ -580,10 +590,7 @@ send_retry:
 //		}
 
 		usleep(1);
-		numsleeps++;
-
-		//if (numsleeps > 3)
-		//	exit(1);
+		num_lookup_sleeps++;
 
 		goto send_retry;
 	}

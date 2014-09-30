@@ -135,7 +135,11 @@ int main (int argc, char* argv[])
 		}
 	}
 
-	printf("Done, closing everything!");
+	printf("Done, closing everything! \n");
+
+	printf("\n");
+	printf("num_lookup_sleeps = %d \n", num_lookup_sleeps);
+	printf("num_dma_fail = %d \n", num_dma_fail);
 
 quick_tx_error:
 	quick_tx_close(qtx);
