@@ -66,11 +66,20 @@
 /* Enable GNU Profiler */
 #undef GPROF
 
+/* Define to 1 if you have the `alarm' function. */
+#undef HAVE_ALARM
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
+/* Define to 1 if you have the `atexit' function. */
+#undef HAVE_ATEXIT
+
 /* Do we have BPF device support? */
 #undef HAVE_BPF
+
+/* Define to 1 if you have the `bzero' function. */
+#undef HAVE_BZERO
 
 /* Define to 1 if you have the `canonicalize_file_name' function. */
 #undef HAVE_CANONICALIZE_FILE_NAME
@@ -78,8 +87,8 @@
 /* Define to 1 if you have the `chmod' function. */
 #undef HAVE_CHMOD
 
-/* Define to 1 if you have the `ctime' function. */
-#undef HAVE_CTIME
+/* Building Cygwin */
+#undef HAVE_CYGWIN
 
 /* Building Apple/Darwin */
 #undef HAVE_DARWIN
@@ -112,6 +121,9 @@
 /* Define to 1 if you have the <dumbnet.h> header file. */
 #undef HAVE_DUMBNET_H
 
+/* Define to 1 if you have the `dup2' function. */
+#undef HAVE_DUP2
+
 /* Define to 1 if you have the <errno.h> header file. */
 #undef HAVE_ERRNO_H
 
@@ -130,6 +142,12 @@
 /* Define to 1 if you have the `fstat' function. */
 #undef HAVE_FSTAT
 
+/* Define to 1 if you have the `gethostbyname' function. */
+#undef HAVE_GETHOSTBYNAME
+
+/* Define to 1 if you have the `getpagesize' function. */
+#undef HAVE_GETPAGESIZE
+
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
@@ -138,6 +156,9 @@
 
 /* Do we have inet_aton? */
 #undef HAVE_INET_ATON
+
+/* Define to 1 if you have the `inet_ntoa' function. */
+#undef HAVE_INET_NTOA
 
 /* Do we have inet_ntop? */
 #undef HAVE_INET_NTOP
@@ -187,9 +208,15 @@
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
 
+/* Building Linux */
+#undef HAVE_LINUX
+
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #undef HAVE_MALLOC
+
+/* Define to 1 if you have the `memmove' function. */
+#undef HAVE_MEMMOVE
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -199,6 +226,9 @@
 
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
+
+/* Define to 1 if you have the `munmap' function. */
+#undef HAVE_MUNMAP
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
@@ -230,8 +260,8 @@
 /* Define to 1 if you have the <net/route.h> header file. */
 #undef HAVE_NET_ROUTE_H
 
-/* Define to 1 if you have the `ntohll' function. */
-#undef HAVE_NTOHLL
+/* Building Open BSD */
+#undef HAVE_OPENBSD
 
 /* Define this if pathfind(3) works */
 #undef HAVE_PATHFIND
@@ -272,11 +302,18 @@
 /* Define to 1 if the system has the type `pid_t'. */
 #undef HAVE_PID_T
 
-/* Define to 1 if you have the `poll' function. */
-#undef HAVE_POLL
-
 /* Define to 1 if you have the <poll.h> header file. */
 #undef HAVE_POLL_H
+
+/* Define to 1 if you have the `pow' function. */
+#undef HAVE_POW
+
+/* Define to 1 if you have the `putenv' function. */
+#undef HAVE_PUTENV
+
+/* Define to 1 if your system has a GNU libc compatible `realloc' function,
+   and to 0 otherwise. */
+#undef HAVE_REALLOC
 
 /* Define this if we have a functional realpath(3C) */
 #undef HAVE_REALPATH
@@ -286,6 +323,9 @@
 
 /* Define to 1 if you have the <runetype.h> header file. */
 #undef HAVE_RUNETYPE_H
+
+/* Define to 1 if you have the `select' function. */
+#undef HAVE_SELECT
 
 /* Define to 1 if you have the <setjmp.h> header file. */
 #undef HAVE_SETJMP_H
@@ -298,6 +338,12 @@
 
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
+
+/* Define to 1 if you have the `socket' function. */
+#undef HAVE_SOCKET
+
+/* Building Solaris */
+#undef HAVE_SOLARIS
 
 /* Define to 1 if you have the <stdarg.h> header file. */
 #undef HAVE_STDARG_H
@@ -317,8 +363,14 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
+/* Define to 1 if you have the `strcasecmp' function. */
+#undef HAVE_STRCASECMP
+
 /* Define to 1 if you have the `strchr' function. */
 #undef HAVE_STRCHR
+
+/* Define to 1 if you have the `strcspn' function. */
+#undef HAVE_STRCSPN
 
 /* Define to 1 if you have the `strdup' function. */
 #undef HAVE_STRDUP
@@ -338,8 +390,8 @@
 /* Define to 1 if you have the `strlcpy' function. */
 #undef HAVE_STRLCPY
 
-/* Define to 1 if you have the `strncpy' function. */
-#undef HAVE_STRNCPY
+/* Define to 1 if you have the `strpbrk' function. */
+#undef HAVE_STRPBRK
 
 /* Define to 1 if you have the `strrchr' function. */
 #undef HAVE_STRRCHR
@@ -347,14 +399,26 @@
 /* Define to 1 if you have the `strsignal' function. */
 #undef HAVE_STRSIGNAL
 
+/* Define to 1 if you have the `strspn' function. */
+#undef HAVE_STRSPN
+
+/* Define to 1 if you have the `strstr' function. */
+#undef HAVE_STRSTR
+
 /* Define to 1 if you have the `strtol' function. */
 #undef HAVE_STRTOL
+
+/* Define to 1 if you have the `strtoul' function. */
+#undef HAVE_STRTOUL
 
 /* Define to 1 if you have the `strtoull' function. */
 #undef HAVE_STRTOULL
 
 /* Define to 1 if `tv_sec' is a member of `struct timeval'. */
 #undef HAVE_STRUCT_TIMEVAL_TV_SEC
+
+/* Building SunOS */
+#undef HAVE_SUNOS
 
 /* Define to 1 if you have the <sysexits.h> header file. */
 #undef HAVE_SYSEXITS_H
@@ -451,9 +515,6 @@
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
 
-/* Define to 1 if you have the `vsnprintf' function. */
-#undef HAVE_VSNPRINTF
-
 /* Define to 1 if you have the <wchar.h> header file. */
 #undef HAVE_WCHAR_H
 
@@ -475,11 +536,18 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
+/* Define to 1 if the system has the type `_Bool'. */
+#undef HAVE__BOOL
+
 /* What is the path (if any) to the libpcap bpf header file? */
 #undef INCLUDE_PCAP_BPF_HEADER
 
 /* Version of libdnet */
 #undef LIBDNET_VERSION
+
+/* Define to 1 if `lstat' dereferences a symlink specified with a trailing
+   slash. */
+#undef LSTAT_FOLLOWS_SLASHED_SYMLINK
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
@@ -499,7 +567,7 @@
 /* Define this if optional arguments are disallowed */
 #undef NO_OPTIONAL_OPT_ARGS
 
-/* This is our package name */
+/* Name of package */
 #undef PACKAGE
 
 /* Define to the address where bug reports for this package should be sent. */
@@ -556,7 +624,7 @@
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 #undef TIME_WITH_SYS_TIME
 
-/* What is our version? */
+/* Version number of package */
 #undef VERSION
 
 /* Define if using the dmalloc debugging malloc package */
@@ -586,6 +654,21 @@
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
 
+/* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   #define below would cause a syntax error. */
+#undef _UINT32_T
+
+/* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   #define below would cause a syntax error. */
+#undef _UINT64_T
+
+/* Define for Solaris 2.5.1 so the uint8_t typedef from <sys/synch.h>,
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   #define below would cause a syntax error. */
+#undef _UINT8_T
+
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 
@@ -595,14 +678,39 @@
 #undef inline
 #endif
 
+/* Define to the type of a signed integer type of width exactly 16 bits if
+   such a type exists and the standard includes do not define it. */
+#undef int16_t
+
+/* Define to the type of a signed integer type of width exactly 32 bits if
+   such a type exists and the standard includes do not define it. */
+#undef int32_t
+
+/* Define to the type of a signed integer type of width exactly 64 bits if
+   such a type exists and the standard includes do not define it. */
+#undef int64_t
+
+/* Define to the type of a signed integer type of width exactly 8 bits if such
+   a type exists and the standard includes do not define it. */
+#undef int8_t
+
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc
+
+/* Define to `long int' if <sys/types.h> does not define. */
+#undef off_t
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t
 
+/* Define to rpl_realloc if the replacement function should be used. */
+#undef realloc
+
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef ssize_t
 
 /* Define to `uint16_t' if <sys/types.h> does not define. */
 #undef u_int16_t
@@ -615,6 +723,22 @@
 
 /* Define to `uint8_t' if <sys/types.h> does not define. */
 #undef u_int8_t
+
+/* Define to the type of an unsigned integer type of width exactly 16 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint16_t
+
+/* Define to the type of an unsigned integer type of width exactly 32 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint32_t
+
+/* Define to the type of an unsigned integer type of width exactly 64 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint64_t
+
+/* Define to the type of an unsigned integer type of width exactly 8 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint8_t
 
 /* Define as `fork' if `vfork' does not work. */
 #undef vfork

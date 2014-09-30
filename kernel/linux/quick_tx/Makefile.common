@@ -1,0 +1,21 @@
+# Makefile.common
+moduledir = @moduledir@
+KERNEL_LOCATION=@kerneldir@
+KBUILD_VERBOSE = 0
+MOD_DEVDIR = $(PWD)
+
+export module_DATA
+export module_OBJECTS
+
+$(module_DATA): $(automake_dummy_SOURCES) 
+	mv Makefile Makefile.automake 
+	cp $(srcdir)/Makefile.kernel $(srcdir)/Makefile 
+	CPPFLAGS="" CFLAGS="" LDFLAGS="" \
+	$(MAKE) -C $(KERNEL_LOCATION) \
+        CC="gcc" M=$(PWD) modules\
+		KBUILD_VERBOSE=$(KBUILD_VERBOSE) 
+	mv Makefile.automake Makefile 
+
+MOSTLYCLEANFILES = $(module_DATA) .$(module_DATA).flags $(module_DATA:.o=.mod.c) $(module_DATA:.o=.@kernelext@) *~
+
+MAINTAINERCLEANFILES = Makefile.in

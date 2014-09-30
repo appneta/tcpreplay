@@ -4,12 +4,12 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4 -I libopts/m4
 
 if NEED_LIBOPTS
-SUBDIRS = scripts lib $(LIBOPTS_DIR) src
+SUBDIRS = $(KERNEL_DIR) scripts lib $(LIBOPTS_DIR) src
 else
-SUBDIRS = scripts lib src
+SUBDIRS = $(KERNEL_DIR) scripts lib src
 endif
 
-DIST_SUBDIRS = scripts lib libopts src docs test
+DIST_SUBDIRS = scripts lib libopts src docs test kernel
 .PHONY: manpages docs test man2html
 
 
@@ -54,6 +54,18 @@ doxygen: version
 
 ncc:
 	CC=ncc make
+	
+LINUX_MODULE_DIR = $(top_builddir)/kernel
+
+kernel:
+	echo Making Linux quick_tx module in $(LINUX_MODULE_DIR)
+	cd $(LINUX_MODULE_DIR) && make
+
+
+LINUX_MODULE_EXAMPLE_DIR = $(top_builddir)/kernel/linux/example
+kernel_example:
+	echo Making Linux quick_tx sample program in $(LINUX_MODULE_EXAMPLE_DIR)
+	cd $(LINUX_MODULE_EXAMPLE_DIR) && make all
 
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
@@ -63,4 +75,4 @@ MAINTAINERCLEANFILES = Makefile.in configure *.bak
 
 EXTRA_DIST = doxygen.cfg.in autogen.sh \
 	m4/libtool.m4 m4/ltoptions.m4 m4/ltsugar.m4 \
-	m4/ltversion.m4 m4/lt~obsolete.m4
+	m4/ltversion.m4 m4/lt~obsolete.m4 acinclude.m4

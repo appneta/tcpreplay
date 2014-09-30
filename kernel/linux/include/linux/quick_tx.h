@@ -64,6 +64,8 @@ typedef enum { false, true } bool;
 #define wmb()	__asm__ volatile("sfence" ::: "memory")
 #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC__)
 #define wmb() __asm__ volatile ("lwsync")
+#else
+#define wmb() __asm__ __volatile__("": : :"memory")
 #endif
 
 static int num_lookup_sleeps = 0;
