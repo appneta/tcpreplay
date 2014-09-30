@@ -19,6 +19,25 @@
 #include <linux/quick_tx.h>
 #include <net/sch_generic.h>
 
+
+static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *flag) {
+	*flag = 1;
+	wmb();
+	wake_up_all(q);
+}
+
+inline void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev) {
+	quick_tx_set_flag_wake_up_queue(&dev->user_dma_q, &dev->shared_data->user_wait_dma_flag);
+}
+
+inline void quick_tx_wake_up_user_lookup(struct quick_tx_dev *dev) {
+	quick_tx_set_flag_wake_up_queue(&dev->user_lookup_q, &dev->shared_data->user_wait_lookup_flag);
+}
+
+inline void quick_tx_wake_up_kernel_lookup(struct quick_tx_dev *dev) {
+	quick_tx_set_flag_wake_up_queue(&dev->kernel_lookup_q, &dev->shared_data->kernel_wait_lookup_flag);
+}
+
 static inline int quick_tx_clear_skb_list(struct quick_tx_skb *list) {
 	int num_freed = 0;
 	struct quick_tx_skb *qtx_skb, *tmp;
@@ -42,6 +61,8 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 				u32 *dma_block_index = (u32*)(qtx_skb->skb.cb + (sizeof(qtx_skb->skb.cb) - sizeof(u32)));
 				atomic_dec(&dev->shared_data->dma_blocks[*dma_block_index].users);
 				wmb();
+
+				RUN_AT_INVERVAL(quick_tx_wake_up_user_dma(dev), 128, dev->quick_tx_wake_up_dma_counter);
 
 				list_del_init(&qtx_skb->list);
 
@@ -164,7 +185,7 @@ send_next:
 		list_add_tail(&qtx_skb->list, &dev->skb_queued_list.list);
 
 out:
-	RUN_AT_INVERVAL(quick_tx_free_skb(dev, false), 100, quick_tx_free_skb_dummy);
+	RUN_AT_INVERVAL(quick_tx_free_skb(dev, false), 100, dev->quick_tx_free_skb_counter);
 	return status;
 }
 
@@ -264,8 +285,8 @@ void quick_tx_worker(struct work_struct *work)
 
 	txq = netdev_get_tx_queue(dev->netdev, 0);
 
-	dev->shared_data->lookup_flag = 0;
-	wait_event(dev->consumer_q, dev->shared_data->lookup_flag == 1);
+	dev->shared_data->kernel_wait_lookup_flag = 0;
+	wait_event(dev->kernel_lookup_q, dev->shared_data->kernel_wait_lookup_flag);
 	dev->time_start_tx = ktime_get_real();
 
 	while (true) {
@@ -311,6 +332,8 @@ void quick_tx_worker(struct work_struct *work)
 			entry->consumed = 1;
 			wmb();
 
+			RUN_AT_INVERVAL(quick_tx_wake_up_user_lookup(dev), 1024, dev->quick_tx_wake_up_lookup_counter);
+
 			data->lookup_consumer_index = (data->lookup_consumer_index + 1) % LOOKUP_TABLE_SIZE;
 			entry = data->lookup_table + data->lookup_consumer_index;
 		} else {
@@ -324,7 +347,7 @@ void quick_tx_worker(struct work_struct *work)
 #endif
 
 			dev->numsleeps++;
-			dev->shared_data->lookup_flag = 0;
+			dev->shared_data->kernel_wait_lookup_flag = 0;
 			wmb();
 
 			/* Free some DMA blocks before going to sleep */
@@ -332,7 +355,7 @@ void quick_tx_worker(struct work_struct *work)
 				quick_tx_do_transmit(NULL, txq, dev, 1, false);
 			quick_tx_free_skb(dev, false);
 
-			wait_event(dev->consumer_q, dev->shared_data->lookup_flag == 1);
+			wait_event(dev->kernel_lookup_q, dev->shared_data->kernel_wait_lookup_flag);
 		}
 	}
 
