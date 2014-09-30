@@ -56,33 +56,34 @@ static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long a
 
 	switch(cmd) {
 	case START_TX:
-		//qtx_error("Recevied START_TX");
-		//dev->shared_data->lookup_flag = 1;
-		rmb();
-		wake_up_all(&dev->consumer_q);
+		quick_tx_wake_up_kernel_lookup(dev);
 		break;
 	}
 
 	return 0;
 }
 
-//static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
-//{
-//	struct miscdevice* miscdev = file->private_data;
-//	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
-//	unsigned int mask = 0;
-//
-//	mutex_lock(&dev->mtx);
-//
-//	poll_wait(file, &dev->outq, wait);
-//
-//	if (dev->shared_data->producer_poll_flag == 1)
-//		mask |= (POLL_LOOKUP);
-//
-//	mutex_unlock(&dev->mtx);
-//
-//	return mask;
-//}
+static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
+{
+	struct miscdevice* miscdev = file->private_data;
+	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+	unsigned int mask = 0;
+
+	mutex_lock(&dev->mtx);
+
+	poll_wait(file, &dev->user_dma_q, wait);
+	poll_wait(file, &dev->user_lookup_q, wait);
+
+	rmb();
+	if (dev->shared_data->user_wait_dma_flag)
+		mask |= (POLL_DMA);
+	if (dev->shared_data->user_wait_lookup_flag)
+		mask |= (POLL_LOOKUP);
+
+	mutex_unlock(&dev->mtx);
+
+	return mask;
+}
 
 static int quick_tx_open(struct inode * inode, struct file * file)
 {
@@ -139,7 +140,7 @@ static const struct file_operations quick_tx_fops = {
 	.open   = quick_tx_open,
 	.release = quick_tx_release,
 	.mmap = quick_tx_mmap,
-//	.poll = quick_tx_poll,
+	.poll = quick_tx_poll,
 	.unlocked_ioctl = quick_tx_ioctl
 };
 
@@ -178,10 +179,10 @@ static int quick_tx_init(void)
 			INIT_LIST_HEAD(&dev->skb_queued_list.list);
 			INIT_LIST_HEAD(&dev->skb_wait_list.list);
 			INIT_LIST_HEAD(&dev->skb_freed_list.list);
-			atomic_set(&dev->free_skb_working, 0);
 
-			init_waitqueue_head(&dev->outq);
-			init_waitqueue_head(&dev->consumer_q);
+			init_waitqueue_head(&dev->user_dma_q);
+			init_waitqueue_head(&dev->user_lookup_q);
+			init_waitqueue_head(&dev->kernel_lookup_q);
 			mutex_init(&dev->mtx);
 
 			i++;

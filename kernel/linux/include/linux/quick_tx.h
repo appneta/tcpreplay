@@ -149,7 +149,6 @@ struct quick_tx_dev {
 	bool currently_used;
 	bool quit_work;
 
-	atomic_t free_skb_working;
 	struct work_struct free_skb_work;
 	struct workqueue_struct* free_skb_workqueue;
 
@@ -160,12 +159,10 @@ struct quick_tx_dev {
 	/* Poll wait_queue for writing to device
 	 * dma_outq - indicates when the SKBs are freed
 	 * lookup_outq - indicates when an entry in the lookup table is freed */
-	wait_queue_head_t consumer_q;
-	wait_queue_head_t outq;
+	wait_queue_head_t kernel_lookup_q;
+	wait_queue_head_t user_dma_q;
+	wait_queue_head_t user_lookup_q;
 	struct mutex mtx;
-
-	/* Device driver napi function */
-	int	(*driver_poll)(struct napi_struct *, int);
 
 	/* Statistics */
 	u64 num_tq_frozen_or_stopped;
@@ -184,6 +181,10 @@ struct quick_tx_dev {
 	u64 num_wait_list;
 	u64 num_freed_list;
 
+	u32 quick_tx_wake_up_dma_counter;
+	u32 quick_tx_free_skb_counter;
+	u32 quick_tx_wake_up_lookup_counter;
+
 	ktime_t time_start_tx;
 	ktime_t time_end_tx;
 
@@ -192,23 +193,25 @@ struct quick_tx_dev {
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
 extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
-extern void quick_tx_reset_napi(struct quick_tx_dev *dev);
-extern void quick_tx_setup_napi(struct quick_tx_dev *dev);
 extern int quick_tx_mmap(struct file * file, struct vm_area_struct * vma);
+
+extern void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev);
+extern void quick_tx_wake_up_user_lookup(struct quick_tx_dev *dev);
+extern void quick_tx_wake_up_kernel_lookup(struct quick_tx_dev *dev);
+
 extern void quick_tx_worker(struct work_struct *work);
 #endif /* __KERNEL__ */
 
 #define PRIN_MAGIC 'Q'
 #define START_TX _IO(PRIN_MAGIC, 0)
 
-#define RUN_AT_INVERVAL(code, num, interval_name) \
+#define RUN_AT_INVERVAL(code, num, counter) \
 	do { 								\
-		static int interval_name = 1;	\
-		if(interval_name % num == 0) { 	\
+		if(counter % num == 0) { 		\
 			code; 						\
-			interval_name = 1;			\
+			counter = 0;				\
 		}								\
-		interval_name++;				\
+		counter++;						\
 	} 									\
 	while(0)
 
@@ -259,7 +262,9 @@ struct quick_tx_shared_data {
 
 	__u32 mbps;
 
-	__u8 lookup_flag;
+	__u8 user_wait_dma_flag;
+	__u8 user_wait_lookup_flag;
+	__u8 kernel_wait_lookup_flag;
 
 } __attribute__((aligned(8)));
 
@@ -298,7 +303,7 @@ struct pcap_pkthdr {
 
 #define QTX_MASTER_PAGE_NUM			(PAGE_ALIGN(sizeof(struct quick_tx_shared_data)) >> PAGE_SHIFT)
 
-#define POLL_FIRST		POLLOUT
+#define POLL_DMA		POLLOUT
 #define POLL_LOOKUP		POLLIN
 
 #ifndef __KERNEL__
@@ -504,10 +509,33 @@ bool inline __check_error_flags(struct quick_tx_shared_data* data) {
 	return true;
 }
 
-void __wake_up_module(struct quick_tx* dev) {
-	dev->data->lookup_flag = 1;
+static inline void __wake_up_module(struct quick_tx* dev) {
+	dev->data->kernel_wait_lookup_flag = 1;
 	wmb();
 	ioctl(dev->fd, START_TX);
+}
+
+static inline void __poll_for(struct quick_tx* dev, short events, __u8 *flag) {
+	struct pollfd pfd;
+	memset(&pfd, 0, sizeof(pfd));
+	pfd.events = events;
+	pfd.fd = dev->fd;
+
+	*flag = 1;
+	wmb();
+	poll(&pfd, 1, 1000);
+
+	if (!(pfd.revents & (events))) {
+		printf("Timeout in __poll_for for events = %d! \n", events);
+	}
+}
+
+static inline void __poll_for_dma(struct quick_tx* dev) {
+	__poll_for(dev, POLL_DMA, &dev->data->user_wait_dma_flag);
+}
+
+static inline void __poll_for_lookup(struct quick_tx* dev) {
+	__poll_for(dev, POLL_LOOKUP, &dev->data->user_wait_lookup_flag);
 }
 
 /*
@@ -536,11 +564,14 @@ send_retry:
 		full_length = SKB_DATA_ALIGN(entry->length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
-		if (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
+		while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
 			/* need to wake up kernel to process older skb's */
 			__wake_up_module(dev);
+
+			/* poll for DMA block space */
+			__poll_for_dma(dev);
+
 			num_dma_fail++;
-			goto send_retry;
 		}
 
 		/* Set entry length (packet size without padding) */
@@ -582,6 +613,9 @@ send_retry:
 
 
 		__wake_up_module(dev);
+		__poll_for_lookup(dev);
+
+
 		//printf("Sent ioctl from sleep %d\n", numsleeps);
 
 		//wmb();
@@ -593,7 +627,7 @@ send_retry:
 //			printf("Timeout for lookup! \n");
 //		}
 
-		usleep(1);
+//		usleep(1);
 		num_lookup_sleeps++;
 
 		goto send_retry;

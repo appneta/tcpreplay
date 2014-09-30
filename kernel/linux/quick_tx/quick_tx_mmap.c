@@ -47,9 +47,7 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 
 	if (!dev->quit_work) {
 		dev->quit_work = true;
-		dev->shared_data->lookup_flag = 1;
-		wmb();
-		wake_up_all(&dev->consumer_q);
+		quick_tx_wake_up_kernel_lookup(dev);
 		cancel_work_sync(&dev->tx_work);
 		destroy_workqueue(dev->tx_workqueue);
 	}
@@ -85,9 +83,7 @@ void quick_tx_vm_dma_close(struct vm_area_struct *vma)
 
 	if (!dev->quit_work) {
 		dev->quit_work = true;
-		dev->shared_data->lookup_flag = 1;
-		wmb();
-		wake_up_all(&dev->consumer_q);
+		quick_tx_wake_up_kernel_lookup(dev);
 		cancel_work_sync(&dev->tx_work);
 		destroy_workqueue(dev->tx_workqueue);
 	}
