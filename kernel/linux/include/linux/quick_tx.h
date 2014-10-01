@@ -40,6 +40,7 @@
 #include <math.h>
 #include <sys/ioctl.h>
 #include <asm-generic/ioctl.h>
+#include <linux/if_ether.h>
 typedef enum { false, true } bool;
 
 #define __u64 	u_int64_t
@@ -560,8 +561,8 @@ send_retry:
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
-		if (length < 17)
-			full_length = SKB_DATA_ALIGN(data->prefix_len + 17, data->smp_cache_bytes);
+		if (length < ETH_ZLEN)
+			full_length = SKB_DATA_ALIGN(data->prefix_len + ETH_ZLEN, data->smp_cache_bytes);
 		else
 			full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes);
 

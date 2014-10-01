@@ -232,12 +232,12 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	skb_put(skb, data_size - NET_SKB_PAD);
 
 	/* user space will handle adding space for padding */
-	if (skb->len < 17) {
-		qtx_error("Changing skb length to 17 (%p)", skb);
-		skb->end += (skb->len - 17);
-		memset(skb->data + skb->len, 0, (skb->len - 17));
-		skb->len = 17;
-		skb_set_tail_pointer(skb, 17);
+	if (skb->len < ETH_ZLEN) {
+		qtx_error("Padding skb (%p) len to %d", skb, ETH_ZLEN);
+		skb->end += (skb->len - ETH_ZLEN);
+		memset(skb->data + skb->len, 0, (skb->len - ETH_ZLEN));
+		skb->len = ETH_ZLEN;
+		skb_set_tail_pointer(skb, ETH_ZLEN);
 	}
 
 	/* make sure we initialize shinfo sequentially */
