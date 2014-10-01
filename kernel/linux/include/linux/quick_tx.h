@@ -560,7 +560,11 @@ send_retry:
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
-		full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes); // TODO review
+		if (length < 17)
+			full_length = SKB_DATA_ALIGN(data->prefix_len + 17, data->smp_cache_bytes);
+		else
+			full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes);
+
 		full_length = SKB_DATA_ALIGN(entry->length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
@@ -606,30 +610,10 @@ send_retry:
 		if (!__check_error_flags(dev->data))
 			return false;
 
-//		struct pollfd pfd;
-//		memset(&pfd, 0, sizeof(pfd));
-//		pfd.events = POLL_LOOKUP;
-//		pfd.fd = dev->fd;
-
-
 		__wake_up_module(dev);
 		__poll_for_lookup(dev);
 
-
-		//printf("Sent ioctl from sleep %d\n", numsleeps);
-
-		//wmb();
-//		data->producer_poll_flag = 0;
-//		wmb();
-
-//		poll(&pfd, 1, 1000);
-//		if (!(pfd.revents & (POLL_LOOKUP))) {
-//			printf("Timeout for lookup! \n");
-//		}
-
-//		usleep(1);
 		num_lookup_sleeps++;
-
 		goto send_retry;
 	}
 }

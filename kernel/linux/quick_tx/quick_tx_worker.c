@@ -147,7 +147,7 @@ retry_send:
 	return status;
 }
 
-static inline int quick_tx_do_transmit(struct quick_tx_skb *qtx_skb, struct netdev_queue *txq, struct quick_tx_dev *dev, int budget, bool all)
+static inline int quick_tx_do_xmit(struct quick_tx_skb *qtx_skb, struct netdev_queue *txq, struct quick_tx_dev *dev, int budget, bool all)
 {
 	netdev_tx_t status = NETDEV_TX_BUSY;
 	struct quick_tx_skb *next_qtx_skb = NULL;
@@ -229,6 +229,12 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	skb_reserve(skb, NET_SKB_PAD);
 	skb_put(skb, data_size - NET_SKB_PAD);
 
+	/* user space will handle adding space for padding */
+	if (skb->len < 17) {
+		skb->end += (skb->len - 17);
+		memset(skb->data + skb->len, 0, (skb->len - 17));
+	}
+
 	/* make sure we initialize shinfo sequentially */
 	shinfo = skb_shinfo(skb);
 	memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
@@ -243,7 +249,7 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq)
 {
 	/* flush all remaining SKB's in the list before exiting */
-	quick_tx_do_transmit(NULL, txq, dev, 0, true);
+	quick_tx_do_xmit(NULL, txq, dev, 0, true);
 	dev->time_end_tx = ktime_get_real();
 
 	qtx_error("All packets have been transmitted successfully, exiting.");
@@ -292,6 +298,8 @@ void quick_tx_worker(struct work_struct *work)
 
 		rmb();
 		if (entry->length > 0 && entry->consumed == 0) {
+			BUG_ON(entry->length < 17);
+
 			/* Calculate full size of the space required to packet */
 			full_size = SKB_DATA_ALIGN(SKB_DATA_ALIGN(NET_SKB_PAD + entry->length) + sizeof(struct skb_shared_info));
 
@@ -320,7 +328,7 @@ void quick_tx_worker(struct work_struct *work)
 			/* Set netdev */
 			skb->dev = dev->netdev;
 
-			quick_tx_do_transmit(qtx_skb, txq, dev, 512, false);
+			quick_tx_do_xmit(qtx_skb, txq, dev, 512, false);
 
 #ifdef QUICK_TX_DEBUG
 			qtx_error("Consumed entry at index = %d, dma_block_index = %d, offset = %d, len = %d",
@@ -351,7 +359,7 @@ void quick_tx_worker(struct work_struct *work)
 
 			/* Free some DMA blocks before going to sleep */
 			if(!list_empty(&dev->skb_queued_list.list))
-				quick_tx_do_transmit(NULL, txq, dev, 1, false);
+				quick_tx_do_xmit(NULL, txq, dev, 1, false);
 			quick_tx_free_skb(dev, false);
 
 			wait_event(dev->kernel_lookup_q, dev->shared_data->kernel_wait_lookup_flag);
