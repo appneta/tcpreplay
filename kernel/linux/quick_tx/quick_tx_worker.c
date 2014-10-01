@@ -100,10 +100,7 @@ static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device
 
 	if (likely(dev->flags & IFF_UP)) {
 		HARD_TX_LOCK(dev, txq, smp_processor_id());
-
-		if (!netif_xmit_stopped(txq)) {
-			status = dev->netdev_ops->ndo_start_xmit(skb, dev);
-		}
+		status = dev->netdev_ops->ndo_start_xmit(skb, dev);
 		HARD_TX_UNLOCK(dev, txq);
 	}
 
@@ -121,7 +118,12 @@ static inline int quick_tx_send_one_skb(struct quick_tx_skb *qtx_skb,
 	atomic_set(&qtx_skb->skb.users, 2);
 
 retry_send:
+//	if (qtx_skb->skb.len < 17) {
+//		qtx_error("Preventing send, because of skb_pad (len = %d)", qtx_skb->skb.len);
+//		status = NETDEV_TX_OK;
+//	} else {
 	status = quick_tx_dev_queue_xmit(&qtx_skb->skb, netdev, txq);
+//	}
 	(*done)++;
 
 	switch(status) {
@@ -231,6 +233,7 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 
 	/* user space will handle adding space for padding */
 	if (skb->len < 17) {
+		qtx_error("Changing skb length to 17 (%p)", skb);
 		skb->end += (skb->len - 17);
 		memset(skb->data + skb->len, 0, (skb->len - 17));
 		skb->len = 17;

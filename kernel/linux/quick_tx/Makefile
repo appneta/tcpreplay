@@ -10,7 +10,7 @@ EXTRA_CFLAGS := -I$(M) -I$(M)/../include
 EXTRA_CFLAGS += -Wno-unused-but-set-variable
 
 ifneq (,$(QUICK_TX_DEBUG))
-EXTRA_CFLAGS += "-g -DHAVE_QUICK_TX_DEBUG"
+EXTRA_CFLAGS += "-DQUICK_TX_DEBUG -g"
 endif
 
 ifneq ($(KERNELRELEASE),)
