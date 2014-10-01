@@ -93,18 +93,12 @@ static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device
 {
 	int status = -ENETDOWN;
 
-	/* Disable soft irqs for various locks below. Also
-	 * stops preemption for RCU.
-	 */
-	rcu_read_lock_bh();
-
+	__netif_tx_lock_bh(txq);
 	if (likely(dev->flags & IFF_UP)) {
-		HARD_TX_LOCK(dev, txq, smp_processor_id());
 		status = dev->netdev_ops->ndo_start_xmit(skb, dev);
-		HARD_TX_UNLOCK(dev, txq);
 	}
+	__netif_tx_unlock_bh(txq);
 
-	rcu_read_unlock_bh();
 	return status;
 }
 
@@ -123,6 +117,7 @@ retry_send:
 
 	switch(status) {
 	case NETDEV_TX_OK:
+		txq_trans_update(txq);
 		dev->num_tx_ok_packets++;
 		dev->num_tx_ok_bytes += qtx_skb->skb.len;
 		return status;
@@ -182,6 +177,7 @@ send_next:
 		list_add_tail(&qtx_skb->list, &dev->skb_queued_list.list);
 
 out:
+
 	RUN_AT_INVERVAL(quick_tx_free_skb(dev, false), 100, dev->quick_tx_free_skb_counter);
 	return status;
 }
@@ -241,6 +237,7 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	kmemcheck_annotate_variable(shinfo->destructor_arg);
 
 	skb_reset_mac_header(skb);
+	skb_reset_network_header(skb);
 
 	return qtx_skb;
 }
