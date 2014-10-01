@@ -251,7 +251,7 @@ static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_
 	/* wait until cleaning the SKB list is finished
 	 * as well before exiting so we do not have any memory leaks */
 	while(!list_empty(&dev->skb_wait_list.list)) {
-		int num_freed = quick_tx_free_skb(dev, true);
+		quick_tx_free_skb(dev, true);
 		schedule_timeout_interruptible(HZ);
 	}
 
@@ -272,7 +272,6 @@ void quick_tx_worker(struct work_struct *work)
 	struct quick_tx_dma_block_entry* dma_block;
 	struct netdev_queue *txq;
 	u32 full_size = 0;
-	int ret;
 
 	qtx_error("Starting quick_tx_worker");
 
