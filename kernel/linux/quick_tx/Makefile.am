@@ -1,5 +1,7 @@
 # kernel/linux/quick_tx/Makefile.am
 
+EXTRA_DIST = kcompat.h Makefile.kernel Makefile.common
+
 EXTRA_PROGRAMS = automake_dummy 
 automake_dummy_SOURCES = quick_tx_main.c \
 						quick_tx_mmap.c \

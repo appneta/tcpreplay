@@ -946,7 +946,7 @@ enable_force_sendpacket
 enable_dynamic_link
 with_libpcap
 with_netmap
-with_kerneldir
+with_kernel
 with_libdnet
 with_pcapnav_config
 with_tcpdump
@@ -1637,7 +1637,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-libpcap=DIR      Use libpcap in DIR
   --with-netmap=DIR       Use netmap in DIR
-  --with-kerneldir=DIR    kernel sources in DIR
+  --with-kernel=DIR       Use Linux kernel sources in DIR
   --with-libdnet=DIR      Use libdnet in DIR
   --with-pcapnav-config=FILE
                           Use given pcapnav-config
@@ -20048,7 +20048,7 @@ $as_echo "#define HAVE_BPF 1" >>confdefs.h
 fi
 
 
-  # Extract the first word of "mktemp", so it can be a program name with args.
+    # Extract the first word of "mktemp", so it can be a program name with args.
 set dummy mktemp; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
@@ -20087,114 +20087,120 @@ fi
 
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Linux kernel sources" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Linux kernel sources" >&5
 $as_echo_n "checking for Linux kernel sources... " >&6; }
 
 
-# Check whether --with-kerneldir was given.
-if test "${with_kerneldir+set}" = set; then :
-  withval=$with_kerneldir; ac_kerneldir=${withval}
+# Check whether --with-kernel was given.
+if test "${with_kernel+set}" = set; then :
+  withval=$with_kernel; ac_kerneldir=${withval}
 
-  kerneldir=missing
-  kernelext=ko
-  no_kernel=yes
-
-  if test `uname` != "Linux"; then
-    kerneldir="not running Linux"
-  else
-    shortvers="$( uname -r | sed -r 's/([2-9]\.[0-9]+).*/\1/' )"
-    if test "${ac_kerneldir}" != ""; then
-    	kerneldir=`dirname ${ac_kerneldir}/Makefile`/
-    	no_kernel=no
+    kerneldir=missing
+    kernelext=ko
+    no_kernel=yes
+set -x -v
+    if test `uname` != "Linux"; then
+        kerneldir="not running Linux"
     else
-        for dir in /lib/modules/`uname -r`/source \
-   	     	/lib/modules/`uname -r`/build \
-        	/usr/src/kernel-source-`uname -r` \
-        	/usr/src/linux-source-`uname -r` \
-        	/usr/src/kernel-source-$shortvers \
-        	/usr/src/linux-source-$shortvers \
-			/usr/src/linux
-    	do
-      	if test -d $dir; then
-        	kerneldir=`dirname $dir/Makefile`/
-        	no_kernel=no
-        	break
-      	fi
-    	done
-    fi
-  fi
-
-  if test x${no_kernel} != xyes; then
-    if test -f ${kerneldir}/Makefile; then
-      version=$( sed -n '/^VERSION/s/.*=\ *//p' ${kerneldir}/Makefile )
-      patchlevel=$( sed -n -e '/^PATCHLEVEL/s/.*=\ *//p' ${kerneldir}/Makefile )
-      if test "${version}" -eq 2; then
-        if test "${patchlevel}" -lt 5; then
-          kernelext=o
+        shortvers="$( uname -r | sed -r 's/([2-9]\.[0-9]+).*/\1/' )"
+        if test x${ac_kerneldir} != x; then
+            if test -d ${ac_kerneldir}; then
+                kerneldir=`dirname ${ac_kerneldir}/Makefile`/
+                no_kernel=no
+            fi
+        else
+            for dir in /lib/modules/`uname -r`/build \
+                    /lib/modules/`uname -r`/source \
+                    /usr/src/kernel-source-`uname -r` \
+                    /usr/src/linux-source-`uname -r` \
+                    /usr/src/kernel-source-$shortvers \
+                    /usr/src/linux-source-$shortvers \
+                    /usr/src/linux
+            do
+                if test -d $dir; then
+                    kerneldir=`dirname $dir/Makefile`/
+                    no_kernel=no
+                    break
+                fi
+            done
         fi
-      fi
-    else
-      kerneldir="no Makefile found"
-      no_kernel=yes
     fi
-  fi
-  ac_cv_have_kernel="no_kernel=${no_kernel} \
-                kerneldir=\"${kerneldir}\" \
-                kernelext=\"${kernelext}\""
+
+    if test x${no_kernel} != xyes; then
+        if test -f ${kerneldir}/Makefile; then
+            version=$( sed -n '/^VERSION/s/.*=\ *//p' ${kerneldir}/Makefile )
+            patchlevel=$( sed -n -e '/^PATCHLEVEL/s/.*=\ *//p' ${kerneldir}/Makefile )
+            if test "${version}" -eq 2; then
+                if test "${patchlevel}" -lt 5; then
+                    kernelext=o
+                fi
+            fi
+        else
+            kerneldir="not found"
+            no_kernel=yes
+        fi
+    fi
+    ac_cv_have_kernel="no_kernel=${no_kernel} \
+            kerneldir=\"${kerneldir}\" \
+            kernelext=\"${kernelext}\""
+    set +x +v
 
 
 else
   ac_kerneldir=""
-    if test "${ac_cv_have_kernel+set}" = set; then :
+        if test "${ac_cv_have_kernel+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
 
-  kerneldir=missing
-  kernelext=ko
-  no_kernel=yes
-
-  if test `uname` != "Linux"; then
-    kerneldir="not running Linux"
-  else
-    shortvers="$( uname -r | sed -r 's/([2-9]\.[0-9]+).*/\1/' )"
-    if test "${ac_kerneldir}" != ""; then
-    	kerneldir=`dirname ${ac_kerneldir}/Makefile`/
-    	no_kernel=no
+    kerneldir=missing
+    kernelext=ko
+    no_kernel=yes
+set -x -v
+    if test `uname` != "Linux"; then
+        kerneldir="not running Linux"
     else
-        for dir in /lib/modules/`uname -r`/source \
-   	     	/lib/modules/`uname -r`/build \
-        	/usr/src/kernel-source-`uname -r` \
-        	/usr/src/linux-source-`uname -r` \
-        	/usr/src/kernel-source-$shortvers \
-        	/usr/src/linux-source-$shortvers \
-			/usr/src/linux
-    	do
-      	if test -d $dir; then
-        	kerneldir=`dirname $dir/Makefile`/
-        	no_kernel=no
-        	break
-      	fi
-    	done
-    fi
-  fi
-
-  if test x${no_kernel} != xyes; then
-    if test -f ${kerneldir}/Makefile; then
-      version=$( sed -n '/^VERSION/s/.*=\ *//p' ${kerneldir}/Makefile )
-      patchlevel=$( sed -n -e '/^PATCHLEVEL/s/.*=\ *//p' ${kerneldir}/Makefile )
-      if test "${version}" -eq 2; then
-        if test "${patchlevel}" -lt 5; then
-          kernelext=o
+        shortvers="$( uname -r | sed -r 's/([2-9]\.[0-9]+).*/\1/' )"
+        if test x${ac_kerneldir} != x; then
+            if test -d ${ac_kerneldir}; then
+                kerneldir=`dirname ${ac_kerneldir}/Makefile`/
+                no_kernel=no
+            fi
+        else
+            for dir in /lib/modules/`uname -r`/build \
+                    /lib/modules/`uname -r`/source \
+                    /usr/src/kernel-source-`uname -r` \
+                    /usr/src/linux-source-`uname -r` \
+                    /usr/src/kernel-source-$shortvers \
+                    /usr/src/linux-source-$shortvers \
+                    /usr/src/linux
+            do
+                if test -d $dir; then
+                    kerneldir=`dirname $dir/Makefile`/
+                    no_kernel=no
+                    break
+                fi
+            done
         fi
-      fi
-    else
-      kerneldir="no Makefile found"
-      no_kernel=yes
     fi
-  fi
-  ac_cv_have_kernel="no_kernel=${no_kernel} \
-                kerneldir=\"${kerneldir}\" \
-                kernelext=\"${kernelext}\""
+
+    if test x${no_kernel} != xyes; then
+        if test -f ${kerneldir}/Makefile; then
+            version=$( sed -n '/^VERSION/s/.*=\ *//p' ${kerneldir}/Makefile )
+            patchlevel=$( sed -n -e '/^PATCHLEVEL/s/.*=\ *//p' ${kerneldir}/Makefile )
+            if test "${version}" -eq 2; then
+                if test "${patchlevel}" -lt 5; then
+                    kernelext=o
+                fi
+            fi
+        else
+            kerneldir="not found"
+            no_kernel=yes
+        fi
+    fi
+    ac_cv_have_kernel="no_kernel=${no_kernel} \
+            kerneldir=\"${kerneldir}\" \
+            kernelext=\"${kernelext}\""
+    set +x +v
 
 
 fi
@@ -20203,11 +20209,11 @@ fi
 fi
 
 
-  eval "$ac_cv_have_kernel"
+    eval "$ac_cv_have_kernel"
 
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${kerneldir}" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${kerneldir}" >&5
 $as_echo "${kerneldir}" >&6; }
 
 
@@ -20215,6 +20221,9 @@ $as_echo "${kerneldir}" >&6; }
 KERNEL_DIR=
 if test x${no_kernel} != xyes; then
     KERNEL_DIR='kernel'
+
+$as_echo "#define HAVE_QUICK_TX 1" >>confdefs.h
+
 fi
 
 
@@ -25142,7 +25151,7 @@ tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
 tcpliveplay support:        ${enable_tcpliveplay}
-Linux kernel directory:     ${kerneldir}
+Linux kernel sources:       ${kerneldir}
 
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}
@@ -25169,7 +25178,7 @@ tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
 tcpliveplay support:        ${enable_tcpliveplay}
-Linux kernel directory:     ${kerneldir}
+Linux kernel sources:       ${kerneldir}
 
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}

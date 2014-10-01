@@ -546,7 +546,7 @@ static inline void __poll_for_lookup(struct quick_tx* dev) {
  * @return 	true if the packet was successfully queued, false if a critical error occurred
  * 			and we close needs to be called
  */
-bool inline quick_tx_send_packet(struct quick_tx* dev, const void* buffer, int length) {
+static  inline bool quick_tx_send_packet(struct quick_tx* dev, const void* buffer, int length) {
 	struct quick_tx_shared_data *data = dev->data;
 	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_producer_index;
 	int full_length;

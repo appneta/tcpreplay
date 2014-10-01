@@ -1105,7 +1105,9 @@ AC_PATH_KERNEL_SOURCE
 
 KERNEL_DIR=
 if test x${no_kernel} != xyes; then
-    KERNEL_DIR='kernel'    
+    KERNEL_DIR='kernel'
+    AC_DEFINE([HAVE_QUICK_TX], [1],
+          [Do we have quick TX module support?])
 fi
 AC_SUBST(KERNEL_DIR)
 
@@ -1560,7 +1562,7 @@ tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
 tcpliveplay support:        ${enable_tcpliveplay}
-Linux kernel directory:     ${kerneldir}
+Linux kernel sources:       ${kerneldir}
 
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}

@@ -245,6 +245,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = quick_tx example
+EXTRA_DIST = include/linux/quick_tx.h
 MOSTLYCLEANFILES = *~ *.o
 MAINTAINERCLEANFILES = Makefile.in
 all: all-recursive

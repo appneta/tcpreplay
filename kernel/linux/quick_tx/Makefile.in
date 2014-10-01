@@ -249,6 +249,7 @@ timestamp_trace_flag = @timestamp_trace_flag@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+EXTRA_DIST = kcompat.h Makefile.kernel Makefile.common
 automake_dummy_SOURCES = quick_tx_main.c \
 						quick_tx_mmap.c \
 						quick_tx_worker.c
