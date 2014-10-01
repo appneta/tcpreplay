@@ -233,6 +233,8 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	if (skb->len < 17) {
 		skb->end += (skb->len - 17);
 		memset(skb->data + skb->len, 0, (skb->len - 17));
+		skb->len = 17;
+		skb_set_tail_pointer(skb, 17);
 	}
 
 	/* make sure we initialize shinfo sequentially */
