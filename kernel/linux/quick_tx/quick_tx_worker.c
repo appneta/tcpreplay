@@ -118,12 +118,7 @@ static inline int quick_tx_send_one_skb(struct quick_tx_skb *qtx_skb,
 	atomic_set(&qtx_skb->skb.users, 2);
 
 retry_send:
-//	if (qtx_skb->skb.len < 17) {
-//		qtx_error("Preventing send, because of skb_pad (len = %d)", qtx_skb->skb.len);
-//		status = NETDEV_TX_OK;
-//	} else {
 	status = quick_tx_dev_queue_xmit(&qtx_skb->skb, netdev, txq);
-//	}
 	(*done)++;
 
 	switch(status) {
@@ -191,7 +186,7 @@ out:
 	return status;
 }
 
-static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev * dev, unsigned int data_size, gfp_t gfp_mask,
+static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev * dev, unsigned int data_length, unsigned int aligned_length, gfp_t gfp_mask,
 			    int flags, int node, u8 *data, unsigned int full_size)
 {
 	struct skb_shared_info *shinfo;
@@ -217,25 +212,24 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 
 	memset(skb, 0, offsetof(struct sk_buff, tail));
 
-	skb->truesize = SKB_TRUESIZE(SKB_DATA_ALIGN(data_size));
+	skb->truesize = SKB_TRUESIZE(aligned_length);
 	atomic_set(&skb->users, 1);
 	skb->head = data;
 	skb->data = data;
 	skb_reset_tail_pointer(skb);
-	skb->end = skb->tail + data_size;
+	skb->end = skb->tail + data_length;
 #ifdef NET_SKBUFF_DATA_USES_OFFSET
 	skb->mac_header = ~0U;
 	skb->transport_header = ~0U;
 #endif
 
 	skb_reserve(skb, NET_SKB_PAD);
-	skb_put(skb, data_size - NET_SKB_PAD);
+	skb_put(skb, data_length - NET_SKB_PAD);
 
 	/* user space will handle adding space for padding */
 	if (skb->len < ETH_ZLEN) {
-		qtx_error("Padding skb (%p) len to %d", skb, ETH_ZLEN);
-		skb->end += (skb->len - ETH_ZLEN);
-		memset(skb->data + skb->len, 0, (skb->len - ETH_ZLEN));
+		skb->end += (ETH_ZLEN - skb->len);
+		memset(skb->data + skb->len, 0, (ETH_ZLEN - skb->len));
 		skb->len = ETH_ZLEN;
 		skb_set_tail_pointer(skb, ETH_ZLEN);
 	}
@@ -282,6 +276,7 @@ void quick_tx_worker(struct work_struct *work)
 	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_consumer_index;
 	struct quick_tx_dma_block_entry* dma_block;
 	struct netdev_queue *txq;
+	u32 aligned_length = 0;
 	u32 full_size = 0;
 
 	qtx_error("Starting quick_tx_worker");
@@ -303,10 +298,9 @@ void quick_tx_worker(struct work_struct *work)
 
 		rmb();
 		if (entry->length > 0 && entry->consumed == 0) {
-			BUG_ON(entry->length < 17);
-
 			/* Calculate full size of the space required to packet */
-			full_size = SKB_DATA_ALIGN(SKB_DATA_ALIGN(NET_SKB_PAD + entry->length) + sizeof(struct skb_shared_info));
+			aligned_length = SKB_DATA_ALIGN(max((u32)ETH_ZLEN, NET_SKB_PAD + entry->length));
+			full_size = SKB_DATA_ALIGN(aligned_length + sizeof(struct skb_shared_info));
 
 			/* Get the DMA block our packet is in */
 			dma_block = &data->dma_blocks[entry->dma_block_index];
@@ -316,7 +310,7 @@ void quick_tx_worker(struct work_struct *work)
 			wmb();
 
 			/* Fill up skb with data at the DMA block address + offset */
-			qtx_skb = quick_tx_alloc_skb_fill(dev, NET_SKB_PAD + entry->length, GFP_NOWAIT,
+			qtx_skb = quick_tx_alloc_skb_fill(dev, NET_SKB_PAD + entry->length, aligned_length, GFP_NOWAIT,
 					0, NUMA_NO_NODE, dma_block->kernel_addr + entry->block_offset, full_size);
 			if (unlikely(!qtx_skb)) {
 				atomic_dec(&dma_block->users);

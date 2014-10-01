@@ -40,6 +40,7 @@
 #include <math.h>
 #include <sys/ioctl.h>
 #include <asm-generic/ioctl.h>
+#include <sys/param.h>
 #include <linux/if_ether.h>
 typedef enum { false, true } bool;
 
@@ -561,12 +562,8 @@ send_retry:
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
-		if (length < ETH_ZLEN)
-			full_length = SKB_DATA_ALIGN(data->prefix_len + ETH_ZLEN, data->smp_cache_bytes);
-		else
-			full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes);
-
-		full_length = SKB_DATA_ALIGN(entry->length + data->postfix_len, data->smp_cache_bytes);
+		full_length = SKB_DATA_ALIGN(MAX(ETH_ZLEN, data->prefix_len + length), data->smp_cache_bytes); // TODO review
+		full_length = SKB_DATA_ALIGN(full_length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
 		while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
@@ -610,11 +607,11 @@ send_retry:
 	} else {
 		if (!__check_error_flags(dev->data))
 			return false;
-
 		__wake_up_module(dev);
 		__poll_for_lookup(dev);
 
 		num_lookup_sleeps++;
+
 		goto send_retry;
 	}
 }
