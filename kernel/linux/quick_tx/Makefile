@@ -105,7 +105,7 @@ AUTOMAKE = ${SHELL} /home/fklassen/git/tcpreplay/config/missing --run automake-1
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -D_U_="__attribute__((unused))"  -Wall -O3 -std=gnu99     -I/usr/include
+CFLAGS = -D_U_="__attribute__((unused))"  -Wall -O3 -std=gnu99 -Wno-format-contains-nul     -I/usr/include
 CPP = gcc -E
 CPPFLAGS = 
 CUT = /usr/bin/cut
@@ -167,10 +167,10 @@ OTOOL64 =
 PACKAGE = tcpreplay
 PACKAGE_BUGREPORT = 
 PACKAGE_NAME = tcpreplay
-PACKAGE_STRING = tcpreplay 4.0.6
+PACKAGE_STRING = tcpreplay nodefine
 PACKAGE_TARNAME = tcpreplay
 PACKAGE_URL = http://tcpreplay.appneta.com/
-PACKAGE_VERSION = 4.0.6
+PACKAGE_VERSION = nodefine
 PATH_SEPARATOR = :
 PCAP_BPF_H_FILE = /usr/include/pcap/bpf.h
 POSIX_SHELL = /bin/bash
@@ -182,7 +182,7 @@ SHELL = /bin/bash
 STRIP = strip
 TCPREPLAY_RELEASE = 1
 TCPREPLAY_VERSION = 4.0.6beta1
-VERSION = 4.0.6
+VERSION = nodefine
 abs_builddir = /home/fklassen/git/tcpreplay/kernel/linux/quick_tx
 abs_srcdir = /home/fklassen/git/tcpreplay/kernel/linux/quick_tx
 abs_top_builddir = /home/fklassen/git/tcpreplay

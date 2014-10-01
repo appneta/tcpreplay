@@ -1,7 +1,7 @@
 
 dnl $Id$
 
-AC_INIT([tcpreplay], [4.0.6])
+AC_INIT([tcpreplay], nodefine)
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -30,7 +30,7 @@ AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
 USER_CFLAGS=$CFLAGS
-CFLAGS="${CFLAGS} -Wall -O3 -std=gnu99"
+CFLAGS="${CFLAGS} -Wall -O3 -std=gnu99 -Wno-format-contains-nul"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -111,20 +111,7 @@ AC_HEADER_STDC
 AC_HEADER_MAJOR
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
-AC_C_INLINE
-AC_TYPE_INT16_T
-AC_TYPE_INT32_T
-AC_TYPE_INT64_T
-AC_TYPE_INT8_T
-AC_TYPE_OFF_T
-AC_TYPE_PID_T
 AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT64_T
-AC_TYPE_UINT8_T
 AC_HEADER_TIME
 AC_C_CONST
 AC_C_INLINE
@@ -218,7 +205,7 @@ AC_FUNC_MKTIME
 AC_FUNC_MMAP
 AC_FUNC_REALLOC
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
-AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday inet_ntoa memmove memset munmap pow putenv realpath regcomp select socket strcasecmp strchr strcspn strdup strerror strpbrk strrchr strspn strstr strtol strtoul strtoull])
+AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday ctime inet_ntoa memmove memset munmap pow putenv realpath regcomp strdup select socket strcasecmp strchr strcspn strdup strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf strsignal strpbrk strrchr strspn strstr strtoul])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
@@ -1530,7 +1517,8 @@ esac
 
 LIBOPTS_CHECK(libopts)
 
-AC_CONFIG_FILES([Makefile
+
+AC_OUTPUT([Makefile
            doxygen.cfg
            lib/Makefile
            docs/Makefile
@@ -1546,7 +1534,6 @@ AC_CONFIG_FILES([Makefile
            test/Makefile
            test/config
            scripts/Makefile])
-AC_OUTPUT
 
 # Configuration results
 AC_MSG_RESULT(

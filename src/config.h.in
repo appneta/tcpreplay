@@ -87,6 +87,9 @@
 /* Define to 1 if you have the `chmod' function. */
 #undef HAVE_CHMOD
 
+/* Define to 1 if you have the `ctime' function. */
+#undef HAVE_CTIME
+
 /* Building Cygwin */
 #undef HAVE_CYGWIN
 
@@ -260,6 +263,9 @@
 /* Define to 1 if you have the <net/route.h> header file. */
 #undef HAVE_NET_ROUTE_H
 
+/* Define to 1 if you have the `ntohll' function. */
+#undef HAVE_NTOHLL
+
 /* Building Open BSD */
 #undef HAVE_OPENBSD
 
@@ -301,6 +307,9 @@
 
 /* Define to 1 if the system has the type `pid_t'. */
 #undef HAVE_PID_T
+
+/* Define to 1 if you have the `poll' function. */
+#undef HAVE_POLL
 
 /* Define to 1 if you have the <poll.h> header file. */
 #undef HAVE_POLL_H
@@ -392,6 +401,9 @@
 
 /* Define to 1 if you have the `strlcpy' function. */
 #undef HAVE_STRLCPY
+
+/* Define to 1 if you have the `strncpy' function. */
+#undef HAVE_STRNCPY
 
 /* Define to 1 if you have the `strpbrk' function. */
 #undef HAVE_STRPBRK
@@ -518,6 +530,9 @@
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
 
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
+
 /* Define to 1 if you have the <wchar.h> header file. */
 #undef HAVE_WCHAR_H
 
@@ -538,9 +553,6 @@
 
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
-
-/* Define to 1 if the system has the type `_Bool'. */
-#undef HAVE__BOOL
 
 /* What is the path (if any) to the libpcap bpf header file? */
 #undef INCLUDE_PCAP_BPF_HEADER
@@ -657,21 +669,6 @@
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
 
-/* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
-   #define below would cause a syntax error. */
-#undef _UINT32_T
-
-/* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
-   #define below would cause a syntax error. */
-#undef _UINT64_T
-
-/* Define for Solaris 2.5.1 so the uint8_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
-   #define below would cause a syntax error. */
-#undef _UINT8_T
-
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 
@@ -681,27 +678,8 @@
 #undef inline
 #endif
 
-/* Define to the type of a signed integer type of width exactly 16 bits if
-   such a type exists and the standard includes do not define it. */
-#undef int16_t
-
-/* Define to the type of a signed integer type of width exactly 32 bits if
-   such a type exists and the standard includes do not define it. */
-#undef int32_t
-
-/* Define to the type of a signed integer type of width exactly 64 bits if
-   such a type exists and the standard includes do not define it. */
-#undef int64_t
-
-/* Define to the type of a signed integer type of width exactly 8 bits if such
-   a type exists and the standard includes do not define it. */
-#undef int8_t
-
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc
-
-/* Define to `long int' if <sys/types.h> does not define. */
-#undef off_t
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t
@@ -711,9 +689,6 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
-
-/* Define to `int' if <sys/types.h> does not define. */
-#undef ssize_t
 
 /* Define to `uint16_t' if <sys/types.h> does not define. */
 #undef u_int16_t
@@ -726,22 +701,6 @@
 
 /* Define to `uint8_t' if <sys/types.h> does not define. */
 #undef u_int8_t
-
-/* Define to the type of an unsigned integer type of width exactly 16 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint16_t
-
-/* Define to the type of an unsigned integer type of width exactly 32 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint32_t
-
-/* Define to the type of an unsigned integer type of width exactly 64 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint64_t
-
-/* Define to the type of an unsigned integer type of width exactly 8 bits if
-   such a type exists and the standard includes do not define it. */
-#undef uint8_t
 
 /* Define as `fork' if `vfork' does not work. */
 #undef vfork
