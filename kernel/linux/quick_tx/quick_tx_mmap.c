@@ -90,12 +90,14 @@ void quick_tx_vm_dma_close(struct vm_area_struct *vma)
 
 	if (dev->shared_data->num_dma_blocks > 0) {
 #if DMA_COHERENT
-		dma_free_coherent(&dev->netdev->dev, dev->shared_data->dma_block_page_num * PAGE_SIZE,
-				dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].kernel_addr,
-				(dma_addr_t)dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].dma_handle);
-#else
-		kfree(dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].kernel_addr);
+		if (dev->using_dma_coherent)
+			dma_free_coherent(&dev->netdev->dev, dev->shared_data->dma_block_page_num * PAGE_SIZE,
+					dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].kernel_addr,
+					(dma_addr_t)dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].dma_handle);
+		else
 #endif
+			kfree(dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks - 1].kernel_addr);
+
 		dev->shared_data->num_dma_blocks--;
 	} else {
 		qtx_error("Cannot unmap a DMA block! no more blocks to unmap");
@@ -204,10 +206,13 @@ int quick_tx_mmap_dma_block(struct file * file, struct vm_area_struct * vma)
 	entry = &dev->shared_data->dma_blocks[dev->shared_data->num_dma_blocks];
 
 #if DMA_COHERENT
-	if ((dma_block_p = dma_alloc_coherent(dev->netdev->dev.parent, dev->shared_data->dma_block_page_num * PAGE_SIZE, (dma_addr_t*)&entry->dma_handle, GFP_KERNEL)) == NULL)
-#else
-	if ((dma_block_p = kmalloc(dev->shared_data->dma_block_page_num * PAGE_SIZE, GFP_KERNEL)) == NULL)
+	if (dev->using_dma_coherent)
+		dma_block_p = dma_alloc_coherent(dev->netdev->dev.parent, dev->shared_data->dma_block_page_num * PAGE_SIZE, (dma_addr_t*)&entry->dma_handle, GFP_KERNEL);
+	else
 #endif
+		dma_block_p = kmalloc(dev->shared_data->dma_block_page_num * PAGE_SIZE, GFP_KERNEL);
+
+	if (!dma_block_p)
 	{
 		qtx_error("Could not allocate memory for device, exiting");
 		qtx_error("Dma mappping errors: %d", dma_mapping_error(dev->netdev->dev.parent, (dma_addr_t)&entry->dma_handle));
@@ -239,10 +244,12 @@ int quick_tx_mmap_dma_block(struct file * file, struct vm_area_struct * vma)
 
 error_map:
 #if DMA_COHERENT
-	dma_free_coherent(&dev->netdev->dev, dev->shared_data->dma_block_page_num * PAGE_SIZE, dma_block_p, (dma_addr_t)entry->dma_handle);
-#else
-	kfree(dma_block_p);
+	if (dev->using_dma_coherent)
+		dma_free_coherent(&dev->netdev->dev, dev->shared_data->dma_block_page_num * PAGE_SIZE, dma_block_p, (dma_addr_t)entry->dma_handle);
+	else
 #endif
+		kfree(dma_block_p);
+
 error:
 	mutex_unlock(&dev->mtx);
 	return ret;

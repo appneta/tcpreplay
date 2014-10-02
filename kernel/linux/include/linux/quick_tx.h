@@ -133,6 +133,7 @@ struct quick_tx_skb {
 	struct sk_buff skb;
 };
 
+struct quick_tx_ops;
 struct quick_tx_dev {
 	struct miscdevice quick_tx_misc;
 
@@ -146,6 +147,8 @@ struct quick_tx_dev {
 	struct quick_tx_shared_data *shared_data;
 	struct work_struct tx_work;
 	struct workqueue_struct* tx_workqueue;
+
+	const struct quick_tx_ops* ops;
 
 	bool registered;
 	bool currently_used;
@@ -165,6 +168,10 @@ struct quick_tx_dev {
 	wait_queue_head_t user_dma_q;
 	wait_queue_head_t user_lookup_q;
 	struct mutex mtx;
+
+#ifdef DMA_COHERENT
+	bool using_dma_coherent;
+#endif
 
 	/* Statistics */
 	u64 num_tq_frozen_or_stopped;
@@ -192,9 +199,18 @@ struct quick_tx_dev {
 
 };
 
+struct quick_tx_ops {
+	int		(*xmit_one_skb)(struct sk_buff *, struct net_device *, struct netdev_queue *);
+	void	(*wait_free_skb)(struct quick_tx_dev *);
+};
+
+extern const struct quick_tx_ops quick_tx_default_ops;
+extern const struct quick_tx_ops quick_tx_virtio_net_ops;
+
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
 extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
+extern inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq);
 extern int quick_tx_mmap(struct file * file, struct vm_area_struct * vma);
 
 extern void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev);

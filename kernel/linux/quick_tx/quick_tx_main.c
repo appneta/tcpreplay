@@ -23,6 +23,30 @@ struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 u32 num_quick_tx_devs;
 DEFINE_MUTEX(init_mutex);
 
+#define VIRTIO_NET_NAME "virtio_net"
+
+static void quick_tx_set_ops(struct quick_tx_dev *dev)
+{
+	struct ethtool_drvinfo *info = NULL;
+
+
+//	if (dev->netdev->ethtool_ops) {
+//		dev->netdev->ethtool_ops->get_drvinfo(dev->netdev, info);
+//		if (info) {
+//			if (strncmp(info->driver, VIRTIO_NET_NAME, 32) == 0) {
+//				dev->ops = &quick_tx_virtio_net_ops;
+//				qtx_error("Set %s operations", VIRTIO_NET_NAME);
+//				return;
+//			}
+//		}
+//	}
+
+	dev->ops = &quick_tx_default_ops;
+	qtx_error("Set default operations");
+	return;
+}
+
+
 void quick_tx_calc_mbps(struct quick_tx_dev *dev)
 {
 	u64 ns = ktime_to_ns(dev->time_end_tx) - ktime_to_ns(dev->time_start_tx);
@@ -153,6 +177,11 @@ static int quick_tx_init(void)
 	struct net_device *netdev;
 	struct quick_tx_dev *dev;
 
+#ifdef DMA_COHERENT
+	dma_addr_t dma_handle;
+	void *dma_addr;
+#endif
+
 	mutex_lock(&init_mutex);
 
 	read_lock(&dev_base_lock);
@@ -184,6 +213,21 @@ static int quick_tx_init(void)
 			init_waitqueue_head(&dev->user_lookup_q);
 			init_waitqueue_head(&dev->kernel_lookup_q);
 			mutex_init(&dev->mtx);
+
+
+#ifdef DMA_COHERENT
+			dma_addr = dma_alloc_coherent(dev->netdev->dev.parent, PAGE_SIZE, &dma_handle, GFP_KERNEL);
+
+			if (dma_addr) {
+				dma_free_coherent(&dev->netdev->dev, PAGE_SIZE, dma_addr, dma_handle);
+				dev->using_dma_coherent = true;
+			} else
+				dev->using_dma_coherent = false;
+#endif
+
+			qtx_error("set using_dma_coherent to %d", dev->using_dma_coherent);
+
+			quick_tx_set_ops(dev);
 
 			i++;
 		}

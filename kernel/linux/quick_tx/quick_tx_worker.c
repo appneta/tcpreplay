@@ -19,7 +19,6 @@
 #include <linux/quick_tx.h>
 #include <net/sch_generic.h>
 
-
 static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *flag) {
 	*flag = 1;
 	wmb();
@@ -89,7 +88,7 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 	return freed;
 }
 
-static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq)
+inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq)
 {
 	int status = -ENETDOWN;
 
@@ -97,25 +96,10 @@ static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device
 	if (likely(dev->flags & IFF_UP)) {
 		if (!netif_tx_queue_stopped(txq))
 			status = dev->netdev_ops->ndo_start_xmit(skb, dev);
-		else {
-			smp_rmb();
-			if (!netif_tx_queue_stopped(txq))
-				status = dev->netdev_ops->ndo_start_xmit(skb, dev);
-			else
-				goto sleep;
-		}
-
-		__netif_tx_unlock_bh(txq);
-		goto out;
 	}
-
-sleep:
 	__netif_tx_unlock_bh(txq);
-	schedule_timeout_interruptible(1);
-out:
+
 	return status;
-
-
 }
 
 
@@ -258,9 +242,19 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	return qtx_skb;
 }
 
+static void inline quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
+	struct napi_struct *napi;
+	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
+		napi_schedule(napi);
+	}
+	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
+		napi_synchronize(napi);
+	}
+}
+
 static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq)
 {
-	struct napi_struct *napi;
+
 	/* flush all remaining SKB's in the list before exiting */
 	quick_tx_do_xmit(NULL, txq, dev, 0, true);
 	dev->time_end_tx = ktime_get_real();
@@ -271,14 +265,7 @@ static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_
 	 * as well before exiting so we do not have any memory leaks */
 	while(!list_empty(&dev->skb_wait_list.list)) {
 		quick_tx_free_skb(dev, true);
-
-		/* schedule and wait until napi polling is complete */
-		list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-			napi_schedule(napi);
-		}
-		list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-			napi_synchronize(napi);
-		}
+		dev->ops->wait_free_skb(dev);
 	}
 
 	qtx_error("Done freeing free_skb_list");
@@ -388,3 +375,19 @@ void quick_tx_worker(struct work_struct *work)
 
 	return;
 }
+
+
+const struct quick_tx_ops quick_tx_default_ops = {
+	.xmit_one_skb = quick_tx_dev_queue_xmit,
+	.wait_free_skb = quick_tx_wait_free_skb
+};
+
+
+
+
+
+
+
+
+
+
