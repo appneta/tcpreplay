@@ -40,6 +40,8 @@
 #include <math.h>
 #include <sys/ioctl.h>
 #include <asm-generic/ioctl.h>
+#include <sys/param.h>
+#include <linux/if_ether.h>
 typedef enum { false, true } bool;
 
 #define __u64 	u_int64_t
@@ -131,6 +133,7 @@ struct quick_tx_skb {
 	struct sk_buff skb;
 };
 
+struct quick_tx_ops;
 struct quick_tx_dev {
 	struct miscdevice quick_tx_misc;
 
@@ -144,6 +147,8 @@ struct quick_tx_dev {
 	struct quick_tx_shared_data *shared_data;
 	struct work_struct tx_work;
 	struct workqueue_struct* tx_workqueue;
+
+	const struct quick_tx_ops* ops;
 
 	bool registered;
 	bool currently_used;
@@ -163,6 +168,10 @@ struct quick_tx_dev {
 	wait_queue_head_t user_dma_q;
 	wait_queue_head_t user_lookup_q;
 	struct mutex mtx;
+
+#ifdef DMA_COHERENT
+	bool using_dma_coherent;
+#endif
 
 	/* Statistics */
 	u64 num_tq_frozen_or_stopped;
@@ -190,9 +199,20 @@ struct quick_tx_dev {
 
 };
 
+struct quick_tx_ops {
+	int		(*xmit_one_skb)(struct sk_buff *, struct net_device *, struct netdev_queue *);
+	void	(*wait_free_skb)(struct quick_tx_dev *);
+};
+
+extern const struct quick_tx_ops quick_tx_default_ops;
+extern const struct quick_tx_ops quick_tx_virtio_net_ops;
+extern const struct quick_tx_ops quick_tx_e1000_ops;
+
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
 extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
+extern inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq);
+extern inline void quick_tx_wait_free_skb(struct quick_tx_dev *dev);
 extern int quick_tx_mmap(struct file * file, struct vm_area_struct * vma);
 
 extern void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev);
@@ -448,7 +468,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 		/* We can still fit the data in current DMA block */
 		*write_offset = data->dma_producer_offset;
 		*dma_block_index = data->dma_producer_index;
-		data->dma_producer_offset = PAGE_ALIGN(data->dma_producer_offset + length);
+		data->dma_producer_offset = /*PAGE_ALIGN*/(data->dma_producer_offset + length);
 	} else {
 		__u32 new_dma_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
@@ -484,7 +504,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 
 		/* Increment the offset counters and dma block index */
 		data->dma_producer_index = new_dma_producer_index;
-		data->dma_producer_offset = PAGE_ALIGN(length);
+		data->dma_producer_offset = /*PAGE_ALIGN*/(length);
 
 		/* Set return values, 0 since we are starting at the beginning of the block*/
 		*write_offset = 0;
@@ -560,8 +580,8 @@ send_retry:
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
-		full_length = SKB_DATA_ALIGN(data->prefix_len + length, data->smp_cache_bytes); // TODO review
-		full_length = SKB_DATA_ALIGN(entry->length + data->postfix_len, data->smp_cache_bytes);
+		full_length = SKB_DATA_ALIGN(MAX(ETH_ZLEN, data->prefix_len + length), data->smp_cache_bytes); // TODO review
+		full_length = SKB_DATA_ALIGN(full_length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
 		while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
@@ -605,29 +625,9 @@ send_retry:
 	} else {
 		if (!__check_error_flags(dev->data))
 			return false;
-
-//		struct pollfd pfd;
-//		memset(&pfd, 0, sizeof(pfd));
-//		pfd.events = POLL_LOOKUP;
-//		pfd.fd = dev->fd;
-
-
 		__wake_up_module(dev);
 		__poll_for_lookup(dev);
 
-
-		//printf("Sent ioctl from sleep %d\n", numsleeps);
-
-		//wmb();
-//		data->producer_poll_flag = 0;
-//		wmb();
-
-//		poll(&pfd, 1, 1000);
-//		if (!(pfd.revents & (POLL_LOOKUP))) {
-//			printf("Timeout for lookup! \n");
-//		}
-
-//		usleep(1);
 		num_lookup_sleeps++;
 
 		goto send_retry;
