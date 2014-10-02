@@ -25,17 +25,30 @@ DEFINE_MUTEX(init_mutex);
 
 #define VIRTIO_NET_NAME "virtio_net"
 
+const char *netdev_drivername(const struct net_device *dev)
+{
+	const struct device_driver *driver;
+	const struct device *parent;
+	const char *empty = "";
+
+	parent = dev->dev.parent;
+	if (!parent)
+		return empty;
+
+	driver = parent->driver;
+	if (driver && driver->name)
+		return driver->name;
+	return empty;
+}
+
 static void quick_tx_set_ops(struct quick_tx_dev *dev)
 {
 	struct ethtool_drvinfo info;
 
-	if (dev->netdev->ethtool_ops && dev->netdev->ethtool_ops->get_drvinfo) {
-		dev->netdev->ethtool_ops->get_drvinfo(dev->netdev, &info);
-		if (strncmp(info.driver, VIRTIO_NET_NAME, 32) == 0) {
-			dev->ops = &quick_tx_virtio_net_ops;
-			qtx_error("Set %s operations", VIRTIO_NET_NAME);
-			return;
-		}
+	if (!strncmp(netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
+		dev->ops = &quick_tx_virtio_net_ops;
+		qtx_error("Set %s operations", VIRTIO_NET_NAME);
+		return;
 	}
 
 	dev->ops = &quick_tx_default_ops;
