@@ -450,7 +450,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 		/* We can still fit the data in current DMA block */
 		*write_offset = data->dma_producer_offset;
 		*dma_block_index = data->dma_producer_index;
-		data->dma_producer_offset = PAGE_ALIGN(data->dma_producer_offset + length);
+		data->dma_producer_offset = /*PAGE_ALIGN*/(data->dma_producer_offset + length);
 	} else {
 		__u32 new_dma_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
@@ -486,7 +486,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 
 		/* Increment the offset counters and dma block index */
 		data->dma_producer_index = new_dma_producer_index;
-		data->dma_producer_offset = PAGE_ALIGN(length);
+		data->dma_producer_offset = /*PAGE_ALIGN*/(length);
 
 		/* Set return values, 0 since we are starting at the beginning of the block*/
 		*write_offset = 0;

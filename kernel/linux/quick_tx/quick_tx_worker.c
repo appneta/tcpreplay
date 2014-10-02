@@ -95,7 +95,13 @@ static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device
 
 	__netif_tx_lock_bh(txq);
 	if (likely(dev->flags & IFF_UP)) {
-		status = dev->netdev_ops->ndo_start_xmit(skb, dev);
+		if (!netif_tx_queue_stopped(txq))
+			status = dev->netdev_ops->ndo_start_xmit(skb, dev);
+		else {
+			smp_rmb();
+			if (!netif_tx_queue_stopped(txq))
+				status = dev->netdev_ops->ndo_start_xmit(skb, dev);
+		}
 	}
 	__netif_tx_unlock_bh(txq);
 
