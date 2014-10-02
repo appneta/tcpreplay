@@ -6,3 +6,4 @@
 modules.order
 Module.symvers
 *.mod.c
+Makefile
