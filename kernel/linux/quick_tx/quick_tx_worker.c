@@ -101,11 +101,21 @@ static inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device
 			smp_rmb();
 			if (!netif_tx_queue_stopped(txq))
 				status = dev->netdev_ops->ndo_start_xmit(skb, dev);
+			else
+				goto sleep;
 		}
-	}
-	__netif_tx_unlock_bh(txq);
 
+		__netif_tx_unlock_bh(txq);
+		goto out;
+	}
+
+sleep:
+	__netif_tx_unlock_bh(txq);
+	schedule_timeout_interruptible(1);
+out:
 	return status;
+
+
 }
 
 
@@ -250,6 +260,7 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 
 static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq)
 {
+	struct napi_struct *napi;
 	/* flush all remaining SKB's in the list before exiting */
 	quick_tx_do_xmit(NULL, txq, dev, 0, true);
 	dev->time_end_tx = ktime_get_real();
@@ -260,7 +271,14 @@ static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_
 	 * as well before exiting so we do not have any memory leaks */
 	while(!list_empty(&dev->skb_wait_list.list)) {
 		quick_tx_free_skb(dev, true);
-		schedule_timeout_interruptible(HZ);
+
+		/* schedule and wait until napi polling is complete */
+		list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
+			napi_schedule(napi);
+		}
+		list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
+			napi_synchronize(napi);
+		}
 	}
 
 	qtx_error("Done freeing free_skb_list");
