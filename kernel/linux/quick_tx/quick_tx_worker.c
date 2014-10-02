@@ -21,7 +21,7 @@
 
 static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *flag) {
 	*flag = 1;
-	wmb();
+	smp_wmb();
 	wake_up_all(q);
 }
 
@@ -59,7 +59,7 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 			if (atomic_read(&qtx_skb->skb.users) == 1) {
 				u32 *dma_block_index = (u32*)(qtx_skb->skb.cb + (sizeof(qtx_skb->skb.cb) - sizeof(u32)));
 				atomic_dec(&dev->shared_data->dma_blocks[*dma_block_index].users);
-				wmb();
+				smp_wmb();
 
 				RUN_AT_INVERVAL(quick_tx_wake_up_user_dma(dev), 128, dev->quick_tx_wake_up_dma_counter);
 
@@ -304,7 +304,7 @@ void quick_tx_worker(struct work_struct *work)
 
 	while (true) {
 
-		rmb();
+		smp_rmb();
 		if (entry->length > 0 && entry->consumed == 0) {
 			/* Calculate full size of the space required to packet */
 			aligned_length = SKB_DATA_ALIGN(max((u32)ETH_ZLEN, NET_SKB_PAD + entry->length));
@@ -315,7 +315,7 @@ void quick_tx_worker(struct work_struct *work)
 			atomic_inc(&dma_block->users);
 
 			/* Write memory barrier so that users++ gets executed beforehand */
-			wmb();
+			smp_wmb();
 
 			/* Fill up skb with data at the DMA block address + offset */
 			qtx_skb = quick_tx_alloc_skb_fill(dev, NET_SKB_PAD + entry->length, aligned_length, GFP_NOWAIT,
@@ -344,7 +344,7 @@ void quick_tx_worker(struct work_struct *work)
 
 			/* Set this entry as consumed, increment to next entry */
 			entry->consumed = 1;
-			wmb();
+			smp_wmb();
 
 			RUN_AT_INVERVAL(quick_tx_wake_up_user_lookup(dev), 1024, dev->quick_tx_wake_up_lookup_counter);
 
@@ -362,7 +362,7 @@ void quick_tx_worker(struct work_struct *work)
 
 			dev->numsleeps++;
 			dev->shared_data->kernel_wait_lookup_flag = 0;
-			wmb();
+			smp_wmb();
 
 			/* Free some DMA blocks before going to sleep */
 			if(!list_empty(&dev->skb_queued_list.list))

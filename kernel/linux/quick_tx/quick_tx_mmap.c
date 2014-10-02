@@ -164,7 +164,7 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
 
     dev->shared_data->dma_block_page_num = 2 * (PAGE_ALIGN(dev->netdev->mtu) >> PAGE_SHIFT);
     dev->quit_work = false;
-    wmb();
+    smp_wmb();
 
     qtx_error("pages per DMA block set to %d", dev->shared_data->dma_block_page_num);
 
