@@ -27,19 +27,16 @@ DEFINE_MUTEX(init_mutex);
 
 static void quick_tx_set_ops(struct quick_tx_dev *dev)
 {
-	struct ethtool_drvinfo *info = NULL;
+	struct ethtool_drvinfo info;
 
-
-//	if (dev->netdev->ethtool_ops) {
-//		dev->netdev->ethtool_ops->get_drvinfo(dev->netdev, info);
-//		if (info) {
-//			if (strncmp(info->driver, VIRTIO_NET_NAME, 32) == 0) {
-//				dev->ops = &quick_tx_virtio_net_ops;
-//				qtx_error("Set %s operations", VIRTIO_NET_NAME);
-//				return;
-//			}
-//		}
-//	}
+	if (dev->netdev->ethtool_ops && dev->netdev->ethtool_ops->get_drvinfo) {
+		dev->netdev->ethtool_ops->get_drvinfo(dev->netdev, &info);
+		if (strncmp(info.driver, VIRTIO_NET_NAME, 32) == 0) {
+			dev->ops = &quick_tx_virtio_net_ops;
+			qtx_error("Set %s operations", VIRTIO_NET_NAME);
+			return;
+		}
+	}
 
 	dev->ops = &quick_tx_default_ops;
 	qtx_error("Set default operations");
