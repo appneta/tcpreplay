@@ -23,6 +23,48 @@ struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 u32 num_quick_tx_devs;
 DEFINE_MUTEX(init_mutex);
 
+#define VIRTIO_NET_NAME "virtio_net"
+#define E1000E_NAME "e1000e"
+#define E1000_NAME "e1000"
+
+const char *netdev_drivername(const struct net_device *dev)
+{
+	const struct device_driver *driver;
+	const struct device *parent;
+	const char *empty = "";
+
+	parent = dev->dev.parent;
+	if (!parent)
+		return empty;
+
+	driver = parent->driver;
+	if (driver && driver->name)
+		return driver->name;
+	return empty;
+}
+
+static void quick_tx_set_ops(struct quick_tx_dev *dev)
+{
+	if (!strncmp(netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
+		dev->ops = &quick_tx_virtio_net_ops;
+		qtx_error("Set %s operations", VIRTIO_NET_NAME);
+		return;
+	} else if (!strncmp(netdev_drivername(dev->netdev), E1000E_NAME, strlen(E1000E_NAME))) {
+		dev->ops = &quick_tx_default_ops;
+		qtx_error("Set %s operations", "default");
+		return;
+	} else if (!strncmp(netdev_drivername(dev->netdev), E1000_NAME, strlen(E1000_NAME))) {
+		dev->ops = &quick_tx_e1000_ops;
+		qtx_error("Set %s operations", E1000_NAME);
+		return;
+	}
+
+	dev->ops = &quick_tx_default_ops;
+	qtx_error("Set default operations");
+	return;
+}
+
+
 void quick_tx_calc_mbps(struct quick_tx_dev *dev)
 {
 	u64 ns = ktime_to_ns(dev->time_end_tx) - ktime_to_ns(dev->time_start_tx);
@@ -74,7 +116,7 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 	poll_wait(file, &dev->user_dma_q, wait);
 	poll_wait(file, &dev->user_lookup_q, wait);
 
-	rmb();
+	smp_rmb();
 	if (dev->shared_data->user_wait_dma_flag)
 		mask |= (POLL_DMA);
 	if (dev->shared_data->user_wait_lookup_flag)
@@ -153,6 +195,11 @@ static int quick_tx_init(void)
 	struct net_device *netdev;
 	struct quick_tx_dev *dev;
 
+#ifdef DMA_COHERENT
+	dma_addr_t dma_handle;
+	void *dma_addr;
+#endif
+
 	mutex_lock(&init_mutex);
 
 	read_lock(&dev_base_lock);
@@ -184,6 +231,21 @@ static int quick_tx_init(void)
 			init_waitqueue_head(&dev->user_lookup_q);
 			init_waitqueue_head(&dev->kernel_lookup_q);
 			mutex_init(&dev->mtx);
+
+
+#ifdef DMA_COHERENT
+			dma_addr = dma_alloc_coherent(dev->netdev->dev.parent, PAGE_SIZE, &dma_handle, GFP_KERNEL);
+
+			if (dma_addr) {
+				dma_free_coherent(&dev->netdev->dev, PAGE_SIZE, dma_addr, dma_handle);
+				dev->using_dma_coherent = true;
+			} else
+				dev->using_dma_coherent = false;
+#endif
+
+			qtx_error("set using_dma_coherent to %d", dev->using_dma_coherent);
+
+			quick_tx_set_ops(dev);
 
 			i++;
 		}
