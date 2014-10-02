@@ -242,7 +242,7 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	return qtx_skb;
 }
 
-static void inline quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
+void inline quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
 	struct napi_struct *napi;
 	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
 		napi_schedule(napi);

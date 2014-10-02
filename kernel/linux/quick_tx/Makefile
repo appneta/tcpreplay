@@ -17,7 +17,11 @@ ifneq ($(KERNELRELEASE),)
 # kbuild part of makefile
 
 obj-m += quick_tx.o
-quick_tx-objs := quick_tx_main.o quick_tx_mmap.o quick_tx_worker.o quick_tx_worker_virtio_net.o
+quick_tx-objs := quick_tx_main.o \
+		quick_tx_mmap.o \
+		quick_tx_worker.o \
+		quick_tx_worker_virtio_net.o \
+		quick_tx_worker_e1000.o
 
 else
 # normal makefile

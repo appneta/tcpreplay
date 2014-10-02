@@ -18,13 +18,27 @@
 
 #include <linux/quick_tx.h>
 
-static inline void quick_tx_wait_free_skb_virtio_net(struct quick_tx_dev *dev) {
-	struct sk_buff *skb = __alloc_skb(ETH_ZLEN, GFP_KERNEL, 0, NUMA_NO_NODE);
-	dev->ops->xmit_one_skb(skb, dev->netdev, netdev_get_tx_queue(dev->netdev, 0));
-	schedule_timeout_interruptible(1);
+static inline int quick_tx_dev_queue_xmit_e1000(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq)
+{
+	int status = -ENETDOWN;
+
+	__netif_tx_lock_bh(txq);
+	if (likely(dev->flags & IFF_UP)) {
+		if (!netif_tx_queue_stopped(txq))
+			status = dev->netdev_ops->ndo_start_xmit(skb, dev);
+		else {
+			smp_rmb();
+			if (!netif_tx_queue_stopped(txq))
+				status = dev->netdev_ops->ndo_start_xmit(skb, dev);
+		}
+	}
+	__netif_tx_unlock_bh(txq);
+
+	return status;
 }
 
-const struct quick_tx_ops quick_tx_virtio_net_ops = {
-	.xmit_one_skb = quick_tx_dev_queue_xmit,
-	.wait_free_skb = quick_tx_wait_free_skb_virtio_net
+
+const struct quick_tx_ops quick_tx_e1000_ops = {
+	.xmit_one_skb = quick_tx_dev_queue_xmit_e1000,
+	.wait_free_skb = quick_tx_wait_free_skb
 };

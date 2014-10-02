@@ -206,11 +206,13 @@ struct quick_tx_ops {
 
 extern const struct quick_tx_ops quick_tx_default_ops;
 extern const struct quick_tx_ops quick_tx_virtio_net_ops;
+extern const struct quick_tx_ops quick_tx_e1000_ops;
 
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
 extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
 extern inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq);
+extern inline void quick_tx_wait_free_skb(struct quick_tx_dev *dev);
 extern int quick_tx_mmap(struct file * file, struct vm_area_struct * vma);
 
 extern void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev);

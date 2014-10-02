@@ -24,6 +24,8 @@ u32 num_quick_tx_devs;
 DEFINE_MUTEX(init_mutex);
 
 #define VIRTIO_NET_NAME "virtio_net"
+#define E1000E_NAME "e1000e"
+#define E1000_NAME "e1000"
 
 const char *netdev_drivername(const struct net_device *dev)
 {
@@ -43,11 +45,17 @@ const char *netdev_drivername(const struct net_device *dev)
 
 static void quick_tx_set_ops(struct quick_tx_dev *dev)
 {
-	struct ethtool_drvinfo info;
-
 	if (!strncmp(netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
 		dev->ops = &quick_tx_virtio_net_ops;
 		qtx_error("Set %s operations", VIRTIO_NET_NAME);
+		return;
+	} else if (!strncmp(netdev_drivername(dev->netdev), E1000E_NAME, strlen(E1000E_NAME))) {
+		dev->ops = &quick_tx_default_ops;
+		qtx_error("Set %s operations", "default");
+		return;
+	} else if (!strncmp(netdev_drivername(dev->netdev), E1000_NAME, strlen(E1000_NAME))) {
+		dev->ops = &quick_tx_e1000_ops;
+		qtx_error("Set %s operations", E1000_NAME);
 		return;
 	}
 
