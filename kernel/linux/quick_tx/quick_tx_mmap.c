@@ -91,7 +91,7 @@ void quick_tx_vm_mem_close(struct vm_area_struct *vma)
 	if (dev->shared_data->num_mem_blocks > 0) {
 #if DMA_COHERENT
 		if (dev->using_mem_coherent)
-			dma_free_coherent(&dev->netdev->dev, dev->shared_data->mem_block_page_num * PAGE_SIZE,
+			dma_free_coherent(&dev->netdev->dev, dev->shared_data->num_pages_per_block * PAGE_SIZE,
 					dev->shared_data->mem_blocks[dev->shared_data->num_mem_blocks - 1].kernel_addr,
 					(dma_addr_t)dev->shared_data->mem_blocks[dev->shared_data->num_mem_blocks - 1].mem_handle);
 		else
@@ -162,11 +162,11 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
     dev->shared_data->prefix_len = NET_SKB_PAD;
     dev->shared_data->postfix_len = sizeof(struct skb_shared_info);
 
-    dev->shared_data->mem_block_page_num = 2 * (PAGE_ALIGN(dev->netdev->mtu) >> PAGE_SHIFT);
+    dev->shared_data->num_pages_per_block = 2 * (PAGE_ALIGN(dev->netdev->mtu) >> PAGE_SHIFT);
     dev->quit_work = false;
     smp_wmb();
 
-    qtx_error("pages per DMA block set to %d", dev->shared_data->mem_block_page_num);
+    qtx_error("pages per DMA block set to %d", dev->shared_data->num_pages_per_block);
 
     INIT_WORK(&dev->tx_work, quick_tx_worker);
     dev->tx_workqueue = alloc_workqueue(QUICK_TX_WORKQUEUE, WQ_UNBOUND | WQ_CPU_INTENSIVE | WQ_HIGHPRI, 1);
@@ -195,7 +195,7 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 
     mutex_lock(&dev->mtx);
 
-    if (dev->shared_data && dev->shared_data->num_mem_blocks >= DMA_BLOCK_TABLE_SIZE) {
+    if (dev->shared_data && dev->shared_data->num_mem_blocks >= MEM_BLOCK_TABLE_SIZE) {
     	qtx_error("This device already has the maximum number of DMA blocks mapped to it");
     	return -ENOMEM;
     }
@@ -207,11 +207,11 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 
 #if DMA_COHERENT
 	if (dev->using_mem_coherent)
-		mem_block_p = dma_alloc_coherent(dev->netdev->dev.parent, dev->shared_data->mem_block_page_num * PAGE_SIZE,
+		mem_block_p = dma_alloc_coherent(dev->netdev->dev.parent, dev->shared_data->num_pages_per_block * PAGE_SIZE,
 				(dma_addr_t*)&entry->mem_handle, GFP_KERNEL);
 	else
 #endif
-		mem_block_p = kmalloc(dev->shared_data->mem_block_page_num * PAGE_SIZE, GFP_KERNEL);
+		mem_block_p = kmalloc(dev->shared_data->num_pages_per_block * PAGE_SIZE, GFP_KERNEL);
 
 	if (!mem_block_p)
 	{
@@ -235,7 +235,7 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
     vma->vm_ops = &quick_tx_vma_ops_dma;
 
     entry->kernel_addr = mem_block_p;
-    entry->length = dev->shared_data->mem_block_page_num * PAGE_SIZE;
+    entry->length = dev->shared_data->num_pages_per_block * PAGE_SIZE;
 
     dev->shared_data->num_mem_blocks++;
     wmb();
@@ -247,7 +247,7 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 error_map:
 #if DMA_COHERENT
 	if (dev->using_mem_coherent)
-		dma_free_coherent(&dev->netdev->dev, dev->shared_data->mem_block_page_num * PAGE_SIZE,
+		dma_free_coherent(&dev->netdev->dev, dev->shared_data->num_pages_per_block * PAGE_SIZE,
 				mem_block_p, (dma_addr_t)entry->mem_handle);
 	else
 #endif
@@ -267,7 +267,7 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 	int num_pages = PAGE_ALIGN(vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
 	if (num_pages == QTX_MASTER_PAGE_NUM) {
 		return quick_tx_mmap_master(file, vma);
-	} else if ((dev->shared_data) && num_pages == dev->shared_data->mem_block_page_num) {
+	} else if ((dev->shared_data) && num_pages == dev->shared_data->num_pages_per_block) {
 		return quick_tx_mmap_mem_block(file, vma);
 	} else {
 		qtx_error("Invalid map size!");

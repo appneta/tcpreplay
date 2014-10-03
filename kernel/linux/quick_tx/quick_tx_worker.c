@@ -26,15 +26,15 @@ static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *f
 }
 
 inline void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev) {
-	quick_tx_set_flag_wake_up_queue(&dev->user_mem_q, &dev->shared_data->user_wait_mem_flag);
+	quick_tx_set_flag_wake_up_queue(&dev->user_mem_q, &dev->shared_data->producer_wait_mem_flag);
 }
 
 inline void quick_tx_wake_up_user_lookup(struct quick_tx_dev *dev) {
-	quick_tx_set_flag_wake_up_queue(&dev->user_lookup_q, &dev->shared_data->user_wait_lookup_flag);
+	quick_tx_set_flag_wake_up_queue(&dev->user_lookup_q, &dev->shared_data->producer_wait_lookup_flag);
 }
 
 inline void quick_tx_wake_up_kernel_lookup(struct quick_tx_dev *dev) {
-	quick_tx_set_flag_wake_up_queue(&dev->kernel_lookup_q, &dev->shared_data->kernel_wait_lookup_flag);
+	quick_tx_set_flag_wake_up_queue(&dev->kernel_lookup_q, &dev->shared_data->consumer_wait_lookup_flag);
 }
 
 static inline int quick_tx_clear_skb_list(struct quick_tx_skb *list) {
@@ -298,8 +298,8 @@ void quick_tx_worker(struct work_struct *work)
 
 	txq = netdev_get_tx_queue(dev->netdev, 0);
 
-	dev->shared_data->kernel_wait_lookup_flag = 0;
-	wait_event(dev->kernel_lookup_q, dev->shared_data->kernel_wait_lookup_flag);
+	dev->shared_data->consumer_wait_lookup_flag = 0;
+	wait_event(dev->kernel_lookup_q, dev->shared_data->consumer_wait_lookup_flag);
 	dev->time_start_tx = ktime_get_real();
 
 	while (true) {
@@ -361,7 +361,7 @@ void quick_tx_worker(struct work_struct *work)
 #endif
 
 			dev->numsleeps++;
-			dev->shared_data->kernel_wait_lookup_flag = 0;
+			dev->shared_data->consumer_wait_lookup_flag = 0;
 			smp_wmb();
 
 			/* Free some DMA blocks before going to sleep */
@@ -369,7 +369,7 @@ void quick_tx_worker(struct work_struct *work)
 				quick_tx_do_xmit(NULL, txq, dev, 1, false);
 			quick_tx_free_skb(dev, false);
 
-			wait_event(dev->kernel_lookup_q, dev->shared_data->kernel_wait_lookup_flag);
+			wait_event(dev->kernel_lookup_q, dev->shared_data->consumer_wait_lookup_flag);
 		}
 	}
 

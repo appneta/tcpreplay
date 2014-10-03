@@ -231,7 +231,7 @@ extern void quick_tx_worker(struct work_struct *work);
 	while(0)
 
 #define LOOKUP_TABLE_SIZE			(1 << 17)		/* 128K */
-#define DMA_BLOCK_TABLE_SIZE		(1 << 15)		/* 64K */
+#define MEM_BLOCK_TABLE_SIZE		(1 << 15)		/* 64K */
 
 #define DEV_NAME_PREFIX "quick_tx_"
 #define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
@@ -262,7 +262,7 @@ struct quick_tx_shared_data {
 	__u32 lookup_consumer_index;
 	__u32 lookup_producer_index;
 
-	struct quick_tx_mem_block_entry mem_blocks[DMA_BLOCK_TABLE_SIZE];
+	struct quick_tx_mem_block_entry mem_blocks[MEM_BLOCK_TABLE_SIZE];
 	__u32 mem_producer_index;
 	__u32 mem_producer_offset;
 	__u32 num_mem_blocks;
@@ -273,13 +273,13 @@ struct quick_tx_shared_data {
 	__u32 prefix_len;
 	__u32 postfix_len;
 
-	__u32 mem_block_page_num;
+	__u32 num_pages_per_block;
 
 	__u32 mbps;
 
-	__u8 user_wait_mem_flag;
-	__u8 user_wait_lookup_flag;
-	__u8 kernel_wait_lookup_flag;
+	__u8 producer_wait_mem_flag;
+	__u8 producer_wait_lookup_flag;
+	__u8 consumer_wait_lookup_flag;
 
 } __attribute__((aligned(8)));
 
@@ -313,9 +313,9 @@ struct quick_tx {
  * @return boolean whether the block was successfully mapped
  */
 static inline bool quick_tx_mmap_mem_block(struct quick_tx* dev) {
-	if (dev->data->num_mem_blocks < DMA_BLOCK_TABLE_SIZE) {
+	if (dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
 		unsigned int *map;
-		map = mmap(0, dev->data->mem_block_page_num * PAGE_SIZE,
+		map = mmap(0, dev->data->num_pages_per_block * PAGE_SIZE,
 				PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, 0);
 
 		if (map != MAP_FAILED) {
@@ -348,9 +348,9 @@ static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, __s64 bytes) {
 	if (dev && dev->data) {
 		int num = 0;
 		int num_pages = bytes / 256;
-		while (num_pages > 0 && dev->data->num_mem_blocks < DMA_BLOCK_TABLE_SIZE) {
+		while (num_pages > 0 && dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
 			if (quick_tx_mmap_mem_block(dev)) {
-				num_pages -= dev->data->mem_block_page_num;
+				num_pages -= dev->data->num_pages_per_block;
 				num++;
 			} else
 				break;
@@ -370,7 +370,7 @@ static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, __s64 bytes) {
 static inline int quick_tx_mmap_all_mem_blocks(struct quick_tx* dev) {
 	if (dev && dev->data) {
 		int num = 0;
-		while (dev->data->num_mem_blocks < DMA_BLOCK_TABLE_SIZE) {
+		while (dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
 			if (quick_tx_mmap_mem_block(dev))
 				num++;
 			else
@@ -443,7 +443,7 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		__u32 new_mem_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
 		rmb();
-		new_mem_producer_index = (data->mem_producer_index + 1) % DMA_BLOCK_TABLE_SIZE;
+		new_mem_producer_index = (data->mem_producer_index + 1) % MEM_BLOCK_TABLE_SIZE;
 		struct quick_tx_mem_block_entry* next_mem_block =
 				&data->mem_blocks[new_mem_producer_index];
 
@@ -500,7 +500,7 @@ static inline bool __check_error_flags(struct quick_tx_shared_data* data) {
 }
 
 static inline void __wake_up_module(struct quick_tx* dev) {
-	dev->data->kernel_wait_lookup_flag = 1;
+	dev->data->consumer_wait_lookup_flag = 1;
 	wmb();
 	ioctl(dev->fd, START_TX);
 }
@@ -521,11 +521,11 @@ static inline void __poll_for(struct quick_tx* dev, short events, __u8 *flag) {
 }
 
 static inline void __poll_for_dma(struct quick_tx* dev) {
-	__poll_for(dev, POLL_DMA, &dev->data->user_wait_mem_flag);
+	__poll_for(dev, POLL_DMA, &dev->data->producer_wait_mem_flag);
 }
 
 static inline void __poll_for_lookup(struct quick_tx* dev) {
-	__poll_for(dev, POLL_LOOKUP, &dev->data->user_wait_lookup_flag);
+	__poll_for(dev, POLL_LOOKUP, &dev->data->producer_wait_lookup_flag);
 }
 
 /*
@@ -578,7 +578,7 @@ send_retry:
 		wmb();
 
 		static int qtx_s = 0;
-		if (qtx_s % (DMA_BLOCK_TABLE_SIZE >> 4) == 0) {
+		if (qtx_s % (MEM_BLOCK_TABLE_SIZE >> 4) == 0) {
 			__wake_up_module(dev);
 		}
 		qtx_s++;

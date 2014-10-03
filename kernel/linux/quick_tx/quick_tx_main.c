@@ -117,9 +117,9 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 	poll_wait(file, &dev->user_lookup_q, wait);
 
 	smp_rmb();
-	if (dev->shared_data->user_wait_mem_flag)
+	if (dev->shared_data->producer_wait_mem_flag)
 		mask |= (POLL_DMA);
-	if (dev->shared_data->user_wait_lookup_flag)
+	if (dev->shared_data->producer_wait_lookup_flag)
 		mask |= (POLL_LOOKUP);
 
 	mutex_unlock(&dev->mtx);
