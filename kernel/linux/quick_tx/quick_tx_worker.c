@@ -117,6 +117,7 @@ retry_send:
 
 	switch(status) {
 	case NETDEV_TX_OK:
+		// TODO review
 		txq_trans_update(txq);
 		dev->num_tx_ok_packets++;
 		dev->num_tx_ok_bytes += qtx_skb->skb.len;

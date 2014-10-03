@@ -304,7 +304,7 @@ struct quick_tx {
 	int fd;
 	int map_length;
 	struct quick_tx_shared_data* data;
-	bool stop_mapping;
+	bool stop_auto_mapping;
 };
 
 /*
@@ -323,7 +323,7 @@ static inline bool quick_tx_mmap_mem_block(struct quick_tx* dev) {
 			return true;
 		} else {
 			printf("MAP_FAILED for index %d\n", dev->data->num_mem_blocks);
-			dev->stop_mapping = true;
+			dev->stop_auto_mapping = true;
 		}
 	}
 	return false;
@@ -420,7 +420,7 @@ static inline struct quick_tx* quick_tx_open(char* name) {
 	dev->map_length = map_length;
 	dev->fd = fd;
 	dev->data = data;
-	dev->stop_mapping = false;
+	dev->stop_auto_mapping = false;
 
 	if (!quick_tx_mmap_mem_block(dev)) {
 		perror("[quick_tx] error while mapping DMA block");
@@ -442,22 +442,24 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 	} else {
 		__u32 new_mem_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
-		rmb();
+
 		new_mem_producer_index = (data->mem_producer_index + 1) % MEM_BLOCK_TABLE_SIZE;
 		struct quick_tx_mem_block_entry* next_mem_block =
 				&data->mem_blocks[new_mem_producer_index];
+		rmb();
 
 		if (next_mem_block->length == 0) {
-			if (!dev->stop_mapping) {
+			if (!dev->stop_auto_mapping) {
 				/* If this block has not yet been created, then map it */
 				if (!quick_tx_mmap_mem_block(dev)) {
-					dev->stop_mapping = true;
+					dev->stop_auto_mapping = true;
 				}
 			}
-			if (dev->stop_mapping) {
+			if (dev->stop_auto_mapping) {
 				/* Cannot not map any more blocks so go back to zero */
 				new_mem_producer_index = 0;
 				next_mem_block = &data->mem_blocks[new_mem_producer_index];
+				rmb();
 			}
 		}
 
@@ -467,6 +469,7 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		}
 
 		/* Sanity check */
+		// TODO fix so user doesn't have to know about padding
 		if (length > next_mem_block->length) {
 			printf("Fatal error: Size of padded packet cannot surpass the size of a DMA block! \n");
 			exit(1);
@@ -479,8 +482,6 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		/* Set return values, 0 since we are starting at the beginning of the block*/
 		*write_offset = 0;
 		*mem_block_index = data->mem_producer_index;
-
-		wmb();
 	}
 
 	return true;
@@ -593,6 +594,7 @@ send_retry:
 
 		return __check_error_flags(dev->data);
 	} else {
+	    /* no space in lookup table */
 		if (!__check_error_flags(dev->data))
 			return false;
 		__wake_up_module(dev);
