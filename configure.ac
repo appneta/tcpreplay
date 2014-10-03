@@ -1091,6 +1091,7 @@ dnl ##################################################
 AC_PATH_KERNEL_SOURCE
 
 KERNEL_DIR=
+    OLDCFLAGS="${OLDCFLAGS} -I../kernel/linux/include -I../../kernel/linux/include"
 if test x${no_kernel} != xyes; then
     KERNEL_DIR='kernel'
     AC_DEFINE([HAVE_QUICK_TX], [1],

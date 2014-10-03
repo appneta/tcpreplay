@@ -305,8 +305,35 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
 #ifdef HAVE_NETMAP
     if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+        if (HAVE_OPT(INTF2)) {
+            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in netmap mode");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(CACHEFILE)) {
+            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in netmap mode");
+            ret = -1;
+            goto out;
+        }
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
+    }
+#endif
+
+#ifdef HAVE_QUICK_TX
+    if (!strncmp(intname, "qtx:", 4)) {
+        if (HAVE_OPT(INTF2)) {
+            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in Quick TX mode");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(CACHEFILE)) {
+            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in Quick TX mode");
+            ret = -1;
+            goto out;
+        }
+        options->quick_tx = 1;
+        ctx->sp_type = SP_TYPE_QUICK_TX;
     }
 #endif
 
@@ -333,11 +360,19 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             goto out;
         }
 #ifdef HAVE_NETMAP
-    if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
-        tcpreplay_seterr(ctx, "netmap/vale interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
-        ret = -1;
-        goto out;
-    }
+        if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+            tcpreplay_seterr(ctx, "netmap/vale interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
+            ret = -1;
+            goto out;
+        }
+#endif
+
+#ifdef HAVE_QUICK_TX
+        if (!strncmp(intname, "qtc:", 4)) {
+            tcpreplay_seterr(ctx, "Quick TX interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
+            ret = -1;
+            goto out;
+        }
 #endif
 
         options->intf2_name = safe_strdup(intname);

@@ -85,7 +85,7 @@ AUTOMAKE = ${SHELL} /home/fklassen/git/tcpreplay/config/missing --run automake-1
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -D_U_="__attribute__((unused))"  -Wall -O3 -std=gnu99 -Wno-format-contains-nul     -I/usr/include
+CFLAGS = -D_U_="__attribute__((unused))"  -Wall -O3 -std=gnu99 -Wno-format-contains-nul     -I/usr/include -I../kernel/linux/include -I../../kernel/linux/include
 CPP = gcc -E
 CPPFLAGS = 
 CUT = /usr/bin/cut

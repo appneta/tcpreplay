@@ -149,6 +149,10 @@ typedef struct tcpreplay_opt_s {
     int netmap;
 #endif
 
+#ifdef HAVE_QUICK_TX
+    int quick_tx;
+#endif
+
     /* print flow statistic */
     bool flow_stats;
     int flow_expiry;

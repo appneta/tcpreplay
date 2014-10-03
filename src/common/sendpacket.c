@@ -58,7 +58,9 @@
 #include "defines.h"
 #include "common.h"
 #include "sendpacket.h"
-
+#ifdef HAVE_QUICK_TX
+#include "linux/quick_tx.h"
+#endif
 #ifdef FORCE_INJECT_TX_RING
 /* TX_RING uses PF_PACKET API so don't undef it here */
 #undef HAVE_LIBDNET
@@ -209,6 +211,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t * sendpacket_open_khial(const char *, char *) _U_;
+//static sendpacket_t * sendpacket_open_quick_tx(const char *, char *) _U_;
 static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
 
 /**
@@ -431,6 +434,13 @@ TRY_SEND_AGAIN:
 #endif /* HAVE_NETMAP */
             break;
 
+        case SP_TYPE_QUICK_TX:
+#ifdef HAVE_QUICK_TX
+            /* TODO implement QUICK_TX */
+
+#endif
+            break;
+
         default:
             errx(-1, "Unsupported sp->handle_type = %d", sp->handle_type);
     } /* end case */
@@ -504,6 +514,11 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
         if (sendpacket_type == SP_TYPE_NETMAP)
             sp = (sendpacket_t*)sendpacket_open_netmap(device, errbuf);
         else
+#endif
+#ifdef HAVE_QUICK_TX
+//        if (sendpacket_type == SP_TYPE_QUICK_TX)
+//            sp = (sendpacket_t*)sendpacket_open_quick_tx(device, errbuf);
+//        else
 #endif
 #if defined HAVE_PF_PACKET
             sp = sendpacket_open_pf(device, errbuf);

@@ -42,7 +42,7 @@
 #include <asm-generic/ioctl.h>
 #include <sys/param.h>
 #include <linux/if_ether.h>
-typedef enum { false, true } bool;
+#include <stdbool.h>
 
 #define __u64 	u_int64_t
 #define __u32 	u_int32_t
@@ -240,7 +240,7 @@ extern void quick_tx_worker(struct work_struct *work);
 
 #define DEV_NAME_PREFIX "quick_tx_"
 #define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
-#define FULL_PATH_PREFIX "/dev/"FOLDER_NAME_PREFIX
+#define QTX_FULL_PATH_PREFIX "/dev/"FOLDER_NAME_PREFIX
 
 #define QUICK_TX_ERR_NOT_RUNNING (1 << 0)
 
@@ -288,28 +288,6 @@ struct quick_tx_shared_data {
 
 } __attribute__((aligned(8)));
 
-struct pcap_file_header {
-	__u32 magic;
-	__u16 version_major;
-	__u16 version_minor;
-	__s32 thiszone;	/* gmt to local correction */
-	__u32 sigfigs;	/* accuracy of timL1 cache bytes userspaceestamps */
-	__u32 snaplen;	/* max length saved portion of each pkt */
-	__u32 linktype;	/* data link type (LINKTYPE_*) */
-} __attribute__((packed));
-
-struct pcap_pkthdr_ts {
-	__le32 hts_sec;
-	__le32 hts_usec;
-}  __attribute__((packed));
-
-struct pcap_pkthdr {
-	struct  pcap_pkthdr_ts ts;	/* time stamp */
-	__le32 caplen;				/* length of portion present */
-	__le32 length;					/* length this packet (off wire) */
-}  __attribute__((packed));
-
-
 #ifndef PAGE_ALIGN
 #define __ALIGN_MASK(x, mask)		(((x) + (mask)) & ~(mask))
 #define __ALIGN(x, a)				__ALIGN_MASK(x, (typeof(x))(a) - 1)
@@ -339,7 +317,7 @@ struct quick_tx {
  * @param dev quick_tx structure returned from a quick_tx_open call
  * @return boolean whether the block was successfully mapped
  */
-bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
+static inline bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
 	if (dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
 		unsigned int *map;
 		map = mmap(0, dev->data->dma_block_page_num * PAGE_SIZE,
@@ -371,7 +349,7 @@ bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
  * 			a return of 0 means that there is no more room for further
  * 			allocations
  */
-int quick_tx_alloc_dma_space(struct quick_tx* dev, __s64 bytes) {
+static inline int quick_tx_alloc_dma_space(struct quick_tx* dev, __s64 bytes) {
 	if (dev && dev->data) {
 		int num = 0;
 		int num_pages = bytes / 256;
@@ -394,7 +372,7 @@ int quick_tx_alloc_dma_space(struct quick_tx* dev, __s64 bytes) {
  * @param dev quick_tx structure returned from a quick_tx_open call
  * @return number of dma blocks successfully mapped
  */
-int quick_tx_mmap_all_dma_blocks(struct quick_tx* dev) {
+static inline int quick_tx_mmap_all_dma_blocks(struct quick_tx* dev) {
 	if (dev && dev->data) {
 		int num = 0;
 		while (dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
@@ -414,7 +392,7 @@ int quick_tx_mmap_all_dma_blocks(struct quick_tx* dev) {
  * @param name interface identifier (eth0, eth1)
  * @return pointer to a quick_tx structure or NULL on error
  */
-struct quick_tx* quick_tx_open(char* name) {
+static inline struct quick_tx* quick_tx_open(char* name) {
 	int fd;
 	unsigned int map_length = QTX_MASTER_PAGE_NUM * PAGE_SIZE;
 	unsigned int *map;
@@ -425,7 +403,7 @@ struct quick_tx* quick_tx_open(char* name) {
 		return NULL;
 	}
 
-	strcpy(full_name, FULL_PATH_PREFIX);
+	strcpy(full_name, QTX_FULL_PATH_PREFIX);
 	strcat(full_name, name);
 
 	if ((fd = open(full_name, O_RDWR | O_SYNC)) < 0) {
@@ -461,14 +439,14 @@ struct quick_tx* quick_tx_open(char* name) {
 	return dev;
 }
 
-bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *write_offset, __u32 *dma_block_index) {
+static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *write_offset, __u32 *dma_block_index) {
 	struct quick_tx_shared_data *data = dev->data;
 
 	if (data->dma_producer_offset + length < data->dma_blocks[data->dma_producer_index].length) {
 		/* We can still fit the data in current DMA block */
 		*write_offset = data->dma_producer_offset;
 		*dma_block_index = data->dma_producer_index;
-		data->dma_producer_offset = /*PAGE_ALIGN*/(data->dma_producer_offset + length);
+		data->dma_producer_offset = data->dma_producer_offset + length;
 	} else {
 		__u32 new_dma_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
@@ -504,7 +482,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 
 		/* Increment the offset counters and dma block index */
 		data->dma_producer_index = new_dma_producer_index;
-		data->dma_producer_offset = /*PAGE_ALIGN*/(length);
+		data->dma_producer_offset = length;
 
 		/* Set return values, 0 since we are starting at the beginning of the block*/
 		*write_offset = 0;
@@ -516,7 +494,7 @@ bool inline __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *
 	return true;
 }
 
-bool inline __check_error_flags(struct quick_tx_shared_data* data) {
+static inline bool __check_error_flags(struct quick_tx_shared_data* data) {
 	/* Always check for error flags after each packet, in case we need to exit */
 	if (__builtin_expect(data->error_flags, 0)) {
 		if (data->error_flags & QUICK_TX_ERR_NOT_RUNNING) {
@@ -566,7 +544,7 @@ static inline void __poll_for_lookup(struct quick_tx* dev) {
  * @return 	true if the packet was successfully queued, false if a critical error occurred
  * 			and we close needs to be called
  */
-static  inline bool quick_tx_send_packet(struct quick_tx* dev, const void* buffer, int length) {
+static inline bool quick_tx_send_packet(struct quick_tx* dev, const void* buffer, int length) {
 	struct quick_tx_shared_data *data = dev->data;
 	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_producer_index;
 	int full_length;
@@ -580,7 +558,7 @@ send_retry:
 	if (entry->consumed == 1 || entry->length == 0) {
 
 		/* Calculate the full length required for packet */
-		full_length = SKB_DATA_ALIGN(MAX(ETH_ZLEN, data->prefix_len + length), data->smp_cache_bytes); // TODO review
+		full_length = SKB_DATA_ALIGN(MAX(ETH_ZLEN, data->prefix_len + length), data->smp_cache_bytes);
 		full_length = SKB_DATA_ALIGN(full_length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
@@ -639,7 +617,7 @@ send_retry:
  * @param qtx pointer to a quick_tx structure
  * @return quick_tx object
  */
-void quick_tx_close(struct quick_tx* dev) {
+static inline void quick_tx_close(struct quick_tx* dev) {
 	if (dev) {
 
 		__check_error_flags(dev->data);

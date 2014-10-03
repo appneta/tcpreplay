@@ -19818,6 +19818,7 @@ $as_echo "${kerneldir}" >&6; }
 
 
 KERNEL_DIR=
+    OLDCFLAGS="${OLDCFLAGS} -I../kernel/linux/include -I../../kernel/linux/include"
 if test x${no_kernel} != xyes; then
     KERNEL_DIR='kernel'
 
