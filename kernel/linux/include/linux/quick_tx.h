@@ -43,6 +43,7 @@
 #include <sys/param.h>
 #include <linux/if_ether.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #define __u64 	u_int64_t
 #define __u32 	u_int32_t
@@ -103,13 +104,7 @@ typedef struct {
 #include <asm/cacheflush.h>
 #include "kcompat.h"
 
-
 extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
-
-
-
-//#define QUICK_TX_KERNEL_MODULE
-//#include "user/quick_tx_user.h"
 
 #define qtx_error(fmt, ...) \
 	printk(KERN_ERR pr_fmt("[quick_tx] ERROR: "fmt"\n"), ##__VA_ARGS__)
@@ -235,8 +230,8 @@ extern void quick_tx_worker(struct work_struct *work);
 	} 									\
 	while(0)
 
-#define LOOKUP_TABLE_SIZE			(1 << 17)
-#define DMA_BLOCK_TABLE_SIZE		(1 << 15)
+#define LOOKUP_TABLE_SIZE			(1 << 17)		/* 128K */
+#define DMA_BLOCK_TABLE_SIZE		(1 << 15)		/* 64K */
 
 #define DEV_NAME_PREFIX "quick_tx_"
 #define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
@@ -398,17 +393,14 @@ static inline struct quick_tx* quick_tx_open(char* name) {
 	unsigned int *map;
 	char full_name[256];
 
-	if (name == NULL) {
-		printf("[quick_tx] please pass in a non NULL name \n");
-		return NULL;
-	}
+	assert(name != NULL);
 
 	strcpy(full_name, QTX_FULL_PATH_PREFIX);
 	strcat(full_name, name);
 
 	if ((fd = open(full_name, O_RDWR | O_SYNC)) < 0) {
 		perror("[quick_tx] error while opening device");
-		printf("Please check that the QuickTX module is loaded and the interface name is correct \n");
+		printf("Check that the QuickTX module is loaded and the interface name is correct \n");
 		return NULL;
 	}
 
