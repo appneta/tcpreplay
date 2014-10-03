@@ -109,9 +109,10 @@ static inline int quick_tx_send_one_skb(struct quick_tx_skb *qtx_skb,
 	netdev_tx_t status = NETDEV_TX_BUSY;
 	struct net_device *netdev = qtx_skb->skb.dev;
 
-	atomic_set(&qtx_skb->skb.users, 2);
+	//atomic_set(&qtx_skb->skb.users, 2);
 
 retry_send:
+	atomic_set(&qtx_skb->skb.users, 2);
 	status = quick_tx_dev_queue_xmit(&qtx_skb->skb, netdev, txq);
 	(*done)++;
 

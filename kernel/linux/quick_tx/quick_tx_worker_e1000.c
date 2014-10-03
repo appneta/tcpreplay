@@ -20,21 +20,7 @@
 
 static inline int quick_tx_dev_queue_xmit_e1000(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq)
 {
-	int status = -ENETDOWN;
-
-	__netif_tx_lock_bh(txq);
-	if (likely(dev->flags & IFF_UP)) {
-		if (!netif_tx_queue_stopped(txq))
-			status = dev->netdev_ops->ndo_start_xmit(skb, dev);
-		else {
-			smp_rmb();
-			if (!netif_tx_queue_stopped(txq))
-				status = dev->netdev_ops->ndo_start_xmit(skb, dev);
-		}
-	}
-	__netif_tx_unlock_bh(txq);
-
-	return status;
+	return dev_queue_xmit(skb);
 }
 
 
