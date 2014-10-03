@@ -26,7 +26,7 @@ static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *f
 }
 
 inline void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev) {
-	quick_tx_set_flag_wake_up_queue(&dev->user_dma_q, &dev->shared_data->user_wait_dma_flag);
+	quick_tx_set_flag_wake_up_queue(&dev->user_mem_q, &dev->shared_data->user_wait_mem_flag);
 }
 
 inline void quick_tx_wake_up_user_lookup(struct quick_tx_dev *dev) {
@@ -57,11 +57,11 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 		qtx_skb = list_first_entry(&dev->skb_wait_list.list, struct quick_tx_skb, list);
 		while (qtx_skb != &dev->skb_wait_list) {
 			if (atomic_read(&qtx_skb->skb.users) == 1) {
-				u32 *dma_block_index = (u32*)(qtx_skb->skb.cb + (sizeof(qtx_skb->skb.cb) - sizeof(u32)));
-				atomic_dec(&dev->shared_data->dma_blocks[*dma_block_index].users);
+				u32 *mem_block_index = (u32*)(qtx_skb->skb.cb + (sizeof(qtx_skb->skb.cb) - sizeof(u32)));
+				atomic_dec(&dev->shared_data->mem_blocks[*mem_block_index].users);
 				smp_wmb();
 
-				RUN_AT_INVERVAL(quick_tx_wake_up_user_dma(dev), 128, dev->quick_tx_wake_up_dma_counter);
+				RUN_AT_INVERVAL(quick_tx_wake_up_user_dma(dev), 128, dev->quick_tx_wake_up_mem_counter);
 
 				list_del_init(&qtx_skb->list);
 
@@ -282,7 +282,7 @@ void quick_tx_worker(struct work_struct *work)
 	struct sk_buff *skb;
 	struct quick_tx_shared_data *data = dev->shared_data;
 	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_consumer_index;
-	struct quick_tx_dma_block_entry* dma_block;
+	struct quick_tx_mem_block_entry* mem_block;
 	struct netdev_queue *txq;
 	u32 aligned_length = 0;
 	u32 full_size = 0;
@@ -311,26 +311,26 @@ void quick_tx_worker(struct work_struct *work)
 			full_size = SKB_DATA_ALIGN(aligned_length + sizeof(struct skb_shared_info));
 
 			/* Get the DMA block our packet is in */
-			dma_block = &data->dma_blocks[entry->dma_block_index];
-			atomic_inc(&dma_block->users);
+			mem_block = &data->mem_blocks[entry->mem_block_index];
+			atomic_inc(&mem_block->users);
 
 			/* Write memory barrier so that users++ gets executed beforehand */
 			smp_wmb();
 
 			/* Fill up skb with data at the DMA block address + offset */
 			qtx_skb = quick_tx_alloc_skb_fill(dev, NET_SKB_PAD + entry->length, aligned_length, GFP_NOWAIT,
-					0, NUMA_NO_NODE, dma_block->kernel_addr + entry->block_offset, full_size);
+					0, NUMA_NO_NODE, mem_block->kernel_addr + entry->block_offset, full_size);
 			if (unlikely(!qtx_skb)) {
-				atomic_dec(&dma_block->users);
+				atomic_dec(&mem_block->users);
 				qtx_error("ALLOC_ERROR: Decrement on %d. Users at = %d",
-						entry->dma_block_index, atomic_read(&dma_block->users));
+						entry->mem_block_index, atomic_read(&mem_block->users));
 				continue;
 			}
 
 			skb = &qtx_skb->skb;
 
 			/* Copy over the bits of the DMA block index */
-			*(u32*)(skb->cb + (sizeof(skb->cb) - sizeof(u32))) = entry->dma_block_index;
+			*(u32*)(skb->cb + (sizeof(skb->cb) - sizeof(u32))) = entry->mem_block_index;
 
 			/* Set netdev */
 			skb->dev = dev->netdev;
@@ -338,8 +338,8 @@ void quick_tx_worker(struct work_struct *work)
 			quick_tx_do_xmit(qtx_skb, txq, dev, 512, false);
 
 #ifdef QUICK_TX_DEBUG
-			qtx_error("Consumed entry at index = %d, dma_block_index = %d, offset = %d, len = %d",
-					data->lookup_consumer_index, entry->dma_block_index, entry->block_offset, entry->length);
+			qtx_error("Consumed entry at index = %d, mem_block_index = %d, offset = %d, len = %d",
+					data->lookup_consumer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
 
 			/* Set this entry as consumed, increment to next entry */

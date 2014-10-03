@@ -72,7 +72,7 @@
 #endif
 
 static int num_lookup_sleeps = 0;
-static int num_dma_fail = 0;
+static int num_mem_fail = 0;
 
 typedef struct {
 	int counter;
@@ -157,15 +157,15 @@ struct quick_tx_dev {
 	struct quick_tx_skb skb_freed_list;
 
 	/* Poll wait_queue for writing to device
-	 * dma_outq - indicates when the SKBs are freed
+	 * mem_outq - indicates when the SKBs are freed
 	 * lookup_outq - indicates when an entry in the lookup table is freed */
 	wait_queue_head_t kernel_lookup_q;
-	wait_queue_head_t user_dma_q;
+	wait_queue_head_t user_mem_q;
 	wait_queue_head_t user_lookup_q;
 	struct mutex mtx;
 
 #ifdef DMA_COHERENT
-	bool using_dma_coherent;
+	bool using_mem_coherent;
 #endif
 
 	/* Statistics */
@@ -185,7 +185,7 @@ struct quick_tx_dev {
 	u64 num_wait_list;
 	u64 num_freed_list;
 
-	u32 quick_tx_wake_up_dma_counter;
+	u32 quick_tx_wake_up_mem_counter;
 	u32 quick_tx_free_skb_counter;
 	u32 quick_tx_wake_up_lookup_counter;
 
@@ -240,20 +240,20 @@ extern void quick_tx_worker(struct work_struct *work);
 #define QUICK_TX_ERR_NOT_RUNNING (1 << 0)
 
 struct quick_tx_packet_entry {
-	__u32 dma_block_index;	/* index of the DMA block this is part of */
+	__u32 mem_block_index;	/* index of the DMA block this is part of */
 	__u32 block_offset;		/* offset from kernel_addr or user_addr */
 	__u32 length;			/* length of the entry in data */
 	__u8 consumed;			/* 1 - consumed, 0 - not yet consumed */
 } __attribute__((aligned(8)));
 
-struct quick_tx_dma_block_entry {
+struct quick_tx_mem_block_entry {
 	void *kernel_addr;		/* address of block in kernel memory */
 	void *user_addr;		/* address of block in userspace memory */
 	__u32 producer_offset;	/* offset (bytes) that the packet is written at  */
 	__u32 length;			/* length of the DMA block */
 	atomic_t users;			/* number of users (skbs with memory mapped to this block but still in use) */
 #ifdef DMA_COHERENT
-	__u64 dma_handle;
+	__u64 mem_handle;
 #endif
 } __attribute__((aligned(8)));
 
@@ -262,10 +262,10 @@ struct quick_tx_shared_data {
 	__u32 lookup_consumer_index;
 	__u32 lookup_producer_index;
 
-	struct quick_tx_dma_block_entry dma_blocks[DMA_BLOCK_TABLE_SIZE];
-	__u32 dma_producer_index;
-	__u32 dma_producer_offset;
-	__u32 num_dma_blocks;
+	struct quick_tx_mem_block_entry mem_blocks[DMA_BLOCK_TABLE_SIZE];
+	__u32 mem_producer_index;
+	__u32 mem_producer_offset;
+	__u32 num_mem_blocks;
 
 	__u32 error_flags;
 
@@ -273,11 +273,11 @@ struct quick_tx_shared_data {
 	__u32 prefix_len;
 	__u32 postfix_len;
 
-	__u32 dma_block_page_num;
+	__u32 mem_block_page_num;
 
 	__u32 mbps;
 
-	__u8 user_wait_dma_flag;
+	__u8 user_wait_mem_flag;
 	__u8 user_wait_lookup_flag;
 	__u8 kernel_wait_lookup_flag;
 
@@ -312,17 +312,17 @@ struct quick_tx {
  * @param dev quick_tx structure returned from a quick_tx_open call
  * @return boolean whether the block was successfully mapped
  */
-static inline bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
-	if (dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
+static inline bool quick_tx_mmap_mem_block(struct quick_tx* dev) {
+	if (dev->data->num_mem_blocks < DMA_BLOCK_TABLE_SIZE) {
 		unsigned int *map;
-		map = mmap(0, dev->data->dma_block_page_num * PAGE_SIZE,
+		map = mmap(0, dev->data->mem_block_page_num * PAGE_SIZE,
 				PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, 0);
 
 		if (map != MAP_FAILED) {
-			dev->data->dma_blocks[dev->data->num_dma_blocks - 1].user_addr = (void *)map;
+			dev->data->mem_blocks[dev->data->num_mem_blocks - 1].user_addr = (void *)map;
 			return true;
 		} else {
-			printf("MAP_FAILED for index %d\n", dev->data->num_dma_blocks);
+			printf("MAP_FAILED for index %d\n", dev->data->num_mem_blocks);
 			dev->stop_mapping = true;
 		}
 	}
@@ -344,13 +344,13 @@ static inline bool quick_tx_mmap_dma_block(struct quick_tx* dev) {
  * 			a return of 0 means that there is no more room for further
  * 			allocations
  */
-static inline int quick_tx_alloc_dma_space(struct quick_tx* dev, __s64 bytes) {
+static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, __s64 bytes) {
 	if (dev && dev->data) {
 		int num = 0;
 		int num_pages = bytes / 256;
-		while (num_pages > 0 && dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
-			if (quick_tx_mmap_dma_block(dev)) {
-				num_pages -= dev->data->dma_block_page_num;
+		while (num_pages > 0 && dev->data->num_mem_blocks < DMA_BLOCK_TABLE_SIZE) {
+			if (quick_tx_mmap_mem_block(dev)) {
+				num_pages -= dev->data->mem_block_page_num;
 				num++;
 			} else
 				break;
@@ -367,11 +367,11 @@ static inline int quick_tx_alloc_dma_space(struct quick_tx* dev, __s64 bytes) {
  * @param dev quick_tx structure returned from a quick_tx_open call
  * @return number of dma blocks successfully mapped
  */
-static inline int quick_tx_mmap_all_dma_blocks(struct quick_tx* dev) {
+static inline int quick_tx_mmap_all_mem_blocks(struct quick_tx* dev) {
 	if (dev && dev->data) {
 		int num = 0;
-		while (dev->data->num_dma_blocks < DMA_BLOCK_TABLE_SIZE) {
-			if (quick_tx_mmap_dma_block(dev))
+		while (dev->data->num_mem_blocks < DMA_BLOCK_TABLE_SIZE) {
+			if (quick_tx_mmap_mem_block(dev))
 				num++;
 			else
 				break;
@@ -422,7 +422,7 @@ static inline struct quick_tx* quick_tx_open(char* name) {
 	dev->data = data;
 	dev->stop_mapping = false;
 
-	if (!quick_tx_mmap_dma_block(dev)) {
+	if (!quick_tx_mmap_mem_block(dev)) {
 		perror("[quick_tx] error while mapping DMA block");
 		munmap ((void*)dev->data, dev->map_length);
 		return NULL;
@@ -431,54 +431,54 @@ static inline struct quick_tx* quick_tx_open(char* name) {
 	return dev;
 }
 
-static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *write_offset, __u32 *dma_block_index) {
+static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *write_offset, __u32 *mem_block_index) {
 	struct quick_tx_shared_data *data = dev->data;
 
-	if (data->dma_producer_offset + length < data->dma_blocks[data->dma_producer_index].length) {
+	if (data->mem_producer_offset + length < data->mem_blocks[data->mem_producer_index].length) {
 		/* We can still fit the data in current DMA block */
-		*write_offset = data->dma_producer_offset;
-		*dma_block_index = data->dma_producer_index;
-		data->dma_producer_offset = data->dma_producer_offset + length;
+		*write_offset = data->mem_producer_offset;
+		*mem_block_index = data->mem_producer_index;
+		data->mem_producer_offset = data->mem_producer_offset + length;
 	} else {
-		__u32 new_dma_producer_index = 0;
+		__u32 new_mem_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
 		rmb();
-		new_dma_producer_index = (data->dma_producer_index + 1) % DMA_BLOCK_TABLE_SIZE;
-		struct quick_tx_dma_block_entry* next_dma_block =
-				&data->dma_blocks[new_dma_producer_index];
+		new_mem_producer_index = (data->mem_producer_index + 1) % DMA_BLOCK_TABLE_SIZE;
+		struct quick_tx_mem_block_entry* next_mem_block =
+				&data->mem_blocks[new_mem_producer_index];
 
-		if (next_dma_block->length == 0) {
+		if (next_mem_block->length == 0) {
 			if (!dev->stop_mapping) {
 				/* If this block has not yet been created, then map it */
-				if (!quick_tx_mmap_dma_block(dev)) {
+				if (!quick_tx_mmap_mem_block(dev)) {
 					dev->stop_mapping = true;
 				}
 			}
 			if (dev->stop_mapping) {
 				/* Cannot not map any more blocks so go back to zero */
-				new_dma_producer_index = 0;
-				next_dma_block = &data->dma_blocks[new_dma_producer_index];
+				new_mem_producer_index = 0;
+				next_mem_block = &data->mem_blocks[new_mem_producer_index];
 			}
 		}
 
-		if (atomic_read(&next_dma_block->users) != 0) {
+		if (atomic_read(&next_mem_block->users) != 0) {
 			/* If the block has not yet been freed then all we can do is return with error */
 			return false;
 		}
 
 		/* Sanity check */
-		if (length > next_dma_block->length) {
+		if (length > next_mem_block->length) {
 			printf("Fatal error: Size of padded packet cannot surpass the size of a DMA block! \n");
 			exit(1);
 		}
 
 		/* Increment the offset counters and dma block index */
-		data->dma_producer_index = new_dma_producer_index;
-		data->dma_producer_offset = length;
+		data->mem_producer_index = new_mem_producer_index;
+		data->mem_producer_offset = length;
 
 		/* Set return values, 0 since we are starting at the beginning of the block*/
 		*write_offset = 0;
-		*dma_block_index = data->dma_producer_index;
+		*mem_block_index = data->mem_producer_index;
 
 		wmb();
 	}
@@ -521,7 +521,7 @@ static inline void __poll_for(struct quick_tx* dev, short events, __u8 *flag) {
 }
 
 static inline void __poll_for_dma(struct quick_tx* dev) {
-	__poll_for(dev, POLL_DMA, &dev->data->user_wait_dma_flag);
+	__poll_for(dev, POLL_DMA, &dev->data->user_wait_mem_flag);
 }
 
 static inline void __poll_for_lookup(struct quick_tx* dev) {
@@ -554,22 +554,22 @@ send_retry:
 		full_length = SKB_DATA_ALIGN(full_length + data->postfix_len, data->smp_cache_bytes);
 
 		/* Find the next suitable location for this packet */
-		while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->dma_block_index)) {
+		while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->mem_block_index)) {
 			/* need to wake up kernel to process older skb's */
 			__wake_up_module(dev);
 
 			/* poll for DMA block space */
 			__poll_for_dma(dev);
 
-			num_dma_fail++;
+			num_mem_fail++;
 		}
 
 		/* Set entry length (packet size without padding) */
 		entry->length = length;
 
 		/* Copy over packet data after prefix_len */
-		struct quick_tx_dma_block_entry* dma_block = &data->dma_blocks[entry->dma_block_index];
-		memcpy(dma_block->user_addr + entry->block_offset + data->prefix_len, buffer, entry->length);
+		struct quick_tx_mem_block_entry* mem_block = &data->mem_blocks[entry->mem_block_index];
+		memcpy(mem_block->user_addr + entry->block_offset + data->prefix_len, buffer, entry->length);
 
 		/* Use a write memory barrier to prevent re-ordering
 		   Set consumed to 0 for entry, indicates it can be used by the quick_tx module */
@@ -584,8 +584,8 @@ send_retry:
 		qtx_s++;
 
 #ifdef QUICK_TX_DEBUG
-		printf("[quick_tx] Wrote entry at index = %d, dma_block_index = %d, offset = %d, len = %d \n",
-				data->lookup_producer_index, entry->dma_block_index, entry->block_offset, entry->length);
+		printf("[quick_tx] Wrote entry at index = %d, mem_block_index = %d, offset = %d, len = %d \n",
+				data->lookup_producer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
 
 		/* Increment the lookup index for next packet */
@@ -615,9 +615,9 @@ static inline void quick_tx_close(struct quick_tx* dev) {
 		__check_error_flags(dev->data);
 
 		int i;
-		for (i = (dev->data->num_dma_blocks - 1); i >= 0; i--) {
-			struct quick_tx_dma_block_entry* dma_block = &dev->data->dma_blocks[i];
-			if (munmap (dma_block->user_addr, dma_block->length) == -1) {
+		for (i = (dev->data->num_mem_blocks - 1); i >= 0; i--) {
+			struct quick_tx_mem_block_entry* mem_block = &dev->data->mem_blocks[i];
+			if (munmap (mem_block->user_addr, mem_block->length) == -1) {
 				printf ("[quick_tx] error while calling munmap for block %d \n", i);
 			}
 		}

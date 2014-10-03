@@ -108,7 +108,7 @@ int main (int argc, char* argv[])
     struct quick_tx *qtx = quick_tx_open(argv[2]);
 
     if (qtx != NULL)
-        quick_tx_alloc_dma_space(qtx, length * loops);
+        quick_tx_alloc_mem_space(qtx, length * loops);
     else
         exit(1);
 
@@ -160,7 +160,7 @@ int main (int argc, char* argv[])
 
     printf("\n");
     printf("num_lookup_sleeps = %d \n", num_lookup_sleeps);
-    printf("num_dma_fail = %d \n", num_dma_fail);
+    printf("num_mem_fail = %d \n", num_mem_fail);
 
 quick_tx_error:
     quick_tx_close(qtx);

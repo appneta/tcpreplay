@@ -113,11 +113,11 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 
 	mutex_lock(&dev->mtx);
 
-	poll_wait(file, &dev->user_dma_q, wait);
+	poll_wait(file, &dev->user_mem_q, wait);
 	poll_wait(file, &dev->user_lookup_q, wait);
 
 	smp_rmb();
-	if (dev->shared_data->user_wait_dma_flag)
+	if (dev->shared_data->user_wait_mem_flag)
 		mask |= (POLL_DMA);
 	if (dev->shared_data->user_wait_lookup_flag)
 		mask |= (POLL_LOOKUP);
@@ -196,8 +196,8 @@ static int quick_tx_init(void)
 	struct quick_tx_dev *dev;
 
 #ifdef DMA_COHERENT
-	dma_addr_t dma_handle;
-	void *dma_addr;
+	dma_addr_t mem_handle;
+	void *mem_addr;
 #endif
 
 	mutex_lock(&init_mutex);
@@ -227,23 +227,23 @@ static int quick_tx_init(void)
 			INIT_LIST_HEAD(&dev->skb_wait_list.list);
 			INIT_LIST_HEAD(&dev->skb_freed_list.list);
 
-			init_waitqueue_head(&dev->user_dma_q);
+			init_waitqueue_head(&dev->user_mem_q);
 			init_waitqueue_head(&dev->user_lookup_q);
 			init_waitqueue_head(&dev->kernel_lookup_q);
 			mutex_init(&dev->mtx);
 
 
 #ifdef DMA_COHERENT
-			dma_addr = dma_alloc_coherent(dev->netdev->dev.parent, PAGE_SIZE, &dma_handle, GFP_KERNEL);
+			mem_addr = dma_alloc_coherent(dev->netdev->dev.parent, PAGE_SIZE, &mem_handle, GFP_KERNEL);
 
-			if (dma_addr) {
-				dma_free_coherent(&dev->netdev->dev, PAGE_SIZE, dma_addr, dma_handle);
-				dev->using_dma_coherent = true;
+			if (mem_addr) {
+				dma_free_coherent(&dev->netdev->dev, PAGE_SIZE, mem_addr, mem_handle);
+				dev->using_mem_coherent = true;
 			} else
-				dev->using_dma_coherent = false;
+				dev->using_mem_coherent = false;
 #endif
 
-			qtx_error("set using_dma_coherent to %d", dev->using_dma_coherent);
+			qtx_error("set using_mem_coherent to %d", dev->using_mem_coherent);
 
 			quick_tx_set_ops(dev);
 
