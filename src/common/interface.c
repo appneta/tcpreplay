@@ -36,7 +36,7 @@
 #endif
 
 #ifdef HAVE_QUICK_TX
-#include "linux/quick_tx.h"
+#include <linux/quick_tx.h>
 #endif
 
 #ifdef DEBUG

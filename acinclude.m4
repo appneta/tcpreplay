@@ -12,7 +12,7 @@ AC_DEFUN([AC_PATH_KERNEL_SOURCE_SEARCH],
     kerneldir=missing
     kernelext=ko
     no_kernel=yes
-set -x -v
+
     if test `uname` != "Linux"; then
         kerneldir="not running Linux"
     else
@@ -57,7 +57,6 @@ set -x -v
     ac_cv_have_kernel="no_kernel=${no_kernel} \
             kerneldir=\"${kerneldir}\" \
             kernelext=\"${kernelext}\""
-    set +x +v
 ]
 )
 

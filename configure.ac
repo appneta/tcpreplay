@@ -1,7 +1,7 @@
 
 dnl $Id$
 
-AC_INIT([tcpreplay], nodefine)
+AC_INIT(tcpreplay)
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -16,8 +16,8 @@ AC_CONFIG_MACRO_DIR([m4])
 
 dnl Set version info here!
 MAJOR_VERSION=4
-MINOR_VERSION=0
-MICRO_VERSION=6beta1
+MINOR_VERSION=1
+MICRO_VERSION=0beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -30,7 +30,7 @@ AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
 USER_CFLAGS=$CFLAGS
-CFLAGS="${CFLAGS} -Wall -O3 -std=gnu99 -Wno-format-contains-nul"
+CFLAGS="${CFLAGS} -Wall -O3 -std=gnu99"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -51,7 +51,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
 
 dnl Checks for programs.
 AC_PROG_INSTALL
@@ -221,7 +221,7 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -ggdb -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
+        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         AC_SUBST(debug_flag)
@@ -463,7 +463,7 @@ else
     ## See if prereqs for PF_RING exist
     AC_CHECK_LIB(numa, numa_available, [numa_found=yes])
     AC_CHECK_LIB(pthread, pthread_create, [pthread_found=yes])
-    if test $numa_found = yes && test $pthread_found = yes && test -f "${foundpcap}/../lib/libpfring.a"; then
+    if test "$numa_found" = "yes" && test "$pthread_found" = "yes" && test -f "${foundpcap}/../lib/libpfring.a"; then
         pf_ring_found=yes
     fi
 fi
@@ -1091,8 +1091,10 @@ dnl ##################################################
 AC_PATH_KERNEL_SOURCE
 
 KERNEL_DIR=
-    OLDCFLAGS="${OLDCFLAGS} -I../kernel/linux/include -I../../kernel/linux/include"
+have_linux_quick_tx=no
 if test x${no_kernel} != xyes; then
+    have_linux_quick_tx=yes
+    OLDCFLAGS="${OLDCFLAGS} -I../kernel/linux/include -I../../kernel/linux/include"
     KERNEL_DIR='kernel'
     AC_DEFINE([HAVE_QUICK_TX], [1],
           [Do we have quick TX module support?])
@@ -1528,7 +1530,6 @@ AC_OUTPUT([Makefile
            kernel/linux/example/Makefile
            kernel/linux/quick_tx/Makefile
            src/Makefile
-           src/common/Makefile
            src/tcpedit/Makefile
            src/fragroute/Makefile
            src/defines.h
@@ -1550,7 +1551,6 @@ tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
 tcpliveplay support:        ${enable_tcpliveplay}
-Linux kernel sources:       ${kerneldir}
 
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}
@@ -1560,6 +1560,7 @@ libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}
 pcap_sendpacket:            ${have_pcap_sendpacket} **
 pcap_netmap                 ${have_pcap_netmap}
+Linux Quick TX:             ${have_linux_quick_tx} ${kerneldir}
 Linux/BSD netmap:           ${have_netmap}
 
 * In order of preference; see configure --help to override

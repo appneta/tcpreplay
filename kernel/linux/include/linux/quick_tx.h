@@ -62,13 +62,20 @@
 #endif /* SKB_DATA_ALIGN */
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
-#define mb() 	__asm__ volatile("mfence":::"memory")
-#define rmb()	__asm__ volatile("lfence":::"memory")
-#define wmb()	__asm__ volatile("sfence" ::: "memory")
+# define mb() 	__asm__ volatile("mfence":::"memory")
+# define rmb()	__asm__ volatile("lfence":::"memory")
+# define wmb()	__asm__ volatile("sfence" ::: "memory")
 #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC__)
-#define wmb() __asm__ volatile ("lwsync")
+# define wmb() __asm__ volatile ("lwsync")
 #else
-#define wmb() __asm__ __volatile__("": : :"memory")
+# define wmb() __asm__ __volatile__("": : :"memory")
+#endif
+
+#ifndef likely
+# define likely(x)    __builtin_expect(!!(x), 1)
+#endif
+#ifndef unlikely
+# define unlikely(x)  __builtin_expect(!!(x), 0)
 #endif
 
 static int num_lookup_sleeps = 0;
@@ -218,7 +225,7 @@ extern void quick_tx_worker(struct work_struct *work);
 #endif /* __KERNEL__ */
 
 #define PRIN_MAGIC 'Q'
-#define START_TX _IO(PRIN_MAGIC, 0)
+#define QTX_START_TX _IO(PRIN_MAGIC, 0)
 
 #define RUN_AT_INVERVAL(code, num, counter) \
 	do { 								\
@@ -230,8 +237,13 @@ extern void quick_tx_worker(struct work_struct *work);
 	} 									\
 	while(0)
 
-#define LOOKUP_TABLE_SIZE			(1 << 17)		/* 128K */
-#define MEM_BLOCK_TABLE_SIZE		(1 << 15)		/* 64K */
+#ifdef __x86_64__
+# define LOOKUP_TABLE_SIZE			(1 << 17)		/* 128K */
+# define MEM_BLOCK_TABLE_SIZE		(1 << 15)		/* 64K */
+#else
+# define LOOKUP_TABLE_SIZE           (1 << 15)       /* 64K */
+# define MEM_BLOCK_TABLE_SIZE        (1 << 13)       /* 16K */
+#endif
 
 #define DEV_NAME_PREFIX "quick_tx_"
 #define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
@@ -310,9 +322,9 @@ struct quick_tx {
 /*
  * Maps a single DMA block for device
  * @param dev quick_tx structure returned from a quick_tx_open call
- * @return boolean whether the block was successfully mapped
+ * @return 0 on success mapping, otherwise -1
  */
-static inline bool quick_tx_mmap_mem_block(struct quick_tx* dev) {
+static inline int quick_tx_mmap_mem_block(struct quick_tx* dev) {
 	if (dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
 		unsigned int *map;
 		map = mmap(0, dev->data->num_pages_per_block * PAGE_SIZE,
@@ -320,17 +332,19 @@ static inline bool quick_tx_mmap_mem_block(struct quick_tx* dev) {
 
 		if (map != MAP_FAILED) {
 			dev->data->mem_blocks[dev->data->num_mem_blocks - 1].user_addr = (void *)map;
-			return true;
+			return 0;
 		} else {
-			printf("MAP_FAILED for index %d\n", dev->data->num_mem_blocks);
 			dev->stop_auto_mapping = true;
 		}
 	}
-	return false;
+	return -1;
 }
 
 
 /*
+ * TODO update comments - does not apply outside sample program because
+ * space required is unknown
+ *
  * This function will preallocate the amount of space an application
  * might require. Running without calling this function first will yield
  * lower speeds. It is recommended to use the full size of the PCAP file
@@ -339,24 +353,25 @@ static inline bool quick_tx_mmap_mem_block(struct quick_tx* dev) {
  * @dev 	quick_tx device pointer
  * @bytes	number of bytes the application plans to transmit
  *
- * @return	will return the number of bytes that actually alloced in the kernel
+ * @return	will return the number of blocks that actually allocated in the kernel
  * 			the number may be below or above the passed in value
  * 			a return of 0 means that there is no more room for further
  * 			allocations
  */
-static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, __s64 bytes) {
+static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, int64_t bytes) {
 	if (dev && dev->data) {
 		int num = 0;
-		int num_pages = bytes / 256;
+		int64_t num_pages = bytes / 256;    // TODO  should this be named 'num_blocks' ??
 		while (num_pages > 0 && dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
-			if (quick_tx_mmap_mem_block(dev)) {
+			if (quick_tx_mmap_mem_block(dev) == 0) {
 				num_pages -= dev->data->num_pages_per_block;
 				num++;
-			} else
+			} else {
+				fprintf(stderr, "MAP_FAILED for index %d\n", dev->data->num_mem_blocks);
 				break;
+			}
 		}
-		printf("quick_tx mapped %d blocks for DMA memory \n", num);
-		return bytes;
+		return num;
 	} else {
 		return -1;
 	}
@@ -371,10 +386,10 @@ static inline int quick_tx_mmap_all_mem_blocks(struct quick_tx* dev) {
 	if (dev && dev->data) {
 		int num = 0;
 		while (dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
-			if (quick_tx_mmap_mem_block(dev))
-				num++;
-			else
+			if (quick_tx_mmap_mem_block(dev) < 0)
 				break;
+
+			num++;
 		}
 		return num;
 	} else {
@@ -400,13 +415,14 @@ static inline struct quick_tx* quick_tx_open(char* name) {
 
 	if ((fd = open(full_name, O_RDWR | O_SYNC)) < 0) {
 		perror("[quick_tx] error while opening device");
-		printf("Check that the QuickTX module is loaded and the interface name is correct \n");
+		printf("Check that the QuickTX module is loaded and the interface name is correct\n");
 		return NULL;
 	}
 
 	map = mmap(0, map_length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (map == MAP_FAILED) {
-		perror("[quick_tx] error while trying to map memory from device ");
+		perror("[quick_tx] error while trying to map memory from device");
+		close(fd);
 		return NULL;
 	}
 
@@ -414,7 +430,7 @@ static inline struct quick_tx* quick_tx_open(char* name) {
 	struct quick_tx* dev = malloc(sizeof(struct quick_tx));
 
 	if (!dev) {
-		perror("[quick_tx] error while allocating memory for quick_tx structure ");
+		perror("[quick_tx] error while allocating memory for quick_tx structure");
 	}
 
 	dev->map_length = map_length;
@@ -422,7 +438,7 @@ static inline struct quick_tx* quick_tx_open(char* name) {
 	dev->data = data;
 	dev->stop_auto_mapping = false;
 
-	if (!quick_tx_mmap_mem_block(dev)) {
+	if (quick_tx_mmap_mem_block(dev) < 0) {
 		perror("[quick_tx] error while mapping DMA block");
 		munmap ((void*)dev->data, dev->map_length);
 		return NULL;
@@ -451,7 +467,8 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		if (next_mem_block->length == 0) {
 			if (!dev->stop_auto_mapping) {
 				/* If this block has not yet been created, then map it */
-				if (!quick_tx_mmap_mem_block(dev)) {
+				if (quick_tx_mmap_mem_block(dev) < 0) {
+					printf("MAP_FAILED for index %d\n", dev->data->num_mem_blocks);
 					dev->stop_auto_mapping = true;
 				}
 			}
@@ -471,7 +488,7 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		/* Sanity check */
 		// TODO fix so user doesn't have to know about padding
 		if (length > next_mem_block->length) {
-			printf("Fatal error: Size of padded packet cannot surpass the size of a DMA block! \n");
+			printf("Fatal error: Size of padded packet cannot surpass the size of a DMA block!\n");
 			exit(1);
 		}
 
@@ -487,23 +504,23 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 	return true;
 }
 
-static inline bool __check_error_flags(struct quick_tx_shared_data* data) {
+static inline int __check_error_flags(struct quick_tx_shared_data* data) {
 	/* Always check for error flags after each packet, in case we need to exit */
-	if (__builtin_expect(data->error_flags, 0)) {
+	if (unlikely(data->error_flags)) {
 		if (data->error_flags & QUICK_TX_ERR_NOT_RUNNING) {
-			printf("[quick_tx] Error: the interface is not currently running \n");
-			return false;
+			fprintf(stderr, "[quick_tx] Error: the interface is not currently running\n");
+			return -1;
 		} else {
-			return false;
+			return -1;
 		}
 	}
-	return true;
+	return 0;
 }
 
 static inline void __wake_up_module(struct quick_tx* dev) {
 	dev->data->consumer_wait_lookup_flag = 1;
 	wmb();
-	ioctl(dev->fd, START_TX);
+	ioctl(dev->fd, QTX_START_TX);
 }
 
 static inline void __poll_for(struct quick_tx* dev, short events, __u8 *flag) {
@@ -517,7 +534,7 @@ static inline void __poll_for(struct quick_tx* dev, short events, __u8 *flag) {
 	poll(&pfd, 1, 1000);
 
 	if (!(pfd.revents & (events))) {
-		printf("Timeout in __poll_for for events = %d! \n", events);
+		printf("Timeout in __poll_for for events = %d!\n", events);
 	}
 }
 
@@ -529,80 +546,80 @@ static inline void __poll_for_lookup(struct quick_tx* dev) {
 	__poll_for(dev, POLL_LOOKUP, &dev->data->producer_wait_lookup_flag);
 }
 
-/*
+/**
  * Send packet on quick_tx device
  * @param qtx 		pointer to a quick_tx structure
  * @param buffer 	full packet data starting at the ETH frame
  * @param length 	length of packet
- * @return 	true if the packet was successfully queued, false if a critical error occurred
- * 			and we close needs to be called
+ * @return 	number bytes sent if the packet was successfully queued, -1 if a critical error occurred
+ * 			and close needs to be called
  */
-static inline bool quick_tx_send_packet(struct quick_tx* dev, const void* buffer, int length) {
+static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer, int length) {
 	struct quick_tx_shared_data *data = dev->data;
 	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_producer_index;
 	int full_length;
 
 	if (length == 0)
-		return true;
+		return 0;
 
-send_retry:
-	/* Entry with length 0 indicates that it has never been filled before */
-	rmb();
-	if (entry->consumed == 1 || entry->length == 0) {
+	for (;;) {
+	    /* Entry with length 0 indicates that it has never been filled before */
+	    rmb();
+	    if (entry->consumed == 1 || entry->length == 0) {
 
-		/* Calculate the full length required for packet */
-		full_length = SKB_DATA_ALIGN(MAX(ETH_ZLEN, data->prefix_len + length), data->smp_cache_bytes);
-		full_length = SKB_DATA_ALIGN(full_length + data->postfix_len, data->smp_cache_bytes);
+	        /* Calculate the full length required for packet */
+	        full_length = SKB_DATA_ALIGN(MAX(ETH_ZLEN, data->prefix_len + length), data->smp_cache_bytes);
+	        full_length = SKB_DATA_ALIGN(full_length + data->postfix_len, data->smp_cache_bytes);
 
-		/* Find the next suitable location for this packet */
-		while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->mem_block_index)) {
-			/* need to wake up kernel to process older skb's */
-			__wake_up_module(dev);
+	        /* Find the next suitable location for this packet */
+	        while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->mem_block_index)) {
+	            /* need to wake up kernel to process older skb's */
+	            __wake_up_module(dev);
 
-			/* poll for DMA block space */
-			__poll_for_dma(dev);
+	            /* poll for DMA block space */
+	            __poll_for_dma(dev);
 
-			num_mem_fail++;
-		}
+	            num_mem_fail++;
+	        }
 
-		/* Set entry length (packet size without padding) */
-		entry->length = length;
+	        /* Set entry length (packet size without padding) */
+	        entry->length = length;
 
-		/* Copy over packet data after prefix_len */
-		struct quick_tx_mem_block_entry* mem_block = &data->mem_blocks[entry->mem_block_index];
-		memcpy(mem_block->user_addr + entry->block_offset + data->prefix_len, buffer, entry->length);
+	        /* Copy over packet data after prefix_len */
+	        struct quick_tx_mem_block_entry* mem_block = &data->mem_blocks[entry->mem_block_index];
+	        memcpy(mem_block->user_addr + entry->block_offset + data->prefix_len, buffer, entry->length);
 
-		/* Use a write memory barrier to prevent re-ordering
+	        /* Use a write memory barrier to prevent re-ordering
 		   Set consumed to 0 for entry, indicates it can be used by the quick_tx module */
-		wmb();
-		entry->consumed = 0;
-		wmb();
+	        wmb();
+	        entry->consumed = 0;
+	        wmb();
 
-		static int qtx_s = 0;
-		if (qtx_s % (MEM_BLOCK_TABLE_SIZE >> 4) == 0) {
-			__wake_up_module(dev);
-		}
-		qtx_s++;
+	        static int qtx_s = 0;
+	        if (qtx_s % (MEM_BLOCK_TABLE_SIZE >> 4) == 0) {
+	            __wake_up_module(dev);
+	        }
+	        qtx_s++;
 
 #ifdef QUICK_TX_DEBUG
-		printf("[quick_tx] Wrote entry at index = %d, mem_block_index = %d, offset = %d, len = %d \n",
-				data->lookup_producer_index, entry->mem_block_index, entry->block_offset, entry->length);
+	        printf("[quick_tx] Wrote entry at index = %d, mem_block_index = %d, offset = %d, len = %d\n",
+	                data->lookup_producer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
 
-		/* Increment the lookup index for next packet */
-		data->lookup_producer_index = (data->lookup_producer_index + 1) % LOOKUP_TABLE_SIZE;
+	        /* Increment the lookup index for next packet */
+	        data->lookup_producer_index = (data->lookup_producer_index + 1) % LOOKUP_TABLE_SIZE;
 
-		return __check_error_flags(dev->data);
-	} else {
-	    /* no space in lookup table */
-		if (!__check_error_flags(dev->data))
-			return false;
-		__wake_up_module(dev);
-		__poll_for_lookup(dev);
+	        return (__check_error_flags(dev->data) < 0) ? -1 : length;
+	    } else {
+	        /* no space in lookup table */
+	        if (__check_error_flags(dev->data) < 0)
+	            return -1;
 
-		num_lookup_sleeps++;
+	        __wake_up_module(dev);
+	        __poll_for_lookup(dev);
 
-		goto send_retry;
+	        num_lookup_sleeps++;
+	    }
 	}
 }
 
@@ -613,23 +630,23 @@ send_retry:
  */
 static inline void quick_tx_close(struct quick_tx* dev) {
 	if (dev) {
+		int i;
 
 		__check_error_flags(dev->data);
 
-		int i;
 		for (i = (dev->data->num_mem_blocks - 1); i >= 0; i--) {
 			struct quick_tx_mem_block_entry* mem_block = &dev->data->mem_blocks[i];
 			if (munmap (mem_block->user_addr, mem_block->length) == -1) {
-				printf ("[quick_tx] error while calling munmap for block %d \n", i);
+				printf ("[quick_tx] error while calling munmap for block %d\n", i);
 			}
 		}
 
 		if (munmap ((void*)dev->data, dev->map_length) == -1) {
-			printf ("[quick_tx] error while calling munmap \n");
+			printf ("[quick_tx] error while calling munmap\n");
 		}
 		free(dev);
 	} else {
-		printf("[quick_tx] cannot close a NULL quick_tx \n");
+		printf("[quick_tx] cannot close a NULL quick_tx\n");
 	}
 }
 #endif /* ! __KERNEL__ */

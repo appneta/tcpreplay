@@ -185,7 +185,7 @@ typedef struct tcpreplay_s {
     int cache_byte;
     int current_source; /* current source input being replayed */
 
-    /* do_sleep helpers */
+    /* sleep helpers */
     struct timespec nap;
     uint32_t skip_packets;
     int first_time;
@@ -234,6 +234,7 @@ int tcpreplay_set_speed_speed(tcpreplay_t *, COUNTER);
 int tcpreplay_set_speed_pps_multi(tcpreplay_t *, int);
 int tcpreplay_set_loop(tcpreplay_t *, u_int32_t);
 int tcpreplay_set_unique_ip(tcpreplay_t *, int);
+int tcpreplay_set_quick_tx(tcpreplay_t *, bool);
 int tcpreplay_set_netmap(tcpreplay_t *, bool);
 int tcpreplay_set_use_pkthdr_len(tcpreplay_t *, bool);
 int tcpreplay_set_mtu(tcpreplay_t *, int);

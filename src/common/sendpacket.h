@@ -29,6 +29,15 @@
 #include <netinet/if_ether.h>
 #endif
 
+#ifdef HAVE_QUICK_TX
+#include <linux/quick_tx.h>
+#if defined (__x86_64__)
+#define QTX_MEM_SIZE    (1 << 27)   /* 256M */
+#else
+#define QTX_MEM_SIZE    (1 << 24)   /* 32M */
+#endif
+#endif /* HAVE_QUICK_TX */
+
 #if defined HAVE_NETMAP
 #include "common/netmap.h"
 #include <net/netmap.h>
@@ -115,6 +124,10 @@ struct sendpacket_s {
     sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
+#ifdef HAVE_QUICK_TX
+    struct quick_tx* qtx_dev;
+#endif /* HAVE_QUICK_TX */
+
 #ifdef HAVE_NETMAP
     struct netmap_if *nm_if;
     nmreq_t nmr;
@@ -133,6 +146,7 @@ struct sendpacket_s {
     uint32_t txcsum;
 #endif /* linux */
 #endif /* HAVE_NETMAP */
+
 #ifdef HAVE_PF_PACKET
     struct sockaddr_ll sa;
 #ifdef HAVE_TX_RING

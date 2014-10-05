@@ -97,7 +97,7 @@ static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long a
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
 
 	switch(cmd) {
-	case START_TX:
+	case QTX_START_TX:
 		quick_tx_wake_up_kernel_lookup(dev);
 		break;
 	}

@@ -61,7 +61,7 @@ bool read_pcap_file(char* filename, void** buffer, long *length) {
 
     infile = fopen(filename, "r");
     if(infile == NULL) {
-        printf("File does not exist! \n");
+        printf("File does not exist!\n");
         return false;
     }
 
@@ -72,7 +72,7 @@ bool read_pcap_file(char* filename, void** buffer, long *length) {
 
     /* memory error */
     if(*buffer == NULL) {
-        printf("Could not allocate %ld bytes of memory! \n", *length);
+        printf("Could not allocate %ld bytes of memory!\n", *length);
         return false;
     }
 
@@ -85,14 +85,20 @@ bool read_pcap_file(char* filename, void** buffer, long *length) {
 
 int main (int argc, char* argv[]) 
 {
-    if (argc != 3 && argc != 4) {
-        printf("Usage: ./pcapsend <path-to-pcap> <interface> [loops] \n");
-        exit(-1);
-    }
-
+    int i;
     void* buffer;
     long length;
     int loops;
+    __u64 packets_sent = 0;
+    __u64 packet_bytes = 0;
+    struct timeval tv_start;
+    struct pcap_pkthdr* pcap_hdr;
+    struct quick_tx *qtx;
+
+    if (argc != 3 && argc != 4) {
+        printf("Usage: ./pcapsend <path-to-pcap> <interface> [loops]\n");
+        exit(-1);
+    }
 
     if (!read_pcap_file(argv[1], &buffer, &length)) {
         perror("Failed to read file! ");
@@ -105,62 +111,44 @@ int main (int argc, char* argv[])
         loops = 1;
     }
 
-    struct quick_tx *qtx = quick_tx_open(argv[2]);
+    qtx = quick_tx_open(argv[2]);
 
-    if (qtx != NULL)
-        quick_tx_alloc_mem_space(qtx, length * loops);
-    else
-        exit(1);
+    if (qtx != NULL) {
+        int blocks = quick_tx_alloc_mem_space(qtx, length * loops);
+        if (blocks >= 0) {
+            printf("quick_tx mapped %d blocks of memory\n", blocks);
+        } else {
+            printf("quick_tx_alloc_mem_space failure\n");
+            exit(-1);
+        }
+    } else {
+        exit(-1);
+    }
 
-    struct pcap_pkthdr* pcap_hdr;
-
-    __u64 packets_sent = 0;
-    __u64 packet_bytes = 0;
-
-    printf("Ready? [press enter]: ");
-    char strvar[100];
-    fgets (strvar, 100, stdin);
-
-    struct timeval tv_start;
     gettimeofday(&tv_start,NULL);
-//
-//    struct pcap_pkthdr* first_hdr;
-//    int first_caplen;
 
-    int i;
     for (i = 0; i < loops; i++) {
         void* offset = buffer + sizeof(struct pcap_file_header);
-//        first_hdr = (struct pcap_pkthdr*) offset;
-//        first_caplen = first_hdr->caplen;
-        //printf("offset = %p, buffer = %p pcap_caplen = %du \n", offset, buffer, first_hdr->caplen);
 
         while(offset < buffer + length) {
             pcap_hdr = (struct pcap_pkthdr*) offset;
             offset += sizeof(struct pcap_pkthdr);
 
-            if (!quick_tx_send_packet(qtx, (const void*)offset, pcap_hdr->caplen)) {
-                printf("An error occured while trying to send a packet \n");
+            if ((quick_tx_send_packet(qtx, (const void*)offset, pcap_hdr->caplen)) < 0) {
+                printf("An error occurred while trying to send a packet\n");
                 goto quick_tx_error;
             }
 
             offset += pcap_hdr->caplen;
             packets_sent++;
             packet_bytes+= pcap_hdr->caplen;
-//
-//            if (first_caplen != first_hdr->caplen) {
-//                printf("pcap_caplen = %d \n", first_hdr->caplen);
-//                printf("offset = %p \n", offset);
-//                first_caplen = first_hdr->caplen;
-//                //break;
-//            }
         }
     }
 
-    printf("Done, closing everything! \n");
-
+    printf("Done, closing everything!\n");
     printf("\n");
-    printf("num_lookup_sleeps = %d \n", num_lookup_sleeps);
-    printf("num_mem_fail = %d \n", num_mem_fail);
+    printf("num_lookup_sleeps = %d\n", num_lookup_sleeps);
+    printf("num_mem_fail = %d\n", num_mem_fail);
 
 quick_tx_error:
     quick_tx_close(qtx);

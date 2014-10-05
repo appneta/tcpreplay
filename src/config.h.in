@@ -582,7 +582,7 @@
 /* Define this if optional arguments are disallowed */
 #undef NO_OPTIONAL_OPT_ARGS
 
-/* Name of package */
+/* This is our package name */
 #undef PACKAGE
 
 /* Define to the address where bug reports for this package should be sent. */
@@ -639,7 +639,7 @@
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 #undef TIME_WITH_SYS_TIME
 
-/* Version number of package */
+/* What is our version? */
 #undef VERSION
 
 /* Define if using the dmalloc debugging malloc package */
