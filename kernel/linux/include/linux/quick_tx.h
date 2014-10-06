@@ -22,28 +22,29 @@
 #define DMA_COHERENT 1
 
 #ifndef __KERNEL__
+
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/user.h>
 #include <math.h>
 #include <sys/ioctl.h>
-#include <asm-generic/ioctl.h>
+#include <linux/ioctl.h>
 #include <sys/param.h>
 #include <linux/if_ether.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <poll.h>
+
 
 #define __u64 	u_int64_t
 #define __u32 	u_int32_t
@@ -169,6 +170,7 @@ struct quick_tx_dev {
 	wait_queue_head_t kernel_lookup_q;
 	wait_queue_head_t user_mem_q;
 	wait_queue_head_t user_lookup_q;
+	wait_queue_head_t user_done_q;
 	struct mutex mtx;
 
 #ifdef DMA_COHERENT
@@ -209,6 +211,10 @@ struct quick_tx_ops {
 extern const struct quick_tx_ops quick_tx_default_ops;
 extern const struct quick_tx_ops quick_tx_virtio_net_ops;
 extern const struct quick_tx_ops quick_tx_e1000_ops;
+
+extern int quick_tx_napi_poll_direct(struct quick_tx_dev *dev, struct napi_struct *napi);
+extern void quick_tx_set_napi_ops(struct quick_tx_dev *dev);
+extern void quick_tx_unset_napi_ops(struct quick_tx_dev *dev);
 
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
@@ -291,6 +297,7 @@ struct quick_tx_shared_data {
 
 	__u8 producer_wait_mem_flag;
 	__u8 producer_wait_lookup_flag;
+	__u8 producer_wait_done_flag;
 	__u8 consumer_wait_lookup_flag;
 
 } __attribute__((aligned(8)));
@@ -310,6 +317,7 @@ struct quick_tx_shared_data {
 
 #define POLL_DMA		POLLOUT
 #define POLL_LOOKUP		POLLIN
+#define POLL_DONE_TX	0x100
 
 #ifndef __KERNEL__
 struct quick_tx {
@@ -529,7 +537,7 @@ static inline void __poll_for(struct quick_tx* dev, short events, __u8 *flag) {
 	pfd.events = events;
 	pfd.fd = dev->fd;
 
-	*flag = 1;
+	*flag = 0;
 	wmb();
 	poll(&pfd, 1, 1000);
 
@@ -544,6 +552,10 @@ static inline void __poll_for_dma(struct quick_tx* dev) {
 
 static inline void __poll_for_lookup(struct quick_tx* dev) {
 	__poll_for(dev, POLL_LOOKUP, &dev->data->producer_wait_lookup_flag);
+}
+
+static inline void __poll_for_done_tx(struct quick_tx* dev) {
+	__poll_for(dev, POLL_DONE_TX, &dev->data->producer_wait_done_flag);
 }
 
 /**
@@ -621,6 +633,12 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 	        num_lookup_sleeps++;
 	    }
 	}
+}
+
+
+static inline void quick_tx_wait_for_tx_complete(struct quick_tx* dev) {
+	__wake_up_module(dev);
+	__poll_for_done_tx(dev);
 }
 
 /*

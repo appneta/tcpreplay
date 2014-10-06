@@ -62,6 +62,8 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 	dev->num_skb_freed = 0;
 	dev->num_skb_alloced = 0;
 	dev->numsleeps = 0;
+	dev->time_start_tx = ktime_set(0, 0);
+	dev->time_end_tx = ktime_set(0, 0);
 
 	/* kfree the memory allocated for master page */
 	kfree(dev->data);
@@ -161,6 +163,7 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
     dev->shared_data->smp_cache_bytes = SMP_CACHE_BYTES;
     dev->shared_data->prefix_len = NET_SKB_PAD;
     dev->shared_data->postfix_len = sizeof(struct skb_shared_info);
+    dev->shared_data->producer_wait_done_flag = 1;
 
     dev->shared_data->num_pages_per_block = 2 * (PAGE_ALIGN(dev->netdev->mtu) >> PAGE_SHIFT);
     dev->quit_work = false;

@@ -33,6 +33,10 @@ inline void quick_tx_wake_up_user_lookup(struct quick_tx_dev *dev) {
 	quick_tx_set_flag_wake_up_queue(&dev->user_lookup_q, &dev->shared_data->producer_wait_lookup_flag);
 }
 
+inline void quick_tx_wake_up_user_done_tx(struct quick_tx_dev *dev) {
+	quick_tx_set_flag_wake_up_queue(&dev->user_done_q, &dev->shared_data->producer_wait_done_flag);
+}
+
 inline void quick_tx_wake_up_kernel_lookup(struct quick_tx_dev *dev) {
 	quick_tx_set_flag_wake_up_queue(&dev->kernel_lookup_q, &dev->shared_data->consumer_wait_lookup_flag);
 }
@@ -253,14 +257,13 @@ void inline quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
 	}
 }
 
-static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq)
+static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq, bool do_calc)
 {
 
 	/* flush all remaining SKB's in the list before exiting */
 	quick_tx_do_xmit(NULL, txq, dev, 0, true);
-	dev->time_end_tx = ktime_get_real();
-
-	qtx_error("All packets have been transmitted successfully, exiting.");
+	if (ktime_to_ns(dev->time_end_tx) == 0)
+		dev->time_end_tx = ktime_get_real();
 
 	/* wait until cleaning the SKB list is finished
 	 * as well before exiting so we do not have any memory leaks */
@@ -269,11 +272,10 @@ static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_
 		dev->ops->wait_free_skb(dev);
 	}
 
-	qtx_error("Done freeing free_skb_list");
-
-	quick_tx_calc_mbps(dev);
-	quick_tx_print_stats(dev);
-
+	if (do_calc) {
+		quick_tx_calc_mbps(dev);
+		quick_tx_print_stats(dev);
+	}
 }
 
 void quick_tx_worker(struct work_struct *work)
@@ -352,8 +354,14 @@ void quick_tx_worker(struct work_struct *work)
 			data->lookup_consumer_index = (data->lookup_consumer_index + 1) % LOOKUP_TABLE_SIZE;
 			entry = data->lookup_table + data->lookup_consumer_index;
 		} else {
+			if (dev->shared_data->producer_wait_done_flag == 0) {
+				quick_tx_finish_work(dev, txq, false);
+				wmb();
+				quick_tx_wake_up_user_done_tx(dev);
+			}
+
 			if (unlikely(dev->quit_work)) {
-				quick_tx_finish_work(dev, txq);
+				quick_tx_finish_work(dev, txq, true);
 				break;
 			}
 #ifdef QUICK_TX_DEBUG

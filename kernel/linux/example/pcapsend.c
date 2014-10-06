@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 

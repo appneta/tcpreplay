@@ -1216,6 +1216,17 @@ tcpreplay_replay(tcpreplay_t *ctx)
     }
 
     ctx->running = false;
+
+#ifdef HAVE_QUICK_TX
+    /* flush any remaining netmap packets */
+    if (ctx->options->quick_tx)
+        quick_tx_wait_for_tx_complete(ctx->intf1->qtx_dev);
+#endif
+
+    if (ctx->stats.bytes_sent > 0) {
+           if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
+               errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+    }
     return 0;
 }
 

@@ -27,7 +27,7 @@ DEFINE_MUTEX(init_mutex);
 #define E1000E_NAME "e1000e"
 #define E1000_NAME "e1000"
 
-const char *netdev_drivername(const struct net_device *dev)
+const char *quick_tx_netdev_drivername(const struct net_device *dev)
 {
 	const struct device_driver *driver;
 	const struct device *parent;
@@ -45,15 +45,15 @@ const char *netdev_drivername(const struct net_device *dev)
 
 static void quick_tx_set_ops(struct quick_tx_dev *dev)
 {
-	if (!strncmp(netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
+	if (!strncmp(quick_tx_netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
 		dev->ops = &quick_tx_virtio_net_ops;
 		qtx_error("Set %s operations", VIRTIO_NET_NAME);
 		return;
-	} else if (!strncmp(netdev_drivername(dev->netdev), E1000E_NAME, strlen(E1000E_NAME))) {
+	} else if (!strncmp(quick_tx_netdev_drivername(dev->netdev), E1000E_NAME, strlen(E1000E_NAME))) {
 		dev->ops = &quick_tx_default_ops;
 		qtx_error("Set %s operations", "default");
 		return;
-	} else if (!strncmp(netdev_drivername(dev->netdev), E1000_NAME, strlen(E1000_NAME))) {
+	} else if (!strncmp(quick_tx_netdev_drivername(dev->netdev), E1000_NAME, strlen(E1000_NAME))) {
 		dev->ops = &quick_tx_e1000_ops;
 		qtx_error("Set %s operations", E1000_NAME);
 		return;
@@ -115,12 +115,15 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 
 	poll_wait(file, &dev->user_mem_q, wait);
 	poll_wait(file, &dev->user_lookup_q, wait);
+	poll_wait(file, &dev->user_done_q, wait);
 
 	smp_rmb();
 	if (dev->shared_data->producer_wait_mem_flag)
 		mask |= (POLL_DMA);
 	if (dev->shared_data->producer_wait_lookup_flag)
 		mask |= (POLL_LOOKUP);
+	if (dev->shared_data->producer_wait_done_flag)
+		mask |= (POLL_DONE_TX);
 
 	mutex_unlock(&dev->mtx);
 
@@ -229,6 +232,7 @@ static int quick_tx_init(void)
 
 			init_waitqueue_head(&dev->user_mem_q);
 			init_waitqueue_head(&dev->user_lookup_q);
+			init_waitqueue_head(&dev->user_done_q);
 			init_waitqueue_head(&dev->kernel_lookup_q);
 			mutex_init(&dev->mtx);
 
