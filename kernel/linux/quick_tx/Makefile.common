@@ -1,8 +1,18 @@
 # Makefile.common
-moduledir = @moduledir@
+
+# where the kernel sources are located
 KERNEL_LOCATION=@kerneldir@
-KBUILD_VERBOSE = 0
+
 MOD_DEVDIR = $(PWD)
+
+# some magic for using linux kernel settings
+# when compiling module(s)
+KBUILD_VERBOSE = 1
+QTX_EXTRA_CFLAGS = -DEXPORT_SYMTAB $(DEFS) \
+		$(DEFAULT_INCLUDES) -I$(MOD_DEVDIR) -I$(MOD_DEVDIR)/$(builddir) \
+		-I$(MOD_DEVDIR)/$(top_srcdir) -I$(MOD_DEVDIR)/$(top_builddir) \
+		-I$(KERNEL_LOCATION)/include/
+export QTX_EXTRA_CFLAGS KERNEL_LOCATION module_DATA
 
 export module_DATA
 export module_OBJECTS
@@ -15,6 +25,32 @@ $(module_DATA): $(automake_dummy_SOURCES)
         CC="gcc" M=$(PWD) modules\
 		KBUILD_VERBOSE=$(KBUILD_VERBOSE) 
 	mv Makefile.automake Makefile 
+
+install-moduleDATA: $(module_DATA)
+	$(mkinstalldirs) $(DESTDIR)$(moduledir)
+	@list='$(module_DATA:.o=.@kernelext@)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f="`echo $$p | sed -e 's|^.*/||'`"; \
+	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(moduledir)/$$f"; \
+	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(moduledir)/$$f; \
+	done
+
+uninstall-moduleDATA:
+	@list='$(module_DATA:.o=.@kernelext@)'; for p in $$list; do \
+	  f="`echo $$p | sed -e 's|^.*/||'`"; \
+	  echo " rm -f $(DESTDIR)$(moduledir)/$$f"; \
+	  rm -f $(DESTDIR)$(moduledir)/$$f; \
+	done
+
+
+if SANDBOXED
+else
+install-data-local: install-moduleDATA
+	-@depmod@ -a @kerneluname@
+	
+uninstall-local: uninstall-moduleDATA
+	-@depmod@ -a @kerneluname@
+endif
 
 MOSTLYCLEANFILES = $(module_DATA) .$(module_DATA).flags $(module_DATA:.o=.mod.c) $(module_DATA:.o=.@kernelext@) *~
 

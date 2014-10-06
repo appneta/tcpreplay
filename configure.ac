@@ -71,6 +71,7 @@ AC_PATH_PROG(ECHO, echo)
 AC_PATH_PROG(CUT, cut)
 AC_PATH_PROG(AUTOGEN, autogen)
 AC_PATH_PROG(GROFF, groff)
+AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
 
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
@@ -1101,6 +1102,26 @@ if test x${no_kernel} != xyes; then
 fi
 AC_SUBST(KERNEL_DIR)
 
+dnl * Set destination directory for kernel modules
+
+if test x${kerneluname} = x ; then
+    kerneluname=`uname -r`
+fi
+default_moduledir=/lib/modules/${kerneluname}/misc
+AC_ARG_WITH(moduledir,
+[  --with-moduledir=DIR    kernel modules in DIR (/lib/modules/${kerneluname}/misc)], 
+moduledir=${withval},
+moduledir=${default_moduledir})
+AC_SUBST(moduledir)
+AC_SUBST(kerneluname)
+
+dnl * Allow kernel sandbox mode (prevent depmod execution)
+AC_ARG_ENABLE(sandboxed,
+[  --enable-sandboxed      Don't install anything to the kernel module directories],
+[ enable_sandboxed="${enableval}" ],
+[ enable_sandboxed="no"])
+AM_CONDITIONAL(SANDBOXED, test x$enable_sandboxed = xyes)
+
 dnl ##################################################
 dnl # Check for libdnet, but only if not Cygwin! 
 dnl ##################################################
@@ -1532,6 +1553,7 @@ AC_OUTPUT([Makefile
            src/Makefile
            src/tcpedit/Makefile
            src/fragroute/Makefile
+           src/common/Makefile
            src/defines.h
            test/Makefile
            test/config

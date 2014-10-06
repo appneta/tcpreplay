@@ -145,7 +145,7 @@ MOSTLYCLEANFILES = *~ *.o
 
 MAINTAINERCLEANFILES = Makefile.in tcpreplay_opts.h tcpreplay_opts.c tcpliveplay_opts.c \
 		       tcprewrite_opts.c tcprewrite_opts.h tcpprep_opts.c tcpliveplay_opts.h tcpcapinfo_opts.h \
-		       tcpprep_opts.h tcpprep.1 tcpreplay.1 tcprewrite.1 tcpliveplay.1 tcpcapinfo.1 \
+		       tcpcapinfo_opts.c tcpprep_opts.h tcpprep.1 tcpreplay.1 tcprewrite.1 tcpliveplay.1 tcpcapinfo.1 \
 		       tcpbridge.1 tcpbridge_opts.h tcpbridge_opts.c \
 			   tcpreplay_edit_opts.c tcpreplay_edit_opts.h \
 			   tcpreplay-edit.1

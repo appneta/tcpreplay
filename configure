@@ -769,6 +769,10 @@ COMPILE_FRAGROUTE_FALSE
 COMPILE_FRAGROUTE_TRUE
 LDNETLIB
 LDNETINC
+SANDBOXED_FALSE
+SANDBOXED_TRUE
+kerneluname
+moduledir
 KERNEL_DIR
 kernelext
 kerneldir
@@ -793,6 +797,7 @@ WORDS_BIGENDIAN_TRUE
 SYSTEM_STRLCPY_FALSE
 SYSTEM_STRLCPY_TRUE
 LIBOBJS
+depmod
 GROFF
 AUTOGEN
 CUT
@@ -948,6 +953,8 @@ enable_dynamic_link
 with_libpcap
 with_netmap
 with_kernel
+with_moduledir
+enable_sandboxed
 with_libdnet
 with_pcapnav_config
 with_tcpdump
@@ -1621,6 +1628,7 @@ Optional Features:
                           Force using libpcap's pcap_sendpacket() for sending
                           packets
   --enable-dynamic-link   Dynamically link libraries
+  --enable-sandboxed      Don't install anything to the kernel module directories
   --enable-local-libopts  Use the supplied libopts tearoff code
   --enable-libopts-install
                           Install libopts with client installation
@@ -1637,6 +1645,7 @@ Optional Packages:
   --with-libpcap=DIR      Use libpcap in DIR
   --with-netmap=DIR       Use netmap in DIR
   --with-kernel=DIR       Use Linux kernel sources in DIR
+  --with-moduledir=DIR    kernel modules in DIR (/lib/modules/${kerneluname}/misc)
   --with-libdnet=DIR      Use libdnet in DIR
   --with-pcapnav-config=FILE
                           Use given pcapnav-config
@@ -5184,13 +5193,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:5187: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:5196: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5190: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:5199: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5193: output\"" >&5)
+  (eval echo "\"\$as_me:5202: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6396,7 +6405,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6399 "configure"' > conftest.$ac_ext
+  echo '#line 6408 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7922,11 +7931,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7925: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7934: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7929: \$? = $ac_status" >&5
+   echo "$as_me:7938: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8261,11 +8270,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8264: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8273: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8268: \$? = $ac_status" >&5
+   echo "$as_me:8277: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8366,11 +8375,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8369: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8378: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8373: \$? = $ac_status" >&5
+   echo "$as_me:8382: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8421,11 +8430,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8424: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8433: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8428: \$? = $ac_status" >&5
+   echo "$as_me:8437: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10805,7 +10814,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10808 "configure"
+#line 10817 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10901,7 +10910,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10904 "configure"
+#line 10913 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14206,11 +14215,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14209: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14218: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14213: \$? = $ac_status" >&5
+   echo "$as_me:14222: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14305,11 +14314,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14308: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14317: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14312: \$? = $ac_status" >&5
+   echo "$as_me:14321: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14357,11 +14366,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14360: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14369: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14364: \$? = $ac_status" >&5
+   echo "$as_me:14373: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15791,6 +15800,48 @@ GROFF=$ac_cv_path_GROFF
 if test -n "$GROFF"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $GROFF" >&5
 $as_echo "$GROFF" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "depmod", so it can be a program name with args.
+set dummy depmod; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_depmod+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $depmod in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_depmod="$depmod" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$PATH:/sbin"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_depmod="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_path_depmod" && ac_cv_path_depmod="/sbin/depmod"
+  ;;
+esac
+fi
+depmod=$ac_cv_path_depmod
+if test -n "$depmod"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $depmod" >&5
+$as_echo "$depmod" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -19716,9 +19767,10 @@ if test "${with_kernel+set}" = set; then :
     fi
 
     if test x${no_kernel} != xyes; then
-        if test -f ${kerneldir}/Makefile; then
+        if test -f ${kerneldir}/Makefile -a -f ${kerneldir}/.config; then
             version=$( sed -n '/^VERSION/s/.*=\ *//p' ${kerneldir}/Makefile )
             patchlevel=$( sed -n -e '/^PATCHLEVEL/s/.*=\ *//p' ${kerneldir}/Makefile )
+            kerneluname=$( sed -n '/Linux kernel version/s/.*:\ *//p' ${kerneldir}/.config )
             if test "${version}" -eq 2; then
                 if test "${patchlevel}" -lt 5; then
                     kernelext=o
@@ -19729,9 +19781,11 @@ if test "${with_kernel+set}" = set; then :
             no_kernel=yes
         fi
     fi
+
     ac_cv_have_kernel="no_kernel=${no_kernel} \
             kerneldir=\"${kerneldir}\" \
             kernelext=\"${kernelext}\""
+
 
 
 else
@@ -19772,9 +19826,10 @@ else
     fi
 
     if test x${no_kernel} != xyes; then
-        if test -f ${kerneldir}/Makefile; then
+        if test -f ${kerneldir}/Makefile -a -f ${kerneldir}/.config; then
             version=$( sed -n '/^VERSION/s/.*=\ *//p' ${kerneldir}/Makefile )
             patchlevel=$( sed -n -e '/^PATCHLEVEL/s/.*=\ *//p' ${kerneldir}/Makefile )
+            kerneluname=$( sed -n '/Linux kernel version/s/.*:\ *//p' ${kerneldir}/.config )
             if test "${version}" -eq 2; then
                 if test "${patchlevel}" -lt 5; then
                     kernelext=o
@@ -19785,9 +19840,11 @@ else
             no_kernel=yes
         fi
     fi
+
     ac_cv_have_kernel="no_kernel=${no_kernel} \
             kerneldir=\"${kerneldir}\" \
             kernelext=\"${kernelext}\""
+
 
 
 fi
@@ -19814,6 +19871,38 @@ if test x${no_kernel} != xyes; then
 
 $as_echo "#define HAVE_QUICK_TX 1" >>confdefs.h
 
+fi
+
+
+
+if test x${kerneluname} = x ; then
+    kerneluname=`uname -r`
+fi
+default_moduledir=/lib/modules/${kerneluname}/misc
+
+# Check whether --with-moduledir was given.
+if test "${with_moduledir+set}" = set; then :
+  withval=$with_moduledir; moduledir=${withval}
+else
+  moduledir=${default_moduledir}
+fi
+
+
+
+
+# Check whether --enable-sandboxed was given.
+if test "${enable_sandboxed+set}" = set; then :
+  enableval=$enable_sandboxed;  enable_sandboxed="${enableval}"
+else
+   enable_sandboxed="no"
+fi
+
+ if test x$enable_sandboxed = xyes; then
+  SANDBOXED_TRUE=
+  SANDBOXED_FALSE='#'
+else
+  SANDBOXED_TRUE='#'
+  SANDBOXED_FALSE=
 fi
 
 
@@ -22073,7 +22162,7 @@ $as_echo "#define NO_OPTIONAL_OPT_ARGS 1" >>confdefs.h
 
 
 
-ac_config_files="$ac_config_files Makefile doxygen.cfg lib/Makefile docs/Makefile kernel/Makefile kernel/linux/Makefile kernel/linux/example/Makefile kernel/linux/quick_tx/Makefile src/Makefile src/tcpedit/Makefile src/fragroute/Makefile src/defines.h test/Makefile test/config scripts/Makefile"
+ac_config_files="$ac_config_files Makefile doxygen.cfg lib/Makefile docs/Makefile kernel/Makefile kernel/linux/Makefile kernel/linux/example/Makefile kernel/linux/quick_tx/Makefile src/Makefile src/tcpedit/Makefile src/fragroute/Makefile src/common/Makefile src/defines.h test/Makefile test/config scripts/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -22219,6 +22308,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_NETMAP_TRUE}" && test -z "${COMPILE_NETMAP_FALSE}"; then
   as_fn_error "conditional \"COMPILE_NETMAP\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${SANDBOXED_TRUE}" && test -z "${SANDBOXED_FALSE}"; then
+  as_fn_error "conditional \"SANDBOXED\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_FRAGROUTE_TRUE}" && test -z "${COMPILE_FRAGROUTE_FALSE}"; then
@@ -23204,6 +23297,7 @@ do
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/tcpedit/Makefile") CONFIG_FILES="$CONFIG_FILES src/tcpedit/Makefile" ;;
     "src/fragroute/Makefile") CONFIG_FILES="$CONFIG_FILES src/fragroute/Makefile" ;;
+    "src/common/Makefile") CONFIG_FILES="$CONFIG_FILES src/common/Makefile" ;;
     "src/defines.h") CONFIG_FILES="$CONFIG_FILES src/defines.h" ;;
     "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
     "test/config") CONFIG_FILES="$CONFIG_FILES test/config" ;;

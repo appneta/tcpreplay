@@ -573,20 +573,17 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                     &ctx->stats.end_time, &start_us, &skip_length);
 
 #ifdef HAVE_QUICK_TX
-            if (options->quick_tx && (ctx->first_time || timesisset(&ctx->nap)))
-                ioctl(sp->handle.fd, QTX_START_TX, NULL);   /* flush TX buffer */
+            if (options->quick_tx && timesisset(&ctx->nap))
+                quick_tx_wakeup(sp->qtx_dev);          /* flush TX buffer */
 #endif
 
 #ifdef HAVE_NETMAP
-            if (options->quick_tx && (ctx->first_time || timesisset(&ctx->nap)))
+            if (options->quick_tx && timesisset(&ctx->nap))
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 
             if (timesisset(&ctx->nap))
                 tcpr_sleep(ctx, &ctx->nap, options->accurate);
-
-            if (ctx->first_time)
-                ctx->first_time = 0;
         }
 
 SEND_NOW:
@@ -630,6 +627,19 @@ SEND_NOW:
                     memcpy(&ctx->stats.last_print, &now, sizeof(ctx->stats.last_print));
                 }
             }
+        }
+
+        if (ctx->first_time) {
+#ifdef HAVE_QUICK_TX
+            if (options->quick_tx)
+                quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
+#endif
+
+#ifdef HAVE_NETMAP
+            if (options->quick_tx)
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
+            ctx->first_time = 0;
         }
     } /* while */
 
@@ -811,12 +821,12 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                     &ctx->stats.end_time, &start_us, &skip_length);
 
 #ifdef HAVE_QUICK_TX
-            if (options->quick_tx && (ctx->first_time || timesisset(&ctx->nap)))
-                ioctl(sp->handle.fd, QTX_START_TX, NULL);   /* flush TX buffer */
+            if (options->quick_tx && timesisset(&ctx->nap))
+                quick_tx_wakeup(sp->qtx_dev);          /* flush TX buffer */
 #endif
 
 #ifdef HAVE_NETMAP
-            if (options->quick_tx && (ctx->first_time || timesisset(&ctx->nap)))
+            if (options->quick_tx && timesisset(&ctx->nap))
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 
@@ -872,6 +882,19 @@ SEND_NOW:
             pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
         } else {
             pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
+        }
+
+        if (ctx->first_time) {
+#ifdef HAVE_QUICK_TX
+            if (options->quick_tx)
+                quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
+#endif
+
+#ifdef HAVE_NETMAP
+            if (options->quick_tx)
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
+            ctx->first_time = 0;
         }
     } /* while */
 

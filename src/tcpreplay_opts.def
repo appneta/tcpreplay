@@ -535,7 +535,7 @@ flag = {
     doc         = <<- EOText
 This feature will detect detect the presence of the Quick TX module on Linux
 systems. If detected, tcpreplay packets will bypass the network stack and
-will be written to the network driver via the Quick TX module This will allow
+will be written to the network driver via the Quick TX module. This will allow
 you to achieve full line rates on commodity network adapters, similar to rates
 achieved by commercial network traffic generators. 
 

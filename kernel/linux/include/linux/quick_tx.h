@@ -525,7 +525,7 @@ static inline int __check_error_flags(struct quick_tx_shared_data* data) {
 	return 0;
 }
 
-static inline void __wake_up_module(struct quick_tx* dev) {
+static inline void quick_tx_wakeup(struct quick_tx* dev) {
 	dev->data->consumer_wait_lookup_flag = 1;
 	wmb();
 	ioctl(dev->fd, QTX_START_TX);
@@ -586,7 +586,7 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 	        /* Find the next suitable location for this packet */
 	        while (!__get_write_offset_and_inc(dev, full_length, &entry->block_offset, &entry->mem_block_index)) {
 	            /* need to wake up kernel to process older skb's */
-	            __wake_up_module(dev);
+	            quick_tx_wakeup(dev);
 
 	            /* poll for DMA block space */
 	            __poll_for_dma(dev);
@@ -609,7 +609,7 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 
 	        static int qtx_s = 0;
 	        if (qtx_s % (MEM_BLOCK_TABLE_SIZE >> 4) == 0) {
-	            __wake_up_module(dev);
+	            quick_tx_wakeup(dev);
 	        }
 	        qtx_s++;
 
@@ -627,7 +627,7 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 	        if (__check_error_flags(dev->data) < 0)
 	            return -1;
 
-	        __wake_up_module(dev);
+	        quick_tx_wakeup(dev);
 	        __poll_for_lookup(dev);
 
 	        num_lookup_sleeps++;
@@ -637,7 +637,7 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 
 
 static inline void quick_tx_wait_for_tx_complete(struct quick_tx* dev) {
-	__wake_up_module(dev);
+	quick_tx_wakeup(dev);
 	__poll_for_done_tx(dev);
 }
 

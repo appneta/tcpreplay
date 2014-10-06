@@ -186,6 +186,7 @@ builddir = @builddir@
 datadir = @datadir@
 datarootdir = @datarootdir@
 debug_flag = @debug_flag@
+depmod = @depmod@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
@@ -200,6 +201,7 @@ infodir = @infodir@
 install_sh = @install_sh@
 kerneldir = @kerneldir@
 kernelext = @kernelext@
+kerneluname = @kerneluname@
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
@@ -207,6 +209,7 @@ localstatedir = @localstatedir@
 lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
+moduledir = @moduledir@
 nic1 = @nic1@
 nic2 = @nic2@
 oldincludedir = @oldincludedir@
@@ -232,6 +235,7 @@ top_srcdir = @top_srcdir@
 pcapsend_SOURCES = pcapsend.c ../include/linux/quick_tx.h
 pcapsend_CFLAGS = -I../include
 MOSTLYCLEANFILES = *~ *.o *.Po pcapsend
+MAINTAINERCLEANFILES = Makefile.in
 all: all-am
 
 .SUFFIXES:
@@ -477,6 +481,7 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
