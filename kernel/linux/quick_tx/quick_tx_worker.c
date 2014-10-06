@@ -247,14 +247,35 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	return qtx_skb;
 }
 
-void inline quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
+static inline int poll_one_napi(struct napi_struct *napi, int budget)
+{
+	int work;
+
+	set_bit(NAPI_STATE_NPSVC, &napi->state);
+	work = napi->poll(napi, budget);
+	clear_bit(NAPI_STATE_NPSVC, &napi->state);
+
+	return budget - work;
+}
+
+static inline void poll_napi(struct net_device *dev)
+{
 	struct napi_struct *napi;
-	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-		napi_schedule(napi);
+	int budget = 512;
+
+	list_for_each_entry(napi, &dev->napi_list, dev_list) {
+		napi_disable(napi);
+		if (napi->poll_owner != smp_processor_id() &&
+		    spin_trylock(&napi->poll_lock)) {
+			budget = poll_one_napi(napi, budget);
+			spin_unlock(&napi->poll_lock);
+		}
+		napi_enable(napi);
 	}
-	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-		napi_synchronize(napi);
-	}
+}
+
+inline void quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
+	poll_napi(dev->netdev);
 }
 
 static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq, bool do_calc)
@@ -269,7 +290,8 @@ static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_
 	 * as well before exiting so we do not have any memory leaks */
 	while(!list_empty(&dev->skb_wait_list.list)) {
 		quick_tx_free_skb(dev, true);
-		dev->ops->wait_free_skb(dev);
+		if (!list_empty(&dev->skb_wait_list.list))
+			dev->ops->wait_free_skb(dev);
 	}
 
 	if (do_calc) {

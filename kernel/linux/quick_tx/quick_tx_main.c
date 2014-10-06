@@ -236,6 +236,7 @@ static int quick_tx_init(void)
 			init_waitqueue_head(&dev->kernel_lookup_q);
 			mutex_init(&dev->mtx);
 
+			spin_lock_init(&dev->poll_lock);
 
 #ifdef DMA_COHERENT
 			mem_addr = dma_alloc_coherent(dev->netdev->dev.parent, PAGE_SIZE, &mem_handle, GFP_KERNEL);
