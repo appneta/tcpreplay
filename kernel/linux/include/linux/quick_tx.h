@@ -120,16 +120,10 @@ extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 #define qtx_info(fmt, ...) \
 	printk(KERN_INFO pr_fmt("[quick_tx] INFO:  "fmt"\n"), ##__VA_ARGS__)
 
-#define MAX_NAPI_PER_DEV				32
 #define MAX_QUICK_TX_DEV 				32
-#define MIN_PACKET_SIZE 				20
-#define GOODCOPY_LEN 					128
 
 #define DEVICENAME 						"quick_tx"
 #define QUICK_TX_WORKQUEUE 				"quick_tx_workqueue"
-
-#define NETDEV_TQ_FROZEN_OR_STOPPED 	NETDEV_TX_LOCKED + 0x10
-#define NETDEV_NOT_RUNNING				NETDEV_TX_LOCKED + 0x20
 
 struct quick_tx_skb {
 	struct list_head list;
@@ -224,10 +218,11 @@ extern void quick_tx_wake_up_user_lookup(struct quick_tx_dev *dev);
 extern void quick_tx_wake_up_kernel_lookup(struct quick_tx_dev *dev);
 
 extern void quick_tx_worker(struct work_struct *work);
+
 #endif /* __KERNEL__ */
 
-#define PRIN_MAGIC 'Q'
-#define QTX_START_TX _IO(PRIN_MAGIC, 0)
+#define PRINT_MAGIC 'Q'
+#define QTX_START_TX _IO(PRINT_MAGIC, 0)
 
 #define RUN_AT_INVERVAL(code, num, counter) \
 	do { 								\
