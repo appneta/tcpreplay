@@ -212,10 +212,6 @@ extern const struct quick_tx_ops quick_tx_default_ops;
 extern const struct quick_tx_ops quick_tx_virtio_net_ops;
 extern const struct quick_tx_ops quick_tx_e1000_ops;
 
-extern int quick_tx_napi_poll_direct(struct quick_tx_dev *dev, struct napi_struct *napi);
-extern void quick_tx_set_napi_ops(struct quick_tx_dev *dev);
-extern void quick_tx_unset_napi_ops(struct quick_tx_dev *dev);
-
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
 extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
