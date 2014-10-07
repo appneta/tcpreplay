@@ -20,7 +20,6 @@
 
 struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
-u32 num_quick_tx_devs;
 DEFINE_MUTEX(init_mutex);
 
 #define VIRTIO_NET_NAME "virtio_net"
@@ -47,20 +46,16 @@ static void quick_tx_set_ops(struct quick_tx_dev *dev)
 {
 	if (!strncmp(quick_tx_netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
 		dev->ops = &quick_tx_virtio_net_ops;
-		qtx_error("Set %s operations", VIRTIO_NET_NAME);
 		return;
 	} else if (!strncmp(quick_tx_netdev_drivername(dev->netdev), E1000E_NAME, strlen(E1000E_NAME))) {
 		dev->ops = &quick_tx_default_ops;
-		qtx_error("Set %s operations", "default");
 		return;
 	} else if (!strncmp(quick_tx_netdev_drivername(dev->netdev), E1000_NAME, strlen(E1000_NAME))) {
 		dev->ops = &quick_tx_e1000_ops;
-		qtx_error("Set %s operations", E1000_NAME);
 		return;
 	}
 
 	dev->ops = &quick_tx_default_ops;
-	qtx_error("Set default operations");
 	return;
 }
 
@@ -75,7 +70,8 @@ void quick_tx_calc_mbps(struct quick_tx_dev *dev)
 	}
 }
 
-void quick_tx_print_stats(struct quick_tx_dev *dev) {
+void quick_tx_print_stats(struct quick_tx_dev *dev)
+{
 	qtx_info("Run complete, printing TX statistics for %s:", dev->quick_tx_misc.name);
 	qtx_info("\t TX Queue was frozen of stopped: \t%llu", dev->num_tq_frozen_or_stopped);
 	qtx_info("\t TX returned locked: \t\t\t%llu", dev->num_tx_locked);
@@ -140,7 +136,8 @@ static int quick_tx_release (struct inode * inodp, struct file * file)
 	return 0;
 }
 
-static int quick_tx_init_name(struct quick_tx_dev* dev) {
+static int quick_tx_init_name(struct quick_tx_dev* dev)
+{
 	int ret;
 
 	dev->quick_tx_misc.name =
@@ -171,7 +168,8 @@ error:
 	return ret;
 }
 
-static void quick_tx_remove_device(struct quick_tx_dev* dev) {
+static void quick_tx_remove_device(struct quick_tx_dev* dev)
+{
 	if (dev->registered == true) {
 		qtx_info("Removing QuickTx device %s", dev->quick_tx_misc.nodename);
 		kfree(dev->quick_tx_misc.name);
@@ -246,8 +244,6 @@ static int quick_tx_init(void)
 				dev->using_mem_coherent = false;
 #endif
 
-			qtx_error("set using_mem_coherent to %d", dev->using_mem_coherent);
-
 			quick_tx_set_ops(dev);
 
 			i++;
@@ -255,7 +251,6 @@ static int quick_tx_init(void)
 	}
 	read_unlock(&dev_base_lock);
 
-	num_quick_tx_devs = i;
 	qtx_skbuff_head_cache = kmem_cache_create("skbuff_head_cache",
 					      sizeof(struct quick_tx_skb),
 					      0,
@@ -275,7 +270,7 @@ error:
 		quick_tx_remove_device(&quick_tx_devs[i]);
 	}
 
-	qtx_error("Error occurred while initializing, quick_tx is exiting");
+	qtx_error("An error occurred while initializing, quick_tx is exiting");
 
 	mutex_unlock(&init_mutex);
 

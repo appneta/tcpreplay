@@ -265,16 +265,22 @@ static inline void poll_napi(struct net_device *dev)
 
 	list_for_each_entry(napi, &dev->napi_list, dev_list) {
 		napi_disable(napi);
+#ifdef CONFIG_NETPOLL
 		if (napi->poll_owner != smp_processor_id() &&
 		    spin_trylock(&napi->poll_lock)) {
+#endif
 			budget = poll_one_napi(napi, budget);
+#ifdef CONFIG_NETPOLL
 			spin_unlock(&napi->poll_lock);
+
 		}
+#endif
 		napi_enable(napi);
 	}
 }
 
-inline void quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
+inline void quick_tx_wait_free_skb(struct quick_tx_dev *dev)
+{
 	poll_napi(dev->netdev);
 }
 
@@ -312,8 +318,6 @@ void quick_tx_worker(struct work_struct *work)
 	u32 aligned_length = 0;
 	u32 full_size = 0;
 
-	qtx_error("Starting quick_tx_worker");
-
 	if (!netif_device_present(dev->netdev) || !netif_running(dev->netdev)) {
 		qtx_error("Device cannot currently transmit, it is not running.");
 		qtx_error("Force stopping transmit..");
@@ -347,7 +351,7 @@ void quick_tx_worker(struct work_struct *work)
 					0, NUMA_NO_NODE, mem_block->kernel_addr + entry->block_offset, full_size);
 			if (unlikely(!qtx_skb)) {
 				atomic_dec(&mem_block->users);
-				qtx_error("ALLOC_ERROR: Decrement on %d. Users at = %d",
+				qtx_error("Error allocating skb, decrement users on %d block to %d",
 						entry->mem_block_index, atomic_read(&mem_block->users));
 				continue;
 			}
@@ -363,7 +367,7 @@ void quick_tx_worker(struct work_struct *work)
 			quick_tx_do_xmit(qtx_skb, txq, dev, 512, false);
 
 #ifdef QUICK_TX_DEBUG
-			qtx_error("Consumed entry at index = %d, mem_block_index = %d, offset = %d, len = %d",
+			qtx_info("Consumed entry at index = %d, mem_block_index = %d, offset = %d, len = %d",
 					data->lookup_consumer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
 
@@ -387,7 +391,7 @@ void quick_tx_worker(struct work_struct *work)
 				break;
 			}
 #ifdef QUICK_TX_DEBUG
-			qtx_error("No packets to process, sleeping (index = %d), entry->consumed = %d", data->lookup_consumer_index,
+			qtx_info("No packets to process, sleeping (index = %d), entry->consumed = %d", data->lookup_consumer_index,
 					entry->consumed);
 #endif
 
