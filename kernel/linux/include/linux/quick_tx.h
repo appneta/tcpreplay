@@ -176,7 +176,7 @@ struct quick_tx_dev {
 	wait_queue_head_t user_done_q;
 	struct mutex mtx;
 
-#ifdef DMA_COHERENT
+#ifdef USE_DMA_COHERENT_MEM_BLOCKS
 	bool using_mem_coherent;
 #endif
 
@@ -280,7 +280,7 @@ struct quick_tx_mem_block_entry {
 	__u32 producer_offset;	/* offset (bytes) that the packet is written at  */
 	__u32 length;			/* length of the DMA block */
 	atomic_t users;			/* number of users (skbs with memory mapped to this block but still in use) */
-#ifdef DMA_COHERENT
+#ifdef USE_DMA_COHERENT_MEM_BLOCKS
 	__u64 mem_handle;
 #endif
 } __attribute__((aligned(8)));
