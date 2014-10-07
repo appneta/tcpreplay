@@ -208,9 +208,11 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t * sendpacket_open_khial(const char *, char *) _U_;
+static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
+#ifdef HAVE_QUICK_TX
 static sendpacket_t * sendpacket_open_quick_tx(const char *, char *) _U_;
 static void sendpacket_close_quick_tx(sendpacket_t *sp);
-static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
+#endif /* HAVE_QUICK_TX */
 
 /**
  * returns number of bytes sent on success or -1 on error
@@ -1238,6 +1240,7 @@ sendpacket_open_khial(const char *device, char *errbuf)
  * Opens connection to Quick TX module for injecting packets directly into
  * your interfaces via a the quick_tx module
  */
+#ifdef HAVE_QUICK_TX
 static sendpacket_t *
 sendpacket_open_quick_tx(const char *device, char *errbuf)
 {
@@ -1355,6 +1358,7 @@ sendpacket_close_quick_tx(sendpacket_t *sp)
 
     close(sp->handle.fd);
 }
+#endif /* HAVE_QUICK_TX */
 
 /**
  * Get the hardware MAC address for the given interface using khial

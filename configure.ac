@@ -1126,7 +1126,7 @@ AC_ARG_ENABLE(quick_tx_example,
 if test x$enable_tx_example = xyes; then
     QUICK_TX_EXAMPLE_DIR=example
 fi
-AM_CONDITIONAL(QUICK_TX_EXAMPLE, test x$enable_tx_example = xyes)
+AC_SUBST(QUICK_TX_EXAMPLE_DIR)
 
 dnl * Allow kernel sandbox mode (prevent depmod execution)
 AC_ARG_ENABLE(sandboxed,
