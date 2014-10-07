@@ -194,7 +194,6 @@ struct quick_tx_dev {
 
 	ktime_t time_start_tx;
 	ktime_t time_end_tx;
-
 };
 
 struct quick_tx_ops {
@@ -320,8 +319,8 @@ struct quick_tx {
 
 /*
  * Maps a single DMA block for device
- * @param dev quick_tx structure returned from a quick_tx_open call
- * @return 0 on success mapping, otherwise -1
+ * @param 	dev quick_tx structure returned from a quick_tx_open call
+ * @return 	0 on success mapping, otherwise -1
  */
 static inline int quick_tx_mmap_mem_block(struct quick_tx* dev) {
 	if (dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
@@ -352,18 +351,16 @@ static inline int quick_tx_mmap_mem_block(struct quick_tx* dev) {
  * @dev 	quick_tx device pointer
  * @bytes	number of bytes the application plans to transmit
  *
- * @return	will return the number of blocks that actually allocated in the kernel
- * 			the number may be below or above the passed in value
- * 			a return of 0 means that there is no more room for further
- * 			allocations
+ * @return	will return the number of blocks that was actually allocated in the kernel
+ * 			module. If the return is 0 then there is definitely no more space for allocation
  */
 static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, int64_t bytes) {
 	if (dev && dev->data) {
 		int num = 0;
-		int64_t num_pages = bytes / 256;    // TODO  should this be named 'num_blocks' ??
-		while (num_pages > 0 && dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
+		int64_t num_blocks = 1 + (bytes / (PAGE_SIZE * dev->data->num_pages_per_block));
+		while (num_blocks > 0 && dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
 			if (quick_tx_mmap_mem_block(dev) == 0) {
-				num_pages -= dev->data->num_pages_per_block;
+				num_blocks--;
 				num++;
 			} else {
 				fprintf(stderr, "MAP_FAILED for index %d\n", dev->data->num_mem_blocks);
@@ -482,13 +479,6 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		if (atomic_read(&next_mem_block->users) != 0) {
 			/* If the block has not yet been freed then all we can do is return with error */
 			return false;
-		}
-
-		/* Sanity check */
-		// TODO fix so user doesn't have to know about padding
-		if (length > next_mem_block->length) {
-			printf("Fatal error: Size of padded packet cannot surpass the size of a DMA block!\n");
-			exit(1);
 		}
 
 		/* Increment the offset counters and dma block index */
@@ -624,6 +614,8 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 	        num_lookup_sleeps++;
 	    }
 	}
+
+	return length;
 }
 
 
@@ -634,8 +626,7 @@ static inline void quick_tx_wait_for_tx_complete(struct quick_tx* dev) {
 
 /*
  * Call this function to close the QuickTX device
- * @param qtx pointer to a quick_tx structure
- * @return quick_tx object
+ * @param 	qtx pointer to a quick_tx structure
  */
 static inline void quick_tx_close(struct quick_tx* dev) {
 	if (dev) {

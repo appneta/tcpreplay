@@ -18,7 +18,8 @@
 
 #include <linux/quick_tx.h>
 
-bool quick_tx_is_netdev_exist(struct quick_tx_dev *dev) {
+bool quick_tx_is_netdev_exist(struct quick_tx_dev *dev)
+{
 	struct net_device *netdev;
 	bool netdev_exists = false;
 
@@ -102,7 +103,7 @@ void quick_tx_vm_mem_close(struct vm_area_struct *vma)
 
 		dev->shared_data->num_mem_blocks--;
 	} else {
-		qtx_error("Cannot unmap a DMA block! no more blocks to unmap");
+		qtx_error("Cannot unmap a DMA block! there are no more blocks to unmap for this quick_tx device");
 	}
 }
 
@@ -114,7 +115,8 @@ static const struct vm_operations_struct quick_tx_vma_ops_dma = {
 	.close = quick_tx_vm_mem_close
 };
 
-int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
+int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma)
+{
 	int ret = 0;
 	struct miscdevice* miscdev = file->private_data;
 	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
@@ -165,11 +167,14 @@ int quick_tx_mmap_master(struct file * file, struct vm_area_struct * vma) {
     dev->shared_data->postfix_len = sizeof(struct skb_shared_info);
     dev->shared_data->producer_wait_done_flag = 1;
 
-    dev->shared_data->num_pages_per_block = 2 * (PAGE_ALIGN(dev->netdev->mtu) >> PAGE_SHIFT);
+    dev->shared_data->num_pages_per_block = (PAGE_ALIGN(
+    		SKB_DATA_ALIGN(SKB_DATA_ALIGN(
+    				dev->shared_data->prefix_len + dev->netdev->mtu)
+    				+ dev->shared_data->postfix_len))
+    		>> PAGE_SHIFT);
+
     dev->quit_work = false;
     smp_wmb();
-
-    qtx_error("pages per DMA block set to %d", dev->shared_data->num_pages_per_block);
 
     INIT_WORK(&dev->tx_work, quick_tx_worker);
     dev->tx_workqueue = alloc_workqueue(QUICK_TX_WORKQUEUE, WQ_UNBOUND | WQ_CPU_INTENSIVE | WQ_HIGHPRI, 1);
@@ -218,9 +223,12 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 
 	if (!mem_block_p)
 	{
-		qtx_error("Could not allocate memory for device, exiting");
-		qtx_error("Dma mappping errors: %d", dma_mapping_error(dev->netdev->dev.parent,
-				(dma_addr_t)&entry->mem_handle));
+		qtx_error("Could not allocate memory block for device %s", miscdev->name);
+#if DMA_COHERENT
+		if (dev->using_mem_coherent)
+			qtx_error("DMA mappping errors: %d", dma_mapping_error(dev->netdev->dev.parent,
+					(dma_addr_t)&entry->mem_handle));
+#endif
 		ret = -ENOMEM;
 		goto error;
 
@@ -273,7 +281,11 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 	} else if ((dev->shared_data) && num_pages == dev->shared_data->num_pages_per_block) {
 		return quick_tx_mmap_mem_block(file, vma);
 	} else {
-		qtx_error("Invalid map size!");
+		if (dev->shared_data)
+			qtx_error("Passed in invalid size as parameter. Master mmap should be %lu pages and memory blocks should be %d pages",
+					QTX_MASTER_PAGE_NUM, dev->shared_data->num_pages_per_block);
+		else
+			qtx_error("Passed in an invalid size as a parameter, master mmap should be %lu pages long", QTX_MASTER_PAGE_NUM);
 		return -EINVAL;
 	}
 }
