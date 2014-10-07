@@ -17,7 +17,7 @@
  */
 
 #include <linux/quick_tx.h>
-#include <net/sch_generic.h>
+#include <linux/sched.h>
 
 static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *flag) {
 	*flag = 1;
@@ -366,7 +366,7 @@ void quick_tx_worker(struct work_struct *work)
 
 			quick_tx_do_xmit(qtx_skb, txq, dev, 512, false);
 
-#ifdef QUICK_TX_DEBUG
+#ifdef EXTRA_DEBUG
 			qtx_info("Consumed entry at index = %d, mem_block_index = %d, offset = %d, len = %d",
 					data->lookup_consumer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
@@ -390,7 +390,7 @@ void quick_tx_worker(struct work_struct *work)
 				quick_tx_finish_work(dev, txq, true);
 				break;
 			}
-#ifdef QUICK_TX_DEBUG
+#ifdef EXTRA_DEBUG
 			qtx_info("No packets to process, sleeping (index = %d), entry->consumed = %d", data->lookup_consumer_index,
 					entry->consumed);
 #endif

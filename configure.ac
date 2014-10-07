@@ -233,6 +233,7 @@ AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
 
 dnl Enable debugging in code/compiler options
 debug=no
+debug_flag=NDBUG
 AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
@@ -240,9 +241,22 @@ AC_ARG_ENABLE(debug,
         CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
-        AC_SUBST(debug_flag)
+        debug_flag=DEBUG
         AC_DEFINE([DEBUG], [1], [Enable debugging code and support for the -d option]) 
     fi])
+AC_SUBST(debug_flag)
+
+dnl Enable extra debugging in code/compiler options - may slow down performance
+extra_debug=no
+extra_debug_flag=NEXTRA_DBUG
+AC_ARG_ENABLE(extra-debug,
+    AC_HELP_STRING([--enable-extra-debug], [Enable additional debugging code (may affect performance)]),
+    [ if test x$enableval = xyes; then
+        extra_debug=yes
+        extra_debug_flag=EXTRA_DEBUG
+        AC_DEFINE([EXTRA_DEBUG], [1], [Enable additional debugging code (may affect performance)]) 
+    fi])
+AC_SUBST(extra_debug_flag)
 
 dnl Enable timestamp_trace in code/compiler options
 timestamp_trace=no

@@ -1296,7 +1296,7 @@ sendpacket_open_quick_tx(const char *device, char *errbuf)
         goto map_failed;
     }
 
-    if ((blocks = quick_tx_alloc_mem_space(dev, QTX_MEM_SIZE)) < 0) {
+    if ((blocks = quick_tx_alloc_mem_space(dev, QTX_QUEUE_SIZE)) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "[quick_tx] error while allocating memory");
         goto map_alloc_failed;
     }

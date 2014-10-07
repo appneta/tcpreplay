@@ -32,9 +32,9 @@
 #ifdef HAVE_QUICK_TX
 #include <linux/quick_tx.h>
 #if defined (__x86_64__)
-#define QTX_MEM_SIZE    (1 << 27)   /* 256M */
+#define QTX_QUEUE_SIZE    PAGE_SIZE * 24576 /* 96M */
 #else
-#define QTX_MEM_SIZE    (1 << 24)   /* 32M */
+#define QTX_QUEUE_SIZE    (1 << 24)         /* 16M */
 #endif
 #endif /* HAVE_QUICK_TX */
 

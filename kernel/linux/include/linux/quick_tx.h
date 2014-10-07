@@ -234,11 +234,11 @@ extern void quick_tx_worker(struct work_struct *work);
 	while(0)
 
 #ifdef __x86_64__
-# define LOOKUP_TABLE_SIZE			(1 << 17)		/* 128K */
-# define MEM_BLOCK_TABLE_SIZE		(1 << 15)		/* 64K */
+# define LOOKUP_TABLE_SIZE			(1 << 15)		/* 32K packets */
+# define MAX_MEM_BLOCK_TABLE_SIZE	(1 << 15)		/* 32K blocks (typically one 4096 page per block) */
 #else
-# define LOOKUP_TABLE_SIZE           (1 << 15)       /* 64K */
-# define MEM_BLOCK_TABLE_SIZE        (1 << 13)       /* 16K */
+# define LOOKUP_TABLE_SIZE			(1 << 13)		/* 16K packets */
+# define MAX_MEM_BLOCK_TABLE_SIZE	(1 << 13)		/* 16K (typically one 4096 page per block) */
 #endif
 
 #define DEV_NAME_PREFIX "quick_tx_"
@@ -282,7 +282,7 @@ struct quick_tx_shared_data {
 	__u32 lookup_consumer_index;
 	__u32 lookup_producer_index;
 
-	struct quick_tx_mem_block_entry mem_blocks[MEM_BLOCK_TABLE_SIZE];
+	struct quick_tx_mem_block_entry mem_blocks[MAX_MEM_BLOCK_TABLE_SIZE];
 	__u32 mem_producer_index;
 	__u32 mem_producer_offset;
 	__u32 num_mem_blocks;
@@ -377,7 +377,7 @@ static inline int quick_tx_mmap_mem_block(struct quick_tx* dev) {
 	assert(dev);
 	assert(dev->data);
 
-	if (dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
+	if (dev->data->num_mem_blocks < MAX_MEM_BLOCK_TABLE_SIZE) {
 		unsigned int *map;
 		map = mmap(0, dev->data->num_pages_per_block * PAGE_SIZE,
 				PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, 0);
@@ -394,16 +394,13 @@ static inline int quick_tx_mmap_mem_block(struct quick_tx* dev) {
 
 
 /*
- * TODO update comments - does not apply outside sample program because
- * space required is unknown
- *
  * This function will preallocate the amount of space an application
  * might require. Running without calling this function first will yield
  * lower speeds. It is recommended to use the full size of the PCAP file
  * for this value.
  *
  * @dev 	quick_tx device pointer
- * @bytes	number of bytes the application plans to transmit
+ * @bytes	number of bytes to allocate for the queue
  *
  * @return	will return the number of blocks that was actually allocated in the kernel
  * 			module. If the return is 0 then there is definitely no more space for allocation
@@ -414,7 +411,7 @@ static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, int64_t bytes) 
 
 	int num = 0;
 	int64_t num_blocks = 1 + (bytes / (PAGE_SIZE * dev->data->num_pages_per_block));
-	while (num_blocks > 0 && dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
+	while (num_blocks > 0 && dev->data->num_mem_blocks < MAX_MEM_BLOCK_TABLE_SIZE) {
 		if (quick_tx_mmap_mem_block(dev) == 0) {
 			num_blocks--;
 			num++;
@@ -435,7 +432,7 @@ static inline int quick_tx_mmap_all_mem_blocks(struct quick_tx* dev) {
 	assert(dev->data);
 
 	int num = 0;
-	while (dev->data->num_mem_blocks < MEM_BLOCK_TABLE_SIZE) {
+	while (dev->data->num_mem_blocks < MAX_MEM_BLOCK_TABLE_SIZE) {
 		if (quick_tx_mmap_mem_block(dev) < 0)
 			break;
 
@@ -499,7 +496,7 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		__u32 new_mem_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
 
-		new_mem_producer_index = (data->mem_producer_index + 1) % MEM_BLOCK_TABLE_SIZE;
+		new_mem_producer_index = (data->mem_producer_index + 1) % MAX_MEM_BLOCK_TABLE_SIZE;
 		struct quick_tx_mem_block_entry* next_mem_block =
 				&data->mem_blocks[new_mem_producer_index];
 		rmb();
@@ -638,7 +635,7 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 	        wmb();
 
 	        static int qtx_s = 0;
-	        if (qtx_s % (MEM_BLOCK_TABLE_SIZE >> 4) == 0) {
+	        if (qtx_s % (MAX_MEM_BLOCK_TABLE_SIZE >> 4) == 0) {
 	            quick_tx_wakeup(dev);
 	        }
 	        qtx_s++;

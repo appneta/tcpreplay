@@ -215,6 +215,7 @@ depmod = @depmod@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+extra_debug_flag = @extra_debug_flag@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -276,6 +277,8 @@ module_OBJECTS = quick_tx_main.o \
 
 # where the kernel sources are located
 KERNEL_LOCATION = @kerneldir@
+DEBUG_FLAG = @debug_flag@
+EXTRA_DEBUG_FLAG = @extra_debug_flag@
 MOD_DEVDIR = $(PWD)
 
 # some magic for using linux kernel settings
@@ -283,8 +286,8 @@ MOD_DEVDIR = $(PWD)
 KBUILD_VERBOSE = 1
 QTX_EXTRA_CFLAGS = -DEXPORT_SYMTAB $(DEFS) \
 		$(DEFAULT_INCLUDES) -I$(MOD_DEVDIR) -I$(MOD_DEVDIR)/$(builddir) \
-		-I$(MOD_DEVDIR)/$(top_srcdir) -I$(MOD_DEVDIR)/$(top_builddir) \
-		-I$(KERNEL_LOCATION)/include/
+		-I$(MOD_DEVDIR)/$(top_srcdir) -I$(MOD_DEVDIR)/$(top_builddir)/kernel/linux/include \
+		-I$(KERNEL_LOCATION)/include/ -D$(DEBUG_FLAG) -D$(EXTRA_DEBUG_FLAG)
 
 MOSTLYCLEANFILES = $(module_DATA) .$(module_DATA).flags $(module_DATA:.o=.mod.c) $(module_DATA:.o=.@kernelext@) *~
 MAINTAINERCLEANFILES = Makefile.in
@@ -571,7 +574,6 @@ uninstall-am: uninstall-local uninstall-moduleDATA
 
 export QTX_EXTRA_CFLAGS KERNEL_LOCATION module_DATA
 
-export module_DATA
 export module_OBJECTS
 
 $(module_DATA): $(automake_dummy_SOURCES) 

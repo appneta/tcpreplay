@@ -164,6 +164,7 @@ depmod = @depmod@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+extra_debug_flag = @extra_debug_flag@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@

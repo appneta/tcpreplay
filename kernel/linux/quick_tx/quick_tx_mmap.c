@@ -203,7 +203,7 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 
     mutex_lock(&dev->mtx);
 
-    if (dev->shared_data && dev->shared_data->num_mem_blocks >= MEM_BLOCK_TABLE_SIZE) {
+    if (dev->shared_data && dev->shared_data->num_mem_blocks >= MAX_MEM_BLOCK_TABLE_SIZE) {
     	qtx_error("This device already has the maximum number of DMA blocks mapped to it");
     	return -ENOMEM;
     }

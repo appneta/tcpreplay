@@ -39,6 +39,9 @@
 /* Do we have tcpdump and pcap_dump_fopen()? */
 #undef ENABLE_VERBOSE
 
+/* Enable additional debugging code (may affect performance) */
+#undef EXTRA_DEBUG
+
 /* fopen(3) accepts a 'b' in the mode flag */
 #undef FOPEN_BINARY_FLAG
 

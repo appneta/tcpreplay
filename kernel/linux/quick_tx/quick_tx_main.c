@@ -72,8 +72,9 @@ void quick_tx_calc_mbps(struct quick_tx_dev *dev)
 
 void quick_tx_print_stats(struct quick_tx_dev *dev)
 {
+#if defined DEBUG || defined EXTRA_DEBUG
 	qtx_info("Run complete, printing TX statistics for %s:", dev->quick_tx_misc.name);
-	qtx_info("\t TX Queue was frozen of stopped: \t%llu", dev->num_tq_frozen_or_stopped);
+	qtx_info("\t TX Queue was frozen or stopped: \t%llu", dev->num_tq_frozen_or_stopped);
 	qtx_info("\t TX returned locked: \t\t\t%llu", dev->num_tx_locked);
 	qtx_info("\t TX returned busy: \t\t\t%llu", dev->num_tx_busy);
 	qtx_info("\t Number of failed, retried attempts: \t%llu", dev->num_failed_attempts);
@@ -85,6 +86,7 @@ void quick_tx_print_stats(struct quick_tx_dev *dev)
 	qtx_info("\t num_skb_alloced = \t\t\t%llu", dev->num_skb_alloced);
 
 	qtx_info("\t Speed: \t\t\t\t%d Mbps", dev->shared_data->mbps);
+#endif /* DEBUG */
 }
 
 static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
