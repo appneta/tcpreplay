@@ -114,7 +114,19 @@ AC_HEADER_STDC
 AC_HEADER_MAJOR
 
 dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_INLINE
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT64_T
+AC_TYPE_INT8_T
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
 AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+AC_TYPE_UINT8_T
 AC_HEADER_TIME
 AC_C_CONST
 AC_C_INLINE
@@ -175,7 +187,8 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
 CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements
 AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [
@@ -1119,8 +1132,8 @@ AC_SUBST(kerneluname)
 
 dnl * Allow kernel example
 QUICK_TX_EXAMPLE_DIR=
-AC_ARG_ENABLE(quick_tx_example,
-[  --enable-quick_tx_example Build Quick TX kernel module example],
+AC_ARG_ENABLE(quick-tx-example,
+[  --enable-quick-tx-example Build Quick TX kernel module example],
 [ enable_tx_example="${enableval}" ],
 [ enable_tx_example="no"])
 if test x$enable_tx_example = xyes; then

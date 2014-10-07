@@ -612,14 +612,18 @@ flag = {
 #endif
 #if defined HAVE_QUICK_TX || defined HAVE_NETMAP
     fprintf(stderr, "Default injection method: %s\n", sendpacket_get_method(NULL));
+#else
+    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
+#endif
 #ifdef HAVE_QUICK_TX
     fprintf(stderr, "Optional injection method: Quick TX\n");
+#elif !defined(linux)
+    fprintf(stderr, "Not compiled with Quick TX\n");
 #endif
 #ifdef HAVE_NETMAP
     fprintf(stderr, "Optional injection method: netmap\n");
-#endif
 #else
-    fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
+    fprintf(stderr, "Not compiled with netmap\n");
 #endif
     exit(0);
 

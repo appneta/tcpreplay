@@ -336,8 +336,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         goto out;
     }
 
-#ifdef HAVE_NETMAP
     if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+#ifdef HAVE_NETMAP
         if (ctx->sp_type == SP_TYPE_QUICK_TX) {
             tcpreplay_seterr(ctx, "%s", "options --netmap and --quick-tx are mutually exclusive");
             ret = -1;
@@ -355,11 +355,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         }
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
-    }
+#else
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with netmap support");
+        ret = -1;
+        goto out;
 #endif
+    }
 
-#ifdef HAVE_QUICK_TX
     if (!strncmp(intname, "qtx:", 4)) {
+#ifdef HAVE_QUICK_TX
         if (ctx->sp_type == SP_TYPE_NETMAP) {
             tcpreplay_seterr(ctx, "%s", "options --netmap and --quick-tx are mutually exclusive");
             ret = -1;
@@ -377,8 +381,12 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         }
         options->quick_tx = 1;
         ctx->sp_type = SP_TYPE_QUICK_TX;
-    }
+#else
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with Quick TX support");
+        ret = -1;
+        goto out;
 #endif
+    }
 
     options->intf1_name = safe_strdup(intname);
 
