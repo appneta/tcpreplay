@@ -92,7 +92,7 @@ int main (int argc, char* argv[])
     __u64 packet_bytes = 0;
     struct timeval tv_start;
     struct pcap_pkthdr* pcap_hdr;
-    struct quick_tx *qtx;
+    struct quick_tx qtx;
 
     if (argc != 3 && argc != 4) {
         printf("Usage: ./pcapsend <path-to-pcap> <interface> [loops]\n");
@@ -110,10 +110,10 @@ int main (int argc, char* argv[])
         loops = 1;
     }
 
-    qtx = quick_tx_open(argv[2]);
+    int ret = quick_tx_open(argv[2], &qtx);
 
-    if (qtx != NULL) {
-        int blocks = quick_tx_alloc_mem_space(qtx, length * loops);
+    if (ret == 0) {
+        int blocks = quick_tx_alloc_mem_space(&qtx, length * loops);
         if (blocks >= 0) {
             printf("quick_tx mapped %d blocks of memory\n", blocks);
         } else {
@@ -133,7 +133,7 @@ int main (int argc, char* argv[])
             pcap_hdr = (struct pcap_pkthdr*) offset;
             offset += sizeof(struct pcap_pkthdr);
 
-            if ((quick_tx_send_packet(qtx, (const void*)offset, pcap_hdr->caplen)) < 0) {
+            if ((quick_tx_send_packet(&qtx, (const void*)offset, pcap_hdr->caplen)) < 0) {
                 printf("An error occurred while trying to send a packet\n");
                 goto quick_tx_error;
             }
@@ -150,7 +150,7 @@ int main (int argc, char* argv[])
     printf("num_mem_fail = %d\n", num_mem_fail);
 
 quick_tx_error:
-    quick_tx_close(qtx);
+    quick_tx_close(&qtx);
 
     free(buffer);
     return 0;

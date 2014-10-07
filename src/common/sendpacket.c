@@ -423,7 +423,7 @@ TRY_SEND_AGAIN:
         case SP_TYPE_QUICK_TX:
 #ifdef HAVE_QUICK_TX
             retcode = quick_tx_send_packet(sp->qtx_dev, data, len);
-            if (retcode == -1)
+            if (retcode < 0)
                 sendpacket_seterr(sp, "Quick TX send failure");
 #endif
             break;
