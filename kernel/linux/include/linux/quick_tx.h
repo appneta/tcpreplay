@@ -62,14 +62,28 @@
 				 ~(SMP_CACHE_BYTES - 1))
 #endif /* SKB_DATA_ALIGN */
 
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
-# define mb() 	__asm__ volatile("mfence":::"memory")
-# define rmb()	__asm__ volatile("lfence":::"memory")
-# define wmb()	__asm__ volatile("sfence" ::: "memory")
-#elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC__)
-# define wmb() __asm__ volatile ("lwsync")
+#define barrier() 	__asm__ __volatile__ ("" ::: "memory")
+
+#if defined __x86_64__ || defined __i386__
+# define rmb()		__asm__ __volatile__("lfence" ::: "memory")
+# define wmb()		__asm__ __volatile__("sfence" ::: "memory")
+
+#elif defined __powerpc__
+# define rmb()		__asm__ __volatile__ ("lwsync" ::: "memory")
+# define wmb()		__asm__ __volatile__ ("lwsync" ::: "memory")
+
+#elif defined __arm__
+# if defined __ARM_ARCH_7__
+#  define rmb()		__asm__ __volatile__ ("dsb" ::: "memory")
+#  define wmb()		__asm__ __volatile__ ("dmb" ::: "memory")
+# else
+#  define rmb() 	barrier();
+#  define wmb() 	barrier();
+# endif
+
 #else
-# define wmb() __asm__ __volatile__("": : :"memory")
+# define rmb()		barrier();
+# define wmb()		barrier();
 #endif
 
 #ifndef likely
@@ -207,9 +221,8 @@ extern const struct quick_tx_ops quick_tx_e1000_ops;
 
 extern void quick_tx_calc_mbps(struct quick_tx_dev *dev);
 extern void quick_tx_print_stats(struct quick_tx_dev *dev);
-extern inline int quick_tx_free_skb(struct quick_tx_dev* dev, bool free_skb);
-extern inline int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq);
-extern inline void quick_tx_wait_free_skb(struct quick_tx_dev *dev);
+extern int quick_tx_dev_queue_xmit(struct sk_buff *skb, struct net_device *dev, struct netdev_queue *txq);
+extern void quick_tx_wait_free_skb(struct quick_tx_dev *dev);
 extern int quick_tx_mmap(struct file * file, struct vm_area_struct * vma);
 
 extern void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev);

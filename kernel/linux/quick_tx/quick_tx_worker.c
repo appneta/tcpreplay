@@ -272,7 +272,6 @@ static inline void poll_napi(struct net_device *dev)
 			budget = poll_one_napi(napi, budget);
 #ifdef CONFIG_NETPOLL
 			spin_unlock(&napi->poll_lock);
-
 		}
 #endif
 		napi_enable(napi);
