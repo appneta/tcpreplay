@@ -92,7 +92,7 @@ void quick_tx_vm_mem_close(struct vm_area_struct *vma)
 	}
 
 	if (dev->shared_data->num_mem_blocks > 0) {
-#if DMA_COHERENT
+#if USE_DMA_COHERENT_MEM_BLOCKS
 		if (dev->using_mem_coherent)
 			dma_free_coherent(&dev->netdev->dev, dev->shared_data->num_pages_per_block * PAGE_SIZE,
 					dev->shared_data->mem_blocks[dev->shared_data->num_mem_blocks - 1].kernel_addr,
@@ -213,7 +213,7 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 
 	entry = &dev->shared_data->mem_blocks[dev->shared_data->num_mem_blocks];
 
-#if DMA_COHERENT
+#if USE_DMA_COHERENT_MEM_BLOCKS
 	if (dev->using_mem_coherent)
 		mem_block_p = dma_alloc_coherent(dev->netdev->dev.parent, dev->shared_data->num_pages_per_block * PAGE_SIZE,
 				(dma_addr_t*)&entry->mem_handle, GFP_KERNEL);
@@ -224,7 +224,7 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 	if (!mem_block_p)
 	{
 		qtx_error("Could not allocate memory block for device %s", miscdev->name);
-#if DMA_COHERENT
+#if USE_DMA_COHERENT_MEM_BLOCKS
 		if (dev->using_mem_coherent)
 			qtx_error("DMA mappping errors: %d", dma_mapping_error(dev->netdev->dev.parent,
 					(dma_addr_t)&entry->mem_handle));
@@ -256,7 +256,7 @@ int quick_tx_mmap_mem_block(struct file * file, struct vm_area_struct * vma)
 	return ret;
 
 error_map:
-#if DMA_COHERENT
+#if USE_DMA_COHERENT_MEM_BLOCKS
 	if (dev->using_mem_coherent)
 		dma_free_coherent(&dev->netdev->dev, dev->shared_data->num_pages_per_block * PAGE_SIZE,
 				mem_block_p, (dma_addr_t)entry->mem_handle);

@@ -198,7 +198,7 @@ static int quick_tx_init(void)
 	struct net_device *netdev;
 	struct quick_tx_dev *dev;
 
-#ifdef DMA_COHERENT
+#ifdef USE_DMA_COHERENT_MEM_BLOCKS
 	dma_addr_t mem_handle;
 	void *mem_addr;
 #endif
@@ -236,7 +236,7 @@ static int quick_tx_init(void)
 			init_waitqueue_head(&dev->kernel_lookup_q);
 			mutex_init(&dev->mtx);
 
-#ifdef DMA_COHERENT
+#ifdef USE_DMA_COHERENT_MEM_BLOCKS
 			mem_addr = dma_alloc_coherent(dev->netdev->dev.parent, PAGE_SIZE, &mem_handle, GFP_KERNEL);
 
 			if (mem_addr) {

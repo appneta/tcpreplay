@@ -19,8 +19,6 @@
 #ifndef QUICK_TX_H_
 #define QUICK_TX_H_
 
-#define DMA_COHERENT 1
-
 #ifndef __KERNEL__
 
 #include <sys/types.h>
@@ -83,12 +81,12 @@
 # else
 #  define rmb() 	barrier();
 #  define wmb() 	barrier();
-# endif
+# endif /*__ARM_ARCH_7__ */
 
 #else
 # define rmb()		barrier();
 # define wmb()		barrier();
-#endif
+#endif /* __x86_64__ || __i386__ */
 
 #ifndef likely
 # define likely(x)    __builtin_expect(!!(x), 1)
@@ -97,15 +95,12 @@
 # define unlikely(x)  __builtin_expect(!!(x), 0)
 #endif
 
-static int num_lookup_sleeps = 0;
-static int num_mem_fail = 0;
-
 typedef struct {
 	int counter;
 } atomic_t;
 
 #define atomic_read(v) ((v)->counter)
-#endif /* ! __KERNEL */
+#endif /* ! __KERNEL__ */
 
 #ifdef __KERNEL__
 /*
@@ -130,18 +125,19 @@ typedef struct {
 #include <asm/cacheflush.h>
 #include "kcompat.h"
 
-extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
-
 #define qtx_error(fmt, ...) \
 	printk(KERN_ERR pr_fmt("[quick_tx] ERROR: "fmt"\n"), ##__VA_ARGS__)
 
 #define qtx_info(fmt, ...) \
 	printk(KERN_INFO pr_fmt("[quick_tx] INFO:  "fmt"\n"), ##__VA_ARGS__)
 
+#define USE_DMA_COHERENT_MEM_BLOCKS 	1
 #define MAX_QUICK_TX_DEV 				32
 
 #define DEVICENAME 						"quick_tx"
 #define QUICK_TX_WORKQUEUE 				"quick_tx_workqueue"
+
+extern struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 
 struct quick_tx_skb {
 	struct list_head list;
@@ -185,7 +181,7 @@ struct quick_tx_dev {
 	wait_queue_head_t user_done_q;
 	struct mutex mtx;
 
-#ifdef DMA_COHERENT
+#ifdef USE_DMA_COHERENT_MEM_BLOCKS
 	bool using_mem_coherent;
 #endif
 
@@ -258,11 +254,11 @@ extern void quick_tx_worker(struct work_struct *work);
 # define MAX_MEM_BLOCK_TABLE_SIZE	(1 << 13)		/* 16K (typically one 4096 page per block) */
 #endif
 
-#define DEV_NAME_PREFIX "quick_tx_"
-#define FOLDER_NAME_PREFIX "net/"DEV_NAME_PREFIX
-#define QTX_FULL_PATH_PREFIX "/dev/"FOLDER_NAME_PREFIX
+#define DEV_NAME_PREFIX 			"quick_tx_"
+#define FOLDER_NAME_PREFIX 			"net/"DEV_NAME_PREFIX
+#define QTX_FULL_PATH_PREFIX 		"/dev/"FOLDER_NAME_PREFIX
 
-#define QUICK_TX_ERR_NOT_RUNNING (1 << 0)
+#define QUICK_TX_ERR_NOT_RUNNING 	(1 << 0)
 
 typedef enum
 {
@@ -289,7 +285,7 @@ struct quick_tx_mem_block_entry {
 	__u32 producer_offset;	/* offset (bytes) that the packet is written at  */
 	__u32 length;			/* length of the DMA block */
 	atomic_t users;			/* number of users (skbs with memory mapped to this block but still in use) */
-#ifdef DMA_COHERENT
+#ifdef USE_DMA_COHERENT_MEM_BLOCKS
 	__u64 mem_handle;
 #endif
 } __attribute__((aligned(8)));
@@ -324,7 +320,7 @@ struct quick_tx_shared_data {
 #ifndef PAGE_ALIGN
 #define __ALIGN_MASK(x, mask)		(((x) + (mask)) & ~(mask))
 #define __ALIGN(x, a)				__ALIGN_MASK(x, (typeof(x))(a) - 1)
-#define PAGE_ALIGN(x)		 	__ALIGN(x, PAGE_SIZE)
+#define PAGE_ALIGN(x)		 		__ALIGN(x, PAGE_SIZE)
 #endif /* PAGE_ALIGN */
 
 #ifndef PAGE_SHIFT
@@ -334,9 +330,9 @@ struct quick_tx_shared_data {
 
 #define QTX_MASTER_PAGE_NUM			(PAGE_ALIGN(sizeof(struct quick_tx_shared_data)) >> PAGE_SHIFT)
 
-#define POLL_DMA		POLLOUT
-#define POLL_LOOKUP		POLLIN
-#define POLL_DONE_TX	0x100
+#define POLL_DMA					POLLOUT
+#define POLL_LOOKUP					POLLIN
+#define POLL_DONE_TX				0x100
 
 #ifndef __KERNEL__
 struct quick_tx {
@@ -387,8 +383,8 @@ static inline void quick_tx_str_error(quick_tx_error error, char* error_buf, int
 
 /*
  * Maps a single DMA block for device
- * @param 	dev quick_tx structure returned from a quick_tx_open call
- * @return 	0 on success mapping, otherwise -1
+ * @param 	dev 	quick_tx structure returned from a quick_tx_open call
+ * @return 			0 on success mapping, otherwise QTX_E_MMAP_MEM_BLOCK_FAILED
  */
 static inline int quick_tx_mmap_mem_block(struct quick_tx* dev) {
 	assert(dev);
@@ -441,8 +437,8 @@ static inline int quick_tx_alloc_mem_space(struct quick_tx* dev, int64_t bytes) 
 
 /*
  * Maps as many DMA blocks as possible
- * @param dev quick_tx structure returned from a quick_tx_open call
- * @return number of dma blocks successfully mapped
+ * @param 	dev 	quick_tx structure returned from a quick_tx_open call
+ * @return 			number of dma blocks successfully mapped
  */
 static inline int quick_tx_mmap_all_mem_blocks(struct quick_tx* dev) {
 	assert(dev);
@@ -460,9 +456,9 @@ static inline int quick_tx_mmap_all_mem_blocks(struct quick_tx* dev) {
 
 /*
  * Call this function to open the QuickTX device
- * @param name 	interface identifier (eth0, eth1)
- * @param dev 	pointer to non-NULL quick_tx structure
- * @return pointer to a quick_tx structure or NULL on error
+ * @param 	name 	interface identifier (eth0, eth1)
+ * @param 	dev 	pointer to non-NULL quick_tx structure
+ * @return 			pointer to a quick_tx structure or NULL on error
  */
 static inline int quick_tx_open(char* name, struct quick_tx* dev) {
 	int fd;
@@ -634,8 +630,6 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 
 	            /* poll for DMA block space */
 	            __poll_for_dma(dev);
-
-	            num_mem_fail++;
 	        }
 
 	        /* Set entry length (packet size without padding) */
@@ -676,8 +670,6 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 
 	        quick_tx_wakeup(dev);
 	       __poll_for_lookup(dev);
-
-	        num_lookup_sleeps++;
 	    }
 	}
 
@@ -692,7 +684,8 @@ static inline void quick_tx_wait_for_tx_complete(struct quick_tx* dev) {
 
 /*
  * Call this function to close the QuickTX device
- * @param 	qtx pointer to a quick_tx structure
+ * @param 	dev		qtx pointer to a quick_tx structure
+ * @returns			0 on success, QTX_E_UNMAP_FAILED if failed to unmap the device
  */
 static inline int quick_tx_close(struct quick_tx* dev) {
 	int ret = 0;
