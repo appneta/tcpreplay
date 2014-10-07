@@ -771,6 +771,8 @@ LDNETLIB
 LDNETINC
 SANDBOXED_FALSE
 SANDBOXED_TRUE
+QUICK_TX_EXAMPLE_FALSE
+QUICK_TX_EXAMPLE_TRUE
 kerneluname
 moduledir
 KERNEL_DIR
@@ -797,6 +799,8 @@ WORDS_BIGENDIAN_TRUE
 SYSTEM_STRLCPY_FALSE
 SYSTEM_STRLCPY_TRUE
 LIBOBJS
+rmmod
+insmod
 depmod
 GROFF
 AUTOGEN
@@ -954,6 +958,7 @@ with_libpcap
 with_netmap
 with_kernel
 with_moduledir
+enable_quick_tx_example
 enable_sandboxed
 with_libdnet
 with_pcapnav_config
@@ -1628,6 +1633,7 @@ Optional Features:
                           Force using libpcap's pcap_sendpacket() for sending
                           packets
   --enable-dynamic-link   Dynamically link libraries
+  --enable-quick_tx_example Build Quick TX kernel module example
   --enable-sandboxed      Don't install anything to the kernel module directories
   --enable-local-libopts  Use the supplied libopts tearoff code
   --enable-libopts-install
@@ -5193,13 +5199,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:5196: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:5202: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5199: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:5205: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:5202: output\"" >&5)
+  (eval echo "\"\$as_me:5208: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -6405,7 +6411,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 6408 "configure"' > conftest.$ac_ext
+  echo '#line 6414 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7931,11 +7937,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7934: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7940: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7938: \$? = $ac_status" >&5
+   echo "$as_me:7944: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8270,11 +8276,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8273: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8279: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8277: \$? = $ac_status" >&5
+   echo "$as_me:8283: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8375,11 +8381,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8378: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8384: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8382: \$? = $ac_status" >&5
+   echo "$as_me:8388: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8430,11 +8436,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8433: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8439: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8437: \$? = $ac_status" >&5
+   echo "$as_me:8443: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10814,7 +10820,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10817 "configure"
+#line 10823 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10910,7 +10916,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10913 "configure"
+#line 10919 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14215,11 +14221,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14218: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14224: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14222: \$? = $ac_status" >&5
+   echo "$as_me:14228: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14314,11 +14320,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14317: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14323: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14321: \$? = $ac_status" >&5
+   echo "$as_me:14327: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14366,11 +14372,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14369: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14375: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14373: \$? = $ac_status" >&5
+   echo "$as_me:14379: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15842,6 +15848,90 @@ depmod=$ac_cv_path_depmod
 if test -n "$depmod"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $depmod" >&5
 $as_echo "$depmod" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "insmod", so it can be a program name with args.
+set dummy insmod; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_insmod+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $insmod in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_insmod="$insmod" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$PATH:/sbin"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_insmod="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_path_insmod" && ac_cv_path_insmod="/sbin/insmod"
+  ;;
+esac
+fi
+insmod=$ac_cv_path_insmod
+if test -n "$insmod"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $insmod" >&5
+$as_echo "$insmod" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "rmmod", so it can be a program name with args.
+set dummy rmmod; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_rmmod+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $rmmod in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_rmmod="$rmmod" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$PATH:/sbin"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_rmmod="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_path_rmmod" && ac_cv_path_rmmod="/sbin/rmmod"
+  ;;
+esac
+fi
+rmmod=$ac_cv_path_rmmod
+if test -n "$rmmod"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $rmmod" >&5
+$as_echo "$rmmod" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -19890,6 +19980,26 @@ fi
 
 
 
+QUICK_TX_EXAMPLE_DIR=
+# Check whether --enable-quick_tx_example was given.
+if test "${enable_quick_tx_example+set}" = set; then :
+  enableval=$enable_quick_tx_example;  enable_tx_example="${enableval}"
+else
+   enable_tx_example="no"
+fi
+
+if test x$enable_tx_example = xyes; then
+    QUICK_TX_EXAMPLE_DIR=example
+fi
+ if test x$enable_tx_example = xyes; then
+  QUICK_TX_EXAMPLE_TRUE=
+  QUICK_TX_EXAMPLE_FALSE='#'
+else
+  QUICK_TX_EXAMPLE_TRUE='#'
+  QUICK_TX_EXAMPLE_FALSE=
+fi
+
+
 # Check whether --enable-sandboxed was given.
 if test "${enable_sandboxed+set}" = set; then :
   enableval=$enable_sandboxed;  enable_sandboxed="${enableval}"
@@ -22308,6 +22418,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COMPILE_NETMAP_TRUE}" && test -z "${COMPILE_NETMAP_FALSE}"; then
   as_fn_error "conditional \"COMPILE_NETMAP\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${QUICK_TX_EXAMPLE_TRUE}" && test -z "${QUICK_TX_EXAMPLE_FALSE}"; then
+  as_fn_error "conditional \"QUICK_TX_EXAMPLE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${SANDBOXED_TRUE}" && test -z "${SANDBOXED_FALSE}"; then

@@ -72,6 +72,8 @@ AC_PATH_PROG(CUT, cut)
 AC_PATH_PROG(AUTOGEN, autogen)
 AC_PATH_PROG(GROFF, groff)
 AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
+AC_PATH_PROG(insmod, insmod, /sbin/insmod, $PATH:/sbin)
+AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
 
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
@@ -1114,6 +1116,17 @@ moduledir=${withval},
 moduledir=${default_moduledir})
 AC_SUBST(moduledir)
 AC_SUBST(kerneluname)
+
+dnl * Allow kernel example
+QUICK_TX_EXAMPLE_DIR=
+AC_ARG_ENABLE(quick_tx_example,
+[  --enable-quick_tx_example Build Quick TX kernel module example],
+[ enable_tx_example="${enableval}" ],
+[ enable_tx_example="no"])
+if test x$enable_tx_example = xyes; then
+    QUICK_TX_EXAMPLE_DIR=example
+fi
+AM_CONDITIONAL(QUICK_TX_EXAMPLE, test x$enable_tx_example = xyes)
 
 dnl * Allow kernel sandbox mode (prevent depmod execution)
 AC_ARG_ENABLE(sandboxed,
