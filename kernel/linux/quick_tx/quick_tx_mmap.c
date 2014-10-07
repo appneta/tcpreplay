@@ -283,9 +283,9 @@ int quick_tx_mmap(struct file * file, struct vm_area_struct * vma)
 	} else {
 		if (dev->shared_data)
 			qtx_error("Passed in invalid size as parameter. Master mmap should be %lu pages and memory blocks should be %d pages",
-					QTX_MASTER_PAGE_NUM, dev->shared_data->num_pages_per_block);
+					(unsigned long)QTX_MASTER_PAGE_NUM, dev->shared_data->num_pages_per_block);
 		else
-			qtx_error("Passed in an invalid size as a parameter, master mmap should be %lu pages long", QTX_MASTER_PAGE_NUM);
+			qtx_error("Passed in an invalid size as a parameter, master mmap should be %lu pages long", (unsigned long)QTX_MASTER_PAGE_NUM);
 		return -EINVAL;
 	}
 }

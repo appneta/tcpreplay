@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <poll.h>
-
+#include <unistd.h>
 
 #define __u64 	u_int64_t
 #define __u32 	u_int32_t
@@ -56,6 +56,10 @@
 #define __s16 	int16_t
 
 #define __le32 	int32_t
+
+#ifndef PAGE_SIZE
+#define PAGE_SIZE   (sysconf(_SC_PAGESIZE))
+#endif
 
 #ifndef SKB_DATA_ALIGN
 #define SKB_DATA_ALIGN(X, SMP_CACHE_BYTES)	(((X) + (SMP_CACHE_BYTES - 1)) & \
