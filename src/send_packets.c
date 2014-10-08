@@ -92,7 +92,6 @@ static void
 fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         uint32_t iteration, bool cached, int datalink)
 {
-    u_char *packet;
     int l2_len = 0;
     ipv4_hdr_t *ip_hdr;
     ipv6_hdr_t *ip6_hdr;
@@ -108,7 +107,6 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
         return;
     }
-    packet = *pktdata;
 
     switch (datalink) {
     case DLT_LINUX_SLL:

@@ -1635,7 +1635,7 @@ Optional Features:
   --enable-force-sendpacket
                           Force using libpcap's pcap_sendpacket() for sending
                           packets
-  --enable-dynamic-link   Dynamically link libraries
+  --enable-dynamic-link   Use shared libraries ( .so and .dylib )
   --enable-quick-tx-example Build Quick TX kernel module example
   --enable-sandboxed      Don't install anything to the kernel module directories
   --enable-local-libopts  Use the supplied libopts tearoff code
@@ -16097,7 +16097,7 @@ $as_echo "yes" >&6; }
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        as_fn_error "Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://sourceforge.net/projects/tcpreplay/" "$LINENO" 5
+        as_fn_error "Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html" "$LINENO" 5
     fi
 fi
 
@@ -18854,39 +18854,51 @@ if test "${with_libpcap+set}" = set; then :
   withval=$with_libpcap;
     trypcapdir=$withval
     for testdir in ${withval} ${withval}/include ; do
-	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
-	        LPCAPINC="${testdir}/pcap.h"
-	        LPCAPINCDIR="${testdir}"
-	        if test $dynamic_link = yes; then
-	            for ext in .dylib .so ; do
-	                if test -f "${withval}/libpcap${ext}" ; then
-	                    LPCAPLIB="-L${withval}/ -lpcap"
-	                elif test -f "${withval}/lib/libpcap${ext}" ; then
-	                    LPCAPLIB="-L${withval}/lib/ -lpcap"
-	                fi
-	            done
-	            if test "x$LPCAPLIB" == "x" ; then
-	                as_fn_error "Unable to find libpcap in ${withval}" "$LINENO" 5
-	            fi
-	        elif test -f "${withval}/libpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/libpcap.${libext}"
-	        elif test -f "${withval}/lib/libpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/lib/libpcap.${libext}"
-	        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
+        if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
+            LPCAPINC="${testdir}/pcap.h"
+            LPCAPINCDIR="${testdir}"
+            if test $dynamic_link = yes; then
+                for ext in .dylib .so ; do
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        LPCAPLIB="-L${withval}/ -lpcap"
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        LPCAPLIB="-L${withval}/lib/ -lpcap"
+                    fi
+                done
+                if test "x$LPCAPLIB" == "x" ; then
+                    as_fn_error "Unable to find libpcap in ${withval}" "$LINENO" 5
+                fi
+            elif test -f "${withval}/libpcap.${libext}" ; then
+                LPCAPLIB="${withval}/libpcap.${libext}"
+            elif test -f "${withval}/lib/libpcap.${libext}" ; then
+                LPCAPLIB="${withval}/lib/libpcap.${libext}"
+            elif test -f "${withval}/lib/libwpcap.${libext}" ; then
+                LPCAPLIB="${withval}/lib/libwpcap.${libext}"
 
 $as_echo "#define HAVE_WINPCAP 1" >>confdefs.h
 
-	        else
-	            as_fn_error "Unable to find matching library for header file in ${withval}" "$LINENO" 5
-	        fi
-	        foundpcap=$withval
-	        ## Assume that user wants to use libpcap injector when specifying
+            else
+                dynamic_found=no
+                for ext in .dylib .so ; do
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    fi
+                done
+                if test $dynamic_found = yes; then
+                    as_fn_error "Unable to find static libraries in ${withval}. Try --enable-dynamic" "$LINENO" 5
+                else
+                    as_fn_error "Unable to find matching library for header file in ${withval}" "$LINENO" 5
+                fi
+            fi
+            foundpcap=$withval
+            ## Assume that user wants to use libpcap injector when specifying
             ## --with-libpcap options
 
 $as_echo "#define FORCE_INJECT_PCAP_INJECT 1" >>confdefs.h
 
-	    fi
+        fi
     done
 
 else
@@ -18924,7 +18936,19 @@ else
 $as_echo "#define HAVE_WINPCAP 1" >>confdefs.h
 
             else
-                as_fn_error "Unable to find matching library for header file in ${testdir}" "$LINENO" 5
+                dynamic_found=no
+                for ext in .dylib .so ; do
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    fi
+                done
+                if test $dynamic_found = yes; then
+                    as_fn_error "Unable to find static libraries in ${testdir}. Try --enable-dynamic" "$LINENO" 5
+                else
+                    as_fn_error "Unable to find matching library for header file in ${testdir}" "$LINENO" 5
+                fi
             fi
             foundpcap=$testdir
         fi

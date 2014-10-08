@@ -99,7 +99,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://sourceforge.net/projects/tcpreplay/])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
@@ -357,9 +357,9 @@ AC_ARG_ENABLE(force-sendpacket,
 dnl Dynamic link libraries
 dynamic_link=no
 AC_ARG_ENABLE(dynamic-link,
-    AC_HELP_STRING([--enable-dynamic-link], [Dynamically link libraries]),
+    AC_HELP_STRING([--enable-dynamic-link], [Use shared libraries ( .so and .dylib )]),
     [ if test x$enableval = xyes; then
-        AC_DEFINE([ENABLE_DYNAMIC_LINK], [1], [Enable dynamically linking libs])
+        AC_DEFINE([ENABLE_DYNAMIC_LINK], [1], [Use shared libraries ( .so and .dylib )])
         dynamic_link=yes
       fi
     ])
@@ -411,35 +411,47 @@ AC_ARG_WITH(libpcap,
 [
     trypcapdir=$withval
     for testdir in ${withval} ${withval}/include ; do
-	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
-	        LPCAPINC="${testdir}/pcap.h"
-	        LPCAPINCDIR="${testdir}"
-	        if test $dynamic_link = yes; then
-	            for ext in .dylib .so ; do 
-	                if test -f "${withval}/libpcap${ext}" ; then
-	                    LPCAPLIB="-L${withval}/ -lpcap"
-	                elif test -f "${withval}/lib/libpcap${ext}" ; then
-	                    LPCAPLIB="-L${withval}/lib/ -lpcap"
-	                fi
-	            done
-	            if test "x$LPCAPLIB" == "x" ; then
-	                AC_ERROR([Unable to find libpcap in ${withval}])
-	            fi
-	        elif test -f "${withval}/libpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/libpcap.${libext}"
-	        elif test -f "${withval}/lib/libpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/lib/libpcap.${libext}"
-	        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
-	            AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
-	        else
-	            AC_ERROR([Unable to find matching library for header file in ${withval}])
-	        fi
-	        foundpcap=$withval
-	        ## Assume that user wants to use libpcap injector when specifying
+        if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
+            LPCAPINC="${testdir}/pcap.h"
+            LPCAPINCDIR="${testdir}"
+            if test $dynamic_link = yes; then
+                for ext in .dylib .so ; do 
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        LPCAPLIB="-L${withval}/ -lpcap"
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        LPCAPLIB="-L${withval}/lib/ -lpcap"
+                    fi
+                done
+                if test "x$LPCAPLIB" == "x" ; then
+                    AC_ERROR([Unable to find libpcap in ${withval}])
+                fi
+            elif test -f "${withval}/libpcap.${libext}" ; then
+                LPCAPLIB="${withval}/libpcap.${libext}"
+            elif test -f "${withval}/lib/libpcap.${libext}" ; then
+                LPCAPLIB="${withval}/lib/libpcap.${libext}"
+            elif test -f "${withval}/lib/libwpcap.${libext}" ; then
+                LPCAPLIB="${withval}/lib/libwpcap.${libext}"
+                AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
+            else
+                dynamic_found=no
+                for ext in .dylib .so ; do 
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    fi
+                done
+                if test $dynamic_found = yes; then
+                    AC_ERROR([Unable to find static libraries in ${withval}. Try --enable-dynamic])
+                else
+                    AC_ERROR([Unable to find matching library for header file in ${withval}])
+                fi
+            fi
+            foundpcap=$withval
+            ## Assume that user wants to use libpcap injector when specifying
             ## --with-libpcap options
             AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])    
-	    fi
+        fi
     done
 ],[
     for testdir in /usr/local /opt/local /usr /wpdpack ; do 
@@ -473,7 +485,19 @@ AC_ARG_WITH(libpcap,
                 LPCAPLIB="${testdir}/lib/libwpcap.${libext}"
                 AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
             else
-                AC_ERROR([Unable to find matching library for header file in ${testdir}])
+                dynamic_found=no
+                for ext in .dylib .so ; do 
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    fi
+                done
+                if test $dynamic_found = yes; then
+                    AC_ERROR([Unable to find static libraries in ${testdir}. Try --enable-dynamic])
+                else
+                    AC_ERROR([Unable to find matching library for header file in ${testdir}])
+                fi
             fi
             foundpcap=$testdir
         fi

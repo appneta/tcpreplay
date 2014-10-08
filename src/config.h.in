@@ -21,7 +21,7 @@
 /* Enable dmalloc */
 #undef ENABLE_DMALLOC
 
-/* Enable dynamically linking libs */
+/* Use shared libraries ( .so and .dylib ) */
 #undef ENABLE_DYNAMIC_LINK
 
 /* Enable fragroute module */
