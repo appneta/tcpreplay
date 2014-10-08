@@ -77,6 +77,52 @@ The simplest way to compile this package is:
      all sorts of other programs in order to regenerate files that came
      with the distribution.
 
+Make Tcpreplay fast
+==========================
+
+There are two ways to add modules which will make Tcpreplay fast. On 
+Linux and BSD you can separately install netmap (see instructions below).
+Note that netmap is disruptive to the network during a Tcpreplay test.
+Specifically the network interface is completely bypassed when netmap
+is active. A safer solution is Quick TX (available only for Linux).
+ 
+As of version 4.1.0, Tcpreplay includes the Quick TX module for Linux.
+It allows Tcpreplay to bypass the kernel network stack and write directly
+to the network driver. Doing so allows up to wire-rate transmissions
+(tested up to 10Gbps). Unlike netmap, it does not bypass the network
+stack during Tcpreplay transmission. Also, you do not have to download
+kernel source code to build it. By default Quick TX is built and 
+installed automatically.
+
+For example, Quick TX is installed as part of the basic build:
+
+    ./configure 
+    make
+    sudo make install
+
+To ensure the module is intalled, run 'lsmod' and look for 'quick_tx'.
+To uninstall the module, uninstall tcpreplay:
+
+    sudo make uninstall
+
+If you prefer not to have Quick TX installed, do the following:
+
+    ./configure --disable-quick-tx
+    make
+    sudo make install
+
+You can build Quick TX for a different kernel version if the sources
+or headers are installed on your Linux distribution, e.g.
+
+    ./configure --with-kernel=/lib/modules/2.6.32-66-generic/build
+    make
+    sudo make install
+
+To use the Quick TX module, run tcpreplay with interface names prefixed
+with 'qtx:', e.g.
+
+    tcpreplay -i qtx:eth0 -Kt bigFlows.pcap
+
 Build netmap feature
 ====================
 
