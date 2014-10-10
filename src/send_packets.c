@@ -576,7 +576,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #endif
 
 #ifdef HAVE_NETMAP
-            if (options->quick_tx && timesisset(&ctx->nap))
+            if (options->netmap && timesisset(&ctx->nap))
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 
