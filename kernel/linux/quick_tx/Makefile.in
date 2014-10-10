@@ -112,6 +112,8 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CROSS_ARCH = @CROSS_ARCH@
+CROSS_LD = @CROSS_LD@
 CUT = @CUT@
 CXX = @CXX@
 CXXCPP = @CXXCPP@
@@ -581,7 +583,8 @@ $(module_DATA): $(automake_dummy_SOURCES)
 	cp $(srcdir)/Makefile.kernel $(srcdir)/Makefile 
 	CPPFLAGS="" CFLAGS="" LDFLAGS="" \
 	$(MAKE) -C $(KERNEL_LOCATION) \
-        CC="gcc" M=$(PWD) modules\
+        $(CROSS_ARCH) CC=$(CC) $(CROSS_LD) \
+        M=$(PWD) modules\
 		KBUILD_VERBOSE=$(KBUILD_VERBOSE) 
 	mv Makefile.automake Makefile 
 

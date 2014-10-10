@@ -40,6 +40,15 @@ AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
 
+CROSS_ARCH=
+CROSS_LD=
+if test "$cross_compiling" = "yes" ; then
+    CROSS_ARCH="ARCH=$host_cpu"
+    CROSS_LD="LD=$LD"
+fi
+AC_SUBST(CROSS_ARCH)
+AC_SUBST(CROSS_LD)
+
 have_cygwin=no
 AC_MSG_CHECKING([for cygwin development environment])
 if test `echo $target | grep -c cygwin` -gt 0 ; then
