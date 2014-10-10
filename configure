@@ -19870,7 +19870,7 @@ fi
 
 have_netmap=no
 enable_netmap=no
-trynetmapdir=/opt/netmap
+trynetmapdir=
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap socket sending support" >&5
 $as_echo_n "checking for netmap socket sending support... " >&6; }
 
@@ -19880,7 +19880,16 @@ if test "${with_netmap+set}" = set; then :
 fi
 
 
-for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include; do
+NETMAP_SEARCH_DIRS=
+if test "$cross_compiling" = yes; then
+	if test "x$trynetmapdir" != "x"; then
+		NETMAP_SEARCH_DIRS=$trynetmapdir
+	fi
+else
+	NETMAP_SEARCH_DIRS="/opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include"
+fi
+
+for testdir in $NETMAP_SEARCH_DIRS; do
     if test -f "${testdir}/sys/net/netmap.h" ; then
         NETMAPINC="${testdir}/sys/net/netmap.h"
         NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
@@ -19913,9 +19922,6 @@ $as_echo "#define HAVE_NETMAP 1" >>confdefs.h
         enable_netmap=yes
         break;
     fi
-    if test "$trynetmapdir" != /opt/netmap ; then
-        break
-    fi
 done
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_netmap" >&5
@@ -19930,9 +19936,11 @@ fi
 
 
 
-OLDCPPFLAGS="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
-for ac_header in stdio.h net/netmap_user.h
+
+if test "x$NETMAPINCDIR" != "x"; then
+	OLDCPPFLAGS="$CPPFLAGS"
+	CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
+	for ac_header in stdio.h net/netmap_user.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -19947,14 +19955,14 @@ fi
 done
 
 
-have_nm_open=no
-have_nm_nr_reg_mask=no
-have_nm_nr_flags=no
-have_nmring_head_tail=no
-if test "$have_netmap" != no ; then
-        ac_fn_c_check_decl "$LINENO" "nm_open" "ac_cv_have_decl_nm_open" "
-        #include <stdio.h>
-        #include \"${NETMAPUSERINC}\"
+	have_nm_open=no
+	have_nm_nr_reg_mask=no
+	have_nm_nr_flags=no
+	have_nmring_head_tail=no
+	if test "$have_netmap" != no ; then
+	    	    ac_fn_c_check_decl "$LINENO" "nm_open" "ac_cv_have_decl_nm_open" "
+	        #include <stdio.h>
+	        #include \"${NETMAPUSERINC}\"
 
 "
 if test "x$ac_cv_have_decl_nm_open" = x""yes; then :
@@ -19962,25 +19970,25 @@ if test "x$ac_cv_have_decl_nm_open" = x""yes; then :
 fi
 
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap NR_REG_MASK definition" >&5
+	    	    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap NR_REG_MASK definition" >&5
 $as_echo_n "checking for netmap NR_REG_MASK definition... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-                #include <stdint.h>
-                #include <sys/socket.h>
-                #include <net/if.h>
-                #include <net/netmap.h>
+	                #include <stdint.h>
+	                #include <sys/socket.h>
+	                #include <net/if.h>
+	                #include <net/netmap.h>
 
 int
 main ()
 {
 
-                #ifdef NR_REG_MASK
-                    /* OK */
-                #else
-                    # error NR_REG_MASK not found
-                #endif
+	                #ifdef NR_REG_MASK
+	                    /* OK */
+	                #else
+	                    # error NR_REG_MASK not found
+	                #endif
 
   ;
   return 0;
@@ -19991,25 +19999,25 @@ if ac_fn_c_try_compile "$LINENO"; then :
   have_nm_nr_reg_mask=yes
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_reg_mask" >&5
+	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_reg_mask" >&5
 $as_echo "$have_nm_nr_reg_mask" >&6; }
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap nr_flags definition" >&5
+	    	    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap nr_flags definition" >&5
 $as_echo_n "checking for netmap nr_flags definition... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-                #include <stdint.h>
-                #include <sys/socket.h>
-                #include <net/if.h>
-                #include <net/netmap.h>
+	                #include <stdint.h>
+	                #include <sys/socket.h>
+	                #include <net/if.h>
+	                #include <net/netmap.h>
 
 int
 main ()
 {
 
-                struct nmreq nmr;
-                nmr.nr_flags = 0;
+	                struct nmreq nmr;
+	                nmr.nr_flags = 0;
 
   ;
   return 0;
@@ -20020,25 +20028,25 @@ if ac_fn_c_try_compile "$LINENO"; then :
   have_nm_nr_flags=yes
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_flags" >&5
+	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_flags" >&5
 $as_echo "$have_nm_nr_flags" >&6; }
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap ring head/tail definitions" >&5
+	    	    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap ring head/tail definitions" >&5
 $as_echo_n "checking for netmap ring head/tail definitions... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-                #include <stdint.h>
-                #include <sys/socket.h>
-                #include <net/if.h>
-                #include <net/netmap.h>
+	                #include <stdint.h>
+	                #include <sys/socket.h>
+	                #include <net/if.h>
+	                #include <net/netmap.h>
 
 int
 main ()
 {
 
-                struct netmap_ring r;
-                r.head = r.tail = 0;
+	                struct netmap_ring r;
+	                r.head = r.tail = 0;
 
   ;
   return 0;
@@ -20049,33 +20057,34 @@ if ac_fn_c_try_compile "$LINENO"; then :
   have_nmring_head_tail=yes
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nmring_head_tail" >&5
+	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nmring_head_tail" >&5
 $as_echo "$have_nmring_head_tail" >&6; }
 
-fi
+	fi
 
-if test "$have_nm_open" = yes ; then
+	if test "$have_nm_open" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_NM_OPEN 1" >>confdefs.h
 
-fi
-if test "$have_nm_nr_reg_mask" = yes ; then
+	fi
+	if test "$have_nm_nr_reg_mask" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_NR_REG 1" >>confdefs.h
 
-fi
-if test "$have_nm_nr_flags" = yes ; then
+	fi
+	if test "$have_nm_nr_flags" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_NR_FLAGS 1" >>confdefs.h
 
-fi
-if test "$have_nmring_head_tail" = yes ; then
+	fi
+	if test "$have_nmring_head_tail" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_RING_HEAD_TAIL 1" >>confdefs.h
 
-fi
+	fi
 
-CPPFLAGS="$OLDCPPFLAGS"
+	CPPFLAGS="$OLDCPPFLAGS"
+fi
 
 have_pf=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for PF_PACKET socket sending support" >&5
@@ -20156,67 +20165,20 @@ $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
-have_bpf=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for BPF device sending support" >&5
-$as_echo_n "checking for BPF device sending support... " >&6; }
-if test "${ac_cv_have_bpf+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test "$cross_compiling" = yes; then :
-  as_fn_error "cross-compiling,
-  presetting ac_cv_have_bpf=(yes|no) will help" "$LINENO" 5
 
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-[
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <stdint.h>
-#include <net/bpf.h>
-#include <errno.h>
-
-int
-main(int argc, char *argv[]) {
-    int fd;
-
-    fd = open("/dev/bpf0", O_RDONLY, 0);
-
-    /* if we opened it, we're good */
-    if (fd > 1)
-        exit(0);
-
-    /* if we got EBUSY or permission denied it exists, so we're good */
-    if (fd < 0 && (errno == EBUSY || errno == 13))
-        exit(0);
-
-    /* else suck, no good */
-    exit(-1);
-}]
+for ac_header in net/bpf.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "net/bpf.h" "ac_cv_header_net_bpf_h" "$ac_includes_default"
+if test "x$ac_cv_header_net_bpf_h" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NET_BPF_H 1
 _ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-    have_bpf=yes
-
+ have_bpf=yes
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
+  have_bpf=no
 fi
 
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_have_bpf" >&5
-$as_echo "$ac_cv_have_bpf" >&6; }
+done
 
 if test $have_bpf = yes ; then
 
@@ -20696,33 +20658,12 @@ done
 have_pcap_netmap=no
 if test $foundpcap != no ; then
     PCAP_NETMAP_C_FILE="$LPCAPINCDIR/pcap-netmap.c"
-    as_ac_File=`$as_echo "ac_cv_file_$PCAP_NETMAP_C_FILE" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $PCAP_NETMAP_C_FILE" >&5
-$as_echo_n "checking for $PCAP_NETMAP_C_FILE... " >&6; }
-if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "$PCAP_NETMAP_C_FILE"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-eval as_val=\$$as_ac_File
-   if test "x$as_val" = x""yes; then :
-
+    if test -f "${PCAP_NETMAP_C_FILE}" ; then
 
 $as_echo "#define HAVE_LIBPCAP_NETMAP 1" >>confdefs.h
 
-                    have_pcap_netmap=yes
-
-fi
-
+        have_pcap_netmap=yes
+    fi
 fi
 
 LIBS="$OLDLIBS"

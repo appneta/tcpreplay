@@ -263,6 +263,9 @@
 /* Does structure netmap_ring have head/tail defined? */
 #undef HAVE_NETMAP_RING_HEAD_TAIL
 
+/* Define to 1 if you have the <net/bpf.h> header file. */
+#undef HAVE_NET_BPF_H
+
 /* Define to 1 if you have the <net/netmap_user.h> header file. */
 #undef HAVE_NET_NETMAP_USER_H
 
