@@ -140,8 +140,6 @@ main(int argc, char *argv[])
     }
 
     if (ctx->stats.bytes_sent > 0) {
-        if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
-            errx(-1, "gettimeofday() failed: %s",  strerror(errno));
         packet_stats(&ctx->stats);
         if (ctx->options->flow_stats)
             flow_stats(ctx, ctx->options->unique_ip

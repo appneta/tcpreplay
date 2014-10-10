@@ -1,0 +1,17 @@
+EXTRA_CFLAGS += $(QTX_EXTRA_CFLAGS)
+
+ifneq (,$(QUICK_TX_DEBUG))
+EXTRA_CFLAGS += "-g -DHAVE_QUICK_TX_DEBUG"
+endif
+
+obj-m=$(module_DATA)
+quick_tx-objs=$(module_OBJECTS)
+MI_OBJS      = $(module_DATA)
+
+all clean:
+	$(warning **************************************************)
+	$(warning *** Makefile trick not undone, trying to recover *)
+	$(warning **************************************************)
+	mv Makefile.automake Makefile
+	$(MAKE) $@
+

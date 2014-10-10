@@ -47,9 +47,9 @@
 #define __SLEEP_H__
 
 static inline void
-nanosleep_sleep(struct timespec nap)
+nanosleep_sleep(struct timespec *nap)
 {
-    nanosleep(&nap, NULL);
+    nanosleep(nap, NULL);
 }
 
 
@@ -58,11 +58,11 @@ nanosleep_sleep(struct timespec nap)
  * of time has passed.  Pretty damn accurate from 1 to 100Mbps
  */
 static inline void
-gettimeofday_sleep(struct timespec nap)
+gettimeofday_sleep(struct timespec *nap)
 {
     struct timeval now, sleep_until, nap_for;
     gettimeofday(&now, NULL);
-    TIMESPEC_TO_TIMEVAL(&nap_for, &nap);
+    TIMESPEC_TO_TIMEVAL(&nap_for, nap);
     timeradd(&now, &nap_for, &sleep_until);
     
     do {
@@ -78,11 +78,11 @@ gettimeofday_sleep(struct timespec nap)
  * for furture reference
  */
 static inline void 
-select_sleep(const struct timespec nap)
+select_sleep(const struct timespec *nap)
 {
     struct timeval timeout;
 
-    TIMESPEC_TO_TIMEVAL(&timeout, &nap);
+    TIMESPEC_TO_TIMEVAL(&timeout, nap);
 
     if (select(0, NULL, NULL, NULL, &timeout) < 0)
         warnx("select_sleep() returned early due to error: %s", strerror(errno));

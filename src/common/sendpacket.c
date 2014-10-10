@@ -58,7 +58,6 @@
 #include "defines.h"
 #include "common.h"
 #include "sendpacket.h"
-
 #ifdef FORCE_INJECT_TX_RING
 /* TX_RING uses PF_PACKET API so don't undef it here */
 #undef HAVE_LIBDNET
@@ -210,6 +209,10 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t * sendpacket_open_khial(const char *, char *) _U_;
 static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
+#ifdef HAVE_QUICK_TX
+static sendpacket_t * sendpacket_open_quick_tx(const char *, char *) _U_;
+static void sendpacket_close_quick_tx(sendpacket_t *sp);
+#endif /* HAVE_QUICK_TX */
 
 /**
  * returns number of bytes sent on success or -1 on error
@@ -417,6 +420,14 @@ TRY_SEND_AGAIN:
 
             break;
 
+        case SP_TYPE_QUICK_TX:
+#ifdef HAVE_QUICK_TX
+            retcode = quick_tx_send_packet(sp->qtx_dev, data, len);
+            if (retcode < 0)
+                sendpacket_seterr(sp, "Quick TX send failure");
+#endif
+            break;
+
         case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
             retcode = sendpacket_send_netmap(sp, data, len);
@@ -500,6 +511,11 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
               }
         }
     } else {
+#ifdef HAVE_QUICK_TX
+        if (sendpacket_type == SP_TYPE_QUICK_TX)
+            sp = (sendpacket_t*)sendpacket_open_quick_tx(device, errbuf);
+        else
+#endif
 #ifdef HAVE_NETMAP
         if (sendpacket_type == SP_TYPE_NETMAP)
             sp = (sendpacket_t*)sendpacket_open_netmap(device, errbuf);
@@ -603,6 +619,12 @@ sendpacket_close(sendpacket_t *sp)
 
         case SP_TYPE_LIBNET:
             err(-1, "Libnet is no longer supported!");
+            break;
+
+        case SP_TYPE_QUICK_TX:
+#ifdef HAVE_QUICK_TX
+            sendpacket_close_quick_tx(sp);
+#endif /* HAVE_NETMAP */
             break;
 
         case SP_TYPE_NETMAP:
@@ -777,9 +799,6 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
     return(&sp->ether);
 }
 #endif /* HAVE_LIBDNET */
-
-#ifdef HAVE_NETMAP
-#endif /* HAVE_NETMAP */
 
 #if defined HAVE_PF_PACKET
 /**
@@ -1142,7 +1161,8 @@ sendpacket_get_dlt(sendpacket_t *sp)
     int dlt = DLT_EN10MB;
 
     if (sp->handle_type == SP_TYPE_KHIAL ||
-            sp->handle_type == SP_TYPE_NETMAP) {
+            sp->handle_type == SP_TYPE_NETMAP ||
+            sp->handle_type == SP_TYPE_QUICK_TX) {
         /* always EN10MB */
         ;
     } else {
@@ -1182,6 +1202,8 @@ sendpacket_get_method(sendpacket_t *sp)
         return "khial";
     } else if (sp->handle_type == SP_TYPE_NETMAP) {
         return "netmap";
+    } else if (sp->handle_type == SP_TYPE_QUICK_TX) {
+        return "Quick TX";
     } else {
         return INJECT_METHOD;
     }
@@ -1213,6 +1235,130 @@ sendpacket_open_khial(const char *device, char *errbuf)
 
     return sp;
 }
+
+/**
+ * Opens connection to Quick TX module for injecting packets directly into
+ * your interfaces via a the quick_tx module
+ */
+#ifdef HAVE_QUICK_TX
+static sendpacket_t *
+sendpacket_open_quick_tx(const char *device, char *errbuf)
+{
+    sendpacket_t *sp;
+    struct quick_tx* dev;
+    const char *ifname;
+    char full_dev_name[256];
+    unsigned int map_size = QTX_MASTER_PAGE_NUM * PAGE_SIZE;
+    unsigned int *map;
+    int blocks;
+    int i, fd;
+
+    assert(device);
+    assert(errbuf);
+
+    if (strlen(device) > MAX_IFNAMELEN - 8) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Interface name is to long: %s\n", device);
+        goto ifacename_invalid;
+    }
+
+    /*
+     * Sort out interface names
+     */
+    if (!strncmp(device, "qtx:", 4))
+        ifname = &device[4];
+    else
+        ifname = device;
+
+    /* open device name */
+    snprintf(full_dev_name, sizeof(full_dev_name), "%s%s", QTX_FULL_PATH_PREFIX, ifname);
+    if ((fd = open(full_dev_name, O_RDWR | O_SYNC)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "[quick_tx] error while opening device\n"
+                "Check that the QuickTX module is loaded and the interface name is correct \n");
+        goto open_failed;
+    }
+
+    /* create a memory map to Quick TX kernel module */
+    map = mmap(0, map_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (map == MAP_FAILED) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "[quick_tx] error while attempting to map memory from device");
+        goto map_create_failed;
+    }
+
+    /* create device */
+    dev = safe_malloc(sizeof(struct quick_tx));
+    dev->map_length = map_size;
+    dev->fd = fd;
+    dev->data = (struct quick_tx_shared_data*)map;
+    dev->stop_auto_mapping = false;
+
+    if (quick_tx_mmap_mem_block(dev) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "[quick_tx] error while mapping block");
+        goto map_failed;
+    }
+
+    if ((blocks = quick_tx_alloc_mem_space(dev, QTX_QUEUE_SIZE)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "[quick_tx] error while allocating memory");
+        goto map_alloc_failed;
+    }
+
+    dbgx(1, "[quick_tx] mapped %d blocks of memory\n", blocks);
+
+    /* store results */
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strncpy(sp->device, full_dev_name, sizeof(sp->device));
+    sp->handle.fd = fd;
+    sp->qtx_dev = dev;
+    sp->handle_type = SP_TYPE_QUICK_TX;
+
+    return sp;
+
+map_alloc_failed:
+    for (i = (dev->data->num_mem_blocks - 1); i >= 0; i--) {
+        struct quick_tx_mem_block_entry* mem_block = &dev->data->mem_blocks[i];
+        if (munmap (mem_block->user_addr, mem_block->length) == -1) {
+            dbgx(1, "[quick_tx] error while calling munmap for block %d\n", i);
+        }
+    }
+
+    munmap ((void*)dev->data, dev->map_length);
+map_failed:
+    free(dev);
+map_create_failed:
+    close(fd);
+open_failed:
+ifacename_invalid:
+    return NULL;
+}
+
+/**
+ * Closes connection to Quick TX module
+ */
+static void
+sendpacket_close_quick_tx(sendpacket_t *sp)
+{
+    struct quick_tx* dev;
+
+    assert(sp);
+
+    dev = sp->qtx_dev;
+    if (dev) {
+        int i;
+
+        for (i = (dev->data->num_mem_blocks - 1); i >= 0; i--) {
+            struct quick_tx_mem_block_entry* mem_block = &dev->data->mem_blocks[i];
+            if (munmap (mem_block->user_addr, mem_block->length) == -1)
+                dbgx(1, "[quick_tx] error while calling munmap for block %d\n", i);
+        }
+
+        if (munmap ((void*)dev->data, dev->map_length) == -1)
+            dbg(1, "[quick_tx] error while calling munmap\n");
+
+        free(dev);
+    }
+
+    close(sp->handle.fd);
+}
+#endif /* HAVE_QUICK_TX */
 
 /**
  * Get the hardware MAC address for the given interface using khial

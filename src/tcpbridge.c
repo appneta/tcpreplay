@@ -171,8 +171,16 @@ post_args(_U_ int argc, _U_ char *argv[])
         options.limit_send = OPT_VALUE_LIMIT; /* default is -1 */
 
 
-    if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL)
-        errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+    if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL) {
+        if (!strncmp(OPT_ARG(INTF1), "qtx:", 4))
+            errx(-1, "Unable to connect to Quick TX interface %s. Ensure Quick TX module is installed (see INSTALL).",
+                    OPT_ARG(INTF1));
+        else if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
+            errx(-1, "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
+                    OPT_ARG(INTF1));
+        else
+            errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+    }
 
     options.intf1 = safe_strdup(intname);
 

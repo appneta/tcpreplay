@@ -59,7 +59,8 @@ Stas Grabois <sagig@radware.com>
     - For his efforts to add IPv6 support to tcpprep and the tcpedit engine
     - For adding IPv6 support to fragroute
     
-Fred Klassen - AppNeta Inc. <tcpreplay@appneta.com>
+Fred Klassen <tcpreplay@appneta.com> - AppNeta 
+    - New maintainer of Tcpreplay
     - Added netmap support for wire-rate performance on commodity hardware
     - Improve accuracy and performance of the --mbps option
     - Implement pseudo-CRC to improve tcpedit performance
@@ -68,4 +69,8 @@ Fred Klassen - AppNeta Inc. <tcpreplay@appneta.com>
 Luigi Rizzo <rizzo@iet.unipi.it>
 	- Creator of netmap
 	- Assisted with netmap performance tuning
+
+Alexey Indeev <aindeev@appneta.com> - AppNeta
+    - Quick TX module for Linux
+
     

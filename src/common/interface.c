@@ -35,6 +35,10 @@
 #include "common/netmap.h"
 #endif
 
+#ifdef HAVE_QUICK_TX
+#include <linux/quick_tx.h>
+#endif
+
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -84,6 +88,9 @@ get_interface_list(void)
     int i = 0;
     DIR *dir;
     struct dirent *dirdata;
+#ifdef HAVE_QUICK_TX
+    char buf[MAXNAMLEN];
+#endif
 #ifdef HAVE_NETMAP
     int fd = -1;
     nmreq_t nmr;
@@ -123,6 +130,16 @@ get_interface_list(void)
             
         sprintf(list_ptr->alias, "%%%d", i++);
         list_ptr->flags = pcap_if_ptr->flags;
+#ifdef HAVE_QUICK_TX
+        snprintf(buf, sizeof(buf), "%s%s", QTX_FULL_PATH_PREFIX, pcap_if_ptr->name);
+        if (!access(buf, R_OK | W_OK)) {
+            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
+            list_ptr = list_ptr->next;
+            snprintf(list_ptr->name, sizeof(list_ptr->name), "qtx:%s", pcap_if_ptr->name);
+            sprintf(list_ptr->alias, "%%%d", i++);
+            list_ptr->flags = pcap_if_ptr->flags;
+        }
+#endif
 #ifdef HAVE_LIBPCAP_NETMAP
         /*
          * add the syntaxes supported by netmap-libpcap
@@ -135,8 +152,8 @@ get_interface_list(void)
 #ifdef HAVE_NETMAP
             if (netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
                 continue;
-            bzero (&nmr, sizeof(nmr));
-            strncpy (nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
+            bzero(&nmr, sizeof(nmr));
+            strncpy(nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
             nmr.nr_version = netmap_version;
             if (ioctl(fd, NIOCGINFO, &nmr) == 0) {
                 int x;
