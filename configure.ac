@@ -190,7 +190,7 @@ dnl Check for other header files
 AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
 AC_HEADER_STDBOOL
 
-dnl OpenBSD has special requirements
+dnl OpenBSD has special requirements 
 AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [
 [#if HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -203,7 +203,6 @@ AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [
 #endif
 ]])
 
-
 dnl Checks for libraries.
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, gethostbyname)
@@ -213,6 +212,13 @@ AC_CHECK_LIB(resolv, resolv)
 dnl Checks for library functions.
 AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
+
+if test "$cross_compiling" = "yes"; then
+    ac_cv_func_malloc_0_nonnull=yes
+    ac_cv_func_realloc_0_nonnull=yes
+    ac_cv_func_calloc_0_nonnull=yes
+fi
+
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
@@ -917,7 +923,7 @@ AC_ARG_WITH(netmap,
     AC_HELP_STRING([--with-netmap=DIR], [Use netmap in DIR]),
     [trynetmapdir=$withval])
 
-for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include; do
+for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap; do
     if test -f "${testdir}/sys/net/netmap.h" ; then
         NETMAPINC="${testdir}/sys/net/netmap.h"
         NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
@@ -962,9 +968,9 @@ dnl ###########################################################
 dnl Check for nm_open() function available in netmap version 5
 dnl Also check for other version-specific netmap definitions and structures 
 dnl ###########################################################
-OLDCPPFLAGS="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
-AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
+dnl OLDCPPFLAGS="$CPPFLAGS"
+dnl CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
+dnl AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
 
 have_nm_open=no
 have_nm_nr_reg_mask=no
@@ -1330,13 +1336,15 @@ done
 dnl ## Test for netmap-libpcap
 have_pcap_netmap=no
 if test $foundpcap != no ; then
+    if test "$cross_compiling" != "yes"; then
     PCAP_NETMAP_C_FILE="$LPCAPINCDIR/pcap-netmap.c"
-    AC_CHECK_FILE($PCAP_NETMAP_C_FILE,
-                 [ 
-                    AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
-                               [Does this version of libpcap support netmap?])
-                    have_pcap_netmap=yes
-                 ],[])
+        AC_CHECK_FILE($PCAP_NETMAP_C_FILE,
+                     [ 
+                        AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
+                                   [Does this version of libpcap support netmap?])
+                        have_pcap_netmap=yes
+                     ],[])
+    fi
 fi
 
 dnl restore LIBS & CFLAGS
@@ -1619,6 +1627,7 @@ esac
 
 LIBOPTS_CHECK(libopts)
 
+AM_CONDITIONAL([NEED_LIBOPTS], true)
 
 AC_OUTPUT([Makefile
            doxygen.cfg

@@ -19,6 +19,8 @@
 #ifndef QUICK_TX_H_
 #define QUICK_TX_H_
 
+#define USE_DMA_COHERENT_MEM_BLOCKS
+
 #ifndef __KERNEL__
 
 #include <sys/types.h>
@@ -44,16 +46,17 @@
 #include <poll.h>
 #include <unistd.h>
 
-#define __u64 	u_int64_t
-#define __u32 	u_int32_t
-#define __u16 	u_int16_t
-#define __u8  	u_int8_t
+//#include "arm_mem_barrier.s"
 
-#define __s64 	int64_t
-#define __s32 	int32_t
-#define __s16 	int16_t
+typedef u_int64_t u64;
+typedef u_int32_t u32;
+typedef u_int16_t u16;
+typedef u_int8_t  u8;
 
-#define __le32 	int32_t
+typedef int64_t s64;
+typedef int32_t s32;
+typedef int16_t s16;
+typedef int8_t  s8;
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE   (sysconf(_SC_PAGESIZE))
@@ -64,29 +67,10 @@
 				 ~(SMP_CACHE_BYTES - 1))
 #endif /* SKB_DATA_ALIGN */
 
-#define barrier() 	__asm__ __volatile__ ("" ::: "memory")
-
 #if defined __x86_64__ || defined __i386__
 # define rmb()		__asm__ __volatile__("lfence" ::: "memory")
 # define wmb()		__asm__ __volatile__("sfence" ::: "memory")
-
-#elif defined __powerpc__
-# define rmb()		__asm__ __volatile__ ("lwsync" ::: "memory")
-# define wmb()		__asm__ __volatile__ ("lwsync" ::: "memory")
-
-#elif defined __arm__
-# if defined __ARM_ARCH_7__
-#  define rmb()		__asm__ __volatile__ ("dsb" ::: "memory")
-#  define wmb()		__asm__ __volatile__ ("dmb" ::: "memory")
-# else
-#  define rmb() 	barrier();
-#  define wmb() 	barrier();
-# endif /*__ARM_ARCH_7__ */
-
-#else
-# define rmb()		barrier();
-# define wmb()		barrier();
-#endif /* __x86_64__ || __i386__ */
+#endif /* __x86_64__ */
 
 #ifndef likely
 # define likely(x)    __builtin_expect(!!(x), 1)
@@ -112,6 +96,7 @@ typedef struct {
 #include <linux/netdevice.h>
 #include <linux/if.h>
 #include <linux/ip.h>
+#include <linux/cdev.h>
 #include <linux/sched.h>
 #include <linux/time.h>
 #include <linux/poll.h>
@@ -131,7 +116,6 @@ typedef struct {
 #define qtx_info(fmt, ...) \
 	printk(KERN_INFO pr_fmt("[quick_tx] INFO:  "fmt"\n"), ##__VA_ARGS__)
 
-#define USE_DMA_COHERENT_MEM_BLOCKS 	1
 #define MAX_QUICK_TX_DEV 				32
 
 #define DEVICENAME 						"quick_tx"
@@ -146,16 +130,16 @@ struct quick_tx_skb {
 
 struct quick_tx_ops;
 struct quick_tx_dev {
-	struct miscdevice quick_tx_misc;
+	dev_t devt;
+	struct cdev cdev;
+	struct device* device;
+	char* name;
 
 	struct net_device *netdev;
-	struct device* device;
-	u64 dropped;
-	u64 sent_packets;
-	u64 sent_bytes;
-
-	void *data;
 	struct quick_tx_shared_data *shared_data;
+
+	u32 packet_table_consumer_index;
+
 	struct work_struct tx_work;
 	struct workqueue_struct* tx_workqueue;
 
@@ -164,9 +148,6 @@ struct quick_tx_dev {
 	bool registered;
 	bool currently_used;
 	bool quit_work;
-
-	struct work_struct free_skb_work;
-	struct workqueue_struct* free_skb_workqueue;
 
 	struct quick_tx_skb skb_queued_list;
 	struct quick_tx_skb skb_wait_list;
@@ -247,14 +228,21 @@ extern void quick_tx_worker(struct work_struct *work);
 	while(0)
 
 #ifdef __x86_64__
-# define LOOKUP_TABLE_SIZE			(1 << 15)		/* 32K packets */
+# define PACKET_ENTRY_TABLE_SIZE			(1 << 15)		/* 32K packets (must be power of 2) */
 # define MAX_MEM_BLOCK_TABLE_SIZE	(1 << 15)		/* 32K blocks (typically one 4096 page per block) */
 #else
-# define LOOKUP_TABLE_SIZE			(1 << 13)		/* 16K packets */
-# define MAX_MEM_BLOCK_TABLE_SIZE	(1 << 13)		/* 16K (typically one 4096 page per block) */
+# define PACKET_ENTRY_TABLE_SIZE			(1 << 12)		/* 4K packets (must be power of 2) */
+# define MAX_MEM_BLOCK_TABLE_SIZE	(1 << 12)		/* 4K (typically one 4096 page per block) */
 #endif
 
-#define DEV_NAME_PREFIX 			"quick_tx_"
+#if MAX_MEM_BLOCK_TABLE_SIZE > (1 << 16)
+typedef u32 mb_type;
+#else
+typedef u16 mb_type;
+#endif
+
+#define DEVICE_NAME					"quick_tx"
+#define DEV_NAME_PREFIX 			DEVICE_NAME"_"
 #define FOLDER_NAME_PREFIX 			"net/"DEV_NAME_PREFIX
 #define QTX_FULL_PATH_PREFIX 		"/dev/"FOLDER_NAME_PREFIX
 
@@ -273,17 +261,17 @@ typedef enum
 } quick_tx_error;
 
 struct quick_tx_packet_entry {
-	__u32 mem_block_index;	/* index of the DMA block this is part of */
-	__u32 block_offset;		/* offset from kernel_addr or user_addr */
-	__u32 length;			/* length of the entry in data */
-	__u8 consumed;			/* 1 - consumed, 0 - not yet consumed */
+	u32 block_offset;		/* offset from kernel_addr or user_addr inside block */
+	u16 mem_block_index;	/* index of the DMA block this is part of */
+	u16 length;			/* length of the entry in data */
+	u8 consumed;			/* 1 - consumed, 0 - not yet consumed */
 } __attribute__((aligned(8)));
 
 struct quick_tx_mem_block_entry {
 	void *kernel_addr;		/* address of block in kernel memory */
 	void *user_addr;		/* address of block in userspace memory */
-	__u32 producer_offset;	/* offset (bytes) that the packet is written at  */
-	__u32 length;			/* length of the DMA block */
+	u32 producer_offset;	/* offset (bytes) that the packet is written at  */
+	u32 length;			/* length of the DMA block */
 	atomic_t users;			/* number of users (skbs with memory mapped to this block but still in use) */
 #ifdef USE_DMA_COHERENT_MEM_BLOCKS
 	__u64 mem_handle;
@@ -291,29 +279,27 @@ struct quick_tx_mem_block_entry {
 } __attribute__((aligned(8)));
 
 struct quick_tx_shared_data {
-	struct quick_tx_packet_entry lookup_table[LOOKUP_TABLE_SIZE];
-	__u32 lookup_consumer_index;
-	__u32 lookup_producer_index;
-
+	struct quick_tx_packet_entry packet_entry_table[PACKET_ENTRY_TABLE_SIZE];
 	struct quick_tx_mem_block_entry mem_blocks[MAX_MEM_BLOCK_TABLE_SIZE];
-	__u32 mem_producer_index;
-	__u32 mem_producer_offset;
-	__u32 num_mem_blocks;
 
-	__u32 error_flags;
+	mb_type num_mem_blocks;
+	mb_type mem_producer_index;
+	u32 mem_producer_offset;
 
-	__u32 smp_cache_bytes;
-	__u32 prefix_len;
-	__u32 postfix_len;
+	u32 error_flags;
 
-	__u32 num_pages_per_block;
+	u32 smp_cache_bytes;
+	u32 prefix_len;
+	u32 postfix_len;
 
-	__u32 mbps;
+	u32 num_pages_per_block;
 
-	__u8 producer_wait_mem_flag;
-	__u8 producer_wait_lookup_flag;
-	__u8 producer_wait_done_flag;
-	__u8 consumer_wait_lookup_flag;
+	u32 mbps;
+
+	u8 producer_wait_mem_flag;
+	u8 producer_wait_lookup_flag;
+	u8 producer_wait_done_flag;
+	u8 consumer_wait_lookup_flag;
 
 } __attribute__((aligned(8)));
 
@@ -339,6 +325,7 @@ struct quick_tx {
 	int fd;
 	int map_length;
 	struct quick_tx_shared_data* data;
+	u32 packet_table_producer_index;
 	bool stop_auto_mapping;
 };
 
@@ -387,18 +374,32 @@ static inline void quick_tx_str_error(quick_tx_error error, char* error_buf, int
  * @return 			0 on success mapping, otherwise QTX_E_MMAP_MEM_BLOCK_FAILED
  */
 static inline int quick_tx_mmap_mem_block(struct quick_tx* dev) {
+	int mem_block_index;
+
 	assert(dev);
 	assert(dev->data);
 
-	if (dev->data->num_mem_blocks < MAX_MEM_BLOCK_TABLE_SIZE) {
+	mem_block_index = dev->data->num_mem_blocks;
+
+	if (mem_block_index < MAX_MEM_BLOCK_TABLE_SIZE) {
 		unsigned int *map;
 		map = mmap(0, dev->data->num_pages_per_block * PAGE_SIZE,
 				PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, 0);
 
+		wmb();
+		rmb();
+
 		if (map != MAP_FAILED) {
-			dev->data->mem_blocks[dev->data->num_mem_blocks - 1].user_addr = (void *)map;
+			assert(dev->data->mem_blocks[mem_block_index].user_addr == NULL);
+			dev->data->mem_blocks[mem_block_index].user_addr = (void *)map;
+#ifdef EXTRA_DEBUG
+			printf("Mapped block %d successfully, user_addr = %p (num is %d)\n", mem_block_index, (void *)map, dev->data->num_mem_blocks);
+#endif
 			return 0;
 		} else {
+#ifdef EXTRA_DEBUG
+			printf("Failed to map block %d\n", mem_block_index);
+#endif
 			dev->stop_auto_mapping = true;
 		}
 	}
@@ -497,7 +498,7 @@ static inline int quick_tx_open(char* name, struct quick_tx* dev) {
 	return 0;
 }
 
-static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, __u32 *write_offset, __u32 *mem_block_index) {
+static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, u32 *write_offset, mb_type *mem_block_index) {
 	struct quick_tx_shared_data *data = dev->data;
 
 	if (data->mem_producer_offset + length < data->mem_blocks[data->mem_producer_index].length) {
@@ -506,7 +507,7 @@ static inline bool __get_write_offset_and_inc(struct quick_tx* dev, int length, 
 		*mem_block_index = data->mem_producer_index;
 		data->mem_producer_offset = data->mem_producer_offset + length;
 	} else {
-		__u32 new_mem_producer_index = 0;
+		u32 new_mem_producer_index = 0;
 		/* We will have to use the next available DMA block of memory */
 
 		new_mem_producer_index = (data->mem_producer_index + 1) % MAX_MEM_BLOCK_TABLE_SIZE;
@@ -564,7 +565,7 @@ static inline void quick_tx_wakeup(struct quick_tx* dev) {
 	ioctl(dev->fd, QTX_START_TX);
 }
 
-static inline int __poll_for(struct quick_tx* dev, short events, __u8 *flag) {
+static inline int __poll_for(struct quick_tx* dev, short events, u8 *flag) {
 	struct pollfd pfd;
 	memset(&pfd, 0, sizeof(pfd));
 	pfd.events = events;
@@ -612,7 +613,7 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 	assert(length > 0);
 
 	data = dev->data;
-	entry = data->lookup_table + data->lookup_producer_index;
+	entry = data->packet_entry_table + dev->packet_table_producer_index;
 
 	for (;;) {
 	    /* Entry with length 0 indicates that it has never been filled before */
@@ -637,6 +638,10 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 
 	        /* Copy over packet data after prefix_len */
 	        struct quick_tx_mem_block_entry* mem_block = &data->mem_blocks[entry->mem_block_index];
+#ifdef EXTRA_DEBUG
+	        printf("[quick_tx] Copying data to %p from %p buffer, length = %d, memblock_index = %d, num_mem_blocks = %d\n",
+	        		(mem_block->user_addr + entry->block_offset + data->prefix_len),buffer, entry->length, entry->mem_block_index, data->num_mem_blocks);
+#endif
 	        memcpy(mem_block->user_addr + entry->block_offset + data->prefix_len, buffer, entry->length);
 
 	        /* Use a write memory barrier to prevent re-ordering
@@ -651,13 +656,13 @@ static inline int quick_tx_send_packet(struct quick_tx* dev, const void* buffer,
 	        }
 	        qtx_s++;
 
-#ifdef QUICK_TX_DEBUG
+#ifdef EXTRA_DEBUG
 	        printf("[quick_tx] Wrote entry at index = %d, mem_block_index = %d, offset = %d, len = %d\n",
-	                data->lookup_producer_index, entry->mem_block_index, entry->block_offset, entry->length);
+	                dev->packet_table_producer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
 
 	        /* Increment the lookup index for next packet */
-	        data->lookup_producer_index = (data->lookup_producer_index + 1) % LOOKUP_TABLE_SIZE;
+	        dev->packet_table_producer_index = (dev->packet_table_producer_index + 1) & (PACKET_ENTRY_TABLE_SIZE - 1);
 
 	    	if ((ret = __check_error_flags(dev->data)) < 0)
 	    		return ret;

@@ -22,6 +22,14 @@ struct kmem_cache *qtx_skbuff_head_cache __read_mostly;
 struct quick_tx_dev quick_tx_devs[MAX_QUICK_TX_DEV];
 DEFINE_MUTEX(init_mutex);
 
+dev_t quick_tx_devt;
+struct class *quick_tx_class;
+
+static int quick_tx_major;
+
+module_param(quick_tx_major, int, 0);
+MODULE_PARM_DESC(quick_tx_major, "Major device number");
+
 #define VIRTIO_NET_NAME "virtio_net"
 #define E1000E_NAME "e1000e"
 #define E1000_NAME "e1000"
@@ -73,7 +81,7 @@ void quick_tx_calc_mbps(struct quick_tx_dev *dev)
 void quick_tx_print_stats(struct quick_tx_dev *dev)
 {
 #if defined DEBUG || defined EXTRA_DEBUG
-	qtx_info("Run complete, printing TX statistics for %s:", dev->quick_tx_misc.name);
+	qtx_info("Run complete, printing TX statistics for %s:", dev->name);
 	qtx_info("\t TX Queue was frozen or stopped: \t%llu", dev->num_tq_frozen_or_stopped);
 	qtx_info("\t TX returned locked: \t\t\t%llu", dev->num_tx_locked);
 	qtx_info("\t TX returned busy: \t\t\t%llu", dev->num_tx_busy);
@@ -91,8 +99,7 @@ void quick_tx_print_stats(struct quick_tx_dev *dev)
 
 static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
 {
-	struct miscdevice* miscdev = file->private_data;
-	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+	struct quick_tx_dev* dev = file->private_data;
 
 	switch(cmd) {
 	case QTX_START_TX:
@@ -105,8 +112,7 @@ static long quick_tx_ioctl (struct file *file, unsigned int cmd, unsigned long a
 
 static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 {
-	struct miscdevice* miscdev = file->private_data;
-	struct quick_tx_dev* dev = container_of(miscdev, struct quick_tx_dev, quick_tx_misc);
+	struct quick_tx_dev* dev = file->private_data;
 	unsigned int mask = 0;
 
 	mutex_lock(&dev->mtx);
@@ -130,6 +136,9 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 
 static int quick_tx_open(struct inode * inode, struct file * file)
 {
+	struct quick_tx_dev *dev = container_of(inode->i_cdev, struct quick_tx_dev, cdev);
+	file->private_data = dev;
+
     return 0;
 }
 
@@ -142,29 +151,19 @@ static int quick_tx_init_name(struct quick_tx_dev* dev)
 {
 	int ret;
 
-	dev->quick_tx_misc.name =
-			kmalloc(strlen(DEV_NAME_PREFIX) + strlen(dev->netdev->name) + 1, GFP_KERNEL);
+	dev->name = kmalloc(strlen(FOLDER_NAME_PREFIX) +
+			strlen(dev->netdev->name) + 1, GFP_KERNEL);
 
-	if (dev->quick_tx_misc.name == NULL) {
+	if (dev->name == NULL) {
 		ret = -ENOMEM;
 		goto error;
 	}
 
-	dev->quick_tx_misc.nodename =
-			kmalloc(strlen(FOLDER_NAME_PREFIX) + strlen(dev->netdev->name) + 1, GFP_KERNEL);
-
-	if (dev->quick_tx_misc.nodename == NULL) {
-		ret = -ENOMEM;
-		goto error_nodename_alloc;
-	}
-
-	sprintf((char *)dev->quick_tx_misc.name, "%s%s", DEV_NAME_PREFIX, dev->netdev->name);
-	sprintf((char *)dev->quick_tx_misc.nodename, "%s%s", FOLDER_NAME_PREFIX, dev->netdev->name);
+	sprintf((char *)dev->name, "%s%s",
+			FOLDER_NAME_PREFIX, dev->netdev->name);
 
 	return 0;
 
-error_nodename_alloc:
-	kfree(dev->quick_tx_misc.name);
 error:
 	qtx_error("Error while allocating memory for char buffers");
 	return ret;
@@ -173,10 +172,10 @@ error:
 static void quick_tx_remove_device(struct quick_tx_dev* dev)
 {
 	if (dev->registered == true) {
-		qtx_info("Removing QuickTx device %s", dev->quick_tx_misc.nodename);
-		kfree(dev->quick_tx_misc.name);
-		kfree(dev->quick_tx_misc.nodename);
-		misc_deregister(&dev->quick_tx_misc);
+		qtx_info("Removing QuickTx device /dev/%s", dev->name);
+		kfree(dev->name);
+		device_destroy(quick_tx_class, dev->devt);
+		cdev_del(&dev->cdev);
 	}
 }
 
@@ -192,9 +191,10 @@ static const struct file_operations quick_tx_fops = {
 
 static int quick_tx_init(void)
 {
-	int ret = 0;
-	int i = 0;
+	int err;
+	int i = 0,j = 0;
 
+	struct net_device *netdevs[MAX_QUICK_TX_DEV];
 	struct net_device *netdev;
 	struct quick_tx_dev *dev;
 
@@ -205,26 +205,64 @@ static int quick_tx_init(void)
 
 	mutex_lock(&init_mutex);
 
+	quick_tx_class = class_create(THIS_MODULE, DEVICE_NAME);
+	if (IS_ERR(quick_tx_class)) {
+		err = PTR_ERR(quick_tx_class);
+		goto no_class;
+	}
+
+	if (quick_tx_major) {
+		quick_tx_devt = MKDEV(quick_tx_major, 0);
+		err = register_chrdev_region(quick_tx_devt, MAX_QUICK_TX_DEV, DEVICE_NAME);
+	} else {
+		err = alloc_chrdev_region(&quick_tx_devt, 0, MAX_QUICK_TX_DEV, DEVICE_NAME);
+		quick_tx_major = MAJOR(quick_tx_devt);
+	}
+
+	if (err < 0) {
+		goto no_region;
+	}
+
+	memset(netdevs, 0, sizeof(struct net_device*) * MAX_QUICK_TX_DEV);
+
 	read_lock(&dev_base_lock);
 	for_each_netdev(&init_net, netdev) {
-		if (i < MAX_QUICK_TX_DEV) {
-			dev = &quick_tx_devs[i];
-			dev->netdev = netdev;
+		netdevs[i] = netdev;
+		i++;
+	}
+	read_unlock(&dev_base_lock);
 
-			if ((ret = quick_tx_init_name(dev)) < 0)
-				goto error;
+	for (j = 0; j < MAX_QUICK_TX_DEV; j++) {
+		if (netdevs[j]) {
+			dev = &quick_tx_devs[j];
+			dev->netdev = netdevs[j];
 
-			dev->quick_tx_misc.minor = MISC_DYNAMIC_MINOR;
-			dev->quick_tx_misc.fops = &quick_tx_fops;
+			if ((err = quick_tx_init_name(dev)) < 0)
+				goto no_name;
 
-			if ((ret = misc_register(&dev->quick_tx_misc)) < 0) {
-				qtx_error("Can't register quick_tx device %s", dev->quick_tx_misc.nodename);
-				goto error_misc_register;
+			dev->devt = MKDEV(quick_tx_major, j);
+
+
+			dev->device = device_create(quick_tx_class, NULL,
+					dev->devt, dev, dev->name);
+
+			dev_set_drvdata(dev->device, dev);
+
+			if (IS_ERR(dev->device)) {
+				err = PTR_ERR(dev->device);
+				goto no_device;
+			}
+
+			cdev_init(&dev->cdev, &quick_tx_fops);
+			dev->cdev.owner = THIS_MODULE;
+			err = cdev_add(&dev->cdev, dev->devt, 1);
+			if (err) {
+				goto no_cdev;
 			}
 
 			dev->registered = true;
 			dev->currently_used = false;
-			qtx_info("Device registered: /dev/%s --> %s", dev->quick_tx_misc.nodename, dev->netdev->name);
+			qtx_info("Device registered: /dev/%s --> %s", dev->name, dev->netdev->name);
 
 			INIT_LIST_HEAD(&dev->skb_queued_list.list);
 			INIT_LIST_HEAD(&dev->skb_wait_list.list);
@@ -247,11 +285,10 @@ static int quick_tx_init(void)
 #endif
 
 			quick_tx_set_ops(dev);
-
-			i++;
+		} else {
+			break;
 		}
 	}
-	read_unlock(&dev_base_lock);
 
 	qtx_skbuff_head_cache = kmem_cache_create("skbuff_head_cache",
 					      sizeof(struct quick_tx_skb),
@@ -263,20 +300,27 @@ static int quick_tx_init(void)
 
 	return 0;
 
-error_misc_register:
-	i++;
-error:
+
+no_cdev:
+	device_destroy(quick_tx_class, dev->devt);
+no_device:
+	kfree(dev->name);
+no_name:
 	read_unlock(&dev_base_lock);
-	while (i > 0) {
-		i--;
-		quick_tx_remove_device(&quick_tx_devs[i]);
+	while (j > 0) {
+		j--;
+		quick_tx_remove_device(&quick_tx_devs[j]);
 	}
 
 	qtx_error("An error occurred while initializing, quick_tx is exiting");
 
+	unregister_chrdev_region(quick_tx_devt, MAX_QUICK_TX_DEV);
+no_region:
+	class_destroy(quick_tx_class);
+no_class:
 	mutex_unlock(&init_mutex);
 
-	return ret;
+	return err;
 }
 
 static void quick_tx_cleanup(void)
@@ -290,6 +334,9 @@ static void quick_tx_cleanup(void)
 	}
 
 	kmem_cache_destroy(qtx_skbuff_head_cache);
+
+	unregister_chrdev_region(quick_tx_devt, MAX_QUICK_TX_DEV);
+	class_destroy(quick_tx_class);
 
 	mutex_unlock(&init_mutex);
 }

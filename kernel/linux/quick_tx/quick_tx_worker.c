@@ -311,7 +311,7 @@ void quick_tx_worker(struct work_struct *work)
 	struct quick_tx_skb *qtx_skb;
 	struct sk_buff *skb;
 	struct quick_tx_shared_data *data = dev->shared_data;
-	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_consumer_index;
+	struct quick_tx_packet_entry* entry = data->packet_entry_table + dev->packet_table_consumer_index;
 	struct quick_tx_mem_block_entry* mem_block;
 	struct netdev_queue *txq;
 	u32 aligned_length = 0;
@@ -335,7 +335,7 @@ void quick_tx_worker(struct work_struct *work)
 		smp_rmb();
 		if (entry->length > 0 && entry->consumed == 0) {
 			/* Calculate full size of the space required to packet */
-			aligned_length = SKB_DATA_ALIGN(max((u32)ETH_ZLEN, NET_SKB_PAD + entry->length));
+			aligned_length = SKB_DATA_ALIGN(max((u32)ETH_ZLEN, NET_SKB_PAD + (u32)entry->length));
 			full_size = SKB_DATA_ALIGN(aligned_length + sizeof(struct skb_shared_info));
 
 			/* Get the DMA block our packet is in */
@@ -367,7 +367,7 @@ void quick_tx_worker(struct work_struct *work)
 
 #ifdef EXTRA_DEBUG
 			qtx_info("Consumed entry at index = %d, mem_block_index = %d, offset = %d, len = %d",
-					data->lookup_consumer_index, entry->mem_block_index, entry->block_offset, entry->length);
+					dev->packet_table_consumer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
 
 			/* Set this entry as consumed, increment to next entry */
@@ -376,8 +376,8 @@ void quick_tx_worker(struct work_struct *work)
 
 			RUN_AT_INVERVAL(quick_tx_wake_up_user_lookup(dev), 1024, dev->quick_tx_wake_up_lookup_counter);
 
-			data->lookup_consumer_index = (data->lookup_consumer_index + 1) % LOOKUP_TABLE_SIZE;
-			entry = data->lookup_table + data->lookup_consumer_index;
+			dev->packet_table_consumer_index = (dev->packet_table_consumer_index + 1) & (PACKET_ENTRY_TABLE_SIZE - 1);
+			entry = data->packet_entry_table + dev->packet_table_consumer_index;
 		} else {
 			if (dev->shared_data->producer_wait_done_flag == 0) {
 				quick_tx_finish_work(dev, txq, false);
@@ -390,7 +390,7 @@ void quick_tx_worker(struct work_struct *work)
 				break;
 			}
 #ifdef EXTRA_DEBUG
-			qtx_info("No packets to process, sleeping (index = %d), entry->consumed = %d", data->lookup_consumer_index,
+			qtx_info("No packets to process, sleeping (index = %d), entry->consumed = %d", dev->packet_table_consumer_index,
 					entry->consumed);
 #endif
 
