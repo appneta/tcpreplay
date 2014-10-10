@@ -19882,11 +19882,11 @@ fi
 
 NETMAP_SEARCH_DIRS=
 if test "$cross_compiling" = yes; then
-	if test "x$trynetmapdir" != "x"; then
-		NETMAP_SEARCH_DIRS=$trynetmapdir
-	fi
+    if test "x$trynetmapdir" != "x"; then
+        NETMAP_SEARCH_DIRS=$trynetmapdir
+    fi
 else
-	NETMAP_SEARCH_DIRS="/opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include"
+    NETMAP_SEARCH_DIRS="$trynetmapdir /opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include"
 fi
 
 for testdir in $NETMAP_SEARCH_DIRS; do
@@ -19938,9 +19938,9 @@ fi
 
 
 if test "x$NETMAPINCDIR" != "x"; then
-	OLDCPPFLAGS="$CPPFLAGS"
-	CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
-	for ac_header in stdio.h net/netmap_user.h
+    OLDCPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
+    for ac_header in stdio.h net/netmap_user.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -19955,14 +19955,14 @@ fi
 done
 
 
-	have_nm_open=no
-	have_nm_nr_reg_mask=no
-	have_nm_nr_flags=no
-	have_nmring_head_tail=no
-	if test "$have_netmap" != no ; then
-	    	    ac_fn_c_check_decl "$LINENO" "nm_open" "ac_cv_have_decl_nm_open" "
-	        #include <stdio.h>
-	        #include \"${NETMAPUSERINC}\"
+    have_nm_open=no
+    have_nm_nr_reg_mask=no
+    have_nm_nr_flags=no
+    have_nmring_head_tail=no
+    if test "$have_netmap" != no ; then
+                ac_fn_c_check_decl "$LINENO" "nm_open" "ac_cv_have_decl_nm_open" "
+            #include <stdio.h>
+            #include \"${NETMAPUSERINC}\"
 
 "
 if test "x$ac_cv_have_decl_nm_open" = x""yes; then :
@@ -19970,25 +19970,25 @@ if test "x$ac_cv_have_decl_nm_open" = x""yes; then :
 fi
 
 
-	    	    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap NR_REG_MASK definition" >&5
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap NR_REG_MASK definition" >&5
 $as_echo_n "checking for netmap NR_REG_MASK definition... " >&6; }
-	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-	                #include <stdint.h>
-	                #include <sys/socket.h>
-	                #include <net/if.h>
-	                #include <net/netmap.h>
+                    #include <stdint.h>
+                    #include <sys/socket.h>
+                    #include <net/if.h>
+                    #include <net/netmap.h>
 
 int
 main ()
 {
 
-	                #ifdef NR_REG_MASK
-	                    /* OK */
-	                #else
-	                    # error NR_REG_MASK not found
-	                #endif
+                    #ifdef NR_REG_MASK
+                        /* OK */
+                    #else
+                        # error NR_REG_MASK not found
+                    #endif
 
   ;
   return 0;
@@ -19999,25 +19999,25 @@ if ac_fn_c_try_compile "$LINENO"; then :
   have_nm_nr_reg_mask=yes
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_reg_mask" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_reg_mask" >&5
 $as_echo "$have_nm_nr_reg_mask" >&6; }
 
-	    	    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap nr_flags definition" >&5
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap nr_flags definition" >&5
 $as_echo_n "checking for netmap nr_flags definition... " >&6; }
-	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-	                #include <stdint.h>
-	                #include <sys/socket.h>
-	                #include <net/if.h>
-	                #include <net/netmap.h>
+                    #include <stdint.h>
+                    #include <sys/socket.h>
+                    #include <net/if.h>
+                    #include <net/netmap.h>
 
 int
 main ()
 {
 
-	                struct nmreq nmr;
-	                nmr.nr_flags = 0;
+                    struct nmreq nmr;
+                    nmr.nr_flags = 0;
 
   ;
   return 0;
@@ -20028,25 +20028,25 @@ if ac_fn_c_try_compile "$LINENO"; then :
   have_nm_nr_flags=yes
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_flags" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nm_nr_flags" >&5
 $as_echo "$have_nm_nr_flags" >&6; }
 
-	    	    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap ring head/tail definitions" >&5
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netmap ring head/tail definitions" >&5
 $as_echo_n "checking for netmap ring head/tail definitions... " >&6; }
-	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-	                #include <stdint.h>
-	                #include <sys/socket.h>
-	                #include <net/if.h>
-	                #include <net/netmap.h>
+                    #include <stdint.h>
+                    #include <sys/socket.h>
+                    #include <net/if.h>
+                    #include <net/netmap.h>
 
 int
 main ()
 {
 
-	                struct netmap_ring r;
-	                r.head = r.tail = 0;
+                    struct netmap_ring r;
+                    r.head = r.tail = 0;
 
   ;
   return 0;
@@ -20057,33 +20057,33 @@ if ac_fn_c_try_compile "$LINENO"; then :
   have_nmring_head_tail=yes
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nmring_head_tail" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_nmring_head_tail" >&5
 $as_echo "$have_nmring_head_tail" >&6; }
 
-	fi
+    fi
 
-	if test "$have_nm_open" = yes ; then
+    if test "$have_nm_open" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_NM_OPEN 1" >>confdefs.h
 
-	fi
-	if test "$have_nm_nr_reg_mask" = yes ; then
+    fi
+    if test "$have_nm_nr_reg_mask" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_NR_REG 1" >>confdefs.h
 
-	fi
-	if test "$have_nm_nr_flags" = yes ; then
+    fi
+    if test "$have_nm_nr_flags" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_NR_FLAGS 1" >>confdefs.h
 
-	fi
-	if test "$have_nmring_head_tail" = yes ; then
+    fi
+    if test "$have_nmring_head_tail" = yes ; then
 
 $as_echo "#define HAVE_NETMAP_RING_HEAD_TAIL 1" >>confdefs.h
 
-	fi
+    fi
 
-	CPPFLAGS="$OLDCPPFLAGS"
+    CPPFLAGS="$OLDCPPFLAGS"
 fi
 
 have_pf=no
