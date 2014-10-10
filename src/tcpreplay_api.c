@@ -223,7 +223,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     }
 
     if (HAVE_OPT(QUICK_TX)) {
-#ifdef HAVE_NETMAP
+#ifdef HAVE_QUICK_TX
         if (HAVE_OPT(NETMAP)) {
             ret = -1;
             tcpreplay_seterr(ctx, "%s", "options --netmap and --quick-tx are mutually exclusive");
@@ -243,8 +243,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->quick_tx = 1;
         ctx->sp_type = SP_TYPE_QUICK_TX;
 #else
-         err(-1, "--Quick TX feature was not compiled in. See INSTALL.");
-#endif
+         err(-1, "--quick_tx feature was not compiled in. See INSTALL.");
+#endif /* HAVE_QUICK_TX */
     }
 
 

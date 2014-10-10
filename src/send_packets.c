@@ -634,7 +634,7 @@ SEND_NOW:
 #endif
 
 #ifdef HAVE_NETMAP
-            if (options->quick_tx)
+            if (options->netmap)
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
             ctx->first_time = 0;
@@ -824,7 +824,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 #endif
 
 #ifdef HAVE_NETMAP
-            if (options->quick_tx && timesisset(&ctx->nap))
+            if (options->netmap && timesisset(&ctx->nap))
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 
@@ -889,7 +889,7 @@ SEND_NOW:
 #endif
 
 #ifdef HAVE_NETMAP
-            if (options->quick_tx)
+            if (options->netmap)
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
             ctx->first_time = 0;
