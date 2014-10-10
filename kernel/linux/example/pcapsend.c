@@ -126,6 +126,7 @@ int main (int argc, char* argv[])
         loops = 1;
     }
 
+    memset(&qtx, 0, sizeof(qtx));
     int ret = quick_tx_open(argv[2], &qtx);
 
     if (ret == 0) {
