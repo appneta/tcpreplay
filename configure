@@ -18614,7 +18614,7 @@ fi
 
 
 debug=no
-debug_flag=NDBUG
+debug_flag=
 # Check whether --enable-debug was given.
 if test "${enable_debug+set}" = set; then :
   enableval=$enable_debug;  if test x$enableval = xyes; then
@@ -18622,7 +18622,7 @@ if test "${enable_debug+set}" = set; then :
         CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
-        debug_flag=DEBUG
+        debug_flag=--dbug=1
 
 $as_echo "#define DEBUG 1" >>confdefs.h
 

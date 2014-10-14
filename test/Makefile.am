@@ -7,11 +7,7 @@ BUILD = @build@
 nic1 = @nic1@
 nic2 = @nic2@
 
-ifeq (@debug_flag@,DEBUG)
-	ENABLE_DEBUG = -d
-endif
-
-#ENABLE_DEBUG = @debug_flag@
+ENABLE_DEBUG = @debug_flag@
 TCPPREP=../src/tcpprep --no-arg-comment
 TCPREPLAY=../src/tcpreplay
 TCPREWRITE=../src/tcprewrite
