@@ -6,7 +6,8 @@ TARGET = @target@
 BUILD = @build@
 nic1 = @nic1@
 nic2 = @nic2@
-ENABLE_DEBUG = @debug_flag@
+
+ENABLE_DEBUG = @debug_run_time_flag@
 TCPPREP=../src/tcpprep --no-arg-comment
 TCPREPLAY=../src/tcpreplay
 TCPREWRITE=../src/tcprewrite
