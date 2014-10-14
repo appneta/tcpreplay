@@ -207,6 +207,7 @@ builddir = @builddir@
 datadir = @datadir@
 datarootdir = @datarootdir@
 debug_flag = @debug_flag@
+debug_run_time_flag = @debug_run_time_flag@
 depmod = @depmod@
 docdir = @docdir@
 dvidir = @dvidir@
