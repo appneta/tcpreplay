@@ -218,7 +218,12 @@ MAKEFLAGS = -s -k
 HOST = @host@
 TARGET = @target@
 BUILD = @build@
-ENABLE_DEBUG = @debug_flag@
+
+#if @debug_flag@ == "DEBUG"
+#	ENABLE_DEBUG = -d
+#endif
+
+#ENABLE_DEBUG = @debug_flag@
 TCPPREP = ../src/tcpprep --no-arg-comment
 TCPREPLAY = ../src/tcpreplay
 TCPREWRITE = ../src/tcprewrite
