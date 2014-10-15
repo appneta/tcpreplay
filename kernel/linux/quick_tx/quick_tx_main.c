@@ -121,6 +121,13 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 	poll_wait(file, &dev->user_lookup_q, wait);
 	poll_wait(file, &dev->user_done_q, wait);
 
+	if (!dev->shared_data->consumer_wait_lookup_flag
+			&& (wait->_key & (POLL_DMA | POLL_LOOKUP))) {
+		dev->shared_data->consumer_wait_lookup_flag = 1;
+		smp_wmb();
+		wake_up_all(&dev->kernel_lookup_q);
+	}
+
 	smp_rmb();
 	if (dev->shared_data->producer_wait_mem_flag)
 		mask |= (POLL_DMA);
