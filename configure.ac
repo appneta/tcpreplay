@@ -451,10 +451,12 @@ AC_ARG_WITH(libpcap,
                         dynamic_found=yes
                     elif test -f "${withval}/lib/libpcap${ext}" ; then
                         dynamic_found=yes
+                    elif test -f "${withval}/lib64/libpcap${ext}" ; then
+                        dynamic_found=yes
                     fi
                 done
                 if test $dynamic_found = yes; then
-                    AC_ERROR([Unable to find static libraries in ${withval}. Try --enable-dynamic])
+                    AC_ERROR([Unable to find static libraries in ${withval}. Try --enable-dynamic-link])
                 else
                     AC_ERROR([Unable to find matching library for header file in ${withval}])
                 fi
