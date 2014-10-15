@@ -290,7 +290,7 @@ static int quick_tx_init(void)
 		}
 	}
 
-	qtx_skbuff_head_cache = kmem_cache_create("skbuff_head_cache",
+	qtx_skbuff_head_cache = kmem_cache_create("quick_tx_skbuff_head_cache",
 					      sizeof(struct quick_tx_skb),
 					      0,
 					      SLAB_HWCACHE_ALIGN|SLAB_PANIC,
