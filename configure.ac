@@ -501,11 +501,11 @@ AC_ARG_WITH(libpcap,
             else
                 dynamic_found=no
                 for ext in .dylib .so ; do 
-                    if test -f "${withval}/libpcap${ext}" ; then
+                    if test -f "${testdir}/libpcap${ext}" ; then
                         dynamic_found=yes
-                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                    elif test -f "${testdir}/lib/libpcap${ext}" ; then
                         dynamic_found=yes
-                    elif test -f "${withval}/lib64/libpcap${ext}" ; then
+                    elif test -f "${testdir}/lib64/libpcap${ext}" ; then
                         dynamic_found=yes
                     fi
                 done
