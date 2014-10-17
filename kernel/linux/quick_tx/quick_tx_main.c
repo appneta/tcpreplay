@@ -50,21 +50,20 @@ const char *quick_tx_netdev_drivername(const struct net_device *dev)
 	return empty;
 }
 
-static void quick_tx_set_ops(struct quick_tx_dev *dev)
+static int quick_tx_set_ops(struct quick_tx_dev *dev)
 {
 	if (!strncmp(quick_tx_netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
-		dev->ops = &quick_tx_virtio_net_ops;
-		return;
+		return 1;
 	} else if (!strncmp(quick_tx_netdev_drivername(dev->netdev), E1000E_NAME, strlen(E1000E_NAME))) {
 		dev->ops = &quick_tx_default_ops;
-		return;
+		return 0;
 	} else if (!strncmp(quick_tx_netdev_drivername(dev->netdev), E1000_NAME, strlen(E1000_NAME))) {
 		dev->ops = &quick_tx_e1000_ops;
-		return;
+		return 0;
 	}
 
 	dev->ops = &quick_tx_default_ops;
-	return;
+	return 0;
 }
 
 
@@ -120,6 +119,8 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 	poll_wait(file, &dev->user_mem_q, wait);
 	poll_wait(file, &dev->user_lookup_q, wait);
 	poll_wait(file, &dev->user_done_q, wait);
+
+	quick_tx_wake_up_kernel_lookup(dev);
 
 	smp_rmb();
 	if (dev->shared_data->producer_wait_mem_flag)
@@ -237,6 +238,11 @@ static int quick_tx_init(void)
 			dev = &quick_tx_devs[j];
 			dev->netdev = netdevs[j];
 
+			if (quick_tx_set_ops(dev)) {
+				qtx_error("%s driver is not supported by quick_tx", quick_tx_netdev_drivername(dev->netdev));
+				continue;
+			}
+
 			if ((err = quick_tx_init_name(dev)) < 0)
 				goto no_name;
 
@@ -283,14 +289,12 @@ static int quick_tx_init(void)
 			} else
 				dev->using_mem_coherent = false;
 #endif
-
-			quick_tx_set_ops(dev);
 		} else {
 			break;
 		}
 	}
 
-	qtx_skbuff_head_cache = kmem_cache_create("skbuff_head_cache",
+	qtx_skbuff_head_cache = kmem_cache_create("quick_tx_skbuff_head_cache",
 					      sizeof(struct quick_tx_skb),
 					      0,
 					      SLAB_HWCACHE_ALIGN|SLAB_PANIC,

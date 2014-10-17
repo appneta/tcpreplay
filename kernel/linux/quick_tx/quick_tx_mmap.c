@@ -70,8 +70,6 @@ void quick_tx_vm_master_close(struct vm_area_struct *vma)
 	kfree(dev->shared_data);
 
 	dev->currently_used = false;
-
-	qtx_error("exiting quick_tx_vm_master_close");
 }
 
 void quick_tx_vm_mem_close(struct vm_area_struct *vma)

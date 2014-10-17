@@ -237,7 +237,7 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 
 	/* make sure we initialize shinfo sequentially */
 	shinfo = skb_shinfo(skb);
-	memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
+	memset(shinfo, 0, sizeof(struct skb_shared_info));
 	atomic_set(&shinfo->dataref, 1);
 	kmemcheck_annotate_variable(shinfo->destructor_arg);
 
@@ -393,6 +393,7 @@ void quick_tx_worker(struct work_struct *work)
 			qtx_info("No packets to process, sleeping (index = %d), entry->consumed = %d", dev->packet_table_consumer_index,
 					entry->consumed);
 #endif
+			quick_tx_wake_up_user_lookup(dev);
 
 			dev->numsleeps++;
 			dev->shared_data->consumer_wait_lookup_flag = 0;

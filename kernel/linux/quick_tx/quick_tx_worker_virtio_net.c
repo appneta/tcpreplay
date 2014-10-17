@@ -19,8 +19,6 @@
 #include <linux/quick_tx.h>
 
 static inline void quick_tx_wait_free_skb_virtio_net(struct quick_tx_dev *dev) {
-	struct sk_buff *skb = __alloc_skb(ETH_ZLEN, GFP_KERNEL, 0, NUMA_NO_NODE);
-	dev->ops->xmit_one_skb(skb, dev->netdev, netdev_get_tx_queue(dev->netdev, 0));
 	schedule_timeout_interruptible(1);
 }
 
