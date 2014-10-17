@@ -113,6 +113,9 @@ typedef struct {
 #define qtx_error(fmt, ...) \
 	printk(KERN_ERR pr_fmt("[quick_tx] ERROR: "fmt"\n"), ##__VA_ARGS__)
 
+#define qtx_warn(fmt, ...) \
+	printk(KERN_WARNING pr_fmt("[quick_tx] ERROR: "fmt"\n"), ##__VA_ARGS__)
+
 #define qtx_info(fmt, ...) \
 	printk(KERN_INFO pr_fmt("[quick_tx] INFO:  "fmt"\n"), ##__VA_ARGS__)
 

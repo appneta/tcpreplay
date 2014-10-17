@@ -106,6 +106,7 @@
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.656213829" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../include"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/x86-kernel-3.10.33/include/generated}&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.1923442838" languageId="org.eclipse.cdt.core.assembly" languageName="Assembly" sourceContentType="org.eclipse.cdt.core.asmSource" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
 							</tool>
@@ -126,6 +127,7 @@
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.1143362082" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../include"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/x86-kernel-3.10.33/include/generated}&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.851820473" languageId="org.eclipse.cdt.core.g++" languageName="GNU C++" sourceContentType="org.eclipse.cdt.core.cxxSource,org.eclipse.cdt.core.cxxHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
 							</tool>
@@ -146,36 +148,12 @@
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.2089789025" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../include"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/x86-kernel-3.10.33/include/generated}&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.803657933" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="0.1593729338.1107724167" name="quick_tx_mmap.c" rcbsApplicability="disable" resourcePath="quick_tx_mmap.c" toolsToInvoke="org.eclipse.cdt.build.core.settings.holder.227917135.158475107">
-						<tool id="org.eclipse.cdt.build.core.settings.holder.227917135.158475107" name="GNU C" superClass="org.eclipse.cdt.build.core.settings.holder.1632850674">
-							<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.1619267572" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
-						</tool>
-					</fileInfo>
-					<fileInfo id="0.1593729338.2094585002" name="quick_tx_worker_virtio_net.c" rcbsApplicability="disable" resourcePath="quick_tx_worker_virtio_net.c" toolsToInvoke="org.eclipse.cdt.build.core.settings.holder.227917135.298751000">
-						<tool id="org.eclipse.cdt.build.core.settings.holder.227917135.298751000" name="GNU C" superClass="org.eclipse.cdt.build.core.settings.holder.1632850674">
-							<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.988573792" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
-						</tool>
-					</fileInfo>
-					<fileInfo id="0.1593729338.636592138" name="quick_tx_main.c" rcbsApplicability="disable" resourcePath="quick_tx_main.c" toolsToInvoke="org.eclipse.cdt.build.core.settings.holder.227917135.115148595">
-						<tool id="org.eclipse.cdt.build.core.settings.holder.227917135.115148595" name="GNU C" superClass="org.eclipse.cdt.build.core.settings.holder.1632850674">
-							<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.708339869" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
-						</tool>
-					</fileInfo>
-					<fileInfo id="0.1593729338.1366981353" name="quick_tx_worker_e1000.c" rcbsApplicability="disable" resourcePath="quick_tx_worker_e1000.c" toolsToInvoke="org.eclipse.cdt.build.core.settings.holder.227917135.860363688">
-						<tool id="org.eclipse.cdt.build.core.settings.holder.227917135.860363688" name="GNU C" superClass="org.eclipse.cdt.build.core.settings.holder.1632850674">
-							<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.1464566339" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
-						</tool>
-					</fileInfo>
-					<fileInfo id="0.1593729338.1427561375" name="quick_tx_worker.c" rcbsApplicability="disable" resourcePath="quick_tx_worker.c" toolsToInvoke="org.eclipse.cdt.build.core.settings.holder.227917135.204021829">
-						<tool id="org.eclipse.cdt.build.core.settings.holder.227917135.204021829" name="GNU C" superClass="org.eclipse.cdt.build.core.settings.holder.1632850674">
-							<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.479842476" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
-						</tool>
-					</fileInfo>
 					<sourceEntries>
 						<entry excluding="include" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>

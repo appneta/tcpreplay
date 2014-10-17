@@ -53,6 +53,10 @@ const char *quick_tx_netdev_drivername(const struct net_device *dev)
 static void quick_tx_set_ops(struct quick_tx_dev *dev)
 {
 	if (!strncmp(quick_tx_netdev_drivername(dev->netdev), VIRTIO_NET_NAME, strlen(VIRTIO_NET_NAME))) {
+#if !defined CONFIG_VIRTIO && !defined CONFIG_VIRTIO_MODULE
+		qtx_warn("virtio_net support is not built in fully.");
+		qtx_warn("Expect to see lower speeds. To see good performance, rebuild the module with current sources");
+#endif /* !CONFIG_VIRTIO */
 		dev->ops = &quick_tx_virtio_net_ops;
 		return;
 	} else if (!strncmp(quick_tx_netdev_drivername(dev->netdev), E1000E_NAME, strlen(E1000E_NAME))) {
@@ -120,6 +124,8 @@ static unsigned int quick_tx_poll(struct file *file, poll_table *wait)
 	poll_wait(file, &dev->user_mem_q, wait);
 	poll_wait(file, &dev->user_lookup_q, wait);
 	poll_wait(file, &dev->user_done_q, wait);
+
+	quick_tx_wake_up_kernel_lookup(dev);
 
 	smp_rmb();
 	if (dev->shared_data->producer_wait_mem_flag)
