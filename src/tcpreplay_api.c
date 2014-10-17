@@ -1210,14 +1210,14 @@ tcpreplay_replay(tcpreplay_t *ctx)
 
     ctx->running = true;
 
-    /* main loop, when not looping forever */
-    if (ctx->options->loop > 0) {
+    /* main loop, when not looping forever (or until abort) */
+    if (ctx->options->loop > 0 && !ctx->abort) {
         while (ctx->options->loop--) {  /* limited loop */
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
         }
     } else {
-        while (1) { /* loop forever */
+        while (!ctx->abort) { /* loop forever unless user aborts */
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
         }
