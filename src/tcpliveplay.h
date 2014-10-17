@@ -59,7 +59,7 @@ struct mac_addr {
 };
 
 
-typedef struct ip_addr in_addr;
+typedef struct ip_addr input_addr;
 // 4 bytes IP address 
 struct ip_addr{ 
     unsigned char byte1; 
@@ -89,7 +89,7 @@ struct ipv4_hdr{
     u_int8_t 	ip_ttl;
     u_int8_t 	ip_p;
     u_int16_t 	ip_sum;
-    in_addr ip_src,	ip_dst;
+    input_addr ip_src,	ip_dst;
 };
 
 typedef struct tcpheader tcp_hdr;
