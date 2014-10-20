@@ -1202,17 +1202,21 @@ tcpreplay_replay(tcpreplay_t *ctx)
         return -1;
     }
 
+    init_timestamp(&ctx->stats.last_time);
+    init_timestamp(&ctx->stats.last_print);
+    init_timestamp(&ctx->stats.end_time);
 
     if (gettimeofday(&ctx->stats.start_time, NULL) < 0) {
         tcpreplay_seterr(ctx, "gettimeofday() failed: %s",  strerror(errno));
         return -1;
     }
 
+
     ctx->running = true;
 
     /* main loop, when not looping forever (or until abort) */
-    if (ctx->options->loop > 0 && !ctx->abort) {
-        while (ctx->options->loop--) {  /* limited loop */
+    if (ctx->options->loop > 0) {
+        while (ctx->options->loop-- && !ctx->abort) {  /* limited loop */
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
         }
