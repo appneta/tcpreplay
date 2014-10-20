@@ -473,9 +473,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
-    init_timestamp(&ctx->stats.last_time);
-    init_timestamp(&ctx->stats.last_print);
-    init_timestamp(&ctx->stats.end_time);
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
 
     if (options->preload_pcap) {
