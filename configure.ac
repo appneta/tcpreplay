@@ -61,6 +61,7 @@ fi
 
 
 AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
+AM_SILENT_RULES([yes])
 
 dnl Checks for programs.
 AC_PROG_INSTALL
