@@ -55,7 +55,7 @@ extern int debug;
 #endif
 
 /*
- * We define five functions for reporting errors, warnings and debug messages:
+ * We define the following functions for reporting errors, warnings and debug messages:
  * err()   - Fatal error.  Pass exit code followed by static string
  * errx()  - Fatal error.  Pass exit code, format string, one or more variables
  * warn()  - Warning. Pass static string

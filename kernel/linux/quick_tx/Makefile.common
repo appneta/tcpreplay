@@ -8,7 +8,7 @@ MOD_DEVDIR = $(PWD)
 
 # some magic for using linux kernel settings
 # when compiling module(s)
-KBUILD_VERBOSE = 1
+KBUILD_VERBOSE = 0
 QTX_EXTRA_CFLAGS = -DEXPORT_SYMTAB $(DEFS) \
 		$(DEFAULT_INCLUDES) -I$(MOD_DEVDIR) -I$(MOD_DEVDIR)/$(builddir) \
 		-I$(MOD_DEVDIR)/$(top_srcdir) -I$(MOD_DEVDIR)/$(top_builddir)/kernel/linux/include \
