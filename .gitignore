@@ -60,6 +60,9 @@ missing
 aclocal.m4
 m4/*.m4
 libopts/m4/*.m4
+Makefile
+Makefile.in
+configure
 
 # Temporary files 
 *.tmp
@@ -73,7 +76,6 @@ tcpreplay.pws
 doxygen.cfg
 TAGS
 .gdb_history
-Makefile
 types_c.vim
 .project
 .cproject
