@@ -70,7 +70,9 @@ sudo make install
 Build quick_tx feature
 ----------------------
 This feature will compile the quick_tx module. This module is
-designed to speed up performance to wire rates on 1GigE and 10GigE. This is still an experimental feature and may not work with every kernel version or with every network driver. Using quick_tx does not disruct any other traffic going through the network interface.
+designed to speed up performance to wire rates on 1GigE and 10GigE, and using quick_tx does not disrupt any other traffic going through the network interface.
+
+This is still an experimental feature and may not work with every kernel version or with every network driver. 
 
 Here are the directions for building with quick_tx
 ```
