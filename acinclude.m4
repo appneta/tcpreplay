@@ -12,7 +12,7 @@ AC_DEFUN([AC_PATH_KERNEL_SOURCE_SEARCH],
     kerneldir=missing
     kernelext=ko
     no_kernel=yes
-set -x -v
+
     if test `uname` != "Linux"; then
         kerneldir="not running Linux"
     else
@@ -41,9 +41,10 @@ set -x -v
     fi
 
     if test x${no_kernel} != xyes; then
-        if test -f ${kerneldir}/Makefile; then
+        if test -f ${kerneldir}/Makefile -a -f ${kerneldir}/.config; then
             version=$( sed -n '/^VERSION/s/.*=\ *//p' ${kerneldir}/Makefile )
             patchlevel=$( sed -n -e '/^PATCHLEVEL/s/.*=\ *//p' ${kerneldir}/Makefile )
+            kerneluname=$( sed -n '/Linux kernel version/s/.*:\ *//p' ${kerneldir}/.config )
             if test "${version}" -eq 2; then
                 if test "${patchlevel}" -lt 5; then
                     kernelext=o
@@ -54,10 +55,11 @@ set -x -v
             no_kernel=yes
         fi
     fi
+
     ac_cv_have_kernel="no_kernel=${no_kernel} \
             kerneldir=\"${kerneldir}\" \
             kernelext=\"${kernelext}\""
-    set +x +v
+
 ]
 )
 

@@ -325,7 +325,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     nmr.nr_version = sp->netmap_version;
     memcpy(nmr.nr_name, ifname, namelen);
     nmr.nr_name[namelen] = '\0';
-    strlcpy (sp->device, nmr.nr_name, sizeof(sp->device));
+    strlcpy(sp->device, nmr.nr_name, sizeof(sp->device));
 
     /*
      * Register the interface on the netmap device: from now on,

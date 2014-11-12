@@ -1,7 +1,7 @@
 
 dnl $Id$
 
-AC_INIT([tcpreplay], nodefine)
+AC_INIT(tcpreplay)
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -16,8 +16,8 @@ AC_CONFIG_MACRO_DIR([m4])
 
 dnl Set version info here!
 MAJOR_VERSION=4
-MINOR_VERSION=0
-MICRO_VERSION=6beta1
+MINOR_VERSION=1
+MICRO_VERSION=0beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -30,7 +30,7 @@ AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
 USER_CFLAGS=$CFLAGS
-CFLAGS="${CFLAGS} -Wall -O3 -std=gnu99 -Wno-format-contains-nul"
+CFLAGS="${CFLAGS} -Wall -O3 -std=gnu99"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -39,6 +39,15 @@ AC_CANONICAL_TARGET
 AC_SUBST(host)
 AC_SUBST(build)
 AC_SUBST(target)
+
+CROSS_ARCH=
+CROSS_LD=
+if test "$cross_compiling" = "yes" ; then
+    CROSS_ARCH="ARCH=$host_cpu"
+    CROSS_LD="LD=$LD"
+fi
+AC_SUBST(CROSS_ARCH)
+AC_SUBST(CROSS_LD)
 
 have_cygwin=no
 AC_MSG_CHECKING([for cygwin development environment])
@@ -51,7 +60,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
 
 dnl Checks for programs.
 AC_PROG_INSTALL
@@ -71,6 +80,9 @@ AC_PATH_PROG(ECHO, echo)
 AC_PATH_PROG(CUT, cut)
 AC_PATH_PROG(AUTOGEN, autogen)
 AC_PATH_PROG(GROFF, groff)
+AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
+AC_PATH_PROG(insmod, insmod, /sbin/insmod, $PATH:/sbin)
+AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
 
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
@@ -96,7 +108,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://sourceforge.net/projects/tcpreplay/])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
@@ -111,7 +123,19 @@ AC_HEADER_STDC
 AC_HEADER_MAJOR
 
 dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_INLINE
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT64_T
+AC_TYPE_INT8_T
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
 AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+AC_TYPE_UINT8_T
 AC_HEADER_TIME
 AC_C_CONST
 AC_C_INLINE
@@ -172,7 +196,8 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
 CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements
 AC_CHECK_HEADERS([sys/sysctl.h net/route.h], [], [], [
@@ -217,16 +242,33 @@ AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
 
 dnl Enable debugging in code/compiler options
 debug=no
+debug_flag=NDEBUG
+debug_run_time_flag=
 AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -ggdb -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
+        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
-        AC_SUBST(debug_flag)
+        debug_flag=DEBUG
+        debug_run_time_flag=--dbug=1
         AC_DEFINE([DEBUG], [1], [Enable debugging code and support for the -d option]) 
     fi])
+AC_SUBST(debug_flag)
+AC_SUBST(debug_run_time_flag)
+
+dnl Enable extra debugging in code/compiler options - may slow down performance
+extra_debug=no
+extra_debug_flag=NEXTRA_DBUG
+AC_ARG_ENABLE(extra-debug,
+    AC_HELP_STRING([--enable-extra-debug], [Enable additional debugging code (may affect performance)]),
+    [ if test x$enableval = xyes; then
+        extra_debug=yes
+        extra_debug_flag=EXTRA_DEBUG
+        AC_DEFINE([EXTRA_DEBUG], [1], [Enable additional debugging code (may affect performance)]) 
+    fi])
+AC_SUBST(extra_debug_flag)
 
 dnl Enable timestamp_trace in code/compiler options
 timestamp_trace=no
@@ -327,9 +369,9 @@ AC_ARG_ENABLE(force-sendpacket,
 dnl Dynamic link libraries
 dynamic_link=no
 AC_ARG_ENABLE(dynamic-link,
-    AC_HELP_STRING([--enable-dynamic-link], [Dynamically link libraries]),
+    AC_HELP_STRING([--enable-dynamic-link], [Use shared libraries ( .so and .dylib )]),
     [ if test x$enableval = xyes; then
-        AC_DEFINE([ENABLE_DYNAMIC_LINK], [1], [Enable dynamically linking libs])
+        AC_DEFINE([ENABLE_DYNAMIC_LINK], [1], [Use shared libraries ( .so and .dylib )])
         dynamic_link=yes
       fi
     ])
@@ -381,35 +423,47 @@ AC_ARG_WITH(libpcap,
 [
     trypcapdir=$withval
     for testdir in ${withval} ${withval}/include ; do
-	    if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
-	        LPCAPINC="${testdir}/pcap.h"
-	        LPCAPINCDIR="${testdir}"
-	        if test $dynamic_link = yes; then
-	            for ext in .dylib .so ; do 
-	                if test -f "${withval}/libpcap${ext}" ; then
-	                    LPCAPLIB="-L${withval}/ -lpcap"
-	                elif test -f "${withval}/lib/libpcap${ext}" ; then
-	                    LPCAPLIB="-L${withval}/lib/ -lpcap"
-	                fi
-	            done
-	            if test "x$LPCAPLIB" == "x" ; then
-	                AC_ERROR([Unable to find libpcap in ${withval}])
-	            fi
-	        elif test -f "${withval}/libpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/libpcap.${libext}"
-	        elif test -f "${withval}/lib/libpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/lib/libpcap.${libext}"
-	        elif test -f "${withval}/lib/libwpcap.${libext}" ; then
-	            LPCAPLIB="${withval}/lib/libwpcap.${libext}"
-	            AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
-	        else
-	            AC_ERROR([Unable to find matching library for header file in ${withval}])
-	        fi
-	        foundpcap=$withval
-	        ## Assume that user wants to use libpcap injector when specifying
+        if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
+            LPCAPINC="${testdir}/pcap.h"
+            LPCAPINCDIR="${testdir}"
+            if test $dynamic_link = yes; then
+                for ext in .dylib .so ; do 
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        LPCAPLIB="-L${withval}/ -lpcap"
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        LPCAPLIB="-L${withval}/lib/ -lpcap"
+                    fi
+                done
+                if test "x$LPCAPLIB" == "x" ; then
+                    AC_ERROR([Unable to find libpcap in ${withval}])
+                fi
+            elif test -f "${withval}/libpcap.${libext}" ; then
+                LPCAPLIB="${withval}/libpcap.${libext}"
+            elif test -f "${withval}/lib/libpcap.${libext}" ; then
+                LPCAPLIB="${withval}/lib/libpcap.${libext}"
+            elif test -f "${withval}/lib/libwpcap.${libext}" ; then
+                LPCAPLIB="${withval}/lib/libwpcap.${libext}"
+                AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
+            else
+                dynamic_found=no
+                for ext in .dylib .so ; do 
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    fi
+                done
+                if test $dynamic_found = yes; then
+                    AC_ERROR([Unable to find static libraries in ${withval}. Try --enable-dynamic])
+                else
+                    AC_ERROR([Unable to find matching library for header file in ${withval}])
+                fi
+            fi
+            foundpcap=$withval
+            ## Assume that user wants to use libpcap injector when specifying
             ## --with-libpcap options
             AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])    
-	    fi
+        fi
     done
 ],[
     for testdir in /usr/local /opt/local /usr /wpdpack ; do 
@@ -443,7 +497,19 @@ AC_ARG_WITH(libpcap,
                 LPCAPLIB="${testdir}/lib/libwpcap.${libext}"
                 AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
             else
-                AC_ERROR([Unable to find matching library for header file in ${testdir}])
+                dynamic_found=no
+                for ext in .dylib .so ; do 
+                    if test -f "${withval}/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    elif test -f "${withval}/lib/libpcap${ext}" ; then
+                        dynamic_found=yes
+                    fi
+                done
+                if test $dynamic_found = yes; then
+                    AC_ERROR([Unable to find static libraries in ${testdir}. Try --enable-dynamic])
+                else
+                    AC_ERROR([Unable to find matching library for header file in ${testdir}])
+                fi
             fi
             foundpcap=$testdir
         fi
@@ -463,7 +529,7 @@ else
     ## See if prereqs for PF_RING exist
     AC_CHECK_LIB(numa, numa_available, [numa_found=yes])
     AC_CHECK_LIB(pthread, pthread_create, [pthread_found=yes])
-    if test $numa_found = yes && test $pthread_found = yes && test -f "${foundpcap}/../lib/libpfring.a"; then
+    if test "$numa_found" = "yes" && test "$pthread_found" = "yes" && test -f "${foundpcap}/../lib/libpfring.a"; then
         pf_ring_found=yes
     fi
 fi
@@ -857,13 +923,22 @@ dnl Check for netmap support
 dnl #####################################################
 have_netmap=no
 enable_netmap=no
-trynetmapdir=/opt/netmap
+trynetmapdir=
 AC_MSG_CHECKING(for netmap socket sending support)
 AC_ARG_WITH(netmap,
     AC_HELP_STRING([--with-netmap=DIR], [Use netmap in DIR]),
     [trynetmapdir=$withval])
+    
+NETMAP_SEARCH_DIRS=
+if test "$cross_compiling" = yes; then
+    if test "x$trynetmapdir" != "x"; then
+        NETMAP_SEARCH_DIRS=$trynetmapdir
+    fi
+else
+    NETMAP_SEARCH_DIRS="$trynetmapdir /opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include"
+fi
 
-for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include; do
+for testdir in $NETMAP_SEARCH_DIRS; do
     if test -f "${testdir}/sys/net/netmap.h" ; then
         NETMAPINC="${testdir}/sys/net/netmap.h"
         NETMAPUSERINC="${testdir}/sys/net/netmap_user.h"
@@ -895,9 +970,6 @@ for testdir in $trynetmapdir /usr/src/netmap-release /usr/src/netmap /usr/local/
         enable_netmap=yes
         break;
     fi
-    if test "$trynetmapdir" != /opt/netmap ; then
-        break
-    fi
 done
 
 AC_MSG_RESULT($have_netmap)
@@ -908,94 +980,97 @@ dnl ###########################################################
 dnl Check for nm_open() function available in netmap version 5
 dnl Also check for other version-specific netmap definitions and structures 
 dnl ###########################################################
-OLDCPPFLAGS="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
-AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
 
-have_nm_open=no
-have_nm_nr_reg_mask=no
-have_nm_nr_flags=no
-have_nmring_head_tail=no
-if test "$have_netmap" != no ; then
-    dnl check for nm_open()
-    AC_CHECK_DECL([nm_open],[have_nm_open=yes], , [[
-        #include <stdio.h>
-        #include "${NETMAPUSERINC}"
-    ]])
+if test "x$NETMAPINCDIR" != "x"; then
+    OLDCPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
+    AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
     
-    dnl check for #define NR_REG_MASK
-    AC_MSG_CHECKING(for netmap NR_REG_MASK definition)
-    AC_COMPILE_IFELSE(
-        [AC_LANG_PROGRAM([[
-                #include <stdint.h>
-                #include <sys/socket.h>
-                #include <net/if.h>
-                #include <net/netmap.h>
-            ]],
-            [[ 
-                #ifdef NR_REG_MASK
-                    /* OK */
-                #else
-                    # error NR_REG_MASK not found
-                #endif
-            ]])
-        ],
-        [have_nm_nr_reg_mask=yes], 
-        [])
-    AC_MSG_RESULT($have_nm_nr_reg_mask)
+    have_nm_open=no
+    have_nm_nr_reg_mask=no
+    have_nm_nr_flags=no
+    have_nmring_head_tail=no
+    if test "$have_netmap" != no ; then
+        dnl check for nm_open()
+        AC_CHECK_DECL([nm_open],[have_nm_open=yes], , [[
+            #include <stdio.h>
+            #include "${NETMAPUSERINC}"
+        ]])
+        
+        dnl check for #define NR_REG_MASK
+        AC_MSG_CHECKING(for netmap NR_REG_MASK definition)
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM([[
+                    #include <stdint.h>
+                    #include <sys/socket.h>
+                    #include <net/if.h>
+                    #include <net/netmap.h>
+                ]],
+                [[ 
+                    #ifdef NR_REG_MASK
+                        /* OK */
+                    #else
+                        # error NR_REG_MASK not found
+                    #endif
+                ]])
+            ],
+            [have_nm_nr_reg_mask=yes], 
+            [])
+        AC_MSG_RESULT($have_nm_nr_reg_mask)
+        
+        dnl check for nr_flags in struct nmreq
+        AC_MSG_CHECKING(for netmap nr_flags definition)
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM([[
+                    #include <stdint.h>
+                    #include <sys/socket.h>
+                    #include <net/if.h>
+                    #include <net/netmap.h>
+                ]],
+                [[ 
+                    struct nmreq nmr;
+                    nmr.nr_flags = 0;
+                ]])
+            ],
+            [have_nm_nr_flags=yes], 
+            [])
+        AC_MSG_RESULT($have_nm_nr_flags)
+        
+        dnl check for head/tail in struct netmap_ring
+        AC_MSG_CHECKING(for netmap ring head/tail definitions)
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM([[
+                    #include <stdint.h>
+                    #include <sys/socket.h>
+                    #include <net/if.h>
+                    #include <net/netmap.h>
+                ]],
+                [[ 
+                    struct netmap_ring r;
+                    r.head = r.tail = 0;
+                ]])
+            ],
+            [have_nmring_head_tail=yes], 
+            [])
+        AC_MSG_RESULT($have_nmring_head_tail)
+        
+    fi
     
-    dnl check for nr_flags in struct nmreq
-    AC_MSG_CHECKING(for netmap nr_flags definition)
-    AC_COMPILE_IFELSE(
-        [AC_LANG_PROGRAM([[
-                #include <stdint.h>
-                #include <sys/socket.h>
-                #include <net/if.h>
-                #include <net/netmap.h>
-            ]],
-            [[ 
-                struct nmreq nmr;
-                nmr.nr_flags = 0;
-            ]])
-        ],
-        [have_nm_nr_flags=yes], 
-        [])
-    AC_MSG_RESULT($have_nm_nr_flags)
+    if test "$have_nm_open" = yes ; then
+        AC_DEFINE([HAVE_NETMAP_NM_OPEN], [1], [Does netmap have nm_open function?])
+    fi
+    if test "$have_nm_nr_reg_mask" = yes ; then
+        AC_DEFINE([HAVE_NETMAP_NR_REG], [1], [Does netmap have NR_REG_MASK defined?])
+    fi
+    if test "$have_nm_nr_flags" = yes ; then
+        AC_DEFINE([HAVE_NETMAP_NR_FLAGS], [1], [Does netmap struct nmreq have nr_flags defined?])
+    fi
+    if test "$have_nmring_head_tail" = yes ; then
+        AC_DEFINE([HAVE_NETMAP_RING_HEAD_TAIL], [1], [Does structure netmap_ring have head/tail defined?])
+    fi
     
-    dnl check for head/tail in struct netmap_ring
-    AC_MSG_CHECKING(for netmap ring head/tail definitions)
-    AC_COMPILE_IFELSE(
-        [AC_LANG_PROGRAM([[
-                #include <stdint.h>
-                #include <sys/socket.h>
-                #include <net/if.h>
-                #include <net/netmap.h>
-            ]],
-            [[ 
-                struct netmap_ring r;
-                r.head = r.tail = 0;
-            ]])
-        ],
-        [have_nmring_head_tail=yes], 
-        [])
-    AC_MSG_RESULT($have_nmring_head_tail)
-    
+    CPPFLAGS="$OLDCPPFLAGS"
 fi
-
-if test "$have_nm_open" = yes ; then
-    AC_DEFINE([HAVE_NETMAP_NM_OPEN], [1], [Does netmap have nm_open function?])
-fi
-if test "$have_nm_nr_reg_mask" = yes ; then
-    AC_DEFINE([HAVE_NETMAP_NR_REG], [1], [Does netmap have NR_REG_MASK defined?])
-fi
-if test "$have_nm_nr_flags" = yes ; then
-    AC_DEFINE([HAVE_NETMAP_NR_FLAGS], [1], [Does netmap struct nmreq have nr_flags defined?])
-fi
-if test "$have_nmring_head_tail" = yes ; then
-    AC_DEFINE([HAVE_NETMAP_RING_HEAD_TAIL], [1], [Does structure netmap_ring have head/tail defined?])
-fi
-
-CPPFLAGS="$OLDCPPFLAGS"
 
 have_pf=no
 dnl Check for linux PF_PACKET support
@@ -1038,48 +1113,8 @@ AC_TRY_COMPILE([
     AC_MSG_RESULT(no)
 ])
 
-have_bpf=no
-dnl Check for BSD's BPF
-AC_CACHE_CHECK([for BPF device sending support], ac_cv_have_bpf,
-[AC_TRY_RUN([[
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <stdint.h>
-#include <net/bpf.h>
-#include <errno.h>
 
-int 
-main(int argc, char *argv[]) {
-    int fd;
-
-    fd = open("/dev/bpf0", O_RDONLY, 0);
-
-    /* if we opened it, we're good */
-    if (fd > 1)
-        exit(0);
-
-    /* if we got EBUSY or permission denied it exists, so we're good */
-    if (fd < 0 && (errno == EBUSY || errno == 13))
-        exit(0);
-
-    /* else suck, no good */
-    exit(-1);
-}]],
-[
-    AC_MSG_RESULT(yes)
-    have_bpf=yes
-],
-[AC_MSG_RESULT(no)],
-[AC_MSG_ERROR([cross-compiling,
-  presetting ac_cv_have_bpf=(yes|no) will help])]
-)
-])
-
+AC_CHECK_HEADERS([net/bpf.h], [have_bpf=yes], [have_bpf=no])
 if test $have_bpf = yes ; then
     AC_DEFINE([HAVE_BPF], [1], 
             [Do we have BPF device support?])
@@ -1090,13 +1125,61 @@ dnl # Check for Linux kernel support
 dnl ##################################################
 AC_PATH_KERNEL_SOURCE
 
+dnl * Allow disable of Quick TX module
+disable_quick_tx=no
+AC_ARG_ENABLE(quick-tx,
+    [  --disable-quick-tx      Disable building Quick TX kernel module],
+    [ disable_quick_tx="yes"
+      kerneldir=])
+
+dnl * Compile Quick TX
 KERNEL_DIR=
-if test x${no_kernel} != xyes; then
-    KERNEL_DIR='kernel'
-    AC_DEFINE([HAVE_QUICK_TX], [1],
-          [Do we have quick TX module support?])
+QUICK_TX_EXAMPLE_DIR=
+moduledir=
+kerneluname=
+enable_sandboxed=
+have_linux_quick_tx=no
+if test x${disable_quick_tx} != xyes; then
+    if test x${no_kernel} != xyes; then
+        have_linux_quick_tx=yes
+        OLDCFLAGS="${OLDCFLAGS} -I../kernel/linux/include -I../../kernel/linux/include"
+        KERNEL_DIR='kernel'
+        AC_DEFINE([HAVE_QUICK_TX], [1],
+              [Do we have quick TX module support?])
+    fi
+    AC_SUBST(KERNEL_DIR)
+    
+    dnl * Set destination directory for kernel modules
+    
+    if test x${kerneluname} = x ; then
+        kerneluname=`uname -r`
+    fi
+    default_moduledir=/lib/modules/${kerneluname}/misc
+    AC_ARG_WITH(moduledir,
+    [  --with-moduledir=DIR    Install kernel modules in DIR (/lib/modules/${kerneluname}/misc)], 
+    moduledir=${withval},
+    moduledir=${default_moduledir})
+    AC_SUBST(moduledir)
+    AC_SUBST(kerneluname)
+    
+    dnl * Allow kernel example
+    AC_ARG_ENABLE(quick-tx-example,
+    [  --enable-quick-tx-example Build Quick TX kernel module example],
+    [ enable_tx_example="${enableval}" ],
+    [ enable_tx_example="no"])
+    if test x$enable_tx_example = xyes; then
+        QUICK_TX_EXAMPLE_DIR=example
+    fi
+    AC_SUBST(QUICK_TX_EXAMPLE_DIR)
+    
+    dnl * Allow kernel sandbox mode (prevent depmod execution)
+    AC_ARG_ENABLE(sandboxed,
+    [  --enable-sandboxed      Don't install anything to the kernel module directories],
+    [ enable_sandboxed="${enableval}" ],
+    [ enable_sandboxed="no"])
 fi
-AC_SUBST(KERNEL_DIR)
+
+AM_CONDITIONAL(SANDBOXED, test x$enable_sandboxed = xyes)
 
 dnl ##################################################
 dnl # Check for libdnet, but only if not Cygwin! 
@@ -1229,12 +1312,11 @@ dnl ## Test for netmap-libpcap
 have_pcap_netmap=no
 if test $foundpcap != no ; then
     PCAP_NETMAP_C_FILE="$LPCAPINCDIR/pcap-netmap.c"
-    AC_CHECK_FILE($PCAP_NETMAP_C_FILE,
-                 [ 
-                    AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
-                               [Does this version of libpcap support netmap?])
-                    have_pcap_netmap=yes
-                 ],[])
+    if test -f "${PCAP_NETMAP_C_FILE}" ; then
+        AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
+                                   [Does this version of libpcap support netmap?])
+        have_pcap_netmap=yes
+    fi
 fi
 
 dnl restore LIBS & CFLAGS
@@ -1527,9 +1609,9 @@ AC_OUTPUT([Makefile
            kernel/linux/example/Makefile
            kernel/linux/quick_tx/Makefile
            src/Makefile
-           src/common/Makefile
            src/tcpedit/Makefile
            src/fragroute/Makefile
+           src/common/Makefile
            src/defines.h
            test/Makefile
            test/config
@@ -1549,7 +1631,6 @@ tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}
 tcpbridge support:          ${enable_tcpbridge}
 tcpliveplay support:        ${enable_tcpliveplay}
-Linux kernel sources:       ${kerneldir}
 
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}
@@ -1559,6 +1640,7 @@ libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}
 pcap_sendpacket:            ${have_pcap_sendpacket} **
 pcap_netmap                 ${have_pcap_netmap}
+Linux Quick TX:             ${have_linux_quick_tx} ${kerneldir}
 Linux/BSD netmap:           ${have_netmap}
 
 * In order of preference; see configure --help to override

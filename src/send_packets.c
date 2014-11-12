@@ -37,7 +37,11 @@
 #include "timestamp_trace.h"
 #include "../lib/sll.h"
 
-#if defined HAVE_NETMAP
+#ifdef HAVE_QUICK_TX
+#include <linux/quick_tx.h>
+#endif
+
+#ifdef HAVE_NETMAP
 #include <sys/ioctl.h>
 #include <net/netmap.h>
 #include <net/netmap_user.h>
@@ -62,10 +66,12 @@ extern tcpedit_t *tcpedit;
 extern int debug;
 #endif
 
-static void do_sleep(tcpreplay_t *ctx, struct timeval *time, 
-        struct timeval *last, int len, tcpreplay_accurate accurate, 
+static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
+        struct timeval *last, int len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length);
+static void tcpr_sleep(tcpreplay_t *ctx,
+        struct timespec *nap_this_time, tcpreplay_accurate accurate);
 static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
@@ -86,7 +92,6 @@ static void
 fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         uint32_t iteration, bool cached, int datalink)
 {
-    u_char *packet;
     int l2_len = 0;
     ipv4_hdr_t *ip_hdr;
     ipv6_hdr_t *ip6_hdr;
@@ -102,7 +107,6 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
         return;
     }
-    packet = *pktdata;
 
     switch (datalink) {
     case DLT_LINUX_SLL:
@@ -563,8 +567,21 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                 skip_length = 0;
             }
 
-            do_sleep(ctx, (struct timeval *)&pkthdr.ts, &ctx->stats.last_time, pktlen, options->accurate, sp, packetnum,
+            calc_sleep_time(ctx, (struct timeval *)&pkthdr.ts, &ctx->stats.last_time, pktlen, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
+
+#ifdef HAVE_QUICK_TX
+            if (options->quick_tx && timesisset(&ctx->nap))
+                quick_tx_wakeup(sp->qtx_dev);          /* flush TX buffer */
+#endif
+
+#ifdef HAVE_NETMAP
+            if (options->netmap && timesisset(&ctx->nap))
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
+
+            if (timesisset(&ctx->nap))
+                tcpr_sleep(ctx, &ctx->nap, options->accurate);
         }
 
 SEND_NOW:
@@ -609,7 +626,26 @@ SEND_NOW:
                 }
             }
         }
+
+        if (ctx->first_time) {
+#ifdef HAVE_QUICK_TX
+            if (options->quick_tx)
+                quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
+#endif
+
+#ifdef HAVE_NETMAP
+            if (options->netmap)
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
+            ctx->first_time = 0;
+        }
     } /* while */
+
+#ifdef HAVE_QUICK_TX
+    /* flush any remaining netmap packets */
+    if (options->quick_tx)
+        ioctl(sp->handle.fd, QTX_START_TX, NULL);
+#endif
 
 #ifdef HAVE_NETMAP
     /* flush any remaining netmap packets */
@@ -779,8 +815,24 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                 skip_length = 0;
             }
 
-            do_sleep(ctx, (struct timeval *)&pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, options->accurate, sp, packetnum,
+            calc_sleep_time(ctx, (struct timeval *)&pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
+
+#ifdef HAVE_QUICK_TX
+            if (options->quick_tx && timesisset(&ctx->nap))
+                quick_tx_wakeup(sp->qtx_dev);          /* flush TX buffer */
+#endif
+
+#ifdef HAVE_NETMAP
+            if (options->netmap && timesisset(&ctx->nap))
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
+
+            if (timesisset(&ctx->nap))
+                tcpr_sleep(ctx, &ctx->nap, options->accurate);
+
+            if (ctx->first_time)
+                ctx->first_time = 0;
         }
 
 SEND_NOW:
@@ -829,7 +881,28 @@ SEND_NOW:
         } else {
             pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
         }
+
+        if (ctx->first_time) {
+#ifdef HAVE_QUICK_TX
+            if (options->quick_tx)
+                quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
+#endif
+
+#ifdef HAVE_NETMAP
+            if (options->netmap)
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
+            ctx->first_time = 0;
+        }
     } /* while */
+
+#ifdef QTX_START_TX
+    /* flush any remaining Quick TX packets */
+    if (options->quick_tx) {
+        ioctl(ctx->intf1->handle.fd, QTX_START_TX, NULL);
+        ioctl(ctx->intf2->handle.fd, QTX_START_TX, NULL);
+    }
+#endif
 
 #ifdef HAVE_NETMAP
     /* flush any remaining netmap packets */
@@ -971,18 +1044,20 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
 
 /**
  * Given the timestamp on the current packet and the last packet sent,
- * calculate the appropriate amount of time to sleep and do so.
+ * calculate the appropriate amount of time to sleep. Sleep time
+ * will be in ctx->nap.
  */
-static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
-        struct timeval *last, int len, tcpreplay_accurate accurate,
+static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
+        struct timeval *last, int len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length)
 {
     tcpreplay_opt_t *options = ctx->options;
     struct timeval nap_for;
-    struct timespec nap_this_time;
     uint64_t ppnsec;                /* packets per nsec */
     COUNTER now_us;
+
+    timesclear(&ctx->nap);
 
     /* accelerator time? */
     if (ctx->skip_packets > 0) {
@@ -990,19 +1065,18 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         return;
     }
 
-    /* 
+    /*
      * pps_multi accelerator.    This uses the existing send accelerator above
      * and hence requires the funky math to get the expected timings.
      */
     if (options->speed.mode == speed_packetrate && options->speed.pps_multi) {
         ctx->skip_packets = options->speed.pps_multi - 1;
         if (ctx->first_time) {
-            ctx->first_time = 0;
             return;
         }
     }
 
-    dbgx(4, "This packet time: " TIMEVAL_FORMAT, time->tv_sec, time->tv_usec);
+    dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkt_time->tv_sec, pkt_time->tv_usec);
     dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
     /* If top speed, you shouldn't even be here */
@@ -1010,18 +1084,17 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
 
     switch(options->speed.mode) {
     case speed_multiplier:
-        /* 
+        /*
          * Replay packets a factor of the time they were originally sent.
          */
         if (timerisset(last)) {
-            if (timercmp(time, last, <)) {
+            if (timercmp(pkt_time, last, <)) {
                 /* Packet has gone back in time!  Don't sleep and warn user */
                 warnx("Packet #" COUNTER_SPEC " has gone back in time!", counter);
-                timesclear(&ctx->nap);
             } else {
-                /* time has increased or is the same, so handle normally */
-                timersub(time, last, &nap_for);
-                dbgx(3, "original packet delta time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
+                /* pkt_time has increased or is the same, so handle normally */
+                timersub(pkt_time, last, &nap_for);
+                dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
 
                 TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
                 dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
@@ -1035,7 +1108,7 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         break;
 
     case speed_mbpsrate:
-        /* 
+        /*
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
@@ -1080,9 +1153,7 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
                sp == ctx->intf1 ? options->intf1_name : options->intf2_name);
         ctx->skip_packets--;
 
-        /* leave do_sleep() */
-        return;
-
+        /* leave */
         break;
 
     default:
@@ -1090,21 +1161,27 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
         break;
     }
 
-    memcpy(&nap_this_time, &ctx->nap, sizeof(nap_this_time));
+}
+
+static void tcpr_sleep(tcpreplay_t *ctx,
+        struct timespec *nap_this_time, tcpreplay_accurate accurate)
+{
+    tcpreplay_opt_t *options = ctx->options;
 
     /* don't sleep if nap = {0, 0} */
-    if (!timesisset(&nap_this_time))
+    if (!timesisset(nap_this_time))
         return;
 
     /* do we need to limit the total time we sleep? */
-    if (timesisset(&(options->maxsleep)) && (timescmp(&nap_this_time, &(options->maxsleep), >))) {
-        dbgx(2, "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT, 
-            nap_this_time.tv_sec, nap_this_time.tv_nsec, options->maxsleep.tv_sec,
+    if (timesisset(&(options->maxsleep)) && (timescmp(nap_this_time, &(options->maxsleep), >))) {
+        dbgx(2, "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT,
+            nap_this_time->tv_sec, nap_this_time->tv_nsec, options->maxsleep.tv_sec,
             options->maxsleep.tv_nsec);
-        memcpy(&nap_this_time, &(options->maxsleep), sizeof(struct timespec));
+        memcpy(nap_this_time, &(options->maxsleep), sizeof(*nap_this_time));
     }
 
-    dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time.tv_sec, nap_this_time.tv_nsec);
+    dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT,
+            nap_this_time->tv_sec, nap_this_time->tv_nsec);
 
     /*
      * Depending on the accurate method & packet rate computation method
@@ -1135,9 +1212,6 @@ static void do_sleep(tcpreplay_t *ctx, struct timeval *time,
     default:
         errx(-1, "Unknown timer mode %d", accurate);
     }
-
-    dbgx(2, "sleep delta: " TIMEVAL_FORMAT, sent_timestamp->tv_sec, sent_timestamp->tv_usec);
-
 }
 
 /**

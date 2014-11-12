@@ -17,7 +17,7 @@
  */
 
 #include <linux/quick_tx.h>
-#include <net/sch_generic.h>
+#include <linux/sched.h>
 
 static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *flag) {
 	*flag = 1;
@@ -26,15 +26,19 @@ static inline void quick_tx_set_flag_wake_up_queue(wait_queue_head_t *q, __u8 *f
 }
 
 inline void quick_tx_wake_up_user_dma(struct quick_tx_dev *dev) {
-	quick_tx_set_flag_wake_up_queue(&dev->user_dma_q, &dev->shared_data->user_wait_dma_flag);
+	quick_tx_set_flag_wake_up_queue(&dev->user_mem_q, &dev->shared_data->producer_wait_mem_flag);
 }
 
 inline void quick_tx_wake_up_user_lookup(struct quick_tx_dev *dev) {
-	quick_tx_set_flag_wake_up_queue(&dev->user_lookup_q, &dev->shared_data->user_wait_lookup_flag);
+	quick_tx_set_flag_wake_up_queue(&dev->user_lookup_q, &dev->shared_data->producer_wait_lookup_flag);
+}
+
+inline void quick_tx_wake_up_user_done_tx(struct quick_tx_dev *dev) {
+	quick_tx_set_flag_wake_up_queue(&dev->user_done_q, &dev->shared_data->producer_wait_done_flag);
 }
 
 inline void quick_tx_wake_up_kernel_lookup(struct quick_tx_dev *dev) {
-	quick_tx_set_flag_wake_up_queue(&dev->kernel_lookup_q, &dev->shared_data->kernel_wait_lookup_flag);
+	quick_tx_set_flag_wake_up_queue(&dev->kernel_lookup_q, &dev->shared_data->consumer_wait_lookup_flag);
 }
 
 static inline int quick_tx_clear_skb_list(struct quick_tx_skb *list) {
@@ -57,11 +61,11 @@ static inline int quick_tx_free_skb(struct quick_tx_dev *dev, bool free_skb)
 		qtx_skb = list_first_entry(&dev->skb_wait_list.list, struct quick_tx_skb, list);
 		while (qtx_skb != &dev->skb_wait_list) {
 			if (atomic_read(&qtx_skb->skb.users) == 1) {
-				u32 *dma_block_index = (u32*)(qtx_skb->skb.cb + (sizeof(qtx_skb->skb.cb) - sizeof(u32)));
-				atomic_dec(&dev->shared_data->dma_blocks[*dma_block_index].users);
+				u32 *mem_block_index = (u32*)(qtx_skb->skb.cb + (sizeof(qtx_skb->skb.cb) - sizeof(u32)));
+				atomic_dec(&dev->shared_data->mem_blocks[*mem_block_index].users);
 				smp_wmb();
 
-				RUN_AT_INVERVAL(quick_tx_wake_up_user_dma(dev), 128, dev->quick_tx_wake_up_dma_counter);
+				RUN_AT_INVERVAL(quick_tx_wake_up_user_dma(dev), 128, dev->quick_tx_wake_up_mem_counter);
 
 				list_del_init(&qtx_skb->list);
 
@@ -117,6 +121,7 @@ retry_send:
 
 	switch(status) {
 	case NETDEV_TX_OK:
+		// TODO review
 		txq_trans_update(txq);
 		dev->num_tx_ok_packets++;
 		dev->num_tx_ok_bytes += qtx_skb->skb.len;
@@ -242,37 +247,62 @@ static inline struct quick_tx_skb* quick_tx_alloc_skb_fill(struct quick_tx_dev *
 	return qtx_skb;
 }
 
-void inline quick_tx_wait_free_skb(struct quick_tx_dev *dev) {
+static inline int poll_one_napi(struct napi_struct *napi, int budget)
+{
+	int work;
+
+	set_bit(NAPI_STATE_NPSVC, &napi->state);
+	work = napi->poll(napi, budget);
+	clear_bit(NAPI_STATE_NPSVC, &napi->state);
+
+	return budget - work;
+}
+
+static inline void poll_napi(struct net_device *dev)
+{
 	struct napi_struct *napi;
-	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-		napi_schedule(napi);
-	}
-	list_for_each_entry(napi, &dev->netdev->napi_list, dev_list) {
-		napi_synchronize(napi);
+	int budget = 512;
+
+	list_for_each_entry(napi, &dev->napi_list, dev_list) {
+		napi_disable(napi);
+#ifdef CONFIG_NETPOLL
+		if (napi->poll_owner != smp_processor_id() &&
+		    spin_trylock(&napi->poll_lock)) {
+#endif
+			budget = poll_one_napi(napi, budget);
+#ifdef CONFIG_NETPOLL
+			spin_unlock(&napi->poll_lock);
+		}
+#endif
+		napi_enable(napi);
 	}
 }
 
-static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq)
+inline void quick_tx_wait_free_skb(struct quick_tx_dev *dev)
+{
+	poll_napi(dev->netdev);
+}
+
+static void inline quick_tx_finish_work(struct quick_tx_dev *dev, struct netdev_queue *txq, bool do_calc)
 {
 
 	/* flush all remaining SKB's in the list before exiting */
 	quick_tx_do_xmit(NULL, txq, dev, 0, true);
-	dev->time_end_tx = ktime_get_real();
-
-	qtx_error("All packets have been transmitted successfully, exiting.");
+	if (ktime_to_ns(dev->time_end_tx) == 0)
+		dev->time_end_tx = ktime_get_real();
 
 	/* wait until cleaning the SKB list is finished
 	 * as well before exiting so we do not have any memory leaks */
 	while(!list_empty(&dev->skb_wait_list.list)) {
 		quick_tx_free_skb(dev, true);
-		dev->ops->wait_free_skb(dev);
+		if (!list_empty(&dev->skb_wait_list.list))
+			dev->ops->wait_free_skb(dev);
 	}
 
-	qtx_error("Done freeing free_skb_list");
-
-	quick_tx_calc_mbps(dev);
-	quick_tx_print_stats(dev);
-
+	if (do_calc) {
+		quick_tx_calc_mbps(dev);
+		quick_tx_print_stats(dev);
+	}
 }
 
 void quick_tx_worker(struct work_struct *work)
@@ -281,13 +311,11 @@ void quick_tx_worker(struct work_struct *work)
 	struct quick_tx_skb *qtx_skb;
 	struct sk_buff *skb;
 	struct quick_tx_shared_data *data = dev->shared_data;
-	struct quick_tx_packet_entry* entry = data->lookup_table + data->lookup_consumer_index;
-	struct quick_tx_dma_block_entry* dma_block;
+	struct quick_tx_packet_entry* entry = data->packet_entry_table + dev->packet_table_consumer_index;
+	struct quick_tx_mem_block_entry* mem_block;
 	struct netdev_queue *txq;
 	u32 aligned_length = 0;
 	u32 full_size = 0;
-
-	qtx_error("Starting quick_tx_worker");
 
 	if (!netif_device_present(dev->netdev) || !netif_running(dev->netdev)) {
 		qtx_error("Device cannot currently transmit, it is not running.");
@@ -298,8 +326,8 @@ void quick_tx_worker(struct work_struct *work)
 
 	txq = netdev_get_tx_queue(dev->netdev, 0);
 
-	dev->shared_data->kernel_wait_lookup_flag = 0;
-	wait_event(dev->kernel_lookup_q, dev->shared_data->kernel_wait_lookup_flag);
+	dev->shared_data->consumer_wait_lookup_flag = 0;
+	wait_event(dev->kernel_lookup_q, dev->shared_data->consumer_wait_lookup_flag);
 	dev->time_start_tx = ktime_get_real();
 
 	while (true) {
@@ -307,39 +335,39 @@ void quick_tx_worker(struct work_struct *work)
 		smp_rmb();
 		if (entry->length > 0 && entry->consumed == 0) {
 			/* Calculate full size of the space required to packet */
-			aligned_length = SKB_DATA_ALIGN(max((u32)ETH_ZLEN, NET_SKB_PAD + entry->length));
+			aligned_length = SKB_DATA_ALIGN(max((u32)ETH_ZLEN, NET_SKB_PAD + (u32)entry->length));
 			full_size = SKB_DATA_ALIGN(aligned_length + sizeof(struct skb_shared_info));
 
 			/* Get the DMA block our packet is in */
-			dma_block = &data->dma_blocks[entry->dma_block_index];
-			atomic_inc(&dma_block->users);
+			mem_block = &data->mem_blocks[entry->mem_block_index];
+			atomic_inc(&mem_block->users);
 
 			/* Write memory barrier so that users++ gets executed beforehand */
 			smp_wmb();
 
 			/* Fill up skb with data at the DMA block address + offset */
 			qtx_skb = quick_tx_alloc_skb_fill(dev, NET_SKB_PAD + entry->length, aligned_length, GFP_NOWAIT,
-					0, NUMA_NO_NODE, dma_block->kernel_addr + entry->block_offset, full_size);
+					0, NUMA_NO_NODE, mem_block->kernel_addr + entry->block_offset, full_size);
 			if (unlikely(!qtx_skb)) {
-				atomic_dec(&dma_block->users);
-				qtx_error("ALLOC_ERROR: Decrement on %d. Users at = %d",
-						entry->dma_block_index, atomic_read(&dma_block->users));
+				atomic_dec(&mem_block->users);
+				qtx_error("Error allocating skb, decrement users on %d block to %d",
+						entry->mem_block_index, atomic_read(&mem_block->users));
 				continue;
 			}
 
 			skb = &qtx_skb->skb;
 
 			/* Copy over the bits of the DMA block index */
-			*(u32*)(skb->cb + (sizeof(skb->cb) - sizeof(u32))) = entry->dma_block_index;
+			*(u32*)(skb->cb + (sizeof(skb->cb) - sizeof(u32))) = entry->mem_block_index;
 
 			/* Set netdev */
 			skb->dev = dev->netdev;
 
 			quick_tx_do_xmit(qtx_skb, txq, dev, 512, false);
 
-#ifdef QUICK_TX_DEBUG
-			qtx_error("Consumed entry at index = %d, dma_block_index = %d, offset = %d, len = %d",
-					data->lookup_consumer_index, entry->dma_block_index, entry->block_offset, entry->length);
+#ifdef EXTRA_DEBUG
+			qtx_info("Consumed entry at index = %d, mem_block_index = %d, offset = %d, len = %d",
+					dev->packet_table_consumer_index, entry->mem_block_index, entry->block_offset, entry->length);
 #endif
 
 			/* Set this entry as consumed, increment to next entry */
@@ -348,20 +376,26 @@ void quick_tx_worker(struct work_struct *work)
 
 			RUN_AT_INVERVAL(quick_tx_wake_up_user_lookup(dev), 1024, dev->quick_tx_wake_up_lookup_counter);
 
-			data->lookup_consumer_index = (data->lookup_consumer_index + 1) % LOOKUP_TABLE_SIZE;
-			entry = data->lookup_table + data->lookup_consumer_index;
+			dev->packet_table_consumer_index = (dev->packet_table_consumer_index + 1) & (PACKET_ENTRY_TABLE_SIZE - 1);
+			entry = data->packet_entry_table + dev->packet_table_consumer_index;
 		} else {
+			if (dev->shared_data->producer_wait_done_flag == 0) {
+				quick_tx_finish_work(dev, txq, false);
+				wmb();
+				quick_tx_wake_up_user_done_tx(dev);
+			}
+
 			if (unlikely(dev->quit_work)) {
-				quick_tx_finish_work(dev, txq);
+				quick_tx_finish_work(dev, txq, true);
 				break;
 			}
-#ifdef QUICK_TX_DEBUG
-			qtx_error("No packets to process, sleeping (index = %d), entry->consumed = %d", data->lookup_consumer_index,
+#ifdef EXTRA_DEBUG
+			qtx_info("No packets to process, sleeping (index = %d), entry->consumed = %d", dev->packet_table_consumer_index,
 					entry->consumed);
 #endif
 
 			dev->numsleeps++;
-			dev->shared_data->kernel_wait_lookup_flag = 0;
+			dev->shared_data->consumer_wait_lookup_flag = 0;
 			smp_wmb();
 
 			/* Free some DMA blocks before going to sleep */
@@ -369,7 +403,7 @@ void quick_tx_worker(struct work_struct *work)
 				quick_tx_do_xmit(NULL, txq, dev, 1, false);
 			quick_tx_free_skb(dev, false);
 
-			wait_event(dev->kernel_lookup_q, dev->shared_data->kernel_wait_lookup_flag);
+			wait_event(dev->kernel_lookup_q, dev->shared_data->consumer_wait_lookup_flag);
 		}
 	}
 

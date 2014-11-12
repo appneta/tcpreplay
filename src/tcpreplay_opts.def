@@ -465,6 +465,9 @@ you to achieve full line rates on commodity network adapters, similar to rates
 achieved by commercial network traffic generators. Note that bypassing the network
 driver will disrupt other applications connected through the test interface. See
 INSTALL for more information.
+
+This feature can also be enabled by specifying an interface as 'netmap:<intf>'
+or 'vale:<intf>. For example 'netmap:eth0' specifies netmap over interface eth0.
 EOText;
 };
 
@@ -524,6 +527,26 @@ flag = {
 
 EOPid;
     doc         = "";
+};
+
+flag = {
+    name        = quick-tx;
+    descrip     = "Write packets directly to an interface via Quick_TX module";
+    doc         = <<- EOText
+This feature will detect detect the presence of the Quick TX module on Linux
+systems. If detected, tcpreplay packets will bypass the network stack and
+will be written to the network driver via the Quick TX module. This will allow
+you to achieve full line rates on commodity network adapters, similar to rates
+achieved by commercial network traffic generators. 
+
+Note that unlike netmap, Quick TX does not bypass the network driver and 
+therefore is less disruptive. Yet it can achieve TX rates comparble netmap. 
+Quick TX is distributed with Tcpreplay and does not require full kernel source
+in order to be installed. See INSTALL for more information.
+
+This feature can also be enabled by specifying an interface as 'qtx:<intf>'.
+For example 'qtx:eth0' specifies Quick TX over interface eth0.
+EOText;
 };
 
 flag = {
@@ -587,11 +610,20 @@ flag = {
 #else
     fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
-#ifdef HAVE_NETMAP
+#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
     fprintf(stderr, "Default injection method: %s\n", sendpacket_get_method(NULL));
-    fprintf(stderr, "Optional injection method: netmap\n");
 #else
     fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
+#endif
+#ifdef HAVE_QUICK_TX
+    fprintf(stderr, "Optional injection method: Quick TX\n");
+#elif !defined(linux)
+    fprintf(stderr, "Not compiled with Quick TX\n");
+#endif
+#ifdef HAVE_NETMAP
+    fprintf(stderr, "Optional injection method: netmap\n");
+#else
+    fprintf(stderr, "Not compiled with netmap\n");
 #endif
     exit(0);
 

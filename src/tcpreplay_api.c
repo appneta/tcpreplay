@@ -222,6 +222,32 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         }
     }
 
+    if (HAVE_OPT(QUICK_TX)) {
+#ifdef HAVE_QUICK_TX
+        if (HAVE_OPT(NETMAP)) {
+            ret = -1;
+            tcpreplay_seterr(ctx, "%s", "options --netmap and --quick-tx are mutually exclusive");
+            goto out;
+        }
+        /* TODO see if these checks can be removed */
+        if (HAVE_OPT(INTF2)) {
+            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in Quick TX mode");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(CACHEFILE)) {
+            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in Quick TX mode");
+            ret = -1;
+            goto out;
+        }
+        options->quick_tx = 1;
+        ctx->sp_type = SP_TYPE_QUICK_TX;
+#else
+         err(-1, "--quick_tx feature was not compiled in. See INSTALL.");
+#endif /* HAVE_QUICK_TX */
+    }
+
+
     if (HAVE_OPT(NETMAP)) {
 #ifdef HAVE_NETMAP
         if (HAVE_OPT(INTF2)) {
@@ -298,17 +324,69 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     }
 
     if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF1))) == NULL) {
-        tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+        if (!strncmp(OPT_ARG(INTF1), "qtx:", 4))
+            tcpreplay_seterr(ctx, "Unable to connect to Quick TX interface %s. Ensure Quick TX module is installed (see INSTALL).",
+                    OPT_ARG(INTF1));
+        else if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
+            tcpreplay_seterr(ctx, "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
+                    OPT_ARG(INTF1));
+        else
+            tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
         ret = -1;
         goto out;
     }
 
-#ifdef HAVE_NETMAP
     if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+#ifdef HAVE_NETMAP
+        if (ctx->sp_type == SP_TYPE_QUICK_TX) {
+            tcpreplay_seterr(ctx, "%s", "options --netmap and --quick-tx are mutually exclusive");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(INTF2)) {
+            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in netmap mode");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(CACHEFILE)) {
+            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in netmap mode");
+            ret = -1;
+            goto out;
+        }
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
-    }
+#else
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with netmap support");
+        ret = -1;
+        goto out;
 #endif
+    }
+
+    if (!strncmp(intname, "qtx:", 4)) {
+#ifdef HAVE_QUICK_TX
+        if (ctx->sp_type == SP_TYPE_NETMAP) {
+            tcpreplay_seterr(ctx, "%s", "options --netmap and --quick-tx are mutually exclusive");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(INTF2)) {
+            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in Quick TX mode");
+            ret = -1;
+            goto out;
+        }
+        if (HAVE_OPT(CACHEFILE)) {
+            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in Quick TX mode");
+            ret = -1;
+            goto out;
+        }
+        options->quick_tx = 1;
+        ctx->sp_type = SP_TYPE_QUICK_TX;
+#else
+        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with Quick TX support");
+        ret = -1;
+        goto out;
+#endif
+    }
 
     options->intf1_name = safe_strdup(intname);
 
@@ -332,12 +410,21 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ret = -1;
             goto out;
         }
+
+#ifdef HAVE_QUICK_TX
+        if (!strncmp(intname, "qtc:", 4)) {
+            tcpreplay_seterr(ctx, "Quick TX interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
+            ret = -1;
+            goto out;
+        }
+#endif
+
 #ifdef HAVE_NETMAP
-    if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
-        tcpreplay_seterr(ctx, "netmap/vale interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
-        ret = -1;
-        goto out;
-    }
+        if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+            tcpreplay_seterr(ctx, "netmap/vale interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
+            ret = -1;
+            goto out;
+        }
 #endif
 
         options->intf2_name = safe_strdup(intname);
@@ -448,7 +535,14 @@ tcpreplay_set_interface(tcpreplay_t *ctx, tcpreplay_intf intf, char *value)
 
     if (intf == intf1) {
         if ((intname = get_interface(ctx->intlist, value)) == NULL) {
-            tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", value);
+            if (!strncmp(OPT_ARG(INTF1), "qtx:", 4))
+                tcpreplay_seterr(ctx, "Unable to connect to Quick TX interface %s. Ensure Quick TX module is installed (see INSTALL).",
+                        value);
+            else if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
+                tcpreplay_seterr(ctx, "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
+                        value);
+            else
+                tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", value);
             ret = -1;
             goto out;
         }
@@ -557,6 +651,22 @@ tcpreplay_set_unique_ip(tcpreplay_t *ctx, int value)
     assert(ctx);
     ctx->options->unique_ip = value;
     return 0;
+}
+
+/**
+ * Set Quick TX mode
+ */
+int
+tcpreplay_set_quick_tx(tcpreplay_t *ctx, bool value)
+{
+    assert(ctx);
+#ifdef HAVE_QUICK_TX
+    ctx->options->quick_tx = value;
+    return 0;
+#else
+    warn("Quick TX not compiled in");
+    return -1;
+#endif
 }
 
 /**
@@ -1006,7 +1116,15 @@ tcpreplay_prepare(tcpreplay_t *ctx)
     }
 
     if ((intname = get_interface(ctx->intlist, ctx->options->intf1_name)) == NULL) {
-        tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+        if (!strncmp(OPT_ARG(INTF1), "qtx:", 4))
+            tcpreplay_seterr(ctx, "Unable to connect to Quick TX interface %s. Ensure Quick TX module is installed (see INSTALL).",
+                    OPT_ARG(INTF1));
+        else if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
+            tcpreplay_seterr(ctx, "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
+                    OPT_ARG(INTF1));
+        else
+            tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+
         ret = -1;
         goto out;
     }
@@ -1106,6 +1224,17 @@ tcpreplay_replay(tcpreplay_t *ctx)
     }
 
     ctx->running = false;
+
+#ifdef HAVE_QUICK_TX
+    /* flush any remaining netmap packets */
+    if (ctx->options->quick_tx)
+        quick_tx_wait_for_tx_complete(ctx->intf1->qtx_dev);
+#endif
+
+    if (ctx->stats.bytes_sent > 0) {
+           if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
+               errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+    }
     return 0;
 }
 

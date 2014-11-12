@@ -64,7 +64,7 @@ ioport_sleep(const struct timespec UNUSED(nap))
     struct timeval nap_for;
     time_t i;
 
-    TIMESPEC_TO_TIMEVAL(&nap_for, &nap);
+    TIMESPEC_TO_TIMEVAL(&nap_for, nap);
 
     /* 
      * process the seconds, we do this in a loop so we don't have to 
