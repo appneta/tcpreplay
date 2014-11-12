@@ -94,27 +94,23 @@ stack during Tcpreplay transmission. Also, you do not have to download
 kernel source code to build it. By default Quick TX is built and 
 installed automatically.
 
-For example, Quick TX is installed as part of the basic build:
+Neither Quick TX or netmap are part of the basic build.
 
-    ./configure 
+If you would like to have Quick TX installed, do the following:
+
+    ./configure --enable-quick-tx
     make
     sudo make install
-
+    
 To ensure the module is intalled, run 'lsmod' and look for 'quick_tx'.
 To uninstall the module, uninstall tcpreplay:
 
     sudo make uninstall
 
-If you prefer not to have Quick TX installed, do the following:
-
-    ./configure --disable-quick-tx
-    make
-    sudo make install
-
 You can build Quick TX for a different kernel version if the sources
 or headers are installed on your Linux distribution, e.g.
 
-    ./configure --with-kernel=/lib/modules/2.6.32-66-generic/build
+    ./configure --enable-quick-tx --with-kernel=/lib/modules/2.6.32-66-generic/build
     make
     sudo make install
 
