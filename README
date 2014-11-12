@@ -71,7 +71,25 @@ Simple directions for Unix users:
 	./configure 
 	make
 	sudo make install
+	
+Build quick_tx feature
+----------------------
+This feature will compile the quick_tx module. This module is
+designed to speed up performance to wire rates on 1GigE and 10GigE.
+This is still an experimental feature and may not work with every kernel
+version or with every network driver. Using quick_tx does not disruct any other
+traffic going through the network interface.
 
+Here are the directions for building with quick_tx
+
+	./configure --enable-quick-tx
+	make
+	sudo make install
+	
+To run tcpreplay with using quick_tx on an interface use the "qtx" prefix:
+
+	tcpreplay -i qtx:eth0 
+	
 Build netmap feature
 --------------------
 This feature will detect netmap (http://info.iet.unipi.it/~luigi/netmap/)
