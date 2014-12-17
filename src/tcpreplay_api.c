@@ -1066,7 +1066,7 @@ tcpreplay_prepare(tcpreplay_t *ctx)
     }
 
     if (ctx->options->dualfile) {
-        if (! ctx->options->source_cnt >= 2) {
+        if (!(ctx->options->source_cnt >= 2)) {
             tcpreplay_seterr(ctx, "%s", "Dual file mode requires 2 or more pcap files");
             ret = -1;
             goto out;
