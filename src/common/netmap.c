@@ -28,6 +28,7 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
+#include "tcpreplay_api.h"
 #include "netmap.h"
 
 #ifdef DEBUG
@@ -174,7 +175,8 @@ done:
  * Inner sendpacket_open() method for using netmap
  */
 void *
-sendpacket_open_netmap(const char *device, char *errbuf) {
+sendpacket_open_netmap(const char *device, char *errbuf, void *arg) {
+	tcpreplay_t *ctx = (tcpreplay_t*)arg;
     sendpacket_t *sp = NULL;
     nmreq_t nmr;
     char ifname_buf[MAX_IFNAMELEN];
@@ -419,7 +421,7 @@ sendpacket_open_netmap(const char *device, char *errbuf) {
     }
 
     dbg(2, "Waiting 4 seconds for phy reset...");
-    sleep (4);
+    sleep(ctx->options->netmap_delay);
     dbg(2, "Ready!");
 
     if (!sp->is_vale) {
