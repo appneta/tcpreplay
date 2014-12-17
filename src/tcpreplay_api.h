@@ -147,6 +147,7 @@ typedef struct tcpreplay_opt_s {
 
 #ifdef HAVE_NETMAP
     int netmap;
+    int netmap_delay;
 #endif
 
 #ifdef HAVE_QUICK_TX

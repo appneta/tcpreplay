@@ -124,7 +124,7 @@ typedef struct tcpr_nmreq nmreq_t;
 
 #define NETMAP_TX_TIMEOUT_SEC 10
 int get_netmap_version(void);
-void *sendpacket_open_netmap(const char *device, char *errbuf);
+void *sendpacket_open_netmap(const char *device, char *errbuf, void *arg);
 void sendpacket_close_netmap(void *p);
 int sendpacket_send_netmap(void *p, const u_char *data, size_t len);
 

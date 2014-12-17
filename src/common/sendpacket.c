@@ -466,7 +466,7 @@ TRY_SEND_AGAIN:
  */
 sendpacket_t *
 sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
-        sendpacket_type_t sendpacket_type)
+        sendpacket_type_t sendpacket_type, void *arg)
 {
     sendpacket_t *sp;
     struct stat sdata;
@@ -518,7 +518,7 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
 #endif
 #ifdef HAVE_NETMAP
         if (sendpacket_type == SP_TYPE_NETMAP)
-            sp = (sendpacket_t*)sendpacket_open_netmap(device, errbuf);
+            sp = (sendpacket_t*)sendpacket_open_netmap(device, errbuf, arg);
         else
 #endif
 #if defined HAVE_PF_PACKET
