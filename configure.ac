@@ -1131,11 +1131,11 @@ dnl ##################################################
 AC_PATH_KERNEL_SOURCE
 
 dnl * Allow disable of Quick TX module
-disable_quick_tx=no
+disable_quick_tx=yes
 AC_ARG_ENABLE(quick-tx,
-    [  --disable-quick-tx      Disable building Quick TX kernel module],
-    [ disable_quick_tx="yes"
-      kerneldir=])
+    [  --enable-quick-tx      Enable building Quick TX kernel module],
+    [ disable_quick_tx="no" ],
+    [ kerneldir=])
 
 dnl * Compile Quick TX
 KERNEL_DIR=

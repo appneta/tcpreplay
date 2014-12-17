@@ -63,6 +63,7 @@ libopts/m4/*.m4
 Makefile
 Makefile.in
 configure
+config/
 
 # Temporary files 
 *.tmp
