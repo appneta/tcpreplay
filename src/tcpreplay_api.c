@@ -261,7 +261,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ret = -1;
             goto out;
         }
-        options->netmap_delay = OPT_ARG(NM_DELAY);
+        options->netmap_delay = OPT_VALUE_NM_DELAY;
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
 #else
