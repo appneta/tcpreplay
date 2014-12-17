@@ -447,7 +447,7 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
 
     ctx->options->max_mask = OPT_VALUE_MAXMASK;
 
-    if (! ctx->options->min_mask > ctx->options->max_mask)
+    if (!(ctx->options->min_mask > ctx->options->max_mask))
         errx(-1, "Min network mask len (%d) must be less then max network mask len (%d)",
         ctx->options->min_mask, ctx->options->max_mask);
 

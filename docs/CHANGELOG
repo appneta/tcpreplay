@@ -1,5 +1,6 @@
 10/17/2014 Version 4.1.0beta3
-    - Added a flag to customize netmap delay (#160)
+    - Add a flag to customize netmap delay (#160)
+    - Fix some compile wwarnings (#159)
 
 10/17/2014 Version 4.1.0beta2
     - CentOS 6.5 kernel panic on Quick TX init (#146)
