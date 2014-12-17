@@ -160,6 +160,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 #endif
 
     options->loop = OPT_VALUE_LOOP;
+    options->loopdelay_ms = OPT_VALUE_LOOPDELAY_MS;
 
     if (HAVE_OPT(LIMIT))
         options->limit_send = OPT_VALUE_LIMIT;
@@ -1220,6 +1221,8 @@ tcpreplay_replay(tcpreplay_t *ctx)
         while (ctx->options->loop-- && !ctx->abort) {  /* limited loop */
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
+            if (ctx->options->loop > 0 && !ctx->abort && ctx->options->loopdelay_ms > 0)
+            	usleep(ctx->options->loopdelay_ms * 1000);
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */
