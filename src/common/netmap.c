@@ -176,7 +176,7 @@ done:
  */
 void *
 sendpacket_open_netmap(const char *device, char *errbuf, void *arg) {
-	tcpreplay_t *ctx = (tcpreplay_t*)arg;
+    tcpreplay_t *ctx = (tcpreplay_t*)arg;
     sendpacket_t *sp = NULL;
     nmreq_t nmr;
     char ifname_buf[MAX_IFNAMELEN];
