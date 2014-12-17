@@ -319,6 +319,16 @@ flag = {
 };
 
 flag = {
+    name        = loopdelay-ms;
+    flags-must  = loop;
+    arg-type    = number;
+    arg-range   = "0->";
+    descrip     = "Delay between loops in milliseconds";
+    arg-default = 0;
+    doc         = "";
+};
+
+flag = {
     name        = pktlen;
     max         = 1;
     descrip     = "Override the snaplen and use the actual packet len";

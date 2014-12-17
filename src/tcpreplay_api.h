@@ -106,6 +106,7 @@ typedef struct tcpreplay_opt_s {
 
     tcpreplay_speed_t speed;
     u_int32_t loop;
+    u_int32_t loopdelay_ms;
 
     int stats;
     bool use_pkthdr_len;

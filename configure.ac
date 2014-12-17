@@ -1605,14 +1605,10 @@ esac
 LIBOPTS_CHECK(libopts)
 
 
-AC_OUTPUT([Makefile
+AC_CONFIG_FILES([Makefile
            doxygen.cfg
            lib/Makefile
            docs/Makefile
-           kernel/Makefile
-           kernel/linux/Makefile
-           kernel/linux/example/Makefile
-           kernel/linux/quick_tx/Makefile
            src/Makefile
            src/tcpedit/Makefile
            src/fragroute/Makefile
@@ -1621,6 +1617,15 @@ AC_OUTPUT([Makefile
            test/Makefile
            test/config
            scripts/Makefile])
+
+if test x$have_linux_quick_tx = xyes; then
+	AC_CONFIG_FILES([kernel/Makefile
+           kernel/linux/Makefile
+           kernel/linux/example/Makefile
+           kernel/linux/quick_tx/Makefile])
+fi
+
+AC_OUTPUT
 
 # Configuration results
 AC_MSG_RESULT(
