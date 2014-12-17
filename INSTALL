@@ -77,24 +77,25 @@ The simplest way to compile this package is:
      all sorts of other programs in order to regenerate files that came
      with the distribution.
 
-Make Tcpreplay fast
-==========================
 
+How to make Tcpreplay go fast
+=============================
+
+1) Quick TX
+   --------
 There are two ways to add modules which will make Tcpreplay fast. On 
 Linux and BSD you can separately install netmap (see instructions below).
 Note that netmap is disruptive to the network during a Tcpreplay test.
 Specifically the network interface is completely bypassed when netmap
-is active. A safer solution is Quick TX (available only for Linux).
+is active. A simpler and safer solution is Quick TX (available only 
+for Linux). Quick TX ships with Tcpreplay as of version 4.1.
  
-As of version 4.1.0, Tcpreplay includes the Quick TX module for Linux.
-It allows Tcpreplay to bypass the kernel network stack and write directly
-to the network driver. Doing so allows up to wire-rate transmissions
-(tested up to 10Gbps). Unlike netmap, it does not bypass the network
-stack during Tcpreplay transmission. Also, you do not have to download
-kernel source code to build it. By default Quick TX is built and 
-installed automatically.
-
-Neither Quick TX or netmap are part of the basic build.
+Quick TX allows Tcpreplay to bypass the kernel network stack and write
+directly to the network driver. Doing so allows up to wire-rate 
+transmissions (tested up to 10Gbps). Unlike netmap, it does not bypass
+the network stack during Tcpreplay transmission. Also, you do not have
+to download kernel source code to build it. By default Quick TX is built
+and installed automatically.
 
 If you would like to have Quick TX installed, do the following:
 
@@ -119,9 +120,9 @@ with 'qtx:', e.g.
 
     tcpreplay -i qtx:eth0 -Kt bigFlows.pcap
 
-Build netmap feature
-====================
 
+2) netmap
+   ------
 This feature will detect netmap capable network drivers on Linux and
 BSD systems. If detected, the network driver is bypassed for the
 execution duration of tcpreplay and tcpreplay-edit, and network buffers
@@ -137,9 +138,10 @@ Ensure that you have supported NICs installed. Most Intel and nForce
 (nVidia) adapters will work. Some virtual adapters are supported.
 
 FreeBSD 10 and higher already contains netmap capabilities and should
-be detected automatically by "configure". But first you must enable netmap on the system 
-by adding 'device netmap' to your kernel config and rebuilding the kernel. When
-complete, /dev/netmap will be available.
+be detected automatically by "configure". But first you must enable
+netmap on the system by adding 'device netmap' to your kernel config
+and rebuilding the kernel. When complete, /dev/netmap will be
+available.
 
 For Linux, download latest netmap sources from http://info.iet.unipi.it/~luigi/netmap/
 or run 'git clone https://code.google.com/p/netmap/'. You will also need to have 
@@ -166,6 +168,7 @@ directory, for example:
     make
     sudo make install
 
+
 Compilers and Options
 =====================
 
@@ -181,6 +184,7 @@ is an example:
 
    *Note Defining Variables::, for more details.
 
+
 Compiling For Multiple Architectures
 ====================================
 
@@ -195,6 +199,7 @@ source code in the directory that `configure' is in and in `..'.
 architecture at a time in the source code directory.  After you have
 installed the package for one architecture, use `make distclean' before
 reconfiguring for another architecture.
+
 
 Installation Names
 ==================
@@ -219,6 +224,7 @@ you can set and what kinds of files go in them.
 with an extra prefix or suffix on their names by giving `configure' the
 option `--program-prefix=PREFIX' or `--program-suffix=SUFFIX'.
 
+
 Optional Features
 =================
 
@@ -233,6 +239,7 @@ package recognizes.
 find the X include and library files automatically, but if it doesn't,
 you can use the `configure' options `--x-includes=DIR' and
 `--x-libraries=DIR' to specify their locations.
+
 
 Specifying the System Type
 ==========================
@@ -264,6 +271,7 @@ platform different from the build platform, you should specify the
 "host" platform (i.e., that on which the generated programs will
 eventually be run) with `--host=TYPE'.
 
+
 Sharing Defaults
 ================
 
@@ -274,6 +282,7 @@ values for variables like `CC', `cache_file', and `prefix'.
 `PREFIX/etc/config.site' if it exists.  Or, you can set the
 `CONFIG_SITE' environment variable to the location of the site script.
 A warning: not all `configure' scripts look for a site script.
+
 
 Defining Variables
 ==================
@@ -293,6 +302,7 @@ Unfortunately, this technique does not work for `CONFIG_SHELL' due to
 an Autoconf bug.  Until the bug is fixed you can use this workaround:
 
      CONFIG_SHELL=/bin/bash /bin/bash ./configure CONFIG_SHELL=/bin/bash
+
 
 `configure' Invocation
 ======================
