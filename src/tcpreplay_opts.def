@@ -455,6 +455,7 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_NETMAP;
     name        = netmap;
     descrip     = "Write packets directly to netmap enabled network adapter";
     doc         = <<- EOText
@@ -468,6 +469,20 @@ INSTALL for more information.
 
 This feature can also be enabled by specifying an interface as 'netmap:<intf>'
 or 'vale:<intf>. For example 'netmap:eth0' specifies netmap over interface eth0.
+EOText;
+};
+
+
+flag = {
+    ifdef       = HAVE_NETMAP;
+    name        = nm-delay;
+    flags-must  = netmap;
+    arg-type    = number;
+    arg-default = 4;
+    descrip     = "Netmap startup delay";
+    doc         = <<- EOText
+Number of seconds to delay after netmap is loaded. Required to ensure interfaces
+are fully up before netmap transmit. Requires netmap option. Default is 4 seconds.
 EOText;
 };
 

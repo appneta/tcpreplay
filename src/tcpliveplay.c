@@ -172,7 +172,7 @@ main(int argc, char **argv)
         errx(-1, "Failed to access interface %s\n", iface);
 
     /* open send function socket*/
-    if ((sp = sendpacket_open(iface, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE)) == NULL)
+    if ((sp = sendpacket_open(iface, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE, NULL)) == NULL)
         errx(-1, "Can't open %s: %s", argv[1], ebuf);
 
     /* random dport vs. specified dport operation*/
