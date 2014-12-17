@@ -67,20 +67,24 @@ Simple directions for Unix users:
 make
 sudo make install
 ```
-Build quick_tx feature
+Build Quick TX feature
 ----------------------
-This feature will compile the quick_tx module. This module is
-designed to speed up performance to wire rates on 1GigE and 10GigE, and using quick_tx does not disrupt any other traffic going through the network interface.
+Quick TX allows Tcpreplay to bypass the kernel network stack and write
+directly to the network driver. Doing so allows up to wire-rate 
+transmissions (tested up to 10Gbps). For detailed installation information
+see INSTALL.
 
-This is still an experimental feature and may not work with every kernel version or with every network driver. 
+**NOTE:** This feature still an experimental and may not work with every 
+kernel version or with every network driver. 
 
-Here are the directions for building with quick_tx
+If you would like to have Quick TX installed, do the following:
 ```
 	./configure --enable-quick-tx
 	make
 	sudo make install
 ```
-To run tcpreplay with using quick_tx on an interface use the `qtx` prefix:
+To use the Quick TX module, run tcpreplay with interface names prefixed
+with 'qtx:', e.g.
 ```
 	tcpreplay -i qtx:eth0
 ```
