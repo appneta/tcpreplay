@@ -1,11 +1,10 @@
-10/17/2014 Version 4.1.0beta3
+12/17/2014 Version 4.1.0
     - Do not build Quick TX modules on OS X (#164)
     - Add a flag to customize netmap delay (#160)
     - Fix some compile wwarnings (#159)
     - Disabled QuickTX build by default (#157)
+    - Less verbose build (#154)
     - Add a loop delay option (#125)
-
-10/17/2014 Version 4.1.0beta2
     - CentOS 6.5 kernel panic on Quick TX init (#146)
     - Fix libpcap not found on CentOS 7 (#145)
     - Segfault in tcpliveplay on x86_64 (#132)
