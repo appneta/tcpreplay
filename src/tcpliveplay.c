@@ -617,7 +617,7 @@ set_live_filter(char *dev, input_addr* hostip, unsigned int port)
     pcap_t *handle = NULL;          /* Session handle */
     char errbuf[PCAP_ERRBUF_SIZE];  /* Error string buffer */
     struct bpf_program fp;          /* The compiled filter */
-    char filter_exp[50];
+    char filter_exp[52];
     sprintf(filter_exp,"tcp and dst host %d.%d.%d.%d and dst port %u",
             hostip->byte1, hostip->byte2, hostip->byte3, hostip->byte4, port);  /* The filter expression */
     bpf_u_int32 mask;           /* Our network mask */
