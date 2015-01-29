@@ -1,3 +1,6 @@
+01/29/2015 Version 4.1.1beta1
+    - Stop sending and exit when limit is reached #174
+
 12/17/2014 Version 4.1.0
     - Do not build Quick TX modules on OS X (#164)
     - Add a flag to customize netmap delay (#160)
