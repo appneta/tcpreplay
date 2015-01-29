@@ -467,6 +467,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     int datalink = options->file_cache[idx].dlt;
     COUNTER skip_length = 0;
     COUNTER start_us;
+    COUNTER end_us;
     uint32_t iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
     bool preload = options->file_cache[idx].cached;
@@ -474,6 +475,11 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
+
+    if (options->limit_time > 0)
+        end_us = start_us + SEC_TO_MICROSEC(options->limit_time);
+    else
+        end_us = 0;
 
     if (options->preload_pcap) {
         prev_packet = &cached_packet;
@@ -494,6 +500,16 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if (limit_send > 0 && ctx->stats.pkts_sent >= (COUNTER)limit_send) {
             ctx->abort = true;
             break;
+        }
+
+        /* stop sending based on the duration limit*/
+        if (end_us > 0) {
+            if (gettimeofday(&now, NULL) < 0)
+                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+            if (TIMEVAL_TO_MICROSEC(&now) > end_us) {
+                ctx->abort = true;
+                break;
+            }
         }
 
         packetnum++;
@@ -678,11 +694,17 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     struct pcap_pkthdr *pkthdr_ptr;
     int datalink = options->file_cache[cache_file_idx1].dlt;
     COUNTER start_us;
+    COUNTER end_us;
     COUNTER skip_length = 0;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
+
+    if (options->limit_time > 0)
+        end_us = start_us + SEC_TO_MICROSEC(options->limit_time);
+    else
+        end_us = 0;
 
     if (options->preload_pcap) {
         prev_packet1 = &cached_packet1;
@@ -709,6 +731,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (limit_send > 0 && ctx->stats.pkts_sent >= (COUNTER)limit_send) {
             ctx->abort = true;
             break;
+        }
+
+        /* stop sending based on the duration limit*/
+        if (end_us > 0) {
+            if (gettimeofday(&now, NULL) < 0)
+                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+            if (TIMEVAL_TO_MICROSEC(&now) > end_us) {
+                ctx->abort = true;
+                break;
+            }
         }
 
         packetnum++;
