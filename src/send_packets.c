@@ -491,8 +491,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             return;
 
         /* stop sending based on the limit -L? */
-        if (limit_send > 0 && ctx->stats.pkts_sent > (COUNTER)limit_send)
+        if (limit_send > 0 && ctx->stats.pkts_sent >= (COUNTER)limit_send) {
+            ctx->abort = true;
             break;
+        }
 
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -704,8 +706,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             return;
 
         /* stop sending based on the limit -L? */
-        if (limit_send > 0 && ctx->stats.pkts_sent > (COUNTER)limit_send)
+        if (limit_send > 0 && ctx->stats.pkts_sent >= (COUNTER)limit_send) {
+            ctx->abort = true;
             break;
+        }
 
         packetnum++;
 
