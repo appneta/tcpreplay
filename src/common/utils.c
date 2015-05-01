@@ -138,7 +138,7 @@ packet_stats(const tcpreplay_stats_t *stats)
             COUNTER bytes_sec_X10;
             COUNTER mb_sec_X100;
 
-            bytes_sec_X10 = (stats->bytes_sent * 10 * 1000 * 1000) / diff_us;
+            bytes_sec_X10 = ((stats->bytes_sent  * 10 * 1000) / diff_us) * 1000;
             bytes_sec = bytes_sec_X10 / 10;
             bytes_sec_10ths = bytes_sec_X10 % 10;
 
