@@ -27,6 +27,9 @@
 /* Enable fragroute module */
 #undef ENABLE_FRAGROUTE
 
+/* nls support in libopts */
+#undef ENABLE_NLS
+
 /* Enable use of pcap_findalldevs() */
 #undef ENABLE_PCAP_FINDALLDEVS
 
@@ -196,6 +199,9 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 #undef HAVE_LIBGEN_H
 
+/* Define to 1 if you have the `intl' library (-lintl). */
+#undef HAVE_LIBINTL
+
 /* Define to 1 if you have the <libintl.h> header file. */
 #undef HAVE_LIBINTL_H
 
@@ -325,6 +331,9 @@
 
 /* Define to 1 if you have the `pow' function. */
 #undef HAVE_POW
+
+/* Define to 1 if the system has the type `ptrdiff_t'. */
+#undef HAVE_PTRDIFF_T
 
 /* Define to 1 if you have the `putenv' function. */
 #undef HAVE_PUTENV
@@ -597,9 +606,6 @@
    <sysmacros.h>. */
 #undef MAJOR_IN_SYSMACROS
 
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-#undef NO_MINUS_C_MINUS_O
-
 /* Define this if optional arguments are disallowed */
 #undef NO_OPTIONAL_OPT_ARGS
 
@@ -679,6 +685,11 @@
 # ifndef WORDS_BIGENDIAN
 #  undef WORDS_BIGENDIAN
 # endif
+#endif
+
+/* Enable large inode numbers on Mac OS X 10.5.  */
+#ifndef _DARWIN_USE_64_BIT_INODE
+# define _DARWIN_USE_64_BIT_INODE 1
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */

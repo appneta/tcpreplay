@@ -2,15 +2,17 @@
 /*
  * \file save.c
  *
- * Time-stamp:      "2012-03-31 13:15:19 bkorb"
- *
  *  This module's routines will take the currently set options and
  *  store them into an ".rc" file for re-interpretation the next
  *  time the invoking program is run.
  *
+ * @addtogroup autoopts
+ * @{
+ */
+/*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -22,22 +24,22 @@
  *   The Modified Berkeley Software Distribution License
  *      See the file "COPYING.mbsd"
  *
- *  These files have the following md5sums:
+ *  These files have the following sha256 sums:
  *
- *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
- *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
- *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
+ *  8584710e9b04216a394078dc156b781d0b47e1729104d666658aecef8ee32e95  COPYING.gplv3
+ *  4379e7444a0e2ce2b12dd6f5a52a27a4d02d39d247901d3285c88cf0d37f477b  COPYING.lgplv3
+ *  13aa749a5b0a454917a944ed8fffc530b784f5ead522b1aacaf4ec8aa55a6239  COPYING.mbsd
  */
 
 /* = = = START-STATIC-FORWARD = = = */
 static char const *
-find_dir_name(tOptions * pOpts, int * p_free);
+find_dir_name(tOptions * opts, int * p_free);
 
 static char const *
-find_file_name(tOptions * pOpts, int * p_free_name);
+find_file_name(tOptions * opts, int * p_free_name);
 
 static void
-prt_entry(FILE * fp, tOptDesc * p, char const * pzLA);
+prt_entry(FILE * fp, tOptDesc * od, char const * l_arg);
 
 static void
 prt_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp);
@@ -52,7 +54,7 @@ static void
 prt_nested(FILE * fp, tOptDesc * p);
 
 static FILE *
-open_sv_file(tOptions* pOpts);
+open_sv_file(tOptions * opts);
 
 static void
 prt_no_arg_opt(FILE * fp, tOptDesc * p, tOptDesc * pOD);
@@ -61,25 +63,27 @@ static void
 prt_str_arg(FILE * fp, tOptDesc * pOD);
 
 static void
-prt_enum_arg(FILE * fp, tOptDesc * pOD);
+prt_enum_arg(FILE * fp, tOptDesc * od);
 
 static void
-prt_set_arg(FILE * fp, tOptDesc * pOD);
+prt_set_arg(FILE * fp, tOptDesc * od);
 
 static void
-prt_file_arg(FILE * fp, tOptDesc * pOD, tOptions* pOpts);
+prt_file_arg(FILE * fp, tOptDesc * od, tOptions * opts);
 /* = = = END-STATIC-FORWARD = = = */
 
+/**
+ */
 static char const *
-find_dir_name(tOptions * pOpts, int * p_free)
+find_dir_name(tOptions * opts, int * p_free)
 {
     char const * pzDir;
 
-    if (  (pOpts->specOptIdx.save_opts == NO_EQUIVALENT)
-       || (pOpts->specOptIdx.save_opts == 0))
+    if (  (opts->specOptIdx.save_opts == NO_EQUIVALENT)
+       || (opts->specOptIdx.save_opts == 0))
         return NULL;
 
-    pzDir = pOpts->pOptDesc[ pOpts->specOptIdx.save_opts ].optArg.argString;
+    pzDir = opts->pOptDesc[ opts->specOptIdx.save_opts ].optArg.argString;
     if ((pzDir != NULL) && (*pzDir != NUL))
         return pzDir;
 
@@ -88,7 +92,7 @@ find_dir_name(tOptions * pOpts, int * p_free)
      *  we can stash the RC (INI) file.
      */
     {
-        char const * const* papz = pOpts->papzHomeList;
+        char const * const* papz = opts->papzHomeList;
         if (papz == NULL)
             return NULL;
 
@@ -124,7 +128,7 @@ find_dir_name(tOptions * pOpts, int * p_free)
         }
 
         if (pzEnv == NULL) {
-            fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
+            fprintf(stderr, zsave_warn, opts->pzProgName);
             fprintf(stderr, zNotDef, pzDir);
             return NULL;
         }
@@ -134,7 +138,7 @@ find_dir_name(tOptions * pOpts, int * p_free)
 
         {
             size_t sz = strlen(pzEnv) + strlen(pzEndDir) + 2;
-            pzFileName = (char*)AGALOC(sz, "dir name");
+            pzFileName = (char *)AGALOC(sz, "dir name");
         }
 
         if (pzFileName == NULL)
@@ -150,14 +154,15 @@ find_dir_name(tOptions * pOpts, int * p_free)
     }
 }
 
-
+/**
+ */
 static char const *
-find_file_name(tOptions * pOpts, int * p_free_name)
+find_file_name(tOptions * opts, int * p_free_name)
 {
     struct stat stBuf;
     int    free_dir_name = 0;
 
-    char const * pzDir = find_dir_name(pOpts, &free_dir_name);
+    char const * pzDir = find_dir_name(opts, &free_dir_name);
     if (pzDir == NULL)
         return NULL;
 
@@ -175,7 +180,7 @@ find_file_name(tOptions * pOpts, int * p_free_name)
          */
         if (errno != ENOENT) {
         bogus_name:
-            fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
+            fprintf(stderr, zsave_warn, opts->pzProgName);
             fprintf(stderr, zNoStat, errno, strerror(errno), pzDir);
             if (free_dir_name)
                 AGFREE((void*)pzDir);
@@ -208,14 +213,14 @@ find_file_name(tOptions * pOpts, int * p_free_name)
      *  THEN tack on the config file name
      */
     if (S_ISDIR(stBuf.st_mode)) {
-        size_t sz = strlen(pzDir) + strlen(pOpts->pzRcName) + 2;
+        size_t sz = strlen(pzDir) + strlen(opts->pzRcName) + 2;
 
         {
             char * pzPath = (char*)AGALOC(sz, "file name");
 #ifdef HAVE_SNPRINTF
-            snprintf(pzPath, sz, "%s/%s", pzDir, pOpts->pzRcName);
+            snprintf(pzPath, sz, "%s/%s", pzDir, opts->pzRcName);
 #else
-            sprintf(pzPath, "%s/%s", pzDir, pOpts->pzRcName);
+            sprintf(pzPath, "%s/%s", pzDir, opts->pzRcName);
 #endif
             if (free_dir_name)
                 AGFREE((void*)pzDir);
@@ -229,7 +234,7 @@ find_file_name(tOptions * pOpts, int * p_free_name)
          */
         if (stat(pzDir, &stBuf) != 0) {
             if (errno != ENOENT) {
-                fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
+                fprintf(stderr, zsave_warn, opts->pzProgName);
                 fprintf(stderr, zNoStat, errno, strerror(errno),
                         pzDir);
                 AGFREE((void*)pzDir);
@@ -248,8 +253,7 @@ find_file_name(tOptions * pOpts, int * p_free_name)
      *  or will soon be a file.
      */
     if (! S_ISREG(stBuf.st_mode)) {
-        fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
-        fprintf(stderr, zNotFile, pzDir);
+        fprintf(stderr, zsave_warn, opts->pzProgName, pzDir);
         if (free_dir_name)
             AGFREE((void*)pzDir);
         return NULL;
@@ -263,10 +267,18 @@ find_file_name(tOptions * pOpts, int * p_free_name)
     return pzDir;
 }
 
-
+/**
+ * print one option entry to the save file.
+ *
+ * @param[in] fp    the file pointer for the save file
+ * @param[in] od    the option descriptor to print
+ * @param[in] l_arg the last argument for the option
+ */
 static void
-prt_entry(FILE * fp, tOptDesc * p, char const * pzLA)
+prt_entry(FILE * fp, tOptDesc * od, char const * l_arg)
 {
+    int space_ct;
+
     /*
      *  There is an argument.  Pad the name so values line up.
      *  Not disabled *OR* this got equivalenced to another opt,
@@ -274,56 +286,59 @@ prt_entry(FILE * fp, tOptDesc * p, char const * pzLA)
      *  Otherwise, there must be a disablement name.
      */
     {
-        char const * pz;
-        if (! DISABLED_OPT(p) || (p->optEquivIndex != NO_EQUIVALENT))
-            pz = p->pz_Name;
-        else
-            pz = p->pz_DisableName;
-
-        fprintf(fp, "%-18s", pz);
+        char const * pz =
+            (! DISABLED_OPT(od) || (od->optEquivIndex != NO_EQUIVALENT))
+            ? od->pz_Name
+            : od->pz_DisableName;
+        space_ct = 17 - strlen(pz);
+        fputs(pz, fp);
     }
+
+    if (  (l_arg == NULL)
+       && (OPTST_GET_ARGTYPE(od->fOptState) != OPARG_TYPE_NUMERIC))
+        goto end_entry;
+
+    fputs(" = ", fp);
+    while (space_ct-- > 0)  fputc(' ', fp);
+
     /*
      *  IF the option is numeric only,
      *  THEN the char pointer is really the number
      */
-    if (OPTST_GET_ARGTYPE(p->fOptState) == OPARG_TYPE_NUMERIC)
-        fprintf(fp, "  %d\n", (int)(t_word)pzLA);
-
-    /*
-     *  OTHERWISE, FOR each line of the value text, ...
-     */
-    else if (pzLA == NULL)
-        fputc(NL, fp);
+    if (OPTST_GET_ARGTYPE(od->fOptState) == OPARG_TYPE_NUMERIC)
+        fprintf(fp, "%d", (int)(t_word)l_arg);
 
     else {
-        fputc(' ', fp); fputc(' ', fp);
         for (;;) {
-            char const * pzNl = strchr(pzLA, NL);
+            char const * eol = strchr(l_arg, NL);
 
             /*
              *  IF this is the last line
              *  THEN bail and print it
              */
-            if (pzNl == NULL)
+            if (eol == NULL)
                 break;
 
             /*
              *  Print the continuation and the text from the current line
              */
-            (void)fwrite(pzLA, (size_t)(pzNl - pzLA), (size_t)1, fp);
-            pzLA = pzNl+1; /* advance the Last Arg pointer */
+            (void)fwrite(l_arg, (size_t)(eol - l_arg), (size_t)1, fp);
+            l_arg = eol+1; /* advance the Last Arg pointer */
             fputs("\\\n", fp);
         }
 
         /*
          *  Terminate the entry
          */
-        fputs(pzLA, fp);
-        fputc(NL, fp);
+        fputs(l_arg, fp);
     }
+
+end_entry:
+    fputc(NL, fp);
 }
 
-
+/**
+ */
 static void
 prt_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
 {
@@ -343,7 +358,7 @@ prt_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
     case OPARG_TYPE_ENUMERATION:
     case OPARG_TYPE_MEMBERSHIP:
         if (pOD != NULL) {
-            tAoUI     opt_state = pOD->fOptState;
+            uint32_t  opt_state = pOD->fOptState;
             uintptr_t val = pOD->optArg.argEnum;
             char const * typ = (ovp->valType == OPARG_TYPE_ENUMERATION)
                 ? "keyword" : "set-membership";
@@ -388,7 +403,8 @@ prt_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
     }
 }
 
-
+/**
+ */
 static void
 prt_string(FILE * fp, char const * name, char const * pz)
 {
@@ -423,7 +439,8 @@ prt_string(FILE * fp, char const * name, char const * pz)
     fprintf(fp, END_XML_FMT, name);
 }
 
-
+/**
+ */
 static void
 prt_val_list(FILE * fp, char const * name, tArgList * al)
 {
@@ -458,7 +475,8 @@ prt_val_list(FILE * fp, char const * name, tArgList * al)
     fprintf(fp, "</%s>\n", name);
 }
 
-
+/**
+ */
 static void
 prt_nested(FILE * fp, tOptDesc * p)
 {
@@ -494,21 +512,26 @@ prt_nested(FILE * fp, tOptDesc * p)
     } while (--opt_ct > 0);
 }
 
-
+/**
+ * open the file for saving option state.
+ *
+ * @param[in] opts  the program options structure
+ * @returns the open file pointer.  It may be NULL.
+ */
 static FILE *
-open_sv_file(tOptions* pOpts)
+open_sv_file(tOptions * opts)
 {
     FILE * fp;
 
     {
         int   free_name = 0;
-        char const * pzFName = find_file_name(pOpts, &free_name);
+        char const * pzFName = find_file_name(opts, &free_name);
         if (pzFName == NULL)
             return NULL;
 
         fp = fopen(pzFName, "w" FOPEN_BINARY_FLAG);
         if (fp == NULL) {
-            fprintf(stderr, SAVE_WARN, pOpts->pzProgName);
+            fprintf(stderr, zsave_warn, opts->pzProgName);
             fprintf(stderr, zNoCreat, errno, strerror(errno), pzFName);
             if (free_name)
                 AGFREE((void*) pzFName );
@@ -519,30 +542,33 @@ open_sv_file(tOptions* pOpts)
             AGFREE((void*)pzFName);
     }
 
+    fputs("#  ", fp);
     {
-        char const * pz = pOpts->pzUsageTitle;
-        fputs("#  ", fp);
-        do { fputc(*pz, fp); } while (*(pz++) != NL);
+        char const * e = strchr(opts->pzUsageTitle, NL);
+        if (e++ != NULL)
+            fwrite(opts->pzUsageTitle, 1, e - opts->pzUsageTitle, fp);
     }
 
     {
-        time_t  timeVal = time(NULL);
-        char *  pzTime  = ctime(&timeVal);
+        time_t  cur_time = time(NULL);
+        char *  time_str = ctime(&cur_time);
 
-        fprintf(fp, zPresetFile, pzTime);
+        fprintf(fp, zPresetFile, time_str);
 #ifdef HAVE_ALLOCATED_CTIME
         /*
          *  The return values for ctime(), localtime(), and gmtime()
          *  normally point to static data that is overwritten by each call.
          *  The test to detect allocated ctime, so we leak the memory.
          */
-        AGFREE((void*)pzTime);
+        AGFREE((void*)time_str);
 #endif
     }
 
     return fp;
 }
 
+/**
+ */
 static void
 prt_no_arg_opt(FILE * fp, tOptDesc * p, tOptDesc * pOD)
 {
@@ -564,6 +590,8 @@ prt_no_arg_opt(FILE * fp, tOptDesc * p, tOptDesc * pOD)
     fprintf(fp, "%s\n", pznm);
 }
 
+/**
+ */
 static void
 prt_str_arg(FILE * fp, tOptDesc * pOD)
 {
@@ -585,71 +613,83 @@ prt_str_arg(FILE * fp, tOptDesc * pOD)
     }
 }
 
+/**
+ * print the string value of an enumeration.
+ *
+ * @param[in] fp  the file pointer to write to
+ * @param[in] od  the option descriptor with the enumerated value
+ */
 static void
-prt_enum_arg(FILE * fp, tOptDesc * pOD)
+prt_enum_arg(FILE * fp, tOptDesc * od)
 {
-    uintptr_t val = pOD->optArg.argEnum;
+    uintptr_t val = od->optArg.argEnum;
 
     /*
      *  This is a magic incantation that will convert the
      *  bit flag values back into a string suitable for printing.
      */
-    (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
-    prt_entry(fp, pOD, (void*)(pOD->optArg.argString));
+    (*(od->pOptProc))(OPTPROC_RETURN_VALNAME, od);
+    prt_entry(fp, od, (void*)(od->optArg.argString));
 
-    pOD->optArg.argEnum = val;
+    od->optArg.argEnum = val;
 }
 
+/**
+ * Print the bits set in a bit mask option.
+ * We call the option handling function with a magic value for
+ * the options pointer and it allocates and fills in the string.
+ * We print that with a call to prt_entry().
+ *
+ * @param[in] fp  the file pointer to write to
+ * @param[in] od  the option descriptor with a bit mask value type
+ */
 static void
-prt_set_arg(FILE * fp, tOptDesc * pOD)
+prt_set_arg(FILE * fp, tOptDesc * od)
 {
-    uintptr_t val = pOD->optArg.argEnum;
-
-    /*
-     *  This is a magic incantation that will convert the
-     *  bit flag values back into a string suitable for printing.
-     */
-    (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, pOD);
-    prt_entry(fp, pOD, (void*)(pOD->optArg.argString));
-
-    if (pOD->optArg.argString != NULL) {
-        /*
-         *  set membership strings get allocated
-         */
-        AGFREE((void*)pOD->optArg.argString);
-        pOD->fOptState &= ~OPTST_ALLOC_ARG;
-    }
-
-    pOD->optArg.argEnum = val;
+    char * list = optionMemberList(od);
+    size_t len  = strlen(list);
+    char * buf  = (char *)AGALOC(len + 3, "dir name");
+    *buf= '=';
+    memcpy(buf+1, list, len + 1);
+    prt_entry(fp, od, buf);
+    AGFREE(buf);
+    AGFREE(list);
 }
 
+/**
+ * figure out what the option file name argument is.
+ * If one can be found, call prt_entry() to emit it.
+ *
+ * @param[in] fp   the file pointer to write to.
+ * @param[in] od   the option descriptor with a bit mask value type
+ * @param[in] opts the program options descriptor
+ */
 static void
-prt_file_arg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
+prt_file_arg(FILE * fp, tOptDesc * od, tOptions * opts)
 {
     /*
      *  If the cookie is not NULL, then it has the file name, period.
      *  Otherwise, if we have a non-NULL string argument, then....
      */
-    if (pOD->optCookie != NULL)
-        prt_entry(fp, pOD, pOD->optCookie);
+    if (od->optCookie != NULL)
+        prt_entry(fp, od, od->optCookie);
 
-    else if (HAS_originalOptArgArray(pOpts)) {
+    else if (HAS_originalOptArgArray(opts)) {
         char const * orig =
-            pOpts->originalOptArgArray[pOD->optIndex].argString;
+            opts->originalOptArgArray[od->optIndex].argString;
 
-        if (pOD->optArg.argString == orig)
+        if (od->optArg.argString == orig)
             return;
 
-        prt_entry(fp, pOD, pOD->optArg.argString);
+        prt_entry(fp, od, od->optArg.argString);
     }
 }
-
 
 /*=export_func  optionSaveFile
  *
  * what:  saves the option state to a file
  *
- * arg:   tOptions*,   pOpts,  program options descriptor
+ * arg:   tOptions*,   opts,  program options descriptor
  *
  * doc:
  *
@@ -675,11 +715,11 @@ prt_file_arg(FILE * fp, tOptDesc * pOD, tOptions* pOpts)
  * will be printed to @code{stderr} and the routine will return.
 =*/
 void
-optionSaveFile(tOptions* pOpts)
+optionSaveFile(tOptions * opts)
 {
-    tOptDesc* pOD;
-    int       ct;
-    FILE *    fp = open_sv_file(pOpts);
+    tOptDesc *  od;
+    int         ct;
+    FILE *      fp = open_sv_file(opts);
 
     if (fp == NULL)
         return;
@@ -687,8 +727,8 @@ optionSaveFile(tOptions* pOpts)
     /*
      *  FOR each of the defined options, ...
      */
-    ct  = pOpts->presetOptCt;
-    pOD = pOpts->pOptDesc;
+    ct = opts->presetOptCt;
+    od = opts->pOptDesc;
     do  {
         tOptDesc * p;
 
@@ -701,14 +741,14 @@ optionSaveFile(tOptions* pOpts)
          *  Equivalenced options get picked up when the equivalenced-to
          *  option is processed.
          */
-        if (UNUSED_OPT(pOD))
+        if (UNUSED_OPT(od))
             continue;
 
-        if ((pOD->fOptState & OPTST_DO_NOT_SAVE_MASK) != 0)
+        if ((od->fOptState & OPTST_DO_NOT_SAVE_MASK) != 0)
             continue;
 
-        if (  (pOD->optEquivIndex != NO_EQUIVALENT)
-           && (pOD->optEquivIndex != pOD->optIndex))
+        if (  (od->optEquivIndex != NO_EQUIVALENT)
+           && (od->optEquivIndex != od->optIndex))
             continue;
 
         /*
@@ -716,12 +756,12 @@ optionSaveFile(tOptions* pOpts)
          *  but the actual option argument type comes from the original
          *  option descriptor.  Be careful!
          */
-        p = ((pOD->fOptState & OPTST_EQUIVALENCE) != 0)
-            ? (pOpts->pOptDesc + pOD->optActualIndex) : pOD;
+        p = ((od->fOptState & OPTST_EQUIVALENCE) != 0)
+            ? (opts->pOptDesc + od->optActualIndex) : od;
 
-        switch (OPTST_GET_ARGTYPE(pOD->fOptState)) {
+        switch (OPTST_GET_ARGTYPE(od->fOptState)) {
         case OPARG_TYPE_NONE:
-            prt_no_arg_opt(fp, p, pOD);
+            prt_no_arg_opt(fp, p, od);
             break;
 
         case OPARG_TYPE_NUMERIC:
@@ -749,17 +789,18 @@ optionSaveFile(tOptions* pOpts)
             break;
 
         case OPARG_TYPE_FILE:
-            prt_file_arg(fp, p, pOpts);
+            prt_file_arg(fp, p, opts);
             break;
 
         default:
             break; /* cannot handle - skip it */
         }
-    } while (pOD++, (--ct > 0));
+    } while (od++, (--ct > 0));
 
     fclose(fp);
 }
-/*
+/** @}
+ *
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
