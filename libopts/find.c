@@ -3,14 +3,16 @@
  *
  * @brief Hunt for options in the option descriptor list
  *
- *  Time-stamp:      "2012-08-11 08:36:11 bkorb"
- *
  *  This file contains the routines that deal with processing quoted strings
  *  into an internal format.
  *
+ * @addtogroup autoopts
+ * @{
+ */
+/*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -22,12 +24,42 @@
  *   The Modified Berkeley Software Distribution License
  *      See the file "COPYING.mbsd"
  *
- *  These files have the following md5sums:
+ *  These files have the following sha256 sums:
  *
- *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
- *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
- *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
+ *  8584710e9b04216a394078dc156b781d0b47e1729104d666658aecef8ee32e95  COPYING.gplv3
+ *  4379e7444a0e2ce2b12dd6f5a52a27a4d02d39d247901d3285c88cf0d37f477b  COPYING.lgplv3
+ *  13aa749a5b0a454917a944ed8fffc530b784f5ead522b1aacaf4ec8aa55a6239  COPYING.mbsd
  */
+
+/* = = = START-STATIC-FORWARD = = = */
+static int
+parse_opt(char const ** nm_pp, char ** arg_pp, char * buf, size_t bufsz);
+
+static void
+opt_ambiguities(tOptions * opts, char const * name, int nm_len);
+
+static int
+opt_match_ct(tOptions * opts, char const * name, int nm_len,
+             int * ixp, bool * disable);
+
+static tSuccess
+opt_set(tOptions * opts, char * arg, int idx, bool disable, tOptState * st);
+
+static tSuccess
+opt_unknown(tOptions * opts, char const * name, char * arg, tOptState * st);
+
+static tSuccess
+opt_ambiguous(tOptions * opts, char const * name, int match_ct);
+
+static tSuccess
+get_opt_arg_must(tOptions * opts, tOptState * o_st);
+
+static tSuccess
+get_opt_arg_may(tOptions * pOpts, tOptState * o_st);
+
+static tSuccess
+get_opt_arg_none(tOptions * pOpts, tOptState* o_st);
+/* = = = END-STATIC-FORWARD = = = */
 
 /**
  * find the name and name length we are looking for
@@ -44,7 +76,7 @@ parse_opt(char const ** nm_pp, char ** arg_pp, char * buf, size_t bufsz)
         case NUL: return res;
 
         case '=':
-            memcpy(buf, *nm_pp, res);
+            memcpy(buf, *nm_pp, (size_t)res);
 
             buf[res] = NUL;
             *nm_pp   = buf;
@@ -73,15 +105,18 @@ opt_ambiguities(tOptions * opts, char const * name, int nm_len)
     tOptDesc * pOD = opts->pOptDesc;
     int        idx = 0;
 
-    fputs(zAmbigList, stderr);
+    fputs(zambig_list_msg, stderr);
     do  {
+        if (pOD->pz_Name == NULL)
+            continue; /* doc option */
+
         if (strneqvcmp(name, pOD->pz_Name, nm_len) == 0)
-            fprintf(stderr, zAmbiguous, hyph, pOD->pz_Name);
+            fprintf(stderr, zambig_file, hyph, pOD->pz_Name);
 
         else if (  (pOD->pz_DisableName != NULL)
                 && (strneqvcmp(name, pOD->pz_DisableName, nm_len) == 0)
                 )
-            fprintf(stderr, zAmbiguous, hyph, pOD->pz_DisableName);
+            fprintf(stderr, zambig_file, hyph, pOD->pz_DisableName);
     } while (pOD++, (++idx < opts->optCt));
 }
 
@@ -255,9 +290,9 @@ static tSuccess
 opt_ambiguous(tOptions * opts, char const * name, int match_ct)
 {
     if ((opts->fOptSet & OPTPROC_ERRSTOP) != 0) {
-        fprintf(stderr, zAmbigOptStr, opts->pzProgPath, name, match_ct);
+        fprintf(stderr, zambig_opt_fmt, opts->pzProgPath, name, match_ct);
         if (match_ct <= 4)
-            opt_ambiguities(opts, name, strlen(name));
+            opt_ambiguities(opts, name, (int)strlen(name));
         (*opts->pUsageProc)(opts, EXIT_FAILURE);
         /* NOTREACHED */
         _exit(EXIT_FAILURE); /* to be certain */
@@ -343,7 +378,10 @@ opt_find_long(tOptions * opts, char const * opt_name, tOptState * state)
     bool    disable  = false;
     int     ct;
 
-    if (nm_len <= 0) {
+    if (nm_len <= 1) {
+        if ((opts->fOptSet & OPTPROC_ERRSTOP) == 0)
+            return FAILURE;
+        
         fprintf(stderr, zInvalOptName, opts->pzProgName, opt_name);
         (*opts->pUsageProc)(opts, EXIT_FAILURE);
         /* NOTREACHED */
@@ -386,6 +424,9 @@ opt_find_short(tOptions* pOpts, uint_t optValue, tOptState* pOptState)
         if (SKIP_OPT(pRes)) {
             if (  (pRes->fOptState == (OPTST_OMITTED | OPTST_NO_INIT))
                && (pRes->pz_Name != NULL)) {
+                if ((pOpts->fOptSet & OPTPROC_ERRSTOP) == 0)
+                    return FAILURE;
+        
                 fprintf(stderr, zDisabledErr, pOpts->pzProgPath, pRes->pz_Name);
                 if (pRes->pzText != NULL)
                     fprintf(stderr, SET_OFF_FMT, pRes->pzText);
@@ -418,7 +459,7 @@ opt_find_short(tOptions* pOpts, uint_t optValue, tOptState* pOptState)
         return SUCCESS;
     }
 
-short_opt_error:
+ short_opt_error:
 
     /*
      *  IF we are to stop on errors (the default, actually)
@@ -434,75 +475,235 @@ short_opt_error:
     return FAILURE;
 }
 
-LOCAL tSuccess
-get_opt_arg(tOptions * pOpts, tOptState * pOptState)
+/**
+ *  Process option with a required argument.  Long options can either have a
+ *  separate command line argument, or an argument attached by the '='
+ *  character.  Figure out which.
+ *
+ *  @param[in,out] opts  the program option descriptor
+ *  @param[in,out] o_st  the option processing state
+ *  @returns SUCCESS or FAILURE
+ */
+static tSuccess
+get_opt_arg_must(tOptions * opts, tOptState * o_st)
 {
-    pOptState->flags |= (pOptState->pOD->fOptState & OPTST_PERSISTENT_MASK);
+    switch (o_st->optType) {
+    case TOPT_SHORT:
+        /*
+         *  See if an arg string follows the flag character
+         */
+        if (*++(opts->pzCurOpt) == NUL)
+            opts->pzCurOpt = opts->origArgVect[ opts->curOptIdx++ ];
+        o_st->pzOptArg = opts->pzCurOpt;
+        break;
+
+    case TOPT_LONG:
+        /*
+         *  See if an arg string has already been assigned (glued on
+         *  with an `=' character)
+         */
+        if (o_st->pzOptArg == NULL)
+            o_st->pzOptArg = opts->origArgVect[ opts->curOptIdx++ ];
+        break;
+
+    default:
+#ifdef DEBUG
+        fputs("AutoOpts lib error: option type not selected\n", stderr);
+        option_exits(EXIT_FAILURE);
+#endif
+
+    case TOPT_DEFAULT:
+        /*
+         *  The option was selected by default.  The current token is
+         *  the option argument.
+         */
+        break;
+    }
 
     /*
-     *  Figure out what to do about option arguments.  An argument may be
-     *  required, not associated with the option, or be optional.  We detect the
-     *  latter by examining for an option marker on the next possible argument.
-     *  Disabled mode option selection also disables option arguments.
+     *  Make sure we did not overflow the argument list.
      */
-    {
-        enum { ARG_NONE, ARG_MAY, ARG_MUST } arg_type = ARG_NONE;
-        tSuccess res;
-
-        if ((pOptState->flags & OPTST_DISABLED) != 0)
-            arg_type = ARG_NONE;
-
-        else if (OPTST_GET_ARGTYPE(pOptState->flags) == OPARG_TYPE_NONE)
-            arg_type = ARG_NONE;
-
-        else if (pOptState->flags & OPTST_ARG_OPTIONAL)
-            arg_type = ARG_MAY;
-
-        else
-            arg_type = ARG_MUST;
-
-        switch (arg_type) {
-        case ARG_MUST: res = next_opt_arg_must(pOpts, pOptState); break;
-        case ARG_MAY:  res = next_opt_arg_may( pOpts, pOptState); break;
-        case ARG_NONE: res = next_opt_arg_none(pOpts, pOptState); break;
-        }
-
-        return res;
+    if (opts->curOptIdx > opts->origArgCt) {
+        fprintf(stderr, zMisArg, opts->pzProgPath, o_st->pOD->pz_Name);
+        return FAILURE;
     }
+
+    opts->pzCurOpt = NULL;  /* next time advance to next arg */
+    return SUCCESS;
 }
 
 /**
- *  Find the option descriptor for the current option
+ * Process an option with an optional argument.  For short options, it looks
+ * at the character after the option character, or it consumes the next full
+ * argument.  For long options, it looks for an '=' character attachment to
+ * the long option name before deciding to take the next command line
+ * argument.
+ *
+ * @param pOpts      the option descriptor
+ * @param o_st  a structure for managing the current processing state
+ * @returns SUCCESS or does not return
+ */
+static tSuccess
+get_opt_arg_may(tOptions * pOpts, tOptState * o_st)
+{
+    /*
+     *  An option argument is optional.
+     */
+    switch (o_st->optType) {
+    case TOPT_SHORT:
+        if (*++pOpts->pzCurOpt != NUL)
+            o_st->pzOptArg = pOpts->pzCurOpt;
+        else {
+            char* pzLA = pOpts->origArgVect[ pOpts->curOptIdx ];
+
+            /*
+             *  BECAUSE it is optional, we must make sure
+             *  we did not find another flag and that there
+             *  is such an argument.
+             */
+            if ((pzLA == NULL) || (*pzLA == '-'))
+                o_st->pzOptArg = NULL;
+            else {
+                pOpts->curOptIdx++; /* argument found */
+                o_st->pzOptArg = pzLA;
+            }
+        }
+        break;
+
+    case TOPT_LONG:
+        /*
+         *  Look for an argument if we don't already have one (glued on
+         *  with a `=' character) *AND* we are not in named argument mode
+         */
+        if (  (o_st->pzOptArg == NULL)
+           && (! NAMED_OPTS(pOpts))) {
+            char* pzLA = pOpts->origArgVect[ pOpts->curOptIdx ];
+
+            /*
+             *  BECAUSE it is optional, we must make sure
+             *  we did not find another flag and that there
+             *  is such an argument.
+             */
+            if ((pzLA == NULL) || (*pzLA == '-'))
+                o_st->pzOptArg = NULL;
+            else {
+                pOpts->curOptIdx++; /* argument found */
+                o_st->pzOptArg = pzLA;
+            }
+        }
+        break;
+
+    default:
+    case TOPT_DEFAULT:
+        ao_bug(zbad_default_msg);
+    }
+
+    /*
+     *  After an option with an optional argument, we will
+     *  *always* start with the next option because if there
+     *  were any characters following the option name/flag,
+     *  they would be interpreted as the argument.
+     */
+    pOpts->pzCurOpt = NULL;
+    return SUCCESS;
+}
+
+/**
+ *  Process option that does not have an argument.
+ *
+ *  @param[in,out] opts  the program option descriptor
+ *  @param[in,out] o_st  the option processing state
+ *  @returns SUCCESS or FAILURE
+ */
+static tSuccess
+get_opt_arg_none(tOptions * pOpts, tOptState* o_st)
+{
+    /*
+     *  No option argument.  Make sure next time around we find
+     *  the correct option flag character for short options
+     */
+    if (o_st->optType == TOPT_SHORT)
+        (pOpts->pzCurOpt)++;
+
+    /*
+     *  It is a long option.  Make sure there was no ``=xxx'' argument
+     */
+    else if (o_st->pzOptArg != NULL) {
+        fprintf(stderr, zNoArg, pOpts->pzProgPath, o_st->pOD->pz_Name);
+        return FAILURE;
+    }
+
+    /*
+     *  It is a long option.  Advance to next command line argument.
+     */
+    else
+        pOpts->pzCurOpt = NULL;
+    return SUCCESS;
+}
+
+/**
+ *  Process option.  Figure out whether or not to look for an option argument.
+ *
+ *  @param[in,out] opts  the program option descriptor
+ *  @param[in,out] o_st  the option processing state
+ *  @returns SUCCESS or FAILURE
  */
 LOCAL tSuccess
-find_opt(tOptions * pOpts, tOptState * pOptState)
+get_opt_arg(tOptions * opts, tOptState * o_st)
+{
+    o_st->flags |= (o_st->pOD->fOptState & OPTST_PERSISTENT_MASK);
+
+    /*
+     * Disabled options and options specified to not have arguments
+     * are handled with the "none" procedure.  Otherwise, check the
+     * optional flag and call either the "may" or "must" function.
+     */
+    if (  ((o_st->flags & OPTST_DISABLED) != 0)
+       || (OPTST_GET_ARGTYPE(o_st->flags) == OPARG_TYPE_NONE))
+        return get_opt_arg_none(opts, o_st);
+    
+    if (o_st->flags & OPTST_ARG_OPTIONAL)
+        return get_opt_arg_may( opts, o_st);
+    
+    return get_opt_arg_must(opts, o_st);
+}
+
+/**
+ *  Find the option descriptor for the current option.
+ *
+ *  @param[in,out] opts  the program option descriptor
+ *  @param[in,out] o_st  the option processing state
+ *  @returns SUCCESS or FAILURE
+ */
+LOCAL tSuccess
+find_opt(tOptions * opts, tOptState * o_st)
 {
     /*
      *  IF we are continuing a short option list (e.g. -xyz...)
      *  THEN continue a single flag option.
      *  OTHERWISE see if there is room to advance and then do so.
      */
-    if ((pOpts->pzCurOpt != NULL) && (*pOpts->pzCurOpt != NUL))
-        return opt_find_short(pOpts, (tAoUC)*(pOpts->pzCurOpt), pOptState);
+    if ((opts->pzCurOpt != NULL) && (*opts->pzCurOpt != NUL))
+        return opt_find_short(opts, (uint8_t)*(opts->pzCurOpt), o_st);
 
-    if (pOpts->curOptIdx >= pOpts->origArgCt)
+    if (opts->curOptIdx >= opts->origArgCt)
         return PROBLEM; /* NORMAL COMPLETION */
 
-    pOpts->pzCurOpt = pOpts->origArgVect[ pOpts->curOptIdx ];
+    opts->pzCurOpt = opts->origArgVect[ opts->curOptIdx ];
 
     /*
      *  IF all arguments must be named options, ...
      */
-    if (NAMED_OPTS(pOpts)) {
-        char *   pz  = pOpts->pzCurOpt;
-        int      def;
-        tSuccess res; 
-        tAoUS *  def_opt;
+    if (NAMED_OPTS(opts)) {
+        char *      pz  = opts->pzCurOpt;
+        int         def;
+        tSuccess    res;
+        uint16_t *  def_opt;
 
-        pOpts->curOptIdx++;
+        opts->curOptIdx++;
 
         if (*pz != '-')
-            return opt_find_long(pOpts, pz, pOptState);
+            return opt_find_long(opts, pz, o_st);
 
         /*
          *  The name is prefixed with one or more hyphens.  Strip them off
@@ -510,37 +711,37 @@ find_opt(tOptions * pOpts, tOptState * pOptState)
          *  strip off the "const" quality of the "default_opt" field.
          */
         while (*(++pz) == '-')   ;
-        def_opt = (void *)&(pOpts->specOptIdx.default_opt);
-        def = *def_opt;
+        def_opt  = (void *)&(opts->specOptIdx.default_opt);
+        def      = *def_opt;
         *def_opt = NO_EQUIVALENT;
-        res = opt_find_long(pOpts, pz, pOptState);
-        *def_opt = def;
+        res      = opt_find_long(opts, pz, o_st);
+        *def_opt = (uint16_t)def;
         return res;
     }
 
     /*
      *  Note the kind of flag/option marker
      */
-    if (*((pOpts->pzCurOpt)++) != '-')
+    if (*((opts->pzCurOpt)++) != '-')
         return PROBLEM; /* NORMAL COMPLETION - this + rest are operands */
 
     /*
      *  Special hack for a hyphen by itself
      */
-    if (*(pOpts->pzCurOpt) == NUL)
+    if (*(opts->pzCurOpt) == NUL)
         return PROBLEM; /* NORMAL COMPLETION - this + rest are operands */
 
     /*
      *  The current argument is to be processed as an option argument
      */
-    pOpts->curOptIdx++;
+    opts->curOptIdx++;
 
     /*
      *  We have an option marker.
      *  Test the next character for long option indication
      */
-    if (pOpts->pzCurOpt[0] == '-') {
-        if (*++(pOpts->pzCurOpt) == NUL)
+    if (opts->pzCurOpt[0] == '-') {
+        if (*++(opts->pzCurOpt) == NUL)
             /*
              *  NORMAL COMPLETION - NOT this arg, but rest are operands
              */
@@ -550,13 +751,12 @@ find_opt(tOptions * pOpts, tOptState * pOptState)
          *  We do not allow the hyphen to be used as a flag value.
          *  Therefore, if long options are not to be accepted, we punt.
          */
-        if ((pOpts->fOptSet & OPTPROC_LONGOPT) == 0) {
-            fprintf(stderr, zIllOptStr, pOpts->pzProgPath,
-                    pOpts->pzCurOpt-2);
+        if ((opts->fOptSet & OPTPROC_LONGOPT) == 0) {
+            fprintf(stderr, zIllOptStr, opts->pzProgPath, opts->pzCurOpt-2);
             return FAILURE;
         }
 
-        return opt_find_long(pOpts, pOpts->pzCurOpt, pOptState);
+        return opt_find_long(opts, opts->pzCurOpt, o_st);
     }
 
     /*
@@ -564,13 +764,14 @@ find_opt(tOptions * pOpts, tOptState * pOptState)
      *  option processing.  Otherwise the character must be a
      *  short (i.e. single character) option.
      */
-    if ((pOpts->fOptSet & OPTPROC_SHORTOPT) != 0)
-        return opt_find_short(pOpts, (tAoUC)*(pOpts->pzCurOpt), pOptState);
+    if ((opts->fOptSet & OPTPROC_SHORTOPT) != 0)
+        return opt_find_short(opts, (uint8_t)*(opts->pzCurOpt), o_st);
 
-    return opt_find_long(pOpts, pOpts->pzCurOpt, pOptState);
+    return opt_find_long(opts, opts->pzCurOpt, o_st);
 }
 
-/*
+/** @}
+ *
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"

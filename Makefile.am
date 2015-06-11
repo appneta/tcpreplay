@@ -9,7 +9,7 @@ else
 SUBDIRS = $(KERNEL_DIR) scripts lib src
 endif
 
-DIST_SUBDIRS = scripts lib libopts src docs test kernel
+DIST_SUBDIRS = scripts lib libopts src docs test $(KERNEL_DIR)
 .PHONY: manpages docs test man2html
 
 

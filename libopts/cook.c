@@ -1,14 +1,16 @@
 /**
  * \file cook.c
  *
- *  Time-stamp:      "2012-02-28 19:40:47 bkorb"
- *
  *  This file contains the routines that deal with processing quoted strings
  *  into an internal format.
  *
+ * @addtogroup autoopts
+ * @{
+ */
+/*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -20,11 +22,11 @@
  *   The Modified Berkeley Software Distribution License
  *      See the file "COPYING.mbsd"
  *
- *  These files have the following md5sums:
+ *  These files have the following sha256 sums:
  *
- *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
- *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
- *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
+ *  8584710e9b04216a394078dc156b781d0b47e1729104d666658aecef8ee32e95  COPYING.gplv3
+ *  4379e7444a0e2ce2b12dd6f5a52a27a4d02d39d247901d3285c88cf0d37f477b  COPYING.lgplv3
+ *  13aa749a5b0a454917a944ed8fffc530b784f5ead522b1aacaf4ec8aa55a6239  COPYING.mbsd
  */
 
 /* = = = START-STATIC-FORWARD = = = */
@@ -59,9 +61,9 @@ contiguous_quote(char ** pps, char * pq, int * lnct_p);
  * err:  @code{NULL} is returned if the string is mal-formed.
 =*/
 unsigned int
-ao_string_cook_escape_char(char const* pzIn, char* pRes, uint_t nl)
+ao_string_cook_escape_char(char const * pzIn, char * pRes, uint_t nl)
 {
-    unsigned int  res = 1;
+    unsigned int res = 1;
 
     switch (*pRes = *pzIn++) {
     case NUL:         /* NUL - end of input string */
@@ -86,13 +88,17 @@ ao_string_cook_escape_char(char const* pzIn, char* pRes, uint_t nl)
     case 'x':
     case 'X':         /* HEX Escape       */
         if (IS_HEX_DIGIT_CHAR(*pzIn))  {
-            char z[4], *pz = z;
+            char z[4];
+            unsigned int ct = 0;
 
-            do *(pz++) = *(pzIn++);
-            while (IS_HEX_DIGIT_CHAR(*pzIn) && (pz < z + 2));
-            *pz = NUL;
-            *pRes = (unsigned char)strtoul(z, NULL, 16);
-            res += pz - z;
+            do  {
+                z[ct] = pzIn[ct];
+                if (++ct >= 2)
+                    break;
+            } while (IS_HEX_DIGIT_CHAR(pzIn[ct]));
+            z[ct] = NUL;
+            *pRes = (char)strtoul(z, NULL, 16);
+            return ct + 1;
         }
         break;
 
@@ -101,24 +107,29 @@ ao_string_cook_escape_char(char const* pzIn, char* pRes, uint_t nl)
     {
         /*
          *  IF the character copied was an octal digit,
-         *  THEN set the output character to an octal value
+         *  THEN set the output character to an octal value.
+         *  The 3 octal digit result might exceed 0xFF, so check it.
          */
-        char z[4], *pz = z + 1;
+        char z[4];
         unsigned long val;
-        z[0] = *pRes;
+        unsigned int  ct = 0;
 
-        while (IS_OCT_DIGIT_CHAR(*pzIn) && (pz < z + 3))
-            *(pz++) = *(pzIn++);
-        *pz = NUL;
+        z[ct++] = *--pzIn;
+        while (IS_OCT_DIGIT_CHAR(pzIn[ct])) {
+            z[ct] = pzIn[ct];
+            if (++ct >= 3)
+                break;
+        }
+
+        z[ct] = NUL;
         val = strtoul(z, NULL, 8);
         if (val > 0xFF)
             val = 0xFF;
-        *pRes = (unsigned char)val;
-        res = pz - z;
-        break;
+        *pRes = (char)val;
+        return ct;
     }
 
-    default: ;
+    default: /* quoted character is result character */;
     }
 
     return res;
@@ -282,7 +293,8 @@ ao_string_cook(char * pzScan, int * lnct_p)
              *  THEN we do the full escape character processing
              */
             else if (q != '\'') {
-                int ct = ao_string_cook_escape_char(pzS, pzD-1, (uint_t)NL);
+                unsigned int ct;
+                ct = ao_string_cook_escape_char(pzS, pzD-1, (uint_t)NL);
                 if (ct == 0)
                     return NULL;
 
@@ -302,7 +314,9 @@ ao_string_cook(char * pzScan, int * lnct_p)
         }     /* switch (*(pzD++) = *(pzS++))    */
     }         /* for (;;)                        */
 }
-/*
+
+/** @}
+ *
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"
