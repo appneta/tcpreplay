@@ -3,11 +3,13 @@
  *
  * Map a text file, ensuring the text always has an ending NUL byte.
  *
- * Time-stamp:      "2012-01-29 09:40:21 bkorb"
- *
+ * @addtogroup autoopts
+ * @{
+ */
+/*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (c) 1992-2012 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -19,11 +21,11 @@
  *   The Modified Berkeley Software Distribution License
  *      See the file "COPYING.mbsd"
  *
- *  These files have the following md5sums:
+ *  These files have the following sha256 sums:
  *
- *  43b91e8ca915626ed3818ffb1b71248b pkg/libopts/COPYING.gplv3
- *  06a1a2e4760c90ea5e1dad8dfaac4d39 pkg/libopts/COPYING.lgplv3
- *  66a5cedaf62c4b2637025f049f9b826f pkg/libopts/COPYING.mbsd
+ *  8584710e9b04216a394078dc156b781d0b47e1729104d666658aecef8ee32e95  COPYING.gplv3
+ *  4379e7444a0e2ce2b12dd6f5a52a27a4d02d39d247901d3285c88cf0d37f477b  COPYING.lgplv3
+ *  13aa749a5b0a454917a944ed8fffc530b784f5ead522b1aacaf4ec8aa55a6239  COPYING.mbsd
  */
 #if defined(HAVE_MMAP)
 #  ifndef      MAP_ANONYMOUS
@@ -97,8 +99,7 @@ load_text_file(tmap_info_t * mapinfo, char const * pzFile)
             ssize_t rdct = read(mapinfo->txt_fd, pz, sz);
             if (rdct <= 0) {
                 mapinfo->txt_errno = errno;
-                fprintf(stderr, zFSErrReadFile,
-                        errno, strerror(errno), pzFile);
+                fserr_warn("libopts", "read", pzFile);
                 free(mapinfo->txt_data);
                 return;
             }
@@ -113,7 +114,7 @@ load_text_file(tmap_info_t * mapinfo, char const * pzFile)
     mapinfo->txt_errno   = 0;
 
 #else /* HAVE mmap */
-    size_t const pgsz = GETPAGESIZE();
+    size_t const pgsz = (size_t)GETPAGESIZE();
     void * map_addr   = NULL;
 
     (void)pzFile;
@@ -175,24 +176,6 @@ validate_mmap(char const * fname, int prot, int flags, tmap_info_t * mapinfo)
     mapinfo->txt_flags   = flags;
 
     /*
-     *  Make sure we can stat the regular file.  Save the file size.
-     */
-    {
-        struct stat sb;
-        if (stat(fname, &sb) != 0) {
-            mapinfo->txt_errno = errno;
-            return;
-        }
-
-        if (! S_ISREG(sb.st_mode)) {
-            mapinfo->txt_errno = errno = EINVAL;
-            return;
-        }
-
-        mapinfo->txt_size = sb.st_size;
-    }
-
-    /*
      *  Map mmap flags and protections into open flags and do the open.
      */
     {
@@ -212,6 +195,31 @@ validate_mmap(char const * fname, int prot, int flags, tmap_info_t * mapinfo)
             o_flag |= O_EXCL;
 
         mapinfo->txt_fd = open(fname, o_flag);
+        if (mapinfo->txt_fd < 0) {
+            mapinfo->txt_errno = errno;
+            mapinfo->txt_fd = AO_INVALID_FD;
+            return;
+        }
+    }
+
+    /*
+     *  Make sure we can stat the regular file.  Save the file size.
+     */
+    {
+        struct stat sb;
+        if (fstat(mapinfo->txt_fd, &sb) != 0) {
+            mapinfo->txt_errno = errno;
+            close(mapinfo->txt_fd);
+            return;
+        }
+
+        if (! S_ISREG(sb.st_mode)) {
+            mapinfo->txt_errno = errno = EINVAL;
+            close(mapinfo->txt_fd);
+            return;
+        }
+
+        mapinfo->txt_size = (size_t)sb.st_size;
     }
 
     if (mapinfo->txt_fd == AO_INVALID_FD)
@@ -232,7 +240,7 @@ close_mmap_files(tmap_info_t * mi)
     close(mi->txt_fd);
     mi->txt_fd = AO_INVALID_FD;
 
-#if ! defined(MAP_ANONYMOUS)
+#if defined(HAVE_MMAP) && ! defined(MAP_ANONYMOUS)
     if (mi->txt_zero_fd == AO_INVALID_FD)
         return;
 
@@ -361,7 +369,8 @@ text_munmap(tmap_info_t * mi)
     return mi->txt_errno;
 }
 
-/*
+/** @}
+ *
  * Local Variables:
  * mode: C
  * c-file-style: "stroustrup"

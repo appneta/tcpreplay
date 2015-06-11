@@ -1,7 +1,8 @@
 
 dnl $Id$
 
-AC_INIT(tcpreplay)
+AC_PREREQ([2.69])
+AC_INIT([tcpreplay],[4.1.0],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -48,6 +49,70 @@ if test "$cross_compiling" = "yes" ; then
 fi
 AC_SUBST(CROSS_ARCH)
 AC_SUBST(CROSS_LD)
+
+dnl ============================================
+dnl MacOSX build and runtime environment options
+dnl ============================================
+
+AC_ARG_WITH(macosx-sdk,
+    AS_HELP_STRING([--with-macosx-sdk],
+        [Use a specific SDK for building.])
+    [
+                          Usage:     --with-macosx-sdk=<version>
+                          e. g.: --with-macosx-sdk=10.8
+    ],
+,)
+
+
+dnl ===========================
+dnl Check OS X SDK and compiler
+dnl ===========================
+
+case "$host_os" in
+    darwin*) # Mac OS X or iOS
+   # If no --with-macosx-sdk option is given, look for one
+
+    # The intent is that for "most" Mac-based developers, a suitable
+    # SDK will be found automatically without any configure options.
+
+    # For developers with a current Xcode, the lowest-numbered SDK
+    # higher than or equal to the minimum required should be found.
+
+    AC_MSG_CHECKING([what Mac OS X SDK to use])
+
+    for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10; do
+        MACOSX_SDK_PATH=`xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null`
+        if test -d "$MACOSX_SDK_PATH"; then
+            with_macosx_sdk="${_macosx_sdk}"
+            break
+        else
+            MACOSX_SDK_PATH="`xcode-select -print-path`/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${_macosx_sdk}.sdk"
+            if test -d "$MACOSX_SDK_PATH"; then
+                with_macosx_sdk="${_macosx_sdk}"
+                break
+            fi
+        fi
+    done
+    if test ! -d "$MACOSX_SDK_PATH"; then
+        AC_MSG_ERROR([Could not figure out the location of a Mac OS X SDK])
+    fi
+
+    AC_MSG_CHECKING([what compiler to use])
+    CC="`xcrun -find clang` -m64 -isysroot $MACOSX_SDK_PATH"
+    INSTALL_NAME_TOOL=`xcrun -find install_name_tool`
+    AR=`xcrun -find ar`
+    NM=`xcrun -find nm`
+    STRIP=`xcrun -find strip`
+    LIBTOOL=`xcrun -find libtool`
+    RANLIB=`xcrun -find ranlib`
+    AC_MSG_RESULT([$CC])
+ 
+    ;;
+
+esac
+
+AC_SUBST(MACOSX_SDK_PATH)
+AC_SUBST(LIBTOOL) # Note that the OS X libtool command is unrelated to GNU libtool
 
 have_cygwin=no
 AC_MSG_CHECKING([for cygwin development environment])
@@ -469,7 +534,7 @@ AC_ARG_WITH(libpcap,
         fi
     done
 ],[
-    for testdir in /usr/local /opt/local /usr /wpdpack ; do 
+    for testdir in /usr/local /opt/local /usr /wpdpack $MACOSX_SDK_PATH/usr /usr ; do 
         if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
             LPCAPINC="${testdir}/include/pcap.h"
             LPCAPINCDIR="${testdir}/include"
@@ -1201,7 +1266,7 @@ if test $have_cygwin = no ; then
         AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
         [trydnetdir=$withval])
 
-    for testdir in $trydnetdir /usr/local /opt/local /usr ; do 
+    for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do 
         if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
             LDNETINC="`$testdir/bin/dnet-config --cflags`"
             LDNETLIB="`$testdir/bin/dnet-config --libs`"
@@ -1660,7 +1725,7 @@ Linux/BSD netmap:           ${have_netmap}
 
 case $host in
     *-apple-darwin*)
-    AC_MSG_WARN([Apple OS X versions prior to 10.5 (Leopard) has a serious problem!
+    AC_MSG_WARN([Apple OS X versions prior to 10.5 (Leopard) have a serious problem!
 Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
     ;;
 
