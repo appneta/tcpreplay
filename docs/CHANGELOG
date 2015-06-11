@@ -1,5 +1,6 @@
 01/29/2015 Version 4.1.1-beta1
     - Build OS X using existing XCode SDK #185
+    - Update to autogen version 5.18.4 #182
     - Stop sending and exit when limit is reached #174
 
 12/17/2014 Version 4.1.0

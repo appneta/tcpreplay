@@ -41,7 +41,7 @@
 #  ifdef PATH_MAX
 #    define AG_PATH_MAX         ((size_t)PATH_MAX)
 #  else
-#    define AG_PATH_MAX         ((size_t)4096)
+#    define AG_PATH_MAX         4096
 #  endif
 #else
 #  if defined(PATH_MAX) && (PATH_MAX > MAXPATHLEN)

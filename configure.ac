@@ -2,6 +2,7 @@
 dnl $Id$
 
 AC_PREREQ([2.69])
+AC_INIT(tcpreplay)
 AC_INIT([tcpreplay],[4.1.1-beta1],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
@@ -11,7 +12,7 @@ AM_WITH_DMALLOC
 
 dnl People building from GitHub need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts
-MAINTAINER_AUTOGEN_VERSION=5.16.2
+MAINTAINER_AUTOGEN_VERSION=5.18.4
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -153,14 +154,14 @@ AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
-    AC_MSG_CHECKING(for autogen version >= 5.16.x)
+    AC_MSG_CHECKING(for autogen version >= 5.18.x)
     ${AUTOGEN} -v >autogen.version
     AUTOGEN_VERSION=`cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|'`
     AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1`
     AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
-    if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 16 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
+    if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
-        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.16.2)])
+        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.18.4)])
     else
         AC_MSG_RESULT(yes)
     fi
@@ -189,6 +190,7 @@ AC_HEADER_STDC
 AC_HEADER_MAJOR
 
 dnl Checks for typedefs, structures, and compiler characteristics.
+AC_CHECK_HEADER_STDBOOL
 AC_C_INLINE
 AC_TYPE_INT16_T
 AC_TYPE_INT32_T
