@@ -45,9 +45,6 @@ EXTRA_DIST += \
     check.c                 compat/strdup.c         compat/snprintf.c  \
     compat/compat.h         compat/_Noreturn.h      compat/pathfind.c  \
     compat/windows-config.h compat/strchr.c         configfile.c  \
-    check.c                 compat/_Noreturn.h      compat/compat.h  \
-    compat/pathfind.c       compat/snprintf.c       compat/strchr.c  \
-    compat/strdup.c         compat/windows-config.h configfile.c  \
     cook.c                  enum.c                  env.c  \
     file.c                  find.c                  genshell.c  \
     genshell.h              gettext.h               init.c  \
