@@ -883,10 +883,17 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
         return res;
 
     struct in_addr localip = ((struct sockaddr_in *)&buffer.ifr_addr)->sin_addr;
+#if defined( WORDS_BIGENDIAN )
+    ip->byte1 = (localip.s_addr)>>24;
+    ip->byte2 = ((localip.s_addr)>>16)&255;
+    ip->byte3 = ((localip.s_addr)>>8)&255;
+    ip->byte4 = (localip.s_addr)&255;
+#else
     ip->byte4 = (localip.s_addr)>>24;
     ip->byte3 = ((localip.s_addr)>>16)&255;
     ip->byte2 = ((localip.s_addr)>>8)&255;
     ip->byte1 = (localip.s_addr)&255;
+#endif
 
     if ((res =ioctl(s, SIOCGIFHWADDR, &buffer)) < 0)
         return res;
@@ -1091,10 +1098,17 @@ extip(char *ip_string, input_addr* new_remoteip)
     if (inet_aton(ip_string, &addr) == 0)
         return ERROR;
 
+#if defined( WORDS_BIGENDIAN ) 
+    new_remoteip->byte4 = (unsigned char)addr.s_addr & 0xff;
+    new_remoteip->byte3 = (unsigned char)(addr.s_addr >> 8) & 0xff;
+    new_remoteip->byte2 = (unsigned char)(addr.s_addr >> 16) & 0xff;
+    new_remoteip->byte1 = (unsigned char)(addr.s_addr >> 24) & 0xff;
+#else
     new_remoteip->byte1 = (unsigned char)addr.s_addr & 0xff;
     new_remoteip->byte2 = (unsigned char)(addr.s_addr >> 8) & 0xff;
     new_remoteip->byte3 = (unsigned char)(addr.s_addr >> 16) & 0xff;
     new_remoteip->byte4 = (unsigned char)(addr.s_addr >> 24) & 0xff;
+#endif
 
     return SUCCESS;
 }
@@ -1152,7 +1166,7 @@ do_checksum_liveplay(u_int8_t *data, int proto, int len) {
     ipv4_hdr *ipv4;
     tcp_hdr *tcp;
     int ip_hl;
-    int sum;
+    volatile int sum;   // <-- volatile works around a PPC g++ bug
 
     sum = 0;
     ipv4 = NULL;
