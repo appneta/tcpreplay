@@ -80,8 +80,13 @@ struct ether_hdr {
 typedef struct ipv4_hdr ipv4_hdr;
 
 struct ipv4_hdr{
+#if defined( WORDS_BIGENDIAN )
+    u_int8_t 	ip_v:4;
+    u_int8_t 	ip_hl:4;
+#else
     u_int8_t 	ip_hl:4;
     u_int8_t 	ip_v:4;
+#endif
     u_int8_t 	ip_tos;
     u_int16_t 	ip_len;
     u_int16_t 	ip_id;
@@ -100,8 +105,13 @@ struct tcpheader{
     u_int16_t 	th_dport;	
     u_int32_t 	th_seq;
     u_int32_t 	th_ack;
+#if defined( WORDS_BIGENDIAN )
+    u_int8_t 	th_off:4;
+    u_int8_t 	th_x2:4;
+#else
     u_int8_t 	th_x2:4;
     u_int8_t 	th_off:4;
+#endif
     u_int8_t 	th_flags;
     u_int16_t 	th_win;
     u_int16_t 	th_sum;
