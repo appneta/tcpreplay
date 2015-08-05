@@ -101,6 +101,9 @@ tcpreplay_init()
     /* disable limit send */
     ctx->options->limit_send = -1;
 
+    /* disable limit time */
+    ctx->options->limit_time = 0;
+
 #ifdef ENABLE_VERBOSE
     /* clear out tcpdump struct */
     ctx->options->tcpdump = (tcpdump_t *)safe_malloc(sizeof(tcpdump_t));
@@ -164,6 +167,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(LIMIT))
         options->limit_send = OPT_VALUE_LIMIT;
+
+    if (HAVE_OPT(DURATION))
+        options->limit_time = OPT_VALUE_DURATION;
 
     if (HAVE_OPT(TOPSPEED)) {
         options->speed.mode = speed_topspeed;

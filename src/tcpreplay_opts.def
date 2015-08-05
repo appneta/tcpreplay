@@ -356,6 +356,19 @@ specify a maximum number of packets to send.
 EOText;
 };
 
+flag = {
+    name        = duration;
+    arg-type    = number;
+    max         = 1;
+    arg-default = -1;
+    arg-range   = "1->";
+    descrip     = "Limit the trasmit duration";
+    doc         = <<- EOText
+By default, tcpreplay will send all the packets.  Alternatively, you can
+specify a maximum number of seconds to transmit.
+EOText;
+};
+
 /*
  * Replay speed modifiers: -m, -p, -r, -R, -o
  */

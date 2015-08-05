@@ -124,6 +124,7 @@ typedef struct tcpreplay_opt_s {
 
     /* limit # of packets to send */
     COUNTER limit_send;
+    COUNTER limit_time;
 
     /* maximum sleep time between packets */
     struct timespec maxsleep;
