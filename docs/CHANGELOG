@@ -1,7 +1,9 @@
-01/29/2015 Version 4.1.1-beta1
-    - Build OS X using existing XCode SDK #185
-    - Update to autogen version 5.18.4 #182
-    - Stop sending and exit when limit is reached #174
+08/05/2015 Version 4.1.1-beta2
+	- Big-endian tcpliveplay work-around from Brian Micek (#194)
+    - Build OS X using existing XCode SDK (#185)
+    - Update to autogen version 5.18.6 and libopts 46.0.16 (#182)
+	- Duration feature from dexteradeus (#175)
+    - Stop sending and exit when limit is reached (#174)
 
 12/17/2014 Version 4.1.0
     - Do not build Quick TX modules on OS X (#164)
