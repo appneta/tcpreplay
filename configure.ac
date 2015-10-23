@@ -494,7 +494,7 @@ AC_ARG_WITH(libpcap,
             LPCAPINC="${testdir}/pcap.h"
             LPCAPINCDIR="${testdir}"
             if test $dynamic_link = yes; then
-                for ext in .dylib .so ; do 
+                for ext in .dylib .so .tbd ; do 
                     if test -f "${withval}/libpcap${ext}" ; then
                         LPCAPLIB="-L${withval}/ -lpcap"
                     elif test -f "${withval}/lib/libpcap${ext}" ; then
