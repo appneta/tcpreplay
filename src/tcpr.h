@@ -235,6 +235,7 @@ struct tcpr_arp_hdr
 #define ARPHRD_ATM      19  /* ATM */
 #define ARPHRD_METRICOM 23  /* Metricom STRIP (new IANA id) */
 #define ARPHRD_IPSEC    31  /* IPsec tunnel */
+#define ARPHRD_LOOPBACK 772 /* Loopback device */
     uint16_t ar_pro;         /* format of protocol address */
     uint8_t  ar_hln;         /* length of hardware address */
     uint8_t  ar_pln;         /* length of protocol addres */
