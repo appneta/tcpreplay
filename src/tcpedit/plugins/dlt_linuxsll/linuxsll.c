@@ -175,6 +175,7 @@ dlt_linuxsll_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    int type;
     linux_sll_header_t *linux_sll;
     assert(ctx);
     assert(packet);
@@ -185,10 +186,11 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     ctx->l2len = sizeof(linux_sll_header_t);
 
 
-    if (ntohs(linux_sll->type) == ARPHRD_ETHER) { /* ethernet */
+    type = ntohs(linux_sll->type);
+    if (type == ARPHRD_ETHER || type == ARPHRD_LOOPBACK) { /* ethernet or loopback */
         memcpy(&(ctx->srcaddr), linux_sll->address, ETHER_ADDR_LEN);
     } else {
-        tcpedit_seterr(ctx->tcpedit, "%s", "DLT_LINUX_SLL pcap's must contain only ethernet packets");
+        tcpedit_seterr(ctx->tcpedit, "%s", "DLT_LINUX_SLL pcap's must contain only ethernet or loopback packets");
         return TCPEDIT_ERROR;
     }
 
