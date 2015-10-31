@@ -79,6 +79,7 @@ typedef enum sendpacket_type_e {
     SP_TYPE_KHIAL,
     SP_TYPE_NETMAP,
     SP_TYPE_QUICK_TX,
+    SP_TYPE_TUNTAP
 } sendpacket_type_t;
 
 /* these are the file_operations ioctls */
