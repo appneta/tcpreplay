@@ -518,6 +518,9 @@
 /* Do we have tcpdump? */
 #undef HAVE_TCPDUMP
 
+/* Do we have TUNTAP device support? */
+#undef HAVE_TUNTAP
+
 /* Do we have Linux TX_RING socket support? */
 #undef HAVE_TX_RING
 

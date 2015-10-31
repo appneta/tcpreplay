@@ -478,6 +478,51 @@ if test x$inet_addr = no ; then
 fi
 
 dnl #####################################################
+dnl Checks for tuntap device support
+dnl #####################################################
+have_tuntap=no
+AC_ARG_ENABLE([tuntap],
+  AS_HELP_STRING([--disable-tuntap], [Disable tuntap support]), [:],
+  [case "$build_os" in
+    linux*)
+      AC_CHECK_HEADER([linux/if_tun.h], [have_tuntap=yes])
+      ;;
+    darwin*)
+      # I don't use AC_CHECK_FILES because I need test -e and not test -r
+      for i in /dev/tap0 /Library/Extensions/tap.kext ; do
+        AC_MSG_CHECKING([for $i])
+        if test -e "$i" ; then
+          AC_MSG_RESULT([yes])
+          definename="`echo "$i" | tr "a-z*" "A-ZP" | tr -c "0-9A-Z" "_"`"
+          AC_DEFINE_UNQUOTED([HAVE_$definename])
+          eval HAVE_$definename=yes
+        else
+          AC_MSG_RESULT([no])
+        fi
+      done
+
+      if test "$HAVE__DEV_TAP0_" ; then
+        have_tuntap=yes
+        if ! test "$HAVE__LIBRARY_EXTENSIONS_TAP_KEXT_" || "$HAVE__SYSTEM_LIBRARY_EXTENSIONS_TAP_KEXT_" ; then
+          AC_MSG_WARN([/dev/tap0 exists, but the kext cannot be found. Let's hope your
+configuration does work...])
+        fi
+      else
+        AC_MSG_WARN([You do not have tuntap support. You can get it here:
+http://tuntaposx.sourceforge.net/])
+      fi
+      ;;
+    freebsd*)
+      AC_CHECK_HEADER([net/if_tun.h],
+        [have_tuntap=yes])
+      ;;
+  esac])
+if test $have_tuntap = yes ; then
+    AC_DEFINE([HAVE_TUNTAP], [1],
+            [Do we have TUNTAP device support?])
+fi
+
+dnl #####################################################
 dnl Checks for libpcap
 dnl #####################################################
 foundpcap=no
@@ -1718,6 +1763,7 @@ pcap_sendpacket:            ${have_pcap_sendpacket} **
 pcap_netmap                 ${have_pcap_netmap}
 Linux Quick TX:             ${have_linux_quick_tx} ${kerneldir}
 Linux/BSD netmap:           ${have_netmap}
+Tuntap device support:      ${have_tuntap}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge
