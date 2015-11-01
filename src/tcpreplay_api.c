@@ -31,7 +31,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdarg.h>
+
+#ifdef HAVE_PTHREADS
 #include <pthread.h>
+#endif
 
 #include "tcpreplay_api.h"
 #include "send_packets.h"
@@ -199,12 +202,13 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000;
     }
 
+#ifdef HAVE_PTHREADS
     if (HAVE_OPT(THREADS))
         options->threads = OPT_VALUE_THREADS ? OPT_VALUE_THREADS : sysconf(_SC_NPROCESSORS_ONLN);
 
     if(options->threads > 1)
         pthread_mutex_init(&ctx->lock, NULL);
-
+#endif
     options->forever = !options->loop;
 
 #ifdef ENABLE_VERBOSE
@@ -1206,6 +1210,7 @@ tcpreplay_replay_loop(void *arg)
 
     while (!ctx->abort) {
         if(!ctx->options->forever) {
+#ifdef HAVE_PTHREADS
             if (ctx->options->threads > 1)
                 pthread_mutex_lock(&ctx->lock);
             if(!ctx->options->loop) {
@@ -1216,6 +1221,9 @@ tcpreplay_replay_loop(void *arg)
             ctx->options->loop--;
             if (ctx->options->threads > 1)
                 pthread_mutex_unlock(&ctx->lock);
+#else
+            ctx->options->loop--;
+#endif
         }
 
         if (tcpr_replay_index(ctx) < 0)
@@ -1236,7 +1244,9 @@ int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
     int i;
+#ifdef HAVE_PTHREADS
     pthread_t threads[ctx->options->threads];
+#endif
 
     assert(ctx);
 
@@ -1263,11 +1273,17 @@ tcpreplay_replay(tcpreplay_t *ctx)
     ctx->running = true;
 
     /* main loop, when not looping forever (or until abort) */
-    for(i = 0; i < ctx->options->threads; i++)
-        pthread_create(threads + i, NULL, tcpreplay_replay_loop, ctx);
+#ifdef HAVE_PTHREADS
+    if(ctx->options->threads == 1) {
+        for(i = 0; i < ctx->options->threads; i++)
+            pthread_create(threads + i, NULL, tcpreplay_replay_loop, ctx);
 
-    for(i = 0; i < ctx->options->threads; i++)
-        pthread_join(threads[i], NULL);
+        for(i = 0; i < ctx->options->threads; i++)
+            pthread_join(threads[i], NULL);
+    }
+    else
+#endif
+        tcpreplay_replay_loop(ctx);
 
     ctx->running = false;
 

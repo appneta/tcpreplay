@@ -206,7 +206,9 @@ typedef struct tcpreplay_s {
     volatile bool abort;
     volatile bool suspend;
     bool running;
+#ifdef HAVE_PTHREADS
     pthread_mutex_t lock;
+#endif
 } tcpreplay_t;
 
 

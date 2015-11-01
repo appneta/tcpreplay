@@ -555,6 +555,7 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_PTHREADS;
     name        = threads;
     value       = a;
     arg-range   = "0->";
