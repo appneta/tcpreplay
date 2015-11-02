@@ -267,7 +267,7 @@ cidr2cidr(char *cidr)
     /* we only get here on error parsing input */
 error:
     memset(ebuf, '\0', EBUF_SIZE);
-    strcpy(ebuf, "Unable to parse as a vaild CIDR: ");
+    strcpy(ebuf, "Unable to parse as a valid CIDR: ");
     strlcat(ebuf, cidr, EBUF_SIZE);
     errx(-1, "%s", ebuf);
     return NULL;
