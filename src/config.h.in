@@ -145,6 +145,9 @@
 /* Define to 1 if you have the `fork' function. */
 #undef HAVE_FORK
 
+/* Building Free BSD */
+#undef HAVE_FREEBSD
+
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
 #undef HAVE_FSEEKO
 
@@ -517,6 +520,9 @@
 
 /* Do we have tcpdump? */
 #undef HAVE_TCPDUMP
+
+/* Do we have TUNTAP device support? */
+#undef HAVE_TUNTAP
 
 /* Do we have Linux TX_RING socket support? */
 #undef HAVE_TX_RING

@@ -158,6 +158,15 @@ static int get_iface_index(int fd, const char *device, char *);
 
 #endif /* HAVE_PF_PACKET */
 
+#ifdef HAVE_TUNTAP
+#ifdef HAVE_LINUX
+#include <linux/if_tun.h>
+#elif defined(HAVE_FREEBSD)
+#define TUNTAP_DEVICE_PREFIX "/dev/"
+#endif
+static sendpacket_t *sendpacket_open_tuntap(const char *, char *);
+#endif
+
 #if defined HAVE_BPF && ! defined INJECT_METHOD
 #undef INJECT_METHOD
 #define INJECT_METHOD "bpf send()"
@@ -287,6 +296,10 @@ TRY_SEND_AGAIN:
                 break;
             }
 
+            break;
+
+        case SP_TYPE_TUNTAP:
+            retcode = write(sp->handle.fd, (void *)data, len);
             break;
 
             /* Linux PF_PACKET and TX_RING */
@@ -510,6 +523,10 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
                 break;
               }
         }
+#ifdef HAVE_TUNTAP
+    } else if (strncmp(device, "tap", 3) == 0) {
+        sp = sendpacket_open_tuntap(device, errbuf);
+#endif
     } else {
 #ifdef HAVE_QUICK_TX
         if (sendpacket_type == SP_TYPE_QUICK_TX)
@@ -633,6 +650,11 @@ sendpacket_close(sendpacket_t *sp)
 #endif /* HAVE_NETMAP */
             break;
 
+        case SP_TYPE_TUNTAP:
+#ifdef HAVE_TUNTAP
+            close(sp->handle.fd);
+#endif
+            break;
         case SP_TYPE_NONE:
             err(-1, "no injector selected!");
             break;
@@ -799,6 +821,67 @@ sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
     return(&sp->ether);
 }
 #endif /* HAVE_LIBDNET */
+
+#if defined HAVE_TUNTAP
+/**
+ * Inner sendpacket_open() method for tuntap devices
+ */
+static sendpacket_t *
+sendpacket_open_tuntap(const char *device, char *errbuf)
+{
+    sendpacket_t *sp;
+    struct ifreq ifr;
+    int flags = 0;
+    int tapfd;
+
+    assert(device);
+    assert(errbuf);
+
+#if defined HAVE_LINUX
+    if ((tapfd = open("/dev/net/tun", O_RDWR)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Could not open /dev/net/tun control file: %s", strerror(errno));
+        return NULL;
+    }
+    memset(&ifr, 0, sizeof(ifr));
+    ifr.ifr_flags = (IFF_TAP | IFF_NO_PI);
+    strncpy(ifr.ifr_name, device, strlen(device));
+
+    if (ioctl(tapfd, TUNSETIFF, (void *) &ifr) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to create tuntap interface: %s", device);
+        return NULL;
+    }
+#elif defined(HAVE_FREEBSD)
+    if (*device == '/') {
+        if ((tapfd = open(device, O_RDWR)) < 0) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Could not open device %s: %s", device, strerror(errno));
+            return NULL;
+        }
+    } else {
+        /* full path needed */
+        char *path;
+        int prefix_length = strlen(TUNTAP_DEVICE_PREFIX);
+        if ((path = malloc(strlen(device) + prefix_length + 1)) == NULL) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Malloc error: %s", strerror(errno));
+            return NULL;
+        }
+        snprintf(path, strlen(device) + prefix_length + 1, "%s%s", TUNTAP_DEVICE_PREFIX, device);
+        if ((tapfd = open(path, O_RDWR)) < 0) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Could not open device %s: %s", path, strerror(errno));
+            free(path);
+            return NULL;
+        }
+        free(path);
+    }
+#endif
+
+    /* prep & return our sp handle */
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.fd = tapfd;
+    sp->handle_type = SP_TYPE_TUNTAP;
+    return sp;
+}
+#endif
 
 #if defined HAVE_PF_PACKET
 /**
@@ -1162,7 +1245,8 @@ sendpacket_get_dlt(sendpacket_t *sp)
 
     if (sp->handle_type == SP_TYPE_KHIAL ||
             sp->handle_type == SP_TYPE_NETMAP ||
-            sp->handle_type == SP_TYPE_QUICK_TX) {
+            sp->handle_type == SP_TYPE_QUICK_TX ||
+            sp->handle_type == SP_TYPE_TUNTAP) {
         /* always EN10MB */
         ;
     } else {
