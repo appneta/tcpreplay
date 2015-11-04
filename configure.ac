@@ -603,6 +603,9 @@ else
     if test "$numa_found" = "yes" && test "$pthread_found" = "yes" && test -f "${foundpcap}/../lib/libpfring.a"; then
         pf_ring_found=yes
     fi
+    if test "$pthread_found" = "yes"; then
+        LIBS="$LIBS -pthread"
+    fi
 fi
 
 dnl Checks to see what version of libpcap we've got
