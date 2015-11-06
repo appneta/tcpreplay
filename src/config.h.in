@@ -332,6 +332,9 @@
 /* Define to 1 if you have the `pow' function. */
 #undef HAVE_POW
 
+/* Do we have phtreads? */
+#undef HAVE_PTHREADS
+
 /* Define to 1 if the system has the type `ptrdiff_t'. */
 #undef HAVE_PTRDIFF_T
 
