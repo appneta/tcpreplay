@@ -370,7 +370,6 @@ void
 add_tree_first_ipv4(const u_char *data)
 {
     tcpr_tree_t *newnode = NULL, *findnode;
-    eth_hdr_t *eth_hdr = NULL;
     ipv4_hdr_t ip_hdr;
     
     assert(data);
@@ -379,7 +378,6 @@ add_tree_first_ipv4(const u_char *data)
      */
     newnode = new_tree();
 
-    eth_hdr = (eth_hdr_t *) (data);
     /* prevent issues with byte alignment, must memcpy */
     memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
 
@@ -401,7 +399,6 @@ add_tree_first_ipv4(const u_char *data)
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    eth_hdr = (eth_hdr_t *) (data);
     memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
 
     newnode->family = AF_INET;
@@ -421,7 +418,6 @@ void
 add_tree_first_ipv6(const u_char *data)
 {
     tcpr_tree_t *newnode = NULL, *findnode;
-    eth_hdr_t *eth_hdr = NULL;
     ipv6_hdr_t ip6_hdr;
 
     assert(data);
@@ -430,7 +426,6 @@ add_tree_first_ipv6(const u_char *data)
      */
     newnode = new_tree();
     
-    eth_hdr = (eth_hdr_t *) (data);
     /* prevent issues with byte alignment, must memcpy */
     memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
 
@@ -452,7 +447,6 @@ add_tree_first_ipv6(const u_char *data)
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    eth_hdr = (eth_hdr_t *) (data);
     memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
 
     newnode->family = AF_INET6;

@@ -831,7 +831,6 @@ sendpacket_open_tuntap(const char *device, char *errbuf)
 {
     sendpacket_t *sp;
     struct ifreq ifr;
-    int flags = 0;
     int tapfd;
 
     assert(device);

@@ -101,7 +101,6 @@ int
 dlt_ieee80211_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    ieee80211_config_t *config;
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
@@ -116,9 +115,7 @@ dlt_ieee80211_init(tcpeditdlt_t *ctx)
     /* allocate memory for our config data */
     if (sizeof(ieee80211_config_t) > 0)
         plugin->config = safe_malloc(sizeof(ieee80211_config_t));
-    
-    config = (ieee80211_config_t *)plugin->config;
-    
+
     /* FIXME: set default config values here */
 
     return TCPEDIT_OK; /* success */

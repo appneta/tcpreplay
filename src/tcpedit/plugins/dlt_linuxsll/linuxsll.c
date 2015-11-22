@@ -96,7 +96,6 @@ int
 dlt_linuxsll_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    linuxsll_config_t *config;
     assert(ctx);
 
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
@@ -112,7 +111,6 @@ dlt_linuxsll_init(tcpeditdlt_t *ctx)
     if (sizeof(linuxsll_config_t) > 0)
         plugin->config = safe_malloc(sizeof(linuxsll_config_t));
 
-    config = (linuxsll_config_t *)plugin->config;
 
     return TCPEDIT_OK; /* success */
 }
