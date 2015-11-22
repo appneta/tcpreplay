@@ -478,6 +478,25 @@ if test x$inet_addr = no ; then
 fi
 
 dnl #####################################################
+dnl Checks for tuntap device support
+dnl #####################################################
+have_tuntap=no
+AC_ARG_ENABLE([tuntap],
+  AS_HELP_STRING([--disable-tuntap], [Disable tuntap support]), [:],
+  [case "$build_os" in
+    linux*)
+      AC_CHECK_HEADER([linux/if_tun.h], [have_tuntap=yes])
+      ;;
+    freebsd*)
+      AC_CHECK_HEADER([net/if_tun.h], [have_tuntap=yes])
+      ;;
+  esac])
+if test $have_tuntap = yes ; then
+    AC_DEFINE([HAVE_TUNTAP], [1],
+            [Do we have TUNTAP device support?])
+fi
+
+dnl #####################################################
 dnl Checks for libpcap
 dnl #####################################################
 foundpcap=no
@@ -494,7 +513,7 @@ AC_ARG_WITH(libpcap,
             LPCAPINC="${testdir}/pcap.h"
             LPCAPINCDIR="${testdir}"
             if test $dynamic_link = yes; then
-                for ext in .dylib .so ; do 
+                for ext in .dylib .so .tbd ; do 
                     if test -f "${withval}/libpcap${ext}" ; then
                         LPCAPLIB="-L${withval}/ -lpcap"
                     elif test -f "${withval}/lib/libpcap${ext}" ; then
@@ -1619,6 +1638,13 @@ case $host in
     AC_MSG_RESULT(OpenBSD)
     ;;
 
+    *-*-freebsd*)
+    nic1=em0
+    nic2=em0
+    AC_DEFINE([HAVE_FREEBSD], [1], [Building Free BSD])
+    AC_MSG_RESULT(FreeBSD)
+    ;;
+
     *-*-cygwin)
     AC_MSG_RESULT(Win32/Cygwin)
     nic1=%0
@@ -1718,6 +1744,7 @@ pcap_sendpacket:            ${have_pcap_sendpacket} **
 pcap_netmap                 ${have_pcap_netmap}
 Linux Quick TX:             ${have_linux_quick_tx} ${kerneldir}
 Linux/BSD netmap:           ${have_netmap}
+Tuntap device support:      ${have_tuntap}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge
