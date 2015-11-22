@@ -109,7 +109,6 @@ int
 dlt_jnpr_ether_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    jnpr_ether_config_t *config;
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
@@ -124,9 +123,7 @@ dlt_jnpr_ether_init(tcpeditdlt_t *ctx)
     /* allocate memory for our config data */
     if (sizeof(jnpr_ether_config_t) > 0)
         plugin->config = safe_malloc(sizeof(jnpr_ether_config_t));
-    
-    config = (jnpr_ether_config_t *)plugin->config;
-    
+
     return TCPEDIT_OK; /* success */
 }
 

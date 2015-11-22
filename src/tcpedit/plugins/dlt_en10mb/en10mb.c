@@ -269,18 +269,13 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    tcpeditdlt_plugin_t *plugin = NULL;
     struct tcpr_ethernet_hdr *eth = NULL;
     struct tcpr_802_1q_hdr *vlan = NULL;
     en10mb_extra_t *extra = NULL;
-    en10mb_config_t *config = NULL;
     
     assert(ctx);
     assert(packet);
     assert(pktlen >= 14);
-
-    plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
-    config = plugin->config;
 
     /* get our src & dst address */
     eth = (struct tcpr_ethernet_hdr *)packet;

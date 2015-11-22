@@ -108,7 +108,6 @@ int
 dlt_pppserial_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    pppserial_config_t *config;
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
@@ -123,9 +122,7 @@ dlt_pppserial_init(tcpeditdlt_t *ctx)
     /* allocate memory for our config data */
     if (sizeof(pppserial_config_t) > 0)
         plugin->config = safe_malloc(sizeof(pppserial_config_t));
-    
-    config = (pppserial_config_t *)plugin->config;
-    
+
     /* FIXME: set default config values here */
 
     return TCPEDIT_OK; /* success */
@@ -214,7 +211,6 @@ dlt_pppserial_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    tcpeditdlt_plugin_t *plugin = NULL;
     struct tcpr_pppserial_hdr *ppp = NULL;
 
     assert(ctx);
@@ -227,7 +223,6 @@ dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
      * protocol field informs you of the following header, but alas does not
      * use standard IEEE 802.11 values (IPv4 is not 0x0800, but is 0x0021)
      */
-    plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     ppp = (struct tcpr_pppserial_hdr *)packet;
     switch (ntohs(ppp->protocol)) {
         case 0x0021: /* IPv4 */
@@ -273,7 +268,6 @@ dlt_pppserial_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir
 int 
 dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    tcpeditdlt_plugin_t *plugin = NULL;
     struct tcpr_pppserial_hdr *ppp = NULL;
     int protocol = 0; 
 
@@ -281,7 +275,6 @@ dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
     assert(pktlen > 4);
     
-    plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     ppp = (struct tcpr_pppserial_hdr *)packet;
     switch (ntohs(ppp->protocol)) {
         case 0x0021: /* IPv4 */

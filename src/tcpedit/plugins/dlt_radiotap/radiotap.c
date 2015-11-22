@@ -102,14 +102,13 @@ int
 dlt_radiotap_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    radiotap_config_t *config; 
     assert(ctx);
-    
+
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
-    
+
     /* allocate memory for our deocde extra data */
     if (sizeof(radiotap_extra_t) > 0)
         ctx->decoded_extra = safe_malloc(sizeof(radiotap_extra_t));
@@ -117,10 +116,7 @@ dlt_radiotap_init(tcpeditdlt_t *ctx)
     /* allocate memory for our config data */
     if (sizeof(radiotap_config_t) > 0)
         plugin->config = safe_malloc(sizeof(radiotap_config_t));
-    
-    config = (radiotap_config_t *)plugin->config;
 
-    
     return TCPEDIT_OK; /* success */
 }
 
