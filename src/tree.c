@@ -73,7 +73,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 
     RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
 
-        /* we only check types that are vaild */
+        /* we only check types that are valid */
         if (bcdata->type != DIR_ANY)    /* don't check if we're adding ANY */
             if (bcdata->type != node->type) /* no match, exit early */
                 return;
@@ -140,7 +140,7 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 
     RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
 
-        /* we only check types that are vaild */
+        /* we only check types that are valid */
         if (bcdata->type != DIR_ANY)    /* don't check if we're adding ANY */
             if (bcdata->type != node->type) /* no match, exit early */
                 return 0;
@@ -203,7 +203,7 @@ process_tree(void)
     }
 
     safe_free(bcdata);
-    /* we failed to find a vaild cidr list */
+    /* we failed to find a valid cidr list */
     notice("Unable to determine any IP addresses as a clients.");
     notice("Perhaps you should change the --ratio, --minmask/maxmask settings, or try another mode?");
     return (0);

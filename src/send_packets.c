@@ -682,7 +682,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER packetnum = 0;
     int limit_send = options->limit_send;
     int cache_file_idx;
-    pcap_t *pcap;
     struct pcap_pkthdr pkthdr1, pkthdr2;
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
@@ -690,7 +689,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     uint32_t iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
-    packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL, **prev_packet = NULL;
+    packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
     int datalink = options->file_cache[cache_file_idx1].dlt;
     COUNTER start_us;
@@ -755,36 +754,28 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             /* file 2 is next */
             sp = ctx->intf2;
             datalink = options->file_cache[cache_file_idx2].dlt;
-            pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
-            prev_packet = prev_packet2;
             cache_file_idx = cache_file_idx2;
             pktdata = pktdata2;
         } else if (pktdata2 == NULL) {
             /* file 1 is next */
             sp = ctx->intf1;
             datalink = options->file_cache[cache_file_idx1].dlt;
-            pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
-            prev_packet = prev_packet1;
             cache_file_idx = cache_file_idx1;
             pktdata = pktdata1;
         } else if (timercmp(&pkthdr1.ts, &pkthdr2.ts, <=)) {
             /* file 1 is next */
             sp = ctx->intf1;
             datalink = options->file_cache[cache_file_idx1].dlt;
-            pcap = pcap1;
             pkthdr_ptr = &pkthdr1;
-            prev_packet = prev_packet1;
             cache_file_idx = cache_file_idx1;
             pktdata = pktdata1;
         } else {
             /* file 2 is next */
             sp = ctx->intf2;
             datalink = options->file_cache[cache_file_idx2].dlt;
-            pcap = pcap2;
             pkthdr_ptr = &pkthdr2;
-            prev_packet = prev_packet2;
             cache_file_idx = cache_file_idx2;
             pktdata = pktdata2;
         }

@@ -334,14 +334,6 @@ process_raw_packets(pcap_t * pcap)
     tcpr_dir_t direction = TCPR_DIR_ERROR;
     tcpprep_opt_t *options = tcpprep->options;
 
-#ifdef ENABLE_VERBOSE
-    struct pollfd poller[1];
-    
-    poller[0].fd = tcpprep->tcpdump.outfd;
-    poller[0].events = POLLIN;
-    poller[0].revents = 0;
-#endif
-    
     assert(pcap);
     
     while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
