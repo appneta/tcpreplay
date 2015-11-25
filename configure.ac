@@ -605,7 +605,7 @@ else
     fi
     if test "$pthread_found" = "yes"; then
         LIBS="$LIBS -pthread"
-        AC_DEFINE([HAVE_PTHREADS], [1], [Do we have phtreads?])
+        AC_DEFINE([HAVE_PTHREADS], [1], [Do we have pthreads?])
     fi
 fi
 
