@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> - AppNeta Inc.
+ *   Copyright (c) 2013 Fred Klassen <fklassen at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 

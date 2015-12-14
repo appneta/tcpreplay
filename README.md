@@ -178,7 +178,7 @@ California, Berkeley, Lawrence Berkeley Laboratory and its contributors.
 Authors and Contributors
 ========================
 Tcpreplay is authored by Aaron Turner. In 2013 Fred Klassen, Founder and VP Network Technology,
-[AppNeta Inc.](http://appneta.com) added performance features and enhancements,
+[AppNeta](http://appneta.com) added performance features and enhancements,
 and ultimately took over the maintenance of Tcpreplay.
 
 The source code repository has moved to GitHub. You can get a working copy of the repository 

@@ -7,7 +7,7 @@ Please consider all files here under the original fragroute LICENSE, with the
 added caveat that any changes are:
 
 Copyright 2008-2010, Aaron Turner
-Copyright 2013, Fred Klassen - AppNeta Inc.
+Copyright 2013, Fred Klassen - AppNeta
 
 Notes:
 Fragroute runs as a daemon which intercepts packets by modifying the host
