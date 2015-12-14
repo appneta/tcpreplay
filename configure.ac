@@ -18,7 +18,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Set version info here!
 MAJOR_VERSION=4
 MINOR_VERSION=1
-MICRO_VERSION=1-beta2
+MICRO_VERSION=1-beta3
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
@@ -70,7 +70,7 @@ dnl ===========================
 
 case "$host_os" in
     darwin*) # Mac OS X or iOS
-   # If no --with-macosx-sdk option is given, look for one
+    # If no --with-macosx-sdk option is given, look for one
 
     # The intent is that for "most" Mac-based developers, a suitable
     # SDK will be found automatically without any configure options.
@@ -80,7 +80,7 @@ case "$host_os" in
 
     AC_MSG_CHECKING([what Mac OS X SDK to use])
 
-    for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10; do
+    for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 11.0; do
         MACOSX_SDK_PATH=`xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null`
         if test -d "$MACOSX_SDK_PATH"; then
             with_macosx_sdk="${_macosx_sdk}"
@@ -94,10 +94,10 @@ case "$host_os" in
         fi
     done
     if test ! -d "$MACOSX_SDK_PATH"; then
-        AC_MSG_ERROR([Could not figure out the location of a Mac OS X SDK])
+        AC_MSG_ERROR(["Could not figure out the location of a Mac OS X SDK"])
     fi
 
-    AC_MSG_CHECKING([what compiler to use])
+    AC_MSG_CHECKING(["what compiler to use"])
     CC="`xcrun -find clang` -m64 -isysroot $MACOSX_SDK_PATH"
     INSTALL_NAME_TOOL=`xcrun -find install_name_tool`
     AR=`xcrun -find ar`
@@ -106,13 +106,27 @@ case "$host_os" in
     LIBTOOL=`xcrun -find libtool`
     RANLIB=`xcrun -find ranlib`
     AC_MSG_RESULT([$CC])
- 
+
     ;;
 
 esac
 
 AC_SUBST(MACOSX_SDK_PATH)
 AC_SUBST(LIBTOOL) # Note that the OS X libtool command is unrelated to GNU libtool
+
+dnl ============================================
+dnl PF_RING library option
+dnl ============================================
+
+AC_ARG_WITH(pfring-lib,
+    AS_HELP_STRING([--with-pfring-lib],
+        [Use a specific PF_RING static library when using PF_RING libpcap.])
+    [
+                          Usage:     --with-pfring-lib=<library>
+                          e. g.: --with-pfring-lib=/usr/lib/libpfring_zc_x86_64.a
+    ],
+,)
+
 
 have_cygwin=no
 AC_MSG_CHECKING([for cygwin development environment])
@@ -217,6 +231,22 @@ AC_CHECK_TYPE(u_int16_t, uint16_t)
 AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
 
+dnl OS X SDK 10.11 throws lots of unnecessary macro warnings
+case $host in
+    *-apple-darwin*)
+        AC_MSG_CHECKING(for $CC -Wno-macro-redefined)
+        OLD_CFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS -Wno-macro-redefined"
+        wno_macro_redefined=""
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+            int main(int argc, char *argv[]) { return(0); }]])],
+            [ AC_MSG_RESULT(yes)
+              wno_macro_redefined="-Wno-macro-redefined" ],
+            [ AC_MSG_RESULT(no) ])
+        CFLAGS="$OLD_CFLAGS $wno_macro_redefined"
+    ;;
+esac
+
 dnl Older versions of GCC don't support these options
 AC_MSG_CHECKING(for $CC -Wextra support)
 OLD_CFLAGS=$CFLAGS
@@ -224,7 +254,7 @@ CFLAGS="$CFLAGS -Wextra -Werror"
 wextra=""
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }]])],
-    [ AC_MSG_RESULT(yes) 
+    [ AC_MSG_RESULT(yes)
       wextra="-Wextra" ],
     [ AC_MSG_RESULT(no) ])
 CFLAGS="$OLD_CFLAGS $wextra"
@@ -235,7 +265,7 @@ CFLAGS="$CFLAGS -Wno-variadic-macros -Werror"
 wno_variadic_macros=""
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }]])],
-    [ AC_MSG_RESULT(yes) 
+    [ AC_MSG_RESULT(yes)
       wno_variadic_macros="-Wno-variadic-macros" ],
     [ AC_MSG_RESULT(no) ])
 CFLAGS="$OLD_CFLAGS $wno_variadic_macros"
@@ -246,7 +276,7 @@ CFLAGS="$CFLAGS -Wfatal-errors -Werror"
 wfatal_errors=""
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }]])],
-    [ AC_MSG_RESULT(yes) 
+    [ AC_MSG_RESULT(yes)
       wfatal_errors="-Wfatal-errors" ],
     [ AC_MSG_RESULT(no) ])
 CFLAGS="$OLD_CFLAGS $wfatal_errors"
@@ -257,7 +287,7 @@ CFLAGS="$CFLAGS -Wno-format-contains-nul -Werror"
 wno_format_contains_nul=""
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
     int main(int argc, char *argv[]) { return(0); }]])],
-    [ AC_MSG_RESULT(yes) 
+    [ AC_MSG_RESULT(yes)
       wno_format_contains_nul="-Wno-format-contains-nul" ],
     [ AC_MSG_RESULT(no) ])
 CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
@@ -320,7 +350,7 @@ AC_ARG_ENABLE(debug,
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         debug_flag=DEBUG
         debug_run_time_flag=--dbug=1
-        AC_DEFINE([DEBUG], [1], [Enable debugging code and support for the -d option]) 
+        AC_DEFINE([DEBUG], [1], [Enable debugging code and support for the -d option])
     fi])
 AC_SUBST(debug_flag)
 AC_SUBST(debug_run_time_flag)
@@ -333,7 +363,7 @@ AC_ARG_ENABLE(extra-debug,
     [ if test x$enableval = xyes; then
         extra_debug=yes
         extra_debug_flag=EXTRA_DEBUG
-        AC_DEFINE([EXTRA_DEBUG], [1], [Enable additional debugging code (may affect performance)]) 
+        AC_DEFINE([EXTRA_DEBUG], [1], [Enable additional debugging code (may affect performance)])
     fi])
 AC_SUBST(extra_debug_flag)
 
@@ -345,7 +375,7 @@ AC_ARG_ENABLE(timestamp-trace,
         timestamp_trace=yes
         CFLAGS="${USER_CFLAGS} -DTIMESTAMP_TRACE"
         AC_SUBST(timestamp_trace_flag)
-        AC_DEFINE([TIMESTAMP_TRACE], [1], [Enable dumping of trace timestamps at the end of a test]) 
+        AC_DEFINE([TIMESTAMP_TRACE], [1], [Enable dumping of trace timestamps at the end of a test])
     fi])
 
 
@@ -381,18 +411,35 @@ AC_ARG_ENABLE(gprof,
     [ if test x$enableval = xyes; then
           if test $debug = yes; then
               CFLAGS="$CFLAGS -pg"
-          else 
+          else
               # GPROF requires gdb
               CFLAGS="$CFLAGS -ggdb -pg -fprofile-arcs"
           fi
           AC_DEFINE([GPROF], [1], [Enable GNU Profiler])
       fi])
 
+dnl Enable libpcap auto discovery via pcap-config
+enable_pcap_config=no
+AC_ARG_ENABLE(pcapconfig,
+    AC_HELP_STRING([--enable-pcapconfig], [Enable automatic libpcap config, reverting to system scanning]),
+    [
+        if test $enableval = yes; then
+            enable_pcap_config=yes
+            AC_MSG_NOTICE([Enabling libpcap discovery via pcap_config])
+        else
+            enable_pcap_config=no
+            AC_MSG_NOTICE([Disabling libpcap discovery via pcap_config])
+        fi
+    ],
+    [
+        AC_MSG_NOTICE([Bypassing libpcap discovery via pcap_config])
+    ])
+
 dnl Use 64bits for packet counters
 use64bit_counters=yes
 AC_ARG_ENABLE(64bits,
     AC_HELP_STRING([--disable-64bits], [Do not use 64bit packet counters]),
-    [ 
+    [
          AC_MSG_NOTICE([Using u_int32_t for packet counters])
     ],
     [
@@ -417,7 +464,7 @@ AC_ARG_ENABLE(force-bpf,
     AC_HELP_STRING([--enable-force-bpf], [Force using BPF for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_BPF], [1], [Force using BPF for sending packet])])
 
-AC_ARG_ENABLE(force-pf, 
+AC_ARG_ENABLE(force-pf,
     AC_HELP_STRING([--enable-force-pf], [Force using Linux's PF_PACKET for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PF], [1], [Force using Linux's PF_PACKET for sending packets])])
 
@@ -433,44 +480,56 @@ AC_ARG_ENABLE(force-sendpacket,
     AC_HELP_STRING([--enable-force-sendpacket], [Force using libpcap's pcap_sendpacket() for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PCAP_SENDPACKET], [1], [Force using libpcap's pcap_sendpacket() for sending packets])])
 
-dnl Dynamic link libraries
-dynamic_link=no
-AC_ARG_ENABLE(dynamic-link,
-    AC_HELP_STRING([--enable-dynamic-link], [Use shared libraries ( .so and .dylib )]),
-    [ if test x$enableval = xyes; then
-        AC_DEFINE([ENABLE_DYNAMIC_LINK], [1], [Use shared libraries ( .so and .dylib )])
-        dynamic_link=yes
-      fi
+dnl Static link libraries
+static_link=no
+dynamic_link=yes
+AC_ARG_ENABLE(static-link,
+    AC_HELP_STRING([--enable-static-link], [Use static libraries ( .a  or .A.tbd ) - default no]),
+    [
+    if test $enableval = yes; then
+        static_link=yes
+        dynamic_link=no
+    fi
     ])
 
-case $host in
-    *-apple-darwin*)
-    dynamic_link=yes
-    AC_MSG_NOTICE([Forcing dynamic linking on OS X])
-    ;;
-esac
+dnl Dynamic link libraries
+AC_ARG_ENABLE(dynamic-link,
+    AC_HELP_STRING([--enable-dynamic-link], [Use shared libraries ( .so .dylib or .tbd ) - default yes]),
+    [
+    if test $enableval = no; then
+        dynamic_link=no
+        static_link=yes
+    elif test $static_link = yes; then
+        AC_MSG_ERROR([Cannot specify both --enable-dynamic-link and --enable-static-link])
+    fi
+    ])
+if test $static_link = yes; then
+    AC_DEFINE([ENABLE_STATIC_LINK], [1], [Use static libraries ( .a or .A.tbd )])
+else
+    AC_DEFINE([ENABLE_DYNAMIC_LINK], [1], [Use shared libraries ( .so .dylib or .tbd )])
+fi
 
 dnl Check for inet_aton and inet_pton
-AC_CHECK_FUNC(inet_aton, 
-    AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?]) 
-    inet_aton=yes, 
+AC_CHECK_FUNC(inet_aton,
+    AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?])
+    inet_aton=yes,
     inet_aton=no)
-AC_CHECK_FUNC(inet_pton, 
-    AC_DEFINE([HAVE_INET_PTON], [1], [Do we have inet_pton?]) 
-    inet_pton=yes, 
+AC_CHECK_FUNC(inet_pton,
+    AC_DEFINE([HAVE_INET_PTON], [1], [Do we have inet_pton?])
+    inet_pton=yes,
     inet_pton=no)
-AC_CHECK_FUNC(inet_ntop, 
-    AC_DEFINE([HAVE_INET_NTOP], [1], [Do we have inet_ntop?]) 
-    inet_ntop=yes, 
+AC_CHECK_FUNC(inet_ntop,
+    AC_DEFINE([HAVE_INET_NTOP], [1], [Do we have inet_ntop?])
+    inet_ntop=yes,
     inet_ntop=no)
 
 if test "$inet_ntop" = "no" -a "$inet_pton" = "no" ; then
     AC_MSG_ERROR([We need either inet_ntop or inet_pton])
 fi
 
-AC_CHECK_FUNC(inet_addr, 
-    AC_DEFINE([HAVE_INET_ADDR], [1], [Do we have inet_addr?]) 
-    inet_addr=yes, 
+AC_CHECK_FUNC(inet_addr,
+    AC_DEFINE([HAVE_INET_ADDR], [1], [Do we have inet_addr?])
+    inet_addr=yes,
     inet_addr=no)
 
 if test x$inet_addr = no ; then
@@ -501,145 +560,262 @@ dnl Checks for libpcap
 dnl #####################################################
 foundpcap=no
 pf_ring_found=no
-trypcapdir=/usr/local
+pf_ring_lib=${with_pfring_lib}
+using_pcap_config=no
 AC_MSG_CHECKING(for libpcap)
 AC_ARG_WITH(libpcap,
-    AC_HELP_STRING([--with-libpcap=DIR], 
+    AC_HELP_STRING([--with-libpcap=DIR],
         [Use libpcap in DIR]),
 [
-    trypcapdir=$withval
-    for testdir in ${withval} ${withval}/include ; do
-        if test -f "${testdir}/pcap.h" -a $foundpcap = no ; then
-            LPCAPINC="${testdir}/pcap.h"
-            LPCAPINCDIR="${testdir}"
-            if test $dynamic_link = yes; then
-                for ext in .dylib .so .tbd ; do 
-                    if test -f "${withval}/libpcap${ext}" ; then
-                        LPCAPLIB="-L${withval}/ -lpcap"
-                    elif test -f "${withval}/lib/libpcap${ext}" ; then
-                        LPCAPLIB="-L${withval}/lib/ -lpcap"
-                    fi
-                done
-                if test "x$LPCAPLIB" == "x" ; then
-                    AC_ERROR([Unable to find libpcap in ${withval}])
-                fi
-            elif test -f "${withval}/libpcap.${libext}" ; then
-                LPCAPLIB="${withval}/libpcap.${libext}"
-            elif test -f "${withval}/lib/libpcap.${libext}" ; then
-                LPCAPLIB="${withval}/lib/libpcap.${libext}"
-            elif test -f "${withval}/lib/libwpcap.${libext}" ; then
-                LPCAPLIB="${withval}/lib/libwpcap.${libext}"
-                AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
-            else
-                dynamic_found=no
-                for ext in .dylib .so ; do 
-                    if test -f "${withval}/libpcap${ext}" ; then
-                        dynamic_found=yes
-                    elif test -f "${withval}/lib/libpcap${ext}" ; then
-                        dynamic_found=yes
-                    elif test -f "${withval}/lib64/libpcap${ext}" ; then
-                        dynamic_found=yes
-                    fi
-                done
-                if test $dynamic_found = yes; then
-                    AC_ERROR([Unable to find static libraries in ${withval}. Try --enable-dynamic-link])
-                else
-                    AC_ERROR([Unable to find matching library for header file in ${withval}])
-                fi
-            fi
-            foundpcap=$withval
-            ## Assume that user wants to use libpcap injector when specifying
-            ## --with-libpcap options
-            AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])    
+    testdir=$withval
+    for incl in ${testdir}/include/pcap.h ${testdir}/pcap.h ${testdir}/pcap/pcap.h; do
+        if ! test -f "${incl}"; then
+            continue
         fi
+        LPCAPINC=${incl}
+        LPCAPINCDIR=${testdir}
+        if test $dynamic_link = yes; then
+            for ext in .dylib .so .tbd ; do
+                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                    sharefile=$(ls ${testdir}/$dir/libpcap${ext}* 2> /dev/null | sort | head -n1)
+                    if test -n "${sharefile}"; then
+                        LPCAPLIB="-L$(dirname ${sharefile}) -lpcap"
+                        foundpcap=$testdir
+                        break
+                    fi
+                done
+
+                if ! test $foundpcap = no; then
+                    break
+                fi
+            done
+        else
+            dnl
+            dnl If dynamic library not found, try static
+            dnl
+            for ext in ${libext} .a .A.tbd ; do
+                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                    staticfile=$(ls ${testdir}/$dir/libpcap${ext} 2> /dev/null | sort | head -n1)
+                    if test -n "${staticfile}"; then
+                        LPCAPLIB="${staticfile}"
+                        foundpcap=${testdir}
+                        break
+                    fi
+                done
+
+                if ! test $foundpcap = no; then
+                    ## could be PF_RING
+                    #
+                    #  library is static and in PF_RING build tree
+                    #
+                    #  Need access to libpfring library
+                    #  and must find an associated libpfring.a
+                    if test -n "${with_pfring_lib}"; then
+                        if test -f ${with_pfring_lib}; then
+                            pf_ring_lib=${with_pfring_lib}
+                            pf_ring_found=yes
+                        else
+                            AC_MSG_ERROR(["Unable to find PF_RING library ${with_pfring_lib}"])
+                        fi
+                    else
+                        ## search locally for most likely PF_RING library
+                        for lib in ${foundpcap}/../lib/libs/libpfring_zc_${host_cpu}.a \
+                                ${foundpcap}/../lib/libs/libpfring_dna_${host_cpu}.a \
+                                ${foundpcap}/../lib/libs/libpfring_zero_${host_cpu}.a \
+                                ${foundpcap}/../lib/libs/libpfring_nt_${host_cpu}.a \
+                                ${foundpcap}/../lib/libpfring.a; do
+                            if test -f "${lib}"; then
+                                pf_ring_lib=${lib}
+                                pf_ring_found=yes
+                                break
+                            fi
+                        done
+                    fi
+                    break
+                fi
+            done
+        fi
+
+        if test $foundpcap = no; then
+            AC_ERROR(["Unable to find matching library for header file in ${testdir}"])
+        fi
+
+        break
     done
 ],[
-    for testdir in /usr/local /opt/local /usr /wpdpack $MACOSX_SDK_PATH/usr /usr ; do 
-        if test -f "${testdir}/include/pcap.h" -a $foundpcap = no ; then
-            LPCAPINC="${testdir}/include/pcap.h"
-            LPCAPINCDIR="${testdir}/include"
+    #
+    # Look for pcap-config.
+    #
+    # I wish this option could be the default, but it is only enabled with --enable-pcapconfig
+    #
+    # The issue is that libpcap is one of those libraries that is nearly impossible to set up
+    # properly across all platforms. The 'pcap-config' script is shipped with new versions of libpcap,
+    # and was created to address portability issues. Unfortunately, the script is not updated properly
+    # outside of the base distribution. Examples: PF_RING requires 'pthreads', 'numa' and 'rt', but
+    # this is not reflect that in the script. OS X Xcode 10.11 SDK creates its own very broken
+    # 'pcap-config' script that only occassionally works for dynamic defintions, and defintely
+    # does not work for static.
+    #
+    # The ability to enable this script exists for corner cases where libpcap distributions starts
+    # using even more libraries than I am currently not aware of. Originally, you only had to worry
+    # about 'nl', but now we have to be prepared to add 'nl-3', 'nl-genl-3' and 'dbus-1' to make
+    # libpcap fucntional. In the future, there may be more.
+    #
+    # (sigh)
+    #
+    # So, in the future if libpcap changes and stops working, try setting --enable-pcapconfig. It
+    # it may work for you.
+    if test $enable_pcap_config = yes; then
+        AC_PATH_TOOL(PCAP_CONFIG, pcap-config)
+            if test -n "$PCAP_CONFIG"; then
+            #
+            # Found - use it to get the include flags for
+            # libpcap and the flags to link with libpcap.
+            #
+            # Please read section 11.6 "Shell Substitutions"
+            # in the autoconf manual before doing anything
+            # to this that involves quoting.  Especially note
+            # the statement "There is just no portable way to use
+            # double-quoted strings inside double-quoted back-quoted
+            # expressions (pfew!)."
+            #
+
             if test $dynamic_link = yes; then
-                for ext in .dylib .so ; do 
-                    if test -f "${testdir}/lib64/libpcap${ext}" ; then
-                        LPCAPLIB="-L${testdir}/lib64 -lpcap"
-                    elif test -f "${testdir}/lib/libpcap${ext}" ; then
-                        LPCAPLIB="-L${testdir}/lib -lpcap"
-                    elif test -f "${testdir}/lib/i386-linux-gnu/libpcap${ext}" ; then
-                        LPCAPLIB="-L${testdir}/lib/i386-linux-gnu -lpcap"
-                    elif test -f "${testdir}/lib/x86_64-linux-gnu/libpcap${ext}" ; then
-                        LPCAPLIB="-L ${testdir}/lib/x86_64-linux-gnu -lpcap"
-                    fi
-                done
-                if test "x$LPCAPLIB" == "x" ; then
-                    AC_ERROR([Unable to find libpcap in ${testdir}])
-                fi
-            elif test -f "${testdir}/lib64/libpcap.${libext}" ; then
-                LPCAPLIB="${testdir}/lib64/libpcap.${libext}"
-            elif test -f "${testdir}/lib/i386-linux-gnu/libpcap.${libext}" ; then
-                LPCAPLIB="${testdir}/lib/i386-linux-gnu/libpcap.${libext}"
-            elif test -f "${testdir}/lib/x86_64-linux-gnu/libpcap.${libext}" ; then
-                LPCAPLIB="${testdir}/lib/x86_64-linux-gnu/libpcap.${libext}"
-            elif test -f "${testdir}/lib/libpcap.${libext}" ; then
-                LPCAPLIB="${testdir}/lib/libpcap.${libext}"
-            elif test -f "${testdir}/lib/libwpcap.${libext}" ; then
-                LPCAPLIB="${testdir}/lib/libwpcap.${libext}"
-                AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
+                LPCAPLIB=$($PCAP_CONFIG --libs)
             else
-                dynamic_found=no
-                for ext in .dylib .so ; do 
-                    if test -f "${testdir}/libpcap${ext}" ; then
-                        dynamic_found=yes
-                    elif test -f "${testdir}/lib/libpcap${ext}" ; then
-                        dynamic_found=yes
-                    elif test -f "${testdir}/lib64/libpcap${ext}" ; then
-                        dynamic_found=yes
-                    fi
-                done
-                if test $dynamic_found = yes; then
-                    AC_ERROR([Unable to find static libraries in ${testdir}. Try --enable-dynamic-link])
-                else
-                    AC_ERROR([Unable to find matching library for header file in ${testdir}])
+                LPCAPLIB=$($PCAP_CONFIG --libs --static)
+            fi
+            CFLAGS="$CFLAGS $($PCAP_CONFIG --cflags)"
+            if test -n "$LPCAPLIB"; then
+                foundpcap=yes
+                using_pcap_config=yes
+            else
+                AC_WARN([Unable to find libpcap using pcap-config])
+            fi
+        fi
+    fi
+
+    if test ! $foundpcap = yes; then
+        #
+        # Not found; look for pcap.
+        #
+        for testdir in /usr/local /opt/local /usr /wpdpack $MACOSX_SDK_PATH/usr ; do
+            if test -f "${testdir}/include/pcap.h"; then
+                LPCAPINC="${testdir}/include/pcap.h"
+                LPCAPINCDIR="${testdir}/include"
+                if test $dynamic_link = yes; then
+                    for ext in .dylib .so .tbd; do
+                        for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                            sharefile=$(ls "${testdir}/$dir/libpcap${ext}" 2> /dev/null | sort | head -n1)
+                            if test -n "${sharefile}"; then
+                                LPCAPLIB="-L$(dirname ${sharefile}) -lpcap"
+                                foundpcap=$testdir
+                                break
+                            fi
+                        done
+
+                        if ! test $foundpcap = no; then
+                            break
+                        fi
+                    done
+                fi
+                if test $foundpcap = no ; then
+                    dnl
+                    dnl If dynamic library not found, try static
+                    dnl
+                    for ext in ${libext} .a .A.tbd ; do
+                        for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                            staticfile=$(ls "${testdir}/$dir/libpcap${ext}" 2> /dev/null | sort | head -n1)
+                            if test -n "${staticfile}"; then
+                                LPCAPLIB="${staticfile}"
+                                foundpcap=$testdir
+                                break
+                            fi
+                        done
+
+                        if ! test $foundpcap = no; then
+                            break
+                        fi
+                    done
+                fi
+                if test $foundpcap = no -a -f "${testdir}/lib/libwpcap.${libext}" ; then
+                    LPCAPLIB="${testdir}/lib/libwpcap.${libext}"
+                    AC_DEFINE([HAVE_WINPCAP], [1], [Do we have WinPcap?])
+                    foundpcap=$testdir
                 fi
             fi
-            foundpcap=$testdir
-        fi
-    done
-])
+
+            if ! test $foundpcap = no; then
+                break
+            fi
+        done
+    fi
+    ])
 
 if test $foundpcap = no ; then
     AC_MSG_RESULT(no)
     AC_ERROR(libpcap not found)
 else
     AC_MSG_RESULT($foundpcap)
+fi
 
-    # libpcap can require libnl
-    AC_SEARCH_LIBS([nl_handle_alloc], [nl], 
-            [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
+# libpcap can require libnl
+AC_SEARCH_LIBS([nl_handle_alloc], [nl],
+        [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
+
+##
+## If not automatically configured,
+## check for newer and full-featured libpcap's
+##
+if ! test $using_pcap_config = yes; then
+    ## newer libpcap requires dbus and latest nl (e.g. -lnl-genl-3 -lnl-3  -ldbus-1)
+    AC_CHECK_LIB(nl, nl_cache_alloc, [nl_found=yes])
+    AC_CHECK_LIB(nl-genl-3, genl_connect, [nl_genl_3_found=yes])
+    AC_CHECK_LIB(nl-3, nl_cache_alloc, [nl_3_found=yes])
+    AC_CHECK_LIB(dbus-1, dbus_malloc, [dbus_1_found=yes])
+    if test "$nl_found" = "yes"; then
+        LPCAPLIB="$LPCAPLIB -lnl"
+    fi
+    if test "$nl_genl_3_found" = "yes"; then
+        LPCAPLIB="$LPCAPLIB -lnl-genl-3"
+    fi
+    if test "$nl_3_found" = "yes"; then
+        LPCAPLIB="$LPCAPLIB -lnl-3"
+    fi
+    if test "$dbus_1_found" = "yes"; then
+        LPCAPLIB="$LPCAPLIB -ldbus-1"
+    fi
 
     ## See if prereqs for PF_RING exist
     AC_CHECK_LIB(numa, numa_available, [numa_found=yes])
     AC_CHECK_LIB(pthread, pthread_create, [pthread_found=yes])
-    if test "$numa_found" = "yes" && test "$pthread_found" = "yes" && test -f "${foundpcap}/../lib/libpfring.a"; then
-        pf_ring_found=yes
+    if test $pf_ring_found = yes; then
+        if ! test "${numa_found}" = "yes"; then
+            AC_MSG_ERROR([PF_RING requires libnuma and/or libnuma-dev])
+        fi
+        if ! test "${pthread_found}" = "yes"; then
+            AC_MSG_ERROR([PF_RING requires libpthread])
+        fi
+        LPCAPLIB="$LPCAPLIB ${pf_ring_lib} -lnuma -lpthread -lrt"
     fi
 fi
 
-dnl Checks to see what version of libpcap we've got
 OLDLIBS="$LIBS"
-OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
-if test $pf_ring_found = yes ; then
-    LIBS="$LPCAPLIB ${foundpcap}/../lib/libpfring.a -lnuma -lpthread -lrt"
-    LPCAPLIB=$LIBS
+if test -n "$LPCAPINCDIR"; then
+    OLDCFLAGS="$CFLAGS -I$LPCAPINCDIR"
+    CFLAGS="$CFLAGS -I$LPCAPINCDIR"
 else
-    LIBS="$LPCAPLIB"
+    OLDCFLAGS="$CFLAGS"
+    LPCAPINCDIR=$(echo $CFLAGS | sed -e 's/^\-I//')
+    LPCAPINC="$LPCAPINCDIR/pcap.h"
 fi
-CFLAGS="$CFLAGS -I$LPCAPINCDIR"
+
+LIBS="$LPCAPLIB"
 AC_SEARCH_LIBS([pcap_get_pfring_id], [pcap], AC_DEFINE([HAVE_PF_RING_PCAP], [1], [Do we have PF_RING libpcap support?]))
 
-dnl Does libpcap require libnl?
+## Does libpcap work with selected libraries?
 AC_SEARCH_LIBS([pcap_close], [pcap],
-    , AC_ERROR([Unable to link libpcap in ${foundpcap}]),
-    -lnl)
+    , AC_ERROR([Unable to link libpcap in ${foundpcap}]),)
 
 AC_SUBST(LPCAPINC)
 AC_SUBST(LPCAPLIB)
@@ -659,7 +835,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include "$LPCAPINC"
 #define PCAP_TEST "0.9.6"
 ]], [[
-/* 
+/*
  * simple proggy to test the version of libpcap
  * returns zero if version >= 0.9.6
  * or one otherwise
@@ -683,7 +859,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include "$LPCAPINC"
 #define PCAP_TEST "0.8"
 ]], [[
-/* 
+/*
  * simple proggy to test the version of libpcap
  * returns zero if version >= 0.8.0
  * or one otherwise
@@ -710,7 +886,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #define PCAP_TEST "0.7.2"
 extern const char pcap_version[[]]; /* double up since autoconf escapes things */
 ]], [[
-/* 
+/*
  * simple proggy to test the version of libpcap
  * returns zero if version >= 0.7.2
  * or one otherwise
@@ -730,7 +906,7 @@ if test x$libpcap_ver8 = xyes ; then
     AC_MSG_RESULT(>= 0.8.0)
 elif test x$libpcap_ver7 = xyes ; then
     AC_MSG_RESULT(>= 0.7.2)
-else 
+else
     AC_MSG_ERROR([Libpcap versions < 0.7.2 are not supported
     Please upgrade to version 0.7.2 or better])
 fi
@@ -766,7 +942,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 ])
 
 if test $have_pcap_setnonblock = yes ; then
-    AC_DEFINE([HAVE_PCAP_SETNONBLOCK], [1], 
+    AC_DEFINE([HAVE_PCAP_SETNONBLOCK], [1],
               [Does libpcap have pcap_setnonblock?])
 fi
 
@@ -790,7 +966,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 ])
 
 if test $have_dlt_to_desc = yes ; then
-    AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [1], 
+    AC_DEFINE([HAVE_DLT_VAL_TO_DESC], [1],
               [Does libpcap have pcap_datalink_val_to_description?])
 fi
 
@@ -815,7 +991,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 ])
 
 if test x$have_pcap_get_selectable_fd = xyes ; then
-    AC_DEFINE([HAVE_PCAP_GET_SELECTABLE_FD], [1], 
+    AC_DEFINE([HAVE_PCAP_GET_SELECTABLE_FD], [1],
         [Does libpcap have pcap_get_selectable_fd?])
 fi
 
@@ -844,7 +1020,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 ])
 
 if test $have_pcap_dump_fopen = yes ; then
-    AC_DEFINE([HAVE_PCAP_DUMP_FOPEN], [1], 
+    AC_DEFINE([HAVE_PCAP_DUMP_FOPEN], [1],
               [Does libpcap have pcap_dump_fopen?])
 else
     AC_MSG_NOTICE([--verbose mode requires libpcap >= 0.9.0])
@@ -962,7 +1138,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 ])
 
 if test $have_pcap_snapshot = yes ; then
-    AC_DEFINE([HAVE_PCAP_SNAPSHOT], [1], 
+    AC_DEFINE([HAVE_PCAP_SNAPSHOT], [1],
               [Does libpcap have pcap_snapshot?])
 fi
 
@@ -990,7 +1166,7 @@ AM_CONDITIONAL(COMPILE_TCPBRIDGE, [test x$enable_tcpbridge = xyes ])
 
 
 
-# tcpliveplay requires linux OS to function properly 
+# tcpliveplay requires linux OS to function properly
 enable_tcpliveplay=no
 case $host in
     *-*-linux*)
@@ -1018,7 +1194,7 @@ AC_MSG_CHECKING(for netmap socket sending support)
 AC_ARG_WITH(netmap,
     AC_HELP_STRING([--with-netmap=DIR], [Use netmap in DIR]),
     [trynetmapdir=$withval])
-    
+
 NETMAP_SEARCH_DIRS=
 if test "$cross_compiling" = yes; then
     if test "x$trynetmapdir" != "x"; then
@@ -1035,7 +1211,7 @@ for testdir in $NETMAP_SEARCH_DIRS; do
         NETMAPINCDIR="${testdir}/sys"
         have_netmap="yes $testdir"
         enable_netmap=yes
-    else 
+    else
         if test -f "${testdir}/net/netmap.h" ; then
             NETMAPINC="${testdir}/net/netmap.h"
             NETMAPUSERINC="${testdir}/net/netmap_user.h"
@@ -1044,12 +1220,12 @@ for testdir in $NETMAP_SEARCH_DIRS; do
             enable_netmap=yes
         fi
     fi
-    
+
     if test "$have_netmap" != no ; then
         NETMAPFLAGS="-DHAVE_NETMAP"
         OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
         CFLAGS="$CFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
-        
+
         AC_SUBST(NETMAPINC)
         AC_SUBST(NETMAPUSERINC)
         AC_SUBST(NETMAPINCDIR)
@@ -1068,14 +1244,14 @@ AM_CONDITIONAL(COMPILE_NETMAP, [test x$enable_netmap = xyes ])
 
 dnl ###########################################################
 dnl Check for nm_open() function available in netmap version 5
-dnl Also check for other version-specific netmap definitions and structures 
+dnl Also check for other version-specific netmap definitions and structures
 dnl ###########################################################
 
 if test "x$NETMAPINCDIR" != "x"; then
     OLDCPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
     AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
-    
+
     have_nm_open=no
     have_nm_nr_reg_mask=no
     have_nm_nr_flags=no
@@ -1086,7 +1262,7 @@ if test "x$NETMAPINCDIR" != "x"; then
             #include <stdio.h>
             #include "${NETMAPUSERINC}"
         ]])
-        
+
         dnl check for #define NR_REG_MASK
         AC_MSG_CHECKING(for netmap NR_REG_MASK definition)
         AC_COMPILE_IFELSE(
@@ -1096,7 +1272,7 @@ if test "x$NETMAPINCDIR" != "x"; then
                     #include <net/if.h>
                     #include <net/netmap.h>
                 ]],
-                [[ 
+                [[
                     #ifdef NR_REG_MASK
                         /* OK */
                     #else
@@ -1104,10 +1280,10 @@ if test "x$NETMAPINCDIR" != "x"; then
                     #endif
                 ]])
             ],
-            [have_nm_nr_reg_mask=yes], 
+            [have_nm_nr_reg_mask=yes],
             [])
         AC_MSG_RESULT($have_nm_nr_reg_mask)
-        
+
         dnl check for nr_flags in struct nmreq
         AC_MSG_CHECKING(for netmap nr_flags definition)
         AC_COMPILE_IFELSE(
@@ -1117,15 +1293,15 @@ if test "x$NETMAPINCDIR" != "x"; then
                     #include <net/if.h>
                     #include <net/netmap.h>
                 ]],
-                [[ 
+                [[
                     struct nmreq nmr;
                     nmr.nr_flags = 0;
                 ]])
             ],
-            [have_nm_nr_flags=yes], 
+            [have_nm_nr_flags=yes],
             [])
         AC_MSG_RESULT($have_nm_nr_flags)
-        
+
         dnl check for head/tail in struct netmap_ring
         AC_MSG_CHECKING(for netmap ring head/tail definitions)
         AC_COMPILE_IFELSE(
@@ -1135,17 +1311,17 @@ if test "x$NETMAPINCDIR" != "x"; then
                     #include <net/if.h>
                     #include <net/netmap.h>
                 ]],
-                [[ 
+                [[
                     struct netmap_ring r;
                     r.head = r.tail = 0;
                 ]])
             ],
-            [have_nmring_head_tail=yes], 
+            [have_nmring_head_tail=yes],
             [])
         AC_MSG_RESULT($have_nmring_head_tail)
-        
+
     fi
-    
+
     if test "$have_nm_open" = yes ; then
         AC_DEFINE([HAVE_NETMAP_NM_OPEN], [1], [Does netmap have nm_open function?])
     fi
@@ -1158,7 +1334,7 @@ if test "x$NETMAPINCDIR" != "x"; then
     if test "$have_nmring_head_tail" = yes ; then
         AC_DEFINE([HAVE_NETMAP_RING_HEAD_TAIL], [1], [Does structure netmap_ring have head/tail defined?])
     fi
-    
+
     CPPFLAGS="$OLDCPPFLAGS"
 fi
 
@@ -1206,12 +1382,12 @@ AC_TRY_COMPILE([
 
 AC_CHECK_HEADERS([net/bpf.h], [have_bpf=yes], [have_bpf=no])
 if test $have_bpf = yes ; then
-    AC_DEFINE([HAVE_BPF], [1], 
+    AC_DEFINE([HAVE_BPF], [1],
             [Do we have BPF device support?])
 fi
 
 dnl ##################################################
-dnl # Check for Linux kernel support 
+dnl # Check for Linux kernel support
 dnl ##################################################
 AC_PATH_KERNEL_SOURCE
 
@@ -1238,20 +1414,20 @@ if test x${disable_quick_tx} != xyes; then
               [Do we have quick TX module support?])
     fi
     AC_SUBST(KERNEL_DIR)
-    
+
     dnl * Set destination directory for kernel modules
-    
+
     if test x${kerneluname} = x ; then
         kerneluname=`uname -r`
     fi
     default_moduledir=/lib/modules/${kerneluname}/misc
     AC_ARG_WITH(moduledir,
-    [  --with-moduledir=DIR    Install kernel modules in DIR (/lib/modules/${kerneluname}/misc)], 
+    [  --with-moduledir=DIR    Install kernel modules in DIR (/lib/modules/${kerneluname}/misc)],
     moduledir=${withval},
     moduledir=${default_moduledir})
     AC_SUBST(moduledir)
     AC_SUBST(kerneluname)
-    
+
     dnl * Allow kernel example
     AC_ARG_ENABLE(quick-tx-example,
     [  --enable-quick-tx-example Build Quick TX kernel module example],
@@ -1261,7 +1437,7 @@ if test x${disable_quick_tx} != xyes; then
         QUICK_TX_EXAMPLE_DIR=example
     fi
     AC_SUBST(QUICK_TX_EXAMPLE_DIR)
-    
+
     dnl * Allow kernel sandbox mode (prevent depmod execution)
     AC_ARG_ENABLE(sandboxed,
     [  --enable-sandboxed      Don't install anything to the kernel module directories],
@@ -1272,7 +1448,7 @@ fi
 AM_CONDITIONAL(SANDBOXED, test x$enable_sandboxed = xyes)
 
 dnl ##################################################
-dnl # Check for libdnet, but only if not Cygwin! 
+dnl # Check for libdnet, but only if not Cygwin!
 dnl ##################################################
 founddnet=no
 have_libdnet=no
@@ -1286,7 +1462,7 @@ if test $have_cygwin = no ; then
         AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
         [trydnetdir=$withval])
 
-    for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do 
+    for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
         if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
             LDNETINC="`$testdir/bin/dnet-config --cflags`"
             LDNETLIB="`$testdir/bin/dnet-config --libs`"
@@ -1334,13 +1510,13 @@ fi
 dnl Older versions of libpcap are missing some DLT types
 dnl If doesn't exist, we'll define them in src/common/fakepcap.h
 AC_MSG_CHECKING(for DLT_LINUX_SLL in libpcap)
-AC_TRY_COMPILE([#include "$LPCAPINC"], 
+AC_TRY_COMPILE([#include "$LPCAPINC"],
                [ int foo;
                  foo = DLT_LINUX_SLL ],
-                [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1], 
+                [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
                             [Does pcap.h include a header with DLT_LINUX_SLL?])
                   AC_MSG_RESULT(yes)
-                ], 
+                ],
                 AC_MSG_RESULT(no)
                )
 
@@ -1348,11 +1524,11 @@ AC_MSG_CHECKING(for DLT_C_HDLC in libpcap)
 AC_TRY_COMPILE([#include "$LPCAPINC"],
                [ int foo;
                  foo = DLT_C_HDLC ],
-                [ AC_DEFINE([HAVE_DLT_C_HDLC], [1], 
+                [ AC_DEFINE([HAVE_DLT_C_HDLC], [1],
                             [Does pcap.h include a header with DLT_C_HDLC?])
                   AC_MSG_RESULT(yes)
                 ],
-                AC_MSG_RESULT(no)   
+                AC_MSG_RESULT(no)
                )
 
 PCAP_BPF_H_FILE="$LPCAPINCDIR/pcap-bpf.h"
@@ -1439,7 +1615,7 @@ if test $pcncfg != no ; then
     PCAPNAV_VERSION=`$pcncfg --version`
     AC_SUBST(LNAVLIB)
     AC_SUBST(LNAV_CFLAGS)
-    AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION", 
+    AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION",
                        [libpcapnav's version?])
 
 dnl Check to see what version of libpcapnav
@@ -1449,7 +1625,7 @@ dnl reduced quite a bit more if we chose too
     AC_TRY_RUN([
 #include <string.h>
 #define PCAPNAV_TEST "0.4"
-/* 
+/*
  * simple proggy to test the version of libpcapnav
  * returns zero if version >= 0.4
  * or one otherwise
@@ -1725,7 +1901,8 @@ AC_MSG_RESULT(
              TCPREPLAY Suite Configuration Results (${TCPREPLAY_VERSION})
 ##########################################################################
 libpcap:                    ${foundpcap} (${libpcap_version})
-libdnet:                    ${founddnet} (${libdnet_version})
+PF_RING libpcap             ${pf_ring_found}   ${pf_ring_lib}
+libdnet:                    ${founddnet}   ${libdnet_version}
 autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
 Use libopts tearoff:        ${enable_local_libopts}
 64bit counter support:      ${use64bit_counters}
@@ -1758,7 +1935,7 @@ Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
     ;;
 
     *-*-cygwin)
-        AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental. 
+        AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental.
 Please report any bugs! https://github.com/appneta/tcpreplay/issues])
     ;;
 esac
