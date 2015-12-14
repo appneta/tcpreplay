@@ -2,7 +2,7 @@ $Id$
 
 tcpreplay and it's associated utilities (tcpprep, tcprewrite and flowreplay)
 were designed and written by Aaron Turner, and maintained and updated by 
-Fred Klassen of AppNeta Inc.
+Fred Klassen of AppNeta
 
 This product includes software developed by the University of California,
 Berkeley, Lawrence Berkeley Laboratory and its contributors. 
