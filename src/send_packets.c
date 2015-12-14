@@ -1044,7 +1044,7 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
     result = check_cache(cachedata, packet_num);
     if (result == TCPR_DIR_NOSEND) {
         dbgx(2, "Cache: Not sending packet " COUNTER_SPEC ".", packet_num);
-        return TCPR_DIR_NOSEND;
+        return NULL;
     }
     else if (result == TCPR_DIR_C2S) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);

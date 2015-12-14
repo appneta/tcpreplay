@@ -500,14 +500,12 @@ tcpreplay_close(tcpreplay_t *ctx)
     flow_hash_table_release(ctx->flow_hash_table);
 
     /* free the file cache */
-    if (options->file_cache != NULL) {
-        packet_cache = options->file_cache->packet_cache;
-        while (packet_cache != NULL) {
-            next = packet_cache->next;
-            safe_free(packet_cache->pktdata);
-            safe_free(packet_cache);
-            packet_cache = next;
-        }
+    packet_cache = options->file_cache->packet_cache;
+    while (packet_cache != NULL) {
+    	next = packet_cache->next;
+    	safe_free(packet_cache->pktdata);
+    	safe_free(packet_cache);
+    	packet_cache = next;
     }
 
     /* free our interface list */
@@ -1173,7 +1171,7 @@ tcpreplay_prepare(tcpreplay_t *ctx)
     /*
      * Setup up the file cache, if required
      */
-    if (ctx->options->preload_pcap && ctx->options->file_cache == NULL) {
+    if (ctx->options->preload_pcap) {
         /* Initialise each of the file cache structures */
         for (i = 0; i < ctx->options->source_cnt; i++) {
             ctx->options->file_cache[i].index = i;
