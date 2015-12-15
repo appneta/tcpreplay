@@ -554,23 +554,30 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
+    tcpr_cidrmap_t *ipmap;
 
     assert(tcpedit);
     assert(ip_hdr);
 
     /* first check the src/dst IP maps */
-    if (tcpedit->srcipmap != NULL) {
-        if (ip_in_cidr(tcpedit->srcipmap->from, ip_hdr->ip_src.s_addr)) {
-            ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, tcpedit->srcipmap->to, ip_hdr->ip_src.s_addr);
+    ipmap = tcpedit->srcipmap;
+    while (ipmap != NULL) {
+        if (ip_in_cidr(ipmap->from, ip_hdr->ip_src.s_addr)) {
+            ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, ipmap->to, ip_hdr->ip_src.s_addr);
             dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
+            break;
         }
+        ipmap = ipmap->next;
     }
 
-    if (tcpedit->dstipmap != NULL) {
-        if (ip_in_cidr(tcpedit->dstipmap->from, ip_hdr->ip_dst.s_addr)) {
-            ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, tcpedit->dstipmap->to, ip_hdr->ip_dst.s_addr);
-            dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
+    ipmap = tcpedit->dstipmap;
+    while (ipmap != NULL) {
+        if (ip_in_cidr(ipmap->from, ip_hdr->ip_dst.s_addr)) {
+            ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, ipmap->to, ip_hdr->ip_dst.s_addr);
+            dbgx(2, "Remapped dst addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
+            break;
         }
+        ipmap = ipmap->next;
     }
 
     /* anything else to rewrite? */
@@ -634,23 +641,30 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
+    tcpr_cidrmap_t *ipmap;
 
     assert(tcpedit);
     assert(ip6_hdr);
 
     /* first check the src/dst IP maps */
-    if (tcpedit->srcipmap != NULL) {
-        if (ip6_in_cidr(tcpedit->srcipmap->from, &ip6_hdr->ip_src)) {
-            remap_ipv6(tcpedit, tcpedit->srcipmap->to, &ip6_hdr->ip_src);
+    ipmap = tcpedit->srcipmap;
+    while (ipmap != NULL) {
+        if (ip6_in_cidr(ipmap->from, &ip6_hdr->ip_src)) {
+            remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_src);
             dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
+            break;
         }
+        ipmap = ipmap->next;
     }
 
-    if (tcpedit->dstipmap != NULL) {
-        if (ip6_in_cidr(tcpedit->dstipmap->from, &ip6_hdr->ip_dst)) {
-            remap_ipv6(tcpedit, tcpedit->dstipmap->to, &ip6_hdr->ip_dst);
-            dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
+    ipmap = tcpedit->dstipmap;
+    while (ipmap != NULL) {
+        if (ip6_in_cidr(ipmap->from, &ip6_hdr->ip_dst)) {
+            remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_dst);
+            dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
+            break;
         }
+        ipmap = ipmap->next;
     }
 
     /* anything else to rewrite? */
