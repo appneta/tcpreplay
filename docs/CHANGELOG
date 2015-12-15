@@ -3,6 +3,7 @@
 	- Compile and mult-arch cross-compile on ARM (#211)
 	- Switch to wire speed after 30 minutes at 6 Gbps (#210)
 	- Master doesn't compile on OS X 10.11 (#203)
+	- Support for tcprewrite multiple IP CIDR (#199)
 	- Buffer overflow bug in tcpprep (#167)
 
 11/22/2015 Version 4.1.1-beta2
