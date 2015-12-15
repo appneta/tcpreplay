@@ -43,6 +43,7 @@ AC_SUBST(target)
 
 CROSS_ARCH=
 CROSS_LD=
+build_arch=$(echo $MACHTYPE | cut -d'-' -f1)
 if test "$cross_compiling" = "yes" ; then
     CROSS_ARCH="ARCH=$host_cpu"
     CROSS_LD="LD=$LD"
@@ -705,7 +706,7 @@ AC_ARG_WITH(libpcap,
                 LPCAPINCDIR="${testdir}/include"
                 if test $dynamic_link = yes; then
                     for ext in .dylib .so .tbd; do
-                        for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                        for dir in . lib lib64 ${host_cpu} lib/${host_cpu} ${host_cpu}-${host_os} lib/${host_cpu}-${host_os} ${build_arch}-${host_os} lib/${build_arch}-${host_os}; do
                             sharefile=$(ls "${testdir}/$dir/libpcap${ext}" 2> /dev/null | sort | head -n1)
                             if test -n "${sharefile}"; then
                                 LPCAPLIB="-L$(dirname ${sharefile}) -lpcap"

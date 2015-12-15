@@ -248,8 +248,8 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * we do all this work to prevent byte alignment issues
      */
     if (l2_len % 4) {
+        memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
         ip_hdr = *newbuff;
-        memcpy(ip_hdr, (pktdata + l2_len), (datalen - l2_len));
     } else {
 
         /* we don't have to do a memcpy if l2_len lands on a boundry */
@@ -310,8 +310,8 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * we do all this work to prevent byte alignment issues
      */
     if (l2_len % 4) {
+        memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
         ip6_hdr = *newbuff;
-        memcpy(ip6_hdr, (pktdata + l2_len), (datalen - l2_len));
     } else {
 
         /* we don't have to do a memcpy if l2_len lands on a boundry */
