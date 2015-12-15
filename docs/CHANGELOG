@@ -1,3 +1,8 @@
+--/--/2015 Version 4.1.1-beta3
+	- Correct company name in license #217
+	- Master doesn't compile on OS X 10.11 #203
+	- Buffer overflow bug in tcpprep #167
+
 11/22/2015 Version 4.1.1-beta2
     - Tap device support for Linux and FreeBSD from Murat Demirten (#207)
     - Handle loopback for linux cooked capture files from corentin-p1(Linux SLL) (#204)
