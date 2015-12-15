@@ -67,7 +67,7 @@ extern int debug;
 #endif
 
 static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
-        struct timeval *last, int len,
+        struct timeval *last, COUNTER len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length);
 static void tcpr_sleep(tcpreplay_t *ctx,
@@ -454,11 +454,11 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     struct timeval print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
-    int limit_send = options->limit_send;
+    COUNTER limit_send = options->limit_send;
     struct pcap_pkthdr pkthdr;
     u_char *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
-    uint32_t pktlen;
+    COUNTER pktlen;
     packet_cache_t *cached_packet = NULL;
     packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
@@ -468,7 +468,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER skip_length = 0;
     COUNTER start_us;
     COUNTER end_us;
-    uint32_t iteration = ctx->iteration;
+    COUNTER iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
     bool preload = options->file_cache[idx].cached;
     bool do_not_timestamp = options->speed.mode == speed_topspeed ||
@@ -497,7 +497,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             return;
 
         /* stop sending based on the limit -L? */
-        if (limit_send > 0 && ctx->stats.pkts_sent >= (COUNTER)limit_send) {
+        if (limit_send > 0 && ctx->stats.pkts_sent >= limit_send) {
             ctx->abort = true;
             break;
         }
@@ -515,9 +515,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
-        pktlen = options->use_pkthdr_len ? pkthdr.len : pkthdr.caplen;
+        pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr.len : (COUNTER)pkthdr.caplen;
 #elif TCPBRIDGE
-        pktlen = pkthdr.caplen;
+        pktlen = (COUNTER)pkthdr.caplen;
 #else
 #error WTF???  We should not be here!
 #endif
@@ -539,7 +539,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
         }
-        pktlen = options->use_pkthdr_len ? pkthdr_ptr->len : pkthdr_ptr->caplen;
+        pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
 
         /* do we need to print the packet via tcpdump? */
@@ -571,7 +571,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
              * sending
              */
             if (skip_length) {
-                if ((COUNTER)pktlen < skip_length &&
+                if (pktlen < skip_length &&
                         !((options->limit_send > 0 &&
                                 (ctx->stats.pkts_sent + skip_length) >= options->limit_send))) {
                     skip_length -= pktlen;
@@ -680,13 +680,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     struct timeval print_delta, now;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
-    int limit_send = options->limit_send;
+    COUNTER limit_send = options->limit_send;
     int cache_file_idx;
     struct pcap_pkthdr pkthdr1, pkthdr2;
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
-    uint32_t pktlen;
-    uint32_t iteration = ctx->iteration;
+    COUNTER pktlen;
+    COUNTER iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
@@ -727,7 +727,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             return;
 
         /* stop sending based on the limit -L? */
-        if (limit_send > 0 && ctx->stats.pkts_sent >= (COUNTER)limit_send) {
+        if (limit_send > 0 && ctx->stats.pkts_sent >= limit_send) {
             ctx->abort = true;
             break;
         }
@@ -782,9 +782,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
-        pktlen = options->use_pkthdr_len ? pkthdr_ptr->len : pkthdr_ptr->caplen;
+        pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #elif TCPBRIDGE
-        pktlen = pkthdr_ptr->caplen;
+        pktlen = (COUNTER)pkthdr_ptr->caplen;
 #else
 #error WTF???  We should not be here!
 #endif
@@ -796,7 +796,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
             errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
         }
-        pktlen = options->use_pkthdr_len ? pkthdr_ptr->len : pkthdr_ptr->caplen;
+        pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
 
         /* do we need to print the packet via tcpdump? */
@@ -826,7 +826,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              * sending
              */
             if (skip_length) {
-                if ((COUNTER)pktlen < skip_length &&
+                if (pktlen < skip_length &&
                         !((options->limit_send > 0 && (ctx->stats.pkts_sent + skip_length) >= options->limit_send))) {
                     skip_length -= pktlen;
                     goto SEND_NOW;
@@ -1069,7 +1069,7 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
  * will be in ctx->nap.
  */
 static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
-        struct timeval *last, int len,
+        struct timeval *last, COUNTER len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length)
 {
@@ -1135,8 +1135,8 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
          */
         now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
         if (now_us) {
-            COUNTER bps = (COUNTER)options->speed.speed;
-            COUNTER bits_sent = ((ctx->stats.bytes_sent + (COUNTER)len) * 8LL);
+            COUNTER bps = options->speed.speed;
+            COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8);
             /* bits * 1000000 divided by bps = microseconds */
             COUNTER next_tx_us = (bits_sent * 1000000) / bps;
             COUNTER tx_us = now_us - *start_us;
@@ -1149,7 +1149,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
         }
 
-        dbgx(3, "packet size %d\t\tequals\tnap " TIMESPEC_FORMAT, len,
+        dbgx(3, "packet size " COUNTER_SPEC "\t\tequals\tnap " TIMESPEC_FORMAT, len,
                 ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
