@@ -1,5 +1,6 @@
 --/--/2015 Version 4.1.1-beta3
 	- Correct company name in license #217
+	- Compile and mult-arch cross-compile on ARM #211
 	- Master doesn't compile on OS X 10.11 #203
 	- Buffer overflow bug in tcpprep #167
 

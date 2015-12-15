@@ -158,10 +158,10 @@ packet_stats(const tcpreplay_stats_t *stats)
 
     if (diff_us >= 1000000)
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds.\n",
-                stats->pkts_sent, stats->bytes_sent, diff.tv_sec, diff.tv_usec / (100 * 1000));
+                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_usec / (100 * 1000)));
     else
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds.\n",
-                stats->pkts_sent, stats->bytes_sent, diff.tv_sec, diff.tv_usec);
+                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)diff.tv_usec);
 
 
     if (mb_sec >= 1)
