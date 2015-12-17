@@ -362,7 +362,7 @@ flag = {
     max         = 1;
     arg-default = -1;
     arg-range   = "1->";
-    descrip     = "Limit the trasmit duration";
+    descrip     = "Limit the number of seconds to send";
     doc         = <<- EOText
 By default, tcpreplay will send all the packets.  Alternatively, you can
 specify a maximum number of seconds to transmit.
