@@ -464,7 +464,6 @@ EOText;
 
 flag = {
     name        = unique-ip;
-    flags-must  = loop;
 #ifdef TCPREPLAY_EDIT
 	flags-cant	= seed;
 #endif    
