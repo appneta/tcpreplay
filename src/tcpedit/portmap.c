@@ -33,6 +33,7 @@
 #include "tcpreplay.h"
 #include "tcpedit.h"
 #include "portmap.h"
+#include "incremental_checksum.h"
 
 /**
  * mallocs a new tcpedit_portmap_t structure 
@@ -282,7 +283,6 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
-    int changes = 0;
     uint16_t newport;
     tcpedit_portmap_t *portmap;
 
@@ -296,15 +296,15 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
         /* check if we need to remap the destination port */
         newport = map_port(portmap, tcp_hdr->th_dport);
         if (newport != tcp_hdr->th_dport) {
+            csum_replace2(&tcp_hdr->th_sum, tcp_hdr->th_dport, newport);
             tcp_hdr->th_dport = newport;
-            changes ++;
         }
 
         /* check if we need to remap the source port */
         newport = map_port(portmap, tcp_hdr->th_sport);
         if (newport != tcp_hdr->th_sport) {
+            csum_replace2(&tcp_hdr->th_sum, tcp_hdr->th_sport, newport);
             tcp_hdr->th_sport = newport;
-            changes ++;
         }
 
     } else if (protocol == IPPROTO_UDP) {
@@ -313,19 +313,25 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
         /* check if we need to remap the destination port */
         newport = map_port(portmap, udp_hdr->uh_dport);
         if (newport != udp_hdr->uh_dport) {
+            if (udp_hdr->uh_sum) {
+                csum_replace2(&udp_hdr->uh_sum, udp_hdr->uh_dport, newport);
+            }
+
             udp_hdr->uh_dport = newport;
-            changes ++;
         }
 
         /* check if we need to remap the source port */
         newport = map_port(portmap, udp_hdr->uh_sport);
         if (newport != udp_hdr->uh_sport) {
+            if (udp_hdr->uh_sum) {
+                csum_replace2(&udp_hdr->uh_sum, udp_hdr->uh_sport, newport);
+            }
+
             udp_hdr->uh_sport = newport;
-            changes ++;
         }
 
     }
-    return changes;
+    return 0;
 }
 
 int

@@ -33,6 +33,7 @@
 #include "tcpedit_stub.h"
 #include "portmap.h"
 #include "common.h"
+#include "incremental_checksum.h"
 #include "edit_packet.h"
 #include "parse_args.h"
 
@@ -166,24 +167,25 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         
         /* set TOS ? */
         if (tcpedit->tos > -1) {
+            uint16_t newval, oldval = *((uint16_t*)ip_hdr);
             ip_hdr->ip_tos = tcpedit->tos;
-            needtorecalc += 1;
+            newval = *((uint16_t*)ip_hdr);
+            csum_replace2(&ip_hdr->ip_sum, oldval, newval);
         }
             
         /* rewrite the TTL */
-        needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
+        rewrite_ipv4_ttl(tcpedit, ip_hdr);
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
             if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr)) < 0)
                 return TCPEDIT_ERROR;
-            needtorecalc += retval;
         }
     }
     /* IPv6 edits */
     else if (ip6_hdr != NULL) {
         /* rewrite the hop limit */
-        needtorecalc += rewrite_ipv6_hlim(tcpedit, ip6_hdr);
+        rewrite_ipv6_hlim(tcpedit, ip6_hdr);
 
         /* set traffic class? */
         if (tcpedit->tclass > -1) {
@@ -200,7 +202,6 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             ipflags += tclass; 
             ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
-            needtorecalc ++;
         }
 
         /* set the flow label? */
@@ -210,14 +211,12 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             ipflags += tcpedit->flowlabel;
             ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
-            needtorecalc ++;
         }
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
             if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr)) < 0)
                 return TCPEDIT_ERROR;
-            needtorecalc += retval;
         }
     }
 
@@ -234,11 +233,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         if (ip_hdr != NULL) {
             if ((retval = rewrite_ipv4l3(tcpedit, ip_hdr, direction)) < 0)
                 return TCPEDIT_ERROR;
-            needtorecalc += retval;
         } else if (ip6_hdr != NULL) {
             if ((retval = rewrite_ipv6l3(tcpedit, ip6_hdr, direction)) < 0)
                 return TCPEDIT_ERROR;
-            needtorecalc += retval;
         }
 
         /* ARP packets */
@@ -261,13 +258,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             if ((retval = randomize_ipv4(tcpedit, *pkthdr, packet, 
                     ip_hdr)) < 0)
                 return TCPEDIT_ERROR;
-            needtorecalc += retval;
 
         } else if (ip6_hdr != NULL) {
             if ((retval = randomize_ipv6(tcpedit, *pkthdr, packet,
                     ip6_hdr)) < 0)
                 return TCPEDIT_ERROR;
-            needtorecalc += retval;
 
         /* ARP packets */
         } else if (l2proto == htons(ETHERTYPE_ARP)) {

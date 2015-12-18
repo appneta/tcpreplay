@@ -25,6 +25,7 @@
 #include "tcpedit.h"
 #include "edit_packet.h"
 #include "checksum.h"
+#include "incremental_checksum.h"
 #include "lib/sll.h"
 #include "dlt.h"
 
@@ -105,6 +106,114 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
     return TCPEDIT_OK;
 }
 
+static void ipv4_l34_csum_replace(uint8_t *data, uint8_t protocol,
+        uint32_t old, uint32_t new)
+{
+    ipv4_hdr_t *ipv4;
+    tcp_hdr_t *tcp_hdr;
+    udp_hdr_t *udp_hdr;
+
+    assert(data);
+
+    switch (protocol) {
+    case IPPROTO_IP:
+        ipv4 = (ipv4_hdr_t *)data;
+        csum_replace4(&ipv4->ip_sum, old, new);
+        break;
+
+    case IPPROTO_TCP:
+        tcp_hdr = (tcp_hdr_t *)data;
+        csum_replace4(&tcp_hdr->th_sum, old, new);
+        break;
+
+    case IPPROTO_UDP:
+        udp_hdr = (udp_hdr_t *)data;
+        if (udp_hdr->uh_sum)
+            csum_replace4(&udp_hdr->uh_sum, old, new);
+        break;
+
+    default:
+        assert(false);
+    }
+
+}
+
+static void ipv6_l34_csum_replace(uint8_t *data, uint8_t protocol,
+        uint32_t *old, uint32_t *new)
+{
+    tcp_hdr_t *tcp_hdr;
+    udp_hdr_t *udp_hdr;
+    icmpv4_hdr_t *icmp;
+    icmpv6_hdr_t *icmp6;
+
+    assert(data);
+
+    switch (protocol) {
+
+    case IPPROTO_TCP:
+        tcp_hdr = (tcp_hdr_t *)data;
+        csum_replace16(&tcp_hdr->th_sum, old, new);
+        break;
+
+    case IPPROTO_UDP:
+        udp_hdr = (udp_hdr_t *)data;
+        if (udp_hdr->uh_sum)
+            csum_replace16(&udp_hdr->uh_sum, old, new);
+        break;
+
+    case IPPROTO_ICMP:
+        icmp = (icmpv4_hdr_t *)data;
+        csum_replace16(&icmp->icmp_sum, old, new);
+        break;
+
+    case IPPROTO_ICMP6:
+        icmp6 = (icmpv6_hdr_t *)data;
+        csum_replace16(&icmp6->icmp_sum, old, new);
+        break;
+
+    default:
+        assert(false);
+    }
+
+}
+
+static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip, uint32_t new_ip)
+{
+    uint8_t *l4 = NULL, protocol;
+    assert(ip_hdr);
+
+    ipv4_l34_csum_replace((uint8_t*)ip_hdr, IPPROTO_IP, old_ip, new_ip);
+
+      protocol = ip_hdr->ip_p;
+    if (protocol == IPPROTO_TCP || protocol == IPPROTO_UDP)
+        l4 = get_layer4_v4(ip_hdr, 65536);
+
+    if (!l4)
+        return;
+
+    /* if this is a fragment, don't attempt to checksum the Layer4 header */
+    if ((htons(ip_hdr->ip_off) & IP_OFFMASK) == 0)
+        ipv4_l34_csum_replace(l4, protocol, old_ip, new_ip);
+}
+
+static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
+        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip)
+{
+    uint8_t *l4 = NULL, protocol;
+    assert(ip6_hdr);
+
+      protocol = get_ipv6_l4proto(ip6_hdr, 65536);;
+    if (protocol == IPPROTO_TCP || protocol == IPPROTO_UDP ||
+            protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMP6)
+        l4 = get_layer4_v6(ip6_hdr, 65536);
+
+    if (!l4)
+        return;
+
+    ipv6_l34_csum_replace(l4, protocol, (uint32_t*)old_ip, (uint32_t*)new_ip);
+}
+
+
 /**
  * returns a new 32bit integer which is the randomized IP 
  * based upon the user specified seed
@@ -113,11 +222,11 @@ static uint32_t
 randomize_ipv4_addr(tcpedit_t *tcpedit, uint32_t ip)
 {
     assert(tcpedit);
-    
+
     /* don't rewrite broadcast addresses */
     if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, ip))
         return ip;
-        
+
     return ((ip ^ htonl(tcpedit->seed)) - (ip & htonl(tcpedit->seed)));
 }
 
@@ -173,13 +282,17 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
     /* don't rewrite broadcast addresses */
     if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_dst.s_addr)) 
-        || !tcpedit->skip_broadcast) {
+            || !tcpedit->skip_broadcast) {
+        uint32_t old_ip = ip_hdr->ip_dst.s_addr;
         ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
+        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr);
     }
     
     if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr))
-        || !tcpedit->skip_broadcast) {
+            || !tcpedit->skip_broadcast) {
+        uint32_t old_ip = ip_hdr->ip_src.s_addr;
         ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
+        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr);
     }
 
 #ifdef DEBUG    
@@ -189,7 +302,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
     dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
 
-    return(1);
+    return 0;
 }
 
 int
@@ -214,13 +327,19 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
     /* don't rewrite broadcast addresses */
     if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_dst))
-        || !tcpedit->skip_broadcast) {
+            || !tcpedit->skip_broadcast) {
+        struct tcpr_in6_addr old_ip6;
+        memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_dst);
+        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst);
     }
 
     if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_src))
-        || !tcpedit->skip_broadcast) {
+            || !tcpedit->skip_broadcast) {
+        struct tcpr_in6_addr old_ip6;
+        memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_src);
+        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
     }
 
 #ifdef DEBUG
@@ -230,7 +349,7 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
     dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
 
-    return(1);
+    return 0;
 }
 
 /**
@@ -244,7 +363,11 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         u_char **pktdata, ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr)
 {
     int l2len;
+    int chksum = 1;
     u_char *packet;
+    udp_hdr_t *udp_hdr;
+    u_char *dataptr = NULL;
+
     assert(tcpedit);
     assert(pkthdr);
     assert(pktdata);
@@ -264,13 +387,31 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         return -1;
     }
 
+    /*
+     * cannot checksum fragments, but we can do some
+     * work on UDP fragments. Setting checksum to 0
+     * means checksum will be ignored.
+     */
+    if (ip_hdr) {
+        if ((htons(ip_hdr->ip_off) & IP_OFFMASK) != 0) {
+            chksum = 0;
+        } else if (ip_hdr->ip_p == IPPROTO_UDP &&
+                (htons(ip_hdr->ip_off) & IP_MF) != 0) {
+            dataptr = (u_char*)ip_hdr;
+            dataptr += ip_hdr->ip_hl << 2;
+            udp_hdr = (udp_hdr_t*)dataptr;
+            udp_hdr->uh_sum = 0;
+            chksum = 0;
+        }
+    }
+
     /* Pad packet or truncate it */
     if (tcpedit->fixlen == TCPEDIT_FIXLEN_PAD) {
         /*
          * this should be an unnecessary check
-  	     * but I've gotten a report that sometimes the caplen > len
-  	     * which seems like a corrupted pcap
-  	     */
+           * but I've gotten a report that sometimes the caplen > len
+           * which seems like a corrupted pcap
+           */
         if (pkthdr->len > pkthdr->caplen) {
             packet = safe_realloc(packet, pkthdr->len);
             memset(packet + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
@@ -308,7 +449,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         return -1;
     }
 
-    return(1);
+    return chksum;
 }
 
 /**
@@ -399,16 +540,19 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 int
 rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr)
 {
+    uint16_t oldval, newval;
+
     assert(tcpedit);
 
     /* make sure there's something to edit */
     if (ip_hdr == NULL || tcpedit->ttl_mode == false)
         return(0);
         
+    oldval = (uint16_t)ip_hdr->ip_ttl;
     switch(tcpedit->ttl_mode) {
     case TCPEDIT_TTL_MODE_SET:
         if (ip_hdr->ip_ttl == tcpedit->ttl_value)
-            return(0);           /* no change required */
+            return 0;           /* no change required */
         ip_hdr->ip_ttl = tcpedit->ttl_value;
         break;
     case TCPEDIT_TTL_MODE_ADD:
@@ -428,7 +572,11 @@ rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr)
     default:
         errx(1, "invalid ttl_mode: %d", tcpedit->ttl_mode);
     }
-    return(1);
+
+    newval = (uint16_t)ip_hdr->ip_ttl;
+    csum_replace2(&ip_hdr->ip_sum, oldval, newval);
+
+    return 0;
 }
 
 /**
@@ -467,7 +615,7 @@ rewrite_ipv6_hlim(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr)
     default:
         errx(1, "invalid ttl_mode: %d", tcpedit->ttl_mode);
     }
-    return(1);
+    return 0;
 }
 
 /**
@@ -563,7 +711,9 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
     ipmap = tcpedit->srcipmap;
     while (ipmap != NULL) {
         if (ip_in_cidr(ipmap->from, ip_hdr->ip_src.s_addr)) {
+            uint32_t old_ip = ip_hdr->ip_src.s_addr;
             ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, ipmap->to, ip_hdr->ip_src.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr);
             dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
             break;
         }
@@ -573,7 +723,9 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
     ipmap = tcpedit->dstipmap;
     while (ipmap != NULL) {
         if (ip_in_cidr(ipmap->from, ip_hdr->ip_dst.s_addr)) {
+            uint32_t old_ip = ip_hdr->ip_dst.s_addr;
             ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, ipmap->to, ip_hdr->ip_dst.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
             break;
         }
@@ -597,12 +749,16 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
     /* loop through the cidrmap to rewrite */
     do {
         if ((! diddst) && ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr)) {
+            uint32_t old_ip = ip_hdr->ip_dst.s_addr;
             ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, cidrmap2->to, ip_hdr->ip_dst.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
             diddst = 1;
         }
         if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
+            uint32_t old_ip = ip_hdr->ip_src.s_addr;
             ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, cidrmap1->to, ip_hdr->ip_src.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr);
             dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
             didsrc = 1;
         }
@@ -632,8 +788,8 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
 
     } while (loop);
 
-    /* return how many changes we made */
-    return (diddst + didsrc);
+    /* return how many changes we require checksum updates (none) */
+    return 0;
 }
 
 int
@@ -650,7 +806,10 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
     ipmap = tcpedit->srcipmap;
     while (ipmap != NULL) {
         if (ip6_in_cidr(ipmap->from, &ip6_hdr->ip_src)) {
+            struct tcpr_in6_addr old_ip6;
+            memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
             remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_src);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
             dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
             break;
         }
@@ -660,7 +819,10 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
     ipmap = tcpedit->dstipmap;
     while (ipmap != NULL) {
         if (ip6_in_cidr(ipmap->from, &ip6_hdr->ip_dst)) {
+            struct tcpr_in6_addr old_ip6;
+            memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
             remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_dst);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
             break;
         }
@@ -684,12 +846,18 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
     /* loop through the cidrmap to rewrite */
     do {
         if ((! diddst) && ip6_in_cidr(cidrmap2->from, &ip6_hdr->ip_dst)) {
+            struct tcpr_in6_addr old_ip6;
+            memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
             remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
             diddst = 1;
         }
         if ((! didsrc) && ip6_in_cidr(cidrmap1->from, &ip6_hdr->ip_src)) {
+            struct tcpr_in6_addr old_ip6;
+            memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
             remap_ipv6(tcpedit, cidrmap1->to, &ip6_hdr->ip_src);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
             dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
             didsrc = 1;
         }
@@ -719,8 +887,8 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
 
     } while (loop);
 
-    /* return how many changes we made */
-    return (diddst + didsrc);
+    /* return how many changes we made (none) */
+    return 0;
 }
 
 /**
