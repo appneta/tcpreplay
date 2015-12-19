@@ -47,6 +47,8 @@ tcpr_replay_index(tcpreplay_t *ctx)
     int idx;
     assert(ctx);
 
+    init_timestamp(&ctx->stats.last_time);
+
     /* only process a single file */
     if (! ctx->options->dualfile) {
         /* process each pcap file in order */
