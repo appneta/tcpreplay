@@ -83,6 +83,7 @@ TAGS
 types_c.vim
 .project
 .cproject
+.autotools
 *.1
 .settings/
 pcapsend
