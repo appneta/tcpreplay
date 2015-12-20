@@ -182,9 +182,14 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->speed.mode = speed_oneatatime;
         options->speed.speed = 0;
     } else if (HAVE_OPT(MBPS)) {
-        options->speed.mode = speed_mbpsrate;
         n = atof(OPT_ARG(MBPS));
-        options->speed.speed = (COUNTER)(n * 1000000.0); /* convert to bps */
+        if (n) {
+            options->speed.mode = speed_mbpsrate;
+            options->speed.speed = (COUNTER)(n * 1000000.0); /* convert to bps */
+        } else {
+            options->speed.mode = speed_topspeed;
+            options->speed.speed = 0;
+        }
     } else if (HAVE_OPT(MULTIPLIER)) {
         options->speed.mode = speed_multiplier;
         options->speed.multiplier = atof(OPT_ARG(MULTIPLIER));

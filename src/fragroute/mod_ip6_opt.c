@@ -107,7 +107,6 @@ int
 ip6_opt_apply(void *d, struct pktq *pktq)
 {
 	struct ip6_opt_data *opt = (struct ip6_opt_data *)d;
-	struct __ip6_ext_data_routing* route;
 	struct ip6_ext_hdr* ext;
 	int offset, len;
 	struct pkt *pkt;
@@ -133,8 +132,6 @@ ip6_opt_apply(void *d, struct pktq *pktq)
 			pkt->pkt_ip_data += offset;
 
 			len = (IP6_ADDR_LEN / 8) * opt->u.route.segments;
-
-			route = (struct __ip6_ext_data_routing*)ext;
 
 			ext->ext_data.routing.type = 0;
 			ext->ext_data.routing.segleft = opt->u.route.segments;
