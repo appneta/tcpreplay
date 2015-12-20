@@ -383,7 +383,7 @@ _print_ip6(u_char *p, int length)
 		default:
 			printf("%s > %s:", ip6_ntoa(&ip6->ip6_src),
 				ip6_ntoa(&ip6->ip6_dst));
-			printf(" ip-proto-%hhu ttl %hhu  payload len %hu", ip6->ip6_nxt,
+			printf(" ip-proto-%hhu ttl %hhu  payload len %d", ip6->ip6_nxt,
 				ip6->ip6_hlim, plen);
 			break;
 	}
