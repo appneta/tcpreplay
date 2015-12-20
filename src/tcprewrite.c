@@ -229,7 +229,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     COUNTER packetnum = 0;
     int rcode;
 #ifdef ENABLE_FRAGROUTE
-    int frag_len, i, proto;
+    int frag_len, proto;
 #endif
 
     pkthdr_ptr = &pkthdr;
@@ -302,7 +302,6 @@ WRITE_PACKET:
                 if (fragroute_process(options.frag_ctx, *pktdata, pkthdr_ptr->caplen) < 0)
                     errx(-1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);
 
-                i = 0;
                 while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {
                     /* frags get the same timestamp as the original packet */
                     dbgx(1, "processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);

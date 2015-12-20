@@ -160,6 +160,7 @@ static int get_iface_index(int fd, const char *device, char *);
 
 #ifdef HAVE_TUNTAP
 #ifdef HAVE_LINUX
+#include <net/if.h>
 #include <linux/if_tun.h>
 #elif defined(HAVE_FREEBSD)
 #define TUNTAP_DEVICE_PREFIX "/dev/"
@@ -775,7 +776,7 @@ sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
 }
 #endif /* HAVE_PCAP_INJECT || HAVE_PCAP_SENDPACKET */
 
-#if defined HAVE_LIBDNET
+#if defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF
 /**
  * Inner sendpacket_open() method for using libdnet
  */
@@ -806,7 +807,7 @@ sendpacket_open_libdnet(const char *device, char *errbuf)
 static struct tcpr_ether_addr *
 sendpacket_get_hwaddr_libdnet(sendpacket_t *sp)
 {
-    struct tcpr_ether_addr *addr;
+    struct tcpr_ether_addr *addr = NULL;
     int ret;
     assert(sp);
 
