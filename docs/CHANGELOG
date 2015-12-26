@@ -1,3 +1,6 @@
+--/--/---- Version 4.1.1-beta4
+    - netmap optimizations (#93)
+
 12/19/2015 Version 4.1.1-beta3
 	- Option --unique-ip accepts --duration (#227)
 	- RFC1624 incremental checksums (#225)
@@ -38,7 +41,7 @@
     - Fix cross compiling (#140)
     - Add Quick TX module for Linux (#136)
 	- Better recovery for missing static libpcap libs (#128)
-	 
+
 09/05/2014 Version 4.0.5
     - Fix build failure with latest netmap 11 (#123)
     - Fix unable to use Zero Copy interfaces on PF_RING (#118)
@@ -70,17 +73,17 @@
 02/04/2014 Version 4.0.3
     - Fix build errors when ENABLE_VERBOSE is not set (#60)
     - Build error on host without tcpdump (#59)
-    
+
 01/17/2014 Version 4.0.2
     - Fix hangs with --mbps command (#54)
 
 01/16/2014 Version 4.0.1
     - Support for netmap version 10 API (#53)
     - Remove deprecated "absolute time" for OS X (#52)
-    - Make dosleep() rentrant to support API concurrency (#51)  
+    - Make dosleep() rentrant to support API concurrency (#51)
     - Remove compiler warnings (#50)
     - Fix slow netmap in Intel GigE "igb" server NICS (#49)
- 
+
 01/05/2014 Version 4.0.0
     - Implemented wiki page for 4.X - http://tcpreplay.appneta.com
     - Support for ARM aarch64 (appneta #43)
@@ -101,7 +104,7 @@
     - Remove unreliable RDTSC option (appneta #16)
     - Switch from BSD to GPLv3 license (appneta #5)
     - Add --unique-ip option to tcpreplay (appneta #4)
-    - Removed sleep-accel option (appneta #2) 
+    - Removed sleep-accel option (appneta #2)
     - Enhance accuracy and performance of --mbps option (appneta #2)
     - Add netmap injector (appneta #1)
     - Properly process IPv6 extension headers (#396)
@@ -211,7 +214,7 @@
     - Re-enable tcpreplay --listnics (#319)
     - Fix sendpacket always reporting using PF_PACKET, even when it doesn't (#322)
     - Fix major packet timing issue under old versions of glibc (#324)
-    
+
 05/17/2008: Version 3.3.1
     - Fix limitation of PF_PACKET only supporting Ethernet (#123)
     - Fix (again) /dev/bpf detection in FreeBSD 8.0 (#292)
@@ -246,7 +249,7 @@
 
 11/01/2007: Version 3.2.3
     - Fix compile issue under Linux and other OS's (#275)
-    
+
 10/31/2007: Version 3.2.2
     - Enable source MAC spoofing for OS X (#142, #151)
         * Tcpreplay now requires OS X 10.5 (Leopard)
@@ -260,7 +263,7 @@
     - Remove flowreplay code (#262)
     - Fix DLT rewrite code causing corrupted ethernet protocol type (#268)
     - Try to fix inet_aton() issue under Solaris (#260)
-    
+
 08/26/2007: Version 3.2
     - Return a more useful error message when tcpprep fails (#187)
     - Add Tomahawk test tool client/server detection algorithm (#186)
@@ -268,7 +271,7 @@
     - Improved documentation (#164, #198)
     - Added Doxygen markup (#176)
     - configure now honors --with-tcpdump flag (#192)
-    - configure now defaults to --enable-64bits which breaks backwards 
+    - configure now defaults to --enable-64bits which breaks backwards
         compatibility in certain situations.  Use --disable-64bits if this
         concerns you (#195)
     - Use safe_free() to detect bugs earlier in development (#197)
@@ -333,8 +336,8 @@
     - Add tcpbridge --verbose mode (#28)
     - Fix compile issues under HP-UX & strictly aligned systems (#141)
     - --enable-dynamic-link supports 64bit libraries (#143)
-    
-    
+
+
 03/22/2007: Version 3.0.beta13
     - Fixed detection of IPv4 packets in libtcpedit on little-endian boxes (#115, #116)
     - Fixed TCP/UDP checksum calculation on little-endian boxes (#126)
@@ -366,7 +369,7 @@
     - Fix tcpprep --include/exclude (#96)
     - Upgrade AutoGen tearoff (libopts) to latest version (5.9.0) (#97)
     - Don't do L4 checksums for non-fragment offset == 0 (#107)
-    
+
 08/07/2006: Version 3.0.beta11
     - Fix distribution to ship missing src/tcpr.h (#73)
     - Add support to tcprewrite to alter output file DLT (#74)
@@ -401,7 +404,7 @@
     - Improve tcpbridge man page
     - Massive tcprewrite fixes & cleanup (#50)
     - Much improved README document
-    - Reorganize packet editing code into a standalone module (tcpedit) 
+    - Reorganize packet editing code into a standalone module (tcpedit)
           which has been librarized. (#5)
     - Strict code cleanup (#27)
     - Fix tcpprep from generating bad cache files (#48)
@@ -503,8 +506,8 @@
       - tcprewrite
 
     - Removed Applications: (Ethereal has better utilities)
-      - capinfo 
-      - pcapmerge 
+      - capinfo
+      - pcapmerge
 
     - Merge fixes from 2.x/stable branch:
       - portmap.c endian bugs

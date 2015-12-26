@@ -42,6 +42,12 @@
 #include <architecture/i386/pio.h>
 #endif
 
+#ifdef HAVE_NETMAP
+#include <sys/ioctl.h>
+#include <net/netmap.h>
+#include <net/netmap_user.h>
+#endif /* HAVE_NETMAP */
+
 
 #ifndef __SLEEP_H__
 #define __SLEEP_H__
@@ -54,20 +60,39 @@ nanosleep_sleep(struct timespec *nap)
 
 
 /*
- * Straight forward... keep calling gettimeofday() unti the apporpriate amount
- * of time has passed.  Pretty damn accurate from 1 to 100Mbps
+ * Straight forward... keep calling gettimeofday() until the appropriate amount
+ * of time has passed.  Pretty damn accurate.
+ *
+ * Note: make sure "now" has recently been updated.
  */
 static inline void
-gettimeofday_sleep(struct timespec *nap)
+gettimeofday_sleep(sendpacket_t *sp _U_,
+        struct timespec *nap, struct timeval *now,
+        bool flush)
 {
-    struct timeval now, sleep_until, nap_for;
-    gettimeofday(&now, NULL);
+    struct timeval sleep_until, nap_for;
+#ifdef HAVE_NETMAP
+    struct timeval last;
+
+    if (flush)
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+
+    memcpy(&last, now, sizeof(last));
+#endif /* HAVE_NETMAP */
+
     TIMESPEC_TO_TIMEVAL(&nap_for, nap);
-    timeradd(&now, &nap_for, &sleep_until);
+    timeradd(now, &nap_for, &sleep_until);
     
     do {
-        gettimeofday(&now, NULL);
-    } while (timercmp(&now, &sleep_until, <));
+#ifdef HAVE_NETMAP
+        if (flush && timercmp(now, &last, !=)) {
+            /* flush TX buffer every usec */
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+            memcpy(&last, now, sizeof(last));
+        }
+#endif /* HAVE_NETMAP */
+        gettimeofday(now, NULL);
+    } while (timercmp(now, &sleep_until, <));
 }
 
 #ifdef HAVE_SELECT
@@ -75,7 +100,7 @@ gettimeofday_sleep(struct timespec *nap)
  * sleep for some time using the select() call timeout method.   This is 
  * highly portable for sub-second sleeping, but only for about 1msec
  * resolution which is pretty much useless for our needs.  Keeping it here
- * for furture reference
+ * for future reference
  */
 static inline void 
 select_sleep(const struct timespec *nap)
@@ -88,19 +113,5 @@ select_sleep(const struct timespec *nap)
         warnx("select_sleep() returned early due to error: %s", strerror(errno));
 }
 #endif /* HAVE_SELECT */
-
-/*
- * ioport_sleep() only works on Intel and quite possibly only Linux.
- * But the basic idea is to write to the IO Port 0x80 which should
- * take exactly 1usec regardless of the CPU speed and without 
- * calling a sleep method which allows the kernel to service another thread
- * Idea stolen from: http://c-faq.com/osdep/sd25.html
- */
-extern int ioport_sleep_value;
-
-/* before calling port_sleep(), you have to call port_sleep_init() */
-void ioport_sleep_init(void);
-
-void ioport_sleep(const struct timespec nap);
 
 #endif /* __SLEEP_H__ */

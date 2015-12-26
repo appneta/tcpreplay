@@ -80,10 +80,7 @@ typedef struct {
 typedef enum {
     accurate_gtod = 0,
     accurate_select = 1,
-    accurate_rdtsc = 2,
-    accurate_ioport = 3,
-    accurate_nanosleep = 4,
-    accurate_abs_time = 5
+    accurate_nanosleep = 2
 } tcpreplay_accurate;
 
 typedef enum {
@@ -191,7 +188,8 @@ typedef struct tcpreplay_s {
     /* sleep helpers */
     struct timespec nap;
     uint32_t skip_packets;
-    int first_time;
+    int first_time_intf1;
+    int first_time_intf2;
 
     /* counter stats */
     tcpreplay_stats_t stats;
