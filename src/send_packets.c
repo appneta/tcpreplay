@@ -42,10 +42,13 @@
 #endif
 
 #ifdef HAVE_NETMAP
+#ifdef HAVE_SYS_POLL_H
+#include <sys/poll.h>
+#endif
 #include <sys/ioctl.h>
 #include <net/netmap.h>
 #include <net/netmap_user.h>
-#endif
+#endif /* HAVE_NETMAP */
 
 #ifdef TCPREPLAY
 
@@ -70,8 +73,9 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
         struct timeval *last, COUNTER len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length);
-static void tcpr_sleep(tcpreplay_t *ctx,
-        struct timespec *nap_this_time, tcpreplay_accurate accurate);
+static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp _U_,
+        struct timespec *nap_this_time, struct timeval *now,
+        tcpreplay_accurate accurate);
 static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
@@ -229,6 +233,19 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     *src_ptr = htonl(src_ip);
     *dst_ptr = htonl(dst_ip);
+}
+
+static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
+{
+#ifdef HAVE_QUICK_TX
+    if (options->quick_tx)
+        quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
+#endif
+
+#ifdef HAVE_NETMAP
+    if (options->netmap)
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
 }
 
 static inline void
@@ -471,8 +488,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
     bool preload = options->file_cache[idx].cached;
-    bool do_not_timestamp = options->speed.mode == speed_topspeed ||
-            (options->speed.mode == speed_mbpsrate && !options->speed.speed);
+    bool top_speed = options->speed.mode == speed_topspeed;
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
 
@@ -491,26 +507,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
-        /* die? */
-        if (ctx->abort)
-            return;
-
-        /* stop sending based on the limit -L? */
-        if (limit_send > 0 && ctx->stats.pkts_sent >= limit_send) {
-            ctx->abort = true;
-            break;
-        }
-
-        /* stop sending based on the duration limit*/
-        if (end_us > 0 && (!do_not_timestamp || !(packetnum % 64))) {
-            if (gettimeofday(&now, NULL) < 0)
-                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
-            if (TIMEVAL_TO_MICROSEC(&now) > end_us) {
-                ctx->abort = true;
-                break;
-            }
-        }
+    while (!ctx->abort &&
+            (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
+        bool now_is_now;
 
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -549,7 +548,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #endif
 
         if (unique_ip && iteration)
-            /* edit packet to ensure every pass is unique */
+            /* edit packet to ensure every pass has unique IP addresses */
             fast_edit_packet(&pkthdr, &pktdata, iteration,
                     preload, datalink);
 
@@ -559,56 +558,51 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                     options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
 
         /*
-         * we have to cast the ts, since OpenBSD sucks
-         * had to be special and use bpf_timeval.
-         * Only sleep if we're not in top speed mode (-t)
+         * this accelerator improves performance by avoiding expensive
+         * time stamps during periods where we have fallen behind in our
+         * sending
          */
-
-        if (!do_not_timestamp) {
+        if (skip_length && pktlen < skip_length) {
+            skip_length -= pktlen;
+            now_is_now = false;
+        } else {
             /*
-             * this accelerator improves performance by avoiding expensive
-             * time stamps during periods where we have fallen behind in our
-             * sending
+             * time stamping is expensive, but now is the
+             * time to do it.
              */
-            if (skip_length) {
-                if (pktlen < skip_length &&
-                        !((options->limit_send > 0 &&
-                                (ctx->stats.pkts_sent + skip_length) >= options->limit_send))) {
-                    skip_length -= pktlen;
-                    goto SEND_NOW;
-                }
+            skip_length = 0;
+            now_is_now = true;
+            gettimeofday(&now, NULL);
 
-                get_packet_timestamp(&ctx->stats.end_time);
-                skip_length = 0;
-            }
-
+            /*
+             * Only sleep if we're not in top speed mode (-t)
+             *
+             * This also sets skip_length which will avoid timestamping for
+             * a given number of packets.
+             */
             calc_sleep_time(ctx, (struct timeval *)&pkthdr.ts, &ctx->stats.last_time, pktlen, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
 
-#ifdef HAVE_QUICK_TX
-            if (options->quick_tx && timesisset(&ctx->nap))
-                quick_tx_wakeup(sp->qtx_dev);          /* flush TX buffer */
-#endif
-
-#ifdef HAVE_NETMAP
-            if (options->netmap && timesisset(&ctx->nap))
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-#endif
-
+            /*
+             * we know how long to sleep between sends, now do it.
+             */
             if (timesisset(&ctx->nap))
-                tcpr_sleep(ctx, &ctx->nap, options->accurate);
+                tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
         }
 
-SEND_NOW:
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
 
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
 
-        /* mark the time when we sent the last packet */
-        if (!do_not_timestamp && !skip_length)
-            get_packet_timestamp(&ctx->stats.end_time);
+        /*
+         * mark the time when we sent the last packet
+         *
+         * we have to cast the ts, since OpenBSD sucks
+         * had to be special and use bpf_timeval.
+         */
+        memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
 #ifdef TIMESTAMP_TRACE
         add_timestamp_trace_entry(pktlen, &ctx->stats.end_time, skip_length);
@@ -620,16 +614,14 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (!do_not_timestamp && timercmp(&ctx->stats.last_time, &pkthdr.ts, <)) 
+        if (!top_speed && timercmp(&ctx->stats.last_time, &pkthdr.ts, <)) 
             memcpy(&ctx->stats.last_time, &pkthdr.ts, sizeof(struct timeval));
+
         ctx->stats.pkts_sent++;
         ctx->stats.bytes_sent += pktlen;
 
         /* print stats during the run? */
-        if (!skip_length && options->stats > 0) {
-            if (gettimeofday(&now, NULL) < 0)
-                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
-
+        if (options->stats > 0) {
             if (! timerisset(&ctx->stats.last_print)) {
                 memcpy(&ctx->stats.last_print, &now, sizeof(ctx->stats.last_print));
             } else {
@@ -642,31 +634,30 @@ SEND_NOW:
             }
         }
 
-        if (ctx->first_time) {
-#ifdef HAVE_QUICK_TX
-            if (options->quick_tx)
-                quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
-#endif
+        if (sp == ctx->intf1 && ctx->first_time_intf1) {
+            wake_send_queues(sp, options);
+            ctx->first_time_intf1 = 0;
+        } else if (sp == ctx->intf2 && ctx->first_time_intf2) {
+            wake_send_queues(sp, options);
+            ctx->first_time_intf2 = 0;
+        }
 
-#ifdef HAVE_NETMAP
-            if (options->netmap)
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-#endif
-            ctx->first_time = 0;
+        /* stop sending based on the duration limit... */
+        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+                /* ... or stop sending based on the limit -L? */
+                (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
+            if (!now_is_now) {
+                gettimeofday(&now, NULL);
+                memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
+            }
+            ctx->abort = true;
         }
     } /* while */
 
-#ifdef HAVE_QUICK_TX
-    /* flush any remaining netmap packets */
-    if (options->quick_tx)
-        ioctl(sp->handle.fd, QTX_START_TX, NULL);
-#endif
+    wake_send_queues(ctx->intf1, options);
+    if (ctx->intf2)
+        wake_send_queues(ctx->intf2, options);
 
-#ifdef HAVE_NETMAP
-    /* flush any remaining netmap packets */
-    if (options->netmap)
-        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-#endif
     ++ctx->iteration;
 }
 
@@ -695,7 +686,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER start_us;
     COUNTER end_us;
     COUNTER skip_length = 0;
-    bool do_not_timestamp = options->speed.mode == speed_topspeed ||
+    bool top_speed = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -721,26 +712,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while (! (pktdata1 == NULL && pktdata2 == NULL)) {
-        /* die? */
-        if (ctx->abort)
-            return;
-
-        /* stop sending based on the limit -L? */
-        if (limit_send > 0 && ctx->stats.pkts_sent >= limit_send) {
-            ctx->abort = true;
-            break;
-        }
-
-        /* stop sending based on the duration limit*/
-        if (end_us > 0) {
-            if (gettimeofday(&now, NULL) < 0)
-                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
-            if (TIMEVAL_TO_MICROSEC(&now) > end_us) {
-                ctx->abort = true;
-                break;
-            }
-        }
+    while (!ctx->abort &&
+            !(pktdata1 == NULL && pktdata2 == NULL)) {
+        bool now_is_now;
 
         packetnum++;
 
@@ -815,57 +789,51 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink);
 
         /*
-         * we have to cast the ts, since OpenBSD sucks
-         * had to be special and use bpf_timeval.
-         * Only sleep if we're not in top speed mode (-t)
+         * this accelerator improves performance by avoiding expensive
+         * time stamps during periods where we have fallen behind in our
+         * sending
          */
-        if (!do_not_timestamp) {
+        if (skip_length && pktlen < skip_length) {
+            skip_length -= pktlen;
+            now_is_now = false;
+        } else {
             /*
-             * this accelerator improves performance by avoiding expensive
-             * time stamps during periods where we have fallen behind in our
-             * sending
+             * time stamping is expensive, but now is the
+             * time to do it.
              */
-            if (skip_length) {
-                if (pktlen < skip_length &&
-                        !((options->limit_send > 0 && (ctx->stats.pkts_sent + skip_length) >= options->limit_send))) {
-                    skip_length -= pktlen;
-                    goto SEND_NOW;
-                }
+            skip_length = 0;
+            now_is_now = true;
+            gettimeofday(&now, NULL);
 
-                get_packet_timestamp(&ctx->stats.end_time);
-                skip_length = 0;
-            }
-
+            /*
+             * Only sleep if we're not in top speed mode (-t)
+             *
+             * This also sets skip_length which will avoid timestamping for
+             * a given number of packets.
+             */
             calc_sleep_time(ctx, (struct timeval *)&pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
 
-#ifdef HAVE_QUICK_TX
-            if (options->quick_tx && timesisset(&ctx->nap))
-                quick_tx_wakeup(sp->qtx_dev);          /* flush TX buffer */
-#endif
-
-#ifdef HAVE_NETMAP
-            if (options->netmap && timesisset(&ctx->nap))
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-#endif
-
+            /*
+             * we know how long to sleep between sends, now do it.
+             */
             if (timesisset(&ctx->nap))
-                tcpr_sleep(ctx, &ctx->nap, options->accurate);
-
-            if (ctx->first_time)
-                ctx->first_time = 0;
+                tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
         }
 
-SEND_NOW:
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
 
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
 
-        /* mark the time when we sent the last packet */
-        if (!do_not_timestamp && !skip_length)
-            get_packet_timestamp(&ctx->stats.end_time);
+        /*
+         * mark the time when we sent the last packet
+         *
+         * we have to cast the ts, since OpenBSD sucks
+         * had to be special and use bpf_timeval.
+         */
+        memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
         /*
          * track the time of the "last packet sent".  Again, because of OpenBSD
@@ -874,7 +842,7 @@ SEND_NOW:
          * A number of 3rd party tools generate bad timestamps which go backwards
          * in time.  Hence, don't update the "last" unless pkthdr.ts > last
          */
-        if (!do_not_timestamp && timercmp(&ctx->stats.last_time, &pkthdr_ptr->ts, <))
+        if (!top_speed && timercmp(&ctx->stats.last_time, &pkthdr_ptr->ts, <))
             memcpy(&ctx->stats.last_time, &pkthdr_ptr->ts, sizeof(struct timeval));
 
         ctx->stats.pkts_sent++;
@@ -882,18 +850,24 @@ SEND_NOW:
 
         /* print stats during the run? */
         if (options->stats > 0) {
-            if (gettimeofday(&now, NULL) < 0)
-                errx(-1, "gettimeofday() failed: %s",  strerror(errno));
-
             if (! timerisset(&ctx->stats.last_print)) {
-                memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
+                memcpy(&ctx->stats.last_print, &now, sizeof(ctx->stats.last_print));
             } else {
                 timersub(&now, &ctx->stats.last_print, &print_delta);
                 if (print_delta.tv_sec >= options->stats) {
+                    memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
                     packet_stats(&ctx->stats);
-                    memcpy(&ctx->stats.last_print, &now, sizeof(struct timeval));
+                    memcpy(&ctx->stats.last_print, &now, sizeof(ctx->stats.last_print));
                 }
             }
+        }
+
+        if (sp == ctx->intf1 && ctx->first_time_intf1) {
+            wake_send_queues(sp, options);
+            ctx->first_time_intf1 = 0;
+        } else if (sp == ctx->intf2 && ctx->first_time_intf2) {
+            wake_send_queues(sp, options);
+            ctx->first_time_intf2 = 0;
         }
 
         /* get the next packet for this file handle depending on which we last used */
@@ -903,35 +877,20 @@ SEND_NOW:
             pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
         }
 
-        if (ctx->first_time) {
-#ifdef HAVE_QUICK_TX
-            if (options->quick_tx)
-                quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
-#endif
-
-#ifdef HAVE_NETMAP
-            if (options->netmap)
-                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-#endif
-            ctx->first_time = 0;
+        /* stop sending based on the duration limit... */
+        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+                /* ... or stop sending based on the limit -L? */
+                (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
+            if (!now_is_now) {
+                gettimeofday(&now, NULL);
+                memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
+            }
+            ctx->abort = true;
         }
     } /* while */
 
-#ifdef QTX_START_TX
-    /* flush any remaining Quick TX packets */
-    if (options->quick_tx) {
-        ioctl(ctx->intf1->handle.fd, QTX_START_TX, NULL);
-        ioctl(ctx->intf2->handle.fd, QTX_START_TX, NULL);
-    }
-#endif
-
-#ifdef HAVE_NETMAP
-    /* flush any remaining netmap packets */
-    if (options->netmap) {
-        ioctl(ctx->intf1->handle.fd, NIOCTXSYNC, NULL);
-        ioctl(ctx->intf2->handle.fd, NIOCTXSYNC, NULL);
-    }
-#endif
+    wake_send_queues(ctx->intf1, options);
+    wake_send_queues(ctx->intf2, options);
 
     ++ctx->iteration;
 }
@@ -1092,7 +1051,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
      */
     if (options->speed.mode == speed_packetrate && options->speed.pps_multi) {
         ctx->skip_packets = options->speed.pps_multi - 1;
-        if (ctx->first_time) {
+        if (ctx->first_time_intf1) {
             return;
         }
     }
@@ -1101,7 +1060,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
     dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
     /* If top speed, you shouldn't even be here */
-    assert(options->speed.mode != speed_topspeed);
+//    assert(options->speed.mode != speed_topspeed);
 
     switch(options->speed.mode) {
     case speed_multiplier:
@@ -1177,17 +1136,27 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
         /* leave */
         break;
 
+    case speed_topspeed:
+        break;
+
     default:
         errx(-1, "Unknown/supported speed mode: %d", options->speed.mode);
         break;
     }
-
 }
 
-static void tcpr_sleep(tcpreplay_t *ctx,
-        struct timespec *nap_this_time, tcpreplay_accurate accurate)
+static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
+        struct timespec *nap_this_time, struct timeval *now,
+        tcpreplay_accurate accurate)
 {
     tcpreplay_opt_t *options = ctx->options;
+    bool flush =
+#ifdef HAVE_NETMAP
+            true;
+#else
+            false;
+#endif
+
 
     /* don't sleep if nap = {0, 0} */
     if (!timesisset(nap_this_time))
@@ -1212,22 +1181,17 @@ static void tcpr_sleep(tcpreplay_t *ctx,
 #ifdef HAVE_SELECT
     case accurate_select:
         select_sleep(nap_this_time);
-        break;
-#endif
-
-#ifdef HAVE_IOPERM
-    case accurate_ioport:
-        /* TODO investigate - I don't think this can ever get called */
-        ioport_sleep(nap_this_time);
+        gettimeofday(now, NULL);
         break;
 #endif
 
     case accurate_gtod:
-        gettimeofday_sleep(nap_this_time);
+        gettimeofday_sleep(sp, nap_this_time, now, flush);
         break;
 
     case accurate_nanosleep:
         nanosleep_sleep(nap_this_time);
+        gettimeofday(now, NULL);
         break;
 
     default:

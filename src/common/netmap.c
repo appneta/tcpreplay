@@ -420,7 +420,7 @@ sendpacket_open_netmap(const char *device, char *errbuf, void *arg) {
         }
     }
 
-    dbg(2, "Waiting 4 seconds for phy reset...");
+    dbgx(2, "Waiting %d seconds for phy reset...", ctx->options->netmap_delay);
     sleep(ctx->options->netmap_delay);
     dbg(2, "Ready!");
 
@@ -573,27 +573,19 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
              */
             ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
 
-            pfd.fd = sp->handle.fd;
-            pfd.events = POLLOUT;
-            pfd.revents = 0;
-            if (poll(&pfd, 1, 1000) <= 0) {
-                if (++sp->tx_timeouts == NETMAP_TX_TIMEOUT_SEC) {
-                    return -1;
+            if ((avail = nm_ring_space(txring)) == 0) {
+                pfd.fd = sp->handle.fd;
+                pfd.events = POLLOUT;
+                pfd.revents = 0;
+                if (poll(&pfd, 1, 1000) <= 0) {
+                    if (++sp->tx_timeouts == NETMAP_TX_TIMEOUT_SEC) {
+                        return -1;
+                    }
+                    return -2;
                 }
-                return -2;
             }
 
             sp->tx_timeouts = 0;
-
-            /*
-             * Do not remove this even though it looks redundant.
-             * Overall performance is increased with this restart
-             * of the TX queue.
-             *
-             * This call increases the number of available slots from
-             * 1 to all that are truly available.
-             */
-            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
         }
 
         txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);

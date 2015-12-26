@@ -127,7 +127,6 @@ tcpreplay_init()
     ctx->intf1dlt = -1;
     ctx->intf2dlt = -1;
     ctx->abort = false;
-    ctx->first_time = 1;
     return ctx;
 }
 
@@ -259,6 +258,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 #endif /* HAVE_QUICK_TX */
     }
 
+#ifdef HAVE_NETMAP
+    options->netmap_delay = OPT_VALUE_NM_DELAY;
+#endif
 
     if (HAVE_OPT(NETMAP)) {
 #ifdef HAVE_NETMAP
@@ -272,7 +274,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ret = -1;
             goto out;
         }
-        options->netmap_delay = OPT_VALUE_NM_DELAY;
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
 #else
@@ -297,15 +298,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             options->accurate = accurate_select;
 #else
             tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with select support");
-            ret = -1;
-            goto out;
-#endif
-        } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
-#if defined HAVE_IOPERM && defined(__i386__)
-            options->accurate = accurate_ioport;
-            ioport_sleep_init();
-#else
-            tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with IO Port 0x80 support");
             ret = -1;
             goto out;
 #endif
@@ -1109,22 +1101,6 @@ tcpreplay_prepare(tcpreplay_t *ctx)
         goto out;
     }
 #endif
-#ifndef HAVE_IOPERM
-    if (ctx->options->accurate == accurate_ioport) {
-        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with IO Port 0x80 support");
-        ret = -1;
-        goto out;
-    }
-#else
-    if (ctx->options->accurate == accurate_ioport) {
-        ioport_sleep_init();
-    }
-#endif
-    if (ctx->options->accurate == accurate_abs_time) {
-        tcpreplay_seterr(ctx, "%s", "tcpreplay_api only supports absolute time on Apple OS X");
-        ret = -1;
-        goto out;
-    }
 
     if ((intname = get_interface(ctx->intlist, ctx->options->intf1_name)) == NULL) {
         if (!strncmp(OPT_ARG(INTF1), "qtx:", 4))

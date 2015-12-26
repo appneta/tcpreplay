@@ -170,16 +170,6 @@ void timesdiv(struct timespec *tvs, COUNTER div);
 
     typedef struct timeval timestamp_t;
 
-/*
- * starts a timer so we can figure out how long we have
- * been transmitting
- */
-static inline void
-get_packet_timestamp(timestamp_t *ctx)
-{
-    gettimeofday(ctx, NULL);
-}
-
 void init_timestamp(timestamp_t *ctx);
 
 
