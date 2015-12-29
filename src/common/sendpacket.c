@@ -450,6 +450,7 @@ TRY_SEND_AGAIN:
                 sendpacket_seterr(sp, "interface hung!!");
             } else if (retcode == -2) {
                 /* this indicates that a retry was requested - this is not a failure */
+                sp->retry_eagain ++;
                 retcode = 0;
                 goto TRY_SEND_AGAIN;
             }
@@ -574,13 +575,12 @@ sendpacket_getstat(sendpacket_t *sp, char *buf, size_t buf_size)
 
     memset(buf, 0, buf_size);
     offset = snprintf(buf, buf_size, "Statistics for network device: %s\n"
-            "\tAttempted packets:         " COUNTER_SPEC "\n"
             "\tSuccessful packets:        " COUNTER_SPEC "\n"
             "\tFailed packets:            " COUNTER_SPEC "\n"
             "\tTruncated packets:         " COUNTER_SPEC "\n"
             "\tRetried packets (ENOBUFS): " COUNTER_SPEC "\n"
             "\tRetried packets (EAGAIN):  " COUNTER_SPEC "\n",
-            sp->device, sp->attempt, sp->sent, sp->failed, sp->trunc_packets,
+            sp->device, sp->sent, sp->failed, sp->trunc_packets,
             sp->retry_enobufs, sp->retry_eagain);
 
     if (sp->flow_packets && offset > 0) {

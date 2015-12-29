@@ -489,6 +489,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     bool unique_ip = options->unique_ip;
     bool preload = options->file_cache[idx].cached;
     bool top_speed = options->speed.mode == speed_topspeed;
+    bool now_is_now = false;
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
 
@@ -509,7 +510,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
      */
     while (!ctx->abort &&
             (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
-        bool now_is_now;
 
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -646,17 +646,30 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
-            if (!now_is_now) {
-                gettimeofday(&now, NULL);
-                memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
-            }
             ctx->abort = true;
         }
     } /* while */
 
-    wake_send_queues(ctx->intf1, options);
-    if (ctx->intf2)
-        wake_send_queues(ctx->intf2, options);
+
+#ifdef HAVE_NETMAP
+    /* when completing test, wait until the last packet is sent */
+    if (options->netmap && (ctx->abort || options->loop == 1)) {
+        while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
+            gettimeofday(&now, NULL);
+            now_is_now = true;
+        }
+
+        while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
+            gettimeofday(&now, NULL);
+            now_is_now = true;
+        }
+    }
+#endif /* HAVE_NETMAP */
+
+    if (!now_is_now)
+        gettimeofday(&now, NULL);
+
+    memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
     ++ctx->iteration;
 }
@@ -688,6 +701,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER skip_length = 0;
     bool top_speed = options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && !options->speed.speed);
+    bool now_is_now = false;
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
 
@@ -714,7 +728,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
      */
     while (!ctx->abort &&
             !(pktdata1 == NULL && pktdata2 == NULL)) {
-        bool now_is_now;
 
         packetnum++;
 
@@ -881,16 +894,29 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
-            if (!now_is_now) {
-                gettimeofday(&now, NULL);
-                memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
-            }
             ctx->abort = true;
         }
     } /* while */
 
-    wake_send_queues(ctx->intf1, options);
-    wake_send_queues(ctx->intf2, options);
+#ifdef HAVE_NETMAP
+    /* when completing test, wait until the last packet is sent */
+    if (options->netmap && (ctx->abort || options->loop == 1)) {
+        while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
+            gettimeofday(&now, NULL);
+            now_is_now = true;
+        }
+
+        while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
+            gettimeofday(&now, NULL);
+            now_is_now = true;
+        }
+    }
+#endif /* HAVE_NETMAP */
+
+    if (!now_is_now)
+        gettimeofday(&now, NULL);
+
+    memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
     ++ctx->iteration;
 }

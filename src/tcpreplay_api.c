@@ -264,16 +264,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(NETMAP)) {
 #ifdef HAVE_NETMAP
-        if (HAVE_OPT(INTF2)) {
-            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in netmap mode");
-            ret = -1;
-            goto out;
-        }
-        if (HAVE_OPT(CACHEFILE)) {
-            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in netmap mode");
-            ret = -1;
-            goto out;
-        }
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
 #else
@@ -348,16 +338,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ret = -1;
             goto out;
         }
-        if (HAVE_OPT(INTF2)) {
-            tcpreplay_seterr(ctx, "%s", "multiple interfaces not supported in netmap mode");
-            ret = -1;
-            goto out;
-        }
-        if (HAVE_OPT(CACHEFILE)) {
-            tcpreplay_seterr(ctx, "%s", "--cachefile option not supported in netmap mode");
-            ret = -1;
-            goto out;
-        }
         options->netmap = 1;
         ctx->sp_type = SP_TYPE_NETMAP;
 #else
@@ -419,14 +399,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 #ifdef HAVE_QUICK_TX
         if (!strncmp(intname, "qtc:", 4)) {
             tcpreplay_seterr(ctx, "Quick TX interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
-            ret = -1;
-            goto out;
-        }
-#endif
-
-#ifdef HAVE_NETMAP
-        if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
-            tcpreplay_seterr(ctx, "netmap/vale interface aliases not allowed for interface 2: %s", OPT_ARG(INTF2));
             ret = -1;
             goto out;
         }
@@ -963,7 +935,7 @@ const struct timeval *
 tcpreplay_get_start_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    memcpy(&ctx->static_stats.start_time, &ctx->stats.end_time, sizeof(ctx->stats.end_time));
+    memcpy(&ctx->static_stats.start_time, &ctx->stats.start_time, sizeof(ctx->stats.start_time));
     return &ctx->static_stats.start_time;
 }
 
