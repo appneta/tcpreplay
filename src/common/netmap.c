@@ -202,7 +202,6 @@ sendpacket_open_netmap(const char *device, char *errbuf, void *arg) {
         goto IFACENAME_INVALID;
     }
 
-
     /* get the version of the netmap driver. If < 0, driver is not installed */
     sp->netmap_version = get_netmap_version();
     if (sp->netmap_version < 0) {
@@ -535,9 +534,34 @@ void sendpacket_close_netmap(void *p)
     notice("done!");
 }
 
+bool netmap_tx_queues_empty(void *p)
+{
+    sendpacket_t *sp = p;
+    struct netmap_ring *txring;
+
+    assert(sp);
+
+    txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
+    while (NETMAP_TX_RING_EMPTY(txring)) {
+        /* current ring is empty- go to next */
+        ++sp->cur_tx_ring;
+        if (sp->cur_tx_ring > sp->last_tx_ring)
+            /* last ring */
+            return true;
+
+        txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
+    }
+
+    /*
+     * send TX interrupt signal
+     */
+    ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+
+    return false;
+}
+
 int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
 {
-    int retcode = 0;
     sendpacket_t *sp = p;
     struct netmap_ring *txring;
     struct netmap_slot *slot;
@@ -545,7 +569,7 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
     uint32_t cur, avail;
 
     if (sp->abort)
-        return retcode;
+        return 0;
 
     txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
     while ((avail = nm_ring_space(txring)) == 0) {
@@ -559,8 +583,6 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
              * so we have to reset to the first queue and
              * wait for available space
              */
-            struct pollfd pfd;
-
             sp->cur_tx_ring = sp->first_tx_ring;
 
             /* send TX interrupt signal
@@ -573,19 +595,8 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
              */
             ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
 
-            if ((avail = nm_ring_space(txring)) == 0) {
-                pfd.fd = sp->handle.fd;
-                pfd.events = POLLOUT;
-                pfd.revents = 0;
-                if (poll(&pfd, 1, 1000) <= 0) {
-                    if (++sp->tx_timeouts == NETMAP_TX_TIMEOUT_SEC) {
-                        return -1;
-                    }
-                    return -2;
-                }
-            }
-
-            sp->tx_timeouts = 0;
+            /* loop again */
+            return -2;
         }
 
         txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
@@ -616,7 +627,6 @@ int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
     txring->avail--;
 #endif
     txring->cur = cur;
-    retcode = len;
 
-    return retcode;
+    return len;
 }
