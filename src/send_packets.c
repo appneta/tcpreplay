@@ -493,6 +493,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     bool top_speed = (options->speed.mode == speed_topspeed);
     bool now_is_now = false;
 
+    ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
 
     if (options->limit_time > 0)
@@ -567,12 +568,16 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if (skip_length && pktlen < skip_length) {
             skip_length -= pktlen;
             now_is_now = false;
+        } else if (ctx->skip_packets) {
+            --ctx->skip_packets;
+            now_is_now = false;
         } else {
             /*
              * time stamping is expensive, but now is the
              * time to do it.
              */
             skip_length = 0;
+            ctx->skip_packets = 0;
             now_is_now = true;
             gettimeofday(&now, NULL);
 
@@ -702,6 +707,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     bool top_speed = (options->speed.mode == speed_topspeed);
     bool now_is_now = false;
 
+    ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
 
     if (options->limit_time > 0)
@@ -808,12 +814,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (skip_length && pktlen < skip_length) {
             skip_length -= pktlen;
             now_is_now = false;
+        } else if (ctx->skip_packets) {
+            --ctx->skip_packets;
+            now_is_now = false;
         } else {
             /*
              * time stamping is expensive, but now is the
              * time to do it.
              */
             skip_length = 0;
+            ctx->skip_packets = 0;
             now_is_now = true;
             gettimeofday(&now, NULL);
 
@@ -1058,19 +1068,12 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
 {
     tcpreplay_opt_t *options = ctx->options;
     struct timeval nap_for;
-    uint64_t ppnsec;                /* packets per nsec */
     COUNTER now_us;
 
     timesclear(&ctx->nap);
 
-    /* accelerator time? */
-    if (ctx->skip_packets > 0) {
-        (ctx->skip_packets)--;
-        return;
-    }
-
     /*
-     * pps_multi accelerator.    This uses the existing send accelerator above
+     * pps_multi accelerator.    This uses the existing send accelerator
      * and hence requires the funky math to get the expected timings.
      */
     if (options->speed.mode == speed_packetrate && options->speed.pps_multi) {
@@ -1084,19 +1087,13 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
     dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkt_time->tv_sec, pkt_time->tv_usec);
     dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
 
-    /* If top speed, you shouldn't even be here */
-//    assert(options->speed.mode != speed_topspeed);
-
     switch(options->speed.mode) {
     case speed_multiplier:
         /*
          * Replay packets a factor of the time they were originally sent.
          */
         if (timerisset(last)) {
-            if (timercmp(pkt_time, last, <)) {
-                /* Packet has gone back in time!  Don't sleep and warn user */
-                warnx("Packet #" COUNTER_SPEC " has gone back in time!", counter);
-            } else {
+            if (timercmp(pkt_time, last, >=)) {
                 /* pkt_time has increased or is the same, so handle normally */
                 timersub(pkt_time, last, &nap_for);
                 dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
@@ -1124,27 +1121,41 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
             /* bits * 1000000 divided by bps = microseconds */
             COUNTER next_tx_us = (bits_sent * 1000000) / bps;
             COUNTER tx_us = now_us - *start_us;
-            if (next_tx_us > tx_us)
-                NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000LL, &ctx->nap);
-            else if (tx_us > next_tx_us) {
+            if (next_tx_us > tx_us) {
+                NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
+            } else if (tx_us > next_tx_us) {
                 tx_us = now_us - *start_us;
                 *skip_length = ((tx_us - next_tx_us) * bps) / 8000000;
             }
             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
         }
 
-        dbgx(3, "packet size " COUNTER_SPEC "\t\tequals\tnap " TIMESPEC_FORMAT, len,
+        dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len,
                 ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
     case speed_packetrate:
-        /* only need to calculate this the first time */
-        if (! timesisset(&ctx->nap)) {
-            /* run in packets/sec */
-            ppnsec = 1000000000 / options->speed.speed * (options->speed.pps_multi > 0 ? options->speed.pps_multi : 1);
-            NANOSEC_TO_TIMESPEC(ppnsec, &ctx->nap);
-            dbgx(1, "sending %d packet(s) per %lu nsec", (options->speed.pps_multi > 0 ? options->speed.pps_multi : 1), ctx->nap.tv_nsec);
-        }
+        /*
+          * Ignore the time supplied by the capture file and send data at
+          * a constant rate (packets per second).
+          */
+         now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
+         if (now_us) {
+             COUNTER pps = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : 1);;
+             COUNTER pkts_sent = ctx->stats.pkts_sent;
+             /* packets * 1000000 divided by pps = microseconds */
+             COUNTER next_tx_us = (pkts_sent * 1000000) / pps;
+             COUNTER tx_us = now_us - *start_us;
+             if (next_tx_us > tx_us)
+                 NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
+             else
+                 ctx->skip_packets = options->speed.pps_multi;
+
+             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
+         }
+
+         dbgx(3, "packet count=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, ctx->stats.pkts_sent,
+                 ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
     case speed_oneatatime:
