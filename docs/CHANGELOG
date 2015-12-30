@@ -1,5 +1,6 @@
 --/--/---- Version 4.1.1-beta4
-    - netmap reports impossibly hi capacity (#176)
+    - Improve --pps accuracy and performance (#236)
+    - netmap reports impossibly high capacity (#176)
     - netmap optimizations (#93)
 
 12/19/2015 Version 4.1.1-beta3

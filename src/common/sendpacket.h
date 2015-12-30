@@ -125,6 +125,10 @@ struct sendpacket_s {
     sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
+#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+    int first_packet;
+#endif
+
 #ifdef HAVE_QUICK_TX
     struct quick_tx* qtx_dev;
 #endif /* HAVE_QUICK_TX */
