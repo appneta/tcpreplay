@@ -235,6 +235,7 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     *dst_ptr = htonl(dst_ip);
 }
 
+#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
 static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
 {
 #ifdef HAVE_QUICK_TX
@@ -247,6 +248,7 @@ static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 }
+#endif /* HAVE_QUICK_TX || HAVE_NETMAP */
 
 static inline void
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
@@ -488,7 +490,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER iteration = ctx->iteration;
     bool unique_ip = options->unique_ip;
     bool preload = options->file_cache[idx].cached;
-    bool top_speed = options->speed.mode == speed_topspeed;
+    bool top_speed = (options->speed.mode == speed_topspeed);
     bool now_is_now = false;
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -580,7 +582,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
              * This also sets skip_length which will avoid timestamping for
              * a given number of packets.
              */
-            calc_sleep_time(ctx, (struct timeval *)&pkthdr.ts, &ctx->stats.last_time, pktlen, sp, packetnum,
+            calc_sleep_time(ctx, &pkthdr.ts, &ctx->stats.last_time, pktlen, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
 
             /*
@@ -634,14 +636,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             }
         }
 
-        if (sp == ctx->intf1 && ctx->first_time_intf1) {
+#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+        if (sp->first_packet) {
             wake_send_queues(sp, options);
-            ctx->first_time_intf1 = 0;
-        } else if (sp == ctx->intf2 && ctx->first_time_intf2) {
-            wake_send_queues(sp, options);
-            ctx->first_time_intf2 = 0;
+            sp->first_packet = false;
         }
-
+#endif
         /* stop sending based on the duration limit... */
         if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
@@ -699,8 +699,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER start_us;
     COUNTER end_us;
     COUNTER skip_length = 0;
-    bool top_speed = options->speed.mode == speed_topspeed ||
-            (options->speed.mode == speed_mbpsrate && !options->speed.speed);
+    bool top_speed = (options->speed.mode == speed_topspeed);
     bool now_is_now = false;
 
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -824,7 +823,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              * This also sets skip_length which will avoid timestamping for
              * a given number of packets.
              */
-            calc_sleep_time(ctx, (struct timeval *)&pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, sp, packetnum,
+            calc_sleep_time(ctx, &pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, sp, packetnum,
                     &ctx->stats.end_time, &start_us, &skip_length);
 
             /*
@@ -875,13 +874,12 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             }
         }
 
-        if (sp == ctx->intf1 && ctx->first_time_intf1) {
+#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+        if (sp->first_packet) {
             wake_send_queues(sp, options);
-            ctx->first_time_intf1 = 0;
-        } else if (sp == ctx->intf2 && ctx->first_time_intf2) {
-            wake_send_queues(sp, options);
-            ctx->first_time_intf2 = 0;
+            sp->first_packet = false;
         }
+#endif
 
         /* get the next packet for this file handle depending on which we last used */
         if (sp == ctx->intf2) {
@@ -1077,7 +1075,8 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
      */
     if (options->speed.mode == speed_packetrate && options->speed.pps_multi) {
         ctx->skip_packets = options->speed.pps_multi - 1;
-        if (ctx->first_time_intf1) {
+        if (ctx->first_time) {
+            ctx->first_time = false;
             return;
         }
     }

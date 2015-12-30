@@ -188,8 +188,7 @@ typedef struct tcpreplay_s {
     /* sleep helpers */
     struct timespec nap;
     uint32_t skip_packets;
-    int first_time_intf1;
-    int first_time_intf2;
+    bool first_time;
 
     /* counter stats */
     tcpreplay_stats_t stats;
