@@ -1,31 +1,27 @@
---/--/---- Version 4.1.1-beta4
+01/11/2016 Version 4.1.1
     - Improve --pps accuracy and performance (#236)
-    - netmap reports impossibly high capacity (#176)
-    - netmap optimizations (#93)
-
-12/19/2015 Version 4.1.1-beta3
     - Option --unique-ip accepts --duration (#227)
     - RFC1624 incremental checksums (#225)
     - Option --duration performance optimizations (#223)
     - Correct company name in license (#217)
     - Compile and mult-arch cross-compile on ARM (#211)
     - Switch to wire speed after 30 minutes at 6 Gbps (#210)
-    - Master doesn't compile on OS X 10.11 (#203)
-    - Support for tcprewrite multiple IP CIDR (#199)
-    - Option --loop=0 full wire wire speed after 1st pass (#172 #191)
-    - Fix incorrect checksums after editing fragmented packets (#190)
-    - Extra packets sent with -L option (#173)
-    - Buffer overflow bug in tcpprep (#167)
-
-11/22/2015 Version 4.1.1-beta2
     - Tap device support for Linux and FreeBSD from Murat Demirten (#207)
     - Handle loopback for linux cooked capture files from corentin-p1(Linux SLL) (#204)
+    - Master doesn't compile on OS X 10.11 (#203)
     - Recognise tbd stubs from Dominyk Tiller (#202)
+    - Support for tcprewrite multiple IP CIDR (#199)
+    - Fix incorrect checksums after editing fragmented packets (#190)
+    - Option --loop=0 full wire wire speed after 1st pass (#172 #191)
     - Big-endian tcpliveplay work-around from Brian Micek (#194)
     - Build OS X using existing XCode SDK (#185)
     - Update to autogen version 5.18.6 and libopts 46.0.16 (#182)
+    - netmap reports impossibly high capacity (#176)
     - Duration feature from dexteradeus (#175)
     - Stop sending and exit when limit is reached (#174)
+    - Extra packets sent with -L option (#173)
+    - Buffer overflow bug in tcpprep (#167)
+    - netmap optimizations (#93)
 
 12/17/2014 Version 4.1.0
     - Do not build Quick TX modules on OS X (#164)
