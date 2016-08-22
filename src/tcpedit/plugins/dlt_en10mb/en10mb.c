@@ -586,22 +586,34 @@ dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *p
 int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    int l2len;
     struct tcpr_ethernet_hdr *eth = NULL;
     
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
     
+    l2len = -1;
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (ntohs(eth->ether_type)) {
         case ETHERTYPE_VLAN:
-            return 18;
+            l2len = 18;
             break;
         
         default:
-            return 14;
+            l2len = 14;
             break;
     }
+
+    if (l2len > 0) {
+        if (pktlen < l2len) {
+            /* can happen if fuzzing is enabled */
+            return 0;
+        }
+
+        return l2len;
+    }
+
     tcpedit_seterr(ctx->tcpedit, "%s", "Whoops!  Bug in my code!");
     return -1;
 }
