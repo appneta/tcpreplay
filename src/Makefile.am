@@ -66,6 +66,7 @@ tcpreplay_edit_SOURCES = tcpreplay_edit_opts.c send_packets.c signal_handler.c t
 tcpreplay_edit_OBJECTS: tcpreplay_opts.h
 tcpreplay_edit_opts.h: tcpreplay_edit_opts.c
 
+BUILT_SOURCES += tcpreplay_edit_opts.h
 tcpreplay_edit_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ $(opts_list)  @NETMAPFLAGS@ -DTCPREPLAY_EDIT -b tcpreplay_edit_opts tcpreplay_opts.def
 
@@ -75,6 +76,7 @@ tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPT
 tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
 
+BUILT_SOURCES += tcpreplay_opts.def
 tcpreplay_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def
 
@@ -89,6 +91,7 @@ tcpliveplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBO
 tcpliveplay_OBJECTS: tcpliveplay_opts.h
 tcpliveplay_opts.h: tcpliveplay_opts.c
 
+BUILT_SOURCES += tcpliveplay_opts.h
 tcpliveplay_opts.c: tcpliveplay_opts.def
 	@AUTOGEN@ $(opts_list) tcpliveplay_opts.def
 
@@ -100,6 +103,8 @@ tcprewrite_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
 tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c 
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
+
+BUILT_SOURCES += tcprewrite_opts.h tcpedit/tcpedit_opts.h
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 
@@ -109,6 +114,8 @@ tcpcapinfo_LDADD = ./common/libcommon.a \
 tcpcapinfo_SOURCES = tcpcapinfo_opts.c tcpcapinfo.c
 tcpcapinfo_OBJECTS: tcpcapinfo_opts.h
 tcpcapinfo_opts.h: tcpcapinfo_opts.c
+
+BUILT_SOURCES += tcpcapinfo_opts.h
 tcpcapinfo_opts.c: tcpcapinfo_opts.def
 	@AUTOGEN@ $(opts_list) tcpcapinfo_opts.def
 
@@ -118,6 +125,8 @@ tcpprep_LDADD = ./common/libcommon.a \
 tcpprep_SOURCES = tcpprep_opts.c tcpprep.c tree.c tcpprep_api.c
 tcpprep_OBJECTS: tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.c
+
+BUILT_SOURCES += tcpprep_opts.h
 tcpprep_opts.c: tcpprep_opts.def
 	@AUTOGEN@ tcpprep_opts.def
 
@@ -130,6 +139,8 @@ endif
 tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
+
+BUILT_SOURCES += tcpbridge_opts.h tcpedit/tcpedit_opts.h
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcpbridge_opts.def
 
