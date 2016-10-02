@@ -40,11 +40,11 @@
 #define POLL_NO_WARN 
 #define SYS_POLL_NO_WARN
 
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
-#define  __FAKEPOLL_H
-#elif HAVE_POLL_H
+#ifdef HAVE_POLL_H
 #include <poll.h>
+#define  __FAKEPOLL_H
+#elif HAVE_SYS_POLL_H
+#include <sys/poll.h>
 #define __FAKEPOLL_H
 #endif
 

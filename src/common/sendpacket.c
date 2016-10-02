@@ -148,10 +148,6 @@
 #include "txring.h"
 #endif
 
-#ifndef __GLIBC__
-typedef int socklen_t;
-#endif
-
 static sendpacket_t *sendpacket_open_pf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
 static int get_iface_index(int fd, const char *device, char *);
