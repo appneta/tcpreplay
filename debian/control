@@ -1,0 +1,14 @@
+Source: tcpreplay
+Section: net
+Priority: optional
+Maintainer: Fred Klassen <fklassen@appneta.com>
+Build-Depends: debhelper (>= 9), autotools-dev
+Standards-Version: 3.9.6
+Homepage: http://tcpreplay.appneta.com
+
+Package: tcpreplay
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Pcap editing and replaying utilities
+ Tcpreplay is a suite of free Open Source utilities for
+ editing and replaying previously captured network traffic.
