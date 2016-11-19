@@ -15,6 +15,8 @@ else
 LIBSTRL = ../lib/libstrl.a
 endif
 
+BUILT_SOURCES = 
+
 manpages: tcpprep.1 tcprewrite.1 tcpreplay.1 tcpbridge.1 tcpreplay-edit.1 tcpliveplay.1 tcpcapinfo.1
 
 autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c tcpliveplay_opts.c tcpcapinfo_opts.c \
@@ -104,7 +106,7 @@ tcprewrite_SOURCES = tcprewrite_opts.c tcprewrite.c
 tcprewrite_OBJECTS: tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.c
 
-BUILT_SOURCES += tcprewrite_opts.h tcpedit/tcpedit_opts.h
+BUILT_SOURCES += tcprewrite_opts.h
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcprewrite_opts.def
 
@@ -140,7 +142,7 @@ tcpbridge_SOURCES = tcpbridge_opts.c tcpbridge.c bridge.c
 tcpbridge_OBJECTS: tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.c
 
-BUILT_SOURCES += tcpbridge_opts.h tcpedit/tcpedit_opts.h
+BUILT_SOURCES += tcpbridge_opts.h
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
 	@AUTOGEN@ $(opts_list) tcpbridge_opts.def
 

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2014 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -22,12 +22,12 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2014";
+    date        = "2000-2016";
     owner       = "Aaron Turner and Fred Klassen";
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2014 Fred Klassen - AppNeta
+Copyright 2013-2016 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -611,7 +611,7 @@ flag = {
     fprintf(stderr, " (timestamp-trace)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2014 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2016 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");  
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
