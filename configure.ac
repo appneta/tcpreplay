@@ -68,7 +68,7 @@ AC_ARG_WITH(macosx-sdk,
 dnl ===========================
 dnl Check OS X SDK and compiler
 dnl ===========================
-
+    
 case "$host_os" in
     darwin*) # Mac OS X or iOS
     # If no --with-macosx-sdk option is given, look for one
@@ -79,9 +79,11 @@ case "$host_os" in
     # For developers with a current Xcode, the lowest-numbered SDK
     # higher than or equal to the minimum required should be found.
 
-    AC_MSG_CHECKING([what Mac OS X SDK to use])
+    # To find a list of available version run `xcodebuild -showsdks`
 
-    for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 11.0; do
+    AC_MSG_CHECKING([what macOS compiler to use])
+ 
+    for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 10.16.10.17 10.18 10.19 10.20 11.0 11.1 11.2 11.3 11.4 11.5; do
         MACOSX_SDK_PATH=`xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null`
         if test -d "$MACOSX_SDK_PATH"; then
             with_macosx_sdk="${_macosx_sdk}"
@@ -94,19 +96,18 @@ case "$host_os" in
             fi
         fi
     done
-    if test ! -d "$MACOSX_SDK_PATH"; then
-        AC_MSG_ERROR(["Could not figure out the location of a Mac OS X SDK"])
+    if test -d "$MACOSX_SDK_PATH"; then
+        CC="`xcrun -find clang` -m64 -isysroot $MACOSX_SDK_PATH"
+        INSTALL_NAME_TOOL=`xcrun -find install_name_tool`
+        AR=`xcrun -find ar`
+        NM=`xcrun -find nm`
+        STRIP=`xcrun -find strip`
+        LIBTOOL=`xcrun -find libtool`
+        RANLIB=`xcrun -find ranlib`
+        AC_MSG_RESULT([$CC])
+    else
+        AC_MSG_RESULT([legacy])
     fi
-
-    AC_MSG_CHECKING(["what compiler to use"])
-    CC="`xcrun -find clang` -m64 -isysroot $MACOSX_SDK_PATH"
-    INSTALL_NAME_TOOL=`xcrun -find install_name_tool`
-    AR=`xcrun -find ar`
-    NM=`xcrun -find nm`
-    STRIP=`xcrun -find strip`
-    LIBTOOL=`xcrun -find libtool`
-    RANLIB=`xcrun -find ranlib`
-    AC_MSG_RESULT([$CC])
 
     ;;
 
@@ -700,7 +701,7 @@ AC_ARG_WITH(libpcap,
         #
         # Not found; look for pcap.
         #
-        for testdir in /usr/local /opt/local /usr /wpdpack $MACOSX_SDK_PATH/usr ; do
+        for testdir in /usr/local /opt/local /usr /wpdpack $MACOSX_SDK_PATH/usr /usr/local/opt/libpcap ; do
             if test -f "${testdir}/include/pcap.h"; then
                 LPCAPINC="${testdir}/include/pcap.h"
                 LPCAPINCDIR="${testdir}/include"
