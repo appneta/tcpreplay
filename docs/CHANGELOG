@@ -2,6 +2,7 @@
     - Fix compilation with musl C library (#260)
     - Support parallel builds (#259)
     - Give user CFLAGS precedence (#256)
+    - Properly detect Brew install when Xcode is not available (#254)
     - Increase max packet size to 65549 (#251)
     - Handle IP headers with zero length (#247)
 
