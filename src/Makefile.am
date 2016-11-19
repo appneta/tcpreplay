@@ -15,6 +15,8 @@ else
 LIBSTRL = ../lib/libstrl.a
 endif
 
+BUILT_SOURCES = 
+
 manpages: tcpprep.1 tcprewrite.1 tcpreplay.1 tcpbridge.1 tcpreplay-edit.1 tcpliveplay.1 tcpcapinfo.1
 
 autoopts: tcpreplay_opts.c tcprewrite_opts.c tcpbridge_opts.c tcpliveplay_opts.c tcpcapinfo_opts.c \
