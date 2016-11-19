@@ -145,7 +145,7 @@ typedef struct tcpr_speed_s {
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
                                  * don't forget *frames* are MTU + L2 header! */
 
-#define MAXPACKET 65535         /* was 16436 linux loopback, but maybe something is bigger then
+#define MAXPACKET 65549         /* was 16436 linux loopback, but maybe something is bigger then
                                    linux loopback */
 
 #define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */

@@ -1,3 +1,9 @@
+11/19/2016 Version 4.1.2
+    - Fix compilation with musl C library (#260)
+    - Give user CFLAGS precedence (#256)
+    - Increase max packet size to 65549 (#251)
+    - Handle IP headers with zero length (#247)
+
 01/11/2016 Version 4.1.1
     - Improve --pps accuracy and performance (#236)
     - Option --unique-ip accepts --duration (#227)
