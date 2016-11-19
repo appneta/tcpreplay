@@ -7,7 +7,7 @@
  *
  * Copyright (c) 2001-2010 Aaron Turner.
  *
- * Copyright (c) 2013-2014 Fred Klassen - AppNeta
+ * Copyright (c) 2013-2016 Fred Klassen - AppNeta
  *
  * Copyright (c) 2000 Dug Song <dugsong@monkey.org>
  *
