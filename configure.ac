@@ -2,7 +2,7 @@
 dnl $Id$
 
 AC_PREREQ([2.69])
-AC_INIT([tcpreplay],[4.1.1],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.1.2],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)

@@ -250,6 +250,8 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 
+        if (pkthdr.caplen > MAXPACKET)
+            errx(-1, "Frame too big, caplen %d exceeds %d", pkthdr.caplen, MAXPACKET);
         /* 
          * copy over the packet so we can pad it out if necessary and
          * because pcap_next() returns a const ptr
