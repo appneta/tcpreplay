@@ -69,7 +69,7 @@ extern tcpedit_t *tcpedit;
 extern int debug;
 #endif
 
-static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
+static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
         struct timeval *last, COUNTER len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length);
@@ -470,7 +470,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
-    struct timeval print_delta, now;
+    struct timeval print_delta, now, first_pkt_ts, pkt_ts_delta;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
     COUNTER limit_send = options->limit_send;
@@ -495,6 +495,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
+    timerclear(&first_pkt_ts);
 
     if (options->limit_time > 0)
         end_us = start_us + SEC_TO_MICROSEC(options->limit_time);
@@ -514,6 +515,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     while (!ctx->abort &&
             (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
 
+        now_is_now = false;
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
         /* do we use the snaplen (caplen) or the "actual" packet len? */
@@ -560,6 +562,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             update_flow_stats(ctx,
                     options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
 
+        if (ctx->first_time)
+        {
+            /* get time and timestamp of the first packet */
+            gettimeofday(&now, NULL);
+            memcpy(&first_pkt_ts, &pkthdr.ts, sizeof(struct timeval));
+        }
+
         /*
          * this accelerator improves performance by avoiding expensive
          * time stamps during periods where we have fallen behind in our
@@ -567,28 +576,40 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
          */
         if (skip_length && pktlen < skip_length) {
             skip_length -= pktlen;
-            now_is_now = false;
         } else if (ctx->skip_packets) {
             --ctx->skip_packets;
-            now_is_now = false;
         } else {
             /*
              * time stamping is expensive, but now is the
              * time to do it.
              */
+            dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkthdr.ts.tv_sec, pkthdr.ts.tv_usec);
             skip_length = 0;
             ctx->skip_packets = 0;
-            now_is_now = true;
-            gettimeofday(&now, NULL);
 
             /*
-             * Only sleep if we're not in top speed mode (-t)
+             * Only sleep if we're not in top speed mode (-t) or late
              *
              * This also sets skip_length which will avoid timestamping for
              * a given number of packets.
              */
-            calc_sleep_time(ctx, &pkthdr.ts, &ctx->stats.last_time, pktlen, sp, packetnum,
-                    &ctx->stats.end_time, &start_us, &skip_length);
+            timersub(&pkthdr.ts, &first_pkt_ts, &pkt_ts_delta);
+            if (calc_sleep_time(ctx, &pkt_ts_delta, &ctx->stats.last_time, pktlen, sp, packetnum,
+                    &ctx->stats.end_time, &start_us, &skip_length))
+            {
+                now_is_now = true;
+                gettimeofday(&now, NULL);
+            }
+
+            /*
+             * track the time of the "last packet sent".  Again, because of OpenBSD
+             * we have to do a memcpy rather then assignment.
+             *
+             * A number of 3rd party tools generate bad timestamps which go backwards
+             * in time.  Hence, don't update the "last" unless pkthdr.ts > last
+             */
+            if (!top_speed && timercmp(&ctx->stats.last_time, &pkt_ts_delta, <)) 
+                memcpy(&ctx->stats.last_time, &pkt_ts_delta, sizeof(struct timeval));
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -614,15 +635,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #ifdef TIMESTAMP_TRACE
         add_timestamp_trace_entry(pktlen, &ctx->stats.end_time, skip_length);
 #endif
-        /*
-         * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a memcpy rather then assignment.
-         *
-         * A number of 3rd party tools generate bad timestamps which go backwards
-         * in time.  Hence, don't update the "last" unless pkthdr.ts > last
-         */
-        if (!top_speed && timercmp(&ctx->stats.last_time, &pkthdr.ts, <)) 
-            memcpy(&ctx->stats.last_time, &pkthdr.ts, sizeof(struct timeval));
 
         ctx->stats.pkts_sent++;
         ctx->stats.bytes_sent += pktlen;
@@ -686,7 +698,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 void
 send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_file_idx2)
 {
-    struct timeval print_delta, now;
+    struct timeval print_delta, now, first_pkt_ts, pkt_ts_delta;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
     COUNTER limit_send = options->limit_send;
@@ -709,6 +721,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
+    timerclear(&first_pkt_ts);
 
     if (options->limit_time > 0)
         end_us = start_us + SEC_TO_MICROSEC(options->limit_time);
@@ -734,6 +747,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     while (!ctx->abort &&
             !(pktdata1 == NULL && pktdata2 == NULL)) {
 
+        now_is_now = false;
         packetnum++;
 
         /* figure out which pcap file we need to process next 
@@ -806,6 +820,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (options->flow_stats && !options->file_cache[cache_file_idx].cached)
             update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink);
 
+        if (ctx->first_time)
+        {
+            /* get time and timestamp of the first packet */
+            gettimeofday(&now, NULL);
+            memcpy(&first_pkt_ts, &pkthdr_ptr->ts, sizeof(struct timeval));
+        }
+
         /*
          * this accelerator improves performance by avoiding expensive
          * time stamps during periods where we have fallen behind in our
@@ -813,28 +834,40 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
          */
         if (skip_length && pktlen < skip_length) {
             skip_length -= pktlen;
-            now_is_now = false;
         } else if (ctx->skip_packets) {
             --ctx->skip_packets;
-            now_is_now = false;
         } else {
             /*
              * time stamping is expensive, but now is the
              * time to do it.
              */
+            dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkthdr_ptr->ts.tv_sec, pkthdr_ptr->ts.tv_usec);
             skip_length = 0;
             ctx->skip_packets = 0;
-            now_is_now = true;
-            gettimeofday(&now, NULL);
 
             /*
-             * Only sleep if we're not in top speed mode (-t)
+             * Only sleep if we're not in top speed mode (-t) or late
              *
              * This also sets skip_length which will avoid timestamping for
              * a given number of packets.
              */
-            calc_sleep_time(ctx, &pkthdr_ptr->ts, &ctx->stats.last_time, pktlen, sp, packetnum,
-                    &ctx->stats.end_time, &start_us, &skip_length);
+             timersub(&pkthdr_ptr->ts, &first_pkt_ts, &pkt_ts_delta);
+            if (calc_sleep_time(ctx, &pkt_ts_delta, &ctx->stats.last_time, pktlen, sp, packetnum,
+                    &ctx->stats.end_time, &start_us, &skip_length))
+            {
+                now_is_now = true;
+                gettimeofday(&now, NULL);
+            }
+
+            /*
+             * track the time of the "last packet sent".  Again, because of OpenBSD
+             * we have to do a memcpy rather then assignment.
+             *
+             * A number of 3rd party tools generate bad timestamps which go backwards
+             * in time.  Hence, don't update the "last" unless pkthdr.ts > last
+             */
+            if (!top_speed && timercmp(&ctx->stats.last_time, &pkt_ts_delta, <))
+                memcpy(&ctx->stats.last_time, &pkt_ts_delta, sizeof(struct timeval));
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -856,16 +889,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
          * had to be special and use bpf_timeval.
          */
         memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
-
-        /*
-         * track the time of the "last packet sent".  Again, because of OpenBSD
-         * we have to do a memcpy rather then assignment.
-         *
-         * A number of 3rd party tools generate bad timestamps which go backwards
-         * in time.  Hence, don't update the "last" unless pkthdr.ts > last
-         */
-        if (!top_speed && timercmp(&ctx->stats.last_time, &pkthdr_ptr->ts, <))
-            memcpy(&ctx->stats.last_time, &pkthdr_ptr->ts, sizeof(struct timeval));
 
         ctx->stats.pkts_sent++;
         ctx->stats.bytes_sent += pktlen;
@@ -1061,14 +1084,15 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep. Sleep time
  * will be in ctx->nap.
  */
-static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
-        struct timeval *last, COUNTER len,
+static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
+        struct timeval *last_delta, COUNTER len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER *start_us, COUNTER *skip_length)
 {
     tcpreplay_opt_t *options = ctx->options;
     struct timeval nap_for;
     COUNTER now_us;
+    bool update_time = true;
 
     timesclear(&ctx->nap);
 
@@ -1078,34 +1102,41 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
      */
     if (options->speed.mode == speed_packetrate && options->speed.pps_multi) {
         ctx->skip_packets = options->speed.pps_multi - 1;
-        if (ctx->first_time) {
-            ctx->first_time = false;
-            return;
-        }
     }
 
-    dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkt_time->tv_sec, pkt_time->tv_usec);
-    dbgx(4, "Last packet time: " TIMEVAL_FORMAT, last->tv_sec, last->tv_usec);
+    /* no last packet sent, just leave */
+    if (ctx->first_time) {
+        ctx->first_time = false;
+        return false;
+    }
 
     switch(options->speed.mode) {
     case speed_multiplier:
         /*
          * Replay packets a factor of the time they were originally sent.
          */
-        if (timerisset(last)) {
-            if (timercmp(pkt_time, last, >=)) {
-                /* pkt_time has increased or is the same, so handle normally */
-                timersub(pkt_time, last, &nap_for);
+        if (timerisset(last_delta)) {
+            /* make sure the packet is not late */
+            COUNTER delta_us, delta_pkt_time;
+            now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
+            delta_pkt_time = TIMEVAL_TO_MICROSEC(pkt_time_delta);
+            delta_us = now_us - *start_us;
+            if (timercmp(pkt_time_delta, last_delta, >) && (delta_pkt_time > delta_us)) {
+                /* pkt_time_delta has increased or is the same, so handle normally */
+                timersub(pkt_time_delta, last_delta, &nap_for);
                 dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
 
                 TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
                 dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
                 timesdiv_float(&ctx->nap, options->speed.multiplier);
                 dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
+            } else {
+                /* Don't sleep if this packet is late or in the past */
+                update_time = false;
             }
         } else {
             /* Don't sleep if this is our first packet */
-            timesclear(&ctx->nap);
+            update_time = false;
         }
         break;
 
@@ -1179,6 +1210,8 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
         errx(-1, "Unknown/supported speed mode: %d", options->speed.mode);
         break;
     }
+
+    return update_time;
 }
 
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
