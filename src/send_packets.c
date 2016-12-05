@@ -562,8 +562,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             update_flow_stats(ctx,
                     options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
 
-        if (ctx->first_time)
-        {
+        if (ctx->first_time) {
             /* get time and timestamp of the first packet */
             gettimeofday(&now, NULL);
             memcpy(&first_pkt_ts, &pkthdr.ts, sizeof(struct timeval));
@@ -588,15 +587,15 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             ctx->skip_packets = 0;
 
             /*
-             * Only sleep if we're not in top speed mode (-t) or late
+             * Only sleep if we're not in top speed mode (-t)
+             * or if the current packet is not late.
              *
              * This also sets skip_length which will avoid timestamping for
              * a given number of packets.
              */
             timersub(&pkthdr.ts, &first_pkt_ts, &pkt_ts_delta);
             if (calc_sleep_time(ctx, &pkt_ts_delta, &ctx->stats.last_time, pktlen, sp, packetnum,
-                    &ctx->stats.end_time, &start_us, &skip_length))
-            {
+                    &ctx->stats.end_time, &start_us, &skip_length)) {
                 now_is_now = true;
                 gettimeofday(&now, NULL);
             }
@@ -820,8 +819,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (options->flow_stats && !options->file_cache[cache_file_idx].cached)
             update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink);
 
-        if (ctx->first_time)
-        {
+        if (ctx->first_time) {
             /* get time and timestamp of the first packet */
             gettimeofday(&now, NULL);
             memcpy(&first_pkt_ts, &pkthdr_ptr->ts, sizeof(struct timeval));
@@ -846,15 +844,15 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             ctx->skip_packets = 0;
 
             /*
-             * Only sleep if we're not in top speed mode (-t) or late
+             * Only sleep if we're not in top speed mode (-t)
+             * or if the current packet is not late.
              *
              * This also sets skip_length which will avoid timestamping for
              * a given number of packets.
              */
-             timersub(&pkthdr_ptr->ts, &first_pkt_ts, &pkt_ts_delta);
+            timersub(&pkthdr_ptr->ts, &first_pkt_ts, &pkt_ts_delta);
             if (calc_sleep_time(ctx, &pkt_ts_delta, &ctx->stats.last_time, pktlen, sp, packetnum,
-                    &ctx->stats.end_time, &start_us, &skip_length))
-            {
+                    &ctx->stats.end_time, &start_us, &skip_length)) {
                 now_is_now = true;
                 gettimeofday(&now, NULL);
             }
@@ -1122,7 +1120,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
             delta_pkt_time = TIMEVAL_TO_MICROSEC(pkt_time_delta);
             delta_us = now_us - *start_us;
             if (timercmp(pkt_time_delta, last_delta, >) && (delta_pkt_time > delta_us)) {
-                /* pkt_time_delta has increased or is the same, so handle normally */
+                /* pkt_time_delta has increased, so handle normally */
                 timersub(pkt_time_delta, last_delta, &nap_for);
                 dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
 
