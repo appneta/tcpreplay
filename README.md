@@ -185,7 +185,7 @@ The source code repository has moved to GitHub. You can get a working copy of th
 by installing [git] and executing:
 
 ```
-git clone git@github.com:appneta/tcpreplay.git
+git clone https://github.com/appneta/tcpreplay.git
 ```
 
 How To Contribute
