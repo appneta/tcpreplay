@@ -230,6 +230,10 @@ Please visit our [wiki](http://tcpreplay.appneta.com).
 
 or visit our [developers wiki](https://github.com/appneta/tcpreplay/wiki)
 
+Build Status
+============
+[![Build Status](https://travis-ci.org/appneta/tcpreplay.svg?branch=master)](https://travis-ci.org/appneta/tcpreplay)
+
 [GPLv3]:    http://www.gnu.org/licenses/gpl-3.0.html
 [netmap]:   http://info.iet.unipi.it/~luigi/netmap/
 [flow]:     http://en.wikipedia.org/wiki/Traffic_flow_%28computer_networking%29
