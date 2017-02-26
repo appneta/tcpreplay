@@ -24,7 +24,7 @@ before_install:
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
-  - ./configure --enable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
+  - ./configure --disable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
   - make > build.log 2>&1 || (cat build.log && exit 1)
   - make dist > build.log 2>&1 || (cat build.log && exit 1)
   - sudo make test
