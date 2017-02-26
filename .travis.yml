@@ -1,11 +1,4 @@
-matrix:
-  include:
-    - os: osx
-      osx_image: xcode8.2
-    - os: linux
-      dist: trusty
-      sudo: required
-      compiler: gcc
+sudo: required
 
 language: c
 
@@ -17,13 +10,21 @@ addons:
 cache:
   apt: true
 
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode8.2
+    - os: linux
+      dist: trusty
+      compiler: gcc
+
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install autogen homebrew/dupes/libpcap; fi
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
-  - ./configure > build.log 2>&1 || (cat build.log && exit 1)
+  - ./configure --enable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
   - make > build.log 2>&1 || (cat build.log && exit 1)
   - make dist > build.log 2>&1 || (cat build.log && exit 1)
   - sudo make test
