@@ -14,9 +14,22 @@ matrix:
   include:
     - os: osx
       osx_image: xcode8.2
+      compiler: clang
+      before_install:
+        - brew update
+        - brew install autogen
+    - os: osx
+      osx_image: xcode6.4
+      compiler: gcc
+      before_install:
+        - brew update
+        - brew install autogen homebrew/dupes/libpcap
     - os: linux
       dist: trusty
       compiler: gcc
+    - os: linux
+      dist: trusty
+      compiler: clang
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
