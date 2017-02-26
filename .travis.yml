@@ -1,7 +1,9 @@
 sudo: required
 dist: trusty
 
-os: linux
+os:
+  - linux
+  - osx
 
 language: c
 
@@ -13,6 +15,10 @@ addons:
   apt:
     packages:
     - libpcap-dev
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update         ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libpcap; fi
 
 cache:
   apt: true
