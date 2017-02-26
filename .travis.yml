@@ -1,27 +1,21 @@
-sudo: required
-dist: trusty
-
-os:
-  - linux
-  - osx
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      compiler:
+        - gcc
+        - clang
+      addons:
+        apt:
+          packages:
+          - libpcap-dev
+      cache:
+        apt: true
+    - os: osx
+      osx_image: xcode7.2
 
 language: c
-
-compiler:
-  - gcc
-  - clang
-
-addons:
-  apt:
-    packages:
-    - libpcap-dev
-
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install homebrew/dupes/libpcap; fi
-
-cache:
-  apt: true
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
