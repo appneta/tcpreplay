@@ -1,21 +1,25 @@
 matrix:
   include:
+    - os: osx
+      osx_image: xcode8.2
     - os: linux
       dist: trusty
       sudo: required
-      compiler:
-        - gcc
-        - clang
-      addons:
-        apt:
-          packages:
-          - libpcap-dev
-      cache:
-        apt: true
-    - os: osx
-      osx_image: xcode7.2
+      compiler: gcc
 
 language: c
+
+addons:
+  apt:
+    packages:
+    - libpcap-dev
+
+cache:
+  apt: true
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install autogen homebrew/dupes/libpcap; fi
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
