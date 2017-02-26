@@ -21,4 +21,5 @@ script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
   - ./configure > build.log 2>&1 || (cat build.log && exit 1)
   - make > build.log 2>&1 || (cat build.log && exit 1)
+  - make dist > build.log 2>&1 || (cat build.log && exit 1)
   - sudo make test
