@@ -18,7 +18,7 @@ addons:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update         ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libpcap; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install bison flex libpcap; fi
 
 cache:
   apt: true
