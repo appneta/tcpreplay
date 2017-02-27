@@ -14,9 +14,6 @@ addons:
     packages:
     - libpcap-dev
 
-cache:
-  apt: true
-
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
   - ./configure > build.log 2>&1 || (cat build.log && exit 1)
