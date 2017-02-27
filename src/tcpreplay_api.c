@@ -98,6 +98,9 @@ tcpreplay_init()
     /* set the default MTU size */
     ctx->options->mtu = DEFAULT_MTU;
 
+    /* disable periodic statistics */
+    ctx->options->stats = -1;
+
     /* disable limit send */
     ctx->options->limit_send = -1;
 
@@ -1149,7 +1152,7 @@ out:
 int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
-    int rcode;
+    int rcode, loop, total_loops;
 
     assert(ctx);
 
@@ -1172,21 +1175,36 @@ tcpreplay_replay(tcpreplay_t *ctx)
         return -1;
     }
 
-
     ctx->running = true;
+    total_loops = ctx->options->loop;
+    loop = 0;
 
     /* main loop, when not looping forever (or until abort) */
     if (ctx->options->loop > 0) {
         while (ctx->options->loop-- && !ctx->abort) {  /* limited loop */
+            if (ctx->options->stats == 0)
+                printf("Loop %d of %d...\n", ++loop, total_loops);
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
-            if (ctx->options->loop > 0 && !ctx->abort && ctx->options->loopdelay_ms > 0)
-            	usleep(ctx->options->loopdelay_ms * 1000);
+            if (ctx->options->loop > 0) {
+                if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
+                    usleep(ctx->options->loopdelay_ms * 1000);
+                    gettimeofday(&ctx->stats.end_time, NULL);
+                }
+
+                if (ctx->options->stats == 0)
+                    packet_stats(&ctx->stats);
+            }
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */
+            if (ctx->options->stats == 0)
+                printf("Loop %d...\n", ++loop);
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
+
+            if (ctx->options->stats == 0 && !ctx->abort)
+                packet_stats(&ctx->stats);
         }
     }
 

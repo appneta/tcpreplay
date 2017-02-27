@@ -596,10 +596,10 @@ EOText;
 flag = {
     name        = stats;
     arg-type    = number;
-    arg-range   = "1->";
-    descrip     = "Print statistics every X seconds";
+    arg-range   = "0->";
+    descrip     = "Print statistics every X seconds, or every loop if '0'";
     doc         = <<- EOText
-Note that this is very much a "best effort" and long delays between
+Note that timed delays are a "best effort" and long delays between
 sending packets may cause equally long delays between printing statistics.
 EOText;
 };
