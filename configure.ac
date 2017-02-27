@@ -2,7 +2,7 @@
 dnl $Id$
 
 AC_PREREQ([2.69])
-AC_INIT([tcpreplay],[4.1.2],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.2.0],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -17,8 +17,8 @@ AC_CONFIG_MACRO_DIR([m4])
 
 dnl Set version info here!
 MAJOR_VERSION=4
-MINOR_VERSION=1
-MICRO_VERSION=2
+MINOR_VERSION=2
+MICRO_VERSION=0-beta1
 TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
 PACKAGE_URL=http://tcpreplay.appneta.com/
 
