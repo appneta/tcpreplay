@@ -1,3 +1,6 @@
+02/26/2017 Version 4.2.0beta1
+    - Include Travis-CI build support (#264) (#285)
+
 11/19/2016 Version 4.1.2
     - Fix compilation with musl C library (#260)
     - Support parallel builds (#259)
