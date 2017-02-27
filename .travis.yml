@@ -7,9 +7,6 @@ addons:
     packages:
     - libpcap-dev
 
-cache:
-  apt: true
-
 matrix:
   include:
     - os: osx
