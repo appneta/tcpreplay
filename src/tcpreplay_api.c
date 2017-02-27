@@ -175,8 +175,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->speed.mode = speed_topspeed;
         options->speed.speed = 0;
     } else if (HAVE_OPT(PPS)) {
+        n = atof(OPT_ARG(PPS));
+        options->speed.speed = (COUNTER)(n * 60.0 * 60.0); /* convert to packets per hour */
         options->speed.mode = speed_packetrate;
-        options->speed.speed = (float)OPT_VALUE_PPS;
         options->speed.pps_multi = OPT_VALUE_PPS_MULTI;
     } else if (HAVE_OPT(ONEATATIME)) {
         options->speed.mode = speed_oneatatime;
