@@ -1153,6 +1153,7 @@ int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
     int rcode, loop, total_loops;
+    char buf[64];
 
     assert(ctx);
 
@@ -1173,6 +1174,11 @@ tcpreplay_replay(tcpreplay_t *ctx)
     if (gettimeofday(&ctx->stats.start_time, NULL) < 0) {
         tcpreplay_seterr(ctx, "gettimeofday() failed: %s",  strerror(errno));
         return -1;
+    }
+
+    if (ctx->options->stats >= 0) {
+        if (format_date_time(&ctx->stats.start_time, buf, sizeof(buf)) > 0)
+            printf("Test start: %s ...\n", buf);
     }
 
     ctx->running = true;
@@ -1212,14 +1218,18 @@ tcpreplay_replay(tcpreplay_t *ctx)
 
 #ifdef HAVE_QUICK_TX
     /* flush any remaining netmap packets */
-    if (ctx->options->quick_tx)
+    if (ctx->options->quick_tx) {
         quick_tx_wait_for_tx_complete(ctx->intf1->qtx_dev);
+        if (ctx->stats.bytes_sent >= 0)
+            gettimeofday(&ctx->stats.end_time, NULL);
+    }
 #endif
 
-    if (ctx->stats.bytes_sent > 0) {
-           if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
-               errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+    if (ctx->options->stats >= 0) {
+        if (format_date_time(&ctx->stats.end_time, buf, sizeof(buf)) > 0)
+            printf("Test complete: %s\n", buf);
     }
+
     return 0;
 }
 

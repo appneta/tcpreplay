@@ -178,6 +178,29 @@ packet_stats(const tcpreplay_stats_t *stats)
 }
 
 /**
+ * fills a buffer with a string representing the given time
+ *
+ * @param when: the time that should be formatted
+ * @param buf: a buffer to write to
+ * @param len: length of the buffer
+ * @return: string containing date, or -1 on error
+ */
+int format_date_time(struct timeval *when, char *buf, size_t len)
+{
+    struct tm *tm;
+    char tmp[64];
+
+    assert(len);
+
+    tm = localtime(&when->tv_sec);
+    if (!tm)
+        return -1;
+
+    strftime(tmp, sizeof tmp, "%Y-%m-%d %H:%M:%S.%%06u", tm);
+    return snprintf(buf, len, tmp, when->tv_usec);
+}
+
+/**
  * reads a hexstring in the format of xx,xx,xx,xx spits it back into *hex
  * up to hexlen bytes.  Returns actual number of bytes returned.  On error
  * it just calls errx() since all errors are fatal.
