@@ -13,14 +13,17 @@ cache:
 matrix:
   include:
     - os: osx
-      osx_image: xcode8.2
-      compiler: clang
-    - os: osx
       osx_image: xcode6.4
       compiler: gcc
       before_install:
         - brew update
         - brew install autogen homebrew/dupes/libpcap
+    - os: osx
+      osx_image: xcode8.2
+      compiler: clang
+      before_install:
+        - brew update
+        - brew install autogen
     - os: linux
       dist: trusty
       compiler: gcc
