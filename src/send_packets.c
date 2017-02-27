@@ -1170,10 +1170,13 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
           */
          now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
          if (now_us) {
-             COUNTER pps = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : 1);;
+             COUNTER pph = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));;
              COUNTER pkts_sent = ctx->stats.pkts_sent;
-             /* packets * 1000000 divided by pps = microseconds */
-             COUNTER next_tx_us = (pkts_sent * 1000000) / pps;
+             /*
+              * packets * 1000000 divided by pps = microseconds
+              * packets per sec (pps) = packets per hour / (60 * 60)
+              */
+             COUNTER next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
              COUNTER tx_us = now_us - *start_us;
              if (next_tx_us > tx_us)
                  NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);

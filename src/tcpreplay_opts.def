@@ -401,10 +401,17 @@ flag = {
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
     value       = p;
-    arg-type    = number;
+    arg-type    = string;
     max         = 1;
     descrip     = "Replay packets at a given packets/sec";
-    doc         = "";
+    doc         = <<- EOText
+Specify a value to regulate the packet replay to a specific packet-per-second rate.
+Examples:
+@example
+    200 will replay traffic at 200 packets per second
+    0.25 will replay traffic at 15 packets per minute
+@end example
+EOText;
 };
 
 flag = {
