@@ -1,4 +1,5 @@
 02/26/2017 Version 4.2.0beta1
+	- tcpcapinfo buffer overflow vulnerablily (#278)
     - Update git-clone instructions by Kyle McDonald (#277) 
     - Add protection against packet drift by Guillaume Scott (#268)
     - Include Travis-CI build support by Ilya Shipitsin (#264) (#285)
