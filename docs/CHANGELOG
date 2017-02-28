@@ -6,6 +6,7 @@
     - Print per-loop stats with --stats=0 (#269)
     - Add protection against packet drift by Guillaume Scott (#268)
     - Include Travis-CI build support by Ilya Shipitsin (#264) (#285)
+    - Netmap shutdown delay implemention (#255)
     - First and last packet times in --stats output (#239)
     - tcprewrite fix checksum properly for fragmented packets (#190)
 

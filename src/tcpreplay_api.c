@@ -387,6 +387,10 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         goto out;
     }
 
+#if defined HAVE_NETMAP
+    ctx->intf1->netmap_delay = ctx->options->netmap_delay;
+#endif
+
     ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
 
     if (HAVE_OPT(INTF2)) {
@@ -415,6 +419,10 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         if ((ctx->intf2 = sendpacket_open(options->intf2_name, ebuf, TCPR_DIR_S2C, ctx->sp_type, ctx)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf2_name, ebuf);
         }
+
+#if defined HAVE_NETMAP
+        ctx->intf2->netmap_delay = ctx->options->netmap_delay;
+#endif
 
         ctx->intf2dlt = sendpacket_get_dlt(ctx->intf2);
         if (ctx->intf2dlt != ctx->intf1dlt) {
