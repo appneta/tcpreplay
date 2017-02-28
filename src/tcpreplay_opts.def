@@ -505,13 +505,12 @@ EOText;
 flag = {
     ifdef       = HAVE_NETMAP;
     name        = nm-delay;
-    flags-must  = netmap;
     arg-type    = number;
-    arg-default = 4;
+    arg-default = 10;
     descrip     = "Netmap startup delay";
     doc         = <<- EOText
 Number of seconds to delay after netmap is loaded. Required to ensure interfaces
-are fully up before netmap transmit. Requires netmap option. Default is 4 seconds.
+are fully up before netmap transmit. Requires netmap option. Default is 10 seconds.
 EOText;
 };
 
