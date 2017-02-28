@@ -63,7 +63,8 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
     
 
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
-    if (pkthdr->caplen == pkthdr->len && (htons(ip_hdr->ip_off) & IP_OFFMASK) == 0) {
+    if (pkthdr->caplen == pkthdr->len &&
+            (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
         ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, 
                 ip_hdr->ip_p, ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2));
         if (ret1 < 0)
