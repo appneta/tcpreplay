@@ -1,4 +1,5 @@
 02/26/2017 Version 4.2.0beta1
+    - Netmap startup delay increase (#209)
     - tcpcapinfo buffer overflow vulnerablily (#278)
     - Update git-clone instructions by Kyle McDonald (#277) 
     - Allow fractions for --pps option (#270)
