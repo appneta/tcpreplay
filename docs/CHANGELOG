@@ -7,6 +7,7 @@
     - Add protection against packet drift by Guillaume Scott (#268)
     - Include Travis-CI build support by Ilya Shipitsin (#264) (#285)
     - First and last packet times in --stats output (#239)
+    - tcprewrite fix checksum properly for fragmented packets (#190)
 
 11/19/2016 Version 4.1.2
     - Fix compilation with musl C library (#260)
