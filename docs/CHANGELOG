@@ -3,8 +3,9 @@
     - Update git-clone instructions by Kyle McDonald (#277) 
     - Allow fractions for --pps option (#270)
     - Print per-loop stats with --stats=0 (#269)
-    - Add protection against packet drift by Guillaume Scott (#268)
     - Include Travis-CI build support by Ilya Shipitsin (#264) (#285)
+    - Add protection against packet drift by Guillaume Scott (#268)
+    - Options for byassing netmap up/down commands (#250)
     - First and last packet times in --stats output (#239)
 
 11/19/2016 Version 4.1.2

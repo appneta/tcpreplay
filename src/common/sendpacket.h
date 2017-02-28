@@ -127,6 +127,7 @@ struct sendpacket_s {
     struct tcpr_ether_addr ether;
 #if defined HAVE_QUICK_TX || defined HAVE_NETMAP
     int first_packet;
+    int nm_down_bypass;
 #endif
 
 #ifdef HAVE_QUICK_TX

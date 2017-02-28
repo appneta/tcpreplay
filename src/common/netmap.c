@@ -328,100 +328,103 @@ sendpacket_open_netmap(const char *device, char *errbuf, void *arg) {
     nmr.nr_name[namelen] = '\0';
     strlcpy(sp->device, nmr.nr_name, sizeof(sp->device));
 
-    /*
-     * Register the interface on the netmap device: from now on,
-     * we can operate on the network interface without any
-     * interference from the legacy network stack.
-     *
-     * Cards take a long time to reset the PHY.
-     */
-    fprintf(stderr, "Switching network driver for %s to netmap bypass mode... ",
-            sp->device);
-    fflush(NULL);
-    sleep(1);   /* ensure message prints when user is connected via ssh */
+    /* bring up the netmap interface, unless the user specifies otherwise */
+    if (!ctx->options->netmap_up_bypass) {
+        /*
+         * Register the interface on the netmap device: from now on,
+         * we can operate on the network interface without any
+         * interference from the legacy network stack.
+         *
+         * Cards take a long time to reset the PHY.
+         */
+        fprintf(stderr, "Switching network driver for %s to netmap bypass mode... ",
+                sp->device);
+        fflush(NULL);
+        sleep(1);   /* ensure message prints when user is connected via ssh */
 
-    if (ioctl (sp->handle.fd, NIOCREGIF, &nmr)) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Failure accessing netmap.\n"
-                "\tRequest for netmap version %u failed.\n\tCompiled netmap driver is version %u.\n\tError=%s\n",
-                sp->netmap_version, NETMAP_API, strerror(errno));
-        goto NETMAP_IF_FAILED;
-    }
+        if (ioctl (sp->handle.fd, NIOCREGIF, &nmr)) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Failure accessing netmap.\n"
+                    "\tRequest for netmap version %u failed.\n\tCompiled netmap driver is version %u.\n\tError=%s\n",
+                    sp->netmap_version, NETMAP_API, strerror(errno));
+            goto NETMAP_IF_FAILED;
+        }
 
-    if (!nmr.nr_memsize) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Netmap interface '%s' not configured.\n",
-                device);
-        goto NETMAP_IF_FAILED;
-    }
+        if (!nmr.nr_memsize) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Netmap interface '%s' not configured.\n",
+                    device);
+            goto NETMAP_IF_FAILED;
+        }
 
-    sp->mmap_size = nmr.nr_memsize;
-    sp->mmap_addr = (struct netmap_d *)mmap (0, sp->mmap_size,
-            PROT_WRITE | PROT_READ, MAP_SHARED, sp->handle.fd, 0);
+        sp->mmap_size = nmr.nr_memsize;
+        sp->mmap_addr = (struct netmap_d *)mmap (0, sp->mmap_size,
+                PROT_WRITE | PROT_READ, MAP_SHARED, sp->handle.fd, 0);
 
-    if (!sp->mmap_addr || sp->mmap_addr == MAP_FAILED) {
-        snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "mmap: %s", strerror (errno));
-        goto MMAP_FAILED;
-    }
+        if (!sp->mmap_addr || sp->mmap_addr == MAP_FAILED) {
+            snprintf (errbuf, SENDPACKET_ERRBUF_SIZE, "mmap: %s", strerror (errno));
+            goto MMAP_FAILED;
+        }
 
-    dbgx(1, "sendpacket_open_netmap: mapping %d Kbytes queues=%d",
-            sp->mmap_size >> 10, nmr.nr_tx_rings);
+        dbgx(1, "sendpacket_open_netmap: mapping %d Kbytes queues=%d",
+                sp->mmap_size >> 10, nmr.nr_tx_rings);
 
-    sp->nm_if = NETMAP_IF(sp->mmap_addr, nmr.nr_offset);
-    sp->nmr = nmr;
-    sp->handle_type = SP_TYPE_NETMAP;
+        sp->nm_if = NETMAP_IF(sp->mmap_addr, nmr.nr_offset);
+        sp->nmr = nmr;
+        sp->handle_type = SP_TYPE_NETMAP;
 
-    /* set up ring IDs */
-    sp->cur_tx_ring = 0;
-    switch(nr_flags) {
-    case NR_REG_DEFAULT:    /* only use one queue to prevent TX reordering */
-        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
-        break;
-
-    case NR_REG_ALL_NIC:
-        if (is_default) {
+        /* set up ring IDs */
+        sp->cur_tx_ring = 0;
+        switch(nr_flags) {
+        case NR_REG_DEFAULT:    /* only use one queue to prevent TX reordering */
             sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
-        } else {
+            break;
+
+        case NR_REG_ALL_NIC:
+            if (is_default) {
+                sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
+            } else {
+                sp->first_tx_ring = sp->cur_tx_ring = 0;
+                sp->last_tx_ring = nmr.nr_tx_rings - 1;
+            }
+            break;
+
+        case NR_REG_SW:
+            sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = nmr.nr_tx_rings;
+            break;
+
+        case NR_REG_NIC_SW:
             sp->first_tx_ring = sp->cur_tx_ring = 0;
-            sp->last_tx_ring = nmr.nr_tx_rings - 1;
+            sp->last_tx_ring = nmr.nr_tx_rings;
+            break;
+
+        case NR_REG_ONE_NIC:
+            sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = nr_ringid;
+            break;
+
+        default:
+            sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
         }
-        break;
+        {
+            /* debugging code */
+            int i;
 
-    case NR_REG_SW:
-        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = nmr.nr_tx_rings;
-        break;
-
-    case NR_REG_NIC_SW:
-        sp->first_tx_ring = sp->cur_tx_ring = 0;
-        sp->last_tx_ring = nmr.nr_tx_rings;
-        break;
-
-    case NR_REG_ONE_NIC:
-        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = nr_ringid;
-        break;
-
-    default:
-        sp->first_tx_ring = sp->last_tx_ring = sp->cur_tx_ring = 0;
-    }
-    {
-        /* debugging code */
-        int i;
-
-        dbgx(1, "%s tx first=%d last=%d  num=%d", ifname,
-                sp->first_tx_ring, sp->last_tx_ring, sp->nmr.nr_tx_rings);
-        for (i = 0; i <= sp->nmr.nr_tx_rings; i++) {
+            dbgx(1, "%s tx first=%d last=%d  num=%d", ifname,
+                    sp->first_tx_ring, sp->last_tx_ring, sp->nmr.nr_tx_rings);
+            for (i = 0; i <= sp->nmr.nr_tx_rings; i++) {
 #ifdef HAVE_NETMAP_RING_HEAD_TAIL
-            dbgx(1, "TX%d 0x%p head=%d cur=%d tail=%d", i, NETMAP_TXRING(sp->nm_if, i),
-                    (NETMAP_TXRING(sp->nm_if, i))->head,
-                    (NETMAP_TXRING(sp->nm_if, i))->cur, (NETMAP_TXRING(sp->nm_if, i))->tail);
+                dbgx(1, "TX%d 0x%p head=%d cur=%d tail=%d", i, NETMAP_TXRING(sp->nm_if, i),
+                        (NETMAP_TXRING(sp->nm_if, i))->head,
+                        (NETMAP_TXRING(sp->nm_if, i))->cur, (NETMAP_TXRING(sp->nm_if, i))->tail);
 #else
-            dbgx(1, "TX%d 0x%p cur=%d avail=%d", i, NETMAP_TXRING(sp->nm_if, i),
-                    (NETMAP_TXRING(sp->nm_if, i))->cur, (NETMAP_TXRING(sp->nm_if, i))->avail);
+                dbgx(1, "TX%d 0x%p cur=%d avail=%d", i, NETMAP_TXRING(sp->nm_if, i),
+                        (NETMAP_TXRING(sp->nm_if, i))->cur, (NETMAP_TXRING(sp->nm_if, i))->avail);
 #endif
+            }
         }
-    }
 
-    dbgx(2, "Waiting %d seconds for phy reset...", ctx->options->netmap_delay);
-    sleep(ctx->options->netmap_delay);
-    dbg(2, "Ready!");
+        dbgx(2, "Waiting %d seconds for phy reset...", ctx->options->netmap_delay);
+        sleep(ctx->options->netmap_delay);
+        dbg(2, "Ready!");
+    }
 
     if (!sp->is_vale) {
         if (nm_do_ioctl(sp, SIOCGIFFLAGS, 0) < 0)
@@ -483,7 +486,8 @@ NETMAP_ABORT:
     munmap(sp->mmap_addr, sp->mmap_size);
 MMAP_FAILED:
 #if NETMAP_API < 10
-    ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
+    if (!sp->nm_down_bypass)
+        ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
 #endif
 NETMAP_IF_FAILED:
 NETMAP_IF_PARSE_FAIL:
@@ -499,35 +503,38 @@ NETMAP_NOT_INSTALLED:
 void sendpacket_close_netmap(void *p)
 {
     sendpacket_t *sp = p;
-    fprintf(stderr, "Switching network driver for %s to normal mode... ",
-            sp->device);
-    fflush(NULL);
-      /* flush any remaining packets */
-    ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+
+    if (!sp->nm_down_bypass) {
+        fprintf(stderr, "Switching network driver for %s to normal mode... ",
+                sp->device);
+        fflush(NULL);
+        /* flush any remaining packets */
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
 
 #ifdef linux
-    if (!sp->is_vale) {
-        /* restore original settings:
-         * - generic-segmentation-offload
-         * - tcp-segmentation-offload
-         * - rx-checksumming
-         * - tx-checksumming
-         */
-        sp->data = sp->gso;
-        nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
-        sp->data = sp->tso;
-        nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
-        sp->data = sp->rxcsum;
-        nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);
-        sp->data = sp->txcsum;
-        nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM);
-    }
+        if (!sp->is_vale) {
+            /* restore original settings:
+             * - generic-segmentation-offload
+             * - tcp-segmentation-offload
+             * - rx-checksumming
+             * - tx-checksumming
+             */
+            sp->data = sp->gso;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SGSO);
+            sp->data = sp->tso;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STSO);
+            sp->data = sp->rxcsum;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_SRXCSUM);
+            sp->data = sp->txcsum;
+            nm_do_ioctl(sp, SIOCETHTOOL, ETHTOOL_STXCSUM);
+        }
 #endif /* linux */
 
-    /* restore interface to normal mode */
+        /* restore interface to normal mode */
 #if NETMAP_API < 10
-    ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
+        ioctl(sp->handle.fd, NIOCUNREGIF, NULL);
 #endif
+    }
     if (sp->mmap_addr)
         munmap(sp->mmap_addr, sp->mmap_size);
     close(sp->handle.fd);
