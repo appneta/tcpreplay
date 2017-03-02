@@ -28,12 +28,29 @@ flag = {
 Takes a pair of comma deliminated ethernet MAC addresses which
 will replace the source MAC address of outbound packets.
 The first MAC address will be used for the server to client traffic
-and the optional second MAC address will be used for the client 
+and the optional second MAC address will be used for the client
 to server traffic.
 
 Example:
 @example
 --enet-smac=00:12:13:14:15:16,00:22:33:44:55:66
+@end example
+EOText;
+};
+
+flag = {
+  name     = enet-subsmac;
+  arg-type = string;
+  max      = 9999;
+  stack-arg;
+  descrip  = "Override MAC addresses";
+  doc      = <<- EOText
+Allows you to rewrite ethernet MAC addresses of packets. It takes
+comma delimited pair or MACs address and rewrites all occurences of
+the first MAC with the value of the second MAC.
+Example:
+@example
+--enet-subsmac=00:12:13:14:15:16,00:22:33:44:55:66
 @end example
 EOText;
 };

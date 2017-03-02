@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -56,6 +56,9 @@ void *_our_safe_realloc(void *ptr, size_t len, const char *, const int, const ch
 
 #define safe_strdup(x) _our_safe_strdup(x, __FUNCTION__, __LINE__, __FILE__)
 char *_our_safe_strdup(const char *str, const char *, const int, const char *);
+
+#define safe_strndup(x, n) _our_safe_strndup((x), (n), __FUNCTION__, __LINE__, __FILE__)
+char *_our_safe_strndup(const char *str, size_t n, const char *, const int, const char *);
 
 #define safe_free(x) _our_safe_free(x, __FUNCTION__, __LINE__, __FILE__)
 void _our_safe_free(void *ptr, const char *, const int, const char *);
