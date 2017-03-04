@@ -181,7 +181,6 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     int proto;
     assert(ctx);
     assert(packet);
-    assert(pktlen > 0);
 
     if ((proto = dlt_null_proto(ctx, packet, pktlen)) == TCPEDIT_ERROR)
         return TCPEDIT_ERROR;
@@ -200,7 +199,6 @@ int
 dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen > 0);
     assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_NULL and DLT_LOOP plugins do not support packet encoding");
@@ -215,9 +213,11 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen > 0);
     uint32_t *af_type; 
     int protocol = 0;
+
+    if (pktlen < 4)
+        return TCPEDIT_ERROR;
     
     af_type = (uint32_t *)packet;
     if (*af_type == PF_INET || SWAPLONG(*af_type) == PF_INET) {
@@ -244,7 +244,8 @@ dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 
     l2len = dlt_null_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -265,7 +266,8 @@ dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     
     l2len = dlt_null_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -278,7 +280,9 @@ dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 4)
+        return 0;
 
     /* always is 4 */
     return 4;
@@ -293,7 +297,6 @@ dlt_null_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char 
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     return(NULL);
 

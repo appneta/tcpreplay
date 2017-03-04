@@ -179,9 +179,15 @@ dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    int l2len;
+
     assert(ctx);
     assert(packet);
-    assert(pktlen >= dlt_ieee80211_l2len(ctx, packet, pktlen));
+
+    l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
+
+    if (pktlen < l2len)
+        return TCPEDIT_ERROR;
 
     dbgx(3, "Decoding 802.11 packet " COUNTER_SPEC, ctx->tcpedit->runtime.packetnum);
     if (! ieee80211_is_data(ctx, packet, pktlen)) {
@@ -196,7 +202,7 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_SOFT_ERROR;
     }
 
-    ctx->l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
+    ctx->l2len = l2len;
     memcpy(&(ctx->srcaddr), ieee80211_get_src((ieee80211_hdr_t *)packet), ETHER_ADDR_LEN);
     memcpy(&(ctx->dstaddr), ieee80211_get_dst((ieee80211_hdr_t *)packet), ETHER_ADDR_LEN);
     ctx->proto = dlt_ieee80211_proto(ctx, packet, pktlen);
@@ -212,7 +218,6 @@ int
 dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen);
     assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_IEEE802_11 plugin does not support packet encoding");
@@ -234,7 +239,8 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return TCPEDIT_ERROR;
 
     /* check 802.11 frame control field */
     frame_control = (uint16_t *)packet;
@@ -281,9 +287,11 @@ dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
+
     dbgx(1, "Getting data for packet " COUNTER_SPEC " from offset: %d", ctx->tcpedit->runtime.packetnum, l2len);
-    
+
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
 
@@ -301,10 +309,10 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     assert(packet);
     assert(l3data);
 
-    
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -323,14 +331,15 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     assert(ctx);
     assert(packet);
-    assert(pktlen);
-    
+
+    if (pktlen < (int)sizeof(uint16_t))
+        return 0;
+
     dbgx(2, "packet = %p\t\tplen = %d", packet, pktlen);
 
     frame_control = (uint16_t *)packet;
     fc = ntohs(*frame_control);
 
-    
     if (ieee80211_USE_4(fc)) {
         hdrlen = sizeof(ieee80211_addr4_hdr_t);
     } else {
@@ -356,6 +365,9 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             dbgx(2, "total header length (802.11 + 802.2): %d (%02x/%02x)", hdrlen, hdr->snap_dsap, hdr->snap_ssap);
         }
     }
+
+    if (pktlen < hdrlen)
+        return 0;
     
     dbgx(2, "header length: %d", hdrlen);
     return hdrlen;
@@ -370,8 +382,10 @@ dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
     u_char *macaddr;
+
+    if (pktlen < 14)
+        return NULL;
     
     switch(mac) {
     case SRC_MAC:
