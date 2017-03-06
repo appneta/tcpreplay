@@ -1,5 +1,6 @@
 02/26/2017 Version 4.2.0beta1
-    - Netmap startup delay increase (#209)
+    - Add --unique-ip option to modify IPs every few loops (#296)
+    - Netmap startup delay increase (#290)
     - tcpcapinfo buffer overflow vulnerablily (#278)
     - Update git-clone instructions by Kyle McDonald (#277) 
     - Allow fractions for --pps option (#270)

@@ -81,6 +81,7 @@ tcpreplay_init()
 {
     tcpreplay_t *ctx;
 
+    /* allocations will reset everything to zeros */
     ctx = safe_malloc(sizeof(tcpreplay_t));
     ctx->options = safe_malloc(sizeof(tcpreplay_opt_t));
 
@@ -89,7 +90,6 @@ tcpreplay_init()
 
     /* Default mode is to replay pcap once in real-time */
     ctx->options->speed.mode = speed_multiplier;
-    ctx->options->speed.speed = 0;
     ctx->options->speed.multiplier = 1.0;
 
     /* Set the default timing method */
@@ -104,8 +104,8 @@ tcpreplay_init()
     /* disable limit send */
     ctx->options->limit_send = -1;
 
-    /* disable limit time */
-    ctx->options->limit_time = 0;
+    /* default unique-loops */
+    ctx->options->unique_loops = 1.0;
 
 #ifdef ENABLE_VERBOSE
     /* clear out tcpdump struct */
@@ -126,7 +126,6 @@ tcpreplay_init()
     ctx->flow_hash_table = flow_hash_table_init(DEFAULT_FLOW_HASH_BUCKET_SIZE);
 
     ctx->sp_type = SP_TYPE_NONE;
-    ctx->iteration = 0;
     ctx->intf1dlt = -1;
     ctx->intf2dlt = -1;
     ctx->abort = false;
@@ -278,6 +277,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(UNIQUE_IP))
         options->unique_ip = 1;
+
+    if (HAVE_OPT(UNIQUE_IP_LOOPS)) {
+        options->unique_loops = atof(OPT_ARG(UNIQUE_IP_LOOPS));
+        if (options->unique_loops < 1.0) {
+            tcpreplay_seterr(ctx, "%s", "--unique-ip-loops requires loop count >= 1.0");
+            ret = -1;
+            goto out;
+        }
+    }
 
     /* flow statistics */
     if (HAVE_OPT(NO_FLOW_STATS))
@@ -634,10 +642,18 @@ tcpreplay_set_loop(tcpreplay_t *ctx, u_int32_t value)
  * Set the unique IP address flag
  */
 int
-tcpreplay_set_unique_ip(tcpreplay_t *ctx, int value)
+tcpreplay_set_unique_ip(tcpreplay_t *ctx, bool value)
 {
     assert(ctx);
     ctx->options->unique_ip = value;
+    return 0;
+}
+
+int
+tcpreplay_set_unique_ip_loops(tcpreplay_t *ctx, int value)
+{
+    assert(ctx);
+    ctx->options->unique_loops = value;
     return 0;
 }
 

@@ -121,7 +121,7 @@ replay_file(tcpreplay_t *ctx, int idx)
     char ebuf[PCAP_ERRBUF_SIZE];
 
     assert(ctx);
-    assert(ctx->options->sources[idx].type = source_filename);
+    assert(ctx->options->sources[idx].type == source_filename);
 
     path = ctx->options->sources[idx].filename;
 
