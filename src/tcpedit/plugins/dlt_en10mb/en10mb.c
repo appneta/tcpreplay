@@ -236,6 +236,27 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
         }
     }
 
+    /* --mac-seed */
+    if (HAVE_OPT(ENET_MAC_SEED)) {
+        int i,j;
+        srandom(config->random.set = OPT_VALUE_ENET_MAC_SEED);
+
+        for (i = 0; i < 6; i++) {
+          config->random.mask[i] = (u_char) random() % 256;
+          /* only unique numbers */
+          for (j = 0; j < i; j++) {
+            if (config->random.mask[i] == config->random.mask[j]) {
+              i--;
+              break;
+            }
+          }
+        }
+
+        if (HAVE_OPT(ENET_MAC_SEED_KEEP_BYTES)) {
+          config->random.keep = OPT_VALUE_ENET_MAC_SEED_KEEP_BYTES;
+        }
+    }
+
     /* --dmac */
     if (HAVE_OPT(ENET_DMAC)) {
         int macparse;
@@ -527,6 +548,23 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         if (!memcmp(eth->ether_shost, current->target, ETHER_ADDR_LEN)) {
           memcpy(eth->ether_shost, current->rewrite, ETHER_ADDR_LEN);
         }
+      }
+    }
+
+    if (config->random.set) {
+      int unicast_src = is_unicast_ethernet(ctx, eth->ether_shost);
+      int unicast_dst = is_unicast_ethernet(ctx, eth->ether_dhost);
+
+      int i = config->random.keep;
+      for ( ; i < ETHER_ADDR_LEN; i++) {
+        eth->ether_shost[i] = MAC_MASK_APPLY(eth->ether_shost[i], config->random.mask[i], unicast_src);
+        eth->ether_dhost[i] = MAC_MASK_APPLY(eth->ether_dhost[i], config->random.mask[i], unicast_dst);
+      }
+
+      /* avoid making unicast packets multicast */
+      if (!config->random.keep) {
+        eth->ether_shost[0] &= ~(0x01 * unicast_src);
+        eth->ether_dhost[0] &= ~(0x01 * unicast_dst);
       }
     }
 

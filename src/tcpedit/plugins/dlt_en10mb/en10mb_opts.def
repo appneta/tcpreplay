@@ -55,6 +55,28 @@ Example:
 EOText;
 };
 
+flag = {
+  name     = enet-mac-seed;
+  arg-type = number;
+  max      = 1;
+  descrip  = "Randomize MAC addresses";
+  doc      = <<- EOText
+Allows you to randomize ethernet MAC addresses of packets, mostly
+like what --seed option does for IPv4/IPv6 addresses.
+EOText;
+};
+
+flag = {
+  name      = enet-mac-seed-keep-bytes;
+  arg-type  = number;
+  arg-range = "1->6";
+  max       = 1;
+  descrip   = "Randomize MAC addresses";
+  doc       = <<- EOText
+keep some bytes untouched.
+EOText;
+};
+
 /* rewrite 802.1q vlan tags */
 flag = {
     name        = enet-vlan;

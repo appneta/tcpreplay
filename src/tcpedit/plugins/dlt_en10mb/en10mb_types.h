@@ -59,6 +59,12 @@ typedef struct {
 } en10mb_sub_conf_t;
 
 typedef struct {
+    int set;
+    int keep;
+    tcpr_macaddr_t mask;
+} en10mb_random_conf_t;
+
+typedef struct {
     /* values to rewrite src/dst MAC addresses */
     tcpr_macaddr_t intf1_dmac;
     tcpr_macaddr_t intf1_smac;
@@ -66,6 +72,7 @@ typedef struct {
     tcpr_macaddr_t intf2_smac;
 
     en10mb_sub_conf_t subs;
+    en10mb_random_conf_t random;
 
     /* we use the mask to say which are valid values */
     tcpedit_mac_mask mac_mask;
