@@ -330,7 +330,7 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     tcpedit->runtime.dlt1 = dlt;
     tcpedit->runtime.dlt2 = dlt;
     
-    dbgx(1, "Input file (1) datalink type is %s\n",
+    dbgx(1, "Input file (1) datalink type is %s",
             pcap_datalink_val_to_name(dlt));
 
 #ifdef FORCE_ALIGN
@@ -494,7 +494,7 @@ tcpedit_close(tcpedit_t *tcpedit)
 
     assert(tcpedit);
     dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
-            " packets.\n", tcpedit->runtime.total_bytes, 
+            " packets.", tcpedit->runtime.total_bytes,
             tcpedit->runtime.pkts_edited);
 
     /* free buffer if required */

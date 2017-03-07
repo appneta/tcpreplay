@@ -157,10 +157,10 @@ packet_stats(const tcpreplay_stats_t *stats)
     }
 
     if (diff_us >= 1000000)
-        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds.\n",
-                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_usec / (100 * 1000)));
+        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds\n",
+                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_usec / (10 * 1000)));
     else
-        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds.\n",
+        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds\n",
                 stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)diff.tv_usec);
 
 
@@ -175,6 +175,29 @@ packet_stats(const tcpreplay_stats_t *stats)
     if (stats->failed)
         printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
                 stats->failed);
+}
+
+/**
+ * fills a buffer with a string representing the given time
+ *
+ * @param when: the time that should be formatted
+ * @param buf: a buffer to write to
+ * @param len: length of the buffer
+ * @return: string containing date, or -1 on error
+ */
+int format_date_time(struct timeval *when, char *buf, size_t len)
+{
+    struct tm *tm;
+    char tmp[64];
+
+    assert(len);
+
+    tm = localtime(&when->tv_sec);
+    if (!tm)
+        return -1;
+
+    strftime(tmp, sizeof tmp, "%Y-%m-%d %H:%M:%S.%%06u", tm);
+    return snprintf(buf, len, tmp, when->tv_usec);
 }
 
 /**
