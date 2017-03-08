@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/appneta/tcpreplay.svg?branch=master)](https://travis-ci.org/appneta/tcpreplay)
-[![Code Climate](https://codeclimate.com/github/appneta/tcpreplay.png)](https://codeclimate.com/github/appneta/tcpreplay)
+[![Issue Count](https://lima.codeclimate.com/github/appneta/tcpreplay/badges/issue_count.svg)](https://lima.codeclimate.com/github/appneta/tcpreplay)
 
 Tcpreplay is a suite of [GPLv3] licensed utilities for UNIX (and Win32 under
 [Cygwin]) operating systems for editing and replaying network traffic which
