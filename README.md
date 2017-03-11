@@ -232,6 +232,7 @@ or visit our [developers wiki](https://github.com/appneta/tcpreplay/wiki)
 
 Build Status
 ============
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0e49d208c69e440182ba21109ecaf31d)](https://www.codacy.com/app/fklassen/tcpreplay?utm_source=github.com&utm_medium=referral&utm_content=appneta/tcpreplay&utm_campaign=badger)
 [![Build Status](https://travis-ci.org/appneta/tcpreplay.svg?branch=master)](https://travis-ci.org/appneta/tcpreplay)
 
 [GPLv3]:    http://www.gnu.org/licenses/gpl-3.0.html
