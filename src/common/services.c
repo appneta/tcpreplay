@@ -40,14 +40,17 @@ parse_services(const char *file, tcpr_services_t *services)
     uint16_t portc;
     size_t nmatch = 3;
     regmatch_t pmatch[3];
-    char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1], service pmatch[2] */
+    static const char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1], service pmatch[2] */
+
+    assert(file);
+    assert(services);
 
     dbgx(1, "Parsing %s", file);
     memset(service_line, '\0', MAXLINE);
 
     /* mark all ports not a service */
-    memset(services->tcp, '\0', NUM_PORTS);
-    memset(services->udp, '\0', NUM_PORTS);
+    memset(&services->tcp[0], '\0', sizeof(services->tcp));
+    memset(&services->udp[0], '\0', sizeof(services->udp));
 
     if ((service = fopen(file, "r")) == NULL) {
         errx(-1, "Unable to open service file: %s\n%s", file, strerror(errno));
