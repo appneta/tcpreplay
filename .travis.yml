@@ -2,7 +2,24 @@ sudo: required
 
 language: c
 
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "F/PkNS6cxaD8Stj3ZdfnRMs5YIb4kRz1QQFwTYJu5o0F8IzGlow11AjqgGWov0KbbYaZGIGN5DlNUtOvUuNcqaPpkoHohoDBO/TcDLgVzwhBNLBCm1bho6DHuuSX1MKo+TWS1xJLCx+1+oRvSCLNjTrI3gYFwksrJhfDf9fw6VI="
+
+before_install:
+      - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
 addons:
+  coverity_scan:
+    project:
+      name: "appneta/tcpreplay"
+      description: "Build submitted via Travis CI"
+    notification_email: fklassen@appneta.com
+    build_command_prepend: "./autogen.sh; ./configure; make clean"
+    build_command:   "make"
+    branch_pattern: coverity_scan
   apt:
     packages:
     - libpcap-dev
@@ -21,7 +38,7 @@ matrix:
     - os: linux
       dist: trusty
       compiler: clang
- 
+
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
   - ./configure --disable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
