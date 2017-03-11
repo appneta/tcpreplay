@@ -74,6 +74,7 @@ struct pkt {
 TAILQ_HEAD(pktq, pkt);
 
 void		 pkt_init(int size);
+void		 pkt_close(void);
 
 struct pkt	*pkt_new(void);
 struct pkt	*pkt_dup(struct pkt *);

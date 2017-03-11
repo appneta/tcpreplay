@@ -1,0 +1,11 @@
+engines:
+  fixme:
+    enabled: true
+
+ratings:
+  paths:
+  - "**.c"
+  - "**.h"
+
+exclude_paths:
+  - libopts/
