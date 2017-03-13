@@ -1212,8 +1212,15 @@ tcpreplay_replay(tcpreplay_t *ctx)
     /* main loop, when not looping forever (or until abort) */
     if (ctx->options->loop > 0) {
         while (ctx->options->loop-- && !ctx->abort) {  /* limited loop */
-            if (ctx->options->stats == 0)
-                printf("Loop %d of %d...\n", ++loop, total_loops);
+            ++loop;
+            if (ctx->options->stats == 0) {
+                if (!ctx->unique_iteration || loop == ctx->unique_iteration)
+                    printf("Loop %d of %d...\n", loop, total_loops);
+                else
+                    printf("Loop %d of %d (" COUNTER_SPEC " unique)...\n",
+                            loop, total_loops,
+                            ctx->unique_iteration);
+            }
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
             if (ctx->options->loop > 0) {
@@ -1228,8 +1235,14 @@ tcpreplay_replay(tcpreplay_t *ctx)
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */
-            if (ctx->options->stats == 0)
-                printf("Loop %d...\n", ++loop);
+            ++loop;
+            if (!ctx->unique_iteration || ctx->options->stats == 0) {
+                if (loop == ctx->unique_iteration)
+                    printf("Loop %d...\n", loop);
+                else
+                    printf("Loop %d (" COUNTER_SPEC " unique)...\n", loop,
+                            ctx->unique_iteration + 1);
+            }
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
 
