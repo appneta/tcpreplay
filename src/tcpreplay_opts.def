@@ -487,7 +487,6 @@ EOText;
 flag = {
     name        = unique-ip-loops;
     flags-must   = unique-ip;
-    value       = 1;
     arg-type    = string;
     max         = 1;
     descrip     = "Number of times to loop before assigning new unique ip";
