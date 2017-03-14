@@ -275,7 +275,8 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    assert(pktlen >= 14);
+    if (pktlen < 14)
+        return TCPEDIT_ERROR;
 
     /* get our src & dst address */
     eth = (struct tcpr_ethernet_hdr *)packet;
@@ -499,7 +500,8 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+    if (pktlen < (int) sizeof(*eth))
+        return TCPEDIT_ERROR;
     
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (ntohs(eth->ether_type)) {
@@ -524,9 +526,12 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     int l2len;
     assert(ctx);
     assert(packet);
-    assert(pktlen);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
+
+    if (pktlen < l2len)
+        return NULL;
+
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
 
@@ -546,7 +551,8 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_c
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -560,7 +566,8 @@ dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *p
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+    if (pktlen < 14)
+        return NULL;
 
     /* FIXME: return a ptr to the source or dest mac address. */
     switch(mac) {
@@ -586,22 +593,34 @@ dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *p
 int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    int l2len;
     struct tcpr_ethernet_hdr *eth = NULL;
     
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
     
+    l2len = -1;
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (ntohs(eth->ether_type)) {
         case ETHERTYPE_VLAN:
-            return 18;
+            l2len = 18;
             break;
         
         default:
-            return 14;
+            l2len = 14;
             break;
     }
+
+    if (l2len > 0) {
+        if (pktlen < l2len) {
+            /* can happen if fuzzing is enabled */
+            return 0;
+        }
+
+        return l2len;
+    }
+
     tcpedit_seterr(ctx->tcpedit, "%s", "Whoops!  Bug in my code!");
     return -1;
 }

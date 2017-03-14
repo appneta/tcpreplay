@@ -190,7 +190,9 @@ dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     hdlc_extra_t *extra;
     assert(ctx);
     assert(packet);
-    assert(pktlen >= 4);
+
+    if (pktlen < 4)
+        return TCPEDIT_ERROR;
     
     extra = (hdlc_extra_t *)ctx->decoded_extra;
     hdlc = (cisco_hdlc_t *)packet;
@@ -219,8 +221,10 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
     int newpktlen;
 
     assert(ctx);
-    assert(pktlen >= 4);
     assert(packet);
+
+    if (pktlen < 4)
+        return TCPEDIT_ERROR;
 
     /* Make room for our new l2 header if old l2len != 4 */
     if (ctx->l2len > 4) {
@@ -277,7 +281,9 @@ dlt_hdlc_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     cisco_hdlc_t *hdlc;
     assert(ctx);
     assert(packet);
-    assert(pktlen >= 4);
+
+    if (pktlen < 4)
+        return TCPEDIT_ERROR;
     
     hdlc = (cisco_hdlc_t *)packet;
     
@@ -297,7 +303,8 @@ dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -319,7 +326,8 @@ dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -332,7 +340,9 @@ dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 4)
+        return 0;
 
     /* HDLC is a static 4 bytes */
     return 4;
@@ -347,7 +357,9 @@ dlt_hdlc_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *pac
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 14)
+        return NULL;
 
     /* FIXME: return a ptr to the source or dest mac address. */
     switch(mac) {

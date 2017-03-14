@@ -1,3 +1,9 @@
+#Tcpreplay
+[![Build Status](https://travis-ci.org/appneta/tcpreplay.svg?branch=master)](https://travis-ci.org/appneta/tcpreplay)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/12017/badge.svg)](https://scan.coverity.com/projects/12017)
+[![Code Climate](https://codeclimate.com/github/appneta/tcpreplay.png)](https://codeclimate.com/github/appneta/tcpreplay)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0e49d208c69e440182ba21109ecaf31d)](https://www.codacy.com/app/fklassen/tcpreplay?utm_source=github.com&utm_medium=referral&utm_content=appneta/tcpreplay&utm_campaign=badger)
+
 Tcpreplay is a suite of [GPLv3] licensed utilities for UNIX (and Win32 under
 [Cygwin]) operating systems for editing and replaying network traffic which
 was previously captured by tools like [tcpdump] and [Ethereal]/[Wireshark]. 
@@ -229,10 +235,6 @@ Additional Information
 Please visit our [wiki](http://tcpreplay.appneta.com).
 
 or visit our [developers wiki](https://github.com/appneta/tcpreplay/wiki)
-
-Build Status
-============
-[![Build Status](https://travis-ci.org/appneta/tcpreplay.svg?branch=master)](https://travis-ci.org/appneta/tcpreplay)
 
 [GPLv3]:    http://www.gnu.org/licenses/gpl-3.0.html
 [netmap]:   http://info.iet.unipi.it/~luigi/netmap/
