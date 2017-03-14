@@ -800,6 +800,10 @@ if ! test $using_pcap_config = yes; then
         fi
         LPCAPLIB="$LPCAPLIB ${pf_ring_lib} -lnuma -lpthread -lrt"
     fi
+    if test "$pthread_found" = "yes"; then
+        LIBS="$LIBS -pthread"
+        AC_DEFINE([HAVE_PTHREADS], [1], [Do we have phtreads?])
+    fi
 fi
 
 OLDLIBS="$LIBS"

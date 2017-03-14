@@ -103,6 +103,7 @@ typedef struct tcpreplay_opt_s {
 
     tcpreplay_speed_t speed;
     u_int32_t loop;
+    bool forever;
     u_int32_t loopdelay_ms;
 
     int stats;
@@ -158,6 +159,7 @@ typedef struct tcpreplay_opt_s {
     int flow_expiry;
 
     int unique_ip;
+    int threads;
 } tcpreplay_opt_t;
 
 
@@ -201,6 +203,9 @@ typedef struct tcpreplay_s {
     volatile bool abort;
     volatile bool suspend;
     bool running;
+#ifdef HAVE_PTHREADS
+    pthread_mutex_t lock;
+#endif
 } tcpreplay_t;
 
 

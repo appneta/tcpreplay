@@ -32,6 +32,10 @@
 #include <errno.h>
 #include <stdarg.h>
 
+#ifdef HAVE_PTHREADS
+#include <pthread.h>
+#endif
+
 #include "tcpreplay_api.h"
 #include "send_packets.h"
 #include "replay.h"
@@ -122,6 +126,9 @@ tcpreplay_init()
     ctx->options->flow_stats = 1;
     ctx->flow_hash_table = flow_hash_table_init(DEFAULT_FLOW_HASH_BUCKET_SIZE);
 
+    /* single thread by default */
+    ctx->options->threads = 1;
+
     ctx->sp_type = SP_TYPE_NONE;
     ctx->iteration = 0;
     ctx->intf1dlt = -1;
@@ -199,6 +206,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->maxsleep.tv_sec = OPT_VALUE_MAXSLEEP / 1000;
         options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000;
     }
+
+#ifdef HAVE_PTHREADS
+    if (HAVE_OPT(THREADS))
+        options->threads = OPT_VALUE_THREADS ? OPT_VALUE_THREADS : sysconf(_SC_NPROCESSORS_ONLN);
+
+    if(options->threads > 1)
+        pthread_mutex_init(&ctx->lock, NULL);
+#endif
+    options->forever = !options->loop;
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
@@ -1139,6 +1155,37 @@ out:
     return ret;
 }
 
+void *
+tcpreplay_replay_loop(void *arg)
+{
+    tcpreplay_t *ctx = arg;
+
+    while (!ctx->abort) {
+        if(!ctx->options->forever) {
+#ifdef HAVE_PTHREADS
+            if (ctx->options->threads > 1)
+                pthread_mutex_lock(&ctx->lock);
+            if(!ctx->options->loop) {
+                if (ctx->options->threads > 1)
+                    pthread_mutex_unlock(&ctx->lock);
+                return 0;
+            }
+            ctx->options->loop--;
+            if (ctx->options->threads > 1)
+                pthread_mutex_unlock(&ctx->lock);
+#else
+            ctx->options->loop--;
+#endif
+        }
+
+        if (tcpr_replay_index(ctx) < 0)
+            break;
+        if (ctx->options->loopdelay_ms > 0)
+            usleep(ctx->options->loopdelay_ms * 1000);
+    }
+    return 0;
+}
+
 /**
  * \brief sends the traffic out the interfaces
  *
@@ -1148,7 +1195,10 @@ out:
 int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
-    int rcode;
+    int i;
+#ifdef HAVE_PTHREADS
+    pthread_t threads[ctx->options->threads];
+#endif
 
     assert(ctx);
 
@@ -1175,19 +1225,17 @@ tcpreplay_replay(tcpreplay_t *ctx)
     ctx->running = true;
 
     /* main loop, when not looping forever (or until abort) */
-    if (ctx->options->loop > 0) {
-        while (ctx->options->loop-- && !ctx->abort) {  /* limited loop */
-            if ((rcode = tcpr_replay_index(ctx)) < 0)
-                return rcode;
-            if (ctx->options->loop > 0 && !ctx->abort && ctx->options->loopdelay_ms > 0)
-            	usleep(ctx->options->loopdelay_ms * 1000);
-        }
-    } else {
-        while (!ctx->abort) { /* loop forever unless user aborts */
-            if ((rcode = tcpr_replay_index(ctx)) < 0)
-                return rcode;
-        }
+#ifdef HAVE_PTHREADS
+    if(ctx->options->threads == 1) {
+        for(i = 0; i < ctx->options->threads; i++)
+            pthread_create(threads + i, NULL, tcpreplay_replay_loop, ctx);
+
+        for(i = 0; i < ctx->options->threads; i++)
+            pthread_join(threads[i], NULL);
     }
+    else
+#endif
+        tcpreplay_replay_loop(ctx);
 
     ctx->running = false;
 
