@@ -1278,7 +1278,7 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
     tcpreplay_opt_t *options = ctx->options;
     struct pollfd poller[1];        /* use poll to read from the keyboard */
     char input[EBUF_SIZE];
-    uint32_t send = 0;
+    unsigned long send = 0;
 
     printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
         counter, (sp == ctx->intf1 ? options->intf1_name : options->intf2_name));
@@ -1314,5 +1314,5 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
         send = 1;
     }
 
-    return send;
+    return(uint32_t)send;
 }

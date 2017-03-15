@@ -138,10 +138,15 @@ ports2PORT(char *ports)
 
         while ((from_begin = strtok_r(NULL, "+", &token2)) != NULL) {
             from_l = strtol(from_begin, &badchar, 10);
-            if (strlen(badchar) != 0)
+            if (strlen(badchar) != 0 || from_l > 65535 || from_l < 0) {
+                portmap = portmap_head;
+                while (portmap) {
+                    tcpedit_portmap_t *tmp_portmap = portmap->next;
+                    free(portmap);
+                    portmap = tmp_portmap;
+                }
                 return NULL;
-            if (from_l > 65535 || from_l < 0)
-                return NULL;
+            }
             portmap->next = new_portmap();
             portmap = portmap->next;
             portmap->to = htons(to_l);
@@ -155,15 +160,15 @@ ports2PORT(char *ports)
         * after, then it was a bad string
         */
         from_l = strtol(from_s, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0 || from_l > 65535 || from_l < 0) {
+            free(portmap);
             return NULL;
-        if (from_l > 65535 || from_l < 0)
-            return NULL;
+        }
         portmap->to = htons(to_l);
         portmap->from = htons(from_l);
     }
 
-    /* return 1 for success */
+    /* return structure for success */
     return portmap_head;
 }
 

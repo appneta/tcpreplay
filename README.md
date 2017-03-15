@@ -1,5 +1,6 @@
 #Tcpreplay
 [![Build Status](https://travis-ci.org/appneta/tcpreplay.svg?branch=master)](https://travis-ci.org/appneta/tcpreplay)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/12017/badge.svg)](https://scan.coverity.com/projects/12017)
 [![Code Climate](https://codeclimate.com/github/appneta/tcpreplay.png)](https://codeclimate.com/github/appneta/tcpreplay)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/0e49d208c69e440182ba21109ecaf31d)](https://www.codacy.com/app/fklassen/tcpreplay?utm_source=github.com&utm_medium=referral&utm_content=appneta/tcpreplay&utm_campaign=badger)
 

@@ -55,7 +55,7 @@ parse_services(const char *file, tcpr_services_t *services)
     if ((service = fopen(file, "r")) == NULL) {
         errx(-1, "Unable to open service file: %s\n%s", file, strerror(errno));
     }
-    
+
     /* compile our regexes */
     if ((regcomp(&preg, regex, REG_ICASE|REG_EXTENDED)) != 0) {
         errx(-1, "Unable to compile regex: %s", regex);
@@ -67,9 +67,9 @@ parse_services(const char *file, tcpr_services_t *services)
         memset(port, '\0', 10);
         memset(proto, '\0', 10);
         portc = 0;
-        
-        dbgx(4, "Procesing: %s", service_line);
-        
+
+        dbgx(4, "Processing: %s", service_line);
+
         /* look for format of 1234/tcp */
         if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
             if (nmatch < 2) {
@@ -95,4 +95,6 @@ parse_services(const char *file, tcpr_services_t *services)
             }
         }
     }
+
+    fclose(service);
 }
