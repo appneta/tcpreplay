@@ -168,6 +168,9 @@ main(int argc, char **argv)
         exit(0);
     }
 
+    if (strlen(iface) > IFNAMSIZ - 1)
+        errx(-1, "Invalid interface name %s\n", iface);
+
     if (iface_addrs(iface, &myip, &mymac) < 0)  /* Extract MAC of interface replay is being request on */
         errx(-1, "Failed to access interface %s\n", iface);
 
@@ -875,12 +878,15 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
     int s;
     struct ifreq buffer;
     s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+        return -1;
+
     memset(&buffer, 0x00, sizeof(buffer));
     strcpy(buffer.ifr_name, iface);
     int res;
 
     if ((res = ioctl(s, SIOCGIFADDR, &buffer)) < 0)
-        return res;
+        goto done;
 
     struct in_addr localip = ((struct sockaddr_in *)&buffer.ifr_addr)->sin_addr;
 #if defined( WORDS_BIGENDIAN )
@@ -895,8 +901,8 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
     ip->byte1 = (localip.s_addr)&255;
 #endif
 
-    if ((res =ioctl(s, SIOCGIFHWADDR, &buffer)) < 0)
-        return res;
+    if ((res = ioctl(s, SIOCGIFHWADDR, &buffer)) < 0)
+        goto done;
 
     mac->byte1 = buffer.ifr_hwaddr.sa_data[0];
     mac->byte2 = buffer.ifr_hwaddr.sa_data[1];
@@ -905,6 +911,7 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
     mac->byte5 = buffer.ifr_hwaddr.sa_data[4];
     mac->byte6 = buffer.ifr_hwaddr.sa_data[5];
 
+done:
     close(s);
 
     return res;

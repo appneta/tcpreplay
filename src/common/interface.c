@@ -236,7 +236,7 @@ get_interface_list(void)
                 i += 1;
             }
         }
-
+        closedir(dir);
     }
 
     dbg(1, "xxx get_interface_list end");

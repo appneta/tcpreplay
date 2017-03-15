@@ -233,6 +233,7 @@ tcpr_dir_t
 check_ip_tree(const int mode, const unsigned long ip)
 {
     tcpr_tree_t *node = NULL, *finder = NULL;
+    enum tcpr_dir_e res = TCPR_DIR_ERROR;
 
     finder = new_tree();
     finder->family = AF_INET;
@@ -266,10 +267,10 @@ check_ip_tree(const int mode, const unsigned long ip)
     if (node != NULL) {
         switch (node->type) {
         case DIR_SERVER:
-            return TCPR_DIR_S2C;
+            res = TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
-            return TCPR_DIR_C2S;
+            res = TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
         case DIR_ANY:
@@ -279,24 +280,30 @@ check_ip_tree(const int mode, const unsigned long ip)
             errx(-1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
         }
     }
-    
-    return_unknown:
+
+done:
+    safe_free(finder);
+    return res;
+
+return_unknown:
     switch (mode) {
     case DIR_SERVER:
-        return TCPR_DIR_S2C;
+        res = TCPR_DIR_S2C;
         break;
     case DIR_CLIENT:
-        return TCPR_DIR_C2S;
+        res =  TCPR_DIR_C2S;
         break;
     default:
-        return -1;
+        res = TCPR_DIR_ERROR;
     }
+    goto done;
 }
 
 tcpr_dir_t
 check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
 {
     tcpr_tree_t *node = NULL, *finder = NULL;
+    enum tcpr_dir_e res = TCPR_DIR_ERROR;
 
     finder = new_tree();
     finder->family = AF_INET6;
@@ -334,10 +341,10 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
     if (node != NULL) {
         switch (node->type) {
         case DIR_SERVER:
-            return TCPR_DIR_C2S;
+            res = TCPR_DIR_C2S;
             break;
         case DIR_CLIENT:
-            return TCPR_DIR_S2C;
+            res = TCPR_DIR_S2C;
             break;
         case DIR_UNKNOWN:
         case DIR_ANY:
@@ -348,17 +355,22 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
         }
     }
 
-    return_unknown:
+done:
+    safe_free(finder);
+    return res;
+
+return_unknown:
     switch (mode) {
     case DIR_SERVER:
-        return TCPR_DIR_C2S;
+        res = TCPR_DIR_C2S;
         break;
     case DIR_CLIENT:
-        return TCPR_DIR_S2C;
+        res = TCPR_DIR_S2C;
         break;
     default:
-        return -1;
+        res = TCPR_DIR_ERROR;
     }
+    goto done;
 }
 
 /**
@@ -739,7 +751,7 @@ packet2tree(const u_char * data)
 
 
     /* copy over the source mac */
-    strncpy((char *)node->mac, (char *)eth_hdr->ether_shost, 6);
+    strcpy((char *)node->mac, (char *)eth_hdr->ether_shost);
 
     /* 
      * TCP 

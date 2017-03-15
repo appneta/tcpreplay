@@ -844,6 +844,7 @@ sendpacket_open_tuntap(const char *device, char *errbuf)
 
     if (ioctl(tapfd, TUNSETIFF, (void *) &ifr) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to create tuntap interface: %s", device);
+        close(tapfd);
         return NULL;
     }
 #elif defined(HAVE_FREEBSD)
@@ -902,6 +903,8 @@ sendpacket_open_pf(const char *device, char *errbuf)
 #else
     dbg(1, "sendpacket: using PF_PACKET");
 #endif
+
+    memset(&sa, 0, sizeof(sa));
 
     /* open our socket */
     if ((mysocket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {

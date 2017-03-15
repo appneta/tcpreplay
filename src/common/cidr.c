@@ -342,6 +342,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
     char *token = NULL;
     char *string;
     char *p;
+    int res = 0;
 
     string = safe_strdup(optarg);
 
@@ -350,7 +351,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
         memset(newmap, '\0', NEWMAP_LEN);
         p = strstr(string, "]:[");
         if (!p)
-            return 0;
+            goto done;
             
         *p = 0;
         strlcpy(newmap, "[::/0]:", NEWMAP_LEN);
@@ -358,7 +359,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
         strlcat(newmap, "]", NEWMAP_LEN);
         
         if (! parse_cidr_map(cidrmap1, newmap))
-            return 0;
+            goto done;
 
         /* do again with the second IP */
         memset(newmap, '\0', NEWMAP_LEN);
@@ -366,7 +367,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
         strlcat(newmap, p + 2, NEWMAP_LEN);
 
         if (! parse_cidr_map(cidrmap2, newmap))
-            return 0;
+            goto done;
 
     } else {
         /* ipv4 mode */
@@ -376,7 +377,7 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
         strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
         strlcat(newmap, map, NEWMAP_LEN);
         if (! parse_cidr_map(cidrmap1, newmap))
-            return 0;
+            goto done;
     
         /* do again with the second IP */
         memset(newmap, '\0', NEWMAP_LEN);
@@ -385,11 +386,15 @@ parse_endpoints(tcpr_cidrmap_t ** cidrmap1, tcpr_cidrmap_t ** cidrmap2, const ch
         strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
         strlcat(newmap, map, NEWMAP_LEN);
         if (! parse_cidr_map(cidrmap2, newmap))
-            return 0;
+            goto done;
     }
     
+    /* success */
+    res = 1;
+
+done:
     safe_free(string);
-    return 1; /* success */
+    return res;
 }
 
 
@@ -407,17 +412,18 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
     char *map = NULL;
     char *token = NULL, *string = NULL;
     tcpr_cidrmap_t *ptr;
+    int res = 0;
     
     string = safe_strdup(optarg);
 
     /* first iteration */
     map = strtok_r(string, ",", &token);
     if (! parse_cidr(&cidr, map, ":"))
-        return 0;
+        goto done;
 
     /* must return a linked list of two */
     if (cidr->next == NULL)
-        return 0;
+        goto done;
 
     /* copy over */
     *cidrmap = new_cidr_map();
@@ -434,11 +440,11 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
             break;
 
         if (! parse_cidr(&cidr, map, ":"))
-            return 0;
+            goto done;
 
         /* must return a linked list of two */
         if (cidr->next == NULL)
-            return 0;
+            goto done;
 
         /* copy over */
         ptr->next = new_cidr_map();
@@ -447,9 +453,13 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
         ptr->to = cidr->next;
         ptr->from->next = NULL;
     }
-    
+
+    /* success */
+    res = 1;
+
+done:
     safe_free(string);
-    return 1; /* success */
+    return res;
 }
 
 /**

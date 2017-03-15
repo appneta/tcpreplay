@@ -421,7 +421,8 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
             /* i guess this is necessary if we've got a bogus pcap */
             //ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
             tcpedit_seterr(tcpedit, "%s", "WTF?  Why is your packet larger then the capture len?");
-            return -1;
+            chksum = -1;
+            goto done;
         }
     }
     else if (tcpedit->fixlen == TCPEDIT_FIXLEN_TRUNC) {
@@ -441,15 +442,19 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
                 ip6_hdr->ip_len = htons(tcpedit->mtu - sizeof(*ip6_hdr));
             } else {
                  /* for non-IP frames, don't try to fix checksums */  
-                return 0;
+                chksum = 0;
+                goto done;
             }
         }
     }
     else {
         tcpedit_seterr(tcpedit, "Invalid fixlen value: 0x%x", tcpedit->fixlen);
-        return -1;
+        chksum = -1;
+        goto done;
     }
 
+done:
+    *pktdata = packet;
     return chksum;
 }
 
