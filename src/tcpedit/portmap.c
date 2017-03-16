@@ -108,14 +108,20 @@ ports2PORT(char *ports)
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
         from_b = strtol(from_begin, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0) {
+            free(portmap);
             return NULL;
+        }
         from_e = strtol(from_end, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0) {
+            free(portmap);
             return NULL;
+        }
 
-        if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0)
+        if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
+            free(portmap);
             return NULL;
+        }
 
         for (i = from_b; i <= from_e; i++) {
             portmap->from = htons(i);

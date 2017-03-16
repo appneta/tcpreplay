@@ -839,7 +839,7 @@ sendpacket_open_tuntap(const char *device, char *errbuf)
     }
     memset(&ifr, 0, sizeof(ifr));
     ifr.ifr_flags = (IFF_TAP | IFF_NO_PI);
-    strncpy(ifr.ifr_name, device, strlen(device));
+    strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name)-1);
 
     if (ioctl(tapfd, TUNSETIFF, (void *) &ifr) < 0) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to create tuntap interface: %s", device);

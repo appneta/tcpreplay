@@ -875,7 +875,7 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
         return -1;
 
     memset(&buffer, 0x00, sizeof(buffer));
-    strncpy(buffer.ifr_name, iface, sizeof(buffer.ifr_name));
+    strncpy(buffer.ifr_name, iface, sizeof(buffer.ifr_name)-1);
     int res;
 
     if ((res = ioctl(s, SIOCGIFADDR, &buffer)) < 0)
