@@ -102,7 +102,6 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     hdlc_hdr_t *hdlc_hdr;
     sll_hdr_t *sll_hdr;
     struct tcpr_pppserial_hdr *ppp;
-    uint32_t *src_ptr = NULL, *dst_ptr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
     uint16_t ether_type = 0;
@@ -230,9 +229,6 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     }
 
     dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
-
-    *src_ptr = htonl(src_ip);
-    *dst_ptr = htonl(dst_ip);
 }
 
 #if defined HAVE_QUICK_TX || defined HAVE_NETMAP

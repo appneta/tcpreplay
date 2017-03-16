@@ -426,7 +426,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         }
     }
     else if (tcpedit->fixlen == TCPEDIT_FIXLEN_TRUNC) {
-        if (pkthdr->len != pkthdr->caplen)
+        if (ip_hdr && pkthdr->len != pkthdr->caplen)
             ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
         pkthdr->len = pkthdr->caplen;
     }
@@ -851,14 +851,6 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
 
     /* loop through the cidrmap to rewrite */
     do {
-        if ((! diddst) && ip6_in_cidr(cidrmap2->from, &ip6_hdr->ip_dst)) {
-            struct tcpr_in6_addr old_ip6;
-            memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
-            remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
-            dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
-            diddst = 1;
-        }
         if ((! didsrc) && ip6_in_cidr(cidrmap1->from, &ip6_hdr->ip_src)) {
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));

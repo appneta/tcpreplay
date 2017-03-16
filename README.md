@@ -1,4 +1,5 @@
-#Tcpreplay
+Tcpreplay
+=========
 [![Build Status](https://travis-ci.org/appneta/tcpreplay.svg?branch=master)](https://travis-ci.org/appneta/tcpreplay)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/12017/badge.svg)](https://scan.coverity.com/projects/12017)
 [![Code Climate](https://codeclimate.com/github/appneta/tcpreplay.png)](https://codeclimate.com/github/appneta/tcpreplay)

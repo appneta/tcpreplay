@@ -284,13 +284,12 @@ check_ipv4_regex(const unsigned long ip)
     int eflags = 0;
     u_char src_ip[16];
     size_t nmatch = 0;
-    regmatch_t *pmatch = NULL;
     tcpprep_opt_t *options = tcpprep->options;
 
-    memset(src_ip, '\0', 16);
+    memset(src_ip, '\0', sizeof(src_ip));
     strlcpy((char *)src_ip, (char *)get_addr2name4(ip, RESOLVE),
             sizeof(src_ip));
-    if (regexec(&options->preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
+    if (regexec(&options->preg, (char *)src_ip, nmatch, NULL, eflags) == 0) {
         return 1;
     } else {
         return 0;
@@ -304,12 +303,12 @@ check_ipv6_regex(const struct tcpr_in6_addr *addr)
     int eflags = 0;
     u_char src_ip[INET6_ADDRSTRLEN];
     size_t nmatch = 0;
-    regmatch_t *pmatch = NULL;
     tcpprep_opt_t *options = tcpprep->options;
 
-    memset(src_ip, '\0', 16);
-    strlcpy((char *)src_ip, (char *)get_addr2name6(addr, RESOLVE), sizeof(src_ip));
-    if (regexec(&options->preg, (char *)src_ip, nmatch, pmatch, eflags) == 0) {
+    memset(src_ip, '\0', sizeof(src_ip));
+    strlcpy((char *)src_ip, (char *)get_addr2name6(addr, RESOLVE),
+        sizeof(src_ip));
+    if (regexec(&options->preg, (char *)src_ip, nmatch, NULL, eflags) == 0) {
         return 1;
     } else {
         return 0;

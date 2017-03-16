@@ -597,7 +597,7 @@ sendpacket_getstat(sendpacket_t *sp, char *buf, size_t buf_size)
 /**
  * close the given sendpacket
  */
-int
+void
 sendpacket_close(sendpacket_t *sp)
 {
     assert(sp);
@@ -657,7 +657,6 @@ sendpacket_close(sendpacket_t *sp)
             break;
     }
     safe_free(sp);
-    return 0;
 }
 
 /**
