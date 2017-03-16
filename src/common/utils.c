@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -97,6 +97,17 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 
 }
 
+char *
+_our_safe_strndup(const char *str, size_t n, const char *funcname, const int line, const char *file)
+{
+  char *copy = strndup(str, n);
+  if (copy == NULL) {
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to strndup() %zu bytes: %s\n", file, funcname, line, n, strerror(errno));
+        exit(-1);
+  }
+  return copy;
+}
+
 /**
  * calls free and sets to NULL.
  */
@@ -171,7 +182,7 @@ packet_stats(const tcpreplay_stats_t *stats)
         printf("Rated: %llu.%1u Bps, %llu.%03u Mbps, %llu.%02u pps\n",
                bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_1000ths, pkts_sec, pkts_sec_100ths);
     fflush(NULL);
-    
+
     if (stats->failed)
         printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
                 stats->failed);
