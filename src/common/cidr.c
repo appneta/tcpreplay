@@ -211,7 +211,7 @@ cidr2cidr(char *cidr)
         if (p) {
             *p = 0;
             ++p;
-            sscanf(p, "%d", &newcidr->masklen);
+            count = sscanf(p, "%d", &newcidr->masklen);
         } else {
             newcidr->masklen = 128;
         }
@@ -458,7 +458,6 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
 
 done:
     safe_free(string);
-    safe_free(cidr);
     return res;
 }
 
