@@ -49,7 +49,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
     ipv6 = NULL;
     assert(data);
 
-    if (len <= 0) {
+    if (!data || len <= 0) {
         tcpedit_setwarn(tcpedit, "%s", "Unable to checksum packets with no L3+ data");
         return TCPEDIT_WARN;
     }
@@ -133,9 +133,11 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
 
 
         case IPPROTO_IP:
-            ipv4->ip_sum = 0;
-            sum = do_checksum_math((uint16_t *)data, ip_hl);
-            ipv4->ip_sum = CHECKSUM_CARRY(sum);
+            if (ipv4) {
+                ipv4->ip_sum = 0;
+                sum = do_checksum_math((uint16_t *)data, ip_hl);
+                ipv4->ip_sum = CHECKSUM_CARRY(sum);
+            }
             break;
 
         case IPPROTO_IGMP:

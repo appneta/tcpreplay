@@ -644,7 +644,7 @@ get_addr2name4(const uint32_t ip, bool dnslookup)
 #ifdef HAVE_INET_NTOP
     if (inet_ntop(AF_INET, &addr, new_string, 255) == NULL) {
         warnx("Unable to convert 0x%x to a string", ip);
-        strlcpy(new_string, "", sizeof(new_string));
+        new_string[0] = 0;
     }
     return new_string;
 #elif defined HAVE_INET_NTOA
@@ -652,11 +652,6 @@ get_addr2name4(const uint32_t ip, bool dnslookup)
 #else
 #error "Unable to support get_addr2name4."
 #endif
-
-    if (dnslookup) {
-        warn("Sorry, we don't support name resolution.");
-    }
-    return new_string;
 }
 
 /**
@@ -677,17 +672,12 @@ get_addr2name6(const struct tcpr_in6_addr *addr, bool dnslookup)
 #ifdef HAVE_INET_NTOP
     if (inet_ntop(AF_INET6, addr, new_string, 255) == NULL) {
         warn("Unable to convert addr to a string");
-        strlcpy(new_string, "", sizeof(new_string));
+        new_string[0] = 0;
     }
     return new_string;
 #else
 #error "Unable to support get_addr2name6."
 #endif
-
-    if (dnslookup) {
-        warn("Sorry, we don't support name resolution.");
-    }
-    return new_string;
 }
 
 /**

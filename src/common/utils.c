@@ -237,7 +237,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
         numbytes++;
         if (numbytes + 1 > hexlen) {
             warn("Hex buffer too small for data- skipping data");
-            return (++numbytes);
+            goto done;
         }
         sscanf(l2byte, "%x", &value);
         if (value > 0xff)
@@ -248,6 +248,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     numbytes++;
 
+done:
     safe_free(string);
 
     dbgx(1, "Read %d bytes of hex data", numbytes);
