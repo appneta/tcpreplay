@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it
- *   and/or modify it under the terms of the GNU General Public License as
- *   published by the Free Software Foundation, either version 3 of the
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it 
+ *   and/or modify it under the terms of the GNU General Public License as 
+ *   published by the Free Software Foundation, either version 3 of the 
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -29,7 +29,7 @@ extern "C" {
 
 typedef struct {
     int vlan; /* set to 1 for vlan_ fields being filled out */
-
+    
     u_int16_t vlan_tag;
     u_int16_t vlan_pri;
     u_int16_t vlan_cfi;
@@ -75,7 +75,7 @@ typedef struct {
     en10mb_random_conf_t random;
 
     /* we use the mask to say which are valid values */
-    tcpedit_mac_mask mac_mask;
+    tcpedit_mac_mask mac_mask;  
 
     /* 802.1q VLAN tag stuff */
     tcpedit_vlan vlan;
