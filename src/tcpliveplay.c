@@ -142,9 +142,7 @@ main(int argc, char **argv)
 {
     unsigned int k;
     int num_packets = 0;
-
-    char port_mode[10];    /* does user specify random port generation?*/
-    char random_strg[7] = "random";
+    static const char random_strg[] = "random";
 
     char* iface = argv[1];
     char* new_rmac_ptr; 
@@ -178,17 +176,12 @@ main(int argc, char **argv)
     if ((sp = sendpacket_open(iface, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE, NULL)) == NULL)
         errx(-1, "Can't open %s: %s", argv[1], ebuf);
 
-    /* random dport vs. specified dport operation*/
-    strcpy(port_mode, argv[5]);
     /*for(int i = 0; i<10; i++) tolower(port_mode[i]);*/
-    if(strcmp(port_mode, random_strg)==0){
+    if(strcmp(argv[5], random_strg)==0)
         new_src_port = random_port();
-    } else
+    else
         new_src_port = atoi(argv[5]);
-    /*else {
-        printf("Port specification error. Please specify 'random' for random source port generation between 49152 and 65535 OR specify a specific source port number.\n");
-         return; 
-    }*/
+
     printf("new source port:: %d\n", new_src_port);
 
     /* Establish a handler for SIGALRM signals. */
@@ -882,7 +875,7 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
         return -1;
 
     memset(&buffer, 0x00, sizeof(buffer));
-    strcpy(buffer.ifr_name, iface);
+    strncpy(buffer.ifr_name, iface, sizeof(buffer.ifr_name));
     int res;
 
     if ((res = ioctl(s, SIOCGIFADDR, &buffer)) < 0)

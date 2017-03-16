@@ -100,10 +100,10 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     dbgx(1, "Comment length: %d", header.comment_len);
     
     if ((read_size = read(cachefd, *comment, header.comment_len)) 
-            != header.comment_len)
+            != (ssize_t)header.comment_len)
         errx(-1, "Unable to read %d bytes of data for the comment (%zu) %s", 
             header.comment_len, read_size, 
-            read_size == -1 ? strerror(read_size) : "");
+            (read_size == -1) ? strerror(read_size) : "");
 
     dbgx(1, "Cache file comment: %s", *comment);
 

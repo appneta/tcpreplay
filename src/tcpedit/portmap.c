@@ -131,8 +131,10 @@ ports2PORT(char *ports)
     else if (strchr(from_s, '+')) {
         from_begin = strtok_r(from_s, "+", &token2);
         from_l = strtol(from_begin, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0) {
+            free(portmap);
             return NULL;
+        }
         portmap->to = htons(to_l);
         portmap->from = htons(from_l);
 

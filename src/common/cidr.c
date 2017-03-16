@@ -117,8 +117,7 @@ ip2cidr(const unsigned long ip, const int masklen)
 
     network = (u_char *)safe_malloc(20);
 
-    strlcpy((char *)network, (char *)get_addr2name4(ip, RESOLVE),
-            sizeof(network));
+    strlcpy((char *)network, (char *)get_addr2name4(ip, RESOLVE), 20);
 
     strcat((char *)network, "/");
     if (masklen < 10) {
@@ -212,7 +211,7 @@ cidr2cidr(char *cidr)
         if (p) {
             *p = 0;
             ++p;
-            count = sscanf(p, "%d", &newcidr->masklen);
+            sscanf(p, "%d", &newcidr->masklen);
         } else {
             newcidr->masklen = 128;
         }
@@ -459,6 +458,7 @@ parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
 
 done:
     safe_free(string);
+    safe_free(cidr);
     return res;
 }
 
