@@ -90,6 +90,7 @@
 #include "tcpliveplay.h"
 #include "tcpliveplay_opts.h"
 #include "common/sendpacket.h"
+#include "common/utils.h"
 #include "send_packets.h"
 
 volatile int didsig;
@@ -151,7 +152,7 @@ main(int argc, char **argv)
     struct mac_addr new_remotemac;
     input_addr myip;
     struct mac_addr mymac;
-    unsigned int new_src_port = 0; 
+    int new_src_port = 0;
     unsigned int retransmissions = 0; 
     pcap_t *local_handle;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -181,6 +182,9 @@ main(int argc, char **argv)
         new_src_port = random_port();
     else
         new_src_port = atoi(argv[5]);
+
+    if (new_src_port < 0 || new_src_port > 65535)
+        errx(new_src_port, "Cannot use source port %d", new_src_port);
 
     printf("new source port:: %d\n", new_src_port);
 
@@ -390,10 +394,15 @@ catch_alarm (int sig){
  * This function returns a random number between 49152 and 65535
  */
 int
-random_port() {
-    srand(time(NULL));
-    int port_num = 49152 + (rand() % 16383);
-    return port_num;
+random_port()
+{
+    int random = 0;
+    int res = get_random(&random);
+
+    if (res < 0)
+       return -1;
+
+    return (49152 + (random % 16383));
 }
 
 
@@ -405,9 +414,8 @@ random_port() {
 int
 relative_sched(struct tcp_sched* sched, u_int32_t first_rseq, int num_packets){
     int i;
-    u_int32_t lseq_adjust; 
-    srand(time(NULL));
-    lseq_adjust = rand();  /*Local SEQ number for SYN packet*/
+    u_int32_t lseq_adjust = 0;
+    get_random((int*)&lseq_adjust);
     printf("Random Local SEQ: %u\n",lseq_adjust);
 
 
