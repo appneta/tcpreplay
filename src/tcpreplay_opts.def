@@ -471,15 +471,28 @@ EOText;
 
 flag = {
     name        = unique-ip;
+    flags-must   = loop;
 #ifdef TCPREPLAY_EDIT
-	flags-cant	= seed;
-#endif    
+    flags-cant   = seed;
+#endif
     descrip     = "Modify IP addresses each loop iteration to generate unique flows";
     doc         = <<- EOText
 Ensure IPv4 and IPv6 packets will be unique for each @var{--loop} iteration. 
 This is done in a way that will not alter packet CRC, and therefore will genrally
 not affect performance. This option will significantly increase the flows/sec over
 generated over multiple loop iterations.
+EOText;
+};
+
+flag = {
+    name        = unique-ip-loops;
+    flags-must   = unique-ip;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Number of times to loop before assigning new unique ip";
+    doc         = <<- EOText
+Number of @var{--loop} iterations before a new unique IP is assigned. Default
+is 1. Assumes both @var{--loop} and @var{--unique-ip}.
 EOText;
 };
 
