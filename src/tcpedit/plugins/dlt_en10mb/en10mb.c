@@ -145,6 +145,69 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
     return TCPEDIT_OK; /* success */
 }
 
+int
+dlt_en10mb_parse_subsmac_entry(const char *raw, en10mb_sub_entry_t *entry)
+{
+    char  *candidate = safe_strndup(raw, SUBSMAC_ENTRY_LEN);
+    int parse_result = dualmac2hex(candidate, entry->target, entry->rewrite, SUBSMAC_ENTRY_LEN);
+
+    free(candidate);
+
+    return parse_result;
+}
+
+en10mb_sub_entry_t *
+dlt_en10mb_realloc_merge(en10mb_sub_conf_t config, en10mb_sub_entry_t *new_entries, int entries_count)
+{
+    int i;
+    en10mb_sub_entry_t *merged = safe_realloc(
+        config.entries, (config.count + entries_count) * sizeof(en10mb_sub_entry_t));
+
+    for (i = 0; i < entries_count; i++) {
+        merged[config.count + i] = new_entries[i];
+    }
+
+    return merged;
+}
+
+int
+dlt_en10mb_parse_subsmac(tcpeditdlt_t *ctx, en10mb_config_t *config, const char *input)
+{
+    int input_len = strlen(input);
+
+    int possible_entries_number = (input_len / (SUBSMAC_ENTRY_LEN + 1)) + 1;
+    int entry = 0;
+
+    en10mb_sub_entry_t *entries = safe_malloc(possible_entries_number * sizeof(en10mb_sub_entry_t));
+
+    for (entry = 0; entry < possible_entries_number; entry++) {
+        const int read_offset = entry + entry * SUBSMAC_ENTRY_LEN;
+
+        if (input_len - read_offset < SUBSMAC_ENTRY_LEN) {
+            free(entries);
+            tcpedit_seterr(ctx->tcpedit, "Unable to parse --enet-subsmac=%s", input);
+            return TCPEDIT_ERROR;
+        }
+
+        switch(dlt_en10mb_parse_subsmac_entry(input + read_offset, &entries[entry])) {
+            case 3:
+                /* Both read; This is what we want */
+                break;
+            default:
+                free(entries);
+                tcpedit_seterr(ctx->tcpedit, "Unable to parse --enet-subsmac=%s", input);
+                return TCPEDIT_ERROR;
+        }
+    }
+
+    config->subs.entries = dlt_en10mb_realloc_merge(config->subs, entries, possible_entries_number);
+    config->subs.count  += possible_entries_number;
+
+    free(entries);
+
+    return TCPEDIT_OK;
+}
+
 /*
  * This is where you should define all your AutoGen AutoOpts option parsing.
  * Any user specified option should have it's bit turned on in the 'provides'
@@ -160,6 +223,39 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     config = (en10mb_config_t *)plugin->config;
+
+    /* --subsmacs */
+    if (HAVE_OPT(ENET_SUBSMAC)) {
+        int i, count = STACKCT_OPT(ENET_SUBSMAC);
+        char **list  = (char**) STACKLST_OPT(ENET_SUBSMAC);
+        for (i = 0; i < count; i++) {
+            int parse_result = dlt_en10mb_parse_subsmac(ctx, config, list[i]);
+            if (parse_result == TCPEDIT_ERROR) {
+                return TCPEDIT_ERROR;
+            }
+        }
+    }
+
+    /* --mac-seed */
+    if (HAVE_OPT(ENET_MAC_SEED)) {
+        int i,j;
+        srandom(config->random.set = OPT_VALUE_ENET_MAC_SEED);
+
+        for (i = 0; i < 6; i++) {
+          config->random.mask[i] = (u_char) random() % 256;
+          /* only unique numbers */
+          for (j = 0; j < i; j++) {
+            if (config->random.mask[i] == config->random.mask[j]) {
+              i--;
+              break;
+            }
+          }
+        }
+
+        if (HAVE_OPT(ENET_MAC_SEED_KEEP_BYTES)) {
+          config->random.keep = OPT_VALUE_ENET_MAC_SEED_KEEP_BYTES;
+        }
+    }
 
     /* --dmac */
     if (HAVE_OPT(ENET_DMAC)) {
@@ -275,7 +371,8 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    assert(pktlen >= 14);
+    if (pktlen < 14)
+        return TCPEDIT_ERROR;
 
     /* get our src & dst address */
     eth = (struct tcpr_ethernet_hdr *)packet;
@@ -439,7 +536,39 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         tcpedit_seterr(ctx->tcpedit, "%s", "Encoders only support C2S or C2S!");
         return TCPEDIT_ERROR;
     }
-    
+
+    if (config->subs.entries) {
+      int  entry = 0;
+      for (entry = 0 ; entry < config->subs.count; entry++) {
+        en10mb_sub_entry_t *current = &config->subs.entries[entry];
+
+        if (!memcmp(eth->ether_dhost, current->target, ETHER_ADDR_LEN)) {
+          memcpy(eth->ether_dhost, current->rewrite, ETHER_ADDR_LEN);
+        }
+
+        if (!memcmp(eth->ether_shost, current->target, ETHER_ADDR_LEN)) {
+          memcpy(eth->ether_shost, current->rewrite, ETHER_ADDR_LEN);
+        }
+      }
+    }
+
+    if (config->random.set) {
+      int unicast_src = is_unicast_ethernet(ctx, eth->ether_shost);
+      int unicast_dst = is_unicast_ethernet(ctx, eth->ether_dhost);
+
+      int i = config->random.keep;
+      for ( ; i < ETHER_ADDR_LEN; i++) {
+        eth->ether_shost[i] = MAC_MASK_APPLY(eth->ether_shost[i], config->random.mask[i], unicast_src);
+        eth->ether_dhost[i] = MAC_MASK_APPLY(eth->ether_dhost[i], config->random.mask[i], unicast_dst);
+      }
+
+      /* avoid making unicast packets multicast */
+      if (!config->random.keep) {
+        eth->ether_shost[0] &= ~(0x01 * unicast_src);
+        eth->ether_dhost[0] &= ~(0x01 * unicast_dst);
+      }
+    }
+
     if (newl2len == TCPR_802_3_H) {
         /* all we need for 802.3 is the proto */
         eth->ether_type = ctx->proto;
@@ -499,7 +628,8 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+    if (pktlen < (int) sizeof(*eth))
+        return TCPEDIT_ERROR;
     
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (ntohs(eth->ether_type)) {
@@ -524,9 +654,12 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     int l2len;
     assert(ctx);
     assert(packet);
-    assert(pktlen);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
+
+    if (pktlen < l2len)
+        return NULL;
+
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
 
@@ -546,7 +679,8 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_c
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -560,7 +694,8 @@ dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *p
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+    if (pktlen < 14)
+        return NULL;
 
     /* FIXME: return a ptr to the source or dest mac address. */
     switch(mac) {
@@ -586,22 +721,34 @@ dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *p
 int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
+    int l2len;
     struct tcpr_ethernet_hdr *eth = NULL;
     
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
     
+    l2len = -1;
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (ntohs(eth->ether_type)) {
         case ETHERTYPE_VLAN:
-            return 18;
+            l2len = 18;
             break;
         
         default:
-            return 14;
+            l2len = 14;
             break;
     }
+
+    if (l2len > 0) {
+        if (pktlen < l2len) {
+            /* can happen if fuzzing is enabled */
+            return 0;
+        }
+
+        return l2len;
+    }
+
     tcpedit_seterr(ctx->tcpedit, "%s", "Whoops!  Bug in my code!");
     return -1;
 }

@@ -221,6 +221,10 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
             l2_len += 6;
         } else
             l2_len = 4; /* no header extensions */
+
+        if (pkthdr->caplen < l2_len)
+            return FLOW_ENTRY_INVALID;
+
         /* fall through */
     case DLT_EN10MB:
         ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);

@@ -121,7 +121,9 @@ ieee80211_is_encrypted(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 
     assert(ctx);
     assert(packet);
-    assert(pktlen >= (int)sizeof(ieee80211_hdr_t));
+
+    if (pktlen < (int)sizeof(ieee80211_hdr_t))
+        return 0;
 
     frame_control = (uint16_t *)packet;
     fc = ntohs(*frame_control);

@@ -175,7 +175,9 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     int proto;
     assert(ctx);
     assert(packet);
-    assert(pktlen > 0);
+
+    if (pktlen == 0)
+        return TCPEDIT_ERROR;
 
     if ((proto = dlt_raw_proto(ctx, packet, pktlen)) == TCPEDIT_ERROR)
         return TCPEDIT_ERROR;
@@ -194,7 +196,6 @@ int
 dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen > 0);
     assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_RAW plugin does not support packet encoding");
@@ -210,8 +211,10 @@ dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     struct tcpr_ipv4_hdr *iphdr;
     assert(ctx);
     assert(packet);
-    assert(pktlen > 0);
     int protocol = 0;
+
+    if (pktlen < (int)sizeof(*iphdr))
+        return TCPEDIT_ERROR;
 
     iphdr = (struct tcpr_ipv4_hdr *)packet;
     if (iphdr->ip_v == 0x04) {
@@ -234,7 +237,6 @@ dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
     
     /* raw has a zero byte header, so this is basically a non-op */
 
@@ -253,7 +255,6 @@ dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char
     assert(ctx);
     assert(packet);
     assert(l3data);
-    assert(pktlen);
     
     /* raw has a zero byte header, so this is basically a non-op */
     
@@ -268,7 +269,6 @@ dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     return 0;
 }
@@ -282,7 +282,6 @@ dlt_raw_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     return(NULL);
 }

@@ -270,4 +270,18 @@ Delete the packet
 EOText;
 };
 
+flag = {
+    name        = fuzz-seed;
+    arg-type    = number;
+    arg-default = 0;
+    arg-range   = "0->";
+    descrip     = "Apply random fuzzing to the packets based on given seed";
+    doc         = <<- EOText
+This fuzzing was designed as to test high-level protocols. It modifies randomly
+1 out of 8 packets in order for stateful protocols to cover more of their code.
+The random fuzzing actions focus on data start and end because it often is the
+part of the data high-level protocols base their decisions on.
+EOText;
+};
+
 #include plugins/dlt_stub.def

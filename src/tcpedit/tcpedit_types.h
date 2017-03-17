@@ -155,6 +155,8 @@ typedef struct {
     int mtu;                /* Deal with different MTU's */
     bool mtu_truncate;       /* Should we truncate frames > MTU? */
     int maxpacket;          /* L2 header + MTU */
+
+    unsigned long fuzz_seed;
 } tcpedit_t;
 
 
