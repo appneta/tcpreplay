@@ -78,6 +78,7 @@ tcpreplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPT
 tcpreplay_OBJECTS: tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.c
 
+BUILT_SOURCES += tcpreplay_opts.h
 tcpreplay_opts.c: tcpreplay_opts.def
 	@AUTOGEN@ $(opts_list) @NETMAPFLAGS@ tcpreplay_opts.def
 
