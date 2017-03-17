@@ -218,7 +218,9 @@ dlt_%{plugin}_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen > /* FIXME: our L2 length */);
+
+    if (pktlen > /* FIXME: our L2 length */)
+        return TCPEDIT_ERROR;
 
     /* FIXME: make this function work */
 
@@ -233,8 +235,10 @@ int
 dlt_%{plugin}_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen > /* FIXME: our L2 length */);
     assert(packet);
+
+    if (pktlen < /* FIXME: our L2 length */)
+        return TCPEDIT_ERROR;
     
     /* FIXME: make this function work */
 
@@ -251,8 +255,10 @@ dlt_%{plugin}_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen > /* FIXME: our L2 length */);
     int protocol; 
+
+    if (pktlen > /* FIXME: our L2 length */)
+        return TCPEDIT_ERROR;
     
     /* FIXME: make this function work */
     
@@ -272,7 +278,8 @@ dlt_%{plugin}_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_%{plugin}_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -294,7 +301,8 @@ dlt_%{plugin}_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_%{plugin}_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len);
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -308,7 +316,9 @@ dlt_%{plugin}_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 14)
+        return NULL;
 
     /* FIXME: return a ptr to the source or dest mac address. */
     switch(mac) {
@@ -336,7 +346,9 @@ dlt_%{plugin}_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 14)
+        return 0;
 
     /* FIXME: return the actual length of your L2 header... parse the packet if you must */
     return 14;

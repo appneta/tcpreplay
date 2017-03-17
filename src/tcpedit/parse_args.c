@@ -166,6 +166,11 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         }
     }
 
+    /* --fuzz-seed */
+    if (HAVE_OPT(FUZZ_SEED)) {
+        tcpedit->fuzz_seed = OPT_VALUE_FUZZ_SEED;
+    }
+
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
         int ct = STACKCT_OPT(PORTMAP);
