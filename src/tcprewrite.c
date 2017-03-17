@@ -306,12 +306,11 @@ WRITE_PACKET:
 
             /* packet is IPv4/IPv6 AND needs to be fragmented */
             if ((proto ==  ETHERTYPE_IP || proto == ETHERTYPE_IP6) &&
-                ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
-                 (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
-                 (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C))) {
-
+                    ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
+                    (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
+                    (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C))) {
 #ifdef DEBUG
-                i = 0;
+                int i = 0;
 #endif
                 if (fragroute_process(options.frag_ctx, *pktdata, pkthdr_ptr->caplen) < 0)
                     errx(-1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);

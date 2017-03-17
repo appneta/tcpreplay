@@ -1,7 +1,8 @@
 02/26/2017 Version 4.2.0beta2
     - MAC rewriting capabilities (#313)
     - Fix several issues identified by Coverity (#305)
-    - Netmap startup delay increase (#209)
+    - Add --unique-ip-loops option to modify IPs every few loops (#296)
+    - Netmap startup delay increase (#290)
     - tcpcapinfo buffer overflow vulnerablily (#278)
     - Update git-clone instructions by Kyle McDonald (#277) 
     - Allow fractions for --pps option (#270)
