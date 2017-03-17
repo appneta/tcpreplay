@@ -83,6 +83,7 @@
 #define COUNTER unsigned long
 #define COUNTER_SPEC "%lu"
 #endif
+#define COUNTER_OVERFLOW_RISK (((COUNTER)~0) >> 20)
 
 #include "common/list.h"
 #include "common/cidr.h"
