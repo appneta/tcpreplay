@@ -22,14 +22,17 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
 		test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
-		test.rewrite_2ttl test.rewrite_3ttl \
+		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
+		test.rewrite_mac_seed test.rewrite_mac_seed_keep \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
 		test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
-		test2.rewrite_mtutrunc \
-		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos
+		test2.rewrite_mtutrunc test2.rewrite_enet_subsmac \
+		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos \
+		test2.rewrite_enet_subsmac test2.rewrite_mac_seed \
+		test2.rewrite_mac_seed_keep
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -51,8 +54,8 @@ endif
 
 standard: standard_prep $(STANDARD_REWRITE)
 	$(PRINTF) "Warning: only creating %s endian standard test files\n" $(REWRITE_WARN)
-	
-standard_prep:	
+
+standard_prep:
 	$(TCPPREP) -i test.pcap -o test.auto_router -a router
 	$(TCPPREP) -i test.pcap -o test.auto_bridge -a bridge
 	$(TCPPREP) -i test.pcap -o test.auto_client -a client
@@ -67,7 +70,7 @@ standard_prep:
 	$(TCPPREP) -i test.pcap -o test.mac_reverse -e 00:02:3b:00:3d:ce --reverse
 	$(TCPPREP) -i test.pcap -o test.cidr_reverse -c '216.27.178.0/24' --reverse
 	$(TCPPREP) -i test.pcap -o test.regex_reverse -r '216.27.178.*' --reverse
-	
+
 standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_tos --tos=50
@@ -81,6 +84,12 @@ standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_mac \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	 $(TCPREWRITE) -i test.pcap -o test.rewrite_enet_subsmac \
+		--enet-subsmac=00:1f:f3:3c:e1:13,00:22:33:44:55:66 \
+		--enet-subsmac=f8:1e:df:e5:84:3a,00:66:55:44:33:22
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_mac_seed --enet-mac-seed=42
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_mac_seed_keep --enet-mac-seed=42 \
+		--enet-mac-seed-keep-bytes=3
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_layer2 \
 		 --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_config --enet-vlan=add --enet-vlan-tag=45 \
@@ -89,7 +98,7 @@ standard_bigendian:
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_dltuser --dlt=user \
-		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104 
+		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
 	$(TCPREWRITE) -i test.rewrite_config -o test.rewrite_vlandel \
@@ -98,10 +107,10 @@ standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_3ttl --ttl=-58
-		
+
 standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
-	$(TCPREWRITE) -i test.pcap -o test2.rewrite_tos --tos=50	
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_tos --tos=50
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
@@ -112,6 +121,12 @@ standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mac \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
+	 $(TCPREWRITE) -i test.pcap -o test2.rewrite_enet_subsmac \
+		--enet-subsmac=00:1f:f3:3c:e1:13,00:22:33:44:55:66 \
+		--enet-subsmac=f8:1e:df:e5:84:3a,00:66:55:44:33:22
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mac_seed --enet-mac-seed=42
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mac_seed_keep --enet-mac-seed=42 \
+		--enet-mac-seed-keep-bytes=3
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_layer2 \
 		 --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_config --enet-vlan=add --enet-vlan-tag=45 \
@@ -120,7 +135,7 @@ standard_littleendian:
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_dltuser --dlt=user \
-		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104 
+		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
 	$(TCPREWRITE) -i test.rewrite_config -o test2.rewrite_vlandel \
@@ -134,11 +149,12 @@ standard_littleendian:
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
 	mac_reverse cidr_reverse regex_reverse
-	
+
 tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
 	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel rewrite_efcs \
-	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos rewrite_mtutrunc
+	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos rewrite_mtutrunc \
+	rewrite_enet_subsmac rewrite_mac_seed rewrite_mac_seed_keep
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
@@ -190,7 +206,7 @@ regex:
 	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' >>test.log 2>&1
-	diff  test.$@ test.$@1 >>test.log 2>&1 
+	diff  test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 cidr:
@@ -237,7 +253,7 @@ regex_reverse:
 	$(PRINTF) "%s" "[tcpprep] Regex reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex reverse mode test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' --reverse >>test.log 2>&1
-	diff  test.$@ test.$@1 >>test.log 2>&1 
+	diff  test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 cidr_reverse:
@@ -288,7 +304,7 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-	
+
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Endpoint test: " >>test.log
@@ -300,7 +316,7 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-	
+
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Pseudo NAT test: " >>test.log
@@ -312,7 +328,7 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-	
+
 rewrite_mac:
 	$(PRINTF) "%s" "[tcprewrite] Src/Dst MAC test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Src/Dst MAC test: " >>test.log
@@ -325,6 +341,43 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+rewrite_enet_subsmac:
+	$(PRINTF) "%s" "[tcprewrite] Substitute Src/Dst MAC test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Substitute Src/Dst MAC test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_enet_subsmac1 \
+		--enet-subsmac=00:1f:f3:3c:e1:13,00:22:33:44:55:66 \
+		--enet-subsmac=f8:1e:df:e5:84:3a,00:66:55:44:33:22  >>test.log 2>&1
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_mac_seed:
+	$(PRINTF) "%s" "[tcprewrite] Seeded MAC test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Seeded MAC test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac_seed1 \
+		--enet-mac-seed=42 >>test.log 2>&1
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+rewrite_mac_seed_keep:
+	$(PRINTF) "%s" "[tcprewrite] Seeded Keep MAC test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Seeded Keep MAC test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac_seed_keep1 \
+		--enet-mac-seed=42 --enet-mac-seed-keep-bytes=3 >>test.log 2>&1
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_trunc:
 	$(PRINTF) "%s" "[tcprewrite] Truncate test: "
@@ -370,7 +423,7 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-	
+
 rewrite_config:
 	$(PRINTF) "%s" "[tcprewrite] Config/VLAN Add test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Config/VLAN Add test: " >>test.log

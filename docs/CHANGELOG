@@ -1,4 +1,5 @@
-02/26/2017 Version 4.2.0beta1
+02/26/2017 Version 4.2.0beta2
+    - MAC rewriting capabilities (#313)
     - Fix several issues identified by Coverity (#305)
     - Netmap startup delay increase (#209)
     - tcpcapinfo buffer overflow vulnerablily (#278)
