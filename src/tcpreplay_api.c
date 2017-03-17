@@ -1236,12 +1236,12 @@ tcpreplay_replay(tcpreplay_t *ctx)
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */
             ++loop;
-            if (!ctx->unique_iteration || ctx->options->stats == 0) {
-                if (loop == ctx->unique_iteration)
+            if (ctx->options->stats == 0) {
+                if (!ctx->unique_iteration || loop == ctx->unique_iteration)
                     printf("Loop %d...\n", loop);
                 else
                     printf("Loop %d (" COUNTER_SPEC " unique)...\n", loop,
-                            ctx->unique_iteration + 1);
+                            ctx->unique_iteration);
             }
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
