@@ -97,6 +97,17 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 
 }
 
+char *
+_our_safe_strndup(const char *str, size_t n, const char *funcname, const int line, const char *file)
+{
+  char *copy = strndup(str, n);
+  if (copy == NULL) {
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to strndup() %zu bytes: %s\n", file, funcname, line, n, strerror(errno));
+        exit(-1);
+  }
+  return copy;
+}
+
 /**
  * calls free and sets to NULL.
  */
@@ -237,7 +248,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
         numbytes++;
         if (numbytes + 1 > hexlen) {
             warn("Hex buffer too small for data- skipping data");
-            return (++numbytes);
+            goto done;
         }
         sscanf(l2byte, "%x", &value);
         if (value > 0xff)
@@ -248,6 +259,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     numbytes++;
 
+done:
     safe_free(string);
 
     dbgx(1, "Read %d bytes of hex data", numbytes);

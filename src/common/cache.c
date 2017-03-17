@@ -100,10 +100,10 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     dbgx(1, "Comment length: %d", header.comment_len);
     
     if ((read_size = read(cachefd, *comment, header.comment_len)) 
-            != header.comment_len)
-        errx(-1, "Unable to read %d bytes of data for the comment (%zu) %s", 
+            != (ssize_t)header.comment_len)
+        errx(-1, "Unable to read %d bytes of data for the comment (%zd) %s",
             header.comment_len, read_size, 
-            read_size == -1 ? strerror(read_size) : "");
+            (read_size == -1) ? strerror(read_size) : "");
 
     dbgx(1, "Cache file comment: %s", *comment);
 
@@ -156,8 +156,8 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     /* write a header to our file */
     cache_header = (tcpr_cache_file_hdr_t *)
         safe_malloc(sizeof(tcpr_cache_file_hdr_t));
-    strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC));
-    strncpy(cache_header->version, CACHEVERSION, strlen(CACHEVERSION));
+    strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC)+1);
+    strncpy(cache_header->version, CACHEVERSION, strlen(CACHEVERSION)+1);
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
     cache_header->num_packets = htonll((u_int64_t)numpackets);
 
@@ -220,6 +220,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     		}
     	}
     }
+    safe_free(cache_header);
     /* return number of packets written */
     return (packets);
 }

@@ -219,8 +219,8 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
     int rcode = 0;
 
     assert(ctx);
-    assert(ctx->options->sources[idx1].type = source_filename);
-    assert(ctx->options->sources[idx2].type = source_filename);
+    assert(ctx->options->sources[idx1].type == source_filename);
+    assert(ctx->options->sources[idx2].type == source_filename);
 
     path1 = ctx->options->sources[idx1].filename;
     path2 = ctx->options->sources[idx2].filename;
@@ -344,7 +344,7 @@ replay_cache(tcpreplay_t *ctx, int idx)
 {
 
     assert(ctx);
-    assert(ctx->options->sources[idx].type = source_cache);
+    assert(ctx->options->sources[idx].type == source_cache);
     return 0;
 }
 
@@ -358,8 +358,8 @@ replay_two_caches(tcpreplay_t *ctx, int idx1, int idx2)
 {
 
     assert(ctx);
-    assert(ctx->options->sources[idx1].type = source_cache);
-    assert(ctx->options->sources[idx2].type = source_cache);
+    assert(ctx->options->sources[idx1].type == source_cache);
+    assert(ctx->options->sources[idx2].type == source_cache);
     return 0;
 }
 
@@ -373,7 +373,7 @@ replay_fd(tcpreplay_t *ctx, int idx)
 {
 
     assert(ctx);
-    assert(ctx->options->sources[idx].type = source_fd);
+    assert(ctx->options->sources[idx].type == source_fd);
     return 0;
 }
 
@@ -387,7 +387,7 @@ replay_two_fds(tcpreplay_t *ctx, int idx1, int idx2)
 {
 
     assert(ctx);
-    assert(ctx->options->sources[idx1].type = source_fd);
-    assert(ctx->options->sources[idx2].type = source_fd);
+    assert(ctx->options->sources[idx1].type == source_fd);
+    assert(ctx->options->sources[idx2].type == source_fd);
     return 0;
 }

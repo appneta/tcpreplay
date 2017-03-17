@@ -84,12 +84,12 @@ case "$host_os" in
     AC_MSG_CHECKING([what macOS compiler to use])
  
     for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 10.16.10.17 10.18 10.19 10.20 11.0 11.1 11.2 11.3 11.4 11.5; do
-        MACOSX_SDK_PATH=`xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null`
+        MACOSX_SDK_PATH=$(xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null)
         if test -d "$MACOSX_SDK_PATH"; then
             with_macosx_sdk="${_macosx_sdk}"
             break
         else
-            MACOSX_SDK_PATH="`xcode-select -print-path`/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${_macosx_sdk}.sdk"
+            MACOSX_SDK_PATH="$(xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${_macosx_sdk}.sdk"
             if test -d "$MACOSX_SDK_PATH"; then
                 with_macosx_sdk="${_macosx_sdk}"
                 break
@@ -97,13 +97,13 @@ case "$host_os" in
         fi
     done
     if test -d "$MACOSX_SDK_PATH"; then
-        CC="`xcrun -find clang` -m64 -isysroot $MACOSX_SDK_PATH"
-        INSTALL_NAME_TOOL=`xcrun -find install_name_tool`
-        AR=`xcrun -find ar`
-        NM=`xcrun -find nm`
-        STRIP=`xcrun -find strip`
-        LIBTOOL=`xcrun -find libtool`
-        RANLIB=`xcrun -find ranlib`
+        CC="$(xcrun -find clang) -m64 -isysroot $MACOSX_SDK_PATH"
+        INSTALL_NAME_TOOL=$(xcrun -find install_name_tool)
+        AR=$(xcrun -find ar)
+        NM=$(xcrun -find nm)
+        STRIP=$(xcrun -find strip)
+        LIBTOOL=$(xcrun -find libtool)
+        RANLIB=$(xcrun -find ranlib)
         AC_MSG_RESULT([$CC])
     else
         AC_MSG_RESULT([legacy])
@@ -132,7 +132,7 @@ AC_ARG_WITH(pfring-lib,
 
 have_cygwin=no
 AC_MSG_CHECKING([for cygwin development environment])
-if test `echo $target | grep -c cygwin` -gt 0 ; then
+if test $(echo $target | grep -c cygwin) -gt 0 ; then
     AC_DEFINE([HAVE_WIN32], [1], [Windows/Cygwin])
     AC_MSG_RESULT(yes)
     have_cygwin=yes
@@ -171,9 +171,9 @@ AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
     AC_MSG_CHECKING(for autogen version >= 5.18.x)
     ${AUTOGEN} -v >autogen.version
-    AUTOGEN_VERSION=`cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|'`
-    AUTOGEN_MAJOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1`
-    AUTOGEN_MINOR=`echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2`
+    AUTOGEN_VERSION=$(cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|')
+    AUTOGEN_MAJOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1)
+    AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
     if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
         AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.18.4)])
@@ -1420,7 +1420,7 @@ if test x${disable_quick_tx} != xyes; then
     dnl * Set destination directory for kernel modules
 
     if test x${kerneluname} = x ; then
-        kerneluname=`uname -r`
+        kerneluname=$(uname -r)
     fi
     default_moduledir=/lib/modules/${kerneluname}/misc
     AC_ARG_WITH(moduledir,
@@ -1466,9 +1466,9 @@ if test $have_cygwin = no ; then
 
     for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
         if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-            LDNETINC="`$testdir/bin/dnet-config --cflags`"
-            LDNETLIB="`$testdir/bin/dnet-config --libs`"
-            libdnet_version="`$testdir/bin/dnet-config --version`"
+            LDNETINC="$($testdir/bin/dnet-config --cflags)"
+            LDNETLIB="$($testdir/bin/dnet-config --libs)"
+            libdnet_version="$($testdir/bin/dnet-config --version)"
             founddnet=$testdir
         fi
     done
@@ -1612,9 +1612,9 @@ AC_ARG_WITH(pcapnav-config,
 )
 
 if test $pcncfg != no ; then
-    LNAVLIB=`$pcncfg --libs`
-    LNAV_CFLAGS=`$pcncfg --cflags`
-    PCAPNAV_VERSION=`$pcncfg --version`
+    LNAVLIB=$($pcncfg --libs)
+    LNAV_CFLAGS=$($pcncfg --cflags)
+    PCAPNAV_VERSION=$($pcncfg --version)
     AC_SUBST(LNAVLIB)
     AC_SUBST(LNAV_CFLAGS)
     AC_DEFINE_UNQUOTED(PCAPNAV_VERSION, "$PCAPNAV_VERSION",

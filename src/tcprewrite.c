@@ -136,6 +136,12 @@ main(int argc, char *argv[])
     tcpdump_close(&tcpdump);
 #endif
 
+#ifdef ENABLE_FRAGROUTE
+    if (options.frag_ctx) {
+        fragroute_close(options.frag_ctx);
+    }
+#endif
+
 #ifdef ENABLE_DMALLOC
     dmalloc_shutdown();
 #endif
@@ -230,6 +236,9 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     int rcode;
 #ifdef ENABLE_FRAGROUTE
     int frag_len, proto;
+#ifdef DEBUG
+    int i;
+#endif
 #endif
 
     pkthdr_ptr = &pkthdr;

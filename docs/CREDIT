@@ -37,7 +37,7 @@ Nick Mathewson <nickm@freehaven.net>
     - Kindly giving me his BSD licensed implimentation of poll()
       using select() so I don't have to worry about cross platform
       issues.
-          
+
 Denis McLaughlin <denism@cyberus.ca>
     - Patch to allow TCP/UDP port translation
 
@@ -73,4 +73,8 @@ Luigi Rizzo <rizzo@iet.unipi.it>
 Alexey Indeev <alexey.indeev@gmail.com> - AppNeta
     - Quick TX module for Linux
 
-    
+Pedro Arthur Duarte [aka JEdi] <GitHub @pedroarthur>
+    - MAC rewrite feature
+
+Gabriel Ganne <GitHub @GabrielGanne>
+    - Data fuzz rewrite feature

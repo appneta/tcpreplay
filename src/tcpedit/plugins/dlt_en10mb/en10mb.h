@@ -24,6 +24,11 @@
 #include "plugins_types.h"
 #include "en10mb_types.h"
 
+#define SUSBMAC_MAC_LEN   (17)
+#define SUBSMAC_ENTRY_LEN ((2*SUSBMAC_MAC_LEN)+1)
+
+#define MAC_MASK_APPLY(octet, mask, unicast)\
+      (((octet)^((mask)*(unicast)))-((octet)&((mask)*(unicast))))
 
 #ifdef __cplusplus
 extern "C" {

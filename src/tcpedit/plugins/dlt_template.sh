@@ -40,8 +40,8 @@ done
 
 # Files to have their name changed
 for i in plugin.c.tmpl plugin.h plugin_opts.def plugin_api.c.tmpl plugin_api.h plugin_types.h ; do
-    OUTFILE=`echo $i | sed -E "s/plugin/${PLUGIN}/"`
-    OUTFILE=`echo $OUTFILE | sed -E "s/\.tmpl//"`
+    OUTFILE=$(echo $i | sed -E "s/plugin/${PLUGIN}/")
+    OUTFILE=$(echo $OUTFILE | sed -E "s/\.tmpl//")
     OUTFILE="${PLUGINDIR}/${OUTFILE}"
     if [ -f $OUTFILE ]; then
         echo "Skipping $OUTFILE"

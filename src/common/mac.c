@@ -78,10 +78,9 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
     /* if we've only got a comma, then return NULL's */
     if (len <= 1) {
         second = first = NULL;
-        return 0;
+        goto done;
     }
 
-        
     temp = strtok_r(string, ",", &tok);
     if (strlen(temp)) {
         mac2hex(temp, first, len);
@@ -97,8 +96,9 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
         }
     } 
 
+done:
+    safe_free(string);
     return ret;
-
 }
 
 /**

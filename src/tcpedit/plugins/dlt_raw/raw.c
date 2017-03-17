@@ -28,7 +28,6 @@
 #include "tcpedit_stub.h"
 #include "raw.h"
 
-/* FIXME: edit these variables to taste */
 static char dlt_name[] = "raw";
 static char _U_ dlt_prefix[] = "raw";
 static uint16_t dlt_value = DLT_RAW;
