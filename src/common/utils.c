@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #ifdef DEBUG
 extern int debug;
@@ -313,3 +314,33 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
     return rem;
 }
 #endif /* SIZEOF_CHARP  == 4 */
+
+/**
+ * get a random number
+ * @return random number
+ */
+int get_random(int *random)
+{
+    int fd = open("/dev/random", O_RDONLY);
+    size_t random_len = 0;
+    int res = -1;
+
+    assert(random);
+
+    *random = -1;
+
+    if (fd < 0)
+       return -1;
+
+    while (random_len < sizeof(*random)) {
+        res = read(fd, (char*)random + random_len,
+                sizeof(*random) - random_len);
+        if (res < 0)
+            break;
+
+        random_len += res;
+    }
+
+    close(fd);
+    return res;
+}
