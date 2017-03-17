@@ -1155,11 +1155,19 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
          */
         now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
         if (now_us) {
+            COUNTER next_tx_us;
             COUNTER bps = options->speed.speed;
             COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8);
-            /* bits * 1000000 divided by bps = microseconds */
-            COUNTER next_tx_us = (bits_sent * 1000000) / bps;
             COUNTER tx_us = now_us - *start_us;
+            /*
+             * bits * 1000000 divided by bps = microseconds
+             *
+             * ensure there is no overflow in cases where bits_sent is very high
+             */
+            if (bits_sent > COUNTER_OVERFLOW_RISK && bps > 500000)
+                next_tx_us = (bits_sent * 1000) / bps * 1000;
+            else
+                next_tx_us = (bits_sent * 1000000) / bps;
             if (next_tx_us > tx_us) {
                 NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
             } else if (tx_us > next_tx_us) {
