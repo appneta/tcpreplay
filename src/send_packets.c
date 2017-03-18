@@ -459,6 +459,18 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     pcap_close(pcap);
 }
 
+static void increment_iteration(tcpreplay_t *ctx)
+{
+    tcpreplay_opt_t *options = ctx->options;
+
+    ++ctx->iteration;
+    if (options->unique_ip) {
+        assert(options->unique_loops > 0.0);
+        ctx->unique_iteration =
+                (COUNTER)((float)ctx->iteration / options->unique_loops) + 1;
+    }
+}
+
 /**
  * the main loop function for tcpreplay.  This is where we figure out
  * what to do with each packet
@@ -483,8 +495,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER skip_length = 0;
     COUNTER start_us;
     COUNTER end_us;
-    COUNTER iteration = ctx->iteration;
-    bool unique_ip = options->unique_ip;
     bool preload = options->file_cache[idx].cached;
     bool top_speed = (options->speed.mode == speed_topspeed);
     bool now_is_now = false;
@@ -548,10 +558,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
-        if (unique_ip && iteration)
+        if (ctx->options->unique_ip && ctx->unique_iteration &&
+                ctx->unique_iteration > ctx->last_unique_iteration) {
+            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass has unique IP addresses */
-            fast_edit_packet(&pkthdr, &pktdata, iteration,
+            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration,
                     preload, datalink);
+        }
 
         /* update flow stats */
         if (options->flow_stats && !preload)
@@ -683,7 +696,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
-    ++ctx->iteration;
+    increment_iteration(ctx);
 }
 
 /**
@@ -702,8 +715,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     COUNTER pktlen;
-    COUNTER iteration = ctx->iteration;
-    bool unique_ip = options->unique_ip;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
@@ -806,10 +817,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
 #endif
 
-        if (unique_ip && iteration)
+        if (ctx->options->unique_ip && ctx->unique_iteration &&
+                ctx->unique_iteration > ctx->last_unique_iteration) {
+            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
+            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration,
                     options->file_cache[cache_file_idx].cached, datalink);
+        }
 
         /* update flow stats */
         if (options->flow_stats && !options->file_cache[cache_file_idx].cached)
@@ -943,7 +957,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
-    ++ctx->iteration;
+    increment_iteration(ctx);
 }
 
 
@@ -1141,11 +1155,19 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
          */
         now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
         if (now_us) {
+            COUNTER next_tx_us;
             COUNTER bps = options->speed.speed;
             COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8);
-            /* bits * 1000000 divided by bps = microseconds */
-            COUNTER next_tx_us = (bits_sent * 1000000) / bps;
             COUNTER tx_us = now_us - *start_us;
+            /*
+             * bits * 1000000 divided by bps = microseconds
+             *
+             * ensure there is no overflow in cases where bits_sent is very high
+             */
+            if (bits_sent > COUNTER_OVERFLOW_RISK && bps > 500000)
+                next_tx_us = (bits_sent * 1000) / bps * 1000;
+            else
+                next_tx_us = (bits_sent * 1000000) / bps;
             if (next_tx_us > tx_us) {
                 NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
             } else if (tx_us > next_tx_us) {
