@@ -107,6 +107,7 @@ unsigned int buf_write_index = 0;
 unsigned int sched_index = 0; 
 unsigned int initial_rseq=0; 
 sendpacket_t *sp;
+unsigned int seed = 0;
 
 const u_char *packet_keeper_rprev = NULL;
 ether_hdr *etherhdr_rprev = NULL; /*g for Global header pointers used in pcap_loop callback*/
@@ -390,18 +391,24 @@ catch_alarm (int sig){
     signal (sig, catch_alarm);
 }
 
+static int tcplp_rand(void)
+{
+    struct timeval tv;
+
+    if (!seed) {
+        gettimeofday(&tv, NULL);
+        seed = (unsigned int)tv.tv_sec ^ (unsigned int)tv.tv_usec;
+    }
+
+    return tcpr_random(&seed);
+}
 /**
  * This function returns a random number between 49152 and 65535
  */
 int
 random_port()
 {
-    int random = 0;
-    int res = get_random(&random);
-
-    if (res < 0)
-       return -1;
-
+    int random = tcplp_rand();
     return (49152 + (random % 16383));
 }
 
@@ -414,8 +421,7 @@ random_port()
 int
 relative_sched(struct tcp_sched* sched, u_int32_t first_rseq, int num_packets){
     int i;
-    u_int32_t lseq_adjust = 0;
-    get_random((int*)&lseq_adjust);
+    u_int32_t lseq_adjust = tcplp_rand();
     printf("Random Local SEQ: %u\n",lseq_adjust);
 
 

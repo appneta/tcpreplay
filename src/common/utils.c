@@ -316,31 +316,32 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
 #endif /* SIZEOF_CHARP  == 4 */
 
 /**
- * get a random number
- * @return random number
+ * Implementation of rand_r that is consistent across all platforms
+ * This algorithm is mentioned in the ISO C standard, here extended
+ * for 32 bits.
+ * @param: seed
+ * @return: random number
  */
-int get_random(int *random)
+int tcpr_random(uint32_t *seed)
 {
-    int fd = open("/dev/random", O_RDONLY);
-    size_t random_len = 0;
-    int res = -1;
+  unsigned int next = *seed;
+  int result;
 
-    assert(random);
+  next *= 1103515245;
+  next += 12345;
+  result = (unsigned int) (next / 65536) % 2048;
 
-    *random = -1;
+  next *= 1103515245;
+  next += 12345;
+  result <<= 10;
+  result ^= (unsigned int) (next / 65536) % 1024;
 
-    if (fd < 0)
-       return -1;
+  next *= 1103515245;
+  next += 12345;
+  result <<= 10;
+  result ^= (unsigned int) (next / 65536) % 1024;
 
-    while (random_len < sizeof(*random)) {
-        res = read(fd, (char*)random + random_len,
-                sizeof(*random) - random_len);
-        if (res < 0)
-            break;
+  *seed = next;
 
-        random_len += res;
-    }
-
-    close(fd);
-    return res;
+  return result;
 }

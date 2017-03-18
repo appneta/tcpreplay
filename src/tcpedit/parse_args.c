@@ -38,10 +38,11 @@
 int 
 tcpedit_post_args(tcpedit_t *tcpedit) {
     int rcode = 0;
+    int i;
     long ttl;
+    uint32_t seed = 1;
 
     assert(tcpedit);
-
 
     /* --pnat */
     if (HAVE_OPT(PNAT)) {
@@ -166,11 +167,6 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         }
     }
 
-    /* --fuzz-seed */
-    if (HAVE_OPT(FUZZ_SEED)) {
-        tcpedit->fuzz_seed = OPT_VALUE_FUZZ_SEED;
-    }
-
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
         int ct = STACKCT_OPT(PORTMAP);
@@ -203,15 +199,30 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     }
 
     /*
-     * IP address rewriting processing.  Call srandom() then add up
-     * 5 calls to random() as our mixer for randomizing.  This should
+     * IP address rewriting processing. Update seed by making
+     * 5 calls to tcpr_random() as our mixer for randomizing.  This should
      * work better since most people aren't going to write out values
      * close to 32bit integers.
      */
     if (HAVE_OPT(SEED)) {
         tcpedit->rewrite_ip = true;
-        srandom(OPT_VALUE_SEED);
-        tcpedit->seed = random() + random() + random() + random() + random();
+        seed = OPT_VALUE_SEED;
+    } else if (HAVE_OPT(FUZZ_SEED)) {
+        /* --fuzz-seed */
+        seed = OPT_VALUE_FUZZ_SEED;
+    }
+
+    for (i = 0; i < 5; ++i) {
+        seed = tcpr_random(&seed);
+    }
+
+    srandom(seed);
+    if (HAVE_OPT(SEED)) {
+        tcpedit->rewrite_ip = true;
+        tcpedit->seed = seed;
+    }  if (HAVE_OPT(FUZZ_SEED)) {
+        /* --fuzz-seed */
+        tcpedit->fuzz_seed = seed;
     }
 
     if (HAVE_OPT(ENDPOINTS)) {

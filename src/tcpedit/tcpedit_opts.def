@@ -45,6 +45,7 @@ EOText;
 
 flag = {
     name        = seed;
+    flags-cant   = fuzz-seed;
     value       = s;
     arg-type    = number;
     descrip     = "Randomize src/dst IPv4/v6 addresses w/ given seed";

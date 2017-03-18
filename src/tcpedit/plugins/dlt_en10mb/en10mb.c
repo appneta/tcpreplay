@@ -239,10 +239,11 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
     /* --mac-seed */
     if (HAVE_OPT(ENET_MAC_SEED)) {
         int i,j;
-        srandom(config->random.set = OPT_VALUE_ENET_MAC_SEED);
+
+        config->random.set = OPT_VALUE_ENET_MAC_SEED;
 
         for (i = 0; i < 6; i++) {
-          config->random.mask[i] = (u_char) random() % 256;
+          config->random.mask[i] = (u_char)tcpr_random(&config->random.set) % 256;
           /* only unique numbers */
           for (j = 0; j < i; j++) {
             if (config->random.mask[i] == config->random.mask[j]) {
