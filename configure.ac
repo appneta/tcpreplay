@@ -141,7 +141,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign dist-xz])
+AM_INIT_AUTOMAKE([foreign])
 AM_SILENT_RULES([yes])
 
 dnl Checks for programs.
