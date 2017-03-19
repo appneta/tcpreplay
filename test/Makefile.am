@@ -298,7 +298,7 @@ replay_stats:
 rewrite_portmap:
 	$(PRINTF) "%s" "[tcprewrite] Portmap test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Portmap test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_portmap1 -r 80:8080 >>test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r 80:8080 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -309,7 +309,7 @@ endif
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Endpoint test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_endpoint1 -e 10.10.0.1:10.10.0.2 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 10.10.0.1:10.10.0.2 \
 	    -c test.auto_router  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
@@ -321,7 +321,7 @@ endif
 rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Pseudo NAT test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_pnat1 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 \
 	    -N 216.27.178.0/24:172.16.0.0/24  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
@@ -333,7 +333,7 @@ endif
 rewrite_mac:
 	$(PRINTF) "%s" "[tcprewrite] Src/Dst MAC test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Src/Dst MAC test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac1 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router  >>test.log 2>&1
 if WORDS_BIGENDIAN
@@ -346,7 +346,7 @@ endif
 rewrite_enet_subsmac:
 	$(PRINTF) "%s" "[tcprewrite] Substitute Src/Dst MAC test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Substitute Src/Dst MAC test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_enet_subsmac1 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 \
 		--enet-subsmac=00:1f:f3:3c:e1:13,00:22:33:44:55:66 \
 		--enet-subsmac=f8:1e:df:e5:84:3a,00:66:55:44:33:22  >>test.log 2>&1
 if WORDS_BIGENDIAN
@@ -359,7 +359,7 @@ endif
 rewrite_mac_seed:
 	$(PRINTF) "%s" "[tcprewrite] Seeded MAC test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Seeded MAC test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac_seed1 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 \
 		--enet-mac-seed=42 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
@@ -371,7 +371,7 @@ endif
 rewrite_mac_seed_keep:
 	$(PRINTF) "%s" "[tcprewrite] Seeded Keep MAC test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Seeded Keep MAC test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_mac_seed_keep1 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 \
 		--enet-mac-seed=42 --enet-mac-seed-keep-bytes=3 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
@@ -383,7 +383,7 @@ endif
 rewrite_trunc:
 	$(PRINTF) "%s" "[tcprewrite] Truncate test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Truncate test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -F trunc -i test.pcap -o test.rewrite_trunc1 >>test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -F trunc -i test.pcap -o test.$@1 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -394,7 +394,7 @@ endif
 rewrite_pad:
 	$(PRINTF) "%s" "[tcprewrite] Pad test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Pad test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -F pad -i test.pcap -o test.rewrite_pad1 >>test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -F pad -i test.pcap -o test.$@1 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -405,7 +405,7 @@ endif
 rewrite_seed:
 	$(PRINTF) "%s" "[tcprewrite] Seed IP test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Seed IP test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_seed1 -s 55 >>test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -s 55 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -417,7 +417,7 @@ rewrite_layer2:
 	$(PRINTF) "%s" "[tcprewrite] Layer2 test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Layer2 test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0 \
-		-i test.pcap -o test.rewrite_layer21 >>test.log 2>&1
+		-i test.pcap -o test.$@1 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -439,7 +439,7 @@ endif
 rewrite_skip:
 	$(PRINTF) "%s" "[tcprewrite] Skip bcast test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Skip bcast test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_skip1 -b -s 55 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -b -s 55 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c test.auto_router  >>test.log 2>&1
 if WORDS_BIGENDIAN
@@ -452,7 +452,7 @@ endif
 rewrite_dltuser:
 	$(PRINTF) "%s" "[tcprewrite] DLT User test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] DLT User test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_dltuser1 --dlt=user \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --dlt=user \
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
@@ -464,7 +464,7 @@ endif
 rewrite_dlthdlc:
 	$(PRINTF) "%s" "[tcprewrite] DLT Cisco HDLC test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] DLT Cisco HDLC test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_dlthdlc1 --dlt=hdlc \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
@@ -476,7 +476,7 @@ endif
 rewrite_vlandel:
 	$(PRINTF) "%s" "[tcprewrite] VLAN Delete test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN Delete test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.rewrite_config -o test.rewrite_vlandel1 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.rewrite_config -o test.$@1 \
 		--enet-vlan=del  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
@@ -488,7 +488,7 @@ endif
 rewrite_efcs:
 	$(PRINTF) "%s" "[tcprewrite] Remove EFCS: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Remove EFCS: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.rewrite_efcs1 --efcs >>test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --efcs >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
