@@ -25,13 +25,13 @@ PACKAGE_URL=http://tcpreplay.appneta.com/
 dnl Release is only used for the RPM spec file
 TCPREPLAY_RELEASE=1
 
-AC_DEFINE(PACKAGE, [tcpreplay], [This is our package name])
-AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION", [What is our version?])
+AC_DEFINE(PACKAGE, [tcpreplay])
+AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION")
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
 USER_CFLAGS=$CFLAGS
-CFLAGS="-Wall -std=gnu99 ${CFLAGS}"
+CFLAGS="-Wall -Wno-format-contains-nul -std=gnu99 ${CFLAGS}"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -141,7 +141,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
+AM_INIT_AUTOMAKE([foreign dist-xz])
 AM_SILENT_RULES([yes])
 
 dnl Checks for programs.
