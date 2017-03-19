@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 AC_INIT([tcpreplay],[4.2.0],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
-AM_CONFIG_HEADER([src/config.h])
+AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
@@ -25,13 +25,13 @@ PACKAGE_URL=http://tcpreplay.appneta.com/
 dnl Release is only used for the RPM spec file
 TCPREPLAY_RELEASE=1
 
-AC_DEFINE(PACKAGE, [tcpreplay], [This is our package name])
-AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION", [What is our version?])
+AC_DEFINE(PACKAGE, [tcpreplay])
+AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION")
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
 USER_CFLAGS=$CFLAGS
-CFLAGS="-Wall -O3 -std=gnu99 ${CFLAGS}"
+CFLAGS="-Wall -Wno-format-contains-nul -std=gnu99 ${CFLAGS}"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -141,7 +141,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE(tcpreplay, $TCPREPLAY_VERSION, nodefine)
+AM_INIT_AUTOMAKE([foreign])
 AM_SILENT_RULES([yes])
 
 dnl Checks for programs.
