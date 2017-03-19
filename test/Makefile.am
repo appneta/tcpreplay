@@ -23,7 +23,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
 		test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
 		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
-		test.rewrite_mac_seed test.rewrite_mac_seed_keep \
+		test.rewrite_mac_seed test.rewrite_mac_seed_keep test.rewrite_l7fuzzing \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
@@ -32,7 +32,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_mtutrunc test2.rewrite_enet_subsmac \
 		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos \
 		test2.rewrite_enet_subsmac test2.rewrite_mac_seed \
-		test2.rewrite_mac_seed_keep
+		test2.rewrite_mac_seed_keep test2.rewrite_l7fuzzing
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -107,6 +107,7 @@ standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_l7fuzzing --fuzz-seed=42
 
 standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
@@ -145,6 +146,7 @@ standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_3ttl --ttl=-58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_l7fuzzing --fuzz-seed=42
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
@@ -154,7 +156,7 @@ tcprewrite: rewrite_portmap rewrite_endpoint rewrite_pnat rewrite_trunc \
 	rewrite_pad rewrite_seed rewrite_mac rewrite_layer2 rewrite_config \
 	rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_vlandel rewrite_efcs \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_tos rewrite_mtutrunc \
-	rewrite_enet_subsmac rewrite_mac_seed rewrite_mac_seed_keep
+	rewrite_enet_subsmac rewrite_mac_seed rewrite_mac_seed_keep rewrite_l7fuzzing
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
@@ -549,6 +551,17 @@ else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_l7fuzzing:
+	$(PRINTF) "%s" "[tcprewrite] L7 fuzzing test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] L7 fuzzing test: " >>test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --fuzz-seed=42 >>test.log 2>&1
+if WORDS_BIGENDIAN
+	diff test.$@ test.$@1 >>test.log 2>&1
+else
+	diff test2.$@ test.$@1 >>test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
