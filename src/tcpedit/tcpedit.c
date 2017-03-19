@@ -36,6 +36,7 @@
 #include "incremental_checksum.h"
 #include "edit_packet.h"
 #include "parse_args.h"
+#include "fuzzing.h"
 
 
 #include "lib/sll.h"
@@ -218,6 +219,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr)) < 0)
                 return TCPEDIT_ERROR;
         }
+    }
+
+    if (tcpedit->fuzz_seed != 0) {
+        retval = fuzzing(tcpedit, *pkthdr, pktdata);
+        if (retval < 0) {
+            return TCPEDIT_ERROR;
+        }
+        needtorecalc += retval;
     }
 
     /* (Un)truncate or MTU truncate packet? */

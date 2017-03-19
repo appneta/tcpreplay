@@ -45,6 +45,7 @@ EOText;
 
 flag = {
     name        = seed;
+    flags-cant   = fuzz-seed;
     value       = s;
     arg-type    = number;
     descrip     = "Randomize src/dst IPv4/v6 addresses w/ given seed";
@@ -267,6 +268,32 @@ the actual packet length
 @item
 @var{del}
 Delete the packet
+EOText;
+};
+
+flag = {
+    name        = fuzz-seed;
+    arg-type    = number;
+    arg-default = 0;
+    arg-range   = "0->";
+    descrip     = "Fuzz 1/8 packet. Edit Bytes, length, or emulate packet drop";
+    doc         = <<- EOText
+This fuzzing was designed as to test layer 7 protocols such as voip protocols.
+It modifies randomly 1 out of 8 packets in order for stateful protocols to cover
+more of their code.  The random fuzzing actions focus on data start and end
+because it often is the part of the data application protocols base their
+decisions on.
+
+Possible fuzzing actions list:
+ * drop packet
+ * reduce packet size
+ * edit packet Bytes:
+   * Not all Bytes have the same probability of appearance in real life.
+     Replace with 0x00, 0xFF, or a random byte with equal likelyhook
+   * Not all Bytes have the same significance in a packet.
+     Replace the start, the end, or the middle of the packet with equal likelyhood.
+ * do nothing (7 out of 8 packets)
+
 EOText;
 };
 

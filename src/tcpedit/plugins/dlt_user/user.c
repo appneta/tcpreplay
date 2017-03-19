@@ -204,7 +204,6 @@ dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_USER0 plugin does not support packet decoding");
     return TCPEDIT_ERROR;
@@ -222,8 +221,10 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     u_char tmpbuff[MAXPACKET];
 
     assert(ctx);
-    assert(pktlen > 0);
     assert(packet);
+
+    if (pktlen == 0)
+        return TCPEDIT_ERROR;
     
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     config = plugin->config;
@@ -260,7 +261,6 @@ dlt_user_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     /* calling this for DLT_USER0 is broken */
     tcpedit_seterr(ctx->tcpedit, "%s", "Nonsensical calling of dlt_user_proto()");
@@ -280,7 +280,8 @@ dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_user_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -302,7 +303,8 @@ dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_user_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -317,7 +319,6 @@ dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     user_config_t *config;
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
     config = plugin->config;
@@ -334,7 +335,6 @@ dlt_user_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char 
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     /* we don't know the format of USER DLT, hence always return NULL */
     return(NULL);

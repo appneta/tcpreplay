@@ -37,6 +37,7 @@
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
 #include "tcpedit/tcpedit.h"
+#include "tcpedit/fuzzing.h"
 tcpedit_t *tcpedit;
 #else
 #include "tcpreplay_opts.h"
@@ -125,6 +126,11 @@ main(int argc, char *argv[])
             preload_pcap_file(ctx, i);
         }
     }
+
+#ifdef TCPREPLAY_EDIT
+    /* fuzzing init */
+    fuzzing_init(tcpedit->fuzz_seed);
+#endif
 
     /* init the signal handlers */
     init_signal_handlers();

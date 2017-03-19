@@ -41,6 +41,7 @@
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
 #include "tcpedit/tcpedit.h"
+#include "tcpedit/fuzzing.h"
 
 #ifdef DEBUG
 int debug;
@@ -95,6 +96,9 @@ main(int argc, char *argv[])
         errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
+
+    /* fuzzing init */
+    fuzzing_init(tcpedit->fuzz_seed);
 
    /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));

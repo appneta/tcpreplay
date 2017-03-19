@@ -474,6 +474,7 @@ flag = {
     flags-must   = loop;
 #ifdef TCPREPLAY_EDIT
     flags-cant   = seed;
+    flags-cant   = fuzz-seed;
 #endif
     descrip     = "Modify IP addresses each loop iteration to generate unique flows";
     doc         = <<- EOText
