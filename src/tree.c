@@ -280,7 +280,8 @@ check_ip_tree(const int mode, const unsigned long ip)
         }
     }
     
-    return_unknown:
+return_unknown:
+    safe_free(finder);
     switch (mode) {
     case DIR_SERVER:
         return TCPR_DIR_S2C;
@@ -348,7 +349,8 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
         }
     }
 
-    return_unknown:
+return_unknown:
+    safe_free(finder);
     switch (mode) {
     case DIR_SERVER:
         return TCPR_DIR_C2S;
@@ -739,7 +741,9 @@ packet2tree(const u_char * data)
 
 
     /* copy over the source mac */
-    strncpy((char *)node->mac, (char *)eth_hdr->ether_shost, 6);
+    memset(&node->mac[0], 0, sizeof(node->mac));
+    strncpy((char *)node->mac, (char *)eth_hdr->ether_shost,
+		    sizeof(node->mac) - 1);
 
     /* 
      * TCP 

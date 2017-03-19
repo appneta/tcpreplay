@@ -17,10 +17,22 @@
 #include "bget.h"
 #include "pkt.h"
 
+static struct pkt **pvbase;
+static int pvlen;
+
 void
 pkt_init(int size)
 {
 	bectl(NULL, malloc, free, sizeof(struct pkt) * size);
+}
+
+void
+pkt_close(void)
+{
+    if (pvbase) {
+        pvlen = 0;
+        free (pvbase);
+    }
 }
 
 struct pkt *
@@ -273,8 +285,6 @@ pktq_reverse(struct pktq *pktq)
 void
 pktq_shuffle(rand_t *r, struct pktq *pktq)
 {
-	static struct pkt **pvbase;
-	static int pvlen;
 	struct pkt *pkt;
 	int i;
 

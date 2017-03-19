@@ -116,10 +116,6 @@ dlt_jnpr_ether_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    /* allocate memory for our deocde extra data */
-    if (sizeof(jnpr_ether_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(jnpr_ether_extra_t));
-
     /* allocate memory for our config data */
     if (sizeof(jnpr_ether_config_t) > 0)
         plugin->config = safe_malloc(sizeof(jnpr_ether_config_t));

@@ -108,14 +108,20 @@ ports2PORT(char *ports)
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
         from_b = strtol(from_begin, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0) {
+            free(portmap);
             return NULL;
+        }
         from_e = strtol(from_end, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0) {
+            free(portmap);
             return NULL;
+        }
 
-        if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0)
+        if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
+            free(portmap);
             return NULL;
+        }
 
         for (i = from_b; i <= from_e; i++) {
             portmap->from = htons(i);
@@ -131,17 +137,24 @@ ports2PORT(char *ports)
     else if (strchr(from_s, '+')) {
         from_begin = strtok_r(from_s, "+", &token2);
         from_l = strtol(from_begin, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0) {
+            free(portmap);
             return NULL;
+        }
         portmap->to = htons(to_l);
         portmap->from = htons(from_l);
 
         while ((from_begin = strtok_r(NULL, "+", &token2)) != NULL) {
             from_l = strtol(from_begin, &badchar, 10);
-            if (strlen(badchar) != 0)
+            if (strlen(badchar) != 0 || from_l > 65535 || from_l < 0) {
+                portmap = portmap_head;
+                while (portmap) {
+                    tcpedit_portmap_t *tmp_portmap = portmap->next;
+                    free(portmap);
+                    portmap = tmp_portmap;
+                }
                 return NULL;
-            if (from_l > 65535 || from_l < 0)
-                return NULL;
+            }
             portmap->next = new_portmap();
             portmap = portmap->next;
             portmap->to = htons(to_l);
@@ -155,15 +168,15 @@ ports2PORT(char *ports)
         * after, then it was a bad string
         */
         from_l = strtol(from_s, &badchar, 10);
-        if (strlen(badchar) != 0)
+        if (strlen(badchar) != 0 || from_l > 65535 || from_l < 0) {
+            free(portmap);
             return NULL;
-        if (from_l > 65535 || from_l < 0)
-            return NULL;
+        }
         portmap->to = htons(to_l);
         portmap->from = htons(from_l);
     }
 
-    /* return 1 for success */
+    /* return structure for success */
     return portmap_head;
 }
 
@@ -207,6 +220,7 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
             portmap_ptr = portmap_ptr->next;
     }
 
+    safe_free(ourstrcpy);
     return 1;
 }
 

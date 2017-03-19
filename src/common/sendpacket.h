@@ -127,6 +127,7 @@ struct sendpacket_s {
     struct tcpr_ether_addr ether;
 #if defined HAVE_QUICK_TX || defined HAVE_NETMAP
     int first_packet;
+    int netmap_delay;
 #endif
 
 #ifdef HAVE_QUICK_TX
@@ -164,7 +165,7 @@ struct sendpacket_s {
 typedef struct sendpacket_s sendpacket_t;
 
 int sendpacket(sendpacket_t *, const u_char *, size_t, struct pcap_pkthdr *);
-int sendpacket_close(sendpacket_t *);
+void sendpacket_close(sendpacket_t *);
 char *sendpacket_geterr(sendpacket_t *);
 size_t sendpacket_getstat(sendpacket_t *, char *, size_t);
 sendpacket_t *sendpacket_open(const char *, char *, tcpr_dir_t, sendpacket_type_t, void *arg);

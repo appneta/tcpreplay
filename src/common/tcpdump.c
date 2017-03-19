@@ -126,10 +126,13 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
         err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
-    /* result > 0 if we get here */
-    if (read(tcpdump->outfd, &decode, TCPDUMP_DECODE_LEN) < 0)
+    result = read(tcpdump->outfd, &decode, TCPDUMP_DECODE_LEN);
+    if (result < 0)
         errx(-1, "Error reading tcpdump decode: %s", strerror(errno));
-            
+
+    /* result > 0 if we get here */
+    decode[min(result, TCPDUMP_DECODE_LEN)] = 0;
+
     printf("%s", decode);
 
     return TRUE;

@@ -102,7 +102,6 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     hdlc_hdr_t *hdlc_hdr;
     sll_hdr_t *sll_hdr;
     struct tcpr_pppserial_hdr *ppp;
-    uint32_t *src_ptr = NULL, *dst_ptr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
     uint16_t ether_type = 0;
@@ -230,9 +229,6 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     }
 
     dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
-
-    *src_ptr = htonl(src_ip);
-    *dst_ptr = htonl(dst_ip);
 }
 
 #if defined HAVE_QUICK_TX || defined HAVE_NETMAP
@@ -463,6 +459,18 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     pcap_close(pcap);
 }
 
+static void increment_iteration(tcpreplay_t *ctx)
+{
+    tcpreplay_opt_t *options = ctx->options;
+
+    ++ctx->iteration;
+    if (options->unique_ip) {
+        assert(options->unique_loops > 0.0);
+        ctx->unique_iteration =
+                (COUNTER)((float)ctx->iteration / options->unique_loops) + 1;
+    }
+}
+
 /**
  * the main loop function for tcpreplay.  This is where we figure out
  * what to do with each packet
@@ -487,8 +495,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER skip_length = 0;
     COUNTER start_us;
     COUNTER end_us;
-    COUNTER iteration = ctx->iteration;
-    bool unique_ip = options->unique_ip;
     bool preload = options->file_cache[idx].cached;
     bool top_speed = (options->speed.mode == speed_topspeed);
     bool now_is_now = false;
@@ -552,10 +558,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
-        if (unique_ip && iteration)
+        if (ctx->options->unique_ip && ctx->unique_iteration &&
+                ctx->unique_iteration > ctx->last_unique_iteration) {
+            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass has unique IP addresses */
-            fast_edit_packet(&pkthdr, &pktdata, iteration,
+            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration,
                     preload, datalink);
+        }
 
         /* update flow stats */
         if (options->flow_stats && !preload)
@@ -687,7 +696,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
-    ++ctx->iteration;
+    increment_iteration(ctx);
 }
 
 /**
@@ -706,8 +715,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
     COUNTER pktlen;
-    COUNTER iteration = ctx->iteration;
-    bool unique_ip = options->unique_ip;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
@@ -810,10 +817,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
 #endif
 
-        if (unique_ip && iteration)
+        if (ctx->options->unique_ip && ctx->unique_iteration &&
+                ctx->unique_iteration > ctx->last_unique_iteration) {
+            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->iteration,
+            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration,
                     options->file_cache[cache_file_idx].cached, datalink);
+        }
 
         /* update flow stats */
         if (options->flow_stats && !options->file_cache[cache_file_idx].cached)
@@ -947,7 +957,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     memcpy(&ctx->stats.end_time, &now, sizeof(ctx->stats.end_time));
 
-    ++ctx->iteration;
+    increment_iteration(ctx);
 }
 
 
@@ -1145,11 +1155,19 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
          */
         now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
         if (now_us) {
+            COUNTER next_tx_us;
             COUNTER bps = options->speed.speed;
             COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8);
-            /* bits * 1000000 divided by bps = microseconds */
-            COUNTER next_tx_us = (bits_sent * 1000000) / bps;
             COUNTER tx_us = now_us - *start_us;
+            /*
+             * bits * 1000000 divided by bps = microseconds
+             *
+             * ensure there is no overflow in cases where bits_sent is very high
+             */
+            if (bits_sent > COUNTER_OVERFLOW_RISK && bps > 500000)
+                next_tx_us = (bits_sent * 1000) / bps * 1000;
+            else
+                next_tx_us = (bits_sent * 1000000) / bps;
             if (next_tx_us > tx_us) {
                 NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
             } else if (tx_us > next_tx_us) {
@@ -1170,10 +1188,13 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
           */
          now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
          if (now_us) {
-             COUNTER pps = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : 1);;
+             COUNTER pph = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));;
              COUNTER pkts_sent = ctx->stats.pkts_sent;
-             /* packets * 1000000 divided by pps = microseconds */
-             COUNTER next_tx_us = (pkts_sent * 1000000) / pps;
+             /*
+              * packets * 1000000 divided by pps = microseconds
+              * packets per sec (pps) = packets per hour / (60 * 60)
+              */
+             COUNTER next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
              COUNTER tx_us = now_us - *start_us;
              if (next_tx_us > tx_us)
                  NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
@@ -1275,7 +1296,7 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
     tcpreplay_opt_t *options = ctx->options;
     struct pollfd poller[1];        /* use poll to read from the keyboard */
     char input[EBUF_SIZE];
-    uint32_t send = 0;
+    unsigned long send = 0;
 
     printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
         counter, (sp == ctx->intf1 ? options->intf1_name : options->intf2_name));
@@ -1311,5 +1332,5 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
         send = 1;
     }
 
-    return send;
+    return(uint32_t)send;
 }

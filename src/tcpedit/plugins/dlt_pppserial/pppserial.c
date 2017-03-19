@@ -114,16 +114,6 @@ dlt_pppserial_init(tcpeditdlt_t *ctx)
         tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
-    
-    /* allocate memory for our deocde extra data */
-    if (sizeof(pppserial_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(pppserial_extra_t));
-
-    /* allocate memory for our config data */
-    if (sizeof(pppserial_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(pppserial_config_t));
-
-    /* FIXME: set default config values here */
 
     return TCPEDIT_OK; /* success */
 }
