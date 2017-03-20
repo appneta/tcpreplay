@@ -2,7 +2,12 @@
 dnl $Id$
 
 AC_PREREQ([2.69])
-AC_INIT([tcpreplay],[4.2.0],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+
+dnl Set version info here!
+AC_INIT([tcpreplay],[4.0.2-beta3],
+    [https://github.com/appneta/tcpreplay/issues],
+    [tcpreplay],
+    [http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -15,23 +20,16 @@ MAINTAINER_AUTOGEN_VERSION=5.18.4
 
 AC_CONFIG_MACRO_DIR([m4])
 
-dnl Set version info here!
-MAJOR_VERSION=4
-MINOR_VERSION=2
-MICRO_VERSION=0-beta3
-TCPREPLAY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$MICRO_VERSION
-PACKAGE_URL=http://tcpreplay.appneta.com/
+TCPREPLAY_VERSION=$PACKAGE_VERSION
 
 dnl Release is only used for the RPM spec file
 TCPREPLAY_RELEASE=1
 
-AC_DEFINE(PACKAGE, [tcpreplay])
-AC_DEFINE_UNQUOTED(VERSION, "$TCPREPLAY_VERSION")
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
 
 USER_CFLAGS=$CFLAGS
-CFLAGS="-Wall -Wno-format-contains-nul -std=gnu99 ${CFLAGS}"
+CFLAGS="-Wall -std=gnu99 ${CFLAGS}"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -295,7 +293,10 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
 CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h 
+    signal.h string.h strings.h sys/types.h stdint.h sys/select.h 
+    netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h 
+    inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
 AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements
