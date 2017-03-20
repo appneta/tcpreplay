@@ -226,7 +226,6 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t d
     
     assert(ctx);
     assert(packet);
-    assert(pktlen);
     assert(direction == TCPR_DIR_C2S || direction == TCPR_DIR_S2C || direction == TCPR_DIR_NOSEND);
     
     /* nothing to do here */
@@ -308,7 +307,6 @@ tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pk
     assert(ctx);
     assert(dlt >= 0);
     assert(packet);
-    assert(pktlen);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
@@ -328,7 +326,6 @@ tcpedit_dlt_proto(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pk
     assert(ctx);
     assert(dlt >= 0);
     assert(packet);
-    assert(pktlen);
 
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
@@ -349,7 +346,6 @@ tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen)
     assert(ctx);
     assert(dlt >= 0);
     assert(packet);
-    assert(pktlen);
         
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
@@ -373,7 +369,6 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
     tcpeditdlt_plugin_t *plugin;
     assert(ctx);
     assert(dlt >= 0);
-    assert(pktlen >= 0);
     assert(packet);
 
     if (l3data == NULL)

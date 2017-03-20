@@ -182,7 +182,9 @@ dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     u_char *data;
     assert(ctx);
     assert(packet);
-    assert(pktlen >= (int)sizeof(radiotap_hdr_t));
+
+    if (pktlen < (int)sizeof(radiotap_hdr_t))
+        return TCPEDIT_ERROR;
     
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
@@ -203,7 +205,6 @@ int
 dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen > 0);
     assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_IEEE802_11_RADIO plugin does not support packet encoding");
@@ -222,7 +223,9 @@ dlt_radiotap_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     u_char *data;
     assert(ctx);
     assert(packet);
-    assert(pktlen > (int)sizeof(radiotap_hdr_t));
+
+    if (pktlen < (int)sizeof(radiotap_hdr_t))
+        return TCPEDIT_ERROR;
 
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
@@ -281,9 +284,12 @@ dlt_radiotap_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char 
     
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
+
+    if (pktlen < radiolen)
+        return NULL;
+
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
     return dlt_ieee80211_get_mac(ctx, mac, data, pktlen - radiolen);
 }
@@ -299,9 +305,13 @@ dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     uint16_t radiolen;
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 4)
+        return 0;
 
     memcpy(&radiolen, &packet[2], 2);
+    /* little endian to host */
+    radiolen = ntohs(SWAPSHORT(radiolen));
     return (int)radiolen;
 }
 

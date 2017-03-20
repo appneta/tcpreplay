@@ -177,7 +177,9 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     linux_sll_header_t *linux_sll;
     assert(ctx);
     assert(packet);
-    assert(pktlen > (int)sizeof(linux_sll_header_t));
+
+    if (pktlen < (int)sizeof(linux_sll_header_t))
+        return TCPEDIT_ERROR;
 
     linux_sll = (linux_sll_header_t *)packet;
     ctx->proto = linux_sll->proto;
@@ -203,7 +205,6 @@ int
 dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen > 0);
     assert(packet);
 
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_LINUX_SLL plugin does not support packet encoding");
@@ -219,7 +220,9 @@ dlt_linuxsll_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     linux_sll_header_t *linux_sll;
     assert(ctx);
     assert(packet);
-    assert(pktlen >= (int)sizeof(linux_sll_header_t));
+
+    if (pktlen < (int)sizeof(linux_sll_header_t))
+        return TCPEDIT_ERROR;
 
     linux_sll = (linux_sll_header_t *)packet;
 
@@ -238,7 +241,8 @@ dlt_linuxsll_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 
     l2len = dlt_linuxsll_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -259,7 +263,8 @@ dlt_linuxsll_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u
 
     l2len = dlt_linuxsll_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -272,7 +277,9 @@ dlt_linuxsll_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < (int)sizeof(linux_sll_header_t))
+        return 0;
 
     return sizeof(linux_sll_header_t);
 }
@@ -286,7 +293,9 @@ dlt_linuxsll_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char 
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 14)
+        return NULL;
 
     /* FIXME: return a ptr to the source or dest mac address. */
     switch(mac) {

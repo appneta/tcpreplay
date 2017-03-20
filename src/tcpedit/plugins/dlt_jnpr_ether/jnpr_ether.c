@@ -210,7 +210,10 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    assert(pktlen > JUNIPER_ETHER_HEADER_LEN); /* MAGIC + Static fields + Extension Length */
+
+    /* MAGIC + Static fields + Extension Length */
+    if (pktlen < JUNIPER_ETHER_HEADER_LEN)
+        return TCPEDIT_ERROR;
 
     config = (jnpr_ether_config_t *)ctx->encoder->config;
 
@@ -268,8 +271,11 @@ int
 dlt_jnpr_ether_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen > JUNIPER_ETHER_HEADER_LEN); /* MAGIC + Static fields + Extension Length */
     assert(packet);
+
+    /* MAGIC + Static fields + Extension Length */
+    if (pktlen < JUNIPER_ETHER_HEADER_LEN)
+        return TCPEDIT_ERROR;
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_JUNIPER_ETHER plugin does not support packet encoding");
     return TCPEDIT_ERROR;
@@ -288,7 +294,10 @@ dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     assert(ctx);
     assert(packet);
-    assert(pktlen > JUNIPER_ETHER_HEADER_LEN); /* MAGIC + Static fields + Extension Length */
+
+    /* MAGIC + Static fields + Extension Length */
+    if (pktlen < JUNIPER_ETHER_HEADER_LEN)
+        return TCPEDIT_ERROR;
 
     config = (jnpr_ether_config_t *)ctx->encoder->config;
 
@@ -331,7 +340,8 @@ dlt_jnpr_ether_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 
     l2len = dlt_jnpr_ether_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -352,7 +362,8 @@ dlt_jnpr_ether_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen,
     
     l2len = dlt_jnpr_ether_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -370,7 +381,9 @@ dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_cha
 
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < JUNIPER_ETHER_EXTLEN_OFFSET + 2)
+        return NULL;
 
     config = (jnpr_ether_config_t *)ctx->encoder->config;
 
@@ -395,7 +408,9 @@ dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < JUNIPER_ETHER_EXTLEN_OFFSET + 2)
+        return 0;
     
     config = (jnpr_ether_config_t *)ctx->encoder->config;
 

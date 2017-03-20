@@ -147,7 +147,7 @@ typedef struct {
     tcpr_cidrmap_t *dstipmap;
     
     /* pseudo-randomize IP addresses using a seed */
-    int seed;
+    uint32_t seed;
     
     /* rewrite tcp/udp ports */
     tcpedit_portmap_t *portmap;
@@ -155,6 +155,8 @@ typedef struct {
     int mtu;                /* Deal with different MTU's */
     bool mtu_truncate;       /* Should we truncate frames > MTU? */
     int maxpacket;          /* L2 header + MTU */
+
+    uint32_t fuzz_seed;
 } tcpedit_t;
 
 

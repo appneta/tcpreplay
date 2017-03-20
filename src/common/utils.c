@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #ifdef DEBUG
 extern int debug;
@@ -313,3 +314,34 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
     return rem;
 }
 #endif /* SIZEOF_CHARP  == 4 */
+
+/**
+ * Implementation of rand_r that is consistent across all platforms
+ * This algorithm is mentioned in the ISO C standard, here extended
+ * for 32 bits.
+ * @param: seed
+ * @return: random number
+ */
+int tcpr_random(uint32_t *seed)
+{
+  unsigned int next = *seed;
+  int result;
+
+  next *= 1103515245;
+  next += 12345;
+  result = (unsigned int) (next / 65536) % 2048;
+
+  next *= 1103515245;
+  next += 12345;
+  result <<= 10;
+  result ^= (unsigned int) (next / 65536) % 1024;
+
+  next *= 1103515245;
+  next += 12345;
+  result <<= 10;
+  result ^= (unsigned int) (next / 65536) % 1024;
+
+  *seed = next;
+
+  return result;
+}

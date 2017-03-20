@@ -73,6 +73,9 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     ssize_t read_size = 0;
     COUNTER cache_size = 0;
 
+    assert(cachedata);
+    assert(comment);
+
     /* open the file or abort */
     if ((cachefd = open(cachefile, O_RDONLY)) == -1)
         errx(-1, "unable to open %s:%s", cachefile, strerror(errno));
@@ -99,11 +102,12 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     dbgx(1, "Comment length: %d", header.comment_len);
     
-    if ((read_size = read(cachefd, *comment, header.comment_len)) 
-            != (ssize_t)header.comment_len)
-        errx(-1, "Unable to read %d bytes of data for the comment (%zd) %s",
-            header.comment_len, read_size, 
-            (read_size == -1) ? strerror(read_size) : "");
+    if ((read_size = read(cachefd, *comment, header.comment_len)) < 0)
+        errx(-1, "Error reading comment: %s", strerror(errno));
+
+    if (read_size != (ssize_t)header.comment_len)
+        errx(-1, "Invalid comment read: expected=%u actual=%zd bytes",
+            header.comment_len, read_size);
 
     dbgx(1, "Cache file comment: %s", *comment);
 

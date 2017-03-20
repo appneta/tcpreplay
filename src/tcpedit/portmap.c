@@ -220,6 +220,7 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
             portmap_ptr = portmap_ptr->next;
     }
 
+    safe_free(ourstrcpy);
     return 1;
 }
 
