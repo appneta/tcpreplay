@@ -1,4 +1,4 @@
-02/26/2017 Version 4.2.0beta2
+02/26/2017 Version 4.2.0
     - MAC rewriting capabilities (#313)
     - Fix several issues identified by Coverity (#305)
     - Packet destortion --fuzz-seed option by Gabriel Ganne (#302)
