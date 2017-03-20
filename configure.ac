@@ -293,10 +293,7 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
 CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h 
-    signal.h string.h strings.h sys/types.h stdint.h sys/select.h 
-    netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h 
-    inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
 AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements
