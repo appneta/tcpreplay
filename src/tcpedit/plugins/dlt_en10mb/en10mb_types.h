@@ -59,7 +59,7 @@ typedef struct {
 } en10mb_sub_conf_t;
 
 typedef struct {
-    int set;
+    uint32_t set;
     int keep;
     tcpr_macaddr_t mask;
 } en10mb_random_conf_t;

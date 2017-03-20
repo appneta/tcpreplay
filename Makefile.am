@@ -1,6 +1,4 @@
 # $Id$
-AUTOMAKE_OPTIONS = foreign
-
 ACLOCAL_AMFLAGS = -I m4 -I libopts/m4
 
 if NEED_LIBOPTS

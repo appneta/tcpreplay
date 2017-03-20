@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #ifdef DEBUG
 extern int debug;
@@ -144,30 +145,33 @@ packet_stats(const tcpreplay_stats_t *stats)
     timersub(&stats->end_time, &stats->start_time, &diff);
     diff_us = TIMEVAL_TO_MICROSEC(&diff);
 
-    if (diff_us) {
-        if (stats->bytes_sent){
-            COUNTER bytes_sec_X10;
-            COUNTER mb_sec_X100;
+    if (diff_us && stats->pkts_sent && stats->bytes_sent) {
+        COUNTER bytes_sec_X10;
+        COUNTER pkts_sec_X100;
+        COUNTER mb_sec_X1000;
+        COUNTER mb_sec_X100;
 
-            bytes_sec_X10 = ((stats->bytes_sent  * 10 * 1000) / diff_us) * 1000;
-            bytes_sec = bytes_sec_X10 / 10;
-            bytes_sec_10ths = bytes_sec_X10 % 10;
-
-            mb_sec_X100 = (bytes_sec * 8) / (10 * 1000);
-            mb_sec = mb_sec_X100 / 100;
-            mb_sec_100ths = mb_sec_X100 % 100;
-            mb_sec_1000ths = (bytes_sec * 8) / 1000;
-        }
-        if (stats->pkts_sent) {
-            COUNTER pkts_sec_X100;
-
+        if (stats->bytes_sent > 1000 * 1000 * 1000 && diff_us > 1000 * 1000) {
+            bytes_sec_X10 = (stats->bytes_sent * 10 * 1000) / (diff_us / 1000);
+            pkts_sec_X100 = (stats->pkts_sent * 100 * 1000) / (diff_us / 1000);
+         } else {
+            bytes_sec_X10 = (stats->bytes_sent * 10 * 1000 * 1000) / diff_us;
             pkts_sec_X100 = (stats->pkts_sent * 100 * 1000 * 1000) / diff_us;
-            pkts_sec = pkts_sec_X100 / 100;
-            pkts_sec_100ths = pkts_sec_X100 % 100;
-        }
+         }
+
+        bytes_sec = bytes_sec_X10 / 10;
+        bytes_sec_10ths = bytes_sec_X10 % 10;
+
+        mb_sec_X1000 = (bytes_sec * 8) / 1000;
+        mb_sec_X100 = mb_sec_X1000 / 10;
+        mb_sec = mb_sec_X1000 / 1000;
+        mb_sec_100ths = mb_sec_X100 % 100;
+
+        pkts_sec = pkts_sec_X100 / 100;
+        pkts_sec_100ths = pkts_sec_X100 % 100;
     }
 
-    if (diff_us >= 1000000)
+    if (diff_us >= 1000 * 1000)
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds\n",
                 stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_usec / (10 * 1000)));
     else
@@ -184,7 +188,7 @@ packet_stats(const tcpreplay_stats_t *stats)
     fflush(NULL);
     
     if (stats->failed)
-        printf(COUNTER_SPEC " write attempts failed from full buffers and were repeated\n",
+        printf("Failed write attempts: " COUNTER_SPEC "\n",
                 stats->failed);
 }
 
@@ -310,3 +314,34 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
     return rem;
 }
 #endif /* SIZEOF_CHARP  == 4 */
+
+/**
+ * Implementation of rand_r that is consistent across all platforms
+ * This algorithm is mentioned in the ISO C standard, here extended
+ * for 32 bits.
+ * @param: seed
+ * @return: random number
+ */
+int tcpr_random(uint32_t *seed)
+{
+  unsigned int next = *seed;
+  int result;
+
+  next *= 1103515245;
+  next += 12345;
+  result = (unsigned int) (next / 65536) % 2048;
+
+  next *= 1103515245;
+  next += 12345;
+  result <<= 10;
+  result ^= (unsigned int) (next / 65536) % 1024;
+
+  next *= 1103515245;
+  next += 12345;
+  result <<= 10;
+  result ^= (unsigned int) (next / 65536) % 1024;
+
+  *seed = next;
+
+  return result;
+}

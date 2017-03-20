@@ -158,6 +158,7 @@ typedef struct tcpreplay_opt_s {
     int flow_expiry;
 
     int unique_ip;
+    float unique_loops;
 } tcpreplay_opt_t;
 
 
@@ -177,6 +178,8 @@ typedef struct tcpreplay_s {
     int intf1dlt;
     int intf2dlt;
     COUNTER iteration;
+    COUNTER unique_iteration;
+    COUNTER last_unique_iteration;
     sendpacket_type_t sp_type;
     char errstr[TCPREPLAY_ERRSTR_LEN];
     char warnstr[TCPREPLAY_ERRSTR_LEN];
@@ -233,7 +236,8 @@ int tcpreplay_set_speed_mode(tcpreplay_t *, tcpreplay_speed_mode);
 int tcpreplay_set_speed_speed(tcpreplay_t *, COUNTER);
 int tcpreplay_set_speed_pps_multi(tcpreplay_t *, int);
 int tcpreplay_set_loop(tcpreplay_t *, u_int32_t);
-int tcpreplay_set_unique_ip(tcpreplay_t *, int);
+int tcpreplay_set_unique_ip(tcpreplay_t *, bool);
+int tcpreplay_set_unique_ip_loops(tcpreplay_t *, int);
 int tcpreplay_set_quick_tx(tcpreplay_t *, bool);
 int tcpreplay_set_netmap(tcpreplay_t *, bool);
 int tcpreplay_set_use_pkthdr_len(tcpreplay_t *, bool);

@@ -1,15 +1,17 @@
-02/26/2017 Version 4.2.0beta2
+02/26/2017 Version 4.2.0
     - MAC rewriting capabilities (#313)
     - Fix several issues identified by Coverity (#305)
-    - Netmap startup delay increase (#209)
+    - Packet destortion --fuzz-seed option by Gabriel Ganne (#302)
+    - Add --unique-ip-loops option to modify IPs every few loops (#296)
+    - Netmap startup delay increase (#290)
     - tcpcapinfo buffer overflow vulnerablily (#278)
     - Update git-clone instructions by Kyle McDonald (#277) 
     - Allow fractions for --pps option (#270)
     - Print per-loop stats with --stats=0 (#269)
     - Add protection against packet drift by Guillaume Scott (#268)
     - Include Travis-CI build support by Ilya Shipitsin (#264) (#285)
-    - Netmap shutdown delay implemention (#255)
     - First and last packet times in --stats output (#239)
+    - Switch to wire speed after 30 minutes at 6 Gbps (#210)
     - tcprewrite fix checksum properly for fragmented packets (#190)
 
 11/19/2016 Version 4.1.2
@@ -27,7 +29,6 @@
     - Option --duration performance optimizations (#223)
     - Correct company name in license (#217)
     - Compile and mult-arch cross-compile on ARM (#211)
-    - Switch to wire speed after 30 minutes at 6 Gbps (#210)
     - Tap device support for Linux and FreeBSD from Murat Demirten (#207)
     - Handle loopback for linux cooked capture files from corentin-p1(Linux SLL) (#204)
     - Master doesn't compile on OS X 10.11 (#203)
