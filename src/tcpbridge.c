@@ -252,4 +252,6 @@ post_args(_U_ int argc, _U_ char *argv[])
 
     /* poll should be -1 to wait indefinitely */
     options.poll_timeout = -1;
+
+    safe_free(intlist);
 }

@@ -20,6 +20,7 @@ docs/web/
 *.7z
 *.dmg
 *.gz
+*.xz
 *.iso
 *.jar
 *.rar

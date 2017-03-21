@@ -41,6 +41,7 @@
 #include "tcprewrite.h"
 #include "tcprewrite_opts.h"
 #include "tcpedit/tcpedit.h"
+#include "tcpedit/fuzzing.h"
 
 #ifdef DEBUG
 int debug;
@@ -96,6 +97,9 @@ main(int argc, char *argv[])
                 tcpedit_geterr(tcpedit));
     }
 
+    /* fuzzing init */
+    fuzzing_init(tcpedit->fuzz_seed);
+
    /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
     dbgx(1, "Rewriting DLT to %s",
@@ -134,6 +138,12 @@ main(int argc, char *argv[])
 
 #ifdef ENABLE_VERBOSE
     tcpdump_close(&tcpdump);
+#endif
+
+#ifdef ENABLE_FRAGROUTE
+    if (options.frag_ctx) {
+        fragroute_close(options.frag_ctx);
+    }
 #endif
 
 #ifdef ENABLE_DMALLOC
@@ -229,7 +239,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     COUNTER packetnum = 0;
     int rcode;
 #ifdef ENABLE_FRAGROUTE
-    int frag_len, i, proto;
+    int frag_len, proto;
 #endif
 
     pkthdr_ptr = &pkthdr;
@@ -297,14 +307,15 @@ WRITE_PACKET:
 
             /* packet is IPv4/IPv6 AND needs to be fragmented */
             if ((proto ==  ETHERTYPE_IP || proto == ETHERTYPE_IP6) &&
-                ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
-                 (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
-                 (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C))) {
-
+                    ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
+                    (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
+                    (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C))) {
+#ifdef DEBUG
+                int i = 0;
+#endif
                 if (fragroute_process(options.frag_ctx, *pktdata, pkthdr_ptr->caplen) < 0)
                     errx(-1, "Error processing packet via fragroute: %s", options.frag_ctx->errbuf);
 
-                i = 0;
                 while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {
                     /* frags get the same timestamp as the original packet */
                     dbgx(1, "processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);

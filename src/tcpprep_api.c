@@ -434,6 +434,7 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
         tempstr = strdup(ctx->options->comment);
         strlcpy(ctx->options->comment, myargs, bufsize);
         strlcat(ctx->options->comment, tempstr, bufsize);
+        safe_free(tempstr);
     } else {
         bufsize = strlen(myargs) + 1;
         ctx->options->comment = (char *)safe_malloc(bufsize);

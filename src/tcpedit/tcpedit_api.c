@@ -215,7 +215,8 @@ tcpedit_set_seed(tcpedit_t *tcpedit)
     assert(tcpedit);
 
     tcpedit->rewrite_ip = true;
-    tcpedit->seed = random() + random() + random() + random() + random();
+    tcpedit->seed = 1;
+    tcpedit->seed = tcpr_random(&tcpedit->seed);
 
     return TCPEDIT_OK;
 }

@@ -200,7 +200,6 @@ tcpedit_dlt_l3data_copy(tcpeditdlt_t *ctx, u_char *packet, int pktlen, int l2len
     u_char *ptr;
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     if (pktlen <= l2len)
         return NULL;

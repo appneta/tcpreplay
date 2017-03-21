@@ -83,14 +83,14 @@ scale_n_add (time_t base, time_t val, int scale)
       return BAD_TIME;
     }
 
-  if (val > MAX_DURATION / scale)
+  if (val >= MAX_DURATION / scale)
     {
       errno = ERANGE;
       return BAD_TIME;
     }
 
   val *= scale;
-  if (base > MAX_DURATION - val)
+  if ((base + val) >= MAX_DURATION)
     {
       errno = ERANGE;
       return BAD_TIME;

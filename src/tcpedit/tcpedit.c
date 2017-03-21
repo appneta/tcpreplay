@@ -36,6 +36,7 @@
 #include "incremental_checksum.h"
 #include "edit_packet.h"
 #include "parse_args.h"
+#include "fuzzing.h"
 
 
 #include "lib/sll.h"
@@ -220,6 +221,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
+    if (tcpedit->fuzz_seed != 0) {
+        retval = fuzzing(tcpedit, *pkthdr, pktdata);
+        if (retval < 0) {
+            return TCPEDIT_ERROR;
+        }
+        needtorecalc += retval;
+    }
+
     /* (Un)truncate or MTU truncate packet? */
     if (tcpedit->fixlen || tcpedit->mtu_truncate) {
         if ((retval = untrunc_packet(tcpedit, *pkthdr, pktdata, ip_hdr, ip6_hdr)) < 0)
@@ -330,7 +339,7 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     tcpedit->runtime.dlt1 = dlt;
     tcpedit->runtime.dlt2 = dlt;
     
-    dbgx(1, "Input file (1) datalink type is %s\n",
+    dbgx(1, "Input file (1) datalink type is %s",
             pcap_datalink_val_to_name(dlt));
 
 #ifdef FORCE_ALIGN
@@ -494,7 +503,7 @@ tcpedit_close(tcpedit_t *tcpedit)
 
     assert(tcpedit);
     dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
-            " packets.\n", tcpedit->runtime.total_bytes, 
+            " packets.", tcpedit->runtime.total_bytes,
             tcpedit->runtime.pkts_edited);
 
     /* free buffer if required */

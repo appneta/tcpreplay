@@ -401,10 +401,17 @@ flag = {
     flags-cant  = oneatatime;
     flags-cant  = topspeed;
     value       = p;
-    arg-type    = number;
+    arg-type    = string;
     max         = 1;
     descrip     = "Replay packets at a given packets/sec";
-    doc         = "";
+    doc         = <<- EOText
+Specify a value to regulate the packet replay to a specific packet-per-second rate.
+Examples:
+@example
+    200 will replay traffic at 200 packets per second
+    0.25 will replay traffic at 15 packets per minute
+@end example
+EOText;
 };
 
 flag = {
@@ -464,15 +471,29 @@ EOText;
 
 flag = {
     name        = unique-ip;
+    flags-must   = loop;
 #ifdef TCPREPLAY_EDIT
-	flags-cant	= seed;
-#endif    
+    flags-cant   = seed;
+    flags-cant   = fuzz-seed;
+#endif
     descrip     = "Modify IP addresses each loop iteration to generate unique flows";
     doc         = <<- EOText
 Ensure IPv4 and IPv6 packets will be unique for each @var{--loop} iteration. 
 This is done in a way that will not alter packet CRC, and therefore will genrally
 not affect performance. This option will significantly increase the flows/sec over
 generated over multiple loop iterations.
+EOText;
+};
+
+flag = {
+    name        = unique-ip-loops;
+    flags-must   = unique-ip;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Number of times to loop before assigning new unique ip";
+    doc         = <<- EOText
+Number of @var{--loop} iterations before a new unique IP is assigned. Default
+is 1. Assumes both @var{--loop} and @var{--unique-ip}.
 EOText;
 };
 
@@ -498,13 +519,12 @@ EOText;
 flag = {
     ifdef       = HAVE_NETMAP;
     name        = nm-delay;
-    flags-must  = netmap;
     arg-type    = number;
-    arg-default = 4;
+    arg-default = 10;
     descrip     = "Netmap startup delay";
     doc         = <<- EOText
 Number of seconds to delay after netmap is loaded. Required to ensure interfaces
-are fully up before netmap transmit. Requires netmap option. Default is 4 seconds.
+are fully up before netmap transmit. Requires netmap option. Default is 10 seconds.
 EOText;
 };
 
@@ -589,10 +609,10 @@ EOText;
 flag = {
     name        = stats;
     arg-type    = number;
-    arg-range   = "1->";
-    descrip     = "Print statistics every X seconds";
+    arg-range   = "0->";
+    descrip     = "Print statistics every X seconds, or every loop if '0'";
     doc         = <<- EOText
-Note that this is very much a "best effort" and long delays between
+Note that timed delays are a "best effort" and long delays between
 sending packets may cause equally long delays between printing statistics.
 EOText;
 };

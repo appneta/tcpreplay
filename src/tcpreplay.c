@@ -37,6 +37,7 @@
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
 #include "tcpedit/tcpedit.h"
+#include "tcpedit/fuzzing.h"
 tcpedit_t *tcpedit;
 #else
 #include "tcpreplay_opts.h"
@@ -52,7 +53,7 @@ int debug = 0;
 
 tcpreplay_t *ctx;
 
-void flow_stats(const tcpreplay_t *ctx, bool unique_ip);
+static void flow_stats(const tcpreplay_t *ctx);
 
 int
 main(int argc, char *argv[])
@@ -126,6 +127,11 @@ main(int argc, char *argv[])
         }
     }
 
+#ifdef TCPREPLAY_EDIT
+    /* fuzzing init */
+    fuzzing_init(tcpedit->fuzz_seed);
+#endif
+
     /* init the signal handlers */
     init_signal_handlers();
 
@@ -142,11 +148,7 @@ main(int argc, char *argv[])
     if (ctx->stats.bytes_sent > 0) {
         packet_stats(&ctx->stats);
         if (ctx->options->flow_stats)
-            flow_stats(ctx, ctx->options->unique_ip
-#ifdef TCPREPLAY_EDIT
-                    || tcpedit->seed
-#endif
-                    );
+            flow_stats(ctx);
         sendpacket_getstat(ctx->intf1, buf, sizeof(buf));
         printf("%s", buf);
         if (ctx->intf2 != NULL) {
@@ -161,12 +163,12 @@ main(int argc, char *argv[])
 /**
  * Print various flow statistics
  */
-void
-flow_stats(const tcpreplay_t *ctx, bool unique_ip)
+static void flow_stats(const tcpreplay_t *ctx)
 {
     struct timeval diff;
     COUNTER diff_us;
     const tcpreplay_stats_t *stats = &ctx->stats;
+    const tcpreplay_opt_t *options = ctx->options;
     COUNTER flows_total = stats->flows;
     COUNTER flows_unique = stats->flows_unique;
     COUNTER flows_expired = stats->flows_expired;
@@ -188,10 +190,18 @@ flow_stats(const tcpreplay_t *ctx, bool unique_ip)
      * to the next then multiply by the number of
      * successful iterations.
      */
-    if (unique_ip && ctx->options->preload_pcap) {
-        flows_total *= ctx->iteration;
-        flows_unique *= ctx->iteration;
-        flows_expired *= ctx->iteration;
+    if (options->preload_pcap) {
+        if (ctx->options->unique_ip) {
+            flows_total *= ctx->last_unique_iteration;
+            flows_unique *= ctx->last_unique_iteration;
+            flows_expired *= ctx->last_unique_iteration;
+#ifdef TCPREPLAY_EDIT
+        } else if (tcpedit->seed) {
+            flows_total *= ctx->iteration;
+            flows_unique *= ctx->iteration;
+            flows_expired *= ctx->iteration;
+#endif
+        }
     }
 
     flow_packets  = stats->flow_packets * ctx->iteration;

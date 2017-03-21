@@ -38,6 +38,49 @@ Example:
 EOText;
 };
 
+flag = {
+  name     = enet-subsmac;
+  arg-type = string;
+  max      = 9999;
+  stack-arg;
+  descrip  = "Substitute MAC addresses";
+  doc      = <<- EOText
+Allows you to rewrite ethernet MAC addresses of packets. It takes
+comma delimited pair or MACs address and rewrites all occurences of
+the first MAC with the value of the second MAC.
+Example:
+@example
+--enet-subsmac=00:12:13:14:15:16,00:22:33:44:55:66
+@end example
+EOText;
+};
+
+flag = {
+  name        = enet-mac-seed;
+  arg-type    = number;
+  max         = 1;
+  flags-cant  = enet-smac;
+  flags-cant  = enet-dmac;
+  flags-cant  = enet-subsmac;
+  descrip     = "Randomize MAC addresses";
+  doc         = <<- EOText
+Allows you to randomize ethernet MAC addresses of packets, mostly
+like what @var{--seed} option does for IPv4/IPv6 addresses.
+EOText;
+};
+
+flag = {
+  name         = enet-mac-seed-keep-bytes;
+  arg-type     = number;
+  arg-range    = "1->6";
+  flags-must   = enet-mac-seed;
+  max       = 1;
+  descrip   = "Randomize MAC addresses";
+  doc       = <<- EOText
+Keep some bytes untouched when usinging @var{--enet-mac-seed} option.
+EOText;
+};
+
 /* rewrite 802.1q vlan tags */
 flag = {
     name        = enet-vlan;

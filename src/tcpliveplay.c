@@ -90,6 +90,7 @@
 #include "tcpliveplay.h"
 #include "tcpliveplay_opts.h"
 #include "common/sendpacket.h"
+#include "common/utils.h"
 #include "send_packets.h"
 
 volatile int didsig;
@@ -106,6 +107,7 @@ unsigned int buf_write_index = 0;
 unsigned int sched_index = 0; 
 unsigned int initial_rseq=0; 
 sendpacket_t *sp;
+unsigned int seed = 0;
 
 const u_char *packet_keeper_rprev = NULL;
 ether_hdr *etherhdr_rprev = NULL; /*g for Global header pointers used in pcap_loop callback*/
@@ -142,9 +144,7 @@ main(int argc, char **argv)
 {
     unsigned int k;
     int num_packets = 0;
-
-    char port_mode[10];    /* does user specify random port generation?*/
-    char random_strg[7] = "random";
+    static const char random_strg[] = "random";
 
     char* iface = argv[1];
     char* new_rmac_ptr; 
@@ -153,7 +153,7 @@ main(int argc, char **argv)
     struct mac_addr new_remotemac;
     input_addr myip;
     struct mac_addr mymac;
-    unsigned int new_src_port = 0; 
+    int new_src_port = 0;
     unsigned int retransmissions = 0; 
     pcap_t *local_handle;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -168,6 +168,9 @@ main(int argc, char **argv)
         exit(0);
     }
 
+    if (strlen(iface) > IFNAMSIZ - 1)
+        errx(-1, "Invalid interface name %s\n", iface);
+
     if (iface_addrs(iface, &myip, &mymac) < 0)  /* Extract MAC of interface replay is being request on */
         errx(-1, "Failed to access interface %s\n", iface);
 
@@ -175,17 +178,15 @@ main(int argc, char **argv)
     if ((sp = sendpacket_open(iface, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE, NULL)) == NULL)
         errx(-1, "Can't open %s: %s", argv[1], ebuf);
 
-    /* random dport vs. specified dport operation*/
-    strcpy(port_mode, argv[5]);
     /*for(int i = 0; i<10; i++) tolower(port_mode[i]);*/
-    if(strcmp(port_mode, random_strg)==0){
+    if(strcmp(argv[5], random_strg)==0)
         new_src_port = random_port();
-    } else
+    else
         new_src_port = atoi(argv[5]);
-    /*else {
-        printf("Port specification error. Please specify 'random' for random source port generation between 49152 and 65535 OR specify a specific source port number.\n");
-         return; 
-    }*/
+
+    if (new_src_port < 0 || new_src_port > 65535)
+        errx(new_src_port, "Cannot use source port %d", new_src_port);
+
     printf("new source port:: %d\n", new_src_port);
 
     /* Establish a handler for SIGALRM signals. */
@@ -390,14 +391,25 @@ catch_alarm (int sig){
     signal (sig, catch_alarm);
 }
 
+static int tcplp_rand(void)
+{
+    struct timeval tv;
+
+    if (!seed) {
+        gettimeofday(&tv, NULL);
+        seed = (unsigned int)tv.tv_sec ^ (unsigned int)tv.tv_usec;
+    }
+
+    return tcpr_random(&seed);
+}
 /**
  * This function returns a random number between 49152 and 65535
  */
 int
-random_port() {
-    srand(time(NULL));
-    int port_num = 49152 + (rand() % 16383);
-    return port_num;
+random_port()
+{
+    int random = tcplp_rand();
+    return (49152 + (random % 16383));
 }
 
 
@@ -409,9 +421,7 @@ random_port() {
 int
 relative_sched(struct tcp_sched* sched, u_int32_t first_rseq, int num_packets){
     int i;
-    u_int32_t lseq_adjust; 
-    srand(time(NULL));
-    lseq_adjust = rand();  /*Local SEQ number for SYN packet*/
+    u_int32_t lseq_adjust = tcplp_rand();
     printf("Random Local SEQ: %u\n",lseq_adjust);
 
 
@@ -875,12 +885,15 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
     int s;
     struct ifreq buffer;
     s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+        return -1;
+
     memset(&buffer, 0x00, sizeof(buffer));
-    strcpy(buffer.ifr_name, iface);
+    strncpy(buffer.ifr_name, iface, sizeof(buffer.ifr_name)-1);
     int res;
 
     if ((res = ioctl(s, SIOCGIFADDR, &buffer)) < 0)
-        return res;
+        goto done;
 
     struct in_addr localip = ((struct sockaddr_in *)&buffer.ifr_addr)->sin_addr;
 #if defined( WORDS_BIGENDIAN )
@@ -895,8 +908,8 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
     ip->byte1 = (localip.s_addr)&255;
 #endif
 
-    if ((res =ioctl(s, SIOCGIFHWADDR, &buffer)) < 0)
-        return res;
+    if ((res = ioctl(s, SIOCGIFHWADDR, &buffer)) < 0)
+        goto done;
 
     mac->byte1 = buffer.ifr_hwaddr.sa_data[0];
     mac->byte2 = buffer.ifr_hwaddr.sa_data[1];
@@ -905,6 +918,7 @@ int iface_addrs(char* iface, input_addr* ip, struct mac_addr* mac)
     mac->byte5 = buffer.ifr_hwaddr.sa_data[4];
     mac->byte6 = buffer.ifr_hwaddr.sa_data[5];
 
+done:
     close(s);
 
     return res;

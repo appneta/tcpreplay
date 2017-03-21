@@ -88,6 +88,7 @@ bool read_pcap_file(char* filename, void** buffer, long *length) {
     /* memory error */
     if(*buffer == NULL) {
         printf("Could not allocate %ld bytes of memory!\n", *length);
+        fclose(infile);
         return false;
     }
 

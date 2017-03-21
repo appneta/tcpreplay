@@ -114,16 +114,6 @@ dlt_pppserial_init(tcpeditdlt_t *ctx)
         tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
-    
-    /* allocate memory for our deocde extra data */
-    if (sizeof(pppserial_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(pppserial_extra_t));
-
-    /* allocate memory for our config data */
-    if (sizeof(pppserial_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(pppserial_config_t));
-
-    /* FIXME: set default config values here */
 
     return TCPEDIT_OK; /* success */
 }
@@ -215,7 +205,9 @@ dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     assert(ctx);
     assert(packet);
-    assert(pktlen > 4);
+
+    if (pktlen < 4)
+        return TCPEDIT_ERROR;
 
     /* 
      * PPP has three fields: address, control and protocol
@@ -252,9 +244,11 @@ int
 dlt_pppserial_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(pktlen > 4);
     assert(packet);
     
+    if (pktlen < 4)
+        return TCPEDIT_ERROR;
+
     /* FIXME: make this function work */
 
     
@@ -273,7 +267,9 @@ dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     assert(ctx);
     assert(packet);
-    assert(pktlen > 4);
+
+    if (pktlen < (int)sizeof(*ppp))
+        return TCPEDIT_ERROR;
     
     ppp = (struct tcpr_pppserial_hdr *)packet;
     switch (ntohs(ppp->protocol)) {
@@ -304,7 +300,8 @@ dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_pppserial_l2len(ctx, packet, pktlen);
 
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -326,7 +323,8 @@ dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_pppserial_l2len(ctx, packet, pktlen);
     
-    assert(pktlen >= l2len);
+    if (pktlen < l2len)
+        return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
 }
@@ -340,7 +338,6 @@ dlt_pppserial_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t UNUSED(mac), cons
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
 
     return NULL;
 }
@@ -354,7 +351,9 @@ dlt_pppserial_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     assert(ctx);
     assert(packet);
-    assert(pktlen);
+
+    if (pktlen < 4)
+        return 0;
 
     return 4;
 }

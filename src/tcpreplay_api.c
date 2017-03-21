@@ -81,6 +81,7 @@ tcpreplay_init()
 {
     tcpreplay_t *ctx;
 
+    /* allocations will reset everything to zeros */
     ctx = safe_malloc(sizeof(tcpreplay_t));
     ctx->options = safe_malloc(sizeof(tcpreplay_opt_t));
 
@@ -89,7 +90,6 @@ tcpreplay_init()
 
     /* Default mode is to replay pcap once in real-time */
     ctx->options->speed.mode = speed_multiplier;
-    ctx->options->speed.speed = 0;
     ctx->options->speed.multiplier = 1.0;
 
     /* Set the default timing method */
@@ -98,11 +98,14 @@ tcpreplay_init()
     /* set the default MTU size */
     ctx->options->mtu = DEFAULT_MTU;
 
+    /* disable periodic statistics */
+    ctx->options->stats = -1;
+
     /* disable limit send */
     ctx->options->limit_send = -1;
 
-    /* disable limit time */
-    ctx->options->limit_time = 0;
+    /* default unique-loops */
+    ctx->options->unique_loops = 1.0;
 
 #ifdef ENABLE_VERBOSE
     /* clear out tcpdump struct */
@@ -123,7 +126,6 @@ tcpreplay_init()
     ctx->flow_hash_table = flow_hash_table_init(DEFAULT_FLOW_HASH_BUCKET_SIZE);
 
     ctx->sp_type = SP_TYPE_NONE;
-    ctx->iteration = 0;
     ctx->intf1dlt = -1;
     ctx->intf2dlt = -1;
     ctx->abort = false;
@@ -175,8 +177,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->speed.mode = speed_topspeed;
         options->speed.speed = 0;
     } else if (HAVE_OPT(PPS)) {
+        n = atof(OPT_ARG(PPS));
+        options->speed.speed = (COUNTER)(n * 60.0 * 60.0); /* convert to packets per hour */
         options->speed.mode = speed_packetrate;
-        options->speed.speed = (float)OPT_VALUE_PPS;
         options->speed.pps_multi = OPT_VALUE_PPS_MULTI;
     } else if (HAVE_OPT(ONEATATIME)) {
         options->speed.mode = speed_oneatatime;
@@ -274,6 +277,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(UNIQUE_IP))
         options->unique_ip = 1;
+
+    if (HAVE_OPT(UNIQUE_IP_LOOPS)) {
+        options->unique_loops = atof(OPT_ARG(UNIQUE_IP_LOOPS));
+        if (options->unique_loops < 1.0) {
+            tcpreplay_seterr(ctx, "%s", "--unique-ip-loops requires loop count >= 1.0");
+            ret = -1;
+            goto out;
+        }
+    }
 
     /* flow statistics */
     if (HAVE_OPT(NO_FLOW_STATS))
@@ -383,6 +395,10 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         goto out;
     }
 
+#if defined HAVE_NETMAP
+    ctx->intf1->netmap_delay = ctx->options->netmap_delay;
+#endif
+
     ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
 
     if (HAVE_OPT(INTF2)) {
@@ -411,6 +427,10 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         if ((ctx->intf2 = sendpacket_open(options->intf2_name, ebuf, TCPR_DIR_S2C, ctx->sp_type, ctx)) == NULL) {
             tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf2_name, ebuf);
         }
+
+#if defined HAVE_NETMAP
+        ctx->intf2->netmap_delay = ctx->options->netmap_delay;
+#endif
 
         ctx->intf2dlt = sendpacket_get_dlt(ctx->intf2);
         if (ctx->intf2dlt != ctx->intf1dlt) {
@@ -622,10 +642,18 @@ tcpreplay_set_loop(tcpreplay_t *ctx, u_int32_t value)
  * Set the unique IP address flag
  */
 int
-tcpreplay_set_unique_ip(tcpreplay_t *ctx, int value)
+tcpreplay_set_unique_ip(tcpreplay_t *ctx, bool value)
 {
     assert(ctx);
     ctx->options->unique_ip = value;
+    return 0;
+}
+
+int
+tcpreplay_set_unique_ip_loops(tcpreplay_t *ctx, int value)
+{
+    assert(ctx);
+    ctx->options->unique_loops = value;
     return 0;
 }
 
@@ -1148,7 +1176,8 @@ out:
 int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
-    int rcode;
+    int rcode, loop, total_loops;
+    char buf[64];
 
     assert(ctx);
 
@@ -1171,21 +1200,54 @@ tcpreplay_replay(tcpreplay_t *ctx)
         return -1;
     }
 
+    if (ctx->options->stats >= 0) {
+        if (format_date_time(&ctx->stats.start_time, buf, sizeof(buf)) > 0)
+            printf("Test start: %s ...\n", buf);
+    }
 
     ctx->running = true;
+    total_loops = ctx->options->loop;
+    loop = 0;
 
     /* main loop, when not looping forever (or until abort) */
     if (ctx->options->loop > 0) {
         while (ctx->options->loop-- && !ctx->abort) {  /* limited loop */
+            ++loop;
+            if (ctx->options->stats == 0) {
+                if (!ctx->unique_iteration || loop == ctx->unique_iteration)
+                    printf("Loop %d of %d...\n", loop, total_loops);
+                else
+                    printf("Loop %d of %d (" COUNTER_SPEC " unique)...\n",
+                            loop, total_loops,
+                            ctx->unique_iteration);
+            }
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
-            if (ctx->options->loop > 0 && !ctx->abort && ctx->options->loopdelay_ms > 0)
-            	usleep(ctx->options->loopdelay_ms * 1000);
+            if (ctx->options->loop > 0) {
+                if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
+                    usleep(ctx->options->loopdelay_ms * 1000);
+                    gettimeofday(&ctx->stats.end_time, NULL);
+                }
+
+                if (ctx->options->stats == 0)
+                    packet_stats(&ctx->stats);
+            }
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */
+            ++loop;
+            if (ctx->options->stats == 0) {
+                if (!ctx->unique_iteration || loop == ctx->unique_iteration)
+                    printf("Loop %d...\n", loop);
+                else
+                    printf("Loop %d (" COUNTER_SPEC " unique)...\n", loop,
+                            ctx->unique_iteration);
+            }
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
+
+            if (ctx->options->stats == 0 && !ctx->abort)
+                packet_stats(&ctx->stats);
         }
     }
 
@@ -1193,14 +1255,18 @@ tcpreplay_replay(tcpreplay_t *ctx)
 
 #ifdef HAVE_QUICK_TX
     /* flush any remaining netmap packets */
-    if (ctx->options->quick_tx)
+    if (ctx->options->quick_tx) {
         quick_tx_wait_for_tx_complete(ctx->intf1->qtx_dev);
+        if (ctx->stats.bytes_sent >= 0)
+            gettimeofday(&ctx->stats.end_time, NULL);
+    }
 #endif
 
-    if (ctx->stats.bytes_sent > 0) {
-           if (gettimeofday(&ctx->stats.end_time, NULL) < 0)
-               errx(-1, "gettimeofday() failed: %s",  strerror(errno));
+    if (ctx->options->stats >= 0) {
+        if (format_date_time(&ctx->stats.end_time, buf, sizeof(buf)) > 0)
+            printf("Test complete: %s\n", buf);
     }
+
     return 0;
 }
 

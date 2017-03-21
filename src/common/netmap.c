@@ -502,8 +502,15 @@ void sendpacket_close_netmap(void *p)
     fprintf(stderr, "Switching network driver for %s to normal mode... ",
             sp->device);
     fflush(NULL);
-      /* flush any remaining packets */
+
+    /* flush any remaining packets */
     ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
+
+    /* wait for traffic to be sent */
+    dbgx(2, "Waiting %d seconds for phy reset...", sp->netmap_delay);
+    sleep(sp->netmap_delay);
+    dbg(2, "Ready!");
+
 
 #ifdef linux
     if (!sp->is_vale) {

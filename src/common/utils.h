@@ -46,6 +46,8 @@ typedef struct {
 
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 void packet_stats(const tcpreplay_stats_t *stats);
+int format_date_time(struct timeval *when, char *buf, size_t len);
+int tcpr_random(uint32_t *seed);
 
 /* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
@@ -56,6 +58,9 @@ void *_our_safe_realloc(void *ptr, size_t len, const char *, const int, const ch
 
 #define safe_strdup(x) _our_safe_strdup(x, __FUNCTION__, __LINE__, __FILE__)
 char *_our_safe_strdup(const char *str, const char *, const int, const char *);
+
+#define safe_strndup(x, n) _our_safe_strndup((x), (n), __FUNCTION__, __LINE__, __FILE__)
+char *_our_safe_strndup(const char *str, size_t n, const char *, const int, const char *);
 
 #define safe_free(x) _our_safe_free(x, __FUNCTION__, __LINE__, __FILE__)
 void _our_safe_free(void *ptr, const char *, const int, const char *);

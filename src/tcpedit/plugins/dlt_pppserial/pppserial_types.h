@@ -28,9 +28,6 @@
 extern "C" {
 #endif
 
-typedef struct { } pppserial_config_t;
-
-typedef struct { } pppserial_extra_t;
 
 #ifdef __cplusplus
 }

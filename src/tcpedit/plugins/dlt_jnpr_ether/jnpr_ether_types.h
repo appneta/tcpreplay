@@ -27,14 +27,6 @@
 extern "C" {
 #endif
 
-/*
- * structure to hold any data parsed from the packet by the decoder.
- */
-typedef struct jnpr_ether_extra_s {
-    ;
-} jnpr_ether_extra_t;
-
-
 /* we have no user config data */
 typedef struct jnpr_ether_config_s {
     /* sub-plugin context for the en10mb plugin */

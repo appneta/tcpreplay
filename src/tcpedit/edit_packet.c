@@ -44,6 +44,8 @@ static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
 static int is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 
+static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
+
 /**
  * this code re-calcs the IP and Layer 4 checksums
  * the IMPORTANT THING is that the Layer 4 header 
@@ -63,7 +65,11 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
     
 
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
-    if (pkthdr->caplen == pkthdr->len && (htons(ip_hdr->ip_off) & IP_OFFMASK) == 0) {
+    if (pkthdr->caplen == pkthdr->len &&
+            (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
+        if (ntohs(ip_hdr->ip_len) < (ip_hdr->ip_hl << 2))
+            return TCPEDIT_WARN;
+
         ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, 
                 ip_hdr->ip_p, ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2));
         if (ret1 < 0)
@@ -82,6 +88,36 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
     return TCPEDIT_OK;
 }
 
+/**
+ * Returns ipv6 header length wth all ipv6 options on success
+ *         -1 on error
+ */
+static int
+ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
+{
+    struct tcpr_ipv6_ext_hdr_base const * nhdr;
+    uint8_t next_header;
+    int offset;
+
+    offset = sizeof(*ip6_hdr);
+    next_header = ip6_hdr->ip_nh;
+
+    while (sizeof(*nhdr) + offset < pkt_len)
+    {
+        if (next_header != TCPR_IPV6_NH_HBH
+                && next_header != TCPR_IPV6_NH_ROUTING
+                && next_header != TCPR_IPV6_NH_FRAGMENT) {
+            return offset;
+        }
+
+        nhdr = (struct tcpr_ipv6_ext_hdr_base const *) (((uint8_t const *)ip6_hdr) + offset);
+        next_header = nhdr->ip_nh;
+        offset += ((nhdr->ip_len + 1) << 3);
+    }
+
+    return -1;
+}
+
 int
 fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr)
 {
@@ -93,6 +129,8 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
 
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len) {
+        if (ip6_hdr->ip_len < ipv6_header_length(ip6_hdr, pkthdr->len))
+            return TCPEDIT_WARN;
         ret = do_checksum(tcpedit, (u_char *) ip6_hdr, ip6_hdr->ip_nh,
             htons(ip6_hdr->ip_len));
         if (ret < 0)
@@ -420,11 +458,12 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
             /* i guess this is necessary if we've got a bogus pcap */
             //ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
             tcpedit_seterr(tcpedit, "%s", "WTF?  Why is your packet larger then the capture len?");
-            return -1;
+            chksum = -1;
+            goto done;
         }
     }
     else if (tcpedit->fixlen == TCPEDIT_FIXLEN_TRUNC) {
-        if (pkthdr->len != pkthdr->caplen)
+        if (ip_hdr && pkthdr->len != pkthdr->caplen)
             ip_hdr->ip_len = htons(pkthdr->caplen - l2len);
         pkthdr->len = pkthdr->caplen;
     }
@@ -440,15 +479,19 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
                 ip6_hdr->ip_len = htons(tcpedit->mtu - sizeof(*ip6_hdr));
             } else {
                  /* for non-IP frames, don't try to fix checksums */  
-                return 0;
+                chksum = 0;
+                goto done;
             }
         }
     }
     else {
         tcpedit_seterr(tcpedit, "Invalid fixlen value: 0x%x", tcpedit->fixlen);
-        return -1;
+        chksum = -1;
+        goto done;
     }
 
+done:
+    *pktdata = packet;
     return chksum;
 }
 
@@ -849,7 +892,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
             remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
             diddst = 1;
         }
