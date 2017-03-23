@@ -26,7 +26,9 @@
 #ifdef __NetBSD__
 #include <net/if_ether.h>
 #else
+#if defined(__UCLIBC__) || defined(__GLIBC__)
 #include <netinet/if_ether.h>
+#endif
 #endif
 
 #ifdef HAVE_QUICK_TX
