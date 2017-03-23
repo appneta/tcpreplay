@@ -463,6 +463,7 @@ static void increment_iteration(tcpreplay_t *ctx)
 {
     tcpreplay_opt_t *options = ctx->options;
 
+    ctx->last_unique_iteration = ctx->unique_iteration;
     ++ctx->iteration;
     if (options->unique_ip) {
         assert(options->unique_loops > 0.0);
@@ -478,6 +479,7 @@ static void increment_iteration(tcpreplay_t *ctx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
+
     struct timeval print_delta, now, first_pkt_ts, pkt_ts_delta;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
@@ -560,9 +562,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
-            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass has unique IP addresses */
-            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration,
+            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration - 1,
                     preload, datalink);
         }
 
@@ -819,9 +820,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
-            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration,
+            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration - 1,
                     options->file_cache[cache_file_idx].cached, datalink);
         }
 
