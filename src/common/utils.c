@@ -166,6 +166,7 @@ packet_stats(const tcpreplay_stats_t *stats)
         mb_sec_X100 = mb_sec_X1000 / 10;
         mb_sec = mb_sec_X1000 / 1000;
         mb_sec_100ths = mb_sec_X100 % 100;
+        mb_sec_1000ths = mb_sec_X1000 % 1000;
 
         pkts_sec = pkts_sec_X100 / 100;
         pkts_sec_100ths = pkts_sec_X100 % 100;
