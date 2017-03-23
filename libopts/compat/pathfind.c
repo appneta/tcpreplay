@@ -150,7 +150,7 @@ make_absolute( char const *string, char const *dot_path )
 static char*
 canonicalize_pathname( char *path )
 {
-    int i, start;
+    int i, start, test_start;
     char stub_char, *result;
 
     /* The result cannot be larger than the input PATH. */
@@ -176,11 +176,11 @@ canonicalize_pathname( char *path )
         while (result[i] == '/')
             i++;
 
-#if !defined (apollo)
-        if ((start + 1) != i)
-#else
-        if ((start + 1) != i && (start != 0 || i != 2))
-#endif /* apollo */
+        test_start = (start + 1) != i;
+#if defined (apollo)
+        test_start = test_start && (start != 0 || i != 2);
+#endif
+        if (test_start)
         {
             strcpy( result + start + 1, result + i );
             i = start + 1;
