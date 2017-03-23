@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -166,6 +166,7 @@ packet_stats(const tcpreplay_stats_t *stats)
         mb_sec_X100 = mb_sec_X1000 / 10;
         mb_sec = mb_sec_X1000 / 1000;
         mb_sec_100ths = mb_sec_X100 % 100;
+        mb_sec_1000ths = mb_sec_X1000 % 1000;
 
         pkts_sec = pkts_sec_X100 / 100;
         pkts_sec_100ths = pkts_sec_X100 % 100;

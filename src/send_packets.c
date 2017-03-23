@@ -3,7 +3,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -463,6 +463,7 @@ static void increment_iteration(tcpreplay_t *ctx)
 {
     tcpreplay_opt_t *options = ctx->options;
 
+    ctx->last_unique_iteration = ctx->unique_iteration;
     ++ctx->iteration;
     if (options->unique_ip) {
         assert(options->unique_loops > 0.0);
@@ -478,6 +479,7 @@ static void increment_iteration(tcpreplay_t *ctx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
+
     struct timeval print_delta, now, first_pkt_ts, pkt_ts_delta;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
@@ -496,8 +498,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER start_us;
     COUNTER end_us;
     bool preload = options->file_cache[idx].cached;
-    bool top_speed = (options->speed.mode == speed_topspeed);
-    bool now_is_now = false;
+    bool top_speed = (options->speed.mode == speed_topspeed ||
+            (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
+    bool now_is_now;
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -512,6 +515,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         prev_packet = &cached_packet;
     } else {
         prev_packet = NULL;
+    }
+
+    if (!top_speed) {
+        gettimeofday(&now, NULL);
+        now_is_now = true;
+    } else {
+        now_is_now = false;
     }
 
     /* MAIN LOOP 
@@ -560,9 +570,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
-            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass has unique IP addresses */
-            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration,
+            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration - 1,
                     preload, datalink);
         }
 
@@ -722,8 +731,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER start_us;
     COUNTER end_us;
     COUNTER skip_length = 0;
-    bool top_speed = (options->speed.mode == speed_topspeed);
-    bool now_is_now = false;
+    bool top_speed = (options->speed.mode == speed_topspeed ||
+            (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
+    bool now_is_now;
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -745,6 +755,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
     pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
+
+    if (!top_speed) {
+        gettimeofday(&now, NULL);
+        now_is_now = true;
+    } else {
+        now_is_now = false;
+    }
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
@@ -819,9 +836,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
-            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration,
+            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration - 1,
                     options->file_cache[cache_file_idx].cached, datalink);
         }
 

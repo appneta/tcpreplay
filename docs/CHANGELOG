@@ -1,3 +1,7 @@
+03/23/2017 Version 4.2.1
+    - Fix reporting of rates < 1Mbps (#348)
+    - Option --unique-ip not working properly (#346)
+
 02/26/2017 Version 4.2.0
     - MAC rewriting capabilities (#313)
     - Fix several issues identified by Coverity (#305)
