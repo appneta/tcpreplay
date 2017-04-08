@@ -1,4 +1,4 @@
-03/31/2017 Version 4.2.2_beta1
+03/08/2017 Version 4.2.2
     - Missing symbol pcap_version on macOS 10.12.4 (#353)
 
 03/23/2017 Version 4.2.1
