@@ -1,3 +1,6 @@
+03/08/2017 Version 4.2.2
+    - Missing symbol pcap_version on macOS 10.12.4 (#353)
+
 03/23/2017 Version 4.2.1
     - Fix reporting of rates < 1Mbps (#348)
     - Option --unique-ip not working properly (#346)

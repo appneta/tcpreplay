@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.2.1],
+AC_INIT([tcpreplay],[4.2.2],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -1100,7 +1100,7 @@ fi
 have_pcap_version=no
 dnl Check to see if we have pcap_version[]
 AC_MSG_CHECKING(for pcap_version[])
-AC_TRY_COMPILE([
+AC_TRY_LINK([
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
