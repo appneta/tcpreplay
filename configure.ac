@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.2.2],
+AC_INIT([tcpreplay],[4.2.3-beta1],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -50,6 +50,13 @@ AC_SUBST(CROSS_ARCH)
 AC_SUBST(CROSS_LD)
 
 dnl ============================================
+dnl Some libraries are in /usr/lib/i386-linux-gnu
+dnl but host is i686-linux-gnu
+dnl ============================================
+
+MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) 2> /dev/null || ${host_cpu}-${host_os}
+
+dnl ============================================
 dnl MacOSX build and runtime environment options
 dnl ============================================
 
@@ -66,7 +73,7 @@ AC_ARG_WITH(macosx-sdk,
 dnl ===========================
 dnl Check OS X SDK and compiler
 dnl ===========================
-    
+
 case "$host_os" in
     darwin*) # Mac OS X or iOS
     # If no --with-macosx-sdk option is given, look for one
@@ -80,7 +87,7 @@ case "$host_os" in
     # To find a list of available version run `xcodebuild -showsdks`
 
     AC_MSG_CHECKING([what macOS compiler to use])
- 
+
     for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 10.16.10.17 10.18 10.19 10.20 11.0 11.1 11.2 11.3 11.4 11.5; do
         MACOSX_SDK_PATH=$(xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null)
         if test -d "$MACOSX_SDK_PATH"; then
@@ -576,7 +583,7 @@ AC_ARG_WITH(libpcap,
         LPCAPINCDIR=${testdir}
         if test $dynamic_link = yes; then
             for ext in .dylib .so .tbd ; do
-                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                     sharefile=$(ls ${testdir}/$dir/libpcap${ext}* 2> /dev/null | sort | head -n1)
                     if test -n "${sharefile}"; then
                         LPCAPLIB="-L$(dirname ${sharefile}) -lpcap"
@@ -594,7 +601,7 @@ AC_ARG_WITH(libpcap,
             dnl If dynamic library not found, try static
             dnl
             for ext in ${libext} .a .A.tbd ; do
-                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                     staticfile=$(ls ${testdir}/$dir/libpcap${ext} 2> /dev/null | sort | head -n1)
                     if test -n "${staticfile}"; then
                         LPCAPLIB="${staticfile}"
@@ -705,7 +712,7 @@ AC_ARG_WITH(libpcap,
                 LPCAPINCDIR="${testdir}/include"
                 if test $dynamic_link = yes; then
                     for ext in .dylib .so .tbd; do
-                        for dir in . lib lib64 ${host_cpu} lib/${host_cpu} ${host_cpu}-${host_os} lib/${host_cpu}-${host_os} ${build_arch}-${host_os} lib/${build_arch}-${host_os}; do
+                        for dir in . lib lib64 ${host_cpu} lib/${host_cpu} ${host_cpu}-${host_os} lib/${host_cpu}-${host_os} ${MULTIARCH} lib/${MULTIARCH}; do
                             sharefile=$(ls "${testdir}/$dir/libpcap${ext}" 2> /dev/null | sort | head -n1)
                             if test -n "${sharefile}"; then
                                 LPCAPLIB="-L$(dirname ${sharefile}) -lpcap"
@@ -724,7 +731,7 @@ AC_ARG_WITH(libpcap,
                     dnl If dynamic library not found, try static
                     dnl
                     for ext in ${libext} .a .A.tbd ; do
-                        for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os}; do
+                        for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                             staticfile=$(ls "${testdir}/$dir/libpcap${ext}" 2> /dev/null | sort | head -n1)
                             if test -n "${staticfile}"; then
                                 LPCAPLIB="${staticfile}"
@@ -1581,6 +1588,7 @@ if test $foundpcap != no ; then
     if test -f "${PCAP_NETMAP_C_FILE}" ; then
         AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
                                    [Does this version of libpcap support netmap?])
+        AC_MSG_RESULT(yes)
         have_pcap_netmap=yes
     fi
 fi
