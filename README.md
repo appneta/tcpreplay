@@ -74,28 +74,7 @@ Simple directions for Unix users:
 make
 sudo make install
 ```
-Build Quick TX feature
-----------------------
-Quick TX allows Tcpreplay to bypass the kernel network stack and write
-directly to the network driver. Doing so allows up to wire-rate 
-transmissions (tested up to 10Gbps). For detailed installation information
-see INSTALL.
 
-**NOTE:** This feature still an experimental and may not work with every 
-kernel version or with every network driver. 
-
-If you would like to have Quick TX installed, do the following:
-```
-	./configure --enable-quick-tx
-	make
-	sudo make install
-```
-To use the Quick TX module, run tcpreplay with interface names prefixed
-with 'qtx:', e.g.
-```
-	tcpreplay -i qtx:eth0
-```
- 
 Build netmap feature
 --------------------
 This feature will detect [netmap](http://info.iet.unipi.it/~luigi/netmap/)

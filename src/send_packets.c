@@ -37,10 +37,6 @@
 #include "timestamp_trace.h"
 #include "../lib/sll.h"
 
-#ifdef HAVE_QUICK_TX
-#include <linux/quick_tx.h>
-#endif
-
 #ifdef HAVE_NETMAP
 #ifdef HAVE_SYS_POLL_H
 #include <sys/poll.h>
@@ -231,20 +227,15 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
 }
 
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
 static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
 {
-#ifdef HAVE_QUICK_TX
-    if (options->quick_tx)
-        quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
-#endif
-
 #ifdef HAVE_NETMAP
     if (options->netmap)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 }
-#endif /* HAVE_QUICK_TX || HAVE_NETMAP */
+#endif /* HAVE_NETMAP */
 
 static inline void
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
@@ -670,7 +661,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             }
         }
 
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
         if (sp->first_packet) {
             wake_send_queues(sp, options);
             sp->first_packet = false;
@@ -931,7 +922,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             }
         }
 
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
         if (sp->first_packet) {
             wake_send_queues(sp, options);
             sp->first_packet = false;
