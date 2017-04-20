@@ -39,8 +39,15 @@ the world with a a solid and full-featured test product thus far. The new author
 strives to take Tcprelay performance to levels normally only seen in commercial
 network test equipment.
 
+Downloads
+=========
+* [![Releases](https://img.shields.io/github/downloads/appneta/tcpreplay/total.svg)](https://github.com/appneta/tcpreplay/releases) [GitHub](https://github.com/appneta/tcpreplay/releases)
+* [![SourceForge](https://img.shields.io/sourceforge/dt/tcpreplay.svg)](https://sourceforge.net/projects/tcpreplay) [SourceForge](https://sourceforge.net/projects/tcpreplay) 
+
 Products
 ========
+[![Releases](https://img.shields.io/github/release/appneta/tcpreplay.svg)](https://github.com/appneta/tcpreplay/releases)
+
 The Tcpreplay suite includes the following tools:
 
 Network playback products:
