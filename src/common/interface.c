@@ -35,10 +35,6 @@
 #include "common/netmap.h"
 #endif
 
-#ifdef HAVE_QUICK_TX
-#include <linux/quick_tx.h>
-#endif
-
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -88,9 +84,6 @@ get_interface_list(void)
     int i = 0;
     DIR *dir;
     struct dirent *dirdata;
-#ifdef HAVE_QUICK_TX
-    char buf[MAXNAMLEN];
-#endif
 #ifdef HAVE_NETMAP
     int fd = -1;
     nmreq_t nmr;
@@ -98,7 +91,7 @@ get_interface_list(void)
 #if defined HAVE_LIBPCAP_NETMAP || defined HAVE_NETMAP
     u_int32_t netmap_version = -1;
 #endif
-    
+
 #ifndef HAVE_WIN32
 	/* Unix just has a warning about being root */
 	if (geteuid() != 0)
@@ -111,11 +104,11 @@ get_interface_list(void)
 
     if (pcap_findalldevs(&pcap_if, ebuf) < 0)
         errx(-1, "Error: %s", ebuf);
-            
+
     pcap_if_ptr = pcap_if;
     list_head = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
     list_ptr = list_head;
-    
+
     while (pcap_if_ptr != NULL) {
         if (i > 0) {
             list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
@@ -123,23 +116,13 @@ get_interface_list(void)
         }
         strlcpy(list_ptr->name, pcap_if_ptr->name, sizeof(list_ptr->name));
         dbgx(3, "Adding %s to interface list", list_ptr->name);
-        
+
         /* description is usually null under Unix */
         if (pcap_if_ptr->description != NULL)
             strlcpy(list_ptr->description, pcap_if_ptr->description, sizeof(list_ptr->description));
-            
+
         sprintf(list_ptr->alias, "%%%d", i++);
         list_ptr->flags = pcap_if_ptr->flags;
-#ifdef HAVE_QUICK_TX
-        snprintf(buf, sizeof(buf), "%s%s", QTX_FULL_PATH_PREFIX, pcap_if_ptr->name);
-        if (!access(buf, R_OK | W_OK)) {
-            list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
-            list_ptr = list_ptr->next;
-            snprintf(list_ptr->name, sizeof(list_ptr->name), "qtx:%s", pcap_if_ptr->name);
-            sprintf(list_ptr->alias, "%%%d", i++);
-            list_ptr->flags = pcap_if_ptr->flags;
-        }
-#endif
 #ifdef HAVE_LIBPCAP_NETMAP
         /*
          * add the syntaxes supported by netmap-libpcap

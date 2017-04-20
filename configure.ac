@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.2.3-beta1],
+AC_INIT([tcpreplay],[4.2.3],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -1394,67 +1394,6 @@ if test $have_bpf = yes ; then
 fi
 
 dnl ##################################################
-dnl # Check for Linux kernel support
-dnl ##################################################
-AC_PATH_KERNEL_SOURCE
-
-dnl * Allow disable of Quick TX module
-disable_quick_tx=yes
-AC_ARG_ENABLE(quick-tx,
-    [  --enable-quick-tx      Enable building Quick TX kernel module],
-    [ disable_quick_tx="no" ],
-    [ kerneldir=])
-
-dnl * Compile Quick TX
-KERNEL_DIR=
-QUICK_TX_EXAMPLE_DIR=
-moduledir=
-kerneluname=
-enable_sandboxed=
-have_linux_quick_tx=no
-if test x${disable_quick_tx} != xyes; then
-    if test x${no_kernel} != xyes; then
-        have_linux_quick_tx=yes
-        OLDCFLAGS="${OLDCFLAGS} -I../kernel/linux/include -I../../kernel/linux/include"
-        KERNEL_DIR='kernel'
-        AC_DEFINE([HAVE_QUICK_TX], [1],
-              [Do we have quick TX module support?])
-    fi
-    AC_SUBST(KERNEL_DIR)
-
-    dnl * Set destination directory for kernel modules
-
-    if test x${kerneluname} = x ; then
-        kerneluname=$(uname -r)
-    fi
-    default_moduledir=/lib/modules/${kerneluname}/misc
-    AC_ARG_WITH(moduledir,
-    [  --with-moduledir=DIR    Install kernel modules in DIR (/lib/modules/${kerneluname}/misc)],
-    moduledir=${withval},
-    moduledir=${default_moduledir})
-    AC_SUBST(moduledir)
-    AC_SUBST(kerneluname)
-
-    dnl * Allow kernel example
-    AC_ARG_ENABLE(quick-tx-example,
-    [  --enable-quick-tx-example Build Quick TX kernel module example],
-    [ enable_tx_example="${enableval}" ],
-    [ enable_tx_example="no"])
-    if test x$enable_tx_example = xyes; then
-        QUICK_TX_EXAMPLE_DIR=example
-    fi
-    AC_SUBST(QUICK_TX_EXAMPLE_DIR)
-
-    dnl * Allow kernel sandbox mode (prevent depmod execution)
-    AC_ARG_ENABLE(sandboxed,
-    [  --enable-sandboxed      Don't install anything to the kernel module directories],
-    [ enable_sandboxed="${enableval}" ],
-    [ enable_sandboxed="no"])
-fi
-
-AM_CONDITIONAL(SANDBOXED, test x$enable_sandboxed = xyes)
-
-dnl ##################################################
 dnl # Check for libdnet, but only if not Cygwin!
 dnl ##################################################
 founddnet=no
@@ -1894,13 +1833,6 @@ AC_CONFIG_FILES([Makefile
            test/config
            scripts/Makefile])
 
-if test x$have_linux_quick_tx = xyes; then
-	AC_CONFIG_FILES([kernel/Makefile
-           kernel/linux/Makefile
-           kernel/linux/example/Makefile
-           kernel/linux/quick_tx/Makefile])
-fi
-
 AC_OUTPUT
 
 # Configuration results
@@ -1927,7 +1859,6 @@ libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}
 pcap_sendpacket:            ${have_pcap_sendpacket} **
 pcap_netmap                 ${have_pcap_netmap}
-Linux Quick TX:             ${have_linux_quick_tx} ${kerneldir}
 Linux/BSD netmap:           ${have_netmap}
 Tuntap device support:      ${have_tuntap}
 

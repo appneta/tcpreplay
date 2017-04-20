@@ -2,12 +2,12 @@
 ACLOCAL_AMFLAGS = -I m4 -I libopts/m4
 
 if NEED_LIBOPTS
-SUBDIRS = $(KERNEL_DIR) scripts lib $(LIBOPTS_DIR) src
+SUBDIRS = scripts lib $(LIBOPTS_DIR) src
 else
-SUBDIRS = $(KERNEL_DIR) scripts lib src
+SUBDIRS = scripts lib src
 endif
 
-DIST_SUBDIRS = scripts lib libopts src docs test $(KERNEL_DIR)
+DIST_SUBDIRS = scripts lib libopts src docs test
 .PHONY: manpages docs test man2html
 
 
@@ -53,18 +53,6 @@ doxygen: version
 ncc:
 	CC=ncc make
 	
-LINUX_MODULE_DIR = $(top_builddir)/kernel
-
-kernel:
-	echo Making Linux quick_tx module in $(LINUX_MODULE_DIR)
-	cd $(LINUX_MODULE_DIR) && make
-
-
-LINUX_MODULE_EXAMPLE_DIR = $(top_builddir)/kernel/linux/example
-kernel_example:
-	echo Making Linux quick_tx sample program in $(LINUX_MODULE_EXAMPLE_DIR)
-	cd $(LINUX_MODULE_EXAMPLE_DIR) && make all
-
 MOSTLYCLEANFILES = tcpreplay.spec *~
 
 DISTCLEANFILES = .tm_project.cache stamp-h1 *.tar.*

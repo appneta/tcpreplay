@@ -149,10 +149,6 @@ typedef struct tcpreplay_opt_s {
     int netmap_delay;
 #endif
 
-#ifdef HAVE_QUICK_TX
-    int quick_tx;
-#endif
-
     /* print flow statistic */
     bool flow_stats;
     int flow_expiry;
@@ -238,7 +234,6 @@ int tcpreplay_set_speed_pps_multi(tcpreplay_t *, int);
 int tcpreplay_set_loop(tcpreplay_t *, u_int32_t);
 int tcpreplay_set_unique_ip(tcpreplay_t *, bool);
 int tcpreplay_set_unique_ip_loops(tcpreplay_t *, int);
-int tcpreplay_set_quick_tx(tcpreplay_t *, bool);
 int tcpreplay_set_netmap(tcpreplay_t *, bool);
 int tcpreplay_set_use_pkthdr_len(tcpreplay_t *, bool);
 int tcpreplay_set_mtu(tcpreplay_t *, int);

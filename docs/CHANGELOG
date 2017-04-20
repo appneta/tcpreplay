@@ -1,8 +1,10 @@
 04/12/2017 Version 4.2.3-beta1
+    - Archive (remove) QuickTX until maintainer found (#357)
     - Ubuntu precise 32bit_build (#356)
 
 03/08/2017 Version 4.2.2
-    - Missing symbol pcap_version on macOS 10.12.4 (#353)
+    - Archive (remove) QuickTX (#357)
+    - Missing symbol pcap_version on macOS 10.12.4 (#356)
 
 03/23/2017 Version 4.2.1
     - Fix reporting of rates < 1Mbps (#348)
