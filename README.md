@@ -41,6 +41,9 @@ network test equipment.
 
 Products
 ========
+[![Releases](https://img.shields.io/github/release/appneta/tcpreplay.svg)](https://github.com/appneta/tcpreplay/releases) 
+[![Releases](https://img.shields.io/github/downloads/appneta/tcpreplay/total.svg)](https://github.com/appneta/tcpreplay/releases)
+
 The Tcpreplay suite includes the following tools:
 
 Network playback products:
