@@ -233,7 +233,7 @@ main(int argc, char **argv)
     /* Open socket for live traffic to be listed to*/
     live_handle = set_live_filter(iface, &myip, new_src_port);  /* returns a pcap_t that filters out traffic other than TCP*/
     if (live_handle == NULL) {
-        fprintf(stderr,"Error occured while listing on traffic: %s\n", errbuf);
+        fprintf(stderr,"Error occurred while listing on traffic: %s\n", errbuf);
         free(sched);
         return(2);
     }
@@ -1141,14 +1141,14 @@ fix_all_checksum_liveplay(ipv4_hdr *iphdr){
     /*Calculate TCP Checksum*/
     ret2 = do_checksum_liveplay((u_char *) iphdr,iphdr->ip_p, ntohs(iphdr->ip_len) - (iphdr->ip_hl << 2));
     if(ret2==-1){
-        printf("*******An Error Occured calculating TCP Checksum*******\n");
+        printf("*******An Error Occurred calculating TCP Checksum*******\n");
         return -1;
     }
 
     /*Calculate IP Checksum*/
     ret1 = do_checksum_liveplay((u_char *) iphdr, IPPROTO_IP, ntohs(iphdr->ip_len));
     if(ret1==-1){
-        printf("*******An Error Occured calculating IP Checksum*******\n");
+        printf("*******An Error Occurred calculating IP Checksum*******\n");
         return -1;
     }
 

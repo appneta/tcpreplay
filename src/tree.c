@@ -555,7 +555,7 @@ add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data)
 }
 
 /**
- * calculates wether each node in the tree is a client, server, or unknown for each node in the tree
+ * calculates whether each node in the tree is a client, server, or unknown for each node in the tree
  */
 void
 tree_calculate(tcpr_data_tree_t *treeroot)

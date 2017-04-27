@@ -1,4 +1,7 @@
-04/12/2017 Version 4.2.3-beta1
+04/26/2017 Version 4.2.4
+    - Fix Lintian detected spelling errors (#362)
+
+04/12/2017 Version 4.2.3
     - Archive (remove) QuickTX until maintainer found (#357)
     - Ubuntu precise 32bit_build (#356)
 

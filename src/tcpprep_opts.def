@@ -68,7 +68,7 @@ detail = <<- EODetail
 The basic operation of tcpreplay is to resend all packets from the
 input file(s) out a single file.  Tcpprep processes a pcap file and 
 applies a set of user-specified rules to create a cache file which 
-tells tcpreplay wether or not to send each packet and which interface the
+tells tcpreplay whether or not to send each packet and which interface the
 packet should be sent out of.
 
 For more details, please see the Tcpreplay Manual at:
@@ -500,7 +500,7 @@ flag = {
 EONonip;
     doc         = <<- EOText
 By default, non-IP traffic which can not be classified as client
-or server is classified as "client".  Specifiying @samp{--nonip}
+or server is classified as "client".  Specifying @samp{--nonip}
 will reclassify non-IP traffic as "server".  Note that the meaning
 of this flag is reversed if @samp{--reverse} is used.
 EOText;
