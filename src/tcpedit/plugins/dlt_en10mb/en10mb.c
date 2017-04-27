@@ -100,7 +100,7 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     
     /* vlan tags need an additional 4 bytes */
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "%s", "Unable to initalize unregistered plugin en10mb");
+        tcpedit_seterr(ctx->tcpedit, "%s", "Unable to initialize unregistered plugin en10mb");
         return TCPEDIT_ERROR;
     }
     

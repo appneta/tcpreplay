@@ -99,7 +99,7 @@ dlt_linuxsll_init(tcpeditdlt_t *ctx)
     assert(ctx);
 
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin %s", dlt_name);
+        tcpedit_seterr(ctx->tcpedit, "Unable to initialize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
 

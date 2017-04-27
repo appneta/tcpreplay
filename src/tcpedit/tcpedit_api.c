@@ -108,7 +108,7 @@ tcpedit_set_encoder_dltplugin_byname(tcpedit_t *tcpedit, const char *name)
 
 
 /**
- * Set wether we should edit broadcast & multicast IP addresses
+ * Set whether we should edit broadcast & multicast IP addresses
  */
 int
 tcpedit_set_skip_broadcast(tcpedit_t *tcpedit, bool value)

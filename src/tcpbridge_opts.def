@@ -67,7 +67,7 @@ homerc          = "$$/";
 
 explain = <<- EOExplain
 tcpbridge is a tool for selectively briding network traffic across two interfaces
-and optionally modifying the packets in betweeen
+and optionally modifying the packets in between
 EOExplain;
 
 detail = <<- EODetail
@@ -348,7 +348,7 @@ When enabling verbose mode (@var{-v}) you may also specify one or more
 additional  arguments to pass to @code{tcpdump} to modify the way packets
 are decoded.  By default, -n and -l are used.   Be  sure  to
 quote the arguments like: --verbose="-axxx" so that they are not interpreted
-by tcpbridge.  The following arguments are vaild:
+by tcpbridge.  The following arguments are valid:
     [ -aAeNqRStuvxX ]
     [ -E spi@ipaddr algo:secret,... ]
     [ -s snaplen ]

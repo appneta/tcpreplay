@@ -44,7 +44,7 @@ tcpeditdlt_t *tcpedit_dlt_init(tcpedit_t *tcpedit, int srcdlt);
  */
 int tcpedit_dlt_post_init(tcpeditdlt_t *tcpedit);
 
-/* cleans up after ourselves.  Called for each initalized plugin */
+/* cleans up after ourselves.  Called for each initialized plugin */
 void tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
 
 /* What is the output DLT type? */

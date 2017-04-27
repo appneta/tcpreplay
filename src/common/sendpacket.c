@@ -932,7 +932,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
 
     /* make sure it's not loopback (PF_PACKET doesn't support it) */
     if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER)
-        warnx("Unsupported physical layer type 0x%04x on %s.  Maybe it works, maybe it wont."
+        warnx("Unsupported physical layer type 0x%04x on %s.  Maybe it works, maybe it won't."
               "  See tickets #123/318", ifr.ifr_hwaddr.sa_family, device);
 
 #ifdef SO_BROADCAST
