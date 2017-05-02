@@ -177,7 +177,7 @@ main(int argc, char *argv[])
         }
 
         if (info)
-            notice("Buliding cache file...\n");
+            notice("Building cache file...\n");
         /* 
          * re-process files, but this time generate
          * cache 
