@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -100,7 +100,7 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     
     /* vlan tags need an additional 4 bytes */
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "%s", "Unable to initalize unregistered plugin en10mb");
+        tcpedit_seterr(ctx->tcpedit, "%s", "Unable to initialize unregistered plugin en10mb");
         return TCPEDIT_ERROR;
     }
     
@@ -148,7 +148,7 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
 int
 dlt_en10mb_parse_subsmac_entry(const char *raw, en10mb_sub_entry_t *entry)
 {
-    char  *candidate = safe_strndup(raw, SUBSMAC_ENTRY_LEN);
+    char  *candidate = safe_strdup(raw);
     int parse_result = dualmac2hex(candidate, entry->target, entry->rewrite, SUBSMAC_ENTRY_LEN);
 
     free(candidate);

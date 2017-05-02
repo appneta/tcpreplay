@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -555,7 +555,7 @@ add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data)
 }
 
 /**
- * calculates wether each node in the tree is a client, server, or unknown for each node in the tree
+ * calculates whether each node in the tree is a client, server, or unknown for each node in the tree
  */
 void
 tree_calculate(tcpr_data_tree_t *treeroot)

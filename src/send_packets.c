@@ -3,7 +3,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -36,10 +36,6 @@
 #include "tcpreplay_api.h"
 #include "timestamp_trace.h"
 #include "../lib/sll.h"
-
-#ifdef HAVE_QUICK_TX
-#include <linux/quick_tx.h>
-#endif
 
 #ifdef HAVE_NETMAP
 #ifdef HAVE_SYS_POLL_H
@@ -231,20 +227,15 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
 }
 
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
 static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
 {
-#ifdef HAVE_QUICK_TX
-    if (options->quick_tx)
-        quick_tx_wakeup(sp->qtx_dev);   /* flush TX buffer */
-#endif
-
 #ifdef HAVE_NETMAP
     if (options->netmap)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 }
-#endif /* HAVE_QUICK_TX || HAVE_NETMAP */
+#endif /* HAVE_NETMAP */
 
 static inline void
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
@@ -463,6 +454,7 @@ static void increment_iteration(tcpreplay_t *ctx)
 {
     tcpreplay_opt_t *options = ctx->options;
 
+    ctx->last_unique_iteration = ctx->unique_iteration;
     ++ctx->iteration;
     if (options->unique_ip) {
         assert(options->unique_loops > 0.0);
@@ -478,6 +470,7 @@ static void increment_iteration(tcpreplay_t *ctx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
+
     struct timeval print_delta, now, first_pkt_ts, pkt_ts_delta;
     tcpreplay_opt_t *options = ctx->options;
     COUNTER packetnum = 0;
@@ -496,8 +489,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER start_us;
     COUNTER end_us;
     bool preload = options->file_cache[idx].cached;
-    bool top_speed = (options->speed.mode == speed_topspeed);
-    bool now_is_now = false;
+    bool top_speed = (options->speed.mode == speed_topspeed ||
+            (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
+    bool now_is_now;
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -512,6 +506,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         prev_packet = &cached_packet;
     } else {
         prev_packet = NULL;
+    }
+
+    if (!top_speed) {
+        gettimeofday(&now, NULL);
+        now_is_now = true;
+    } else {
+        now_is_now = false;
     }
 
     /* MAIN LOOP 
@@ -560,9 +561,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
-            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass has unique IP addresses */
-            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration,
+            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration - 1,
                     preload, datalink);
         }
 
@@ -661,7 +661,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             }
         }
 
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
         if (sp->first_packet) {
             wake_send_queues(sp, options);
             sp->first_packet = false;
@@ -722,8 +722,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER start_us;
     COUNTER end_us;
     COUNTER skip_length = 0;
-    bool top_speed = (options->speed.mode == speed_topspeed);
-    bool now_is_now = false;
+    bool top_speed = (options->speed.mode == speed_topspeed ||
+            (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
+    bool now_is_now;
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -745,6 +746,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
     pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
+
+    if (!top_speed) {
+        gettimeofday(&now, NULL);
+        now_is_now = true;
+    } else {
+        now_is_now = false;
+    }
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
@@ -819,9 +827,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
-            ctx->last_unique_iteration = ctx->unique_iteration;
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration,
+            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration - 1,
                     options->file_cache[cache_file_idx].cached, datalink);
         }
 
@@ -915,7 +922,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             }
         }
 
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
         if (sp->first_packet) {
             wake_send_queues(sp, options);
             sp->first_packet = false;

@@ -46,7 +46,7 @@ flag = {
   descrip  = "Substitute MAC addresses";
   doc      = <<- EOText
 Allows you to rewrite ethernet MAC addresses of packets. It takes
-comma delimited pair or MACs address and rewrites all occurences of
+comma delimited pair or MACs address and rewrites all occurrences of
 the first MAC with the value of the second MAC.
 Example:
 @example

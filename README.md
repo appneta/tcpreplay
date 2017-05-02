@@ -4,6 +4,7 @@ Tcpreplay
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/12017/badge.svg)](https://scan.coverity.com/projects/12017)
 [![Code Climate](https://codeclimate.com/github/appneta/tcpreplay.png)](https://codeclimate.com/github/appneta/tcpreplay)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/0e49d208c69e440182ba21109ecaf31d)](https://www.codacy.com/app/fklassen/tcpreplay?utm_source=github.com&utm_medium=referral&utm_content=appneta/tcpreplay&utm_campaign=badger)
+[![Website](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://tcpreplay.appneta.com)
 
 Tcpreplay is a suite of [GPLv3] licensed utilities for UNIX (and Win32 under
 [Cygwin]) operating systems for editing and replaying network traffic which
@@ -39,8 +40,15 @@ the world with a a solid and full-featured test product thus far. The new author
 strives to take Tcprelay performance to levels normally only seen in commercial
 network test equipment.
 
+Downloads
+=========
+* [![Releases](https://img.shields.io/github/downloads/appneta/tcpreplay/total.svg)](https://github.com/appneta/tcpreplay/releases) [GitHub](https://github.com/appneta/tcpreplay/releases)
+* [![SourceForge](https://img.shields.io/sourceforge/dt/tcpreplay.svg)](https://sourceforge.net/projects/tcpreplay) [SourceForge](https://sourceforge.net/projects/tcpreplay) 
+
 Products
 ========
+[![Releases](https://img.shields.io/github/release/appneta/tcpreplay.svg)](https://github.com/appneta/tcpreplay/releases)
+
 The Tcpreplay suite includes the following tools:
 
 Network playback products:
@@ -74,28 +82,7 @@ Simple directions for Unix users:
 make
 sudo make install
 ```
-Build Quick TX feature
-----------------------
-Quick TX allows Tcpreplay to bypass the kernel network stack and write
-directly to the network driver. Doing so allows up to wire-rate 
-transmissions (tested up to 10Gbps). For detailed installation information
-see INSTALL.
 
-**NOTE:** This feature still an experimental and may not work with every 
-kernel version or with every network driver. 
-
-If you would like to have Quick TX installed, do the following:
-```
-	./configure --enable-quick-tx
-	make
-	sudo make install
-```
-To use the Quick TX module, run tcpreplay with interface names prefixed
-with 'qtx:', e.g.
-```
-	tcpreplay -i qtx:eth0
-```
- 
 Build netmap feature
 --------------------
 This feature will detect [netmap](http://info.iet.unipi.it/~luigi/netmap/)

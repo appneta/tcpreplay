@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -44,7 +44,7 @@ tcpeditdlt_t *tcpedit_dlt_init(tcpedit_t *tcpedit, int srcdlt);
  */
 int tcpedit_dlt_post_init(tcpeditdlt_t *tcpedit);
 
-/* cleans up after ourselves.  Called for each initalized plugin */
+/* cleans up after ourselves.  Called for each initialized plugin */
 void tcpedit_dlt_cleanup(tcpeditdlt_t *ctx);
 
 /* What is the output DLT type? */

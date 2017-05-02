@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -172,10 +172,7 @@ post_args(_U_ int argc, _U_ char *argv[])
 
 
     if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL) {
-        if (!strncmp(OPT_ARG(INTF1), "qtx:", 4))
-            errx(-1, "Unable to connect to Quick TX interface %s. Ensure Quick TX module is installed (see INSTALL).",
-                    OPT_ARG(INTF1));
-        else if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
+        if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
             errx(-1, "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
                     OPT_ARG(INTF1));
         else

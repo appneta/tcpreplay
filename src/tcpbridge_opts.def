@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -23,12 +23,12 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2016";
+    date        = "2000-2017";
     owner       = "Aaron Turner and Fred Klassen";
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2016 Fred Klassen - AppNeta
+Copyright 2013-2017 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -67,7 +67,7 @@ homerc          = "$$/";
 
 explain = <<- EOExplain
 tcpbridge is a tool for selectively briding network traffic across two interfaces
-and optionally modifying the packets in betweeen
+and optionally modifying the packets in between
 EOExplain;
 
 detail = <<- EODetail
@@ -348,7 +348,7 @@ When enabling verbose mode (@var{-v}) you may also specify one or more
 additional  arguments to pass to @code{tcpdump} to modify the way packets
 are decoded.  By default, -n and -l are used.   Be  sure  to
 quote the arguments like: --verbose="-axxx" so that they are not interpreted
-by tcpbridge.  The following arguments are vaild:
+by tcpbridge.  The following arguments are valid:
     [ -aAeNqRStuvxX ]
     [ -E spi@ipaddr algo:secret,... ]
     [ -s snaplen ]
@@ -366,7 +366,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2016 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2017 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");
 #ifdef HAVE_LIBDNET

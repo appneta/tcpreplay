@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -28,15 +28,6 @@
 #else
 #include <netinet/if_ether.h>
 #endif
-
-#ifdef HAVE_QUICK_TX
-#include <linux/quick_tx.h>
-#if defined (__x86_64__)
-#define QTX_QUEUE_SIZE    PAGE_SIZE * 24576 /* 96M */
-#else
-#define QTX_QUEUE_SIZE    (1 << 24)         /* 16M */
-#endif
-#endif /* HAVE_QUICK_TX */
 
 #if defined HAVE_NETMAP
 #include "common/netmap.h"
@@ -78,7 +69,6 @@ typedef enum sendpacket_type_e {
     SP_TYPE_TX_RING,
     SP_TYPE_KHIAL,
     SP_TYPE_NETMAP,
-    SP_TYPE_QUICK_TX,
     SP_TYPE_TUNTAP
 } sendpacket_type_t;
 
@@ -125,14 +115,10 @@ struct sendpacket_s {
     sendpacket_type_t handle_type;
     union sendpacket_handle handle;
     struct tcpr_ether_addr ether;
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
     int first_packet;
     int netmap_delay;
 #endif
-
-#ifdef HAVE_QUICK_TX
-    struct quick_tx* qtx_dev;
-#endif /* HAVE_QUICK_TX */
 
 #ifdef HAVE_NETMAP
     struct netmap_if *nm_if;

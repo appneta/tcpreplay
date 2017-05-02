@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -71,7 +71,7 @@ flag = {
 Takes a comma delimited series of colon delimited CIDR
 netblock pairs.  Each netblock pair is evaluated in order against
 the IP addresses.  If the IP address in the packet matches the
-first netblock, it is rewriten using the second netblock as a
+first netblock, it is rewritten using the second netblock as a
 mask against the high order bits.
 
 IPv4 Example:
@@ -291,7 +291,7 @@ Possible fuzzing actions list:
    * Not all Bytes have the same probability of appearance in real life.
      Replace with 0x00, 0xFF, or a random byte with equal likelyhook
    * Not all Bytes have the same significance in a packet.
-     Replace the start, the end, or the middle of the packet with equal likelyhood.
+     Replace the start, the end, or the middle of the packet with equal likelihood.
  * do nothing (7 out of 8 packets)
 
 EOText;

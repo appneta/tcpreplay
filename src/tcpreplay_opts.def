@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -22,12 +22,12 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2016";
+    date        = "2000-2017";
     owner       = "Aaron Turner and Fred Klassen";
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2016 Fred Klassen - AppNeta
+Copyright 2013-2017 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -587,26 +587,6 @@ EOPid;
 };
 
 flag = {
-    name        = quick-tx;
-    descrip     = "Write packets directly to an interface via Quick_TX module";
-    doc         = <<- EOText
-This feature will detect detect the presence of the Quick TX module on Linux
-systems. If detected, tcpreplay packets will bypass the network stack and
-will be written to the network driver via the Quick TX module. This will allow
-you to achieve full line rates on commodity network adapters, similar to rates
-achieved by commercial network traffic generators. 
-
-Note that unlike netmap, Quick TX does not bypass the network driver and 
-therefore is less disruptive. Yet it can achieve TX rates comparble netmap. 
-Quick TX is distributed with Tcpreplay and does not require full kernel source
-in order to be installed. See INSTALL for more information.
-
-This feature can also be enabled by specifying an interface as 'qtx:<intf>'.
-For example 'qtx:eth0' specifies Quick TX over interface eth0.
-EOText;
-};
-
-flag = {
     name        = stats;
     arg-type    = number;
     arg-range   = "0->";
@@ -631,7 +611,7 @@ flag = {
     fprintf(stderr, " (timestamp-trace)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2016 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2017 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");  
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
@@ -667,15 +647,10 @@ flag = {
 #else
     fprintf(stderr, "Fragroute engine: disabled\n");
 #endif
-#if defined HAVE_QUICK_TX || defined HAVE_NETMAP
+#if defined HAVE_NETMAP
     fprintf(stderr, "Default injection method: %s\n", sendpacket_get_method(NULL));
 #else
     fprintf(stderr, "Injection method: %s\n", sendpacket_get_method(NULL));
-#endif
-#ifdef HAVE_QUICK_TX
-    fprintf(stderr, "Optional injection method: Quick TX\n");
-#elif !defined(linux)
-    fprintf(stderr, "Not compiled with Quick TX\n");
 #endif
 #ifdef HAVE_NETMAP
     fprintf(stderr, "Optional injection method: netmap\n");

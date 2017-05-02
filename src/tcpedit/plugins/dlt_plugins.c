@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -156,7 +156,7 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
     /* set our address type */
     ctx->addr_type = ctx->decoder->plugin_l2addr_type();
 
-    /* initalize decoder plugin */
+    /* initialize decoder plugin */
     rcode = ctx->decoder->plugin_init(ctx);
     if (tcpedit_checkerror(ctx->tcpedit, rcode, NULL) != TCPEDIT_OK) {
         tcpedit_dlt_cleanup(ctx);
@@ -254,7 +254,7 @@ tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir_t d
 /**
  * \brief Call after tcpedit_dlt_post_args() to allow plugins to do special things
  * 
- * Useful for plugins to initalize sub-plugins and what not.
+ * Useful for plugins to initialize sub-plugins and what not.
  * Returns the standard TCPEDIT_OK|ERROR|WARN
  */
 int 

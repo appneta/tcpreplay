@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
- * Copyright (c) 2013-2016 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ * Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,7 +111,7 @@ dlt_pppserial_init(tcpeditdlt_t *ctx)
     assert(ctx);
     
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "Unable to initalize unregistered plugin %s", dlt_name);
+        tcpedit_seterr(ctx->tcpedit, "Unable to initialize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
 
