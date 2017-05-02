@@ -240,7 +240,7 @@ static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
     uint8_t *l4 = NULL, protocol;
     assert(ip6_hdr);
 
-      protocol = get_ipv6_l4proto(ip6_hdr, 65536);;
+    protocol = get_ipv6_l4proto(ip6_hdr, 65536);
     if (protocol == IPPROTO_TCP || protocol == IPPROTO_UDP ||
             protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMP6)
         l4 = get_layer4_v6(ip6_hdr, 65536);

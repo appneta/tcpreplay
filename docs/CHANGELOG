@@ -1,6 +1,9 @@
-05/01/2017 Version 4.2.5-beta1
+05/02/2017 Version 4.2.5-beta1
+    - Fuzz should not be overwritting Layer 3 (#372)
+    - Add --fuzz-factor option to specify fuzz ratio (#371)
     - Warnings when building on old distributions (#368)
     - Fix more Lintian detected spelling errors (#365)
+    - Fuzz test failure on ARM and MIPS (#365)
 
 04/26/2017 Version 4.2.4
     - Fix Lintian detected spelling errors (#362)
