@@ -266,6 +266,10 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         if ((packet[3] & 0x80) == 0x80) {
             l2_len = ntohs(*((uint16_t*)&packet[4]));
+            if (l2_len > 1024) {
+                warnx("L2 length too long: %u", l2_len);
+                return;
+            }
             l2_len += 6;
         } else
             l2_len = 4; /* no header extensions */

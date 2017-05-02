@@ -98,6 +98,10 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     /* read the comment */
     header.comment_len = ntohs(header.comment_len);
+    if (header.comment_len > 65534)
+        errx(-1, "Unable to process %s: invalid comment length %u",
+                header.comment_len);
+
     *comment = (char *)safe_malloc(header.comment_len + 1);
 
     dbgx(1, "Comment length: %d", header.comment_len);
