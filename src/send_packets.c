@@ -1195,7 +1195,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
           */
          now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
          if (now_us) {
-             COUNTER pph = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));;
+             COUNTER pph = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));
              COUNTER pkts_sent = ctx->stats.pkts_sent;
              /*
               * packets * 1000000 divided by pps = microseconds

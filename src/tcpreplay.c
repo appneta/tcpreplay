@@ -129,7 +129,7 @@ main(int argc, char *argv[])
 
 #ifdef TCPREPLAY_EDIT
     /* fuzzing init */
-    fuzzing_init(tcpedit->fuzz_seed);
+    fuzzing_init(tcpedit->fuzz_seed, tcpedit->fuzz_factor);
 #endif
 
     /* init the signal handlers */

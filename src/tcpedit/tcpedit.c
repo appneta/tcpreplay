@@ -329,6 +329,8 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
 
     tcpedit->mtu = DEFAULT_MTU; /* assume 802.3 Ethernet */
 
+    tcpedit->fuzz_factor = DEFAULT_FUZZ_FACTOR;
+
     /* disabled by default */
     tcpedit->tos = -1;
     tcpedit->tclass = -1;

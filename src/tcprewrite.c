@@ -98,7 +98,7 @@ main(int argc, char *argv[])
     }
 
     /* fuzzing init */
-    fuzzing_init(tcpedit->fuzz_seed);
+    fuzzing_init(tcpedit->fuzz_seed, tcpedit->fuzz_factor);
 
    /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));

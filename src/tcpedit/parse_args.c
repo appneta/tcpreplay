@@ -210,6 +210,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     } else if (HAVE_OPT(FUZZ_SEED)) {
         /* --fuzz-seed */
         seed = OPT_VALUE_FUZZ_SEED;
+        tcpedit->fuzz_factor = OPT_VALUE_FUZZ_FACTOR;
     }
 
     for (i = 0; i < 5; ++i) {
@@ -220,7 +221,9 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     if (HAVE_OPT(SEED)) {
         tcpedit->rewrite_ip = true;
         tcpedit->seed = seed;
-    }  if (HAVE_OPT(FUZZ_SEED)) {
+    }
+
+    if (HAVE_OPT(FUZZ_SEED)) {
         /* --fuzz-seed */
         tcpedit->fuzz_seed = seed;
     }
