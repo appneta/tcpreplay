@@ -98,17 +98,6 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
 
 }
 
-char *
-_our_safe_strndup(const char *str, size_t n, const char *funcname, const int line, const char *file)
-{
-  char *copy = strndup(str, n);
-  if (copy == NULL) {
-        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to strndup() %zu bytes: %s\n", file, funcname, line, n, strerror(errno));
-        exit(-1);
-  }
-  return copy;
-}
-
 /**
  * calls free and sets to NULL.
  */

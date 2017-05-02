@@ -148,7 +148,7 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
 int
 dlt_en10mb_parse_subsmac_entry(const char *raw, en10mb_sub_entry_t *entry)
 {
-    char  *candidate = safe_strndup(raw, SUBSMAC_ENTRY_LEN);
+    char  *candidate = safe_strdup(raw);
     int parse_result = dualmac2hex(candidate, entry->target, entry->rewrite, SUBSMAC_ENTRY_LEN);
 
     free(candidate);

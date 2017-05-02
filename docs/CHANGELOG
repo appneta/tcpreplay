@@ -1,4 +1,5 @@
 05/01/2017 Version 4.2.5-beta1
+    - Warnings when building on old distributions (#368)
     - Fix more Lintian detected spelling errors (#365)
 
 04/26/2017 Version 4.2.4
