@@ -192,7 +192,7 @@ tcpedit_dlt_validate(tcpeditdlt_t *ctx)
 /*
  * Utility function to extract the Layer 3 header and beyond in a single buffer
  * Since some CPU's like UltraSPARC are strictly aligned, they really don't like
- * it when you jump to an offset which isn't on a word boundry (like ethernet)
+ * it when you jump to an offset which isn't on a word boundary (like ethernet)
  */
 u_char *
 tcpedit_dlt_l3data_copy(tcpeditdlt_t *ctx, u_char *packet, int pktlen, int l2len)

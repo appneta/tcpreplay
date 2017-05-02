@@ -58,7 +58,7 @@ static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
 int
 fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
 {
-    int ret1 = 0, ret2 = 0;
+    int ret1 = 0, ret2 = 0, ip_len;
     assert(tcpedit);
     assert(pkthdr);
     assert(ip_hdr);
@@ -70,14 +70,16 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
         if (ntohs(ip_hdr->ip_len) < (ip_hdr->ip_hl << 2))
             return TCPEDIT_WARN;
 
-        ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, 
-                ip_hdr->ip_p, ntohs(ip_hdr->ip_len) - (ip_hdr->ip_hl << 2));
+        ip_len = (int)ntohs(ip_hdr->ip_len);
+        ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, ip_hdr->ip_p,
+                ip_len - (ip_hdr->ip_hl << 2));
         if (ret1 < 0)
             return TCPEDIT_ERROR;
     }
     
     /* calc IP checksum */
-    ret2 = do_checksum(tcpedit, (u_char *) ip_hdr, IPPROTO_IP, ntohs(ip_hdr->ip_len));
+    ip_len = (int)ntohs(ip_hdr->ip_len);
+    ret2 = do_checksum(tcpedit, (u_char *) ip_hdr, IPPROTO_IP, ip_len);
     if (ret2 < 0)
         return TCPEDIT_ERROR;
 
@@ -240,7 +242,7 @@ static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
     uint8_t *l4 = NULL, protocol;
     assert(ip6_hdr);
 
-      protocol = get_ipv6_l4proto(ip6_hdr, 65536);;
+    protocol = get_ipv6_l4proto(ip6_hdr, 65536);
     if (protocol == IPPROTO_TCP || protocol == IPPROTO_UDP ||
             protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMP6)
         l4 = get_layer4_v6(ip6_hdr, 65536);
@@ -509,6 +511,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
     tcp_hdr_t *tcp_hdr = NULL;
     u_char ipbuff[MAXPACKET];
     u_char *dataptr = NULL;
+    int ip_len;
     
     assert(tcpedit);
     assert(pktdata);
@@ -524,8 +527,9 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
      * figure out the actual datalen which might be < the caplen
      * due to ethernet padding 
      */
-    if (caplen > ntohs(ip_hdr->ip_len)) {
-        datalen = ntohs(ip_hdr->ip_len);
+    ip_len = (int)ntohs(ip_hdr->ip_len);
+    if (caplen > ip_len) {
+        datalen = ip_len;
     } else {
         datalen = caplen - tcpedit->dlt_ctx->l2len;
     }
