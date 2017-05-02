@@ -295,7 +295,7 @@ flag = {
     value       = C;
     arg-type    = string;
     max         = 1;
-    descrip     = "Embeded cache file comment";
+    descrip     = "Embedded cache file comment";
     flag-code   = <<- EOComment
 
     /* our comment_len is only 16bit - myargs[] */
