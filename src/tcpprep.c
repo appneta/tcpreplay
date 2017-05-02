@@ -634,6 +634,9 @@ print_stats(const char *file)
     COUNTER pri = 0, sec = 0, nosend = 0;
     
     count = read_cache(&cachedata, file, &comment);
+    if (count > 65535)
+        exit(-1);
+
     for (COUNTER i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {
