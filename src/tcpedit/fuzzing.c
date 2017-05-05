@@ -42,16 +42,21 @@ fuzz_get_sgt_size(uint32_t r, uint32_t caplen)
 
 static inline int
 fuzz_reduce_packet_size(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
-        COUNTER new_len)
+        uint32_t new_len)
 {
-    assert(new_len <= pkthdr->len);
-
     if (pkthdr->len < pkthdr->caplen) {
-        tcpedit_seterr(tcpedit, "%s", "Packet larger than capture len.");
+        tcpedit_seterr(tcpedit, "Packet length %u smaller than capture length %u",
+                pkthdr->len, pkthdr->caplen);
         return -1;
     }
 
-    if (new_len == pkthdr->len) {
+    if (new_len > pkthdr->caplen) {
+        tcpedit_seterr(tcpedit, "Cannot fuzz packet of capture length %u to length %u",
+                pkthdr->caplen, new_len);
+        return -1;
+    }
+
+    if (new_len == pkthdr->caplen) {
         return 0;
     }
 
