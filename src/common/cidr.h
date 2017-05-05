@@ -26,7 +26,7 @@
 struct tcpr_cidr_s {
     int family;                 /* AF_INET or AF_INET6 */
     union {
-    u_int32_t network;
+        u_int32_t network;
         struct tcpr_in6_addr network6;
     } u;
     int masklen;
