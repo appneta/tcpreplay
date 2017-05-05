@@ -26,7 +26,7 @@ flag = {
     name        = portmap;
     value       = r;
     arg-type    = string;
-    max         = -1;
+    max         = 9999;
     stack-arg;
     descrip     = "Rewrite TCP/UDP ports";
     doc         = <<- EOText
