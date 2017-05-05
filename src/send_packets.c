@@ -266,6 +266,10 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         if ((packet[3] & 0x80) == 0x80) {
             l2_len = ntohs(*((uint16_t*)&packet[4]));
+            if (l2_len > 1024) {
+                warnx("L2 length too long: %u", l2_len);
+                return;
+            }
             l2_len += 6;
         } else
             l2_len = 4; /* no header extensions */
@@ -1195,7 +1199,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
           */
          now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
          if (now_us) {
-             COUNTER pph = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));;
+             COUNTER pph = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));
              COUNTER pkts_sent = ctx->stats.pkts_sent;
              /*
               * packets * 1000000 divided by pps = microseconds

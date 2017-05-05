@@ -158,6 +158,8 @@ typedef struct tcpr_speed_s {
 #define BPF_OPTIMIZE 1          /* default is to optimize bpf program */
 #define PCAP_TIMEOUT 100        /* 100ms pcap_open_live timeout */
 
+#define DEFAULT_FUZZ_FACTOR 8
+
 /* HP-UX already defines TRUE/FALSE */
 #ifndef TRUE
 typedef enum bool_e {

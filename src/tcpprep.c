@@ -177,7 +177,7 @@ main(int argc, char *argv[])
         }
 
         if (info)
-            notice("Buliding cache file...\n");
+            notice("Building cache file...\n");
         /* 
          * re-process files, but this time generate
          * cache 
@@ -598,6 +598,9 @@ print_info(const char *file)
     COUNTER count = 0, i;
 
     count = read_cache(&cachedata, file, &comment);
+    if (count > 65535)
+        exit(-1);
+
     for (i = 1; i <= count; i ++) {
         
         switch (check_cache(cachedata, i)) {
@@ -631,6 +634,9 @@ print_stats(const char *file)
     COUNTER pri = 0, sec = 0, nosend = 0;
     
     count = read_cache(&cachedata, file, &comment);
+    if (count > 65535)
+        exit(-1);
+
     for (COUNTER i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {

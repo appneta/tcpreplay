@@ -109,7 +109,8 @@ standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_3ttl --ttl=-58
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_mtutrunc --mtu-trunc --mtu=300
-	$(TCPREWRITE) -i test.pcap -o test.rewrite_l7fuzzing --fuzz-seed=42
+	$(TCPREWRITE) -i test.pcap -o test.rewrite_l7fuzzing \
+		--fuzz-seed=42 --fuzz-factor=2
 
 standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_seed -s 55
@@ -148,7 +149,8 @@ standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_3ttl --ttl=-58
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
-	$(TCPREWRITE) -i test.pcap -o test2.rewrite_l7fuzzing --fuzz-seed=42
+	$(TCPREWRITE) -i test.pcap -o test2.rewrite_l7fuzzing \
+		--fuzz-seed=42 --fuzz-factor=2
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
