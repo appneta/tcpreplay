@@ -1,4 +1,7 @@
 05/02/2017 Version 4.2.5
+    - Fix issues found by build-scan (#384)
+    - Improve --portmap help message (#381)
+    - AFL detected security crash in fuzz feature (#380)
     - Coverity static scan detected issues (#374)
     - Fuzz should not be overwritting Layer 3 (#372)
     - Add --fuzz-factor option to specify fuzz ratio (#371)
