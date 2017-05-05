@@ -717,12 +717,12 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     int cache_file_idx;
     struct pcap_pkthdr pkthdr1, pkthdr2;
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
-    sendpacket_t *sp = ctx->intf1;
+    sendpacket_t *sp;
     COUNTER pktlen;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
-    int datalink = options->file_cache[cache_file_idx1].dlt;
+    int datalink;
     COUNTER start_us;
     COUNTER end_us;
     COUNTER skip_length = 0;

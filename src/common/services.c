@@ -37,7 +37,6 @@ parse_services(const char *file, tcpr_services_t *services)
     FILE *service = NULL;
     char service_line[MAXLINE], port[10], proto[10];
     regex_t preg;
-    uint16_t portc;
     size_t nmatch = 3;
     regmatch_t pmatch[3];
     static const char regex[] = "([0-9]+)/(tcp|udp)"; /* matches the port as pmatch[1], service pmatch[2] */
@@ -66,12 +65,13 @@ parse_services(const char *file, tcpr_services_t *services)
         /* zero out our vars */
         memset(port, '\0', 10);
         memset(proto, '\0', 10);
-        portc = 0;
 
         dbgx(4, "Processing: %s", service_line);
 
         /* look for format of 1234/tcp */
         if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
+            uint16_t portc;
+
             if (nmatch < 2) {
                 err(-1, "WTF?  I matched the line, but I don't know where!");
             }

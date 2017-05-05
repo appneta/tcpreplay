@@ -84,17 +84,13 @@ main(int argc, char *argv[])
     int out_file;
     COUNTER totpackets = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
-    int optct = 0;
     tcpprep_opt_t *options;
  
     tcpprep = tcpprep_init();
     options = tcpprep->options;
     
-    optct = optionProcess(&tcpprepOptions, argc, argv);
+    optionProcess(&tcpprepOptions, argc, argv);
     tcpprep_post_args(tcpprep, argc, argv);
-
-    argc -= optct;
-    argv += optct;
 
     /* open the cache file */
     if ((out_file = open(OPT_ARG(CACHEFILE), O_WRONLY | O_CREAT | O_TRUNC,

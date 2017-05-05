@@ -101,7 +101,7 @@ ports2PORT(char *ports)
      * to do it once now, rather then each time we have to do a lookup
      */
     portmap_head = new_portmap();
-    portmap = portmap_head;
+    portmap = portmap_last = portmap_head;
 
     /* process a range, setting from_begin & from_end */
     if (strchr(from_s, '-')) {
