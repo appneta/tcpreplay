@@ -335,7 +335,7 @@ pktq_random(rand_t *r, struct pktq *pktq)
 	    i = rand_uint32(r) % i;
 	pkt = TAILQ_FIRST(pktq);
 	
-	while (pkt && --i >= 0) {
+	while (pkt && ((int)--i) >= 0) {
 	    pkt = TAILQ_NEXT(pkt, pkt_next);
 	}
 	return (pkt);
