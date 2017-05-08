@@ -115,6 +115,7 @@ macinstring(const char *macstring, const u_char *mac)
     int len = 6, ret = TCPR_DIR_S2C;
     
     ourstring = safe_strdup(macstring);
+    memset(&tempmac[0], 0, sizeof(tempmac));
     
     tempstr = strtok_r(ourstring, ",", &tok);
     if (strlen(tempstr)) {

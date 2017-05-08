@@ -16,7 +16,7 @@ addons:
     project:
       name: "appneta/tcpreplay"
       description: "Build submitted via Travis CI"
-    notification_email: fklassen@appneta.com
+    notification_email: tcpreplay@appneta.com
     build_command_prepend: "./autogen.sh; ./configure; make clean"
     build_command:   "make"
     branch_pattern: coverity_scan

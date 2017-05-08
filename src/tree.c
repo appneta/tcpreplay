@@ -245,25 +245,25 @@ check_ip_tree(const int mode, const unsigned long ip)
              "Try a different auto mode (-n router|client|server)",
              get_addr2name4(ip, RESOLVE), ip);
 
-#ifdef DEBUG
-    switch (node->type) {
-    case DIR_SERVER:
-        dbgx(1, "DIR_SERVER: %s", get_addr2name4(ip, RESOLVE));
-        break;
-    case DIR_CLIENT:
-        dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
-        break;
-    case DIR_UNKNOWN:
-        dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
-        break;
-    case DIR_ANY:
-        dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
-        break;
-    }
-#endif
-
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
+#ifdef DEBUG
+        switch (node->type) {
+        case DIR_SERVER:
+            dbgx(1, "DIR_SERVER: %s", get_addr2name4(ip, RESOLVE));
+            break;
+        case DIR_CLIENT:
+            dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
+            break;
+        case DIR_UNKNOWN:
+            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
+            break;
+        case DIR_ANY:
+            dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
+            break;
+        }
+#endif
+
         switch (node->type) {
         case DIR_SERVER:
             return TCPR_DIR_S2C;
@@ -310,29 +310,28 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
              "Try a different auto mode (-n router|client|server)",
              get_addr2name6(addr, RESOLVE));
 
-#ifdef DEBUG
-    switch (node->type) {
-    case DIR_SERVER:
-        dbgx(1, "DIR_SERVER: %s", get_addr2name6(addr, RESOLVE));
-        break;
-    case DIR_CLIENT:
-        dbgx(1, "DIR_CLIENT: %s", get_addr2name6(addr, RESOLVE));
-        break;
-    case DIR_UNKNOWN:
-        dbgx(1, "DIR_UNKNOWN: %s", get_addr2name6(addr, RESOLVE));
-        break;
-    case DIR_ANY:
-        dbgx(1, "DIR_ANY: %s", get_addr2name6(addr, RESOLVE));
-        break;
-    }
-#endif
-
     /*
      * FIXME: Is this logic correct?  I think this might be backwards :(
      */
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
+#ifdef DEBUG
+        switch (node->type) {
+        case DIR_SERVER:
+            dbgx(1, "DIR_SERVER: %s", get_addr2name6(addr, RESOLVE));
+            break;
+        case DIR_CLIENT:
+            dbgx(1, "DIR_CLIENT: %s", get_addr2name6(addr, RESOLVE));
+            break;
+        case DIR_UNKNOWN:
+            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name6(addr, RESOLVE));
+            break;
+        case DIR_ANY:
+            dbgx(1, "DIR_ANY: %s", get_addr2name6(addr, RESOLVE));
+            break;
+        }
+#endif
         switch (node->type) {
         case DIR_SERVER:
             return TCPR_DIR_C2S;

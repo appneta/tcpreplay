@@ -82,8 +82,10 @@ drop_apply(void *d, struct pktq *pktq)
 	else
 		pkt = pktq_random(data->rnd, pktq);
 
-	TAILQ_REMOVE(pktq, pkt, pkt_next);
-	pkt_free(pkt);
+	if (pkt) {
+	    TAILQ_REMOVE(pktq, pkt, pkt_next);
+	    pkt_free(pkt);
+	}
 	
 	return (0);
 }
