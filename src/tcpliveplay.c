@@ -158,6 +158,7 @@ main(int argc, char **argv)
     pcap_t *local_handle;
     char errbuf[PCAP_ERRBUF_SIZE];
     char ebuf[SENDPACKET_ERRBUF_SIZE];
+    int i;
 
     optionProcess(&tcpliveplayOptions, argc, argv); /*Process AutoOpts for manpage options*/
 
@@ -208,7 +209,7 @@ main(int argc, char **argv)
     /* Rewrites the given "*.pcap" file with all the new parameters and returns the number of packets */
     /* that need to be replayed */
     num_packets = rewrite(&new_remoteip, &new_remotemac, &myip, &mymac, argv[2], new_src_port);
-    if (num_packets < 0)
+    if (num_packets < 2)
         errx(-1, "Unable to rewrite PCAP file %s\n",argv[2]);
 
     /* create schedule & set it up */
@@ -219,6 +220,11 @@ main(int argc, char **argv)
     pkts_scheduled = setup_sched(sched);    /* Returns number of packets in schedule*/
 
     /* Set up the schedule struct to be relative numbers rather than absolute*/
+    for (i = 0; i < num_packets; i++) {
+        sched[i].exp_rseq = 0;
+        sched[i].exp_rack = 0;
+    }
+
     relative_sched(sched, sched[1].exp_rseq, num_packets);
     printf("Packets Scheduled %d\n", pkts_scheduled);
 
@@ -1182,7 +1188,7 @@ do_checksum_liveplay(u_int8_t *data, int proto, int len) {
     int ip_hl;
     volatile int sum;   // <-- volatile works around a PPC g++ bug
 
-    sum = 0;
+    sum;
     ipv4 = NULL;
 
     ipv4 = (ipv4_hdr *)data;

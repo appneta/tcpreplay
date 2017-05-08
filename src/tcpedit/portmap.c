@@ -132,6 +132,7 @@ ports2PORT(char *ports)
         }
         portmap_last->next = NULL;
         free(portmap);
+        portmap = portmap_head = NULL;
     }
     /* process a list via +, filling in list[] */
     else if (strchr(from_s, '+')) {
