@@ -266,9 +266,11 @@ check_ip_tree(const int mode, const unsigned long ip)
 
         switch (node->type) {
         case DIR_SERVER:
+            safe_free(finder);
             return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
+            safe_free(finder);
             return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
