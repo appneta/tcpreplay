@@ -25,6 +25,7 @@ matrix:
       addons:
         apt:
           packages:
+          - libpcap-dev
           - clang-3.5
 
 script:
