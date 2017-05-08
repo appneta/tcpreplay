@@ -19,7 +19,7 @@
 #include "argv.h"
 #include "mod.h"
 
-#define MAX_ARGS		 128	/* XXX */
+#define MAX_ARGS		 128
 
 struct rule {
 	struct mod		*mod;
@@ -28,7 +28,7 @@ struct rule {
 };
 
 /*
- * XXX - new modules must be registered here.
+ * new modules must be registered here.
  */
 extern struct mod	 mod_delay;
 extern struct mod	 mod_drop;
@@ -84,7 +84,7 @@ mod_open(const char *script, char *errbuf)
 {
 	FILE *fp;
 	struct mod **m;
-	struct rule *rule;
+	struct rule *rule = NULL;
 	char *argv[MAX_ARGS], buf[BUFSIZ];
 	int i, argc, ret = 0;
 
@@ -158,8 +158,11 @@ mod_open(const char *script, char *errbuf)
 		}
 		buf[strlen(buf) - 4] = '\0';
 		sprintf(errbuf, "wtf: %s", buf);
-        // ret = -1;
 	}
+
+	if (rule)
+	    free(rule);
+
 	return (ret);
 }
 
@@ -182,6 +185,5 @@ mod_close(void)
 		if (rule->mod->close != NULL)
 			rule->data = rule->mod->close(rule->data);
 		TAILQ_REMOVE(&rules, rule, next);
-		free(rule);
 	}
 }

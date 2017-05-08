@@ -342,7 +342,7 @@ static char const *
 scan_name(char const * name, tOptionValue * res)
 {
     tOptionValue* new_val;
-    char const * pzScan = name+1; /* we know first char is a name char */
+    char const * pzScan;
     char const * pzVal;
     size_t       nm_len = 1;
     size_t       d_len = 0;
