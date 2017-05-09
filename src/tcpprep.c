@@ -84,17 +84,13 @@ main(int argc, char *argv[])
     int out_file;
     COUNTER totpackets = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
-    int optct = 0;
     tcpprep_opt_t *options;
  
     tcpprep = tcpprep_init();
     options = tcpprep->options;
     
-    optct = optionProcess(&tcpprepOptions, argc, argv);
+    optionProcess(&tcpprepOptions, argc, argv);
     tcpprep_post_args(tcpprep, argc, argv);
-
-    argc -= optct;
-    argv += optct;
 
     /* open the cache file */
     if ((out_file = open(OPT_ARG(CACHEFILE), O_WRONLY | O_CREAT | O_TRUNC,
@@ -177,7 +173,7 @@ main(int argc, char *argv[])
         }
 
         if (info)
-            notice("Buliding cache file...\n");
+            notice("Building cache file...\n");
         /* 
          * re-process files, but this time generate
          * cache 
@@ -598,6 +594,9 @@ print_info(const char *file)
     COUNTER count = 0, i;
 
     count = read_cache(&cachedata, file, &comment);
+    if (count > 65535)
+        exit(-1);
+
     for (i = 1; i <= count; i ++) {
         
         switch (check_cache(cachedata, i)) {
@@ -631,6 +630,9 @@ print_stats(const char *file)
     COUNTER pri = 0, sec = 0, nosend = 0;
     
     count = read_cache(&cachedata, file, &comment);
+    if (count > 65535)
+        exit(-1);
+
     for (COUNTER i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {

@@ -26,7 +26,7 @@ flag = {
     name        = portmap;
     value       = r;
     arg-type    = string;
-    max         = -1;
+    max         = 9999;
     stack-arg;
     descrip     = "Rewrite TCP/UDP ports";
     doc         = <<- EOText
@@ -276,13 +276,13 @@ flag = {
     arg-type    = number;
     arg-default = 0;
     arg-range   = "0->";
-    descrip     = "Fuzz 1/8 packet. Edit Bytes, length, or emulate packet drop";
+    descrip     = "Fuzz 1 in X packets. Edit bytes, length, or emulate packet drop";
     doc         = <<- EOText
 This fuzzing was designed as to test layer 7 protocols such as voip protocols.
-It modifies randomly 1 out of 8 packets in order for stateful protocols to cover
-more of their code.  The random fuzzing actions focus on data start and end
-because it often is the part of the data application protocols base their
-decisions on.
+It modifies randomly 1 out of X packets (where X = @var{--fuzz-factor}) in order 
+for stateful protocols to cover more of their code.  The random fuzzing actions 
+focus on data start and end because it often is the part of the data application 
+protocols base their decisions on.
 
 Possible fuzzing actions list:
  * drop packet
@@ -294,6 +294,21 @@ Possible fuzzing actions list:
      Replace the start, the end, or the middle of the packet with equal likelihood.
  * do nothing (7 out of 8 packets)
 
+EOText;
+};
+
+flag = {
+    name        = fuzz-factor;
+    flags-must   = fuzz-seed;
+    arg-type    = number;
+    arg-default = 8;
+    arg-range   = "1->";
+    descrip     = "Set the Fuzz 1 in X packet ratio (default 1 in 8 packets)";
+    doc         = <<- EOText
+Sets the ratio of for @var{--fuzz-seed} option. By default this value is 8,
+which means 1 in 8 packets are modified by fuzzing. Note that this ratio is
+based on the random number genereated by the supplied fuzz seed. Therefore by
+default you cannot expect that exactly every eighth packet will be modified. 
 EOText;
 };
 

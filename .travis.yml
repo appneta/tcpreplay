@@ -21,10 +21,16 @@ matrix:
     - os: linux
       dist: trusty
       compiler: clang
+      env: CI_BUILD_PREFIX=scan-build-3.5
+      addons:
+        apt:
+          packages:
+          - libpcap-dev
+          - clang-3.5
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
-  - ./configure --disable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
-  - make > build.log 2>&1 || (cat build.log && exit 1)
+  - ${CI_BUILD_PREFIX} ./configure --disable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
+  - ${CI_BUILD_PREFIX} make > build.log 2>&1 || (cat build.log && exit 1)
   - make dist > build.log 2>&1 || (cat build.log && exit 1)
   - sudo make test

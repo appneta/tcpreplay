@@ -49,7 +49,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
     ipv6 = NULL;
     assert(data);
 
-    if (!data || len <= 0) {
+    if (!data || len <= 0 || len > 65535) {
         tcpedit_setwarn(tcpedit, "%s", "Unable to checksum packets with no L3+ data");
         return TCPEDIT_WARN;
     }

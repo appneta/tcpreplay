@@ -7,6 +7,7 @@
  */
 
 #include "config.h"
+#include "common/err.h"
 
 #include <sys/types.h>
 
@@ -292,14 +293,18 @@ pktq_shuffle(rand_t *r, struct pktq *pktq)
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
 		i++;
 	}
-	if (i > pvlen) {
+	if (i > 0 && i > pvlen) {
 		pvlen = i;
 		if (pvbase == NULL)
 			pvbase = malloc(sizeof(pkt) * pvlen);
 		else
 			pvbase = realloc(pvbase, sizeof(pkt) * pvlen);
+
 	}
-	i = 0;
+    if (!pvbase)
+        err(-1, "out of memory\n");
+
+    i = 0;
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
 		pvbase[i++] = pkt;
 	}
@@ -316,17 +321,22 @@ struct pkt *
 pktq_random(rand_t *r, struct pktq *pktq)
 {
 	struct pkt *pkt;
-	int i;
+	unsigned int i;
 	
 	i = 0;
 	TAILQ_FOREACH(pkt, pktq, pkt_next) {
 		i++;
 	}
-	i = rand_uint32(r) % (i - 1);
+
+	if (i)
+	    --i;
+
+	if (i)
+	    i = rand_uint32(r) % i;
 	pkt = TAILQ_FIRST(pktq);
 	
-	while (--i >= 0) {
-		pkt = TAILQ_NEXT(pkt, pkt_next);
+	while (pkt && ((int)--i) >= 0) {
+	    pkt = TAILQ_NEXT(pkt, pkt_next);
 	}
 	return (pkt);
 }

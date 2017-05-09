@@ -85,7 +85,13 @@ dup_apply(void *d, struct pktq *pktq)
 	else
 		pkt = pktq_random(data->rnd, pktq);
 	
+	if (!pkt)
+	    return -1;
+
 	new = pkt_dup(pkt);
+	if (!new)
+	    return -1;
+
 	TAILQ_INSERT_AFTER(pktq, pkt, new, pkt_next);
 	
 	return (0);

@@ -19,14 +19,14 @@ enum {
     FUZZING_CHANGE_END_ZERO,
     FUZZING_CHANGE_END_RANDOM,
     FUZZING_CHANGE_END_FF,
+    FUZZING_TOTAL_ACTION_NUMBER /* always last */
 };
-#define FUZZING_TOTAL_ACTION_NUMBER_MASK (0xf)
 
 /**
  * init fuzz seed and allocate buffer.
  */
 void
-fuzzing_init(unsigned int fuzz_seed);
+fuzzing_init(uint32_t _fuzz_seed, uint32_t _fuzz_factor);
 
 /*
  * fuzz packet data.

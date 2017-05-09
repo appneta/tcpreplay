@@ -211,7 +211,7 @@ cidr2cidr(char *cidr)
         if (p) {
             *p = 0;
             ++p;
-            count = sscanf(p, "%d", &newcidr->masklen);
+            sscanf(p, "%d", &newcidr->masklen);
         } else {
             newcidr->masklen = 128;
         }

@@ -148,7 +148,7 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
 int
 dlt_en10mb_parse_subsmac_entry(const char *raw, en10mb_sub_entry_t *entry)
 {
-    char  *candidate = safe_strndup(raw, SUBSMAC_ENTRY_LEN);
+    char  *candidate = safe_strdup(raw);
     int parse_result = dualmac2hex(candidate, entry->target, entry->rewrite, SUBSMAC_ENTRY_LEN);
 
     free(candidate);
@@ -728,8 +728,6 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
 
-    
-    l2len = -1;
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (ntohs(eth->ether_type)) {
         case ETHERTYPE_VLAN:

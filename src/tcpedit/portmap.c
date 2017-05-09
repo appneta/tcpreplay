@@ -101,7 +101,7 @@ ports2PORT(char *ports)
      * to do it once now, rather then each time we have to do a lookup
      */
     portmap_head = new_portmap();
-    portmap = portmap_head;
+    portmap = portmap_last = portmap_head;
 
     /* process a range, setting from_begin & from_end */
     if (strchr(from_s, '-')) {
@@ -132,6 +132,7 @@ ports2PORT(char *ports)
         }
         portmap_last->next = NULL;
         free(portmap);
+        portmap = portmap_head = NULL;
     }
     /* process a list via +, filling in list[] */
     else if (strchr(from_s, '+')) {
@@ -197,8 +198,10 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
     /* first iteration of input */
     substr = strtok_r(ourstrcpy, ",", &token);
 
-    if ((*portmap = ports2PORT(substr)) == NULL)
+    if ((*portmap = ports2PORT(substr)) == NULL) {
+        safe_free(ourstrcpy);
         return 0;
+    }
 
     portmap_ptr = *portmap;
 

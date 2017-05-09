@@ -98,6 +98,10 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 
     /* read the comment */
     header.comment_len = ntohs(header.comment_len);
+    if (header.comment_len > 65534)
+        errx(-1, "Unable to process %s: invalid comment length %u",
+                cachefile, header.comment_len);
+
     *comment = (char *)safe_malloc(header.comment_len + 1);
 
     dbgx(1, "Comment length: %d", header.comment_len);
@@ -267,6 +271,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
         lastcache = *cachedata;
     }
     else {
+        lastcache = *cachedata;
         /* check to see if this is the last bit in this struct */
         if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
             /*

@@ -157,6 +157,7 @@ typedef struct {
     int maxpacket;          /* L2 header + MTU */
 
     uint32_t fuzz_seed;
+    uint32_t fuzz_factor;
 } tcpedit_t;
 
 
