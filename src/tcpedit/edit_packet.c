@@ -980,7 +980,7 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 #endif
         *ip = randomize_ipv4_addr(tcpedit, *ip);
 #ifdef FORCE_ALIGN
-        memcpy(add_hdr, &tempip, sizeof(uint32_t));
+        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
 #endif
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
@@ -993,7 +993,7 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 #endif
         *ip = randomize_ipv4_addr(tcpedit, *ip);
 #ifdef FORCE_ALIGN
-        memcpy(add_hdr, &tempip, sizeof(uint32_t));
+        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
 #endif
     }
 
