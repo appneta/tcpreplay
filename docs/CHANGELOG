@@ -1,3 +1,6 @@
+05/10/2017 Version 4.2.6-beta1
+    - Test fails on sparc64 (#393)
+
 05/02/2017 Version 4.2.5
     - Fix issues found by scan-build (#384)
     - Improve --portmap help message (#381)
