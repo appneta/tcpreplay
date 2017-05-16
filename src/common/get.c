@@ -208,9 +208,9 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 /**
  * \brief returns a ptr to the ipv4 header + data or NULL if it's not IP
  *
- * we may use an extra buffer for the ip header (and above)
- * on stricly aligned systems where the layer 2 header doesn't
- * fall on a 4 byte boundry (like a standard ethernet header)
+ * we may use an extra buffer for the IP header (and above)
+ * on strictly aligned systems where the layer 2 header doesn't
+ * fall on a 4 byte boundary (like a standard Ethernet header)
  *
  * Note: you can cast the result as an ip_hdr_t, but you'll be able 
  * to access data above the header minus any stripped L2 data
@@ -247,7 +247,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
-    if (l2_len % 4) {
+    if (l2_len % sizeof(long)) {
         memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
         ip_hdr = *newbuff;
     } else {
@@ -270,9 +270,9 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 /**
  * \brief returns a ptr to the ipv6 header + data or NULL if it's not IP
  *
- * we may use an extra buffer for the ip header (and above)
- * on stricly aligned systems where the layer 2 header doesn't
- * fall on a 4 byte boundry (like a standard ethernet header)
+ * we may use an extra buffer for the IP header (and above)
+ * on strictly aligned systems where the layer 2 header doesn't
+ * fall on a 4 byte boundary (like a standard Ethernet header)
  *
  * Note: you can cast the result as an ip_hdr_t, but you'll be able 
  * to access data above the header minus any stripped L2 data
@@ -309,7 +309,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
-    if (l2_len % 4) {
+    if (l2_len % sizeof(long)) {
         memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
         ip6_hdr = *newbuff;
     } else {
