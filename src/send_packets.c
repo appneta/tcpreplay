@@ -512,9 +512,16 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         prev_packet = NULL;
     }
 
+    if (ctx->first_time) {
+        gettimeofday(&now, NULL);
+        now_is_now = true;
+    }
+
     if (!top_speed) {
         gettimeofday(&now, NULL);
         now_is_now = true;
+        start_us = TIMEVAL_TO_MICROSEC(&now);
+        ctx->first_time = true;
     } else {
         now_is_now = false;
     }
@@ -576,8 +583,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                     options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
 
         if (ctx->first_time) {
-            /* get time and timestamp of the first packet */
-            gettimeofday(&now, NULL);
+            /* get timestamp of the first packet */
             memcpy(&first_pkt_ts, &pkthdr.ts, sizeof(struct timeval));
         }
 
@@ -751,9 +757,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
     pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
 
+    if (ctx->first_time) {
+        gettimeofday(&now, NULL);
+        now_is_now = true;
+    }
+
     if (!top_speed) {
         gettimeofday(&now, NULL);
         now_is_now = true;
+        start_us = TIMEVAL_TO_MICROSEC(&now);
+        ctx->first_time = true;
     } else {
         now_is_now = false;
     }
@@ -841,8 +854,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink);
 
         if (ctx->first_time) {
-            /* get time and timestamp of the first packet */
-            gettimeofday(&now, NULL);
+            /* get timestamp of the first packet */
             memcpy(&first_pkt_ts, &pkthdr_ptr->ts, sizeof(struct timeval));
         }
 
