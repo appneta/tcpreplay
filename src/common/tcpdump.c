@@ -307,7 +307,7 @@ tcpdump_fill_in_options(char *opt)
     char *token = NULL;
 
     /* zero out our options_vec for execv() */
-    memset(options_vec, '\0', OPTIONS_VEC_SIZE);
+    memset(options_vec, '\0', sizeof(options_vec));
     
     /* first arg should be the binary (by convention) */
     options_vec[0] = TCPDUMP_BINARY;
