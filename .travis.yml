@@ -33,4 +33,4 @@ script:
   - ${CI_BUILD_PREFIX} ./configure --disable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
   - ${CI_BUILD_PREFIX} make > build.log 2>&1 || (cat build.log && exit 1)
   - make dist > build.log 2>&1 || (cat build.log && exit 1)
-  - sudo make test
+  - sudo make test || (cat test/test.log && exit 1)
