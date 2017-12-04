@@ -569,7 +569,7 @@ get_name2addr4(const char *hostname, bool dnslookup)
      *  We only want dots 'n decimals.
      */
     else {
-        if (!isdigit(hostname[0])) {
+        if (!isdigit((unsigned char)hostname[0])) {
             warnx("Expected dotted-quad notation (%s) when DNS lookups are disabled", 
                     hostname);
             /* XXX - this is actually 255.255.255.255 */
