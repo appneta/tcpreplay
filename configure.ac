@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.2.6],
+AC_INIT([tcpreplay],[4.3.0-beta1],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -847,6 +847,9 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
  * returns zero if version >= 0.9.6
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
+        exit(0);
+
     if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0) {
         printf("%s ", pcap_lib_version());
         exit(0);
@@ -898,6 +901,8 @@ extern const char pcap_version[[]]; /* double up since autoconf escapes things *
  * returns zero if version >= 0.7.2
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
+        exit(0);
 
     if (strncmp(pcap_version, PCAP_TEST, 5) >= 0)
             exit(0);
@@ -1697,7 +1702,7 @@ AM_CONDITIONAL([ENABLE_TCPDUMP], test "$tcpdump_path" != "no" -a x$have_pcap_dum
 if test x$tcpdump_path != xno -a x$have_pcap_dump_fopen = xyes ; then
     AC_DEFINE([ENABLE_VERBOSE], [1], [Do we have tcpdump and pcap_dump_fopen()?])
 else
-    AC_MSG_WARN([Your version of libpcap is too old for --verbose support])
+    AC_MSG_WARN([Your version of libpcap does not support --verbose support])
 fi
 
 dnl No 'make test' when cross compile
