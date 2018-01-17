@@ -172,21 +172,41 @@ AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
 AC_PATH_PROG(insmod, insmod, /sbin/insmod, $PATH:/sbin)
 AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
 
+
+dnl tcpreplay has (so far) been relying on leading-edge autogen.
+dnl Therefore, by default:
+dnl - use the version we ship with
+dnl - do not install it
+dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
+case "${enable_local_libopts+set}" in
+ set) ;;
+ *) enable_local_libopts=yes ;;
+esac
+
+case "${enable_libopts_install+set}" in
+ set) ;;
+ *) enable_libopts_install=no ;;
+esac
+
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
-    AC_MSG_CHECKING(for autogen version >= 5.18.x)
-    ${AUTOGEN} -v >autogen.version
-    AUTOGEN_VERSION=$(cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|')
+    AC_MSG_CHECKING(for autogen version >= ${MAINTAINER_AUTOGEN_VERSION})
+    AUTOGEN_VERSION=$(${AUTOGEN} -v | ${CUT} -d' ' -f 4)
     AUTOGEN_MAJOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1)
     AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
-    if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
+    AUTOGEN_BUILD=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 3)
+    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 12) || 
+            (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) || 
+            test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
-        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.18.4)])
+        if test "x$enable_local_libopts" == "xno"; then
+            AC_MSG_ERROR([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Upgrade to 5.18.12 or higher])
+        fi
+        AUTOGEN_VERSION="${AUTOGEN_VERSION} - downlevel"
     else
         AC_MSG_RESULT(yes)
     fi
-    rm -f autogen.version
 
     dnl Compare the installed version with the maintainer version if building from GitHub and not using system libopts
     if test ! -f src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
@@ -196,7 +216,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION or higher if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
@@ -1802,21 +1822,6 @@ if test x$disable_pcap_findalldevs = xno ; then
 else
     AC_MSG_RESULT(no)
 fi
-
-dnl tcpreplay has (so far) been relying on leading-edge autogen.
-dnl Therefore, by default:
-dnl - use the version we ship with
-dnl - do not install it
-dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
-case "${enable_local_libopts+set}" in
- set) ;;
- *) enable_local_libopts=yes ;;
-esac
-
-case "${enable_libopts_install+set}" in
- set) ;;
- *) enable_libopts_install=no ;;
-esac
 
 LIBOPTS_CHECK(libopts)
 
