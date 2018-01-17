@@ -17,7 +17,7 @@ AM_WITH_DMALLOC
 dnl People building from GitHub need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts to force using source in `libopts/`
 dnl directory
-MAINTAINER_AUTOGEN_VERSION=5.18.12
+MAINTAINER_AUTOGEN_VERSION=5.18.4
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -196,12 +196,12 @@ if test -n "${AUTOGEN}" ; then
     AUTOGEN_MAJOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1)
     AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
     AUTOGEN_BUILD=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 3)
-    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 12) || 
+    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) || 
             (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) || 
             test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
         if test "x$enable_local_libopts" == "xno"; then
-            AC_MSG_ERROR([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Upgrade to 5.18.12 or higher])
+            AC_MSG_ERROR([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Upgrade to 5.18.4 or higher])
         fi
         AUTOGEN_VERSION="${AUTOGEN_VERSION} - downlevel"
     else
@@ -260,18 +260,26 @@ AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
 
 dnl OS X SDK 10.11 throws lots of unnecessary macro warnings
+wno_format=""
+wno_macro_redefined=""
 case $host in
     *-apple-darwin*)
         AC_MSG_CHECKING(for $CC -Wno-macro-redefined)
         OLD_CFLAGS=$CFLAGS
-        CFLAGS="$CFLAGS -Wno-macro-redefined"
-        wno_macro_redefined=""
+        CFLAGS="$CFLAGS -Wno-macro-redefined -Werror"
         AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
             int main(int argc, char *argv[]) { return(0); }]])],
             [ AC_MSG_RESULT(yes)
               wno_macro_redefined="-Wno-macro-redefined" ],
             [ AC_MSG_RESULT(no) ])
         CFLAGS="$OLD_CFLAGS $wno_macro_redefined"
+        CFLAGS="$CFLAGS -Wno-format -Werror"
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+            int main(int argc, char *argv[]) { return(0); }]])],
+        [ AC_MSG_RESULT(yes)
+          wno_format="-Wno-format" ],
+        [ AC_MSG_RESULT(no) ])
+        CFLAGS="$OLD_CFLAGS $wno_format"
     ;;
 esac
 
@@ -373,7 +381,7 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
+        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul $wno_format"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         debug_flag=DEBUG

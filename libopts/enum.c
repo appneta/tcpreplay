@@ -14,7 +14,7 @@
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2016 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -130,10 +130,9 @@ enum_err(tOptions * pOpts, tOptDesc * pOD,
      */
     else {
         unsigned int ent_no = 0;
-        char fmt[16];  /* format for all-but-last entries on a line */
+        char  zFmt[16];  /* format for all-but-last entries on a line */
 
-        if (snprintf(fmt, 16, ENUM_ERR_WIDTH, (int)max_len) >= 16)
-            option_exits(EXIT_FAILURE);
+        sprintf(zFmt, ENUM_ERR_WIDTH, (int)max_len);
         max_len = 78 / max_len; /* max_len is now max entries on a line */
         fputs(TWO_SPACES_STR, option_usage_fp);
 
@@ -151,7 +150,7 @@ enum_err(tOptions * pOpts, tOptDesc * pOD,
             }
 
             else
-                fprintf(option_usage_fp, fmt, *(paz_names++) );
+                fprintf(option_usage_fp, zFmt, *(paz_names++) );
         }
         fprintf(option_usage_fp, NLSTR_FMT, *paz_names);
     }
@@ -187,14 +186,14 @@ find_name(char const * name, tOptions * pOpts, tOptDesc * pOD,
 {
     /*
      *  Return the matching index as a pointer sized integer.
-     *  The result gets stashed in a char * pointer.
+     *  The result gets stashed in a char* pointer.
      */
     uintptr_t   res = name_ct;
-    size_t      len = strlen((char *)name);
+    size_t      len = strlen((char*)name);
     uintptr_t   idx;
 
     if (IS_DEC_DIGIT_CHAR(*name)) {
-        char * pz = VOIDP(name);
+        char * pz = (char *)(void *)name;
         unsigned long val = strtoul(pz, &pz, 0);
         if ((*pz == NUL) && (val < name_ct))
             return (uintptr_t)val;
@@ -216,7 +215,7 @@ find_name(char const * name, tOptions * pOpts, tOptDesc * pOD,
      *  Multiple partial matches means we have an ambiguous match.
      */
     for (idx = 0; idx < name_ct; idx++) {
-        if (strncmp((char *)paz_names[idx], (char *)name, len) == 0) {
+        if (strncmp((char*)paz_names[idx], (char*)name, len) == 0) {
             if (paz_names[idx][len] == NUL)
                 return idx;  /* full match */
 
@@ -243,7 +242,7 @@ find_name(char const * name, tOptions * pOpts, tOptDesc * pOD,
  * what:  Convert between enumeration values and strings
  * private:
  *
- * arg:   tOptDesc *,    pOD,       enumeration option description
+ * arg:   tOptDesc*,     pOD,       enumeration option description
  * arg:   unsigned int,  enum_val,  the enumeration value to map
  *
  * ret_type:  char const *
@@ -266,8 +265,8 @@ optionKeywordName(tOptDesc * pOD, unsigned int enum_val)
  * what:  Convert from a string to an enumeration value
  * private:
  *
- * arg:   tOptions *,    pOpts,     the program options descriptor
- * arg:   tOptDesc *,    pOD,       enumeration option description
+ * arg:   tOptions*,     pOpts,     the program options descriptor
+ * arg:   tOptDesc*,     pOD,       enumeration option description
  * arg:   char const * const *,  paz_names, list of enumeration names
  * arg:   unsigned int,  name_ct,   number of names in list
  *
@@ -510,7 +509,7 @@ find_member_bit(tOptions * opts, tOptDesc * od, char const * pz, int len,
  *
  * arg:   tOptDesc *,  od,   the set membership option description
  *
- * ret_type: char *
+ * ret_type: char*
  * ret_desc: the names of the set bits
  *
  * doc:   This converts the OPT_VALUE_name mask value to a allocated string.
@@ -522,7 +521,7 @@ optionMemberList(tOptDesc * od)
     uintptr_t    sv = od->optArg.argIntptr;
     char * res;
     (*(od->pOptProc))(OPTPROC_RETURN_VALNAME, od);
-    res = VOIDP(od->optArg.argString);
+    res = (void *)od->optArg.argString;
     od->optArg.argIntptr = sv;
     return res;
 }
@@ -531,8 +530,8 @@ optionMemberList(tOptDesc * od)
  * what:  Convert between bit flag values and strings
  * private:
  *
- * arg:   tOptions *,     opts,     the program options descriptor
- * arg:   tOptDesc *,     od,       the set membership option description
+ * arg:   tOptions*,     opts,     the program options descriptor
+ * arg:   tOptDesc*,     od,       the set membership option description
  * arg:   char const * const *,
  *                       nm_list,  list of enumeration names
  * arg:   unsigned int,  nm_ct,    number of names in list
@@ -635,12 +634,12 @@ optionSetMembers(tOptions * opts, tOptDesc * od,
         if (nm_ct < (8 * sizeof(uintptr_t)))
             res &= (1UL << nm_ct) - 1UL;
 
-        od->optCookie = VOIDP(res);
+        od->optCookie = (void *)res;
     }
     return;
 
 fail_return:
-    od->optCookie = VOIDP(0);
+    od->optCookie = (void *)0;
 }
 
 /** @}

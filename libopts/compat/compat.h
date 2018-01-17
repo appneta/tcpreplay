@@ -3,7 +3,7 @@
  *  compat.h is free software.
  *  This file is part of AutoGen and AutoOpts.
  *
- *  AutoGen Copyright (C) 1992-2015 by Bruce Korb - all rights reserved
+ *  AutoGen Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -297,7 +297,7 @@
 #endif
 
 #ifndef HAVE_INTPTR_T
-# if SIZEOF_CHARP == SIZEOF_LONG || SIZEOF_CHAR_P == SIZEOF_LONG
+# if SIZEOF_CHARP == SIZEOF_LONG
     typedef signed long         intptr_t;
 # else
     typedef signed int          intptr_t;
@@ -306,7 +306,7 @@
 #endif
 
 #ifndef HAVE_UINTPTR_T
-# if SIZEOF_CHARP == SIZEOF_LONG || SIZEOF_CHAR_P == SIZEOF_LONG
+# if SIZEOF_CHARP == SIZEOF_LONG
     typedef unsigned long       intptr_t;
 # else
     typedef unsigned int        intptr_t;
@@ -362,11 +362,11 @@
 /* ##### Pointer sized word ##### */
 
 /* FIXME:  the MAX stuff in here is broken! */
-#if SIZEOF_CHARP > SIZEOF_INT  || SIZEOF_CHAR_P > SIZEOF_INT
+#if SIZEOF_CHARP > SIZEOF_INT
    typedef long t_word;
    #define WORD_MAX  LONG_MAX
    #define WORD_MIN  LONG_MIN
-#else /* SIZEOF_CHARP <= SIZEOF_INT || SIZEOF_CHAR_P <= SIZEOF_INT*/
+#else /* SIZEOF_CHARP <= SIZEOF_INT */
    typedef int t_word;
    #define WORD_MAX  INT_MAX
    #define WORD_MIN  INT_MIN
