@@ -185,11 +185,11 @@ validate_mmap(char const * fname, int prot, int flags, tmap_info_t * mapinfo)
          *  then our updates will show in the file, so we must open with
          *  write access.
          */
-        int o_flag =
+        int o_flag = (
 #ifdef _WIN32
             O_BINARY |
 #endif
-            FILE_WRITABLE(prot, flags) ? O_RDWR : O_RDONLY;
+            FILE_WRITABLE(prot, flags)) ? O_RDWR : O_RDONLY;
 
         /*
          *  If you're not sharing the file and you are writing to it,

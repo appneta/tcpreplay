@@ -55,7 +55,6 @@ optionShowRange(tOptions * pOpts, tOptDesc * pOD, void * rng_table, int rng_ct)
     if (pOpts != OPTPROC_EMIT_USAGE) {
         if (pOpts <= OPTPROC_EMIT_LIMIT)
             return;
-        pz_indent = ONE_TAB_STR;
 
         fprintf(option_usage_fp, zRangeErr, pOpts->pzProgName,
                 pOD->pz_Name, pOD->optArg.argInt);
