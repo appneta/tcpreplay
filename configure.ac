@@ -15,8 +15,8 @@ AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
 
 dnl People building from GitHub need the same version of Autogen as I'm using
-dnl or specify --disable-local-libopts to force using source in `libopts/`
-dnl directory
+dnl or specify --disable-local-libopts to force using the locally-installed
+dnl copy of libopts rather than the source in the `./liopts/` directory.
 MAINTAINER_AUTOGEN_VERSION=5.18.4
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -197,7 +197,7 @@ if test -n "${AUTOGEN}" ; then
     AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
     AUTOGEN_BUILD=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 3)
     if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) || 
-            (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) || 
+            (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) ||
             test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
         if test "x$enable_local_libopts" == "xno"; then
