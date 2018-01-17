@@ -10,7 +10,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2016 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -30,6 +30,9 @@
  */
 
 /* = = = START-STATIC-FORWARD = = = */
+static char *
+nl_count(char * start, char * end, int * lnct_p);
+
 static bool
 contiguous_quote(char ** pps, char * pq, int * lnct_p);
 /* = = = END-STATIC-FORWARD = = = */
@@ -38,8 +41,8 @@ contiguous_quote(char ** pps, char * pq, int * lnct_p);
  * private:
  *
  * what:  escape-process a string fragment
- * arg:   + char const*  + pzScan  + points to character after the escape +
- * arg:   + char*        + pRes    + Where to put the result byte +
+ * arg:   + char const * + pzScan  + points to character after the escape +
+ * arg:   + char *       + pRes    + Where to put the result byte +
  * arg:   + unsigned int + nl_ch   + replacement char if scanned char is \n +
  *
  * ret-type: unsigned int
@@ -135,6 +138,18 @@ ao_string_cook_escape_char(char const * pzIn, char * pRes, uint_t nl)
     return res;
 }
 
+/**
+ * count newlines between start and end
+ */
+static char *
+nl_count(char * start, char * end, int * lnct_p)
+{
+    while (start < end) {
+        if (*(start++) == NL)
+            (*lnct_p)++;
+    }
+    return end;
+}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
@@ -168,38 +183,22 @@ contiguous_quote(char ** pps, char * pq, int * lnct_p)
              */
             switch (ps[1]) {
             default:
-                *pps = NULL;
-                return false;
+                goto fail_return;
 
             case '/':
                 /*
                  *  Skip to end of line
                  */
                 ps = strchr(ps, NL);
-                if (ps == NULL) {
-                    *pps = NULL;
-                    return false;
-                }
+                if (ps == NULL)
+                    goto fail_return;
                 break;
 
             case '*':
-            {
-                char* p = strstr( ps+2, "*/" );
-                /*
-                 *  Skip to terminating star slash
-                 */
-                if (p == NULL) {
-                    *pps = NULL;
-                    return false;
-                }
-
-                while (ps < p) {
-                    if (*(ps++) == NL)
-                        (*lnct_p)++;
-                }
-
-                ps = p + 2;
-            }
+                ps = nl_count(ps + 2, strstr(ps + 2, "*/"), lnct_p);
+                if (ps == NULL)
+                    goto fail_return;
+                ps += 2;
             }
             continue;
 
@@ -212,16 +211,20 @@ contiguous_quote(char ** pps, char * pq, int * lnct_p)
             return false;
         }
     }
+
+ fail_return:
+    *pps = NULL;
+    return false;
 }
 
 /*=export_func  ao_string_cook
  * private:
  *
  * what:  concatenate and escape-process strings
- * arg:   + char* + pzScan  + The *MODIFIABLE* input buffer +
- * arg:   + int*  + lnct_p  + The (possibly NULL) pointer to a line count +
+ * arg:   + char * + pzScan  + The *MODIFIABLE* input buffer +
+ * arg:   + int *  + lnct_p  + The (possibly NULL) pointer to a line count +
  *
- * ret-type: char*
+ * ret-type: char *
  * ret-desc: The address of the text following the processed strings.
  *           The return value is NULL if the strings are ill-formed.
  *
@@ -245,8 +248,8 @@ ao_string_cook(char * pzScan, int * lnct_p)
      *  It is a quoted string.  Process the escape sequence characters
      *  (in the set "abfnrtv") and make sure we find a closing quote.
      */
-    char* pzD = pzScan++;
-    char* pzS = pzScan;
+    char * pzD = pzScan++;
+    char * pzS = pzScan;
 
     if (lnct_p == NULL)
         lnct_p = &l;

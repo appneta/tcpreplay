@@ -270,7 +270,7 @@ inet_aton(const char *name, struct in_addr *addr)
 }
 #endif
 
-#if SIZEOF_CHARP  == 4
+#if SIZEOF_CHARP  == 4 || SIZEOF_CHAR_P  == 4
 uint32_t __div64_32(uint64_t *n, uint32_t base)
 {
     uint64_t rem = *n;
@@ -303,7 +303,7 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
     *n = res;
     return rem;
 }
-#endif /* SIZEOF_CHARP  == 4 */
+#endif /* SIZEOF_CHARP  == 4 || SIZEOF_CHAR_P  == 4 */
 
 /**
  * Implementation of rand_r that is consistent across all platforms

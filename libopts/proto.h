@@ -1,7 +1,7 @@
 /* -*- buffer-read-only: t -*- vi: set ro:
  *
  * Prototypes for autoopts
- * Generated Sat Aug 30 10:36:38 PDT 2014
+ * Generated Mon Aug 29 14:35:37 PDT 2016
  */
 #ifndef AUTOOPTS_PROTO_H_GUARD
 #define AUTOOPTS_PROTO_H_GUARD 1
@@ -65,7 +65,7 @@ static tSuccess
 opt_find_long(tOptions * opts, char const * opt_name, tOptState * state);
 
 static tSuccess
-opt_find_short(tOptions* pOpts, uint_t optValue, tOptState* pOptState);
+opt_find_short(tOptions * pOpts, uint_t optValue, tOptState * pOptState);
 
 static tSuccess
 get_opt_arg(tOptions * opts, tOptState * o_st);
