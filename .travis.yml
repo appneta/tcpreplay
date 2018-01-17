@@ -20,12 +20,13 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          libpcap-dev
-          autogen
+          packages:
+          - libpcap-dev
+          - autogen
     - os: linux
       dist: trusty
       compiler: clang
-      env: CI_BUILD_PREFIX=scan-build-3.5
+      env: CI_BUILD_PREFIX=scan-build-3.9
       addons:
         apt:
           packages:
