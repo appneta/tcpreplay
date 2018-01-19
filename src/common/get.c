@@ -86,8 +86,11 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
     uint16_t eth_hdr_offset = 0;
     struct tcpr_pppserial_hdr *ppp;
 
-    assert(pktdata);
-    assert(datalen);
+    if (!pktdata || !datalen) {
+        errx(-1, "invalid l2 parameters: pktdata=0x%p len=%d",
+                pktdata, datalen);
+        return 0;
+    }
 
     switch (datalink) {
     case DLT_RAW:
@@ -105,37 +108,46 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         if ((pktdata[3] & 0x80) == 0x80) {
             eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
             eth_hdr_offset += 6;
-        } else
+        } else {
             eth_hdr_offset = 4; /* no header extensions */
+        }
         /* fall through */
     case DLT_EN10MB:
-        eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
-        ether_type = ntohs(eth_hdr->ether_type);
-        switch (ether_type) {
-        case ETHERTYPE_VLAN: /* 802.1q */
-            vlan_hdr = (vlan_hdr_t *)pktdata;
-            return ntohs(vlan_hdr->vlan_len);
-        default:
-            return ether_type; /* yes, return it in host byte order */
+        if (datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
+            eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
+            ether_type = ntohs(eth_hdr->ether_type);
+            switch (ether_type) {
+            case ETHERTYPE_VLAN: /* 802.1q */
+                vlan_hdr = (vlan_hdr_t *)pktdata;
+                return ntohs(vlan_hdr->vlan_len);
+            default:
+                return ether_type; /* yes, return it in host byte order */
+            }
         }
         break;
 
     case DLT_PPP_SERIAL:
-        ppp = (struct tcpr_pppserial_hdr *)pktdata;
-        if (ntohs(ppp->protocol) == 0x0021)
-            return htons(ETHERTYPE_IP);
-        else
-            return ppp->protocol;
+        if (datalen >= sizeof(struct tcpr_pppserial_hdr)) {
+            ppp = (struct tcpr_pppserial_hdr *)pktdata;
+            if (ntohs(ppp->protocol) == 0x0021)
+                return htons(ETHERTYPE_IP);
+            else
+                return ppp->protocol;
+        }
         break;
 
     case DLT_C_HDLC:
-        hdlc_hdr = (hdlc_hdr_t *)pktdata;
-        return hdlc_hdr->protocol;
+        if (datalen >= sizeof(hdlc_hdr_t)) {
+            hdlc_hdr = (hdlc_hdr_t *)pktdata;
+            return hdlc_hdr->protocol;
+        }
         break;
 
     case DLT_LINUX_SLL:
-        sll_hdr = (sll_hdr_t *)pktdata;
-        return sll_hdr->sll_protocol;
+        if (datalen >= sizeof(sll_hdr_t)) {
+            sll_hdr = (sll_hdr_t *)pktdata;
+            return sll_hdr->sll_protocol;
+        }
         break;
 
     default:
