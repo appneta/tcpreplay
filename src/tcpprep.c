@@ -355,9 +355,6 @@ process_raw_packets(pcap_t * pcap)
          * it as a non-IP packet, UNLESS we're in MAC mode, in which case
          * we should let the MAC matcher below handle it
          */
-
-        eth_hdr = (eth_hdr_t *)pktdata;
-
         if (options->mode != MAC_MODE) {
             dbg(3, "Looking for IPv4/v6 header in non-MAC mode");
             
@@ -392,6 +389,10 @@ process_raw_packets(pcap_t * pcap)
             }
     
             l2len = get_l2len(pktdata, pkthdr.caplen, pcap_datalink(pcap));
+            if (l2len < 0) {
+                /* go to next packet */
+                continue;
+            }
 
             /* look for include or exclude CIDR match */
             if (options->xX.cidr != NULL) {
@@ -442,6 +443,12 @@ process_raw_packets(pcap_t * pcap)
 
         case MAC_MODE:
             dbg(2, "processing mac mode...");
+            if (pkthdr.caplen < sizeof(*eth_hdr)) {
+                dbg(2, "capture length too short for mac mode processing");
+                break;
+            }
+
+            eth_hdr = (eth_hdr_t *)pktdata;
             direction = macinstring(options->maclist, (u_char *)eth_hdr->ether_shost);
 
             /* reverse direction? */
@@ -456,15 +463,15 @@ process_raw_packets(pcap_t * pcap)
             /* first run through in auto mode: create tree */
             if (options->automode != FIRST_MODE) {
                 if (ip_hdr) {
-                    add_tree_ipv4(ip_hdr->ip_src.s_addr, pktdata);
+                    add_tree_ipv4(ip_hdr->ip_src.s_addr, pktdata, pkthdr.caplen);
                 } else if (ip6_hdr) {
-                    add_tree_ipv6(&ip6_hdr->ip_src, pktdata);
+                    add_tree_ipv6(&ip6_hdr->ip_src, pktdata, pkthdr.caplen);
                 }
             } else {
                 if (ip_hdr) {
-                    add_tree_first_ipv4(pktdata);
+                    add_tree_first_ipv4(pktdata, pkthdr.caplen);
                 } else if (ip6_hdr) {
-                    add_tree_first_ipv6(pktdata);
+                    add_tree_first_ipv6(pktdata, pkthdr.caplen);
                 }
             }  
             break;

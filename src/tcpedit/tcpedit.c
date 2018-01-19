@@ -104,6 +104,10 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
 
 
+    if ((*pkthdr)->caplen > 4) {
+        return TCPEDIT_SOFT_ERROR;
+    }
+
     /*
      * remove the Ethernet FCS (checksum)?
      * note that this feature requires the end user to be smart and
@@ -131,6 +135,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     /* unable to edit packet, most likely 802.11 management or data QoS frame */
     if (pktlen == TCPEDIT_SOFT_ERROR) {
         dbgx(3, "%s", tcpedit_geterr(tcpedit));
+        return TCPEDIT_SOFT_ERROR;
+    }
+
+    if (pktlen < (*pkthdr)->caplen) {
+        dbgx(3, "pktlen=%d is less than caplen=%d", pktlen, (*pkthdr)->caplen);
         return TCPEDIT_SOFT_ERROR;
     }
 

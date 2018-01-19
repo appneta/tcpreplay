@@ -255,7 +255,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2_len = get_l2len(pktdata, datalen, datalink);
 
     /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len + TCPR_IPV4_H > datalen) {
+    if (l2_len < 0 || l2_len + TCPR_IPV4_H > datalen) {
         dbg(1, "get_ipv4(): Layer 2 len > total packet len, hence no IP header");
         return NULL;
     }
@@ -317,7 +317,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2_len = get_l2len(pktdata, datalen, datalink);
 
     /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len + TCPR_IPV6_H > datalen) {
+    if (l2_len < 0 || l2_len + TCPR_IPV6_H > datalen) {
         dbg(1, "get_ipv6(): Layer 2 len > total packet len, hence no IPv6 header");
         return NULL;
     }
@@ -386,10 +386,16 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
     uint8_t proto;
     uint32_t maxlen;
+    int min_len;
 
     assert(ip6_hdr);
 
-    /* jump to the end of the IPv6 header */ 
+    min_len = TCPR_IPV6_H + sizeof(struct tcpr_ipv6_ext_hdr_base);
+    if (len < min_len) {
+        return NULL;
+    }
+
+    /* jump to the end of the IPv6 header */
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
     proto = ip6_hdr->ip_nh;
 
@@ -400,7 +406,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */
         case TCPR_IPV6_NH_IPV6:
             dbg(3, "recursing due to v6-in-v6");
-            return get_layer4_v6((ipv6_hdr_t *)next, len);
+            return get_layer4_v6((ipv6_hdr_t *)next, len - min_len);
             break;
 
         /* loop again */
