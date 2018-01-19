@@ -372,7 +372,7 @@ return_unknown:
 void
 add_tree_first_ipv4(const u_char *data, const int len)
 {
-    tcpr_tree_t *newnode = NULL, *findnode;
+    tcpr_tree_t *newnode, *findnode;
     ipv4_hdr_t ip_hdr;
     
     assert(data);
@@ -426,7 +426,7 @@ add_tree_first_ipv4(const u_char *data, const int len)
 void
 add_tree_first_ipv6(const u_char *data, const int len)
 {
-    tcpr_tree_t *newnode = NULL, *findnode;
+    tcpr_tree_t *newnode, *findnode;
     ipv6_hdr_t ip6_hdr;
 
     assert(data);
@@ -530,7 +530,7 @@ add_tree_node(tcpr_tree_t *newnode)
 void
 add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
 {
-    tcpr_tree_t *newnode = NULL;
+    tcpr_tree_t *newnode;
     assert(data);
 
     newnode = packet2tree(data, len);
@@ -553,7 +553,7 @@ void
 add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data,
         const int len)
 {
-    tcpr_tree_t *newnode = NULL;
+    tcpr_tree_t *newnode;
     assert(data);
 
     newnode = packet2tree(data, len);
