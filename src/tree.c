@@ -544,6 +544,7 @@ add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
                     get_addr2name4(newnode->u.ip, RESOLVE), newnode->u.ip);
 
         }
+
         add_tree_node(newnode);
     }
 }

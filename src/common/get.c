@@ -190,7 +190,7 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
                 ether_type = ntohs(vlan_hdr->vlan_len);
                 l2_len += 4;
                 if (datalen < sizeof(vlan_hdr_t) + l2_len) {
-                    l2_len = 0;
+                    l2_len = -1;
                     break;
                 }
             }
@@ -198,9 +198,8 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
             l2_len += sizeof(eth_hdr_t);
         }
 
-        if (datalen < l2_len) {
-            l2_len = 0;
-        }
+        if (datalen < l2_len)
+            l2_len = -1;
 
         break;
 
@@ -391,9 +390,8 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
     assert(ip6_hdr);
 
     min_len = TCPR_IPV6_H + sizeof(struct tcpr_ipv6_ext_hdr_base);
-    if (len < min_len) {
+    if (len < min_len)
         return NULL;
-    }
 
     /* jump to the end of the IPv6 header */
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);

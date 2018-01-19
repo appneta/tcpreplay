@@ -290,7 +290,6 @@ check_ipv4_regex(const unsigned long ip)
     } else {
         return 0;
     }
-
 }
 
 static int
@@ -365,17 +364,12 @@ process_raw_packets(pcap_t * pcap)
             if ((ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
                     pcap_datalink(pcap), &buffptr))) {
                 dbg(2, "Packet is IPv4");
-                    
-            } 
-            
-            /* then look for IPv6 */
-            else if ((ip6_hdr = (ipv6_hdr_t *)get_ipv6(pktdata, pkthdr.caplen,
+            } else if ((ip6_hdr = (ipv6_hdr_t *)get_ipv6(pktdata, pkthdr.caplen,
                     pcap_datalink(pcap), &buffptr))) {
+                /* IPv6 */
                 dbg(2, "Packet is IPv6");    
-            } 
-            
-            /* we're something else... */
-            else {
+            } else {
+                /* we're something else... */
                 dbg(2, "Packet isn't IPv4/v6");
 
                 /* we don't want to cache these packets twice */
