@@ -50,7 +50,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         char **list = (char**)STACKLST_OPT(PNAT);
         int first = 1;
 
-        tcpedit->rewrite_ip ++;
+        tcpedit->rewrite_ip = true;
 
         do {
             char *p = *list++;
@@ -74,7 +74,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     
     /* --srcipmap */
     if (HAVE_OPT(SRCIPMAP)) {
-        tcpedit->rewrite_ip ++;
+        tcpedit->rewrite_ip = true;
         if (! parse_cidr_map(&tcpedit->srcipmap, OPT_ARG(SRCIPMAP))) {
             tcpedit_seterr(tcpedit, 
                 "Unable to parse --srcipmap=%s", OPT_ARG(SRCIPMAP));
@@ -84,7 +84,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
 
     /* --dstipmap */
     if (HAVE_OPT(DSTIPMAP)) {
-        tcpedit->rewrite_ip ++;
+        tcpedit->rewrite_ip = true;
         if (! parse_cidr_map(&tcpedit->dstipmap, OPT_ARG(DSTIPMAP))) {
             tcpedit_seterr(tcpedit, 
                 "Unable to parse --dstipmap=%s", OPT_ARG(DSTIPMAP));

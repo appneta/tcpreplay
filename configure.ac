@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.2.7-beta1],
+AC_INIT([tcpreplay],[4.3.0-beta1],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -15,7 +15,8 @@ AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
 
 dnl People building from GitHub need the same version of Autogen as I'm using
-dnl or specify --disable-local-libopts
+dnl or specify --disable-local-libopts to force using the locally-installed
+dnl copy of libopts rather than the source in the `./liopts/` directory.
 MAINTAINER_AUTOGEN_VERSION=5.18.4
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -171,21 +172,41 @@ AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
 AC_PATH_PROG(insmod, insmod, /sbin/insmod, $PATH:/sbin)
 AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
 
+
+dnl tcpreplay has (so far) been relying on leading-edge autogen.
+dnl Therefore, by default:
+dnl - use the version we ship with
+dnl - do not install it
+dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
+case "${enable_local_libopts+set}" in
+ set) ;;
+ *) enable_local_libopts=yes ;;
+esac
+
+case "${enable_libopts_install+set}" in
+ set) ;;
+ *) enable_libopts_install=no ;;
+esac
+
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
-    AC_MSG_CHECKING(for autogen version >= 5.18.x)
-    ${AUTOGEN} -v >autogen.version
-    AUTOGEN_VERSION=$(cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|')
+    AC_MSG_CHECKING(for autogen version >= ${MAINTAINER_AUTOGEN_VERSION})
+    AUTOGEN_VERSION=$(${AUTOGEN} -v | ${CUT} -d' ' -f 4)
     AUTOGEN_MAJOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1)
     AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
-    if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
+    AUTOGEN_BUILD=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 3)
+    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) || 
+            (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) ||
+            test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
-        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.18.4)])
+        if test "x$enable_local_libopts" == "xno"; then
+            AC_MSG_ERROR([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Upgrade to 5.18.4 or higher])
+        fi
+        AUTOGEN_VERSION="${AUTOGEN_VERSION} - downlevel"
     else
         AC_MSG_RESULT(yes)
     fi
-    rm -f autogen.version
 
     dnl Compare the installed version with the maintainer version if building from GitHub and not using system libopts
     if test ! -f src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
@@ -195,7 +216,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION or higher if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
@@ -239,18 +260,26 @@ AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
 
 dnl OS X SDK 10.11 throws lots of unnecessary macro warnings
+wno_format=""
+wno_macro_redefined=""
 case $host in
     *-apple-darwin*)
         AC_MSG_CHECKING(for $CC -Wno-macro-redefined)
         OLD_CFLAGS=$CFLAGS
-        CFLAGS="$CFLAGS -Wno-macro-redefined"
-        wno_macro_redefined=""
+        CFLAGS="$CFLAGS -Wno-macro-redefined -Werror"
         AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
             int main(int argc, char *argv[]) { return(0); }]])],
             [ AC_MSG_RESULT(yes)
               wno_macro_redefined="-Wno-macro-redefined" ],
             [ AC_MSG_RESULT(no) ])
         CFLAGS="$OLD_CFLAGS $wno_macro_redefined"
+        CFLAGS="$CFLAGS -Wno-format -Werror"
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+            int main(int argc, char *argv[]) { return(0); }]])],
+        [ AC_MSG_RESULT(yes)
+          wno_format="-Wno-format" ],
+        [ AC_MSG_RESULT(no) ])
+        CFLAGS="$OLD_CFLAGS $wno_format"
     ;;
 esac
 
@@ -352,7 +381,7 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
+        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul $wno_format"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         debug_flag=DEBUG
@@ -847,6 +876,9 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
  * returns zero if version >= 0.9.6
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
+        exit(0);
+
     if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0) {
         printf("%s ", pcap_lib_version());
         exit(0);
@@ -898,6 +930,8 @@ extern const char pcap_version[[]]; /* double up since autoconf escapes things *
  * returns zero if version >= 0.7.2
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
+        exit(0);
 
     if (strncmp(pcap_version, PCAP_TEST, 5) >= 0)
             exit(0);
@@ -1697,7 +1731,7 @@ AM_CONDITIONAL([ENABLE_TCPDUMP], test "$tcpdump_path" != "no" -a x$have_pcap_dum
 if test x$tcpdump_path != xno -a x$have_pcap_dump_fopen = xyes ; then
     AC_DEFINE([ENABLE_VERBOSE], [1], [Do we have tcpdump and pcap_dump_fopen()?])
 else
-    AC_MSG_WARN([Your version of libpcap is too old for --verbose support])
+    AC_MSG_WARN([Your version of libpcap does not support --verbose])
 fi
 
 dnl No 'make test' when cross compile
@@ -1801,21 +1835,6 @@ if test x$disable_pcap_findalldevs = xno ; then
 else
     AC_MSG_RESULT(no)
 fi
-
-dnl tcpreplay has (so far) been relying on leading-edge autogen.
-dnl Therefore, by default:
-dnl - use the version we ship with
-dnl - do not install it
-dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
-case "${enable_local_libopts+set}" in
- set) ;;
- *) enable_local_libopts=yes ;;
-esac
-
-case "${enable_libopts_install+set}" in
- set) ;;
- *) enable_libopts_install=no ;;
-esac
 
 LIBOPTS_CHECK(libopts)
 

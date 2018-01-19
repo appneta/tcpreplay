@@ -90,19 +90,21 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     int l2len = 0, l2proto, retval = 0, dst_dlt, src_dlt, pktlen, lendiff;
     int ipflags = 0, tclass = 0;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
-    u_char *packet = *pktdata;
+    u_char *packet;
+
     assert(tcpedit);
     assert(pkthdr);
     assert(*pkthdr);
     assert(pktdata);
-    assert(packet);
+    assert(*pktdata);
     assert(tcpedit->validated);
 
+    packet = *pktdata;
 
     tcpedit->runtime.packetnum++;
+
     dbgx(3, "packet " COUNTER_SPEC " caplen %d", 
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
-
 
     /*
      * remove the Ethernet FCS (checksum)?
@@ -110,8 +112,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
      * only set this flag IFF the pcap has the FCS.  If not, then they
      * just removed 2 bytes of ACTUAL PACKET DATA.  Sucks to be them.
      */
-    if (tcpedit->efcs > 0) {
-        (*pkthdr)->caplen -= 4;
+    if (tcpedit->efcs > 0 &&(*pkthdr)->len > 4) {
+        if ((*pkthdr)->caplen == (*pkthdr)->len) {
+            (*pkthdr)->caplen -= 4;
+        }
+
         (*pkthdr)->len -= 4;
     }
 
@@ -179,7 +184,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
-            if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr)) < 0)
+            if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr, (*pkthdr)->caplen)) < 0)
                 return TCPEDIT_ERROR;
         }
     }
@@ -216,7 +221,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
-            if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr)) < 0)
+            if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr, (*pkthdr)->caplen)) < 0)
                 return TCPEDIT_ERROR;
         }
     }

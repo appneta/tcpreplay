@@ -1,4 +1,10 @@
-05/27/2017 Version 4.2.7-beta1
+01/18/2018 Version 4.3.0 beta1
+    - Travis CI build fails due to new build images (#432)
+    - Unable to build with libpcap 1.8.1 (#430)
+    - heap-buffer-overflow in get_l2protocol (#410)
+    - heap-buffer-overflow in packet2tree (#409)
+    - heap-buffer-overflow in get_l2len (#408)
+    - heap-buffer-overflow in flow_decode (#407)
     - Fix sleep calculations when using multiple pcap files (#399)
 
 05/10/2017 Version 4.2.6

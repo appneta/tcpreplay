@@ -185,12 +185,18 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     switch (datalink) {
     case DLT_LINUX_SLL:
         l2_len = 16;
+        if (pkthdr->caplen < l2_len)
+            return FLOW_ENTRY_INVALID;
+
         sll_hdr = (sll_hdr_t *)pktdata;
         ether_type = sll_hdr->sll_protocol;
         break;
 
     case DLT_PPP_SERIAL:
         l2_len = 4;
+        if (pkthdr->caplen < l2_len)
+            return FLOW_ENTRY_INVALID;
+
         ppp = (struct tcpr_pppserial_hdr *)pktdata;
         if (ntohs(ppp->protocol) == 0x0021)
             ether_type = htons(ETHERTYPE_IP);
@@ -200,6 +206,9 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
 
     case DLT_C_HDLC:
         l2_len = 4;
+        if (pkthdr->caplen < l2_len)
+            return FLOW_ENTRY_INVALID;
+
         hdlc_hdr = (hdlc_hdr_t *)pktdata;
         ether_type = hdlc_hdr->protocol;
         break;
@@ -212,6 +221,9 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         break;
 
     case DLT_JUNIPER_ETHER:
+        if (pkthdr->caplen < 5)
+            return FLOW_ENTRY_INVALID;
+
         if (memcmp(pktdata, "MGC", 3))
             warnx("No Magic Number found: %s (0x%x)",
                  pcap_datalink_val_to_description(datalink), datalink);
@@ -222,11 +234,15 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         } else
             l2_len = 4; /* no header extensions */
 
+        /* fall through */
+    case DLT_EN10MB:
+        /* set l2_len if we did not fell through */
+        if (l2_len == 0)
+            l2_len = sizeof(eth_hdr_t);
+
         if (pkthdr->caplen < l2_len)
             return FLOW_ENTRY_INVALID;
 
-        /* fall through */
-    case DLT_EN10MB:
         ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
         while (ether_type == ETHERTYPE_VLAN) {
