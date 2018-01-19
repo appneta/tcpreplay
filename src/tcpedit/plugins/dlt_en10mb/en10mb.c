@@ -372,7 +372,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    if (pktlen < 14)
+    if (pktlen < TCPR_802_3_H)
         return TCPEDIT_ERROR;
 
     /* get our src & dst address */
@@ -386,6 +386,9 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     /* get the L3 protocol type  & L2 len*/
     switch (ntohs(eth->ether_type)) {
         case ETHERTYPE_VLAN:
+            if (pktlen < TCPR_802_1Q_H)
+                    return TCPEDIT_ERROR;
+
             vlan = (struct tcpr_802_1q_hdr *)packet;
             ctx->proto = vlan->vlan_len;
             
@@ -402,7 +405,6 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         default:
             ctx->proto = eth->ether_type;
             ctx->l2len = TCPR_802_3_H;
-            break;
     }
 
     return TCPEDIT_OK; /* success */
@@ -426,7 +428,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     assert(ctx);
     assert(packet);
 
-    if (pktlen < 14) {
+    if (pktlen < TCPR_802_1Q_H) {
         tcpedit_seterr(ctx->tcpedit, 
                 "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.", 
                 ctx->tcpedit->runtime.packetnum);
@@ -452,6 +454,13 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     else {
         /* if add a vlan then 18, else 14 bytes */
         newl2len = config->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_802_3_H;
+    }
+
+    if (pktlen < newl2len) {
+        tcpedit_seterr(ctx->tcpedit,
+                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d bytes.",
+                ctx->tcpedit->runtime.packetnum, newl2len);
+        return TCPEDIT_ERROR;
     }
 
     /* Make space for our new L2 header */
