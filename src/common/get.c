@@ -176,45 +176,59 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
     switch (datalink) {
     case DLT_RAW:
         /* pktdata IS the ip header! */
-        return 0;
         break;
 
     case DLT_JUNIPER_ETHER:
         l2_len = 24;
         /* fall through */
     case DLT_EN10MB:
-        ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
+        if (datalen >= sizeof(eth_hdr_t) + l2_len) {
+            ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
-        while (ether_type == ETHERTYPE_VLAN) {
-            vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-            ether_type = ntohs(vlan_hdr->vlan_len);
-            l2_len += 4;
+            while (ether_type == ETHERTYPE_VLAN) {
+                vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+                ether_type = ntohs(vlan_hdr->vlan_len);
+                l2_len += 4;
+                if (datalen < sizeof(vlan_hdr_t) + l2_len) {
+                    l2_len = 0;
+                    break;
+                }
+            }
+
+            l2_len += sizeof(eth_hdr_t);
         }
 
-        l2_len += sizeof(eth_hdr_t);
+        if (datalen < l2_len) {
+            l2_len = 0;
+        }
 
-        return l2_len;
         break;
 
     case DLT_PPP_SERIAL:
-        return 4;
+        if (datalen >= 4) {
+            l2_len = 4;
+        }
         break;
 
     case DLT_C_HDLC:
-        return CISCO_HDLC_LEN;
+        if (datalen >= CISCO_HDLC_LEN) {
+            l2_len = CISCO_HDLC_LEN;
+        }
         break;
 
     case DLT_LINUX_SLL:
-        return SLL_HDR_LEN;
+        if (datalen >= SLL_HDR_LEN) {
+            l2_len = SLL_HDR_LEN;
+        }
         break;
 
     default:
         errx(-1, "Unable to process unsupported DLT type: %s (0x%x)", 
              pcap_datalink_val_to_description(datalink), datalink);
-        break;
+        return -1; /* we shouldn't get here */
     }
 
-    return -1; /* we shouldn't get here */
+    return l2_len;
 }
 
 /**
