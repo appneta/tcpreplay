@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2009 Aaron Turner.
- * Copyright (c) 2013-2017 Fred Klassen <fklassen at appneta dot com> - AppNeta
+ * Copyright (c) 2013-2018 Fred Klassen <fklassen at appneta dot com> - AppNeta
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
