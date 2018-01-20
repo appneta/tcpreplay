@@ -102,11 +102,11 @@ main(int argc, char *argv[])
     struct pcap_file_header pcap_fh;
     struct pcap_pkthdr pcap_ph;
     struct pcap_sf_patched_pkthdr pcap_patched_ph; /* Kuznetzov */
-    char buf[10000];
+    char buf[UINT16_MAX];
     struct stat statinfo;
     uint64_t pktcnt;
     uint32_t readword;
-    int32_t last_sec, last_usec, caplen;
+    int32_t last_sec, last_usec, caplen, maxread;
 
     optct = optionProcess(&tcpcapinfoOptions, argc, argv);
     argc -= optct;
@@ -307,7 +307,8 @@ main(int argc, char *argv[])
             }
 
             /* read the frame */
-            if ((ret = read(fd, &buf, caplen)) != caplen) {
+            maxread = min(caplen, sizeof(buf));
+            if ((ret = read(fd, &buf, maxread)) != maxread) {
                 if (ret < 0) {
                     printf("Error reading file: %s: %s\n", argv[i], strerror(errno));
                 } else {
@@ -319,7 +320,7 @@ main(int argc, char *argv[])
             }
 
             /* print the frame checksum */
-            printf("\t%x\t", do_checksum_math((u_int16_t *)buf, caplen));
+            printf("\t%x\t", do_checksum_math((u_int16_t *)buf, maxread));
 
             /* print the Note */
             if (! backwards && ! caplentoobig) {
