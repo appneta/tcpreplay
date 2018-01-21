@@ -1,6 +1,7 @@
 01/18/2018 Version 4.3.0 beta1
     - Travis CI build fails due to new build images (#432)
     - Unable to build with libpcap 1.8.1 (#430)
+    - Unable to tcprewrite range of ports with --portmap (#422)
     - heap-buffer-overflow in get_l2protocol (#410)
     - heap-buffer-overflow in packet2tree (#409)
     - heap-buffer-overflow in get_l2len (#408)

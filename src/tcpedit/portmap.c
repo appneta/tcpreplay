@@ -113,10 +113,6 @@ ports2PORT(char *ports)
             return NULL;
         }
         from_e = strtol(from_end, &badchar, 10);
-        if (strlen(badchar) != 0) {
-            free(portmap);
-            return NULL;
-        }
 
         if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
             free(portmap);
@@ -131,8 +127,6 @@ ports2PORT(char *ports)
             portmap = portmap->next;
         }
         portmap_last->next = NULL;
-        free(portmap);
-        portmap = portmap_head = NULL;
     }
     /* process a list via +, filling in list[] */
     else if (strchr(from_s, '+')) {
