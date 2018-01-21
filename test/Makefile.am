@@ -23,7 +23,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
 		test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
 		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
-		test.rewrite_mtutrunc test.rewrite_mac_seed seed test.rewrite_range_portmap \
+		test.rewrite_mtutrunc test.rewrite_mac_seed test.rewrite_range_portmap \
 		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing test.rewrite_sequence \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
