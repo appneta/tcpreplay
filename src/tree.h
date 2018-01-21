@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -53,10 +53,10 @@ typedef struct tcpr_buildcidr_s {
 
 #define DNS_QUERY_FLAG 0x8000
 
-void add_tree_ipv4(const unsigned long, const u_char *);
-void add_tree_ipv6(const struct tcpr_in6_addr *, const u_char *);
-void add_tree_first_ipv4(const u_char *);
-void add_tree_first_ipv6(const u_char *);
+void add_tree_ipv4(const unsigned long, const u_char *, const int);
+void add_tree_ipv6(const struct tcpr_in6_addr *, const u_char *, const int);
+void add_tree_first_ipv4(const u_char *, const int);
+void add_tree_first_ipv6(const u_char *, const int);
 tcpr_dir_t check_ip_tree(const int, const unsigned long);
 tcpr_dir_t check_ip6_tree(const int, const struct tcpr_in6_addr *);
 int process_tree();
