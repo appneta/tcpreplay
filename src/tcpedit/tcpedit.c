@@ -187,6 +187,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr, (*pkthdr)->caplen)) < 0)
                 return TCPEDIT_ERROR;
         }
+
+	if (tcpedit->rewrite_sequence)
+	    rewrite_ipv4_sequence(tcpedit, &ip_hdr);
     }
     /* IPv6 edits */
     else if (ip6_hdr != NULL) {
@@ -224,6 +227,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr, (*pkthdr)->caplen)) < 0)
                 return TCPEDIT_ERROR;
         }
+
+	if (tcpedit->rewrite_sequence)
+	    rewrite_ipv6_sequence(tcpedit, &ip_hdr);
     }
 
     if (tcpedit->fuzz_seed != 0) {
