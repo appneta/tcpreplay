@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -149,6 +150,11 @@ main(int argc, char *argv[])
 #ifdef ENABLE_DMALLOC
     dmalloc_shutdown();
 #endif
+
+    /* avoid making STDIN non-blocking */
+    int nb = 0;
+    ioctl(0, FIONBIO, &nb)
+
     return 0;
 }
 
