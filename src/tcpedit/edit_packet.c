@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -948,8 +948,11 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 {
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0;
-    uint32_t *ip, tempip;
+    uint32_t *ip;
     u_char *add_hdr;
+#ifdef FORCE_ALIGN
+    uint32_t iptemp;
+#endif
 
     assert(tcpedit);
     assert(pkthdr);
@@ -968,14 +971,30 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         /* jump to the addresses */
         add_hdr = (u_char *)arp_hdr;
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
+#ifdef FORCE_ALIGN
+        /* copy IP to a temporary buffer for processing */
+        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
+        ip = &iptemp;
+#else
         ip = (uint32_t *)add_hdr;
-        tempip = randomize_ipv4_addr(tcpedit, *ip);
-        memcpy(ip, &tempip, sizeof(uint32_t));
+#endif
+        *ip = randomize_ipv4_addr(tcpedit, *ip);
+#ifdef FORCE_ALIGN
+        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
+#endif
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
+#ifdef FORCE_ALIGN
+        /* copy IP2 to a temporary buffer for processing */
+        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
+        ip = &iptemp;
+#else
         ip = (uint32_t *)add_hdr;
-        tempip = randomize_ipv4_addr(tcpedit, *ip);
-        memcpy(ip, &tempip, sizeof(uint32_t));
+#endif
+        *ip = randomize_ipv4_addr(tcpedit, *ip);
+#ifdef FORCE_ALIGN
+        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
+#endif
     }
 
     return 1; /* yes we changed the packet */

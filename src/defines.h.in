@@ -226,6 +226,7 @@ typedef enum tcpprep_mode_e {
 #endif
 
 /* converts a 64bit int to network byte order */
+#if !defined ntohll && !defined htonll
 #ifndef HAVE_NTOHLL
 #ifdef WORDS_BIGENDIAN
 #define ntohll(x) (x)
@@ -236,7 +237,8 @@ typedef enum tcpprep_mode_e {
                      (unsigned int)ntohl(((int)(x >> 32))))
 #define htonll(x) ntohll(x)
 #endif /* WORDS_BIGENDIAN */
-#endif
+#endif /* HAVE_NTOHLL */
+#endif /* !ntohll && !htonll */
 
 #define DEBUG_INFO   1          /* informational only, lessthan 1 line per packet */
 #define DEBUG_BASIC  2          /* limited debugging, one line per packet */

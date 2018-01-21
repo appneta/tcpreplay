@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -307,7 +307,7 @@ tcpdump_fill_in_options(char *opt)
     char *token = NULL;
 
     /* zero out our options_vec for execv() */
-    memset(options_vec, '\0', OPTIONS_VEC_SIZE);
+    memset(options_vec, '\0', sizeof(options_vec));
     
     /* first arg should be the binary (by convention) */
     options_vec[0] = TCPDUMP_BINARY;

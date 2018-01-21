@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -50,7 +50,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         char **list = (char**)STACKLST_OPT(PNAT);
         int first = 1;
 
-        tcpedit->rewrite_ip ++;
+        tcpedit->rewrite_ip = true;
 
         do {
             char *p = *list++;
@@ -74,7 +74,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     
     /* --srcipmap */
     if (HAVE_OPT(SRCIPMAP)) {
-        tcpedit->rewrite_ip ++;
+        tcpedit->rewrite_ip = true;
         if (! parse_cidr_map(&tcpedit->srcipmap, OPT_ARG(SRCIPMAP))) {
             tcpedit_seterr(tcpedit, 
                 "Unable to parse --srcipmap=%s", OPT_ARG(SRCIPMAP));
@@ -84,7 +84,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
 
     /* --dstipmap */
     if (HAVE_OPT(DSTIPMAP)) {
-        tcpedit->rewrite_ip ++;
+        tcpedit->rewrite_ip = true;
         if (! parse_cidr_map(&tcpedit->dstipmap, OPT_ARG(DSTIPMAP))) {
             tcpedit_seterr(tcpedit, 
                 "Unable to parse --dstipmap=%s", OPT_ARG(DSTIPMAP));

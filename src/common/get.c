@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -86,8 +86,11 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
     uint16_t eth_hdr_offset = 0;
     struct tcpr_pppserial_hdr *ppp;
 
-    assert(pktdata);
-    assert(datalen);
+    if (!pktdata || !datalen) {
+        errx(-1, "invalid l2 parameters: pktdata=0x%p len=%d",
+                pktdata, datalen);
+        return 0;
+    }
 
     switch (datalink) {
     case DLT_RAW:
@@ -105,37 +108,46 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         if ((pktdata[3] & 0x80) == 0x80) {
             eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
             eth_hdr_offset += 6;
-        } else
+        } else {
             eth_hdr_offset = 4; /* no header extensions */
+        }
         /* fall through */
     case DLT_EN10MB:
-        eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
-        ether_type = ntohs(eth_hdr->ether_type);
-        switch (ether_type) {
-        case ETHERTYPE_VLAN: /* 802.1q */
-            vlan_hdr = (vlan_hdr_t *)pktdata;
-            return ntohs(vlan_hdr->vlan_len);
-        default:
-            return ether_type; /* yes, return it in host byte order */
+        if (datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
+            eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
+            ether_type = ntohs(eth_hdr->ether_type);
+            switch (ether_type) {
+            case ETHERTYPE_VLAN: /* 802.1q */
+                vlan_hdr = (vlan_hdr_t *)pktdata;
+                return ntohs(vlan_hdr->vlan_len);
+            default:
+                return ether_type; /* yes, return it in host byte order */
+            }
         }
         break;
 
     case DLT_PPP_SERIAL:
-        ppp = (struct tcpr_pppserial_hdr *)pktdata;
-        if (ntohs(ppp->protocol) == 0x0021)
-            return htons(ETHERTYPE_IP);
-        else
-            return ppp->protocol;
+        if (datalen >= sizeof(struct tcpr_pppserial_hdr)) {
+            ppp = (struct tcpr_pppserial_hdr *)pktdata;
+            if (ntohs(ppp->protocol) == 0x0021)
+                return htons(ETHERTYPE_IP);
+            else
+                return ppp->protocol;
+        }
         break;
 
     case DLT_C_HDLC:
-        hdlc_hdr = (hdlc_hdr_t *)pktdata;
-        return hdlc_hdr->protocol;
+        if (datalen >= sizeof(hdlc_hdr_t)) {
+            hdlc_hdr = (hdlc_hdr_t *)pktdata;
+            return hdlc_hdr->protocol;
+        }
         break;
 
     case DLT_LINUX_SLL:
-        sll_hdr = (sll_hdr_t *)pktdata;
-        return sll_hdr->sll_protocol;
+        if (datalen >= sizeof(sll_hdr_t)) {
+            sll_hdr = (sll_hdr_t *)pktdata;
+            return sll_hdr->sll_protocol;
+        }
         break;
 
     default:
@@ -164,53 +176,66 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
     switch (datalink) {
     case DLT_RAW:
         /* pktdata IS the ip header! */
-        return 0;
         break;
 
     case DLT_JUNIPER_ETHER:
         l2_len = 24;
         /* fall through */
     case DLT_EN10MB:
-        ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
+        if (datalen >= sizeof(eth_hdr_t) + l2_len) {
+            ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
-        while (ether_type == ETHERTYPE_VLAN) {
-            vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-            ether_type = ntohs(vlan_hdr->vlan_len);
-            l2_len += 4;
+            while (ether_type == ETHERTYPE_VLAN) {
+                vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+                ether_type = ntohs(vlan_hdr->vlan_len);
+                l2_len += 4;
+                if (datalen < sizeof(vlan_hdr_t) + l2_len) {
+                    l2_len = -1;
+                    break;
+                }
+            }
+
+            l2_len += sizeof(eth_hdr_t);
         }
 
-        l2_len += sizeof(eth_hdr_t);
+        if (datalen < l2_len)
+            l2_len = -1;
 
-        return l2_len;
         break;
 
     case DLT_PPP_SERIAL:
-        return 4;
+        if (datalen >= 4) {
+            l2_len = 4;
+        }
         break;
 
     case DLT_C_HDLC:
-        return CISCO_HDLC_LEN;
+        if (datalen >= CISCO_HDLC_LEN) {
+            l2_len = CISCO_HDLC_LEN;
+        }
         break;
 
     case DLT_LINUX_SLL:
-        return SLL_HDR_LEN;
+        if (datalen >= SLL_HDR_LEN) {
+            l2_len = SLL_HDR_LEN;
+        }
         break;
 
     default:
         errx(-1, "Unable to process unsupported DLT type: %s (0x%x)", 
              pcap_datalink_val_to_description(datalink), datalink);
-        break;
+        return -1; /* we shouldn't get here */
     }
 
-    return -1; /* we shouldn't get here */
+    return l2_len;
 }
 
 /**
  * \brief returns a ptr to the ipv4 header + data or NULL if it's not IP
  *
- * we may use an extra buffer for the ip header (and above)
- * on stricly aligned systems where the layer 2 header doesn't
- * fall on a 4 byte boundry (like a standard ethernet header)
+ * we may use an extra buffer for the IP header (and above)
+ * on strictly aligned systems where the layer 2 header doesn't
+ * fall on a 4 byte boundary (like a standard Ethernet header)
  *
  * Note: you can cast the result as an ip_hdr_t, but you'll be able 
  * to access data above the header minus any stripped L2 data
@@ -229,7 +254,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2_len = get_l2len(pktdata, datalen, datalink);
 
     /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len + TCPR_IPV4_H > datalen) {
+    if (l2_len < 0 || l2_len + TCPR_IPV4_H > datalen) {
         dbg(1, "get_ipv4(): Layer 2 len > total packet len, hence no IP header");
         return NULL;
     }
@@ -247,7 +272,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
-    if (l2_len % 4) {
+    if (l2_len % sizeof(long)) {
         memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
         ip_hdr = *newbuff;
     } else {
@@ -270,9 +295,9 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 /**
  * \brief returns a ptr to the ipv6 header + data or NULL if it's not IP
  *
- * we may use an extra buffer for the ip header (and above)
- * on stricly aligned systems where the layer 2 header doesn't
- * fall on a 4 byte boundry (like a standard ethernet header)
+ * we may use an extra buffer for the IP header (and above)
+ * on strictly aligned systems where the layer 2 header doesn't
+ * fall on a 4 byte boundary (like a standard Ethernet header)
  *
  * Note: you can cast the result as an ip_hdr_t, but you'll be able 
  * to access data above the header minus any stripped L2 data
@@ -291,7 +316,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2_len = get_l2len(pktdata, datalen, datalink);
 
     /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len + TCPR_IPV6_H > datalen) {
+    if (l2_len < 0 || l2_len + TCPR_IPV6_H > datalen) {
         dbg(1, "get_ipv6(): Layer 2 len > total packet len, hence no IPv6 header");
         return NULL;
     }
@@ -309,7 +334,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
-    if (l2_len % 4) {
+    if (l2_len % sizeof(long)) {
         memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
         ip6_hdr = *newbuff;
     } else {
@@ -360,10 +385,15 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
     uint8_t proto;
     uint32_t maxlen;
+    int min_len;
 
     assert(ip6_hdr);
 
-    /* jump to the end of the IPv6 header */ 
+    min_len = TCPR_IPV6_H + sizeof(struct tcpr_ipv6_ext_hdr_base);
+    if (len < min_len)
+        return NULL;
+
+    /* jump to the end of the IPv6 header */
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
     proto = ip6_hdr->ip_nh;
 
@@ -374,7 +404,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */
         case TCPR_IPV6_NH_IPV6:
             dbg(3, "recursing due to v6-in-v6");
-            return get_layer4_v6((ipv6_hdr_t *)next, len);
+            return get_layer4_v6((ipv6_hdr_t *)next, len - min_len);
             break;
 
         /* loop again */
