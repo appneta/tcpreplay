@@ -26,6 +26,12 @@ addons:
 
 matrix:
   include:
+    - os: osx
+      osx_image: xcode8.2
+      compiler: clang
+      before_install:
+        - brew update
+        - brew install autogen
     - os: linux
       dist: trusty
       compiler: gcc
