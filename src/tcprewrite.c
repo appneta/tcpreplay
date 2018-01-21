@@ -67,9 +67,11 @@ main(int argc, char *argv[])
 {
     int optct, rcode;
     pcap_t *dlt_pcap;
+    int nb = 0;
 #ifdef ENABLE_FRAGROUTE
     char ebuf[FRAGROUTE_ERRBUF_LEN];
 #endif
+
     tcprewrite_init();
 
     /* call autoopts to process arguments */
@@ -152,8 +154,7 @@ main(int argc, char *argv[])
 #endif
 
     /* avoid making STDIN non-blocking */
-    int nb = 0;
-    ioctl(0, FIONBIO, &nb)
+    ioctl(0, FIONBIO, &nb);
 
     return 0;
 }
