@@ -102,12 +102,12 @@ dlt_user_init(tcpeditdlt_t *ctx)
     }
     
     /* allocate memory for our deocde extra data */
-    if (sizeof(user_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(user_extra_t));
+    ctx->decoded_extra_size = sizeof(user_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
     /* allocate memory for our config data */
-    if (sizeof(user_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(user_config_t));
+    plugin->config_size = sizeof(user_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
     
     config = (user_config_t *)plugin->config;
     config->length = -1;
@@ -136,11 +136,13 @@ dlt_user_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */
@@ -160,7 +162,12 @@ dlt_user_parse_opts(tcpeditdlt_t *ctx)
     assert(ctx);
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
 
     /*
      * --user-dlt will override the output DLT type, otherwise we'll use 
@@ -227,7 +234,12 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         return TCPEDIT_ERROR;
     
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
 
     /* Make room for our new l2 header if l2len != config->length */
     if (ctx->l2len > config->length) {
@@ -280,7 +292,7 @@ dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_user_l2len(ctx, packet, pktlen);
 
-    if (pktlen < l2len)
+    if (l2len < 0 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -321,7 +333,12 @@ dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
 
     return config->length;
 }

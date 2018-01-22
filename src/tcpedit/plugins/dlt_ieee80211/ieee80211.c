@@ -109,12 +109,12 @@ dlt_ieee80211_init(tcpeditdlt_t *ctx)
     }
     
     /* allocate memory for our deocde extra data */
-    if (sizeof(ieee80211_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(ieee80211_extra_t));
+    ctx->decoded_extra_size = sizeof(ieee80211_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
     /* allocate memory for our config data */
-    if (sizeof(ieee80211_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(ieee80211_config_t));
+    plugin->config_size = sizeof(ieee80211_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
 
     /* FIXME: set default config values here */
 
@@ -140,11 +140,13 @@ dlt_ieee80211_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */

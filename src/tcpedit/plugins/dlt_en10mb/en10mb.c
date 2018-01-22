@@ -104,8 +104,10 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    ctx->decoded_extra = safe_malloc(sizeof(en10mb_extra_t));
-    plugin->config = safe_malloc(sizeof(en10mb_config_t));
+    ctx->decoded_extra_size = sizeof(en10mb_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    plugin->config_size = sizeof(en10mb_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
     config = (en10mb_config_t *)plugin->config;
     
     /* init vlan user values to -1 to indicate not set */
@@ -135,11 +137,13 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
 
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
         
     return TCPEDIT_OK; /* success */
@@ -222,7 +226,12 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
     assert(ctx);
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = (en10mb_config_t *)plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
 
     /* --subsmacs */
     if (HAVE_OPT(ENET_SUBSMAC)) {
@@ -381,6 +390,9 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     memcpy(&(ctx->srcaddr.ethernet), &(eth->ether_shost), ETHER_ADDR_LEN);
 
     extra = (en10mb_extra_t *)ctx->decoded_extra;
+    if (ctx->decoded_extra_size < sizeof(*extra))
+        return TCPEDIT_ERROR;
+
     extra->vlan = 0;
     
     /* get the L3 protocol type  & L2 len*/
@@ -436,9 +448,17 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     }
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
+
     extra = (en10mb_extra_t *)ctx->decoded_extra;
-    
+    if (ctx->decoded_extra_size < sizeof(*extra))
+        return TCPEDIT_ERROR;
+
     /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
     if (ctx->decoder->dlt == dlt_value) {
         if ((ctx->l2len == TCPR_802_1Q_H && config->vlan == TCPEDIT_VLAN_OFF) ||
