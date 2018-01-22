@@ -383,6 +383,7 @@ main(int argc, char **argv)
     printf("----------------------------------------------------------\n\n");
 
     free(sched);
+    restore_stdin();
     return 0;
 } 
 /*end of main() function*/

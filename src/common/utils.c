@@ -28,6 +28,10 @@
 #include <ctype.h>
 #include <unistd.h>
 
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -334,4 +338,22 @@ int tcpr_random(uint32_t *seed)
   *seed = next;
 
   return result;
+}
+
+/**
+ * #416 - Ensure STDIN is not left in non-blocking mode after closing
+ * a program. BSD and Unix derivatives should utilize `FIONBIO` due to known
+ * issues with reading from tty with a 0 byte read returning -1 opposed to 0.
+ */
+void restore_stdin(void)
+{
+#ifdef FIONBIO
+    int nb = 0;
+
+    ioctl(0, FIONBIO, &nb);
+#else
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+#endif /* FIONBIO */
+
+
 }

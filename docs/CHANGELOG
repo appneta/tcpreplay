@@ -2,6 +2,7 @@
     - Travis CI build fails due to new build images (#432)
     - Unable to build with libpcap 1.8.1 (#430)
     - Unable to tcprewrite range of ports with --portmap (#422)
+    - Avoid non-blocking behaviour when using STDIN (#416)
     - pcap containing >1020 packets produces invalid cache file (#415)
     - heap-buffer-overflow in get_l2protocol (#410)
     - heap-buffer-overflow in packet2tree (#409)

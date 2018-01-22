@@ -193,8 +193,9 @@ main(int argc, char *argv[])
 
     /* close cache file */
     close(out_file);
-    return 0;
 
+    restore_stdin();
+    return 0;
 }
 
 

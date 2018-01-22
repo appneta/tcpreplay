@@ -149,6 +149,8 @@ main(int argc, char *argv[])
 #ifdef ENABLE_DMALLOC
     dmalloc_shutdown();
 #endif
+
+    restore_stdin();
     return 0;
 }
 
