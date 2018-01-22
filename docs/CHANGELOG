@@ -10,6 +10,7 @@
     - heap-buffer-overflow in flow_decode (#407)
     - Rewrite zero IP total length field to match the actual packet length (#406)
     - stack-buffer-overflow in tcpcapinfo (#405)
+    - tcpprep --include option does not exclude (#404)
 
 05/10/2017 Version 4.2.6
     - Test fails on sparc64 (#393)
