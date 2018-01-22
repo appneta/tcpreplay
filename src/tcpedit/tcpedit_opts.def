@@ -44,16 +44,6 @@ EOText;
 };
 
 flag = {
-    name        = rewrite-sequence;
-    value       = n;
-    descrip     = "Change TCP sequence (and ACK) numbers";
-    doc         = <<- EOText
-Change all TCP sequence numbers, and related sequence-acknowledgement numbers.
-They will be shifted by a random amount between 1 and 2^32.
-EOText;
-};
-
-flag = {
     name        = seed;
     flags-cant   = fuzz-seed;
     value       = s;
@@ -143,6 +133,16 @@ IPv6 Example:
 --endpoints=[2001:db8::dead:beef]:[::ffff:0:0:ac:f:0:2]
 @end example
 
+EOText;
+};
+
+flag = {
+    name        = rewrite-sequence;
+    value       = n;
+    descrip     = "Change TCP sequence (and ACK) numbers";
+    doc         = <<- EOText
+Change all TCP sequence numbers, and related sequence-acknowledgement numbers.
+They will be shifted by a random amount between 1 and 2^32.
 EOText;
 };
 
