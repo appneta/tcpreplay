@@ -8,6 +8,7 @@
     - heap-buffer-overflow in packet2tree (#409)
     - heap-buffer-overflow in get_l2len (#408)
     - heap-buffer-overflow in flow_decode (#407)
+    - Rewrite zero IP total length field to match the actual packet length (#406)
     - stack-buffer-overflow in tcpcapinfo (#405)
 
 05/10/2017 Version 4.2.6
