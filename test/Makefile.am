@@ -16,7 +16,9 @@ TCPBRIDGE=../src/tcpbridge
 EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.auto_server test.auto_first test.cidr test.comment test.port test.mac \
 		test.cidr_reverse test.mac_reverse test.regex_reverse \
-		test.prep_config test.primary test.regex test.secondary \
+		test.include_packets test.exclude_packets test.include_source \
+		test.include_dest test.prep_config \
+		test.primary test.regex test.secondary \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
@@ -24,7 +26,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
 		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
 		test.rewrite_mtutrunc test.rewrite_mac_seed test.rewrite_range_portmap \
-		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing\
+		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
@@ -58,20 +60,24 @@ standard: standard_prep $(STANDARD_REWRITE)
 	$(PRINTF) "Warning: only creating %s endian standard test files\n" $(REWRITE_WARN)
 
 standard_prep:
-	$(TCPPREP) -i test.pcap -o test.auto_router -a router
+	$(TCPPREP) -i test.pcap -o test.auto_router -a router 
 	$(TCPPREP) -i test.pcap -o test.auto_bridge -a bridge
 	$(TCPPREP) -i test.pcap -o test.auto_client -a client
 	$(TCPPREP) -i test.pcap -o test.auto_server -a server
 	$(TCPPREP) -i test.pcap -o test.auto_first -a first
 	$(TCPPREP) --load-opts config -o test.prep_config
 	$(TCPPREP) -i test.pcap -o test.port -p
-	$(TCPPREP) -i test.pcap -o test.mac -e 00:02:3b:00:3d:ce
-	$(TCPPREP) -i test.pcap -o test.cidr -c '216.27.178.0/24'
-	$(TCPPREP) -i test.pcap -o test.regex -r '216.27.178.*'
+	$(TCPPREP) -i test.pcap -o test.mac -e 00:1f:f3:3c:e1:13
+	$(TCPPREP) -i test.pcap -o test.cidr -c '96.17.211.0/24'
+	$(TCPPREP) -i test.pcap -o test.regex -r '96.17.211.*'
 	$(TCPPREP) -i test.pcap -o test.comment -C "This is a comment" -p
-	$(TCPPREP) -i test.pcap -o test.mac_reverse -e 00:02:3b:00:3d:ce --reverse
-	$(TCPPREP) -i test.pcap -o test.cidr_reverse -c '216.27.178.0/24' --reverse
-	$(TCPPREP) -i test.pcap -o test.regex_reverse -r '216.27.178.*' --reverse
+	$(TCPPREP) -i test.pcap -o test.mac_reverse -e 00:1f:f3:3c:e1:13 --reverse
+	$(TCPPREP) -i test.pcap -o test.cidr_reverse -c '96.17.211.0/24' --reverse
+	$(TCPPREP) -i test.pcap -o test.regex_reverse -r '96.17.211.*' --reverse
+	$(TCPPREP) -i test.pcap -o test.exclude_packets -c '96.17.211.0/24' --exclude 'P:61-65,88-91'
+	$(TCPPREP) -i test.pcap -o test.include_packets -c '96.17.211.0/24' --include 'P:61-65,88-91'
+	$(TCPPREP) -i test.pcap -o test.include_source -c '96.17.211.0/24' --include 'S:96.0.0.0/8'
+	$(TCPPREP) -i test.pcap -o test.include_dest -c '96.17.211.0/24' --include 'D:96.0.0.0/8'
 
 standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_seed -s 55
@@ -81,7 +87,7 @@ standard_bigendian:
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_pnat \
-		-N 216.27.178.0/24:172.16.0.0/24
+		-N 96.17.211.0/24:172.16.0.0/24
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_pad -F pad
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i test.pcap -o test.rewrite_mac \
@@ -122,7 +128,7 @@ standard_littleendian:
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_pnat \
-		-N 216.27.178.0/24:172.16.0.0/24
+		-N 96.17.211.0/24:172.16.0.0/24
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_pad -F pad
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_trunc -F trunc
 	$(TCPREWRITE) -i test.pcap -o test2.rewrite_mac \
@@ -157,7 +163,8 @@ standard_littleendian:
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
-	mac_reverse cidr_reverse regex_reverse
+	mac_reverse cidr_reverse regex_reverse exclude_packets \
+	include_packets include_source include_dest
 
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
@@ -215,14 +222,14 @@ auto_first:
 regex:
 	$(PRINTF) "%s" "[tcpprep] Regex mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' >>test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '96.17.211.*' >>test.log 2>&1
 	diff  test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 cidr:
 	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' >>test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
@@ -236,7 +243,7 @@ port:
 mac:
 	$(PRINTF) "%s" "[tcpprep] MAC mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] MAC mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce >>test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:1f:f3:3c:e1:13 >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
@@ -262,24 +269,52 @@ print_info:
 regex_reverse:
 	$(PRINTF) "%s" "[tcpprep] Regex reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex reverse mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '216.27.178.*' --reverse >>test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -r '96.17.211.*' --reverse >>test.log 2>&1
 	diff  test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 cidr_reverse:
 	$(PRINTF) "%s" "[tcpprep] CIDR reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR reverse mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '216.27.178.0/24' --reverse >>test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --reverse >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 mac_reverse:
 	$(PRINTF) "%s" "[tcpprep] MAC reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] MAC reverse mode test: " >>test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:02:3b:00:3d:ce --reverse >>test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -e 00:1f:f3:3c:e1:13 --reverse >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
+exclude_packets:
+	$(PRINTF) "%s" "[tcpprep] exclude packets test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] exclude packets test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --exclude 'P:61-65,88-91' >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
+include_packets:
+	$(PRINTF) "%s" "[tcpprep] include packets test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] include packets test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'P:61-65,88-91' >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
+include_source:
+	$(PRINTF) "%s" "[tcpprep] include source test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] include source test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'S:96.0.0.0/8' >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
+include_dest:
+	$(PRINTF) "%s" "[tcpprep] include destination test: "
+	$(PRINTF) "%s\n" "*** [tcpprep] include destination test: " >>test.log
+	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'D:96.0.0.0/8' >>test.log 2>&1
+	diff test.$@ test.$@1 >>test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	
 replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Basic test: " >>test.log
@@ -342,7 +377,7 @@ rewrite_pnat:
 	$(PRINTF) "%s" "[tcprewrite] Pseudo NAT test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Pseudo NAT test: " >>test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 \
-	    -N 216.27.178.0/24:172.16.0.0/24  >>test.log 2>&1
+	    -N 96.17.211.0/24:172.16.0.0/24  >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
@@ -574,7 +609,7 @@ endif
 rewrite_l7fuzzing:
 	$(PRINTF) "%s" "[tcprewrite] L7 fuzzing test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] L7 fuzzing test: " >>test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --fuzz-seed=42 >>test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 --fuzz-seed=42 --fuzz-factor=2 >>test.log 2>&1
 if WORDS_BIGENDIAN
 	diff test.$@ test.$@1 >>test.log 2>&1
 else
