@@ -332,13 +332,11 @@ main(int argc, char *argv[])
             } else if (backwards && caplentoobig) {
                 printf("BAD_TS|TOOBIG");
             } 
-
         }
-
     }
 
-    exit(0);
-
+    restore_stdin();
+    return 0;
 }
 
 /**

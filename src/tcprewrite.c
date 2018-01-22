@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -67,11 +66,9 @@ main(int argc, char *argv[])
 {
     int optct, rcode;
     pcap_t *dlt_pcap;
-    int nb = 0;
 #ifdef ENABLE_FRAGROUTE
     char ebuf[FRAGROUTE_ERRBUF_LEN];
 #endif
-
     tcprewrite_init();
 
     /* call autoopts to process arguments */
@@ -153,9 +150,7 @@ main(int argc, char *argv[])
     dmalloc_shutdown();
 #endif
 
-    /* avoid making STDIN non-blocking */
-    ioctl(0, FIONBIO, &nb);
-
+    restore_stdin();
     return 0;
 }
 

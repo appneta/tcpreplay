@@ -114,6 +114,7 @@ main(int argc, char *argv[])
     tcpdump_close(options.tcpdump);
 #endif
 
+    restore_stdin();
     return 0;
 }
 

@@ -48,6 +48,7 @@ int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 void packet_stats(const tcpreplay_stats_t *stats);
 int format_date_time(struct timeval *when, char *buf, size_t len);
 int tcpr_random(uint32_t *seed);
+void restore_stdin(void);
 
 /* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)

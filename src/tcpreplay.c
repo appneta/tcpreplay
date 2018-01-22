@@ -157,6 +157,7 @@ main(int argc, char *argv[])
         }
     }
     tcpreplay_close(ctx);
+    restore_stdin();
     return 0;
 }   /* main() */
 
