@@ -299,14 +299,14 @@ include_packets:
 	$(PRINTF) "%s\n" "*** [tcpprep] include packets test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'P:61-65,88-91' >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 	
 include_source:
 	$(PRINTF) "%s" "[tcpprep] include source test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] include source test: " >>test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'S:96.0.0.0/8' >>test.log 2>&1
 	diff test.$@ test.$@1 >>test.log 2>&1
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 	
 include_dest:
 	$(PRINTF) "%s" "[tcpprep] include destination test: "
@@ -409,7 +409,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 rewrite_mac_seed:
 	$(PRINTF) "%s" "[tcprewrite] Seeded MAC test: "
@@ -433,7 +433,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_trunc:
 	$(PRINTF) "%s" "[tcprewrite] Truncate test: "
@@ -615,7 +615,7 @@ if WORDS_BIGENDIAN
 else
 	diff test2.$@ test.$@1 >>test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
