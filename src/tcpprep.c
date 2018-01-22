@@ -339,11 +339,13 @@ process_raw_packets(pcap_t * pcap)
         /* look for include or exclude LIST match */
         if (options->xX.list != NULL) {
             if (options->xX.mode < xXExclude) {
+                /* include list */
                 if (!check_list(options->xX.list, packetnum)) {
                     add_cache(&(options->cachedata), DONT_SEND, 0);
                     continue;
                 }
             }
+            /* exclude list */
             else if (check_list(options->xX.list, packetnum)) {
                 add_cache(&(options->cachedata), DONT_SEND, 0);
                 continue;
