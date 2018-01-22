@@ -292,6 +292,16 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
+    /*
+     * fix IP packet lengths in case they are corrupted by TCP segmentation
+     * offload
+     */
+    if (ip_hdr != NULL) {
+        fix_ipv4_length(*pkthdr, ip_hdr);
+    } else if (ip6_hdr != NULL) {
+        fix_ipv6_length(*pkthdr, ip6_hdr);
+    }
+
     /* do we need to fix checksums? -- must always do this last! */
     if ((tcpedit->fixcsum || needtorecalc)) {
         if (ip_hdr != NULL) {
