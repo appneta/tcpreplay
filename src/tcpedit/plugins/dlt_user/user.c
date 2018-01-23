@@ -101,8 +101,10 @@ dlt_user_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    /* allocate memory for our deocde extra data */
-    ctx->decoded_extra_size = sizeof(user_extra_t);
+    /* allocate memory for our decode extra data - plus some space for
+     * other DLT decodes
+     */
+    ctx->decoded_extra_size = USER_L2MAXLEN;
     ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
     /* allocate memory for our config data */

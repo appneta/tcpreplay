@@ -103,7 +103,7 @@ dlt_raw_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    /* allocate memory for our deocde extra data */
+    /* allocate memory for our config data */
     ctx->decoded_extra_size = sizeof(raw_extra_t);
     ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
