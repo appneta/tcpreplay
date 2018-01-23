@@ -117,8 +117,8 @@ dlt_jnpr_ether_init(tcpeditdlt_t *ctx)
     }
     
     /* allocate memory for our config data */
-    if (sizeof(jnpr_ether_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(jnpr_ether_config_t));
+    plugin->config_size = sizeof(jnpr_ether_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
 
     return TCPEDIT_OK; /* success */
 }
@@ -164,6 +164,7 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
     
     if (plugin->config != NULL) {
@@ -171,6 +172,7 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
         config = (jnpr_ether_config_t *)ctx->encoder->config;
         tcpedit_dlt_cleanup(config->subctx);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */

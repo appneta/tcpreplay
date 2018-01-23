@@ -33,9 +33,14 @@ extern "C" {
  * Example: Ethernet VLAN tag info
  */
 typedef struct {
-    int hdlc; /* set to 1 if values below are filled out */
-    u_int8_t address;
-    u_int8_t control;
+    union {
+        struct {
+            int hdlc; /* set to 1 if values below are filled out */
+            u_int8_t address;
+            u_int8_t control;
+        };
+        u_char packet[MAXPACKET];
+    };
 } hdlc_extra_t;
 
 

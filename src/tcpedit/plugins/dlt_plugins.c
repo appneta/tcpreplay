@@ -443,7 +443,7 @@ tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
 
     if (ctx->decoded_extra != NULL)
         safe_free(ctx->decoded_extra);
-        
+
     safe_free(ctx);
 }
 

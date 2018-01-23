@@ -32,8 +32,7 @@ extern "C" {
  * Example: Ethernet VLAN tag info
  */
 typedef struct {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */    
-    int dummy;
+    u_char packet[MAXPACKET];
 } linuxsll_extra_t;
 
 
