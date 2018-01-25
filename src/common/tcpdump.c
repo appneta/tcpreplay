@@ -67,44 +67,81 @@ static int can_exec(const char *filename);
 int
 tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data)
 {
-    struct pollfd poller[1];
-    int result;
+    struct pollfd poller;
+    int res, total;
     char decode[TCPDUMP_DECODE_LEN];
+    struct compact_pkthdr {
+        struct {
+            uint32_t ts_sec;
+            uint32_t ts_usec;
+        } ts;
+        uint32_t caplen;              /* length of portion present */
+        uint32_t len;                 /* length this packet (off wire) */
+    } actual_pkthdr;
 
     assert(tcpdump);
     assert(pkthdr);
     assert(data);
 
-    poller[0].fd = tcpdump->infd;
-    poller[0].events = POLLOUT;
-    poller[0].revents = 0;
-    
-    /* wait until we can write to the tcpdump socket */
-    result = poll(poller, 1, TCPDUMP_POLL_TIMEOUT);
-    if (result < 0)
-        errx(-1, "Error during poll() to write to tcpdump\n%s", strerror(errno));
+    /* convert header to file-format packet header */
+    actual_pkthdr.ts.ts_sec = (uint32_t)pkthdr->ts.tv_sec;
+    actual_pkthdr.ts.ts_usec = (uint32_t)pkthdr->ts.tv_sec;
+    actual_pkthdr.caplen = pkthdr->caplen;
+    actual_pkthdr.len = pkthdr->len;
 
-    if (result == 0)
+    total = 0;
+header_again:
+    poller.fd = PARENT_WRITE_FD;
+    poller.events = POLLOUT;
+    poller.revents = 0;
+
+    /* wait until we can write the header to the tcpdump pipe */
+    res = poll(&poller, 1, TCPDUMP_POLL_TIMEOUT);
+    if (res < 0)
+        errx(-1, "Error writing header to fd %d during poll() to write to tcpdump\n%s",
+                PARENT_WRITE_FD, strerror(errno));
+
+    if (res == 0)
         err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
-
-    /* result > 0 if we get here */
-
-    if (write(tcpdump->infd, (char *)pkthdr, sizeof(struct pcap_pkthdr))
-        != sizeof(struct pcap_pkthdr))
-        errx(-1, "Error writing pcap file header to tcpdump\n%s", strerror(errno));
-
 #ifdef DEBUG
     if (debug >= 5) {
-        if (write(tcpdump->debugfd, (char *)pkthdr, sizeof(struct pcap_pkthdr))
-            != sizeof(struct pcap_pkthdr))
+        if (write(tcpdump->debugfd, (char *)&actual_pkthdr, sizeof(actual_pkthdr))
+            != sizeof(actual_pkthdr))
             errx(-1, "Error writing pcap file header to tcpdump debug\n%s", strerror(errno));
     }
 #endif
+    /* res > 0 if we get here */
+    while (total != sizeof(actual_pkthdr) &&
+            (res = write(PARENT_WRITE_FD, &actual_pkthdr + total,
+                    sizeof(actual_pkthdr) - total))) {
+        if (res < 0) {
+            if (errno == EAGAIN)
+                goto header_again;
 
-    if (write(tcpdump->infd, data, pkthdr->caplen) != (ssize_t)pkthdr->caplen)
-        errx(-1, "Error writing packet data to tcpdump\n%s", strerror(errno));
+            errx(-1, "Error writing pcap file header to tcpdump\n%s",
+                    strerror(errno));
+        }
+
+        total += res;
+    }
+
+    total = 0;
+data_again:
+    /* wait until we can write data to the tcpdump pipe */
+    poller.fd = PARENT_WRITE_FD;
+    poller.events = POLLOUT;
+    poller.revents = 0;
+
+    res = poll(&poller, 1, TCPDUMP_POLL_TIMEOUT);
+    if (res < 0)
+        errx(-1, "Error writing to fd %d during poll() to write to tcpdump\n%s",
+                PARENT_WRITE_FD, strerror(errno));
+
+    if (res == 0)
+        err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
+            "Try increasing TCPDUMP_POLL_TIMEOUT");
 
 #ifdef DEBUG
     if (debug >= 5) {
@@ -113,27 +150,44 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
     }
 #endif
 
+    while (total != (ssize_t)pkthdr->caplen &&
+            (res = write(PARENT_WRITE_FD, data + total, pkthdr->caplen - total))) {
+        if (res < 0) {
+            if (errno == EAGAIN)
+                goto data_again;
+
+            errx(-1, "Error writing packet data to tcpdump\n%s", strerror(errno));
+        }
+
+        total += res;
+    }
+
     /* Wait for output from tcpdump */
-    poller[0].fd = tcpdump->outfd;
-    poller[0].events = POLLIN;
-    poller[0].revents = 0;
+    poller.fd = PARENT_READ_FD;
+    poller.events = POLLIN;
+    poller.revents = 0;
 
-    result = poll(poller, 1, TCPDUMP_POLL_TIMEOUT);
-    if (result < 0)
-        errx(-1, "Error during poll() to write to tcpdump\n%s", strerror(errno));
+    res = poll(&poller, 1, TCPDUMP_POLL_TIMEOUT);
+    if (res < 0)
+        errx(-1, "Error out to fd %d during poll() to read frome tcpdump\n%s",
+                PARENT_READ_FD, strerror(errno));
 
-    if (result == 0)
+    if (res == 0)
         err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
-    result = read(tcpdump->outfd, &decode, TCPDUMP_DECODE_LEN);
-    if (result < 0)
-        errx(-1, "Error reading tcpdump decode: %s", strerror(errno));
+    while ((res = read(PARENT_READ_FD, decode, TCPDUMP_DECODE_LEN))) {
+        if (res < 0) {
+            if (errno == EAGAIN)
+                break;
 
-    /* result > 0 if we get here */
-    decode[min(result, TCPDUMP_DECODE_LEN)] = 0;
+            errx(-1, "Error reading tcpdump decode: %s", strerror(errno));
+        }
 
-    printf("%s", decode);
+        decode[min(res, TCPDUMP_DECODE_LEN-1)] = 0;
+        dbgx(4, "read %d byte from tcpdump", res);
+        printf("%s", decode);
+    }
 
     return TRUE;
 }
@@ -146,9 +200,6 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
 int
 tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 {
-    int infd[2], outfd[2];
-    FILE *writer;
-
     assert(tcpdump);
     assert(pcap);
 
@@ -180,13 +231,10 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 
     dbg(2, "Starting tcpdump...");
 
-    /* create our socket pair to send packet data to tcpdump via */
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, infd) < 0)
-        errx(-1, "Unable to create stdin socket pair: %s", strerror(errno));
-
-    /* create our socket pair to read packet decode from tcpdump */
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, outfd) < 0)
-        errx(-1, "Unable to create stdout socket pair: %s", strerror(errno));
+    /* create our pipe to send packet data to tcpdump via */
+    if (pipe(tcpdump->pipes[PARENT_READ_PIPE]) < 0 ||
+            pipe(tcpdump->pipes[PARENT_WRITE_PIPE]) < 0)
+        errx(-1, "Unable to create pipe: %s", strerror(errno));
 
     if ((tcpdump->pid = fork() ) < 0)
         errx(-1, "Fork failed: %s", strerror(errno));
@@ -194,57 +242,61 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
     dbgx(2, "tcpdump pid: %d", tcpdump->pid);
 
     if (tcpdump->pid > 0) {
-        /* we're still in tcpreplay */
-        dbgx(2, "[parent] closing input fd %d", infd[1]);
-        close(infd[1]);  /* close the tcpdump side */
-        dbgx(2, "[parent] closing output fd %d", outfd[1]);
-        close(outfd[1]);
-        tcpdump->infd = infd[0];
-        tcpdump->outfd = outfd[0];
+        /* parent - we're still in tcpreplay */
+
+        /* close fds not required by parent */
+        dbgx(2, "[parent] closing child read/write fd %d/%d", CHILD_READ_FD,
+                CHILD_WRITE_FD);
+        close(CHILD_READ_FD);
+        close(CHILD_WRITE_FD);
+        CHILD_READ_FD = 0;
+        CHILD_WRITE_FD = 0;
 
         /* send the pcap file header to tcpdump */
-        writer = fdopen(tcpdump->infd, "w");
-        if ((tcpdump->dumper = pcap_dump_fopen(pcap, writer)) == NULL) {
+        FILE *writer = fdopen(PARENT_WRITE_FD, "w");
+        if ((pcap_dump_fopen(pcap, writer)) == NULL) {
             warnx("[parent] pcap_dump_fopen(): %s", pcap_geterr(pcap));
             return FALSE;
         }
-        pcap_dump_flush(tcpdump->dumper);
 
-        if (fcntl(tcpdump->infd, F_SETFL, O_NONBLOCK) < 0)
-            warnx("[parent] Unable to fcntl tcpreplay socket:\n%s", strerror(errno));
+        pcap_dump_flush((pcap_dumper_t*)writer);
 
-        if (fcntl(tcpdump->outfd, F_SETFL, O_NONBLOCK) < 0)
-            warnx("[parent] Unable to fnctl stdout socket:\n%s", strerror(errno));
+        if (fcntl(PARENT_WRITE_FD, F_SETFL, O_NONBLOCK) < 0)
+            warnx("[parent] Unable to fcntl write pipe:\n%s", strerror(errno));
 
-    }
-    else {
+        if (fcntl(PARENT_READ_FD, F_SETFL, O_NONBLOCK) < 0)
+            warnx("[parent] Unable to fnctl read pip:\n%s", strerror(errno));
+    } else {
         dbg(2, "[child] started the kid");
 
-        /* we're in the child process */
-        dbgx(2, "[child] closing in fd %d", infd[0]);
-        dbgx(2, "[child] closing out fd %d", outfd[0]);
-        close(infd[0]); /* close the tcpreplay side */
-        close(outfd[0]);
-
-        /* copy our side of the socketpair to our stdin */
-        if (infd[1] != STDIN_FILENO) {
-            if (dup2(infd[1], STDIN_FILENO) != STDIN_FILENO)
-                errx(-1, "[child] Unable to copy socket to stdin: %s", 
-                    strerror(errno));
+        /* we're in the child process - run "tcpdump  <options> -r -" */
+        if (dup2(CHILD_READ_FD, STDIN_FILENO) != STDIN_FILENO) {
+            errx(-1, "[child] Unable to duplicate socket to stdin: %s",
+                                strerror(errno));
         }
 
-        /* copy our side of the socketpair to our stdout */
-        if (outfd[1] != STDOUT_FILENO) {
-            if (dup2(outfd[1], STDOUT_FILENO) != STDOUT_FILENO)
-                errx(-1, "[child] Unable to copy socket to stdout: %s", 
-                    strerror(errno));
+        if (dup2(CHILD_WRITE_FD, STDOUT_FILENO) != STDOUT_FILENO) {
+            errx(-1, "[child] Unable to duplicate socket to stdout: %s",
+                                strerror(errno));
         }
+
+        /*
+         * Close sockets not required by child. The exec'ed program must
+         * not know that they ever existed.
+         */
+        dbgx(2, "[child] closing in fds %d/%d/%d/%d", CHILD_READ_FD,
+                CHILD_WRITE_FD, PARENT_READ_FD, PARENT_WRITE_FD);
+        close(CHILD_READ_FD);
+        close(CHILD_WRITE_FD);
+        close(PARENT_READ_FD);
+        close(PARENT_WRITE_FD);
 
         /* exec tcpdump */
         dbg(2, "[child] Exec'ing tcpdump...");
         if (execv(TCPDUMP_BINARY, options_vec) < 0)
             errx(-1, "Unable to exec tcpdump: %s", strerror(errno));
 
+        dbg(2, "[child] tcpdump done!");
     }
 
     return TRUE;
@@ -265,15 +317,15 @@ tcpdump_close(tcpdump_t *tcpdump)
     dbgx(2, "[parent] killing tcpdump pid: %d", tcpdump->pid);
 
     kill(tcpdump->pid, SIGKILL);
-    close(tcpdump->infd);
-    close(tcpdump->outfd);
+    close(PARENT_READ_FD);
+    close(PARENT_WRITE_FD);
 
     if (waitpid(tcpdump->pid, NULL, 0) != tcpdump->pid)
         errx(-1, "[parent] Error in waitpid: %s", strerror(errno));
 
     tcpdump->pid = 0;
-    tcpdump->infd = 0;
-    tcpdump->outfd = 0;
+    PARENT_READ_FD = 0;
+    PARENT_WRITE_FD = 0;
 }
 
 /** 
@@ -283,12 +335,10 @@ void
 tcpdump_kill(tcpdump_t *tcpdump)
 {
     if (tcpdump->pid) {
-        if (kill(tcpdump->pid, SIGTERM) != 0) {
+        if (kill(tcpdump->pid, SIGTERM) != 0)
             kill(tcpdump->pid, SIGKILL);
-        }
     }
-    tcpdump->infd = 0;
-    tcpdump->outfd = 0;
+
     tcpdump->pid = 0;
 }
 
@@ -333,10 +383,10 @@ tcpdump_fill_in_options(char *opt)
     options_vec[i++] = newarg;
 
     /* process the remaining args 
-       note that i < OPTIONS_VEC_SIZE - 1
-       because: a) we need to add '-' as an option to the end
-       b) because the array has to be null terminated
-    */
+     * note that i < OPTIONS_VEC_SIZE - 1
+     * because: a) we need to add '-' as an option to the end
+     * b) because the array has to be null terminated
+     */
     while (((arg = strtok_r(NULL, OPT_DELIM, &token)) != NULL) &&
            (i < OPTIONS_VEC_SIZE - 1)) {
 
@@ -351,7 +401,7 @@ tcpdump_fill_in_options(char *opt)
     /* tell -r to read from stdin */
     options_vec[i] = "-";
 
-    return(i);
+    return i;
 }
 
 
