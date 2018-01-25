@@ -122,8 +122,8 @@ header_again:
 
 #ifdef DEBUG
     if (debug >= 5) {
-        if (write(tcpdump->debugfd, (char *)&actual_pkthdr, sizeof(actual_pkthdr)
-            != sizeof(actual_pkthdr)))
+        if (write(tcpdump->debugfd, (char *)&actual_pkthdr, sizeof(actual_pkthdr))
+            != sizeof(actual_pkthdr))
             errx(-1, "Error writing pcap file header to tcpdump debug\n%s", strerror(errno));
     }
 #endif
