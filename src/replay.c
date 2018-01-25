@@ -154,17 +154,12 @@ replay_file(tcpreplay_t *ctx, int idx)
         }
     }
 
-#if 0
-/*
- * this API is broken right now.  This needs to be handled via a pipe or 
- * something else so we can pass the output up to the calling programm 
- */
 #ifdef ENABLE_VERBOSE
     if (ctx->options->verbose) {
         /* in cache mode, we may not have opened the file */
         if (pcap == NULL)
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
-               tcpreplay_seterr("Error opening pcap file: %s", ebuf);
+               tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                return -1;
             }
 
@@ -172,7 +167,6 @@ replay_file(tcpreplay_t *ctx, int idx)
         /* init tcpdump */
         tcpdump_open(ctx->options->tcpdump, pcap);
     }
-#endif
 #endif
 
     if (pcap != NULL) {
@@ -196,10 +190,8 @@ replay_file(tcpreplay_t *ctx, int idx)
     if (pcap != NULL)
         pcap_close(pcap);
 
-#if 0
 #ifdef ENABLE_VERBOSE
     tcpdump_close(ctx->options->tcpdump);
-#endif
 #endif
     return 0;
 }
