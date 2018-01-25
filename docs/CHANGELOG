@@ -12,6 +12,7 @@
     - stack-buffer-overflow in tcpcapinfo (#405)
     - tcpprep --include option does not exclude (#404)
     - Negative-size-param memset in dlt_radiotap_get_80211 (#402)
+    - tcpeplay --verbose option not working (#398)
 
 05/10/2017 Version 4.2.6
     - Test fails on sparc64 (#393)
