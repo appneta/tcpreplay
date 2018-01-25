@@ -105,8 +105,15 @@ header_again:
         err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
+#ifdef DEBUG
+    if (debug >= 5) {
+        if (write(tcpdump->debugfd, (char *)&actual_pkthdr, sizeof(actual_pkthdr))
+            != sizeof(actual_pkthdr))
+            errx(-1, "Error writing pcap file header to tcpdump debug\n%s", strerror(errno));
+    }
+#endif
     /* res > 0 if we get here */
-    while (total != (ssize_t)pkthdr->caplen &&
+    while (total != sizeof(actual_pkthdr) &&
             (res = write(PARENT_WRITE_FD, &actual_pkthdr + total,
                     sizeof(actual_pkthdr) - total))) {
         if (res < 0) {
@@ -119,14 +126,6 @@ header_again:
 
         total += res;
     }
-
-#ifdef DEBUG
-    if (debug >= 5) {
-        if (write(tcpdump->debugfd, (char *)&actual_pkthdr, sizeof(actual_pkthdr))
-            != sizeof(actual_pkthdr))
-            errx(-1, "Error writing pcap file header to tcpdump debug\n%s", strerror(errno));
-    }
-#endif
 
     total = 0;
 data_again:
@@ -144,6 +143,13 @@ data_again:
         err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
+#ifdef DEBUG
+    if (debug >= 5) {
+        if (write(tcpdump->debugfd, data, pkthdr->caplen) != (ssize_t)pkthdr->caplen)
+            errx(-1, "Error writing packet data to tcpdump debug\n%s", strerror(errno));
+    }
+#endif
+
     while (total != (ssize_t)pkthdr->caplen &&
             (res = write(PARENT_WRITE_FD, data + total, pkthdr->caplen - total))) {
         if (res < 0) {
@@ -155,13 +161,6 @@ data_again:
 
         total += res;
     }
-
-#ifdef DEBUG
-    if (debug >= 5) {
-        if (write(tcpdump->debugfd, data, pkthdr->caplen) != (ssize_t)pkthdr->caplen)
-            errx(-1, "Error writing packet data to tcpdump debug\n%s", strerror(errno));
-    }
-#endif
 
     /* Wait for output from tcpdump */
     poller.fd = PARENT_READ_FD;
@@ -201,8 +200,6 @@ data_again:
 int
 tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 {
-    FILE *writer;
-
     assert(tcpdump);
     assert(pcap);
 
@@ -256,13 +253,13 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
         CHILD_WRITE_FD = 0;
 
         /* send the pcap file header to tcpdump */
-        writer = fdopen(PARENT_WRITE_FD, "w");
-        if ((tcpdump->dumper = pcap_dump_fopen(pcap, writer)) == NULL) {
+        FILE *writer = fdopen(PARENT_WRITE_FD, "w");
+        if ((pcap_dump_fopen(pcap, writer)) == NULL) {
             warnx("[parent] pcap_dump_fopen(): %s", pcap_geterr(pcap));
             return FALSE;
         }
 
-        pcap_dump_flush(tcpdump->dumper);
+        pcap_dump_flush((pcap_dumper_t*)writer);
 
         if (fcntl(PARENT_WRITE_FD, F_SETFL, O_NONBLOCK) < 0)
             warnx("[parent] Unable to fcntl write pipe:\n%s", strerror(errno));

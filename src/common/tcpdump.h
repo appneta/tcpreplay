@@ -81,7 +81,6 @@ typedef struct tcpdump_s {
     struct pcap_file_header pfh;
     int pid;
     int pipes[NUM_PIPES][2];
-    pcap_dumper_t *dumper;
 
     /* following vars are for figuring out exactly what we send to
      * tcpdump.  See TCPDUMP_DEBUG 
