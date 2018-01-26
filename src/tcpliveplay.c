@@ -1189,7 +1189,6 @@ do_checksum_liveplay(u_int8_t *data, int proto, int len) {
     int ip_hl;
     volatile int sum = 0;   // <-- volatile works around a PPC g++ bug
 
-    sum;
     ipv4 = NULL;
 
     ipv4 = (ipv4_hdr *)data;
