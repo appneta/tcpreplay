@@ -1,6 +1,7 @@
 01/18/2018 Version 4.3.0 beta1
     - Travis CI build fails due to new build images (#432)
     - Unable to build with libpcap 1.8.1 (#430)
+    - tcpprep -S not working for large cache files (#423)
     - Unable to tcprewrite range of ports with --portmap (#422)
     - Avoid non-blocking behaviour when using STDIN (#416)
     - pcap containing >1020 packets produces invalid cache file (#415)
