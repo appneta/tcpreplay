@@ -200,7 +200,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(MAXSLEEP)) {
         options->maxsleep.tv_sec = OPT_VALUE_MAXSLEEP / 1000;
-        options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000;
+        options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000 * 1000;
     }
 
 #ifdef ENABLE_VERBOSE
