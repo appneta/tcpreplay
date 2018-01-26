@@ -3,6 +3,7 @@
     - Unable to build with libpcap 1.8.1 (#430)
     - tcpprep -S not working for large cache files (#423)
     - Unable to tcprewrite range of ports with --portmap (#422)
+    - --maxsleep broken for values less than 1000 (#421)
     - Avoid non-blocking behaviour when using STDIN (#416)
     - pcap containing >1020 packets produces invalid cache file (#415)
     - heap-buffer-overflow in get_l2protocol (#410)

@@ -1146,7 +1146,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
                 dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
 
                 TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
-                dbgx(3, "original packet delta timv: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
+                dbgx(3, "original packet delta time: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
                 timesdiv_float(&ctx->nap, options->speed.multiplier);
                 dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
             } else {
