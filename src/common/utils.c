@@ -354,6 +354,4 @@ void restore_stdin(void)
 #else
     fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 #endif /* FIONBIO */
-
-
 }
