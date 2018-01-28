@@ -672,7 +672,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
 #endif
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -941,7 +941,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         }
 
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -1143,16 +1143,22 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
             if (timercmp(pkt_time_delta, last_delta, >) && (delta_pkt_time > delta_us)) {
                 /* pkt_time_delta has increased, so handle normally */
                 timersub(pkt_time_delta, last_delta, &nap_for);
-                dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT, nap_for.tv_sec, nap_for.tv_usec);
+                dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT,
+                        nap_for.tv_sec, nap_for.tv_usec);
 
                 TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
-                dbgx(3, "original packet delta time: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
+                dbgx(3, "original packet delta time: " TIMESPEC_FORMAT,
+                        ctx->nap.tv_sec, ctx->nap.tv_nsec);
                 timesdiv_float(&ctx->nap, options->speed.multiplier);
-                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
+                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT,
+                        ctx->nap.tv_sec, ctx->nap.tv_nsec);
             } else {
                 /* Don't sleep if this packet is late or in the past */
                 update_time = false;
             }
+
+            update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len,
+                    now_us, delta_us, delta_pkt_time);
         } else {
             /* Don't sleep if this is our first packet */
             update_time = false;
@@ -1185,7 +1191,9 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
                 tx_us = now_us - *start_us;
                 *skip_length = ((tx_us - next_tx_us) * bps) / 8000000;
             }
-            update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
+
+            update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len,
+                    now_us, tx_us, next_tx_us);
         }
 
         dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len,
@@ -1212,7 +1220,8 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
              else
                  ctx->skip_packets = options->speed.pps_multi;
 
-             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
+             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len,
+                     now_us, tx_us, next_tx_us);
          }
 
          dbgx(3, "packet count=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, ctx->stats.pkts_sent,

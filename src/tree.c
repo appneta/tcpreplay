@@ -713,7 +713,7 @@ packet2tree(const u_char * data, const int len)
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    if (len < sizeof(*eth_hdr)) {
+    if (len < (int)sizeof(*eth_hdr)) {
         errx(-1, "packet capture length %d too small to process", len);
         return NULL;
     }

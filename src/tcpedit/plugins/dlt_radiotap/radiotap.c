@@ -206,10 +206,9 @@ dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_radiotap_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
-    assert(packet);
     
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_IEEE802_11_RADIO plugin does not support packet encoding");
     return TCPEDIT_ERROR;
@@ -359,7 +358,7 @@ dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen
         return NULL;
 
     extra = (radiotap_extra_t *)(ctx->decoded_extra);
-    if (pktlen >= radiolen && (pktlen - radiolen) >= sizeof(extra->packet) &&
+    if (pktlen >= radiolen && (pktlen - radiolen) >= (int)sizeof(extra->packet) &&
             lastpacket != ctx->tcpedit->runtime.packetnum) {
         memcpy(extra->packet, &packet[radiolen], pktlen - radiolen);
         lastpacket = ctx->tcpedit->runtime.packetnum;

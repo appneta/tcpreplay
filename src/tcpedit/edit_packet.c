@@ -99,12 +99,12 @@ ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
 {
     struct tcpr_ipv6_ext_hdr_base const * nhdr;
     uint8_t next_header;
-    int offset;
+    uint32_t offset;
 
     offset = sizeof(*ip6_hdr);
     next_header = ip6_hdr->ip_nh;
 
-    while (sizeof(*nhdr) + offset < pkt_len)
+    while (sizeof(*nhdr) + offset < (uint32_t)pkt_len)
     {
         if (next_header != TCPR_IPV6_NH_HBH
                 && next_header != TCPR_IPV6_NH_ROUTING

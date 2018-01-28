@@ -198,7 +198,7 @@ dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
 
-    if (pktlen < sizeof(*hdlc))
+    if ((uint32_t)pktlen < sizeof(*hdlc))
         return TCPEDIT_ERROR;
     
     if (ctx->decoded_extra_size < sizeof(*extra))
@@ -234,7 +234,7 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
     assert(ctx);
     assert(packet);
 
-    if (pktlen < sizeof(*hdlc))
+    if ((uint32_t)pktlen < sizeof(*hdlc))
         return TCPEDIT_ERROR;
 
     if (ctx->decoded_extra_size < sizeof(*extra))

@@ -336,11 +336,9 @@ dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_pppserial_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t UNUSED(mac), const u_char *packet, const int pktlen)
+dlt_pppserial_get_mac(_U_ tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
+        _U_ const u_char *packet, _U_ const int pktlen)
 {
-    assert(ctx);
-    assert(packet);
-
     return NULL;
 }
 

@@ -201,7 +201,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
          * fuzz random-size segment at the beginning of the packet payload
          * with random bytes
          */
-        int i;
+        uint32_t i;
         uint32_t sgt_size = fuzz_get_sgt_size(r, l4len);
         if (!sgt_size)
             goto done;
@@ -290,7 +290,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     case FUZZING_CHANGE_MID_RANDOM:
     {
         /* fuzz random-size segment inside the packet with random Bytes */
-        int i;
+        uint32_t i;
         uint32_t offset = ((r >> 16) % (l4len - 1)) + 1;
         uint32_t sgt_size = fuzz_get_sgt_size(r, l4len - offset);
         if (!sgt_size)
