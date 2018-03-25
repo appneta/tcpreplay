@@ -4,8 +4,7 @@ language: c
 
 addons:
   apt:
-    packages:
-    - libpcap-dev
+    packages: [ libpcap-dev, autogen ]
 
 matrix:
   include:
@@ -24,9 +23,7 @@ matrix:
       env: CI_BUILD_PREFIX=scan-build-3.5
       addons:
         apt:
-          packages:
-          - libpcap-dev
-          - clang-3.5
+          packages: [ libpcap-dev, clang-3.5, autogen ]
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
