@@ -1712,6 +1712,22 @@ AC_ARG_WITH(testnic,
     AC_HELP_STRING([--with-testnic=NIC], [Select which network card to use for testing]),
     [ nic1=$withval
       nic2=$withval
+  
+disable_pcap_findalldevs=no
+osx_frameworks=no
+
+case $host in
+
+  *-apple-darwin*)
+  
+      if test x$libpcap_version_096 = xno ; then
+        disable_pcap_findalldevs=yes
+      fi
+	  osx_frameworks=yes
+  ;;
+  *)
+  ;;
+  esac;
       AC_MSG_RESULT([Using --with-testnic=$withval])],
     [
 
