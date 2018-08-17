@@ -486,7 +486,6 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
                   errx(-1, "\"%s\" is a block device and is not a valid Tcpreplay device",
                       device);
                   break;
-                  break;
               case S_IFDIR:
                   errx(-1, "\"%s\" is a directory and is not a valid Tcpreplay device",
                       device);

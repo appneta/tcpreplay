@@ -722,8 +722,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
     /* This is to get rid of the warning */
     args = NULL;
-    if(args == NULL) header = NULL;
-    if(header == NULL) args = NULL; 
+    header = NULL;
 
     /* Extract and examine recieved packet headers */
     etherhdr = (ether_hdr*)(packet);
