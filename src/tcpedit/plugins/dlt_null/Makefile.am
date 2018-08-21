@@ -6,23 +6,28 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_null/null.c
+libtcpedit_a_SOURCES += %reldir%/null.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_null/null.h
+noinst_HEADERS += %reldir%/null.h
 
-EXTRA_DIST += $(srcdir)/plugins/dlt_null/null_opts.def
+EXTRA_DIST += %reldir%/null_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_null/null.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_null/null.h 	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
-	$(srcdir)/tcpedit_api.h 
+null.c: \
+	%reldir%/../dlt_utils.h \
+	%reldir%/../../tcpedit_stub.h \
+	%reldir%/../../plugins/dlt_utils.h \
+	%reldir%/../../plugins.h \
+	%reldir%/../../plugins_api.h \
+	%reldir%/../../plugins_types.h \
+	%reldir%/../../tcpedit_api.h \
+	%reldir%/null.h
 
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
-DLT_STUB_DEPS += $(srcdir)/plugins/dlt_null/null_opts.def
+DLT_STUB_DEPS += %reldir%/null_opts.def
 
-MOSTLYCLEANFILES += $(srcdir)/plugins/dlt_null/*~
+MOSTLYCLEANFILES += *~
 
 # END OF: dlt_null

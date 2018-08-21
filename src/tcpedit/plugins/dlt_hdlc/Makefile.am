@@ -6,24 +6,32 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_hdlc/hdlc.c \
-		$(srcdir)/plugins/dlt_hdlc/hdlc_api.c
+libtcpedit_a_SOURCES += \
+	%reldir%/hdlc.c \
+	%reldir%/hdlc_api.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_hdlc/hdlc.h \
-		$(srcdir)/plugins/dlt_hdlc/hdlc_api.h \
-		$(srcdir)/plugins/dlt_hdlc/hdlc_types.h
+noinst_HEADERS += \
+	%reldir%/hdlc.h \
+	%reldir%/hdlc_api.h \
+	%reldir%/hdlc_types.h
 
-EXTRA_DIST += $(srcdir)/plugins/dlt_hdlc/hdlc_opts.def
+EXTRA_DIST += %reldir%/hdlc_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_hdlc/hdlc.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
-	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_hdlc/hdlc.h $(srcdir)/plugins/dlt_hdlc/hdlc_api.h \
-	$(srcdir)/plugins/dlt_hdlc/hdlc_types.h
+hdlc.c: \
+	%reldir%/../dlt_utils.h \
+	%reldir%/../../tcpedit_stub.h \
+	%reldir%/../../plugins.h \
+	%reldir%/../../plugins_api.h \
+	%reldir%/../../plugins_types.h \
+	%reldir%/../../tcpedit_api.h \
+	%reldir%/hdlc.h \
+	%reldir%/hdlc_api.h \
+	%reldir%/hdlc_types.h
 
 # Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 
-MOSTLYCLEANFILES += $(srcdir)/plugins/dlt_hdlc/*~
+MOSTLYCLEANFILES += *~
 
 # END OF: dlt_hdlc

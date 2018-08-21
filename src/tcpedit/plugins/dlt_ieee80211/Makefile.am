@@ -6,24 +6,34 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_ieee80211/ieee80211.c $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c
+libtcpedit_a_SOURCES += \
+	%reldir%/ieee80211.c \
+	%reldir%/ieee80211_hdr.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_ieee80211/ieee80211.h $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h \
-	$(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h
+noinst_HEADERS += \
+	%reldir%/ieee80211.h \
+	%reldir%/ieee80211_hdr.h \
+	%reldir%/ieee80211_types.h
 
-EXTRA_DIST += $(srcdir)/plugins/dlt_ieee80211/ieee80211_opts.def
+EXTRA_DIST += %reldir%/ieee80211_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_ieee80211/ieee80211.c: $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
-	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.c \
-	$(srcdir)/plugins/dlt_ieee80211/ieee80211_hdr.h $(srcdir)/plugins/dlt_ieee80211/ieee80211_types.h \
-	$(srcdir)/plugins/dlt_ieee80211/ieee80211.h
+ieee80211.c: \
+		%reldir%/../dlt_utils.h \
+		%reldir%/../../tcpedit_stub.h \
+		%reldir%/../../plugins.h \
+		%reldir%/../../plugins_api.h \
+		%reldir%/../../plugins_types.h \
+		%reldir%/../../tcpedit_api.h \
+		%reldir%/ieee80211_hdr.c \
+		%reldir%/ieee80211_hdr.h \
+		%reldir%/ieee80211_types.h \
+		%reldir%/ieee80211.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
-DLT_STUB_DEPS += $(srcdir)/plugins/dlt_ieee80211/ieee80211_opts.def
+DLT_STUB_DEPS += %reldir%/ieee80211_opts.def
 
-MOSTLYCLEANFILES += $(srcdir)/plugins/dlt_ieee80211/*~
+MOSTLYCLEANFILES += *~
 
 # END OF: dlt_ieee80211

@@ -7,7 +7,7 @@ libfragroute_a_SOURCES = fragroute.c bget.c mod.c pkt.c argv.c \
 						 iputil.c mod_ip6_opt.c mod_ip6_qos.c
 
 
-libfragroute_a_CFLAGS = -I.. -I../.. @LDNETINC@
+libfragroute_a_CFLAGS = -I$(srcdir)/.. -I$(srcdir)/../.. @LDNETINC@
 
 # libfragroute_a_LIBS = @LDNETLIB@
 
