@@ -19,12 +19,7 @@ EXTRA_DIST += %reldir%/jnpr_ether_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 jnpr_ether.c: \
-	%reldir%/../dlt_utils.h \
-	%reldir%/../../tcpedit_stub.h \
-	%reldir%/../../plugins.h \
-	%reldir%/../../plugins_api.h \
-	%reldir%/../../plugins_types.h \
-	%reldir%/../../tcpedit_api.h \
+	$(TCPEDIT_PLUGINS_DEPS) \
 	%reldir%/jnpr_ether.h \
 	%reldir%/jnpr_ether_api.h \
 	%reldir%/jnpr_ether_types.h

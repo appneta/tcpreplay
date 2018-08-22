@@ -14,13 +14,7 @@ EXTRA_DIST += %reldir%/null_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 null.c: \
-	%reldir%/../dlt_utils.h \
-	%reldir%/../../tcpedit_stub.h \
-	%reldir%/../../plugins/dlt_utils.h \
-	%reldir%/../../plugins.h \
-	%reldir%/../../plugins_api.h \
-	%reldir%/../../plugins_types.h \
-	%reldir%/../../tcpedit_api.h \
+	$(TCPEDIT_PLUGINS_DEPS) \
 	%reldir%/null.h
 
 

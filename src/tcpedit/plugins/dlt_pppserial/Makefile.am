@@ -19,12 +19,7 @@ EXTRA_DIST += %reldir%/pppserial_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 pppserial.c: \
-	%reldir%/../dlt_utils.h \
-	%reldir%/../../tcpedit_stub.h \
-	%reldir%/../../plugins.h \
-	%reldir%/../../plugins_api.h \
-	%reldir%/../../plugins_types.h \
-	%reldir%/../../tcpedit_api.h \
+	$(TCPEDIT_PLUGINS_DEPS) \
 	%reldir%/pppserial.h \
 	%reldir%/pppserial_api.h \
 	%reldir%/pppserial_types.h

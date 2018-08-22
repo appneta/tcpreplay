@@ -19,16 +19,11 @@ EXTRA_DIST += %reldir%/ieee80211_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 ieee80211.c: \
-		%reldir%/../dlt_utils.h \
-		%reldir%/../../tcpedit_stub.h \
-		%reldir%/../../plugins.h \
-		%reldir%/../../plugins_api.h \
-		%reldir%/../../plugins_types.h \
-		%reldir%/../../tcpedit_api.h \
-		%reldir%/ieee80211_hdr.c \
-		%reldir%/ieee80211_hdr.h \
-		%reldir%/ieee80211_types.h \
-		%reldir%/ieee80211.h
+	$(TCPEDIT_PLUGINS_DEPS) \
+	%reldir%/ieee80211_hdr.c \
+	%reldir%/ieee80211_hdr.h \
+	%reldir%/ieee80211_types.h \
+	%reldir%/ieee80211.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 

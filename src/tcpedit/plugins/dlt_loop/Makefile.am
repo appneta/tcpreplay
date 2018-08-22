@@ -14,13 +14,7 @@ EXTRA_DIST += %reldir%/loop_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 loop.c: \
-	%reldir%/../dlt_utils.h \
-	%reldir%/../../tcpedit_stub.h \
-	%reldir%/../../plugins/dlt_utils.h \
-	%reldir%/../../plugins.h \
-	%reldir%/../../plugins_api.h \
-	%reldir%/../../plugins_types.h \
-	%reldir%/../../tcpedit_api.h \
+	$(TCPEDIT_PLUGINS_DEPS) \
 	%reldir%/loop.h
 
 # You probably don't want to touch anything below this line until the end of the plugin

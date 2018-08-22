@@ -16,12 +16,7 @@ EXTRA_DIST += %reldir%/linuxsll_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 linuxsll.c: \
-	%reldir%/../dlt_utils.h \
-	%reldir%/../../tcpedit_stub.h \
-	%reldir%/../../plugins/dlt_utils.h \
-	%reldir%/../../plugins.h \
-	%reldir%/../../plugins_api.h \
-	%reldir%/../../plugins_types.h \
+	$(TCPEDIT_PLUGINS_DEPS) \
 	%reldir%/../../tcpedit_api.h \
 	%reldir%/linuxsll.h \
 	%reldir%/linuxsll_types.h

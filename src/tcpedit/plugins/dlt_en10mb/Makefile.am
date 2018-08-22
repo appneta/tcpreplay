@@ -20,12 +20,7 @@ EXTRA_DIST += %reldir%/en10mb_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
 en10mb.c: \
-	%reldir%/../dlt_utils.h \
-	%reldir%/../../tcpedit_stub.h \
-	%reldir%/../../plugins.h \
-	%reldir%/../../plugins_api.h \
-	%reldir%/../../plugins_types.h \
-	%reldir%/../../tcpedit_api.h \
+	$(TCPEDIT_PLUGINS_DEPS) \
 	%reldir%/en10mb.h \
 	%reldir%/en10mb_api.h \
 	%reldir%/en10mb_types.h

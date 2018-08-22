@@ -24,6 +24,14 @@ DLT_STUB_DEPS = %reldir%/dlt_opts.def
 
 dlt_stub.def: $(DLT_STUB_DEPS)
 
+TCPEDIT_PLUGINS_DEPS =\
+	%reldir%/dlt_utils.h \
+	%reldir%/../tcpedit_stub.h \
+	%reldir%/../plugins.h \
+	%reldir%/../plugins_api.h \
+	%reldir%/../plugins_types.h \
+	%reldir%/../tcpedit_api.h
+
 ########################################################
 # Add your plugin Makefile.am's below this line
 ########################################################
