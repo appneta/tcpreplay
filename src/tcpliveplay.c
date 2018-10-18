@@ -505,7 +505,7 @@ setup_sched(struct tcp_sched* sched){
     }
 
     /*Before sending any packet, setup the schedule with the proper parameters*/
-    while((packet = pcap_next(local_handle,&header))) {
+    while((packet = safe_pcap_next(local_handle,&header))) {
         pkt_counter++; /*increment number of packets seen*/
 
         memcpy(&sched[i].pkthdr, &header, sizeof(struct pcap_pkthdr));
@@ -985,7 +985,7 @@ rewrite(input_addr* new_remoteip, struct mac_addr* new_remotemac, input_addr* my
     }
 
     /*Modify each packet's IP & MAC based on the passed args then do a checksum of each packet*/
-    for (pkt_counter = 0; pcap_next_ex(pcap, &header, &packet) > 0; pkt_counter++){
+    for (pkt_counter = 0; safe_pcap_next_ex(pcap, &header, &packet) > 0; pkt_counter++){
 
         if (!warned && header->len > header->caplen) {
             fprintf(stderr, "warning: packet capture truncated to %d byte packets\n",

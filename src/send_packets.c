@@ -1021,7 +1021,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
             /*
              * We should read the pcap file, and cache the results
              */
-            pktdata = (u_char *)pcap_next(pcap, pkthdr);
+            pktdata = safe_pcap_next(pcap, pkthdr);
             if (pktdata != NULL) {
                 if (*prev_packet == NULL) {
                     /*
@@ -1051,7 +1051,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
         /*
          * Read pcap file as normal
          */
-        pktdata = (u_char *)pcap_next(pcap, pkthdr);
+        pktdata = safe_pcap_next(pcap, pkthdr);
     }
 
     /* this get's casted to a const on the way out */

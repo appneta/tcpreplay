@@ -1,3 +1,6 @@
+10/18/2018 Version 4.3.0 beta2
+    - CVE-2018-17582 heap-buffer-overflow in get_next_packet (#484)
+
 01/18/2018 Version 4.3.0 beta1
     - Travis CI build fails due to new build images (#432)
     - Unable to build with libpcap 1.8.1 (#430)

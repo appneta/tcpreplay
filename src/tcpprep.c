@@ -331,7 +331,7 @@ process_raw_packets(pcap_t * pcap)
 
     assert(pcap);
     
-    while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
+    while ((pktdata = safe_pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
 
         dbgx(1, "Packet " COUNTER_SPEC, packetnum);
