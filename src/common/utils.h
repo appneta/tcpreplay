@@ -63,6 +63,15 @@ char *_our_safe_strdup(const char *str, const char *, const int, const char *);
 #define safe_free(x) _our_safe_free(x, __FUNCTION__, __LINE__, __FILE__)
 void _our_safe_free(void *ptr, const char *, const int, const char *);
 
+#define safe_pcap_next(x, y) _our_safe_pcap_next(x, y, __FUNCTION__, __LINE__, __FILE__)
+u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
+        const char *funcname, const int line, const char *file);
+
+#define safe_pcap_next_ex(x, y, z) _our_safe_pcap_next_ex(x, y, z, __FUNCTION__, __LINE__, __FILE__)
+int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
+        const u_char **pktdata, const char *funcname,
+        const int line, const char *file);
+
 #define MAX_ARGS 128
 
 #ifndef HAVE_INET_ATON

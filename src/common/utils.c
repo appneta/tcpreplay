@@ -48,7 +48,8 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     u_char *ptr;
 
     if ((ptr = malloc(len)) == NULL) {
-        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes", file, funcname, line, len);
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes/n",
+                file, funcname, line, len);
         exit(-1);
     }
 
@@ -117,6 +118,58 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
 
     free(ptr);
     ptr = NULL;
+}
+
+/**
+ * get next packet in pcap file
+ */
+#define MAX_PCAP_PACKET_LEN (262144) /* this matches Wireshark maximum size */
+u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
+        const char *funcname, const int line, const char *file)
+{
+    u_char *pktdata = (u_char *)pcap_next(pcap, pkthdr);
+
+    if (pktdata) {
+        if (pkthdr->len > MAX_PCAP_PACKET_LEN) {
+            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
+                    file, funcname, line, pkthdr->len, MAX_PCAP_PACKET_LEN);
+            exit(-1);
+        }
+
+        if (pkthdr->len < pkthdr->caplen) {
+            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: packet length %u is less than capture length %u\n",
+                    file, funcname, line, pkthdr->len, pkthdr->caplen);
+            exit(-1);
+        }
+    }
+
+    return pktdata;
+}
+
+/**
+ * get next packet in pcap file (extended)
+ */
+int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
+        const u_char **pktdata, const char *funcname,
+        const int line, const char *file)
+{
+    int res = pcap_next_ex(pcap, pkthdr, pktdata);
+
+    if (*pktdata && *pkthdr) {
+        if ((*pkthdr)->len > MAX_PCAP_PACKET_LEN) {
+            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
+                    file, funcname, line, (*pkthdr)->len, MAX_PCAP_PACKET_LEN);
+            exit(-1);
+        }
+
+        if ((*pkthdr)->len < (*pkthdr)->caplen) {
+            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: packet length %u is less than capture length %u\n",
+                    file, funcname, line, (*pkthdr)->len, (*pkthdr)->caplen);
+            exit(-1);
+        }
+    }
+
+    return res;
 }
 
 /**
