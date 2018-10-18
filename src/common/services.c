@@ -71,11 +71,6 @@ parse_services(const char *file, tcpr_services_t *services)
         /* look for format of 1234/tcp */
         if ((regexec(&preg, service_line, nmatch, pmatch, 0)) == 0) { /* matches */
             uint16_t portc;
-
-            if (nmatch < 2) {
-                err(-1, "WTF?  I matched the line, but I don't know where!");
-            }
-
             /* strip out the port & proto from the line */
             strncpy(port, &service_line[pmatch[1].rm_so], (pmatch[1].rm_eo - pmatch[1].rm_so));
             strncpy(proto, &service_line[pmatch[2].rm_so], (pmatch[2].rm_eo - pmatch[2].rm_so));
