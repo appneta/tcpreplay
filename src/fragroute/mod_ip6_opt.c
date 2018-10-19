@@ -56,7 +56,6 @@ void *
 ip6_opt_open(int argc, char *argv[])
 {
 	struct ip6_opt_data *opt;
-	int i, j;
 
 	if (argc < 4)
 		return (NULL);
@@ -65,8 +64,9 @@ ip6_opt_open(int argc, char *argv[])
 		return (NULL);
 
 	if (strcasecmp(argv[1], "route") == 0) {
-		opt->type = OPT6_TYPE_ROUTE;
+	    int i, j;
 
+	    opt->type = OPT6_TYPE_ROUTE;
 		if ((opt->u.route.segments = atoi(argv[2])) < 1 ||
 				opt->u.route.segments > MAX_ADDRS) {
 			warnx("<segments> must be >= 1");
