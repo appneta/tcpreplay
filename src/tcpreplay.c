@@ -60,7 +60,6 @@ main(int argc, char *argv[])
 {
     int i, optct = 0;
     int rcode;
-    char buf[1024];
 
     fflush(NULL);
 
@@ -146,6 +145,8 @@ main(int argc, char *argv[])
     }
 
     if (ctx->stats.bytes_sent > 0) {
+        char buf[1024];
+
         packet_stats(&ctx->stats);
         if (ctx->options->flow_stats)
             flow_stats(ctx);

@@ -522,10 +522,9 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
         char *l7data[])
 {
     int datalen = 0; /* amount of data beyond ip header */
-    ipv4_hdr_t *ip_hdr = NULL;
-    tcp_hdr_t *tcp_hdr = NULL;
+    ipv4_hdr_t *ip_hdr;
     u_char ipbuff[MAXPACKET];
-    u_char *dataptr = NULL;
+    u_char *dataptr;
     int ip_len;
     
     assert(tcpedit);
@@ -557,7 +556,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 
     /* TCP ? */
     if (ip_hdr->ip_p == IPPROTO_TCP) {
-        tcp_hdr = (tcp_hdr_t *) get_layer4_v4(ip_hdr, datalen);
+        tcp_hdr_t *tcp_hdr = (tcp_hdr_t *) get_layer4_v4(ip_hdr, datalen);
         datalen -= tcp_hdr->th_off << 2;
         if (datalen <= 0)
             goto nodata;
@@ -964,7 +963,6 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     arp_hdr_t *arp_hdr = NULL;
     int l2len = 0;
     uint32_t *ip;
-    u_char *add_hdr;
 #ifdef FORCE_ALIGN
     uint32_t iptemp;
 #endif
@@ -984,8 +982,8 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
          (ntohs(arp_hdr->ar_op) == ARPOP_REPLY))) {
 
         /* jump to the addresses */
-        add_hdr = (u_char *)arp_hdr;
-        add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
+        u_char *add_hdr = ((u_char *)arp_hdr) + sizeof(arp_hdr_t) +
+                arp_hdr->ar_hln;
 #ifdef FORCE_ALIGN
         /* copy IP to a temporary buffer for processing */
         memcpy(&iptemp, add_hdr, sizeof(uint32_t));

@@ -241,7 +241,7 @@ cidr2cidr(char *cidr)
             if (octets[count] > 255)
                 goto error;
 
-            snprintf(tempoctet, sizeof(octets[count]), "%d", octets[count]);
+            snprintf(tempoctet, sizeof(octets[count]), "%u", octets[count]);
             strcat(networkip, tempoctet);
             /* we don't want a '.' at the end of the last octet */
             if (count < 3)
