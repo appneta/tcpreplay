@@ -41,11 +41,9 @@ u_char *dlt_raw_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_ch
  * Example: Ethernet VLAN tag info
  */
 struct raw_extra_s {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */    
-    int dummy;
+    u_char packet[MAXPACKET];
 };
 typedef struct raw_extra_s raw_extra_t;
-
 
 /* 
  * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 

@@ -271,7 +271,6 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
         lastcache = *cachedata;
     }
     else {
-        lastcache = *cachedata;
         /* check to see if this is the last bit in this struct */
         if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
             /*

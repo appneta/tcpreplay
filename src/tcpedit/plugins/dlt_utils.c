@@ -268,6 +268,7 @@ tcpedit_dlt_copy_decoder_state(tcpeditdlt_t *ctx, tcpeditdlt_t *subctx)
     
     /* just need to copy the ptr */
     ctx->decoded_extra = subctx->decoded_extra;
+    ctx->decoded_extra_size = subctx->decoded_extra_size;
 
     /* 
      * the first decoder should of alraedy specified it's l2len, so we need to

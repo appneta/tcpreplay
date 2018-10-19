@@ -1,11 +1,26 @@
+10/18/2018 Version 4.3.0 beta2
+    - fix issues identifed by Codacy (#493)
+    - CVE-2018-17974 heap-buffer-overflow dlt_en10mb_encode (#486)
+    - CVE-2018-17582 heap-buffer-overflow in get_next_packet (#484)
+    - CVE-2018-13112 heap-buffer-overflow in get_l2len (#477 dup #408)
+
 01/18/2018 Version 4.3.0 beta1
     - Travis CI build fails due to new build images (#432)
     - Unable to build with libpcap 1.8.1 (#430)
+    - tcpprep -S not working for large cache files (#423)
+    - Unable to tcprewrite range of ports with --portmap (#422)
+    - --maxsleep broken for values less than 1000 (#421)
+    - Avoid non-blocking behaviour when using STDIN (#416)
+    - pcap containing >1020 packets produces invalid cache file (#415)
     - heap-buffer-overflow in get_l2protocol (#410)
     - heap-buffer-overflow in packet2tree (#409)
     - heap-buffer-overflow in get_l2len (#408)
     - heap-buffer-overflow in flow_decode (#407)
+    - Rewrite zero IP total length field to match the actual packet length (#406)
     - stack-buffer-overflow in tcpcapinfo (#405)
+    - tcpprep --include option does not exclude (#404)
+    - Negative-size-param memset in dlt_radiotap_get_80211 (#402)
+    - tcpeplay --verbose option not working (#398)
 
 05/10/2017 Version 4.2.6
     - Test fails on sparc64 (#393)
@@ -42,7 +57,7 @@
     - Packet destortion --fuzz-seed option by Gabriel Ganne (#302)
     - Add --unique-ip-loops option to modify IPs every few loops (#296)
     - Netmap startup delay increase (#290)
-    - tcpcapinfo buffer overflow vulnerablily (#278)
+    - CVE-2017-6429 tcpcapinfo buffer overflow vulnerablily (#278)
     - Update git-clone instructions by Kyle McDonald (#277)
     - Allow fractions for --pps option (#270)
     - Print per-loop stats with --stats=0 (#269)

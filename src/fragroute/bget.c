@@ -811,11 +811,11 @@ void brel(buf)
 {
     struct bfhead *b, *bn;
 
+    assert(buf != NULL);
     b = BFH(((char *) buf) - sizeof(struct bhead));
 #ifdef BufStats
     numrel++;			      /* Increment number of brel() calls */
 #endif
-    assert(buf != NULL);
 
 #ifdef BECtl
     if (b->bh.bsize == 0) {	      /* Directly-acquired buffer? */

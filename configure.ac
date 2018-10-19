@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.0-beta1],
+AC_INIT([tcpreplay],[4.3.0-beta2],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -1291,7 +1291,6 @@ dnl ###########################################################
 if test "x$NETMAPINCDIR" != "x"; then
     OLDCPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
-    AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
 
     have_nm_open=no
     have_nm_nr_reg_mask=no
@@ -1492,12 +1491,13 @@ dnl If doesn't exist, we'll define them in src/common/fakepcap.h
 AC_MSG_CHECKING(for DLT_LINUX_SLL in libpcap)
 AC_TRY_COMPILE([#include "$LPCAPINC"],
                [ int foo;
-                 foo = DLT_LINUX_SLL ],
-                [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
-                            [Does pcap.h include a header with DLT_LINUX_SLL?])
-                  AC_MSG_RESULT(yes)
-                ],
-                AC_MSG_RESULT(no)
+                 foo = DLT_LINUX_SLL
+               ],
+               [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
+                           [Does pcap.h include a header with DLT_LINUX_SLL?])
+                 AC_MSG_RESULT(yes)
+               ],
+               [AC_MSG_RESULT(no)]
                )
 
 AC_MSG_CHECKING(for DLT_C_HDLC in libpcap)
@@ -1547,22 +1547,29 @@ for testfile in $LPCAPINCDIR/pcap/bpf.h $LPCAPINCDIR/pcap-bpf.h ; do
                 AC_SUBST(PCAP_BPF_H_FILE)
                 AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [1],
                         [What is the path (if any) to the libpcap bpf header file?])
-                AC_MSG_RESULT($testfile)
-            ],
-            AC_MSG_RESULT(no)
+            ]
             )
     fi
 done
 
+if test $foundbpfheader != no; then
+    AC_MSG_RESULT($testfile)
+else
+    AC_MSG_RESULT(no)
+fi
+
 dnl ## Test for netmap-libpcap
 have_pcap_netmap=no
 if test $foundpcap != no ; then
+	AC_MSG_CHECKING(for netmap libpcap)
     PCAP_NETMAP_C_FILE="$LPCAPINCDIR/pcap-netmap.c"
     if test -f "${PCAP_NETMAP_C_FILE}" ; then
         AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
                                    [Does this version of libpcap support netmap?])
-        AC_MSG_RESULT(yes)
         have_pcap_netmap=yes
+        AC_MSG_RESULT(yes)
+    else
+        AC_MSG_RESULT(no)
     fi
 fi
 

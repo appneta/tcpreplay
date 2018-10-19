@@ -78,13 +78,8 @@ get_pcap_version(void)
 uint16_t
 get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 {
-    eth_hdr_t *eth_hdr;
-    vlan_hdr_t *vlan_hdr;
-    hdlc_hdr_t *hdlc_hdr;
-    sll_hdr_t *sll_hdr;
     uint16_t ether_type;
     uint16_t eth_hdr_offset = 0;
-    struct tcpr_pppserial_hdr *ppp;
 
     if (!pktdata || !datalen) {
         errx(-1, "invalid l2 parameters: pktdata=0x%p len=%d",
@@ -111,10 +106,11 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         } else {
             eth_hdr_offset = 4; /* no header extensions */
         }
-        /* fall through */
+        /* no break */
     case DLT_EN10MB:
         if (datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
-            eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
+            vlan_hdr_t *vlan_hdr;
+            eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
             ether_type = ntohs(eth_hdr->ether_type);
             switch (ether_type) {
             case ETHERTYPE_VLAN: /* 802.1q */
@@ -128,7 +124,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 
     case DLT_PPP_SERIAL:
         if (datalen >= sizeof(struct tcpr_pppserial_hdr)) {
-            ppp = (struct tcpr_pppserial_hdr *)pktdata;
+            struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr *)pktdata;
             if (ntohs(ppp->protocol) == 0x0021)
                 return htons(ETHERTYPE_IP);
             else
@@ -138,14 +134,14 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 
     case DLT_C_HDLC:
         if (datalen >= sizeof(hdlc_hdr_t)) {
-            hdlc_hdr = (hdlc_hdr_t *)pktdata;
+            hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t *)pktdata;
             return hdlc_hdr->protocol;
         }
         break;
 
     case DLT_LINUX_SLL:
         if (datalen >= sizeof(sll_hdr_t)) {
-            sll_hdr = (sll_hdr_t *)pktdata;
+            sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
             return sll_hdr->sll_protocol;
         }
         break;
@@ -166,8 +162,6 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 int
 get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 {
-    uint16_t ether_type = 0;
-    vlan_hdr_t *vlan_hdr;
     int l2_len = 0;
 
     assert(pktdata);
@@ -180,13 +174,13 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 
     case DLT_JUNIPER_ETHER:
         l2_len = 24;
-        /* fall through */
+        /* no break */
     case DLT_EN10MB:
         if (datalen >= sizeof(eth_hdr_t) + l2_len) {
-            ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
+            uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
             while (ether_type == ETHERTYPE_VLAN) {
-                vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+                vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
                 ether_type = ntohs(vlan_hdr->vlan_len);
                 l2_len += 4;
                 if (datalen < sizeof(vlan_hdr_t) + l2_len) {
