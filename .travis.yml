@@ -34,14 +34,6 @@ matrix:
         - brew install autogen
     - os: linux
       dist: trusty
-      compiler: gcc
-      addons:
-        apt:
-          packages:
-          - libpcap-dev
-          - autogen
-    - os: linux
-      dist: trusty
       compiler: clang
       env: CI_BUILD_PREFIX=scan-build-3.9
       addons:
