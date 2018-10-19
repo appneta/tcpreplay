@@ -485,15 +485,16 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     if (pktlen < ctx->l2len) {
         tcpedit_seterr(ctx->tcpedit,
-                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d Layer 2 bytes.",
+                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d L2 bytes.",
                 ctx->tcpedit->runtime.packetnum, ctx->l2len);
         return TCPEDIT_ERROR;
     }
 
     /* Make space for our new L2 header */
     if (newl2len != ctx->l2len) {
-        if (newl2len > ctx->l2len)
-            packet = safe_realloc(packet, pktlen + (newl2len - ctx->l2len));
+        if (pktlen + (newl2len - ctx->l2len) > MAXPACKET)
+            errx(-1, "New frame too big, new length %d exceeds %d",
+                    pktlen + (newl2len - ctx->l2len), MAXPACKET);
 
         memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
     }

@@ -123,16 +123,15 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
 /**
  * get next packet in pcap file
  */
-#define MAX_PCAP_PACKET_LEN (262144) /* this matches Wireshark maximum size */
 u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
         const char *funcname, const int line, const char *file)
 {
     u_char *pktdata = (u_char *)pcap_next(pcap, pkthdr);
 
     if (pktdata) {
-        if (pkthdr->len > MAX_PCAP_PACKET_LEN) {
+        if (pkthdr->len > MAXPACKET) {
             fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
-                    file, funcname, line, pkthdr->len, MAX_PCAP_PACKET_LEN);
+                    file, funcname, line, pkthdr->len, MAXPACKET);
             exit(-1);
         }
 
@@ -156,9 +155,9 @@ int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
     int res = pcap_next_ex(pcap, pkthdr, pktdata);
 
     if (*pktdata && *pkthdr) {
-        if ((*pkthdr)->len > MAX_PCAP_PACKET_LEN) {
+        if ((*pkthdr)->len > MAXPACKET) {
             fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
-                    file, funcname, line, (*pkthdr)->len, MAX_PCAP_PACKET_LEN);
+                    file, funcname, line, (*pkthdr)->len, MAXPACKET);
             exit(-1);
         }
 
