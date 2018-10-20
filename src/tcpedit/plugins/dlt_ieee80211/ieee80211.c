@@ -187,8 +187,7 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return TCPEDIT_ERROR;
 
     dbgx(3, "Decoding 802.11 packet " COUNTER_SPEC, ctx->tcpedit->runtime.packetnum);
@@ -241,7 +240,7 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return TCPEDIT_ERROR;
 
     /* check 802.11 frame control field */
@@ -288,8 +287,7 @@ dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     dbgx(1, "Getting data for packet " COUNTER_SPEC " from offset: %d", ctx->tcpedit->runtime.packetnum, l2len);
@@ -312,8 +310,7 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     assert(l3data);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);

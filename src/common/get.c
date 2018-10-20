@@ -78,7 +78,6 @@ get_pcap_version(void)
 uint16_t
 get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 {
-    uint16_t ether_type;
     uint16_t eth_hdr_offset = 0;
 
     if (!pktdata || !datalen) {
@@ -111,7 +110,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         if (datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
             vlan_hdr_t *vlan_hdr;
             eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
-            ether_type = ntohs(eth_hdr->ether_type);
+            uint16_t ether_type = ntohs(eth_hdr->ether_type);
             switch (ether_type) {
             case ETHERTYPE_VLAN: /* 802.1q */
                 vlan_hdr = (vlan_hdr_t *)pktdata;
@@ -359,8 +358,7 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int len)
 
     assert(ip_hdr);
 
-    ptr = (uint32_t *) ip_hdr + ip_hdr->ip_hl;
-
+    ptr = (u_char *)ip_hdr + (ip_hdr->ip_hl << 2);
     /* make sure we don't jump over the end of the buffer */
     if ((u_char *)ptr > ((u_char *)ip_hdr + len))
         return NULL;
@@ -391,7 +389,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
     proto = ip6_hdr->ip_nh;
 
-    while (TRUE) {
+    while (1) {
         dbgx(3, "Processing proto: 0x%hx", (uint16_t)proto);
 
         switch (proto) {
@@ -502,14 +500,18 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
  * the extension headers
  */
 uint8_t 
-get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int len)
+get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, int len)
 {
     u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
     uint8_t proto;
     struct tcpr_ipv6_ext_hdr_base *exthdr = NULL;
 
     assert(ip6_hdr);
+
     proto = ip6_hdr->ip_nh;
+    len -= TCPR_IPV6_H;
+    if (len < 0)
+        return proto;
 
     while (TRUE) {
         dbgx(3, "Processing next proto 0x%02X", proto);

@@ -106,7 +106,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     plugin = tcpedit->dlt_ctx->encoder;
     l2len = plugin->plugin_l2len(ctx, packet, caplen);
     l2proto = ntohs(ctx->proto);
-    if (caplen < l2len)
+    if (l2len == -1 || caplen < l2len)
         goto done;
 
     /*
@@ -124,7 +124,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     switch (l2proto) {
     case (ETHERTYPE_IP):
     {
-        l4data = get_layer4_v4((ipv4_hdr_t*)l3data, caplen);
+        l4data = get_layer4_v4((ipv4_hdr_t*)l3data, caplen - l2len);
         if (!l4data)
             goto done;
 
@@ -132,7 +132,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         break;
     }
     case (ETHERTYPE_IP6): {
-        l4data = get_layer4_v6((ipv6_hdr_t*)l3data, caplen);
+        l4data = get_layer4_v6((ipv6_hdr_t*)l3data, caplen - l2len);
         if (!l4data)
             goto done;
 

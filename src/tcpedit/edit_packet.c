@@ -232,18 +232,37 @@ static void ipv6_l34_csum_replace(uint8_t *data, uint8_t protocol,
 
 }
 
-static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip, uint32_t new_ip)
+static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
+        uint32_t new_ip, int len)
 {
-    uint8_t *l4 = NULL, protocol;
+    uint8_t *l4, protocol;
+
     assert(ip_hdr);
+
+    if (len < sizeof(*ip_hdr))
+        return;
 
     ipv4_l34_csum_replace((uint8_t*)ip_hdr, IPPROTO_IP, old_ip, new_ip);
 
-      protocol = ip_hdr->ip_p;
-    if (protocol == IPPROTO_TCP || protocol == IPPROTO_UDP)
-        l4 = get_layer4_v4(ip_hdr, 65536);
+    protocol = ip_hdr->ip_p;
+    switch (protocol) {
+    case IPPROTO_UDP:
+        l4 = get_layer4_v4(ip_hdr, len);
+        len -= ip_hdr->ip_hl << 2;
+        len -= TCPR_UDP_H;
+        break;
 
-    if (!l4)
+    case IPPROTO_TCP:
+        l4 = get_layer4_v4(ip_hdr, len);
+        len -= ip_hdr->ip_hl << 2;
+        len -= TCPR_TCP_H;
+        break;
+
+    default:
+        l4 = NULL;
+    }
+
+    if (!l4 || len < 0)
         return;
 
     /* if this is a fragment, don't attempt to checksum the Layer4 header */
@@ -252,17 +271,34 @@ static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip, uint32_t
 }
 
 static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
-        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip)
+        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int len)
 {
-    uint8_t *l4 = NULL, protocol;
+    uint8_t *l4, protocol;
+
     assert(ip6_hdr);
 
-    protocol = get_ipv6_l4proto(ip6_hdr, 65536);
-    if (protocol == IPPROTO_TCP || protocol == IPPROTO_UDP ||
-            protocol == IPPROTO_ICMP || protocol == IPPROTO_ICMP6)
-        l4 = get_layer4_v6(ip6_hdr, 65536);
+    if (len < sizeof(*ip6_hdr))
+        return;
 
-    if (!l4)
+    protocol = get_ipv6_l4proto(ip6_hdr, len);
+    switch (protocol) {
+    case IPPROTO_UDP:
+        l4 = get_layer4_v6(ip6_hdr, len);
+        len -= sizeof(*ip6_hdr);
+        len -= TCPR_UDP_H;
+        break;
+
+    case IPPROTO_TCP:
+        l4 = get_layer4_v6(ip6_hdr, len);
+        len -= sizeof(*ip6_hdr);
+        len -= TCPR_TCP_H;
+        break;
+
+    default:
+        l4 = NULL;
+    }
+
+    if (!l4 || len < 0)
         return;
 
     ipv6_l34_csum_replace(l4, protocol, (uint32_t*)old_ip, (uint32_t*)new_ip);
@@ -317,7 +353,7 @@ randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
  */
 int
 randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, ipv4_hdr_t *ip_hdr)
+        u_char *pktdata, ipv4_hdr_t *ip_hdr, int len)
 {
 #ifdef DEBUG
     char srcip[16], dstip[16];
@@ -340,14 +376,14 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
             || !tcpedit->skip_broadcast) {
         uint32_t old_ip = ip_hdr->ip_dst.s_addr;
         ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
-        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr);
+        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr, len);
     }
     
     if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr))
             || !tcpedit->skip_broadcast) {
         uint32_t old_ip = ip_hdr->ip_src.s_addr;
         ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
-        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr);
+        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr, len);
     }
 
 #ifdef DEBUG    
@@ -362,7 +398,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 int
 randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
-        u_char *pktdata, ipv6_hdr_t *ip6_hdr)
+        u_char *pktdata, ipv6_hdr_t *ip6_hdr, int len)
 {
 #ifdef DEBUG
     char srcip[INET6_ADDRSTRLEN], dstip[INET6_ADDRSTRLEN];
@@ -386,7 +422,7 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         struct tcpr_in6_addr old_ip6;
         memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_dst);
-        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst);
+        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, len);
     }
 
     if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_src))
@@ -394,7 +430,7 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         struct tcpr_in6_addr old_ip6;
         memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_src);
-        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
+        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, len);
     }
 
 #ifdef DEBUG
@@ -759,7 +795,8 @@ remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
  * return 0 if no change, 1 or 2 if changed
  */
 int
-rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
+rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction,
+        int len)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
@@ -774,7 +811,7 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
         if (ip_in_cidr(ipmap->from, ip_hdr->ip_src.s_addr)) {
             uint32_t old_ip = ip_hdr->ip_src.s_addr;
             ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, ipmap->to, ip_hdr->ip_src.s_addr);
-            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr, len);
             dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
             break;
         }
@@ -786,7 +823,7 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
         if (ip_in_cidr(ipmap->from, ip_hdr->ip_dst.s_addr)) {
             uint32_t old_ip = ip_hdr->ip_dst.s_addr;
             ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, ipmap->to, ip_hdr->ip_dst.s_addr);
-            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr, len);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
             break;
         }
@@ -812,14 +849,14 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
         if ((! diddst) && ip_in_cidr(cidrmap2->from, ip_hdr->ip_dst.s_addr)) {
             uint32_t old_ip = ip_hdr->ip_dst.s_addr;
             ip_hdr->ip_dst.s_addr = remap_ipv4(tcpedit, cidrmap2->to, ip_hdr->ip_dst.s_addr);
-            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr, len);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE));
             diddst = 1;
         }
         if ((! didsrc) && ip_in_cidr(cidrmap1->from, ip_hdr->ip_src.s_addr)) {
             uint32_t old_ip = ip_hdr->ip_src.s_addr;
             ip_hdr->ip_src.s_addr = remap_ipv4(tcpedit, cidrmap1->to, ip_hdr->ip_src.s_addr);
-            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr, len);
             dbgx(2, "Remapped src addr to: %s", get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE));
             didsrc = 1;
         }
@@ -854,7 +891,8 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction)
 }
 
 int
-rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
+rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction,
+        int len)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
@@ -870,7 +908,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
             remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_src);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, len);
             dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
             break;
         }
@@ -883,7 +921,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
             remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_dst);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, len);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
             break;
         }
@@ -910,7 +948,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
             remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, len);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
             diddst = 1;
         }
@@ -918,7 +956,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction)
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
             remap_ipv6(tcpedit, cidrmap1->to, &ip6_hdr->ip_src);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, len);
             dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
             didsrc = 1;
         }

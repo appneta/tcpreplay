@@ -322,10 +322,8 @@ dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
 
-    /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -345,10 +343,8 @@ dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     assert(packet);
     assert(l3data);
     
-    /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -364,7 +360,7 @@ dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     if (pktlen < 4)
-        return 0;
+        return -1;
 
     /* HDLC is a static 4 bytes */
     return 4;

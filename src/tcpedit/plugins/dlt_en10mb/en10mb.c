@@ -698,8 +698,7 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     assert(packet);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -720,8 +719,7 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_c
     assert(l3data);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -764,26 +762,26 @@ int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     int l2len;
-    struct tcpr_ethernet_hdr *eth = NULL;
+    uint16_t ether_type;
     
     assert(ctx);
     assert(packet);
 
-    eth = (struct tcpr_ethernet_hdr *)packet;
-    switch (ntohs(eth->ether_type)) {
-        case ETHERTYPE_VLAN:
-            l2len = 18;
-            break;
-        
-        default:
-            l2len = 14;
-            break;
+    l2len = sizeof(eth_hdr_t);
+    if (pktlen < l2len)
+        return -1;
+
+    ether_type = ntohs(((eth_hdr_t*)(packet + l2len))->ether_type);
+    while (ether_type == ETHERTYPE_VLAN) {
+        vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(packet + l2len);
+        ether_type = ntohs(vlan_hdr->vlan_len);
+        l2len += 4;
     }
 
     if (l2len > 0) {
         if (pktlen < l2len) {
             /* can happen if fuzzing is enabled */
-            return 0;
+            return -1;
         }
 
         return l2len;
