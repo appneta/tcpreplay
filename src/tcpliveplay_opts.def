@@ -38,7 +38,7 @@ include         = "#include \"defines.h\"\n"
                 "#include <stdbool.h>\n"
                 "#include <sys/types.h>\n"
                 "#include <unistd.h>\n";
-                
+
 
 
 homerc          = "$$/";
@@ -48,21 +48,21 @@ homerc          = "$$/";
 #endif
 
 explain = <<- EOExplain
-This program, 'tcpliveplay' replays a captured set of packets using new TCP 
-connections with the captured TCP payloads against a remote host in order to 
-do comprehensive vulnerability testings.
+This program, 'tcpliveplay' replays a captured set of packets using new TCP
+connections with the captured TCP payloads against a remote host in order to
+do comprehensive vulnerability testing.
 EOExplain;
 
 detail = <<- EODetail
-The basic operation of tcpliveplay is it rewrites the given pcap file 
-in a scheduled event format and responds with the apporiate packet if
+The basic operation of tcpliveplay is it rewrites the given pcap file
+in a scheduled event format and responds with the appropriate packet if
 the remote host meets tcp protocal's SEQ/ACK expectation. Once expectations
-are met, then the local packets are sent with the same payload except with 
-new tcp SEQ & ACK numbers meeting the response from the remote hose.  
+are met, then the local packets are sent with the same payload except with
+new tcp SEQ & ACK numbers meeting the response from the remote hose.
 
-The inputted pcap file are rewritten to start at the first encounter of the 
-SYN packet for correct operation making this packet be the first action in 
-the event schedule of local host doing the replay. 
+The input pcap file are rewritten to start at the first encounter of the
+SYN packet for correct operation making this packet be the first action in
+the event schedule of local host doing the replay.
 
 For more details, please see the Tcpreplay Manual at:
 http://tcpreplay.appneta.com
@@ -85,15 +85,15 @@ tcpdump(1), tcpprep(1), tcprewrite(1), tcpreplay(1)
 tcpliveplay can only send packets as fast as your computer's interface,
 processor and system bus will allow.
 
-If the remote host responds differently than expected (meaning differently 
-than remote captured data) due to network changes then the replay abort 
+If the remote host responds differently than expected (meaning differently
+than remote captured data) due to network changes then the replay abort
 and ask you to try again.
 
-The replay only modifies layer 2 and 3 of each packet during the replay. 
-The payload is replayed exactly the same as the original capture. 
+The replay only modifies layer 2 and 3 of each packet during the replay.
+The payload is replayed exactly the same as the original capture.
 
 Timing may be an issue because the tcpliveplay sends the appropriate packet
-once the remote host's packet meets the correct expectation. 
+once the remote host's packet meets the correct expectation.
 EOMan;
 
 /*
@@ -111,7 +111,7 @@ flag = {
     arg-default = 0;
     descrip     = "Enable debugging output";
     doc         = <<- EOText
-If configured with --enable-debug, then you can specify a verbosity 
+If configured with --enable-debug, then you can specify a verbosity
 level for debugging output.  Higher numbers increase verbosity.
 EOText;
 };
