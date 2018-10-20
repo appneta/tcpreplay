@@ -4,6 +4,7 @@
     - CVE-2018-18407 heap-buffer-overflow csum_replace4 (#488)
     - CVE-2018-17974 heap-buffer-overflow dlt_en10mb_encode (#486)
     - CVE-2018-17582 heap-buffer-overflow in get_next_packet (#484)
+    - Out-of-tree build (#482)
     - CVE-2018-13112 heap-buffer-overflow in get_l2len (#477 dup #408)
 
 01/18/2018 Version 4.3.0 beta1
