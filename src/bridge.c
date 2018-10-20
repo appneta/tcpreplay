@@ -339,7 +339,8 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
 
         /* look for include or exclude CIDR match */
         if (livedata->options->xX.cidr != NULL) {
-            if (!process_xX_by_cidr_ipv4(livedata->options->xX.mode, livedata->options->xX.cidr, ip_hdr)) {
+            if (!ip_hdr ||
+                    !process_xX_by_cidr_ipv4(livedata->options->xX.mode, livedata->options->xX.cidr, ip_hdr)) {
                 dbg(2, "Skipping IPv4 packet due to CIDR match");
                 return (1);
             }

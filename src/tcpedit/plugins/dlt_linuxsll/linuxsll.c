@@ -241,8 +241,7 @@ dlt_linuxsll_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_linuxsll_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -263,8 +262,7 @@ dlt_linuxsll_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u
     assert(l3data);
 
     l2len = dlt_linuxsll_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -280,7 +278,7 @@ dlt_linuxsll_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     if (pktlen < (int)sizeof(linux_sll_header_t))
-        return 0;
+        return -1;
 
     return sizeof(linux_sll_header_t);
 }

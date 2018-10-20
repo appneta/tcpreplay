@@ -63,7 +63,7 @@ ports2PORT(char *ports)
 {
     tcpedit_portmap_t *portmap = NULL, *portmap_head = NULL, *portmap_last = NULL;
     char *from_s, *to_s, *from_begin, *from_end, *badchar;
-    long from_l, to_l, i;
+    long from_l, to_l;
     char *token = NULL, *token2 = NULL;
 
     assert(ports);
@@ -105,6 +105,8 @@ ports2PORT(char *ports)
 
     /* process a range, setting from_begin & from_end */
     if (strchr(from_s, '-')) {
+        long i;
+
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
         long from_b = strtol(from_begin, &badchar, 10);

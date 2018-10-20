@@ -51,7 +51,6 @@ int tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 int tcpedit_close(tcpedit_t *tcpedit);
 int tcpedit_get_output_dlt(tcpedit_t *tcpedit);
 
-int tcpedit_l2len(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen);
 const u_char *tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen);
 
 int tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, const int pktlen);
