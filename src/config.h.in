@@ -278,9 +278,6 @@
 /* Define to 1 if you have the <net/bpf.h> header file. */
 #undef HAVE_NET_BPF_H
 
-/* Define to 1 if you have the <net/netmap_user.h> header file. */
-#undef HAVE_NET_NETMAP_USER_H
-
 /* Define to 1 if you have the <net/route.h> header file. */
 #undef HAVE_NET_ROUTE_H
 
@@ -389,9 +386,6 @@
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
-
-/* Define to 1 if you have the <stdio.h> header file. */
-#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
@@ -600,8 +594,7 @@
    slash. */
 #undef LSTAT_FOLLOWS_SLASHED_SYMLINK
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
@@ -611,9 +604,6 @@
 /* Define to 1 if `major', `minor', and `makedev' are declared in
    <sysmacros.h>. */
 #undef MAJOR_IN_SYSMACROS
-
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-#undef NO_MINUS_C_MINUS_O
 
 /* Define this if optional arguments are disallowed */
 #undef NO_OPTIONAL_OPT_ARGS

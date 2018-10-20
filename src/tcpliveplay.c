@@ -259,7 +259,7 @@ main(int argc, char **argv)
     /* Start replay by sending the first packet, the SYN, from the schedule */
     else if(sched[0].local){  /* Send first packet*/
         sendpacket(sp, sched[sched_index].packet_ptr, sched[sched_index].pkthdr.len, &sched[sched_index].pkthdr);
-        printf("Sending Local Packet...............	[%d]\n",sched_index+1);
+        printf("Sending Local Packet...............	[%u]\n",sched_index+1);
         sched_index++; /* Proceed in the schedule */
     }
 
@@ -296,8 +296,8 @@ main(int argc, char **argv)
         } */
         /* Do the following if we receive a packet that ACKs for the same ACKing of next packet */
         else if((tcphdr_rprev->th_seq==htonl(sched[sched_index].exp_rseq)) && (tcphdr_rprev->th_ack==htonl(sched[sched_index].exp_rack)) && (size_payload_prev>0)){
-            printf("Received Remote Packet...............	[%d]\n",sched_index+1);
-            printf("Skipping Packet......................	[%d] to Packet [%d]\n",sched_index+1, sched_index+2);
+            printf("Received Remote Packet...............	[%u]\n",sched_index+1);
+            printf("Skipping Packet......................	[%u] to Packet [%u]\n",sched_index+1, sched_index+2);
             printf("Next Remote Packet Expectation met.\nProceeding in replay...\n");
             sched_index++;   
         } 
@@ -383,6 +383,7 @@ main(int argc, char **argv)
     printf("----------------------------------------------------------\n\n");
 
     free(sched);
+    restore_stdin();
     return 0;
 } 
 /*end of main() function*/
@@ -504,7 +505,7 @@ setup_sched(struct tcp_sched* sched){
     }
 
     /*Before sending any packet, setup the schedule with the proper parameters*/
-    while((packet = pcap_next(local_handle,&header))) {
+    while((packet = safe_pcap_next(local_handle,&header))) {
         pkt_counter++; /*increment number of packets seen*/
 
         memcpy(&sched[i].pkthdr, &header, sizeof(struct pcap_pkthdr));
@@ -713,9 +714,9 @@ set_offline_filter(char* file)
 void 
 got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
 
-    ether_hdr *etherhdr = NULL; 
-    tcp_hdr *tcphdr = NULL;
-    ipv4_hdr *iphdr = NULL;
+    ether_hdr *etherhdr;
+    tcp_hdr *tcphdr;
+    ipv4_hdr *iphdr;
 
     unsigned int size_ip, size_tcp, size_payload;
     unsigned int flags = 0;
@@ -955,7 +956,6 @@ rewrite(input_addr* new_remoteip, struct mac_addr* new_remotemac, input_addr* my
     struct pcap_pkthdr *header;
     pcap_dumper_t *dumpfile;
     input_addr sip;  /* Source IP */ 
-    unsigned int flags;
     int local_packets = 0;
     bool initstep1 = false;  /* keep track of successful handshake step */
     bool warned = false;
@@ -984,7 +984,8 @@ rewrite(input_addr* new_remoteip, struct mac_addr* new_remotemac, input_addr* my
     }
 
     /*Modify each packet's IP & MAC based on the passed args then do a checksum of each packet*/
-    for (pkt_counter = 0; pcap_next_ex(pcap, &header, &packet) > 0; pkt_counter++){
+    for (pkt_counter = 0; safe_pcap_next_ex(pcap, &header, &packet) > 0; pkt_counter++){
+        unsigned int flags;
 
         if (!warned && header->len > header->caplen) {
             fprintf(stderr, "warning: packet capture truncated to %d byte packets\n",
@@ -1187,7 +1188,6 @@ do_checksum_liveplay(u_int8_t *data, int proto, int len) {
     int ip_hl;
     volatile int sum = 0;   // <-- volatile works around a PPC g++ bug
 
-    sum;
     ipv4 = NULL;
 
     ipv4 = (ipv4_hdr *)data;

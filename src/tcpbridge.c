@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -114,6 +114,7 @@ main(int argc, char *argv[])
     tcpdump_close(options.tcpdump);
 #endif
 
+    restore_stdin();
     return 0;
 }
 
@@ -214,8 +215,9 @@ post_args(_U_ int argc, _U_ char *argv[])
             warnx("Unable to get MAC address: %s", sendpacket_geterr(sp));
             err(-1, "Please consult the man page for using the -M option.");
         }
-        sendpacket_close(sp);
+
         memcpy(options.intf1_mac, eth_buff, ETHER_ADDR_LEN);
+        sendpacket_close(sp);
     }
 
     if (memcmp(options.intf2_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
@@ -226,8 +228,9 @@ post_args(_U_ int argc, _U_ char *argv[])
             warnx("Unable to get MAC address: %s", sendpacket_geterr(sp));
             err(-1, "Please consult the man page for using the -M option.");
         }
-        sendpacket_close(sp);
+
         memcpy(options.intf2_mac, eth_buff, ETHER_ADDR_LEN);
+        sendpacket_close(sp);
     }
 
     /* 

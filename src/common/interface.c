@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -84,8 +84,8 @@ get_interface_list(void)
     int fd = -1;
     nmreq_t nmr;
 #endif
-#if defined HAVE_LIBPCAP_NETMAP || defined HAVE_NETMAP
-    u_int32_t netmap_version = -1;
+#ifdef HAVE_NETMAP
+    u_int32_t netmap_version;
 #endif
 
 #ifndef HAVE_WIN32
@@ -135,8 +135,6 @@ get_interface_list(void)
             strncpy(nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
             nmr.nr_version = netmap_version;
             if (ioctl(fd, NIOCGINFO, &nmr) == 0) {
-                int x;
-
 #endif /* HAVE_NETMAP */
 #if defined HAVE_LIBPCAP_NETMAP || defined HAVE_NETMAP
                 list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
@@ -150,8 +148,11 @@ get_interface_list(void)
                 snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s", pcap_if_ptr->name);
                 sprintf(list_ptr->alias, "%%%d", i++);
                 list_ptr->flags = pcap_if_ptr->flags;
-
+#endif /* HAVE_LIBPCAP_NETMAP  || HAVE_NETMAP */
+#ifdef HAVE_NETMAP
                 if (netmap_version >= 10) {
+                    int x;
+
                     list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
                     list_ptr = list_ptr->next;
                     snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s!", pcap_if_ptr->name);
@@ -169,10 +170,6 @@ get_interface_list(void)
                     snprintf(list_ptr->name, sizeof(list_ptr->name), "netmap:%s^", pcap_if_ptr->name);
                     sprintf(list_ptr->alias, "%%%d", i++);
                     list_ptr->flags = pcap_if_ptr->flags;
-                }
-#endif /* HAVE_LIBPCAP_NETMAP  || HAVE_NETMAP */
-#ifdef HAVE_NETMAP
-                if (netmap_version >= 10) {
                     for (x = 0; x < nmr.nr_rx_rings; ++x) {
                         list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));
                         list_ptr = list_ptr->next;

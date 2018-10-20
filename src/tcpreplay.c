@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -60,7 +60,6 @@ main(int argc, char *argv[])
 {
     int i, optct = 0;
     int rcode;
-    char buf[1024];
 
     fflush(NULL);
 
@@ -146,6 +145,8 @@ main(int argc, char *argv[])
     }
 
     if (ctx->stats.bytes_sent > 0) {
+        char buf[1024];
+
         packet_stats(&ctx->stats);
         if (ctx->options->flow_stats)
             flow_stats(ctx);
@@ -157,6 +158,7 @@ main(int argc, char *argv[])
         }
     }
     tcpreplay_close(ctx);
+    restore_stdin();
     return 0;
 }   /* main() */
 

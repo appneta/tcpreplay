@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  * Copyright (c) 2007-2008 Aaron Turner.
- * Copyright (c) 2013-2017 Fred Klassen - AppNeta
+ * Copyright (c) 2013-2018 Fred Klassen - AppNeta
  * $Id$
  */
 
@@ -42,7 +42,6 @@ fragroute_close(fragroute_t *ctx)
     assert(ctx);
     free(ctx->pktq);
     free(ctx);
-    ctx = NULL;
     pkt_close();
 }
 

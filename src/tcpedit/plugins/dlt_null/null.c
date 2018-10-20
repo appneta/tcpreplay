@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -140,11 +140,13 @@ dlt_null_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */

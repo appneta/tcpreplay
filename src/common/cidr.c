@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -241,7 +241,7 @@ cidr2cidr(char *cidr)
             if (octets[count] > 255)
                 goto error;
 
-            snprintf(tempoctet, sizeof(octets[count]), "%d", octets[count]);
+            snprintf(tempoctet, sizeof(octets[count]), "%u", octets[count]);
             strcat(networkip, tempoctet);
             /* we don't want a '.' at the end of the last octet */
             if (count < 3)
