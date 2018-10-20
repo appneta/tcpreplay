@@ -1,36 +1,49 @@
 # $Id: $
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_plugins.c \
-	$(srcdir)/plugins/ethernet.c $(srcdir)/plugins/dlt_utils.c
+libtcpedit_a_SOURCES += \
+	%reldir%/dlt_plugins.c \
+	%reldir%/ethernet.c \
+	%reldir%/ethernet.h \
+	%reldir%/dlt_utils.c \
+	%reldir%/dlt_utils.h
 
-noinst_HEADERS += $(srcdir)/plugins/ethernet.h \
-	$(srcdir)/plugins/dlt_utils.h $(srcdir)/plugins/ethernet.h
+noinst_HEADERS += \
+	%reldir%/ethernet.h \
+	%reldir%/dlt_utils.h
 
-AM_CFLAGS += -I. -I$(srcdir)/plugins -I$(srcdir)/../common $(LIBOPTS_CFLAGS) 
+AM_CFLAGS +=  -I$(srcdir)/%reldir% $(LIBOPTS_CFLAGS)
 
-EXTRA_DIST += $(srcdir)/plugins/dlt_opts.def $(srcdir)/plugins/dlt_stub.def
+EXTRA_DIST += %reldir%/dlt_opts.def %reldir%/dlt_stub.def
 
-MOSTLYCLEANFILES += $(srcdir)/plugins/*~
+MOSTLYCLEANFILES += *~
 
-MAINTAINERCLEANFILES += Makefile.in 
+MAINTAINERCLEANFILES += %reldir%/Makefile.in
 
 
-DLT_STUB_DEPS = $(srcdir)/plugins/dlt_opts.def 
+DLT_STUB_DEPS = %reldir%/dlt_opts.def
 
-$(srcdir)/plugins/dlt_stub.def: $(DLT_STUB_DEPS)
+dlt_stub.def: $(DLT_STUB_DEPS)
+
+TCPEDIT_PLUGINS_DEPS =\
+	%reldir%/dlt_utils.h \
+	%reldir%/../tcpedit_stub.h \
+	%reldir%/../plugins.h \
+	%reldir%/../plugins_api.h \
+	%reldir%/../plugins_types.h \
+	%reldir%/../tcpedit_api.h
 
 ########################################################
 # Add your plugin Makefile.am's below this line
 ########################################################
-include $(srcdir)/plugins/dlt_en10mb/Makefile.am
-include $(srcdir)/plugins/dlt_hdlc/Makefile.am
-include $(srcdir)/plugins/dlt_user/Makefile.am
-include $(srcdir)/plugins/dlt_raw/Makefile.am
-include $(srcdir)/plugins/dlt_null/Makefile.am
-include $(srcdir)/plugins/dlt_loop/Makefile.am
-include $(srcdir)/plugins/dlt_linuxsll/Makefile.am
-include $(srcdir)/plugins/dlt_ieee80211/Makefile.am
-include $(srcdir)/plugins/dlt_radiotap/Makefile.am
-include $(srcdir)/plugins/dlt_jnpr_ether/Makefile.am
-include $(srcdir)/plugins/dlt_pppserial/Makefile.am
+include %reldir%/dlt_en10mb/Makefile.am
+include %reldir%/dlt_hdlc/Makefile.am
+include %reldir%/dlt_user/Makefile.am
+include %reldir%/dlt_raw/Makefile.am
+include %reldir%/dlt_null/Makefile.am
+include %reldir%/dlt_loop/Makefile.am
+include %reldir%/dlt_linuxsll/Makefile.am
+include %reldir%/dlt_ieee80211/Makefile.am
+include %reldir%/dlt_radiotap/Makefile.am
+include %reldir%/dlt_jnpr_ether/Makefile.am
+include %reldir%/dlt_pppserial/Makefile.am
 

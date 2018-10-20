@@ -6,22 +6,21 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_raw/raw.c
+libtcpedit_a_SOURCES += %reldir%/raw.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_raw/raw.h
+noinst_HEADERS += %reldir%/raw.h
 
-EXTRA_DIST += $(srcdir)/plugins/dlt_raw/raw_opts.def
+EXTRA_DIST += %reldir%/raw_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_raw/raw.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_raw/raw.h $	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
-	$(srcdir)/tcpedit_api.h 
+raw.c: \
+	$(TCPEDIT_PLUGINS_DEPS) \
+	%reldir%/raw.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
-DLT_STUB_DEPS += $(srcdir)/plugins/dlt_raw/raw_opts.def
+DLT_STUB_DEPS += %reldir%/raw_opts.def
 
-MOSTLYCLEANFILES += $(srcdir)/plugins/dlt_raw/*~
+MOSTLYCLEANFILES += *~
 
 # END OF: dlt_raw

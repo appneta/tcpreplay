@@ -6,25 +6,27 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_user/user.c \
-	$(srcdir)/plugins/dlt_user/user_api.c
+libtcpedit_a_SOURCES += \
+	%reldir%/user.c \
+	%reldir%/user_api.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_user/user.h \
-	$(srcdir)/plugins/dlt_user/user_api.h \
-	$(srcdir)/plugins/dlt_user/user_types.h
+noinst_HEADERS += \
+	%reldir%/user.h \
+	%reldir%/user_api.h \
+	%reldir%/user_types.h
 
-EXTRA_DIST += $(srcdir)/plugins/dlt_user/user_opts.def
+EXTRA_DIST += %reldir%/user_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_user/user.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins/dlt_user/user.h 	$(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
-	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_user/user_api.h
+user.c: \
+	$(TCPEDIT_PLUGINS_DEPS) \
+	%reldir%/user.h \
+	%reldir%/user_api.h
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
-DLT_STUB_DEPS += $(srcdir)/plugins/dlt_user/user_opts.def
+DLT_STUB_DEPS += %reldir%/user_opts.def
 
-MOSTLYCLEANFILES += $(srcdir)/plugins/dlt_user/*~
+MOSTLYCLEANFILES += *~
 
 # END OF: dlt_user
