@@ -215,8 +215,9 @@ post_args(_U_ int argc, _U_ char *argv[])
             warnx("Unable to get MAC address: %s", sendpacket_geterr(sp));
             err(-1, "Please consult the man page for using the -M option.");
         }
-        sendpacket_close(sp);
+
         memcpy(options.intf1_mac, eth_buff, ETHER_ADDR_LEN);
+        sendpacket_close(sp);
     }
 
     if (memcmp(options.intf2_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
@@ -227,8 +228,9 @@ post_args(_U_ int argc, _U_ char *argv[])
             warnx("Unable to get MAC address: %s", sendpacket_geterr(sp));
             err(-1, "Please consult the man page for using the -M option.");
         }
-        sendpacket_close(sp);
+
         memcpy(options.intf2_mac, eth_buff, ETHER_ADDR_LEN);
+        sendpacket_close(sp);
     }
 
     /* 
