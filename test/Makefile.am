@@ -231,7 +231,7 @@ regex:
 cidr:
 	$(PRINTF) "%s" "[tcpprep] CIDR mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] CIDR mode test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_CAP) -o test.$@1 -c '96.17.211.0/24' >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -c '96.17.211.0/24' >> test.log 2>&1
 	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
@@ -245,7 +245,7 @@ port:
 mac:
 	$(PRINTF) "%s" "[tcpprep] MAC mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] MAC mode test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_CAP) -o test.$@1 -e 00:1f:f3:3c:e1:13 >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -e 00:1f:f3:3c:e1:13 >> test.log 2>&1
 	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
@@ -271,7 +271,7 @@ print_info:
 regex_reverse:
 	$(PRINTF) "%s" "[tcpprep] Regex reverse mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Regex reverse mode test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_CAP) -o test.$@1 -r '96.17.211.*' --reverse >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -r '96.17.211.*' --reverse >> test.log 2>&1
 	diff  $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
