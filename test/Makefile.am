@@ -320,7 +320,6 @@ include_dest:
 replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Basic test: " >> test.log
-	@echo "$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t $(TEST_PCAP) >> test.log 2>&1"
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
