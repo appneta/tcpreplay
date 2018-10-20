@@ -152,13 +152,13 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
 void fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
 {
     if (!ip_hdr->ip_len)
-        ip_hdr->ip_len = pkthdr->len;
+        ip_hdr->ip_len = htons((uint16_t)pkthdr->len);
 }
 
 void fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr)
 {
     if (!ip6_hdr->ip_len)
-        ip6_hdr->ip_len = pkthdr->len;
+        ip6_hdr->ip_len = htons((uint16_t)pkthdr->len);
 }
 
 static void ipv4_l34_csum_replace(uint8_t *data, uint8_t protocol,
