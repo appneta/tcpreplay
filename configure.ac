@@ -539,6 +539,7 @@ AC_ARG_ENABLE(dynamic-link,
         AC_MSG_ERROR([Cannot specify both --enable-dynamic-link and --enable-static-link])
     fi
     ])
+
 if test $static_link = yes; then
     AC_DEFINE([ENABLE_STATIC_LINK], [1], [Use static libraries ( .a or .A.tbd )])
 else
@@ -582,10 +583,11 @@ AC_ARG_ENABLE([tuntap],
     linux*)
       AC_CHECK_HEADER([linux/if_tun.h], [have_tuntap=yes])
       ;;
-    freebsd*)
+    *)
       AC_CHECK_HEADER([net/if_tun.h], [have_tuntap=yes])
       ;;
   esac])
+
 if test $have_tuntap = yes ; then
     AC_DEFINE([HAVE_TUNTAP], [1],
             [Do we have TUNTAP device support?])
