@@ -232,7 +232,7 @@ tcpr_tree_to_cidr(const int masklen, const int type)
 tcpr_dir_t
 check_ip_tree(const int mode, const unsigned long ip)
 {
-    tcpr_tree_t *node = NULL, *finder = NULL;
+    tcpr_tree_t *node, *finder;
 
     finder = new_tree();
     finder->family = AF_INET;
@@ -629,7 +629,6 @@ ipv6_cmp(const struct tcpr_in6_addr *a, const struct tcpr_in6_addr *b)
 int
 tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
 {
-    int ret;
     if (t1->family > t2->family) {
         dbgx(2, "family %d > %d", t1->family, t2->family);
         return 1;
@@ -660,7 +659,7 @@ tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
     }
 
     if (t1->family == AF_INET6) {
-        ret = ipv6_cmp(&t1->u.ip6, &t1->u.ip6);
+        int ret = ipv6_cmp(&t1->u.ip6, &t1->u.ip6);
         dbgx(2, "cmp(%s, %s) = %d", get_addr2name6(&t1->u.ip6, RESOLVE),
                 get_addr2name6(&t2->u.ip6, RESOLVE), ret);
         return ret;

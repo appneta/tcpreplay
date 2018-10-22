@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.0-beta1],
+AC_INIT([tcpreplay],[4.3.0-beta2],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -544,6 +544,7 @@ AC_ARG_ENABLE(dynamic-link,
         AC_MSG_ERROR([Cannot specify both --enable-dynamic-link and --enable-static-link])
     fi
     ])
+
 if test $static_link = yes; then
     AC_DEFINE([ENABLE_STATIC_LINK], [1], [Use static libraries ( .a or .A.tbd )])
 else
@@ -587,10 +588,11 @@ AC_ARG_ENABLE([tuntap],
     linux*)
       AC_CHECK_HEADER([linux/if_tun.h], [have_tuntap=yes])
       ;;
-    freebsd*)
+    *)
       AC_CHECK_HEADER([net/if_tun.h], [have_tuntap=yes])
       ;;
   esac])
+
 if test $have_tuntap = yes ; then
     AC_DEFINE([HAVE_TUNTAP], [1],
             [Do we have TUNTAP device support?])
@@ -1760,65 +1762,40 @@ AC_ARG_WITH(testnic,
       nic2=$withval
       AC_MSG_RESULT([Using --with-testnic=$withval])],
     [
-
-dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
-dnl so under OSX we disable the interface list feature
-disable_pcap_findalldevs=no
-
-osx_frameworks=no
-dnl these need to be dynamic based on OS
 case $host in
     *-*-linux*)
     nic1=eth0
     nic2=eth0
-    AC_DEFINE([HAVE_LINUX], [1], [Building Linux])
-    AC_MSG_RESULT(Linux)
     ;;
 
     *-*-solaris*)
     nic1=hme0
     nic2=hme0
-    AC_DEFINE([HAVE_SOLARIS], [1], [Building Solaris])
-    AC_MSG_RESULT(Solaris)
     ;;
 
     *-*-sunos*)
     nic1=hme0
     nic2=hme0
-    AC_DEFINE([HAVE_SUNOS], [1], [Building SunOS])
-    AC_MSG_RESULT(SunOS)
     ;;
 
     *-apple-darwin*)
     nic1=en0
     nic2=en0
-    if test x$libpcap_version_096 = xno ; then
-        disable_pcap_findalldevs=yes
-    fi
-    osx_frameworks=yes
-    AC_DEFINE([HAVE_DARWIN], [1], [Building Apple/Darwin])
-    AC_MSG_RESULT(Apple OS X)
     ;;
 
     *-*-openbsd*)
     nic1=xl0
     nic2=xl0
-    AC_DEFINE([HAVE_OPENBSD], [1], [Building Open BSD])
-    AC_MSG_RESULT(OpenBSD)
     ;;
 
     *-*-freebsd*)
     nic1=em0
     nic2=em0
-    AC_DEFINE([HAVE_FREEBSD], [1], [Building Free BSD])
-    AC_MSG_RESULT(FreeBSD)
     ;;
 
     *-*-cygwin)
-    AC_MSG_RESULT(Win32/Cygwin)
     nic1=%0
     nic2=%0
-    AC_DEFINE([HAVE_CYGWIN], [1], [Building Cygwin])
     ;;
 
     *)
@@ -1828,6 +1805,55 @@ case $host in
     ;;
 esac])
 
+dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
+dnl so under OSX we disable the interface list feature
+disable_pcap_findalldevs=no
+osx_frameworks=no
+dnl these need to be dynamic based on OS
+case $host in
+    *-*-linux*)
+    AC_DEFINE([HAVE_LINUX], [1], [Building Linux])
+    AC_MSG_RESULT(Linux)
+    ;;
+
+    *-*-solaris*)
+    AC_DEFINE([HAVE_SOLARIS], [1], [Building Solaris])
+    AC_MSG_RESULT(Solaris)
+    ;;
+
+    *-*-sunos*)
+    AC_DEFINE([HAVE_SUNOS], [1], [Building SunOS])
+    AC_MSG_RESULT(SunOS)
+    ;;
+
+    *-apple-darwin*)
+    if test x$libpcap_version_096 = xno ; then
+        disable_pcap_findalldevs=yes
+    fi
+    osx_frameworks=yes
+    AC_DEFINE([HAVE_DARWIN], [1], [Building Apple/Darwin])
+    AC_MSG_RESULT(Apple OS X)
+    ;;
+
+    *-*-openbsd*)
+    AC_DEFINE([HAVE_OPENBSD], [1], [Building Open BSD])
+    AC_MSG_RESULT(OpenBSD)
+    ;;
+
+    *-*-freebsd*)
+    AC_DEFINE([HAVE_FREEBSD], [1], [Building Free BSD])
+    AC_MSG_RESULT(FreeBSD)
+    ;;
+
+    *-*-cygwin)
+    AC_MSG_RESULT(Win32/Cygwin)
+    AC_DEFINE([HAVE_CYGWIN], [1], [Building Cygwin])
+    ;;
+
+    *)
+    AC_MSG_RESULT([$host is unknown!])
+    ;;
+esac
 AM_CONDITIONAL([ENABLE_OSX_FRAMEWORKS], test "$osx_frameworks" = "yes")
 
 AC_ARG_WITH(testnic2,

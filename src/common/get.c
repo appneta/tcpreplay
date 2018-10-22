@@ -111,7 +111,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         } else {
             eth_hdr_offset = 4; /* no header extensions */
         }
-        /* fall through */
+        /* no break */
     case DLT_EN10MB:
         if (datalen >= (int)(sizeof(eth_hdr_t) + eth_hdr_offset)) {
             eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);

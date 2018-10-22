@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
@@ -62,7 +60,6 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     char *first, *second;
     int rcode;
     regex_t preg;
-    char ebuf[EBUF_SIZE];
     char regex[] = "^[0-9]+(-[0-9]+)?$";
     char *token = NULL;
     u_int i;
@@ -70,6 +67,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
 
     /* compile the regex first */
     if ((rcode = regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB)) != 0) {
+        char ebuf[EBUF_SIZE];
         regerror(rcode, &preg, ebuf, sizeof(ebuf));
         errx(-1, "Unable to compile regex (%s): %s", regex, ebuf);
     }

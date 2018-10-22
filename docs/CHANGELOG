@@ -1,3 +1,17 @@
+10/18/2018 Version 4.3.0 beta2
+    - fix issues identifed by Codacy (#493)
+    - CVE-2018-18408 use-after-free in post_args (#489)
+    - CVE-2018-18407 heap-buffer-overflow csum_replace4 (#488)
+    - CVE-2018-17974 heap-buffer-overflow dlt_en10mb_encode (#486)
+    - CVE-2018-17580 heap-buffer-overflow fast_edit_packet (#485)
+    - CVE-2018-17582 heap-buffer-overflow in get_next_packet (#484)
+    - Out-of-tree build (#482)
+    - Fails to open tap0 on Zephyr (#411)
+    - CVE-2018-13112 heap-buffer-overflow in get_l2len (#477 dup #408)
+    - Respect 2nd packet timing (#418)
+    - manpage typos (#413)
+    - Fix replay when using --with-testnic (#178)
+
 01/18/2018 Version 4.3.0 beta1
     - Travis CI build fails due to new build images (#432)
     - Unable to build with libpcap 1.8.1 (#430)
@@ -51,7 +65,7 @@
     - Packet destortion --fuzz-seed option by Gabriel Ganne (#302)
     - Add --unique-ip-loops option to modify IPs every few loops (#296)
     - Netmap startup delay increase (#290)
-    - tcpcapinfo buffer overflow vulnerablily (#278)
+    - CVE-2017-6429 tcpcapinfo buffer overflow vulnerablily (#278)
     - Update git-clone instructions by Kyle McDonald (#277)
     - Allow fractions for --pps option (#270)
     - Print per-loop stats with --stats=0 (#269)

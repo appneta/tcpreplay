@@ -495,7 +495,16 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     bool preload = options->file_cache[idx].cached;
     bool top_speed = (options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
-    bool now_is_now;
+    bool now_is_now = false;
+
+    if (!timerisset(&ctx->stats.start_time)) {
+        gettimeofday(&ctx->stats.start_time, NULL);
+        if (ctx->options->stats >= 0) {
+            char buf[64];
+            if (format_date_time(&ctx->stats.start_time, buf, sizeof(buf)) > 0)
+                printf("Test start: %s ...\n", buf);
+        }
+    }
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -512,12 +521,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         prev_packet = NULL;
     }
 
-    if (!top_speed) {
+   if (!top_speed)
         gettimeofday(&now, NULL);
-        now_is_now = true;
-    } else {
-        now_is_now = false;
-    }
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
@@ -557,12 +562,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
 
-        /* do we need to print the packet via tcpdump? */
-#ifdef ENABLE_VERBOSE
-        if (options->verbose)
-            tcpdump_print(options->tcpdump, &pkthdr, pktdata);
-#endif
-
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
             /* edit packet to ensure every pass has unique IP addresses */
@@ -578,7 +577,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if (ctx->first_time) {
             /* get time and timestamp of the first packet */
             gettimeofday(&now, NULL);
-            memcpy(&first_pkt_ts, &pkthdr.ts, sizeof(struct timeval));
+            now_is_now = true;
+            memcpy(&first_pkt_ts, &pkthdr.ts, sizeof(first_pkt_ts));
         }
 
         /*
@@ -630,8 +630,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                 tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
         }
 
-        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
+#ifdef ENABLE_VERBOSE
+        /* do we need to print the packet via tcpdump? */
+        if (options->verbose)
+            tcpdump_print(options->tcpdump, &pkthdr, pktdata);
+#endif
 
+        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
@@ -666,13 +671,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
 
 #if defined HAVE_NETMAP
-        if (sp->first_packet) {
+        if (sp->first_packet || timesisset(&ctx->nap)) {
             wake_send_queues(sp, options);
             sp->first_packet = false;
         }
 #endif
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -728,7 +733,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER skip_length = 0;
     bool top_speed = (options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
-    bool now_is_now;
+    bool now_is_now = false;
+
+    if (!timerisset(&ctx->stats.start_time)) {
+        gettimeofday(&ctx->stats.start_time, NULL);
+        if (ctx->options->stats >= 0) {
+            char buf[64];
+            if (format_date_time(&ctx->stats.start_time, buf, sizeof(buf)) > 0)
+                printf("Test start: %s ...\n", buf);
+        }
+    }
 
     ctx->skip_packets = 0;
     start_us = TIMEVAL_TO_MICROSEC(&ctx->stats.start_time);
@@ -751,12 +765,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
     pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
 
-    if (!top_speed) {
+    if (!top_speed)
         gettimeofday(&now, NULL);
-        now_is_now = true;
-    } else {
-        now_is_now = false;
-    }
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
@@ -823,12 +833,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
 
-        /* do we need to print the packet via tcpdump? */
-#ifdef ENABLE_VERBOSE
-        if (options->verbose)
-            tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
-#endif
-
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
             /* edit packet to ensure every pass is unique */
@@ -843,7 +847,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (ctx->first_time) {
             /* get time and timestamp of the first packet */
             gettimeofday(&now, NULL);
-            memcpy(&first_pkt_ts, &pkthdr_ptr->ts, sizeof(struct timeval));
+            now_is_now = true;
+            memcpy(&first_pkt_ts, &pkthdr_ptr->ts, sizeof(first_pkt_ts));
         }
 
         /*
@@ -895,8 +900,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                 tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
         }
 
-        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
+#ifdef ENABLE_VERBOSE
+        /* do we need to print the packet via tcpdump? */
+        if (options->verbose)
+            tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
+#endif
 
+        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
@@ -927,7 +937,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         }
 
 #if defined HAVE_NETMAP
-        if (sp->first_packet) {
+        if (sp->first_packet || timesisset(&ctx->nap)) {
             wake_send_queues(sp, options);
             sp->first_packet = false;
         }
@@ -941,7 +951,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         }
 
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -1021,7 +1031,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
             /*
              * We should read the pcap file, and cache the results
              */
-            pktdata = (u_char *)pcap_next(pcap, pkthdr);
+            pktdata = safe_pcap_next(pcap, pkthdr);
             if (pktdata != NULL) {
                 if (*prev_packet == NULL) {
                     /*
@@ -1051,7 +1061,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
         /*
          * Read pcap file as normal
          */
-        pktdata = (u_char *)pcap_next(pcap, pkthdr);
+        pktdata = safe_pcap_next(pcap, pkthdr);
     }
 
     /* this get's casted to a const on the way out */
@@ -1133,9 +1143,9 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
     case speed_multiplier:
         /*
          * Replay packets a factor of the time they were originally sent.
+         * Make sure the packet is not late.
          */
-        if (timerisset(last_delta)) {
-            /* make sure the packet is not late */
+        {
             COUNTER delta_us, delta_pkt_time;
             now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
             delta_pkt_time = TIMEVAL_TO_MICROSEC(pkt_time_delta);
@@ -1143,25 +1153,14 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
             if (timercmp(pkt_time_delta, last_delta, >) && (delta_pkt_time > delta_us)) {
                 /* pkt_time_delta has increased, so handle normally */
                 timersub(pkt_time_delta, last_delta, &nap_for);
-                dbgx(3, "original packet delta pkt_time: " TIMEVAL_FORMAT,
-                        nap_for.tv_sec, nap_for.tv_usec);
-
                 TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
-                dbgx(3, "original packet delta time: " TIMESPEC_FORMAT,
-                        ctx->nap.tv_sec, ctx->nap.tv_nsec);
+                dbgx(3, "original packet delta time: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
                 timesdiv_float(&ctx->nap, options->speed.multiplier);
-                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT,
-                        ctx->nap.tv_sec, ctx->nap.tv_nsec);
+                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
             } else {
                 /* Don't sleep if this packet is late or in the past */
                 update_time = false;
             }
-
-            update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len,
-                    now_us, delta_us, delta_pkt_time);
-        } else {
-            /* Don't sleep if this is our first packet */
-            update_time = false;
         }
         break;
 
@@ -1191,9 +1190,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
                 tx_us = now_us - *start_us;
                 *skip_length = ((tx_us - next_tx_us) * bps) / 8000000;
             }
-
-            update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len,
-                    now_us, tx_us, next_tx_us);
+            update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
         }
 
         dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len,
@@ -1220,8 +1217,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
              else
                  ctx->skip_packets = options->speed.pps_multi;
 
-             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len,
-                     now_us, tx_us, next_tx_us);
+             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
          }
 
          dbgx(3, "packet count=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, ctx->stats.pkts_sent,

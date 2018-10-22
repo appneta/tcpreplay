@@ -294,7 +294,7 @@ dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_user_l2len(ctx, packet, pktlen);
 
-    if (l2len < 0 || pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -316,8 +316,7 @@ dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_user_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == TCPEDIT_ERROR || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);

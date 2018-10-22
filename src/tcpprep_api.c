@@ -221,12 +221,12 @@ int
 tcpprep_set_regex(tcpprep_t *ctx, char *value)
 {
     int regex_error;
-    char ebuf[EBUF_SIZE];
 
     assert(ctx);
 
     if ((regex_error = regcomp(&ctx->options->preg, value,
                     REG_EXTENDED|REG_NOSUB))) {
+        char ebuf[EBUF_SIZE];
         regerror(regex_error, &ctx->options->preg, ebuf, EBUF_SIZE);
         tcpprep_seterr(ctx, "Unable to compile regex (%s): %s", value, regex_error);
         return -1;

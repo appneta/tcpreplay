@@ -313,7 +313,7 @@ dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     if (pktlen < 4)
-        return 0;
+        return -1;
 
     memcpy(&radiolen, &packet[2], 2);
     /* little endian to host */
@@ -327,12 +327,19 @@ dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 int
 dlt_radiotap_80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    int radiolen;
+    int radiolen, res;
     u_char *data;
     
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
+    if (radiolen == -1)
+        return TCPEDIT_ERROR;
+
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
-    radiolen += dlt_ieee80211_l2len(ctx, data, pktlen - radiolen);
+    res = dlt_ieee80211_l2len(ctx, data, pktlen - radiolen);
+    if (res == -1)
+        return TCPEDIT_ERROR;
+
+    radiolen += res;
     return radiolen;
 }
 

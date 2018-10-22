@@ -58,7 +58,7 @@ Bojan Smojver <bojan@rexursive.com>
 Stas Grabois <sagig@radware.com>
     - For his efforts to add IPv6 support to tcpprep and the tcpedit engine
     - For adding IPv6 support to fragroute
-    
+
 Fred Klassen <tcpreplay@appneta.com> - AppNeta 
     - New maintainer of Tcpreplay
     - Added netmap support for wire-rate performance on commodity hardware
@@ -78,3 +78,4 @@ Pedro Arthur Duarte [aka JEdi] <GitHub @pedroarthur>
 
 Gabriel Ganne <GitHub @GabrielGanne>
     - Data fuzz rewrite feature
+    - Out-of-tree build
