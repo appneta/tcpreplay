@@ -1102,19 +1102,10 @@ tcpreplay_replay(tcpreplay_t *ctx)
         return -1;
     }
 
+    init_timestamp(&ctx->stats.start_time);
     init_timestamp(&ctx->stats.last_time);
     init_timestamp(&ctx->stats.last_print);
     init_timestamp(&ctx->stats.end_time);
-
-    if (gettimeofday(&ctx->stats.start_time, NULL) < 0) {
-        tcpreplay_seterr(ctx, "gettimeofday() failed: %s",  strerror(errno));
-        return -1;
-    }
-
-    if (ctx->options->stats >= 0) {
-        if (format_date_time(&ctx->stats.start_time, buf, sizeof(buf)) > 0)
-            printf("Test start: %s ...\n", buf);
-    }
 
     ctx->running = true;
     total_loops = ctx->options->loop;
