@@ -8,6 +8,7 @@
     - Out-of-tree build (#482)
     - Fails to open tap0 on Zephyr (#411)
     - CVE-2018-13112 heap-buffer-overflow in get_l2len (#477 dup #408)
+    - Respect 2nd packet timing (#418)
     - manpage typos (#413)
     - Fix replay when using --with-testnic (#178)
 
