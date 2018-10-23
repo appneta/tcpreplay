@@ -320,7 +320,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -349,7 +349,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -376,7 +376,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -409,7 +409,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
                 }
             }

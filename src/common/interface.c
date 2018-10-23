@@ -85,7 +85,7 @@ get_interface_list(void)
     nmreq_t nmr;
 #endif
 #ifdef HAVE_NETMAP
-    u_int32_t netmap_version;
+    int netmap_version;
 #endif
 
 #ifndef HAVE_WIN32

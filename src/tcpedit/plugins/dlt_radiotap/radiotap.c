@@ -206,7 +206,8 @@ dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
+        _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -357,7 +358,8 @@ dlt_radiotap_l2addr_type(void)
  * since we track which was the last packet # we copied.
  */
 static u_char *
-dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen, const int radiolen)
+dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet,
+        const int pktlen, const int radiolen)
 {
     radiotap_extra_t *extra;
     static COUNTER lastpacket = 0;
@@ -366,7 +368,8 @@ dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen
         return NULL;
 
     extra = (radiotap_extra_t *)(ctx->decoded_extra);
-    if (pktlen >= radiolen && (pktlen - radiolen) >= sizeof(extra->packet) &&
+    if (pktlen >= radiolen &&
+            (size_t)(pktlen - radiolen) >= sizeof(extra->packet) &&
             lastpacket != ctx->tcpedit->runtime.packetnum) {
         memcpy(extra->packet, &packet[radiolen], pktlen - radiolen);
         lastpacket = ctx->tcpedit->runtime.packetnum;

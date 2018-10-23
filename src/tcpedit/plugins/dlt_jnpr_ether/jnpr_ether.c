@@ -403,7 +403,7 @@ dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_cha
 int
 dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    uint16_t len, res;
+    int len, res;
     jnpr_ether_config_t *config;
 
     assert(ctx);

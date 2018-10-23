@@ -195,7 +195,8 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
+        _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -235,7 +236,7 @@ dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -252,7 +253,8 @@ dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen,
+        u_char *l3data)
 {
     assert(ctx);
     assert(packet);
@@ -267,7 +269,7 @@ dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char
  * return the length of the L2 header of the current packet
  */
 int
-dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, _U_ const int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -280,7 +282,8 @@ dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_raw_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_raw_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
+        const u_char *packet, _U_ const int pktlen)
 {
     assert(ctx);
     assert(packet);
