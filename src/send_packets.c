@@ -677,7 +677,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
 #endif
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -951,7 +951,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         }
 
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;

@@ -104,7 +104,7 @@ ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
     offset = sizeof(*ip6_hdr);
     next_header = ip6_hdr->ip_nh;
 
-    while (sizeof(*nhdr) + offset < pkt_len)
+    while (sizeof(*nhdr) + offset < (size_t)pkt_len)
     {
         if (next_header != TCPR_IPV6_NH_HBH
                 && next_header != TCPR_IPV6_NH_ROUTING
@@ -239,7 +239,7 @@ static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
 
     assert(ip_hdr);
 
-    if (len < sizeof(*ip_hdr))
+    if ((size_t)len < sizeof(*ip_hdr))
         return;
 
     ipv4_l34_csum_replace((uint8_t*)ip_hdr, IPPROTO_IP, old_ip, new_ip);
@@ -277,7 +277,7 @@ static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
 
     assert(ip6_hdr);
 
-    if (len < sizeof(*ip6_hdr))
+    if ((size_t)len < sizeof(*ip6_hdr))
         return;
 
     protocol = get_ipv6_l4proto(ip6_hdr, len);
@@ -758,7 +758,7 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const uint32_t original)
 static int
 remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
 {
-    int i, j, k;
+    uint32_t i, j, k;
 
     assert(tcpedit);
     assert(cidr);
@@ -779,7 +779,7 @@ remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
     if ((k = cidr->masklen % 8) == 0)
         return 1;
 
-    k = ~0 << (8 - k);
+    k = (uint32_t)~0 << (8 - k);
     i = addr->tcpr_s6_addr[i] & k;
 
     addr->tcpr_s6_addr[i] = (cidr->u.network6.tcpr_s6_addr[j] & (0xff << (8 - k))) |

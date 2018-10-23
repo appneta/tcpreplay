@@ -107,7 +107,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         }
         /* no break */
     case DLT_EN10MB:
-        if (datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
+        if ((size_t)datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
             vlan_hdr_t *vlan_hdr;
             eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
             uint16_t ether_type = ntohs(eth_hdr->ether_type);
@@ -122,7 +122,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_PPP_SERIAL:
-        if (datalen >= sizeof(struct tcpr_pppserial_hdr)) {
+        if ((size_t)datalen >= sizeof(struct tcpr_pppserial_hdr)) {
             struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr *)pktdata;
             if (ntohs(ppp->protocol) == 0x0021)
                 return htons(ETHERTYPE_IP);
@@ -132,14 +132,14 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_C_HDLC:
-        if (datalen >= sizeof(hdlc_hdr_t)) {
+        if ((size_t)datalen >= sizeof(hdlc_hdr_t)) {
             hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t *)pktdata;
             return hdlc_hdr->protocol;
         }
         break;
 
     case DLT_LINUX_SLL:
-        if (datalen >= sizeof(sll_hdr_t)) {
+        if ((size_t)datalen >= sizeof(sll_hdr_t)) {
             sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
             return sll_hdr->sll_protocol;
         }
@@ -175,14 +175,14 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         l2_len = 24;
         /* no break */
     case DLT_EN10MB:
-        if (datalen >= sizeof(eth_hdr_t) + l2_len) {
+        if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
             uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
             while (ether_type == ETHERTYPE_VLAN) {
                 vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
                 ether_type = ntohs(vlan_hdr->vlan_len);
                 l2_len += 4;
-                if (datalen < sizeof(vlan_hdr_t) + l2_len) {
+                if ((size_t)datalen < sizeof(vlan_hdr_t) + l2_len) {
                     l2_len = -1;
                     break;
                 }
@@ -656,7 +656,7 @@ get_name2addr6(const char *hostname, bool dnslookup, struct tcpr_in6_addr *addr)
  * is available on your system. Does not support DNS.
  */
 const char *
-get_addr2name4(const uint32_t ip, bool dnslookup)
+get_addr2name4(const uint32_t ip, bool _U_ dnslookup)
 {
     struct in_addr addr;
     static char *new_string = NULL;
@@ -686,7 +686,7 @@ get_addr2name4(const uint32_t ip, bool dnslookup)
  * Does not support DNS.
  */
 const char *
-get_addr2name6(const struct tcpr_in6_addr *addr, bool dnslookup)
+get_addr2name6(const struct tcpr_in6_addr *addr, bool _U_ dnslookup)
 {
     static char *new_string = NULL;
 

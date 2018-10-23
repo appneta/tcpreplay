@@ -9,7 +9,7 @@ AC_INIT([tcpreplay],[4.3.0-beta2],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
-AC_CONFIG_HEADERS([src/config.h])
+AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE
 AM_WITH_DMALLOC
@@ -28,9 +28,6 @@ TCPREPLAY_RELEASE=1
 
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
-
-USER_CFLAGS=$CFLAGS
-CFLAGS="-Wall -std=gnu99 ${CFLAGS}"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -153,7 +150,7 @@ AM_SILENT_RULES([yes])
 dnl Checks for programs.
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
-AM_PROG_CC_C_O
+AC_PROG_CC
 AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
@@ -381,7 +378,11 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul $wno_format"
+        dnl replace '-0X' and add '-g' flags
+        changequote({,})
+        CFLAGS=`echo "$CFLAGS" | $SED -e 's/-O[0-9s]*//g'`
+        changequote([,])
+        CFLAGS="${CFLAGS} -g -O0 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul $wno_format"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         debug_flag=DEBUG
@@ -409,10 +410,10 @@ AC_ARG_ENABLE(timestamp-trace,
     AC_HELP_STRING([--timestamp-trace], [Enable dumping of trace timestamps at the end of a test]),
     [ if test x$enableval = xyes; then
         timestamp_trace=yes
-        CFLAGS="${USER_CFLAGS} -DTIMESTAMP_TRACE"
-        AC_SUBST(timestamp_trace_flag)
+        CFLAGS="${CFLAGS} -DTIMESTAMP_TRACE"
         AC_DEFINE([TIMESTAMP_TRACE], [1], [Enable dumping of trace timestamps at the end of a test])
     fi])
+AC_SUBST(timestamp_trace_flag)
 
 
 AC_ARG_ENABLE(dmalloc,

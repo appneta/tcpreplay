@@ -167,7 +167,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     sll_hdr_t *sll_hdr;
     struct tcpr_pppserial_hdr *ppp;
     flow_entry_data_t entry;
-    int l2_len = 0;
+    uint32_t l2_len = 0;
     int ip_len;
     uint8_t protocol;
     uint32_t hash;

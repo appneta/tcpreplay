@@ -209,7 +209,7 @@ dlt_user_parse_opts(tcpeditdlt_t *ctx)
 
 /* you should never decode packets with this plugin! */
 int 
-dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const int _U_ pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -271,7 +271,7 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
 int 
-dlt_user_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_user_proto(tcpeditdlt_t *ctx, const u_char *packet, const int _U_ pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -326,7 +326,7 @@ dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
  * return the length of the L2 header of the current packet
  */
 int
-dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int _U_ pktlen)
 {
     tcpeditdlt_plugin_t *plugin;
     user_config_t *config;
@@ -349,7 +349,8 @@ dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_user_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_user_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
+        const u_char *packet, const int _U_ pktlen)
 {
     assert(ctx);
     assert(packet);

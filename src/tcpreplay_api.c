@@ -1087,7 +1087,8 @@ out:
 int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
-    int rcode, loop, total_loops;
+    int rcode;
+    COUNTER loop, total_loops;
     char buf[64];
 
     assert(ctx);
@@ -1117,9 +1118,10 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop %d of %d...\n", loop, total_loops);
+                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC "...\n",
+                            loop, total_loops);
                 else
-                    printf("Loop %d of %d (" COUNTER_SPEC " unique)...\n",
+                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n",
                             loop, total_loops,
                             ctx->unique_iteration);
             }
@@ -1140,9 +1142,9 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop %d...\n", loop);
+                    printf("Loop " COUNTER_SPEC "...\n", loop);
                 else
-                    printf("Loop %d (" COUNTER_SPEC " unique)...\n", loop,
+                    printf("Loop " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n", loop,
                             ctx->unique_iteration);
             }
             if ((rcode = tcpr_replay_index(ctx)) < 0)

@@ -712,18 +712,15 @@ set_offline_filter(char* file)
  * This function is called every time we receive a remote packet
  */
 void 
-got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
-
+got_packet(_U_ u_char *args, _U_ const struct pcap_pkthdr *header,
+        const u_char *packet)
+{
     ether_hdr *etherhdr;
     tcp_hdr *tcphdr;
     ipv4_hdr *iphdr;
 
     unsigned int size_ip, size_tcp, size_payload;
     unsigned int flags = 0;
-
-    /* This is to get rid of the warning */
-    args = NULL;
-    header = NULL;
 
     /* Extract and examine recieved packet headers */
     etherhdr = (ether_hdr*)(packet);
@@ -753,7 +750,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         //printf("initial_rseq: %u\n", initial_rseq);
         /* After we receiving the first SYN-ACK, then adjust the entire sched to be absolute rather than relative #s*/
         sched[1].exp_rseq = sched[1].exp_rseq + initial_rseq;
-        for(j = 2; j<pkts_scheduled; j++){ /* Based on correctly recieving the random SEQ from the SYN-ACK packet, do the following:*/
+        for(j = 2; j<pkts_scheduled; j++){ /* Based on correctly receiving the random SEQ from the SYN-ACK packet, do the following:*/
             if(sched[j].local){ /* Set local ACKs for entire sched to be absolute #s*/
                 sched[j].curr_lack = sched[j].curr_lack + initial_rseq; 
             }
