@@ -28,7 +28,7 @@
 #endif
 #endif
 
-#define PKT_BUF_LEN	(ETH_HDR_LEN + ETH_MTU)
+#define PKT_BUF_LEN	(ETH_HDR_LEN + 9000)
 #define PKT_BUF_ALIGN	2
 
 struct pkt {
