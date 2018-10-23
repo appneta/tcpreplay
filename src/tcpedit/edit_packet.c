@@ -44,7 +44,7 @@ static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
 static int is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 
-static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
+static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, size_t pkt_len);
 
 /**
  * this code re-calcs the IP and Layer 4 checksums
@@ -95,16 +95,16 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
  *         -1 on error
  */
 static int
-ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
+ipv6_header_length(ipv6_hdr_t const * ip6_hdr, size_t pkt_len)
 {
     struct tcpr_ipv6_ext_hdr_base const * nhdr;
     uint8_t next_header;
-    uint32_t offset;
+    size_t offset;
 
     offset = sizeof(*ip6_hdr);
     next_header = ip6_hdr->ip_nh;
 
-    while (sizeof(*nhdr) + offset < (uint32_t)pkt_len)
+    while (sizeof(*nhdr) + offset < pkt_len)
     {
         if (next_header != TCPR_IPV6_NH_HBH
                 && next_header != TCPR_IPV6_NH_ROUTING
@@ -233,7 +233,7 @@ static void ipv6_l34_csum_replace(uint8_t *data, uint8_t protocol,
 }
 
 static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
-        uint32_t new_ip, int len)
+        uint32_t new_ip, size_t len)
 {
     uint8_t *l4, protocol;
 
@@ -262,7 +262,7 @@ static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
         l4 = NULL;
     }
 
-    if (!l4 || len < 0)
+    if (!l4 || (int)len < 0)
         return;
 
     /* if this is a fragment, don't attempt to checksum the Layer4 header */
@@ -271,7 +271,7 @@ static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
 }
 
 static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
-        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int len)
+        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, size_t len)
 {
     uint8_t *l4, protocol;
 
@@ -298,7 +298,7 @@ static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
         l4 = NULL;
     }
 
-    if (!l4 || len < 0)
+    if (!l4 || (int)len < 0)
         return;
 
     ipv6_l34_csum_replace(l4, protocol, (uint32_t*)old_ip, (uint32_t*)new_ip);
@@ -353,7 +353,7 @@ randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
  */
 int
 randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, ipv4_hdr_t *ip_hdr, int len)
+        u_char *pktdata, ipv4_hdr_t *ip_hdr, size_t len)
 {
 #ifdef DEBUG
     char srcip[16], dstip[16];
@@ -398,7 +398,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 int
 randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
-        u_char *pktdata, ipv6_hdr_t *ip6_hdr, int len)
+        u_char *pktdata, ipv6_hdr_t *ip6_hdr, size_t len)
 {
 #ifdef DEBUG
     char srcip[INET6_ADDRSTRLEN], dstip[INET6_ADDRSTRLEN];
@@ -758,7 +758,8 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, const uint32_t original)
 static int
 remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
 {
-    int i, j, k;
+    int i, j;
+    uint32_t k;
 
     assert(tcpedit);
     assert(cidr);
@@ -779,7 +780,7 @@ remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
     if ((k = cidr->masklen % 8) == 0)
         return 1;
 
-    k = ~0 << (8 - k);
+    k = (uint32_t)~0 << (8 - k);
     i = addr->tcpr_s6_addr[i] & k;
 
     addr->tcpr_s6_addr[i] = (cidr->u.network6.tcpr_s6_addr[j] & (0xff << (8 - k))) |

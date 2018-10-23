@@ -179,7 +179,7 @@ dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int l2len;
 
@@ -187,18 +187,18 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return TCPEDIT_ERROR;
 
-    dbgx(3, "Decoding 802.11 packet " COUNTER_SPEC, ctx->tcpedit->runtime.packetnum);
+    dbgx(3, "Decoding 802.11 packet %zu", ctx->tcpedit->runtime.packetnum);
     if (! ieee80211_is_data(ctx, packet, pktlen)) {
-        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is not a normal 802.11 data frame",
+        tcpedit_seterr(ctx->tcpedit, "Packet %zu is not a normal 802.11 data frame",
             ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
     }
     
     if (ieee80211_is_encrypted(ctx, packet, pktlen)) {
-        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is encrypted.  Unable to decode frame.",
+        tcpedit_seterr(ctx->tcpedit, "Packet %zu is encrypted.  Unable to decode frame.",
             ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
     }
@@ -216,7 +216,7 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_ieee80211_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
+dlt_ieee80211_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ size_t pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     
@@ -228,7 +228,7 @@ dlt_ieee80211_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ int pktlen, _U_ 
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
 int 
-dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int l2len;
     int hdrlen = 0;
@@ -239,7 +239,7 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return TCPEDIT_ERROR;
 
     /* check 802.11 frame control field */
@@ -279,17 +279,17 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int l2len;
     assert(ctx);
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
 
-    dbgx(1, "Getting data for packet " COUNTER_SPEC " from offset: %d", ctx->tcpedit->runtime.packetnum, l2len);
+    dbgx(1, "Getting data for packet %zu from offset: %d", ctx->tcpedit->runtime.packetnum, l2len);
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
 }
@@ -301,7 +301,7 @@ dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen, u_char *l3data)
 {
     int l2len;
     assert(ctx);
@@ -309,7 +309,7 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     assert(l3data);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -320,7 +320,7 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
  * based on: http://www.tcpdump.org/lists/workers/2004/07/msg00121.html
  */
 int
-dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     uint16_t *frame_control, fc;
     struct tcpr_802_2snap_hdr *hdr;
@@ -333,7 +333,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (pktlen < (int)sizeof(uint16_t))
         return 0;
 
-    dbgx(2, "packet = %p\t\tplen = %d", packet, pktlen);
+    dbgx(2, "packet = %p\t\tplen = %zu", packet, pktlen);
 
     frame_control = (uint16_t *)packet;
     fc = ntohs(*frame_control);
@@ -350,7 +350,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         hdrlen += 2;
     }
 
-    if (pktlen >= (hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr))) {
+    if (pktlen >= ((size_t)hdrlen + sizeof(struct tcpr_802_2snap_hdr))) {
     
         hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
     
@@ -364,7 +364,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         }
     }
 
-    if (pktlen < hdrlen)
+    if (pktlen < (size_t)hdrlen)
         return 0;
     
     dbgx(2, "header length: %d", hdrlen);
@@ -376,7 +376,8 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac,
+        const u_char *packet, const size_t pktlen)
 {
     assert(ctx);
     assert(packet);

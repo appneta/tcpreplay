@@ -38,13 +38,15 @@ int dlt_en10mb_register(tcpeditdlt_t *ctx);
 int dlt_en10mb_init(tcpeditdlt_t *ctx);
 int dlt_en10mb_cleanup(tcpeditdlt_t *ctx);
 int dlt_en10mb_parse_opts(tcpeditdlt_t *ctx);
-int dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
-int dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+int dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen);
+int dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, size_t pktlen, tcpr_dir_t dir);
+int dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen);
+u_char *dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen);
+u_char *dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet,
+        const size_t pktlen, u_char *l3data);
+int dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen);
+u_char *dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac,
+        const u_char *packet, const size_t pktlen);
 
 tcpeditdlt_l2addr_type_t dlt_en10mb_l2addr_type(void);
 

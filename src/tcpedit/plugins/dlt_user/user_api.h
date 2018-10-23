@@ -39,7 +39,8 @@ extern "C" {
  */
 
 int tcpedit_user_set_dlt_type(tcpedit_t *tcpedit, u_int16_t type);
-int tcpedit_user_set_dlink(tcpedit_t *tcpedit, u_char *data, int datalen, tcpedit_user_dlt_direction direction);
+int tcpedit_user_set_dlink(tcpedit_t *tcpedit, u_char *data, size_t datalen,
+        tcpedit_user_dlt_direction direction);
 
 
 #ifdef __cplusplus

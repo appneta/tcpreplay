@@ -178,7 +178,7 @@ dlt_null_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int proto;
     assert(ctx);
@@ -198,7 +198,7 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
+dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ size_t pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -211,7 +211,7 @@ dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen, _U_ tcpr_dir_
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
 int 
-dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -238,7 +238,7 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int l2len;
     assert(ctx);
@@ -246,7 +246,7 @@ dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 
     l2len = dlt_null_l2len(ctx, packet, pktlen);
 
-    if (pktlen < l2len)
+    if (pktlen < (size_t)l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -259,7 +259,7 @@ dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen, u_char *l3data)
 {
     int l2len;
     assert(ctx);
@@ -268,7 +268,7 @@ dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     
     l2len = dlt_null_l2len(ctx, packet, pktlen);
     
-    if (pktlen < l2len)
+    if (pktlen < (size_t)l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -278,7 +278,7 @@ dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
  * return the length of the L2 header of the current packet
  */
 int
-dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -296,7 +296,7 @@ dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  */    
 u_char *
 dlt_null_get_mac(_U_ tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
-        _U_ const u_char *packet, _U_ const int pktlen)
+        _U_ const u_char *packet, _U_ const size_t pktlen)
 {
 
     return(NULL);

@@ -209,7 +209,7 @@ dlt_user_parse_opts(tcpeditdlt_t *ctx)
 
 /* you should never decode packets with this plugin! */
 int 
-dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const _U_ int pktlen)
+dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const _U_ size_t pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -223,7 +223,7 @@ dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const _U_ int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
+dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, size_t pktlen, tcpr_dir_t dir)
 {
     user_config_t *config;
     tcpeditdlt_plugin_t *plugin;
@@ -271,7 +271,7 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
 int 
-dlt_user_proto(tcpeditdlt_t *ctx, const u_char *packet, const _U_ int pktlen)
+dlt_user_proto(tcpeditdlt_t *ctx, const u_char *packet, const _U_ size_t pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -285,7 +285,7 @@ dlt_user_proto(tcpeditdlt_t *ctx, const u_char *packet, const _U_ int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int l2len;
     assert(ctx);
@@ -294,7 +294,7 @@ dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_user_l2len(ctx, packet, pktlen);
 
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -307,7 +307,7 @@ dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen, u_char *l3data)
 {
     int l2len;
     assert(ctx);
@@ -316,7 +316,7 @@ dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_user_l2len(ctx, packet, pktlen);
-    if (l2len == TCPEDIT_ERROR || pktlen < l2len)
+    if (l2len == TCPEDIT_ERROR || pktlen < (size_t)l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -326,7 +326,7 @@ dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
  * return the length of the L2 header of the current packet
  */
 int
-dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const _U_ int pktlen)
+dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const _U_ size_t pktlen)
 {
     tcpeditdlt_plugin_t *plugin;
     user_config_t *config;
@@ -350,7 +350,7 @@ dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const _U_ int pktlen)
  */    
 u_char *
 dlt_user_get_mac(_U_ tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
-        _U_ const u_char *packet, _U_ const int pktlen)
+        _U_ const u_char *packet, _U_ const size_t pktlen)
 {
     /* we don't know the format of USER DLT, hence always return NULL */
     return(NULL);

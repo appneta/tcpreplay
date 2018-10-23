@@ -201,7 +201,7 @@ dlt_pppserial_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     struct tcpr_pppserial_hdr *ppp = NULL;
 
@@ -243,7 +243,7 @@ dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_pppserial_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_pppserial_encode(tcpeditdlt_t *ctx, u_char *packet, size_t pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -262,7 +262,7 @@ dlt_pppserial_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir
  * Make sure you return this value in NETWORK byte order!
  */
 int 
-dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     struct tcpr_pppserial_hdr *ppp = NULL;
     int protocol = 0; 
@@ -280,8 +280,7 @@ dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         break;
 
         default:
-        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC 
-                " isn't IP.  Skipping packet",
+        tcpedit_seterr(ctx->tcpedit, "Packet %zu isn't IP.  Skipping packet",
                 ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
     }
@@ -293,7 +292,7 @@ dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int l2len;
     assert(ctx);
@@ -301,7 +300,7 @@ dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_pppserial_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -314,7 +313,7 @@ dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen, u_char *l3data)
 {
     int l2len;
     assert(ctx);
@@ -323,7 +322,7 @@ dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     
     /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_pppserial_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -335,7 +334,7 @@ dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
  */    
 u_char *
 dlt_pppserial_get_mac(_U_ tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
-        _U_ const u_char *packet, _U_ const int pktlen)
+        _U_ const u_char *packet, _U_ const size_t pktlen)
 {
     return NULL;
 }
@@ -345,7 +344,7 @@ dlt_pppserial_get_mac(_U_ tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
  * return the length of the L2 header of the current packet
  */
 int
-dlt_pppserial_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_pppserial_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     assert(ctx);
     assert(packet);

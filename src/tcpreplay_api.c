@@ -1118,10 +1118,10 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC "...\n",
+                    printf("Loop %zu of %zu...\n",
                             loop, total_loops);
                 else
-                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n",
+                    printf("Loop %zu of %zu (%zu unique)...\n",
                             loop, total_loops,
                             ctx->unique_iteration);
             }
@@ -1142,9 +1142,9 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop " COUNTER_SPEC "...\n", loop);
+                    printf("Loop %zu...\n", loop);
                 else
-                    printf("Loop " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n",
+                    printf("Loop %zu (%zu unique)...\n",
                             loop, ctx->unique_iteration);
             }
             if ((rcode = tcpr_replay_index(ctx)) < 0)

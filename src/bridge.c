@@ -139,7 +139,7 @@ do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         if (didsig)
             break;
 
-        dbgx(3, "limit_send: " COUNTER_SPEC " \t pkts_sent: " COUNTER_SPEC, 
+        dbgx(3, "limit_send: %zu \t pkts_sent: %zu",
             options->limit_send, stats.pkts_sent);
 
         /* reset the result codes */
@@ -401,7 +401,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     stats.bytes_sent += pkthdr->caplen;
     stats.pkts_sent++;
 
-    dbgx(1, "Sent packet " COUNTER_SPEC, stats.pkts_sent);
+    dbgx(1, "Sent packet %zu", stats.pkts_sent);
 
 
     return (1);

@@ -33,14 +33,16 @@ int dlt_ieee80211_register(tcpeditdlt_t *ctx);
 int dlt_ieee80211_init(tcpeditdlt_t *ctx);
 int dlt_ieee80211_cleanup(tcpeditdlt_t *ctx);
 int dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx);
-int dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
+int dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen);
+int dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, size_t pktlen, tcpr_dir_t dir);
+int dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen);
+u_char *dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen);
+u_char *dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet,
+        const size_t pktlen, u_char *l3data);
 tcpeditdlt_l2addr_type_t dlt_ieee80211_l2addr_type(void);
-int dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+int dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen);
+u_char *dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac,
+        const u_char *packet, const size_t pktlen);
 
 #ifdef __cplusplus
 }

@@ -44,7 +44,7 @@ typedef struct {
 } tcpreplay_stats_t;
 
 
-int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
+size_t read_hexstring(const char *l2string, u_char *hex, const size_t hexlen);
 void packet_stats(const tcpreplay_stats_t *stats);
 int format_date_time(struct timeval *when, char *buf, size_t len);
 int tcpr_random(uint32_t *seed);

@@ -373,7 +373,7 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     struct tcpr_ethernet_hdr *eth = NULL;
     struct tcpr_802_1q_hdr *vlan = NULL;
@@ -427,7 +427,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
+dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, size_t pktlen, tcpr_dir_t dir)
 {
     tcpeditdlt_plugin_t *plugin = NULL;
     struct tcpr_ethernet_hdr *eth = NULL;
@@ -435,14 +435,14 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     en10mb_config_t *config = NULL;
     en10mb_extra_t *extra = NULL;
     
-    int newl2len = 0;
+    size_t newl2len = 0;
 
     assert(ctx);
     assert(packet);
 
     if (pktlen < TCPR_802_1Q_H) {
         tcpedit_seterr(ctx->tcpedit, 
-                "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.", 
+                "Unable to process packet #%zu since it is less then 14 bytes.",
                 ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_ERROR;
     }
@@ -478,14 +478,14 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     if (pktlen < newl2len) {
         tcpedit_seterr(ctx->tcpedit,
-                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d bytes.",
+                "Unable to process packet #%zu since its new length less then %d bytes.",
                 ctx->tcpedit->runtime.packetnum, newl2len);
         return TCPEDIT_ERROR;
     }
 
     if (pktlen < ctx->l2len) {
         tcpedit_seterr(ctx->tcpedit,
-                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d L2 bytes.",
+                "Unable to process packet #%zu since its new length less then %d L2 bytes.",
                 ctx->tcpedit->runtime.packetnum, ctx->l2len);
         return TCPEDIT_ERROR;
     }
@@ -493,7 +493,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     /* Make space for our new L2 header */
     if (newl2len != ctx->l2len) {
         if (pktlen + (newl2len - ctx->l2len) > MAXPACKET)
-            errx(-1, "New frame too big, new length %d exceeds %d",
+            errx(-1, "New frame too big, new length %zu exceeds %d",
                     pktlen + (newl2len - ctx->l2len), MAXPACKET);
 
         memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
@@ -663,7 +663,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
 int 
-dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     struct tcpr_ethernet_hdr *eth = NULL;
     struct tcpr_802_1q_hdr *vlan = NULL;
@@ -691,14 +691,14 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int l2len;
     assert(ctx);
     assert(packet);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if ((int)l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -711,7 +711,8 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen,
+        u_char *l3data)
 {
     int l2len;
     assert(ctx);
@@ -719,7 +720,7 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_c
     assert(l3data);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -730,7 +731,8 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_c
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac,
+        const u_char *packet, const size_t pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -759,7 +761,7 @@ dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *p
  * return the length of the L2 header of the current packet
  */
 int
-dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int l2len;
     uint16_t ether_type;
@@ -768,7 +770,7 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = sizeof(eth_hdr_t);
-    if (pktlen < l2len)
+    if (pktlen < (size_t)l2len)
         return -1;
 
     ether_type = ntohs(((eth_hdr_t*)(packet + l2len))->ether_type);
@@ -779,7 +781,7 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     }
 
     if (l2len > 0) {
-        if (pktlen < l2len) {
+        if (pktlen < (size_t)l2len) {
             /* can happen if fuzzing is enabled */
             return -1;
         }

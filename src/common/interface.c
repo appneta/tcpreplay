@@ -129,7 +129,7 @@ get_interface_list(void)
                 && strcmp("any", pcap_if_ptr->name)) {
 #endif
 #ifdef HAVE_NETMAP
-            if (netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
+            if ((int)netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
                 continue;
             bzero(&nmr, sizeof(nmr));
             strncpy(nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));

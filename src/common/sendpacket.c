@@ -283,7 +283,7 @@ TRY_SEND_AGAIN:
                         goto TRY_SEND_AGAIN;
                         break;
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
+                        sendpacket_seterr(sp, "Error with %s [%z]: %s (errno = %d)",
                                 "khial", sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
                 break;
@@ -320,7 +320,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [%z]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -349,7 +349,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [%z]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -376,7 +376,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [%z]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -409,7 +409,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [%z]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
                 }
             }
@@ -553,22 +553,22 @@ sendpacket_getstat(sendpacket_t *sp, char *buf, size_t buf_size)
 
     memset(buf, 0, buf_size);
     offset = snprintf(buf, buf_size, "Statistics for network device: %s\n"
-            "\tSuccessful packets:        " COUNTER_SPEC "\n"
-            "\tFailed packets:            " COUNTER_SPEC "\n"
-            "\tTruncated packets:         " COUNTER_SPEC "\n"
-            "\tRetried packets (ENOBUFS): " COUNTER_SPEC "\n"
-            "\tRetried packets (EAGAIN):  " COUNTER_SPEC "\n",
+            "\tSuccessful packets:        %zu\n"
+            "\tFailed packets:            %zu\n"
+            "\tTruncated packets:         %zu\n"
+            "\tRetried packets (ENOBUFS): %zu\n"
+            "\tRetried packets (EAGAIN):  %zu\n",
             sp->device, sp->sent, sp->failed, sp->trunc_packets,
             sp->retry_enobufs, sp->retry_eagain);
 
     if (sp->flow_packets && offset > 0) {
         offset += snprintf(&buf[offset], buf_size - offset,
-                "\tFlows total:               " COUNTER_SPEC "\n"
-                "\tFlows unique:              " COUNTER_SPEC "\n"
-                "\tFlows expired:             " COUNTER_SPEC "\n"
-                "\tFlow packets:              " COUNTER_SPEC "\n"
-                "\tNon-flow packets:          " COUNTER_SPEC "\n"
-                "\tInvalid flow packets:      " COUNTER_SPEC "\n",
+                "\tFlows total:               %zu\n"
+                "\tFlows unique:              %zu\n"
+                "\tFlows expired:             %zu\n"
+                "\tFlow packets:              %zu\n"
+                "\tNon-flow packets:          %zu\n"
+                "\tInvalid flow packets:      %zu\n",
                 sp->flows, sp->flows_expired, sp->flows_expired, sp->flow_packets,
                 sp->flow_non_flow_packets, sp->flows_invalid_packets);
     }

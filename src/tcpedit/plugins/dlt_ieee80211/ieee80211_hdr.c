@@ -45,7 +45,7 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
 
     /* Ack, Auth, NULL packets often are very small (10-30 bytes) */
     if (pktlen <= (int)sizeof(ieee80211_hdr_t)) {
-        dbgx(1, "**** packet " COUNTER_SPEC " is too small (%d)", ctx->tcpedit->runtime.packetnum, pktlen);
+        dbgx(1, "**** packet %zu is too small (%d)", ctx->tcpedit->runtime.packetnum, pktlen);
         return 0;
     }
 
@@ -106,7 +106,7 @@ ieee80211_is_data(tcpeditdlt_t *ctx, const void *packet, const int pktlen)
         return 1;
     } 
 
-    warnx("Packet " COUNTER_SPEC " is unknown reason for non-data", ctx->tcpedit->runtime.packetnum);
+    warnx("Packet %zu is unknown reason for non-data", ctx->tcpedit->runtime.packetnum);
 
     return 0;
 }

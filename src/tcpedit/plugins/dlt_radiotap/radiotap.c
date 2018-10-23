@@ -40,7 +40,7 @@ static uint16_t dlt_value = DLT_IEEE802_11_RADIO;
  * plugin.
  */
 
-static u_char *dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen, const int radiolen);
+static u_char *dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen, const int radiolen);
 
 /*
  * Function to register ourselves.  This function is always called, regardless
@@ -178,7 +178,7 @@ dlt_radiotap_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int radiolen, rcode;
     u_char *data;
@@ -206,7 +206,7 @@ dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_radiotap_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
+dlt_radiotap_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ size_t pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     
@@ -220,7 +220,7 @@ dlt_radiotap_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ int pktlen, _U_ t
  * against the ETHERTYPE_* values which are oddly in host byte order.
  */
 int 
-dlt_radiotap_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_radiotap_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int radiolen;
     u_char *data;
@@ -231,7 +231,7 @@ dlt_radiotap_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_ERROR;
 
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
-    if (radiolen < 0 || radiolen > pktlen)
+    if (radiolen < 0 || (size_t)radiolen > pktlen)
         return TCPEDIT_ERROR;
 
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
@@ -242,7 +242,7 @@ dlt_radiotap_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_radiotap_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_radiotap_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int radiolen, l2len;
     u_char *data;
@@ -263,7 +263,7 @@ dlt_radiotap_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_radiotap_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_radiotap_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen, u_char *l3data)
 {
     int radiolen, l2len;
     u_char *data;
@@ -283,7 +283,7 @@ dlt_radiotap_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_radiotap_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_radiotap_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const size_t pktlen)
 {
     int radiolen;
     u_char *data;
@@ -293,7 +293,7 @@ dlt_radiotap_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char 
 
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
 
-    if (pktlen < radiolen)
+    if (pktlen < (size_t)radiolen)
         return NULL;
 
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
@@ -306,7 +306,7 @@ dlt_radiotap_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char 
  * return the length of the L2 header of the current packet
  */
 int
-dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     uint16_t radiolen;
     assert(ctx);
@@ -325,7 +325,7 @@ dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return the length of the L2 header w/ 802.11 header of the current packet
  */
 int
-dlt_radiotap_80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_radiotap_80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int radiolen, res;
     u_char *data;
@@ -356,16 +356,16 @@ dlt_radiotap_l2addr_type(void)
  * since we track which was the last packet # we copied.
  */
 static u_char *
-dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen, const int radiolen)
+dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen, const int radiolen)
 {
     radiotap_extra_t *extra;
-    static COUNTER lastpacket = 0;
+    static size_t lastpacket = 0;
 
     if (ctx->decoded_extra_size < sizeof(*extra))
         return NULL;
 
     extra = (radiotap_extra_t *)(ctx->decoded_extra);
-    if (pktlen >= radiolen && (pktlen - radiolen) >= (int)sizeof(extra->packet) &&
+    if (pktlen >= (size_t)radiolen && (pktlen - radiolen) >= sizeof(extra->packet) &&
             lastpacket != ctx->tcpedit->runtime.packetnum) {
         memcpy(extra->packet, &packet[radiolen], pktlen - radiolen);
         lastpacket = ctx->tcpedit->runtime.packetnum;

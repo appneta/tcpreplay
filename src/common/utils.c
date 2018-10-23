@@ -218,23 +218,23 @@ packet_stats(const tcpreplay_stats_t *stats)
     }
 
     if (diff_us >= 1000 * 1000)
-        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds\n",
+        printf("Actual: %zu packets (%zu bytes) sent in %zd.%02zd seconds\n",
                 stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_usec / (10 * 1000)));
     else
-        printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds\n",
+        printf("Actual: %zu packets (%zu bytes) sent in %zd.%06zd seconds\n",
                 stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)diff.tv_usec);
 
 
     if (mb_sec >= 1)
-        printf("Rated: %llu.%1u Bps, %llu.%02u Mbps, %llu.%02u pps\n",
+        printf("Rated: %zu.%u Bps, %zu.%02u Mbps, %zu.%02u pps\n",
                bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_100ths, pkts_sec, pkts_sec_100ths);
     else
-        printf("Rated: %llu.%1u Bps, %llu.%03u Mbps, %llu.%02u pps\n",
+        printf("Rated: %zu.%1u Bps, %zu.%03u Mbps, %zu.%02u pps\n",
                bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_1000ths, pkts_sec, pkts_sec_100ths);
     fflush(NULL);
     
     if (stats->failed)
-        printf("Failed write attempts: " COUNTER_SPEC "\n",
+        printf("Failed write attempts: %zu\n",
                 stats->failed);
 }
 
@@ -266,10 +266,10 @@ int format_date_time(struct timeval *when, char *buf, size_t len)
  * up to hexlen bytes.  Returns actual number of bytes returned.  On error
  * it just calls errx() since all errors are fatal.
  */
-int
-read_hexstring(const char *l2string, u_char *hex, const int hexlen)
+size_t
+read_hexstring(const char *l2string, u_char *hex, const size_t hexlen)
 {
-    int numbytes = 0;
+    size_t numbytes = 0;
     unsigned int value;
     char *l2byte;
     u_char databyte;
@@ -312,7 +312,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 done:
     safe_free(string);
 
-    dbgx(1, "Read %d bytes of hex data", numbytes);
+    dbgx(1, "Read %zu bytes of hex data", numbytes);
     return (numbytes);
 }
 

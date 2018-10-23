@@ -529,7 +529,8 @@ ip6_in_cidr(const tcpr_cidr_t * mycidr, const struct tcpr_in6_addr *addr)
 #ifdef DEBUG
     char netstr[INET6_ADDRSTRLEN];
 #endif
-    int i, j, k;
+    int i, j;
+    uint32_t k;
 
     if (mycidr->family != AF_INET6)
         return 0;
@@ -552,7 +553,7 @@ ip6_in_cidr(const tcpr_cidr_t * mycidr, const struct tcpr_in6_addr *addr)
         goto out;
     }
 
-    k = ~0 << (8 - k);
+    k = (uint32_t)~0 << (8 - k);
     i = addr->tcpr_s6_addr[j] & k;
     j = mycidr->u.network6.tcpr_s6_addr[j] & k;
     ret = i == j;

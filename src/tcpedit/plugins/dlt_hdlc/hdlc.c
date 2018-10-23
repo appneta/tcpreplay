@@ -191,14 +191,14 @@ dlt_hdlc_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     cisco_hdlc_t *hdlc;
     hdlc_extra_t *extra;
     assert(ctx);
     assert(packet);
 
-    if ((uint32_t)pktlen < sizeof(*hdlc))
+    if (pktlen < sizeof(*hdlc))
         return TCPEDIT_ERROR;
     
     if (ctx->decoded_extra_size < sizeof(*extra))
@@ -222,7 +222,7 @@ dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, size_t pktlen, _U_ tcpr_dir_t dir)
 {
     cisco_hdlc_t *hdlc;
     hdlc_config_t *config = NULL;
@@ -234,7 +234,7 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
     assert(ctx);
     assert(packet);
 
-    if ((uint32_t)pktlen < sizeof(*hdlc))
+    if (pktlen < sizeof(*hdlc))
         return TCPEDIT_ERROR;
 
     if (ctx->decoded_extra_size < sizeof(*extra))
@@ -298,7 +298,7 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
 int 
-dlt_hdlc_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_hdlc_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     cisco_hdlc_t *hdlc;
     assert(ctx);
@@ -316,14 +316,14 @@ dlt_hdlc_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int l2len;
     assert(ctx);
     assert(packet);
 
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -336,7 +336,8 @@ dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen,
+        u_char *l3data)
 {
     int l2len;
     assert(ctx);
@@ -344,7 +345,7 @@ dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     assert(l3data);
     
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -354,7 +355,7 @@ dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
  * return the length of the L2 header of the current packet
  */
 int
-dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -371,7 +372,8 @@ dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_hdlc_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_hdlc_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac,
+        const u_char *packet, const size_t pktlen)
 {
     assert(ctx);
     assert(packet);

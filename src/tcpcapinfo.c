@@ -106,7 +106,8 @@ main(int argc, char *argv[])
     struct stat statinfo;
     uint64_t pktcnt;
     uint32_t readword;
-    int32_t last_sec, last_usec, caplen, maxread;
+    int32_t last_sec, last_usec, maxread;
+    size_t caplen;
 
     optct = optionProcess(&tcpcapinfoOptions, argc, argv);
     argc -= optct;
@@ -283,7 +284,7 @@ main(int argc, char *argv[])
 
             if (caplentoobig) {
                 printf("\n\nCapture file appears to be damaged or corrupt.\n"
-                        "Contains packet of size %u, bigger than snap length %u\n",
+                        "Contains packet of size %zu, bigger than snap length %u\n",
                         caplen, pcap_fh.snaplen);
 
                 close(fd);
@@ -307,7 +308,7 @@ main(int argc, char *argv[])
             }
 
             /* read the frame */
-            maxread = min(caplen, (int)sizeof(buf));
+            maxread = min(caplen, sizeof(buf));
             if ((ret = read(fd, &buf, maxread)) != maxread) {
                 if (ret < 0) {
                     printf("Error reading file: %s: %s\n", argv[i], strerror(errno));

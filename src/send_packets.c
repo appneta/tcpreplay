@@ -477,21 +477,21 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     struct timeval print_delta, now, first_pkt_ts, pkt_ts_delta;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = 0;
-    COUNTER limit_send = options->limit_send;
+    size_t packetnum = 0;
+    size_t limit_send = options->limit_send;
     struct pcap_pkthdr pkthdr;
     u_char *pktdata = NULL;
     sendpacket_t *sp = ctx->intf1;
-    COUNTER pktlen;
+    size_t pktlen;
     packet_cache_t *cached_packet = NULL;
     packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
     struct pcap_pkthdr *pkthdr_ptr;
 #endif
     int datalink = options->file_cache[idx].dlt;
-    COUNTER skip_length = 0;
-    COUNTER start_us;
-    COUNTER end_us;
+    size_t skip_length = 0;
+    size_t start_us;
+    size_t end_us;
     bool preload = options->file_cache[idx].cached;
     bool top_speed = (options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
@@ -542,7 +542,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #error WTF???  We should not be here!
 #endif
 
-        dbgx(2, "packet " COUNTER_SPEC " caplen " COUNTER_SPEC, packetnum, pktlen);
+        dbgx(2, "packet %zu caplen %zu", packetnum, pktlen);
 
         /* Dual nic processing */
         if (ctx->intf2 != NULL) {
@@ -557,7 +557,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
         pkthdr_ptr = &pkthdr;
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
-            errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
+            errx(-1, "Error editing packet #%zu: %s", packetnum, tcpedit_geterr(tcpedit));
         }
         pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
@@ -636,7 +636,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
-        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
+        dbgx(2, "Sending packet #%zu", packetnum);
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
@@ -677,7 +677,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
 #endif
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (size_t)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -717,20 +717,20 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 {
     struct timeval print_delta, now, first_pkt_ts, pkt_ts_delta;
     tcpreplay_opt_t *options = ctx->options;
-    COUNTER packetnum = 0;
-    COUNTER limit_send = options->limit_send;
+    size_t packetnum = 0;
+    size_t limit_send = options->limit_send;
     int cache_file_idx;
     struct pcap_pkthdr pkthdr1, pkthdr2;
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
     sendpacket_t *sp;
-    COUNTER pktlen;
+    size_t pktlen;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
     int datalink;
-    COUNTER start_us;
-    COUNTER end_us;
-    COUNTER skip_length = 0;
+    size_t start_us;
+    size_t end_us;
+    size_t skip_length = 0;
     bool top_speed = (options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = false;
@@ -823,12 +823,12 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 #error WTF???  We should not be here!
 #endif
 
-        dbgx(2, "packet " COUNTER_SPEC " caplen " COUNTER_SPEC, packetnum, pktlen);
+        dbgx(2, "packet %zu caplen %zu", packetnum, pktlen);
 
 
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
         if (tcpedit_packet(tcpedit, &pkthdr_ptr, &pktdata, sp->cache_dir) == -1) {
-            errx(-1, "Error editing packet #" COUNTER_SPEC ": %s", packetnum, tcpedit_geterr(tcpedit));
+            errx(-1, "Error editing packet #%zu: %s", packetnum, tcpedit_geterr(tcpedit));
         }
         pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
@@ -906,7 +906,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             tcpdump_print(options->tcpdump, pkthdr_ptr, pktdata);
 #endif
 
-        dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
+        dbgx(2, "Sending packet #%zu", packetnum);
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen)
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
@@ -951,7 +951,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         }
 
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (size_t)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && ctx->stats.pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -1088,15 +1088,15 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
 
     result = check_cache(cachedata, packet_num);
     if (result == TCPR_DIR_NOSEND) {
-        dbgx(2, "Cache: Not sending packet " COUNTER_SPEC ".", packet_num);
+        dbgx(2, "Cache: Not sending packet %zu.", packet_num);
         return NULL;
     }
     else if (result == TCPR_DIR_C2S) {
-        dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
+        dbgx(2, "Cache: Sending packet %zu out primary interface.", packet_num);
         sp = ctx->intf1;
     }
     else if (result == TCPR_DIR_S2C) {
-        dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
+        dbgx(2, "Cache: Sending packet %zu out secondary interface.", packet_num);
         sp = ctx->intf2;
     }
     else {
@@ -1193,7 +1193,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
         }
 
-        dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len,
+        dbgx(3, "packet size=%zu\t\tnap=" TIMESPEC_FORMAT, len,
                 ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
@@ -1220,7 +1220,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
              update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
          }
 
-         dbgx(3, "packet count=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, ctx->stats.pkts_sent,
+         dbgx(3, "packet count=%zu\t\tnap=" TIMESPEC_FORMAT, ctx->stats.pkts_sent,
                  ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
@@ -1231,7 +1231,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time_delta,
         }
 
         /* decrement our send counter */
-        printf("Sending packet " COUNTER_SPEC " out: %s\n", counter,
+        printf("Sending packet %zu out: %s\n", counter,
                sp == ctx->intf1 ? options->intf1_name : options->intf2_name);
         ctx->skip_packets--;
 
@@ -1314,7 +1314,7 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
     char input[EBUF_SIZE];
     unsigned long send = 0;
 
-    printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
+    printf("**** Next packet #%zu out %s.  How many packets do you wish to send? ",
         counter, (sp == ctx->intf1 ? options->intf1_name : options->intf2_name));
     fflush(NULL);
     poller[0].fd = STDIN_FILENO;

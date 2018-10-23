@@ -62,7 +62,8 @@ tcpedit_user_set_dlt_type(tcpedit_t *tcpedit, uint16_t type)
  * NOTE: the datalen value must be the same between each call.
  */
 int 
-tcpedit_user_set_dlink(tcpedit_t *tcpedit, u_char *data, int datalen, tcpedit_user_dlt_direction direction)
+tcpedit_user_set_dlink(tcpedit_t *tcpedit, u_char *data, size_t datalen,
+        tcpedit_user_dlt_direction direction)
 {
     tcpeditdlt_t *ctx;
     tcpeditdlt_plugin_t *plugin;

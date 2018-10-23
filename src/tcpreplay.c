@@ -224,11 +224,11 @@ static void flow_stats(const tcpreplay_t *ctx)
     }
 
     if (ctx->options->flow_expiry)
-        printf("Flows: " COUNTER_SPEC " flows, " COUNTER_SPEC " unique, "COUNTER_SPEC " expired, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
+        printf("Flows: %zu flows, %zu unique, %zu expired, %zu.%02u fps, %zu flow packets, %zu non-flow\n",
                 flows_total, flows_unique, flows_expired, flows_sec, flows_sec_100ths, flow_packets,
                 flow_non_flow_packets);
     else
-        printf("Flows: " COUNTER_SPEC " flows, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
+        printf("Flows: %zu flows, %zu.%02u fps, %zu flow packets, %zu non-flow\n",
                 flows_total, flows_sec, flows_sec_100ths, flow_packets,
                 flow_non_flow_packets);
 }

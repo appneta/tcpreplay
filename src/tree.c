@@ -114,7 +114,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
                     network6.tcpr_s6_addr[i] = node->u.ip6.tcpr_s6_addr[i];
 
                 if ((k = bcdata->masklen % 8) != 0) {
-                    k = ~0 << (8 - k);
+                    k = (size_t)~0 << (8 - k);
                     network6.tcpr_s6_addr[j] = node->u.ip6.tcpr_s6_addr[i] & k;
                 }
 
@@ -712,7 +712,7 @@ packet2tree(const u_char * data, const int len)
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    if (len < (int)sizeof(*eth_hdr)) {
+    if ((size_t)len < sizeof(*eth_hdr)) {
         errx(-1, "packet capture length %d too small to process", len);
         return NULL;
     }

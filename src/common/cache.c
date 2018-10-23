@@ -124,7 +124,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     if (header.num_packets % header.packets_per_byte)
       cache_size ++;
 
-    dbgx(1, "Cache file contains %" PRIu64 " packets in " COUNTER_SPEC " bytes",
+    dbgx(1, "Cache file contains %" PRIu64 " packets in %zu bytes",
         header.num_packets, cache_size);
 
     dbgx(1, "Cache uses %d packets per byte", header.packets_per_byte);
@@ -135,7 +135,7 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     if ((COUNTER)(read_size = read(cachefd, *cachedata, cache_size)) 
             != cache_size)
         errx(-1, "Cache data length (%zu bytes) doesn't match "
-            "cache header (" COUNTER_SPEC " bytes)", read_size, cache_size);
+            "cache header (%zu bytes)", read_size, cache_size);
 
     dbgx(1, "Loaded in %" PRIu64 " packets from cache.", header.num_packets);
 
@@ -296,17 +296,17 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
         byte = (u_char *) & lastcache->data[index];
         *byte += (u_char) (1 << bit);
 
-        dbgx(2, "set send bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
+        dbgx(2, "set send bit: byte %zu = 0x%x", index, *byte);
 
         /* if true, set low order bit. else, do squat */
         if (interface == TCPR_DIR_C2S) {
             *byte += (u_char)(1 << (bit - 1));
 
-            dbgx(2, "set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
+            dbgx(2, "set interface bit: byte %zu = 0x%x", index, *byte);
             result = TCPR_DIR_C2S;
         }
         else {
-            dbgx(2, "don't set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
+            dbgx(2, "don't set interface bit: byte %zu = 0x%x", index, *byte);
             result = TCPR_DIR_S2C;
         }
 
@@ -347,7 +347,7 @@ check_cache(char *cachedata, COUNTER packetid)
         (COUNTER)CACHE_BITS_PER_PACKET) + 1;
 
 #ifdef DEBUG
-    dbgx(3, "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
+    dbgx(3, "Index: %zu\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
         cachedata[index], (uint8_t)(cachedata[index] & (char)(1 << bit)));
 #endif
 

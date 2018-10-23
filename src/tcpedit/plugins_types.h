@@ -83,14 +83,14 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_post_init)(tcpeditdlt_t *);
     int (*plugin_cleanup)(tcpeditdlt_t *);
     int (*plugin_parse_opts)(tcpeditdlt_t *);
-    int (*plugin_decode)(tcpeditdlt_t *, const u_char *, const int);
-    int (*plugin_encode)(tcpeditdlt_t *, u_char *, int, tcpr_dir_t);
-    int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
-    int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
-    u_char *(*plugin_get_layer3)(tcpeditdlt_t *,  u_char *, const int);
-    u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const int, u_char *);
+    int (*plugin_decode)(tcpeditdlt_t *, const u_char *, const size_t);
+    int (*plugin_encode)(tcpeditdlt_t *, u_char *, size_t, tcpr_dir_t);
+    int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const size_t);
+    int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const size_t);
+    u_char *(*plugin_get_layer3)(tcpeditdlt_t *,  u_char *, const size_t);
+    u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const size_t, u_char *);
     tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
-    u_char *(*plugin_get_mac)(tcpeditdlt_t *, tcpeditdlt_mac_type_t, const u_char *, const int);
+    u_char *(*plugin_get_mac)(tcpeditdlt_t *, tcpeditdlt_mac_type_t, const u_char *, const size_t);
     void *config; /* user configuration data for the encoder */
     size_t config_size;
 };
@@ -124,7 +124,7 @@ struct tcpeditdlt_s {
      */
     tcpeditdlt_l2address_t srcaddr;         /* filled out source address */
     tcpeditdlt_l2address_t dstaddr;         /* filled out dst address */
-    int l2len;                              /* set by decoder and updated by encoder */
+    size_t l2len;                           /* set by decoder and updated by encoder */
     u_int16_t proto;                        /* layer 3 proto type?? */
     void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */
     size_t decoded_extra_size;              /* size of decode_extra buffer */

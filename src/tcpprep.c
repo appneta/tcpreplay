@@ -189,7 +189,7 @@ main(int argc, char *argv[])
     totpackets = write_cache(options->cachedata, out_file, totpackets, 
         options->comment);
     if (info)
-        notice("Done.\nCached " COUNTER_SPEC " packets.\n", totpackets);
+        notice("Done.\nCached %zu packets.\n", totpackets);
 
     /* close cache file */
     close(out_file);
@@ -334,7 +334,7 @@ process_raw_packets(pcap_t * pcap)
     while ((pktdata = safe_pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
 
-        dbgx(1, "Packet " COUNTER_SPEC, packetnum);
+        dbgx(1, "Packet %zu", packetnum);
 
         /* look for include or exclude LIST match */
         if (options->xX.list != NULL) {
@@ -582,7 +582,7 @@ print_comment(const char *file)
 
     count = read_cache(&cachedata, file, &comment);
     printf("tcpprep args: %s\n", comment);
-    printf("Cache contains data for " COUNTER_SPEC " packets\n", count);
+    printf("Cache contains data for %zu packets\n", count);
 
     exit(0);
 }
@@ -605,13 +605,13 @@ print_info(const char *file)
         
         switch (check_cache(cachedata, i)) {
         case TCPR_DIR_C2S:
-            printf("Packet " COUNTER_SPEC " -> Primary\n", i);
+            printf("Packet %zu -> Primary\n", i);
             break;
         case TCPR_DIR_S2C:
-            printf("Packet " COUNTER_SPEC " -> Secondary\n", i);
+            printf("Packet %zu -> Secondary\n", i);
             break;
         case TCPR_DIR_NOSEND:
-            printf("Packet " COUNTER_SPEC " -> Don't Send\n", i);
+            printf("Packet %zu -> Don't Send\n", i);
             break;
         default:
             err(-1, "Invalid cachedata value!");
@@ -650,10 +650,10 @@ print_stats(const char *file)
                 errx(-1, "Unknown cache value: %d", cacheval);
         }
     }
-    printf("Primary packets:\t" COUNTER_SPEC "\n", pri);
-    printf("Secondary packets:\t" COUNTER_SPEC "\n", sec);
-    printf("Skipped packets:\t" COUNTER_SPEC "\n", nosend);
+    printf("Primary packets:\t%zu\n", pri);
+    printf("Secondary packets:\t%zu\n", sec);
+    printf("Skipped packets:\t%zu\n", nosend);
     printf("------------------------------\n");
-    printf("Total packets:\t\t" COUNTER_SPEC "\n", count);
+    printf("Total packets:\t\t%zu\n", count);
     exit(0);
 }

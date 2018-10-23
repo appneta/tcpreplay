@@ -260,7 +260,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
      */
     while ((pktconst = safe_pcap_next(pin, pkthdr_ptr)) != NULL) {
         packetnum++;
-        dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
+        dbgx(2, "packet %zu  caplen %d", packetnum, pkthdr.caplen);
 
         if (pkthdr.caplen > MAXPACKET)
             errx(-1, "Frame too big, caplen %d exceeds %d", pkthdr.caplen, MAXPACKET);
@@ -293,7 +293,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
             return -1;
         } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
             /* don't write packet */
-            dbgx(1, "Packet " COUNTER_SPEC " is suppressed from being written due to soft errors", packetnum);
+            dbgx(1, "Packet %zu  is suppressed from being written due to soft errors", packetnum);
             continue;
         }
 
@@ -320,7 +320,7 @@ WRITE_PACKET:
 
                 while ((frag_len = fragroute_getfragment(options.frag_ctx, &frag)) > 0) {
                     /* frags get the same timestamp as the original packet */
-                    dbgx(1, "processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);
+                    dbgx(1, "processing packet %zu  frag: %u (%d)", packetnum, i++, frag_len);
                     pkthdr_ptr->caplen = frag_len;
                     pkthdr_ptr->len = frag_len;
                     pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);

@@ -104,7 +104,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     tcpedit->runtime.packetnum++;
 
-    dbgx(3, "packet " COUNTER_SPEC " caplen %d", 
+    dbgx(3, "packet %zu caplen %d",
             tcpedit->runtime.packetnum, (*pkthdr)->caplen);
 
     /*
@@ -554,9 +554,8 @@ tcpedit_close(tcpedit_t *tcpedit)
 {
 
     assert(tcpedit);
-    dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
-            " packets.", tcpedit->runtime.total_bytes,
-            tcpedit->runtime.pkts_edited);
+    dbgx(1, "tcpedit processed %zu bytes in %zu packets.",
+            tcpedit->runtime.total_bytes, tcpedit->runtime.pkts_edited);
 
     /* free buffer if required */
 #ifdef FORCE_ALIGN

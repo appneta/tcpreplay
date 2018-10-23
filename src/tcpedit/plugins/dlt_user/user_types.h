@@ -52,7 +52,7 @@ typedef struct {
  */
 typedef struct {
     u_int16_t dlt;
-    int length;
+    size_t length;
     u_char l2client[USER_L2MAXLEN];
     u_char l2server[USER_L2MAXLEN];
 } user_config_t;

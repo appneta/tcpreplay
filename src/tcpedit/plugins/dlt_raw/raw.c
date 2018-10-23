@@ -172,7 +172,7 @@ dlt_raw_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int proto;
     assert(ctx);
@@ -195,7 +195,7 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_raw_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
+dlt_raw_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ size_t pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     
@@ -207,7 +207,7 @@ dlt_raw_encode(tcpeditdlt_t *ctx, _U_ u_char *packet, _U_ int pktlen, _U_ tcpr_d
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
 int 
-dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     struct tcpr_ipv4_hdr *iphdr;
     assert(ctx);
@@ -234,7 +234,7 @@ dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen)
+dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const size_t pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -251,7 +251,7 @@ dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen,
+dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const size_t pktlen,
         _U_  u_char *l3data)
 {
     assert(ctx);
@@ -266,7 +266,7 @@ dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen,
  * return the length of the L2 header of the current packet
  */
 int
-dlt_raw_l2len(tcpeditdlt_t *ctx, _U_ const u_char *packet, _U_ const int pktlen)
+dlt_raw_l2len(tcpeditdlt_t *ctx, _U_ const u_char *packet, _U_ const size_t pktlen)
 {
     assert(ctx);
 
@@ -279,7 +279,7 @@ dlt_raw_l2len(tcpeditdlt_t *ctx, _U_ const u_char *packet, _U_ const int pktlen)
  */    
 u_char *
 dlt_raw_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
-        _U_ const u_char *packet, _U_ const int pktlen)
+        _U_ const u_char *packet, _U_ const size_t pktlen)
 {
     assert(ctx);
 

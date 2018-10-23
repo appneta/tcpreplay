@@ -203,9 +203,9 @@ dlt_jnpr_ether_parse_opts(tcpeditdlt_t *ctx)
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
 int 
-dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
-    int jnpr_header_len = 0;
+    size_t jnpr_header_len = 0;
     const u_char *ethernet = NULL;
     jnpr_ether_config_t *config;
     
@@ -240,7 +240,7 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     jnpr_header_len = ntohs(jnpr_header_len) + JUNIPER_ETHER_HEADER_LEN;
 
-    dbgx(1, "jnpr header len: %d", jnpr_header_len);
+    dbgx(1, "jnpr header len: %zu", jnpr_header_len);
     /* make sure the packet is big enough to find the Ethernet Header */
 
     if (pktlen < jnpr_header_len + TCPR_ETH_H) {
@@ -270,7 +270,7 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_jnpr_ether_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_jnpr_ether_encode(tcpeditdlt_t *ctx, u_char *packet, size_t pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -288,7 +288,7 @@ dlt_jnpr_ether_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_di
  * Make sure you return this value in NETWORK byte order!
  */
 int 
-dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
     int jnpr_hdr_len;
     const u_char *ethernet;
@@ -326,7 +326,7 @@ dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_jnpr_ether_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_jnpr_ether_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const size_t pktlen)
 {
     int l2len;
     assert(ctx);
@@ -341,7 +341,7 @@ dlt_jnpr_ether_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     }
 
     l2len = dlt_jnpr_ether_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -354,7 +354,8 @@ dlt_jnpr_ether_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_jnpr_ether_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_jnpr_ether_merge_layer3(tcpeditdlt_t *ctx, u_char *packet,
+        const size_t pktlen, u_char *l3data)
 {
     int l2len;
     assert(ctx);
@@ -362,7 +363,7 @@ dlt_jnpr_ether_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen,
     assert(l3data);
     
     l2len = dlt_jnpr_ether_l2len(ctx, packet, pktlen);
-    if (l2len == -1 || pktlen < l2len)
+    if (l2len == -1 || pktlen < (size_t)l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -373,7 +374,8 @@ dlt_jnpr_ether_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen,
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac,
+        const u_char *packet, const size_t pktlen)
 {
     const u_char *ethernet = NULL;
     jnpr_ether_config_t *config;
@@ -401,9 +403,10 @@ dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_cha
  * return the length of the L2 header of the current packet
  */
 int
-dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, const size_t pktlen)
 {
-    uint16_t len, res;
+    uint16_t len;
+    int res;
     jnpr_ether_config_t *config;
 
     assert(ctx);
