@@ -848,7 +848,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             /* get time and timestamp of the first packet */
             gettimeofday(&now, NULL);
             now_is_now = true;
-            memcpy(&first_pkt_ts, &pkthdr_ptr->ts, sizeof(struct timeval));
+            memcpy(&first_pkt_ts, &pkthdr_ptr->ts, sizeof(first_pkt_ts));
         }
 
         /*

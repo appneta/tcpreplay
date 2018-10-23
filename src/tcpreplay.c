@@ -33,6 +33,7 @@
 
 #include "tcpreplay.h"
 #include "tcpreplay_api.h"
+#include "timestamp_trace.h"
 
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
@@ -157,6 +158,11 @@ main(int argc, char *argv[])
             printf("%s", buf);
         }
     }
+
+#ifdef TIMESTAMP_TRACE
+    dump_timestamp_trace_array(&ctx->stats.start_time, &ctx->stats.end_time,
+            ctx->options->speed.speed);
+#endif
     tcpreplay_close(ctx);
     restore_stdin();
     return 0;

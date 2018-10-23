@@ -722,7 +722,7 @@ got_packet(_U_ u_char *args, _U_ const struct pcap_pkthdr *header,
     unsigned int size_ip, size_tcp, size_payload;
     unsigned int flags = 0;
 
-    /* Extract and examine recieved packet headers */
+    /* Extract and examine received packet headers */
     etherhdr = (ether_hdr*)(packet);
     iphdr = (ipv4_hdr *)(packet + SIZE_ETHERNET);
     size_ip = iphdr->ip_hl << 2;
@@ -740,7 +740,7 @@ got_packet(_U_ u_char *args, _U_ const struct pcap_pkthdr *header,
 
 
     flags = tcphdr->th_flags;
-    /* Check correct SYN-ACK expecation, if so then proceed in fixing entire schedule from relative to absolute SEQs+ACKs */
+    /* Check correct SYN-ACK expectation, if so then proceed in fixing entire schedule from relative to absolute SEQs+ACKs */
     if((flags == (TH_SYN|TH_ACK)) && (sched_index==1) && (tcphdr->th_ack==htonl(sched[sched_index-1].curr_lseq + 1))){
         unsigned int j;
         printf("Received Remote Packet...............	[%d]\n",sched_index+1);

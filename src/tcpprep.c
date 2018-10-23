@@ -630,11 +630,11 @@ print_stats(const char *file)
 {
     char *cachedata = NULL;
     char *comment = NULL;
-    COUNTER count = 0;
+    COUNTER i, count = 0;
     COUNTER pri = 0, sec = 0, nosend = 0;
     
     count = read_cache(&cachedata, file, &comment);
-    for (COUNTER i = 1; i <= count; i ++) {
+    for (i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {
             case TCPR_DIR_C2S:

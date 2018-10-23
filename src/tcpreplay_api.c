@@ -591,7 +591,7 @@ tcpreplay_set_unique_ip_loops(tcpreplay_t *ctx, int value)
  * Set netmap mode
  */
 int
-tcpreplay_set_netmap(tcpreplay_t *ctx, bool value)
+tcpreplay_set_netmap(_U_ tcpreplay_t *ctx, _U_ bool value)
 {
     assert(ctx);
 #ifdef HAVE_NETMAP

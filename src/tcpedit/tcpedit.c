@@ -189,8 +189,8 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         p = get_layer4_v6(ip6_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer %d byte IPv6 header for DLT 0x%04x",
-                    pktlen, ip_hdr->ip_hl << 2,  dst_dlt);
+            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain an IPv6 header for DLT 0x%04x",
+                    pktlen, dst_dlt);
             return TCPEDIT_ERROR;
         }
 
@@ -199,6 +199,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         dbgx(3, "Packet isn't IPv4 or IPv6: 0x%04x", l2proto);
         /* non-IP packets have a NULL ip_hdr struct */
         ip_hdr = NULL;
+        ip6_hdr = NULL;
     }
 
     /* The following edits only apply for IPv4 */

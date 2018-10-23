@@ -686,7 +686,7 @@ get_addr2name4(const uint32_t ip, bool _U_ dnslookup)
  * Does not support DNS.
  */
 const char *
-get_addr2name6(const struct tcpr_in6_addr *addr, bool _U_ dnslookup)
+get_addr2name6(const struct tcpr_in6_addr *addr, _U_ bool dnslookup)
 {
     static char *new_string = NULL;
 
