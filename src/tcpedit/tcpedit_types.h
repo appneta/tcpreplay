@@ -119,6 +119,9 @@ typedef struct {
 
     /* rewrite ip? */
     bool rewrite_ip;
+
+    /* rewrite seq/ack numbers? */
+    u_int32_t rewrite_sequence;
     
     /* fix IP/TCP/UDP checksums */
     bool fixcsum;

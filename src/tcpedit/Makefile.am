@@ -7,7 +7,7 @@ BUILT_SOURCES = tcpedit_stub.h
 
 libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
 	portmap.c dlt.c checksum.c incremental_checksum.c \
-	tcpedit_api.c fuzzing.c
+	tcpedit_api.c fuzzing.c rewrite_sequence.c
 
 manpages: tcpedit.1
 
@@ -28,7 +28,7 @@ noinst_HEADERS = tcpedit.h edit_packet.h portmap.h \
 	tcpedit_stub.h parse_args.h dlt.h checksum.h \
 	incremental_checksum.h tcpedit_api.h \
 	tcpedit_types.h plugins.h plugins_api.h \
-	plugins_types.h fuzzing.h
+	plugins_types.h fuzzing.h rewrite_sequence.h
 
 MOSTLYCLEANFILES = *~
 
