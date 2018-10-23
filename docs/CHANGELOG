@@ -6,6 +6,7 @@
     - CVE-2018-17580 heap-buffer-overflow fast_edit_packet (#485)
     - CVE-2018-17582 heap-buffer-overflow in get_next_packet (#484)
     - Out-of-tree build (#482)
+    - Second pcap file hangs on multipler option (#472)
     - Add ability to change tcp SEQ/ACK numbers (#425)
     - Fails to open tap0 on Zephyr (#411)
     - CVE-2018-13112 heap-buffer-overflow in get_l2len (#477 dup #408)
