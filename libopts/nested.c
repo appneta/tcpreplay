@@ -783,12 +783,23 @@ optionLoadNested(char const * text, char const * name, size_t nm_len)
             text = scan_name(text, res_val);
 
         else switch (*text) {
-        case NUL: goto scan_done;
-        case '<': text = scan_xml(text, res_val);
-                  if (text == NULL) goto woops;
-                  if (*text == ',') text++; break;
-        case '#': text = strchr(text, NL);  break;
-        default:  goto woops;
+        case NUL:
+            goto scan_done;
+
+        case '<':
+            text = scan_xml(text, res_val);
+            if (text == NULL)
+                goto woops;
+            if (text[0] == ',')
+                text++;
+            break;
+
+        case '#':
+            text = strchr(text, NL);
+            break;
+
+        default:
+            goto woops;
         }
     } while (text != NULL); scan_done:;
 

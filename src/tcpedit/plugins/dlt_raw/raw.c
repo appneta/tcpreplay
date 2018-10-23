@@ -103,13 +103,13 @@ dlt_raw_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    /* allocate memory for our deocde extra data */
-    if (sizeof(raw_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(raw_extra_t));
+    /* allocate memory for our config data */
+    ctx->decoded_extra_size = sizeof(raw_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
     /* allocate memory for our config data */
-    if (sizeof(raw_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(raw_config_t));
+    plugin->config_size = sizeof(raw_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
 
     return TCPEDIT_OK; /* success */
 }
@@ -134,11 +134,13 @@ dlt_raw_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */
@@ -193,7 +195,8 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
+        _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -233,7 +236,7 @@ dlt_raw_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -250,7 +253,8 @@ dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen,
+        u_char *l3data)
 {
     assert(ctx);
     assert(packet);
@@ -265,7 +269,7 @@ dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char
  * return the length of the L2 header of the current packet
  */
 int
-dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, _U_ const int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -278,7 +282,8 @@ dlt_raw_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_raw_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_raw_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
+        const u_char *packet, _U_ const int pktlen)
 {
     assert(ctx);
     assert(packet);

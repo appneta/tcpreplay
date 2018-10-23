@@ -25,7 +25,7 @@ if COMPILE_NETMAP
 libcommon_a_SOURCES += netmap.c
 endif
 
-AM_CFLAGS = -I.. -I../.. $(LNAV_CFLAGS) @LDNETINC@
+AM_CFLAGS = -I$(srcdir)/.. -I$(srcdir)/../.. $(LNAV_CFLAGS) @LDNETINC@
 
 if ! SYSTEM_STRLCPY
 libcommon_a_LIBADD = ../../lib/libstrl.a

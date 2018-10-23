@@ -63,7 +63,7 @@ ports2PORT(char *ports)
 {
     tcpedit_portmap_t *portmap = NULL, *portmap_head = NULL, *portmap_last = NULL;
     char *from_s, *to_s, *from_begin, *from_end, *badchar;
-    long from_l, to_l, from_b, from_e, i;
+    long from_l, to_l;
     char *token = NULL, *token2 = NULL;
 
     assert(ports);
@@ -105,15 +105,17 @@ ports2PORT(char *ports)
 
     /* process a range, setting from_begin & from_end */
     if (strchr(from_s, '-')) {
+        long i;
+
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
-        from_b = strtol(from_begin, &badchar, 10);
+        long from_b = strtol(from_begin, &badchar, 10);
         if (strlen(badchar) != 0) {
             free(portmap);
             return NULL;
         }
-        from_e = strtol(from_end, &badchar, 10);
 
+        long from_e = strtol(from_end, &badchar, 10);
         if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
             free(portmap);
             return NULL;
@@ -184,7 +186,7 @@ int
 parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
 {
     tcpedit_portmap_t *portmap_ptr;
-    char *substr = NULL, *ourstrcpy = NULL, *token = NULL;
+    char *substr, *ourstrcpy, *token = NULL;
 
     assert(ourstr);
     ourstrcpy = safe_strdup(ourstr);

@@ -67,7 +67,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
     struct tcpr_in6_addr network6;
     unsigned long mask = ~0;    /* turn on all bits */
     tcpprep_opt_t *options = tcpprep->options;
-    int i, j, k;
+    uint32_t i, j, k;
 
     dbg(1, "Running: tree_buildcidr()");
 
@@ -114,7 +114,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
                     network6.tcpr_s6_addr[i] = node->u.ip6.tcpr_s6_addr[i];
 
                 if ((k = bcdata->masklen % 8) != 0) {
-                    k = ~0 << (8 - k);
+                    k = (uint32_t)~0 << (8 - k);
                     network6.tcpr_s6_addr[j] = node->u.ip6.tcpr_s6_addr[i] & k;
                 }
 
@@ -232,7 +232,7 @@ tcpr_tree_to_cidr(const int masklen, const int type)
 tcpr_dir_t
 check_ip_tree(const int mode, const unsigned long ip)
 {
-    tcpr_tree_t *node = NULL, *finder = NULL;
+    tcpr_tree_t *node, *finder;
 
     finder = new_tree();
     finder->family = AF_INET;
@@ -629,7 +629,6 @@ ipv6_cmp(const struct tcpr_in6_addr *a, const struct tcpr_in6_addr *b)
 int
 tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
 {
-    int ret;
     if (t1->family > t2->family) {
         dbgx(2, "family %d > %d", t1->family, t2->family);
         return 1;
@@ -660,7 +659,7 @@ tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
     }
 
     if (t1->family == AF_INET6) {
-        ret = ipv6_cmp(&t1->u.ip6, &t1->u.ip6);
+        int ret = ipv6_cmp(&t1->u.ip6, &t1->u.ip6);
         dbgx(2, "cmp(%s, %s) = %d", get_addr2name6(&t1->u.ip6, RESOLVE),
                 get_addr2name6(&t2->u.ip6, RESOLVE), ret);
         return ret;
@@ -713,7 +712,7 @@ packet2tree(const u_char * data, const int len)
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    if (len < sizeof(*eth_hdr)) {
+    if ((size_t)len < sizeof(*eth_hdr)) {
         errx(-1, "packet capture length %d too small to process", len);
         return NULL;
     }

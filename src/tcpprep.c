@@ -193,8 +193,9 @@ main(int argc, char *argv[])
 
     /* close cache file */
     close(out_file);
-    return 0;
 
+    restore_stdin();
+    return 0;
 }
 
 
@@ -330,7 +331,7 @@ process_raw_packets(pcap_t * pcap)
 
     assert(pcap);
     
-    while ((pktdata = pcap_next(pcap, &pkthdr)) != NULL) {
+    while ((pktdata = safe_pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
 
         dbgx(1, "Packet " COUNTER_SPEC, packetnum);
@@ -338,11 +339,13 @@ process_raw_packets(pcap_t * pcap)
         /* look for include or exclude LIST match */
         if (options->xX.list != NULL) {
             if (options->xX.mode < xXExclude) {
+                /* include list */
                 if (!check_list(options->xX.list, packetnum)) {
                     add_cache(&(options->cachedata), DONT_SEND, 0);
                     continue;
                 }
             }
+            /* exclude list */
             else if (check_list(options->xX.list, packetnum)) {
                 add_cache(&(options->cachedata), DONT_SEND, 0);
                 continue;
@@ -627,14 +630,11 @@ print_stats(const char *file)
 {
     char *cachedata = NULL;
     char *comment = NULL;
-    COUNTER count = 0;
+    COUNTER i, count = 0;
     COUNTER pri = 0, sec = 0, nosend = 0;
     
     count = read_cache(&cachedata, file, &comment);
-    if (count > 65535)
-        exit(-1);
-
-    for (COUNTER i = 1; i <= count; i ++) {
+    for (i = 1; i <= count; i ++) {
         int cacheval = check_cache(cachedata, i);
         switch (cacheval) {
             case TCPR_DIR_C2S:

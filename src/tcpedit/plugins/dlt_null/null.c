@@ -140,11 +140,13 @@ dlt_null_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */
@@ -196,7 +198,8 @@ dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
+        _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -293,7 +296,8 @@ dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */    
 u_char *
-dlt_null_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_null_get_mac(tcpeditdlt_t *ctx, _U_ tcpeditdlt_mac_type_t mac,
+        const u_char *packet, _U_ const int pktlen)
 {
     assert(ctx);
     assert(packet);

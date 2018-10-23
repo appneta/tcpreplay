@@ -307,7 +307,7 @@ main(int argc, char *argv[])
             }
 
             /* read the frame */
-            maxread = min(caplen, sizeof(buf));
+            maxread = min((size_t)caplen, sizeof(buf));
             if ((ret = read(fd, &buf, maxread)) != maxread) {
                 if (ret < 0) {
                     printf("Error reading file: %s: %s\n", argv[i], strerror(errno));
@@ -332,13 +332,11 @@ main(int argc, char *argv[])
             } else if (backwards && caplentoobig) {
                 printf("BAD_TS|TOOBIG");
             } 
-
         }
-
     }
 
-    exit(0);
-
+    restore_stdin();
+    return 0;
 }
 
 /**

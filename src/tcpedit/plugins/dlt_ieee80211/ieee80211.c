@@ -108,13 +108,13 @@ dlt_ieee80211_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    /* allocate memory for our deocde extra data */
-    if (sizeof(ieee80211_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(ieee80211_extra_t));
+    /* allocate memory for our decode extra data */
+    ctx->decoded_extra_size = sizeof(ieee80211_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
     /* allocate memory for our config data */
-    if (sizeof(ieee80211_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(ieee80211_config_t));
+    plugin->config_size = sizeof(ieee80211_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
 
     /* FIXME: set default config values here */
 
@@ -140,11 +140,13 @@ dlt_ieee80211_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */
@@ -185,8 +187,7 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return TCPEDIT_ERROR;
 
     dbgx(3, "Decoding 802.11 packet " COUNTER_SPEC, ctx->tcpedit->runtime.packetnum);
@@ -215,7 +216,8 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
+        _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -239,7 +241,7 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return TCPEDIT_ERROR;
 
     /* check 802.11 frame control field */
@@ -286,8 +288,7 @@ dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     assert(packet);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     dbgx(1, "Getting data for packet " COUNTER_SPEC " from offset: %d", ctx->tcpedit->runtime.packetnum, l2len);
@@ -310,8 +311,7 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, 
     assert(l3data);
 
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);

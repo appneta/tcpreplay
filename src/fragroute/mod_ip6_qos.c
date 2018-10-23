@@ -41,11 +41,11 @@ ip6_qos_open(int argc, char *argv[])
 	if ((data = calloc(1, sizeof(*data))) == NULL)
 		return (NULL);
 
-	if (sscanf(argv[1], "%x", &data->ip6_tc) != 1 ||
+	if (sscanf(argv[1], "%x", (unsigned int*)&data->ip6_tc) != 1 ||
 			data->ip6_tc < 0 || data->ip6_tc > 255)
 		return (ip6_qos_close(data));
 
-	if (sscanf(argv[2], "%x", &data->ip6_fl) != 1 ||
+	if (sscanf(argv[2], "%x", (unsigned int*)&data->ip6_fl) != 1 ||
 			data->ip6_fl < 0 || data->ip6_fl > 0x100000)
 		return (ip6_qos_close(data));
 

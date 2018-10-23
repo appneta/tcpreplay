@@ -320,7 +320,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -349,7 +349,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -376,7 +376,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, strerror(errno), errno);
                 }
             }
@@ -409,7 +409,7 @@ TRY_SEND_AGAIN:
                         break;
 
                     default:
-                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)", 
+                        sendpacket_seterr(sp, "Error with %s [" COUNTER_SPEC "]: %s (errno = %d)",
                                 INJECT_METHOD, sp->sent + sp->failed + 1, pcap_geterr(sp->handle.pcap), errno);
                 }
             }
@@ -485,7 +485,6 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
               case S_IFBLK:
                   errx(-1, "\"%s\" is a block device and is not a valid Tcpreplay device",
                       device);
-                  break;
                   break;
               case S_IFDIR:
                   errx(-1, "\"%s\" is a directory and is not a valid Tcpreplay device",

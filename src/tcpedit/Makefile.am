@@ -12,17 +12,17 @@ libtcpedit_a_SOURCES = tcpedit.c parse_args.c edit_packet.c \
 manpages: tcpedit.1
 
 tcpedit.1: tcpedit_stub.def
-	@AUTOGEN@  -T agman1.tpl --base-name tcpedit tcpedit_stub.def
+	@AUTOGEN@  -T agman1.tpl --base-name tcpedit $<
 
 tcpedit.c: tcpedit_stub.h
 
 # Get AutoOpts search path
 #opts_list=`find plugins -type d -not -regex ".*\.svn.*" -not -regex ".*\.deps.*" -exec echo -n "-L {} " \;`
 
-tcpedit_stub.h: tcpedit_opts.def tcpedit_stub.def $(srcdir)/plugins/dlt_stub.def
-	@AUTOGEN@ $(opts_list) tcpedit_stub.def
+tcpedit_stub.h: tcpedit_stub.def tcpedit_opts.def plugins/dlt_stub.def
+	@AUTOGEN@ $(opts_list) $<
 
-AM_CFLAGS = -I.. -I../common -I../.. @LDNETINC@ $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS)
+AM_CFLAGS = -I$(srcdir). -I$(srcdir)/.. -I$(srcdir)/../common -I$(srcdir)/../.. @LDNETINC@ $(LIBOPTS_CFLAGS) $(LNAV_CFLAGS)
 
 noinst_HEADERS = tcpedit.h edit_packet.h portmap.h \
 	tcpedit_stub.h parse_args.h dlt.h checksum.h \
@@ -36,5 +36,5 @@ MAINTAINERCLEANFILES = Makefile.in tcpedit_stub.h tcpedit.1
 
 EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def
 
-include $(srcdir)/plugins/Makefile.am
+include plugins/Makefile.am
 

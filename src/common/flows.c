@@ -158,7 +158,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         const u_char *pktdata, const int datalink, const int expiry)
 {
     uint16_t ether_type = 0;
-    vlan_hdr_t *vlan_hdr;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     tcp_hdr_t *tcp_hdr;
@@ -168,7 +167,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     sll_hdr_t *sll_hdr;
     struct tcpr_pppserial_hdr *ppp;
     flow_entry_data_t entry;
-    int l2_len = 0;
+    uint32_t l2_len = 0;
     int ip_len;
     uint8_t protocol;
     uint32_t hash;
@@ -231,10 +230,11 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         if ((pktdata[3] & 0x80) == 0x80) {
             l2_len = ntohs(*((uint16_t*)&pktdata[4]));
             l2_len += 6;
-        } else
+        } else {
             l2_len = 4; /* no header extensions */
+        }
 
-        /* fall through */
+        /* no break */
     case DLT_EN10MB:
         /* set l2_len if we did not fell through */
         if (l2_len == 0)
@@ -246,7 +246,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
         while (ether_type == ETHERTYPE_VLAN) {
-            vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+            vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
             entry.vlan = vlan_hdr->vlan_priority_c_vid & htons(0xfff);
             ether_type = ntohs(vlan_hdr->vlan_len);
             l2_len += 4;

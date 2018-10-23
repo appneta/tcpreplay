@@ -266,7 +266,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
     assert(cachedata);
 
     /* first run?  malloc our first entry, set bit count to 0 */
-    if (*cachedata == NULL) {
+    if (*cachedata == NULL || lastcache == NULL) {
         *cachedata = new_cache();
         lastcache = *cachedata;
     }

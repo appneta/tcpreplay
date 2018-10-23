@@ -149,6 +149,8 @@ main(int argc, char *argv[])
 #ifdef ENABLE_DMALLOC
     dmalloc_shutdown();
 #endif
+
+    restore_stdin();
     return 0;
 }
 
@@ -256,7 +258,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while ((pktconst = pcap_next(pin, pkthdr_ptr)) != NULL) {
+    while ((pktconst = safe_pcap_next(pin, pkthdr_ptr)) != NULL) {
         packetnum++;
         dbgx(2, "packet " COUNTER_SPEC " caplen %d", packetnum, pkthdr.caplen);
 

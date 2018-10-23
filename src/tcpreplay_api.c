@@ -200,7 +200,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(MAXSLEEP)) {
         options->maxsleep.tv_sec = OPT_VALUE_MAXSLEEP / 1000;
-        options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000;
+        options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000 * 1000;
     }
 
 #ifdef ENABLE_VERBOSE
@@ -591,7 +591,7 @@ tcpreplay_set_unique_ip_loops(tcpreplay_t *ctx, int value)
  * Set netmap mode
  */
 int
-tcpreplay_set_netmap(tcpreplay_t *ctx, bool value)
+tcpreplay_set_netmap(_U_ tcpreplay_t *ctx, _U_ bool value)
 {
     assert(ctx);
 #ifdef HAVE_NETMAP
@@ -1087,7 +1087,8 @@ out:
 int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
-    int rcode, loop, total_loops;
+    int rcode;
+    COUNTER loop, total_loops;
     char buf[64];
 
     assert(ctx);
@@ -1102,19 +1103,10 @@ tcpreplay_replay(tcpreplay_t *ctx)
         return -1;
     }
 
+    init_timestamp(&ctx->stats.start_time);
     init_timestamp(&ctx->stats.last_time);
     init_timestamp(&ctx->stats.last_print);
     init_timestamp(&ctx->stats.end_time);
-
-    if (gettimeofday(&ctx->stats.start_time, NULL) < 0) {
-        tcpreplay_seterr(ctx, "gettimeofday() failed: %s",  strerror(errno));
-        return -1;
-    }
-
-    if (ctx->options->stats >= 0) {
-        if (format_date_time(&ctx->stats.start_time, buf, sizeof(buf)) > 0)
-            printf("Test start: %s ...\n", buf);
-    }
 
     ctx->running = true;
     total_loops = ctx->options->loop;
@@ -1126,9 +1118,10 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop %d of %d...\n", loop, total_loops);
+                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC "...\n",
+                            loop, total_loops);
                 else
-                    printf("Loop %d of %d (" COUNTER_SPEC " unique)...\n",
+                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n",
                             loop, total_loops,
                             ctx->unique_iteration);
             }
@@ -1149,9 +1142,9 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop %d...\n", loop);
+                    printf("Loop " COUNTER_SPEC "...\n", loop);
                 else
-                    printf("Loop %d (" COUNTER_SPEC " unique)...\n", loop,
+                    printf("Loop " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n", loop,
                             ctx->unique_iteration);
             }
             if ((rcode = tcpr_replay_index(ctx)) < 0)
