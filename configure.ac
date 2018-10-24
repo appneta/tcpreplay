@@ -1431,6 +1431,12 @@ fi
 
 dnl ##################################################
 dnl # Check for libdnet, but only if not Cygwin!
+dnl #
+dnl # if your version of libdnet doesn't compile, try
+dnl # getting it from ...
+dnl # http://libdnet.sourceforge.net/
+dnl # ... or ...
+dnl # https://github.com/jncornett/libdnet
 dnl ##################################################
 founddnet=no
 have_libdnet=no

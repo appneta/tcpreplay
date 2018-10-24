@@ -196,37 +196,37 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     }
 
     if (cachedata) {
-    	mycache = cachedata;
+        mycache = cachedata;
 
-    	while (!last) {
-    		/* increment total packets */
-    		packets += mycache->packets;
+        while (!last) {
+            /* increment total packets */
+            packets += mycache->packets;
 
-    		/* calculate how many chars to write */
-    		chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
-    		if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
-    			chars++;
-    			dbgx(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
-    					CACHE_PACKETS_PER_BYTE);
-    		}
+            /* calculate how many chars to write */
+            chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
+            if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
+                chars++;
+                dbgx(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
+                        CACHE_PACKETS_PER_BYTE);
+            }
 
-    		/* write to file, and verify it wrote properly */
-    		written = write(out_file, mycache->data, chars);
-    		dbgx(1, "Wrote %zu bytes of cache data", written);
-    		if (written != (ssize_t)chars)
-    			errx(-1, "Only wrote %zu of %i bytes to cache file!", written, chars);
+            /* write to file, and verify it wrote properly */
+            written = write(out_file, mycache->data, chars);
+            dbgx(1, "Wrote %zu bytes of cache data", written);
+            if (written != (ssize_t)chars)
+                errx(-1, "Only wrote %zu of %i bytes to cache file!", written, chars);
 
-    		/*
-    		 * if that was the last, stop processing, otherwise wash,
-    		 * rinse, repeat
-    		 */
-    		if (mycache->next != NULL) {
-    			mycache = mycache->next;
-    		}
-    		else {
-    			last = 1;
-    		}
-    	}
+            /*
+             * if that was the last, stop processing, otherwise wash,
+             * rinse, repeat
+             */
+            if (mycache->next != NULL) {
+                mycache = mycache->next;
+            }
+            else {
+                last = 1;
+            }
+        }
     }
     safe_free(cache_header);
     /* return number of packets written */
