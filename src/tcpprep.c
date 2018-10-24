@@ -539,7 +539,7 @@ process_raw_packets(pcap_t * pcap)
              */
             dbg(2, "processing port mode...");
             add_cache(&options->cachedata, SEND,
-            		check_dst_port(ip_hdr, ip6_hdr, (pkthdr.caplen - l2len)));
+            check_dst_port(ip_hdr, ip6_hdr, (pkthdr.caplen - l2len)));
             break;
 
         case FIRST_MODE:

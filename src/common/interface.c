@@ -89,9 +89,9 @@ get_interface_list(void)
 #endif
 
 #ifndef HAVE_WIN32
-	/* Unix just has a warning about being root */
-	if (geteuid() != 0)
-		warn("May need to run as root to get access to all network interfaces.");
+    /* Unix just has a warning about being root */
+    if (geteuid() != 0)
+        warn("May need to run as root to get access to all network interfaces.");
 #endif
 
 #ifdef HAVE_NETMAP
@@ -235,7 +235,7 @@ list_interfaces(interface_list_t *list)
     printf("Available network interfaces:\n");
         
 #ifdef HAVE_WIN32  /* Win32 has alias/name/description */
-	printf("Alias\tName\tDescription\n");
+    printf("Alias\tName\tDescription\n");
 #endif
     
     
@@ -246,7 +246,7 @@ list_interfaces(interface_list_t *list)
 #ifdef HAVE_WIN32
             printf("%s\t%s\n\t%s\n", ptr->alias, ptr->name, ptr->description);
 #else
-			printf("%s\n", ptr->name);
+            printf("%s\n", ptr->name);
 #endif
         }
         ptr = ptr->next;

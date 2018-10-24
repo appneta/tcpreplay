@@ -19,21 +19,21 @@
 
 
 /* Ethernet addresses are 6 bytes */
-//#define ETHER_ADDR_LEN		6
-#define SIZE_ETHERNET 		14
-#define LOCAL_IP_MATCH		1
-#define REMOTE_IP_MATCH		2
-#define NO_MATCH		0
-#define REWRITE_ERROR		-1
-#define PCAP_OPEN_ERROR		-1
-#define PACKET_BUFF		65535
-#define TIMEOUT_ms		10000
-#define PROMISC_OFF		0
-#define BUFSIZ_PLUS 		BUFSIZ
-#define ALARM_TIMEOUT		10
-#define SUCCESS			1 
-#define ERROR			-1
-#define manpage_cmds	        (strcmp(argv[1], "-V")==0) || (strcmp(argv[1], "-v")==0) || (strcmp(argv[1], "-H")==0) || (strcmp(argv[1], "-h")==0)
+//#define ETHER_ADDR_LEN        6
+#define SIZE_ETHERNET         14
+#define LOCAL_IP_MATCH        1
+#define REMOTE_IP_MATCH        2
+#define NO_MATCH        0
+#define REWRITE_ERROR        -1
+#define PCAP_OPEN_ERROR        -1
+#define PACKET_BUFF        65535
+#define TIMEOUT_ms        10000
+#define PROMISC_OFF        0
+#define BUFSIZ_PLUS         BUFSIZ
+#define ALARM_TIMEOUT        10
+#define SUCCESS            1
+#define ERROR            -1
+#define manpage_cmds            (strcmp(argv[1], "-V")==0) || (strcmp(argv[1], "-v")==0) || (strcmp(argv[1], "-H")==0) || (strcmp(argv[1], "-h")==0)
 
 /***********From tcpedit.h*****/
 #define TCPEDIT_SOFT_ERROR -2
@@ -81,41 +81,41 @@ typedef struct ipv4_hdr ipv4_hdr;
 
 struct ipv4_hdr{
 #if defined( WORDS_BIGENDIAN )
-    u_int8_t 	ip_v:4;
-    u_int8_t 	ip_hl:4;
+    u_int8_t     ip_v:4;
+    u_int8_t     ip_hl:4;
 #else
-    u_int8_t 	ip_hl:4;
-    u_int8_t 	ip_v:4;
+    u_int8_t     ip_hl:4;
+    u_int8_t     ip_v:4;
 #endif
-    u_int8_t 	ip_tos;
-    u_int16_t 	ip_len;
-    u_int16_t 	ip_id;
-    u_int16_t 	ip_off;
-    u_int8_t 	ip_ttl;
-    u_int8_t 	ip_p;
-    u_int16_t 	ip_sum;
-    input_addr ip_src,	ip_dst;
+    u_int8_t     ip_tos;
+    u_int16_t     ip_len;
+    u_int16_t     ip_id;
+    u_int16_t     ip_off;
+    u_int8_t     ip_ttl;
+    u_int8_t     ip_p;
+    u_int16_t     ip_sum;
+    input_addr ip_src,    ip_dst;
 };
 
 typedef struct tcpheader tcp_hdr;
 
 /* for easy reference ************ */
 struct tcpheader{
-    u_int16_t 	th_sport; 	// source port
-    u_int16_t 	th_dport;	
-    u_int32_t 	th_seq;
-    u_int32_t 	th_ack;
+    u_int16_t     th_sport;     // source port
+    u_int16_t     th_dport;
+    u_int32_t     th_seq;
+    u_int32_t     th_ack;
 #if defined( WORDS_BIGENDIAN )
-    u_int8_t 	th_off:4;
-    u_int8_t 	th_x2:4;
+    u_int8_t     th_off:4;
+    u_int8_t     th_x2:4;
 #else
-    u_int8_t 	th_x2:4;
-    u_int8_t 	th_off:4;
+    u_int8_t     th_x2:4;
+    u_int8_t     th_off:4;
 #endif
-    u_int8_t 	th_flags;
-    u_int16_t 	th_win;
-    u_int16_t 	th_sum;
-    u_int16_t 	th_urp;
+    u_int8_t     th_flags;
+    u_int16_t     th_win;
+    u_int16_t     th_sum;
+    u_int16_t     th_urp;
 }; 
 
 

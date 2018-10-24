@@ -425,10 +425,10 @@ tcpreplay_close(tcpreplay_t *ctx)
     /* free the file cache */
     packet_cache = options->file_cache->packet_cache;
     while (packet_cache != NULL) {
-    	next = packet_cache->next;
-    	safe_free(packet_cache->pktdata);
-    	safe_free(packet_cache);
-    	packet_cache = next;
+        next = packet_cache->next;
+        safe_free(packet_cache->pktdata);
+        safe_free(packet_cache);
+        packet_cache = next;
     }
 
     /* free our interface list */

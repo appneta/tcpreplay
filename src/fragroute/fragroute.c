@@ -58,14 +58,14 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
     ctx->l2len = get_l2len(buf, len, ctx->dlt);
     memcpy(ctx->l2header, buf, ctx->l2len);
 
-    if ((pkt = pkt_new()) == NULL) {
+    if ((pkt = pkt_new(len)) == NULL) {
         strcpy(ctx->errbuf, "unable to pkt_new()");
         return -1;
     }
-    if (len > PKT_BUF_LEN) {
-        sprintf(ctx->errbuf, "skipping oversized packet: %zu", len);
-        return -1;
-    }
+//    if (len > PKT_BUF_LEN) {
+//        sprintf(ctx->errbuf, "skipping oversized packet: %zu", len);
+//        return -1;
+//    }
 
     memcpy(pkt->pkt_data, buf, len);
     pkt->pkt_end = pkt->pkt_data + len;

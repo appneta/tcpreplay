@@ -20,38 +20,38 @@
 void *
 echo_open(int argc, char *argv[])
 {
-	char *p;
-	
-	if (argc < 2)
-		return (NULL);
+    char *p;
 
-	if ((p = argv_copy(argv + 1)) == NULL)
-		return (NULL);
+    if (argc < 2)
+        return (NULL);
 
-	return (p);
+    if ((p = argv_copy(argv + 1)) == NULL)
+        return (NULL);
+
+    return (p);
 }
 
 int
-echo_apply(void *d, struct pktq *pktq)
+echo_apply(void *d, _U_ struct pktq *pktq)
 {
-	char *p = (char *)d;
+    char *p = (char *)d;
 
-	printf("%s\n", p);
-	return (0);
+    printf("%s\n", p);
+    return (0);
 }
 
 void *
 echo_close(void *d)
 {
-	if (d != NULL)
-		free(d);
-	return (NULL);
+    if (d != NULL)
+        free(d);
+    return (NULL);
 }
 
 struct mod mod_echo = {
-	"echo",				/* name */
-	"echo <string> ...",		/* usage */
-	echo_open,			/* open */
-	echo_apply,			/* apply */
-	echo_close			/* close */
+    "echo",                /* name */
+    "echo <string> ...",        /* usage */
+    echo_open,            /* open */
+    echo_apply,            /* apply */
+    echo_close            /* close */
 };

@@ -169,9 +169,9 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
 
     /* --rewrite-sequence */
     if (HAVE_OPT(REWRITE_SEQUENCE))
-	tcpedit->rewrite_sequence = 1;
+        tcpedit->rewrite_sequence = 1;
     else
-	tcpedit->rewrite_sequence = 0;
+        tcpedit->rewrite_sequence = 0;
 
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {

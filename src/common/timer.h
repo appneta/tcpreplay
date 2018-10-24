@@ -119,7 +119,7 @@ void timesdiv(struct timespec *tvs, COUNTER div);
 
 /* subtract uvp from tvp and store in vvp */
 #ifndef timersub
-#define	timersub(tvp, uvp, vvp)                             \
+#define  timersub(tvp, uvp, vvp)                             \
     do {                                                    \
         (vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;      \
         (vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec;   \
@@ -131,7 +131,7 @@ void timesdiv(struct timespec *tvs, COUNTER div);
 #endif
 
 #ifndef timessub
-#define	timessub(tsp, usp, vsp)                            \
+#define  timessub(tsp, usp, vsp)                            \
     do {                                                   \
         (vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;     \
         (vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec;  \
