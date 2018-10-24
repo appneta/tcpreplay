@@ -68,6 +68,7 @@ Makefile
 Makefile.in
 configure
 config/
+src/config.h.in
 
 # Temporary files 
 *.tmp
