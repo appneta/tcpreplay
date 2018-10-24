@@ -237,6 +237,11 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         }
     }
 
+#ifdef HAVE_SOCK_RAW
+    if (HAVE_OPT(RAW))
+        ctx->sp_type = SP_TYPE_SOCK_RAW;
+#endif /* HAVE_SOCK_RAW */
+
 #ifdef HAVE_NETMAP
     options->netmap_delay = OPT_VALUE_NM_DELAY;
 #endif

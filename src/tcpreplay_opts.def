@@ -499,6 +499,18 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_SOCK_RAW;
+    name        = raw;
+    descrip     = "Write packets to interfaces using raw sockets";
+    doc         = <<- EOText
+Write to the IP stack using raw sockets. This option write packets higher
+up the stack than other injection methods, allowing you to test the IP stack,
+iptables etc.
+EOText;
+};
+
+
+flag = {
     ifdef       = HAVE_NETMAP;
     name        = netmap;
     descrip     = "Write packets directly to netmap enabled network adapter";

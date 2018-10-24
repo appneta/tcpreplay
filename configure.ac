@@ -144,7 +144,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([subdir-objects])
 AM_SILENT_RULES([yes])
 
 dnl Checks for programs.
@@ -1401,6 +1401,25 @@ AC_TRY_COMPILE([
     AC_MSG_RESULT(no)
 ])
 
+have_sock_raw=no
+dnl Check for SOCK_RAW support
+AC_MSG_CHECKING(for SOCK_RAW socket sending support)
+AC_TRY_COMPILE([
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/if.h>
+],[
+    int pf_socket;
+    pf_socket = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
+],[
+    AC_DEFINE([HAVE_SOCK_RAW], [1],
+            [Do we have SOCK_RAW socket support?])
+    AC_MSG_RESULT(yes)
+    have_sock_raw=yes
+],[
+    AC_MSG_RESULT(no)
+])
+
 have_tx_ring=no
 dnl Check for older Linux TX_RING support
 AC_MSG_CHECKING(for TX_RING socket sending support)
@@ -1491,7 +1510,7 @@ fi
 
 dnl Make sure we have a valid packet injection mechanisim
 if test $have_bpf = no -a $have_pcap_inject = no -a $have_pcap_sendpacket = no \
-    -a $have_libdnet = no -a $have_pf = no ; then
+    -a $have_libdnet = no -a $have_pf = no -a $have_sock_raw; then
     AC_MSG_ERROR([Unable to find a supported method to send packets.  Please upgrade your libpcap or enable libdnet])
 fi
 
@@ -1913,6 +1932,7 @@ tcpliveplay support:        ${enable_tcpliveplay}
 Supported Packet Injection Methods (*):
 Linux TX_RING:              ${have_tx_ring}
 Linux PF_PACKET:            ${have_pf}
+SOCK_RAW:                   ${have_sock_raw}
 BSD BPF:                    ${have_bpf}
 libdnet:                    ${have_libdnet}
 pcap_inject:                ${have_pcap_inject}

@@ -69,7 +69,8 @@ typedef enum sendpacket_type_e {
     SP_TYPE_TX_RING,
     SP_TYPE_KHIAL,
     SP_TYPE_NETMAP,
-    SP_TYPE_TUNTAP
+    SP_TYPE_TUNTAP,
+    SP_TYPE_SOCK_RAW,
 } sendpacket_type_t;
 
 /* these are the file_operations ioctls */

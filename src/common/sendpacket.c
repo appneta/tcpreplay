@@ -127,6 +127,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifdef HAVE_SOCK_RAW
+#undef INJECT_METHOD
+
+#define INJECT_METHOD "SOCK_RAW send()"
+static sendpacket_t *sendpacket_open_sock_raw(const char *, char *);
+#include <netinet/in.h>
+
+#endif /* HAVE_SOCK_RAW */
+
 #ifdef HAVE_PF_PACKET
 #undef INJECT_METHOD
 
@@ -297,6 +306,7 @@ TRY_SEND_AGAIN:
 
             /* Linux PF_PACKET and TX_RING */
         case SP_TYPE_PF_PACKET:
+        case SP_TYPE_SOCK_RAW:
         case SP_TYPE_TX_RING:
 #if defined HAVE_PF_PACKET
 #ifdef HAVE_TX_RING
@@ -513,6 +523,11 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
         sp = sendpacket_open_tuntap(device, errbuf);
 #endif
     } else {
+#ifdef HAVE_SOCK_RAW
+        if (sendpacket_type == SP_TYPE_SOCK_RAW)
+            sp = (sendpacket_t*)sendpacket_open_sock_raw(device, errbuf);
+        else
+#endif
 #ifdef HAVE_NETMAP
         if (sendpacket_type == SP_TYPE_NETMAP)
             sp = (sendpacket_t*)sendpacket_open_netmap(device, errbuf, arg);
@@ -585,6 +600,7 @@ sendpacket_close(sendpacket_t *sp)
     assert(sp);
     switch(sp->handle_type) {
         case SP_TYPE_KHIAL:
+        case SP_TYPE_SOCK_RAW:
             close(sp->handle.fd);
             break;
 
@@ -854,6 +870,86 @@ sendpacket_open_tuntap(const char *device, char *errbuf)
     return sp;
 }
 #endif
+
+#if defined HAVE_SOCK_RAW
+/**
+ * Inner sendpacket_open() method for using raw sockets
+ */
+static sendpacket_t *
+sendpacket_open_sock_raw(const char *device, char *errbuf)
+{
+    int mysocket;
+    struct ifreq ifr;
+    sendpacket_t *sp;
+    int n = 1, err;
+    socklen_t errlen = sizeof(err);
+
+    assert(device);
+    assert(errbuf);
+
+    dbg(1, "sendpacket: using SOCK_RAW");
+
+    memset(&ifr, 0, sizeof(ifr));
+
+    /* open our socket */
+    if ((mysocket = socket(PF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "raw socket: %s",
+                strerror(errno));
+        return NULL;
+    }
+
+    /* bind socket to our interface */
+    snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), device);
+    if ((setsockopt(mysocket, SOL_SOCKET, SO_BINDTODEVICE, &ifr,
+            sizeof(ifr))) < 0)
+    {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "raw bind error: %s",
+                strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+
+    /* check for errors, network down, etc... */
+    if (getsockopt(mysocket, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening raw %s: %s",
+                device, strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+
+    if (err > 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening raw %s: %s",
+                device, strerror(err));
+        close(mysocket);
+        return NULL;
+    }
+
+ #ifdef SO_BROADCAST
+    /*
+     * man 7 socket
+     *
+     * Set or get the broadcast flag. When  enabled,  datagram  sockets
+     * receive packets sent to a broadcast address and they are allowed
+     * to send packets to a broadcast  address.   This  option  has no
+     * effect on stream-oriented sockets.
+     */
+    if (setsockopt(mysocket, SOL_SOCKET, SO_BROADCAST, &n, sizeof(n)) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE,
+                "SO_BROADCAST raw: %s", strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+#endif  /*  SO_BROADCAST  */
+
+    /* prep & return our sp handle */
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.fd = mysocket;
+    sp->handle_type = SP_TYPE_SOCK_RAW;
+
+    return sp;
+}
+#endif /* HAVE_SOCK_RAW */
 
 #if defined HAVE_PF_PACKET
 /**
