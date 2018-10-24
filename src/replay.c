@@ -125,10 +125,6 @@ replay_file(tcpreplay_t *ctx, int idx)
 
     path = ctx->options->sources[idx].filename;
 
-    /* close stdin if reading from it (needed for some OS's) */
-    if (strncmp(path, "-", 1) == 0)
-        close(1);
-
     /* read from pcap file if we haven't cached things yet */
     if (!ctx->options->preload_pcap) {
         if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
