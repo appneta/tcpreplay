@@ -47,14 +47,20 @@ rewrite_seqs(tcpedit_t *tcpedit, tcp_hdr_t *tcp_hdr)
 {
     uint32_t newnum;
 
-    while (tcpedit->rewrite_sequence == 1) 
+    while (tcpedit->rewrite_sequence == 1)
         tcpedit->rewrite_sequence = rand() * (4294967296 / RAND_MAX);
+
     newnum = tcp_hdr->th_seq + tcpedit->rewrite_sequence;
     csum_replace4(&tcp_hdr->th_sum, tcp_hdr->th_seq, newnum);
     tcp_hdr->th_seq = newnum;
-    newnum = tcp_hdr->th_ack + tcpedit->rewrite_sequence;
-    csum_replace4(&tcp_hdr->th_sum, tcp_hdr->th_ack, newnum);
-    tcp_hdr->th_ack = newnum;
+
+    /* first packet of 3-way handshake must have an ACK of zero - #450 */
+    if (!((tcp_hdr->th_flags & TH_SYN) && !(tcp_hdr->th_flags & TH_ACK))) {
+        newnum = tcp_hdr->th_ack + tcpedit->rewrite_sequence;
+        csum_replace4(&tcp_hdr->th_sum, tcp_hdr->th_ack, newnum);
+        tcp_hdr->th_ack = newnum;
+    }
+
     return 0;
 }
 
@@ -69,6 +75,7 @@ rewrite_ipv4_sequence(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
         tcp_hdr = (tcp_hdr_t *)get_layer4_v4(*ip_hdr, 65536);
         return rewrite_seqs(tcpedit, tcp_hdr);
     }
+
     return 0;
 }
 
@@ -82,5 +89,6 @@ rewrite_ipv6_sequence(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr)
         tcp_hdr = (tcp_hdr_t *)get_layer4_v6(*ip6_hdr, 65535);
         return rewrite_seqs(tcpedit, tcp_hdr);
     }
+
     return 0;
 }

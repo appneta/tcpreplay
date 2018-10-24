@@ -58,7 +58,6 @@ tcpedit_t *tcpedit;
 /* local functions */
 void tcprewrite_init(void);
 void post_args(int argc, char *argv[]);
-void verify_input_pcap(pcap_t *pcap);
 int rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
 
 int 
