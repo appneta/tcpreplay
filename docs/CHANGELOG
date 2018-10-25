@@ -9,6 +9,7 @@
     - Closing stdin on pipe (#479)
     - Second pcap file hangs on multipler option (#472)
     - Jumbo frame support for fragroute option (#466)
+    - TCP sequence edit ACK corruption (#451)
     - TCP sequence number edit initial SYN packet should have zero ACK (#450)
     - Add ability to change tcp SEQ/ACK numbers (#425)
     - Fails to open tap0 on Zephyr (#411)
