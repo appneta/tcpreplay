@@ -70,7 +70,7 @@ tcp_seg_open(int argc, char *argv[])
 int
 tcp_seg_apply(_U_ void *d, struct pktq *pktq)
 {
-    struct pkt *pkt, *new, *next, tmp;
+    struct pkt *pkt, *new, *next;
     uint32_t seq;
     int hl, tl, len;
     u_char *p, *p1, *p2;
@@ -118,6 +118,11 @@ tcp_seg_apply(_U_ void *d, struct pktq *pktq)
 
             if (tcp_seg_data.overlap != 0 &&
                 p + (len << 1) < pkt->pkt_end) {
+                struct pkt tmp;
+                u_char tmp_buf[pkt->pkt_buf_size];
+
+                tmp.pkt_buf = tmp_buf;
+                tmp.pkt_buf_size = pkt->pkt_buf_size;
                 rand_strset(tcp_seg_data.rnd, tmp.pkt_buf,len);
 
                 if (tcp_seg_data.overlap == FAVOR_OLD) {
