@@ -101,7 +101,7 @@ ip_frag_apply(void *d, struct pktq *pktq)
 static int
 ip_frag_apply_ipv4(_U_ void *d, struct pktq *pktq)
 {
-    struct pkt *pkt, *new, *next, tmp;
+    struct pkt *pkt, *new, *next;
     int hl, fraglen, off;
     u_char *p, *p1, *p2;
 
@@ -148,9 +148,14 @@ ip_frag_apply_ipv4(_U_ void *d, struct pktq *pktq)
             off = (p - pkt->pkt_ip_data) >> 3;
 
             if (ip_frag_data.overlap != 0 && (off & 1) != 0 &&
-                p + (fraglen << 1) < pkt->pkt_end) {
+                    p + (fraglen << 1) < pkt->pkt_end) {
+                struct pkt tmp;
+                u_char tmp_buf[pkt->pkt_buf_size];
+
+                tmp.pkt_buf = tmp_buf;
+                tmp.pkt_buf_size = pkt->pkt_buf_size;
                 rand_strset(ip_frag_data.rnd, tmp.pkt_buf,
-                    fraglen);
+                        fraglen);
                 if (ip_frag_data.overlap == FAVOR_OLD) {
                     p1 = p + fraglen;
                     p2 = tmp.pkt_buf;
@@ -199,7 +204,7 @@ ip_frag_apply_ipv4(_U_ void *d, struct pktq *pktq)
 static int
 ip_frag_apply_ipv6(_U_ void *d, struct pktq *pktq)
 {
-    struct pkt *pkt, *new, *next, tmp;
+    struct pkt *pkt, *new, *next;
     struct ip6_ext_hdr *ext;
     int hl, fraglen, off;
     u_char *p, *p1, *p2;
@@ -261,6 +266,11 @@ ip_frag_apply_ipv6(_U_ void *d, struct pktq *pktq)
 
             if (ip_frag_data.overlap != 0 && (off & 1) != 0 &&
                 p + (fraglen << 1) < pkt->pkt_end) {
+                struct pkt tmp;
+                u_char tmp_buf[pkt->pkt_buf_size];
+
+                tmp.pkt_buf = tmp_buf;
+                tmp.pkt_buf_size = pkt->pkt_buf_size;
                 rand_strset(ip_frag_data.rnd, tmp.pkt_buf,
                     fraglen);
                 if (ip_frag_data.overlap == FAVOR_OLD) {
