@@ -374,7 +374,7 @@ if WORDS_BIGENDIAN
 else
 	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
 endif
-	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_endpoint:
 	$(PRINTF) "%s" "[tcprewrite] Endpoint test: "
