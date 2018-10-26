@@ -11,7 +11,6 @@ AC_INIT([tcpreplay],[4.3.0-beta2],
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
-AX_CODE_COVERAGE
 AM_MAINTAINER_MODE([enable])
 AM_WITH_DMALLOC
 
@@ -1464,7 +1463,7 @@ if test $have_cygwin = no ; then
             if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
                 LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
                 LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
-                libdnet_version="$($testdir/bin/dumbnet-config --version)"
+                libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
                 founddnet=$testdir
             fi
         done

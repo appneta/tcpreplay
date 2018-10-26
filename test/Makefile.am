@@ -86,7 +86,7 @@ standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_tos --tos=50
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_range_portmap -r 1-100:49148
-	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_sequence -t 42
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_sequence --tcp-sequence 42
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_pnat \
@@ -128,7 +128,7 @@ standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_tos --tos=50
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_range_portmap -r 1-100:49148
-	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_sequence -t 42
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_sequence --tcp-sequence 42
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_pnat \
@@ -297,28 +297,28 @@ exclude_packets:
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --exclude 'P:61-65,88-91' >> test.log 2>&1
 	diff test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
-	
+
 include_packets:
 	$(PRINTF) "%s" "[tcpprep] include packets test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] include packets test: " >> test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'P:61-65,88-91' >> test.log 2>&1
 	diff test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
-	
+
 include_source:
 	$(PRINTF) "%s" "[tcpprep] include source test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] include source test: " >> test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'S:96.0.0.0/8' >> test.log 2>&1
 	diff test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
-	
+
 include_dest:
 	$(PRINTF) "%s" "[tcpprep] include destination test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] include destination test: " >> test.log
 	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'D:96.0.0.0/8' >> test.log 2>&1
 	diff test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
-	
+
 replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Basic test: " >> test.log
@@ -368,7 +368,7 @@ endif
 rewrite_sequence:
 	$(PRINTF) "%s" "[tcprewrite] Rewrite sequence test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Resequence test: " >> test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -t 42 >> test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --tcp-sequence 42 >> test.log 2>&1
 if WORDS_BIGENDIAN
 	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 else
