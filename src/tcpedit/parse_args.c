@@ -40,7 +40,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     int rcode = 0;
     int i;
     long ttl;
-    uint32_t seed = 1;
+    uint32_t seed = 1, rand_num;
 
     assert(tcpedit);
 
@@ -168,10 +168,14 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     }
 
     /* --rewrite-sequence */
-    if (HAVE_OPT(REWRITE_SEQUENCE))
-        tcpedit->rewrite_sequence = 1;
-    else
-        tcpedit->rewrite_sequence = 0;
+    if (HAVE_OPT(TCP_SEQUENCE)) {
+        tcpedit->tcp_sequence_enable = 1;
+        seed = OPT_VALUE_TCP_SEQUENCE;
+        for (i = 0; i < 5; ++i)
+            rand_num = tcpr_random(&seed);
+
+        tcpedit->tcp_sequence_adjust = rand_num;
+    }
 
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
@@ -219,11 +223,10 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         tcpedit->fuzz_factor = OPT_VALUE_FUZZ_FACTOR;
     }
 
-    for (i = 0; i < 5; ++i) {
-        seed = tcpr_random(&seed);
-    }
+    for (i = 0; i < 5; ++i)
+        rand_num = tcpr_random(&seed);
 
-    srandom(seed);
+    srandom(rand_num);
     if (HAVE_OPT(SEED)) {
         tcpedit->rewrite_ip = true;
         tcpedit->seed = seed;
@@ -244,28 +247,6 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         }
     }
 
-    /* 
-     * figure out the max packet len
-    if (tcpedit->l2.enabled) {
-        // custom l2 header
-        dbg(1, "Using custom L2 header to calculate max frame size\n");
-        tcpedit->maxpacket = tcpedit->mtu + tcpedit->l2.len;
-    }
-    else if (tcpedit->l2.dlt == DLT_EN10MB || tcpedit->l2.dlt == DLT_VLAN) {
-        // ethernet 
-        dbg(1, "Using Ethernet to calculate max frame size\n");
-        tcpedit->maxpacket = tcpedit->mtu + TCPR_ETH_H;
-    } else {
-         // uh, wtf is this now?  we'll just assume ethernet and hope things work
-        tcpedit->maxpacket = tcpedit->mtu + TCPR_ETH_H;
-        tcpedit_seterr(tcpedit, 
-            "Unsupported DLT type: %s.  We'll just treat it as ethernet.\n"
-            "You may need to increase the MTU (-t <size>) if you get errors\n",
-            pcap_datalink_val_to_name(tcpedit->l2.dlt));
-        rcode = 1;
-    }
-     */
-     
     /* parse the tcpedit dlt args */
     rcode = tcpedit_dlt_post_args(tcpedit);
     if (rcode < 0) {
