@@ -80,7 +80,7 @@ int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
 int inet_aton(const char *name, struct in_addr *addr);
 #endif
 
-#if SIZEOF_CHARP  == 8
+#if SIZEOF_LONG  == 8
 # define do_div(n,base) ({          \
     uint32_t __base = (base);       \
     uint32_t __rem;           \
@@ -88,7 +88,7 @@ int inet_aton(const char *name, struct in_addr *addr);
     (n) = ((uint64_t)(n)) / __base;       \
     __rem;              \
    })
-#elif SIZEOF_CHARP  == 4
+#elif SIZEOF_LONG  == 4
 extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 # define do_div(n,base) ({        \
     uint32_t __base = (base);     \
@@ -100,9 +100,9 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
         __rem = __div64_32(&(n), __base);  \
     __rem;            \
    })
-#else /* SIZEOF_CHARP == ?? */
+#else /* SIZEOF_LONG == ?? */
 # error do_div() does not yet support the C64
-#endif /* SIZEOF_CHARP  */
+#endif /* SIZEOF_LONG  */
 
 #endif /* _UTILS_H_ */
 

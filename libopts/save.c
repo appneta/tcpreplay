@@ -12,7 +12,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2016 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -77,80 +77,82 @@ prt_file_arg(FILE * fp, tOptDesc * od, tOptions * opts);
 static char const *
 find_dir_name(tOptions * opts, int * p_free)
 {
-    char const * pzDir;
+    char const * dir;
 
     if (  (opts->specOptIdx.save_opts == NO_EQUIVALENT)
        || (opts->specOptIdx.save_opts == 0))
         return NULL;
 
-    pzDir = opts->pOptDesc[ opts->specOptIdx.save_opts ].optArg.argString;
-    if ((pzDir != NULL) && (*pzDir != NUL))
-        return pzDir;
+    dir = opts->pOptDesc[ opts->specOptIdx.save_opts ].optArg.argString;
+    if ((dir != NULL) && (*dir != NUL))
+        return dir;
 
     /*
      *  This function only works if there is a directory where
      *  we can stash the RC (INI) file.
      */
     {
-        char const * const* papz = opts->papzHomeList;
+        char const * const * papz = opts->papzHomeList;
         if (papz == NULL)
             return NULL;
 
         while (papz[1] != NULL) papz++;
-        pzDir = *papz;
+        dir = *papz;
     }
 
     /*
      *  IF it does not require deciphering an env value, then just copy it
      */
-    if (*pzDir != '$')
-        return pzDir;
+    if (*dir != '$')
+        return dir;
 
     {
-        char const * pzEndDir = strchr(++pzDir, DIRCH);
-        char * pzFileName;
-        char * pzEnv;
+        char const * end = strchr(++dir, DIRCH);
+        char * env;
 
-        if (pzEndDir != NULL) {
+        if (end != NULL) {
             char z[ AO_NAME_SIZE ];
-            if ((pzEndDir - pzDir) > AO_NAME_LIMIT )
+            if ((end - dir) > AO_NAME_LIMIT )
                 return NULL;
-            memcpy(z, pzDir, (size_t)(pzEndDir - pzDir));
-            z[pzEndDir - pzDir] = NUL;
-            pzEnv = getenv(z);
+            memcpy(z, dir, (size_t)(end - dir));
+            z[end - dir] = NUL;
+            env = getenv(z);
         } else {
 
             /*
              *  Make sure we can get the env value (after stripping off
              *  any trailing directory or file names)
              */
-            pzEnv = getenv(pzDir);
+            env = getenv(dir);
         }
 
-        if (pzEnv == NULL) {
+        if (env == NULL) {
             fprintf(stderr, zsave_warn, opts->pzProgName);
-            fprintf(stderr, zNotDef, pzDir);
+            fprintf(stderr, zNotDef, dir);
             return NULL;
         }
 
-        if (pzEndDir == NULL)
-            return pzEnv;
+        if (end == NULL)
+            return env;
+
+        /*
+         * we will be returning an allocated result
+         */
+        *p_free = 1;
 
         {
-            size_t sz = strlen(pzEnv) + strlen(pzEndDir) + 2;
-            pzFileName = (char *)AGALOC(sz, "dir name");
+            size_t env_len = strlen(env);
+            size_t end_len = strlen(end);
+            char * p;
+            char * res = p = (char *)AGALOC(env_len + end_len + 2, "dir name");
+
+            memcpy(p, env, env_len);
+            p += env_len;
+            *(p++) = '/';
+            memcpy(p, end, end_len + 1);
+
+            return res;
         }
-
-        if (pzFileName == NULL)
-            return NULL;
-
-        *p_free = 1;
-        /*
-         *  Glue together the full name into the allocated memory.
-         *  FIXME: We lose track of this memory.
-         */
-        sprintf(pzFileName, "%s/%s", pzEnv, pzEndDir);
-        return pzFileName;
     }
 }
 
@@ -183,7 +185,7 @@ find_file_name(tOptions * opts, int * p_free_name)
             fprintf(stderr, zsave_warn, opts->pzProgName);
             fprintf(stderr, zNoStat, errno, strerror(errno), pzDir);
             if (free_dir_name)
-                AGFREE((void*)pzDir);
+                AGFREE(pzDir);
             return NULL;
         }
 
@@ -213,17 +215,16 @@ find_file_name(tOptions * opts, int * p_free_name)
      *  THEN tack on the config file name
      */
     if (S_ISDIR(stBuf.st_mode)) {
-        size_t sz = strlen(pzDir) + strlen(opts->pzRcName) + 2;
 
         {
-            char * pzPath = (char*)AGALOC(sz, "file name");
-#ifdef HAVE_SNPRINTF
-            snprintf(pzPath, sz, "%s/%s", pzDir, opts->pzRcName);
-#else
-            sprintf(pzPath, "%s/%s", pzDir, opts->pzRcName);
-#endif
+            size_t sz = strlen(pzDir) + strlen(opts->pzRcName) + 2;
+            char * pzPath = (char *)AGALOC(sz, "file name");
+            if (   snprintf(pzPath, sz, "%s/%s", pzDir, opts->pzRcName)
+                >= (int)sz)
+                option_exits(EXIT_FAILURE);
+
             if (free_dir_name)
-                AGFREE((void*)pzDir);
+                AGFREE(pzDir);
             pzDir = pzPath;
             free_dir_name = 1;
         }
@@ -237,7 +238,7 @@ find_file_name(tOptions * opts, int * p_free_name)
                 fprintf(stderr, zsave_warn, opts->pzProgName);
                 fprintf(stderr, zNoStat, errno, strerror(errno),
                         pzDir);
-                AGFREE((void*)pzDir);
+                AGFREE(pzDir);
                 return NULL;
             }
 
@@ -255,7 +256,7 @@ find_file_name(tOptions * opts, int * p_free_name)
     if (! S_ISREG(stBuf.st_mode)) {
         fprintf(stderr, zsave_warn, opts->pzProgName, pzDir);
         if (free_dir_name)
-            AGFREE((void*)pzDir);
+            AGFREE(pzDir);
         return NULL;
     }
 
@@ -306,7 +307,7 @@ prt_entry(FILE * fp, tOptDesc * od, char const * l_arg)
      *  THEN the char pointer is really the number
      */
     if (OPTST_GET_ARGTYPE(od->fOptState) == OPARG_TYPE_NUMERIC)
-        fprintf(fp, "%d", (int)(t_word)l_arg);
+        fprintf(fp, "%d", (int)(intptr_t)l_arg);
 
     else {
         for (;;) {
@@ -377,7 +378,7 @@ prt_value(FILE * fp, int depth, tOptDesc * pOD, tOptionValue const * ovp)
                     /*
                      *  set membership strings get allocated
                      */
-                    AGFREE((void*)pOD->optArg.argString);
+                    AGFREE(pOD->optArg.argString);
                 }
             }
 
@@ -534,12 +535,12 @@ open_sv_file(tOptions * opts)
             fprintf(stderr, zsave_warn, opts->pzProgName);
             fprintf(stderr, zNoCreat, errno, strerror(errno), pzFName);
             if (free_name)
-                AGFREE((void*) pzFName );
+                AGFREE(pzFName);
             return fp;
         }
 
         if (free_name)
-            AGFREE((void*)pzFName);
+            AGFREE(pzFName);
     }
 
     fputs("#  ", fp);
@@ -560,7 +561,7 @@ open_sv_file(tOptions * opts)
          *  normally point to static data that is overwritten by each call.
          *  The test to detect allocated ctime, so we leak the memory.
          */
-        AGFREE((void*)time_str);
+        AGFREE(time_str);
 #endif
     }
 
@@ -596,7 +597,7 @@ static void
 prt_str_arg(FILE * fp, tOptDesc * pOD)
 {
     if (pOD->fOptState & OPTST_STACKED) {
-        tArgList * pAL = (tArgList*)pOD->optCookie;
+        tArgList * pAL = (tArgList *)pOD->optCookie;
         int        uct = pAL->useCt;
         char const ** ppz = pAL->apzArgs;
 
@@ -629,7 +630,7 @@ prt_enum_arg(FILE * fp, tOptDesc * od)
      *  bit flag values back into a string suitable for printing.
      */
     (*(od->pOptProc))(OPTPROC_RETURN_VALNAME, od);
-    prt_entry(fp, od, (void*)(od->optArg.argString));
+    prt_entry(fp, od, VOIDP(od->optArg.argString));
 
     od->optArg.argEnum = val;
 }
@@ -689,7 +690,7 @@ prt_file_arg(FILE * fp, tOptDesc * od, tOptions * opts)
  *
  * what:  saves the option state to a file
  *
- * arg:   tOptions*,   opts,  program options descriptor
+ * arg:   tOptions *,   opts,  program options descriptor
  *
  * doc:
  *
@@ -765,7 +766,7 @@ optionSaveFile(tOptions * opts)
             break;
 
         case OPARG_TYPE_NUMERIC:
-            prt_entry(fp, p, (void*)(p->optArg.argInt));
+            prt_entry(fp, p, VOIDP(p->optArg.argInt));
             break;
 
         case OPARG_TYPE_STRING:

@@ -10,7 +10,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2016 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -33,10 +33,10 @@
  * private:
  *
  * what:  Show info about range constraints
- * arg:   + tOptions* + pOpts     + program options descriptor  +
- * arg:   + tOptDesc* + pOptDesc  + the descriptor for this arg +
- * arg:   + void *    + rng_table + the value range tables      +
- * arg:   + int       + rng_count + the number of entries       +
+ * arg:   + tOptions * + pOpts     + program options descriptor  +
+ * arg:   + tOptDesc * + pOptDesc  + the descriptor for this arg +
+ * arg:   + void *     + rng_table + the value range tables      +
+ * arg:   + int        + rng_count + the number of entries       +
  *
  * doc:
  *   Show information about a numeric option with range constraints.
@@ -55,6 +55,7 @@ optionShowRange(tOptions * pOpts, tOptDesc * pOD, void * rng_table, int rng_ct)
     if (pOpts != OPTPROC_EMIT_USAGE) {
         if (pOpts <= OPTPROC_EMIT_LIMIT)
             return;
+        pz_indent = ONE_TAB_STR;
 
         fprintf(option_usage_fp, zRangeErr, pOpts->pzProgName,
                 pOD->pz_Name, pOD->optArg.argInt);
@@ -96,8 +97,8 @@ optionShowRange(tOptions * pOpts, tOptDesc * pOD, void * rng_table, int rng_ct)
  * private:
  *
  * what:  process an option with a numeric value.
- * arg:   + tOptions* + opts + program options descriptor +
- * arg:   + tOptDesc* + od   + the descriptor for this arg +
+ * arg:   + tOptions * + opts + program options descriptor +
+ * arg:   + tOptDesc * + od   + the descriptor for this arg +
  *
  * doc:
  *  Decipher a numeric value.
@@ -105,8 +106,8 @@ optionShowRange(tOptions * pOpts, tOptDesc * pOD, void * rng_table, int rng_ct)
 void
 optionNumericVal(tOptions * opts, tOptDesc * od)
 {
-    char* pz;
-    long  val;
+    char * pz;
+    long   val;
 
     /*
      *  Guard against all the different ways this procedure might get invoked
@@ -123,7 +124,8 @@ optionNumericVal(tOptions * opts, tOptDesc * od)
      */
     if (  (od == NULL)
        || (od->optArg.argString == NULL)
-       || ((od->fOptState & OPTST_RESET) != 0))
+       || ((od->fOptState & OPTST_RESET) != 0)
+       || (opts <= OPTPROC_EMIT_LIMIT))
         return;
 
     errno = 0;

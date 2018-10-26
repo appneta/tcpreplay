@@ -11,13 +11,14 @@ AC_INIT([tcpreplay],[4.3.0-beta2],
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
-AM_MAINTAINER_MODE
+AX_CODE_COVERAGE
+AM_MAINTAINER_MODE([enable])
 AM_WITH_DMALLOC
 
 dnl People building from GitHub need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts to force using the locally-installed
 dnl copy of libopts rather than the source in the `./liopts/` directory.
-MAINTAINER_AUTOGEN_VERSION=5.18.4
+MAINTAINER_AUTOGEN_VERSION=5.18.12
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -144,10 +145,11 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign])
-AM_SILENT_RULES([yes])
+AM_INIT_AUTOMAKE([foreign subdir-objects no-dist-gzip dist-xz -Wall -Wno-override])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Checks for programs.
+AM_PROG_AR
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_CC
@@ -193,6 +195,9 @@ if test -n "${AUTOGEN}" ; then
     AUTOGEN_MAJOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1)
     AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
     AUTOGEN_BUILD=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 3)
+    if test -z "$AUTOGEN_BUILD"; then
+        AUTOGEN_BUILD=0
+    fi
     if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) || 
             (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) ||
             test ${AUTOGEN_MAJOR} -lt 5 ; then
@@ -368,7 +373,6 @@ AM_CONDITIONAL(SYSTEM_STRLCPY, [test x$have_strlcpy = xtrue])
 
 AC_C_BIGENDIAN
 AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
-
 
 dnl Enable debugging in code/compiler options
 debug=no
@@ -1437,6 +1441,8 @@ dnl # getting it from ...
 dnl # http://libdnet.sourceforge.net/
 dnl # ... or ...
 dnl # https://github.com/jncornett/libdnet
+dnl # ... or ...
+dnl # on Linux try 'apt-get install libdumbnet-dev'
 dnl ##################################################
 founddnet=no
 have_libdnet=no
@@ -1450,14 +1456,31 @@ if test $have_cygwin = no ; then
         AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
         [trydnetdir=$withval])
 
-    for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
-        if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-            LDNETINC="$($testdir/bin/dnet-config --cflags)"
-            LDNETLIB="$($testdir/bin/dnet-config --libs)"
-            libdnet_version="$($testdir/bin/dnet-config --version)"
-            founddnet=$testdir
-        fi
-    done
+    case "$build_os" in
+    linux*)
+        dnl # Debian/Ubuntu already have a package called libdnet
+        dnl # so you the package you want to install libdumbnet-dev
+        for testdir in $trydnetdir /usr/local /opt/local /usr ; do
+            if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
+                LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
+                LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
+                libdnet_version="$($testdir/bin/dumbnet-config --version)"
+                founddnet=$testdir
+            fi
+        done
+        ;;
+    esac
+
+    if test $founddnet = no ; then
+        for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
+            if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+                LDNETINC="$($testdir/bin/dnet-config --cflags)"
+                LDNETLIB="$($testdir/bin/dnet-config --libs)"
+                libdnet_version="$($testdir/bin/dnet-config --version)"
+                founddnet=$testdir
+            fi
+        done
+    fi
 
     if test $founddnet = no ; then
         AC_MSG_RESULT(no)
@@ -1895,7 +1918,7 @@ AC_CONFIG_FILES([Makefile
 AC_OUTPUT
 
 # Configuration results
-AC_MSG_RESULT(
+AC_MSG_RESULT([
 ##########################################################################
              TCPREPLAY Suite Configuration Results (${TCPREPLAY_VERSION})
 ##########################################################################
@@ -1923,7 +1946,7 @@ Tuntap device support:      ${have_tuntap}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge
-)
+])
 
 
 case $host in
