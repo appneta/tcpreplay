@@ -138,7 +138,6 @@ EOText;
 
 flag = {
     name        = tcp-sequence;
-    value       = t;
     arg-type    = number;
     arg-default = 0;
     arg-range   = "1->";
