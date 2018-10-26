@@ -47,16 +47,13 @@ rewrite_seqs(tcpedit_t *tcpedit, tcp_hdr_t *tcp_hdr)
 {
     uint32_t newnum;
 
-    while (tcpedit->rewrite_sequence == 1)
-        tcpedit->rewrite_sequence = tcpr_random(&tcpedit->rewrite_sequence);
-
-    newnum = ntohl(tcp_hdr->th_seq) + tcpedit->rewrite_sequence;
+    newnum = ntohl(tcp_hdr->th_seq) + tcpedit->tcp_sequence_adjust;
     csum_replace4(&tcp_hdr->th_sum, tcp_hdr->th_seq, htonl(newnum));
     tcp_hdr->th_seq = htonl(newnum);
 
     /* first packet of 3-way handshake must have an ACK of zero - #450 */
     if (!((tcp_hdr->th_flags & TH_SYN) && !(tcp_hdr->th_flags & TH_ACK))) {
-        newnum = ntohl(tcp_hdr->th_ack) + tcpedit->rewrite_sequence;
+        newnum = ntohl(tcp_hdr->th_ack) + tcpedit->tcp_sequence_adjust;
         csum_replace4(&tcp_hdr->th_sum, tcp_hdr->th_ack, htonl(newnum));
         tcp_hdr->th_ack = htonl(newnum);
     }

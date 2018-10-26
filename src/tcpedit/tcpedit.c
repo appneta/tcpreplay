@@ -222,7 +222,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
                 return TCPEDIT_ERROR;
         }
 
-        if (tcpedit->rewrite_sequence)
+        if (tcpedit->tcp_sequence_enable)
             rewrite_ipv4_sequence(tcpedit, &ip_hdr);
     }
 
@@ -263,7 +263,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
                 return TCPEDIT_ERROR;
         }
 
-        if (tcpedit->rewrite_sequence)
+        if (tcpedit->tcp_sequence_enable)
             rewrite_ipv6_sequence(tcpedit, &ip6_hdr);
     }
 

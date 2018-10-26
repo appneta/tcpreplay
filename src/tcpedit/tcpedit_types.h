@@ -120,8 +120,9 @@ typedef struct {
     /* rewrite ip? */
     bool rewrite_ip;
 
-    /* rewrite seq/ack numbers? */
-    u_int32_t rewrite_sequence;
+    /* rewrite TCP seq/ack numbers? */
+    u_int32_t tcp_sequence_enable;
+    u_int32_t tcp_sequence_adjust;
     
     /* fix IP/TCP/UDP checksums */
     bool fixcsum;

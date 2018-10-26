@@ -86,7 +86,7 @@ standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_tos --tos=50
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_range_portmap -r 1-100:49148
-	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_sequence -n
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_sequence -t 42
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_pnat \
@@ -128,7 +128,7 @@ standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_tos --tos=50
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_portmap -r 80:8080
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_range_portmap -r 1-100:49148
-	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_sequence -n
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_sequence -t 42
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_endpoint \
 		-e 10.10.0.1:10.10.0.2 -c test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_pnat \
@@ -368,7 +368,7 @@ endif
 rewrite_sequence:
 	$(PRINTF) "%s" "[tcprewrite] Rewrite sequence test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Resequence test: " >> test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -n >> test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -t 42 >> test.log 2>&1
 if WORDS_BIGENDIAN
 	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 else

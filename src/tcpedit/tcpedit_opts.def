@@ -137,12 +137,15 @@ EOText;
 };
 
 flag = {
-    name        = rewrite-sequence;
-    value       = n;
-    descrip     = "Change TCP sequence (and ACK) numbers";
+    name        = tcp-sequence;
+    value       = t;
+    arg-type    = number;
+    arg-default = 0;
+    arg-range   = "1->";
+    descrip     = "Change TCP Sequence (and ACK) numbers /w given seed";
     doc         = <<- EOText
 Change all TCP sequence numbers, and related sequence-acknowledgement numbers.
-They will be shifted by a random amount between 1 and 2^32.
+They will be shifted by a random amount based on the provided seed.
 EOText;
 };
 
