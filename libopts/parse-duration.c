@@ -1,5 +1,5 @@
 /* Parse a time duration and return a seconds count
-   Copyright (C) 2008-2014 Free Software Foundation, Inc.
+   Copyright (C) 2008-2016 Free Software Foundation, Inc.
    Written by Bruce Korb <bkorb@gnu.org>, 2008.
 
    This program is free software: you can redistribute it and/or modify
@@ -83,14 +83,14 @@ scale_n_add (time_t base, time_t val, int scale)
       return BAD_TIME;
     }
 
-  if (val >= MAX_DURATION / scale)
+  if (val > MAX_DURATION / scale)
     {
       errno = ERANGE;
       return BAD_TIME;
     }
 
   val *= scale;
-  if ((base + val) >= MAX_DURATION)
+  if (base > MAX_DURATION - val)
     {
       errno = ERANGE;
       return BAD_TIME;

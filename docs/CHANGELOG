@@ -11,6 +11,7 @@
     - Jumbo frame support for fragroute option (#466)
     - TCP sequence edit ACK corruption (#451)
     - TCP sequence number edit initial SYN packet should have zero ACK (#450)
+    - Upgrade libopts to 5.18.12 to address version build issues (#430)
     - Add ability to change tcp SEQ/ACK numbers (#425)
     - Fails to open tap0 on Zephyr (#411)
     - CVE-2018-13112 heap-buffer-overflow in get_l2len (#477 dup #408)

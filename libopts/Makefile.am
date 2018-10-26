@@ -7,7 +7,7 @@ noinst_LTLIBRARIES      = libopts.la
 endif
 libopts_la_SOURCES      = libopts.c
 libopts_la_CPPFLAGS     = -I$(srcdir)
-libopts_la_LDFLAGS      = -version-info  41:0:16
+libopts_la_LDFLAGS      = -version-info  41:1:16
 EXTRA_DIST		=
 BUILT_SOURCES		=
 MOSTLYCLEANFILES	=
@@ -40,11 +40,11 @@ EXTRA_DIST += \
     COPYING.gplv3           COPYING.lgplv3          COPYING.mbsd  \
     MakeDefs.inc            README                  ag-char-map.h  \
     alias.c                 ao-strs.c               ao-strs.h  \
-    autoopts/options.h      autoopts/project.h      autoopts/usage-txt.h  \
-    autoopts.c              autoopts.h              boolean.c  \
-    check.c                 compat/strdup.c         compat/snprintf.c  \
-    compat/compat.h         compat/_Noreturn.h      compat/pathfind.c  \
-    compat/windows-config.h compat/strchr.c         configfile.c  \
+    autoopts.c              autoopts.h              autoopts/options.h  \
+    autoopts/project.h      autoopts/usage-txt.h    boolean.c  \
+    check.c                 compat/_Noreturn.h      compat/compat.h  \
+    compat/pathfind.c       compat/snprintf.c       compat/strchr.c  \
+    compat/strdup.c         compat/windows-config.h configfile.c  \
     cook.c                  enum.c                  env.c  \
     file.c                  find.c                  genshell.c  \
     genshell.h              gettext.h               init.c  \
