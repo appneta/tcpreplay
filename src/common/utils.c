@@ -368,7 +368,7 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
  * @param: seed
  * @return: random number
  */
-int tcpr_random(uint32_t *seed)
+uint32_t tcpr_random(uint32_t *seed)
 {
   unsigned int next = *seed;
   int result;
