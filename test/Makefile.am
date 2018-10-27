@@ -366,8 +366,8 @@ endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_sequence:
-	$(PRINTF) "%s" "[tcprewrite] Rewrite sequence test: "
-	$(PRINTF) "%s\n" "*** [tcprewrite] Resequence test: " >> test.log
+	$(PRINTF) "%s" "[tcprewrite] TCP sequence test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] TCP sequence test: " >> test.log
 	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --tcp-sequence 42 >> test.log 2>&1
 if WORDS_BIGENDIAN
 	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
