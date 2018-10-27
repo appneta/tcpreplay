@@ -135,14 +135,14 @@ static inline flow_entry_type_t hash_put_data(flow_hash_table_t *fht, const uint
             res = FLOW_ENTRY_EXISTING;
 
         if (expiry)
-            memcpy(&he->ts_last_seen, tv, sizeof(he->ts_last_seen));
+            TIMEVAL_SET(&he->ts_last_seen, tv);
     } else {
         /* this is a new flow */
         if ((he = hash_add_entry(fht, hash_value, key, hash_entry)) != NULL) {
             res = FLOW_ENTRY_NEW;
 
             if (expiry)
-                memcpy(&he->ts_last_seen, tv, sizeof(he->ts_last_seen));
+                TIMEVAL_SET(&he->ts_last_seen, tv);
         } else
             res = FLOW_ENTRY_INVALID;
     }

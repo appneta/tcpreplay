@@ -77,7 +77,7 @@ gettimeofday_sleep(sendpacket_t *sp _U_,
     if (flush)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 
-    memcpy(&last, now, sizeof(last));
+    TIMEVAL_SET(&last, now);
 #endif /* HAVE_NETMAP */
 
     TIMESPEC_TO_TIMEVAL(&nap_for, nap);
