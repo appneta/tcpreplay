@@ -65,7 +65,7 @@ extern tcpedit_t *tcpedit;
 extern int debug;
 #endif
 
-static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
+static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
         struct timeval *last, COUNTER len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER start_us, COUNTER *skip_length);
@@ -601,20 +601,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                 }
             }
 
+            now_is_now = true;
+            gettimeofday(&now, NULL);
+
             /*
-             * Only sleep if we're not in top speed mode (-t)
-             * or if the current packet is not late.
+             * Only if the current packet is not late.
              *
-             * This also sets skip_length which will avoid timestamping for
-             * a given number of packets.
+             * This also sets skip_length and skip_packets which will avoid
+             * timestamping for a given number of packets.
              */
-            if (calc_sleep_time(ctx, &stats->pkt_ts_delta, &stats->time_delta,
+            calc_sleep_time(ctx, &stats->pkt_ts_delta, &stats->time_delta,
                     pktlen, sp, packetnum, &stats->end_time,
-                    TIMEVAL_TO_MICROSEC(&stats->start_time),
-                    &skip_length)) {
-                now_is_now = true;
-                gettimeofday(&now, NULL);
-            }
+                    TIMEVAL_TO_MICROSEC(&stats->start_time), &skip_length);
 
             /*
              * Track the time of the "last packet sent".
@@ -688,13 +686,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
         while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
-            gettimeofday(&now, NULL);
             now_is_now = true;
+            gettimeofday(&now, NULL);
         }
 
         while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
-            gettimeofday(&now, NULL);
             now_is_now = true;
+            gettimeofday(&now, NULL);
         }
     }
 #endif /* HAVE_NETMAP */
@@ -869,20 +867,18 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                 }
             }
 
+            gettimeofday(&now, NULL);
+            now_is_now = true;
+
             /*
-             * Only sleep if we're not in top speed mode (-t)
-             * or if the current packet is not late.
+             * Only if the current packet is not late.
              *
-             * This also sets skip_length which will avoid timestamping for
-             * a given number of packets.
+             * This also sets skip_length and skip_packets which will avoid
+             * timestamping for a given number of packets.
              */
-            if (calc_sleep_time(ctx, &stats->pkt_ts_delta, &stats->time_delta,
+            calc_sleep_time(ctx, &stats->pkt_ts_delta, &stats->time_delta,
                     pktlen, sp, packetnum, &stats->end_time,
-                    TIMEVAL_TO_MICROSEC(&stats->start_time),
-                    &skip_length)) {
-                now_is_now = true;
-                gettimeofday(&now, NULL);
-            }
+                    TIMEVAL_TO_MICROSEC(&stats->start_time), &skip_length);
 
             /*
              * Track the time of the "last packet sent".
@@ -1110,7 +1106,7 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep. Sleep time
  * will be in ctx->nap.
  */
-static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
+static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
         struct timeval *time_delta, COUNTER len,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER start_us, COUNTER *skip_length)
@@ -1118,7 +1114,6 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
     tcpreplay_opt_t *options = ctx->options;
     struct timeval nap_for;
     COUNTER now_us;
-    bool update_time = true;
 
     timesclear(&ctx->nap);
 
@@ -1133,7 +1128,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
     /* no last packet sent, just leave */
     if (ctx->first_time) {
         ctx->first_time = false;
-        return false;
+        return;
     }
 
     switch(options->speed.mode) {
@@ -1142,18 +1137,15 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
          * Replay packets a factor of the time they were originally sent.
          * Make sure the packet is not late.
          */
-        {
-            if (timercmp(pkt_ts_delta, time_delta, >)) {
-                /* pkt_time_delta has increased, so handle normally */
-                timersub(pkt_ts_delta, time_delta, &nap_for);
-                TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
-                dbgx(3, "original packet delta time: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
-                timesdiv_float(&ctx->nap, options->speed.multiplier);
-                dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
-            } else {
-                /* Don't sleep if this packet is late or in the past */
-                update_time = false;
-            }
+        if (timercmp(pkt_ts_delta, time_delta, >)) {
+            /* pkt_time_delta has increased, so handle normally */
+            timersub(pkt_ts_delta, time_delta, &nap_for);
+            TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
+            dbgx(3, "original packet delta time: " TIMESPEC_FORMAT,
+                    ctx->nap.tv_sec, ctx->nap.tv_nsec);
+            timesdiv_float(&ctx->nap, options->speed.multiplier);
+            dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT,
+                    ctx->nap.tv_sec, ctx->nap.tv_nsec);
         }
         break;
 
@@ -1168,6 +1160,7 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
             COUNTER bps = options->speed.speed;
             COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8);
             COUNTER tx_us = now_us - start_us;
+
             /*
              * bits * 1000000 divided by bps = microseconds
              *
@@ -1177,13 +1170,16 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
                 next_tx_us = (bits_sent * 1000) / bps * 1000;
             else
                 next_tx_us = (bits_sent * 1000000) / bps;
+
             if (next_tx_us > tx_us) {
                 NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
             } else if (tx_us > next_tx_us) {
                 tx_us = now_us - start_us;
                 *skip_length = ((tx_us - next_tx_us) * bps) / 8000000;
             }
-            update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
+
+            update_current_timestamp_trace_entry(ctx->stats.bytes_sent +
+                    (COUNTER)len, now_us, tx_us, next_tx_us);
         }
 
         dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len,
@@ -1197,7 +1193,8 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
           */
          now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
          if (now_us) {
-             COUNTER pph = ctx->options->speed.speed * (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));
+             COUNTER pph = ctx->options->speed.speed *
+                     (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));
              COUNTER pkts_sent = ctx->stats.pkts_sent;
              /*
               * packets * 1000000 divided by pps = microseconds
@@ -1205,16 +1202,18 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
               */
              COUNTER next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
              COUNTER tx_us = now_us - start_us;
+
              if (next_tx_us > tx_us)
                  NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
              else
                  ctx->skip_packets = options->speed.pps_multi;
 
-             update_current_timestamp_trace_entry(ctx->stats.bytes_sent + (COUNTER)len, now_us, tx_us, next_tx_us);
+             update_current_timestamp_trace_entry(ctx->stats.bytes_sent +
+                     (COUNTER)len, now_us, tx_us, next_tx_us);
          }
 
-         dbgx(3, "packet count=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, ctx->stats.pkts_sent,
-                 ctx->nap.tv_sec, ctx->nap.tv_nsec);
+         dbgx(3, "packet count=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT,
+                 ctx->stats.pkts_sent, ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
     case speed_oneatatime:
@@ -1238,8 +1237,6 @@ static bool calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
         errx(-1, "Unknown/supported speed mode: %d", options->speed.mode);
         break;
     }
-
-    return update_time;
 }
 
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
