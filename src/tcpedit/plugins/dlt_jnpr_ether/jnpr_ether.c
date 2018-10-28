@@ -152,7 +152,6 @@ int
 dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    jnpr_ether_config_t *config;
     
     assert(ctx);
 
@@ -169,6 +168,8 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
     
     if (plugin->config != NULL) {
         /* clean up the en10mb plugin */
+        jnpr_ether_config_t * config;
+
         config = (jnpr_ether_config_t *)ctx->encoder->config;
         tcpedit_dlt_cleanup(config->subctx);
         plugin->config = NULL;

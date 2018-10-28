@@ -81,16 +81,15 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
 {
     struct tcp_chaff_data *data = (struct tcp_chaff_data *)d;
     struct pkt *pkt, *new, *next;
-    struct tcp_opt opt;
-    int i;
-    uint16_t eth_type;
-    uint8_t nxt;
 
     for (pkt = TAILQ_FIRST(pktq); pkt != TAILQ_END(pktq); pkt = next) {
+        struct tcp_opt opt;
+        int i;
+        uint16_t eth_type;
+        uint8_t nxt;
+
         next = TAILQ_NEXT(pkt, pkt_next);
-
         eth_type = htons(pkt->pkt_eth->eth_type);
-
         if (pkt->pkt_ip == NULL)
             continue;
 
@@ -103,8 +102,8 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
         }
 
         if (nxt != IP_PROTO_TCP ||
-            pkt->pkt_tcp == NULL || pkt->pkt_tcp_data == NULL ||
-            (pkt->pkt_tcp->th_flags & TH_ACK) == 0)
+                pkt->pkt_tcp == NULL || pkt->pkt_tcp_data == NULL ||
+                (pkt->pkt_tcp->th_flags & TH_ACK) == 0)
             continue;
 
         new = pkt_dup(pkt);

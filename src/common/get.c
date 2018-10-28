@@ -562,9 +562,6 @@ get_name2addr4(const char *hostname, bool dnslookup)
 #if ! defined HAVE_INET_ATON && defined HAVE_INET_ADDR
     struct hostent *host_ent; 
 #endif
-    uint32_t m;
-    u_int val;
-    int i;
 
     if (dnslookup) {
 #ifdef HAVE_INET_ATON
@@ -576,7 +573,7 @@ get_name2addr4(const char *hostname, bool dnslookup)
         if ((addr.s_addr = inet_addr(hostname)) == INADDR_NONE) {
             if (!(host_ent = gethostbyname(hostname))) {
                 warnx("unable to resolve %s: %s", hostname, strerror(errno));
-                /* XXX - this is actually 255.255.255.255 */
+                /* this is actually 255.255.255.255 */
                 return (0xffffffff);
             }
 
@@ -590,11 +587,13 @@ get_name2addr4(const char *hostname, bool dnslookup)
 #endif
         /* return in network byte order */
         return (addr.s_addr);
-    }
-    /*
-     *  We only want dots 'n decimals.
-     */
-    else {
+    } else {
+        /*
+         *  We only want dots 'n decimals.
+         */
+        int i;
+        uint32_t m;
+
         if (!isdigit(hostname[0])) {
             warnx("Expected dotted-quad notation (%s) when DNS lookups are disabled", 
                     hostname);
@@ -605,6 +604,8 @@ get_name2addr4(const char *hostname, bool dnslookup)
 
         m = 0;
         for (i = 0; i < 4; i++) {
+            u_int val;
+
             m <<= 8;
             if (*hostname) {
                 val = 0;
@@ -613,7 +614,7 @@ get_name2addr4(const char *hostname, bool dnslookup)
                     val += *hostname - '0';
                     if (val > 255) {
                         dbgx(4, "value %d > 255 for dotted quad", val);
-                        /* XXX - this is actually 255.255.255.255 */
+                        /* this is actually 255.255.255.255 */
                         return (-1);
                     }
                     hostname++;

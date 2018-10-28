@@ -239,7 +239,7 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
     assert(sp);
     assert(data);
 
-    if (len <= 0)
+    if (len == 0)
         return -1;
 
 TRY_SEND_AGAIN:
@@ -866,9 +866,12 @@ sendpacket_open_pf(const char *device, char *errbuf)
     sendpacket_t *sp;
     struct ifreq ifr;
     struct sockaddr_ll sa;
-    int n = 1, err;
+    int err;
     socklen_t errlen = sizeof(err);
     unsigned int UNUSED(mtu) = 1500;
+#ifdef SO_BROADCAST
+    int n = 1;
+#endif
 
     assert(device);
     assert(errbuf);

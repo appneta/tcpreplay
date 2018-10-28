@@ -71,9 +71,9 @@ tcp_opt_apply(void *d, struct pktq *pktq)
 {
     struct tcp_opt *opt = (struct tcp_opt *)d;
     struct pkt *pkt;
-    size_t len;
 
     TAILQ_FOREACH(pkt, pktq, pkt_next) {
+        size_t len;
         uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
 
         len = inet_add_option(eth_type, pkt->pkt_ip,

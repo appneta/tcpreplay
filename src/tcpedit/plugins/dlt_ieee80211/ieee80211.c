@@ -325,9 +325,7 @@ int
 dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     uint16_t *frame_control, fc;
-    struct tcpr_802_2snap_hdr *hdr;
     int hdrlen = 0;
-
 
     assert(ctx);
     assert(packet);
@@ -353,7 +351,8 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     }
 
     if (pktlen >= (hdrlen + (int)sizeof(struct tcpr_802_2snap_hdr))) {
-    
+        struct tcpr_802_2snap_hdr *hdr;
+
         hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
     
         /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */

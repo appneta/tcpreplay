@@ -226,7 +226,7 @@ main(int argc, char **argv)
     }
 
     relative_sched(sched, sched[1].exp_rseq, num_packets);
-    printf("Packets Scheduled %d\n", pkts_scheduled);
+    printf("Packets Scheduled %u\n", pkts_scheduled);
 
     /* Open socket for savedfile traffic to be sent*/
     local_handle = pcap_open_offline("newfile.pcap", errbuf);   /*call pcap library function*/
@@ -305,7 +305,7 @@ main(int argc, char **argv)
         else if(different_payload){
             printf("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
             printf("+ WARNING: Remote host is not meeting packet size expectations.               +\n"); 
-            printf("+ for packet %-d. Application layer data differs from capture being replayed.  +\n", diff_payload_index+1);
+            printf("+ for packet %-u. Application layer data differs from capture being replayed.  +\n", diff_payload_index+1);
             printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n"); 
             printf("Requesting retransmission.\n Proceeding...\n");
             different_payload = false;  
@@ -315,7 +315,7 @@ main(int argc, char **argv)
         if(sched[sched_index].local) {
             /*Reset alarm timeout*/
             alarm (ALARM_TIMEOUT);
-            printf("Sending Local Packet...............	[%d]\n",sched_index+1); 
+            printf("Sending Local Packet...............	[%u]\n", sched_index + 1);
           
             /* edit each packet tcphdr before sending based on the schedule*/  
             if(sched_index>0){ 
@@ -326,7 +326,7 @@ main(int argc, char **argv)
             /* If 3 attempts of resending was made, then error out to the user */
             if(sched[sched_index].sent_counter==3){
                 printf("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-                printf("+ ERROR: Re-sent packet [%-d] 3 times, but remote host is not  +\n", sched_index+1); 
+                printf("+ ERROR: Re-sent packet [%-u] 3 times, but remote host is not  +\n", sched_index+1);
                 printf("+ responding as expected. 3 resend attempts are a maximum.     +\n");
                 printf("+ Closing replay...                                            +\n");
                 printf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
@@ -364,22 +364,22 @@ main(int argc, char **argv)
     /* User Debug Result Printouts*/
     if(sched_index==pkts_scheduled){
         printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"); 
-        printf("~ CONGRATS!!! You have successfully Replayed your pcap file '%s'  \n", argv[2]);
+        printf("~ CONGRATS!!! You have successfully Replayed your pcap file '%s'\n", argv[2]);
         printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
     }
     else {
         printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"); 
-        printf("~ Unfortunately an error has occurred  halting the replay of  \n");
-        printf("~ the pcap file '%s'. Please see error above for details...   \n", argv[2]);
+        printf("~ Unfortunately an error has occurred  halting the replay of\n");
+        printf("~ the pcap file '%s'. Please see error above for details...\n", argv[2]);
         printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
     }
 
     printf("----------------TCP Live Play Summary----------------\n");
-    printf("- Packets Scheduled to be Sent & Received:          %-d   \n", pkts_scheduled);
-    printf("- Actual Packets Sent & Received:                   %-d   \n", sched_index);
-    printf("- Total Local Packet Re-Transmissions due to packet       \n");
-    printf("- loss and/or differing payload size than expected: %-d   \n", retransmissions);
-    printf("- Thank you for Playing, Play again!                      \n");
+    printf("- Packets Scheduled to be Sent & Received:          %-u\n", pkts_scheduled);
+    printf("- Actual Packets Sent & Received:                   %-u\n", sched_index);
+    printf("- Total Local Packet Re-Transmissions due to packet\n");
+    printf("- loss and/or differing payload size than expected: %-u\n", retransmissions);
+    printf("- Thank you for Playing, Play again!\n");
     printf("----------------------------------------------------------\n\n");
 
     free(sched);
@@ -470,14 +470,15 @@ setup_sched(struct tcp_sched* sched){
 
     input_addr sip, dip;  /* Source & Destination IP */ 
     input_addr local_ip, remote_ip;    /* ip address of client and server*/
-    /*temporary packet buffers*/
-    struct pcap_pkthdr header;  // The header that pcap gives us
-    const u_char *packet;       // The actual packet
     pcap_t *local_handle;
+    const u_char *packet;       /* The actual packet */
+    unsigned int flags=0;
+    struct pcap_pkthdr header;  // The header that pcap gives us
     unsigned int pkt_counter=0;
-    ether_hdr *etherhdr = NULL;
-    tcp_hdr *tcphdr = NULL;
-    ipv4_hdr *iphdr = NULL;
+    bool remote = false;    /* flags to test if data is from 'client'=local or 'server'=remote */
+    bool local = false;
+    unsigned int i = 0;
+
     local_ip.byte1=0; 
     local_ip.byte2=0; 
     local_ip.byte3=0; 
@@ -488,13 +489,7 @@ setup_sched(struct tcp_sched* sched){
     remote_ip.byte3=0; 
     remote_ip.byte4=0; 
 
-    unsigned int size_ip, i = 0; 
-    unsigned int size_tcp; 
-    unsigned int size_payload; 
     char errbuf[PCAP_ERRBUF_SIZE];
-    unsigned int flags=0; 
-    bool remote = false;    /* flags to test if data is from 'cleint'=local or 'server'=remote */
-    bool local = false; 
 
 
     local_handle = pcap_open_offline("newfile.pcap", errbuf);   /*call pcap library function*/
@@ -505,12 +500,18 @@ setup_sched(struct tcp_sched* sched){
     }
 
     /*Before sending any packet, setup the schedule with the proper parameters*/
-    while((packet = safe_pcap_next(local_handle,&header))) {
+    while((packet = safe_pcap_next(local_handle, &header))) {
+        /*temporary packet buffers*/
+        ether_hdr *etherhdr;
+        tcp_hdr *tcphdr;
+        ipv4_hdr *iphdr;
+        unsigned int size_ip;
+        unsigned int size_tcp;
+        unsigned int size_payload;
+
         pkt_counter++; /*increment number of packets seen*/
 
         memcpy(&sched[i].pkthdr, &header, sizeof(struct pcap_pkthdr));
-        //sched[i].len = header.len; 
-        //sched[i].caplen = header.caplen; 
         sched[i].packet_ptr = safe_malloc(sched[i].pkthdr.len);
         memcpy(sched[i].packet_ptr, packet, sched[i].pkthdr.len);
 
@@ -610,7 +611,6 @@ setup_sched(struct tcp_sched* sched){
             if(flags == (TH_FIN|TH_ACK)) finack_rindex = i;
             //printf("REMOTE --------%d\n",i+1);
         }
-
 
         i++; /* increment schedule index */
 
@@ -743,7 +743,7 @@ got_packet(_U_ u_char *args, _U_ const struct pcap_pkthdr *header,
     /* Check correct SYN-ACK expectation, if so then proceed in fixing entire schedule from relative to absolute SEQs+ACKs */
     if((flags == (TH_SYN|TH_ACK)) && (sched_index==1) && (tcphdr->th_ack==htonl(sched[sched_index-1].curr_lseq + 1))){
         unsigned int j;
-        printf("Received Remote Packet...............	[%d]\n",sched_index+1);
+        printf("Received Remote Packet...............	[%u]\n", sched_index + 1);
         printf("Remote Pakcet Expectation met.\nProceeding in replay....\n");
         //printf("SYN-ACKed Random SEQ set!\n");
         initial_rseq = ntohl(tcphdr->th_seq); 
@@ -939,16 +939,10 @@ int
 rewrite(input_addr* new_remoteip, struct mac_addr* new_remotemac, input_addr* myip, struct mac_addr* mymac, char* file, unsigned int new_src_port)
 {
 
-    ether_hdr* etherhdr; 
-    ipv4_hdr *iphdr;
-    tcp_hdr *tcphdr;
+    char *newfile = "newfile.pcap";
+    int pkt_counter;
     input_addr local_ip; 
     input_addr remote_ip; 
-    unsigned int size_ip;
-    unsigned int size_tcp; 
-    char* newfile = "newfile.pcap";
-    char ErrBuff [1024];
-    int pkt_counter;
     const u_char *packet;
     struct pcap_pkthdr *header;
     pcap_dumper_t *dumpfile;
@@ -969,6 +963,7 @@ rewrite(input_addr* new_remoteip, struct mac_addr* new_remotemac, input_addr* my
 
     pcap_t *pcap = set_offline_filter(file); 
     if (!pcap){
+        char ErrBuff [1024];
         fprintf (stderr, "Cannot open PCAP file '%s' for reading\n", file);
         fprintf(stderr, "%s\n",ErrBuff);
         return PCAP_OPEN_ERROR;
@@ -982,7 +977,11 @@ rewrite(input_addr* new_remoteip, struct mac_addr* new_remotemac, input_addr* my
 
     /*Modify each packet's IP & MAC based on the passed args then do a checksum of each packet*/
     for (pkt_counter = 0; safe_pcap_next_ex(pcap, &header, &packet) > 0; pkt_counter++){
-        unsigned int flags;
+        unsigned int flags, size_ip;
+        ether_hdr* etherhdr;
+        ipv4_hdr *iphdr;
+        tcp_hdr *tcphdr;
+        unsigned int size_tcp;
 
         if (!warned && header->len > header->caplen) {
             fprintf(stderr, "warning: packet capture truncated to %d byte packets\n",

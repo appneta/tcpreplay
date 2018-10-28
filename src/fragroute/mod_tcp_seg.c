@@ -71,13 +71,14 @@ int
 tcp_seg_apply(_U_ void *d, struct pktq *pktq)
 {
     struct pkt *pkt, *new, *next;
-    uint32_t seq;
-    int hl, tl, len;
-    u_char *p, *p1, *p2;
-    uint16_t eth_type;
-    uint8_t nxt;
 
     for (pkt = TAILQ_FIRST(pktq); pkt != TAILQ_END(pktq); pkt = next) {
+        uint32_t seq;
+        int hl, tl, len;
+        u_char *p, *p1, *p2;
+        uint16_t eth_type;
+        uint8_t nxt;
+
         next = TAILQ_NEXT(pkt, pkt_next);
 
         eth_type = htons(pkt->pkt_eth->eth_type);
