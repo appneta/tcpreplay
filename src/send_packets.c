@@ -715,7 +715,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 void
 send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_file_idx2)
 {
-    struct timeval print_delta, now, last_pkt_ts, pkt_ts_delta;
+    struct timeval print_delta, now, last_pkt_ts;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -892,8 +892,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              * A number of 3rd party tools generate bad timestamps which go backwards
              * in time.  Hence, don't update the "last" unless pkthdr.ts > last
              */
-            if (timercmp(&stats->time_delta, &pkt_ts_delta, <))
-                TIMEVAL_SET(&stats->time_delta, &pkt_ts_delta);
+            if (timercmp(&stats->time_delta, &stats->pkt_ts_delta, <))
+                TIMEVAL_SET(&stats->time_delta, &stats->pkt_ts_delta);
 
             /*
              * we know how long to sleep between sends, now do it.
