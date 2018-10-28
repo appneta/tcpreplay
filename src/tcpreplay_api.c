@@ -878,7 +878,7 @@ const struct timeval *
 tcpreplay_get_start_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    memcpy(&ctx->static_stats.start_time, &ctx->stats.start_time, sizeof(ctx->stats.start_time));
+    TIMEVAL_SET(&ctx->static_stats.start_time, &ctx->stats.start_time);
     return &ctx->static_stats.start_time;
 }
 
@@ -889,7 +889,7 @@ const struct timeval *
 tcpreplay_get_end_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    memcpy(&ctx->static_stats.end_time, &ctx->stats.end_time, sizeof(ctx->stats.end_time));
+    TIMEVAL_SET(&ctx->static_stats.end_time, &ctx->stats.end_time);
     return &ctx->static_stats.end_time;
 }
 
@@ -1089,7 +1089,6 @@ tcpreplay_replay(tcpreplay_t *ctx)
 {
     int rcode;
     COUNTER loop, total_loops;
-    char buf[64];
 
     assert(ctx);
 
@@ -1104,9 +1103,10 @@ tcpreplay_replay(tcpreplay_t *ctx)
     }
 
     init_timestamp(&ctx->stats.start_time);
-    init_timestamp(&ctx->stats.last_time);
-    init_timestamp(&ctx->stats.last_print);
+    init_timestamp(&ctx->stats.time_delta);
     init_timestamp(&ctx->stats.end_time);
+    init_timestamp(&ctx->stats.pkt_ts_delta);
+    init_timestamp(&ctx->stats.last_print);
 
     ctx->running = true;
     total_loops = ctx->options->loop;
@@ -1158,6 +1158,8 @@ tcpreplay_replay(tcpreplay_t *ctx)
     ctx->running = false;
 
     if (ctx->options->stats >= 0) {
+        char buf[64];
+
         if (format_date_time(&ctx->stats.end_time, buf, sizeof(buf)) > 0)
             printf("Test complete: %s\n", buf);
     }

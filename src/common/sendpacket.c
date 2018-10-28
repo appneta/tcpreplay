@@ -887,7 +887,6 @@ sendpacket_open_pf(const char *device, char *errbuf)
         return NULL;
     }
 
-
     /* get the interface id for the device */
     if ((sa.sll_ifindex = get_iface_index(mysocket, device, errbuf)) < 0) {
         close(mysocket);

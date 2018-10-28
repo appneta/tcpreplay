@@ -329,6 +329,18 @@ typedef u_int32_t uint32_t
 #define TIMESPEC_TO_MICROSEC(x)  (((x)->tv_sec * 1000000) + (x)->tv_nsec / 1000)
 #define TIMESPEC_TO_NANOSEC(x) ((u_int64_t)((x)->tv_sec * 1000000000) + ((u_int64_t)(x)->tv_nsec))
 
+#define TIMEVAL_SET(a, b)                  \
+    do {                                    \
+        (a)->tv_sec = (b)->tv_sec;          \
+        (a)->tv_usec = (b)->tv_usec;        \
+    } while(0)
+
+#define TIMESPEC_SET(a, b)                 \
+    do {                                    \
+        (a)->tv_sec = (b)->tv_sec;          \
+        (a)->tv_nsec = (b)->tv_nsec;        \
+    } while(0)
+
 /* 
  * Help suppress some compiler warnings
  * No problem if variable is actually used 
