@@ -75,7 +75,7 @@ tcp_seg_apply(_U_ void *d, struct pktq *pktq)
     for (pkt = TAILQ_FIRST(pktq); pkt != TAILQ_END(pktq); pkt = next) {
         uint32_t seq;
         int hl, tl, len;
-        u_char *p, *p1, *p2;
+        u_char *p;
         uint16_t eth_type;
         uint8_t nxt;
 
@@ -112,6 +112,8 @@ tcp_seg_apply(_U_ void *d, struct pktq *pktq)
         seq = ntohl(pkt->pkt_tcp->th_seq);
 
         for (p = pkt->pkt_tcp_data; p < pkt->pkt_end; p += len) {
+            u_char *p1, *p2;
+
             new = pkt_new(pkt->pkt_buf_size);
             memcpy(new->pkt_eth, pkt->pkt_eth, (u_char*)pkt->pkt_eth_data - (u_char*)pkt->pkt_eth);
             p1 = p, p2 = NULL;
