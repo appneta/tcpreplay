@@ -283,7 +283,7 @@ main(int argc, char *argv[])
 
             if (caplentoobig) {
                 printf("\n\nCapture file appears to be damaged or corrupt.\n"
-                        "Contains packet of size %u, bigger than snap length %u\n",
+                        "Contains packet of size %d, bigger than snap length %u\n",
                         caplen, pcap_fh.snaplen);
 
                 close(fd);

@@ -36,7 +36,6 @@ void
 mac2hex(const char *mac, u_char *dst, int len)
 {
     int i;
-    long l;
     char *pp;
 
     if (len < 6)
@@ -47,7 +46,7 @@ mac2hex(const char *mac, u_char *dst, int len)
 
     /* expect 6 hex octets separated by ':' or space/NUL if last octet */
     for (i = 0; i < 6; i++) {
-        l = strtol(mac, &pp, 16);
+        long l = strtol(mac, &pp, 16);
         if (pp == mac || l > 0xFF || l < 0)
             return;
         if (!(*pp == ':' || (i == 5 && (isspace(*pp) || *pp == '\0'))))

@@ -60,7 +60,7 @@ delay_open(int argc, char *argv[])
     else
         return (delay_close(data));
 
-    if ((usec = atoi(argv[2])) <= 0)
+    if ((usec = atoi(argv[2])) == 0)
         return (delay_close(data));
 
     usec *= 1000;

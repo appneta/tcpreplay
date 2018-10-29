@@ -299,7 +299,7 @@ return_unknown:
 tcpr_dir_t
 check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
 {
-    tcpr_tree_t *node = NULL, *finder = NULL;
+    tcpr_tree_t *node, *finder;
 
     finder = new_tree();
     finder->family = AF_INET6;
@@ -608,13 +608,15 @@ tree_calculate(tcpr_data_tree_t *treeroot)
 static int
 ipv6_cmp(const struct tcpr_in6_addr *a, const struct tcpr_in6_addr *b)
 {
-    int i, k;
+    int i;
 
     for (i = 0; i < 4; i++) {
-       if ((k = (a->tcpr_s6_addr32[i] - b->tcpr_s6_addr32[i]))) {
-           return (k > 0) ? 1 : -1;
+        int k;
+        if ((k = (a->tcpr_s6_addr32[i] - b->tcpr_s6_addr32[i]))) {
+            return (k > 0) ? 1 : -1;
         }
     }
+
     return 0;
 }
 

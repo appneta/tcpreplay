@@ -171,8 +171,6 @@ ieee80211_get_src(const void *header)
 u_char *
 ieee80211_get_dst(const void *header)
 {
-    ieee80211_hdr_t *addr3;
-    ieee80211_addr4_hdr_t *addr4;
     uint16_t *frame_control, fc;
 
     assert(header);
@@ -180,10 +178,11 @@ ieee80211_get_dst(const void *header)
     fc = ntohs(*frame_control);
 
     if (ieee80211_USE_4(fc)) {
-        addr4 = (ieee80211_addr4_hdr_t *)header;
+        ieee80211_addr4_hdr_t *addr4 = (ieee80211_addr4_hdr_t *)header;
         return addr4->addr3;
     } else {
-        addr3 = (ieee80211_hdr_t *)header;
+        ieee80211_hdr_t *addr3 = (ieee80211_hdr_t *)header;
+
         switch (fc & (ieee80211_FC_TO_DS_MASK + ieee80211_FC_FROM_DS_MASK)) {
             case ieee80211_FC_TO_DS_MASK:
                 return addr3->addr3;

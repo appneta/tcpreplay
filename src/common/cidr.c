@@ -275,9 +275,8 @@ error:
 static void 
 mask_cidr6(char **cidrin, char* delim)
 {
-    char *p;
-
     if (**cidrin == '[' && *delim == ':') {
+        char *p;
         ++*cidrin;
         /* make strtok happy */
         for (p = *cidrin; *p && *p != ']'; ++p) {
@@ -298,12 +297,12 @@ int
 parse_cidr(tcpr_cidr_t ** cidrdata, char *cidrin, char *delim)
 {
     tcpr_cidr_t *cidr_ptr;             /* ptr to current cidr record */
-    char *network = NULL;
+    char *network;
     char *token = NULL;
 
     mask_cidr6(&cidrin, delim);
 
-    /* first itteration of input using strtok */
+    /* first iteration of input using strtok */
     network = strtok_r(cidrin, delim, &token);
 
     *cidrdata = cidr2cidr(network);
@@ -408,8 +407,8 @@ int
 parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
 {
     tcpr_cidr_t *cidr = NULL;
-    char *map = NULL;
-    char *token = NULL, *string = NULL;
+    char *map;
+    char *token = NULL, *string;
     tcpr_cidrmap_t *ptr;
     int res = 0;
     

@@ -255,10 +255,7 @@ tcpr_dir_t
 add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 {
     static tcpr_cache_t *lastcache = NULL;
-    u_char *byte = NULL;
-    uint32_t bit;
     tcpr_dir_t result = TCPR_DIR_ERROR;
-    COUNTER index;
 #ifdef DEBUG
     char bitstring[9] = EIGHT_ZEROS;
 #endif
@@ -288,6 +285,10 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 
     /* send packet ? */
     if (send == SEND) {
+        COUNTER index;
+        uint32_t bit;
+        u_char *byte;
+
         index = (lastcache->packets - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
         bit = (((lastcache->packets - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
                (COUNTER)CACHE_BITS_PER_PACKET) + 1;
@@ -318,8 +319,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
         dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c",
             BIT_STR(byte2bits(*byte, bitstring)));
 #endif
-    }
-    else {
+    } else {
         dbg(1, "not setting send bit");
         result = TCPR_DIR_NOSEND;
     }

@@ -117,7 +117,6 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
         return;
 
     free(ptr);
-    ptr = NULL;
 }
 
 /**

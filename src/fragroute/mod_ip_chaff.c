@@ -71,11 +71,10 @@ ip_chaff_apply(void *d, struct pktq *pktq)
     struct pkt *pkt, *new, *next;
     struct ip_opt opt;
     int i;
-    uint16_t eth_type;
 
     for (pkt = TAILQ_FIRST(pktq); pkt != TAILQ_END(pktq); pkt = next) {
         next = TAILQ_NEXT(pkt, pkt_next);
-        eth_type = htons(pkt->pkt_eth->eth_type);
+        uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
 
         if (pkt->pkt_ip_data == NULL)
             continue;

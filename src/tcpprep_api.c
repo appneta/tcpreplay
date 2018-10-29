@@ -365,7 +365,7 @@ int
 tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
 {
     char myargs[MYARGS_LEN];
-    int i, bufsize;
+    int bufsize;
     char *tempstr;
 
     memset(myargs, 0, MYARGS_LEN);
@@ -406,6 +406,8 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
      * cache file header
      */
     if (! ctx->options->nocomment) {
+        int i;
+
         /* copy all of our args to myargs */
         for (i = 1; i < argc; i ++) {
             /* skip the -C <comment> */

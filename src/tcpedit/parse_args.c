@@ -39,7 +39,6 @@ int
 tcpedit_post_args(tcpedit_t *tcpedit) {
     int rcode = 0;
     int i;
-    long ttl;
     uint32_t seed = 1, rand_num;
 
     assert(tcpedit);
@@ -109,6 +108,8 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
 
     /* --ttl */
     if (HAVE_OPT(TTL)) {
+        long ttl;
+
         if (strchr(OPT_ARG(TTL), '+')) {
             tcpedit->ttl_mode = TCPEDIT_TTL_MODE_ADD;            
         } else if (strchr(OPT_ARG(TTL), '-')) {

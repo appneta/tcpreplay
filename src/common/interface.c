@@ -81,7 +81,6 @@ get_interface_list(void)
     DIR *dir;
     struct dirent *dirdata;
 #ifdef HAVE_NETMAP
-    int fd = -1;
     nmreq_t nmr;
 #endif
 #ifdef HAVE_NETMAP
@@ -129,6 +128,8 @@ get_interface_list(void)
                 && strcmp("any", pcap_if_ptr->name)) {
 #endif
 #ifdef HAVE_NETMAP
+            int fd;
+
             if (netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
                 continue;
             bzero(&nmr, sizeof(nmr));

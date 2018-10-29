@@ -312,6 +312,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
                     OPT_ARG(INTF1));
         else
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+
         ret = -1;
         goto out;
     }
@@ -1319,7 +1320,6 @@ bool tcpreplay_get_flow_stats(tcpreplay_t *ctx)
     assert(ctx);
 
     return ctx->options->flow_stats;
-    return 0;
 }
 
 /**

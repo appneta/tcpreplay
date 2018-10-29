@@ -180,7 +180,7 @@ int
 tcpedit_dlt_post_args(tcpedit_t *tcpedit)
 {
     tcpeditdlt_t *ctx;
-    const char *dst_dlt_name = NULL;
+    const char *dst_dlt_name;
     int rcode;
     
     assert(tcpedit);

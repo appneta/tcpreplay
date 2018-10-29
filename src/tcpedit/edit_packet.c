@@ -998,9 +998,8 @@ int
 randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
         u_char *pktdata, int datalink)
 {
-    arp_hdr_t *arp_hdr = NULL;
-    int l2len = 0;
-    uint32_t *ip;
+    arp_hdr_t *arp_hdr ;
+    int l2len;
 #ifdef FORCE_ALIGN
     uint32_t iptemp;
 #endif
@@ -1016,12 +1015,13 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
      * only rewrite IP addresses from REPLY/REQUEST's
      */
     if ((ntohs(arp_hdr->ar_pro) == ETHERTYPE_IP) &&
-        ((ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) ||
-         (ntohs(arp_hdr->ar_op) == ARPOP_REPLY))) {
-
+            ((ntohs(arp_hdr->ar_op) == ARPOP_REQUEST) ||
+                    (ntohs(arp_hdr->ar_op) == ARPOP_REPLY))) {
         /* jump to the addresses */
+        uint32_t *ip;
         u_char *add_hdr = ((u_char *)arp_hdr) + sizeof(arp_hdr_t) +
                 arp_hdr->ar_hln;
+
 #ifdef FORCE_ALIGN
         /* copy IP to a temporary buffer for processing */
         memcpy(&iptemp, add_hdr, sizeof(uint32_t));
