@@ -342,7 +342,7 @@ sendpacket_open_netmap(const char *device, char *errbuf, void *arg) {
 
     if (ioctl (sp->handle.fd, NIOCREGIF, &nmr)) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Failure accessing netmap.\n"
-                "\tRequest for netmap version %d failed.\n\tCompiled netmap driver is version %u.\n\tError=%s\n",
+                "\tRequest for netmap version %d failed.\n\tCompiled netmap driver is version %d.\n\tError=%s\n",
                 sp->netmap_version, NETMAP_API, strerror(errno));
         goto NETMAP_IF_FAILED;
     }
