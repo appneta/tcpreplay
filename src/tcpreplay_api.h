@@ -78,9 +78,10 @@ typedef struct {
 
 /* accurate mode selector */
 typedef enum {
-    accurate_gtod = 0,
-    accurate_select = 1,
-    accurate_nanosleep = 2
+    accurate_gtod,
+    accurate_select,
+    accurate_nanosleep,
+    accurate_ioport,
 } tcpreplay_accurate;
 
 typedef enum {

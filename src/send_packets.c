@@ -629,8 +629,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             /*
              * we know how long to sleep between sends, now do it.
              */
-            if (timesisset(&ctx->nap))
-                tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
+            tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
         }
 
 #ifdef ENABLE_VERBOSE
@@ -898,8 +897,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             /*
              * we know how long to sleep between sends, now do it.
              */
-            if (timesisset(&ctx->nap))
-                tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
+            tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
         }
 
 #ifdef ENABLE_VERBOSE
@@ -1269,6 +1267,10 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
             options->maxsleep.tv_nsec);
         TIMESPEC_SET(nap_this_time, &options->maxsleep);
     }
+#ifdef HAVE_NETMAP
+    if (flush)
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif /* HAVE_NETMAP */
 
     dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT,
             nap_this_time->tv_sec, nap_this_time->tv_nsec);
@@ -1280,8 +1282,13 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
     switch (accurate) {
 #ifdef HAVE_SELECT
     case accurate_select:
-        select_sleep(nap_this_time);
-        gettimeofday(now, NULL);
+        select_sleep(sp, nap_this_time, now, flush);
+        break;
+#endif
+
+#if defined HAVE_IOPORT_SLEEP
+    case accurate_ioport:
+        ioport_sleep(sp, nap_this_time, now, flush);
         break;
 #endif
 
@@ -1290,8 +1297,7 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
         break;
 
     case accurate_nanosleep:
-        nanosleep_sleep(nap_this_time);
-        gettimeofday(now, NULL);
+        nanosleep_sleep(sp, nap_this_time, now, flush);
         break;
 
     default:
