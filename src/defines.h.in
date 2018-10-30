@@ -38,6 +38,10 @@
 #include <netinet/in_systm.h>
 #endif
 
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+
 #include "tcpr.h"
 
 #ifdef HAVE_BPF
@@ -246,6 +250,9 @@ typedef enum tcpprep_mode_e {
 #define DEBUG_MORE   4          /* even more detail */
 #define DEBUG_CODE   5          /* examines code & values, many lines per packet */
 
+#if defined HAVE_IOPERM && defined __i386_
+    #define HAVE_IOPORT_SLEEP
+#endif
 
 /* Win32 doesn't know about PF_INET6 */
 #ifndef PF_INET6

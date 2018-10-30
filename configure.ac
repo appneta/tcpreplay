@@ -330,7 +330,11 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
 CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h])
+AC_CHECK_HEADERS([signal.h string.h strings.h sys/types.h stdint.h sys/select.h])
+AC_CHECK_HEADERS([netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h])
+AC_CHECK_HEADERS([inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_CHECK_HEADERS([sys/io.h architecture/i386/pio.h sched.h])
 AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements
@@ -364,7 +368,12 @@ AC_FUNC_MKTIME
 AC_FUNC_MMAP
 AC_FUNC_REALLOC
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
-AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday ctime inet_ntoa memmove memset munmap pow putenv realpath regcomp strdup select socket strcasecmp strchr strcspn strdup strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf strsignal strpbrk strrchr strspn strstr strtoul])
+AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday])
+AC_CHECK_FUNCS([ctime inet_ntoa memmove memset munmap pow putenv realpath])
+AC_CHECK_FUNCS([regcomp strdup select socket strcasecmp strchr strcspn strdup])
+AC_CHECK_FUNCS([strerror strtol strncpy strtoull poll ntohll mmap snprintf])
+AC_CHECK_FUNCS([vsnprintf strsignal strpbrk strrchr strspn strstr strtoul])
+AC_CHECK_FUNCS([ioperm])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)

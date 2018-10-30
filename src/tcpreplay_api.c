@@ -279,6 +279,13 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ret = -1;
             goto out;
 #endif
+        } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
+#if defined HAVE_IOPORT_SLEEP__
+            options.accurate = ACCURATE_IOPORT;
+            ioport_sleep_init();
+#else
+            err(-1, "tcpreplay not compiled with IO Port 0x80 support");
+#endif
         } else if (strcmp(OPT_ARG(TIMER), "gtod") == 0) {
             options->accurate = accurate_gtod;
         } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
