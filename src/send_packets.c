@@ -70,8 +70,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
         sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
         COUNTER start_us, COUNTER *skip_length);
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp _U_,
-        struct timespec *nap_this_time, struct timeval *now,
-        tcpreplay_accurate accurate);
+        struct timespec *nap_this_time, struct timeval *now);
 static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
@@ -227,7 +226,6 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
 }
 
-#if defined HAVE_NETMAP
 static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
 {
 #ifdef HAVE_NETMAP
@@ -235,7 +233,6 @@ static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
 }
-#endif /* HAVE_NETMAP */
 
 static inline void
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
@@ -629,7 +626,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             /*
              * we know how long to sleep between sends, now do it.
              */
-            tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
+            tcpr_sleep(ctx, sp, &ctx->nap, &now);
         }
 
 #ifdef ENABLE_VERBOSE
@@ -897,7 +894,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             /*
              * we know how long to sleep between sends, now do it.
              */
-            tcpr_sleep(ctx, sp, &ctx->nap, &now, options->accurate);
+            tcpr_sleep(ctx, sp, &ctx->nap, &now);
         }
 
 #ifdef ENABLE_VERBOSE
@@ -1244,8 +1241,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
 }
 
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
-        struct timespec *nap_this_time, struct timeval *now,
-        tcpreplay_accurate accurate)
+        struct timespec *nap_this_time, struct timeval *now)
 {
     tcpreplay_opt_t *options = ctx->options;
     bool flush =
@@ -1267,10 +1263,9 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
             options->maxsleep.tv_nsec);
         TIMESPEC_SET(nap_this_time, &options->maxsleep);
     }
-#ifdef HAVE_NETMAP
+
     if (flush)
-        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-#endif /* HAVE_NETMAP */
+        wake_send_queues(sp, options);
 
     dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT,
             nap_this_time->tv_sec, nap_this_time->tv_nsec);
@@ -1279,7 +1274,7 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
      * Depending on the accurate method & packet rate computation method
      * We have multiple methods of sleeping, pick the right one...
      */
-    switch (accurate) {
+    switch (options->accurate) {
 #ifdef HAVE_SELECT
     case accurate_select:
         select_sleep(sp, nap_this_time, now, flush);
@@ -1301,7 +1296,7 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
         break;
 
     default:
-        errx(-1, "Unknown timer mode %d", accurate);
+        errx(-1, "Unknown timer mode %d", options->accurate);
     }
 }
 

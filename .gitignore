@@ -75,6 +75,7 @@ src/config.h.in
 .*.swp
 *.tmproj
 *.dirstamp
+tcpdump.debug
 
 # Misc files
 tcpreplay.spec

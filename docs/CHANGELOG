@@ -14,6 +14,7 @@
     - TCP sequence number edit initial SYN packet should have zero ACK (#450)
     - Upgrade libopts to 5.18.12 to address version build issues (#430)
     - Add ability to change tcp SEQ/ACK numbers (#425)
+    - Hang using loop and netmap options (#424)
     - Fails to open tap0 on Zephyr (#411)
     - CVE-2018-13112 heap-buffer-overflow in get_l2len (#477 dup #408)
     - -T flag breaks traffic replay timing (#419)
