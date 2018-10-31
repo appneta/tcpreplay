@@ -128,15 +128,15 @@ get_interface_list(void)
                 && strcmp("any", pcap_if_ptr->name)) {
 #endif
 #ifdef HAVE_NETMAP
-            int fd;
+            int fd = -1;
 
-            if (netmap_version == -1 || (fd = open ("/dev/netmap", O_RDWR)) < 0)
+            if (netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
                 continue;
 
             bzero(&nmr, sizeof(nmr));
             strncpy(nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
             nmr.nr_version = netmap_version;
-            if (ioctl(fd, NIOCGINFO, &nmr) == 0) {
+            if (fd > 0 && ioctl(fd, NIOCGINFO, &nmr) == 0) {
 #endif /* HAVE_NETMAP */
 #if defined HAVE_LIBPCAP_NETMAP || defined HAVE_NETMAP
                 list_ptr->next = (interface_list_t *)safe_malloc(sizeof(interface_list_t));

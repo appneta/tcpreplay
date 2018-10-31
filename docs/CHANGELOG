@@ -1,5 +1,5 @@
 10/31/2018 Version 4.3.0 beta2
-	- Fix maxOS TOS checksum failure (#524)
+    - Fix maxOS TOS checksum failure (#524)
     - TCP sequence edits seeding (#514)
     - Fix issues identifed by Codacy (#493)
     - CVE-2018-18408 use-after-free in post_args (#489)
