@@ -87,7 +87,7 @@ gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
     TIMESPEC_TO_TIMEVAL(&nap_for, nap);
     timeradd(now, &nap_for, &sleep_until);
     
-    while (1) {
+    while (!sp->abort) {
 #ifdef HAVE_NETMAP
         if (flush && timercmp(now, &last, !=)) {
             TIMEVAL_SET(&last, now);

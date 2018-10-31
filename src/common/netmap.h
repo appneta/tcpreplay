@@ -40,7 +40,7 @@
 #endif
 
 #if NETMAP_API >= 10
-#define NETMAP_TX_RING_EMPTY(ring) (nm_tx_pending(ring))
+#define NETMAP_TX_RING_EMPTY(ring) (!nm_tx_pending(ring))
 #define NETMAP_RING_NEXT(r, i) nm_ring_next(r, i)
 #elif defined HAVE_NETMAP_RING_HEAD_TAIL
 #define NETMAP_TX_RING_EMPTY(ring) (nm_ring_space(ring) >= (ring)->num_slots - 1)

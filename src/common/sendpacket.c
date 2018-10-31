@@ -447,6 +447,8 @@ TRY_SEND_AGAIN:
 
     if (retcode < 0) {
         sp->failed ++;
+    } else if (sp->abort) {
+        sendpacket_seterr(sp, "User abort");
     } else if (retcode != (int)len) {
         sendpacket_seterr(sp, "Only able to write %d bytes out of %u bytes total",
                 retcode, len);

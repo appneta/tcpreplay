@@ -576,7 +576,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             skip_length -= pktlen;
         } else if (ctx->skip_packets) {
             --ctx->skip_packets;
-        } else if (!top_speed) {
+        } else {
             /*
              * time stamping is expensive, but now is the
              * time to do it.
@@ -601,8 +601,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                     TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
-            now_is_now = true;
-            gettimeofday(&now, NULL);
+            if (!top_speed) {
+                now_is_now = true;
+                gettimeofday(&now, NULL);
+            }
 
             /*
              * Only if the current packet is not late.
@@ -626,7 +628,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             /*
              * we know how long to sleep between sends, now do it.
              */
-            tcpr_sleep(ctx, sp, &ctx->nap, &now);
+            if (!top_speed)
+                tcpr_sleep(ctx, sp, &ctx->nap, &now);
         }
 
 #ifdef ENABLE_VERBOSE
@@ -637,8 +640,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
         /* write packet out on network */
-        if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen)
+        if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+            break;
+        }
 
         /*
          * Mark the time when we sent the last packet
@@ -844,7 +849,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             skip_length -= pktlen;
         } else if (ctx->skip_packets) {
             --ctx->skip_packets;
-        } else if (!top_speed) {
+        } else {
             /*
              * time stamping is expensive, but now is the
              * time to do it.
@@ -869,8 +874,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                     TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
-            gettimeofday(&now, NULL);
-            now_is_now = true;
+            if (!top_speed) {
+                gettimeofday(&now, NULL);
+                now_is_now = true;
+            }
 
             /*
              * Only if the current packet is not late.
@@ -894,7 +901,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             /*
              * we know how long to sleep between sends, now do it.
              */
-            tcpr_sleep(ctx, sp, &ctx->nap, &now);
+            if (!top_speed)
+                tcpr_sleep(ctx, sp, &ctx->nap, &now);
         }
 
 #ifdef ENABLE_VERBOSE
@@ -905,8 +913,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
         /* write packet out on network */
-        if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen)
+        if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
+            break;
+        }
 
         /*
          * Mark the time when we sent the last packet
