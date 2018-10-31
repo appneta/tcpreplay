@@ -637,7 +637,7 @@ extract_data(tcpedit_t *tcpedit, const u_char *pktdata, int caplen,
 int
 rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr)
 {
-    uint16_t oldval, newval;
+    volatile uint16_t oldval, newval;
 
     assert(tcpedit);
 
