@@ -45,7 +45,7 @@
 static int
 rewrite_seqs(tcpedit_t *tcpedit, tcp_hdr_t *tcp_hdr)
 {
-    uint32_t newnum;
+    volatile uint32_t newnum;
 
     newnum = ntohl(tcp_hdr->th_seq) + tcpedit->tcp_sequence_adjust;
     csum_replace4(&tcp_hdr->th_sum, tcp_hdr->th_seq, htonl(newnum));

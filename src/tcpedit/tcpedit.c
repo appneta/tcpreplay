@@ -204,15 +204,17 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     /* The following edits only apply for IPv4 */
     if (ip_hdr != NULL) {
-        
+
         /* set TOS ? */
         if (tcpedit->tos > -1) {
-            uint16_t newval, oldval = *((uint16_t*)ip_hdr);
+            volatile uint16_t oldval = *((uint16_t*)ip_hdr);
+            volatile uint16_t newval;
+
             ip_hdr->ip_tos = tcpedit->tos;
             newval = *((uint16_t*)ip_hdr);
             csum_replace2(&ip_hdr->ip_sum, oldval, newval);
         }
-            
+
         /* rewrite the TTL */
         rewrite_ipv4_ttl(tcpedit, ip_hdr);
 

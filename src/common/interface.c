@@ -130,8 +130,9 @@ get_interface_list(void)
 #ifdef HAVE_NETMAP
             int fd;
 
-            if (netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
+            if (netmap_version == -1 || (fd = open ("/dev/netmap", O_RDWR)) < 0)
                 continue;
+
             bzero(&nmr, sizeof(nmr));
             strncpy(nmr.nr_name, pcap_if_ptr->name, sizeof(nmr.nr_name));
             nmr.nr_version = netmap_version;
