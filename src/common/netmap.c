@@ -548,13 +548,16 @@ bool netmap_tx_queues_empty(void *p)
 
     assert(sp);
 
+    sp->cur_tx_ring = 0;
     txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
     while (NETMAP_TX_RING_EMPTY(txring)) {
         /* current ring is empty- go to next */
         ++sp->cur_tx_ring;
-        if (sp->cur_tx_ring > sp->last_tx_ring)
+        if (sp->cur_tx_ring > sp->last_tx_ring) {
             /* last ring */
+            sp->cur_tx_ring = 0;
             return true;
+        }
 
         txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
     }
