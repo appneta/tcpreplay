@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -109,13 +109,13 @@ dlt_radiotap_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    /* allocate memory for our deocde extra data */
-    if (sizeof(radiotap_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(radiotap_extra_t));
+    /* allocate memory for our decode extra data */
+    ctx->decoded_extra_size = sizeof(radiotap_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
     /* allocate memory for our config data */
-    if (sizeof(radiotap_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(radiotap_config_t));
+    plugin->config_size = sizeof(radiotap_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
 
     return TCPEDIT_OK; /* success */
 }
@@ -139,11 +139,13 @@ dlt_radiotap_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */
@@ -188,13 +190,15 @@ dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
-    
+    if (!data)
+        return TCPEDIT_ERROR;
+
     /* ieee80211 decoder fills out everything */
     rcode = dlt_ieee80211_decode(ctx, data, pktlen - radiolen);
     
     /* need to override the ieee802.11 l2 length result */
     ctx->l2len = dlt_radiotap_80211_l2len(ctx, packet, pktlen);
-    return rcode;
+    return (ctx->l2len > 0) ? rcode : TCPEDIT_ERROR;
 }
 
 /*
@@ -202,7 +206,8 @@ dlt_radiotap_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int 
-dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
+dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
+        _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -228,6 +233,9 @@ dlt_radiotap_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_ERROR;
 
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
+    if (radiolen < 0 || radiolen > pktlen)
+        return TCPEDIT_ERROR;
+
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
     return dlt_ieee80211_proto(ctx, data, pktlen - radiolen);
 }
@@ -307,7 +315,7 @@ dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     if (pktlen < 4)
-        return 0;
+        return -1;
 
     memcpy(&radiolen, &packet[2], 2);
     /* little endian to host */
@@ -321,12 +329,19 @@ dlt_radiotap_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 int
 dlt_radiotap_80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    int radiolen;
+    int radiolen, res;
     u_char *data;
     
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
+    if (radiolen == -1)
+        return TCPEDIT_ERROR;
+
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
-    radiolen += dlt_ieee80211_l2len(ctx, data, pktlen - radiolen);
+    res = dlt_ieee80211_l2len(ctx, data, pktlen - radiolen);
+    if (res == -1)
+        return TCPEDIT_ERROR;
+
+    radiolen += res;
     return radiolen;
 }
 
@@ -343,13 +358,19 @@ dlt_radiotap_l2addr_type(void)
  * since we track which was the last packet # we copied.
  */
 static u_char *
-dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen, const int radiolen)
+dlt_radiotap_get_80211(tcpeditdlt_t *ctx, const u_char *packet,
+        const int pktlen, const int radiolen)
 {
     radiotap_extra_t *extra;
     static COUNTER lastpacket = 0;
 
+    if (ctx->decoded_extra_size < sizeof(*extra))
+        return NULL;
+
     extra = (radiotap_extra_t *)(ctx->decoded_extra);
-    if (lastpacket != ctx->tcpedit->runtime.packetnum) {
+    if (pktlen >= radiolen &&
+            (size_t)(pktlen - radiolen) >= sizeof(extra->packet) &&
+            lastpacket != ctx->tcpedit->runtime.packetnum) {
         memcpy(extra->packet, &packet[radiolen], pktlen - radiolen);
         lastpacket = ctx->tcpedit->runtime.packetnum;
     }

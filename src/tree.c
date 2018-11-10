@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -41,7 +41,7 @@ extern int debug;
 char tree_print_buff[TREEPRINTBUFFLEN]; 
 
 static tcpr_tree_t *new_tree();
-static tcpr_tree_t *packet2tree(const u_char *);
+static tcpr_tree_t *packet2tree(const u_char *, const int);
 #ifdef DEBUG        /* prevent compile warnings */
 static char *tree_print(tcpr_data_tree_t *);
 static char *tree_printnode(const char *, const tcpr_tree_t *);
@@ -67,7 +67,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
     struct tcpr_in6_addr network6;
     unsigned long mask = ~0;    /* turn on all bits */
     tcpprep_opt_t *options = tcpprep->options;
-    int i, j, k;
+    uint32_t i, j, k;
 
     dbg(1, "Running: tree_buildcidr()");
 
@@ -114,7 +114,7 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
                     network6.tcpr_s6_addr[i] = node->u.ip6.tcpr_s6_addr[i];
 
                 if ((k = bcdata->masklen % 8) != 0) {
-                    k = ~0 << (8 - k);
+                    k = (uint32_t)~0 << (8 - k);
                     network6.tcpr_s6_addr[j] = node->u.ip6.tcpr_s6_addr[i] & k;
                 }
 
@@ -232,7 +232,7 @@ tcpr_tree_to_cidr(const int masklen, const int type)
 tcpr_dir_t
 check_ip_tree(const int mode, const unsigned long ip)
 {
-    tcpr_tree_t *node = NULL, *finder = NULL;
+    tcpr_tree_t *node, *finder;
 
     finder = new_tree();
     finder->family = AF_INET;
@@ -299,7 +299,7 @@ return_unknown:
 tcpr_dir_t
 check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
 {
-    tcpr_tree_t *node = NULL, *finder = NULL;
+    tcpr_tree_t *node, *finder;
 
     finder = new_tree();
     finder->family = AF_INET6;
@@ -370,12 +370,18 @@ return_unknown:
  * client, if the DST IP doesn't exist in the TREE, we add it as a server
  */
 void
-add_tree_first_ipv4(const u_char *data)
+add_tree_first_ipv4(const u_char *data, const int len)
 {
-    tcpr_tree_t *newnode = NULL, *findnode;
+    tcpr_tree_t *newnode, *findnode;
     ipv4_hdr_t ip_hdr;
     
     assert(data);
+
+    if (len < (TCPR_ETH_H + TCPR_IPV4_H)) {
+        errx(-1, "Capture length %d too small for IPv4 parsing", len);
+        return;
+    }
+
     /* 
      * first add/find the source IP/client 
      */
@@ -418,12 +424,18 @@ add_tree_first_ipv4(const u_char *data)
 }
 
 void
-add_tree_first_ipv6(const u_char *data)
+add_tree_first_ipv6(const u_char *data, const int len)
 {
-    tcpr_tree_t *newnode = NULL, *findnode;
+    tcpr_tree_t *newnode, *findnode;
     ipv6_hdr_t ip6_hdr;
 
     assert(data);
+
+    if (len < (TCPR_ETH_H + TCPR_IPV6_H)) {
+        errx(-1, "Capture length %d too small for IPv6 parsing", len);
+        return;
+    }
+
     /*
      * first add/find the source IP/client
      */
@@ -516,43 +528,47 @@ add_tree_node(tcpr_tree_t *newnode)
  * - the way the host acted the first time we saw it (client or server)
  */
 void
-add_tree_ipv4(const unsigned long ip, const u_char * data)
+add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
 {
-    tcpr_tree_t *newnode = NULL;
+    tcpr_tree_t *newnode;
     assert(data);
 
-    newnode = packet2tree(data);
+    newnode = packet2tree(data, len);
+    if (newnode) {
+        assert(ip == newnode->u.ip);
 
-    assert(ip == newnode->u.ip);
+        if (newnode->type == DIR_UNKNOWN) {
+            /* couldn't figure out if packet was client or server */
 
-    if (newnode->type == DIR_UNKNOWN) {
-        /* couldn't figure out if packet was client or server */
+            dbgx(2, "%s (%lu) unknown client/server",
+                    get_addr2name4(newnode->u.ip, RESOLVE), newnode->u.ip);
 
-        dbgx(2, "%s (%lu) unknown client/server",
-            get_addr2name4(newnode->u.ip, RESOLVE), newnode->u.ip);
+        }
 
+        add_tree_node(newnode);
     }
-    add_tree_node(newnode);
 }
 
 void
-add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data)
+add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data,
+        const int len)
 {
-    tcpr_tree_t *newnode = NULL;
+    tcpr_tree_t *newnode;
     assert(data);
 
-    newnode = packet2tree(data);
+    newnode = packet2tree(data, len);
+    if (newnode) {
+        assert(ipv6_cmp(addr, &newnode->u.ip6) == 0);
 
-    assert(ipv6_cmp(addr, &newnode->u.ip6) == 0);
+        if (newnode->type == DIR_UNKNOWN) {
+            /* couldn't figure out if packet was client or server */
 
-    if (newnode->type == DIR_UNKNOWN) {
-        /* couldn't figure out if packet was client or server */
+            dbgx(2, "%s unknown client/server",
+                    get_addr2name6(&newnode->u.ip6, RESOLVE));
+        }
 
-        dbgx(2, "%s unknown client/server",
-            get_addr2name6(&newnode->u.ip6, RESOLVE));
+        add_tree_node(newnode);
     }
-
-    add_tree_node(newnode);
 }
 
 /**
@@ -592,13 +608,15 @@ tree_calculate(tcpr_data_tree_t *treeroot)
 static int
 ipv6_cmp(const struct tcpr_in6_addr *a, const struct tcpr_in6_addr *b)
 {
-    int i, k;
+    int i;
 
     for (i = 0; i < 4; i++) {
-       if ((k = (a->tcpr_s6_addr32[i] - b->tcpr_s6_addr32[i]))) {
-           return (k > 0) ? 1 : -1;
+        int k;
+        if ((k = (a->tcpr_s6_addr32[i] - b->tcpr_s6_addr32[i]))) {
+            return (k > 0) ? 1 : -1;
         }
     }
+
     return 0;
 }
 
@@ -613,7 +631,6 @@ ipv6_cmp(const struct tcpr_in6_addr *a, const struct tcpr_in6_addr *b)
 int
 tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
 {
-    int ret;
     if (t1->family > t2->family) {
         dbgx(2, "family %d > %d", t1->family, t2->family);
         return 1;
@@ -644,7 +661,7 @@ tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
     }
 
     if (t1->family == AF_INET6) {
-        ret = ipv6_cmp(&t1->u.ip6, &t1->u.ip6);
+        int ret = ipv6_cmp(&t1->u.ip6, &t1->u.ip6);
         dbgx(2, "cmp(%s, %s) = %d", get_addr2name6(&t1->u.ip6, RESOLVE),
                 get_addr2name6(&t2->u.ip6, RESOLVE), ret);
         return ret;
@@ -679,8 +696,8 @@ new_tree()
  * if it's an undefined packet, we return -1 for the type
  * the u_char * data should be the data that is passed by pcap_dispatch()
  */
-tcpr_tree_t *
-packet2tree(const u_char * data)
+static tcpr_tree_t *
+packet2tree(const u_char * data, const int len)
 {
     tcpr_tree_t *node = NULL;
     eth_hdr_t *eth_hdr = NULL;
@@ -696,6 +713,11 @@ packet2tree(const u_char * data)
 #ifdef DEBUG
     char srcip[INET6_ADDRSTRLEN];
 #endif
+
+    if ((size_t)len < sizeof(*eth_hdr)) {
+        errx(-1, "packet capture length %d too small to process", len);
+        return NULL;
+    }
 
     node = new_tree();
 
@@ -714,6 +736,13 @@ packet2tree(const u_char * data)
     }
 
     if (ether_type == htons(ETHERTYPE_IP)) {
+        if (len < (TCPR_ETH_H + hl + TCPR_IPV4_H)) {
+            safe_free(node);
+            errx(-1, "packet capture length %d too small for IPv4 processing",
+                    len);
+            return NULL;
+        }
+
         memcpy(&ip_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV4_H);
 
         node->family = AF_INET;
@@ -726,6 +755,13 @@ packet2tree(const u_char * data)
                     RESOLVE), 16);
 #endif
     } else if (ether_type == htons(ETHERTYPE_IP6)) {
+        if (len < (TCPR_ETH_H + hl + TCPR_IPV6_H)) {
+            safe_free(node);
+            errx(-1, "packet capture length %d too small for IPv6 processing",
+                    len);
+            return NULL;
+        }
+
         memcpy(&ip6_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV6_H);
 
         node->family = AF_INET6;
@@ -744,7 +780,7 @@ packet2tree(const u_char * data)
     /* copy over the source mac */
     memset(&node->mac[0], 0, sizeof(node->mac));
     strncpy((char *)node->mac, (char *)eth_hdr->ether_shost,
-		    sizeof(node->mac) - 1);
+            sizeof(node->mac) - 1);
 
     /* 
      * TCP 

@@ -6,25 +6,28 @@
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
 # add your dependancy information (see comment below)
 
-libtcpedit_a_SOURCES += $(srcdir)/plugins/dlt_en10mb/en10mb.c \
-		$(srcdir)/plugins/dlt_en10mb/en10mb_api.c
+libtcpedit_a_SOURCES += \
+	%reldir%/en10mb.c \
+	%reldir%/en10mb_api.c
 
-noinst_HEADERS += $(srcdir)/plugins/dlt_en10mb/en10mb.h \
-		$(srcdir)/plugins/dlt_en10mb/en10mb_api.h \
-		$(srcdir)/plugins/dlt_en10mb/en10mb_types.h \
-		$(srcdir)/tcpedit_types.h
+noinst_HEADERS += \
+	%reldir%/en10mb.h \
+	%reldir%/en10mb_api.h \
+	%reldir%/en10mb_types.h \
+	%reldir%/../../tcpedit_types.h
 
-EXTRA_DIST += $(srcdir)/plugins/dlt_en10mb/en10mb_opts.def
+EXTRA_DIST += %reldir%/en10mb_opts.def
 
 # dependancies for your plugin source code.  Edit as necessary
-$(srcdir)/plugins/dlt_en10mb/en10mb.c:  $(srcdir)/tcpedit_stub.h $(srcdir)/plugins/dlt_utils.h \
-	$(srcdir)/plugins.h $(srcdir)/plugins_api.h $(srcdir)/plugins_types.h \
-	$(srcdir)/tcpedit_api.h $(srcdir)/plugins/dlt_en10mb/en10mb.h $(srcdir)/plugins/dlt_en10mb/en10mb_api.h \
-	$(srcdir)/plugins/dlt_en10mb/en10mb_types.h
+en10mb.c: \
+	$(TCPEDIT_PLUGINS_DEPS) \
+	%reldir%/en10mb.h \
+	%reldir%/en10mb_api.h \
+	%reldir%/en10mb_types.h
 
 # Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 
-MOSTLYCLEANFILES += $(srcdir)/plugins/dlt_en10mb/*~
+MOSTLYCLEANFILES += *~
 
 # END OF: dlt_en10mb

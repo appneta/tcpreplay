@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -32,8 +32,9 @@ typedef struct {
     COUNTER pkts_sent;
     COUNTER failed;
     struct timeval start_time;
+    struct timeval time_delta;
     struct timeval end_time;
-    struct timeval last_time;
+    struct timeval pkt_ts_delta;
     struct timeval last_print;
     COUNTER flow_non_flow_packets;
     COUNTER flows;
@@ -47,7 +48,8 @@ typedef struct {
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 void packet_stats(const tcpreplay_stats_t *stats);
 int format_date_time(struct timeval *when, char *buf, size_t len);
-int tcpr_random(uint32_t *seed);
+uint32_t tcpr_random(uint32_t *seed);
+void restore_stdin(void);
 
 /* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) _our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
@@ -62,6 +64,15 @@ char *_our_safe_strdup(const char *str, const char *, const int, const char *);
 #define safe_free(x) _our_safe_free(x, __FUNCTION__, __LINE__, __FILE__)
 void _our_safe_free(void *ptr, const char *, const int, const char *);
 
+#define safe_pcap_next(x, y) _our_safe_pcap_next(x, y, __FUNCTION__, __LINE__, __FILE__)
+u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
+        const char *funcname, const int line, const char *file);
+
+#define safe_pcap_next_ex(x, y, z) _our_safe_pcap_next_ex(x, y, z, __FUNCTION__, __LINE__, __FILE__)
+int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
+        const u_char **pktdata, const char *funcname,
+        const int line, const char *file);
+
 #define MAX_ARGS 128
 
 #ifndef HAVE_INET_ATON
@@ -70,7 +81,7 @@ void _our_safe_free(void *ptr, const char *, const int, const char *);
 int inet_aton(const char *name, struct in_addr *addr);
 #endif
 
-#if SIZEOF_CHARP  == 8
+#if SIZEOF_LONG  == 8
 # define do_div(n,base) ({          \
     uint32_t __base = (base);       \
     uint32_t __rem;           \
@@ -78,7 +89,7 @@ int inet_aton(const char *name, struct in_addr *addr);
     (n) = ((uint64_t)(n)) / __base;       \
     __rem;              \
    })
-#elif SIZEOF_CHARP  == 4
+#elif SIZEOF_LONG  == 4
 extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 # define do_div(n,base) ({        \
     uint32_t __base = (base);     \
@@ -90,9 +101,9 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
         __rem = __div64_32(&(n), __base);  \
     __rem;            \
    })
-#else /* SIZEOF_CHARP == ?? */
+#else /* SIZEOF_LONG == ?? */
 # error do_div() does not yet support the C64
-#endif /* SIZEOF_CHARP  */
+#endif /* SIZEOF_LONG  */
 
 #endif /* _UTILS_H_ */
 

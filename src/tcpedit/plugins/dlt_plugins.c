@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -180,7 +180,7 @@ int
 tcpedit_dlt_post_args(tcpedit_t *tcpedit)
 {
     tcpeditdlt_t *ctx;
-    const char *dst_dlt_name = NULL;
+    const char *dst_dlt_name;
     int rcode;
     
     assert(tcpedit);
@@ -304,6 +304,8 @@ int
 tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pktlen)
 {
     tcpeditdlt_plugin_t *plugin;
+    int res;
+
     assert(ctx);
     assert(dlt >= 0);
     assert(packet);
@@ -312,7 +314,15 @@ tcpedit_dlt_l2len(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const int pk
         tcpedit_seterr(ctx->tcpedit, "Unable to find plugin for DLT 0x%04x", dlt);
         return -1;        
     }
-    return plugin->plugin_l2len(ctx, packet, pktlen);
+
+    res = plugin->plugin_l2len(ctx, packet, pktlen);
+    if (res == -1) {
+        tcpedit_seterr(ctx->tcpedit, "Packet length %d is to short to contain a layer 2 header for DLT 0x%04x",
+                pktlen, dlt);
+        return -1;
+    }
+
+    return res;
 }
 
 /**
@@ -342,6 +352,7 @@ u_char *
 tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen)
 {
     tcpeditdlt_plugin_t *plugin;
+    u_char *res;
 
     assert(ctx);
     assert(dlt >= 0);
@@ -352,7 +363,12 @@ tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen)
         return NULL;
     }
 
-    return plugin->plugin_get_layer3(ctx, packet, pktlen);
+    res = plugin->plugin_get_layer3(ctx, packet, pktlen);
+    if (res == NULL)
+        tcpedit_seterr(ctx->tcpedit, "Packet length %d is to short to contain a layer 3 header for DLT 0x%04x",
+                pktlen, dlt);
+
+    return res;
 }
 
 /**
@@ -367,6 +383,8 @@ u_char *
 tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen, u_char *l3data)
 {
     tcpeditdlt_plugin_t *plugin;
+    u_char *res;
+
     assert(ctx);
     assert(dlt >= 0);
     assert(packet);
@@ -379,7 +397,12 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
         return NULL;
     }
 
-    return plugin->plugin_merge_layer3(ctx, packet, pktlen, l3data);
+    res = plugin->plugin_merge_layer3(ctx, packet, pktlen, l3data);
+    if (res == NULL)
+        tcpedit_seterr(ctx->tcpedit, "Packet length %d is to short for layer 3 merge for DLT 0x%04x",
+                pktlen, dlt);
+
+    return res;
 }
 
 
@@ -443,7 +466,7 @@ tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
 
     if (ctx->decoded_extra != NULL)
         safe_free(ctx->decoded_extra);
-        
+
     safe_free(ctx);
 }
 

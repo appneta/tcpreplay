@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -102,13 +102,12 @@ dlt_hdlc_init(tcpeditdlt_t *ctx)
     }
     
     /* allocate memory for our deocde extra data */
-    if (sizeof(hdlc_extra_t) > 0)
-        ctx->decoded_extra = safe_malloc(sizeof(hdlc_extra_t));
+    ctx->decoded_extra_size = sizeof(hdlc_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
 
     /* allocate memory for our config data */
-    if (sizeof(hdlc_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(hdlc_config_t));
-
+    plugin->config_size = sizeof(hdlc_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
     config = (hdlc_config_t *)plugin->config;
 
     /* default to unset */
@@ -136,11 +135,13 @@ dlt_hdlc_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
         
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */
@@ -159,9 +160,15 @@ dlt_hdlc_parse_opts(tcpeditdlt_t *ctx)
     hdlc_config_t *config;
     assert(ctx);
 
+
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = plugin->config;
-    
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
+
     if (HAVE_OPT(HDLC_CONTROL)) {
         config->control = (uint16_t)OPT_VALUE_HDLC_CONTROL;
     }
@@ -191,10 +198,14 @@ dlt_hdlc_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
 
-    if (pktlen < 4)
+    if ((size_t)pktlen < sizeof(*hdlc))
         return TCPEDIT_ERROR;
     
+    if (ctx->decoded_extra_size < sizeof(*extra))
+        return TCPEDIT_ERROR;
+
     extra = (hdlc_extra_t *)ctx->decoded_extra;
+
     hdlc = (cisco_hdlc_t *)packet;
     
     ctx->proto = hdlc->protocol;
@@ -223,7 +234,10 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
     assert(ctx);
     assert(packet);
 
-    if (pktlen < 4)
+    if ((size_t)pktlen < sizeof(*hdlc))
+        return TCPEDIT_ERROR;
+
+    if (ctx->decoded_extra_size < sizeof(*extra))
         return TCPEDIT_ERROR;
 
     /* Make room for our new l2 header if old l2len != 4 */
@@ -243,8 +257,16 @@ dlt_hdlc_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t di
      */
     hdlc = (cisco_hdlc_t *)packet;
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
+
     extra = (hdlc_extra_t *)ctx->decoded_extra;
+    if (ctx->decoded_extra_size < sizeof(*extra))
+        return TCPEDIT_ERROR;
 
     /* set the address field */
     if (config->address < 65535) {
@@ -300,10 +322,8 @@ dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     assert(ctx);
     assert(packet);
 
-    /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -323,10 +343,8 @@ dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_cha
     assert(packet);
     assert(l3data);
     
-    /* FIXME: Is there anything else we need to do?? */
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -342,7 +360,7 @@ dlt_hdlc_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     assert(packet);
 
     if (pktlen < 4)
-        return 0;
+        return -1;
 
     /* HDLC is a static 4 bytes */
     return 4;

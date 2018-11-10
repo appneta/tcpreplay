@@ -4,19 +4,20 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.2.6],
+AC_INIT([tcpreplay],[4.3.0],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
-AC_CONFIG_HEADERS([src/config.h])
+AM_CONFIG_HEADER([src/config.h])
 AC_CONFIG_AUX_DIR(config)
-AM_MAINTAINER_MODE
+AM_MAINTAINER_MODE([enable])
 AM_WITH_DMALLOC
 
 dnl People building from GitHub need the same version of Autogen as I'm using
-dnl or specify --disable-local-libopts
-MAINTAINER_AUTOGEN_VERSION=5.18.4
+dnl or specify --disable-local-libopts to force using the locally-installed
+dnl copy of libopts rather than the source in the `./liopts/` directory.
+MAINTAINER_AUTOGEN_VERSION=5.18.12
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -27,9 +28,6 @@ TCPREPLAY_RELEASE=1
 
 AC_SUBST(TCPREPLAY_VERSION)
 AC_SUBST(TCPREPLAY_RELEASE)
-
-USER_CFLAGS=$CFLAGS
-CFLAGS="-Wall -std=gnu99 ${CFLAGS}"
 
 dnl Determine OS
 AC_CANONICAL_BUILD
@@ -146,13 +144,14 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign])
-AM_SILENT_RULES([yes])
+AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Wno-override])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Checks for programs.
+AM_PROG_AR
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
-AM_PROG_CC_C_O
+AC_PROG_CC
 AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
@@ -171,21 +170,44 @@ AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
 AC_PATH_PROG(insmod, insmod, /sbin/insmod, $PATH:/sbin)
 AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
 
+
+dnl tcpreplay has (so far) been relying on leading-edge autogen.
+dnl Therefore, by default:
+dnl - use the version we ship with
+dnl - do not install it
+dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
+case "${enable_local_libopts+set}" in
+ set) ;;
+ *) enable_local_libopts=yes ;;
+esac
+
+case "${enable_libopts_install+set}" in
+ set) ;;
+ *) enable_libopts_install=no ;;
+esac
+
 dnl check autogen version
 AUTOGEN_VERSION="unknown - man pages will not be built"
 if test -n "${AUTOGEN}" ; then
-    AC_MSG_CHECKING(for autogen version >= 5.18.x)
-    ${AUTOGEN} -v >autogen.version
-    AUTOGEN_VERSION=$(cat autogen.version | ${SED} 's|.* \([[0-9\.]]\{5,\}\).*|\1|')
+    AC_MSG_CHECKING(for autogen version >= ${MAINTAINER_AUTOGEN_VERSION})
+    AUTOGEN_VERSION=$(${AUTOGEN} -v | ${CUT} -d' ' -f 4)
     AUTOGEN_MAJOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1)
     AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
-    if ( test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18 ) || test ${AUTOGEN_MAJOR} -lt 5 ; then
+    AUTOGEN_BUILD=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 3)
+    if test -z "$AUTOGEN_BUILD"; then
+        AUTOGEN_BUILD=0
+    fi
+    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) || 
+            (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) ||
+            test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
-        AC_MSG_WARN([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Please upgrade to 5.18.4)])
+        if test "x$enable_local_libopts" == "xno"; then
+            AC_MSG_ERROR([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Upgrade to 5.18.4 or higher])
+        fi
+        AUTOGEN_VERSION="${AUTOGEN_VERSION} - downlevel"
     else
         AC_MSG_RESULT(yes)
     fi
-    rm -f autogen.version
 
     dnl Compare the installed version with the maintainer version if building from GitHub and not using system libopts
     if test ! -f src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
@@ -195,7 +217,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION or higher if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
@@ -239,18 +261,26 @@ AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
 
 dnl OS X SDK 10.11 throws lots of unnecessary macro warnings
+wno_format=""
+wno_macro_redefined=""
 case $host in
     *-apple-darwin*)
         AC_MSG_CHECKING(for $CC -Wno-macro-redefined)
         OLD_CFLAGS=$CFLAGS
-        CFLAGS="$CFLAGS -Wno-macro-redefined"
-        wno_macro_redefined=""
+        CFLAGS="$CFLAGS -Wno-macro-redefined -Werror"
         AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
             int main(int argc, char *argv[]) { return(0); }]])],
             [ AC_MSG_RESULT(yes)
               wno_macro_redefined="-Wno-macro-redefined" ],
             [ AC_MSG_RESULT(no) ])
         CFLAGS="$OLD_CFLAGS $wno_macro_redefined"
+        CFLAGS="$CFLAGS -Wno-format -Werror"
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
+            int main(int argc, char *argv[]) { return(0); }]])],
+        [ AC_MSG_RESULT(yes)
+          wno_format="-Wno-format" ],
+        [ AC_MSG_RESULT(no) ])
+        CFLAGS="$OLD_CFLAGS $wno_format"
     ;;
 esac
 
@@ -300,7 +330,11 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
 CFLAGS="$OLD_CFLAGS $wno_format_contains_nul"
 
 dnl Check for other header files
-AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h signal.h string.h strings.h sys/types.h stdint.h sys/select.h netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h])
+AC_CHECK_HEADERS([signal.h string.h strings.h sys/types.h stdint.h sys/select.h])
+AC_CHECK_HEADERS([netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h])
+AC_CHECK_HEADERS([inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
+AC_CHECK_HEADERS([sys/io.h architecture/i386/pio.h sched.h])
 AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements
@@ -334,7 +368,12 @@ AC_FUNC_MKTIME
 AC_FUNC_MMAP
 AC_FUNC_REALLOC
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
-AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday ctime inet_ntoa memmove memset munmap pow putenv realpath regcomp strdup select socket strcasecmp strchr strcspn strdup strerror strtol strncpy strtoull poll ntohll mmap snprintf vsnprintf strsignal strpbrk strrchr strspn strstr strtoul])
+AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday])
+AC_CHECK_FUNCS([ctime inet_ntoa memmove memset munmap pow putenv realpath])
+AC_CHECK_FUNCS([regcomp strdup select socket strcasecmp strchr strcspn strdup])
+AC_CHECK_FUNCS([strerror strtol strncpy strtoull poll ntohll mmap snprintf])
+AC_CHECK_FUNCS([vsnprintf strsignal strpbrk strrchr strspn strstr strtoul])
+AC_CHECK_FUNCS([ioperm])
 
 dnl Look for strlcpy since some BSD's have it
 AC_CHECK_FUNCS([strlcpy],have_strlcpy=true,have_strlcpy=false)
@@ -342,7 +381,6 @@ AM_CONDITIONAL(SYSTEM_STRLCPY, [test x$have_strlcpy = xtrue])
 
 AC_C_BIGENDIAN
 AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
-
 
 dnl Enable debugging in code/compiler options
 debug=no
@@ -352,7 +390,11 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
-        CFLAGS="${USER_CFLAGS} -g -O0 -std=gnu99 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul"
+        dnl replace '-0X' and add '-g' flags
+        changequote({,})
+        CFLAGS=`echo "$CFLAGS" | $SED -e 's/-O[0-9s]*//g'`
+        changequote([,])
+        CFLAGS="${CFLAGS} -g -O0 -Wall $wextra $wfatal_errors $wno_variadic_macros $wno_format_contains_nul $wno_format"
 # We may also want to add:
 #         -Wformat-security -Wswitch-default -Wunused-paramter -Wpadded"
         debug_flag=DEBUG
@@ -380,10 +422,10 @@ AC_ARG_ENABLE(timestamp-trace,
     AC_HELP_STRING([--timestamp-trace], [Enable dumping of trace timestamps at the end of a test]),
     [ if test x$enableval = xyes; then
         timestamp_trace=yes
-        CFLAGS="${USER_CFLAGS} -DTIMESTAMP_TRACE"
-        AC_SUBST(timestamp_trace_flag)
+        CFLAGS="${CFLAGS} -DTIMESTAMP_TRACE"
         AC_DEFINE([TIMESTAMP_TRACE], [1], [Enable dumping of trace timestamps at the end of a test])
     fi])
+AC_SUBST(timestamp_trace_flag)
 
 
 AC_ARG_ENABLE(dmalloc,
@@ -510,6 +552,7 @@ AC_ARG_ENABLE(dynamic-link,
         AC_MSG_ERROR([Cannot specify both --enable-dynamic-link and --enable-static-link])
     fi
     ])
+
 if test $static_link = yes; then
     AC_DEFINE([ENABLE_STATIC_LINK], [1], [Use static libraries ( .a or .A.tbd )])
 else
@@ -553,10 +596,11 @@ AC_ARG_ENABLE([tuntap],
     linux*)
       AC_CHECK_HEADER([linux/if_tun.h], [have_tuntap=yes])
       ;;
-    freebsd*)
+    *)
       AC_CHECK_HEADER([net/if_tun.h], [have_tuntap=yes])
       ;;
   esac])
+
 if test $have_tuntap = yes ; then
     AC_DEFINE([HAVE_TUNTAP], [1],
             [Do we have TUNTAP device support?])
@@ -847,6 +891,9 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
  * returns zero if version >= 0.9.6
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
+        exit(0);
+
     if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0) {
         printf("%s ", pcap_lib_version());
         exit(0);
@@ -898,6 +945,8 @@ extern const char pcap_version[[]]; /* double up since autoconf escapes things *
  * returns zero if version >= 0.7.2
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
+        exit(0);
 
     if (strncmp(pcap_version, PCAP_TEST, 5) >= 0)
             exit(0);
@@ -1257,7 +1306,6 @@ dnl ###########################################################
 if test "x$NETMAPINCDIR" != "x"; then
     OLDCPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
-    AC_CHECK_HEADERS(stdio.h net/netmap_user.h)
 
     have_nm_open=no
     have_nm_nr_reg_mask=no
@@ -1395,6 +1443,14 @@ fi
 
 dnl ##################################################
 dnl # Check for libdnet, but only if not Cygwin!
+dnl #
+dnl # if your version of libdnet doesn't compile, try
+dnl # getting it from ...
+dnl # http://libdnet.sourceforge.net/
+dnl # ... or ...
+dnl # https://github.com/jncornett/libdnet
+dnl # ... or ...
+dnl # on Linux try 'apt-get install libdumbnet-dev'
 dnl ##################################################
 founddnet=no
 have_libdnet=no
@@ -1408,14 +1464,31 @@ if test $have_cygwin = no ; then
         AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
         [trydnetdir=$withval])
 
-    for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
-        if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-            LDNETINC="$($testdir/bin/dnet-config --cflags)"
-            LDNETLIB="$($testdir/bin/dnet-config --libs)"
-            libdnet_version="$($testdir/bin/dnet-config --version)"
-            founddnet=$testdir
-        fi
-    done
+    case "$build_os" in
+    linux*)
+        dnl # Debian/Ubuntu already have a package called libdnet
+        dnl # so you the package you want to install libdumbnet-dev
+        for testdir in $trydnetdir /usr/local /opt/local /usr ; do
+            if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
+                LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
+                LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
+                libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
+                founddnet=$testdir
+            fi
+        done
+        ;;
+    esac
+
+    if test $founddnet = no ; then
+        for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
+            if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+                LDNETINC="$($testdir/bin/dnet-config --cflags)"
+                LDNETLIB="$($testdir/bin/dnet-config --libs)"
+                libdnet_version="$($testdir/bin/dnet-config --version)"
+                founddnet=$testdir
+            fi
+        done
+    fi
 
     if test $founddnet = no ; then
         AC_MSG_RESULT(no)
@@ -1458,12 +1531,13 @@ dnl If doesn't exist, we'll define them in src/common/fakepcap.h
 AC_MSG_CHECKING(for DLT_LINUX_SLL in libpcap)
 AC_TRY_COMPILE([#include "$LPCAPINC"],
                [ int foo;
-                 foo = DLT_LINUX_SLL ],
-                [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
-                            [Does pcap.h include a header with DLT_LINUX_SLL?])
-                  AC_MSG_RESULT(yes)
-                ],
-                AC_MSG_RESULT(no)
+                 foo = DLT_LINUX_SLL
+               ],
+               [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
+                           [Does pcap.h include a header with DLT_LINUX_SLL?])
+                 AC_MSG_RESULT(yes)
+               ],
+               [AC_MSG_RESULT(no)]
                )
 
 AC_MSG_CHECKING(for DLT_C_HDLC in libpcap)
@@ -1513,22 +1587,29 @@ for testfile in $LPCAPINCDIR/pcap/bpf.h $LPCAPINCDIR/pcap-bpf.h ; do
                 AC_SUBST(PCAP_BPF_H_FILE)
                 AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [1],
                         [What is the path (if any) to the libpcap bpf header file?])
-                AC_MSG_RESULT($testfile)
-            ],
-            AC_MSG_RESULT(no)
+            ]
             )
     fi
 done
 
+if test $foundbpfheader != no; then
+    AC_MSG_RESULT($testfile)
+else
+    AC_MSG_RESULT(no)
+fi
+
 dnl ## Test for netmap-libpcap
 have_pcap_netmap=no
 if test $foundpcap != no ; then
+	AC_MSG_CHECKING(for netmap libpcap)
     PCAP_NETMAP_C_FILE="$LPCAPINCDIR/pcap-netmap.c"
     if test -f "${PCAP_NETMAP_C_FILE}" ; then
         AC_DEFINE([HAVE_LIBPCAP_NETMAP], [1],
                                    [Does this version of libpcap support netmap?])
-        AC_MSG_RESULT(yes)
         have_pcap_netmap=yes
+        AC_MSG_RESULT(yes)
+    else
+        AC_MSG_RESULT(no)
     fi
 fi
 
@@ -1697,7 +1778,7 @@ AM_CONDITIONAL([ENABLE_TCPDUMP], test "$tcpdump_path" != "no" -a x$have_pcap_dum
 if test x$tcpdump_path != xno -a x$have_pcap_dump_fopen = xyes ; then
     AC_DEFINE([ENABLE_VERBOSE], [1], [Do we have tcpdump and pcap_dump_fopen()?])
 else
-    AC_MSG_WARN([Your version of libpcap is too old for --verbose support])
+    AC_MSG_WARN([Your version of libpcap does not support --verbose])
 fi
 
 dnl No 'make test' when cross compile
@@ -1714,65 +1795,40 @@ AC_ARG_WITH(testnic,
       nic2=$withval
       AC_MSG_RESULT([Using --with-testnic=$withval])],
     [
-
-dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
-dnl so under OSX we disable the interface list feature
-disable_pcap_findalldevs=no
-
-osx_frameworks=no
-dnl these need to be dynamic based on OS
 case $host in
     *-*-linux*)
     nic1=eth0
     nic2=eth0
-    AC_DEFINE([HAVE_LINUX], [1], [Building Linux])
-    AC_MSG_RESULT(Linux)
     ;;
 
     *-*-solaris*)
     nic1=hme0
     nic2=hme0
-    AC_DEFINE([HAVE_SOLARIS], [1], [Building Solaris])
-    AC_MSG_RESULT(Solaris)
     ;;
 
     *-*-sunos*)
     nic1=hme0
     nic2=hme0
-    AC_DEFINE([HAVE_SUNOS], [1], [Building SunOS])
-    AC_MSG_RESULT(SunOS)
     ;;
 
     *-apple-darwin*)
     nic1=en0
     nic2=en0
-    if test x$libpcap_version_096 = xno ; then
-        disable_pcap_findalldevs=yes
-    fi
-    osx_frameworks=yes
-    AC_DEFINE([HAVE_DARWIN], [1], [Building Apple/Darwin])
-    AC_MSG_RESULT(Apple OS X)
     ;;
 
     *-*-openbsd*)
     nic1=xl0
     nic2=xl0
-    AC_DEFINE([HAVE_OPENBSD], [1], [Building Open BSD])
-    AC_MSG_RESULT(OpenBSD)
     ;;
 
     *-*-freebsd*)
     nic1=em0
     nic2=em0
-    AC_DEFINE([HAVE_FREEBSD], [1], [Building Free BSD])
-    AC_MSG_RESULT(FreeBSD)
     ;;
 
     *-*-cygwin)
-    AC_MSG_RESULT(Win32/Cygwin)
     nic1=%0
     nic2=%0
-    AC_DEFINE([HAVE_CYGWIN], [1], [Building Cygwin])
     ;;
 
     *)
@@ -1782,6 +1838,55 @@ case $host in
     ;;
 esac])
 
+dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
+dnl so under OSX we disable the interface list feature
+disable_pcap_findalldevs=no
+osx_frameworks=no
+dnl these need to be dynamic based on OS
+case $host in
+    *-*-linux*)
+    AC_DEFINE([HAVE_LINUX], [1], [Building Linux])
+    AC_MSG_RESULT(Linux)
+    ;;
+
+    *-*-solaris*)
+    AC_DEFINE([HAVE_SOLARIS], [1], [Building Solaris])
+    AC_MSG_RESULT(Solaris)
+    ;;
+
+    *-*-sunos*)
+    AC_DEFINE([HAVE_SUNOS], [1], [Building SunOS])
+    AC_MSG_RESULT(SunOS)
+    ;;
+
+    *-apple-darwin*)
+    if test x$libpcap_version_096 = xno ; then
+        disable_pcap_findalldevs=yes
+    fi
+    osx_frameworks=yes
+    AC_DEFINE([HAVE_DARWIN], [1], [Building Apple/Darwin])
+    AC_MSG_RESULT(Apple OS X)
+    ;;
+
+    *-*-openbsd*)
+    AC_DEFINE([HAVE_OPENBSD], [1], [Building Open BSD])
+    AC_MSG_RESULT(OpenBSD)
+    ;;
+
+    *-*-freebsd*)
+    AC_DEFINE([HAVE_FREEBSD], [1], [Building Free BSD])
+    AC_MSG_RESULT(FreeBSD)
+    ;;
+
+    *-*-cygwin)
+    AC_MSG_RESULT(Win32/Cygwin)
+    AC_DEFINE([HAVE_CYGWIN], [1], [Building Cygwin])
+    ;;
+
+    *)
+    AC_MSG_RESULT([$host is unknown!])
+    ;;
+esac
 AM_CONDITIONAL([ENABLE_OSX_FRAMEWORKS], test "$osx_frameworks" = "yes")
 
 AC_ARG_WITH(testnic2,
@@ -1802,21 +1907,6 @@ else
     AC_MSG_RESULT(no)
 fi
 
-dnl tcpreplay has (so far) been relying on leading-edge autogen.
-dnl Therefore, by default:
-dnl - use the version we ship with
-dnl - do not install it
-dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
-case "${enable_local_libopts+set}" in
- set) ;;
- *) enable_local_libopts=yes ;;
-esac
-
-case "${enable_libopts_install+set}" in
- set) ;;
- *) enable_libopts_install=no ;;
-esac
-
 LIBOPTS_CHECK(libopts)
 
 
@@ -1836,7 +1926,7 @@ AC_CONFIG_FILES([Makefile
 AC_OUTPUT
 
 # Configuration results
-AC_MSG_RESULT(
+AC_MSG_RESULT([
 ##########################################################################
              TCPREPLAY Suite Configuration Results (${TCPREPLAY_VERSION})
 ##########################################################################
@@ -1864,7 +1954,7 @@ Tuntap device support:      ${have_tuntap}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge
-)
+])
 
 
 case $host in

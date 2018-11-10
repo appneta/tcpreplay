@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -196,37 +196,37 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     }
 
     if (cachedata) {
-    	mycache = cachedata;
+        mycache = cachedata;
 
-    	while (!last) {
-    		/* increment total packets */
-    		packets += mycache->packets;
+        while (!last) {
+            /* increment total packets */
+            packets += mycache->packets;
 
-    		/* calculate how many chars to write */
-    		chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
-    		if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
-    			chars++;
-    			dbgx(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
-    					CACHE_PACKETS_PER_BYTE);
-    		}
+            /* calculate how many chars to write */
+            chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
+            if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
+                chars++;
+                dbgx(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
+                        CACHE_PACKETS_PER_BYTE);
+            }
 
-    		/* write to file, and verify it wrote properly */
-    		written = write(out_file, mycache->data, chars);
-    		dbgx(1, "Wrote %zu bytes of cache data", written);
-    		if (written != (ssize_t)chars)
-    			errx(-1, "Only wrote %zu of %i bytes to cache file!", written, chars);
+            /* write to file, and verify it wrote properly */
+            written = write(out_file, mycache->data, chars);
+            dbgx(1, "Wrote %zu bytes of cache data", written);
+            if (written != (ssize_t)chars)
+                errx(-1, "Only wrote %zu of %i bytes to cache file!", written, chars);
 
-    		/*
-    		 * if that was the last, stop processing, otherwise wash,
-    		 * rinse, repeat
-    		 */
-    		if (mycache->next != NULL) {
-    			mycache = mycache->next;
-    		}
-    		else {
-    			last = 1;
-    		}
-    	}
+            /*
+             * if that was the last, stop processing, otherwise wash,
+             * rinse, repeat
+             */
+            if (mycache->next != NULL) {
+                mycache = mycache->next;
+            }
+            else {
+                last = 1;
+            }
+        }
     }
     safe_free(cache_header);
     /* return number of packets written */
@@ -255,10 +255,7 @@ tcpr_dir_t
 add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 {
     static tcpr_cache_t *lastcache = NULL;
-    u_char *byte = NULL;
-    uint32_t bit;
     tcpr_dir_t result = TCPR_DIR_ERROR;
-    COUNTER index;
 #ifdef DEBUG
     char bitstring[9] = EIGHT_ZEROS;
 #endif
@@ -266,12 +263,11 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
     assert(cachedata);
 
     /* first run?  malloc our first entry, set bit count to 0 */
-    if (*cachedata == NULL) {
+    if (*cachedata == NULL || lastcache == NULL) {
         *cachedata = new_cache();
         lastcache = *cachedata;
     }
     else {
-        lastcache = *cachedata;
         /* check to see if this is the last bit in this struct */
         if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
             /*
@@ -289,6 +285,10 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 
     /* send packet ? */
     if (send == SEND) {
+        COUNTER index;
+        uint32_t bit;
+        u_char *byte;
+
         index = (lastcache->packets - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
         bit = (((lastcache->packets - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
                (COUNTER)CACHE_BITS_PER_PACKET) + 1;
@@ -319,8 +319,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
         dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c",
             BIT_STR(byte2bits(*byte, bitstring)));
 #endif
-    }
-    else {
+    } else {
         dbg(1, "not setting send bit");
         result = TCPR_DIR_NOSEND;
     }

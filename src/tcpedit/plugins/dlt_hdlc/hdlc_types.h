@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -33,9 +33,14 @@ extern "C" {
  * Example: Ethernet VLAN tag info
  */
 typedef struct {
-    int hdlc; /* set to 1 if values below are filled out */
-    u_int8_t address;
-    u_int8_t control;
+    union {
+        struct {
+            int hdlc; /* set to 1 if values below are filled out */
+            u_int8_t address;
+            u_int8_t control;
+        };
+        u_char packet[MAXPACKET];
+    };
 } hdlc_extra_t;
 
 

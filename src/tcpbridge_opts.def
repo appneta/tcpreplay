@@ -2,11 +2,11 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -23,12 +23,12 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2017";
+    date        = "2000-2018";
     owner       = "Aaron Turner and Fred Klassen";
-    eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
+    eaddr       = "tcpreplay-users@lists.sourceforge.net";
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2017 Fred Klassen - AppNeta
+Copyright 2013-2018 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -66,7 +66,7 @@ include         = "#include \"defines.h\"\n"
 homerc          = "$$/";
 
 explain = <<- EOExplain
-tcpbridge is a tool for selectively briding network traffic across two interfaces
+tcpbridge is a tool for selectively bridging network traffic across two interfaces
 and optionally modifying the packets in between
 EOExplain;
 
@@ -98,12 +98,12 @@ tcpbridge can only send packets as fast as your computer's interface,
 processor and system bus will allow.
 
 Connecting both interfaces to the same subnet may create a broadcast storm and
-take down the network.  Improper use of the packet editing functions may have 
+take down the network.  Improper use of the packet editing functions may have
 other undefined and possible negative consequences.
 
 Some operating systems by default do not allow for forging source MAC
 addresses.  Please consult your operating system's documentation and the
-tcpreplay FAQ if you experiance this issue.
+tcpreplay FAQ if you experience this issue.
 EOMan;
 
 /*
@@ -121,7 +121,7 @@ flag = {
     arg-default = 0;
     descrip     = "Enable debugging output";
     doc         = <<- EOText
-If configured with --enable-debug, then you can specify a verbosity 
+If configured with --enable-debug, then you can specify a verbosity
 level for debugging output.  Higher numbers increase verbosity.
 EOText;
 };
@@ -156,8 +156,8 @@ flag = {
     max     = 1;
     descrip = "Send and receive in only one direction";
     doc     = <<- EOText
-Normally, tcpbridge will send and receive traffic in both directions 
-(bi-directionally).  However, if you choose this option, traffic will 
+Normally, tcpbridge will send and receive traffic in both directions
+(bi-directionally).  However, if you choose this option, traffic will
 be sent uni-directionally.
 EOText;
 };
@@ -257,7 +257,7 @@ corresponds to the packet number in the capture file.
 @example
 --include=P:1-5,9,15,72-
 @end example
-would send packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+would send packets 1 through 5, the 9th and 15th packet, and packets 72 until the
 end of the file
 @item F:'<bpf>'
 - BPF filter.  See the @file{tcpdump(8)} man page for syntax.
@@ -304,7 +304,7 @@ corresponds to the packet number in the capture file.
 @example
 --exclude=P:1-5,9,15,72-
 @end example
-would drop packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+would drop packets 1 through 5, the 9th and 15th packet, and packets 72 until the
 end of the file
 @end table
 EOText;
@@ -366,7 +366,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2017 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2018 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");
 #ifdef HAVE_LIBDNET

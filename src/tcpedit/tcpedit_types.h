@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -119,6 +119,10 @@ typedef struct {
 
     /* rewrite ip? */
     bool rewrite_ip;
+
+    /* rewrite TCP seq/ack numbers? */
+    u_int32_t tcp_sequence_enable;
+    u_int32_t tcp_sequence_adjust;
     
     /* fix IP/TCP/UDP checksums */
     bool fixcsum;

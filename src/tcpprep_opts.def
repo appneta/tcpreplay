@@ -2,11 +2,11 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -21,12 +21,12 @@
 autogen definitions options;
 
 copyright = {
-    date        = "2000-2017";
+    date        = "2000-2018";
     owner       = "Aaron Turner and Fred Klassen";
-    eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
+    eaddr       = "tcpreplay-users@lists.sourceforge.net";
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2017 Fred Klassen - AppNeta
+Copyright 2013-2018 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -66,8 +66,8 @@ EOExplain;
 
 detail = <<- EODetail
 The basic operation of tcpreplay is to resend all packets from the
-input file(s) out a single file.  Tcpprep processes a pcap file and 
-applies a set of user-specified rules to create a cache file which 
+input file(s) out a single file.  Tcpprep processes a pcap file and
+applies a set of user-specified rules to create a cache file which
 tells tcpreplay whether or not to send each packet and which interface the
 packet should be sent out of.
 
@@ -92,7 +92,7 @@ flag = {
     arg-default = 0;
     descrip     = "Enable debugging output";
     doc         = <<- EOText
-If configured with --enable-debug, then you can specify a verbosity 
+If configured with --enable-debug, then you can specify a verbosity
 level for debugging output.  Higher numbers increase verbosity.
 EOText;
 };
@@ -140,15 +140,15 @@ for clients and servers.  Valid hints are:
 @table @bullet
 @item
 @var{bridge}
-Bridge mode processes each packet to try to determine if the sender is a 
+Bridge mode processes each packet to try to determine if the sender is a
 client or server.  Once all the packets are processed, the results are weighed
 according to the server/client ratio (@samp{--ratio}) and systems are assigned an
 interface.  If tcpprep is unable to determine what role a system plays, tcpprep
 will abort.
 @item
 @var{router}
-Router mode works just like bridge mode, except that after weighing is done, 
-systems which are undetermined are considered a server if they fall inside a 
+Router mode works just like bridge mode, except that after weighing is done,
+systems which are undetermined are considered a server if they fall inside a
 network known to contain other servers.  Router has a greater chance of
 successfully splitting clients and servers but is not 100% foolproof.
 @item
@@ -162,8 +162,8 @@ treated as servers.  Server mode should always complete successfully.
 @item
 @var{first}
 First mode works by looking at the first time each IP is seen in the SRC and DST
-fields in the IP header.  If the host is first seen in the SRC field, it is a 
-client and if it's first seen in the DST field, it is marked as a server.   This 
+fields in the IP header.  If the host is first seen in the SRC field, it is a
+client and if it's first seen in the DST field, it is marked as a server.   This
 effectively replicates the processing of the tomahawk test tool.  First
 mode should always complete successfully.
 @end table
@@ -222,7 +222,7 @@ flag = {
     char ebuf[EBUF_SIZE];
 
     tcpprep->options->mode = REGEX_MODE;
-    if ((regex_error = regcomp(&tcpprep->options->preg, OPT_ARG(REGEX), 
+    if ((regex_error = regcomp(&tcpprep->options->preg, OPT_ARG(REGEX),
         REG_EXTENDED|REG_NOSUB))) {
         regerror(regex_error, &tcpprep->options->preg, ebuf, EBUF_SIZE);
         errx(-1, "Unable to compile regex: %s", ebuf);
@@ -250,7 +250,7 @@ flag = {
 
 EOPort;
     doc         = <<- EOText
-Specifies that TCP and UDP traffic over IPv4 and IPv6 should be classified 
+Specifies that TCP and UDP traffic over IPv4 and IPv6 should be classified
 as client or server based upon the destination port of the header.
 EOText;
 };
@@ -284,7 +284,7 @@ flag = {
     descrip     = "Matches to be client instead of server";
     doc         = <<- EOText
 Normally the @samp{--mac}, @samp{--regex} and @samp{--cidr} flags specify are used to specify
-the servers and non-IP packets are classified as clients.  By using @samp{--reverse}, these  
+the servers and non-IP packets are classified as clients.  By using @samp{--reverse}, these
 features are reversed so that the flags specify clients and non-IP packets are classified as
 servers.
 EOText;
@@ -300,7 +300,7 @@ flag = {
 
     /* our comment_len is only 16bit - myargs[] */
     if (strlen(OPT_ARG(COMMENT)) > ((1 << 16) - 1 - MYARGS_LEN))
-                errx(-1, "Comment length %zu is longer then max allowed (%d)", 
+                errx(-1, "Comment length %zu is longer then max allowed (%d)",
                 strlen(OPT_ARG(COMMENT)), (1 << 16) - 1 - MYARGS_LEN);
 
     /* save the comment */
@@ -417,7 +417,7 @@ corresponds to the packet number in the capture file.
 @example
 -x P:1-5,9,15,72-
 @end example
-would skip packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+would skip packets 1 through 5, the 9th and 15th packet, and packets 72 until the
 end of the file
 @end table
 EOText;
@@ -601,7 +601,7 @@ flag = {
     fprintf(stderr, " (debug)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2017 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2018 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);

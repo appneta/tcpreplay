@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  * Copyright (c) 2007-2008 Aaron Turner.
- * Copyright (c) 2013-2017 Fred Klassen - AppNeta
+ * Copyright (c) 2013-2018 Fred Klassen - AppNeta
  * $Id$
  */
 
@@ -42,7 +42,6 @@ fragroute_close(fragroute_t *ctx)
     assert(ctx);
     free(ctx->pktq);
     free(ctx);
-    ctx = NULL;
     pkt_close();
 }
 
@@ -59,14 +58,14 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
     ctx->l2len = get_l2len(buf, len, ctx->dlt);
     memcpy(ctx->l2header, buf, ctx->l2len);
 
-    if ((pkt = pkt_new()) == NULL) {
+    if ((pkt = pkt_new(len)) == NULL) {
         strcpy(ctx->errbuf, "unable to pkt_new()");
         return -1;
     }
-    if (len > PKT_BUF_LEN) {
-        sprintf(ctx->errbuf, "skipping oversized packet: %zu", len);
-        return -1;
-    }
+//    if (len > PKT_BUF_LEN) {
+//        sprintf(ctx->errbuf, "skipping oversized packet: %zu", len);
+//        return -1;
+//    }
 
     memcpy(pkt->pkt_data, buf, len);
     pkt->pkt_end = pkt->pkt_data + len;

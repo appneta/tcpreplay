@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -104,8 +104,10 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    ctx->decoded_extra = safe_malloc(sizeof(en10mb_extra_t));
-    plugin->config = safe_malloc(sizeof(en10mb_config_t));
+    ctx->decoded_extra_size = sizeof(en10mb_extra_t);
+    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    plugin->config_size = sizeof(en10mb_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
     config = (en10mb_config_t *)plugin->config;
     
     /* init vlan user values to -1 to indicate not set */
@@ -135,11 +137,13 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
 
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
         
     return TCPEDIT_OK; /* success */
@@ -222,7 +226,12 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
     assert(ctx);
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = (en10mb_config_t *)plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
 
     /* --subsmacs */
     if (HAVE_OPT(ENET_SUBSMAC)) {
@@ -372,7 +381,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    if (pktlen < 14)
+    if (pktlen < TCPR_802_3_H)
         return TCPEDIT_ERROR;
 
     /* get our src & dst address */
@@ -381,11 +390,17 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     memcpy(&(ctx->srcaddr.ethernet), &(eth->ether_shost), ETHER_ADDR_LEN);
 
     extra = (en10mb_extra_t *)ctx->decoded_extra;
+    if (ctx->decoded_extra_size < sizeof(*extra))
+        return TCPEDIT_ERROR;
+
     extra->vlan = 0;
     
     /* get the L3 protocol type  & L2 len*/
     switch (ntohs(eth->ether_type)) {
         case ETHERTYPE_VLAN:
+            if (pktlen < TCPR_802_1Q_H)
+                    return TCPEDIT_ERROR;
+
             vlan = (struct tcpr_802_1q_hdr *)packet;
             ctx->proto = vlan->vlan_len;
             
@@ -402,7 +417,6 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         default:
             ctx->proto = eth->ether_type;
             ctx->l2len = TCPR_802_3_H;
-            break;
     }
 
     return TCPEDIT_OK; /* success */
@@ -426,7 +440,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     assert(ctx);
     assert(packet);
 
-    if (pktlen < 14) {
+    if (pktlen < TCPR_802_1Q_H) {
         tcpedit_seterr(ctx->tcpedit, 
                 "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.", 
                 ctx->tcpedit->runtime.packetnum);
@@ -434,9 +448,17 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     }
 
     plugin = tcpedit_dlt_getplugin(ctx, dlt_value);
+    if (!plugin)
+        return TCPEDIT_ERROR;
+
     config = plugin->config;
+    if (plugin->config_size < sizeof(*config))
+        return TCPEDIT_ERROR;
+
     extra = (en10mb_extra_t *)ctx->decoded_extra;
-    
+    if (ctx->decoded_extra_size < sizeof(*extra))
+        return TCPEDIT_ERROR;
+
     /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
     if (ctx->decoder->dlt == dlt_value) {
         if ((ctx->l2len == TCPR_802_1Q_H && config->vlan == TCPEDIT_VLAN_OFF) ||
@@ -454,9 +476,28 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         newl2len = config->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_802_3_H;
     }
 
+    if (pktlen < newl2len) {
+        tcpedit_seterr(ctx->tcpedit,
+                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d bytes.",
+                ctx->tcpedit->runtime.packetnum, newl2len);
+        return TCPEDIT_ERROR;
+    }
+
+    if (pktlen < ctx->l2len) {
+        tcpedit_seterr(ctx->tcpedit,
+                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d L2 bytes.",
+                ctx->tcpedit->runtime.packetnum, ctx->l2len);
+        return TCPEDIT_ERROR;
+    }
+
     /* Make space for our new L2 header */
-    if (newl2len != ctx->l2len)
+    if (newl2len != ctx->l2len) {
+        if (pktlen + (newl2len - ctx->l2len) > MAXPACKET)
+            errx(-1, "New frame too big, new length %d exceeds %d",
+                    pktlen + (newl2len - ctx->l2len), MAXPACKET);
+
         memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
+    }
 
     /* update the total packet length */
     pktlen += newl2len - ctx->l2len;
@@ -657,8 +698,7 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     assert(packet);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -679,8 +719,7 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_c
     assert(l3data);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -723,26 +762,26 @@ int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     int l2len;
-    struct tcpr_ethernet_hdr *eth = NULL;
+    uint16_t ether_type;
     
     assert(ctx);
     assert(packet);
 
-    eth = (struct tcpr_ethernet_hdr *)packet;
-    switch (ntohs(eth->ether_type)) {
-        case ETHERTYPE_VLAN:
-            l2len = 18;
-            break;
-        
-        default:
-            l2len = 14;
-            break;
+    l2len = sizeof(eth_hdr_t);
+    if (pktlen < l2len)
+        return -1;
+
+    ether_type = ntohs(((eth_hdr_t*)(packet + l2len))->ether_type);
+    while (ether_type == ETHERTYPE_VLAN) {
+        vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(packet + l2len);
+        ether_type = ntohs(vlan_hdr->vlan_len);
+        l2len += 4;
     }
 
     if (l2len > 0) {
         if (pktlen < l2len) {
             /* can happen if fuzzing is enabled */
-            return 0;
+            return -1;
         }
 
         return l2len;

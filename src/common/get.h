@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -33,7 +33,7 @@ u_int16_t get_l2protocol(const u_char *pktdata, const int datalen, const int dat
 void *get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int len);
 void *get_layer4_v6(const ipv6_hdr_t *ip_hdr, const int len);
 
-u_int8_t get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int len);
+u_int8_t get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, int len);
 void *get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len);
 
 const u_char *get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff);

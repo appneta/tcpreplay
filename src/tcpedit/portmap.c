@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -63,7 +63,7 @@ ports2PORT(char *ports)
 {
     tcpedit_portmap_t *portmap = NULL, *portmap_head = NULL, *portmap_last = NULL;
     char *from_s, *to_s, *from_begin, *from_end, *badchar;
-    long from_l, to_l, from_b, from_e, i;
+    long from_l, to_l;
     char *token = NULL, *token2 = NULL;
 
     assert(ports);
@@ -105,19 +105,17 @@ ports2PORT(char *ports)
 
     /* process a range, setting from_begin & from_end */
     if (strchr(from_s, '-')) {
+        long i;
+
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
-        from_b = strtol(from_begin, &badchar, 10);
-        if (strlen(badchar) != 0) {
-            free(portmap);
-            return NULL;
-        }
-        from_e = strtol(from_end, &badchar, 10);
+        long from_b = strtol(from_begin, &badchar, 10);
         if (strlen(badchar) != 0) {
             free(portmap);
             return NULL;
         }
 
+        long from_e = strtol(from_end, &badchar, 10);
         if (from_b > 65535 || from_b < 0 || from_e > 65535 || from_e < 0) {
             free(portmap);
             return NULL;
@@ -131,8 +129,6 @@ ports2PORT(char *ports)
             portmap = portmap->next;
         }
         portmap_last->next = NULL;
-        free(portmap);
-        portmap = portmap_head = NULL;
     }
     /* process a list via +, filling in list[] */
     else if (strchr(from_s, '+')) {
@@ -190,7 +186,7 @@ int
 parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
 {
     tcpedit_portmap_t *portmap_ptr;
-    char *substr = NULL, *ourstrcpy = NULL, *token = NULL;
+    char *substr, *ourstrcpy, *token = NULL;
 
     assert(ourstr);
     ourstrcpy = safe_strdup(ourstr);
@@ -300,7 +296,7 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
-    uint16_t newport;
+    volatile uint16_t newport;
     tcpedit_portmap_t *portmap;
 
     assert(tcpedit);
@@ -346,13 +342,13 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
 
             udp_hdr->uh_sport = newport;
         }
-
     }
+
     return 0;
 }
 
 int
-rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
+rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int len)
 {
     assert(tcpedit);
     u_char *l4;
@@ -360,15 +356,16 @@ rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr)
     if (*ip_hdr == NULL) {
         return 0;
     } else if ((*ip_hdr)->ip_p == IPPROTO_TCP || (*ip_hdr)->ip_p == IPPROTO_UDP) {
-        l4 = get_layer4_v4(*ip_hdr, 65536);
-        return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4);
+        l4 = get_layer4_v4(*ip_hdr, len);
+        if (l4)
+            return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4);
     }
 
     return 0;
 }
 
 int
-rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr)
+rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr, const int len)
 {
     assert(tcpedit);
     u_char *l4;
@@ -376,8 +373,10 @@ rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr)
     if (*ip6_hdr == NULL) {
         return 0;
     } else if ((*ip6_hdr)->ip_nh == IPPROTO_TCP || (*ip6_hdr)->ip_nh == IPPROTO_UDP) {
-        l4 = get_layer4_v6(*ip6_hdr, 65535);
-        return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4);
+        l4 = get_layer4_v6(*ip6_hdr, len);
+        if (l4)
+            return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4);
     }
+
     return 0;
 }

@@ -18,7 +18,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2014 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2015 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -36,6 +36,9 @@
  *  4379e7444a0e2ce2b12dd6f5a52a27a4d02d39d247901d3285c88cf0d37f477b  COPYING.lgplv3
  *  13aa749a5b0a454917a944ed8fffc530b784f5ead522b1aacaf4ec8aa55a6239  COPYING.mbsd
  */
+
+#define GRAPH_CH(_ch) \
+    ((((unsigned)_ch) <= 0x7E) && (((unsigned)_ch) > ' '))
 
 /* = = = START-STATIC-FORWARD = = = */
 static unsigned int
@@ -240,7 +243,7 @@ skip_misuse_usage(tOptions * pOpts)
 /*=export_func  optionOnlyUsage
  *
  * what:  Print usage text for just the options
- * arg:   + tOptions*   + pOpts    + program options descriptor +
+ * arg:   + tOptions *  + pOpts    + program options descriptor +
  * arg:   + int         + ex_code  + exit code for calling exit(3) +
  *
  * doc:
@@ -351,8 +354,8 @@ print_usage_details(tOptions * opts, int exit_code)
             flen = setGnuOptFmts(opts, &pOptTitle);
             sprintf(line_fmt_buf, zFmtFmt, flen);
             fputc(NL, option_usage_fp);
-        }
-        else {
+
+        } else {
             flen = setStdOptFmts(opts, &pOptTitle);
             sprintf(line_fmt_buf, zFmtFmt, flen);
 
@@ -435,7 +438,7 @@ print_one_paragraph(char const * text, bool plain, FILE * fp)
     else {
         char const * t = optionQuoteString(text, LINE_SPLICE);
         fprintf(fp, PUTS_FMT, t);
-        AGFREE((void *)t);
+        AGFREE(t);
     }
 }
  
@@ -546,15 +549,15 @@ optionPrintParagraphs(char const * text, bool plain, FILE * fp)
             buf = scan;
         }
     }
-    AGFREE((void *)text);
+    AGFREE(text);
 }
 
 /*=export_func  optionUsage
  * private:
  *
  * what:  Print usage text
- * arg:   + tOptions* + opts + program options descriptor +
- * arg:   + int       + exitCode + exit code for calling exit(3) +
+ * arg:   + tOptions * + opts + program options descriptor +
+ * arg:   + int        + exitCode + exit code for calling exit(3) +
  *
  * doc:
  *  This routine will print usage in both GNU-standard and AutoOpts-expanded
@@ -777,7 +780,7 @@ prt_vendor_opts(tOptions * opts, char const * title)
         do  {
             size_t l;
             if (  ((od->fOptState & not_vended_mask) != 0)
-               || IS_GRAPHIC_CHAR(od->optValue))
+               || GRAPH_CH(od->optValue))
                 continue;
 
             l = strlen(od->pz_Name);
@@ -795,7 +798,7 @@ prt_vendor_opts(tOptions * opts, char const * title)
 
     do  {
         if (  ((od->fOptState & not_vended_mask) != 0)
-           || IS_GRAPHIC_CHAR(od->optValue))
+           || GRAPH_CH(od->optValue))
             continue;
 
         prt_one_vendor(opts, od, &argTypes, vfmt);
@@ -1005,7 +1008,7 @@ prt_preamble(tOptions * opts, tOptDesc * od, arg_types_t * at)
     if ((opts->fOptSet & OPTPROC_SHORTOPT) == 0)
         fputs(at->pzSpc, option_usage_fp);
 
-    else if (! IS_GRAPHIC_CHAR(od->optValue)) {
+    else if (! GRAPH_CH(od->optValue)) {
         if (  (opts->fOptSet & (OPTPROC_GNUUSAGE|OPTPROC_LONGOPT))
            == (OPTPROC_GNUUSAGE|OPTPROC_LONGOPT))
             fputc(' ', option_usage_fp);
@@ -1132,7 +1135,7 @@ prt_opt_usage(tOptions * opts, int ex_code, char const * title)
 
         /* Skip name only options when we have a vendor option */
         if (  ((opts->fOptSet & OPTPROC_VENDOR_OPT) != 0)
-           && (! IS_GRAPHIC_CHAR(od->optValue)))
+           && (! GRAPH_CH(od->optValue)))
             continue;
 
         /*

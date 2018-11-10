@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -78,9 +78,10 @@ typedef struct {
 
 /* accurate mode selector */
 typedef enum {
-    accurate_gtod = 0,
-    accurate_select = 1,
-    accurate_nanosleep = 2
+    accurate_gtod,
+    accurate_select,
+    accurate_nanosleep,
+    accurate_ioport,
 } tcpreplay_accurate;
 
 typedef enum {
@@ -102,7 +103,7 @@ typedef struct tcpreplay_opt_s {
     char *intf2_name;
 
     tcpreplay_speed_t speed;
-    u_int32_t loop;
+    COUNTER loop;
     u_int32_t loopdelay_ms;
 
     int stats;

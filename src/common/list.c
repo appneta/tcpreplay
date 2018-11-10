@@ -1,8 +1,6 @@
-/* $Id$ */
-
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -62,7 +60,6 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     char *first, *second;
     int rcode;
     regex_t preg;
-    char ebuf[EBUF_SIZE];
     char regex[] = "^[0-9]+(-[0-9]+)?$";
     char *token = NULL;
     u_int i;
@@ -70,6 +67,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
 
     /* compile the regex first */
     if ((rcode = regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB)) != 0) {
+        char ebuf[EBUF_SIZE];
         regerror(rcode, &preg, ebuf, sizeof(ebuf));
         errx(-1, "Unable to compile regex (%s): %s", regex, ebuf);
     }
@@ -147,6 +145,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
 
 /**
  * Checks to see if the given integer exists in the LIST.
+ * Return 1 if in the list, otherwise 0
  */
 tcpr_dir_t
 check_list(tcpr_list_t * list, COUNTER value)
@@ -157,28 +156,22 @@ check_list(tcpr_list_t * list, COUNTER value)
     do {
         if ((current->min != 0) && (current->max != 0)) {
             if ((value >= current->min) && (value <= current->max))
-                return TCPR_DIR_C2S;
-        }
-        else if (current->min == 0) {
+                return 1;
+        } else if (current->min == 0) {
             if (value <= current->max)
-                return TCPR_DIR_C2S;
-        }
-        else if (current->max == 0) {
+                return 1;
+        } else if (current->max == 0) {
             if (value >= current->min)
-                return TCPR_DIR_C2S;
+                return 1;
         }
 
-        if (current->next != NULL) {
+        if (current->next != NULL)
             current = current->next;
-        }
-        else {
+        else
             current = NULL;
-        }
-
     } while (current != NULL);
 
-    return TCPR_DIR_S2C;
-
+    return 0;
 }
 
 

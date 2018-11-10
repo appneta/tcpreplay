@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -241,7 +241,7 @@ cidr2cidr(char *cidr)
             if (octets[count] > 255)
                 goto error;
 
-            snprintf(tempoctet, sizeof(octets[count]), "%d", octets[count]);
+            snprintf(tempoctet, sizeof(octets[count]), "%u", octets[count]);
             strcat(networkip, tempoctet);
             /* we don't want a '.' at the end of the last octet */
             if (count < 3)
@@ -275,9 +275,8 @@ error:
 static void 
 mask_cidr6(char **cidrin, char* delim)
 {
-    char *p;
-
     if (**cidrin == '[' && *delim == ':') {
+        char *p;
         ++*cidrin;
         /* make strtok happy */
         for (p = *cidrin; *p && *p != ']'; ++p) {
@@ -298,12 +297,12 @@ int
 parse_cidr(tcpr_cidr_t ** cidrdata, char *cidrin, char *delim)
 {
     tcpr_cidr_t *cidr_ptr;             /* ptr to current cidr record */
-    char *network = NULL;
+    char *network;
     char *token = NULL;
 
     mask_cidr6(&cidrin, delim);
 
-    /* first itteration of input using strtok */
+    /* first iteration of input using strtok */
     network = strtok_r(cidrin, delim, &token);
 
     *cidrdata = cidr2cidr(network);
@@ -408,8 +407,8 @@ int
 parse_cidr_map(tcpr_cidrmap_t **cidrmap, const char *optarg)
 {
     tcpr_cidr_t *cidr = NULL;
-    char *map = NULL;
-    char *token = NULL, *string = NULL;
+    char *map;
+    char *token = NULL, *string;
     tcpr_cidrmap_t *ptr;
     int res = 0;
     
@@ -529,7 +528,7 @@ ip6_in_cidr(const tcpr_cidr_t * mycidr, const struct tcpr_in6_addr *addr)
 #ifdef DEBUG
     char netstr[INET6_ADDRSTRLEN];
 #endif
-    int i, j, k;
+    uint32_t i, j, k;
 
     if (mycidr->family != AF_INET6)
         return 0;
@@ -552,7 +551,7 @@ ip6_in_cidr(const tcpr_cidr_t * mycidr, const struct tcpr_in6_addr *addr)
         goto out;
     }
 
-    k = ~0 << (8 - k);
+    k = (uint32_t)~0 << (8 - k);
     i = addr->tcpr_s6_addr[j] & k;
     j = mycidr->u.network6.tcpr_s6_addr[j] & k;
     ret = i == j;

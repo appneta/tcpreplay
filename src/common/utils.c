@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -28,6 +28,10 @@
 #include <ctype.h>
 #include <unistd.h>
 
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -44,7 +48,8 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
     u_char *ptr;
 
     if ((ptr = malloc(len)) == NULL) {
-        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes", file, funcname, line, len);
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes/n",
+                file, funcname, line, len);
         exit(-1);
     }
 
@@ -112,7 +117,57 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
         return;
 
     free(ptr);
-    ptr = NULL;
+}
+
+/**
+ * get next packet in pcap file
+ */
+u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
+        const char *funcname, const int line, const char *file)
+{
+    u_char *pktdata = (u_char *)pcap_next(pcap, pkthdr);
+
+    if (pktdata) {
+        if (pkthdr->len > MAXPACKET) {
+            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
+                    file, funcname, line, pkthdr->len, MAXPACKET);
+            exit(-1);
+        }
+
+        if (pkthdr->len < pkthdr->caplen) {
+            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: packet length %u is less than capture length %u\n",
+                    file, funcname, line, pkthdr->len, pkthdr->caplen);
+            exit(-1);
+        }
+    }
+
+    return pktdata;
+}
+
+/**
+ * get next packet in pcap file (extended)
+ */
+int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
+        const u_char **pktdata, const char *funcname,
+        const int line, const char *file)
+{
+    int res = pcap_next_ex(pcap, pkthdr, pktdata);
+
+    if (*pktdata && *pkthdr) {
+        if ((*pkthdr)->len > MAXPACKET) {
+            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
+                    file, funcname, line, (*pkthdr)->len, MAXPACKET);
+            exit(-1);
+        }
+
+        if ((*pkthdr)->len < (*pkthdr)->caplen) {
+            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: packet length %u is less than capture length %u\n",
+                    file, funcname, line, (*pkthdr)->len, (*pkthdr)->caplen);
+            exit(-1);
+        }
+    }
+
+    return res;
 }
 
 /**
@@ -270,7 +325,7 @@ inet_aton(const char *name, struct in_addr *addr)
 }
 #endif
 
-#if SIZEOF_CHARP  == 4
+#if SIZEOF_LONG  == 4
 uint32_t __div64_32(uint64_t *n, uint32_t base)
 {
     uint64_t rem = *n;
@@ -303,7 +358,7 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
     *n = res;
     return rem;
 }
-#endif /* SIZEOF_CHARP  == 4 */
+#endif /* SIZEOF_LONG  == 4 */
 
 /**
  * Implementation of rand_r that is consistent across all platforms
@@ -312,7 +367,7 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
  * @param: seed
  * @return: random number
  */
-int tcpr_random(uint32_t *seed)
+uint32_t tcpr_random(uint32_t *seed)
 {
   unsigned int next = *seed;
   int result;
@@ -334,4 +389,20 @@ int tcpr_random(uint32_t *seed)
   *seed = next;
 
   return result;
+}
+
+/**
+ * #416 - Ensure STDIN is not left in non-blocking mode after closing
+ * a program. BSD and Unix derivatives should utilize `FIONBIO` due to known
+ * issues with reading from tty with a 0 byte read returning -1 opposed to 0.
+ */
+void restore_stdin(void)
+{
+#ifdef FIONBIO
+    int nb = 0;
+
+    ioctl(0, FIONBIO, &nb);
+#else
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+#endif /* FIONBIO */
 }

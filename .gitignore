@@ -68,11 +68,14 @@ Makefile
 Makefile.in
 configure
 config/
+src/config.h.in
 
 # Temporary files 
 *.tmp
 .*.swp
 *.tmproj
+*.dirstamp
+tcpdump.debug
 
 # Misc files
 tcpreplay.spec

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -200,7 +200,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     if (HAVE_OPT(MAXSLEEP)) {
         options->maxsleep.tv_sec = OPT_VALUE_MAXSLEEP / 1000;
-        options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000;
+        options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000 * 1000;
     }
 
 #ifdef ENABLE_VERBOSE
@@ -279,6 +279,13 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             ret = -1;
             goto out;
 #endif
+        } else if (strcmp(OPT_ARG(TIMER), "ioport") == 0) {
+#if defined HAVE_IOPORT_SLEEP__
+            options.accurate = ACCURATE_IOPORT;
+            ioport_sleep_init();
+#else
+            err(-1, "tcpreplay not compiled with IO Port 0x80 support");
+#endif
         } else if (strcmp(OPT_ARG(TIMER), "gtod") == 0) {
             options->accurate = accurate_gtod;
         } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
@@ -312,6 +319,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
                     OPT_ARG(INTF1));
         else
             tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+
         ret = -1;
         goto out;
     }
@@ -425,10 +433,10 @@ tcpreplay_close(tcpreplay_t *ctx)
     /* free the file cache */
     packet_cache = options->file_cache->packet_cache;
     while (packet_cache != NULL) {
-    	next = packet_cache->next;
-    	safe_free(packet_cache->pktdata);
-    	safe_free(packet_cache);
-    	packet_cache = next;
+        next = packet_cache->next;
+        safe_free(packet_cache->pktdata);
+        safe_free(packet_cache);
+        packet_cache = next;
     }
 
     /* free our interface list */
@@ -591,7 +599,7 @@ tcpreplay_set_unique_ip_loops(tcpreplay_t *ctx, int value)
  * Set netmap mode
  */
 int
-tcpreplay_set_netmap(tcpreplay_t *ctx, bool value)
+tcpreplay_set_netmap(_U_ tcpreplay_t *ctx, _U_ bool value)
 {
     assert(ctx);
 #ifdef HAVE_NETMAP
@@ -878,7 +886,7 @@ const struct timeval *
 tcpreplay_get_start_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    memcpy(&ctx->static_stats.start_time, &ctx->stats.start_time, sizeof(ctx->stats.start_time));
+    TIMEVAL_SET(&ctx->static_stats.start_time, &ctx->stats.start_time);
     return &ctx->static_stats.start_time;
 }
 
@@ -889,7 +897,7 @@ const struct timeval *
 tcpreplay_get_end_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    memcpy(&ctx->static_stats.end_time, &ctx->stats.end_time, sizeof(ctx->stats.end_time));
+    TIMEVAL_SET(&ctx->static_stats.end_time, &ctx->stats.end_time);
     return &ctx->static_stats.end_time;
 }
 
@@ -1087,8 +1095,8 @@ out:
 int
 tcpreplay_replay(tcpreplay_t *ctx)
 {
-    int rcode, loop, total_loops;
-    char buf[64];
+    int rcode;
+    COUNTER loop, total_loops;
 
     assert(ctx);
 
@@ -1102,19 +1110,11 @@ tcpreplay_replay(tcpreplay_t *ctx)
         return -1;
     }
 
-    init_timestamp(&ctx->stats.last_time);
-    init_timestamp(&ctx->stats.last_print);
+    init_timestamp(&ctx->stats.start_time);
+    init_timestamp(&ctx->stats.time_delta);
     init_timestamp(&ctx->stats.end_time);
-
-    if (gettimeofday(&ctx->stats.start_time, NULL) < 0) {
-        tcpreplay_seterr(ctx, "gettimeofday() failed: %s",  strerror(errno));
-        return -1;
-    }
-
-    if (ctx->options->stats >= 0) {
-        if (format_date_time(&ctx->stats.start_time, buf, sizeof(buf)) > 0)
-            printf("Test start: %s ...\n", buf);
-    }
+    init_timestamp(&ctx->stats.pkt_ts_delta);
+    init_timestamp(&ctx->stats.last_print);
 
     ctx->running = true;
     total_loops = ctx->options->loop;
@@ -1126,9 +1126,10 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop %d of %d...\n", loop, total_loops);
+                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC "...\n",
+                            loop, total_loops);
                 else
-                    printf("Loop %d of %d (" COUNTER_SPEC " unique)...\n",
+                    printf("Loop " COUNTER_SPEC " of " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n",
                             loop, total_loops,
                             ctx->unique_iteration);
             }
@@ -1149,9 +1150,9 @@ tcpreplay_replay(tcpreplay_t *ctx)
             ++loop;
             if (ctx->options->stats == 0) {
                 if (!ctx->unique_iteration || loop == ctx->unique_iteration)
-                    printf("Loop %d...\n", loop);
+                    printf("Loop " COUNTER_SPEC "...\n", loop);
                 else
-                    printf("Loop %d (" COUNTER_SPEC " unique)...\n", loop,
+                    printf("Loop " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n", loop,
                             ctx->unique_iteration);
             }
             if ((rcode = tcpr_replay_index(ctx)) < 0)
@@ -1165,6 +1166,8 @@ tcpreplay_replay(tcpreplay_t *ctx)
     ctx->running = false;
 
     if (ctx->options->stats >= 0) {
+        char buf[64];
+
         if (format_date_time(&ctx->stats.end_time, buf, sizeof(buf)) > 0)
             printf("Test complete: %s\n", buf);
     }
@@ -1324,7 +1327,6 @@ bool tcpreplay_get_flow_stats(tcpreplay_t *ctx)
     assert(ctx);
 
     return ctx->options->flow_stats;
-    return 0;
 }
 
 /**

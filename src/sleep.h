@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -53,9 +53,16 @@
 #define __SLEEP_H__
 
 static inline void
-nanosleep_sleep(struct timespec *nap)
+nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
+        struct timeval *now,  bool flush _U_)
 {
     nanosleep(nap, NULL);
+#ifdef HAVE_NETMAP
+    if (flush)
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif /* HAVE_NETMAP */
+
+    gettimeofday(now, NULL);
 }
 
 
@@ -66,33 +73,38 @@ nanosleep_sleep(struct timespec *nap)
  * Note: make sure "now" has recently been updated.
  */
 static inline void
-gettimeofday_sleep(sendpacket_t *sp _U_,
-        struct timespec *nap, struct timeval *now,
-        bool flush)
+gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
+        struct timeval *now, bool flush)
 {
     struct timeval sleep_until, nap_for;
 #ifdef HAVE_NETMAP
     struct timeval last;
+    uint32_t i = 0;
 
-    if (flush)
-        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-
-    memcpy(&last, now, sizeof(last));
+    TIMEVAL_SET(&last, now);
 #endif /* HAVE_NETMAP */
 
     TIMESPEC_TO_TIMEVAL(&nap_for, nap);
     timeradd(now, &nap_for, &sleep_until);
     
-    do {
+    while (!sp->abort) {
 #ifdef HAVE_NETMAP
         if (flush && timercmp(now, &last, !=)) {
-            /* flush TX buffer every usec */
-            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-            memcpy(&last, now, sizeof(last));
+            TIMEVAL_SET(&last, now);
+            if ((++i & 0xf) == 0)
+                /* flush TX buffer every 16 usec */
+                ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
         }
 #endif /* HAVE_NETMAP */
+        if (timercmp(now, &sleep_until, >=))
+            break;
+
+#ifdef HAVE_SCHED_H
+        /* yield the CPU so other apps remain responsive */
+        sched_yield();
+#endif
         gettimeofday(now, NULL);
-    } while (timercmp(now, &sleep_until, <));
+    }
 }
 
 #ifdef HAVE_SELECT
@@ -103,15 +115,41 @@ gettimeofday_sleep(sendpacket_t *sp _U_,
  * for future reference
  */
 static inline void 
-select_sleep(const struct timespec *nap)
+select_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
+        struct timeval *now,  bool flush)
 {
     struct timeval timeout;
+#ifdef HAVE_NETMAP
+    if (flush)
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif /* HAVE_NETMAP */
 
     TIMESPEC_TO_TIMEVAL(&timeout, nap);
 
     if (select(0, NULL, NULL, NULL, &timeout) < 0)
         warnx("select_sleep() returned early due to error: %s", strerror(errno));
+
+#ifdef HAVE_NETMAP
+    if (flush)
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
+#endif
+
+    gettimeofday(now, NULL);
 }
 #endif /* HAVE_SELECT */
+
+/*
+ * ioport_sleep() only works on Intel 32-bit and quite possibly only Linux.
+ * But the basic idea is to write to the IO Port 0x80 which should
+ * take exactly 1usec regardless of the CPU speed and without 
+ * calling a sleep method which allows the kernel to service another thread
+ * Idea stolen from: http://c-faq.com/osdep/sd25.html
+ */
+
+/* before calling port_sleep(), you have to call port_sleep_init() */
+void ioport_sleep_init(void);
+
+void ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
+        struct timeval *now,  bool flush);
 
 #endif /* __SLEEP_H__ */

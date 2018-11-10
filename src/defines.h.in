@@ -38,6 +38,10 @@
 #include <netinet/in_systm.h>
 #endif
 
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+
 #include "tcpr.h"
 
 #ifdef HAVE_BPF
@@ -226,6 +230,7 @@ typedef enum tcpprep_mode_e {
 #endif
 
 /* converts a 64bit int to network byte order */
+#if !defined ntohll && !defined htonll
 #ifndef HAVE_NTOHLL
 #ifdef WORDS_BIGENDIAN
 #define ntohll(x) (x)
@@ -236,7 +241,8 @@ typedef enum tcpprep_mode_e {
                      (unsigned int)ntohl(((int)(x >> 32))))
 #define htonll(x) ntohll(x)
 #endif /* WORDS_BIGENDIAN */
-#endif
+#endif /* HAVE_NTOHLL */
+#endif /* !ntohll && !htonll */
 
 #define DEBUG_INFO   1          /* informational only, lessthan 1 line per packet */
 #define DEBUG_BASIC  2          /* limited debugging, one line per packet */
@@ -244,6 +250,9 @@ typedef enum tcpprep_mode_e {
 #define DEBUG_MORE   4          /* even more detail */
 #define DEBUG_CODE   5          /* examines code & values, many lines per packet */
 
+#if defined HAVE_IOPERM && defined __i386_
+    #define HAVE_IOPORT_SLEEP
+#endif
 
 /* Win32 doesn't know about PF_INET6 */
 #ifndef PF_INET6
@@ -326,6 +335,18 @@ typedef u_int32_t uint32_t
 #define TIMESPEC_TO_MILLISEC(x)  (((x)->tv_sec * 1000) + ((x)->tv_nsec / 1000000))
 #define TIMESPEC_TO_MICROSEC(x)  (((x)->tv_sec * 1000000) + (x)->tv_nsec / 1000)
 #define TIMESPEC_TO_NANOSEC(x) ((u_int64_t)((x)->tv_sec * 1000000000) + ((u_int64_t)(x)->tv_nsec))
+
+#define TIMEVAL_SET(a, b)                  \
+    do {                                    \
+        (a)->tv_sec = (b)->tv_sec;          \
+        (a)->tv_usec = (b)->tv_usec;        \
+    } while(0)
+
+#define TIMESPEC_SET(a, b)                 \
+    do {                                    \
+        (a)->tv_sec = (b)->tv_sec;          \
+        (a)->tv_nsec = (b)->tv_nsec;        \
+    } while(0)
 
 /* 
  * Help suppress some compiler warnings

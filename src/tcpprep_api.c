@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -221,12 +221,12 @@ int
 tcpprep_set_regex(tcpprep_t *ctx, char *value)
 {
     int regex_error;
-    char ebuf[EBUF_SIZE];
 
     assert(ctx);
 
     if ((regex_error = regcomp(&ctx->options->preg, value,
                     REG_EXTENDED|REG_NOSUB))) {
+        char ebuf[EBUF_SIZE];
         regerror(regex_error, &ctx->options->preg, ebuf, EBUF_SIZE);
         tcpprep_seterr(ctx, "Unable to compile regex (%s): %s", value, regex_error);
         return -1;
@@ -365,7 +365,7 @@ int
 tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
 {
     char myargs[MYARGS_LEN];
-    int i, bufsize;
+    int bufsize;
     char *tempstr;
 
     memset(myargs, 0, MYARGS_LEN);
@@ -406,6 +406,8 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
      * cache file header
      */
     if (! ctx->options->nocomment) {
+        int i;
+
         /* copy all of our args to myargs */
         for (i = 1; i < argc; i ++) {
             /* skip the -C <comment> */

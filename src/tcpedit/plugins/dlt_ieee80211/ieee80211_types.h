@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -83,8 +83,7 @@ typedef struct {
  * Example: Ethernet VLAN tag info
  */
 typedef struct {
-    /* dummy entry for SunPro compiler which doesn't like empty structs */    
-    int dummy;
+    u_char packet[MAXPACKET];
 } ieee80211_extra_t;
 
 /* 

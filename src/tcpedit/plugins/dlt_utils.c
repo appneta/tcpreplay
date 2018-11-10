@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -268,6 +268,7 @@ tcpedit_dlt_copy_decoder_state(tcpeditdlt_t *ctx, tcpeditdlt_t *subctx)
     
     /* just need to copy the ptr */
     ctx->decoded_extra = subctx->decoded_extra;
+    ctx->decoded_extra_size = subctx->decoded_extra_size;
 
     /* 
      * the first decoder should of alraedy specified it's l2len, so we need to

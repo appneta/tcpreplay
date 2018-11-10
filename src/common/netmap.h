@@ -35,15 +35,18 @@
 #   include <linux/sockios.h>
 #endif /* linux */
 
-#ifdef HAVE_NETMAP_RING_HEAD_TAIL
+#ifndef NETMAP_API
+#define NETMAP_API 0
+#endif
+
+#if NETMAP_API >= 10
+#define NETMAP_TX_RING_EMPTY(ring) (!nm_tx_pending(ring))
+#define NETMAP_RING_NEXT(r, i) nm_ring_next(r, i)
+#elif defined HAVE_NETMAP_RING_HEAD_TAIL
 #define NETMAP_TX_RING_EMPTY(ring) (nm_ring_space(ring) >= (ring)->num_slots - 1)
 #define NETMAP_RING_NEXT(r, i) nm_ring_next(r, i)
 #else
 #define nm_ring_space(ring) (ring->avail)
-#endif /* NETMAP_API < 10 */
-
-#ifndef NETMAP_API
-#define NETMAP_API 0
 #endif
 
 #ifndef HAVE_NETMAP_NR_REG

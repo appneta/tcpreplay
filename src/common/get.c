@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -78,16 +78,13 @@ get_pcap_version(void)
 uint16_t
 get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 {
-    eth_hdr_t *eth_hdr;
-    vlan_hdr_t *vlan_hdr;
-    hdlc_hdr_t *hdlc_hdr;
-    sll_hdr_t *sll_hdr;
-    uint16_t ether_type;
     uint16_t eth_hdr_offset = 0;
-    struct tcpr_pppserial_hdr *ppp;
 
-    assert(pktdata);
-    assert(datalen);
+    if (!pktdata || !datalen) {
+        errx(-1, "invalid l2 parameters: pktdata=0x%p len=%d",
+                pktdata, datalen);
+        return 0;
+    }
 
     switch (datalink) {
     case DLT_RAW:
@@ -105,37 +102,47 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         if ((pktdata[3] & 0x80) == 0x80) {
             eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
             eth_hdr_offset += 6;
-        } else
+        } else {
             eth_hdr_offset = 4; /* no header extensions */
-        /* fall through */
+        }
+        /* no break */
     case DLT_EN10MB:
-        eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
-        ether_type = ntohs(eth_hdr->ether_type);
-        switch (ether_type) {
-        case ETHERTYPE_VLAN: /* 802.1q */
-            vlan_hdr = (vlan_hdr_t *)pktdata;
-            return ntohs(vlan_hdr->vlan_len);
-        default:
-            return ether_type; /* yes, return it in host byte order */
+        if ((size_t)datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
+            vlan_hdr_t *vlan_hdr;
+            eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
+            uint16_t ether_type = ntohs(eth_hdr->ether_type);
+            switch (ether_type) {
+            case ETHERTYPE_VLAN: /* 802.1q */
+                vlan_hdr = (vlan_hdr_t *)pktdata;
+                return ntohs(vlan_hdr->vlan_len);
+            default:
+                return ether_type; /* yes, return it in host byte order */
+            }
         }
         break;
 
     case DLT_PPP_SERIAL:
-        ppp = (struct tcpr_pppserial_hdr *)pktdata;
-        if (ntohs(ppp->protocol) == 0x0021)
-            return htons(ETHERTYPE_IP);
-        else
-            return ppp->protocol;
+        if ((size_t)datalen >= sizeof(struct tcpr_pppserial_hdr)) {
+            struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr *)pktdata;
+            if (ntohs(ppp->protocol) == 0x0021)
+                return htons(ETHERTYPE_IP);
+            else
+                return ppp->protocol;
+        }
         break;
 
     case DLT_C_HDLC:
-        hdlc_hdr = (hdlc_hdr_t *)pktdata;
-        return hdlc_hdr->protocol;
+        if ((size_t)datalen >= sizeof(hdlc_hdr_t)) {
+            hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t *)pktdata;
+            return hdlc_hdr->protocol;
+        }
         break;
 
     case DLT_LINUX_SLL:
-        sll_hdr = (sll_hdr_t *)pktdata;
-        return sll_hdr->sll_protocol;
+        if ((size_t)datalen >= sizeof(sll_hdr_t)) {
+            sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
+            return sll_hdr->sll_protocol;
+        }
         break;
 
     default:
@@ -154,8 +161,6 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
 int
 get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 {
-    uint16_t ether_type = 0;
-    vlan_hdr_t *vlan_hdr;
     int l2_len = 0;
 
     assert(pktdata);
@@ -164,45 +169,58 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
     switch (datalink) {
     case DLT_RAW:
         /* pktdata IS the ip header! */
-        return 0;
         break;
 
     case DLT_JUNIPER_ETHER:
         l2_len = 24;
-        /* fall through */
+        /* no break */
     case DLT_EN10MB:
-        ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
+        if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
+            uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
-        while (ether_type == ETHERTYPE_VLAN) {
-            vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-            ether_type = ntohs(vlan_hdr->vlan_len);
-            l2_len += 4;
+            while (ether_type == ETHERTYPE_VLAN) {
+                vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+                ether_type = ntohs(vlan_hdr->vlan_len);
+                l2_len += 4;
+                if ((size_t)datalen < sizeof(vlan_hdr_t) + l2_len) {
+                    l2_len = -1;
+                    break;
+                }
+            }
+
+            l2_len += sizeof(eth_hdr_t);
         }
 
-        l2_len += sizeof(eth_hdr_t);
+        if (datalen < l2_len)
+            l2_len = -1;
 
-        return l2_len;
         break;
 
     case DLT_PPP_SERIAL:
-        return 4;
+        if (datalen >= 4) {
+            l2_len = 4;
+        }
         break;
 
     case DLT_C_HDLC:
-        return CISCO_HDLC_LEN;
+        if (datalen >= CISCO_HDLC_LEN) {
+            l2_len = CISCO_HDLC_LEN;
+        }
         break;
 
     case DLT_LINUX_SLL:
-        return SLL_HDR_LEN;
+        if (datalen >= SLL_HDR_LEN) {
+            l2_len = SLL_HDR_LEN;
+        }
         break;
 
     default:
         errx(-1, "Unable to process unsupported DLT type: %s (0x%x)", 
              pcap_datalink_val_to_description(datalink), datalink);
-        break;
+        return -1; /* we shouldn't get here */
     }
 
-    return -1; /* we shouldn't get here */
+    return l2_len;
 }
 
 /**
@@ -229,7 +247,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2_len = get_l2len(pktdata, datalen, datalink);
 
     /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len + TCPR_IPV4_H > datalen) {
+    if (l2_len < 0 || l2_len + TCPR_IPV4_H > datalen) {
         dbg(1, "get_ipv4(): Layer 2 len > total packet len, hence no IP header");
         return NULL;
     }
@@ -291,7 +309,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2_len = get_l2len(pktdata, datalen, datalink);
 
     /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len + TCPR_IPV6_H > datalen) {
+    if (l2_len < 0 || l2_len + TCPR_IPV6_H > datalen) {
         dbg(1, "get_ipv6(): Layer 2 len > total packet len, hence no IPv6 header");
         return NULL;
     }
@@ -340,8 +358,7 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int len)
 
     assert(ip_hdr);
 
-    ptr = (uint32_t *) ip_hdr + ip_hdr->ip_hl;
-
+    ptr = (u_char *)ip_hdr + (ip_hdr->ip_hl << 2);
     /* make sure we don't jump over the end of the buffer */
     if ((u_char *)ptr > ((u_char *)ip_hdr + len))
         return NULL;
@@ -360,21 +377,26 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
     uint8_t proto;
     uint32_t maxlen;
+    int min_len;
 
     assert(ip6_hdr);
 
-    /* jump to the end of the IPv6 header */ 
+    min_len = TCPR_IPV6_H + sizeof(struct tcpr_ipv6_ext_hdr_base);
+    if (len < min_len)
+        return NULL;
+
+    /* jump to the end of the IPv6 header */
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
     proto = ip6_hdr->ip_nh;
 
-    while (TRUE) {
+    while (1) {
         dbgx(3, "Processing proto: 0x%hx", (uint16_t)proto);
 
         switch (proto) {
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */
         case TCPR_IPV6_NH_IPV6:
             dbg(3, "recursing due to v6-in-v6");
-            return get_layer4_v6((ipv6_hdr_t *)next, len);
+            return get_layer4_v6((ipv6_hdr_t *)next, len - min_len);
             break;
 
         /* loop again */
@@ -478,14 +500,18 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
  * the extension headers
  */
 uint8_t 
-get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int len)
+get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, int len)
 {
     u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
     uint8_t proto;
     struct tcpr_ipv6_ext_hdr_base *exthdr = NULL;
 
     assert(ip6_hdr);
+
     proto = ip6_hdr->ip_nh;
+    len -= TCPR_IPV6_H;
+    if (len < 0)
+        return proto;
 
     while (TRUE) {
         dbgx(3, "Processing next proto 0x%02X", proto);
@@ -536,9 +562,6 @@ get_name2addr4(const char *hostname, bool dnslookup)
 #if ! defined HAVE_INET_ATON && defined HAVE_INET_ADDR
     struct hostent *host_ent; 
 #endif
-    uint32_t m;
-    u_int val;
-    int i;
 
     if (dnslookup) {
 #ifdef HAVE_INET_ATON
@@ -550,7 +573,7 @@ get_name2addr4(const char *hostname, bool dnslookup)
         if ((addr.s_addr = inet_addr(hostname)) == INADDR_NONE) {
             if (!(host_ent = gethostbyname(hostname))) {
                 warnx("unable to resolve %s: %s", hostname, strerror(errno));
-                /* XXX - this is actually 255.255.255.255 */
+                /* this is actually 255.255.255.255 */
                 return (0xffffffff);
             }
 
@@ -564,11 +587,13 @@ get_name2addr4(const char *hostname, bool dnslookup)
 #endif
         /* return in network byte order */
         return (addr.s_addr);
-    }
-    /*
-     *  We only want dots 'n decimals.
-     */
-    else {
+    } else {
+        /*
+         *  We only want dots 'n decimals.
+         */
+        int i;
+        uint32_t m;
+
         if (!isdigit(hostname[0])) {
             warnx("Expected dotted-quad notation (%s) when DNS lookups are disabled", 
                     hostname);
@@ -579,6 +604,8 @@ get_name2addr4(const char *hostname, bool dnslookup)
 
         m = 0;
         for (i = 0; i < 4; i++) {
+            u_int val;
+
             m <<= 8;
             if (*hostname) {
                 val = 0;
@@ -587,7 +614,7 @@ get_name2addr4(const char *hostname, bool dnslookup)
                     val += *hostname - '0';
                     if (val > 255) {
                         dbgx(4, "value %d > 255 for dotted quad", val);
-                        /* XXX - this is actually 255.255.255.255 */
+                        /* this is actually 255.255.255.255 */
                         return (-1);
                     }
                     hostname++;
@@ -630,7 +657,7 @@ get_name2addr6(const char *hostname, bool dnslookup, struct tcpr_in6_addr *addr)
  * is available on your system. Does not support DNS.
  */
 const char *
-get_addr2name4(const uint32_t ip, bool dnslookup)
+get_addr2name4(const uint32_t ip, bool _U_ dnslookup)
 {
     struct in_addr addr;
     static char *new_string = NULL;
@@ -660,7 +687,7 @@ get_addr2name4(const uint32_t ip, bool dnslookup)
  * Does not support DNS.
  */
 const char *
-get_addr2name6(const struct tcpr_in6_addr *addr, bool dnslookup)
+get_addr2name6(const struct tcpr_in6_addr *addr, _U_ bool dnslookup)
 {
     static char *new_string = NULL;
 

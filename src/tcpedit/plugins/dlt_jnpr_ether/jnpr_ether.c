@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
- * Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ * Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -117,8 +117,8 @@ dlt_jnpr_ether_init(tcpeditdlt_t *ctx)
     }
     
     /* allocate memory for our config data */
-    if (sizeof(jnpr_ether_config_t) > 0)
-        plugin->config = safe_malloc(sizeof(jnpr_ether_config_t));
+    plugin->config_size = sizeof(jnpr_ether_config_t);
+    plugin->config = safe_malloc(plugin->config_size);
 
     return TCPEDIT_OK; /* success */
 }
@@ -152,7 +152,6 @@ int
 dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    jnpr_ether_config_t *config;
     
     assert(ctx);
 
@@ -164,13 +163,17 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
     }
     
     if (plugin->config != NULL) {
         /* clean up the en10mb plugin */
+        jnpr_ether_config_t * config;
+
         config = (jnpr_ether_config_t *)ctx->encoder->config;
         tcpedit_dlt_cleanup(config->subctx);
         plugin->config = NULL;
+        plugin->config_size = 0;
     }
 
     return TCPEDIT_OK; /* success */
@@ -339,8 +342,7 @@ dlt_jnpr_ether_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
     }
 
     l2len = dlt_jnpr_ether_l2len(ctx, packet, pktlen);
-
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
 
     return tcpedit_dlt_l3data_copy(ctx, packet, pktlen, l2len);
@@ -361,8 +363,7 @@ dlt_jnpr_ether_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen,
     assert(l3data);
     
     l2len = dlt_jnpr_ether_l2len(ctx, packet, pktlen);
-    
-    if (pktlen < l2len)
+    if (l2len == -1 || pktlen < l2len)
         return NULL;
     
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
@@ -403,14 +404,14 @@ dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_cha
 int
 dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    uint16_t len;
+    int len, res;
     jnpr_ether_config_t *config;
 
     assert(ctx);
     assert(packet);
 
     if (pktlen < JUNIPER_ETHER_EXTLEN_OFFSET + 2)
-        return 0;
+        return -1;
     
     config = (jnpr_ether_config_t *)ctx->encoder->config;
 
@@ -421,7 +422,11 @@ dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     dbgx(3, "juniper header len: %u", len);
     
     /* add the 802.3 length */
-    len += tcpedit_dlt_l2len(config->subctx, DLT_EN10MB, (packet + len), (pktlen - len));
+    res = tcpedit_dlt_l2len(config->subctx, DLT_EN10MB, (packet + len), (pktlen - len));
+    if (res == -1)
+        return TCPEDIT_ERROR;
+
+    len += res;
     dbgx(3, "total l2len: %u", len);
     
     /* and return that */

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -46,8 +46,6 @@ tcpr_replay_index(tcpreplay_t *ctx)
     int rcode = 0;
     int idx;
     assert(ctx);
-
-    init_timestamp(&ctx->stats.last_time);
 
     /* only process a single file */
     if (! ctx->options->dualfile) {
@@ -125,10 +123,6 @@ replay_file(tcpreplay_t *ctx, int idx)
 
     path = ctx->options->sources[idx].filename;
 
-    /* close stdin if reading from it (needed for some OS's) */
-    if (strncmp(path, "-", 1) == 0)
-        close(1);
-
     /* read from pcap file if we haven't cached things yet */
     if (!ctx->options->preload_pcap) {
         if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
@@ -154,17 +148,12 @@ replay_file(tcpreplay_t *ctx, int idx)
         }
     }
 
-#if 0
-/*
- * this API is broken right now.  This needs to be handled via a pipe or 
- * something else so we can pass the output up to the calling programm 
- */
 #ifdef ENABLE_VERBOSE
     if (ctx->options->verbose) {
         /* in cache mode, we may not have opened the file */
         if (pcap == NULL)
             if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
-               tcpreplay_seterr("Error opening pcap file: %s", ebuf);
+               tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                return -1;
             }
 
@@ -172,7 +161,6 @@ replay_file(tcpreplay_t *ctx, int idx)
         /* init tcpdump */
         tcpdump_open(ctx->options->tcpdump, pcap);
     }
-#endif
 #endif
 
     if (pcap != NULL) {
@@ -196,10 +184,8 @@ replay_file(tcpreplay_t *ctx, int idx)
     if (pcap != NULL)
         pcap_close(pcap);
 
-#if 0
 #ifdef ENABLE_VERBOSE
     tcpdump_close(ctx->options->tcpdump);
-#endif
 #endif
     return 0;
 }

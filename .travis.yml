@@ -4,30 +4,33 @@ language: c
 
 addons:
   apt:
-    packages: [ libpcap-dev, autogen ]
+    packages:
+    - libpcap-dev
 
 matrix:
   include:
-    - os: osx
-      osx_image: xcode8.2
-      compiler: clang
-      before_install:
-        - brew update
-        - brew install autogen
     - os: linux
       dist: trusty
       compiler: gcc
+      addons:
+        apt:
+          packages:
+          - libpcap-dev
+          - autogen
     - os: linux
       dist: trusty
       compiler: clang
-      env: CI_BUILD_PREFIX=scan-build-3.5
+      env: CI_BUILD_PREFIX=scan-build-3.9
       addons:
         apt:
-          packages: [ libpcap-dev, clang-3.5, autogen ]
+          packages:
+          - libpcap-dev
+          - clang-3.9
+          - autogen
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
-  - ${CI_BUILD_PREFIX} ./configure --disable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
+  - ${CI_BUILD_PREFIX} ./configure --enable-local-libopts > build.log 2>&1 || (cat build.log && exit 1)
   - ${CI_BUILD_PREFIX} make > build.log 2>&1 || (cat build.log && exit 1)
   - make dist > build.log 2>&1 || (cat build.log && exit 1)
-  - sudo make test
+  - sudo make test || (cat test/test.log && exit 1)

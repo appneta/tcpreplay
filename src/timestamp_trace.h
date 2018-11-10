@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2017 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -41,11 +41,17 @@ typedef struct timestamp_trace_entry timestamp_trace_entry_t;
 #ifdef TIMESTAMP_TRACE
 timestamp_trace_entry_t timestamp_trace_entry_array[TRACE_MAX_ENTRIES];
 
-static inline void update_current_timestamp_trace_entry(COUNTER bytes_sent, COUNTER now_us,
-        COUNTER tx_us, COUNTER next_tx_us)
+static inline void update_current_timestamp_trace_entry(COUNTER bytes_sent,
+        COUNTER now_us, COUNTER tx_us, COUNTER next_tx_us)
 {
     if (trace_num >= TRACE_MAX_ENTRIES)
         return;
+
+    if (!now_us) {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        now_us = TIMSTAMP_TO_MICROSEC(&now);
+    }
 
     timestamp_trace_entry_array[trace_num].bytes_sent = bytes_sent;
     timestamp_trace_entry_array[trace_num].now_us = now_us;
@@ -53,7 +59,8 @@ static inline void update_current_timestamp_trace_entry(COUNTER bytes_sent, COUN
     timestamp_trace_entry_array[trace_num].next_tx_us = next_tx_us;
 }
 
-static inline void add_timestamp_trace_entry(COUNTER size, struct timeval *timestamp, COUNTER skip_length)
+static inline void add_timestamp_trace_entry(COUNTER size,
+        struct timeval *timestamp, COUNTER skip_length)
 {
     if (trace_num >= TRACE_MAX_ENTRIES)
         return;
