@@ -436,6 +436,10 @@ TRY_SEND_AGAIN:
                 /* this indicates that a retry was requested - this is not a failure */
                 sp->retry_eagain ++;
                 retcode = 0;
+#ifdef HAVE_SCHED_H
+                /* yield the CPU so other apps remain responsive */
+                sched_yield();
+#endif
                 goto TRY_SEND_AGAIN;
             }
 #endif /* HAVE_NETMAP */

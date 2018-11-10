@@ -359,7 +359,6 @@ EOText;
 flag = {
     name        = duration;
     arg-type    = number;
-    flags-must  = loop;
     max         = 1;
     arg-default = -1;
     arg-range   = "1->";

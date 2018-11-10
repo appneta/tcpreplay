@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.0-beta2],
+AC_INIT([tcpreplay],[4.3.0-beta3],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -144,7 +144,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign subdir-objects no-dist-gzip dist-xz -Wall -Wno-override])
+AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Wno-override])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Checks for programs.
