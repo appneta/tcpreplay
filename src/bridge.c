@@ -114,7 +114,7 @@ do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 
 /**
  * main loop for bridging in both directions.  Since we dealing with two handles
- * we need to poll() on them which isn't the most efficent
+ * we need to poll() on them which isn't the most efficient
  */
 static void
 do_bridge_bidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
@@ -245,7 +245,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 
 /**
  * This is the callback we use with pcap_dispatch to process
- * each packet recieved by libpcap on the two interfaces.
+ * each packet received by libpcap on the two interfaces.
  * Need to return > 0 to denote success
  */
 static int

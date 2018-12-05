@@ -282,7 +282,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     memset(hex, '\0', hexlen);
 
-    /* data is hex, comma seperated, byte by byte */
+    /* data is hex, comma separated, byte by byte */
 
     /* get the first byte */
     l2byte = strtok_r(string, ",", &token);

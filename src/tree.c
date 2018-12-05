@@ -210,7 +210,7 @@ process_tree(void)
 }
 
 /*
- * processes rbdata to bulid cidrdata based upon the
+ * processes rbdata to build cidrdata based upon the
  * given type (SERVER, CLIENT, UNKNOWN) using the given masklen
  *
  * is smart enough to prevent dupes
@@ -390,7 +390,7 @@ add_tree_first_ipv4(const u_char *data, const int len)
     /* prevent issues with byte alignment, must memcpy */
     memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
 
-    /* copy over the source ip, and values to gurantee this a client */
+    /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET;
     newnode->u.ip = ip_hdr.ip_src.s_addr;
     newnode->type = DIR_CLIENT;
@@ -444,7 +444,7 @@ add_tree_first_ipv6(const u_char *data, const int len)
     /* prevent issues with byte alignment, must memcpy */
     memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
 
-    /* copy over the source ip, and values to gurantee this a client */
+    /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET6;
     newnode->u.ip6 = ip6_hdr.ip_src;
     newnode->type = DIR_CLIENT;

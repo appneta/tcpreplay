@@ -21,8 +21,8 @@
 /*
  *  Purpose:
  *  1) Remove the performance bottleneck in tcpreplay for choosing an NIC
- *  2) Seperate code to make it more manageable
- *  3) Add addtional features which require multiple passes of a pcap
+ *  2) Separate code to make it more manageable
+ *  3) Add additional features which require multiple passes of a pcap
  *
  *  Support:
  *  Right now we support matching source IP based upon on of the following:

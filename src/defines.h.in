@@ -263,7 +263,7 @@ typedef enum tcpprep_mode_e {
 #endif
 #endif
 
-/* convert IPv6 Extention Header Len value to bytes */
+/* convert IPv6 Extension Header Len value to bytes */
 #define IPV6_EXTLEN_TO_BYTES(x) ((x * 4) + 8)
 
 #ifndef HAVE_UINT8_T

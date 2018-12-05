@@ -1068,7 +1068,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
         pktdata = safe_pcap_next(pcap, pkthdr);
     }
 
-    /* this get's casted to a const on the way out */
+    /* this gets casted to a const on the way out */
     return pktdata;
 }
 

@@ -139,8 +139,8 @@ struct tcp_sched{
     u_int32_t calc_curr_lack; /* Calculated Current Local ACK (not used at the moment) */
     u_int32_t curr_lseq; /* Current Local SEQ */
     u_int32_t curr_lack; /* Current Local ACK */
-    unsigned int length_curr_ldata; /* Data Lenght of Currently seen local data */
-    unsigned int length_last_ldata; /* Data Lenght of last locally seen data */
+    unsigned int length_curr_ldata; /* Data Length of Currently seen local data */
+    unsigned int length_last_ldata; /* Data Length of last locally seen data */
     unsigned int length_curr_rdata; /* Length of currently seen remote data */
     unsigned int length_last_rdata; /* Length of last remote seen data*/
     u_char *packet_ptr;  /* The entire packet data to be sent */
