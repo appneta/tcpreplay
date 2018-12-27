@@ -49,11 +49,11 @@ static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
 /**
  * this code re-calcs the IP and Layer 4 checksums
  * the IMPORTANT THING is that the Layer 4 header 
- * is contiguious in memory after *ip_hdr we're actually
+ * is contiguous in memory after *ip_hdr we're actually
  * writing to the layer 4 header via the ip_hdr ptr.
  * (Yes, this sucks, but that's the way libnet works, and
  * I was too lazy to re-invent the wheel.
- * Returns 0 on sucess, -1 on error
+ * Returns 0 on success, -1 on error
  */
 int
 fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
@@ -1054,7 +1054,7 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 /**
  * rewrite IP address (arp)
  * uses -a to rewrite (map) one subnet onto another subnet
- * pointer must point to the WHOLE and CONTIGOUS memory buffer
+ * pointer must point to the WHOLE and CONTIGUOUS memory buffer
  * because the arp_hdr_t doesn't have the space for the IP/MAC
  * addresses
  * return 0 if no change, 1 or 2 if changed

@@ -47,7 +47,7 @@
  * packet or wait for a remote packet to arrive. 
 
  *
- * Usage: tcpliveplay <eth0/eth1> <file.pcap> <Destinatin IP [1.2.3.4]> <Destination mac [0a:1b:2c:3d:4e:5f]> <'random' dst port OR specify dport #>
+ * Usage: tcpliveplay <eth0/eth1> <file.pcap> <Destination IP [1.2.3.4]> <Destination mac [0a:1b:2c:3d:4e:5f]> <'random' dst port OR specify dport #>
  *
  * Example:  
  * yhsiam@yhsiam-VirtualBox:~$ tcpliveplay eth0 test1.pcap 192.168.1.4 52:57:01:11:31:92 random
@@ -164,7 +164,7 @@ main(int argc, char **argv)
 
     if((argc < 5) || (argv[1]==NULL) || (argv[2]==NULL) || (argv[3]==NULL) || (argv[4]==NULL) || (argv[5]==NULL)){
         printf("ERROR: Incorrect Usage!\n"); 
-        printf("Usage: tcpliveplay <eth0/eth1> <file.pcap> <Destinatin IP [1.2.3.4]> <Destination mac [0a:1b:2c:3d:4e:5f]> <specify 'random' or specific port#>\n");
+        printf("Usage: tcpliveplay <eth0/eth1> <file.pcap> <Destination IP [1.2.3.4]> <Destination mac [0a:1b:2c:3d:4e:5f]> <specify 'random' or specific port#>\n");
         printf("Example:\n    yhsiam@yhsiam-VirtualBox:~$ sudo tcpliveplay eth0 test1.pcap 192.168.1.4 52:57:01:11:31:92 random\n\n"); 
         exit(0);
     }
@@ -449,7 +449,7 @@ relative_sched(struct tcp_sched* sched, u_int32_t first_rseq, int num_packets){
         else if(sched[i].remote){
             sched[i].exp_rseq = sched[i].exp_rseq - first_rseq; /* Fix expected remote SEQ to be relative */
             sched[i].exp_rack = sched[i].exp_rack - first_lseq; /* Fix expected remote ACK to be relative*/
-            sched[i].exp_rack = sched[i].exp_rack + lseq_adjust; /* Fix expeted remote ACK to be absolute */
+            sched[i].exp_rack = sched[i].exp_rack + lseq_adjust; /* Fix expected remote ACK to be absolute */
         }
     }
 
@@ -544,7 +544,7 @@ setup_sched(struct tcp_sched* sched){
             remote_ip = dip;
         }
 
-        /*Compare IPs to see which packet is this comming from*/
+        /*Compare IPs to see which packet is this coming from*/
         if(compip(&local_ip, &remote_ip, &sip)==LOCAL_IP_MATCH){
             local = true;
             remote = false;
@@ -818,7 +818,7 @@ got_packet(_U_ u_char *args, _U_ const struct pcap_pkthdr *header,
         acked_index = sched_index; /*Keep track correctly ACKed packet index*/
     } 
 
-    /* Global variable to keep tack of last recieved packet info */
+    /* Global variable to keep tack of last received packet info */
     packet_keeper_rprev = packet;  
     etherhdr_rprev = etherhdr; 
     tcphdr_rprev = tcphdr;
@@ -1160,17 +1160,17 @@ fix_all_checksum_liveplay(ipv4_hdr *iphdr){
 
 /************************************************************************************/
 
-/*[copied from Aaron Turnor's checksum.c, but ommitting tcpedit_t structs] */
+/*[copied from Aaron Turnor's checksum.c, but omitting tcpedit_t structs] */
 /*[The following functions have been slightly modified to be integrated with tcpliveplay code structure] */
 
 /** 
  * This code re-calcs the IP and Layer 4 checksums
  * the IMPORTANT THING is that the Layer 4 header 
- * is contiguious in memory after *ip_hdr we're actually
+ * is contiguous in memory after *ip_hdr we're actually
  * writing to the layer 4 header via the ip_hdr ptr.
  * (Yes, this sucks, but that's the way libnet works, and
  * I was too lazy to re-invent the wheel.
- * Returns 0 on sucess, -1 on error
+ * Returns 0 on success, -1 on error
  */
 
 

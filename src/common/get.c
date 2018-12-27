@@ -270,7 +270,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
         ip_hdr = *newbuff;
     } else {
 
-        /* we don't have to do a memcpy if l2_len lands on a boundry */
+        /* we don't have to do a memcpy if l2_len lands on a boundary */
         ip_hdr = (pktdata + l2_len);
     }
 #else
@@ -332,7 +332,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
         ip6_hdr = *newbuff;
     } else {
 
-        /* we don't have to do a memcpy if l2_len lands on a boundry */
+        /* we don't have to do a memcpy if l2_len lands on a boundary */
         ip6_hdr = (pktdata + l2_len);
     }
 #else
@@ -438,7 +438,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
 
 
 /**
- * returns the next payload or header of the current extention header
+ * returns the next payload or header of the current extension header
  * returns NULL for none/ESP.
  */
 void *

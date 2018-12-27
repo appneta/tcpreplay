@@ -54,7 +54,7 @@ tcpedit_user_set_dlt_type(tcpedit_t *tcpedit, uint16_t type)
 /**
  * \brief Define the actual L2 header content.
  *
- * You need to set the data, it's lenght and which direction(s) to apply to.
+ * You need to set the data, it's length and which direction(s) to apply to.
  * BOTH - both directions (or in the case of no tcpprep cache file)
  * S2C - server to client (primary interface)
  * C2S - client to server (secondary interface)

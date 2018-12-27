@@ -100,7 +100,7 @@
     configured to the needs of an application.    BGET is  efficient  in
     both  the  time  needed to allocate and release buffers and in the
     memory  overhead  required    for  buffer   pool   management.    It
-    automatically    consolidates   contiguous     space     to   minimise
+    automatically    consolidates   contiguous     space     to   minimize
     fragmentation.  BGET is configured    by  compile-time  definitions,
     Major options include:
 

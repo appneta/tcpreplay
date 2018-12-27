@@ -73,7 +73,7 @@ tcpedit_checkdir(tcpedit_t *tcpedit, tcpr_dir_t direction)
 /**
  * \brief Edit the given packet
  *
- * Processs a given packet and edit the pkthdr/pktdata structures
+ * Process a given packet and edit the pkthdr/pktdata structures
  * according to the rules in tcpedit
  * Returns: TCPEDIT_ERROR on error
  *          TCPEDIT_SOFT_ERROR on remove packet
@@ -426,7 +426,7 @@ tcpedit_get_output_dlt(tcpedit_t *tcpedit)
  *
  * Validates that given the current state of tcpedit that the given
  * pcap source and destination (based on DLT) can be properly rewritten
- * return 0 on sucess
+ * return 0 on success
  * return -1 on error
  * DO NOT USE!
  */

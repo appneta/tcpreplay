@@ -20,7 +20,7 @@
 
  /* sendpacket.[ch] is my attempt to write a universal packet injection
   * API for BPF, libpcap, libdnet, and Linux's PF_PACKET.  I got sick
-  * and tired dealing with libnet bugs and its lack of active maintenence,
+  * and tired dealing with libnet bugs and its lack of active maintenance,
   * but unfortunately, libpcap frame injection support is relatively new
   * and not everyone uses Linux, so I decided to support all four as
   * best as possible.  If your platform/OS/hardware supports an additional
@@ -37,7 +37,7 @@
   * Right now, one big problem with the pcap_* methods is that libpcap
   * doesn't provide a reliable method of getting the MAC address of
   * an interface (required for tcpbridge).
-  * You can use PF_PACKET or BPF to get that, but if your system suports
+  * You can use PF_PACKET or BPF to get that, but if your system supports
   * those, might as well inject directly without going through another
   * level of indirection.
   *
@@ -1008,7 +1008,7 @@ get_iface_index(int fd, const char *device, char *errbuf) {
 }
 
 /**
- * get's the hardware address via Linux's PF packet interface
+ * gets the hardware address via Linux's PF packet interface
  */
 static struct tcpr_ether_addr *
 sendpacket_get_hwaddr_pf(sendpacket_t *sp)

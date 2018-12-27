@@ -27,7 +27,7 @@ extern "C" {
 
 /**
  * Selection of the encoder plugin is usually done by tcpedit_post_args()
- * so when using the config API you must manually specifiy it using one of
+ * so when using the config API you must manually specify it using one of
  * the following functions
  */
 int tcpedit_set_encoder_dltplugin_byid(tcpedit_t *, int);

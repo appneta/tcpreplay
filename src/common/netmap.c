@@ -269,7 +269,7 @@ sendpacket_open_netmap(const char *device, char *errbuf, void *arg) {
      * The nmreq structure must have the NETMAP_API version for the running machine.
      * However the binary may have been compiled on a different machine than the
      * running machine. Discover the true netmap API version, and be careful to call
-     * fuctions that are available on all netmap versions.
+     * functions that are available on all netmap versions.
      */
     if (sp->netmap_version >= 10) {
         switch (*port) {

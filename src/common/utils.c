@@ -134,8 +134,8 @@ u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
             exit(-1);
         }
 
-        if (pkthdr->len < pkthdr->caplen) {
-            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: packet length %u is less than capture length %u\n",
+        if (!pkthdr->len || pkthdr->len < pkthdr->caplen) {
+            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: packet length=%u capture length=%u\n",
                     file, funcname, line, pkthdr->len, pkthdr->caplen);
             exit(-1);
         }
@@ -160,8 +160,8 @@ int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
             exit(-1);
         }
 
-        if ((*pkthdr)->len < (*pkthdr)->caplen) {
-            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: packet length %u is less than capture length %u\n",
+        if (!(*pkthdr)->len || (*pkthdr)->len < (*pkthdr)->caplen) {
+            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: packet length=%u capture length=%u\n",
                     file, funcname, line, (*pkthdr)->len, (*pkthdr)->caplen);
             exit(-1);
         }
@@ -282,7 +282,7 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     memset(hex, '\0', hexlen);
 
-    /* data is hex, comma seperated, byte by byte */
+    /* data is hex, comma separated, byte by byte */
 
     /* get the first byte */
     l2byte = strtok_r(string, ",", &token);

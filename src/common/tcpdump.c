@@ -169,7 +169,7 @@ data_again:
 
     res = poll(&poller, 1, TCPDUMP_POLL_TIMEOUT);
     if (res < 0)
-        errx(-1, "Error out to fd %d during poll() to read frome tcpdump\n%s",
+        errx(-1, "Error out to fd %d during poll() to read from tcpdump\n%s",
                 PARENT_READ_FD, strerror(errno));
 
     if (res == 0)

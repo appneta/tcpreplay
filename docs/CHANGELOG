@@ -1,3 +1,7 @@
+12/27/2018 Version 4.3.1
+    - Fix checkspell detected typos (#531)
+    - Heap overflow packet2tree and get_l2len (#530)
+
 11/10/2018 Version 4.3.0
     - Fix maxOS TOS checksum failure (#524)
     - TCP sequence edits seeding (#514)

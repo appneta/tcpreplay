@@ -370,7 +370,7 @@ corresponds to the packet number in the capture file.
 @example
 -x P:1-5,9,15,72-
 @end example
-would process packets 1 thru 5, the 9th and 15th packet, and packets 72 until the
+would process packets 1 through 5, the 9th and 15th packet, and packets 72 until the
 end of the file
 @item F:'<bpf>'
 - BPF filter.  See the @file{tcpdump(8)} man page for syntax.
