@@ -27,7 +27,7 @@
 #include "hdlc_api.h"
 
 /**
- * \breif Set the HDLC control value
+ * \brief Set the HDLC control value
  *
  * Reasonable values are 0-255
  */

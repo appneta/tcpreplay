@@ -126,7 +126,7 @@ txring_put(txring_t *txp, const void * data, size_t length)
             first_loop = 0;
         }
 
-        /* check if we've runned over all ring */
+        /* check if we've ran over all ring */
         if ((txp->tx_index == start_index) && !first_loop) {
             errno = ENOBUFS;
             return -1;

@@ -704,7 +704,7 @@ AC_ARG_WITH(libpcap,
     # and was created to address portability issues. Unfortunately, the script is not updated properly
     # outside of the base distribution. Examples: PF_RING requires 'pthreads', 'numa' and 'rt', but
     # this is not reflect that in the script. OS X Xcode 10.11 SDK creates its own very broken
-    # 'pcap-config' script that only occassionally works for dynamic defintions, and defintely
+    # 'pcap-config' script that only occasionally works for dynamic definitions, and defintely
     # does not work for static.
     #
     # The ability to enable this script exists for corner cases where libpcap distributions starts

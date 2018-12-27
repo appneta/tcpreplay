@@ -92,7 +92,7 @@ dltrequires(tcpedit_t *tcpedit, int dlt)
         case DLT_EN10MB:
 /*        case DLT_USER:
         case DLT_VLAN: */
-            /* we have everthing we need in the original packet */
+            /* we have everything we need in the original packet */
             break;
 
         case DLT_NULL:

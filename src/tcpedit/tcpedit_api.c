@@ -233,7 +233,7 @@ tcpedit_set_mtu(tcpedit_t *tcpedit, int value)
 }
 
 /**
- * Enable trucating packets to the MTU lenght
+ * Enable truncating packets to the MTU length
  */
 int tcpedit_set_mtu_truncate(tcpedit_t *tcpedit, bool value)
 {

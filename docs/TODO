@@ -23,7 +23,7 @@ GENERAL:
 
 + Re-organize source tree
 
-+ tcpdump decoder should print packets syncronously w/ the main process
++ tcpdump decoder should print packets synchronously w/ the main process
 
 + Better use of GNU Autotools
 
@@ -37,7 +37,7 @@ GENERAL:
 - Detect system version of libopts b/c we need a recent version
 
 + Generalize packet editing and printing code so it can be shipped as a 
-  seperate library and plugged into tcpreplay/tcprewrite/flowreplay/etc
+  separate library and plugged into tcpreplay/tcprewrite/flowreplay/etc
 
 + See about removing libnet_init() from all binaries other then tcprewrite
   so we don't have to run as root:
@@ -101,7 +101,7 @@ TCPREWRITE:
   that tcpreplay can be more optimized
     ? perhaps use libnetdude?
     ? make into a library?
-    + definately put it into a seperate binary (tcprewrite)
+    + definitely put it into a separate binary (tcprewrite)
 
 - Add the ability to modify packet data via regex(es) in tcprewrite
   - Should support pcre

@@ -18,7 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*  This file impliments a fake, non-functioning version of the libpcapnav
+/*  This file implements a fake, non-functioning version of the libpcapnav
  *  API based on libpcap.  It's solely here for people who don't have 
  *  libpcapnav installed on their system, and to keep the code maintainable.
  */

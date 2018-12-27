@@ -83,7 +83,7 @@ ip_frag_apply(void *d, struct pktq *pktq)
 {
     struct pkt *pkt;
 
-    /* Select eth protocol via first packet in que: */
+    /* Select eth protocol via first packet in queue: */
     pkt = TAILQ_FIRST(pktq);
     if (pkt != TAILQ_END(pktq)) {
         uint16_t eth_type = htons(pkt->pkt_eth->eth_type);

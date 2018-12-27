@@ -271,7 +271,7 @@ tcpedit_dlt_copy_decoder_state(tcpeditdlt_t *ctx, tcpeditdlt_t *subctx)
     ctx->decoded_extra_size = subctx->decoded_extra_size;
 
     /* 
-     * the first decoder should of alraedy specified it's l2len, so we need to
+     * the first decoder should of already specified it's l2len, so we need to
      * add to it the l2len determined by the sub-plugin
      */
     ctx->l2len += subctx->l2len;

@@ -93,7 +93,7 @@ dlt_radiotap_register(tcpeditdlt_t *ctx)
 }
 
 /*
- * Initializer function.  This function is called only once, if and only iif
+ * Initializer function.  This function is called only once, if and only if
  * this plugin will be utilized.  Remember, if you need to keep track of any state, 
  * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
@@ -218,7 +218,7 @@ dlt_radiotap_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
 
 /*
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
- * Make sure you return this in host byte order since all the comparisions will be
+ * Make sure you return this in host byte order since all the comparisons will be
  * against the ETHERTYPE_* values which are oddly in host byte order.
  */
 int 

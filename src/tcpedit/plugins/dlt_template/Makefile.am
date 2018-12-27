@@ -4,7 +4,7 @@
 # add your .c files to libtcpedit_a_SOURCES
 # add your .h files to noinst_HEADERS
 # add any other files (like documentation, notes, etc) to EXTRA_DIST
-# add your dependancy information (see comment below)
+# add your dependency information (see comment below)
 
 eol =
 
@@ -23,7 +23,7 @@ noinst_HEADERS += \
 
 EXTRA_DIST += %reldir%/%{plugin}_opts.def
 
-# dependancies for your plugin source code.  Edit as necessary
+# dependencies for your plugin source code.  Edit as necessary
 %{plugin}.c: \
 	$(TCPEDIT_PLUGINS_DEPS) \
 	%reldir%/%{plugin}.h \
