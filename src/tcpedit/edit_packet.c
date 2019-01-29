@@ -1203,9 +1203,9 @@ is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
 }
 
 
+
 /**
- * rewrite the source and destination IP addresses based on a
- * range number which is generated via the range_[src/dst].
+ * based on  which is generated via the range_[src/dst] and range.
  * return 1 since we changed one or more IP addresses
  */
 int
