@@ -59,6 +59,37 @@ EOText;
 };
 
 flag = {
+    name        = range_count;
+    descrip     = "Set the count of ip address range";
+    arg-type    = number;
+    arg-range   = "1->1048575";
+    arg-default = 1;
+    max         = 1;
+    doc         = <<- EOText
+Increament ip address (ipv4) within specified range.
+EOText;
+};
+
+flag = {
+    name        = range_address;
+    arg-type    = string;
+    max         = 1;
+    flags-must  = range_count;
+    descrip     = "Rewrite IP addresses to be src/dst";
+    doc         = <<- EOText
+Takes a pair of colon delimited IPv4 addresses which will be used to rewrite
+all traffic to appear to be based on the src/dst IP addresses.
+
+IPv4 Example:
+@example
+--endpoints=198.18.50.2:198.19.0.2
+@end example
+
+EOText;
+};
+
+
+flag = {
     name        = pnat;
     value       = N;
     arg-type    = string;
