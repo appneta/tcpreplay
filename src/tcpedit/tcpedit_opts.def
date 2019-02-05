@@ -59,22 +59,34 @@ EOText;
 };
 
 flag = {
-    name        = range_count;
-    descrip     = "Set the count of ip address range";
+    name        = range_count_src;
+    descrip     = "Set the count of source ip address range";
     arg-type    = number;
     arg-range   = "1->1048575";
     arg-default = 1;
     max         = 1;
     doc         = <<- EOText
-Increament ip address (ipv4) within specified range.
+Increament source ip address (ipv4) within specified range.
 EOText;
 };
+
+flag = {
+    name        = range_count_dst;
+    descrip     = "Set the count of destination ip address range";
+    arg-type    = number;
+    arg-range   = "1->1048575";
+    arg-default = 1;
+    max         = 1;
+    doc         = <<- EOText
+Increament destination ip address (ipv4) within specified range.
+EOText;
+};
+
 
 flag = {
     name        = range_address;
     arg-type    = string;
     max         = 1;
-    flags-must  = range_count;
     descrip     = "Rewrite IP addresses to be src/dst";
     doc         = <<- EOText
 Takes a pair of colon delimited IPv4 addresses which will be used to rewrite
