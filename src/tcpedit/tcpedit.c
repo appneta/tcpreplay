@@ -336,6 +336,16 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             }
         }
     }
+    /* range ip address (ipv4 only) */
+    if (tcpedit->range_count_src || tcpedit->range_count_dst) {
+        /* only IPv4 Packets */
+        if (ip_hdr != NULL) {
+            if ((retval = range_ipv4(tcpedit, *pkthdr, packet,
+                                         ip_hdr, (*pkthdr)->caplen - l2len)) < 0)
+                return TCPEDIT_ERROR;
+        }
+    }
+
 
     /*
      * fix IP packet lengths in case they are corrupted by TCP segmentation

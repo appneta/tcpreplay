@@ -1202,3 +1202,61 @@ is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
     return 0;
 }
 
+
+/**
+ * based on  which is generated via the range_[src/dst] and range.
+ * return 1 since we changed one or more IP addresses
+ */
+int
+range_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
+               u_char *pktdata, ipv4_hdr_t *ip_hdr, int len)
+{
+#ifdef DEBUG
+    char srcip[16], dstip[16];
+#endif
+    assert(tcpedit);
+    assert(pkthdr);
+    assert(pktdata);
+    assert(ip_hdr);
+
+#ifdef DEBUG
+    strlcpy(srcip, get_addr2name4(tcpedit->range_src_ipv4, RESOLVE), 16);
+    strlcpy(dstip, get_addr2name4(tcpedit->range_dst_ipv4, RESOLVE), 16);
+#endif
+
+    /* randomize IP addresses based on the value of random */
+    dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
+
+    /* don't rewrite broadcast addresses */
+    if (tcpedit->range_count_dst){
+        if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_dst.s_addr))
+            || !tcpedit->skip_broadcast) {
+            uint32_t old_ip = ip_hdr->ip_dst.s_addr;
+            ip_hdr->ip_dst.s_addr = htonl(ntohl(tcpedit->range_dst_ipv4) + tcpedit->range_pos_dst);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr, len);
+        }
+    }
+    if (tcpedit->range_count_src){
+        if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr))
+            || !tcpedit->skip_broadcast) {
+            uint32_t old_ip = ip_hdr->ip_src.s_addr;
+            ip_hdr->ip_src.s_addr = htonl(ntohl(tcpedit->range_src_ipv4) + tcpedit->range_pos_src);
+            ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr, len);
+        }
+    }
+    if ((++tcpedit->range_pos_dst) >= tcpedit->range_count_dst){
+        tcpedit->range_pos_dst = 0;
+    }
+    if ((++tcpedit->range_pos_src) >= tcpedit->range_count_src){
+        tcpedit->range_pos_src = 0;
+    }
+
+#ifdef DEBUG
+    strlcpy(srcip, get_addr2name4(ip_hdr->ip_src.s_addr, RESOLVE), 16);
+    strlcpy(dstip, get_addr2name4(ip_hdr->ip_dst.s_addr, RESOLVE), 16);
+#endif
+
+    dbgx(1, "New Src IP: %s\tNew Dst IP: %s\n", srcip, dstip);
+
+    return 0;
+}

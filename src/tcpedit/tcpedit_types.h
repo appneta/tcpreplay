@@ -152,7 +152,7 @@ typedef struct {
     
     /* pseudo-randomize IP addresses using a seed */
     uint32_t seed;
-    
+
     /* rewrite tcp/udp ports */
     tcpedit_portmap_t *portmap;
     
@@ -162,6 +162,13 @@ typedef struct {
 
     uint32_t fuzz_seed;
     uint32_t fuzz_factor;
+
+    uint32_t range_count_src;
+    uint32_t range_count_dst;
+    uint32_t range_pos_src;
+    uint32_t range_pos_dst;
+    uint32_t range_src_ipv4;
+    uint32_t range_dst_ipv4;
 } tcpedit_t;
 
 
