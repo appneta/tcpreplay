@@ -1224,7 +1224,7 @@ range_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     strlcpy(dstip, get_addr2name4(tcpedit->range_dst_ipv4, RESOLVE), 16);
 #endif
 
-    /* randomize IP addresses based on the value of random */
+    /* ranged IP addresses based on the value of range_[src/dst]_ipv4 */
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
     /* don't rewrite broadcast addresses */

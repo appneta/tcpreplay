@@ -282,6 +282,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
                                         ((uint8_t)ip2[1])<<16 |
                                         ((uint8_t)ip2[2])<<8 |
                                         ((uint8_t)ip2[3])<<0);
+
     }
 
     /* parse the tcpedit dlt args */
