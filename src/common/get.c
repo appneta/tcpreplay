@@ -407,6 +407,8 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int len)
             dbgx(3, "Going deeper due to extension header 0x%02X", proto);
             maxlen = len - (int)((u_char *)ip6_hdr - (u_char *)next);
             exthdr = get_ipv6_next(next, maxlen);
+            if (exthdr == NULL)
+                return next;
             proto = exthdr->ip_nh;
             next = exthdr;
             break;
