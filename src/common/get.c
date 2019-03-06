@@ -536,6 +536,8 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, int len)
             case TCPR_IPV6_NH_HBH:
                 dbgx(3, "Jumping to next extension header (0x%hhx)", proto);
                 exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr, len);
+                if (exthdr == NULL)
+                    return proto;
                 proto = exthdr->ip_nh;
                 ptr = (u_char *)exthdr;
                 break;
