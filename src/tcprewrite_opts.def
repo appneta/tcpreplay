@@ -51,7 +51,7 @@ config-header   = "config.h";
 
 detail = <<- EOText
 Tcprewrite is a tool to rewrite packets stored in @file{pcap(3)} file format,
-such as created by tools such as @file{tcpdump(1)} and @file{ethereal(1)}.
+such as created by tools such as @file{tcpdump(1)} and @file{wireshark(1)}.
 Once a pcap file has had it's packets rewritten, they can be replayed back
 out on the network using @file{tcpreplay(1)}.
 

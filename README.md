@@ -7,7 +7,7 @@ Tcpreplay
 
 Tcpreplay is a suite of [GPLv3] licensed utilities for UNIX (and Win32 under
 [Cygwin]) operating systems for editing and replaying network traffic which
-was previously captured by tools like [tcpdump] and [Ethereal]/[Wireshark]. 
+was previously captured by tools like [tcpdump] and [Wireshark]. 
 It allows you to classify traffic as client or server, rewrite Layer 2, 3 and 4 
 packets and finally replay the traffic back onto the network and through other
 devices such as switches, routers, firewalls, NIDS and IPS's. Tcpreplay supports
@@ -228,9 +228,8 @@ or visit our [developers wiki](https://github.com/appneta/tcpreplay/wiki)
 [flow]:     http://en.wikipedia.org/wiki/Traffic_flow_%28computer_networking%29
 [NetFlow]:  http://www.cisco.com/go/netflow
 [Cygwin]:   http://www.cygwin.com/
-[Wireshark]: http://www.wireshark.org
+[Wireshark]: https://www.wireshark.org
 [tcpdump]:  http://www.tcpdump.org
-[Ethereal]: http://www.ethreal.com
 [Cisco]:    http://www.cisco.com
 [AppNeta]:  http://www.appneta.com
 [git]:      https://help.github.com/articles/set-up-git
