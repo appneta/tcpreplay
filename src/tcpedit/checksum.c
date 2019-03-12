@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -19,10 +19,10 @@
  */
 
 /*
- * This code is heavily based on (some might even say stolen from) Mike Shiffman's 
+ * This code is heavily based on (some might even say stolen from) Mike Shiffman's
  * checksumming code from Libnet 1.1.3
  */
- 
+
 #include "config.h"
 #include "tcpedit.h"
 #include "checksum.h"
@@ -41,6 +41,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
     udp_hdr_t *udp;
     icmpv4_hdr_t *icmp;
     icmpv6_hdr_t *icmp6;
+    u_char *layer;
     int ip_hl;
     int sum;
 
@@ -62,7 +63,13 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         proto = get_ipv6_l4proto(ipv6, len);
         dbgx(3, "layer4 proto is 0x%hx", (uint16_t)proto);
 
-        ip_hl = (u_char*)get_layer4_v6(ipv6, len) - (u_char*)data;
+        layer = (u_char*)get_layer4_v6(ipv6, len);
+        if (!layer) {
+            tcpedit_setwarn(tcpedit, "%s", "Packet to short for checksum");
+            return TCPEDIT_WARN;
+        }
+
+        ip_hl = layer - (u_char*)data;
         dbgx(3, "ip_hl proto is 0x%d", ip_hl);
 
         len -= (ip_hl - TCPR_IPV6_H);
@@ -96,8 +103,8 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         case IPPROTO_UDP:
             udp = (udp_hdr_t *)(data + ip_hl);
             /* No need to recalculate UDP checksums if already 0 */
-            if (udp->uh_sum == 0) 
-                break; 
+            if (udp->uh_sum == 0)
+                break;
             udp->uh_sum = 0;
             if (ipv6 != NULL) {
                 sum = do_checksum_math((uint16_t *)&ipv6->ip_src, 32);
@@ -114,7 +121,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             icmp->icmp_sum = 0;
             if (ipv6 != NULL) {
                 sum = do_checksum_math((uint16_t *)&ipv6->ip_src, 32);
-                icmp->icmp_sum = CHECKSUM_CARRY(sum);                
+                icmp->icmp_sum = CHECKSUM_CARRY(sum);
             }
             sum += do_checksum_math((uint16_t *)icmp, len);
             icmp->icmp_sum = CHECKSUM_CARRY(sum);
@@ -145,7 +152,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         case IPPROTO_OSPF:
         case IPPROTO_OSPF_LSA:
         case IPPROTO_VRRP:
-        case TCPR_PROTO_CDP: 
+        case TCPR_PROTO_CDP:
         case TCPR_PROTO_ISL:
         default:
             tcpedit_setwarn(tcpedit, "Unsupported protocol for checksum: 0x%x", proto);
