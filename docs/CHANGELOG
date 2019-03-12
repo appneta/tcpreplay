@@ -1,4 +1,6 @@
 --/--/2019 Version 4.3.2
+    - CVE-2019-8376 NULL pointer dereference get_layer4_v6() (#537)
+    - CVE-2019-8377 NULL pointer dereference get_ipv6_l4proto() (#536)
     - Rename Ethereal to Wireshark (#545)
 
 12/27/2018 Version 4.3.1
