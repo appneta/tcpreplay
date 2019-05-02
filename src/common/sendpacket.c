@@ -471,7 +471,7 @@ TRY_SEND_AGAIN:
  */
 sendpacket_t *
 sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
-        sendpacket_type_t sendpacket_type, void *arg)
+        sendpacket_type_t sendpacket_type _U_, void *arg _U_)
 {
     sendpacket_t *sp;
     struct stat sdata;
