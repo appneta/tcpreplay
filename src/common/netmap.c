@@ -550,10 +550,10 @@ bool netmap_tx_queues_empty(void *p)
 
     sp->cur_tx_ring = 0;
 
-    for (i = sp->cur_tx_ring; i <= sp->last_tx_ring; i++) {
+    for (int i = sp->cur_tx_ring; i <= sp->last_tx_ring; i++) {
         txring = NETMAP_TXRING(sp->nm_if, i);
         if (!NETMAP_TX_RING_EMPTY(txring)) {
-            ioctl(sp->handle.fd, NCIOCTXSYNC, NULL);
+            ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
             usleep(1);
             return false;
         }
