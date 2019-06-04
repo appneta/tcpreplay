@@ -549,25 +549,17 @@ bool netmap_tx_queues_empty(void *p)
     assert(sp);
 
     sp->cur_tx_ring = 0;
-    txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
-    while (NETMAP_TX_RING_EMPTY(txring)) {
-        /* current ring is empty- go to next */
-        ++sp->cur_tx_ring;
-        if (sp->cur_tx_ring > sp->last_tx_ring) {
-            /* last ring */
-            sp->cur_tx_ring = 0;
-            return true;
-        }
 
-        txring = NETMAP_TXRING(sp->nm_if, sp->cur_tx_ring);
+    for (i = sp->cur_tx_ring; i <= sp->last_tx_ring; i++) {
+        txring = NETMAP_TXRING(sp->nm_if, i);
+        while (!NETMAP_TX_RING_EMPTY(txring)) {
+            ioctl(sp->handle.fd, NCIOCTXSYNC, NULL);
+            usleep(1);
+            return false;
+        }
     }
 
-    /*
-     * send TX interrupt signal
-     */
-    ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
-
-    return false;
+    return true;
 }
 
 int sendpacket_send_netmap(void *p, const u_char *data, size_t len)
