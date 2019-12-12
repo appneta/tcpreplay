@@ -14,7 +14,7 @@ git_version.c:
 libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
 		      fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c \
 		      timer.c git_version.c sendpacket.c \
-		      dlt_names.c mac.c interface.c git_version.c \
+		      dlt_names.c mac.c interface.c \
 		      flows.c txring.c
 
 if ENABLE_TCPDUMP
