@@ -152,6 +152,11 @@ AM_PROG_AR
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_CC
+
+# for compat with old systems.
+# deprecated in favor of AC_PROG_CC since automake 1.14 and is now no-op
+AM_PROG_CC_C_O
+
 AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
