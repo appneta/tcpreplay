@@ -74,7 +74,7 @@ nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
  */
 static inline void
 gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
-        struct timeval *now, bool flush)
+        struct timeval *now, bool flush _U_)
 {
     struct timeval sleep_until, nap_for;
 #ifdef HAVE_NETMAP
@@ -116,7 +116,7 @@ gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
  */
 static inline void 
 select_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
-        struct timeval *now,  bool flush)
+        struct timeval *now,  bool flush _U_)
 {
     struct timeval timeout;
 #ifdef HAVE_NETMAP

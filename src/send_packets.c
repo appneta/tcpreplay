@@ -226,7 +226,8 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
 }
 
-static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
+static inline void wake_send_queues(sendpacket_t *sp _U_,
+		tcpreplay_opt_t *options _U_)
 {
 #ifdef HAVE_NETMAP
     if (options->netmap)
