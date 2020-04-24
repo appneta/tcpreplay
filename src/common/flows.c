@@ -234,7 +234,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
             l2_len = 4; /* no header extensions */
         }
 
-        /* no break */
+        /* fallthrough */
     case DLT_EN10MB:
         /* set l2_len if we did not fell through */
         if (l2_len == 0)

@@ -105,7 +105,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         } else {
             eth_hdr_offset = 4; /* no header extensions */
         }
-        /* no break */
+        /* fallthrough */
     case DLT_EN10MB:
         if ((size_t)datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
             vlan_hdr_t *vlan_hdr;
@@ -173,7 +173,7 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 
     case DLT_JUNIPER_ETHER:
         l2_len = 24;
-        /* no break */
+        /* fallthrough */
     case DLT_EN10MB:
         if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
             uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
