@@ -42,7 +42,7 @@
 #include "lib/sll.h"
 #include "dlt.h"
 
-tOptDesc *const tcpedit_tcpedit_optDesc_p;
+extern tOptDesc *const tcpedit_tcpedit_optDesc_p;
 
 /**
  * \brief Checks to see if you should make an edit
