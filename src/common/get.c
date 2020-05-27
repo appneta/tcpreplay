@@ -113,7 +113,7 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
             uint16_t ether_type = ntohs(eth_hdr->ether_type);
             switch (ether_type) {
             case ETHERTYPE_VLAN: /* 802.1q */
-                vlan_hdr = (vlan_hdr_t *)pktdata;
+                vlan_hdr = (vlan_hdr_t *)(pktdata + sizeof(eth_hdr_t));
                 return ntohs(vlan_hdr->vlan_len);
             default:
                 return ether_type; /* yes, return it in host byte order */
@@ -172,11 +172,14 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_JUNIPER_ETHER:
+        /* XXX Seems wrong based on other functions dealing with this */
         l2_len = 24;
         /* no break */
     case DLT_EN10MB:
         if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
             uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
+
+            l2_len += sizeof(eth_hdr_t);
 
             while (ether_type == ETHERTYPE_VLAN) {
                 vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
@@ -187,8 +190,6 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
                     break;
                 }
             }
-
-            l2_len += sizeof(eth_hdr_t);
         }
 
         if (datalen < l2_len)

@@ -274,12 +274,12 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     /* assume Ethernet, IPv4 for now */
     ether_type = ntohs(((eth_hdr_t*)(packet + l2_len))->ether_type);
+    l2_len += sizeof(eth_hdr_t);
     while (ether_type == ETHERTYPE_VLAN) {
         vlan_hdr = (vlan_hdr_t *)(packet + l2_len);
         ether_type = ntohs(vlan_hdr->vlan_len);
         l2_len += 4;
     }
-    l2_len += sizeof(eth_hdr_t);
 
     switch (ether_type) {
     case ETHERTYPE_IP:
