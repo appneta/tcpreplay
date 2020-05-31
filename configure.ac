@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.2],
+AC_INIT([tcpreplay],[4.3.3-beta1],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -48,13 +48,6 @@ AC_SUBST(CROSS_ARCH)
 AC_SUBST(CROSS_LD)
 
 dnl ============================================
-dnl Some libraries are in /usr/lib/i386-linux-gnu
-dnl but host is i686-linux-gnu
-dnl ============================================
-
-MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) 2> /dev/null || ${host_cpu}-${host_os}
-
-dnl ============================================
 dnl MacOSX build and runtime environment options
 dnl ============================================
 
@@ -73,47 +66,56 @@ dnl Check OS X SDK and compiler
 dnl ===========================
 
 case "$host_os" in
-    darwin*) # Mac OS X or iOS
-    # If no --with-macosx-sdk option is given, look for one
+    *darwin*) # Mac OS X or iOS
+        # If no --with-macosx-sdk option is given, look for one
 
-    # The intent is that for "most" Mac-based developers, a suitable
-    # SDK will be found automatically without any configure options.
+        # The intent is that for "most" Mac-based developers, a suitable
+        # SDK will be found automatically without any configure options.
 
-    # For developers with a current Xcode, the lowest-numbered SDK
-    # higher than or equal to the minimum required should be found.
+        # For developers with a current Xcode, the lowest-numbered SDK
+        # higher than or equal to the minimum required should be found.
 
-    # To find a list of available version run `xcodebuild -showsdks`
+        # To find a list of available version run `xcodebuild -showsdks`
 
-    AC_MSG_CHECKING([what macOS compiler to use])
+        MULTIARCH=${host_cpu}-${host_os}
+        AC_MSG_CHECKING([what macOS compiler to use])
 
-    for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 10.16.10.17 10.18 10.19 10.20 11.0 11.1 11.2 11.3 11.4 11.5; do
-        MACOSX_SDK_PATH=$(xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null)
-        if test -d "$MACOSX_SDK_PATH"; then
-            with_macosx_sdk="${_macosx_sdk}"
-            break
-        else
-            MACOSX_SDK_PATH="$(xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${_macosx_sdk}.sdk"
+        for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 10.16 10.17 10.18 10.19 10.20 11.0 11.1 11.2 11.3 11.4 11.5; do
+            MACOSX_SDK_PATH=$(xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null)
             if test -d "$MACOSX_SDK_PATH"; then
                 with_macosx_sdk="${_macosx_sdk}"
                 break
+            else
+                MACOSX_SDK_PATH=$(xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${_macosx_sdk}.sdk
+                if test -d "$MACOSX_SDK_PATH"; then
+                    with_macosx_sdk="${_macosx_sdk}"
+                    break
+                fi
             fi
+        done
+        if test -d "$MACOSX_SDK_PATH"; then
+            CC="$(xcrun -find clang) -m64 -isysroot $MACOSX_SDK_PATH"
+            INSTALL_NAME_TOOL=$(xcrun -find install_name_tool)
+            AR=$(xcrun -find ar)
+            NM=$(xcrun -find nm)
+            STRIP=$(xcrun -find strip)
+            LIBTOOL=$(xcrun -find libtool)
+            RANLIB=$(xcrun -find ranlib)
+            AC_MSG_RESULT([$CC])
+        else
+            AC_MSG_RESULT([legacy])
         fi
-    done
-    if test -d "$MACOSX_SDK_PATH"; then
-        CC="$(xcrun -find clang) -m64 -isysroot $MACOSX_SDK_PATH"
-        INSTALL_NAME_TOOL=$(xcrun -find install_name_tool)
-        AR=$(xcrun -find ar)
-        NM=$(xcrun -find nm)
-        STRIP=$(xcrun -find strip)
-        LIBTOOL=$(xcrun -find libtool)
-        RANLIB=$(xcrun -find ranlib)
-        AC_MSG_RESULT([$CC])
-    else
-        AC_MSG_RESULT([legacy])
-    fi
-
-    ;;
-
+        ;;
+    *Linux*)
+        dnl ============================================
+        dnl Some libraries are in /usr/lib/i386-linux-gnu
+        dnl but host is i686-linux-gnu
+        dnl ============================================
+        MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) 2> /dev/null || ${host_cpu}-${host_os}
+        ;;
+    *)
+        MULTIARCH=${host_cpu}-${host_os}
+        ;;
 esac
 
 AC_SUBST(MACOSX_SDK_PATH)
@@ -202,7 +204,7 @@ if test -n "${AUTOGEN}" ; then
     if test -z "$AUTOGEN_BUILD"; then
         AUTOGEN_BUILD=0
     fi
-    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) || 
+    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) ||
             (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) ||
             test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
@@ -1963,11 +1965,6 @@ Tuntap device support:      ${have_tuntap}
 
 
 case $host in
-    *-apple-darwin*)
-    AC_MSG_WARN([Apple OS X versions prior to 10.5 (Leopard) have a serious problem!
-Please see: http://tcpreplay.synfin.net/trac/ticket/142 for more details])
-    ;;
-
     *-*-cygwin)
         AC_MSG_WARN([Windows/Cygwin support is still somewhat experimental.
 Please report any bugs! https://github.com/appneta/tcpreplay/issues])

@@ -1,3 +1,6 @@
+05/20/2020 Version 4.3.3 beta1
+    - fix warnings from gcc version 10 (#580)
+
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)
     - CVE-2019-8376 NULL pointer dereference get_layer4_v6() (#537)
