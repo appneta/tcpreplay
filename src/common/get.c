@@ -95,6 +95,9 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_JUNIPER_ETHER:
+        if (datalen < 5)
+            return 0;
+
         if (memcmp(pktdata, "MGC", 3))
             warnx("No Magic Number found: %s (0x%x)",
                  pcap_datalink_val_to_description(datalink), datalink);
@@ -175,8 +178,22 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_JUNIPER_ETHER:
-        /* XXX Seems wrong based on other functions dealing with this */
-        l2_len += 24;
+        if (datalen >= 5) {
+            l2_len = -1;
+            break;
+        }
+
+        if (memcmp(pktdata, "MGC", 3))
+            warnx("No Magic Number found: %s (0x%x)",
+                 pcap_datalink_val_to_description(datalink), datalink);
+
+        if ((pktdata[3] & 0x80) == 0x80) {
+            l2_len = ntohs(*((uint16_t*)&pktdata[4]));
+            l2_len += 6;
+        } else {
+            l2_len = 4; /* no header extensions */
+        }
+
         /* fallthrough */
     case DLT_EN10MB:
         if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
