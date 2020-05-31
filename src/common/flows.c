@@ -236,14 +236,12 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
 
         /* fallthrough */
     case DLT_EN10MB:
-        /* set l2_len if we did not fell through */
-        if (l2_len == 0)
-            l2_len = sizeof(eth_hdr_t);
-
-        if (pkthdr->caplen < l2_len)
+        /* l2_len will be zero if we did not fall through */
+        if (pkthdr->caplen < l2_len + sizeof(eth_hdr_t))
             return FLOW_ENTRY_INVALID;
 
         ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
+        l2_len += sizeof(eth_hdr_t);
 
         while (ether_type == ETHERTYPE_VLAN) {
             vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
@@ -251,8 +249,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
             ether_type = ntohs(vlan_hdr->vlan_len);
             l2_len += 4;
         }
-
-        l2_len += sizeof(eth_hdr_t);
         break;
 
     default:
