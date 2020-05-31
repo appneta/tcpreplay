@@ -108,16 +108,19 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         /* fallthrough */
     case DLT_EN10MB:
         if ((size_t)datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
-            vlan_hdr_t *vlan_hdr;
             eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
             uint16_t ether_type = ntohs(eth_hdr->ether_type);
-            switch (ether_type) {
-            case ETHERTYPE_VLAN: /* 802.1q */
-                vlan_hdr = (vlan_hdr_t *)(pktdata + sizeof(eth_hdr_t));
-                return ntohs(vlan_hdr->vlan_len);
-            default:
-                return ether_type; /* yes, return it in host byte order */
+            uint16_t l2_len = sizeof(*eth_hdr) + eth_hdr_offset;
+            while (ether_type == ETHERTYPE_VLAN) {
+                if (datalen < l2_len + sizeof(vlan_hdr_t))
+                     return 0;
+
+                 vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(pktdata + l2_len);
+                 ether_type = ntohs(vlan_hdr->vlan_tpid);
+                 l2_len += sizeof(vlan_hdr_t);
             }
+
+            return ether_type; /* yes, return it in host byte order */
         }
         break;
 
@@ -173,22 +176,21 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 
     case DLT_JUNIPER_ETHER:
         /* XXX Seems wrong based on other functions dealing with this */
-        l2_len = 24;
+        l2_len += 24;
         /* fallthrough */
     case DLT_EN10MB:
         if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
             uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
             l2_len += sizeof(eth_hdr_t);
-
             while (ether_type == ETHERTYPE_VLAN) {
-                vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-                ether_type = ntohs(vlan_hdr->vlan_len);
-                l2_len += 4;
                 if ((size_t)datalen < sizeof(vlan_hdr_t) + l2_len) {
                     l2_len = -1;
                     break;
                 }
+                vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+                ether_type = ntohs(vlan_hdr->vlan_tpid);
+                l2_len += 4;
             }
         }
 
