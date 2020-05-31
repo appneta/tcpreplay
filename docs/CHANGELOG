@@ -1,4 +1,5 @@
 05/20/2020 Version 4.3.3 beta1
+    - Correct L2 header length to correct IP header offset (#584)
     - fix warnings from gcc version 10 (#580)
 
 03/12/2019 Version 4.3.2

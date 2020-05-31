@@ -95,6 +95,9 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_JUNIPER_ETHER:
+        if (datalen < 5)
+            return 0;
+
         if (memcmp(pktdata, "MGC", 3))
             warnx("No Magic Number found: %s (0x%x)",
                  pcap_datalink_val_to_description(datalink), datalink);
@@ -108,16 +111,19 @@ get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
         /* fallthrough */
     case DLT_EN10MB:
         if ((size_t)datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
-            vlan_hdr_t *vlan_hdr;
             eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
             uint16_t ether_type = ntohs(eth_hdr->ether_type);
-            switch (ether_type) {
-            case ETHERTYPE_VLAN: /* 802.1q */
-                vlan_hdr = (vlan_hdr_t *)pktdata;
-                return ntohs(vlan_hdr->vlan_len);
-            default:
-                return ether_type; /* yes, return it in host byte order */
+            uint16_t l2_len = sizeof(*eth_hdr) + eth_hdr_offset;
+            while (ether_type == ETHERTYPE_VLAN) {
+                if (datalen < l2_len + sizeof(vlan_hdr_t))
+                     return 0;
+
+                 vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(pktdata + l2_len);
+                 ether_type = ntohs(vlan_hdr->vlan_tpid);
+                 l2_len += sizeof(vlan_hdr_t);
             }
+
+            return ether_type; /* yes, return it in host byte order */
         }
         break;
 
@@ -172,23 +178,37 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_JUNIPER_ETHER:
-        l2_len = 24;
+        if (datalen >= 5) {
+            l2_len = -1;
+            break;
+        }
+
+        if (memcmp(pktdata, "MGC", 3))
+            warnx("No Magic Number found: %s (0x%x)",
+                 pcap_datalink_val_to_description(datalink), datalink);
+
+        if ((pktdata[3] & 0x80) == 0x80) {
+            l2_len = ntohs(*((uint16_t*)&pktdata[4]));
+            l2_len += 6;
+        } else {
+            l2_len = 4; /* no header extensions */
+        }
+
         /* fallthrough */
     case DLT_EN10MB:
         if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
             uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
+            l2_len += sizeof(eth_hdr_t);
             while (ether_type == ETHERTYPE_VLAN) {
-                vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-                ether_type = ntohs(vlan_hdr->vlan_len);
-                l2_len += 4;
                 if ((size_t)datalen < sizeof(vlan_hdr_t) + l2_len) {
                     l2_len = -1;
                     break;
                 }
+                vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
+                ether_type = ntohs(vlan_hdr->vlan_tpid);
+                l2_len += 4;
             }
-
-            l2_len += sizeof(eth_hdr_t);
         }
 
         if (datalen < l2_len)

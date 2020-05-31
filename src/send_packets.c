@@ -240,7 +240,6 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         uint32_t iteration, bool cached, int datalink)
 {
     uint16_t ether_type;
-    vlan_hdr_t *vlan_hdr;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     uint32_t src_ip, dst_ip;
@@ -275,12 +274,12 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     /* assume Ethernet, IPv4 for now */
     ether_type = ntohs(((eth_hdr_t*)(packet + l2_len))->ether_type);
-    while (ether_type == ETHERTYPE_VLAN) {
-        vlan_hdr = (vlan_hdr_t *)(packet + l2_len);
-        ether_type = ntohs(vlan_hdr->vlan_len);
-        l2_len += 4;
-    }
     l2_len += sizeof(eth_hdr_t);
+    while (ether_type == ETHERTYPE_VLAN) {
+         vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(pktdata + l2_len);
+         ether_type = ntohs(vlan_hdr->vlan_tpid);
+         l2_len += 4;
+    }
 
     switch (ether_type) {
     case ETHERTYPE_IP:

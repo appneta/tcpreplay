@@ -139,7 +139,17 @@
 #define TCPR_HSRP_H           0x14    /**< HSRP header:          8 bytes */
 
 /**
- * IEEE 802.1Q (Virtual Local Area Network) VLAN header, static header
+ * IEEE 802.1Q (Virtual Local Area Network) VLAN tag
+ * size: 8 bytes
+ */
+struct tcpr_802_1q_tag
+{
+    uint16_t       vlan_tci;               /* VLAN TCI */
+    uint16_t       vlan_tpid;              /* Next ETH_TYPE */
+};
+
+/**
+ * IEEE 802.1Q (Virtual Local Area Network) VLAN packet header
  * size: 8 bytes
  */
 struct tcpr_802_1q_hdr

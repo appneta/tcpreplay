@@ -771,11 +771,14 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (pktlen < l2len)
         return -1;
 
-    ether_type = ntohs(((eth_hdr_t*)(packet + l2len))->ether_type);
+    ether_type = ntohs(((eth_hdr_t*)packet)->ether_type);
     while (ether_type == ETHERTYPE_VLAN) {
-        vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(packet + l2len);
-        ether_type = ntohs(vlan_hdr->vlan_len);
-        l2len += 4;
+        if (pktlen < l2len + sizeof(vlan_hdr_t))
+             return -1;
+
+         vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(packet + l2len);
+         ether_type = ntohs(vlan_hdr->vlan_tpid);
+         l2len += 4;
     }
 
     if (l2len > 0) {
