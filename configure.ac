@@ -66,7 +66,7 @@ dnl Check OS X SDK and compiler
 dnl ===========================
 
 case "$host_os" in
-    *darwin*) # Mac OS X or iOS
+    darwin*) # Mac OS X or iOS
         # If no --with-macosx-sdk option is given, look for one
 
         # The intent is that for "most" Mac-based developers, a suitable
@@ -106,7 +106,7 @@ case "$host_os" in
             AC_MSG_RESULT([legacy])
         fi
         ;;
-    *Linux*)
+    Linux*)
         dnl ============================================
         dnl Some libraries are in /usr/lib/i386-linux-gnu
         dnl but host is i686-linux-gnu
