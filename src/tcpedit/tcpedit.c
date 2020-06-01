@@ -220,12 +220,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
-            if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr, (*pkthdr)->caplen)) < 0)
+            if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr,
+                    (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
         }
 
         if (tcpedit->tcp_sequence_enable)
-            rewrite_ipv4_sequence(tcpedit, &ip_hdr);
+            rewrite_ipv4_tcp_sequence(tcpedit, &ip_hdr,
+                    (*pkthdr)->caplen - l2len);
     }
 
     /* IPv6 edits */
@@ -261,12 +263,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
-            if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr, (*pkthdr)->caplen)) < 0)
+            if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr,
+                    (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
         }
 
         if (tcpedit->tcp_sequence_enable)
-            rewrite_ipv6_sequence(tcpedit, &ip6_hdr);
+            rewrite_ipv6_tcp_sequence(tcpedit, &ip6_hdr, (*pkthdr)->caplen - l2len);
     }
 
     if (tcpedit->fuzz_seed != 0) {

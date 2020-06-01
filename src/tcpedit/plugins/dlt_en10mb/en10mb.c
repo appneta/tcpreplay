@@ -784,14 +784,16 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (l2len > 0) {
         if (pktlen < l2len) {
             /* can happen if fuzzing is enabled */
+            tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than l2len=%u",
+                    pktlen, l2len);
             return -1;
         }
 
         return l2len;
     }
 
-    tcpedit_seterr(ctx->tcpedit, "%s", "Whoops!  Bug in my code!");
-    return -1;
+    tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: %s", "Whoops!  Bug in my code!");
+    return TCPEDIT_ERROR;
 }
 
 tcpeditdlt_l2addr_type_t

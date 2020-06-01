@@ -62,15 +62,34 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
     assert(tcpedit);
     assert(pkthdr);
     assert(ip_hdr);
-    
+
+    if (pkthdr->caplen < sizeof(*ip_hdr)) {
+        tcpedit_setwarn(tcpedit, "caplen too small to read IPv4 header: %u",
+                pkthdr->caplen);
+        return TCPEDIT_WARN;
+    }
+
+    if (ip_hdr->ip_v != 4) {
+        tcpedit_seterr(tcpedit, "Invalid packet: Expected IPv4 packet: got %u", ip_hdr->ip_v);
+        return TCPEDIT_ERROR;
+    }
 
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len &&
             (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
-        if (ntohs(ip_hdr->ip_len) < (ip_hdr->ip_hl << 2))
+        if (ntohs(ip_hdr->ip_len) < (ip_hdr->ip_hl << 2)) {
+            tcpedit_setwarn(tcpedit, "Unable to checksum IPv4 packet with invalid length %u",
+                    ip_hdr->ip_len);
             return TCPEDIT_WARN;
+        }
 
         ip_len = (int)ntohs(ip_hdr->ip_len);
+        if (ip_len < (int)pkthdr->caplen) {
+            tcpedit_seterr(tcpedit, "Corrupt packet: Unable to checksum IPv4 packet with invalid length %u",
+                    ip_len);
+            return TCPEDIT_ERROR;
+        }
+
         ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, ip_hdr->ip_p,
                 ip_len - (ip_hdr->ip_hl << 2));
         if (ret1 < 0)
@@ -128,12 +147,26 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
     assert(pkthdr);
     assert(ip6_hdr);
 
+    if (pkthdr->caplen < sizeof(*ip6_hdr)) {
+        tcpedit_setwarn(tcpedit, "caplen too small to read IPv6 header: %u",
+                pkthdr->caplen);
+        return TCPEDIT_WARN;
+    }
+
+    ipv4_hdr_t *ip_hdr = (ipv4_hdr_t*)ip6_hdr;
+    if (ip_hdr->ip_v != 6) {
+        tcpedit_seterr(tcpedit, "Invalid packet: Expected IPv6 packet: got %u", ip_hdr->ip_v);
+        return TCPEDIT_ERROR;
+    }
 
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len) {
-        if (ip6_hdr->ip_len < ipv6_header_length(ip6_hdr, pkthdr->len))
+        if (ip6_hdr->ip_len < ipv6_header_length(ip6_hdr, pkthdr->len)) {
+            tcpedit_setwarn(tcpedit, "Unable to checksum IPv6 packet with invalid length %u",
+                    ip6_hdr->ip_len);
             return TCPEDIT_WARN;
-        ret = do_checksum(tcpedit, (u_char *) ip6_hdr, ip6_hdr->ip_nh,
+        }
+        ret = do_checksum(tcpedit, (u_char *)ip6_hdr, ip6_hdr->ip_nh,
             htons(ip6_hdr->ip_len));
         if (ret < 0)
             return TCPEDIT_ERROR;
@@ -233,9 +266,10 @@ static void ipv6_l34_csum_replace(uint8_t *data, uint8_t protocol,
 }
 
 static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
-        uint32_t new_ip, int len)
+        uint32_t new_ip, int l3len)
 {
     uint8_t *l4, protocol;
+    int len = l3len;
 
     assert(ip_hdr);
 
@@ -271,9 +305,10 @@ static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
 }
 
 static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
-        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int len)
+        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int l3len)
 {
     uint8_t *l4, protocol;
+    int len = l3len;
 
     assert(ip6_hdr);
 
@@ -892,7 +927,7 @@ rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction,
 
 int
 rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction,
-        int len)
+        int l3len)
 {
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
@@ -908,7 +943,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction,
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
             remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_src);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, len);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, l3len);
             dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
             break;
         }
@@ -921,7 +956,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction,
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
             remap_ipv6(tcpedit, ipmap->to, &ip6_hdr->ip_dst);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, len);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, l3len);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
             break;
         }
@@ -948,7 +983,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction,
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
             remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, len);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, l3len);
             dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
             diddst = 1;
         }
@@ -956,7 +991,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction,
             struct tcpr_in6_addr old_ip6;
             memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
             remap_ipv6(tcpedit, cidrmap1->to, &ip6_hdr->ip_src);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, len);
+            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, l3len);
             dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
             didsrc = 1;
         }
