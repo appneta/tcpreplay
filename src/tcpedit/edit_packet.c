@@ -254,7 +254,7 @@ static void ipv6_l34_csum_replace(uint8_t *data, uint8_t protocol,
 }
 
 static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
-        uint32_t new_ip, int l3len)
+        uint32_t new_ip, const int l3len)
 {
     uint8_t *l4, protocol;
     int len = l3len;
@@ -293,7 +293,8 @@ static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
 }
 
 static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
-        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip, int l3len)
+        struct tcpr_in6_addr *old_ip, struct tcpr_in6_addr *new_ip,
+        const int l3len)
 {
     uint8_t *l4, protocol;
     int len = l3len;
@@ -376,7 +377,7 @@ randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
  */
 int
 randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, ipv4_hdr_t *ip_hdr, int len)
+        u_char *pktdata, ipv4_hdr_t *ip_hdr, const int l3len)
 {
 #ifdef DEBUG
     char srcip[16], dstip[16];
@@ -394,19 +395,25 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* randomize IP addresses based on the value of random */
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
 
+    if (l3len < (int)ip_hdr->ip_hl << 2) {
+        tcpedit_seterr(tcpedit, "Unable to randomize IP header due to packet capture snap length %u",
+                pkthdr->caplen);
+        return TCPEDIT_ERROR;
+    }
+
     /* don't rewrite broadcast addresses */
     if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_dst.s_addr)) 
             || !tcpedit->skip_broadcast) {
         uint32_t old_ip = ip_hdr->ip_dst.s_addr;
         ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
-        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr, len);
+        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr, l3len);
     }
     
     if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr))
             || !tcpedit->skip_broadcast) {
         uint32_t old_ip = ip_hdr->ip_src.s_addr;
         ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
-        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr, len);
+        ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr, l3len);
     }
 
 #ifdef DEBUG    
@@ -421,7 +428,7 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
 int
 randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
-        u_char *pktdata, ipv6_hdr_t *ip6_hdr, int len)
+        u_char *pktdata, ipv6_hdr_t *ip6_hdr, const int l3len)
 {
 #ifdef DEBUG
     char srcip[INET6_ADDRSTRLEN], dstip[INET6_ADDRSTRLEN];
@@ -438,6 +445,11 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 
     /* randomize IP addresses based on the value of random */
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
+    if (l3len < (int)sizeof(ipv6_hdr_t)) {
+        tcpedit_seterr(tcpedit, "Unable to randomize IPv6 header due to packet capture snap length %u",
+                pkthdr->caplen);
+        return TCPEDIT_ERROR;
+    }
 
     /* don't rewrite broadcast addresses */
     if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_dst))
@@ -445,7 +457,7 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         struct tcpr_in6_addr old_ip6;
         memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_dst);
-        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, len);
+        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, l3len);
     }
 
     if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_src))
@@ -453,7 +465,7 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         struct tcpr_in6_addr old_ip6;
         memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_src);
-        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, len);
+        ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, l3len);
     }
 
 #ifdef DEBUG
@@ -1019,7 +1031,7 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction,
  */
 int 
 randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, int datalink)
+        u_char *pktdata, int datalink, const int l3len)
 {
     arp_hdr_t *arp_hdr ;
     int l2len;
@@ -1031,7 +1043,14 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(pkthdr);
     assert(pktdata);
 
+    if (l3len < (int)sizeof(arp_hdr_t)) {
+        tcpedit_seterr(tcpedit, "Unable to randomize ARP packet due to packet capture snap length %u",
+                pkthdr->caplen);
+        return TCPEDIT_ERROR;
+    }
+
     l2len = get_l2len(pktdata, pkthdr->caplen, datalink);
+
     arp_hdr = (arp_hdr_t *)(pktdata + l2len);
 
     /*
