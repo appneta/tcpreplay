@@ -76,7 +76,7 @@ get_pcap_version(void)
  * or 0 for error
  */
 uint16_t
-get_l2protocol(const u_char *pktdata, const int datalen, const int datalink)
+get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink)
 {
     uint16_t eth_hdr_offset = 0;
 
