@@ -60,10 +60,10 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         ipv6 = (ipv6_hdr_t *)data;
         ipv4 = NULL;
 
-        proto = get_ipv6_l4proto(ipv6, len);
+        proto = get_ipv6_l4proto(ipv6, len + sizeof(ipv6_hdr_t));
         dbgx(3, "layer4 proto is 0x%hx", (uint16_t)proto);
 
-        layer = (u_char*)get_layer4_v6(ipv6, len);
+        layer = (u_char*)get_layer4_v6(ipv6, len + sizeof(ipv6_hdr_t));
         if (!layer) {
             tcpedit_setwarn(tcpedit, "%s", "Packet to short for checksum");
             return TCPEDIT_WARN;

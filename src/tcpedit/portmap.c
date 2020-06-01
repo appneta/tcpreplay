@@ -292,7 +292,8 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
  */
 
 static int
-rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
+rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4,
+        const int l4len)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
@@ -304,6 +305,12 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
     portmap = tcpedit->portmap;
 
     if (protocol == IPPROTO_TCP) {
+        if (l4len < (int)sizeof(tcp_hdr_t)) {
+            tcpedit_setwarn(tcpedit, "caplen to small to set TCP port: l4 len=%d",
+                    l4len);
+            return TCPEDIT_WARN;
+        }
+
         tcp_hdr = (tcp_hdr_t *)layer4;
 
         /* check if we need to remap the destination port */
@@ -319,8 +326,13 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
             csum_replace2(&tcp_hdr->th_sum, tcp_hdr->th_sport, newport);
             tcp_hdr->th_sport = newport;
         }
-
     } else if (protocol == IPPROTO_UDP) {
+        if (l4len < (int)sizeof(udp_hdr_t)) {
+            tcpedit_setwarn(tcpedit, "caplen to small to set UDP port: l4 len=%d",
+                    l4len);
+            return TCPEDIT_WARN;
+        }
+
         udp_hdr = (udp_hdr_t *)layer4;
 
         /* check if we need to remap the destination port */
@@ -348,34 +360,48 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4)
 }
 
 int
-rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int len)
+rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int l3len)
 {
     assert(tcpedit);
     u_char *l4;
 
-    if (*ip_hdr == NULL) {
-        return 0;
+    if (*ip_hdr == NULL || ip_hdr == NULL) {
+        tcpedit_seterr(tcpedit, "rewrite_ipv4_ports: NULL IP header: l3 len=%d",
+                l3len);
+        return TCPEDIT_ERROR;
     } else if ((*ip_hdr)->ip_p == IPPROTO_TCP || (*ip_hdr)->ip_p == IPPROTO_UDP) {
-        l4 = get_layer4_v4(*ip_hdr, len);
+        l4 = get_layer4_v4(*ip_hdr, l3len);
         if (l4)
-            return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4);
+            return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4,
+                    l3len - (l4 - (u_char*)*ip_hdr));
+
+        tcpedit_setwarn(tcpedit, "Unable to rewrite ports on IP header: l3 len=%d",
+                l3len);
+        return TCPEDIT_WARN;
     }
 
     return 0;
 }
 
 int
-rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr, const int len)
+rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr, const int l3len)
 {
     assert(tcpedit);
     u_char *l4;
 
-    if (*ip6_hdr == NULL) {
-        return 0;
+    if (*ip6_hdr == NULL || ip6_hdr == NULL) {
+        tcpedit_seterr(tcpedit, "rewrite_ipv6_ports: NULL IPv6 header: l3 len=%d",
+                l3len);
+        return TCPEDIT_ERROR;
     } else if ((*ip6_hdr)->ip_nh == IPPROTO_TCP || (*ip6_hdr)->ip_nh == IPPROTO_UDP) {
-        l4 = get_layer4_v6(*ip6_hdr, len);
+        l4 = get_layer4_v6(*ip6_hdr, l3len);
         if (l4)
-            return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4);
+            return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4,
+                    l3len - (l4 - (u_char*)*ip6_hdr));
+
+        tcpedit_setwarn(tcpedit, "Unable to rewrite ports on IPv6 header: l3 len=%d",
+                l3len);
+        return TCPEDIT_WARN;
     }
 
     return 0;

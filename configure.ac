@@ -66,7 +66,7 @@ dnl Check OS X SDK and compiler
 dnl ===========================
 
 case "$host_os" in
-    *darwin*) # Mac OS X or iOS
+    darwin*) # Mac OS X or iOS
         # If no --with-macosx-sdk option is given, look for one
 
         # The intent is that for "most" Mac-based developers, a suitable
@@ -106,7 +106,7 @@ case "$host_os" in
             AC_MSG_RESULT([legacy])
         fi
         ;;
-    *Linux*)
+    Linux*)
         dnl ============================================
         dnl Some libraries are in /usr/lib/i386-linux-gnu
         dnl but host is i686-linux-gnu
@@ -367,7 +367,6 @@ AC_CHECK_LIB(resolv, resolv)
 dnl Checks for library functions.
 AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
-AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
@@ -388,6 +387,20 @@ AM_CONDITIONAL(SYSTEM_STRLCPY, [test x$have_strlcpy = xtrue])
 
 AC_C_BIGENDIAN
 AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
+
+AC_ARG_ENABLE([asan],
+    AC_HELP_STRING([--enable-asan], [Enable Address Sanitizer support]))
+if test "x$enable_asan" = "xyes"; then
+        build_asan=yes
+        AC_CHECK_LIB([asan], [__asan_report_error], ,
+                [AC_MSG_ERROR([libasan.so not found, this is required for --enable-asan])])
+        CFLAGS="${CFLAGS} -O1 -g -fsanitize=address -fno-omit-frame-pointer"
+        dnl -lasan always need to be the first library
+        LDFLAGS="-lasan ${LDFLAGS}"
+else
+        build_asan=no
+fi
+AC_SUBST(build_asan)
 
 dnl Enable debugging in code/compiler options
 debug=no
