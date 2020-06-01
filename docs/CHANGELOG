@@ -1,7 +1,9 @@
 05/20/2020 Version 4.3.3 beta1
     - Correct L2 header length to correct IP header offset (#583)
     - Fix warnings from gcc version 10 (#580)
+    - Heap Buffer Overflow in randomize_iparp (#579)
     - Use after free in get_ipv6_next (#578)
+    - Heap Buffer Overflow in do_checksum (#577)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)

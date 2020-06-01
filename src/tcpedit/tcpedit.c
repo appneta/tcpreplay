@@ -330,11 +330,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         } else if (l2proto == htons(ETHERTYPE_ARP)) {
             if (direction == TCPR_DIR_C2S) {
                 if (randomize_iparp(tcpedit, *pkthdr, packet, 
-                        tcpedit->runtime.dlt1) < 0)
+                        tcpedit->runtime.dlt1, (*pkthdr)->caplen - l2len) < 0)
                     return TCPEDIT_ERROR;
             } else {
                 if (randomize_iparp(tcpedit, *pkthdr, packet, 
-                        tcpedit->runtime.dlt2) < 0)
+                        tcpedit->runtime.dlt2, (*pkthdr)->caplen - l2len) < 0)
                     return TCPEDIT_ERROR;
             }
         }

@@ -34,7 +34,7 @@ static int do_checksum_math(uint16_t *, int);
  * Returns -1 on error and 0 on success, 1 on warn
  */
 int
-do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
+do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int payload_len) {
     ipv4_hdr_t *ipv4;
     ipv6_hdr_t *ipv6;
     tcp_hdr_t *tcp;
@@ -50,7 +50,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
     ipv6 = NULL;
     assert(data);
 
-    if (!data || len <= 0 || len > 65535) {
+    if (!data || payload_len <= 0 || payload_len > 65535) {
         tcpedit_setwarn(tcpedit, "%s", "Unable to checksum packets with no L3+ data");
         return TCPEDIT_WARN;
     }
@@ -60,10 +60,10 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         ipv6 = (ipv6_hdr_t *)data;
         ipv4 = NULL;
 
-        proto = get_ipv6_l4proto(ipv6, len + sizeof(ipv6_hdr_t));
+        proto = get_ipv6_l4proto(ipv6, payload_len + sizeof(ipv6_hdr_t));
         dbgx(3, "layer4 proto is 0x%hx", (uint16_t)proto);
 
-        layer = (u_char*)get_layer4_v6(ipv6, len + sizeof(ipv6_hdr_t));
+        layer = (u_char*)get_layer4_v6(ipv6, payload_len + sizeof(ipv6_hdr_t));
         if (!layer) {
             tcpedit_setwarn(tcpedit, "%s", "Packet to short for checksum");
             return TCPEDIT_WARN;
@@ -72,14 +72,18 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         ip_hl = layer - (u_char*)data;
         dbgx(3, "ip_hl proto is 0x%d", ip_hl);
 
-        len -= (ip_hl - TCPR_IPV6_H);
+        payload_len -= (ip_hl - TCPR_IPV6_H);
     } else {
         ip_hl = ipv4->ip_hl << 2;
     }
 
     switch (proto) {
-
         case IPPROTO_TCP:
+            if (payload_len < (int)sizeof(tcp_hdr_t)) {
+                tcpedit_setwarn(tcpedit, "%s", "Unable to checksum TCP with insufficient L4 data");
+                return TCPEDIT_WARN;
+            }
+
             tcp = (tcp_hdr_t *)(data + ip_hl);
 #ifdef STUPID_SOLARIS_CHECKSUM_BUG
             tcp->th_sum = tcp->th_off << 2;
@@ -95,12 +99,16 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             } else {
                 sum = do_checksum_math((uint16_t *)&ipv4->ip_src, 8);
             }
-            sum += ntohs(IPPROTO_TCP + len);
-            sum += do_checksum_math((uint16_t *)tcp, len);
+            sum += ntohs(IPPROTO_TCP + payload_len);
+            sum += do_checksum_math((uint16_t *)tcp, payload_len);
             tcp->th_sum = CHECKSUM_CARRY(sum);
             break;
 
         case IPPROTO_UDP:
+            if (payload_len < (int)sizeof(udp_hdr_t)) {
+                tcpedit_setwarn(tcpedit, "%s", "Unable to checksum UDP with insufficient L4 data");
+                return TCPEDIT_WARN;
+            }
             udp = (udp_hdr_t *)(data + ip_hl);
             /* No need to recalculate UDP checksums if already 0 */
             if (udp->uh_sum == 0)
@@ -111,33 +119,40 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             } else {
                 sum = do_checksum_math((uint16_t *)&ipv4->ip_src, 8);
             }
-            sum += ntohs(IPPROTO_UDP + len);
-            sum += do_checksum_math((uint16_t *)udp, len);
+            sum += ntohs(IPPROTO_UDP + payload_len);
+            sum += do_checksum_math((uint16_t *)udp, payload_len);
             udp->uh_sum = CHECKSUM_CARRY(sum);
             break;
 
         case IPPROTO_ICMP:
+            if (payload_len < (int)sizeof(icmpv4_hdr_t)) {
+                tcpedit_setwarn(tcpedit, "%s", "Unable to checksum ICMP with insufficient L4 data");
+                return TCPEDIT_WARN;
+            }
             icmp = (icmpv4_hdr_t *)(data + ip_hl);
             icmp->icmp_sum = 0;
             if (ipv6 != NULL) {
                 sum = do_checksum_math((uint16_t *)&ipv6->ip_src, 32);
                 icmp->icmp_sum = CHECKSUM_CARRY(sum);
             }
-            sum += do_checksum_math((uint16_t *)icmp, len);
+            sum += do_checksum_math((uint16_t *)icmp, payload_len);
             icmp->icmp_sum = CHECKSUM_CARRY(sum);
             break;
 
         case IPPROTO_ICMP6:
+            if (payload_len < (int)sizeof(icmpv6_hdr_t)) {
+                tcpedit_setwarn(tcpedit, "%s", "Unable to checksum ICMP6 with insufficient L4 data");
+                return TCPEDIT_WARN;
+            }
             icmp6 = (icmpv6_hdr_t *)(data + ip_hl);
             icmp6->icmp_sum = 0;
             if (ipv6 != NULL) {
                 sum = do_checksum_math((u_int16_t *)&ipv6->ip_src, 32);
             }
-            sum += ntohs(IPPROTO_ICMP6 + len);
-            sum += do_checksum_math((u_int16_t *)icmp6, len);
+            sum += ntohs(IPPROTO_ICMP6 + payload_len);
+            sum += do_checksum_math((u_int16_t *)icmp6, payload_len);
             icmp6->icmp_sum = CHECKSUM_CARRY(sum);
             break;
-
 
         case IPPROTO_IP:
             if (ipv4) {
