@@ -4,6 +4,7 @@
     - Heap Buffer Overflow in randomize_iparp (#579)
     - Use after free in get_ipv6_next (#578)
     - Heap Buffer Overflow in do_checksum (#577)
+    - Heap Buffer Overflow in git_ipv6_next (#576)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)
