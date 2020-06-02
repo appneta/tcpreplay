@@ -50,13 +50,18 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int payload_len) {
     ipv6 = NULL;
     assert(data);
 
-    if (!data || payload_len <= 0 || payload_len > 65535) {
-        tcpedit_setwarn(tcpedit, "%s", "Unable to checksum packets with no L3+ data");
+    if (!data || payload_len < (int)sizeof(*ipv4) || payload_len > 0xffff) {
+        tcpedit_setwarn(tcpedit, "%s", "Unable to checksum packet with no L3+ data");
         return TCPEDIT_WARN;
     }
 
     ipv4 = (ipv4_hdr_t *)data;
     if (ipv4->ip_v == 6) {
+        if (payload_len < sizeof(*ipv6)) {
+            tcpedit_setwarn(tcpedit, "%s", "Unable to checksum IPv6 packet with insufficient data");
+            return TCPEDIT_WARN;
+        }
+
         ipv6 = (ipv6_hdr_t *)data;
         ipv4 = NULL;
 
