@@ -57,7 +57,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int payload_len) {
 
     ipv4 = (ipv4_hdr_t *)data;
     if (ipv4->ip_v == 6) {
-        if (payload_len < sizeof(*ipv6)) {
+        if (payload_len < (int)sizeof(*ipv6)) {
             tcpedit_setwarn(tcpedit, "%s", "Unable to checksum IPv6 packet with insufficient data");
             return TCPEDIT_WARN;
         }
