@@ -128,9 +128,9 @@ u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
     u_char *pktdata = (u_char *)pcap_next(pcap, pkthdr);
 
     if (pktdata) {
-        if (pkthdr->len > MAXPACKET) {
+        if (pkthdr->len > MAX_SNAPLEN) {
             fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
-                    file, funcname, line, pkthdr->len, MAXPACKET);
+                    file, funcname, line, pkthdr->len, MAX_SNAPLEN);
             exit(-1);
         }
 
