@@ -668,6 +668,7 @@ set_live_filter(char *dev, input_addr* hostip, unsigned int port)
         return handle;
     }
 
+    pcap_freecode(&fp);
     return handle;
 }
 
@@ -703,6 +704,7 @@ set_offline_filter(char* file)
         return handle;
     }
 
+    pcap_freecode(&fp);
     return handle;
 }
 

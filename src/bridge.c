@@ -212,6 +212,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 
         /* apply filter */
         pcap_setfilter(options->pcap1, &options->bpf.program);
+        pcap_freecode(&options->bpf.program);
 
         /* same for other interface if applicable */
         if (options->unidir == 0) {
@@ -223,6 +224,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
 
             /* apply filter */
             pcap_setfilter(options->pcap2, &options->bpf.program);
+            pcap_freecode(&options->bpf.program);
         }
     }
 

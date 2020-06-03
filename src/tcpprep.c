@@ -141,6 +141,7 @@ main(int argc, char *argv[])
             errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options->pcap));
         }
         pcap_setfilter(options->pcap, &options->bpf.program);
+        pcap_freecode(&options->bpf.program);
     }
 
     if ((totpackets = process_raw_packets(options->pcap)) == 0) {
