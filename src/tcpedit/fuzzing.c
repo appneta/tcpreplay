@@ -156,7 +156,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         break;
     }
 
-    if (l4len < 1)
+    if (l4len <= 1)
         goto done;
 
     /* add some additional randomization */
