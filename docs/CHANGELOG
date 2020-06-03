@@ -1,4 +1,5 @@
 05/20/2020 Version 4.3.3 beta1
+    - Increase cache buffers size to accomodate VLAN edits (#594)
     - Correct L2 header length to correct IP header offset (#583)
     - Fix warnings from gcc version 10 (#580)
     - Heap Buffer Overflow in randomize_iparp (#579)
