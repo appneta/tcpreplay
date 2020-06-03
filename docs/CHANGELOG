@@ -5,6 +5,7 @@
     - Heap Buffer Overflow in randomize_iparp (#579)
     - Use after free in get_ipv6_next (#578)
     - Heap Buffer Overflow in git_ipv6_next (#576)
+    - Call pcap_freecode() on pcap_compile() (#572)
     - Increase max snaplen to 262144 (#571)
     - Fix divide by zero in fuzzing (#570)
     - Heap Buffer Overflow in do_checksum (#556) (#577)
