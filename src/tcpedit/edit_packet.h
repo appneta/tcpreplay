@@ -28,13 +28,13 @@ int untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         u_char **pktdata, ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr);
 
 int randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pktdhr, 
-        u_char *pktdata, ipv4_hdr_t *ip_hdr, int len);
+        u_char *pktdata, ipv4_hdr_t *ip_hdr, const int l3len);
 
 int randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pktdhr,
-        u_char *pktdata, ipv6_hdr_t *ip_hdr, int len);
+        u_char *pktdata, ipv6_hdr_t *ip_hdr, const int l3len);
 
 int randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, 
-        u_char *pktdata, int datalink);
+        u_char *pktdata, int datalink, const int l3len);
 
 int fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr,
         ipv4_hdr_t *ip_hdr);
@@ -50,10 +50,10 @@ int extract_data(tcpedit_t *tcpedit, const u_char *pktdata,
         int caplen, char *l7data[]);
 
 int rewrite_ipv4l3(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr, tcpr_dir_t direction,
-        int len);
+        int l3len);
 
 int rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip_hdr, tcpr_dir_t direction,
-        int len);
+        int l3len);
 
 int rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int direction);
 

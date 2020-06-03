@@ -28,13 +28,13 @@
 
 int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
 
-u_int16_t get_l2protocol(const u_char *pktdata, const int datalen, const int datalink);
+u_int16_t get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink);
 
-void *get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int len);
-void *get_layer4_v6(const ipv6_hdr_t *ip_hdr, const int len);
+void *get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int l3len);
+void *get_layer4_v6(const ipv6_hdr_t *ip_hdr, const int l3len);
 
-u_int8_t get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, int len);
-void *get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len);
+u_int8_t get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int l3len);
+void *get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int l3len);
 
 const u_char *get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff);
 const u_char *get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff);

@@ -24,10 +24,9 @@
 #ifndef __REWRITE_SEQUENCE_H__
 #define __REWRITE_SEQUENCE_H__
 
-int rewrite_ipv4_sequence(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr);
-int rewrite_ipv6_sequence(tcpedit_t *tcpedit, ipv6_hdr_t **ip_hdr);
-
-int rewrite_ipv4_sequence(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr);
-int rewrite_ipv6_sequence(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr);
+int rewrite_ipv4_tcp_sequence(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr,
+        const int l3len);
+int rewrite_ipv6_tcp_sequence(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr,
+        const int l3len);
 
 #endif

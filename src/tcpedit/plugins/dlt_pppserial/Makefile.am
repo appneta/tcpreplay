@@ -7,7 +7,6 @@
 # add your dependency information (see comment below)
 
 libtcpedit_a_SOURCES += \
-	%reldir%/pppserial.c \
 	%reldir%/pppserial.c
 
 noinst_HEADERS += \
