@@ -8,6 +8,7 @@
     - Call pcap_freecode() on pcap_compile() (#572)
     - Increase max snaplen to 262144 (#571)
     - Fix divide by zero in fuzzing (#570)
+    - Unique IP repeats at very high iteration counts (#566)
     - Heap Buffer Overflow in do_checksum (#556) (#577)
     - Fix GCC v10 warnings (#555)
 
