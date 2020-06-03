@@ -7,6 +7,7 @@
     - Heap Buffer Overflow in git_ipv6_next (#576)
     - Increase max snaplen to 262144 (#571)
     - Heap Buffer Overflow in do_checksum (#556) (#577)
+    - Fix GCC v10 warnings (#555)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)
