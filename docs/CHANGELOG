@@ -6,6 +6,7 @@
     - Use after free in get_ipv6_next (#578)
     - Heap Buffer Overflow in git_ipv6_next (#576)
     - Increase max snaplen to 262144 (#571)
+    - Fix divide by zero in fuzzing (#570)
     - Heap Buffer Overflow in do_checksum (#556) (#577)
     - Fix GCC v10 warnings (#555)
 
