@@ -90,7 +90,7 @@ static inline flow_hash_entry_t *hash_add_entry(flow_hash_table_t *fht, const ui
 
     assert(hv < fht->num_buckets);
 
-    he = malloc(sizeof (*he));
+    he = safe_malloc(sizeof (*he));
     if (!he) {
         warn("out of memory");
         return NULL;
@@ -321,6 +321,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         icmp_hdr = (icmpv4_hdr_t*)(pktdata + ip_len + l2_len);
         entry.src_port = icmp_hdr->icmp_type;
         entry.dst_port = icmp_hdr->icmp_code;
+        break;
     }
 
     /* hash the 5-tuple */
@@ -332,15 +333,15 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
 static void flow_cache_clear(flow_hash_table_t *fht)
 {
     flow_hash_entry_t *fhe = NULL;
-    flow_hash_entry_t *fhe_tmp = NULL;
+    flow_hash_entry_t *fhe_next = NULL;
     size_t i;
 
     for (i = 0; i < fht->num_buckets; i++) {
-        if ( (fhe = fht->buckets[i]) ) {
+        if ((fhe = fht->buckets[i]) != NULL) {
             while (fhe) {
-                fhe_tmp = fhe;
-                fhe = fhe->next;
-                free(fhe_tmp);
+                fhe_next = fhe->next;
+                safe_free(fhe);
+                fhe = fhe_next;
             }
             fht->buckets[i] = NULL;
         }
@@ -366,6 +367,6 @@ void flow_hash_table_release(flow_hash_table_t *fht)
         return;
 
     flow_cache_clear(fht);
-    free(fht->buckets);
-    free(fht);
+    safe_free(fht->buckets);
+    safe_free(fht);
 }

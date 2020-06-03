@@ -161,6 +161,8 @@ typedef struct tcpr_speed_s {
                                          * couple VLAN headers or a L2 header
                                          */
 
+#define PACKET_HEADROOM 512     /* additional headroom allocated for packets to accommodate editing */
+
 #define DNS_RESOLVE 1
 #define DNS_DONT_RESOLVE 0
 
