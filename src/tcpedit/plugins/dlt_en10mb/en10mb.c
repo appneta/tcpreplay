@@ -670,8 +670,11 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     
     assert(ctx);
     assert(packet);
-    if (pktlen < (int) sizeof(*eth))
+    if (pktlen < (int) sizeof(*eth)) {
+        tcpedit_seterr(ctx->tcpedit, "Ethernet packet length too short: %d",
+                pktlen);
         return TCPEDIT_ERROR;
+    }
     
     eth = (struct tcpr_ethernet_hdr *)packet;
     switch (ntohs(eth->ether_type)) {
@@ -684,6 +687,7 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             return eth->ether_type;
             break;
     }
+
     return TCPEDIT_ERROR;
 }
 

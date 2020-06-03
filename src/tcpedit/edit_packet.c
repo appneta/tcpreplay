@@ -539,7 +539,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
            * which seems like a corrupted pcap
            */
         if (pkthdr->len > pkthdr->caplen) {
-            packet = safe_realloc(packet, pkthdr->len);
+            packet = safe_realloc(packet, pkthdr->len + PACKET_HEADROOM);
             memset(packet + pkthdr->caplen, '\0', pkthdr->len - pkthdr->caplen);
             pkthdr->caplen = pkthdr->len;
         } else if (pkthdr->len < pkthdr->caplen) {
