@@ -7,6 +7,7 @@
  */
 
 #include "config.h"
+#include "lib/queue.h"
 #include "defines.h"
 #include "common.h"
 
