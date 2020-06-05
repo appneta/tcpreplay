@@ -11,6 +11,7 @@
     - Unique IP repeats at very high iteration counts (#566)
     - Fails to compile on FreeBSD amd64 13.0 (#558)
     - Heap Buffer Overflow in do_checksum (#556) (#577)
+    - Attempt to correct corrupt pcap files, if possible (#557)
     - Fix GCC v10 warnings (#555)
     - Remove some duplicated SOURCES entries (#551)
 
