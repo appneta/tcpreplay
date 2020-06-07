@@ -15,6 +15,7 @@
     - Fix GCC v10 warnings (#555)
     - Remove some duplicated SOURCES entries (#551)
     - Expand /dev/bpfX hard limit to fix macOS Mojave (#550)
+    - Implement --loopdelay-ms when using --loop=0 (#546)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)

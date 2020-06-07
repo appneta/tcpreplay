@@ -1158,6 +1158,11 @@ tcpreplay_replay(tcpreplay_t *ctx)
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
 
+            if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
+                usleep(ctx->options->loopdelay_ms * 1000);
+                gettimeofday(&ctx->stats.end_time, NULL);
+            }
+
             if (ctx->options->stats == 0 && !ctx->abort)
                 packet_stats(&ctx->stats);
         }
