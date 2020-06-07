@@ -1053,7 +1053,7 @@ static sendpacket_t *
 sendpacket_open_bpf(const char *device, char *errbuf)
 {
     sendpacket_t *sp;
-    char bpf_dev[10];
+    char bpf_dev[16];
     int dev, mysocket, link_offset, link_type;
     struct ifreq ifr;
     struct bpf_version bv;
@@ -1066,15 +1066,18 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     assert(errbuf);
     memset(&ifr, '\0', sizeof(struct ifreq));
 
-    dbg(1, "sendpacket: using BPF");
+    dbg(1, "sendpacket_open_bpf: using BPF");
     /* open socket */
     mysocket = -1;
-    for (dev = 0; dev <= 9; dev ++) {
+    for (dev = 0; dev < 512; dev ++) {
         memset(bpf_dev, '\0', sizeof(bpf_dev));
         snprintf(bpf_dev, sizeof(bpf_dev), "/dev/bpf%d", dev);
-        if ((mysocket = open(bpf_dev, O_RDWR, 0)) > 0) {
+        dbgx(3, "sendpacket_open_bpf: attempting to open %s", bpf_dev);
+        if (!access(bpf_dev, F_OK) && (mysocket = open(bpf_dev, O_RDWR, 0)) > 0) {
+            dbg(3, "Success!");
             break;
         }
+        dbgx(4, "failed with error %s", strerror(errno));
     }
 
     /* error?? */

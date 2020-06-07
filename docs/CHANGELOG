@@ -1,4 +1,4 @@
-05/20/2020 Version 4.3.3 beta1
+05/20/2020 Version 4.3.3 beta2
     - Increase cache buffers size to accomodate VLAN edits (#594)
     - Correct L2 header length to correct IP header offset (#583)
     - Fix warnings from gcc version 10 (#580)
@@ -14,6 +14,7 @@
     - Attempt to correct corrupt pcap files, if possible (#557)
     - Fix GCC v10 warnings (#555)
     - Remove some duplicated SOURCES entries (#551)
+    - Expand /dev/bpfX hard limit to fix macOS Mojave (#550)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)
