@@ -16,6 +16,7 @@
     - Remove some duplicated SOURCES entries (#551)
     - Expand /dev/bpfX hard limit to fix macOS Mojave (#550)
     - Implement --loopdelay-ms when using --loop=0 (#546)
+    - Heap overflow packet2tree and get_l2len (#530)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)
@@ -25,7 +26,6 @@
 
 12/27/2018 Version 4.3.1
     - Fix checkspell detected typos (#531)
-    - Heap overflow packet2tree and get_l2len (#530)
 
 11/10/2018 Version 4.3.0
     - Fix maxOS TOS checksum failure (#524)
