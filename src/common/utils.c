@@ -128,17 +128,27 @@ u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
     u_char *pktdata = (u_char *)pcap_next(pcap, pkthdr);
 
     if (pktdata) {
-        if (pkthdr->len > MAXPACKET) {
+        if (pkthdr->len > MAX_SNAPLEN) {
             fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
-                    file, funcname, line, pkthdr->len, MAXPACKET);
+                    file, funcname, line, pkthdr->len, MAX_SNAPLEN);
             exit(-1);
         }
 
-        if (!pkthdr->len || pkthdr->len < pkthdr->caplen) {
+        if (!pkthdr->len || !pkthdr->caplen) {
             fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: packet length=%u capture length=%u\n",
                     file, funcname, line, pkthdr->len, pkthdr->caplen);
             exit(-1);
         }
+
+        /* attempt to correct invalid captures */
+        if (pkthdr->len < pkthdr->caplen) {
+            dbgx(1, "Correcting invalid packet capture length %d: packet length=%u",
+                    pkthdr->caplen, pkthdr->len);
+            pkthdr->caplen = pkthdr->len;
+        }
+    } else {
+        /* this will be reported as a failed packet in final report */
+        dbg(1, "No data found in packet");
     }
 
     return pktdata;
@@ -165,6 +175,16 @@ int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
                     file, funcname, line, (*pkthdr)->len, (*pkthdr)->caplen);
             exit(-1);
         }
+
+        if ((*pkthdr)->len < (*pkthdr)->caplen) {
+            dbgx(1, "Correcting invalid packet capture length %d: packet length=%u",
+                    (*pkthdr)->caplen, (*pkthdr)->len);
+            (*pkthdr)->caplen = (*pkthdr)->len;
+        }
+    } else {
+        /* this will be reported as a failed packet in final report */
+        dbgx(1, "No data found in packet 0x%p and/or header 0x%p",
+                *pktdata, *pkthdr);
     }
 
     return res;

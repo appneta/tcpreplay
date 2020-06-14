@@ -100,7 +100,8 @@ typedef struct tcpr_udp_hdr udp_hdr_t;
 typedef struct tcpr_icmpv4_hdr icmpv4_hdr_t;
 typedef struct tcpr_icmpv6_hdr icmpv6_hdr_t;
 typedef struct tcpr_ethernet_hdr eth_hdr_t;
-typedef struct tcpr_802_1q_hdr vlan_hdr_t;
+typedef struct tcpr_802_1q_tag vlan_hdr_t;
+typedef struct tcpr_802_1q_hdr vlan_pkt_hdr_t;
 typedef struct sll_header sll_hdr_t;
 typedef struct tcpr_arp_hdr arp_hdr_t;
 typedef struct tcpr_dnsv4_hdr dnsv4_hdr_t;
@@ -148,12 +149,19 @@ typedef struct tcpr_speed_s {
 #define MAX_FILES   1024        /* Max number of files we can pass to tcpreplay */
 
 #define DEFAULT_MTU 1500        /* Max Transmission Unit of standard ethernet
-                                 * don't forget *frames* are MTU + L2 header! */
+                                 * don't forget *frames* are MTU + L2 header!
+                                 */
 
-#define MAXPACKET 65549         /* was 16436 linux loopback, but maybe something is bigger then
-                                   linux loopback */
+#define MAX_SNAPLEN 262144      /* tell libpcap to capture the entire packet
+                                 * this is the maximum size supported by libpcap
+                                 * (https://github.com/the-tcpdump-group/libpcap/blob/master/pcap-int.h#L99-L125)
+                                 */
 
-#define MAX_SNAPLEN 65535       /* tell libpcap to capture the entire packet */
+#define MAXPACKET (MAX_SNAPLEN + 22)    /* snap length plus some room for adding a 
+                                         * couple VLAN headers or a L2 header
+                                         */
+
+#define PACKET_HEADROOM 512     /* additional headroom allocated for packets to accommodate editing */
 
 #define DNS_RESOLVE 1
 #define DNS_DONT_RESOLVE 0

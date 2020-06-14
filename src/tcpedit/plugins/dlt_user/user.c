@@ -227,7 +227,6 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 {
     user_config_t *config;
     tcpeditdlt_plugin_t *plugin;
-    u_char tmpbuff[MAXPACKET];
 
     assert(ctx);
     assert(packet);
@@ -247,8 +246,10 @@ dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     if (ctx->l2len > config->length) {
         memmove(packet + config->length, packet + ctx->l2len, pktlen - ctx->l2len);
     } else if (ctx->l2len < config->length) {
+        u_char *tmpbuff = safe_malloc(pktlen);
         memcpy(tmpbuff, packet, pktlen);
         memcpy(packet + config->length, (tmpbuff + ctx->l2len), pktlen - ctx->l2len);
+        safe_free(tmpbuff);
     }
 
     /* update the total packet length */

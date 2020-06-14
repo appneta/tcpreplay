@@ -25,7 +25,6 @@
 
 #define TRACE_MAX_ENTRIES 15000
 
-uint32_t trace_num;
 struct timestamp_trace_entry {
     COUNTER skip_length;
     COUNTER size;
@@ -39,6 +38,7 @@ struct timestamp_trace_entry {
 typedef struct timestamp_trace_entry timestamp_trace_entry_t;
 
 #ifdef TIMESTAMP_TRACE
+uint32_t trace_num;
 timestamp_trace_entry_t timestamp_trace_entry_array[TRACE_MAX_ENTRIES];
 
 static inline void update_current_timestamp_trace_entry(COUNTER bytes_sent,

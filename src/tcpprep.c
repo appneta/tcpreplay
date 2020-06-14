@@ -141,6 +141,7 @@ main(int argc, char *argv[])
             errx(-1, "Error compiling BPF filter: %s", pcap_geterr(options->pcap));
         }
         pcap_setfilter(options->pcap, &options->bpf.program);
+        pcap_freecode(&options->bpf.program);
     }
 
     if ((totpackets = process_raw_packets(options->pcap)) == 0) {
@@ -325,12 +326,14 @@ process_raw_packets(pcap_t * pcap)
     const u_char *pktdata = NULL;
     COUNTER packetnum = 0;
     int l2len;
-    u_char ipbuff[MAXPACKET], *buffptr;
+    u_char *ipbuff, *buffptr;
     tcpr_dir_t direction = TCPR_DIR_ERROR;
     tcpprep_opt_t *options = tcpprep->options;
 
     assert(pcap);
     
+    ipbuff = safe_malloc(MAXPACKET);
+
     while ((pktdata = safe_pcap_next(pcap, &pkthdr)) != NULL) {
         packetnum++;
 
@@ -565,6 +568,8 @@ process_raw_packets(pcap_t * pcap)
             tcpdump_print(&tcpprep->tcpdump, &pkthdr, pktdata);
 #endif
     }
+
+    safe_free(ipbuff);
 
     return packetnum;
 }

@@ -28,7 +28,7 @@ int parse_portmap(tcpedit_portmap_t **portmapdata, const char *ourstr);
 void free_portmap(tcpedit_portmap_t *portmap);
 void print_portmap(tcpedit_portmap_t *portmap);
 long map_port(tcpedit_portmap_t *portmap , long port);
-int rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int len);
-int rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip_hdr, const int len);
+int rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int l3len);
+int rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip_hdr, const int l3len);
 
 #endif

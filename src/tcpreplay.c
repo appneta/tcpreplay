@@ -110,7 +110,7 @@ main(int argc, char *argv[])
      * Setup up the file cache, if required
      */
     if (ctx->options->preload_pcap) {
-        /* Initialise each of the file cache structures */
+        /* Initialize each of the file cache structures */
         for (i = 0; i < argc; i++) {
             ctx->options->file_cache[i].index = i;
             ctx->options->file_cache[i].cached = FALSE;

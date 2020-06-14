@@ -89,7 +89,7 @@ static uint32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER count
  */
 static void
 fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
-        uint32_t iteration, bool cached, int datalink)
+        COUNTER iteration, bool cached, int datalink)
 {
     int l2_len = 0;
     ipv4_hdr_t *ip_hdr;
@@ -194,13 +194,13 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         /* CRC compensations  for wrap conditions */
         if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(%u): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
             --src_ip;
-            dbgx(1, "dst_ip > src_ip(%u): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
         } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(%u): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
             ++dst_ip;
-            dbgx(1, "dst_ip > src_ip(%u): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
         }
     } else {
         if (cached) {
@@ -213,20 +213,21 @@ fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         /* CRC compensations  for wrap conditions */
         if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(%u): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
             --dst_ip;
-            dbgx(1, "src_ip > dst_ip(%u): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
         } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(%u): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
             ++src_ip;
-            dbgx(1, "src_ip > dst_ip(%u): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
         }
     }
 
-    dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+    dbgx(1, "(" COUNTER_SPEC "): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
 }
 
-static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
+static inline void wake_send_queues(sendpacket_t *sp _U_,
+		tcpreplay_opt_t *options _U_)
 {
 #ifdef HAVE_NETMAP
     if (options->netmap)
@@ -236,10 +237,9 @@ static inline void wake_send_queues(sendpacket_t *sp, tcpreplay_opt_t *options)
 
 static inline void
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
-        uint32_t iteration, bool cached, int datalink)
+        COUNTER iteration, bool cached, int datalink)
 {
     uint16_t ether_type;
-    vlan_hdr_t *vlan_hdr;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     uint32_t src_ip, dst_ip;
@@ -274,12 +274,12 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
     /* assume Ethernet, IPv4 for now */
     ether_type = ntohs(((eth_hdr_t*)(packet + l2_len))->ether_type);
-    while (ether_type == ETHERTYPE_VLAN) {
-        vlan_hdr = (vlan_hdr_t *)(packet + l2_len);
-        ether_type = ntohs(vlan_hdr->vlan_len);
-        l2_len += 4;
-    }
     l2_len += sizeof(eth_hdr_t);
+    while (ether_type == ETHERTYPE_VLAN) {
+         vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(pktdata + l2_len);
+         ether_type = ntohs(vlan_hdr->vlan_tpid);
+         l2_len += 4;
+    }
 
     switch (ether_type) {
     case ETHERTYPE_IP:
@@ -313,13 +313,13 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         /* CRC compensations  for wrap conditions */
         if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(%u): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
             --src_ip;
-            dbgx(1, "dst_ip > src_ip(%u): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
         } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(%u): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
             ++dst_ip;
-            dbgx(1, "dst_ip > src_ip(%u): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
         }
     } else {
         if (cached) {
@@ -332,17 +332,17 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         /* CRC compensations  for wrap conditions */
         if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(%u): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
             --dst_ip;
-            dbgx(1, "src_ip > dst_ip(%u): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
         } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(%u): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
             ++src_ip;
-            dbgx(1, "src_ip > dst_ip(%u): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
         }
     }
 
-    dbgx(1, "(%u): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+    dbgx(1, "(" COUNTER_SPEC "): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
 
     switch (ether_type) {
     case ETHERTYPE_IP:
@@ -460,7 +460,8 @@ static void increment_iteration(tcpreplay_t *ctx)
     if (options->unique_ip) {
         assert(options->unique_loops > 0.0);
         ctx->unique_iteration =
-                (COUNTER)((float)ctx->iteration / options->unique_loops) + 1;
+                ((ctx->iteration * 1000) / (COUNTER)(options->unique_loops * 1000.0))
+                + 1;
     }
 }
 
@@ -1055,7 +1056,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
                     (*prev_packet)->next = NULL;
                     pktlen = pkthdr->len;
 
-                    (*prev_packet)->pktdata = safe_malloc(pktlen);
+                    (*prev_packet)->pktdata = safe_malloc(pktlen + PACKET_HEADROOM);
                     memcpy((*prev_packet)->pktdata, pktdata, pktlen);
                     memcpy(&((*prev_packet)->pkthdr), pkthdr, sizeof(struct pcap_pkthdr));
                 }

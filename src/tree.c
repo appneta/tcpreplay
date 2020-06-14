@@ -714,9 +714,8 @@ packet2tree(const u_char * data, const int len)
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    if ((size_t)len < sizeof(*eth_hdr)) {
-        errx(-1, "packet capture length %d too small to process", len);
-        return NULL;
+    if (len < (int)sizeof(*eth_hdr)) {
+        goto len_error;
     }
 
     node = new_tree();
@@ -730,9 +729,13 @@ packet2tree(const u_char * data, const int len)
     if (ether_type == htons(ETHERTYPE_VLAN)) {
        dbg(4,"Processing as VLAN traffic...");
 
+       hl += 4;
+       if (len < TCPR_ETH_H + hl) {
+           goto len_error;
+       }
+
        /* prevent issues with byte alignment, must memcpy */
        memcpy(&ether_type, (u_char*)eth_hdr + 16, 2);
-       hl += 4;
     }
 
     if (ether_type == htons(ETHERTYPE_IP)) {
@@ -741,6 +744,10 @@ packet2tree(const u_char * data, const int len)
             errx(-1, "packet capture length %d too small for IPv4 processing",
                     len);
             return NULL;
+        }
+
+        if (len < TCPR_ETH_H + TCPR_IPV4_H + hl) {
+            goto len_error;
         }
 
         memcpy(&ip_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV4_H);
@@ -760,6 +767,10 @@ packet2tree(const u_char * data, const int len)
             errx(-1, "packet capture length %d too small for IPv6 processing",
                     len);
             return NULL;
+        }
+
+        if (len < TCPR_ETH_H + TCPR_IPV6_H + hl) {
+            goto len_error;
         }
 
         memcpy(&ip6_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV6_H);
@@ -789,6 +800,10 @@ packet2tree(const u_char * data, const int len)
 
         dbgx(3, "%s uses TCP...  ", srcip);
 
+        if (len < TCPR_ETH_H + TCPR_TCP_H + hl) {
+            goto len_error;
+        }
+
         /* memcpy it over to prevent alignment issues */
         memcpy(&tcp_hdr, (data + TCPR_ETH_H + hl), TCPR_TCP_H);
 
@@ -814,12 +829,20 @@ packet2tree(const u_char * data, const int len)
      * UDP 
      */
     else if (proto == IPPROTO_UDP) {
+        if (len < TCPR_ETH_H + TCPR_UDP_H + hl) {
+            goto len_error;
+        }
+
         /* memcpy over to prevent alignment issues */
         memcpy(&udp_hdr, (data + TCPR_ETH_H + hl), TCPR_UDP_H);
         dbgx(3, "%s uses UDP...  ", srcip);
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
+            if (len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl) {
+                goto len_error;
+            }
+
             /* prevent memory alignment issues */
             memcpy(&dnsv4_hdr,
                    (data + TCPR_ETH_H + hl + TCPR_UDP_H), TCPR_DNS_H);
@@ -845,6 +868,10 @@ packet2tree(const u_char * data, const int len)
 
         switch (ntohs(udp_hdr.uh_sport)) {
         case 0x0035:           /* dns */
+            if (len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl) {
+                goto len_error;
+            }
+
             /* prevent memory alignment issues */
             memcpy(&dnsv4_hdr,
                    (data + TCPR_ETH_H + hl + TCPR_UDP_H),
@@ -873,6 +900,9 @@ packet2tree(const u_char * data, const int len)
      * ICMP 
      */
     else if (proto == IPPROTO_ICMP) {
+        if (len < TCPR_ETH_H + TCPR_ICMPV4_H + hl) {
+            goto len_error;
+        }
 
         /* prevent alignment issues */
         memcpy(&icmp_hdr, (data + TCPR_ETH_H + hl), TCPR_ICMPV4_H);
@@ -891,6 +921,10 @@ packet2tree(const u_char * data, const int len)
     }
 
     return (node);
+
+len_error:
+    errx(-1, "packet capture length %d too small to process", len);
+    return NULL;
 }
 
 #ifdef DEBUG

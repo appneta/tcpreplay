@@ -275,7 +275,7 @@ main(int argc, char *argv[])
                         PRIx32".%"PRIx32,
                         pktcnt, pcap_ph.len, pcap_ph.caplen, 
                         (unsigned int)pcap_ph.ts.tv_sec, (unsigned int)pcap_ph.ts.tv_usec);
-                if (pcap_fh.snaplen < pcap_ph.caplen) {
+                if (pcap_fh.snaplen < pcap_ph.caplen || pcap_ph.caplen > MAX_SNAPLEN) {
                     caplentoobig = 1;
                 }
                 caplen = pcap_ph.caplen;
