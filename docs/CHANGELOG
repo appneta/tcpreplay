@@ -1,4 +1,4 @@
-05/20/2020 Version 4.3.3 beta2
+05/20/2020 Version 4.3.3
     - Increase cache buffers size to accomodate VLAN edits (#594)
     - Correct L2 header length to correct IP header offset (#583)
     - Fix warnings from gcc version 10 (#580)

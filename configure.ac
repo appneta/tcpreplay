@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.3-beta2],
+AC_INIT([tcpreplay],[4.3.3],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
