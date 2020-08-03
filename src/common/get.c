@@ -178,7 +178,7 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_JUNIPER_ETHER:
-        if (datalen >= 5) {
+        if (datalen < 5) {
             l2_len = -1;
             break;
         }
