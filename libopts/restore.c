@@ -34,7 +34,7 @@
 /*
  *  optionFixupSavedOpts  Really, it just wipes out option state for
  *  options that are troublesome to copy.  viz., stacked strings and
- *  hierarcicaly valued option args.  We do duplicate string args that
+ *  hierarchically valued option args.  We do duplicate string args that
  *  have been marked as allocated though.
  */
 static void
