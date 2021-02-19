@@ -588,18 +588,26 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
+                if(!timerisset(&stats->first_packet_sent_wall_time))
+                {
+                    /* We're sending the first packet, so we have an absolute time reference. */
+                    TIMEVAL_SET(&stats->first_packet_sent_wall_time, &now);
+                    TIMEVAL_SET(&stats->first_packet_pcap_timestamp, &pkthdr.ts);
+                }
+
                 if (!timerisset(&last_pkt_ts)) {
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 } else if (timercmp(&pkthdr.ts, &last_pkt_ts, >)) {
                     struct timeval delta;
 
-                    timersub(&pkthdr.ts, &last_pkt_ts, &delta);
-                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
+                    /* pkt_ts_delta is the packet time stamp difference since the first packet */
+                    timersub(&pkthdr.ts, &stats->first_packet_pcap_timestamp, &stats->pkt_ts_delta);
+
+                    /* time_delta is the wall time difference since sending the first packet */
+                    timersub(&now, &stats->first_packet_sent_wall_time, &stats->time_delta);
+
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 }
-
-                if (!timerisset(&stats->time_delta))
-                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {
