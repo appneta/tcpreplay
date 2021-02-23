@@ -178,6 +178,11 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->speed.speed = 0;
     } else if (HAVE_OPT(PPS)) {
         n = atof(OPT_ARG(PPS));
+        if (!n) {
+            tcpreplay_seterr(ctx, "invalid pps value '%s'", OPT_ARG(PPS));
+            ret = -1;
+            goto out;
+        }
         options->speed.speed = (COUNTER)(n * 60.0 * 60.0); /* convert to packets per hour */
         options->speed.mode = speed_packetrate;
         options->speed.pps_multi = OPT_VALUE_PPS_MULTI;
