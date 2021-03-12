@@ -75,7 +75,7 @@ interface_list_t *
 get_interface_list(void)
 {
     interface_list_t *list_head, *list_ptr;
-    char ebuf[PCAP_ERRBUF_SIZE], testnic[255];
+    char ebuf[PCAP_ERRBUF_SIZE], testnic[320];
     pcap_if_t *pcap_if, *pcap_if_ptr;
     int i = 0;
     DIR *dir;
@@ -206,11 +206,11 @@ get_interface_list(void)
                     list_ptr = list_ptr->next;
                 }
                 dbgx(3, "Adding %s to interface list", dirdata->d_name);
-                snprintf(testnic, 254, "/dev/char/%s", dirdata->d_name);
-                strlcpy(list_ptr->name, testnic, 255);
-                snprintf(testnic, 255, "khial pseudo-nic: %s", dirdata->d_name);
-                strlcpy(list_ptr->description, testnic, 255);
-                strlcpy(list_ptr->alias, dirdata->d_name, 255);
+                snprintf(testnic, sizeof(testnic), "/dev/char/%s", dirdata->d_name);
+                strlcpy(list_ptr->name, testnic, sizeof(list_ptr->name));
+                snprintf(testnic, sizeof(testnic), "khial pseudo-nic: %s", dirdata->d_name);
+                strlcpy(list_ptr->description, testnic, sizeof(list_ptr->description));
+                strlcpy(list_ptr->alias, dirdata->d_name, sizeof(list_ptr->alias));
                 i += 1;
             }
         }

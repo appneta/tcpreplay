@@ -41,8 +41,7 @@ extern int debug;
 #endif
 volatile bool didsig;
 
-static int live_callback(struct live_data_t *,
-                         struct pcap_pkthdr *, const u_char *);
+static void live_callback(u_char *, const struct pcap_pkthdr *, const u_char *);
 
 static void signal_catcher(int signo);
 
@@ -106,8 +105,8 @@ do_bridge_unidirectional(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
     livedata.pcap = options->pcap1;
     livedata.options = options;
 
-    if ((retcode = pcap_loop(options->pcap1, options->limit_send, 
-            (pcap_handler)live_callback, (u_char *) &livedata)) < 0) {
+    if ((retcode = pcap_loop(options->pcap1, options->limit_send,
+            live_callback, (u_char*)&livedata)) < 0) {
         warnx("Error in pcap_loop(): %s", pcap_geterr(options->pcap1));
     }
 }
@@ -250,10 +249,13 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
  * each packet received by libpcap on the two interfaces.
  * Need to return > 0 to denote success
  */
-static int
-live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
+static void
+live_callback(u_char *usr_data, const struct pcap_pkthdr *const_pkthdr,
               const u_char * nextpkt)
 {
+    struct live_data_t *livedata = (struct live_data_t*)usr_data;
+    struct pcap_pkthdr pkthdr_buf = *const_pkthdr;
+    struct pcap_pkthdr *pkthdr = &pkthdr_buf;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     pcap_t *send = NULL;
@@ -300,11 +302,11 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     /* first, is this a packet sent locally?  If so, ignore it */
     if ((memcmp(livedata->options->intf1_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", livedata->options->intf1);
-        return (1);
+        return;
     }
     else if ((memcmp(livedata->options->intf2_mac, &finder.key, ETHER_ADDR_LEN)) == 0) {
         dbgx(1, "Packet matches the MAC of %s, skipping.", livedata->options->intf2);
-        return (1);
+        return;
     }
 
     node = RB_FIND(macsrc_tree, &macsrc_root, &finder);
@@ -325,7 +327,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
          * IMPORTANT!!!
          * Never send a packet out the same interface we sourced it on!
          */
-        return (1);
+        return;
     }
 
     /* what is our cache mode? */
@@ -344,7 +346,7 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
             if (!ip_hdr ||
                     !process_xX_by_cidr_ipv4(livedata->options->xX.mode, livedata->options->xX.cidr, ip_hdr)) {
                 dbg(2, "Skipping IPv4 packet due to CIDR match");
-                return (1);
+                return;
             }
         }
 
@@ -357,19 +359,14 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
         if (livedata->options->xX.cidr != NULL) {
             if (!process_xX_by_cidr_ipv6(livedata->options->xX.mode, livedata->options->xX.cidr, ip6_hdr)) {
                 dbg(2, "Skipping IPv6 packet due to CIDR match");
-                return (1);
+                return;
             }
         }
 
     }
 
-    if ((retcode = tcpedit_packet(livedata->tcpedit, &pkthdr, &pktdata, cache_mode)) < 0) {
-        if (retcode == TCPEDIT_SOFT_ERROR) {
-            return 1;
-        } else { /* TCPEDIT_ERROR */
-            return -1;
-        }
-    }
+    if ((retcode = tcpedit_packet(livedata->tcpedit, &pkthdr, &pktdata, cache_mode)) < 0)
+        return;
 
     /* 
      * send packets out the OTHER interface
@@ -404,9 +401,6 @@ live_callback(struct live_data_t *livedata, struct pcap_pkthdr *pkthdr,
     stats.pkts_sent++;
 
     dbgx(1, "Sent packet " COUNTER_SPEC, stats.pkts_sent);
-
-
-    return (1);
 } /* live_callback() */
 
 static void
