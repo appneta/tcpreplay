@@ -469,20 +469,20 @@ void
 __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...)
 {
     va_list ap;
-    char errormsg[TCPEDIT_ERRSTR_LEN];
+    char errormsg[TCPEDIT_ERRSTR_LEN - 32];
     
     assert(tcpedit);
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-        (void)vsnprintf(errormsg, 
-              (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(errormsg, sizeof(errormsg), fmt, ap);
     }
 
     va_end(ap);
     
-    snprintf(tcpedit->runtime.errstr, (TCPEDIT_ERRSTR_LEN -1), "From %s:%s() line %d:\n%s",
-        file, func, line, errormsg);
+    snprintf(tcpedit->runtime.errstr, sizeof(tcpedit->runtime.errstr),
+             "From %s:%s() line %d:\n%s",
+             file, func, line, errormsg);
 }
 
 /**
@@ -508,7 +508,8 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL)
-        (void)vsnprintf(tcpedit->runtime.warnstr, (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(tcpedit->runtime.warnstr,
+                        sizeof(tcpedit->runtime.warnstr), fmt, ap);
 
     va_end(ap);
         

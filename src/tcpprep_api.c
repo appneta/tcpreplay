@@ -320,20 +320,19 @@ __tcpprep_seterr(tcpprep_t *ctx, const char *func, const int line,
         const char *file, const char *fmt, ...)
 {
     va_list ap;
-    char errormsg[TCPREPLAY_ERRSTR_LEN];
+    char errormsg[TCPREPLAY_ERRSTR_LEN - 32];
 
     assert(ctx);
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-        (void)vsnprintf(errormsg,
-              (TCPREPLAY_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(errormsg, sizeof(errormsg), fmt, ap);
     }
 
     va_end(ap);
 
-    snprintf(ctx->errstr, (TCPREPLAY_ERRSTR_LEN -1), "From %s:%s() line %d:\n%s",
-        file, func, line, errormsg);
+    snprintf(ctx->errstr, sizeof(ctx->errstr), "From %s:%s() line %d:\n%s",
+             file, func, line, errormsg);
 }
 
 /**
@@ -350,7 +349,7 @@ tcpprep_setwarn(tcpprep_t *ctx, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL)
-        (void)vsnprintf(ctx->warnstr, (TCPREPLAY_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(ctx->warnstr, sizeof(ctx->warnstr), fmt, ap);
 
     va_end(ap);
 }
