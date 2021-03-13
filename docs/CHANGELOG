@@ -1,5 +1,6 @@
 03/12/2021 Version 4.3.4 Beta1
     - Fix gcc 8.3.0 build warnings (#634)
+    - DLT_NULL/DLT_LOOP support for cross-platform PF_INET6 (#624)
     - armv5 Freescale compile (#623)
     - heap buffer overflow in tcpreplay fast_edit_packet (#620)
     - heap buffer overflow in tcpreplay get_next_packet (#619)
