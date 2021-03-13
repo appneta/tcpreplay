@@ -7,11 +7,12 @@
 
 05/20/2020 Version 4.3.3
     - Increase cache buffers size to accomodate VLAN edits (#594)
+    - CVE-2018-20553 Correct L2 header length calculations so that IP header offset is correct (#584)
     - Correct L2 header length to correct IP header offset (#583)
     - Fix warnings from gcc version 10 (#580)
     - Heap Buffer Overflow in randomize_iparp (#579)
     - Use after free in get_ipv6_next (#578)
-    - Heap Buffer Overflow in git_ipv6_next (#576)
+    - CVE-2020-12740 Heap Buffer Overflow in git_ipv6_next (#576)
     - Call pcap_freecode() on pcap_compile() (#572)
     - Increase max snaplen to 262144 (#571)
     - Fix divide by zero in fuzzing (#570)
@@ -23,7 +24,7 @@
     - Remove some duplicated SOURCES entries (#551)
     - Expand /dev/bpfX hard limit to fix macOS Mojave (#550)
     - Implement --loopdelay-ms when using --loop=0 (#546)
-    - Heap overflow packet2tree and get_l2len (#530)
+    - CVE-2018-20552 Heap overflow packet2tree and get_l2len (#530)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)
@@ -126,7 +127,7 @@
     - Support parallel builds (#259)
     - Give user CFLAGS precedence (#256)
     - Properly detect Brew install when Xcode is not available (#254)
-    - Increase max packet size to 65549 (#251)
+    - CVE-2016-6160 Increase max packet size to 65549 (#251)
     - Handle IP headers with zero length (#247)
 
 01/11/2016 Version 4.1.1
