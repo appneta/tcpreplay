@@ -372,7 +372,6 @@ AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_FUNC_MKTIME
 AC_FUNC_MMAP
-AC_FUNC_REALLOC
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
 AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday])
 AC_CHECK_FUNCS([ctime inet_ntoa memmove memset munmap pow putenv realpath])
