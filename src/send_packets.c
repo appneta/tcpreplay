@@ -1054,7 +1054,7 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
 
                 if (*prev_packet != NULL) {
                     (*prev_packet)->next = NULL;
-                    pktlen = pkthdr->len;
+                    pktlen = pkthdr->caplen;
 
                     (*prev_packet)->pktdata = safe_malloc(pktlen + PACKET_HEADROOM);
                     memcpy((*prev_packet)->pktdata, pktdata, pktlen);

@@ -1,5 +1,6 @@
 03/12/2021 Version 4.3.4 Beta1
     - Fix gcc 8.3.0 build warnings (#634)
+    - heap buffer overflow in tcpreplay get_next_packet (#619)
     - CVE-2020-24266 heap buffer overflow in tcpprep get_l2len (#617)
     - CVE-2020-24265 heap buffer overflow in tcpprep (#616)
     - Compile failure on aarch64-linux-android (#612)
