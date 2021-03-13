@@ -77,155 +77,6 @@ static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         packet_cache_t **prev_packet);
 static uint32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
 
-/**
- * Fast flow packet edit
- *
- * Attempts to alter the packet IP addresses without
- * changing CRC, which will avoid overhead of tcpreplay-edit
- *
- * This code is a bit bloated but it is the result of
- * optimizing. Test performance on 10GigE+ networks if
- * modifying.
- */
-static void
-fast_edit_packet_dl(struct pcap_pkthdr *pkthdr, u_char **pktdata,
-        COUNTER iteration, bool cached, int datalink)
-{
-    int l2_len = 0;
-    ipv4_hdr_t *ip_hdr;
-    ipv6_hdr_t *ip6_hdr;
-    hdlc_hdr_t *hdlc_hdr;
-    sll_hdr_t *sll_hdr;
-    struct tcpr_pppserial_hdr *ppp;
-    uint32_t src_ip, dst_ip;
-    uint32_t src_ip_orig, dst_ip_orig;
-    uint16_t ether_type = 0;
-
-    if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
-        dbgx(1, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
-        return;
-    }
-
-    switch (datalink) {
-    case DLT_LINUX_SLL:
-        l2_len = 16;
-        sll_hdr = (sll_hdr_t *)*pktdata;
-        ether_type = sll_hdr->sll_protocol;
-        break;
-
-    case DLT_PPP_SERIAL:
-        l2_len = 4;
-        ppp = (struct tcpr_pppserial_hdr *)*pktdata;
-        if (ntohs(ppp->protocol) == 0x0021)
-            ether_type = htons(ETHERTYPE_IP);
-        else
-            ether_type = ppp->protocol;
-        break;
-
-    case DLT_C_HDLC:
-        l2_len = 4;
-        hdlc_hdr = (hdlc_hdr_t *)*pktdata;
-        ether_type = hdlc_hdr->protocol;
-        break;
-
-    case DLT_RAW:
-        if ((*pktdata[0] >> 4) == 4)
-            ether_type = ETHERTYPE_IP;
-        else if ((*pktdata[0] >> 4) == 6)
-            ether_type = ETHERTYPE_IP6;
-        break;
-
-    default:
-        warnx("Unable to process unsupported DLT type: %s (0x%x)",
-             pcap_datalink_val_to_description(datalink), datalink);
-            return;
-    }
-
-    switch (ether_type) {
-    case ETHERTYPE_IP:
-        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
-
-        if (ip_hdr->ip_v != 4) {
-            dbgx(2, "expected IPv4 but got: %u", ip_hdr->ip_v);
-            return;
-        }
-
-        if (pkthdr->caplen < (bpf_u_int32)sizeof(*ip_hdr)) {
-            dbgx(2, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
-            return;
-        }
-
-        ip_hdr = (ipv4_hdr_t *)(*pktdata + l2_len);
-        src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
-        dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
-        break;
-
-    case ETHERTYPE_IP6:
-
-        if ((*pktdata[0] >> 4) != 6) {
-            dbgx(2, "expected IPv6 but got: %u", *pktdata[0] >> 4);
-            return;
-        }
-
-        if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
-            dbgx(2, "Packet too short for Unique IPv6 feature: %u", pkthdr->caplen);
-            return;
-        }
-
-        ip6_hdr = (ipv6_hdr_t *)(*pktdata + l2_len);
-        src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
-        dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
-        break;
-
-    default:
-        return; /* non-IP */
-    }
-
-    /* swap src/dst IP's in a manner that does not affect CRC */
-    if ((!cached && dst_ip > src_ip) ||
-            (cached && (dst_ip - iteration) > (src_ip - 1 - iteration))) {
-        if (cached) {
-            --src_ip;
-            ++dst_ip;
-        } else {
-            src_ip -= iteration;
-            dst_ip += iteration;
-        }
-
-        /* CRC compensations  for wrap conditions */
-        if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
-            --src_ip;
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
-        } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
-            ++dst_ip;
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
-        }
-    } else {
-        if (cached) {
-            ++src_ip;
-            --dst_ip;
-        } else {
-            src_ip += iteration;
-            dst_ip -= iteration;
-        }
-
-        /* CRC compensations  for wrap conditions */
-        if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
-            --dst_ip;
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
-        } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
-            ++src_ip;
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
-        }
-    }
-
-    dbgx(1, "(" COUNTER_SPEC "): final src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
-}
-
 static inline void wake_send_queues(sendpacket_t *sp _U_,
 		tcpreplay_opt_t *options _U_)
 {
@@ -235,7 +86,7 @@ static inline void wake_send_queues(sendpacket_t *sp _U_,
 #endif
 }
 
-static inline void
+static inline int
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         COUNTER iteration, bool cached, int datalink)
 {
@@ -247,55 +98,34 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     int l2_len;
     u_char *packet = *pktdata;
 
-    if (datalink != DLT_EN10MB && datalink != DLT_JUNIPER_ETHER)
-        fast_edit_packet_dl(pkthdr, pktdata, iteration, cached, datalink);
+    l2_len = get_l2len(packet, pkthdr->caplen, datalink);
+    if (l2_len < 0)
+        return -1;
 
-    if (pkthdr->caplen < (bpf_u_int32)TCPR_IPV6_H) {
-        dbgx(2, "Packet too short for Unique IP feature: %u", pkthdr->caplen);
-        return;
-    }
-
-    l2_len = 0;
-    if (datalink == DLT_JUNIPER_ETHER) {
-        if (memcmp(packet, "MGC", 3))
-            warnx("No Magic Number found: %s (0x%x)",
-                 pcap_datalink_val_to_description(datalink), datalink);
-
-        if ((packet[3] & 0x80) == 0x80) {
-            l2_len = ntohs(*((uint16_t*)&packet[4]));
-            if (l2_len > 1024) {
-                warnx("L2 length too long: %u", l2_len);
-                return;
-            }
-            l2_len += 6;
-        } else
-            l2_len = 4; /* no header extensions */
-    }
-
-    /* assume Ethernet, IPv4 for now */
-    ether_type = ntohs(((eth_hdr_t*)(packet + l2_len))->ether_type);
-    l2_len += sizeof(eth_hdr_t);
-    while (ether_type == ETHERTYPE_VLAN) {
-         vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(pktdata + l2_len);
-         ether_type = ntohs(vlan_hdr->vlan_tpid);
-         l2_len += 4;
-    }
-
+    ether_type = get_l2protocol(packet, pkthdr->caplen, datalink);
     switch (ether_type) {
     case ETHERTYPE_IP:
+        if (pkthdr->caplen < (bpf_u_int32)(l2_len + sizeof(ipv4_hdr_t))) {
+            dbgx(1, "IP packet too short for Unique IP feature: %u", pkthdr->caplen);
+            return -1;
+        }
         ip_hdr = (ipv4_hdr_t *)(packet + l2_len);
         src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
         dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
         break;
 
     case ETHERTYPE_IP6:
+        if (pkthdr->caplen < (bpf_u_int32)(l2_len + sizeof(ipv6_hdr_t))) {
+            dbgx(1, "IP6 packet too short for Unique IP feature: %u", pkthdr->caplen);
+            return -1;
+        }
         ip6_hdr = (ipv6_hdr_t *)(packet + l2_len);
         src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
         dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
         break;
 
     default:
-        return; /* non-IP */
+        return -1; /* non-IP or packet too short */
     }
 
     dbgx(2, "Layer 3 protocol type is: 0x%04x", ether_type);
@@ -355,6 +185,8 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
         break;
     }
+
+    return 0;
 }
 
 /**
@@ -559,8 +391,11 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
             /* edit packet to ensure every pass has unique IP addresses */
-            fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration - 1,
-                    preload, datalink);
+            if (fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration - 1,
+                    preload, datalink) == -1) {
+                ++stats->failed;
+                continue;
+            }
         }
 
         /* update flow stats */
@@ -833,8 +668,11 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         if (ctx->options->unique_ip && ctx->unique_iteration &&
                 ctx->unique_iteration > ctx->last_unique_iteration) {
             /* edit packet to ensure every pass is unique */
-            fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration - 1,
-                    options->file_cache[cache_file_idx].cached, datalink);
+            if (fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration - 1,
+                    options->file_cache[cache_file_idx].cached, datalink) == -1) {
+                ++stats->failed;
+                continue;
+            }
         }
 
         /* update flow stats */
@@ -924,7 +762,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
          */
         TIMEVAL_SET(&stats->end_time, &now);
 
-        stats->pkts_sent++;
+        ++stats->pkts_sent;
         stats->bytes_sent += pktlen;
 
         /* print stats during the run? */
