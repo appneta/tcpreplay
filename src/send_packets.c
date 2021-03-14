@@ -1043,15 +1043,21 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
           */
          now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
          if (now_us) {
-             COUNTER pph = ctx->options->speed.speed *
-                     (ctx->options->speed.pps_multi > 0 ? ctx->options->speed.pps_multi : (60 * 60));
+             COUNTER next_tx_us;
+             COUNTER pph = ctx->options->speed.speed;
              COUNTER pkts_sent = ctx->stats.pkts_sent;
+             COUNTER tx_us = now_us - start_us;
              /*
               * packets * 1000000 divided by pps = microseconds
               * packets per sec (pps) = packets per hour / (60 * 60)
+              *
+              * Adjust for long running tests with high PPS to prevent overflow.
+              * When active, adjusted calculation may add a bit of jitter.
               */
-             COUNTER next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
-             COUNTER tx_us = now_us - start_us;
+             if ((pkts_sent < COUNTER_OVERFLOW_RISK))
+                 next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
+             else
+                 next_tx_us = (pkts_sent * 1000000) / pph / (60 * 60);
 
              if (next_tx_us > tx_us)
                  NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
