@@ -931,7 +931,7 @@ __tcpreplay_seterr(tcpreplay_t *ctx, const char *func,
     snprintf(ctx->errstr, sizeof(ctx->errstr), "From %s:%s() line %d:\n%s",
         file, func, line, errormsg);
 #else
-    snprintf(ctx->errstr, ctx->errstr, "%s", errormsg);
+    snprintf(ctx->errstr, sizeof(ctx->errstr), "%s", errormsg);
 #endif
 }
 

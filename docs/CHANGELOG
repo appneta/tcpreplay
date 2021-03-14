@@ -7,6 +7,7 @@
     - CVE-2020-24266 heap buffer overflow in tcpprep get_l2len (#617)
     - CVE-2020-24265 heap buffer overflow in tcpprep (#616)
     - Compile failure on aarch64-linux-android (#612)
+    - Ensure automake version is at least 1.15 (#553)
 
 05/20/2020 Version 4.3.3
     - Increase cache buffers size to accomodate VLAN edits (#594)

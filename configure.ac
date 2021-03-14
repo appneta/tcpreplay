@@ -146,7 +146,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Wno-override])
+AM_INIT_AUTOMAKE([1.15 foreign subdir-objects -Wall -Wno-override])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Checks for programs.
@@ -154,11 +154,6 @@ AM_PROG_AR
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_CC
-
-# for compat with old systems.
-# deprecated in favor of AC_PROG_CC since automake 1.14 and is now no-op
-AM_PROG_CC_C_O
-
 AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
