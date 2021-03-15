@@ -339,6 +339,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
+    timerclear(&stats->first_packet_sent_wall_time);
     if (options->limit_time > 0)
         end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
@@ -589,6 +590,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
+    timerclear(&stats->first_packet_sent_wall_time);
     if (options->limit_time > 0)
         end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
