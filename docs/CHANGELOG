@@ -1,12 +1,17 @@
 03/12/2021 Version 4.3.4 Beta1
     - Fix gcc 8.3.0 build warnings (#634)
+    - invalid --pps value protection (#632)
+    - packets slowly drift further and further behind when they should be sent (#630)
     - 64 bit rollover can cause pps replay issues after several hours (#629)
+    - typo fixes (#626) (#627)
     - DLT_NULL/DLT_LOOP support for cross-platform PF_INET6 (#624)
     - armv5 Freescale compile (#623)
     - heap buffer overflow in tcpreplay fast_edit_packet (#620)
     - heap buffer overflow in tcpreplay get_next_packet (#619)
     - CVE-2020-24266 heap buffer overflow in tcpprep get_l2len (#617)
     - CVE-2020-24265 heap buffer overflow in tcpprep (#616)
+    - fix UNUSED macro declaration (#614)
+    - handle malformed and unsupported packets as soft errors (#613)
     - Compile failure on aarch64-linux-android (#612)
     - Ensure automake version is at least 1.15 (#553)
 
