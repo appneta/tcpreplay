@@ -839,7 +839,7 @@ extern int optionFileLoad(tOptions *, char const *);
 
 
 /**
- * optionFindNextValue - find a hierarcicaly valued option instance
+ * optionFindNextValue - find a hierarchically valued option instance
  *
  *  This routine will find the next entry in a nested value option or
  *  configurable.  It will search through the list and return the next entry
@@ -856,7 +856,7 @@ extern const tOptionValue * optionFindNextValue(const tOptDesc *, const tOptionV
 
 
 /**
- * optionFindValue - find a hierarcicaly valued option instance
+ * optionFindValue - find a hierarchically valued option instance
  *
  *  This routine will find an entry in a nested value option or configurable.
  *  It will search through the list and return a matching entry.
