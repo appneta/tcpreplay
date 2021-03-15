@@ -588,8 +588,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
-                if(!timerisset(&stats->first_packet_sent_wall_time))
-                {
+                if(!timerisset(&stats->first_packet_sent_wall_time)) {
                     /* We're sending the first packet, so we have an absolute time reference. */
                     TIMEVAL_SET(&stats->first_packet_sent_wall_time, &now);
                     TIMEVAL_SET(&stats->first_packet_pcap_timestamp, &pkthdr.ts);
