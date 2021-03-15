@@ -432,8 +432,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                 if (!timerisset(&last_pkt_ts)) {
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 } else if (timercmp(&pkthdr.ts, &last_pkt_ts, >)) {
-                    struct timeval delta;
-
                     /* pkt_ts_delta is the packet time stamp difference since the first packet */
                     timersub(&pkthdr.ts, &stats->first_packet_pcap_timestamp, &stats->pkt_ts_delta);
 
@@ -706,18 +704,23 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
+                if(!timerisset(&stats->first_packet_sent_wall_time)) {
+                    /* We're sending the first packet, so we have an absolute time reference. */
+                    TIMEVAL_SET(&stats->first_packet_sent_wall_time, &now);
+                    TIMEVAL_SET(&stats->first_packet_pcap_timestamp, &pkthdr_ptr->ts);
+                }
+
                 if (!timerisset(&last_pkt_ts)) {
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
                 } else if (timercmp(&pkthdr_ptr->ts, &last_pkt_ts, >)) {
-                    struct timeval delta;
+                    /* pkt_ts_delta is the packet time stamp difference since the first packet */
+                    timersub(&pkthdr_ptr->ts, &stats->first_packet_pcap_timestamp, &stats->pkt_ts_delta);
 
-                    timersub(&pkthdr_ptr->ts, &last_pkt_ts, &delta);
-                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
+                    /* time_delta is the wall time difference since sending the first packet */
+                    timersub(&now, &stats->first_packet_sent_wall_time, &stats->time_delta);
+
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
                 }
-
-                if (!timerisset(&stats->time_delta))
-                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {
@@ -739,7 +742,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              * Track the time of the "last packet sent".
              *
              * A number of 3rd party tools generate bad timestamps which go backwards
-             * in time.  Hence, don't update the "last" unless pkthdr.ts > last
+             * in time.  Hence, don't update the "last" unless pkthdr_ptr->ts > last
              */
             if (timercmp(&stats->time_delta, &stats->pkt_ts_delta, <))
                 TIMEVAL_SET(&stats->time_delta, &stats->pkt_ts_delta);
