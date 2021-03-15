@@ -157,7 +157,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IP header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IP header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_ERROR;
         }
@@ -168,7 +168,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         p = get_layer4_v4(ip_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer %d byte IP header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
                     pktlen, ip_hdr->ip_hl << 2,  dst_dlt);
             return TCPEDIT_ERROR;
         }
@@ -178,7 +178,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip6_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IPv6 header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_ERROR;
         }
@@ -189,7 +189,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         p = get_layer4_v6(ip6_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain an IPv6 header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_ERROR;
         }
