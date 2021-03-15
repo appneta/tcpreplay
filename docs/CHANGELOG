@@ -12,8 +12,10 @@
     - CVE-2020-24265 heap buffer overflow in tcpprep (#616)
     - fix UNUSED macro declaration (#614)
     - handle malformed and unsupported packets as soft errors (#613)
-    - Compile failure on aarch64-linux-android (#612)
-    - Ensure automake version is at least 1.15 (#553)
+    - compile failure on aarch64-linux-android (#612)
+    - fix configure --without-libdnet (#567)
+    - ensure automake version is at least 1.15 (#553)
+    - with multiplier option only first file can be sent and hang (#472)
 
 05/20/2020 Version 4.3.3
     - Increase cache buffers size to accomodate VLAN edits (#594)

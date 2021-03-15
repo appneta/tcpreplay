@@ -83,3 +83,18 @@ Gabriel Ganne <GitHub @GabrielGanne>
 
 Mario D Santana <GitHUB @@mariodsantana>
     - TCP seq/ack edit
+
+Fabrice Fontaine <GitHub @ffontaine>
+    - fix --without-libdnet configure option
+
+Gerald Combs <GitHub @geraldcombs>
+    - Wireshark and Ethereal reference updates
+
+Tim Gates <GitHub @timgates42>
+    - typos
+
+Dave DeAngelis <GitHub @ddeangelis>
+    - typos
+
+Dave Craig <GitHub @davecraig>
+    - Avoid clock drift
