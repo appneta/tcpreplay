@@ -148,7 +148,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     dst_dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
     l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
     if (l2len == -1)
-        return TCPEDIT_ERROR;
+        return TCPEDIT_SOFT_ERROR;
 
     dbgx(2, "dst_dlt = %04x\tsrc_dlt = %04x\tproto = %04x\tl2len = %d", dst_dlt, src_dlt, ntohs(l2proto), l2len);
 
@@ -159,18 +159,18 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         if ((*pkthdr)->caplen < l2len + sizeof(*ip_hdr)) {
             tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IP header for DLT 0x%04x",
                     pktlen, dst_dlt);
-            return TCPEDIT_ERROR;
+            return TCPEDIT_SOFT_ERROR;
         }
 
         ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
         if (ip_hdr == NULL)
-            return TCPEDIT_ERROR;
+            return TCPEDIT_SOFT_ERROR;
 
         p = get_layer4_v4(ip_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
             tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer %d byte IP header for DLT 0x%04x",
                     pktlen, ip_hdr->ip_hl << 2,  dst_dlt);
-            return TCPEDIT_ERROR;
+            return TCPEDIT_SOFT_ERROR;
         }
 
         dbgx(3, "Packet has an IPv4 header: 0x%p...", ip_hdr);
@@ -180,18 +180,18 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         if ((*pkthdr)->caplen < l2len + sizeof(*ip6_hdr)) {
             tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
-            return TCPEDIT_ERROR;
+            return TCPEDIT_SOFT_ERROR;
         }
 
         ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
         if (ip6_hdr == NULL)
-            return TCPEDIT_ERROR;
+            return TCPEDIT_SOFT_ERROR;
 
         p = get_layer4_v6(ip6_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
             tcpedit_seterr(tcpedit, "Packet length %d is to short to contain an IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
-            return TCPEDIT_ERROR;
+            return TCPEDIT_SOFT_ERROR;
         }
 
         dbgx(3, "Packet has an IPv6 header: 0x%p...", ip6_hdr);
