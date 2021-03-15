@@ -1478,30 +1478,32 @@ if test $have_cygwin = no ; then
         AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
         [trydnetdir=$withval])
 
-    case "$build_os" in
-    linux*)
-        dnl # Debian/Ubuntu already have a package called libdnet
-        dnl # so you the package you want to install libdumbnet-dev
-        for testdir in $trydnetdir /usr/local /opt/local /usr ; do
-            if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
-                LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
-                LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
-                libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
-                founddnet=$testdir
-            fi
-        done
-        ;;
-    esac
+    if test $trydnetdir != no; then
+        case "$build_os" in
+        linux*)
+            dnl # Debian/Ubuntu already have a package called libdnet
+            dnl # so you the package you want to install libdumbnet-dev
+            for testdir in $trydnetdir /usr/local /opt/local /usr ; do
+                if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
+                    LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
+                    LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
+                    libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
+                    founddnet=$testdir
+                fi
+            done
+            ;;
+        esac
 
-    if test $founddnet = no ; then
-        for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
-            if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-                LDNETINC="$($testdir/bin/dnet-config --cflags)"
-                LDNETLIB="$($testdir/bin/dnet-config --libs)"
-                libdnet_version="$($testdir/bin/dnet-config --version)"
-                founddnet=$testdir
-            fi
-        done
+        if test $founddnet = no ; then
+            for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
+                if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+                    LDNETINC="$($testdir/bin/dnet-config --cflags)"
+                    LDNETLIB="$($testdir/bin/dnet-config --libs)"
+                    libdnet_version="$($testdir/bin/dnet-config --version)"
+                    founddnet=$testdir
+                fi
+            done
+        fi
     fi
 
     if test $founddnet = no ; then
