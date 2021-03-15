@@ -222,10 +222,21 @@ dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (pktlen < 4)
         return TCPEDIT_ERROR;
     
+    /* PF_INET is always 2 but PF_INET6 varies based on platform, i.e
+     * Linux - 10
+     * NetBSD,OpenBSD,BSD/OS - 24
+     * NetBSD,OpenBSD,BSD/OS - 28
+     * Darwin/macOS - 30
+     * See https://gitlab.com/wireshark/wireshark/-/wikis/NullLoopback
+     */
     af_type = (uint32_t *)packet;
     if (*af_type == PF_INET || SWAPLONG(*af_type) == PF_INET) {
         protocol = ETHERTYPE_IP;
-    } else if (*af_type == PF_INET6 || SWAPLONG(*af_type) == PF_INET6) {
+    } else if (*af_type == PF_INET6 || SWAPLONG(*af_type) == PF_INET6 ||
+               *af_type == 10 || SWAPLONG(*af_type) == 10 ||
+               *af_type == 24 || SWAPLONG(*af_type) == 24 ||
+               *af_type == 28 || SWAPLONG(*af_type) == 28 ||
+               *af_type == 30 || SWAPLONG(*af_type) == 30) {
         protocol = ETHERTYPE_IP6;
     } else {
         tcpedit_seterr(ctx->tcpedit, "Unsupported DLT_NULL/DLT_LOOP PF_ type: 0x%04x", *af_type);

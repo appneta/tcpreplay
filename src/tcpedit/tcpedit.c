@@ -157,7 +157,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IP header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IP header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_ERROR;
         }
@@ -168,7 +168,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         p = get_layer4_v4(ip_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer %d byte IP header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
                     pktlen, ip_hdr->ip_hl << 2,  dst_dlt);
             return TCPEDIT_ERROR;
         }
@@ -178,7 +178,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip6_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IPv6 header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_ERROR;
         }
@@ -189,7 +189,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         p = get_layer4_v6(ip6_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain an IPv6 header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_ERROR;
         }
@@ -469,20 +469,20 @@ void
 __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...)
 {
     va_list ap;
-    char errormsg[TCPEDIT_ERRSTR_LEN];
+    char errormsg[TCPEDIT_ERRSTR_LEN - 32];
     
     assert(tcpedit);
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-        (void)vsnprintf(errormsg, 
-              (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(errormsg, sizeof(errormsg), fmt, ap);
     }
 
     va_end(ap);
     
-    snprintf(tcpedit->runtime.errstr, (TCPEDIT_ERRSTR_LEN -1), "From %s:%s() line %d:\n%s",
-        file, func, line, errormsg);
+    snprintf(tcpedit->runtime.errstr, sizeof(tcpedit->runtime.errstr),
+             "From %s:%s() line %d:\n%s",
+             file, func, line, errormsg);
 }
 
 /**
@@ -508,7 +508,8 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL)
-        (void)vsnprintf(tcpedit->runtime.warnstr, (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(tcpedit->runtime.warnstr,
+                        sizeof(tcpedit->runtime.warnstr), fmt, ap);
 
     va_end(ap);
         

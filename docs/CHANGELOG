@@ -1,10 +1,23 @@
+03/12/2021 Version 4.3.4 Beta1
+    - Fix gcc 8.3.0 build warnings (#634)
+    - 64 bit rollover can cause pps replay issues after several hours (#629)
+    - DLT_NULL/DLT_LOOP support for cross-platform PF_INET6 (#624)
+    - armv5 Freescale compile (#623)
+    - heap buffer overflow in tcpreplay fast_edit_packet (#620)
+    - heap buffer overflow in tcpreplay get_next_packet (#619)
+    - CVE-2020-24266 heap buffer overflow in tcpprep get_l2len (#617)
+    - CVE-2020-24265 heap buffer overflow in tcpprep (#616)
+    - Compile failure on aarch64-linux-android (#612)
+    - Ensure automake version is at least 1.15 (#553)
+
 05/20/2020 Version 4.3.3
     - Increase cache buffers size to accomodate VLAN edits (#594)
+    - CVE-2018-20553 Correct L2 header length calculations so that IP header offset is correct (#584)
     - Correct L2 header length to correct IP header offset (#583)
     - Fix warnings from gcc version 10 (#580)
     - Heap Buffer Overflow in randomize_iparp (#579)
     - Use after free in get_ipv6_next (#578)
-    - Heap Buffer Overflow in git_ipv6_next (#576)
+    - CVE-2020-12740 Heap Buffer Overflow in git_ipv6_next (#576)
     - Call pcap_freecode() on pcap_compile() (#572)
     - Increase max snaplen to 262144 (#571)
     - Fix divide by zero in fuzzing (#570)
@@ -16,7 +29,7 @@
     - Remove some duplicated SOURCES entries (#551)
     - Expand /dev/bpfX hard limit to fix macOS Mojave (#550)
     - Implement --loopdelay-ms when using --loop=0 (#546)
-    - Heap overflow packet2tree and get_l2len (#530)
+    - CVE-2018-20552 Heap overflow packet2tree and get_l2len (#530)
 
 03/12/2019 Version 4.3.2
     - CVE-2019-8381 memory access in do_checksum() (#538)
@@ -119,7 +132,7 @@
     - Support parallel builds (#259)
     - Give user CFLAGS precedence (#256)
     - Properly detect Brew install when Xcode is not available (#254)
-    - Increase max packet size to 65549 (#251)
+    - CVE-2016-6160 Increase max packet size to 65549 (#251)
     - Handle IP headers with zero length (#247)
 
 01/11/2016 Version 4.1.1

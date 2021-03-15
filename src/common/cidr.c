@@ -121,10 +121,10 @@ ip2cidr(const unsigned long ip, const int masklen)
 
     strcat((char *)network, "/");
     if (masklen < 10) {
-        snprintf(mask, 1, "%d", masklen);
+        snprintf(mask, sizeof(mask), "%d", masklen);
         strncat((char *)network, mask, 1);
     } else {
-        snprintf(mask, 2, "%d", masklen);
+        snprintf(mask, sizeof(mask), "%d", masklen);
         strncat((char *)network, mask, 2);
     }
 

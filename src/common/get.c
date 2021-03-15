@@ -39,7 +39,9 @@ extern int debug;
 extern const char pcap_version[];
 #endif
 
-
+#define JUNIPER_FLAG_NO_L2          0x02     /* L2 header */
+#define JUNIPER_FLAG_EXT            0x80     /* Juniper extensions present */
+#define JUNIPER_PCAP_MAGIC          "MGC"
 /**
  * Depending on what version of libpcap/WinPcap there are different ways to get 
  * the version of the libpcap/WinPcap library.  This presents a unified way to 
@@ -88,6 +90,8 @@ get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink
 
     switch (datalink) {
     case DLT_RAW:
+        if (datalen < 1)
+            return 0;
         if ((pktdata[0] >> 4) == 4)
             return ETHERTYPE_IP;
         else if ((pktdata[0] >> 4) == 6)
@@ -95,20 +99,37 @@ get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink
         break;
 
     case DLT_JUNIPER_ETHER:
-        if (datalen < 5)
+        if (datalen < 4)
             return 0;
 
-        if (memcmp(pktdata, "MGC", 3))
-            warnx("No Magic Number found: %s (0x%x)",
+        if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3)) {
+            warnx("No Magic Number found during protocol lookup: %s (0x%x)",
                  pcap_datalink_val_to_description(datalink), datalink);
-
-        if ((pktdata[3] & 0x80) == 0x80) {
-            eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
-            eth_hdr_offset += 6;
-        } else {
-            eth_hdr_offset = 4; /* no header extensions */
+            return 0;
         }
-        /* fallthrough */
+
+        if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
+            if (datalen < 6)
+                return 0;  /* datalen too short */
+
+            eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
+            eth_hdr_offset += 6; /* MGC + flags + ext_total_len */
+        } else {
+            eth_hdr_offset = 4; /* MGC + flags (no header extensions) */
+        }
+        if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
+             /* no L2 header present - eth_hdr_offset is actually IP offset */
+            uint32_t ip_hdr_offset = eth_hdr_offset;
+            if (datalen < ip_hdr_offset + 1)
+                return 0;
+            if ((pktdata[ip_hdr_offset] >> 4) == 4)
+                return ETHERTYPE_IP;
+            else if ((pktdata[ip_hdr_offset] >> 4) == 6)
+                return ETHERTYPE_IP6;
+            else
+                return 0;
+        }
+        /* fall through */
     case DLT_EN10MB:
         if ((size_t)datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
             eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
@@ -158,7 +179,6 @@ get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink
     }
 
     return 0;
-
 }
 
 /**
@@ -178,23 +198,36 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
         break;
 
     case DLT_JUNIPER_ETHER:
-        if (datalen < 5) {
+        if (datalen < 4) {
             l2_len = -1;
             break;
         }
 
-        if (memcmp(pktdata, "MGC", 3))
-            warnx("No Magic Number found: %s (0x%x)",
-                 pcap_datalink_val_to_description(datalink), datalink);
-
-        if ((pktdata[3] & 0x80) == 0x80) {
-            l2_len = ntohs(*((uint16_t*)&pktdata[4]));
-            l2_len += 6;
-        } else {
-            l2_len = 4; /* no header extensions */
+        if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3)) {
+            warnx("No Magic Number found during L2 lookup: %s (0x%x)",
+                  pcap_datalink_val_to_description(datalink), datalink);
+            l2_len = -1;
+            break;
         }
 
-        /* fallthrough */
+        if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
+            /* no L2 header present */
+            l2_len = 0;
+            break;
+        }
+
+        if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
+            if (datalen < 6) {
+                /* datalen too short */
+                l2_len = -1;
+                break;
+            }
+            l2_len = ntohs(*((uint16_t*)&pktdata[4]));
+            l2_len += 6;        /* MGC + flags + ext_total_len */
+        } else {
+            l2_len = 4;         /* MGC + flags */
+        }
+        /* fall through */
     case DLT_EN10MB:
         if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
             uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
