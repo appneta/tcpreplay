@@ -98,3 +98,6 @@ Dave DeAngelis <GitHub @ddeangelis>
 
 Dave Craig <GitHub @davecraig>
     - Avoid clock drift
+
+Vincent Bernat <GitHub @vincentbernat>
+    - tcprewrite: fix DLT name for DLT_C_JNPR_ETHER in documentation

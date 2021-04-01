@@ -1,5 +1,7 @@
-03/12/2021 Version 4.3.4 Beta1
-    - Fix gcc 8.3.0 build warnings (#634)
+04/01/2021 Version 4.3.4 Beta2
+    - DLT name for DLT_C_JNPR_ETHER in documentation (#649)
+    - clean up new_cidr_map() string manipulation on error exit (#648)
+    - fix gcc 8.3.0 build warnings (#634)
     - invalid --pps value protection (#632)
     - packets slowly drift further and further behind when they should be sent (#630)
     - 64 bit rollover can cause pps replay issues after several hours (#629)
