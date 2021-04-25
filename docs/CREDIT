@@ -84,6 +84,9 @@ Gabriel Ganne <GitHub @GabrielGanne>
 Mario D Santana <GitHUB @@mariodsantana>
     - TCP seq/ack edit
 
+Guilherme Janczak <GitHub @guijan>
+    - memory safety primarily via strlcpy
+
 Fabrice Fontaine <GitHub @ffontaine>
     - fix --without-libdnet configure option
 
