@@ -322,11 +322,11 @@ text_to_var(tOptions * opts, teTextTo which, tOptDesc * od)
         switch (which) {
         case TT_LONGUSAGE:
             (*(opts->pUsageProc))(opts, EXIT_SUCCESS);
-            /* NOTREACHED */
+            /* fall through */
 
         case TT_USAGE:
             (*(opts->pUsageProc))(opts, EXIT_FAILURE);
-            /* NOTREACHED */
+            /* fall through */
 
         case TT_VERSION:
             if (od->fOptState & OPTST_ALLOC_ARG) {
@@ -335,13 +335,13 @@ text_to_var(tOptions * opts, teTextTo which, tOptDesc * od)
             }
             od->optArg.argString = "c";
             optionPrintVersion(opts, od);
-            /* NOTREACHED */
+            /* fall through */
 
         default:
             option_exits(EXIT_FAILURE);
-            /* NOTREACHED */
+            /* fall through */
         }
-        /* NOTREACHED */
+        /* fall through */
 
     default:
         close(fdpair[1]);
@@ -885,13 +885,14 @@ genshelloptUsage(tOptions * opts, int exit_cd)
     switch (fork()) {
     case -1:
         optionUsage(opts, EXIT_FAILURE);
-        /* NOTREACHED */
+        /* fall through */
 
     case 0:
         pagerState = PAGER_STATE_CHILD;
         optionUsage(opts, EXIT_SUCCESS);
         /* NOTREACHED */
         _exit(EXIT_FAILURE);
+        /* fall through */
 
     default:
     {
@@ -927,10 +928,10 @@ genshelloptUsage(tOptions * opts, int exit_cd)
     switch (fork()) {
     case 0:
         pagerState = PAGER_STATE_CHILD;
-        /*FALLTHROUGH*/
+        /* fall through */
     case -1:
         optionUsage(optionParseShellOptions, EXIT_FAILURE);
-
+        /* fall through */
     default:
     {
         int  sts;
