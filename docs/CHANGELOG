@@ -1,4 +1,5 @@
 04/01/2021 Version 4.3.4 Beta2
+    - local libopts compiler warnings (#658)
     - DLT name for DLT_C_JNPR_ETHER in documentation (#649)
     - clean up new_cidr_map() string manipulation on error exit (#648)
     - fix gcc 8.3.0 build warnings (#634)

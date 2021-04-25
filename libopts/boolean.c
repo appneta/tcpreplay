@@ -65,7 +65,7 @@ optionBooleanVal(tOptions * opts, tOptDesc * od)
         if ((val != 0) || (*pz != NUL))
             break;
     }
-    /* FALLTHROUGH */
+    /* fall through */
     case 'N':
     case 'n':
     case 'F':

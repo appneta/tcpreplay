@@ -466,8 +466,7 @@ file_preset(tOptions * opts, char const * fname, int dir)
                 ftext = strchr(ftext + 2, '>');
                 if (ftext++ != NULL)
                     break;
-                /* fallthrough */
-
+                /* fall through */
             default:
                 ftext = NULL;
             }
