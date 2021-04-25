@@ -35,7 +35,7 @@ Ethernet aka DLT_EN10MB
 @var{hdlc}
 Cisco HDLC aka DLT_C_HDLC
 @item
-@var{jnpr_ether}
+@var{jnpr_eth}
 Juniper Ethernet DLT_C_JNPR_ETHER
 @item
 @var{pppserial}

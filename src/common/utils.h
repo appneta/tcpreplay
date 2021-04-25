@@ -36,6 +36,8 @@ typedef struct {
     struct timeval end_time;
     struct timeval pkt_ts_delta;
     struct timeval last_print;
+    struct timeval first_packet_sent_wall_time;
+    struct timeval first_packet_pcap_timestamp;
     COUNTER flow_non_flow_packets;
     COUNTER flows;
     COUNTER flows_unique;

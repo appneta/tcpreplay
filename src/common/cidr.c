@@ -21,9 +21,6 @@
 #include "config.h"
 #include "defines.h"
 #include "common.h"
-#ifndef HAVE_STRLCPY
-#include "lib/strlcpy.h"
-#endif 
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,10 +118,10 @@ ip2cidr(const unsigned long ip, const int masklen)
 
     strcat((char *)network, "/");
     if (masklen < 10) {
-        snprintf(mask, 1, "%d", masklen);
+        snprintf(mask, sizeof(mask), "%d", masklen);
         strncat((char *)network, mask, 1);
     } else {
-        snprintf(mask, 2, "%d", masklen);
+        snprintf(mask, sizeof(mask), "%d", masklen);
         strncat((char *)network, mask, 2);
     }
 
@@ -176,12 +173,11 @@ cidr2cidr(char *cidr)
     int count = 0;
     unsigned int octets[4];     /* used in sscanf */
     tcpr_cidr_t *newcidr;
-    char networkip[16], tempoctet[4], ebuf[EBUF_SIZE];
+    char networkip[16], tempoctet[4];
     int family;
     char* p;
 
     assert(cidr);
-    assert(strlen(cidr) <= EBUF_SIZE);
 
     newcidr = new_cidr();
 
@@ -265,10 +261,7 @@ cidr2cidr(char *cidr)
 
     /* we only get here on error parsing input */
 error:
-    memset(ebuf, '\0', EBUF_SIZE);
-    strcpy(ebuf, "Unable to parse as a valid CIDR: ");
-    strlcat(ebuf, cidr, EBUF_SIZE);
-    errx(-1, "%s", ebuf);
+    errx(-1, "%s: %s", "Unable to parse as a valid CIDR", cidr);
     return NULL;
 }
 

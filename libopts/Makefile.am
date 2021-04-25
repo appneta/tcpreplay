@@ -7,7 +7,7 @@ noinst_LTLIBRARIES      = libopts.la
 endif
 libopts_la_SOURCES      = libopts.c
 libopts_la_CPPFLAGS     = -I$(srcdir)
-libopts_la_LDFLAGS      = -version-info  41:1:16
+#libopts_la_LDFLAGS      = -version-info  41:1:16
 EXTRA_DIST		=
 BUILT_SOURCES		=
 MOSTLYCLEANFILES	=

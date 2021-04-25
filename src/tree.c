@@ -789,9 +789,7 @@ packet2tree(const u_char * data, const int len)
 
 
     /* copy over the source mac */
-    memset(&node->mac[0], 0, sizeof(node->mac));
-    strncpy((char *)node->mac, (char *)eth_hdr->ether_shost,
-            sizeof(node->mac) - 1);
+    strlcpy((char *)node->mac, (char *)eth_hdr->ether_shost, sizeof(node->mac));
 
     /* 
      * TCP 

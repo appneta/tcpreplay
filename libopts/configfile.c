@@ -145,7 +145,7 @@ configFileLoad(char const * fname)
 
 /*=export_func  optionFindValue
  *
- * what:  find a hierarcicaly valued option instance
+ * what:  find a hierarchically valued option instance
  * arg:   + const tOptDesc * + odesc + an option with a nested arg type +
  * arg:   + char const *     + name  + name of value to find +
  * arg:   + char const *     + val   + the matching value    +
@@ -220,7 +220,7 @@ optionFindValue(const tOptDesc * odesc, char const * name, char const * val)
  *
  * FIXME: the handling of 'pzName' and 'pzVal' is just wrong.
  *
- * what:  find a hierarcicaly valued option instance
+ * what:  find a hierarchically valued option instance
  * arg:   + const tOptDesc * + odesc + an option with a nested arg type +
  * arg:   + const tOptionValue * + pPrevVal + the last entry +
  * arg:   + char const *     + name     + name of value to find +
@@ -466,8 +466,7 @@ file_preset(tOptions * opts, char const * fname, int dir)
                 ftext = strchr(ftext + 2, '>');
                 if (ftext++ != NULL)
                     break;
-                /* fallthrough */
-
+                /* fall through */
             default:
                 ftext = NULL;
             }

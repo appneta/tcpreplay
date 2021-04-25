@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.3],
+AC_INIT([tcpreplay],[4.3.4-beta2],
     [https://github.com/appneta/tcpreplay/issues],
     [tcpreplay],
     [http://tcpreplay.sourceforge.net/])
@@ -146,7 +146,7 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Wno-override])
+AM_INIT_AUTOMAKE([1.15 foreign subdir-objects -Wall -Wno-override])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Checks for programs.
@@ -154,11 +154,6 @@ AM_PROG_AR
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_CC
-
-# for compat with old systems.
-# deprecated in favor of AC_PROG_CC since automake 1.14 and is now no-op
-AM_PROG_CC_C_O
-
 AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
@@ -372,7 +367,6 @@ AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_FUNC_MKTIME
 AC_FUNC_MMAP
-AC_FUNC_REALLOC
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
 AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday])
 AC_CHECK_FUNCS([ctime inet_ntoa memmove memset munmap pow putenv realpath])
@@ -1484,30 +1478,32 @@ if test $have_cygwin = no ; then
         AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
         [trydnetdir=$withval])
 
-    case "$build_os" in
-    linux*)
-        dnl # Debian/Ubuntu already have a package called libdnet
-        dnl # so you the package you want to install libdumbnet-dev
-        for testdir in $trydnetdir /usr/local /opt/local /usr ; do
-            if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
-                LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
-                LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
-                libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
-                founddnet=$testdir
-            fi
-        done
-        ;;
-    esac
+    if test $trydnetdir != no; then
+        case "$build_os" in
+        linux*)
+            dnl # Debian/Ubuntu already have a package called libdnet
+            dnl # so you the package you want to install libdumbnet-dev
+            for testdir in $trydnetdir /usr/local /opt/local /usr ; do
+                if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
+                    LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
+                    LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
+                    libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
+                    founddnet=$testdir
+                fi
+            done
+            ;;
+        esac
 
-    if test $founddnet = no ; then
-        for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
-            if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-                LDNETINC="$($testdir/bin/dnet-config --cflags)"
-                LDNETLIB="$($testdir/bin/dnet-config --libs)"
-                libdnet_version="$($testdir/bin/dnet-config --version)"
-                founddnet=$testdir
-            fi
-        done
+        if test $founddnet = no ; then
+            for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
+                if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+                    LDNETINC="$($testdir/bin/dnet-config --cflags)"
+                    LDNETLIB="$($testdir/bin/dnet-config --libs)"
+                    libdnet_version="$($testdir/bin/dnet-config --version)"
+                    founddnet=$testdir
+                fi
+            done
+        fi
     fi
 
     if test $founddnet = no ; then
