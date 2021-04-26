@@ -104,8 +104,16 @@ dlt_linuxsll_init(tcpeditdlt_t *ctx)
     }
 
     /* allocate memory for our decode extra data */
-    ctx->decoded_extra_size = sizeof(linuxsll_extra_t);
-    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    if (ctx->decoded_extra_size > 0) {
+        if (ctx->decoded_extra_size < sizeof(linuxsll_extra_t)) {
+            ctx->decoded_extra_size = sizeof(linuxsll_extra_t);
+            ctx->decoded_extra = safe_realloc(ctx->decoded_extra,
+                                              ctx->decoded_extra_size);
+        }
+    } else {
+        ctx->decoded_extra_size = sizeof(linuxsll_extra_t);
+        ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    }
 
     /* allocate memory for our config data */
     plugin->config_size = sizeof(linuxsll_config_t);
@@ -130,18 +138,11 @@ dlt_linuxsll_cleanup(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    /* FIXME: make this function do something if necessary */
-    if (ctx->decoded_extra != NULL) {
-        safe_free(ctx->decoded_extra);
-        ctx->decoded_extra = NULL;
-        ctx->decoded_extra_size = 0;
-    }
-
-    if (plugin->config != NULL) {
-        safe_free(plugin->config);
-        plugin->config = NULL;
-        plugin->config_size = 0;
-    }
+    safe_free(plugin->name);
+    plugin->name = NULL;
+    safe_free(plugin->config);
+    plugin->config = NULL;
+    plugin->config_size = 0;
 
     return TCPEDIT_OK; /* success */
 }

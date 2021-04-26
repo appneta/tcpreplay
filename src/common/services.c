@@ -91,5 +91,6 @@ parse_services(const char *file, tcpr_services_t *services)
         }
     }
 
+    regfree(&preg);
     fclose(service);
 }

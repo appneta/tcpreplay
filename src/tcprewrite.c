@@ -86,12 +86,14 @@ main(int argc, char *argv[])
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
@@ -103,16 +105,20 @@ main(int argc, char *argv[])
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
     dbgx(1, "Rewriting DLT to %s",
             pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
-    if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL)
+    if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL) {
+        tcpedit_close(&tcpedit);
         err(-1, "Unable to open dead pcap handle.");
+    }
 
     dbgx(1, "DLT of dlt_pcap is %s",
         pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
 
 #ifdef ENABLE_FRAGROUTE
     if (options.fragroute_args) {
-        if ((options.frag_ctx = fragroute_init(65535, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL)
+        if ((options.frag_ctx = fragroute_init(65535, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL) {
+            tcpedit_close(&tcpedit);
             errx(-1, "%s", ebuf);
+        }
     }
 #endif
 
@@ -122,18 +128,23 @@ main(int argc, char *argv[])
     }
 #endif
 
-    if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL)
+    if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
+    }
+
     pcap_close(dlt_pcap);
 
     /* rewrite packets */
-    if (rewrite_packets(tcpedit, options.pin, options.pout) != 0)
+    if (rewrite_packets(tcpedit, options.pin, options.pout) != 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
-
+    }
 
     /* clean up after ourselves */
     pcap_dump_close(options.pout);
     pcap_close(options.pin);
+    tcpedit_close(&tcpedit);
 
 #ifdef ENABLE_VERBOSE
     tcpdump_close(&tcpdump);
