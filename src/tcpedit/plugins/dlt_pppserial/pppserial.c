@@ -123,9 +123,8 @@ dlt_pppserial_init(tcpeditdlt_t *ctx)
  * It basically allows decoders to properly initialize sub-plugins.
  */
 int 
-dlt_pppserial_post_init(tcpeditdlt_t *ctx)
+dlt_pppserial_post_init(tcpeditdlt_t _U_ *ctx)
 {
-    assert(ctx);
 /* FIXME: Only needs to do something if we're using a sub-plugin
  * See the jnpr_ether_plugin for an example of this
 
@@ -158,14 +157,16 @@ dlt_pppserial_cleanup(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    /* FIXME: make this function do something if necessary */
-    if (ctx->decoded_extra != NULL) {
-        safe_free(ctx->decoded_extra);
-        ctx->decoded_extra = NULL;
-        ctx->decoded_extra_size = 0;
-    }
-        
+    safe_free(plugin->name);
+    plugin->name = NULL;
     if (plugin->config != NULL) {
+        /* clean up the en10mb plugin */
+        /* FIXME: Only needs to do something if we're using a sub-plugin
+         pppserial_config_t *config;
+         config = (pppserial_config_t *)ctx->encoder->config;
+         tcpedit_dlt_cleanup(config->subctx);
+         safe_free(config->subctx);
+         */
         safe_free(plugin->config);
         plugin->config = NULL;
         plugin->config_size = 0;

@@ -452,20 +452,32 @@ tcpedit_dlt_dst(tcpeditdlt_t *ctx)
 void
 tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
 {
+    tcpeditdlt_plugin_t *plugin;
+
     assert(ctx);
     
-    if (ctx->encoder != NULL)
-        ctx->encoder->plugin_cleanup(ctx);
-    
-    if (ctx->decoder != NULL)
-        ctx->decoder->plugin_cleanup(ctx);
+    plugin = ctx->plugins;
+    while (plugin != NULL) {
+        plugin->plugin_cleanup(ctx);
+        plugin = plugin->next;
+    }
+
+    plugin = ctx->plugins;
+    while (plugin != NULL) {
+        tcpeditdlt_plugin_t *plugin_next = plugin->next;
+        safe_free(plugin);
+        plugin = plugin_next;
+    }
 
 #ifdef FORCE_ALIGN
     safe_free(ctx->l3buff);
 #endif
 
-    if (ctx->decoded_extra != NULL)
+    if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
+        ctx->decoded_extra = NULL;
+        ctx->decoded_extra_size = 0;
+    }
 
     safe_free(ctx);
 }

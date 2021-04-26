@@ -561,21 +561,77 @@ tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
 /**
  * \brief Cleans up after ourselves.  Return 0 on success. 
  * 
- * Clean up after ourselves, but does not actually free the ptr.
+ * Clean up after ourselves and free the ptr.
  */
 int
-tcpedit_close(tcpedit_t *tcpedit)
+tcpedit_close(tcpedit_t **tcpedit_ex)
 {
 
-    assert(tcpedit);
+    assert(*tcpedit_ex);
+    tcpedit_t *tcpedit;
+
+    tcpedit = *tcpedit_ex;
+
     dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
             " packets.", tcpedit->runtime.total_bytes,
             tcpedit->runtime.pkts_edited);
 
-    /* free buffer if required */
+    /* free if required */
+    if (tcpedit->dlt_ctx) {
+        tcpedit_dlt_cleanup(tcpedit->dlt_ctx);
+        tcpedit->dlt_ctx = NULL;
+    }
+
+    if (tcpedit->cidrmap1) {
+        destroy_cidr(tcpedit->cidrmap1->from);
+        tcpedit->cidrmap1->from = NULL;
+        destroy_cidr(tcpedit->cidrmap1->to);
+        tcpedit->cidrmap1->to = NULL;
+    }
+
+    if (tcpedit->cidrmap2 && tcpedit->cidrmap2 != tcpedit->cidrmap1) {
+        destroy_cidr(tcpedit->cidrmap2->from);
+        tcpedit->cidrmap2->from = NULL;
+        destroy_cidr(tcpedit->cidrmap2->to);
+        tcpedit->cidrmap2->to = NULL;
+        safe_free(tcpedit->cidrmap2);
+        tcpedit->cidrmap2 = NULL;
+    }
+
+    safe_free(tcpedit->cidrmap1);
+    tcpedit->cidrmap1 = NULL;
+
+    if (tcpedit->srcipmap) {
+        destroy_cidr(tcpedit->srcipmap->from);
+        tcpedit->srcipmap->from = NULL;
+        destroy_cidr(tcpedit->srcipmap->to);
+        tcpedit->srcipmap->to = NULL;
+    }
+
+    if (tcpedit->dstipmap && tcpedit->dstipmap != tcpedit->srcipmap) {
+        destroy_cidr(tcpedit->dstipmap->from);
+        tcpedit->dstipmap->from = NULL;
+        destroy_cidr(tcpedit->dstipmap->to);
+        tcpedit->dstipmap->to = NULL;
+        safe_free(tcpedit->dstipmap);
+        tcpedit->dstipmap = NULL;
+    }
+
+    safe_free(tcpedit->srcipmap);
+    tcpedit->srcipmap = NULL;
+
+    if (tcpedit->portmap) {
+        free_portmap(tcpedit->portmap);
+        tcpedit->portmap = NULL;
+    }
+
 #ifdef FORCE_ALIGN
     safe_free(tcpedit->runtime.l3buff);
+    tcpedit->runtime.l3buff = NULL;
 #endif
+
+    safe_free(*tcpedit_ex);
+    *tcpedit_ex = NULL;
 
     return 0;
 }
