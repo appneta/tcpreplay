@@ -1,4 +1,5 @@
 04/01/2021 Version 4.3.4 Beta2
+    - ASAN reports memory leaks while running tests (#662)
     - local libopts compiler warnings (#658)
     - DLT name for DLT_C_JNPR_ETHER in documentation (#649)
     - clean up new_cidr_map() string manipulation on error exit (#648)
