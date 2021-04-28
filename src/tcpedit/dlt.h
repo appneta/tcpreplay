@@ -32,8 +32,7 @@
 int dlt2layer2len(tcpedit_t *tcpedit, int dlt);
 int dltrequires(tcpedit_t *tcpedit, int dlt);
 int dlt2mtu(tcpedit_t *tcpedit, int dlt);
-int layer2len(tcpedit_t *tcpedit);
-
+int layer2len(tcpedit_t *tcpedit, u_char *packet, uint32_t caplen);
 #endif /* _DLT_H_ */
 
 
