@@ -30,7 +30,7 @@
 #include "en10mb.h"
 
 
-static char _U_ dlt_name[] = "en10mb";
+static char dlt_name[] = "en10mb";
 static char dlt_prefix[] = "enet";
 static uint16_t dlt_value = DLT_EN10MB;
 
