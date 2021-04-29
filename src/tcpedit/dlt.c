@@ -160,10 +160,14 @@ dlt2mtu(tcpedit_t *tcpedit, int dlt)
  * for it to be at all useful.
  */
 int
-layer2len(tcpedit_t *tcpedit)
+layer2len(tcpedit_t *tcpedit, u_char *packet, uint32_t caplen)
 {
-   assert(tcpedit);
-   
-   return tcpedit->dlt_ctx->l2len;
+    assert(tcpedit);
+    assert(tcpedit->dlt_ctx);
+    assert(tcpedit->dlt_ctx->encoder);
+
+    return tcpedit->dlt_ctx->encoder->plugin_l2len(tcpedit->dlt_ctx,
+                                                   packet,
+                                                   caplen);
 }
 

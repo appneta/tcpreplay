@@ -17,7 +17,7 @@
     - fix UNUSED macro declaration (#614)
     - handle malformed and unsupported packets as soft errors (#613)
     - compile failure on aarch64-linux-android (#612)
-    - tcprewrite --fixlen not working (#582)
+    - tcprewrite --fixlen not working on DLT conversion (#582)
     - fix configure --without-libdnet (#567)
     - ensure automake version is at least 1.15 (#553)
     - with multiplier option only first file can be sent and hang (#472)
