@@ -79,12 +79,14 @@ main(int argc, char *argv[])
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
     }
@@ -96,9 +98,10 @@ main(int argc, char *argv[])
     }
 #endif
 
-    if (gettimeofday(&stats.start_time, NULL) < 0)
+    if (gettimeofday(&stats.start_time, NULL) < 0) {
+        tcpedit_close(&tcpedit);
         err(-1, "gettimeofday() failed");
-
+    }
 
     /* process packets */
     do_bridge(&options, tcpedit);
@@ -110,6 +113,7 @@ main(int argc, char *argv[])
         pcap_close(options.pcap2);
     }
 
+    tcpedit_close(&tcpedit);
 #ifdef ENABLE_VERBOSE
     tcpdump_close(options.tcpdump);
 #endif

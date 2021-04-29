@@ -5,7 +5,7 @@
 *.dll
 *.exe
 *.o
-*.so 
+*.so
 *.a
 *.la
 *.lo
@@ -70,7 +70,7 @@ configure
 config/
 src/config.h.in
 
-# Temporary files 
+# Temporary files
 *.tmp
 .*.swp
 *.tmproj
@@ -91,3 +91,6 @@ types_c.vim
 *.1
 .settings/
 pcapsend
+test/*1
+COPYING
+.vscode/

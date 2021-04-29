@@ -91,12 +91,14 @@ main(int argc, char *argv[])
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to edit packets given options:\n%s",
                tcpedit_geterr(tcpedit));
     }
@@ -140,6 +142,9 @@ main(int argc, char *argv[])
 
     if (rcode < 0) {
         notice("\nFailed: %s\n", tcpreplay_geterr(ctx));
+#ifdef TCPREPLAY_EDIT
+        tcpedit_close(&tcpedit);
+#endif
         exit(rcode);
     } else if (rcode == 1) {
         notice("\nWarning: %s\n", tcpreplay_getwarn(ctx));
@@ -162,6 +167,9 @@ main(int argc, char *argv[])
 #ifdef TIMESTAMP_TRACE
     dump_timestamp_trace_array(&ctx->stats.start_time, &ctx->stats.end_time,
             ctx->options->speed.speed);
+#endif
+#ifdef TCPREPLAY_EDIT
+    tcpedit_close(&tcpedit);
 #endif
     tcpreplay_close(ctx);
     restore_stdin();
