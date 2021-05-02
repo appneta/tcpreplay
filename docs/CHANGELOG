@@ -1,4 +1,4 @@
-04/01/2021 Version 4.3.4 Beta2
+04/01/2021 Version 4.3.4
     - ASAN reports memory leaks while running tests (#662)
     - local libopts compiler warnings (#658)
     - DLT name for DLT_C_JNPR_ETHER in documentation (#649)
