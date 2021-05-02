@@ -48,7 +48,7 @@ int tcpedit_validate(tcpedit_t *tcpedit);
 int tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, 
         u_char **pktdata, tcpr_dir_t direction);
 
-int tcpedit_close(tcpedit_t *tcpedit);
+int tcpedit_close(tcpedit_t **tcpedit_ex);
 int tcpedit_get_output_dlt(tcpedit_t *tcpedit);
 
 const u_char *tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen);

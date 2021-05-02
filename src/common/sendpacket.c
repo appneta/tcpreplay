@@ -473,6 +473,10 @@ sendpacket_t *
 sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
         sendpacket_type_t sendpacket_type _U_, void *arg _U_)
 {
+#ifdef HAVE_TUNTAP
+    char sys_dev_dir[128];
+    bool device_exists;
+#endif
     sendpacket_t *sp;
     struct stat sdata;
 
@@ -480,6 +484,12 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
     assert(errbuf);
 
     errbuf[0] = '\0';
+
+#ifdef HAVE_TUNTAP
+    snprintf(sys_dev_dir, sizeof(sys_dev_dir), "/sys/class/net/%s/", device);
+    device_exists = access(sys_dev_dir, R_OK) == 0;
+#endif
+
     /* khial is universal */
     if (stat(device, &sdata) == 0) {
         if (((sdata.st_mode & S_IFMT) == S_IFCHR)) { 
@@ -515,7 +525,7 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
               }
         }
 #ifdef HAVE_TUNTAP
-    } else if (strncmp(device, "tap", 3) == 0) {
+    } else if (strncmp(device, "tap", 3) == 0 && !device_exists) {
         sp = sendpacket_open_tuntap(device, errbuf);
 #endif
     } else {

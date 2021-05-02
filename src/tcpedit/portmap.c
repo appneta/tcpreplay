@@ -125,8 +125,8 @@ ports2PORT(char *ports)
             portmap->from = htons(i);
             portmap->to = htons(to_l);
             portmap->next = new_portmap();
-            portmap_last = portmap;
             portmap = portmap->next;
+            portmap_last = portmap;
         }
         portmap_last->next = NULL;
     }
@@ -135,7 +135,7 @@ ports2PORT(char *ports)
         from_begin = strtok_r(from_s, "+", &token2);
         from_l = strtol(from_begin, &badchar, 10);
         if (strlen(badchar) != 0) {
-            free(portmap);
+            safe_free(portmap);
             return NULL;
         }
         portmap->to = htons(to_l);
@@ -147,7 +147,7 @@ ports2PORT(char *ports)
                 portmap = portmap_head;
                 while (portmap) {
                     tcpedit_portmap_t *tmp_portmap = portmap->next;
-                    free(portmap);
+                    safe_free(portmap);
                     portmap = tmp_portmap;
                 }
                 return NULL;
@@ -166,7 +166,7 @@ ports2PORT(char *ports)
         */
         from_l = strtol(from_s, &badchar, 10);
         if (strlen(badchar) != 0 || from_l > 65535 || from_l < 0) {
-            free(portmap);
+            safe_free(portmap);
             return NULL;
         }
         portmap->to = htons(to_l);

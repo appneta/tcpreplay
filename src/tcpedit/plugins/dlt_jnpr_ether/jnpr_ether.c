@@ -160,18 +160,16 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    if (ctx->decoded_extra != NULL) {
-        safe_free(ctx->decoded_extra);
-        ctx->decoded_extra = NULL;
-        ctx->decoded_extra_size = 0;
-    }
-    
+    safe_free(plugin->name);
+    plugin->name = NULL;
     if (plugin->config != NULL) {
         /* clean up the en10mb plugin */
-        jnpr_ether_config_t * config;
+        jnpr_ether_config_t *config;
 
         config = (jnpr_ether_config_t *)ctx->encoder->config;
         tcpedit_dlt_cleanup(config->subctx);
+        safe_free(config->subctx);
+        safe_free(plugin->config);
         plugin->config = NULL;
         plugin->config_size = 0;
     }

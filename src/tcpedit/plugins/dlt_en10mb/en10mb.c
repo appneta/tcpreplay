@@ -30,7 +30,7 @@
 #include "en10mb.h"
 
 
-static char _U_ dlt_name[] = "en10mb";
+static char dlt_name[] = "en10mb";
 static char dlt_prefix[] = "enet";
 static uint16_t dlt_value = DLT_EN10MB;
 
@@ -104,8 +104,17 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
     
-    ctx->decoded_extra_size = sizeof(en10mb_extra_t);
-    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    if (ctx->decoded_extra_size > 0) {
+        if (ctx->decoded_extra_size < sizeof(en10mb_extra_t)) {
+            ctx->decoded_extra_size = sizeof(en10mb_extra_t);
+            ctx->decoded_extra = safe_realloc(ctx->decoded_extra,
+                                              ctx->decoded_extra_size);
+        }
+    } else {
+        ctx->decoded_extra_size = sizeof(en10mb_extra_t);
+        ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    }
+
     plugin->config_size = sizeof(en10mb_config_t);
     plugin->config = safe_malloc(plugin->config_size);
     config = (en10mb_config_t *)plugin->config;
@@ -128,24 +137,25 @@ int
 dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-    
-    assert(ctx);
-    
-    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL)
-        return TCPEDIT_OK;
 
-    if (ctx->decoded_extra != NULL) {
-        safe_free(ctx->decoded_extra);
-        ctx->decoded_extra = NULL;
-        ctx->decoded_extra_size = 0;
+    assert(ctx);
+
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Unable to cleanup unregistered plugin %s",
+                       dlt_name);
+        return TCPEDIT_ERROR;
     }
 
+    safe_free(plugin->name);
+    plugin->name = NULL;
     if (plugin->config != NULL) {
+        en10mb_config_t *config = (en10mb_config_t*)plugin->config;
+        safe_free(config->subs.entries);
         safe_free(plugin->config);
         plugin->config = NULL;
         plugin->config_size = 0;
     }
-        
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -164,14 +174,16 @@ en10mb_sub_entry_t *
 dlt_en10mb_realloc_merge(en10mb_sub_conf_t config, en10mb_sub_entry_t *new_entries, int entries_count)
 {
     int i;
-    en10mb_sub_entry_t *merged = safe_realloc(
-        config.entries, (config.count + entries_count) * sizeof(en10mb_sub_entry_t));
+
+    config.entries = safe_realloc(config.entries,
+                                  (config.count + entries_count)
+                                  * sizeof(en10mb_sub_entry_t));
 
     for (i = 0; i < entries_count; i++) {
-        merged[config.count + i] = new_entries[i];
+        config.entries[config.count + i] = new_entries[i];
     }
 
-    return merged;
+    return config.entries;
 }
 
 int

@@ -105,7 +105,6 @@ typedef struct tcpedit_portmap_s {
 typedef struct {
     bool validated;  /* have we run tcpedit_validate()? */
     struct tcpeditdlt_s *dlt_ctx;
-    tcpedit_packet_t *packet;
     
     /* runtime variables, don't mess with these */
     tcpedit_runtime_t runtime;

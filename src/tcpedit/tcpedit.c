@@ -157,7 +157,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IP header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IP header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
@@ -168,7 +168,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         p = get_layer4_v4(ip_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer %d byte IP header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
                     pktlen, ip_hdr->ip_hl << 2,  dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
@@ -178,7 +178,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip6_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain a layer IPv6 header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
@@ -189,7 +189,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
         p = get_layer4_v6(ip6_hdr, (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is to short to contain an IPv6 header for DLT 0x%04x",
+            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
@@ -469,20 +469,20 @@ void
 __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...)
 {
     va_list ap;
-    char errormsg[TCPEDIT_ERRSTR_LEN];
+    char errormsg[TCPEDIT_ERRSTR_LEN - 32];
     
     assert(tcpedit);
 
     va_start(ap, fmt);
     if (fmt != NULL) {
-        (void)vsnprintf(errormsg, 
-              (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(errormsg, sizeof(errormsg), fmt, ap);
     }
 
     va_end(ap);
     
-    snprintf(tcpedit->runtime.errstr, (TCPEDIT_ERRSTR_LEN -1), "From %s:%s() line %d:\n%s",
-        file, func, line, errormsg);
+    snprintf(tcpedit->runtime.errstr, sizeof(tcpedit->runtime.errstr),
+             "From %s:%s() line %d:\n%s",
+             file, func, line, errormsg);
 }
 
 /**
@@ -508,7 +508,8 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL)
-        (void)vsnprintf(tcpedit->runtime.warnstr, (TCPEDIT_ERRSTR_LEN - 1), fmt, ap);
+        (void)vsnprintf(tcpedit->runtime.warnstr,
+                        sizeof(tcpedit->runtime.warnstr), fmt, ap);
 
     va_end(ap);
         
@@ -560,21 +561,77 @@ tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
 /**
  * \brief Cleans up after ourselves.  Return 0 on success. 
  * 
- * Clean up after ourselves, but does not actually free the ptr.
+ * Clean up after ourselves and free the ptr.
  */
 int
-tcpedit_close(tcpedit_t *tcpedit)
+tcpedit_close(tcpedit_t **tcpedit_ex)
 {
 
-    assert(tcpedit);
+    assert(*tcpedit_ex);
+    tcpedit_t *tcpedit;
+
+    tcpedit = *tcpedit_ex;
+
     dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
             " packets.", tcpedit->runtime.total_bytes,
             tcpedit->runtime.pkts_edited);
 
-    /* free buffer if required */
+    /* free if required */
+    if (tcpedit->dlt_ctx) {
+        tcpedit_dlt_cleanup(tcpedit->dlt_ctx);
+        tcpedit->dlt_ctx = NULL;
+    }
+
+    if (tcpedit->cidrmap1) {
+        destroy_cidr(tcpedit->cidrmap1->from);
+        tcpedit->cidrmap1->from = NULL;
+        destroy_cidr(tcpedit->cidrmap1->to);
+        tcpedit->cidrmap1->to = NULL;
+    }
+
+    if (tcpedit->cidrmap2 && tcpedit->cidrmap2 != tcpedit->cidrmap1) {
+        destroy_cidr(tcpedit->cidrmap2->from);
+        tcpedit->cidrmap2->from = NULL;
+        destroy_cidr(tcpedit->cidrmap2->to);
+        tcpedit->cidrmap2->to = NULL;
+        safe_free(tcpedit->cidrmap2);
+        tcpedit->cidrmap2 = NULL;
+    }
+
+    safe_free(tcpedit->cidrmap1);
+    tcpedit->cidrmap1 = NULL;
+
+    if (tcpedit->srcipmap) {
+        destroy_cidr(tcpedit->srcipmap->from);
+        tcpedit->srcipmap->from = NULL;
+        destroy_cidr(tcpedit->srcipmap->to);
+        tcpedit->srcipmap->to = NULL;
+    }
+
+    if (tcpedit->dstipmap && tcpedit->dstipmap != tcpedit->srcipmap) {
+        destroy_cidr(tcpedit->dstipmap->from);
+        tcpedit->dstipmap->from = NULL;
+        destroy_cidr(tcpedit->dstipmap->to);
+        tcpedit->dstipmap->to = NULL;
+        safe_free(tcpedit->dstipmap);
+        tcpedit->dstipmap = NULL;
+    }
+
+    safe_free(tcpedit->srcipmap);
+    tcpedit->srcipmap = NULL;
+
+    if (tcpedit->portmap) {
+        free_portmap(tcpedit->portmap);
+        tcpedit->portmap = NULL;
+    }
+
 #ifdef FORCE_ALIGN
     safe_free(tcpedit->runtime.l3buff);
+    tcpedit->runtime.l3buff = NULL;
 #endif
+
+    safe_free(*tcpedit_ex);
+    *tcpedit_ex = NULL;
 
     return 0;
 }

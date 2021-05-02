@@ -72,7 +72,7 @@ dlt_loop_register(tcpeditdlt_t *ctx)
 
     /* we actually call all the DLT_NULL functions since NULL and LOOP are basically the same thing */
     plugin->plugin_init = dlt_loop_init;
-    plugin->plugin_cleanup = dlt_null_cleanup;
+    plugin->plugin_cleanup = dlt_loop_cleanup;
     plugin->plugin_parse_opts = dlt_null_parse_opts;
     plugin->plugin_decode = dlt_null_decode;
     plugin->plugin_encode = dlt_null_encode;
@@ -107,5 +107,29 @@ dlt_loop_init(tcpeditdlt_t *ctx)
     return TCPEDIT_OK; /* success */
 }
 
+/*
+ * Since this is used in a library, we should manually clean up after ourselves
+ * Unless you allocated some memory in dlt_loop_init(), this is just an stub.
+ * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
+ */
+int dlt_loop_cleanup(tcpeditdlt_t *ctx)
+{
+    tcpeditdlt_plugin_t *plugin;
+    assert(ctx);
+
+    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
+        tcpedit_seterr(ctx->tcpedit, "Unable to cleanup unregistered plugin %s",
+                       dlt_name);
+        return TCPEDIT_ERROR;
+    }
+
+    safe_free(plugin->name);
+    plugin->name = NULL;
+    safe_free(plugin->config);
+    plugin->config = NULL;
+    plugin->config_size = 0;
+
+    return TCPEDIT_OK; /* success */
+}
 
 /* that's all folks! */

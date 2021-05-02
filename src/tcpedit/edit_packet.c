@@ -508,7 +508,7 @@ untrunc_packet(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
             return(0);
     }
     
-    if ((l2len = layer2len(tcpedit)) < 0) {
+    if ((l2len = layer2len(tcpedit, packet, pkthdr->caplen)) < 0) {
         tcpedit_seterr(tcpedit, "Non-sensical layer 2 length: %d", l2len);
         return -1;
     }

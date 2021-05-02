@@ -83,3 +83,24 @@ Gabriel Ganne <GitHub @GabrielGanne>
 
 Mario D Santana <GitHUB @@mariodsantana>
     - TCP seq/ack edit
+
+Guilherme Janczak <GitHub @guijan>
+    - memory safety primarily via strlcpy
+
+Fabrice Fontaine <GitHub @ffontaine>
+    - fix --without-libdnet configure option
+
+Gerald Combs <GitHub @geraldcombs>
+    - Wireshark and Ethereal reference updates
+
+Tim Gates <GitHub @timgates42>
+    - typos
+
+Dave DeAngelis <GitHub @ddeangelis>
+    - typos
+
+Dave Craig <GitHub @davecraig>
+    - Avoid clock drift
+
+Vincent Bernat <GitHub @vincentbernat>
+    - tcprewrite: fix DLT name for DLT_C_JNPR_ETHER in documentation

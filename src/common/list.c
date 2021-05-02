@@ -80,9 +80,9 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     /* regex test */
     if (regexec(&preg, this, 0, NULL, 0) != 0) {
         warnx("Unable to parse: %s", this);
+        regfree(&preg);
         return 0;
     }
-
 
     *listdata = new_list();
     list_ptr = *listdata;
@@ -115,6 +115,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
         /* regex test */
         if (regexec(&preg, this, 0, NULL, 0) != 0) {
             warnx("Unable to parse: %s", this);
+            regfree(&preg);
             return 0;
         }
 
@@ -137,6 +138,8 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
         }
 
     }
+
+    regfree(&preg);
 
     return 1;
 }

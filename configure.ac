@@ -4,19 +4,16 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.3],
-    [https://github.com/appneta/tcpreplay/issues],
-    [tcpreplay],
-    [http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.3.4],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
-AM_CONFIG_HEADER([src/config.h])
+AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE([enable])
 AM_WITH_DMALLOC
 
 dnl People building from GitHub need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts to force using the locally-installed
-dnl copy of libopts rather than the source in the `./liopts/` directory.
+dnl copy of libopts rather than the source in the `./libopts/` directory.
 MAINTAINER_AUTOGEN_VERSION=5.18.12
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -146,20 +143,14 @@ else
 fi
 
 
-AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Wno-override])
+AM_INIT_AUTOMAKE([1.15 foreign subdir-objects -Wall -Wno-override])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Checks for programs.
 AM_PROG_AR
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_CC
-
-# for compat with old systems.
-# deprecated in favor of AC_PROG_CC since automake 1.14 and is now no-op
-AM_PROG_CC_C_O
-
-AC_PROG_CC_STDC
 AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_LN_S
@@ -208,7 +199,7 @@ if test -n "${AUTOGEN}" ; then
             (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) ||
             test ${AUTOGEN_MAJOR} -lt 5 ; then
         AC_MSG_RESULT(no)
-        if test "x$enable_local_libopts" == "xno"; then
+        if test ! "x$enable_local_libopts" = "xyes"; then
             AC_MSG_ERROR([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Upgrade to 5.18.4 or higher])
         fi
         AUTOGEN_VERSION="${AUTOGEN_VERSION} - downlevel"
@@ -224,7 +215,7 @@ if test -n "${AUTOGEN}" ; then
     fi
 else
     if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION or higher if you are building from GitHub. To avoid this message download source from http://tcpreplay.appneta.com/wiki/installation.html])
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION or higher if you are building from GitHub. To avoid this message download source from https://github.com/appneta/tcpreplay/releases/latest])
     fi
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
@@ -235,7 +226,7 @@ else
     AC_MSG_NOTICE([Using system libopts])
 fi
 
-AC_HEADER_STDC
+AC_PROG_EGREP
 AC_HEADER_MAJOR
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -253,7 +244,7 @@ AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
 AC_C_CONST
 AC_C_INLINE
 AC_SYS_LARGEFILE
@@ -280,6 +271,7 @@ case $host in
             [ AC_MSG_RESULT(yes)
               wno_macro_redefined="-Wno-macro-redefined" ],
             [ AC_MSG_RESULT(no) ])
+        AC_MSG_CHECKING(for $CC -Wno-format)
         CFLAGS="$OLD_CFLAGS $wno_macro_redefined"
         CFLAGS="$CFLAGS -Wno-format -Werror"
         AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
@@ -368,11 +360,9 @@ dnl Checks for library functions.
 AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MEMCMP
-AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_FUNC_MKTIME
 AC_FUNC_MMAP
-AC_FUNC_REALLOC
 AC_CHECK_MEMBERS([struct timeval.tv_sec])
 AC_CHECK_FUNCS([alarm atexit bzero dup2 gethostbyname getpagesize gettimeofday])
 AC_CHECK_FUNCS([ctime inet_ntoa memmove memset munmap pow putenv realpath])
@@ -389,7 +379,7 @@ AC_C_BIGENDIAN
 AM_CONDITIONAL([WORDS_BIGENDIAN], [ test x$ac_cv_c_bigendian = xyes ])
 
 AC_ARG_ENABLE([asan],
-    AC_HELP_STRING([--enable-asan], [Enable Address Sanitizer support]))
+    AS_HELP_STRING([--enable-asan],[Enable Address Sanitizer support]))
 if test "x$enable_asan" = "xyes"; then
         build_asan=yes
         AC_CHECK_LIB([asan], [__asan_report_error], ,
@@ -407,7 +397,7 @@ debug=no
 debug_flag=NDEBUG
 debug_run_time_flag=
 AC_ARG_ENABLE(debug,
-    AC_HELP_STRING([--enable-debug], [Enable debugging code and support for the -d option]),
+    AS_HELP_STRING([--enable-debug],[Enable debugging code and support for the -d option]),
     [ if test x$enableval = xyes; then
         debug=yes
         dnl replace '-0X' and add '-g' flags
@@ -428,7 +418,7 @@ dnl Enable extra debugging in code/compiler options - may slow down performance
 extra_debug=no
 extra_debug_flag=NEXTRA_DBUG
 AC_ARG_ENABLE(extra-debug,
-    AC_HELP_STRING([--enable-extra-debug], [Enable additional debugging code (may affect performance)]),
+    AS_HELP_STRING([--enable-extra-debug],[Enable additional debugging code (may affect performance)]),
     [ if test x$enableval = xyes; then
         extra_debug=yes
         extra_debug_flag=EXTRA_DEBUG
@@ -439,7 +429,7 @@ AC_SUBST(extra_debug_flag)
 dnl Enable timestamp_trace in code/compiler options
 timestamp_trace=no
 AC_ARG_ENABLE(timestamp-trace,
-    AC_HELP_STRING([--timestamp-trace], [Enable dumping of trace timestamps at the end of a test]),
+    AS_HELP_STRING([--timestamp-trace],[Enable dumping of trace timestamps at the end of a test]),
     [ if test x$enableval = xyes; then
         timestamp_trace=yes
         CFLAGS="${CFLAGS} -DTIMESTAMP_TRACE"
@@ -449,7 +439,7 @@ AC_SUBST(timestamp_trace_flag)
 
 
 AC_ARG_ENABLE(dmalloc,
-    AC_HELP_STRING([--enable-dmalloc], [Enable linking to dmalloc for better memory debugging]),
+    AS_HELP_STRING([--enable-dmalloc],[Enable linking to dmalloc for better memory debugging]),
     [ if test x$enableval = xyes ; then
         dmalloc=yes
         AC_DEFINE([ENABLE_DMALLOC], [1], [Enable dmalloc])
@@ -461,14 +451,14 @@ AC_ARG_ENABLE(dmalloc,
 
 
 AC_ARG_ENABLE(pedantic,
-    AC_HELP_STRING([--enable-pedantic], [Enable gcc's -pedantic option]),
+    AS_HELP_STRING([--enable-pedantic],[Enable gcc's -pedantic option]),
     [ if test x$enableval = xyes; then
         CFLAGS="$CFLAGS -pedantic"
       fi ])
 
 dnl Enable Efense
 AC_ARG_ENABLE(efence,
-    AC_HELP_STRING([--enable-efence], [Enable Electric Fence memory debugger]),
+    AS_HELP_STRING([--enable-efence],[Enable Electric Fence memory debugger]),
     [ if test x$enableval = xyes; then
           CFLAGS="$CFLAGS -lefence"
           AC_DEFINE([EFENCE], [1], [Enable Electric Fence memory debugger])
@@ -476,7 +466,7 @@ AC_ARG_ENABLE(efence,
 
 dnl Enable Gprof
 AC_ARG_ENABLE(gprof,
-    AC_HELP_STRING([--enable-gprof], [Enable GNU Profiler]),
+    AS_HELP_STRING([--enable-gprof],[Enable GNU Profiler]),
     [ if test x$enableval = xyes; then
           if test $debug = yes; then
               CFLAGS="$CFLAGS -pg"
@@ -490,7 +480,7 @@ AC_ARG_ENABLE(gprof,
 dnl Enable libpcap auto discovery via pcap-config
 enable_pcap_config=no
 AC_ARG_ENABLE(pcapconfig,
-    AC_HELP_STRING([--enable-pcapconfig], [Enable automatic libpcap config, reverting to system scanning]),
+    AS_HELP_STRING([--enable-pcapconfig],[Enable automatic libpcap config, reverting to system scanning]),
     [
         if test $enableval = yes; then
             enable_pcap_config=yes
@@ -507,7 +497,7 @@ AC_ARG_ENABLE(pcapconfig,
 dnl Use 64bits for packet counters
 use64bit_counters=yes
 AC_ARG_ENABLE(64bits,
-    AC_HELP_STRING([--disable-64bits], [Do not use 64bit packet counters]),
+    AS_HELP_STRING([--disable-64bits],[Do not use 64bit packet counters]),
     [
          AC_MSG_NOTICE([Using u_int32_t for packet counters])
     ],
@@ -530,30 +520,30 @@ fi
 
 
 AC_ARG_ENABLE(force-bpf,
-    AC_HELP_STRING([--enable-force-bpf], [Force using BPF for sending packets]),
+    AS_HELP_STRING([--enable-force-bpf],[Force using BPF for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_BPF], [1], [Force using BPF for sending packet])])
 
 AC_ARG_ENABLE(force-pf,
-    AC_HELP_STRING([--enable-force-pf], [Force using Linux's PF_PACKET for sending packets]),
+    AS_HELP_STRING([--enable-force-pf],[Force using Linux's PF_PACKET for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PF], [1], [Force using Linux's PF_PACKET for sending packets])])
 
 AC_ARG_ENABLE(force-libdnet,
-    AC_HELP_STRING([--enable-force-libdnet], [Force using libdnet for sending packets]),
+    AS_HELP_STRING([--enable-force-libdnet],[Force using libdnet for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_LIBDNET], [1], [Force using libdnet for sending packets])])
 
 AC_ARG_ENABLE(force-inject,
-    AC_HELP_STRING([--enable-force-inject], [Force using libpcap's pcap_inject() for sending packets]),
+    AS_HELP_STRING([--enable-force-inject],[Force using libpcap's pcap_inject() for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])])
 
 AC_ARG_ENABLE(force-sendpacket,
-    AC_HELP_STRING([--enable-force-sendpacket], [Force using libpcap's pcap_sendpacket() for sending packets]),
+    AS_HELP_STRING([--enable-force-sendpacket],[Force using libpcap's pcap_sendpacket() for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PCAP_SENDPACKET], [1], [Force using libpcap's pcap_sendpacket() for sending packets])])
 
 dnl Static link libraries
 static_link=no
 dynamic_link=yes
 AC_ARG_ENABLE(static-link,
-    AC_HELP_STRING([--enable-static-link], [Use static libraries ( .a  or .A.tbd ) - default no]),
+    AS_HELP_STRING([--enable-static-link],[Use static libraries ( .a  or .A.tbd ) - default no]),
     [
     if test $enableval = yes; then
         static_link=yes
@@ -563,7 +553,7 @@ AC_ARG_ENABLE(static-link,
 
 dnl Dynamic link libraries
 AC_ARG_ENABLE(dynamic-link,
-    AC_HELP_STRING([--enable-dynamic-link], [Use shared libraries ( .so .dylib or .tbd ) - default yes]),
+    AS_HELP_STRING([--enable-dynamic-link],[Use shared libraries ( .so .dylib or .tbd ) - default yes]),
     [
     if test $enableval = no; then
         dynamic_link=no
@@ -635,8 +625,7 @@ pf_ring_lib=${with_pfring_lib}
 using_pcap_config=no
 AC_MSG_CHECKING(for libpcap)
 AC_ARG_WITH(libpcap,
-    AC_HELP_STRING([--with-libpcap=DIR],
-        [Use libpcap in DIR]),
+    AS_HELP_STRING([--with-libpcap=DIR],[Use libpcap in DIR]),
 [
     testdir=$withval
     for incl in ${testdir}/include/pcap.h ${testdir}/pcap.h ${testdir}/pcap/pcap.h; do
@@ -708,7 +697,7 @@ AC_ARG_WITH(libpcap,
         fi
 
         if test $foundpcap = no; then
-            AC_ERROR(["Unable to find matching library for header file in ${testdir}"])
+            AC_MSG_ERROR("Unable to find matching library for header file in ${testdir}")
         fi
 
         break
@@ -761,7 +750,7 @@ AC_ARG_WITH(libpcap,
                 foundpcap=yes
                 using_pcap_config=yes
             else
-                AC_WARN([Unable to find libpcap using pcap-config])
+                AC_MSG_WARN(Unable to find libpcap using pcap-config)
             fi
         fi
     fi
@@ -825,7 +814,7 @@ AC_ARG_WITH(libpcap,
 
 if test $foundpcap = no ; then
     AC_MSG_RESULT(no)
-    AC_ERROR(libpcap not found)
+    AC_MSG_ERROR(libpcap not found)
 else
     AC_MSG_RESULT($foundpcap)
 fi
@@ -886,7 +875,7 @@ AC_SEARCH_LIBS([pcap_get_pfring_id], [pcap], AC_DEFINE([HAVE_PF_RING_PCAP], [1],
 
 ## Does libpcap work with selected libraries?
 AC_SEARCH_LIBS([pcap_close], [pcap],
-    , AC_ERROR([Unable to link libpcap in ${foundpcap}]),)
+    , AC_MSG_ERROR(Unable to link libpcap in ${foundpcap}),)
 
 AC_SUBST(LPCAPINC)
 AC_SUBST(LPCAPLIB)
@@ -1176,15 +1165,15 @@ fi
 have_pcap_version=no
 dnl Check to see if we have pcap_version[]
 AC_MSG_CHECKING(for pcap_version[])
-AC_TRY_LINK([
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "$LPCAPINC"
 extern char pcap_version[];
-],[
+]], [[
     printf("%s", pcap_version);
-],[
+]])],[
     AC_DEFINE([HAVE_PCAP_VERSION],[1], [Does libpcap have pcap_version[]])
     AC_MSG_RESULT(yes)
 ],[
@@ -1268,7 +1257,7 @@ enable_netmap=no
 trynetmapdir=
 AC_MSG_CHECKING(for netmap socket sending support)
 AC_ARG_WITH(netmap,
-    AC_HELP_STRING([--with-netmap=DIR], [Use netmap in DIR]),
+    AS_HELP_STRING([--with-netmap=DIR],[Use netmap in DIR]),
     [trynetmapdir=$withval])
 
 NETMAP_SEARCH_DIRS=
@@ -1416,15 +1405,15 @@ fi
 have_pf=no
 dnl Check for linux PF_PACKET support
 AC_MSG_CHECKING(for PF_PACKET socket sending support)
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/socket.h>
 #include <netpacket/packet.h>
 #include <net/ethernet.h>     /* the L2 protocols */
 #include <netinet/in.h>       /* htons */
-],[
+]], [[
     int pf_socket;
     pf_socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-],[
+]])],[
     AC_DEFINE([HAVE_PF_PACKET], [1],
             [Do we have Linux PF_PACKET socket support?])
     AC_MSG_RESULT(yes)
@@ -1436,16 +1425,16 @@ AC_TRY_COMPILE([
 have_tx_ring=no
 dnl Check for older Linux TX_RING support
 AC_MSG_CHECKING(for TX_RING socket sending support)
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/socket.h>
 #include <netpacket/packet.h>
 #include <net/ethernet.h>     /* the L2 protocols */
 #include <netinet/in.h>       /* htons */
 #include <linux/if_packet.h>
-],[
+]], [[
     int test;
     test = TP_STATUS_WRONG_FORMAT
-],[
+]])],[
     AC_DEFINE([HAVE_TX_RING], [1],
             [Do we have Linux TX_RING socket support?])
     AC_MSG_RESULT(yes)
@@ -1481,33 +1470,35 @@ trydnetdir=/usr/local
 if test $have_cygwin = no ; then
     AC_MSG_CHECKING(for libdnet)
     AC_ARG_WITH(libdnet,
-        AC_HELP_STRING([--with-libdnet=DIR], [Use libdnet in DIR]),
+        AS_HELP_STRING([--with-libdnet=DIR],[Use libdnet in DIR]),
         [trydnetdir=$withval])
 
-    case "$build_os" in
-    linux*)
-        dnl # Debian/Ubuntu already have a package called libdnet
-        dnl # so you the package you want to install libdumbnet-dev
-        for testdir in $trydnetdir /usr/local /opt/local /usr ; do
-            if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
-                LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
-                LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
-                libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
-                founddnet=$testdir
-            fi
-        done
-        ;;
-    esac
+    if test $trydnetdir != no; then
+        case "$build_os" in
+        linux*)
+            dnl # Debian/Ubuntu already have a package called libdnet
+            dnl # so you the package you want to install libdumbnet-dev
+            for testdir in $trydnetdir /usr/local /opt/local /usr ; do
+                if test -x ${testdir}/bin/dumbnet-config -a $founddnet = no ; then
+                    LDNETINC="$($testdir/bin/dumbnet-config --cflags)"
+                    LDNETLIB="$($testdir/bin/dumbnet-config --libs)"
+                    libdnet_version="$($testdir/bin/dumbnet-config --version) (libdumbnet)"
+                    founddnet=$testdir
+                fi
+            done
+            ;;
+        esac
 
-    if test $founddnet = no ; then
-        for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
-            if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
-                LDNETINC="$($testdir/bin/dnet-config --cflags)"
-                LDNETLIB="$($testdir/bin/dnet-config --libs)"
-                libdnet_version="$($testdir/bin/dnet-config --version)"
-                founddnet=$testdir
-            fi
-        done
+        if test $founddnet = no ; then
+            for testdir in $trydnetdir /usr/local /opt/local $MACOSX_SDK_PATH/usr /usr ; do
+                if test -x ${testdir}/bin/dnet-config -a $founddnet = no ; then
+                    LDNETINC="$($testdir/bin/dnet-config --cflags)"
+                    LDNETLIB="$($testdir/bin/dnet-config --libs)"
+                    libdnet_version="$($testdir/bin/dnet-config --version)"
+                    founddnet=$testdir
+                fi
+            done
+        fi
     fi
 
     if test $founddnet = no ; then
@@ -1549,66 +1540,54 @@ fi
 dnl Older versions of libpcap are missing some DLT types
 dnl If doesn't exist, we'll define them in src/common/fakepcap.h
 AC_MSG_CHECKING(for DLT_LINUX_SLL in libpcap)
-AC_TRY_COMPILE([#include "$LPCAPINC"],
-               [ int foo;
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "$LPCAPINC"]], [[ int foo;
                  foo = DLT_LINUX_SLL
-               ],
-               [ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
+               ]])],[ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
                            [Does pcap.h include a header with DLT_LINUX_SLL?])
                  AC_MSG_RESULT(yes)
-               ],
-               [AC_MSG_RESULT(no)]
-               )
+               ],[AC_MSG_RESULT(no)
+               ])
 
 AC_MSG_CHECKING(for DLT_C_HDLC in libpcap)
-AC_TRY_COMPILE([#include "$LPCAPINC"],
-               [ int foo;
-                 foo = DLT_C_HDLC ],
-                [ AC_DEFINE([HAVE_DLT_C_HDLC], [1],
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "$LPCAPINC"]], [[ int foo;
+                 foo = DLT_C_HDLC ]])],[ AC_DEFINE([HAVE_DLT_C_HDLC], [1],
                             [Does pcap.h include a header with DLT_C_HDLC?])
                   AC_MSG_RESULT(yes)
-                ],
-                AC_MSG_RESULT(no)
-               )
+                ],[AC_MSG_RESULT(no)
+               ])
 
 PCAP_BPF_H_FILE="$LPCAPINCDIR/pcap-bpf.h"
 AC_MSG_CHECKING(for $PCAP_BPF_H_FILE)
-AC_TRY_COMPILE([#include <sys/types.h>
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
                 #include <sys/time.h>
                 #include <stdint.h>
-                #include "$PCAP_BPF_H_FILE"],
-               [ int foo;
-                 foo = BPF_MAJOR_VERSION; ],
-               [ AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [1],
+                #include "$PCAP_BPF_H_FILE"]], [[ int foo;
+                 foo = BPF_MAJOR_VERSION; ]])],[ AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [1],
                            [What is the path (if any) to the pcap-bpf.h
                             header?])
                  AC_MSG_RESULT(yes)
                  AC_SUBST(PCAP_BPF_H_FILE)
-               ],
-               AC_MSG_RESULT(no)
-               )
+               ],[AC_MSG_RESULT(no)
+               ])
 
 foundbpfheader=no
 AC_MSG_CHECKING(for libpcap bpf header)
 for testfile in $LPCAPINCDIR/pcap/bpf.h $LPCAPINCDIR/pcap-bpf.h ; do
     if test -f "${testfile}" -a $foundbpfheader = no ; then
-        AC_TRY_COMPILE([
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
             #include <sys/types.h>
             #include <sys/time.h>
             #include <stdint.h>
-            #include "$testfile"],
-            [
+            #include "$testfile"]], [[
                 int foo;
                 foo = BPF_MAJOR_VERSION;
-            ],
-            [
+            ]])],[
                 foundbpfheader=yes
                 PCAP_BPF_H_FILE=$testfile
                 AC_SUBST(PCAP_BPF_H_FILE)
                 AC_DEFINE([INCLUDE_PCAP_BPF_HEADER], [1],
                         [What is the path (if any) to the libpcap bpf header file?])
-            ]
-            )
+            ],[])
     fi
 done
 
@@ -1644,7 +1623,7 @@ dnl ##################################################
 pcapnav_ver=no
 pcncfg=no
 AC_ARG_WITH(pcapnav-config,
-    AC_HELP_STRING([--with-pcapnav-config=FILE], [Use given pcapnav-config]),
+    AS_HELP_STRING([--with-pcapnav-config=FILE],[Use given pcapnav-config]),
     [ AC_MSG_CHECKING(for pcapnav-config)
     if test -x $withval ; then
         pcncfg=$withval
@@ -1670,7 +1649,7 @@ dnl Check to see what version of libpcapnav
 dnl this code has been reduced a lot, but probably still could be
 dnl reduced quite a bit more if we chose too
     AC_MSG_CHECKING(for libpcapnav version)
-    AC_TRY_RUN([
+    AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <string.h>
 #define PCAPNAV_TEST "0.4"
 /*
@@ -1685,13 +1664,10 @@ main (int argc, char *argv[])
     if (strncmp(PCAPNAV_VERSION, PCAPNAV_TEST, 3) >= 0)
         exit(0);
     exit(1);
-}           ],
-            libpcapnav_ver=yes
-            AC_MSG_RESULT(>= 0.4),
-            libpcapnav_ver=no
-            AC_MSG_RESULT(< 0.4),
-            libpcapnav_ver=no
-    )
+}           ]])],[libpcapnav_ver=yes
+            AC_MSG_RESULT(>= 0.4)],[libpcapnav_ver=no
+            AC_MSG_RESULT(< 0.4)],[libpcapnav_ver=no
+    ])
 
 
 if test x$libpcapnav_ver = xno ; then
@@ -1775,7 +1751,7 @@ dnl ##################################################
 
 tcpdump_path=no
 AC_ARG_WITH(tcpdump,
-    AC_HELP_STRING([--with-tcpdump=FILE], [Path to tcpdump binary]),
+    AS_HELP_STRING([--with-tcpdump=FILE],[Path to tcpdump binary]),
     [ if test -x $withval ; then
           tcpdump_path=$withval
           AC_MSG_RESULT([Using tcpdump in $tcpdump_path])
@@ -1804,13 +1780,16 @@ fi
 dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING(for 'make test' profile)
-if test "$host" != "$build" ; then
+if test "$host" == "$build" ; then
+    AC_MSG_RESULT([yes])
+else    
     AC_MSG_WARN(Unable to do tests when cross-compiling)
+    AC_MSG_RESULT([Unable to do tests when cross-compiling])
 fi
 
 dnl Allows user to choose which nic to use for testing purposes
 AC_ARG_WITH(testnic,
-    AC_HELP_STRING([--with-testnic=NIC], [Select which network card to use for testing]),
+    AS_HELP_STRING([--with-testnic=NIC],[Select which network card to use for testing]),
     [ nic1=$withval
       nic2=$withval
       AC_MSG_RESULT([Using --with-testnic=$withval])],
@@ -1862,6 +1841,8 @@ dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC t
 dnl so under OSX we disable the interface list feature
 disable_pcap_findalldevs=no
 osx_frameworks=no
+
+AC_MSG_CHECKING([for OS version])
 dnl these need to be dynamic based on OS
 case $host in
     *-*-linux*)
@@ -1885,7 +1866,7 @@ case $host in
     fi
     osx_frameworks=yes
     AC_DEFINE([HAVE_DARWIN], [1], [Building Apple/Darwin])
-    AC_MSG_RESULT(Apple OS X)
+    AC_MSG_RESULT(Apple macOS)
     ;;
 
     *-*-openbsd*)
@@ -1910,7 +1891,7 @@ esac
 AM_CONDITIONAL([ENABLE_OSX_FRAMEWORKS], test "$osx_frameworks" = "yes")
 
 AC_ARG_WITH(testnic2,
-    AC_HELP_STRING([--with-testnic2=NIC2], [Select an optional 2nd network card to use for testing]),
+    AS_HELP_STRING([--with-testnic2=NIC2],[Select an optional 2nd network card to use for testing]),
     [ nic2=$withval ])
 
 AC_MSG_NOTICE([Using $nic1 for 1st test network interface card])
