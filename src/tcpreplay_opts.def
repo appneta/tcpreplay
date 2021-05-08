@@ -319,6 +319,33 @@ flag = {
 };
 
 flag = {
+    name        = skip-pkts;
+    arg-type    = number;
+    arg-range   = "0->";
+    descrip     = "Skip X packets into a packet file";
+    arg-default = 0;
+    doc         = "";
+};
+
+
+flag = {
+    name        = skip-to-secs;
+    arg-type    = number;
+    descrip     = "Skip X seconds since linux epoch into packet file";
+    arg-default = 0;
+    doc         = "";
+};
+
+flag = {
+    name        = skip-to-usecs;
+    arg-type    = number;
+    descrip     = "Skip X microseconds into packet file. Usually used with --skip-to-secs";
+    arg-default = 0;
+    doc         = "";
+};
+
+
+flag = {
     name        = loopdelay-ms;
     flags-must  = loop;
     arg-type    = number;

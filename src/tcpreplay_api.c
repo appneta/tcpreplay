@@ -167,6 +167,10 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     options->loop = OPT_VALUE_LOOP;
     options->loopdelay_ms = OPT_VALUE_LOOPDELAY_MS;
 
+    options->skip_pkts = OPT_VALUE_SKIP_PKTS;
+    options->skip_to.tv_sec = OPT_VALUE_SKIP_TO_SECS;
+    options->skip_to.tv_usec = OPT_VALUE_SKIP_TO_USECS;
+
     if (HAVE_OPT(LIMIT))
         options->limit_send = OPT_VALUE_LIMIT;
 

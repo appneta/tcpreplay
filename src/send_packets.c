@@ -352,12 +352,34 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         prev_packet = NULL;
     }
 
+    if (!top_speed) {
+        gettimeofday(&now, NULL);
+        now_is_now = true;
+    } else {
+        now_is_now = false;
+    }
+
+    /* SKIP PACKETS
+     * Looping over packets to skip
+     */
+    if(ctx->options->skip_pkts > 0) {
+        for (int i = 0; i < ctx->options->skip_pkts && !ctx->abort && 
+              (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL; i++) {
+        }
+    }
+
+
     /* MAIN LOOP 
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
     while (!ctx->abort &&
             (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
+
+        /* Skip packets */
+        if(timerisset(&(ctx->options->skip_to)) && timercmp(&ctx->options->skip_to, &(pkthdr.ts), >)){
+            continue; /* Skip packet */
+        }
 
         now_is_now = false;
         packetnum++;
