@@ -61,6 +61,10 @@ int rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr);
 
 int rewrite_ipv6_hlim(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr);
 
+int range_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pktdhr,
+                   u_char *pktdata, ipv4_hdr_t *ip_hdr, int len);
+
+
 #define BROADCAST_IP 4294967295
 
 #endif
