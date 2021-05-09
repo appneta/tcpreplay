@@ -240,7 +240,19 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
             l2_len = 4; /* MGC + flags (no header extensions) */
         }
 
-        /* fallthrough */
+        if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
+            /* no L2 header present - eth_hdr_offset is actually IP offset */
+            uint32_t ip_hdr_offset = eth_hdr_offset;
+            if (datalen < ip_hdr_offset + 1)
+                return 0;
+            if ((pktdata[ip_hdr_offset] >> 4) == 4)
+                return ETHERTYPE_IP;
+            else if ((pktdata[ip_hdr_offset] >> 4) == 6)
+                return ETHERTYPE_IP6;
+            else
+                return 0;
+        }
+        /* fall through */
     case DLT_EN10MB:
         /* l2_len will be zero if we did not fall through */
         if (pkthdr->caplen < l2_len + sizeof(eth_hdr_t))
