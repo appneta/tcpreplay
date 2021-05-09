@@ -23,6 +23,7 @@
 #include <string.h>
 #include "../../lib/sll.h"
 
+#define JUNIPER_FLAG_NO_L2          0x02     /* L2 header */
 #define JUNIPER_FLAG_EXT            0x80     /* Juniper extensions present */
 #define JUNIPER_PCAP_MAGIC          "MGC"
 
@@ -237,7 +238,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
             l2_len += 6; /* MGC + flags + ext_total_len */
         } else {
             l2_len = 4; /* MGC + flags (no header extensions) */
-        }
         }
         /* fall through */
     case DLT_EN10MB:
