@@ -242,7 +242,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
 
         if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
             /* no L2 header present - eth_hdr_offset is actually IP offset */
-            uint32_t ip_hdr_offset = eth_hdr_offset;
+            uint32_t ip_hdr_offset = l2_len;
             if (datalen < ip_hdr_offset + 1)
                 return 0;
             if ((pktdata[ip_hdr_offset] >> 4) == 4)
