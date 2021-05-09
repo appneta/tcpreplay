@@ -23,6 +23,10 @@
 #include <string.h>
 #include "../../lib/sll.h"
 
+#define JUNIPER_FLAG_NO_L2          0x02     /* L2 header */
+#define JUNIPER_FLAG_EXT            0x80     /* Juniper extensions present */
+#define JUNIPER_PCAP_MAGIC          "MGC"
+
 /* 5-tuple plus VLAN ID */
 typedef struct flow_entry_data {
     union {
@@ -220,18 +224,20 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         break;
 
     case DLT_JUNIPER_ETHER:
-        if (pkthdr->caplen < 5)
+        if (pkthdr->caplen < 4)
             return FLOW_ENTRY_INVALID;
 
-        if (memcmp(pktdata, "MGC", 3))
+        if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3)){
             warnx("No Magic Number found: %s (0x%x)",
-                 pcap_datalink_val_to_description(datalink), datalink);
+                  pcap_datalink_val_to_description(datalink), datalink);
+            return 0;
+        }
 
-        if ((pktdata[3] & 0x80) == 0x80) {
+        if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
             l2_len = ntohs(*((uint16_t*)&pktdata[4]));
-            l2_len += 6;
+            l2_len += 6; /* MGC + flags + ext_total_len */
         } else {
-            l2_len = 4; /* no header extensions */
+            l2_len = 4; /* MGC + flags (no header extensions) */
         }
 
         /* fallthrough */

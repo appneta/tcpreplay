@@ -109,9 +109,6 @@ get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink
         }
 
         if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
-            if (datalen < 6)
-                return 0;  /* datalen too short */
-
             eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
             eth_hdr_offset += 6; /* MGC + flags + ext_total_len */
         } else {
