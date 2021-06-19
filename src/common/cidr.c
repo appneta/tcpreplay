@@ -110,20 +110,18 @@ u_char *
 ip2cidr(const unsigned long ip, const int masklen)
 {
     u_char *network;
-    char mask[3];
+    char mask[32];
 
     network = (u_char *)safe_malloc(20);
 
     strlcpy((char *)network, (char *)get_addr2name4(ip, RESOLVE), 20);
 
     strcat((char *)network, "/");
-    if (masklen < 10) {
-        snprintf(mask, sizeof(mask), "%d", masklen);
+    snprintf(mask, sizeof(mask), "%d", masklen);
+    if (masklen < 10)
         strncat((char *)network, mask, 1);
-    } else {
-        snprintf(mask, sizeof(mask), "%d", masklen);
+    else
         strncat((char *)network, mask, 2);
-    }
 
     return (network);
 }
