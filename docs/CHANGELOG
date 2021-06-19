@@ -1,5 +1,6 @@
 06/19/2021 Version 4.3.5-beta1
     - gcc 9.3 compiler warnings #670
+    - installed netmap not automatically detected #669
     - heap-buffer-overflow with flow_decode() #665
 
 04/01/2021 Version 4.3.4

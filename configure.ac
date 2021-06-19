@@ -1266,7 +1266,7 @@ if test "$cross_compiling" = yes; then
         NETMAP_SEARCH_DIRS=$trynetmapdir
     fi
 else
-    NETMAP_SEARCH_DIRS="$trynetmapdir /opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include"
+    NETMAP_SEARCH_DIRS="$trynetmapdir /opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include /usr/local/include"
 fi
 
 for testdir in $NETMAP_SEARCH_DIRS; do
