@@ -1,4 +1,6 @@
-0r64/19/2021 Version 4.3.5-beta1
+06/19/2021 Version 4.3.5-beta1
+    - gcc 9.3 compiler warnings #670
+    - heap-buffer-overflow with flow_decode() #665
 
 04/01/2021 Version 4.3.4
     - ASAN reports memory leaks while running tests (#662)
