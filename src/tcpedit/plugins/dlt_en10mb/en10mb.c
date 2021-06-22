@@ -430,7 +430,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         case ETHERTYPE_VLAN:
             if (pktlen < TCPR_802_1Q_H) {
                 tcpedit_seterr(ctx->tcpedit, "Frame is too short for all VLAN headers! %d < %d",
-                               pktlen, ctx->l2len + sizeof(struct tcpr_802_1q_tag));
+                               pktlen, TCPR_802_1Q_H);
                     return TCPEDIT_ERROR;
             }
 
@@ -440,9 +440,9 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             /* Get VLAN tag info */
             extra->vlan = 1;
             /* must use these mask values, rather then what's in the tcpr.h since it assumes you're shifting */
-            extra->vlan_tag = vlan->vlan_priority_c_vid & 0x0FFF;
-            extra->vlan_pri = vlan->vlan_priority_c_vid & 0xE000;
-            extra->vlan_cfi = vlan->vlan_priority_c_vid & 0x1000;
+            extra->vlan_tag = vlan->vlan_priority_c_vid & htons(0xFFF);
+            extra->vlan_pri = vlan->vlan_priority_c_vid & htons(0xE000);
+            extra->vlan_cfi = vlan->vlan_priority_c_vid & htons(0x1000);
             ctx->l2len = TCPR_802_1Q_H;
             break;
         
@@ -467,13 +467,13 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     struct tcpr_802_1q_hdr *vlan = NULL;
     en10mb_config_t *config = NULL;
     en10mb_extra_t *extra = NULL;
-    
-    int newl2len = 0;
+    int newl2len;
+    int l2len;  
 
     assert(ctx);
     assert(packet);
 
-    if (pktlen < TCPR_802_1Q_H) {
+    if (pktlen < TCPR_802_3_H) {
         tcpedit_seterr(ctx->tcpedit, 
                 "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.", 
                 ctx->tcpedit->runtime.packetnum);
@@ -493,18 +493,19 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         return TCPEDIT_ERROR;
 
     /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
+    l2len = ctx->l2len;
     if (ctx->decoder->dlt == dlt_value) {
         switch (config->vlan) {
         case TCPEDIT_VLAN_ADD:
-            ctx->l2len = TCPR_802_3_H;
+            l2len = TCPR_802_3_H;
             newl2len = TCPR_802_1Q_H;
             break;
         case TCPEDIT_VLAN_DEL:
-            ctx->l2len = TCPR_802_1Q_H;
+            l2len = TCPR_802_1Q_H;
             newl2len = TCPR_802_3_H;
             break;
         default:
-            newl2len = ctx->l2len;
+            newl2len = l2len;
         }
     } 
     
@@ -529,16 +530,18 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     }
 
     /* Make space for our new L2 header */
-    if (newl2len != ctx->l2len) {
-        if (pktlen + (newl2len - ctx->l2len) > MAXPACKET)
-            errx(-1, "New frame too big, new length %d exceeds %d",
-                    pktlen + (newl2len - ctx->l2len), MAXPACKET);
+    if (newl2len != l2len) {
+        if (pktlen + (newl2len - l2len) > MAXPACKET) {
+            tcpedit_seterr(ctx->tcpedit, "New frame too big, new length %d exceeds %d",
+                    pktlen + (newl2len - l2len), MAXPACKET);
+            return TCPEDIT_ERROR;
+        }
 
-        memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
+        memmove(packet + newl2len, packet + l2len, pktlen - l2len);
     }
 
     /* update the total packet length */
-    pktlen += newl2len - ctx->l2len;
+    pktlen += newl2len - l2len;
     
     /* always set the src & dst address as the first 12 bytes */
     eth = (struct tcpr_ethernet_hdr *)packet;
@@ -678,16 +681,16 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-pri");
             return TCPEDIT_ERROR;
         }
-            
+
         if (config->vlan_cfi < 255) {
             vlan->vlan_priority_c_vid += htons((uint16_t)config->vlan_cfi << 12);
         } else if (extra->vlan) {
             vlan->vlan_priority_c_vid += extra->vlan_cfi;
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-cfi");
-            return TCPEDIT_ERROR;            
-        }        
-        
+            return TCPEDIT_ERROR;
+        }
+
     } else {
         tcpedit_seterr(ctx->tcpedit, "Unsupported new layer 2 length: %d", newl2len);
         return TCPEDIT_ERROR;

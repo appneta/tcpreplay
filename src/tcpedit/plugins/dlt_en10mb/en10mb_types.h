@@ -27,8 +27,6 @@
 extern "C" {
 #endif
 
-#define ETHERTYPE_Q_IN_Q        0x88A8  /* 802.1ad Service VLAN */
-
 typedef struct {
     int vlan; /* set to 1 for vlan_ fields being filled out */
     

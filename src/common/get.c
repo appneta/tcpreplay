@@ -132,7 +132,8 @@ get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink
             eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
             uint16_t ether_type = ntohs(eth_hdr->ether_type);
             uint16_t l2_len = sizeof(*eth_hdr) + eth_hdr_offset;
-            while (ether_type == ETHERTYPE_VLAN) {
+            while (ether_type == ETHERTYPE_VLAN
+                    || ether_type == ETHERTYPE_Q_IN_Q) {
                 if (datalen < l2_len + sizeof(vlan_hdr_t))
                      return 0;
 
@@ -230,7 +231,8 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
             uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
 
             l2_len += sizeof(eth_hdr_t);
-            while (ether_type == ETHERTYPE_VLAN) {
+            while (ether_type == ETHERTYPE_VLAN
+                    || ether_type == ETHERTYPE_Q_IN_Q) {
                 if ((size_t)datalen < sizeof(vlan_hdr_t) + l2_len) {
                     l2_len = -1;
                     break;

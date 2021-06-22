@@ -248,7 +248,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
         l2_len += sizeof(eth_hdr_t);
 
-        while (ether_type == ETHERTYPE_VLAN) {
+        while (ether_type == ETHERTYPE_VLAN || ether_type == ETHERTYPE_Q_IN_Q) {
             if (pkthdr->caplen < l2_len + sizeof(vlan_hdr_t))
                     return FLOW_ENTRY_INVALID;
 

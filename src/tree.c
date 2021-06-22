@@ -726,7 +726,8 @@ packet2tree(const u_char * data, const int len)
     memcpy(&ether_type, (u_char*)eth_hdr + 12, 2);
 
     /* drop VLAN info if it exists before the IP info */
-    if (ether_type == htons(ETHERTYPE_VLAN)) {
+    while (ether_type == htons(ETHERTYPE_VLAN)
+            || ether_type == htons(ETHERTYPE_Q_IN_Q)) {
        dbg(4,"Processing as VLAN traffic...");
 
        hl += 4;
@@ -735,7 +736,7 @@ packet2tree(const u_char * data, const int len)
        }
 
        /* prevent issues with byte alignment, must memcpy */
-       memcpy(&ether_type, (u_char*)eth_hdr + 16, 2);
+       memcpy(&ether_type, (u_char*)eth_hdr + 12 + hl, 2);
     }
 
     if (ether_type == htons(ETHERTYPE_IP)) {

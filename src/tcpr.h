@@ -569,7 +569,10 @@ struct tcpr_ethernet_hdr
 #define ETHERTYPE_LOOPBACK      0x9000  /* used to test interfaces */
 #endif
 #ifndef ETHERTYPE_IP6
-#define ETHERTYPE_IP6            0x86DD /* IPv6 */
+#define ETHERTYPE_IP6           0x86DD  /* IPv6 */
+#endif
+#ifndef ETHERTYPE_Q_IN_Q
+#define ETHERTYPE_Q_IN_Q        0x88A8  /* 802.1ad Service VLAN */
 #endif
 
 struct tcpr_ether_addr
