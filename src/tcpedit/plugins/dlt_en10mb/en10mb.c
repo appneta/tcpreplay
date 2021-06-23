@@ -435,7 +435,8 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
             }
 
             vlan = (struct tcpr_802_1q_hdr *)packet;
-            ctx->proto = vlan->vlan_tpi;
+            ctx->proto = vlan->vlan_len;
+            ctx->proto_vlan_tag = vlan->vlan_tpi;
             
             /* Get VLAN tag info */
             extra->vlan = 1;
@@ -449,6 +450,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         /* we don't properly handle SNAP encoding */
         default:
             ctx->proto = eth->ether_type;
+            ctx->proto_vlan_tag = eth->ether_type;
             ctx->l2len = TCPR_802_3_H;
     }
 
@@ -467,8 +469,9 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     struct tcpr_802_1q_hdr *vlan = NULL;
     en10mb_config_t *config = NULL;
     en10mb_extra_t *extra = NULL;
+    u_int16_t proto;
     int newl2len;
-    int l2len;  
+    int l2len;
 
     assert(ctx);
     assert(packet);
@@ -494,11 +497,13 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
     l2len = ctx->l2len;
+    proto = ctx->proto;
     if (ctx->decoder->dlt == dlt_value) {
         switch (config->vlan) {
         case TCPEDIT_VLAN_ADD:
             l2len = TCPR_802_3_H;
             newl2len = TCPR_802_1Q_H;
+            proto = ctx->proto_vlan_tag;
             break;
         case TCPEDIT_VLAN_DEL:
             l2len = TCPR_802_1Q_H;
@@ -591,21 +596,20 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
                 memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
             }
         } else if (ctx->addr_type == ETHERNET) {
-            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);            
+            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a source address");
             return TCPEDIT_ERROR;
         }
 
-        
-        /* copy user supplied DMAC MAC if provided or from original packet */        
+        /* copy user supplied DMAC MAC if provided or from original packet */
         if (config->mac_mask & TCPEDIT_MAC_MASK_DMAC2) {
             if ((ctx->addr_type == ETHERNET && 
                 ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast))
                 || ctx->addr_type != ETHERNET) {
                 memcpy(eth->ether_dhost, config->intf2_dmac, ETHER_ADDR_LEN);
             } else {
-                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);                
+                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
             }
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
@@ -654,12 +658,12 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     if (newl2len == TCPR_802_3_H) {
         /* all we need for 802.3 is the proto */
-        eth->ether_type = ctx->proto;
+        eth->ether_type = proto;
         
     } else if (newl2len == TCPR_802_1Q_H) {
         /* VLAN tags need a bit more */
         vlan = (struct tcpr_802_1q_hdr *)packet;
-        vlan->vlan_len = ctx->proto;
+        vlan->vlan_len = proto;
         vlan->vlan_tpi = htons(config->vlan_proto);
         
         /* are we changing VLAN info? */
