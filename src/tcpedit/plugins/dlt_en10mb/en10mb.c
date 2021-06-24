@@ -404,10 +404,27 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     struct tcpr_ethernet_hdr *eth = NULL;
     struct tcpr_802_1q_hdr *vlan = NULL;
     en10mb_extra_t *extra = NULL;
+    uint32_t pkt_len = pktlen;
+    uint16_t ether_type;
+    uint32_t l2_offset;
+    int l2_len;
+    int res;
     
     assert(ctx);
     assert(packet);
-    if (pktlen < TCPR_802_3_H)
+
+    res = get_l2_len_protocol(packet,
+                              pkt_len,
+                              dlt_value,
+                              &ether_type,
+                              &l2_len,
+                              &l2_offset);
+
+    packet += l2_offset;
+    l2_len -= l2_offset;
+    pkt_len -= l2_offset;
+
+    if (res == -1 || pktlen < TCPR_802_3_H)
         return TCPEDIT_ERROR;
 
     /* get our src & dst address */
@@ -812,34 +829,24 @@ int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     int l2len;
-    uint16_t ether_type;
     
     assert(ctx);
     assert(packet);
 
     l2len = sizeof(eth_hdr_t);
-    if (pktlen < l2len)
-        return -1;
-
-    ether_type = ntohs(((eth_hdr_t*)packet)->ether_type);
-    while (ether_type == ETHERTYPE_VLAN || ether_type == ETHERTYPE_Q_IN_Q) {
-        if (pktlen < l2len + (int)sizeof(vlan_hdr_t)) {
-            tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than l2len=%u and VLAN headers",
-                    pktlen, l2len);
-             return -1;
-        }
-
-         vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(packet + l2len);
-         ether_type = ntohs(vlan_hdr->vlan_tpid);
-         l2len += 4;
+    if (pktlen < l2len) {
+        tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than size of Ethernet header",
+                       pktlen);
+        return TCPEDIT_ERROR;
     }
 
+    l2len = get_l2len(packet, pktlen, dlt_value);
     if (l2len > 0) {
         if (pktlen < l2len) {
             /* can happen if fuzzing is enabled */
             tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than l2len=%u",
                     pktlen, l2len);
-            return -1;
+            return TCPEDIT_ERROR;
         }
 
         return l2len;

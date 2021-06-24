@@ -460,15 +460,25 @@ process_raw_packets(pcap_t * pcap)
             /* first run through in auto mode: create tree */
             if (options->automode != FIRST_MODE) {
                 if (ip_hdr) {
-                    add_tree_ipv4(ip_hdr->ip_src.s_addr, pktdata, pkthdr.caplen);
+                    add_tree_ipv4(ip_hdr->ip_src.s_addr,
+                                  pktdata,
+                                  pkthdr.caplen,
+                                  pcap_datalink(pcap));
                 } else if (ip6_hdr) {
-                    add_tree_ipv6(&ip6_hdr->ip_src, pktdata, pkthdr.caplen);
+                    add_tree_ipv6(&ip6_hdr->ip_src,
+                                  pktdata,
+                                  pkthdr.caplen,
+                                  pcap_datalink(pcap));
                 }
             } else {
                 if (ip_hdr) {
-                    add_tree_first_ipv4(pktdata, pkthdr.caplen);
+                    add_tree_first_ipv4(pktdata,
+                                        pkthdr.caplen,
+                                        pcap_datalink(pcap));
                 } else if (ip6_hdr) {
-                    add_tree_first_ipv6(pktdata, pkthdr.caplen);
+                    add_tree_first_ipv6(pktdata,
+                                        pkthdr.caplen,
+                                        pcap_datalink(pcap));
                 }
             }  
             break;

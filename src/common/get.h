@@ -28,7 +28,12 @@
 
 int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
 
-u_int16_t get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink);
+int get_l2_len_protocol(const u_char *pktdata,
+                        const uint32_t datalen,
+                        const int datalink,
+                        uint16_t *protocol,
+                        uint32_t *l2_len,
+                        uint32_t *l2_offset);
 
 void *get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int l3len);
 void *get_layer4_v6(const ipv6_hdr_t *ip_hdr, const int l3len);

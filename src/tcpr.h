@@ -574,6 +574,12 @@ struct tcpr_ethernet_hdr
 #ifndef ETHERTYPE_Q_IN_Q
 #define ETHERTYPE_Q_IN_Q        0x88A8  /* 802.1ad Service VLAN */
 #endif
+#ifndef ETHERTYPE_MPLS
+#define ETHERTYPE_MPLS          0x8847  /* MPLS unicast packet */
+#endif
+#ifndef ETHERTYPE_MPLS_MULTI
+#define ETHERTYPE_MPLS_MULTI    0x8848  /* MPLS multicast packet */
+#endif
 
 struct tcpr_ether_addr
 {

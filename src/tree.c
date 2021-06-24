@@ -41,7 +41,7 @@ extern int debug;
 char tree_print_buff[TREEPRINTBUFFLEN]; 
 
 static tcpr_tree_t *new_tree();
-static tcpr_tree_t *packet2tree(const u_char *, const int);
+static tcpr_tree_t *packet2tree(const u_char *, const int, const int);
 #ifdef DEBUG        /* prevent compile warnings */
 static char *tree_print(tcpr_data_tree_t *);
 static char *tree_printnode(const char *, const tcpr_tree_t *);
@@ -370,17 +370,34 @@ return_unknown:
  * client, if the DST IP doesn't exist in the TREE, we add it as a server
  */
 void
-add_tree_first_ipv4(const u_char *data, const int len)
+add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
+    const u_char *packet = data;
+    uint32_t pkt_len = len;
+    uint16_t ether_type;
+    uint32_t l2_offset;
     ipv4_hdr_t ip_hdr;
+    int l2_len;
+    int res;
     
-    assert(data);
+    assert(packet);
 
-    if (len < (TCPR_ETH_H + TCPR_IPV4_H)) {
+    res = get_l2_len_protocol(packet,
+                              pkt_len,
+                              datalink,
+                              &ether_type,
+                              &l2_len,
+                              &l2_offset);
+
+    if (res == -1 || len < (TCPR_ETH_H + TCPR_IPV4_H)) {
         errx(-1, "Capture length %d too small for IPv4 parsing", len);
         return;
     }
+
+    packet += l2_offset;
+    l2_len -= l2_offset;
+    pkt_len -= l2_offset;
 
     /* 
      * first add/find the source IP/client 
@@ -388,7 +405,7 @@ add_tree_first_ipv4(const u_char *data, const int len)
     newnode = new_tree();
 
     /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
+    memcpy(&ip_hdr, (packet + TCPR_ETH_H), TCPR_IPV4_H);
 
     /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET;
@@ -408,7 +425,7 @@ add_tree_first_ipv4(const u_char *data, const int len)
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
+    memcpy(&ip_hdr, (packet + TCPR_ETH_H), TCPR_IPV4_H);
 
     newnode->family = AF_INET;
     newnode->u.ip = ip_hdr.ip_dst.s_addr;
@@ -424,17 +441,34 @@ add_tree_first_ipv4(const u_char *data, const int len)
 }
 
 void
-add_tree_first_ipv6(const u_char *data, const int len)
+add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
+    const u_char *packet = data;
+    uint32_t pkt_len = len;
+    uint16_t ether_type;
     ipv6_hdr_t ip6_hdr;
+    uint32_t l2_offset;
+    int l2_len;
+    int res;
 
-    assert(data);
+    assert(packet);
 
-    if (len < (TCPR_ETH_H + TCPR_IPV6_H)) {
+    res = get_l2_len_protocol(packet,
+                              pkt_len,
+                              datalink,
+                              &ether_type,
+                              &l2_len,
+                              &l2_offset);
+
+    if (res == -1 || len < (TCPR_ETH_H + TCPR_IPV6_H)) {
         errx(-1, "Capture length %d too small for IPv6 parsing", len);
         return;
     }
+
+    packet += l2_offset;
+    l2_len -= l2_offset;
+    pkt_len -= l2_offset;
 
     /*
      * first add/find the source IP/client
@@ -442,7 +476,7 @@ add_tree_first_ipv6(const u_char *data, const int len)
     newnode = new_tree();
     
     /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
+    memcpy(&ip6_hdr, (packet + TCPR_ETH_H), TCPR_IPV6_H);
 
     /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET6;
@@ -462,7 +496,7 @@ add_tree_first_ipv6(const u_char *data, const int len)
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
+    memcpy(&ip6_hdr, (packet + TCPR_ETH_H), TCPR_IPV6_H);
 
     newnode->family = AF_INET6;
     newnode->u.ip6 = ip6_hdr.ip_dst;
@@ -527,13 +561,15 @@ add_tree_node(tcpr_tree_t *newnode)
  * - number of times each host acts as a client or server
  * - the way the host acted the first time we saw it (client or server)
  */
-void
-add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
+void add_tree_ipv4(const unsigned long ip,
+                   const u_char *data,
+                   const int len,
+                   const int datalink)
 {
     tcpr_tree_t *newnode;
     assert(data);
 
-    newnode = packet2tree(data, len);
+    newnode = packet2tree(data, len, datalink);
     if (newnode) {
         assert(ip == newnode->u.ip);
 
@@ -541,7 +577,8 @@ add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
             /* couldn't figure out if packet was client or server */
 
             dbgx(2, "%s (%lu) unknown client/server",
-                    get_addr2name4(newnode->u.ip, RESOLVE), newnode->u.ip);
+                 get_addr2name4(newnode->u.ip, RESOLVE),
+                 newnode->u.ip);
 
         }
 
@@ -549,14 +586,15 @@ add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
     }
 }
 
-void
-add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data,
-        const int len)
+void add_tree_ipv6(const struct tcpr_in6_addr *addr,
+                   const u_char *data,
+                   const int len,
+                   const int datalink)
 {
     tcpr_tree_t *newnode;
     assert(data);
 
-    newnode = packet2tree(data, len);
+    newnode = packet2tree(data, len, datalink);
     if (newnode) {
         assert(ipv6_cmp(addr, &newnode->u.ip6) == 0);
 
@@ -564,7 +602,7 @@ add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data,
             /* couldn't figure out if packet was client or server */
 
             dbgx(2, "%s unknown client/server",
-                    get_addr2name6(&newnode->u.ip6, RESOLVE));
+                 get_addr2name6(&newnode->u.ip6, RESOLVE));
         }
 
         add_tree_node(newnode);
@@ -697,8 +735,10 @@ new_tree()
  * the u_char * data should be the data that is passed by pcap_dispatch()
  */
 static tcpr_tree_t *
-packet2tree(const u_char * data, const int len)
+packet2tree(const u_char * data, const int len, int datalink)
 {
+    const u_char *packet = data;
+    ssize_t pkt_len = len;
     tcpr_tree_t *node = NULL;
     eth_hdr_t *eth_hdr = NULL;
     ipv4_hdr_t ip_hdr;
@@ -708,50 +748,48 @@ packet2tree(const u_char * data, const int len)
     icmpv4_hdr_t icmp_hdr;
     dnsv4_hdr_t dnsv4_hdr;
     u_int16_t ether_type;
+    uint32_t l2_offset;
     u_char proto = 0;
+    int l2_len;
+    int res;
     int hl = 0;
+
 #ifdef DEBUG
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    if (len < (int)sizeof(*eth_hdr)) {
+    res = get_l2_len_protocol(packet,
+                              pkt_len,
+                              datalink,
+                              &ether_type,
+                              &l2_len,
+                              &l2_offset);
+
+    if (res == -1 || len < (int)sizeof(*eth_hdr))
         goto len_error;
-    }
 
     node = new_tree();
 
-    eth_hdr = (eth_hdr_t *) (data);
+    packet += l2_offset;
+    l2_len -= l2_offset;
+    pkt_len -= l2_offset;
 
-    /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ether_type, (u_char*)eth_hdr + 12, 2);
+    assert(l2_len > 0);
 
-    /* drop VLAN info if it exists before the IP info */
-    while (ether_type == htons(ETHERTYPE_VLAN)
-            || ether_type == htons(ETHERTYPE_Q_IN_Q)) {
-       dbg(4,"Processing as VLAN traffic...");
-
-       hl += 4;
-       if (len < TCPR_ETH_H + hl) {
-           goto len_error;
-       }
-
-       /* prevent issues with byte alignment, must memcpy */
-       memcpy(&ether_type, (u_char*)eth_hdr + 12 + hl, 2);
-    }
-
-    if (ether_type == htons(ETHERTYPE_IP)) {
-        if (len < (TCPR_ETH_H + hl + TCPR_IPV4_H)) {
+    eth_hdr = (eth_hdr_t *) (packet);
+    if (ether_type == ETHERTYPE_IP) {
+        if (pkt_len < (TCPR_ETH_H + hl + TCPR_IPV4_H)) {
             safe_free(node);
             errx(-1, "packet capture length %d too small for IPv4 processing",
                     len);
             return NULL;
         }
 
-        if (len < TCPR_ETH_H + TCPR_IPV4_H + hl) {
+        if (pkt_len < TCPR_ETH_H + TCPR_IPV4_H + hl) {
             goto len_error;
         }
 
-        memcpy(&ip_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV4_H);
+        memcpy(&ip_hdr, packet + TCPR_ETH_H + hl, TCPR_IPV4_H);
 
         node->family = AF_INET;
         node->u.ip = ip_hdr.ip_src.s_addr;
@@ -762,19 +800,19 @@ packet2tree(const u_char * data, const int len)
         strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr,
                     RESOLVE), 16);
 #endif
-    } else if (ether_type == htons(ETHERTYPE_IP6)) {
-        if (len < (TCPR_ETH_H + hl + TCPR_IPV6_H)) {
+    } else if (ether_type == ETHERTYPE_IP6) {
+        if (pkt_len < (TCPR_ETH_H + hl + TCPR_IPV6_H)) {
             safe_free(node);
             errx(-1, "packet capture length %d too small for IPv6 processing",
                     len);
             return NULL;
         }
 
-        if (len < TCPR_ETH_H + TCPR_IPV6_H + hl) {
+        if (pkt_len < TCPR_ETH_H + TCPR_IPV6_H + hl) {
             goto len_error;
         }
 
-        memcpy(&ip6_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV6_H);
+        memcpy(&ip6_hdr, packet + TCPR_ETH_H + hl, TCPR_IPV6_H);
 
         node->family = AF_INET6;
         node->u.ip6 = ip6_hdr.ip_src;
@@ -799,9 +837,8 @@ packet2tree(const u_char * data, const int len)
 
         dbgx(3, "%s uses TCP...  ", srcip);
 
-        if (len < TCPR_ETH_H + TCPR_TCP_H + hl) {
+        if (pkt_len < TCPR_ETH_H + TCPR_TCP_H + hl)
             goto len_error;
-        }
 
         /* memcpy it over to prevent alignment issues */
         memcpy(&tcp_hdr, (data + TCPR_ETH_H + hl), TCPR_TCP_H);
@@ -828,9 +865,8 @@ packet2tree(const u_char * data, const int len)
      * UDP 
      */
     else if (proto == IPPROTO_UDP) {
-        if (len < TCPR_ETH_H + TCPR_UDP_H + hl) {
+        if (pkt_len < TCPR_ETH_H + TCPR_UDP_H + hl)
             goto len_error;
-        }
 
         /* memcpy over to prevent alignment issues */
         memcpy(&udp_hdr, (data + TCPR_ETH_H + hl), TCPR_UDP_H);
@@ -838,9 +874,8 @@ packet2tree(const u_char * data, const int len)
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
-            if (len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl) {
+            if (pkt_len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl)
                 goto len_error;
-            }
 
             /* prevent memory alignment issues */
             memcpy(&dnsv4_hdr,
@@ -867,9 +902,8 @@ packet2tree(const u_char * data, const int len)
 
         switch (ntohs(udp_hdr.uh_sport)) {
         case 0x0035:           /* dns */
-            if (len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl) {
+            if (pkt_len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl)
                 goto len_error;
-            }
 
             /* prevent memory alignment issues */
             memcpy(&dnsv4_hdr,
@@ -899,9 +933,8 @@ packet2tree(const u_char * data, const int len)
      * ICMP 
      */
     else if (proto == IPPROTO_ICMP) {
-        if (len < TCPR_ETH_H + TCPR_ICMPV4_H + hl) {
+        if (pkt_len < TCPR_ETH_H + TCPR_ICMPV4_H + hl)
             goto len_error;
-        }
 
         /* prevent alignment issues */
         memcpy(&icmp_hdr, (data + TCPR_ETH_H + hl), TCPR_ICMPV4_H);

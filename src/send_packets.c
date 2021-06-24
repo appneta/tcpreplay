@@ -90,22 +90,36 @@ static inline int
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         COUNTER iteration, bool cached, int datalink)
 {
-    uint16_t ether_type;
+    uint32_t pkt_len = pkthdr->caplen;
+    u_char *packet = *pktdata;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
+    uint16_t ether_type;
+    uint32_t l2_offset;
     int l2_len;
-    u_char *packet = *pktdata;
+    int res;
 
-    l2_len = get_l2len(packet, pkthdr->caplen, datalink);
-    if (l2_len < 0)
-        return -1;
+    res = get_l2_len_protocol(packet,
+                              pkt_len,
+                              datalink,
+                              &ether_type,
+                              &l2_len,
+                              &l2_offset);
 
-    ether_type = get_l2protocol(packet, pkthdr->caplen, datalink);
+    if (res < 0)
+        return res;
+
+    packet += l2_offset;
+    l2_len -= l2_offset;
+    pkt_len -= l2_offset;
+
+    assert(l2_len > 0);
+
     switch (ether_type) {
     case ETHERTYPE_IP:
-        if (pkthdr->caplen < (bpf_u_int32)(l2_len + sizeof(ipv4_hdr_t))) {
+        if (pkt_len < (bpf_u_int32)(l2_len + sizeof(ipv4_hdr_t))) {
             dbgx(1, "IP packet too short for Unique IP feature: %u", pkthdr->caplen);
             return -1;
         }
@@ -115,7 +129,7 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         break;
 
     case ETHERTYPE_IP6:
-        if (pkthdr->caplen < (bpf_u_int32)(l2_len + sizeof(ipv6_hdr_t))) {
+        if (pkt_len < (bpf_u_int32)(l2_len + sizeof(ipv6_hdr_t))) {
             dbgx(1, "IP6 packet too short for Unique IP feature: %u", pkthdr->caplen);
             return -1;
         }
