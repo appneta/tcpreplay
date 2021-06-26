@@ -125,6 +125,7 @@ struct tcpeditdlt_s {
     tcpeditdlt_l2address_t srcaddr;         /* filled out source address */
     tcpeditdlt_l2address_t dstaddr;         /* filled out dst address */
     int l2len;                              /* set by decoder and updated by encoder */
+    int l2offset;                           /* offset to L2 - set by decoder and updated by encoder */
     u_int16_t proto;                        /* layer 3 proto type */
     u_int16_t proto_vlan_tag;               /* VLAN tag proto type */
     void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */

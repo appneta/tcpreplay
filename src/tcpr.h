@@ -139,29 +139,16 @@
 #define TCPR_HSRP_H           0x14    /**< HSRP header:          8 bytes */
 
 /**
- * IEEE 802.1Q (Virtual Local Area Network) VLAN tag
- * size: 8 bytes
- */
-struct tcpr_802_1q_tag
-{
-    uint16_t       vlan_tci;               /* VLAN TCI */
-    uint16_t       vlan_tpid;              /* Next ETH_TYPE */
-};
-
-/**
- * IEEE 802.1Q (Virtual Local Area Network) VLAN packet header
+ * IEEE 802.1Q (Virtual Local Area Network) VLAN headr
  * size: 8 bytes
  */
 struct tcpr_802_1q_hdr
 {
-    uint8_t vlan_dhost[ETHER_ADDR_LEN];  /**< destination ethernet address */
-    uint8_t vlan_shost[ETHER_ADDR_LEN];  /**< source ethernet address */
-    uint16_t vlan_tpi;                   /**< tag protocol ID */
-    uint16_t vlan_priority_c_vid;        /**< priority | VLAN ID */
-#define TCPR_802_1Q_PRIMASK   0x0007    /**< priority mask */
-#define TCPR_802_1Q_CFIMASK   0x0001    /**< CFI mask */
+    uint16_t       vlan_tci;            /* VLAN TCI */
+    uint16_t       vlan_tpid;           /* Next ETH_TYPE */
+#define TCPR_802_1Q_PRIMASK   0xe000    /**< priority mask */
+#define TCPR_802_1Q_CFIMASK   0x1000    /**< CFI mask */
 #define TCPR_802_1Q_VIDMASK   0x0fff    /**< vid mask */
-    uint16_t vlan_len;                   /**< length or type (802.3 / Eth 2) */
 };
 
 /**
@@ -574,8 +561,8 @@ struct tcpr_ethernet_hdr
 #ifndef ETHERTYPE_Q_IN_Q
 #define ETHERTYPE_Q_IN_Q        0x88A8  /* 802.1ad Service VLAN */
 #endif
-#ifndef ETHERTYPE_MPLS
-#define ETHERTYPE_MPLS          0x8847  /* MPLS unicast packet */
+#ifndef ETHERTYPE_8021QINQ
+#define ETHERTYPE_8021QINQ      0x9100  /* 802.1Q in Q VLAN */
 #endif
 #ifndef ETHERTYPE_MPLS_MULTI
 #define ETHERTYPE_MPLS_MULTI    0x8848  /* MPLS multicast packet */
@@ -1773,5 +1760,50 @@ struct tcpr_hsrp_hdr
     uint8_t authdata[HSRP_AUTHDATA_LENGTH]; /* Password */
     uint32_t virtual_ip;      /* Virtual IP address */
 };
+
+
+/* MPLS label:: RFC 5462, RFC 3032
+ *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                Label                  | TC  |S|       TTL     |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *      Label:  Label Value, 20 bits
+ *      TC:     Traffic Class field, 3 bits
+ *      S:      Bottom of Stack, 1 bit
+ *      TTL:    Time to Live, 8 bits
+ */
+
+struct tcpr_mpls_label {
+    uint32_t entry;
+#define MPLS_LABEL_GACH         13
+};
+
+#ifndef MPLS_LS_LABEL_MASK
+#define MPLS_LS_LABEL_MASK      0xFFFFF000
+#endif
+#ifndef MPLS_LS_LABEL_SHIFT
+#define MPLS_LS_LABEL_SHIFT     12
+#endif
+#ifndef MPLS_LS_TC_MASK
+#define MPLS_LS_TC_MASK         0x00000E00
+#endif
+#ifndef MPLS_LS_TC_SHIFT
+#define MPLS_LS_TC_SHIFT        9
+#endif
+#ifndef MPLS_LS_S_MASK
+#define MPLS_LS_S_MASK          0x00000100
+#endif
+#ifndef MPLS_LS_S_SHIFT
+#define MPLS_LS_S_SHIFT         8
+#endif
+#ifndef MPLS_LS_TTL_MASK
+#define MPLS_LS_TTL_MASK        0x000000FF
+#endif
+#ifndef MPLS_LS_TTL_SHIFT
+#define MPLS_LS_TTL_SHIFT       0
+#endif
 
 #endif /* _TCPR_H_ */

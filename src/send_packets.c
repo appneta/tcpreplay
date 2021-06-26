@@ -96,44 +96,46 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     ipv6_hdr_t *ip6_hdr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
+    uint32_t _U_ vlan_offset;
     uint16_t ether_type;
-    uint32_t l2_offset;
-    int l2_len;
+    uint32_t l2offset;
+    uint32_t l2len;
     int res;
 
-    res = get_l2_len_protocol(packet,
-                              pkt_len,
-                              datalink,
-                              &ether_type,
-                              &l2_len,
-                              &l2_offset);
+    res = get_l2len_protocol(packet,
+                             pkt_len,
+                             datalink,
+                             &ether_type,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
 
     if (res < 0)
         return res;
 
-    packet += l2_offset;
-    l2_len -= l2_offset;
-    pkt_len -= l2_offset;
+    packet += l2offset;
+    l2len -= l2offset;
+    pkt_len -= l2offset;
 
-    assert(l2_len > 0);
+    assert(l2len > 0);
 
     switch (ether_type) {
     case ETHERTYPE_IP:
-        if (pkt_len < (bpf_u_int32)(l2_len + sizeof(ipv4_hdr_t))) {
+        if (pkt_len < (bpf_u_int32)(l2len + sizeof(ipv4_hdr_t))) {
             dbgx(1, "IP packet too short for Unique IP feature: %u", pkthdr->caplen);
             return -1;
         }
-        ip_hdr = (ipv4_hdr_t *)(packet + l2_len);
+        ip_hdr = (ipv4_hdr_t *)(packet + l2len);
         src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
         dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
         break;
 
     case ETHERTYPE_IP6:
-        if (pkt_len < (bpf_u_int32)(l2_len + sizeof(ipv6_hdr_t))) {
+        if (pkt_len < (bpf_u_int32)(l2len + sizeof(ipv6_hdr_t))) {
             dbgx(1, "IP6 packet too short for Unique IP feature: %u", pkthdr->caplen);
             return -1;
         }
-        ip6_hdr = (ipv6_hdr_t *)(packet + l2_len);
+        ip6_hdr = (ipv6_hdr_t *)(packet + l2len);
         src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
         dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
         break;

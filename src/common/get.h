@@ -26,14 +26,26 @@
 #include "common.h"
 
 
+int parse_mpls(const u_char *pktdata,
+               const uint32_t datalen,
+               uint16_t *protocol,
+               uint32_t *l2len,
+               uint32_t *l2offset);
+
+int parse_vlan(const u_char *pktdata,
+               const uint32_t datalen,
+               uint16_t *next_protocol,
+               uint32_t *l2len);
+
 int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
 
-int get_l2_len_protocol(const u_char *pktdata,
-                        const uint32_t datalen,
-                        const int datalink,
-                        uint16_t *protocol,
-                        uint32_t *l2_len,
-                        uint32_t *l2_offset);
+int get_l2len_protocol(const u_char *pktdata,
+                       const uint32_t datalen,
+                       const int datalink,
+                       uint16_t *protocol,
+                       uint32_t *l2len,
+                       uint32_t *l2offset,
+                       uint32_t *vlan_offset);
 
 void *get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int l3len);
 void *get_layer4_v6(const ipv6_hdr_t *ip_hdr, const int l3len);

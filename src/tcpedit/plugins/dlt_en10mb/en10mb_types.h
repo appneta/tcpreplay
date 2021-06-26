@@ -30,9 +30,11 @@ extern "C" {
 typedef struct {
     int vlan; /* set to 1 for vlan_ fields being filled out */
     
+    u_int32_t vlan_offset;
     u_int16_t vlan_tag;
     u_int16_t vlan_pri;
     u_int16_t vlan_cfi;
+    u_int16_t vlan_proto;
 } en10mb_extra_t;
 
 typedef enum {
