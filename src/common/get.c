@@ -115,7 +115,7 @@ int parse_mpls(const u_char *pktdata,
         mpls_label = (struct tcpr_mpls_label*)(pktdata + len);
         len += sizeof(*mpls_label);
         len_remaining -= sizeof(*mpls_label);
-        bos = (ntohl(mpls_label->entry) && MPLS_LS_S_MASK) != 0;
+        bos = (ntohl(mpls_label->entry) & MPLS_LS_S_MASK) != 0;
         label = ntohl(mpls_label->entry) >> MPLS_LS_LABEL_SHIFT;
         if (label == MPLS_LABEL_GACH) {
             /* Generic Associated Channel Header */
