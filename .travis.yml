@@ -4,7 +4,6 @@ dist: focal
 compiler: gcc
 language: c
 
-
 addons:
   apt:
     packages:
@@ -13,29 +12,26 @@ addons:
 matrix:
   include:
     - os: linux
-      dist: focal
-      compiler: gcc
       addons:
         apt:
           packages:
           - libpcap-dev
           - autogen
-    - os: linux
-      dist: trusty
-      compiler: gcc
-      env: CI_BUILD_PREFIX=scan-build-9.3
+    - os: linuxal
+      env: CI_BUILD_PREFIX=scan-build-11
       addons:
         apt:
           packages:
           - libpcap-dev
           - autogen
+          - clang-tools-11
 
 before_script:
 - git pull --tags
 
 script:
   - autoreconf -iv > build.log 2>&1 || (cat build.log && exit 1)
-  - ${CI_BUILD_PREFIX} ./configure --disable-local-libopts --enable-asan > build.log 2>&1 || (cat build.log && exit 1)
+  - ${CI_BUILD_PREFIX} ./configure --disable-local-libopts --enable-asan --with-testnic=$(ip l | grep ens | cut -d':' -f2 | xargs) > build.log 2>&1 || (cat build.log && exit 1)
   - ${CI_BUILD_PREFIX} make > build.log 2>&1 || (cat build.log && exit 1)
   - make dist > build.log 2>&1 || (cat build.log && exit 1)
   - sudo make test || (cat test/test.log && exit 1)
