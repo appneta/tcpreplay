@@ -32,7 +32,6 @@ typedef struct tcpr_tree_s {
         unsigned long ip;           /* ip/network address in network byte order */
         struct tcpr_in6_addr ip6;
     } u;
-    u_char mac[ETHER_ADDR_LEN]; /* mac address of system */
     int masklen;                /* CIDR network mask length */
     int server_cnt;             /* count # of times this entry was flagged server */
     int client_cnt;             /* flagged client */

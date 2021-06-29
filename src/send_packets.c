@@ -113,10 +113,6 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     if (res < 0)
         return res;
 
-    packet += l2offset;
-    l2len -= l2offset;
-    pkt_len -= l2offset;
-
     assert(l2len > 0);
 
     switch (ether_type) {

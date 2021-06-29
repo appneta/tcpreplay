@@ -164,6 +164,7 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     uint32_t pkt_len = pkthdr->caplen;
     const u_char *packet = pktdata;
     uint32_t _U_ vlan_offset;
+    uint32_t _U_ l2offset;
     uint16_t ether_type = 0;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
@@ -172,7 +173,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     icmpv4_hdr_t *icmp_hdr;
     flow_entry_data_t entry;
     uint32_t l2len = 0;
-    uint32_t l2offset;
     uint8_t protocol;
     uint32_t hash;
     int ip_len;
@@ -200,10 +200,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
               pcap_datalink_val_to_description(datalink), datalink);
         return FLOW_ENTRY_INVALID;
     }
-
-    packet += l2offset;
-    l2len -= l2offset;
-    pkt_len -= l2offset;
 
     assert(l2len > 0);
 
