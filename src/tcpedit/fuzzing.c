@@ -105,7 +105,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     caplen = pkthdr->caplen;
     plugin = tcpedit->dlt_ctx->encoder;
     l2len = plugin->plugin_l2len(ctx, packet, caplen);
-    l2proto = ntohs(ctx->proto);
+    l2proto = ntohs(plugin->plugin_proto(ctx, packet, caplen));
     if (l2len == -1 || caplen < l2len)
         goto done;
 

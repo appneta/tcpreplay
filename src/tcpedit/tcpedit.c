@@ -134,8 +134,8 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
         errx(-1, "%s", tcpedit_geterr(tcpedit));
 
-    /* unable to edit packet, most likely 802.11 management or data QoS frame */
     if (pktlen == TCPEDIT_SOFT_ERROR) {
+        /* unable to edit packet, most likely 802.11 management or data QoS frame */
         dbgx(3, "%s", tcpedit_geterr(tcpedit));
         return TCPEDIT_SOFT_ERROR;
     }
