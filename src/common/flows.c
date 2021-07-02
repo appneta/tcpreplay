@@ -161,23 +161,25 @@ static inline flow_entry_type_t hash_put_data(flow_hash_table_t *fht, const uint
 flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *pkthdr,
         const u_char *pktdata, const int datalink, const int expiry)
 {
+    uint32_t pkt_len = pkthdr->caplen;
+    const u_char *packet = pktdata;
+    uint32_t _U_ vlan_offset;
     uint16_t ether_type = 0;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     tcp_hdr_t *tcp_hdr;
     udp_hdr_t *udp_hdr;
     icmpv4_hdr_t *icmp_hdr;
-    hdlc_hdr_t *hdlc_hdr;
-    sll_hdr_t *sll_hdr;
-    struct tcpr_pppserial_hdr *ppp;
     flow_entry_data_t entry;
-    uint32_t l2_len = 0;
-    int ip_len;
+    uint32_t l2len = 0;
+    uint32_t l2offset;
     uint8_t protocol;
     uint32_t hash;
+    int ip_len;
+    int res;
 
     assert(fht);
-    assert(pktdata);
+    assert(packet);
 
     /*
      * extract the 5-tuple and populate the entry data
@@ -185,91 +187,31 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
 
     memset(&entry, 0, sizeof(entry));
 
-    switch (datalink) {
-    case DLT_LINUX_SLL:
-        l2_len = 16;
-        if (pkthdr->caplen < l2_len)
-            return FLOW_ENTRY_INVALID;
+    res = get_l2len_protocol(packet,
+                             pkt_len,
+                             datalink,
+                             &ether_type,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
 
-        sll_hdr = (sll_hdr_t *)pktdata;
-        ether_type = sll_hdr->sll_protocol;
-        break;
-
-    case DLT_PPP_SERIAL:
-        l2_len = 4;
-        if (pkthdr->caplen < l2_len)
-            return FLOW_ENTRY_INVALID;
-
-        ppp = (struct tcpr_pppserial_hdr *)pktdata;
-        if (ntohs(ppp->protocol) == 0x0021)
-            ether_type = htons(ETHERTYPE_IP);
-        else
-            ether_type = ppp->protocol;
-        break;
-
-    case DLT_C_HDLC:
-        l2_len = 4;
-        if (pkthdr->caplen < l2_len)
-            return FLOW_ENTRY_INVALID;
-
-        hdlc_hdr = (hdlc_hdr_t *)pktdata;
-        ether_type = hdlc_hdr->protocol;
-        break;
-
-    case DLT_RAW:
-        if ((pktdata[0] >> 4) == 4)
-            ether_type = ETHERTYPE_IP;
-        else if ((pktdata[0] >> 4) == 6)
-            ether_type = ETHERTYPE_IP6;
-        break;
-
-    case DLT_JUNIPER_ETHER:
-        if (pkthdr->caplen < 4)
-            return FLOW_ENTRY_INVALID;
-
-        if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3)){
-            warnx("No Magic Number found: %s (0x%x)",
-                  pcap_datalink_val_to_description(datalink), datalink);
-            return 0;
-        }
-
-        if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
-            l2_len = ntohs(*((uint16_t*)&pktdata[4]));
-            l2_len += 6; /* MGC + flags + ext_total_len */
-        } else {
-            l2_len = 4; /* MGC + flags (no header extensions) */
-        }
-        /* fall through */
-    case DLT_EN10MB:
-        /* l2_len will be zero if we did not fall through */
-        if (pkthdr->caplen < l2_len + sizeof(eth_hdr_t))
-            return FLOW_ENTRY_INVALID;
-
-        ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
-        l2_len += sizeof(eth_hdr_t);
-
-        while (ether_type == ETHERTYPE_VLAN) {
-            if (pkthdr->caplen < l2_len + sizeof(vlan_hdr_t))
-                    return FLOW_ENTRY_INVALID;
-
-            vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-            entry.vlan = vlan_hdr->vlan_tci & htons(0xfff);
-            ether_type = ntohs(vlan_hdr->vlan_tpid);
-            l2_len += 4;
-        }
-        break;
-
-    default:
+    if (res == -1) {
         warnx("Unable to process unsupported DLT type: %s (0x%x)",
-             pcap_datalink_val_to_description(datalink), datalink);
+              pcap_datalink_val_to_description(datalink), datalink);
         return FLOW_ENTRY_INVALID;
     }
 
+    packet += l2offset;
+    l2len -= l2offset;
+    pkt_len -= l2offset;
+
+    assert(l2len > 0);
+
     if (ether_type == ETHERTYPE_IP) {
-        if (pkthdr->caplen < l2_len + sizeof(ipv4_hdr_t))
+        if (pkt_len < l2len + sizeof(ipv4_hdr_t))
                 return FLOW_ENTRY_INVALID;
 
-        ip_hdr = (ipv4_hdr_t *)(pktdata + l2_len);
+        ip_hdr = (ipv4_hdr_t *)(packet + l2len);
 
         if (ip_hdr->ip_v != 4)
             return FLOW_ENTRY_NON_IP;
@@ -279,13 +221,13 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         entry.src_ip.in = ip_hdr->ip_src;
         entry.dst_ip.in = ip_hdr->ip_dst;
     } else if (ether_type == ETHERTYPE_IP6) {
-        if (pkthdr->caplen < l2_len + sizeof(ipv6_hdr_t))
+        if (pkt_len < l2len + sizeof(ipv6_hdr_t))
                 return FLOW_ENTRY_INVALID;
 
-        if ((pktdata[0] >> 4) != 6)
+        if ((packet[0] >> 4) != 6)
             return FLOW_ENTRY_NON_IP;
 
-        ip6_hdr = (ipv6_hdr_t *)(pktdata + l2_len);
+        ip6_hdr = (ipv6_hdr_t *)(packet + l2len);
         ip_len = sizeof(*ip6_hdr);
         protocol = ip6_hdr->ip_nh;
 
@@ -304,26 +246,26 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
 
     switch (protocol) {
     case IPPROTO_UDP:
-        if (pkthdr->caplen < (l2_len + ip_len + sizeof(udp_hdr_t)))
+        if (pkt_len < (l2len + ip_len + sizeof(udp_hdr_t)))
             return FLOW_ENTRY_INVALID;
-        udp_hdr = (udp_hdr_t*)(pktdata + ip_len + l2_len);
+        udp_hdr = (udp_hdr_t*)(packet + ip_len + l2len);
         entry.src_port = udp_hdr->uh_sport;
         entry.dst_port = udp_hdr->uh_dport;
         break;
 
     case IPPROTO_TCP:
-        if (pkthdr->caplen < (l2_len + ip_len + sizeof(tcp_hdr_t)))
+        if (pkt_len < (l2len + ip_len + sizeof(tcp_hdr_t)))
             return FLOW_ENTRY_INVALID;
-        tcp_hdr = (tcp_hdr_t*)(pktdata + ip_len + l2_len);
+        tcp_hdr = (tcp_hdr_t*)(packet + ip_len + l2len);
         entry.src_port = tcp_hdr->th_sport;
         entry.dst_port = tcp_hdr->th_dport;
         break;
 
     case IPPROTO_ICMP:
     case IPPROTO_ICMPV6:
-        if (pkthdr->caplen < (l2_len + ip_len + sizeof(icmpv4_hdr_t)))
+        if (pkt_len < (l2len + ip_len + sizeof(icmpv4_hdr_t)))
             return FLOW_ENTRY_INVALID;
-        icmp_hdr = (icmpv4_hdr_t*)(pktdata + ip_len + l2_len);
+        icmp_hdr = (icmpv4_hdr_t*)(packet + ip_len + l2len);
         entry.src_port = icmp_hdr->icmp_type;
         entry.dst_port = icmp_hdr->icmp_code;
         break;

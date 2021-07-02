@@ -71,108 +71,307 @@ get_pcap_version(void)
 #endif
 }
 
-
-
-/**
- * returns the L2 protocol (IP, ARP, etc)
- * or 0 for error
+/*
+ * Advance L2 protocol and L2 length past any MPLS labels.
+ * e.g. https://www.cloudshark.org/captures/20f210391b21
+ *
+ * If EoMPLS is detected, also advance L2 offset to point to the
+ * encapsulated L2.
+ * e.g. https://www.cloudshark.org/captures/b15412060b3d
+ *
+ * pktdata:       pointer to the raw packet
+ * datalen:       number of bytes captured in the packet
+ * next_protocol: reference to the next L2 protocol to be examined and possibly updated
+ * l2len:         reference to the length of the L2 header discovered so far
+ * l2offset:      reference to the offset to the start of the L2 header - typically 0
+ *
+ * return 0 on success, -1 on failure
  */
-uint16_t
-get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink)
+int parse_mpls(const u_char *pktdata,
+               const uint32_t datalen,
+               uint16_t *next_protocol,
+               uint32_t *l2len,
+               uint32_t *l2offset)
 {
-    uint16_t eth_hdr_offset = 0;
+    struct tcpr_mpls_label *mpls_label;
+    int len_remaining = (int)datalen;
+    u_char first_nibble;
+    eth_hdr_t *eth_hdr;
+    bool bos = false;
+    uint32_t label;
+    int len;
+
+    assert(next_protocol);
+    assert(l2len);
+    assert(l2offset);
+
+    len = (int)*l2len;
+
+    /* move over MPLS labels until we get to the last one */
+    while (!bos) {
+        if (len_remaining < (int)sizeof(*mpls_label))
+            return -1;
+
+        mpls_label = (struct tcpr_mpls_label*)(pktdata + len);
+        len += sizeof(*mpls_label);
+        len_remaining -= sizeof(*mpls_label);
+        bos = (ntohl(mpls_label->entry) & MPLS_LS_S_MASK) != 0;
+        label = ntohl(mpls_label->entry) >> MPLS_LS_LABEL_SHIFT;
+        if (label == MPLS_LABEL_GACH) {
+            /* Generic Associated Channel Header */
+            warn("GACH MPLS label not supported at this time");
+            return -1;
+        }
+    }
+
+    if (len_remaining < 4)
+        return -1;
+
+    first_nibble = (*((u_char *)(mpls_label + 1)) >> 4) & 0xf;
+    switch(first_nibble) {
+    case 4:
+        *next_protocol = ETHERTYPE_IP;
+        break;
+    case 6:
+        *next_protocol = ETHERTYPE_IP6;
+        break;
+    case 0:
+        /* EoMPLS - jump over PW Ethernet Control Word and handle
+         * inner Ethernet header
+         */
+        len += 4;
+        len_remaining -= 4;
+        if (len_remaining < (int)sizeof(*eth_hdr))
+            return -1;
+
+        *l2offset = len;
+        eth_hdr = (eth_hdr_t*)(pktdata + len);
+        len += sizeof(*eth_hdr);
+        *next_protocol = ntohs(eth_hdr->ether_type);
+        break;
+    default:
+        /* suspect Generic Associated Channel Header */
+        warnx("Unsupported MPLS label first nibble %u", first_nibble);
+        return -1;
+    }
+
+    *l2len = (uint32_t)len;
+    return 0;
+}
+
+/*
+ * Advance L2 protocol and L2 length past any VLAN tags.
+ * e.g. https://www.cloudshark.org/captures/e4fa464563d2
+ *
+ * pktdata:       pointer to the raw packet
+ * datalen:       number of bytes captured in the packet
+ * next_protocol: reference to the next L2 protocol to be examined and possibly updated
+ * l2len:         reference to the length of the L2 header discovered so far
+ *
+ * return 0 on success, -1 on failure
+ */
+int parse_vlan(const u_char *pktdata,
+               const uint32_t datalen,
+               uint16_t *next_protocol,
+               uint32_t *l2len)
+{
+    vlan_hdr_t *vlan_hdr;
+    if ((size_t)datalen < *l2len + sizeof(*vlan_hdr))
+        return -1;
+
+    vlan_hdr = (vlan_hdr_t*)(pktdata + *l2len);
+    *next_protocol = ntohs(vlan_hdr->vlan_tpid);
+    *l2len += sizeof(vlan_hdr_t);
+
+    return 0;
+}
+
+/*
+ * Loop through all non-protocol L2 headers while updating key variables
+ *
+ * pktdata:       pointer to the raw packet
+ * datalen:       number of bytes captured in the packet
+ * next_protocol: reference to the next L2 protocol to be examined and possibly updated
+ * l2len:         reference to the length of the L2 header discovered so far
+ * l2offset:      reference to the offset to the start of the L2 header - typically 0
+ * vlan_offset: reference to the offset to the start of the VLAN headers, if any
+ *
+ * return 0 on success, -1 on failure
+ */
+static int parse_metadata(const u_char *pktdata,
+                          const uint32_t datalen,
+                          uint16_t *next_protocol,
+                          uint32_t *l2len,
+                          uint32_t *l2offset,
+                          uint32_t *vlan_offset)
+{
+    bool done = false;
+    int res = 0;
+    while (!done && res == 0) {
+        switch (*next_protocol) {
+        case ETHERTYPE_VLAN:
+        case ETHERTYPE_Q_IN_Q:
+        case ETHERTYPE_8021QINQ:
+            if (*vlan_offset == 0)
+                *vlan_offset = *l2len;
+
+            res = parse_vlan(pktdata, datalen, next_protocol, l2len);
+            break;
+        case ETHERTYPE_MPLS:
+        case ETHERTYPE_MPLS_MULTI:
+            res = parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset);
+            break;
+        default:
+            done = true;
+        }
+    }
+
+    return res;
+}
+
+/*
+ * Parse raw packet and get the L3 protocol and L2 length. In cases where the
+ * L2 header is not at the beginning of the packet
+ * (e.g. DLT_JUNIPER_ETHER or EoMPLS), report the offset to the start of the
+ * L2 header
+ *
+ * pktdata:     pointer to the raw packet
+ * datalen:     number of bytes captured in the packet
+ * datalink:    data link type of the packet
+ * protocol:    reference to the L3 protocol as discovered in the L2 header
+ * l2len:       reference to the total length of the L2 header
+ * l2offset:    reference to the offset to the start of the L2 header (typically 0)
+ * vlan_offset: reference to the offset to the start of the VLAN headers, if any
+ *
+ * return 0 on success, -1 on failure
+ */
+int get_l2len_protocol(const u_char *pktdata,
+                       const uint32_t datalen,
+                       const int datalink,
+                       uint16_t *protocol,
+                       uint32_t *l2len,
+                       uint32_t *l2offset,
+                       uint32_t *vlan_offset)
+{
+    assert(protocol);
+    assert(l2len);
+    assert(l2offset);
+    assert(vlan_offset);
 
     if (!pktdata || !datalen) {
-        errx(-1, "invalid l2 parameters: pktdata=0x%p len=%d",
-                pktdata, datalen);
-        return 0;
+        errx(-1, "get_l2len_protocol: invalid L2 parameters: pktdata=0x%p len=%d",
+             pktdata,
+             datalen);
+        return -1;
     }
+
+    *protocol = 0;
+    *l2len = 0;
+    *l2offset = 0;
+    *vlan_offset = 0;
 
     switch (datalink) {
     case DLT_RAW:
-        if (datalen < 1)
-            return 0;
-        if ((pktdata[0] >> 4) == 4)
-            return ETHERTYPE_IP;
-        else if ((pktdata[0] >> 4) == 6)
-            return ETHERTYPE_IP6;
-        break;
+        if (datalen == 0)
+            return -1;
 
+        if ((pktdata[0] >> 4) == 4)
+            *protocol = ETHERTYPE_IP;
+        else if ((pktdata[0] >> 4) == 6)
+            *protocol = ETHERTYPE_IP6;
+        break;
     case DLT_JUNIPER_ETHER:
         if (datalen < 4)
-            return 0;
+            return -1;
 
         if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3)) {
             warnx("No Magic Number found during protocol lookup: %s (0x%x)",
-                 pcap_datalink_val_to_description(datalink), datalink);
-            return 0;
+                  pcap_datalink_val_to_description(datalink),
+                  datalink);
+            return -1;
         }
 
         if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
-            eth_hdr_offset = ntohs(*((uint16_t*)&pktdata[4]));
-            eth_hdr_offset += 6; /* MGC + flags + ext_total_len */
+            if (datalen < 6)
+                return -1;
+
+            *l2offset = ntohs(*((uint16_t*)&pktdata[4]));
+            *l2offset += 6; /* MGC + flags + ext_total_len */
         } else {
-            eth_hdr_offset = 4; /* MGC + flags (no header extensions) */
+            *l2offset = 4; /* MGC + flags (no header extensions) */
         }
+
         if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
-             /* no L2 header present - eth_hdr_offset is actually IP offset */
-            uint32_t ip_hdr_offset = eth_hdr_offset;
+            /* no L2 header present - *l2offset is actually IP offset */
+            uint32_t ip_hdr_offset = *l2offset;
             if (datalen < ip_hdr_offset + 1)
-                return 0;
+                return -1;
+
             if ((pktdata[ip_hdr_offset] >> 4) == 4)
-                return ETHERTYPE_IP;
+                *protocol = ETHERTYPE_IP;
             else if ((pktdata[ip_hdr_offset] >> 4) == 6)
-                return ETHERTYPE_IP6;
-            else
-                return 0;
+                *protocol = ETHERTYPE_IP6;
+
+            return 0;
         }
+
         /* fall through */
     case DLT_EN10MB:
-        if ((size_t)datalen >= (sizeof(eth_hdr_t) + eth_hdr_offset)) {
-            eth_hdr_t *eth_hdr = (eth_hdr_t *)(pktdata + eth_hdr_offset);
-            uint16_t ether_type = ntohs(eth_hdr->ether_type);
-            uint16_t l2_len = sizeof(*eth_hdr) + eth_hdr_offset;
-            while (ether_type == ETHERTYPE_VLAN) {
-                if (datalen < l2_len + sizeof(vlan_hdr_t))
-                     return 0;
+    {
+        eth_hdr_t *eth_hdr = (eth_hdr_t*)(pktdata + *l2offset);
+        uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
+        uint16_t ether_type = ntohs(eth_hdr->ether_type);
 
-                 vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(pktdata + l2_len);
-                 ether_type = ntohs(vlan_hdr->vlan_tpid);
-                 l2_len += sizeof(vlan_hdr_t);
-            }
+        if (datalen < l2_net_off)
+            return -1;
 
-            return ether_type; /* yes, return it in host byte order */
-        }
+        if (parse_metadata(pktdata,
+                           datalen,
+                           &ether_type,
+                           &l2_net_off,
+                           l2offset,
+                           vlan_offset))
+            return -1;
+
+        if (datalen < l2_net_off)
+            return -1;
+
+        *l2len = l2_net_off;
+        *protocol = ether_type; /* yes, return it in host byte order */
         break;
-
+    }
     case DLT_PPP_SERIAL:
-        if ((size_t)datalen >= sizeof(struct tcpr_pppserial_hdr)) {
-            struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr *)pktdata;
-            if (ntohs(ppp->protocol) == 0x0021)
-                return htons(ETHERTYPE_IP);
-            else
-                return ppp->protocol;
-        }
-        break;
+        if ((size_t)datalen < sizeof(struct tcpr_pppserial_hdr))
+            return -1;
 
+        struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr*)pktdata;
+        *l2len = sizeof(*ppp);
+        if (ntohs(ppp->protocol) == 0x0021)
+            *protocol = ETHERTYPE_IP;
+        else
+            *protocol = ntohs(ppp->protocol);
+
+        break;
     case DLT_C_HDLC:
-        if ((size_t)datalen >= sizeof(hdlc_hdr_t)) {
-            hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t *)pktdata;
-            return hdlc_hdr->protocol;
-        }
-        break;
+        if (datalen < CISCO_HDLC_LEN)
+            return -1;
 
+        hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t*)pktdata;
+        *l2len = sizeof(*hdlc_hdr);
+        *protocol = ntohs(hdlc_hdr->protocol);
+        break;
     case DLT_LINUX_SLL:
-        if ((size_t)datalen >= sizeof(sll_hdr_t)) {
-            sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
-            return sll_hdr->sll_protocol;
-        }
+        if (datalen < SLL_HDR_LEN)
+            return -1;
+
+        sll_hdr_t *sll_hdr = (sll_hdr_t*)pktdata;
+        *l2len = sizeof(*sll_hdr);
+        *protocol = ntohs(sll_hdr->sll_protocol);
         break;
-
     default:
-        errx(-1, "Unable to process unsupported DLT type: %s (0x%x)", 
-             pcap_datalink_val_to_description(datalink), datalink);
-
+        errx(-1, "Unable to process unsupported DLT type: %s (0x%x)",
+             pcap_datalink_val_to_description(datalink),
+             datalink);
     }
 
     return 0;
@@ -184,93 +383,23 @@ get_l2protocol(const u_char *pktdata, const uint32_t datalen, const int datalink
 int
 get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 {
-    int l2_len = 0;
+    uint16_t _U_ protocol;
+    uint32_t _U_ l2offset;
+    uint32_t _U_ vlan_offset;
+    uint32_t l2len = 0;
 
-    assert(pktdata);
-    assert(datalen);
+    int res = get_l2len_protocol(pktdata,
+                                 datalen,
+                                 datalink,
+                                 &protocol,
+                                 &l2len,
+                                 &l2offset,
+                                 &vlan_offset);
 
-    switch (datalink) {
-    case DLT_RAW:
-        /* pktdata IS the ip header! */
-        break;
+    if (res == -1)
+        return 0;
 
-    case DLT_JUNIPER_ETHER:
-        if (datalen < 4) {
-            l2_len = -1;
-            break;
-        }
-
-        if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3)) {
-            warnx("No Magic Number found during L2 lookup: %s (0x%x)",
-                  pcap_datalink_val_to_description(datalink), datalink);
-            l2_len = -1;
-            break;
-        }
-
-        if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
-            /* no L2 header present */
-            l2_len = 0;
-            break;
-        }
-
-        if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
-            if (datalen < 6) {
-                /* datalen too short */
-                l2_len = -1;
-                break;
-            }
-            l2_len = ntohs(*((uint16_t*)&pktdata[4]));
-            l2_len += 6;        /* MGC + flags + ext_total_len */
-        } else {
-            l2_len = 4;         /* MGC + flags */
-        }
-        /* fall through */
-    case DLT_EN10MB:
-        if ((size_t)datalen >= sizeof(eth_hdr_t) + l2_len) {
-            uint16_t ether_type = ntohs(((eth_hdr_t*)(pktdata + l2_len))->ether_type);
-
-            l2_len += sizeof(eth_hdr_t);
-            while (ether_type == ETHERTYPE_VLAN) {
-                if ((size_t)datalen < sizeof(vlan_hdr_t) + l2_len) {
-                    l2_len = -1;
-                    break;
-                }
-                vlan_hdr_t *vlan_hdr = (vlan_hdr_t *)(pktdata + l2_len);
-                ether_type = ntohs(vlan_hdr->vlan_tpid);
-                l2_len += 4;
-            }
-        }
-
-        if (datalen < l2_len)
-            l2_len = -1;
-
-        break;
-
-    case DLT_PPP_SERIAL:
-        if (datalen >= 4) {
-            l2_len = 4;
-        }
-        break;
-
-    case DLT_C_HDLC:
-        if (datalen >= CISCO_HDLC_LEN) {
-            l2_len = CISCO_HDLC_LEN;
-        }
-        break;
-
-    case DLT_LINUX_SLL:
-        if (datalen >= SLL_HDR_LEN) {
-            l2_len = SLL_HDR_LEN;
-        }
-        break;
-
-    default:
-        errx(-1, "Unable to process unsupported DLT type: %s (0x%x)", 
-             pcap_datalink_val_to_description(datalink), datalink);
-        return -1; /* we shouldn't get here */
-    }
-
-    return l2_len;
+    return l2len;
 }
 
 /**
@@ -286,26 +415,39 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
 const u_char *
 get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 {
+    const u_char *packet = pktdata;
     const u_char *ip_hdr = NULL;
-    int l2_len = 0;
+    ssize_t pkt_len = datalen;
+    uint32_t _U_ vlan_offset;
+    uint32_t l2offset;
     uint16_t proto;
+    uint32_t l2len;
+    int res;
 
-    assert(pktdata);
-    assert(datalen);
+    assert(packet);
+    assert(pkt_len);
     assert(*newbuff);
 
-    l2_len = get_l2len(pktdata, datalen, datalink);
+    res = get_l2len_protocol(packet,
+                             pkt_len,
+                             datalink,
+                             &proto,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
 
-    /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len < 0 || l2_len + TCPR_IPV4_H > datalen) {
+    /* sanity... pkt_len must be > l2len + IP header len*/
+    if (res == -1 || l2len + TCPR_IPV4_H > pkt_len) {
         dbg(1, "get_ipv4(): Layer 2 len > total packet len, hence no IP header");
         return NULL;
     }
 
-    proto = get_l2protocol(pktdata, datalen, datalink);
-
     if (proto != ETHERTYPE_IP)
         return NULL;
+
+    packet += l2offset;
+    l2len -= l2offset;
+    pkt_len -= l2offset;
 
 #ifdef FORCE_ALIGN
     /*
@@ -315,20 +457,20 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
-    if (l2_len % sizeof(long)) {
-        memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
+    if (l2len % sizeof(long)) {
+        memcpy(*newbuff, (packet + l2len), (pkt_len - l2len));
         ip_hdr = *newbuff;
     } else {
 
-        /* we don't have to do a memcpy if l2_len lands on a boundary */
-        ip_hdr = (pktdata + l2_len);
+        /* we don't have to do a memcpy if l2len lands on a boundary */
+        ip_hdr = (packet + l2len);
     }
 #else
     /*
      * on non-strict byte align systems, don't need to memcpy(), 
      * just point to l2len bytes into the existing buffer
      */
-    ip_hdr = (pktdata + l2_len);
+    ip_hdr = (packet + l2len);
 #endif
 
     return ip_hdr;
@@ -348,26 +490,39 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 const u_char *
 get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 {
+    const u_char *packet = pktdata;
     const u_char *ip6_hdr = NULL;
-    int l2_len = 0;
+    ssize_t pkt_len = datalen;
+    uint32_t _U_ vlan_offset;
+    uint32_t l2offset;
     uint16_t proto;
+    uint32_t l2len;
+    int res;
 
-    assert(pktdata);
-    assert(datalen);
+    assert(packet);
+    assert(pkt_len);
     assert(*newbuff);
 
-    l2_len = get_l2len(pktdata, datalen, datalink);
+    res = get_l2len_protocol(packet,
+                             pkt_len,
+                             datalink,
+                             &proto,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
 
-    /* sanity... datalen must be > l2_len + IP header len*/
-    if (l2_len < 0 || l2_len + TCPR_IPV6_H > datalen) {
+    /* sanity... pkt_len must be > l2len + IP header len*/
+    if (res == -1 || l2len + TCPR_IPV6_H > pkt_len) {
         dbg(1, "get_ipv6(): Layer 2 len > total packet len, hence no IPv6 header");
         return NULL;
     }
 
-    proto = get_l2protocol(pktdata, datalen, datalink);
-
     if (proto != ETHERTYPE_IP6)
         return NULL;
+
+    packet += l2offset;
+    l2len -= l2offset;
+    pkt_len -= l2offset;
 
 #ifdef FORCE_ALIGN
     /*
@@ -377,20 +532,20 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
-    if (l2_len % sizeof(long)) {
-        memcpy(*newbuff, (pktdata + l2_len), (datalen - l2_len));
+    if (l2len % sizeof(long)) {
+        memcpy(*newbuff, (packet + l2len), (pkt_len - l2len));
         ip6_hdr = *newbuff;
     } else {
 
-        /* we don't have to do a memcpy if l2_len lands on a boundary */
-        ip6_hdr = (pktdata + l2_len);
+        /* we don't have to do a memcpy if l2len lands on a boundary */
+        ip6_hdr = (packet + l2len);
     }
 #else
     /*
      * on non-strict byte align systems, don't need to memcpy(),
      * just point to l2len bytes into the existing buffer
      */
-    ip6_hdr = (pktdata + l2_len);
+    ip6_hdr = (packet + l2len);
 #endif
 
     return ip6_hdr;
