@@ -240,42 +240,32 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
-    if (node == NULL && mode == DIR_UNKNOWN)
+    if (node == NULL && mode == DIR_UNKNOWN) {
+        safe_free(finder);
         errx(-1, "%s (%lu) is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name4(ip, RESOLVE), ip);
+    }
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-#ifdef DEBUG
         switch (node->type) {
         case DIR_SERVER:
             dbgx(1, "DIR_SERVER: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_CLIENT:
-            dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_UNKNOWN:
-            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_ANY:
-            dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        }
-#endif
-
-        switch (node->type) {
-        case DIR_SERVER:
             safe_free(finder);
             return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
+            dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
             safe_free(finder);
             return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
-        case DIR_ANY:
+            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
             /* use our current mode to determine return code */
+            goto return_unknown;
+        case DIR_ANY:
+            dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
             goto return_unknown; 
         default:
             errx(-1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
@@ -307,43 +297,32 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
-    if (node == NULL && mode == DIR_UNKNOWN)
+    if (node == NULL && mode == DIR_UNKNOWN) {
+        safe_free(finder);
         errx(-1, "%s is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name6(addr, RESOLVE));
-
-    /*
-     * FIXME: Is this logic correct?  I think this might be backwards :(
-     */
+    }
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-#ifdef DEBUG
         switch (node->type) {
         case DIR_SERVER:
             dbgx(1, "DIR_SERVER: %s", get_addr2name6(addr, RESOLVE));
+            safe_free(finder);
+            return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
             dbgx(1, "DIR_CLIENT: %s", get_addr2name6(addr, RESOLVE));
+            safe_free(finder);
+            return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
             dbgx(1, "DIR_UNKNOWN: %s", get_addr2name6(addr, RESOLVE));
-            break;
+            /* use our current mode to determine return code */
+            goto return_unknown;
         case DIR_ANY:
             dbgx(1, "DIR_ANY: %s", get_addr2name6(addr, RESOLVE));
-            break;
-        }
-#endif
-        switch (node->type) {
-        case DIR_SERVER:
-            return TCPR_DIR_C2S;
-            break;
-        case DIR_CLIENT:
-            return TCPR_DIR_S2C;
-            break;
-        case DIR_UNKNOWN:
-        case DIR_ANY:
-            /* use our current mode to determine return code */
             goto return_unknown;
         default:
             errx(-1, "Node for %s has invalid type: %d", get_addr2name6(addr, RESOLVE), node->type);
@@ -354,10 +333,10 @@ return_unknown:
     safe_free(finder);
     switch (mode) {
     case DIR_SERVER:
-        return TCPR_DIR_C2S;
+        return TCPR_DIR_S2C;
         break;
     case DIR_CLIENT:
-        return TCPR_DIR_S2C;
+        return TCPR_DIR_C2S;
         break;
     default:
         return -1;
@@ -805,7 +784,9 @@ packet2tree(const u_char * data, const int len, int datalink)
      */
     if (proto == IPPROTO_TCP) {
 
+#ifdef DEBUG
         dbgx(3, "%s uses TCP...  ", srcip);
+#endif
 
         if (pkt_len < l2len + TCPR_TCP_H + hl)
             goto len_error;
@@ -839,7 +820,9 @@ packet2tree(const u_char * data, const int len, int datalink)
 
         /* memcpy over to prevent alignment issues */
         memcpy(&udp_hdr, data + l2len + hl, TCPR_UDP_H);
+#ifdef DEBUG
         dbgx(3, "%s uses UDP...  ", srcip);
+#endif
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
@@ -905,7 +888,9 @@ packet2tree(const u_char * data, const int len, int datalink)
         /* prevent alignment issues */
         memcpy(&icmp_hdr, data + l2len + hl, TCPR_ICMPV4_H);
 
+#ifdef DEBUG
         dbgx(3, "%s uses ICMP...  ", srcip);
+#endif
 
         /*
          * if port unreachable, then source == server, dst == client 

@@ -316,9 +316,6 @@ check_ipv6_regex(const struct tcpr_in6_addr *addr)
 static COUNTER
 process_raw_packets(pcap_t * pcap)
 {
-    ipv4_hdr_t *ip_hdr = NULL;
-    ipv6_hdr_t *ip6_hdr = NULL;
-    eth_hdr_t *eth_hdr = NULL;
     struct pcap_pkthdr pkthdr;
     const u_char *pktdata = NULL;
     COUNTER packetnum = 0;
@@ -332,6 +329,10 @@ process_raw_packets(pcap_t * pcap)
     ipbuff = safe_malloc(MAXPACKET);
 
     while ((pktdata = safe_pcap_next(pcap, &pkthdr)) != NULL) {
+        ipv4_hdr_t *ip_hdr = NULL;
+        ipv6_hdr_t *ip6_hdr = NULL;
+        eth_hdr_t *eth_hdr = NULL;
+
         packetnum++;
 
         dbgx(1, "Packet " COUNTER_SPEC, packetnum);
@@ -365,10 +366,10 @@ process_raw_packets(pcap_t * pcap)
     
             /* first look for IPv4 */
             if ((ip_hdr = (ipv4_hdr_t *)get_ipv4(pktdata, pkthdr.caplen, 
-                    pcap_datalink(pcap), &buffptr))) {
+                    pcap_datalink(pcap), &buffptr)) != NULL) {
                 dbg(2, "Packet is IPv4");
             } else if ((ip6_hdr = (ipv6_hdr_t *)get_ipv6(pktdata, pkthdr.caplen,
-                    pcap_datalink(pcap), &buffptr))) {
+                    pcap_datalink(pcap), &buffptr)) != NULL) {
                 /* IPv6 */
                 dbg(2, "Packet is IPv6");    
             } else {
