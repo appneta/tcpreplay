@@ -127,7 +127,7 @@ int parse_mpls(const u_char *pktdata,
     if (len_remaining < 4)
         return -1;
 
-    first_nibble = (*((u_char *)(mpls_label + 1)) >> 4) & 0xf;
+    first_nibble = *((u_char *)(mpls_label + 1)) >> 4;
     switch(first_nibble) {
     case 4:
         *next_protocol = ETHERTYPE_IP;
@@ -151,7 +151,6 @@ int parse_mpls(const u_char *pktdata,
         break;
     default:
         /* suspect Generic Associated Channel Header */
-        warnx("Unsupported MPLS label first nibble %u", first_nibble);
         return -1;
     }
 
@@ -322,7 +321,7 @@ int get_l2len_protocol(const u_char *pktdata,
         uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
         uint16_t ether_type = ntohs(eth_hdr->ether_type);
 
-        if (datalen < l2_net_off)
+        if (datalen <= l2_net_off)
             return -1;
 
         if (parse_metadata(pktdata,
@@ -337,7 +336,19 @@ int get_l2len_protocol(const u_char *pktdata,
             return -1;
 
         *l2len = l2_net_off;
-        *protocol = ether_type; /* yes, return it in host byte order */
+        if (ether_type > 1500) {
+            /* Ethernet II frame - return in host order */
+            *protocol = ether_type;
+        } else {
+            /* 803.3 frame */
+            if ((pktdata[l2_net_off] >> 4) == 4)
+                *protocol = ETHERTYPE_IP;
+            else if ((pktdata[l2_net_off] >> 4) == 6)
+                *protocol = ETHERTYPE_IP6;
+            else
+                /* unsupported 802.3 protocol */
+                return -1;
+        }
         break;
     }
     case DLT_PPP_SERIAL:

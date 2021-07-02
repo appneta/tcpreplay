@@ -24,9 +24,9 @@
 #include "ethernet.h"
 
 /* 
- * takes a ptr to an ethernet address and returns
+ * Takes a ptr to an ethernet address and returns
  * 1 if it is unicast or 0 if it is multicast or
- * broadcast.
+ * broadcast. As per RFC5342.
  */
 int 
 is_unicast_ethernet(tcpeditdlt_t *ctx, const u_char *ether)
@@ -35,12 +35,24 @@ is_unicast_ethernet(tcpeditdlt_t *ctx, const u_char *ether)
     assert(ctx);
     assert(ether);
 
-    /* is broadcast? */
+    /* ff:ff:ff:ff:ff:ff - broadcast */
     if (memcmp(ether, BROADCAST_MAC, ETHER_ADDR_LEN) == 0)
         return 0;
 
-    /* Multicast addresses' leading octet are odd */
-    if ((ether[0] & 0x01) == 0x01)
+    /* 01:00:5e:(00:00:00-7f:ff:ff) - IPv4 Multicast and MLPS Multicast */
+    if (memcmp(&ether[0], IPV4_MULTICAST_MAC, 3) == 0)
+        return 0;
+
+    /* 33:33 - IPv6 Multicast */
+    if (memcmp(&ether[0], IPV6_MULTICAST_MAC, 2) == 0)
+        return 0;
+
+    /*
+     * 00:00:5e:(00:01:00 – 00:01:ff) - IPv4 Virtual Router Redundancy Protocol
+     * 00:00:5e:(00:02:00 – 00:02:ff) - IPv6 Virtual Router Redundancy Protocol
+     */
+    if (memcmp(&ether[0], IPV4_VRRP, 5) == 0
+            || memcmp(&ether[0], IPV6_VRRP, 5) == 0)
         return 0;
 
     /* everything else is unicast */

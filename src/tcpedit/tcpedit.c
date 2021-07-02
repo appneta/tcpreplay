@@ -125,18 +125,16 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
     if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen)) < 0) {
-        dbg(2, "Packet has no L3+ header");
+        dbgx(2, "Packet has no L3+ header: %s", tcpedit_geterr(tcpedit));
+        return TCPEDIT_SOFT_ERROR;
     } else {
         dbgx(2, "Layer 3 protocol type is: 0x%04x", ntohs(l2proto));
     }
         
     /* rewrite Layer 2 */
-    if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, pktdata, (*pkthdr)->caplen, direction)) == TCPEDIT_ERROR)
-        errx(-1, "%s", tcpedit_geterr(tcpedit));
-
-    if (pktlen == TCPEDIT_SOFT_ERROR) {
+    if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, pktdata, (*pkthdr)->caplen, direction)) < 0) {
         /* unable to edit packet, most likely 802.11 management or data QoS frame */
-        dbgx(3, "%s", tcpedit_geterr(tcpedit));
+        dbgx(3, "Failed to edit DLT: %s", tcpedit_geterr(tcpedit));
         return TCPEDIT_SOFT_ERROR;
     }
 
