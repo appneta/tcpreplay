@@ -214,13 +214,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
 
         /* rewrite the TTL */
-        rewrite_ipv4_ttl(tcpedit, ip_hdr);
+        needtorecalc += rewrite_ipv4_ttl(tcpedit, ip_hdr);
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
             if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr,
                     (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
+            needtorecalc += retval;
         }
 
         if (tcpedit->tcp_sequence_enable)
@@ -231,7 +232,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     /* IPv6 edits */
     else if (ip6_hdr != NULL) {
         /* rewrite the hop limit */
-        rewrite_ipv6_hlim(tcpedit, ip6_hdr);
+        needtorecalc += rewrite_ipv6_hlim(tcpedit, ip6_hdr);
 
         /* set traffic class? */
         if (tcpedit->tclass > -1) {
@@ -264,6 +265,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr,
                     (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
+            needtorecalc += retval;
         }
 
         if (tcpedit->tcp_sequence_enable)
@@ -292,10 +294,12 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             if ((retval = rewrite_ipv4l3(tcpedit, ip_hdr, direction,
                     (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
+            needtorecalc += retval;
         } else if (ip6_hdr != NULL) {
             if ((retval = rewrite_ipv6l3(tcpedit, ip6_hdr, direction,
                     (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
+            needtorecalc += retval;
         }
 
         /* ARP packets */
@@ -318,11 +322,13 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             if ((retval = randomize_ipv4(tcpedit, *pkthdr, packet, 
                     ip_hdr, (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
+            needtorecalc += retval;
 
         } else if (ip6_hdr != NULL) {
             if ((retval = randomize_ipv6(tcpedit, *pkthdr, packet,
                     ip6_hdr, (*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
+            needtorecalc += retval;
 
         /* ARP packets */
         } else if (l2proto == htons(ETHERTYPE_ARP)) {
@@ -336,16 +342,6 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
                     return TCPEDIT_ERROR;
             }
         }
-    }
-
-    /*
-     * fix IP packet lengths in case they are corrupted by TCP segmentation
-     * offload
-     */
-    if (ip_hdr != NULL) {
-        fix_ipv4_length(*pkthdr, ip_hdr);
-    } else if (ip6_hdr != NULL) {
-        fix_ipv6_length(*pkthdr, ip6_hdr);
     }
 
     /* do we need to fix checksums? -- must always do this last! */
@@ -363,7 +359,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         if (retval < 0) {
             return TCPEDIT_ERROR;
         } else if (retval == TCPEDIT_WARN) {
-            dbgx(3, "%s", tcpedit_getwarn(tcpedit));
+            warnx("%s", tcpedit_getwarn(tcpedit));
         }
     }
 

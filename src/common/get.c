@@ -591,8 +591,9 @@ void *
 get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
 {
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
-    uint8_t proto;
+    bool done = false;
     uint32_t maxlen;
+    uint8_t proto;
     int min_len;
 
     assert(ip6_hdr);
@@ -605,14 +606,14 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
     proto = ip6_hdr->ip_nh;
 
-    while (1) {
+    while (!done) {
         dbgx(3, "Processing proto: 0x%hx", (uint16_t)proto);
 
         switch (proto) {
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */
         case TCPR_IPV6_NH_IPV6:
             dbg(3, "recursing due to v6-in-v6");
-            return get_layer4_v6((ipv6_hdr_t *)next, l3len - min_len);
+            next = get_layer4_v6((ipv6_hdr_t *)next, l3len - min_len);
             break;
 
         /* loop again */
@@ -623,8 +624,10 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
             dbgx(3, "Going deeper due to extension header 0x%02X", proto);
             maxlen = l3len - (int)((u_char *)ip6_hdr - (u_char *)next);
             exthdr = get_ipv6_next(next, maxlen);
-            if (exthdr == NULL)
-                return next;
+            if (exthdr == NULL) {
+                done = true;
+                break;
+            }
             proto = exthdr->ip_nh;
             next = exthdr;
             break;
@@ -634,7 +637,8 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
          */
         case TCPR_IPV6_NH_FRAGMENT:
         case TCPR_IPV6_NH_ESP:
-            return NULL;
+            next = NULL;
+            done = true;
             break;
 
         /*
@@ -644,14 +648,19 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
             if (proto != ip6_hdr->ip_nh) {
                 dbgx(3, "Returning byte offset of this ext header: %u", 
                         IPV6_EXTLEN_TO_BYTES(next->ip_len));
-                return (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
+                next =  (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
             } else {
                 dbgx(3, "%s", "Returning end of IPv6 Header");
-                return next;
             }
-            break;
+
+            done = true;
         } /* switch */
     } /* while */
+
+    if (!next || (u_char*)next > (u_char*)ip6_hdr + l3len)
+        return NULL;
+
+    return next;
 }
 
 
