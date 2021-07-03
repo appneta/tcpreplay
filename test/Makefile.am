@@ -25,20 +25,22 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
-		test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
+		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
 		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
 		test.rewrite_mtutrunc test.rewrite_mac_seed test.rewrite_range_portmap \
-		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing test.rewrite_sequence \
+		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing test.rewrite_sequence test.rewrite_fixcsum \
+		test.rewrite_fixlen_pad test.rewrite_fixlen_trunc test.rewrite_fixlen_del \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
-		test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
+		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
 		test2.rewrite_mtutrunc test2.rewrite_enet_subsmac \
 		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos \
 		test2.rewrite_enet_subsmac test2.rewrite_mac_seed \
 		test2.rewrite_range_portmap test2.rewrite_mac_seed_keep \
-		test2.rewrite_l7fuzzing test2.rewrite_sequence
+		test2.rewrite_l7fuzzing test2.rewrite_sequence test2.rewrite_fixcsum \
+		test2.rewrite_fixlen_pad test2.rewrite_fixlen_trunc test2.rewrite_fixlen_del
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -106,13 +108,17 @@ standard_bigendian:
 		 --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_config --enet-vlan=add --enet-vlan-tag=45 \
 		--enet-vlan-cfi=1 --enet-vlan-pri=5
-	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_skip -b -s 55 \
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_skip \
+	    --skipbroadcast --skipl2broadcast --skip-soft-errors --seed 55 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c $(srcdir)/test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_dltuser --dlt=user \
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
+	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test.rewrite_vlan802.1ad \
+		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
+		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
 	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test.rewrite_vlandel \
 		--enet-vlan=del
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_efcs --efcs
@@ -122,6 +128,10 @@ standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_fixcsum --fixcsum
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_fixlen_pad --fixlen=pad
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_fixlen_trunc --fixlen=trunc
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_fixlen_del --fixlen=del
 
 standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_seed -s 55
@@ -155,6 +165,9 @@ standard_littleendian:
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
+	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test2.rewrite_vlan802.1ad \
+		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
+		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
 	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test2.rewrite_vlandel \
 		--enet-vlan=del
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_efcs --efcs
@@ -164,6 +177,10 @@ standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_fixcsum --fixcsum
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_fixlen_pad --fixlen=pad
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_fixlen_trunc --fixlen=trunc
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_fixlen_del --fixlen=del
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
@@ -173,9 +190,10 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc \
-	rewrite_vlandel rewrite_efcs rewrite_1ttl rewrite_2ttl rewrite_3ttl \
+	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs rewrite_1ttl rewrite_2ttl rewrite_3ttl \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
-	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence
+	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
+	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del
 
 tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
@@ -543,6 +561,19 @@ else
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
+rewrite_vlan802.1ad:
+	$(PRINTF) "%s" "[tcprewrite] 802.1ad Q-in-Q add test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] 802.1ad Q-in-Q add test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test.rewrite_config -o test.$@1 \
+		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
+		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad  >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
 rewrite_vlandel:
 	$(PRINTF) "%s" "[tcprewrite] VLAN Delete test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN Delete test: " >> test.log
@@ -632,6 +663,50 @@ else
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
+rewrite_fixcsum:
+	$(PRINTF) "%s" "[tcprewrite] Fix checksum test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fix checksum test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --fixcsum >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_fixlen_pad:
+	$(PRINTF) "%s" "[tcprewrite] Fix length and pad test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fix length and pad test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --fixlen=pad >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+rewrite_fixlen_trunc:
+	$(PRINTF) "%s" "[tcprewrite] Fix length and truncate test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fix length and truncate test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --fixlen=trunc >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_fixlen_del:
+	$(PRINTF) "%s" "[tcprewrite] Fix length and delete test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Fix length and delete test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --fixlen=del >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
 replay_pps:
 	$(PRINTF) "%s" "[tcpreplay] Packets/sec test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Packets/sec test: " >> test.log
@@ -696,6 +771,6 @@ clean:
 	rm -f *1 test.log core* *~ primary.data secondary.data
 
 distclean: clean
-	rm -f Makefile config
+	rm -f Makefile Makefile.in config
 
 maintainer-clean: distclean

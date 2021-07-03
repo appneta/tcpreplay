@@ -26,7 +26,7 @@
 /* 
  * Takes a ptr to an ethernet address and returns
  * 1 if it is unicast or 0 if it is multicast or
- * broadcast. As per RFC5342.
+ * broadcast. As per RFC7042.
  */
 int 
 is_unicast_ethernet(tcpeditdlt_t *ctx, const u_char *ether)
