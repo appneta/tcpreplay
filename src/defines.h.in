@@ -210,7 +210,11 @@ typedef enum tcpprep_mode_e {
     CLIENT_MODE     /* second pass through in client (router) mode */
 } tcpprep_mode_t;
 
-#define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
+#define BROADCAST_MAC           "\xff\xff\xff\xff\xff\xff"
+#define IPV4_MULTICAST_MAC      "\x01\x00\x5e\x00\x00\x00"
+#define IPV6_MULTICAST_MAC      "\x33\x33\x00\x00\x00\x00"
+#define IPV4_VRRP               "\x00\x00\x50\x00\x01\x00"
+#define IPV6_VRRP               "\x00\x00\x50\x00\x02\x00"
 
 /* MAC macros for printf */
 #define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
