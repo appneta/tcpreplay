@@ -189,7 +189,7 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
 
     type = ntohs(linux_sll->type);
-    if (type == ARPHRD_ETHER || type == ARPHRD_LOOPBACK) { /* ethernet or loopback */
+    if (type == ARPHRD_ETHER || type == ARPHRD_LOOPBACK || type == ARPHRD_GRE_O_IP ) { /* ethernet or loopback or GRE_over_IP */
         memcpy(&(ctx->srcaddr), linux_sll->address, ETHER_ADDR_LEN);
     } else {
         tcpedit_seterr(ctx->tcpedit, "%s", "DLT_LINUX_SLL pcap's must contain only ethernet or loopback packets");
