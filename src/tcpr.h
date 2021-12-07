@@ -250,6 +250,7 @@ struct tcpr_arp_hdr
     uint8_t  ar_hln;         /* length of hardware address */
     uint8_t  ar_pln;         /* length of protocol address */
     uint16_t ar_op;          /* operation type */
+#define ARPHRD_GRE_O_IP 778  /* GRE over IP */
 #define ARPOP_REQUEST    1  /* req to resolve address */
 #define ARPOP_REPLY      2  /* resp to previous request */
 #define ARPOP_REVREQUEST 3  /* req protocol address given hardware */
