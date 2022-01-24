@@ -116,7 +116,7 @@ standard_bigendian:
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
-	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test.rewrite_vlan802.1ad \
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_vlan802.1ad \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
 		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
 	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test.rewrite_vlandel \
@@ -158,14 +158,15 @@ standard_littleendian:
 		 --dlt=user --user-dlink=00,50,da,5d,46,55,0,7,eb,30,a4,c3,08,0
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_config --enet-vlan=add --enet-vlan-tag=45 \
 		--enet-vlan-cfi=1 --enet-vlan-pri=5
-	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_skip -b -s 55 \
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_skip \
+	    --skipbroadcast --skipl2broadcast --skip-soft-errors --seed 55 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c $(srcdir)/test.auto_router
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_dltuser --dlt=user \
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
-	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test2.rewrite_vlan802.1ad \
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_vlan802.1ad \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
 		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
 	$(TCPREWRITE) -i $(srcdir)/test.rewrite_config -o test2.rewrite_vlandel \
@@ -527,7 +528,8 @@ endif
 rewrite_skip:
 	$(PRINTF) "%s" "[tcprewrite] Skip bcast test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Skip bcast test: " >> test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -b -s 55 \
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 \
+	    --skipbroadcast --skipl2broadcast --skip-soft-errors --seed 55 \
 		--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66 \
 		--enet-smac=00:22:33:44:55:66,00:12:13:14:15:16  -c $(srcdir)/test.auto_router  >> test.log 2>&1
 if WORDS_BIGENDIAN
@@ -562,11 +564,11 @@ endif
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 rewrite_vlan802.1ad:
-	$(PRINTF) "%s" "[tcprewrite] 802.1ad Q-in-Q add test: "
-	$(PRINTF) "%s\n" "*** [tcprewrite] 802.1ad Q-in-Q add test: " >> test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(srcdir)/test.rewrite_config -o test.$@1 \
+	$(PRINTF) "%s" "[tcprewrite] VLAN 802.1ad test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN 802.1ad test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
-		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad  >> test.log 2>&1
+		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
 if WORDS_BIGENDIAN
 	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 else

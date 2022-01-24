@@ -746,7 +746,7 @@ packet2tree(const u_char * data, const int len, int datalink)
     assert(l2len > 0);
 
     if (ether_type == ETHERTYPE_IP) {
-        if (pkt_len < l2len + TCPR_IPV4_H + hl)
+        if (pkt_len < (ssize_t)(l2len + TCPR_IPV4_H + hl))
             goto len_error;
 
         memcpy(&ip_hdr, data + l2len + hl, TCPR_IPV4_H);
@@ -760,7 +760,7 @@ packet2tree(const u_char * data, const int len, int datalink)
         strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE), 16);
 #endif
     } else if (ether_type == ETHERTYPE_IP6) {
-        if (pkt_len < l2len + TCPR_IPV6_H + hl) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_IPV6_H + hl)) {
             goto len_error;
         }
 
@@ -788,7 +788,7 @@ packet2tree(const u_char * data, const int len, int datalink)
         dbgx(3, "%s uses TCP...  ", srcip);
 #endif
 
-        if (pkt_len < l2len + TCPR_TCP_H + hl)
+        if (pkt_len < (ssize_t)(l2len + TCPR_TCP_H + hl))
             goto len_error;
 
         /* memcpy it over to prevent alignment issues */
@@ -815,7 +815,7 @@ packet2tree(const u_char * data, const int len, int datalink)
      * UDP 
      */
     else if (proto == IPPROTO_UDP) {
-        if (pkt_len < l2len + TCPR_UDP_H + hl)
+        if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + hl))
             goto len_error;
 
         /* memcpy over to prevent alignment issues */
@@ -826,7 +826,7 @@ packet2tree(const u_char * data, const int len, int datalink)
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
-            if (pkt_len < l2len + TCPR_UDP_H + TCPR_DNS_H + hl)
+            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
                 goto len_error;
 
             /* prevent memory alignment issues */
@@ -853,7 +853,7 @@ packet2tree(const u_char * data, const int len, int datalink)
 
         switch (ntohs(udp_hdr.uh_sport)) {
         case 0x0035:           /* dns */
-            if (pkt_len < l2len + TCPR_UDP_H + TCPR_DNS_H + hl)
+            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
                 goto len_error;
 
             /* prevent memory alignment issues */
@@ -882,7 +882,7 @@ packet2tree(const u_char * data, const int len, int datalink)
      * ICMP 
      */
     else if (proto == IPPROTO_ICMP) {
-        if (pkt_len < l2len + TCPR_ICMPV4_H + hl)
+        if (pkt_len < (ssize_t)(l2len + TCPR_ICMPV4_H + hl))
             goto len_error;
 
         /* prevent alignment issues */
