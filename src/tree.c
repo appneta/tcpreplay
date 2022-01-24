@@ -240,42 +240,32 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
-    if (node == NULL && mode == DIR_UNKNOWN)
+    if (node == NULL && mode == DIR_UNKNOWN) {
+        safe_free(finder);
         errx(-1, "%s (%lu) is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name4(ip, RESOLVE), ip);
+    }
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-#ifdef DEBUG
         switch (node->type) {
         case DIR_SERVER:
             dbgx(1, "DIR_SERVER: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_CLIENT:
-            dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_UNKNOWN:
-            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_ANY:
-            dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        }
-#endif
-
-        switch (node->type) {
-        case DIR_SERVER:
             safe_free(finder);
             return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
+            dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
             safe_free(finder);
             return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
-        case DIR_ANY:
+            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
             /* use our current mode to determine return code */
+            goto return_unknown;
+        case DIR_ANY:
+            dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
             goto return_unknown; 
         default:
             errx(-1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
@@ -307,43 +297,32 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
-    if (node == NULL && mode == DIR_UNKNOWN)
+    if (node == NULL && mode == DIR_UNKNOWN) {
+        safe_free(finder);
         errx(-1, "%s is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name6(addr, RESOLVE));
-
-    /*
-     * FIXME: Is this logic correct?  I think this might be backwards :(
-     */
+    }
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-#ifdef DEBUG
         switch (node->type) {
         case DIR_SERVER:
             dbgx(1, "DIR_SERVER: %s", get_addr2name6(addr, RESOLVE));
+            safe_free(finder);
+            return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
             dbgx(1, "DIR_CLIENT: %s", get_addr2name6(addr, RESOLVE));
+            safe_free(finder);
+            return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
             dbgx(1, "DIR_UNKNOWN: %s", get_addr2name6(addr, RESOLVE));
-            break;
+            /* use our current mode to determine return code */
+            goto return_unknown;
         case DIR_ANY:
             dbgx(1, "DIR_ANY: %s", get_addr2name6(addr, RESOLVE));
-            break;
-        }
-#endif
-        switch (node->type) {
-        case DIR_SERVER:
-            return TCPR_DIR_C2S;
-            break;
-        case DIR_CLIENT:
-            return TCPR_DIR_S2C;
-            break;
-        case DIR_UNKNOWN:
-        case DIR_ANY:
-            /* use our current mode to determine return code */
             goto return_unknown;
         default:
             errx(-1, "Node for %s has invalid type: %d", get_addr2name6(addr, RESOLVE), node->type);
@@ -354,10 +333,10 @@ return_unknown:
     safe_free(finder);
     switch (mode) {
     case DIR_SERVER:
-        return TCPR_DIR_C2S;
+        return TCPR_DIR_S2C;
         break;
     case DIR_CLIENT:
-        return TCPR_DIR_S2C;
+        return TCPR_DIR_C2S;
         break;
     default:
         return -1;
@@ -373,7 +352,6 @@ void
 add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
-    const u_char *packet = data;
     uint32_t _U_ vlan_offset;
     uint32_t pkt_len = len;
     uint16_t ether_type;
@@ -382,9 +360,9 @@ add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
     uint32_t l2len;
     int res;
 
-    assert(packet);
+    assert(data);
 
-    res = get_l2len_protocol(packet,
+    res = get_l2len_protocol(data,
                              pkt_len,
                              datalink,
                              &ether_type,
@@ -392,14 +370,10 @@ add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
                              &l2offset,
                              &vlan_offset);
 
-    if (res == -1 || len < (TCPR_ETH_H + TCPR_IPV4_H)) {
+    if (res == -1 || len < (int)(l2len + TCPR_IPV4_H)) {
         errx(-1, "Capture length %d too small for IPv4 parsing", len);
         return;
     }
-
-    packet += l2offset;
-    l2len -= l2offset;
-    pkt_len -= l2offset;
 
     /* 
      * first add/find the source IP/client 
@@ -407,7 +381,7 @@ add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
     newnode = new_tree();
 
     /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ip_hdr, (packet + TCPR_ETH_H), TCPR_IPV4_H);
+    memcpy(&ip_hdr, data + l2len, TCPR_IPV4_H);
 
     /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET;
@@ -427,7 +401,7 @@ add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    memcpy(&ip_hdr, (packet + TCPR_ETH_H), TCPR_IPV4_H);
+    memcpy(&ip_hdr, data + l2len, TCPR_IPV4_H);
 
     newnode->family = AF_INET;
     newnode->u.ip = ip_hdr.ip_dst.s_addr;
@@ -446,7 +420,6 @@ void
 add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
-    const u_char *packet = data;
     uint32_t _U_ vlan_offset;
     uint32_t pkt_len = len;
     uint16_t ether_type;
@@ -455,9 +428,9 @@ add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
     uint32_t l2len;
     int res;
 
-    assert(packet);
+    assert(data);
 
-    res = get_l2len_protocol(packet,
+    res = get_l2len_protocol(data,
                              pkt_len,
                              datalink,
                              &ether_type,
@@ -465,14 +438,10 @@ add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
                              &l2offset,
                              &vlan_offset);
 
-    if (res == -1 || len < (TCPR_ETH_H + TCPR_IPV6_H)) {
+    if (res == -1 || len < (int)(l2len + TCPR_IPV6_H)) {
         errx(-1, "Capture length %d too small for IPv6 parsing", len);
         return;
     }
-
-    packet += l2offset;
-    l2len -= l2offset;
-    pkt_len -= l2offset;
 
     /*
      * first add/find the source IP/client
@@ -480,7 +449,7 @@ add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
     newnode = new_tree();
     
     /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ip6_hdr, (packet + TCPR_ETH_H), TCPR_IPV6_H);
+    memcpy(&ip6_hdr, data + l2len, TCPR_IPV6_H);
 
     /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET6;
@@ -500,7 +469,7 @@ add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    memcpy(&ip6_hdr, (packet + TCPR_ETH_H), TCPR_IPV6_H);
+    memcpy(&ip6_hdr, data + l2len, TCPR_IPV6_H);
 
     newnode->family = AF_INET6;
     newnode->u.ip6 = ip6_hdr.ip_dst;
@@ -741,11 +710,9 @@ new_tree()
 static tcpr_tree_t *
 packet2tree(const u_char * data, const int len, int datalink)
 {
-    const u_char *packet = data;
     uint32_t _U_ vlan_offset;
     ssize_t pkt_len = len;
     tcpr_tree_t *node = NULL;
-    eth_hdr_t *eth_hdr = NULL;
     ipv4_hdr_t ip_hdr;
     ipv6_hdr_t ip6_hdr;
     tcp_hdr_t tcp_hdr;
@@ -763,7 +730,7 @@ packet2tree(const u_char * data, const int len, int datalink)
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    res = get_l2len_protocol(packet,
+    res = get_l2len_protocol(data,
                              pkt_len,
                              datalink,
                              &ether_type,
@@ -771,31 +738,18 @@ packet2tree(const u_char * data, const int len, int datalink)
                              &l2offset,
                              &vlan_offset);
 
-    if (res == -1 || len < (int)sizeof(*eth_hdr))
+    if (res == -1)
         goto len_error;
 
     node = new_tree();
 
-    packet += l2offset;
-    l2len -= l2offset;
-    pkt_len -= l2offset;
-
     assert(l2len > 0);
 
-    eth_hdr = (eth_hdr_t *) (packet);
     if (ether_type == ETHERTYPE_IP) {
-        if (pkt_len < (TCPR_ETH_H + hl + TCPR_IPV4_H)) {
-            safe_free(node);
-            errx(-1, "packet capture length %d too small for IPv4 processing",
-                    len);
-            return NULL;
-        }
-
-        if (pkt_len < TCPR_ETH_H + TCPR_IPV4_H + hl) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_IPV4_H + hl))
             goto len_error;
-        }
 
-        memcpy(&ip_hdr, packet + TCPR_ETH_H + hl, TCPR_IPV4_H);
+        memcpy(&ip_hdr, data + l2len + hl, TCPR_IPV4_H);
 
         node->family = AF_INET;
         node->u.ip = ip_hdr.ip_src.s_addr;
@@ -803,22 +757,14 @@ packet2tree(const u_char * data, const int len, int datalink)
         hl += ip_hdr.ip_hl * 4;
 
 #ifdef DEBUG
-        strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr,
-                    RESOLVE), 16);
+        strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE), 16);
 #endif
     } else if (ether_type == ETHERTYPE_IP6) {
-        if (pkt_len < (TCPR_ETH_H + hl + TCPR_IPV6_H)) {
-            safe_free(node);
-            errx(-1, "packet capture length %d too small for IPv6 processing",
-                    len);
-            return NULL;
-        }
-
-        if (pkt_len < TCPR_ETH_H + TCPR_IPV6_H + hl) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_IPV6_H + hl)) {
             goto len_error;
         }
 
-        memcpy(&ip6_hdr, packet + TCPR_ETH_H + hl, TCPR_IPV6_H);
+        memcpy(&ip6_hdr, data + l2len + hl, TCPR_IPV6_H);
 
         node->family = AF_INET6;
         node->u.ip6 = ip6_hdr.ip_src;
@@ -826,28 +772,27 @@ packet2tree(const u_char * data, const int len, int datalink)
         hl += TCPR_IPV6_H;
 
 #ifdef DEBUG
-        strlcpy(srcip, get_addr2name6(&ip6_hdr.ip_src, RESOLVE), INET6_ADDRSTRLEN);
+        strlcpy(srcip, get_addr2name6(&ip6_hdr.ip_src, RESOLVE),
+                INET6_ADDRSTRLEN);
 #endif
     } else {
        dbgx(2,"Unrecognized ether_type (%x)", ether_type);
     }
-
-
-    /* copy over the source mac */
-    strlcpy((char *)node->mac, (char *)eth_hdr->ether_shost, sizeof(node->mac));
 
     /* 
      * TCP 
      */
     if (proto == IPPROTO_TCP) {
 
+#ifdef DEBUG
         dbgx(3, "%s uses TCP...  ", srcip);
+#endif
 
-        if (pkt_len < TCPR_ETH_H + TCPR_TCP_H + hl)
+        if (pkt_len < (ssize_t)(l2len + TCPR_TCP_H + hl))
             goto len_error;
 
         /* memcpy it over to prevent alignment issues */
-        memcpy(&tcp_hdr, (data + TCPR_ETH_H + hl), TCPR_TCP_H);
+        memcpy(&tcp_hdr, data + l2len + hl, TCPR_TCP_H);
 
         /* ftp-data is going to skew our results so we ignore it */
         if (tcp_hdr.th_sport == 20)
@@ -865,27 +810,27 @@ packet2tree(const u_char * data, const int len, int datalink)
         else {
             dbg(3, "is an unknown");
         }
-
     }
     /* 
      * UDP 
      */
     else if (proto == IPPROTO_UDP) {
-        if (pkt_len < TCPR_ETH_H + TCPR_UDP_H + hl)
+        if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + hl))
             goto len_error;
 
         /* memcpy over to prevent alignment issues */
-        memcpy(&udp_hdr, (data + TCPR_ETH_H + hl), TCPR_UDP_H);
+        memcpy(&udp_hdr, data + l2len + hl, TCPR_UDP_H);
+#ifdef DEBUG
         dbgx(3, "%s uses UDP...  ", srcip);
+#endif
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
-            if (pkt_len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl)
+            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
                 goto len_error;
 
             /* prevent memory alignment issues */
-            memcpy(&dnsv4_hdr,
-                   (data + TCPR_ETH_H + hl + TCPR_UDP_H), TCPR_DNS_H);
+            memcpy(&dnsv4_hdr, data + l2len + hl + TCPR_UDP_H, TCPR_DNS_H);
 
             if (dnsv4_hdr.flags & DNS_QUERY_FLAG) {
                 /* bit set, response */
@@ -908,13 +853,11 @@ packet2tree(const u_char * data, const int len, int datalink)
 
         switch (ntohs(udp_hdr.uh_sport)) {
         case 0x0035:           /* dns */
-            if (pkt_len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl)
+            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
                 goto len_error;
 
             /* prevent memory alignment issues */
-            memcpy(&dnsv4_hdr,
-                   (data + TCPR_ETH_H + hl + TCPR_UDP_H),
-                   TCPR_DNS_H);
+            memcpy(&dnsv4_hdr, data + l2len + hl + TCPR_UDP_H, TCPR_DNS_H);
 
             if ((dnsv4_hdr.flags & 0x7FFFF) ^ DNS_QUERY_FLAG) {
                 /* bit set, response */
@@ -939,13 +882,15 @@ packet2tree(const u_char * data, const int len, int datalink)
      * ICMP 
      */
     else if (proto == IPPROTO_ICMP) {
-        if (pkt_len < TCPR_ETH_H + TCPR_ICMPV4_H + hl)
+        if (pkt_len < (ssize_t)(l2len + TCPR_ICMPV4_H + hl))
             goto len_error;
 
         /* prevent alignment issues */
-        memcpy(&icmp_hdr, (data + TCPR_ETH_H + hl), TCPR_ICMPV4_H);
+        memcpy(&icmp_hdr, data + l2len + hl, TCPR_ICMPV4_H);
 
+#ifdef DEBUG
         dbgx(3, "%s uses ICMP...  ", srcip);
+#endif
 
         /*
          * if port unreachable, then source == server, dst == client 
@@ -961,6 +906,7 @@ packet2tree(const u_char * data, const int len, int datalink)
     return (node);
 
 len_error:
+    safe_free(node);
     errx(-1, "packet capture length %d too small to process", len);
     return NULL;
 }
