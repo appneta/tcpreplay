@@ -247,6 +247,43 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
             return -1;
         }
     }
+    /* --rangecount */
+    tcpedit->range_count_src = 0;
+    tcpedit->range_count_dst = 0;
+    tcpedit->range_pos_src = 0;
+    tcpedit->range_pos_dst = 0;
+    tcpedit->range_src_ipv4 = htonl(0xC6123202);
+    tcpedit->range_dst_ipv4 = htonl(0xC6130001);
+    if (HAVE_OPT(RANGE_COUNT_SRC)) {
+        tcpedit->rewrite_ip = true;
+        tcpedit->range_count_src = OPT_VALUE_RANGE_COUNT_SRC;
+    }
+    if (HAVE_OPT(RANGE_COUNT_DST)) {
+        tcpedit->rewrite_ip = true;
+        tcpedit->range_count_dst = OPT_VALUE_RANGE_COUNT_DST;
+    }
+
+    if (HAVE_OPT(RANGE_ADDRESS)) {
+        unsigned ip1[4] = {0},ip2[4] = {0};
+        int  r;
+        /* ipv4 only */
+        if ((r = sscanf(OPT_ARG(RANGE_ADDRESS), "%u.%u.%u.%u:%u.%u.%u.%u",
+                        &ip1[0], &ip1[1], &ip1[2], &ip1[3],
+                        &ip2[0], &ip2[1], &ip2[2], &ip2[3])) != 8){
+            tcpedit_seterr(tcpedit,
+                           "Unable to parse --range_address=%s(%d)", OPT_ARG(RANGE_ADDRESS), r);
+            return -1;
+        }
+        tcpedit->range_src_ipv4 = htonl(((uint8_t)ip1[0])<<24 |
+                                        ((uint8_t)ip1[1])<<16 |
+                                        ((uint8_t)ip1[2])<<8 |
+                                        ((uint8_t)ip1[3])<<0);
+        tcpedit->range_dst_ipv4 = htonl(((uint8_t)ip2[0])<<24 |
+                                        ((uint8_t)ip2[1])<<16 |
+                                        ((uint8_t)ip2[2])<<8 |
+                                        ((uint8_t)ip2[3])<<0);
+
+    }
 
     /* parse the tcpedit dlt args */
     rcode = tcpedit_dlt_post_args(tcpedit);
