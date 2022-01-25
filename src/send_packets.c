@@ -1081,7 +1081,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
              if ((pkts_sent < COUNTER_OVERFLOW_RISK))
                  next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
              else
-                 next_tx_us = (pkts_sent * 1000000) / pph / (60 * 60);
+                 next_tx_us = ((pkts_sent * 1000000) / pph) * (60 * 60);
 
              if (next_tx_us > tx_us)
                  NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
