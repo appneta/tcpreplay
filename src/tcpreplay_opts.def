@@ -50,7 +50,7 @@ gnu-usage;
 help-value      = "H";
 save-opts-value = "";
 load-opts-value = "";
-argument = "<pcap_file(s)>";
+argument = "<pcap_file(s)> | <pcap_dir(s)>";
 
 
 config-header   = "config.h";
