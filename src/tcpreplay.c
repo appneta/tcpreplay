@@ -109,38 +109,41 @@ main(int argc, char *argv[])
     }
 
    /*
-    * Check if remaning args are directories or files
+    * Check if remaining args are directories or files
     */
     for (i = 0; i < argc; i++) {
-      struct stat statbuf;
-      if (stat(argv[i], &statbuf) != 0) {
-        errx(-1, "Unable to retrieve informations from file %s: %s", argv[i], strerror(errno));
-      }
-      /* If it is a directory, walk the file tree and treat only pcap files */
-      if (S_ISDIR(statbuf.st_mode)) {
-        FTS *fts = fts_open(&argv[i], FTS_NOCHDIR | FTS_LOGICAL, NULL);
-        if (fts == NULL) {
-          errx(-1, "Unable to open %s", argv[1]);
-       }
-        FTSENT *entry = NULL;
-        while ((entry = fts_read(fts)) != NULL) {
-          switch (entry->fts_info) {
-            case FTS_F:
-            {
-              if (entry->fts_path) {
-                tcpreplay_add_pcapfile(ctx, entry->fts_path);
-              }
-              break;
-            }
-            default:
-              break;
-          }
+        struct stat statbuf;
+        if (stat(argv[i], &statbuf) != 0) {
+            errx(-1,
+                 "Unable to retrieve informations from file %s: %s",
+                 argv[i],
+                 strerror(errno));
         }
-        fts_close(fts);
-      }
-      else {
-        tcpreplay_add_pcapfile(ctx, argv[i]);
-      }
+
+        /* If it is a directory, walk the file tree and treat only pcap files */
+        if (S_ISDIR(statbuf.st_mode)) {
+            FTSENT *entry = NULL;
+            FTS *fts = fts_open(&argv[i], FTS_NOCHDIR | FTS_LOGICAL, NULL);
+            if (fts == NULL) {
+                errx(-1, "Unable to open %s", argv[1]);
+            }
+
+            while ((entry = fts_read(fts)) != NULL) {
+                switch (entry->fts_info) {
+                case FTS_F:
+                    if (entry->fts_path) {
+                        tcpreplay_add_pcapfile(ctx, entry->fts_path);
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            fts_close(fts);
+        } else {
+            tcpreplay_add_pcapfile(ctx, argv[i]);
+        }
     }
 
     /*
