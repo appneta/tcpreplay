@@ -1,5 +1,6 @@
 06/19/2021 Version 4.4.0-beta1
     - add a security policy document (#689)
+    - ability to specify directory of pcap files (#682)
     - option --skipbroadcast not working (#677)
     - add feature VLAN Q-in-Q (#625)
 
