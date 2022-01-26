@@ -566,7 +566,7 @@ endif
 rewrite_vlan802.1ad:
 	$(PRINTF) "%s" "[tcprewrite] VLAN 802.1ad test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] VLAN 802.1ad test: " >> test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 \
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.$@1 \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
 		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
 if WORDS_BIGENDIAN
