@@ -3,6 +3,7 @@
     - ability to specify directory of pcap files (#682)
     - incorrect PPS rate for long-running sessions (#679)
     - option --skipbroadcast not working (#677)
+    - latest macOS SDK selected by default (#668)
     - add feature VLAN Q-in-Q (#625)
 
 06/19/2021 Version 4.3.5-beta1
