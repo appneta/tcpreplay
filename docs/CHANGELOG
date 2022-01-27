@@ -1,4 +1,5 @@
 06/19/2021 Version 4.4.0-beta2
+    - remove obsolete FORCE_ALIGN support to fix macOS 11 compile (#695)
     - add a security policy document (#689)
     - ability to specify directory of pcap files (#682)
     - incorrect PPS rate for long-running sessions (#679)

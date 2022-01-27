@@ -953,9 +953,6 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 {
     arp_hdr_t *arp_hdr ;
     int l2len;
-#ifdef FORCE_ALIGN
-    uint32_t iptemp;
-#endif
 
     assert(tcpedit);
     assert(pkthdr);
@@ -982,30 +979,12 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         u_char *add_hdr = ((u_char *)arp_hdr) + sizeof(arp_hdr_t) +
                 arp_hdr->ar_hln;
 
-#ifdef FORCE_ALIGN
-        /* copy IP to a temporary buffer for processing */
-        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
-        ip = &iptemp;
-#else
         ip = (uint32_t *)add_hdr;
-#endif
         *ip = randomize_ipv4_addr(tcpedit, *ip);
-#ifdef FORCE_ALIGN
-        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
-#endif
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
-#ifdef FORCE_ALIGN
-        /* copy IP2 to a temporary buffer for processing */
-        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
-        ip = &iptemp;
-#else
         ip = (uint32_t *)add_hdr;
-#endif
         *ip = randomize_ipv4_addr(tcpedit, *ip);
-#ifdef FORCE_ALIGN
-        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
-#endif
     }
 
     return 1; /* yes we changed the packet */
@@ -1027,9 +1006,6 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     uint32_t newip = 0;
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
-#ifdef FORCE_ALIGN
-    uint32_t iptemp;
-#endif
 
     assert(tcpedit);
     assert(arp_hdr);
@@ -1061,14 +1037,7 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
         ip1 = (uint32_t *)add_hdr;
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
-#ifdef FORCE_ALIGN
-        /* copy IP2 to a temporary buffer for processing */
-        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
-        ip2 = &iptemp;
-#else
         ip2 = (uint32_t *)add_hdr;
-#endif
-        
 
         /* loop through the cidrmap to rewrite */
         do {
@@ -1099,31 +1068,24 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
                 }
             }
 
-#ifdef FORCE_ALIGN
-            /* copy temporary IP to IP2 location in buffer */
-            memcpy(add_hdr, &iptemp, sizeof(uint32_t));
-#endif
-
             /*
              * loop while we haven't modified both src/dst AND
              * at least one of the cidr maps have a next pointer
              */
             if ((! (diddst && didsrc)) &&
                 (! ((cidrmap1->next == NULL) && (cidrmap2->next == NULL)))) {
-                
+
                 /* increment our ptr's if possible */
                 if (cidrmap1->next != NULL)
                     cidrmap1 = cidrmap1->next;
-                
+
                 if (cidrmap2->next != NULL)
                     cidrmap2 = cidrmap2->next;
-                
             } else {
                 loop = 0;
             }
 
         } while (loop);
-        
     } else {
         warn("ARP packet isn't for IPv4!  Can't rewrite IP's");
     }

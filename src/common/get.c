@@ -460,29 +460,11 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2len -= l2offset;
     pkt_len -= l2offset;
 
-#ifdef FORCE_ALIGN
-    /*
-     * copy layer 3 and up to our temp packet buffer
-     * for now on, we have to edit the packetbuff because
-     * just before we send the packet, we copy the packetbuff 
-     * back onto the pkt.data + l2len buffer
-     * we do all this work to prevent byte alignment issues
-     */
-    if (l2len % sizeof(long)) {
-        memcpy(*newbuff, (packet + l2len), (pkt_len - l2len));
-        ip_hdr = *newbuff;
-    } else {
-
-        /* we don't have to do a memcpy if l2len lands on a boundary */
-        ip_hdr = (packet + l2len);
-    }
-#else
     /*
      * on non-strict byte align systems, don't need to memcpy(), 
      * just point to l2len bytes into the existing buffer
      */
     ip_hdr = (packet + l2len);
-#endif
 
     return ip_hdr;
 }
@@ -535,29 +517,11 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     l2len -= l2offset;
     pkt_len -= l2offset;
 
-#ifdef FORCE_ALIGN
-    /*
-     * copy layer 3 and up to our temp packet buffer
-     * for now on, we have to edit the packetbuff because
-     * just before we send the packet, we copy the packetbuff
-     * back onto the pkt.data + l2len buffer
-     * we do all this work to prevent byte alignment issues
-     */
-    if (l2len % sizeof(long)) {
-        memcpy(*newbuff, (packet + l2len), (pkt_len - l2len));
-        ip6_hdr = *newbuff;
-    } else {
-
-        /* we don't have to do a memcpy if l2len lands on a boundary */
-        ip6_hdr = (packet + l2len);
-    }
-#else
     /*
      * on non-strict byte align systems, don't need to memcpy(),
      * just point to l2len bytes into the existing buffer
      */
     ip6_hdr = (packet + l2len);
-#endif
 
     return ip6_hdr;
 }
