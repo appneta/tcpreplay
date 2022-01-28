@@ -352,7 +352,7 @@ AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h])
 AC_CHECK_HEADERS([signal.h string.h strings.h sys/types.h stdint.h sys/select.h])
 AC_CHECK_HEADERS([netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h])
 AC_CHECK_HEADERS([inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
-AC_CHECK_HEADERS([sys/io.h architecture/i386/pio.h sched.h])
+AC_CHECK_HEADERS([sys/io.h architecture/i386/pio.h sched.h fts.h])
 AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements

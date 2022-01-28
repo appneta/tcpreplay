@@ -27,7 +27,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_FTS_H
 #include <fts.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 
@@ -112,6 +114,7 @@ main(int argc, char *argv[])
     * Check if remaining args are directories or files
     */
     for (i = 0; i < argc; i++) {
+#ifdef HAVE_FTS_H
         struct stat statbuf;
         if (stat(argv[i], &statbuf) != 0) {
             errx(-1,
@@ -144,6 +147,9 @@ main(int argc, char *argv[])
         } else {
             tcpreplay_add_pcapfile(ctx, argv[i]);
         }
+#else
+        tcpreplay_add_pcapfile(ctx, argv[i]);
+#endif
     }
 
     /*
