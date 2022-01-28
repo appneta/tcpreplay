@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -103,9 +103,7 @@ struct tcpeditdlt_plugin_s {
  */
 struct tcpeditdlt_s {
     tcpedit_t *tcpedit;                 /* pointer to our tcpedit context */
-#ifdef FORCE_ALIGN
     u_char *l3buff;                     /* pointer for L3 buffer on strictly aligned systems */
-#endif
     tcpeditdlt_plugin_t *plugins;       /* registered plugins */
     tcpeditdlt_plugin_t *decoder;       /* Encoder plugin */
     tcpeditdlt_plugin_t *encoder;       /* Decoder plugin */      

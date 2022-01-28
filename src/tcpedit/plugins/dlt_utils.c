@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -203,28 +203,11 @@ tcpedit_dlt_l3data_copy(tcpeditdlt_t *ctx, u_char *packet, int pktlen, int l2len
 
     if (pktlen <= l2len)
         return NULL;
-    
-#ifdef FORCE_ALIGN
-    /* 
-     * copy layer 3 and up to our temp packet buffer
-     * for now on, we have to edit the packetbuff because
-     * just before we send the packet, we copy the packetbuff 
-     * back onto the pkt.data + l2len buffer
-     * we do all this work to prevent byte alignment issues
-     */
-    if (l2len % 4 == 0) {
-        ptr = (&(packet)[l2len]);
-    } else {
-        ptr = ctx->l3buff;
-        memcpy(ptr, (&(packet)[l2len]), pktlen - l2len);
-    }
-#else
+
     /*
-     * on non-strict byte align systems, don't need to memcpy(), 
      * just point to 14 bytes into the existing buffer
      */
     ptr = (&(packet)[l2len]);
-#endif
     return ptr;
 }
 
@@ -239,14 +222,6 @@ tcpedit_dlt_l3data_merge(tcpeditdlt_t *ctx, u_char *packet, int pktlen, const u_
     assert(pktlen >= 0);
     assert(l3data);
     assert(l2len >= 0);
-#ifdef FORCE_ALIGN
-    /* 
-     * put back the layer 3 and above back in the pkt.data buffer 
-     * we can't edit the packet at layer 3 or above beyond this point
-     */
-     if (l2len % 4 != 0)
-         memcpy((&(packet)[l2len]), l3data, pktlen - l2len);
-#endif
     return packet;
 }
 
