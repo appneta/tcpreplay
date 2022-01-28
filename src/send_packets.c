@@ -351,7 +351,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
-    timerclear(&stats->first_packet_sent_wall_time);
     if (options->limit_time > 0)
         end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
@@ -436,23 +435,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
-                if(!timerisset(&stats->first_packet_sent_wall_time)) {
-                    /* We're sending the first packet, so we have an absolute time reference. */
-                    TIMEVAL_SET(&stats->first_packet_sent_wall_time, &now);
-                    TIMEVAL_SET(&stats->first_packet_pcap_timestamp, &pkthdr.ts);
-                }
-
                 if (!timerisset(&last_pkt_ts)) {
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 } else if (timercmp(&pkthdr.ts, &last_pkt_ts, >)) {
-                    /* pkt_ts_delta is the packet time stamp difference since the first packet */
-                    timersub(&pkthdr.ts, &stats->first_packet_pcap_timestamp, &stats->pkt_ts_delta);
+                    struct timeval delta;
 
-                    /* time_delta is the wall time difference since sending the first packet */
-                    timersub(&now, &stats->first_packet_sent_wall_time, &stats->time_delta);
-
+                    timersub(&pkthdr.ts, &last_pkt_ts, &delta);
+                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 }
+
+                if (!timerisset(&stats->time_delta))
+                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {
@@ -602,7 +596,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
-    timerclear(&stats->first_packet_sent_wall_time);
     if (options->limit_time > 0)
         end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
@@ -718,23 +711,18 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
-                if(!timerisset(&stats->first_packet_sent_wall_time)) {
-                    /* We're sending the first packet, so we have an absolute time reference. */
-                    TIMEVAL_SET(&stats->first_packet_sent_wall_time, &now);
-                    TIMEVAL_SET(&stats->first_packet_pcap_timestamp, &pkthdr_ptr->ts);
-                }
-
                 if (!timerisset(&last_pkt_ts)) {
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
                 } else if (timercmp(&pkthdr_ptr->ts, &last_pkt_ts, >)) {
-                    /* pkt_ts_delta is the packet time stamp difference since the first packet */
-                    timersub(&pkthdr_ptr->ts, &stats->first_packet_pcap_timestamp, &stats->pkt_ts_delta);
+                    struct timeval delta;
 
-                    /* time_delta is the wall time difference since sending the first packet */
-                    timersub(&now, &stats->first_packet_sent_wall_time, &stats->time_delta);
-
+                    timersub(&pkthdr_ptr->ts, &last_pkt_ts, &delta);
+                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
                 }
+
+                if (!timerisset(&stats->time_delta))
+                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {
