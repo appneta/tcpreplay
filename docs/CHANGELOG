@@ -3,11 +3,12 @@
     - add a security policy document (#689)
     - ability to specify directory of pcap files (#682)
     - incorrect PPS rate for long-running sessions (#679)
+    - revert #630 to fix --multiplier issues (#674)
     - option --skipbroadcast not working (#677)
     - latest macOS SDK selected by default (#668)
     - add feature VLAN Q-in-Q (#625)
 
-06/19/2021 Version 4.3.5-beta1
+06/19/2021 Version 4.3.5-beta1f
     - gcc 9.3 compiler warnings (#670)
     - installed netmap not automatically detected (#669)
     - heap-buffer-overflow with flow_decode() (#665)
