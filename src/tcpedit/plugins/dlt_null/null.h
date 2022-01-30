@@ -35,7 +35,11 @@ int dlt_null_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 int dlt_null_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
 int dlt_null_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_null_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_null_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
+u_char *dlt_null_merge_layer3(tcpeditdlt_t *ctx,
+                              u_char *packet,
+                              const int pktlen,
+                              u_char *ipv4_data,
+                              u_char *ipv6_data);
 tcpeditdlt_l2addr_type_t dlt_null_l2addr_type(void);
 int dlt_null_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_null_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);

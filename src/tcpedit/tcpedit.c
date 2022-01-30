@@ -363,7 +363,11 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
-    tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen, (u_char *)ip_hdr);
+    tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx,
+                             dst_dlt, packet,
+                             (*pkthdr)->caplen,
+                             (u_char*)ip_hdr,
+                             (u_char*)ip6_hdr);
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
     tcpedit->runtime.pkts_edited ++;

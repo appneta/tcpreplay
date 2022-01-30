@@ -377,7 +377,12 @@ tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen)
  * or Cisco HDLC (4 byte header) but is critical for std ethernet (12 byte header)
  */
 u_char *
-tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen, u_char *l3data)
+tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, 
+                         int dlt, 
+                         u_char *packet, 
+                         const int pktlen, 
+                         u_char *ipv4_data,
+                         u_char *ipv6_data)
 {
     tcpeditdlt_plugin_t *plugin;
     u_char *res;
@@ -386,7 +391,7 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
     assert(dlt >= 0);
     assert(packet);
 
-    if (l3data == NULL)
+    if (ipv4_data == NULL && ipv6_data == NULL)
         return packet;
         
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
@@ -394,7 +399,7 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
         return NULL;
     }
 
-    res = plugin->plugin_merge_layer3(ctx, packet, pktlen, l3data);
+    res = plugin->plugin_merge_layer3(ctx, packet, pktlen, ipv4_data, ipv6_data);
     if (res == NULL)
         tcpedit_seterr(ctx->tcpedit, "Packet length %d is to short for layer 3 merge for DLT 0x%04x",
                 pktlen, dlt);

@@ -36,7 +36,11 @@ int dlt_user_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 int dlt_user_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
 int dlt_user_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_user_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
-u_char *dlt_user_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data);
+u_char *dlt_user_merge_layer3(tcpeditdlt_t *ctx,
+                              u_char *packet,
+                              const int pktlen,
+                              u_char *ipv4_data,
+                              u_char *ipv6_data);
 tcpeditdlt_l2addr_type_t dlt_user_l2addr_type(void);
 int dlt_user_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
 u_char *dlt_user_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);

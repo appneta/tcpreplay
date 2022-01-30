@@ -789,18 +789,28 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
+                        u_char *packet,
+                        const int pktlen,
+                        u_char *ipv4_data,
+                        u_char *ipv6_data)
 {
+    en10mb_extra_t *extra;
     int l2len;
+
     assert(ctx);
     assert(packet);
-    assert(l3data);
     
+    if (!ipv4_data && !ipv6_data)
+        return NULL;
+
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
     
-    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
+    assert(ctx->decoded_extra_size == sizeof(*extra));
+    extra = (en10mb_extra_t *)ctx->decoded_extra;
+    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data ?: ipv6_data, l2len);
 }
 
 /*

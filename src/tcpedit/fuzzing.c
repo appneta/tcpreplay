@@ -307,7 +307,11 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     }
 
     /* in cases where 'l3data' is a working buffer, copy it back to '*pkthdr' */
-    plugin->plugin_merge_layer3(ctx, packet, caplen, l3data);
+    plugin->plugin_merge_layer3(ctx,
+                                packet,
+                                caplen,
+                                (l2proto == ETHERTYPE_IP) ? l4data : NULL,
+                                (l2proto == ETHERTYPE_IPV6) ? l4data : NULL);
 
 done:
     return packet_changed;
