@@ -587,7 +587,9 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
                 memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);                
             }
         } else if (ctx->addr_type == ETHERNET) {
-            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
+            extra->src_modified = memcmp(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
+            if (extra->src_modified)
+                memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a source address");
             return TCPEDIT_ERROR;
@@ -603,7 +605,9 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
                 memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
             }
         } else if (ctx->addr_type == ETHERNET) {
-            memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
+            extra->dst_modified = memcmp(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
+            if (extra->dst_modified)
+                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
             return TCPEDIT_ERROR;            
