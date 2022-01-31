@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -30,9 +30,13 @@ extern "C" {
 typedef struct {
     int vlan; /* set to 1 for vlan_ fields being filled out */
     
+    u_int32_t vlan_offset;
     u_int16_t vlan_tag;
     u_int16_t vlan_pri;
     u_int16_t vlan_cfi;
+    u_int16_t vlan_proto;
+    bool src_modified;
+    bool dst_modified;
 } en10mb_extra_t;
 
 typedef enum {
@@ -84,6 +88,9 @@ typedef struct {
     u_int16_t vlan_tag;
     u_int8_t  vlan_pri;
     u_int8_t  vlan_cfi;
+
+    /* 802.1Q/802.1ad VLAN Q-in-Q - 0 means 802.1Q */
+    u_int16_t vlan_proto;
 } en10mb_config_t;
 
 

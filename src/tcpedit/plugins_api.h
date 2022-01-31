@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -69,7 +69,12 @@ int tcpedit_dlt_proto(tcpeditdlt_t *ctx, int dlt, const u_char *packet, const in
 u_char *tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen);
 
 /* merge the L2 & L3 (possibly changed?) after calling tcpedit_dlt_l3data() */
-u_char *tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen, u_char *l3data);
+u_char *tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx,
+                                 int dlt,
+                                 u_char *packet,
+                                 const int pktlen,
+                                 u_char *ipv4_data,
+                                 u_char *ipv6_data);
 
 
 int tcpedit_dlt_src(tcpeditdlt_t *ctx);

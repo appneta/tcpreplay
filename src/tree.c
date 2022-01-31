@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -41,7 +41,7 @@ extern int debug;
 char tree_print_buff[TREEPRINTBUFFLEN]; 
 
 static tcpr_tree_t *new_tree();
-static tcpr_tree_t *packet2tree(const u_char *, const int);
+static tcpr_tree_t *packet2tree(const u_char *, const int, const int);
 #ifdef DEBUG        /* prevent compile warnings */
 static char *tree_print(tcpr_data_tree_t *);
 static char *tree_printnode(const char *, const tcpr_tree_t *);
@@ -240,42 +240,32 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
-    if (node == NULL && mode == DIR_UNKNOWN)
+    if (node == NULL && mode == DIR_UNKNOWN) {
+        safe_free(finder);
         errx(-1, "%s (%lu) is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name4(ip, RESOLVE), ip);
+    }
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-#ifdef DEBUG
         switch (node->type) {
         case DIR_SERVER:
             dbgx(1, "DIR_SERVER: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_CLIENT:
-            dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_UNKNOWN:
-            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        case DIR_ANY:
-            dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
-            break;
-        }
-#endif
-
-        switch (node->type) {
-        case DIR_SERVER:
             safe_free(finder);
             return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
+            dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
             safe_free(finder);
             return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
-        case DIR_ANY:
+            dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
             /* use our current mode to determine return code */
+            goto return_unknown;
+        case DIR_ANY:
+            dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
             goto return_unknown; 
         default:
             errx(-1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
@@ -307,43 +297,32 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
 
     node = RB_FIND(tcpr_data_tree_s, &treeroot, finder);
 
-    if (node == NULL && mode == DIR_UNKNOWN)
+    if (node == NULL && mode == DIR_UNKNOWN) {
+        safe_free(finder);
         errx(-1, "%s is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name6(addr, RESOLVE));
-
-    /*
-     * FIXME: Is this logic correct?  I think this might be backwards :(
-     */
+    }
 
     /* return node type if we found the node, else return the default (mode) */
     if (node != NULL) {
-#ifdef DEBUG
         switch (node->type) {
         case DIR_SERVER:
             dbgx(1, "DIR_SERVER: %s", get_addr2name6(addr, RESOLVE));
+            safe_free(finder);
+            return TCPR_DIR_S2C;
             break;
         case DIR_CLIENT:
             dbgx(1, "DIR_CLIENT: %s", get_addr2name6(addr, RESOLVE));
+            safe_free(finder);
+            return TCPR_DIR_C2S;
             break;
         case DIR_UNKNOWN:
             dbgx(1, "DIR_UNKNOWN: %s", get_addr2name6(addr, RESOLVE));
-            break;
+            /* use our current mode to determine return code */
+            goto return_unknown;
         case DIR_ANY:
             dbgx(1, "DIR_ANY: %s", get_addr2name6(addr, RESOLVE));
-            break;
-        }
-#endif
-        switch (node->type) {
-        case DIR_SERVER:
-            return TCPR_DIR_C2S;
-            break;
-        case DIR_CLIENT:
-            return TCPR_DIR_S2C;
-            break;
-        case DIR_UNKNOWN:
-        case DIR_ANY:
-            /* use our current mode to determine return code */
             goto return_unknown;
         default:
             errx(-1, "Node for %s has invalid type: %d", get_addr2name6(addr, RESOLVE), node->type);
@@ -354,10 +333,10 @@ return_unknown:
     safe_free(finder);
     switch (mode) {
     case DIR_SERVER:
-        return TCPR_DIR_C2S;
+        return TCPR_DIR_S2C;
         break;
     case DIR_CLIENT:
-        return TCPR_DIR_S2C;
+        return TCPR_DIR_C2S;
         break;
     default:
         return -1;
@@ -370,14 +349,28 @@ return_unknown:
  * client, if the DST IP doesn't exist in the TREE, we add it as a server
  */
 void
-add_tree_first_ipv4(const u_char *data, const int len)
+add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
+    uint32_t _U_ vlan_offset;
+    uint32_t pkt_len = len;
+    uint16_t ether_type;
+    uint32_t l2offset;
     ipv4_hdr_t ip_hdr;
-    
+    uint32_t l2len;
+    int res;
+
     assert(data);
 
-    if (len < (TCPR_ETH_H + TCPR_IPV4_H)) {
+    res = get_l2len_protocol(data,
+                             pkt_len,
+                             datalink,
+                             &ether_type,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
+
+    if (res == -1 || len < (int)(l2len + TCPR_IPV4_H)) {
         errx(-1, "Capture length %d too small for IPv4 parsing", len);
         return;
     }
@@ -388,7 +381,7 @@ add_tree_first_ipv4(const u_char *data, const int len)
     newnode = new_tree();
 
     /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
+    memcpy(&ip_hdr, data + l2len, TCPR_IPV4_H);
 
     /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET;
@@ -396,19 +389,19 @@ add_tree_first_ipv4(const u_char *data, const int len)
     newnode->type = DIR_CLIENT;
     newnode->client_cnt = 1000;
     findnode = RB_FIND(tcpr_data_tree_s, &treeroot, newnode);
-    
+
     /* if we didn't find it, add it to the tree, else free it */
     if (findnode == NULL) {
         RB_INSERT(tcpr_data_tree_s, &treeroot, newnode);
     } else {
         safe_free(newnode);
     }
-    
+
     /*
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    memcpy(&ip_hdr, (data + TCPR_ETH_H), TCPR_IPV4_H);
+    memcpy(&ip_hdr, data + l2len, TCPR_IPV4_H);
 
     newnode->family = AF_INET;
     newnode->u.ip = ip_hdr.ip_dst.s_addr;
@@ -424,14 +417,28 @@ add_tree_first_ipv4(const u_char *data, const int len)
 }
 
 void
-add_tree_first_ipv6(const u_char *data, const int len)
+add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
+    uint32_t _U_ vlan_offset;
+    uint32_t pkt_len = len;
+    uint16_t ether_type;
     ipv6_hdr_t ip6_hdr;
+    uint32_t l2offset;
+    uint32_t l2len;
+    int res;
 
     assert(data);
 
-    if (len < (TCPR_ETH_H + TCPR_IPV6_H)) {
+    res = get_l2len_protocol(data,
+                             pkt_len,
+                             datalink,
+                             &ether_type,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
+
+    if (res == -1 || len < (int)(l2len + TCPR_IPV6_H)) {
         errx(-1, "Capture length %d too small for IPv6 parsing", len);
         return;
     }
@@ -442,7 +449,7 @@ add_tree_first_ipv6(const u_char *data, const int len)
     newnode = new_tree();
     
     /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
+    memcpy(&ip6_hdr, data + l2len, TCPR_IPV6_H);
 
     /* copy over the source ip, and values to guarantee this a client */
     newnode->family = AF_INET6;
@@ -462,7 +469,7 @@ add_tree_first_ipv6(const u_char *data, const int len)
      * now add/find the destination IP/server
      */
     newnode = new_tree();
-    memcpy(&ip6_hdr, (data + TCPR_ETH_H), TCPR_IPV6_H);
+    memcpy(&ip6_hdr, data + l2len, TCPR_IPV6_H);
 
     newnode->family = AF_INET6;
     newnode->u.ip6 = ip6_hdr.ip_dst;
@@ -527,13 +534,15 @@ add_tree_node(tcpr_tree_t *newnode)
  * - number of times each host acts as a client or server
  * - the way the host acted the first time we saw it (client or server)
  */
-void
-add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
+void add_tree_ipv4(const unsigned long ip,
+                   const u_char *data,
+                   const int len,
+                   const int datalink)
 {
     tcpr_tree_t *newnode;
     assert(data);
 
-    newnode = packet2tree(data, len);
+    newnode = packet2tree(data, len, datalink);
     if (newnode) {
         assert(ip == newnode->u.ip);
 
@@ -541,7 +550,8 @@ add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
             /* couldn't figure out if packet was client or server */
 
             dbgx(2, "%s (%lu) unknown client/server",
-                    get_addr2name4(newnode->u.ip, RESOLVE), newnode->u.ip);
+                 get_addr2name4(newnode->u.ip, RESOLVE),
+                 newnode->u.ip);
 
         }
 
@@ -549,14 +559,15 @@ add_tree_ipv4(const unsigned long ip, const u_char * data, const int len)
     }
 }
 
-void
-add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data,
-        const int len)
+void add_tree_ipv6(const struct tcpr_in6_addr *addr,
+                   const u_char *data,
+                   const int len,
+                   const int datalink)
 {
     tcpr_tree_t *newnode;
     assert(data);
 
-    newnode = packet2tree(data, len);
+    newnode = packet2tree(data, len, datalink);
     if (newnode) {
         assert(ipv6_cmp(addr, &newnode->u.ip6) == 0);
 
@@ -564,7 +575,7 @@ add_tree_ipv6(const struct tcpr_in6_addr * addr, const u_char * data,
             /* couldn't figure out if packet was client or server */
 
             dbgx(2, "%s unknown client/server",
-                    get_addr2name6(&newnode->u.ip6, RESOLVE));
+                 get_addr2name6(&newnode->u.ip6, RESOLVE));
         }
 
         add_tree_node(newnode);
@@ -697,10 +708,11 @@ new_tree()
  * the u_char * data should be the data that is passed by pcap_dispatch()
  */
 static tcpr_tree_t *
-packet2tree(const u_char * data, const int len)
+packet2tree(const u_char * data, const int len, int datalink)
 {
+    uint32_t _U_ vlan_offset;
+    ssize_t pkt_len = len;
     tcpr_tree_t *node = NULL;
-    eth_hdr_t *eth_hdr = NULL;
     ipv4_hdr_t ip_hdr;
     ipv6_hdr_t ip6_hdr;
     tcp_hdr_t tcp_hdr;
@@ -708,49 +720,36 @@ packet2tree(const u_char * data, const int len)
     icmpv4_hdr_t icmp_hdr;
     dnsv4_hdr_t dnsv4_hdr;
     u_int16_t ether_type;
+    uint32_t l2offset;
     u_char proto = 0;
+    uint32_t l2len;
     int hl = 0;
+    int res;
+
 #ifdef DEBUG
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    if (len < (int)sizeof(*eth_hdr)) {
+    res = get_l2len_protocol(data,
+                             pkt_len,
+                             datalink,
+                             &ether_type,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
+
+    if (res == -1)
         goto len_error;
-    }
 
     node = new_tree();
 
-    eth_hdr = (eth_hdr_t *) (data);
+    assert(l2len > 0);
 
-    /* prevent issues with byte alignment, must memcpy */
-    memcpy(&ether_type, (u_char*)eth_hdr + 12, 2);
-
-    /* drop VLAN info if it exists before the IP info */
-    if (ether_type == htons(ETHERTYPE_VLAN)) {
-       dbg(4,"Processing as VLAN traffic...");
-
-       hl += 4;
-       if (len < TCPR_ETH_H + hl) {
-           goto len_error;
-       }
-
-       /* prevent issues with byte alignment, must memcpy */
-       memcpy(&ether_type, (u_char*)eth_hdr + 16, 2);
-    }
-
-    if (ether_type == htons(ETHERTYPE_IP)) {
-        if (len < (TCPR_ETH_H + hl + TCPR_IPV4_H)) {
-            safe_free(node);
-            errx(-1, "packet capture length %d too small for IPv4 processing",
-                    len);
-            return NULL;
-        }
-
-        if (len < TCPR_ETH_H + TCPR_IPV4_H + hl) {
+    if (ether_type == ETHERTYPE_IP) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_IPV4_H + hl))
             goto len_error;
-        }
 
-        memcpy(&ip_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV4_H);
+        memcpy(&ip_hdr, data + l2len + hl, TCPR_IPV4_H);
 
         node->family = AF_INET;
         node->u.ip = ip_hdr.ip_src.s_addr;
@@ -758,22 +757,14 @@ packet2tree(const u_char * data, const int len)
         hl += ip_hdr.ip_hl * 4;
 
 #ifdef DEBUG
-        strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr,
-                    RESOLVE), 16);
+        strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE), 16);
 #endif
-    } else if (ether_type == htons(ETHERTYPE_IP6)) {
-        if (len < (TCPR_ETH_H + hl + TCPR_IPV6_H)) {
-            safe_free(node);
-            errx(-1, "packet capture length %d too small for IPv6 processing",
-                    len);
-            return NULL;
-        }
-
-        if (len < TCPR_ETH_H + TCPR_IPV6_H + hl) {
+    } else if (ether_type == ETHERTYPE_IP6) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_IPV6_H + hl)) {
             goto len_error;
         }
 
-        memcpy(&ip6_hdr, (data + TCPR_ETH_H + hl), TCPR_IPV6_H);
+        memcpy(&ip6_hdr, data + l2len + hl, TCPR_IPV6_H);
 
         node->family = AF_INET6;
         node->u.ip6 = ip6_hdr.ip_src;
@@ -781,29 +772,27 @@ packet2tree(const u_char * data, const int len)
         hl += TCPR_IPV6_H;
 
 #ifdef DEBUG
-        strlcpy(srcip, get_addr2name6(&ip6_hdr.ip_src, RESOLVE), INET6_ADDRSTRLEN);
+        strlcpy(srcip, get_addr2name6(&ip6_hdr.ip_src, RESOLVE),
+                INET6_ADDRSTRLEN);
 #endif
     } else {
        dbgx(2,"Unrecognized ether_type (%x)", ether_type);
     }
-
-
-    /* copy over the source mac */
-    strlcpy((char *)node->mac, (char *)eth_hdr->ether_shost, sizeof(node->mac));
 
     /* 
      * TCP 
      */
     if (proto == IPPROTO_TCP) {
 
+#ifdef DEBUG
         dbgx(3, "%s uses TCP...  ", srcip);
+#endif
 
-        if (len < TCPR_ETH_H + TCPR_TCP_H + hl) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_TCP_H + hl))
             goto len_error;
-        }
 
         /* memcpy it over to prevent alignment issues */
-        memcpy(&tcp_hdr, (data + TCPR_ETH_H + hl), TCPR_TCP_H);
+        memcpy(&tcp_hdr, data + l2len + hl, TCPR_TCP_H);
 
         /* ftp-data is going to skew our results so we ignore it */
         if (tcp_hdr.th_sport == 20)
@@ -821,29 +810,27 @@ packet2tree(const u_char * data, const int len)
         else {
             dbg(3, "is an unknown");
         }
-
     }
     /* 
      * UDP 
      */
     else if (proto == IPPROTO_UDP) {
-        if (len < TCPR_ETH_H + TCPR_UDP_H + hl) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + hl))
             goto len_error;
-        }
 
         /* memcpy over to prevent alignment issues */
-        memcpy(&udp_hdr, (data + TCPR_ETH_H + hl), TCPR_UDP_H);
+        memcpy(&udp_hdr, data + l2len + hl, TCPR_UDP_H);
+#ifdef DEBUG
         dbgx(3, "%s uses UDP...  ", srcip);
+#endif
 
         switch (ntohs(udp_hdr.uh_dport)) {
         case 0x0035:           /* dns */
-            if (len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl) {
+            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
                 goto len_error;
-            }
 
             /* prevent memory alignment issues */
-            memcpy(&dnsv4_hdr,
-                   (data + TCPR_ETH_H + hl + TCPR_UDP_H), TCPR_DNS_H);
+            memcpy(&dnsv4_hdr, data + l2len + hl + TCPR_UDP_H, TCPR_DNS_H);
 
             if (dnsv4_hdr.flags & DNS_QUERY_FLAG) {
                 /* bit set, response */
@@ -866,14 +853,11 @@ packet2tree(const u_char * data, const int len)
 
         switch (ntohs(udp_hdr.uh_sport)) {
         case 0x0035:           /* dns */
-            if (len < TCPR_ETH_H + TCPR_UDP_H + TCPR_DNS_H + hl) {
+            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
                 goto len_error;
-            }
 
             /* prevent memory alignment issues */
-            memcpy(&dnsv4_hdr,
-                   (data + TCPR_ETH_H + hl + TCPR_UDP_H),
-                   TCPR_DNS_H);
+            memcpy(&dnsv4_hdr, data + l2len + hl + TCPR_UDP_H, TCPR_DNS_H);
 
             if ((dnsv4_hdr.flags & 0x7FFFF) ^ DNS_QUERY_FLAG) {
                 /* bit set, response */
@@ -898,14 +882,15 @@ packet2tree(const u_char * data, const int len)
      * ICMP 
      */
     else if (proto == IPPROTO_ICMP) {
-        if (len < TCPR_ETH_H + TCPR_ICMPV4_H + hl) {
+        if (pkt_len < (ssize_t)(l2len + TCPR_ICMPV4_H + hl))
             goto len_error;
-        }
 
         /* prevent alignment issues */
-        memcpy(&icmp_hdr, (data + TCPR_ETH_H + hl), TCPR_ICMPV4_H);
+        memcpy(&icmp_hdr, data + l2len + hl, TCPR_ICMPV4_H);
 
+#ifdef DEBUG
         dbgx(3, "%s uses ICMP...  ", srcip);
+#endif
 
         /*
          * if port unreachable, then source == server, dst == client 
@@ -921,6 +906,7 @@ packet2tree(const u_char * data, const int len)
     return (node);
 
 len_error:
+    safe_free(node);
     errx(-1, "packet capture length %d too small to process", len);
     return NULL;
 }

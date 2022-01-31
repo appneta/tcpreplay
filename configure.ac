@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.3.4],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.4.0],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -44,27 +44,18 @@ fi
 AC_SUBST(CROSS_ARCH)
 AC_SUBST(CROSS_LD)
 
-dnl ============================================
-dnl MacOSX build and runtime environment options
-dnl ============================================
-
-AC_ARG_WITH(macosx-sdk,
-    AS_HELP_STRING([--with-macosx-sdk],
-        [Use a specific SDK for building.])
-    [
-                          Usage:     --with-macosx-sdk=<version>
-                          e. g.: --with-macosx-sdk=10.8
-    ],
-,)
-
 
 dnl ===========================
 dnl Check OS X SDK and compiler
 dnl ===========================
+AC_ARG_WITH([macos-sdk],
+            [AS_HELP_STRING([--with-macos-sdk=VER],
+                            [Specify the macOS SDK version to use.])]
+)
 
 case "$host_os" in
     darwin*) # Mac OS X or iOS
-        # If no --with-macosx-sdk option is given, look for one
+        # If no --with-macos-sdk option is given, look for the latestq SDK
 
         # The intent is that for "most" Mac-based developers, a suitable
         # SDK will be found automatically without any configure options.
@@ -75,21 +66,49 @@ case "$host_os" in
         # To find a list of available version run `xcodebuild -showsdks`
 
         MULTIARCH=${host_cpu}-${host_os}
+        unset MACOSX_SDK_PATH
+
         AC_MSG_CHECKING([what macOS compiler to use])
 
-        for _macosx_sdk in $with_macosx_sdk 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 10.16 10.17 10.18 10.19 10.20 11.0 11.1 11.2 11.3 11.4 11.5; do
-            MACOSX_SDK_PATH=$(xcrun --sdk macosx${_macosx_sdk} --show-sdk-path 2> /dev/null)
-            if test -d "$MACOSX_SDK_PATH"; then
-                with_macosx_sdk="${_macosx_sdk}"
-                break
-            else
-                MACOSX_SDK_PATH=$(xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${_macosx_sdk}.sdk
-                if test -d "$MACOSX_SDK_PATH"; then
-                    with_macosx_sdk="${_macosx_sdk}"
-                    break
+        if test -n "$with_macos_sdk"; then
+            MACOSX_SDK_PATH=$(xcrun --sdk macosx${with_macos_sdk} --show-sdk-path 2> /dev/null)
+            if test -z "$MACOSX_SDK_PATH" ; then
+                AC_MSG_ERROR([could not find SDK ${with_macos_sdk} for macos-${MULTIARCH}])
+            fi
+        else
+            MACOSX_SDK_PATH=$(xcrun --show-sdk-path 2> /dev/null)
+            if test -z "$MACOSX_SDK_PATH" ; then
+                dnl could not find a default SDK - search likely SDK versions
+                for _macos_sdk_major in $(seq 15 -1 10); do
+                    for _macos_sdk_minor in $(seq 20 -1 0); do
+                        _macos_sdk_version=$_macos_sdk_major.$_macos_sdk_minor
+                        MACOSX_SDK_PATH=$(xcrun --sdk macosx${_macos_sdk_version} --show-sdk-path 2> /dev/null)
+                        if test -d "$_macos_sdk_path" ; then
+                            break 2
+                        fi
+                    done
+                done
+
+                dnl could not find a default SDK - search disk for the latest SDK
+                if test -z "$MACOSX_SDK_PATH"; then
+                    for _macos_sdk_major in $(seq 15 -1 10); do
+                        for _macos_sdk_minor in $(seq 20 -1 0); do
+                            _macos_sdk_version=$_macos_sdk_major.$_macos_sdk_minor
+                            MACOSX_SDK_PATH=$(xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${_macos_sdk_version}.sdk
+                            if test -d "$MACOSX_SDK_PATH"; then
+                                break 2
+                            fi
+
+                            MACOSX_SDK_PATH=$(xcode-select -print-path)/SDKs/MacOSX${_macos_sdk_version}.sdk
+                            if test -d "$MACOSX_SDK_PATH"; then
+                                break 2
+                            fi
+                        done
+                    done
                 fi
             fi
-        done
+        fi
+
         if test -d "$MACOSX_SDK_PATH"; then
             CC="$(xcrun -find clang) -m64 -isysroot $MACOSX_SDK_PATH"
             INSTALL_NAME_TOOL=$(xcrun -find install_name_tool)
@@ -98,7 +117,7 @@ case "$host_os" in
             STRIP=$(xcrun -find strip)
             LIBTOOL=$(xcrun -find libtool)
             RANLIB=$(xcrun -find ranlib)
-            AC_MSG_RESULT([$CC])
+            AC_MSG_RESULT([${MACOSX_SDK_PATH}])
         else
             AC_MSG_RESULT([legacy])
         fi
@@ -333,7 +352,7 @@ AC_CHECK_HEADERS([fcntl.h stddef.h sys/socket.h  arpa/inet.h sys/time.h])
 AC_CHECK_HEADERS([signal.h string.h strings.h sys/types.h stdint.h sys/select.h])
 AC_CHECK_HEADERS([netinet/in.h netinet/in_systm.h poll.h sys/poll.h unistd.h sys/param.h])
 AC_CHECK_HEADERS([inttypes.h libintl.h sys/file.h sys/ioctl.h sys/systeminfo.h])
-AC_CHECK_HEADERS([sys/io.h architecture/i386/pio.h sched.h])
+AC_CHECK_HEADERS([sys/io.h architecture/i386/pio.h sched.h fts.h])
 AC_HEADER_STDBOOL
 
 dnl OpenBSD has special requirements
@@ -1266,7 +1285,7 @@ if test "$cross_compiling" = yes; then
         NETMAP_SEARCH_DIRS=$trynetmapdir
     fi
 else
-    NETMAP_SEARCH_DIRS="$trynetmapdir /opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include"
+    NETMAP_SEARCH_DIRS="$trynetmapdir /opt/netmap /usr/src/netmap-release /usr/src/netmap /usr/local/src/netmap-release /usr/local/src/netmap /usr/include /usr/local/include"
 fi
 
 for testdir in $NETMAP_SEARCH_DIRS; do
@@ -1679,71 +1698,6 @@ else
 fi
 
 fi # checking pcapnav version
-
-
-dnl (shamelessly ripped off from libpcap)
-dnl Checks to see if unaligned memory accesses fail
-dnl
-dnl     FORCE_ALIGN (DEFINED)
-dnl
-AC_MSG_CHECKING(for requires strict byte alignment)
-AC_CACHE_VAL(unaligned_cv_fail,
-        [case "$host_cpu" in
-
-        # XXX: should also check that they don't do weird things (like on arm)
-        alpha*|arm*|hp*|mips*|sparc*|ia64)
-                unaligned_cv_fail=yes
-                ;;
-
-        *)
-        cat >conftest.c <<EOF
-        #include <sys/types.h>
-        #include <sys/wait.h>
-        #include <stdio.h>
-        unsigned char a[[5]] = { 1, 2, 3, 4, 5 };
-        main() {
-            unsigned int i;
-            pid_t pid;
-            int status;
-            /* avoid "core dumped" message */
-            pid = fork();
-            if (pid <  0)
-                exit(2);
-            if (pid > 0) {
-                /* parent */
-                pid = waitpid(pid, &status, 0);
-                if (pid < 0)
-                        exit(3);
-                exit(!WIFEXITED(status));
-            }
-            /* child */
-            i = *(unsigned int *)&a[[1]];
-            printf("%d\n", i);
-            exit(0);
-        }
-EOF
-        ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS \
-            conftest.c $LIBS >/dev/null 2>&1
-        if test ! -x conftest ; then
-            dnl failed to compile for some reason
-            unaligned_cv_fail=yes
-        else
-            ./conftest >conftest.out
-            if test ! -s conftest.out ; then
-                unaligned_cv_fail=yes
-            else
-                unaligned_cv_fail=no
-            fi
-        fi
-        rm -f conftest* core core.conftest
-        ;;
-
-        esac
-    ])
-AC_MSG_RESULT($unaligned_cv_fail)
-if test $unaligned_cv_fail = yes ; then
-    AC_DEFINE([FORCE_ALIGN], [1], [Are we strictly aligned?])
-fi
 
 dnl ##################################################
 dnl # Check for tcpdump.

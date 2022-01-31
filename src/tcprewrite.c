@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -280,11 +280,6 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
          */
         memcpy(*pktdata, pktconst, pkthdr.caplen);
 
-#ifdef ENABLE_VERBOSE
-        if (options.verbose)
-            tcpdump_print(&tcpdump, pkthdr_ptr, *pktdata);
-#endif
-
         /* Dual nic processing? */
         if (options.cachedata != NULL) {
             cache_result = check_cache(options.cachedata, packetnum);
@@ -307,6 +302,10 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
             continue;
         }
 
+#ifdef ENABLE_VERBOSE
+        if (options.verbose)
+            tcpdump_print(&tcpdump, pkthdr_ptr, *pktdata);
+#endif
 
 WRITE_PACKET:
 #ifdef ENABLE_FRAGROUTE

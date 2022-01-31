@@ -100,8 +100,7 @@ typedef struct tcpr_udp_hdr udp_hdr_t;
 typedef struct tcpr_icmpv4_hdr icmpv4_hdr_t;
 typedef struct tcpr_icmpv6_hdr icmpv6_hdr_t;
 typedef struct tcpr_ethernet_hdr eth_hdr_t;
-typedef struct tcpr_802_1q_tag vlan_hdr_t;
-typedef struct tcpr_802_1q_hdr vlan_pkt_hdr_t;
+typedef struct tcpr_802_1q_hdr vlan_hdr_t;
 typedef struct sll_header sll_hdr_t;
 typedef struct tcpr_arp_hdr arp_hdr_t;
 typedef struct tcpr_dnsv4_hdr dnsv4_hdr_t;
@@ -211,7 +210,11 @@ typedef enum tcpprep_mode_e {
     CLIENT_MODE     /* second pass through in client (router) mode */
 } tcpprep_mode_t;
 
-#define BROADCAST_MAC "\xFF\xFF\xFF\xFF\xFF\xFF"
+#define BROADCAST_MAC           "\xff\xff\xff\xff\xff\xff"
+#define IPV4_MULTICAST_MAC      "\x01\x00\x5e\x00\x00\x00"
+#define IPV6_MULTICAST_MAC      "\x33\x33\x00\x00\x00\x00"
+#define IPV4_VRRP               "\x00\x00\x50\x00\x01\x00"
+#define IPV6_VRRP               "\x00\x00\x50\x00\x02\x00"
 
 /* MAC macros for printf */
 #define MAC_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"

@@ -1,3 +1,17 @@
+06/19/2021 Version 4.4.0
+    - remove obsolete FORCE_ALIGN support to fix macOS 11 compile (#695)
+    - add a security policy document (#689)
+    - ability to specify directory of pcap files (#682)
+    - incorrect PPS rate for long-running sessions (#679)
+    - option --skipbroadcast not working (#677)
+    - revert #630 to fix --multiplier issues (#674)
+    - gcc 9.3 compiler warnings (#670)
+    - installed netmap not automatically detected (#669)
+    - latest macOS SDK selected by default (#668)
+    - heap-buffer-overflow with flow_decode() (#665)
+    - add feature VLAN Q-in-Q (#625)
+    - add feature update Ethernet MAC on multicast IP (#563)
+
 04/01/2021 Version 4.3.4
     - ASAN reports memory leaks while running tests (#662)
     - local libopts compiler warnings (#658)

@@ -76,7 +76,7 @@ TCPREWRITE:
     - others non-vanilla types?
     + Add tags?  Remove tags?  Change tags?
     - Tag only one side of the connection
-    - Support Q-in-Q tags:
+    + Support Q-in-Q tags:
           http://www.informit.com/articles/article.asp?p=101367&rl=1
     - Cisco's ISL trunking?
 

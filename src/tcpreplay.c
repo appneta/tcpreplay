@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -27,7 +27,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
+#ifdef HAVE_FTS_H
+#include <fts.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 
@@ -108,23 +110,58 @@ main(int argc, char *argv[])
         notice("File Cache is enabled");
     }
 
+   /*
+    * Check if remaining args are directories or files
+    */
+    for (i = 0; i < argc; i++) {
+#ifdef HAVE_FTS_H
+        struct stat statbuf;
+        if (stat(argv[i], &statbuf) != 0) {
+            errx(-1,
+                 "Unable to retrieve informations from file %s: %s",
+                 argv[i],
+                 strerror(errno));
+        }
+
+        /* If it is a directory, walk the file tree and treat only pcap files */
+        if (S_ISDIR(statbuf.st_mode)) {
+            FTSENT *entry = NULL;
+            FTS *fts = fts_open(&argv[i], FTS_NOCHDIR | FTS_LOGICAL, NULL);
+            if (fts == NULL) {
+                errx(-1, "Unable to open %s", argv[1]);
+            }
+
+            while ((entry = fts_read(fts)) != NULL) {
+                switch (entry->fts_info) {
+                case FTS_F:
+                    if (entry->fts_path) {
+                        tcpreplay_add_pcapfile(ctx, entry->fts_path);
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            fts_close(fts);
+        } else {
+            tcpreplay_add_pcapfile(ctx, argv[i]);
+        }
+#else
+        tcpreplay_add_pcapfile(ctx, argv[i]);
+#endif
+    }
+
     /*
      * Setup up the file cache, if required
      */
     if (ctx->options->preload_pcap) {
         /* Initialize each of the file cache structures */
-        for (i = 0; i < argc; i++) {
+        for (i = 0; i < ctx->options->source_cnt; i++) {
             ctx->options->file_cache[i].index = i;
             ctx->options->file_cache[i].cached = FALSE;
             ctx->options->file_cache[i].packet_cache = NULL;
-        }
-    }
-
-    for (i = 0; i < argc; i++) {
-        tcpreplay_add_pcapfile(ctx, argv[i]);
-
-        /* preload our pcap file? */
-        if (ctx->options->preload_pcap) {
+            /* preload our pcap file */
             preload_pcap_file(ctx, i);
         }
     }

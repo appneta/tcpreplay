@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -88,7 +88,7 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
     int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
     u_char *(*plugin_get_layer3)(tcpeditdlt_t *,  u_char *, const int);
-    u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const int, u_char *);
+    u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const int, u_char *, u_char *);
     tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
     u_char *(*plugin_get_mac)(tcpeditdlt_t *, tcpeditdlt_mac_type_t, const u_char *, const int);
     void *config; /* user configuration data for the encoder */
@@ -103,9 +103,7 @@ struct tcpeditdlt_plugin_s {
  */
 struct tcpeditdlt_s {
     tcpedit_t *tcpedit;                 /* pointer to our tcpedit context */
-#ifdef FORCE_ALIGN
     u_char *l3buff;                     /* pointer for L3 buffer on strictly aligned systems */
-#endif
     tcpeditdlt_plugin_t *plugins;       /* registered plugins */
     tcpeditdlt_plugin_t *decoder;       /* Encoder plugin */
     tcpeditdlt_plugin_t *encoder;       /* Decoder plugin */      
@@ -125,7 +123,9 @@ struct tcpeditdlt_s {
     tcpeditdlt_l2address_t srcaddr;         /* filled out source address */
     tcpeditdlt_l2address_t dstaddr;         /* filled out dst address */
     int l2len;                              /* set by decoder and updated by encoder */
-    u_int16_t proto;                        /* layer 3 proto type?? */
+    int l2offset;                           /* offset to L2 - set by decoder and updated by encoder */
+    u_int16_t proto;                        /* layer 3 proto type */
+    u_int16_t proto_vlan_tag;               /* VLAN tag proto type */
     void *decoded_extra;                    /* any extra L2 data from decoder like VLAN tags */
     size_t decoded_extra_size;              /* size of decode_extra buffer */
     u_char srcmac[MAX_MAC_LEN];             /* buffers to store the src & dst MAC */

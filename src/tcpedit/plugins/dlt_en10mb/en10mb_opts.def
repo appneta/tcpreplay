@@ -93,7 +93,14 @@ ethernet headers or remove the 802.1q VLAN tag information.
 @table @bullet
 @item
 @var{add}
-Rewrites the existing 802.3 ethernet header as an 802.1q VLAN header
+Adds an 802.1q VLAN header to the existing 802.3 ethernet header. If
+a VLAN header already exists, a new VLAN header is added outside of the
+existing header.
+
+Note that you will be allowed to run this option multiple times to create
+more than 2 VLAN headers, however those packets will be valid. At most
+you should have 2 X 802.1q VLAN tags, or outer an 802.1ad and an inner 802.1q
+VLAN tag.
 @item
 @var{del}
 Rewrites the existing 802.1q VLAN header as an 802.3 ethernet header
@@ -128,4 +135,23 @@ flag = {
     arg-type    = number;
     arg-range   = "0->7"; /* one byte */
     doc         = "";
+};
+
+flag = {
+    name        = enet-vlan-proto;
+    max         = 1;
+    flag-must   = enet-vlan;
+    descrip     = "Specify VLAN tag protocol 802.1q or 802.1ad";
+    arg-type    = string;
+    doc         = <<- EOText
+Allows you to specify the protocol of the added VLAN tags.
+@table @bullet
+@item
+@var{802.1q}
+Specifies that 802.1q VLAN headers are to be added. This is the default.
+@item
+@var{802.1ad}
+Specifies that 802.1ad Q-in-Q VLAN headers are to be added. To make valid packets,
+input packets must already have 802.1q VLAN headers.
+EOText;
 };

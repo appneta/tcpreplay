@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -124,6 +124,8 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     config->vlan_pri = 255;
     config->vlan_cfi = 255;
     
+    /* VLAN protocol = 802.1q */
+    config->vlan_proto = ETHERTYPE_VLAN;
     
     return TCPEDIT_OK; /* success */
 }
@@ -341,7 +343,7 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
      * Validate 802.1q vlan args and populate tcpedit->vlan_record
      */
     if (HAVE_OPT(ENET_VLAN)) {
-        if (strcmp(OPT_ARG(ENET_VLAN), "add") == 0) { // add or change
+        if (strcmp(OPT_ARG(ENET_VLAN), "add") == 0) { /* add or change */
             config->vlan = TCPEDIT_VLAN_ADD;
         } else if (strcmp(OPT_ARG(ENET_VLAN), "del") == 0) {
             config->vlan = TCPEDIT_VLAN_DEL;
@@ -373,6 +375,18 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
             if (HAVE_OPT(ENET_VLAN_CFI))
                 config->vlan_cfi = OPT_VALUE_ENET_VLAN_CFI;
             }
+
+            if (HAVE_OPT(ENET_VLAN_PROTO)) {
+                if (strcasecmp(OPT_ARG(ENET_VLAN_PROTO), "802.1q") == 0) {
+                    config->vlan_proto = ETHERTYPE_VLAN;
+                } else if (strcasecmp(OPT_ARG(ENET_VLAN_PROTO), "802.1ad") == 0) {
+                    config->vlan_proto = ETHERTYPE_Q_IN_Q;
+                } else {
+                    tcpedit_seterr(ctx->tcpedit, "VLAN protocol \"%s\" is invalid",
+                                   OPT_ARG(ENET_VLAN_PROTO));
+                    return TCPEDIT_ERROR;
+                }
+            }
         }
     }
 
@@ -387,49 +401,79 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 int 
 dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    struct tcpr_ethernet_hdr *eth = NULL;
-    struct tcpr_802_1q_hdr *vlan = NULL;
-    en10mb_extra_t *extra = NULL;
+    struct tcpr_ethernet_hdr *eth_hdr;
+    uint32_t pkt_len = pktlen;
+    en10mb_extra_t *extra;
+    uint32_t vlan_offset;
+    uint16_t protcol;
+    uint32_t l2offset;
+    uint32_t l2len;
+    int res;
     
     assert(ctx);
     assert(packet);
-    if (pktlen < TCPR_802_3_H)
-        return TCPEDIT_ERROR;
-
-    /* get our src & dst address */
-    eth = (struct tcpr_ethernet_hdr *)packet;
-    memcpy(&(ctx->dstaddr.ethernet), eth, ETHER_ADDR_LEN);
-    memcpy(&(ctx->srcaddr.ethernet), &(eth->ether_shost), ETHER_ADDR_LEN);
 
     extra = (en10mb_extra_t *)ctx->decoded_extra;
-    if (ctx->decoded_extra_size < sizeof(*extra))
+    if (ctx->decoded_extra_size < sizeof(*extra)) {
+        tcpedit_seterr(ctx->tcpedit, "Decode extra size too short! %d < %u",
+                       ctx->decoded_extra_size, sizeof(*extra));
+        return TCPEDIT_ERROR;
+    }
+
+    res = get_l2len_protocol(packet,
+                             pkt_len,
+                             dlt_value,
+                             &protcol,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
+    if (res == -1)
         return TCPEDIT_ERROR;
 
-    extra->vlan = 0;
-    
-    /* get the L3 protocol type  & L2 len*/
-    switch (ntohs(eth->ether_type)) {
-        case ETHERTYPE_VLAN:
-            if (pktlen < TCPR_802_1Q_H)
-                    return TCPEDIT_ERROR;
+    if (pkt_len < TCPR_802_3_H + l2offset)
+        return TCPEDIT_ERROR;
 
-            vlan = (struct tcpr_802_1q_hdr *)packet;
-            ctx->proto = vlan->vlan_len;
-            
-            /* Get VLAN tag info */
+    eth_hdr = (struct tcpr_ethernet_hdr*)(packet + l2offset);
+    protcol = ntohs(eth_hdr->ether_type);
+    memcpy(&(ctx->dstaddr.ethernet), eth_hdr, ETHER_ADDR_LEN);
+    memcpy(&(ctx->srcaddr.ethernet), &(eth_hdr->ether_shost), ETHER_ADDR_LEN);
+    ctx->proto_vlan_tag = ntohs(eth_hdr->ether_type);
+
+    if (vlan_offset != 0) {
+        if (vlan_offset == l2offset + sizeof(*eth_hdr)) {
+            vlan_hdr_t *vlan_hdr;
+            vlan_hdr = (vlan_hdr_t*)(packet + vlan_offset);
+            if (pkt_len < vlan_offset + sizeof(*vlan_hdr)) {
+                tcpedit_seterr(ctx->tcpedit,
+                               "Frame is too short for VLAN headers! %d < %d",
+                               pktlen,
+                               vlan_offset + sizeof(*vlan_hdr));
+                return TCPEDIT_ERROR;
+            }
+
             extra->vlan = 1;
-            /* must use these mask values, rather then what's in the tcpr.h since it assumes you're shifting */
-            extra->vlan_tag = vlan->vlan_priority_c_vid & 0x0FFF;
-            extra->vlan_pri = vlan->vlan_priority_c_vid & 0xE000;
-            extra->vlan_cfi = vlan->vlan_priority_c_vid & 0x1000;
-            ctx->l2len = TCPR_802_1Q_H;
-            break;
-        
-        /* we don't properly handle SNAP encoding */
-        default:
-            ctx->proto = eth->ether_type;
-            ctx->l2len = TCPR_802_3_H;
+            extra->vlan_offset = vlan_offset;
+            extra->vlan_proto = ntohs(vlan_hdr->vlan_tpid);
+            extra->vlan_tag = htons(vlan_hdr->vlan_tci) & TCPR_802_1Q_VIDMASK;
+            extra->vlan_pri = htons(vlan_hdr->vlan_tci) & TCPR_802_1Q_PRIMASK;
+            extra->vlan_cfi = htons(vlan_hdr->vlan_tci) & TCPR_802_1Q_CFIMASK;
+
+        } else {
+            /* VLAN headers cannot be after MPLS. There are other protocols such
+             * Cisco Metatdata that could be before VLAN, but we don't support
+             * them yet.
+             */
+            return TCPEDIT_ERROR;
+        }
+    } else {
+        extra->vlan = 0;
+        extra->vlan_offset = l2offset + sizeof(*eth_hdr);
+        extra->vlan_proto = protcol;
     }
+
+    ctx->proto = ntohs(protcol);
+    ctx->l2offset = l2offset;
+    ctx->l2len = l2len;
 
     return TCPEDIT_OK; /* success */
 }
@@ -441,18 +485,18 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 int 
 dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 {
-    tcpeditdlt_plugin_t *plugin = NULL;
-    struct tcpr_ethernet_hdr *eth = NULL;
-    struct tcpr_802_1q_hdr *vlan = NULL;
-    en10mb_config_t *config = NULL;
-    en10mb_extra_t *extra = NULL;
-    
+    struct tcpr_802_1q_hdr *vlan_hdr;
+    struct tcpr_ethernet_hdr *eth;
+    tcpeditdlt_plugin_t *plugin;
+    en10mb_config_t *config;
+    en10mb_extra_t *extra;
     int newl2len = 0;
+    int oldl2len = 0;
 
     assert(ctx);
     assert(packet);
 
-    if (pktlen < TCPR_802_1Q_H) {
+    if (pktlen < TCPR_802_3_H) {
         tcpedit_seterr(ctx->tcpedit, 
                 "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.", 
                 ctx->tcpedit->runtime.packetnum);
@@ -473,24 +517,35 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
     if (ctx->decoder->dlt == dlt_value) {
-        if ((ctx->l2len == TCPR_802_1Q_H && config->vlan == TCPEDIT_VLAN_OFF) ||
-            (config->vlan == TCPEDIT_VLAN_ADD)) {
-            newl2len = TCPR_802_1Q_H;
-        } else if ((ctx->l2len == TCPR_802_3_H && config->vlan == TCPEDIT_VLAN_OFF) ||
-            (config->vlan == TCPEDIT_VLAN_DEL)) {
-            newl2len = TCPR_802_3_H;
+        switch (config->vlan) {
+        case TCPEDIT_VLAN_ADD:
+            oldl2len = extra->vlan_offset;
+            newl2len = extra->vlan_offset + sizeof(vlan_hdr_t);
+            break;
+        case TCPEDIT_VLAN_DEL:
+            if (extra->vlan) {
+                oldl2len = extra->vlan_offset + sizeof(vlan_hdr_t);
+                newl2len = extra->vlan_offset;
+            }
+            break;
+        case TCPEDIT_VLAN_OFF:
+            if (extra->vlan) {
+                oldl2len = extra->vlan_offset;
+                newl2len = extra->vlan_offset;
+            }
+            break;
         }
-    } 
-    
-    /* newl2len for some other DLT -> ethernet */
-    else {
-        /* if add a vlan then 18, else 14 bytes */
-        newl2len = config->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_802_3_H;
     }
 
-    if (pktlen < newl2len) {
+    /* newl2len for some other DLT -> ethernet */
+    else if (config->vlan == TCPEDIT_VLAN_ADD) {
+        /* if add a vlan then 18, */
+        newl2len = TCPR_802_1Q_H;
+    }
+
+    if (pktlen < newl2len || pktlen + newl2len - ctx->l2len > MAXPACKET) {
         tcpedit_seterr(ctx->tcpedit,
-                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d bytes.",
+                "Unable to process packet #" COUNTER_SPEC " since its new length is %d bytes.",
                 ctx->tcpedit->runtime.packetnum, newl2len);
         return TCPEDIT_ERROR;
     }
@@ -503,19 +558,22 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     }
 
     /* Make space for our new L2 header */
-    if (newl2len != ctx->l2len) {
-        if (pktlen + (newl2len - ctx->l2len) > MAXPACKET)
-            errx(-1, "New frame too big, new length %d exceeds %d",
+    if (newl2len > 0 && newl2len != oldl2len) {
+        if (pktlen + (newl2len - oldl2len) > MAXPACKET) {
+            tcpedit_seterr(ctx->tcpedit, "New frame too big, new length %d exceeds %d",
                     pktlen + (newl2len - ctx->l2len), MAXPACKET);
+            return TCPEDIT_ERROR;
+        }
 
-        memmove(packet + newl2len, packet + ctx->l2len, pktlen - ctx->l2len);
+        memmove(packet + newl2len, packet + oldl2len, pktlen - oldl2len);
     }
 
     /* update the total packet length */
-    pktlen += newl2len - ctx->l2len;
+    pktlen += newl2len - oldl2len;
+    ctx->l2len += newl2len - oldl2len;
     
-    /* always set the src & dst address as the first 12 bytes */
-    eth = (struct tcpr_ethernet_hdr *)packet;
+    /* set the src & dst address as the first 12 bytes */
+    eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
     
     if (dir == TCPR_DIR_C2S) {
         /* copy user supplied SRC MAC if provided or from original packet */
@@ -529,6 +587,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
                 memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);                
             }
         } else if (ctx->addr_type == ETHERNET) {
+            extra->src_modified = memcmp(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
             memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a source address");
@@ -545,6 +604,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
                 memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
             }
         } else if (ctx->addr_type == ETHERNET) {
+            extra->dst_modified = memcmp(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
@@ -562,21 +622,20 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
                 memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
             }
         } else if (ctx->addr_type == ETHERNET) {
-            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);            
+            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a source address");
             return TCPEDIT_ERROR;
         }
 
-        
-        /* copy user supplied DMAC MAC if provided or from original packet */        
+        /* copy user supplied DMAC MAC if provided or from original packet */
         if (config->mac_mask & TCPEDIT_MAC_MASK_DMAC2) {
             if ((ctx->addr_type == ETHERNET && 
                 ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast))
                 || ctx->addr_type != ETHERNET) {
                 memcpy(eth->ether_dhost, config->intf2_dmac, ETHER_ADDR_LEN);
             } else {
-                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);                
+                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
             }
         } else if (ctx->addr_type == ETHERNET) {
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
@@ -623,48 +682,48 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
       }
     }
 
-    if (newl2len == TCPR_802_3_H) {
-        /* all we need for 802.3 is the proto */
-        eth->ether_type = ctx->proto;
-        
-    } else if (newl2len == TCPR_802_1Q_H) {
-        /* VLAN tags need a bit more */
-        vlan = (struct tcpr_802_1q_hdr *)packet;
-        vlan->vlan_len = ctx->proto;
-        vlan->vlan_tpi = htons(ETHERTYPE_VLAN);
-        
+    if (config->vlan == TCPEDIT_VLAN_ADD
+            || (config->vlan == TCPEDIT_VLAN_OFF && extra->vlan)) {
+        vlan_hdr = (struct tcpr_802_1q_hdr *)(packet + extra->vlan_offset);
+        if (config->vlan == TCPEDIT_VLAN_ADD) {
+            struct tcpr_ethernet_hdr *eth_hdr;
+            eth_hdr = (struct tcpr_ethernet_hdr*)(packet + ctx->l2offset);
+            eth_hdr->ether_type = htons(config->vlan_proto);
+            vlan_hdr->vlan_tpid = htons(ctx->proto_vlan_tag);
+        }
+
         /* are we changing VLAN info? */
         if (config->vlan_tag < 65535) {
-            vlan->vlan_priority_c_vid = 
+            vlan_hdr->vlan_tci =
                 htons((uint16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
         } else if (extra->vlan) {
-            vlan->vlan_priority_c_vid = extra->vlan_tag;
+            vlan_hdr->vlan_tci = htons(extra->vlan_tag);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-tag");
             return TCPEDIT_ERROR;
         }
         
         if (config->vlan_pri < 255) {
-            vlan->vlan_priority_c_vid += htons((uint16_t)config->vlan_pri << 13);
+            vlan_hdr->vlan_tci += htons((uint16_t)config->vlan_pri << 13);
         } else if (extra->vlan) {
-            vlan->vlan_priority_c_vid += extra->vlan_pri;
+            vlan_hdr->vlan_tci += htons(extra->vlan_pri);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-pri");
             return TCPEDIT_ERROR;
         }
-            
+
         if (config->vlan_cfi < 255) {
-            vlan->vlan_priority_c_vid += htons((uint16_t)config->vlan_cfi << 12);
+            vlan_hdr->vlan_tci += htons((uint16_t)config->vlan_cfi << 12);
         } else if (extra->vlan) {
-            vlan->vlan_priority_c_vid += extra->vlan_cfi;
+            vlan_hdr->vlan_tci += htons(extra->vlan_cfi);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-cfi");
-            return TCPEDIT_ERROR;            
-        }        
-        
-    } else {
-        tcpedit_seterr(ctx->tcpedit, "Unsupported new layer 2 length: %d", newl2len);
-        return TCPEDIT_ERROR;
+            return TCPEDIT_ERROR;
+        }
+
+    } else if (config->vlan == TCPEDIT_VLAN_DEL && newl2len > 0) {
+        /* all we need for 802.3 is the proto */
+        eth->ether_type = htons(extra->vlan_proto);
     }
 
     return pktlen;
@@ -677,30 +736,31 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 int 
 dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
-    struct tcpr_ethernet_hdr *eth = NULL;
-    struct tcpr_802_1q_hdr *vlan = NULL;
-    
+    uint32_t _U_ vlan_offset;
+    uint16_t ether_type;
+    uint32_t _U_ l2offset;
+    uint32_t _U_ l2len;
+    int res;
+
     assert(ctx);
     assert(packet);
-    if (pktlen < (int) sizeof(*eth)) {
+    if (pktlen < (int) sizeof(struct tcpr_ethernet_hdr)) {
         tcpedit_seterr(ctx->tcpedit, "Ethernet packet length too short: %d",
                 pktlen);
         return TCPEDIT_ERROR;
     }
-    
-    eth = (struct tcpr_ethernet_hdr *)packet;
-    switch (ntohs(eth->ether_type)) {
-        case ETHERTYPE_VLAN:
-            vlan = (struct tcpr_802_1q_hdr *)packet;
-            return vlan->vlan_len;
-            break;
-        
-        default:
-            return eth->ether_type;
-            break;
-    }
 
-    return TCPEDIT_ERROR;
+    res = get_l2len_protocol(packet,
+                             pktlen,
+                             dlt_value,
+                             &ether_type,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
+    if (res == -1)
+        return TCPEDIT_ERROR;
+
+    return htons(ether_type);
 }
 
 /*
@@ -721,24 +781,100 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 }
 
 /*
+ * Modify MAC address if IPv4 address is Multicast (#563)
+ * ip: 32-bit IP address in network order
+ * mac: pointer to packet ethernet source or destination address (6 bytes)
+ */
+static void dlt_en10mb_ipv4_multicast_mac_update(const uint32_t ip,
+                                                 uint8_t mac[])
+{
+    /* only modify multicast packets */
+    if ((ntohl(ip) & 0xf0000000) != 0xe0000000)
+        return;
+
+    mac[2] = (ntohl(ip) & 0x7fffff);
+    mac[0] =0x01;
+    mac[1] =0x0;
+    mac[2] =0x5e;
+}
+
+/*
+ * Modify MAC address if IPv4 address is Multicast (#563)
+ * ip6: 128-bit IPv6 address in network order
+ * mac: pointer to packet ethernet source or destination address (6 bytes)
+ */
+static void dlt_en10mb_ipv6_multicast_mac_update(const struct tcpr_in6_addr *ip6,
+                                                 uint8_t mac[])
+{
+    /* only modify multicast packets */
+    if (ip6->tcpr_s6_addr[0] == 0xff)
+        return;
+
+    mac[0] = 0x33;
+    mac[1] = 0x33;
+    mac[2] = ip6->tcpr_s6_addr[12];
+    mac[3] = ip6->tcpr_s6_addr[13];
+    mac[4] = ip6->tcpr_s6_addr[14];
+    mac[5] = ip6->tcpr_s6_addr[15];
+}
+
+/*
  * function merges the packet (containing L2 and old L3) with the l3data buffer
  * containing the new l3 data.  Note, if L2 % 4 == 0, then they're pointing to the
  * same buffer, otherwise there was a memcpy involved on strictly aligned architectures
  * like SPARC
  */
 u_char *
-dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
+                        u_char *packet,
+                        const int pktlen,
+                        u_char *ipv4_data,
+                        u_char *ipv6_data)
 {
+    en10mb_extra_t *extra;
+    struct tcpr_ethernet_hdr *eth;
+
     int l2len;
+
     assert(ctx);
     assert(packet);
-    assert(l3data);
     
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
-    
-    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
+
+    assert(ctx->decoded_extra_size == sizeof(*extra));
+    extra = (en10mb_extra_t *)ctx->decoded_extra;
+    eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
+    assert(eth);
+    /* modify source/destination MAC if source/destination IP is multicast */
+    if (ipv4_data) {
+        if ((size_t)pktlen >= sizeof(*eth) + sizeof(struct tcpr_ipv4_hdr)) {
+            struct tcpr_ipv4_hdr *ip_hdr = (struct tcpr_ipv4_hdr*)ipv4_data;
+            if (!extra->src_modified)
+                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_src.s_addr,
+                                                     eth->ether_shost);
+
+            if (!extra->dst_modified)
+                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_dst.s_addr,
+                                                     eth->ether_dhost);
+        }
+        return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data, l2len);
+    } else if (ipv6_data) {
+        if ((size_t)pktlen >= sizeof(*eth) + sizeof(struct tcpr_ipv6_hdr)) {
+            struct tcpr_ipv6_hdr *ip6_hdr = (struct tcpr_ipv6_hdr*)ipv6_data;
+            if (!extra->src_modified)
+                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_src,
+                                                     eth->ether_shost);
+
+            if (!extra->dst_modified)
+                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_dst,
+                                                     eth->ether_dhost);
+        }
+        return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv6_data, l2len);
+    }
+
+    return NULL;
 }
 
 /*
@@ -778,31 +914,23 @@ int
 dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 {
     int l2len;
-    uint16_t ether_type;
     
     assert(ctx);
     assert(packet);
 
-    l2len = sizeof(eth_hdr_t);
-    if (pktlen < l2len)
-        return -1;
-
-    ether_type = ntohs(((eth_hdr_t*)packet)->ether_type);
-    while (ether_type == ETHERTYPE_VLAN) {
-        if (pktlen < l2len + (int)sizeof(vlan_hdr_t))
-             return -1;
-
-         vlan_hdr_t *vlan_hdr = (vlan_hdr_t*)(packet + l2len);
-         ether_type = ntohs(vlan_hdr->vlan_tpid);
-         l2len += 4;
+    if (pktlen < (int)sizeof(eth_hdr_t)) {
+        tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than size of Ethernet header",
+                       pktlen);
+        return TCPEDIT_ERROR;
     }
 
+    l2len = get_l2len(packet, pktlen, dlt_value);
     if (l2len > 0) {
         if (pktlen < l2len) {
             /* can happen if fuzzing is enabled */
             tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than l2len=%u",
                     pktlen, l2len);
-            return -1;
+            return TCPEDIT_ERROR;
         }
 
         return l2len;

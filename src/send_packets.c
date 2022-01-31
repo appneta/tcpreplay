@@ -3,7 +3,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -90,36 +90,48 @@ static inline int
 fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         COUNTER iteration, bool cached, int datalink)
 {
-    uint16_t ether_type;
+    uint32_t pkt_len = pkthdr->caplen;
+    u_char *packet = *pktdata;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     uint32_t src_ip, dst_ip;
     uint32_t src_ip_orig, dst_ip_orig;
-    int l2_len;
-    u_char *packet = *pktdata;
+    uint32_t _U_ vlan_offset;
+    uint16_t ether_type;
+    uint32_t l2offset;
+    uint32_t l2len;
+    int res;
 
-    l2_len = get_l2len(packet, pkthdr->caplen, datalink);
-    if (l2_len < 0)
-        return -1;
+    res = get_l2len_protocol(packet,
+                             pkt_len,
+                             datalink,
+                             &ether_type,
+                             &l2len,
+                             &l2offset,
+                             &vlan_offset);
 
-    ether_type = get_l2protocol(packet, pkthdr->caplen, datalink);
+    if (res < 0)
+        return res;
+
+    assert(l2len > 0);
+
     switch (ether_type) {
     case ETHERTYPE_IP:
-        if (pkthdr->caplen < (bpf_u_int32)(l2_len + sizeof(ipv4_hdr_t))) {
+        if (pkt_len < (bpf_u_int32)(l2len + sizeof(ipv4_hdr_t))) {
             dbgx(1, "IP packet too short for Unique IP feature: %u", pkthdr->caplen);
             return -1;
         }
-        ip_hdr = (ipv4_hdr_t *)(packet + l2_len);
+        ip_hdr = (ipv4_hdr_t *)(packet + l2len);
         src_ip_orig = src_ip = ntohl(ip_hdr->ip_src.s_addr);
         dst_ip_orig = dst_ip = ntohl(ip_hdr->ip_dst.s_addr);
         break;
 
     case ETHERTYPE_IP6:
-        if (pkthdr->caplen < (bpf_u_int32)(l2_len + sizeof(ipv6_hdr_t))) {
+        if (pkt_len < (bpf_u_int32)(l2len + sizeof(ipv6_hdr_t))) {
             dbgx(1, "IP6 packet too short for Unique IP feature: %u", pkthdr->caplen);
             return -1;
         }
-        ip6_hdr = (ipv6_hdr_t *)(packet + l2_len);
+        ip6_hdr = (ipv6_hdr_t *)(packet + l2len);
         src_ip_orig = src_ip = ntohl(ip6_hdr->ip_src.__u6_addr.__u6_addr32[3]);
         dst_ip_orig = dst_ip = ntohl(ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3]);
         break;
@@ -339,7 +351,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
-    timerclear(&stats->first_packet_sent_wall_time);
     if (options->limit_time > 0)
         end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
@@ -424,23 +435,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
-                if(!timerisset(&stats->first_packet_sent_wall_time)) {
-                    /* We're sending the first packet, so we have an absolute time reference. */
-                    TIMEVAL_SET(&stats->first_packet_sent_wall_time, &now);
-                    TIMEVAL_SET(&stats->first_packet_pcap_timestamp, &pkthdr.ts);
-                }
-
                 if (!timerisset(&last_pkt_ts)) {
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 } else if (timercmp(&pkthdr.ts, &last_pkt_ts, >)) {
-                    /* pkt_ts_delta is the packet time stamp difference since the first packet */
-                    timersub(&pkthdr.ts, &stats->first_packet_pcap_timestamp, &stats->pkt_ts_delta);
+                    struct timeval delta;
 
-                    /* time_delta is the wall time difference since sending the first packet */
-                    timersub(&now, &stats->first_packet_sent_wall_time, &stats->time_delta);
-
+                    timersub(&pkthdr.ts, &last_pkt_ts, &delta);
+                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 }
+
+                if (!timerisset(&stats->time_delta))
+                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {
@@ -590,7 +596,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
-    timerclear(&stats->first_packet_sent_wall_time);
     if (options->limit_time > 0)
         end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
@@ -706,23 +711,18 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
-                if(!timerisset(&stats->first_packet_sent_wall_time)) {
-                    /* We're sending the first packet, so we have an absolute time reference. */
-                    TIMEVAL_SET(&stats->first_packet_sent_wall_time, &now);
-                    TIMEVAL_SET(&stats->first_packet_pcap_timestamp, &pkthdr_ptr->ts);
-                }
-
                 if (!timerisset(&last_pkt_ts)) {
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
                 } else if (timercmp(&pkthdr_ptr->ts, &last_pkt_ts, >)) {
-                    /* pkt_ts_delta is the packet time stamp difference since the first packet */
-                    timersub(&pkthdr_ptr->ts, &stats->first_packet_pcap_timestamp, &stats->pkt_ts_delta);
+                    struct timeval delta;
 
-                    /* time_delta is the wall time difference since sending the first packet */
-                    timersub(&now, &stats->first_packet_sent_wall_time, &stats->time_delta);
-
+                    timersub(&pkthdr_ptr->ts, &last_pkt_ts, &delta);
+                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
                 }
+
+                if (!timerisset(&stats->time_delta))
+                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {
@@ -1069,7 +1069,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
              if ((pkts_sent < COUNTER_OVERFLOW_RISK))
                  next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
              else
-                 next_tx_us = (pkts_sent * 1000000) / pph / (60 * 60);
+                 next_tx_us = ((pkts_sent * 1000000) / pph) * (60 * 60);
 
              if (next_tx_us > tx_us)
                  NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);

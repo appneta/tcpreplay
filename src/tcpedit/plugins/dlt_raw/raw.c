@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -254,12 +254,15 @@ dlt_raw_get_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_raw_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, _U_ const int pktlen,
-        u_char *l3data)
+dlt_raw_merge_layer3(tcpeditdlt_t *ctx,
+                     u_char *packet, _U_
+                     const int pktlen,
+                     u_char *ipv4_data,
+                     u_char *ipv6_data)
 {
     assert(ctx);
     assert(packet);
-    assert(l3data);
+    assert(ipv4_data || ipv6_data);
     
     /* raw has a zero byte header, so this is basically a non-op */
     

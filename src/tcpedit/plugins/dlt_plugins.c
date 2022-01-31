@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -130,9 +130,6 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
     ctx = (tcpeditdlt_t *)safe_malloc(sizeof(tcpeditdlt_t));
 
     /* do we need a side buffer for L3 data? */
-#ifdef FORCE_ALIGN
-    ctx->l3buff = (u_char *)safe_malloc(MAXPACKET);
-#endif
 
     /* copy our tcpedit context */
     ctx->tcpedit = tcpedit;
@@ -380,7 +377,12 @@ tcpedit_dlt_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen)
  * or Cisco HDLC (4 byte header) but is critical for std ethernet (12 byte header)
  */
 u_char *
-tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int pktlen, u_char *l3data)
+tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, 
+                         int dlt, 
+                         u_char *packet, 
+                         const int pktlen, 
+                         u_char *ipv4_data,
+                         u_char *ipv6_data)
 {
     tcpeditdlt_plugin_t *plugin;
     u_char *res;
@@ -389,7 +391,7 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
     assert(dlt >= 0);
     assert(packet);
 
-    if (l3data == NULL)
+    if (ipv4_data == NULL && ipv6_data == NULL)
         return packet;
         
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt)) == NULL) {
@@ -397,7 +399,7 @@ tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx, int dlt, u_char *packet, const int p
         return NULL;
     }
 
-    res = plugin->plugin_merge_layer3(ctx, packet, pktlen, l3data);
+    res = plugin->plugin_merge_layer3(ctx, packet, pktlen, ipv4_data, ipv6_data);
     if (res == NULL)
         tcpedit_seterr(ctx->tcpedit, "Packet length %d is to short for layer 3 merge for DLT 0x%04x",
                 pktlen, dlt);
@@ -468,10 +470,6 @@ tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
         safe_free(plugin);
         plugin = plugin_next;
     }
-
-#ifdef FORCE_ALIGN
-    safe_free(ctx->l3buff);
-#endif
 
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);

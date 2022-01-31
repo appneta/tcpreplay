@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2018 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -60,6 +60,15 @@ int rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int direction);
 int rewrite_ipv4_ttl(tcpedit_t *tcpedit, ipv4_hdr_t *ip_hdr);
 
 int rewrite_ipv6_hlim(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr);
+
+int extract_ipv4_multicast_mac(tcpedit_t *tcpedit,
+                               uint32_t ip,
+                               u_char *mac[ETHER_ADDR_LEN]);
+
+int extract_ipv6_multicast_mac(tcpedit_t *tcpedit,
+                               struct tcpr_in6_addr *ip6,
+                               u_char *mac[ETHER_ADDR_LEN]);
+
 
 #define BROADCAST_IP 4294967295
 
