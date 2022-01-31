@@ -1102,8 +1102,8 @@ is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip)
 {
     assert(tcpedit);
    
-    /* multicast/broadcast is 224.0.0.0 or greater */
-    if (ntohl(ip) > 3758096384)
+    /* multicast/broadcast is 224.0.0.0 to 239.255.255.255 */
+    if ((ntohl(ip) & 0xf0000000) == 0xe0000000)
         return 0;
         
     return 1;
@@ -1123,4 +1123,3 @@ is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
 
     return 0;
 }
-

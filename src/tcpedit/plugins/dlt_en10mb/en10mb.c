@@ -588,8 +588,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             }
         } else if (ctx->addr_type == ETHERNET) {
             extra->src_modified = memcmp(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
-            if (extra->src_modified)
-                memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
+            memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a source address");
             return TCPEDIT_ERROR;
@@ -606,8 +605,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             }
         } else if (ctx->addr_type == ETHERNET) {
             extra->dst_modified = memcmp(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
-            if (extra->dst_modified)
-                memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
+            memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
             return TCPEDIT_ERROR;            
@@ -783,6 +781,44 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
 }
 
 /*
+ * Modify MAC address if IPv4 address is Multicast (#563)
+ * ip: 32-bit IP address in network order
+ * mac: pointer to packet ethernet source or destination address (6 bytes)
+ */
+static void dlt_en10mb_ipv4_multicast_mac_update(const uint32_t ip,
+                                                 uint8_t mac[])
+{
+    /* only modify multicast packets */
+    if ((ntohl(ip) & 0xf0000000) != 0xe0000000)
+        return;
+
+    mac[2] = (ntohl(ip) & 0x7fffff);
+    mac[0] =0x01;
+    mac[1] =0x0;
+    mac[2] =0x5e;
+}
+
+/*
+ * Modify MAC address if IPv4 address is Multicast (#563)
+ * ip6: 128-bit IPv6 address in network order
+ * mac: pointer to packet ethernet source or destination address (6 bytes)
+ */
+static void dlt_en10mb_ipv6_multicast_mac_update(const struct tcpr_in6_addr *ip6,
+                                                 uint8_t mac[])
+{
+    /* only modify multicast packets */
+    if (ip6->tcpr_s6_addr[0] == 0xff)
+        return;
+
+    mac[0] = 0x33;
+    mac[1] = 0x33;
+    mac[2] = ip6->tcpr_s6_addr[12];
+    mac[3] = ip6->tcpr_s6_addr[13];
+    mac[4] = ip6->tcpr_s6_addr[14];
+    mac[5] = ip6->tcpr_s6_addr[15];
+}
+
+/*
  * function merges the packet (containing L2 and old L3) with the l3data buffer
  * containing the new l3 data.  Note, if L2 % 4 == 0, then they're pointing to the
  * same buffer, otherwise there was a memcpy involved on strictly aligned architectures
@@ -796,21 +832,49 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
                         u_char *ipv6_data)
 {
     en10mb_extra_t *extra;
+    struct tcpr_ethernet_hdr *eth;
+
     int l2len;
 
     assert(ctx);
     assert(packet);
     
-    if (!ipv4_data && !ipv6_data)
-        return NULL;
-
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
-    
+
     assert(ctx->decoded_extra_size == sizeof(*extra));
     extra = (en10mb_extra_t *)ctx->decoded_extra;
-    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data ?: ipv6_data, l2len);
+    eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
+    assert(eth);
+    /* modify source/destination MAC if source/destination IP is multicast */
+    if (ipv4_data) {
+        if ((size_t)pktlen >= sizeof(*eth) + sizeof(struct tcpr_ipv4_hdr)) {
+            struct tcpr_ipv4_hdr *ip_hdr = (struct tcpr_ipv4_hdr*)ipv4_data;
+            if (!extra->src_modified)
+                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_src.s_addr,
+                                                     eth->ether_shost);
+
+            if (!extra->dst_modified)
+                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_dst.s_addr,
+                                                     eth->ether_dhost);
+        }
+        return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data, l2len);
+    } else if (ipv6_data) {
+        if ((size_t)pktlen >= sizeof(*eth) + sizeof(struct tcpr_ipv6_hdr)) {
+            struct tcpr_ipv6_hdr *ip6_hdr = (struct tcpr_ipv6_hdr*)ipv6_data;
+            if (!extra->src_modified)
+                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_src,
+                                                     eth->ether_shost);
+
+            if (!extra->dst_modified)
+                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_dst,
+                                                     eth->ether_dhost);
+        }
+        return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv6_data, l2len);
+    }
+
+    return NULL;
 }
 
 /*
