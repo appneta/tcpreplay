@@ -339,18 +339,22 @@ dlt_hdlc_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_hdlc_merge_layer3(tcpeditdlt_t *ctx,
+                      u_char *packet,
+                      const int pktlen,
+                      u_char *ipv4_data,
+                      u_char *ipv6_data)
 {
     int l2len;
     assert(ctx);
     assert(packet);
-    assert(l3data);
+    assert(ipv4_data || ipv6_data);
     
     l2len = dlt_hdlc_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
     
-    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
+    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data ?: ipv6_data, l2len);
 }
 
 /* 

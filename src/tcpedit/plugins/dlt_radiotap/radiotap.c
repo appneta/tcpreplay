@@ -267,19 +267,23 @@ dlt_radiotap_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_radiotap_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_radiotap_merge_layer3(tcpeditdlt_t *ctx,
+                          u_char *packet,
+                          const int pktlen,
+                          u_char *ipv4_data,
+                          u_char *ipv6_data)
 {
     int radiolen, l2len;
     u_char *data;
     
     assert(ctx);
     assert(packet);
-    assert(l3data);
+    assert(ipv4_data || ipv6_data);
 
     radiolen = dlt_radiotap_l2len(ctx, packet, pktlen);
     data = dlt_radiotap_get_80211(ctx, packet, pktlen, radiolen);
     l2len = dlt_ieee80211_l2len(ctx, data, pktlen);
-    return tcpedit_dlt_l3data_merge(ctx, data, pktlen - radiolen, l3data, l2len);
+    return tcpedit_dlt_l3data_merge(ctx, data, pktlen - radiolen, ipv4_data ?: ipv6_data, l2len);
 }
 
 /*

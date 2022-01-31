@@ -88,7 +88,7 @@ struct tcpeditdlt_plugin_s {
     int (*plugin_proto)(tcpeditdlt_t *, const u_char *, const int);
     int (*plugin_l2len)(tcpeditdlt_t *, const u_char *, const int);
     u_char *(*plugin_get_layer3)(tcpeditdlt_t *,  u_char *, const int);
-    u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const int, u_char *);
+    u_char *(*plugin_merge_layer3)(tcpeditdlt_t *, u_char *, const int, u_char *, u_char *);
     tcpeditdlt_l2addr_type_t (*plugin_l2addr_type)(void);
     u_char *(*plugin_get_mac)(tcpeditdlt_t *, tcpeditdlt_mac_type_t, const u_char *, const int);
     void *config; /* user configuration data for the encoder */

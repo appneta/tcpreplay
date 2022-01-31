@@ -35,6 +35,8 @@ typedef struct {
     u_int16_t vlan_pri;
     u_int16_t vlan_cfi;
     u_int16_t vlan_proto;
+    bool src_modified;
+    bool dst_modified;
 } en10mb_extra_t;
 
 typedef enum {
