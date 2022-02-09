@@ -311,7 +311,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
                                 packet,
                                 caplen,
                                 (l2proto == ETHERTYPE_IP) ? l4data : NULL,
-                                (l2proto == ETHERTYPE_IPV6) ? l4data : NULL);
+                                (l2proto == ETHERTYPE_IP6) ? l4data : NULL);
 
 done:
     return packet_changed;
