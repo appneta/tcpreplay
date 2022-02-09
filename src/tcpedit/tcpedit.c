@@ -405,6 +405,10 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     dbgx(1, "Input file (1) datalink type is %s",
             pcap_datalink_val_to_name(dlt));
 
+#ifdef FORCE_ALIGN
+    tcpedit->runtime.l3buff = (u_char *)safe_malloc(MAXPACKET);
+#endif
+
     return TCPEDIT_OK;
 }
 
@@ -618,6 +622,11 @@ tcpedit_close(tcpedit_t **tcpedit_ex)
         free_portmap(tcpedit->portmap);
         tcpedit->portmap = NULL;
     }
+
+#ifdef FORCE_ALIGN
+    safe_free(tcpedit->runtime.l3buff);
+    tcpedit->runtime.l3buff = NULL;
+#endif
 
     safe_free(*tcpedit_ex);
     *tcpedit_ex = NULL;
