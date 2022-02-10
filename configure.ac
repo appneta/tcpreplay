@@ -1707,7 +1707,14 @@ dnl     FORCE_ALIGN (DEFINED)
 dnl
 AC_MSG_CHECKING(for requires strict byte alignment)
 AC_CACHE_VAL(unaligned_cv_fail,
-        [case "$host_cpu" in
+[
+case "$host_os" in
+    darwin*)
+        # macOS M1 test fails due to lack of fork() so just hard code it
+        unaligned_cv_fail=no
+    ;;
+    *)
+        case "$host_cpu" in
 
         # XXX: should also check that they don't do weird things (like on arm)
         alpha*|arm*|hp*|mips*|sparc*|ia64)
@@ -1758,7 +1765,9 @@ EOF
         ;;
 
         esac
-    ])
+    ;;
+    esac
+])
 AC_MSG_RESULT($unaligned_cv_fail)
 if test $unaligned_cv_fail = yes ; then
     AC_DEFINE([FORCE_ALIGN], [1], [Are we strictly aligned?])

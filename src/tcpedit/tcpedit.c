@@ -84,6 +84,7 @@ int
 tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char **pktdata, tcpr_dir_t direction)
 {
+    bool fuzz_once = tcpedit->fuzz_seed != 0;
     ipv4_hdr_t *ip_hdr = NULL;
     ipv6_hdr_t *ip6_hdr = NULL;
     arp_hdr_t *arp_hdr = NULL;
@@ -92,6 +93,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     int ipflags = 0, tclass = 0;
     int needtorecalc = 0;           /* did the packet change? if so, checksum */
     u_char *packet;
+
 
     assert(tcpedit);
     assert(pkthdr);
@@ -123,6 +125,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     src_dlt = tcpedit_dlt_src(tcpedit->dlt_ctx);
     
+again:
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
     if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen)) < 0) {
         dbgx(2, "Packet has no L3+ header: %s", tcpedit_geterr(tcpedit));
@@ -272,12 +275,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             rewrite_ipv6_tcp_sequence(tcpedit, &ip6_hdr, (*pkthdr)->caplen - l2len);
     }
 
-    if (tcpedit->fuzz_seed != 0) {
+    if (fuzz_once) {
+        fuzz_once = false;
         retval = fuzzing(tcpedit, *pkthdr, pktdata);
         if (retval < 0) {
             return TCPEDIT_ERROR;
         }
         needtorecalc += retval;
+        goto again;
     }
 
     /* (Un)truncate or MTU truncate packet? */

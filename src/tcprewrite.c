@@ -311,7 +311,8 @@ WRITE_PACKET:
 #ifdef ENABLE_FRAGROUTE
         if (options.frag_ctx == NULL) {
             /* write the packet when there's no fragrouting to be done */
-            pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
+            if (pkthdr_ptr->caplen)
+                pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
         } else {
             /* get the L3 protocol of the packet */
             proto = tcpedit_l3proto(tcpedit, AFTER_PROCESS, *pktdata, pkthdr_ptr->caplen);
@@ -332,16 +333,19 @@ WRITE_PACKET:
                     dbgx(1, "processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);
                     pkthdr_ptr->caplen = frag_len;
                     pkthdr_ptr->len = frag_len;
-                    pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);
+                    if (pkthdr_ptr->caplen)
+                        pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);
                 }
             } else {
                 /* write the packet without fragroute */
-                pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
+                if (pkthdr_ptr->caplen)
+                    pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
             }
         }
 #else
     /* write the packet when there's no fragrouting to be done */
-    pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
+    if (pkthdr_ptr->caplen)
+        pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
 
 #endif
     } /* while() */

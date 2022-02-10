@@ -79,7 +79,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     uint8_t l4proto;
     u_char *packet, *l3data, *l4data;
     tcpeditdlt_plugin_t *plugin;
-    int caplen, l2len, l4len;
+    int l2len, l4len;
     tcpeditdlt_t *ctx;
 
     assert(tcpedit);
@@ -102,11 +102,10 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* initializations */
     ctx = tcpedit->dlt_ctx;
     packet = *pktdata;
-    caplen = pkthdr->caplen;
     plugin = tcpedit->dlt_ctx->encoder;
-    l2len = plugin->plugin_l2len(ctx, packet, caplen);
-    l2proto = ntohs(plugin->plugin_proto(ctx, packet, caplen));
-    if (l2len == -1 || caplen < l2len)
+    l2len = plugin->plugin_l2len(ctx, packet, pkthdr->caplen);
+    l2proto = ntohs(plugin->plugin_proto(ctx, packet, pkthdr->caplen));
+    if (l2len == -1 || (int)pkthdr->caplen < l2len)
         goto done;
 
     /*
@@ -116,15 +115,15 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
      * to '*pktdata'. All alterations are done in this buffer, which later
      * will be copied back to '*pktdata', if necessary
      */
-    l3data = plugin->plugin_get_layer3(ctx, packet, caplen);
+    l3data = plugin->plugin_get_layer3(ctx, packet, pkthdr->caplen);
     if (!l3data)
         goto done;
 
-    l4len = caplen - l2len;
+    l4len = pkthdr->caplen - l2len;
     switch (l2proto) {
     case (ETHERTYPE_IP):
     {
-        l4data = get_layer4_v4((ipv4_hdr_t*)l3data, caplen - l2len);
+        l4data = get_layer4_v4((ipv4_hdr_t*)l3data, pkthdr->caplen - l2len);
         if (!l4data)
             goto done;
 
@@ -132,7 +131,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         break;
     }
     case (ETHERTYPE_IP6): {
-        l4data = get_layer4_v6((ipv6_hdr_t*)l3data, caplen - l2len);
+        l4data = get_layer4_v6((ipv6_hdr_t*)l3data, pkthdr->caplen - l2len);
         if (!l4data)
             goto done;
 
@@ -309,7 +308,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* in cases where 'l3data' is a working buffer, copy it back to '*pkthdr' */
     plugin->plugin_merge_layer3(ctx,
                                 packet,
-                                caplen,
+                                pkthdr->caplen,
                                 (l2proto == ETHERTYPE_IP) ? l4data : NULL,
                                 (l2proto == ETHERTYPE_IP6) ? l4data : NULL);
 
