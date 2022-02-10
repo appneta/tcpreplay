@@ -116,9 +116,15 @@ main(int argc, char *argv[])
     for (i = 0; i < argc; i++) {
 #ifdef HAVE_FTS_H
         struct stat statbuf;
+
+        if (!strcmp(argv[i], "-")) {
+            tcpreplay_add_pcapfile(ctx, argv[i]);
+            continue;
+        }
+
         if (stat(argv[i], &statbuf) != 0) {
             errx(-1,
-                 "Unable to retrieve informations from file %s: %s",
+                 "Unable to retrieve information from file %s: %s",
                  argv[i],
                  strerror(errno));
         }

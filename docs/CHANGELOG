@@ -1,5 +1,7 @@
-02/09/2022 Version 4.4.1-beta1
+02/10/2022 Version 4.4.1-beta1
+    - fix support for piping PCAP files from STDIN (#708)
     - build failures Debian/kfreebsd (#706)
+    - bus error when building on armhf (#705)
 
 01/31/2022 Version 4.4.0
     - remove obsolete FORCE_ALIGN support to fix macOS 11 compile (#695)
