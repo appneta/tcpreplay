@@ -136,7 +136,7 @@ main(int argc, char *argv[])
     pcap_close(dlt_pcap);
 
     /* rewrite packets */
-    if (rewrite_packets(tcpedit, options.pin, options.pout) != 0) {
+    if (rewrite_packets(tcpedit, options.pin, options.pout) == TCPEDIT_ERROR) {
         tcpedit_close(&tcpedit);
         errx(-1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
     }
@@ -295,7 +295,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
         if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, pktdata, cache_result)) == TCPEDIT_ERROR) {
-            return -1;
+            return rcode;
         } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
             /* don't write packet */
             dbgx(1, "Packet " COUNTER_SPEC " is suppressed from being written due to soft errors", packetnum);
