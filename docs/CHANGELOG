@@ -1,4 +1,7 @@
-06/19/2021 Version 4.4.0
+02/09/2022 Version 4.4.1-beta1
+    - build failures Debian/kfreebsd (#706)
+
+01/31/2022 Version 4.4.0
     - remove obsolete FORCE_ALIGN support to fix macOS 11 compile (#695)
     - add a security policy document (#689)
     - ability to specify directory of pcap files (#682)
