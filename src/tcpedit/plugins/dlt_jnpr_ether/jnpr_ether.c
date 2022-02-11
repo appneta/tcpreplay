@@ -138,7 +138,8 @@ dlt_jnpr_ether_post_init(tcpeditdlt_t *ctx)
     
     /* init our subcontext & decoder of en10mb */
     config = (jnpr_ether_config_t *)ctx->encoder->config;
-    config->subctx = tcpedit_dlt_init(ctx->tcpedit, DLT_EN10MB);
+    if (config->subctx == NULL)
+        config->subctx = tcpedit_dlt_init(ctx->tcpedit, DLT_EN10MB);
         
     return TCPEDIT_OK;
 }
@@ -168,7 +169,6 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
 
         config = (jnpr_ether_config_t *)ctx->encoder->config;
         tcpedit_dlt_cleanup(config->subctx);
-        safe_free(config->subctx);
         safe_free(plugin->config);
         plugin->config = NULL;
         plugin->config_size = 0;
