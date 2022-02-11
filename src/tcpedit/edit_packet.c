@@ -43,8 +43,8 @@ static int is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip);
 static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
 static int is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
-
-static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
+static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, const size_t pkt_len,
+                              const size_t l2len);
 
 /**
  * this code re-calcs the IP and Layer 4 checksums
@@ -56,14 +56,15 @@ static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
  * Returns 0 on success, -1 on error
  */
 int
-fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
+fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
+                   ipv4_hdr_t *ip_hdr, const size_t l2len)
 {
     int ret1 = 0, ret2 = 0, ip_len;
     assert(tcpedit);
     assert(pkthdr);
     assert(ip_hdr);
 
-    if (pkthdr->caplen < sizeof(*ip_hdr)) {
+    if (pkthdr->caplen < (sizeof(*ip_hdr) + l2len)) {
         tcpedit_setwarn(tcpedit, "caplen too small to read IPv4 header: %u",
                 pkthdr->caplen);
         return TCPEDIT_WARN;
@@ -74,18 +75,24 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
         return TCPEDIT_ERROR;
     }
 
+    ip_len = (int)ntohs(ip_hdr->ip_len);
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len &&
             (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
-        ip_len = (int)ntohs(ip_hdr->ip_len);
-        ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, ip_hdr->ip_p,
-                ip_len - (ip_hdr->ip_hl << 2));
+        if (ip_len != (int)(pkthdr->caplen - l2len)) {
+            tcpedit_seterr(tcpedit,
+                           "caplen minus L2 length %u does IPv4 header length %u",
+                           pkthdr->caplen - l2len,
+                           ip_len);
+            return TCPEDIT_ERROR;
+        }
+        ret1 = do_checksum(tcpedit, (u_char*)ip_hdr, ip_hdr->ip_p,
+                           ip_len - (ip_hdr->ip_hl << 2));
         if (ret1 < 0)
             return TCPEDIT_ERROR;
     }
     
     /* calc IP checksum */
-    ip_len = (int)ntohs(ip_hdr->ip_len);
     ret2 = do_checksum(tcpedit, (u_char *) ip_hdr, IPPROTO_IP, ip_len);
     if (ret2 < 0)
         return TCPEDIT_ERROR;
@@ -102,7 +109,8 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
  *         -1 on error
  */
 static int
-ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
+ipv6_header_length(ipv6_hdr_t const * ip6_hdr, const size_t pkt_len,
+                   const size_t l2len)
 {
     struct tcpr_ipv6_ext_hdr_base const * nhdr;
     uint8_t next_header;
@@ -111,8 +119,7 @@ ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
     offset = sizeof(*ip6_hdr);
     next_header = ip6_hdr->ip_nh;
 
-    while (sizeof(*nhdr) + offset < (size_t)pkt_len)
-    {
+    while (sizeof(*nhdr) + offset + l2len < (size_t)pkt_len) {
         if (next_header != TCPR_IPV6_NH_HBH
                 && next_header != TCPR_IPV6_NH_ROUTING
                 && next_header != TCPR_IPV6_NH_FRAGMENT) {
@@ -128,14 +135,15 @@ ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
 }
 
 int
-fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr)
+fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
+                   ipv6_hdr_t *ip6_hdr, const size_t l2len)
 {
     int ret = 0;
     assert(tcpedit);
     assert(pkthdr);
     assert(ip6_hdr);
 
-    if (pkthdr->caplen < sizeof(*ip6_hdr)) {
+    if (pkthdr->caplen < (sizeof(*ip6_hdr) + l2len)) {
         tcpedit_setwarn(tcpedit, "caplen too small to read IPv6 header: %u",
                 pkthdr->caplen);
         return TCPEDIT_WARN;
@@ -149,10 +157,11 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
 
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len) {
-        if (ip6_hdr->ip_len < ipv6_header_length(ip6_hdr, pkthdr->len)) {
-            tcpedit_setwarn(tcpedit, "Unable to checksum IPv6 packet with invalid length %u",
-                    ip6_hdr->ip_len);
-            return TCPEDIT_WARN;
+        int ip6_len = ipv6_header_length(ip6_hdr, pkthdr->len, l2len);
+        if (ip6_hdr->ip_len < ip6_len) {
+            tcpedit_seterr(tcpedit, "Unable to checksum IPv6 packet with invalid length %u",
+                        ip6_hdr->ip_len);
+            return TCPEDIT_ERROR;
         }
         ret = do_checksum(tcpedit, (u_char *)ip6_hdr, ip6_hdr->ip_nh,
             htons(ip6_hdr->ip_len));

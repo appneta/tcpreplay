@@ -360,10 +360,10 @@ again:
     if ((tcpedit->fixcsum || needtorecalc)) {
         if (ip_hdr != NULL) {
             dbgx(3, "doing IPv4 checksum: needtorecalc=%d", needtorecalc);
-            retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr);
+            retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr, l2len);
         } else if (ip6_hdr != NULL) {
             dbgx(3, "doing IPv6 checksum: needtorecalc=%d", needtorecalc);
-            retval = fix_ipv6_checksums(tcpedit, *pkthdr, ip6_hdr);
+            retval = fix_ipv6_checksums(tcpedit, *pkthdr, ip6_hdr, l2len);
         } else {
             dbgx(3, "checksum not performed: needtorecalc=%d", needtorecalc);
             retval = TCPEDIT_OK;
