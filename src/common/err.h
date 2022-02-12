@@ -103,6 +103,16 @@ void notice(const char *fmt, ...);
         exit(x); \
     } while (0)
 
+#define err_no_exit(y) do { \
+        fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n%s\n", __FILE__, __FUNCTION__, __LINE__, y); \
+        fflush(NULL); \
+    } while (0)
+
+#define err_no_exitx(y, ...) do {\
+        fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n " y "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__); \
+        fflush(NULL); \
+    } while (0)
+
 #else /* no detailed DEBUG info */
 
 /* dbg() and dbgx() become no-ops for non-DEBUG builds */
@@ -123,6 +133,16 @@ void notice(const char *fmt, ...);
         fprintf(stderr, "\nFatal Error: " y "\n", __VA_ARGS__); \
         fflush(NULL); \
         exit(x); \
+    } while (0)
+
+#define err_no_exit(y) do {\
+        fprintf(stderr, "\nFatal Error:\n%s\n", y); \
+        fflush(NULL); \
+    } while(0)
+
+#define err_no_exitx(y, ...) do {\
+        fprintf(stderr, "\nFatal Error: " y "\n", __VA_ARGS__); \
+        fflush(NULL); \
     } while (0)
 #endif /* DEBUG */
 
