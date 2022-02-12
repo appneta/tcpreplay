@@ -80,22 +80,26 @@ main(int argc, char *argv[])
 
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, pcap_datalink(options.pin)) < 0) {
-        errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+        err_no_exitx("Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+        tcpedit_close(&tcpedit);
+        exit(-1);
     }
 
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
+        err_no_exitx("Unable to parse args: %s", tcpedit_geterr(tcpedit));
         tcpedit_close(&tcpedit);
-        errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+        exit(-1);
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
-        tcpedit_close(&tcpedit);
-        errx(-1, "Unable to edit packets given options:\n%s",
+        err_no_exitx("Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
+        tcpedit_close(&tcpedit);
+        exit(-1);
     }
 
     /* fuzzing init */
@@ -116,8 +120,9 @@ main(int argc, char *argv[])
 #ifdef ENABLE_FRAGROUTE
     if (options.fragroute_args) {
         if ((options.frag_ctx = fragroute_init(65535, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL) {
+            err_no_exitx("%s", ebuf);
             tcpedit_close(&tcpedit);
-            errx(-1, "%s", ebuf);
+            exit(-1);
         }
     }
 #endif
@@ -129,16 +134,18 @@ main(int argc, char *argv[])
 #endif
 
     if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL) {
+        err_no_exitx("Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
         tcpedit_close(&tcpedit);
-        errx(-1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
+        exit(-1);
     }
 
     pcap_close(dlt_pcap);
 
     /* rewrite packets */
     if (rewrite_packets(tcpedit, options.pin, options.pout) == TCPEDIT_ERROR) {
+        err_no_exitx("Error rewriting packets: %s", tcpedit_geterr(tcpedit));
         tcpedit_close(&tcpedit);
-        errx(-1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
+        exit(-1);
     }
 
     /* clean up after ourselves */
