@@ -65,13 +65,14 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(ip_hdr);
 
     if (pkthdr->caplen < (sizeof(*ip_hdr) + l2len)) {
-        tcpedit_setwarn(tcpedit, "caplen too small to read IPv4 header: %u",
-                pkthdr->caplen);
+        tcpedit_setwarn(tcpedit, "caplen too small to read IPv4 header: caplen=%u: pkt=" COUNTER_SPEC,
+                pkthdr->caplen, tcpedit->runtime.packetnum);
         return TCPEDIT_WARN;
     }
 
     if (ip_hdr->ip_v != 4) {
-        tcpedit_seterr(tcpedit, "Invalid packet: Expected IPv4 packet: got %u", ip_hdr->ip_v);
+        tcpedit_seterr(tcpedit, "Invalid packet: Expected IPv4 packet: got %u: pkt=" COUNTER_SPEC,
+                       ip_hdr->ip_v, tcpedit->runtime.packetnum);
         return TCPEDIT_ERROR;
     }
 
@@ -81,9 +82,9 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
             (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
         if (ip_len != (int)(pkthdr->caplen - l2len)) {
             tcpedit_seterr(tcpedit,
-                           "caplen minus L2 length %u does IPv4 header length %u",
-                           pkthdr->caplen - l2len,
-                           ip_len);
+                           "caplen minus L2 length %u does IPv4 header length %u: pkt=" COUNTER_SPEC,
+                           pkthdr->caplen - l2len, ip_len,
+                           tcpedit->runtime.packetnum);
             return TCPEDIT_ERROR;
         }
         ret1 = do_checksum(tcpedit, (u_char*)ip_hdr, ip_hdr->ip_p,
@@ -144,8 +145,8 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     assert(ip6_hdr);
 
     if (pkthdr->caplen < (sizeof(*ip6_hdr) + l2len)) {
-        tcpedit_setwarn(tcpedit, "caplen too small to read IPv6 header: %u",
-                pkthdr->caplen);
+        tcpedit_setwarn(tcpedit, "caplen too small to read IPv6 header: caplen=%u pkt=" COUNTER_SPEC,
+                pkthdr->caplen, tcpedit->runtime.packetnum);
         return TCPEDIT_WARN;
     }
 
@@ -159,9 +160,9 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     if (pkthdr->caplen == pkthdr->len) {
         int ip6_len = ipv6_header_length(ip6_hdr, pkthdr->len, l2len);
         if (ip6_hdr->ip_len < ip6_len) {
-            tcpedit_seterr(tcpedit, "Unable to checksum IPv6 packet with invalid length %u",
-                        ip6_hdr->ip_len);
-            return TCPEDIT_ERROR;
+            tcpedit_setwarn(tcpedit, "Unable to checksum IPv6 packet with invalid: pkt=" COUNTER_SPEC " IP length=%u caplen=" COUNTER_SPEC,
+                           tcpedit->runtime.packetnum, ip6_hdr->ip_len);
+            return TCPEDIT_WARN;
         }
         ret = do_checksum(tcpedit, (u_char *)ip6_hdr, ip6_hdr->ip_nh,
             htons(ip6_hdr->ip_len));
@@ -176,20 +177,6 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     return TCPEDIT_OK;
 }
 
-/*
- * #406 fix IP headers which may be not be set properly due to TCP segmentation
- */
-void fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
-{
-    if (!ip_hdr->ip_len)
-        ip_hdr->ip_len = htons((uint16_t)pkthdr->len);
-}
-
-void fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr)
-{
-    if (!ip6_hdr->ip_len)
-        ip6_hdr->ip_len = htons((uint16_t)pkthdr->len);
-}
 
 static void ipv4_l34_csum_replace(uint8_t *data, uint8_t protocol,
         uint32_t old, uint32_t new)
@@ -378,6 +365,40 @@ randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
     }
 }
 
+int fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr,
+                           const size_t l2len)
+{
+    int ip_len = (int)ntohs(ip_hdr->ip_len);
+    int ip_len_want = (int)(pkthdr->len - l2len);
+
+    if (pkthdr->caplen < l2len + sizeof(*ip_hdr))
+        return -1;
+
+    if ((htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0 &&
+        ip_len != ip_len_want) {
+        ip_hdr->ip_len = htons(ip_len_want);
+        return 1;
+    }
+
+    return 0;
+}
+
+int fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr,
+                           const size_t l2len)
+{
+    int ip_len = ntohs((uint16_t)ip6_hdr->ip_len);
+    int ip_len_want = (int)(pkthdr->len - l2len - sizeof(*ip6_hdr));
+
+    if (pkthdr->caplen < l2len + sizeof(*ip6_hdr))
+        return -1;
+
+    if (ip_len != ip_len_want) {
+        ip6_hdr->ip_len = htons((uint16_t)ip_len_want);
+        return 1;
+    }
+
+    return 0;
+}
 
 /**
  * randomizes the source and destination IP addresses based on a 
@@ -455,8 +476,8 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* randomize IP addresses based on the value of random */
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
     if (l3len < (int)sizeof(ipv6_hdr_t)) {
-        tcpedit_seterr(tcpedit, "Unable to randomize IPv6 header due to packet capture snap length %u",
-                pkthdr->caplen);
+        tcpedit_seterr(tcpedit, "Unable to randomize IPv6 header due to packet capture snap length %u: pkt=" COUNTER_SPEC,
+                pkthdr->caplen, tcpedit->runtime.packetnum);
         return TCPEDIT_ERROR;
     }
 

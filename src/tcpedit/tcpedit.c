@@ -356,8 +356,16 @@ again:
         }
     }
 
+    /* ensure IP header length is correct */
+    if (ip_hdr != NULL) {
+        needtorecalc |= fix_ipv4_length(*pkthdr, ip_hdr, l2len);
+            needtorecalc = 1;
+    } else if (ip6_hdr != NULL) {
+        needtorecalc |= fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
+    }
+
     /* do we need to fix checksums? -- must always do this last! */
-    if ((tcpedit->fixcsum || needtorecalc)) {
+    if ((tcpedit->fixcsum || needtorecalc > 0)) {
         if (ip_hdr != NULL) {
             dbgx(3, "doing IPv4 checksum: needtorecalc=%d", needtorecalc);
             retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr, l2len);
