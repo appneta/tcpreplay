@@ -1,4 +1,4 @@
-02/11/2022 Version 4.4.1-beta1
+02/12/2022 Version 4.4.1
     - fix support for piping PCAP files from STDIN (#708)
     - build failures Debian/kfreebsd (#706)
     - bus error when building on armhf (#705)
