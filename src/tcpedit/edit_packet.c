@@ -43,8 +43,8 @@ static int is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip);
 static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
 static int is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
-
-static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
+static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, const size_t pkt_len,
+                              const size_t l2len);
 
 /**
  * this code re-calcs the IP and Layer 4 checksums
@@ -56,36 +56,44 @@ static int ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len);
  * Returns 0 on success, -1 on error
  */
 int
-fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
+fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
+                   ipv4_hdr_t *ip_hdr, const size_t l2len)
 {
     int ret1 = 0, ret2 = 0, ip_len;
     assert(tcpedit);
     assert(pkthdr);
     assert(ip_hdr);
 
-    if (pkthdr->caplen < sizeof(*ip_hdr)) {
-        tcpedit_setwarn(tcpedit, "caplen too small to read IPv4 header: %u",
-                pkthdr->caplen);
+    if (pkthdr->caplen < (sizeof(*ip_hdr) + l2len)) {
+        tcpedit_setwarn(tcpedit, "caplen too small to read IPv4 header: caplen=%u: pkt=" COUNTER_SPEC,
+                pkthdr->caplen, tcpedit->runtime.packetnum);
         return TCPEDIT_WARN;
     }
 
     if (ip_hdr->ip_v != 4) {
-        tcpedit_seterr(tcpedit, "Invalid packet: Expected IPv4 packet: got %u", ip_hdr->ip_v);
+        tcpedit_seterr(tcpedit, "Invalid packet: Expected IPv4 packet: got %u: pkt=" COUNTER_SPEC,
+                       ip_hdr->ip_v, tcpedit->runtime.packetnum);
         return TCPEDIT_ERROR;
     }
 
+    ip_len = (int)ntohs(ip_hdr->ip_len);
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len &&
             (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
-        ip_len = (int)ntohs(ip_hdr->ip_len);
-        ret1 = do_checksum(tcpedit, (u_char *) ip_hdr, ip_hdr->ip_p,
-                ip_len - (ip_hdr->ip_hl << 2));
+        if (ip_len != (int)(pkthdr->caplen - l2len)) {
+            tcpedit_seterr(tcpedit,
+                           "caplen minus L2 length %u does IPv4 header length %u: pkt=" COUNTER_SPEC,
+                           pkthdr->caplen - l2len, ip_len,
+                           tcpedit->runtime.packetnum);
+            return TCPEDIT_ERROR;
+        }
+        ret1 = do_checksum(tcpedit, (u_char*)ip_hdr, ip_hdr->ip_p,
+                           ip_len - (ip_hdr->ip_hl << 2));
         if (ret1 < 0)
             return TCPEDIT_ERROR;
     }
     
     /* calc IP checksum */
-    ip_len = (int)ntohs(ip_hdr->ip_len);
     ret2 = do_checksum(tcpedit, (u_char *) ip_hdr, IPPROTO_IP, ip_len);
     if (ret2 < 0)
         return TCPEDIT_ERROR;
@@ -102,7 +110,8 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
  *         -1 on error
  */
 static int
-ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
+ipv6_header_length(ipv6_hdr_t const * ip6_hdr, const size_t pkt_len,
+                   const size_t l2len)
 {
     struct tcpr_ipv6_ext_hdr_base const * nhdr;
     uint8_t next_header;
@@ -111,8 +120,7 @@ ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
     offset = sizeof(*ip6_hdr);
     next_header = ip6_hdr->ip_nh;
 
-    while (sizeof(*nhdr) + offset < (size_t)pkt_len)
-    {
+    while (sizeof(*nhdr) + offset + l2len < (size_t)pkt_len) {
         if (next_header != TCPR_IPV6_NH_HBH
                 && next_header != TCPR_IPV6_NH_ROUTING
                 && next_header != TCPR_IPV6_NH_FRAGMENT) {
@@ -128,16 +136,17 @@ ipv6_header_length(ipv6_hdr_t const * ip6_hdr, int pkt_len)
 }
 
 int
-fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr)
+fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
+                   ipv6_hdr_t *ip6_hdr, const size_t l2len)
 {
     int ret = 0;
     assert(tcpedit);
     assert(pkthdr);
     assert(ip6_hdr);
 
-    if (pkthdr->caplen < sizeof(*ip6_hdr)) {
-        tcpedit_setwarn(tcpedit, "caplen too small to read IPv6 header: %u",
-                pkthdr->caplen);
+    if (pkthdr->caplen < (sizeof(*ip6_hdr) + l2len)) {
+        tcpedit_setwarn(tcpedit, "caplen too small to read IPv6 header: caplen=%u pkt=" COUNTER_SPEC,
+                pkthdr->caplen, tcpedit->runtime.packetnum);
         return TCPEDIT_WARN;
     }
 
@@ -149,9 +158,10 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
 
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len) {
-        if (ip6_hdr->ip_len < ipv6_header_length(ip6_hdr, pkthdr->len)) {
-            tcpedit_setwarn(tcpedit, "Unable to checksum IPv6 packet with invalid length %u",
-                    ip6_hdr->ip_len);
+        int ip6_len = ipv6_header_length(ip6_hdr, pkthdr->len, l2len);
+        if (ip6_hdr->ip_len < ip6_len) {
+            tcpedit_setwarn(tcpedit, "Unable to checksum IPv6 packet with invalid: pkt=" COUNTER_SPEC " IP length=%u caplen=" COUNTER_SPEC,
+                           tcpedit->runtime.packetnum, ip6_hdr->ip_len);
             return TCPEDIT_WARN;
         }
         ret = do_checksum(tcpedit, (u_char *)ip6_hdr, ip6_hdr->ip_nh,
@@ -167,20 +177,6 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv6_hdr_t *i
     return TCPEDIT_OK;
 }
 
-/*
- * #406 fix IP headers which may be not be set properly due to TCP segmentation
- */
-void fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr)
-{
-    if (!ip_hdr->ip_len)
-        ip_hdr->ip_len = htons((uint16_t)pkthdr->len);
-}
-
-void fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr)
-{
-    if (!ip6_hdr->ip_len)
-        ip6_hdr->ip_len = htons((uint16_t)pkthdr->len);
-}
 
 static void ipv4_l34_csum_replace(uint8_t *data, uint8_t protocol,
         uint32_t old, uint32_t new)
@@ -369,6 +365,40 @@ randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
     }
 }
 
+int fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr,
+                           const size_t l2len)
+{
+    int ip_len = (int)ntohs(ip_hdr->ip_len);
+    int ip_len_want = (int)(pkthdr->len - l2len);
+
+    if (pkthdr->caplen < l2len + sizeof(*ip_hdr))
+        return -1;
+
+    if ((htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0 &&
+        ip_len != ip_len_want) {
+        ip_hdr->ip_len = htons(ip_len_want);
+        return 1;
+    }
+
+    return 0;
+}
+
+int fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr,
+                           const size_t l2len)
+{
+    int ip_len = ntohs((uint16_t)ip6_hdr->ip_len);
+    int ip_len_want = (int)(pkthdr->len - l2len - sizeof(*ip6_hdr));
+
+    if (pkthdr->caplen < l2len + sizeof(*ip6_hdr))
+        return -1;
+
+    if (ip_len != ip_len_want) {
+        ip6_hdr->ip_len = htons((uint16_t)ip_len_want);
+        return 1;
+    }
+
+    return 0;
+}
 
 /**
  * randomizes the source and destination IP addresses based on a 
@@ -446,8 +476,8 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* randomize IP addresses based on the value of random */
     dbgx(1, "Old Src IP: %s\tOld Dst IP: %s", srcip, dstip);
     if (l3len < (int)sizeof(ipv6_hdr_t)) {
-        tcpedit_seterr(tcpedit, "Unable to randomize IPv6 header due to packet capture snap length %u",
-                pkthdr->caplen);
+        tcpedit_seterr(tcpedit, "Unable to randomize IPv6 header due to packet capture snap length %u: pkt=" COUNTER_SPEC,
+                pkthdr->caplen, tcpedit->runtime.packetnum);
         return TCPEDIT_ERROR;
     }
 
@@ -953,6 +983,9 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
 {
     arp_hdr_t *arp_hdr ;
     int l2len;
+#ifdef FORCE_ALIGN
+    uint32_t iptemp;
+#endif
 
     assert(tcpedit);
     assert(pkthdr);
@@ -979,12 +1012,30 @@ randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         u_char *add_hdr = ((u_char *)arp_hdr) + sizeof(arp_hdr_t) +
                 arp_hdr->ar_hln;
 
+#ifdef FORCE_ALIGN
+        /* copy IP to a temporary buffer for processing */
+        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
+        ip = &iptemp;
+#else
         ip = (uint32_t *)add_hdr;
+#endif
         *ip = randomize_ipv4_addr(tcpedit, *ip);
+#ifdef FORCE_ALIGN
+        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
+#endif
 
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
+#ifdef FORCE_ALIGN
+        /* copy IP2 to a temporary buffer for processing */
+        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
+        ip = &iptemp;
+#else
         ip = (uint32_t *)add_hdr;
+#endif
         *ip = randomize_ipv4_addr(tcpedit, *ip);
+#ifdef FORCE_ALIGN
+        memcpy(add_hdr, &iptemp, sizeof(uint32_t));
+#endif
     }
 
     return 1; /* yes we changed the packet */
@@ -1006,6 +1057,9 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
     uint32_t newip = 0;
     tcpr_cidrmap_t *cidrmap1 = NULL, *cidrmap2 = NULL;
     int didsrc = 0, diddst = 0, loop = 1;
+#ifdef FORCE_ALIGN
+    uint32_t iptemp;
+#endif
 
     assert(tcpedit);
     assert(arp_hdr);
@@ -1037,7 +1091,14 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
         add_hdr += sizeof(arp_hdr_t) + arp_hdr->ar_hln;
         ip1 = (uint32_t *)add_hdr;
         add_hdr += arp_hdr->ar_pln + arp_hdr->ar_hln;
+#ifdef FORCE_ALIGN
+        /* copy IP2 to a temporary buffer for processing */
+        memcpy(&iptemp, add_hdr, sizeof(uint32_t));
+        ip2 = &iptemp;
+#else
         ip2 = (uint32_t *)add_hdr;
+#endif
+        
 
         /* loop through the cidrmap to rewrite */
         do {
@@ -1068,24 +1129,31 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
                 }
             }
 
+#ifdef FORCE_ALIGN
+            /* copy temporary IP to IP2 location in buffer */
+            memcpy(add_hdr, &iptemp, sizeof(uint32_t));
+#endif
+
             /*
              * loop while we haven't modified both src/dst AND
              * at least one of the cidr maps have a next pointer
              */
             if ((! (diddst && didsrc)) &&
                 (! ((cidrmap1->next == NULL) && (cidrmap2->next == NULL)))) {
-
+                
                 /* increment our ptr's if possible */
                 if (cidrmap1->next != NULL)
                     cidrmap1 = cidrmap1->next;
-
+                
                 if (cidrmap2->next != NULL)
                     cidrmap2 = cidrmap2->next;
+                
             } else {
                 loop = 0;
             }
 
         } while (loop);
+        
     } else {
         warn("ARP packet isn't for IPv4!  Can't rewrite IP's");
     }

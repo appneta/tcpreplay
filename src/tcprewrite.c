@@ -80,22 +80,26 @@ main(int argc, char *argv[])
 
     /* init tcpedit context */
     if (tcpedit_init(&tcpedit, pcap_datalink(options.pin)) < 0) {
-        errx(-1, "Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+        err_no_exitx("Error initializing tcpedit: %s", tcpedit_geterr(tcpedit));
+        tcpedit_close(&tcpedit);
+        exit(-1);
     }
 
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
+        err_no_exitx("Unable to parse args: %s", tcpedit_geterr(tcpedit));
         tcpedit_close(&tcpedit);
-        errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
+        exit(-1);
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
-        tcpedit_close(&tcpedit);
-        errx(-1, "Unable to edit packets given options:\n%s",
+        err_no_exitx("Unable to edit packets given options:\n%s",
                 tcpedit_geterr(tcpedit));
+        tcpedit_close(&tcpedit);
+        exit(-1);
     }
 
     /* fuzzing init */
@@ -116,8 +120,9 @@ main(int argc, char *argv[])
 #ifdef ENABLE_FRAGROUTE
     if (options.fragroute_args) {
         if ((options.frag_ctx = fragroute_init(65535, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL) {
+            err_no_exitx("%s", ebuf);
             tcpedit_close(&tcpedit);
-            errx(-1, "%s", ebuf);
+            exit(-1);
         }
     }
 #endif
@@ -129,16 +134,18 @@ main(int argc, char *argv[])
 #endif
 
     if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL) {
+        err_no_exitx("Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
         tcpedit_close(&tcpedit);
-        errx(-1, "Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
+        exit(-1);
     }
 
     pcap_close(dlt_pcap);
 
     /* rewrite packets */
-    if (rewrite_packets(tcpedit, options.pin, options.pout) != 0) {
+    if (rewrite_packets(tcpedit, options.pin, options.pout) == TCPEDIT_ERROR) {
+        err_no_exitx("Error rewriting packets: %s", tcpedit_geterr(tcpedit));
         tcpedit_close(&tcpedit);
-        errx(-1, "Error rewriting packets: %s", tcpedit_geterr(tcpedit));
+        exit(-1);
     }
 
     /* clean up after ourselves */
@@ -295,7 +302,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
         if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, pktdata, cache_result)) == TCPEDIT_ERROR) {
-            return -1;
+            return rcode;
         } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
             /* don't write packet */
             dbgx(1, "Packet " COUNTER_SPEC " is suppressed from being written due to soft errors", packetnum);
@@ -311,7 +318,8 @@ WRITE_PACKET:
 #ifdef ENABLE_FRAGROUTE
         if (options.frag_ctx == NULL) {
             /* write the packet when there's no fragrouting to be done */
-            pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
+            if (pkthdr_ptr->caplen)
+                pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
         } else {
             /* get the L3 protocol of the packet */
             proto = tcpedit_l3proto(tcpedit, AFTER_PROCESS, *pktdata, pkthdr_ptr->caplen);
@@ -332,16 +340,19 @@ WRITE_PACKET:
                     dbgx(1, "processing packet " COUNTER_SPEC " frag: %u (%d)", packetnum, i++, frag_len);
                     pkthdr_ptr->caplen = frag_len;
                     pkthdr_ptr->len = frag_len;
-                    pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);
+                    if (pkthdr_ptr->caplen)
+                        pcap_dump((u_char *)pout, pkthdr_ptr, (u_char *)frag);
                 }
             } else {
                 /* write the packet without fragroute */
-                pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
+                if (pkthdr_ptr->caplen)
+                    pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
             }
         }
 #else
     /* write the packet when there's no fragrouting to be done */
-    pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
+    if (pkthdr_ptr->caplen)
+        pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
 
 #endif
     } /* while() */

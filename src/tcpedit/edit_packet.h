@@ -37,14 +37,16 @@ int randomize_iparp(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         u_char *pktdata, int datalink, const int l3len);
 
 int fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr,
-        ipv4_hdr_t *ip_hdr);
+                       ipv4_hdr_t *ip_hdr, const size_t l2len);
 
 int fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkdhdr,
-        ipv6_hdr_t *ip_hdr);
+                       ipv6_hdr_t *ip_hdr, const size_t l2len);
 
-void fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr);
+int fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr,
+                           const size_t l2len);
 
-void fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr);
+int fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr,
+                           const size_t l2len);
 
 int extract_data(tcpedit_t *tcpedit, const u_char *pktdata, 
         int caplen, char *l7data[]);

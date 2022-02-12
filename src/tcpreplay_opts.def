@@ -479,7 +479,7 @@ flag = {
     descrip     = "Modify IP addresses each loop iteration to generate unique flows";
     doc         = <<- EOText
 Ensure IPv4 and IPv6 packets will be unique for each @var{--loop} iteration. 
-This is done in a way that will not alter packet CRC, and therefore will genrally
+This is done in a way that will not alter packet CRC, and therefore will generally
 not affect performance. This option will significantly increase the flows/sec over
 generated over multiple loop iterations.
 EOText;

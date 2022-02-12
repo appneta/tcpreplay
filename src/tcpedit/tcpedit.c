@@ -84,14 +84,16 @@ int
 tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         u_char **pktdata, tcpr_dir_t direction)
 {
-    ipv4_hdr_t *ip_hdr = NULL;
-    ipv6_hdr_t *ip6_hdr = NULL;
-    arp_hdr_t *arp_hdr = NULL;
-    int l2len, l2proto, retval = 0;
+    bool fuzz_once = tcpedit->fuzz_seed != 0;
+    ipv4_hdr_t *ip_hdr;
+    ipv6_hdr_t *ip6_hdr;
+    arp_hdr_t *arp_hdr;
+    int l2len, l2proto, retval;
     int dst_dlt, src_dlt, pktlen, lendiff;
-    int ipflags = 0, tclass = 0;
-    int needtorecalc = 0;           /* did the packet change? if so, checksum */
+    int ipflags, tclass;
+    int needtorecalc;           /* did the packet change? if so, checksum */
     u_char *packet;
+
 
     assert(tcpedit);
     assert(pkthdr);
@@ -123,6 +125,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     src_dlt = tcpedit_dlt_src(tcpedit->dlt_ctx);
     
+    needtorecalc = 0;
+again:
+    ip_hdr = NULL;
+    ip6_hdr = NULL;
+    arp_hdr = NULL;
+    retval = 0;
+    ipflags = 0;
+    tclass = 0;
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
     if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen)) < 0) {
         dbgx(2, "Packet has no L3+ header: %s", tcpedit_geterr(tcpedit));
@@ -272,12 +282,14 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
             rewrite_ipv6_tcp_sequence(tcpedit, &ip6_hdr, (*pkthdr)->caplen - l2len);
     }
 
-    if (tcpedit->fuzz_seed != 0) {
+    if (fuzz_once) {
+        fuzz_once = false;
         retval = fuzzing(tcpedit, *pkthdr, pktdata);
         if (retval < 0) {
             return TCPEDIT_ERROR;
         }
         needtorecalc += retval;
+        goto again;
     }
 
     /* (Un)truncate or MTU truncate packet? */
@@ -344,14 +356,22 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
         }
     }
 
+    /* ensure IP header length is correct */
+    if (ip_hdr != NULL) {
+        needtorecalc |= fix_ipv4_length(*pkthdr, ip_hdr, l2len);
+            needtorecalc = 1;
+    } else if (ip6_hdr != NULL) {
+        needtorecalc |= fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
+    }
+
     /* do we need to fix checksums? -- must always do this last! */
-    if ((tcpedit->fixcsum || needtorecalc)) {
+    if ((tcpedit->fixcsum || needtorecalc > 0)) {
         if (ip_hdr != NULL) {
             dbgx(3, "doing IPv4 checksum: needtorecalc=%d", needtorecalc);
-            retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr);
+            retval = fix_ipv4_checksums(tcpedit, *pkthdr, ip_hdr, l2len);
         } else if (ip6_hdr != NULL) {
             dbgx(3, "doing IPv6 checksum: needtorecalc=%d", needtorecalc);
-            retval = fix_ipv6_checksums(tcpedit, *pkthdr, ip6_hdr);
+            retval = fix_ipv6_checksums(tcpedit, *pkthdr, ip6_hdr, l2len);
         } else {
             dbgx(3, "checksum not performed: needtorecalc=%d", needtorecalc);
             retval = TCPEDIT_OK;
@@ -404,6 +424,10 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     
     dbgx(1, "Input file (1) datalink type is %s",
             pcap_datalink_val_to_name(dlt));
+
+#ifdef FORCE_ALIGN
+    tcpedit->runtime.l3buff = (u_char *)safe_malloc(MAXPACKET);
+#endif
 
     return TCPEDIT_OK;
 }
@@ -618,6 +642,11 @@ tcpedit_close(tcpedit_t **tcpedit_ex)
         free_portmap(tcpedit->portmap);
         tcpedit->portmap = NULL;
     }
+
+#ifdef FORCE_ALIGN
+    safe_free(tcpedit->runtime.l3buff);
+    tcpedit->runtime.l3buff = NULL;
+#endif
 
     safe_free(*tcpedit_ex);
     *tcpedit_ex = NULL;

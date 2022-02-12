@@ -154,24 +154,15 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
             icmp6->icmp_sum = CHECKSUM_CARRY(sum);
             break;
 
-        case IPPROTO_IP:
+        default:
             if (ipv4) {
                 ipv4->ip_sum = 0;
                 sum = do_checksum_math((uint16_t *)data, ip_hl);
                 ipv4->ip_sum = CHECKSUM_CARRY(sum);
+            } else {
+                tcpedit_setwarn(tcpedit, "Unsupported protocol for checksum: 0x%x", proto);
+                return TCPEDIT_WARN;
             }
-            break;
-
-        case IPPROTO_IGMP:
-        case IPPROTO_GRE:
-        case IPPROTO_OSPF:
-        case IPPROTO_OSPF_LSA:
-        case IPPROTO_VRRP:
-        case TCPR_PROTO_CDP:
-        case TCPR_PROTO_ISL:
-        default:
-            tcpedit_setwarn(tcpedit, "Unsupported protocol for checksum: 0x%x", proto);
-            return TCPEDIT_WARN;
     }
 
     return TCPEDIT_OK;

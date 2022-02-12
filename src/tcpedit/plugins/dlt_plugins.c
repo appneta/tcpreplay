@@ -130,6 +130,9 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
     ctx = (tcpeditdlt_t *)safe_malloc(sizeof(tcpeditdlt_t));
 
     /* do we need a side buffer for L3 data? */
+#ifdef FORCE_ALIGN
+    ctx->l3buff = (u_char *)safe_malloc(MAXPACKET);
+#endif
 
     /* copy our tcpedit context */
     ctx->tcpedit = tcpedit;
@@ -470,6 +473,10 @@ tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
         safe_free(plugin);
         plugin = plugin_next;
     }
+
+#ifdef FORCE_ALIGN
+    safe_free(ctx->l3buff);
+#endif
 
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);

@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.4.0],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.4.1],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -1698,6 +1698,80 @@ else
 fi
 
 fi # checking pcapnav version
+
+
+dnl (shamelessly ripped off from libpcap)
+dnl Checks to see if unaligned memory accesses fail
+dnl
+dnl     FORCE_ALIGN (DEFINED)
+dnl
+AC_MSG_CHECKING(for requires strict byte alignment)
+AC_CACHE_VAL(unaligned_cv_fail,
+[
+case "$host_os" in
+    darwin*)
+        # macOS M1 test fails due to lack of fork() so just hard code it
+        unaligned_cv_fail=no
+    ;;
+    *)
+        case "$host_cpu" in
+
+        # XXX: should also check that they don't do weird things
+        alpha*|hp*|mips*|sparc*|ia64)
+                unaligned_cv_fail=yes
+                ;;
+
+        *)
+        cat >conftest.c <<EOF
+        #include <sys/types.h>
+        #include <sys/wait.h>
+        #include <stdio.h>
+        unsigned char a[[5]] = { 1, 2, 3, 4, 5 };
+        main() {
+            unsigned int i;
+            pid_t pid;
+            int status;
+            /* avoid "core dumped" message */
+            pid = fork();
+            if (pid <  0)
+                exit(2);
+            if (pid > 0) {
+                /* parent */
+                pid = waitpid(pid, &status, 0);
+                if (pid < 0)
+                        exit(3);
+                exit(!WIFEXITED(status));
+            }
+            /* child */
+            i = *(unsigned int *)&a[[1]];
+            printf("%d\n", i);
+            exit(0);
+        }
+EOF
+        ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS \
+            conftest.c $LIBS >/dev/null 2>&1
+        if test ! -x conftest ; then
+            dnl failed to compile for some reason
+            unaligned_cv_fail=yes
+        else
+            ./conftest >conftest.out
+            if test ! -s conftest.out ; then
+                unaligned_cv_fail=yes
+            else
+                unaligned_cv_fail=no
+            fi
+        fi
+        rm -f conftest* core core.conftest
+        ;;
+
+        esac
+    ;;
+    esac
+])
+AC_MSG_RESULT($unaligned_cv_fail)
+if test $unaligned_cv_fail = yes ; then
+    AC_DEFINE([FORCE_ALIGN], [1], [Are we strictly aligned?])
+fi
 
 dnl ##################################################
 dnl # Check for tcpdump.
