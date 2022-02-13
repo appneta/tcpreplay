@@ -1,5 +1,6 @@
 08/01/2022 Version 4.4.2 Beta 1
-    - heap buffer overflow in get_l2len_protocol()
+    - heap buffer overflow in get_l2len_protocol (#716)
+    - remove bash-only test in configure script (#714)
 
 02/12/2022 Version 4.4.1
     - fix support for piping PCAP files from STDIN (#708)
