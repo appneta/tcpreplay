@@ -1808,7 +1808,7 @@ fi
 dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING(for 'make test' profile)
-if test "$host" == "$build" ; then
+if test "$host" = "$build" ; then
     AC_MSG_RESULT([yes])
 else    
     AC_MSG_WARN(Unable to do tests when cross-compiling)
