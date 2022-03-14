@@ -161,7 +161,7 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         int ip6_len = ipv6_header_length(ip6_hdr, pkthdr->len, l2len);
         if (ip6_hdr->ip_len < ip6_len) {
             tcpedit_setwarn(tcpedit, "Unable to checksum IPv6 packet with invalid: pkt=" COUNTER_SPEC " IP length=%u caplen=" COUNTER_SPEC,
-                           tcpedit->runtime.packetnum, ip6_hdr->ip_len);
+                           tcpedit->runtime.packetnum, ip6_hdr->ip_len, pkthdr->caplen);
             return TCPEDIT_WARN;
         }
         ret = do_checksum(tcpedit, (u_char *)ip6_hdr, ip6_hdr->ip_nh,
