@@ -201,8 +201,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         return FLOW_ENTRY_INVALID;
     }
 
-    assert(l2len > 0);
-
     if (ether_type == ETHERTYPE_IP) {
         if (pkt_len < l2len + sizeof(ipv4_hdr_t))
                 return FLOW_ENTRY_INVALID;
