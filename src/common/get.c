@@ -270,6 +270,7 @@ int get_l2len_protocol(const u_char *pktdata,
     *vlan_offset = 0;
 
     switch (datalink) {
+    case DLT_NULL:
     case DLT_RAW:
         if (datalen == 0)
             return -1;
