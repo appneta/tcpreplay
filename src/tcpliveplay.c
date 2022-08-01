@@ -746,7 +746,7 @@ got_packet(_U_ u_char *args, _U_ const struct pcap_pkthdr *header,
     if((flags == (TH_SYN|TH_ACK)) && (sched_index==1) && (tcphdr->th_ack==htonl(sched[sched_index-1].curr_lseq + 1))){
         unsigned int j;
         printf("Received Remote Packet...............	[%u]\n", sched_index + 1);
-        printf("Remote Pakcet Expectation met.\nProceeding in replay....\n");
+        printf("Remote Packet Expectation met.\nProceeding in replay....\n");
         //printf("SYN-ACKed Random SEQ set!\n");
         initial_rseq = ntohl(tcphdr->th_seq); 
         //printf("initial_rseq: %u\n", initial_rseq);
