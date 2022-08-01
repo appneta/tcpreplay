@@ -317,13 +317,15 @@ int get_l2len_protocol(const u_char *pktdata,
         /* fall through */
     case DLT_EN10MB:
     {
-        eth_hdr_t *eth_hdr = (eth_hdr_t*)(pktdata + *l2offset);
+        eth_hdr_t *eth_hdr;
+        uint16_t ether_type;
         uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
-        uint16_t ether_type = ntohs(eth_hdr->ether_type);
 
         if (datalen <= l2_net_off)
             return -1;
 
+        eth_hdr = (eth_hdr_t*)(pktdata + *l2offset);
+        ether_type = ntohs(eth_hdr->ether_type);
         if (parse_metadata(pktdata,
                            datalen,
                            &ether_type,
