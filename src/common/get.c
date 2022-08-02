@@ -617,6 +617,9 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
         case TCPR_IPV6_NH_IPV6:
             dbg(3, "recursing due to v6-in-v6");
             next = get_layer4_v6((ipv6_hdr_t *)next, l3len - min_len);
+            if (next == NULL)
+                done = true;
+
             break;
 
         /* loop again */
