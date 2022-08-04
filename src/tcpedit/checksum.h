@@ -24,6 +24,6 @@
 #define CHECKSUM_CARRY(x) \
     (x = (x >> 16) + (x & 0xffff), (~(x + (x >> 16)) & 0xffff))
 
-int do_checksum(tcpedit_t *, u_int8_t *, int, int);
+int do_checksum(tcpedit_t *, u_int8_t *, int, int, const u_char*);
 
 #endif

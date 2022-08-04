@@ -123,7 +123,8 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     switch (l2proto) {
     case (ETHERTYPE_IP):
     {
-        l4data = get_layer4_v4((ipv4_hdr_t*)l3data, pkthdr->caplen - l2len);
+        l4data = get_layer4_v4((ipv4_hdr_t*)l3data,
+                               l3data + pkthdr->caplen - l2len);
         if (!l4data)
             goto done;
 
@@ -131,7 +132,8 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         break;
     }
     case (ETHERTYPE_IP6): {
-        l4data = get_layer4_v6((ipv6_hdr_t*)l3data, pkthdr->caplen - l2len);
+        l4data = get_layer4_v6((ipv6_hdr_t*)l3data,
+                               l3data + pkthdr->caplen - l2len);
         if (!l4data)
             goto done;
 

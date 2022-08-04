@@ -87,14 +87,21 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
                            tcpedit->runtime.packetnum);
             return TCPEDIT_ERROR;
         }
-        ret1 = do_checksum(tcpedit, (u_char*)ip_hdr, ip_hdr->ip_p,
-                           ip_len - (ip_hdr->ip_hl << 2));
+        ret1 = do_checksum(tcpedit,
+                           (u_char*)ip_hdr,
+                           ip_hdr->ip_p,
+                           ip_len - (ip_hdr->ip_hl << 2),
+                           (u_char*)ip_hdr + pkthdr->caplen - l2len);
         if (ret1 < 0)
             return TCPEDIT_ERROR;
     }
     
     /* calc IP checksum */
-    ret2 = do_checksum(tcpedit, (u_char *) ip_hdr, IPPROTO_IP, ip_len);
+    ret2 = do_checksum(tcpedit,
+                       (u_char*)ip_hdr,
+                       IPPROTO_IP,
+                       ip_len,
+                       (u_char*)ip_hdr + pkthdr->caplen - l2len);
     if (ret2 < 0)
         return TCPEDIT_ERROR;
 
@@ -164,8 +171,11 @@ fix_ipv6_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
                            tcpedit->runtime.packetnum, ip6_hdr->ip_len, pkthdr->caplen);
             return TCPEDIT_WARN;
         }
-        ret = do_checksum(tcpedit, (u_char *)ip6_hdr, ip6_hdr->ip_nh,
-            htons(ip6_hdr->ip_len));
+        ret = do_checksum(tcpedit,
+                          (u_char*)ip6_hdr,
+                          ip6_hdr->ip_nh,
+                          htons(ip6_hdr->ip_len),
+                          (u_char*)ip6_hdr + pkthdr->caplen - l2len);
         if (ret < 0)
             return TCPEDIT_ERROR;
     }
@@ -265,13 +275,13 @@ static void ipv4_addr_csum_replace(ipv4_hdr_t *ip_hdr, uint32_t old_ip,
     protocol = ip_hdr->ip_p;
     switch (protocol) {
     case IPPROTO_UDP:
-        l4 = get_layer4_v4(ip_hdr, len);
+        l4 = get_layer4_v4(ip_hdr, (u_char *)ip_hdr + l3len);
         len -= ip_hdr->ip_hl << 2;
         len -= TCPR_UDP_H;
         break;
 
     case IPPROTO_TCP:
-        l4 = get_layer4_v4(ip_hdr, len);
+        l4 = get_layer4_v4(ip_hdr, (u_char *)ip_hdr + l3len);
         len -= ip_hdr->ip_hl << 2;
         len -= TCPR_TCP_H;
         break;
@@ -293,32 +303,27 @@ static void ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr,
         const int l3len)
 {
     uint8_t *l4, protocol;
-    int len = l3len;
 
     assert(ip6_hdr);
 
-    if ((size_t)len < sizeof(*ip6_hdr))
+    if ((size_t)l3len < sizeof(*ip6_hdr))
         return;
 
-    protocol = get_ipv6_l4proto(ip6_hdr, len);
+    protocol = get_ipv6_l4proto(ip6_hdr, (u_char*)ip6_hdr + l3len);
     switch (protocol) {
     case IPPROTO_UDP:
-        l4 = get_layer4_v6(ip6_hdr, len);
-        len -= sizeof(*ip6_hdr);
-        len -= TCPR_UDP_H;
+        l4 = get_layer4_v6(ip6_hdr, (u_char*)ip6_hdr + l3len);
         break;
 
     case IPPROTO_TCP:
-        l4 = get_layer4_v6(ip6_hdr, len);
-        len -= sizeof(*ip6_hdr);
-        len -= TCPR_TCP_H;
+        l4 = get_layer4_v6(ip6_hdr, (u_char*)ip6_hdr + l3len);
         break;
 
     default:
         l4 = NULL;
     }
 
-    if (!l4 || len < 0)
+    if (!l4)
         return;
 
     ipv6_l34_csum_replace(l4, protocol, (uint32_t*)old_ip, (uint32_t*)new_ip);

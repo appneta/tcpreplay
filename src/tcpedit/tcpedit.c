@@ -174,7 +174,7 @@ again:
         if (ip_hdr == NULL)
             return TCPEDIT_SOFT_ERROR;
 
-        p = get_layer4_v4(ip_hdr, (*pkthdr)->caplen - l2len);
+        p = get_layer4_v4(ip_hdr, (u_char*)ip_hdr + (*pkthdr)->caplen - l2len);
         if (!p) {
             tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
                     pktlen, ip_hdr->ip_hl << 2,  dst_dlt);
@@ -195,7 +195,7 @@ again:
         if (ip6_hdr == NULL)
             return TCPEDIT_SOFT_ERROR;
 
-        p = get_layer4_v6(ip6_hdr, (*pkthdr)->caplen - l2len);
+        p = get_layer4_v6(ip6_hdr, (u_char*)ip6_hdr + (*pkthdr)->caplen - l2len);
         if (!p) {
             tcpedit_seterr(tcpedit, "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
                     pktlen, dst_dlt);
