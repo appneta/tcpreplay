@@ -34,7 +34,12 @@ static int do_checksum_math(uint16_t *, int);
  * Returns -1 on error and 0 on success, 1 on warn
  */
 int
-do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
+do_checksum(tcpedit_t *tcpedit,
+            uint8_t *data,
+            int proto,
+            int len,
+            const u_char *end_ptr)
+{
     ipv4_hdr_t *ipv4;
     ipv6_hdr_t *ipv6;
     tcp_hdr_t *tcp;
@@ -60,10 +65,10 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len) {
         ipv6 = (ipv6_hdr_t *)data;
         ipv4 = NULL;
 
-        proto = get_ipv6_l4proto(ipv6, len + sizeof(ipv6_hdr_t));
+        proto = get_ipv6_l4proto(ipv6, end_ptr);
         dbgx(3, "layer4 proto is 0x%hx", (uint16_t)proto);
 
-        layer = (u_char*)get_layer4_v6(ipv6, len + sizeof(ipv6_hdr_t));
+        layer = (u_char*)get_layer4_v6(ipv6, end_ptr);
         if (!layer) {
             tcpedit_setwarn(tcpedit, "%s", "Packet to short for checksum");
             return TCPEDIT_WARN;

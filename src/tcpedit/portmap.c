@@ -370,7 +370,7 @@ rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int l3len)
                 l3len);
         return TCPEDIT_ERROR;
     } else if ((*ip_hdr)->ip_p == IPPROTO_TCP || (*ip_hdr)->ip_p == IPPROTO_UDP) {
-        l4 = get_layer4_v4(*ip_hdr, l3len);
+        l4 = get_layer4_v4(*ip_hdr, (u_char *)ip_hdr + l3len);
         if (l4)
             return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4,
                     l3len - (l4 - (u_char*)*ip_hdr));
@@ -394,7 +394,7 @@ rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr, const int l3len)
                 l3len);
         return TCPEDIT_ERROR;
     } else if ((*ip6_hdr)->ip_nh == IPPROTO_TCP || (*ip6_hdr)->ip_nh == IPPROTO_UDP) {
-        l4 = get_layer4_v6(*ip6_hdr, l3len);
+        l4 = get_layer4_v6(*ip6_hdr, (u_char*)ip6_hdr + l3len);
         if (l4)
             return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4,
                     l3len - (l4 - (u_char*)*ip6_hdr));
