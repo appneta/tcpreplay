@@ -98,7 +98,7 @@ int parse_mpls(const u_char *pktdata,
                uint32_t *l2offset)
 {
     struct tcpr_mpls_label *mpls_label;
-    int len_remaining = (int)datalen;
+    u_char *end_ptr = pktdata + datalen;
     u_char first_nibble;
     eth_hdr_t *eth_hdr;
     bool bos = false;
@@ -113,12 +113,11 @@ int parse_mpls(const u_char *pktdata,
 
     /* move over MPLS labels until we get to the last one */
     while (!bos) {
-        if (len_remaining < (int)sizeof(*mpls_label))
+        if (pktdata + len + sizeof(*mpls_label) > end_ptr)
             return -1;
 
         mpls_label = (struct tcpr_mpls_label*)(pktdata + len);
         len += sizeof(*mpls_label);
-        len_remaining -= sizeof(*mpls_label);
         bos = (ntohl(mpls_label->entry) & MPLS_LS_S_MASK) != 0;
         label = ntohl(mpls_label->entry) >> MPLS_LS_LABEL_SHIFT;
         if (label == MPLS_LABEL_GACH) {
@@ -128,7 +127,7 @@ int parse_mpls(const u_char *pktdata,
         }
     }
 
-    if (len_remaining < 4)
+    if ((u_char*)mpls_label + 1 > end_ptr)
         return -1;
 
     first_nibble = *((u_char *)(mpls_label + 1)) >> 4;
@@ -143,11 +142,10 @@ int parse_mpls(const u_char *pktdata,
         /* EoMPLS - jump over PW Ethernet Control Word and handle
          * inner Ethernet header
          */
-        len += 4;
-        len_remaining -= 4;
-        if (len_remaining < (int)sizeof(*eth_hdr))
+        if (pktdata + len + 4 + sizeof(*eth_hdr) > end_ptr)
             return -1;
 
+        len += 4;
         *l2offset = len;
         eth_hdr = (eth_hdr_t*)(pktdata + len);
         len += sizeof(*eth_hdr);

@@ -1,6 +1,7 @@
 08/02/2022 Version 4.4.2 Beta 1
     - replaying on a loopback interface is broken (#732)
     - format string vulnerability in fix_ipv6_checksums (#723)
+    - heap-overflow in parse_mpls (#719)
     - heap-overflow in get_ipv6_next (#718)
     - reachable assertion in get_layer4_v6 (#717)
     - heap buffer overflow in get_l2len_protocol (#716)
