@@ -98,7 +98,7 @@ int parse_mpls(const u_char *pktdata,
                uint32_t *l2offset)
 {
     struct tcpr_mpls_label *mpls_label;
-    u_char *end_ptr = pktdata + datalen;
+    const u_char *end_ptr = pktdata + datalen;
     u_char first_nibble;
     eth_hdr_t *eth_hdr;
     bool bos = false;
