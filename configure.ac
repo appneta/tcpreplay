@@ -1717,7 +1717,7 @@ case "$host_os" in
         case "$host_cpu" in
 
         # XXX: should also check that they don't do weird things
-        alpha*|hp*|mips*|sparc*|ia64)
+        alpha*|arm*|hp*|mips*|sparc*|ia64)
                 unaligned_cv_fail=yes
                 ;;
 

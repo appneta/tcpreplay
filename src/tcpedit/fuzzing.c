@@ -73,11 +73,11 @@ int
 fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         u_char **pktdata)
 {
-    int packet_changed = 0;
+    int chksum_update_required = 0;
     uint32_t r, s;
     uint16_t l2proto;
     uint8_t l4proto;
-    u_char *packet, *l3data, *l4data;
+    u_char *packet, *l3data, *l4data, *end_ptr;
     tcpeditdlt_plugin_t *plugin;
     int l2len, l4len;
     tcpeditdlt_t *ctx;
@@ -102,6 +102,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     /* initializations */
     ctx = tcpedit->dlt_ctx;
     packet = *pktdata;
+    end_ptr = packet + pkthdr->caplen;
     plugin = tcpedit->dlt_ctx->encoder;
     l2len = plugin->plugin_l2len(ctx, packet, pkthdr->caplen);
     l2proto = ntohs(plugin->plugin_proto(ctx, packet, pkthdr->caplen));
@@ -119,31 +120,31 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     if (!l3data)
         goto done;
 
-    l4len = pkthdr->caplen - l2len;
     switch (l2proto) {
     case (ETHERTYPE_IP):
     {
-        l4data = get_layer4_v4((ipv4_hdr_t*)l3data,
-                               l3data + pkthdr->caplen - l2len);
+        l4data = get_layer4_v4((ipv4_hdr_t*)(packet + l2len), end_ptr);
         if (!l4data)
             goto done;
 
+        l4len = l4data - packet;
         l4proto = ((ipv4_hdr_t *)l3data)->ip_p;
         break;
     }
     case (ETHERTYPE_IP6): {
-        l4data = get_layer4_v6((ipv6_hdr_t*)l3data,
-                               l3data + pkthdr->caplen - l2len);
+        l4data = get_layer4_v6((ipv6_hdr_t*)(packet + l2len), end_ptr);
         if (!l4data)
             goto done;
 
+        l4len = l4data - packet;
         l4proto = ((ipv6_hdr_t *)l3data)->ip_nh;
         break;
     }
     default:
         /* apply fuzzing on unknown packet types */
-       l4data = l3data;
-       l4proto = IPPROTO_RAW;
+        l4len = pkthdr->caplen - l2len;
+        l4data = packet + l2len;
+        l4proto = IPPROTO_RAW;
 
     }
 
@@ -151,21 +152,21 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
     switch (l4proto) {
     case IPPROTO_TCP:
         l4len -= sizeof(tcp_hdr_t);
+        l4data += sizeof(tcp_hdr_t);
         break;
     case IPPROTO_UDP:
         l4len -= sizeof(udp_hdr_t);
+        l4data += sizeof(udp_hdr_t);
         break;
     }
 
-    if (l4len <= 1)
+    if (l4len <= 1 || l4data > end_ptr)
         goto done;
 
     /* add some additional randomization */
     r ^= r >> 16;
 
     s = r % FUZZING_TOTAL_ACTION_NUMBER;
-
-    dbgx(3, "packet fuzzed : %d", s);
     switch (s) {
     case FUZZING_DROP_PACKET:
     {
@@ -174,18 +175,17 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
             /* could not change packet size, so packet left unchanged */
             goto done;
 
-        packet_changed = 1;
         break;
     }
     case FUZZING_REDUCE_SIZE:
     {
         /* reduce packet size */
-        uint32_t new_len = (r % ((l4len) - 1)) + 1;
+        uint32_t new_len = (r % (l4len - 1)) + 1;
         if (fuzz_reduce_packet_size(tcpedit, pkthdr, new_len) < 0)
             /* could not change packet size, so packet left unchanged */
             goto done;
 
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_START_ZERO:
@@ -193,7 +193,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         /* fuzz random-size segment at the beginning of the packet with 0x00 */
         uint32_t sgt_size = fuzz_get_sgt_size(r, l4len);
         memset(l4data, 0x00, sgt_size);
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_START_RANDOM:
@@ -210,7 +210,7 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         for (i = 0; i < sgt_size; i++)
             l4data[i] = l4data[i] ^ (u_char)(r >> 4);
 
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_START_FF:
@@ -224,67 +224,73 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
             goto done;
 
         memset(l4data, 0xff, sgt_size);
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_MID_ZERO:
     {
         /* fuzz random-size segment inside the packet payload with 0x00 */
+        if (l4len <= 2)
+            goto done;
+
         uint32_t offset = ((r >> 16) % (l4len - 1)) + 1;
         uint32_t sgt_size = fuzz_get_sgt_size(r, l4len - offset);
         if (!sgt_size)
             goto done;
 
         memset(l4data + offset, 0x00, sgt_size);
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_MID_FF:
     {
         /* fuzz random-size segment inside the packet payload with 0xff */
+        if (l4len <= 2)
+            goto done;
+
         uint32_t offset = ((r >> 16) % (l4len - 1)) + 1;
         uint32_t sgt_size = fuzz_get_sgt_size(r, l4len - offset);
         if (!sgt_size)
             goto done;
 
         memset(l4data + offset, 0xff, sgt_size);
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_END_ZERO:
     {
         /* fuzz random-sized segment at the end of the packet payload with 0x00 */
-        uint32_t sgt_size = fuzz_get_sgt_size(r, l4len);
-        if (!sgt_size)
+        int sgt_size = fuzz_get_sgt_size(r, l4len);
+        if (!sgt_size || sgt_size > l4len)
             goto done;
 
         memset(l4data + l4len - sgt_size, 0x00, sgt_size);
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_END_RANDOM:
     {
         /* fuzz random-sized segment at the end of the packet with random Bytes */
         int i;
-        uint32_t sgt_size = fuzz_get_sgt_size(r, l4len);
-        if (!sgt_size)
+        int sgt_size = fuzz_get_sgt_size(r, l4len);
+        if (!sgt_size || sgt_size > l4len)
             goto done;
 
         for (i = (l4len - sgt_size); i < l4len; i++)
             l4data[i] = l4data[i] ^ (u_char)(r >> 4);
 
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     case FUZZING_CHANGE_END_FF:
     {
         /* fuzz random-sized segment at the end of the packet with 0xff00 */
-        uint32_t sgt_size = fuzz_get_sgt_size(r, l4len);
-        if (!sgt_size)
+        int sgt_size = fuzz_get_sgt_size(r, l4len);
+        if (!sgt_size || sgt_size > l4len)
             goto done;
 
         memset(l4data + l4len - sgt_size, 0xff, sgt_size);
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
 
@@ -293,27 +299,22 @@ fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr,
         /* fuzz random-size segment inside the packet with random Bytes */
         size_t i;
         uint32_t offset = ((r >> 16) % (l4len - 1)) + 1;
-        uint32_t sgt_size = fuzz_get_sgt_size(r, l4len - offset);
-        if (!sgt_size)
+        int sgt_size = fuzz_get_sgt_size(r, l4len - offset);
+        if (!sgt_size || sgt_size > l4len)
             goto done;
 
         for (i = offset; i < offset + sgt_size; i++)
             l4data[i] = l4data[i] ^ (u_char)(r >> 4);
 
-        packet_changed = 1;
+        chksum_update_required = 1;
         break;
     }
     default:
         assert(false);
     }
 
-    /* in cases where 'l3data' is a working buffer, copy it back to '*pkthdr' */
-    plugin->plugin_merge_layer3(ctx,
-                                packet,
-                                pkthdr->caplen,
-                                (l2proto == ETHERTYPE_IP) ? l4data : NULL,
-                                (l2proto == ETHERTYPE_IP6) ? l4data : NULL);
+    dbgx(3, "packet %llu fuzzed : %d", tcpedit->runtime.packetnum, s);
 
 done:
-    return packet_changed;
+    return chksum_update_required;
 }
