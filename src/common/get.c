@@ -337,7 +337,7 @@ int get_l2len_protocol(const u_char *pktdata,
                            vlan_offset))
             return -1;
 
-        if (datalen < l2_net_off)
+        if (datalen <= l2_net_off)
             return -1;
 
         *l2len = l2_net_off;
