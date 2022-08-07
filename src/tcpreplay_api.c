@@ -227,6 +227,16 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->preload_pcap = true;
     }
 
+#ifdef TCPREPLAY_EDIT
+    if (HAVE_OPT(PRELOAD_PCAP) && OPT_VALUE_LOOP > 1) {
+        tcpreplay_seterr(ctx,
+                         "%s",
+                         "tcpreplay_edit --loop (-l) and --preload_pcap (-K) options are mutually exclusive");
+        ret = -1;
+        goto out;
+    }
+#endif
+
     /* Dual file mode */
     if (HAVE_OPT(DUALFILE)) {
         options->dualfile = true;

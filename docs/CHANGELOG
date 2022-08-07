@@ -1,5 +1,6 @@
 08/02/2022 Version 4.4.2 Beta 1
     - replaying on a loopback interface is broken (#732)
+    - replay edit with both --loop and --preload_pcap options (#729)
     - test suite bus error on armhf (#725)
     - format string vulnerability in fix_ipv6_checksums (#723)
     - heap-overflow in parse_mpls (#719)
