@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.4.1],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.4.2],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -1717,7 +1717,7 @@ case "$host_os" in
         case "$host_cpu" in
 
         # XXX: should also check that they don't do weird things
-        alpha*|hp*|mips*|sparc*|ia64)
+        alpha*|arm*|hp*|mips*|sparc*|ia64)
                 unaligned_cv_fail=yes
                 ;;
 
@@ -1808,7 +1808,7 @@ fi
 dnl No 'make test' when cross compile
 
 AC_MSG_CHECKING(for 'make test' profile)
-if test "$host" == "$build" ; then
+if test "$host" = "$build" ; then
     AC_MSG_RESULT([yes])
 else    
     AC_MSG_WARN(Unable to do tests when cross-compiling)

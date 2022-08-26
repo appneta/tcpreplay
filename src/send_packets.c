@@ -444,9 +444,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                     timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 }
-
-                if (!timerisset(&stats->time_delta))
-                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {

@@ -67,11 +67,7 @@ main(int argc, char *argv[])
     fflush(NULL);
 
     ctx = tcpreplay_init();
-#ifdef TCPREPLAY
     optct = optionProcess(&tcpreplayOptions, argc, argv);
-#elif defined TCPREPLAY_EDIT
-    optct = optionProcess(&tcpreplay_editOptions, argc, argv);
-#endif
     argc -= optct;
     argv += optct;
 

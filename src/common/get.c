@@ -42,6 +42,10 @@ extern const char pcap_version[];
 #define JUNIPER_FLAG_NO_L2          0x02     /* L2 header */
 #define JUNIPER_FLAG_EXT            0x80     /* Juniper extensions present */
 #define JUNIPER_PCAP_MAGIC          "MGC"
+
+static void *
+get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr);
+
 /**
  * Depending on what version of libpcap/WinPcap there are different ways to get 
  * the version of the libpcap/WinPcap library.  This presents a unified way to 
@@ -94,7 +98,7 @@ int parse_mpls(const u_char *pktdata,
                uint32_t *l2offset)
 {
     struct tcpr_mpls_label *mpls_label;
-    int len_remaining = (int)datalen;
+    const u_char *end_ptr = pktdata + datalen;
     u_char first_nibble;
     eth_hdr_t *eth_hdr;
     bool bos = false;
@@ -109,12 +113,11 @@ int parse_mpls(const u_char *pktdata,
 
     /* move over MPLS labels until we get to the last one */
     while (!bos) {
-        if (len_remaining < (int)sizeof(*mpls_label))
+        if (pktdata + len + sizeof(*mpls_label) > end_ptr)
             return -1;
 
         mpls_label = (struct tcpr_mpls_label*)(pktdata + len);
         len += sizeof(*mpls_label);
-        len_remaining -= sizeof(*mpls_label);
         bos = (ntohl(mpls_label->entry) & MPLS_LS_S_MASK) != 0;
         label = ntohl(mpls_label->entry) >> MPLS_LS_LABEL_SHIFT;
         if (label == MPLS_LABEL_GACH) {
@@ -124,7 +127,7 @@ int parse_mpls(const u_char *pktdata,
         }
     }
 
-    if (len_remaining < 4)
+    if ((u_char*)mpls_label + 1 > end_ptr)
         return -1;
 
     first_nibble = *((u_char *)(mpls_label + 1)) >> 4;
@@ -139,11 +142,10 @@ int parse_mpls(const u_char *pktdata,
         /* EoMPLS - jump over PW Ethernet Control Word and handle
          * inner Ethernet header
          */
-        len += 4;
-        len_remaining -= 4;
-        if (len_remaining < (int)sizeof(*eth_hdr))
+        if (pktdata + len + 4 + sizeof(*eth_hdr) > end_ptr)
             return -1;
 
+        len += 4;
         *l2offset = len;
         eth_hdr = (eth_hdr_t*)(pktdata + len);
         len += sizeof(*eth_hdr);
@@ -270,6 +272,7 @@ int get_l2len_protocol(const u_char *pktdata,
     *vlan_offset = 0;
 
     switch (datalink) {
+    case DLT_NULL:
     case DLT_RAW:
         if (datalen == 0)
             return -1;
@@ -317,13 +320,15 @@ int get_l2len_protocol(const u_char *pktdata,
         /* fall through */
     case DLT_EN10MB:
     {
-        eth_hdr_t *eth_hdr = (eth_hdr_t*)(pktdata + *l2offset);
+        eth_hdr_t *eth_hdr;
+        uint16_t ether_type;
         uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
-        uint16_t ether_type = ntohs(eth_hdr->ether_type);
 
         if (datalen <= l2_net_off)
             return -1;
 
+        eth_hdr = (eth_hdr_t*)(pktdata + *l2offset);
+        ether_type = ntohs(eth_hdr->ether_type);
         if (parse_metadata(pktdata,
                            datalen,
                            &ether_type,
@@ -332,7 +337,7 @@ int get_l2len_protocol(const u_char *pktdata,
                            vlan_offset))
             return -1;
 
-        if (datalen < l2_net_off)
+        if (datalen <= l2_net_off)
             return -1;
 
         *l2len = l2_net_off;
@@ -568,15 +573,16 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
  * If the packet is to short, returns NULL
  */
 void *
-get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int l3len)
+get_layer4_v4(const ipv4_hdr_t *ip_hdr, const u_char *end_ptr)
 {
     void *ptr;
 
     assert(ip_hdr);
+    assert(end_ptr);
 
     ptr = (u_char *)ip_hdr + (ip_hdr->ip_hl << 2);
     /* make sure we don't jump over the end of the buffer */
-    if ((u_char *)ptr > ((u_char *)ip_hdr + l3len))
+    if ((u_char *)ptr > end_ptr)
         return NULL;
 
     return ((void *)ptr);
@@ -588,24 +594,21 @@ get_layer4_v4(const ipv4_hdr_t *ip_hdr, const int l3len)
  * v6 Frag or ESP header.  Function is recursive.
  */
 void *
-get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
+get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
 {
     struct tcpr_ipv6_ext_hdr_base *next, *exthdr;
     bool done = false;
-    uint32_t maxlen;
     uint8_t proto;
-    int min_len;
 
     assert(ip6_hdr);
-
-    min_len = TCPR_IPV6_H + sizeof(struct tcpr_ipv6_ext_hdr_base);
-    if (l3len < min_len)
-        return NULL;
+    assert(end_ptr);
 
     /* jump to the end of the IPv6 header */
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
-    proto = ip6_hdr->ip_nh;
+    if ((u_char*)next > end_ptr)
+        return NULL;
 
+    proto = ip6_hdr->ip_nh;
     while (!done) {
         dbgx(3, "Processing proto: 0x%hx", (uint16_t)proto);
 
@@ -613,7 +616,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
         /* recurse due to v6-in-v6, need to recast next as an IPv6 Header */
         case TCPR_IPV6_NH_IPV6:
             dbg(3, "recursing due to v6-in-v6");
-            next = get_layer4_v6((ipv6_hdr_t *)next, l3len - min_len);
+            next = get_layer4_v6((ipv6_hdr_t *)next, end_ptr);
             break;
 
         /* loop again */
@@ -622,9 +625,9 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
         case TCPR_IPV6_NH_DESTOPTS:
         case TCPR_IPV6_NH_HBH:
             dbgx(3, "Going deeper due to extension header 0x%02X", proto);
-            maxlen = l3len - (int)((u_char *)ip6_hdr - (u_char *)next);
-            exthdr = get_ipv6_next(next, maxlen);
+            exthdr = get_ipv6_next(next, end_ptr);
             if (exthdr == NULL) {
+                next = NULL;
                 done = true;
                 break;
             }
@@ -655,10 +658,10 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
 
             done = true;
         } /* switch */
-    } /* while */
 
-    if (!next || (u_char*)next > (u_char*)ip6_hdr + l3len)
-        return NULL;
+        if (next == NULL)
+            done = true;
+    } /* while */
 
     return next;
 }
@@ -668,15 +671,15 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const int l3len)
  * returns the next payload or header of the current extension header
  * returns NULL for none/ESP.
  */
-void *
-get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
+static void *
+get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
 {
-    int extlen = 0;
-    int maxlen;
-    void *ptr;
+    uint8_t extlen = 0;
+    u_char *ptr;
     assert(exthdr);
 
-    maxlen = *((int*)((u_char *)exthdr + len));
+    if ((u_char*)exthdr + sizeof(*exthdr) > end_ptr)
+        return NULL;
 
     dbgx(3, "Jumping to next IPv6 header.  Processing 0x%02x", exthdr->ip_nh);
     switch (exthdr->ip_nh) {
@@ -695,9 +698,9 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
     case TCPR_IPV6_NH_FRAGMENT:
         dbg(3, "Looks like were a fragment header. Returning some frag'd data.");
         ptr = (void *)((u_char *)exthdr + sizeof(struct tcpr_ipv6_frag_hdr));
-        if (*(int*)ptr > maxlen)
+        if (ptr > end_ptr)
             return NULL;
-        return ptr;
+        return (void *)ptr;
         break;
 
     /* all the rest require us to go deeper using the ip_len field */
@@ -708,11 +711,11 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
     case TCPR_IPV6_NH_AH:
         extlen = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
         dbgx(3, "Looks like we're an ext header (0x%hhx).  Jumping %u bytes"
-               " to the next", exthdr->ip_nh, extlen);
-        ptr = (void *)((u_char *)exthdr + extlen);
-        if (*(int*)ptr > maxlen)
+                " to the next", exthdr->ip_nh, extlen);
+        ptr = (u_char *)exthdr + extlen;
+        if (ptr > end_ptr)
             return NULL;
-        return ptr;
+        return (void *)ptr;
         break;
 
     default:
@@ -727,7 +730,7 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const int len)
  * the extension headers
  */
 uint8_t 
-get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int l3len)
+get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
 {
     u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
     uint8_t proto;
@@ -735,15 +738,15 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int l3len)
 
     assert(ip6_hdr);
 
-    proto = ip6_hdr->ip_nh;
-    int l4len = l3len - TCPR_IPV6_H;
-    if (l4len < 0)
-        return proto;
+    if (ptr > end_ptr)
+        return TCPR_IPV6_NH_NO_NEXT;
 
+    proto = ip6_hdr->ip_nh;
     while (TRUE) {
         dbgx(3, "Processing next proto 0x%02X", proto);
         switch (proto) {
             /* no further processing for IPV6 types with nothing beyond them */
+            case TCPR_IPV6_NH_NO_NEXT:
             case TCPR_IPV6_NH_FRAGMENT:
             case TCPR_IPV6_NH_ESP:
                 dbg(3, "No-Next or ESP... can't go any further...");
@@ -753,7 +756,7 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int l3len)
             /* recurse */
             case TCPR_IPV6_NH_IPV6:
                 dbg(3, "Recursing due to v6 in v6");
-                return get_ipv6_l4proto((ipv6_hdr_t *)ptr, l4len);
+                return get_ipv6_l4proto((ipv6_hdr_t *)ptr, end_ptr);
                 break;
 
             /* loop again */
@@ -763,11 +766,10 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const int l3len)
             case TCPR_IPV6_NH_HBH:
                 dbgx(3, "Jumping to next extension header (0x%hhx)", proto);
                 exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr,
-                        l4len);
-                if (exthdr == NULL)
-                    return proto;
+                        end_ptr);
+                if (exthdr == NULL || (u_char*)exthdr + sizeof(*exthdr) > end_ptr)
+                    return TCPR_IPV6_NH_NO_NEXT;
                 proto = exthdr->ip_nh;
-                l4len -= (u_char *)exthdr - ptr;
                 ptr = (u_char *)exthdr;
                 break;
 
