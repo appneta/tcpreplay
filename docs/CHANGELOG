@@ -1,5 +1,6 @@
 12/28/2022 Version 4.4.3-Beta1
     - upgrade autogen/libopts to version 5.18.16 (#759)
+    - program exit after send error (#751)
 
 08/28/2022 Version 4.4.2
     - remove autogen.sh from distribution tarballs (#745)
