@@ -105,5 +105,8 @@ Dave Craig <GitHub @davecraig>
 Vincent Bernat <GitHub @vincentbernat>
     - tcprewrite: fix DLT name for DLT_C_JNPR_ETHER in documentation
 
-Halver <GigHub @Halver>
+Halver <GitHub @Halver>
     - specify directories as files
+
+Florian Weimer <GitHub @fweimer-rh>
+    - Avoid implicit int in configure.ac

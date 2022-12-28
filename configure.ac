@@ -1681,8 +1681,8 @@ int
 main (int argc, char *argv[])
 {
     if (strncmp(PCAPNAV_VERSION, PCAPNAV_TEST, 3) >= 0)
-        exit(0);
-    exit(1);
+        return 0;
+    return 1;
 }           ]])],[libpcapnav_ver=yes
             AC_MSG_RESULT(>= 0.4)],[libpcapnav_ver=no
             AC_MSG_RESULT(< 0.4)],[libpcapnav_ver=no
@@ -1726,26 +1726,27 @@ case "$host_os" in
         #include <sys/types.h>
         #include <sys/wait.h>
         #include <stdio.h>
+        #include <unistd.h>
         unsigned char a[[5]] = { 1, 2, 3, 4, 5 };
-        main() {
+        int main() {
             unsigned int i;
             pid_t pid;
             int status;
             /* avoid "core dumped" message */
             pid = fork();
             if (pid <  0)
-                exit(2);
+                return 2;
             if (pid > 0) {
                 /* parent */
                 pid = waitpid(pid, &status, 0);
                 if (pid < 0)
-                        exit(3);
-                exit(!WIFEXITED(status));
+                        return 3;
+                return !WIFEXITED(status);
             }
             /* child */
             i = *(unsigned int *)&a[[1]];
             printf("%d\n", i);
-            exit(0);
+            return 0;
         }
 EOF
         ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS \
