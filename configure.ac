@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.4.2],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.4.3-Beta1],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -14,7 +14,7 @@ AM_WITH_DMALLOC
 dnl People building from GitHub need the same version of Autogen as I'm using
 dnl or specify --disable-local-libopts to force using the locally-installed
 dnl copy of libopts rather than the source in the `./libopts/` directory.
-MAINTAINER_AUTOGEN_VERSION=5.18.12
+MAINTAINER_AUTOGEN_VERSION=5.18.16
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -732,13 +732,13 @@ AC_ARG_WITH(libpcap,
     # and was created to address portability issues. Unfortunately, the script is not updated properly
     # outside of the base distribution. Examples: PF_RING requires 'pthreads', 'numa' and 'rt', but
     # this is not reflect that in the script. OS X Xcode 10.11 SDK creates its own very broken
-    # 'pcap-config' script that only occasionally works for dynamic definitions, and defintely
+    # 'pcap-config' script that only occasionally works for dynamic definitions, and definitely
     # does not work for static.
     #
     # The ability to enable this script exists for corner cases where libpcap distributions starts
     # using even more libraries than I am currently not aware of. Originally, you only had to worry
     # about 'nl', but now we have to be prepared to add 'nl-3', 'nl-genl-3' and 'dbus-1' to make
-    # libpcap fucntional. In the future, there may be more.
+    # libpcap functional. In the future, there may be more.
     #
     # (sigh)
     #
