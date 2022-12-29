@@ -2,6 +2,7 @@
     - upgrade autogen/libopts to version 5.18.16 (#759)
     - avoid implicit int in configure.ac (#757)
     - program exit after send error (#751)
+    - remove invalid assert in tree (#746)
 
 08/28/2022 Version 4.4.2
     - remove autogen.sh from distribution tarballs (#745)
