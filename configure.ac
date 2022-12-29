@@ -919,6 +919,9 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
  * returns zero if version >= 0.9.6
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 1) != 0)
+        exit(0);
+
     if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
         exit(0);
 
@@ -946,6 +949,9 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
  * returns zero if version >= 0.8.0
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 1) != 0)
+        exit(0);
+
     if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
         exit(0);
 
@@ -973,6 +979,9 @@ extern const char pcap_version[[]]; /* double up since autoconf escapes things *
  * returns zero if version >= 0.7.2
  * or one otherwise
  */
+    if (strncmp(pcap_lib_version(), PCAP_TEST, 1) != 0)
+        exit(0);
+
     if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
         exit(0);
 
@@ -986,7 +995,9 @@ extern const char pcap_version[[]]; /* double up since autoconf escapes things *
  [libpcap_ver7=yes]
 )
 
-if test x$libpcap_ver8 = xyes ; then
+if test x$libpcap_version_096 = xyes ; then
+    AC_MSG_RESULT(>= 1.0.0)
+elif test x$libpcap_ver8 = xyes ; then
     AC_MSG_RESULT(>= 0.8.0)
 elif test x$libpcap_ver7 = xyes ; then
     AC_MSG_RESULT(>= 0.7.2)

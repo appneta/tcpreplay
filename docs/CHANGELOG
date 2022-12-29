@@ -3,6 +3,7 @@
     - avoid implicit int in configure.ac (#757)
     - remove invalid assert in tree (#756)
     - program exit after send error (#751)
+    - make libpcap version test more robust (#750)
 
 08/28/2022 Version 4.4.2
     - remove autogen.sh from distribution tarballs (#745)
