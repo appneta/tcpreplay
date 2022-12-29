@@ -743,8 +743,6 @@ packet2tree(const u_char * data, const int len, int datalink)
 
     node = new_tree();
 
-    assert(l2len > 0);
-
     if (ether_type == ETHERTYPE_IP) {
         if (pkt_len < (ssize_t)(l2len + TCPR_IPV4_H + hl))
             goto len_error;
