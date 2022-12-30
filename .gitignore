@@ -95,4 +95,5 @@ test/*1
 COPYING
 .vscode/
 .idea/
-build/
+build*/
+.run/
