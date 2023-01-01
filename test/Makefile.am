@@ -68,7 +68,7 @@ standard_prep:
 	$(TCPPREP) -i $(TEST_PCAP) -o test.auto_bridge -a bridge
 	$(TCPPREP) -i $(TEST_PCAP) -o test.auto_client -a client
 	$(TCPPREP) -i $(TEST_PCAP) -o test.auto_server -a server
-	$(TCPPREP) -i test.pcap -o test.auto_first -a first
+	$(TCPPREP) -i $(TEST_PCAP) -o test.auto_first -a first
 	$(TCPPREP) --load-opts config -o test.prep_config
 	$(TCPPREP) -i $(TEST_PCAP) -o test.port -p
 	$(TCPPREP) -i $(TEST_PCAP) -o test.mac -e 00:1f:f3:3c:e1:13
@@ -313,29 +313,29 @@ mac_reverse:
 exclude_packets:
 	$(PRINTF) "%s" "[tcpprep] exclude packets test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] exclude packets test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --exclude 'P:61-65,88-91' >> test.log 2>&1
-	diff test.$@ test.$@1 >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -c '96.17.211.0/24' --exclude 'P:61-65,88-91' >> test.log 2>&1
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 include_packets:
 	$(PRINTF) "%s" "[tcpprep] include packets test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] include packets test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'P:61-65,88-91' >> test.log 2>&1
-	diff test.$@ test.$@1 >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -c '96.17.211.0/24' --include 'P:61-65,88-91' >> test.log 2>&1
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 include_source:
 	$(PRINTF) "%s" "[tcpprep] include source test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] include source test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'S:96.0.0.0/8' >> test.log 2>&1
-	diff test.$@ test.$@1 >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -c '96.17.211.0/24' --include 'S:96.0.0.0/8' >> test.log 2>&1
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 include_dest:
 	$(PRINTF) "%s" "[tcpprep] include destination test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] include destination test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) -i test.pcap -o test.$@1 -c '96.17.211.0/24' --include 'D:96.0.0.0/8' >> test.log 2>&1
-	diff test.$@ test.$@1 >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -c '96.17.211.0/24' --include 'D:96.0.0.0/8' >> test.log 2>&1
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_basic:
