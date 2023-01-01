@@ -658,7 +658,8 @@ AC_ARG_WITH(libpcap,
                 for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                     sharefile=$(ls ${testdir}/$dir/libpcap${ext}* 2> /dev/null | sort | head -n1)
                     if test -n "${sharefile}"; then
-                        LPCAPLIB="-L$(dirname ${sharefile}) -lpcap"
+                        LPCAP_LD_LIBRARY_PATH="$(dirname ${sharefile})"
+                        LPCAPLIB="-L$LPCAP_LD_LIBRARY_PATH -lpcap"
                         foundpcap=$testdir
                         break
                     fi
@@ -682,36 +683,6 @@ AC_ARG_WITH(libpcap,
                     fi
                 done
 
-                if ! test $foundpcap = no; then
-                    ## could be PF_RING
-                    #
-                    #  library is static and in PF_RING build tree
-                    #
-                    #  Need access to libpfring library
-                    #  and must find an associated libpfring.a
-                    if test -n "${with_pfring_lib}"; then
-                        if test -f ${with_pfring_lib}; then
-                            pf_ring_lib=${with_pfring_lib}
-                            pf_ring_found=yes
-                        else
-                            AC_MSG_ERROR(["Unable to find PF_RING library ${with_pfring_lib}"])
-                        fi
-                    else
-                        ## search locally for most likely PF_RING library
-                        for lib in ${foundpcap}/../lib/libs/libpfring_zc_${host_cpu}.a \
-                                ${foundpcap}/../lib/libs/libpfring_dna_${host_cpu}.a \
-                                ${foundpcap}/../lib/libs/libpfring_zero_${host_cpu}.a \
-                                ${foundpcap}/../lib/libs/libpfring_nt_${host_cpu}.a \
-                                ${foundpcap}/../lib/libpfring.a; do
-                            if test -f "${lib}"; then
-                                pf_ring_lib=${lib}
-                                pf_ring_found=yes
-                                break
-                            fi
-                        done
-                    fi
-                    break
-                fi
             done
         fi
 
@@ -838,6 +809,21 @@ else
     AC_MSG_RESULT($foundpcap)
 fi
 
+## could be PF_RING
+#
+#  library is static and in PF_RING build tree
+#
+#  Need access to libpfring library
+#  and must find an associated libpfring.a
+if test -n "${with_pfring_lib}"; then
+    if test -f ${with_pfring_lib}; then
+        pf_ring_lib=${with_pfring_lib}
+        pf_ring_found=yes
+    else
+        AC_MSG_ERROR(["Unable to find PF_RING library ${with_pfring_lib}"])
+    fi
+fi
+
 # libpcap can require libnl
 AC_SEARCH_LIBS([nl_handle_alloc], [nl],
         [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
@@ -886,11 +872,19 @@ if test -n "$LPCAPINCDIR"; then
 else
     OLDCFLAGS="$CFLAGS"
     LPCAPINCDIR=$(echo $CFLAGS | sed -e 's/^\-I//')
-    LPCAPINC="$LPCAPINCDIR/pcap.h"
+    if test -d "$LPCAPINCDIR/pcap"; then
+        LPCAPINC="$LPCAPINCDIR/pcap/pcap.h"
+    else
+        LPCAPINC="$LPCAPINCDIR/pcap.h"
+    fi
 fi
 
 LIBS="$LPCAPLIB"
-AC_SEARCH_LIBS([pcap_get_pfring_id], [pcap], AC_DEFINE([HAVE_PF_RING_PCAP], [1], [Do we have PF_RING libpcap support?]))
+AC_SEARCH_LIBS([pcap_get_pfring_id],
+               [pcap],
+               AC_DEFINE([HAVE_PF_RING_PCAP],
+               ,
+               [${with_pfring_lib} numa pthread rt]))
 
 ## Does libpcap work with selected libraries?
 AC_SEARCH_LIBS([pcap_close], [pcap],
@@ -901,118 +895,57 @@ AC_SUBST(LPCAPLIB)
 
 
 dnl Check to see what version of libpcap
-dnl this code has been reduced a lot, but probably still could be
-dnl reduced quite a bit more if we chose too
-AC_MSG_CHECKING(for libpcap version)
-
-dnl 0.9.6 (which is still thinks it is 0.9.5 due to a bug) introduces an important
-dnl fix for OSX.  See: http://tcpreplay.synfin.net/trac/ticket/167
-AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "$LPCAPINC"
-#define PCAP_TEST "0.9.6"
-]], [[
-/*
- * simple proggy to test the version of libpcap
- * returns zero if version >= 0.9.6
- * or one otherwise
- */
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 1) != 0)
-        exit(0);
-
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
-        exit(0);
-
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 5) >= 0) {
-        printf("%s ", pcap_lib_version());
-        exit(0);
-    }
-
-    exit(1);
-]])],
- [libpcap_version_096=yes],
- [libpcap_version_096=no],
- [libpcap_version_096=yes]
-)
-
-AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "$LPCAPINC"
-#define PCAP_TEST "0.8"
-]], [[
-/*
- * simple proggy to test the version of libpcap
- * returns zero if version >= 0.8.0
- * or one otherwise
- */
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 1) != 0)
-        exit(0);
-
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
-        exit(0);
-
-    /* winpcap? */
-    if (strncmp(pcap_lib_version(), "WinPcap", 7) == 0)
-        exit(0);
-
-    exit(1);
-]])],
- [libpcap_ver8=yes],
- [libpcap_ver8=no],
- [libpcap_ver8=yes]
-)
-
-AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "$LPCAPINC"
-#define PCAP_TEST "0.7.2"
-extern const char pcap_version[[]]; /* double up since autoconf escapes things */
-]], [[
-/*
- * simple proggy to test the version of libpcap
- * returns zero if version >= 0.7.2
- * or one otherwise
- */
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 1) != 0)
-        exit(0);
-
-    if (strncmp(pcap_lib_version(), PCAP_TEST, 3) >= 0)
-        exit(0);
-
-    if (strncmp(pcap_version, PCAP_TEST, 5) >= 0)
-            exit(0);
-
-    exit(1);
-]])],
- [libpcap_ver7=yes],
- [libpcap_ver7=no],
- [libpcap_ver7=yes]
-)
-
-if test x$libpcap_version_096 = xyes ; then
-    AC_MSG_RESULT(>= 1.0.0)
-elif test x$libpcap_ver8 = xyes ; then
-    AC_MSG_RESULT(>= 0.8.0)
-elif test x$libpcap_ver7 = xyes ; then
-    AC_MSG_RESULT(>= 0.7.2)
-else
-    AC_MSG_ERROR([Libpcap versions < 0.7.2 are not supported
-    Please upgrade to version 0.7.2 or better])
-fi
-
+AC_MSG_CHECKING(libpcap version)
 libpcap_version=unknown
-if test x$libpcap_version_096 = xyes ; then
-    libpcap_version=">= 0.9.6"
-elif test x$libpcap_ver8 = xyes ; then
-    libpcap_version=">= 0.8.0"
-elif test x$libcap_ver7 = xyes ; then
-    libpcap_version=">= 0.7.0"
+libpcap_version_096=no
+cat >conftest.c <<EOF
+#include <string.h>
+#include <stdio.h>
+#include "$LPCAPINC"
+/*
+ * simple proggy to get the version of libpcap
+ */
+ int main() {
+    printf("%s\n", pcap_lib_version());
+    return 0;
+}
+EOF
+${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LPCAPLIB \
+    conftest.c $LIBS >/dev/null 2>&1
+if test -x conftest ; then
+    full_libpcap_version=$(LD_LIBRARY_PATH="$LPCAP_LD_LIBRARY_PATH" ./conftest)
+    libpcap_version=$(echo "$full_libpcap_version" | ${CUT} -d' ' -f3)
+    pcap_version_ok=yes
+fi
+rm -f conftest* core core.conftest
+
+AC_MSG_RESULT([$libpcap_version])
+
+AC_MSG_CHECKING(for valid libpcap version)
+if test x$libpcap_version != xunknown; then
+    libpcap_major=$(echo ${libpcap_version} | ${CUT} -d '.' -f1)
+    libpcap_minor=$(echo ${libpcap_version} | ${CUT} -d '.' -f2)
+    libpcap_build=$(echo ${libpcap_version} | ${CUT} -d '.' -f3)
+    if test $libpcap_major -eq 0 && \
+        (test $libpcap_minor -lt 7 || \
+         (test $libpcap_minor -eq 7 and test $libpcap_build -le 2))
+    then
+        AC_MSG_ERROR([Libpcap versions < 0.7.2 are not supported
+        Please upgrade to version 0.7.2 or better. Your version is $libpcap_version])
+    fi
+
+    dnl 0.9.6 (which is still thinks it is 0.9.5 due to a bug) introduces an important
+    dnl fix for OSX.  See: http://tcpreplay.synfin.net/trac/ticket/167
+    if test $libpcap_major -eq 0 && \
+           test $libpcap_minor -eq 9 && \
+           test $libpcap_build -eq 6
+    then
+        libpcap_version_096=yes
+    fi
+
+    AC_MSG_RESULT([ok])
+else
+    AC_MSG_RESULT([unknown])
 fi
 
 dnl Check for pcap_setnonblock()
