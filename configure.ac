@@ -917,9 +917,8 @@ if test -x conftest ; then
     libpcap_version=$(echo "$full_libpcap_version" | ${CUT} -d' ' -f3)
     pcap_version_ok=yes
 fi
-rm -f conftest* core core.conftest
-
 AC_MSG_RESULT([$libpcap_version])
+rm -rf conftest.* core core.conftest 2>&1 > /dev/null
 
 AC_MSG_CHECKING(for valid libpcap version)
 if test x$libpcap_version != xunknown; then
@@ -928,7 +927,7 @@ if test x$libpcap_version != xunknown; then
     libpcap_build=$(echo ${libpcap_version} | ${CUT} -d '.' -f3)
     if test $libpcap_major -eq 0 && \
         (test $libpcap_minor -lt 7 || \
-         (test $libpcap_minor -eq 7 and test $libpcap_build -le 2))
+         (test $libpcap_minor -eq 7 && test $libpcap_build -lt 2))
     then
         AC_MSG_ERROR([Libpcap versions < 0.7.2 are not supported
         Please upgrade to version 0.7.2 or better. Your version is $libpcap_version])
@@ -936,14 +935,13 @@ if test x$libpcap_version != xunknown; then
 
     dnl 0.9.6 (which is still thinks it is 0.9.5 due to a bug) introduces an important
     dnl fix for OSX.  See: http://tcpreplay.synfin.net/trac/ticket/167
-    if test $libpcap_major -eq 0 && \
-           test $libpcap_minor -eq 9 && \
-           test $libpcap_build -eq 6
+    if test $libpcap_major -gt 0 || \
+       (test $libpcap_minor -eq 9 && test $libpcap_build -ge 6)
     then
         libpcap_version_096=yes
     fi
 
-    AC_MSG_RESULT([ok])
+    AC_MSG_RESULT([yes])
 else
     AC_MSG_RESULT([unknown])
 fi
