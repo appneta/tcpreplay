@@ -7,6 +7,7 @@
     - looping inflates some packet counters (#749)
 
 08/28/2022 Version 4.4.2
+    - fix tests when building in a directory outside source tree (#767)
     - remove autogen.sh from distribution tarballs (#745)
     - CVE-2022-37048 heap-overflow in get_l2len_protocol (#735)
     - replaying on a loopback interface is broken (#732)
