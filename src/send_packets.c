@@ -487,7 +487,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
-            break;
+            continue;
         }
 
         /*
@@ -763,7 +763,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
-            break;
+            continue;
         }
 
         /*

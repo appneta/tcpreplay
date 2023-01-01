@@ -1,4 +1,13 @@
+01/01/2023 Version 4.4.3
+    - upgrade autogen/libopts to version 5.18.16 (#759)
+    - avoid implicit int in configure.ac (#757)
+    - remove invalid assert in tree (#756)
+    - program exit after send error (#751)
+    - make libpcap version test more robust (#750)
+    - looping inflates some packet counters (#749)
+
 08/28/2022 Version 4.4.2
+    - fix tests when building in a directory outside source tree (#767)
     - remove autogen.sh from distribution tarballs (#745)
     - CVE-2022-37048 heap-overflow in get_l2len_protocol (#735)
     - replaying on a loopback interface is broken (#732)

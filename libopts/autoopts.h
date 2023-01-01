@@ -11,7 +11,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2016 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2018 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -462,6 +462,13 @@ static char const   pkgdatadir_default[] = PKGDATADIR;
 static char const * program_pkgdatadir   = pkgdatadir_default;
 static tOptionLoadMode option_load_mode  = OPTION_LOAD_UNCOOKED;
 static tePagerState pagerState           = PAGER_STATE_INITIAL;
+
+static noreturn void option_exits(int exit_code);
+static noreturn void fserr_exit(char const * prog, char const * op,
+                                char const * fname);
+static          void fserr_warn(char const * prog, char const * op,
+                                char const * fname);
+static noreturn void ao_bug(char const * msg);
 
        FILE *       option_usage_fp      = NULL;
 

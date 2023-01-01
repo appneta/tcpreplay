@@ -9,11 +9,11 @@
  *  This file defines all the global structures and special values
  *  used in the automated option processing library.
  *
- *  Automated Options Copyright (C) 1992-2016 by Bruce Korb
+ *  Automated Options Copyright (C) 1992-2018 by Bruce Korb
  *
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2016 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2018 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -40,9 +40,40 @@
  */
 #include <sys/types.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <limits.h>
-#include <stdbool.h>
+
+#ifndef COMPAT_H_GUARD
+/*
+ * This is needed for test compilations where the "compat.h"
+ * header is not usually available.
+ */
+#  if defined(HAVE_STDINT_H)
+#    include <stdint.h>
+#  elif defined(HAVE_INTTYPES_H)
+#    include <inttypes.h>
+#  endif /* HAVE_STDINT/INTTYPES_H */
+
+#  if defined(HAVE_LIMITS_H)
+#    include <limits.h>
+#  elif defined(HAVE_SYS_LIMITS_H)
+#    include <sys/limits.h>
+#  endif /* HAVE_LIMITS/SYS_LIMITS_H */
+
+#  if defined(HAVE_SYSEXITS_H)
+#    include <sysexits.h>
+#  endif /* HAVE_SYSEXITS_H */
+
+#  if defined(HAVE_STDBOOL_H)
+#    include <stdbool.h>
+#  elif ! defined(bool)
+     typedef enum { false = 0, true = 1 } _Bool;
+#    define bool _Bool
+
+     /* The other macros must be usable in preprocessor directives.  */
+#    define false 0
+#    define true 1
+#  endif /* HAVE_SYSEXITS_H */
+#endif /* COMPAT_H_GUARD */
+// END-CONFIGURED-HEADERS
 
 /**
  * Defined to abnormal value of EX_USAGE.  Used to indicate that paged usage
@@ -78,15 +109,15 @@
  * @{
  */
 /// autoopts structure version
-#define OPTIONS_STRUCT_VERSION      167937
+#define OPTIONS_STRUCT_VERSION      172033
 /// autoopts structure version string
-#define OPTIONS_VERSION_STRING      "41:1:16"
+#define OPTIONS_VERSION_STRING      "42:1:17"
 /// minimum version the autoopts library supports
 #define OPTIONS_MINIMUM_VERSION     102400
 /// minimum version the autoopts library supports as a string
 #define OPTIONS_MIN_VER_STRING      "25:0:0"
 /// the display version of the autoopts library, as a string
-#define OPTIONS_DOTTED_VERSION      "41.1"
+#define OPTIONS_DOTTED_VERSION      "42.1"
 /// convert a version/release number pair to an integer value
 #define OPTIONS_VER_TO_NUM(_v, _r)  (((_v) * 4096) + (_r))
 /// @}
@@ -109,7 +140,8 @@ typedef enum {
     OPARG_TYPE_FLOAT        =  9, ///< opt arg is a floating point num
     OPARG_TYPE_DOUBLE       = 10, ///< opt arg is a double prec. float
     OPARG_TYPE_LONG_DOUBLE  = 11, ///< opt arg is a long double prec.
-    OPARG_TYPE_LONG_LONG    = 12  ///< opt arg is a long long int
+    OPARG_TYPE_LONG_LONG    = 12, ///< opt arg is a long long int
+    OPARG_TYPE_STATIC       = 13  ///< 
 } teOptArgType;
 
 /**
@@ -610,6 +642,7 @@ struct options {
     void *                      pSavedState;
 
     /// The procedure to call to print usage text
+    /* __attribute__((__noreturn__)) */
     // coverity[+kill]
     tpUsageProc                 pUsageProc;
     /// The procedure to call to translate translatable option messages
@@ -808,7 +841,7 @@ extern int optionFileLoad(tOptions *, char const *);
 
 
 /**
- * optionFindNextValue - find a hierarchically valued option instance
+ * optionFindNextValue - find a hierarcicaly valued option instance
  *
  *  This routine will find the next entry in a nested value option or
  *  configurable.  It will search through the list and return the next entry
@@ -825,7 +858,7 @@ extern const tOptionValue * optionFindNextValue(const tOptDesc *, const tOptionV
 
 
 /**
- * optionFindValue - find a hierarchically valued option instance
+ * optionFindValue - find a hierarcicaly valued option instance
  *
  *  This routine will find an entry in a nested value option or configurable.
  *  It will search through the list and return a matching entry.
