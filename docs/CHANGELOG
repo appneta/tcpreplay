@@ -1,3 +1,5 @@
+01/03/2023 Version 4.4.4-Beta1
+    - add CI - C/C++ Linter and CodeQL (#773)
 01/01/2023 Version 4.4.3
     - upgrade autogen/libopts to version 5.18.16 (#759)
     - avoid implicit int in configure.ac (#757)

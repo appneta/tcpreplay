@@ -7,16 +7,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - run: |
+          echo "Build Application"
+          sudo apt-get -y install libpcap-dev autogen
+          ./autogen.sh
+          ./configure --disable-local-libopts
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: file
-          ignore: libopts
+          version: 14
+          lines-changed-only: true
+          files-changed-only: false
+          ignore: .github|docs|scripts
 
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
-        run: echo "Some files failed the linting checks!"
-        # for actual deployment
-        # run: exit 1
+        # for testing...
+        # run: echo "Some files failed the linting checks!"
+        # for actual deployment...
+        run: exit 1
