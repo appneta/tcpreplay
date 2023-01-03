@@ -454,7 +454,7 @@ TRY_SEND_AGAIN:
     } else if (sp->abort) {
         sendpacket_seterr(sp, "User abort");
     } else if (retcode != (int)len) {
-        sendpacket_seterr(sp, "Only able to write %d bytes out of %u bytes total",
+        sendpacket_seterr(sp, "Only able to write %d bytes out of %lu bytes total",
                 retcode, len);
         sp->trunc_packets ++;
     } else {
