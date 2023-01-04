@@ -19,8 +19,7 @@
  */
 
 
-#ifndef _PLUGINS_TYPES_H_
-#define _PLUGINS_TYPES_H_
+#pragma once
 
 #include "defines.h"
 #include "tcpr.h"
@@ -95,9 +94,6 @@ struct tcpeditdlt_plugin_s {
     size_t config_size;
 };
 
-
-#define L2EXTRA_LEN 255 /* size of buffer to hold any extra L2 data parsed from the decoder */
-
 /*
  * internal DLT plugin context
  */
@@ -138,8 +134,5 @@ struct tcpeditdlt_s {
 
 #ifdef __cplusplus
 }
-#endif
-
-
 #endif
 

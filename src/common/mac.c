@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,19 +18,16 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "defines.h"
-#include "common.h"
-#include <string.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <ctype.h>
-
 #include "mac.h"
+#include "config.h"
+#include "common.h"
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 /**
- * converts a string representation of a MAC address, based on 
- * non-portable ether_aton() 
+ * converts a string representation of a MAC address, based on
+ * non-portable ether_aton()
  */
 void
 mac2hex(const char *mac, u_char *dst, int len)
@@ -51,14 +48,14 @@ mac2hex(const char *mac, u_char *dst, int len)
             return;
         if (!(*pp == ':' || (i == 5 && (isspace(*pp) || *pp == '\0'))))
             return;
-        dst[i] = (u_char) l;
+        dst[i] = (u_char)l;
         mac = pp + 1;
     }
 }
 
 /**
  * converts a string representation of TWO MAC addresses, which
- * are comma deliminated into two hex values.  Either *first or *second 
+ * are comma deliminated into two hex values.  Either *first or *second
  * can be NULL if there is nothing before or after the comma.
  * returns:
  * 1 = first mac
@@ -75,10 +72,8 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
     string = safe_strdup(dualmac);
 
     /* if we've only got a comma, then return NULL's */
-    if (len <= 1) {
-        second = first = NULL;
+    if (len <= 1)
         goto done;
-    }
 
     temp = strtok_r(string, ",", &tok);
     if (strlen(temp)) {
@@ -88,12 +83,12 @@ dualmac2hex(const char *dualmac, u_char *first, u_char *second, int len)
 
     temp = strtok_r(NULL, ",", &tok);
     /* temp is null if no comma */
-    if (temp != NULL) { 
+    if (temp != NULL) {
         if (strlen(temp)) {
             mac2hex(temp, second, len);
             ret += 2;
         }
-    } 
+    }
 
 done:
     safe_free(string);
@@ -112,36 +107,36 @@ macinstring(const char *macstring, const u_char *mac)
     char *tok = NULL, *tempstr, *ourstring;
     u_char tempmac[6];
     int len = 6, ret = TCPR_DIR_S2C;
-    
+
     ourstring = safe_strdup(macstring);
     memset(&tempmac[0], 0, sizeof(tempmac));
-    
+
     tempstr = strtok_r(ourstring, ",", &tok);
     if (strlen(tempstr)) {
-       mac2hex(tempstr, tempmac, len);
-       if (memcmp(mac, tempmac, len) == 0) {
-           dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
-           ret = TCPR_DIR_C2S;
-           goto EXIT_MACINSTRING;
-       }
+        mac2hex(tempstr, tempmac, len);
+        if (memcmp(mac, tempmac, len) == 0) {
+            dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
+            ret = TCPR_DIR_C2S;
+            goto EXIT_MACINSTRING;
+        }
     } else {
         goto EXIT_MACINSTRING;
     }
 
     while ((tempstr = strtok_r(NULL, ",", &tok)) != NULL) {
-       mac2hex(tempstr, tempmac, len);
-       if (memcmp(mac, tempmac, len) == 0) {
-           ret = TCPR_DIR_C2S;
-           dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
-           goto EXIT_MACINSTRING;
-       }
+        mac2hex(tempstr, tempmac, len);
+        if (memcmp(mac, tempmac, len) == 0) {
+            ret = TCPR_DIR_C2S;
+            dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
+            goto EXIT_MACINSTRING;
+        }
     }
 
 EXIT_MACINSTRING:
     safe_free(ourstring);
 #ifdef DEBUG
     if (ret == TCPR_DIR_S2C)
-       dbg(3, "Packet doesn't match any MAC addresses sending out secondary.\n");
+        dbg(3, "Packet doesn't match any MAC addresses sending out secondary.\n");
 #endif
     return ret;
 }

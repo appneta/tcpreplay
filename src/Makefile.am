@@ -41,10 +41,10 @@ tcpreplay.1: tcpreplay_opts.def
 tcpbridge.1: tcpbridge_opts.def
 	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) $<
 
-tcpliveplay.1: tcpliveplay_opts.def 
+tcpliveplay.1: tcpliveplay_opts.def
 	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) $<
 
-tcpcapinfo.1: tcpcapinfo_opts.def 
+tcpcapinfo.1: tcpcapinfo_opts.def
 	@AUTOGEN@ -T agman-cmd.tpl $(opts_list) $<
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1 tcpcapinfo.1
@@ -58,7 +58,7 @@ man_MANS += tcpbridge.1
 endif
 
 if COMPILE_TCPLIVEPLAY
-bin_PROGRAMS += tcpliveplay 
+bin_PROGRAMS += tcpliveplay
 man_MANS += tcpliveplay.1
 endif
 

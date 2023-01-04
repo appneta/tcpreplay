@@ -4,6 +4,8 @@
 
 */
 
+#pragma once
+
 #ifndef _
 #ifdef PROTOTYPES
 #define  _(x)  x              /* If compiler knows prototypes */

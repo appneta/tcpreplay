@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,57 +18,20 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include "defines.h"
-
-#include <ctype.h>
-#include <fcntl.h>
+#include "config.h"
+#include "common.h"
+#include "edit_packet.h"
+#include "fuzzing.h"
+#include "incremental_checksum.h"
+#include "parse_args.h"
+#include "portmap.h"
+#include "rewrite_sequence.h"
+#include "tcpedit_stub.h"
+#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <stdarg.h>
-
-#include "tcpedit_stub.h"
-#include "portmap.h"
-#include "common.h"
-#include "incremental_checksum.h"
-#include "edit_packet.h"
-#include "parse_args.h"
-#include "fuzzing.h"
-#include "rewrite_sequence.h"
-
-#include "lib/sll.h"
-#include "dlt.h"
-
-extern tOptDesc *const tcpedit_tcpedit_optDesc_p;
-
-/**
- * \brief Checks to see if you should make an edit
- *
- * Given the packet direction, this lets you know if you should make an edit
- *
- * packet: C2S & editdir = client == 1
- * packet: C2S & editdir = server == 0
- * packet: S2C & editdir = client == 0
- * packet: S2C & editdir = server == 1
- * packet: S2C & editdir = both   == 1
- * packet: C2S & editdir = both   == 1
- */
-int
-tcpedit_checkdir(tcpedit_t *tcpedit, tcpr_dir_t direction)
-{
-
-    /* Should we edit this packet? */
-    if ((tcpedit->editdir == TCPEDIT_EDIT_BOTH) ||
-        (tcpedit->editdir == TCPEDIT_EDIT_C2S && direction == TCPR_DIR_C2S) ||
-        (tcpedit->editdir == TCPEDIT_EDIT_S2C && direction == TCPR_DIR_S2C)) {
-        return 1;
-    }
-    return 0;
-}
-
 
 /**
  * \brief Edit the given packet
@@ -81,8 +44,7 @@ tcpedit_checkdir(tcpedit_t *tcpedit, tcpr_dir_t direction)
  *          1 on change
  */
 int
-tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
-        u_char **pktdata, tcpr_dir_t direction)
+tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr, u_char **pktdata, tcpr_dir_t direction)
 {
     bool fuzz_once = tcpedit->fuzz_seed != 0;
     ipv4_hdr_t *ip_hdr;
@@ -90,10 +52,9 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     arp_hdr_t *arp_hdr;
     int l2len, l2proto, retval;
     int dst_dlt, src_dlt, pktlen, lendiff;
-    int ipflags, tclass;
-    int needtorecalc;           /* did the packet change? if so, checksum */
+    uint32_t ipflags, tclass;
+    int needtorecalc; /* did the packet change? if so, checksum */
     u_char *packet;
-
 
     assert(tcpedit);
     assert(pkthdr);
@@ -106,8 +67,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
 
     tcpedit->runtime.packetnum++;
 
-    dbgx(3, "packet " COUNTER_SPEC " caplen %d", 
-            tcpedit->runtime.packetnum, (*pkthdr)->caplen);
+    dbgx(3, "packet " COUNTER_SPEC " caplen %d", tcpedit->runtime.packetnum, (*pkthdr)->caplen);
 
     /*
      * remove the Ethernet FCS (checksum)?
@@ -115,7 +75,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
      * only set this flag IFF the pcap has the FCS.  If not, then they
      * just removed 2 bytes of ACTUAL PACKET DATA.  Sucks to be them.
      */
-    if (tcpedit->efcs > 0 &&(*pkthdr)->len > 4) {
+    if (tcpedit->efcs > 0 && (*pkthdr)->len > 4) {
         if ((*pkthdr)->caplen == (*pkthdr)->len) {
             (*pkthdr)->caplen -= 4;
         }
@@ -124,7 +84,7 @@ tcpedit_packet(tcpedit_t *tcpedit, struct pcap_pkthdr **pkthdr,
     }
 
     src_dlt = tcpedit_dlt_src(tcpedit->dlt_ctx);
-    
+
     needtorecalc = 0;
 again:
     ip_hdr = NULL;
@@ -132,29 +92,28 @@ again:
     arp_hdr = NULL;
     retval = 0;
     ipflags = 0;
-    tclass = 0;
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
-    if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (*pkthdr)->caplen)) < 0) {
+    if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (int)(*pkthdr)->caplen)) < 0) {
         dbgx(2, "Packet has no L3+ header: %s", tcpedit_geterr(tcpedit));
         return TCPEDIT_SOFT_ERROR;
     } else {
         dbgx(2, "Layer 3 protocol type is: 0x%04x", ntohs(l2proto));
     }
-        
+
     /* rewrite Layer 2 */
-    if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, pktdata, (*pkthdr)->caplen, direction)) < 0) {
+    if ((pktlen = tcpedit_dlt_process(tcpedit->dlt_ctx, pktdata, (int)(*pkthdr)->caplen, direction)) < 0) {
         /* unable to edit packet, most likely 802.11 management or data QoS frame */
         dbgx(3, "Failed to edit DLT: %s", tcpedit_geterr(tcpedit));
         return TCPEDIT_SOFT_ERROR;
     }
 
     /* update our packet lengths (real/captured) based on L2 length changes */
-    lendiff = pktlen - (*pkthdr)->caplen;
+    lendiff = pktlen - (int)(*pkthdr)->caplen;
     (*pkthdr)->caplen += lendiff;
     (*pkthdr)->len += lendiff;
-    
+
     dst_dlt = tcpedit_dlt_dst(tcpedit->dlt_ctx);
-    l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
+    l2len = tcpedit_dlt_l2len(tcpedit->dlt_ctx, dst_dlt, packet, (int)(*pkthdr)->caplen);
     if (l2len == -1)
         return TCPEDIT_SOFT_ERROR;
 
@@ -165,19 +124,24 @@ again:
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IP header for DLT 0x%04x",
-                    pktlen, dst_dlt);
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain a layer IP header for DLT 0x%04x",
+                           pktlen,
+                           dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
 
-        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
+        ip_hdr = (ipv4_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (int)(*pkthdr)->caplen);
         if (ip_hdr == NULL)
             return TCPEDIT_SOFT_ERROR;
 
-        p = get_layer4_v4(ip_hdr, (u_char*)ip_hdr + (*pkthdr)->caplen - l2len);
+        p = get_layer4_v4(ip_hdr, (u_char *)ip_hdr + (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
-                    pktlen, ip_hdr->ip_hl << 2,  dst_dlt);
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain a layer %d byte IP header for DLT 0x%04x",
+                           pktlen,
+                           ip_hdr->ip_hl << 2,
+                           dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
 
@@ -186,19 +150,23 @@ again:
         u_char *p;
 
         if ((*pkthdr)->caplen < l2len + sizeof(*ip6_hdr)) {
-            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain a layer IPv6 header for DLT 0x%04x",
-                    pktlen, dst_dlt);
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain a layer IPv6 header for DLT 0x%04x",
+                           pktlen,
+                           dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
 
-        ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (*pkthdr)->caplen);
+        ip6_hdr = (ipv6_hdr_t *)tcpedit_dlt_l3data(tcpedit->dlt_ctx, dst_dlt, packet, (int)(*pkthdr)->caplen);
         if (ip6_hdr == NULL)
             return TCPEDIT_SOFT_ERROR;
 
-        p = get_layer4_v6(ip6_hdr, (u_char*)ip6_hdr + (*pkthdr)->caplen - l2len);
+        p = get_layer4_v6(ip6_hdr, (u_char *)ip6_hdr + (*pkthdr)->caplen - l2len);
         if (!p) {
-            tcpedit_seterr(tcpedit, "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
-                    pktlen, dst_dlt);
+            tcpedit_seterr(tcpedit,
+                           "Packet length %d is too short to contain an IPv6 header for DLT 0x%04x",
+                           pktlen,
+                           dst_dlt);
             return TCPEDIT_SOFT_ERROR;
         }
 
@@ -212,14 +180,13 @@ again:
 
     /* The following edits only apply for IPv4 */
     if (ip_hdr != NULL) {
-
         /* set TOS ? */
         if (tcpedit->tos > -1) {
-            volatile uint16_t oldval = *((uint16_t*)ip_hdr);
+            volatile uint16_t oldval = *((uint16_t *)ip_hdr);
             volatile uint16_t newval;
 
             ip_hdr->ip_tos = tcpedit->tos;
-            newval = *((uint16_t*)ip_hdr);
+            newval = *((uint16_t *)ip_hdr);
             csum_replace2(&ip_hdr->ip_sum, oldval, newval);
         }
 
@@ -228,15 +195,13 @@ again:
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
-            if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr,
-                    (*pkthdr)->caplen - l2len)) < 0)
+            if ((retval = rewrite_ipv4_ports(tcpedit, &ip_hdr, (int)(*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
 
         if (tcpedit->tcp_sequence_enable)
-            rewrite_ipv4_tcp_sequence(tcpedit, &ip_hdr,
-                    (*pkthdr)->caplen - l2len);
+            rewrite_ipv4_tcp_sequence(tcpedit, &ip_hdr, (int)(*pkthdr)->caplen - l2len);
     }
 
     /* IPv6 edits */
@@ -248,15 +213,15 @@ again:
         if (tcpedit->tclass > -1) {
             /* calculate the bits */
             tclass = tcpedit->tclass << 20;
-            
+
             /* convert our 4 bytes to an int */
             memcpy(&ipflags, &ip6_hdr->ip_flags, 4);
-            
+
             /* strip out the old tclass bits */
             ipflags = ntohl(ipflags) & 0xf00fffff;
 
             /* add the tclass bits back */
-            ipflags += tclass; 
+            ipflags += tclass;
             ipflags = htonl(ipflags);
             memcpy(&ip6_hdr->ip_flags, &ipflags, 4);
         }
@@ -272,14 +237,13 @@ again:
 
         /* rewrite TCP/UDP ports */
         if (tcpedit->portmap != NULL) {
-            if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr,
-                    (*pkthdr)->caplen - l2len)) < 0)
+            if ((retval = rewrite_ipv6_ports(tcpedit, &ip6_hdr, (int)(*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
 
         if (tcpedit->tcp_sequence_enable)
-            rewrite_ipv6_tcp_sequence(tcpedit, &ip6_hdr, (*pkthdr)->caplen - l2len);
+            rewrite_ipv6_tcp_sequence(tcpedit, &ip6_hdr, (int)(*pkthdr)->caplen - l2len);
     }
 
     if (fuzz_once) {
@@ -298,18 +262,16 @@ again:
             return TCPEDIT_ERROR;
         needtorecalc += retval;
     }
-    
+
     /* rewrite IP addresses in IPv4/IPv6 or ARP */
     if (tcpedit->rewrite_ip) {
         /* IP packets */
         if (ip_hdr != NULL) {
-            if ((retval = rewrite_ipv4l3(tcpedit, ip_hdr, direction,
-                    (*pkthdr)->caplen - l2len)) < 0)
+            if ((retval = rewrite_ipv4l3(tcpedit, ip_hdr, direction, (int)(*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         } else if (ip6_hdr != NULL) {
-            if ((retval = rewrite_ipv6l3(tcpedit, ip6_hdr, direction,
-                    (*pkthdr)->caplen - l2len)) < 0)
+            if ((retval = rewrite_ipv6l3(tcpedit, ip6_hdr, direction, (int)(*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
         }
@@ -326,31 +288,28 @@ again:
         }
     }
 
-
     /* do we need to spoof the src/dst IP address in IPv4 or ARP? */
     if (tcpedit->seed) {
         /* IPv4 Packets */
         if (ip_hdr != NULL) {
-            if ((retval = randomize_ipv4(tcpedit, *pkthdr, packet, 
-                    ip_hdr, (*pkthdr)->caplen - l2len)) < 0)
+            if ((retval = randomize_ipv4(tcpedit, *pkthdr, packet, ip_hdr, (int)(*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
 
         } else if (ip6_hdr != NULL) {
-            if ((retval = randomize_ipv6(tcpedit, *pkthdr, packet,
-                    ip6_hdr, (*pkthdr)->caplen - l2len)) < 0)
+            if ((retval = randomize_ipv6(tcpedit, *pkthdr, packet, ip6_hdr, (int)(*pkthdr)->caplen - l2len)) < 0)
                 return TCPEDIT_ERROR;
             needtorecalc += retval;
 
-        /* ARP packets */
+            /* ARP packets */
         } else if (l2proto == htons(ETHERTYPE_ARP)) {
             if (direction == TCPR_DIR_C2S) {
-                if (randomize_iparp(tcpedit, *pkthdr, packet, 
-                        tcpedit->runtime.dlt1, (*pkthdr)->caplen - l2len) < 0)
+                if (randomize_iparp(tcpedit, *pkthdr, packet, tcpedit->runtime.dlt1, (int)(*pkthdr)->caplen - l2len) <
+                    0)
                     return TCPEDIT_ERROR;
             } else {
-                if (randomize_iparp(tcpedit, *pkthdr, packet, 
-                        tcpedit->runtime.dlt2, (*pkthdr)->caplen - l2len) < 0)
+                if (randomize_iparp(tcpedit, *pkthdr, packet, tcpedit->runtime.dlt2, (int)(*pkthdr)->caplen - l2len) <
+                    0)
                     return TCPEDIT_ERROR;
             }
         }
@@ -358,8 +317,8 @@ again:
 
     /* ensure IP header length is correct */
     if (ip_hdr != NULL) {
-        needtorecalc |= fix_ipv4_length(*pkthdr, ip_hdr, l2len);
-            needtorecalc = 1;
+        fix_ipv4_length(*pkthdr, ip_hdr, l2len);
+        needtorecalc = 1;
     } else if (ip6_hdr != NULL) {
         needtorecalc |= fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
     }
@@ -384,13 +343,14 @@ again:
     }
 
     tcpedit_dlt_merge_l3data(tcpedit->dlt_ctx,
-                             dst_dlt, packet,
-                             (*pkthdr)->caplen,
-                             (u_char*)ip_hdr,
-                             (u_char*)ip6_hdr);
+                             dst_dlt,
+                             packet,
+                             (int)(*pkthdr)->caplen,
+                             (u_char *)ip_hdr,
+                             (u_char *)ip6_hdr);
 
     tcpedit->runtime.total_bytes += (*pkthdr)->caplen;
-    tcpedit->runtime.pkts_edited ++;
+    tcpedit->runtime.pkts_edited++;
     return retval;
 }
 
@@ -401,7 +361,7 @@ int
 tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
 {
     tcpedit_t *tcpedit;
-    
+
     *tcpedit_ex = safe_malloc(sizeof(tcpedit_t));
     tcpedit = *tcpedit_ex;
 
@@ -417,13 +377,12 @@ tcpedit_init(tcpedit_t **tcpedit_ex, int dlt)
     tcpedit->tclass = -1;
     tcpedit->flowlabel = -1;
     tcpedit->editdir = TCPEDIT_EDIT_BOTH;
- 
+
     memset(&(tcpedit->runtime), 0, sizeof(tcpedit_runtime_t));
     tcpedit->runtime.dlt1 = dlt;
     tcpedit->runtime.dlt2 = dlt;
-    
-    dbgx(1, "Input file (1) datalink type is %s",
-            pcap_datalink_val_to_name(dlt));
+
+    dbgx(1, "Input file (1) datalink type is %s", pcap_datalink_val_to_name(dlt));
 
 #ifdef FORCE_ALIGN
     tcpedit->runtime.l3buff = (u_char *)safe_malloc(MAXPACKET);
@@ -470,10 +429,8 @@ tcpedit_validate(tcpedit_t *tcpedit)
 char *
 tcpedit_geterr(tcpedit_t *tcpedit)
 {
-
     assert(tcpedit);
     return tcpedit->runtime.errstr;
-
 }
 
 /**
@@ -484,11 +441,11 @@ tcpedit_geterr(tcpedit_t *tcpedit)
  * tcpedit_seterr() which is a macro wrapping this instead.
  */
 void
-__tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const char *file, const char *fmt, ...)
+__tcpedit_seterr(tcpedit_t *tcpedit, const char *func, int line, const char *file, const char *fmt, ...)
 {
     va_list ap;
     char errormsg[TCPEDIT_ERRSTR_LEN - 32];
-    
+
     assert(tcpedit);
 
     va_start(ap, fmt);
@@ -497,10 +454,14 @@ __tcpedit_seterr(tcpedit_t *tcpedit, const char *func, const int line, const cha
     }
 
     va_end(ap);
-    
-    snprintf(tcpedit->runtime.errstr, sizeof(tcpedit->runtime.errstr),
+
+    snprintf(tcpedit->runtime.errstr,
+             sizeof(tcpedit->runtime.errstr),
              "From %s:%s() line %d:\n%s",
-             file, func, line, errormsg);
+             file,
+             func,
+             line,
+             errormsg);
 }
 
 /**
@@ -526,73 +487,68 @@ tcpedit_setwarn(tcpedit_t *tcpedit, const char *fmt, ...)
 
     va_start(ap, fmt);
     if (fmt != NULL)
-        (void)vsnprintf(tcpedit->runtime.warnstr,
-                        sizeof(tcpedit->runtime.warnstr), fmt, ap);
+        (void)vsnprintf(tcpedit->runtime.warnstr, sizeof(tcpedit->runtime.warnstr), fmt, ap);
 
     va_end(ap);
-        
 }
 
 /**
  * \brief Checks the given error code and does the right thing
- * 
+ *
  * Generic function which checks the TCPEDIT_* error code
- * and always returns OK or ERROR.  For warnings, prints the 
+ * and always returns OK or ERROR.  For warnings, prints the
  * warning message and returns OK.  For any other value, fails with
  * an assert.
  *
  * prefix is a string prepended to the error/warning
  */
 int
-tcpedit_checkerror(tcpedit_t *tcpedit, const int rcode, const char *prefix) {
+tcpedit_checkerror(tcpedit_t *tcpedit, int rcode, const char *prefix)
+{
     assert(tcpedit);
-    
+
     switch (rcode) {
-        case TCPEDIT_OK:
-        case TCPEDIT_ERROR:
-            return rcode;
-            break;
-        
-        case TCPEDIT_SOFT_ERROR:
-            if (prefix != NULL) {
-                fprintf(stderr, "Error %s: %s\n", prefix, tcpedit_geterr(tcpedit));
-            } else {
-                fprintf(stderr, "Error: %s\n", tcpedit_geterr(tcpedit));
-            }            
-            break;
-        case TCPEDIT_WARN:
-            if (prefix != NULL) {
-                fprintf(stderr, "Warning %s: %s\n", prefix, tcpedit_getwarn(tcpedit));
-            } else {
-                fprintf(stderr, "Warning: %s\n", tcpedit_getwarn(tcpedit));
-            }
-            return TCPEDIT_OK;
-            break;
-            
-        default:
-            assert(0 == 1); /* this should never happen! */
-            break;
+    case TCPEDIT_OK:
+    case TCPEDIT_ERROR:
+        return rcode;
+    case TCPEDIT_SOFT_ERROR:
+        if (prefix != NULL) {
+            fprintf(stderr, "Error %s: %s\n", prefix, tcpedit_geterr(tcpedit));
+        } else {
+            fprintf(stderr, "Error: %s\n", tcpedit_geterr(tcpedit));
+        }
+        break;
+    case TCPEDIT_WARN:
+        if (prefix != NULL) {
+            fprintf(stderr, "Warning %s: %s\n", prefix, tcpedit_getwarn(tcpedit));
+        } else {
+            fprintf(stderr, "Warning: %s\n", tcpedit_getwarn(tcpedit));
+        }
+        return TCPEDIT_OK;
+    default:
+        assert(0 == 1); /* this should never happen! */
+        break;
     }
     return TCPEDIT_ERROR;
 }
 
 /**
- * \brief Cleans up after ourselves.  Return 0 on success. 
- * 
+ * \brief Cleans up after ourselves.  Return 0 on success.
+ *
  * Clean up after ourselves and free the ptr.
  */
 int
 tcpedit_close(tcpedit_t **tcpedit_ex)
 {
-
     assert(*tcpedit_ex);
     tcpedit_t *tcpedit;
 
     tcpedit = *tcpedit_ex;
 
-    dbgx(1, "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC
-            " packets.", tcpedit->runtime.total_bytes,
-            tcpedit->runtime.pkts_edited);
+    dbgx(1,
+         "tcpedit processed " COUNTER_SPEC " bytes in " COUNTER_SPEC " packets.",
+         tcpedit->runtime.total_bytes,
+         tcpedit->runtime.pkts_edited);
 
     /* free if required */
     if (tcpedit->dlt_ctx) {
@@ -658,7 +614,7 @@ tcpedit_close(tcpedit_t **tcpedit_ex)
  * Return a ptr to the Layer 3 data.  Returns TCPEDIT_ERROR on error
  */
 const u_char *
-tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int pktlen)
+tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, int pktlen)
 {
     u_char *result = NULL;
     if (code == BEFORE_PROCESS) {
@@ -672,12 +628,12 @@ tcpedit_l3data(tcpedit_t *tcpedit, tcpedit_coder code, u_char *packet, const int
 /**
  * Returns the layer 3 type, often encoded as the layer2.proto field
  */
-int 
-tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, const int pktlen)
+int
+tcpedit_l3proto(tcpedit_t *tcpedit, tcpedit_coder code, const u_char *packet, int pktlen)
 {
-    int result = 0;
+    int result;
     if (code == BEFORE_PROCESS) {
-        result = tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);        
+        result = tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->decoder->dlt, packet, pktlen);
     } else {
         result = tcpedit_dlt_proto(tcpedit->dlt_ctx, tcpedit->dlt_ctx->encoder->dlt, packet, pktlen);
     }

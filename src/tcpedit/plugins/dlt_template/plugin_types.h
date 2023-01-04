@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DLT_%{plugin}_TYPES_H_
-#define _DLT_%{plugin}_TYPES_H_
+#pragma once
 
 /* any includes go here */
 
@@ -51,7 +50,5 @@ typedef struct {
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 

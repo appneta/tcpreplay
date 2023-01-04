@@ -8,16 +8,22 @@ AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: Always
+AllowShortFunctionsOnASingleLine: None
 AllowShortLambdasOnASingleLine: All
-AllowShortLoopsOnASingleLine: true
-AlwaysBreakAfterReturnType: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
+AttributeMacros: ['__capability', '__output', '__ununsed', '_U_']
+BinPackArguments: false
+BinPackParameters: false
+BitFieldColonSpacing: None
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: false
-  AfterClass: false
+  AfterClass: true
   AfterControlStatement: Never
   AfterEnum: false
   AfterFunction: true
@@ -29,23 +35,49 @@ BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: true
 BreakBeforeBinaryOperators: None
+BreakBeforeConceptDeclarations: Always
 BreakBeforeTernaryOperators: true
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: AfterColon
 BreakInheritanceList: BeforeColon
-ColumnLimit: 0
+BreakStringLiterals: false
+ColumnLimit: 120
+CommentPragmas:  '^ IWYU pragma:'
 CompactNamespaces: false
 ContinuationIndentWidth: 8
-IndentCaseLabels: true
+IndentCaseLabels: false
+IndentCaseBlocks: false
+IncludeBlocks: Merge
+IncludeCategories:
+  # First three defines are order sensitive.
+  #defines.h is first
+  - Regex:           '^[<\"](defines\.h)'
+    Priority:        1
+  # config.h is second
+  - Regex:           '^[<\"](config\.h)'
+    Priority:        2
+  # common.h is third
+  - Regex:           '^[<\"](common\.h)'
+    Priority:        3
+  # Headers in "" with extension.
+  - Regex:           '^"([A-Za-z0-9.\Q/-_\E])+"'
+    Priority:        4
+  # Headers in <> from project libraries.
+  - Regex:           '^<(lib|libopts|test)\/'
+    Priority:        5
+  # Headers in <> with extension.
+  - Regex:           '^<([A-Za-z0-9.\Q/-_\E])+>'
+    Priority:        6
+IndentGotoLabels: false
 IndentPPDirectives: None
 IndentWidth: 4
-KeepEmptyLinesAtTheStartOfBlocks: true
-MaxEmptyLinesToKeep: 2
-NamespaceIndentation: All
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: true
 PointerAlignment: Right
-ReflowComments: false
-SpaceAfterCStyleCast: true
+ReflowComments: true
+SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: false
 SpaceBeforeAssignmentOperators: true
@@ -55,11 +87,13 @@ SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
 SpaceBeforeRangeBasedForLoopColon: false
 SpaceInEmptyParentheses: false
-SpacesBeforeTrailingComments: 0
-SpacesInAngles: false
-SpacesInCStyleCastParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles:  Never
+SpacesInConditionalStatement: false
 SpacesInContainerLiterals: false
+SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-TabWidth: 4
+TabWidth: 8
+UseCRLF: false
 UseTab: Never

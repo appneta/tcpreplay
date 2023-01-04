@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,16 +18,13 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ieee80211.h"
+#include "dlt_utils.h"
+#include "ieee80211_hdr.h"
+#include "tcpedit.h"
+#include "tcpedit_stub.h"
 #include <stdlib.h>
 #include <string.h>
-
-#include "tcpedit.h"
-#include "common.h"
-#include "tcpr.h"
-#include "dlt_utils.h"
-#include "tcpedit_stub.h"
-#include "ieee80211.h"
-#include "ieee80211_hdr.h"
 
 /*
  * Notes about the ieee80211 plugin:
@@ -51,7 +48,7 @@ static uint16_t dlt_value = DLT_IEEE802_11;
  * - Add the plugin to the context's plugin chain
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_ieee80211_register(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -62,16 +59,18 @@ dlt_ieee80211_register(tcpeditdlt_t *ctx)
 
     /* we're a decoder only plugin */
     plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-    plugin->requires += 0;
-    
-     /* what is our DLT value? */
+    plugin->
+        requires
+    += 0;
+
+    /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
     plugin->name = safe_strdup(dlt_name);
 
-    /* 
-     * Point to our functions, note, you need a function for EVERY method.  
+    /*
+     * Point to our functions, note, you need a function for EVERY method.
      * Even if it is only an empty stub returning success.
      */
     plugin->plugin_init = dlt_ieee80211_init;
@@ -90,30 +89,28 @@ dlt_ieee80211_register(tcpeditdlt_t *ctx)
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
 
- 
 /*
  * Initializer function.  This function is called only once, if and only if
- * this plugin will be utilized.  Remember, if you need to keep track of any state, 
+ * this plugin will be utilized.  Remember, if you need to keep track of any state,
  * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_ieee80211_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
     assert(ctx);
-    
+
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to initialize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
-    
+
     /* allocate memory for our decode extra data */
     if (ctx->decoded_extra_size > 0) {
         if (ctx->decoded_extra_size < sizeof(ieee80211_extra_t)) {
             ctx->decoded_extra_size = sizeof(ieee80211_extra_t);
-            ctx->decoded_extra = safe_realloc(ctx->decoded_extra,
-                                              ctx->decoded_extra_size);
+            ctx->decoded_extra = safe_realloc(ctx->decoded_extra, ctx->decoded_extra_size);
         }
     } else {
         ctx->decoded_extra_size = sizeof(ieee80211_extra_t);
@@ -134,7 +131,7 @@ dlt_ieee80211_init(tcpeditdlt_t *ctx)
  * Unless you allocated some memory in dlt_ieee80211_init(), this is just an stub.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_ieee80211_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -160,13 +157,13 @@ dlt_ieee80211_cleanup(tcpeditdlt_t *ctx)
  * bit mask.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx)
 {
     assert(ctx);
 
     /* we have none */
-    
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -180,8 +177,8 @@ dlt_ieee80211_parse_opts(tcpeditdlt_t *ctx)
  * - ctx->decoded_extra
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
-dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     int l2len;
 
@@ -193,15 +190,17 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         return TCPEDIT_ERROR;
 
     dbgx(3, "Decoding 802.11 packet " COUNTER_SPEC, ctx->tcpedit->runtime.packetnum);
-    if (! ieee80211_is_data(ctx, packet, pktlen)) {
-        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is not a normal 802.11 data frame",
-            ctx->tcpedit->runtime.packetnum);
+    if (!ieee80211_is_data(ctx, packet, pktlen)) {
+        tcpedit_seterr(ctx->tcpedit,
+                       "Packet " COUNTER_SPEC " is not a normal 802.11 data frame",
+                       ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
     }
-    
+
     if (ieee80211_is_encrypted(ctx, packet, pktlen)) {
-        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC " is encrypted.  Unable to decode frame.",
-            ctx->tcpedit->runtime.packetnum);
+        tcpedit_seterr(ctx->tcpedit,
+                       "Packet " COUNTER_SPEC " is encrypted.  Unable to decode frame.",
+                       ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
     }
 
@@ -217,13 +216,12 @@ dlt_ieee80211_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function to encode the layer 2 header back into the packet.
  * Returns: total packet len or TCPEDIT_ERROR
  */
-int 
-dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
-        _U_ tcpr_dir_t dir)
+int
+dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
-    
+
     tcpedit_seterr(ctx->tcpedit, "%s", "DLT_IEEE802_11 plugin does not support packet encoding");
     return TCPEDIT_ERROR;
 }
@@ -231,8 +229,8 @@ dlt_ieee80211_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
 /*
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
-int 
-dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     int l2len;
     int hdrlen = 0;
@@ -253,28 +251,27 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     /* Not all 802.11 frames have data */
     if ((fc & ieee80211_FC_TYPE_MASK) != ieee80211_FC_TYPE_DATA)
         return TCPEDIT_SOFT_ERROR;
-    
-    /* Some data frames are QoS and have no data 
+
+    /* Some data frames are QoS and have no data
         if (((fc & ieee80211_FC_SUBTYPE_MASK) & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS)
         return TCPEDIT_SOFT_ERROR;
     */
     if ((fc & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS) {
         hdrlen += 2;
     }
-    
+
     /* figure out the actual header length */
     if (ieee80211_USE_4(fc)) {
         hdrlen += sizeof(ieee80211_addr4_hdr_t);
     } else {
         hdrlen += sizeof(ieee80211_hdr_t);
     }
-    
+
     hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
 
     /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
     if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA)
         return hdr->snap_type;
-    
 
     return TCPEDIT_SOFT_ERROR; /* 802.2 has no type field */
 }
@@ -283,7 +280,7 @@ dlt_ieee80211_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen)
 {
     int l2len;
     assert(ctx);
@@ -305,11 +302,7 @@ dlt_ieee80211_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx,
-                           u_char *packet,
-                           const int pktlen,
-                           u_char *ipv4_data,
-                           u_char *ipv6_data)
+dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen, u_char *ipv4_data, u_char *ipv6_data)
 {
     int l2len;
     assert(ctx);
@@ -319,19 +312,19 @@ dlt_ieee80211_merge_layer3(tcpeditdlt_t *ctx,
     l2len = dlt_ieee80211_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
-    
+
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data ?: ipv6_data, l2len);
 }
 
-/* 
+/*
  * return the length of the L2 header of the current packet
  * based on: http://www.tcpdump.org/lists/workers/2004/07/msg00121.html
  */
 int
-dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     uint16_t *frame_control, fc;
-    int hdrlen = 0;
+    int hdrlen;
 
     assert(ctx);
     assert(packet);
@@ -349,7 +342,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     } else {
         hdrlen = sizeof(ieee80211_hdr_t);
     }
-    
+
     /* if Data/QoS, then L2 len is + 2 bytes */
     if ((fc & ieee80211_FC_SUBTYPE_QOS) == ieee80211_FC_SUBTYPE_QOS) {
         dbgx(2, "total header length (fc %04x) (802.11 + QoS data): %d", fc, hdrlen + 2);
@@ -360,7 +353,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
         struct tcpr_802_2snap_hdr *hdr;
 
         hdr = (struct tcpr_802_2snap_hdr *)&packet[hdrlen];
-    
+
         /* verify the header is 802.2SNAP (8 bytes) not 802.2 (3 bytes) */
         if (hdr->snap_dsap == 0xAA && hdr->snap_ssap == 0xAA) {
             hdrlen += (int)sizeof(struct tcpr_802_2snap_hdr);
@@ -373,7 +366,7 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     if (pktlen < hdrlen)
         return 0;
-    
+
     dbgx(2, "header length: %d", hdrlen);
     return hdrlen;
 }
@@ -381,9 +374,9 @@ dlt_ieee80211_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 /*
  * return a static pointer to the source/destination MAC address
  * return NULL on error/address doesn't exist
- */    
+ */
 u_char *
-dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -391,30 +384,23 @@ dlt_ieee80211_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char
 
     if (pktlen < 14)
         return NULL;
-    
-    switch(mac) {
+
+    switch (mac) {
     case SRC_MAC:
         macaddr = ieee80211_get_src(packet);
         memcpy(ctx->srcmac, macaddr, ETHER_ADDR_LEN);
-        return(ctx->srcmac);
-        break;
-        
+        return (ctx->srcmac);
     case DST_MAC:
         macaddr = ieee80211_get_dst(packet);
         memcpy(ctx->dstmac, macaddr, ETHER_ADDR_LEN);
-        return(ctx->dstmac);
-        break;
-        
+        return (ctx->dstmac);
     default:
         errx(1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
     }
-    return(NULL);
 }
 
-
-tcpeditdlt_l2addr_type_t 
+tcpeditdlt_l2addr_type_t
 dlt_ieee80211_l2addr_type(void)
 {
     return ETHERNET;
 }
-

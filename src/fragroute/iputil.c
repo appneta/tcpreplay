@@ -1,7 +1,6 @@
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-#include "iputil.h"
 #ifdef HAVE_DNET_H
 #include <dnet.h>
 #endif
@@ -12,12 +11,10 @@
 #include <stdio.h>
 #include <string.h>
 
-static ssize_t
-inet_add_option_6(void *buf, size_t len, int proto, const void *optbuf, size_t optlen);
+static ssize_t inet_add_option_6(void *buf, size_t len, int proto, const void *optbuf, size_t optlen);
 
 ssize_t
-inet_add_option(uint16_t eth_type, void *buf, size_t len,
-                int proto, const void *optbuf, size_t optlen)
+inet_add_option(uint16_t eth_type, void *buf, size_t len, int proto, const void *optbuf, size_t optlen)
 {
     if (eth_type == ETH_TYPE_IP) {
         return ip_add_option(buf, len, proto, optbuf, optlen);
@@ -52,15 +49,14 @@ inet_add_option_6(void *buf, size_t len, int proto, const void *optbuf, size_t o
     hl = tcp->th_off << 2;
     p = (u_char *)tcp + hl;
 
-    datalen = ntohs(ip6->ip6_plen) + IP6_HDR_LEN - (p - (u_char *)buf);
+    datalen = ntohs(ip6->ip6_plen) + IP6_HDR_LEN - (int)(p - (u_char *)buf);
 
     /* Compute padding to next word boundary. */
-    if ((padlen = 4 - (optlen % 4)) == 4)
+    if ((padlen = 4 - (int)(optlen % 4)) == 4)
         padlen = 0;
 
     /* XXX - IP_HDR_LEN_MAX == TCP_HDR_LEN_MAX */
-    if (hl + optlen + padlen > IP_HDR_LEN_MAX ||
-            ntohs(ip6->ip6_plen) + IP6_HDR_LEN + optlen + padlen > len) {
+    if (hl + optlen + padlen > IP_HDR_LEN_MAX || ntohs(ip6->ip6_plen) + IP6_HDR_LEN + optlen + padlen > len) {
         errno = EINVAL;
         return (-1);
     }
@@ -82,9 +78,8 @@ inet_add_option_6(void *buf, size_t len, int proto, const void *optbuf, size_t o
 
     ip6->ip6_plen = htons(ntohs(ip6->ip6_plen) + optlen);
 
-    return (optlen);
+    return (ssize_t)optlen;
 }
-
 
 void
 inet_checksum(uint16_t eth_type, void *buf, size_t len)
@@ -97,8 +92,7 @@ inet_checksum(uint16_t eth_type, void *buf, size_t len)
 }
 
 int
-raw_ip_opt_parse(int argc, char *argv[], uint8_t *opt_type, uint8_t *opt_len,
-        uint8_t *buff, int buff_len)
+raw_ip_opt_parse(int argc, char *argv[], uint8_t *opt_type, uint8_t *opt_len, uint8_t *buff, int buff_len)
 {
     int i, j;
 
@@ -118,16 +112,14 @@ raw_ip_opt_parse(int argc, char *argv[], uint8_t *opt_type, uint8_t *opt_len,
         }
     }
     if (*opt_len != j + 2) {
-        warnx("invalid opt->len (%d) doesn't match data length (%d)",
-                *opt_len, j);
+        warnx("invalid opt->len (%d) doesn't match data length (%d)", *opt_len, j);
         return -1;
     }
     return 0;
 }
 
 int
-raw_ip6_opt_parse(int argc, char *argv[], uint8_t *proto, int *len,
-        uint8_t *buff, int buff_len)
+raw_ip6_opt_parse(int argc, char *argv[], uint8_t *proto, int *len, uint8_t *buff, int buff_len)
 {
     int i, j;
 

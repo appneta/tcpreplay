@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -20,35 +20,29 @@
 
 /*
  * Purpose: Modify packets in a pcap file based on rules provided by the
- * user to offload work from tcpreplay and provide a easier means of 
+ * user to offload work from tcpreplay and provide a easier means of
  * reproducing traffic for testing purposes.
  */
 
-
-#include "config.h"
+#include "tcpbridge.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
-#include <ctype.h>
+#include "bridge.h"
+#include "tcpbridge_opts.h"
+#include "tcpedit/tcpedit.h"
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <errno.h>
-
-#include "tcpbridge.h"
-#include "tcpbridge_opts.h"
-#include "bridge.h"
-#include "tcpedit/tcpedit.h"
 
 #ifdef DEBUG
 int debug;
 #endif
 
-
-COUNTER cache_packets;
 tcpreplay_stats_t stats;
 tcpbridge_opt_t options;
 tcpedit_t *tcpedit;
@@ -57,7 +51,7 @@ tcpedit_t *tcpedit;
 void init(void);
 void post_args(int argc, char *argv[]);
 
-int 
+int
 main(int argc, char *argv[])
 {
     int optct, rcode;
@@ -87,13 +81,12 @@ main(int argc, char *argv[])
 
     if (tcpedit_validate(tcpedit) < 0) {
         tcpedit_close(&tcpedit);
-        errx(-1, "Unable to edit packets given options:\n%s",
-                tcpedit_geterr(tcpedit));
+        errx(-1, "Unable to edit packets given options:\n%s", tcpedit_geterr(tcpedit));
     }
 
 #ifdef ENABLE_VERBOSE
     if (options.verbose) {
-        options.tcpdump = (tcpdump_t*)safe_malloc(sizeof(tcpdump_t));
+        options.tcpdump = (tcpdump_t *)safe_malloc(sizeof(tcpdump_t));
         tcpdump_open(options.tcpdump, options.pcap1);
     }
 #endif
@@ -122,10 +115,9 @@ main(int argc, char *argv[])
     return 0;
 }
 
-void 
+void
 init(void)
 {
-
     memset(&stats, 0, sizeof(stats));
     memset(&options, 0, sizeof(options));
 
@@ -135,11 +127,9 @@ init(void)
 
     if (fcntl(STDERR_FILENO, F_SETFL, O_NONBLOCK) < 0)
         warnx("Unable to set STDERR to non-blocking: %s", strerror(errno));
-
 }
 
-
-void 
+void
 post_args(_U_ int argc, _U_ char *argv[])
 {
     char ebuf[SENDPACKET_ERRBUF_SIZE];
@@ -160,7 +150,6 @@ post_args(_U_ int argc, _U_ char *argv[])
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
 
-
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
@@ -175,11 +164,11 @@ post_args(_U_ int argc, _U_ char *argv[])
     if (HAVE_OPT(LIMIT))
         options.limit_send = OPT_VALUE_LIMIT; /* default is -1 */
 
-
     if ((intname = get_interface(intlist, OPT_ARG(INTF1))) == NULL) {
         if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
-            errx(-1, "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
-                    OPT_ARG(INTF1));
+            errx(-1,
+                 "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
+                 OPT_ARG(INTF1));
         else
             errx(-1, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
     }
@@ -195,7 +184,7 @@ post_args(_U_ int argc, _U_ char *argv[])
 
     if (HAVE_OPT(MAC)) {
         int ct = STACKCT_OPT(MAC);
-        char **list = (char**)STACKLST_OPT(MAC);
+        char **list = (char **)STACKLST_OPT(MAC);
         int first = 1;
         do {
             char *p = *list++;
@@ -207,9 +196,9 @@ post_args(_U_ int argc, _U_ char *argv[])
         } while (--ct > 0);
     }
 
-    /* 
+    /*
      * Figure out MAC addresses of sending interface(s)
-     * if user doesn't specify MAC address on CLI, query for it 
+     * if user doesn't specify MAC address on CLI, query for it
      */
     if (memcmp(options.intf1_mac, "\00\00\00\00\00\00", ETHER_ADDR_LEN) == 0) {
         if ((sp = sendpacket_open(options.intf1, ebuf, TCPR_DIR_C2S, SP_TYPE_NONE, NULL)) == NULL)
@@ -237,21 +226,17 @@ post_args(_U_ int argc, _U_ char *argv[])
         sendpacket_close(sp);
     }
 
-    /* 
-     * Open interfaces for sending & receiving 
+    /*
+     * Open interfaces for sending & receiving
      */
-    if ((options.pcap1 = pcap_open_live(options.intf1, options.snaplen, 
-                                          options.promisc, options.to_ms, ebuf)) == NULL)
+    if ((options.pcap1 = pcap_open_live(options.intf1, options.snaplen, options.promisc, options.to_ms, ebuf)) == NULL)
         errx(-1, "Unable to open interface %s: %s", options.intf1, ebuf);
-
 
     if (strcmp(options.intf1, options.intf2) == 0)
         errx(-1, "Whoa tiger!  You don't want to use %s twice!", options.intf1);
 
-
     /* we always have to open the other pcap handle to send, but we may not listen */
-    if ((options.pcap2 = pcap_open_live(options.intf2, options.snaplen,
-                                          options.promisc, options.to_ms, ebuf)) == NULL)
+    if ((options.pcap2 = pcap_open_live(options.intf2, options.snaplen, options.promisc, options.to_ms, ebuf)) == NULL)
         errx(-1, "Unable to open interface %s: %s", options.intf2, ebuf);
 
     /* poll should be -1 to wait indefinitely */

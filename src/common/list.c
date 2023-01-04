@@ -2,9 +2,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -24,16 +24,13 @@
  * if an integer exists in the list.
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
+#include <regex.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <regex.h>
-#include <errno.h>
-
 
 /**
  * Creates a new tcpr_list entry.  Malloc's memory.
@@ -49,11 +46,11 @@ new_list()
 
 /**
  * Processes a string (ourstr) containing the list in human readable
- * format and places the data in **list and finally returns 1 for 
+ * format and places the data in **list and finally returns 1 for
  * success, 0 for fail.
  */
 int
-parse_list(tcpr_list_t ** listdata, char *ourstr)
+parse_list(tcpr_list_t **listdata, char *ourstr)
 {
     tcpr_list_t *listcur, *list_ptr;
     char *this = NULL;
@@ -63,7 +60,6 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     char regex[] = "^[0-9]+(-[0-9]+)?$";
     char *token = NULL;
     u_int i;
-
 
     /* compile the regex first */
     if ((rcode = regcomp(&preg, regex, REG_EXTENDED | REG_NOSUB)) != 0) {
@@ -98,8 +94,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     list_ptr->min = strtoull(first, NULL, 0);
     if (second != NULL) {
         list_ptr->max = strtoull(second, NULL, 0);
-    }
-    else {
+    } else {
         list_ptr->max = list_ptr->min;
     }
 
@@ -110,7 +105,6 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
 
         first = this;
         second = NULL;
-
 
         /* regex test */
         if (regexec(&preg, this, 0, NULL, 0) != 0) {
@@ -132,11 +126,9 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
         listcur->min = strtoull(first, NULL, 0);
         if (second != NULL) {
             listcur->max = strtoull(second, NULL, 0);
-        }
-        else {
+        } else {
             listcur->max = listcur->min;
         }
-
     }
 
     regfree(&preg);
@@ -144,14 +136,12 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     return 1;
 }
 
-
-
 /**
  * Checks to see if the given integer exists in the LIST.
  * Return 1 if in the list, otherwise 0
  */
 tcpr_dir_t
-check_list(tcpr_list_t * list, COUNTER value)
+check_list(tcpr_list_t *list, COUNTER value)
 {
     tcpr_list_t *current;
     current = list;
@@ -177,14 +167,12 @@ check_list(tcpr_list_t * list, COUNTER value)
     return 0;
 }
 
-
 /**
  * Free's all the memory associated with the given LIST
  */
 void
-free_list(tcpr_list_t * list)
+free_list(tcpr_list_t *list)
 {
-
     /* recursively go down the list */
     if (list->next != NULL)
         free_list(list->next);
