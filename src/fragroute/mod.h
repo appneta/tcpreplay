@@ -6,8 +6,7 @@
  * $Id$
  */
 
-#ifndef MOD_H
-#define MOD_H
+#pragma once
 
 #include "pkt.h"
 
@@ -23,5 +22,3 @@ void    mod_usage(void);
 int     mod_open(const char *script, char *errbuf);
 void    mod_apply(struct pktq *pktq);
 void    mod_close(void);
-
-#endif /* MOD_H */

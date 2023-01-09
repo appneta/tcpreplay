@@ -31,17 +31,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#include "pppserial.h"
+#include "dlt_utils.h"
+#include "tcpedit.h"
 #include <stdlib.h>
 #include <string.h>
-
-#include "tcpedit.h"
-#include "common.h"
-#include "tcpr.h"
-#include "dlt_utils.h"
-#include "tcpedit_stub.h"
-#include "pppserial.h"
-#include "pppserial_types.h"
 
 static char dlt_name[] = "pppserial";
 static u_int16_t dlt_value = 0x0032;
@@ -57,7 +51,7 @@ static u_int16_t dlt_value = 0x0032;
  * - Add the plugin to the context's plugin chain
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_pppserial_register(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -70,14 +64,14 @@ dlt_pppserial_register(tcpeditdlt_t *ctx)
     plugin->provides += PLUGIN_MASK_PROTO;
     /* plugin->requires += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR; */
 
-     /* what is our DLT value? */
+    /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
     plugin->name = safe_strdup(dlt_name);
 
-    /* 
-     * Point to our functions, note, you need a function for EVERY method.  
+    /*
+     * Point to our functions, note, you need a function for EVERY method.
      * Even if it is only an empty stub returning success.
      */
     plugin->plugin_init = dlt_pppserial_init;
@@ -97,20 +91,18 @@ dlt_pppserial_register(tcpeditdlt_t *ctx)
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
 
- 
 /*
  * Initializer function.  This function is called only once, if and only if
- * this plugin will be utilized.  Remember, if you need to keep track of any state, 
+ * this plugin will be utilized.  Remember, if you need to keep track of any state,
  * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_pppserial_init(tcpeditdlt_t *ctx)
 {
-    tcpeditdlt_plugin_t *plugin;
     assert(ctx);
-    
-    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
+
+    if (tcpedit_dlt_getplugin(ctx, dlt_value) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to initialize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
@@ -122,22 +114,22 @@ dlt_pppserial_init(tcpeditdlt_t *ctx)
  * Post init function.  This function is called only once after init() and parse_opts()
  * It basically allows decoders to properly initialize sub-plugins.
  */
-int 
+int
 dlt_pppserial_post_init(tcpeditdlt_t _U_ *ctx)
 {
-/* FIXME: Only needs to do something if we're using a sub-plugin
- * See the jnpr_ether_plugin for an example of this
+    /* FIXME: Only needs to do something if we're using a sub-plugin
+     * See the jnpr_ether_plugin for an example of this
 
-    pppserial_config_t *config;
-    
-    // do nothing if we're not the decoder
-    if (ctx->decoder->dlt != dlt_value)
-        return TCPEDIT_OK;
-    
-    // init our subcontext & decoder
-    config = (pppserial_config_t *)ctx->encoder->config;
-    config->subctx = tcpedit_dlt_init(ctx->tcpedit, SUB_PLUGIN_DLT_TYPE);
-*/      
+        pppserial_config_t *config;
+
+        // do nothing if we're not the decoder
+        if (ctx->decoder->dlt != dlt_value)
+            return TCPEDIT_OK;
+
+        // init our subcontext & decoder
+        config = (pppserial_config_t *)ctx->encoder->config;
+        config->subctx = tcpedit_dlt_init(ctx->tcpedit, SUB_PLUGIN_DLT_TYPE);
+    */
     return TCPEDIT_OK;
 }
 
@@ -146,7 +138,7 @@ dlt_pppserial_post_init(tcpeditdlt_t _U_ *ctx)
  * Unless you allocated some memory in dlt_pppserial_init(), this is just an stub.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_pppserial_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -181,7 +173,7 @@ dlt_pppserial_cleanup(tcpeditdlt_t *ctx)
  * bit mask.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_pppserial_parse_opts(tcpeditdlt_t *ctx)
 {
     assert(ctx);
@@ -201,8 +193,8 @@ dlt_pppserial_parse_opts(tcpeditdlt_t *ctx)
  * - ctx->decoded_extra
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
-dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     struct tcpr_pppserial_hdr *ppp = NULL;
 
@@ -212,7 +204,7 @@ dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (pktlen < 4)
         return TCPEDIT_ERROR;
 
-    /* 
+    /*
      * PPP has three fields: address, control and protocol
      * address should always be 0xff, and control seems pretty meaningless.
      * protocol field informs you of the following header, but alas does not
@@ -220,18 +212,18 @@ dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
      */
     ppp = (struct tcpr_pppserial_hdr *)packet;
     switch (ntohs(ppp->protocol)) {
-        case 0x0021: /* IPv4 */
+    case 0x0021: /* IPv4 */
         ctx->proto = htons(ETHERTYPE_IP);
         ctx->l2len = 4;
         break;
 
-        default:
-        /* 
+    default:
+        /*
          * PPP Seems to be using different protocol values then IEEE/802.x
          * but Wireshark seems to know how to decode them, so rather then
-         * returning TCPEDIT_SOFT_ERROR and skipping rewrite completely, 
+         * returning TCPEDIT_SOFT_ERROR and skipping rewrite completely,
          * I just copy the packet payload over and let Wireshark figure it out
-         */ 
+         */
         ctx->l2len = 4;
         ctx->proto = ppp->protocol;
     }
@@ -243,18 +235,17 @@ dlt_pppserial_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function to encode the layer 2 header back into the packet.
  * Returns: total packet len or TCPEDIT_ERROR
  */
-int 
+int
 dlt_pppserial_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
-    
+
     if (pktlen < 4)
         return TCPEDIT_ERROR;
 
     /* FIXME: make this function work */
 
-    
     return pktlen; /* success */
 }
 
@@ -262,31 +253,31 @@ dlt_pppserial_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  * Make sure you return this value in NETWORK byte order!
  */
-int 
-dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     struct tcpr_pppserial_hdr *ppp = NULL;
-    int protocol = 0; 
+    int protocol;
 
     assert(ctx);
     assert(packet);
 
     if (pktlen < (int)sizeof(*ppp))
         return TCPEDIT_ERROR;
-    
+
     ppp = (struct tcpr_pppserial_hdr *)packet;
     switch (ntohs(ppp->protocol)) {
-        case 0x0021: /* IPv4 */
+    case 0x0021: /* IPv4 */
         protocol = ETHERTYPE_IP;
         break;
 
-        default:
-        tcpedit_seterr(ctx->tcpedit, "Packet " COUNTER_SPEC 
-                " isn't IP.  Skipping packet",
-                ctx->tcpedit->runtime.packetnum);
+    default:
+        tcpedit_seterr(ctx->tcpedit,
+                       "Packet " COUNTER_SPEC " isn't IP.  Skipping packet",
+                       ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_SOFT_ERROR;
     }
-    
+
     return protocol;
 }
 
@@ -294,7 +285,7 @@ dlt_pppserial_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen)
 {
     int l2len;
     assert(ctx);
@@ -315,31 +306,26 @@ dlt_pppserial_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx,
-                           u_char *packet,
-                           const int pktlen,
-                           u_char *ipv4_data,
-                           u_char *ipv6_data)
+dlt_pppserial_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen, u_char *ipv4_data, u_char *ipv6_data)
 {
     int l2len;
     assert(ctx);
     assert(packet);
     assert(ipv4_data || ipv6_data);
-    
+
     l2len = dlt_pppserial_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
-    
+
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data ?: ipv6_data, l2len);
 }
 
 /*
  * return a static pointer to the source/destination MAC address
  * return NULL on error/address doesn't exist
- */    
+ */
 u_char *
-dlt_pppserial_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t UNUSED(mac),
-        const u_char *packet, _U_ const int pktlen)
+dlt_pppserial_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t UNUSED(mac), const u_char *packet, _U_ int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -347,12 +333,11 @@ dlt_pppserial_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t UNUSED(mac),
     return NULL;
 }
 
-
-/* 
+/*
  * return the length of the L2 header of the current packet
  */
 int
-dlt_pppserial_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_pppserial_l2len(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -363,10 +348,8 @@ dlt_pppserial_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     return 4;
 }
 
-
-tcpeditdlt_l2addr_type_t 
+tcpeditdlt_l2addr_type_t
 dlt_pppserial_l2addr_type(void)
 {
     return NONE;
 }
-

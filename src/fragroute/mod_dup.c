@@ -7,22 +7,19 @@
  */
 
 #include "config.h"
-
-#include <stdio.h>
+#include "mod.h"
+#include "pkt.h"
 #include <stdlib.h>
 #include <string.h>
 
-#include "pkt.h"
-#include "mod.h"
-
-#define DUP_FIRST    1
-#define DUP_LAST    2
-#define DUP_RANDOM    3
+#define DUP_FIRST 1
+#define DUP_LAST 2
+#define DUP_RANDOM 3
 
 struct dup_data {
-    rand_t    *rnd;
-    int     which;
-    int     percent;
+    rand_t *rnd;
+    int which;
+    int percent;
 };
 
 void *
@@ -59,7 +56,7 @@ dup_open(int argc, char *argv[])
     else
         return (dup_close(data));
 
-    if ((data->percent = atoi(argv[2])) <= 0 || data->percent > 100)
+    if ((data->percent = (int)strtol(argv[2], NULL, 10)) <= 0 || data->percent > 100)
         return (dup_close(data));
 
     return (data);
@@ -71,8 +68,7 @@ dup_apply(void *d, struct pktq *pktq)
     struct dup_data *data = (struct dup_data *)d;
     struct pkt *pkt, *new;
 
-    if (data->percent < 100 &&
-        (rand_uint16(data->rnd) % 100) > data->percent)
+    if (data->percent < 100 && (rand_uint16(data->rnd) % 100) > data->percent)
         return (0);
 
     if (data->which == DUP_FIRST)
@@ -95,9 +91,9 @@ dup_apply(void *d, struct pktq *pktq)
 }
 
 struct mod mod_dup = {
-    "dup",                    /* name */
-    "dup first|last|random <prob-%>",    /* usage */
-    dup_open,                /* open */
-    dup_apply,               /* apply */
-    dup_close                /* close */
+        "dup",                            /* name */
+        "dup first|last|random <prob-%>", /* usage */
+        dup_open,                         /* open */
+        dup_apply,                        /* apply */
+        dup_close                         /* close */
 };

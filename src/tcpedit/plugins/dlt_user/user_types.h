@@ -3,9 +3,9 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -17,18 +17,13 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DLT_user_TYPES_H_
-#define _DLT_user_TYPES_H_
+#pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-    TCPEDIT_USER_DLT_BOTH,
-    TCPEDIT_USER_DLT_S2C,
-    TCPEDIT_USER_DLT_C2S
-} tcpedit_user_dlt_direction;
+typedef enum { TCPEDIT_USER_DLT_BOTH, TCPEDIT_USER_DLT_S2C, TCPEDIT_USER_DLT_C2S } tcpedit_user_dlt_direction;
 
 /*
  * FIXME: structure to hold any data parsed from the packet by the decoder.
@@ -36,18 +31,18 @@ typedef enum {
  */
 typedef struct {
     /* dummy entry for SunPro compiler which doesn't like empty structs */
-    int dummy; 
+    int dummy;
 } user_extra_t;
 
 #define USER_L2MAXLEN 255
 
-/* 
- * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config 
- * Things like: 
+/*
+ * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config
+ * Things like:
  * - Parsed user options
  * - State between packets
  * - Note, you should only use this for the encoder function, decoder functions should place
- *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that 
+ *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that
  *   is available to any encoder plugin.
  */
 typedef struct {
@@ -60,6 +55,3 @@ typedef struct {
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-

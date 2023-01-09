@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,16 +18,15 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #ifdef HAVE_PCAPNAV
 #include <pcapnav.h>
 #define _FAKEPCAPNAV_H_
 #endif
 
-#ifndef _FAKEPCAPNAV_H_
-#define _FAKEPCAPNAV_H_
-
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 
 #ifndef HAVE_PCAPNAV
 
@@ -41,7 +40,5 @@ void pcapnav_init(void);
 pcapnav_t *pcapnav_open_offline(const char *);
 void pcapnav_close(pcapnav_t *);
 pcap_t *pcapnav_pcap(pcapnav_t *);
-
-#endif
 
 #endif

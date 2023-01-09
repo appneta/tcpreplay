@@ -6,10 +6,7 @@
  * $Id$
  */
 
-#ifndef ARGV_H
-#define ARGV_H
+#pragma once
 
 int argv_create(char *p, int argc, char *argv[]);
 char *argv_copy(char *argv[]);
-
-#endif /* ARGV_H */
