@@ -306,6 +306,8 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     /* get the first byte */
     l2byte = strtok_r(string, ",", &token);
+    if (l2byte == NULL)
+        err(-1, "Hex buffer must contain something");
     sscanf(l2byte, "%x", &value);
     if (value > 0xff)
         errx(-1, "Invalid hex string byte: %s", l2byte);
