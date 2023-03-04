@@ -96,6 +96,10 @@ typedef struct {
     char *filename;
 } tcpreplay_source_t;
 
+typedef struct time_function {
+    int (*gettime)(struct timespec*);
+} time_function;
+
 /* run-time options */
 typedef struct tcpreplay_opt_s {
     /* input/output */
@@ -105,6 +109,7 @@ typedef struct tcpreplay_opt_s {
     tcpreplay_speed_t speed;
     COUNTER loop;
     u_int32_t loopdelay_ms;
+    u_int32_t loopdelay_ns;
 
     int stats;
     bool use_pkthdr_len;
@@ -189,6 +194,7 @@ typedef struct tcpreplay_s {
     struct timespec nap;
     uint32_t skip_packets;
     bool first_time;
+    struct time_function timefunction;
 
     /* counter stats */
     tcpreplay_stats_t stats;
@@ -270,13 +276,14 @@ int tcpreplay_set_manual_callback(tcpreplay_t *ctx, tcpreplay_manual_callback);
 COUNTER tcpreplay_get_pkts_sent(tcpreplay_t *ctx);
 COUNTER tcpreplay_get_bytes_sent(tcpreplay_t *ctx);
 COUNTER tcpreplay_get_failed(tcpreplay_t *ctx);
-const struct timeval *tcpreplay_get_start_time(tcpreplay_t *ctx);
-const struct timeval *tcpreplay_get_end_time(tcpreplay_t *ctx);
+const struct timespec *tcpreplay_get_start_time(tcpreplay_t *ctx);
+const struct timespec *tcpreplay_get_end_time(tcpreplay_t *ctx);
 
 int tcpreplay_set_verbose(tcpreplay_t *, bool);
 int tcpreplay_set_tcpdump_args(tcpreplay_t *, char *);
 int tcpreplay_set_tcpdump(tcpreplay_t *, tcpdump_t *);
 
+void apply_loop_delay(tcpreplay_t *ctx);
 /*
  * These functions are seen by the outside world, but nobody should ever use them
  * outside of internal tcpreplay API functions

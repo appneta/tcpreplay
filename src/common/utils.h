@@ -31,11 +31,11 @@ typedef struct {
     COUNTER bytes_sent;
     COUNTER pkts_sent;
     COUNTER failed;
-    struct timeval start_time;
-    struct timeval time_delta;
-    struct timeval end_time;
-    struct timeval pkt_ts_delta;
-    struct timeval last_print;
+    struct timespec start_time;
+    struct timespec time_delta;
+    struct timespec end_time;
+    struct timespec pkt_ts_delta;
+    struct timespec last_print;
     COUNTER flow_non_flow_packets;
     COUNTER flows;
     COUNTER flows_unique;
@@ -47,7 +47,7 @@ typedef struct {
 
 int read_hexstring(const char *l2string, u_char *hex, const int hexlen);
 void packet_stats(const tcpreplay_stats_t *stats);
-int format_date_time(struct timeval *when, char *buf, size_t len);
+int format_date_time(struct timespec *when, char *buf, size_t len);
 uint32_t tcpr_random(uint32_t *seed);
 void restore_stdin(void);
 

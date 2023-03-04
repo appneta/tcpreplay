@@ -29,9 +29,9 @@ struct timestamp_trace_entry {
     COUNTER skip_length;
     COUNTER size;
     COUNTER bytes_sent;
-    COUNTER now_us;
-    COUNTER tx_us;
-    COUNTER next_tx_us;
+    COUNTER now_ns;
+    COUNTER tx_ns;
+    COUNTER next_tx_ns;
     COUNTER sent_bits;
     struct timeval timestamp;
 };
@@ -60,7 +60,7 @@ static inline void update_current_timestamp_trace_entry(COUNTER bytes_sent,
 }
 
 static inline void add_timestamp_trace_entry(COUNTER size,
-        struct timeval *timestamp, COUNTER skip_length)
+        struct timespec *timestamp, COUNTER skip_length)
 {
     if (trace_num >= TRACE_MAX_ENTRIES)
         return;
@@ -68,7 +68,7 @@ static inline void add_timestamp_trace_entry(COUNTER size,
     timestamp_trace_entry_array[trace_num].skip_length = skip_length;
     timestamp_trace_entry_array[trace_num].size = size;
     timestamp_trace_entry_array[trace_num].timestamp.tv_sec = timestamp->tv_sec;
-    timestamp_trace_entry_array[trace_num].timestamp.tv_usec = timestamp->tv_usec;
+    timestamp_trace_entry_array[trace_num].timestamp.tv_nsec = timestamp->tv_nsec;
     ++trace_num;
 }
 
@@ -102,7 +102,7 @@ static inline void dump_timestamp_trace_array(const struct timeval *start,
 #else
 static inline void update_current_timestamp_trace_entry(COUNTER UNUSED(bytes_sent), COUNTER UNUSED(now_us),
         COUNTER UNUSED(tx_us), COUNTER UNUSED(next_tx_us)) { }
-static inline void add_timestamp_trace_entry(COUNTER UNUSED(size), struct timeval *UNUSED(timestamp),
+static inline void add_timestamp_trace_entry(COUNTER UNUSED(size), struct timespec *UNUSED(timestamp),
         COUNTER UNUSED(skip_length)) { }
 static inline void dump_timestamp_trace_array(const struct timeval *UNUSED(start),
         const struct timeval *UNUSED(stop), const COUNTER UNUSED(bps)) { }

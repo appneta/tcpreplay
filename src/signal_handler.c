@@ -35,7 +35,7 @@
 #include "tcpreplay_api.h"
 #include "signal_handler.h"
 
-struct timeval suspend_time;
+struct timeval suspend_time; // PB: do we need to modify this part of the code?
 static struct timeval suspend_start;
 static struct timeval suspend_end;
 

@@ -196,7 +196,7 @@ int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
 void
 packet_stats(const tcpreplay_stats_t *stats)
 {
-    struct timeval diff;
+    struct timespec diff;
     COUNTER diff_us;
     COUNTER bytes_sec = 0;
     u_int32_t bytes_sec_10ths = 0;
@@ -206,8 +206,8 @@ packet_stats(const tcpreplay_stats_t *stats)
     COUNTER pkts_sec = 0;
     u_int32_t pkts_sec_100ths = 0;
 
-    timersub(&stats->end_time, &stats->start_time, &diff);
-    diff_us = TIMEVAL_TO_MICROSEC(&diff);
+    timessub(&stats->end_time, &stats->start_time, &diff);
+    diff_us = TIMESPEC_TO_MICROSEC(&diff);
 
     if (diff_us && stats->pkts_sent && stats->bytes_sent) {
         COUNTER bytes_sec_X10;
@@ -236,13 +236,13 @@ packet_stats(const tcpreplay_stats_t *stats)
         pkts_sec_100ths = pkts_sec_X100 % 100;
     }
 
-    if (diff_us >= 1000 * 1000)
+    if (diff_us >= 1000 * 1000) {
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds\n",
-                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_usec / (10 * 1000)));
-    else
+                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_nsec / (10 * 1000000)));
+    } else{ 
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds\n",
-                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)diff.tv_usec);
-
+                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)diff.tv_nsec / 1000);
+    }
 
     if (mb_sec >= 1)
         printf("Rated: %llu.%1u Bps, %llu.%02u Mbps, %llu.%02u pps\n",
@@ -265,7 +265,7 @@ packet_stats(const tcpreplay_stats_t *stats)
  * @param len: length of the buffer
  * @return: string containing date, or -1 on error
  */
-int format_date_time(struct timeval *when, char *buf, size_t len)
+int format_date_time(struct timespec *when, char *buf, size_t len)
 {
     struct tm *tm;
     char tmp[64];
@@ -277,7 +277,7 @@ int format_date_time(struct timeval *when, char *buf, size_t len)
         return -1;
 
     strftime(tmp, sizeof tmp, "%Y-%m-%d %H:%M:%S.%%06u", tm);
-    return snprintf(buf, len, tmp, when->tv_usec);
+    return snprintf(buf, len, tmp, when->tv_nsec / 1000);
 }
 
 /**

@@ -220,7 +220,7 @@ main(int argc, char *argv[])
  */
 static void flow_stats(const tcpreplay_t *ctx)
 {
-    struct timeval diff;
+    struct timespec diff;
     COUNTER diff_us;
     const tcpreplay_stats_t *stats = &ctx->stats;
     const tcpreplay_opt_t *options = ctx->options;
@@ -232,8 +232,8 @@ static void flow_stats(const tcpreplay_t *ctx)
     COUNTER flows_sec = 0;
     u_int32_t flows_sec_100ths = 0;
 
-    timersub(&stats->end_time, &stats->start_time, &diff);
-    diff_us = TIMEVAL_TO_MICROSEC(&diff);
+    timessub(&stats->end_time, &stats->start_time, &diff);
+    diff_us = TIMESPEC_TO_MICROSEC(&diff);
 
     if (!flows_total || !ctx->iteration)
         return;

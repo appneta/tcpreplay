@@ -31,9 +31,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <time.h>
 
 #include "tcpreplay_api.h"
 #include "send_packets.h"
+#include "sleep.h"
 #include "replay.h"
 
 #ifdef TCPREPLAY_EDIT
@@ -284,7 +286,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     if (HAVE_OPT(FLOW_EXPIRY)) {
         options->flow_expiry = OPT_VALUE_FLOW_EXPIRY;
     }
-
+    ctx->timefunction.gettime = &get_time_of_day;
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
 #ifdef HAVE_SELECT
@@ -305,6 +307,8 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             options->accurate = accurate_gtod;
         } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
             options->accurate = accurate_nanosleep;
+            ctx->timefunction.gettime = &clock_get_time;
+            options->loopdelay_ns = OPT_VALUE_LOOPDELAY_NS;
         } else if (strcmp(OPT_ARG(TIMER), "abstime") == 0) {
             tcpreplay_seterr(ctx, "%s", "abstime is deprecated");
             ret = -1;
@@ -895,24 +899,24 @@ tcpreplay_get_failed(tcpreplay_t *ctx)
 }
 
 /**
- * \brief returns a pointer to the timeval structure of when replay first started
+ * \brief returns a pointer to the timespec structure of when replay first started
  */
-const struct timeval *
+const struct timespec *
 tcpreplay_get_start_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    TIMEVAL_SET(&ctx->static_stats.start_time, &ctx->stats.start_time);
+    TIMESPEC_SET(&ctx->static_stats.start_time, &ctx->stats.start_time);
     return &ctx->static_stats.start_time;
 }
 
 /**
- * \brief returns a pointer to the timeval structure of when replay finished
+ * \brief returns a pointer to the timespec structure of when replay finished
  */
-const struct timeval *
+const struct timespec *
 tcpreplay_get_end_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    TIMEVAL_SET(&ctx->static_stats.end_time, &ctx->stats.end_time);
+    TIMESPEC_SET(&ctx->static_stats.end_time, &ctx->stats.end_time);
     return &ctx->static_stats.end_time;
 }
 
@@ -1122,7 +1126,7 @@ tcpreplay_replay(tcpreplay_t *ctx)
         tcpreplay_seterr(ctx, "invalid dualfile source count: %d", ctx->options->source_cnt);
         return -1;
     }
-
+    
     init_timestamp(&ctx->stats.start_time);
     init_timestamp(&ctx->stats.time_delta);
     init_timestamp(&ctx->stats.end_time);
@@ -1146,16 +1150,15 @@ tcpreplay_replay(tcpreplay_t *ctx)
                             loop, total_loops,
                             ctx->unique_iteration);
             }
-            if ((rcode = tcpr_replay_index(ctx)) < 0)
+            if ((rcode = tcpr_replay_index(ctx)) < 0) {
                 return rcode;
+            }
             if (ctx->options->loop > 0) {
-                if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
-                    usleep(ctx->options->loopdelay_ms * 1000);
-                    gettimeofday(&ctx->stats.end_time, NULL);
-                }
-
-                if (ctx->options->stats == 0)
+                apply_loop_delay(ctx);
+                ctx->timefunction.gettime(&ctx->stats.end_time);
+                if (ctx->options->stats == 0) {
                     packet_stats(&ctx->stats);
+                }
             }
         }
     } else {
@@ -1168,14 +1171,11 @@ tcpreplay_replay(tcpreplay_t *ctx)
                     printf("Loop " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n", loop,
                             ctx->unique_iteration);
             }
-            if ((rcode = tcpr_replay_index(ctx)) < 0)
+            if ((rcode = tcpr_replay_index(ctx)) < 0) {
                 return rcode;
-
-            if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
-                usleep(ctx->options->loopdelay_ms * 1000);
-                gettimeofday(&ctx->stats.end_time, NULL);
             }
-
+            apply_loop_delay(ctx);
+            ctx->timefunction.gettime(&ctx->stats.end_time);
             if (ctx->options->stats == 0 && !ctx->abort)
                 packet_stats(&ctx->stats);
         }
@@ -1355,4 +1355,19 @@ int tcpreplay_get_flow_expiry(tcpreplay_t *ctx)
     assert(ctx);
 
     return ctx->options->flow_expiry;
+}
+
+void apply_loop_delay(tcpreplay_t *ctx){
+    if(ctx->options->accurate == accurate_nanosleep){
+        if (!ctx->abort && ctx->options->loopdelay_ns > 0) {
+            struct timespec nap;
+            nap.tv_sec = 0;
+            nap.tv_nsec = ctx->options->loopdelay_ns;
+            nanosleep_sleep(NULL, &nap, &ctx->stats.end_time, NULL);
+        }
+    }else{
+        if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
+                usleep(ctx->options->loopdelay_ms * 1000);
+            }
+    }
 }

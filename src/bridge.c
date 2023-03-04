@@ -238,7 +238,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         do_bridge_bidirectional(options, tcpedit);
     }
 
-    if (gettimeofday(&stats.end_time, NULL) < 0)
+    if (get_time_of_day(&stats.end_time) < 0)
         errx(-1, "gettimeofday() failed: %s",  strerror(errno));
     packet_stats(&stats);
 }

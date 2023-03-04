@@ -28,6 +28,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>     
 #include <errno.h>
 #include <string.h>
@@ -54,7 +55,7 @@
 
 static inline void
 nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
-        struct timeval *now,  bool flush _U_)
+        struct timespec *now,  bool flush _U_)
 {
     nanosleep(nap, NULL);
 #ifdef HAVE_NETMAP
@@ -62,7 +63,7 @@ nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif /* HAVE_NETMAP */
 
-    gettimeofday(now, NULL);
+    clock_gettime(CLOCK_REALTIME, now);
 }
 
 
@@ -74,36 +75,38 @@ nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
  */
 static inline void
 gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
-        struct timeval *now, bool flush _U_)
+                   struct timespec *now, bool flush _U_)
 {
-    struct timeval sleep_until, nap_for;
+    struct timespec sleep_until, nap_for;
+    init_timestamp(&nap_for);
 #ifdef HAVE_NETMAP
-    struct timeval last;
+    struct timespec last;
     uint32_t i = 0;
 
-    TIMEVAL_SET(&last, now);
+    TIMESPEC_SET(&last, now);
 #endif /* HAVE_NETMAP */
 
-    TIMESPEC_TO_TIMEVAL(&nap_for, nap);
-    timeradd(now, &nap_for, &sleep_until);
+    timeradd_timespec(now, &nap_for, &sleep_until);
     
     while (!sp->abort) {
 #ifdef HAVE_NETMAP
-        if (flush && timercmp(now, &last, !=)) {
-            TIMEVAL_SET(&last, now);
+        if (flush && timescmp(now, &last, !=)) {
+            TIMESPEC_SET(&last, now);
             if ((++i & 0xf) == 0)
                 /* flush TX buffer every 16 usec */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
         }
 #endif /* HAVE_NETMAP */
-        if (timercmp(now, &sleep_until, >=))
+        if (timescmp(now, &sleep_until, >=))
             break;
 
 #ifdef HAVE_SCHED_H
         /* yield the CPU so other apps remain responsive */
         sched_yield();
 #endif
-        gettimeofday(now, NULL);
+        struct timeval now_ms;
+        gettimeofday(&now_ms, NULL);
+        TIMEVAL_TO_TIMESPEC(&now_ms, now);
     }
 }
 
@@ -115,16 +118,18 @@ gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
  * for future reference
  */
 static inline void 
-select_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
-        struct timeval *now,  bool flush _U_)
+select_sleep(sendpacket_t *sp _U_, struct timespec *nap,
+        struct timespec *now_ns,  bool flush _U_)
 {
     struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
 #ifdef HAVE_NETMAP
     if (flush)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif /* HAVE_NETMAP */
 
-    TIMESPEC_TO_TIMEVAL(&timeout, nap);
+    TIMEVAL_TO_TIMESPEC(&timeout, nap);
 
     if (select(0, NULL, NULL, NULL, &timeout) < 0)
         warnx("select_sleep() returned early due to error: %s", strerror(errno));
@@ -133,8 +138,9 @@ select_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
     if (flush)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
-
-    gettimeofday(now, NULL);
+    struct timeval now_ms;
+    gettimeofday(&now_ms, NULL);
+    TIMEVAL_TO_TIMESPEC(&now_ms, now_ns);
 }
 #endif /* HAVE_SELECT */
 
@@ -150,6 +156,6 @@ select_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
 void ioport_sleep_init(void);
 
 void ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
-        struct timeval *now,  bool flush);
+        struct timespec *now,  bool flush);
 
 #endif /* __SLEEP_H__ */

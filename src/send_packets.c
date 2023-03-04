@@ -65,12 +65,12 @@ extern tcpedit_t *tcpedit;
 extern int debug;
 #endif
 
-static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
-        struct timeval *last, COUNTER len,
-        sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
+static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_time,
+        struct timespec *last, COUNTER len,
+        sendpacket_t *sp, COUNTER counter, struct timespec *sent_timestamp,
         COUNTER start_us, COUNTER *skip_length);
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp _U_,
-        struct timespec *nap_this_time, struct timeval *now);
+        struct timespec *nap_this_time, struct timespec *now);
 static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
@@ -315,9 +315,9 @@ static void increment_iteration(tcpreplay_t *ctx)
  */
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
-{
-
-    struct timeval print_delta, now, last_pkt_ts;
+{   
+    struct timeval last_pkt_ts;
+    struct timespec now, print_delta;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -339,9 +339,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
 
-    gettimeofday(&now, NULL);
-    if (!timerisset(&stats->start_time)) {
-        TIMEVAL_SET(&stats->start_time, &now);
+    ctx->timefunction.gettime(&now);
+    if (!timesisset(&stats->start_time)) {
+        TIMESPEC_SET(&stats->start_time, &now);
         if (ctx->options->stats >= 0) {
             char buf[64];
             if (format_date_time(&stats->start_time, buf, sizeof(buf)) > 0)
@@ -352,7 +352,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
     if (options->limit_time > 0)
-        end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
+        end_us = TIMESPEC_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
     else
         end_us = 0;
@@ -441,14 +441,14 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                     struct timeval delta;
 
                     timersub(&pkthdr.ts, &last_pkt_ts, &delta);
-                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
+                    timeradd_timeval_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
                 }
             }
 
             if (!top_speed) {
                 now_is_now = true;
-                gettimeofday(&now, NULL);
+                ctx->timefunction.gettime(&now);
             }
 
             /*
@@ -459,7 +459,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
              */
             calc_sleep_time(ctx, &stats->pkt_ts_delta, &stats->time_delta,
                     pktlen, sp, packetnum, &stats->end_time,
-                    TIMEVAL_TO_MICROSEC(&stats->start_time), &skip_length);
+                    TIMESPEC_TO_NANOSEC(&stats->start_time), &skip_length);
 
             /*
              * Track the time of the "last packet sent".
@@ -467,8 +467,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
              * A number of 3rd party tools generate bad timestamps which go backwards
              * in time.  Hence, don't update the "last" unless pkthdr.ts > last
              */
-            if (timercmp(&stats->time_delta, &stats->pkt_ts_delta, <))
-                TIMEVAL_SET(&stats->time_delta, &stats->pkt_ts_delta);
+            if (timescmp(&stats->time_delta, &stats->pkt_ts_delta, <))
+                TIMESPEC_SET(&stats->time_delta, &stats->pkt_ts_delta);
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -493,7 +493,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         /*
          * Mark the time when we sent the last packet
          */
-        TIMEVAL_SET(&stats->end_time, &now);
+        TIMESPEC_SET(&stats->end_time, &now);
 
 #ifdef TIMESTAMP_TRACE
         add_timestamp_trace_entry(pktlen, &stats->end_time, skip_length);
@@ -504,14 +504,14 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         /* print stats during the run? */
         if (options->stats > 0) {
-            if (! timerisset(&stats->last_print)) {
-                TIMEVAL_SET(&stats->last_print, &now);
+            if (! timesisset(&stats->last_print)) {
+                TIMESPEC_SET(&stats->last_print, &now);
             } else {
-                timersub(&now, &stats->last_print, &print_delta);
+                timessub(&now, &stats->last_print, &print_delta);
                 if (print_delta.tv_sec >= options->stats) {
-                    TIMEVAL_SET(&stats->end_time, &now);
+                    TIMESPEC_SET(&stats->end_time, &now);
                     packet_stats(stats);
-                    TIMEVAL_SET(&stats->last_print, &now);
+                    TIMESPEC_SET(&stats->last_print, &now);
                 }
             }
         }
@@ -523,33 +523,32 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
 #endif
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (COUNTER)TIMESPEC_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && stats->pkts_sent >= limit_send)) {
             ctx->abort = true;
         }
     } /* while */
 
-
 #ifdef HAVE_NETMAP
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
         while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
             now_is_now = true;
-            gettimeofday(&now, NULL);
+            ctx->timefunction.gettime(&now);
         }
 
         while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
             now_is_now = true;
-            gettimeofday(&now, NULL);
+            ctx->timefunction.gettime(&now);
         }
     }
 #endif /* HAVE_NETMAP */
 
     if (!now_is_now)
-        gettimeofday(&now, NULL);
+        ctx->timefunction.gettime(&now);
 
-    TIMEVAL_SET(&stats->end_time, &now);
+    TIMESPEC_SET(&stats->end_time, &now);
 
     increment_iteration(ctx);
 }
@@ -561,7 +560,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 void
 send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_file_idx2)
 {
-    struct timeval print_delta, now, last_pkt_ts;
+    struct timeval last_pkt_ts;
+    struct timespec now, print_delta;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -581,9 +581,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
 
-    gettimeofday(&now, NULL);
-    if (!timerisset(&stats->start_time)) {
-        TIMEVAL_SET(&stats->start_time, &now);
+    ctx->timefunction.gettime(&now);
+    if (!timesisset(&stats->start_time)) {
+        TIMESPEC_SET(&stats->start_time, &now);
         if (ctx->options->stats >= 0) {
             char buf[64];
             if (format_date_time(&stats->start_time, buf, sizeof(buf)) > 0)
@@ -594,7 +594,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     ctx->skip_packets = 0;
     timerclear(&last_pkt_ts);
     if (options->limit_time > 0)
-        end_us = TIMEVAL_TO_MICROSEC(&stats->start_time) +
+        end_us = TIMESPEC_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
     else
         end_us = 0;
@@ -714,16 +714,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                     struct timeval delta;
 
                     timersub(&pkthdr_ptr->ts, &last_pkt_ts, &delta);
-                    timeradd(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
+                    timeradd_timeval_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
                     TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
                 }
 
-                if (!timerisset(&stats->time_delta))
-                    TIMEVAL_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
+                if (!timesisset(&stats->time_delta))
+                    TIMESPEC_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
             }
 
             if (!top_speed) {
-                gettimeofday(&now, NULL);
+                ctx->timefunction.gettime(&now);
                 now_is_now = true;
             }
 
@@ -735,7 +735,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              */
             calc_sleep_time(ctx, &stats->pkt_ts_delta, &stats->time_delta,
                     pktlen, sp, packetnum, &stats->end_time,
-                    TIMEVAL_TO_MICROSEC(&stats->start_time), &skip_length);
+                    TIMESPEC_TO_NANOSEC(&stats->start_time), &skip_length);
 
             /*
              * Track the time of the "last packet sent".
@@ -743,8 +743,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              * A number of 3rd party tools generate bad timestamps which go backwards
              * in time.  Hence, don't update the "last" unless pkthdr_ptr->ts > last
              */
-            if (timercmp(&stats->time_delta, &stats->pkt_ts_delta, <))
-                TIMEVAL_SET(&stats->time_delta, &stats->pkt_ts_delta);
+            if (timescmp(&stats->time_delta, &stats->pkt_ts_delta, <))
+                TIMESPEC_SET(&stats->time_delta, &stats->pkt_ts_delta);
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -769,21 +769,21 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         /*
          * Mark the time when we sent the last packet
          */
-        TIMEVAL_SET(&stats->end_time, &now);
+        TIMESPEC_SET(&stats->end_time, &now);
 
         ++stats->pkts_sent;
         stats->bytes_sent += pktlen;
 
         /* print stats during the run? */
         if (options->stats > 0) {
-            if (! timerisset(&stats->last_print)) {
-                TIMEVAL_SET(&stats->last_print, &now);
+            if (! timesisset(&stats->last_print)) {
+                TIMESPEC_SET(&stats->last_print, &now);
             } else {
-                timersub(&now, &stats->last_print, &print_delta);
+                timessub(&now, &stats->last_print, &print_delta);
                 if (print_delta.tv_sec >= options->stats) {
-                    TIMEVAL_SET(&stats->end_time, &now);
+                    TIMESPEC_SET(&stats->end_time, &now);
                     packet_stats(stats);
-                    TIMEVAL_SET(&stats->last_print, &now);
+                    TIMESPEC_SET(&stats->last_print, &now);
                 }
             }
         }
@@ -803,7 +803,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         }
 
         /* stop sending based on the duration limit... */
-        if ((end_us > 0 && (COUNTER)TIMEVAL_TO_MICROSEC(&now) > end_us) ||
+        if ((end_us > 0 && (COUNTER)TIMESPEC_TO_MICROSEC(&now) > end_us) ||
                 /* ... or stop sending based on the limit -L? */
                 (limit_send > 0 && stats->pkts_sent >= limit_send)) {
             ctx->abort = true;
@@ -814,21 +814,21 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
         while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
-            gettimeofday(&now, NULL);
+            ctx->timefunction.gettime(&now);
             now_is_now = true;
         }
 
         while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
-            gettimeofday(&now, NULL);
+            ctx->timefunction.gettime(&now);
             now_is_now = true;
         }
     }
 #endif /* HAVE_NETMAP */
 
     if (!now_is_now)
-        gettimeofday(&now, NULL);
+        ctx->timefunction.gettime(&now);
 
-    TIMEVAL_SET(&stats->end_time, &now);
+    TIMESPEC_SET(&stats->end_time, &now);
 
     increment_iteration(ctx);
 }
@@ -965,14 +965,14 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
  * calculate the appropriate amount of time to sleep. Sleep time
  * will be in ctx->nap.
  */
-static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
-        struct timeval *time_delta, COUNTER len,
-        sendpacket_t *sp, COUNTER counter, timestamp_t *sent_timestamp,
-        COUNTER start_us, COUNTER *skip_length)
+static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
+        struct timespec *time_delta, COUNTER len,
+        sendpacket_t *sp, COUNTER counter, struct timespec *sent_timestamp,
+        COUNTER start_ns, COUNTER *skip_length)
 {
     tcpreplay_opt_t *options = ctx->options;
-    struct timeval nap_for;
-    COUNTER now_us;
+    struct timespec nap_for;
+    COUNTER now_ns;
 
     timesclear(&ctx->nap);
 
@@ -996,10 +996,10 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
          * Replay packets a factor of the time they were originally sent.
          * Make sure the packet is not late.
          */
-        if (timercmp(pkt_ts_delta, time_delta, >)) {
+        if (timescmp(pkt_ts_delta, time_delta, >)) {
             /* pkt_time_delta has increased, so handle normally */
-            timersub(pkt_ts_delta, time_delta, &nap_for);
-            TIMEVAL_TO_TIMESPEC(&nap_for, &ctx->nap);
+            timessub(pkt_ts_delta, time_delta, &nap_for);
+            TIMESPEC_SET(&nap_for, &ctx->nap);
             dbgx(3, "original packet delta time: " TIMESPEC_FORMAT,
                     ctx->nap.tv_sec, ctx->nap.tv_nsec);
             timesdiv_float(&ctx->nap, options->speed.multiplier);
@@ -1013,32 +1013,32 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
          * Ignore the time supplied by the capture file and send data at
          * a constant 'rate' (bytes per second).
          */
-        now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
-        if (now_us) {
-            COUNTER next_tx_us;
+        now_ns = TIMESPEC_TO_NANOSEC(sent_timestamp);
+        if (now_ns) {
+            COUNTER next_tx_ns;
             COUNTER bps = options->speed.speed;
-            COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8);
-            COUNTER tx_us = now_us - start_us;
+            COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8); //PB: Ferencol miert bits sent?
+            COUNTER tx_ns = now_ns - start_ns;
 
             /*
-             * bits * 1000000 divided by bps = microseconds
+             * bits * 1000000000 divided by bps = nanosecond
              *
              * ensure there is no overflow in cases where bits_sent is very high
              */
             if (bits_sent > COUNTER_OVERFLOW_RISK && bps > 500000)
-                next_tx_us = (bits_sent * 1000) / bps * 1000;
+                next_tx_ns = (bits_sent * 1000) / bps * 1000000;
             else
-                next_tx_us = (bits_sent * 1000000) / bps;
+                next_tx_ns = (bits_sent * 1000000000) / bps;
 
-            if (next_tx_us > tx_us) {
-                NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
-            } else if (tx_us > next_tx_us) {
-                tx_us = now_us - start_us;
-                *skip_length = ((tx_us - next_tx_us) * bps) / 8000000;
+            if (next_tx_ns > tx_ns) {
+                NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);
+            } else if (tx_ns > next_tx_ns) {
+                tx_ns = now_ns - start_ns;
+                *skip_length = ((tx_ns - next_tx_ns) * bps) / 8000000000;
             }
 
             update_current_timestamp_trace_entry(ctx->stats.bytes_sent +
-                    (COUNTER)len, now_us, tx_us, next_tx_us);
+                    (COUNTER)len, now_ns, tx_ns, next_tx_ns);
         }
 
         dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len,
@@ -1050,12 +1050,12 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
           * Ignore the time supplied by the capture file and send data at
           * a constant rate (packets per second).
           */
-         now_us = TIMSTAMP_TO_MICROSEC(sent_timestamp);
-         if (now_us) {
-             COUNTER next_tx_us;
+         now_ns = TIMESPEC_TO_NANOSEC(sent_timestamp);
+         if (now_ns) {
+             COUNTER next_tx_ns;
              COUNTER pph = ctx->options->speed.speed;
              COUNTER pkts_sent = ctx->stats.pkts_sent;
-             COUNTER tx_us = now_us - start_us;
+             COUNTER tx_ns = now_ns - start_ns;
              /*
               * packets * 1000000 divided by pps = microseconds
               * packets per sec (pps) = packets per hour / (60 * 60)
@@ -1064,17 +1064,17 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
               * When active, adjusted calculation may add a bit of jitter.
               */
              if ((pkts_sent < COUNTER_OVERFLOW_RISK))
-                 next_tx_us = (pkts_sent * 1000000) * (60 * 60) / pph;
+                 next_tx_ns = (pkts_sent * 1000000000) * (60 * 60) / pph;
              else
-                 next_tx_us = ((pkts_sent * 1000000) / pph) * (60 * 60);
+                 next_tx_ns = ((pkts_sent * 1000000) / pph * 1000) * (60 * 60);
 
-             if (next_tx_us > tx_us)
-                 NANOSEC_TO_TIMESPEC((next_tx_us - tx_us) * 1000, &ctx->nap);
+             if (next_tx_ns > tx_ns)
+                 NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);
              else
                  ctx->skip_packets = options->speed.pps_multi;
 
              update_current_timestamp_trace_entry(ctx->stats.bytes_sent +
-                     (COUNTER)len, now_us, tx_us, next_tx_us);
+                     (COUNTER)len, now_ns, tx_ns, next_tx_ns);
          }
 
          dbgx(3, "packet count=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT,
@@ -1105,7 +1105,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_ts_delta,
 }
 
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
-        struct timespec *nap_this_time, struct timeval *now)
+        struct timespec *nap_this_time, struct timespec *now)
 {
     tcpreplay_opt_t *options = ctx->options;
     bool flush =

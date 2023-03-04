@@ -86,8 +86,18 @@ void timesdiv(struct timespec *tvs, COUNTER div)
 }
 
 void
-init_timestamp(timestamp_t *ctx)
+init_timestamp(struct timespec *timestamp)
 {
-    timerclear(ctx);
+    timesclear(timestamp);
 }
 
+int get_time_of_day(struct timespec *ts) {
+    struct timeval tv;
+    int success = gettimeofday(&tv, NULL);
+    TIMEVAL_TO_TIMESPEC(&tv, ts);
+    return success;
+}
+
+int clock_get_time(struct timespec *ts){
+    return clock_gettime(CLOCK_REALTIME, ts);
+}
