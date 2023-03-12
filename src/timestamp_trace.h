@@ -48,9 +48,9 @@ static inline void update_current_timestamp_trace_entry(COUNTER bytes_sent,
         return;
 
     if (!now_us) {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        now_us = TIMSTAMP_TO_MICROSEC(&now);
+        struct timespec now;
+        get_current_time(now);
+        now_us = TIMESPEC_TO_MICROSEC(&now);
     }
 
     timestamp_trace_entry_array[trace_num].bytes_sent = bytes_sent;

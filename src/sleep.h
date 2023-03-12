@@ -57,13 +57,20 @@ static inline void
 nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
         struct timespec *now,  bool flush _U_)
 {
-    nanosleep(nap, NULL);
+    #ifdef _POSIX_C_SOURCE >= 200112L
+        struct timespec sleep_until;
+        timeradd_timespec(now, nap, &sleep_until);
+        clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_until, NULL);
+    #else
+        nanosleep(nap, NULL);
+    #endif
+
 #ifdef HAVE_NETMAP
     if (flush)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif /* HAVE_NETMAP */
 
-    clock_gettime(CLOCK_REALTIME, now);
+    get_current_time(now);
 }
 
 
@@ -138,9 +145,7 @@ select_sleep(sendpacket_t *sp _U_, struct timespec *nap,
     if (flush)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif
-    struct timeval now_ms;
-    gettimeofday(&now_ms, NULL);
-    TIMEVAL_TO_TIMESPEC(&now_ms, now_ns);
+    get_current_time(now_ns);
 }
 #endif /* HAVE_SELECT */
 

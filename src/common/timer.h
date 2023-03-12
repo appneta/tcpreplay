@@ -200,7 +200,6 @@ void timesdiv(struct timespec *tvs, COUNTER div);
     typedef struct timeval timestamp_t;
 
 void init_timestamp(struct timespec *timestamp);
-int get_time_of_day(struct timespec *ts);
-int clock_get_time(struct timespec *ts);
+int get_current_time(struct timespec *ts);
 
 #endif /* _TIMER_H_ */
