@@ -91,13 +91,13 @@ init_timestamp(struct timespec *timestamp)
     timesclear(timestamp);
 }
 
-int get_time_of_day(struct timespec *ts) {
-    struct timeval tv;
-    int success = gettimeofday(&tv, NULL);
-    TIMEVAL_TO_TIMESPEC(&tv, ts);
-    return success;
-}
-
-int clock_get_time(struct timespec *ts){
-    return clock_gettime(CLOCK_REALTIME, ts);
+int get_current_time(struct timespec *ts){
+    #ifdef _POSIX_C_SOURCE >= 199309L
+        return clock_gettime(CLOCK_REALTIME, ts);
+    #else
+        struct timeval tv;
+        int success = gettimeofday(&tv, NULL);
+        TIMEVAL_TO_TIMESPEC(&tv, ts);
+        return success;
+    #endif
 }

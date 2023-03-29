@@ -96,10 +96,6 @@ typedef struct {
     char *filename;
 } tcpreplay_source_t;
 
-typedef struct time_function {
-    int (*gettime)(struct timespec*);
-} time_function;
-
 /* run-time options */
 typedef struct tcpreplay_opt_s {
     /* input/output */
@@ -194,7 +190,6 @@ typedef struct tcpreplay_s {
     struct timespec nap;
     uint32_t skip_packets;
     bool first_time;
-    struct time_function timefunction;
 
     /* counter stats */
     tcpreplay_stats_t stats;

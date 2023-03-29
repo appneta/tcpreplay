@@ -339,7 +339,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
 
-    ctx->timefunction.gettime(&now);
+    get_current_time(&now);
     if (!timesisset(&stats->start_time)) {
         TIMESPEC_SET(&stats->start_time, &now);
         if (ctx->options->stats >= 0) {
@@ -448,7 +448,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
             if (!top_speed) {
                 now_is_now = true;
-                ctx->timefunction.gettime(&now);
+                get_current_time(&now);
             }
 
             /*
@@ -535,18 +535,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     if (options->netmap && (ctx->abort || options->loop == 1)) {
         while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
             now_is_now = true;
-            ctx->timefunction.gettime(&now);
+            get_current_time(&now);
         }
 
         while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
             now_is_now = true;
-            ctx->timefunction.gettime(&now);
+            get_current_time(&now);
         }
     }
 #endif /* HAVE_NETMAP */
 
     if (!now_is_now)
-        ctx->timefunction.gettime(&now);
+        get_current_time(&now);
 
     TIMESPEC_SET(&stats->end_time, &now);
 
@@ -581,7 +581,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
 
-    ctx->timefunction.gettime(&now);
+    get_current_time(&now);
     if (!timesisset(&stats->start_time)) {
         TIMESPEC_SET(&stats->start_time, &now);
         if (ctx->options->stats >= 0) {
@@ -723,7 +723,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             }
 
             if (!top_speed) {
-                ctx->timefunction.gettime(&now);
+                get_current_time(&now);
                 now_is_now = true;
             }
 
@@ -814,19 +814,19 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
         while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
-            ctx->timefunction.gettime(&now);
+            get_current_time(&now);
             now_is_now = true;
         }
 
         while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
-            ctx->timefunction.gettime(&now);
+            get_current_time(&now);
             now_is_now = true;
         }
     }
 #endif /* HAVE_NETMAP */
 
     if (!now_is_now)
-        ctx->timefunction.gettime(&now);
+        get_current_time(&now);
 
     TIMESPEC_SET(&stats->end_time, &now);
 

@@ -286,7 +286,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
     if (HAVE_OPT(FLOW_EXPIRY)) {
         options->flow_expiry = OPT_VALUE_FLOW_EXPIRY;
     }
-    ctx->timefunction.gettime = &get_time_of_day;
+
     if (HAVE_OPT(TIMER)) {
         if (strcmp(OPT_ARG(TIMER), "select") == 0) {
 #ifdef HAVE_SELECT
@@ -307,7 +307,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             options->accurate = accurate_gtod;
         } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
             options->accurate = accurate_nanosleep;
-            ctx->timefunction.gettime = &clock_get_time;
             options->loopdelay_ns = OPT_VALUE_LOOPDELAY_NS;
         } else if (strcmp(OPT_ARG(TIMER), "abstime") == 0) {
             tcpreplay_seterr(ctx, "%s", "abstime is deprecated");
@@ -1155,7 +1154,7 @@ tcpreplay_replay(tcpreplay_t *ctx)
             }
             if (ctx->options->loop > 0) {
                 apply_loop_delay(ctx);
-                ctx->timefunction.gettime(&ctx->stats.end_time);
+                get_current_time(&ctx->stats.end_time);
                 if (ctx->options->stats == 0) {
                     packet_stats(&ctx->stats);
                 }
@@ -1175,7 +1174,7 @@ tcpreplay_replay(tcpreplay_t *ctx)
                 return rcode;
             }
             apply_loop_delay(ctx);
-            ctx->timefunction.gettime(&ctx->stats.end_time);
+            get_current_time(&ctx->stats.end_time);
             if (ctx->options->stats == 0 && !ctx->abort)
                 packet_stats(&ctx->stats);
         }

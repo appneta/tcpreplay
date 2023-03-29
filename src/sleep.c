@@ -91,7 +91,5 @@ ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap _U_,
     if (flush)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
 #endif /* HAVE_NETMAP */
-    struct timeval now_ms;
-    gettimeofday(&now_ms, NULL);
-    TIMEVAL_TO_TIMESPEC(&now_ms, now);
+    get_current_time(now);
 }
