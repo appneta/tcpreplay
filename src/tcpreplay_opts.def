@@ -664,6 +664,15 @@ EOVersion;
 };
 
 flag = {
+    name        = batch-size;
+    arg-type    = number;
+    arg-range   = "1->4096";
+    descrip     = "The maximum number of packets that can be submitted to the Tx ring at once";
+    arg-default = 25;
+    doc         = "";
+};
+
+flag = {
     name        = less-help;
     value       = "h";
     immediate;

@@ -60,7 +60,6 @@ extern tcpedit_t *tcpedit;
 
 #include "send_packets.h"
 #include "sleep.h"
-
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -71,7 +70,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timeval *pkt_time,
         COUNTER start_us, COUNTER *skip_length);
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp _U_,
         struct timespec *nap_this_time, struct timeval *now);
-static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
+static u_char *get_next_packet(tcpreplay_opt_t *options, pcap_t *pcap,
         struct pcap_pkthdr *pkthdr,
         int file_idx,
         packet_cache_t **prev_packet);
@@ -283,7 +282,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
 
     dlt = pcap_datalink(pcap);
     /* loop through the pcap.  get_next_packet() builds the cache for us! */
-    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
+    while ((pktdata = get_next_packet(ctx->options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         packetnum++;
         if (options->flow_stats)
             update_flow_stats(ctx, NULL, &pkthdr, pktdata, dlt);
@@ -338,6 +337,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     bool top_speed = (options->speed.mode == speed_topspeed ||
             (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
+    bool read_next_packet = true; // used for LIBXDP batch packet processing with cached packets
 
     gettimeofday(&now, NULL);
     if (!timerisset(&stats->start_time)) {
@@ -367,8 +367,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while (!ctx->abort &&
-            (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
+    while (!ctx->abort && read_next_packet &&
+            (pktdata = get_next_packet(ctx->options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
 
         now_is_now = false;
         packetnum++;
@@ -473,8 +473,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             /*
              * we know how long to sleep between sends, now do it.
              */
-            if (!top_speed)
+            if (!top_speed){
+                #ifndef HAVE_LIBXDP
                 tcpr_sleep(ctx, sp, &ctx->nap, &now);
+                #else
+                if(sp->handle_type != SP_TYPE_LIBXDP){
+                    tcpr_sleep(ctx, sp, &ctx->nap, &now);
+                }else if(sp->batch_size == 1){
+                    //In case of LIBXDP packet processing waiting only makes sense when batch size is one
+                    tcpr_sleep(ctx, sp, &ctx->nap, &now);
+                }
+                #endif
+            }
         }
 
 #ifdef ENABLE_VERBOSE
@@ -483,6 +493,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
+#ifdef HAVE_LIBXDP
+        if(sp->handle_type == SP_TYPE_LIBXDP){
+            /*Reserve frames for the batch*/
+            while (xsk_ring_prod__reserve(&(sp->xsk_info->tx), sp->batch_size, &(sp->tx_idx)) < sp->batch_size) { 
+                complete_tx_only(sp);
+            }
+            /*The first packet is already in memory*/
+            prepare_first_element_of_batch(ctx, &packetnum, pktdata, pkthdr.len);
+            /*Read more packets and prepare batch*/
+            prepare_remaining_elements_of_batch(ctx, &packetnum, &read_next_packet, pcap, &idx, pkthdr, prev_packet);
+        }
+#endif
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen) {
@@ -500,7 +522,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #endif
 
         stats->pkts_sent++;
+        #ifndef HAVE_LIBXDP
         stats->bytes_sent += pktlen;
+        #else
+        if(sp->handle_type != SP_TYPE_LIBXDP){
+            stats->bytes_sent += pktlen;
+        }
+        #endif
 
         /* print stats during the run? */
         if (options->stats > 0) {
@@ -545,7 +573,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
     }
 #endif /* HAVE_NETMAP */
-
     if (!now_is_now)
         gettimeofday(&now, NULL);
 
@@ -607,8 +634,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         prev_packet2 = NULL;
     }
 
-    pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
-    pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
+    pktdata1 = get_next_packet(ctx->options, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
+    pktdata2 = get_next_packet(ctx->options, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
 
     /* MAIN LOOP 
      * Keep sending while we have packets or until
@@ -797,9 +824,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         /* get the next packet for this file handle depending on which we last used */
         if (sp == ctx->intf2) {
-            pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
+            pktdata2 = get_next_packet(ctx->options, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
         } else {
-            pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
+            pktdata1 = get_next_packet(ctx->options, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
         }
 
         /* stop sending based on the duration limit... */
@@ -844,10 +871,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
 u_char *
-get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int idx, 
+get_next_packet(tcpreplay_opt_t *options, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int idx, 
     packet_cache_t **prev_packet)
 {
-    tcpreplay_opt_t *options = ctx->options;
     u_char *pktdata = NULL;
     uint32_t pktlen;
 
@@ -1211,3 +1237,48 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
 
     return(uint32_t)send;
 }
+#ifdef HAVE_LIBXDP
+static inline void fill_umem_with_data_and_set_xdp_desc(sendpacket_t* sp, int tx_idx, COUNTER umem_index, u_char* pktdata, int len){
+    COUNTER umem_index_mod = (umem_index % sp->batch_size) * sp->frame_size; // packets are sent in batch, after each batch umem memory is reusable
+    gen_eth_frame(sp->umem_info, umem_index_mod, pktdata, len);
+    struct xdp_desc* xdp_desc = xsk_ring_prod__tx_desc(&(sp->xsk_info->tx), tx_idx);
+    xdp_desc->addr = (COUNTER)(umem_index_mod);
+    xdp_desc->len = len;
+}
+
+static inline void prepare_first_element_of_batch(tcpreplay_t *ctx, COUNTER* packetnum, u_char* pktdata, u_int32_t len){
+    sendpacket_t* sp = ctx->intf1;
+    tcpreplay_stats_t *stats = &ctx->stats;
+    fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx, *packetnum-1, pktdata, len);
+    sp->bytes_sent += len;
+    stats->bytes_sent += len;
+}
+
+static inline void prepare_remaining_elements_of_batch(tcpreplay_t *ctx, COUNTER* packetnum, bool* read_next_packet, pcap_t *pcap, int* idx, struct pcap_pkthdr pkthdr, packet_cache_t **prev_packet){
+    sendpacket_t* sp = ctx->intf1;
+    tcpreplay_stats_t *stats = &ctx->stats;
+    int datalink = ctx->options->file_cache[*idx].dlt;
+    bool preload = ctx->options->file_cache[*idx].cached;
+    u_char* pktdata = NULL;
+    unsigned int pckt_count = 1;
+    while(!ctx->abort && 
+            (pckt_count < sp->batch_size) && (pktdata = get_next_packet(ctx->options, pcap, &pkthdr, *idx, prev_packet)) != NULL){ 
+        fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx + pckt_count, *packetnum, pktdata, pkthdr.len);
+        ++pckt_count;
+        ++*packetnum;
+        stats->bytes_sent += pkthdr.len;
+        sp->bytes_sent += pkthdr.len;
+        stats->pkts_sent++;
+        if (ctx->options->flow_stats && !preload){
+            update_flow_stats(ctx,
+                    ctx->options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
+        }
+    }
+    if(pckt_count < sp-> batch_size){
+        // No more packets to read, it is essential for cached packet processing
+        *read_next_packet = false;
+    }
+    sp->pckt_count = pckt_count;
+    dbgx(2, "Sending packets with LIBXDP in batch, packet numbers from %llu to %llu\n", packetnum - pckt_count +1, packetnum);
+}
+#endif /*HAVE_LIBXDP*/

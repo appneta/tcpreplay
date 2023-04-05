@@ -33,7 +33,10 @@
 #ifdef ENABLE_DMALLOC
 #include <dmalloc.h>
 #endif
-
+#ifdef HAVE_LIBXDP
+#include <xdp/xsk.h>
+#include <sys/mman.h>
+#endif
 
 
 #ifdef __cplusplus
@@ -203,7 +206,6 @@ typedef struct tcpreplay_s {
     bool running;
 } tcpreplay_t;
 
-
 /*
  * manual callback definition:
  * ctx              = tcpreplay context
@@ -286,6 +288,10 @@ int tcpreplay_set_tcpdump(tcpreplay_t *, tcpdump_t *);
 void __tcpreplay_seterr(tcpreplay_t *ctx, const char *func, const int line, const char *file, const char *fmt, ...);
 void tcpreplay_setwarn(tcpreplay_t *ctx, const char *fmt, ...);
 
+#ifdef HAVE_LIBXDP
+void delete_xsk_socket(struct xsk_socket *xsk);
+void free_umem_and_xsk(sendpacket_t* sp);
+#endif
 #ifdef __cplusplus
 }
 #endif

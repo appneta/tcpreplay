@@ -64,6 +64,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_PF_PACKET
@@ -72,6 +73,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_LIBDNET
@@ -80,6 +82,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_BPF
@@ -88,6 +91,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_PF_PACKET
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_PCAP_INJECT
@@ -96,6 +100,7 @@
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_PCAP_SENDPACKET
@@ -104,14 +109,24 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
+#undef HAVE_LIBXDP
+#endif
+
+#ifdef FORCE_INJECT_LIBXDP
+#undef HAVE_TX_RING
+#undef HAVE_LIBDNET
+#undef HAVE_PF_PACKET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_PCAP_SENDPACKET
+#undef HAVE_BPF
 #endif
 
 #if (defined HAVE_WINPCAP && defined HAVE_PCAP_INJECT)
 #undef HAVE_PCAP_INJECT /* configure returns true for some odd reason */
 #endif
 
-#if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF && !defined TX_RING
-#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING or *BSD's BPF
+#if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF && !defined TX_RING && !defined HAVE_LIBXDP
+#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING/AF_XDP with libxdp or *BSD's BPF
 #endif
 
 
@@ -211,7 +226,15 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #undef INJECT_METHOD
 #define INJECT_METHOD "pcap_sendpacket()"
 #endif
-
+#ifdef HAVE_LIBXDP
+#include <sys/mman.h>
+static sendpacket_t *sendpacket_open_xsk(const char *, char *) _U_;
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_libxdp(sendpacket_t *);
+#endif
+#if defined HAVE_LIBXDP && ! defined INJECT_METHOD
+#undef INJECT_METHOD
+#define INJECT_METHOD "xsk_ring_prod_submit()"
+#endif
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t * sendpacket_open_khial(const char *, char *) _U_;
 static struct tcpr_ether_addr * sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
@@ -237,7 +260,10 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
     static const size_t buffer_payload_size = sizeof(buffer) + sizeof(struct pcap_pkthdr);
 
     assert(sp);
+    #ifndef HAVE_LIBXDP
+    // In case of XDP packet processing we are storing data in sp->packet_processing->xdp_descs
     assert(data);
+    #endif
 
     if (len == 0)
         return -1;
@@ -444,7 +470,18 @@ TRY_SEND_AGAIN:
             }
 #endif /* HAVE_NETMAP */
             break;
-
+        case SP_TYPE_LIBXDP:
+            #ifdef HAVE_LIBXDP
+            retcode = len;
+            xsk_ring_prod__submit(&(sp->xsk_info->tx), sp->pckt_count); //submit all packets at once
+            sp->xsk_info->ring_stats.tx_npkts += sp->pckt_count;
+            sp->xsk_info->outstanding_tx += sp->pckt_count;
+            while(sp->xsk_info->outstanding_tx != 0){
+                complete_tx_only(sp);
+            }
+            sp->sent += sp->pckt_count;
+            #endif
+            break;
         default:
             errx(-1, "Unsupported sp->handle_type = %d", sp->handle_type);
     } /* end case */
@@ -458,8 +495,15 @@ TRY_SEND_AGAIN:
                 retcode, len);
         sp->trunc_packets ++;
     } else {
+        #ifndef HAVE_LIBXDP
         sp->bytes_sent += len;
         sp->sent ++;
+        #else
+        if(sp->handle_type != SP_TYPE_LIBXDP){
+            sp->bytes_sent += len;
+            sp->sent ++;
+        }
+        #endif
     }
     return retcode;
 }
@@ -542,6 +586,8 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
             sp = sendpacket_open_libdnet(device, errbuf);
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
             sp = sendpacket_open_pcap(device, errbuf);
+#elif defined HAVE_LIBXDP
+            sp = sendpacket_open_xsk(device, errbuf);
 #else
 #error "No defined packet injection method for sendpacket_open()"
 #endif
@@ -562,13 +608,13 @@ sendpacket_open(const char *device, char *errbuf, tcpr_dir_t direction,
 size_t
 sendpacket_getstat(sendpacket_t *sp, char *buf, size_t buf_size)
 {
-    size_t offset;
+    size_t offset = 0;
 
     assert(sp);
     assert(buf);
 
     memset(buf, 0, buf_size);
-    offset = snprintf(buf, buf_size, "Statistics for network device: %s\n"
+    snprintf(buf, buf_size, "Statistics for network device: %s\n"
             "\tSuccessful packets:        " COUNTER_SPEC "\n"
             "\tFailed packets:            " COUNTER_SPEC "\n"
             "\tTruncated packets:         " COUNTER_SPEC "\n"
@@ -658,7 +704,7 @@ sendpacket_close(sendpacket_t *sp)
 struct tcpr_ether_addr *
 sendpacket_get_hwaddr(sendpacket_t *sp)
 {
-    struct tcpr_ether_addr *addr;
+    struct tcpr_ether_addr *addr = NULL;
     assert(sp);
 
     /* if we already have our MAC address stored, just return it */
@@ -670,6 +716,8 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
     } else {    
 #if defined HAVE_PF_PACKET
         addr = sendpacket_get_hwaddr_pf(sp);
+#elif defined HAVE_LIBXDP
+        addr = sendpacket_get_hwaddr_libxdp(sp);
 #elif defined HAVE_BPF
         addr = sendpacket_get_hwaddr_bpf(sp);
 #elif defined HAVE_LIBDNET
@@ -1055,7 +1103,7 @@ sendpacket_get_hwaddr_pf(sendpacket_t *sp)
 }
 #endif /* HAVE_PF_PACKET */
 
-#if defined HAVE_BPF
+#if 0
 /**
  * Inner sendpacket_open() method for using BSD's BPF interface
  */
@@ -1244,7 +1292,7 @@ sendpacket_get_dlt(sendpacket_t *sp)
         /* always EN10MB */
         ;
     } else {
-#if defined HAVE_BPF
+#if 0
     int rcode;
 
     if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
@@ -1333,3 +1381,144 @@ sendpacket_abort(sendpacket_t *sp)
 
     sp->abort = true;
 }
+#ifdef HAVE_LIBXDP
+static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, struct xsk_socket_config* cfg, int queue_id, const char *device)
+{
+	struct xsk_socket_info *xsk;
+	struct xsk_ring_cons *rxr = NULL;
+	struct xsk_ring_prod *txr;
+	int ret;
+	xsk = (struct xsk_socket_info*)safe_malloc(sizeof(struct xsk_socket_info));
+	xsk->umem = umem;
+	ret = xsk_socket__create(&xsk->xsk, device, queue_id, umem->umem, rxr, &xsk->tx, cfg);
+	if (ret){
+        return NULL;
+    }
+
+    memset(&xsk->app_stats, 0, sizeof(xsk->app_stats));
+
+	return xsk;
+}
+
+static sendpacket_t * sendpacket_open_xsk(const char *device, char *errbuf){
+    sendpacket_t *sp;
+
+    assert(device);
+    assert(errbuf);
+
+    int nb_of_frames = 4096;
+    int frame_size = 4096;
+    int nb_of_completion_queue_desc = 4096;
+    int nb_of_fill_queue_desc = 4096;
+    struct xsk_umem_info* umem_info = create_umem_area(nb_of_frames, frame_size, nb_of_completion_queue_desc, nb_of_fill_queue_desc);
+    if(umem_info == NULL){
+        return NULL;
+    }
+
+    int nb_of_tx_queue_desc = 4096;
+    int nb_of_rx_queue_desc = 4096;
+    u_int32_t queue_id = 0;
+    struct xsk_socket_info* xsk_info = create_xsk_socket(umem_info, nb_of_tx_queue_desc, nb_of_rx_queue_desc, device, queue_id, errbuf);
+    if(xsk_info == NULL){
+        return NULL;
+    }
+
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.fd = xsk_info->xsk->fd;
+    sp->handle_type = SP_TYPE_LIBXDP;
+    sp->xsk_info = xsk_info;
+    sp->umem_info = umem_info;
+    sp->frame_size = frame_size;
+    return sp;
+}
+
+struct xsk_umem_info* create_umem_area(int nb_of_frames, int frame_size, int nb_of_completion_queue_descs, int nb_of_fill_queue_descs){
+    int umem_size = nb_of_frames * frame_size;
+    struct xsk_umem_info *umem;
+    void* umem_area = NULL;
+    struct xsk_umem_config cfg = {
+    /* We recommend that you set the fill ring size >= HW RX ring size +
+        * AF_XDP RX ring size. Make sure you fill up the fill ring
+        * with buffers at regular intervals, and you will with this setting
+        * avoid allocation failures in the driver. These are usually quite
+        * expensive since drivers have not been written to assume that
+        * allocation failures are common. For regular sockets, kernel
+        * allocated memory is used that only runs out in OOM situations
+        * that should be rare.
+        */
+    .fill_size = nb_of_fill_queue_descs * 2,
+    .comp_size = nb_of_completion_queue_descs,
+    .frame_size = frame_size,
+    .frame_headroom = 0,
+    .flags = XDP_UMEM_UNALIGNED_CHUNK_FLAG
+    };
+    umem = (struct xsk_umem_info*)safe_malloc(sizeof(struct xsk_umem_info));
+	if (posix_memalign(&umem_area, getpagesize(), /* PAGE_SIZE aligned */
+			   umem_size)) {
+		fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+    int ret = xsk_umem__create(&umem->umem, umem_area, umem_size, &umem->fq, &umem->cq, &cfg);
+    umem->buffer = umem_area;
+    if(ret != 0){
+        return NULL;
+    }
+    return umem;
+}
+
+static struct xsk_socket_info* create_xsk_socket(struct xsk_umem_info* umem_info, int nb_of_tx_queue_desc, int nb_of_rx_queue_desc, const char *device, u_int32_t queue_id, char *errbuf){
+    struct xsk_socket_info* xsk_info = (struct xsk_socket_info*)safe_malloc(sizeof(struct xsk_socket_info)); 
+    struct xsk_socket_config* socket_config = (struct xsk_socket_config*)safe_malloc(sizeof(struct xsk_socket_config));
+    
+    socket_config->rx_size = nb_of_rx_queue_desc;
+    socket_config->tx_size = nb_of_tx_queue_desc;
+    socket_config->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
+    socket_config->bind_flags = 0; //XDP_FLAGS_SKB_MODE (1U << 1) or XDP_FLAGS_DRV_MODE (1U << 2)
+    xsk_info = xsk_configure_socket(umem_info, socket_config, queue_id, device);
+
+    if(xsk_info == NULL){
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "AF_XDP socket configuration is not successful: %s", strerror(errno));
+        return NULL;
+    }
+    return xsk_info;
+}
+
+/**
+ * gets the hardware address via Linux's PF packet interface
+ */
+static struct tcpr_ether_addr *
+sendpacket_get_hwaddr_libxdp(sendpacket_t *sp)
+{
+    struct ifreq ifr;
+    int fd;
+
+    assert(sp);
+
+    if (!sp->open) {
+        sendpacket_seterr(sp, "Unable to get hardware address on un-opened sendpacket handle");
+        return NULL;
+    }
+
+
+    /* create dummy socket for ioctl */
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        sendpacket_seterr(sp, "Unable to open dummy socket for get_hwaddr: %s", strerror(errno));
+        return NULL;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
+        close(fd);
+        sendpacket_seterr(sp, "Error getting hardware address: %s", strerror(errno));
+        return NULL;
+    }
+
+    memcpy(&sp->ether, &ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+    close(fd);
+    return(&sp->ether);
+}
+#endif /*HAVE_LIBXDP*/

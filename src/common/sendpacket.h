@@ -69,7 +69,8 @@ typedef enum sendpacket_type_e {
     SP_TYPE_TX_RING,
     SP_TYPE_KHIAL,
     SP_TYPE_NETMAP,
-    SP_TYPE_TUNTAP
+    SP_TYPE_TUNTAP,
+    SP_TYPE_LIBXDP
 } sendpacket_type_t;
 
 /* these are the file_operations ioctls */
@@ -93,6 +94,70 @@ union sendpacket_handle {
 
 #define SENDPACKET_ERRBUF_SIZE 1024
 #define MAX_IFNAMELEN   64
+
+#ifdef HAVE_LIBXDP
+#include <linux/if_xdp.h>
+#include <xdp/xsk.h>
+#include <errno.h>
+
+struct xsk_ring_stats {
+	unsigned long rx_npkts;
+	unsigned long tx_npkts;
+	unsigned long rx_dropped_npkts;
+	unsigned long rx_invalid_npkts;
+	unsigned long tx_invalid_npkts;
+	unsigned long rx_full_npkts;
+	unsigned long rx_fill_empty_npkts;
+	unsigned long tx_empty_npkts;
+	unsigned long prev_rx_npkts;
+	unsigned long prev_tx_npkts;
+	unsigned long prev_rx_dropped_npkts;
+	unsigned long prev_rx_invalid_npkts;
+	unsigned long prev_tx_invalid_npkts;
+	unsigned long prev_rx_full_npkts;
+	unsigned long prev_rx_fill_empty_npkts;
+	unsigned long prev_tx_empty_npkts;
+};
+struct xsk_driver_stats {
+	unsigned long intrs;
+	unsigned long prev_intrs;
+};
+struct xsk_app_stats {
+	unsigned long rx_empty_polls;
+	unsigned long fill_fail_polls;
+	unsigned long copy_tx_sendtos;
+	unsigned long tx_wakeup_sendtos;
+	unsigned long opt_polls;
+	unsigned long prev_rx_empty_polls;
+	unsigned long prev_fill_fail_polls;
+	unsigned long prev_copy_tx_sendtos;
+	unsigned long prev_tx_wakeup_sendtos;
+	unsigned long prev_opt_polls;
+};
+struct xsk_umem_info {
+	struct xsk_ring_prod fq;
+	struct xsk_ring_cons cq;
+	struct xsk_umem *umem;
+	void *buffer;
+};
+struct xsk_socket {
+	struct xsk_ring_cons *rx;
+	struct xsk_ring_prod *tx;
+	struct xsk_ctx *ctx;
+	struct xsk_socket_config config;
+	int fd;
+};
+struct xsk_socket_info {
+	struct xsk_ring_cons rx;
+	struct xsk_ring_prod tx;
+	struct xsk_umem_info *umem;
+	struct xsk_socket *xsk;
+	struct xsk_ring_stats ring_stats;
+	struct xsk_app_stats app_stats;
+	struct xsk_driver_stats drv_stats;
+	u_int32_t outstanding_tx;
+};
+#endif /*HAVE_LIBXDP*/
 
 struct sendpacket_s {
     tcpr_dir_t cache_dir;
@@ -145,11 +210,53 @@ struct sendpacket_s {
     txring_t * tx_ring;
 #endif
 #endif
+#ifdef HAVE_LIBXDP
+    struct xsk_socket_info* xsk_info;
+    struct xsk_umem_info* umem_info;
+    unsigned int batch_size;
+    unsigned int pckt_count;
+    int frame_size;
+    int tx_idx;
+#endif
     bool abort;
 };
-
 typedef struct sendpacket_s sendpacket_t;
 
+#ifdef HAVE_LIBXDP
+struct xsk_umem_info* create_umem_area(int nb_of_frames, int frame_size, int nb_of_completion_queue_descs, int nb_of_fill_queue_descs);
+static struct xsk_socket_info* create_xsk_socket(struct xsk_umem_info* umem, int nb_of_tx_queue_desc, int nb_of_rx_queue_desc, const char *device, u_int32_t queue_id, char *errbuf);
+static inline void gen_eth_frame(struct xsk_umem_info *umem, u_int64_t addr, u_char* pkt_data, COUNTER pkt_size)
+{
+	memcpy(xsk_umem__get_data(umem->buffer, addr), pkt_data, pkt_size);
+}
+
+static inline void kick_tx(struct xsk_socket_info *xsk)
+{
+    int ret = sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+	if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN ||
+	    errno == EBUSY || errno == ENETDOWN){
+		return;
+    }
+    printf("%s\n", "Packet sending exited with error!");
+	exit(ret);
+}
+static inline void complete_tx_only(sendpacket_t *sp)
+{   
+    int completion_idx = 0;
+	if (sp->xsk_info->outstanding_tx == 0){
+		return;
+    }
+	if (xsk_ring_prod__needs_wakeup(&(sp->xsk_info->tx))) {
+		sp->xsk_info->app_stats.tx_wakeup_sendtos++;
+		kick_tx(sp->xsk_info);
+	}
+	unsigned int rcvd = xsk_ring_cons__peek(&sp->xsk_info->umem->cq, sp->pckt_count, &(completion_idx));
+	if (rcvd > 0) {
+		xsk_ring_cons__release(&sp->xsk_info->umem->cq, rcvd);
+		sp->xsk_info->outstanding_tx -= rcvd;
+	}
+}
+#endif /*HAVE_LIBXDP*/
 int sendpacket(sendpacket_t *, const u_char *, size_t, struct pcap_pkthdr *);
 void sendpacket_close(sendpacket_t *);
 char *sendpacket_geterr(sendpacket_t *);
