@@ -125,7 +125,7 @@ replay_file(tcpreplay_t *ctx, int idx)
 
     /* read from pcap file if we haven't cached things yet */
     if (!ctx->options->preload_pcap) {
-        if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
+        if ((pcap = pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf)) == NULL) {
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;
         }
@@ -140,10 +140,10 @@ replay_file(tcpreplay_t *ctx, int idx)
 
     } else {
         if (!ctx->options->file_cache[idx].cached) {
-            if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
-                tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
-                return -1;
-            }
+        if ((pcap = pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf)) == NULL) {
+            tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
+            return -1;
+        }
             ctx->options->file_cache[idx].dlt = pcap_datalink(pcap);
         }
     }
@@ -152,10 +152,10 @@ replay_file(tcpreplay_t *ctx, int idx)
     if (ctx->options->verbose) {
         /* in cache mode, we may not have opened the file */
         if (pcap == NULL)
-            if ((pcap = pcap_open_offline(path, ebuf)) == NULL) {
-               tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
-               return -1;
-            }
+        if ((pcap = pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf)) == NULL) {
+            tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
+            return -1;
+        }
 
         ctx->options->file_cache[idx].dlt = pcap_datalink(pcap);
         /* init tcpdump */

@@ -358,6 +358,13 @@ typedef u_int32_t uint32_t
         (a)->tv_nsec = (b)->tv_nsec;        \
     } while(0)
 
+/* libpcap puts nanosec values in tv_usec when pcap file is read with nanosec precision*/
+#define TIMEVAL_AS_TIMESPEC_SET(a, b)       \
+    do {                                    \
+        (a)->tv_sec = (b)->tv_sec;          \
+        (a)->tv_nsec = (b)->tv_usec;        \
+    } while(0)
+
 /* 
  * Help suppress some compiler warnings
  * No problem if variable is actually used 

@@ -316,8 +316,7 @@ static void increment_iteration(tcpreplay_t *ctx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {   
-    struct timeval last_pkt_ts;
-    struct timespec now, print_delta;
+    struct timespec now, print_delta, last_pkt_ts, pkthdr_ts;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -350,7 +349,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     }
 
     ctx->skip_packets = 0;
-    timerclear(&last_pkt_ts);
+    timesclear(&last_pkt_ts);
     if (options->limit_time > 0)
         end_us = TIMESPEC_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
@@ -369,7 +368,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
      */
     while (!ctx->abort &&
             (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
-
+        TIMEVAL_AS_TIMESPEC_SET(&pkthdr_ts, &pkthdr.ts); // libpcap puts nanosec values in tv_usec
         now_is_now = false;
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -429,20 +428,20 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
              * time stamping is expensive, but now is the
              * time to do it.
              */
-            dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkthdr.ts.tv_sec,
-                    pkthdr.ts.tv_usec);
+            dbgx(4, "This packet time: " TIMESPEC_FORMAT, pkthdr_ts.tv_sec,
+                    pkthdr_ts.tv_nsec);
             skip_length = 0;
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
-                if (!timerisset(&last_pkt_ts)) {
-                    TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
-                } else if (timercmp(&pkthdr.ts, &last_pkt_ts, >)) {
-                    struct timeval delta;
+                if (!timesisset(&last_pkt_ts)) {
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
+                    struct timespec delta;
 
-                    timersub(&pkthdr.ts, &last_pkt_ts, &delta);
-                    timeradd_timeval_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
-                    TIMEVAL_SET(&last_pkt_ts, &pkthdr.ts);
+                    timessub(&pkthdr_ts, &last_pkt_ts, &delta);
+                    timeradd_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
                 }
             }
 
@@ -999,7 +998,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
         if (timescmp(pkt_ts_delta, time_delta, >)) {
             /* pkt_time_delta has increased, so handle normally */
             timessub(pkt_ts_delta, time_delta, &nap_for);
-            TIMESPEC_SET(&nap_for, &ctx->nap);
+            TIMESPEC_SET(&ctx->nap, &nap_for);
             dbgx(3, "original packet delta time: " TIMESPEC_FORMAT,
                     ctx->nap.tv_sec, ctx->nap.tv_nsec);
             timesdiv_float(&ctx->nap, options->speed.multiplier);
@@ -1117,8 +1116,9 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
 
 
     /* don't sleep if nap = {0, 0} */
-    if (!timesisset(nap_this_time))
+    if (!timesisset(nap_this_time)){
         return;
+    }
 
     /* do we need to limit the total time we sleep? */
     if (timesisset(&(options->maxsleep)) && (timescmp(nap_this_time, &(options->maxsleep), >))) {
