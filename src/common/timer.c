@@ -92,7 +92,7 @@ init_timestamp(struct timespec *timestamp)
 }
 
 int get_current_time(struct timespec *ts){
-    #ifdef _POSIX_C_SOURCE >= 199309L
+    #if defined _POSIX_C_SOURCE  && _POSIX_C_SOURCE >= 199309L
         return clock_gettime(CLOCK_REALTIME, ts);
     #else
         struct timeval tv;
