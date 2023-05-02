@@ -84,35 +84,34 @@ static inline void
 gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
                    struct timespec *now, bool flush _U_)
 {
-    struct timespec sleep_until;
+    struct timeval now_ms, sleep_until, nap_for, last;
+    TIMESPEC_TO_TIMEVAL(&nap_for, nap);
+    gettimeofday(&now_ms, NULL);
 #ifdef HAVE_NETMAP
-    struct timespec last;
     uint32_t i = 0;
-
-    TIMESPEC_SET(&last, now);
+    TIMEVAL_SET(&last, &now_ms);
 #endif /* HAVE_NETMAP */
-
-    timeradd_timespec(now, nap, &sleep_until);
+    
+    timeradd(&now_ms, &nap_for, &sleep_until);
     while (!sp->abort) {
 #ifdef HAVE_NETMAP
-        if (flush && timescmp(now, &last, !=)) {
-            TIMESPEC_SET(&last, now);
+        if (flush && timercmp(&now_ms, &last, !=)) {
+            TIMESPEC_SET(&last, &now_ms);
             if ((++i & 0xf) == 0)
                 /* flush TX buffer every 16 usec */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
         }
 #endif /* HAVE_NETMAP */
-        if (timescmp(now, &sleep_until, >=))
+        if (timercmp(&now_ms, &sleep_until, >=))
             break;
 
 #ifdef HAVE_SCHED_H
         /* yield the CPU so other apps remain responsive */
         sched_yield();
 #endif
-        struct timeval now_ms;
         gettimeofday(&now_ms, NULL);
-        TIMEVAL_TO_TIMESPEC(&now_ms, now);
     }
+    get_current_time(now);
 }
 
 #ifdef HAVE_SELECT
