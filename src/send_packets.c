@@ -559,8 +559,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 void
 send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_file_idx2)
 {
-    struct timeval last_pkt_ts;
-    struct timespec now, print_delta;
+    struct timespec now, print_delta, last_pkt_ts;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -591,7 +590,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     }
 
     ctx->skip_packets = 0;
-    timerclear(&last_pkt_ts);
+    timesclear(&last_pkt_ts);
     if (options->limit_time > 0)
         end_us = TIMESPEC_TO_MICROSEC(&stats->start_time) +
             SEC_TO_MICROSEC(options->limit_time);
@@ -707,14 +706,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             ctx->skip_packets = 0;
 
             if (options->speed.mode == speed_multiplier) {
-                if (!timerisset(&last_pkt_ts)) {
-                    TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
-                } else if (timercmp(&pkthdr_ptr->ts, &last_pkt_ts, >)) {
-                    struct timeval delta;
+                struct timespec pkthdr_ts;
+                TIMEVAL_TO_TIMESPEC(&pkthdr_ptr->ts, &pkthdr_ts);
+                if (!timesisset(&last_pkt_ts)) {
+                    TIMEVAL_TO_TIMESPEC(&pkthdr_ptr->ts, &last_pkt_ts);
+                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
+                    struct timespec delta;
 
-                    timersub(&pkthdr_ptr->ts, &last_pkt_ts, &delta);
-                    timeradd_timeval_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
-                    TIMEVAL_SET(&last_pkt_ts, &pkthdr_ptr->ts);
+                    timessub(&pkthdr_ts, &last_pkt_ts, &delta);
+                    timeradd_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
                 }
 
                 if (!timesisset(&stats->time_delta))
@@ -998,6 +999,12 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
         if (timescmp(pkt_ts_delta, time_delta, >)) {
             /* pkt_time_delta has increased, so handle normally */
             timessub(pkt_ts_delta, time_delta, &nap_for);
+            // printf("pkt_ts_delta sec: %lu\n", pkt_ts_delta->tv_sec);
+            // printf("pkt_ts_delta nsec: %lu\n", pkt_ts_delta->tv_nsec);
+            // printf("time_delta sec: %lu\n", time_delta->tv_sec);
+            // printf("time_delta nsec: %lu\n", time_delta->tv_nsec);
+            // printf("nap_for sec: %lu\n", nap_for.tv_sec);
+            // printf("nap_for nsec: %lu\n", nap_for.tv_nsec);
             TIMESPEC_SET(&ctx->nap, &nap_for);
             dbgx(3, "original packet delta time: " TIMESPEC_FORMAT,
                     ctx->nap.tv_sec, ctx->nap.tv_nsec);
