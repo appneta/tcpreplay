@@ -84,8 +84,7 @@ static inline void
 gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
                    struct timespec *now, bool flush _U_)
 {
-    struct timespec sleep_until, nap_for;
-    init_timestamp(&nap_for);
+    struct timespec sleep_until;
 #ifdef HAVE_NETMAP
     struct timespec last;
     uint32_t i = 0;
@@ -93,8 +92,7 @@ gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
     TIMESPEC_SET(&last, now);
 #endif /* HAVE_NETMAP */
 
-    timeradd_timespec(now, &nap_for, &sleep_until);
-    
+    timeradd_timespec(now, nap, &sleep_until);
     while (!sp->abort) {
 #ifdef HAVE_NETMAP
         if (flush && timescmp(now, &last, !=)) {
