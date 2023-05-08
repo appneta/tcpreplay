@@ -217,6 +217,7 @@ struct sendpacket_s {
     unsigned int pckt_count;
     int frame_size;
     int tx_idx;
+    int tx_size;
 #endif
     bool abort;
 };

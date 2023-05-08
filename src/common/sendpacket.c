@@ -1430,6 +1430,7 @@ static sendpacket_t * sendpacket_open_xsk(const char *device, char *errbuf){
     sp->xsk_info = xsk_info;
     sp->umem_info = umem_info;
     sp->frame_size = frame_size;
+    sp->tx_size = nb_of_tx_queue_desc;
     return sp;
 }
 

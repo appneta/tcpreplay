@@ -1168,6 +1168,14 @@ tcpreplay_replay(tcpreplay_t *ctx)
                 if (ctx->options->stats == 0)
                     packet_stats(&ctx->stats);
             }
+
+            #ifdef HAVE_LIBXDP
+            sendpacket_t* sp = ctx->intf1;
+            if(sp->handle_type == SP_TYPE_LIBXDP){
+                sp->xsk_info->tx.cached_prod = 0;
+                sp->xsk_info->tx.cached_cons = sp->tx_size;
+            }
+            #endif
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */
