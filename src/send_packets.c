@@ -1238,7 +1238,16 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
     return(uint32_t)send;
 }
 #ifdef HAVE_LIBXDP
+void check_packet_fits_in_umem_frame(sendpacket_t* sp, int packet_len){
+    if(packet_len > sp->frame_size){
+        fprintf(stderr, "ERROR: packet size cannot be larger than the size of an UMEM frame! Packet size: %i  Frame size: %i\n", packet_len, sp->frame_size);
+        free_umem_and_xsk(sp);
+        exit(-1);
+    }
+}
+
 static inline void fill_umem_with_data_and_set_xdp_desc(sendpacket_t* sp, int tx_idx, COUNTER umem_index, u_char* pktdata, int len){
+    check_packet_fits_in_umem_frame(sp, len);
     COUNTER umem_index_mod = (umem_index % sp->batch_size) * sp->frame_size; // packets are sent in batch, after each batch umem memory is reusable
     gen_eth_frame(sp->umem_info, umem_index_mod, pktdata, len);
     struct xdp_desc* xdp_desc = xsk_ring_prod__tx_desc(&(sp->xsk_info->tx), tx_idx);
