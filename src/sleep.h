@@ -60,7 +60,7 @@ nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
         struct timespec sleep_until;
         timeradd_timespec(now, nap, &sleep_until);
     #if defined _POSIX_C_SOURCE  && _POSIX_C_SOURCE >= 200112L
-        clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_until, NULL);
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep_until, NULL);
     #else
         nanosleep(nap, NULL);
     #endif
