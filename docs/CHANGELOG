@@ -1,3 +1,6 @@
+06/04/2023 Version 4.4.4-Beta1
+    - CVE-2023-27783 reachable assert in tcpedit_dlt_cleanup (#780)
+
 01/01/2023 Version 4.4.3
     - upgrade autogen/libopts to version 5.18.16 (#759)
     - avoid implicit int in configure.ac (#757)
