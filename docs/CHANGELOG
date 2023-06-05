@@ -1,6 +1,8 @@
 06/04/2023 Version 4.4.4-beta1
+    - CVE-2023-27786 bugs caused by strtok_r (#782 #784 #785 #786 #787 #788)
     - CVE-2023-27783 reachable assert in tcpedit_dlt_cleanup (#780)
     - add CI - C/C++ Linter and CodeQL (#773)
+
 01/01/2023 Version 4.4.3
     - upgrade autogen/libopts to version 5.18.16 (#759)
     - avoid implicit int in configure.ac (#757)

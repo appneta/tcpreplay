@@ -253,6 +253,8 @@ parse_cidr(tcpr_cidr_t **cidrdata, char *cidrin, char *delim)
 
     /* first iteration of input using strtok */
     network = strtok_r(cidrin, delim, &token);
+    if (network == NULL)
+        return 0;
 
     *cidrdata = cidr2cidr(network);
     cidr_ptr = *cidrdata;
@@ -320,6 +322,8 @@ parse_endpoints(tcpr_cidrmap_t **cidrmap1, tcpr_cidrmap_t **cidrmap2, const char
         /* ipv4 mode */
         memset(newmap, '\0', NEWMAP_LEN);
         map = strtok_r(string, ":", &token);
+        if (map == NULL)
+            goto done;
 
         strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
         strlcat(newmap, map, NEWMAP_LEN);
