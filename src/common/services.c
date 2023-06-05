@@ -22,7 +22,6 @@
 #include "defines.h"
 #include "common.h"
 
-#include <sys/types.h>
 #include <regex.h>
 #include <errno.h>
 #include <string.h>
@@ -76,7 +75,7 @@ parse_services(const char *file, tcpr_services_t *services)
             strncpy(proto, &service_line[pmatch[2].rm_so], (pmatch[2].rm_eo - pmatch[2].rm_so));
 
             /* convert port[] into an integer */
-            portc = (uint16_t)atoi(port);
+            portc = (uint16_t)strtol(port, NULL, 10);
 
             /* update appropriate service array with the server port */
             if (strcmp(proto, "tcp") == 0) {

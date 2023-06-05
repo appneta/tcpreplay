@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __TCPDUMP_H__
-#define __TCPDUMP_H__
+#pragma once
 
 /* line buffer stdout, read from stdin */
 #define TCPDUMP_ARGS " -n -l -r -"
@@ -56,7 +55,7 @@
  * 1. data from parent to child's STDIN
  * 2. child's STDOUT to this program
  */
-#define NUM_PIPES   2
+#define NUM_PIPES 2
 
 /* unidirectional rule for pipes: pipe[0] for read, pipe[1] for writes  */
 enum {
@@ -69,11 +68,11 @@ enum {
     PARENT_WRITE_PIPE,
 };
 
-#define PARENT_READ_FD  (tcpdump->pipes[PARENT_READ_PIPE][READ_FD])
+#define PARENT_READ_FD (tcpdump->pipes[PARENT_READ_PIPE][READ_FD])
 #define PARENT_WRITE_FD (tcpdump->pipes[PARENT_WRITE_PIPE][WRITE_FD])
 
-#define CHILD_READ_FD   (tcpdump->pipes[PARENT_WRITE_PIPE][READ_FD])
-#define CHILD_WRITE_FD  (tcpdump->pipes[PARENT_READ_PIPE][WRITE_FD])
+#define CHILD_READ_FD (tcpdump->pipes[PARENT_WRITE_PIPE][READ_FD])
+#define CHILD_WRITE_FD (tcpdump->pipes[PARENT_READ_PIPE][WRITE_FD])
 
 typedef struct tcpdump_s {
     char *filename;
@@ -83,7 +82,7 @@ typedef struct tcpdump_s {
     int pipes[NUM_PIPES][2];
 
     /* following vars are for figuring out exactly what we send to
-     * tcpdump.  See TCPDUMP_DEBUG 
+     * tcpdump.  See TCPDUMP_DEBUG
      */
 #ifdef DEBUG
     int debugfd;
@@ -91,11 +90,8 @@ typedef struct tcpdump_s {
 #endif
 } tcpdump_t;
 
-//int tcpdump_init(tcpdump_t *tcpdump);
+// int tcpdump_init(tcpdump_t *tcpdump);
 int tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap);
-//int tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap);
+// int tcpdump_open_live(tcpdump_t *tcpdump, pcap_t *pcap);
 int tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data);
 void tcpdump_close(tcpdump_t *tcpdump);
-void tcpdump_kill(tcpdump_t *tcpdump);
-
-#endif

@@ -31,18 +31,17 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * FIXME: If you are creating an encoder plugin with any options
- * then you need to create API calls for each option so that the 
+ * then you need to create API calls for each option so that the
  * GUI or other programs using libtcpedit can set those values.
  *
  * Just uncomment the following headers, declare your methods in
  * pppserial_api.h and write them here...
- 
+
 #include "common.h"
-#include "tcpr.h"
-#include "tcpedit.h"
 #include "pppserial_types.h"
+#include "tcpedit.h"
+#include "tcpr.h"
 
 */

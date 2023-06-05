@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -32,26 +32,20 @@
  * Lawrence Berkeley Laboratory and its contributors
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
-#include <stdlib.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
 #endif
 
 #include "tcpdump.h"
-
-#ifdef DEBUG
-extern int debug;
-#endif
 
 char *options_vec[OPTIONS_VEC_SIZE];
 static int tcpdump_fill_in_options(char *opt);
@@ -71,8 +65,8 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
             uint32_t ts_sec;
             uint32_t ts_usec;
         } ts;
-        uint32_t caplen;              /* length of portion present */
-        uint32_t len;                 /* length this packet (off wire) */
+        uint32_t caplen; /* length of portion present */
+        uint32_t len;    /* length this packet (off wire) */
     } actual_pkthdr;
 
     assert(tcpdump);
@@ -94,30 +88,30 @@ header_again:
     /* wait until we can write the header to the tcpdump pipe */
     res = poll(&poller, 1, TCPDUMP_POLL_TIMEOUT);
     if (res < 0)
-        errx(-1, "Error writing header to fd %d during poll() to write to tcpdump\n%s",
-                PARENT_WRITE_FD, strerror(errno));
+        errx(-1,
+             "Error writing header to fd %d during poll() to write to tcpdump\n%s",
+             PARENT_WRITE_FD,
+             strerror(errno));
 
     if (res == 0)
-        err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
+        err(-1,
+            "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
 #ifdef DEBUG
     if (debug >= 5) {
-        if (write(tcpdump->debugfd, (char *)&actual_pkthdr, sizeof(actual_pkthdr))
-            != sizeof(actual_pkthdr))
+        if (write(tcpdump->debugfd, (char *)&actual_pkthdr, sizeof(actual_pkthdr)) != sizeof(actual_pkthdr))
             errx(-1, "Error writing pcap file header to tcpdump debug\n%s", strerror(errno));
     }
 #endif
     /* res > 0 if we get here */
     while (total != sizeof(actual_pkthdr) &&
-            (res = write(PARENT_WRITE_FD, &actual_pkthdr + total,
-                    sizeof(actual_pkthdr) - total))) {
+           (res = (int)write(PARENT_WRITE_FD, &actual_pkthdr + total, sizeof(actual_pkthdr) - total))) {
         if (res < 0) {
             if (errno == EAGAIN)
                 goto header_again;
 
-            errx(-1, "Error writing pcap file header to tcpdump\n%s",
-                    strerror(errno));
+            errx(-1, "Error writing pcap file header to tcpdump\n%s", strerror(errno));
         }
 
         total += res;
@@ -132,11 +126,11 @@ data_again:
 
     res = poll(&poller, 1, TCPDUMP_POLL_TIMEOUT);
     if (res < 0)
-        errx(-1, "Error writing to fd %d during poll() to write to tcpdump\n%s",
-                PARENT_WRITE_FD, strerror(errno));
+        errx(-1, "Error writing to fd %d during poll() to write to tcpdump\n%s", PARENT_WRITE_FD, strerror(errno));
 
     if (res == 0)
-        err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
+        err(-1,
+            "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
 #ifdef DEBUG
@@ -147,7 +141,7 @@ data_again:
 #endif
 
     while (total != (ssize_t)pkthdr->caplen &&
-            (res = write(PARENT_WRITE_FD, data + total, pkthdr->caplen - total))) {
+           (res = (int)write(PARENT_WRITE_FD, data + total, pkthdr->caplen - total))) {
         if (res < 0) {
             if (errno == EAGAIN)
                 goto data_again;
@@ -165,14 +159,14 @@ data_again:
 
     res = poll(&poller, 1, TCPDUMP_POLL_TIMEOUT);
     if (res < 0)
-        errx(-1, "Error out to fd %d during poll() to read from tcpdump\n%s",
-                PARENT_READ_FD, strerror(errno));
+        errx(-1, "Error out to fd %d during poll() to read from tcpdump\n%s", PARENT_READ_FD, strerror(errno));
 
     if (res == 0)
-        err(-1, "poll() timeout... tcpdump seems to be having a problem keeping up\n"
+        err(-1,
+            "poll() timeout... tcpdump seems to be having a problem keeping up\n"
             "Try increasing TCPDUMP_POLL_TIMEOUT");
 
-    while ((res = read(PARENT_READ_FD, decode, TCPDUMP_DECODE_LEN))) {
+    while ((res = (int)read(PARENT_READ_FD, decode, TCPDUMP_DECODE_LEN))) {
         if (res < 0) {
             if (errno == EAGAIN)
                 break;
@@ -180,7 +174,7 @@ data_again:
             errx(-1, "Error reading tcpdump decode: %s", strerror(errno));
         }
 
-        decode[min(res, TCPDUMP_DECODE_LEN-1)] = 0;
+        decode[min(res, TCPDUMP_DECODE_LEN - 1)] = 0;
         dbgx(4, "read %d byte from tcpdump", res);
         printf("%s", decode);
     }
@@ -205,17 +199,18 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
     }
 
     /* is tcpdump executable? */
-    if (! can_exec(TCPDUMP_BINARY)) {
+    if (!can_exec(TCPDUMP_BINARY)) {
         errx(-1, "Unable to execute tcpdump binary: %s", TCPDUMP_BINARY);
     }
 
 #ifdef DEBUG
-     strlcpy(tcpdump->debugfile, TCPDUMP_DEBUG, sizeof(tcpdump->debugfile));
-     if (debug >= 5) {
-         dbgx(5, "Opening tcpdump debug file: %s", tcpdump->debugfile);
+    strlcpy(tcpdump->debugfile, TCPDUMP_DEBUG, sizeof(tcpdump->debugfile));
+    if (debug >= 5) {
+        dbgx(5, "Opening tcpdump debug file: %s", tcpdump->debugfile);
 
-         if ((tcpdump->debugfd = open(tcpdump->debugfile, O_WRONLY|O_CREAT|O_TRUNC, 
-                S_IREAD|S_IWRITE|S_IRGRP|S_IROTH)) == -1) {
+        if ((tcpdump->debugfd =
+                     open(tcpdump->debugfile, O_WRONLY | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE | S_IRGRP | S_IROTH)) ==
+            -1) {
             errx(-1, "Error opening tcpdump debug file: %s\n%s", tcpdump->debugfile, strerror(errno));
         }
     }
@@ -228,11 +223,10 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
     dbg(2, "Starting tcpdump...");
 
     /* create our pipe to send packet data to tcpdump via */
-    if (pipe(tcpdump->pipes[PARENT_READ_PIPE]) < 0 ||
-            pipe(tcpdump->pipes[PARENT_WRITE_PIPE]) < 0)
+    if (pipe(tcpdump->pipes[PARENT_READ_PIPE]) < 0 || pipe(tcpdump->pipes[PARENT_WRITE_PIPE]) < 0)
         errx(-1, "Unable to create pipe: %s", strerror(errno));
 
-    if ((tcpdump->pid = fork() ) < 0)
+    if ((tcpdump->pid = fork()) < 0)
         errx(-1, "Fork failed: %s", strerror(errno));
 
     dbgx(2, "tcpdump pid: %d", tcpdump->pid);
@@ -241,8 +235,7 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
         /* parent - we're still in tcpreplay */
 
         /* close fds not required by parent */
-        dbgx(2, "[parent] closing child read/write fd %d/%d", CHILD_READ_FD,
-                CHILD_WRITE_FD);
+        dbgx(2, "[parent] closing child read/write fd %d/%d", CHILD_READ_FD, CHILD_WRITE_FD);
         close(CHILD_READ_FD);
         close(CHILD_WRITE_FD);
         CHILD_READ_FD = 0;
@@ -255,7 +248,7 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
             return FALSE;
         }
 
-        pcap_dump_flush((pcap_dumper_t*)writer);
+        pcap_dump_flush((pcap_dumper_t *)writer);
 
         if (fcntl(PARENT_WRITE_FD, F_SETFL, O_NONBLOCK) < 0)
             warnx("[parent] Unable to fcntl write pipe:\n%s", strerror(errno));
@@ -267,21 +260,18 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 
         /* we're in the child process - run "tcpdump  <options> -r -" */
         if (dup2(CHILD_READ_FD, STDIN_FILENO) != STDIN_FILENO) {
-            errx(-1, "[child] Unable to duplicate socket to stdin: %s",
-                                strerror(errno));
+            errx(-1, "[child] Unable to duplicate socket to stdin: %s", strerror(errno));
         }
 
         if (dup2(CHILD_WRITE_FD, STDOUT_FILENO) != STDOUT_FILENO) {
-            errx(-1, "[child] Unable to duplicate socket to stdout: %s",
-                                strerror(errno));
+            errx(-1, "[child] Unable to duplicate socket to stdout: %s", strerror(errno));
         }
 
         /*
          * Close sockets not required by child. The exec'ed program must
          * not know that they ever existed.
          */
-        dbgx(2, "[child] closing in fds %d/%d/%d/%d", CHILD_READ_FD,
-                CHILD_WRITE_FD, PARENT_READ_FD, PARENT_WRITE_FD);
+        dbgx(2, "[child] closing in fds %d/%d/%d/%d", CHILD_READ_FD, CHILD_WRITE_FD, PARENT_READ_FD, PARENT_WRITE_FD);
         close(CHILD_READ_FD);
         close(CHILD_WRITE_FD);
         close(PARENT_READ_FD);
@@ -299,12 +289,12 @@ tcpdump_open(tcpdump_t *tcpdump, pcap_t *pcap)
 }
 
 /**
- * shutdown tcpdump 
+ * shutdown tcpdump
  */
 void
 tcpdump_close(tcpdump_t *tcpdump)
 {
-    if (! tcpdump)
+    if (!tcpdump)
         return;
 
     if (tcpdump->pid <= 0)
@@ -324,21 +314,6 @@ tcpdump_close(tcpdump_t *tcpdump)
     PARENT_WRITE_FD = 0;
 }
 
-/** 
- * forcefully kill tcpdump 
- */
-void
-tcpdump_kill(tcpdump_t *tcpdump)
-{
-    if (tcpdump->pid) {
-        if (kill(tcpdump->pid, SIGTERM) != 0)
-            kill(tcpdump->pid, SIGKILL);
-    }
-
-    tcpdump->pid = 0;
-}
-
-
 /**
  * copy the string of args (*opt) to the vector (**opt_vec)
  * for a max of opt_len.  Returns the number of options
@@ -354,10 +329,9 @@ tcpdump_fill_in_options(char *opt)
 
     /* zero out our options_vec for execv() */
     memset(options_vec, '\0', sizeof(options_vec));
-    
+
     /* first arg should be the binary (by convention) */
     options_vec[0] = TCPDUMP_BINARY;
-       
 
     /* prep args */
     memset(options, '\0', 256);
@@ -367,31 +341,27 @@ tcpdump_fill_in_options(char *opt)
     strlcat(options, TCPDUMP_ARGS, sizeof(options));
     dbgx(2, "[child] Will execute: tcpdump %s", options);
 
-
     /* process args */
-    
+
     /* process the first argument */
     arg = strtok_r(options, OPT_DELIM, &token);
-    arglen = strlen(arg) + 2; /* -{arg}\0 */
+    arglen = (int)strlen(arg) + 2; /* -{arg}\0 */
     newarg = (char *)safe_malloc(arglen);
-    strlcat(newarg, "-", arglen); 
+    strlcat(newarg, "-", arglen);
     strlcat(newarg, arg, arglen);
     options_vec[i++] = newarg;
 
-    /* process the remaining args 
+    /* process the remaining args
      * note that i < OPTIONS_VEC_SIZE - 1
      * because: a) we need to add '-' as an option to the end
      * b) because the array has to be null terminated
      */
-    while (((arg = strtok_r(NULL, OPT_DELIM, &token)) != NULL) &&
-           (i < OPTIONS_VEC_SIZE - 1)) {
-
-        arglen = strlen(arg) + 2;
+    while (((arg = strtok_r(NULL, OPT_DELIM, &token)) != NULL) && (i < OPTIONS_VEC_SIZE - 1)) {
+        arglen = (int)strlen(arg) + 2;
         newarg = (char *)safe_malloc(arglen);
         strlcat(newarg, "-", arglen);
         strlcat(newarg, arg, arglen);
         options_vec[i++] = newarg;
-
     }
 
     /* tell -r to read from stdin */
@@ -400,16 +370,17 @@ tcpdump_fill_in_options(char *opt)
     return i;
 }
 
-
 /**
- * can we exec the given file? 
+ * can we exec the given file?
  */
 static int
 can_exec(const char *filename)
 {
     struct stat st;
 
-    if (!filename || filename[0] == '\0')
+    assert (filename);
+
+    if (filename[0] == '\0')
         return FALSE;
 
     /* Stat the file to see if it's executable and
@@ -418,9 +389,7 @@ can_exec(const char *filename)
     if (lstat(filename, &st) < 0)
         return FALSE;
 
-    if ((st.st_mode & S_IXUSR) ||
-        (st.st_mode & S_IXGRP) ||
-        (st.st_mode & S_IXOTH))
+    if ((st.st_mode & S_IXUSR) || (st.st_mode & S_IXGRP) || (st.st_mode & S_IXOTH))
         return TRUE;
 
     return FALSE;

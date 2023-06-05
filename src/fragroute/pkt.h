@@ -6,12 +6,11 @@
  * $Id$
  */
 
-#ifndef PKT_H
-#define PKT_H
+#pragma once
 
+#include "defines.h"
 #include "config.h"
 #include "lib/queue.h"
-#include "defines.h"
 #include <sys/time.h>
 
 #ifdef HAVE_LIBDNET
@@ -28,8 +27,8 @@
 #endif
 #endif
 
-#define PKT_BUF_LEN    (ETH_HDR_LEN + ETH_MTU)
-#define PKT_BUF_ALIGN    2
+#define PKT_BUF_LEN (ETH_HDR_LEN + ETH_MTU)
+#define PKT_BUF_ALIGN 2
 
 struct pkt {
     struct timeval pkt_ts;
@@ -58,31 +57,29 @@ struct pkt {
 
     TAILQ_ENTRY(pkt) pkt_next;
 };
-#define pkt_ip         pkt_n_hdr_u.ip
-#define pkt_ip6         pkt_n_hdr_u.ip6
-#define pkt_eth_data     pkt_n_hdr_u.eth_data
+#define pkt_ip pkt_n_hdr_u.ip
+#define pkt_ip6 pkt_n_hdr_u.ip6
+#define pkt_eth_data pkt_n_hdr_u.eth_data
 
-#define pkt_icmp     pkt_t_hdr_u.icmp
-#define pkt_tcp         pkt_t_hdr_u.tcp
-#define pkt_udp         pkt_t_hdr_u.udp
-#define pkt_ip_data     pkt_t_hdr_u.ip_data
+#define pkt_icmp pkt_t_hdr_u.icmp
+#define pkt_tcp pkt_t_hdr_u.tcp
+#define pkt_udp pkt_t_hdr_u.udp
+#define pkt_ip_data pkt_t_hdr_u.ip_data
 
-#define pkt_tcp_data     pkt_t_data_u.t_data
-#define pkt_udp_data     pkt_t_data_u.t_data
-#define pkt_icmp_msg     pkt_t_data_u.icmp
+#define pkt_tcp_data pkt_t_data_u.t_data
+#define pkt_udp_data pkt_t_data_u.t_data
+#define pkt_icmp_msg pkt_t_data_u.icmp
 
 TAILQ_HEAD(pktq, pkt);
 
-void         pkt_init(int size);
-void         pkt_close(void);
+void pkt_init(int size);
+void pkt_close(void);
 
-struct pkt    *pkt_new(size_t len);
-struct pkt    *pkt_dup(struct pkt *);
-void         pkt_decorate(struct pkt *pkt);
-void         pkt_free(struct pkt *pkt);
+struct pkt *pkt_new(size_t len);
+struct pkt *pkt_dup(struct pkt *);
+void pkt_decorate(struct pkt *pkt);
+void pkt_free(struct pkt *pkt);
 
-void         pktq_reverse(struct pktq *pktq);
-void         pktq_shuffle(rand_t *r, struct pktq *pktq);
-struct pkt    *pktq_random(rand_t *r, struct pktq *pktq);
-
-#endif /* PKT_H */
+void pktq_reverse(struct pktq *pktq);
+void pktq_shuffle(rand_t *r, struct pktq *pktq);
+struct pkt *pktq_random(rand_t *r, struct pktq *pktq);

@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,23 +18,16 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
-
+#include <errno.h>
 #include <fcntl.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
-#include <errno.h>
-
-#ifdef DEBUG
-extern int debug;
-#endif
 
 static tcpr_cache_t *new_cache(void);
 
@@ -44,8 +37,9 @@ static tcpr_cache_t *new_cache(void);
  */
 #ifdef DEBUG
 static char *
-byte2bits(char byte, char *bitstring) {
-    int i = 1, j = 7;
+byte2bits(char byte, char *bitstring)
+{
+    int i, j = 7;
 
     for (i = 1; i <= 255; i = i << 1) {
         if (byte & i)
@@ -61,7 +55,7 @@ byte2bits(char byte, char *bitstring) {
  * simple function to read in a cache file created with tcpprep this let's us
  * be really damn fast in picking an interface to send the packet out returns
  * number of cache entries read
- * 
+ *
  * now also checks for the cache magic and version
  */
 
@@ -70,8 +64,8 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
 {
     int cachefd;
     tcpr_cache_file_hdr_t header;
-    ssize_t read_size = 0;
-    COUNTER cache_size = 0;
+    ssize_t read_size;
+    COUNTER cache_size;
 
     assert(cachedata);
     assert(comment);
@@ -92,50 +86,48 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
         errx(-1, "Unable to process %s: not a tcpprep cache file", cachefile);
 
     /* verify version */
-    if (atoi(header.version) != atoi(CACHEVERSION))
-        errx(-1, "Unable to process %s: cache file version mismatch",
-             cachefile);
+    if (strtol(header.version, NULL, 10) != strtol(CACHEVERSION, NULL, 10))
+        errx(-1, "Unable to process %s: cache file version mismatch", cachefile);
 
     /* read the comment */
     header.comment_len = ntohs(header.comment_len);
     if (header.comment_len > 65534)
-        errx(-1, "Unable to process %s: invalid comment length %u",
-                cachefile, header.comment_len);
+        errx(-1, "Unable to process %s: invalid comment length %u", cachefile, header.comment_len);
 
     *comment = (char *)safe_malloc(header.comment_len + 1);
 
     dbgx(1, "Comment length: %d", header.comment_len);
-    
+
     if ((read_size = read(cachefd, *comment, header.comment_len)) < 0)
         errx(-1, "Error reading comment: %s", strerror(errno));
 
     if (read_size != (ssize_t)header.comment_len)
-        errx(-1, "Invalid comment read: expected=%u actual=%zd bytes",
-            header.comment_len, read_size);
+        errx(-1, "Invalid comment read: expected=%u actual=%zd bytes", header.comment_len, read_size);
 
     dbgx(1, "Cache file comment: %s", *comment);
 
     /* malloc our cache block */
     header.num_packets = ntohll(header.num_packets);
-    header.packets_per_byte = ntohs(header.packets_per_byte);    
+    header.packets_per_byte = ntohs(header.packets_per_byte);
     cache_size = header.num_packets / header.packets_per_byte;
-        
+
     /* deal with any remainder, because above division is integer */
     if (header.num_packets % header.packets_per_byte)
-      cache_size ++;
+        cache_size++;
 
-    dbgx(1, "Cache file contains %" PRIu64 " packets in " COUNTER_SPEC " bytes",
-        header.num_packets, cache_size);
+    dbgx(1, "Cache file contains %" PRIu64 " packets in " COUNTER_SPEC " bytes", header.num_packets, cache_size);
 
     dbgx(1, "Cache uses %d packets per byte", header.packets_per_byte);
 
     *cachedata = (char *)safe_malloc(cache_size);
 
     /* read in the cache */
-    if ((COUNTER)(read_size = read(cachefd, *cachedata, cache_size)) 
-            != cache_size)
-        errx(-1, "Cache data length (%zu bytes) doesn't match "
-            "cache header (" COUNTER_SPEC " bytes)", read_size, cache_size);
+    if ((COUNTER)(read_size = read(cachefd, *cachedata, cache_size)) != cache_size)
+        errx(-1,
+             "Cache data length (%zu bytes) doesn't match "
+             "cache header (" COUNTER_SPEC " bytes)",
+             read_size,
+             cache_size);
 
     dbgx(1, "Loaded in %" PRIu64 " packets from cache.", header.num_packets);
 
@@ -143,29 +135,26 @@ read_cache(char **cachedata, const char *cachefile, char **comment)
     return (header.num_packets);
 }
 
-
 /**
  * writes out the cache file header, comment and then the
- * contents of *cachedata to out_file and then returns the number 
+ * contents of *cachedata to out_file and then returns the number
  * of cache entries written
  */
 COUNTER
-write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets, 
-    char *comment)
+write_cache(tcpr_cache_t *cachedata, const int out_file, COUNTER numpackets, char *comment)
 {
     tcpr_cache_t *mycache = NULL;
     tcpr_cache_file_hdr_t *cache_header = NULL;
     uint32_t chars, last = 0;
     COUNTER packets = 0;
-    ssize_t written = 0;
+    ssize_t written;
 
     assert(out_file);
 
     /* write a header to our file */
-    cache_header = (tcpr_cache_file_hdr_t *)
-        safe_malloc(sizeof(tcpr_cache_file_hdr_t));
-    strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC)+1);
-    strncpy(cache_header->version, CACHEVERSION, strlen(CACHEVERSION)+1);
+    cache_header = (tcpr_cache_file_hdr_t *)safe_malloc(sizeof(tcpr_cache_file_hdr_t));
+    strncpy(cache_header->magic, CACHEMAGIC, strlen(CACHEMAGIC) + 1);
+    strncpy(cache_header->version, CACHEVERSION, strlen(CACHEVERSION) + 1);
     cache_header->packets_per_byte = htons(CACHE_PACKETS_PER_BYTE);
     cache_header->num_packets = htonll((u_int64_t)numpackets);
 
@@ -180,18 +169,22 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
     dbgx(1, "Wrote %zu bytes of cache file header", written);
 
     if (written != sizeof(tcpr_cache_file_hdr_t))
-        errx(-1, "Only wrote %zu of %zu bytes of the cache file header!\n%s",
-             written, sizeof(tcpr_cache_file_hdr_t),
+        errx(-1,
+             "Only wrote %zu of %zu bytes of the cache file header!\n%s",
+             written,
+             sizeof(tcpr_cache_file_hdr_t),
              written == -1 ? strerror(errno) : "");
 
     /* don't write comment if there is none */
     if (comment != NULL) {
         written = write(out_file, comment, strlen(comment));
         dbgx(1, "Wrote %zu bytes of comment", written);
-        
+
         if (written != (ssize_t)strlen(comment))
-            errx(-1, "Only wrote %zu of %zu bytes of the comment!\n%s",
-                 written, strlen(comment), 
+            errx(-1,
+                 "Only wrote %zu of %zu bytes of the comment!\n%s",
+                 written,
+                 strlen(comment),
                  written == -1 ? strerror(errno) : "");
     }
 
@@ -206,8 +199,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
             chars = mycache->packets / CACHE_PACKETS_PER_BYTE;
             if (mycache->packets % CACHE_PACKETS_PER_BYTE) {
                 chars++;
-                dbgx(1, "Bumping up to the next byte: %d %% %d", mycache->packets,
-                        CACHE_PACKETS_PER_BYTE);
+                dbgx(1, "Bumping up to the next byte: %d %% %d", mycache->packets, CACHE_PACKETS_PER_BYTE);
             }
 
             /* write to file, and verify it wrote properly */
@@ -222,8 +214,7 @@ write_cache(tcpr_cache_t * cachedata, const int out_file, COUNTER numpackets,
              */
             if (mycache->next != NULL) {
                 mycache = mycache->next;
-            }
-            else {
+            } else {
                 last = 1;
             }
         }
@@ -252,10 +243,10 @@ new_cache(void)
  */
 
 tcpr_dir_t
-add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
+add_cache(tcpr_cache_t **cachedata, const int send, const tcpr_dir_t interface)
 {
     static tcpr_cache_t *lastcache = NULL;
-    tcpr_dir_t result = TCPR_DIR_ERROR;
+    tcpr_dir_t result;
 #ifdef DEBUG
     char bitstring[9] = EIGHT_ZEROS;
 #endif
@@ -266,8 +257,7 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
     if (*cachedata == NULL || lastcache == NULL) {
         *cachedata = new_cache();
         lastcache = *cachedata;
-    }
-    else {
+    } else {
         /* check to see if this is the last bit in this struct */
         if ((lastcache->packets + 1) > (CACHEDATASIZE * CACHE_PACKETS_PER_BYTE)) {
             /*
@@ -290,12 +280,11 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
         u_char *byte;
 
         index = (lastcache->packets - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
-        bit = (((lastcache->packets - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
-               (COUNTER)CACHE_BITS_PER_PACKET) + 1;
+        bit = (((lastcache->packets - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * (COUNTER)CACHE_BITS_PER_PACKET) + 1;
         dbgx(3, "Bit: %d", bit);
 
-        byte = (u_char *) & lastcache->data[index];
-        *byte += (u_char) (1 << bit);
+        byte = (u_char *)&lastcache->data[index];
+        *byte += (u_char)(1 << bit);
 
         dbgx(2, "set send bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
 
@@ -305,19 +294,17 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
 
             dbgx(2, "set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
             result = TCPR_DIR_C2S;
-        }
-        else {
+        } else {
             dbgx(2, "don't set interface bit: byte " COUNTER_SPEC " = 0x%x", index, *byte);
             result = TCPR_DIR_S2C;
         }
 
 #ifdef DEBUG
-        /* 
+        /*
          * only build the byte string when not in debug mode since
          * the calculation is a bit expensive
          */
-        dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c",
-            BIT_STR(byte2bits(*byte, bitstring)));
+        dbgx(3, "Current cache byte: %c%c%c%c%c%c%c%c", BIT_STR(byte2bits(*byte, bitstring)));
 #endif
     } else {
         dbg(1, "not setting send bit");
@@ -327,14 +314,13 @@ add_cache(tcpr_cache_t ** cachedata, const int send, const tcpr_dir_t interface)
     return result;
 }
 
-
 /**
  * returns the action for a given packet based on the CACHE
  */
 tcpr_dir_t
 check_cache(char *cachedata, COUNTER packetid)
 {
-    COUNTER index = 0;
+    COUNTER index;
     uint32_t bit;
 
     assert(cachedata);
@@ -343,12 +329,15 @@ check_cache(char *cachedata, COUNTER packetid)
         err(-1, "packetid must be > 0");
 
     index = (packetid - 1) / (COUNTER)CACHE_PACKETS_PER_BYTE;
-    bit = (uint32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * 
-        (COUNTER)CACHE_BITS_PER_PACKET) + 1;
+    bit = (uint32_t)(((packetid - 1) % (COUNTER)CACHE_PACKETS_PER_BYTE) * (COUNTER)CACHE_BITS_PER_PACKET) + 1;
 
 #ifdef DEBUG
-    dbgx(3, "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu", index, bit,
-        cachedata[index], (uint8_t)(cachedata[index] & (char)(1 << bit)));
+    dbgx(3,
+         "Index: " COUNTER_SPEC "\tBit: %d\tByte: %hhu\tMask: %hhu",
+         index,
+         bit,
+         cachedata[index],
+         (uint8_t)(cachedata[index] & (char)(1 << bit)));
 #endif
 
     if (!(cachedata[index] & (char)(1 << bit))) {
@@ -359,10 +348,7 @@ check_cache(char *cachedata, COUNTER packetid)
     bit--;
     if (cachedata[index] & (char)(1 << bit)) {
         return TCPR_DIR_C2S;
-    }
-    else {
+    } else {
         return TCPR_DIR_S2C;
     }
-
-    return TCPR_DIR_ERROR;
 }
