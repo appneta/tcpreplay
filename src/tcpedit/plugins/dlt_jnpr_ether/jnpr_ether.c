@@ -164,7 +164,8 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
         jnpr_ether_config_t *config;
 
         config = (jnpr_ether_config_t *)ctx->encoder->config;
-        tcpedit_dlt_cleanup(config->subctx);
+        if (config->subctx != NULL)
+            tcpedit_dlt_cleanup(config->subctx);
         safe_free(plugin->config);
         plugin->config = NULL;
         plugin->config_size = 0;
