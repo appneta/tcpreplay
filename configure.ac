@@ -830,7 +830,7 @@ fi
 
 # libpcap can require libnl
 AC_SEARCH_LIBS([nl_handle_alloc], [nl],
-        [AC_MSG_NOTICE([Unable to find xdp library - may be needed by libpcap])])
+        [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
 
 AC_CHECK_LIB(bpf, bpf_object__open_file,,
         [AC_MSG_NOTICE([Unable to find libbpf library ])])
