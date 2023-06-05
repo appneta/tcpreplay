@@ -113,12 +113,12 @@ macinstring(const char *macstring, const u_char *mac)
 
     tempstr = strtok_r(ourstring, ",", &tok);
     if (tempstr != NULL && strlen(tempstr)) {
-       mac2hex(tempstr, tempmac, len);
-       if (memcmp(mac, tempmac, len) == 0) {
-           dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
-           ret = TCPR_DIR_C2S;
-           goto EXIT_MACINSTRING;
-       }
+        mac2hex(tempstr, tempmac, len);
+        if (memcmp(mac, tempmac, len) == 0) {
+            dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));
+            ret = TCPR_DIR_C2S;
+            goto EXIT_MACINSTRING;
+        }
     } else {
         goto EXIT_MACINSTRING;
     }
