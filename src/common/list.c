@@ -78,7 +78,7 @@ parse_list(tcpr_list_t ** listdata, char *ourstr)
     second = NULL;
 
     /* regex test */
-    if (regexec(&preg, this, 0, NULL, 0) != 0) {
+    if (this == NULL || regexec(&preg, this, 0, NULL, 0) != 0) {
         warnx("Unable to parse: %s", this);
         regfree(&preg);
         return 0;

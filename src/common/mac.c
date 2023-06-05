@@ -117,7 +117,7 @@ macinstring(const char *macstring, const u_char *mac)
     memset(&tempmac[0], 0, sizeof(tempmac));
     
     tempstr = strtok_r(ourstring, ",", &tok);
-    if (strlen(tempstr)) {
+    if (tempstr != NULL && strlen(tempstr)) {
        mac2hex(tempstr, tempmac, len);
        if (memcmp(mac, tempmac, len) == 0) {
            dbgx(3, "Packet matches: " MAC_FORMAT " sending out primary.\n", MAC_STR(tempmac));

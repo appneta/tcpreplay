@@ -194,7 +194,7 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
     /* first iteration of input */
     substr = strtok_r(ourstrcpy, ",", &token);
 
-    if ((*portmap = ports2PORT(substr)) == NULL) {
+    if (substr == NULL || (*portmap = ports2PORT(substr)) == NULL) {
         safe_free(ourstrcpy);
         return 0;
     }
