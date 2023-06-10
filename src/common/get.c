@@ -117,7 +117,7 @@ parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uin
         }
     }
 
-    if ((u_char *)mpls_label + 1 > end_ptr)
+    if ((u_char *)(mpls_label + 1) + 1 > end_ptr)
         return -1;
 
     first_nibble = *((u_char *)(mpls_label + 1)) >> 4;

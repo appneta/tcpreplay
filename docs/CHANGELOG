@@ -1,4 +1,5 @@
 06/04/2023 Version 4.4.4-beta1
+    - overflow check fix for parse_mpls (#795)
     - tcpreplay-edit: prevent L2 flooding of ipv6 unicast packets (#793)
     - CVE-2023-27786 bugs caused by strtok_r (#782 #784 #785 #786 #787 #788)
     - CVE-2023-27783 reachable assert in tcpedit_dlt_cleanup (#780)
