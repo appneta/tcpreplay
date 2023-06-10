@@ -99,7 +99,7 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata, COUNTER iteration
     if (res < 0)
         return res;
 
-    assert(l2len > 0);
+    assert(l2len >= 0);
 
     switch (ether_type) {
     case ETHERTYPE_IP:

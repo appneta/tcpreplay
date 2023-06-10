@@ -405,11 +405,27 @@ if test "x$enable_asan" = "xyes"; then
                 [AC_MSG_ERROR([libasan.so not found, this is required for --enable-asan])])
         CFLAGS="${CFLAGS} -O1 -g -fsanitize=address -fno-omit-frame-pointer"
         dnl -lasan always need to be the first library
-        LDFLAGS="-lasan ${LDFLAGS}"
+        LDFLAGS="-fsanitize=address ${LDFLAGS}"
 else
         build_asan=no
 fi
 AC_SUBST(build_asan)
+
+AC_ARG_ENABLE([tsan],
+    AS_HELP_STRING([--enable-tsan],[Enable Thread Sanitizer support]))
+if test "x$enable_tsan" = "xyes"; then
+        build_tsan=yes
+        CFLAGS="${CFLAGS} -O1 -g -fsanitize=thread -fno-omit-frame-pointer"
+        dnl -ltsan always need to be the first library
+        LDFLAGS="-fsanitize=thread ${LDFLAGS}"
+else
+        build_tsan=no
+fi
+AC_SUBST(build_tsan)
+
+if test "$build_asan" = "yes" -a "$build_tsan" = "yes" ; then
+    AC_MSG_ERROR([--enable-asan and --eanble-tsan are mutually exclusive])
+fi
 
 dnl Enable debugging in code/compiler options
 debug=no
