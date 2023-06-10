@@ -110,3 +110,6 @@ Halver <GitHub @Halver>
 
 Florian Weimer <GitHub @fweimer-rh>
     - Avoid implicit int in configure.ac
+
+David Guti <GitHub @david-guti>
+    - prevent L2 flooding of ipv6 unicast packets for tcpreplay-edit
