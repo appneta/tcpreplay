@@ -780,7 +780,7 @@ static void
 dlt_en10mb_ipv6_multicast_mac_update(const struct tcpr_in6_addr *ip6, uint8_t mac[])
 {
     /* only modify multicast packets */
-    if (ip6->tcpr_s6_addr[0] == 0xff)
+    if (ip6->tcpr_s6_addr[0] != 0xff)
         return;
 
     mac[0] = 0x33;
