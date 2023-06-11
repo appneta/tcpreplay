@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,22 +18,20 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PLUGINS_API_H_
-#define _PLUGINS_API_H_
+#pragma once
 
+#include "plugins_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
 /* Used to parse arguments if you have AutoGen */
 int tcpedit_dlt_post_args(tcpedit_t *tcpedit);
 
-
-/* 
+/*
  * initialize the DLT plugin backend, and return a new context var.
- * call this once per pcap to be processed 
+ * call this once per pcap to be processed
  */
 tcpeditdlt_t *tcpedit_dlt_init(tcpedit_t *tcpedit, int srcdlt);
 
@@ -60,7 +58,7 @@ int tcpedit_dlt_process(tcpeditdlt_t *ctx, u_char **packet, int pktlen, tcpr_dir
  * or you can call them sperately if you want
  */
 int tcpedit_dlt_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-int tcpedit_dlt_encode(tcpeditdlt_t* ctx, u_char *packet, int pktlen, tcpr_dir_t direction);
+int tcpedit_dlt_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t direction);
 
 /*
  * After processing each packet, you can get info about L2/L3
@@ -76,13 +74,9 @@ u_char *tcpedit_dlt_merge_l3data(tcpeditdlt_t *ctx,
                                  u_char *ipv4_data,
                                  u_char *ipv6_data);
 
-
 int tcpedit_dlt_src(tcpeditdlt_t *ctx);
 int tcpedit_dlt_dst(tcpeditdlt_t *ctx);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-

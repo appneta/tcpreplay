@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,17 +18,13 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "linuxsll.h"
+#include "../ethernet.h"
+#include "dlt_utils.h"
+#include "tcpedit.h"
+#include "tcpedit_stub.h"
 #include <stdlib.h>
 #include <string.h>
-
-#include "tcpedit.h"
-#include "common.h"
-#include "tcpr.h"
-#include "dlt_utils.h"
-#include "tcpedit_stub.h"
-#include "../ethernet.h"
-#include "linuxsll.h"
-
 
 static char dlt_name[] = "linuxsll";
 static char _U_ dlt_prefix[] = "linuxsll";
@@ -45,7 +41,7 @@ static uint16_t dlt_value = DLT_LINUX_SLL;
  * - Add the plugin to the context's plugin chain
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_linuxsll_register(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -56,17 +52,18 @@ dlt_linuxsll_register(tcpeditdlt_t *ctx)
 
     /* FIXME: set what we provide & require */
     plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR;
-    plugin->requires += 0;
+    plugin->
+        requires
+    += 0;
 
-
-     /* what is our DLT value? */
+    /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
     plugin->name = safe_strdup(dlt_prefix);
 
-    /* 
-     * Point to our functions, note, you need a function for EVERY method.  
+    /*
+     * Point to our functions, note, you need a function for EVERY method.
      * Even if it is only an empty stub returning success.
      */
     plugin->plugin_init = dlt_linuxsll_init;
@@ -85,14 +82,13 @@ dlt_linuxsll_register(tcpeditdlt_t *ctx)
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
 
-
 /*
  * Initializer function.  This function is called only once, if and only if
- * this plugin will be utilized.  Remember, if you need to keep track of any state, 
+ * this plugin will be utilized.  Remember, if you need to keep track of any state,
  * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_linuxsll_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -107,8 +103,7 @@ dlt_linuxsll_init(tcpeditdlt_t *ctx)
     if (ctx->decoded_extra_size > 0) {
         if (ctx->decoded_extra_size < sizeof(linuxsll_extra_t)) {
             ctx->decoded_extra_size = sizeof(linuxsll_extra_t);
-            ctx->decoded_extra = safe_realloc(ctx->decoded_extra,
-                                              ctx->decoded_extra_size);
+            ctx->decoded_extra = safe_realloc(ctx->decoded_extra, ctx->decoded_extra_size);
         }
     } else {
         ctx->decoded_extra_size = sizeof(linuxsll_extra_t);
@@ -127,7 +122,7 @@ dlt_linuxsll_init(tcpeditdlt_t *ctx)
  * Unless you allocated some memory in dlt_linuxsll_init(), this is just an stub.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_linuxsll_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -153,7 +148,7 @@ dlt_linuxsll_cleanup(tcpeditdlt_t *ctx)
  * bit mask.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_linuxsll_parse_opts(tcpeditdlt_t *ctx)
 {
     assert(ctx);
@@ -172,8 +167,8 @@ dlt_linuxsll_parse_opts(tcpeditdlt_t *ctx)
  * - ctx->decoded_extra
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
-dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     int type;
     linux_sll_header_t *linux_sll;
@@ -186,7 +181,6 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     linux_sll = (linux_sll_header_t *)packet;
     ctx->proto = linux_sll->proto;
     ctx->l2len = sizeof(linux_sll_header_t);
-
 
     type = ntohs(linux_sll->type);
     if (type == ARPHRD_ETHER || type == ARPHRD_LOOPBACK) { /* ethernet or loopback */
@@ -203,9 +197,8 @@ dlt_linuxsll_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function to encode the layer 2 header back into the packet.
  * Returns: total packet len or TCPEDIT_ERROR
  */
-int 
-dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
-        _U_ tcpr_dir_t dir)
+int
+dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
 {
     assert(ctx);
     assert(packet);
@@ -217,8 +210,8 @@ dlt_linuxsll_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen,
 /*
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
-int 
-dlt_linuxsll_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_linuxsll_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     linux_sll_header_t *linux_sll;
     assert(ctx);
@@ -236,7 +229,7 @@ dlt_linuxsll_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_linuxsll_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_linuxsll_get_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen)
 {
     int l2len;
     assert(ctx);
@@ -256,11 +249,7 @@ dlt_linuxsll_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_linuxsll_merge_layer3(tcpeditdlt_t *ctx,
-                          u_char *packet,
-                          const int pktlen,
-                          u_char *ipv4_data,
-                          u_char *ipv6_data)
+dlt_linuxsll_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen, u_char *ipv4_data, u_char *ipv6_data)
 {
     int l2len;
     assert(ctx);
@@ -274,11 +263,11 @@ dlt_linuxsll_merge_layer3(tcpeditdlt_t *ctx,
     return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data ?: ipv6_data, l2len);
 }
 
-/* 
+/*
  * return the length of the L2 header of the current packet
  */
 int
-dlt_linuxsll_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_linuxsll_l2len(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -294,7 +283,7 @@ dlt_linuxsll_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * return NULL on error/address doesn't exist
  */
 u_char *
-dlt_linuxsll_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_linuxsll_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -303,26 +292,20 @@ dlt_linuxsll_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char 
         return NULL;
 
     /* FIXME: return a ptr to the source or dest mac address. */
-    switch(mac) {
+    switch (mac) {
     case SRC_MAC:
         memcpy(ctx->srcmac, &packet[6], 8); /* linuxssl defines the src mac field to be 8 bytes, not 6 */
-        return(ctx->srcmac);
-        break;
-
+        return (ctx->srcmac);
     case DST_MAC:
-        return(NULL);
-        break;
-
+        return (NULL);
     default:
         errx(-1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
     }
-    return(NULL);
 }
 
-tcpeditdlt_l2addr_type_t 
+tcpeditdlt_l2addr_type_t
 dlt_linuxsll_l2addr_type(void)
 {
     /* we only support ethernet packets */
     return ETHERNET;
 }
-

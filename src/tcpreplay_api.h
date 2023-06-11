@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,23 +18,21 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _TCPREPLAY_API_H_
-#define _TCPREPLAY_API_H_
+#pragma once
 
-#include "config.h"
 #include "defines.h"
-#include "common/sendpacket.h"
-#include "common/tcpdump.h"
-
-#include <sys/types.h>
-#include <sys/stat.h>
+#include "config.h"
+#include <common/interface.h>
+#include <common/sendpacket.h>
+#include <common/tcpdump.h>
+#include <common/utils.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #ifdef ENABLE_DMALLOC
 #include <dmalloc.h>
 #endif
-
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,11 +82,7 @@ typedef enum {
     accurate_ioport,
 } tcpreplay_accurate;
 
-typedef enum {
-    source_filename = 1,
-    source_fd = 2,
-    source_cache = 3
-} tcpreplay_source_type;
+typedef enum { source_filename = 1, source_fd = 2, source_cache = 3 } tcpreplay_source_type;
 
 typedef struct {
     tcpreplay_source_type type;
@@ -158,12 +152,8 @@ typedef struct tcpreplay_opt_s {
     float unique_loops;
 } tcpreplay_opt_t;
 
-
 /* interface */
-typedef enum {
-    intf1 = 1,
-    intf2
-} tcpreplay_intf;
+typedef enum { intf1 = 1, intf2 } tcpreplay_intf;
 
 /* tcpreplay context variable */
 #define TCPREPLAY_ERRSTR_LEN 1024
@@ -181,8 +171,6 @@ typedef struct tcpreplay_s {
     char errstr[TCPREPLAY_ERRSTR_LEN];
     char warnstr[TCPREPLAY_ERRSTR_LEN];
     /* status trackers */
-    int cache_bit;
-    int cache_byte;
     int current_source; /* current source input being replayed */
 
     /* sleep helpers */
@@ -203,20 +191,18 @@ typedef struct tcpreplay_s {
     bool running;
 } tcpreplay_t;
 
-
 /*
  * manual callback definition:
  * ctx              = tcpreplay context
- * interface        = name of interface current packet will be sent out 
- * current_packet   = packet number to be sent out 
+ * interface        = name of interface current packet will be sent out
+ * current_packet   = packet number to be sent out
  *
  * Returns number of packets to send.  0 == send all remaining packets
- * Note: Your callback method is BLOCKING the main tcpreplay loop.  If you 
- * call tcpreplay_abort() from inside of your callback, you still need to 
+ * Note: Your callback method is BLOCKING the main tcpreplay loop.  If you
+ * call tcpreplay_abort() from inside of your callback, you still need to
  * return (any value) so that the main loop is released and can abort.
  */
-typedef u_int32_t(*tcpreplay_manual_callback) (tcpreplay_t *ctx, char *interface, COUNTER current_packet);
-
+typedef u_int32_t (*tcpreplay_manual_callback)(tcpreplay_t *ctx, char *interface, COUNTER current_packet);
 
 char *tcpreplay_geterr(tcpreplay_t *);
 char *tcpreplay_getwarn(tcpreplay_t *);
@@ -249,7 +235,7 @@ int tcpreplay_set_preload_pcap(tcpreplay_t *, bool);
 int tcpreplay_get_source_count(tcpreplay_t *);
 int tcpreplay_get_current_source(tcpreplay_t *);
 int tcpreplay_set_flow_stats(tcpreplay_t *, bool);
-int tcpreplay_set_flow_expiry(tcpreplay_t *,int);
+int tcpreplay_set_flow_expiry(tcpreplay_t *, int);
 bool tcpreplay_get_flow_stats(tcpreplay_t *);
 int tcpreplay_get_flow_expiry(tcpreplay_t *);
 
@@ -289,5 +275,3 @@ void tcpreplay_setwarn(tcpreplay_t *ctx, const char *fmt, ...);
 #ifdef __cplusplus
 }
 #endif
-
-#endif //_TCPREPLAY_API_H_

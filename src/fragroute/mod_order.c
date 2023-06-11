@@ -7,19 +7,17 @@
  */
 
 #include "config.h"
-
+#include "mod.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "mod.h"
-
-#define ORDER_RANDOM    1
-#define ORDER_REVERSE    2
+#define ORDER_RANDOM 1
+#define ORDER_REVERSE 2
 
 struct order_data {
-    rand_t    *rnd;
-    int     type;
+    rand_t *rnd;
+    int type;
 };
 
 void *
@@ -71,9 +69,9 @@ order_apply(void *d, struct pktq *pktq)
 }
 
 struct mod mod_order = {
-    "order",            /* name */
-    "order random|reverse",        /* usage */
-    order_open,            /* open */
-    order_apply,            /* apply */
-    order_close            /* close */
+        "order",                /* name */
+        "order random|reverse", /* usage */
+        order_open,             /* open */
+        order_apply,            /* apply */
+        order_close             /* close */
 };

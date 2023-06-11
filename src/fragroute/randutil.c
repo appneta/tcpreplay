@@ -22,15 +22,13 @@
 #endif
 #endif
 
+#include "randutil.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#include "randutil.h"
-
-static const char base64[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 void
 rand_strset(rand_t *r, void *buf, size_t len)
@@ -45,15 +43,19 @@ rand_strset(rand_t *r, void *buf, size_t len)
 
     /* XXX - more Duff's device tomfoolery. */
     switch (len % 4) {
-    case 0: do {
-        u = rand_uint32(r);
-        *p++ = base64[(u >> 18) & 0x3f];
-    case 3:
-        *p++ = base64[(u >> 12) & 0x3f];
-    case 2:
-        *p++ = base64[(u >> 6) & 0x3f];
-    case 1:
-        *p++ = base64[(u >> 0) & 0x3f];
+    case 0:
+        do {
+            u = rand_uint32(r);
+            *p++ = base64[(u >> 18) & 0x3f];
+            /* fall through */
+        case 3:
+            *p++ = base64[(u >> 12) & 0x3f];
+            /* fall through */
+        case 2:
+            *p++ = base64[(u >> 6) & 0x3f];
+            /* fall through */
+        case 1:
+            *p++ = base64[(u >> 0) & 0x3f];
         } while (--i > 0);
     }
     p[-1] = '\0';

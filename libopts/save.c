@@ -42,6 +42,7 @@ static char const *
 find_dir_name(tOptions * opts, int * p_free)
 {
     char const * dir;
+    int idx;
 
     if (  (opts->specOptIdx.save_opts == NO_EQUIVALENT)
        || (opts->specOptIdx.save_opts == 0))
@@ -66,7 +67,7 @@ find_dir_name(tOptions * opts, int * p_free)
      *  This function only works if there is a directory where
      *  we can stash the RC (INI) file.
      */
-    for (int idx = 0;; idx++) {
+    for (idx = 0;; idx++) {
         char f_name[ AG_PATH_MAX+1 ];
 
         dir = opts->papzHomeList[idx];

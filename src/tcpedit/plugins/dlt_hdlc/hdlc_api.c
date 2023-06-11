@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,12 +18,6 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "defines.h"
-#include "common.h"
-
-#include "tcpedit.h"
-#include "hdlc.h"
-
 #include "hdlc_api.h"
 
 /**
@@ -31,7 +25,7 @@
  *
  * Reasonable values are 0-255
  */
-int 
+int
 tcpedit_hdlc_set_control(tcpedit_t *tcpedit, uint8_t control)
 {
     tcpeditdlt_t *ctx;
@@ -48,7 +42,6 @@ tcpedit_hdlc_set_control(tcpedit_t *tcpedit, uint8_t control)
 
     config->control = control;
     return TCPEDIT_OK;
-    
 }
 
 /**
@@ -74,6 +67,4 @@ tcpedit_hdlc_set_address(tcpedit_t *tcpedit, uint8_t address)
 
     config->address = address;
     return TCPEDIT_OK;
-    
 }
-

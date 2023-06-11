@@ -44,18 +44,11 @@
  */
 
 #include "config.h"
-#include "defines.h"
 #include "common.h"
-
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
-#include <errno.h>
-
-#ifdef DEBUG
-extern int debug;
-#endif
 
 /**
  * writes a notice message to stderr.  Always forces a newline
@@ -76,21 +69,19 @@ notice(const char *fmt, ...)
 /**
  * Inner call to dbgx() which prints the function, line & function along
  * with the message to stderr.  Always forces a newline.
- * 
+ *
  * You don't actually want to call this!  use dbgx() instead!
  */
 #ifdef DEBUG
 void
-_our_verbose_dbgx(int dbg_level, const char *fmt, const char *function, 
-        const int line, const char *file, ...)
+our_verbose_dbgx(int dbg_level, const char *fmt, const char *function, const int line, const char *file, ...)
 {
     va_list ap;
 
     if (debug < dbg_level)
         return;
 
-    fprintf(stderr, "DEBUG%d in %s:%s() line %d: ", dbg_level, file, 
-            function, line);
+    fprintf(stderr, "DEBUG%d in %s:%s() line %d: ", dbg_level, file, function, line);
 
     va_start(ap, file);
 
@@ -108,10 +99,12 @@ _our_verbose_dbgx(int dbg_level, const char *fmt, const char *function,
  */
 #ifdef DEBUG
 void
-_our_verbose_errx(int eval, const char *fmt, const char *function, const int line, const char *file, ...) {
+our_verbose_errx(int eval, const char *fmt, const char *function, const int line, const char *file, ...)
+{
 #else
 void
-_our_verbose_errx(int eval, const char *fmt, ...) {
+our_verbose_errx(int eval, const char *fmt, ...)
+{
 #endif
 
     va_list ap;
@@ -125,7 +118,7 @@ _our_verbose_errx(int eval, const char *fmt, ...) {
 #endif
 
     if (fmt != NULL)
-        (void)vfprintf(stderr,  fmt, ap);
+        (void)vfprintf(stderr, fmt, ap);
     (void)fprintf(stderr, "\n");
     va_end(ap);
     exit(eval);
@@ -137,10 +130,12 @@ _our_verbose_errx(int eval, const char *fmt, ...) {
  */
 #ifdef DEBUG
 void
-_our_verbose_warnx(const char *fmt, const char *function, const int line, const char *file, ...) {
+our_verbose_warnx(const char *fmt, const char *function, const int line, const char *file, ...)
+{
 #else
-void 
-_our_verbose_warnx(const char *fmt, ...) {
+void
+our_verbose_warnx(const char *fmt, ...)
+{
 #endif
 
     va_list ap;

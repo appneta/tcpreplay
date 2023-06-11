@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __GET_H__
-#define __GET_H__
+#pragma once
 
 #include "config.h"
 #include "defines.h"
@@ -27,21 +26,21 @@
 
 
 int parse_mpls(const u_char *pktdata,
-               const uint32_t datalen,
+               uint32_t datalen,
                uint16_t *protocol,
                uint32_t *l2len,
                uint32_t *l2offset);
 
 int parse_vlan(const u_char *pktdata,
-               const uint32_t datalen,
+               uint32_t datalen,
                uint16_t *next_protocol,
                uint32_t *l2len);
 
-int get_l2len(const u_char *pktdata, const int datalen, const int datalink);
+int get_l2len(const u_char *pktdata, int datalen, int datalink);
 
 int get_l2len_protocol(const u_char *pktdata,
-                       const uint32_t datalen,
-                       const int datalink,
+                       uint32_t datalen,
+                       int datalink,
                        uint16_t *protocol,
                        uint32_t *l2len,
                        uint32_t *l2offset,
@@ -56,7 +55,7 @@ const u_char *get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char 
 const u_char *get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff);
 
 u_int32_t get_name2addr4(const char *hostname, bool dnslookup);
-const char *get_addr2name4(const u_int32_t ip, bool dnslookup);
+const char *get_addr2name4(u_int32_t ip, bool dnslookup);
 const char *get_addr2name6(const struct tcpr_in6_addr *addr, bool dnslookup);
 const char *get_pcap_version(void);
 
@@ -64,6 +63,3 @@ int get_name2addr6(const char *hostname, bool dnslookup, struct tcpr_in6_addr *a
 
 
 const char *get_cidr2name(const tcpr_cidr_t *cidr_ptr, bool dnslookup);
-
-
-#endif

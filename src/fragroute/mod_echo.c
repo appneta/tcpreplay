@@ -7,15 +7,11 @@
  */
 
 #include "config.h"
-
-#include <sys/types.h>
-
+#include "argv.h"
+#include "mod.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "argv.h"
-#include "mod.h"
 
 void *
 echo_open(int argc, char *argv[])
@@ -49,9 +45,9 @@ echo_close(void *d)
 }
 
 struct mod mod_echo = {
-    "echo",                /* name */
-    "echo <string> ...",        /* usage */
-    echo_open,            /* open */
-    echo_apply,            /* apply */
-    echo_close            /* close */
+        "echo",              /* name */
+        "echo <string> ...", /* usage */
+        echo_open,           /* open */
+        echo_apply,          /* apply */
+        echo_close           /* close */
 };

@@ -6,14 +6,12 @@
  * $Id$
  */
 
+#include "argv.h"
 #include "config.h"
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "argv.h"
 
 int
 argv_create(char *p, int argc, char *argv[])

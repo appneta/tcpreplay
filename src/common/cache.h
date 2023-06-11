@@ -18,8 +18,9 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CACHE_H__
-#define __CACHE_H__
+#pragma once
+
+#include "defines.h"
 
 #define CACHEMAGIC "tcpprep"
 #define CACHEVERSION "04"
@@ -99,5 +100,3 @@ tcpr_dir_t check_cache(char *, COUNTER);
 
 /* string of 8 zeros */
 #define EIGHT_ZEROS "\060\060\060\060\060\060\060\060"
-
-#endif

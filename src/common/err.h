@@ -45,9 +45,9 @@
  *    @(#)err.h    8.1 (Berkeley) 6/2/93
  */
 
-#ifndef _ERR_H_
-#define _ERR_H_
+#pragma once
 
+#include "defines.h"
 #include <stdlib.h>
 
 #ifdef DEBUG
@@ -145,6 +145,3 @@ void notice(const char *fmt, ...);
         fflush(NULL); \
     } while (0)
 #endif /* DEBUG */
-
-
-#endif /* !_ERR_H_ */

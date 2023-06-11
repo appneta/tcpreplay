@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,20 +18,16 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <string.h>
-
-#include "tcpedit.h"
-#include "common.h"
-#include "tcpr.h"
-#include "dlt_utils.h"
-#include "tcpedit_stub.h"
 #include "loop.h"
 #include "../dlt_null/null.h"
+#include "dlt_utils.h"
+#include "tcpedit.h"
+#include "tcpedit_stub.h"
+#include <string.h>
 
-/* 
+/*
  * Basically, DLT_LOOP and DLT_NULL are the same thing except that the PF_ value
- * in the header is always network byte order in DLT_LOOP and host byte order 
+ * in the header is always network byte order in DLT_LOOP and host byte order
  * in DLT_NULL.  So since DLT_NULL has to handle both big & little endian values
  * we just send all DLT_LOOP processing over there
  */
@@ -51,7 +47,7 @@ static uint16_t dlt_value = DLT_LOOP;
  * - Add the plugin to the context's plugin chain
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_loop_register(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -62,9 +58,11 @@ dlt_loop_register(tcpeditdlt_t *ctx)
 
     /* set what we provide & require */
     plugin->provides += PLUGIN_MASK_PROTO;
-    plugin->requires += 0;
+    plugin->
+        requires
+    += 0;
 
-     /* what is our DLT value? */
+    /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
@@ -82,28 +80,27 @@ dlt_loop_register(tcpeditdlt_t *ctx)
     plugin->plugin_get_layer3 = dlt_null_get_layer3;
     plugin->plugin_merge_layer3 = dlt_null_merge_layer3;
     plugin->plugin_get_mac = dlt_null_get_mac;
-    
+
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
 
 /*
  * Initializer function.  This function is called only once, if and only if
- * this plugin will be utilized.  Remember, if you need to keep track of any state, 
+ * this plugin will be utilized.  Remember, if you need to keep track of any state,
  * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_loop_init(tcpeditdlt_t *ctx)
 {
-    tcpeditdlt_plugin_t *plugin;
     assert(ctx);
-    
-    if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
+
+    if (tcpedit_dlt_getplugin(ctx, dlt_value) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "Unable to initialize unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
-    
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -112,14 +109,14 @@ dlt_loop_init(tcpeditdlt_t *ctx)
  * Unless you allocated some memory in dlt_loop_init(), this is just an stub.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int dlt_loop_cleanup(tcpeditdlt_t *ctx)
+int
+dlt_loop_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
     assert(ctx);
 
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "Unable to cleanup unregistered plugin %s",
-                       dlt_name);
+        tcpedit_seterr(ctx->tcpedit, "Unable to cleanup unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
 

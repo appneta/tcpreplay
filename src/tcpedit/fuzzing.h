@@ -1,11 +1,9 @@
-#ifndef FUZZING_H
-#define FUZZING_H
-
-#include <stdint.h>
-#include <stdlib.h>
+#pragma once
 
 #include "defines.h"
-#include "tcpedit/tcpedit_types.h"
+#include <tcpedit/tcpedit_types.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 enum {
     FUZZING_DROP_PACKET,
@@ -25,8 +23,7 @@ enum {
 /**
  * init fuzz seed and allocate buffer.
  */
-void
-fuzzing_init(uint32_t _fuzz_seed, uint32_t _fuzz_factor);
+void fuzzing_init(uint32_t _fuzz_seed, uint32_t _fuzz_factor);
 
 /*
  * fuzz packet data.
@@ -34,7 +31,4 @@ fuzzing_init(uint32_t _fuzz_seed, uint32_t _fuzz_factor);
  * fuzzed packets get one random modification from the enum above.
  * Returns whether the packet has been modified (1, or 0)
  */
-int
-fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, u_char **pktdata);
-
-#endif  /* FUZZING_H */
+int fuzzing(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, u_char **pktdata);

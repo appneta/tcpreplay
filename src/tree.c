@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,31 +18,24 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "tree.h"
 #include "config.h"
-#include "defines.h"
 #include "common.h"
-
+#include "tcpprep_api.h"
+#include "tcpprep_opts.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "tree.h"
-#include "tcpprep.h"
-#include "tcpprep_opts.h"
-#include "tcpprep_api.h"
-
 extern tcpr_data_tree_t treeroot;
 extern tcpprep_t *tcpprep;
-#ifdef DEBUG
-extern int debug;
-#endif
 
 /* static buffer used by tree_print*() functions */
-char tree_print_buff[TREEPRINTBUFFLEN]; 
+char tree_print_buff[TREEPRINTBUFFLEN];
 
 static tcpr_tree_t *new_tree();
-static tcpr_tree_t *packet2tree(const u_char *, const int, const int);
-#ifdef DEBUG        /* prevent compile warnings */
+static tcpr_tree_t *packet2tree(const u_char *, int, int);
+#ifdef DEBUG /* prevent compile warnings */
 static char *tree_print(tcpr_data_tree_t *);
 static char *tree_printnode(const char *, const tcpr_tree_t *);
 #endif /* DEBUG */
@@ -59,22 +52,22 @@ RB_GENERATE(tcpr_data_tree_s, tcpr_tree_s, node, tree_comp)
  * is smart enough to prevent dupes.  void * arg is cast to bulidcidr_t
  */
 void
-tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
+tree_buildcidr(tcpr_data_tree_t *tree_root, tcpr_buildcidr_t *bcdata)
 {
     tcpr_tree_t *node = NULL;
     tcpr_cidr_t *newcidr = NULL;
-    unsigned long network = 0;
+    unsigned long network;
     struct tcpr_in6_addr network6;
-    unsigned long mask = ~0;    /* turn on all bits */
+    unsigned long mask = ~0; /* turn on all bits */
     tcpprep_opt_t *options = tcpprep->options;
     uint32_t i, j, k;
 
     dbg(1, "Running: tree_buildcidr()");
 
-    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
-
+    RB_FOREACH(node, tcpr_data_tree_s, tree_root)
+    {
         /* we only check types that are valid */
-        if (bcdata->type != DIR_ANY)    /* don't check if we're adding ANY */
+        if (bcdata->type != DIR_ANY)        /* don't check if we're adding ANY */
             if (bcdata->type != node->type) /* no match, exit early */
                 return;
         /*
@@ -83,9 +76,8 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
          */
         dbgx(4, "Checking if %s exists in cidrdata...", get_addr2name4(node->u.ip, RESOLVE));
         if (node->family == AF_INET) {
-            if (! check_ip_cidr(options->cidrdata, node->u.ip)) {   /* if we exist, abort */
-                dbgx(3, "Node %s doesn't exist... creating.", 
-                    get_addr2name4(node->u.ip, RESOLVE));
+            if (!check_ip_cidr(options->cidrdata, node->u.ip)) { /* if we exist, abort */
+                dbgx(3, "Node %s doesn't exist... creating.", get_addr2name4(node->u.ip, RESOLVE));
                 newcidr = new_cidr();
                 newcidr->masklen = bcdata->masklen;
                 network = node->u.ip & (mask << (32 - bcdata->masklen));
@@ -93,12 +85,11 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
                 newcidr->u.network = network;
                 add_cidr(&options->cidrdata, &newcidr);
             }
-        } 
+        }
         /* Check IPv6 Address */
         else if (node->family == AF_INET6) {
-            if (! check_ip6_cidr(options->cidrdata, &node->u.ip6)) {   /* if we exist, abort */
-                dbgx(3, "Node %s doesn't exist... creating.",
-                    get_addr2name6(&node->u.ip6, RESOLVE));
+            if (!check_ip6_cidr(options->cidrdata, &node->u.ip6)) { /* if we exist, abort */
+                dbgx(3, "Node %s doesn't exist... creating.", get_addr2name6(&node->u.ip6, RESOLVE));
 
                 newcidr = new_cidr();
                 newcidr->masklen = bcdata->masklen;
@@ -126,22 +117,20 @@ tree_buildcidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
     }
 }
 
-
 /**
  * uses rbwalk to check to see if a given ip address of a given type in the
  * tree is inside any of the cidrdata
  */
 static int
-tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
+tree_checkincidr(tcpr_data_tree_t *tree_root, tcpr_buildcidr_t *bcdata)
 {
     tcpr_tree_t *node = NULL;
     tcpprep_opt_t *options = tcpprep->options;
 
-
-    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
-
+    RB_FOREACH(node, tcpr_data_tree_s, tree_root)
+    {
         /* we only check types that are valid */
-        if (bcdata->type != DIR_ANY)    /* don't check if we're adding ANY */
+        if (bcdata->type != DIR_ANY)        /* don't check if we're adding ANY */
             if (bcdata->type != node->type) /* no match, exit early */
                 return 0;
 
@@ -149,11 +138,10 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
          * in cases of leaves and last visit add to cidrdata if
          * necessary
          */
-        if (node->family == AF_INET && check_ip_cidr(options->cidrdata, node->u.ip))    /* if we exist, abort */
+        if (node->family == AF_INET && check_ip_cidr(options->cidrdata, node->u.ip)) /* if we exist, abort */
             return 1;
         if (node->family == AF_INET6 && check_ip6_cidr(options->cidrdata, &node->u.ip6))
             return 1;
-
     }
     return 0;
 }
@@ -167,10 +155,9 @@ tree_checkincidr(tcpr_data_tree_t *treeroot, tcpr_buildcidr_t * bcdata)
 int
 process_tree(void)
 {
-    int mymask = 0;
+    int mymask;
     tcpr_buildcidr_t *bcdata;
     tcpprep_opt_t *options = tcpprep->options;
-
 
     dbg(1, "Running: process_tree()");
 
@@ -192,11 +179,10 @@ process_tree(void)
         /* try to find clients in cidrdata */
         bcdata->type = DIR_CLIENT;
 
-        if (! tree_checkincidr(&treeroot, bcdata)) { /* didn't find any clients in cidrdata */
+        if (!tree_checkincidr(&treeroot, bcdata)) { /* didn't find any clients in cidrdata */
             safe_free(bcdata);
-            return (mymask);    /* success! */
-        }
-        else {
+            return (mymask); /* success! */
+        } else {
             destroy_cidr(options->cidrdata); /* clean up after our mess */
             options->cidrdata = NULL;
         }
@@ -216,7 +202,7 @@ process_tree(void)
  * is smart enough to prevent dupes
 
 void
-tcpr_tree_to_cidr(const int masklen, const int type)
+tcpr_tree_to_cidr(int masklen, int type)
 {
 
 }
@@ -230,7 +216,7 @@ tcpr_tree_to_cidr(const int masklen, const int type)
  * if mode = SERVER, then unknowns become servers
  */
 tcpr_dir_t
-check_ip_tree(const int mode, const unsigned long ip)
+check_ip_tree(int mode, unsigned long ip)
 {
     tcpr_tree_t *node, *finder;
 
@@ -242,9 +228,11 @@ check_ip_tree(const int mode, const unsigned long ip)
 
     if (node == NULL && mode == DIR_UNKNOWN) {
         safe_free(finder);
-        errx(-1, "%s (%lu) is an unknown system... aborting.!\n"
+        errx(-1,
+             "%s (%lu) is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
-             get_addr2name4(ip, RESOLVE), ip);
+             get_addr2name4(ip, RESOLVE),
+             ip);
     }
 
     /* return node type if we found the node, else return the default (mode) */
@@ -254,40 +242,36 @@ check_ip_tree(const int mode, const unsigned long ip)
             dbgx(1, "DIR_SERVER: %s", get_addr2name4(ip, RESOLVE));
             safe_free(finder);
             return TCPR_DIR_S2C;
-            break;
         case DIR_CLIENT:
             dbgx(1, "DIR_CLIENT: %s", get_addr2name4(ip, RESOLVE));
             safe_free(finder);
             return TCPR_DIR_C2S;
-            break;
         case DIR_UNKNOWN:
             dbgx(1, "DIR_UNKNOWN: %s", get_addr2name4(ip, RESOLVE));
             /* use our current mode to determine return code */
             goto return_unknown;
         case DIR_ANY:
             dbgx(1, "DIR_ANY: %s", get_addr2name4(ip, RESOLVE));
-            goto return_unknown; 
+            goto return_unknown;
         default:
             errx(-1, "Node for %s has invalid type: %d", get_addr2name4(ip, RESOLVE), node->type);
         }
     }
-    
+
 return_unknown:
     safe_free(finder);
     switch (mode) {
     case DIR_SERVER:
         return TCPR_DIR_S2C;
-        break;
     case DIR_CLIENT:
         return TCPR_DIR_C2S;
-        break;
     default:
         return -1;
     }
 }
 
 tcpr_dir_t
-check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
+check_ip6_tree(int mode, const struct tcpr_in6_addr *addr)
 {
     tcpr_tree_t *node, *finder;
 
@@ -299,7 +283,8 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
 
     if (node == NULL && mode == DIR_UNKNOWN) {
         safe_free(finder);
-        errx(-1, "%s is an unknown system... aborting.!\n"
+        errx(-1,
+             "%s is an unknown system... aborting.!\n"
              "Try a different auto mode (-n router|client|server)",
              get_addr2name6(addr, RESOLVE));
     }
@@ -311,12 +296,10 @@ check_ip6_tree(const int mode, const struct tcpr_in6_addr *addr)
             dbgx(1, "DIR_SERVER: %s", get_addr2name6(addr, RESOLVE));
             safe_free(finder);
             return TCPR_DIR_S2C;
-            break;
         case DIR_CLIENT:
             dbgx(1, "DIR_CLIENT: %s", get_addr2name6(addr, RESOLVE));
             safe_free(finder);
             return TCPR_DIR_C2S;
-            break;
         case DIR_UNKNOWN:
             dbgx(1, "DIR_UNKNOWN: %s", get_addr2name6(addr, RESOLVE));
             /* use our current mode to determine return code */
@@ -334,22 +317,20 @@ return_unknown:
     switch (mode) {
     case DIR_SERVER:
         return TCPR_DIR_S2C;
-        break;
     case DIR_CLIENT:
         return TCPR_DIR_C2S;
-        break;
     default:
         return -1;
     }
 }
 
 /**
- * Parses the IP header of the given packet (data) to get the SRC/DST IP 
+ * Parses the IP header of the given packet (data) to get the SRC/DST IP
  * addresses.  If the SRC IP doesn't exist in the TREE, we add it as a
  * client, if the DST IP doesn't exist in the TREE, we add it as a server
  */
 void
-add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
+add_tree_first_ipv4(const u_char *data, int len, int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
     uint32_t _U_ vlan_offset;
@@ -362,21 +343,14 @@ add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
 
     assert(data);
 
-    res = get_l2len_protocol(data,
-                             pkt_len,
-                             datalink,
-                             &ether_type,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(data, pkt_len, datalink, &ether_type, &l2len, &l2offset, &vlan_offset);
 
     if (res == -1 || len < (int)(l2len + TCPR_IPV4_H)) {
         errx(-1, "Capture length %d too small for IPv4 parsing", len);
-        return;
     }
 
-    /* 
-     * first add/find the source IP/client 
+    /*
+     * first add/find the source IP/client
      */
     newnode = new_tree();
 
@@ -417,7 +391,7 @@ add_tree_first_ipv4(const u_char *data, const int len, const int datalink)
 }
 
 void
-add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
+add_tree_first_ipv6(const u_char *data, int len, int datalink)
 {
     tcpr_tree_t *newnode, *findnode;
     uint32_t _U_ vlan_offset;
@@ -430,24 +404,16 @@ add_tree_first_ipv6(const u_char *data, const int len, const int datalink)
 
     assert(data);
 
-    res = get_l2len_protocol(data,
-                             pkt_len,
-                             datalink,
-                             &ether_type,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(data, pkt_len, datalink, &ether_type, &l2len, &l2offset, &vlan_offset);
 
-    if (res == -1 || len < (int)(l2len + TCPR_IPV6_H)) {
+    if (res == -1 || len < (int)(l2len + TCPR_IPV6_H))
         errx(-1, "Capture length %d too small for IPv6 parsing", len);
-        return;
-    }
 
     /*
      * first add/find the source IP/client
      */
     newnode = new_tree();
-    
+
     /* prevent issues with byte alignment, must memcpy */
     memcpy(&ip6_hdr, data + l2len, TCPR_IPV6_H);
 
@@ -499,27 +465,24 @@ add_tree_node(tcpr_tree_t *newnode)
         /* increment counters */
         if (newnode->type == DIR_SERVER) {
             newnode->server_cnt++;
-        }
-        else if (newnode->type == DIR_CLIENT) {
+        } else if (newnode->type == DIR_CLIENT) {
             newnode->client_cnt++;
         }
         /* insert it in */
         RB_INSERT(tcpr_data_tree_s, &treeroot, newnode);
 
-    }
-    else {
+    } else {
         /* we found something, so update it */
         dbgx(2, "   node: %p\nnewnode: %p", node, newnode);
         dbgx(3, "%s", tree_printnode("update node", node));
         /* increment counter */
         if (newnode->type == DIR_SERVER) {
             node->server_cnt++;
-        }
-        else if (newnode->type == DIR_CLIENT) {
+        } else if (newnode->type == DIR_CLIENT) {
             /* temp debug code */
             node->client_cnt++;
         }
-                    
+
         /* didn't insert it, so free it */
         safe_free(newnode);
     }
@@ -534,84 +497,68 @@ add_tree_node(tcpr_tree_t *newnode)
  * - number of times each host acts as a client or server
  * - the way the host acted the first time we saw it (client or server)
  */
-void add_tree_ipv4(const unsigned long ip,
-                   const u_char *data,
-                   const int len,
-                   const int datalink)
+void
+add_tree_ipv4(unsigned long ip, const u_char *data, int len, int datalink)
 {
     tcpr_tree_t *newnode;
     assert(data);
 
     newnode = packet2tree(data, len, datalink);
-    if (newnode) {
-        assert(ip == newnode->u.ip);
+    assert(newnode);
+    assert(ip == newnode->u.ip);
+    if (newnode->type == DIR_UNKNOWN) {
+        /* couldn't figure out if packet was client or server */
 
-        if (newnode->type == DIR_UNKNOWN) {
-            /* couldn't figure out if packet was client or server */
-
-            dbgx(2, "%s (%lu) unknown client/server",
-                 get_addr2name4(newnode->u.ip, RESOLVE),
-                 newnode->u.ip);
-
-        }
-
-        add_tree_node(newnode);
+        dbgx(2, "%s (%lu) unknown client/server", get_addr2name4(newnode->u.ip, RESOLVE), newnode->u.ip);
     }
+
+    add_tree_node(newnode);
 }
 
-void add_tree_ipv6(const struct tcpr_in6_addr *addr,
-                   const u_char *data,
-                   const int len,
-                   const int datalink)
+void
+add_tree_ipv6(const struct tcpr_in6_addr *addr, const u_char *data, int len, int datalink)
 {
     tcpr_tree_t *newnode;
     assert(data);
 
     newnode = packet2tree(data, len, datalink);
-    if (newnode) {
-        assert(ipv6_cmp(addr, &newnode->u.ip6) == 0);
+    assert(newnode);
+    assert(ipv6_cmp(addr, &newnode->u.ip6) == 0);
+    if (newnode->type == DIR_UNKNOWN) {
+        /* couldn't figure out if packet was client or server */
 
-        if (newnode->type == DIR_UNKNOWN) {
-            /* couldn't figure out if packet was client or server */
-
-            dbgx(2, "%s unknown client/server",
-                 get_addr2name6(&newnode->u.ip6, RESOLVE));
-        }
-
-        add_tree_node(newnode);
+        dbgx(2, "%s unknown client/server", get_addr2name6(&newnode->u.ip6, RESOLVE));
     }
+
+    add_tree_node(newnode);
 }
 
 /**
  * calculates whether each node in the tree is a client, server, or unknown for each node in the tree
  */
 void
-tree_calculate(tcpr_data_tree_t *treeroot)
+tree_calculate(tcpr_data_tree_t *tree_root)
 {
     tcpr_tree_t *node;
     tcpprep_opt_t *options = tcpprep->options;
 
     dbg(1, "Running tree_calculate()");
 
-    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
+    RB_FOREACH(node, tcpr_data_tree_s, tree_root)
+    {
         dbgx(4, "Processing %s", get_addr2name4(node->u.ip, RESOLVE));
         if ((node->server_cnt > 0) || (node->client_cnt > 0)) {
             /* type based on: server >= (client*ratio) */
             if ((double)node->server_cnt >= (double)node->client_cnt * options->ratio) {
                 node->type = DIR_SERVER;
-                dbgx(3, "Setting %s to server", 
-                        get_addr2name4(node->u.ip, RESOLVE));
-            }
-            else {
+                dbgx(3, "Setting %s to server", get_addr2name4(node->u.ip, RESOLVE));
+            } else {
                 node->type = DIR_CLIENT;
-                dbgx(3, "Setting %s to client", 
-                        get_addr2name4(node->u.ip, RESOLVE));
+                dbgx(3, "Setting %s to client", get_addr2name4(node->u.ip, RESOLVE));
             }
-        }
-        else {                  /* IP had no client or server connections */
+        } else { /* IP had no client or server connections */
             node->type = DIR_UNKNOWN;
-            dbgx(3, "Setting %s to unknown", 
-                    get_addr2name4(node->u.ip, RESOLVE));
+            dbgx(3, "Setting %s to unknown", get_addr2name4(node->u.ip, RESOLVE));
         }
     }
 }
@@ -623,7 +570,7 @@ ipv6_cmp(const struct tcpr_in6_addr *a, const struct tcpr_in6_addr *b)
 
     for (i = 0; i < 4; i++) {
         int k;
-        if ((k = (a->tcpr_s6_addr32[i] - b->tcpr_s6_addr32[i]))) {
+        if ((k = ((int)a->tcpr_s6_addr32[i] - (int)b->tcpr_s6_addr32[i]))) {
             return (k > 0) ? 1 : -1;
         }
     }
@@ -654,27 +601,23 @@ tree_comp(tcpr_tree_t *t1, tcpr_tree_t *t2)
 
     if (t1->family == AF_INET) {
         if (t1->u.ip > t2->u.ip) {
-            dbgx(2, "%s > %s", get_addr2name4(t1->u.ip, RESOLVE),
-                get_addr2name4(t2->u.ip, RESOLVE));
+            dbgx(2, "%s > %s", get_addr2name4(t1->u.ip, RESOLVE), get_addr2name4(t2->u.ip, RESOLVE));
             return 1;
         }
 
         if (t1->u.ip < t2->u.ip) {
-            dbgx(2, "%s < %s", get_addr2name4(t1->u.ip, RESOLVE),
-                get_addr2name4(t2->u.ip, RESOLVE));
+            dbgx(2, "%s < %s", get_addr2name4(t1->u.ip, RESOLVE), get_addr2name4(t2->u.ip, RESOLVE));
             return -1;
         }
 
-        dbgx(2, "%s = %s", get_addr2name4(t1->u.ip, RESOLVE),
-            get_addr2name4(t2->u.ip, RESOLVE));
+        dbgx(2, "%s = %s", get_addr2name4(t1->u.ip, RESOLVE), get_addr2name4(t2->u.ip, RESOLVE));
 
         return 0;
     }
 
     if (t1->family == AF_INET6) {
         int ret = ipv6_cmp(&t1->u.ip6, &t1->u.ip6);
-        dbgx(2, "cmp(%s, %s) = %d", get_addr2name6(&t1->u.ip6, RESOLVE),
-                get_addr2name6(&t2->u.ip6, RESOLVE), ret);
+        dbgx(2, "cmp(%s, %s) = %d", get_addr2name6(&t1->u.ip6, RESOLVE), get_addr2name6(&t2->u.ip6, RESOLVE), ret);
         return ret;
     }
 
@@ -700,7 +643,6 @@ new_tree()
     return (node);
 }
 
-
 /**
  * returns a struct of TREE * from a packet header
  * and sets the type to be SERVER or CLIENT or UNKNOWN
@@ -708,7 +650,7 @@ new_tree()
  * the u_char * data should be the data that is passed by pcap_dispatch()
  */
 static tcpr_tree_t *
-packet2tree(const u_char * data, const int len, int datalink)
+packet2tree(const u_char *data, int len, int datalink)
 {
     uint32_t _U_ vlan_offset;
     ssize_t pkt_len = len;
@@ -730,13 +672,7 @@ packet2tree(const u_char * data, const int len, int datalink)
     char srcip[INET6_ADDRSTRLEN];
 #endif
 
-    res = get_l2len_protocol(data,
-                             pkt_len,
-                             datalink,
-                             &ether_type,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(data, pkt_len, datalink, &ether_type, &l2len, &l2offset, &vlan_offset);
 
     if (res == -1)
         goto len_error;
@@ -744,7 +680,7 @@ packet2tree(const u_char * data, const int len, int datalink)
     node = new_tree();
 
     if (ether_type == ETHERTYPE_IP) {
-        if (pkt_len < (ssize_t)(l2len + TCPR_IPV4_H + hl))
+        if (pkt_len < (ssize_t)l2len + TCPR_IPV4_H + hl)
             goto len_error;
 
         memcpy(&ip_hdr, data + l2len + hl, TCPR_IPV4_H);
@@ -758,7 +694,7 @@ packet2tree(const u_char * data, const int len, int datalink)
         strlcpy(srcip, get_addr2name4(ip_hdr.ip_src.s_addr, RESOLVE), 16);
 #endif
     } else if (ether_type == ETHERTYPE_IP6) {
-        if (pkt_len < (ssize_t)(l2len + TCPR_IPV6_H + hl)) {
+        if (pkt_len < (ssize_t)l2len + TCPR_IPV6_H + hl) {
             goto len_error;
         }
 
@@ -770,23 +706,21 @@ packet2tree(const u_char * data, const int len, int datalink)
         hl += TCPR_IPV6_H;
 
 #ifdef DEBUG
-        strlcpy(srcip, get_addr2name6(&ip6_hdr.ip_src, RESOLVE),
-                INET6_ADDRSTRLEN);
+        strlcpy(srcip, get_addr2name6(&ip6_hdr.ip_src, RESOLVE), INET6_ADDRSTRLEN);
 #endif
     } else {
-       dbgx(2,"Unrecognized ether_type (%x)", ether_type);
+        dbgx(2, "Unrecognized ether_type (%x)", ether_type);
     }
 
-    /* 
-     * TCP 
+    /*
+     * TCP
      */
     if (proto == IPPROTO_TCP) {
-
 #ifdef DEBUG
         dbgx(3, "%s uses TCP...  ", srcip);
 #endif
 
-        if (pkt_len < (ssize_t)(l2len + TCPR_TCP_H + hl))
+        if (pkt_len < (ssize_t)l2len + TCPR_TCP_H + hl)
             goto len_error;
 
         /* memcpy it over to prevent alignment issues */
@@ -800,20 +734,18 @@ packet2tree(const u_char * data, const int len, int datalink)
         if (tcp_hdr.th_flags == TH_SYN) {
             node->type = DIR_CLIENT;
             dbg(3, "is a client");
-        }
-        else if (tcp_hdr.th_flags == (TH_SYN | TH_ACK)) {
+        } else if (tcp_hdr.th_flags == (TH_SYN | TH_ACK)) {
             node->type = DIR_SERVER;
             dbg(3, "is a server");
-        }
-        else {
+        } else {
             dbg(3, "is an unknown");
         }
     }
-    /* 
-     * UDP 
+    /*
+     * UDP
      */
     else if (proto == IPPROTO_UDP) {
-        if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + hl))
+        if (pkt_len < (ssize_t)l2len + TCPR_UDP_H + hl)
             goto len_error;
 
         /* memcpy over to prevent alignment issues */
@@ -823,8 +755,8 @@ packet2tree(const u_char * data, const int len, int datalink)
 #endif
 
         switch (ntohs(udp_hdr.uh_dport)) {
-        case 0x0035:           /* dns */
-            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
+        case 0x0035: /* dns */
+            if (pkt_len < (ssize_t)l2len + TCPR_UDP_H + TCPR_DNS_H + hl)
                 goto len_error;
 
             /* prevent memory alignment issues */
@@ -836,22 +768,20 @@ packet2tree(const u_char * data, const int len, int datalink)
 
                 dbg(3, "is a dns server");
 
-            }
-            else {
+            } else {
                 /* bit not set, query */
                 node->type = DIR_CLIENT;
 
                 dbg(3, "is a dns client");
             }
             return (node);
-            break;
         default:
             break;
         }
 
         switch (ntohs(udp_hdr.uh_sport)) {
-        case 0x0035:           /* dns */
-            if (pkt_len < (ssize_t)(l2len + TCPR_UDP_H + TCPR_DNS_H + hl))
+        case 0x0035: /* dns */
+            if (pkt_len < (ssize_t)l2len + TCPR_UDP_H + TCPR_DNS_H + hl)
                 goto len_error;
 
             /* prevent memory alignment issues */
@@ -861,26 +791,23 @@ packet2tree(const u_char * data, const int len, int datalink)
                 /* bit set, response */
                 node->type = DIR_SERVER;
                 dbg(3, "is a dns server");
-            }
-            else {
+            } else {
                 /* bit not set, query */
                 node->type = DIR_CLIENT;
                 dbg(3, "is a dns client");
             }
             return (node);
-            break;
         default:
 
-            dbgx(3, "unknown UDP protocol: %hu->%hu", udp_hdr.uh_sport,
-                udp_hdr.uh_dport);
+            dbgx(3, "unknown UDP protocol: %hu->%hu", udp_hdr.uh_sport, udp_hdr.uh_dport);
             break;
         }
     }
-    /* 
-     * ICMP 
+    /*
+     * ICMP
      */
     else if (proto == IPPROTO_ICMP) {
-        if (pkt_len < (ssize_t)(l2len + TCPR_ICMPV4_H + hl))
+        if (pkt_len < (ssize_t)l2len + TCPR_ICMPV4_H + hl)
             goto len_error;
 
         /* prevent alignment issues */
@@ -891,14 +818,12 @@ packet2tree(const u_char * data, const int len, int datalink)
 #endif
 
         /*
-         * if port unreachable, then source == server, dst == client 
+         * if port unreachable, then source == server, dst == client
          */
-        if ((icmp_hdr.icmp_type == ICMP_UNREACH) &&
-            (icmp_hdr.icmp_code == ICMP_UNREACH_PORT)) {
+        if ((icmp_hdr.icmp_type == ICMP_UNREACH) && (icmp_hdr.icmp_code == ICMP_UNREACH_PORT)) {
             node->type = DIR_SERVER;
             dbg(3, "is a server with a closed port");
         }
-
     }
 
     return (node);
@@ -906,7 +831,6 @@ packet2tree(const u_char * data, const int len, int datalink)
 len_error:
     safe_free(node);
     errx(-1, "packet capture length %d too small to process", len);
-    return NULL;
 }
 
 #ifdef DEBUG
@@ -916,26 +840,26 @@ len_error:
 static char *
 tree_printnode(const char *name, const tcpr_tree_t *node)
 {
-
     memset(&tree_print_buff, '\0', TREEPRINTBUFFLEN);
     if (node == NULL) {
         snprintf(tree_print_buff, TREEPRINTBUFFLEN, "%s node is null", name);
     }
 
     else {
-        snprintf(tree_print_buff, TREEPRINTBUFFLEN,
-            "-- %s: %p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
-            name, (void *)node, node->family == AF_INET ?
-            get_addr2name4(node->u.ip, RESOLVE) :
-            get_addr2name6(&node->u.ip6, RESOLVE),
-            node->masklen, node->server_cnt, node->client_cnt);
+        snprintf(tree_print_buff,
+                 TREEPRINTBUFFLEN,
+                 "-- %s: %p\nIP: %s\nMask: %d\nSrvr: %d\nClnt: %d\n",
+                 name,
+                 (void *)node,
+                 node->family == AF_INET ? get_addr2name4(node->u.ip, RESOLVE) : get_addr2name6(&node->u.ip6, RESOLVE),
+                 node->masklen,
+                 node->server_cnt,
+                 node->client_cnt);
         if (node->type == DIR_SERVER) {
             strlcat(tree_print_buff, "Type: Server\n--\n", TREEPRINTBUFFLEN);
-        }
-        else {
+        } else {
             strlcat(tree_print_buff, "Type: Client\n--", TREEPRINTBUFFLEN);
         }
-
     }
     return (tree_print_buff);
 }
@@ -944,14 +868,14 @@ tree_printnode(const char *name, const tcpr_tree_t *node)
  * prints out the entire tree
  */
 static char *
-tree_print(tcpr_data_tree_t *treeroot)
+tree_print(tcpr_data_tree_t *tree_root)
 {
     tcpr_tree_t *node = NULL;
     memset(&tree_print_buff, '\0', TREEPRINTBUFFLEN);
-    RB_FOREACH(node, tcpr_data_tree_s, treeroot) {
+    RB_FOREACH(node, tcpr_data_tree_s, tree_root)
+    {
         tree_printnode("my node", node);
     }
     return (tree_print_buff);
-
 }
 #endif /* DEBUG */

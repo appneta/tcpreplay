@@ -455,7 +455,7 @@ typedef enum { AOFLAG_TABLE } ao_flags_t;
 #undef  _aof_
 
 static char const   zNil[] = "";
-static arg_types_t  argTypes             = { NULL };
+static arg_types_t  argTypes;
 static char         line_fmt_buf[32];
 static bool         displayEnum          = false;
 static char const   pkgdatadir_default[] = PKGDATADIR;

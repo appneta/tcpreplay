@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,22 +18,14 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
-#include <string.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <ctype.h>
-#include <unistd.h>
+#include <string.h>
 
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
-#endif
-
-#ifdef DEBUG
-extern int debug;
 #endif
 
 /**
@@ -43,13 +35,12 @@ extern int debug;
  */
 
 void *
-_our_safe_malloc(size_t len, const char *funcname, const int line, const char *file)
+our_safe_malloc(size_t len, const char *funcname, int line, const char *file)
 {
     u_char *ptr;
 
     if ((ptr = malloc(len)) == NULL) {
-        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes/n",
-                file, funcname, line, len);
+        fprintf(stderr, "ERROR in %s:%s() line %d: Unable to malloc() %zu bytes/n", file, funcname, line, len);
         exit(-1);
     }
 
@@ -70,11 +61,15 @@ _our_safe_malloc(size_t len, const char *funcname, const int line, const char *f
  * ptr = safe_realloc(ptr, size)
  */
 void *
-_our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, const char *file)
+our_safe_realloc(void *ptr, size_t len, const char *funcname, int line, const char *file)
 {
-
     if ((ptr = realloc(ptr, len)) == NULL) {
-        fprintf(stderr, "ERROR: in %s:%s() line %d: Unable to remalloc() buffer to %zu bytes", file, funcname, line, len);
+        fprintf(stderr,
+                "ERROR: in %s:%s() line %d: Unable to remalloc() buffer to %zu bytes",
+                file,
+                funcname,
+                line,
+                len);
         exit(-1);
     }
 
@@ -88,7 +83,7 @@ _our_safe_realloc(void *ptr, size_t len, const char *funcname, const int line, c
  * This function, detects failures to realloc memory
  */
 char *
-_our_safe_strdup(const char *str, const char *funcname, const int line, const char *file)
+our_safe_strdup(const char *str, const char *funcname, int line, const char *file)
 {
     char *newstr;
 
@@ -100,14 +95,13 @@ _our_safe_strdup(const char *str, const char *funcname, const int line, const ch
     memcpy(newstr, str, strlen(str) + 1);
 
     return newstr;
-
 }
 
 /**
  * calls free and sets to NULL.
  */
 void
-_our_safe_free(void *ptr, const char *funcname, const int line, const char *file)
+our_safe_free(void *ptr, const char *funcname, int line, const char *file)
 {
     assert(funcname);
     assert(line);
@@ -122,28 +116,37 @@ _our_safe_free(void *ptr, const char *funcname, const int line, const char *file
 /**
  * get next packet in pcap file
  */
-u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
-        const char *funcname, const int line, const char *file)
+u_char *
+our_safe_pcap_next(pcap_t *pcap, struct pcap_pkthdr *pkthdr, const char *funcname, int line, const char *file)
 {
     u_char *pktdata = (u_char *)pcap_next(pcap, pkthdr);
 
     if (pktdata) {
         if (pkthdr->len > MAX_SNAPLEN) {
-            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
-                    file, funcname, line, pkthdr->len, MAX_SNAPLEN);
+            fprintf(stderr,
+                    "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
+                    file,
+                    funcname,
+                    line,
+                    pkthdr->len,
+                    MAX_SNAPLEN);
             exit(-1);
         }
 
         if (!pkthdr->len || !pkthdr->caplen) {
-            fprintf(stderr, "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: packet length=%u capture length=%u\n",
-                    file, funcname, line, pkthdr->len, pkthdr->caplen);
+            fprintf(stderr,
+                    "safe_pcap_next ERROR: Invalid packet length in %s:%s() line %d: packet length=%u capture length=%u\n",
+                    file,
+                    funcname,
+                    line,
+                    pkthdr->len,
+                    pkthdr->caplen);
             exit(-1);
         }
 
         /* attempt to correct invalid captures */
         if (pkthdr->len < pkthdr->caplen) {
-            dbgx(1, "Correcting invalid packet capture length %d: packet length=%u",
-                    pkthdr->caplen, pkthdr->len);
+            dbgx(1, "Correcting invalid packet capture length %d: packet length=%u", pkthdr->caplen, pkthdr->len);
             pkthdr->caplen = pkthdr->len;
         }
     } else {
@@ -157,34 +160,46 @@ u_char *_our_safe_pcap_next(pcap_t *pcap,  struct pcap_pkthdr *pkthdr,
 /**
  * get next packet in pcap file (extended)
  */
-int _our_safe_pcap_next_ex(pcap_t *pcap, struct pcap_pkthdr **pkthdr,
-        const u_char **pktdata, const char *funcname,
-        const int line, const char *file)
+int
+our_safe_pcap_next_ex(pcap_t *pcap,
+                      struct pcap_pkthdr **pkthdr,
+                      const u_char **pktdata,
+                      const char *funcname,
+                      int line,
+                      const char *file)
 {
     int res = pcap_next_ex(pcap, pkthdr, pktdata);
 
     if (*pktdata && *pkthdr) {
         if ((*pkthdr)->len > MAXPACKET) {
-            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
-                    file, funcname, line, (*pkthdr)->len, MAXPACKET);
+            fprintf(stderr,
+                    "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: %u is greater than maximum %u\n",
+                    file,
+                    funcname,
+                    line,
+                    (*pkthdr)->len,
+                    MAXPACKET);
             exit(-1);
         }
 
         if (!(*pkthdr)->len || (*pkthdr)->len < (*pkthdr)->caplen) {
-            fprintf(stderr, "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: packet length=%u capture length=%u\n",
-                    file, funcname, line, (*pkthdr)->len, (*pkthdr)->caplen);
+            fprintf(stderr,
+                    "safe_pcap_next_ex ERROR: Invalid packet length in %s:%s() line %d: packet length=%u capture length=%u\n",
+                    file,
+                    funcname,
+                    line,
+                    (*pkthdr)->len,
+                    (*pkthdr)->caplen);
             exit(-1);
         }
 
         if ((*pkthdr)->len < (*pkthdr)->caplen) {
-            dbgx(1, "Correcting invalid packet capture length %d: packet length=%u",
-                    (*pkthdr)->caplen, (*pkthdr)->len);
+            dbgx(1, "Correcting invalid packet capture length %d: packet length=%u", (*pkthdr)->caplen, (*pkthdr)->len);
             (*pkthdr)->caplen = (*pkthdr)->len;
         }
     } else {
         /* this will be reported as a failed packet in final report */
-        dbgx(1, "No data found in packet 0x%p and/or header 0x%p",
-                *pktdata, *pkthdr);
+        dbgx(1, "No data found in packet 0x%p and/or header 0x%p", *pktdata, *pkthdr);
     }
 
     return res;
@@ -218,10 +233,10 @@ packet_stats(const tcpreplay_stats_t *stats)
         if (stats->bytes_sent > 1000 * 1000 * 1000 && diff_us > 1000 * 1000) {
             bytes_sec_X10 = (stats->bytes_sent * 10 * 1000) / (diff_us / 1000);
             pkts_sec_X100 = (stats->pkts_sent * 100 * 1000) / (diff_us / 1000);
-         } else {
+        } else {
             bytes_sec_X10 = (stats->bytes_sent * 10 * 1000 * 1000) / diff_us;
             pkts_sec_X100 = (stats->pkts_sent * 100 * 1000 * 1000) / diff_us;
-         }
+        }
 
         bytes_sec = bytes_sec_X10 / 10;
         bytes_sec_10ths = bytes_sec_X10 % 10;
@@ -238,23 +253,37 @@ packet_stats(const tcpreplay_stats_t *stats)
 
     if (diff_us >= 1000 * 1000)
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds\n",
-                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_usec / (10 * 1000)));
+               stats->pkts_sent,
+               stats->bytes_sent,
+               (ssize_t)diff.tv_sec,
+               (ssize_t)(diff.tv_usec / (10 * 1000)));
     else
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds\n",
-                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)diff.tv_usec);
-
+               stats->pkts_sent,
+               stats->bytes_sent,
+               (ssize_t)diff.tv_sec,
+               (ssize_t)diff.tv_usec);
 
     if (mb_sec >= 1)
         printf("Rated: %llu.%1u Bps, %llu.%02u Mbps, %llu.%02u pps\n",
-               bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_100ths, pkts_sec, pkts_sec_100ths);
+               bytes_sec,
+               bytes_sec_10ths,
+               mb_sec,
+               mb_sec_100ths,
+               pkts_sec,
+               pkts_sec_100ths);
     else
         printf("Rated: %llu.%1u Bps, %llu.%03u Mbps, %llu.%02u pps\n",
-               bytes_sec, bytes_sec_10ths, mb_sec, mb_sec_1000ths, pkts_sec, pkts_sec_100ths);
+               bytes_sec,
+               bytes_sec_10ths,
+               mb_sec,
+               mb_sec_1000ths,
+               pkts_sec,
+               pkts_sec_100ths);
     fflush(NULL);
-    
+
     if (stats->failed)
-        printf("Failed write attempts: " COUNTER_SPEC "\n",
-                stats->failed);
+        printf("Failed write attempts: " COUNTER_SPEC "\n", stats->failed);
 }
 
 /**
@@ -265,7 +294,8 @@ packet_stats(const tcpreplay_stats_t *stats)
  * @param len: length of the buffer
  * @return: string containing date, or -1 on error
  */
-int format_date_time(struct timeval *when, char *buf, size_t len)
+int
+format_date_time(struct timeval *when, char *buf, size_t len)
 {
     struct tm *tm;
     char tmp[64];
@@ -286,7 +316,7 @@ int format_date_time(struct timeval *when, char *buf, size_t len)
  * it just calls errx() since all errors are fatal.
  */
 int
-read_hexstring(const char *l2string, u_char *hex, const int hexlen)
+read_hexstring(const char *l2string, u_char *hex, int hexlen)
 {
     int numbytes = 0;
     unsigned int value;
@@ -306,10 +336,12 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
 
     /* get the first byte */
     l2byte = strtok_r(string, ",", &token);
-    sscanf(l2byte, "%x", &value);
+    if (l2byte == NULL)
+        err(-1, "Hex buffer must contain something");
+    value = strtol(l2byte, NULL, 16);
     if (value > 0xff)
         errx(-1, "Invalid hex string byte: %s", l2byte);
-    databyte = (u_char) value;
+    databyte = (u_char)value;
     memcpy(&hex[numbytes], &databyte, 1);
 
     /* get remaining bytes */
@@ -319,10 +351,10 @@ read_hexstring(const char *l2string, u_char *hex, const int hexlen)
             warn("Hex buffer too small for data- skipping data");
             goto done;
         }
-        sscanf(l2byte, "%x", &value);
+        value = strtol(l2byte, NULL, 16);
         if (value > 0xff)
             errx(-1, "Invalid hex string byte: %s", l2byte);
-        databyte = (u_char) value;
+        databyte = (u_char)value;
         memcpy(&hex[numbytes], &databyte, 1);
     }
 
@@ -345,8 +377,9 @@ inet_aton(const char *name, struct in_addr *addr)
 }
 #endif
 
-#if SIZEOF_LONG  == 4
-uint32_t __div64_32(uint64_t *n, uint32_t base)
+#if SIZEOF_LONG == 4
+uint32_t
+__div64_32(uint64_t *n, uint32_t base)
 {
     uint64_t rem = *n;
     uint64_t b = base;
@@ -357,13 +390,13 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
     res = 0;
     if (high >= base) {
         high /= base;
-        res = (uint64_t) high << 32;
-        rem -= (uint64_t) (high*base) << 32;
+        res = (uint64_t)high << 32;
+        rem -= (uint64_t)(high * base) << 32;
     }
 
     while ((int64_t)b > 0 && b < rem) {
-        b = b+b;
-        d = d+d;
+        b = b + b;
+        d = d + d;
     }
 
     do {
@@ -387,28 +420,29 @@ uint32_t __div64_32(uint64_t *n, uint32_t base)
  * @param: seed
  * @return: random number
  */
-uint32_t tcpr_random(uint32_t *seed)
+uint32_t
+tcpr_random(uint32_t *seed)
 {
-  unsigned int next = *seed;
-  int result;
+    unsigned int next = *seed;
+    int result;
 
-  next *= 1103515245;
-  next += 12345;
-  result = (unsigned int) (next / 65536) % 2048;
+    next *= 1103515245;
+    next += 12345;
+    result = (int)(next / 65536) % 2048;
 
-  next *= 1103515245;
-  next += 12345;
-  result <<= 10;
-  result ^= (unsigned int) (next / 65536) % 1024;
+    next *= 1103515245;
+    next += 12345;
+    result <<= 10;
+    result ^= (int)(next / 65536) % 1024;
 
-  next *= 1103515245;
-  next += 12345;
-  result <<= 10;
-  result ^= (unsigned int) (next / 65536) % 1024;
+    next *= 1103515245;
+    next += 12345;
+    result <<= 10;
+    result ^= (int)(next / 65536) % 1024;
 
-  *seed = next;
+    *seed = next;
 
-  return result;
+    return result;
 }
 
 /**
@@ -416,7 +450,8 @@ uint32_t tcpr_random(uint32_t *seed)
  * a program. BSD and Unix derivatives should utilize `FIONBIO` due to known
  * issues with reading from tty with a 0 byte read returning -1 opposed to 0.
  */
-void restore_stdin(void)
+void
+restore_stdin(void)
 {
 #ifdef FIONBIO
     int nb = 0;

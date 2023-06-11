@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2015 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -19,16 +19,16 @@
  */
 
 /*
- * This code is heavily based on (some might even say stolen from) Mike Shiffman's 
+ * This code is heavily based on (some might even say stolen from) Mike Shiffman's
  * checksumming code from Libnet 1.1.3
  */
- 
+
+#include "incremental_checksum.h"
 #include "config.h"
 #include "tcpedit.h"
-#include "incremental_checksum.h"
 
-
-static inline unsigned short from32to16(unsigned int x)
+static inline unsigned short
+from32to16(unsigned int x)
 {
     /* add up 16-bit and 16-bit for 16+c bit */
     x = (x & 0xffff) + (x >> 16);
@@ -37,14 +37,15 @@ static inline unsigned short from32to16(unsigned int x)
     return x;
 }
 
-static unsigned int do_csum(const unsigned char *buff, int len)
+static unsigned int
+do_csum(const unsigned char *buff, int len)
 {
     int odd;
     unsigned int result = 0;
 
     if (len <= 0)
         goto out;
-    odd = 1 & (unsigned long) buff;
+    odd = 1 & (unsigned long)buff;
     if (odd) {
 #ifdef WORDS_BIGENDIAN
         result = *buff;
@@ -55,8 +56,8 @@ static unsigned int do_csum(const unsigned char *buff, int len)
         buff++;
     }
     if (len >= 2) {
-        if (2 & (unsigned long) buff) {
-            result += *(unsigned short *) buff;
+        if (2 & (unsigned long)buff) {
+            result += *(unsigned short *)buff;
             len -= 2;
             buff += 2;
         }
@@ -64,7 +65,7 @@ static unsigned int do_csum(const unsigned char *buff, int len)
             const unsigned char *end = buff + ((unsigned)len & ~3);
             unsigned int carry = 0;
             do {
-                unsigned int w = *(unsigned int *) buff;
+                unsigned int w = *(unsigned int *)buff;
                 buff += 4;
                 result += carry;
                 result += w;
@@ -74,7 +75,7 @@ static unsigned int do_csum(const unsigned char *buff, int len)
             result = (result & 0xffff) + (result >> 16);
         }
         if (len & 2) {
-            result += *(unsigned short *) buff;
+            result += *(unsigned short *)buff;
             buff += 2;
         }
     }
@@ -91,7 +92,6 @@ out:
     return result;
 }
 
-
 /*
  * computes the checksum of a memory block at buff, length len,
  * and adds in "sum" (32-bit)
@@ -104,9 +104,10 @@ out:
  *
  * it's best to have buff aligned on a 32-bit boundary
  */
-__wsum csum_partial(const void *buff, int len, __wsum wsum)
+__wsum
+csum_partial(const void *buff, int len, __wsum wsum)
 {
-    unsigned int sum = ( unsigned int)wsum;
+    unsigned int sum = (unsigned int)wsum;
     unsigned int result = do_csum(buff, len);
 
     /* add in old sum, and carry.. */
@@ -115,5 +116,3 @@ __wsum csum_partial(const void *buff, int len, __wsum wsum)
         result += 1;
     return (__wsum)result;
 }
-
-
