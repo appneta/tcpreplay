@@ -14,11 +14,11 @@ jobs:
       - name: List interfaces
         run: ip a
       - name: Install prereqs
-        run: sudo apt -y install libpcap-dev
+        run: sudo apt -y build-dep tcpreplay
       - name: Create configure script
         run: ./autogen.sh
       - name: configure
-        run: ./configure --with-testnic=eth0 --enable-local-libopts
+        run: ./configure --with-testnic=eth0 --disable-local-libopts
       - name: make
         run: make
       - name: make dist
