@@ -5,7 +5,7 @@ Tcpreplay
 [![Website](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://tcpreplay.appneta.com)
 [![CodeQL](https://github.com/appneta/tcpreplay/actions/workflows/codeql.yml/badge.svg)](https://github.com/appneta/tcpreplay/actions/workflows/codeql.yml)
 [![cpp-linter](https://github.com/appneta/tcpreplay/actions/workflows/c-linter.yml/badge.svg)](https://github.com/appneta/tcpreplay/actions/workflows/c-linter.yml)
-[![GH Actions Status](https://github.com/{user}/{repo}/workflows/{action}/badge.svg)](https://github.com/{user}/{repo}/actions)
+[![GH Actions Status](https://github.com/{user}/{repo}/workflows/github-actions-ci/badge.svg)](https://github.com/{user}/{repo}/actions)
 
 Tcpreplay is a suite of [GPLv3] licensed utilities for UNIX (and Win32 under
 [Cygwin]) operating systems for editing and replaying network traffic which
