@@ -13,10 +13,12 @@ jobs:
       - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
       - name: List interfaces
         run: ip a
+      - name: Install prereqs
+        run: sudo apt -y libpcap-dev
       - name: Create configure script
         run: ./autogen.sh
       - name: configure
-        run: ./configure --with-testnic=enp0s5
+        run: ./configure --with-testnic=eth0 --enable-local-libopts
       - name: make
         run: make
       - name: make dist
@@ -27,4 +29,4 @@ jobs:
         run: ls ${{ github.workspace }}
       - name: tests
         run: sudo make test
-      - run: echo "🍏 This test's status is ${{ job.status }}."
+      - run: echo "This test's status is ${{ job.status }}."
