@@ -14,7 +14,7 @@ jobs:
       - name: List interfaces
         run: ip a
       - name: Install prereqs
-        run: sudo apt -y libpcap-dev
+        run: sudo apt -y install libpcap-dev
       - name: Create configure script
         run: ./autogen.sh
       - name: configure
