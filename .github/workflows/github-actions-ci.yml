@@ -14,7 +14,7 @@ jobs:
       - name: List interfaces
         run: ip a
       - name: Install prereqs
-        run: sudo apt -y build-dep tcpreplay
+        run: sudo apt -y install autogen libpcap
       - name: Create configure script
         run: ./autogen.sh
       - name: configure
