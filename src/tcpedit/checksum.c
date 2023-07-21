@@ -120,7 +120,8 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len, const u_char 
         }
         sum += ntohs(IPPROTO_UDP + len);
         sum += do_checksum_math((uint16_t *)udp, len);
-        udp->uh_sum = CHECKSUM_CARRY(sum);
+        sum = CHECKSUM_CARRY(sum);
+        udp->uh_sum = (sum == 0 ? 0xffff : sum);
         break;
 
     case IPPROTO_ICMP:
