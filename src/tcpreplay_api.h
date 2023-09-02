@@ -99,6 +99,7 @@ typedef struct tcpreplay_opt_s {
     tcpreplay_speed_t speed;
     COUNTER loop;
     u_int32_t loopdelay_ms;
+    float drop;
 
     int stats;
     bool use_pkthdr_len;

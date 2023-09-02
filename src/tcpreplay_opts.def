@@ -470,6 +470,20 @@ EOText;
 };
 
 flag = {
+    name        = drop;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Simluate random packet loss";
+    doc         = <<- EOText
+Set to a value between 0 and 1 to simulate packet loss at send.
+Examples:
+@example
+    0.25 will drop around one quarter of packets (they will not be sent)
+@end example
+EOText;
+};
+
+flag = {
     name        = unique-ip;
     flags-must   = loop;
 #ifdef TCPREPLAY_EDIT

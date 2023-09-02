@@ -203,6 +203,12 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->speed.multiplier = atof(OPT_ARG(MULTIPLIER));
     }
 
+    if (HAVE_OPT(DROP)) {
+        options->drop = atof(OPT_ARG(DROP));
+    } else {
+        options->drop = 1.0f;
+    }
+
     if (HAVE_OPT(MAXSLEEP)) {
         options->maxsleep.tv_sec = OPT_VALUE_MAXSLEEP / 1000;
         options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000 * 1000;

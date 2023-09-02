@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #ifdef HAVE_FTS_H
 #include <fts.h>
 #endif
@@ -61,6 +62,8 @@ main(int argc, char *argv[])
     int rcode;
 
     fflush(NULL);
+
+    srand(time(NULL));
 
     ctx = tcpreplay_init();
     optct = optionProcess(&tcpreplayOptions, argc, argv);

@@ -498,8 +498,11 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #endif
 
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
-        /* write packet out on network */
-        if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen) {
+        /* write packet out on network, skipping it in random cases when asked for drop */
+        if (
+            (options->drop == 1.0f || rand() > options->drop * RAND_MAX) &&
+            sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen
+        ) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
             continue;
         }
