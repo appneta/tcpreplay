@@ -1,3 +1,5 @@
+09/03/2023 Version 4.5.0-beta1
+
 06/04/2023 Version 4.4.4
     - overflow check fix for parse_mpls (#795)
     - tcpreplay-edit: prevent L2 flooding of ipv6 unicast packets (#793)
