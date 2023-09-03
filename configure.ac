@@ -1525,6 +1525,15 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "$LPCAPINC"]], [[ int foo;
                ],[AC_MSG_RESULT(no)
                ])
 
+AC_MSG_CHECKING(for DLT_LINUX_SLL2 in libpcap)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "$LPCAPINC"]], [[ int foo;
+                 foo = DLT_LINUX_SLL2
+               ]])],[ AC_DEFINE([HAVE_DLT_LINUX_SLL2], [1],
+                           [Does pcap.h include a header with DLT_LINUX_SLL2?])
+                 AC_MSG_RESULT(yes)
+               ],[AC_MSG_RESULT(no)
+               ])
+
 AC_MSG_CHECKING(for DLT_C_HDLC in libpcap)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "$LPCAPINC"]], [[ int foo;
                  foo = DLT_C_HDLC ]])],[ AC_DEFINE([HAVE_DLT_C_HDLC], [1],

@@ -21,6 +21,7 @@
 #include "dlt.h"
 #include "config.h"
 #include "tcpedit.h"
+#include <lib/sll.h>
 #include <assert.h>
 
 /**
@@ -49,13 +50,13 @@ dlt2layer2len(tcpedit_t *tcpedit, int dlt)
     case DLT_EN10MB:
         len = 12;
         break;
-        /*
-    case DLT_VLAN:
-        len = 14;
-        break;
-        */
+
     case DLT_LINUX_SLL:
-        len = 16;
+        len = SLL_HDR_LEN;
+        break;
+
+    case DLT_LINUX_SLL2:
+        len = SLL2_HDR_LEN;
         break;
 
     case DLT_PPP_SERIAL:
@@ -103,6 +104,7 @@ dltrequires(tcpedit_t *tcpedit, int dlt)
         break;
 
     case DLT_LINUX_SLL:
+    case DLT_LINUX_SLL2:
         /* we have proto & SRC address */
         req = TCPEDIT_DLT_DST;
         break;
@@ -136,6 +138,7 @@ dlt2mtu(tcpedit_t *tcpedit, int dlt)
         break;
 
     case DLT_LINUX_SLL:
+    case DLT_LINUX_SLL2:
         mtu = 16436;
         break;
 

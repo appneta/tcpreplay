@@ -357,9 +357,17 @@ get_l2len_protocol(const u_char *pktdata,
         if (datalen < SLL_HDR_LEN)
             return -1;
 
+        *l2len = SLL_HDR_LEN;
         sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
-        *l2len = sizeof(*sll_hdr);
         *protocol = ntohs(sll_hdr->sll_protocol);
+        break;
+    case DLT_LINUX_SLL2:
+        if (datalen < SLL2_HDR_LEN)
+            return -1;
+
+        *l2len = SLL2_HDR_LEN;
+        sll2_hdr_t *sll2_hdr = (sll2_hdr_t *)pktdata;
+        *protocol = ntohs(sll2_hdr->sll2_protocol);
         break;
     default:
         errx(-1,

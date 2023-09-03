@@ -1,0 +1,72 @@
+/* $Id$ */
+
+/*
+ *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
+ *   Copyright (c) 2013-2023 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or with the authors permission any later version.
+ *
+ *   The Tcpreplay Suite is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef _DLT_linuxsll2_TYPES_H_
+#define _DLT_linuxsll2_TYPES_H_
+
+#include "tcpedit_types.h"
+#include "plugins_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * structure to hold any data parsed from the packet by the decoder.
+ * Example: Ethernet VLAN tag info
+ */
+typedef struct {
+    u_char packet[MAXPACKET];
+} linuxsll2_extra_t;
+
+
+/*
+ * FIXME: structure to hold any data in the tcpeditdlt_plugin_t->config
+ * Things like:
+ * - Parsed user options
+ * - State between packets
+ * - Note, you should only use this for the encoder function, decoder functions should place
+ *   "extra" data parsed from the packet in the tcpeditdlt_t->decoded_extra buffer since that
+ *   is available to any encoder plugin.
+ */
+typedef struct {
+    /* dummy entry for SunPro compiler which doesn't like empty structs */
+    int dummy;
+} linuxsll2_config_t;
+
+
+typedef struct {
+    u_int16_t proto;        /* Ethernet protocol type */
+    u_int16_t mbz;          /* reserved */
+    u_int32_t if_index;     /* iface index */
+    u_int16_t type;         /* linux ARPHRD_* values for link-layer device type.  See:
+                             * http://www.gelato.unsw.edu.au/lxr/source/include/linux/if_arp.h
+                             */
+    u_int8_t source;        /* values 0-4 determine where the packet came and where it's going */
+    u_int8_t length;        /* source address length */
+    u_char address[8];      /* first 8 bytes of source address (may be truncated) */
+} linux_sll2_header_t;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+

@@ -113,3 +113,6 @@ Florian Weimer <GitHub @fweimer-rh>
 
 David Guti <GitHub @david-guti>
     - prevent L2 flooding of ipv6 unicast packets for tcpreplay-edit
+
+Bastian Triller <GitHub @btriller>
+    - Linux SLL2

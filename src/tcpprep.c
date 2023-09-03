@@ -108,6 +108,7 @@ readpcap:
     switch (pcap_datalink(options->pcap)) {
     case DLT_EN10MB:
     case DLT_LINUX_SLL:
+    case DLT_LINUX_SLL2:
     case DLT_RAW:
     case DLT_C_HDLC:
     case DLT_JUNIPER_ETHER:
