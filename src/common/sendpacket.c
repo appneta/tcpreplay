@@ -1066,7 +1066,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
 {
     sendpacket_t *sp;
     char bpf_dev[16];
-    int dev, mysocket, link_offset, link_type;
+    int dev, mysocket;
     struct ifreq ifr;
     struct bpf_version bv;
     u_int v;
@@ -1134,43 +1134,10 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     }
 #endif
 
-    /* assign link type and offset */
-    switch (v) {
-    case DLT_SLIP:
-        link_offset = 0x10;
-        break;
-    case DLT_RAW:
-        link_offset = 0x0;
-        break;
-    case DLT_PPP:
-        link_offset = 0x04;
-        break;
-    case DLT_EN10MB:
-    default: /* default to Ethernet */
-        link_offset = 0xe;
-        break;
-    }
-#if _BSDI_VERSION - 0 > 199510
-    switch (v) {
-    case DLT_SLIP:
-        v = DLT_SLIP_BSDOS;
-        link_offset = 0x10;
-        break;
-    case DLT_PPP:
-        v = DLT_PPP_BSDOS;
-        link_offset = 0x04;
-        break;
-    }
-#endif
-
-    link_type = v;
-
     /* allocate our sp handle, and return it */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
-    // sp->link_type = link_type;
-    // sp->link_offset = link_offset;
     sp->handle_type = SP_TYPE_BPF;
 
     return sp;
