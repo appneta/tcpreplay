@@ -55,7 +55,7 @@ typedef struct {
 typedef struct {
     u_int16_t proto;        /* Ethernet protocol type */
     u_int16_t mbz;          /* reserved */
-    u_int32_t iindex;       /* iface index */
+    u_int32_t if_index;     /* iface index */
     u_int16_t type;         /* linux ARPHRD_* values for link-layer device type.  See:
                              * http://www.gelato.unsw.edu.au/lxr/source/include/linux/if_arp.h
                              */

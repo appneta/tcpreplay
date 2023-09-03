@@ -59,7 +59,7 @@ dlt_linuxsll2_register(tcpeditdlt_t *ctx)
     plugin->requires += 0;
 
 
-     /* what is our DLT value? */
+    /* what is our DLT value? */
     plugin->dlt = dlt_value;
 
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
@@ -85,7 +85,6 @@ dlt_linuxsll2_register(tcpeditdlt_t *ctx)
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
 
-
 /*
  * Initializer function.  This function is called only once, if and only if
  * this plugin will be utilized.  Remember, if you need to keep track of any state,
@@ -104,8 +103,15 @@ dlt_linuxsll2_init(tcpeditdlt_t *ctx)
     }
 
     /* allocate memory for our decode extra data */
-    ctx->decoded_extra_size = sizeof(linuxsll2_extra_t);
-    ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    if (ctx->decoded_extra_size > 0) {
+        if (ctx->decoded_extra_size < sizeof(linuxsll2_extra_t)) {
+            ctx->decoded_extra_size = sizeof(linuxsll2_extra_t);
+            ctx->decoded_extra = safe_realloc(ctx->decoded_extra, ctx->decoded_extra_size);
+        }
+    } else {
+        ctx->decoded_extra_size = sizeof(linuxsll2_extra_t);
+        ctx->decoded_extra = safe_malloc(ctx->decoded_extra_size);
+    }
 
     /* allocate memory for our config data */
     plugin->config_size = sizeof(linuxsll2_config_t);
@@ -130,13 +136,14 @@ dlt_linuxsll2_cleanup(tcpeditdlt_t *ctx)
         return TCPEDIT_ERROR;
     }
 
-    /* FIXME: make this function do something if necessary */
     if (ctx->decoded_extra != NULL) {
         safe_free(ctx->decoded_extra);
         ctx->decoded_extra = NULL;
         ctx->decoded_extra_size = 0;
     }
 
+    safe_free(plugin->name);
+    plugin->name = NULL;
     if (plugin->config != NULL) {
         safe_free(plugin->config);
         plugin->config = NULL;
@@ -255,18 +262,18 @@ dlt_linuxsll2_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * like SPARC
  */
 u_char *
-dlt_linuxsll2_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen, u_char *l3data)
+dlt_linuxsll2_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen, u_char *ipv4_data, u_char *ipv6_data)
 {
     int l2len;
     assert(ctx);
     assert(packet);
-    assert(l3data);
+    assert(ipv4_data || ipv6_data);
 
     l2len = dlt_linuxsll2_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
 
-    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, l3data, l2len);
+    return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data ?: ipv6_data, l2len);
 }
 
 /*
@@ -301,17 +308,13 @@ dlt_linuxsll2_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char
     switch(mac) {
     case SRC_MAC:
         memcpy(ctx->srcmac, &packet[6], 8); /* linuxssl defines the src mac field to be 8 bytes, not 6 */
-        return(ctx->srcmac);
-        break;
-
+        return ctx->srcmac;
     case DST_MAC:
-        return(NULL);
         break;
-
     default:
         errx(-1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
     }
-    return(NULL);
+    return NULL;
 }
 
 tcpeditdlt_l2addr_type_t

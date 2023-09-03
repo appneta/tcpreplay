@@ -29,6 +29,10 @@
 #define DLT_LINUX_SLL 113
 #endif
 
+#ifndef HAVE_DLT_LINUX_SLL2
+#define DLT_LINUX_SLL2 276
+#endif
+
 #ifndef HAVE_DLT_C_HDLC
 #define DLT_C_HDLC 104
 #endif
