@@ -1025,7 +1025,7 @@ calc_sleep_time(tcpreplay_t *ctx,
              *
              * ensure there is no overflow in cases where bits_sent is very high
              */
-            if (bits_sent > COUNTER_OVERFLOW_RISK && bps > 500000)
+            if (bits_sent > COUNTER_OVERFLOW_RISK)
                 next_tx_us = (bits_sent * 1000) / bps * 1000;
             else
                 next_tx_us = (bits_sent * 1000000) / bps;
