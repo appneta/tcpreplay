@@ -134,6 +134,16 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = batch-size;
+    arg-type    = number;
+    arg-range   = "1->4096";
+    descrip     = "The maximum number of packets that can be submitted to the AF_XDP TX ring at once";
+    arg-default = 25;
+    doc         = "Higher values may improve performance at the cost of burstiness";
+};
+
+flag = {
     name        = quiet;
     value       = q;
     descrip     = "Quiet mode";
