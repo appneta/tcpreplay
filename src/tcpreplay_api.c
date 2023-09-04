@@ -359,7 +359,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         goto out;
     }
 #ifdef HAVE_LIBXDP
-    ctx->intf1->batch_size = OPT_VALUE_BATCH_SIZE;
+    ctx->intf1->batch_size = OPT_VALUE_XDP_BATCH_SIZE;
 #endif
 #if defined HAVE_NETMAP
     ctx->intf1->netmap_delay = ctx->options->netmap_delay;

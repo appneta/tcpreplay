@@ -134,16 +134,6 @@ EOText;
 };
 
 flag = {
-    ifdef       = HAVE_LIBXDP;
-    name        = batch-size;
-    arg-type    = number;
-    arg-range   = "1->4096";
-    descrip     = "The maximum number of packets that can be submitted to the AF_XDP TX ring at once";
-    arg-default = 25;
-    doc         = "Higher values may improve performance at the cost of burstiness";
-};
-
-flag = {
     name        = quiet;
     value       = q;
     descrip     = "Quiet mode";
@@ -605,6 +595,16 @@ flag = {
 Note that timed delays are a "best effort" and long delays between
 sending packets may cause equally long delays between printing statistics.
 EOText;
+};
+
+flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp-batch-size;
+    arg-type    = number;
+    arg-range   = "1->4096";
+    descrip     = "The maximum number of packets that can be submitted to the AF_XDP TX ring at once";
+    arg-default = 25;
+    doc         = "Higher values may improve performance at the cost of accuracy";
 };
 
 flag = {
