@@ -529,6 +529,20 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp;
+    descrip     = "Write packets directly to AF_XDP enabled network adapter";
+    doc         = <<- EOText
+This feature will detect AF_XDP capable network drivers on Linux systems
+that have 'libxdp-dev' and 'libbpf-dev' installed. If detected, the network
+stack is bypassed and packets are sent directly to an eBPF enabled driver directly.
+This will allow you to achieve full line rates on commodity network adapters, similar to rates
+achieved by commercial network traffic generators.
+EOText;
+};
+
+
+flag = {
     name        = no-flow-stats;
     descrip     = "Suppress printing and tracking flow count, rates and expirations";
     doc         = <<- EOText
@@ -595,6 +609,16 @@ flag = {
 Note that timed delays are a "best effort" and long delays between
 sending packets may cause equally long delays between printing statistics.
 EOText;
+};
+
+flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp-batch-size;
+    arg-type    = number;
+    arg-range   = "1->4096";
+    descrip     = "The maximum number of packets that can be submitted to the AF_XDP TX ring at once";
+    arg-default = 25;
+    doc         = "Higher values may improve performance at the cost of accuracy";
 };
 
 flag = {

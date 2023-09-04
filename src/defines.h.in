@@ -48,6 +48,22 @@
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
 #endif
 
+#ifdef HAVE_LIBBPF
+#undef HAVE_BPF
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+
+struct bpf_program {
+char dummy[0];
+};
+
+#endif
+
+#ifdef HAVE_LIBXDP
+#include <xdp/libxdp.h>
+#endif
+
 #if defined INCLUDE_PCAP_BPF_H_FILE && !defined PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <@INCLUDE_PCAP_BPF_HEADER@>
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1 /* don't re-include it in pcap.h */

@@ -128,6 +128,34 @@ directory, for example:
     make
     sudo make install
 
+2) AF_XDF
+   ------
+
+This feature will detect AF_XDP capable network drivers on Linux. If detected,
+the `--xdp` option becomes available, allowing eBPF enabled adapters to be
+written to directly.
+
+This feature requires `libxdp-dev` and `libbpf-dev` packages to be installed.
+For example:
+
+    $ ./configure | tail
+    Linux/BSD netmap:           no
+    Tuntap device support:      yes
+    LIBXDP for AF_XDP socket:   yes
+    $ make
+    $ sudo make install
+    $ tcpreplay -i eth0 --xdp test/test.pcap
+
+If you want to compile a version that only uses AF_XDP, use the `--enable-force-libxdp`
+configure option, e.g.
+
+    $ ./configure --enable-force-libxdp | tail
+    Linux/BSD netmap:           no
+    Tuntap device support:      yes
+    LIBXDP for AF_XDP socket:   yes
+    $ make
+    $ sudo make install
+    $ tcpreplay -i eth0 test/test.pcap
 
 Compilers and Options
 =====================
