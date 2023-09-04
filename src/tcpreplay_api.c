@@ -265,6 +265,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 #endif
     }
 
+    if (HAVE_OPT(XDP)) {
+#ifdef HAVE_LIBXDP
+        options->xdp = 1;
+        ctx->sp_type = SP_TYPE_LIBXDP;
+#else
+         err(-1, "--xdp feature was not compiled in. See INSTALL.");
+#endif
+    }
+
     if (HAVE_OPT(UNIQUE_IP))
         options->unique_ip = 1;
 

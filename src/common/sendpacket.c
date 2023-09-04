@@ -572,16 +572,21 @@ sendpacket_open(const char *device,
             sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
         else
 #endif
+#ifdef HAVE_LIBXDP
+        if (sendpacket_type == SP_TYPE_LIBXDP)
+            sp = sendpacket_open_xsk(device, errbuf);
+        else
+#endif
 #if defined HAVE_PF_PACKET
             sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
-        sp = sendpacket_open_bpf(device, errbuf);
+            sp = sendpacket_open_bpf(device, errbuf);
 #elif defined HAVE_LIBDNET
-        sp = sendpacket_open_libdnet(device, errbuf);
+            sp = sendpacket_open_libdnet(device, errbuf);
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-        sp = sendpacket_open_pcap(device, errbuf);
+            sp = sendpacket_open_pcap(device, errbuf);
 #elif defined HAVE_LIBXDP
-        sp = sendpacket_open_xsk(device, errbuf);
+            sp = sendpacket_open_xsk(device, errbuf);
 #else
 #error "No defined packet injection method for sendpacket_open()"
 #endif
@@ -693,8 +698,10 @@ sendpacket_close(sendpacket_t *sp)
 #endif
         break;
     case SP_TYPE_LIBXDP:
-#if defined HAVE_LIBXDP
+#ifdef HAVE_LIBXDP
         close(sp->handle.fd);
+        safe_free(sp->xsk_info);
+        safe_free(sp->umem_info);
 #endif
         break;
     case SP_TYPE_NONE:
@@ -1253,30 +1260,36 @@ sendpacket_get_dlt(sendpacket_t *sp)
 {
     int dlt = DLT_EN10MB;
 
-    if (sp->handle_type == SP_TYPE_KHIAL || sp->handle_type == SP_TYPE_NETMAP || sp->handle_type == SP_TYPE_TUNTAP) {
-        /* always EN10MB */
-    } else {
-#if defined HAVE_BPF
-        int rcode;
-
-        if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
-            warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
-            return (-1);
-        }
-#elif defined HAVE_PF_PACKET || defined HAVE_LIBDNET
-        /* use libpcap to get dlt */
-        pcap_t *pcap;
-        char errbuf[PCAP_ERRBUF_SIZE];
-        if ((pcap = pcap_open_live(sp->device, 65535, 0, 0, errbuf)) == NULL) {
-            warnx("Unable to get DLT value for %s: %s", sp->device, errbuf);
-            return (-1);
-        }
-        dlt = pcap_datalink(pcap);
-        pcap_close(pcap);
-#elif defined HAVE_PCAP_SENDPACKET || defined HAVE_PCAP_INJECT
-        dlt = pcap_datalink(sp->handle.pcap);
-#endif
+    switch (sp->handle_type) {
+        case SP_TYPE_KHIAL:
+        case SP_TYPE_NETMAP:
+        case SP_TYPE_TUNTAP:
+        case SP_TYPE_LIBXDP:
+            /* always EN10MB */
+            return dlt;
+        default:
+            ;
     }
+
+#if defined HAVE_BPF
+    if ((ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
+        warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
+        return (-1);
+    }
+#elif defined HAVE_PF_PACKET || defined HAVE_LIBDNET
+    /* use libpcap to get dlt */
+    pcap_t *pcap;
+    char errbuf[PCAP_ERRBUF_SIZE];
+    if ((pcap = pcap_open_live(sp->device, 65535, 0, 0, errbuf)) == NULL) {
+        warnx("Unable to get DLT value for %s: %s", sp->device, errbuf);
+        return (-1);
+    }
+    dlt = pcap_datalink(pcap);
+    pcap_close(pcap);
+#elif defined HAVE_PCAP_SENDPACKET || defined HAVE_PCAP_INJECT
+    dlt = pcap_datalink(sp->handle.pcap);
+#endif
+
     return dlt;
 }
 

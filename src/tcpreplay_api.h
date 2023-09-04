@@ -148,6 +148,10 @@ typedef struct tcpreplay_opt_s {
     int netmap_delay;
 #endif
 
+#ifdef HAVE_LIBXDP
+    int xdp;
+#endif
+
     /* print flow statistic */
     bool flow_stats;
     int flow_expiry;
