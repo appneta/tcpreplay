@@ -94,6 +94,7 @@ union sendpacket_handle {
 
 #ifdef HAVE_LIBXDP
 #include <errno.h>
+#include <stdlib.h>
 #include <linux/if_xdp.h>
 #include <xdp/xsk.h>
 
@@ -212,7 +213,7 @@ struct sendpacket_s {
     unsigned int batch_size;
     unsigned int pckt_count;
     int frame_size;
-    int tx_idx;
+    unsigned int tx_idx;
     int tx_size;
 #endif
     bool abort;
@@ -222,12 +223,12 @@ typedef struct sendpacket_s sendpacket_t;
 #ifdef HAVE_LIBXDP
 struct xsk_umem_info *
 create_umem_area(int nb_of_frames, int frame_size, int nb_of_completion_queue_descs, int nb_of_fill_queue_descs);
-static struct xsk_socket_info *create_xsk_socket(struct xsk_umem_info *umem,
-                                                 int nb_of_tx_queue_desc,
-                                                 int nb_of_rx_queue_desc,
-                                                 const char *device,
-                                                 u_int32_t queue_id,
-                                                 char *errbuf);
+struct xsk_socket_info *create_xsk_socket(struct xsk_umem_info *umem,
+                                          int nb_of_tx_queue_desc,
+                                          int nb_of_rx_queue_desc,
+                                          const char *device,
+                                          u_int32_t queue_id,
+                                          char *errbuf);
 static inline void
 gen_eth_frame(struct xsk_umem_info *umem, u_int64_t addr, u_char *pkt_data, COUNTER pkt_size)
 {
@@ -242,12 +243,13 @@ kick_tx(struct xsk_socket_info *xsk)
         return;
     }
     printf("%s\n", "Packet sending exited with error!");
-    exit(ret);
+    exit (1);
 }
+
 static inline void
 complete_tx_only(sendpacket_t *sp)
 {
-    int completion_idx = 0;
+    u_int32_t completion_idx = 0;
     if (sp->xsk_info->outstanding_tx == 0) {
         return;
     }
@@ -255,7 +257,7 @@ complete_tx_only(sendpacket_t *sp)
         sp->xsk_info->app_stats.tx_wakeup_sendtos++;
         kick_tx(sp->xsk_info);
     }
-    unsigned int rcvd = xsk_ring_cons__peek(&sp->xsk_info->umem->cq, sp->pckt_count, &(completion_idx));
+    unsigned int rcvd = xsk_ring_cons__peek(&sp->xsk_info->umem->cq, sp->pckt_count, &completion_idx);
     if (rcvd > 0) {
         xsk_ring_cons__release(&sp->xsk_info->umem->cq, rcvd);
         sp->xsk_info->outstanding_tx -= rcvd;

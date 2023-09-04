@@ -386,7 +386,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
      * we've sent enough packets
      */
     while (!ctx->abort && read_next_packet &&
-           (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
+           (pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         now_is_now = false;
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -515,7 +515,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #ifdef HAVE_LIBXDP
         if (sp->handle_type == SP_TYPE_LIBXDP) {
             /* Reserve frames for the batc h*/
-            while (xsk_ring_prod__reserve(&(sp->xsk_info->tx), sp->batch_size, &(sp->tx_idx)) < sp->batch_size) {
+            while (xsk_ring_prod__reserve(&(sp->xsk_info->tx), sp->batch_size, &sp->tx_idx) < sp->batch_size) {
                 complete_tx_only(sp);
             }
             /* The first packet is already in memory */
@@ -1315,8 +1315,8 @@ prepare_remaining_elements_of_batch(tcpreplay_t *ctx,
     }
     sp->pckt_count = pckt_count;
     dbgx(2,
-         "Sending packets with LIBXDP in batch, packet numbers from %llu to %llu\n",
-         packetnum - pckt_count + 1,
-         packetnum);
+         "Sending packets with LIBXDP in batch, packet numbers from " COUNTER_SPEC " to " COUNTER_SPEC "\n",
+         *packetnum - pckt_count + 1,
+         *packetnum);
 }
 #endif /* HAVE_LIBXDP */

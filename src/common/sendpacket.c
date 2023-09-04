@@ -132,9 +132,6 @@
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#ifdef HAVE_SYS_SYSCTL_H
-#include <sys/sysctl.h>
-#endif
 #ifdef HAVE_NET_ROUTE_H
 #include <net/route.h>
 #endif
@@ -1353,8 +1350,8 @@ xsk_configure_socket(struct xsk_umem_info *umem, struct xsk_socket_config *cfg, 
 {
     struct xsk_socket_info *xsk;
     struct xsk_ring_cons *rxr = NULL;
-    struct xsk_ring_prod *txr;
     int ret;
+
     xsk = (struct xsk_socket_info *)safe_malloc(sizeof(struct xsk_socket_info));
     xsk->umem = umem;
     ret = xsk_socket__create(&xsk->xsk, device, queue_id, umem->umem, rxr, &xsk->tx, cfg);
@@ -1440,7 +1437,7 @@ create_umem_area(int nb_of_frames, int frame_size, int nb_of_completion_queue_de
     return umem;
 }
 
-static struct xsk_socket_info *
+struct xsk_socket_info *
 create_xsk_socket(struct xsk_umem_info *umem_info,
                   int nb_of_tx_queue_desc,
                   int nb_of_rx_queue_desc,
@@ -1464,10 +1461,10 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
     return xsk_info;
 }
 
-/**
+/*
  * gets the hardware address via Linux's PF packet interface
  */
-static struct tcpr_ether_addr *
+static _U_ struct tcpr_ether_addr *
 sendpacket_get_hwaddr_libxdp(sendpacket_t *sp)
 {
     struct ifreq ifr;

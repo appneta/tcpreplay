@@ -1424,12 +1424,11 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
         struct xsk_socket_config config;
         int fd;
     };
-    struct xsk_socket *xsk;
+    struct xsk_socket xsk;
 	struct xsk_ring_cons *rxr = NULL;
 	struct xsk_ring_prod *txr = NULL;
-	xsk = (struct xsk_socket*)malloc(sizeof(struct xsk_socket));
     int queue_id = 0;
-    xsk_socket__create(xsk, "lo", queue_id, NULL, rxr, txr, NULL);
+    xsk_socket__create(&xsk, "lo", queue_id, NULL, rxr, txr, NULL);
     socket(AF_XDP, SOCK_RAW, 0);
 ]])],[
     AC_DEFINE([HAVE_LIBXDP], [1],
