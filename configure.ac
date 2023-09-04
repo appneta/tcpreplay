@@ -566,6 +566,10 @@ AC_ARG_ENABLE(force-libdnet,
     AS_HELP_STRING([--enable-force-libdnet],[Force using libdnet for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_LIBDNET], [1], [Force using libdnet for sending packets])])
 
+AC_ARG_ENABLE(force-libxdp,
+    AS_HELP_STRING([--enable-force-libxdp],[Force using libxdp for sending packets]),
+    [ AC_DEFINE([FORCE_INJECT_LIBXDP], [1], [Force using libxdp for sending packets])])
+
 AC_ARG_ENABLE(force-inject,
     AS_HELP_STRING([--enable-force-inject],[Force using libpcap's pcap_inject() for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])])
@@ -843,6 +847,12 @@ fi
 # libpcap can require libnl
 AC_SEARCH_LIBS([nl_handle_alloc], [nl],
         [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
+
+AC_CHECK_LIB(bpf, bpf_object__open_file,,
+        [AC_MSG_NOTICE([Unable to find libbpf library ])])
+
+AC_CHECK_LIB(xdp, xsk_umem__delete,,
+        [AC_MSG_NOTICE([Unable to find libxdp library ])])
 
 ##
 ## If not automatically configured,
@@ -1399,6 +1409,37 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT(no)
 ])
 
+have_libxdp=no
+dnl Check for LIBXDP AF_XDP socket support
+AC_MSG_CHECKING(for LIBXDP XDP packet sending support)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <stdlib.h>
+#include <xdp/xsk.h>
+#include <sys/socket.h>
+]], [[
+    struct xsk_socket {
+        struct xsk_ring_cons *rx;
+        struct xsk_ring_prod *tx;
+        struct xsk_ctx *ctx;
+        struct xsk_socket_config config;
+        int fd;
+    };
+    struct xsk_socket *xsk;
+	struct xsk_ring_cons *rxr = NULL;
+	struct xsk_ring_prod *txr = NULL;
+	xsk = (struct xsk_socket*)malloc(sizeof(struct xsk_socket));
+    int queue_id = 0;
+    xsk_socket__create(xsk, "lo", queue_id, NULL, rxr, txr, NULL);
+    socket(AF_XDP, SOCK_RAW, 0);
+]])],[
+    AC_DEFINE([HAVE_LIBXDP], [1],
+            [Do we have LIBXDP AF_XDP socket support?])
+    AC_MSG_RESULT(yes)
+    have_libxdp=yes
+],[
+    AC_MSG_RESULT(no)
+])
+
 have_tx_ring=no
 dnl Check for older Linux TX_RING support
 AC_MSG_CHECKING(for TX_RING socket sending support)
@@ -1420,6 +1461,9 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT(no)
 ])
 
+AC_CHECK_HEADERS([bpf/libbpf.h])
+AC_CHECK_HEADERS([bpf/bpf.h])
+AC_CHECK_HEADERS([xdp/libxdp.h])
 
 AC_CHECK_HEADERS([net/bpf.h], [have_bpf=yes], [have_bpf=no])
 if test $have_bpf = yes ; then
@@ -1948,6 +1992,7 @@ pcap_sendpacket:            ${have_pcap_sendpacket} **
 pcap_netmap                 ${have_pcap_netmap}
 Linux/BSD netmap:           ${have_netmap}
 Tuntap device support:      ${have_tuntap}
+LIBXDP for AF_XDP socket:   ${have_libxdp}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge
