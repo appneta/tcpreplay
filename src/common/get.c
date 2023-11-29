@@ -593,9 +593,25 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
             break;
 
         /*
-         * Can't handle.  Unparsable IPv6 fragment/encrypted data
+         * handle (unparsable) IPv6 fragment data
          */
         case TCPR_IPV6_NH_FRAGMENT:
+            // next points to l4 data
+            dbgx(3, "Go deeper due to fragment extension header 0x%02X", proto);
+            exthdr = get_ipv6_next(next, end_ptr);
+            if (exthdr > end_ptr) {
+                next = NULL;
+                done = true;
+                break;
+            }
+            proto = exthdr->ip_nh;
+            next = exthdr;
+            // done = true;
+            break;
+
+        /*
+         * Can't handle.  Unparsable IPv6 encrypted data
+         */
         case TCPR_IPV6_NH_ESP:
             next = NULL;
             done = true;
