@@ -599,7 +599,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
             // next points to l4 data
             dbgx(3, "Go deeper due to fragment extension header 0x%02X", proto);
             exthdr = get_ipv6_next(next, end_ptr);
-            if ((NULL == exthdr) || (exthdr > end_ptr)) {
+            if ((NULL == exthdr) || ((u_char *)exthdr > end_ptr)) {
                 next = NULL;
                 done = true;
                 break;
