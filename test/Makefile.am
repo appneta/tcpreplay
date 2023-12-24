@@ -196,7 +196,7 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del
 
-tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
+tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
 	replay_stats replay_dualfile replay_maxsleep
 
@@ -342,6 +342,12 @@ replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Basic test: " >> test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t $(TEST_PCAP) >> test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_nano_timer:
+	$(PRINTF) "%s" "[tcpreplay] Nano timer test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Nano timer test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --loop=2 --timer=nano --loopdelay-ns=125000000 -t $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_cache:

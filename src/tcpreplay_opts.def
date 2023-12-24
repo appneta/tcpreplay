@@ -329,6 +329,19 @@ flag = {
 };
 
 flag = {
+    name        = loopdelay-ns;
+    flags-must  = loop, timer;
+    arg-type    = number;
+    arg-range   = "0->";
+    descrip     = "Delay between loops in nanoseconds";
+    arg-default = 0;
+    doc         = <<- EOText
+By default, tcpreplay will use loop delay with microsecond accuracy (loopdelay-ms).
+In order to use loop delay with nanosecond accuracy you need to use nano packet timing mode.
+EOText;
+};
+
+flag = {
     name        = pktlen;
     max         = 1;
     descrip     = "Override the snaplen and use the actual packet len";

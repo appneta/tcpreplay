@@ -91,9 +91,9 @@ main(int argc, char *argv[])
     }
 #endif
 
-    if (gettimeofday(&stats.start_time, NULL) < 0) {
+    if (get_current_time(&stats.start_time) < 0) {
         tcpedit_close(&tcpedit);
-        err(-1, "gettimeofday() failed");
+        err(-1, "get_current_time() failed");
     }
 
     /* process packets */
