@@ -6,17 +6,15 @@
  * $Id$
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
+#include "iputil.h"
+#include "mod.h"
+#include "pkt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "pkt.h"
-#include "mod.h"
-#include "iputil.h"
 
 void *
 ip_opt_close(void *d)
@@ -44,14 +42,18 @@ ip_opt_open(int argc, char *argv[])
     } else if (strcasecmp(argv[1], "ssrr") == 0) {
         opt->opt_type = IP_OPT_SSRR;
     } else if (strcasecmp(argv[1], "raw") == 0) {
-        if (raw_ip_opt_parse(argc - 2, &argv[2], &opt->opt_type, &opt->opt_len,
-                    &opt->opt_data.data8[0], sizeof(opt->opt_data.data8)) != 0)
+        if (raw_ip_opt_parse(argc - 2,
+                             &argv[2],
+                             &opt->opt_type,
+                             &opt->opt_len,
+                             &opt->opt_data.data8[0],
+                             sizeof(opt->opt_data.data8)) != 0)
             return (ip_opt_close(opt));
         return opt;
     } else
         return (ip_opt_close(opt));
 
-    if ((i = atoi(argv[2])) < 4 || i > 0xff) {
+    if ((i = (int)strtol(argv[2], NULL, 10)) < 4 || i > 0xff) {
         warn("<ptr> must be >= 4, and should be a multiple of 4");
         return (ip_opt_close(opt));
     }
@@ -75,28 +77,27 @@ ip_opt_apply(void *d, struct pktq *pktq)
     struct pkt *pkt;
     size_t len;
 
-    TAILQ_FOREACH(pkt, pktq, pkt_next) {
+    TAILQ_FOREACH(pkt, pktq, pkt_next)
+    {
         uint16_t eth_type = htons(pkt->pkt_eth->eth_type);
 
         if (eth_type == ETH_TYPE_IP) {
-        len = ip_add_option(pkt->pkt_ip, PKT_BUF_LEN - ETH_HDR_LEN,
-            IP_PROTO_IP, opt, opt->opt_len);
+            len = ip_add_option(pkt->pkt_ip, PKT_BUF_LEN - ETH_HDR_LEN, IP_PROTO_IP, opt, opt->opt_len);
 
-        if (len > 0) {
-            pkt->pkt_end += len;
-            pkt_decorate(pkt);
-            ip_checksum(pkt->pkt_ip,
-                pkt->pkt_end - pkt->pkt_eth_data);
+            if (len > 0) {
+                pkt->pkt_end += len;
+                pkt_decorate(pkt);
+                ip_checksum(pkt->pkt_ip, pkt->pkt_end - pkt->pkt_eth_data);
+            }
         }
-    }
     }
     return (0);
 }
 
 struct mod mod_ip_opt = {
-    "ip_opt",                    /* name */
-    "ip_opt [lsrr|ssrr <ptr> <ip-addr> ...] | [raw <byte stream>]",        /* usage */
-    ip_opt_open,                    /* open */
-    ip_opt_apply,                    /* apply */
-    ip_opt_close                    /* close */
+        "ip_opt",                                                       /* name */
+        "ip_opt [lsrr|ssrr <ptr> <ip-addr> ...] | [raw <byte stream>]", /* usage */
+        ip_opt_open,                                                    /* open */
+        ip_opt_apply,                                                   /* apply */
+        ip_opt_close                                                    /* close */
 };

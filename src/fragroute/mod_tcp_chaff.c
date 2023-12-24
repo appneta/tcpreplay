@@ -7,28 +7,26 @@
  */
 
 #include "config.h"
-
+#include "iputil.h"
+#include "mod.h"
+#include "pkt.h"
+#include "randutil.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pkt.h"
-#include "mod.h"
-#include "randutil.h"
-#include "iputil.h"
-
-#define CHAFF_TYPE_CKSUM    1
-#define CHAFF_TYPE_NULL        2
-#define CHAFF_TYPE_PAWS        3
-#define CHAFF_TYPE_REXMIT    4
-#define CHAFF_TYPE_SEQ        5
-#define CHAFF_TYPE_SYN        6
-#define CHAFF_TYPE_TTL        7
+#define CHAFF_TYPE_CKSUM 1
+#define CHAFF_TYPE_NULL 2
+#define CHAFF_TYPE_PAWS 3
+#define CHAFF_TYPE_REXMIT 4
+#define CHAFF_TYPE_SEQ 5
+#define CHAFF_TYPE_SYN 6
+#define CHAFF_TYPE_TTL 7
 
 struct tcp_chaff_data {
-    rand_t        *rnd;
-    int         type;
-    int         ttl;
+    rand_t *rnd;
+    int type;
+    int ttl;
 };
 
 void *
@@ -68,7 +66,7 @@ tcp_chaff_open(int argc, char *argv[])
         data->type = CHAFF_TYPE_SEQ;
     else if (strcasecmp(argv[1], "syn") == 0)
         data->type = CHAFF_TYPE_SYN;
-    else if ((data->ttl = atoi(argv[1])) > 0 && data->ttl < 256)
+    else if ((data->ttl = (int)strtol(argv[1], NULL, 10)) > 0 && data->ttl < 256)
         data->type = CHAFF_TYPE_TTL;
     else
         return (tcp_chaff_close(data));
@@ -101,61 +99,56 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
             continue;
         }
 
-        if (nxt != IP_PROTO_TCP ||
-                pkt->pkt_tcp == NULL || pkt->pkt_tcp_data == NULL ||
-                (pkt->pkt_tcp->th_flags & TH_ACK) == 0)
+        if (nxt != IP_PROTO_TCP || pkt->pkt_tcp == NULL || pkt->pkt_tcp_data == NULL ||
+            (pkt->pkt_tcp->th_flags & TH_ACK) == 0)
             continue;
 
         new = pkt_dup(pkt);
-        rand_strset(data->rnd, new->pkt_tcp_data, new->pkt_end -
-            new->pkt_tcp_data + 1);
+        rand_strset(data->rnd, new->pkt_tcp_data, new->pkt_end - new->pkt_tcp_data + 1);
 
         switch (data->type) {
         case CHAFF_TYPE_CKSUM:
-            inet_checksum(eth_type, new->pkt_ip,
-                new->pkt_ip_data - new->pkt_eth_data);
+            inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             new->pkt_tcp->th_sum = rand_uint16(data->rnd);
             break;
         case CHAFF_TYPE_NULL:
             new->pkt_tcp->th_flags = 0;
-            inet_checksum(eth_type, new->pkt_ip,
-                    new->pkt_ip_data - new->pkt_eth_data);
+            inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             break;
         case CHAFF_TYPE_PAWS:
             /* Delete any existing TCP options. */
             i = (new->pkt_tcp->th_off << 2) - TCP_HDR_LEN;
             new->pkt_tcp->th_off = 5;
             new->pkt_end -= i;
-            new->pkt_ip->ip_len = htons(new->pkt_end -
-                new->pkt_eth_data);
+            new->pkt_ip->ip_len = htons(new->pkt_end - new->pkt_eth_data);
 
             /* Insert initial timestamp, for PAWS elimination. */
             opt.opt_type = TCP_OPT_TIMESTAMP;
             opt.opt_len = TCP_OPT_LEN + 8;
             opt.opt_data.timestamp[0] = 0;
             opt.opt_data.timestamp[1] = 0;
-            if ((i = inet_add_option(eth_type, new->pkt_ip,
-                PKT_BUF_LEN - ETH_HDR_LEN,
-                IP_PROTO_TCP, &opt, opt.opt_len)) < 0) {
+            if ((i = (int)inet_add_option(eth_type,
+                                          new->pkt_ip,
+                                          PKT_BUF_LEN - ETH_HDR_LEN,
+                                          IP_PROTO_TCP,
+                                          &opt,
+                                          opt.opt_len)) < 0) {
                 pkt_free(new);
                 continue;
             }
             new->pkt_end += i;
-            inet_checksum(eth_type, new->pkt_ip,
-                    new->pkt_ip_data - new->pkt_eth_data);
+            inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             pkt_decorate(new);
             break;
         case CHAFF_TYPE_REXMIT:
             new->pkt_ts.tv_usec = 1;
-            inet_checksum(eth_type, new->pkt_ip,
-                    new->pkt_ip_data - new->pkt_eth_data);
+            inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             break;
         case CHAFF_TYPE_SEQ:
             /* XXX - dunno recv window? */
             new->pkt_tcp->th_seq = htonl(666);
             new->pkt_tcp->th_ack = htonl(666);
-            inet_checksum(eth_type, new->pkt_ip,
-                    new->pkt_ip_data - new->pkt_eth_data);
+            inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             break;
         case CHAFF_TYPE_SYN:
             new->pkt_tcp->th_flags = TH_SYN;
@@ -163,16 +156,13 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
             new->pkt_tcp->th_ack = 0;
             new->pkt_end = new->pkt_tcp_data;
             new->pkt_tcp_data = NULL;
-            new->pkt_ip->ip_len = htons(new->pkt_end -
-                new->pkt_eth_data);
-            inet_checksum(eth_type, new->pkt_ip,
-                    new->pkt_ip_data - new->pkt_eth_data);
+            new->pkt_ip->ip_len = htons(new->pkt_end - new->pkt_eth_data);
+            inet_checksum(eth_type, new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             break;
         case CHAFF_TYPE_TTL:
             if (eth_type == ETH_TYPE_IP) {
-            new->pkt_ip->ip_ttl = data->ttl;
-                ip_checksum(new->pkt_ip,
-                        new->pkt_ip_data - new->pkt_eth_data);
+                new->pkt_ip->ip_ttl = data->ttl;
+                ip_checksum(new->pkt_ip, new->pkt_ip_data - new->pkt_eth_data);
             } else if (eth_type == ETH_TYPE_IPV6) {
                 new->pkt_ip6->ip6_hlim = data->ttl;
             }
@@ -188,9 +178,9 @@ tcp_chaff_apply(void *d, struct pktq *pktq)
 }
 
 struct mod mod_tcp_chaff = {
-    "tcp_chaff",                        /* name */
-    "tcp_chaff cksum|null|paws|rexmit|seq|syn|<ttl>",    /* usage */
-    tcp_chaff_open,                        /* open */
-    tcp_chaff_apply,                    /* apply */
-    tcp_chaff_close                        /* close */
+        "tcp_chaff",                                      /* name */
+        "tcp_chaff cksum|null|paws|rexmit|seq|syn|<ttl>", /* usage */
+        tcp_chaff_open,                                   /* open */
+        tcp_chaff_apply,                                  /* apply */
+        tcp_chaff_close                                   /* close */
 };

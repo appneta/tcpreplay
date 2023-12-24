@@ -267,6 +267,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 #endif
     }
 
+    if (HAVE_OPT(XDP)) {
+#ifdef HAVE_LIBXDP
+        options->xdp = 1;
+        ctx->sp_type = SP_TYPE_LIBXDP;
+#else
+         err(-1, "--xdp feature was not compiled in. See INSTALL.");
+#endif
+    }
+
     if (HAVE_OPT(UNIQUE_IP))
         options->unique_ip = 1;
 
@@ -361,7 +370,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         ret = -1;
         goto out;
     }
-
+#ifdef HAVE_LIBXDP
+    ctx->intf1->batch_size = OPT_VALUE_XDP_BATCH_SIZE;
+#endif
 #if defined HAVE_NETMAP
     ctx->intf1->netmap_delay = ctx->options->netmap_delay;
 #endif
@@ -431,6 +442,15 @@ tcpreplay_close(tcpreplay_t *ctx)
     assert(ctx);
     assert(ctx->options);
     options = ctx->options;
+
+#ifdef HAVE_LIBXDP
+    if (ctx->intf1->handle_type == SP_TYPE_LIBXDP) {
+        free_umem_and_xsk(ctx->intf1);
+        if (ctx->intf2) {
+            free_umem_and_xsk(ctx->intf2);
+        }
+    }
+#endif
 
     safe_free(options->intf1_name);
     safe_free(options->intf2_name);
@@ -1159,6 +1179,13 @@ tcpreplay_replay(tcpreplay_t *ctx)
                     packet_stats(&ctx->stats);
                 }
             }
+#ifdef HAVE_LIBXDP
+            sendpacket_t *sp = ctx->intf1;
+            if (sp->handle_type == SP_TYPE_LIBXDP) {
+                sp->xsk_info->tx.cached_prod = 0;
+                sp->xsk_info->tx.cached_cons = sp->tx_size;
+            }
+#endif
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */

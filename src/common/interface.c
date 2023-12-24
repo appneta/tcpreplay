@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,33 +18,21 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <dirent.h>
-#include <sys/ioctl.h>
-#include <sys/file.h>
-#include <sys/socket.h>
-
-#include "config.h"
-#include "defines.h"
-#include "common.h"
 #include "interface.h"
-#ifdef HAVE_NETMAP
-#include "common/netmap.h"
-#endif
-
-#ifdef DEBUG
-extern int debug;
-#endif
+#include "config.h"
+#include "common.h"
+#include <dirent.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 /**
  * Method takes a user specified device name and returns
- * the canonical name for that device.  This allows me to 
+ * the canonical name for that device.  This allows me to
  * create named interface aliases on platforms like Windows
  * which use horrifically long interface names
- * 
+ *
  * Returns NULL on error
  */
 char *
@@ -58,17 +46,16 @@ get_interface(interface_list_t *list, const char *alias)
 
     while (ptr) {
         /* check both the alias & name fields */
-        if (strcmp(alias, ptr->alias) == 0 ||
-                strcmp(alias, ptr->name) == 0)
-            return(ptr->name);
+        if (strcmp(alias, ptr->alias) == 0 || strcmp(alias, ptr->name) == 0)
+            return (ptr->name);
 
         ptr = ptr->next;
     }
 
-    return(NULL);
+    return (NULL);
 }
 
-/** 
+/**
  * Get all available interfaces as an interface_list *
  */
 interface_list_t *
@@ -124,13 +111,12 @@ get_interface_list(void)
          *
          * available at http://code.google.com/p/netmap-libpcap/
          */
-        if (!(pcap_if_ptr->flags & PCAP_IF_LOOPBACK)
-                && strcmp("any", pcap_if_ptr->name)) {
+        if (!(pcap_if_ptr->flags & PCAP_IF_LOOPBACK) && strcmp("any", pcap_if_ptr->name)) {
 #endif
 #ifdef HAVE_NETMAP
             int fd = -1;
 
-            if (netmap_version != -1 && (fd = open ("/dev/netmap", O_RDWR)) < 0)
+            if (netmap_version != -1 && (fd = open("/dev/netmap", O_RDWR)) < 0)
                 continue;
 
             bzero(&nmr, sizeof(nmr));
@@ -218,7 +204,7 @@ get_interface_list(void)
     }
 
     dbg(1, "xxx get_interface_list end");
-    return(list_head);
+    return (list_head);
 }
 
 /**
@@ -235,12 +221,11 @@ list_interfaces(interface_list_t *list)
     }
 
     printf("Available network interfaces:\n");
-        
-#ifdef HAVE_WIN32  /* Win32 has alias/name/description */
+
+#ifdef HAVE_WIN32 /* Win32 has alias/name/description */
     printf("Alias\tName\tDescription\n");
 #endif
-    
-    
+
     ptr = list;
 
     do {

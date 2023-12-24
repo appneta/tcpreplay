@@ -16,23 +16,18 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "defines.h"
-#include "common.h"
 #include "sleep.h"
-
-#include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <errno.h>
+#include "config.h"
+#include "common.h"
 #include <string.h>
+#include <sys/time.h>
 
 #ifdef HAVE_SYS_EVENT
 #include <sys/event.h>
 #endif
 
 /* necessary for ioport_sleep() functions */
-#ifdef HAVE_SYS_IO_H /* Linux */
+#if defined HAVE_IOPORT_SLEEP__ && defined HAVE_SYS_IO_H /* Linux */
 #include <sys/io.h>
 #elif defined HAVE_ARCHITECTURE_I386_PIO_H /* OS X */
 #include <architecture/i386/pio.h>
@@ -42,12 +37,12 @@
 static int ioport_sleep_value;
 #endif
 
-void 
-ioport_sleep_init(void) 
+void
+ioport_sleep_init(void)
 {
 #if defined HAVE_IOPORT_SLEEP__
     ioperm(0x80, 1, 1);
-    ioport_sleep_value = inb(0x80);    
+    ioport_sleep_value = inb(0x80);
 #else
     err(-1, "Platform does not support IO Port for timing");
 #endif
@@ -64,14 +59,14 @@ ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap _U_,
 
     TIMESPEC_SET(&nap_for, nap);
 
-    /* 
-     * process the seconds, we do this in a loop so we don't have to 
+    /*
+     * process the seconds, we do this in a loop so we don't have to
      * use slower 64bit integers or worry about integer overflows.
      */
     for (i = 0; i < nap_for.tv_sec; i ++) {
         nsec = nap_for.tv_sec * 1000000000;
         while (usec > 0) {
-            usec --;
+            usec--;
             outb(ioport_sleep_value, 0x80);
         }
     }

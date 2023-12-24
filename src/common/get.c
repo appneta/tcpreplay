@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,43 +18,36 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-#include "../../lib/sll.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <lib/sll.h>
 #include <arpa/inet.h>
 #include <ctype.h>
-#include <string.h>
+#include <netinet/in.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
-#ifdef DEBUG
-extern int debug;
-#endif
-
-#if defined HAVE_PCAP_VERSION && ! defined HAVE_WIN32
+#if defined HAVE_PCAP_VERSION && !defined HAVE_WIN32
 extern const char pcap_version[];
 #endif
 
-#define JUNIPER_FLAG_NO_L2          0x02     /* L2 header */
-#define JUNIPER_FLAG_EXT            0x80     /* Juniper extensions present */
-#define JUNIPER_PCAP_MAGIC          "MGC"
+#define JUNIPER_FLAG_NO_L2 0x02 /* L2 header */
+#define JUNIPER_FLAG_EXT 0x80   /* Juniper extensions present */
+#define JUNIPER_PCAP_MAGIC "MGC"
 
-static void *
-get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr);
+static void *get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr);
 
 /**
- * Depending on what version of libpcap/WinPcap there are different ways to get 
- * the version of the libpcap/WinPcap library.  This presents a unified way to 
+ * Depending on what version of libpcap/WinPcap there are different ways to get
+ * the version of the libpcap/WinPcap library.  This presents a unified way to
  * get that information.
  */
 const char *
 get_pcap_version(void)
 {
-
 #if defined HAVE_WINPCAP
     static char ourver[255];
     char *last, *version;
@@ -91,11 +84,8 @@ get_pcap_version(void)
  *
  * return 0 on success, -1 on failure
  */
-int parse_mpls(const u_char *pktdata,
-               const uint32_t datalen,
-               uint16_t *next_protocol,
-               uint32_t *l2len,
-               uint32_t *l2offset)
+int
+parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset)
 {
     struct tcpr_mpls_label *mpls_label;
     const u_char *end_ptr = pktdata + datalen;
@@ -116,7 +106,7 @@ int parse_mpls(const u_char *pktdata,
         if (pktdata + len + sizeof(*mpls_label) > end_ptr)
             return -1;
 
-        mpls_label = (struct tcpr_mpls_label*)(pktdata + len);
+        mpls_label = (struct tcpr_mpls_label *)(pktdata + len);
         len += sizeof(*mpls_label);
         bos = (ntohl(mpls_label->entry) & MPLS_LS_S_MASK) != 0;
         label = ntohl(mpls_label->entry) >> MPLS_LS_LABEL_SHIFT;
@@ -127,11 +117,11 @@ int parse_mpls(const u_char *pktdata,
         }
     }
 
-    if ((u_char*)mpls_label + 1 > end_ptr)
+    if ((u_char *)(mpls_label + 1) + 1 > end_ptr)
         return -1;
 
     first_nibble = *((u_char *)(mpls_label + 1)) >> 4;
-    switch(first_nibble) {
+    switch (first_nibble) {
     case 4:
         *next_protocol = ETHERTYPE_IP;
         break;
@@ -147,7 +137,7 @@ int parse_mpls(const u_char *pktdata,
 
         len += 4;
         *l2offset = len;
-        eth_hdr = (eth_hdr_t*)(pktdata + len);
+        eth_hdr = (eth_hdr_t *)(pktdata + len);
         len += sizeof(*eth_hdr);
         *next_protocol = ntohs(eth_hdr->ether_type);
         break;
@@ -171,16 +161,14 @@ int parse_mpls(const u_char *pktdata,
  *
  * return 0 on success, -1 on failure
  */
-int parse_vlan(const u_char *pktdata,
-               const uint32_t datalen,
-               uint16_t *next_protocol,
-               uint32_t *l2len)
+int
+parse_vlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len)
 {
     vlan_hdr_t *vlan_hdr;
     if ((size_t)datalen < *l2len + sizeof(*vlan_hdr))
         return -1;
 
-    vlan_hdr = (vlan_hdr_t*)(pktdata + *l2len);
+    vlan_hdr = (vlan_hdr_t *)(pktdata + *l2len);
     *next_protocol = ntohs(vlan_hdr->vlan_tpid);
     *l2len += sizeof(vlan_hdr_t);
 
@@ -199,12 +187,13 @@ int parse_vlan(const u_char *pktdata,
  *
  * return 0 on success, -1 on failure
  */
-static int parse_metadata(const u_char *pktdata,
-                          const uint32_t datalen,
-                          uint16_t *next_protocol,
-                          uint32_t *l2len,
-                          uint32_t *l2offset,
-                          uint32_t *vlan_offset)
+static int
+parse_metadata(const u_char *pktdata,
+               uint32_t datalen,
+               uint16_t *next_protocol,
+               uint32_t *l2len,
+               uint32_t *l2offset,
+               uint32_t *vlan_offset)
 {
     bool done = false;
     int res = 0;
@@ -246,25 +235,22 @@ static int parse_metadata(const u_char *pktdata,
  *
  * return 0 on success, -1 on failure
  */
-int get_l2len_protocol(const u_char *pktdata,
-                       const uint32_t datalen,
-                       const int datalink,
-                       uint16_t *protocol,
-                       uint32_t *l2len,
-                       uint32_t *l2offset,
-                       uint32_t *vlan_offset)
+int
+get_l2len_protocol(const u_char *pktdata,
+                   uint32_t datalen,
+                   int datalink,
+                   uint16_t *protocol,
+                   uint32_t *l2len,
+                   uint32_t *l2offset,
+                   uint32_t *vlan_offset)
 {
     assert(protocol);
     assert(l2len);
     assert(l2offset);
     assert(vlan_offset);
 
-    if (!pktdata || !datalen) {
-        errx(-1, "get_l2len_protocol: invalid L2 parameters: pktdata=0x%p len=%d",
-             pktdata,
-             datalen);
-        return -1;
-    }
+    if (!pktdata || !datalen)
+        errx(-1, "get_l2len_protocol: invalid L2 parameters: pktdata=0x%p len=%d", pktdata, datalen);
 
     *protocol = 0;
     *l2len = 0;
@@ -274,9 +260,6 @@ int get_l2len_protocol(const u_char *pktdata,
     switch (datalink) {
     case DLT_NULL:
     case DLT_RAW:
-        if (datalen == 0)
-            return -1;
-
         if ((pktdata[0] >> 4) == 4)
             *protocol = ETHERTYPE_IP;
         else if ((pktdata[0] >> 4) == 6)
@@ -286,7 +269,7 @@ int get_l2len_protocol(const u_char *pktdata,
         if (datalen < 4)
             return -1;
 
-        if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3)) {
+        if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3) != 0) {
             warnx("No Magic Number found during protocol lookup: %s (0x%x)",
                   pcap_datalink_val_to_description(datalink),
                   datalink);
@@ -297,7 +280,7 @@ int get_l2len_protocol(const u_char *pktdata,
             if (datalen < 6)
                 return -1;
 
-            *l2offset = ntohs(*((uint16_t*)&pktdata[4]));
+            *l2offset = ntohs(*((uint16_t *)&pktdata[4]));
             *l2offset += 6; /* MGC + flags + ext_total_len */
         } else {
             *l2offset = 4; /* MGC + flags (no header extensions) */
@@ -318,8 +301,7 @@ int get_l2len_protocol(const u_char *pktdata,
         }
 
         /* fall through */
-    case DLT_EN10MB:
-    {
+    case DLT_EN10MB: {
         eth_hdr_t *eth_hdr;
         uint16_t ether_type;
         uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
@@ -327,14 +309,9 @@ int get_l2len_protocol(const u_char *pktdata,
         if (datalen <= l2_net_off)
             return -1;
 
-        eth_hdr = (eth_hdr_t*)(pktdata + *l2offset);
+        eth_hdr = (eth_hdr_t *)(pktdata + *l2offset);
         ether_type = ntohs(eth_hdr->ether_type);
-        if (parse_metadata(pktdata,
-                           datalen,
-                           &ether_type,
-                           &l2_net_off,
-                           l2offset,
-                           vlan_offset))
+        if (parse_metadata(pktdata, datalen, &ether_type, &l2_net_off, l2offset, vlan_offset))
             return -1;
 
         if (datalen <= l2_net_off)
@@ -360,7 +337,7 @@ int get_l2len_protocol(const u_char *pktdata,
         if ((size_t)datalen < sizeof(struct tcpr_pppserial_hdr))
             return -1;
 
-        struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr*)pktdata;
+        struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr *)pktdata;
         *l2len = sizeof(*ppp);
         if (ntohs(ppp->protocol) == 0x0021)
             *protocol = ETHERTYPE_IP;
@@ -372,7 +349,7 @@ int get_l2len_protocol(const u_char *pktdata,
         if (datalen < CISCO_HDLC_LEN)
             return -1;
 
-        hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t*)pktdata;
+        hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t *)pktdata;
         *l2len = sizeof(*hdlc_hdr);
         *protocol = ntohs(hdlc_hdr->protocol);
         break;
@@ -380,12 +357,21 @@ int get_l2len_protocol(const u_char *pktdata,
         if (datalen < SLL_HDR_LEN)
             return -1;
 
-        sll_hdr_t *sll_hdr = (sll_hdr_t*)pktdata;
-        *l2len = sizeof(*sll_hdr);
+        *l2len = SLL_HDR_LEN;
+        sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
         *protocol = ntohs(sll_hdr->sll_protocol);
         break;
+    case DLT_LINUX_SLL2:
+        if (datalen < SLL2_HDR_LEN)
+            return -1;
+
+        *l2len = SLL2_HDR_LEN;
+        sll2_hdr_t *sll2_hdr = (sll2_hdr_t *)pktdata;
+        *protocol = ntohs(sll2_hdr->sll2_protocol);
+        break;
     default:
-        errx(-1, "Unable to process unsupported DLT type: %s (0x%x)",
+        errx(-1,
+             "Unable to process unsupported DLT type: %s (0x%x)",
              pcap_datalink_val_to_description(datalink),
              datalink);
     }
@@ -397,25 +383,19 @@ int get_l2len_protocol(const u_char *pktdata,
  * returns the length in number of bytes of the L2 header, or -1 on error
  */
 int
-get_l2len(const u_char *pktdata, const int datalen, const int datalink)
+get_l2len(const u_char *pktdata, int datalen, int datalink)
 {
     uint16_t _U_ protocol;
     uint32_t _U_ l2offset;
     uint32_t _U_ vlan_offset;
     uint32_t l2len = 0;
 
-    int res = get_l2len_protocol(pktdata,
-                                 datalen,
-                                 datalink,
-                                 &protocol,
-                                 &l2len,
-                                 &l2offset,
-                                 &vlan_offset);
+    int res = get_l2len_protocol(pktdata, datalen, datalink, &protocol, &l2len, &l2offset, &vlan_offset);
 
     if (res == -1)
         return 0;
 
-    return l2len;
+    return (int)l2len;
 }
 
 /**
@@ -425,7 +405,7 @@ get_l2len(const u_char *pktdata, const int datalen, const int datalink)
  * on strictly aligned systems where the layer 2 header doesn't
  * fall on a 4 byte boundary (like a standard Ethernet header)
  *
- * Note: you can cast the result as an ip_hdr_t, but you'll be able 
+ * Note: you can cast the result as an ip_hdr_t, but you'll be able
  * to access data above the header minus any stripped L2 data
  */
 const u_char *
@@ -444,13 +424,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     assert(pkt_len);
     assert(*newbuff);
 
-    res = get_l2len_protocol(packet,
-                             pkt_len,
-                             datalink,
-                             &proto,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(packet, pkt_len, datalink, &proto, &l2len, &l2offset, &vlan_offset);
 
     /* sanity... pkt_len must be > l2len + IP header len*/
     if (res == -1 || l2len + TCPR_IPV4_H > pkt_len) {
@@ -463,13 +437,13 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 
     packet += l2offset;
     l2len -= l2offset;
+#ifdef FORCE_ALIGN
     pkt_len -= l2offset;
 
-#ifdef FORCE_ALIGN
     /*
      * copy layer 3 and up to our temp packet buffer
      * for now on, we have to edit the packetbuff because
-     * just before we send the packet, we copy the packetbuff 
+     * just before we send the packet, we copy the packetbuff
      * back onto the pkt.data + l2len buffer
      * we do all this work to prevent byte alignment issues
      */
@@ -477,13 +451,12 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
         memcpy(*newbuff, (packet + l2len), (pkt_len - l2len));
         ip_hdr = *newbuff;
     } else {
-
         /* we don't have to do a memcpy if l2len lands on a boundary */
         ip_hdr = (packet + l2len);
     }
 #else
     /*
-     * on non-strict byte align systems, don't need to memcpy(), 
+     * on non-strict byte align systems, don't need to memcpy(),
      * just point to l2len bytes into the existing buffer
      */
     ip_hdr = (packet + l2len);
@@ -492,7 +465,6 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     return ip_hdr;
 }
 
-
 /**
  * \brief returns a ptr to the ipv6 header + data or NULL if it's not IP
  *
@@ -500,7 +472,7 @@ get_ipv4(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
  * on strictly aligned systems where the layer 2 header doesn't
  * fall on a 4 byte boundary (like a standard Ethernet header)
  *
- * Note: you can cast the result as an ip_hdr_t, but you'll be able 
+ * Note: you can cast the result as an ip_hdr_t, but you'll be able
  * to access data above the header minus any stripped L2 data
  */
 const u_char *
@@ -519,13 +491,7 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
     assert(pkt_len);
     assert(*newbuff);
 
-    res = get_l2len_protocol(packet,
-                             pkt_len,
-                             datalink,
-                             &proto,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(packet, pkt_len, datalink, &proto, &l2len, &l2offset, &vlan_offset);
 
     /* sanity... pkt_len must be > l2len + IP header len*/
     if (res == -1 || l2len + TCPR_IPV6_H > pkt_len) {
@@ -538,9 +504,9 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
 
     packet += l2offset;
     l2len -= l2offset;
+#ifdef FORCE_ALIGN
     pkt_len -= l2offset;
 
-#ifdef FORCE_ALIGN
     /*
      * copy layer 3 and up to our temp packet buffer
      * for now on, we have to edit the packetbuff because
@@ -552,7 +518,6 @@ get_ipv6(const u_char *pktdata, int datalen, int datalink, u_char **newbuff)
         memcpy(*newbuff, (packet + l2len), (pkt_len - l2len));
         ip6_hdr = *newbuff;
     } else {
-
         /* we don't have to do a memcpy if l2len lands on a boundary */
         ip6_hdr = (packet + l2len);
     }
@@ -605,7 +570,7 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
 
     /* jump to the end of the IPv6 header */
     next = (struct tcpr_ipv6_ext_hdr_base *)((u_char *)ip6_hdr + TCPR_IPV6_H);
-    if ((u_char*)next > end_ptr)
+    if ((u_char *)next > end_ptr)
         return NULL;
 
     proto = ip6_hdr->ip_nh;
@@ -649,9 +614,8 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
          */
         default:
             if (proto != ip6_hdr->ip_nh) {
-                dbgx(3, "Returning byte offset of this ext header: %u", 
-                        IPV6_EXTLEN_TO_BYTES(next->ip_len));
-                next =  (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
+                dbgx(3, "Returning byte offset of this ext header: %u", IPV6_EXTLEN_TO_BYTES(next->ip_len));
+                next = (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
             } else {
                 dbgx(3, "%s", "Returning end of IPv6 Header");
             }
@@ -666,7 +630,6 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
     return next;
 }
 
-
 /**
  * returns the next payload or header of the current extension header
  * returns NULL for none/ESP.
@@ -674,11 +637,11 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
 static void *
 get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
 {
-    uint8_t extlen = 0;
+    uint8_t extlen;
     u_char *ptr;
     assert(exthdr);
 
-    if ((u_char*)exthdr + sizeof(*exthdr) > end_ptr)
+    if ((u_char *)exthdr + sizeof(*exthdr) > end_ptr)
         return NULL;
 
     dbgx(3, "Jumping to next IPv6 header.  Processing 0x%02x", exthdr->ip_nh);
@@ -688,10 +651,9 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
     case TCPR_IPV6_NH_ESP:
         dbg(3, "No-Next or ESP... can't go any further...");
         return NULL;
-        break;
 
     /*
-     * fragment header is fixed size 
+     * fragment header is fixed size
      * FIXME: Frag header has further ext headers (has a ip_nh field)
      * but I don't support it because there's never a full L4 + payload beyond.
      */
@@ -701,7 +663,6 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
         if (ptr > end_ptr)
             return NULL;
         return (void *)ptr;
-        break;
 
     /* all the rest require us to go deeper using the ip_len field */
     case TCPR_IPV6_NH_IPV6:
@@ -710,18 +671,19 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
     case TCPR_IPV6_NH_HBH:
     case TCPR_IPV6_NH_AH:
         extlen = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
-        dbgx(3, "Looks like we're an ext header (0x%hhx).  Jumping %u bytes"
-                " to the next", exthdr->ip_nh, extlen);
+        dbgx(3,
+             "Looks like we're an ext header (0x%hhx).  Jumping %u bytes"
+             " to the next",
+             exthdr->ip_nh,
+             extlen);
         ptr = (u_char *)exthdr + extlen;
         if (ptr > end_ptr)
             return NULL;
         return (void *)ptr;
-        break;
 
     default:
         dbg(3, "Must not be a v6 extension header... returning self");
         return (void *)exthdr;
-        break;
     }
 }
 
@@ -729,7 +691,7 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
  * returns the protocol of the actual layer4 header by processing through
  * the extension headers
  */
-uint8_t 
+uint8_t
 get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
 {
     u_char *ptr = (u_char *)ip6_hdr + TCPR_IPV6_H; /* jump to the end of the IPv6 header */
@@ -745,46 +707,43 @@ get_ipv6_l4proto(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
     while (TRUE) {
         dbgx(3, "Processing next proto 0x%02X", proto);
         switch (proto) {
-            /* no further processing for IPV6 types with nothing beyond them */
-            case TCPR_IPV6_NH_NO_NEXT:
-            case TCPR_IPV6_NH_FRAGMENT:
-            case TCPR_IPV6_NH_ESP:
-                dbg(3, "No-Next or ESP... can't go any further...");
-                return proto;
-                break;
+        /* no further processing for IPV6 types with nothing beyond them */
+        case TCPR_IPV6_NH_NO_NEXT:
+        case TCPR_IPV6_NH_FRAGMENT:
+        case TCPR_IPV6_NH_ESP:
+            dbg(3, "No-Next or ESP... can't go any further...");
+            return proto;
 
-            /* recurse */
-            case TCPR_IPV6_NH_IPV6:
-                dbg(3, "Recursing due to v6 in v6");
-                return get_ipv6_l4proto((ipv6_hdr_t *)ptr, end_ptr);
-                break;
+        /* recurse */
+        case TCPR_IPV6_NH_IPV6:
+            dbg(3, "Recursing due to v6 in v6");
+            return get_ipv6_l4proto((ipv6_hdr_t *)ptr, end_ptr);
 
-            /* loop again */
-            case TCPR_IPV6_NH_AH:
-            case TCPR_IPV6_NH_ROUTING:
-            case TCPR_IPV6_NH_DESTOPTS:
-            case TCPR_IPV6_NH_HBH:
-                dbgx(3, "Jumping to next extension header (0x%hhx)", proto);
-                exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr,
-                        end_ptr);
-                if (exthdr == NULL || (u_char*)exthdr + sizeof(*exthdr) > end_ptr)
-                    return TCPR_IPV6_NH_NO_NEXT;
-                proto = exthdr->ip_nh;
-                ptr = (u_char *)exthdr;
-                break;
+        /* loop again */
+        case TCPR_IPV6_NH_AH:
+        case TCPR_IPV6_NH_ROUTING:
+        case TCPR_IPV6_NH_DESTOPTS:
+        case TCPR_IPV6_NH_HBH:
+            dbgx(3, "Jumping to next extension header (0x%hhx)", proto);
+            exthdr = get_ipv6_next((struct tcpr_ipv6_ext_hdr_base *)ptr, end_ptr);
+            if (exthdr == NULL || (u_char *)exthdr + sizeof(*exthdr) > end_ptr)
+                return TCPR_IPV6_NH_NO_NEXT;
+            proto = exthdr->ip_nh;
+            ptr = (u_char *)exthdr;
+            break;
 
-            /* should be TCP, UDP or the like */
-            default:
-                dbgx(3, "Selecting next L4 Proto as: 0x%02x", proto);
-                return proto;
+        /* should be TCP, UDP or the like */
+        default:
+            dbgx(3, "Selecting next L4 Proto as: 0x%02x", proto);
+            return proto;
         } /* switch */
-    } /* while */
+    }     /* while */
 }
 
 /**
  * \brief Converts a human readable IPv4 address to a binary one
  *
- * stolen from LIBNET since I didn't want to have to deal with 
+ * stolen from LIBNET since I didn't want to have to deal with
  * passing a libnet_t around.  Returns 0xFFFFFFFF (255.255.255.255)
  * on error
  */
@@ -792,14 +751,14 @@ uint32_t
 get_name2addr4(const char *hostname, bool dnslookup)
 {
     struct in_addr addr;
-#if ! defined HAVE_INET_ATON && defined HAVE_INET_ADDR
-    struct hostent *host_ent; 
+#if !defined HAVE_INET_ATON && defined HAVE_INET_ADDR
+    struct hostent *host_ent;
 #endif
 
     if (dnslookup) {
 #ifdef HAVE_INET_ATON
         if (inet_aton(hostname, &addr) != 1) {
-            return(0xffffffff);
+            return (0xffffffff);
         }
 #elif defined HAVE_INET_ADDR
 
@@ -811,12 +770,12 @@ get_name2addr4(const char *hostname, bool dnslookup)
             }
 
             /* was: host_ent->h_length); */
-            memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr)); 
+            memcpy(&addr.s_addr, host_ent->h_addr, sizeof(addr.s_addr));
         }
 #else
         warn("Unable to support get_name2addr4 w/ resolve");
         /* call ourselves recursively once w/o resolving the hostname */
-        return get_name2addr4(hostname, DNS_DONT_RESOLVE); 
+        return get_name2addr4(hostname, DNS_DONT_RESOLVE);
 #endif
         /* return in network byte order */
         return (addr.s_addr);
@@ -828,12 +787,10 @@ get_name2addr4(const char *hostname, bool dnslookup)
         uint32_t m;
 
         if (!isdigit(hostname[0])) {
-            warnx("Expected dotted-quad notation (%s) when DNS lookups are disabled", 
-                    hostname);
+            warnx("Expected dotted-quad notation (%s) when DNS lookups are disabled", hostname);
             /* XXX - this is actually 255.255.255.255 */
             return (-1);
         }
-
 
         m = 0;
         for (i = 0; i < 4; i++) {
@@ -859,7 +816,7 @@ get_name2addr4(const char *hostname, bool dnslookup)
             }
         }
         /* host byte order */
-       return (ntohl(m));
+        return (ntohl(m));
     }
 }
 
@@ -880,7 +837,6 @@ get_name2addr6(const char *hostname, bool dnslookup, struct tcpr_in6_addr *addr)
 #else
 #error "Unable to support get_name2addr6: Missing inet_pton() support."
 #endif
-    return -1;
 }
 
 /**
@@ -890,7 +846,7 @@ get_name2addr6(const char *hostname, bool dnslookup, struct tcpr_in6_addr *addr)
  * is available on your system. Does not support DNS.
  */
 const char *
-get_addr2name4(const uint32_t ip, bool _U_ dnslookup)
+get_addr2name4(uint32_t ip, bool _U_ dnslookup)
 {
     struct in_addr addr;
     static char *new_string = NULL;
@@ -954,4 +910,3 @@ get_cidr2name(const tcpr_cidr_t *cidr_ptr, bool dnslookup)
         return NULL;
     }
 }
-

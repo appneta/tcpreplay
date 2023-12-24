@@ -1,13 +1,12 @@
 /* $Id$ */
 
-
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -19,38 +18,34 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
-#include <sys/time.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-
 #include "tcpreplay_api.h"
 #include "timestamp_trace.h"
-#include "../lib/sll.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef HAVE_NETMAP
 #ifdef HAVE_SYS_POLL_H
 #include <sys/poll.h>
 #endif
-#include <sys/ioctl.h>
 #include <net/netmap.h>
 #include <net/netmap_user.h>
+#include <sys/ioctl.h>
 #endif /* HAVE_NETMAP */
 
 #ifdef TCPREPLAY
 
 #ifdef TCPREPLAY_EDIT
-#include "tcpreplay_edit_opts.h"
 #include "tcpedit/tcpedit.h"
+#include "tcpreplay_edit_opts.h"
 extern tcpedit_t *tcpedit;
 #else
 #include "tcpreplay_opts.h"
@@ -77,18 +72,17 @@ static u_char *get_next_packet(tcpreplay_t *ctx, pcap_t *pcap,
         packet_cache_t **prev_packet);
 static uint32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
 
-static inline void wake_send_queues(sendpacket_t *sp _U_,
-		tcpreplay_opt_t *options _U_)
-{
 #ifdef HAVE_NETMAP
+static inline void
+wake_send_queues(sendpacket_t *sp _U_, tcpreplay_opt_t *options _U_)
+{
     if (options->netmap)
-        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-#endif
+        ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* flush TX buffer */
 }
+#endif
 
 static inline int
-fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
-        COUNTER iteration, bool cached, int datalink)
+fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata, COUNTER iteration, bool cached, int datalink)
 {
     uint32_t pkt_len = pkthdr->caplen;
     u_char *packet = *pktdata;
@@ -102,18 +96,10 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     uint32_t l2len;
     int res;
 
-    res = get_l2len_protocol(packet,
-                             pkt_len,
-                             datalink,
-                             &ether_type,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(packet, pkt_len, datalink, &ether_type, &l2len, &l2offset, &vlan_offset);
 
     if (res < 0)
         return res;
-
-    assert(l2len > 0);
 
     switch (ether_type) {
     case ETHERTYPE_IP:
@@ -143,8 +129,7 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
     dbgx(2, "Layer 3 protocol type is: 0x%04x", ether_type);
 
     /* swap src/dst IP's in a manner that does not affect CRC */
-    if ((!cached && dst_ip > src_ip) ||
-            (cached && (dst_ip - iteration) > (src_ip - 1 - iteration))) {
+    if ((!cached && dst_ip > src_ip) || (cached && (dst_ip - iteration) > (src_ip - 1 - iteration))) {
         if (cached) {
             --src_ip;
             ++dst_ip;
@@ -155,13 +140,29 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         /* CRC compensations  for wrap conditions */
         if (src_ip > src_ip_orig && dst_ip > dst_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(1) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1,
+                 "dst_ip > src_ip(" COUNTER_SPEC "): before(1) src_ip=0x%08x dst_ip=0x%08x",
+                 iteration,
+                 src_ip,
+                 dst_ip);
             --src_ip;
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(1)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1,
+                 "dst_ip > src_ip(" COUNTER_SPEC "): after(1)  src_ip=0x%08x dst_ip=0x%08x",
+                 iteration,
+                 src_ip,
+                 dst_ip);
         } else if (dst_ip < dst_ip_orig && src_ip < src_ip_orig) {
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): before(2) src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1,
+                 "dst_ip > src_ip(" COUNTER_SPEC "): before(2) src_ip=0x%08x dst_ip=0x%08x",
+                 iteration,
+                 src_ip,
+                 dst_ip);
             ++dst_ip;
-            dbgx(1, "dst_ip > src_ip(" COUNTER_SPEC "): after(2)  src_ip=0x%08x dst_ip=0x%08x", iteration, src_ip, dst_ip);
+            dbgx(1,
+                 "dst_ip > src_ip(" COUNTER_SPEC "): after(2)  src_ip=0x%08x dst_ip=0x%08x",
+                 iteration,
+                 src_ip,
+                 dst_ip);
         }
     } else {
         if (cached) {
@@ -174,13 +175,29 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
 
         /* CRC compensations  for wrap conditions */
         if (dst_ip > dst_ip_orig && src_ip > src_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(1) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1,
+                 "src_ip > dst_ip(" COUNTER_SPEC "): before(1) dst_ip=0x%08x src_ip=0x%08x",
+                 iteration,
+                 dst_ip,
+                 src_ip);
             --dst_ip;
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(1)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1,
+                 "src_ip > dst_ip(" COUNTER_SPEC "): after(1)  dst_ip=0x%08x src_ip=0x%08x",
+                 iteration,
+                 dst_ip,
+                 src_ip);
         } else if (src_ip < src_ip_orig && dst_ip < dst_ip_orig) {
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): before(2) dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1,
+                 "src_ip > dst_ip(" COUNTER_SPEC "): before(2) dst_ip=0x%08x src_ip=0x%08x",
+                 iteration,
+                 dst_ip,
+                 src_ip);
             ++src_ip;
-            dbgx(1, "src_ip > dst_ip(" COUNTER_SPEC "): after(2)  dst_ip=0x%08x src_ip=0x%08x", iteration, dst_ip, src_ip);
+            dbgx(1,
+                 "src_ip > dst_ip(" COUNTER_SPEC "): after(2)  dst_ip=0x%08x src_ip=0x%08x",
+                 iteration,
+                 dst_ip,
+                 src_ip);
         }
     }
 
@@ -196,6 +213,7 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
         ip6_hdr->ip_src.__u6_addr.__u6_addr32[3] = htonl(src_ip);
         ip6_hdr->ip_dst.__u6_addr.__u6_addr32[3] = htonl(dst_ip);
         break;
+    default:;
     }
 
     return 0;
@@ -206,11 +224,14 @@ fast_edit_packet(struct pcap_pkthdr *pkthdr, u_char **pktdata,
  *
  * Finds out if flow is unique and updates stats.
  */
-static inline void update_flow_stats(tcpreplay_t *ctx, sendpacket_t *sp,
-        const struct pcap_pkthdr *pkthdr, const u_char *pktdata, int datalink)
+static inline void
+update_flow_stats(tcpreplay_t *ctx,
+                  sendpacket_t *sp,
+                  const struct pcap_pkthdr *pkthdr,
+                  const u_char *pktdata,
+                  int datalink)
 {
-    flow_entry_type_t res = flow_decode(ctx->flow_hash_table,
-            pkthdr, pktdata, datalink, ctx->options->flow_expiry);
+    flow_entry_type_t res = flow_decode(ctx->flow_hash_table, pkthdr, pktdata, datalink, ctx->options->flow_expiry);
 
     switch (res) {
     case FLOW_ENTRY_NEW:
@@ -239,7 +260,7 @@ static inline void update_flow_stats(tcpreplay_t *ctx, sendpacket_t *sp,
             ++sp->flows;
             ++sp->flow_packets;
         }
-         break;
+        break;
 
     case FLOW_ENTRY_NON_IP:
         ++ctx->stats.flow_non_flow_packets;
@@ -255,7 +276,7 @@ static inline void update_flow_stats(tcpreplay_t *ctx, sendpacket_t *sp,
     }
 }
 /**
- * \brief Preloads the memory cache for the given pcap file_idx 
+ * \brief Preloads the memory cache for the given pcap file_idx
  *
  * Preloading can be used with or without --loop
  */
@@ -270,7 +291,6 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     struct pcap_pkthdr pkthdr;
     packet_cache_t *cached_packet = NULL;
     packet_cache_t **prev_packet = &cached_packet;
-    COUNTER packetnum = 0;
     int dlt;
 
     /* close stdin if reading from it (needed for some OS's) */
@@ -283,8 +303,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
 
     dlt = pcap_datalink(pcap);
     /* loop through the pcap.  get_next_packet() builds the cache for us! */
-    while ((pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
-        packetnum++;
+    while ((pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         if (options->flow_stats)
             update_flow_stats(ctx, NULL, &pkthdr, pktdata, dlt);
     }
@@ -295,7 +314,8 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
     pcap_close(pcap);
 }
 
-static void increment_iteration(tcpreplay_t *ctx)
+static void
+increment_iteration(tcpreplay_t *ctx)
 {
     tcpreplay_opt_t *options = ctx->options;
 
@@ -303,9 +323,7 @@ static void increment_iteration(tcpreplay_t *ctx)
     ++ctx->iteration;
     if (options->unique_ip) {
         assert(options->unique_loops > 0.0);
-        ctx->unique_iteration =
-                ((ctx->iteration * 1000) / (COUNTER)(options->unique_loops * 1000.0))
-                + 1;
+        ctx->unique_iteration = ((ctx->iteration * 1000) / (COUNTER)(options->unique_loops * 1000.0)) + 1;
     }
 }
 
@@ -335,8 +353,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER end_us;
     bool preload = options->file_cache[idx].cached;
     bool top_speed = (options->speed.mode == speed_topspeed ||
-            (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
+                      (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
+    bool read_next_packet = true; // used for LIBXDP batch packet processing with cached packets
 
     get_current_time(&now);
     if (!timesisset(&stats->start_time)) {
@@ -362,7 +381,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         prev_packet = NULL;
     }
 
-    /* MAIN LOOP 
+    /* MAIN LOOP
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
@@ -399,11 +418,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
 
-        if (ctx->options->unique_ip && ctx->unique_iteration &&
-                ctx->unique_iteration > ctx->last_unique_iteration) {
+        if (ctx->options->unique_ip && ctx->unique_iteration && ctx->unique_iteration > ctx->last_unique_iteration) {
             /* edit packet to ensure every pass has unique IP addresses */
-            if (fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration - 1,
-                    preload, datalink) == -1) {
+            if (fast_edit_packet(&pkthdr, &pktdata, ctx->unique_iteration - 1, preload, datalink) == -1) {
                 ++stats->failed;
                 continue;
             }
@@ -411,8 +428,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         /* update flow stats */
         if (options->flow_stats && !preload)
-            update_flow_stats(ctx,
-                    options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
+            update_flow_stats(ctx, options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
 
         /*
          * this accelerator improves performance by avoiding expensive
@@ -459,7 +475,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             calc_sleep_time(ctx, &stats->pkt_ts_delta, &stats->time_delta,
                     pktlen, sp, packetnum, &stats->end_time,
                     TIMESPEC_TO_NANOSEC(&stats->start_time), &skip_length);
-
             /*
              * Track the time of the "last packet sent".
              *
@@ -472,8 +487,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             /*
              * we know how long to sleep between sends, now do it.
              */
-            if (!top_speed)
+            if (!top_speed) {
+#ifndef HAVE_LIBXDP
                 tcpr_sleep(ctx, sp, &ctx->nap, &now);
+#else
+                if (sp->handle_type != SP_TYPE_LIBXDP) {
+                    tcpr_sleep(ctx, sp, &ctx->nap, &now);
+                } else if (sp->batch_size == 1) {
+                    // In case of LIBXDP packet processing waiting only makes sense when batch size is one
+                    tcpr_sleep(ctx, sp, &ctx->nap, &now);
+                }
+#endif
+            }
         }
 
 #ifdef ENABLE_VERBOSE
@@ -482,6 +507,18 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             tcpdump_print(options->tcpdump, &pkthdr, pktdata);
 #endif
 
+#ifdef HAVE_LIBXDP
+        if (sp->handle_type == SP_TYPE_LIBXDP) {
+            /* Reserve frames for the batc h*/
+            while (xsk_ring_prod__reserve(&(sp->xsk_info->tx), sp->batch_size, &sp->tx_idx) < sp->batch_size) {
+                complete_tx_only(sp);
+            }
+            /* The first packet is already in memory */
+            prepare_first_element_of_batch(ctx, &packetnum, pktdata, pkthdr.len);
+            /* Read more packets and prepare batch */
+            prepare_remaining_elements_of_batch(ctx, &packetnum, &read_next_packet, pcap, &idx, pkthdr, prev_packet);
+        }
+#endif
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
         /* write packet out on network */
         if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen) {
@@ -499,8 +536,12 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #endif
 
         stats->pkts_sent++;
+#ifndef HAVE_LIBXDP
         stats->bytes_sent += pktlen;
-
+#else
+        if (sp->handle_type != SP_TYPE_LIBXDP)
+            stats->bytes_sent += pktlen;
+#endif
         /* print stats during the run? */
         if (options->stats > 0) {
             if (! timesisset(&stats->last_print)) {
@@ -576,7 +617,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     COUNTER end_us;
     COUNTER skip_length = 0;
     bool top_speed = (options->speed.mode == speed_topspeed ||
-            (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
+                      (options->speed.mode == speed_mbpsrate && options->speed.speed == 0));
     bool now_is_now = true;
 
     get_current_time(&now);
@@ -605,53 +646,37 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         prev_packet2 = NULL;
     }
 
-    pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
-    pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
+    pktdata1 = get_next_packet(options, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
+    pktdata2 = get_next_packet(options, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
 
-    /* MAIN LOOP 
+    /* MAIN LOOP
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while (!ctx->abort &&
-            !(pktdata1 == NULL && pktdata2 == NULL)) {
-
+    while (!ctx->abort && !(pktdata1 == NULL && pktdata2 == NULL)) {
         now_is_now = false;
         packetnum++;
 
-        /* figure out which pcap file we need to process next 
-         * when get_next_packet() returns null for pktdata, the pkthdr 
+        /* figure out which pcap file we need to process next
+         * when get_next_packet() returns null for pktdata, the pkthdr
          * will still have the old values from the previous call.  This
          * means we can't always trust the timestamps to tell us which
          * file to process.
          */
-        if (pktdata1 == NULL) {
+        if (pktdata1 == NULL || (pktdata2 != NULL && timercmp(&pkthdr1.ts, &pkthdr2.ts, >))) {
             /* file 2 is next */
             sp = ctx->intf2;
             datalink = options->file_cache[cache_file_idx2].dlt;
             pkthdr_ptr = &pkthdr2;
             cache_file_idx = cache_file_idx2;
             pktdata = pktdata2;
-        } else if (pktdata2 == NULL) {
-            /* file 1 is next */
-            sp = ctx->intf1;
-            datalink = options->file_cache[cache_file_idx1].dlt;
-            pkthdr_ptr = &pkthdr1;
-            cache_file_idx = cache_file_idx1;
-            pktdata = pktdata1;
-        } else if (timercmp(&pkthdr1.ts, &pkthdr2.ts, <=)) {
-            /* file 1 is next */
-            sp = ctx->intf1;
-            datalink = options->file_cache[cache_file_idx1].dlt;
-            pkthdr_ptr = &pkthdr1;
-            cache_file_idx = cache_file_idx1;
-            pktdata = pktdata1;
         } else {
-            /* file 2 is next */
-            sp = ctx->intf2;
-            datalink = options->file_cache[cache_file_idx2].dlt;
-            pkthdr_ptr = &pkthdr2;
-            cache_file_idx = cache_file_idx2;
-            pktdata = pktdata2;
+            /* file 1 is next */
+            sp = ctx->intf1;
+            datalink = options->file_cache[cache_file_idx1].dlt;
+            pkthdr_ptr = &pkthdr1;
+            cache_file_idx = cache_file_idx1;
+            pktdata = pktdata1;
         }
 
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -672,11 +697,13 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr_ptr->len : (COUNTER)pkthdr_ptr->caplen;
 #endif
 
-        if (ctx->options->unique_ip && ctx->unique_iteration &&
-                ctx->unique_iteration > ctx->last_unique_iteration) {
+        if (ctx->options->unique_ip && ctx->unique_iteration && ctx->unique_iteration > ctx->last_unique_iteration) {
             /* edit packet to ensure every pass is unique */
-            if (fast_edit_packet(pkthdr_ptr, &pktdata, ctx->unique_iteration - 1,
-                    options->file_cache[cache_file_idx].cached, datalink) == -1) {
+            if (fast_edit_packet(pkthdr_ptr,
+                                 &pktdata,
+                                 ctx->unique_iteration - 1,
+                                 options->file_cache[cache_file_idx].cached,
+                                 datalink) == -1) {
                 ++stats->failed;
                 continue;
             }
@@ -700,8 +727,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              * time stamping is expensive, but now is the
              * time to do it.
              */
-            dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkthdr_ptr->ts.tv_sec,
-                    pkthdr_ptr->ts.tv_usec);
+            dbgx(4, "This packet time: " TIMEVAL_FORMAT, pkthdr_ptr->ts.tv_sec, pkthdr_ptr->ts.tv_usec);
             skip_length = 0;
             ctx->skip_packets = 0;
 
@@ -797,9 +823,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         /* get the next packet for this file handle depending on which we last used */
         if (sp == ctx->intf2) {
-            pktdata2 = get_next_packet(ctx, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
+            pktdata2 = get_next_packet(options, pcap2, &pkthdr2, cache_file_idx2, prev_packet2);
         } else {
-            pktdata1 = get_next_packet(ctx, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
+            pktdata1 = get_next_packet(options, pcap1, &pkthdr1, cache_file_idx1, prev_packet1);
         }
 
         /* stop sending based on the duration limit... */
@@ -833,8 +859,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     increment_iteration(ctx);
 }
 
-
-
 /**
  * Gets the next packet to be sent out. This will either read from the pcap file
  * or will retrieve the packet from the internal cache.
@@ -844,10 +868,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
  * will be updated as new entries are added (or retrieved) from the cache list.
  */
 u_char *
-get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int idx, 
-    packet_cache_t **prev_packet)
+get_next_packet(tcpreplay_opt_t *options, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int idx, packet_cache_t **prev_packet)
 {
-    tcpreplay_opt_t *options = ctx->options;
     u_char *pktdata = NULL;
     uint32_t pktlen;
 
@@ -921,9 +943,9 @@ get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int 
 }
 
 /**
- * determines based upon the cachedata which interface the given packet 
+ * determines based upon the cachedata which interface the given packet
  * should go out.  Also rewrites any layer 2 data we might need to adjust.
- * Returns a void cased pointer to the ctx->intfX of the corresponding 
+ * Returns a void cased pointer to the ctx->intfX of the corresponding
  * interface or NULL on error
  */
 void *
@@ -942,23 +964,19 @@ cache_mode(tcpreplay_t *ctx, char *cachedata, COUNTER packet_num)
     if (result == TCPR_DIR_NOSEND) {
         dbgx(2, "Cache: Not sending packet " COUNTER_SPEC ".", packet_num);
         return NULL;
-    }
-    else if (result == TCPR_DIR_C2S) {
+    } else if (result == TCPR_DIR_C2S) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out primary interface.", packet_num);
         sp = ctx->intf1;
-    }
-    else if (result == TCPR_DIR_S2C) {
+    } else if (result == TCPR_DIR_S2C) {
         dbgx(2, "Cache: Sending packet " COUNTER_SPEC " out secondary interface.", packet_num);
         sp = ctx->intf2;
-    }
-    else {
+    } else {
         tcpreplay_seterr(ctx, "Invalid cache value: %i", result);
         return NULL;
     }
 
     return sp;
 }
-
 
 /**
  * Given the timestamp on the current packet and the last packet sent,
@@ -990,7 +1008,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
         return;
     }
 
-    switch(options->speed.mode) {
+    switch (options->speed.mode) {
     case speed_multiplier:
         /*
          * Replay packets a factor of the time they were originally sent.
@@ -1009,8 +1027,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
             dbgx(3, "original packet delta time: " TIMESPEC_FORMAT,
                     ctx->nap.tv_sec, ctx->nap.tv_nsec);
             timesdiv_float(&ctx->nap, options->speed.multiplier);
-            dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT,
-                    ctx->nap.tv_sec, ctx->nap.tv_nsec);
+            dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
         }
         break;
 
@@ -1047,8 +1064,7 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
                     (COUNTER)len, now_ns, tx_ns, next_tx_ns);
         }
 
-        dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len,
-                ctx->nap.tv_sec, ctx->nap.tv_nsec);
+        dbgx(3, "packet size=" COUNTER_SPEC "\t\tnap=" TIMESPEC_FORMAT, len, ctx->nap.tv_sec, ctx->nap.tv_nsec);
         break;
 
     case speed_packetrate:
@@ -1094,7 +1110,8 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
         }
 
         /* decrement our send counter */
-        printf("Sending packet " COUNTER_SPEC " out: %s\n", counter,
+        printf("Sending packet " COUNTER_SPEC " out: %s\n",
+               counter,
                sp == ctx->intf1 ? options->intf1_name : options->intf2_name);
         ctx->skip_packets--;
 
@@ -1106,7 +1123,6 @@ static void calc_sleep_time(tcpreplay_t *ctx, struct timespec *pkt_ts_delta,
 
     default:
         errx(-1, "Unknown/supported speed mode: %d", options->speed.mode);
-        break;
     }
 }
 
@@ -1121,7 +1137,6 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
             false;
 #endif
 
-
     /* don't sleep if nap = {0, 0} */
     if (!timesisset(nap_this_time)){
         return;
@@ -1129,17 +1144,21 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
 
     /* do we need to limit the total time we sleep? */
     if (timesisset(&(options->maxsleep)) && (timescmp(nap_this_time, &(options->maxsleep), >))) {
-        dbgx(2, "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT,
-            nap_this_time->tv_sec, nap_this_time->tv_nsec, options->maxsleep.tv_sec,
-            options->maxsleep.tv_nsec);
+        dbgx(2,
+             "Was going to sleep for " TIMESPEC_FORMAT " but maxsleeping for " TIMESPEC_FORMAT,
+             nap_this_time->tv_sec,
+             nap_this_time->tv_nsec,
+             options->maxsleep.tv_sec,
+             options->maxsleep.tv_nsec);
         TIMESPEC_SET(nap_this_time, &options->maxsleep);
     }
 
+#ifdef HAVE_NETMAP
     if (flush)
         wake_send_queues(sp, options);
+#endif
 
-    dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT,
-            nap_this_time->tv_sec, nap_this_time->tv_nsec);
+    dbgx(2, "Sleeping:                   " TIMESPEC_FORMAT, nap_this_time->tv_sec, nap_this_time->tv_nsec);
 
     /*
      * Depending on the accurate method & packet rate computation method
@@ -1175,21 +1194,22 @@ static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp,
  * Ask the user how many packets they want to send.
  */
 static uint32_t
-get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter) 
+get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
 {
     tcpreplay_opt_t *options = ctx->options;
-    struct pollfd poller[1];        /* use poll to read from the keyboard */
+    struct pollfd poller[1]; /* use poll to read from the keyboard */
     char input[EBUF_SIZE];
     unsigned long send = 0;
 
     printf("**** Next packet #" COUNTER_SPEC " out %s.  How many packets do you wish to send? ",
-        counter, (sp == ctx->intf1 ? options->intf1_name : options->intf2_name));
+           counter,
+           (sp == ctx->intf1 ? options->intf1_name : options->intf2_name));
     fflush(NULL);
     poller[0].fd = STDIN_FILENO;
     poller[0].events = POLLIN | POLLPRI | POLLNVAL;
     poller[0].revents = 0;
 
-    if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK)) 
+    if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK))
         errx(-1, "Unable to clear non-blocking flag on stdin: %s", strerror(errno));
 
     /* wait for the input */
@@ -1199,7 +1219,7 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
     /*
      * read to the end of the line or EBUF_SIZE,
      * Note, if people are stupid, and type in more text then EBUF_SIZE
-     * then the next fgets() will pull in that data, which will have poor 
+     * then the next fgets() will pull in that data, which will have poor
      * results.  fuck them.
      */
     if (fgets(input, sizeof(input), stdin) == NULL) {
@@ -1216,5 +1236,80 @@ get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter)
         send = 1;
     }
 
-    return(uint32_t)send;
+    return (uint32_t)send;
 }
+
+#ifdef HAVE_LIBXDP
+void
+check_packet_fits_in_umem_frame(sendpacket_t *sp, int packet_len)
+{
+    if (packet_len > sp->frame_size) {
+        fprintf(stderr,
+                "ERROR: packet size cannot be larger than the size of an UMEM frame! Packet size: %i  Frame size: %i\n",
+                packet_len,
+                sp->frame_size);
+        free_umem_and_xsk(sp);
+        exit(-1);
+    }
+}
+
+void
+fill_umem_with_data_and_set_xdp_desc(sendpacket_t *sp, int tx_idx, COUNTER umem_index, u_char *pktdata, int len)
+{
+    check_packet_fits_in_umem_frame(sp, len);
+    COUNTER umem_index_mod = (umem_index % sp->batch_size) * sp->frame_size; // packets are sent in batch, after each
+                                                                             // batch umem memory is reusable
+    gen_eth_frame(sp->umem_info, umem_index_mod, pktdata, len);
+    struct xdp_desc *xdp_desc = xsk_ring_prod__tx_desc(&(sp->xsk_info->tx), tx_idx);
+    xdp_desc->addr = (COUNTER)(umem_index_mod);
+    xdp_desc->len = len;
+}
+
+void
+prepare_first_element_of_batch(tcpreplay_t *ctx, COUNTER *packetnum, u_char *pktdata, u_int32_t len)
+{
+    sendpacket_t *sp = ctx->intf1;
+    tcpreplay_stats_t *stats = &ctx->stats;
+    fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx, *packetnum - 1, pktdata, len);
+    sp->bytes_sent += len;
+    stats->bytes_sent += len;
+}
+
+void
+prepare_remaining_elements_of_batch(tcpreplay_t *ctx,
+                                    COUNTER *packetnum,
+                                    bool *read_next_packet,
+                                    pcap_t *pcap,
+                                    int *idx,
+                                    struct pcap_pkthdr pkthdr,
+                                    packet_cache_t **prev_packet)
+{
+    sendpacket_t *sp = ctx->intf1;
+    tcpreplay_stats_t *stats = &ctx->stats;
+    int datalink = ctx->options->file_cache[*idx].dlt;
+    bool preload = ctx->options->file_cache[*idx].cached;
+    u_char *pktdata = NULL;
+    unsigned int pckt_count = 1;
+    while (!ctx->abort && (pckt_count < sp->batch_size) &&
+           (pktdata = get_next_packet(ctx->options, pcap, &pkthdr, *idx, prev_packet)) != NULL) {
+        fill_umem_with_data_and_set_xdp_desc(sp, sp->tx_idx + pckt_count, *packetnum, pktdata, pkthdr.len);
+        ++pckt_count;
+        ++*packetnum;
+        stats->bytes_sent += pkthdr.len;
+        sp->bytes_sent += pkthdr.len;
+        stats->pkts_sent++;
+        if (ctx->options->flow_stats && !preload) {
+            update_flow_stats(ctx, ctx->options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
+        }
+    }
+    if (pckt_count < sp->batch_size) {
+        // No more packets to read, it is essential for cached packet processing
+        *read_next_packet = false;
+    }
+    sp->pckt_count = pckt_count;
+    dbgx(2,
+         "Sending packets with LIBXDP in batch, packet numbers from " COUNTER_SPEC " to " COUNTER_SPEC "\n",
+         *packetnum - pckt_count + 1,
+         *packetnum);
+}
+#endif /* HAVE_LIBXDP */

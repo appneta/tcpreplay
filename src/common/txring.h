@@ -31,37 +31,33 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#ifndef COMMON_TXRING_H
-#define COMMON_TXRING_H
-#include "config.h"
-#include "defines.h"
+#pragma once
 
 #ifdef HAVE_TX_RING
 
+#include "defines.h"
+#include "config.h"
+
 #if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
+#include <net/ethernet.h> /* the L2 protocols */
 #include <netpacket/packet.h>
-#include <net/ethernet.h>       /* the L2 protocols */
 #else
 #include <asm/types.h>
+#include <linux/if_ether.h> /* The L2 protocols */
 #include <linux/if_packet.h>
-#include <linux/if_ether.h>     /* The L2 protocols */
 #endif
 #include <pthread.h>
 
-struct txring_s
-{
+struct txring_s {
     pthread_t tx_send; /*Poll TX thread*/
 
-    volatile struct tpacket_hdr * tx_head; /* Pointer to mmaped memory with TX ring */
-    struct tpacket_req* treq; /* TX ring parametrs */
-    volatile unsigned int tx_index; /* TX index */
-    int tx_size; /* Size of mmaped TX ring */
+    volatile struct tpacket_hdr *tx_head; /* Pointer to mmaped memory with TX ring */
+    struct tpacket_req *treq;             /* TX ring parametrs */
+    volatile unsigned int tx_index;       /* TX index */
+    int tx_size;                          /* Size of mmaped TX ring */
 };
 typedef struct txring_s txring_t;
 
-int txring_put(txring_t *txp, const void * data, size_t length);
-txring_t* txring_init(int fd, unsigned int mtu);
+int txring_put(txring_t *txp, const void *data, size_t length);
+txring_t *txring_init(int fd, unsigned int mtu);
 #endif /* HAVE_TX_RING */
-
-#endif /*COMMON_TXRING_H */

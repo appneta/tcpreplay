@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,22 +18,18 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "defines.h"
-#include "common.h"
-
-#include <stdlib.h>
-#include <signal.h>
-#include <sys/time.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-
-#include "tcpreplay.h"
-#include "tcpreplay_api.h"
 #include "signal_handler.h"
+#include "defines.h"
+#include "config.h"
+#include "common.h"
+#include "tcpreplay_api.h"
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 struct timeval suspend_time; // PB: do we need to modify this part of the code?
 static struct timeval suspend_start;
@@ -81,7 +77,7 @@ reset_suspend_time()
 /**
  * \brief suspend signal handler
  *
- * Signal handler for signal SIGUSR1. SIGSTOP cannot be 
+ * Signal handler for signal SIGUSR1. SIGSTOP cannot be
  * caught, so SIGUSR1 is caught and it throws SIGSTOP.
  */
 static void
@@ -134,4 +130,3 @@ abort_handler(int signo)
         tcpreplay_abort(ctx);
     }
 }
-

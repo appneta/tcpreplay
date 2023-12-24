@@ -229,7 +229,8 @@ find_name(char const * name, tOptions * pOpts, tOptDesc * pOD,
 char const *
 optionKeywordName(tOptDesc * pOD, unsigned int enum_val)
 {
-    tOptDesc od = { 0 };
+    tOptDesc od;
+    memset(&od, 0, sizeof(od));
     od.optArg.argEnum = enum_val;
 
     (*(pOD->pOptProc))(OPTPROC_RETURN_VALNAME, &od );

@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _TCPEDIT_API_H_
-#define _TCPEDIT_API_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,9 +32,8 @@ extern "C" {
 int tcpedit_set_encoder_dltplugin_byid(tcpedit_t *, int);
 int tcpedit_set_encoder_dltplugin_byname(tcpedit_t *, const char *);
 
-
 /**
- * setters always return TCPEDIT_OK on success or TCPEDIT_ERROR 
+ * setters always return TCPEDIT_OK on success or TCPEDIT_ERROR
  * if there is a problem.  You can use tcpedit_geterr() to get the reason
  * for the failure
  */
@@ -58,10 +56,6 @@ int tcpedit_set_srcip_map(tcpedit_t *, char *);
 int tcpedit_set_dstip_map(tcpedit_t *, char *);
 int tcpedit_set_port_map(tcpedit_t *, char *);
 
-
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-

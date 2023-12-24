@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -20,28 +20,23 @@
 
 /*
  * Purpose: Modify packets in a pcap file based on rules provided by the
- * user to offload work from tcpreplay and provide a easier means of 
+ * user to offload work from tcpreplay and provide an easier means of
  * reproducing traffic for testing purposes.
  */
 
-
+#include "tcprewrite.h"
 #include "config.h"
-#include "defines.h"
 #include "common.h"
-
-#include <ctype.h>
+#include "tcpedit/fuzzing.h"
+#include "tcpedit/tcpedit.h"
+#include "tcprewrite_opts.h"
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <errno.h>
-
-#include "tcprewrite.h"
-#include "tcprewrite_opts.h"
-#include "tcpedit/tcpedit.h"
-#include "tcpedit/fuzzing.h"
 
 #ifdef DEBUG
 int debug;
@@ -58,9 +53,9 @@ tcpedit_t *tcpedit;
 /* local functions */
 void tcprewrite_init(void);
 void post_args(int argc, char *argv[]);
-int rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout);
+int rewrite_packets(tcpedit_t *tcpedit_ctx, pcap_t *pin, pcap_dumper_t *pout);
 
-int 
+int
 main(int argc, char *argv[])
 {
     int optct, rcode;
@@ -96,8 +91,7 @@ main(int argc, char *argv[])
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
-        err_no_exitx("Unable to edit packets given options:\n%s",
-                tcpedit_geterr(tcpedit));
+        err_no_exitx("Unable to edit packets given options:\n%s", tcpedit_geterr(tcpedit));
         tcpedit_close(&tcpedit);
         exit(-1);
     }
@@ -105,17 +99,15 @@ main(int argc, char *argv[])
     /* fuzzing init */
     fuzzing_init(tcpedit->fuzz_seed, tcpedit->fuzz_factor);
 
-   /* open up the output file */
+    /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
-    dbgx(1, "Rewriting DLT to %s",
-            pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
+    dbgx(1, "Rewriting DLT to %s", pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
     if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL) {
         tcpedit_close(&tcpedit);
         err(-1, "Unable to open dead pcap handle.");
     }
 
-    dbgx(1, "DLT of dlt_pcap is %s",
-        pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
+    dbgx(1, "DLT of dlt_pcap is %s", pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
 
 #ifdef ENABLE_FRAGROUTE
     if (options.fragroute_args) {
@@ -171,10 +163,9 @@ main(int argc, char *argv[])
     return 0;
 }
 
-void 
+void
 tcprewrite_init(void)
 {
-
     memset(&options, 0, sizeof(options));
 
 #ifdef ENABLE_VERBOSE
@@ -189,7 +180,7 @@ tcprewrite_init(void)
 /**
  * post AutoGen argument processing
  */
-void 
+void
 post_args(_U_ int argc, _U_ char *argv[])
 {
     char ebuf[PCAP_ERRBUF_SIZE];
@@ -202,7 +193,6 @@ post_args(_U_ int argc, _U_ char *argv[])
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
 
-
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;
@@ -210,7 +200,6 @@ post_args(_U_ int argc, _U_ char *argv[])
     if (HAVE_OPT(DECODE))
         tcpdump.args = safe_strdup(OPT_ARG(DECODE));
 #endif
-
 
 #ifdef ENABLE_FRAGROUTE
     if (HAVE_OPT(FRAGROUTE))
@@ -238,20 +227,20 @@ post_args(_U_ int argc, _U_ char *argv[])
 #ifdef HAVE_PCAP_SNAPSHOT
     if (pcap_snapshot(options.pin) < 65535)
         warnx("%s was captured using a snaplen of %d bytes.  This may mean you have truncated packets.",
-                options.infile, pcap_snapshot(options.pin));
+              options.infile,
+              pcap_snapshot(options.pin));
 #endif
-
 }
 
-/** 
+/**
  * Main loop to rewrite packets
  */
 int
-rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
+rewrite_packets(tcpedit_t *tcpedit_ctx, pcap_t *pin, pcap_dumper_t *pout)
 {
-    tcpr_dir_t cache_result = TCPR_DIR_C2S;     /* default to primary */
-    struct pcap_pkthdr pkthdr, *pkthdr_ptr;     /* packet header */
-    const u_char *pktconst = NULL;              /* packet from libpcap */
+    tcpr_dir_t cache_result = TCPR_DIR_C2S; /* default to primary */
+    struct pcap_pkthdr pkthdr, *pkthdr_ptr; /* packet header */
+    const u_char *pktconst = NULL;          /* packet from libpcap */
     u_char **pktdata = NULL;
     static u_char *pktdata_buff;
     static char *frag = NULL;
@@ -271,7 +260,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
     if (frag == NULL)
         frag = (char *)safe_malloc(MAXPACKET);
 
-    /* MAIN LOOP 
+    /* MAIN LOOP
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
@@ -281,7 +270,7 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
 
         if (pkthdr.caplen > MAX_SNAPLEN)
             errx(-1, "Frame too big, caplen %d exceeds %d", pkthdr.caplen, MAX_SNAPLEN);
-        /* 
+        /*
          * copy over the packet so we can pad it out if necessary and
          * because pcap_next() returns a const ptr
          */
@@ -295,13 +284,13 @@ rewrite_packets(tcpedit_t *tcpedit, pcap_t *pin, pcap_dumper_t *pout)
         /* sometimes we should not send the packet, in such cases
          * no point in editing this packet at all, just write it to the
          * output file (note, we can't just remove it, or the tcpprep cache
-         * file will loose it's indexing
+         * file will lose it's indexing
          */
 
         if (cache_result == TCPR_DIR_NOSEND)
             goto WRITE_PACKET; /* still need to write it so cache stays in sync */
 
-        if ((rcode = tcpedit_packet(tcpedit, &pkthdr_ptr, pktdata, cache_result)) == TCPEDIT_ERROR) {
+        if ((rcode = tcpedit_packet(tcpedit_ctx, &pkthdr_ptr, pktdata, cache_result)) == TCPEDIT_ERROR) {
             return rcode;
         } else if ((rcode == TCPEDIT_SOFT_ERROR) && HAVE_OPT(SKIP_SOFT_ERRORS)) {
             /* don't write packet */
@@ -322,13 +311,13 @@ WRITE_PACKET:
                 pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
         } else {
             /* get the L3 protocol of the packet */
-            proto = tcpedit_l3proto(tcpedit, AFTER_PROCESS, *pktdata, pkthdr_ptr->caplen);
+            proto = tcpedit_l3proto(tcpedit_ctx, AFTER_PROCESS, *pktdata, pkthdr_ptr->caplen);
 
             /* packet is IPv4/IPv6 AND needs to be fragmented */
-            if ((proto ==  ETHERTYPE_IP || proto == ETHERTYPE_IP6) &&
-                    ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
-                    (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
-                    (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C))) {
+            if ((proto == ETHERTYPE_IP || proto == ETHERTYPE_IP6) &&
+                ((options.fragroute_dir == FRAGROUTE_DIR_BOTH) ||
+                 (cache_result == TCPR_DIR_C2S && options.fragroute_dir == FRAGROUTE_DIR_C2S) ||
+                 (cache_result == TCPR_DIR_S2C && options.fragroute_dir == FRAGROUTE_DIR_S2C))) {
 #ifdef DEBUG
                 int i = 0;
 #endif
@@ -350,9 +339,9 @@ WRITE_PACKET:
             }
         }
 #else
-    /* write the packet when there's no fragrouting to be done */
-    if (pkthdr_ptr->caplen)
-        pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
+        /* write the packet when there's no fragrouting to be done */
+        if (pkthdr_ptr->caplen)
+            pcap_dump((u_char *)pout, pkthdr_ptr, *pktdata);
 
 #endif
     } /* while() */
