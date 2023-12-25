@@ -253,10 +253,16 @@ packet_stats(const tcpreplay_stats_t *stats)
 
     if (diff_us >= 1000 * 1000) {
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%02zd seconds\n",
-                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)(diff.tv_nsec / (10 * 1000000)));
-    } else{ 
+               stats->pkts_sent,
+               stats->bytes_sent,
+               (ssize_t)diff.tv_sec,
+               (ssize_t)(diff.tv_nsec / (10 * 1000000)));
+    } else {
         printf("Actual: " COUNTER_SPEC " packets (" COUNTER_SPEC " bytes) sent in %zd.%06zd seconds\n",
-                stats->pkts_sent, stats->bytes_sent, (ssize_t)diff.tv_sec, (ssize_t)diff.tv_nsec / 1000);
+               stats->pkts_sent,
+               stats->bytes_sent,
+               (ssize_t)diff.tv_sec,
+               (ssize_t)diff.tv_nsec / 1000);
     }
 
     if (mb_sec >= 1)
@@ -289,7 +295,8 @@ packet_stats(const tcpreplay_stats_t *stats)
  * @param len: length of the buffer
  * @return: string containing date, or -1 on error
  */
-int format_date_time(struct timespec *when, char *buf, size_t len)
+int
+format_date_time(struct timespec *when, char *buf, size_t len)
 {
     struct tm *tm;
     char tmp[64];

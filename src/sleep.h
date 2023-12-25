@@ -28,14 +28,11 @@
 #include <sys/select.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/time.h>
-#include <time.h>
-#include <unistd.h>     
 #include <errno.h>
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 #ifdef HAVE_SYS_EVENT
 #include <sys/event.h>
@@ -55,16 +52,15 @@
 #endif /* HAVE_NETMAP */
 
 static inline void
-nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
-        struct timespec *now,  bool flush _U_)
+nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap, struct timespec *now, bool flush _U_)
 {
-        struct timespec sleep_until;
-        timeradd_timespec(now, nap, &sleep_until);
-    #if defined _POSIX_C_SOURCE  && _POSIX_C_SOURCE >= 200112L
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep_until, NULL);
-    #else
-        nanosleep(nap, NULL);
-    #endif
+    struct timespec sleep_until;
+    timeradd_timespec(now, nap, &sleep_until);
+#if defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 200112L
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep_until, NULL);
+#else
+    nanosleep(nap, NULL);
+#endif
 
 #ifdef HAVE_NETMAP
     if (flush)
@@ -81,8 +77,7 @@ nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
  * Note: make sure "now" has recently been updated.
  */
 static inline void
-gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
-                   struct timespec *now, bool flush _U_)
+gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap, struct timespec *now, bool flush _U_)
 {
     struct timeval now_ms, sleep_until, nap_for, last;
     TIMESPEC_TO_TIMEVAL(&nap_for, nap);
@@ -91,7 +86,7 @@ gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
     uint32_t i = 0;
     TIMEVAL_SET(&last, &now_ms);
 #endif /* HAVE_NETMAP */
-    
+
     timeradd(&now_ms, &nap_for, &sleep_until);
     while (!sp->abort) {
 #ifdef HAVE_NETMAP
@@ -121,9 +116,8 @@ gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap,
  * resolution which is pretty much useless for our needs.  Keeping it here
  * for future reference
  */
-static inline void 
-select_sleep(sendpacket_t *sp _U_, struct timespec *nap,
-        struct timespec *now_ns,  bool flush _U_)
+static inline void
+select_sleep(sendpacket_t *sp _U_, struct timespec *nap, struct timespec *now_ns, bool flush _U_)
 {
     struct timeval timeout;
     timeout.tv_sec = 0;
@@ -157,7 +151,6 @@ select_sleep(sendpacket_t *sp _U_, struct timespec *nap,
 /* before calling port_sleep(), you have to call port_sleep_init() */
 void ioport_sleep_init(void);
 
-void ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap,
-        struct timespec *now,  bool flush);
+void ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap, struct timespec *now, bool flush);
 
 #endif /* __SLEEP_H__ */

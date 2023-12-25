@@ -211,7 +211,7 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
     }
 
     if (get_current_time(&stats.end_time) < 0)
-        errx(-1, "get_current_time() failed: %s",  strerror(errno));
+        errx(-1, "get_current_time() failed: %s", strerror(errno));
     packet_stats(&stats);
 }
 

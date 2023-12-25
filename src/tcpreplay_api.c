@@ -18,25 +18,23 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "tcpreplay_api.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
+#include "replay.h"
+#include "send_packets.h"
+#include "sleep.h"
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <errno.h>
-#include <stdarg.h>
 #include <time.h>
-
-#include "tcpreplay_api.h"
-#include "send_packets.h"
-#include "sleep.h"
-#include "replay.h"
+#include <unistd.h>
 
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
@@ -1145,7 +1143,7 @@ tcpreplay_replay(tcpreplay_t *ctx)
         tcpreplay_seterr(ctx, "invalid dualfile source count: %d", ctx->options->source_cnt);
         return -1;
     }
-    
+
     init_timestamp(&ctx->stats.start_time);
     init_timestamp(&ctx->stats.time_delta);
     init_timestamp(&ctx->stats.end_time);
@@ -1383,17 +1381,19 @@ int tcpreplay_get_flow_expiry(tcpreplay_t *ctx)
     return ctx->options->flow_expiry;
 }
 
-void apply_loop_delay(tcpreplay_t *ctx){
-    if(ctx->options->accurate == accurate_nanosleep){
+void
+apply_loop_delay(tcpreplay_t *ctx)
+{
+    if (ctx->options->accurate == accurate_nanosleep) {
         if (!ctx->abort && ctx->options->loopdelay_ns > 0) {
             struct timespec nap;
             nap.tv_sec = 0;
             nap.tv_nsec = ctx->options->loopdelay_ns;
             nanosleep_sleep(NULL, &nap, &ctx->stats.end_time, NULL);
         }
-    }else{
+    } else {
         if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
-                usleep(ctx->options->loopdelay_ms * 1000);
-            }
+            usleep(ctx->options->loopdelay_ms * 1000);
+        }
     }
 }

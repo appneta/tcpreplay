@@ -44,13 +44,15 @@ init_timestamp(struct timespec *timestamp)
     timesclear(timestamp);
 }
 
-int get_current_time(struct timespec *ts){
-    #if defined _POSIX_C_SOURCE  && _POSIX_C_SOURCE >= 199309L
-        return clock_gettime(CLOCK_MONOTONIC, ts);
-    #else
-        struct timeval tv;
-        int success = gettimeofday(&tv, NULL);
-        TIMEVAL_TO_TIMESPEC(&tv, ts);
-        return success;
-    #endif
+int
+get_current_time(struct timespec *ts)
+{
+#if defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 199309L
+    return clock_gettime(CLOCK_MONOTONIC, ts);
+#else
+    struct timeval tv;
+    int success = gettimeofday(&tv, NULL);
+    TIMEVAL_TO_TIMESPEC(&tv, ts);
+    return success;
+#endif
 }
