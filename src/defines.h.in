@@ -102,7 +102,7 @@ char dummy[0];
 #define COUNTER unsigned long
 #define COUNTER_SPEC "%lu"
 #endif
-#define COUNTER_OVERFLOW_RISK (((COUNTER)~0) >> 20)
+#define COUNTER_OVERFLOW_RISK (((COUNTER)~0) >> 23)
 
 #include <common/cidr.h>
 #include <common/list.h>

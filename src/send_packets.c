@@ -56,10 +56,6 @@ extern tcpedit_t *tcpedit;
 #include "send_packets.h"
 #include "sleep.h"
 
-#ifdef DEBUG
-extern int debug;
-#endif
-
 static void calc_sleep_time(tcpreplay_t *ctx,
                             struct timespec *pkt_time,
                             struct timespec *last,
@@ -70,8 +66,11 @@ static void calc_sleep_time(tcpreplay_t *ctx,
                             COUNTER start_us,
                             COUNTER *skip_length);
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp _U_, struct timespec *nap_this_time, struct timespec *now);
-static u_char *
-get_next_packet(tcpreplay_t *ctx, pcap_t *pcap, struct pcap_pkthdr *pkthdr, int file_idx, packet_cache_t **prev_packet);
+static u_char *get_next_packet(tcpreplay_opt_t *options,
+                               pcap_t *pcap,
+                               struct pcap_pkthdr *pkthdr,
+                               int file_idx,
+                               packet_cache_t **prev_packet);
 static uint32_t get_user_count(tcpreplay_t *ctx, sendpacket_t *sp, COUNTER counter);
 
 #ifdef HAVE_NETMAP
@@ -336,7 +335,7 @@ increment_iteration(tcpreplay_t *ctx)
 void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
-    struct timespec now, print_delta, last_pkt_ts, pkthdr_ts;
+    struct timespec now, print_delta, last_pkt_ts;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -386,7 +385,9 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
      * Keep sending while we have packets or until
      * we've sent enough packets
      */
-    while (!ctx->abort && (pktdata = get_next_packet(ctx, pcap, &pkthdr, idx, prev_packet)) != NULL) {
+    while (!ctx->abort && read_next_packet &&
+           (pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
+        struct timespec pkthdr_ts;
         TIMEVAL_AS_TIMESPEC_SET(&pkthdr_ts, &pkthdr.ts); // libpcap puts nanosec values in tv_usec
         now_is_now = false;
         packetnum++;
@@ -480,6 +481,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                             &stats->end_time,
                             TIMESPEC_TO_NANOSEC(&stats->start_time),
                             &skip_length);
+
             /*
              * Track the time of the "last packet sent".
              *
@@ -1033,12 +1035,6 @@ calc_sleep_time(tcpreplay_t *ctx,
         if (timescmp(pkt_ts_delta, time_delta, >)) {
             /* pkt_time_delta has increased, so handle normally */
             timessub(pkt_ts_delta, time_delta, &nap_for);
-            // printf("pkt_ts_delta sec: %lu\n", pkt_ts_delta->tv_sec);
-            // printf("pkt_ts_delta nsec: %lu\n", pkt_ts_delta->tv_nsec);
-            // printf("time_delta sec: %lu\n", time_delta->tv_sec);
-            // printf("time_delta nsec: %lu\n", time_delta->tv_nsec);
-            // printf("nap_for sec: %lu\n", nap_for.tv_sec);
-            // printf("nap_for nsec: %lu\n", nap_for.tv_nsec);
             TIMESPEC_SET(&ctx->nap, &nap_for);
             dbgx(3, "original packet delta time: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
             timesdiv_float(&ctx->nap, options->speed.multiplier);
@@ -1055,7 +1051,7 @@ calc_sleep_time(tcpreplay_t *ctx,
         if (now_ns) {
             COUNTER next_tx_ns;
             COUNTER bps = options->speed.speed;
-            COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8); // PB: Ferencol miert bits sent?
+            COUNTER bits_sent = ((ctx->stats.bytes_sent + len) * 8);
             COUNTER tx_ns = now_ns - start_ns;
 
             /*
@@ -1063,7 +1059,7 @@ calc_sleep_time(tcpreplay_t *ctx,
              *
              * ensure there is no overflow in cases where bits_sent is very high
              */
-            if (bits_sent > COUNTER_OVERFLOW_RISK && bps > 500000)
+            if (bits_sent > COUNTER_OVERFLOW_RISK)
                 next_tx_ns = (bits_sent * 1000) / bps * 1000000;
             else
                 next_tx_ns = (bits_sent * 1000000000) / bps;
@@ -1154,9 +1150,8 @@ tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp, struct timespec *nap_this_time, s
 #endif
 
     /* don't sleep if nap = {0, 0} */
-    if (!timesisset(nap_this_time)) {
+    if (!timesisset(nap_this_time))
         return;
-    }
 
     /* do we need to limit the total time we sleep? */
     if (timesisset(&(options->maxsleep)) && (timescmp(nap_this_time, &(options->maxsleep), >))) {

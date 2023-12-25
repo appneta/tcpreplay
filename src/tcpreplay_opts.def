@@ -320,6 +320,7 @@ flag = {
 
 flag = {
     name        = loopdelay-ms;
+    flags-cant  = loopdelay-ns;
     flags-must  = loop;
     arg-type    = number;
     arg-range   = "0->";
@@ -330,7 +331,8 @@ flag = {
 
 flag = {
     name        = loopdelay-ns;
-    flags-must  = loop, timer;
+    flags-cant  = loopdelay-ms;
+    flags-must  = loop;
     arg-type    = number;
     arg-range   = "0->";
     descrip     = "Delay between loops in nanoseconds";

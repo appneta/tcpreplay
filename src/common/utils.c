@@ -307,8 +307,8 @@ format_date_time(struct timespec *when, char *buf, size_t len)
     if (!tm)
         return -1;
 
-    strftime(tmp, sizeof tmp, "%Y-%m-%d %H:%M:%S.%%06u", tm);
-    return snprintf(buf, len, tmp, when->tv_nsec / 1000);
+    strftime(tmp, sizeof tmp, "%Y-%m-%d %H:%M:%S.%%09u", tm);
+    return snprintf(buf, len, tmp, when->tv_nsec);
 }
 
 /**

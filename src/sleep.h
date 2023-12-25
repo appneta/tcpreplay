@@ -54,9 +54,9 @@
 static inline void
 nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap, struct timespec *now, bool flush _U_)
 {
+#if defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 200112L
     struct timespec sleep_until;
     timeradd_timespec(now, nap, &sleep_until);
-#if defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 200112L
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep_until, NULL);
 #else
     nanosleep(nap, NULL);
@@ -77,36 +77,36 @@ nanosleep_sleep(sendpacket_t *sp _U_, const struct timespec *nap, struct timespe
  * Note: make sure "now" has recently been updated.
  */
 static inline void
-gettimeofday_sleep(sendpacket_t *sp _U_, struct timespec *nap, struct timespec *now, bool flush _U_)
+gettimeofday_sleep(sendpacket_t *sp, struct timespec *nap, struct timespec *now, bool flush _U_)
 {
-    struct timeval now_ms, sleep_until, nap_for, last;
-    TIMESPEC_TO_TIMEVAL(&nap_for, nap);
-    gettimeofday(&now_ms, NULL);
+    struct timespec sleep_until;
 #ifdef HAVE_NETMAP
+    struct timespec last;
     uint32_t i = 0;
-    TIMEVAL_SET(&last, &now_ms);
+
+    TIMESPEC_SET(&last, now);
 #endif /* HAVE_NETMAP */
 
-    timeradd(&now_ms, &nap_for, &sleep_until);
+    timeradd_timespec(now, nap, &sleep_until);
+
     while (!sp->abort) {
 #ifdef HAVE_NETMAP
-        if (flush && timercmp(&now_ms, &last, !=)) {
-            TIMESPEC_SET(&last, &now_ms);
+        if (flush && timescmp(now, &last, !=)) {
+            TIMESPEC_SET(&last, now);
             if ((++i & 0xf) == 0)
                 /* flush TX buffer every 16 usec */
                 ioctl(sp->handle.fd, NIOCTXSYNC, NULL);
         }
 #endif /* HAVE_NETMAP */
-        if (timercmp(&now_ms, &sleep_until, >=))
+        if (timescmp(now, &sleep_until, >=))
             break;
 
 #ifdef HAVE_SCHED_H
         /* yield the CPU so other apps remain responsive */
         sched_yield();
 #endif
-        gettimeofday(&now_ms, NULL);
+        get_current_time(now);
     }
-    get_current_time(now);
 }
 
 #ifdef HAVE_SELECT
@@ -136,6 +136,7 @@ select_sleep(sendpacket_t *sp _U_, struct timespec *nap, struct timespec *now_ns
     if (flush)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* flush TX buffer */
 #endif
+
     get_current_time(now_ns);
 }
 #endif /* HAVE_SELECT */
@@ -152,5 +153,3 @@ select_sleep(sendpacket_t *sp _U_, struct timespec *nap, struct timespec *now_ns
 void ioport_sleep_init(void);
 
 void ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap, struct timespec *now, bool flush);
-
-#endif /* __SLEEP_H__ */

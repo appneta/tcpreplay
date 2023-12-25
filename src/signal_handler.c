@@ -31,7 +31,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-struct timeval suspend_time; // PB: do we need to modify this part of the code?
+struct timeval suspend_time;
 static struct timeval suspend_start;
 static struct timeval suspend_end;
 

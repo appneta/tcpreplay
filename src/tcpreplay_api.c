@@ -166,6 +166,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     options->loop = OPT_VALUE_LOOP;
     options->loopdelay_ms = OPT_VALUE_LOOPDELAY_MS;
+    options->loopdelay_ns = OPT_VALUE_LOOPDELAY_NS;
 
     if (HAVE_OPT(LIMIT))
         options->limit_send = OPT_VALUE_LIMIT;
@@ -314,7 +315,6 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
             options->accurate = accurate_gtod;
         } else if (strcmp(OPT_ARG(TIMER), "nano") == 0) {
             options->accurate = accurate_nanosleep;
-            options->loopdelay_ns = OPT_VALUE_LOOPDELAY_NS;
         } else if (strcmp(OPT_ARG(TIMER), "abstime") == 0) {
             tcpreplay_seterr(ctx, "%s", "abstime is deprecated");
             ret = -1;
@@ -1120,6 +1120,7 @@ out:
     return ret;
 }
 
+static bool apply_loop_delay(tcpreplay_t *ctx);
 /**
  * \brief sends the traffic out the interfaces
  *
@@ -1167,12 +1168,12 @@ tcpreplay_replay(tcpreplay_t *ctx)
                             loop, total_loops,
                             ctx->unique_iteration);
             }
-            if ((rcode = tcpr_replay_index(ctx)) < 0) {
+            if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
-            }
             if (ctx->options->loop > 0) {
-                apply_loop_delay(ctx);
-                get_current_time(&ctx->stats.end_time);
+                if (apply_loop_delay(ctx))
+                    get_current_time(&ctx->stats.end_time);
+
                 if (ctx->options->stats == 0) {
                     packet_stats(&ctx->stats);
                 }
@@ -1195,11 +1196,12 @@ tcpreplay_replay(tcpreplay_t *ctx)
                     printf("Loop " COUNTER_SPEC " (" COUNTER_SPEC " unique)...\n", loop,
                             ctx->unique_iteration);
             }
-            if ((rcode = tcpr_replay_index(ctx)) < 0) {
+            if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
-            }
-            apply_loop_delay(ctx);
-            get_current_time(&ctx->stats.end_time);
+
+            if (apply_loop_delay(ctx))
+                get_current_time(&ctx->stats.end_time);
+
             if (ctx->options->stats == 0 && !ctx->abort)
                 packet_stats(&ctx->stats);
         }
@@ -1381,19 +1383,20 @@ int tcpreplay_get_flow_expiry(tcpreplay_t *ctx)
     return ctx->options->flow_expiry;
 }
 
-void
-apply_loop_delay(tcpreplay_t *ctx)
-{
-    if (ctx->options->accurate == accurate_nanosleep) {
-        if (!ctx->abort && ctx->options->loopdelay_ns > 0) {
-            struct timespec nap;
-            nap.tv_sec = 0;
-            nap.tv_nsec = ctx->options->loopdelay_ns;
-            nanosleep_sleep(NULL, &nap, &ctx->stats.end_time, NULL);
-        }
-    } else {
-        if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
-            usleep(ctx->options->loopdelay_ms * 1000);
-        }
+bool
+apply_loop_delay(tcpreplay_t *ctx) {
+    if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
+        usleep(ctx->options->loopdelay_ms * 1000);
+        return true;
     }
+
+    if (!ctx->abort && ctx->options->loopdelay_ns > 0) {
+        struct timespec nap;
+        nap.tv_sec = 0;
+        nap.tv_nsec = ctx->options->loopdelay_ns;
+        nanosleep_sleep(NULL, &nap, &ctx->stats.end_time, NULL);
+        return true;
+    }
+
+    return false;
 }

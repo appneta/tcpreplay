@@ -272,7 +272,6 @@ int tcpreplay_set_verbose(tcpreplay_t *, bool);
 int tcpreplay_set_tcpdump_args(tcpreplay_t *, char *);
 int tcpreplay_set_tcpdump(tcpreplay_t *, tcpdump_t *);
 
-void apply_loop_delay(tcpreplay_t *ctx);
 /*
  * These functions are seen by the outside world, but nobody should ever use them
  * outside of internal tcpreplay API functions

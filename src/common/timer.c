@@ -22,7 +22,7 @@
 #include "config.h"
 #include <stdlib.h>
 
-/* Miscellaneous timeval routines */
+/* Miscellaneous timeval/timespec routines */
 
 /* Divide tvs by div, storing the result in tvs */
 void
@@ -47,7 +47,7 @@ init_timestamp(struct timespec *timestamp)
 int
 get_current_time(struct timespec *ts)
 {
-#if defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 199309L
+#if defined CLOCK_MONOTONIC || defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 199309L
     return clock_gettime(CLOCK_MONOTONIC, ts);
 #else
     struct timeval tv;

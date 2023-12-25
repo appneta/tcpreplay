@@ -80,10 +80,4 @@ ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap _U_, struct timesp
 #else
     err(-1, "Platform does not support IO Port for timing");
 #endif
-
-#ifdef HAVE_NETMAP
-    if (flush)
-        ioctl(sp->handle.fd, NIOCTXSYNC, NULL);   /* flush TX buffer */
-#endif /* HAVE_NETMAP */
-    get_current_time(now);
 }

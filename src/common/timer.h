@@ -178,6 +178,4 @@ void timesdiv_float(struct timespec *tvs, float div);
 typedef struct timeval timestamp_t;
 
 void init_timestamp(struct timespec *timestamp);
-int get_current_time(struct timespec *ts);
-
-#endif /* _TIMER_H_ */
+int get_current_time(struct timespec *timestamp);
