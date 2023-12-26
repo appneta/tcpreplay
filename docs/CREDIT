@@ -120,3 +120,6 @@ Bastian Triller <GitHub @btriller>
 GithHub @plangarbalint
     - eBPF
     - nanosecond timers
+
+Chuck Cottrill <GitHub @ChuckCottrill>
+    - handle IPv6 fragment extensions

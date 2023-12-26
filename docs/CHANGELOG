@@ -1,4 +1,5 @@
 09/03/2023 Version 4.5.0-beta1
+    - handle IPv6 fragment extension header (#832 #837)
     - nanosecond timestamps (#796)
     - low PPS values run at full speed after several days (#779)
     - create DLT_LINUX_SLL2 plugin (#727)
