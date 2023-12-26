@@ -347,7 +347,7 @@ replay_basic:
 replay_nano_timer:
 	$(PRINTF) "%s" "[tcpreplay] Nano timer test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Nano timer test: " >> test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --loop=2 --timer=nano --loopdelay-ns=125000000 -t $(TEST_PCAP) >> test.log 2>&1
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --loop=2 --loopdelay-ns=125000000 -t $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_cache:
