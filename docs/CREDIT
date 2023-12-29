@@ -117,4 +117,9 @@ David Guti <GitHub @david-guti>
 Bastian Triller <GitHub @btriller>
     - Linux SLL2
 
+GithHub @plangarbalint
+    - eBPF
+    - nanosecond timers
+
 Chuck Cottrill <GitHub @ChuckCottrill>
+    - handle IPv6 fragment extensions

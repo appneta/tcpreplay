@@ -103,6 +103,7 @@ typedef struct tcpreplay_opt_s {
     tcpreplay_speed_t speed;
     COUNTER loop;
     u_int32_t loopdelay_ms;
+    u_int32_t loopdelay_ns;
 
     int stats;
     bool use_pkthdr_len;
@@ -264,8 +265,8 @@ int tcpreplay_set_manual_callback(tcpreplay_t *ctx, tcpreplay_manual_callback);
 COUNTER tcpreplay_get_pkts_sent(tcpreplay_t *ctx);
 COUNTER tcpreplay_get_bytes_sent(tcpreplay_t *ctx);
 COUNTER tcpreplay_get_failed(tcpreplay_t *ctx);
-const struct timeval *tcpreplay_get_start_time(tcpreplay_t *ctx);
-const struct timeval *tcpreplay_get_end_time(tcpreplay_t *ctx);
+const struct timespec *tcpreplay_get_start_time(tcpreplay_t *ctx);
+const struct timespec *tcpreplay_get_end_time(tcpreplay_t *ctx);
 
 int tcpreplay_set_verbose(tcpreplay_t *, bool);
 int tcpreplay_set_tcpdump_args(tcpreplay_t *, char *);
