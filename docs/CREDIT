@@ -123,3 +123,7 @@ GithHub @plangarbalint
 
 Chuck Cottrill <GitHub @ChuckCottrill>
     - handle IPv6 fragment extensions
+
+
+Martin 'JaMa' Jansa <GitHub @shr-project>
+    - configure.ac: unify search dirs for pcap and add lib32
