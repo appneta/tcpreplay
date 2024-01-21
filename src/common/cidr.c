@@ -249,6 +249,10 @@ parse_cidr(tcpr_cidr_t **cidrdata, char *cidrin, char *delim)
     char *network;
     char *token = NULL;
 
+    if (cidrin == NULL) {
+        errx(-1, "%s", "Unable to parse empty CIDR");
+    }
+
     mask_cidr6(&cidrin, delim);
 
     /* first iteration of input using strtok */
