@@ -6,7 +6,7 @@
  * On systems where 'poll' doesn't exist, fake it with 'select'.
  *
  * Copyright (c) 2001-2003, Nick Mathewson <nickm@freehaven.net>
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -22,7 +22,7 @@
  *   * Neither the names of the copyright owners nor the names of its
  *   contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,19 +36,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
 
 /* prevents ISO C error */
 #ifdef USE_FAKE_POLL
-static void FAKEPOLL(int stop)
-{ 
-    if (! stop)
-        FAKEPOLL(1); 
+static void
+FAKEPOLL(int stop)
+{
+    if (!stop)
+        FAKEPOLL(1);
     return;
-
-} 
+}
 
 #include <sys/types.h>
 #ifdef HAVE_UNISTD_H
@@ -118,8 +118,7 @@ poll(struct pollfd *ufds, unsigned int nfds, int timeout)
         return 0;
     }
 #endif
-    r = select(maxfd + 1, &readfds, &writefds, &exceptfds,
-               timeout == -1 ? NULL : &_timeout);
+    r = select(maxfd + 1, &readfds, &writefds, &exceptfds, timeout == -1 ? NULL : &_timeout);
     if (r <= 0)
         return r;
     r = 0;

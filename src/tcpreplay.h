@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __TCPREPLAY_H__
-#define __TCPREPLAY_H__
+#pragma once
 
 #include "config.h"
 #include "defines.h"
@@ -29,6 +28,4 @@
 
 #ifdef ENABLE_DMALLOC
 #include <dmalloc.h>
-#endif
-
 #endif

@@ -1,3 +1,33 @@
+06/04/2023 Version 4.4.4
+    - overflow check fix for parse_mpls (#795)
+    - tcpreplay-edit: prevent L2 flooding of ipv6 unicast packets (#793)
+    - CVE-2023-27786 bugs caused by strtok_r (#782 #784 #785 #786 #787 #788)
+    - CVE-2023-27783 reachable assert in tcpedit_dlt_cleanup (#780)
+    - add CI and C/C++ Linter and CodeQL (#773)
+    - reachable assert in fast_edit_packet (#772)
+
+01/01/2023 Version 4.4.3
+    - upgrade autogen/libopts to version 5.18.16 (#759)
+    - avoid implicit int in configure.ac (#757)
+    - remove invalid assert in tree (#756)
+    - program exit after send error (#751)
+    - make libpcap version test more robust (#750)
+    - looping inflates some packet counters (#749)
+
+08/28/2022 Version 4.4.2
+    - fix tests when building in a directory outside source tree (#767)
+    - remove autogen.sh from distribution tarballs (#745)
+    - CVE-2022-37048 heap-overflow in get_l2len_protocol (#735)
+    - replaying on a loopback interface is broken (#732)
+    - replay edit with both --loop and --preload_pcap options (#729)
+    - test suite bus error on armhf (#725)
+    - CVE-2022-28487 format string vulnerability in fix_ipv6_checksums (#723)
+    - CVE-2022-27942 heap-overflow in parse_mpls (#719)
+    - CVE-2022-27940 CVE-2022-37047 CVE-2022-37049 heap-overflow in get_ipv6_next (#718)
+    - CVE-2022-27939 reachable assertion in get_layer4_v6 (#717)
+    - CVE-2022-25484 CVE-2022-27941 heap buffer overflow in get_l2len_protocol (#716)
+    - remove bash-only test in configure script (#714)
+
 02/12/2022 Version 4.4.1
     - fix support for piping PCAP files from STDIN (#708)
     - build failures Debian/kfreebsd (#706)

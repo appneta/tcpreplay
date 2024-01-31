@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,26 +18,23 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __TCPBRIDGE_H__
-#define __TCPBRIDGE_H__
+#pragma once
 
 /* we don't support endpoints w/ tcpbridge */
 #define TCPEDIT_ENDPOINTS_DISABLE 1
 
-#include "config.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
 #include "tcpedit/tcpedit.h"
-
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <regex.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #ifdef ENABLE_DMALLOC
 #include <dmalloc.h>
 #endif
-
 
 /* run-time options */
 typedef struct {
@@ -80,7 +77,3 @@ typedef struct {
     u_int16_t l2proto;
     u_int16_t l2_mem_align; /* keep things 4 byte aligned */
 } tcpbridge_opt_t;
-
-
-#endif
-

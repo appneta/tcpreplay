@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DLT_en10mb_H_
-#define _DLT_en10mb_H_
+#pragma once
 
 #include "plugins_types.h"
 #include "en10mb_types.h"
@@ -38,17 +37,17 @@ int dlt_en10mb_register(tcpeditdlt_t *ctx);
 int dlt_en10mb_init(tcpeditdlt_t *ctx);
 int dlt_en10mb_cleanup(tcpeditdlt_t *ctx);
 int dlt_en10mb_parse_opts(tcpeditdlt_t *ctx);
-int dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
+int dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen);
 int dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir);
-int dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen);
+int dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen);
+u_char *dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen);
 u_char *dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
                                 u_char *packet,
-                                const int pktlen,
+                                int pktlen,
                                 u_char *ipv4_data,
                                 u_char *ipv6_data);
-int dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen);
-u_char *dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen);
+int dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, int pktlen);
+u_char *dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, int pktlen);
 
 tcpeditdlt_l2addr_type_t dlt_en10mb_l2addr_type(void);
 
@@ -56,6 +55,3 @@ tcpeditdlt_l2addr_type_t dlt_en10mb_l2addr_type(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-

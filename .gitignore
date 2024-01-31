@@ -94,3 +94,6 @@ pcapsend
 test/*1
 COPYING
 .vscode/
+.idea/
+build*/
+.run/

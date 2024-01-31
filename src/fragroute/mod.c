@@ -7,66 +7,62 @@
  * $Id$
  */
 
-#include "config.h"
-#include "lib/queue.h"
+#include "mod.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
+#include "argv.h"
+#include "lib/queue.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "argv.h"
-#include "mod.h"
-
-#define MAX_ARGS         128
+#define MAX_ARGS 128
 
 struct rule {
-    struct mod        *mod;
-    void            *data;
-    TAILQ_ENTRY(rule)     next;
+    struct mod *mod;
+    void *data;
+    TAILQ_ENTRY(rule) next;
 };
 
 /*
  * new modules must be registered here.
  */
-extern struct mod     mod_delay;
-extern struct mod     mod_drop;
-extern struct mod     mod_dup;
-extern struct mod     mod_echo;
-extern struct mod     mod_ip_chaff;
-extern struct mod     mod_ip_frag;
-extern struct mod     mod_ip_opt;
-extern struct mod     mod_ip_ttl;
-extern struct mod     mod_ip_tos;
-extern struct mod     mod_ip6_qos;
-extern struct mod     mod_ip6_opt;
-extern struct mod     mod_order;
-extern struct mod     mod_print;
-extern struct mod     mod_tcp_chaff;
-extern struct mod     mod_tcp_opt;
-extern struct mod     mod_tcp_seg;
+extern struct mod mod_delay;
+extern struct mod mod_drop;
+extern struct mod mod_dup;
+extern struct mod mod_echo;
+extern struct mod mod_ip_chaff;
+extern struct mod mod_ip_frag;
+extern struct mod mod_ip_opt;
+extern struct mod mod_ip_ttl;
+extern struct mod mod_ip_tos;
+extern struct mod mod_ip6_qos;
+extern struct mod mod_ip6_opt;
+extern struct mod mod_order;
+extern struct mod mod_print;
+extern struct mod mod_tcp_chaff;
+extern struct mod mod_tcp_opt;
+extern struct mod mod_tcp_seg;
 
-static struct mod *mods[] = {
-    &mod_delay,
-    &mod_drop,
-    &mod_dup,
-    &mod_echo,
-    &mod_ip_chaff,
-    &mod_ip_frag,
-    &mod_ip_opt,
-    &mod_ip_ttl,
-    &mod_ip_tos,
-    &mod_ip6_qos,
-    &mod_ip6_opt,
-    &mod_order,
-    &mod_print,
-    &mod_tcp_chaff,
-    &mod_tcp_opt,
-    &mod_tcp_seg,
-    NULL
-};
+static struct mod *mods[] = {&mod_delay,
+                             &mod_drop,
+                             &mod_dup,
+                             &mod_echo,
+                             &mod_ip_chaff,
+                             &mod_ip_frag,
+                             &mod_ip_opt,
+                             &mod_ip_ttl,
+                             &mod_ip_tos,
+                             &mod_ip6_qos,
+                             &mod_ip6_opt,
+                             &mod_order,
+                             &mod_print,
+                             &mod_tcp_chaff,
+                             &mod_tcp_opt,
+                             &mod_tcp_seg,
+                             NULL};
 
 static TAILQ_HEAD(head, rule) rules;
 
@@ -99,7 +95,6 @@ mod_open(const char *script, char *errbuf)
     dbg(1, "opened config file...");
     /* read the file, one line at a time... */
     for (i = 1; fgets(buf, sizeof(buf), fp) != NULL; i++) {
-
         /* skip comments & blank lines */
         if (*buf == '#' || *buf == '\r' || *buf == '\n')
             continue;
@@ -136,10 +131,8 @@ mod_open(const char *script, char *errbuf)
         rule->mod = *m;
 
         /* pass the remaining args to the rule */
-        if (rule->mod->open != NULL &&
-            (rule->data = rule->mod->open(argc, argv)) == NULL) {
-            sprintf(errbuf, "invalid argument to directive '%s' (line %d)",
-                rule->mod->name, i);
+        if (rule->mod->open != NULL && (rule->data = rule->mod->open(argc, argv)) == NULL) {
+            sprintf(errbuf, "invalid argument to directive '%s' (line %d)", rule->mod->name, i);
             ret = -1;
             break;
         }
@@ -150,10 +143,11 @@ mod_open(const char *script, char *errbuf)
     /* close the file */
     fclose(fp);
     dbg(1, "close file...");
-    
+
     if (ret == 0) {
         buf[0] = '\0';
-        TAILQ_FOREACH(rule, &rules, next) {
+        TAILQ_FOREACH(rule, &rules, next)
+        {
             strlcat(buf, rule->mod->name, sizeof(buf));
             strlcat(buf, " -> ", sizeof(buf));
         }
@@ -172,7 +166,8 @@ mod_apply(struct pktq *pktq)
 {
     struct rule *rule;
 
-    TAILQ_FOREACH(rule, &rules, next) {
+    TAILQ_FOREACH(rule, &rules, next)
+    {
         rule->mod->apply(rule->data, pktq);
     }
 }
@@ -182,7 +177,8 @@ mod_close(void)
 {
     struct rule *rule;
 
-    TAILQ_FOREACH_REVERSE(rule, &rules, next, head) {
+    TAILQ_FOREACH_REVERSE(rule, &rules, next, head)
+    {
         if (rule->mod->close != NULL)
             rule->data = rule->mod->close(rule->data);
         TAILQ_REMOVE(&rules, rule, next);

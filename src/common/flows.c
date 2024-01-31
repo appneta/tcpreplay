@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../../lib/sll.h"
 
 #define JUNIPER_FLAG_NO_L2          0x02     /* L2 header */
 #define JUNIPER_FLAG_EXT            0x80     /* Juniper extensions present */
@@ -120,7 +119,7 @@ static inline flow_entry_type_t hash_put_data(flow_hash_table_t *fht, const uint
 {
     uint32_t hash_value = key & (fht->num_buckets - 1);
     flow_hash_entry_t *he;
-    flow_entry_type_t res = FLOW_ENTRY_INVALID;
+    flow_entry_type_t res;
 
     for (he = fht->buckets[hash_value]; he; he = he->next) {
         /*
@@ -201,8 +200,6 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         return FLOW_ENTRY_INVALID;
     }
 
-    assert(l2len > 0);
-
     if (ether_type == ETHERTYPE_IP) {
         if (pkt_len < l2len + sizeof(ipv4_hdr_t))
                 return FLOW_ENTRY_INVALID;
@@ -265,6 +262,9 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
         entry.src_port = icmp_hdr->icmp_type;
         entry.dst_port = icmp_hdr->icmp_code;
         break;
+    default:
+        entry.src_port = 0;
+        entry.dst_port = 0;
     }
 
     /* hash the 5-tuple */

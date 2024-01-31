@@ -7,16 +7,13 @@
  * $Id$
  */
 
-#include "config.h"
-#include "lib/queue.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
-#include <signal.h>
+#include "lib/queue.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #ifdef HAVE_LIBDNET
 /* need to undef these which are pulled in via defines.h, prior to importing dnet.h */
@@ -33,9 +30,8 @@
 #endif
 
 #include "fragroute.h"
-#include "pkt.h"
 #include "mod.h"
-// #include "tun.h"
+#include "pkt.h"
 
 void
 fragroute_close(fragroute_t *ctx)
@@ -46,27 +42,22 @@ fragroute_close(fragroute_t *ctx)
     pkt_close();
 }
 
-
 int
 fragroute_process(fragroute_t *ctx, void *buf, size_t len)
 {
     struct pkt *pkt;
     assert(ctx);
     assert(buf);
-    
+
     ctx->first_packet = 0;
     /* save the l2 header of the original packet for later */
-    ctx->l2len = get_l2len(buf, len, ctx->dlt);
+    ctx->l2len = get_l2len(buf, (int)len, ctx->dlt);
     memcpy(ctx->l2header, buf, ctx->l2len);
 
     if ((pkt = pkt_new(len)) == NULL) {
         strcpy(ctx->errbuf, "unable to pkt_new()");
         return -1;
     }
-//    if (len > PKT_BUF_LEN) {
-//        sprintf(ctx->errbuf, "skipping oversized packet: %zu", len);
-//        return -1;
-//    }
 
     memcpy(pkt->pkt_data, buf, len);
     pkt->pkt_end = pkt->pkt_data + len;
@@ -77,11 +68,11 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
         strcpy(ctx->errbuf, "skipping non-IP packet");
         return -1;
     }
-/*  Don't always checksum packets before being fragged
-    if (pkt->pkt_eth && htons(pkt->pkt_eth->eth_type) == ETH_TYPE_IP) {
-        ip_checksum(pkt->pkt_ip, len);
-    }
-*/
+    /*  Don't always checksum packets before being fragged
+        if (pkt->pkt_eth && htons(pkt->pkt_eth->eth_type) == ETH_TYPE_IP) {
+            ip_checksum(pkt->pkt_ip, len);
+        }
+    */
 
     TAILQ_INIT(ctx->pktq);
     TAILQ_INSERT_TAIL(ctx->pktq, pkt, pkt_next);
@@ -103,23 +94,23 @@ fragroute_getfragment(fragroute_t *ctx, char **packet)
     static struct pkt *next = NULL;
     char *pkt_data = *packet;
     u_int32_t length;
-    
+
     if (ctx->first_packet != 0) {
         pkt = next;
     } else {
         ctx->first_packet = 1;
         pkt = TAILQ_FIRST(ctx->pktq);
     }
-    
+
     if (pkt != TAILQ_END(&(ctx->pktq))) {
         next = TAILQ_NEXT(pkt, pkt_next);
         memcpy(pkt_data, pkt->pkt_data, pkt->pkt_end - pkt->pkt_data);
-        
+
         /* return the original L2 header */
         memcpy(pkt_data, ctx->l2header, ctx->l2len);
         length = pkt->pkt_end - pkt->pkt_data;
         pkt = next;
-        return length;
+        return (int)length;
     }
 
     return 0; // nothing
@@ -134,7 +125,6 @@ fragroute_init(const int mtu, const int dlt, const char *config, char *errbuf)
         sprintf(errbuf, "Fragroute only supports DLT_EN10MB pcap files");
         return NULL;
     }
-        
 
     ctx = (fragroute_t *)safe_malloc(sizeof(fragroute_t));
     ctx->pktq = (struct pktq *)safe_malloc(sizeof(struct pktq));

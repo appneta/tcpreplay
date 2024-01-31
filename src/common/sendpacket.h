@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,9 +18,10 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "defines.h"
+#pragma once
 
+#include "defines.h"
+#include "config.h"
 #include <sys/socket.h>
 
 #ifdef __NetBSD__
@@ -56,9 +57,6 @@
 #endif
 #endif
 
-#ifndef _SENDPACKET_H_
-#define _SENDPACKET_H_
-
 typedef enum sendpacket_type_e {
     SP_TYPE_NONE,
     SP_TYPE_LIBNET,
@@ -73,15 +71,14 @@ typedef enum sendpacket_type_e {
 } sendpacket_type_t;
 
 /* these are the file_operations ioctls */
-#define KHIAL_SET_DIRECTION  (0x1)
-#define KHIAL_GET_DIRECTION  (0x2)
+#define KHIAL_SET_DIRECTION (0x1)
+#define KHIAL_GET_DIRECTION (0x2)
 
 /* these are the directions */
 typedef enum khial_direction_e {
     KHIAL_DIRECTION_RX = 0,
     KHIAL_DIRECTION_TX,
 } khial_direction_t;
-
 
 union sendpacket_handle {
     pcap_t *pcap;
@@ -92,7 +89,7 @@ union sendpacket_handle {
 };
 
 #define SENDPACKET_ERRBUF_SIZE 1024
-#define MAX_IFNAMELEN   64
+#define MAX_IFNAMELEN 64
 
 struct sendpacket_s {
     tcpr_dir_t cache_dir;
@@ -128,7 +125,6 @@ struct sendpacket_s {
     uint32_t if_flags;
     uint32_t is_vale;
     int netmap_version;
-    int tx_timeouts;
     uint16_t first_tx_ring, last_tx_ring, cur_tx_ring;
 #ifdef linux
     uint32_t data;
@@ -142,7 +138,7 @@ struct sendpacket_s {
 #ifdef HAVE_PF_PACKET
     struct sockaddr_ll sa;
 #ifdef HAVE_TX_RING
-    txring_t * tx_ring;
+    txring_t *tx_ring;
 #endif
 #endif
     bool abort;
@@ -159,7 +155,3 @@ struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 int sendpacket_get_dlt(sendpacket_t *);
 const char *sendpacket_get_method(sendpacket_t *);
 void sendpacket_abort(sendpacket_t *);
-
-#endif /* _SENDPACKET_H_ */
-
-
