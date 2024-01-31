@@ -326,7 +326,6 @@ again:
         }
     }
 
-
     /* do we need to spoof the src/dst IP address in IPv4 or ARP? */
     if (tcpedit->seed) {
         /* IPv4 Packets */
@@ -356,12 +355,20 @@ again:
         }
     }
 
-    /* ensure IP header length is correct */
-    if (ip_hdr != NULL) {
-        needtorecalc |= fix_ipv4_length(*pkthdr, ip_hdr, l2len);
-            needtorecalc = 1;
-    } else if (ip6_hdr != NULL) {
-        needtorecalc |= fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
+    /* fixhdrlen option ensure IP header length is correct */
+    /* do we need to fix checksums? -- must always do this last! */
+    if (tcpedit->fixhdrlen) {
+        int changed = 0;
+        if (ip_hdr != NULL) {
+            changed = fix_ipv4_length(*pkthdr, ip_hdr, l2len);
+        } else if (ip6_hdr != NULL) {
+            changed |= fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
+        }
+        /* did the packet change? then needtorecalc checksum */
+        if (changed > 0) {
+            needtorecalc += changed;
+            // needtorecalc = 1;
+        }
     }
 
     /* do we need to fix checksums? -- must always do this last! */

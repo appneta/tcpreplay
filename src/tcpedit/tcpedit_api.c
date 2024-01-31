@@ -141,6 +141,17 @@ tcpedit_set_fixcsum(tcpedit_t *tcpedit, bool value)
 }
 
 /**
+ * \brief should we fix(?) header length?
+ */
+int
+tcpedit_set_fixhdrlen(tcpedit_t *tcpedit, bool value)
+{
+    assert(tcpedit);
+    tcpedit->fixhdrlen = value;
+    return TCPEDIT_OK;
+}
+
+/**
  * \brief should we remove the EFCS from the frame?
  */
 int 

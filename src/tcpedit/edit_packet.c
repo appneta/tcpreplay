@@ -371,13 +371,17 @@ int fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr,
     int ip_len = (int)ntohs(ip_hdr->ip_len);
     int ip_len_want = (int)(pkthdr->len - l2len);
 
-    if (pkthdr->caplen < l2len + sizeof(*ip_hdr))
+    if (pkthdr->caplen < l2len + sizeof(*ip_hdr)) {
+        ip_hdr->ip_len = htons(ip_len_want);
         return -1;
+    }
 
     if ((htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0 &&
         ip_len != ip_len_want) {
+// here is problem?
         ip_hdr->ip_len = htons(ip_len_want);
         return 1;
+// return 0;
     }
 
     return 0;
@@ -389,8 +393,9 @@ int fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr,
     int ip_len = ntohs((uint16_t)ip6_hdr->ip_len);
     int ip_len_want = (int)(pkthdr->len - l2len - sizeof(*ip6_hdr));
 
-    if (pkthdr->caplen < l2len + sizeof(*ip6_hdr))
+    if (pkthdr->caplen < l2len + sizeof(*ip6_hdr)) {
         return -1;
+    }
 
     if (ip_len != ip_len_want) {
         ip6_hdr->ip_len = htons((uint16_t)ip_len_want);
