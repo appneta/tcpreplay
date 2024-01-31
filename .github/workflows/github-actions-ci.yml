@@ -1,0 +1,32 @@
+name: GitHub Actions Tests
+run-name: ${{ github.actor }} is running tests using GitHub Actions
+on: [push]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
+      - name: List interfaces
+        run: ip a
+      - name: Install prereqs
+        run: sudo apt -y install autogen libpcap-dev
+      - name: Create configure script
+        run: ./autogen.sh
+      - name: configure
+        run: ./configure --with-testnic=eth0 --disable-local-libopts
+      - name: make
+        run: make
+      - name: make dist
+        run: make dist
+      - name: make dist-xz
+        run: make dist-xz
+      - name: List files in the repository
+        run: ls ${{ github.workspace }}
+      - name: tests
+        run: sudo make test
+      - run: echo "This test's status is ${{ job.status }}."

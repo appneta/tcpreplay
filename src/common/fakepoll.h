@@ -6,7 +6,7 @@
  * On systems where 'poll' doesn't exist, fake it with 'select'.
  *
  * Copyright (c) 2001-2003, Nick Mathewson <nickm@freehaven.net>
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -22,7 +22,7 @@
  *   * Neither the names of the copyright owners nor the names of its
  *   contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,13 +36,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#pragma once
+
 /* don't warn on OS X that poll is emulated */
-#define POLL_NO_WARN 
+#define POLL_NO_WARN
 #define SYS_POLL_NO_WARN
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
-#define  __FAKEPOLL_H
+#define __FAKEPOLL_H
 #elif HAVE_SYS_POLL_H
 #include <sys/poll.h>
 #define __FAKEPOLL_H
@@ -63,11 +65,11 @@ struct pollfd {
     short revents;
 };
 
-#define POLLIN   0x0001
-#define POLLPRI  0x0002
-#define POLLOUT  0x0004
-#define POLLERR  0x0008
-#define POLLHUP  0x0010
+#define POLLIN 0x0001
+#define POLLPRI 0x0002
+#define POLLOUT 0x0004
+#define POLLERR 0x0008
+#define POLLHUP 0x0010
 #define POLLNVAL 0x0020
 
 int poll(struct pollfd *ufds, unsigned int nfds, int timeout);

@@ -22,7 +22,6 @@
 #include "defines.h"
 #include "common.h"
 
-#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,12 +29,10 @@
 #ifdef HAVE_FTS_H
 #include <fts.h>
 #endif
-#include <unistd.h>
 #include <errno.h>
 
 #include "tcpreplay.h"
 #include "tcpreplay_api.h"
-#include "timestamp_trace.h"
 
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
@@ -47,7 +44,6 @@ tcpedit_t *tcpedit;
 #endif
 
 #include "send_packets.h"
-#include "replay.h"
 #include "signal_handler.h"
 
 #ifdef DEBUG
@@ -56,22 +52,18 @@ int debug = 0;
 
 tcpreplay_t *ctx;
 
-static void flow_stats(const tcpreplay_t *ctx);
+static void flow_stats(const tcpreplay_t *tcpr_ctx);
 
 int
 main(int argc, char *argv[])
 {
-    int i, optct = 0;
+    int i, optct;
     int rcode;
 
     fflush(NULL);
 
     ctx = tcpreplay_init();
-#ifdef TCPREPLAY
     optct = optionProcess(&tcpreplayOptions, argc, argv);
-#elif defined TCPREPLAY_EDIT
-    optct = optionProcess(&tcpreplay_editOptions, argc, argv);
-#endif
     argc -= optct;
     argv += optct;
 
@@ -222,49 +214,52 @@ main(int argc, char *argv[])
 /**
  * Print various flow statistics
  */
-static void flow_stats(const tcpreplay_t *ctx)
+static void flow_stats(const tcpreplay_t *tcpr_ctx)
 {
     struct timeval diff;
     COUNTER diff_us;
-    const tcpreplay_stats_t *stats = &ctx->stats;
-    const tcpreplay_opt_t *options = ctx->options;
+    const tcpreplay_stats_t *stats = &tcpr_ctx->stats;
+    const tcpreplay_opt_t *options = tcpr_ctx->options;
     COUNTER flows_total = stats->flows;
     COUNTER flows_unique = stats->flows_unique;
     COUNTER flows_expired = stats->flows_expired;
-    COUNTER flow_packets;
-    COUNTER flow_non_flow_packets;
+    COUNTER flow_packets = stats->flow_packets;
+    COUNTER flow_non_flow_packets = stats->flow_non_flow_packets;
     COUNTER flows_sec = 0;
     u_int32_t flows_sec_100ths = 0;
 
     timersub(&stats->end_time, &stats->start_time, &diff);
     diff_us = TIMEVAL_TO_MICROSEC(&diff);
 
-    if (!flows_total || !ctx->iteration)
+    if (!flows_total || !tcpr_ctx->iteration)
         return;
 
     /*
-     * When packets are read into cache,  flows
+     * When packets are read into cache, flows
      * are only counted in first iteration
      * If flows are unique from one loop iteration
      * to the next then multiply by the number of
      * successful iterations.
      */
-    if (options->preload_pcap) {
-        if (ctx->options->unique_ip) {
-            flows_total *= ctx->last_unique_iteration;
-            flows_unique *= ctx->last_unique_iteration;
-            flows_expired *= ctx->last_unique_iteration;
-#ifdef TCPREPLAY_EDIT
-        } else if (tcpedit->seed) {
-            flows_total *= ctx->iteration;
-            flows_unique *= ctx->iteration;
-            flows_expired *= ctx->iteration;
-#endif
-        }
+    if (options->preload_pcap && tcpr_ctx->last_unique_iteration) {
+        flows_total *= tcpr_ctx->last_unique_iteration;
+        flows_unique *= tcpr_ctx->last_unique_iteration;
+        flows_expired *= tcpr_ctx->last_unique_iteration;
+        flow_packets *= tcpr_ctx->last_unique_iteration;
+        flow_non_flow_packets *= tcpr_ctx->last_unique_iteration;
+    } else {
+        /* adjust for --unique-ip-loops */
+        flow_packets = (flow_packets * (tcpr_ctx->last_unique_iteration ?: tcpr_ctx->iteration)) / tcpr_ctx->iteration;
     }
 
-    flow_packets  = stats->flow_packets * ctx->iteration;
-    flow_non_flow_packets = stats->flow_non_flow_packets * ctx->iteration;
+#ifdef TCPREPLAY_EDIT
+    if (tcpedit->seed) {
+        flow_non_flow_packets *= tcpr_ctx->iteration;
+        flows_total *= tcpr_ctx->iteration;
+        flows_unique *= tcpr_ctx->iteration;
+        flows_expired *= tcpr_ctx->iteration;
+    }
+#endif
 
     if (diff_us) {
         COUNTER flows_sec_X100;
@@ -274,12 +269,12 @@ static void flow_stats(const tcpreplay_t *ctx)
         flows_sec_100ths = flows_sec_X100 % 100;
     }
 
-    if (ctx->options->flow_expiry)
-        printf("Flows: " COUNTER_SPEC " flows, " COUNTER_SPEC " unique, "COUNTER_SPEC " expired, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
+    if (tcpr_ctx->options->flow_expiry)
+        printf("Flows: " COUNTER_SPEC " flows, " COUNTER_SPEC " unique, "COUNTER_SPEC " expired, %llu.%02u fps, " COUNTER_SPEC " unique flow packets, " COUNTER_SPEC " unique non-flow packets\n",
                 flows_total, flows_unique, flows_expired, flows_sec, flows_sec_100ths, flow_packets,
                 flow_non_flow_packets);
     else
-        printf("Flows: " COUNTER_SPEC " flows, %llu.%02u fps, " COUNTER_SPEC " flow packets, " COUNTER_SPEC " non-flow\n",
+        printf("Flows: " COUNTER_SPEC " flows, %llu.%02u fps, " COUNTER_SPEC " unique flow packets, " COUNTER_SPEC " unique non-flow packets\n",
                 flows_total, flows_sec, flows_sec_100ths, flow_packets,
                 flow_non_flow_packets);
 }

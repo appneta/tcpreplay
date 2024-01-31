@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DLT_%{plugin}_API_H_
-#define _DLT_%{plugin}_API_H_
+#pragma once
 
 #include "tcpedit_types.h"
 #include "plugins_types.h"
@@ -33,7 +32,5 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 

@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -22,21 +22,15 @@
  * This file contains routines to manipulate port maps, in which
  * one port number is mapped to another.
  */
+#include "portmap.h"
 #include "config.h"
-#include "defines.h"
-#include "common.h"
-
+#include "incremental_checksum.h"
+#include "tcpedit.h"
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-
-#include "tcpreplay.h"
-#include "tcpedit.h"
-#include "portmap.h"
-#include "incremental_checksum.h"
 
 /**
- * mallocs a new tcpedit_portmap_t structure 
+ * mallocs a new tcpedit_portmap_t structure
  */
 tcpedit_portmap_t *
 new_portmap()
@@ -52,10 +46,10 @@ new_portmap()
  *
  * We support the following formats:
  * <port>:<port>         - map a single port to a new port
- * <port>-<port>:<port>  - map a range of ports to a new port 
- * <port>+<port>+...:<port> - map a list of ports to a single ports 
+ * <port>-<port>:<port>  - map a range of ports to a new port
+ * <port>+<port>+...:<port> - map a list of ports to a single ports
  *
- * In the case of port ranges or port lists, we actually return a 
+ * In the case of port ranges or port lists, we actually return a
  * chain of tcpedit_portmap_t's
  */
 static tcpedit_portmap_t *
@@ -96,7 +90,7 @@ ports2PORT(char *ports)
         return NULL;
 
     /*
-     * put the new portmap info into the new node 
+     * put the new portmap info into the new node
      * while we convert to network-byte order, b/c its better
      * to do it once now, rather then each time we have to do a lookup
      */
@@ -161,9 +155,9 @@ ports2PORT(char *ports)
     /* this is just the old port:port format */
     else {
         /*
-        * convert the strings to longs: if badchar points to anything
-        * after, then it was a bad string
-        */
+         * convert the strings to longs: if badchar points to anything
+         * after, then it was a bad string
+         */
         from_l = strtol(from_s, &badchar, 10);
         if (strlen(badchar) != 0 || from_l > 65535 || from_l < 0) {
             safe_free(portmap);
@@ -179,11 +173,11 @@ ports2PORT(char *ports)
 
 /**
  * Processes a string (ourstr) containing the portmap ("2000:4000" for
- * example) and places the data in **portmapdata and finally returns 1 for 
+ * example) and places the data in **portmapdata and finally returns 1 for
  * success, 0 for fail.
  */
 int
-parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
+parse_portmap(tcpedit_portmap_t **portmap, const char *ourstr)
 {
     tcpedit_portmap_t *portmap_ptr;
     char *substr, *ourstrcpy, *token = NULL;
@@ -194,7 +188,7 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
     /* first iteration of input */
     substr = strtok_r(ourstrcpy, ",", &token);
 
-    if ((*portmap = ports2PORT(substr)) == NULL) {
+    if (substr == NULL || (*portmap = ports2PORT(substr)) == NULL) {
         safe_free(ourstrcpy);
         return 0;
     }
@@ -223,14 +217,12 @@ parse_portmap(tcpedit_portmap_t ** portmap, const char *ourstr)
     return 1;
 }
 
-
 /**
  * Free's all the memory associated with the given portmap chain
  */
 void
-free_portmap(tcpedit_portmap_t * portmap)
+free_portmap(tcpedit_portmap_t *portmap)
 {
-
     assert(portmap);
 
     /* recursively go down the portmaps */
@@ -239,26 +231,6 @@ free_portmap(tcpedit_portmap_t * portmap)
 
     safe_free(portmap);
 }
-
-
-/**
- * This function takes a pointer to a portmap list and prints each node 
- */
-void
-print_portmap(tcpedit_portmap_t *portmap_data)
-{
-    tcpedit_portmap_t *portmap_ptr;
-
-    assert(portmap_data);
-    portmap_ptr = portmap_data;
-    while (portmap_ptr != NULL) {
-        printf("from: %ld  to: %ld\n", portmap_ptr->from, portmap_ptr->to);
-        portmap_ptr = portmap_ptr->next;
-    }
-
-    printf("\n");
-}
-
 
 /**
  * This function takes a portmap and a port, and returns the mapped port,
@@ -283,7 +255,7 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
         portmap_ptr = portmap_ptr->next;
     }
 
-    return(newport);
+    return (newport);
 }
 
 /**
@@ -292,8 +264,7 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
  */
 
 static int
-rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4,
-        const int l4len)
+rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4, const int l4len)
 {
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
@@ -306,8 +277,7 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4,
 
     if (protocol == IPPROTO_TCP) {
         if (l4len < (int)sizeof(tcp_hdr_t)) {
-            tcpedit_setwarn(tcpedit, "caplen to small to set TCP port: l4 len=%d",
-                    l4len);
+            tcpedit_setwarn(tcpedit, "caplen to small to set TCP port: l4 len=%d", l4len);
             return TCPEDIT_WARN;
         }
 
@@ -328,8 +298,7 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4,
         }
     } else if (protocol == IPPROTO_UDP) {
         if (l4len < (int)sizeof(udp_hdr_t)) {
-            tcpedit_setwarn(tcpedit, "caplen to small to set UDP port: l4 len=%d",
-                    l4len);
+            tcpedit_setwarn(tcpedit, "caplen to small to set UDP port: l4 len=%d", l4len);
             return TCPEDIT_WARN;
         }
 
@@ -360,23 +329,20 @@ rewrite_ports(tcpedit_t *tcpedit, u_char protocol, u_char *layer4,
 }
 
 int
-rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int l3len)
+rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, int l3len)
 {
     assert(tcpedit);
     u_char *l4;
 
     if (*ip_hdr == NULL || ip_hdr == NULL) {
-        tcpedit_seterr(tcpedit, "rewrite_ipv4_ports: NULL IP header: l3 len=%d",
-                l3len);
+        tcpedit_seterr(tcpedit, "rewrite_ipv4_ports: NULL IP header: l3 len=%d", l3len);
         return TCPEDIT_ERROR;
     } else if ((*ip_hdr)->ip_p == IPPROTO_TCP || (*ip_hdr)->ip_p == IPPROTO_UDP) {
-        l4 = get_layer4_v4(*ip_hdr, l3len);
+        l4 = get_layer4_v4(*ip_hdr, (u_char *)ip_hdr + l3len);
         if (l4)
-            return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4,
-                    l3len - (l4 - (u_char*)*ip_hdr));
+            return rewrite_ports(tcpedit, (*ip_hdr)->ip_p, l4, l3len - (l4 - (u_char *)*ip_hdr));
 
-        tcpedit_setwarn(tcpedit, "Unable to rewrite ports on IP header: l3 len=%d",
-                l3len);
+        tcpedit_setwarn(tcpedit, "Unable to rewrite ports on IP header: l3 len=%d", l3len);
         return TCPEDIT_WARN;
     }
 
@@ -384,23 +350,20 @@ rewrite_ipv4_ports(tcpedit_t *tcpedit, ipv4_hdr_t **ip_hdr, const int l3len)
 }
 
 int
-rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr, const int l3len)
+rewrite_ipv6_ports(tcpedit_t *tcpedit, ipv6_hdr_t **ip6_hdr, int l3len)
 {
     assert(tcpedit);
     u_char *l4;
 
     if (*ip6_hdr == NULL || ip6_hdr == NULL) {
-        tcpedit_seterr(tcpedit, "rewrite_ipv6_ports: NULL IPv6 header: l3 len=%d",
-                l3len);
+        tcpedit_seterr(tcpedit, "rewrite_ipv6_ports: NULL IPv6 header: l3 len=%d", l3len);
         return TCPEDIT_ERROR;
     } else if ((*ip6_hdr)->ip_nh == IPPROTO_TCP || (*ip6_hdr)->ip_nh == IPPROTO_UDP) {
-        l4 = get_layer4_v6(*ip6_hdr, l3len);
+        l4 = get_layer4_v6(*ip6_hdr, (u_char *)ip6_hdr + l3len);
         if (l4)
-            return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4,
-                    l3len - (l4 - (u_char*)*ip6_hdr));
+            return rewrite_ports(tcpedit, (*ip6_hdr)->ip_nh, l4, l3len - (l4 - (u_char *)*ip6_hdr));
 
-        tcpedit_setwarn(tcpedit, "Unable to rewrite ports on IPv6 header: l3 len=%d",
-                l3len);
+        tcpedit_setwarn(tcpedit, "Unable to rewrite ports on IPv6 header: l3 len=%d", l3len);
         return TCPEDIT_WARN;
     }
 

@@ -1,24 +1,23 @@
 #  tcpreplay - Replay network traffic stored in pcap files
 #  preset/initialization file
-#  Mon Jan 10 15:19:55 2005
 #
 [TCPREPLAY]
-cachefile           test.auto_bridge
+cachefile           @srcdir@/test.auto_bridge
 intf1               @nic1@
 intf2               @nic2@
 topspeed
 
 [TCPREWRITE]
-infile      test.pcap
-outfile     test.rewrite_config1
-cachefile   test.auto_bridge
+infile           @srcdir@/test.pcap
+outfile          test.rewrite_config1
+cachefile        @srcdir@/test.auto_bridge
 enet-vlan        add
 enet-vlan-tag    45
 enet-vlan-cfi    1
 enet-vlan-pri    5
 
 [TCPPREP]
-pcap        test.pcap
+pcap        @srcdir@/test.pcap
 auto        bridge
 minmask     31
 maxmask     16

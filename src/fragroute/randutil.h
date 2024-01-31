@@ -6,9 +6,6 @@
  * $Id$
  */
 
-#ifndef RANDUTIL_H
-#define RANDUTIL_H
+#pragma once
 
-void         rand_strset(rand_t *r, void *buf, size_t len);
-
-#endif /* RANDUTIL_H */
+void rand_strset(rand_t *r, void *buf, size_t len);

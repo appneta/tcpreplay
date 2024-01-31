@@ -12,7 +12,7 @@
 /*
  *  This file is part of AutoOpts, a companion to AutoGen.
  *  AutoOpts is free software.
- *  AutoOpts is Copyright (C) 1992-2016 by Bruce Korb - all rights reserved
+ *  AutoOpts is Copyright (C) 1992-2018 by Bruce Korb - all rights reserved
  *
  *  AutoOpts is available under any one of two licenses.  The license
  *  in use must be one of these two and the choice is under the control
@@ -34,7 +34,7 @@
 /*
  *  optionFixupSavedOpts  Really, it just wipes out option state for
  *  options that are troublesome to copy.  viz., stacked strings and
- *  hierarchically valued option args.  We do duplicate string args that
+ *  hierarcicaly valued option args.  We do duplicate string args that
  *  have been marked as allocated though.
  */
 static void

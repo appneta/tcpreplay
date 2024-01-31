@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,17 +18,13 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "en10mb.h"
+#include "../ethernet.h"
+#include "dlt_utils.h"
+#include "tcpedit.h"
+#include "tcpedit_stub.h"
 #include <stdlib.h>
 #include <string.h>
-
-#include "tcpedit.h"
-#include "common.h"
-#include "tcpr.h"
-#include "dlt_utils.h"
-#include "tcpedit_stub.h"
-#include "../ethernet.h"
-#include "en10mb.h"
-
 
 static char dlt_name[] = "en10mb";
 static char dlt_prefix[] = "enet";
@@ -45,7 +41,7 @@ static uint16_t dlt_value = DLT_EN10MB;
  * - Add the plugin to the context's plugin chain
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_en10mb_register(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -64,8 +60,8 @@ dlt_en10mb_register(tcpeditdlt_t *ctx)
     /* set the prefix name of our plugin.  This is also used as the prefix for our options */
     plugin->name = safe_strdup(dlt_prefix);
 
-    /* 
-     * Point to our functions, note, you need a function for EVERY method.  
+    /*
+     * Point to our functions, note, you need a function for EVERY method.
      * Even if it is only an empty stub returning success.
      */
     plugin->plugin_init = dlt_en10mb_init;
@@ -79,36 +75,34 @@ dlt_en10mb_register(tcpeditdlt_t *ctx)
     plugin->plugin_get_layer3 = dlt_en10mb_get_layer3;
     plugin->plugin_merge_layer3 = dlt_en10mb_merge_layer3;
     plugin->plugin_get_mac = dlt_en10mb_get_mac;
-    
+
     /* add it to the available plugin list */
     return tcpedit_dlt_addplugin(ctx, plugin);
 }
 
- 
 /*
  * Initializer function.  This function is called only once, if and only if
- * this plugin will be utilized.  Remember, if you need to keep track of any state, 
+ * this plugin will be utilized.  Remember, if you need to keep track of any state,
  * store it in your plugin->config, not a global!
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_en10mb_init(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
     en10mb_config_t *config;
     assert(ctx);
-    
+
     /* vlan tags need an additional 4 bytes */
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
         tcpedit_seterr(ctx->tcpedit, "%s", "Unable to initialize unregistered plugin en10mb");
         return TCPEDIT_ERROR;
     }
-    
+
     if (ctx->decoded_extra_size > 0) {
         if (ctx->decoded_extra_size < sizeof(en10mb_extra_t)) {
             ctx->decoded_extra_size = sizeof(en10mb_extra_t);
-            ctx->decoded_extra = safe_realloc(ctx->decoded_extra,
-                                              ctx->decoded_extra_size);
+            ctx->decoded_extra = safe_realloc(ctx->decoded_extra, ctx->decoded_extra_size);
         }
     } else {
         ctx->decoded_extra_size = sizeof(en10mb_extra_t);
@@ -118,15 +112,15 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
     plugin->config_size = sizeof(en10mb_config_t);
     plugin->config = safe_malloc(plugin->config_size);
     config = (en10mb_config_t *)plugin->config;
-    
+
     /* init vlan user values to -1 to indicate not set */
     config->vlan_tag = 65535;
     config->vlan_pri = 255;
     config->vlan_cfi = 255;
-    
+
     /* VLAN protocol = 802.1q */
     config->vlan_proto = ETHERTYPE_VLAN;
-    
+
     return TCPEDIT_OK; /* success */
 }
 
@@ -135,7 +129,7 @@ dlt_en10mb_init(tcpeditdlt_t *ctx)
  * Unless you allocated some memory in dlt_en10mb_init(), this is just an stub.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -143,15 +137,14 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
     assert(ctx);
 
     if ((plugin = tcpedit_dlt_getplugin(ctx, dlt_value)) == NULL) {
-        tcpedit_seterr(ctx->tcpedit, "Unable to cleanup unregistered plugin %s",
-                       dlt_name);
+        tcpedit_seterr(ctx->tcpedit, "Unable to cleanup unregistered plugin %s", dlt_name);
         return TCPEDIT_ERROR;
     }
 
     safe_free(plugin->name);
     plugin->name = NULL;
     if (plugin->config != NULL) {
-        en10mb_config_t *config = (en10mb_config_t*)plugin->config;
+        en10mb_config_t *config = (en10mb_config_t *)plugin->config;
         safe_free(config->subs.entries);
         safe_free(plugin->config);
         plugin->config = NULL;
@@ -164,7 +157,7 @@ dlt_en10mb_cleanup(tcpeditdlt_t *ctx)
 int
 dlt_en10mb_parse_subsmac_entry(const char *raw, en10mb_sub_entry_t *entry)
 {
-    char  *candidate = safe_strdup(raw);
+    char *candidate = safe_strdup(raw);
     int parse_result = dualmac2hex(candidate, entry->target, entry->rewrite, SUBSMAC_ENTRY_LEN);
 
     free(candidate);
@@ -177,9 +170,7 @@ dlt_en10mb_realloc_merge(en10mb_sub_conf_t config, en10mb_sub_entry_t *new_entri
 {
     int i;
 
-    config.entries = safe_realloc(config.entries,
-                                  (config.count + entries_count)
-                                  * sizeof(en10mb_sub_entry_t));
+    config.entries = safe_realloc(config.entries, (config.count + entries_count) * sizeof(en10mb_sub_entry_t));
 
     for (i = 0; i < entries_count; i++) {
         config.entries[config.count + i] = new_entries[i];
@@ -191,15 +182,14 @@ dlt_en10mb_realloc_merge(en10mb_sub_conf_t config, en10mb_sub_entry_t *new_entri
 int
 dlt_en10mb_parse_subsmac(tcpeditdlt_t *ctx, en10mb_config_t *config, const char *input)
 {
-    int input_len = strlen(input);
-
-    int possible_entries_number = (input_len / (SUBSMAC_ENTRY_LEN + 1)) + 1;
-    int entry = 0;
+    size_t input_len = strlen(input);
+    size_t possible_entries_number = (input_len / (SUBSMAC_ENTRY_LEN + 1)) + 1;
+    int entry;
 
     en10mb_sub_entry_t *entries = safe_malloc(possible_entries_number * sizeof(en10mb_sub_entry_t));
 
     for (entry = 0; entry < possible_entries_number; entry++) {
-        const int read_offset = entry + entry * SUBSMAC_ENTRY_LEN;
+        const size_t read_offset = entry + entry * SUBSMAC_ENTRY_LEN;
 
         if (input_len - read_offset < SUBSMAC_ENTRY_LEN) {
             free(entries);
@@ -207,19 +197,19 @@ dlt_en10mb_parse_subsmac(tcpeditdlt_t *ctx, en10mb_config_t *config, const char 
             return TCPEDIT_ERROR;
         }
 
-        switch(dlt_en10mb_parse_subsmac_entry(input + read_offset, &entries[entry])) {
-            case 3:
-                /* Both read; This is what we want */
-                break;
-            default:
-                free(entries);
-                tcpedit_seterr(ctx->tcpedit, "Unable to parse --enet-subsmac=%s", input);
-                return TCPEDIT_ERROR;
+        switch (dlt_en10mb_parse_subsmac_entry(input + read_offset, &entries[entry])) {
+        case 3:
+            /* Both read; This is what we want */
+            break;
+        default:
+            free(entries);
+            tcpedit_seterr(ctx->tcpedit, "Unable to parse --enet-subsmac=%s", input);
+            return TCPEDIT_ERROR;
         }
     }
 
-    config->subs.entries = dlt_en10mb_realloc_merge(config->subs, entries, possible_entries_number);
-    config->subs.count  += possible_entries_number;
+    config->subs.entries = dlt_en10mb_realloc_merge(config->subs, entries, (int)possible_entries_number);
+    config->subs.count += (int)possible_entries_number;
 
     free(entries);
 
@@ -232,7 +222,7 @@ dlt_en10mb_parse_subsmac(tcpeditdlt_t *ctx, en10mb_config_t *config, const char 
  * bit mask.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
@@ -250,7 +240,7 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
     /* --subsmacs */
     if (HAVE_OPT(ENET_SUBSMAC)) {
         int i, count = STACKCT_OPT(ENET_SUBSMAC);
-        char **list  = (char**) STACKLST_OPT(ENET_SUBSMAC);
+        char **list = (char **)STACKLST_OPT(ENET_SUBSMAC);
         for (i = 0; i < count; i++) {
             int parse_result = dlt_en10mb_parse_subsmac(ctx, config, list[i]);
             if (parse_result == TCPEDIT_ERROR) {
@@ -261,81 +251,81 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 
     /* --mac-seed */
     if (HAVE_OPT(ENET_MAC_SEED)) {
-        int i,j;
+        int i, j;
 
         config->random.set = OPT_VALUE_ENET_MAC_SEED;
 
         for (i = 0; i < 6; i++) {
-          config->random.mask[i] = (u_char)tcpr_random(&config->random.set) % 256;
-          /* only unique numbers */
-          for (j = 0; j < i; j++) {
-            if (config->random.mask[i] == config->random.mask[j]) {
-              i--;
-              break;
+            config->random.mask[i] = (u_char)tcpr_random(&config->random.set) % 256;
+            /* only unique numbers */
+            for (j = 0; j < i; j++) {
+                if (config->random.mask[i] == config->random.mask[j]) {
+                    i--;
+                    break;
+                }
             }
-          }
         }
 
         if (HAVE_OPT(ENET_MAC_SEED_KEEP_BYTES)) {
-          config->random.keep = OPT_VALUE_ENET_MAC_SEED_KEEP_BYTES;
+            config->random.keep = OPT_VALUE_ENET_MAC_SEED_KEEP_BYTES;
         }
     }
 
     /* --dmac */
     if (HAVE_OPT(ENET_DMAC)) {
         int macparse;
-        macparse = dualmac2hex(OPT_ARG(ENET_DMAC), config->intf1_dmac,
-                    config->intf2_dmac, strlen(OPT_ARG(ENET_DMAC)));
+        macparse = dualmac2hex(OPT_ARG(ENET_DMAC),
+                               config->intf1_dmac,
+                               config->intf2_dmac,
+                               (int)strlen(OPT_ARG(ENET_DMAC)));
         switch (macparse) {
-            case 1:
-                config->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
-                break;
-            case 2:
-                config->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
-                break;
-            case 3:
-                config->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
-                config->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
-                break;
-            case 0:
-                /* nothing to do */
-                break;
-            default:
-                tcpedit_seterr(ctx->tcpedit, 
-                        "Unable to parse --enet-dmac=%s", OPT_ARG(ENET_DMAC));
-                return TCPEDIT_ERROR;
-                break;
+        case 1:
+            config->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+            break;
+        case 2:
+            config->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+            break;
+        case 3:
+            config->mac_mask += TCPEDIT_MAC_MASK_DMAC1;
+            config->mac_mask += TCPEDIT_MAC_MASK_DMAC2;
+            break;
+        case 0:
+            /* nothing to do */
+            break;
+        default:
+            tcpedit_seterr(ctx->tcpedit, "Unable to parse --enet-dmac=%s", OPT_ARG(ENET_DMAC));
+            return TCPEDIT_ERROR;
         }
 
         plugin->requires -= PLUGIN_MASK_DSTADDR;
-
     }
 
     /* --smac */
     if (HAVE_OPT(ENET_SMAC)) {
         int macparse;
-        macparse = dualmac2hex(OPT_ARG(ENET_SMAC), config->intf1_smac,
-                    config->intf2_smac, strlen(OPT_ARG(ENET_SMAC)));
+        macparse = dualmac2hex(OPT_ARG(ENET_SMAC),
+                               config->intf1_smac,
+                               config->intf2_smac,
+                               (int)strlen(OPT_ARG(ENET_SMAC)));
         switch (macparse) {
-            case 1:
-                config->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
-                break;
-            case 2:
-                config->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
-                break;
-            case 3:
-                config->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
-                config->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
-                break;
-            case 0:
-                /* nothing to do */
-                break;
-            default:
-                tcpedit_seterr(ctx->tcpedit,
-                        "Unable to parse --enet-smac=%s", OPT_ARG(ENET_SMAC));
-                return TCPEDIT_ERROR;
-                break;
+        case 1:
+            config->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+            break;
+        case 2:
+            config->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+            break;
+        case 3:
+            config->mac_mask += TCPEDIT_MAC_MASK_SMAC1;
+            config->mac_mask += TCPEDIT_MAC_MASK_SMAC2;
+            break;
+        case 0:
+            /* nothing to do */
+            break;
+        default:
+            tcpedit_seterr(ctx->tcpedit, "Unable to parse --enet-smac=%s", OPT_ARG(ENET_SMAC));
+            return TCPEDIT_ERROR;
         }
+
         plugin->requires -= PLUGIN_MASK_SRCADDR;
     }
 
@@ -354,10 +344,11 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 
         if (config->vlan != TCPEDIT_VLAN_OFF) {
             if (config->vlan == TCPEDIT_VLAN_ADD) {
-                if (! HAVE_OPT(ENET_VLAN_TAG)) {
-                    tcpedit_seterr(ctx->tcpedit, "%s",
-                            "Must specify a new 802.1 VLAN tag if vlan "
-                            "mode is add");
+                if (!HAVE_OPT(ENET_VLAN_TAG)) {
+                    tcpedit_seterr(ctx->tcpedit,
+                                   "%s",
+                                   "Must specify a new 802.1 VLAN tag if vlan "
+                                   "mode is add");
                     return TCPEDIT_ERROR;
                 }
 
@@ -366,14 +357,13 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
                  */
                 config->vlan_tag = OPT_VALUE_ENET_VLAN_TAG;
 
-                dbgx(1, "We will %s 802.1q headers", 
-                    config->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
+                dbgx(1, "We will %s 802.1q headers", config->vlan == TCPEDIT_VLAN_DEL ? "delete" : "add/modify");
 
-            if (HAVE_OPT(ENET_VLAN_PRI))
-                config->vlan_pri = OPT_VALUE_ENET_VLAN_PRI;
+                if (HAVE_OPT(ENET_VLAN_PRI))
+                    config->vlan_pri = OPT_VALUE_ENET_VLAN_PRI;
 
-            if (HAVE_OPT(ENET_VLAN_CFI))
-                config->vlan_cfi = OPT_VALUE_ENET_VLAN_CFI;
+                if (HAVE_OPT(ENET_VLAN_CFI))
+                    config->vlan_cfi = OPT_VALUE_ENET_VLAN_CFI;
             }
 
             if (HAVE_OPT(ENET_VLAN_PROTO)) {
@@ -382,14 +372,12 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
                 } else if (strcasecmp(OPT_ARG(ENET_VLAN_PROTO), "802.1ad") == 0) {
                     config->vlan_proto = ETHERTYPE_Q_IN_Q;
                 } else {
-                    tcpedit_seterr(ctx->tcpedit, "VLAN protocol \"%s\" is invalid",
-                                   OPT_ARG(ENET_VLAN_PROTO));
+                    tcpedit_seterr(ctx->tcpedit, "VLAN protocol \"%s\" is invalid", OPT_ARG(ENET_VLAN_PROTO));
                     return TCPEDIT_ERROR;
                 }
             }
         }
     }
-
 
     return TCPEDIT_OK; /* success */
 }
@@ -398,8 +386,8 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
  * Function to decode the layer 2 header in the packet
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
-dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     struct tcpr_ethernet_hdr *eth_hdr;
     uint32_t pkt_len = pktlen;
@@ -409,31 +397,24 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     uint32_t l2offset;
     uint32_t l2len;
     int res;
-    
+
     assert(ctx);
     assert(packet);
 
     extra = (en10mb_extra_t *)ctx->decoded_extra;
     if (ctx->decoded_extra_size < sizeof(*extra)) {
-        tcpedit_seterr(ctx->tcpedit, "Decode extra size too short! %d < %u",
-                       ctx->decoded_extra_size, sizeof(*extra));
+        tcpedit_seterr(ctx->tcpedit, "Decode extra size too short! %d < %u", ctx->decoded_extra_size, sizeof(*extra));
         return TCPEDIT_ERROR;
     }
 
-    res = get_l2len_protocol(packet,
-                             pkt_len,
-                             dlt_value,
-                             &protcol,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(packet, pkt_len, dlt_value, &protcol, &l2len, &l2offset, &vlan_offset);
     if (res == -1)
         return TCPEDIT_ERROR;
 
     if (pkt_len < TCPR_802_3_H + l2offset)
         return TCPEDIT_ERROR;
 
-    eth_hdr = (struct tcpr_ethernet_hdr*)(packet + l2offset);
+    eth_hdr = (struct tcpr_ethernet_hdr *)(packet + l2offset);
     protcol = ntohs(eth_hdr->ether_type);
     memcpy(&(ctx->dstaddr.ethernet), eth_hdr, ETHER_ADDR_LEN);
     memcpy(&(ctx->srcaddr.ethernet), &(eth_hdr->ether_shost), ETHER_ADDR_LEN);
@@ -442,7 +423,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (vlan_offset != 0) {
         if (vlan_offset == l2offset + sizeof(*eth_hdr)) {
             vlan_hdr_t *vlan_hdr;
-            vlan_hdr = (vlan_hdr_t*)(packet + vlan_offset);
+            vlan_hdr = (vlan_hdr_t *)(packet + vlan_offset);
             if (pkt_len < vlan_offset + sizeof(*vlan_hdr)) {
                 tcpedit_seterr(ctx->tcpedit,
                                "Frame is too short for VLAN headers! %d < %d",
@@ -472,8 +453,8 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     }
 
     ctx->proto = ntohs(protcol);
-    ctx->l2offset = l2offset;
-    ctx->l2len = l2len;
+    ctx->l2offset = (int)l2offset;
+    ctx->l2len = (int)l2len;
 
     return TCPEDIT_OK; /* success */
 }
@@ -482,7 +463,7 @@ dlt_en10mb_decode(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function to encode the layer 2 header back into the packet.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN
  */
-int 
+int
 dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 {
     struct tcpr_802_1q_hdr *vlan_hdr;
@@ -490,16 +471,16 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     tcpeditdlt_plugin_t *plugin;
     en10mb_config_t *config;
     en10mb_extra_t *extra;
-    int newl2len = 0;
-    int oldl2len = 0;
+    uint32_t newl2len = 0;
+    uint32_t oldl2len = 0;
 
     assert(ctx);
     assert(packet);
 
     if (pktlen < TCPR_802_3_H) {
-        tcpedit_seterr(ctx->tcpedit, 
-                "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.", 
-                ctx->tcpedit->runtime.packetnum);
+        tcpedit_seterr(ctx->tcpedit,
+                       "Unable to process packet #" COUNTER_SPEC " since it is less then 14 bytes.",
+                       ctx->tcpedit->runtime.packetnum);
         return TCPEDIT_ERROR;
     }
 
@@ -545,23 +526,27 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     if (pktlen < newl2len || pktlen + newl2len - ctx->l2len > MAXPACKET) {
         tcpedit_seterr(ctx->tcpedit,
-                "Unable to process packet #" COUNTER_SPEC " since its new length is %d bytes.",
-                ctx->tcpedit->runtime.packetnum, newl2len);
+                       "Unable to process packet #" COUNTER_SPEC " since its new length is %d bytes.",
+                       ctx->tcpedit->runtime.packetnum,
+                       newl2len);
         return TCPEDIT_ERROR;
     }
 
     if (pktlen < ctx->l2len) {
         tcpedit_seterr(ctx->tcpedit,
-                "Unable to process packet #" COUNTER_SPEC " since its new length less then %d L2 bytes.",
-                ctx->tcpedit->runtime.packetnum, ctx->l2len);
+                       "Unable to process packet #" COUNTER_SPEC " since its new length less then %d L2 bytes.",
+                       ctx->tcpedit->runtime.packetnum,
+                       ctx->l2len);
         return TCPEDIT_ERROR;
     }
 
     /* Make space for our new L2 header */
     if (newl2len > 0 && newl2len != oldl2len) {
         if (pktlen + (newl2len - oldl2len) > MAXPACKET) {
-            tcpedit_seterr(ctx->tcpedit, "New frame too big, new length %d exceeds %d",
-                    pktlen + (newl2len - ctx->l2len), MAXPACKET);
+            tcpedit_seterr(ctx->tcpedit,
+                           "New frame too big, new length %d exceeds %d",
+                           pktlen + (newl2len - ctx->l2len),
+                           MAXPACKET);
             return TCPEDIT_ERROR;
         }
 
@@ -569,22 +554,21 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     }
 
     /* update the total packet length */
-    pktlen += newl2len - oldl2len;
-    ctx->l2len += newl2len - oldl2len;
-    
+    pktlen += (int)(newl2len - oldl2len);
+    ctx->l2len += (int)(newl2len - oldl2len);
+
     /* set the src & dst address as the first 12 bytes */
     eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
-    
+
     if (dir == TCPR_DIR_C2S) {
         /* copy user supplied SRC MAC if provided or from original packet */
         if (config->mac_mask & TCPEDIT_MAC_MASK_SMAC1) {
-            if ((ctx->addr_type == ETHERNET && 
-                    ((ctx->skip_broadcast && 
-                      is_unicast_ethernet(ctx, ctx->srcaddr.ethernet)) || !ctx->skip_broadcast))
-                || ctx->addr_type != ETHERNET) {
+            if ((ctx->addr_type == ETHERNET &&
+                 ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->srcaddr.ethernet)) || !ctx->skip_broadcast)) ||
+                ctx->addr_type != ETHERNET) {
                 memcpy(eth->ether_shost, config->intf1_smac, ETHER_ADDR_LEN);
             } else {
-                memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);                
+                memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
             }
         } else if (ctx->addr_type == ETHERNET) {
             extra->src_modified = memcmp(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
@@ -594,11 +578,11 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             return TCPEDIT_ERROR;
         }
 
-        /* copy user supplied DMAC MAC if provided or from original packet */        
+        /* copy user supplied DMAC MAC if provided or from original packet */
         if (config->mac_mask & TCPEDIT_MAC_MASK_DMAC1) {
-            if ((ctx->addr_type == ETHERNET && 
-                ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast))
-                || ctx->addr_type != ETHERNET) {
+            if ((ctx->addr_type == ETHERNET &&
+                 ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast)) ||
+                ctx->addr_type != ETHERNET) {
                 memcpy(eth->ether_dhost, config->intf1_dmac, ETHER_ADDR_LEN);
             } else {
                 memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
@@ -608,15 +592,15 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Please provide a destination address");
-            return TCPEDIT_ERROR;            
+            return TCPEDIT_ERROR;
         }
-    
+
     } else if (dir == TCPR_DIR_S2C) {
         /* copy user supplied SRC MAC if provided or from original packet */
         if (config->mac_mask & TCPEDIT_MAC_MASK_SMAC2) {
-            if ((ctx->addr_type == ETHERNET && 
-                ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->srcaddr.ethernet)) || !ctx->skip_broadcast))
-                || ctx->addr_type != ETHERNET) {
+            if ((ctx->addr_type == ETHERNET &&
+                 ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->srcaddr.ethernet)) || !ctx->skip_broadcast)) ||
+                ctx->addr_type != ETHERNET) {
                 memcpy(eth->ether_shost, config->intf2_smac, ETHER_ADDR_LEN);
             } else {
                 memcpy(eth->ether_shost, ctx->srcaddr.ethernet, ETHER_ADDR_LEN);
@@ -630,9 +614,9 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
         /* copy user supplied DMAC MAC if provided or from original packet */
         if (config->mac_mask & TCPEDIT_MAC_MASK_DMAC2) {
-            if ((ctx->addr_type == ETHERNET && 
-                ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast))
-                || ctx->addr_type != ETHERNET) {
+            if ((ctx->addr_type == ETHERNET &&
+                 ((ctx->skip_broadcast && is_unicast_ethernet(ctx, ctx->dstaddr.ethernet)) || !ctx->skip_broadcast)) ||
+                ctx->addr_type != ETHERNET) {
                 memcpy(eth->ether_dhost, config->intf2_dmac, ETHER_ADDR_LEN);
             } else {
                 memcpy(eth->ether_dhost, ctx->dstaddr.ethernet, ETHER_ADDR_LEN);
@@ -644,65 +628,62 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             return TCPEDIT_ERROR;
         }
 
-        
     } else {
         tcpedit_seterr(ctx->tcpedit, "%s", "Encoders only support C2S or C2S!");
         return TCPEDIT_ERROR;
     }
 
     if (config->subs.entries) {
-      int  entry = 0;
-      for (entry = 0 ; entry < config->subs.count; entry++) {
-        en10mb_sub_entry_t *current = &config->subs.entries[entry];
+        int entry = 0;
+        for (entry = 0; entry < config->subs.count; entry++) {
+            en10mb_sub_entry_t *current = &config->subs.entries[entry];
 
-        if (!memcmp(eth->ether_dhost, current->target, ETHER_ADDR_LEN)) {
-          memcpy(eth->ether_dhost, current->rewrite, ETHER_ADDR_LEN);
-        }
+            if (!memcmp(eth->ether_dhost, current->target, ETHER_ADDR_LEN)) {
+                memcpy(eth->ether_dhost, current->rewrite, ETHER_ADDR_LEN);
+            }
 
-        if (!memcmp(eth->ether_shost, current->target, ETHER_ADDR_LEN)) {
-          memcpy(eth->ether_shost, current->rewrite, ETHER_ADDR_LEN);
+            if (!memcmp(eth->ether_shost, current->target, ETHER_ADDR_LEN)) {
+                memcpy(eth->ether_shost, current->rewrite, ETHER_ADDR_LEN);
+            }
         }
-      }
     }
 
     if (config->random.set) {
-      int unicast_src = is_unicast_ethernet(ctx, eth->ether_shost);
-      int unicast_dst = is_unicast_ethernet(ctx, eth->ether_dhost);
+        int unicast_src = is_unicast_ethernet(ctx, eth->ether_shost);
+        int unicast_dst = is_unicast_ethernet(ctx, eth->ether_dhost);
 
-      int i = config->random.keep;
-      for ( ; i < ETHER_ADDR_LEN; i++) {
-        eth->ether_shost[i] = MAC_MASK_APPLY(eth->ether_shost[i], config->random.mask[i], unicast_src);
-        eth->ether_dhost[i] = MAC_MASK_APPLY(eth->ether_dhost[i], config->random.mask[i], unicast_dst);
-      }
+        int i = config->random.keep;
+        for (; i < ETHER_ADDR_LEN; i++) {
+            eth->ether_shost[i] = MAC_MASK_APPLY(eth->ether_shost[i], config->random.mask[i], unicast_src);
+            eth->ether_dhost[i] = MAC_MASK_APPLY(eth->ether_dhost[i], config->random.mask[i], unicast_dst);
+        }
 
-      /* avoid making unicast packets multicast */
-      if (!config->random.keep) {
-        eth->ether_shost[0] &= ~(0x01 * unicast_src);
-        eth->ether_dhost[0] &= ~(0x01 * unicast_dst);
-      }
+        /* avoid making unicast packets multicast */
+        if (!config->random.keep) {
+            eth->ether_shost[0] &= ~(0x01 * unicast_src);
+            eth->ether_dhost[0] &= ~(0x01 * unicast_dst);
+        }
     }
 
-    if (config->vlan == TCPEDIT_VLAN_ADD
-            || (config->vlan == TCPEDIT_VLAN_OFF && extra->vlan)) {
+    if (config->vlan == TCPEDIT_VLAN_ADD || (config->vlan == TCPEDIT_VLAN_OFF && extra->vlan)) {
         vlan_hdr = (struct tcpr_802_1q_hdr *)(packet + extra->vlan_offset);
         if (config->vlan == TCPEDIT_VLAN_ADD) {
             struct tcpr_ethernet_hdr *eth_hdr;
-            eth_hdr = (struct tcpr_ethernet_hdr*)(packet + ctx->l2offset);
+            eth_hdr = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
             eth_hdr->ether_type = htons(config->vlan_proto);
             vlan_hdr->vlan_tpid = htons(ctx->proto_vlan_tag);
         }
 
         /* are we changing VLAN info? */
         if (config->vlan_tag < 65535) {
-            vlan_hdr->vlan_tci =
-                htons((uint16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
+            vlan_hdr->vlan_tci = htons((uint16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
         } else if (extra->vlan) {
             vlan_hdr->vlan_tci = htons(extra->vlan_tag);
         } else {
             tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-tag");
             return TCPEDIT_ERROR;
         }
-        
+
         if (config->vlan_pri < 255) {
             vlan_hdr->vlan_tci += htons((uint16_t)config->vlan_pri << 13);
         } else if (extra->vlan) {
@@ -729,12 +710,11 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     return pktlen;
 }
 
-
 /*
  * Function returns the Layer 3 protocol type of the given packet, or TCPEDIT_ERROR on error
  */
-int 
-dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+int
+dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     uint32_t _U_ vlan_offset;
     uint16_t ether_type;
@@ -744,19 +724,12 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
 
     assert(ctx);
     assert(packet);
-    if (pktlen < (int) sizeof(struct tcpr_ethernet_hdr)) {
-        tcpedit_seterr(ctx->tcpedit, "Ethernet packet length too short: %d",
-                pktlen);
+    if (pktlen < (int)sizeof(struct tcpr_ethernet_hdr)) {
+        tcpedit_seterr(ctx->tcpedit, "Ethernet packet length too short: %d", pktlen);
         return TCPEDIT_ERROR;
     }
 
-    res = get_l2len_protocol(packet,
-                             pktlen,
-                             dlt_value,
-                             &ether_type,
-                             &l2len,
-                             &l2offset,
-                             &vlan_offset);
+    res = get_l2len_protocol(packet, pktlen, dlt_value, &ether_type, &l2len, &l2offset, &vlan_offset);
     if (res == -1)
         return TCPEDIT_ERROR;
 
@@ -767,12 +740,12 @@ dlt_en10mb_proto(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
  * Function returns a pointer to the layer 3 protocol header or NULL on error
  */
 u_char *
-dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
+dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen)
 {
     int l2len;
     assert(ctx);
     assert(packet);
-    
+
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
@@ -785,17 +758,17 @@ dlt_en10mb_get_layer3(tcpeditdlt_t *ctx, u_char *packet, const int pktlen)
  * ip: 32-bit IP address in network order
  * mac: pointer to packet ethernet source or destination address (6 bytes)
  */
-static void dlt_en10mb_ipv4_multicast_mac_update(const uint32_t ip,
-                                                 uint8_t mac[])
+static void
+dlt_en10mb_ipv4_multicast_mac_update(const uint32_t ip, uint8_t mac[])
 {
     /* only modify multicast packets */
     if ((ntohl(ip) & 0xf0000000) != 0xe0000000)
         return;
 
     mac[2] = (ntohl(ip) & 0x7fffff);
-    mac[0] =0x01;
-    mac[1] =0x0;
-    mac[2] =0x5e;
+    mac[0] = 0x01;
+    mac[1] = 0x0;
+    mac[2] = 0x5e;
 }
 
 /*
@@ -803,11 +776,11 @@ static void dlt_en10mb_ipv4_multicast_mac_update(const uint32_t ip,
  * ip6: 128-bit IPv6 address in network order
  * mac: pointer to packet ethernet source or destination address (6 bytes)
  */
-static void dlt_en10mb_ipv6_multicast_mac_update(const struct tcpr_in6_addr *ip6,
-                                                 uint8_t mac[])
+static void
+dlt_en10mb_ipv6_multicast_mac_update(const struct tcpr_in6_addr *ip6, uint8_t mac[])
 {
     /* only modify multicast packets */
-    if (ip6->tcpr_s6_addr[0] == 0xff)
+    if (ip6->tcpr_s6_addr[0] != 0xff)
         return;
 
     mac[0] = 0x33;
@@ -825,11 +798,7 @@ static void dlt_en10mb_ipv6_multicast_mac_update(const struct tcpr_in6_addr *ip6
  * like SPARC
  */
 u_char *
-dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
-                        u_char *packet,
-                        const int pktlen,
-                        u_char *ipv4_data,
-                        u_char *ipv6_data)
+dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen, u_char *ipv4_data, u_char *ipv6_data)
 {
     en10mb_extra_t *extra;
     struct tcpr_ethernet_hdr *eth;
@@ -838,7 +807,7 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
 
     assert(ctx);
     assert(packet);
-    
+
     l2len = dlt_en10mb_l2len(ctx, packet, pktlen);
     if (l2len == -1 || pktlen < l2len)
         return NULL;
@@ -850,26 +819,22 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
     /* modify source/destination MAC if source/destination IP is multicast */
     if (ipv4_data) {
         if ((size_t)pktlen >= sizeof(*eth) + sizeof(struct tcpr_ipv4_hdr)) {
-            struct tcpr_ipv4_hdr *ip_hdr = (struct tcpr_ipv4_hdr*)ipv4_data;
+            struct tcpr_ipv4_hdr *ip_hdr = (struct tcpr_ipv4_hdr *)ipv4_data;
             if (!extra->src_modified)
-                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_src.s_addr,
-                                                     eth->ether_shost);
+                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_src.s_addr, eth->ether_shost);
 
             if (!extra->dst_modified)
-                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_dst.s_addr,
-                                                     eth->ether_dhost);
+                dlt_en10mb_ipv4_multicast_mac_update(ip_hdr->ip_dst.s_addr, eth->ether_dhost);
         }
         return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv4_data, l2len);
     } else if (ipv6_data) {
         if ((size_t)pktlen >= sizeof(*eth) + sizeof(struct tcpr_ipv6_hdr)) {
-            struct tcpr_ipv6_hdr *ip6_hdr = (struct tcpr_ipv6_hdr*)ipv6_data;
+            struct tcpr_ipv6_hdr *ip6_hdr = (struct tcpr_ipv6_hdr *)ipv6_data;
             if (!extra->src_modified)
-                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_src,
-                                                     eth->ether_shost);
+                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_src, eth->ether_shost);
 
             if (!extra->dst_modified)
-                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_dst,
-                                                     eth->ether_dhost);
+                dlt_en10mb_ipv6_multicast_mac_update(&ip6_hdr->ip_dst, eth->ether_dhost);
         }
         return tcpedit_dlt_l3data_merge(ctx, packet, pktlen, ipv6_data, l2len);
     }
@@ -880,9 +845,9 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx,
 /*
  * return a static pointer to the source/destination MAC address
  * return NULL on error/address doesn't exist
- */    
+ */
 u_char *
-dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, const int pktlen)
+dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *packet, int pktlen)
 {
     assert(ctx);
     assert(packet);
@@ -890,37 +855,31 @@ dlt_en10mb_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_char *p
         return NULL;
 
     /* FIXME: return a ptr to the source or dest mac address. */
-    switch(mac) {
+    switch (mac) {
     case SRC_MAC:
         memcpy(ctx->srcmac, &packet[6], ETHER_ADDR_LEN);
-        return(ctx->srcmac);
-        break;
-        
+        return (ctx->srcmac);
     case DST_MAC:
         memcpy(ctx->dstmac, packet, ETHER_ADDR_LEN);
-        return(ctx->dstmac);
-        break;
-        
+        return (ctx->dstmac);
     default:
         errx(1, "Invalid tcpeditdlt_mac_type_t: %d", mac);
     }
-    return(NULL);
 }
 
-/* 
+/*
  * return the length of the L2 header of the current packet
  */
 int
-dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
+dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
     int l2len;
-    
+
     assert(ctx);
     assert(packet);
 
     if (pktlen < (int)sizeof(eth_hdr_t)) {
-        tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than size of Ethernet header",
-                       pktlen);
+        tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than size of Ethernet header", pktlen);
         return TCPEDIT_ERROR;
     }
 
@@ -928,8 +887,7 @@ dlt_en10mb_l2len(tcpeditdlt_t *ctx, const u_char *packet, const int pktlen)
     if (l2len > 0) {
         if (pktlen < l2len) {
             /* can happen if fuzzing is enabled */
-            tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than l2len=%u",
-                    pktlen, l2len);
+            tcpedit_seterr(ctx->tcpedit, "dlt_en10mb_l2len: pktlen=%u is less than l2len=%u", pktlen, l2len);
             return TCPEDIT_ERROR;
         }
 

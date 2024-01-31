@@ -18,8 +18,7 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _FAKEPCAP_H_
-#define _FAKEPCAP_H_
+#pragma once
 
 #include "config.h"
 
@@ -44,5 +43,3 @@ const char *pcap_datalink_val_to_description(int dlt);
 const char *pcap_datalink_val_to_name(int dlt);
 
 #endif
-
-#endif /* end of _FAKEPCAP_H_ */

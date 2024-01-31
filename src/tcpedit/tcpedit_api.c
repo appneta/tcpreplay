@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,15 +18,12 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
-#include <sys/types.h>
-#include <stdlib.h>
-
-#include "config.h"
 #include "defines.h"
-#include "tcpedit.h"
-#include "portmap.h"
+#include "config.h"
 #include "dlt_utils.h"
+#include "portmap.h"
+#include "tcpedit.h"
+#include <sys/types.h>
 
 /**
  * Set output DLT plugin by using it's DLT_<type>.  Note that the user plugin
@@ -106,7 +103,6 @@ tcpedit_set_encoder_dltplugin_byname(tcpedit_t *tcpedit, const char *name)
     return TCPEDIT_OK;
 }
 
-
 /**
  * Set whether we should edit broadcast & multicast IP addresses
  */
@@ -154,7 +150,7 @@ tcpedit_set_fixhdrlen(tcpedit_t *tcpedit, bool value)
 /**
  * \brief should we remove the EFCS from the frame?
  */
-int 
+int
 tcpedit_set_efcs(tcpedit_t *tcpedit, bool value)
 {
     assert(tcpedit);
@@ -163,7 +159,7 @@ tcpedit_set_efcs(tcpedit_t *tcpedit, bool value)
 }
 
 /**
- * \brief set the IPv4 TTL mode 
+ * \brief set the IPv4 TTL mode
  */
 int
 tcpedit_set_ttl_mode(tcpedit_t *tcpedit, tcpedit_ttl_mode value)
@@ -185,7 +181,7 @@ tcpedit_set_ttl_value(tcpedit_t *tcpedit, uint8_t value)
 }
 
 /**
- * \brief set the IPv4 TOS/DiffServ/ECN byte value 
+ * \brief set the IPv4 TOS/DiffServ/ECN byte value
  */
 int
 tcpedit_set_tos(tcpedit_t *tcpedit, uint8_t value)
@@ -196,7 +192,7 @@ tcpedit_set_tos(tcpedit_t *tcpedit, uint8_t value)
 }
 
 /**
- * \brief set the IPv6 Traffic Class byte value 
+ * \brief set the IPv6 Traffic Class byte value
  */
 int
 tcpedit_set_tclass(tcpedit_t *tcpedit, uint8_t value)
@@ -207,13 +203,13 @@ tcpedit_set_tclass(tcpedit_t *tcpedit, uint8_t value)
 }
 
 /**
- * \brief set the IPv6 Flow Label 20bit value 
+ * \brief set the IPv6 Flow Label 20bit value
  */
 int
 tcpedit_set_flowlabel(tcpedit_t *tcpedit, uint32_t value)
 {
     assert(tcpedit);
-    tcpedit->flowlabel = value;
+    tcpedit->flowlabel = (int)value;
     return TCPEDIT_OK;
 }
 
@@ -235,7 +231,7 @@ tcpedit_set_seed(tcpedit_t *tcpedit)
 /**
  * Set the MTU of the frames
  */
-int 
+int
 tcpedit_set_mtu(tcpedit_t *tcpedit, int value)
 {
     assert(tcpedit);
@@ -246,7 +242,8 @@ tcpedit_set_mtu(tcpedit_t *tcpedit, int value)
 /**
  * Enable truncating packets to the MTU length
  */
-int tcpedit_set_mtu_truncate(tcpedit_t *tcpedit, bool value)
+int
+tcpedit_set_mtu_truncate(tcpedit_t *tcpedit, bool value)
 {
     assert(tcpedit);
     tcpedit->mtu_truncate = value;
@@ -264,7 +261,6 @@ tcpedit_set_maxpacket(tcpedit_t *tcpedit, int value)
     return TCPEDIT_OK;
 }
 
-
 /**
  * \brief Set the server to client (primary) CIDR map (Pseudo NAT)
  *
@@ -278,8 +274,8 @@ tcpedit_set_cidrmap_s2c(tcpedit_t *tcpedit, char *value)
 {
     assert(tcpedit);
 
-    tcpedit->rewrite_ip = true;    
-    if (! parse_cidr_map(&tcpedit->cidrmap1, value)) {
+    tcpedit->rewrite_ip = true;
+    if (!parse_cidr_map(&tcpedit->cidrmap1, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse: %s", value);
         return TCPEDIT_ERROR;
     }
@@ -300,7 +296,7 @@ tcpedit_set_cidrmap_c2s(tcpedit_t *tcpedit, char *value)
     assert(tcpedit);
 
     tcpedit->rewrite_ip = true;
-    if (! parse_cidr_map(&tcpedit->cidrmap2, value)) {
+    if (!parse_cidr_map(&tcpedit->cidrmap2, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse: %s", value);
         return TCPEDIT_ERROR;
     }
@@ -308,7 +304,7 @@ tcpedit_set_cidrmap_c2s(tcpedit_t *tcpedit, char *value)
 }
 
 /**
- * Rewrite the Source IP of any packet 
+ * Rewrite the Source IP of any packet
  */
 int
 tcpedit_set_srcip_map(tcpedit_t *tcpedit, char *value)
@@ -316,7 +312,7 @@ tcpedit_set_srcip_map(tcpedit_t *tcpedit, char *value)
     assert(tcpedit);
 
     tcpedit->rewrite_ip = true;
-    if (! parse_cidr_map(&tcpedit->srcipmap, value)) {
+    if (!parse_cidr_map(&tcpedit->srcipmap, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse source ip map: %s", value);
         return TCPEDIT_ERROR;
     }
@@ -324,7 +320,7 @@ tcpedit_set_srcip_map(tcpedit_t *tcpedit, char *value)
 }
 
 /**
- * Rewrite the Destination IP of any packet 
+ * Rewrite the Destination IP of any packet
  */
 int
 tcpedit_set_dstip_map(tcpedit_t *tcpedit, char *value)
@@ -333,7 +329,7 @@ tcpedit_set_dstip_map(tcpedit_t *tcpedit, char *value)
 
     tcpedit->rewrite_ip = true;
 
-    if (! parse_cidr_map(&tcpedit->dstipmap, value)) {
+    if (!parse_cidr_map(&tcpedit->dstipmap, value)) {
         tcpedit_seterr(tcpedit, "Unable to parse destination ip map: %s", value);
         return TCPEDIT_ERROR;
     }
@@ -349,9 +345,8 @@ tcpedit_set_port_map(tcpedit_t *tcpedit, char *value)
 {
     assert(tcpedit);
 
-    if (! parse_portmap(&tcpedit->portmap, value)) {
-        tcpedit_seterr(tcpedit, 
-                "Unable to parse portmap: %s", value);
+    if (!parse_portmap(&tcpedit->portmap, value)) {
+        tcpedit_seterr(tcpedit, "Unable to parse portmap: %s", value);
         return TCPEDIT_ERROR;
     }
     return TCPEDIT_OK;

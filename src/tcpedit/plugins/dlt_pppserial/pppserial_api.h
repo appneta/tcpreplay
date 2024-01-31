@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,12 +18,11 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DLT_pppserial_API_H_
-#define _DLT_pppserial_API_H_
+#pragma once
 
-#include "tcpedit_types.h"
 #include "plugins_types.h"
 #include "pppserial_types.h"
+#include "tcpedit_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +33,3 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-

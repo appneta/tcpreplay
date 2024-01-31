@@ -4,9 +4,9 @@
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
  *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
- *   The Tcpreplay Suite of tools is free software: you can redistribute it 
- *   and/or modify it under the terms of the GNU General Public License as 
- *   published by the Free Software Foundation, either version 3 of the 
+ *   The Tcpreplay Suite of tools is free software: you can redistribute it
+ *   and/or modify it under the terms of the GNU General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
  *   License, or with the authors permission any later version.
  *
  *   The Tcpreplay Suite is distributed in the hope that it will be useful,
@@ -18,26 +18,23 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "parse_args.h"
 #include "config.h"
-#include "defines.h"
-#include "common.h"
+#include "portmap.h"
 #include "tcpedit.h"
 #include "tcpedit_stub.h"
-#include "parse_args.h"
-#include "portmap.h"
-
-#include <string.h>
 #include <stdlib.h>
-
+#include <string.h>
 
 /**
  * returns 0 for success w/o errors
  * returns 1 for success w/ warnings
  * returns -1 for error
  */
-int 
-tcpedit_post_args(tcpedit_t *tcpedit) {
-    int rcode = 0;
+int
+tcpedit_post_args(tcpedit_t *tcpedit)
+{
+    int rcode;
     int i;
     uint32_t seed = 1, rand_num;
 
@@ -46,7 +43,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     /* --pnat */
     if (HAVE_OPT(PNAT)) {
         int ct = STACKCT_OPT(PNAT);
-        char **list = (char**)STACKLST_OPT(PNAT);
+        char **list = (char **)STACKLST_OPT(PNAT);
         int first = 1;
 
         tcpedit->rewrite_ip = true;
@@ -54,29 +51,26 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         do {
             char *p = *list++;
             if (first) {
-                if (! parse_cidr_map(&tcpedit->cidrmap1, p)) {
-                    tcpedit_seterr(tcpedit, 
-                            "Unable to parse first --pnat=%s", p);
+                if (!parse_cidr_map(&tcpedit->cidrmap1, p)) {
+                    tcpedit_seterr(tcpedit, "Unable to parse first --pnat=%s", p);
                     return -1;
                 }
             } else {
-                if (! parse_cidr_map(&tcpedit->cidrmap2, p)) {
-                    tcpedit_seterr(tcpedit, 
-                            "Unable to parse second --pnat=%s", p);
+                if (!parse_cidr_map(&tcpedit->cidrmap2, p)) {
+                    tcpedit_seterr(tcpedit, "Unable to parse second --pnat=%s", p);
                     return -1;
                 }
             }
-            
+
             first = 0;
         } while (--ct > 0);
     }
-    
+
     /* --srcipmap */
     if (HAVE_OPT(SRCIPMAP)) {
         tcpedit->rewrite_ip = true;
-        if (! parse_cidr_map(&tcpedit->srcipmap, OPT_ARG(SRCIPMAP))) {
-            tcpedit_seterr(tcpedit, 
-                "Unable to parse --srcipmap=%s", OPT_ARG(SRCIPMAP));
+        if (!parse_cidr_map(&tcpedit->srcipmap, OPT_ARG(SRCIPMAP))) {
+            tcpedit_seterr(tcpedit, "Unable to parse --srcipmap=%s", OPT_ARG(SRCIPMAP));
             return -1;
         }
     }
@@ -84,9 +78,8 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     /* --dstipmap */
     if (HAVE_OPT(DSTIPMAP)) {
         tcpedit->rewrite_ip = true;
-        if (! parse_cidr_map(&tcpedit->dstipmap, OPT_ARG(DSTIPMAP))) {
-            tcpedit_seterr(tcpedit, 
-                "Unable to parse --dstipmap=%s", OPT_ARG(DSTIPMAP));
+        if (!parse_cidr_map(&tcpedit->dstipmap, OPT_ARG(DSTIPMAP))) {
+            tcpedit_seterr(tcpedit, "Unable to parse --dstipmap=%s", OPT_ARG(DSTIPMAP));
             return -1;
         }
     }
@@ -111,7 +104,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     }
 
     /* --efcs */
-    if (HAVE_OPT(EFCS)) 
+    if (HAVE_OPT(EFCS))
         tcpedit->efcs = true;
 
     /* --ttl */
@@ -119,17 +112,17 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
         long ttl;
 
         if (strchr(OPT_ARG(TTL), '+')) {
-            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_ADD;            
+            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_ADD;
         } else if (strchr(OPT_ARG(TTL), '-')) {
-            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_SUB;            
+            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_SUB;
         } else {
-            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_SET;           
+            tcpedit->ttl_mode = TCPEDIT_TTL_MODE_SET;
         }
 
         ttl = strtol(OPT_ARG(TTL), (char **)NULL, 10);
         if (ttl < 0)
             ttl *= -1; /* convert to positive value */
-            
+
         if (ttl > 255) {
             tcpedit_seterr(tcpedit, "Invalid --ttl value (must be 0-255): %ld", ttl);
             return -1;
@@ -137,7 +130,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
 
         tcpedit->ttl_value = (u_int8_t)ttl;
     }
-    
+
     /* --tos */
     if (HAVE_OPT(TOS))
         tcpedit->tos = OPT_VALUE_TOS;
@@ -145,7 +138,7 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     /* --tclass */
     if (HAVE_OPT(TCLASS))
         tcpedit->tclass = OPT_VALUE_TCLASS;
-        
+
     /* --flowlabel */
     if (HAVE_OPT(FLOWLABEL))
         tcpedit->flowlabel = OPT_VALUE_FLOWLABEL;
@@ -153,11 +146,11 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     /* --mtu */
     if (HAVE_OPT(MTU))
         tcpedit->mtu = OPT_VALUE_MTU;
-        
+
     /* --mtu-trunc */
     if (HAVE_OPT(MTU_TRUNC))
         tcpedit->mtu_truncate = true;
-        
+
     /* --skipbroadcast */
     if (HAVE_OPT(SKIPBROADCAST))
         tcpedit->skip_broadcast = true;
@@ -189,19 +182,19 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     /* TCP/UDP port rewriting */
     if (HAVE_OPT(PORTMAP)) {
         int ct = STACKCT_OPT(PORTMAP);
-        char **list = (char**)STACKLST_OPT(PORTMAP);
+        char **list = (char **)STACKLST_OPT(PORTMAP);
         int first = 1;
         tcpedit_portmap_t *portmap_head, *portmap;
 
         do {
             char *p = *list++;
             if (first) {
-                if (! parse_portmap(&tcpedit->portmap, p)) {
+                if (!parse_portmap(&tcpedit->portmap, p)) {
                     tcpedit_seterr(tcpedit, "Unable to parse --portmap=%s", p);
                     return -1;
                 }
             } else {
-                if (! parse_portmap(&portmap, p)) {
+                if (!parse_portmap(&portmap, p)) {
                     tcpedit_seterr(tcpedit, "Unable to parse --portmap=%s", p);
                     return -1;
                 }
@@ -211,7 +204,6 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
                 while (portmap_head->next != NULL)
                     portmap_head = portmap_head->next;
                 portmap_head->next = portmap;
-
             }
             first = 0;
         } while (--ct > 0);
@@ -248,10 +240,8 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
 
     if (HAVE_OPT(ENDPOINTS)) {
         tcpedit->rewrite_ip = true;
-        if (! parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2,
-                    OPT_ARG(ENDPOINTS))) {
-            tcpedit_seterr(tcpedit, 
-                    "Unable to parse --endpoints=%s", OPT_ARG(ENDPOINTS));
+        if (!parse_endpoints(&tcpedit->cidrmap1, &tcpedit->cidrmap2, OPT_ARG(ENDPOINTS))) {
+            tcpedit_seterr(tcpedit, "Unable to parse --endpoints=%s", OPT_ARG(ENDPOINTS));
             return -1;
         }
     }
@@ -263,9 +253,6 @@ tcpedit_post_args(tcpedit_t *tcpedit) {
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
-     
 
     return 0;
 }
-
-
