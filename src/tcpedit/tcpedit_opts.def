@@ -170,7 +170,6 @@ fixed.  Automatically enabled for packets modified with @samp{--seed},
 EOText;
 };
 
-// CHUCK
 flag = {
     name        = fixhdrlen;
     // value       = C;
