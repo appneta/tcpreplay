@@ -381,9 +381,8 @@ fix_ipv6_length(struct pcap_pkthdr *pkthdr, ipv6_hdr_t *ip6_hdr, size_t l2len)
     int ip_len = ntohs((uint16_t)ip6_hdr->ip_len);
     int ip_len_want = (int)(pkthdr->len - l2len - sizeof(*ip6_hdr));
 
-    if (pkthdr->caplen < l2len + sizeof(*ip6_hdr)) {
+    if (pkthdr->caplen < l2len + sizeof(*ip6_hdr))
         return -1;
-    }
 
     if (ip_len != ip_len_want) {
         ip6_hdr->ip_len = htons((uint16_t)ip_len_want);

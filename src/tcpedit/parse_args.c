@@ -96,12 +96,10 @@ tcpedit_post_args(tcpedit_t *tcpedit)
         tcpedit->fixcsum = true;
 
     /* --fixhdrlen */
-    if (HAVE_OPT(FIXHDRLEN)) {
+    if (HAVE_OPT(FIXHDRLEN))
         tcpedit->fixhdrlen = true;
-    }
-    else {
+    else
         tcpedit->fixhdrlen = false;
-    }
 
     /* --efcs */
     if (HAVE_OPT(EFCS))
