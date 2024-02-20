@@ -40,6 +40,7 @@ int tcpedit_set_encoder_dltplugin_byname(tcpedit_t *, const char *);
 int tcpedit_set_skip_broadcast(tcpedit_t *, bool);
 int tcpedit_set_fixlen(tcpedit_t *, tcpedit_fixlen);
 int tcpedit_set_fixcsum(tcpedit_t *, bool);
+int tcpedit_set_fixhdrlen(tcpedit_t *, bool);
 int tcpedit_set_efcs(tcpedit_t *, bool);
 int tcpedit_set_ttl_mode(tcpedit_t *, tcpedit_ttl_mode);
 int tcpedit_set_ttl_value(tcpedit_t *, uint8_t);

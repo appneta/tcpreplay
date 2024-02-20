@@ -147,6 +147,9 @@ typedef struct {
 
     uint32_t fuzz_seed;
     uint32_t fuzz_factor;
+
+    /* fix header length */
+    bool fixhdrlen;
 } tcpedit_t;
 
 #ifdef __cplusplus
