@@ -362,10 +362,8 @@ fix_ipv4_length(struct pcap_pkthdr *pkthdr, ipv4_hdr_t *ip_hdr, size_t l2len)
     int ip_len = (int)ntohs(ip_hdr->ip_len);
     int ip_len_want = (int)(pkthdr->len - l2len);
 
-    if (pkthdr->caplen < l2len + sizeof(*ip_hdr)) {
-        ip_hdr->ip_len = htons(ip_len_want);
+    if (pkthdr->caplen < l2len + sizeof(*ip_hdr))
         return -1;
-    }
 
     if ((htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0 && ip_len != ip_len_want) {
         ip_hdr->ip_len = htons(ip_len_want);
