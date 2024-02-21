@@ -627,7 +627,7 @@ AC_CHECK_FUNC(inet_addr,
     inet_addr=yes,
     inet_addr=no)
 
-if test x$inet_addr = no ; then
+if test x$inet_addr = xno ; then
     AC_MSG_ERROR([We need inet_addr.  See bug 26])
 fi
 
