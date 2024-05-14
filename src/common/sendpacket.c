@@ -27,6 +27,7 @@
  * injection method, then by all means add it here (and send me a patch).
  *
  * Anyways, long story short, for now the order of preference is:
+ * 0. pcap_dump
  * 1. TX_RING
  * 2. PF_PACKET
  * 3. BPF
@@ -211,6 +212,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #undef INJECT_METHOD
 #define INJECT_METHOD "pcap_sendpacket()"
 #endif
+static sendpacket_t *sendpacket_open_pcap_dump(const char *, char *) _U_;
 
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t *sendpacket_open_khial(const char *, char *) _U_;
@@ -434,6 +436,11 @@ TRY_SEND_AGAIN:
 
         break;
 
+    case SP_TYPE_LIBPCAP_DUMP:
+        pcap_dump((u_char *)sp->handle.dump.dump, pkthdr, data);
+        retcode = len;
+        break;
+
     case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
         retcode = sendpacket_send_netmap(sp, data, len);
@@ -495,55 +502,58 @@ sendpacket_open(const char *device,
 
     errbuf[0] = '\0';
 
-#ifdef HAVE_TUNTAP
-    snprintf(sys_dev_dir, sizeof(sys_dev_dir), "/sys/class/net/%s/", device);
-    device_exists = access(sys_dev_dir, R_OK) == 0;
-#endif
+    if (sendpacket_type == SP_TYPE_LIBPCAP_DUMP){
+        sp = sendpacket_open_pcap_dump(device, errbuf);
+    }else{
+    #ifdef HAVE_TUNTAP
+        snprintf(sys_dev_dir, sizeof(sys_dev_dir), "/sys/class/net/%s/", device);
+        device_exists = access(sys_dev_dir, R_OK) == 0;
+    #endif
 
-    /* khial is universal */
-    if (stat(device, &sdata) == 0) {
-        if (((sdata.st_mode & S_IFMT) == S_IFCHR)) {
-            sp = sendpacket_open_khial(device, errbuf);
+        /* khial is universal */
+        if (stat(device, &sdata) == 0) {
+            if (((sdata.st_mode & S_IFMT) == S_IFCHR)) {
+                sp = sendpacket_open_khial(device, errbuf);
 
-        } else {
-            switch (sdata.st_mode & S_IFMT) {
-            case S_IFBLK:
-                errx(-1, "\"%s\" is a block device and is not a valid Tcpreplay device", device);
-            case S_IFDIR:
-                errx(-1, "\"%s\" is a directory and is not a valid Tcpreplay device", device);
-            case S_IFIFO:
-                errx(-1, "\"%s\" is a FIFO and is not a valid Tcpreplay device", device);
-            case S_IFLNK:
-                errx(-1, "\"%s\" is a symbolic link and is not a valid Tcpreplay device", device);
-            case S_IFREG:
-                errx(-1, "\"%s\" is a file and is not a valid Tcpreplay device", device);
-            default:
-                errx(-1, "\"%s\" is not a valid Tcpreplay device", device);
+            } else {
+                switch (sdata.st_mode & S_IFMT) {
+                case S_IFBLK:
+                    errx(-1, "\"%s\" is a block device and is not a valid Tcpreplay device", device);
+                case S_IFDIR:
+                    errx(-1, "\"%s\" is a directory and is not a valid Tcpreplay device", device);
+                case S_IFIFO:
+                    errx(-1, "\"%s\" is a FIFO and is not a valid Tcpreplay device", device);
+                case S_IFLNK:
+                    errx(-1, "\"%s\" is a symbolic link and is not a valid Tcpreplay device", device);
+                case S_IFREG:
+                    errx(-1, "\"%s\" is a file and is not a valid Tcpreplay device", device);
+                default:
+                    errx(-1, "\"%s\" is not a valid Tcpreplay device", device);
+                }
             }
+    #ifdef HAVE_TUNTAP
+        } else if (strncmp(device, "tap", 3) == 0 && !device_exists) {
+            sp = sendpacket_open_tuntap(device, errbuf);
+    #endif
+        } else {
+    #ifdef HAVE_NETMAP
+            if (sendpacket_type == SP_TYPE_NETMAP)
+                sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
+            else
+    #endif
+    #if defined HAVE_PF_PACKET
+                sp = sendpacket_open_pf(device, errbuf);
+    #elif defined HAVE_BPF
+            sp = sendpacket_open_bpf(device, errbuf);
+    #elif defined HAVE_LIBDNET
+            sp = sendpacket_open_libdnet(device, errbuf);
+    #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+            sp = sendpacket_open_pcap(device, errbuf);
+    #else
+    #error "No defined packet injection method for sendpacket_open()"
+    #endif
         }
-#ifdef HAVE_TUNTAP
-    } else if (strncmp(device, "tap", 3) == 0 && !device_exists) {
-        sp = sendpacket_open_tuntap(device, errbuf);
-#endif
-    } else {
-#ifdef HAVE_NETMAP
-        if (sendpacket_type == SP_TYPE_NETMAP)
-            sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
-        else
-#endif
-#if defined HAVE_PF_PACKET
-            sp = sendpacket_open_pf(device, errbuf);
-#elif defined HAVE_BPF
-        sp = sendpacket_open_bpf(device, errbuf);
-#elif defined HAVE_LIBDNET
-        sp = sendpacket_open_libdnet(device, errbuf);
-#elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-        sp = sendpacket_open_pcap(device, errbuf);
-#else
-#error "No defined packet injection method for sendpacket_open()"
-#endif
     }
-
     if (sp) {
         sp->open = 1;
         sp->cache_dir = direction;
@@ -631,6 +641,11 @@ sendpacket_close(sendpacket_t *sp)
 #endif
         break;
 
+    case SP_TYPE_LIBPCAP_DUMP:
+        pcap_dump_close(sp->handle.dump.dump);
+        pcap_close(sp->handle.dump.pcap);
+        break;
+
     case SP_TYPE_LIBDNET:
 #ifdef HAVE_LIBDNET
         eth_close(sp->handle.ldnet);
@@ -671,6 +686,9 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
 
     if (sp->handle_type == SP_TYPE_KHIAL) {
         addr = sendpacket_get_hwaddr_khial(sp);
+    } else if( sp->handle_type == SP_TYPE_LIBPCAP_DUMP) {
+        sendpacket_seterr(sp, "Error: sendpacket_get_hwaddr() not yet supported for pcap dump");
+        return NULL;
     } else {
 #if defined HAVE_PF_PACKET
         addr = sendpacket_get_hwaddr_pf(sp);
@@ -766,6 +784,37 @@ sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
     return NULL;
 }
 #endif /* HAVE_PCAP_INJECT || HAVE_PCAP_SENDPACKET */
+
+/**
+ * Inner sendpacket_open() method for using libpcap
+ */
+static sendpacket_t *
+sendpacket_open_pcap_dump(const char *device, char *errbuf)
+{
+    pcap_t *pcap;
+    pcap_dumper_t* dump;
+    sendpacket_t *sp;
+
+    assert(device);
+    assert(errbuf);
+
+    dbg(1, "sendpacket: using Libpcap");
+
+    pcap = pcap_open_dead(DLT_EN10MB, 65535);
+    if ((dump = pcap_dump_open(pcap, device)) == NULL){
+        char* err_msg = pcap_geterr(pcap);
+        strlcpy(errbuf, err_msg, PCAP_ERRBUF_SIZE);
+        pcap_close(pcap);
+        return NULL;
+    }
+
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.dump.pcap = pcap;
+    sp->handle.dump.dump = dump;
+    sp->handle_type = SP_TYPE_LIBPCAP_DUMP;
+    return sp;
+}
 
 #if defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF
 /**
@@ -1236,7 +1285,7 @@ sendpacket_get_dlt(sendpacket_t *sp)
 {
     int dlt = DLT_EN10MB;
 
-    if (sp->handle_type == SP_TYPE_KHIAL || sp->handle_type == SP_TYPE_NETMAP || sp->handle_type == SP_TYPE_TUNTAP) {
+    if (sp->handle_type == SP_TYPE_KHIAL || sp->handle_type == SP_TYPE_NETMAP || sp->handle_type == SP_TYPE_TUNTAP || sp->handle_type == SP_TYPE_LIBPCAP_DUMP) {
         /* always EN10MB */
     } else {
 #if defined HAVE_BPF

@@ -67,7 +67,8 @@ typedef enum sendpacket_type_e {
     SP_TYPE_TX_RING,
     SP_TYPE_KHIAL,
     SP_TYPE_NETMAP,
-    SP_TYPE_TUNTAP
+    SP_TYPE_TUNTAP,
+    SP_TYPE_LIBPCAP_DUMP
 } sendpacket_type_t;
 
 /* these are the file_operations ioctls */
@@ -80,8 +81,14 @@ typedef enum khial_direction_e {
     KHIAL_DIRECTION_TX,
 } khial_direction_t;
 
+typedef struct pcap_dump_s{
+    pcap_t *pcap;
+    pcap_dumper_t* dump;
+} pcap_dump_t;
+
 union sendpacket_handle {
     pcap_t *pcap;
+    pcap_dump_t dump;
     int fd;
 #ifdef HAVE_LIBDNET
     eth_t *ldnet;
