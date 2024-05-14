@@ -289,6 +289,19 @@ EOText;
 };
 
 flag = {
+    name        = output;
+    value       = o;
+    arg-type    = string;
+    max         = 1;
+    equivalence = intf1;
+    flags-cant  = intf2;
+    descrip     = "Pcap file to receive traffic outputs";
+    doc         = <<- EOText
+Optional pcap file name used to receive traffic.
+EOText;
+};
+
+flag = {
     name        = include;
     arg-type    = string;
     max         = 1;
@@ -677,6 +690,16 @@ EOText;
 
 
 flag = {
+    name        = suppress-warnings;
+    value       = w;
+    immediate;
+    descrip     = "suppress printing warning messages";
+    settable;
+    doc         = "";
+};
+
+
+flag = {
     ifdef       = HAVE_LIBXDP;
     name        = xdp;
     descrip     = "Write packets directly to AF_XDP enabled network adapter";
@@ -781,14 +804,5 @@ flag = {
     USAGE(EXIT_FAILURE);
 
 EOHelp;
-    doc         = "";
-};
-
-flag = {
-    name        = suppress-warnings;
-    value       = w;
-    immediate;
-    descrip     = "suppress printing warning messages";
-    settable;
     doc         = "";
 };
