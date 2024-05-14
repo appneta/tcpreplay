@@ -255,7 +255,7 @@ EOText;
 };
 
 /*
- * Outputs: -i, -I
+ * Outputs: -i, -I, -w
  */
 
 flag = {
@@ -263,6 +263,7 @@ flag = {
     value       = i;
     arg-type    = string;
     max         = 1;
+    equivalence = intf1;
     must-set;
     descrip     = "Client to server/RX/primary traffic output interface";
     doc         = <<- EOText
@@ -283,6 +284,19 @@ Optional network interface used to send traffic which is marked as 'secondary'
 via tcpprep.  Secondary traffic is usually server-to-client or outbound 
 (TX) on khial virtual interfaces.  Generally, it only makes sense to use this
 option with --cachefile.
+EOText;
+};
+
+flag = {
+    name        = write;
+    value       = w;
+    arg-type    = string;
+    max         = 1;
+    equivalence = intf1;
+    flags-cant  = intf2;
+    descrip     = "Pcap file to receive traffic outputs";
+    doc         = <<- EOText
+Optional pcap file name used to receive traffic.
 EOText;
 };
 

@@ -95,7 +95,6 @@ typedef struct tcpreplay_opt_s {
     /* input/output */
     char *intf1_name;
     char *intf2_name;
-
     tcpreplay_speed_t speed;
     COUNTER loop;
     u_int32_t loopdelay_ms;
