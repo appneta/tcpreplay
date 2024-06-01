@@ -381,6 +381,16 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         prev_packet = NULL;
     }
 
+    /* SKIP PACKETS
+     * Looping over packets to skip
+     */
+    if(ctx->options->skip_pkts > 0) {
+        for (uint32_t i = 0; i < ctx->options->skip_pkts && !ctx->abort && 
+              (pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL; i++) {
+        }
+    }
+
+
     /* MAIN LOOP
      * Keep sending while we have packets or until
      * we've sent enough packets
@@ -389,6 +399,11 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
            (pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         struct timespec pkthdr_ts;
         TIMEVAL_AS_TIMESPEC_SET(&pkthdr_ts, &pkthdr.ts); // libpcap puts nanosec values in tv_usec
+
+        /* Skip packets */
+        if(timerisset(&(ctx->options->skip_to)) && timercmp(&ctx->options->skip_to, &(pkthdr.ts), >)){
+            continue; /* Skip packet */
+        }
         now_is_now = false;
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
