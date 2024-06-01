@@ -1,5 +1,6 @@
 06/01/2024 Version 4.5.0-beta1
     - add check for IPv6 extension header length (#827 #842)
+    - add check for empty CIDR (#824 #843)
     - GitHub template for pull requests (#839)
     - handle IPv6 fragment extension header (#832 #837)
     - configure.ac: unify search dirs for pcap and add lib32 (#819)
