@@ -321,8 +321,7 @@ again:
         /* ensure IP header length is correct */
         int changed = 0;
         if (ip_hdr != NULL) {
-            fix_ipv4_length(*pkthdr, ip_hdr, l2len);
-            changed = 1;
+            changed = fix_ipv4_length(*pkthdr, ip_hdr, l2len);
         } else if (ip6_hdr != NULL) {
             changed = fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
         }
