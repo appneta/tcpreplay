@@ -687,6 +687,10 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
     case TCPR_IPV6_NH_HBH:
     case TCPR_IPV6_NH_AH:
         extlen = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
+        if (extlen == 0) {
+            dbg(3, "Malformed IPv6 extension header...");
+            return NULL;
+        }
         dbgx(3,
              "Looks like we're an ext header (0x%hhx).  Jumping %u bytes"
              " to the next",
