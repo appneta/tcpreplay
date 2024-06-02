@@ -25,8 +25,10 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
-		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
-		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
+		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs \
+		test.rewrite_1ttl test.rewrite_2ttl test.rewrite_3ttl \
+		test.rewrite_1ttl-hdrfix test.rewrite_2ttl-hdrfix test.rewrite_3ttl-hdrfix \
+		test.rewrite_enet_subsmac \
 		test.rewrite_mtutrunc test.rewrite_mac_seed test.rewrite_range_portmap \
 		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing test.rewrite_sequence test.rewrite_fixcsum \
 		test.rewrite_fixlen_pad test.rewrite_fixlen_trunc test.rewrite_fixlen_del \
@@ -34,9 +36,11 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
-		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
+		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs \
+		test2.rewrite_1ttl test2.rewrite_2ttl test2.rewrite_3ttl \
+		test2.rewrite_1ttl-hdrfix test2.rewrite_2ttl-hdrfix test2.rewrite_3ttl-hdrfix \
 		test2.rewrite_mtutrunc test2.rewrite_enet_subsmac \
-		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos \
+		 test.rewrite_tos test2.rewrite_tos \
 		test2.rewrite_enet_subsmac test2.rewrite_mac_seed \
 		test2.rewrite_range_portmap test2.rewrite_mac_seed_keep \
 		test2.rewrite_l7fuzzing test2.rewrite_sequence test2.rewrite_fixcsum \
