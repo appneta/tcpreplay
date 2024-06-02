@@ -183,11 +183,21 @@ again:
         /* set TOS ? */
         if (tcpedit->tos > -1) {
             volatile uint16_t oldval = *((uint16_t *)ip_hdr);
-            volatile uint16_t newval;
+            volatile uint16_t oldcsum, newval;
 
-            ip_hdr->ip_tos = tcpedit->tos;
-            newval = *((uint16_t *)ip_hdr);
+//            ip_hdr->ip_tos = tcpedit->tos;
+//            newval = *((uint16_t *)ip_hdr);
+            newval = htons((ntohs(*((uint16_t *)ip_hdr)) & 0xff00) | (tcpedit->tos & 0xff));
+            oldcsum = ip_hdr->ip_sum;
+            static uint32_t cnt;
             csum_replace2(&ip_hdr->ip_sum, oldval, newval);
+            notice("tos %u: pkt=%u old/new: tos=0x%04x/0x%04x csum=0x%04x/0x%04x\n",
+                   tcpedit->tos,
+                   ++cnt,
+                   htons(oldval),
+                   htons(newval),
+                   htons(oldcsum),
+                   htons(ip_hdr->ip_sum));
         }
 
         /* rewrite the TTL */
