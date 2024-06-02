@@ -185,8 +185,10 @@ again:
             volatile uint16_t oldval = *((uint16_t *)ip_hdr);
             volatile uint16_t newval;
 
-            ip_hdr->ip_tos = tcpedit->tos;
             newval = *((uint16_t *)ip_hdr);
+            newval = htons((ntohs(newval) & 0xff00) | (tcpedit->tos & 0xff));
+            *((uint16_t *)ip_hdr) = newval;
+            static uint32_t cnt;
             csum_replace2(&ip_hdr->ip_sum, oldval, newval);
         }
 
