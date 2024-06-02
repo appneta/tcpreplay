@@ -98,6 +98,16 @@ tcpr_replay_index(tcpreplay_t *ctx)
     return rcode;
 }
 
+static pcap_t *
+tcpr_pcap_open(const char *path, char *ebuf)
+{
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+    return pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf);
+#else
+    return pcap_open_offline(path, ebuf);
+#endif
+}
+
 /**
  * \brief replay a pcap file out interface(s)
  *
@@ -117,7 +127,7 @@ replay_file(tcpreplay_t *ctx, int idx)
 
     /* read from pcap file if we haven't cached things yet */
     if (!ctx->options->preload_pcap) {
-        if ((pcap = pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf)) == NULL) {
+        if ((pcap = tcpr_pcap_open(path, ebuf)) == NULL) {
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;
         }
@@ -133,7 +143,7 @@ replay_file(tcpreplay_t *ctx, int idx)
 
     } else {
         if (!ctx->options->file_cache[idx].cached) {
-            if ((pcap = pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf)) == NULL) {
+            if ((pcap = tcpr_pcap_open(path, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
@@ -145,7 +155,7 @@ replay_file(tcpreplay_t *ctx, int idx)
     if (ctx->options->verbose) {
         /* in cache mode, we may not have opened the file */
         if (pcap == NULL)
-            if ((pcap = pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf)) == NULL) {
+            if ((pcap = tcpr_pcap_open(path, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
@@ -214,26 +224,26 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
 
     /* read from first pcap file if we haven't cached things yet */
     if (!ctx->options->preload_pcap) {
-        if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL) {
+        if ((pcap1 = tcpr_pcap_open(path1, ebuf)) == NULL) {
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;
         }
         ctx->options->file_cache[idx1].dlt = pcap_datalink(pcap1);
-        if ((pcap2 = pcap_open_offline(path2, ebuf)) == NULL) {
+        if ((pcap2 = tcpr_pcap_open(path2, ebuf)) == NULL) {
             tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
             return -1;
         }
         ctx->options->file_cache[idx2].dlt = pcap_datalink(pcap2);
     } else {
         if (!ctx->options->file_cache[idx1].cached) {
-            if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL) {
+            if ((pcap1 = tcpr_pcap_open(path1, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
             ctx->options->file_cache[idx1].dlt = pcap_datalink(pcap1);
         }
         if (!ctx->options->file_cache[idx2].cached) {
-            if ((pcap2 = pcap_open_offline(path2, ebuf)) == NULL) {
+            if ((pcap2 = tcpr_pcap_open(path2, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }
@@ -293,7 +303,7 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
     if (ctx->options->verbose) {
         /* in cache mode, we may not have opened the file */
         if (pcap1 == NULL) {
-            if ((pcap1 = pcap_open_offline(path1, ebuf)) == NULL) {
+            if ((pcap1 = tcpr_pcap_open(path1, ebuf)) == NULL) {
                 tcpreplay_seterr(ctx, "Error opening pcap file: %s", ebuf);
                 return -1;
             }

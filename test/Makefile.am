@@ -125,6 +125,9 @@ standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_1ttl-hdrfix --ttl=59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_2ttl-hdrfix --ttl=+59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_3ttl-hdrfix --ttl=-59 --fixhdrlen
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
@@ -175,6 +178,9 @@ standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_1ttl-hdrfix --ttl=59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_2ttl-hdrfix --ttl=+59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_3ttl-hdrfix --ttl=-59 --fixhdrlen
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
@@ -191,7 +197,8 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc \
-	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs rewrite_1ttl rewrite_2ttl rewrite_3ttl \
+	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
+	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_1ttl-hdrfix rewrite_2ttl-hdrfix rewrite_3ttl-hdrfix \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del
@@ -637,6 +644,39 @@ else
 	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+rewrite_1ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Force TTL with header fix: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Force TTL header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=59 --fixhdrlen >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_2ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Increase TTL with header fix:"
+	$(PRINTF) "%s\n" "*** [tcprewrite] Increase TTL with header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=+59 --fixhdrlen  >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_3ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Reduce TTL with header fix: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Reduce TTL with header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=-59 --fixhdrlen  >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 rewrite_tos:
 	$(PRINTF) "%s" "[tcprewrite] TOS test: "
