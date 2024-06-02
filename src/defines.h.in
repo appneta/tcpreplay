@@ -359,11 +359,17 @@ typedef u_int8_t uint8_t typedef u_int16_t uint16_t typedef u_int32_t uint32_t
         (a)->tv_nsec = (b)->tv_nsec;                                                                                   \
     } while (0)
 
+#define TIMEVAL_TO_TIMESPEC_SET(a, b)       \
+    do {                                    \
+        (a)->tv_sec = (b)->tv_sec;          \
+        (a)->tv_nsec = (b)->tv_usec * 1000; \
+    } while(0)
+
 /* libpcap puts nanosec values in tv_usec when pcap file is read with nanosec precision*/
 #define TIMEVAL_AS_TIMESPEC_SET(a, b)       \
     do {                                    \
         (a)->tv_sec = (b)->tv_sec;          \
-        (a)->tv_nsec = (b)->tv_usec * 1000; \
+        (a)->tv_nsec = (b)->tv_usec;        \
     } while(0)
 
 /* 

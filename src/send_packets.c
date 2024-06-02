@@ -388,7 +388,13 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     while (!ctx->abort && read_next_packet &&
            (pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         struct timespec pkthdr_ts;
-        TIMEVAL_AS_TIMESPEC_SET(&pkthdr_ts, &pkthdr.ts); // libpcap puts nanosec values in tv_usec
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+        // libpcap puts nanosecond values in tv_usec
+        TIMEVAL_AS_TIMESPEC_SET(&pkthdr_ts, &pkthdr.ts);
+#else
+        // libpcap puts microsecond values in tv_usec
+        TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ts, &pkthdr.ts);
+#endif
         now_is_now = false;
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
