@@ -299,7 +299,7 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
         if (close(1) == -1)
             warnx("unable to close stdin: %s", strerror(errno));
 
-    if ((pcap = pcap_open_offline(path, ebuf)) == NULL)
+    if ((pcap = tcpr_pcap_open(path, ebuf)) == NULL)
         errx(-1, "Error opening pcap file: %s", ebuf);
 
     dlt = pcap_datalink(pcap);
@@ -388,7 +388,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     while (!ctx->abort && read_next_packet &&
            (pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
         struct timespec pkthdr_ts;
-        TIMEVAL_AS_TIMESPEC_SET(&pkthdr_ts, &pkthdr.ts); // libpcap puts nanosec values in tv_usec
+        PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr.ts, &pkthdr_ts);
         now_is_now = false;
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
@@ -739,9 +739,9 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
             if (options->speed.mode == speed_multiplier) {
                 struct timespec pkthdr_ts;
-                TIMEVAL_TO_TIMESPEC(&pkthdr_ptr->ts, &pkthdr_ts);
+                PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &pkthdr_ts);
                 if (!timesisset(&last_pkt_ts)) {
-                    TIMEVAL_TO_TIMESPEC(&pkthdr_ptr->ts, &last_pkt_ts);
+                    PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &last_pkt_ts);
                 } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
                     struct timespec delta;
 

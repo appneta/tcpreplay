@@ -97,6 +97,17 @@ our_safe_strdup(const char *str, const char *funcname, int line, const char *fil
     return newstr;
 }
 
+pcap_t*
+tcpr_pcap_open(const char *path, char *ebuf)
+{
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+    return pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf);
+#else
+    return pcap_open_offline(path, ebuf);
+#endif
+}
+
+
 /**
  * calls free and sets to NULL.
  */
