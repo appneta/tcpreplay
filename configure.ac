@@ -1194,6 +1194,30 @@ if test $have_pcap_snapshot = yes ; then
               [Does libpcap have pcap_snapshot?])
 fi
 
+have_pcap_open_offline_with_tstamp_precision=no
+dnl Check to see if we've got pcap_open_offline_with_tstamp_precision()
+AC_MSG_CHECKING(for pcap_open_offline_with_tstamp_precision support)
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+    pcap_t *pcap;
+    char ebuf[PCAP_ERRBUF_SIZE];
+    pcap = pcap_open_offline_with_tstamp_precision("fake.pcap", PCAP_TSTAMP_PRECISION_NANO, &ebuf[0]);
+]])],[
+    have_pcap_open_offline_with_tstamp_precision=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_open_offline_with_tstamp_precision=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_open_offline_with_tstamp_precision = yes ; then
+    AC_DEFINE([HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION], [1], [Does libpcap have pcap_open_offline_with_tstamp_precision?])
+fi
+
 
 # Tcpbridge requires libpcap and pcap_sendpacket()
 enable_tcpbridge=no

@@ -1,4 +1,6 @@
 06/01/2024 Version 4.5.0-beta1
+    - --fixhdrlen option added to control action on packet length changes (#846)
+    - incorrect checksum for certain IPv4 packets - fixed by #846 (#844)
     - add check for IPv6 extension header length (#827 #842)
     - add check for empty CIDR (#824 #843)
     - GitHub template for pull requests (#839)

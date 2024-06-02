@@ -171,6 +171,18 @@ EOText;
 };
 
 flag = {
+    name        = fixhdrlen;
+    descrip     = "Alter IP/TCP header len to match packet length";
+    doc         = <<- EOText
+By default, tcpreplay will send packets with the original packet length,
+However, you may want the packet length revised to minimum packet size.
+Using this option, tcpreplay will rewrite (fix) the packet length,
+and recalculate checksums when packet length changes.
+Caution: undesired packet changes may occur when this option is specified.
+EOText;
+};
+
+flag = {
     name        = mtu;
     value       = m;
     arg-type    = number;

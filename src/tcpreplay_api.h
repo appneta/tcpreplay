@@ -187,6 +187,9 @@ typedef struct tcpreplay_s {
     uint32_t skip_packets;
     bool first_time;
 
+    /* fix header length */
+    bool fixhdrlen;
+
     /* counter stats */
     tcpreplay_stats_t stats;
     tcpreplay_stats_t static_stats; /* stats returned by tcpreplay_get_stats() */
