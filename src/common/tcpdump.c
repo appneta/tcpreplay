@@ -75,7 +75,7 @@ tcpdump_print(tcpdump_t *tcpdump, struct pcap_pkthdr *pkthdr, const u_char *data
 
     /* convert header to file-format packet header */
     actual_pkthdr.ts.ts_sec = (uint32_t)pkthdr->ts.tv_sec;
-    actual_pkthdr.ts.ts_usec = (uint32_t)pkthdr->ts.tv_sec;
+    actual_pkthdr.ts.ts_usec = (uint32_t)(pkthdr->ts.tv_usec / PCAP_TSTAMP_US_TO_US_DIVISOR);
     actual_pkthdr.caplen = pkthdr->caplen;
     actual_pkthdr.len = pkthdr->len;
 

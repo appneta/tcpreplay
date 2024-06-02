@@ -98,16 +98,6 @@ tcpr_replay_index(tcpreplay_t *ctx)
     return rcode;
 }
 
-static pcap_t *
-tcpr_pcap_open(const char *path, char *ebuf)
-{
-#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
-    return pcap_open_offline_with_tstamp_precision(path, PCAP_TSTAMP_PRECISION_NANO, ebuf);
-#else
-    return pcap_open_offline(path, ebuf);
-#endif
-}
-
 /**
  * \brief replay a pcap file out interface(s)
  *

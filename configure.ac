@@ -1216,6 +1216,11 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 
 if test $have_pcap_open_offline_with_tstamp_precision = yes ; then
     AC_DEFINE([HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION], [1], [Does libpcap have pcap_open_offline_with_tstamp_precision?])
+    AC_DEFINE([PCAP_TSTAMP_US_TO_NS_MULTIPLIER], [1], [Multiplier for conversion from PCAP usec to nsec])
+    AC_DEFINE([PCAP_TSTAMP_US_TO_US_DIVISOR], [1000], [Divisor for conversion from PCAP usec to usec])
+else
+   AC_DEFINE([PCAP_TSTAMP_US_TO_NS_MULTIPLIER], [1000], [Multiplier for conversion from PCAP usec to nsec])
+   AC_DEFINE([PCAP_TSTAMP_US_TO_US_DIVISOR], [1], [Divisor for conversion from PCAP usec to usec])
 fi
 
 

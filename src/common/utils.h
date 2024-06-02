@@ -47,6 +47,7 @@ void packet_stats(const tcpreplay_stats_t *stats);
 int format_date_time(struct timespec *when, char *buf, size_t len);
 uint32_t tcpr_random(uint32_t *seed);
 void restore_stdin(void);
+pcap_t* tcpr_pcap_open(const char *path, char *ebuf);
 
 /* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)
