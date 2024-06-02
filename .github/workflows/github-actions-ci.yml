@@ -28,5 +28,5 @@ jobs:
       - name: List files in the repository
         run: ls ${{ github.workspace }}
       - name: tests
-        run: sudo make test || cat test/test.log
+        run: sudo make test
       - run: echo "This test's status is ${{ job.status }}."
