@@ -579,7 +579,7 @@ sendpacket_open(const char *device,
 #ifdef HAVE_LIBXDP
             if (sendpacket_type == SP_TYPE_LIBXDP)
                 sp = sendpacket_open_xsk(device, errbuf);
-            else
+            } else
 #endif
 #if defined HAVE_PF_PACKET
                 sp = sendpacket_open_pf(device, errbuf);
@@ -734,7 +734,7 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
 
     if (sp->handle_type == SP_TYPE_KHIAL) {
         addr = sendpacket_get_hwaddr_khial(sp);
-    } else if( sp->handle_type == SP_TYPE_LIBPCAP_DUMP) {
+    } else if (sp->handle_type == SP_TYPE_LIBPCAP_DUMP) {
         sendpacket_seterr(sp, "Error: sendpacket_get_hwaddr() not yet supported for pcap dump");
         return NULL;
     } else {
@@ -1303,15 +1303,14 @@ sendpacket_get_dlt(sendpacket_t *sp)
     int dlt = DLT_EN10MB;
 
     switch (sp->handle_type) {
-        case SP_TYPE_KHIAL:
-        case SP_TYPE_NETMAP:
-        case SP_TYPE_TUNTAP:
-        case SP_TYPE_LIBXDP:
-        case SP_TYPE_LIBPCAP_DUMP:
-            /* always EN10MB */
-            return dlt;
-        default:
-            ;
+    case SP_TYPE_KHIAL:
+    case SP_TYPE_NETMAP:
+    case SP_TYPE_TUNTAP:
+    case SP_TYPE_LIBXDP:
+    case SP_TYPE_LIBPCAP_DUMP:
+        /* always EN10MB */
+        return dlt;
+    default:;
     }
 
 #if defined HAVE_BPF
