@@ -26,7 +26,7 @@
 
 #ifdef __NetBSD__
 #include <net/if_ether.h>
-#else
+#elif ! defined(__HAIKU__)
 #include <netinet/if_ether.h>
 #endif
 

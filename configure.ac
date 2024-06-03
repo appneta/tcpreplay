@@ -609,21 +609,47 @@ else
 fi
 
 dnl Check for inet_aton and inet_pton
+dnl On Haiku these functions are in libnetwork.
 AC_CHECK_FUNC(inet_aton,
     AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?])
     inet_aton=yes,
-    inet_aton=no)
+    [
+        AC_CHECK_LIB(network, inet_aton,
+            AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?])
+            use_libnetwork=yes,
+            [inet_aton=no]
+        )
+    ]
+)
 AC_CHECK_FUNC(inet_pton,
     AC_DEFINE([HAVE_INET_PTON], [1], [Do we have inet_pton?])
     inet_pton=yes,
-    inet_pton=no)
+    [
+        AC_CHECK_LIB(network, inet_pton,
+            AC_DEFINE([HAVE_INET_PTON], [1], [Do we have inet_pton?])
+            use_libnetwork=yes,
+            [inet_pton=no]
+        )
+    ]
+)
 AC_CHECK_FUNC(inet_ntop,
     AC_DEFINE([HAVE_INET_NTOP], [1], [Do we have inet_ntop?])
     inet_ntop=yes,
-    inet_ntop=no)
+    [
+        AC_CHECK_LIB(network, inet_ntop,
+            AC_DEFINE([HAVE_INET_NTOP], [1], [Do we have inet_ntop?])
+            use_libnetwork=yes,
+            [inet_ntop=no]
+        )
+    ]
+)
 
 if test "$inet_ntop" = "no" -a "$inet_pton" = "no" ; then
     AC_MSG_ERROR([We need either inet_ntop or inet_pton])
+fi
+
+if test "$use_libnetwork" = "yes" ; then
+	LIBS="-lnetwork $LIBS"
 fi
 
 AC_CHECK_FUNC(inet_addr,
@@ -631,9 +657,12 @@ AC_CHECK_FUNC(inet_addr,
     inet_addr=yes,
     inet_addr=no)
 
-if test x$inet_addr = no ; then
+if test x$inet_addr = xno ; then
     AC_MSG_ERROR([We need inet_addr.  See bug 26])
 fi
+
+dnl On Haiku fts_*() functions are in libbsd.
+AC_CHECK_FUNC(fts_read,,[AC_CHECK_LIB(bsd, fts_read)])
 
 dnl #####################################################
 dnl Checks for tuntap device support
