@@ -184,7 +184,7 @@ dlt_en10mb_parse_subsmac(tcpeditdlt_t *ctx, en10mb_config_t *config, const char 
 {
     size_t input_len = strlen(input);
     size_t possible_entries_number = (input_len / (SUBSMAC_ENTRY_LEN + 1)) + 1;
-    int entry;
+    size_t entry;
 
     en10mb_sub_entry_t *entries = safe_malloc(possible_entries_number * sizeof(en10mb_sub_entry_t));
 
@@ -524,7 +524,7 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
         newl2len = TCPR_802_1Q_H;
     }
 
-    if (pktlen < newl2len || pktlen + newl2len - ctx->l2len > MAXPACKET) {
+    if ((uint32_t)pktlen < newl2len || pktlen + newl2len - ctx->l2len > MAXPACKET) {
         tcpedit_seterr(ctx->tcpedit,
                        "Unable to process packet #" COUNTER_SPEC " since its new length is %d bytes.",
                        ctx->tcpedit->runtime.packetnum,

@@ -41,8 +41,8 @@ extern const char pcap_version[];
 static void *get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr);
 
 /**
- * Depending on what version of libpcap/WinPcap there are different ways to get
- * the version of the libpcap/WinPcap library.  This presents a unified way to
+ * Depending on what version of libpcap there are different ways to get
+ * the version of the libpcap library.  This presents a unified way to
  * get that information.
  */
 const char *
@@ -196,8 +196,15 @@ parse_metadata(const u_char *pktdata,
                uint32_t *vlan_offset)
 {
     bool done = false;
-    int res = 0;
-    while (!done && res == 0) {
+    assert(next_protocol);
+    assert(l2len);
+    assert(l2offset);
+    assert(vlan_offset);
+
+    if (!pktdata || !datalen)
+        errx(-1, "parse_metadata: invalid L2 parameters: pktdata=0x%p len=%d", pktdata, datalen);
+
+    while (!done) {
         switch (*next_protocol) {
         case ETHERTYPE_VLAN:
         case ETHERTYPE_Q_IN_Q:
@@ -205,18 +212,22 @@ parse_metadata(const u_char *pktdata,
             if (*vlan_offset == 0)
                 *vlan_offset = *l2len;
 
-            res = parse_vlan(pktdata, datalen, next_protocol, l2len);
+            if (parse_vlan(pktdata, datalen, next_protocol, l2len))
+                return -1;
+
             break;
         case ETHERTYPE_MPLS:
         case ETHERTYPE_MPLS_MULTI:
-            res = parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset);
+            if (parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset))
+                return -1;
+
             break;
         default:
             done = true;
         }
     }
 
-    return res;
+    return 0;
 }
 
 /*
@@ -357,9 +368,17 @@ get_l2len_protocol(const u_char *pktdata,
         if (datalen < SLL_HDR_LEN)
             return -1;
 
+        *l2len = SLL_HDR_LEN;
         sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
-        *l2len = sizeof(*sll_hdr);
         *protocol = ntohs(sll_hdr->sll_protocol);
+        break;
+    case DLT_LINUX_SLL2:
+        if (datalen < SLL2_HDR_LEN)
+            return -1;
+
+        *l2len = SLL2_HDR_LEN;
+        sll2_hdr_t *sll2_hdr = (sll2_hdr_t *)pktdata;
+        *protocol = ntohs(sll2_hdr->sll2_protocol);
         break;
     default:
         errx(-1,
@@ -593,9 +612,25 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
             break;
 
         /*
-         * Can't handle.  Unparsable IPv6 fragment/encrypted data
+         * handle (unparsable) IPv6 fragment data
          */
         case TCPR_IPV6_NH_FRAGMENT:
+            // next points to l4 data
+            dbgx(3, "Go deeper due to fragment extension header 0x%02X", proto);
+            exthdr = get_ipv6_next(next, end_ptr);
+            if ((exthdr == NULL) || ((u_char *)exthdr > end_ptr)) {
+                next = NULL;
+                done = true;
+                break;
+            }
+            proto = exthdr->ip_nh;
+            next = exthdr;
+            // done = true;
+            break;
+
+        /*
+         * Can't handle.  Unparsable IPv6 encrypted data
+         */
         case TCPR_IPV6_NH_ESP:
             next = NULL;
             done = true;
@@ -605,9 +640,11 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
          * no further processing, either TCP, UDP, ICMP, etc...
          */
         default:
-            if (proto != ip6_hdr->ip_nh) {
+            if (proto != ip6_hdr->ip_nh && next) {
                 dbgx(3, "Returning byte offset of this ext header: %u", IPV6_EXTLEN_TO_BYTES(next->ip_len));
                 next = (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
+                if ((u_char*)next > end_ptr)
+                    return NULL;
             } else {
                 dbgx(3, "%s", "Returning end of IPv6 Header");
             }
@@ -663,6 +700,10 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
     case TCPR_IPV6_NH_HBH:
     case TCPR_IPV6_NH_AH:
         extlen = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
+        if (extlen == 0) {
+            dbg(3, "Malformed IPv6 extension header...");
+            return NULL;
+        }
         dbgx(3,
              "Looks like we're an ext header (0x%hhx).  Jumping %u bytes"
              " to the next",

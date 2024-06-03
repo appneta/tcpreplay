@@ -63,6 +63,8 @@ tcprewrite currently supports reading the following DLT types:
 @item
 @var{DLT_LINUX_SLL} aka Linux Cooked Socket
 @item
+@var{DLT_LINUX_SLL2} aka Linux Cooked Socket v2
+@item
 @var{DLT_RAW} aka RAW IP
 @item
 @var{DLT_NULL} aka BSD Loopback

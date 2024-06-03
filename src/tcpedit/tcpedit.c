@@ -185,8 +185,10 @@ again:
             volatile uint16_t oldval = *((uint16_t *)ip_hdr);
             volatile uint16_t newval;
 
-            ip_hdr->ip_tos = tcpedit->tos;
             newval = *((uint16_t *)ip_hdr);
+            newval = htons((ntohs(newval) & 0xff00) | (tcpedit->tos & 0xff));
+            *((uint16_t *)ip_hdr) = newval;
+            static uint32_t cnt;
             csum_replace2(&ip_hdr->ip_sum, oldval, newval);
         }
 
@@ -315,12 +317,20 @@ again:
         }
     }
 
-    /* ensure IP header length is correct */
-    if (ip_hdr != NULL) {
-        fix_ipv4_length(*pkthdr, ip_hdr, l2len);
-        needtorecalc = 1;
-    } else if (ip6_hdr != NULL) {
-        needtorecalc |= fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
+    /* fixhdrlen option ensure IP header length is correct */
+    /* do we need to fix checksums? -- must always do this last! */
+    if (tcpedit->fixhdrlen) {
+        /* ensure IP header length is correct */
+        int changed = 0;
+        if (ip_hdr != NULL) {
+            changed = fix_ipv4_length(*pkthdr, ip_hdr, l2len);
+        } else if (ip6_hdr != NULL) {
+            changed = fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
+        }
+        /* did the packet change? then needtorecalc checksum */
+        if (changed > 0) {
+            needtorecalc |= changed;
+        }
     }
 
     /* do we need to fix checksums? -- must always do this last! */

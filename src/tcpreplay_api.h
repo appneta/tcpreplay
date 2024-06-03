@@ -33,6 +33,10 @@
 #ifdef ENABLE_DMALLOC
 #include <dmalloc.h>
 #endif
+#ifdef HAVE_LIBXDP
+#include <xdp/xsk.h>
+#include <sys/mman.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,6 +103,7 @@ typedef struct tcpreplay_opt_s {
     tcpreplay_speed_t speed;
     COUNTER loop;
     u_int32_t loopdelay_ms;
+    u_int32_t loopdelay_ns;
 
     int stats;
     bool use_pkthdr_len;
@@ -144,6 +149,10 @@ typedef struct tcpreplay_opt_s {
     int netmap_delay;
 #endif
 
+#ifdef HAVE_LIBXDP
+    int xdp;
+#endif
+
     /* print flow statistic */
     bool flow_stats;
     int flow_expiry;
@@ -177,6 +186,9 @@ typedef struct tcpreplay_s {
     struct timespec nap;
     uint32_t skip_packets;
     bool first_time;
+
+    /* fix header length */
+    bool fixhdrlen;
 
     /* counter stats */
     tcpreplay_stats_t stats;
@@ -256,8 +268,8 @@ int tcpreplay_set_manual_callback(tcpreplay_t *ctx, tcpreplay_manual_callback);
 COUNTER tcpreplay_get_pkts_sent(tcpreplay_t *ctx);
 COUNTER tcpreplay_get_bytes_sent(tcpreplay_t *ctx);
 COUNTER tcpreplay_get_failed(tcpreplay_t *ctx);
-const struct timeval *tcpreplay_get_start_time(tcpreplay_t *ctx);
-const struct timeval *tcpreplay_get_end_time(tcpreplay_t *ctx);
+const struct timespec *tcpreplay_get_start_time(tcpreplay_t *ctx);
+const struct timespec *tcpreplay_get_end_time(tcpreplay_t *ctx);
 
 int tcpreplay_set_verbose(tcpreplay_t *, bool);
 int tcpreplay_set_tcpdump_args(tcpreplay_t *, char *);
@@ -272,6 +284,10 @@ int tcpreplay_set_tcpdump(tcpreplay_t *, tcpdump_t *);
 void __tcpreplay_seterr(tcpreplay_t *ctx, const char *func, const int line, const char *file, const char *fmt, ...);
 void tcpreplay_setwarn(tcpreplay_t *ctx, const char *fmt, ...);
 
+#ifdef HAVE_LIBXDP
+void delete_xsk_socket(struct xsk_socket *xsk);
+void free_umem_and_xsk(sendpacket_t *sp);
+#endif
 #ifdef __cplusplus
 }
 #endif

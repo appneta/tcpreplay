@@ -91,7 +91,7 @@ main(int argc, char *argv[])
 
 readpcap:
     /* open the pcap file */
-    if ((options->pcap = pcap_open_offline(OPT_ARG(PCAP), errbuf)) == NULL) {
+    if ((options->pcap = tcpr_pcap_open(OPT_ARG(PCAP), errbuf)) == NULL) {
         close(out_file);
         tcpprep_close(tcpprep);
         errx(-1, "Error opening libpcap: %s", errbuf);
@@ -108,6 +108,7 @@ readpcap:
     switch (pcap_datalink(options->pcap)) {
     case DLT_EN10MB:
     case DLT_LINUX_SLL:
+    case DLT_LINUX_SLL2:
     case DLT_RAW:
     case DLT_C_HDLC:
     case DLT_JUNIPER_ETHER:

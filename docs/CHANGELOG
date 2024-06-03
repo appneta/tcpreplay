@@ -1,3 +1,22 @@
+06/02/2024 Version 4.5.0-beta1
+    - fix nansecond timestamp regression bug (#863)
+    - autotools - AC_HELP_STRING is obsolete in 2.70 (#856)
+    - configure.ac: do not run conftest in case of cross compilation (#849)
+    - Haiku support (#847)
+    - --fixhdrlen option added to control action on packet length changes (#846)
+    - incorrect checksum for certain IPv4 packets - fixed by #846 (#844)
+    - add check for IPv6 extension header length (#827 #842)
+    - GitHub template for pull requests (#839)
+    - handle IPv6 fragment extension header (#832 #837)
+    - Infinite loop in tcprewrite at get.c (#827 #842)
+    - add check for empty CIDR (#824 #843)
+    - AF_XDF socket extension (#822 #823)
+    - configure.ac: unify search dirs for pcap and add lib32 (#819)
+    - dlt_jnpr_ether_cleanup: check config before cleanup (#812 #851)
+    - nanosecond timestamps (#796)
+    - low PPS values run at full speed after several days (#779)
+    - create DLT_LINUX_SLL2 plugin (#727)
+
 06/04/2023 Version 4.4.4
     - overflow check fix for parse_mpls (#795)
     - tcpreplay-edit: prevent L2 flooding of ipv6 unicast packets (#793)

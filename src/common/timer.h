@@ -112,6 +112,33 @@ void timesdiv_float(struct timespec *tvs, float div);
     } while (0)
 #endif
 
+/* add tvp and uvp and store in vvp */
+#ifndef timeradd_timespec
+#define timeradd_timespec(tvp, uvp, vvp)                                                                               \
+    do {                                                                                                               \
+        (vvp)->tv_sec = (tvp)->tv_sec + (uvp)->tv_sec;                                                                 \
+        (vvp)->tv_nsec = (tvp)->tv_nsec + (uvp)->tv_nsec;                                                              \
+        if ((vvp)->tv_nsec >= 1000000000) {                                                                            \
+            (vvp)->tv_sec++;                                                                                           \
+            (vvp)->tv_nsec -= 1000000000;                                                                              \
+        }                                                                                                              \
+    } while (0)
+#endif
+
+/* add tvp and uvp and store in vvp */
+#ifndef timeradd_timeval_timespec
+#define timeradd_timeval_timespec(tvp, uvp, vvp)                                                                       \
+    do {                                                                                                               \
+        (vvp)->tv_sec = (tvp)->tv_sec + (uvp)->tv_sec;                                                                 \
+        (vvp)->tv_nsec = (tvp)->tv_nsec + (uvp)->tv_usec * 1000;                                                       \
+        if ((vvp)->tv_nsec >= 1000000000) {                                                                            \
+            int seconds = (vvp)->tv_nsec % 1000000000;                                                                 \
+            (vvp)->tv_sec += seconds;                                                                                  \
+            (vvp)->tv_nsec -= 1000000000 * seconds;                                                                    \
+        }                                                                                                              \
+    } while (0)
+#endif
+
 /* subtract uvp from tvp and store in vvp */
 #ifndef timersub
 #define timersub(tvp, uvp, vvp)                                                                                        \
@@ -150,4 +177,5 @@ void timesdiv_float(struct timespec *tvs, float div);
 
 typedef struct timeval timestamp_t;
 
-void init_timestamp(timestamp_t *ctx);
+void init_timestamp(struct timespec *timestamp);
+int get_current_time(struct timespec *timestamp);

@@ -25,8 +25,10 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
-		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
-		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
+		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs \
+		test.rewrite_1ttl test.rewrite_2ttl test.rewrite_3ttl \
+		test.rewrite_1ttl-hdrfix test.rewrite_2ttl-hdrfix test.rewrite_3ttl-hdrfix \
+		test.rewrite_enet_subsmac \
 		test.rewrite_mtutrunc test.rewrite_mac_seed test.rewrite_range_portmap \
 		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing test.rewrite_sequence test.rewrite_fixcsum \
 		test.rewrite_fixlen_pad test.rewrite_fixlen_trunc test.rewrite_fixlen_del \
@@ -34,9 +36,11 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
-		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
+		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs \
+		test2.rewrite_1ttl test2.rewrite_2ttl test2.rewrite_3ttl \
+		test2.rewrite_1ttl-hdrfix test2.rewrite_2ttl-hdrfix test2.rewrite_3ttl-hdrfix \
 		test2.rewrite_mtutrunc test2.rewrite_enet_subsmac \
-		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos \
+		 test.rewrite_tos test2.rewrite_tos \
 		test2.rewrite_enet_subsmac test2.rewrite_mac_seed \
 		test2.rewrite_range_portmap test2.rewrite_mac_seed_keep \
 		test2.rewrite_l7fuzzing test2.rewrite_sequence test2.rewrite_fixcsum \
@@ -125,6 +129,9 @@ standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_1ttl-hdrfix --ttl=59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_2ttl-hdrfix --ttl=+59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_3ttl-hdrfix --ttl=-59 --fixhdrlen
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
@@ -175,6 +182,9 @@ standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_1ttl-hdrfix --ttl=59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_2ttl-hdrfix --ttl=+59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_3ttl-hdrfix --ttl=-59 --fixhdrlen
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
@@ -191,12 +201,13 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc \
-	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs rewrite_1ttl rewrite_2ttl rewrite_3ttl \
+	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
+	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_1ttl-hdrfix rewrite_2ttl-hdrfix rewrite_3ttl-hdrfix \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del
 
-tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
+tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
 	replay_stats replay_dualfile replay_maxsleep
 
@@ -342,6 +353,12 @@ replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Basic test: " >> test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t $(TEST_PCAP) >> test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_nano_timer:
+	$(PRINTF) "%s" "[tcpreplay] Nano timer test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Nano timer test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --loop=2 --loopdelay-ns=125000000 -t $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_cache:
@@ -631,6 +648,39 @@ else
 	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+rewrite_1ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Force TTL with header fix: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Force TTL header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=59 --fixhdrlen >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_2ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Increase TTL with header fix:"
+	$(PRINTF) "%s\n" "*** [tcprewrite] Increase TTL with header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=+59 --fixhdrlen  >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_3ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Reduce TTL with header fix: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Reduce TTL with header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=-59 --fixhdrlen  >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
 
 rewrite_tos:
 	$(PRINTF) "%s" "[tcprewrite] TOS test: "
