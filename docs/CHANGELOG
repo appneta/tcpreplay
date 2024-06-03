@@ -12,6 +12,7 @@
     - add check for empty CIDR (#824 #843)
     - AF_XDF socket extension (#822 #823)
     - configure.ac: unify search dirs for pcap and add lib32 (#819)
+    - double free in tcpedit_dlt_cleanup in tcprewrite (#813 #855)
     - dlt_jnpr_ether_cleanup: check config before cleanup (#812 #851)
     - nanosecond timestamps (#796)
     - low PPS values run at full speed after several days (#779)
