@@ -26,6 +26,7 @@
 #include "defines.h"
 #include "config.h"
 #include "common.h"
+#include "utils.h"
 #include <stdlib.h>
 
 #ifndef HAVE_PCAPNAV
@@ -52,7 +53,7 @@ pcapnav_open_offline(const char *filename)
         err(-1, "malloc() error: unable to malloc pcapnav_t");
     }
 
-    pcapnav->pcap = pcap_open_offline(filename, errbuf);
+    pcapnav->pcap = tcpr_pcap_open(filename, errbuf);
     if (pcapnav->pcap == NULL) {
         errx(-1, "Error opening pcap file %s: %s", filename, errbuf);
     }
