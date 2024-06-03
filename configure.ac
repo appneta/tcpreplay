@@ -967,7 +967,7 @@ cat >conftest.c <<EOF
 EOF
 ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LPCAPLIB \
     conftest.c $LIBS >/dev/null 2>&1
-if test -x conftest ; then
+if test -x conftest -a "$cross_compiling" != "yes"; then
     full_libpcap_version=$(LD_LIBRARY_PATH="$LPCAP_LD_LIBRARY_PATH" ./conftest)
     libpcap_version=$(echo "$full_libpcap_version" | ${CUT} -d' ' -f3)
     pcap_version_ok=yes
@@ -1819,7 +1819,7 @@ case "$host_os" in
 EOF
         ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS \
             conftest.c $LIBS >/dev/null 2>&1
-        if test ! -x conftest ; then
+        if test ! -x conftest -o "$cross_compiling" = "yes" ; then
             dnl failed to compile for some reason
             unaligned_cv_fail=yes
         else
