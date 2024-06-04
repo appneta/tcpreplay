@@ -64,9 +64,7 @@ dlt_jnpr_ether_register(tcpeditdlt_t *ctx)
     plugin = tcpedit_dlt_newplugin();
 
     plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-    plugin->
-        requires
-    = 0;
+    plugin->requires = 0;
 
     /* what is our DLT value? */
     plugin->dlt = dlt_value;
