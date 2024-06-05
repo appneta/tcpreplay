@@ -195,6 +195,8 @@ readpcap:
     /* close cache file */
     close(out_file);
 
+    regfree(&tcpprep->options->preg);
+
     tcpprep_close(tcpprep);
 
     restore_stdin();
