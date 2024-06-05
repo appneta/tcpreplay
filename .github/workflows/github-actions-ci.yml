@@ -18,7 +18,7 @@ jobs:
       - name: Create configure script
         run: ./autogen.sh
       - name: configure
-        run: ./configure --with-testnic=eth0 --disable-local-libopts
+        run: ./configure --with-testnic=eth0 --disable-local-libopts --enable-asan
       - name: make
         run: make
       - name: make dist
