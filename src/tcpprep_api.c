@@ -91,6 +91,14 @@ tcpprep_close(tcpprep_t *ctx)
         cidr = cidr_nxt;
     }
 
+    if (options->xX.list)
+        free_list(options->xX.list);
+
+    if (options->xX.cidr)
+        safe_free(options->xX.cidr);
+
+    regfree(&options->preg);
+
     safe_free(options);
 
     safe_free(ctx->outfile);
