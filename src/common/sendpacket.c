@@ -133,9 +133,6 @@
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#ifdef HAVE_SYS_SYSCTL_H
-#include <sys/sysctl.h>
-#endif
 #ifdef HAVE_NET_ROUTE_H
 #include <net/route.h>
 #endif
@@ -579,7 +576,7 @@ sendpacket_open(const char *device,
 #ifdef HAVE_LIBXDP
             if (sendpacket_type == SP_TYPE_LIBXDP)
                 sp = sendpacket_open_xsk(device, errbuf);
-            } else
+            else
 #endif
 #if defined HAVE_PF_PACKET
                 sp = sendpacket_open_pf(device, errbuf);
