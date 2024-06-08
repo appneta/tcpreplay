@@ -519,9 +519,9 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     }
 
     /* newl2len for some other DLT -> ethernet */
-    else if (config->vlan == TCPEDIT_VLAN_ADD) {
-        /* if add a vlan then 18, */
-        newl2len = TCPR_802_1Q_H;
+    else {
+        newl2len = config->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_802_3_H;
+        oldl2len = ctx->l2len;
     }
 
     if ((uint32_t)pktlen < newl2len || pktlen + newl2len - ctx->l2len > MAXPACKET) {
@@ -555,7 +555,6 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     /* update the total packet length */
     pktlen += (int)(newl2len - oldl2len);
-    ctx->l2len += (int)(newl2len - oldl2len);
 
     /* set the src & dst address as the first 12 bytes */
     eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
@@ -663,6 +662,11 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             eth->ether_shost[0] &= ~(0x01 * unicast_src);
             eth->ether_dhost[0] &= ~(0x01 * unicast_dst);
         }
+    }
+
+    if (newl2len == TCPR_802_3_H) {
+        /* all we need for 802.3 is the proto */
+        eth->ether_type = ctx->proto;
     }
 
     if (config->vlan == TCPEDIT_VLAN_ADD || (config->vlan == TCPEDIT_VLAN_OFF && extra->vlan)) {
@@ -812,7 +816,7 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen, u_char *i
     if (l2len == -1 || pktlen < l2len)
         return NULL;
 
-    assert(ctx->decoded_extra_size == sizeof(*extra));
+    assert(ctx->decoded_extra_size >= sizeof(*extra));
     extra = (en10mb_extra_t *)ctx->decoded_extra;
     eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
     assert(eth);

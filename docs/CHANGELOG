@@ -16,7 +16,9 @@
     - configure.ac: unify search dirs for pcap and add lib32 (#819)
     - CVE-2023-4256 double free in tcprewrite DLT_JUNIPER_ETHER (#813 #851)
     - dlt_jnpr_ether_cleanup: check config before cleanup (#812 #851)
-    - nanosecond timestamps (#796)
+    - SEGV on invalid Juniper Ethernet header length (#811)
+    - nanosecond timestamps support (#796)
+    - Linux cooked packet fatal error (#792)
     - low PPS values run at full speed after several days (#779)
     - create DLT_LINUX_SLL2 plugin (#727)
 
