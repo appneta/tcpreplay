@@ -302,6 +302,13 @@ dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     memcpy(&jnpr_hdr_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
 
     jnpr_hdr_len = ntohs(jnpr_hdr_len) + JUNIPER_ETHER_HEADER_LEN;
+    if (jnpr_hdr_len > pktlen) {
+        tcpedit_seterr(ctx->tcpedit,
+                       "Juniper header length %d invalid: it is greater than packet length %d",
+                       jnpr_hdr_len, pktlen);
+        return TCPEDIT_ERROR;
+    }
+
     ethernet = packet + jnpr_hdr_len;
 
     /* let the en10mb plugin do the rest of the work */
