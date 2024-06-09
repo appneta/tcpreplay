@@ -1,4 +1,4 @@
-06/08/2024 Version 4.5.0-beta1
+06/08/2024 Version 4.5.0-beta2
     - memory leak in tcpprep when using include/exclude (#869)
     - memory leak in tcpprep when using RegEx (#867)
     - fix nanosecond timestamp regression bug (#863)

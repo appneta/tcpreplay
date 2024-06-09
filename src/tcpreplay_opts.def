@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -27,7 +27,7 @@ copyright = {
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2022 Fred Klassen - AppNeta
+Copyright 2013-2024 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -650,7 +650,7 @@ flag = {
     fprintf(stderr, " (timestamp-trace)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2022 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2024 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");  
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
@@ -695,6 +695,11 @@ flag = {
     fprintf(stderr, "Optional injection method: netmap\n");
 #else
     fprintf(stderr, "Not compiled with netmap\n");
+#endif
+#ifdef HAVE_LIBXDP
+    fprintf(stderr, "Optional injection method: AF_XDP\n");
+#else
+    fprintf(stderr, "Not compiled with AF_XDP\n");
 #endif
     exit(0);
 
