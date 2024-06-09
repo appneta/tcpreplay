@@ -347,10 +347,11 @@ get_l2len_protocol(const u_char *pktdata,
         uint16_t ether_type;
         uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
 
-        if (datalen <= l2_net_off) {
-            warnx("%s (0x%x): Need at least 4 bytes for DLT_EN10MB but only %u available",
+        if (datalen <= l2_net_off + 4) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_EN10MB but only %u available",
                   pcap_datalink_val_to_description(datalink),
                   datalink,
+                  l2_net_off + 4,
                   datalen);
             return -1;
         }
@@ -361,23 +362,19 @@ get_l2len_protocol(const u_char *pktdata,
             return -1;
 
         *l2len = l2_net_off;
-        if (ether_type > 1500) {
+        if (ether_type >= 1536) {
             /* Ethernet II frame - return in host order */
             *protocol = ether_type;
+        } else if (ether_type > 1500) {
+            warnx("%s (0x%x): unsupported 802.3 length %u",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  ether_type);
+            return -1;
         } else {
             /* 803.3 frame */
-            if ((pktdata[l2_net_off] >> 4) == 4) {
-                *protocol = ETHERTYPE_IP;
-            } else if ((pktdata[l2_net_off] >> 4) == 6) {
-                *protocol = ETHERTYPE_IP6;
-            } else {
-                /* unsupported 802.3 protocol */
-                warnx("%s (0x%x): unsupported 802.3 protocol %u",
-                      pcap_datalink_val_to_description(datalink),
-                      datalink,
-                      ether_type);
-                return -1;
-            }
+            /* we don't modify 802.3 protocols */
+            return -1;
         }
         break;
     }
