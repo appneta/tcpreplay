@@ -103,8 +103,12 @@ parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uin
 
     /* move over MPLS labels until we get to the last one */
     while (!bos) {
-        if (pktdata + len + sizeof(*mpls_label) > end_ptr)
+        if (pktdata + len + sizeof(*mpls_label) > end_ptr) {
+            warnx("parse_mpls: Need at least %zu bytes for MPLS header but only %u available",
+                  sizeof(*mpls_label) + len,
+                  datalen);
             return -1;
+        }
 
         mpls_label = (struct tcpr_mpls_label *)(pktdata + len);
         len += sizeof(*mpls_label);
@@ -117,8 +121,12 @@ parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uin
         }
     }
 
-    if ((u_char *)(mpls_label + 1) + 1 > end_ptr)
+    if ((u_char *)(mpls_label + 1) + 1 > end_ptr) {
+        warnx("parse_mpls: Need at least %zu bytes for MPLS label but only %u available",
+              sizeof(*mpls_label) + 1,
+              datalen);
         return -1;
+    }
 
     first_nibble = *((u_char *)(mpls_label + 1)) >> 4;
     switch (first_nibble) {
@@ -132,8 +140,12 @@ parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uin
         /* EoMPLS - jump over PW Ethernet Control Word and handle
          * inner Ethernet header
          */
-        if (pktdata + len + 4 + sizeof(*eth_hdr) > end_ptr)
+        if (pktdata + len + 4 + sizeof(*eth_hdr) > end_ptr) {
+            warnx("parse_mpls: Need at least %zu bytes for EoMPLS header but only %u available",
+                  sizeof(*eth_hdr) + len + 4,
+                  datalen);
             return -1;
+        }
 
         len += 4;
         *l2offset = len;
@@ -142,7 +154,7 @@ parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uin
         *next_protocol = ntohs(eth_hdr->ether_type);
         break;
     default:
-        /* suspect Generic Associated Channel Header */
+        warn("parse_mpls:suspect Generic Associated Channel Header");
         return -1;
     }
 
@@ -165,9 +177,10 @@ int
 parse_vlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len)
 {
     vlan_hdr_t *vlan_hdr;
-    if ((size_t)datalen < *l2len + sizeof(*vlan_hdr))
+    if ((size_t)datalen < *l2len + sizeof(*vlan_hdr)) {
+        warnx("parse_vlan: Need at least %zu bytes for VLAN header but only %u available", sizeof(*vlan_hdr), datalen);
         return -1;
-
+    }
     vlan_hdr = (vlan_hdr_t *)(pktdata + *l2len);
     *next_protocol = ntohs(vlan_hdr->vlan_tpid);
     *l2len += sizeof(vlan_hdr_t);
@@ -277,19 +290,29 @@ get_l2len_protocol(const u_char *pktdata,
             *protocol = ETHERTYPE_IP6;
         break;
     case DLT_JUNIPER_ETHER:
-        if (datalen < 4)
+        if (datalen < 4) {
+            warnx("%s (0x%x): Need at least 4 bytes for DLT_JUNIPER_ETHER but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  datalen);
             return -1;
+        }
 
         if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3) != 0) {
-            warnx("No Magic Number found during protocol lookup: %s (0x%x)",
+            warnx("%s (0x%x): No JUNIPER_PCAP_MAGIC Magic Number found during protocol lookup",
                   pcap_datalink_val_to_description(datalink),
                   datalink);
             return -1;
         }
 
         if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
-            if (datalen < 6)
+            if (datalen < 6) {
+                warnx("%s (0x%x): Need at least 6 bytes for JUNIPER_FLAG_EXT but only %u available",
+                      pcap_datalink_val_to_description(datalink),
+                      datalink,
+                      datalen);
                 return -1;
+            }
 
             *l2offset = ntohs(*((uint16_t *)&pktdata[4]));
             *l2offset += 6; /* MGC + flags + ext_total_len */
@@ -300,8 +323,15 @@ get_l2len_protocol(const u_char *pktdata,
         if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
             /* no L2 header present - *l2offset is actually IP offset */
             uint32_t ip_hdr_offset = *l2offset;
-            if (datalen < ip_hdr_offset + 1)
+            uint32_t hdrSpaceNeeded = ip_hdr_offset + 1;
+            if (datalen < hdrSpaceNeeded) {
+                warnx("%s (0x%x): Need at least %u bytes for JUNIPER_FLAG_NO_L2 but only %u available",
+                      pcap_datalink_val_to_description(datalink),
+                      hdrSpaceNeeded,
+                      datalink,
+                      datalen);
                 return -1;
+            }
 
             if ((pktdata[ip_hdr_offset] >> 4) == 4)
                 *protocol = ETHERTYPE_IP;
@@ -317,36 +347,46 @@ get_l2len_protocol(const u_char *pktdata,
         uint16_t ether_type;
         uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
 
-        if (datalen <= l2_net_off)
+        if (datalen <= l2_net_off + 4) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_EN10MB but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  l2_net_off + 4,
+                  datalen);
             return -1;
+        }
 
         eth_hdr = (eth_hdr_t *)(pktdata + *l2offset);
         ether_type = ntohs(eth_hdr->ether_type);
         if (parse_metadata(pktdata, datalen, &ether_type, &l2_net_off, l2offset, vlan_offset))
             return -1;
 
-        if (datalen <= l2_net_off)
-            return -1;
-
         *l2len = l2_net_off;
-        if (ether_type > 1500) {
+        if (ether_type >= 1536) {
             /* Ethernet II frame - return in host order */
             *protocol = ether_type;
+        } else if (ether_type > 1500) {
+            warnx("%s (0x%x): unsupported 802.3 length %u",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  ether_type);
+            return -1;
         } else {
             /* 803.3 frame */
-            if ((pktdata[l2_net_off] >> 4) == 4)
-                *protocol = ETHERTYPE_IP;
-            else if ((pktdata[l2_net_off] >> 4) == 6)
-                *protocol = ETHERTYPE_IP6;
-            else
-                /* unsupported 802.3 protocol */
-                return -1;
+            /* we don't modify 802.3 protocols */
+            return -1;
         }
         break;
     }
     case DLT_PPP_SERIAL:
-        if ((size_t)datalen < sizeof(struct tcpr_pppserial_hdr))
+        if ((size_t)datalen < sizeof(struct tcpr_pppserial_hdr)) {
+            warnx("%s (0x%x): Need at least %zu bytes for DLT_PPP_SERIAL but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  sizeof(struct tcpr_pppserial_hdr),
+                  datalen);
             return -1;
+        }
 
         struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr *)pktdata;
         *l2len = sizeof(*ppp);
@@ -357,24 +397,42 @@ get_l2len_protocol(const u_char *pktdata,
 
         break;
     case DLT_C_HDLC:
-        if (datalen < CISCO_HDLC_LEN)
+        if (datalen < CISCO_HDLC_LEN) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_C_HDLC but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  CISCO_HDLC_LEN,
+                  datalen);
             return -1;
+        }
 
         hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t *)pktdata;
         *l2len = sizeof(*hdlc_hdr);
         *protocol = ntohs(hdlc_hdr->protocol);
         break;
     case DLT_LINUX_SLL:
-        if (datalen < SLL_HDR_LEN)
+        if (datalen < SLL_HDR_LEN) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_LINUX_SLL but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  SLL_HDR_LEN,
+                  datalen);
             return -1;
+        }
 
         *l2len = SLL_HDR_LEN;
         sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
         *protocol = ntohs(sll_hdr->sll_protocol);
         break;
     case DLT_LINUX_SLL2:
-        if (datalen < SLL2_HDR_LEN)
+        if (datalen < SLL2_HDR_LEN) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_LINUX_SLL2 but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  SLL2_HDR_LEN,
+                  datalen);
             return -1;
+        }
 
         *l2len = SLL2_HDR_LEN;
         sll2_hdr_t *sll2_hdr = (sll2_hdr_t *)pktdata;

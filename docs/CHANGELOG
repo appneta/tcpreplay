@@ -11,6 +11,7 @@
     - incorrect checksum for certain IPv4 packets - fixed by #846 (#844)
     - add check for IPv6 extension header length (#827 #842)
     - GitHub template for pull requests (#839)
+    - improved 802.3 (Ethernet I) handling and warning messages (#835)
     - handle IPv6 fragment extension header (#832 #837)
     - Linux tap interfaces fail intermittently (#828)
     - Infinite loop in tcprewrite at get.c (#827 #842)

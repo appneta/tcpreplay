@@ -94,7 +94,7 @@ again:
     ipflags = 0;
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
     if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (int)(*pkthdr)->caplen)) < 0) {
-        dbgx(2, "Packet has no L3+ header: %s", tcpedit_geterr(tcpedit));
+        dbgx(2, "Packet " COUNTER_SPEC " has no L3+ header: %s", tcpedit->runtime.packetnum, tcpedit_geterr(tcpedit));
         return TCPEDIT_SOFT_ERROR;
     } else {
         dbgx(2, "Layer 3 protocol type is: 0x%04x", ntohs(l2proto));

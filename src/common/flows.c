@@ -157,8 +157,13 @@ static inline flow_entry_type_t hash_put_data(flow_hash_table_t *fht, const uint
 /*
  * Decode the packet, study it's flow status and report
  */
-flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *pkthdr,
-        const u_char *pktdata, const int datalink, const int expiry)
+flow_entry_type_t
+flow_decode(flow_hash_table_t *fht,
+            const struct pcap_pkthdr *pkthdr,
+            const u_char *pktdata,
+            const int datalink,
+            const int expiry,
+            COUNTER packetnum)
 {
     uint32_t pkt_len = pkthdr->caplen;
     const u_char *packet = pktdata;
@@ -195,30 +200,52 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
                              &vlan_offset);
 
     if (res == -1) {
-        warnx("Unable to process unsupported DLT type: %s (0x%x)",
-              pcap_datalink_val_to_description(datalink), datalink);
+        warnx("flow_decode failed to determine %s header length for packet " COUNTER_SPEC "",
+              pcap_datalink_val_to_description(datalink),
+              packetnum);
         return FLOW_ENTRY_INVALID;
     }
 
     if (ether_type == ETHERTYPE_IP) {
-        if (pkt_len < l2len + sizeof(ipv4_hdr_t))
-                return FLOW_ENTRY_INVALID;
+        size_t required_len = sizeof(ipv4_hdr_t) + l2len;
+        if (pkt_len < required_len) {
+            warnx("flow_decode: packet " COUNTER_SPEC " needs at least %zd bytes for IPv4 header but only %d available",
+                  packetnum,
+                  required_len,
+                  pkt_len);
+            return FLOW_ENTRY_INVALID;
+        }
 
         ip_hdr = (ipv4_hdr_t *)(packet + l2len);
 
-        if (ip_hdr->ip_v != 4)
+        if (ip_hdr->ip_v != 4) {
+            warnx("flow_decode: packet " COUNTER_SPEC " IPv4 header version should be 4 but instead is %u",
+                  packetnum,
+                  ip_hdr->ip_v);
             return FLOW_ENTRY_NON_IP;
+        }
 
         ip_len = ip_hdr->ip_hl * 4;
         protocol = ip_hdr->ip_p;
         entry.src_ip.in = ip_hdr->ip_src;
         entry.dst_ip.in = ip_hdr->ip_dst;
     } else if (ether_type == ETHERTYPE_IP6) {
-        if (pkt_len < l2len + sizeof(ipv6_hdr_t))
-                return FLOW_ENTRY_INVALID;
+        size_t required_len = sizeof(ipv6_hdr_t) + l2len;
+        if (pkt_len < required_len) {
+            warnx("flow_decode: packet " COUNTER_SPEC " needs at least %zd bytes for IPv6 header but only %d available",
+                  packetnum,
+                  required_len,
+                  pkt_len);
+            return FLOW_ENTRY_INVALID;
+        }
 
-        if ((packet[0] >> 4) != 6)
+        uint8_t ip6_version = packet[0] >> 4;
+        if (ip6_version != 6) {
+            warnx("flow_decode: packet " COUNTER_SPEC " IPv6 header version should be 6 but instead is %u",
+                  packetnum,
+                  ip6_version);
             return FLOW_ENTRY_NON_IP;
+        }
 
         ip6_hdr = (ipv6_hdr_t *)(packet + l2len);
         ip_len = sizeof(*ip6_hdr);
@@ -238,30 +265,50 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht, const struct pcap_pkthdr *
     entry.protocol = protocol;
 
     switch (protocol) {
-    case IPPROTO_UDP:
-        if (pkt_len < (l2len + ip_len + sizeof(udp_hdr_t)))
+    case IPPROTO_UDP: {
+        size_t required_len = sizeof(udp_hdr_t) + l2len + ip_len;
+        if (pkt_len < required_len) {
+            warnx("flow_decode: packet " COUNTER_SPEC " needs at least %zd bytes for UDP header but only %d available",
+                  packetnum,
+                  required_len,
+                  pkt_len);
             return FLOW_ENTRY_INVALID;
-        udp_hdr = (udp_hdr_t*)(packet + ip_len + l2len);
+        }
+        udp_hdr = (udp_hdr_t *)(packet + ip_len + l2len);
         entry.src_port = udp_hdr->uh_sport;
         entry.dst_port = udp_hdr->uh_dport;
         break;
-
-    case IPPROTO_TCP:
-        if (pkt_len < (l2len + ip_len + sizeof(tcp_hdr_t)))
+    }
+    case IPPROTO_TCP: {
+        size_t required_len = sizeof(tcp_hdr_t) + l2len + ip_len;
+        if (pkt_len < required_len) {
+            warnx("flow_decode: packet " COUNTER_SPEC " needs at least %zd bytes for TCP header but only %d available",
+                  packetnum,
+                  required_len,
+                  pkt_len);
             return FLOW_ENTRY_INVALID;
-        tcp_hdr = (tcp_hdr_t*)(packet + ip_len + l2len);
+        }
+        tcp_hdr = (tcp_hdr_t *)(packet + ip_len + l2len);
         entry.src_port = tcp_hdr->th_sport;
         entry.dst_port = tcp_hdr->th_dport;
         break;
-
+    }
     case IPPROTO_ICMP:
-    case IPPROTO_ICMPV6:
-        if (pkt_len < (l2len + ip_len + sizeof(icmpv4_hdr_t)))
+    case IPPROTO_ICMPV6: {
+        size_t required_len = sizeof(icmpv4_hdr_t) + l2len + ip_len;
+        if (pkt_len < required_len) {
+            warnx("flow_decode: packet " COUNTER_SPEC " needs at least %zd bytes for %s header but only %d available",
+                  packetnum,
+                  required_len,
+                  (protocol == IPPROTO_ICMP) ? "ICMP" : "ICMPv6",
+                  pkt_len);
             return FLOW_ENTRY_INVALID;
-        icmp_hdr = (icmpv4_hdr_t*)(packet + ip_len + l2len);
+        }
+        icmp_hdr = (icmpv4_hdr_t *)(packet + ip_len + l2len);
         entry.src_port = icmp_hdr->icmp_type;
         entry.dst_port = icmp_hdr->icmp_code;
         break;
+    }
     default:
         entry.src_port = 0;
         entry.dst_port = 0;
