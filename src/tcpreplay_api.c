@@ -1400,3 +1400,37 @@ apply_loop_delay(tcpreplay_t *ctx) {
 
     return false;
 }
+
+#ifdef HAVE_LIBXDP
+void
+delete_xsk_socket(struct xsk_socket *xsk)
+{
+    size_t desc_sz = sizeof(struct xdp_desc);
+    struct xdp_mmap_offsets off;
+    socklen_t optlen;
+    int err;
+
+    if (!xsk) {
+        return;
+    }
+
+    optlen = sizeof(off);
+    err = getsockopt(xsk->fd, SOL_XDP, XDP_MMAP_OFFSETS, &off, &optlen);
+    if (!err) {
+        if (xsk->rx) {
+            munmap(xsk->rx->ring - off.rx.desc, off.rx.desc + xsk->config.rx_size * desc_sz);
+        }
+        if (xsk->tx) {
+            munmap(xsk->tx->ring - off.tx.desc, off.tx.desc + xsk->config.tx_size * desc_sz);
+        }
+    }
+    close(xsk->fd);
+}
+
+void
+free_umem_and_xsk(sendpacket_t *sp)
+{
+    xsk_umem__delete(sp->xsk_info->umem->umem);
+    delete_xsk_socket(sp->xsk_info->xsk);
+}
+#endif /*HAVE_LIBXDP*/

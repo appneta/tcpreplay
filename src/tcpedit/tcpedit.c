@@ -188,7 +188,6 @@ again:
             newval = *((uint16_t *)ip_hdr);
             newval = htons((ntohs(newval) & 0xff00) | (tcpedit->tos & 0xff));
             *((uint16_t *)ip_hdr) = newval;
-            static uint32_t cnt;
             csum_replace2(&ip_hdr->ip_sum, oldval, newval);
         }
 
