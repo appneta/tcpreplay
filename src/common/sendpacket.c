@@ -524,10 +524,6 @@ sendpacket_open(const char *device,
                 sendpacket_type_t sendpacket_type _U_,
                 void *arg _U_)
 {
-#ifdef HAVE_TUNTAP
-    char sys_dev_dir[128];
-    bool device_exists;
-#endif
     sendpacket_t *sp;
     struct stat sdata;
 
@@ -535,11 +531,6 @@ sendpacket_open(const char *device,
     assert(errbuf);
 
     errbuf[0] = '\0';
-
-#ifdef HAVE_TUNTAP
-    snprintf(sys_dev_dir, sizeof(sys_dev_dir), "/sys/class/net/%s/", device);
-    device_exists = access(sys_dev_dir, R_OK) == 0;
-#endif
 
     /* khial is universal */
     if (stat(device, &sdata) == 0) {
@@ -563,7 +554,7 @@ sendpacket_open(const char *device,
             }
         }
 #ifdef HAVE_TUNTAP
-    } else if (strncmp(device, "tap", 3) == 0 && !device_exists) {
+    } else if (strncmp(device, "tap", 3) == 0) {
         sp = sendpacket_open_tuntap(device, errbuf);
 #endif
     } else {
@@ -895,9 +886,12 @@ sendpacket_open_tuntap(const char *device, char *errbuf)
     strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name) - 1);
 
     if (ioctl(tapfd, TUNSETIFF, (void *)&ifr) < 0) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to create tuntap interface: %s", device);
-        close(tapfd);
-        return NULL;
+        // ignore EBUSY - it just means that the tunnel has already been opened
+        if (errno != EBUSY) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Unable to create tuntap interface: %s errno=%d", device, errno);
+            close(tapfd);
+            return NULL;
+        }
     }
 #elif defined(HAVE_FREEBSD)
     if (*device == '/') {

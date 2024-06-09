@@ -96,12 +96,6 @@ const char *tcpeditdlt_bit_info[] = {"Missing required Layer 3 protocol.",
  * Public functions
  ********************************************************************/
 
-/*
- * Ensure init/cleanup are called only once
- * Assume a single tcpedit struct and return the previously allocated context.
- */
-static int tcpedit_dlt_is_initialized = 0;
-
 /**
  * initialize our plugin library.  Pass the DLT of the source pcap handle.
  * Actions:
@@ -122,9 +116,6 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 
     assert(tcpedit);
     assert(srcdlt >= 0);
-
-    if (tcpedit_dlt_is_initialized++ > 0)
-        return tcpedit->dlt_ctx;
 
     ctx = (tcpeditdlt_t *)safe_malloc(sizeof(tcpeditdlt_t));
 
@@ -453,9 +444,6 @@ void
 tcpedit_dlt_cleanup(tcpeditdlt_t *ctx)
 {
     tcpeditdlt_plugin_t *plugin;
-
-    if (--tcpedit_dlt_is_initialized <= 0)
-        return;
 
     assert(ctx);
 
