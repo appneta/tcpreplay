@@ -1,4 +1,5 @@
 06/08/2024 Version 4.5.0-beta2
+    - AF_XDP compile issue due to merge issue (#876)
     - memory leak in tcpprep when using include/exclude (#869)
     - memory leak in tcpprep when using RegEx (#867)
     - fix nanosecond timestamp regression bug (#863)
@@ -14,7 +15,7 @@
     - Infinite loop in tcprewrite at get.c (#827 #842)
     - SLL incorrect size and protocol when converted to Ethernet (#826)
     - CVE-2023-43279 add check for empty CIDR (#824 #843)
-    - AF_XDF socket extension (#822 #823)
+    - AF_XDP socket extension (#822 #823)
     - configure.ac: unify search dirs for pcap and add lib32 (#819)
     - tcpreplay-edit recomputes IPv4 checksums unnecessarily (#815 #846)
     - CVE-2023-4256 double free in tcprewrite DLT_JUNIPER_ETHER (#813 #851)

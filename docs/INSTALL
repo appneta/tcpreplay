@@ -138,6 +138,7 @@ written to directly.
 This feature requires `libxdp-dev` and `libbpf-dev` packages to be installed.
 For example:
 
+    $ sudo apt install -y libxdp-dev libbpf-dev
     $ ./configure | tail
     Linux/BSD netmap:           no
     Tuntap device support:      yes
