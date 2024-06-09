@@ -1,7 +1,7 @@
-06/03/2024 Version 4.5.0-beta1
+06/08/2024 Version 4.5.0-beta1
     - memory leak in tcpprep when using include/exclude (#869)
     - memory leak in tcpprep when using RegEx (#867)
-    - fix nansecond timestamp regression bug (#863)
+    - fix nanosecond timestamp regression bug (#863)
     - autotools - AC_HELP_STRING is obsolete in 2.70 (#856)
     - configure.ac: do not run conftest in case of cross compilation (#849)
     - Haiku support (#847)
@@ -12,7 +12,7 @@
     - handle IPv6 fragment extension header (#832 #837)
     - Linux tap interfaces fail intermittently (#828)
     - Infinite loop in tcprewrite at get.c (#827 #842)
-    - SLL incorrect size and protocal when converted to Ethernet (#826)
+    - SLL incorrect size and protocol when converted to Ethernet (#826)
     - CVE-2023-43279 add check for empty CIDR (#824 #843)
     - AF_XDF socket extension (#822 #823)
     - configure.ac: unify search dirs for pcap and add lib32 (#819)
