@@ -50,6 +50,8 @@
 #include "defines.h"
 #include <stdlib.h>
 
+extern int print_warnings;
+
 #ifdef DEBUG
 extern int debug;
 #endif
@@ -84,12 +86,14 @@ void notice(const char *fmt, ...);
         fprintf(stderr, "DEBUG%d in %s:%s() line %d: " y "\n", x, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__); \
     } \
 } while(0)
-        
 
-#define warn(x) fprintf(stderr, "Warning in %s:%s() line %d:\n%s\n", __FILE__, __FUNCTION__, __LINE__, x)
+#define warn(x)                                                                                                        \
+        if (print_warnings)                                                                                            \
+            fprintf(stderr, "Warning in %s:%s() line %d:\n%s\n", __FILE__, __FUNCTION__, __LINE__, x)
 
-
-#define warnx(x, ...) fprintf(stderr, "Warning in %s:%s() line %d:\n" x "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define warnx(x, ...)                                                                                                  \
+    if (print_warnings)                                                                                                \
+    fprintf(stderr, "Warning in %s:%s() line %d:\n" x "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define err(x, y) do { \
         fprintf(stderr, "\nFatal Error in %s:%s() line %d:\n%s\n", __FILE__, __FUNCTION__, __LINE__, y); \

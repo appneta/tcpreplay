@@ -141,6 +141,9 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
         debug = OPT_VALUE_DBUG;
 #endif
 
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
+
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE)) {
         ctx->options->verbose = 1;

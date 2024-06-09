@@ -125,6 +125,9 @@ readpcap:
         err(-1, "MAC mode splitting is only supported by DLT_EN10MB packet captures.");
     }
 
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
+
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE)) {
         tcpdump_open(&tcpprep->tcpdump, options->pcap);
