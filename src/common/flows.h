@@ -38,4 +38,5 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht,
                               const struct pcap_pkthdr *pkthdr,
                               const u_char *pktdata,
                               const int datalink,
-                              const int expiry);
+                              const int expiry,
+                              COUNTER packetnum);

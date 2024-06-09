@@ -230,9 +230,11 @@ update_flow_stats(tcpreplay_t *ctx,
                   sendpacket_t *sp,
                   const struct pcap_pkthdr *pkthdr,
                   const u_char *pktdata,
-                  int datalink)
+                  int datalink,
+                  COUNTER packetnum)
 {
-    flow_entry_type_t res = flow_decode(ctx->flow_hash_table, pkthdr, pktdata, datalink, ctx->options->flow_expiry);
+    flow_entry_type_t res =
+            flow_decode(ctx->flow_hash_table, pkthdr, pktdata, datalink, ctx->options->flow_expiry, packetnum);
 
     switch (res) {
     case FLOW_ENTRY_NEW:
@@ -303,10 +305,13 @@ preload_pcap_file(tcpreplay_t *ctx, int idx)
         errx(-1, "Error opening pcap file: %s", ebuf);
 
     dlt = pcap_datalink(pcap);
+    COUNTER packetnum = 0;
     /* loop through the pcap.  get_next_packet() builds the cache for us! */
     while ((pktdata = get_next_packet(options, pcap, &pkthdr, idx, prev_packet)) != NULL) {
-        if (options->flow_stats)
-            update_flow_stats(ctx, NULL, &pkthdr, pktdata, dlt);
+        if (options->flow_stats) {
+            ++packetnum;
+            update_flow_stats(ctx, NULL, &pkthdr, pktdata, dlt, packetnum);
+        }
     }
 
     /* mark this file as cached */
@@ -429,7 +434,7 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         /* update flow stats */
         if (options->flow_stats && !preload)
-            update_flow_stats(ctx, options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
+            update_flow_stats(ctx, options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink, packetnum);
 
         /*
          * this accelerator improves performance by avoiding expensive
@@ -717,7 +722,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 
         /* update flow stats */
         if (options->flow_stats && !options->file_cache[cache_file_idx].cached)
-            update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink);
+            update_flow_stats(ctx, sp, pkthdr_ptr, pktdata, datalink, packetnum);
 
         /*
          * this accelerator improves performance by avoiding expensive
@@ -1310,7 +1315,7 @@ prepare_remaining_elements_of_batch(tcpreplay_t *ctx,
         sp->bytes_sent += pkthdr.len;
         stats->pkts_sent++;
         if (ctx->options->flow_stats && !preload) {
-            update_flow_stats(ctx, ctx->options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink);
+            update_flow_stats(ctx, ctx->options->cache_packets ? sp : NULL, &pkthdr, pktdata, datalink, *packetnum);
         }
     }
     if (pckt_count < sp->batch_size) {
