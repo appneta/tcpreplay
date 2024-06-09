@@ -50,6 +50,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int print_warnings = 1;
+
 /**
  * writes a notice message to stderr.  Always forces a newline
  */

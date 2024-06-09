@@ -22,7 +22,7 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2022";
+    date        = "2000-2024";
     owner       = "Aaron Turner and Fred Klassen";
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
@@ -717,5 +717,14 @@ flag = {
     USAGE(EXIT_FAILURE);
 
 EOHelp;
+    doc         = "";
+};
+
+flag = {
+    name        = suppress-warnings;
+    value       = w;
+    immediate;
+    descrip     = "suppress printing warning messages";
+    settable;
     doc         = "";
 };

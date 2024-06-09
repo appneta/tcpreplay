@@ -149,7 +149,8 @@ post_args(_U_ int argc, _U_ char *argv[])
     if (HAVE_OPT(DBUG))
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
-
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options.verbose = 1;

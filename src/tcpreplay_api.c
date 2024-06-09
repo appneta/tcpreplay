@@ -209,6 +209,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000 * 1000;
     }
 
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
+
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options->verbose = 1;
