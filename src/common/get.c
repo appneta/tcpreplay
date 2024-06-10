@@ -69,126 +69,6 @@ get_pcap_version(void)
 }
 
 /*
- * Advance L2 protocol and L2 length past any MPLS labels.
- * e.g. https://www.cloudshark.org/captures/20f210391b21
- *
- * If EoMPLS is detected, also advance L2 offset to point to the
- * encapsulated L2.
- * e.g. https://www.cloudshark.org/captures/b15412060b3d
- *
- * pktdata:       pointer to the raw packet
- * datalen:       number of bytes captured in the packet
- * next_protocol: reference to the next L2 protocol to be examined and possibly updated
- * l2len:         reference to the length of the L2 header discovered so far
- * l2offset:      reference to the offset to the start of the L2 header - typically 0
- *
- * return 0 on success, -1 on failure
- */
-int
-parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset)
-{
-    struct tcpr_mpls_label *mpls_label;
-    const u_char *end_ptr = pktdata + datalen;
-    u_char first_nibble;
-    eth_hdr_t *eth_hdr;
-    bool bos = false;
-    uint32_t label;
-    int len;
-
-    assert(next_protocol);
-    assert(l2len);
-    assert(l2offset);
-
-    len = (int)*l2len;
-
-    /* move over MPLS labels until we get to the last one */
-    while (!bos) {
-        if (pktdata + len + sizeof(*mpls_label) > end_ptr) {
-            warnx("parse_mpls: Need at least %zu bytes for MPLS header but only %u available",
-                  sizeof(*mpls_label) + len,
-                  datalen);
-            return -1;
-        }
-
-        mpls_label = (struct tcpr_mpls_label *)(pktdata + len);
-        len += sizeof(*mpls_label);
-        bos = (ntohl(mpls_label->entry) & MPLS_LS_S_MASK) != 0;
-        label = ntohl(mpls_label->entry) >> MPLS_LS_LABEL_SHIFT;
-        if (label == MPLS_LABEL_GACH) {
-            /* Generic Associated Channel Header */
-            warn("GACH MPLS label not supported at this time");
-            return -1;
-        }
-    }
-
-    if ((u_char *)(mpls_label + 1) + 1 > end_ptr) {
-        warnx("parse_mpls: Need at least %zu bytes for MPLS label but only %u available",
-              sizeof(*mpls_label) + 1,
-              datalen);
-        return -1;
-    }
-
-    first_nibble = *((u_char *)(mpls_label + 1)) >> 4;
-    switch (first_nibble) {
-    case 4:
-        *next_protocol = ETHERTYPE_IP;
-        break;
-    case 6:
-        *next_protocol = ETHERTYPE_IP6;
-        break;
-    case 0:
-        /* EoMPLS - jump over PW Ethernet Control Word and handle
-         * inner Ethernet header
-         */
-        if (pktdata + len + 4 + sizeof(*eth_hdr) > end_ptr) {
-            warnx("parse_mpls: Need at least %zu bytes for EoMPLS header but only %u available",
-                  sizeof(*eth_hdr) + len + 4,
-                  datalen);
-            return -1;
-        }
-
-        len += 4;
-        *l2offset = len;
-        eth_hdr = (eth_hdr_t *)(pktdata + len);
-        len += sizeof(*eth_hdr);
-        *next_protocol = ntohs(eth_hdr->ether_type);
-        break;
-    default:
-        warn("parse_mpls:suspect Generic Associated Channel Header");
-        return -1;
-    }
-
-    *l2len = (uint32_t)len;
-    return 0;
-}
-
-/*
- * Advance L2 protocol and L2 length past any VLAN tags.
- * e.g. https://www.cloudshark.org/captures/e4fa464563d2
- *
- * pktdata:       pointer to the raw packet
- * datalen:       number of bytes captured in the packet
- * next_protocol: reference to the next L2 protocol to be examined and possibly updated
- * l2len:         reference to the length of the L2 header discovered so far
- *
- * return 0 on success, -1 on failure
- */
-int
-parse_vlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len)
-{
-    vlan_hdr_t *vlan_hdr;
-    if ((size_t)datalen < *l2len + sizeof(*vlan_hdr)) {
-        warnx("parse_vlan: Need at least %zu bytes for VLAN header but only %u available", sizeof(*vlan_hdr), datalen);
-        return -1;
-    }
-    vlan_hdr = (vlan_hdr_t *)(pktdata + *l2len);
-    *next_protocol = ntohs(vlan_hdr->vlan_tpid);
-    *l2len += sizeof(vlan_hdr_t);
-
-    return 0;
-}
-
-/*
  * Loop through all non-protocol L2 headers while updating key variables
  *
  * pktdata:       pointer to the raw packet
@@ -200,47 +80,338 @@ parse_vlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uin
  *
  * return 0 on success, -1 on failure
  */
+//TODO: need to have a flag to stop at the first IP header or the last IP header.
 static int
-parse_metadata(const u_char *pktdata,
-               uint32_t datalen,
-               uint16_t *next_protocol,
-               uint32_t *l2len,
-               uint32_t *l2offset,
-               uint32_t *vlan_offset)
+parse_metadata(const u_char *pktdata,uint32_t datalen,uint16_t *next_protocol,uint32_t *l2len,
+               uint32_t *l2offset/*lastest ether*/, uint32_t *vlan_offset/*lastest vlan*/)
 {
-    bool done = false;
     assert(next_protocol);
     assert(l2len);
     assert(l2offset);
     assert(vlan_offset);
+    uint32_t ip_offset = 0; //tlatest ip
+    return parse_eth_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, &ip_offset);
+}
 
-    if (!pktdata || !datalen)
-        errx(-1, "parse_metadata: invalid L2 parameters: pktdata=0x%p len=%d", pktdata, datalen);
+int parse_eth(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, 
+    uint32_t *l2offset, uint32_t *vlan_offset , uint32_t *ip_offset)
+{
+    const eth_hdr_t* eth;
+    if (eth = get_header(pktdata, datalen, *l2len, sizeof(*eth)), eth == NULL)
+        return -1;
+    *vlan_offset = 0; //reset any captured vlan_offset as it should record the first vlan of the last ethernet header.
+    *l2offset = *l2len; //save l2offset to point to the latest ether.
+    *l2len += sizeof(*eth);
+    *next_protocol = ntohs(eth->ether_type);
+    return parse_eth_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
 
-    while (!done) {
-        switch (*next_protocol) {
-        case ETHERTYPE_VLAN:
-        case ETHERTYPE_Q_IN_Q:
-        case ETHERTYPE_8021QINQ:
-            if (*vlan_offset == 0)
-                *vlan_offset = *l2len;
-
-            if (parse_vlan(pktdata, datalen, next_protocol, l2len))
-                return -1;
-
-            break;
+int parse_eth_proto(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    switch(*next_protocol){
+        case ETHERTYPE_IP:
+            return parse_ipv4(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case ETHERTYPE_IP6:
+            return parse_ipv6(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
         case ETHERTYPE_MPLS:
         case ETHERTYPE_MPLS_MULTI:
-            if (parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset))
-                return -1;
+            return parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case ETHERTYPE_VLAN:
+        case ETHERTYPE_Q_IN_Q:
+            return parse_vlan(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case ETHERTYPE_PPP_SES:
+            return parse_pppoe_session(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        default: //ethernet protocols we don't care.
+            return 0;
+    }
+}
 
-            break;
+int parse_ipv4(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+	const ipv4_hdr_t* ip;
+    if (ip = get_header(pktdata, datalen, *l2len, sizeof(*ip)), ip == NULL)
+        return -1;
+    if (ip->ip_hl < 5)
+        return -1;
+    *ip_offset = *l2len;
+    *l2len += ip->ip_hl << 2;
+    *next_protocol = ip->ip_p;
+    return parse_ip_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_ipv6(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+	const ipv6_hdr_t* ip;
+    if (ip = get_header(pktdata, datalen, *l2len, sizeof(*ip)), ip == NULL)
+        return -1;
+    *ip_offset = *l2len;
+    *l2len += sizeof(*ip);
+    *next_protocol = ip->ip_nh;
+    switch(*next_protocol){
+        case IPPROTO_HOPOPTS:
+        case IPPROTO_DSTOPTS:
+            return parse_ipv6_opts(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case IPPROTO_FRAGMENT:
+            return parse_ipv6_fragments(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
         default:
-            done = true;
+            return parse_ip_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+    }
+}
+
+int parse_ipv6_opts(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+	const struct tcpr_ipv6_hbhopts_hdr* ip;
+    if (ip = get_header(pktdata, datalen, *l2len, sizeof(*ip)), ip == NULL)
+        return -1;
+    *l2len += (1 + ip->ip_len) << 3;
+    *next_protocol = ip->ip_nh;
+    return parse_ip_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_ipv6_fragments(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const struct tcpr_ipv6_frag_hdr* ip;
+    if (ip = get_header(pktdata, datalen, *l2len, sizeof(*ip)), ip== NULL)
+        return -1;
+    *l2len += sizeof(*ip);
+    *next_protocol = ip->ip_nh; 
+    return parse_ip_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_ip_proto(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    switch(*next_protocol){
+        case IPPROTO_GRE:
+            return parse_gre(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case IPPROTO_MPLS:
+            return parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case IPPROTO_IPIP:
+            return parse_ipv4(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case IPPROTO_IPV6:
+            return parse_ipv6(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case IPPROTO_UDP:
+        case IPPROTO_UDPLITE:
+            return parse_udp(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        default:
+        //up to now we are sure all the encapsulations are stripped off.
+        //backtrack l2len to previous ip offset
+            *l2len = *ip_offset;
+            return 0;
+    }
+}
+
+int parse_gre(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const struct tcpr_gre_base_hdr* gre;
+    if (gre = get_header(pktdata, datalen, *l2len, sizeof(*gre)), gre == NULL)
+        return -1;
+    *l2len += sizeof(*gre);
+    if (GRE_IS_CSUM(gre->flags_ver))
+        *l2len += 4;
+    if (GRE_IS_KEY(gre->flags_ver))
+        *l2len += 4;
+    if (GRE_IS_SEQ(gre->flags_ver))
+        *l2len += 4;
+    if (GRE_IS_ACK(gre->flags_ver))
+        *l2len += 4;
+    *next_protocol = htons(gre->type);
+    switch(*next_protocol){
+        case ETH_P_TEB:
+            return parse_eth(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case ETH_P_ERSPAN:
+            if (GRE_IS_SEQ(gre->flags_ver))
+                return parse_erspan_ii(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+            else
+                return parse_erspan_i(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case ETH_P_ERSPAN2:
+            return parse_erspan_iii(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case GRE_PPP:
+            return parse_ppp(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        default:
+            return parse_eth_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+    }
+}
+
+int parse_erspan_i(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    //type i doesn't have an extra erspan header. ether frame following immediately
+    return parse_eth(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_erspan_ii(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    // erspan_ii has fixed header.    
+    const struct erspan_ii_hdr* erspan;
+    if (erspan = get_header(pktdata, datalen, *l2len, sizeof(*erspan)), erspan == NULL)
+        return -1;
+    *l2len += sizeof(*erspan);
+    return parse_eth(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_erspan_iii(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const struct erspan_iii_hdr* erspan;
+    if (erspan = get_header(pktdata, datalen, *l2len, sizeof(*erspan)), erspan == NULL)
+        return -1;
+    *l2len += sizeof(*erspan);
+    //with option extension.
+    if( erspan->md.u.md2.o )
+        *l2len += ERSPAN_III_PLATFORM_SUBHEADER_LEN;
+    return parse_eth(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_ppp(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+	const struct ppp_hdr *ppp;
+    if (ppp = get_header(pktdata, datalen, *l2len, sizeof(*ppp)), ppp == NULL)
+        return -1;
+    *l2len += sizeof(*ppp);
+    *next_protocol = (uint16_t)PPP_PROTOCOL(&ppp->data);
+    return parse_ppp_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_udp(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const udp_hdr_t* udp;
+    if( udp = get_header(pktdata, datalen, *l2len, sizeof(*udp)), udp == NULL)
+        return -1;
+    *l2len += sizeof(*udp);
+    uint16_t dport = ntohs(udp->uh_dport);
+    switch(dport){
+        case VXLAN_PORT:
+            return parse_vxlan(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case GENEVE_PORT:
+            return parse_geneve(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case MPLS_PORT:
+            return parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        default:
+            //normal protocol. back track to last ip before return.
+            *l2len = *ip_offset;
+            return 0;
+    }
+}
+
+int parse_vxlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+   const struct vxlan_hdr* vxlan;
+    if( vxlan = get_header(pktdata, datalen, *l2len, sizeof(*vxlan)), vxlan == NULL)
+        return -1;
+    *l2len += sizeof(*vxlan);
+    return parse_eth(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_geneve(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+   const struct geneve_hdr* geneve;
+    if( geneve = get_header(pktdata, datalen, *l2len, sizeof(*geneve)), geneve == NULL)
+        return -1;
+    *l2len += sizeof(*geneve);
+    *l2len += GENEVE_OPT_LEN(geneve->opt_len_ver);
+    *next_protocol = htons(geneve->proto_type);
+    switch(*next_protocol){
+        case ETH_P_TEB:
+            return parse_eth(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        default:
+            return parse_eth_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+    }
+}
+
+int parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const struct tcpr_mpls_label *mpls;
+    do{
+        if (mpls = get_header(pktdata, datalen, *l2len, sizeof(*mpls)), mpls == NULL)
+            return -1;
+        *l2len += sizeof(*mpls);
+    } while(!MPLS_BOTTOM(mpls->entry));
+    int label = MPLS_LABEL(mpls->entry);
+    switch(label){
+        case MPLS_LABEL_IPV4NULL:
+            return parse_ipv4(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case MPLS_LABEL_IPV6NULL:
+            return parse_ipv6(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case MPLS_LABEL_GACH:
+            /* Generic Associated Channel Header */
+            warn("GACH MPLS label not supported at this time");
+            return -1;
+        default: {
+            //the last label doesn't tell us what the next frame is. We have to peek the next byte to decide
+            //which belongs to ip frame for the version info.
+            const u_char *version;
+            if (version = get_header(pktdata, datalen, *l2len, 1), version == NULL)
+                return -1;
+            switch( *version >> 4 ) {
+                case 0: //This is EoMPLS, we have 4-byte 0 following it then ether frame.
+                    return parse_eompls(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+                case 4:
+                    return parse_ipv4(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+                case 6:
+                    return parse_ipv6(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+                default:
+                    return -1;
+            }
         }
     }
+}
 
-    return 0;
+int parse_eompls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const struct eompls_hdr* eompls;
+    if (eompls = get_header(pktdata, datalen, *l2len, sizeof(*eompls)), eompls == NULL)
+        return -1;
+    *l2len += sizeof(*eompls);
+    return parse_eth(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_vlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const vlan_hdr_t *vlan;
+    //at most 2 vlan tags.
+    //vlan_offset is the start of the first vlan tag in possible 2 tags. but should update when vlan is encapsulated. 
+    *vlan_offset = 0;
+    for( int i=0; i<2; i++){
+        if (vlan = get_header(pktdata, datalen, *l2len, sizeof(*vlan)), vlan == NULL)
+            return -1;
+        *next_protocol = ntohs(vlan->vlan_tpid);
+        if( *vlan_offset == 0)
+            *vlan_offset = *l2len;
+        *l2len += sizeof(*vlan);
+        if (*next_protocol != ETHERTYPE_VLAN)
+            break;
+    }
+    return parse_eth_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_pppoe_session(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    const struct pppoe_sess_hdr* ppph;
+    if (ppph = get_header(pktdata, datalen, *l2len, sizeof(*ppph)), ppph == NULL)
+        return -1;
+    *l2len += sizeof(*ppph);
+    *next_protocol = htons(ppph->proto);
+    return parse_ppp_proto(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+}
+
+int parse_ppp_proto(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset)
+{
+    switch(*next_protocol){
+        case PPP_IP:
+            return parse_ipv4(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case PPP_IPV6:
+            return parse_ipv6(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        case PPP_MPLS_UC:
+        case PPP_MPLS_MC:
+            return parse_mpls(pktdata, datalen, next_protocol, l2len, l2offset, vlan_offset, ip_offset);
+        default: //not known to us. simply ignore
+            return 0;
+    }
+}
+
+const void* get_header(const u_char *pktdata, uint32_t datalen, uint32_t l2len, uint16_t hdr_size)
+{
+    if (l2len + hdr_size > datalen)
+        return NULL;
+    return pktdata + l2len;
 }
 
 /*
@@ -447,7 +618,7 @@ get_l2len_protocol(const u_char *pktdata,
 
     return 0;
 }
-
+ 
 /**
  * returns the length in number of bytes of the L2 header, or -1 on error
  */
