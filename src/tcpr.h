@@ -521,6 +521,9 @@ struct tcpr_ethernet_hdr {
 #ifndef ETHERTYPE_VLAN
 #define ETHERTYPE_VLAN 0x8100 /* IEEE 802.1Q VLAN tagging */
 #endif
+#ifndef ETHERTYPE_PPP_SES
+#define ETHERTYPE_PPP_SES 0x8864 /* PPPoE session messages */
+#endif
 #ifndef ETHERTYPE_EAP
 #define ETHERTYPE_EAP 0x888e /* IEEE 802.1X EAP authentication */
 #endif
@@ -647,6 +650,15 @@ struct tcpr_gre_hdr {
 #define egre_callID _data._egre.callID
 #define egre_seq _data._egre.seq
 #define egre_ack _data._egre.ack
+};
+
+#define GRE_IS_CSUM(f)		(htons(f) & GRE_CSUM)
+#define GRE_IS_KEY(f)		(htons(f) & GRE_KEY)
+#define GRE_IS_SEQ(f)		(htons(f) & GRE_SEQ)
+#define GRE_IS_ACK(f)		(htons(f) & GRE_ACK)
+struct tcpr_gre_base_hdr {
+    uint16_t flags_ver;
+    uint16_t type;
 };
 
 #ifndef IPPROTO_GRE
@@ -1696,3 +1708,96 @@ struct tcpr_mpls_label {
 #ifndef MPLS_LS_TTL_SHIFT
 #define MPLS_LS_TTL_SHIFT 0
 #endif
+
+#define MPLS_BOTTOM(mpls)     ((ntohl(mpls) & MPLS_LS_S_MASK))
+#define MPLS_LABEL(mpls)      ((ntohl(mpls)) >> MPLS_LS_LABEL_SHIFT)
+/* Reserved labels */
+#define MPLS_LABEL_IPV4NULL		0 /* RFC3032 */
+#define MPLS_LABEL_IPV6NULL		2 /* RFC3032 */
+
+struct eompls_hdr{
+    uint32_t ether_control;
+};
+
+struct pppoe_tag {
+	uint16_t tag_type;
+	uint16_t tag_len;
+	char tag_data[0];
+} __attribute__ ((packed));
+
+struct ppp_hdr{
+    uint32_t data;
+};
+
+struct pppoe_hdr {
+	u_char type : 4;
+	u_char ver : 4;
+	u_char code;
+	uint16_t sid;
+	uint16_t length;
+	struct pppoe_tag tag[0];
+} __attribute__((packed));
+
+struct pppoe_sess_hdr{
+    struct pppoe_hdr pppoe;
+    uint16_t proto;
+};
+
+#define PPP_IP		0x21	/* Internet Protocol */
+#define PPP_IPV6	0x57	/* Internet Protocol Version 6 */
+#define PPP_MPLS_UC	0x0281	/* Multi Protocol Label Switching - Unicast */
+#define PPP_MPLS_MC	0x0283	/* Multi Protocol Label Switching - Multicast */
+#define PPP_PROTOCOL(p)	((((u_char *)(p))[2] << 8) + ((u_char *)(p))[3])
+
+// UDP ports for encapsulation
+#define VXLAN_PORT  4789
+#define GENEVE_PORT 6081
+#define MPLS_PORT   6635
+
+struct erspan_ii_hdr{
+    int version;
+    uint32_t index;
+};
+
+/* ERSPAN version 2 metadata header */
+struct erspan_md2 {
+	uint32_t timestamp;
+	uint16_t sgt;	/* security group tag */
+	u_char	hwid_upper:2,
+		ft:5,
+		p:1;
+	u_char	o:1,
+		gra:2,
+		dir:1,
+		hwid:4;
+};
+
+struct erspan_metadata {
+	int version;
+	union {
+		uint32_t index;		/* Version 1 (type II)*/
+		struct erspan_md2 md2;	/* Version 2 (type III) */
+	} u;
+};
+
+#define ERSPAN_III_PLATFORM_SUBHEADER_LEN 8
+struct erspan_iii_hdr{
+    struct erspan_metadata md;
+};
+
+#define VXLAN_VID(vni) ((bpf_htonl(vni)) >> 8)
+struct vxlan_hdr {
+    uint32_t vx_flags;
+    uint32_t vx_vni;
+};
+
+#define GENEVE_VID(vni) (vni[0] << 16) | (vni[1] << 8) | (vni[2])
+#define GENEVE_OPT_LEN(opt_len_ver) (opt_len_ver << 2)
+struct geneve_hdr {
+    u_char opt_len_ver;
+    u_char flags;
+    uint16_t proto_type;
+    u_char vni[3];
+    u_char rsvd2;
+    u_char options[];
+};

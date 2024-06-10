@@ -24,18 +24,6 @@
 #include "defines.h"
 #include "common.h"
 
-
-int parse_mpls(const u_char *pktdata,
-               uint32_t datalen,
-               uint16_t *protocol,
-               uint32_t *l2len,
-               uint32_t *l2offset);
-
-int parse_vlan(const u_char *pktdata,
-               uint32_t datalen,
-               uint16_t *next_protocol,
-               uint32_t *l2len);
-
 int get_l2len(const u_char *pktdata, int datalen, int datalink);
 
 int get_l2len_protocol(const u_char *pktdata,
@@ -63,3 +51,27 @@ int get_name2addr6(const char *hostname, bool dnslookup, struct tcpr_in6_addr *a
 
 
 const char *get_cidr2name(const tcpr_cidr_t *cidr_ptr, bool dnslookup);
+
+int parse_eth(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_eth_proto(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+
+int parse_vlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_mpls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_eompls(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_pppoe_session(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+
+int parse_ipv4(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_ipv6(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_ipv6_opts(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_ipv6_fragments(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_ip_proto(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_udp(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_geneve(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_vxlan(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_gre(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_erspan_i(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_erspan_ii(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_erspan_iii(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_ppp(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+int parse_ppp_proto(const u_char *pktdata, uint32_t datalen, uint16_t *next_protocol, uint32_t *l2len, uint32_t *l2offset, uint32_t *vlan_offset, uint32_t *ip_offset);
+const void* get_header(const u_char *pktdata, uint32_t datalen, uint32_t l2len, uint16_t hdr_size);
