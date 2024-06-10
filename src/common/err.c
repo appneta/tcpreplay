@@ -7,7 +7,7 @@
  *
  * Copyright (c) 2001-2010 Aaron Turner.
  *
- * Copyright (c) 2013-2022 Fred Klassen - AppNeta
+ * Copyright (c) 2013-2024 Fred Klassen - AppNeta
  *
  * Copyright (c) 2000 Dug Song <dugsong@monkey.org>
  *
@@ -49,6 +49,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+int print_warnings = 1;
 
 /**
  * writes a notice message to stderr.  Always forces a newline

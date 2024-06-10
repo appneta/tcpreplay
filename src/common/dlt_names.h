@@ -186,6 +186,10 @@ extern const char *dlt2name[];
 #define DLT_LINUX_SLL 113
 #endif
 
+#ifndef DLT_LINUX_SLL2
+#define DLT_LINUX_SLL2 276
+#endif
+
 #ifndef DLT_LTALK
 #define DLT_LTALK 114
 #endif

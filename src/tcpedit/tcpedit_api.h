@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -40,6 +40,7 @@ int tcpedit_set_encoder_dltplugin_byname(tcpedit_t *, const char *);
 int tcpedit_set_skip_broadcast(tcpedit_t *, bool);
 int tcpedit_set_fixlen(tcpedit_t *, tcpedit_fixlen);
 int tcpedit_set_fixcsum(tcpedit_t *, bool);
+int tcpedit_set_fixhdrlen(tcpedit_t *, bool);
 int tcpedit_set_efcs(tcpedit_t *, bool);
 int tcpedit_set_ttl_mode(tcpedit_t *, tcpedit_ttl_mode);
 int tcpedit_set_ttl_value(tcpedit_t *, uint8_t);

@@ -48,6 +48,22 @@
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
 #endif
 
+#ifdef HAVE_LIBBPF
+#undef HAVE_BPF
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+
+struct bpf_program {
+char dummy[0];
+};
+
+#endif
+
+#ifdef HAVE_LIBXDP
+#include <xdp/libxdp.h>
+#endif
+
 #if defined INCLUDE_PCAP_BPF_H_FILE && !defined PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <@INCLUDE_PCAP_BPF_HEADER@>
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1 /* don't re-include it in pcap.h */
@@ -86,7 +102,7 @@
 #define COUNTER unsigned long
 #define COUNTER_SPEC "%lu"
 #endif
-#define COUNTER_OVERFLOW_RISK (((COUNTER)~0) >> 20)
+#define COUNTER_OVERFLOW_RISK (((COUNTER)~0) >> 23)
 
 #include <common/cidr.h>
 #include <common/list.h>
@@ -101,6 +117,7 @@ typedef struct tcpr_icmpv6_hdr icmpv6_hdr_t;
 typedef struct tcpr_ethernet_hdr eth_hdr_t;
 typedef struct tcpr_802_1q_hdr vlan_hdr_t;
 typedef struct sll_header sll_hdr_t;
+typedef struct sll2_header sll2_hdr_t;
 typedef struct tcpr_arp_hdr arp_hdr_t;
 typedef struct tcpr_dnsv4_hdr dnsv4_hdr_t;
 
@@ -298,10 +315,9 @@ typedef u_int8_t uint8_t typedef u_int16_t uint16_t typedef u_int32_t uint32_t
 #define MICROSEC_TO_SEC(x) (x / 1000000)
 #define NANOSEC_TO_SEC(x) ((u_int64_t)x / 1000000000)
 
-#define TIMEVAL_TO_MILLISEC(x) (((x)->tv_sec * 1000) + ((x)->tv_usec / 1000))
-#define TIMEVAL_TO_MICROSEC(x) (((x)->tv_sec * 1000000) + (x)->tv_usec)
-#define TIMEVAL_TO_NANOSEC(x) ((u_int64_t)((x)->tv_sec * 1000000000) + ((u_int64_t)(x)->tv_usec * 1000))
-#define TIMSTAMP_TO_MICROSEC(x) (TIMEVAL_TO_MICROSEC(x))
+#define TIMEVAL_TO_MILLISEC(x)  (((x)->tv_sec * 1000) + ((x)->tv_usec / 1000))
+#define TIMEVAL_TO_MICROSEC(x)  (((x)->tv_sec * 1000000) + (x)->tv_usec)
+#define TIMEVAL_TO_NANOSEC(x)   ((u_int64_t)((x)->tv_sec * 1000000000) + ((u_int64_t)(x)->tv_usec * 1000))
 
 #define MILLISEC_TO_TIMEVAL(x, tv)                                                                                     \
     do {                                                                                                               \
@@ -343,7 +359,24 @@ typedef u_int8_t uint8_t typedef u_int16_t uint16_t typedef u_int32_t uint32_t
         (a)->tv_nsec = (b)->tv_nsec;                                                                                   \
     } while (0)
 
-/* 
+/* libpcap that supports it, puts nanosecond values in tv_usec when pcap file is read with nanosec precision,
+ * and so tv_usec is directly copied to tv_nsec.
+ * But older versions do that do not support nanosecond precision need to multiply tv_usec by 1000 to convert
+ * to tv_nsec.
+ */
+#define PCAP_TIMEVAL_TO_TIMESPEC_SET(a, b)                              \
+    do {                                                                \
+        (b)->tv_sec = (a)->tv_sec;                                      \
+        (b)->tv_nsec = (a)->tv_usec * PCAP_TSTAMP_US_TO_NS_MULTIPLIER;  \
+    } while(0)
+
+#define PCAP_TIMEVAL_TO_TIMEVAL_SET(a, b)                               \
+    do {                                                                \
+        (b)->tv_sec = (a)->tv_sec;                                      \
+        (b)->tv_usec = (a)->tv_usec / PCAP_TSTAMP_US_TO_US_DIVISOR;     \
+    } while(0)
+
+/*
  * Help suppress some compiler warnings
  * No problem if variable is actually used 
 */

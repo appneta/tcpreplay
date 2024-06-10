@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -210,8 +210,8 @@ do_bridge(tcpbridge_opt_t *options, tcpedit_t *tcpedit)
         do_bridge_bidirectional(options, tcpedit);
     }
 
-    if (gettimeofday(&stats.end_time, NULL) < 0)
-        errx(-1, "gettimeofday() failed: %s", strerror(errno));
+    if (get_current_time(&stats.end_time) < 0)
+        errx(-1, "get_current_time() failed: %s", strerror(errno));
     packet_stats(&stats);
 }
 

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -216,7 +216,7 @@ main(int argc, char *argv[])
  */
 static void flow_stats(const tcpreplay_t *tcpr_ctx)
 {
-    struct timeval diff;
+    struct timespec diff;
     COUNTER diff_us;
     const tcpreplay_stats_t *stats = &tcpr_ctx->stats;
     const tcpreplay_opt_t *options = tcpr_ctx->options;
@@ -228,8 +228,8 @@ static void flow_stats(const tcpreplay_t *tcpr_ctx)
     COUNTER flows_sec = 0;
     u_int32_t flows_sec_100ths = 0;
 
-    timersub(&stats->end_time, &stats->start_time, &diff);
-    diff_us = TIMEVAL_TO_MICROSEC(&diff);
+    timessub(&stats->end_time, &stats->start_time, &diff);
+    diff_us = TIMESPEC_TO_MICROSEC(&diff);
 
     if (!flows_total || !tcpr_ctx->iteration)
         return;

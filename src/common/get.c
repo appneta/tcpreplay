@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -41,8 +41,8 @@ extern const char pcap_version[];
 static void *get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr);
 
 /**
- * Depending on what version of libpcap/WinPcap there are different ways to get
- * the version of the libpcap/WinPcap library.  This presents a unified way to
+ * Depending on what version of libpcap there are different ways to get
+ * the version of the libpcap library.  This presents a unified way to
  * get that information.
  */
 const char *
@@ -461,19 +461,29 @@ get_l2len_protocol(const u_char *pktdata,
             *protocol = ETHERTYPE_IP6;
         break;
     case DLT_JUNIPER_ETHER:
-        if (datalen < 4)
+        if (datalen < 4) {
+            warnx("%s (0x%x): Need at least 4 bytes for DLT_JUNIPER_ETHER but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  datalen);
             return -1;
+        }
 
         if (memcmp(pktdata, JUNIPER_PCAP_MAGIC, 3) != 0) {
-            warnx("No Magic Number found during protocol lookup: %s (0x%x)",
+            warnx("%s (0x%x): No JUNIPER_PCAP_MAGIC Magic Number found during protocol lookup",
                   pcap_datalink_val_to_description(datalink),
                   datalink);
             return -1;
         }
 
         if ((pktdata[3] & JUNIPER_FLAG_EXT) == JUNIPER_FLAG_EXT) {
-            if (datalen < 6)
+            if (datalen < 6) {
+                warnx("%s (0x%x): Need at least 6 bytes for JUNIPER_FLAG_EXT but only %u available",
+                      pcap_datalink_val_to_description(datalink),
+                      datalink,
+                      datalen);
                 return -1;
+            }
 
             *l2offset = ntohs(*((uint16_t *)&pktdata[4]));
             *l2offset += 6; /* MGC + flags + ext_total_len */
@@ -484,8 +494,15 @@ get_l2len_protocol(const u_char *pktdata,
         if ((pktdata[3] & JUNIPER_FLAG_NO_L2) == JUNIPER_FLAG_NO_L2) {
             /* no L2 header present - *l2offset is actually IP offset */
             uint32_t ip_hdr_offset = *l2offset;
-            if (datalen < ip_hdr_offset + 1)
+            uint32_t hdrSpaceNeeded = ip_hdr_offset + 1;
+            if (datalen < hdrSpaceNeeded) {
+                warnx("%s (0x%x): Need at least %u bytes for JUNIPER_FLAG_NO_L2 but only %u available",
+                      pcap_datalink_val_to_description(datalink),
+                      hdrSpaceNeeded,
+                      datalink,
+                      datalen);
                 return -1;
+            }
 
             if ((pktdata[ip_hdr_offset] >> 4) == 4)
                 *protocol = ETHERTYPE_IP;
@@ -501,36 +518,46 @@ get_l2len_protocol(const u_char *pktdata,
         uint16_t ether_type;
         uint32_t l2_net_off = sizeof(*eth_hdr) + *l2offset;
 
-        if (datalen <= l2_net_off)
+        if (datalen <= l2_net_off + 4) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_EN10MB but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  l2_net_off + 4,
+                  datalen);
             return -1;
+        }
 
         eth_hdr = (eth_hdr_t *)(pktdata + *l2offset);
         ether_type = ntohs(eth_hdr->ether_type);
         if (parse_metadata(pktdata, datalen, &ether_type, &l2_net_off, l2offset, vlan_offset))
             return -1;
 
-        if (datalen <= l2_net_off)
-            return -1;
-
         *l2len = l2_net_off;
-        if (ether_type > 1500) {
+        if (ether_type >= 1536) {
             /* Ethernet II frame - return in host order */
             *protocol = ether_type;
+        } else if (ether_type > 1500) {
+            warnx("%s (0x%x): unsupported 802.3 length %u",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  ether_type);
+            return -1;
         } else {
             /* 803.3 frame */
-            if ((pktdata[l2_net_off] >> 4) == 4)
-                *protocol = ETHERTYPE_IP;
-            else if ((pktdata[l2_net_off] >> 4) == 6)
-                *protocol = ETHERTYPE_IP6;
-            else
-                /* unsupported 802.3 protocol */
-                return -1;
+            /* we don't modify 802.3 protocols */
+            return -1;
         }
         break;
     }
     case DLT_PPP_SERIAL:
-        if ((size_t)datalen < sizeof(struct tcpr_pppserial_hdr))
+        if ((size_t)datalen < sizeof(struct tcpr_pppserial_hdr)) {
+            warnx("%s (0x%x): Need at least %zu bytes for DLT_PPP_SERIAL but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  sizeof(struct tcpr_pppserial_hdr),
+                  datalen);
             return -1;
+        }
 
         struct tcpr_pppserial_hdr *ppp = (struct tcpr_pppserial_hdr *)pktdata;
         *l2len = sizeof(*ppp);
@@ -541,20 +568,46 @@ get_l2len_protocol(const u_char *pktdata,
 
         break;
     case DLT_C_HDLC:
-        if (datalen < CISCO_HDLC_LEN)
+        if (datalen < CISCO_HDLC_LEN) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_C_HDLC but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  CISCO_HDLC_LEN,
+                  datalen);
             return -1;
+        }
 
         hdlc_hdr_t *hdlc_hdr = (hdlc_hdr_t *)pktdata;
         *l2len = sizeof(*hdlc_hdr);
         *protocol = ntohs(hdlc_hdr->protocol);
         break;
     case DLT_LINUX_SLL:
-        if (datalen < SLL_HDR_LEN)
+        if (datalen < SLL_HDR_LEN) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_LINUX_SLL but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  SLL_HDR_LEN,
+                  datalen);
             return -1;
+        }
 
+        *l2len = SLL_HDR_LEN;
         sll_hdr_t *sll_hdr = (sll_hdr_t *)pktdata;
-        *l2len = sizeof(*sll_hdr);
         *protocol = ntohs(sll_hdr->sll_protocol);
+        break;
+    case DLT_LINUX_SLL2:
+        if (datalen < SLL2_HDR_LEN) {
+            warnx("%s (0x%x): Need at least %u bytes for DLT_LINUX_SLL2 but only %u available",
+                  pcap_datalink_val_to_description(datalink),
+                  datalink,
+                  SLL2_HDR_LEN,
+                  datalen);
+            return -1;
+        }
+
+        *l2len = SLL2_HDR_LEN;
+        sll2_hdr_t *sll2_hdr = (sll2_hdr_t *)pktdata;
+        *protocol = ntohs(sll2_hdr->sll2_protocol);
         break;
     default:
         errx(-1,
@@ -788,9 +841,25 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
             break;
 
         /*
-         * Can't handle.  Unparsable IPv6 fragment/encrypted data
+         * handle (unparsable) IPv6 fragment data
          */
         case TCPR_IPV6_NH_FRAGMENT:
+            // next points to l4 data
+            dbgx(3, "Go deeper due to fragment extension header 0x%02X", proto);
+            exthdr = get_ipv6_next(next, end_ptr);
+            if ((exthdr == NULL) || ((u_char *)exthdr > end_ptr)) {
+                next = NULL;
+                done = true;
+                break;
+            }
+            proto = exthdr->ip_nh;
+            next = exthdr;
+            // done = true;
+            break;
+
+        /*
+         * Can't handle.  Unparsable IPv6 encrypted data
+         */
         case TCPR_IPV6_NH_ESP:
             next = NULL;
             done = true;
@@ -800,9 +869,11 @@ get_layer4_v6(const ipv6_hdr_t *ip6_hdr, const u_char *end_ptr)
          * no further processing, either TCP, UDP, ICMP, etc...
          */
         default:
-            if (proto != ip6_hdr->ip_nh) {
+            if (proto != ip6_hdr->ip_nh && next) {
                 dbgx(3, "Returning byte offset of this ext header: %u", IPV6_EXTLEN_TO_BYTES(next->ip_len));
                 next = (void *)((u_char *)next + IPV6_EXTLEN_TO_BYTES(next->ip_len));
+                if ((u_char*)next > end_ptr)
+                    return NULL;
             } else {
                 dbgx(3, "%s", "Returning end of IPv6 Header");
             }
@@ -858,6 +929,10 @@ get_ipv6_next(struct tcpr_ipv6_ext_hdr_base *exthdr, const u_char *end_ptr)
     case TCPR_IPV6_NH_HBH:
     case TCPR_IPV6_NH_AH:
         extlen = IPV6_EXTLEN_TO_BYTES(exthdr->ip_len);
+        if (extlen == 0) {
+            dbg(3, "Malformed IPv6 extension header...");
+            return NULL;
+        }
         dbgx(3,
              "Looks like we're an ext header (0x%hhx).  Jumping %u bytes"
              " to the next",

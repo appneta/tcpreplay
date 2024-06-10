@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2006-2007 Aaron Turner.
- * Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ * Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,9 +64,7 @@ dlt_jnpr_ether_register(tcpeditdlt_t *ctx)
     plugin = tcpedit_dlt_newplugin();
 
     plugin->provides += PLUGIN_MASK_PROTO + PLUGIN_MASK_SRCADDR + PLUGIN_MASK_DSTADDR;
-    plugin->
-        requires
-    = 0;
+    plugin->requires = 0;
 
     /* what is our DLT value? */
     plugin->dlt = dlt_value;
@@ -164,8 +162,9 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
         jnpr_ether_config_t *config;
 
         config = (jnpr_ether_config_t *)ctx->encoder->config;
-        if (config->subctx != NULL)
+        if (config != NULL && config->subctx != NULL) {
             tcpedit_dlt_cleanup(config->subctx);
+        }
         safe_free(plugin->config);
         plugin->config = NULL;
         plugin->config_size = 0;
@@ -303,6 +302,13 @@ dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     memcpy(&jnpr_hdr_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
 
     jnpr_hdr_len = ntohs(jnpr_hdr_len) + JUNIPER_ETHER_HEADER_LEN;
+    if (jnpr_hdr_len > pktlen) {
+        tcpedit_seterr(ctx->tcpedit,
+                       "Juniper header length %d invalid: it is greater than packet length %d",
+                       jnpr_hdr_len, pktlen);
+        return TCPEDIT_ERROR;
+    }
+
     ethernet = packet + jnpr_hdr_len;
 
     /* let the en10mb plugin do the rest of the work */

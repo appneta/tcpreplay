@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -167,6 +167,18 @@ flag = {
 Causes each IPv4/v6 packet to have their checksums recalculated and
 fixed.  Automatically enabled for packets modified with @samp{--seed},
 @samp{--pnat}, @samp{--endpoints} or @samp{--fixlen}.
+EOText;
+};
+
+flag = {
+    name        = fixhdrlen;
+    descrip     = "Alter IP/TCP header len to match packet length";
+    doc         = <<- EOText
+By default, tcpreplay will send packets with the original packet length,
+However, you may want the packet length revised to minimum packet size.
+Using this option, tcpreplay will rewrite (fix) the packet length,
+and recalculate checksums when packet length changes.
+Caution: undesired packet changes may occur when this option is specified.
 EOText;
 };
 

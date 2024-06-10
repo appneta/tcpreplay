@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -184,7 +184,7 @@ dlt_en10mb_parse_subsmac(tcpeditdlt_t *ctx, en10mb_config_t *config, const char 
 {
     size_t input_len = strlen(input);
     size_t possible_entries_number = (input_len / (SUBSMAC_ENTRY_LEN + 1)) + 1;
-    int entry;
+    size_t entry;
 
     en10mb_sub_entry_t *entries = safe_malloc(possible_entries_number * sizeof(en10mb_sub_entry_t));
 
@@ -519,12 +519,12 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     }
 
     /* newl2len for some other DLT -> ethernet */
-    else if (config->vlan == TCPEDIT_VLAN_ADD) {
-        /* if add a vlan then 18, */
-        newl2len = TCPR_802_1Q_H;
+    else {
+        newl2len = config->vlan == TCPEDIT_VLAN_ADD ? TCPR_802_1Q_H : TCPR_802_3_H;
+        oldl2len = ctx->l2len;
     }
 
-    if (pktlen < newl2len || pktlen + newl2len - ctx->l2len > MAXPACKET) {
+    if ((uint32_t)pktlen < newl2len || pktlen + newl2len - ctx->l2len > MAXPACKET) {
         tcpedit_seterr(ctx->tcpedit,
                        "Unable to process packet #" COUNTER_SPEC " since its new length is %d bytes.",
                        ctx->tcpedit->runtime.packetnum,
@@ -555,7 +555,6 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
 
     /* update the total packet length */
     pktlen += (int)(newl2len - oldl2len);
-    ctx->l2len += (int)(newl2len - oldl2len);
 
     /* set the src & dst address as the first 12 bytes */
     eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
@@ -663,6 +662,11 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             eth->ether_shost[0] &= ~(0x01 * unicast_src);
             eth->ether_dhost[0] &= ~(0x01 * unicast_dst);
         }
+    }
+
+    if (newl2len == TCPR_802_3_H) {
+        /* all we need for 802.3 is the proto */
+        eth->ether_type = ctx->proto;
     }
 
     if (config->vlan == TCPEDIT_VLAN_ADD || (config->vlan == TCPEDIT_VLAN_OFF && extra->vlan)) {
@@ -812,7 +816,7 @@ dlt_en10mb_merge_layer3(tcpeditdlt_t *ctx, u_char *packet, int pktlen, u_char *i
     if (l2len == -1 || pktlen < l2len)
         return NULL;
 
-    assert(ctx->decoded_extra_size == sizeof(*extra));
+    assert(ctx->decoded_extra_size >= sizeof(*extra));
     extra = (en10mb_extra_t *)ctx->decoded_extra;
     eth = (struct tcpr_ethernet_hdr *)(packet + ctx->l2offset);
     assert(eth);

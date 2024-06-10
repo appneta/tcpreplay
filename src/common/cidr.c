@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -248,6 +248,10 @@ parse_cidr(tcpr_cidr_t **cidrdata, char *cidrin, char *delim)
     tcpr_cidr_t *cidr_ptr; /* ptr to current cidr record */
     char *network;
     char *token = NULL;
+
+    if (cidrin == NULL) {
+        errx(-1, "%s", "Unable to parse empty CIDR");
+    }
 
     mask_cidr6(&cidrin, delim);
 

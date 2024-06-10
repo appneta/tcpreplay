@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.4.4],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.5.0-beta2],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -566,6 +566,10 @@ AC_ARG_ENABLE(force-libdnet,
     AS_HELP_STRING([--enable-force-libdnet],[Force using libdnet for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_LIBDNET], [1], [Force using libdnet for sending packets])])
 
+AC_ARG_ENABLE(force-libxdp,
+    AS_HELP_STRING([--enable-force-libxdp],[Force using libxdp for sending packets]),
+    [ AC_DEFINE([FORCE_INJECT_LIBXDP], [1], [Force using libxdp for sending packets])])
+
 AC_ARG_ENABLE(force-inject,
     AS_HELP_STRING([--enable-force-inject],[Force using libpcap's pcap_inject() for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])])
@@ -605,21 +609,47 @@ else
 fi
 
 dnl Check for inet_aton and inet_pton
+dnl On Haiku these functions are in libnetwork.
 AC_CHECK_FUNC(inet_aton,
     AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?])
     inet_aton=yes,
-    inet_aton=no)
+    [
+        AC_CHECK_LIB(network, inet_aton,
+            AC_DEFINE([HAVE_INET_ATON], [1], [Do we have inet_aton?])
+            use_libnetwork=yes,
+            [inet_aton=no]
+        )
+    ]
+)
 AC_CHECK_FUNC(inet_pton,
     AC_DEFINE([HAVE_INET_PTON], [1], [Do we have inet_pton?])
     inet_pton=yes,
-    inet_pton=no)
+    [
+        AC_CHECK_LIB(network, inet_pton,
+            AC_DEFINE([HAVE_INET_PTON], [1], [Do we have inet_pton?])
+            use_libnetwork=yes,
+            [inet_pton=no]
+        )
+    ]
+)
 AC_CHECK_FUNC(inet_ntop,
     AC_DEFINE([HAVE_INET_NTOP], [1], [Do we have inet_ntop?])
     inet_ntop=yes,
-    inet_ntop=no)
+    [
+        AC_CHECK_LIB(network, inet_ntop,
+            AC_DEFINE([HAVE_INET_NTOP], [1], [Do we have inet_ntop?])
+            use_libnetwork=yes,
+            [inet_ntop=no]
+        )
+    ]
+)
 
 if test "$inet_ntop" = "no" -a "$inet_pton" = "no" ; then
     AC_MSG_ERROR([We need either inet_ntop or inet_pton])
+fi
+
+if test "$use_libnetwork" = "yes" ; then
+	LIBS="-lnetwork $LIBS"
 fi
 
 AC_CHECK_FUNC(inet_addr,
@@ -627,9 +657,12 @@ AC_CHECK_FUNC(inet_addr,
     inet_addr=yes,
     inet_addr=no)
 
-if test x$inet_addr = no ; then
+if test x$inet_addr = xno ; then
     AC_MSG_ERROR([We need inet_addr.  See bug 26])
 fi
+
+dnl On Haiku fts_*() functions are in libbsd.
+AC_CHECK_FUNC(fts_read,,[AC_CHECK_LIB(bsd, fts_read)])
 
 dnl #####################################################
 dnl Checks for tuntap device support
@@ -671,7 +704,7 @@ AC_ARG_WITH(libpcap,
         LPCAPINCDIR=${testdir}
         if test $dynamic_link = yes; then
             for ext in .dylib .so .tbd ; do
-                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
+                for dir in . lib lib64 lib32 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                     sharefile=$(ls ${testdir}/$dir/libpcap${ext}* 2> /dev/null | sort | head -n1)
                     if test -n "${sharefile}"; then
                         LPCAP_LD_LIBRARY_PATH="$(dirname ${sharefile})"
@@ -690,7 +723,7 @@ AC_ARG_WITH(libpcap,
             dnl If dynamic library not found, try static
             dnl
             for ext in ${libext} .a .A.tbd ; do
-                for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
+                for dir in . lib lib64 lib32 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                     staticfile=$(ls ${testdir}/$dir/libpcap${ext} 2> /dev/null | sort | head -n1)
                     if test -n "${staticfile}"; then
                         LPCAPLIB="${staticfile}"
@@ -771,7 +804,7 @@ AC_ARG_WITH(libpcap,
                 LPCAPINCDIR="${testdir}/include"
                 if test $dynamic_link = yes; then
                     for ext in .dylib .so .tbd; do
-                        for dir in . lib lib64 ${host_cpu} lib/${host_cpu} ${host_cpu}-${host_os} lib/${host_cpu}-${host_os} ${MULTIARCH} lib/${MULTIARCH}; do
+                        for dir in . lib lib64 lib32 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                             sharefile=$(ls "${testdir}/$dir/libpcap${ext}" 2> /dev/null | sort | head -n1)
                             if test -n "${sharefile}"; then
                                 LPCAPLIB="-L$(dirname ${sharefile}) -lpcap"
@@ -790,7 +823,7 @@ AC_ARG_WITH(libpcap,
                     dnl If dynamic library not found, try static
                     dnl
                     for ext in ${libext} .a .A.tbd ; do
-                        for dir in . lib lib64 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
+                        for dir in . lib lib64 lib32 lib/${host_cpu}-${host_os} ${host_cpu}-${host_os} lib/${MULTIARCH} ${MULTIARCH}; do
                             staticfile=$(ls "${testdir}/$dir/libpcap${ext}" 2> /dev/null | sort | head -n1)
                             if test -n "${staticfile}"; then
                                 LPCAPLIB="${staticfile}"
@@ -843,6 +876,12 @@ fi
 # libpcap can require libnl
 AC_SEARCH_LIBS([nl_handle_alloc], [nl],
         [AC_MSG_NOTICE([Unable to find nl library - may be needed by libpcap])])
+
+AC_CHECK_LIB(bpf, bpf_object__open_file,,
+        [AC_MSG_NOTICE([Unable to find libbpf library ])])
+
+AC_CHECK_LIB(xdp, xsk_umem__delete,,
+        [AC_MSG_NOTICE([Unable to find libxdp library ])])
 
 ##
 ## If not automatically configured,
@@ -928,7 +967,7 @@ cat >conftest.c <<EOF
 EOF
 ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LPCAPLIB \
     conftest.c $LIBS >/dev/null 2>&1
-if test -x conftest ; then
+if test -x conftest -a "$cross_compiling" != "yes"; then
     full_libpcap_version=$(LD_LIBRARY_PATH="$LPCAP_LD_LIBRARY_PATH" ./conftest)
     libpcap_version=$(echo "$full_libpcap_version" | ${CUT} -d' ' -f3)
     pcap_version_ok=yes
@@ -1184,6 +1223,35 @@ if test $have_pcap_snapshot = yes ; then
               [Does libpcap have pcap_snapshot?])
 fi
 
+have_pcap_open_offline_with_tstamp_precision=no
+dnl Check to see if we've got pcap_open_offline_with_tstamp_precision()
+AC_MSG_CHECKING(for pcap_open_offline_with_tstamp_precision support)
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "$LPCAPINC"
+]],[[
+    pcap_t *pcap;
+    char ebuf[PCAP_ERRBUF_SIZE];
+    pcap = pcap_open_offline_with_tstamp_precision("fake.pcap", PCAP_TSTAMP_PRECISION_NANO, &ebuf[0]);
+]])],[
+    have_pcap_open_offline_with_tstamp_precision=yes
+    AC_MSG_RESULT(yes)
+], [
+    have_pcap_open_offline_with_tstamp_precision=no
+    AC_MSG_RESULT(no)
+])
+
+if test $have_pcap_open_offline_with_tstamp_precision = yes ; then
+    AC_DEFINE([HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION], [1], [Does libpcap have pcap_open_offline_with_tstamp_precision?])
+    AC_DEFINE([PCAP_TSTAMP_US_TO_NS_MULTIPLIER], [1], [Multiplier for conversion from PCAP usec to nsec])
+    AC_DEFINE([PCAP_TSTAMP_US_TO_US_DIVISOR], [1000], [Divisor for conversion from PCAP usec to usec])
+else
+   AC_DEFINE([PCAP_TSTAMP_US_TO_NS_MULTIPLIER], [1000], [Multiplier for conversion from PCAP usec to nsec])
+   AC_DEFINE([PCAP_TSTAMP_US_TO_US_DIVISOR], [1], [Divisor for conversion from PCAP usec to usec])
+fi
+
 
 # Tcpbridge requires libpcap and pcap_sendpacket()
 enable_tcpbridge=no
@@ -1399,6 +1467,36 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT(no)
 ])
 
+have_libxdp=no
+dnl Check for LIBXDP AF_XDP socket support
+AC_MSG_CHECKING(for LIBXDP XDP packet sending support)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <stdlib.h>
+#include <xdp/xsk.h>
+#include <sys/socket.h>
+]], [[
+    struct xsk_socket {
+        struct xsk_ring_cons *rx;
+        struct xsk_ring_prod *tx;
+        struct xsk_ctx *ctx;
+        struct xsk_socket_config config;
+        int fd;
+    };
+    struct xsk_socket xsk;
+	struct xsk_ring_cons *rxr = NULL;
+	struct xsk_ring_prod *txr = NULL;
+    int queue_id = 0;
+    xsk_socket__create(&xsk, "lo", queue_id, NULL, rxr, txr, NULL);
+    socket(AF_XDP, SOCK_RAW, 0);
+]])],[
+    AC_DEFINE([HAVE_LIBXDP], [1],
+            [Do we have LIBXDP AF_XDP socket support?])
+    AC_MSG_RESULT(yes)
+    have_libxdp=yes
+],[
+    AC_MSG_RESULT(no)
+])
+
 have_tx_ring=no
 dnl Check for older Linux TX_RING support
 AC_MSG_CHECKING(for TX_RING socket sending support)
@@ -1420,6 +1518,9 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT(no)
 ])
 
+AC_CHECK_HEADERS([bpf/libbpf.h])
+AC_CHECK_HEADERS([bpf/bpf.h])
+AC_CHECK_HEADERS([xdp/libxdp.h])
 
 AC_CHECK_HEADERS([net/bpf.h], [have_bpf=yes], [have_bpf=no])
 if test $have_bpf = yes ; then
@@ -1521,6 +1622,15 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "$LPCAPINC"]], [[ int foo;
                  foo = DLT_LINUX_SLL
                ]])],[ AC_DEFINE([HAVE_DLT_LINUX_SLL], [1],
                            [Does pcap.h include a header with DLT_LINUX_SLL?])
+                 AC_MSG_RESULT(yes)
+               ],[AC_MSG_RESULT(no)
+               ])
+
+AC_MSG_CHECKING(for DLT_LINUX_SLL2 in libpcap)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "$LPCAPINC"]], [[ int foo;
+                 foo = DLT_LINUX_SLL2
+               ]])],[ AC_DEFINE([HAVE_DLT_LINUX_SLL2], [1],
+                           [Does pcap.h include a header with DLT_LINUX_SLL2?])
                  AC_MSG_RESULT(yes)
                ],[AC_MSG_RESULT(no)
                ])
@@ -1709,7 +1819,7 @@ case "$host_os" in
 EOF
         ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS \
             conftest.c $LIBS >/dev/null 2>&1
-        if test ! -x conftest ; then
+        if test ! -x conftest -o "$cross_compiling" = "yes" ; then
             dnl failed to compile for some reason
             unaligned_cv_fail=yes
         else
@@ -1939,6 +2049,7 @@ pcap_sendpacket:            ${have_pcap_sendpacket} **
 pcap_netmap                 ${have_pcap_netmap}
 Linux/BSD netmap:           ${have_netmap}
 Tuntap device support:      ${have_tuntap}
+LIBXDP for AF_XDP socket:   ${have_libxdp}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge

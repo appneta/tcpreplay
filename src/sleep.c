@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -49,32 +49,32 @@ ioport_sleep_init(void)
 }
 
 void
-ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap _U_, struct timeval *now _U_, bool flush _U_)
+ioport_sleep(sendpacket_t *sp _U_, const struct timespec *nap _U_, struct timespec *now _U_, bool flush _U_)
 {
 #if defined HAVE_IOPORT_SLEEP__
-    struct timeval nap_for;
-    u_int32_t usec;
+    struct timespec nap_for;
+    u_int32_t nsec;
     time_t i;
 
-    TIMESPEC_TO_TIMEVAL(&nap_for, nap);
+    TIMESPEC_SET(&nap_for, nap);
 
     /*
      * process the seconds, we do this in a loop so we don't have to
      * use slower 64bit integers or worry about integer overflows.
      */
     for (i = 0; i < nap_for.tv_sec; i++) {
-        usec = SEC_TO_MICROSEC(nap_for.tv_sec);
+        nsec = nap_for.tv_sec * 1000000000;
         while (usec > 0) {
             usec--;
             outb(ioport_sleep_value, 0x80);
         }
     }
 
-    /* process the usec */
-    usec = nap->tv_nsec / 1000;
-    usec--; /* fudge factor for all the above */
-    while (usec > 0) {
-        usec--;
+    /* process the nsec */
+    nsec = nap->tv_nsec;
+    nsec--; /* fudge factor for all the above */
+    while (nsec > 0) {
+        nsec--;
         outb(ioport_sleep_value, 0x80);
     }
 #else

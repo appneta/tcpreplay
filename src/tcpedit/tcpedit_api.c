@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -133,6 +133,17 @@ tcpedit_set_fixcsum(tcpedit_t *tcpedit, bool value)
 {
     assert(tcpedit);
     tcpedit->fixcsum = value;
+    return TCPEDIT_OK;
+}
+
+/**
+ * \brief should we fix(?) header length?
+ */
+int
+tcpedit_set_fixhdrlen(tcpedit_t *tcpedit, bool value)
+{
+    assert(tcpedit);
+    tcpedit->fixhdrlen = value;
     return TCPEDIT_OK;
 }
 

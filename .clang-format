@@ -3,10 +3,12 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: None
 AlignOperands: Align
+AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Always
+AllowShortEnumsOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortLambdasOnASingleLine: All
@@ -16,7 +18,7 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: TopLevelDefinitions
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
-AttributeMacros: ['__capability', '__output', '__ununsed', '_U_']
+AttributeMacros: ['__capability', '__output', '__unused', '_U_']
 BinPackArguments: false
 BinPackParameters: false
 BitFieldColonSpacing: None
@@ -28,9 +30,11 @@ BraceWrapping:
   AfterEnum: false
   AfterFunction: true
   AfterNamespace: false
+  AfterStruct: false
   AfterUnion: false
   BeforeCatch: false
   BeforeElse: false
+  BeforeWhile: false
   IndentBraces: false
   SplitEmptyFunction: false
   SplitEmptyRecord: true
@@ -69,7 +73,12 @@ IncludeCategories:
     Priority:        6
 IndentGotoLabels: false
 IndentPPDirectives: None
+IndentRequiresClause: false
+IndentExternBlock: AfterExternBlock
 IndentWidth: 4
+IndentWrappedFunctionNames: false
+InsertBraces: true
+InsertTrailingCommas: None
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None
@@ -86,12 +95,16 @@ SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
 SpaceBeforeRangeBasedForLoopColon: false
+SpaceInEmptyBlock: false
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
 SpacesInAngles:  Never
 SpacesInConditionalStatement: false
 SpacesInContainerLiterals: false
 SpacesInCStyleCastParentheses: false
+SpacesInLineCommentPrefix:
+  Minimum:         1
+  Maximum:         -1
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 TabWidth: 8

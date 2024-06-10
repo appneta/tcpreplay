@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -29,11 +29,11 @@ typedef struct {
     COUNTER bytes_sent;
     COUNTER pkts_sent;
     COUNTER failed;
-    struct timeval start_time;
-    struct timeval time_delta;
-    struct timeval end_time;
-    struct timeval pkt_ts_delta;
-    struct timeval last_print;
+    struct timespec start_time;
+    struct timespec time_delta;
+    struct timespec end_time;
+    struct timespec pkt_ts_delta;
+    struct timespec last_print;
     COUNTER flow_non_flow_packets;
     COUNTER flows;
     COUNTER flows_unique;
@@ -44,9 +44,10 @@ typedef struct {
 
 int read_hexstring(const char *l2string, u_char *hex, int hexlen);
 void packet_stats(const tcpreplay_stats_t *stats);
-int format_date_time(struct timeval *when, char *buf, size_t len);
+int format_date_time(struct timespec *when, char *buf, size_t len);
 uint32_t tcpr_random(uint32_t *seed);
 void restore_stdin(void);
+pcap_t* tcpr_pcap_open(const char *path, char *ebuf);
 
 /* our "safe" implimentations of functions which allocate memory */
 #define safe_malloc(x) our_safe_malloc(x, __FUNCTION__, __LINE__, __FILE__)

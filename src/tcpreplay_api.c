@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -18,23 +18,23 @@
  *   along with the Tcpreplay Suite.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "tcpreplay_api.h"
 #include "defines.h"
+#include "config.h"
 #include "common.h"
-
+#include "replay.h"
+#include "send_packets.h"
+#include "sleep.h"
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
-#include <errno.h>
-#include <stdarg.h>
-
-#include "tcpreplay_api.h"
-#include "send_packets.h"
-#include "replay.h"
 
 #ifdef TCPREPLAY_EDIT
 #include "tcpreplay_edit_opts.h"
@@ -166,6 +166,7 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 
     options->loop = OPT_VALUE_LOOP;
     options->loopdelay_ms = OPT_VALUE_LOOPDELAY_MS;
+    options->loopdelay_ns = OPT_VALUE_LOOPDELAY_NS;
 
     if (HAVE_OPT(LIMIT))
         options->limit_send = OPT_VALUE_LIMIT;
@@ -207,6 +208,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->maxsleep.tv_sec = OPT_VALUE_MAXSLEEP / 1000;
         options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000 * 1000;
     }
+
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
@@ -262,6 +266,15 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         ctx->sp_type = SP_TYPE_NETMAP;
 #else
          err(-1, "--netmap feature was not compiled in. See INSTALL.");
+#endif
+    }
+
+    if (HAVE_OPT(XDP)) {
+#ifdef HAVE_LIBXDP
+        options->xdp = 1;
+        ctx->sp_type = SP_TYPE_LIBXDP;
+#else
+         err(-1, "--xdp feature was not compiled in. See INSTALL.");
 #endif
     }
 
@@ -358,7 +371,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         ret = -1;
         goto out;
     }
-
+#ifdef HAVE_LIBXDP
+    ctx->intf1->batch_size = OPT_VALUE_XDP_BATCH_SIZE;
+#endif
 #if defined HAVE_NETMAP
     ctx->intf1->netmap_delay = ctx->options->netmap_delay;
 #endif
@@ -428,6 +443,15 @@ tcpreplay_close(tcpreplay_t *ctx)
     assert(ctx);
     assert(ctx->options);
     options = ctx->options;
+
+#ifdef HAVE_LIBXDP
+    if (ctx->intf1->handle_type == SP_TYPE_LIBXDP) {
+        free_umem_and_xsk(ctx->intf1);
+        if (ctx->intf2) {
+            free_umem_and_xsk(ctx->intf2);
+        }
+    }
+#endif
 
     safe_free(options->intf1_name);
     safe_free(options->intf2_name);
@@ -895,24 +919,24 @@ tcpreplay_get_failed(tcpreplay_t *ctx)
 }
 
 /**
- * \brief returns a pointer to the timeval structure of when replay first started
+ * \brief returns a pointer to the timespec structure of when replay first started
  */
-const struct timeval *
+const struct timespec *
 tcpreplay_get_start_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    TIMEVAL_SET(&ctx->static_stats.start_time, &ctx->stats.start_time);
+    TIMESPEC_SET(&ctx->static_stats.start_time, &ctx->stats.start_time);
     return &ctx->static_stats.start_time;
 }
 
 /**
- * \brief returns a pointer to the timeval structure of when replay finished
+ * \brief returns a pointer to the timespec structure of when replay finished
  */
-const struct timeval *
+const struct timespec *
 tcpreplay_get_end_time(tcpreplay_t *ctx)
 {
     assert(ctx);
-    TIMEVAL_SET(&ctx->static_stats.end_time, &ctx->stats.end_time);
+    TIMESPEC_SET(&ctx->static_stats.end_time, &ctx->stats.end_time);
     return &ctx->static_stats.end_time;
 }
 
@@ -1099,6 +1123,7 @@ out:
     return ret;
 }
 
+static bool apply_loop_delay(tcpreplay_t *ctx);
 /**
  * \brief sends the traffic out the interfaces
  *
@@ -1149,14 +1174,20 @@ tcpreplay_replay(tcpreplay_t *ctx)
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
             if (ctx->options->loop > 0) {
-                if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
-                    usleep(ctx->options->loopdelay_ms * 1000);
-                    gettimeofday(&ctx->stats.end_time, NULL);
-                }
+                if (apply_loop_delay(ctx))
+                    get_current_time(&ctx->stats.end_time);
 
-                if (ctx->options->stats == 0)
+                if (ctx->options->stats == 0) {
                     packet_stats(&ctx->stats);
+                }
             }
+#ifdef HAVE_LIBXDP
+            sendpacket_t *sp = ctx->intf1;
+            if (sp->handle_type == SP_TYPE_LIBXDP) {
+                sp->xsk_info->tx.cached_prod = 0;
+                sp->xsk_info->tx.cached_cons = sp->tx_size;
+            }
+#endif
         }
     } else {
         while (!ctx->abort) { /* loop forever unless user aborts */
@@ -1171,10 +1202,8 @@ tcpreplay_replay(tcpreplay_t *ctx)
             if ((rcode = tcpr_replay_index(ctx)) < 0)
                 return rcode;
 
-            if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
-                usleep(ctx->options->loopdelay_ms * 1000);
-                gettimeofday(&ctx->stats.end_time, NULL);
-            }
+            if (apply_loop_delay(ctx))
+                get_current_time(&ctx->stats.end_time);
 
             if (ctx->options->stats == 0 && !ctx->abort)
                 packet_stats(&ctx->stats);
@@ -1356,3 +1385,55 @@ int tcpreplay_get_flow_expiry(tcpreplay_t *ctx)
 
     return ctx->options->flow_expiry;
 }
+
+bool
+apply_loop_delay(tcpreplay_t *ctx) {
+    if (!ctx->abort && ctx->options->loopdelay_ms > 0) {
+        usleep(ctx->options->loopdelay_ms * 1000);
+        return true;
+    }
+
+    if (!ctx->abort && ctx->options->loopdelay_ns > 0) {
+        struct timespec nap;
+        nap.tv_sec = 0;
+        nap.tv_nsec = ctx->options->loopdelay_ns;
+        nanosleep_sleep(NULL, &nap, &ctx->stats.end_time, NULL);
+        return true;
+    }
+
+    return false;
+}
+
+#ifdef HAVE_LIBXDP
+void
+delete_xsk_socket(struct xsk_socket *xsk)
+{
+    size_t desc_sz = sizeof(struct xdp_desc);
+    struct xdp_mmap_offsets off;
+    socklen_t optlen;
+    int err;
+
+    if (!xsk) {
+        return;
+    }
+
+    optlen = sizeof(off);
+    err = getsockopt(xsk->fd, SOL_XDP, XDP_MMAP_OFFSETS, &off, &optlen);
+    if (!err) {
+        if (xsk->rx) {
+            munmap(xsk->rx->ring - off.rx.desc, off.rx.desc + xsk->config.rx_size * desc_sz);
+        }
+        if (xsk->tx) {
+            munmap(xsk->tx->ring - off.tx.desc, off.tx.desc + xsk->config.tx_size * desc_sz);
+        }
+    }
+    close(xsk->fd);
+}
+
+void
+free_umem_and_xsk(sendpacket_t *sp)
+{
+    xsk_umem__delete(sp->xsk_info->umem->umem);
+    delete_xsk_socket(sp->xsk_info->xsk);
+}
+#endif /*HAVE_LIBXDP*/
