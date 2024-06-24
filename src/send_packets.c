@@ -397,6 +397,17 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         now_is_now = false;
         packetnum++;
 #if defined TCPREPLAY || defined TCPREPLAY_EDIT
+        /* look for include or exclude LIST match */
+        if (options->list != NULL) {
+            bool rule_set = check_list(options->list, packetnum);
+            if ((rule_set && options->is_exclude) || (!rule_set && !options->is_exclude)) {
+                dbgx(2, "packet " COUNTER_SPEC " not sent due to %s rule",
+                     packetnum,
+                     options->is_exclude ? "exclude" : "include");
+                continue;
+            }
+        }
+
         /* do we use the snaplen (caplen) or the "actual" packet len? */
         pktlen = options->use_pkthdr_len ? (COUNTER)pkthdr.len : (COUNTER)pkthdr.caplen;
 #elif TCPBRIDGE
@@ -667,6 +678,16 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     while (!ctx->abort && !(pktdata1 == NULL && pktdata2 == NULL)) {
         now_is_now = false;
         packetnum++;
+        /* look for include or exclude LIST match */
+        if (options->list != NULL) {
+            bool rule_set = check_list(options->list, packetnum);
+            if ((rule_set && options->is_exclude) || (!rule_set && !options->is_exclude)) {
+                dbgx(2, "packet " COUNTER_SPEC " not sent due to %s rule",
+                     packetnum,
+                     options->is_exclude ? "exclude" : "include");
+                continue;
+            }
+        }
 
         /* figure out which pcap file we need to process next
          * when get_next_packet() returns null for pktdata, the pkthdr

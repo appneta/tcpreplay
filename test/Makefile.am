@@ -40,7 +40,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_1ttl test2.rewrite_2ttl test2.rewrite_3ttl \
 		test2.rewrite_1ttl-hdrfix test2.rewrite_2ttl-hdrfix test2.rewrite_3ttl-hdrfix \
 		test2.rewrite_mtutrunc test2.rewrite_enet_subsmac \
-		 test.rewrite_tos test2.rewrite_tos \
+		test.rewrite_tos test2.rewrite_tos \
 		test2.rewrite_enet_subsmac test2.rewrite_mac_seed \
 		test2.rewrite_range_portmap test2.rewrite_mac_seed_keep \
 		test2.rewrite_l7fuzzing test2.rewrite_sequence test2.rewrite_fixcsum \
@@ -209,7 +209,7 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 
 tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -818,6 +818,18 @@ replay_maxsleep:
 	$(PRINTF) "%s\n" "*** [tcpreplay] Maximum sleep test: " >> test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --maxsleep=20 $(TEST_PCAP) $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+replay_include:
+	$(PRINTF) "%s" "[tcpreplay] Include rule test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Include rule test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --include=1-5,9,15,72- $(TEST_PCAP) $(TEST_PCAP) >> test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_exclude:
+	$(PRINTF) "%s" "[tcpreplay] Exclude rule test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Exclude rule test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --include=7-11,3,20,22- $(TEST_PCAP) $(TEST_PCAP) >> test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 clean:
 	rm -f *1 test.log core* *~ primary.data secondary.data

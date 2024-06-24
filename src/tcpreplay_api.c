@@ -487,6 +487,9 @@ tcpreplay_close(tcpreplay_t *ctx)
             intlist = intlistnext;
         }
     }
+
+    /* free --include / --exclude list */
+    free_list(options->list);
 }
 
 /**

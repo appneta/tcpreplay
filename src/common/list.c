@@ -44,6 +44,21 @@ new_list()
     return (newlist);
 }
 
+static void
+add_to_list(tcpr_list_t *list_ptr, const char *first, const char *second)
+{
+    list_ptr->min = strtoull(first, NULL, 0);
+    if (second != NULL) {
+        if (second[0] == '\0') {
+            list_ptr->max = 0;
+        } else {
+            list_ptr->max = strtoull(second, NULL, 0);
+        }
+    } else {
+        list_ptr->max = list_ptr->min;
+    }
+}
+
 /**
  * Processes a string (ourstr) containing the list in human readable
  * format and places the data in **list and finally returns 1 for
@@ -57,7 +72,7 @@ parse_list(tcpr_list_t **listdata, char *ourstr)
     char *first, *second;
     int rcode;
     regex_t preg;
-    char regex[] = "^[0-9]+(-[0-9]+)?$";
+    char regex[] = "^[0-9]+(-([0-9]+|\\s*))?$";
     char *token = NULL;
     u_int i;
 
@@ -91,12 +106,7 @@ parse_list(tcpr_list_t **listdata, char *ourstr)
         }
     }
 
-    list_ptr->min = strtoull(first, NULL, 0);
-    if (second != NULL) {
-        list_ptr->max = strtoull(second, NULL, 0);
-    } else {
-        list_ptr->max = list_ptr->min;
-    }
+    add_to_list(list_ptr, first, second);
 
     while (1) {
         this = strtok_r(NULL, ",", &token);
@@ -123,12 +133,7 @@ parse_list(tcpr_list_t **listdata, char *ourstr)
             }
         }
 
-        listcur->min = strtoull(first, NULL, 0);
-        if (second != NULL) {
-            listcur->max = strtoull(second, NULL, 0);
-        } else {
-            listcur->max = listcur->min;
-        }
+        add_to_list(listcur, first, second);
     }
 
     regfree(&preg);
@@ -144,10 +149,8 @@ tcpr_dir_t
 check_list(tcpr_list_t *list, COUNTER value)
 {
     tcpr_list_t *current;
-    current = list;
-
-    do {
-        if ((current->min != 0) && (current->max != 0)) {
+    for (current = list; current; current = current->next) {
+        if (current->min != 0 && current->max != 0) {
             if ((value >= current->min) && (value <= current->max))
                 return 1;
         } else if (current->min == 0) {
@@ -157,12 +160,7 @@ check_list(tcpr_list_t *list, COUNTER value)
             if (value >= current->min)
                 return 1;
         }
-
-        if (current->next != NULL)
-            current = current->next;
-        else
-            current = NULL;
-    } while (current != NULL);
+    }
 
     return 0;
 }
@@ -173,6 +171,9 @@ check_list(tcpr_list_t *list, COUNTER value)
 void
 free_list(tcpr_list_t *list)
 {
+    if (list == NULL)
+        return;
+
     /* recursively go down the list */
     if (list->next != NULL)
         free_list(list->next);
