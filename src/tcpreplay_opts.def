@@ -57,11 +57,13 @@ config-header   = "config.h";
 
 include         = "#include \"defines.h\"\n"
                 "#include \"tcpreplay.h\"\n"
+                "#include \"tcpreplay_api.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"config.h\"\n"
                 "#include <stdlib.h>\n"
                 "#include <sys/types.h>\n"
-                "#include <unistd.h>\n";
+                "#include <unistd.h>\n"
+                "extern tcpreplay_t *ctx;";
 
 homerc          = "$$/";
 
@@ -283,6 +285,66 @@ Optional network interface used to send traffic which is marked as 'secondary'
 via tcpprep.  Secondary traffic is usually server-to-client or outbound 
 (TX) on khial virtual interfaces.  Generally, it only makes sense to use this
 option with --cachefile.
+EOText;
+};
+
+flag = {
+    name        = include;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Send only selected packet numbers";
+    flags-cant  = exclude;
+    flag-code   = <<- EOInclude
+
+    char *include;
+    include = safe_strdup(OPT_ARG(INCLUDE));
+
+    ctx->options->is_exclude = false;
+    if (!parse_list(&ctx->options->list, include))
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
+
+    free(include);
+
+EOInclude;
+    doc         = <<- EOText
+Override default of processing all packets stored in the capture file and only
+send packets that are part of a supplied list of packet numbers.
+
+@example
+-x P:1-5,9,15,72-
+@end example
+would skip packets 1 through 5, the 9th and 15th packet, and packets 72 until the
+end of the file
+EOText;
+};
+
+flag = {
+    name        = exclude;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Send all but selected packet numbers";
+    flags-cant  = include;
+    flag-code   = <<- EOExclude
+
+    char *exclude;
+    exclude = safe_strdup(OPT_ARG(EXCLUDE));
+
+    ctx->options->is_exclude = true;
+    if (!parse_list(&ctx->options->list, exclude))
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
+
+    free(exclude);
+
+EOExclude;
+    doc         = <<- EOText
+Override default of processing all packets stored in the capture file and only
+send packets that are NOT part of a supplied list of packet numbers.
+
+@example
+-x P:1-5,9,15,72-
+@end example
+would skip packets 1 through 5, the 9th and 15th packet, and packets 72 until the
+end of the file
 EOText;
 };
 
@@ -543,19 +605,6 @@ are fully up before netmap transmit. Requires netmap option. Default is 10 secon
 EOText;
 };
 
-flag = {
-    ifdef       = HAVE_LIBXDP;
-    name        = xdp;
-    descrip     = "Write packets directly to AF_XDP enabled network adapter";
-    doc         = <<- EOText
-This feature will detect AF_XDP capable network drivers on Linux systems
-that have 'libxdp-dev' and 'libbpf-dev' installed. If detected, the network
-stack is bypassed and packets are sent directly to an eBPF enabled driver directly.
-This will allow you to achieve full line rates on commodity network adapters, similar to rates
-achieved by commercial network traffic generators.
-EOText;
-};
-
 
 flag = {
     name        = no-flow-stats;
@@ -625,6 +674,21 @@ Note that timed delays are a "best effort" and long delays between
 sending packets may cause equally long delays between printing statistics.
 EOText;
 };
+
+
+flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp;
+    descrip     = "Write packets directly to AF_XDP enabled network adapter";
+    doc         = <<- EOText
+This feature will detect AF_XDP capable network drivers on Linux systems
+that have 'libxdp-dev' and 'libbpf-dev' installed. If detected, the network
+stack is bypassed and packets are sent directly to an eBPF enabled driver directly.
+This will allow you to achieve full line rates on commodity network adapters, similar to rates
+achieved by commercial network traffic generators.
+EOText;
+};
+
 
 flag = {
     ifdef       = HAVE_LIBXDP;

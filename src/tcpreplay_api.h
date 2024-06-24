@@ -23,6 +23,7 @@
 #include "defines.h"
 #include "config.h"
 #include <common/interface.h>
+#include <common/list.h>
 #include <common/sendpacket.h>
 #include <common/tcpdump.h>
 #include <common/utils.h>
@@ -133,6 +134,10 @@ typedef struct tcpreplay_opt_s {
     /* pcap files/sources to replay */
     int source_cnt;
     tcpreplay_source_t sources[MAX_FILES];
+
+    /* --include / --exclude flag and rules list */
+    bool is_exclude;
+    tcpr_list_t *list;
 
 #ifdef ENABLE_VERBOSE
     /* tcpdump verbose printing */
