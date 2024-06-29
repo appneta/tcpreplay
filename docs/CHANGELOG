@@ -1,11 +1,12 @@
-06/23/2024 Version 4.5.0-beta3
+06/29/2024 Version 4.5.0-beta3
     - tcpreplay --include / --exclude to control which packets are replayed (#884)
-    - add -w (--suppress-warnings) option to suppress warning messages (#878)
+    - add -W (--suppress-warnings) option to suppress warning messages (#878)
     - AF_XDP compile issue due to merge issue (#876)
     - memory leak in tcpprep when using include/exclude (#869)
     - memory leak in tcpprep when using RegEx (#867)
     - fix nanosecond timestamp regression bug (#863)
     - autotools - AC_HELP_STRING is obsolete in 2.70 (#856)
+    - add -w output.pcap command line option to direct the output to a pcap (#853)
     - configure.ac: do not run conftest in case of cross compilation (#849)
     - Haiku support (#847)
     - --fixhdrlen option added to control action on packet length changes (#846)

@@ -265,6 +265,7 @@ flag = {
     value       = i;
     arg-type    = string;
     max         = 1;
+    equivalence = intf1;
     must-set;
     descrip     = "Client to server/RX/primary traffic output interface";
     doc         = <<- EOText
@@ -285,6 +286,19 @@ Optional network interface used to send traffic which is marked as 'secondary'
 via tcpprep.  Secondary traffic is usually server-to-client or outbound 
 (TX) on khial virtual interfaces.  Generally, it only makes sense to use this
 option with --cachefile.
+EOText;
+};
+
+flag = {
+    name        = write;
+    value       = w;
+    arg-type    = string;
+    max         = 1;
+    equivalence = intf1;
+    flags-cant  = intf2;
+    descrip     = "Pcap file to receive traffic outputs";
+    doc         = <<- EOText
+Optional pcap file name used to receive traffic.
 EOText;
 };
 
@@ -654,7 +668,6 @@ EOText;
 
 flag = {
     name        = pid;
-    value       = P;
     descrip     = "Print the PID of tcpreplay at startup";
     flag-code   = <<- EOPid
 
@@ -673,6 +686,16 @@ flag = {
 Note that timed delays are a "best effort" and long delays between
 sending packets may cause equally long delays between printing statistics.
 EOText;
+};
+
+
+flag = {
+    name        = suppress-warnings;
+    value       = W;
+    immediate;
+    descrip     = "suppress printing warning messages";
+    settable;
+    doc         = "";
 };
 
 
@@ -781,14 +804,5 @@ flag = {
     USAGE(EXIT_FAILURE);
 
 EOHelp;
-    doc         = "";
-};
-
-flag = {
-    name        = suppress-warnings;
-    value       = w;
-    immediate;
-    descrip     = "suppress printing warning messages";
-    settable;
     doc         = "";
 };
