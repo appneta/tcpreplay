@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -23,6 +23,7 @@
 #include "defines.h"
 #include "config.h"
 #include <common/interface.h>
+#include <common/list.h>
 #include <common/sendpacket.h>
 #include <common/tcpdump.h>
 #include <common/utils.h>
@@ -133,6 +134,10 @@ typedef struct tcpreplay_opt_s {
     /* pcap files/sources to replay */
     int source_cnt;
     tcpreplay_source_t sources[MAX_FILES];
+
+    /* --include / --exclude flag and rules list */
+    bool is_exclude;
+    tcpr_list_t *list;
 
 #ifdef ENABLE_VERBOSE
     /* tcpdump verbose printing */

@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -68,6 +68,7 @@ typedef enum sendpacket_type_e {
     SP_TYPE_KHIAL,
     SP_TYPE_NETMAP,
     SP_TYPE_TUNTAP,
+    SP_TYPE_LIBPCAP_DUMP,
     SP_TYPE_LIBXDP
 } sendpacket_type_t;
 
@@ -81,8 +82,14 @@ typedef enum khial_direction_e {
     KHIAL_DIRECTION_TX,
 } khial_direction_t;
 
+typedef struct pcap_dump_s{
+    pcap_t *pcap;
+    pcap_dumper_t* dump;
+} pcap_dump_t;
+
 union sendpacket_handle {
     pcap_t *pcap;
+    pcap_dump_t dump;
     int fd;
 #ifdef HAVE_LIBDNET
     eth_t *ldnet;

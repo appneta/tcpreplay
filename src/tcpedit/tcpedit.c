@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -94,7 +94,7 @@ again:
     ipflags = 0;
     /* not everything has a L3 header, so check for errors.  returns proto in network byte order */
     if ((l2proto = tcpedit_dlt_proto(tcpedit->dlt_ctx, src_dlt, packet, (int)(*pkthdr)->caplen)) < 0) {
-        dbgx(2, "Packet has no L3+ header: %s", tcpedit_geterr(tcpedit));
+        dbgx(2, "Packet " COUNTER_SPEC " has no L3+ header: %s", tcpedit->runtime.packetnum, tcpedit_geterr(tcpedit));
         return TCPEDIT_SOFT_ERROR;
     } else {
         dbgx(2, "Layer 3 protocol type is: 0x%04x", ntohs(l2proto));
@@ -188,7 +188,6 @@ again:
             newval = *((uint16_t *)ip_hdr);
             newval = htons((ntohs(newval) & 0xff00) | (tcpedit->tos & 0xff));
             *((uint16_t *)ip_hdr) = newval;
-            static uint32_t cnt;
             csum_replace2(&ip_hdr->ip_sum, oldval, newval);
         }
 

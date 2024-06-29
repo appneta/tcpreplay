@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -209,6 +209,9 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         options->maxsleep.tv_nsec = (OPT_VALUE_MAXSLEEP % 1000) * 1000 * 1000;
     }
 
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
+
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))
         options->verbose = 1;
@@ -338,76 +341,100 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
         tcpreplay_setwarn(ctx, "%s", "--pktlen may cause problems.  Use with caution.");
     }
 
-    if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF1))) == NULL) {
-        if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4))
-            tcpreplay_seterr(ctx, "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
-                    OPT_ARG(INTF1));
-        else
-            tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+    switch (WHICH_IDX_INTF1) {
+    case INDEX_OPT_WRITE:
+        options->intf1_name = safe_strdup(OPT_ARG(INTF1));
+        ctx->sp_type = SP_TYPE_LIBPCAP_DUMP;
+        /* open interfaces for writing */
+        if ((ctx->intf1 = sendpacket_open(options->intf1_name, ebuf, TCPR_DIR_C2S, ctx->sp_type, ctx)) == NULL) {
+            tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf1_name, ebuf);
+            ret = -1;
+            goto out;
+        }
+        break;
 
-        ret = -1;
-        goto out;
-    }
+    case INDEX_OPT_INTF1:
+        if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF1))) == NULL) {
+            if (!strncmp(OPT_ARG(INTF1), "netmap:", 7) || !strncmp(OPT_ARG(INTF1), "vale", 4)) {
+                tcpreplay_seterr(
+                        ctx,
+                        "Unable to connect to netmap interface %s. Ensure netmap module is installed (see INSTALL).",
+                        OPT_ARG(INTF1));
+            } else {
+                tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF1));
+            }
 
-    if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
+            ret = -1;
+            goto out;
+        }
+
+        if (!strncmp(intname, "netmap:", 7) || !strncmp(intname, "vale:", 5)) {
 #ifdef HAVE_NETMAP
-        options->netmap = 1;
-        ctx->sp_type = SP_TYPE_NETMAP;
+            options->netmap = 1;
+            ctx->sp_type = SP_TYPE_NETMAP;
 #else
-        tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with netmap support");
-        ret = -1;
-        goto out;
+            tcpreplay_seterr(ctx, "%s", "tcpreplay_api not compiled with netmap support");
+            ret = -1;
+            goto out;
 #endif
-    }
+        }
 
-    options->intf1_name = safe_strdup(intname);
+        options->intf1_name = safe_strdup(intname);
 
-    /* open interfaces for writing */
-    if ((ctx->intf1 = sendpacket_open(options->intf1_name, ebuf, TCPR_DIR_C2S, ctx->sp_type, ctx)) == NULL) {
-        tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf1_name, ebuf);
-        ret = -1;
-        goto out;
-    }
+        /* open interfaces for writing */
+        if ((ctx->intf1 = sendpacket_open(options->intf1_name, ebuf, TCPR_DIR_C2S, ctx->sp_type, ctx)) == NULL) {
+            tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf1_name, ebuf);
+            ret = -1;
+            goto out;
+        }
 #ifdef HAVE_LIBXDP
-    ctx->intf1->batch_size = OPT_VALUE_XDP_BATCH_SIZE;
+        ctx->intf1->batch_size = OPT_VALUE_XDP_BATCH_SIZE;
 #endif
 #if defined HAVE_NETMAP
-    ctx->intf1->netmap_delay = ctx->options->netmap_delay;
+        ctx->intf1->netmap_delay = ctx->options->netmap_delay;
 #endif
 
-    ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
+        ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
 
-    if (HAVE_OPT(INTF2)) {
-        if (!HAVE_OPT(CACHEFILE) && !HAVE_OPT(DUALFILE)) {
-            tcpreplay_seterr(ctx, "--intf2=%s requires either --cachefile or --dualfile", OPT_ARG(INTF2));
-            ret = -1;
-            goto out;
-        }
-        if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF2))) == NULL) {
-            tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
-            ret = -1;
-            goto out;
-        }
+        if (HAVE_OPT(INTF2)) {
+            if (!HAVE_OPT(CACHEFILE) && !HAVE_OPT(DUALFILE)) {
+                tcpreplay_seterr(ctx, "--intf2=%s requires either --cachefile or --dualfile", OPT_ARG(INTF2));
+                ret = -1;
+                goto out;
+            }
+            if ((intname = get_interface(ctx->intlist, OPT_ARG(INTF2))) == NULL) {
+                tcpreplay_seterr(ctx, "Invalid interface name/alias: %s", OPT_ARG(INTF2));
+                ret = -1;
+                goto out;
+            }
 
-        options->intf2_name = safe_strdup(intname);
+            options->intf2_name = safe_strdup(intname);
 
-        /* open interface for writing */
-        if ((ctx->intf2 = sendpacket_open(options->intf2_name, ebuf, TCPR_DIR_S2C, ctx->sp_type, ctx)) == NULL) {
-            tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf2_name, ebuf);
-        }
+            /* open interface for writing */
+            if ((ctx->intf2 = sendpacket_open(options->intf2_name, ebuf, TCPR_DIR_S2C, ctx->sp_type, ctx)) == NULL) {
+                tcpreplay_seterr(ctx, "Can't open %s: %s", options->intf2_name, ebuf);
+            }
 
 #if defined HAVE_NETMAP
-        ctx->intf2->netmap_delay = ctx->options->netmap_delay;
+            ctx->intf2->netmap_delay = ctx->options->netmap_delay;
 #endif
 
-        ctx->intf2dlt = sendpacket_get_dlt(ctx->intf2);
-        if (ctx->intf2dlt != ctx->intf1dlt) {
-            tcpreplay_seterr(ctx, "DLT type mismatch for %s (%s) and %s (%s)",
-                options->intf1_name, pcap_datalink_val_to_name(ctx->intf1dlt),
-                options->intf2_name, pcap_datalink_val_to_name(ctx->intf2dlt));
-            ret = -1;
-            goto out;
+            ctx->intf2dlt = sendpacket_get_dlt(ctx->intf2);
+            if (ctx->intf2dlt != ctx->intf1dlt) {
+                tcpreplay_seterr(ctx,
+                                 "DLT type mismatch for %s (%s) and %s (%s)",
+                                 options->intf1_name,
+                                 pcap_datalink_val_to_name(ctx->intf1dlt),
+                                 options->intf2_name,
+                                 pcap_datalink_val_to_name(ctx->intf2dlt));
+                ret = -1;
+                goto out;
+            }
         }
+        break;
+
+    default:
+        assert(false); // shouldn't happen!
     }
 
     if (HAVE_OPT(CACHEFILE)) {
@@ -484,6 +511,9 @@ tcpreplay_close(tcpreplay_t *ctx)
             intlist = intlistnext;
         }
     }
+
+    /* free --include / --exclude list */
+    free_list(options->list);
 }
 
 /**
@@ -1400,3 +1430,37 @@ apply_loop_delay(tcpreplay_t *ctx) {
 
     return false;
 }
+
+#ifdef HAVE_LIBXDP
+void
+delete_xsk_socket(struct xsk_socket *xsk)
+{
+    size_t desc_sz = sizeof(struct xdp_desc);
+    struct xdp_mmap_offsets off;
+    socklen_t optlen;
+    int err;
+
+    if (!xsk) {
+        return;
+    }
+
+    optlen = sizeof(off);
+    err = getsockopt(xsk->fd, SOL_XDP, XDP_MMAP_OFFSETS, &off, &optlen);
+    if (!err) {
+        if (xsk->rx) {
+            munmap(xsk->rx->ring - off.rx.desc, off.rx.desc + xsk->config.rx_size * desc_sz);
+        }
+        if (xsk->tx) {
+            munmap(xsk->tx->ring - off.tx.desc, off.tx.desc + xsk->config.tx_size * desc_sz);
+        }
+    }
+    close(xsk->fd);
+}
+
+void
+free_umem_and_xsk(sendpacket_t *sp)
+{
+    xsk_umem__delete(sp->xsk_info->umem->umem);
+    delete_xsk_socket(sp->xsk_info->xsk);
+}
+#endif /*HAVE_LIBXDP*/

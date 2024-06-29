@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -124,6 +124,9 @@ readpcap:
         tcpprep_close(tcpprep);
         err(-1, "MAC mode splitting is only supported by DLT_EN10MB packet captures.");
     }
+
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE)) {
