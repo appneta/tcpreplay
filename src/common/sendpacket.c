@@ -847,7 +847,7 @@ sendpacket_open_pcap_dump(const char *device, char *errbuf)
 
     dbg(1, "sendpacket: using Libpcap");
 
-    pcap = pcap_open_dead(DLT_EN10MB, 65535);
+    pcap = pcap_open_dead(DLT_EN10MB, MAX_SNAPLEN);
     if ((dump = pcap_dump_open(pcap, device)) == NULL){
         char* err_msg = pcap_geterr(pcap);
         strlcpy(errbuf, err_msg, PCAP_ERRBUF_SIZE);

@@ -265,6 +265,7 @@ flag = {
     value       = i;
     arg-type    = string;
     max         = 1;
+    equivalence = intf1;
     must-set;
     descrip     = "Client to server/RX/primary traffic output interface";
     doc         = <<- EOText
@@ -289,8 +290,8 @@ EOText;
 };
 
 flag = {
-    name        = output;
-    value       = o;
+    name        = write;
+    value       = w;
     arg-type    = string;
     max         = 1;
     equivalence = intf1;
@@ -667,7 +668,6 @@ EOText;
 
 flag = {
     name        = pid;
-    value       = P;
     descrip     = "Print the PID of tcpreplay at startup";
     flag-code   = <<- EOPid
 
@@ -691,7 +691,7 @@ EOText;
 
 flag = {
     name        = suppress-warnings;
-    value       = w;
+    value       = W;
     immediate;
     descrip     = "suppress printing warning messages";
     settable;
