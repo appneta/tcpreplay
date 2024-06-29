@@ -1,4 +1,4 @@
-06/29/2024 Version 4.5.0-beta3
+06/29/2024 Version 4.5.0-beta4
     - tcpreplay --include / --exclude to control which packets are replayed (#884)
     - add -W (--suppress-warnings) option to suppress warning messages (#878)
     - AF_XDP compile issue due to merge issue (#876)
