@@ -337,6 +337,8 @@ parse_endpoints(tcpr_cidrmap_t **cidrmap1, tcpr_cidrmap_t **cidrmap2, const char
         /* do again with the second IP */
         memset(newmap, '\0', NEWMAP_LEN);
         map = strtok_r(NULL, ":", &token);
+        if (map == NULL)
+            goto done;
 
         strlcpy(newmap, "0.0.0.0/0:", NEWMAP_LEN);
         strlcat(newmap, map, NEWMAP_LEN);
