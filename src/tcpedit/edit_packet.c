@@ -79,7 +79,7 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
     if (pkthdr->caplen == pkthdr->len && (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
         if (ip_len != (int)(pkthdr->caplen - l2len)) {
             tcpedit_setwarn(tcpedit,
-                            "skipping packet " COUNTER_SPEC " because caplen %u minus L2 length %u does not equal IPv4 header length %u. Consider option '--fixhdrlen'.",
+                            "skipping packet " COUNTER_SPEC " because caplen %u minus L2 length %zu does not equal IPv4 header length %u. Consider option '--fixhdrlen'.",
                             tcpedit->runtime.packetnum,
                             pkthdr->caplen,
                             l2len,
