@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -27,9 +27,9 @@ struct timestamp_trace_entry {
     COUNTER skip_length;
     COUNTER size;
     COUNTER bytes_sent;
-    COUNTER now_us;
-    COUNTER tx_us;
-    COUNTER next_tx_us;
+    COUNTER now_ns;
+    COUNTER tx_ns;
+    COUNTER next_tx_ns;
     COUNTER sent_bits;
     struct timeval timestamp;
 };
@@ -46,9 +46,9 @@ update_current_timestamp_trace_entry(COUNTER bytes_sent, COUNTER now_us, COUNTER
         return;
 
     if (!now_us) {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        now_us = TIMSTAMP_TO_MICROSEC(&now);
+        struct timespec now;
+        get_current_time(now);
+        now_us = TIMESPEC_TO_MICROSEC(&now);
     }
 
     timestamp_trace_entry_array[trace_num].bytes_sent = bytes_sent;
@@ -58,7 +58,7 @@ update_current_timestamp_trace_entry(COUNTER bytes_sent, COUNTER now_us, COUNTER
 }
 
 static inline void
-add_timestamp_trace_entry(COUNTER size, struct timeval *timestamp, COUNTER skip_length)
+add_timestamp_trace_entry(COUNTER size, struct timespec *timestamp, COUNTER skip_length)
 {
     if (trace_num >= TRACE_MAX_ENTRIES)
         return;
@@ -66,7 +66,7 @@ add_timestamp_trace_entry(COUNTER size, struct timeval *timestamp, COUNTER skip_
     timestamp_trace_entry_array[trace_num].skip_length = skip_length;
     timestamp_trace_entry_array[trace_num].size = size;
     timestamp_trace_entry_array[trace_num].timestamp.tv_sec = timestamp->tv_sec;
-    timestamp_trace_entry_array[trace_num].timestamp.tv_usec = timestamp->tv_usec;
+    timestamp_trace_entry_array[trace_num].timestamp.tv_nsec = timestamp->tv_nsec;
     ++trace_num;
 }
 
@@ -107,7 +107,7 @@ update_current_timestamp_trace_entry(COUNTER UNUSED(bytes_sent),
                                      COUNTER UNUSED(next_tx_us))
 {}
 static inline void
-add_timestamp_trace_entry(COUNTER UNUSED(size), struct timeval *UNUSED(timestamp), COUNTER UNUSED(skip_length))
+add_timestamp_trace_entry(COUNTER UNUSED(size), struct timespec *UNUSED(timestamp), COUNTER UNUSED(skip_length))
 {}
 static inline void
 dump_timestamp_trace_array(const struct timeval *UNUSED(start),

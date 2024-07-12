@@ -25,22 +25,28 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
 		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
-		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs test.rewrite_1ttl \
-		test.rewrite_2ttl test.rewrite_3ttl test.rewrite_enet_subsmac \
+		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs \
+		test.rewrite_1ttl test.rewrite_2ttl test.rewrite_3ttl \
+		test.rewrite_1ttl-hdrfix test.rewrite_2ttl-hdrfix test.rewrite_3ttl-hdrfix \
+		test.rewrite_enet_subsmac \
 		test.rewrite_mtutrunc test.rewrite_mac_seed test.rewrite_range_portmap \
 		test.rewrite_mac_seed_keep test.rewrite_l7fuzzing test.rewrite_sequence test.rewrite_fixcsum \
 		test.rewrite_fixlen_pad test.rewrite_fixlen_trunc test.rewrite_fixlen_del \
+		test.replay_unique_ip test.replay_include test.replay_exclude \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
 		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
-		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs test2.rewrite_1ttl \
+		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs \
+		test2.rewrite_1ttl test2.rewrite_2ttl test2.rewrite_3ttl \
+		test2.rewrite_1ttl-hdrfix test2.rewrite_2ttl-hdrfix test2.rewrite_3ttl-hdrfix \
 		test2.rewrite_mtutrunc test2.rewrite_enet_subsmac \
-		test2.rewrite_2ttl test2.rewrite_3ttl test.rewrite_tos test2.rewrite_tos \
+		test.rewrite_tos test2.rewrite_tos \
 		test2.rewrite_enet_subsmac test2.rewrite_mac_seed \
 		test2.rewrite_range_portmap test2.rewrite_mac_seed_keep \
 		test2.rewrite_l7fuzzing test2.rewrite_sequence test2.rewrite_fixcsum \
-		test2.rewrite_fixlen_pad test2.rewrite_fixlen_trunc test2.rewrite_fixlen_del
+		test2.rewrite_fixlen_pad test2.rewrite_fixlen_trunc test2.rewrite_fixlen_del \
+		test2.replay_unique_ip test2.replay_include test2.replay_exclude
 
 test: all
 all: clearlog check tcpprep tcpreplay tcprewrite
@@ -125,6 +131,9 @@ standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_1ttl-hdrfix --ttl=59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_2ttl-hdrfix --ttl=+59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_3ttl-hdrfix --ttl=-59 --fixhdrlen
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
@@ -132,6 +141,9 @@ standard_bigendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_fixlen_pad --fixlen=pad
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_fixlen_trunc --fixlen=trunc
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_fixlen_del --fixlen=del
+	$(TCPREPLAY) -w test.replay_include -t --include=7,11,20-23,174- $(TEST_PCAP)
+	$(TCPREPLAY) -w test.replay_exclude -t --exclude=23-,11-20,2,3 $(TEST_PCAP)
+	$(TCPREPLAY) -w test.replay_unique_ip -t --unique-ip --loop=2 $(TEST_PCAP)
 
 standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_seed -s 55
@@ -175,6 +187,9 @@ standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_1ttl --ttl=58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_2ttl --ttl=+58
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_3ttl --ttl=-58
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_1ttl-hdrfix --ttl=59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_2ttl-hdrfix --ttl=+59 --fixhdrlen
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_3ttl-hdrfix --ttl=-59 --fixhdrlen
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_mtutrunc --mtu-trunc --mtu=300
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_l7fuzzing \
 		--fuzz-seed=42 --fuzz-factor=2
@@ -182,6 +197,9 @@ standard_littleendian:
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_fixlen_pad --fixlen=pad
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_fixlen_trunc --fixlen=trunc
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_fixlen_del --fixlen=del
+	$(TCPREPLAY) -w test2.replay_include -t --include=7,11,20-23,174- $(TEST_PCAP)
+	$(TCPREPLAY) -w test2.replay_exclude -t --exclude=23-,11-20,2,3 $(TEST_PCAP)
+	$(TCPREPLAY) -w test2.replay_unique_ip -t --unique-ip --loop=2 $(TEST_PCAP)
 
 tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 	port mac comment print_info print_comment prep_config \
@@ -191,14 +209,15 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
 	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc \
-	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs rewrite_1ttl rewrite_2ttl rewrite_3ttl \
+	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
+	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_1ttl-hdrfix rewrite_2ttl-hdrfix rewrite_3ttl-hdrfix \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del
 
-tcpreplay: replay_basic replay_cache replay_pps replay_rate replay_top \
+tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -342,6 +361,12 @@ replay_basic:
 	$(PRINTF) "%s" "[tcpreplay] Basic test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Basic test: " >> test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) -t $(TEST_PCAP) >> test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_nano_timer:
+	$(PRINTF) "%s" "[tcpreplay] Nano timer test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Nano timer test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --loop=2 --loopdelay-ns=125000000 -t $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_cache:
@@ -632,6 +657,39 @@ else
 endif
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
+rewrite_1ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Force TTL with header fix: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Force TTL header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=59 --fixhdrlen >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_2ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Increase TTL with header fix:"
+	$(PRINTF) "%s\n" "*** [tcprewrite] Increase TTL with header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=+59 --fixhdrlen  >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
+rewrite_3ttl-hdrfix:
+	$(PRINTF) "%s" "[tcprewrite] Reduce TTL with header fix: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Reduce TTL with header fix: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --ttl=-59 --fixhdrlen  >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t%s\n" "FAILED"; else $(PRINTF) "\t%s\n" "OK"; fi
+
 rewrite_tos:
 	$(PRINTF) "%s" "[tcprewrite] TOS test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] TOS test: " >> test.log
@@ -768,6 +826,51 @@ replay_maxsleep:
 	$(PRINTF) "%s\n" "*** [tcpreplay] Maximum sleep test: " >> test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --maxsleep=20 $(TEST_PCAP) $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
+
+# the following write to a file
+replay_include:
+	$(PRINTF) "%s" "[tcpreplay] Include rule test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Include rule test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -w test.$@1 -t --include=7,11,20-23,174- $(TEST_PCAP) >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_exclude:
+	$(PRINTF) "%s" "[tcpreplay] Exclude rule test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Exclude rule test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -w test.$@1 -t --exclude=23-,11-20,2,3 $(TEST_PCAP) >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_unique_ip:
+	$(PRINTF) "%s" "[tcpreplay] Unique IP test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] Unique IP test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) -w test.$@1 -t --unique-ip --loop=2 $(TEST_PCAP) >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+rewrite_portmap:
+	$(PRINTF) "%s" "[tcprewrite] Portmap test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] Portmap test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 -r 80:8080 >> test.log 2>&1
+if WORDS_BIGENDIAN
+	diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1
+else
+	diff $(srcdir)/test2.$@ test.$@1 >> test.log 2>&1
+endif
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 clean:
 	rm -f *1 test.log core* *~ primary.data secondary.data

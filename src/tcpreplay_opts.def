@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -22,12 +22,12 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2022";
+    date        = "2000-2024";
     owner       = "Aaron Turner and Fred Klassen";
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2022 Fred Klassen - AppNeta
+Copyright 2013-2024 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -57,11 +57,13 @@ config-header   = "config.h";
 
 include         = "#include \"defines.h\"\n"
                 "#include \"tcpreplay.h\"\n"
+                "#include \"tcpreplay_api.h\"\n"
                 "#include \"common.h\"\n"
                 "#include \"config.h\"\n"
                 "#include <stdlib.h>\n"
                 "#include <sys/types.h>\n"
-                "#include <unistd.h>\n";
+                "#include <unistd.h>\n"
+                "extern tcpreplay_t *ctx;";
 
 homerc          = "$$/";
 
@@ -263,6 +265,7 @@ flag = {
     value       = i;
     arg-type    = string;
     max         = 1;
+    equivalence = intf1;
     must-set;
     descrip     = "Client to server/RX/primary traffic output interface";
     doc         = <<- EOText
@@ -283,6 +286,79 @@ Optional network interface used to send traffic which is marked as 'secondary'
 via tcpprep.  Secondary traffic is usually server-to-client or outbound 
 (TX) on khial virtual interfaces.  Generally, it only makes sense to use this
 option with --cachefile.
+EOText;
+};
+
+flag = {
+    name        = write;
+    value       = w;
+    arg-type    = string;
+    max         = 1;
+    equivalence = intf1;
+    flags-cant  = intf2;
+    descrip     = "Pcap file to receive traffic outputs";
+    doc         = <<- EOText
+Optional pcap file name used to receive traffic.
+EOText;
+};
+
+flag = {
+    name        = include;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Send only selected packet numbers";
+    flags-cant  = exclude;
+    flag-code   = <<- EOInclude
+
+    char *include;
+    include = safe_strdup(OPT_ARG(INCLUDE));
+
+    ctx->options->is_exclude = false;
+    if (!parse_list(&ctx->options->list, include))
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(INCLUDE));
+
+    free(include);
+
+EOInclude;
+    doc         = <<- EOText
+Override default of processing all packets stored in the capture file and only
+send packets that are part of a supplied list of packet numbers.
+
+@example
+-x P:1-5,9,15,72-
+@end example
+would skip packets 1 through 5, the 9th and 15th packet, and packets 72 until the
+end of the file
+EOText;
+};
+
+flag = {
+    name        = exclude;
+    arg-type    = string;
+    max         = 1;
+    descrip     = "Send all but selected packet numbers";
+    flags-cant  = include;
+    flag-code   = <<- EOExclude
+
+    char *exclude;
+    exclude = safe_strdup(OPT_ARG(EXCLUDE));
+
+    ctx->options->is_exclude = true;
+    if (!parse_list(&ctx->options->list, exclude))
+        errx(-1, "Unable to parse include/exclude rule: %s", OPT_ARG(EXCLUDE));
+
+    free(exclude);
+
+EOExclude;
+    doc         = <<- EOText
+Override default of processing all packets stored in the capture file and only
+send packets that are NOT part of a supplied list of packet numbers.
+
+@example
+-x P:1-5,9,15,72-
+@end example
+would skip packets 1 through 5, the 9th and 15th packet, and packets 72 until the
+end of the file
 EOText;
 };
 
@@ -320,12 +396,27 @@ flag = {
 
 flag = {
     name        = loopdelay-ms;
+    flags-cant  = loopdelay-ns;
     flags-must  = loop;
     arg-type    = number;
     arg-range   = "0->";
     descrip     = "Delay between loops in milliseconds";
     arg-default = 0;
     doc         = "";
+};
+
+flag = {
+    name        = loopdelay-ns;
+    flags-cant  = loopdelay-ms;
+    flags-must  = loop;
+    arg-type    = number;
+    arg-range   = "0->";
+    descrip     = "Delay between loops in nanoseconds";
+    arg-default = 0;
+    doc         = <<- EOText
+By default, tcpreplay will use loop delay with microsecond accuracy (loopdelay-ms).
+In order to use loop delay with nanosecond accuracy you need to use nano packet timing mode.
+EOText;
 };
 
 flag = {
@@ -528,6 +619,7 @@ are fully up before netmap transmit. Requires netmap option. Default is 10 secon
 EOText;
 };
 
+
 flag = {
     name        = no-flow-stats;
     descrip     = "Suppress printing and tracking flow count, rates and expirations";
@@ -597,6 +689,41 @@ sending packets may cause equally long delays between printing statistics.
 EOText;
 };
 
+
+flag = {
+    name        = suppress-warnings;
+    value       = W;
+    immediate;
+    descrip     = "suppress printing warning messages";
+    settable;
+    doc         = "";
+};
+
+
+flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp;
+    descrip     = "Write packets directly to AF_XDP enabled network adapter";
+    doc         = <<- EOText
+This feature will detect AF_XDP capable network drivers on Linux systems
+that have 'libxdp-dev' and 'libbpf-dev' installed. If detected, the network
+stack is bypassed and packets are sent directly to an eBPF enabled driver directly.
+This will allow you to achieve full line rates on commodity network adapters, similar to rates
+achieved by commercial network traffic generators.
+EOText;
+};
+
+
+flag = {
+    ifdef       = HAVE_LIBXDP;
+    name        = xdp-batch-size;
+    arg-type    = number;
+    arg-range   = "1->4096";
+    descrip     = "The maximum number of packets that can be submitted to the AF_XDP TX ring at once";
+    arg-default = 25;
+    doc         = "Higher values may improve performance at the cost of accuracy";
+};
+
 flag = {
     name        = version;
     value       = V;
@@ -611,7 +738,7 @@ flag = {
     fprintf(stderr, " (timestamp-trace)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2022 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2024 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");  
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);
@@ -656,6 +783,11 @@ flag = {
     fprintf(stderr, "Optional injection method: netmap\n");
 #else
     fprintf(stderr, "Not compiled with netmap\n");
+#endif
+#ifdef HAVE_LIBXDP
+    fprintf(stderr, "Optional injection method: AF_XDP\n");
+#else
+    fprintf(stderr, "Not compiled with AF_XDP\n");
 #endif
     exit(0);
 

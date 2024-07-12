@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -27,6 +27,10 @@
  */
 #ifndef HAVE_DLT_LINUX_SLL
 #define DLT_LINUX_SLL 113
+#endif
+
+#ifndef HAVE_DLT_LINUX_SLL2
+#define DLT_LINUX_SLL2 276
 #endif
 
 #ifndef HAVE_DLT_C_HDLC

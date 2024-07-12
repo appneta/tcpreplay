@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -78,12 +78,13 @@ fix_ipv4_checksums(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, ipv4_hdr_t *i
     /* calc the L4 checksum if we have the whole packet && not a frag or first frag */
     if (pkthdr->caplen == pkthdr->len && (htons(ip_hdr->ip_off) & (IP_MF | IP_OFFMASK)) == 0) {
         if (ip_len != (int)(pkthdr->caplen - l2len)) {
-            tcpedit_seterr(tcpedit,
-                           "caplen minus L2 length %u does IPv4 header length %u: pkt=" COUNTER_SPEC,
-                           pkthdr->caplen - l2len,
-                           ip_len,
-                           tcpedit->runtime.packetnum);
-            return TCPEDIT_ERROR;
+            tcpedit_setwarn(tcpedit,
+                            "skipping packet " COUNTER_SPEC " because caplen %u minus L2 length %zu does not equal IPv4 header length %u. Consider option '--fixhdrlen'.",
+                            tcpedit->runtime.packetnum,
+                            pkthdr->caplen,
+                            l2len,
+                            ip_len);
+            return TCPEDIT_WARN;
         }
         ret1 = do_checksum(tcpedit,
                            (u_char *)ip_hdr,

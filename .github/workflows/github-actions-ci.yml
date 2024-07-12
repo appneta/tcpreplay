@@ -18,7 +18,7 @@ jobs:
       - name: Create configure script
         run: ./autogen.sh
       - name: configure
-        run: ./configure --with-testnic=eth0 --disable-local-libopts
+        run: ./configure --with-testnic=eth0 --disable-local-libopts --enable-asan
       - name: make
         run: make
       - name: make dist
@@ -28,5 +28,5 @@ jobs:
       - name: List files in the repository
         run: ls ${{ github.workspace }}
       - name: tests
-        run: sudo make test
+        run: sudo make test || (cat test/test.log; false)
       - run: echo "This test's status is ${{ job.status }}."

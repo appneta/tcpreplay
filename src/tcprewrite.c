@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -192,6 +192,9 @@ post_args(_U_ int argc, _U_ char *argv[])
     if (HAVE_OPT(DBUG))
         warn("not configured with --enable-debug.  Debugging disabled.");
 #endif
+
+    if (HAVE_OPT(SUPPRESS_WARNINGS))
+        print_warnings = 0;
 
 #ifdef ENABLE_VERBOSE
     if (HAVE_OPT(VERBOSE))

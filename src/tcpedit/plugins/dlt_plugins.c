@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 #include "dlt_ieee80211/ieee80211.h"
 #include "dlt_jnpr_ether/jnpr_ether.h"
 #include "dlt_linuxsll/linuxsll.h"
+#include "dlt_linuxsll2/linuxsll2.h"
 #include "dlt_loop/loop.h"
 #include "dlt_null/null.h"
 #include "dlt_pppserial/pppserial.h"
@@ -57,6 +58,7 @@ tcpedit_dlt_register(tcpeditdlt_t *ctx)
     retcode += dlt_null_register(ctx);
     retcode += dlt_loop_register(ctx);
     retcode += dlt_linuxsll_register(ctx);
+    retcode += dlt_linuxsll2_register(ctx);
     retcode += dlt_ieee80211_register(ctx);
     retcode += dlt_radiotap_register(ctx);
     retcode += dlt_jnpr_ether_register(ctx);

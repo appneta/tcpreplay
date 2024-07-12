@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -38,4 +38,5 @@ flow_entry_type_t flow_decode(flow_hash_table_t *fht,
                               const struct pcap_pkthdr *pkthdr,
                               const u_char *pktdata,
                               const int datalink,
-                              const int expiry);
+                              const int expiry,
+                              COUNTER packetnum);

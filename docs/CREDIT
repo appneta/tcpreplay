@@ -113,3 +113,30 @@ Florian Weimer <GitHub @fweimer-rh>
 
 David Guti <GitHub @david-guti>
     - prevent L2 flooding of ipv6 unicast packets for tcpreplay-edit
+
+Bastian Triller <GitHub @btriller>
+    - Linux SLL2
+
+GithHub @plangarbalint
+    - eBPF (AF_XDF)
+    - nanosecond timers
+
+Chuck Cottrill <GitHub @ChuckCottrill>
+    - handle IPv6 fragment extensions
+    - --fixhdrlen option
+    - bug fixes
+
+Martin 'JaMa' Jansa <GitHub @shr-project>
+    - configure.ac: unify search dirs for pcap and add lib32
+
+Marsman <GitHub Marsman1996>
+    - dlt_jnpr_ether_cleanup: check config before cleanup
+
+Chen Qi <GitHub ChenQi1989>
+    - configure.ac: do not run conftest in case of cross compilation
+
+Denis Ovsienko <GitHub infrastation>
+    - Haiku support
+
+Jason Lue <GitHub jasonlue>
+    - tcpreplay -w option

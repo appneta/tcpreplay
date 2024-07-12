@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2022 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -22,7 +22,7 @@
 #include "config.h"
 #include <stdlib.h>
 
-/* Miscellaneous timeval routines */
+/* Miscellaneous timeval/timespec routines */
 
 /* Divide tvs by div, storing the result in tvs */
 void
@@ -39,7 +39,20 @@ timesdiv_float(struct timespec *tvs, float div)
 }
 
 void
-init_timestamp(timestamp_t *ctx)
+init_timestamp(struct timespec *timestamp)
 {
-    timerclear(ctx);
+    timesclear(timestamp);
+}
+
+int
+get_current_time(struct timespec *ts)
+{
+#if defined CLOCK_MONOTONIC || defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 199309L
+    return clock_gettime(CLOCK_MONOTONIC, ts);
+#else
+    struct timeval tv;
+    int success = gettimeofday(&tv, NULL);
+    TIMEVAL_TO_TIMESPEC(&tv, ts);
+    return success;
+#endif
 }

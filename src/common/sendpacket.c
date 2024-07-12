@@ -27,6 +27,7 @@
  * injection method, then by all means add it here (and send me a patch).
  *
  * Anyways, long story short, for now the order of preference is:
+ * 0. pcap_dump
  * 1. TX_RING
  * 2. PF_PACKET
  * 3. BPF
@@ -63,6 +64,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_PF_PACKET
@@ -71,6 +73,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_LIBDNET
@@ -79,6 +82,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_BPF
@@ -87,6 +91,7 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_PF_PACKET
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_PCAP_INJECT
@@ -95,6 +100,7 @@
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
+#undef HAVE_LIBXDP
 #endif
 
 #ifdef FORCE_INJECT_PCAP_SENDPACKET
@@ -103,6 +109,16 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
+#undef HAVE_LIBXDP
+#endif
+
+#ifdef FORCE_INJECT_LIBXDP
+#undef HAVE_TX_RING
+#undef HAVE_LIBDNET
+#undef HAVE_PF_PACKET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_PCAP_SENDPACKET
+#undef HAVE_BPF
 #endif
 
 #if (defined HAVE_WINPCAP && defined HAVE_PCAP_INJECT)
@@ -110,15 +126,12 @@
 #endif
 
 #if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBDNET && !defined HAVE_PF_PACKET &&  \
-        !defined HAVE_BPF && !defined TX_RING
-#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING or *BSD's BPF
+        !defined HAVE_BPF && !defined TX_RING && !defined HAVE_LIBXDP
+#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING/AF_XDP with libxdp or *BSD's BPF
 #endif
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
-#endif
-#ifdef HAVE_SYS_SYSCTL_H
-#include <sys/sysctl.h>
 #endif
 #ifdef HAVE_NET_ROUTE_H
 #include <net/route.h>
@@ -211,7 +224,16 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #undef INJECT_METHOD
 #define INJECT_METHOD "pcap_sendpacket()"
 #endif
-
+#ifdef HAVE_LIBXDP
+#include <sys/mman.h>
+static sendpacket_t *sendpacket_open_xsk(const char *, char *) _U_;
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_libxdp(sendpacket_t *);
+#endif
+#if defined HAVE_LIBXDP && !defined INJECT_METHOD
+#undef INJECT_METHOD
+#define INJECT_METHOD "xsk_ring_prod_submit()"
+#endif
+static sendpacket_t *sendpacket_open_pcap_dump(const char *, char *) _U_;
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
 static sendpacket_t *sendpacket_open_khial(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_khial(sendpacket_t *) _U_;
@@ -237,7 +259,10 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
     static const size_t buffer_payload_size = sizeof(buffer) + sizeof(struct pcap_pkthdr);
 
     assert(sp);
+#ifndef HAVE_LIBXDP
+    // In case of XDP packet processing we are storing data in sp->packet_processing->xdp_descs
     assert(data);
+#endif
 
     if (len == 0)
         return -1;
@@ -434,6 +459,11 @@ TRY_SEND_AGAIN:
 
         break;
 
+    case SP_TYPE_LIBPCAP_DUMP:
+        pcap_dump((u_char *)sp->handle.dump.dump, pkthdr, data);
+        retcode = len;
+        break;
+
     case SP_TYPE_NETMAP:
 #ifdef HAVE_NETMAP
         retcode = sendpacket_send_netmap(sp, data, len);
@@ -452,7 +482,18 @@ TRY_SEND_AGAIN:
         }
 #endif /* HAVE_NETMAP */
         break;
-
+    case SP_TYPE_LIBXDP:
+#ifdef HAVE_LIBXDP
+        retcode = len;
+        xsk_ring_prod__submit(&(sp->xsk_info->tx), sp->pckt_count); // submit all packets at once
+        sp->xsk_info->ring_stats.tx_npkts += sp->pckt_count;
+        sp->xsk_info->outstanding_tx += sp->pckt_count;
+        while (sp->xsk_info->outstanding_tx != 0) {
+            complete_tx_only(sp);
+        }
+        sp->sent += sp->pckt_count;
+#endif
+        break;
     default:
         errx(-1, "Unsupported sp->handle_type = %d", sp->handle_type);
     } /* end case */
@@ -465,8 +506,15 @@ TRY_SEND_AGAIN:
         sendpacket_seterr(sp, "Only able to write %d bytes out of %lu bytes total", retcode, len);
         sp->trunc_packets++;
     } else {
+#ifndef HAVE_LIBXDP
         sp->bytes_sent += len;
         sp->sent++;
+#else
+        if (sp->handle_type != SP_TYPE_LIBXDP) {
+            sp->bytes_sent += len;
+            sp->sent++;
+        }
+#endif
     }
     return retcode;
 }
@@ -483,10 +531,6 @@ sendpacket_open(const char *device,
                 sendpacket_type_t sendpacket_type _U_,
                 void *arg _U_)
 {
-#ifdef HAVE_TUNTAP
-    char sys_dev_dir[128];
-    bool device_exists;
-#endif
     sendpacket_t *sp;
     struct stat sdata;
 
@@ -495,53 +539,57 @@ sendpacket_open(const char *device,
 
     errbuf[0] = '\0';
 
-#ifdef HAVE_TUNTAP
-    snprintf(sys_dev_dir, sizeof(sys_dev_dir), "/sys/class/net/%s/", device);
-    device_exists = access(sys_dev_dir, R_OK) == 0;
-#endif
-
-    /* khial is universal */
-    if (stat(device, &sdata) == 0) {
-        if (((sdata.st_mode & S_IFMT) == S_IFCHR)) {
-            sp = sendpacket_open_khial(device, errbuf);
-
-        } else {
-            switch (sdata.st_mode & S_IFMT) {
-            case S_IFBLK:
-                errx(-1, "\"%s\" is a block device and is not a valid Tcpreplay device", device);
-            case S_IFDIR:
-                errx(-1, "\"%s\" is a directory and is not a valid Tcpreplay device", device);
-            case S_IFIFO:
-                errx(-1, "\"%s\" is a FIFO and is not a valid Tcpreplay device", device);
-            case S_IFLNK:
-                errx(-1, "\"%s\" is a symbolic link and is not a valid Tcpreplay device", device);
-            case S_IFREG:
-                errx(-1, "\"%s\" is a file and is not a valid Tcpreplay device", device);
-            default:
-                errx(-1, "\"%s\" is not a valid Tcpreplay device", device);
-            }
-        }
-#ifdef HAVE_TUNTAP
-    } else if (strncmp(device, "tap", 3) == 0 && !device_exists) {
-        sp = sendpacket_open_tuntap(device, errbuf);
-#endif
+    if (sendpacket_type == SP_TYPE_LIBPCAP_DUMP) {
+        sp = sendpacket_open_pcap_dump(device, errbuf);
     } else {
+        /* khial is universal */
+        if (stat(device, &sdata) == 0) {
+            if (((sdata.st_mode & S_IFMT) == S_IFCHR)) {
+                sp = sendpacket_open_khial(device, errbuf);
+
+            } else {
+                switch (sdata.st_mode & S_IFMT) {
+                case S_IFBLK:
+                    errx(-1, "\"%s\" is a block device and is not a valid Tcpreplay device", device);
+                case S_IFDIR:
+                    errx(-1, "\"%s\" is a directory and is not a valid Tcpreplay device", device);
+                case S_IFIFO:
+                    errx(-1, "\"%s\" is a FIFO and is not a valid Tcpreplay device", device);
+                case S_IFLNK:
+                    errx(-1, "\"%s\" is a symbolic link and is not a valid Tcpreplay device", device);
+                case S_IFREG:
+                    errx(-1, "\"%s\" is a file and is not a valid Tcpreplay device", device);
+                default:
+                    errx(-1, "\"%s\" is not a valid Tcpreplay device", device);
+                }
+            }
+#ifdef HAVE_TUNTAP
+        } else if (strncmp(device, "tap", 3) == 0) {
+            sp = sendpacket_open_tuntap(device, errbuf);
+#endif
+        } else {
 #ifdef HAVE_NETMAP
-        if (sendpacket_type == SP_TYPE_NETMAP)
-            sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
-        else
+            if (sendpacket_type == SP_TYPE_NETMAP)
+                sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
+            else
+#endif
+#ifdef HAVE_LIBXDP
+            if (sendpacket_type == SP_TYPE_LIBXDP)
+                sp = sendpacket_open_xsk(device, errbuf);
+            else
 #endif
 #if defined HAVE_PF_PACKET
-            sp = sendpacket_open_pf(device, errbuf);
+                sp = sendpacket_open_pf(device, errbuf);
 #elif defined HAVE_BPF
-        sp = sendpacket_open_bpf(device, errbuf);
+                sp = sendpacket_open_bpf(device, errbuf);
 #elif defined HAVE_LIBDNET
-        sp = sendpacket_open_libdnet(device, errbuf);
+                sp = sendpacket_open_libdnet(device, errbuf);
 #elif (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
-        sp = sendpacket_open_pcap(device, errbuf);
+                sp = sendpacket_open_pcap(device, errbuf);
 #else
 #error "No defined packet injection method for sendpacket_open()"
 #endif
+        }
     }
 
     if (sp) {
@@ -631,6 +679,11 @@ sendpacket_close(sendpacket_t *sp)
 #endif
         break;
 
+    case SP_TYPE_LIBPCAP_DUMP:
+        pcap_dump_close(sp->handle.dump.dump);
+        pcap_close(sp->handle.dump.pcap);
+        break;
+
     case SP_TYPE_LIBDNET:
 #ifdef HAVE_LIBDNET
         eth_close(sp->handle.ldnet);
@@ -647,6 +700,13 @@ sendpacket_close(sendpacket_t *sp)
     case SP_TYPE_TUNTAP:
 #ifdef HAVE_TUNTAP
         close(sp->handle.fd);
+#endif
+        break;
+    case SP_TYPE_LIBXDP:
+#ifdef HAVE_LIBXDP
+        close(sp->handle.fd);
+        safe_free(sp->xsk_info);
+        safe_free(sp->umem_info);
 #endif
         break;
     case SP_TYPE_NONE:
@@ -671,9 +731,14 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
 
     if (sp->handle_type == SP_TYPE_KHIAL) {
         addr = sendpacket_get_hwaddr_khial(sp);
+    } else if (sp->handle_type == SP_TYPE_LIBPCAP_DUMP) {
+        sendpacket_seterr(sp, "Error: sendpacket_get_hwaddr() not yet supported for pcap dump");
+        return NULL;
     } else {
 #if defined HAVE_PF_PACKET
         addr = sendpacket_get_hwaddr_pf(sp);
+#elif defined HAVE_LIBXDP
+        addr = sendpacket_get_hwaddr_libxdp(sp);
 #elif defined HAVE_BPF
         addr = sendpacket_get_hwaddr_bpf(sp);
 #elif defined HAVE_LIBDNET
@@ -766,6 +831,37 @@ sendpacket_get_hwaddr_pcap(sendpacket_t *sp)
     return NULL;
 }
 #endif /* HAVE_PCAP_INJECT || HAVE_PCAP_SENDPACKET */
+
+/**
+ * Inner sendpacket_open() method for using libpcap
+ */
+static sendpacket_t *
+sendpacket_open_pcap_dump(const char *device, char *errbuf)
+{
+    pcap_t *pcap;
+    pcap_dumper_t* dump;
+    sendpacket_t *sp;
+
+    assert(device);
+    assert(errbuf);
+
+    dbg(1, "sendpacket: using Libpcap");
+
+    pcap = pcap_open_dead(DLT_EN10MB, MAX_SNAPLEN);
+    if ((dump = pcap_dump_open(pcap, device)) == NULL){
+        char* err_msg = pcap_geterr(pcap);
+        strlcpy(errbuf, err_msg, PCAP_ERRBUF_SIZE);
+        pcap_close(pcap);
+        return NULL;
+    }
+
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.dump.pcap = pcap;
+    sp->handle.dump.dump = dump;
+    sp->handle_type = SP_TYPE_LIBPCAP_DUMP;
+    return sp;
+}
 
 #if defined HAVE_LIBDNET && !defined HAVE_PF_PACKET && !defined HAVE_BPF
 /**
@@ -1066,7 +1162,7 @@ sendpacket_open_bpf(const char *device, char *errbuf)
 {
     sendpacket_t *sp;
     char bpf_dev[16];
-    int dev, mysocket, link_offset, link_type;
+    int dev, mysocket;
     struct ifreq ifr;
     struct bpf_version bv;
     u_int v;
@@ -1134,43 +1230,10 @@ sendpacket_open_bpf(const char *device, char *errbuf)
     }
 #endif
 
-    /* assign link type and offset */
-    switch (v) {
-    case DLT_SLIP:
-        link_offset = 0x10;
-        break;
-    case DLT_RAW:
-        link_offset = 0x0;
-        break;
-    case DLT_PPP:
-        link_offset = 0x04;
-        break;
-    case DLT_EN10MB:
-    default: /* default to Ethernet */
-        link_offset = 0xe;
-        break;
-    }
-#if _BSDI_VERSION - 0 > 199510
-    switch (v) {
-    case DLT_SLIP:
-        v = DLT_SLIP_BSDOS;
-        link_offset = 0x10;
-        break;
-    case DLT_PPP:
-        v = DLT_PPP_BSDOS;
-        link_offset = 0x04;
-        break;
-    }
-#endif
-
-    link_type = v;
-
     /* allocate our sp handle, and return it */
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
-    // sp->link_type = link_type;
-    // sp->link_offset = link_offset;
     sp->handle_type = SP_TYPE_BPF;
 
     return sp;
@@ -1236,30 +1299,36 @@ sendpacket_get_dlt(sendpacket_t *sp)
 {
     int dlt = DLT_EN10MB;
 
-    if (sp->handle_type == SP_TYPE_KHIAL || sp->handle_type == SP_TYPE_NETMAP || sp->handle_type == SP_TYPE_TUNTAP) {
+    switch (sp->handle_type) {
+    case SP_TYPE_KHIAL:
+    case SP_TYPE_NETMAP:
+    case SP_TYPE_TUNTAP:
+    case SP_TYPE_LIBXDP:
+    case SP_TYPE_LIBPCAP_DUMP:
         /* always EN10MB */
-    } else {
-#if defined HAVE_BPF
-        int rcode;
-
-        if ((rcode = ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
-            warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
-            return (-1);
-        }
-#elif defined HAVE_PF_PACKET || defined HAVE_LIBDNET
-        /* use libpcap to get dlt */
-        pcap_t *pcap;
-        char errbuf[PCAP_ERRBUF_SIZE];
-        if ((pcap = pcap_open_live(sp->device, 65535, 0, 0, errbuf)) == NULL) {
-            warnx("Unable to get DLT value for %s: %s", sp->device, errbuf);
-            return (-1);
-        }
-        dlt = pcap_datalink(pcap);
-        pcap_close(pcap);
-#elif defined HAVE_PCAP_SENDPACKET || defined HAVE_PCAP_INJECT
-        dlt = pcap_datalink(sp->handle.pcap);
-#endif
+        return dlt;
+    default:;
     }
+
+#if defined HAVE_BPF
+    if ((ioctl(sp->handle.fd, BIOCGDLT, &dlt)) < 0) {
+        warnx("Unable to get DLT value for BPF device (%s): %s", sp->device, strerror(errno));
+        return (-1);
+    }
+#elif defined HAVE_PF_PACKET || defined HAVE_LIBDNET
+    /* use libpcap to get dlt */
+    pcap_t *pcap;
+    char errbuf[PCAP_ERRBUF_SIZE];
+    if ((pcap = pcap_open_live(sp->device, 65535, 0, 0, errbuf)) == NULL) {
+        warnx("Unable to get DLT value for %s: %s", sp->device, errbuf);
+        return (-1);
+    }
+    dlt = pcap_datalink(pcap);
+    pcap_close(pcap);
+#elif defined HAVE_PCAP_SENDPACKET || defined HAVE_PCAP_INJECT
+    dlt = pcap_datalink(sp->handle.pcap);
+#endif
+
     return dlt;
 }
 
@@ -1327,3 +1396,156 @@ sendpacket_abort(sendpacket_t *sp)
 
     sp->abort = true;
 }
+#ifdef HAVE_LIBXDP
+static struct xsk_socket_info *
+xsk_configure_socket(struct xsk_umem_info *umem, struct xsk_socket_config *cfg, int queue_id, const char *device)
+{
+    struct xsk_socket_info *xsk;
+    struct xsk_ring_cons *rxr = NULL;
+    int ret;
+
+    xsk = (struct xsk_socket_info *)safe_malloc(sizeof(struct xsk_socket_info));
+    xsk->umem = umem;
+    ret = xsk_socket__create(&xsk->xsk, device, queue_id, umem->umem, rxr, &xsk->tx, cfg);
+    if (ret) {
+        return NULL;
+    }
+
+    memset(&xsk->app_stats, 0, sizeof(xsk->app_stats));
+
+    return xsk;
+}
+
+static sendpacket_t *
+sendpacket_open_xsk(const char *device, char *errbuf)
+{
+    sendpacket_t *sp;
+
+    assert(device);
+    assert(errbuf);
+
+    int nb_of_frames = 4096;
+    int frame_size = 4096;
+    int nb_of_completion_queue_desc = 4096;
+    int nb_of_fill_queue_desc = 4096;
+    struct xsk_umem_info *umem_info =
+            create_umem_area(nb_of_frames, frame_size, nb_of_completion_queue_desc, nb_of_fill_queue_desc);
+    if (umem_info == NULL) {
+        return NULL;
+    }
+
+    int nb_of_tx_queue_desc = 4096;
+    int nb_of_rx_queue_desc = 4096;
+    u_int32_t queue_id = 0;
+    struct xsk_socket_info *xsk_info =
+            create_xsk_socket(umem_info, nb_of_tx_queue_desc, nb_of_rx_queue_desc, device, queue_id, errbuf);
+    if (xsk_info == NULL) {
+        return NULL;
+    }
+
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.fd = xsk_info->xsk->fd;
+    sp->handle_type = SP_TYPE_LIBXDP;
+    sp->xsk_info = xsk_info;
+    sp->umem_info = umem_info;
+    sp->frame_size = frame_size;
+    sp->tx_size = nb_of_tx_queue_desc;
+    return sp;
+}
+
+struct xsk_umem_info *
+create_umem_area(int nb_of_frames, int frame_size, int nb_of_completion_queue_descs, int nb_of_fill_queue_descs)
+{
+    int umem_size = nb_of_frames * frame_size;
+    struct xsk_umem_info *umem;
+    void *umem_area = NULL;
+    struct xsk_umem_config cfg = {/* We recommend that you set the fill ring size >= HW RX ring size +
+                                   * AF_XDP RX ring size. Make sure you fill up the fill ring
+                                   * with buffers at regular intervals, and you will with this setting
+                                   * avoid allocation failures in the driver. These are usually quite
+                                   * expensive since drivers have not been written to assume that
+                                   * allocation failures are common. For regular sockets, kernel
+                                   * allocated memory is used that only runs out in OOM situations
+                                   * that should be rare.
+                                   */
+                                  .fill_size = nb_of_fill_queue_descs * 2,
+                                  .comp_size = nb_of_completion_queue_descs,
+                                  .frame_size = frame_size,
+                                  .frame_headroom = 0,
+                                  .flags = XDP_UMEM_UNALIGNED_CHUNK_FLAG};
+    umem = (struct xsk_umem_info *)safe_malloc(sizeof(struct xsk_umem_info));
+    if (posix_memalign(&umem_area,
+                       getpagesize(), /* PAGE_SIZE aligned */
+                       umem_size)) {
+        fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    int ret = xsk_umem__create(&umem->umem, umem_area, umem_size, &umem->fq, &umem->cq, &cfg);
+    umem->buffer = umem_area;
+    if (ret != 0) {
+        return NULL;
+    }
+    return umem;
+}
+
+struct xsk_socket_info *
+create_xsk_socket(struct xsk_umem_info *umem_info,
+                  int nb_of_tx_queue_desc,
+                  int nb_of_rx_queue_desc,
+                  const char *device,
+                  u_int32_t queue_id,
+                  char *errbuf)
+{
+    struct xsk_socket_info *xsk_info = (struct xsk_socket_info *)safe_malloc(sizeof(struct xsk_socket_info));
+    struct xsk_socket_config *socket_config = (struct xsk_socket_config *)safe_malloc(sizeof(struct xsk_socket_config));
+
+    socket_config->rx_size = nb_of_rx_queue_desc;
+    socket_config->tx_size = nb_of_tx_queue_desc;
+    socket_config->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
+    socket_config->bind_flags = 0; // XDP_FLAGS_SKB_MODE (1U << 1) or XDP_FLAGS_DRV_MODE (1U << 2)
+    xsk_info = xsk_configure_socket(umem_info, socket_config, queue_id, device);
+
+    if (xsk_info == NULL) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "AF_XDP socket configuration is not successful: %s", strerror(errno));
+        return NULL;
+    }
+    return xsk_info;
+}
+
+/*
+ * gets the hardware address via Linux's PF packet interface
+ */
+static _U_ struct tcpr_ether_addr *
+sendpacket_get_hwaddr_libxdp(sendpacket_t *sp)
+{
+    struct ifreq ifr;
+    int fd;
+
+    assert(sp);
+
+    if (!sp->open) {
+        sendpacket_seterr(sp, "Unable to get hardware address on un-opened sendpacket handle");
+        return NULL;
+    }
+
+    /* create dummy socket for ioctl */
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        sendpacket_seterr(sp, "Unable to open dummy socket for get_hwaddr: %s", strerror(errno));
+        return NULL;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
+        close(fd);
+        sendpacket_seterr(sp, "Error getting hardware address: %s", strerror(errno));
+        return NULL;
+    }
+
+    memcpy(&sp->ether, &ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+    close(fd);
+    return (&sp->ether);
+}
+#endif /* HAVE_LIBXDP */

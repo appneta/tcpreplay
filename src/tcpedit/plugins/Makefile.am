@@ -42,6 +42,7 @@ include %reldir%/dlt_raw/Makefile.am
 include %reldir%/dlt_null/Makefile.am
 include %reldir%/dlt_loop/Makefile.am
 include %reldir%/dlt_linuxsll/Makefile.am
+include %reldir%/dlt_linuxsll2/Makefile.am
 include %reldir%/dlt_ieee80211/Makefile.am
 include %reldir%/dlt_radiotap/Makefile.am
 include %reldir%/dlt_jnpr_ether/Makefile.am
