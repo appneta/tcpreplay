@@ -668,6 +668,7 @@ EOText;
 
 flag = {
     name        = pid;
+    value       = P;
     descrip     = "Print the PID of tcpreplay at startup";
     flag-code   = <<- EOPid
 
