@@ -185,6 +185,7 @@ dlt_en10mb_parse_subsmac(tcpeditdlt_t *ctx, en10mb_config_t *config, const char 
     size_t input_len = strlen(input);
     size_t possible_entries_number = (input_len / (SUBSMAC_ENTRY_LEN + 1)) + 1;
     size_t entry;
+    unsigned int entry;
 
     en10mb_sub_entry_t *entries = safe_malloc(possible_entries_number * sizeof(en10mb_sub_entry_t));
 
