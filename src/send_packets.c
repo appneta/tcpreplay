@@ -341,6 +341,7 @@ void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
     struct timespec now, print_delta, last_pkt_ts;
+    bool first_packet = true;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -465,21 +466,23 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             skip_length = 0;
             ctx->skip_packets = 0;
 
-            if (options->speed.mode == speed_multiplier) {
-                if (!timesisset(&last_pkt_ts)) {
-                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
-                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
-                    struct timespec delta;
-
-                    timessub(&pkthdr_ts, &last_pkt_ts, &delta);
-                    timeradd_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
-                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
-                }
-            }
-
             if (!top_speed) {
                 now_is_now = true;
                 get_current_time(&now);
+            }
+
+            if (options->speed.mode == speed_multiplier) {
+                if (first_packet) {
+                    TIMESPEC_SET(&stats->first_packet_time, &pkthdr_ts);
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    TIMESPEC_SET(&stats->first_packet_wall_time, &now);
+                    first_packet = false;
+                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    timessub(&pkthdr_ts, &stats->first_packet_time, &stats->pkt_ts_delta);
+                    timessub(&now, &stats->first_packet_wall_time, &stats->time_delta);
+                    timesdiv_float(&stats->pkt_ts_delta, options->speed.multiplier);
+                }
             }
 
             /*
@@ -497,15 +500,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                             &stats->end_time,
                             TIMESPEC_TO_NANOSEC(&stats->start_time),
                             &skip_length);
-
-            /*
-             * Track the time of the "last packet sent".
-             *
-             * A number of 3rd party tools generate bad timestamps which go backwards
-             * in time.  Hence, don't update the "last" unless pkthdr.ts > last
-             */
-            if (timescmp(&stats->time_delta, &stats->pkt_ts_delta, <))
-                TIMESPEC_SET(&stats->time_delta, &stats->pkt_ts_delta);
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -807,8 +801,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
              * A number of 3rd party tools generate bad timestamps which go backwards
              * in time.  Hence, don't update the "last" unless pkthdr_ptr->ts > last
              */
-            if (timescmp(&stats->time_delta, &stats->pkt_ts_delta, <))
-                TIMESPEC_SET(&stats->time_delta, &stats->pkt_ts_delta);
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -1062,9 +1054,6 @@ calc_sleep_time(tcpreplay_t *ctx,
             /* pkt_time_delta has increased, so handle normally */
             timessub(pkt_ts_delta, time_delta, &nap_for);
             TIMESPEC_SET(&ctx->nap, &nap_for);
-            dbgx(3, "original packet delta time: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
-            timesdiv_float(&ctx->nap, options->speed.multiplier);
-            dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
         }
         break;
 
