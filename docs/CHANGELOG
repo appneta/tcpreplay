@@ -1,5 +1,5 @@
 06/30/2025 Version 4.5.2 - beta1
-    -
+    - support for IPv6 fragment checksums (#897)
 
 07/12/2024 Version 4.5.1
     - NULL Pointer Dereference in parse_endpoints (#888)
