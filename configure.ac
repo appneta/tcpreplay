@@ -1934,6 +1934,15 @@ case $host in
     ;;
 esac])
 
+AC_ARG_ENABLE([test_hexdump],
+    AS_HELP_STRING([--enable-test-hexdump],[Enable hexdump pcap on test failure]))
+if test "x$enable_test_hexdump" = "xyes"; then
+        test_hexdump=yes
+else
+        test_hexdump=no
+fi
+AC_SUBST(test_hexdump)
+
 dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
 dnl so under OSX we disable the interface list feature
 disable_pcap_findalldevs=no
