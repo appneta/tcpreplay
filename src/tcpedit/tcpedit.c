@@ -320,11 +320,13 @@ again:
     /* do we need to fix checksums? -- must always do this last! */
     if (tcpedit->fixhdrlen) {
         /* ensure IP header length is correct */
+        /* when packet change? then needtorecalc checksum */
         int changed = 0;
         if (ip_hdr != NULL) {
+            /* did the packet change? if so, checksum */
             changed = fix_ipv4_length(*pkthdr, ip_hdr, l2len);
         } else if (ip6_hdr != NULL) {
-            changed = fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
+            changed |= fix_ipv6_length(*pkthdr, ip6_hdr, l2len);
         }
         /* did the packet change? then needtorecalc checksum */
         if (changed > 0) {
