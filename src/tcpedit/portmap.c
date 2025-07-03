@@ -249,9 +249,10 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
 
     /* step through the nodes, resetting newport if a match is found */
     while (portmap_ptr != NULL) {
-        if (portmap_ptr->from == port)
+        if (portmap_ptr->from == port) {
             newport = portmap_ptr->to;
-
+            break;
+        }
         portmap_ptr = portmap_ptr->next;
     }
 
