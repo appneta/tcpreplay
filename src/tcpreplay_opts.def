@@ -582,7 +582,7 @@ EOText;
 
 flag = {
     name        = unique-ip-loops;
-    flags-must   = unique-ip;
+    flags-must  = unique-ip;
     arg-type    = string;
     max         = 1;
     descrip     = "Number of times to loop before assigning new unique ip";
@@ -721,11 +721,18 @@ EOText;
 flag = {
     ifdef       = HAVE_LIBXDP;
     name        = xdp-batch-size;
-    arg-type    = number;
+    flags-cant  = oneatatime;
+    flags-cant  = pps-multi;
+    flags-must  = xdp;
+    flags-must  = topspeed;
+  arg-type    = number;
     arg-range   = "1->4096";
     descrip     = "The maximum number of packets that can be submitted to the AF_XDP TX ring at once";
-    arg-default = 25;
-    doc         = "Higher values may improve performance at the cost of accuracy";
+    arg-default = 1;
+    doc         = <<- EOText
+Only allowed if sending at top speed. Values higher than 1 may improve
+performance at the cost of accuracy.
+EOText;
 };
 
 flag = {

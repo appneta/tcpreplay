@@ -2,6 +2,7 @@
     - AF_XDP memory leaks (#935)
     - GitHub Actions CI failure (#933)
     - support for IPv6 fragment checksums (#897)
+    - AF_XDP sends at near full speed (#896)
 
 07/12/2024 Version 4.5.1
     - NULL Pointer Dereference in parse_endpoints (#888)
