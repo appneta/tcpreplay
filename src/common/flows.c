@@ -239,7 +239,7 @@ flow_decode(flow_hash_table_t *fht,
             return FLOW_ENTRY_INVALID;
         }
 
-        uint8_t ip6_version = packet[0] >> 4;
+        uint8_t ip6_version = packet[l2len] >> 4;
         if (ip6_version != 6) {
             warnx("flow_decode: packet " COUNTER_SPEC " IPv6 header version should be 6 but instead is %u",
                   packetnum,
