@@ -197,7 +197,7 @@ txring_init(int fd, unsigned int mtu)
     txring_t *txp;
 
     /* allocate memory for structure and fill it with different stuff*/
-    *txp = (txring_t *)safe_malloc(sizeof(txring_t));
+    txp = (txring_t *)safe_malloc(sizeof(txring_t));
     txp->treq = (struct tpacket_req *)safe_malloc(sizeof(struct tpacket_req));
 
     txring_mkreq(txp->treq, mtu);
