@@ -145,3 +145,5 @@ Jason Lue <GitHub jasonlue>
 Brad Smith <GitHub brad0>
     - fix build on OpenBSD
 
+Mark Yang <GitHub markyang92>
+    - TX_RING compile issue

@@ -1,6 +1,7 @@
 07/04/2025 Version 4.5.2 - beta1
     - AF_XDP memory leaks (#935)
     - GitHub Actions CI failure (#933)
+    - TX_RING compile errors (#924)
     - Continue on get_l2len_protcol() is zero (#911)
     - Fix building on OpenBSD (#907)
     - Fixup the libpcap search loops (#905)
