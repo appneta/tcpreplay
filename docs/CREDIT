@@ -141,3 +141,7 @@ Denis Ovsienko <GitHub infrastation>
 
 Jason Lue <GitHub jasonlue>
     - tcpreplay -w option
+
+Brad Smith <GitHub brad0>
+    - fix build on OpenBSD
+
