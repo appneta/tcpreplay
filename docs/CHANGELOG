@@ -3,6 +3,7 @@
     - GitHub Actions CI failure (#933)
     - support for IPv6 fragment checksums (#897)
     - AF_XDP sends at near full speed (#896)
+    - TX_RING link errors on some platforms (#732 #904)
 
 07/12/2024 Version 4.5.1
     - NULL Pointer Dereference in parse_endpoints (#888)
