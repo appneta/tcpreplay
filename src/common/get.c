@@ -273,8 +273,10 @@ get_l2len_protocol(const u_char *pktdata,
     assert(l2offset);
     assert(vlan_offset);
 
-    if (!pktdata || !datalen)
-        errx(-1, "get_l2len_protocol: invalid L2 parameters: pktdata=0x%p len=%d", pktdata, datalen);
+    if (!pktdata || !datalen) {
+        err_no_exitx("get_l2len_protocol: invalid L2 parameters: pktdata=0x%p len=%d", pktdata, datalen);
+        return -1;
+    }
 
     *protocol = 0;
     *l2len = 0;
