@@ -31,6 +31,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "defines.h"
+#include "config.h"
+
 #ifdef HAVE_TX_RING
 
 #include "txring.h"
