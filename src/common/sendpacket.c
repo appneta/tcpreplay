@@ -705,7 +705,10 @@ sendpacket_close(sendpacket_t *sp)
     case SP_TYPE_LIBXDP:
 #ifdef HAVE_LIBXDP
         close(sp->handle.fd);
+        xsk_socket__delete(sp->xsk_info->xsk);
         safe_free(sp->xsk_info);
+        xsk_umem__delete(sp->umem_info->umem);
+        safe_free(sp->umem_info->buffer);
         safe_free(sp->umem_info);
 #endif
         break;
@@ -1440,6 +1443,8 @@ sendpacket_open_xsk(const char *device, char *errbuf)
     struct xsk_socket_info *xsk_info =
             create_xsk_socket(umem_info, nb_of_tx_queue_desc, nb_of_rx_queue_desc, device, queue_id, errbuf);
     if (xsk_info == NULL) {
+        safe_free(umem_info->buffer);
+        safe_free(umem_info);
         return NULL;
     }
 
@@ -1497,7 +1502,7 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
                   u_int32_t queue_id,
                   char *errbuf)
 {
-    struct xsk_socket_info *xsk_info = (struct xsk_socket_info *)safe_malloc(sizeof(struct xsk_socket_info));
+    struct xsk_socket_info *xsk_info;
     struct xsk_socket_config *socket_config = (struct xsk_socket_config *)safe_malloc(sizeof(struct xsk_socket_config));
 
     socket_config->rx_size = nb_of_rx_queue_desc;
@@ -1505,7 +1510,7 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
     socket_config->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
     socket_config->bind_flags = 0; // XDP_FLAGS_SKB_MODE (1U << 1) or XDP_FLAGS_DRV_MODE (1U << 2)
     xsk_info = xsk_configure_socket(umem_info, socket_config, queue_id, device);
-
+    safe_free(socket_config);
     if (xsk_info == NULL) {
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "AF_XDP socket configuration is not successful: %s", strerror(errno));
         return NULL;
