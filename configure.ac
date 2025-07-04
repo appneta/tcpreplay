@@ -710,13 +710,9 @@ AC_ARG_WITH(libpcap,
                         LPCAP_LD_LIBRARY_PATH="$(dirname ${sharefile})"
                         LPCAPLIB="-L$LPCAP_LD_LIBRARY_PATH -lpcap"
                         foundpcap=$testdir
-                        break
+                        break 2
                     fi
                 done
-
-                if ! test $foundpcap = no; then
-                    break
-                fi
             done
         else
             dnl
@@ -728,10 +724,9 @@ AC_ARG_WITH(libpcap,
                     if test -n "${staticfile}"; then
                         LPCAPLIB="${staticfile}"
                         foundpcap=${testdir}
-                        break
+                        break 2
                     fi
                 done
-
             done
         fi
 

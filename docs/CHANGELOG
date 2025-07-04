@@ -1,6 +1,7 @@
 06/30/2025 Version 4.5.2 - beta1
     - AF_XDP memory leaks (#935)
     - GitHub Actions CI failure (#933)
+    - Fixup the libpcap search loops (#905)
     - support for IPv6 fragment checksums (#897)
     - AF_XDP sends at near full speed (#896)
     - TX_RING link errors on some platforms (#732 #904)

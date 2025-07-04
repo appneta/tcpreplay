@@ -137,6 +137,7 @@ Chen Qi <GitHub ChenQi1989>
 
 Denis Ovsienko <GitHub infrastation>
     - Haiku support
+    - libpcap search fix
 
 Jason Lue <GitHub jasonlue>
     - tcpreplay -w option
