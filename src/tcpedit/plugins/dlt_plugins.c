@@ -182,7 +182,7 @@ tcpedit_dlt_post_args(tcpedit_t *tcpedit)
         return TCPEDIT_ERROR;
     }
 
-    /* Figure out if we're skipping braodcast & multicast */
+    /* Figure out if we're skipping broadcast & multicast */
     if (HAVE_OPT(SKIPL2BROADCAST))
         ctx->skip_broadcast = 1;
 

@@ -32,12 +32,16 @@
 
 static uint32_t randomize_ipv4_addr(tcpedit_t *tcpedit, uint32_t ip);
 static uint32_t remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, uint32_t original);
-static int is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip);
+static bool is_multicast_ipv4(const uint32_t ip);
+static void set_multicast_ipv4(uint32_t *ip);
+static void set_unicast_ipv4(uint32_t *ip);
 
 static void randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr);
-static int is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr);
 static int ipv6_header_length(ipv6_hdr_t const *ip6_hdr, size_t pkt_len, size_t l2len);
+static bool is_multicast_ipv6(const struct tcpr_in6_addr *addr);
+static void set_multicast_ipv6(struct tcpr_in6_addr *addr);
+static void set_unicast_ipv6(struct tcpr_in6_addr *addr);
 
 /**
  * this code re-calcs the IP and Layer 4 checksums
@@ -324,13 +328,24 @@ ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct
 static uint32_t
 randomize_ipv4_addr(tcpedit_t *tcpedit, uint32_t ip)
 {
-    assert(tcpedit);
+    bool was_multicast;
+    uint32_t res_ip;
 
-    /* don't rewrite broadcast addresses */
-    if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, ip))
+   assert(tcpedit);
+
+    was_multicast = is_multicast_ipv4(ip);
+    if (tcpedit->skip_broadcast && is_multicast_ipv4(ip))
         return ip;
 
-    return ((ip ^ htonl(tcpedit->seed)) - (ip & htonl(tcpedit->seed)));
+    res_ip = ((ip ^ htonl(tcpedit->seed)) - (ip & htonl(tcpedit->seed)));
+
+    if (was_multicast && !is_multicast_ipv4(res_ip)) {
+        set_multicast_ipv4(&res_ip);
+    } else if (!was_multicast && is_multicast_ipv4(res_ip)) {
+        set_unicast_ipv4(&res_ip);
+    }
+
+    return res_ip;
 }
 
 static void
@@ -338,22 +353,20 @@ randomize_ipv6_addr(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
 {
     uint32_t *p;
     int i;
-    u_char was_multicast;
+    bool was_multicast;
 
     assert(tcpedit);
 
+    was_multicast = is_multicast_ipv6(addr);
     p = &addr->__u6_addr.__u6_addr32[0];
-
-    was_multicast = is_multicast_ipv6(tcpedit, addr);
-
     for (i = 0; i < 4; ++i) {
         p[i] = ((p[i] ^ htonl(tcpedit->seed)) - (p[i] & htonl(tcpedit->seed)));
     }
 
-    if (was_multicast) {
-        addr->tcpr_s6_addr[0] = 0xff;
-    } else if (is_multicast_ipv6(tcpedit, addr)) {
-        addr->tcpr_s6_addr[0] = 0xaa;
+    if (was_multicast && !is_multicast_ipv6(addr)) {
+        set_multicast_ipv6(addr);
+    } else if (!was_multicast && is_multicast_ipv6(addr)) {
+        set_unicast_ipv6(addr);
     }
 }
 
@@ -421,15 +434,15 @@ randomize_ipv4(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pkt
     }
 
     /* don't rewrite broadcast addresses */
-    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_dst.s_addr)) ||
-        !tcpedit->skip_broadcast) {
+    if ((tcpedit->skip_broadcast && !is_multicast_ipv4((u_int32_t)ip_hdr->ip_dst.s_addr)) ||
+            !tcpedit->skip_broadcast) {
         uint32_t old_ip = ip_hdr->ip_dst.s_addr;
         ip_hdr->ip_dst.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_dst.s_addr);
         ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_dst.s_addr, l3len);
     }
 
-    if ((tcpedit->skip_broadcast && is_unicast_ipv4(tcpedit, (u_int32_t)ip_hdr->ip_src.s_addr)) ||
-        !tcpedit->skip_broadcast) {
+    if ((tcpedit->skip_broadcast && !is_multicast_ipv4((u_int32_t)ip_hdr->ip_src.s_addr)) ||
+            !tcpedit->skip_broadcast) {
         uint32_t old_ip = ip_hdr->ip_src.s_addr;
         ip_hdr->ip_src.s_addr = randomize_ipv4_addr(tcpedit, ip_hdr->ip_src.s_addr);
         ipv4_addr_csum_replace(ip_hdr, old_ip, ip_hdr->ip_src.s_addr, l3len);
@@ -472,14 +485,14 @@ randomize_ipv6(tcpedit_t *tcpedit, struct pcap_pkthdr *pkthdr, const u_char *pkt
     }
 
     /* don't rewrite broadcast addresses */
-    if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_dst)) || !tcpedit->skip_broadcast) {
+    if ((tcpedit->skip_broadcast && !is_multicast_ipv6(&ip6_hdr->ip_dst)) || !tcpedit->skip_broadcast) {
         struct tcpr_in6_addr old_ip6;
         memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_dst);
         ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, l3len);
     }
 
-    if ((tcpedit->skip_broadcast && !is_multicast_ipv6(tcpedit, &ip6_hdr->ip_src)) || !tcpedit->skip_broadcast) {
+    if ((tcpedit->skip_broadcast && !is_multicast_ipv6(&ip6_hdr->ip_src)) || !tcpedit->skip_broadcast) {
         struct tcpr_in6_addr old_ip6;
         memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
         randomize_ipv6_addr(tcpedit, &ip6_hdr->ip_src);
@@ -703,7 +716,7 @@ remap_ipv4(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, uint32_t original)
     }
 
     /* don't rewrite broadcast addresses */
-    if (tcpedit->skip_broadcast && !is_unicast_ipv4(tcpedit, original))
+    if (tcpedit->skip_broadcast && is_multicast_ipv4(original))
         return original;
 
     mask = 0xffffffff; /* turn on all the bits */
@@ -738,7 +751,7 @@ remap_ipv6(tcpedit_t *tcpedit, tcpr_cidr_t *cidr, struct tcpr_in6_addr *addr)
     }
 
     /* don't rewrite broadcast addresses */
-    if (tcpedit->skip_broadcast && is_multicast_ipv6(tcpedit, addr))
+    if (tcpedit->skip_broadcast && is_multicast_ipv6(addr))
         return 0;
 
     j = cidr->masklen / 8;
@@ -1136,32 +1149,48 @@ rewrite_iparp(tcpedit_t *tcpedit, arp_hdr_t *arp_hdr, int cache_mode)
 }
 
 /**
- * returns 1 if the IP address is a unicast address, otherwise, returns 0
- * for broadcast/multicast addresses.  Returns -1 on error
+ * returns true if the IP address is a broadcast/multicast address,
+ * otherwise, returns false for unicast/anycast addresses
  */
-static int
-is_unicast_ipv4(tcpedit_t *tcpedit, uint32_t ip)
+static bool is_multicast_ipv4(const uint32_t ip)
 {
-    assert(tcpedit);
-
     /* multicast/broadcast is 224.0.0.0 to 239.255.255.255 */
     if ((ntohl(ip) & 0xf0000000) == 0xe0000000)
-        return 0;
+        return true;
 
-    return 1;
+    return false;
+}
+
+static void set_multicast_ipv4(uint32_t *ip)
+{
+    uint32_t orig_ip = ntohl(*ip);
+    *ip = htonl((orig_ip & 0x0fffffff) | 0xe0000000);
+}
+
+static void set_unicast_ipv4(uint32_t *ip)
+{
+    uint32_t orig_ip = ntohl(*ip);
+    *ip = htonl(orig_ip & 0x7fffffff);
 }
 
 /**
- * returns 1 if the IPv6 address is a multicast address, otherwise, returns 0
- * for unicast/anycast addresses.  Returns -1 on error
+ * returns true if the IPv6 address is a multicast address,
+ * otherwise returns false for unicast/anycast addresses
  */
-static int
-is_multicast_ipv6(tcpedit_t *tcpedit, struct tcpr_in6_addr *addr)
+static bool is_multicast_ipv6(const struct tcpr_in6_addr *addr)
 {
-    assert(tcpedit);
-
     if (addr->tcpr_s6_addr[0] == 0xff)
-        return 1;
+        return true;
 
-    return 0;
+    return false;
+}
+
+static void set_multicast_ipv6(struct tcpr_in6_addr *addr)
+{
+    addr->tcpr_s6_addr[0] = 0xff;
+}
+
+static void set_unicast_ipv6(struct tcpr_in6_addr *addr)
+{
+    addr->tcpr_s6_addr[0] = 0xaa;
 }
