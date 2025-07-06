@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "lib/queue.h"
 #include "defines.h"
 #include "config.h"
-#include "lib/queue.h"
 #include <sys/time.h>
 
 #ifdef HAVE_LIBDNET
