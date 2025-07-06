@@ -1,4 +1,4 @@
-07/04/2025 Version 4.5.2 - beta1
+07/05/2025 Version 4.5.2 - beta1
     - AF_XDP memory leaks (#935)
     - GitHub Actions CI failure (#933)
     - TX_RING compile errors (#924)
@@ -7,8 +7,9 @@
     - Fixup the libpcap search loops (#905)
     - support for IPv6 fragment checksums (#897)
     - AF_XDP sends at near full speed (#896)
-    - TX_RING link errors on some platforms (#732 #904)
+    - TX_RING link errors on some platforms (#731 #904)
     - IPv6 header version check incorrect for flow stats (#899)
+    - tcprewrite --portmap syntax error causes crash (#894)
     - gcc 4.4.4 fails build on FreeBSD (#809)
     - MAC address sometimes corruptly altered on tcprewrite --seed option (#794 #901)
 
