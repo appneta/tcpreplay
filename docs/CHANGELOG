@@ -8,6 +8,7 @@
     - support for IPv6 fragment checksums (#897)
     - AF_XDP sends at near full speed (#896)
     - TX_RING link errors on some platforms (#731 #904)
+    - tcprewrite crash on Juniper crafted packet (#904)
     - IPv6 header version check incorrect for flow stats (#899)
     - tcprewrite --portmap syntax error causes crash (#894)
     - gcc 4.4.4 fails build on FreeBSD (#809)
