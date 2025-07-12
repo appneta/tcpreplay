@@ -1,4 +1,5 @@
-07/05/2025 Version 4.5.2 - beta1
+07/11/2025 Version 4.5.2 - beta1
+    - stdbool.h not detected correctly (#947)
     - AF_XDP memory leaks (#935)
     - GitHub Actions CI failure (#933)
     - heap address leak in xX.c (#928)
