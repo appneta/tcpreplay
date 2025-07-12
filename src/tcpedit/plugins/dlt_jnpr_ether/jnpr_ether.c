@@ -200,8 +200,12 @@ dlt_jnpr_ether_parse_opts(tcpeditdlt_t *ctx)
 int
 dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 {
+    int extensions_len = 0;
     int jnpr_header_len = 0;
     const u_char *ethernet = NULL;
+    const u_char *extension;
+    u_char dlt = 0;
+    u_char encapsulation = 0;
     jnpr_ether_config_t *config;
 
     assert(ctx);
@@ -226,9 +230,10 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     }
 
     /* then get the Juniper header length */
-    memcpy(&jnpr_header_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
+    memcpy(&extensions_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
 
-    jnpr_header_len = ntohs(jnpr_header_len) + JUNIPER_ETHER_HEADER_LEN;
+    extensions_len = ntohs(extensions_len);
+    jnpr_header_len = extensions_len + JUNIPER_ETHER_HEADER_LEN;
 
     dbgx(1, "jnpr header len: %d", jnpr_header_len);
     /* make sure the packet is big enough to find the Ethernet Header */
@@ -242,6 +247,30 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
 
     /* jump to the appropriate offset */
     ethernet = packet + jnpr_header_len;
+
+    /* parse the extension header to ensure this is Ethernet - the only DLT we currently support */
+    extension = packet + JUNIPER_ETHER_HEADER_LEN;
+    while (extension  < ethernet - 2) {
+        u_char ext_len = extension[1];
+        if (extension[0] == JUNIPER_ETHER_EXT_MEDIA_TYPE)
+            dlt = extension[2];
+        else if (extension[0] == JUNIPER_ETHER_EXT_ENCAPSULATION)
+            encapsulation = extension[2];
+        if (dlt != 0 && encapsulation != 0)
+            break;
+        extension += ext_len + 2;
+    }
+
+    if (extension > ethernet) {
+        tcpedit_seterr(ctx->tcpedit, "Extension to long! %d", extension - ethernet);
+        return TCPEDIT_ERROR;
+    }
+
+    if (dlt != DLT_EN10MB || encapsulation != 14) {
+        tcpedit_setwarn(ctx->tcpedit, "packet DLT %d and extension type %d not supported",
+            dlt, extension);
+        return TCPEDIT_WARN;
+    }
 
     /* let the en10mb plugin decode the rest */
     if (tcpedit_dlt_decode(config->subctx, ethernet, (pktlen - jnpr_header_len)) == TCPEDIT_ERROR)

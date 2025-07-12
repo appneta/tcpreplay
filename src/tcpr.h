@@ -652,6 +652,9 @@ struct tcpr_gre_hdr {
 #ifndef IPPROTO_GRE
 #define IPPROTO_GRE 47
 #endif
+#ifndef IPPROTO_TCP_V6FRAG
+#define IPPROTO_TCP_V6FRAG 0x2c
+#endif
 
 /*
  * Source Route Entries (SRE)

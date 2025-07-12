@@ -37,6 +37,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
 
 #ifdef DEBUG
 int debug;
@@ -102,6 +105,22 @@ main(int argc, char *argv[])
     /* open up the output file */
     options.outfile = safe_strdup(OPT_ARG(OUTFILE));
     dbgx(1, "Rewriting DLT to %s", pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
+
+#ifdef HAVE_SYS_STAT_H
+    /* if the output file exists, make sure it isn't also the input file */
+    struct stat outfile_stat;
+    if (stat(options.outfile, &outfile_stat) == 0) {
+        struct stat infile_stat;
+        if (stat(options.infile, &infile_stat) == 0) {
+            if (outfile_stat.st_ino == infile_stat.st_ino) {
+                /* they are the same file */
+                tcpedit_close(&tcpedit);
+                err(-1, "--infile and --outfile cannot be the same file");
+            }
+        }
+    }
+#endif
+
     if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL) {
         tcpedit_close(&tcpedit);
         err(-1, "Unable to open dead pcap handle.");

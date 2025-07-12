@@ -104,7 +104,7 @@ ports2PORT(char *ports)
         from_begin = strtok_r(from_s, "-", &token2);
         from_end = strtok_r(NULL, "-", &token2);
         long from_b = strtol(from_begin, &badchar, 10);
-        if (strlen(badchar) != 0) {
+        if (!from_begin || !from_end || strlen(badchar) != 0) {
             free(portmap);
             return NULL;
         }
@@ -249,9 +249,10 @@ map_port(tcpedit_portmap_t *portmap_data, long port)
 
     /* step through the nodes, resetting newport if a match is found */
     while (portmap_ptr != NULL) {
-        if (portmap_ptr->from == port)
+        if (portmap_ptr->from == port) {
             newport = portmap_ptr->to;
-
+            break;
+        }
         portmap_ptr = portmap_ptr->next;
     }
 

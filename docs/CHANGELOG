@@ -1,5 +1,21 @@
-06/30/2025 Version 4.5.2 - beta1
-    -
+07/11/2025 Version 4.5.2 - beta1
+    - stdbool.h not detected correctly (#947)
+    - AF_XDP memory leaks (#935)
+    - GitHub Actions CI failure (#933)
+    - heap address leak in xX.c (#928)
+    - TX_RING compile errors (#924)
+    - continue on get_l2len_protcol() is zero (#911)
+    - --infile and --outfile cannot be the same file (#914)
+    - fix building on OpenBSD (#907)
+    - fixup the libpcap search loops (#905)
+    - tcprewrite crash on Juniper crafted packet (#902 #926)
+    - support for IPv6 fragment checksums (#897)
+    - AF_XDP sends at near full speed (#896)
+    - TX_RING link errors on some platforms (#731 #904)
+    - IPv6 header version check incorrect for flow stats (#899)
+    - tcprewrite --portmap syntax error causes crash (#894)
+    - gcc 4.4.4 fails build on FreeBSD (#809)
+    - MAC address sometimes corruptly altered on tcprewrite --seed option (#794 #901)
 
 07/12/2024 Version 4.5.1
     - NULL Pointer Dereference in parse_endpoints (#888)
@@ -20,7 +36,7 @@
     - improved 802.3 (Ethernet I) handling and warning messages (#835)
     - handle IPv6 fragment extension header (#832 #837)
     - Linux tap interfaces fail intermittently (#828)
-    - Infinite loop in tcprewrite at get.c (#827 #842)
+    - CVE-2024-22654 CVE-2024-3024Infinite loop in tcprewrite at get.c (#827 #842)
     - SLL incorrect size and protocol when converted to Ethernet (#826)
     - CVE-2023-43279 add check for empty CIDR (#824 #843)
     - AF_XDP socket extension (#822 #823)

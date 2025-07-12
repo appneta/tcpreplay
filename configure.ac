@@ -710,13 +710,9 @@ AC_ARG_WITH(libpcap,
                         LPCAP_LD_LIBRARY_PATH="$(dirname ${sharefile})"
                         LPCAPLIB="-L$LPCAP_LD_LIBRARY_PATH -lpcap"
                         foundpcap=$testdir
-                        break
+                        break 2
                     fi
                 done
-
-                if ! test $foundpcap = no; then
-                    break
-                fi
             done
         else
             dnl
@@ -728,10 +724,9 @@ AC_ARG_WITH(libpcap,
                     if test -n "${staticfile}"; then
                         LPCAPLIB="${staticfile}"
                         foundpcap=${testdir}
-                        break
+                        break 2
                     fi
                 done
-
             done
         fi
 
@@ -1933,6 +1928,15 @@ case $host in
     nic2=%0
     ;;
 esac])
+
+AC_ARG_ENABLE([test_hexdump],
+    AS_HELP_STRING([--enable-test-hexdump],[Enable hexdump pcap on test failure]))
+if test "x$enable_test_hexdump" = "xyes"; then
+        test_hexdump=yes
+else
+        test_hexdump=no
+fi
+AC_SUBST(test_hexdump)
 
 dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
 dnl so under OSX we disable the interface list feature

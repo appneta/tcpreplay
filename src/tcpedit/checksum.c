@@ -78,6 +78,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len, const u_char 
 
     switch (proto) {
     case IPPROTO_TCP:
+    case IPPROTO_TCP_V6FRAG:
         if (len < (int)sizeof(tcp_hdr_t)) {
             tcpedit_setwarn(tcpedit, "%s", "Unable to checksum TCP with insufficient L4 data");
             return TCPEDIT_WARN;
@@ -98,6 +99,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len, const u_char 
         } else {
             sum = do_checksum_math((uint16_t *)&ipv4->ip_src, 8);
         }
+
         sum += ntohs(IPPROTO_TCP + len);
         sum += do_checksum_math((uint16_t *)tcp, len);
         tcp->th_sum = CHECKSUM_CARRY(sum);
