@@ -43,6 +43,10 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
     dbgx(1, "Parsing string: %s", str);
     dbgx(1, "Switching on: %c", str[0]);
 
+    if (str[0] && str[1] == 0) {
+        errx(-1, "Syntax error for option -%c", str[0]);
+    }
+
     switch (str[0]) {
     case 'B': /* both ip's */
         str = str + 2;
