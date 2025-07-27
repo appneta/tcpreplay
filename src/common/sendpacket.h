@@ -250,8 +250,14 @@ kick_tx(struct xsk_socket_info *xsk)
     if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY || errno == ENETDOWN) {
         return;
     }
-    printf("%s\n", "Packet sending exited with error!");
-    exit (1);
+    if (errno == EINVAL) {
+        printf("%s %s\n", "Send error: XDP is either not supported by this underlying network driver, or it has a bug.\n"
+                          "Try upgrading to a newer kernel version and/or network driver and try again.");
+        exit(0);
+    } else {
+        printf("%s %s\n", "XDP packet sending exited with error!", strerror(errno));
+        exit(1);
+    }
 }
 
 static inline void

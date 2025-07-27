@@ -1,4 +1,5 @@
 07/27/2025 Version 4.5.2 - beta2
+    - better error handling for XDP send errors (#956)
     - stdbool.h not detected correctly (#947)
     - AF_XDP memory leaks (#935)
     - GitHub Actions CI failure (#933)
