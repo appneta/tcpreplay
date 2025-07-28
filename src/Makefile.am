@@ -15,7 +15,7 @@ else
 LIBSTRL = ../lib/libstrl.a
 endif
 
-BUILT_SOURCES = 
+BUILT_SOURCES = defines.h
 
 manpages: tcpprep.1 tcprewrite.1 tcpreplay.1 tcpbridge.1 tcpreplay-edit.1 tcpliveplay.1 tcpcapinfo.1
 
