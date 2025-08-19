@@ -292,6 +292,8 @@ rewrite_packets(tcpedit_t *tcpedit_ctx, pcap_t *pin, pcap_dumper_t *pout)
 
         if (pkthdr.caplen > MAX_SNAPLEN)
             errx(-1, "Frame too big, caplen %d exceeds %d", pkthdr.caplen, MAX_SNAPLEN);
+        if (pkthdr.len > MAX_SNAPLEN)
+            errx(-1, "Frame too big, len %d exceeds %d", pkthdr.len, MAX_SNAPLEN);
         /*
          * copy over the packet so we can pad it out if necessary and
          * because pcap_next() returns a const ptr

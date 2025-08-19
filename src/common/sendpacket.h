@@ -251,7 +251,7 @@ kick_tx(struct xsk_socket_info *xsk)
         return;
     }
     if (errno == EINVAL) {
-        printf("%s %s\n", "Send error: XDP is either not supported by this underlying network driver, or it has a bug.\n"
+        printf("%s\n", "Send error: XDP is either not supported by this underlying network driver, or it has a bug.\n"
                           "Try upgrading to a newer kernel version and/or network driver and try again.");
         exit(0);
     } else {
