@@ -1462,35 +1462,37 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT(no)
 ])
 
-have_libxdp=no
-dnl Check for LIBXDP AF_XDP socket support
-AC_MSG_CHECKING(for LIBXDP XDP packet sending support)
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include <stdlib.h>
-#include <xdp/xsk.h>
-#include <sys/socket.h>
-]], [[
-    struct xsk_socket {
-        struct xsk_ring_cons *rx;
-        struct xsk_ring_prod *tx;
-        struct xsk_ctx *ctx;
-        struct xsk_socket_config config;
-        int fd;
-    };
-    struct xsk_socket xsk;
-	struct xsk_ring_cons *rxr = NULL;
-	struct xsk_ring_prod *txr = NULL;
-    int queue_id = 0;
-    xsk_socket__create(&xsk, "lo", queue_id, NULL, rxr, txr, NULL);
-    socket(AF_XDP, SOCK_RAW, 0);
-]])],[
-    AC_DEFINE([HAVE_LIBXDP], [1],
-            [Do we have LIBXDP AF_XDP socket support?])
-    AC_MSG_RESULT(yes)
-    have_libxdp=yes
-],[
-    AC_MSG_RESULT(no)
-])
+have_libxdp="$ac_cv_lib_xdp_xsk_umem__delete"
+if test "$have_libxdp" != yes; then
+    dnl Check for LIBXDP AF_XDP socket support
+    AC_MSG_CHECKING(for LIBXDP XDP packet sending support)
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+    #include <stdlib.h>
+    #include <xdp/xsk.h>
+    #include <sys/socket.h>
+    ]], [[
+        struct xsk_socket {
+            struct xsk_ring_cons *rx;
+            struct xsk_ring_prod *tx;
+            struct xsk_ctx *ctx;
+            struct xsk_socket_config config;
+            int fd;
+        };
+        struct xsk_socket xsk;
+        struct xsk_ring_cons *rxr = NULL;
+        struct xsk_ring_prod *txr = NULL;
+        int queue_id = 0;
+        xsk_socket__create(&xsk, "lo", queue_id, NULL, rxr, txr, NULL);
+        socket(AF_XDP, SOCK_RAW, 0);
+    ]])],[
+        AC_DEFINE([HAVE_LIBXDP], [1],
+                [Do we have LIBXDP AF_XDP socket support?])
+        AC_MSG_RESULT(yes)
+        have_libxdp=yes
+    ],[
+        AC_MSG_RESULT(no)
+    ])
+fi
 
 have_tx_ring=no
 dnl Check for older Linux TX_RING support
