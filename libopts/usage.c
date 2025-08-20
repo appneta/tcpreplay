@@ -711,7 +711,7 @@ prt_vendor_opts(tOptions * opts, char const * title)
         OPTST_NO_USAGE_MASK | OPTST_DOCUMENT;
 
     static char const vfmtfmt[] = "%%-%us %%s\n";
-    char vfmt[sizeof(vfmtfmt)];
+    char vfmt[sizeof(vfmtfmt) + 9];
 
     /*
      *  Only handle client specified options.  The "vendor option" follows

@@ -478,7 +478,7 @@ AC_DEFUN([LIBOPTS_CHECK_COMMON],[
   m4_pushdef([AO_Libopts_Dir],
 	    [ifelse($1, , [libopts], [$1])])
   AC_ARG_ENABLE([local-libopts],
-    AS_HELP_STRING([--enable-local-libopts],
+    AC_HELP_STRING([--enable-local-libopts],
        [Use the supplied libopts tearoff code]),[
     if test x$enableval = xyes ; then
        AC_MSG_NOTICE([Using supplied libopts tearoff])
@@ -488,14 +488,14 @@ AC_DEFUN([LIBOPTS_CHECK_COMMON],[
     fi])
 
   AC_ARG_ENABLE([libopts-install],
-    AS_HELP_STRING([--enable-libopts-install],
+    AC_HELP_STRING([--enable-libopts-install],
        [Install libopts with client installation]))
   AM_CONDITIONAL([INSTALL_LIBOPTS],[test "X${enable_libopts_install}" = Xyes])
 
   [if test -z "${NEED_LIBOPTS_DIR}" ; then]
      AC_MSG_CHECKING([whether autoopts-config can be found])
      AC_ARG_WITH([autoopts-config],
-        AS_HELP_STRING([--with-autoopts-config],
+        AC_HELP_STRING([--with-autoopts-config],
              [specify the config-info script]),
         [lo_cv_with_autoopts_config=${with_autoopts_config}],
         AC_CACHE_CHECK([whether autoopts-config is specified],

@@ -137,6 +137,18 @@ make_absolute( char const * string, char const * dot_path )
 }
 
 /*
+ * Proccess strcpy for overlapping memory locations.
+ */
+static char*
+strcpy_overlapping ( char *d, const char *s)
+{
+  unsigned n = strlen ( s );
+  memmove ( d, s, n + 1 );
+  return d;
+}
+
+
+/*
  * Canonicalize PATH, and return a  new path.  The new path differs from
  * PATH in that:
  *
@@ -182,7 +194,7 @@ canonicalize_pathname( char *path )
         if ((start + 1) != i && (start != 0 || i != 2))
 #endif /* apollo */
         {
-            strcpy( result + start + 1, result + i );
+            strcpy_overlapping( result + start + 1, result + i );
             i = start + 1;
         }
 
@@ -201,7 +213,7 @@ canonicalize_pathname( char *path )
         if (result[i] == '.') {
             /* Handle `./'. */
             if (result[i + 1] == '/') {
-                strcpy( result + i, result + i + 1 );
+                strcpy_overlapping( result + i, result + i + 1 );
                 i = (start < 0) ? 0 : start;
                 continue;
             }
@@ -211,7 +223,7 @@ canonicalize_pathname( char *path )
                 (result[i + 2] == '/' || !result[i + 2])) {
                 while (--start > -1 && result[start] != '/')
                     ;
-                strcpy( result + start + 1, result + i + 2 );
+                strcpy_overlapping( result + start + 1, result + i + 2 );
                 i = (start < 0) ? 0 : start;
                 continue;
             }
