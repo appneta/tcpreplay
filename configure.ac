@@ -273,9 +273,15 @@ AC_FUNC_FSEEKO
 
 dnl Check for types.
 AC_CHECK_TYPE(u_int8_t, uint8_t)
+AC_CHECK_TYPE(u_char, uint8_t)
 AC_CHECK_TYPE(u_int16_t, uint16_t)
+AC_CHECK_TYPE(u_short, uint16_t)
+AC_CHECK_TYPE(u_int, uint32_t)
 AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
+
+# required by C23 standard
+CFLAGS="-D_DEFAULT_SOURCE $CFLAGS"
 
 dnl OS X SDK 10.11 throws lots of unnecessary macro warnings
 wno_format=""

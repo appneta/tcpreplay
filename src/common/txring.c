@@ -95,7 +95,7 @@ txring_put(txring_t *txp, const void *data, size_t length)
 
         switch ((volatile uint32_t)ps_header->tp_status) {
         case TP_STATUS_WRONG_FORMAT:
-            warnx("TP_STATUS_WRONG_FORMAT occuries O_o. Frame %d, pkt len %d\n", txp->tx_index, length);
+            warnx("TP_STATUS_WRONG_FORMAT occures O_o. Frame %d, pkt len %d\n", txp->tx_index, length);
             break;
 
         case TP_STATUS_AVAILABLE:

@@ -21,7 +21,6 @@
 #include "defines.h"
 #include "config.h"
 #include "common.h"
-#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
