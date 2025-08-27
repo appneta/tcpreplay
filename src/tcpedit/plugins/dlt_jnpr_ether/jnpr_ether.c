@@ -267,8 +267,8 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     }
 
     if (dlt != DLT_EN10MB || encapsulation != 14) {
-        tcpedit_setwarn(ctx->tcpedit, "packet DLT %d and extension type %d not supported",
-            dlt, extension);
+        tcpedit_setwarn(ctx->tcpedit, "packet DLT %d and encapsulation type %u not supported",
+            dlt, encapsulation);
         return TCPEDIT_WARN;
     }
 
