@@ -12,6 +12,7 @@ DIST_SUBDIRS = scripts lib libopts src docs test
 
 
 dist-hook: version manpages
+	rm $(distdir)/src/defines.h
 
 DOCS_DIR = $(top_builddir)/docs
 

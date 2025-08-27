@@ -31,6 +31,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "defines.h"
+#include "config.h"
+
 #ifdef HAVE_TX_RING
 
 #include "txring.h"
@@ -92,7 +95,7 @@ txring_put(txring_t *txp, const void *data, size_t length)
 
         switch ((volatile uint32_t)ps_header->tp_status) {
         case TP_STATUS_WRONG_FORMAT:
-            warnx("TP_STATUS_WRONG_FORMAT occuries O_o. Frame %d, pkt len %d\n", txp->tx_index, length);
+            warnx("TP_STATUS_WRONG_FORMAT occures O_o. Frame %d, pkt len %d\n", txp->tx_index, length);
             break;
 
         case TP_STATUS_AVAILABLE:
@@ -194,7 +197,7 @@ txring_init(int fd, unsigned int mtu)
     txring_t *txp;
 
     /* allocate memory for structure and fill it with different stuff*/
-    *txp = (txring_t *)safe_malloc(sizeof(txring_t));
+    txp = (txring_t *)safe_malloc(sizeof(txring_t));
     txp->treq = (struct tpacket_req *)safe_malloc(sizeof(struct tpacket_req));
 
     txring_mkreq(txp->treq, mtu);

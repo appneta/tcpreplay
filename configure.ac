@@ -4,7 +4,7 @@ dnl $Id$
 AC_PREREQ([2.69])
 
 dnl Set version info here!
-AC_INIT([tcpreplay],[4.5.1],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
+AC_INIT([tcpreplay],[4.5.2],[https://github.com/appneta/tcpreplay/issues],[tcpreplay],[http://tcpreplay.sourceforge.net/])
 AC_CONFIG_SRCDIR([src/tcpreplay.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR(config)
@@ -273,9 +273,15 @@ AC_FUNC_FSEEKO
 
 dnl Check for types.
 AC_CHECK_TYPE(u_int8_t, uint8_t)
+AC_CHECK_TYPE(u_char, uint8_t)
 AC_CHECK_TYPE(u_int16_t, uint16_t)
+AC_CHECK_TYPE(u_short, uint16_t)
+AC_CHECK_TYPE(u_int, uint32_t)
 AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
+
+# required by C23 standard
+CFLAGS="-D_DEFAULT_SOURCE $CFLAGS"
 
 dnl OS X SDK 10.11 throws lots of unnecessary macro warnings
 wno_format=""
@@ -710,13 +716,9 @@ AC_ARG_WITH(libpcap,
                         LPCAP_LD_LIBRARY_PATH="$(dirname ${sharefile})"
                         LPCAPLIB="-L$LPCAP_LD_LIBRARY_PATH -lpcap"
                         foundpcap=$testdir
-                        break
+                        break 2
                     fi
                 done
-
-                if ! test $foundpcap = no; then
-                    break
-                fi
             done
         else
             dnl
@@ -728,10 +730,9 @@ AC_ARG_WITH(libpcap,
                     if test -n "${staticfile}"; then
                         LPCAPLIB="${staticfile}"
                         foundpcap=${testdir}
-                        break
+                        break 2
                     fi
                 done
-
             done
         fi
 
@@ -1933,6 +1934,15 @@ case $host in
     nic2=%0
     ;;
 esac])
+
+AC_ARG_ENABLE([test_hexdump],
+    AS_HELP_STRING([--enable-test-hexdump],[Enable hexdump pcap on test failure]))
+if test "x$enable_test_hexdump" = "xyes"; then
+        test_hexdump=yes
+else
+        test_hexdump=no
+fi
+AC_SUBST(test_hexdump)
 
 dnl There's a bug in OS X which causes pcap_findalldevs() to make the wifi NIC to disassociate
 dnl so under OSX we disable the interface list feature

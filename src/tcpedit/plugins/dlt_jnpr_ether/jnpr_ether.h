@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -33,6 +33,8 @@ extern "C" {
 #define JUNIPER_ETHER_L2PRESENT 0x80
 #define JUNIPER_ETHER_DIRECTION 0x01
 #define JUNIPER_ETHER_EXTLEN_OFFSET 4
+#define JUNIPER_ETHER_EXT_MEDIA_TYPE 3
+#define JUNIPER_ETHER_EXT_ENCAPSULATION 6
 
 int dlt_jnpr_ether_register(tcpeditdlt_t *ctx);
 int dlt_jnpr_ether_init(tcpeditdlt_t *ctx);

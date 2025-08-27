@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it 
  *   and/or modify it under the terms of the GNU General Public License as 
@@ -22,12 +22,12 @@ autogen definitions options;
 
 
 copyright = {
-    date        = "2000-2024";
+    date        = "2000-2025";
     owner       = "Aaron Turner and Fred Klassen";
     eaddr       = "tcpreplay-users@lists.sourceforge.net"; 
     type        = gpl;
     author      = <<- EOText
-Copyright 2013-2024 Fred Klassen - AppNeta
+Copyright 2013-2025 Fred Klassen - AppNeta
 
 Copyright 2000-2012 Aaron Turner
 
@@ -371,9 +371,13 @@ flag = {
     doc         = "";
     flag-code   = <<- EOFlag
 
-    interface_list_t *list = get_interface_list();
+    interface_list_t *tmp, *list = get_interface_list();
     list_interfaces(list);
-    free(list);
+    while (list != NULL) {
+        tmp = list->next;
+        safe_free(list);
+        list = tmp;
+    }
     exit(0);
 
 EOFlag;
@@ -578,7 +582,7 @@ EOText;
 
 flag = {
     name        = unique-ip-loops;
-    flags-must   = unique-ip;
+    flags-must  = unique-ip;
     arg-type    = string;
     max         = 1;
     descrip     = "Number of times to loop before assigning new unique ip";
@@ -717,11 +721,18 @@ EOText;
 flag = {
     ifdef       = HAVE_LIBXDP;
     name        = xdp-batch-size;
-    arg-type    = number;
+    flags-cant  = oneatatime;
+    flags-cant  = pps-multi;
+    flags-must  = xdp;
+    flags-must  = topspeed;
+  arg-type    = number;
     arg-range   = "1->4096";
     descrip     = "The maximum number of packets that can be submitted to the AF_XDP TX ring at once";
-    arg-default = 25;
-    doc         = "Higher values may improve performance at the cost of accuracy";
+    arg-default = 1;
+    doc         = <<- EOText
+Only allowed if sending at top speed. Values higher than 1 may improve
+performance at the cost of accuracy.
+EOText;
 };
 
 flag = {
@@ -738,7 +749,7 @@ flag = {
     fprintf(stderr, " (timestamp-trace)");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "Copyright 2013-2024 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
+    fprintf(stderr, "Copyright 2013-2025 by Fred Klassen <tcpreplay at appneta dot com> - AppNeta\n");
     fprintf(stderr, "Copyright 2000-2012 by Aaron Turner <aturner at synfin dot net>\n");
     fprintf(stderr, "The entire Tcpreplay Suite is licensed under the GPLv3\n");  
     fprintf(stderr, "Cache file supported: %s\n", CACHEVERSION);

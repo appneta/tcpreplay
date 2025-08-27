@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -42,6 +42,10 @@ parse_xX_str(tcpr_xX_t *xX, char *str, tcpr_bpf_t *bpf)
 
     dbgx(1, "Parsing string: %s", str);
     dbgx(1, "Switching on: %c", str[0]);
+
+    if (str[0] && str[1] == 0) {
+        errx(-1, "Syntax error for option -%c", str[0]);
+    }
 
     switch (str[0]) {
     case 'B': /* both ip's */

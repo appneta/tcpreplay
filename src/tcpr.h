@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -651,6 +651,9 @@ struct tcpr_gre_hdr {
 
 #ifndef IPPROTO_GRE
 #define IPPROTO_GRE 47
+#endif
+#ifndef IPPROTO_TCP_V6FRAG
+#define IPPROTO_TCP_V6FRAG 0x2c
 #endif
 
 /*

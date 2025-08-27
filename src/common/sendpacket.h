@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -27,6 +27,7 @@
 #ifdef __NetBSD__
 #include <net/if_ether.h>
 #elif ! defined(__HAIKU__)
+#include <net/if.h>
 #include <netinet/if_ether.h>
 #endif
 
@@ -249,8 +250,14 @@ kick_tx(struct xsk_socket_info *xsk)
     if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY || errno == ENETDOWN) {
         return;
     }
-    printf("%s\n", "Packet sending exited with error!");
-    exit (1);
+    if (errno == EINVAL) {
+        printf("%s\n", "Send error: XDP is either not supported by this underlying network driver, or it has a bug.\n"
+                          "Try upgrading to a newer kernel version and/or network driver and try again.");
+        exit(0);
+    } else {
+        printf("%s %s\n", "XDP packet sending exited with error!", strerror(errno));
+        exit(1);
+    }
 }
 
 static inline void

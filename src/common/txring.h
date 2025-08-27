@@ -33,10 +33,10 @@
 
 #pragma once
 
-#ifdef HAVE_TX_RING
-
 #include "defines.h"
 #include "config.h"
+
+#ifdef HAVE_TX_RING
 
 #if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
 #include <net/ethernet.h> /* the L2 protocols */

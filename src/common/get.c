@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -273,8 +273,10 @@ get_l2len_protocol(const u_char *pktdata,
     assert(l2offset);
     assert(vlan_offset);
 
-    if (!pktdata || !datalen)
-        errx(-1, "get_l2len_protocol: invalid L2 parameters: pktdata=0x%p len=%d", pktdata, datalen);
+    if (!pktdata || !datalen) {
+        err_no_exitx("get_l2len_protocol: invalid L2 parameters: pktdata=0x%p len=%d", pktdata, datalen);
+        return -1;
+    }
 
     *protocol = 0;
     *l2len = 0;

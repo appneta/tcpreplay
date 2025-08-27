@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -78,6 +78,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len, const u_char 
 
     switch (proto) {
     case IPPROTO_TCP:
+    case IPPROTO_TCP_V6FRAG:
         if (len < (int)sizeof(tcp_hdr_t)) {
             tcpedit_setwarn(tcpedit, "%s", "Unable to checksum TCP with insufficient L4 data");
             return TCPEDIT_WARN;
@@ -98,6 +99,7 @@ do_checksum(tcpedit_t *tcpedit, uint8_t *data, int proto, int len, const u_char 
         } else {
             sum = do_checksum_math((uint16_t *)&ipv4->ip_src, 8);
         }
+
         sum += ntohs(IPPROTO_TCP + len);
         sum += do_checksum_math((uint16_t *)tcp, len);
         tcp->th_sum = CHECKSUM_CARRY(sum);

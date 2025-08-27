@@ -533,9 +533,9 @@ static long numdget = 0, numdrel = 0; /* Number of direct gets and rels */
 
 /* Automatic expansion block management functions */
 
-static int (*compfcn) _((bufsize sizereq, int sequence)) = NULL;
-static void *(*acqfcn) _((bufsize size)) = NULL;
-static void (*relfcn) _((void *buf)) = NULL;
+static int (*compfcn) (size_t sizereq, int sequence) = NULL;
+static void *(*acqfcn) (size_t size) = NULL;
+static void (*relfcn) (void *buf) = NULL;
 
 static bufsize exp_incr = 0;          /* Expansion block size */
 static bufsize pool_len = 0;          /*  0: no bpool calls have been made
@@ -562,8 +562,7 @@ static bufsize pool_len = 0;          /*  0: no bpool calls have been made
 /*  BGET  --  Allocate a buffer.  */
 
 void *
-bget(requested_size)
-bufsize requested_size;
+bget(bufsize requested_size)
 {
     bufsize size = requested_size;
     struct bfhead *b;
@@ -755,8 +754,7 @@ bufsize requested_size;
            region requested by the caller. */
 
 void *
-bgetz(size)
-bufsize size;
+bgetz(bufsize size)
 {
     char *buf = (char *)bget(size);
 
@@ -785,8 +783,7 @@ bufsize size;
            enhanced to allow the buffer to grow into adjacent free
            blocks and to avoid moving data unnecessarily.  */
 
-void *bgetr(buf, size) void *buf;
-bufsize size;
+void *bgetr(void *buf, bufsize size)
 {
     void *nbuf;
     bufsize osize; /* Old size of buffer */
@@ -821,7 +818,7 @@ bufsize size;
 
 /*  BREL  --  Release a buffer.  */
 
-void brel(buf) void *buf;
+void brel(void *buf)
 {
     struct bfhead *b, *bn;
 
@@ -966,11 +963,7 @@ void brel(buf) void *buf;
 
 /*  BECTL  --  Establish automatic pool expansion control  */
 
-void bectl(compact, acquire, release, pool_incr)
-  int (*compact) _((bufsize sizereq, int sequence));
-  void *(*acquire) _((bufsize size));
-  void (*release) _((void *buf));
-  bufsize pool_incr;
+void bectl(int (*compact)(size_t, int), void *(*acquire)(size_t), void (*release)(void*), bufsize pool_incr)
 {
     compfcn = compact;
     acqfcn = acquire;
@@ -981,8 +974,7 @@ void bectl(compact, acquire, release, pool_incr)
 
 /*  BPOOL  --  Add a region of memory to the buffer pool.  */
 
-void bpool(buf, len) void *buf;
-bufsize len;
+void bpool(void *buf, bufsize len)
 {
     struct bfhead *b = BFH(buf);
     struct bhead *bn;
@@ -1280,7 +1272,7 @@ extern long time();
 #endif
 
 extern char *malloc();
-extern int free _((char *));
+extern int free (char *);
 
 static char *bchain = NULL;          /* Our private buffer chain */
 static char *bp = NULL;           /* Our initial buffer pool */

@@ -137,6 +137,13 @@ Chen Qi <GitHub ChenQi1989>
 
 Denis Ovsienko <GitHub infrastation>
     - Haiku support
+    - libpcap search fix
 
 Jason Lue <GitHub jasonlue>
     - tcpreplay -w option
+
+Brad Smith <GitHub brad0>
+    - fix build on OpenBSD
+
+Mark Yang <GitHub markyang92>
+    - TX_RING compile issue

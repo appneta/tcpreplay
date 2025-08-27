@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2024 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -182,7 +182,7 @@ tcpedit_dlt_post_args(tcpedit_t *tcpedit)
         return TCPEDIT_ERROR;
     }
 
-    /* Figure out if we're skipping braodcast & multicast */
+    /* Figure out if we're skipping broadcast & multicast */
     if (HAVE_OPT(SKIPL2BROADCAST))
         ctx->skip_broadcast = 1;
 
