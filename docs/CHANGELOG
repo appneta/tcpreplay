@@ -1,5 +1,7 @@
-07/27/2025 Version 4.5.2 - beta3
+08/25/2025 Version 4.5.2 - beta3
+    - C23 standard support (#977)
     - --fixlen use-after-free (#970)
+    - gcc 15 out-of-tree build failure (#967)
     - better error handling for XDP send errors (#956)
     - stdbool.h not detected correctly (#947)
     - AF_XDP memory leaks (#935)
