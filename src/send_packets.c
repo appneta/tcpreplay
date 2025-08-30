@@ -1088,7 +1088,7 @@ calc_sleep_time(tcpreplay_t *ctx,
             if (bits_sent > COUNTER_OVERFLOW_RISK)
                 next_tx_ns = (bits_sent * 1000) / bps * 1000000;
             else
-                next_tx_ns = (bits_sent * 1000000000) / bps;
+                next_tx_ns = (bits_sent * 1000000) / bps * 1000;
 
             if (next_tx_ns > tx_ns) {
                 NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);
@@ -1122,7 +1122,7 @@ calc_sleep_time(tcpreplay_t *ctx,
              * When active, adjusted calculation may add a bit of jitter.
              */
             if ((pkts_sent < COUNTER_OVERFLOW_RISK))
-                next_tx_ns = (pkts_sent * 1000000000) * (60 * 60) / pph;
+                next_tx_ns = (pkts_sent * 1000000) * (60 * 60) / pph * 1000;
             else
                 next_tx_ns = ((pkts_sent * 1000000) / pph * 1000) * (60 * 60);
 
