@@ -131,7 +131,7 @@ dlt_jnpr_ether_post_init(tcpeditdlt_t *ctx)
         return TCPEDIT_OK;
 
     /* init our subcontext & decoder of en10mb */
-    config = (jnpr_ether_config_t *)ctx->encoder->config;
+    config = (jnpr_ether_config_t *)ctx->decoder->config;
     if (config->subctx == NULL)
         config->subctx = tcpedit_dlt_init(ctx->tcpedit, DLT_EN10MB);
 
@@ -161,7 +161,7 @@ dlt_jnpr_ether_cleanup(tcpeditdlt_t *ctx)
         /* clean up the en10mb plugin */
         jnpr_ether_config_t *config;
 
-        config = (jnpr_ether_config_t *)ctx->encoder->config;
+        config = (jnpr_ether_config_t *)ctx->decoder->config;
         if (config != NULL && config->subctx != NULL) {
             tcpedit_dlt_cleanup(config->subctx);
         }
@@ -215,7 +215,7 @@ dlt_jnpr_ether_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     if (pktlen < JUNIPER_ETHER_HEADER_LEN)
         return TCPEDIT_ERROR;
 
-    config = (jnpr_ether_config_t *)ctx->encoder->config;
+    config = (jnpr_ether_config_t *)ctx->decoder->config;
 
     /* first, verify magic */
     if (memcmp(packet, JUNIPER_ETHER_MAGIC, JUNIPER_ETHER_MAGIC_LEN) != 0) {
@@ -319,7 +319,7 @@ dlt_jnpr_ether_proto(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     if (pktlen < JUNIPER_ETHER_HEADER_LEN)
         return TCPEDIT_ERROR;
 
-    config = (jnpr_ether_config_t *)ctx->encoder->config;
+    config = (jnpr_ether_config_t *)ctx->decoder->config;
 
     /* next make sure the L2 header is present */
     if ((packet[JUNIPER_ETHER_OPTIONS_OFFSET] & JUNIPER_ETHER_L2PRESENT) != JUNIPER_ETHER_L2PRESENT) {
@@ -405,7 +405,7 @@ dlt_jnpr_ether_get_mac(tcpeditdlt_t *ctx, tcpeditdlt_mac_type_t mac, const u_cha
     if (pktlen < JUNIPER_ETHER_EXTLEN_OFFSET + 2)
         return NULL;
 
-    config = (jnpr_ether_config_t *)ctx->encoder->config;
+    config = (jnpr_ether_config_t *)ctx->decoder->config;
 
     /* first get the Juniper header length */
     memcpy(&jnpr_hdr_len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
@@ -431,7 +431,7 @@ dlt_jnpr_ether_l2len(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
     if (pktlen < JUNIPER_ETHER_EXTLEN_OFFSET + 2)
         return -1;
 
-    config = (jnpr_ether_config_t *)ctx->encoder->config;
+    config = (jnpr_ether_config_t *)ctx->decoder->config;
 
     /* first get the Juniper header length */
     memcpy(&len, &packet[JUNIPER_ETHER_EXTLEN_OFFSET], 2);
