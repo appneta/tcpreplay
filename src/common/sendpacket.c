@@ -257,6 +257,8 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
                                   * prevent page misses on stack
                                   */
     static const size_t buffer_payload_size = sizeof(buffer) + sizeof(struct pcap_pkthdr);
+    size_t retry_count = 0;
+    const size_t max_retry_count = 100;
 
     assert(sp);
 #ifndef HAVE_LIBXDP
@@ -268,6 +270,11 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
         return -1;
 
 TRY_SEND_AGAIN:
+    
+    // On retries, sleep briefly to avoid busy-looping and putting unnecessary load on the kernel.
+    if (retry_count > 0) usleep(0);
+    if (++retry_count > max_retry_count) goto EXIT_MAX_RETRIES;
+
     sp->attempt++;
 
     switch (sp->handle_type) {
@@ -498,6 +505,7 @@ TRY_SEND_AGAIN:
         errx(-1, "Unsupported sp->handle_type = %d", sp->handle_type);
     } /* end case */
 
+    EXIT_MAX_RETRIES:
     if (retcode < 0) {
         sp->failed++;
     } else if (sp->abort) {
