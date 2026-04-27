@@ -63,7 +63,7 @@ static void calc_sleep_time(tcpreplay_t *ctx,
                             sendpacket_t *sp,
                             COUNTER counter,
                             struct timespec *sent_timestamp,
-                            COUNTER start_us,
+                            COUNTER start_ns,
                             COUNTER *skip_length);
 static void tcpr_sleep(tcpreplay_t *ctx, sendpacket_t *sp _U_, struct timespec *nap_this_time, struct timespec *now);
 static u_char *get_next_packet(tcpreplay_opt_t *options,
@@ -1081,14 +1081,16 @@ calc_sleep_time(tcpreplay_t *ctx,
             COUNTER tx_ns = now_ns - start_ns;
 
             /*
-             * bits * 1000000000 divided by bps = nanosecond
-             *
-             * ensure there is no overflow in cases where bits_sent is very high
-             */
-            if (bits_sent > COUNTER_OVERFLOW_RISK)
-                next_tx_ns = (bits_sent * 1000) / bps * 1000000;
-            else
-                next_tx_ns = (bits_sent * 1000000000) / bps;
+            * Calculate:
+            *
+            *   next_tx_ns = bits_sent * 1000000000 / bps
+            *
+            * without multiplying the full bits_sent value by 1e9 first.
+            * That multiplication can overflow COUNTER on long low-rate replays,
+            * making next_tx_ns wrap small and causing skip_length to become huge.
+            */
+            next_tx_ns = (bits_sent / bps) * 1000000000;
+            next_tx_ns += ((bits_sent % bps) * 1000000000) / bps;
 
             if (next_tx_ns > tx_ns) {
                 NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);
