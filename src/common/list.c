@@ -145,7 +145,7 @@ parse_list(tcpr_list_t **listdata, char *ourstr)
  * Checks to see if the given integer exists in the LIST.
  * Return 1 if in the list, otherwise 0
  */
-tcpr_dir_t
+int
 check_list(tcpr_list_t *list, COUNTER value)
 {
     tcpr_list_t *current;
