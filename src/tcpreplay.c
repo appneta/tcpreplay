@@ -85,14 +85,12 @@ main(int argc, char *argv[])
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
-        tcpedit_close(&tcpedit);
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
-        tcpedit_close(&tcpedit);
         errx(-1, "Unable to edit packets given options:\n%s",
                tcpedit_geterr(tcpedit));
     }
