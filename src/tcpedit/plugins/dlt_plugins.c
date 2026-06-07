@@ -158,7 +158,7 @@ tcpedit_dlt_init(tcpedit_t *tcpedit, const int srcdlt)
 }
 
 /**
- * \brief Call this to parse AutoOpts arguments for the DLT encoder plugin
+ * \brief Call this to parse the command-line arguments for the DLT encoder plugins
  *
  * Was previously part of tcpedit_dlt_init(), but moved into it's own function
  * to allow a full programtic API.  Basically, if you're not using this function

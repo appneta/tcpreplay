@@ -1,0 +1,184 @@
+// Copyright (c) 2026 Gabriel Ganne <gabriel dot ganne at gmail dot com>
+// Shared tcpedit / DLT-plugin option documentation, included by both
+// tcprewrite.1.adoc and tcpbridge.1.adoc.  These options are provided by the
+// tcpedit library (src/tcpedit) and are common to tcprewrite, tcpbridge and
+// tcpreplay-edit.
+
+*-r, --portmap*=_string_::
+  Rewrite TCP/UDP ports. Specify a comma delimited list of colon delimited port
+  mappings; each pair is the port to match followed by the port to rewrite to.
++
+....
+--portmap=80:8000 --portmap=8080:80    # 80->8000 and 8080->80
+--portmap=8000,8080,8888:80             # 3 different ports become 80
+--portmap=8000-8999:80                  # ports 8000-8999 become 80
+....
+
+*-s, --seed*=_number_::
+  Randomize the source and destination IPv4/v6 addresses using the given seed
+  while maintaining client/server relationships. Reusing a seed recreates the
+  same traffic. Cannot be combined with *--fuzz-seed*.
+
+*-N, --pnat*=_string_::
+  Rewrite IPv4/v6 addresses using pseudo-NAT. Takes a comma delimited series of
+  colon delimited CIDR netblock pairs; addresses matching the first netblock are
+  rewritten using the second as a mask. May be given twice (once per direction).
+  Cannot be combined with *--srcipmap* or *--dstipmap*.
++
+....
+--pnat=192.168.0.0/16:10.77.0.0/16,172.16.0.0/12:10.1.0.0/24
+--pnat=[2001:db8::/32]:[dead::/16],[2001:db8::/32]:[::ffff:0:0/96]
+....
+
+*-S, --srcipmap*=_string_::
+  Like *--pnat*, but only rewrites the source IPv4/v6 addresses. Cannot be
+  combined with *--pnat*.
+
+*-D, --dstipmap*=_string_::
+  Like *--pnat*, but only rewrites the destination IPv4/v6 addresses. Cannot be
+  combined with *--pnat*.
+
+*--tcp-sequence*=_number_::
+  Change all TCP sequence numbers (and related acknowledgement numbers),
+  shifting them by a random amount derived from the provided seed.
+
+*-b, --skipbroadcast*::
+  Keep broadcast/multicast IPv4/v6 and MAC addresses from being rewritten by
+  *--seed*, *--pnat* and *--endpoints* (which rewrite them by default).
+
+*-C, --fixcsum*::
+  Force recalculation of IPv4/TCP/UDP header checksums. Automatically enabled
+  for packets modified with *--seed*, *--pnat*, *--endpoints* or *--fixlen*.
+
+*--fixhdrlen*::
+  Rewrite the IP/TCP header length to match the actual packet length, and
+  recalculate checksums when the packet length changes. Caution: undesired
+  packet changes may occur.
+
+*-m, --mtu*=_number_::
+  Override the default 1500 byte MTU used when padding (*--fixlen=pad*) or
+  truncating (*--mtu-trunc*).
+
+*--mtu-trunc*::
+  Truncate packet data from Layer 3 and above to be no larger than the MTU.
+
+*-E, --efcs*::
+  Remove Ethernet checksums (FCS) by blindly deleting the last 4 bytes of each
+  frame. Dangerous: no check is made that an FCS is actually present.
+
+*--ttl*=_string_::
+  Modify the IPv4/v6 TTL/Hop Limit. Specify a number to set it, or _+value_ /
+  _-value_ to increase or decrease it (result limited to 1-255).
++
+....
+--ttl=10
+--ttl=+7
+--ttl=-64
+....
+
+*--tos*=_number_::
+  Set the IPv4 TOS/DiffServ/ECN byte (0-255).
+
+*--tclass*=_number_::
+  Set the IPv6 Traffic Class byte (0-255).
+
+*--flowlabel*=_number_::
+  Set the 20-bit IPv6 Flow Label (0-1048575). No effect on IPv4 packets.
+
+*-F, --fixlen*=_string_::
+  Pad or truncate packet data to match the IPv4/v6 header length. One of:
++
+--
+*pad*:::
+  Pad truncated packets so the packet length matches the IPv4 total length.
+*trunc*:::
+  Rewrite the IPv4 total length field to match the actual packet length.
+*del*:::
+  Delete the packet.
+--
+
+*--fuzz-seed*=_number_::
+  Fuzz 1 in X packets (X = *--fuzz-factor*) to test Layer 7 protocols. Fuzzing
+  may drop a packet, reduce its size, or edit bytes (start/middle/end with
+  0x00, 0xFF or a random byte); 7 of 8 packets are left untouched.
+
+*--fuzz-factor*=_number_::
+  Set the 1-in-X ratio for *--fuzz-seed* (default 8). Requires *--fuzz-seed*.
+
+*--skipl2broadcast*::
+  Keep broadcast/multicast Layer 2 (MAC) addresses from being rewritten when
+  editing Layer 2 addresses.
+
+*--dlt*=_string_::
+  Override the output DLT encapsulation. By default no conversion is made. One
+  of: _enet_ (DLT_EN10MB), _hdlc_ (DLT_C_HDLC), _jnpr_eth_ (DLT_JUNIPER_ETHER),
+  _pppserial_ (DLT_PPP_SERIAL) or _user_ (user-specified Layer 2 header/DLT).
+
+*--enet-dmac*=_string_::
+  Override destination Ethernet MAC addresses. Takes a comma delimited pair of
+  MACs; the first is used for server-to-client traffic and the optional second
+  for client-to-server traffic.
++
+....
+--enet-dmac=00:12:13:14:15:16,00:22:33:44:55:66
+....
+
+*--enet-smac*=_string_::
+  Override source Ethernet MAC addresses (same format as *--enet-dmac*).
++
+....
+--enet-smac=00:12:13:14:15:16,00:22:33:44:55:66
+....
+
+*--enet-subsmac*=_string_::
+  Substitute MAC addresses. Takes a comma delimited pair of MACs and rewrites
+  all occurrences of the first MAC with the second. May be given multiple times.
++
+....
+--enet-subsmac=00:12:13:14:15:16,00:22:33:44:55:66
+....
+
+*--enet-mac-seed*=_number_::
+  Randomize Ethernet MAC addresses, much like *--seed* does for IP addresses.
+  Cannot be combined with *--enet-smac*, *--enet-dmac* or *--enet-subsmac*.
+
+*--enet-mac-seed-keep-bytes*=_number_::
+  Keep the given number of bytes (1-6) untouched when using *--enet-mac-seed*.
+  Requires *--enet-mac-seed*.
+
+*--enet-vlan*=_string_::
+  Specify the Ethernet 802.1q VLAN tag mode: _add_ to add an 802.1q header
+  (a second header is added outside any existing one) or _del_ to rewrite an
+  existing 802.1q header back to plain 802.3.
+
+*--enet-vlan-tag*=_number_::
+  Set the new 802.1q VLAN tag value (0-4095). Requires *--enet-vlan*.
+
+*--enet-vlan-cfi*=_number_::
+  Set the 802.1q VLAN CFI bit (0-1). Requires *--enet-vlan*.
+
+*--enet-vlan-pri*=_number_::
+  Set the 802.1q VLAN priority (0-7). Requires *--enet-vlan*.
+
+*--enet-vlan-proto*=_string_::
+  Specify the VLAN tag protocol: _802.1q_ (default) or _802.1ad_ (Q-in-Q;
+  input packets must already have 802.1q VLAN headers).
+
+*--hdlc-control*=_number_::
+  Set the 1-byte Cisco HDLC control field (0-255).
+
+*--hdlc-address*=_number_::
+  Set the 1-byte Cisco HDLC address field (0-255); common values are _0x0F_
+  (unicast) and _0xBF_ (broadcast).
+
+*--user-dlt*=_number_::
+  Set the DLT value (0-65535) of the output pcap file.
+
+*--user-dlink*=_string_::
+  Rewrite/create the Layer 2 header from a series of comma delimited hex values.
+  The first instance rewrites both server and client traffic; a second instance
+  is used for client traffic.
++
+....
+--user-dlink=01,02,03,04,05,06,00,1A,2B,3C,4D,5E,6F,08,00
+....

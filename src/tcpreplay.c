@@ -34,13 +34,11 @@
 #include "tcpreplay.h"
 #include "tcpreplay_api.h"
 
+#include "tcpreplay_args.h"
 #ifdef TCPREPLAY_EDIT
-#include "tcpreplay_edit_opts.h"
 #include "tcpedit/tcpedit.h"
 #include "tcpedit/fuzzing.h"
 tcpedit_t *tcpedit;
-#else
-#include "tcpreplay_opts.h"
 #endif
 
 #include "send_packets.h"

@@ -1,0 +1,74 @@
+= tcpcapinfo(1)
+:doctype: manpage
+:manmanual: Tcpreplay Suite
+:mansource: Tcpreplay Suite
+:man-linkstyle: pass:[blue R < >]
+
+== NAME
+
+tcpcapinfo - Pcap file dissector for debugging broken pcap files
+
+== SYNOPSIS
+
+*tcpcapinfo* [*-d* _number_ | *--dbug*=_number_] [*-V* | *--version*]
+[*-h* | *--help*] _pcap_file(s)_
+
+== DESCRIPTION
+
+*tcpcapinfo* is a tool for decoding the structure of a pcap(3) file with a
+focus on finding broken pcap files and determining how two related pcap files
+might differ.
+
+It will first print out the pcap file header in human readable form followed
+by a per-packet summary including the packet header and a simple checksum
+value of the packet.
+
+== OPTIONS
+
+*-d, --dbug*=_number_::
+  Enable debugging output. May appear up to 1 time. Takes an integer in the
+  range 0 through 5 (default 0). Only available if the program was configured
+  with *--enable-debug*; higher numbers increase verbosity.
+
+*-V, --version*::
+  Print version information and exit.
+
+*-h, --help*::
+  Display usage information and exit.
+
+== EXIT STATUS
+
+One of the following exit values will be returned:
+
+*0* (EXIT_SUCCESS)::
+  Successful program execution.
+
+*1* (EXIT_FAILURE)::
+  The operation failed or the command syntax was not valid.
+
+== SEE ALSO
+
+tcpdump(1), tcpprep(1), tcprewrite(1), tcpreplay(1), tcpbridge(1), pcap(3)
+
+== BUGS
+
+Please send bug reports to: tcpreplay-users@lists.sourceforge.net
+
+== AUTHORS
+
+Copyright 2000-2012 Aaron Turner
+
+Copyright 2013-2025 Fred Klassen - AppNeta
+
+Copyright 2026 Gabriel Ganne
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.appneta.com/
+
+== COPYRIGHT
+
+Copyright (C) 2000-2025 Aaron Turner and Fred Klassen, all rights reserved.
+This program is released under the terms of the GNU General Public License,
+version 3 or later.

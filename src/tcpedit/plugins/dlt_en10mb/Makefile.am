@@ -16,7 +16,6 @@ noinst_HEADERS += \
 	%reldir%/en10mb_types.h \
 	%reldir%/../../tcpedit_types.h
 
-EXTRA_DIST += %reldir%/en10mb_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 en10mb.c: \

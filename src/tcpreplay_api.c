@@ -36,11 +36,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#ifdef TCPREPLAY_EDIT
-#include "tcpreplay_edit_opts.h"
-#else
-#include "tcpreplay_opts.h"
-#endif
+#include "tcpreplay_args.h"
 
 
 
@@ -134,10 +130,10 @@ tcpreplay_init()
 }
 
 /**
- * \brief Parses the GNU AutoOpts options for tcpreplay
+ * \brief Performs post-parse processing of the tcpreplay options
  *
- * If you're using AutoOpts with tcpreplay_api, then just call this after
- * optionProcess() and it will parse all the options for you.  As always,
+ * Call this after optionProcess() and it will validate and apply all the
+ * options for you.  As always,
  * returns 0 on success, and -1 on error & -2 on warning.
  */
 int
@@ -1041,7 +1037,7 @@ tcpreplay_prepare(tcpreplay_t *ctx)
 
     /*
      * First, process the validations, basically the same we do in 
-     * tcpreplay_post_args() and AutoOpts
+     * tcpreplay_post_args()
      */
     if (ctx->options->intf1_name == NULL) {
         tcpreplay_seterr(ctx, "%s", "You must specify at least one network interface");

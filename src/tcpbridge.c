@@ -29,7 +29,7 @@
 #include "config.h"
 #include "common.h"
 #include "bridge.h"
-#include "tcpbridge_opts.h"
+#include "tcpbridge_args.h"
 #include "tcpedit/tcpedit.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
 
     init();
 
-    /* call autoopts to process arguments */
+    /* parse command-line arguments */
     optct = optionProcess(&tcpbridgeOptions, argc, argv);
     argc -= optct;
     argv += optct;

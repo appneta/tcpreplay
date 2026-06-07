@@ -168,7 +168,7 @@ dlt_pppserial_cleanup(tcpeditdlt_t *ctx)
 }
 
 /*
- * This is where you should define all your AutoGen AutoOpts option parsing.
+ * This is where you should define all your command-line option parsing.
  * Any user specified option should have it's bit turned on in the 'provides'
  * bit mask.
  * Returns: TCPEDIT_ERROR | TCPEDIT_OK | TCPEDIT_WARN

@@ -4,26 +4,26 @@ MAKEFLAGS=-s
 
 docs: clean-docs manpages
 
-web/tcpreplay.html:
-	mkdir -p web; @GROFF@ -Thtml -mman ../src/tcpreplay.1 > web/tcpreplay.html
+web/tcpreplay.html: $(srcdir)/tcpreplay.1.adoc
+	mkdir -p web; @ASCIIDOCTOR@ --backend html5 --out-file web/tcpreplay.html $(srcdir)/tcpreplay.1.adoc
 
-web/tcpprep.html:
-	@GROFF@ -Thtml -mman ../src/tcpprep.1 > web/tcpprep.html
+web/tcpprep.html: $(srcdir)/tcpprep.1.adoc
+	mkdir -p web; @ASCIIDOCTOR@ --backend html5 --out-file web/tcpprep.html $(srcdir)/tcpprep.1.adoc
 
-web/tcprewrite.html:
-	@GROFF@ -Thtml -mman ../src/tcprewrite.1 > web/tcprewrite.html
+web/tcprewrite.html: $(srcdir)/tcprewrite.1.adoc $(srcdir)/tcpedit_options.adoc
+	mkdir -p web; @ASCIIDOCTOR@ --backend html5 --out-file web/tcprewrite.html $(srcdir)/tcprewrite.1.adoc
 
-web/tcpbridge.html:
-	@GROFF@ -Thtml -mman ../src/tcpbridge.1 > web/tcpbridge.html
+web/tcpbridge.html: $(srcdir)/tcpbridge.1.adoc $(srcdir)/tcpedit_options.adoc
+	mkdir -p web; @ASCIIDOCTOR@ --backend html5 --out-file web/tcpbridge.html $(srcdir)/tcpbridge.1.adoc
 
-web/tcpreplay-edit.html:
-	@GROFF@ -Thtml -mman ../src/tcpreplay-edit.1 > web/tcpreplay-edit.html
+web/tcpreplay-edit.html: $(srcdir)/tcpreplay-edit.1.adoc $(srcdir)/tcpedit_options.adoc
+	mkdir -p web; @ASCIIDOCTOR@ --backend html5 --out-file web/tcpreplay-edit.html $(srcdir)/tcpreplay-edit.1.adoc
 
-web/tcpliveplay.html:
-	@GROFF@ -Thtml -mman ../src/tcpliveplay.1 > web/tcpliveplay.html
+web/tcpliveplay.html: $(srcdir)/tcpliveplay.1.adoc
+	mkdir -p web; @ASCIIDOCTOR@ --backend html5 --out-file web/tcpliveplay.html $(srcdir)/tcpliveplay.1.adoc
 
-web/tcpcapinfo.html:
-	@GROFF@ -Thtml -mman ../src/tcpcapinfo.1 > web/tcpcapinfo.html
+web/tcpcapinfo.html: $(srcdir)/tcpcapinfo.1.adoc
+	mkdir -p web; @ASCIIDOCTOR@ --backend html5 --out-file web/tcpcapinfo.html $(srcdir)/tcpcapinfo.1.adoc
 
 manpages: web/tcpreplay.html web/tcpprep.html web/tcprewrite.html \
     web/tcpbridge.html web/tcpreplay-edit.html web/tcpliveplay.html \
@@ -36,7 +36,10 @@ postweb: manpages
 	scp CHANGELOG TODO aturner@malbec.synfin.net:/var/vhosts/tcpreplay/
 
 
-EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE Win32Readme.txt
+EXTRA_DIST = CHANGELOG CREDIT HACKING INSTALL LICENSE Win32Readme.txt \
+    tcpcapinfo.1.adoc tcpliveplay.1.adoc tcpprep.1.adoc \
+    tcprewrite.1.adoc tcpbridge.1.adoc tcpedit_options.adoc \
+    tcpreplay.1.adoc tcpreplay-edit.1.adoc tcpreplay_options.adoc
 
 clean-docs: clean
 	-rm -f web/*.html

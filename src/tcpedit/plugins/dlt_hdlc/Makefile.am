@@ -15,7 +15,6 @@ noinst_HEADERS += \
 	%reldir%/hdlc_api.h \
 	%reldir%/hdlc_types.h
 
-EXTRA_DIST += %reldir%/hdlc_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 hdlc.c: \

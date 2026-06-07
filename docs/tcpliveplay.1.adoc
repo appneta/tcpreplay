@@ -1,0 +1,119 @@
+= tcpliveplay(1)
+:doctype: manpage
+:manmanual: Tcpreplay Suite
+:mansource: Tcpreplay Suite
+:man-linkstyle: pass:[blue R < >]
+
+== NAME
+
+tcpliveplay - Replays network traffic stored in a pcap file on live networks using new TCP connections
+
+== SYNOPSIS
+
+*tcpliveplay* [*-d* _number_ | *--dbug*=_number_] [*-V* | *--version*]
+[*-h* | *--help*]
+_interface_ _file.pcap_ _destination-ip_ _destination-mac_ _dest-port_
+
+== DESCRIPTION
+
+*tcpliveplay* replays a captured set of packets using new TCP connections with
+the captured TCP payloads against a remote host in order to do comprehensive
+vulnerability testing.
+
+The basic operation of tcpliveplay is that it rewrites the given pcap file in a
+scheduled event format and responds with the appropriate packet if the remote
+host meets the TCP protocol's SEQ/ACK expectation. Once expectations are met,
+the local packets are sent with the same payload except with new TCP SEQ & ACK
+numbers meeting the response from the remote host.
+
+The input pcap file is rewritten to start at the first encounter of the SYN
+packet for correct operation, making this packet the first action in the event
+schedule of the local host doing the replay.
+
+For more details, please see the Tcpreplay Manual at: http://tcpreplay.appneta.com
+
+== OPERANDS
+
+_interface_::
+  The network interface to replay on (e.g. _eth0_).
+
+_file.pcap_::
+  The capture file to replay.
+
+_destination-ip_::
+  The destination IP address (e.g. _1.2.3.4_).
+
+_destination-mac_::
+  The destination MAC address (e.g. _0a:1b:2c:3d:4e:5f_).
+
+_dest-port_::
+  The destination port number, or the literal _random_ to choose one randomly.
+
+== OPTIONS
+
+*-d, --dbug*=_number_::
+  Enable debugging output. May appear up to 1 time. Takes an integer in the
+  range 0 through 5 (default 0). Only available if the program was configured
+  with *--enable-debug*; higher numbers increase verbosity.
+
+*-V, --version*::
+  Print version information and exit.
+
+*-h, --help*::
+  Display usage information and exit.
+
+== EXIT STATUS
+
+One of the following exit values will be returned:
+
+*0* (EXIT_SUCCESS)::
+  Successful program execution.
+
+*1* (EXIT_FAILURE)::
+  The operation failed or the command syntax was not valid.
+
+== SIGNALS
+
+tcpliveplay understands the following signals:
+
+*SIGUSR1*::
+  Suspend tcpliveplay.
+
+*SIGCONT*::
+  Restart tcpliveplay.
+
+== SEE ALSO
+
+tcpdump(1), tcpprep(1), tcprewrite(1), tcpreplay(1)
+
+== BUGS
+
+tcpliveplay can only send packets as fast as your computer's interface,
+processor and system bus will allow.
+
+If the remote host responds differently than expected (meaning differently than
+the remote captured data) due to network changes, then the replay will abort and
+ask you to try again.
+
+The replay only modifies layer 2 and 3 of each packet during the replay. The
+payload is replayed exactly the same as the original capture.
+
+Timing may be an issue because tcpliveplay sends the appropriate packet once the
+remote host's packet meets the correct expectation.
+
+== AUTHORS
+
+Copyright 2026 Gabriel Ganne
+
+Copyright 2012 Yazan Siam
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.appneta.com
+
+== COPYRIGHT
+
+Copyright (C) 2012 Yazan Siam, all rights reserved.
+This program is released under the terms of the Modified Berkeley Software
+Distribution License.

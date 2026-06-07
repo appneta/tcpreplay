@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-/* Used to parse arguments if you have AutoGen */
+/* Used to do post-parse argument processing */
 int tcpedit_dlt_post_args(tcpedit_t *tcpedit);
 
 /*

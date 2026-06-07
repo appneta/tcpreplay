@@ -11,7 +11,7 @@ git_version.c:
 	$(ECHO) '    return GIT_Version;'	>> git_version.c
 	$(ECHO) '}' 			      	>> git_version.c
 
-libcommon_a_SOURCES = cidr.c err.c list.c cache.c services.c get.c \
+libcommon_a_SOURCES = args.c cidr.c err.c list.c cache.c services.c get.c \
 		      fakepcap.c fakepcapnav.c fakepoll.c xX.c utils.c \
 		      timer.c git_version.c sendpacket.c \
 		      dlt_names.c mac.c interface.c \
@@ -31,7 +31,7 @@ if ! SYSTEM_STRLCPY
 libcommon_a_LIBADD = ../../lib/libstrl.a
 endif
 
-noinst_HEADERS = cidr.h err.h list.h cache.h services.h get.h \
+noinst_HEADERS = args.h cidr.h err.h list.h cache.h services.h get.h \
 		 fakepcap.h fakepcapnav.h fakepoll.h xX.h utils.h \
 		 tcpdump.h timer.h pcap_dlt.h sendpacket.h \
 		 dlt_names.h mac.h interface.h flows.h txring.h \
