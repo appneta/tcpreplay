@@ -114,7 +114,10 @@ flag = {
     arg-type    = number;
     flags-must  = enet-vlan;
     arg-range   = "0->4095"; /* VID's are 12bit unsigned int's */
-    doc         = "";
+    doc         = <<- EOText
+Mandatory when @var{--enet-vlan=add} is used on packets that are not already
+VLAN tagged.
+EOText;
 };
 
 flag = {
@@ -124,7 +127,11 @@ flag = {
     arg-type    = number;
     flags-must  = enet-vlan;
     arg-range   = "0->1"; /* one bit */
-    doc         = "";
+    doc         = <<- EOText
+When omitted, the CFI bit of an existing VLAN header is preserved; a newly
+added tag on a previously untagged packet defaults to 0 (a one-time notice
+is printed).
+EOText;
 };
 
 flag = {
@@ -134,7 +141,11 @@ flag = {
     flags-must  = enet-vlan;
     arg-type    = number;
     arg-range   = "0->7"; /* one byte */
-    doc         = "";
+    doc         = <<- EOText
+When omitted, the priority of an existing VLAN header is preserved; a newly
+added tag on a previously untagged packet defaults to 0 (a one-time notice
+is printed).
+EOText;
 };
 
 flag = {
