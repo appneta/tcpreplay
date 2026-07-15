@@ -214,6 +214,7 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
     tcp_hdr_t *tcp_hdr = NULL;
     udp_hdr_t *udp_hdr = NULL;
     tcpprep_opt_t *options = tcpprep->options;
+    const u_char *ip46_end;
     uint8_t proto;
     u_char *l4;
 
@@ -221,15 +222,17 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
         if (len < ((ip_hdr->ip_hl * 4) + 4))
             return 0; /* not enough data in the packet to know */
 
+        ip46_end = (const u_char *)ip_hdr + len;
         proto = ip_hdr->ip_p;
-        l4 = get_layer4_v4(ip_hdr, (u_char *)ip_hdr + len);
+        l4 = get_layer4_v4(ip_hdr, ip46_end);
     } else if (ip6_hdr) {
         if (len < (TCPR_IPV6_H + 4))
             return 0; /* not enough data in the packet to know */
 
-        proto = get_ipv6_l4proto(ip6_hdr, (u_char *)ip6_hdr + len);
+        ip46_end = (const u_char *)ip6_hdr + len;
+        proto = get_ipv6_l4proto(ip6_hdr, ip46_end);
         dbgx(3, "Our layer4 proto is 0x%hhu", proto);
-        if ((l4 = get_layer4_v6(ip6_hdr, (u_char *)ip6_hdr + len)) == NULL)
+        if ((l4 = get_layer4_v6(ip6_hdr, ip46_end)) == NULL)
             return 0;
 
         dbgx(3,
@@ -242,11 +245,19 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
         assert(0);
     }
 
+    if (l4 == NULL) {
+        return 0;
+    }
+
     dbg(3, "Checking the destination port...");
 
     switch (proto) {
     case IPPROTO_TCP:
         tcp_hdr = (tcp_hdr_t *)l4;
+
+        if ((size_t)(ip46_end - l4) < sizeof(*tcp_hdr)) {
+            return 0; /* not enough data in the packet to know */
+        }
 
         /* is a service? */
         if (options->services.tcp[ntohs(tcp_hdr->th_dport)]) {
@@ -260,6 +271,10 @@ check_dst_port(ipv4_hdr_t *ip_hdr, ipv6_hdr_t *ip6_hdr, int len)
 
     case IPPROTO_UDP:
         udp_hdr = (udp_hdr_t *)l4;
+
+        if ((size_t)(ip46_end - l4) < sizeof(*udp_hdr)) {
+            return 0; /* not enough data in the packet to know */
+        }
 
         /* is a service? */
         if (options->services.udp[ntohs(udp_hdr->uh_dport)]) {
