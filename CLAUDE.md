@@ -178,3 +178,17 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.
+
+### Setup (one-time, per machine)
+
+The MCP server registration (`.mcp.json`, `.claude/settings.json`) is **not** checked into git —
+`code-review-graph install` writes machine-specific absolute paths (your pipx venv location, your
+local repo path) into those files, so a committed copy would be broken on every other machine.
+`.claude/skills/` *is* checked in — it's portable, so re-running `install` should regenerate it
+identically.
+
+```
+pipx install code-review-graph
+code-review-graph install --platform claude-code --repo .
+code-review-graph build --repo .   # first-time graph population; `update` after that is incremental
+```

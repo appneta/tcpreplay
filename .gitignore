@@ -100,8 +100,10 @@ build*/
 # Added by code-review-graph
 .code-review-graph/
 # AI
-.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/**
 .mcp.json
 .opencode.json
 .qoder/
-.gemini
+.gemini/
