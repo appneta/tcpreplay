@@ -21,7 +21,7 @@
 #include "tcpprep_api.h"
 #include "config.h"
 #include "common.h"
-#include "tcpprep_opts.h"
+#include "tcpprep_args.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -107,8 +107,8 @@ tcpprep_close(tcpprep_t *ctx)
 }
 
 /**
- * \brief When using AutoOpts, call to do post argument processing
- * Used to process the autoopts arguments
+ * \brief Call to do post argument processing
+ * Used to process the command-line arguments
  */
 int
 tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
@@ -130,7 +130,7 @@ tcpprep_post_args(tcpprep_t *ctx, int argc, char *argv[])
     if (HAVE_OPT(PRINT_STATS))
         print_stats(OPT_ARG(PRINT_STATS));
 
-    if (!HAVE_OPT(CACHEFILE) && !HAVE_OPT(PCAP))
+    if (!HAVE_OPT(CACHEFILE) || !HAVE_OPT(PCAP))
         err(-1, "Must specify an output cachefile (-o) and input pcap (-i)");
 
     if (!ctx->options->mode)

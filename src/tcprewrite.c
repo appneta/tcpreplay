@@ -29,7 +29,7 @@
 #include "common.h"
 #include "tcpedit/fuzzing.h"
 #include "tcpedit/tcpedit.h"
-#include "tcprewrite_opts.h"
+#include "tcprewrite_args.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -68,7 +68,7 @@ main(int argc, char *argv[])
 #endif
     tcprewrite_init();
 
-    /* call autoopts to process arguments */
+    /* parse command-line arguments */
     optct = optionProcess(&tcprewriteOptions, argc, argv);
     argc -= optct;
     argv += optct;
@@ -197,7 +197,7 @@ tcprewrite_init(void)
 }
 
 /**
- * post AutoGen argument processing
+ * post argument processing
  */
 void
 post_args(_U_ int argc, _U_ char *argv[])

@@ -27,6 +27,7 @@
 extern "C" {
 #endif
 
+#include <common/args.h>
 #include <common/cache.h>
 #include <common/cidr.h>
 #include <common/err.h>

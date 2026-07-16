@@ -1,0 +1,233 @@
+= tcpprep(1)
+:doctype: manpage
+:manmanual: Tcpreplay Suite
+:mansource: Tcpreplay Suite
+:man-linkstyle: pass:[blue R < >]
+
+== NAME
+
+tcpprep - Create a tcpreplay cache file from a pcap file
+
+== SYNOPSIS
+
+*tcpprep* (*-a* _mode_ | *-c* _cidr_ | *-r* _regex_ | *-p* | *-e* _mac_)
+*-i* _input.pcap_ *-o* _output.cache_ [_OPTION_]...
+
+*tcpprep* (*-P* | *-I* | *-S*) _cache.file_
+
+== DESCRIPTION
+
+*tcpprep* is a pcap(3) file pre-processor which creates a cache file that
+provides "rules" for tcprewrite(1) and tcpreplay(1) on how to process and send
+packets.
+
+The basic operation of tcpreplay is to resend all packets from the input
+file(s) out a single interface. Tcpprep processes a pcap file and applies a set
+of user-specified rules to create a cache file which tells tcpreplay whether or
+not to send each packet and which interface the packet should be sent out of.
+
+For more details, please see the Tcpreplay Manual at: http://tcpreplay.appneta.com
+
+== OPTIONS
+
+*-d, --dbug*=_number_::
+  Enable debugging output. Takes an integer in the range 0 through 5 (default
+  0). Only available if the program was configured with *--enable-debug*;
+  higher numbers increase verbosity.
+
+*-a, --auto*=_mode_::
+  Auto-split mode. Tcpprep will try to automatically determine the primary
+  function of hosts based on the traffic captured and classify each host as
+  client or server. Cannot be combined with *--cidr*, *--port*, *--regex* or
+  *--mac*. In order to do so, you must provide a hint as to how to search for
+  clients and servers. Valid hints are:
++
+--
+*bridge*:::
+  Process each packet to try to determine if the sender is a client or server.
+  Once all packets are processed, the results are weighed according to the
+  server/client ratio (*--ratio*) and systems are assigned an interface. If
+  tcpprep is unable to determine what role a system plays, it will abort.
+*router*:::
+  Works just like bridge mode, except that after weighing is done, systems
+  which are undetermined are considered a server if they fall inside a network
+  known to contain other servers. Router mode has a greater chance of
+  successfully splitting clients and servers but is not 100% foolproof.
+*client*:::
+  Works just like bridge mode, except that unclassified systems are treated as
+  clients. Client mode should always complete successfully.
+*server*:::
+  Works just like bridge mode, except that unclassified systems are treated as
+  servers. Server mode should always complete successfully.
+*first*:::
+  Looks at the first time each IP is seen in the SRC and DST fields of the IP
+  header. If the host is first seen in the SRC field it is a client; if first
+  seen in the DST field it is marked as a server. This effectively replicates
+  the processing of the tomahawk test tool. First mode should always complete
+  successfully.
+--
+
+*-c, --cidr*=_cidr_::
+  CIDR-split mode. Specify a comma delimited list of CIDR netblocks to match
+  against the source IP of each packet; matching packets are classified as
+  servers (e.g. _192.168.0.0/16,10.0.0.0/8_ or _[::ffff:0:0/96],[fe80::/16]_).
+  Cannot be combined with *--auto*, *--port*, *--regex* or *--mac*.
+
+*-r, --regex*=_regex_::
+  Regex-split mode. Specify a regular expression to match against the source IP
+  of each packet; matching packets are classified as servers. Cannot be
+  combined with *--auto*, *--port*, *--cidr* or *--mac*.
+
+*-p, --port*::
+  Port-split mode. TCP and UDP traffic over IPv4 and IPv6 is classified as
+  client or server based upon the destination port of the header. Cannot be
+  combined with *--auto*, *--regex*, *--cidr* or *--mac*.
+
+*-e, --mac*=_mac_::
+  Source MAC split mode. Specify a list of MAC addresses to match against the
+  source MAC of each packet; matching packets are classified as servers. Cannot
+  be combined with *--auto*, *--regex*, *--cidr* or *--port*.
+
+*--reverse*::
+  Reverse the meaning of *--mac*, *--regex* and *--cidr* so that the flags
+  specify clients and non-IP packets are classified as servers.
+
+*-C, --comment*=_string_::
+  Embed a comment within the output cache file to be viewed later.
+
+*--no-arg-comment*::
+  Do not embed any cache file comment. By default tcpprep includes the command
+  line arguments in the cache file comment.
+
+*-x, --include*=_rule_::
+  Override the default of processing all packets and only send/edit packets
+  which match the provided rule. Cannot be combined with *--exclude*. Rules can
+  be one of:
++
+--
+*S:<CIDR>,...*:::
+  Source IP must match the specified IPv4/v6 CIDR(s).
+*D:<CIDR>,...*:::
+  Destination IP must match the specified IPv4/v6 CIDR(s).
+*B:<CIDR>,...*:::
+  Both source and destination IP must match the specified IPv4/v6 CIDR(s).
+*E:<CIDR>,...*:::
+  Either IP must match the specified IPv4/v6 CIDR(s).
+*P:<LIST>*:::
+  Must be one of the listed packets, where the list corresponds to the packet
+  number in the capture file. For example, _-x P:1-5,9,15,72-_ would process
+  packets 1 through 5, the 9th and 15th packet, and packets 72 until the end of
+  the file.
+*F:'<bpf>'*:::
+  BPF filter. See the tcpdump(8) man page for syntax.
+--
+
+*-X, --exclude*=_rule_::
+  Override the default of processing all packets and only send/edit packets
+  which do NOT match the provided rule. Cannot be combined with *--include*.
+  Accepts the same forms as *--include* (*S*, *D*, *B*, *E* and *P*), where each
+  requires the corresponding IP(s) or packet numbers to NOT match; the *F* (BPF)
+  form is not supported.
+
+*-o, --cachefile*=_string_::
+  Output cache file.
+
+*-i, --pcap*=_string_::
+  Input pcap file to process.
+
+*-P, --print-comment*=_cache.file_::
+  Print the embedded comment in the specified cache file.
+
+*-I, --print-info*=_cache.file_::
+  Print basic info from the specified cache file.
+
+*-S, --print-stats*=_cache.file_::
+  Print statistical information about the specified cache file.
+
+*-s, --services*=_file_::
+  Load a list of ports used by servers, in the same format as /etc/services
+  (`<service_name>    <port>/<protocol> # comment`, e.g. `http    80/tcp`).
+  Requires *--port*.
+
+*-N, --nonip*::
+  Send non-IP traffic out the server interface. By default non-IP traffic is
+  classified as "client". The meaning is reversed if *--reverse* is used.
+
+*-R, --ratio*=_number_::
+  Ratio of client to server packets (default 2.0). Since a given host may have
+  both client and server traffic sent to/from it, tcpprep uses this ratio to
+  weigh these packets. Specify a floating point value to override the default
+  2:1 server-to-client ratio required for a host to be classified as a server.
+  Requires *--auto*.
+
+*-m, --minmask*=_number_::
+  Minimum network mask length used by auto modes to build networks containing
+  clients and servers (range 0 to 32, default 30). Larger values increase
+  performance but may provide inaccurate results. Requires *--auto*.
+
+*-M, --maxmask*=_number_::
+  Maximum network mask length used by auto modes to build networks containing
+  clients and servers (range 0 to 32, default 8). Larger values decrease
+  performance and accuracy but provide a greater chance of success. Requires
+  *--auto*.
+
+*-v, --verbose*::
+  Print decoded packets via tcpdump to STDOUT. Only available if the program
+  was configured with *--enable-verbose*.
+
+*-A, --decode*=_string_::
+  Arguments passed to the tcpdump decoder when *--verbose* is used. By default
+  -n and -l are used. Be sure to quote the arguments so that they are not
+  interpreted by tcpprep. The following arguments are valid:
++
+....
+[ -aAeNqRStuvxX ]
+[ -E spi@ipaddr algo:secret,... ]
+[ -s snaplen ]
+....
++
+Requires *--verbose*.
+
+*-w, --suppress-warnings*::
+  Suppress printing warning messages.
+
+*-V, --version*::
+  Print version information and exit.
+
+*-h, --less-help*::
+  Display abbreviated usage information and exit.
+
+*-H, --help*::
+  Display extended usage information (including per-option constraints) and
+  exit.
+
+== EXIT STATUS
+
+One of the following exit values will be returned:
+
+*0* (EXIT_SUCCESS)::
+  Successful program execution.
+
+*1* (EXIT_FAILURE)::
+  The operation failed or the command syntax was not valid.
+
+== SEE ALSO
+
+tcpdump(1), tcpbridge(1), tcprewrite(1), tcpreplay(1), tcpcapinfo(1)
+
+== AUTHORS
+
+Copyright 2026 Gabriel Ganne
+
+Copyright 2013-2025 Fred Klassen - AppNeta
+
+Copyright 2000-2012 Aaron Turner
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.appneta.com/
+
+== COPYRIGHT
+
+The entire Tcpreplay Suite is licensed under the GPLv3.

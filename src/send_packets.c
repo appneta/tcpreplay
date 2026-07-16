@@ -43,12 +43,10 @@
 
 #ifdef TCPREPLAY
 
+#include "tcpreplay_args.h"
 #ifdef TCPREPLAY_EDIT
 #include "tcpedit/tcpedit.h"
-#include "tcpreplay_edit_opts.h"
 extern tcpedit_t *tcpedit;
-#else
-#include "tcpreplay_opts.h"
 #endif /* TCPREPLAY_EDIT */
 
 #endif /* TCPREPLAY */

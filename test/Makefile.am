@@ -78,7 +78,8 @@ standard_prep:
 	$(TCPPREP) -i $(TEST_PCAP) -o test.auto_client -a client
 	$(TCPPREP) -i $(TEST_PCAP) -o test.auto_server -a server
 	$(TCPPREP) -i $(TEST_PCAP) -o test.auto_first -a first
-	$(TCPPREP) --load-opts config -o test.prep_config
+	$(TCPPREP) -i $(TEST_PCAP) -a bridge -m 31 -M 16 -N \
+		-C "This file was generated via the config file" -o test.prep_config
 	$(TCPPREP) -i $(TEST_PCAP) -o test.port -p
 	$(TCPPREP) -i $(TEST_PCAP) -o test.mac -e 00:1f:f3:3c:e1:13
 	$(TCPPREP) -i $(TEST_PCAP) -o test.cidr -c '96.17.211.0/24'
@@ -225,7 +226,8 @@ tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate re
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Config mode test: " >> test.log
-	$(TCPPREP) $(ENABLE_DEBUG) --load-opts=config -o test.$@1  >> test.log 2>&1
+	$(TCPPREP) $(ENABLE_DEBUG) -i $(TEST_PCAP) -a bridge -m 31 -M 16 -N \
+		-C "This file was generated via the config file" -o test.$@1  >> test.log 2>&1
 	if diff $(srcdir)/test.$@ test.$@1 >> test.log 2>&1; then \
 	    $(PRINTF) "\t\t\t%s\n" "OK"; \
 	else \
@@ -588,7 +590,8 @@ rewrite_layer2:
 rewrite_config:
 	$(PRINTF) "%s" "[tcprewrite] Config/VLAN Add test: "
 	$(PRINTF) "%s\n" "*** [tcprewrite] Config/VLAN Add test: " >> test.log
-	$(TCPREWRITE) $(ENABLE_DEBUG) --load-opts config  >> test.log 2>&1
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --enet-vlan=add \
+		--enet-vlan-tag=45 --enet-vlan-cfi=1 --enet-vlan-pri=5  >> test.log 2>&1
 	if diff $(srcdir)/test$(VARIANT).$@ test.$@1 >> test.log 2>&1; then \
 	    $(PRINTF) "\t\t%s\n" "OK"; \
 	else \
@@ -838,7 +841,8 @@ datadump_mode:
 replay_config:
 	$(PRINTF) "%s" "[tcpreplay] Config file/VLAN add test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Config file/VLAN add test: " >> test.log
-	$(TCPREPLAY) $(ENABLE_DEBUG) --load-opts=config $(TEST_PCAP) >> test.log 2>&1
+	$(TCPREPLAY) $(ENABLE_DEBUG) -c $(srcdir)/test.auto_bridge -i $(nic1) -I $(nic2) -t \
+		$(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t%s\n" "OK"; fi
 
 replay_dualfile:
@@ -888,6 +892,6 @@ clean:
 	rm -f *1 test.log core* *~ primary.data secondary.data
 
 distclean: clean
-	rm -f Makefile Makefile.in config
+	rm -f Makefile Makefile.in
 
 maintainer-clean: distclean

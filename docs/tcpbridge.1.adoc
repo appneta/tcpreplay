@@ -1,0 +1,162 @@
+= tcpbridge(1)
+:doctype: manpage
+:manmanual: Tcpreplay Suite
+:mansource: Tcpreplay Suite
+:man-linkstyle: pass:[blue R < >]
+
+== NAME
+
+tcpbridge - Bridge network traffic across two interfaces
+
+== SYNOPSIS
+
+*tcpbridge* *-i* _intf1_ [*-I* _intf2_] [_OPTION_]...
+
+== DESCRIPTION
+
+*tcpbridge* is a tool for selectively bridging network traffic across two
+interfaces and optionally modifying the packets in between.
+
+The basic operation of tcpbridge is to be a network bridge between two subnets.
+All packets received on one interface are sent via the other. Optionally,
+packets can be edited in a variety of ways according to your needs using the
+tcpedit options below.
+
+For more details, please see the Tcpreplay Manual at: http://tcpreplay.appneta.com
+
+== OPTIONS
+
+*-d, --dbug*=_number_::
+  Enable debugging output. Takes an integer in the range 0 through 5 (default
+  0). Only available if the program was configured with *--enable-debug*;
+  higher numbers increase verbosity.
+
+*-i, --intf1*=_string_::
+  Primary interface (listen interface in uni-directional mode). Required.
+
+*-I, --intf2*=_string_::
+  Secondary interface (send interface in uni-directional mode).
+
+*-u, --unidir*::
+  Send and receive traffic uni-directionally. By default tcpbridge bridges
+  traffic in both directions.
+
+*--listnics*::
+  List available network interfaces and exit. Only available if the program was
+  configured with pcap findalldevs support.
+
+*-L, --limit*=_number_::
+  Limit the number of packets to send. By default tcpbridge sends packets
+  forever or until interrupted with Ctrl-C.
+
+*-M, --mac*=_string_::
+  MAC addresses of the local NICs, used to prevent looping where the MAC
+  addresses cannot be auto-detected (e.g. under Windows). Specify both
+  interface MACs: _-M <intf1 mac> -M <intf2 mac>_.
+
+*-x, --include*=_string_::
+  Send only packets matching the rule. Cannot be combined with *--exclude*.
+  Rules can be one of:
++
+--
+*S:<CIDR>,...*:::
+  Source IP must match the specified CIDR(s).
+*D:<CIDR>,...*:::
+  Destination IP must match the specified CIDR(s).
+*B:<CIDR>,...*:::
+  Both source and destination IP must match the specified CIDR(s).
+*E:<CIDR>,...*:::
+  Either IP must match the specified CIDR(s).
+*P:<LIST>*:::
+  Packet numbers in the capture file, e.g. _P:1-5,9,15,72-_ sends packets 1
+  through 5, the 9th and 15th packet, and packets 72 to the end.
+*F:'<bpf>'*:::
+  BPF filter. See the tcpdump(8) man page for syntax.
+--
+
+*-X, --exclude*=_string_::
+  Send only packets that do NOT match the rule. Cannot be combined with
+  *--include*. Accepts the same forms as *--include* (*S*, *D*, *B*, *E*, *P*),
+  where each requires the corresponding IP(s) or packet numbers to NOT match.
+
+*-P, --pid*::
+  Print the PID of tcpbridge at startup.
+
+// Shared tcpedit / DLT-plugin options.
+include::tcpedit_options.adoc[]
+
+*-v, --verbose*::
+  Print decoded packets via tcpdump to STDOUT. Only available if the program
+  was configured with *--enable-verbose*.
+
+*-A, --decode*=_string_::
+  Arguments passed to the tcpdump decoder when *--verbose* is used. By default
+  -n and -l are used. Be sure to quote the arguments so they are not interpreted
+  by tcpbridge. Requires *--verbose*.
+
+*-w, --suppress-warnings*::
+  Suppress printing warning messages.
+
+*-V, --version*::
+  Print version information and exit.
+
+*-h, --less-help*::
+  Display abbreviated usage information and exit.
+
+*-H, --help*::
+  Display extended usage information (including per-option constraints) and
+  exit.
+
+== SIGNALS
+
+tcpbridge understands the following signals:
+
+*SIGUSR1*::
+  Suspend tcpbridge.
+
+*SIGCONT*::
+  Restart tcpbridge.
+
+== EXIT STATUS
+
+One of the following exit values will be returned:
+
+*0* (EXIT_SUCCESS)::
+  Successful program execution.
+
+*1* (EXIT_FAILURE)::
+  The operation failed or the command syntax was not valid.
+
+== SEE ALSO
+
+tcpdump(1), tcpprep(1), tcprewrite(1), tcpreplay(1)
+
+== BUGS
+
+tcpbridge can only send packets as fast as your computer's interface, processor
+and system bus will allow.
+
+Connecting both interfaces to the same subnet may create a broadcast storm and
+take down the network. Improper use of the packet editing functions may have
+other undefined and possibly negative consequences.
+
+Some operating systems by default do not allow forging source MAC addresses.
+Please consult your operating system's documentation and the tcpreplay FAQ if
+you experience this issue.
+
+== AUTHORS
+
+Copyright 2026 Gabriel Ganne
+
+Copyright 2013-2025 Fred Klassen - AppNeta
+
+Copyright 2000-2012 Aaron Turner
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from:
+http://tcpreplay.appneta.com/
+
+== COPYRIGHT
+
+The entire Tcpreplay Suite is licensed under the GPLv3.

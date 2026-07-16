@@ -10,7 +10,6 @@ libtcpedit_a_SOURCES += %reldir%/null.c
 
 noinst_HEADERS += %reldir%/null.h
 
-EXTRA_DIST += %reldir%/null_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 null.c: \
@@ -20,7 +19,6 @@ null.c: \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
-DLT_STUB_DEPS += %reldir%/null_opts.def
 
 MOSTLYCLEANFILES += *~
 

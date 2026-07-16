@@ -10,7 +10,6 @@ libtcpedit_a_SOURCES += %reldir%/loop.c
 
 noinst_HEADERS += %reldir%/loop.h
 
-EXTRA_DIST += %reldir%/loop_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 loop.c: \
@@ -19,7 +18,6 @@ loop.c: \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
-DLT_STUB_DEPS += %reldir%/loop_opts.def
 
 MOSTLYCLEANFILES += *~
 
