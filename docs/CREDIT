@@ -147,3 +147,6 @@ Brad Smith <GitHub brad0>
 
 Mark Yang <GitHub markyang92>
     - TX_RING compile issue
+
+Yaroslav <GitHub @d3156>
+    - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop (#986)
