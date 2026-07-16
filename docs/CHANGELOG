@@ -1,3 +1,6 @@
+Unreleased
+    - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop / 100% CPU hang (#984, #986)
+
 08/26/2025 Version 4.5.2
     - C23 standard support (#977)
     - --fixlen use-after-free (#970)
