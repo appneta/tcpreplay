@@ -1,4 +1,6 @@
 Unreleased
+    - send_packets: fix miscalibrated overflow guards in calc_sleep_time() causing tcpreplay to stop
+      pacing (-M/-p) and blast remaining packets at full speed on long/high-count replays (#974, #989)
     - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop / 100% CPU hang (#984, #986)
 
 08/26/2025 Version 4.5.2

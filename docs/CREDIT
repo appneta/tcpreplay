@@ -150,3 +150,9 @@ Mark Yang <GitHub markyang92>
 
 Yaroslav <GitHub @d3156>
     - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop (#986)
+
+blaa <GitHub @blaa>
+    - reported Mbps pacing overflow on long replays (#974)
+
+ABcoders <GitHub @AB-Coder96>
+    - diagnosed and validated the calc_sleep_time() overflow, prototype fix (#989)

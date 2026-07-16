@@ -1081,14 +1081,32 @@ calc_sleep_time(tcpreplay_t *ctx,
             COUNTER tx_ns = now_ns - start_ns;
 
             /*
-             * bits * 1000000000 divided by bps = nanosecond
+             * next_tx_ns = bits_sent * 1000000000 / bps (nanoseconds)
              *
-             * ensure there is no overflow in cases where bits_sent is very high
+             * bits_sent * 1000000000 overflows a 64-bit COUNTER once
+             * bits_sent exceeds ~1.8e10 (~2.3GB sent, at any bps) -- e.g.
+             * a multi-GB/multi-million-packet replay at a constant -M
+             * rate. The previous COUNTER_OVERFLOW_RISK guard (COUNTER_MAX
+             * >> 23, ~2.2e12) was ~119x too high to ever catch this, so
+             * long replays silently overflowed into a small/garbage
+             * next_tx_ns and stopped sleeping (#974).
+             *
+             * Do the multiply in a wider-than-COUNTER type so it can't
+             * overflow for any COUNTER-representable bits_sent/bps.
              */
-            if (bits_sent > COUNTER_OVERFLOW_RISK)
-                next_tx_ns = (bits_sent * 1000) / bps * 1000000;
-            else
-                next_tx_ns = (bits_sent * 1000000000) / bps;
+#if defined(__SIZEOF_INT128__)
+            next_tx_ns = (COUNTER)(((unsigned __int128)bits_sent * 1000000000ULL) / bps);
+#else
+            /*
+             * No 128-bit integer type available. Split the *1e9 around
+             * the division (*1000 before, *1000000 after) so the
+             * intermediate is bits_sent * 1000, which only overflows
+             * COUNTER at ~1.8e16 bits (~2.3 petabytes) sent -- unlike the
+             * old code, this is applied unconditionally, not gated by a
+             * miscalibrated threshold.
+             */
+            next_tx_ns = (bits_sent * 1000ULL) / bps * 1000000ULL;
+#endif
 
             if (next_tx_ns > tx_ns) {
                 NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);
@@ -1115,16 +1133,31 @@ calc_sleep_time(tcpreplay_t *ctx,
             COUNTER pkts_sent = ctx->stats.pkts_sent;
             COUNTER tx_ns = now_ns - start_ns;
             /*
-             * packets * 1000000 divided by pps = microseconds
-             * packets per sec (pps) = packets per hour / (60 * 60)
+             * next_tx_ns = pkts_sent * 1000000000 * 3600 / pph (nanoseconds)
+             * packets per sec (pps) = packets per hour (pph) / (60 * 60)
              *
-             * Adjust for long running tests with high PPS to prevent overflow.
-             * When active, adjusted calculation may add a bit of jitter.
+             * pkts_sent * 1000000000 * 3600 (~3.6e12) overflows a 64-bit
+             * COUNTER once pkts_sent exceeds ~5.1 million packets -- well
+             * within range for a long packetrate-limited replay, and far
+             * below the previous COUNTER_OVERFLOW_RISK guard's ~2.2e12
+             * threshold, which never actually protected this multiply
+             * (same miscalibration as the speed_mbpsrate case, #974).
+             *
+             * Do the multiply in a wider-than-COUNTER type so it can't
+             * overflow for any COUNTER-representable pkts_sent/pph.
              */
-            if ((pkts_sent < COUNTER_OVERFLOW_RISK))
-                next_tx_ns = (pkts_sent * 1000000000) * (60 * 60) / pph;
-            else
-                next_tx_ns = ((pkts_sent * 1000000) / pph * 1000) * (60 * 60);
+#if defined(__SIZEOF_INT128__)
+            next_tx_ns = (COUNTER)(((unsigned __int128)pkts_sent * 1000000000ULL * 3600ULL) / pph);
+#else
+            /*
+             * No 128-bit integer type available. Split the *1e9*3600
+             * around the division (*1e6 before, *1e3*3600 after) so the
+             * intermediate is pkts_sent * 1e6, which only overflows
+             * COUNTER at ~1.8e13 packets -- applied unconditionally,
+             * unlike the old miscalibrated-threshold version.
+             */
+            next_tx_ns = ((pkts_sent * 1000000ULL) / pph * 1000ULL) * 3600ULL;
+#endif
 
             if (next_tx_ns > tx_ns)
                 NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);
