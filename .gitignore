@@ -97,3 +97,11 @@ COPYING
 .idea/
 build*/
 .run/
+# Added by code-review-graph
+.code-review-graph/
+# AI
+.claude/
+.mcp.json
+.opencode.json
+.qoder/
+.gemini
