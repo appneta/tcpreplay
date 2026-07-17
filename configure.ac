@@ -1971,6 +1971,7 @@ AC_CONFIG_FILES([Makefile
            src/common/Makefile
            src/defines.h
            test/Makefile
+           test/config
            scripts/Makefile])
 
 AC_OUTPUT
