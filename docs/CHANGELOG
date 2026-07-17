@@ -1,4 +1,9 @@
 Unreleased
+    - sendpacket: fix --xdp AF_XDP zero-copy TX failing with EINVAL on drivers (i40e, ixgbe)
+      that require a native XDP program attached before ndo_xdp_xmit works; let libbpf
+      auto-load its default program instead of inhibiting it (#956, #1002)
+    - configure: fix LIBXDP feature probe rejecting every real libxdp install due to a
+      pointer-indirection mismatch in the xsk_socket__create() compile check (#1002)
     - fragroute: fix build failure on macOS 13/14 from TAILQ_FOREACH_REVERSE argument-order
       collision between bundled lib/queue.h and system <sys/queue.h> (#981, #1001)
     - tcpprep: fix buffer overflow in check_dst_port() reading TCP/UDP dest port on truncated
