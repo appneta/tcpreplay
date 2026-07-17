@@ -374,6 +374,20 @@ void
 catch_alarm(int sig)
 {
     keep_going = 0;
+
+    /*
+     * pcap_dispatch()'s buffer timeout (TIMEOUT_ms) doesn't reliably bound
+     * how long it blocks: on some libpcap implementations that timer only
+     * starts once the first packet arrives, so a remote host that never
+     * responds can leave pcap_dispatch() blocked indefinitely, and even
+     * when it does apply, ALARM_TIMEOUT firing mid-wait doesn't make
+     * pcap_dispatch() return early - it just waits out the rest of its own
+     * timeout. Without this, "the remote host isn't responding" isn't
+     * reported until up to TIMEOUT_ms after the alarm actually fires (#540).
+     * pcap_breakloop() is documented as safe to call from a signal handler.
+     */
+    pcap_breakloop(live_handle);
+
     signal(sig, catch_alarm);
 }
 

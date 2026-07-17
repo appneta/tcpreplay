@@ -1,4 +1,9 @@
 Unreleased
+    - tcpliveplay: fix catch_alarm() not calling pcap_breakloop(), which left pcap_dispatch()
+      blocked for the full buffer timeout (or indefinitely, on libpcap implementations where the
+      timeout only starts once a packet arrives) instead of returning promptly when the alarm
+      fires - the visible symptom was a spurious "remote host is not responding" timeout up to 10s
+      after a response had actually arrived (#540)
     - tcprewrite: rewrite IPv6 addresses embedded in ICMPv6 error messages (Destination
       Unreachable, Packet Too Big, Time Exceeded, Parameter Problem) - RFC4443 has these embed the
       original ("invoking") packet's IP header, which tcprewrite left untouched, leaking the
