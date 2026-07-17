@@ -213,7 +213,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_libdnet(sendpacket_t *) _U_
 #endif /* HAVE_LIBDNET */
 
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) &&                                                      \
-        !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET)
+        (defined HAVE_PF_RING_PCAP || !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET))
 static sendpacket_t *sendpacket_open_pcap(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif /* HAVE_PCAP_INJECT || HAVE_PACKET_SENDPACKET */
@@ -626,6 +626,21 @@ sendpacket_open(const char *device,
             sp = sendpacket_open_tuntap(device, errbuf);
 #endif
         } else {
+#if defined HAVE_PF_RING_PCAP && (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+            /*
+             * "zc:<ifname>"-style device names are PF_RING ZC's own virtual
+             * device addressing, resolved by PF_RING's patched libpcap - not
+             * by the kernel. The PF_PACKET path below does a plain
+             * SIOCGIFINDEX lookup on the literal device string, which always
+             * fails with ENODEV for these ("ioctl: No such device"), even
+             * though the interface itself is working (confirmed via
+             * PF_RING's own pfsend utility - see #913). Route zc: devices
+             * through libpcap instead, which is PF_RING-aware in this build.
+             */
+            if (strncmp(device, "zc:", 3) == 0)
+                sp = sendpacket_open_pcap(device, errbuf);
+            else
+#endif
 #ifdef HAVE_NETMAP
             if (sendpacket_type == SP_TYPE_NETMAP)
                 sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
@@ -759,9 +774,7 @@ sendpacket_close(sendpacket_t *sp)
         break;
 
     case SP_TYPE_LIBPCAP:
-#ifdef HAVE_LIBPCAP
         pcap_close(sp->handle.pcap);
-#endif
         break;
 
     case SP_TYPE_LIBPCAP_DUMP:
@@ -867,7 +880,7 @@ sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 }
 
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) &&                                                      \
-        !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET)
+        (defined HAVE_PF_RING_PCAP || !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET))
 /**
  * Inner sendpacket_open() method for using libpcap
  */
