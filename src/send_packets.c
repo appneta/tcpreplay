@@ -80,6 +80,44 @@ wake_send_queues(sendpacket_t *sp _U_, tcpreplay_opt_t *options _U_)
     if (options->netmap)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* flush TX buffer */
 }
+
+/* how long to wait for a netmap TX ring to report empty before giving up */
+#define NETMAP_TX_DRAIN_TIMEOUT_SEC 2
+
+/**
+ * Wait for a netmap TX ring to fully drain at the end of a replay.
+ *
+ * Bounded and abortable: some netmap/driver combinations never flip the
+ * ring's empty flag (external bug - see #560), which used to make this an
+ * unkillable, uninterruptible 100% CPU spin since neither a timeout nor
+ * ctx->abort were checked. Give up after NETMAP_TX_DRAIN_TIMEOUT_SEC with a
+ * warning instead of hanging forever, and let SIGINT (ctx->abort) break out
+ * immediately.
+ */
+static void
+netmap_wait_tx_drain(tcpreplay_t *ctx, sendpacket_t *sp, struct timespec *now, bool *now_is_now)
+{
+    struct timespec start, elapsed;
+
+    if (!sp)
+        return;
+
+    TIMESPEC_SET(&start, now);
+
+    while (!ctx->abort && !netmap_tx_queues_empty(sp)) {
+        get_current_time(now);
+        *now_is_now = true;
+
+        timessub(now, &start, &elapsed);
+        if (elapsed.tv_sec >= NETMAP_TX_DRAIN_TIMEOUT_SEC) {
+            warnx("netmap TX ring on %s did not drain after %d seconds - the netmap driver may not "
+                  "be flushing correctly. Giving up waiting.",
+                  sp->device,
+                  NETMAP_TX_DRAIN_TIMEOUT_SEC);
+            break;
+        }
+    }
+}
 #endif
 
 static inline int
@@ -590,15 +628,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #ifdef HAVE_NETMAP
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
-        while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
-            now_is_now = true;
-            get_current_time(&now);
-        }
-
-        while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
-            now_is_now = true;
-            get_current_time(&now);
-        }
+        netmap_wait_tx_drain(ctx, ctx->intf1, &now, &now_is_now);
+        netmap_wait_tx_drain(ctx, ctx->intf2, &now, &now_is_now);
     }
 #endif /* HAVE_NETMAP */
 
@@ -862,15 +893,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 #ifdef HAVE_NETMAP
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
-        while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
-            get_current_time(&now);
-            now_is_now = true;
-        }
-
-        while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
-            get_current_time(&now);
-            now_is_now = true;
-        }
+        netmap_wait_tx_drain(ctx, ctx->intf1, &now, &now_is_now);
+        netmap_wait_tx_drain(ctx, ctx->intf2, &now, &now_is_now);
     }
 #endif /* HAVE_NETMAP */
 
