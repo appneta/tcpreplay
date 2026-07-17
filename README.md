@@ -78,8 +78,18 @@ for detailed download and installation instructions.
 
 Simple directions for Unix users:
 ---------------------------------
+If you're building from a release tarball, `configure` is already generated:
 ```
 ./configure 
+make
+sudo make install
+```
+
+If you're building from a git checkout, `configure` doesn't exist yet - generate it
+first with `autogen.sh` (requires `autoconf`, `automake`, `libtool`, and `autogen`):
+```
+./autogen.sh
+./configure
 make
 sudo make install
 ```
