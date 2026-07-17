@@ -124,6 +124,15 @@ nm_do_ioctl(sendpacket_t *sp, u_long what, int subcmd)
     if (error)
         goto done;
 
+    /*
+     * No default case here on purpose: this switch only extracts read-back
+     * results for GET-style requests (SIOCGIFFLAGS, ETHTOOL_Gxxx). SET-style
+     * requests (SIOCSIFFLAGS, ETHTOOL_Sxxx) have nothing to parse and are
+     * meant to fall through - the real success/failure is `error` from the
+     * ioctl() call above. Adding "default: return -1;" here previously made
+     * every SIOCSIFFLAGS call (setting IFF_UP/IFF_PROMISC) look like a
+     * failure despite the ioctl succeeding, breaking --netmap entirely (#810).
+     */
     switch (what) {
     case SIOCGIFFLAGS:
         sp->if_flags = (ifr.ifr_flags << 16) | (0xffff & ifr.ifr_flags);
@@ -152,13 +161,9 @@ nm_do_ioctl(sendpacket_t *sp, u_long what, int subcmd)
             sp->txcsum = eval.data;
             dbgx(1, "ioctl SIOCETHTOOL ETHTOOL_GTXCSUM=%u", eval.data);
             break;
-        default:
-            return -1;
         }
         break;
 #endif
-    default:
-        return -1;
     }
 
 done:
