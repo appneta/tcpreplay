@@ -1,4 +1,7 @@
 Unreleased
+    - sendpacket (Linux): warn when sending on an interface with no carrier (cable unplugged /
+      link down); sendto() on a down interface can report local success even though nothing
+      reaches the wire, making "successful packets" stats meaningless (#109)
     - sendpacket: fix --xdp AF_XDP zero-copy TX failing with EINVAL on drivers (i40e, ixgbe)
       that require a native XDP program attached before ndo_xdp_xmit works; let libbpf
       auto-load its default program instead of inhibiting it (#956, #1002)
