@@ -436,7 +436,7 @@ uint32_t
 tcpr_random(uint32_t *seed)
 {
     unsigned int next = *seed;
-    int result;
+    unsigned int result;
 
     next *= 1103515245;
     next += 12345;
