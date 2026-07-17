@@ -15,6 +15,7 @@ noinst_HEADERS += \
 	%reldir%/user_api.h \
 	%reldir%/user_types.h
 
+EXTRA_DIST += %reldir%/user_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 user.c: \
@@ -24,6 +25,7 @@ user.c: \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
+DLT_STUB_DEPS += %reldir%/user_opts.def
 
 MOSTLYCLEANFILES += *~
 

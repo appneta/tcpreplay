@@ -29,7 +29,7 @@
 #include "config.h"
 #include "common.h"
 #include "bridge.h"
-#include "tcpbridge_args.h"
+#include "tcpbridge_opts.h"
 #include "tcpedit/tcpedit.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
 
     init();
 
-    /* parse command-line arguments */
+    /* call autoopts to process arguments */
     optct = optionProcess(&tcpbridgeOptions, argc, argv);
     argc -= optct;
     argv += optct;
@@ -73,12 +73,14 @@ main(int argc, char *argv[])
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to edit packets given options:\n%s", tcpedit_geterr(tcpedit));
     }
 

@@ -10,3 +10,4 @@ defines.h
 config.h
 stamp-h1
 *_opts.c
+tcpedit/tcpedit_stub.h

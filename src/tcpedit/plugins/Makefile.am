@@ -11,11 +11,18 @@ noinst_HEADERS += \
 	%reldir%/ethernet.h \
 	%reldir%/dlt_utils.h
 
-AM_CFLAGS +=  -I$(srcdir)/%reldir%
+AM_CFLAGS +=  -I$(srcdir)/%reldir% $(LIBOPTS_CFLAGS)
+
+EXTRA_DIST += %reldir%/dlt_opts.def %reldir%/dlt_stub.def
 
 MOSTLYCLEANFILES += *~
 
 MAINTAINERCLEANFILES += %reldir%/Makefile.in
+
+
+DLT_STUB_DEPS = %reldir%/dlt_opts.def
+
+dlt_stub.def: $(DLT_STUB_DEPS)
 
 TCPEDIT_PLUGINS_DEPS =\
 	%reldir%/dlt_utils.h \

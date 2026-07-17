@@ -34,11 +34,13 @@
 #include "tcpreplay.h"
 #include "tcpreplay_api.h"
 
-#include "tcpreplay_args.h"
 #ifdef TCPREPLAY_EDIT
+#include "tcpreplay_edit_opts.h"
 #include "tcpedit/tcpedit.h"
 #include "tcpedit/fuzzing.h"
 tcpedit_t *tcpedit;
+#else
+#include "tcpreplay_opts.h"
 #endif
 
 #include "send_packets.h"
@@ -83,12 +85,14 @@ main(int argc, char *argv[])
     /* parse the tcpedit args */
     rcode = tcpedit_post_args(tcpedit);
     if (rcode < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to parse args: %s", tcpedit_geterr(tcpedit));
     } else if (rcode == 1) {
         warnx("%s", tcpedit_geterr(tcpedit));
     }
 
     if (tcpedit_validate(tcpedit) < 0) {
+        tcpedit_close(&tcpedit);
         errx(-1, "Unable to edit packets given options:\n%s",
                tcpedit_geterr(tcpedit));
     }

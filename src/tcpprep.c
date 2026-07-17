@@ -35,7 +35,7 @@
 #include "config.h"
 #include "common.h"
 #include "tcpprep_api.h"
-#include "tcpprep_args.h"
+#include "tcpprep_opts.h"
 #include "tree.h"
 #include <errno.h>
 #include <regex.h>

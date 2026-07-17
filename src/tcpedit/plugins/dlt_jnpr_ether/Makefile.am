@@ -14,6 +14,7 @@ noinst_HEADERS += \
 	%reldir%/jnpr_ether_api.h \
 	%reldir%/jnpr_ether_types.h
 
+EXTRA_DIST += %reldir%/jnpr_ether_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 jnpr_ether.c: \
@@ -25,6 +26,7 @@ jnpr_ether.c: \
 # Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 
+DLT_STUB_DEPS += %reldir%/jnpr_ether_opts.def
 
 MOSTLYCLEANFILES += *~
 

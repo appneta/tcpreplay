@@ -21,7 +21,7 @@
 #include "defines.h"
 #include "config.h"
 #include "common.h"
-#include "tcpcapinfo_args.h"
+#include "tcpcapinfo_opts.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>

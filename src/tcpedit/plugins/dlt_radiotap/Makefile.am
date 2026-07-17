@@ -10,6 +10,7 @@ libtcpedit_a_SOURCES += %reldir%/radiotap.c
 
 noinst_HEADERS += %reldir%/radiotap.h
 
+EXTRA_DIST += %reldir%/radiotap_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 radiotap.c: \
@@ -19,6 +20,7 @@ radiotap.c: \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
+DLT_STUB_DEPS += %reldir%/radiotap_opts.def
 
 MOSTLYCLEANFILES += *~
 

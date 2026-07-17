@@ -59,9 +59,9 @@ jobs:
 
     - run: |
        echo "Build Application"
-       sudo apt-get -y install libpcap-dev
+       sudo apt-get -y install libpcap-dev autogen
        ./autogen.sh
-       ./configure
+       ./configure --disable-local-libopts
        make
 
     - name: Perform CodeQL Analysis

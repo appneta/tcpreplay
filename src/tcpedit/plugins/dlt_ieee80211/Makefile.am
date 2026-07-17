@@ -15,6 +15,7 @@ noinst_HEADERS += \
 	%reldir%/ieee80211_hdr.h \
 	%reldir%/ieee80211_types.h
 
+EXTRA_DIST += %reldir%/ieee80211_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 ieee80211.c: \
@@ -26,6 +27,7 @@ ieee80211.c: \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
+DLT_STUB_DEPS += %reldir%/ieee80211_opts.def
 
 MOSTLYCLEANFILES += *~
 

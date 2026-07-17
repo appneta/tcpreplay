@@ -66,7 +66,7 @@
 #include "config.h"
 #include "common/sendpacket.h"
 #include "common/utils.h"
-#include "tcpliveplay_args.h"
+#include "tcpliveplay_opts.h"
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -147,7 +147,7 @@ main(int argc, char **argv)
     char ebuf[SENDPACKET_ERRBUF_SIZE];
     int i;
 
-    optionProcess(&tcpliveplayOptions, argc, argv); /* parse command-line arguments */
+    optionProcess(&tcpliveplayOptions, argc, argv); /*Process AutoOpts for manpage options*/
 
     if ((argc < 5) || (argv[1] == NULL) || (argv[2] == NULL) || (argv[3] == NULL) || (argv[4] == NULL) ||
         (argv[5] == NULL)) {

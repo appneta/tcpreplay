@@ -12,6 +12,7 @@ noinst_HEADERS += \
 	%reldir%/linuxsll.h \
 	%reldir%/linuxsll_types.h
 
+EXTRA_DIST += %reldir%/linuxsll_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 linuxsll.c: \
@@ -22,6 +23,7 @@ linuxsll.c: \
 
 # You probably don't want to touch anything below this line until the end of the plugin
 
+DLT_STUB_DEPS += %reldir%/linuxsll_opts.def
 
 MOSTLYCLEANFILES += *~
 
