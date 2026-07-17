@@ -12,6 +12,8 @@
 *_opts.h
 .libs
 docs/web/
+configure~
+src/config.h.in~
 
 # Packages #
 ############
