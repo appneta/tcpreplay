@@ -364,6 +364,19 @@ dlt_en10mb_parse_opts(tcpeditdlt_t *ctx)
 
                 if (HAVE_OPT(ENET_VLAN_CFI))
                     config->vlan_cfi = OPT_VALUE_ENET_VLAN_CFI;
+
+                /*
+                 * Warn once if priority and/or CFI were not supplied: for
+                 * packets that are not already VLAN tagged there is no
+                 * existing value to preserve, so they default to 0.
+                 */
+                if (!HAVE_OPT(ENET_VLAN_PRI) || !HAVE_OPT(ENET_VLAN_CFI)) {
+                    notice("%s%s%s not specified; previously untagged "
+                           "packets will be tagged with priority 0 and/or CFI 0.",
+                           HAVE_OPT(ENET_VLAN_PRI) ? "" : "--enet-vlan-pri",
+                           (!HAVE_OPT(ENET_VLAN_PRI) && !HAVE_OPT(ENET_VLAN_CFI)) ? " and " : "",
+                           HAVE_OPT(ENET_VLAN_CFI) ? "" : "--enet-vlan-cfi");
+                }
             }
 
             if (HAVE_OPT(ENET_VLAN_PROTO)) {
@@ -495,6 +508,17 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
     extra = (en10mb_extra_t *)ctx->decoded_extra;
     if (ctx->decoded_extra_size < sizeof(*extra))
         return TCPEDIT_ERROR;
+
+    /*
+     * Validate VLAN options *before* mutating the packet buffer below.
+     * A previously untagged packet has no existing VLAN info to fall
+     * back on, so a tag must be supplied by the user in that case
+     * (priority and CFI default to 0).
+     */
+    if (config->vlan == TCPEDIT_VLAN_ADD && !extra->vlan && config->vlan_tag == 65535) {
+        tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-tag");
+        return TCPEDIT_ERROR;
+    }
 
     /* figure out the new layer2 length, first for the case: ethernet -> ethernet? */
     if (ctx->decoder->dlt == dlt_value) {
@@ -683,28 +707,25 @@ dlt_en10mb_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, tcpr_dir_t dir)
             vlan_hdr->vlan_tci = htons((uint16_t)config->vlan_tag & TCPR_802_1Q_VIDMASK);
         } else if (extra->vlan) {
             vlan_hdr->vlan_tci = htons(extra->vlan_tag);
-        } else {
-            tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-tag");
-            return TCPEDIT_ERROR;
         }
+        /* else: a previously-untagged packet without a tag is rejected early
+         * in dlt_en10mb_encode(), before the buffer is mutated */
 
         if (config->vlan_pri < 255) {
             vlan_hdr->vlan_tci += htons((uint16_t)config->vlan_pri << 13);
         } else if (extra->vlan) {
             vlan_hdr->vlan_tci += htons(extra->vlan_pri);
-        } else {
-            tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-pri");
-            return TCPEDIT_ERROR;
         }
+        /* else: previously-untagged packet, priority defaults to 0
+         * (warned about once in dlt_en10mb_parse_opts) */
 
         if (config->vlan_cfi < 255) {
             vlan_hdr->vlan_tci += htons((uint16_t)config->vlan_cfi << 12);
         } else if (extra->vlan) {
             vlan_hdr->vlan_tci += htons(extra->vlan_cfi);
-        } else {
-            tcpedit_seterr(ctx->tcpedit, "%s", "Non-VLAN tagged packet requires --enet-vlan-cfi");
-            return TCPEDIT_ERROR;
         }
+        /* else: previously-untagged packet, CFI defaults to 0
+         * (warned about once in dlt_en10mb_parse_opts) */
 
     } else if (config->vlan == TCPEDIT_VLAN_DEL && newl2len > 0) {
         /* all we need for 802.3 is the proto */
