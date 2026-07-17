@@ -1,4 +1,6 @@
 Unreleased
+    - tcprewrite: fix --enet-vlan=add silently truncating output packets by 4 bytes when
+      --enet-vlan-pri and/or --enet-vlan-cfi were omitted on untagged input (#990, #994)
     - fragroute: fix heap-buffer-overflow in fragroute_process() when a crafted packet's MPLS label
       stack produces an L2 header longer than the fixed 50-byte buffer (#992, #993)
     - send_packets: fix miscalibrated overflow guards in calc_sleep_time() causing tcpreplay to stop
