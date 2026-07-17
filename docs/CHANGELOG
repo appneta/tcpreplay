@@ -1,4 +1,10 @@
 Unreleased
+    - tcprewrite: rewrite IPv6 addresses embedded in ICMPv6 error messages (Destination
+      Unreachable, Packet Too Big, Time Exceeded, Parameter Problem) - RFC4443 has these embed the
+      original ("invoking") packet's IP header, which tcprewrite left untouched, leaking the
+      original addresses through capture sanitization/anonymization; also fixed a related
+      pre-existing bug where the ICMPv6 checksum was never fixed up when an outer IPv6 address
+      changed, unless --fixcsum was also passed (#818)
     - sendpacket: fix "zc:<ifname>"-style PF_RING ZC device names failing with "ioctl: No such
       device" - the default PF_PACKET path did a plain SIOCGIFINDEX lookup on the literal "zc:"
       string, which the kernel doesn't recognize; route zc: devices through libpcap instead, which
