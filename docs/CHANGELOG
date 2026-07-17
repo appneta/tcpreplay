@@ -1,4 +1,8 @@
 Unreleased
+    - netmap: fix --netmap failing to switch the driver to bypass mode with a bogus "nm_do_ioctl:
+      No such file or directory" error on real NICs (not VALE ports); a stray switch default case
+      made nm_do_ioctl() report failure - and leak the ioctl socket fd - for SIOCSIFFLAGS/ethtool
+      SET requests even when the underlying ioctl succeeded, regressed since 4.4.3 (#810)
     - tcpreplay: bound and make abortable the netmap TX-ring drain wait at the end of --loop
       replays; some netmap/driver combinations never report the ring empty, which used to hang
       tcpreplay at 100% CPU with no way to Ctrl+C out (#560)
