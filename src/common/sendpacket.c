@@ -50,6 +50,7 @@
 #include "config.h"
 #include "common.h"
 #include <errno.h>
+#include <net/if.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -537,6 +538,45 @@ EXIT_MAX_RETRIES:
     return retcode;
 }
 
+#if defined linux && defined SIOCGIFFLAGS && defined IFF_RUNNING
+/**
+ * Best-effort check of whether "device" currently has carrier (IFF_RUNNING).
+ * Returns 1 if it does, 0 if it's definitely down (e.g. cable unplugged), or
+ * -1 if the check couldn't be performed (not a real/queryable interface -
+ * khial, tuntap, etc.) and should be treated as "unknown, assume fine".
+ *
+ * Linux-only: the kernel's linkwatch subsystem clears IFF_RUNNING when there's
+ * no carrier, which is what makes this check meaningful. On macOS/BSD,
+ * IFF_RUNNING only reflects "interface resources allocated" and stays set even
+ * when a real carrier check (ifconfig's "status: inactive", via SIOCGIFMEDIA)
+ * says the link is down - so this check would be silently wrong there. #109
+ * was reported and reproduced on Linux; a BSD/macOS equivalent needs the
+ * SIOCGIFMEDIA path and is left for a follow-up.
+ */
+static int
+sendpacket_is_running(const char *device)
+{
+    struct ifreq ifr;
+    int mysocket = socket(AF_INET, SOCK_DGRAM, 0);
+    int ret = -1;
+
+    if (mysocket < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
+    ret = ioctl(mysocket, SIOCGIFFLAGS, &ifr);
+    close(mysocket);
+
+    if (ret < 0) {
+        return -1;
+    }
+
+    return (ifr.ifr_flags & IFF_RUNNING) ? 1 : 0;
+}
+#endif /* linux && SIOCGIFFLAGS && IFF_RUNNING */
+
 /**
  * Open the given network device name and returns a sendpacket_t struct
  * pass the error buffer (in case there's a problem) and the direction
@@ -613,6 +653,33 @@ sendpacket_open(const char *device,
     if (sp) {
         sp->open = 1;
         sp->cache_dir = direction;
+
+#if defined linux && defined SIOCGIFFLAGS && defined IFF_RUNNING
+        /*
+         * khial/tuntap/pcap-dump aren't real, carrier-having interfaces, and netmap does
+         * its own IFF_RUNNING check (and errors out) before we'd ever get here. For
+         * everything else, warn loudly if there's no carrier: sendto() on a down/unplugged
+         * interface can still report success locally even though nothing reaches the wire
+         * (#109), so tcpreplay's own "successful packets" stats would otherwise be
+         * silently meaningless.
+         */
+        switch (sp->handle_type) {
+        case SP_TYPE_PF_PACKET:
+        case SP_TYPE_TX_RING:
+        case SP_TYPE_BPF:
+        case SP_TYPE_LIBDNET:
+        case SP_TYPE_LIBPCAP:
+        case SP_TYPE_LIBXDP:
+            if (sendpacket_is_running(sp->device) == 0) {
+                warnx("WARNING: %s has no carrier (cable unplugged or link down). Packets will "
+                      "appear to send successfully but will not reach the wire.",
+                      sp->device);
+            }
+            break;
+        default:
+            break;
+        }
+#endif /* linux && SIOCGIFFLAGS && IFF_RUNNING */
     } else {
         errx(-1, "failed to open device %s: %s", device, errbuf);
     }
