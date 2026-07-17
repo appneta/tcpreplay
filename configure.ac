@@ -1476,14 +1476,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <xdp/xsk.h>
 #include <sys/socket.h>
 ]], [[
-    struct xsk_socket {
-        struct xsk_ring_cons *rx;
-        struct xsk_ring_prod *tx;
-        struct xsk_ctx *ctx;
-        struct xsk_socket_config config;
-        int fd;
-    };
-    struct xsk_socket xsk;
+    struct xsk_socket *xsk = NULL;
 	struct xsk_ring_cons *rxr = NULL;
 	struct xsk_ring_prod *txr = NULL;
     int queue_id = 0;
