@@ -1525,7 +1525,17 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
 
     socket_config->rx_size = nb_of_rx_queue_desc;
     socket_config->tx_size = nb_of_tx_queue_desc;
-    socket_config->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
+    /*
+     * Some NIC drivers (i40e, ixgbe, virtio_net, ...) only set up their XDP TX
+     * datapath (ndo_xdp_xmit) once a native XDP program is attached to the
+     * interface; without one, xsk_socket__create() binds successfully but the
+     * later zero-copy send fails with EINVAL. XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD
+     * skips libbpf's default program auto-load, which avoided that trigger.
+     * tcpreplay doesn't need the auto-loaded program's RX behavior, only the
+     * side effect of a program being attached, so let libbpf load its default
+     * one (#956).
+     */
+    socket_config->libbpf_flags = 0;
     socket_config->bind_flags = 0; // XDP_FLAGS_SKB_MODE (1U << 1) or XDP_FLAGS_DRV_MODE (1U << 2)
     xsk_info = xsk_configure_socket(umem_info, socket_config, queue_id, device);
     safe_free(socket_config);
