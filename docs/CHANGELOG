@@ -1,4 +1,6 @@
 Unreleased
+    - fragroute: fix heap-buffer-overflow in fragroute_process() when a crafted packet's MPLS label
+      stack produces an L2 header longer than the fixed 50-byte buffer (#992, #993)
     - send_packets: fix miscalibrated overflow guards in calc_sleep_time() causing tcpreplay to stop
       pacing (-M/-p) and blast remaining packets at full speed on long/high-count replays (#974, #989)
     - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop / 100% CPU hang (#984, #986)
