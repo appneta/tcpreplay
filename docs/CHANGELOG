@@ -1,4 +1,12 @@
 Unreleased
+    - tcpedit: fix --tcp-sequence and --portmap/-r silently having zero effect on some platforms
+      (confirmed on macOS arm64) - rewrite_ipv4_tcp_sequence()/rewrite_ipv6_tcp_sequence()
+      (rewrite_sequence.c) and rewrite_ipv4_ports()/rewrite_ipv6_ports() (portmap.c) computed the
+      L4 "end of buffer" bounds pointer from the address of their own ipv4_hdr_t**/ipv6_hdr_t**
+      parameter instead of the packet buffer address it pointed to ((u_char *)ip_hdr instead of
+      (u_char *)(*ip_hdr)); get_layer4_v4()/v6()'s bounds check against that garbage pointer then
+      either always passed (silently correct by luck) or always failed (silently rewriting
+      nothing), depending on platform-specific stack layout (#1011)
     - tcpliveplay: fix catch_alarm() not calling pcap_breakloop(), which left pcap_dispatch()
       blocked for the full buffer timeout (or indefinitely, on libpcap implementations where the
       timeout only starts once a packet arrives) instead of returning promptly when the alarm
