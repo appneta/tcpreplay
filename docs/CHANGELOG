@@ -1,4 +1,7 @@
 Unreleased
+    - tcpreplay: bound and make abortable the netmap TX-ring drain wait at the end of --loop
+      replays; some netmap/driver combinations never report the ring empty, which used to hang
+      tcpreplay at 100% CPU with no way to Ctrl+C out (#560)
     - tcpreplay: fix cumulative timing drift with --multiplier - each packet's sleep was computed
       from the previous packet's actual send time instead of a fixed start-of-replay anchor, so
       per-packet scheduling/syscall overhead accumulated over a long replay (100k packets sent in
