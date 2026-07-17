@@ -1,4 +1,6 @@
 Unreleased
+    - tcpprep: fix buffer overflow in check_dst_port() reading TCP/UDP dest port on truncated
+      packets with incomplete L4 headers (#985, #995)
     - tcprewrite: fix --enet-vlan=add silently truncating output packets by 4 bytes when
       --enet-vlan-pri and/or --enet-vlan-cfi were omitted on untagged input (#990, #994)
     - fragroute: fix heap-buffer-overflow in fragroute_process() when a crafted packet's MPLS label

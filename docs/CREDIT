@@ -160,3 +160,4 @@ ABcoders <GitHub @AB-Coder96>
 Gabriel Ganne <GitHub @GabrielGanne>
     - fragroute: fix heap-buffer-overflow on packets with too many MPLS labels (#993)
     - tcprewrite: fix vlan tag add silently truncating output when --enet-vlan-pri/-cfi omitted (#994)
+    - tcpprep: fix buffer overflow in check_dst_port() on truncated L4 headers (#995)
