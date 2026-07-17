@@ -1334,8 +1334,17 @@ for testdir in $NETMAP_SEARCH_DIRS; do
 
     if test "$have_netmap" != no ; then
         NETMAPFLAGS="-DHAVE_NETMAP"
-        OLDCFLAGS="$CFLAGS -I$NETMAPINCDIR"
-        CFLAGS="$CFLAGS -DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
+        dnl Don't add -I$NETMAPINCDIR to CFLAGS here: CFLAGS is shared by every
+        dnl AC_CHECK_HEADERS/AC_COMPILE_IFELSE test for the rest of this script,
+        dnl and a netmap checkout's sys/ tree mirrors a BSD kernel source layout
+        dnl (including its own sys/net/bpf.h). Adding it now makes later,
+        dnl unrelated checks - e.g. the net/bpf.h check below - find netmap's
+        dnl vendored BSD-compat header instead of a real system one, wrongly
+        dnl setting have_bpf=yes even on Linux and causing a struct bpf_insn
+        dnl redefinition conflict against the system libpcap headers at build
+        dnl time. Save it in NETMAP_CFLAGS and apply it to CFLAGS just once,
+        dnl right before AC_OUTPUT, after all other detection has finished.
+        NETMAP_CFLAGS="-DNETMAP_WITH_LIBS -DND -I$NETMAPINCDIR"
 
         AC_SUBST(NETMAPINC)
         AC_SUBST(NETMAPUSERINC)
@@ -2010,6 +2019,14 @@ fi
 
 LIBOPTS_CHECK(libopts)
 
+
+dnl Apply the netmap include path (see the have_netmap block above) to CFLAGS
+dnl now, after every other detection in this script has already run, so the
+dnl real build can find netmap's headers without that path having been able
+dnl to shadow unrelated system headers (e.g. net/bpf.h) during configure.
+if test "x$NETMAP_CFLAGS" != "x"; then
+    CFLAGS="$CFLAGS $NETMAP_CFLAGS"
+fi
 
 AC_CONFIG_FILES([Makefile
            doxygen.cfg
