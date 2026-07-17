@@ -618,6 +618,7 @@ void
 send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_file_idx2)
 {
     struct timespec now, print_delta, last_pkt_ts;
+    bool first_packet = true;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -757,26 +758,25 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             skip_length = 0;
             ctx->skip_packets = 0;
 
-            if (options->speed.mode == speed_multiplier) {
-                struct timespec pkthdr_ts;
-                PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &pkthdr_ts);
-                if (!timesisset(&last_pkt_ts)) {
-                    PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &last_pkt_ts);
-                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
-                    struct timespec delta;
-
-                    timessub(&pkthdr_ts, &last_pkt_ts, &delta);
-                    timeradd_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
-                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
-                }
-
-                if (!timesisset(&stats->time_delta))
-                    TIMESPEC_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
-            }
-
             if (!top_speed) {
                 get_current_time(&now);
                 now_is_now = true;
+            }
+
+            if (options->speed.mode == speed_multiplier) {
+                struct timespec pkthdr_ts;
+                PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &pkthdr_ts);
+                if (first_packet) {
+                    TIMESPEC_SET(&stats->first_packet_time, &pkthdr_ts);
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    TIMESPEC_SET(&stats->first_packet_wall_time, &now);
+                    first_packet = false;
+                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    timessub(&pkthdr_ts, &stats->first_packet_time, &stats->pkt_ts_delta);
+                    timessub(&now, &stats->first_packet_wall_time, &stats->time_delta);
+                    timesdiv_float(&stats->pkt_ts_delta, options->speed.multiplier);
+                }
             }
 
             /*
@@ -794,13 +794,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                             &stats->end_time,
                             TIMESPEC_TO_NANOSEC(&stats->start_time),
                             &skip_length);
-
-            /*
-             * Track the time of the "last packet sent".
-             *
-             * A number of 3rd party tools generate bad timestamps which go backwards
-             * in time.  Hence, don't update the "last" unless pkthdr_ptr->ts > last
-             */
 
             /*
              * we know how long to sleep between sends, now do it.
