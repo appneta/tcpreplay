@@ -7,6 +7,10 @@ Unreleased
       (u_char *)(*ip_hdr)); get_layer4_v4()/v6()'s bounds check against that garbage pointer then
       either always passed (silently correct by luck) or always failed (silently rewriting
       nothing), depending on platform-specific stack layout (#1011)
+    - tcpr_random: fix signed left-shift undefined behavior in this "consistent across all
+      platforms" PRNG - left-shifting a signed int such that a set bit crosses the sign bit is
+      undefined behavior in C, which different compiler backends are free to resolve differently;
+      switched the accumulator to unsigned so the shift is well-defined everywhere
     - tcpliveplay: fix catch_alarm() not calling pcap_breakloop(), which left pcap_dispatch()
       blocked for the full buffer timeout (or indefinitely, on libpcap implementations where the
       timeout only starts once a packet arrives) instead of returning promptly when the alarm

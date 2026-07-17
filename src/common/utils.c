@@ -436,7 +436,18 @@ uint32_t
 tcpr_random(uint32_t *seed)
 {
     unsigned int next = *seed;
-    int result;
+    /*
+     * Must be unsigned: by the third `result <<= 10` below, result can carry
+     * up to ~31 significant bits, close enough to the sign bit that a signed
+     * int here can shift a set bit into (or past) the sign bit - undefined
+     * behavior in C, which different compiler backends are free to resolve
+     * differently. That's exactly what happened: this function produced
+     * different output on macOS arm64 than on macOS Intel/Linux arm64 for
+     * the same seed, despite this function's whole purpose being consistent
+     * output across platforms (see #1011). Unsigned left-shift overflow is
+     * well-defined (mod 2^32 wraparound), which removes the UB entirely.
+     */
+    unsigned int result;
 
     next *= 1103515245;
     next += 12345;
