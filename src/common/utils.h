@@ -34,6 +34,8 @@ typedef struct {
     struct timespec end_time;
     struct timespec pkt_ts_delta;
     struct timespec last_print;
+    struct timespec first_packet_time;
+    struct timespec first_packet_wall_time;
     COUNTER flow_non_flow_packets;
     COUNTER flows;
     COUNTER flows_unique;

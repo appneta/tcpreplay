@@ -1,4 +1,9 @@
 Unreleased
+    - tcpreplay: fix cumulative timing drift with --multiplier - each packet's sleep was computed
+      from the previous packet's actual send time instead of a fixed start-of-replay anchor, so
+      per-packet scheduling/syscall overhead accumulated over a long replay (100k packets sent in
+      10.37s instead of the targeted 10.00s). Also fixes the same drift in dual-interface (-I)
+      replay, which the original patch didn't cover. (#724, #915)
     - sendpacket (Linux): warn when sending on an interface with no carrier (cable unplugged /
       link down); sendto() on a down interface can report local success even though nothing
       reaches the wire, making "successful packets" stats meaningless (#109)
