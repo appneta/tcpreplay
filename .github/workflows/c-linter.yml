@@ -9,9 +9,9 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           echo "Build Application"
-          sudo apt-get -y install libpcap-dev
+          sudo apt-get -y install libpcap-dev autogen
           ./autogen.sh
-          ./configure
+          ./configure --disable-local-libopts
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:

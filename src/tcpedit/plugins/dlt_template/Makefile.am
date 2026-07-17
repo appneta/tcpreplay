@@ -21,6 +21,7 @@ noinst_HEADERS += \
 	%reldir%/%{plugin}_types.h \
 	$(eol)
 
+EXTRA_DIST += %reldir%/%{plugin}_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 %{plugin}.c: \
@@ -33,6 +34,7 @@ noinst_HEADERS += \
 # Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 
+DLT_STUB_DEPS += %reldir%/%{plugin}_opts.def
 
 MOSTLYCLEANFILES += *~
 

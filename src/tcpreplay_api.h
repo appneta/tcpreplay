@@ -227,7 +227,7 @@ char *tcpreplay_getwarn(tcpreplay_t *);
 tcpreplay_t *tcpreplay_init();
 void tcpreplay_close(tcpreplay_t *);
 
-/* call after optionProcess() to validate and apply parsed options */
+/* only valid for using with GNU Autogen/AutoOpts */
 int tcpreplay_post_args(tcpreplay_t *, int argc);
 
 /* all these configuration functions return 0 on success and < 0 on error. */

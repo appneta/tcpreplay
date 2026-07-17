@@ -456,6 +456,9 @@ WARN_LOGFILE           =
 
 INPUT                  = \
 lib \
+libopts \
+libopts/compat \
+libopts/autoopts \
 src \
 src/common \
 src/tcpedit \

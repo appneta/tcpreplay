@@ -6,3 +6,6 @@ ratings:
   paths:
   - "**.c"
   - "**.h"
+
+exclude_paths:
+  - libopts/

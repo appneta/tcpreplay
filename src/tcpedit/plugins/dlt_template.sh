@@ -39,7 +39,7 @@ for i in Makefile.am ; do
 done
 
 # Files to have their name changed
-for i in plugin.c.tmpl plugin.h plugin_api.c.tmpl plugin_api.h plugin_types.h ; do
+for i in plugin.c.tmpl plugin.h plugin_opts.def plugin_api.c.tmpl plugin_api.h plugin_types.h ; do
     OUTFILE=$(echo $i | sed -E "s/plugin/${PLUGIN}/")
     OUTFILE=$(echo $OUTFILE | sed -E "s/\.tmpl//")
     OUTFILE="${PLUGINDIR}/${OUTFILE}"
@@ -57,11 +57,11 @@ echo ""
 echo "Pleased be sure to modify ./Makefile.am and add the line to the END OF THE FILE:"
 echo "include \$(srcdir)/plugins/${PLUGINDIR}/Makefile.am"
 echo ""
-echo "If your plugin needs command-line options, add them to the getopt_long"
-echo "table and handler in ../tcpedit_args.c, expose accessor macros in"
-echo "../tcpedit_stub.h, and document them in ../../../docs/tcpedit_options.adoc."
+echo "You must also modify ./dlt_stub.def and add the line:"
+echo "#include ${PLUGINDIR}/${PLUGIN}_opts.def"
 echo ""
-echo "You may also need to update dlt.c, get.c, tcpprep.c, flows.c and send_packets.c"
+echo "You may also need to update dlt.c, get.c, tcpprep.c,
+echo "flows.c, send_packets.c, dlt_opts.def and tcprewrite_opts.def
 echo ""
 echo "Next, you must make the appropriate modifications to ./dlt_plugin.c"
 echo ""

@@ -22,7 +22,7 @@
 #include "config.h"
 #include "common.h"
 #include "tcpprep_api.h"
-#include "tcpprep_args.h"
+#include "tcpprep_opts.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

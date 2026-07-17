@@ -1,24 +1,18 @@
 # $Id$
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I m4 -I libopts/m4
 
+if NEED_LIBOPTS
+SUBDIRS = scripts lib $(LIBOPTS_DIR) src
+else
 SUBDIRS = scripts lib src
+endif
 
-DIST_SUBDIRS = scripts lib src docs test
+DIST_SUBDIRS = scripts lib libopts src docs test
 .PHONY: manpages docs test man2html
 
 
-# Only (re)generate the man pages during `make dist` when asciidoctor is
-# available.  Without it there is no rule to build them, and any pre-built
-# *.1 pages (e.g. from a release tarball) are already distributed via the
-# BUILD_MANPAGES blocks in src/Makefile.am, so invoking the manpages target
-# here would only emit a spurious "asciidoctor required" warning.
-if HAVE_ASCIIDOCTOR
 dist-hook: version manpages
 	rm $(distdir)/src/defines.h
-else
-dist-hook: version
-	rm $(distdir)/src/defines.h
-endif
 
 DOCS_DIR = $(top_builddir)/docs
 
@@ -36,6 +30,9 @@ postweb: docs doxygen
 	cd $(DOCS_DIR) && make postweb
 
 TEST_DIR = $(top_builddir)/test
+
+autoopts:
+	cd src && make autoopts
 
 test:
 	echo Making test in $(TEST_DIR)

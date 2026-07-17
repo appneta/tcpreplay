@@ -11,6 +11,11 @@ AC_CONFIG_AUX_DIR(config)
 AM_MAINTAINER_MODE([enable])
 AM_WITH_DMALLOC
 
+dnl People building from GitHub need the same version of Autogen as I'm using
+dnl or specify --disable-local-libopts to force using the locally-installed
+dnl copy of libopts rather than the source in the `./libopts/` directory.
+MAINTAINER_AUTOGEN_VERSION=5.18.16
+
 AC_CONFIG_MACRO_DIR([m4])
 
 TCPREPLAY_VERSION=$PACKAGE_VERSION
@@ -176,19 +181,69 @@ AC_EXEEXT
 AC_PATH_PROG(PRINTF, printf)
 AC_PATH_PROG(ECHO, echo)
 AC_PATH_PROG(CUT, cut)
-AC_PATH_PROG(ASCIIDOCTOR, asciidoctor)
-
-dnl asciidoctor is used to render hand-written man pages (replacing AutoGen
-dnl for tools that have been migrated away from AutoOpts). The generated man
-dnl page is shipped in release tarballs, so asciidoctor is only required when
-dnl (re)building the man page from its .adoc source.
-AM_CONDITIONAL([HAVE_ASCIIDOCTOR], [test -n "$ASCIIDOCTOR"])
-
-AM_CONDITIONAL([BUILD_MANPAGES],
-    [test -n "$ASCIIDOCTOR" || test -f "$srcdir/src/tcpreplay.1"])
+AC_PATH_PROG(AUTOGEN, autogen)
+AC_PATH_PROG(GROFF, groff)
 AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
 AC_PATH_PROG(insmod, insmod, /sbin/insmod, $PATH:/sbin)
 AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
+
+
+dnl tcpreplay has (so far) been relying on leading-edge autogen.
+dnl Therefore, by default:
+dnl - use the version we ship with
+dnl - do not install it
+dnl - build a static copy (AC_DISABLE_SHARED - implicitly done earlier)
+case "${enable_local_libopts+set}" in
+ set) ;;
+ *) enable_local_libopts=yes ;;
+esac
+
+case "${enable_libopts_install+set}" in
+ set) ;;
+ *) enable_libopts_install=no ;;
+esac
+
+dnl check autogen version
+AUTOGEN_VERSION="unknown - man pages will not be built"
+if test -n "${AUTOGEN}" ; then
+    AC_MSG_CHECKING(for autogen version >= ${MAINTAINER_AUTOGEN_VERSION})
+    AUTOGEN_VERSION=$(${AUTOGEN} -v | ${CUT} -d' ' -f 4)
+    AUTOGEN_MAJOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 1)
+    AUTOGEN_MINOR=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 2)
+    AUTOGEN_BUILD=$(echo ${AUTOGEN_VERSION} | ${CUT} -d '.' -f 3)
+    if test -z "$AUTOGEN_BUILD"; then
+        AUTOGEN_BUILD=0
+    fi
+    if (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -eq 18 && test ${AUTOGEN_BUILD} -lt 4) ||
+            (test ${AUTOGEN_MAJOR} -eq 5 && test ${AUTOGEN_MINOR} -lt 18) ||
+            test ${AUTOGEN_MAJOR} -lt 5 ; then
+        AC_MSG_RESULT(no)
+        if test ! "x$enable_local_libopts" = "xyes"; then
+            AC_MSG_ERROR([${AUTOGEN} is too old (${AUTOGEN_VERSION}) for building from source code. Upgrade to 5.18.4 or higher])
+        fi
+        AUTOGEN_VERSION="${AUTOGEN_VERSION} - downlevel"
+    else
+        AC_MSG_RESULT(yes)
+    fi
+
+    dnl Compare the installed version with the maintainer version if building from GitHub and not using system libopts
+    if test ! -f src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
+        if test $MAINTAINER_AUTOGEN_VERSION != $AUTOGEN_VERSION ; then
+            AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)  Either install the correct version or specify --disable-local-libopts])
+        fi
+    fi
+else
+    if test ! -f src/tcpreplay_opts.c ; then
+        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION or higher if you are building from GitHub. To avoid this message download source from https://github.com/appneta/tcpreplay/releases/latest])
+    fi
+fi
+AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
+
+if test "x$enable_local_libopts" = "xyes" ; then
+    AC_MSG_NOTICE([Using included libopts tearoff])
+else
+    AC_MSG_NOTICE([Using system libopts])
+fi
 
 AC_PROG_EGREP
 AC_HEADER_MAJOR
@@ -224,7 +279,6 @@ AC_CHECK_TYPE(u_short, uint16_t)
 AC_CHECK_TYPE(u_int, uint32_t)
 AC_CHECK_TYPE(u_int32_t, uint32_t)
 AC_CHECK_TYPE(u_int64_t, uint64_t)
-AC_CHECK_SIZEOF([long])
 
 # required by C23 standard
 CFLAGS="-D_DEFAULT_SOURCE $CFLAGS"
@@ -1961,6 +2015,9 @@ else
     AC_MSG_RESULT(no)
 fi
 
+LIBOPTS_CHECK(libopts)
+
+
 AC_CONFIG_FILES([Makefile
            doxygen.cfg
            lib/Makefile
@@ -1984,6 +2041,8 @@ AC_MSG_RESULT([
 libpcap:                    ${foundpcap} (${libpcap_version})
 PF_RING libpcap             ${pf_ring_found}   ${pf_ring_lib}
 libdnet:                    ${founddnet}   ${libdnet_version}
+autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
+Use libopts tearoff:        ${enable_local_libopts}
 64bit counter support:      ${use64bit_counters}
 tcpdump binary path:        ${tcpdump_path}
 fragroute support:          ${enable_fragroute}

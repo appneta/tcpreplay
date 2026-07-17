@@ -14,6 +14,7 @@ noinst_HEADERS += \
 	%reldir%/pppserial_api.h \
 	%reldir%/pppserial_types.h
 
+EXTRA_DIST += %reldir%/pppserial_opts.def
 
 # dependencies for your plugin source code.  Edit as necessary
 pppserial.c: \
@@ -25,6 +26,7 @@ pppserial.c: \
 # Note:
 # You probably don't want to touch anything below this line until the end of the plugin
 
+DLT_STUB_DEPS += %reldir%/pppserial_opts.def
 
 MOSTLYCLEANFILES += *~
 

@@ -29,6 +29,7 @@ The file layout is pretty simple:
 
 /                    - Base directory
 /lib                 - 3rd party libraries stolen verbatim
+/libopts             - GNU AutoOpts tearoff
 /src                 - Main code routines
 /src/common          - Common routines for all binaries
 /src/tcpedit         - libtcpedit
