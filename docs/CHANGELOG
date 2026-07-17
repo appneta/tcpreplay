@@ -1,4 +1,6 @@
 Unreleased
+    - fragroute: fix build failure on macOS 13/14 from TAILQ_FOREACH_REVERSE argument-order
+      collision between bundled lib/queue.h and system <sys/queue.h> (#981, #1001)
     - tcpprep: fix buffer overflow in check_dst_port() reading TCP/UDP dest port on truncated
       packets with incomplete L4 headers (#985, #995)
     - tcprewrite: fix --enet-vlan=add silently truncating output packets by 4 bytes when

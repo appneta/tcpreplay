@@ -177,8 +177,16 @@ mod_close(void)
 {
     struct rule *rule;
 
-    TAILQ_FOREACH_REVERSE(rule, &rules, next, head)
-    {
+    /*
+     * Not using TAILQ_FOREACH_REVERSE: its (field, headname) argument order is
+     * not standardized across BSD queue.h implementations, and this file's
+     * bundled lib/queue.h can lose that macro to a system <sys/queue.h> pulled
+     * in transitively (e.g. via net/if.h on macOS), silently flipping the
+     * argument order tcpreplay was compiled against (#981). TAILQ_LAST/
+     * TAILQ_PREV/TAILQ_END have a consistent signature everywhere, so iterate
+     * with those directly instead.
+     */
+    for (rule = TAILQ_LAST(&rules, head); rule != TAILQ_END(&rules); rule = TAILQ_PREV(rule, head, next)) {
         if (rule->mod->close != NULL)
             rule->data = rule->mod->close(rule->data);
         TAILQ_REMOVE(&rules, rule, next);
