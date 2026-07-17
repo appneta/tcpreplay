@@ -1,4 +1,8 @@
 Unreleased
+    - sendpacket: fix "zc:<ifname>"-style PF_RING ZC device names failing with "ioctl: No such
+      device" - the default PF_PACKET path did a plain SIOCGIFINDEX lookup on the literal "zc:"
+      string, which the kernel doesn't recognize; route zc: devices through libpcap instead, which
+      is PF_RING-aware when built against PF_RING's patched libpcap (#913)
     - netmap: fix --netmap failing to switch the driver to bypass mode with a bogus "nm_do_ioctl:
       No such file or directory" error on real NICs (not VALE ports); a stray switch default case
       made nm_do_ioctl() report failure - and leak the ioctl socket fd - for SIOCSIFFLAGS/ethtool
