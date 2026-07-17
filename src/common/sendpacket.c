@@ -557,19 +557,21 @@ static int
 sendpacket_is_running(const char *device)
 {
     struct ifreq ifr;
-    int fd, ret;
+    int mysocket = socket(AF_INET, SOCK_DGRAM, 0);
+    int ret = -1;
 
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0)
+    if (mysocket < 0) {
         return -1;
+    }
 
     memset(&ifr, 0, sizeof(ifr));
     strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
-    ret = ioctl(fd, SIOCGIFFLAGS, &ifr);
-    close(fd);
+    ret = ioctl(mysocket, SIOCGIFFLAGS, &ifr);
+    close(mysocket);
 
-    if (ret < 0)
+    if (ret < 0) {
         return -1;
+    }
 
     return (ifr.ifr_flags & IFF_RUNNING) ? 1 : 0;
 }
