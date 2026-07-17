@@ -1,4 +1,18 @@
 Unreleased
+    - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of
+      the script, with no restore (unlike the equivalent, correctly-scoped CPPFLAGS addition a few
+      lines later) - a netmap checkout's sys/ tree mirrors a BSD kernel source layout including
+      its own sys/net/bpf.h, so later unrelated checks (e.g. the net/bpf.h feature check) could
+      pick up netmap's vendored header instead of a real system one, wrongly setting HAVE_BPF=1 on
+      Linux and causing a struct bpf_insn redefinition conflict against the system libpcap headers
+      at build time; the netmap include path is now only applied to CFLAGS once, right before
+      AC_OUTPUT, after all other detection has finished
+    - configure: drop the bare -DND passed alongside --with-netmap=DIR's CFLAGS/CPPFLAGS - netmap's
+      own netmap_user.h defines a function-like ND(...) debug-print macro guarded by #ifndef ND, but
+      a valueless -DND makes the compiler predefine ND as the literal 1, so that guard sees ND as
+      already defined and every real ND(...) call site in netmap's headers expands to 1(...),
+      "called object is not a function or function pointer" (found while verifying the fix above,
+      #1015)
     - tcpedit: fix --tcp-sequence and --portmap/-r silently having zero effect on some platforms
       (confirmed on macOS arm64) - rewrite_ipv4_tcp_sequence()/rewrite_ipv6_tcp_sequence()
       (rewrite_sequence.c) and rewrite_ipv4_ports()/rewrite_ipv6_ports() (portmap.c) computed the
