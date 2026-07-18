@@ -50,13 +50,22 @@ if(ENABLE_PCAPCONFIG AND NOT WITH_LIBPCAP)
 endif()
 
 if(NOT PCAP_FOUND)
-    # Same search prefixes as configure.ac
-    set(_pcap_prefixes /usr/local /opt/local /usr /wpdpack /usr/local/opt/libpcap)
+    # Same search prefixes as configure.ac, plus Apple Silicon homebrew
+    set(_pcap_prefixes /usr/local /opt/local /usr /wpdpack
+        /usr/local/opt/libpcap /opt/homebrew/opt/libpcap)
     if(WITH_LIBPCAP)
         set(_pcap_prefixes ${WITH_LIBPCAP})
     endif()
     if(CMAKE_OSX_SYSROOT)
         list(APPEND _pcap_prefixes ${CMAKE_OSX_SYSROOT}/usr)
+    elseif(APPLE)
+        # mirror configure.ac's xcrun SDK discovery when no sysroot was given
+        execute_process(COMMAND xcrun --show-sdk-path
+                        OUTPUT_VARIABLE _macos_sdk_path OUTPUT_STRIP_TRAILING_WHITESPACE
+                        ERROR_QUIET)
+        if(_macos_sdk_path AND IS_DIRECTORY ${_macos_sdk_path})
+            list(APPEND _pcap_prefixes ${_macos_sdk_path}/usr)
+        endif()
     endif()
 
     foreach(_prefix ${_pcap_prefixes})
