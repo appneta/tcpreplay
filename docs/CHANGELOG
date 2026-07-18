@@ -1,4 +1,14 @@
 UNRELEASED
+    - build: add CMake build support alongside autotools (#688) - mirrors configure.ac
+      feature-for-feature (every --enable-*/--with-* flag has a CMake option, mapping table in the
+      CMakeLists.txt header comment), aimed at IDE workflows (VS Code, CLion) and out-of-tree
+      developer builds; version is parsed from configure.ac's AC_INIT so there is a single source
+      of truth, *_opts.c/tcpedit_stub.h are generated with autogen at build time (release tarballs
+      with pre-generated copies build without autogen), defines.h reuses src/defines.h.in, and the
+      netmap include path is applied to build targets only, preserving the net/bpf.h shadowing fix
+      above; includes CMakePresets.json (default/debug/asan/tsan), a Linux+macOS CMake CI job, and
+      documentation in README.md and docs/INSTALL; autotools remains the canonical release build
+      and 'make test' remains autotools-driven
 
 07/18/2026 Version 4.5.3
     - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of

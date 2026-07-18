@@ -16,9 +16,20 @@ Visit http://tcpreplay.appneta.com/wiki/installation.html
 Basic Installation
 ==================
 
-    ./configure 
+    ./configure
     make
     sudo make install
+
+Alternatively, with CMake (3.16 or higher):
+
+    cmake -B build
+    cmake --build build
+    sudo cmake --install build
+
+The CMake build mirrors every `configure' option and is primarily aimed
+at IDE users (VS Code, CLion) and out-of-tree developer builds; the
+autotools build remains the canonical release build.  See "CMake
+Installation" below for details and examples.
 
 Briefly, the shell commands `./configure; make; make install' should
 configure, build, and install this package.  The following
@@ -128,6 +139,12 @@ directory, for example:
     make
     sudo make install
 
+or with CMake:
+
+    cmake -B build -DWITH_NETMAP=/home/fklassen/git/netmap
+    cmake --build build
+    sudo cmake --install build
+
 2) AF_XDF
    ------
 
@@ -157,6 +174,78 @@ configure option, e.g.
     $ make
     $ sudo make install
     $ tcpreplay -i eth0 test/test.pcap
+
+CMake Installation
+==================
+
+As of version 4.6 the suite can also be built with CMake (3.16 or
+higher).  The CMake build mirrors configure.ac feature-for-feature:
+every `--enable-FEATURE' and `--with-PACKAGE' flag has a CMake cache
+variable equivalent.  The full mapping table is in the header comment
+of the top-level CMakeLists.txt.  Summary:
+
+    ./configure flag            CMake equivalent
+    --------------------------  ----------------------------------
+    --enable-debug              -DENABLE_DEBUG=ON
+    --enable-extra-debug        -DENABLE_EXTRA_DEBUG=ON
+    --enable-asan               -DENABLE_ASAN=ON
+    --enable-tsan               -DENABLE_TSAN=ON
+    --enable-dmalloc            -DENABLE_DMALLOC=ON
+    --enable-efence             -DENABLE_EFENCE=ON
+    --enable-gprof              -DENABLE_GPROF=ON
+    --enable-pedantic           -DENABLE_PEDANTIC=ON
+    --enable-pcapconfig         -DENABLE_PCAPCONFIG=ON
+    --disable-64bits            -DENABLE_64BITS=OFF
+    --disable-tuntap            -DENABLE_TUNTAP=OFF
+    --enable-static-link        -DENABLE_STATIC_LINK=ON
+    --enable-test-hexdump       -DENABLE_TEST_HEXDUMP=ON
+    --enable-force-libxdp       -DFORCE_INJECT_LIBXDP=ON
+    (other --enable-force-*)    -DFORCE_INJECT_<METHOD>=ON
+    --with-libpcap=DIR          -DWITH_LIBPCAP=DIR
+    --with-netmap=DIR           -DWITH_NETMAP=DIR
+    --with-pfring-lib=LIB       -DWITH_PFRING_LIB=LIB
+    --with-libdnet=DIR          -DWITH_LIBDNET=DIR
+    --with-tcpdump=FILE         -DWITH_TCPDUMP=FILE
+    --with-testnic=NIC          -DWITH_TESTNIC=NIC
+    --with-testnic2=NIC         -DWITH_TESTNIC2=NIC
+    --with-macos-sdk=VER        -DCMAKE_OSX_SYSROOT=<sdk path>
+    --prefix=PREFIX             -DCMAKE_INSTALL_PREFIX=PREFIX
+
+Examples:
+
+    # standard build
+    cmake -B build
+    cmake --build build
+    sudo cmake --install build
+
+    # debug build with AddressSanitizer
+    cmake -B build-asan -DENABLE_DEBUG=ON -DENABLE_ASAN=ON
+    cmake --build build-asan
+
+    # netmap from an out-of-tree checkout, custom libpcap
+    cmake -B build -DWITH_NETMAP=/usr/local/src/netmap \
+                   -DWITH_LIBPCAP=/usr/local/opt/libpcap
+
+    # render man pages (requires GNU autogen)
+    cmake --build build --target manpages
+
+Configure presets for common configurations (default, debug, asan,
+tsan) are provided in CMakePresets.json; IDEs such as VS Code (with the
+CMake Tools extension) and CLion pick these up automatically, e.g.
+
+    cmake --preset debug
+    cmake --build --preset debug
+
+Notes:
+
+  - Building from a git checkout requires GNU autogen to generate the
+    CLI option parsers (*_opts.c); release tarballs ship pre-generated
+    copies and build without it.
+  - `make test' remains autotools-driven.  The CMake build generates
+    test/config so the test fixtures can be used, but running the test
+    suite still requires the autotools flow described above.
+  - The autotools build remains the canonical build for releases and
+    packaging.
 
 Compilers and Options
 =====================

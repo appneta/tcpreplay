@@ -94,6 +94,52 @@ make
 sudo make install
 ```
 
+Building with CMake
+-------------------
+As of version 4.6, the suite can also be built with [CMake](https://cmake.org) (3.16+).
+This is aimed at IDE users (VS Code, CLion) and fast out-of-tree developer
+builds; autotools remains the canonical release build. Building from a git
+checkout requires `autogen` (GNU AutoGen) to generate the CLI option parsers;
+release tarballs build without it.
+
+```
+cmake -B build
+cmake --build build
+sudo cmake --install build
+```
+
+Every `./configure` flag has a CMake equivalent (see the table at the top of
+`CMakeLists.txt`). Examples:
+
+```
+# debug build with support for the -d option
+cmake -B build -DENABLE_DEBUG=ON
+
+# AddressSanitizer or ThreadSanitizer build
+cmake -B build -DENABLE_ASAN=ON
+cmake -B build -DENABLE_TSAN=ON
+
+# netmap support from an out-of-tree netmap checkout
+cmake -B build -DWITH_NETMAP=/home/fklassen/git/netmap
+
+# custom libpcap install
+cmake -B build -DWITH_LIBPCAP=/usr/local/opt/libpcap
+
+# static libraries, custom tcpdump path
+cmake -B build -DENABLE_STATIC_LINK=ON -DWITH_TCPDUMP=/usr/sbin/tcpdump
+
+# force a specific packet injection method
+cmake -B build -DFORCE_INJECT_PCAP_SENDPACKET=ON
+
+# several configurations side by side
+cmake -B build-debug -DENABLE_DEBUG=ON
+cmake -B build-release
+```
+
+Handy targets: `cmake --build build --target manpages` renders the man pages
+with autogen. VS Code users with the CMake Tools extension can simply open the
+repository folder and select a configure preset when prompted.
+
 Build netmap feature
 --------------------
 This feature will detect [netmap](http://info.iet.unipi.it/~luigi/netmap/)
