@@ -32,3 +32,32 @@ jobs:
       - name: tests
         run: pushd build; sudo make test || (cat test/test.log >&2; false); popd
       - run: echo "This test's status is ${{ job.status }}."
+  cmake-build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Install prereqs (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt -y install autogen libpcap-dev libxdp-dev cmake
+      - name: Install prereqs (macOS)
+        if: runner.os == 'macOS'
+        run: brew install autogen libpcap cmake
+      - name: configure
+        run: cmake -B build-cmake -DENABLE_DEBUG=ON
+      - name: build
+        run: cmake --build build-cmake -j 4
+      - name: smoke test
+        run: |
+          build-cmake/src/tcpreplay --version
+          build-cmake/src/tcprewrite --version
+          build-cmake/src/tcpprep --version
+          build-cmake/src/tcpcapinfo --version
+          sudo build-cmake/src/tcpreplay --listnics
+      - name: verify rewrite output matches golden fixture
+        run: |
+          build-cmake/src/tcprewrite -i test/test.pcap -o portmap.pcap -r 80:8080
+          cmp portmap.pcap test/test2.rewrite_portmap
