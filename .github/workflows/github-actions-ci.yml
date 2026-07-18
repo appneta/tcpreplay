@@ -3,7 +3,10 @@ run-name: ${{ github.actor }} is running tests using GitHub Actions
 on: [push]
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
@@ -11,8 +14,12 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
       - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
-      - name: Install prereqs
+      - name: Install prereqs (Linux)
+        if: runner.os == 'Linux'
         run: sudo apt -y install autogen libpcap-dev automake autoconf libtool libxdp-dev liburing-dev
+      - name: Install prereqs (macOS)
+        if: runner.os == 'macOS'
+        run: brew install autogen libpcap automake autoconf libtool
       - name: Create a build directory
         run: mkdir -p build
       - name: Create configure script
@@ -32,6 +39,7 @@ jobs:
       - name: tests
         run: pushd build; sudo make test || (cat test/test.log >&2; false); popd
       - name: io_uring variant tests
+        if: runner.os == 'Linux'
         run: pushd build; sudo make -C test tcpreplay_io_uring || (cat test/test.log >&2; false); popd
       - run: echo "This test's status is ${{ job.status }}."
   cmake-build:
