@@ -31,6 +31,8 @@ jobs:
         run: pushd build; sudo src/tcpreplay --listnics; popd
       - name: tests
         run: pushd build; sudo make test || (cat test/test.log >&2; false); popd
+      - name: io_uring variant tests
+        run: pushd build; sudo make -C test tcpreplay_io_uring || (cat test/test.log >&2; false); popd
       - run: echo "This test's status is ${{ job.status }}."
   cmake-build:
     strategy:

@@ -49,14 +49,8 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_fixlen_pad test2.rewrite_fixlen_trunc test2.rewrite_fixlen_del \
 		test2.replay_unique_ip test2.replay_include test2.replay_exclude
 
-if COMPILE_LIBURING
-IO_URING_TESTS = tcpreplay_io_uring
-else
-IO_URING_TESTS =
-endif
-
 test: all
-all: clearlog check tcpprep tcpreplay tcprewrite $(IO_URING_TESTS)
+all: clearlog check tcpprep tcpreplay tcprewrite
 
 clearlog:
 	-rm test.log
@@ -228,11 +222,14 @@ tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate re
 	replay_config replay_multi replay_pps_multi replay_precache \
 	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
 
-# re-run the whole tcpreplay test group with the io_uring injection method
+# re-run the whole tcpreplay test group with the io_uring injection method;
+# not part of 'make test' - CI invokes it explicitly on Linux builds
+if COMPILE_LIBURING
 tcpreplay_io_uring:
 	$(PRINTF) "%s\n" "Repeating tcpreplay tests with --io-uring:"
 	$(PRINTF) "%s\n" "*** Repeating tcpreplay tests with --io-uring: " >> test.log
 	$(MAKE) tcpreplay TCPREPLAY="$(TCPREPLAY) --io-uring"
+endif
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
