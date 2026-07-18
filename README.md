@@ -157,12 +157,48 @@ Download latest and install netmap from <http://info.iet.unipi.it/~luigi/netmap/
 If you extracted netmap into **/usr/src/** or **/usr/local/src** you can build normally. Otherwise you 
 will have to specify the netmap source directory, for example:
 ```
-./configure --with-netmap=/home/fklassen/git/netmap
-make
-sudo make install
+cmake -B build -DWITH_NETMAP=/home/fklassen/git/netmap
+cmake --build build
+sudo cmake --install build
 ```
 
 You can also find netmap source [here](http://code.google.com/p/netmap/).
+
+Build AF_XDP feature
+--------------------
+This feature will detect [AF_XDP](https://www.kernel.org/doc/html/latest/networking/af_xdp.html)
+capable network drivers on Linux systems that have `libxdp-dev` and
+`libbpf-dev` installed. If detected, the `--xdp` option becomes available to
+tcpreplay and tcpreplay-edit. When selected, the network stack is bypassed
+and packets are sent directly to an eBPF enabled driver. This will allow you
+to achieve full line rates on commodity network adapters, similar to rates
+achieved by commercial network traffic generators. For example:
+
+```
+sudo apt-get install libxdp-dev libbpf-dev
+cmake -B build
+cmake --build build
+sudo cmake --install build
+sudo tcpreplay -i eth0 --xdp test.pcap
+```
+
+Build io_uring feature
+----------------------
+This feature is detected on Linux systems that have `liburing-dev` installed
+and a kernel with [io_uring](https://man7.org/linux/man-pages/man7/io_uring.7.html)
+support. If detected, the `--io-uring` option becomes available to tcpreplay
+and tcpreplay-edit. Packets are still sent through a PF_PACKET raw socket,
+but sends are submitted asynchronously through an io_uring submission queue,
+which reduces per-packet syscall overhead and lets the kernel process
+transmissions while tcpreplay prepares the next packet. For example:
+
+```
+sudo apt-get install liburing-dev
+cmake -B build
+cmake --build build
+sudo cmake --install build
+sudo tcpreplay -i eth0 --io-uring test.pcap
+```
 
 Detailed installation instructions are available in the INSTALL document in the tar ball.
 
