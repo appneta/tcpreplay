@@ -1,4 +1,4 @@
-Unreleased
+07/18/2026 Version 4.5.3
     - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of
       the script, with no restore (unlike the equivalent, correctly-scoped CPPFLAGS addition a few
       lines later) - a netmap checkout's sys/ tree mirrors a BSD kernel source layout including
