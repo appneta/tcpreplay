@@ -915,6 +915,7 @@ if test x$have_liburing = xheader ; then
         have_liburing=no
     ])
 fi
+AM_CONDITIONAL(COMPILE_LIBURING, [test x$have_liburing = xyes])
 
 ##
 ## If not automatically configured,

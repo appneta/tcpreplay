@@ -218,9 +218,16 @@ tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_mac_seed_keep rewrite_l7fuzzing rewrite_sequence rewrite_fixcsum \
 	rewrite_fixlen_pad rewrite_fixlen_trunc rewrite_fixlen_del
 
+if COMPILE_LIBURING
+IO_URING_TESTS = replay_io_uring
+else
+IO_URING_TESTS =
+endif
+
 tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate replay_top \
 	replay_config replay_multi replay_pps_multi replay_precache \
-	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
+	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip \
+	$(IO_URING_TESTS)
 
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
@@ -425,6 +432,12 @@ replay_nano_timer:
 	$(PRINTF) "%s" "[tcpreplay] Nano timer test: "
 	$(PRINTF) "%s\n" "*** [tcpreplay] Nano timer test: " >> test.log
 	$(TCPREPLAY) $(ENABLE_DEBUG) -i $(nic1) --loop=2 --loopdelay-ns=125000000 -t $(TEST_PCAP) >> test.log 2>&1
+	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
+
+replay_io_uring:
+	$(PRINTF) "%s" "[tcpreplay] io_uring test: "
+	$(PRINTF) "%s\n" "*** [tcpreplay] io_uring test: " >> test.log
+	$(TCPREPLAY) $(ENABLE_DEBUG) --io-uring -i $(nic1) -t $(TEST_PCAP) >> test.log 2>&1
 	if [ $? ] ; then $(PRINTF) "\t\t\t%s\n" "FAILED"; else $(PRINTF) "\t\t\t%s\n" "OK"; fi
 
 replay_cache:

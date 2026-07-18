@@ -6,7 +6,8 @@ UNRELEASED
       reducing per-packet syscall overhead; packets are copied into a pool of in-flight buffers
       and completions are reaped opportunistically (blocking only when the pool is exhausted), so
       timing options work unchanged; --enable-force-liburing / -DFORCE_INJECT_LIBURING=ON builds
-      a version that only uses io_uring; documented in docs/INSTALL
+      a version that only uses io_uring; 'make test' gains a replay_io_uring case when compiled
+      with liburing; documented in docs/INSTALL
     - build: add CMake build support alongside autotools (#688) - mirrors configure.ac
       feature-for-feature (every --enable-*/--with-* flag has a CMake option, mapping table in the
       CMakeLists.txt header comment), aimed at IDE workflows (VS Code, CLion) and out-of-tree
