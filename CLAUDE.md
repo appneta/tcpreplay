@@ -50,6 +50,20 @@ Useful `./configure` flags when working on specific areas:
 Requires `libpcap` (and `autogen`/AutoOpts to regenerate `*_opts.def` derived files). On Debian/Ubuntu:
 `apt install autogen libpcap-dev automake autoconf libtool`.
 
+### CMake (alternative build, since 4.6)
+
+```
+cmake -B build            # or: cmake --preset debug|asan|tsan (CMakePresets.json)
+cmake --build build
+```
+
+Mirrors configure.ac feature-for-feature; every `--enable-*`/`--with-*` flag has a CMake option
+(mapping table in the top-level `CMakeLists.txt` header comment, e.g. `-DENABLE_DEBUG=ON`,
+`-DWITH_NETMAP=DIR`). Feature detection lives in `cmake/*.cmake`; `cmake/config.h.cmake` is the
+CMake twin of `src/config.h.in` — **when adding a configure.ac check or a new config.h define, update
+the corresponding `cmake/` file too**. `*_opts.c` generation still needs `autogen` at build time.
+`make test` remains autotools-only; autotools stays the canonical release build.
+
 ## Tests
 
 ```

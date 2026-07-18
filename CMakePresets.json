@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "description": "Standard build, mirrors plain ./configure",
+      "binaryDir": "${sourceDir}/build"
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Mirrors ./configure --enable-debug (-g -O0, -d option support)",
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": { "ENABLE_DEBUG": "ON" }
+    },
+    {
+      "name": "asan",
+      "displayName": "AddressSanitizer",
+      "description": "Mirrors ./configure --enable-asan",
+      "binaryDir": "${sourceDir}/build-asan",
+      "cacheVariables": { "ENABLE_ASAN": "ON", "ENABLE_DEBUG": "ON" }
+    },
+    {
+      "name": "tsan",
+      "displayName": "ThreadSanitizer",
+      "description": "Mirrors ./configure --enable-tsan",
+      "binaryDir": "${sourceDir}/build-tsan",
+      "cacheVariables": { "ENABLE_TSAN": "ON", "ENABLE_DEBUG": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "default", "configurePreset": "default" },
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "tsan", "configurePreset": "tsan" }
+  ]
+}
