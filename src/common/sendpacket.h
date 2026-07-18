@@ -167,7 +167,15 @@ struct xsk_socket_info {
 #endif /* HAVE_LIBXDP */
 
 #ifdef HAVE_LIBURING
+/* liburing <= 2.5 unconditionally defines its own UNUSED() function-style
+ * macro, which would clobber the parameter-attribute UNUSED() from defines.h
+ * and break every declaration using it (seen with -Wfatal-errors on Ubuntu
+ * 24.04's liburing 2.5; liburing >= 2.6 no longer defines it)
+ */
+#pragma push_macro("UNUSED")
+#undef UNUSED
 #include <liburing.h>
+#pragma pop_macro("UNUSED")
 
 /* io_uring TX tuning: each packet is copied into a slot from a fixed pool of
  * URING_QUEUE_DEPTH buffers before its send is submitted, so the caller's
