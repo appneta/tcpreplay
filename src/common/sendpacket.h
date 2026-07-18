@@ -70,7 +70,8 @@ typedef enum sendpacket_type_e {
     SP_TYPE_NETMAP,
     SP_TYPE_TUNTAP,
     SP_TYPE_LIBPCAP_DUMP,
-    SP_TYPE_LIBXDP
+    SP_TYPE_LIBXDP,
+    SP_TYPE_IO_URING
 } sendpacket_type_t;
 
 /* these are the file_operations ioctls */
@@ -165,6 +166,25 @@ struct xsk_socket_info {
 };
 #endif /* HAVE_LIBXDP */
 
+#ifdef HAVE_LIBURING
+/* liburing <= 2.5 unconditionally defines its own UNUSED() function-style
+ * macro, which would clobber the parameter-attribute UNUSED() from defines.h
+ * and break every declaration using it (seen with -Wfatal-errors on Ubuntu
+ * 24.04's liburing 2.5; liburing >= 2.6 no longer defines it)
+ */
+#pragma push_macro("UNUSED")
+#undef UNUSED
+#include <liburing.h>
+#pragma pop_macro("UNUSED")
+
+/* io_uring TX tuning: each packet is copied into a slot from a fixed pool of
+ * URING_QUEUE_DEPTH buffers before its send is submitted, so the caller's
+ * packet buffer can be reused while sends are still in flight
+ */
+#define URING_QUEUE_DEPTH 256
+#define URING_SLOT_SIZE 16384
+#endif /* HAVE_LIBURING */
+
 struct sendpacket_s {
     tcpr_dir_t cache_dir;
     int open;
@@ -223,6 +243,14 @@ struct sendpacket_s {
     int frame_size;
     unsigned int tx_idx;
     int tx_size;
+#endif
+#ifdef HAVE_LIBURING
+    struct io_uring ring;
+    u_char *uring_bufs;          /* URING_QUEUE_DEPTH slots of URING_SLOT_SIZE bytes */
+    uint32_t *uring_lens;        /* per-slot in-flight packet length */
+    unsigned int *uring_free;    /* stack of free slot indexes */
+    unsigned int uring_free_top; /* number of entries in uring_free */
+    unsigned int uring_outstanding;
 #endif
     bool abort;
 };

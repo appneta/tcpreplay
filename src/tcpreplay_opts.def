@@ -736,6 +736,20 @@ EOText;
 };
 
 flag = {
+    ifdef       = HAVE_LIBURING;
+    name        = io-uring;
+    descrip     = "Send packets asynchronously via Linux io_uring";
+    doc         = <<- EOText
+This feature is available on Linux systems with a kernel that supports
+io_uring and 'liburing-dev' installed. Packets are still sent through a
+PF_PACKET raw socket, but sends are submitted asynchronously through an
+io_uring submission queue, which reduces per-packet syscall overhead and
+lets the kernel process transmissions while tcpreplay prepares the next
+packet.
+EOText;
+};
+
+flag = {
     name        = version;
     value       = V;
     descrip     = "Print version information";
@@ -799,6 +813,11 @@ flag = {
     fprintf(stderr, "Optional injection method: AF_XDP\n");
 #else
     fprintf(stderr, "Not compiled with AF_XDP\n");
+#endif
+#ifdef HAVE_LIBURING
+    fprintf(stderr, "Optional injection method: io_uring\n");
+#else
+    fprintf(stderr, "Not compiled with io_uring\n");
 #endif
     exit(0);
 

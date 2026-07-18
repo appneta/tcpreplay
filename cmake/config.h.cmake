@@ -66,6 +66,9 @@
 /* Force using libxdp for sending packets */
 #cmakedefine FORCE_INJECT_LIBXDP @FORCE_INJECT_LIBXDP@
 
+/* Force using io_uring for sending packets */
+#cmakedefine FORCE_INJECT_LIBURING @FORCE_INJECT_LIBURING@
+
 /* Force using libpcap's pcap_inject() for sending packets */
 #cmakedefine FORCE_INJECT_PCAP_INJECT @FORCE_INJECT_PCAP_INJECT@
 
@@ -258,6 +261,9 @@
 
 /* Do we have LIBXDP AF_XDP socket support? */
 #cmakedefine HAVE_LIBXDP @HAVE_LIBXDP@
+
+/* Do we have Linux io_uring support via liburing? */
+#cmakedefine HAVE_LIBURING @HAVE_LIBURING@
 
 /* Define to 1 if you have the <limits.h> header file. */
 #cmakedefine HAVE_LIMITS_H @HAVE_LIMITS_H@

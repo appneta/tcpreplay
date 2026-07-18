@@ -413,6 +413,24 @@ if(HAVE_LIBBPF_LIB AND HAVE_BPF_LIBBPF_H)
     set(HAVE_LIBBPF 1)
 endif()
 
+check_library_exists(uring io_uring_queue_init "" HAVE_LIBURING_LIB)
+if(HAVE_LIBURING_LIB)
+    set(CMAKE_REQUIRED_LIBRARIES uring)
+    check_c_source_compiles("
+#include <liburing.h>
+#include <sys/socket.h>
+int main(void) {
+    struct io_uring ring;
+    io_uring_queue_init(64, &ring, 0);
+    io_uring_queue_exit(&ring);
+    return 0;
+}" HAVE_LIBURING_COMPILES)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+endif()
+if(HAVE_LIBURING_COMPILES AND HAVE_LIBURING_LIB)
+    set(HAVE_LIBURING 1)
+endif()
+
 # ---------------------------------------------------------------------------
 # tuntap support
 # ---------------------------------------------------------------------------

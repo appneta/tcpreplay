@@ -222,6 +222,15 @@ tcpreplay: replay_basic replay_nano_timer replay_cache replay_pps replay_rate re
 	replay_config replay_multi replay_pps_multi replay_precache \
 	replay_stats replay_dualfile replay_maxsleep replay_include replay_exclude replay_unique_ip
 
+# re-run the whole tcpreplay test group with the io_uring injection method;
+# not part of 'make test' - CI invokes it explicitly on Linux builds
+if COMPILE_LIBURING
+tcpreplay_io_uring:
+	$(PRINTF) "%s\n" "Repeating tcpreplay tests with --io-uring:"
+	$(PRINTF) "%s\n" "*** Repeating tcpreplay tests with --io-uring: " >> test.log
+	$(MAKE) tcpreplay TCPREPLAY="$(TCPREPLAY) --io-uring"
+endif
+
 prep_config:
 	$(PRINTF) "%s" "[tcpprep] Config mode test: "
 	$(PRINTF) "%s\n" "*** [tcpprep] Config mode test: " >> test.log

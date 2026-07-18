@@ -175,6 +175,27 @@ configure option, e.g.
     $ sudo make install
     $ tcpreplay -i eth0 test/test.pcap
 
+3) io_uring
+   --------
+
+This feature is detected on Linux systems that have the `liburing-dev`
+package installed and a kernel with io_uring support. If detected, the
+`--io-uring` option becomes available. Packets are still sent through a
+PF_PACKET raw socket, but sends are submitted asynchronously through an
+io_uring submission queue, reducing per-packet syscall overhead. For
+example:
+
+    $ sudo apt install -y liburing-dev
+    $ ./configure | tail
+    LIBXDP for AF_XDP socket:   no
+    liburing for io_uring:      yes
+    $ make
+    $ sudo make install
+    $ tcpreplay -i eth0 --io-uring test/test.pcap
+
+If you want to compile a version that only uses io_uring, use the
+`--enable-force-liburing` configure option.
+
 CMake Installation
 ==================
 
