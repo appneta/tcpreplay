@@ -1,4 +1,11 @@
 UNRELEASED
+    - cmake: fail configure on stale pre-generated AutoOpts files in the source tree (#1020) -
+      a leftover src/*_opts.h (from an earlier in-source build or an unpacked tarball) always
+      shadows the freshly generated build-dir copy because quote-includes search the including
+      file's directory first, breaking the build with 'INDEX_OPT_* undeclared' once a new CLI
+      option is added; configure now uses up-to-date pre-generated copies wholesale (release
+      tarballs keep working) and aborts with removal instructions when they are older than
+      their .def inputs; same guard for tcpedit_stub.h
     - tcpreplay: add Linux io_uring packet injection support (#954) - new --io-uring option
       (detected at build time when liburing-dev and an io_uring-capable kernel are present;
       'liburing for io_uring' in the configure summary) sends packets through the existing

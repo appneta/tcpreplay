@@ -5,24 +5,44 @@
 # tcpedit_opts.def and plugins/dlt_stub.def (which includes every plugin's
 # *_opts.def).
 file(GLOB DLT_PLUGIN_OPTS_DEFS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*/*_opts.def)
-set(TCPEDIT_STUB_H ${CMAKE_CURRENT_BINARY_DIR}/tcpedit_stub.h)
-if(AUTOGEN_EXECUTABLE)
+set(TCPEDIT_STUB_DEPS
+    ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.def
+    ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_opts.def
+    ${CMAKE_CURRENT_SOURCE_DIR}/plugins/dlt_stub.def
+    ${CMAKE_CURRENT_SOURCE_DIR}/plugins/dlt_opts.def
+    ${DLT_PLUGIN_OPTS_DEFS})
+# like the *_opts files (see tcpr_autogen_opts in src/CMakeLists.txt), a
+# source-dir tcpedit_stub.h shadows the build-dir copy for quote-includes, so
+# it may only be used if it is current vs every .def it was generated from
+# (#1020)
+set(_insrc_stub ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.h)
+if(EXISTS ${_insrc_stub})
+    foreach(_dep ${TCPEDIT_STUB_DEPS})
+        if(${_dep} IS_NEWER_THAN ${_insrc_stub})
+            message(FATAL_ERROR
+                "Stale pre-generated ${_insrc_stub}: it is older than ${_dep} and shadows the "
+                "build-dir copy (see issue #1020). Remove it and re-run cmake:\n"
+                "  rm -f ${_insrc_stub}\n"
+                "In a git checkout, 'git clean -fx src' removes all leftover generated files.")
+        endif()
+    endforeach()
+    # up-to-date pre-generated copy (e.g. a release tarball) - use it as-is
+    set(TCPEDIT_STUB_H ${_insrc_stub})
+elseif(AUTOGEN_EXECUTABLE)
+    set(TCPEDIT_STUB_H ${CMAKE_CURRENT_BINARY_DIR}/tcpedit_stub.h)
     add_custom_command(
         OUTPUT ${TCPEDIT_STUB_H}
         COMMAND ${AUTOGEN_EXECUTABLE}
                 -L ${CMAKE_CURRENT_SOURCE_DIR}
                 -b tcpedit_stub
                 ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.def
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.def
-                ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_opts.def
-                ${CMAKE_CURRENT_SOURCE_DIR}/plugins/dlt_stub.def
-                ${CMAKE_CURRENT_SOURCE_DIR}/plugins/dlt_opts.def
-                ${DLT_PLUGIN_OPTS_DEFS}
+        DEPENDS ${TCPEDIT_STUB_DEPS}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating tcpedit_stub.h with autogen")
 else()
-    # release tarballs ship a pre-generated copy
-    set(TCPEDIT_STUB_H ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.h)
+    message(FATAL_ERROR
+        "No pre-generated tcpedit_stub.h and GNU autogen is not installed. "
+        "Install autogen if you are building from a git checkout.")
 endif()
 
 set(TCPEDIT_SOURCES
