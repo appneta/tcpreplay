@@ -22,9 +22,43 @@ set(TCPR_AUTOGEN_OPTS_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # tcpr_autogen_opts(<base> <def-file> [FLAGS ...] [DEPENDS ...])
 # Defines <base>_SOURCE pointing at the generated (or pre-generated) .c file.
+#
+# A pre-generated ${base}.h in the source directory always shadows the
+# build-dir copy: the C sources include it with #include "..." and the
+# quote-include search looks in the including file's own directory first.
+# So when source-dir copies exist (release tarballs) they are used wholesale
+# and must be up to date vs their .def inputs - generating a second copy in
+# the build dir would mix a fresh .c with a shadowing stale .h and fail with
+# 'INDEX_OPT_* undeclared' errors (#1020).
 function(tcpr_autogen_opts base def)
     cmake_parse_arguments(ARG "" "" "FLAGS;DEPENDS" ${ARGN})
-    if(AUTOGEN_EXECUTABLE)
+    set(_insrc_c ${CMAKE_CURRENT_SOURCE_DIR}/${base}.c)
+    set(_insrc_h ${CMAKE_CURRENT_SOURCE_DIR}/${base}.h)
+    if(EXISTS ${_insrc_c} OR EXISTS ${_insrc_h})
+        set(_stale "")
+        foreach(_f ${_insrc_c} ${_insrc_h})
+            if(NOT EXISTS ${_f})
+                set(_stale ${_f})
+            else()
+                foreach(_dep ${def} ${ARG_DEPENDS})
+                    if(${_dep} IS_NEWER_THAN ${_f})
+                        set(_stale ${_f})
+                    endif()
+                endforeach()
+            endif()
+        endforeach()
+        if(_stale)
+            message(FATAL_ERROR
+                "Stale pre-generated AutoOpts file in the source tree: ${_stale} is missing or "
+                "older than ${def}. Source-dir copies shadow the build-dir copies for "
+                "quote-includes and would break the build with 'INDEX_OPT_* undeclared' errors "
+                "(see issue #1020). Remove them and re-run cmake:\n"
+                "  rm -f ${_insrc_c} ${_insrc_h}\n"
+                "In a git checkout, 'git clean -fx src' removes all leftover generated files.")
+        endif()
+        # up-to-date pre-generated copies (e.g. a release tarball) - use them as-is
+        set(${base}_SOURCE ${_insrc_c} PARENT_SCOPE)
+    elseif(AUTOGEN_EXECUTABLE)
         add_custom_command(
             OUTPUT ${TCPR_AUTOGEN_OPTS_DIR}/${base}.c ${TCPR_AUTOGEN_OPTS_DIR}/${base}.h
             COMMAND ${AUTOGEN_EXECUTABLE}
@@ -37,8 +71,9 @@ function(tcpr_autogen_opts base def)
             COMMENT "Generating ${base}.c with autogen")
         set(${base}_SOURCE ${TCPR_AUTOGEN_OPTS_DIR}/${base}.c PARENT_SCOPE)
     else()
-        # release tarballs ship pre-generated copies next to the .def files
-        set(${base}_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/${base}.c PARENT_SCOPE)
+        message(FATAL_ERROR
+            "No pre-generated ${base}.c and GNU autogen is not installed. "
+            "Install autogen if you are building from a git checkout.")
     endif()
 endfunction()
 
