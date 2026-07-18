@@ -278,6 +278,20 @@ tcpreplay_post_args(tcpreplay_t *ctx, int argc)
 #endif
     }
 
+    if (HAVE_OPT(IO_URING)) {
+#ifdef HAVE_LIBURING
+        if (ctx->sp_type != SP_TYPE_NONE) {
+            tcpreplay_seterr(ctx, "%s", "--io-uring cannot be combined with --netmap or --xdp");
+            ret = -1;
+            goto out;
+        }
+        options->io_uring = 1;
+        ctx->sp_type = SP_TYPE_IO_URING;
+#else
+        err(-1, "--io-uring feature was not compiled in. See INSTALL.");
+#endif
+    }
+
     if (HAVE_OPT(UNIQUE_IP))
         options->unique_ip = 1;
 

@@ -22,7 +22,7 @@
 #   --enable-static-link      -DENABLE_STATIC_LINK=ON
 #   --enable-test-hexdump     -DENABLE_TEST_HEXDUMP=ON
 #   --enable-timestamp-trace  -DENABLE_TIMESTAMP_TRACE=ON
-#   --enable-force-*          -DFORCE_INJECT_<BPF|PF|LIBDNET|LIBXDP|PCAP_INJECT|PCAP_SENDPACKET>=ON
+#   --enable-force-*          -DFORCE_INJECT_<BPF|PF|LIBDNET|LIBXDP|LIBURING|PCAP_INJECT|PCAP_SENDPACKET>=ON
 #   --with-libpcap=DIR        -DWITH_LIBPCAP=DIR
 #   --with-netmap=DIR         -DWITH_NETMAP=DIR
 #   --with-pfring-lib=LIB     -DWITH_PFRING_LIB=LIB
@@ -69,6 +69,7 @@ option(FORCE_INJECT_BPF "Force using BPF for sending packets" OFF)
 option(FORCE_INJECT_PF "Force using Linux's PF_PACKET for sending packets" OFF)
 option(FORCE_INJECT_LIBDNET "Force using libdnet for sending packets" OFF)
 option(FORCE_INJECT_LIBXDP "Force using libxdp for sending packets" OFF)
+option(FORCE_INJECT_LIBURING "Force using io_uring for sending packets" OFF)
 option(FORCE_INJECT_PCAP_INJECT "Force using libpcap's pcap_inject()" OFF)
 option(FORCE_INJECT_PCAP_SENDPACKET "Force using libpcap's pcap_sendpacket()" OFF)
 
@@ -181,7 +182,7 @@ else()
 endif()
 
 foreach(_force FORCE_INJECT_BPF FORCE_INJECT_PF FORCE_INJECT_LIBDNET FORCE_INJECT_LIBXDP
-        FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET)
+        FORCE_INJECT_LIBURING FORCE_INJECT_PCAP_INJECT FORCE_INJECT_PCAP_SENDPACKET)
     if(${_force})
         set(${_force} 1)
     else()
@@ -268,6 +269,9 @@ if(HAVE_LIBBPF)
 endif()
 if(HAVE_LIBXDP)
     list(APPEND TCPR_SYSTEM_LIBS xdp)
+endif()
+if(HAVE_LIBURING)
+    list(APPEND TCPR_SYSTEM_LIBS uring)
 endif()
 
 # Make sure we have a valid packet injection mechanism
@@ -412,6 +416,7 @@ message(STATUS "pcap_netmap:                ${HAVE_LIBPCAP_NETMAP}")
 message(STATUS "Linux/BSD netmap:           ${HAVE_NETMAP} ${NETMAP_INCLUDE_DIR}")
 message(STATUS "Tuntap device support:      ${HAVE_TUNTAP}")
 message(STATUS "LIBXDP for AF_XDP socket:   ${HAVE_LIBXDP}")
+message(STATUS "liburing for io_uring:      ${HAVE_LIBURING}")
 message(STATUS "")
 message(STATUS "* In order of preference; see options in CMakeLists.txt to override")
 message(STATUS "** Required for tcpbridge")

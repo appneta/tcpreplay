@@ -576,6 +576,10 @@ AC_ARG_ENABLE(force-libxdp,
     AS_HELP_STRING([--enable-force-libxdp],[Force using libxdp for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_LIBXDP], [1], [Force using libxdp for sending packets])])
 
+AC_ARG_ENABLE(force-liburing,
+    AS_HELP_STRING([--enable-force-liburing],[Force using io_uring for sending packets]),
+    [ AC_DEFINE([FORCE_INJECT_LIBURING], [1], [Force using io_uring for sending packets])])
+
 AC_ARG_ENABLE(force-inject,
     AS_HELP_STRING([--enable-force-inject],[Force using libpcap's pcap_inject() for sending packets]),
     [ AC_DEFINE([FORCE_INJECT_PCAP_INJECT],[1], [Force using libpcap's pcap_inject() for sending packets])])
@@ -883,6 +887,34 @@ AC_CHECK_LIB(bpf, bpf_object__open_file,,
 
 AC_CHECK_LIB(xdp, xsk_umem__delete,,
         [AC_MSG_NOTICE([Unable to find libxdp library ])])
+
+have_liburing=no
+dnl Check for Linux io_uring packet sending support (requires liburing)
+AC_MSG_CHECKING(for io_uring packet sending support)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <liburing.h>
+#include <sys/socket.h>
+]], [[
+    struct io_uring ring;
+    io_uring_queue_init(64, &ring, 0);
+    io_uring_queue_exit(&ring);
+]])],[
+    AC_MSG_RESULT(yes)
+    have_liburing=header
+],[
+    AC_MSG_RESULT(no)
+])
+if test x$have_liburing = xheader ; then
+    AC_CHECK_LIB(uring, io_uring_queue_init, [
+        AC_DEFINE([HAVE_LIBURING], [1],
+                [Do we have Linux io_uring support via liburing?])
+        LIBS="-luring $LIBS"
+        have_liburing=yes
+    ],[
+        AC_MSG_NOTICE([Unable to find liburing library])
+        have_liburing=no
+    ])
+fi
 
 ##
 ## If not automatically configured,
@@ -2078,6 +2110,7 @@ pcap_netmap                 ${have_pcap_netmap}
 Linux/BSD netmap:           ${have_netmap}
 Tuntap device support:      ${have_tuntap}
 LIBXDP for AF_XDP socket:   ${have_libxdp}
+liburing for io_uring:      ${have_liburing}
 
 * In order of preference; see configure --help to override
 ** Required for tcpbridge

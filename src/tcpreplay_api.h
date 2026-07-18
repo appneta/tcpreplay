@@ -158,6 +158,10 @@ typedef struct tcpreplay_opt_s {
     int xdp;
 #endif
 
+#ifdef HAVE_LIBURING
+    int io_uring;
+#endif
+
     /* print flow statistic */
     bool flow_stats;
     int flow_expiry;

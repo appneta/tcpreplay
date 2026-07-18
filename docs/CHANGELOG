@@ -1,4 +1,12 @@
 UNRELEASED
+    - tcpreplay: add Linux io_uring packet injection support (#954) - new --io-uring option
+      (detected at build time when liburing-dev and an io_uring-capable kernel are present;
+      'liburing for io_uring' in the configure summary) sends packets through the existing
+      PF_PACKET raw socket but submits them asynchronously via an io_uring submission queue,
+      reducing per-packet syscall overhead; packets are copied into a pool of in-flight buffers
+      and completions are reaped opportunistically (blocking only when the pool is exhausted), so
+      timing options work unchanged; --enable-force-liburing / -DFORCE_INJECT_LIBURING=ON builds
+      a version that only uses io_uring; documented in docs/INSTALL
     - build: add CMake build support alongside autotools (#688) - mirrors configure.ac
       feature-for-feature (every --enable-*/--with-* flag has a CMake option, mapping table in the
       CMakeLists.txt header comment), aimed at IDE workflows (VS Code, CLion) and out-of-tree

@@ -66,6 +66,7 @@
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
 #undef HAVE_LIBXDP
+#undef HAVE_LIBURING
 #endif
 
 #ifdef FORCE_INJECT_PF_PACKET
@@ -75,6 +76,7 @@
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
 #undef HAVE_LIBXDP
+#undef HAVE_LIBURING
 #endif
 
 #ifdef FORCE_INJECT_LIBDNET
@@ -84,6 +86,7 @@
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
 #undef HAVE_LIBXDP
+#undef HAVE_LIBURING
 #endif
 
 #ifdef FORCE_INJECT_BPF
@@ -93,6 +96,7 @@
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_PF_PACKET
 #undef HAVE_LIBXDP
+#undef HAVE_LIBURING
 #endif
 
 #ifdef FORCE_INJECT_PCAP_INJECT
@@ -102,6 +106,7 @@
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
 #undef HAVE_LIBXDP
+#undef HAVE_LIBURING
 #endif
 
 #ifdef FORCE_INJECT_PCAP_SENDPACKET
@@ -111,6 +116,7 @@
 #undef HAVE_BPF
 #undef HAVE_PF_PACKET
 #undef HAVE_LIBXDP
+#undef HAVE_LIBURING
 #endif
 
 #ifdef FORCE_INJECT_LIBXDP
@@ -120,6 +126,17 @@
 #undef HAVE_PCAP_INJECT
 #undef HAVE_PCAP_SENDPACKET
 #undef HAVE_BPF
+#undef HAVE_LIBURING
+#endif
+
+#ifdef FORCE_INJECT_LIBURING
+#undef HAVE_TX_RING
+#undef HAVE_LIBDNET
+#undef HAVE_PF_PACKET
+#undef HAVE_PCAP_INJECT
+#undef HAVE_PCAP_SENDPACKET
+#undef HAVE_BPF
+#undef HAVE_LIBXDP
 #endif
 
 #if (defined HAVE_WINPCAP && defined HAVE_PCAP_INJECT)
@@ -127,8 +144,8 @@
 #endif
 
 #if !defined HAVE_PCAP_INJECT && !defined HAVE_PCAP_SENDPACKET && !defined HAVE_LIBDNET && !defined HAVE_PF_PACKET &&  \
-        !defined HAVE_BPF && !defined TX_RING && !defined HAVE_LIBXDP
-#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING/AF_XDP with libxdp or *BSD's BPF
+        !defined HAVE_BPF && !defined TX_RING && !defined HAVE_LIBXDP && !defined HAVE_LIBURING
+#error You need pcap_inject() or pcap_sendpacket() from libpcap, libdnet, Linux's PF_PACKET/TX_RING/AF_XDP with libxdp/io_uring with liburing or *BSD's BPF
 #endif
 
 #ifdef HAVE_SYS_PARAM_H
@@ -233,6 +250,19 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_libxdp(sendpacket_t *);
 #if defined HAVE_LIBXDP && !defined INJECT_METHOD
 #undef INJECT_METHOD
 #define INJECT_METHOD "xsk_ring_prod_submit()"
+#endif
+#ifdef HAVE_LIBURING
+#include <net/if_arp.h>
+#include <netinet/in.h>
+#include <netpacket/packet.h>
+static sendpacket_t *sendpacket_open_io_uring(const char *, char *) _U_;
+static struct tcpr_ether_addr *sendpacket_get_hwaddr_io_uring(sendpacket_t *) _U_;
+static void sendpacket_uring_process_cqe(sendpacket_t *, struct io_uring_cqe *);
+static int sendpacket_send_io_uring(sendpacket_t *, const u_char *, size_t);
+#endif
+#if defined HAVE_LIBURING && !defined INJECT_METHOD
+#undef INJECT_METHOD
+#define INJECT_METHOD "io_uring send()"
 #endif
 static sendpacket_t *sendpacket_open_pcap_dump(const char *, char *) _U_;
 static void sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...);
@@ -512,6 +542,11 @@ TRY_SEND_AGAIN:
         sp->sent += sp->pckt_count;
 #endif
         break;
+    case SP_TYPE_IO_URING:
+#ifdef HAVE_LIBURING
+        retcode = sendpacket_send_io_uring(sp, data, len);
+#endif
+        break;
     default:
         errx(-1, "Unsupported sp->handle_type = %d", sp->handle_type);
     } /* end case */
@@ -651,8 +686,15 @@ sendpacket_open(const char *device,
                 sp = sendpacket_open_xsk(device, errbuf);
             else
 #endif
+#ifdef HAVE_LIBURING
+                    if (sendpacket_type == SP_TYPE_IO_URING)
+                sp = sendpacket_open_io_uring(device, errbuf);
+            else
+#endif
 #if defined HAVE_PF_PACKET
                 sp = sendpacket_open_pf(device, errbuf);
+#elif defined HAVE_LIBURING
+            sp = sendpacket_open_io_uring(device, errbuf);
 #elif defined HAVE_BPF
                 sp = sendpacket_open_bpf(device, errbuf);
 #elif defined HAVE_LIBDNET
@@ -685,6 +727,7 @@ sendpacket_open(const char *device,
         case SP_TYPE_LIBDNET:
         case SP_TYPE_LIBPCAP:
         case SP_TYPE_LIBXDP:
+        case SP_TYPE_IO_URING:
             if (sendpacket_is_running(sp->device) == 0) {
                 warnx("WARNING: %s has no carrier (cable unplugged or link down). Packets will "
                       "appear to send successfully but will not reach the wire.",
@@ -810,6 +853,22 @@ sendpacket_close(sendpacket_t *sp)
         safe_free(sp->umem_info);
 #endif
         break;
+    case SP_TYPE_IO_URING:
+#ifdef HAVE_LIBURING
+    {
+        struct io_uring_cqe *cqe;
+        /* wait for any in-flight sends to finish before tearing down the ring */
+        while (sp->uring_outstanding > 0 && io_uring_wait_cqe(&sp->ring, &cqe) == 0) {
+            sendpacket_uring_process_cqe(sp, cqe);
+        }
+        io_uring_queue_exit(&sp->ring);
+        safe_free(sp->uring_bufs);
+        safe_free(sp->uring_lens);
+        safe_free(sp->uring_free);
+        close(sp->handle.fd);
+    }
+#endif
+    break;
     case SP_TYPE_NONE:
         err(-1, "no injector selected!");
     }
@@ -840,6 +899,8 @@ sendpacket_get_hwaddr(sendpacket_t *sp)
         addr = sendpacket_get_hwaddr_pf(sp);
 #elif defined HAVE_LIBXDP
         addr = sendpacket_get_hwaddr_libxdp(sp);
+#elif defined HAVE_LIBURING
+        addr = sendpacket_get_hwaddr_io_uring(sp);
 #elif defined HAVE_BPF
         addr = sendpacket_get_hwaddr_bpf(sp);
 #elif defined HAVE_LIBDNET
@@ -1405,6 +1466,7 @@ sendpacket_get_dlt(sendpacket_t *sp)
     case SP_TYPE_NETMAP:
     case SP_TYPE_TUNTAP:
     case SP_TYPE_LIBXDP:
+    case SP_TYPE_IO_URING:
     case SP_TYPE_LIBPCAP_DUMP:
         /* always EN10MB */
         return dlt;
@@ -1445,6 +1507,8 @@ sendpacket_get_method(sendpacket_t *sp)
         return "khial";
     } else if (sp->handle_type == SP_TYPE_NETMAP) {
         return "netmap";
+    } else if (sp->handle_type == SP_TYPE_IO_URING) {
+        return "io_uring send()";
     } else {
         return INJECT_METHOD;
     }
@@ -1662,3 +1726,266 @@ sendpacket_get_hwaddr_libxdp(sendpacket_t *sp)
     return (&sp->ether);
 }
 #endif /* HAVE_LIBXDP */
+
+#ifdef HAVE_LIBURING
+/**
+ * Inner sendpacket_open() method for sending via io_uring (#954).  Packets go
+ * out over a PF_PACKET raw socket, but sends are submitted asynchronously
+ * through a liburing submission queue so the kernel processes them while
+ * userspace prepares the next packet.
+ */
+static sendpacket_t *
+sendpacket_open_io_uring(const char *device, char *errbuf)
+{
+    int mysocket;
+    sendpacket_t *sp;
+    struct ifreq ifr;
+    struct sockaddr_ll sa;
+    int err, ret;
+    socklen_t errlen = sizeof(err);
+    unsigned int i;
+#ifdef SO_BROADCAST
+    int n = 1;
+#endif
+
+    assert(device);
+    assert(errbuf);
+
+    dbg(1, "sendpacket: using io_uring over PF_PACKET");
+
+    memset(&sa, 0, sizeof(sa));
+
+    /* open our socket */
+    if ((mysocket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "socket: %s", strerror(errno));
+        return NULL;
+    }
+
+    /* get the interface id for the device */
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
+    if (ioctl(mysocket, SIOCGIFINDEX, &ifr) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "ioctl: %s", strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+    sa.sll_ifindex = ifr.ifr_ifindex;
+
+    /* bind socket to our interface id */
+    sa.sll_family = AF_PACKET;
+    sa.sll_protocol = htons(ETH_P_ALL);
+    if (bind(mysocket, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "bind error: %s", strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+
+    /* check for errors, network down, etc... */
+    if (getsockopt(mysocket, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening %s: %s", device, strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+
+    if (err > 0) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "error opening %s: %s", device, strerror(err));
+        close(mysocket);
+        return NULL;
+    }
+
+    /* get hardware type for our interface */
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
+
+    if (ioctl(mysocket, SIOCGIFHWADDR, &ifr) < 0) {
+        close(mysocket);
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Error getting hardware type: %s", strerror(errno));
+        return NULL;
+    }
+
+    if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
+        warnx("Unsupported physical layer type 0x%04x on %s.  Maybe it works, maybe it won't."
+              "  See tickets #123/318",
+              ifr.ifr_hwaddr.sa_family,
+              device);
+    }
+
+#ifdef SO_BROADCAST
+    if (setsockopt(mysocket, SOL_SOCKET, SO_BROADCAST, &n, sizeof(n)) == -1) {
+        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "SO_BROADCAST: %s", strerror(errno));
+        close(mysocket);
+        return NULL;
+    }
+#endif /* SO_BROADCAST */
+
+    /* prep & return our sp handle */
+    sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
+
+    if ((ret = io_uring_queue_init(URING_QUEUE_DEPTH, &sp->ring, 0)) < 0) {
+        snprintf(errbuf,
+                 SENDPACKET_ERRBUF_SIZE,
+                 "io_uring_queue_init: %s. Check your kernel supports io_uring "
+                 "(and that it is not disabled via sysctl kernel.io_uring_disabled).",
+                 strerror(-ret));
+        close(mysocket);
+        safe_free(sp);
+        return NULL;
+    }
+
+    sp->uring_bufs = (u_char *)safe_malloc((size_t)URING_QUEUE_DEPTH * URING_SLOT_SIZE);
+    sp->uring_lens = (uint32_t *)safe_malloc(URING_QUEUE_DEPTH * sizeof(uint32_t));
+    sp->uring_free = (unsigned int *)safe_malloc(URING_QUEUE_DEPTH * sizeof(unsigned int));
+    for (i = 0; i < URING_QUEUE_DEPTH; i++) {
+        sp->uring_free[i] = i;
+    }
+    sp->uring_free_top = URING_QUEUE_DEPTH;
+    sp->uring_outstanding = 0;
+
+    strlcpy(sp->device, device, sizeof(sp->device));
+    sp->handle.fd = mysocket;
+    sp->handle_type = SP_TYPE_IO_URING;
+    return sp;
+}
+
+/**
+ * Handle one io_uring completion: recycle the buffer slot, or resubmit it on
+ * EAGAIN/ENOBUFS (the slot still holds the packet).  Since sendpacket()
+ * already counted the packet as sent when the send was queued, a completion
+ * that failed for good has to undo that accounting.
+ */
+static void
+sendpacket_uring_process_cqe(sendpacket_t *sp, struct io_uring_cqe *cqe)
+{
+    unsigned int slot = (unsigned int)(uintptr_t)io_uring_cqe_get_data(cqe);
+    int res = cqe->res;
+
+    io_uring_cqe_seen(&sp->ring, cqe);
+
+    if (res == -EAGAIN || res == -ENOBUFS) {
+        struct io_uring_sqe *sqe = io_uring_get_sqe(&sp->ring);
+
+        if (res == -EAGAIN) {
+            sp->retry_eagain++;
+        } else {
+            sp->retry_enobufs++;
+        }
+
+        if (sqe != NULL) {
+            io_uring_prep_send(sqe,
+                               sp->handle.fd,
+                               sp->uring_bufs + (size_t)slot * URING_SLOT_SIZE,
+                               sp->uring_lens[slot],
+                               0);
+            io_uring_sqe_set_data(sqe, (void *)(uintptr_t)slot);
+            io_uring_submit(&sp->ring);
+            return; /* slot is in flight again */
+        }
+        /* no free SQE - treat as a full-blown failure below */
+    }
+
+    sp->uring_outstanding--;
+    if (res < 0) {
+        sp->sent--;
+        sp->bytes_sent -= sp->uring_lens[slot];
+        sp->failed++;
+        sendpacket_seterr(sp, "io_uring send error: %s", strerror(-res));
+    }
+    sp->uring_free[sp->uring_free_top++] = slot;
+}
+
+/**
+ * Queue one packet for async transmission.  Completions are reaped
+ * opportunistically; we only block when every buffer slot is in flight.
+ * Returns len on success (packet queued) or -1 on error.
+ */
+static int
+sendpacket_send_io_uring(sendpacket_t *sp, const u_char *data, size_t len)
+{
+    struct io_uring_cqe *cqe;
+    struct io_uring_sqe *sqe;
+    unsigned int slot;
+    int ret;
+
+    if (len > URING_SLOT_SIZE) {
+        sendpacket_seterr(sp, "io_uring: packet of %zu bytes exceeds %d byte send buffer", len, URING_SLOT_SIZE);
+        return -1;
+    }
+
+    /* reap whatever completions are already there, without blocking */
+    while (io_uring_peek_cqe(&sp->ring, &cqe) == 0) {
+        sendpacket_uring_process_cqe(sp, cqe);
+    }
+
+    /* all buffer slots in flight?  wait for one to complete */
+    while (sp->uring_free_top == 0) {
+        if ((ret = io_uring_wait_cqe(&sp->ring, &cqe)) < 0) {
+            if (ret == -EINTR) {
+                continue;
+            }
+            sendpacket_seterr(sp, "io_uring_wait_cqe: %s", strerror(-ret));
+            return -1;
+        }
+        sendpacket_uring_process_cqe(sp, cqe);
+    }
+
+    slot = sp->uring_free[--sp->uring_free_top];
+    memcpy(sp->uring_bufs + (size_t)slot * URING_SLOT_SIZE, data, len);
+    sp->uring_lens[slot] = (uint32_t)len;
+
+    /* queue depth == slot count, so a free slot implies a free SQE */
+    sqe = io_uring_get_sqe(&sp->ring);
+    if (sqe == NULL) {
+        sp->uring_free_top++;
+        sendpacket_seterr(sp, "io_uring: submission queue unexpectedly full");
+        return -1;
+    }
+    io_uring_prep_send(sqe, sp->handle.fd, sp->uring_bufs + (size_t)slot * URING_SLOT_SIZE, len, 0);
+    io_uring_sqe_set_data(sqe, (void *)(uintptr_t)slot);
+
+    if ((ret = io_uring_submit(&sp->ring)) < 0) {
+        sp->uring_free_top++;
+        sendpacket_seterr(sp, "io_uring_submit: %s", strerror(-ret));
+        return -1;
+    }
+    sp->uring_outstanding++;
+
+    return (int)len;
+}
+
+/**
+ * gets the hardware address when the PF_PACKET helper is compiled out
+ * (e.g. --enable-force-liburing builds)
+ */
+static _U_ struct tcpr_ether_addr *
+sendpacket_get_hwaddr_io_uring(sendpacket_t *sp)
+{
+    struct ifreq ifr;
+    int fd;
+
+    assert(sp);
+
+    if (!sp->open) {
+        sendpacket_seterr(sp, "Unable to get hardware address on un-opened sendpacket handle");
+        return NULL;
+    }
+
+    /* create dummy socket for ioctl */
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        sendpacket_seterr(sp, "Unable to open dummy socket for get_hwaddr: %s", strerror(errno));
+        return NULL;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFHWADDR, (int8_t *)&ifr) < 0) {
+        close(fd);
+        sendpacket_seterr(sp, "Error getting hardware address: %s", strerror(errno));
+        return NULL;
+    }
+
+    memcpy(&sp->ether, &ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+    close(fd);
+    return (&sp->ether);
+}
+#endif /* HAVE_LIBURING */
