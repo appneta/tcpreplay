@@ -101,8 +101,9 @@ As of version 4.6, the suite can also be built with [CMake](https://cmake.org) (
 autotools build (`./configure` / automake) is still provided and used for
 release tarballs, but it will be retired in a future release, so new
 scripts and packaging should use CMake. Building from a git checkout
-requires `autogen` (GNU AutoGen) to generate the CLI option parsers;
-release tarballs build without it.
+no longer requires `autogen` (GNU AutoGen): the generated CLI option
+parsers and man pages are committed, and autogen (which is EOL) is only
+needed to regenerate them after editing a `.def` file.
 
 ```
 cmake -B build

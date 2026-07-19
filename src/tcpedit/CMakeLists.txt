@@ -11,38 +11,39 @@ set(TCPEDIT_STUB_DEPS
     ${CMAKE_CURRENT_SOURCE_DIR}/plugins/dlt_stub.def
     ${CMAKE_CURRENT_SOURCE_DIR}/plugins/dlt_opts.def
     ${DLT_PLUGIN_OPTS_DEFS})
-# like the *_opts files (see tcpr_autogen_opts in src/CMakeLists.txt), a
-# source-dir tcpedit_stub.h shadows the build-dir copy for quote-includes, so
-# it may only be used if it is current vs every .def it was generated from
-# (#1020)
-set(_insrc_stub ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.h)
-if(EXISTS ${_insrc_stub})
+# tcpedit_stub.h is committed like the *_opts files (#895); regenerate in the
+# source tree at configure time when a .def it was generated from is newer
+set(TCPEDIT_STUB_H ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.h)
+# strictly-newer comparison (like make): IS_NEWER_THAN treats equal
+# timestamps as newer, which a fresh git checkout produces for every file
+set(_stub_stale FALSE)
+if(NOT EXISTS ${TCPEDIT_STUB_H})
+    set(_stub_stale TRUE)
+else()
+    file(TIMESTAMP ${TCPEDIT_STUB_H} _stub_ts "%s" UTC)
     foreach(_dep ${TCPEDIT_STUB_DEPS})
-        if(${_dep} IS_NEWER_THAN ${_insrc_stub})
-            message(FATAL_ERROR
-                "Stale pre-generated ${_insrc_stub}: it is older than ${_dep} and shadows the "
-                "build-dir copy (see issue #1020). Remove it and re-run cmake:\n"
-                "  rm -f ${_insrc_stub}\n"
-                "In a git checkout, 'git clean -fx src' removes all leftover generated files.")
+        file(TIMESTAMP ${_dep} _dep_ts "%s" UTC)
+        if(_dep_ts GREATER _stub_ts)
+            set(_stub_stale TRUE)
         endif()
     endforeach()
-    # up-to-date pre-generated copy (e.g. a release tarball) - use it as-is
-    set(TCPEDIT_STUB_H ${_insrc_stub})
-elseif(AUTOGEN_EXECUTABLE)
-    set(TCPEDIT_STUB_H ${CMAKE_CURRENT_BINARY_DIR}/tcpedit_stub.h)
-    add_custom_command(
-        OUTPUT ${TCPEDIT_STUB_H}
-        COMMAND ${AUTOGEN_EXECUTABLE}
-                -L ${CMAKE_CURRENT_SOURCE_DIR}
-                -b tcpedit_stub
-                ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.def
-        DEPENDS ${TCPEDIT_STUB_DEPS}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating tcpedit_stub.h with autogen")
-else()
-    message(FATAL_ERROR
-        "No pre-generated tcpedit_stub.h and GNU autogen is not installed. "
-        "Install autogen if you are building from a git checkout.")
+endif()
+if(_stub_stale)
+    if(AUTOGEN_EXECUTABLE)
+        message(STATUS "Regenerating tcpedit_stub.h with autogen")
+        execute_process(
+            COMMAND ${AUTOGEN_EXECUTABLE} tcpedit_stub.def
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            RESULT_VARIABLE _rc)
+        if(NOT _rc EQUAL 0)
+            message(FATAL_ERROR "autogen failed regenerating tcpedit_stub.h")
+        endif()
+    else()
+        message(FATAL_ERROR
+            "tcpedit_stub.h is missing or older than its .def inputs, and GNU autogen is not "
+            "installed. Install autogen to regenerate it, or if the .def content is unchanged "
+            "refresh the timestamp:\n  touch src/tcpedit/tcpedit_stub.h")
+    endif()
 endif()
 
 set(TCPEDIT_SOURCES

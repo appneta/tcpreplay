@@ -19,7 +19,7 @@ jobs:
         run: sudo apt -y install autogen libpcap-dev automake autoconf libtool libxdp-dev liburing-dev
       - name: Install prereqs (macOS)
         if: runner.os == 'macOS'
-        run: brew install autogen libpcap automake autoconf libtool
+        run: brew install libpcap automake autoconf libtool
       - name: Create a build directory
         run: mkdir -p build
       - name: Create configure script
@@ -41,6 +41,9 @@ jobs:
       - name: io_uring variant tests
         if: runner.os == 'Linux'
         run: pushd build; sudo make -C test tcpreplay_io_uring || (cat test/test.log >&2; false); popd
+      - name: verify committed AutoOpts output is current
+        if: runner.os == 'Linux'
+        run: ./scripts/check-generated-opts.sh
       - run: echo "This test's status is ${{ job.status }}."
   cmake-build:
     strategy:
@@ -52,10 +55,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Install prereqs (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt -y install autogen libpcap-dev libxdp-dev liburing-dev cmake
+        run: sudo apt -y install libpcap-dev libxdp-dev liburing-dev cmake
       - name: Install prereqs (macOS)
         if: runner.os == 'macOS'
-        run: brew install autogen libpcap cmake
+        run: brew install libpcap cmake
       - name: configure
         run: cmake -B build-cmake -DENABLE_DEBUG=ON
       - name: build

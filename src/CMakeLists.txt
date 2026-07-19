@@ -17,77 +17,61 @@ endif()
 # ---------------------------------------------------------------------------
 # AutoOpts code generation (*_opts.def → *_opts.c/h)
 # ---------------------------------------------------------------------------
-# Search path matches src/Makefile.am's `opts_list = -L tcpedit`.
+# The generated files are committed to git and shipped in tarballs (#895):
+# GNU autogen is EOL, so it is only needed to REGENERATE them after a .def
+# changes.  Regeneration happens here at configure time, in the source tree,
+# so the build graph never runs autogen (and cannot race on its outputs).
 set(TCPR_AUTOGEN_OPTS_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # tcpr_autogen_opts(<base> <def-file> [FLAGS ...] [DEPENDS ...])
-# Defines <base>_SOURCE pointing at the generated (or pre-generated) .c file.
-#
-# A pre-generated ${base}.h in the source directory always shadows the
-# build-dir copy: the C sources include it with #include "..." and the
-# quote-include search looks in the including file's own directory first.
-# So when source-dir copies exist (release tarballs) they are used wholesale
-# and must be up to date vs their .def inputs - generating a second copy in
-# the build dir would mix a fresh .c with a shadowing stale .h and fail with
-# 'INDEX_OPT_* undeclared' errors (#1020).
+# Defines <base>_SOURCE pointing at the committed (possibly just-regenerated)
+# .c file in the source tree.
 function(tcpr_autogen_opts base def)
     cmake_parse_arguments(ARG "" "" "FLAGS;DEPENDS" ${ARGN})
-    set(_insrc_c ${CMAKE_CURRENT_SOURCE_DIR}/${base}.c)
-    set(_insrc_h ${CMAKE_CURRENT_SOURCE_DIR}/${base}.h)
-    if(EXISTS ${_insrc_c} OR EXISTS ${_insrc_h})
-        set(_stale "")
-        foreach(_f ${_insrc_c} ${_insrc_h})
-            if(NOT EXISTS ${_f})
-                set(_stale ${_f})
-            else()
-                foreach(_dep ${def} ${ARG_DEPENDS})
-                    if(${_dep} IS_NEWER_THAN ${_f})
-                        set(_stale ${_f})
-                    endif()
-                endforeach()
-            endif()
-        endforeach()
-        if(_stale)
-            message(FATAL_ERROR
-                "Stale pre-generated AutoOpts file in the source tree: ${_stale} is missing or "
-                "older than ${def}. Source-dir copies shadow the build-dir copies for "
-                "quote-includes and would break the build with 'INDEX_OPT_* undeclared' errors "
-                "(see issue #1020). Remove them and re-run cmake:\n"
-                "  rm -f ${_insrc_c} ${_insrc_h}\n"
-                "In a git checkout, 'git clean -fx src' removes all leftover generated files.")
+    set(_out_c ${CMAKE_CURRENT_SOURCE_DIR}/${base}.c)
+    set(_out_h ${CMAKE_CURRENT_SOURCE_DIR}/${base}.h)
+    # strictly-newer comparison (like make): IS_NEWER_THAN treats equal
+    # timestamps as newer, which a fresh git checkout produces for every file
+    set(_stale FALSE)
+    foreach(_f ${_out_c} ${_out_h})
+        if(NOT EXISTS ${_f})
+            set(_stale TRUE)
+        else()
+            file(TIMESTAMP ${_f} _f_ts "%s" UTC)
+            foreach(_dep ${def} ${ARG_DEPENDS})
+                file(TIMESTAMP ${_dep} _dep_ts "%s" UTC)
+                if(_dep_ts GREATER _f_ts)
+                    set(_stale TRUE)
+                endif()
+            endforeach()
         endif()
-        # up-to-date pre-generated copies (e.g. a release tarball) - use them as-is
-        set(${base}_SOURCE ${_insrc_c} PARENT_SCOPE)
-    elseif(AUTOGEN_EXECUTABLE)
-        add_custom_command(
-            OUTPUT ${TCPR_AUTOGEN_OPTS_DIR}/${base}.c ${TCPR_AUTOGEN_OPTS_DIR}/${base}.h
-            COMMAND ${AUTOGEN_EXECUTABLE}
-                    -L ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit
-                    ${ARG_FLAGS}
-                    -b ${base}
-                    ${def}
-            DEPENDS ${def} ${ARG_DEPENDS}
-            WORKING_DIRECTORY ${TCPR_AUTOGEN_OPTS_DIR}
-            COMMENT "Generating ${base}.c with autogen")
-        set(${base}_SOURCE ${TCPR_AUTOGEN_OPTS_DIR}/${base}.c PARENT_SCOPE)
-    else()
-        message(FATAL_ERROR
-            "No pre-generated ${base}.c and GNU autogen is not installed. "
-            "Install autogen if you are building from a git checkout.")
+    endforeach()
+    if(_stale)
+        if(AUTOGEN_EXECUTABLE)
+            message(STATUS "Regenerating ${base}.c/h with autogen")
+            get_filename_component(_defname ${def} NAME)
+            execute_process(
+                COMMAND ${AUTOGEN_EXECUTABLE} -L tcpedit ${ARG_FLAGS} -b ${base} ${_defname}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                RESULT_VARIABLE _rc)
+            if(NOT _rc EQUAL 0)
+                message(FATAL_ERROR "autogen failed regenerating ${base}.c/h from ${def}")
+            endif()
+        else()
+            message(FATAL_ERROR
+                "${base}.c/h is missing or older than ${def}, and GNU autogen is not installed. "
+                "Install autogen to regenerate it, or if the .def content is unchanged refresh "
+                "the timestamps:\n  touch src/*_opts.c src/*_opts.h src/*.1 src/tcpedit/tcpedit_stub.h")
+        endif()
     endif()
+    set(${base}_SOURCE ${_out_c} PARENT_SCOPE)
 endfunction()
-
-set(NETMAP_AUTOGEN_FLAGS "")
-if(HAVE_NETMAP)
-    set(NETMAP_AUTOGEN_FLAGS -DHAVE_NETMAP)
-endif()
 
 set(TCPEDIT_OPTS_DEF ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit/tcpedit_opts.def)
 
-tcpr_autogen_opts(tcpreplay_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcpreplay_opts.def
-    FLAGS ${NETMAP_AUTOGEN_FLAGS})
+tcpr_autogen_opts(tcpreplay_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcpreplay_opts.def)
 tcpr_autogen_opts(tcpreplay_edit_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcpreplay_opts.def
-    FLAGS ${NETMAP_AUTOGEN_FLAGS} -DTCPREPLAY_EDIT)
+    FLAGS -DTCPREPLAY_EDIT)
 tcpr_autogen_opts(tcprewrite_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcprewrite_opts.def
     DEPENDS ${TCPEDIT_OPTS_DEF})
 tcpr_autogen_opts(tcpprep_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcpprep_opts.def)
@@ -201,25 +185,12 @@ install(TARGETS ${TCPR_INSTALL_TARGETS} RUNTIME DESTINATION ${CMAKE_INSTALL_PREF
 # libtcpreplay - installable static library exposing tcpreplay_api.h (#133)
 # (mirrors the lib_LIBRARIES/tcpreplayinclude_HEADERS rules in Makefile.am)
 # ---------------------------------------------------------------------------
-# tcpreplay_opts.c is compiled by both tcpreplay_bin and this library; with
-# the Makefiles generator each consuming target would otherwise emit its own
-# copy of the autogen rule, and two concurrent autogen runs corrupt the
-# output.  Funnel generation through one custom target instead.
-if(AUTOGEN_EXECUTABLE)
-    add_custom_target(tcpreplay_opts_gen
-        DEPENDS ${TCPR_AUTOGEN_OPTS_DIR}/tcpreplay_opts.c ${TCPR_AUTOGEN_OPTS_DIR}/tcpreplay_opts.h)
-    add_dependencies(tcpreplay_bin tcpreplay_opts_gen)
-endif()
-
 add_library(tcpreplay_static STATIC
     ${tcpreplay_opts_SOURCE}
     send_packets.c signal_handler.c tcpreplay_api.c sleep.c replay.c
     libtcpreplay_globals.c
     $<TARGET_OBJECTS:common_obj>
     $<TARGET_OBJECTS:opts_obj>)
-if(TARGET tcpreplay_opts_gen)
-    add_dependencies(tcpreplay_static tcpreplay_opts_gen)
-endif()
 if(NOT HAVE_STRLCPY)
     target_sources(tcpreplay_static PRIVATE $<TARGET_OBJECTS:strl_obj>)
 endif()

@@ -271,9 +271,11 @@ CMake Tools extension) and CLion pick these up automatically, e.g.
 
 Notes:
 
-  - Building from a git checkout requires GNU autogen to generate the
-    CLI option parsers (*_opts.c); release tarballs ship pre-generated
-    copies and build without it.
+  - The AutoOpts-generated option parsers (*_opts.c/h) and man pages are
+    committed to git and shipped in tarballs, so GNU autogen (which is
+    EOL) is NOT needed to build.  It is only needed to regenerate those
+    files after editing a .def file; regeneration happens in the source
+    tree and the result should be committed.
   - `make test' remains autotools-driven.  The CMake build generates
     test/config so the test fixtures can be used, but running the test
     suite still requires the autotools flow described above.

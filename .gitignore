@@ -9,7 +9,6 @@
 *.a
 *.la
 *.lo
-*_opts.h
 .libs
 docs/web/
 configure~
@@ -90,7 +89,6 @@ types_c.vim
 .project
 .cproject
 .autotools
-*.1
 .settings/
 pcapsend
 test/*1

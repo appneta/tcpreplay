@@ -204,8 +204,12 @@ if(AUTOGEN_EXECUTABLE)
     endif()
     message(STATUS "Found autogen ${AUTOGEN_VERSION}")
 elseif(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/tcpreplay_opts.c)
-    message(FATAL_ERROR "Please install GNU autogen if you are building from GitHub. "
-            "To avoid this message download source from https://github.com/appneta/tcpreplay/releases/latest")
+    message(FATAL_ERROR "Pre-generated option parsers are missing and GNU autogen is not "
+            "installed. Restore src/*_opts.c (git checkout) or install GNU autogen.")
+else()
+    # autogen is EOL (#895); the generated parsers and man pages are committed,
+    # so it is only needed to regenerate them after editing a .def file
+    message(STATUS "autogen not found - using the committed pre-generated option parsers")
 endif()
 
 # ---------------------------------------------------------------------------

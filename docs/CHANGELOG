@@ -1,4 +1,14 @@
 UNRELEASED
+    - build: GNU autogen is no longer required to build (#895, phase 1) - autogen is EOL (Debian
+      Bug#1076243), so the AutoOpts-generated option parsers (src/*_opts.c/h, tcpedit_stub.h) and
+      man pages are now committed to git; both build systems use them directly and only invoke
+      autogen to regenerate after a .def file changes (in the source tree, reproducibly - no
+      NETMAPFLAGS/absolute paths in the output), failing with clear instructions when a .def is
+      newer and autogen is absent; scripts/check-generated-opts.sh verifies in CI that the
+      committed output never drifts from the .def sources (and doubles as the equivalence oracle
+      for a future autogen-replacement generator); the macOS and CMake CI jobs now build without
+      autogen installed to prove it; the vendored libopts runtime (which provides --load-opts,
+      --more-help etc.) is unchanged
     - libtcpreplay: install the replay engine as a static C library (#133) - both build systems
       now install libtcpreplay.a, the tcpreplay_api.h header set (under include/tcpreplay/) and
       a libtcpreplay.pc pkg-config file, so applications can replay pcap files and read live
