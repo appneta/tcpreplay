@@ -190,10 +190,12 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
  * Function to encode the layer 2 header back into the packet.
  * Returns: total packet len or TCPEDIT_ERROR
  */
+/* the (pktlen, dir) parameter pair is fixed by the plugin_encode interface */
+/* NOLINTNEXTLINE(bugprone-easily-swappable-parameters) */
 int
 dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
-    int l2len;
+    int l2len = 0;
     uint8_t version;
 
     assert(ctx);
