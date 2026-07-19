@@ -47,52 +47,46 @@ runtime is untouched — this replaces only the generator.
       builds, `sudo make test` passes in full, and both regressions that
       sank #991 work — `--load-opts` (the `prep_config` test case) and
       `--more-help`.
-- [ ] **Stage 4b — man pages: OPEN DESIGN QUESTION, see below.**
-- [ ] Stage 5 — switch the build rules to `generate.py` and drop autogen
-      from the documented toolchain, keeping `check-generated-opts.sh` as
-      the regression gate while any autogen install still exists.
+- [x] Stage 4b — `emit_adoc.py`: AsciiDoc man-page source emitter, +
+      `check_adoc.py` gate. Not byte-oracle-verified (no in-tree source
+      of truth for autogen's ~1900-line Scheme+Perl mdoc pipeline, see
+      rationale in the emitter's module docstring) - instead it renders
+      straight from the same `.def` content (`descrip`/`doc`/`explain`/
+      `detail`) that already drives `--help` and the option tables, so
+      the docs, `--help` and the .adoc source can never disagree, and
+      there is nothing hand-duplicated to fall out of sync (the mistake
+      in the reverted #991, which hand-wrote separate `.adoc` files).
+      `check_adoc.py` verifies every real option from the `.def` appears
+      in the rendered page, and (when installed) that `asciidoctor`
+      renders it and `groff -man -ww` parses the result with zero
+      warnings. All seven configurations pass. A hand-eyeballed diff
+      against the old autogen-rendered pages for tcpcapinfo confirms
+      full content parity with cleaner formatting (subsections instead
+      of run-on `.NOP` paragraphs).
+      Texinfo constructs handled: `@file`/`@var` -> _italic_,
+      `@samp`/`@code` -> `` `mono` ``, `@table`/`@enumerate` + `@item`
+      (both the "@item LABEL" and bare-"@item"-then-"@var{X}"-on-the-
+      next-line forms) -> nested AsciiDoc description lists (with the
+      texinfo "- " item-body marker convention stripped, not rendered
+      as a bullet), `@example` and mid-paragraph indented-line runs ->
+      literal blocks, all correctly nested inside an option's own list
+      entry via AsciiDoc's `+`/open-block continuation syntax.
+      Known limitation: `man-doc` content (SIGNALS/custom
+      BUGS/SEE ALSO prose in tcpreplay, tcpbridge, tcpliveplay,
+      tcprewrite, tcpprep) is not rendered - matching current behavior,
+      since it turns out the existing `agman-cmd.tpl` pipeline does not
+      emit it into the committed man pages either (verified: none of
+      that text appears in the committed `.1` files). Worth revisiting
+      as a separate enhancement if that content should actually be
+      surfaced.
 
-## Man pages: why they are not done yet
-
-The parser emitters had an authoritative source to port from — autogen's
-`mk-gettextable` delegates to `optionPrintParagraphs()`, which lives in
-the libopts **we vendor**, so the algorithm is in-tree and frozen.
-
-Man pages have no such anchor. autogen builds them with
-`cmd-doc.tlib` (1172 lines of Scheme) emitting mdoc, then pipes that
-through `mdoc2man` + `Mdoc.pm` (761 lines of Perl). None of it is
-vendored here. Reproducing byte-identical roff means either porting
-~1900 lines of external code, or inferring the rules from the seven
-current outputs — which would be verified only against today's inputs
-and could silently diverge on a future `.def` edit.
-
-The texinfo surface actually used is small (`@var`, `@item`, `@end`,
-`@samp`, `@file`, `@code`, `@table`), so direct roff emission is
-feasible — it is a question of whether the cost is worth it, given:
-
-  * Debian's requirement (#895) was **already met in phase 1**: autogen
-    is not needed to *build*.
-  * Man pages are prose. A rendering difference is cosmetic and
-    reviewable, unlike the compiled option tables.
-
-Options, cheapest first:
-
-  1. **Leave as is.** Committed man pages stay; regenerating them after
-     a `.def` doc change needs autogen. Everything else is autogen-free.
-  2. **Direct roff emitter** (~500-800 lines) aiming for byte-identical
-     output, gated by `check-generated-opts.sh`. Rules inferred from the
-     current seven pages.
-  3. **Switch the man source format** (e.g. asciidoctor, as the rejected
-     #991 proposed) — clean long term, but adds a build dependency and
-     rewrites all seven pages, so the diff is large and reviewable only
-     by reading.
-
-## Running the gates
+## Running the gates## Running the gates
 
 ## Running the gates
 
     python3 scripts/autoopts/validate_ir.py      # structural
     python3 scripts/autoopts/check_emitters.py   # byte-identical .h/.c
+    python3 scripts/autoopts/check_adoc.py        # content + asciidoctor/groff validity
     ./scripts/check-generated-opts.sh            # committed vs autogen
 
 ## Method: oracle-driven equivalence

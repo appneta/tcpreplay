@@ -1,0 +1,93 @@
+= tcpliveplay(1)
+:doctype: manpage
+:manmanual: Tcpreplay Suite
+:mansource: Tcpreplay Suite
+:man-linkstyle: pass:[blue R < >]
+
+== NAME
+
+tcpliveplay - Replays network traffic stored in a pcap file on live networks using new TCP connections
+
+== SYNOPSIS
+
+*tcpliveplay* [_OPTION_]... <eth0/eth1> <file.pcap> <Destination IP [1.2.3.4]> <Destination mac [0a:1b:2c:3d:4e:5f]> <'random' dst port OR specify dport #>
+
+== DESCRIPTION
+
+This program, 'tcpliveplay' replays a captured set of packets using new TCP connections with the captured TCP payloads against a remote host in order to do comprehensive vulnerability testing.
+
+The basic operation of tcpliveplay is it rewrites the given pcap file in a scheduled event format and responds with the appropriate packet if the remote host meets tcp protocal's SEQ/ACK expectation. Once expectations are met, then the local packets are sent with the same payload except with new tcp SEQ & ACK numbers meeting the response from the remote hose.
++
+The input pcap file are rewritten to start at the first encounter of the SYN packet for correct operation making this packet be the first action in the event schedule of local host doing the replay.
++
+For more details, please see the Tcpreplay Manual at: http://tcpreplay.appneta.com
+
+== OPTIONS
+
+*-d*, *--dbug*=_number_::
+Enable debugging output. Range: 0 to 5. Default: `0`.
++
+If configured with --enable-debug, then you can specify a verbosity level for debugging output.  Higher numbers increase verbosity.
+
+*-V*, *--version*::
+Print version information.
+
+*-h*, *--less-help*::
+Display less usage information and exit.
+
+*-H*, *--help*::
+Display usage information and exit.
+
+*--more-help*::
+Pass the extended usage information through a pager.
+
+*--save-opts*[=_string_]::
+Save the current option state to a config file.
+
+*--load-opts*=_string_, *--no-load-opts*::
+Load options from a config file; *--no-load-opts* disables this.
+
+== OPTION PRESETS
+
+Any option that is not marked as _not presettable_ may be preset by loading values from configuration ("RC" or ".INI") file(s).
+The homerc file is _$$/_, unless that is a directory; in that case _.tcpliveplayrc_ is searched for within it.
+
+== FILES
+
+See *OPTION PRESETS* for configuration files.
+
+== EXIT STATUS
+
+One of the following exit values will be returned:
+
+*0* (EXIT_SUCCESS)::
+  Successful program execution.
+
+*1* (EXIT_FAILURE)::
+  The operation failed or the command syntax was not valid.
+
+*66* (EX_NOINPUT)::
+  A specified configuration file could not be loaded.
+
+*70* (EX_SOFTWARE)::
+  libopts had an internal operational error. Please report it to autogen-users@lists.sourceforge.net. Thank you.
+
+== AUTHORS
+
+Copyright 2012 Yazan Siam
+
+For support please use the tcpreplay-users@lists.sourceforge.net mailing list.
+
+The latest version of this software is always available from: http://tcpreplay.appneta.com
+
+== COPYRIGHT
+
+This program is released under the Modified (3 clause) Berkeley Software Distribution License.
+
+== BUGS
+
+Please send bug reports through the project's issue tracker.
+
+== NOTES
+
+This manual page was generated from the tcpliveplay option definitions.
