@@ -1,3 +1,77 @@
+07/18/2026 Version 4.5.3
+    - configure: fix --with-netmap=DIR permanently leaking -I<DIR>/sys onto CFLAGS for the rest of
+      the script, with no restore (unlike the equivalent, correctly-scoped CPPFLAGS addition a few
+      lines later) - a netmap checkout's sys/ tree mirrors a BSD kernel source layout including
+      its own sys/net/bpf.h, so later unrelated checks (e.g. the net/bpf.h feature check) could
+      pick up netmap's vendored header instead of a real system one, wrongly setting HAVE_BPF=1 on
+      Linux and causing a struct bpf_insn redefinition conflict against the system libpcap headers
+      at build time; the netmap include path is now only applied to CFLAGS once, right before
+      AC_OUTPUT, after all other detection has finished
+    - configure: drop the bare -DND passed alongside --with-netmap=DIR's CFLAGS/CPPFLAGS - netmap's
+      own netmap_user.h defines a function-like ND(...) debug-print macro guarded by #ifndef ND, but
+      a valueless -DND makes the compiler predefine ND as the literal 1, so that guard sees ND as
+      already defined and every real ND(...) call site in netmap's headers expands to 1(...),
+      "called object is not a function or function pointer" (found while verifying the fix above,
+      #1015)
+    - tcpedit: fix --tcp-sequence and --portmap/-r silently having zero effect on some platforms
+      (confirmed on macOS arm64) - rewrite_ipv4_tcp_sequence()/rewrite_ipv6_tcp_sequence()
+      (rewrite_sequence.c) and rewrite_ipv4_ports()/rewrite_ipv6_ports() (portmap.c) computed the
+      L4 "end of buffer" bounds pointer from the address of their own ipv4_hdr_t**/ipv6_hdr_t**
+      parameter instead of the packet buffer address it pointed to ((u_char *)ip_hdr instead of
+      (u_char *)(*ip_hdr)); get_layer4_v4()/v6()'s bounds check against that garbage pointer then
+      either always passed (silently correct by luck) or always failed (silently rewriting
+      nothing), depending on platform-specific stack layout (#1011)
+    - tcpr_random: fix signed left-shift undefined behavior in this "consistent across all
+      platforms" PRNG - left-shifting a signed int such that a set bit crosses the sign bit is
+      undefined behavior in C, which different compiler backends are free to resolve differently;
+      switched the accumulator to unsigned so the shift is well-defined everywhere
+    - tcpliveplay: fix catch_alarm() not calling pcap_breakloop(), which left pcap_dispatch()
+      blocked for the full buffer timeout (or indefinitely, on libpcap implementations where the
+      timeout only starts once a packet arrives) instead of returning promptly when the alarm
+      fires - the visible symptom was a spurious "remote host is not responding" timeout up to 10s
+      after a response had actually arrived (#540)
+    - tcprewrite: rewrite IPv6 addresses embedded in ICMPv6 error messages (Destination
+      Unreachable, Packet Too Big, Time Exceeded, Parameter Problem) - RFC4443 has these embed the
+      original ("invoking") packet's IP header, which tcprewrite left untouched, leaking the
+      original addresses through capture sanitization/anonymization; also fixed a related
+      pre-existing bug where the ICMPv6 checksum was never fixed up when an outer IPv6 address
+      changed, unless --fixcsum was also passed (#818)
+    - sendpacket: fix "zc:<ifname>"-style PF_RING ZC device names failing with "ioctl: No such
+      device" - the default PF_PACKET path did a plain SIOCGIFINDEX lookup on the literal "zc:"
+      string, which the kernel doesn't recognize; route zc: devices through libpcap instead, which
+      is PF_RING-aware when built against PF_RING's patched libpcap (#913)
+    - netmap: fix --netmap failing to switch the driver to bypass mode with a bogus "nm_do_ioctl:
+      No such file or directory" error on real NICs (not VALE ports); a stray switch default case
+      made nm_do_ioctl() report failure - and leak the ioctl socket fd - for SIOCSIFFLAGS/ethtool
+      SET requests even when the underlying ioctl succeeded, regressed since 4.4.3 (#810)
+    - tcpreplay: bound and make abortable the netmap TX-ring drain wait at the end of --loop
+      replays; some netmap/driver combinations never report the ring empty, which used to hang
+      tcpreplay at 100% CPU with no way to Ctrl+C out (#560)
+    - tcpreplay: fix cumulative timing drift with --multiplier - each packet's sleep was computed
+      from the previous packet's actual send time instead of a fixed start-of-replay anchor, so
+      per-packet scheduling/syscall overhead accumulated over a long replay (100k packets sent in
+      10.37s instead of the targeted 10.00s). Also fixes the same drift in dual-interface (-I)
+      replay, which the original patch didn't cover. (#724, #915)
+    - sendpacket (Linux): warn when sending on an interface with no carrier (cable unplugged /
+      link down); sendto() on a down interface can report local success even though nothing
+      reaches the wire, making "successful packets" stats meaningless (#109)
+    - sendpacket: fix --xdp AF_XDP zero-copy TX failing with EINVAL on drivers (i40e, ixgbe)
+      that require a native XDP program attached before ndo_xdp_xmit works; let libbpf
+      auto-load its default program instead of inhibiting it (#956, #1002)
+    - configure: fix LIBXDP feature probe rejecting every real libxdp install due to a
+      pointer-indirection mismatch in the xsk_socket__create() compile check (#1002)
+    - fragroute: fix build failure on macOS 13/14 from TAILQ_FOREACH_REVERSE argument-order
+      collision between bundled lib/queue.h and system <sys/queue.h> (#981, #1001)
+    - tcpprep: fix buffer overflow in check_dst_port() reading TCP/UDP dest port on truncated
+      packets with incomplete L4 headers (#985, #995)
+    - tcprewrite: fix --enet-vlan=add silently truncating output packets by 4 bytes when
+      --enet-vlan-pri and/or --enet-vlan-cfi were omitted on untagged input (#990, #994)
+    - fragroute: fix heap-buffer-overflow in fragroute_process() when a crafted packet's MPLS label
+      stack produces an L2 header longer than the fixed 50-byte buffer (#992, #993)
+    - send_packets: fix miscalibrated overflow guards in calc_sleep_time() causing tcpreplay to stop
+      pacing (-M/-p) and blast remaining packets at full speed on long/high-count replays (#974, #989)
+    - sendpacket: bounded retry on EAGAIN/ENOBUFS to prevent endless retry loop / 100% CPU hang (#984, #986)
+
 08/26/2025 Version 4.5.2
     - C23 standard support (#977)
     - --fixlen use-after-free (#970)

@@ -50,6 +50,7 @@
 #include "config.h"
 #include "common.h"
 #include <errno.h>
+#include <net/if.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -212,7 +213,7 @@ static struct tcpr_ether_addr *sendpacket_get_hwaddr_libdnet(sendpacket_t *) _U_
 #endif /* HAVE_LIBDNET */
 
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) &&                                                      \
-        !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET)
+        (defined HAVE_PF_RING_PCAP || !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET))
 static sendpacket_t *sendpacket_open_pcap(const char *, char *) _U_;
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pcap(sendpacket_t *) _U_;
 #endif /* HAVE_PCAP_INJECT || HAVE_PACKET_SENDPACKET */
@@ -257,6 +258,13 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
                                   * prevent page misses on stack
                                   */
     static const size_t buffer_payload_size = sizeof(buffer) + sizeof(struct pcap_pkthdr);
+    /* Bound the EAGAIN/ENOBUFS retry loop below so sustained buffer pressure (e.g. very
+     * large frames) can't spin forever at 100% CPU; a short sleep between retries keeps
+     * that spin from hammering the kernel while we wait for buffer space to free up.
+     */
+    size_t retry_count = 0;
+    const size_t max_retry_count = 100;
+    const useconds_t retry_sleep_usec = 100;
 
     assert(sp);
 #ifndef HAVE_LIBXDP
@@ -268,6 +276,16 @@ sendpacket(sendpacket_t *sp, const u_char *data, size_t len, struct pcap_pkthdr 
         return -1;
 
 TRY_SEND_AGAIN:
+    if (retry_count > 0)
+        usleep(retry_sleep_usec);
+
+    if (++retry_count > max_retry_count) {
+        sendpacket_seterr(sp,
+                          "Giving up after " COUNTER_SPEC " retries on EAGAIN/ENOBUFS",
+                          (COUNTER)max_retry_count);
+        goto EXIT_MAX_RETRIES;
+    }
+
     sp->attempt++;
 
     switch (sp->handle_type) {
@@ -498,6 +516,7 @@ TRY_SEND_AGAIN:
         errx(-1, "Unsupported sp->handle_type = %d", sp->handle_type);
     } /* end case */
 
+EXIT_MAX_RETRIES:
     if (retcode < 0) {
         sp->failed++;
     } else if (sp->abort) {
@@ -518,6 +537,45 @@ TRY_SEND_AGAIN:
     }
     return retcode;
 }
+
+#if defined linux && defined SIOCGIFFLAGS && defined IFF_RUNNING
+/**
+ * Best-effort check of whether "device" currently has carrier (IFF_RUNNING).
+ * Returns 1 if it does, 0 if it's definitely down (e.g. cable unplugged), or
+ * -1 if the check couldn't be performed (not a real/queryable interface -
+ * khial, tuntap, etc.) and should be treated as "unknown, assume fine".
+ *
+ * Linux-only: the kernel's linkwatch subsystem clears IFF_RUNNING when there's
+ * no carrier, which is what makes this check meaningful. On macOS/BSD,
+ * IFF_RUNNING only reflects "interface resources allocated" and stays set even
+ * when a real carrier check (ifconfig's "status: inactive", via SIOCGIFMEDIA)
+ * says the link is down - so this check would be silently wrong there. #109
+ * was reported and reproduced on Linux; a BSD/macOS equivalent needs the
+ * SIOCGIFMEDIA path and is left for a follow-up.
+ */
+static int
+sendpacket_is_running(const char *device)
+{
+    struct ifreq ifr;
+    int mysocket = socket(AF_INET, SOCK_DGRAM, 0);
+    int ret = -1;
+
+    if (mysocket < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
+    ret = ioctl(mysocket, SIOCGIFFLAGS, &ifr);
+    close(mysocket);
+
+    if (ret < 0) {
+        return -1;
+    }
+
+    return (ifr.ifr_flags & IFF_RUNNING) ? 1 : 0;
+}
+#endif /* linux && SIOCGIFFLAGS && IFF_RUNNING */
 
 /**
  * Open the given network device name and returns a sendpacket_t struct
@@ -568,6 +626,21 @@ sendpacket_open(const char *device,
             sp = sendpacket_open_tuntap(device, errbuf);
 #endif
         } else {
+#if defined HAVE_PF_RING_PCAP && (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET)
+            /*
+             * "zc:<ifname>"-style device names are PF_RING ZC's own virtual
+             * device addressing, resolved by PF_RING's patched libpcap - not
+             * by the kernel. The PF_PACKET path below does a plain
+             * SIOCGIFINDEX lookup on the literal device string, which always
+             * fails with ENODEV for these ("ioctl: No such device"), even
+             * though the interface itself is working (confirmed via
+             * PF_RING's own pfsend utility - see #913). Route zc: devices
+             * through libpcap instead, which is PF_RING-aware in this build.
+             */
+            if (strncmp(device, "zc:", 3) == 0)
+                sp = sendpacket_open_pcap(device, errbuf);
+            else
+#endif
 #ifdef HAVE_NETMAP
             if (sendpacket_type == SP_TYPE_NETMAP)
                 sp = (sendpacket_t *)sendpacket_open_netmap(device, errbuf, arg);
@@ -595,6 +668,33 @@ sendpacket_open(const char *device,
     if (sp) {
         sp->open = 1;
         sp->cache_dir = direction;
+
+#if defined linux && defined SIOCGIFFLAGS && defined IFF_RUNNING
+        /*
+         * khial/tuntap/pcap-dump aren't real, carrier-having interfaces, and netmap does
+         * its own IFF_RUNNING check (and errors out) before we'd ever get here. For
+         * everything else, warn loudly if there's no carrier: sendto() on a down/unplugged
+         * interface can still report success locally even though nothing reaches the wire
+         * (#109), so tcpreplay's own "successful packets" stats would otherwise be
+         * silently meaningless.
+         */
+        switch (sp->handle_type) {
+        case SP_TYPE_PF_PACKET:
+        case SP_TYPE_TX_RING:
+        case SP_TYPE_BPF:
+        case SP_TYPE_LIBDNET:
+        case SP_TYPE_LIBPCAP:
+        case SP_TYPE_LIBXDP:
+            if (sendpacket_is_running(sp->device) == 0) {
+                warnx("WARNING: %s has no carrier (cable unplugged or link down). Packets will "
+                      "appear to send successfully but will not reach the wire.",
+                      sp->device);
+            }
+            break;
+        default:
+            break;
+        }
+#endif /* linux && SIOCGIFFLAGS && IFF_RUNNING */
     } else {
         errx(-1, "failed to open device %s: %s", device, errbuf);
     }
@@ -674,9 +774,7 @@ sendpacket_close(sendpacket_t *sp)
         break;
 
     case SP_TYPE_LIBPCAP:
-#ifdef HAVE_LIBPCAP
         pcap_close(sp->handle.pcap);
-#endif
         break;
 
     case SP_TYPE_LIBPCAP_DUMP:
@@ -782,7 +880,7 @@ sendpacket_seterr(sendpacket_t *sp, const char *fmt, ...)
 }
 
 #if (defined HAVE_PCAP_INJECT || defined HAVE_PCAP_SENDPACKET) &&                                                      \
-        !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET)
+        (defined HAVE_PF_RING_PCAP || !(defined HAVE_PF_PACKET || defined BPF || defined HAVE_LIBDNET))
 /**
  * Inner sendpacket_open() method for using libpcap
  */
@@ -1507,7 +1605,17 @@ create_xsk_socket(struct xsk_umem_info *umem_info,
 
     socket_config->rx_size = nb_of_rx_queue_desc;
     socket_config->tx_size = nb_of_tx_queue_desc;
-    socket_config->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
+    /*
+     * Some NIC drivers (i40e, ixgbe, virtio_net, ...) only set up their XDP TX
+     * datapath (ndo_xdp_xmit) once a native XDP program is attached to the
+     * interface; without one, xsk_socket__create() binds successfully but the
+     * later zero-copy send fails with EINVAL. XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD
+     * skips libbpf's default program auto-load, which avoided that trigger.
+     * tcpreplay doesn't need the auto-loaded program's RX behavior, only the
+     * side effect of a program being attached, so let libbpf load its default
+     * one (#956).
+     */
+    socket_config->libbpf_flags = 0;
     socket_config->bind_flags = 0; // XDP_FLAGS_SKB_MODE (1U << 1) or XDP_FLAGS_DRV_MODE (1U << 2)
     xsk_info = xsk_configure_socket(umem_info, socket_config, queue_id, device);
     safe_free(socket_config);

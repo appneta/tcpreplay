@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2001 Dug Song <dugsong@monkey.org>
  * Copyright (c) 2007-2008 Aaron Turner.
- * Copyright (c) 2013-2025 Fred Klassen - AppNeta
+ * Copyright (c) 2013-2026 Fred Klassen - AppNeta
  * $Id$
  */
 
@@ -52,6 +52,14 @@ fragroute_process(fragroute_t *ctx, void *buf, size_t len)
     ctx->first_packet = 0;
     /* save the l2 header of the original packet for later */
     ctx->l2len = get_l2len(buf, (int)len, ctx->dlt);
+    if (ctx->l2len < 0 || (size_t)ctx->l2len > len || (size_t)ctx->l2len > sizeof(ctx->l2header)) {
+        snprintf(ctx->errbuf,
+                 sizeof(ctx->errbuf),
+                 "invalid L2 header length %d for packet length %zu",
+                 ctx->l2len,
+                 len);
+        return -1;
+    }
     memcpy(ctx->l2header, buf, ctx->l2len);
 
     if ((pkt = pkt_new(len)) == NULL) {

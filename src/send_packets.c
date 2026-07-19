@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2026 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -79,6 +79,44 @@ wake_send_queues(sendpacket_t *sp _U_, tcpreplay_opt_t *options _U_)
 {
     if (options->netmap)
         ioctl(sp->handle.fd, NIOCTXSYNC, NULL); /* flush TX buffer */
+}
+
+/* how long to wait for a netmap TX ring to report empty before giving up */
+#define NETMAP_TX_DRAIN_TIMEOUT_SEC 2
+
+/**
+ * Wait for a netmap TX ring to fully drain at the end of a replay.
+ *
+ * Bounded and abortable: some netmap/driver combinations never flip the
+ * ring's empty flag (external bug - see #560), which used to make this an
+ * unkillable, uninterruptible 100% CPU spin since neither a timeout nor
+ * ctx->abort were checked. Give up after NETMAP_TX_DRAIN_TIMEOUT_SEC with a
+ * warning instead of hanging forever, and let SIGINT (ctx->abort) break out
+ * immediately.
+ */
+static void
+netmap_wait_tx_drain(tcpreplay_t *ctx, sendpacket_t *sp, struct timespec *now, bool *now_is_now)
+{
+    struct timespec start, elapsed;
+
+    if (!sp)
+        return;
+
+    TIMESPEC_SET(&start, now);
+
+    while (!ctx->abort && !netmap_tx_queues_empty(sp)) {
+        get_current_time(now);
+        *now_is_now = true;
+
+        timessub(now, &start, &elapsed);
+        if (elapsed.tv_sec >= NETMAP_TX_DRAIN_TIMEOUT_SEC) {
+            warnx("netmap TX ring on %s did not drain after %d seconds - the netmap driver may not "
+                  "be flushing correctly. Giving up waiting.",
+                  sp->device,
+                  NETMAP_TX_DRAIN_TIMEOUT_SEC);
+            break;
+        }
+    }
 }
 #endif
 
@@ -341,6 +379,7 @@ void
 send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 {
     struct timespec now, print_delta, last_pkt_ts;
+    bool first_packet = true;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -465,21 +504,23 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
             skip_length = 0;
             ctx->skip_packets = 0;
 
-            if (options->speed.mode == speed_multiplier) {
-                if (!timesisset(&last_pkt_ts)) {
-                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
-                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
-                    struct timespec delta;
-
-                    timessub(&pkthdr_ts, &last_pkt_ts, &delta);
-                    timeradd_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
-                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
-                }
-            }
-
             if (!top_speed) {
                 now_is_now = true;
                 get_current_time(&now);
+            }
+
+            if (options->speed.mode == speed_multiplier) {
+                if (first_packet) {
+                    TIMESPEC_SET(&stats->first_packet_time, &pkthdr_ts);
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    TIMESPEC_SET(&stats->first_packet_wall_time, &now);
+                    first_packet = false;
+                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    timessub(&pkthdr_ts, &stats->first_packet_time, &stats->pkt_ts_delta);
+                    timessub(&now, &stats->first_packet_wall_time, &stats->time_delta);
+                    timesdiv_float(&stats->pkt_ts_delta, options->speed.multiplier);
+                }
             }
 
             /*
@@ -497,15 +538,6 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
                             &stats->end_time,
                             TIMESPEC_TO_NANOSEC(&stats->start_time),
                             &skip_length);
-
-            /*
-             * Track the time of the "last packet sent".
-             *
-             * A number of 3rd party tools generate bad timestamps which go backwards
-             * in time.  Hence, don't update the "last" unless pkthdr.ts > last
-             */
-            if (timescmp(&stats->time_delta, &stats->pkt_ts_delta, <))
-                TIMESPEC_SET(&stats->time_delta, &stats->pkt_ts_delta);
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -596,15 +628,8 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 #ifdef HAVE_NETMAP
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
-        while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
-            now_is_now = true;
-            get_current_time(&now);
-        }
-
-        while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
-            now_is_now = true;
-            get_current_time(&now);
-        }
+        netmap_wait_tx_drain(ctx, ctx->intf1, &now, &now_is_now);
+        netmap_wait_tx_drain(ctx, ctx->intf2, &now, &now_is_now);
     }
 #endif /* HAVE_NETMAP */
 
@@ -624,6 +649,7 @@ void
 send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *pcap2, int cache_file_idx2)
 {
     struct timespec now, print_delta, last_pkt_ts;
+    bool first_packet = true;
     tcpreplay_opt_t *options = ctx->options;
     tcpreplay_stats_t *stats = &ctx->stats;
     COUNTER packetnum = 0;
@@ -763,26 +789,25 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
             skip_length = 0;
             ctx->skip_packets = 0;
 
-            if (options->speed.mode == speed_multiplier) {
-                struct timespec pkthdr_ts;
-                PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &pkthdr_ts);
-                if (!timesisset(&last_pkt_ts)) {
-                    PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &last_pkt_ts);
-                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
-                    struct timespec delta;
-
-                    timessub(&pkthdr_ts, &last_pkt_ts, &delta);
-                    timeradd_timespec(&stats->pkt_ts_delta, &delta, &stats->pkt_ts_delta);
-                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
-                }
-
-                if (!timesisset(&stats->time_delta))
-                    TIMESPEC_SET(&stats->pkt_ts_delta, &stats->pkt_ts_delta);
-            }
-
             if (!top_speed) {
                 get_current_time(&now);
                 now_is_now = true;
+            }
+
+            if (options->speed.mode == speed_multiplier) {
+                struct timespec pkthdr_ts;
+                PCAP_TIMEVAL_TO_TIMESPEC_SET(&pkthdr_ptr->ts, &pkthdr_ts);
+                if (first_packet) {
+                    TIMESPEC_SET(&stats->first_packet_time, &pkthdr_ts);
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    TIMESPEC_SET(&stats->first_packet_wall_time, &now);
+                    first_packet = false;
+                } else if (timescmp(&pkthdr_ts, &last_pkt_ts, >)) {
+                    TIMESPEC_SET(&last_pkt_ts, &pkthdr_ts);
+                    timessub(&pkthdr_ts, &stats->first_packet_time, &stats->pkt_ts_delta);
+                    timessub(&now, &stats->first_packet_wall_time, &stats->time_delta);
+                    timesdiv_float(&stats->pkt_ts_delta, options->speed.multiplier);
+                }
             }
 
             /*
@@ -800,15 +825,6 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
                             &stats->end_time,
                             TIMESPEC_TO_NANOSEC(&stats->start_time),
                             &skip_length);
-
-            /*
-             * Track the time of the "last packet sent".
-             *
-             * A number of 3rd party tools generate bad timestamps which go backwards
-             * in time.  Hence, don't update the "last" unless pkthdr_ptr->ts > last
-             */
-            if (timescmp(&stats->time_delta, &stats->pkt_ts_delta, <))
-                TIMESPEC_SET(&stats->time_delta, &stats->pkt_ts_delta);
 
             /*
              * we know how long to sleep between sends, now do it.
@@ -877,15 +893,8 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 #ifdef HAVE_NETMAP
     /* when completing test, wait until the last packet is sent */
     if (options->netmap && (ctx->abort || options->loop == 1)) {
-        while (ctx->intf1 && !netmap_tx_queues_empty(ctx->intf1)) {
-            get_current_time(&now);
-            now_is_now = true;
-        }
-
-        while (ctx->intf2 && !netmap_tx_queues_empty(ctx->intf2)) {
-            get_current_time(&now);
-            now_is_now = true;
-        }
+        netmap_wait_tx_drain(ctx, ctx->intf1, &now, &now_is_now);
+        netmap_wait_tx_drain(ctx, ctx->intf2, &now, &now_is_now);
     }
 #endif /* HAVE_NETMAP */
 
@@ -1062,9 +1071,6 @@ calc_sleep_time(tcpreplay_t *ctx,
             /* pkt_time_delta has increased, so handle normally */
             timessub(pkt_ts_delta, time_delta, &nap_for);
             TIMESPEC_SET(&ctx->nap, &nap_for);
-            dbgx(3, "original packet delta time: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
-            timesdiv_float(&ctx->nap, options->speed.multiplier);
-            dbgx(3, "original packet delta/div: " TIMESPEC_FORMAT, ctx->nap.tv_sec, ctx->nap.tv_nsec);
         }
         break;
 
@@ -1081,14 +1087,32 @@ calc_sleep_time(tcpreplay_t *ctx,
             COUNTER tx_ns = now_ns - start_ns;
 
             /*
-             * bits * 1000000000 divided by bps = nanosecond
+             * next_tx_ns = bits_sent * 1000000000 / bps (nanoseconds)
              *
-             * ensure there is no overflow in cases where bits_sent is very high
+             * bits_sent * 1000000000 overflows a 64-bit COUNTER once
+             * bits_sent exceeds ~1.8e10 (~2.3GB sent, at any bps) -- e.g.
+             * a multi-GB/multi-million-packet replay at a constant -M
+             * rate. The previous COUNTER_OVERFLOW_RISK guard (COUNTER_MAX
+             * >> 23, ~2.2e12) was ~119x too high to ever catch this, so
+             * long replays silently overflowed into a small/garbage
+             * next_tx_ns and stopped sleeping (#974).
+             *
+             * Do the multiply in a wider-than-COUNTER type so it can't
+             * overflow for any COUNTER-representable bits_sent/bps.
              */
-            if (bits_sent > COUNTER_OVERFLOW_RISK)
-                next_tx_ns = (bits_sent * 1000) / bps * 1000000;
-            else
-                next_tx_ns = (bits_sent * 1000000000) / bps;
+#if defined(__SIZEOF_INT128__)
+            next_tx_ns = (COUNTER)(((unsigned __int128)bits_sent * 1000000000ULL) / bps);
+#else
+            /*
+             * No 128-bit integer type available. Split the *1e9 around
+             * the division (*1000 before, *1000000 after) so the
+             * intermediate is bits_sent * 1000, which only overflows
+             * COUNTER at ~1.8e16 bits (~2.3 petabytes) sent -- unlike the
+             * old code, this is applied unconditionally, not gated by a
+             * miscalibrated threshold.
+             */
+            next_tx_ns = (bits_sent * 1000ULL) / bps * 1000000ULL;
+#endif
 
             if (next_tx_ns > tx_ns) {
                 NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);
@@ -1115,16 +1139,31 @@ calc_sleep_time(tcpreplay_t *ctx,
             COUNTER pkts_sent = ctx->stats.pkts_sent;
             COUNTER tx_ns = now_ns - start_ns;
             /*
-             * packets * 1000000 divided by pps = microseconds
-             * packets per sec (pps) = packets per hour / (60 * 60)
+             * next_tx_ns = pkts_sent * 1000000000 * 3600 / pph (nanoseconds)
+             * packets per sec (pps) = packets per hour (pph) / (60 * 60)
              *
-             * Adjust for long running tests with high PPS to prevent overflow.
-             * When active, adjusted calculation may add a bit of jitter.
+             * pkts_sent * 1000000000 * 3600 (~3.6e12) overflows a 64-bit
+             * COUNTER once pkts_sent exceeds ~5.1 million packets -- well
+             * within range for a long packetrate-limited replay, and far
+             * below the previous COUNTER_OVERFLOW_RISK guard's ~2.2e12
+             * threshold, which never actually protected this multiply
+             * (same miscalibration as the speed_mbpsrate case, #974).
+             *
+             * Do the multiply in a wider-than-COUNTER type so it can't
+             * overflow for any COUNTER-representable pkts_sent/pph.
              */
-            if ((pkts_sent < COUNTER_OVERFLOW_RISK))
-                next_tx_ns = (pkts_sent * 1000000000) * (60 * 60) / pph;
-            else
-                next_tx_ns = ((pkts_sent * 1000000) / pph * 1000) * (60 * 60);
+#if defined(__SIZEOF_INT128__)
+            next_tx_ns = (COUNTER)(((unsigned __int128)pkts_sent * 1000000000ULL * 3600ULL) / pph);
+#else
+            /*
+             * No 128-bit integer type available. Split the *1e9*3600
+             * around the division (*1e6 before, *1e3*3600 after) so the
+             * intermediate is pkts_sent * 1e6, which only overflows
+             * COUNTER at ~1.8e13 packets -- applied unconditionally,
+             * unlike the old miscalibrated-threshold version.
+             */
+            next_tx_ns = ((pkts_sent * 1000000ULL) / pph * 1000ULL) * 3600ULL;
+#endif
 
             if (next_tx_ns > tx_ns)
                 NANOSEC_TO_TIMESPEC(next_tx_ns - tx_ns, &ctx->nap);

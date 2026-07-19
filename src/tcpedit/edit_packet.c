@@ -2,7 +2,7 @@
 
 /*
  *   Copyright (c) 2001-2010 Aaron Turner <aturner at synfin dot net>
- *   Copyright (c) 2013-2025 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
+ *   Copyright (c) 2013-2026 Fred Klassen <tcpreplay at appneta dot com> - AppNeta
  *
  *   The Tcpreplay Suite of tools is free software: you can redistribute it
  *   and/or modify it under the terms of the GNU General Public License as
@@ -309,6 +309,14 @@ ipv6_addr_csum_replace(ipv6_hdr_t *ip6_hdr, struct tcpr_in6_addr *old_ip, struct
     switch (protocol) {
     case IPPROTO_UDP:
     case IPPROTO_TCP:
+    case IPPROTO_ICMP6:
+        /*
+         * ICMPv6's checksum covers a pseudo-header (src/dst IP) same as
+         * TCP/UDP, per RFC 4443 2.3 - so it needs the same fixup when an
+         * outer address changes. This case was missing, so rewriting the
+         * IPv6 address on any ICMPv6 packet left a stale checksum unless
+         * --fixcsum was also passed (#818).
+         */
         l4 = get_layer4_v6(ip6_hdr, (u_char *)ip6_hdr + l3len);
         break;
     default:
@@ -908,59 +916,101 @@ rewrite_ipv6l3(tcpedit_t *tcpedit, ipv6_hdr_t *ip6_hdr, tcpr_dir_t direction, in
     }
 
     /* anything else to rewrite? */
-    if (tcpedit->cidrmap1 == NULL)
-        return (0);
+    if (tcpedit->cidrmap1 != NULL) {
+        /* don't play with the main pointers */
+        if (direction == TCPR_DIR_C2S) {
+            cidrmap1 = tcpedit->cidrmap1;
+            cidrmap2 = tcpedit->cidrmap2;
+        } else {
+            cidrmap1 = tcpedit->cidrmap2;
+            cidrmap2 = tcpedit->cidrmap1;
+        }
 
-    /* don't play with the main pointers */
-    if (direction == TCPR_DIR_C2S) {
-        cidrmap1 = tcpedit->cidrmap1;
-        cidrmap2 = tcpedit->cidrmap2;
-    } else {
-        cidrmap1 = tcpedit->cidrmap2;
-        cidrmap2 = tcpedit->cidrmap1;
+        /* loop through the cidrmap to rewrite */
+        do {
+            if ((!diddst) && ip6_in_cidr(cidrmap2->from, &ip6_hdr->ip_dst)) {
+                struct tcpr_in6_addr old_ip6;
+                memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
+                remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
+                ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, l3len);
+                dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
+                diddst = 1;
+            }
+            if ((!didsrc) && ip6_in_cidr(cidrmap1->from, &ip6_hdr->ip_src)) {
+                struct tcpr_in6_addr old_ip6;
+                memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
+                remap_ipv6(tcpedit, cidrmap1->to, &ip6_hdr->ip_src);
+                ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, l3len);
+                dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
+                didsrc = 1;
+            }
+
+            /*
+             * loop while we haven't modified both src/dst AND
+             * at least one of the cidr maps have a next pointer
+             */
+            if ((!(diddst && didsrc)) && (!((cidrmap1->next == NULL) && (cidrmap2->next == NULL)))) {
+                /* increment our ptr's if possible */
+                if (cidrmap1->next != NULL)
+                    cidrmap1 = cidrmap1->next;
+
+                if (cidrmap2->next != NULL)
+                    cidrmap2 = cidrmap2->next;
+
+            } else {
+                loop = 0;
+            }
+
+            /* Later on we should support various IP protocols which embed
+             * the IP address in the application layer.  Things like
+             * DNS and FTP.
+             */
+
+        } while (loop);
     }
 
-    /* loop through the cidrmap to rewrite */
-    do {
-        if ((!diddst) && ip6_in_cidr(cidrmap2->from, &ip6_hdr->ip_dst)) {
-            struct tcpr_in6_addr old_ip6;
-            memcpy(&old_ip6, &ip6_hdr->ip_dst, sizeof(old_ip6));
-            remap_ipv6(tcpedit, cidrmap2->to, &ip6_hdr->ip_dst);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_dst, l3len);
-            dbgx(2, "Remapped dst addr to: %s", get_addr2name6(&ip6_hdr->ip_dst, RESOLVE));
-            diddst = 1;
+    /*
+     * RFC4443 ICMPv6 error messages (Destination Unreachable, Packet Too
+     * Big, Time Exceeded, Parameter Problem) embed as much of the
+     * "invoking" packet as fits, including its IPv6 header. Recurse into
+     * it so those addresses get rewritten too - otherwise sanitizing a
+     * capture with tcprewrite silently leaks the original addresses in
+     * every ICMPv6 error response (#818). Informational types (echo,
+     * neighbor discovery, MLD, ...) don't embed a packet and are skipped.
+     *
+     * The embedded header's own checksum fixup piggybacks on whatever this
+     * recursive call does for its own L4 (e.g. a TCP/UDP checksum inside
+     * the embedded packet, if fully present). The outer ICMPv6 checksum
+     * covering the whole message (header + embedded packet) is not
+     * incrementally patched here - use --fixcsum for a fully correct
+     * checksum, same as the reproduction steps in #818.
+     */
+    if (l3len > 0) {
+        const u_char *end_ptr = (const u_char *)ip6_hdr + l3len;
+        uint8_t l4proto = get_ipv6_l4proto(ip6_hdr, end_ptr);
+
+        if (l4proto == IPPROTO_ICMP6) {
+            icmpv6_hdr_t *icmp6 = (icmpv6_hdr_t *)get_layer4_v6(ip6_hdr, end_ptr);
+
+            if (icmp6 != NULL && (const u_char *)icmp6 + sizeof(*icmp6) <= end_ptr) {
+                switch (icmp6->icmp_type) {
+                case ICMP6_UNREACH:
+                case ICMP6_PKTTOOBIG:
+                case ICMP6_TIMXCEED:
+                case ICMP6_PARAMPROB: {
+                    ipv6_hdr_t *embedded = (ipv6_hdr_t *)((u_char *)icmp6 + sizeof(*icmp6));
+                    int embedded_len = (int)(end_ptr - (const u_char *)embedded);
+
+                    if (embedded_len >= (int)sizeof(ipv6_hdr_t) && ((ipv4_hdr_t *)embedded)->ip_v == 6)
+                        rewrite_ipv6l3(tcpedit, embedded, direction, embedded_len);
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
         }
-        if ((!didsrc) && ip6_in_cidr(cidrmap1->from, &ip6_hdr->ip_src)) {
-            struct tcpr_in6_addr old_ip6;
-            memcpy(&old_ip6, &ip6_hdr->ip_src, sizeof(old_ip6));
-            remap_ipv6(tcpedit, cidrmap1->to, &ip6_hdr->ip_src);
-            ipv6_addr_csum_replace(ip6_hdr, &old_ip6, &ip6_hdr->ip_src, l3len);
-            dbgx(2, "Remapped src addr to: %s", get_addr2name6(&ip6_hdr->ip_src, RESOLVE));
-            didsrc = 1;
-        }
-
-        /*
-         * loop while we haven't modified both src/dst AND
-         * at least one of the cidr maps have a next pointer
-         */
-        if ((!(diddst && didsrc)) && (!((cidrmap1->next == NULL) && (cidrmap2->next == NULL)))) {
-            /* increment our ptr's if possible */
-            if (cidrmap1->next != NULL)
-                cidrmap1 = cidrmap1->next;
-
-            if (cidrmap2->next != NULL)
-                cidrmap2 = cidrmap2->next;
-
-        } else {
-            loop = 0;
-        }
-
-        /* Later on we should support various IP protocols which embed
-         * the IP address in the application layer.  Things like
-         * DNS and FTP.
-         */
-
-    } while (loop);
+    }
 
     /* return how many changes we require checksum updates
      * (none required - checksum is already updated)
