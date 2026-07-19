@@ -210,7 +210,7 @@ def _parse_entries(lines, idx, heredocs, end_at_brace):
             continue
         if end_at_brace and line.startswith("}"):
             return entries, i + 1
-        if line.startswith("autogen "):  # 'autogen definitions options;'
+        if line.lower().startswith("autogen "):  # '[Aa]uto[Gg]en definitions options;'
             i += 1
             continue
         m = re.match(r"^([A-Za-z_][A-Za-z0-9_-]*)\s*(=?)\s*(.*)$", line)

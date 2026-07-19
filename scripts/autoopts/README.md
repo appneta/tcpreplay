@@ -80,7 +80,55 @@ runtime is untouched — this replaces only the generator.
       as a separate enhancement if that content should actually be
       surfaced.
 
-## Running the gates## Running the gates
+## Known scope boundary: tcpedit_stub.h stays autogen-only
+
+`src/tcpedit/tcpedit_stub.h` is generated from `tcpedit_stub.def` using a
+different AutoOpts template mode ("library" options, consumed by another
+program's descriptor table via an exported `..._optDesc_p` pointer) than
+the seven `prog-name`-bearing tools emit_h.py targets: no copyright
+block, no NLS section, no per-program identity, a `LIBRARY_OPTION_COUNT`
+enum sentinel instead of the usual auto-option accounting. It is
+different enough to warrant its own emitter rather than a variant of
+emit_h.py, and building that was not part of the man-page decision this
+stage was scoped to. It remains on Phase 1's existing safe pattern:
+committed, regenerated only when a `.def` it depends on changes, with a
+clear failure (not silent staleness) if autogen is absent when that
+happens - so it does not block ordinary autogen-free builds. Revisit as
+future work if full autogen elimination is wanted.
+
+## Running the gates## Known scope boundary: tcpedit_stub.h stays autogen-only
+
+`src/tcpedit/tcpedit_stub.h` is generated from `tcpedit_stub.def` using a
+different AutoOpts template mode ("library" options, consumed by another
+program's descriptor table via an exported `..._optDesc_p` pointer) than
+the seven `prog-name`-bearing tools emit_h.py targets: no copyright
+block, no NLS section, no per-program identity, a `LIBRARY_OPTION_COUNT`
+enum sentinel instead of the usual auto-option accounting. It is
+different enough to warrant its own emitter rather than a variant of
+emit_h.py, and building that was not part of the man-page decision this
+stage was scoped to. It remains on Phase 1's existing safe pattern:
+committed, regenerated only when a `.def` it depends on changes, with a
+clear failure (not silent staleness) if autogen is absent when that
+happens - so it does not block ordinary autogen-free builds. Revisit as
+future work if full autogen elimination is wanted.
+
+## Running the gates
+
+## Known scope boundary: tcpedit_stub.h stays autogen-only
+
+`src/tcpedit/tcpedit_stub.h` is generated from `tcpedit_stub.def` using a
+different AutoOpts template mode ("library" options, consumed by another
+program's descriptor table via an exported `..._optDesc_p` pointer) than
+the seven `prog-name`-bearing tools emit_h.py targets: no copyright
+block, no NLS section, no per-program identity, a `LIBRARY_OPTION_COUNT`
+enum sentinel instead of the usual auto-option accounting. It is
+different enough to warrant its own emitter rather than a variant of
+emit_h.py, and building that was not part of the man-page decision this
+stage was scoped to. It remains on Phase 1's existing safe pattern:
+committed, regenerated only when a `.def` it depends on changes, with a
+clear failure (not silent staleness) if autogen is absent when that
+happens - so it does not block ordinary autogen-free builds. Revisit as
+future work if full autogen elimination is wanted.
 
 ## Running the gates
 
