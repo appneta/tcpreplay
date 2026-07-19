@@ -1,4 +1,13 @@
 UNRELEASED
+    - tcpreplay: support raw IP (L3-only) interfaces such as WireGuard and tun (#988) - interfaces
+      whose hardware type is ARPHRD_NONE/ARPHRD_RAWIP are now detected in the PF_PACKET open path;
+      packets are sent as bare IP with the per-packet protocol (ETH_P_IP/ETH_P_IPV6) taken from
+      the IP version nibble, which drivers like WireGuard require, and any layer 2 header in the
+      source pcap (Ethernet incl. VLAN tags, SLL, loopback, ...) is stripped automatically at
+      send time so both DLT_EN10MB and DLT_RAW captures replay unmodified; non-IP packets (e.g.
+      ARP) fail with a clear per-packet message, the misleading 'Unsupported physical layer
+      type 0xfffe' and DLT-mismatch warnings are suppressed for these interfaces, and --io-uring
+      reports a clean unsupported-combination error instead of failing mid-replay
     - cmake: fail configure on stale pre-generated AutoOpts files in the source tree (#1020) -
       a leftover src/*_opts.h (from an earlier in-source build or an unpacked tarball) always
       shadows the freshly generated build-dir copy because quote-includes search the including
