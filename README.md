@@ -86,7 +86,9 @@ sudo make install
 ```
 
 If you're building from a git checkout, `configure` doesn't exist yet - generate it
-first with `autogen.sh` (requires `autoconf`, `automake`, `libtool`, and `autogen`):
+first with `autogen.sh` (requires `autoconf`, `automake` and `libtool`; despite the
+similar name this script has nothing to do with GNU AutoGen, see the CMake section
+below):
 ```
 ./autogen.sh
 ./configure
@@ -101,9 +103,12 @@ As of version 4.6, the suite can also be built with [CMake](https://cmake.org) (
 autotools build (`./configure` / automake) is still provided and used for
 release tarballs, but it will be retired in a future release, so new
 scripts and packaging should use CMake. Building from a git checkout
-no longer requires `autogen` (GNU AutoGen): the generated CLI option
-parsers and man pages are committed, and autogen (which is EOL) is only
-needed to regenerate them after editing a `.def` file.
+no longer requires `autogen` (GNU AutoGen, which is EOL): the generated
+CLI option parsers and man-page source are committed, and produced by
+`scripts/autoopts` (a small in-tree Python replacement) and `asciidoctor`
+if you need to regenerate them after editing a `.def` file. GNU autogen
+itself is only still needed for one internal header
+(`src/tcpedit/tcpedit_stub.h`); see `scripts/autoopts/README.md`.
 
 ```
 cmake -B build
@@ -140,8 +145,8 @@ cmake -B build-release
 ```
 
 Handy targets: `cmake --build build --target manpages` renders the man pages
-with autogen. VS Code users with the CMake Tools extension can simply open the
-repository folder and select a configure preset when prompted.
+with asciidoctor. VS Code users with the CMake Tools extension can simply open
+the repository folder and select a configure preset when prompted.
 
 Build netmap feature
 --------------------

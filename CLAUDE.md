@@ -47,10 +47,15 @@ Useful `./configure` flags when working on specific areas:
   OS-specific, e.g. `eth0` on Linux, `en0` on macOS — see `configure.ac`)
 - `--enable-test-hexdump` - hexdump the pcap on test failure
 
-Requires `libpcap`. The AutoOpts-generated `*_opts.c/h` and man pages are committed to git (#895 —
-GNU autogen is EOL), so `autogen` is only needed to REGENERATE them after editing a `.def` file;
-regeneration happens in the source tree and the result must be committed. On Debian/Ubuntu:
-`apt install libpcap-dev automake autoconf libtool` (add `autogen` if editing `.def` files).
+Requires `libpcap`. The AutoOpts-generated `*_opts.c/h` and man-page source (`*.adoc`, plus the
+rendered `*.1`) are committed to git (#895 — GNU autogen is EOL). `scripts/autoopts` (python3)
+regenerates `*_opts.c/h`/`*.adoc` and `asciidoctor` renders `*.adoc` to `*.1`; both are only needed
+to REGENERATE after editing a `.def` file, and regeneration happens in the source tree and the
+result must be committed. GNU autogen itself is only still needed for one file,
+`src/tcpedit/tcpedit_stub.h` (a distinct AutoOpts template mode — see `scripts/autoopts/README.md`).
+On Debian/Ubuntu: `apt install libpcap-dev automake autoconf libtool` (add `autogen` if editing
+`tcpedit_stub.def` or the `.def` files it includes; add `asciidoctor` if editing a man-page-visible
+attribute like `descrip`/`doc`/`explain`/`detail`).
 
 ### CMake (alternative build, since 4.6)
 
@@ -63,8 +68,11 @@ Mirrors configure.ac feature-for-feature; every `--enable-*`/`--with-*` flag has
 (mapping table in the top-level `CMakeLists.txt` header comment, e.g. `-DENABLE_DEBUG=ON`,
 `-DWITH_NETMAP=DIR`). Feature detection lives in `cmake/*.cmake`; `cmake/config.h.cmake` is the
 CMake twin of `src/config.h.in` — **when adding a configure.ac check or a new config.h define, update
-the corresponding `cmake/` file too**. `*_opts.c` files are committed; `autogen` is only needed after `.def` edits.
-`make test` remains autotools-only; autotools stays the canonical release build.
+the corresponding `cmake/` file too**. `*_opts.c/h` and man-page `.adoc`/`.1` files are committed;
+`cmake --build build --target manpages` (or a plain build, which regenerates stale ones automatically)
+uses `scripts/autoopts` (python3) and `asciidoctor` after `.def` edits — `autogen` itself is only
+needed for `src/tcpedit/tcpedit_stub.h`. CMake is the primary, recommended way to build the suite;
+`make test` remains autotools-only, so autotools is still required for that and for release tarballs.
 
 ## Tests
 

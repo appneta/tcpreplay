@@ -259,7 +259,7 @@ Examples:
     cmake -B build -DWITH_NETMAP=/usr/local/src/netmap \
                    -DWITH_LIBPCAP=/usr/local/opt/libpcap
 
-    # render man pages (requires GNU autogen)
+    # render man pages (requires asciidoctor)
     cmake --build build --target manpages
 
 Configure presets for common configurations (default, debug, asan,
@@ -271,16 +271,18 @@ CMake Tools extension) and CLion pick these up automatically, e.g.
 
 Notes:
 
-  - The AutoOpts-generated option parsers (*_opts.c/h) and man pages are
-    committed to git and shipped in tarballs, so GNU autogen (which is
-    EOL) is NOT needed to build.  It is only needed to regenerate those
-    files after editing a .def file; regeneration happens in the source
-    tree and the result should be committed.
+  - The AutoOpts-generated option parsers (*_opts.c/h) and man-page source
+    (*.adoc, plus the rendered *.1) are committed to git and shipped in
+    tarballs, so neither GNU autogen nor asciidoctor is needed to build.
+    scripts/autoopts (python3) regenerates *_opts.c/h and *.adoc after a
+    .def edit; asciidoctor renders *.adoc to *.1 (the `manpages` target
+    above). GNU autogen (EOL) is only still needed for
+    src/tcpedit/tcpedit_stub.h - see scripts/autoopts/README.md.
   - `make test' remains autotools-driven.  The CMake build generates
     test/config so the test fixtures can be used, but running the test
     suite still requires the autotools flow described above.
-  - The autotools build remains the canonical build for releases and
-    packaging.
+  - CMake is the primary, recommended way to build the suite; autotools
+    remains supported for release tarballs and `make test`.
 
 Compilers and Options
 =====================
