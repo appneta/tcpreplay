@@ -200,6 +200,21 @@ sudo cmake --install build
 sudo tcpreplay -i eth0 --io-uring test.pcap
 ```
 
+Replaying onto raw IP (L3) interfaces
+-------------------------------------
+On Linux, tcpreplay can replay directly onto layer-3-only interfaces such as
+WireGuard and tun devices — no build option or command line flag needed. Any
+layer 2 header in the input file (Ethernet including VLAN tags, Linux SLL,
+loopback, ...) is stripped automatically and packets are sent as bare
+IPv4/IPv6 with the correct protocol, which drivers like WireGuard require:
+
+```
+sudo tcpreplay -i wg0 test.pcap
+```
+
+Note that non-IP packets (e.g. ARP) cannot be sent on these interfaces and
+are reported as failed, and that `--io-uring` is not supported on them.
+
 Detailed installation instructions are available in the INSTALL document in the tar ball.
 
 Install Tcpreplay from source code

@@ -386,8 +386,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
     COUNTER limit_send = options->limit_send;
     struct pcap_pkthdr pkthdr;
     u_char *pktdata = NULL;
+    u_char *send_data;
     sendpacket_t *sp = ctx->intf1;
     COUNTER pktlen;
+    COUNTER send_len;
     packet_cache_t *cached_packet = NULL;
     packet_cache_t **prev_packet = NULL;
 #if defined TCPREPLAY && defined TCPREPLAY_EDIT
@@ -575,8 +577,23 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
         }
 #endif
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
+
+        /* raw IP (L3-only) interfaces like WireGuard take the bare IP packet: strip L2 (#988) */
+        send_data = pktdata;
+        send_len = pktlen;
+        if (sendpacket_is_raw_ip(sp)) {
+            COUNTER l2len = (COUNTER)get_l2len(pktdata, (int)pkthdr.caplen, datalink);
+            if (l2len >= send_len) {
+                warnx("Unable to send packet " COUNTER_SPEC ": no data beyond the layer 2 header", packetnum);
+                ++stats->failed;
+                continue;
+            }
+            send_data += l2len;
+            send_len -= l2len;
+        }
+
         /* write packet out on network */
-        if (sendpacket(sp, pktdata, pktlen, &pkthdr) < (int)pktlen) {
+        if (sendpacket(sp, send_data, send_len, &pkthdr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
             continue;
         }
@@ -592,10 +609,10 @@ send_packets(tcpreplay_t *ctx, pcap_t *pcap, int idx)
 
         stats->pkts_sent++;
 #ifndef HAVE_LIBXDP
-        stats->bytes_sent += pktlen;
+        stats->bytes_sent += send_len;
 #else
         if (sp->handle_type != SP_TYPE_LIBXDP)
-            stats->bytes_sent += pktlen;
+            stats->bytes_sent += send_len;
 #endif
         /* print stats during the run? */
         if (options->stats > 0) {
@@ -657,8 +674,10 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
     int cache_file_idx;
     struct pcap_pkthdr pkthdr1, pkthdr2;
     u_char *pktdata1 = NULL, *pktdata2 = NULL, *pktdata = NULL;
+    u_char *send_data;
     sendpacket_t *sp;
     COUNTER pktlen;
+    COUNTER send_len;
     packet_cache_t *cached_packet1 = NULL, *cached_packet2 = NULL;
     packet_cache_t **prev_packet1 = NULL, **prev_packet2 = NULL;
     struct pcap_pkthdr *pkthdr_ptr;
@@ -840,8 +859,23 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
 #endif
 
         dbgx(2, "Sending packet #" COUNTER_SPEC, packetnum);
+
+        /* raw IP (L3-only) interfaces like WireGuard take the bare IP packet: strip L2 (#988) */
+        send_data = pktdata;
+        send_len = pktlen;
+        if (sendpacket_is_raw_ip(sp)) {
+            COUNTER l2len = (COUNTER)get_l2len(pktdata, (int)pkthdr_ptr->caplen, datalink);
+            if (l2len >= send_len) {
+                warnx("Unable to send packet " COUNTER_SPEC ": no data beyond the layer 2 header", packetnum);
+                ++stats->failed;
+                continue;
+            }
+            send_data += l2len;
+            send_len -= l2len;
+        }
+
         /* write packet out on network */
-        if (sendpacket(sp, pktdata, pktlen, pkthdr_ptr) < (int)pktlen) {
+        if (sendpacket(sp, send_data, send_len, pkthdr_ptr) < (int)send_len) {
             warnx("Unable to send packet: %s", sendpacket_geterr(sp));
             continue;
         }
@@ -852,7 +886,7 @@ send_dual_packets(tcpreplay_t *ctx, pcap_t *pcap1, int cache_file_idx1, pcap_t *
         TIMESPEC_SET(&stats->end_time, &now);
 
         ++stats->pkts_sent;
-        stats->bytes_sent += pktlen;
+        stats->bytes_sent += send_len;
 
         /* print stats during the run? */
         if (options->stats > 0) {

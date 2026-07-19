@@ -252,6 +252,8 @@ struct sendpacket_s {
     unsigned int uring_free_top; /* number of entries in uring_free */
     unsigned int uring_outstanding;
 #endif
+    /* interface is L3-only (WireGuard, tun, ...): send bare IP packets, no L2 header (#988) */
+    bool raw_ip;
     bool abort;
 };
 typedef struct sendpacket_s sendpacket_t;
@@ -316,3 +318,4 @@ struct tcpr_ether_addr *sendpacket_get_hwaddr(sendpacket_t *);
 int sendpacket_get_dlt(sendpacket_t *);
 const char *sendpacket_get_method(sendpacket_t *);
 void sendpacket_abort(sendpacket_t *);
+bool sendpacket_is_raw_ip(sendpacket_t *);

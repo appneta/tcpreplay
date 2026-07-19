@@ -78,12 +78,18 @@ EOExplain;
 
 detail = <<- EODetail
 The basic operation of tcpreplay is to resend  all  packets  from  the
-input file(s) at the speed at which they were recorded, or a specified 
+input file(s) at the speed at which they were recorded, or a specified
 data rate, up to as fast as the hardware is capable.
 
 Optionally, the traffic can be split between two interfaces, written to
 files, filtered and edited in various ways, providing the means to test
 firewalls, NIDS and other network devices.
+
+On Linux, raw IP (layer 3 only) interfaces such as WireGuard and tun are
+supported automatically: any layer 2 header in the input file (Ethernet
+including VLAN tags, Linux SLL, loopback, ...) is stripped and packets are
+sent as bare IPv4/IPv6. Non-IP packets such as ARP cannot be sent on these
+interfaces and are reported as failed.
 
 For more details, please see the Tcpreplay Manual at:
 http://tcpreplay.appneta.com

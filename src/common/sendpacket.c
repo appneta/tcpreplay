@@ -181,6 +181,7 @@
 static sendpacket_t *sendpacket_open_pf(const char *, char *);
 static struct tcpr_ether_addr *sendpacket_get_hwaddr_pf(sendpacket_t *);
 static int get_iface_index(int fd, const char *device, char *);
+static int sendpacket_send_raw_ip(sendpacket_t *, const u_char *, size_t);
 
 #endif /* HAVE_PF_PACKET */
 
@@ -372,16 +373,21 @@ TRY_SEND_AGAIN:
     case SP_TYPE_PF_PACKET:
     case SP_TYPE_TX_RING:
 #if defined HAVE_PF_PACKET
+        if (sp->raw_ip) {
+            retcode = sendpacket_send_raw_ip(sp, data, len);
+        } else
 #ifdef HAVE_TX_RING
-        retcode = (int)txring_put(sp->tx_ring, data, len);
+            retcode = (int)txring_put(sp->tx_ring, data, len);
 #else
-        retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
+            retcode = (int)send(sp->handle.fd, (void *)data, len, 0);
 #endif
 
         /* out of buffers, or hit max PHY speed, silently retry
          * as long as we're not told to abort
          */
-        if (retcode < 0 && !sp->abort) {
+        if (retcode == -2) {
+            retcode = -1; /* non-IP packet on a raw IP interface: hard failure, error already set */
+        } else if (retcode < 0 && !sp->abort) {
             switch (errno) {
             case EAGAIN:
                 sp->retry_eagain++;
@@ -1146,6 +1152,7 @@ sendpacket_open_pf(const char *device, char *errbuf)
     struct sockaddr_ll sa;
     int err;
     socklen_t errlen = sizeof(err);
+    bool raw_ip = false;
     unsigned int UNUSED(mtu) = 1500;
 #ifdef SO_BROADCAST
     int n = 1;
@@ -1206,12 +1213,21 @@ sendpacket_open_pf(const char *device, char *errbuf)
         return NULL;
     }
 
-    /* make sure it's not loopback (PF_PACKET doesn't support it) */
-    if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER)
+    /* L3-only interfaces (WireGuard, tun, ...) take bare IP packets with no L2 header (#988) */
+    if (ifr.ifr_hwaddr.sa_family == ARPHRD_NONE
+#ifdef ARPHRD_RAWIP
+        || ifr.ifr_hwaddr.sa_family == ARPHRD_RAWIP
+#endif
+    ) {
+        raw_ip = true;
+        dbgx(1, "sendpacket: %s is a raw IP (L3) interface", device);
+    } else if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
+        /* make sure it's not loopback (PF_PACKET doesn't support it) */
         warnx("Unsupported physical layer type 0x%04x on %s.  Maybe it works, maybe it won't."
               "  See tickets #123/318",
               ifr.ifr_hwaddr.sa_family,
               device);
+    }
 
 #ifdef SO_BROADCAST
     /*
@@ -1233,30 +1249,67 @@ sendpacket_open_pf(const char *device, char *errbuf)
     sp = (sendpacket_t *)safe_malloc(sizeof(sendpacket_t));
     strlcpy(sp->device, device, sizeof(sp->device));
     sp->handle.fd = mysocket;
+    sp->sa = sa; /* bound address; raw IP sends need the ifindex for per-packet sendto() */
+    sp->raw_ip = raw_ip;
 
 #ifdef HAVE_TX_RING
-    /* Look up for MTU */
-    memset(&ifr, 0, sizeof(ifr));
-    strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
+    if (!raw_ip) {
+        /* Look up for MTU */
+        memset(&ifr, 0, sizeof(ifr));
+        strlcpy(ifr.ifr_name, sp->device, sizeof(ifr.ifr_name));
 
-    if (ioctl(mysocket, SIOCGIFMTU, &ifr) < 0) {
-        close(mysocket);
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Error getting MTU: %s", strerror(errno));
-        return NULL;
-    }
-    mtu = ifr.ifr_ifru.ifru_mtu;
+        if (ioctl(mysocket, SIOCGIFMTU, &ifr) < 0) {
+            close(mysocket);
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Error getting MTU: %s", strerror(errno));
+            return NULL;
+        }
+        mtu = ifr.ifr_ifru.ifru_mtu;
 
-    /* Init TX ring for sp->handle.fd socket */
-    if ((sp->tx_ring = txring_init(sp->handle.fd, mtu)) == 0) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "txring_init: %s", strerror(errno));
-        close(mysocket);
-        return NULL;
+        /* Init TX ring for sp->handle.fd socket */
+        if ((sp->tx_ring = txring_init(sp->handle.fd, mtu)) == 0) {
+            snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "txring_init: %s", strerror(errno));
+            close(mysocket);
+            return NULL;
+        }
+        sp->handle_type = SP_TYPE_TX_RING;
+    } else {
+        /* the TX ring expects L2 frames; raw IP interfaces use plain sendto() */
+        sp->handle_type = SP_TYPE_PF_PACKET;
     }
-    sp->handle_type = SP_TYPE_TX_RING;
 #else
     sp->handle_type = SP_TYPE_PF_PACKET;
 #endif
     return sp;
+}
+
+/**
+ * Send a bare IP packet on a raw IP (L3-only) interface such as WireGuard or
+ * tun (#988).  The kernel needs the correct protocol on each packet (drivers
+ * like WireGuard reject anything that is not ETH_P_IP/ETH_P_IPV6), so it is
+ * taken from the IP version nibble and passed via sendto()'s sockaddr_ll.
+ * Returns bytes sent, -1 on send error (errno valid), or -2 for a non-IP
+ * packet (error message set, no retry).
+ */
+static int
+sendpacket_send_raw_ip(sendpacket_t *sp, const u_char *data, size_t len)
+{
+    struct sockaddr_ll sa;
+    uint8_t version = data[0] >> 4;
+
+    memcpy(&sa, &sp->sa, sizeof(sa));
+    if (version == 4) {
+        sa.sll_protocol = htons(ETH_P_IP);
+    } else if (version == 6) {
+        sa.sll_protocol = htons(ETH_P_IPV6);
+    } else {
+        sendpacket_seterr(sp,
+                          "unable to send non-IP packet on raw IP interface %s (IP version nibble %u)",
+                          sp->device,
+                          version);
+        return -2;
+    }
+
+    return (int)sendto(sp->handle.fd, (const void *)data, len, 0, (struct sockaddr *)&sa, sizeof(sa));
 }
 
 /**
@@ -1461,6 +1514,11 @@ sendpacket_get_dlt(sendpacket_t *sp)
 {
     int dlt = DLT_EN10MB;
 
+    /* L3-only interfaces carry bare IP packets */
+    if (sp->raw_ip) {
+        return DLT_RAW;
+    }
+
     switch (sp->handle_type) {
     case SP_TYPE_KHIAL:
     case SP_TYPE_NETMAP:
@@ -1560,6 +1618,20 @@ sendpacket_abort(sendpacket_t *sp)
     assert(sp);
 
     sp->abort = true;
+}
+
+/**
+ * \brief Is the opened interface L3-only (raw IP, no layer 2 header)?
+ *
+ * True for WireGuard/tun style interfaces; callers must strip any L2 header
+ * before handing packets to sendpacket() (#988)
+ */
+bool
+sendpacket_is_raw_ip(sendpacket_t *sp)
+{
+    assert(sp);
+
+    return sp->raw_ip;
 }
 #ifdef HAVE_LIBXDP
 static struct xsk_socket_info *
@@ -1800,6 +1872,20 @@ sendpacket_open_io_uring(const char *device, char *errbuf)
     if (ioctl(mysocket, SIOCGIFHWADDR, &ifr) < 0) {
         close(mysocket);
         snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Error getting hardware type: %s", strerror(errno));
+        return NULL;
+    }
+
+    if (ifr.ifr_hwaddr.sa_family == ARPHRD_NONE
+#ifdef ARPHRD_RAWIP
+        || ifr.ifr_hwaddr.sa_family == ARPHRD_RAWIP
+#endif
+    ) {
+        snprintf(errbuf,
+                 SENDPACKET_ERRBUF_SIZE,
+                 "%s is a raw IP (L3) interface, which is not supported with --io-uring. "
+                 "Replay without --io-uring instead.",
+                 device);
+        close(mysocket);
         return NULL;
     }
 

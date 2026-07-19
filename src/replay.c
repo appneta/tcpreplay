@@ -165,13 +165,15 @@ replay_file(tcpreplay_t *ctx, int idx)
                     path, pcap_datalink_val_to_name(pcap_datalink(pcap)),
                     ctx->options->intf1->device, pcap_datalink_val_to_name(ctx->intf1dlt));
 #endif
-        if (ctx->intf1dlt != ctx->options->file_cache[idx].dlt)
+        /* raw IP (L3) interfaces accept any DLT: the L2 header is stripped at send time (#988) */
+        if (ctx->intf1dlt != ctx->options->file_cache[idx].dlt && !sendpacket_is_raw_ip(ctx->intf1)) {
             tcpreplay_setwarn(ctx,
                               "%s DLT (%s) does not match that of the outbound interface: %s (%s)",
                               path,
                               pcap_datalink_val_to_name(pcap_datalink(pcap)),
                               ctx->intf1->device,
                               pcap_datalink_val_to_name(ctx->intf1dlt));
+        }
     }
 
     ctx->stats.active_pcap = ctx->options->sources[idx].filename;
@@ -261,7 +263,8 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
 #endif
         if (ctx->intf1dlt == -1)
             ctx->intf1dlt = sendpacket_get_dlt(ctx->intf1);
-        if ((ctx->intf1dlt >= 0) && (ctx->intf1dlt != pcap_datalink(pcap1))) {
+        /* raw IP (L3) interfaces accept any DLT: the L2 header is stripped at send time (#988) */
+        if ((ctx->intf1dlt >= 0) && (ctx->intf1dlt != pcap_datalink(pcap1)) && !sendpacket_is_raw_ip(ctx->intf1)) {
             tcpreplay_setwarn(ctx,
                               "%s DLT (%s) does not match that of the outbound interface: %s (%s)",
                               path1,
@@ -273,7 +276,7 @@ replay_two_files(tcpreplay_t *ctx, int idx1, int idx2)
 
         if (ctx->intf2dlt == -1)
             ctx->intf2dlt = sendpacket_get_dlt(ctx->intf2);
-        if ((ctx->intf2dlt >= 0) && (ctx->intf2dlt != pcap_datalink(pcap2))) {
+        if ((ctx->intf2dlt >= 0) && (ctx->intf2dlt != pcap_datalink(pcap2)) && !sendpacket_is_raw_ip(ctx->intf2)) {
             tcpreplay_setwarn(ctx,
                               "%s DLT (%s) does not match that of the outbound interface: %s (%s)",
                               path2,
