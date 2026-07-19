@@ -21,7 +21,8 @@ jobs:
           version: 14
           lines-changed-only: true
           files-changed-only: false
-          ignore: .github|docs|scripts
+          # generated AutoOpts output (committed since #895) is not ours to lint
+          ignore: .github|docs|scripts|src/tcpreplay_opts.c|src/tcpreplay_opts.h|src/tcpreplay_edit_opts.c|src/tcpreplay_edit_opts.h|src/tcprewrite_opts.c|src/tcprewrite_opts.h|src/tcpprep_opts.c|src/tcpprep_opts.h|src/tcpbridge_opts.c|src/tcpbridge_opts.h|src/tcpliveplay_opts.c|src/tcpliveplay_opts.h|src/tcpcapinfo_opts.c|src/tcpcapinfo_opts.h|src/tcpedit/tcpedit_stub.h
           database: build
 
       - name: Fail fast?!
