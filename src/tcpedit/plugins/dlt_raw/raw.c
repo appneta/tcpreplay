@@ -191,13 +191,42 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
  * Returns: total packet len or TCPEDIT_ERROR
  */
 int
-dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, _U_ int pktlen, _U_ tcpr_dir_t dir)
+dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir)
 {
+    int l2len;
+    uint8_t version;
+
     assert(ctx);
     assert(packet);
 
-    tcpedit_seterr(ctx->tcpedit, "%s", "DLT_RAW plugin does not support packet encoding");
-    return TCPEDIT_ERROR;
+    /* DLT_RAW is a zero length L2 header: strip whatever L2 header the
+     * source DLT has (its length was stored by the decoder) (#1023)
+     */
+    l2len = ctx->l2len;
+    if (l2len < 0 || l2len >= pktlen) {
+        tcpedit_seterr(ctx->tcpedit,
+                       "unable to convert to DLT_RAW: layer 2 header length %d exceeds packet length %d",
+                       l2len,
+                       pktlen);
+        return TCPEDIT_ERROR;
+    }
+
+    /* DLT_RAW can only carry IPv4/IPv6: leave anything else (e.g. ARP)
+     * untouched and report a soft error so --skip-soft-errors drops it
+     */
+    version = packet[l2len] >> 4;
+    if (version != 4 && version != 6) {
+        tcpedit_seterr(ctx->tcpedit,
+                       "%s",
+                       "unable to convert non-IP packet to DLT_RAW; use --skip-soft-errors to drop such packets");
+        return TCPEDIT_SOFT_ERROR;
+    }
+
+    if (l2len > 0) {
+        memmove(packet, packet + l2len, (size_t)(pktlen - l2len));
+    }
+
+    return pktlen - l2len;
 }
 
 /*

@@ -25,7 +25,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test.rewrite_seed test.rewrite_portmap test.rewrite_endpoint \
 		test.rewrite_pnat test.rewrite_pad test.rewrite_trunc \
 		test.rewrite_mac test.rewrite_layer2 test.rewrite_config \
-		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc \
+		test.rewrite_skip test.rewrite_dltuser test.rewrite_dlthdlc test.rewrite_dltraw \
 		test.rewrite_vlan802.1ad test.rewrite_vlandel test.rewrite_efcs \
 		test.rewrite_1ttl test.rewrite_2ttl test.rewrite_3ttl \
 		test.rewrite_1ttl-hdrfix test.rewrite_2ttl-hdrfix test.rewrite_3ttl-hdrfix \
@@ -37,7 +37,7 @@ EXTRA_DIST = test.pcap test.auto_bridge test.auto_client test.auto_router \
 		test2.rewrite_seed test2.rewrite_portmap test2.rewrite_endpoint \
 		test2.rewrite_pnat test2.rewrite_pad test2.rewrite_trunc \
 		test2.rewrite_mac test2.rewrite_layer2 test2.rewrite_config \
-		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc \
+		test2.rewrite_skip test2.rewrite_dltuser test2.rewrite_dlthdlc test2.rewrite_dltraw \
 		test2.rewrite_vlan802.1ad test2.rewrite_vlandel test2.rewrite_efcs \
 		test2.rewrite_1ttl test2.rewrite_2ttl test2.rewrite_3ttl \
 		test2.rewrite_1ttl-hdrfix test2.rewrite_2ttl-hdrfix test2.rewrite_3ttl-hdrfix \
@@ -125,6 +125,8 @@ standard_bigendian:
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_dltraw --dlt=raw \
+		--skip-soft-errors
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test.rewrite_vlan802.1ad \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
 		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
@@ -181,6 +183,8 @@ standard_littleendian:
 		--user-dlink=0x0f,0x00,0x08,0x00 --user-dlt=104
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_dlthdlc --dlt=hdlc \
 		--hdlc-control=0 --hdlc-address=0x0F
+	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_dltraw --dlt=raw \
+		--skip-soft-errors
 	$(TCPREWRITE) -i $(TEST_PCAP) -o test2.rewrite_vlan802.1ad \
 		--enet-vlan=add --enet-vlan-tag=42 --enet-vlan-cfi=1 \
 		--enet-vlan-pri=2 --enet-vlan-proto=802.1ad
@@ -211,7 +215,7 @@ tcpprep: auto_router auto_bridge auto_client auto_server auto_first cidr regex \
 
 tcprewrite: rewrite_portmap rewrite_range_portmap rewrite_endpoint \
 	rewrite_pnat rewrite_trunc rewrite_pad rewrite_seed rewrite_mac \
-	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc \
+	rewrite_layer2 rewrite_config rewrite_skip rewrite_dltuser rewrite_dlthdlc rewrite_dltraw \
 	rewrite_vlan802.1ad rewrite_vlandel rewrite_efcs \
 	rewrite_1ttl rewrite_2ttl rewrite_3ttl rewrite_1ttl-hdrfix rewrite_2ttl-hdrfix rewrite_3ttl-hdrfix \
 	rewrite_tos rewrite_mtutrunc rewrite_enet_subsmac rewrite_mac_seed \
@@ -637,6 +641,17 @@ rewrite_dlthdlc:
 	    $(PRINTF) "\t\t%s\n" "OK"; \
 	else \
 	    $(PRINTF) "\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
+	fi
+
+rewrite_dltraw:
+	$(PRINTF) "%s" "[tcprewrite] DLT Raw test: "
+	$(PRINTF) "%s\n" "*** [tcprewrite] DLT Raw test: " >> test.log
+	$(TCPREWRITE) $(ENABLE_DEBUG) -i $(TEST_PCAP) -o test.$@1 --dlt=raw \
+		--skip-soft-errors  >> test.log 2>&1
+	if diff $(srcdir)/test$(VARIANT).$@ test.$@1 >> test.log 2>&1; then \
+	    $(PRINTF) "\t\t\t%s\n" "OK"; \
+	else \
+	    $(PRINTF) "\t\t\t%s\n" "FAILED"; od -Ax -tx1 -v test.$@1 >> test.log; false; \
 	fi
 
 rewrite_vlan802.1ad:
