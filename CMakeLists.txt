@@ -191,8 +191,18 @@ foreach(_force FORCE_INJECT_BPF FORCE_INJECT_PF FORCE_INJECT_LIBDNET FORCE_INJEC
 endforeach()
 
 # ---------------------------------------------------------------------------
-# autogen (AutoOpts) — required to generate *_opts.c when building from git
+# autogen (AutoOpts) — required only to generate src/tcpedit/tcpedit_stub.h
+# python3 + asciidoctor (scripts/autoopts) — generate *_opts.c/h and man pages
 # ---------------------------------------------------------------------------
+# #895 phase 2: GNU autogen is EOL. scripts/autoopts (python3) replaces it for
+# every *_opts.c/h and the AsciiDoc man-page source (*.adoc, rendered to *.1
+# by asciidoctor); see scripts/autoopts/README.md. autogen remains required
+# only for src/tcpedit/tcpedit_stub.h, a distinct AutoOpts template mode not
+# yet ported. All of these generated files are committed to git and shipped
+# in tarballs, so the tools are only needed to regenerate them after a .def
+# edit - see tcpr_autogen_opts() in src/CMakeLists.txt for the opts.c/h/adoc
+# staleness check, and the manpages target further down in that file for
+# the asciidoctor rendering step.
 find_program(AUTOGEN_EXECUTABLE autogen)
 set(AUTOGEN_VERSION "unknown")
 if(AUTOGEN_EXECUTABLE)
@@ -203,13 +213,31 @@ if(AUTOGEN_EXECUTABLE)
         message(FATAL_ERROR "autogen ${AUTOGEN_VERSION} is too old. Upgrade to 5.18.4 or higher")
     endif()
     message(STATUS "Found autogen ${AUTOGEN_VERSION}")
-elseif(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/tcpreplay_opts.c)
-    message(FATAL_ERROR "Pre-generated option parsers are missing and GNU autogen is not "
-            "installed. Restore src/*_opts.c (git checkout) or install GNU autogen.")
+elseif(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/tcpedit/tcpedit_stub.h)
+    message(FATAL_ERROR "Pre-generated src/tcpedit/tcpedit_stub.h is missing and GNU autogen is "
+            "not installed. Restore it (git checkout) or install GNU autogen.")
 else()
-    # autogen is EOL (#895); the generated parsers and man pages are committed,
-    # so it is only needed to regenerate them after editing a .def file
-    message(STATUS "autogen not found - using the committed pre-generated option parsers")
+    message(STATUS "autogen not found - using the committed tcpedit_stub.h")
+endif()
+
+find_program(PYTHON3_EXECUTABLE python3)
+if(NOT PYTHON3_EXECUTABLE AND NOT EXISTS ${CMAKE_SOURCE_DIR}/src/tcpreplay_opts.c)
+    message(FATAL_ERROR "Pre-generated option parsers are missing and python3 is not installed. "
+            "Restore src/*_opts.c (git checkout) or install python3.")
+elseif(NOT PYTHON3_EXECUTABLE)
+    message(STATUS "python3 not found - using the committed pre-generated option parsers/man pages")
+else()
+    message(STATUS "Found python3: ${PYTHON3_EXECUTABLE}")
+endif()
+
+find_program(ASCIIDOCTOR_EXECUTABLE asciidoctor)
+if(ASCIIDOCTOR_EXECUTABLE)
+    message(STATUS "Found asciidoctor: ${ASCIIDOCTOR_EXECUTABLE}")
+elseif(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/tcpreplay.1)
+    message(FATAL_ERROR "Pre-generated man pages are missing and asciidoctor is not installed. "
+            "Restore src/*.1 (git checkout) or install asciidoctor.")
+else()
+    message(STATUS "asciidoctor not found - using the committed pre-generated man pages")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -404,6 +432,8 @@ message(STATUS "libpcap:                    ${PCAP_INCLUDE_FILE} (${LIBPCAP_VERS
 message(STATUS "PF_RING libpcap:            ${PF_RING_FOUND} ${WITH_PFRING_LIB}")
 message(STATUS "libdnet:                    ${HAVE_LIBDNET} ${LIBDNET_VERSION_STR}")
 message(STATUS "autogen:                    ${AUTOGEN_EXECUTABLE} (${AUTOGEN_VERSION})")
+message(STATUS "python3 (scripts/autoopts): ${PYTHON3_EXECUTABLE}")
+message(STATUS "asciidoctor (man pages):    ${ASCIIDOCTOR_EXECUTABLE}")
 message(STATUS "64bit counter support:      ${ENABLE_64BITS}")
 message(STATUS "tcpdump binary path:        ${TCPDUMP_PATH}")
 message(STATUS "fragroute support:          ${ENABLE_FRAGROUTE}")

@@ -15,25 +15,38 @@ if(ENABLE_FRAGROUTE)
 endif()
 
 # ---------------------------------------------------------------------------
-# AutoOpts code generation (*_opts.def → *_opts.c/h)
+# AutoOpts code generation (*_opts.def → *_opts.c/h, *.adoc man-page source)
 # ---------------------------------------------------------------------------
-# The generated files are committed to git and shipped in tarballs (#895):
-# GNU autogen is EOL, so it is only needed to REGENERATE them after a .def
-# changes.  Regeneration happens here at configure time, in the source tree,
-# so the build graph never runs autogen (and cannot race on its outputs).
+# The generated files are committed to git and shipped in tarballs (#895).
+# scripts/autoopts (python3) replaces GNU autogen for these targets - see
+# scripts/autoopts/README.md - so python3 is only needed to REGENERATE them
+# after a .def changes.  Regeneration happens here at configure time, in the
+# source tree, so the build graph never runs it (and cannot race on its
+# outputs).  autogen remains required only for src/tcpedit/tcpedit_stub.h
+# (further down in this file), a distinct AutoOpts template mode not yet
+# ported to scripts/autoopts.
 set(TCPR_AUTOGEN_OPTS_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(AUTOOPTS_DIR ${CMAKE_SOURCE_DIR}/scripts/autoopts)
 
-# tcpr_autogen_opts(<base> <def-file> [FLAGS ...] [DEPENDS ...])
+# tcpr_autogen_opts(<base> <def-file> [MANBASE name] [DEFINES sym] [DEPENDS ...])
 # Defines <base>_SOURCE pointing at the committed (possibly just-regenerated)
-# .c file in the source tree.
+# .c file in the source tree.  MANBASE (the man page/adoc basename, e.g.
+# "tcpreplay-edit" for base "tcpreplay_edit_opts") defaults to <base> with
+# any trailing "_opts" stripped.
 function(tcpr_autogen_opts base def)
-    cmake_parse_arguments(ARG "" "" "FLAGS;DEPENDS" ${ARGN})
+    cmake_parse_arguments(ARG "" "MANBASE;DEFINES" "DEPENDS" ${ARGN})
+    if(ARG_MANBASE)
+        set(_manbase ${ARG_MANBASE})
+    else()
+        string(REGEX REPLACE "_opts$" "" _manbase ${base})
+    endif()
     set(_out_c ${CMAKE_CURRENT_SOURCE_DIR}/${base}.c)
     set(_out_h ${CMAKE_CURRENT_SOURCE_DIR}/${base}.h)
+    set(_out_adoc ${CMAKE_CURRENT_SOURCE_DIR}/${_manbase}.adoc)
     # strictly-newer comparison (like make): IS_NEWER_THAN treats equal
     # timestamps as newer, which a fresh git checkout produces for every file
     set(_stale FALSE)
-    foreach(_f ${_out_c} ${_out_h})
+    foreach(_f ${_out_c} ${_out_h} ${_out_adoc})
         if(NOT EXISTS ${_f})
             set(_stale TRUE)
         else()
@@ -47,21 +60,34 @@ function(tcpr_autogen_opts base def)
         endif()
     endforeach()
     if(_stale)
-        if(AUTOGEN_EXECUTABLE)
-            message(STATUS "Regenerating ${base}.c/h with autogen")
-            get_filename_component(_defname ${def} NAME)
+        if(PYTHON3_EXECUTABLE)
+            message(STATUS "Regenerating ${base}.c/h and ${_manbase}.adoc with python3")
             execute_process(
-                COMMAND ${AUTOGEN_EXECUTABLE} -L tcpedit ${ARG_FLAGS} -b ${base} ${_defname}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                COMMAND ${PYTHON3_EXECUTABLE} ${AUTOOPTS_DIR}/emit_h.py ${base} ${def} "${ARG_DEFINES}"
+                OUTPUT_FILE ${_out_h}
                 RESULT_VARIABLE _rc)
             if(NOT _rc EQUAL 0)
-                message(FATAL_ERROR "autogen failed regenerating ${base}.c/h from ${def}")
+                message(FATAL_ERROR "emit_h.py failed regenerating ${base}.h from ${def}")
+            endif()
+            execute_process(
+                COMMAND ${PYTHON3_EXECUTABLE} ${AUTOOPTS_DIR}/emit_c.py ${base} ${def} "${ARG_DEFINES}"
+                OUTPUT_FILE ${_out_c}
+                RESULT_VARIABLE _rc)
+            if(NOT _rc EQUAL 0)
+                message(FATAL_ERROR "emit_c.py failed regenerating ${base}.c from ${def}")
+            endif()
+            execute_process(
+                COMMAND ${PYTHON3_EXECUTABLE} ${AUTOOPTS_DIR}/emit_adoc.py ${_manbase} ${def} "${ARG_DEFINES}"
+                OUTPUT_FILE ${_out_adoc}
+                RESULT_VARIABLE _rc)
+            if(NOT _rc EQUAL 0)
+                message(FATAL_ERROR "emit_adoc.py failed regenerating ${_manbase}.adoc from ${def}")
             endif()
         else()
             message(FATAL_ERROR
-                "${base}.c/h is missing or older than ${def}, and GNU autogen is not installed. "
-                "Install autogen to regenerate it, or if the .def content is unchanged refresh "
-                "the timestamps:\n  touch src/*_opts.c src/*_opts.h src/*.1 src/tcpedit/tcpedit_stub.h")
+                "${base}.c/h or ${_manbase}.adoc is missing or older than ${def}, and python3 is "
+                "not installed. Install python3 to regenerate them, or if the .def content is "
+                "unchanged refresh the timestamps:\n  touch src/*_opts.c src/*_opts.h src/*.adoc")
         endif()
     endif()
     set(${base}_SOURCE ${_out_c} PARENT_SCOPE)
@@ -71,7 +97,7 @@ set(TCPEDIT_OPTS_DEF ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit/tcpedit_opts.def)
 
 tcpr_autogen_opts(tcpreplay_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcpreplay_opts.def)
 tcpr_autogen_opts(tcpreplay_edit_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcpreplay_opts.def
-    FLAGS -DTCPREPLAY_EDIT)
+    MANBASE tcpreplay-edit DEFINES TCPREPLAY_EDIT)
 tcpr_autogen_opts(tcprewrite_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcprewrite_opts.def
     DEPENDS ${TCPEDIT_OPTS_DEF})
 tcpr_autogen_opts(tcpprep_opts ${CMAKE_CURRENT_SOURCE_DIR}/tcpprep_opts.def)
@@ -238,31 +264,22 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtcpreplay.pc
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
 
 # ---------------------------------------------------------------------------
-# man pages (optional target, requires autogen; mirrors the manpages target)
+# man pages (optional target, requires asciidoctor; mirrors the autotools
+# manpages target).  Renders from the .adoc source in the source tree (kept
+# current by tcpr_autogen_opts() above) into the build tree, so a plain
+# `cmake --build` never needs asciidoctor - only `--target manpages` does.
 # ---------------------------------------------------------------------------
-if(AUTOGEN_EXECUTABLE)
+if(ASCIIDOCTOR_EXECUTABLE)
     set(_manpages "")
-    foreach(_man tcpprep tcprewrite tcpreplay tcpbridge tcpliveplay tcpcapinfo)
+    foreach(_man tcpprep tcprewrite tcpreplay tcpbridge tcpliveplay tcpcapinfo tcpreplay-edit)
         add_custom_command(
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_man}.1
-            COMMAND ${AUTOGEN_EXECUTABLE} -T agman-cmd.tpl
-                    -L ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit
-                    ${CMAKE_CURRENT_SOURCE_DIR}/${_man}_opts.def
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_man}_opts.def
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMAND ${ASCIIDOCTOR_EXECUTABLE} -b manpage
+                    -o ${CMAKE_CURRENT_BINARY_DIR}/${_man}.1
+                    ${CMAKE_CURRENT_SOURCE_DIR}/${_man}.adoc
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_man}.adoc
             COMMENT "Generating ${_man}.1")
         list(APPEND _manpages ${CMAKE_CURRENT_BINARY_DIR}/${_man}.1)
     endforeach()
-    add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tcpreplay-edit.1
-        COMMAND ${AUTOGEN_EXECUTABLE} -T agman-cmd.tpl
-                -L ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit
-                -DTCPREPLAY_EDIT -DTCPREPLAY_EDIT_MAN
-                -b tcpreplay-edit
-                ${CMAKE_CURRENT_SOURCE_DIR}/tcpreplay_opts.def
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tcpreplay_opts.def
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating tcpreplay-edit.1")
-    list(APPEND _manpages ${CMAKE_CURRENT_BINARY_DIR}/tcpreplay-edit.1)
     add_custom_target(manpages DEPENDS ${_manpages})
 endif()
