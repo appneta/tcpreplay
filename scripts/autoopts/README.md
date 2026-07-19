@@ -12,7 +12,18 @@ runtime is untouched — this replaces only the generator.
       tool configurations, including the `documentation` pseudo-flag
       subtlety (occupies an enum index, emits no constant — tcprewrite's
       enum starts at 1).
-- [ ] Stage 2 — `emit_h.py`: *_opts.h emitter.
+- [x] Stage 2 — `emit_h.py`: *_opts.h emitter. Byte-identical to the
+      committed autogen output for all seven configurations
+      (`check_emitters.py` proves it). Layout rules discovered: enum name
+      field is `max(maxname+1, 21)` wide; the per-option value column is a
+      fixed `%-24s ` (long names overflow with one space); unguarded
+      OPT_VALUE defines get a preceding blank line, ifdef-guarded ones do
+      not; save/load-opts draw from the same 0x1001+ hex counter as
+      long-only options; settable+arg options emit the extended
+      `SET_OPT_NAME(a)` proc-invoking form; the HAVE_OPT example in the
+      interface comment uses the first flag including documentation
+      pseudo-flags; `EXIT_NO_CONFIG_INPUT=66` appears iff load-opts is
+      enabled.
 - [ ] Stage 3 — `emit_c.py`: *_opts.c emitter (the long pole).
 - [ ] Stage 4 — `emit_man.py`: man page emitter; then switch the build
       rules and retire autogen.
