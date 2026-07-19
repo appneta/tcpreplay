@@ -146,7 +146,7 @@ main(int argc, char *argv[])
 static void
 open_output_pcap(void)
 {
-    pcap_t *dlt_pcap;
+    pcap_t *dlt_pcap = NULL;
 #ifdef ENABLE_FRAGROUTE
     char ebuf[FRAGROUTE_ERRBUF_LEN];
 #endif
