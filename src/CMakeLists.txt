@@ -201,12 +201,25 @@ install(TARGETS ${TCPR_INSTALL_TARGETS} RUNTIME DESTINATION ${CMAKE_INSTALL_PREF
 # libtcpreplay - installable static library exposing tcpreplay_api.h (#133)
 # (mirrors the lib_LIBRARIES/tcpreplayinclude_HEADERS rules in Makefile.am)
 # ---------------------------------------------------------------------------
+# tcpreplay_opts.c is compiled by both tcpreplay_bin and this library; with
+# the Makefiles generator each consuming target would otherwise emit its own
+# copy of the autogen rule, and two concurrent autogen runs corrupt the
+# output.  Funnel generation through one custom target instead.
+if(AUTOGEN_EXECUTABLE)
+    add_custom_target(tcpreplay_opts_gen
+        DEPENDS ${TCPR_AUTOGEN_OPTS_DIR}/tcpreplay_opts.c ${TCPR_AUTOGEN_OPTS_DIR}/tcpreplay_opts.h)
+    add_dependencies(tcpreplay_bin tcpreplay_opts_gen)
+endif()
+
 add_library(tcpreplay_static STATIC
     ${tcpreplay_opts_SOURCE}
     send_packets.c signal_handler.c tcpreplay_api.c sleep.c replay.c
     libtcpreplay_globals.c
     $<TARGET_OBJECTS:common_obj>
     $<TARGET_OBJECTS:opts_obj>)
+if(TARGET tcpreplay_opts_gen)
+    add_dependencies(tcpreplay_static tcpreplay_opts_gen)
+endif()
 if(NOT HAVE_STRLCPY)
     target_sources(tcpreplay_static PRIVATE $<TARGET_OBJECTS:strl_obj>)
 endif()
