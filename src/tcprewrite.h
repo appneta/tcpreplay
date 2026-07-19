@@ -40,6 +40,9 @@ struct tcprewrite_opt_s {
     pcap_t *pin;
     pcap_dumper_t *pout;
 
+    /* timestamp precision of the input file, mirrored on the output (#621) */
+    int tstamp_precision;
+
     /* tcpprep cache data */
     COUNTER cache_packets;
     char *cachedata;

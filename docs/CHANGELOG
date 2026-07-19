@@ -1,4 +1,10 @@
 UNRELEASED
+    - tcprewrite: preserve nanosecond timestamp resolution (#621) - input files are probed for
+      their native precision; nanosecond pcap and pcapng input is now opened and written at
+      nanosecond precision (nanosecond pcap output format), instead of silently truncating
+      timestamps to microseconds; microsecond input is byte-for-byte unchanged; requires
+      libpcap >= 1.5.1 (pcap_open_offline/dead_with_tstamp_precision), older libpcap keeps the
+      previous behavior; new rewrite_nanosec test case with a nanosecond fixture
     - tcpedit: fix tcprewrite --dlt=raw producing corrupt output (#1023) - the dlt_raw plugin had
       no encoder, and because the DLT conversion pipeline downgrades per-packet encode errors to
       soft errors, every packet was silently written unconverted (Ethernet header intact) into a

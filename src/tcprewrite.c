@@ -53,19 +53,19 @@ tcpdump_t tcpdump;
 tcprewrite_opt_t options;
 tcpedit_t *tcpedit;
 
+/* snaplen written to the output pcap file header */
+#define OUTFILE_SNAPLEN 65535
+
 /* local functions */
 void tcprewrite_init(void);
 void post_args(int argc, char *argv[]);
+static void open_output_pcap(void);
 int rewrite_packets(tcpedit_t *tcpedit_ctx, pcap_t *pin, pcap_dumper_t *pout);
 
 int
 main(int argc, char *argv[])
 {
     int optct, rcode;
-    pcap_t *dlt_pcap;
-#ifdef ENABLE_FRAGROUTE
-    char ebuf[FRAGROUTE_ERRBUF_LEN];
-#endif
     tcprewrite_init();
 
     /* call autoopts to process arguments */
@@ -103,54 +103,7 @@ main(int argc, char *argv[])
     fuzzing_init(tcpedit->fuzz_seed, tcpedit->fuzz_factor);
 
     /* open up the output file */
-    options.outfile = safe_strdup(OPT_ARG(OUTFILE));
-    dbgx(1, "Rewriting DLT to %s", pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
-
-#ifdef HAVE_SYS_STAT_H
-    /* if the output file exists, make sure it isn't also the input file */
-    struct stat outfile_stat;
-    if (stat(options.outfile, &outfile_stat) == 0) {
-        struct stat infile_stat;
-        if (stat(options.infile, &infile_stat) == 0) {
-            if (outfile_stat.st_ino == infile_stat.st_ino) {
-                /* they are the same file */
-                tcpedit_close(&tcpedit);
-                err(-1, "--infile and --outfile cannot be the same file");
-            }
-        }
-    }
-#endif
-
-    if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL) {
-        tcpedit_close(&tcpedit);
-        err(-1, "Unable to open dead pcap handle.");
-    }
-
-    dbgx(1, "DLT of dlt_pcap is %s", pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
-
-#ifdef ENABLE_FRAGROUTE
-    if (options.fragroute_args) {
-        if ((options.frag_ctx = fragroute_init(65535, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL) {
-            err_no_exitx("%s", ebuf);
-            tcpedit_close(&tcpedit);
-            exit(-1);
-        }
-    }
-#endif
-
-#ifdef ENABLE_VERBOSE
-    if (options.verbose) {
-        tcpdump_open(&tcpdump, dlt_pcap);
-    }
-#endif
-
-    if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL) {
-        err_no_exitx("Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
-        tcpedit_close(&tcpedit);
-        exit(-1);
-    }
-
-    pcap_close(dlt_pcap);
+    open_output_pcap();
 
     /* rewrite packets */
     if (rewrite_packets(tcpedit, options.pin, options.pout) == TCPEDIT_ERROR) {
@@ -180,6 +133,85 @@ main(int argc, char *argv[])
 
     restore_stdin();
     return 0;
+}
+
+/**
+ * \brief Open the output pcap file for writing
+ *
+ * Creates the pcap_dump_open() template handle at the same timestamp
+ * precision as the input file (#621), plus the optional fragroute context
+ * and verbose decoder that share it, leaving options.pout ready for
+ * writing.  Exits on error.
+ */
+static void
+open_output_pcap(void)
+{
+    pcap_t *dlt_pcap = NULL;
+#ifdef ENABLE_FRAGROUTE
+    char ebuf[FRAGROUTE_ERRBUF_LEN];
+#endif
+
+    options.outfile = safe_strdup(OPT_ARG(OUTFILE));
+    dbgx(1, "Rewriting DLT to %s", pcap_datalink_val_to_name(tcpedit_get_output_dlt(tcpedit)));
+
+#ifdef HAVE_SYS_STAT_H
+    /* if the output file exists, make sure it isn't also the input file */
+    struct stat outfile_stat;
+    if (stat(options.outfile, &outfile_stat) == 0) {
+        struct stat infile_stat;
+        if (stat(options.infile, &infile_stat) == 0) {
+            if (outfile_stat.st_ino == infile_stat.st_ino) {
+                /* they are the same file */
+                tcpedit_close(&tcpedit);
+                err(-1, "--infile and --outfile cannot be the same file");
+            }
+        }
+    }
+#endif
+
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+    /* pcap_open_dead_with_tstamp_precision() was added in the same libpcap
+     * release (1.5.1) as pcap_open_offline_with_tstamp_precision(), so one
+     * feature check covers both.  Match the output precision to the input
+     * so nanosecond timestamps survive the rewrite (#621).
+     */
+    dlt_pcap = pcap_open_dead_with_tstamp_precision(tcpedit_get_output_dlt(tcpedit),
+                                                    OUTFILE_SNAPLEN,
+                                                    options.tstamp_precision);
+#else
+    dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), OUTFILE_SNAPLEN);
+#endif
+    if (dlt_pcap == NULL) {
+        tcpedit_close(&tcpedit);
+        err(-1, "Unable to open dead pcap handle.");
+    }
+
+    dbgx(1, "DLT of dlt_pcap is %s", pcap_datalink_val_to_name(pcap_datalink(dlt_pcap)));
+
+#ifdef ENABLE_FRAGROUTE
+    if (options.fragroute_args) {
+        if ((options.frag_ctx =
+                     fragroute_init(OUTFILE_SNAPLEN, pcap_datalink(dlt_pcap), options.fragroute_args, ebuf)) == NULL) {
+            err_no_exitx("%s", ebuf);
+            tcpedit_close(&tcpedit);
+            exit(-1);
+        }
+    }
+#endif
+
+#ifdef ENABLE_VERBOSE
+    if (options.verbose) {
+        tcpdump_open(&tcpdump, dlt_pcap);
+    }
+#endif
+
+    if ((options.pout = pcap_dump_open(dlt_pcap, options.outfile)) == NULL) {
+        err_no_exitx("Unable to open output pcap file: %s", pcap_geterr(dlt_pcap));
+        tcpedit_close(&tcpedit);
+        exit(-1);
+    }
+
+    pcap_close(dlt_pcap);
 }
 
 void
@@ -243,8 +275,17 @@ post_args(_U_ int argc, _U_ char *argv[])
 
     /* open up the input file */
     options.infile = safe_strdup(OPT_ARG(INFILE));
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+    /* preserve the timestamp resolution of nanosecond pcap / pcapng input (#621) */
+    options.tstamp_precision = tcpr_pcap_file_precision(options.infile);
+    if ((options.pin = pcap_open_offline_with_tstamp_precision(options.infile, options.tstamp_precision, ebuf)) ==
+        NULL) {
+        errx(-1, "Unable to open input pcap file: %s", ebuf);
+    }
+#else
     if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
         errx(-1, "Unable to open input pcap file: %s", ebuf);
+#endif
 
 #ifdef HAVE_PCAP_SNAPSHOT
     if (pcap_snapshot(options.pin) < 65535)

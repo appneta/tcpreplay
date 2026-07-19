@@ -55,6 +55,10 @@ such as created by tools such as @file{tcpdump(1)} and @file{wireshark(1)}.
 Once a pcap file has had it's packets rewritten, they can be replayed back
 out on the network using @file{tcpreplay(1)}.
 
+The timestamp resolution of the input is preserved: nanosecond pcap and
+pcapng input produce a nanosecond resolution pcap output file, everything
+else produces the classic microsecond format (requires libpcap >= 1.5.1).
+
 tcprewrite currently supports reading the following DLT types:
 @item
 @var{DLT_C_HDLC} aka Cisco HDLC
