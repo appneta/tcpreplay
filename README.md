@@ -97,9 +97,11 @@ sudo make install
 Building with CMake
 -------------------
 As of version 4.6, the suite can also be built with [CMake](https://cmake.org) (3.16+).
-This is aimed at IDE users (VS Code, CLion) and fast out-of-tree developer
-builds; autotools remains the canonical release build. Building from a git
-checkout requires `autogen` (GNU AutoGen) to generate the CLI option parsers;
+**CMake is the recommended and primary way to compile Tcpreplay** — the
+autotools build (`./configure` / automake) is still provided and used for
+release tarballs, but it will be retired in a future release, so new
+scripts and packaging should use CMake. Building from a git checkout
+requires `autogen` (GNU AutoGen) to generate the CLI option parsers;
 release tarballs build without it.
 
 ```

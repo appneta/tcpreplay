@@ -17,6 +17,36 @@ cc replay_stats.c $(pkg-config --cflags --libs --static libtcpreplay) -o replay_
 sudo ./replay_stats eth0 test.pcap
 ```
 
+### With CMake
+
+The same pkg-config data drives a CMake consumer; use the `_STATIC_`
+variables so the static library's full dependency closure is linked:
+
+```cmake
+cmake_minimum_required(VERSION 3.16)
+project(replay_stats C)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(TCPREPLAY REQUIRED libtcpreplay)
+
+add_executable(replay_stats replay_stats.c)
+target_include_directories(replay_stats PRIVATE ${TCPREPLAY_STATIC_INCLUDE_DIRS})
+target_link_directories(replay_stats PRIVATE ${TCPREPLAY_STATIC_LIBRARY_DIRS})
+target_link_libraries(replay_stats PRIVATE ${TCPREPLAY_STATIC_LIBRARIES})
+```
+
+```sh
+cmake -B build
+cmake --build build
+sudo ./build/replay_stats eth0 test.pcap
+```
+
+(If libtcpreplay is installed to a non-default prefix, point pkg-config at
+it: `PKG_CONFIG_PATH=/opt/tcpreplay/lib/pkgconfig cmake -B build`.)
+
+The in-tree copies of these examples are also built by the suite's own
+CMake build: `cmake --build build --target replay_stats`.
+
 ## Examples
 
 * `replay_stats.c` — the minimal flow: `tcpreplay_init()`, configure with the
