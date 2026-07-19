@@ -196,6 +196,18 @@ example:
 If you want to compile a version that only uses io_uring, use the
 `--enable-force-liburing` configure option.
 
+4) libtcpreplay C library
+   ----------------------
+
+Both build systems install libtcpreplay.a, the tcpreplay_api.h headers
+(under include/tcpreplay/) and a libtcpreplay.pc pkg-config file, letting
+applications embed the replay engine directly:
+
+    $ cc myapp.c $(pkg-config --cflags --libs --static libtcpreplay) -o myapp
+
+See examples/replay_stats.c for a complete program and examples/README.md
+for details.
+
 CMake Installation
 ==================
 

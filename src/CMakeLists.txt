@@ -198,6 +198,62 @@ endif()
 install(TARGETS ${TCPR_INSTALL_TARGETS} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # ---------------------------------------------------------------------------
+# libtcpreplay - installable static library exposing tcpreplay_api.h (#133)
+# (mirrors the lib_LIBRARIES/tcpreplayinclude_HEADERS rules in Makefile.am)
+# ---------------------------------------------------------------------------
+add_library(tcpreplay_static STATIC
+    ${tcpreplay_opts_SOURCE}
+    send_packets.c signal_handler.c tcpreplay_api.c sleep.c replay.c
+    libtcpreplay_globals.c
+    $<TARGET_OBJECTS:common_obj>
+    $<TARGET_OBJECTS:opts_obj>)
+if(NOT HAVE_STRLCPY)
+    target_sources(tcpreplay_static PRIVATE $<TARGET_OBJECTS:strl_obj>)
+endif()
+set_target_properties(tcpreplay_static PROPERTIES OUTPUT_NAME tcpreplay)
+target_compile_definitions(tcpreplay_static PRIVATE TCPREPLAY)
+tcpr_binary_common(tcpreplay_static)
+target_include_directories(tcpreplay_static PRIVATE
+    ${CMAKE_SOURCE_DIR}/libopts ${CMAKE_SOURCE_DIR}/libopts/autoopts)
+
+install(TARGETS tcpreplay_static ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(FILES tcpreplay_api.h tcpreplay.h tcpr.h common.h
+        ${CMAKE_BINARY_DIR}/src/defines.h ${CMAKE_BINARY_DIR}/src/config.h
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tcpreplay)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/common/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/tcpreplay/common
+        FILES_MATCHING PATTERN "*.h")
+
+# libtcpreplay.pc: reuse the autotools template; the tearoff is always folded
+# into the archive in CMake builds so no -lopts is needed
+set(prefix ${CMAKE_INSTALL_PREFIX})
+set(exec_prefix "\${prefix}")
+set(libdir "\${exec_prefix}/lib")
+set(includedir "\${prefix}/include")
+set(VERSION ${PROJECT_VERSION})
+# entries may be bare library names or ready-made -l/-L/absolute-path flags
+function(tcpr_pc_libs out)
+    set(_flags "")
+    foreach(_l ${ARGN})
+        if(_l MATCHES "^-" OR _l MATCHES "^/")
+            list(APPEND _flags "${_l}")
+        else()
+            list(APPEND _flags "-l${_l}")
+        endif()
+    endforeach()
+    string(REPLACE ";" " " _s "${_flags}")
+    set(${out} "${_s}" PARENT_SCOPE)
+endfunction()
+tcpr_pc_libs(LPCAPLIB ${PCAP_LIBRARIES})
+tcpr_pc_libs(LDNETLIB ${DNET_LIBRARIES})
+tcpr_pc_libs(LIBS ${TCPR_SYSTEM_LIBS})
+set(LIBTCPREPLAY_PCLIBS "")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libtcpreplay.pc.in
+               ${CMAKE_CURRENT_BINARY_DIR}/libtcpreplay.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtcpreplay.pc
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
+
+# ---------------------------------------------------------------------------
 # man pages (optional target, requires autogen; mirrors the manpages target)
 # ---------------------------------------------------------------------------
 if(AUTOGEN_EXECUTABLE)

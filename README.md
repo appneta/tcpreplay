@@ -215,6 +215,22 @@ sudo tcpreplay -i wg0 test.pcap
 Note that non-IP packets (e.g. ARP) cannot be sent on these interfaces and
 are reported as failed, and that `--io-uring` is not supported on them.
 
+libtcpreplay C library
+----------------------
+Since version 4.6 the suite installs **libtcpreplay**, a static library
+exposing the same replay engine the `tcpreplay` binary uses via
+`tcpreplay_api.h`. Applications can replay pcap files and read live
+statistics programmatically instead of forking the binary and scraping its
+output:
+
+```
+cc myapp.c $(pkg-config --cflags --libs --static libtcpreplay) -o myapp
+```
+
+Headers install under `include/tcpreplay/` and both the autotools and CMake
+builds install the library and its `libtcpreplay.pc`. See the
+[examples](examples/) directory for a complete program.
+
 Detailed installation instructions are available in the INSTALL document in the tar ball.
 
 Install Tcpreplay from source code

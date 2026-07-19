@@ -2069,15 +2069,26 @@ if test "x$NETMAP_CFLAGS" != "x"; then
     CFLAGS="$CFLAGS $NETMAP_CFLAGS"
 fi
 
+dnl libtcpreplay.pc: when the libopts tearoff is in use it is folded into
+dnl the installed archive, so consumers only need -lopts for system libopts
+if test -n "${NEED_LIBOPTS_DIR}" ; then
+    LIBTCPREPLAY_PCLIBS=""
+else
+    LIBTCPREPLAY_PCLIBS="${LIBOPTS_LDADD}"
+fi
+AC_SUBST(LIBTCPREPLAY_PCLIBS)
+
 AC_CONFIG_FILES([Makefile
            doxygen.cfg
            lib/Makefile
            docs/Makefile
            src/Makefile
+           src/libtcpreplay.pc
            src/tcpedit/Makefile
            src/fragroute/Makefile
            src/common/Makefile
            src/defines.h
+           examples/Makefile
            test/Makefile
            test/config
            scripts/Makefile])
