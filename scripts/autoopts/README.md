@@ -40,12 +40,54 @@ runtime is untouched — this replaces only the generator.
       (dangling refs like tcpbridge's `cachefile` are legal because those
       blocks are `#ifdef`-guarded); an option carrying a bare `default`
       attribute becomes the default-opt index.
-- [ ] Stage 4 — `emit_man.py`: man page emitter (template is
-      `/usr/share/autogen/agman-cmd.tpl` + `agman.tlib`; the `.TH` date is
-      the only intentionally-varying part).
-- [ ] Stage 5 — switch the build rules to the Python generator, drop the
-      autogen dependency from the tree, keep `check-generated-opts.sh` as
-      the regression gate for as long as an autogen install exists.
+- [x] Stage 4a — `generate.py`: driver that regenerates all 14 parser
+      files without autogen. Verified end-to-end: with autogen removed
+      from the system, deleting every `src/*_opts.c/h` and regenerating
+      reproduces them byte-identically (`git diff` empty), the tree
+      builds, `sudo make test` passes in full, and both regressions that
+      sank #991 work — `--load-opts` (the `prep_config` test case) and
+      `--more-help`.
+- [ ] **Stage 4b — man pages: OPEN DESIGN QUESTION, see below.**
+- [ ] Stage 5 — switch the build rules to `generate.py` and drop autogen
+      from the documented toolchain, keeping `check-generated-opts.sh` as
+      the regression gate while any autogen install still exists.
+
+## Man pages: why they are not done yet
+
+The parser emitters had an authoritative source to port from — autogen's
+`mk-gettextable` delegates to `optionPrintParagraphs()`, which lives in
+the libopts **we vendor**, so the algorithm is in-tree and frozen.
+
+Man pages have no such anchor. autogen builds them with
+`cmd-doc.tlib` (1172 lines of Scheme) emitting mdoc, then pipes that
+through `mdoc2man` + `Mdoc.pm` (761 lines of Perl). None of it is
+vendored here. Reproducing byte-identical roff means either porting
+~1900 lines of external code, or inferring the rules from the seven
+current outputs — which would be verified only against today's inputs
+and could silently diverge on a future `.def` edit.
+
+The texinfo surface actually used is small (`@var`, `@item`, `@end`,
+`@samp`, `@file`, `@code`, `@table`), so direct roff emission is
+feasible — it is a question of whether the cost is worth it, given:
+
+  * Debian's requirement (#895) was **already met in phase 1**: autogen
+    is not needed to *build*.
+  * Man pages are prose. A rendering difference is cosmetic and
+    reviewable, unlike the compiled option tables.
+
+Options, cheapest first:
+
+  1. **Leave as is.** Committed man pages stay; regenerating them after
+     a `.def` doc change needs autogen. Everything else is autogen-free.
+  2. **Direct roff emitter** (~500-800 lines) aiming for byte-identical
+     output, gated by `check-generated-opts.sh`. Rules inferred from the
+     current seven pages.
+  3. **Switch the man source format** (e.g. asciidoctor, as the rejected
+     #991 proposed) — clean long term, but adds a build dependency and
+     rewrites all seven pages, so the diff is large and reviewable only
+     by reading.
+
+## Running the gates
 
 ## Running the gates
 
