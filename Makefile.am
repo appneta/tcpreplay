@@ -2,12 +2,12 @@
 ACLOCAL_AMFLAGS = -I m4 -I libopts/m4
 
 if NEED_LIBOPTS
-SUBDIRS = scripts lib $(LIBOPTS_DIR) src
+SUBDIRS = scripts lib $(LIBOPTS_DIR) src examples
 else
-SUBDIRS = scripts lib src
+SUBDIRS = scripts lib src examples
 endif
 
-DIST_SUBDIRS = scripts lib libopts src docs test
+DIST_SUBDIRS = scripts lib libopts src examples docs test
 .PHONY: manpages docs test man2html
 
 

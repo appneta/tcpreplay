@@ -97,9 +97,11 @@ sudo make install
 Building with CMake
 -------------------
 As of version 4.6, the suite can also be built with [CMake](https://cmake.org) (3.16+).
-This is aimed at IDE users (VS Code, CLion) and fast out-of-tree developer
-builds; autotools remains the canonical release build. Building from a git
-checkout requires `autogen` (GNU AutoGen) to generate the CLI option parsers;
+**CMake is the recommended and primary way to compile Tcpreplay** — the
+autotools build (`./configure` / automake) is still provided and used for
+release tarballs, but it will be retired in a future release, so new
+scripts and packaging should use CMake. Building from a git checkout
+requires `autogen` (GNU AutoGen) to generate the CLI option parsers;
 release tarballs build without it.
 
 ```
@@ -214,6 +216,22 @@ sudo tcpreplay -i wg0 test.pcap
 
 Note that non-IP packets (e.g. ARP) cannot be sent on these interfaces and
 are reported as failed, and that `--io-uring` is not supported on them.
+
+libtcpreplay C library
+----------------------
+Since version 4.6 the suite installs **libtcpreplay**, a static library
+exposing the same replay engine the `tcpreplay` binary uses via
+`tcpreplay_api.h`. Applications can replay pcap files and read live
+statistics programmatically instead of forking the binary and scraping its
+output:
+
+```
+cc myapp.c $(pkg-config --cflags --libs --static libtcpreplay) -o myapp
+```
+
+Headers install under `include/tcpreplay/` and both the autotools and CMake
+builds install the library and its `libtcpreplay.pc`. See the
+[examples](examples/) directory for a complete program.
 
 Detailed installation instructions are available in the INSTALL document in the tar ball.
 

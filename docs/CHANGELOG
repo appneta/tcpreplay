@@ -1,4 +1,12 @@
 UNRELEASED
+    - libtcpreplay: install the replay engine as a static C library (#133) - both build systems
+      now install libtcpreplay.a, the tcpreplay_api.h header set (under include/tcpreplay/) and
+      a libtcpreplay.pc pkg-config file, so applications can replay pcap files and read live
+      statistics programmatically (tcpreplay_init/set_*/add_pcapfile/prepare/replay/get_stats)
+      instead of forking the tcpreplay binary and scraping its output; the archive is
+      self-contained apart from libpcap and system libopts (the libopts tearoff is folded in
+      when used); a compiled example lives in examples/replay_stats.c and builds as part of
+      'make' so it always matches the API
     - netmap: fail cleanly on unconfigured interfaces reporting zero TX rings/slots (#113) - an
       unattached vale port can register successfully with a non-zero memsize yet report zero
       nr_tx_rings/nr_tx_slots, in which case the ring setup underflowed 'nr_tx_rings - 1' on a

@@ -87,6 +87,53 @@ tcpreplay_LDFLAGS = -framework CoreServices -framework Carbon
 tcpreplay_edit_LDFLAGS = -framework CoreServices -framework Carbon
 endif
 
+######################################################################
+# libtcpreplay - installable static library exposing tcpreplay_api.h (#133)
+#
+# Additive: the tcpreplay binary keeps building from its own objects; the
+# library recompiles the same engine sources (per-target flags give the
+# objects unique names) plus everything from common/ so a single archive
+# is self-contained apart from libpcap and (system) libopts.
+######################################################################
+lib_LIBRARIES = libtcpreplay.a
+libtcpreplay_a_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
+libtcpreplay_a_SOURCES = send_packets.c signal_handler.c tcpreplay_api.c sleep.c replay.c \
+	libtcpreplay_globals.c \
+	common/cidr.c common/err.c common/list.c common/cache.c common/services.c common/get.c \
+	common/fakepcap.c common/fakepcapnav.c common/fakepoll.c common/xX.c common/utils.c \
+	common/timer.c common/sendpacket.c common/dlt_names.c common/mac.c common/interface.c \
+	common/flows.c common/txring.c
+nodist_libtcpreplay_a_SOURCES = tcpreplay_opts.c common/git_version.c
+if ENABLE_TCPDUMP
+libtcpreplay_a_SOURCES += common/tcpdump.c
+endif
+if COMPILE_NETMAP
+libtcpreplay_a_SOURCES += common/netmap.c
+endif
+if !SYSTEM_STRLCPY
+libtcpreplay_a_SOURCES += ../lib/strlcpy.c ../lib/strlcat.c
+endif
+if NEED_LIBOPTS
+# libopts tearoff builds aren't installed, so fold the tearoff into the
+# archive to keep the installed library self-contained
+nodist_libtcpreplay_a_SOURCES += ../libopts/libopts.c
+endif
+
+# public headers, installed under $(includedir)/tcpreplay preserving layout
+# so the internal '#include <common/...>' / '#include "config.h"' includes
+# resolve with the single -I from libtcpreplay.pc's Cflags
+tcpreplayincludedir = $(includedir)/tcpreplay
+nobase_tcpreplayinclude_HEADERS = tcpreplay_api.h tcpreplay.h tcpr.h common.h \
+	common/cache.h common/cidr.h common/dlt_names.h common/err.h common/fakepcap.h \
+	common/fakepcapnav.h common/fakepoll.h common/flows.h common/get.h common/interface.h \
+	common/list.h common/mac.h common/netmap.h common/pcap_dlt.h common/sendpacket.h \
+	common/services.h common/tcpdump.h common/timer.h common/txring.h common/utils.h \
+	common/xX.h
+nodist_tcpreplayinclude_HEADERS = defines.h config.h
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libtcpreplay.pc
+
 tcpliveplay_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. $(LNAV_CFLAGS) -DTCPREPLAY -DTCPLIVEPLAY
 tcpliveplay_SOURCES = tcpliveplay_opts.c tcpliveplay.c
 tcpliveplay_LDADD = ./common/libcommon.a $(LIBSTRL) @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
