@@ -358,8 +358,18 @@ sendpacket_open_netmap(const char *device, char *errbuf, void *arg)
         goto NETMAP_IF_FAILED;
     }
 
-    if (!nmr.nr_memsize) {
-        snprintf(errbuf, SENDPACKET_ERRBUF_SIZE, "Netmap interface '%s' not configured.\n", device);
+    /* an unconfigured interface (e.g. an unattached vale port) can register
+     * successfully yet report no resources; catch it here rather than
+     * underflowing the ring math below or mapping empty rings (#113)
+     */
+    if (!nmr.nr_memsize || !nmr.nr_tx_rings || !nmr.nr_tx_slots) {
+        snprintf(errbuf,
+                 SENDPACKET_ERRBUF_SIZE,
+                 "Netmap interface '%s' not configured: memsize=%u tx_rings=%u tx_slots=%u\n",
+                 device,
+                 nmr.nr_memsize,
+                 nmr.nr_tx_rings,
+                 nmr.nr_tx_slots);
         goto NETMAP_IF_FAILED;
     }
 
