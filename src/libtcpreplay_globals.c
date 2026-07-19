@@ -32,4 +32,5 @@
 int debug = 0;
 #endif
 
-tcpreplay_t *ctx;
+/* mutable by design: mirrors the global the tcpreplay binary itself defines */
+tcpreplay_t *ctx; /* NOLINT */

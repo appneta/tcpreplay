@@ -35,7 +35,7 @@ int
 main(int argc, char *argv[])
 {
     tcpreplay_t *ctx;
-    const tcpreplay_stats_t *stats;
+    const tcpreplay_stats_t *stats = NULL;
     struct timespec elapsed;
 
     if (argc != 3) {
