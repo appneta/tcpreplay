@@ -107,3 +107,4 @@ build*/
 .opencode.json
 .qoder/
 .gemini/
+__pycache__/
