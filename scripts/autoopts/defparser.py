@@ -37,7 +37,14 @@ import re
 import sys
 from pathlib import Path
 
-__all__ = ["parse_def_file", "ParseError"]
+__all__ = ["parse_def_file", "text_of", "ParseError"]
+
+
+def text_of(value):
+    """Return the text of an attribute value (heredocs carry metadata)."""
+    if isinstance(value, dict) and value.get("__heredoc__"):
+        return value["text"]
+    return value
 
 _HEREDOC_START_RE = re.compile(
     r"^(\s*[A-Za-z_][A-Za-z0-9_-]*\s*=\s*)<<(-?)\s*([A-Za-z_][A-Za-z0-9_]*)\s*$"
@@ -80,6 +87,7 @@ class _Preprocessor:
                 prefix, dash, marker = m.groups()
                 body = []
                 i += 1
+                body_start = i + 1  # 1-based line of the first body line
                 while i < len(raw_lines):
                     line = raw_lines[i]
                     stripped = line.strip() if dash else line
@@ -91,7 +99,12 @@ class _Preprocessor:
                     raise ParseError(f"{path}: unterminated heredoc {marker}")
                 self._counter += 1
                 key = f"@HEREDOC{self._counter}@"
-                self.heredocs[key] = "\n".join(body) + ("\n" if body else "")
+                self.heredocs[key] = {
+                    "__heredoc__": True,
+                    "text": "\n".join(body) + ("\n" if body else ""),
+                    "file": path.name,
+                    "line": body_start,
+                }
                 self.lines.append(f"{prefix}{key};")
                 i += 1
                 continue

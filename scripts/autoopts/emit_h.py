@@ -73,7 +73,7 @@ class Model:
         self.base = base                      # e.g. tcpcapinfo_opts
         self.attrs = {}
         for n, v in ir["attributes"]:
-            self.attrs.setdefault(n, v)
+            self.attrs.setdefault(n.replace("_", "-"), v)
         self.prog = self.attrs["prog-name"]
         self.progvar = self.prog.replace("-", "_") + "Options"
         self.guard = "AUTOOPTS_" + base.upper() + "_H_GUARD"
@@ -82,11 +82,16 @@ class Model:
 
         self.doc_flags = []
         self.flags = []
+        REPEATABLE = {"flags-must", "flags-cant"}
         for fl in ir["flags"]:
             fa = {}
             order = []
             for n, v in fl["attributes"]:
-                fa.setdefault(n, v)
+                n = n.replace("_", "-")
+                if n in REPEATABLE:
+                    fa.setdefault(n, []).append(v)
+                else:
+                    fa.setdefault(n, v)
                 order.append(n)
             fa["_order"] = order
             if "documentation" in fa:
