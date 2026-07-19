@@ -1,0 +1,14 @@
+#!/bin/sh
+# Stand-in for GNU autogen when it is not installed (#895).
+#
+# The AutoOpts-generated option parsers (src/*_opts.c/h, src/tcpedit/
+# tcpedit_stub.h) and man pages are committed to git and shipped in release
+# tarballs, so autogen is only needed to REGENERATE them after editing a
+# .def file.  If this script runs, a .def file is newer than its generated
+# output and regeneration was attempted without autogen installed.
+
+echo "ERROR: GNU autogen is required to regenerate AutoOpts output, but is not installed." >&2
+echo "       A .def file is newer than its committed generated output." >&2
+echo "       Either install GNU autogen, or if the .def content is unchanged," >&2
+echo "       refresh the timestamps: touch src/*_opts.c src/*_opts.h src/*.1 src/tcpedit/tcpedit_stub.h" >&2
+exit 1

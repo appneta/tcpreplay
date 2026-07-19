@@ -226,16 +226,22 @@ if test -n "${AUTOGEN}" ; then
         AC_MSG_RESULT(yes)
     fi
 
-    dnl Compare the installed version with the maintainer version if building from GitHub and not using system libopts
-    if test ! -f src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
+    dnl Compare the installed version with the maintainer version if regeneration will be needed and not using system libopts
+    if test ! -f ${srcdir}/src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
         if test $MAINTAINER_AUTOGEN_VERSION != $AUTOGEN_VERSION ; then
             AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)  Either install the correct version or specify --disable-local-libopts])
         fi
     fi
 else
-    if test ! -f src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Please install GNU autogen $MAINTAINER_AUTOGEN_VERSION or higher if you are building from GitHub. To avoid this message download source from https://github.com/appneta/tcpreplay/releases/latest])
+    dnl GNU autogen is EOL (#895).  The AutoOpts-generated *_opts.c/h files and
+    dnl man pages are committed to git, so autogen is only needed to REGENERATE
+    dnl them after editing a .def file.  Substitute a stub that fails with a
+    dnl clear message if a rule ever fires without autogen installed.
+    if test ! -f ${srcdir}/src/tcpreplay_opts.c ; then
+        AC_MSG_ERROR([Pre-generated option parsers are missing and GNU autogen is not installed. Restore src/*_opts.c (git checkout) or install GNU autogen $MAINTAINER_AUTOGEN_VERSION])
     fi
+    AC_MSG_NOTICE([GNU autogen not found - using the committed pre-generated option parsers])
+    AUTOGEN='$(SHELL) $(abs_top_srcdir)/scripts/missing-autogen'
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
 

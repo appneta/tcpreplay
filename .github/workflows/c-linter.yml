@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           echo "Build Application"
-          sudo apt-get -y install libpcap-dev autogen cmake liburing-dev libxdp-dev libbpf-dev
+          sudo apt-get -y install libpcap-dev cmake liburing-dev libxdp-dev libbpf-dev
           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build build -j 4
       - uses: cpp-linter/cpp-linter-action@v2
