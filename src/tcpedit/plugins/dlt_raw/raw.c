@@ -192,7 +192,7 @@ dlt_raw_decode(tcpeditdlt_t *ctx, const u_char *packet, int pktlen)
  */
 int
 /* signature is fixed by the plugin_encode interface shared by every DLT plugin */
-dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir) /* NOLINT(bugprone-easily-swappable-parameters) */
+dlt_raw_encode(tcpeditdlt_t *ctx, u_char *packet, int pktlen, _U_ tcpr_dir_t dir) /* NOLINT */
 {
     int l2len = 0;
     uint8_t version;
