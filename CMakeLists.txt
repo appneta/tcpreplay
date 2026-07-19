@@ -387,6 +387,7 @@ set(LIBOPTS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libopts)
 add_subdirectory(lib)
 add_subdirectory(libopts)
 add_subdirectory(src)
+add_subdirectory(examples)
 
 # ---------------------------------------------------------------------------
 # Configuration summary (mirrors the configure.ac results banner)
