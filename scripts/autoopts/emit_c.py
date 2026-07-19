@@ -22,7 +22,11 @@ import re as _re
 
 def texi(text):
     """The texinfo-ish conversions autogen applies to pooled texts."""
-    return _re.sub(r"@file\{([^}]*)\}", r"'\1'", text)
+    text = _re.sub(r"@file\{([^}]*)\}", r"'\1'", text)
+    text = _re.sub(r"@var\{([^}]*)\}", r"'\1'", text)
+    # an @item line becomes a wider paragraph break
+    text = _re.sub(r"^@item\n", "\n\n", text, flags=_re.M)
+    return text
 
 
 def reflow(text, width=WRAP):
@@ -30,37 +34,23 @@ def reflow(text, width=WRAP):
     preserving intra-paragraph spacing runs (sentence double-spaces).
     Paragraphs (blank-line separated) keep a blank line between them.
     """
-    paras = text.split("\n\n")
+    parts = _re.split(r"(\n{2,})", text)
     out = []
+    seps = []
+    paras = []
+    for i, seg in enumerate(parts):
+        if i % 2 == 0:
+            paras.append(seg)
+        else:
+            seps.append(seg)
     for p in paras:
-        # joining source lines: a line ending a sentence contributes two
-        # spaces at the join (classic fill behavior)
-        srclines = p.split("\n")
-        joined = ""
-        for li, sl in enumerate(srclines):
-            joined += sl
-            if li < len(srclines) - 1:
-                joined += "  " if sl.rstrip().endswith((".", "!", "?")) else " "
-        toks = joined.split(" ")
-        # merge: a token list where '' marks an extra space glued to the
-        # preceding word
-        words = []
-        for t in toks:
-            if t == "":
-                if words:
-                    words[-1] = (words[-1][0], words[-1][1] + 1)
-                continue
-            words.append((t, 1))  # (text, following-space width)
+        # whitespace runs collapse on refill; a word that ends a sentence
+        # is followed by two spaces (classic fill behavior)
+        words = [(w, 2 if w.endswith((".", "!", "?")) else 1) for w in p.split()]
         if not words:
             continue
         lines = []
-        cur = words[0][0]
-        cur_sp = words[0][1]
-        if cur.endswith((".", "!", "?")):
-            cur_sp = 2
-        # sentence-spacing normalization: any word ending a sentence is
-        # followed by two spaces on refill, wherever it came from
-        words = [(w, 2 if w.endswith((".", "!", "?")) else sp) for w, sp in words]
+        cur, cur_sp = words[0]
         for w, sp in words[1:]:
             if len(cur) + cur_sp + len(w) <= width:
                 cur += " " * cur_sp + w
@@ -71,7 +61,20 @@ def reflow(text, width=WRAP):
                 cur_sp = sp
         lines.append(cur)
         out.append("\n".join(lines) + "\n")
-    return "\n".join(out)
+    result = ""
+    si = 0
+    first = True
+    for i, seg in enumerate(parts):
+        if i % 2 == 0:
+            if seg.split():
+                if not first:
+                    result += sep_pending
+                result += out[si]
+                si += 1
+                first = False
+        else:
+            sep_pending = seg[1:]  # paragraph text already ends with \n
+    return result
 
 
 def c_escape(s):
@@ -87,11 +90,15 @@ class StringPool:
         self.prog = prog
         self.segments = []  # (offset, text)
         self.size = 0
+        self._dedup = {}
 
     def add(self, text):
+        if text in self._dedup:
+            return self._dedup[text]
         off = self.size
         self.segments.append((off, text))
         self.size += len(text) + 1  # NUL terminator
+        self._dedup[text] = off
         return off
 
     def render(self):
@@ -129,12 +136,33 @@ class StringPool:
         return "\n".join(lines)
 
 
+class _IdxNames(dict):
+    def __missing__(self, key):
+        return key.upper().replace("-", "_")
+
+
 class CModel(Model):
     """Extends the header model with .c specific derivations."""
 
     def __init__(self, ir, base):
         super().__init__(ir, base)
         self.raw_attrs = [(n, v) for n, v in ir["attributes"]]
+        # combined def-order list of doc and real flags with running index
+        self.all_flags = []
+        di, ri = 0, 0
+        combined = []
+        for fl in ir["flags"]:
+            keys = {k.replace("_", "-") for k, _ in fl["attributes"]}
+            combined.append("doc" if "documentation" in keys else "real")
+        idx = 0
+        d_iter = iter(self.doc_flags)
+        r_iter = iter(self.flags)
+        for kind in combined:
+            fa = next(d_iter) if kind == "doc" else next(r_iter)
+            fa["_kind"] = kind
+            fa["_index"] = idx
+            idx += 1
+            self.all_flags.append(fa)
         self.package = self.attrs.get("package", "")
         self.title = self.attrs.get("prog-title", "")
         self.argument = self.attrs.get("argument")
@@ -216,11 +244,18 @@ def build_pool(m):
         f"{m.prog} ({m.package})\n" + short.format(date=m.cp_date, owner=m.cp_owner)
     )
     refs["zLicenseDescrip"] = pool.add(long_)
-    for fa in m.flags:
+    for fa in m.all_flags:
+        if fa["_kind"] == "doc":
+            fa["_desc_text"] = texi(text_of(fa.get("descrip", ""))) or ":"
+            fa["_desc_off"] = pool.add(fa["_desc_text"])
+            continue
         n = m.cname(fa)
-        fa["_desc_off"] = pool.add(text_of(fa.get("descrip", "")))
+        desc = texi(text_of(fa.get("descrip", "")))
+        desc = reflow(desc, 72).rstrip("\n")
+        fa["_desc_text"] = desc
+        fa["_desc_off"] = pool.add(desc)
         fa["_NAME_off"] = pool.add(n)
-        fa["_name_off"] = pool.add(fa["name"])
+        fa["_name_off"] = pool.add(fa["name"].replace("_", "-"))
         if "arg-default" in fa and fa.get("arg-type") != "number":
             fa["_dft_off"] = pool.add(text_of(fa["arg-default"]))
     refs["help_desc"] = pool.add("display extended usage information and exit")
@@ -258,13 +293,19 @@ def build_pool(m):
         refs["zRcName"] = pool.add(rcfile)
     if m.eaddr:
         refs["zBugsAddr"] = pool.add(m.eaddr)
-    refs["zExplain"] = pool.add(reflow(texi(text_of(m.attrs.get("explain", "")))))
-    refs["zDetail"] = pool.add(reflow(texi(text_of(m.attrs.get("detail", "")))))
+    if text_of(m.attrs.get("explain", "")).strip():
+        refs["zExplain"] = pool.add(reflow(texi(text_of(m.attrs["explain"]))))
+    if text_of(m.attrs.get("detail", "")).strip():
+        refs["zDetail"] = pool.add(reflow(texi(text_of(m.attrs["detail"]))))
     return pool, refs
 
 
 def flag_bits(fa):
     bits = ["OPTST_DISABLED"]
+    if "stack-arg" in fa:
+        bits.append("OPTST_STACKED")
+    if "must-set" in fa:
+        bits.append("OPTST_MUST_SET")
     if "immediate" in fa:
         bits.append("OPTST_IMM")
     at = fa.get("arg-type")
@@ -353,8 +394,7 @@ def emit(def_path, base, defines=(), search=()):
         a("/*")
         a(" *  global included definitions")
         a(" */")
-        a(text_of(m.attrs["include"]).rstrip("\n"))
-        a("")
+        out.extend(text_of(m.attrs["include"]).split("\n"))
     a("")
     a("#ifndef NULL")
     a("#  define NULL 0")
@@ -367,8 +407,17 @@ def emit(def_path, base, defines=(), search=()):
     a("")
 
     # ---- per-option describe blocks --------------------------------------
-    for fa in m.flags:
+    for fa in m.all_flags:
         n = m.cname(fa)
+        if fa["_kind"] == "doc":
+            a("/**")
+            a(f" *  {fa['name']} option description:")
+            a(" */")
+            a(f"/** {fa['name']} option separation text */")
+            a(f"#define {n}_DESC      ({strs}+{fa['_desc_off']})")
+            a(f"#define {n}_FLAGS     (OPTST_DOCUMENT | OPTST_NO_INIT)")
+            a("")
+            continue
         guard = fa.get("ifdef")
         has_lists = "flags-must" in fa or "flags-cant" in fa
         a("/**")
@@ -392,8 +441,10 @@ def emit(def_path, base, defines=(), search=()):
                 a(f"#define {n}_DFT_ARG   ({strs}+{fa['_dft_off']})")
             else:
                 a(f"#define {n}_DFT_ARG   ((char const*){text_of(fa['arg-default'])})")
-        camel = "".join(w[0].upper() + w[1:] for w in fa["name"].split("-"))
-        idx_of = {f2["name"]: m.cname(f2) for f2 in m.flags}
+        camel = "_".join(w[0].upper() + w[1:] for w in fa["name"].replace("_", "-").split("-"))
+        # autogen uppercases the referenced name without checking that the
+        # option exists in this tool (such blocks are always #ifdef-guarded)
+        idx_of = _IdxNames()
         if "flags-must" in fa:
             a(f"/** Other options that are required by the {fa['name']} option */")
             a(f"static int const a{camel}MustList[] = {{")
@@ -463,10 +514,15 @@ def emit(def_path, base, defines=(), search=()):
             range_procs.append((fa, f"doOpt{cap}"))
         elif "flag-code" in fa:
             code_procs.append((fa, f"doOpt{cap}"))
-    static_list = sorted([p2 for _, p2 in code_procs]
+    static_list = sorted([p2 for fa2, p2 in code_procs if not fa2.get("ifdef")]
                          + [p2 for fa2, p2 in range_procs if not fa2.get("ifdef")]
                          + ["doUsageOpt"])
-    for fa, proc in range_procs:
+    guarded = []
+    for fa2 in m.flags:
+        cap2 = "_".join(w[0].upper() + w[1:] for w in fa2["name"].replace("_", "-").split("-"))
+        if ("arg-range" in fa2 or "flag-code" in fa2) and fa2.get("ifdef"):
+            guarded.append((fa2, f"doOpt{cap2}"))
+    for fa, proc in guarded:
         guard = fa.get("ifdef")
         if not guard:
             continue
@@ -485,9 +541,11 @@ def emit(def_path, base, defines=(), search=()):
         a("    " + ", ".join(static_list) + ";")
     else:
         cellw = max(len(x) for x in static_list) + 2
+        per_row = max(1, (76 - 4 + 0) // cellw)
+        per_row = min(per_row, 3)
         rows = []
-        for i in range(0, len(static_list), 3):
-            chunk = static_list[i:i + 3]
+        for i in range(0, len(static_list), per_row):
+            chunk = static_list[i:i + per_row]
             cells = []
             for j, name2 in enumerate(chunk):
                 sep = ";" if (i + j == len(static_list) - 1) else ","
@@ -508,26 +566,54 @@ def emit(def_path, base, defines=(), search=()):
     a(" */")
     a("static tOptDesc optDesc[OPTION_CT] = {")
     entries = []
-    for fa in m.flags:
+    for fa in m.all_flags:
         n = m.cname(fa)
         idx = fa["_index"]
+        if fa["_kind"] == "doc":
+            entries.append("\n".join([
+                f"  {{  /* entry idx, value */ {idx}, 0,",
+                f"     /* equiv idx, value */ {idx}, 0,",
+                "     /* equivalenced to  */ NO_EQUIVALENT,",
+                "     /* min, max, act ct */ 0, 0, 0,",
+                f"     /* opt state flags  */ {n}_FLAGS, 0,",
+                "     /* last opt argumnt */ { NULL },",
+                "     /* arg list/cookie  */ NULL,",
+                "     /* must/cannot opts */ NULL, NULL,",
+                "     /* option proc      */ NULL,",
+                f"     /* desc, NAME, name */ {n}_DESC, NULL, NULL,",
+                "     /* disablement strs */ NULL, NULL }",
+            ]))
+            continue
         proc = "NULL"
         cap = "_".join(w[0].upper() + w[1:] for w in fa["name"].split("-"))
         if "arg-range" in fa or "flag-code" in fa:
             proc = f"doOpt{cap}"
+        elif "stack-arg" in fa:
+            proc = "optionStackArg"
         elif fa.get("arg-type") == "number":
             proc = "optionNumericVal"
         maxc = fa.get("max", "1")
         dft = f"{n}_DFT_ARG" if "arg-default" in fa else "NULL"
         argcmt = "" if "arg-default" in fa else f" /* --{fa['name']} */"
-        camel = "".join(w[0].upper() + w[1:] for w in fa["name"].split("-"))
+        camel = "_".join(w[0].upper() + w[1:] for w in fa["name"].replace("_", "-").split("-"))
         must = f"a{camel}MustList" if "flags-must" in fa else "NULL"
         cant = f"a{camel}CantList" if "flags-cant" in fa else "NULL"
+        if fa.get("_equiv_target"):
+            equiv = "NO_EQUIVALENT, 0"
+            equiv_to = "NO_EQUIVALENT"
+        elif "equivalence" in fa:
+            equiv = "NOLIMIT, NOLIMIT"
+            tgt = fa["equivalence"].upper().replace("-", "_")
+            equiv_to = f"INDEX_OPT_{tgt}"
+        else:
+            equiv = f"{idx}, VALUE_OPT_{n}"
+            equiv_to = "NO_EQUIVALENT"
+        minc = "1" if "must-set" in fa else "0"
         e = [
             f"  {{  /* entry idx, value */ {idx}, VALUE_OPT_{n},",
-            f"     /* equiv idx, value */ {idx}, VALUE_OPT_{n},",
-            "     /* equivalenced to  */ NO_EQUIVALENT,",
-            f"     /* min, max, act ct */ 0, {maxc}, 0,",
+            f"     /* equiv idx, value */ {equiv},",
+            f"     /* equivalenced to  */ {equiv_to},",
+            f"     /* min, max, act ct */ {minc}, {maxc}, 0,",
             f"     /* opt state flags  */ {n}_FLAGS, 0,",
             f"     /* last opt argumnt */ {{ {dft} }},{'' if dft != 'NULL' else argcmt}",
             "     /* arg list/cookie  */ NULL,",
@@ -595,8 +681,16 @@ def emit(def_path, base, defines=(), search=()):
         ]))
     a(",\n\n".join(entries))
     a("};")
+    _ptr = False
+    for fa in m.all_flags:
+        if fa["_kind"] == "doc" and "lib-name" in fa:
+            a("")
+            a(f"tOptDesc * const {fa['lib-name']}_{fa['name']}_optDesc_p = "
+              f"optDesc + {fa['_index']};")
+            _ptr = True
     a("")
-    a("")
+    if not _ptr:
+        a("")
 
     # ---- program references ------------------------------------------------
     a("/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */")
@@ -623,9 +717,15 @@ def emit(def_path, base, defines=(), search=()):
     else:
         a("#define zBugsAddr       (NULL)")
     a(f"/** Clarification/explanation of what {P} does. */")
-    a(f"#define zExplain        ({strs}+{refs['zExplain']})")
+    if "zExplain" in refs:
+        a(f"#define zExplain        ({strs}+{refs['zExplain']})")
+    else:
+        a("#define zExplain        (NULL)")
     a(f"/** Extra detail explaining what {P} does. */")
-    a(f"#define zDetail         ({strs}+{refs['zDetail']})")
+    if "zDetail" in refs:
+        a(f"#define zDetail         ({strs}+{refs['zDetail']})")
+    else:
+        a("#define zDetail         (NULL)")
     a(f"/** The full version string for {P}. */")
     a("#define zFullVersion    (NULL)")
     a("/* extracted from optcode.tlib near line 342 */")
@@ -683,7 +783,9 @@ def emit(def_path, base, defines=(), search=()):
         a("/**")
         gsfx = f", when {guard} is #define-d" if guard else ""
         a(f" * Code to handle the {n} option{gsfx}.")
-        doc = text_of(fa.get("doc", "")).rstrip("\n")
+        doc = text_of(fa.get("doc", ""))
+        if doc.endswith("\n"):
+            doc = doc[:-1]
         for dl in doc.split("\n"):
             a(f" * {dl.rstrip()}" if dl.strip() else " *")
         a(f" * @param[in] pOptions the {P} options data structure")
@@ -700,7 +802,9 @@ def emit(def_path, base, defines=(), search=()):
             rrows = []
             for r in ranges:
                 lo, hi = r.split("->")
-                rrows.append(f"        {{ {lo.strip()}, {hi.strip()} }}")
+                lo = lo.strip() or "LONG_MIN"
+                hi = hi.strip() or "LONG_MAX"
+                rrows.append(f"        {{ {lo}, {hi} }}")
             a(",\n".join(rrows) + " };")
             a("    int  ix;")
             a("")
@@ -728,6 +832,8 @@ def emit(def_path, base, defines=(), search=()):
                 a(f"#endif /* defined {guard} */")
         else:
             code = fa["flag-code"]
+            if guard:
+                a(f"#ifdef {guard}")
             a("static void")
             a(f"{proc}(tOptions* pOptions, tOptDesc* pOptDesc)")
             a("{")
@@ -745,6 +851,8 @@ def emit(def_path, base, defines=(), search=()):
             a("    (void)pOptDesc;")
             a("    (void)pOptions;")
             a("}")
+            if guard:
+                a(f"#endif /* defined {guard} */")
     a("/* extracted from optmain.tlib near line 1250 */")
     a("")
     a("/**")
@@ -812,9 +920,10 @@ def emit(def_path, base, defines=(), search=()):
     else:
         a("      NO_EQUIVALENT, /* save option index */")
     a("      NO_EQUIVALENT, /* '-#' option index */")
-    a("      NO_EQUIVALENT /* index of default opt */")
+    dflt = next((f2["_index"] for f2 in m.all_flags if "default" in f2), None)
+    a(f"      {dflt if dflt is not None else 'NO_EQUIVALENT'} /* index of default opt */")
     a("    },")
-    a(f"    {m.option_ct} /* full option count */, {len(m.flags)} /* user option count */,")
+    a(f"    {m.option_ct} /* full option count */, {len(m.all_flags)} /* user option count */,")
     a(f"    {P}_full_usage, {P}_short_usage,")
     a("    NULL, NULL,")
     a(f"    PKGDATADIR, {P}_packager_info")
@@ -825,17 +934,65 @@ def emit(def_path, base, defines=(), search=()):
 
 
 def paragraph_chunks(text):
-    """Split into per-paragraph chunks; all but the last keep the blank
-    line (i.e. end with two newlines)."""
-    paras = [p for p in text.split("\n\n") if p.strip()]
-    out = []
-    for i, p in enumerate(paras):
-        if not p.endswith("\n"):
-            p += "\n"
-        if i < len(paras) - 1:
-            p += "\n"
-        out.append(p)
-    return out
+    """Reproduce libopts' optionPrintParagraphs() chunking exactly.
+
+    Ported from libopts/usage.c (the function autogen's mk-gettextable
+    delegates to): texts under 256 bytes emit as one puts(); longer ones
+    are split at paragraph boundaries, but only once at least 40 bytes
+    have accumulated and only while 256+ bytes remain.
+    """
+    n = len(text)
+    if n < 256:
+        return [text]
+
+    def at(i):
+        return text[i] if i < n else "\0"
+
+    chunks = []
+    buf = 0
+    length = n
+    while True:
+        if length < 256:
+            chunks.append(text[buf:])
+            return chunks
+        scan = buf
+        while True:  # try_longer
+            idx = text.find("\n", scan)
+            if idx < 0:
+                chunks.append(text[buf:])
+                return chunks
+            scan = idx
+            if (scan - buf) < 40:
+                scan += 1
+                continue
+            scan += 1
+            ch = at(scan)
+            if (not ch.isspace()) or ch == "\t":
+                continue  # continuation line
+            if ch == "\n":
+                scan += 1
+                while at(scan) == "\n":
+                    scan += 1
+                break
+            # whitespace: up to 7 leading spaces still starts a paragraph
+            p2 = scan
+            sp_ct = 0
+            restart = False
+            while at(p2) == " ":
+                sp_ct += 1
+                if sp_ct >= 8:
+                    scan = p2
+                    restart = True
+                    break
+                p2 += 1
+            if restart:
+                continue
+            break
+        chunks.append(text[buf:scan])
+        length -= scan - buf
+        if length <= 0:
+            return chunks
+        buf = scan
 
 
 def xgettext_string(text):
@@ -1001,15 +1158,17 @@ def nls_section(m, pool, refs):
         return seg[off]
 
     a(f"  /* referenced via {m.progvar}.pzCopyright */")
-    a(f'  puts(_("{xgettext_string(seg_text(refs["zCopyright"]))}"));')
+    for para in paragraph_chunks(seg_text(refs["zCopyright"])):
+        a(f'  puts(_("{xgettext_string(para)}"));')
     a("")
     a(f"  /* referenced via {m.progvar}.pzCopyNotice */")
     for para in paragraph_chunks(seg_text(refs["zLicenseDescrip"])):
         a(f'  puts(_("{xgettext_string(para)}"));')
     a("")
-    for fa in m.flags:
+    for fa in m.all_flags:
         a(f"  /* referenced via {m.progvar}.pOptDesc->pzText */")
-        a(f'  puts(_("{c_escape(text_of(fa.get("descrip", "")))}"));')
+        for para in paragraph_chunks(fa["_desc_text"]):
+            a(f'  puts(_("{xgettext_string(para)}"));')
         a("")
     a(f"  /* referenced via {m.progvar}.pOptDesc->pzText */")
     a('  puts(_("display extended usage information and exit"));')
@@ -1026,16 +1185,19 @@ def nls_section(m, pool, refs):
         a('  puts(_("load options from a config file"));')
         a("")
     a(f"  /* referenced via {m.progvar}.pzUsageTitle */")
-    a(f'  puts(_("{xgettext_string(seg_text(refs["zUsageTitle"]))}"));')
-    a("")
-    a(f"  /* referenced via {m.progvar}.pzExplain */")
-    for i, para in enumerate(paragraph_chunks(seg_text(refs["zExplain"]))):
+    for para in paragraph_chunks(seg_text(refs["zUsageTitle"])):
         a(f'  puts(_("{xgettext_string(para)}"));')
     a("")
-    a(f"  /* referenced via {m.progvar}.pzDetail */")
-    for i, para in enumerate(paragraph_chunks(seg_text(refs["zDetail"]))):
-        a(f'  puts(_("{xgettext_string(para)}"));')
-    a("")
+    if "zExplain" in refs:
+        a(f"  /* referenced via {m.progvar}.pzExplain */")
+        for para in paragraph_chunks(seg_text(refs["zExplain"])):
+            a(f'  puts(_("{xgettext_string(para)}"));')
+        a("")
+    if "zDetail" in refs:
+        a(f"  /* referenced via {m.progvar}.pzDetail */")
+        for para in paragraph_chunks(seg_text(refs["zDetail"])):
+            a(f'  puts(_("{xgettext_string(para)}"));')
+        a("")
     a(f"  /* referenced via {m.progvar}.pzFullUsage */")
     a('  puts(_("<<<NOT-FOUND>>>"));')
     a("")

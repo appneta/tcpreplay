@@ -24,9 +24,34 @@ runtime is untouched — this replaces only the generator.
       interface comment uses the first flag including documentation
       pseudo-flags; `EXIT_NO_CONFIG_INPUT=66` appears iff load-opts is
       enabled.
-- [ ] Stage 3 — `emit_c.py`: *_opts.c emitter (the long pole).
-- [ ] Stage 4 — `emit_man.py`: man page emitter; then switch the build
-      rules and retire autogen.
+- [x] Stage 3 — `emit_c.py`: *_opts.c emitter. Byte-identical for all
+      seven configurations. The decisive move was porting libopts'
+      **`optionPrintParagraphs()`** (libopts/usage.c) verbatim rather than
+      guessing at the xgettext paragraph grouping — autogen's
+      `mk-gettextable` delegates straight to it, and we vendor the same
+      libopts, so the algorithm is authoritative and frozen. Other rules:
+      string pool is deduplicated with cumulative byte offsets; text
+      refills at 75 cols (descrips at 72) with whitespace collapse and
+      two spaces after sentence-ending words; texinfo `@file{}`/`@var{}`
+      become `'x'` and `@item` becomes a wider paragraph break;
+      `documentation` pseudo-flags emit an OPTST_DOCUMENT descriptor plus
+      a `lib-name`-prefixed `optDesc_p` pointer and count toward the *user*
+      option count; `flags-must`/`flags-cant` names are uppercased blindly
+      (dangling refs like tcpbridge's `cachefile` are legal because those
+      blocks are `#ifdef`-guarded); an option carrying a bare `default`
+      attribute becomes the default-opt index.
+- [ ] Stage 4 — `emit_man.py`: man page emitter (template is
+      `/usr/share/autogen/agman-cmd.tpl` + `agman.tlib`; the `.TH` date is
+      the only intentionally-varying part).
+- [ ] Stage 5 — switch the build rules to the Python generator, drop the
+      autogen dependency from the tree, keep `check-generated-opts.sh` as
+      the regression gate for as long as an autogen install exists.
+
+## Running the gates
+
+    python3 scripts/autoopts/validate_ir.py      # structural
+    python3 scripts/autoopts/check_emitters.py   # byte-identical .h/.c
+    ./scripts/check-generated-opts.sh            # committed vs autogen
 
 ## Method: oracle-driven equivalence
 

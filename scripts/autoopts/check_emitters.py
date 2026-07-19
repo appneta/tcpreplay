@@ -4,7 +4,7 @@
 """Byte-compare emitter output against the committed autogen output (#895).
 
 Extends validate_ir.py's structural checks to full file equivalence for the
-emitters implemented so far (currently *_opts.h).  Run from the top of the
+emitters implemented so far (*_opts.h and *_opts.c).  Run from the top of the
 tree; exits non-zero on any difference.
 """
 import sys
@@ -12,6 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from emit_h import emit_h  # noqa: E402
+from emit_c import emit as emit_c  # noqa: E402
 
 CASES = [
     ("tcpcapinfo_opts", "src/tcpcapinfo_opts.def", []),
@@ -27,13 +28,14 @@ CASES = [
 def main():
     failed = False
     for base, def_path, defines in CASES:
-        generated = emit_h(def_path, base, defines, ["src", "src/tcpedit"])
-        committed = Path(f"src/{base}.h").read_text()
-        if generated == committed:
-            print(f"OK   {base}.h")
-        else:
-            failed = True
-            print(f"FAIL {base}.h differs from emitter output")
+        for ext, emit in ((".h", emit_h), (".c", emit_c)):
+            generated = emit(def_path, base, defines, ["src", "src/tcpedit"])
+            committed = Path(f"src/{base}{ext}").read_text()
+            if generated == committed:
+                print(f"OK   {base}{ext}")
+            else:
+                failed = True
+                print(f"FAIL {base}{ext} differs from emitter output")
     return 1 if failed else 0
 
 
