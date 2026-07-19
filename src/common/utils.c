@@ -107,6 +107,48 @@ tcpr_pcap_open(const char *path, char *ebuf)
 #endif
 }
 
+/**
+ * Returns the native timestamp precision of a capture file:
+ * PCAP_TSTAMP_PRECISION_NANO for nanosecond pcap files and for pcapng files
+ * (whose interfaces may use nanosecond resolution - opening those at
+ * nanosecond precision never loses accuracy), PCAP_TSTAMP_PRECISION_MICRO
+ * for everything else, including stdin ("-") which cannot be peeked (#621)
+ */
+int
+tcpr_pcap_file_precision(const char *path)
+{
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+    FILE *fp;
+    uint32_t magic = 0;
+    size_t nread;
+
+    if (path == NULL || strcmp(path, "-") == 0) {
+        return PCAP_TSTAMP_PRECISION_MICRO;
+    }
+
+    if ((fp = fopen(path, "rb")) == NULL) {
+        return PCAP_TSTAMP_PRECISION_MICRO;
+    }
+
+    nread = fread(&magic, 1, sizeof(magic), fp);
+    fclose(fp);
+    if (nread != sizeof(magic)) {
+        return PCAP_TSTAMP_PRECISION_MICRO;
+    }
+
+    switch (magic) {
+    case 0xa1b23c4d: /* nanosecond pcap */
+    case 0x4d3cb2a1: /* nanosecond pcap, byte-swapped */
+    case 0x0a0d0d0a: /* pcapng section header block */
+        return PCAP_TSTAMP_PRECISION_NANO;
+    default:
+        return PCAP_TSTAMP_PRECISION_MICRO;
+    }
+#else
+    (void)path;
+    return 0;
+#endif
+}
 
 /**
  * calls free and sets to NULL.

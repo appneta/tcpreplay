@@ -121,7 +121,17 @@ main(int argc, char *argv[])
     }
 #endif
 
-    if ((dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535)) == NULL) {
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+    /* pcap_open_dead_with_tstamp_precision() was added in the same libpcap
+     * release (1.5.1) as pcap_open_offline_with_tstamp_precision(), so one
+     * feature check covers both.  Match the output precision to the input
+     * so nanosecond timestamps survive the rewrite (#621).
+     */
+    dlt_pcap = pcap_open_dead_with_tstamp_precision(tcpedit_get_output_dlt(tcpedit), 65535, options.tstamp_precision);
+#else
+    dlt_pcap = pcap_open_dead(tcpedit_get_output_dlt(tcpedit), 65535);
+#endif
+    if (dlt_pcap == NULL) {
         tcpedit_close(&tcpedit);
         err(-1, "Unable to open dead pcap handle.");
     }
@@ -243,8 +253,17 @@ post_args(_U_ int argc, _U_ char *argv[])
 
     /* open up the input file */
     options.infile = safe_strdup(OPT_ARG(INFILE));
+#ifdef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+    /* preserve the timestamp resolution of nanosecond pcap / pcapng input (#621) */
+    options.tstamp_precision = tcpr_pcap_file_precision(options.infile);
+    if ((options.pin = pcap_open_offline_with_tstamp_precision(options.infile, options.tstamp_precision, ebuf)) ==
+        NULL) {
+        errx(-1, "Unable to open input pcap file: %s", ebuf);
+    }
+#else
     if ((options.pin = pcap_open_offline(options.infile, ebuf)) == NULL)
         errx(-1, "Unable to open input pcap file: %s", ebuf);
+#endif
 
 #ifdef HAVE_PCAP_SNAPSHOT
     if (pcap_snapshot(options.pin) < 65535)
