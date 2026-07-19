@@ -1,4 +1,10 @@
 UNRELEASED
+    - netmap: fail cleanly on unconfigured interfaces reporting zero TX rings/slots (#113) - an
+      unattached vale port can register successfully with a non-zero memsize yet report zero
+      nr_tx_rings/nr_tx_slots, in which case the ring setup underflowed 'nr_tx_rings - 1' on a
+      uint16 (walking 65535 phantom rings) instead of producing an error; the existing
+      "not configured" check now also validates ring and slot counts and reports all three
+      values in the error message
     - tcprewrite: preserve nanosecond timestamp resolution (#621) - input files are probed for
       their native precision; nanosecond pcap and pcapng input is now opened and written at
       nanosecond precision (nanosecond pcap output format), instead of silently truncating
