@@ -14,12 +14,16 @@ set(TCPEDIT_STUB_DEPS
 # tcpedit_stub.h is committed like the *_opts files (#895); regenerate in the
 # source tree at configure time when a .def it was generated from is newer
 set(TCPEDIT_STUB_H ${CMAKE_CURRENT_SOURCE_DIR}/tcpedit_stub.h)
+# strictly-newer comparison (like make): IS_NEWER_THAN treats equal
+# timestamps as newer, which a fresh git checkout produces for every file
 set(_stub_stale FALSE)
 if(NOT EXISTS ${TCPEDIT_STUB_H})
     set(_stub_stale TRUE)
 else()
+    file(TIMESTAMP ${TCPEDIT_STUB_H} _stub_ts "%s" UTC)
     foreach(_dep ${TCPEDIT_STUB_DEPS})
-        if(${_dep} IS_NEWER_THAN ${TCPEDIT_STUB_H})
+        file(TIMESTAMP ${_dep} _dep_ts "%s" UTC)
+        if(_dep_ts GREATER _stub_ts)
             set(_stub_stale TRUE)
         endif()
     endforeach()
