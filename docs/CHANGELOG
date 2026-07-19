@@ -1,4 +1,11 @@
 UNRELEASED
+    - tcpedit: fix tcprewrite --dlt=raw producing corrupt output (#1023) - the dlt_raw plugin had
+      no encoder, and because the DLT conversion pipeline downgrades per-packet encode errors to
+      soft errors, every packet was silently written unconverted (Ethernet header intact) into a
+      file whose header claims LINKTYPE_RAW; the plugin now strips the source DLT's layer 2
+      header (as measured by the decoder, so VLAN tags etc. are included) and emits bare
+      IPv4/IPv6; non-IP packets (e.g. ARP) cannot be represented in DLT_RAW and remain soft
+      errors - pass --skip-soft-errors to drop them; new rewrite_dltraw test case
     - tcpreplay: support raw IP (L3-only) interfaces such as WireGuard and tun (#988) - interfaces
       whose hardware type is ARPHRD_NONE/ARPHRD_RAWIP are now detected in the PF_PACKET open path;
       packets are sent as bare IP with the per-packet protocol (ETH_P_IP/ETH_P_IPV6) taken from
