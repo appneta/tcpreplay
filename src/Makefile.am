@@ -39,46 +39,46 @@ opts_list=-L tcpedit
 autoopts_dir = $(abs_top_srcdir)/scripts/autoopts
 
 tcpprep.adoc: tcpprep_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpprep tcpprep_opts.def > tcpprep.adoc
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpprep tcpprep_opts.def > tcpprep.adoc.tmp && mv -f tcpprep.adoc.tmp tcpprep.adoc
 
 tcpprep.1: tcpprep.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpprep.1 tcpprep.adoc
+	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpprep.1.tmp tcpprep.adoc && mv -f tcpprep.1.tmp tcpprep.1
 
 tcprewrite.adoc: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcprewrite tcprewrite_opts.def > tcprewrite.adoc
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcprewrite tcprewrite_opts.def > tcprewrite.adoc.tmp && mv -f tcprewrite.adoc.tmp tcprewrite.adoc
 
 tcprewrite.1: tcprewrite.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcprewrite.1 tcprewrite.adoc
+	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcprewrite.1.tmp tcprewrite.adoc && mv -f tcprewrite.1.tmp tcprewrite.1
 
 tcpreplay-edit.adoc: tcpreplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay-edit tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay-edit.adoc
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay-edit tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay-edit.adoc.tmp && mv -f tcpreplay-edit.adoc.tmp tcpreplay-edit.adoc
 
 tcpreplay-edit.1: tcpreplay-edit.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpreplay-edit.1 tcpreplay-edit.adoc
+	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpreplay-edit.1.tmp tcpreplay-edit.adoc && mv -f tcpreplay-edit.1.tmp tcpreplay-edit.1
 
 tcpreplay.adoc: tcpreplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay tcpreplay_opts.def > tcpreplay.adoc
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpreplay tcpreplay_opts.def > tcpreplay.adoc.tmp && mv -f tcpreplay.adoc.tmp tcpreplay.adoc
 
 tcpreplay.1: tcpreplay.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpreplay.1 tcpreplay.adoc
+	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpreplay.1.tmp tcpreplay.adoc && mv -f tcpreplay.1.tmp tcpreplay.1
 
 tcpbridge.adoc: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpbridge tcpbridge_opts.def > tcpbridge.adoc
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpbridge tcpbridge_opts.def > tcpbridge.adoc.tmp && mv -f tcpbridge.adoc.tmp tcpbridge.adoc
 
 tcpbridge.1: tcpbridge.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpbridge.1 tcpbridge.adoc
+	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpbridge.1.tmp tcpbridge.adoc && mv -f tcpbridge.1.tmp tcpbridge.1
 
 tcpliveplay.adoc: tcpliveplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpliveplay tcpliveplay_opts.def > tcpliveplay.adoc
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpliveplay tcpliveplay_opts.def > tcpliveplay.adoc.tmp && mv -f tcpliveplay.adoc.tmp tcpliveplay.adoc
 
 tcpliveplay.1: tcpliveplay.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpliveplay.1 tcpliveplay.adoc
+	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpliveplay.1.tmp tcpliveplay.adoc && mv -f tcpliveplay.1.tmp tcpliveplay.1
 
 tcpcapinfo.adoc: tcpcapinfo_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpcapinfo tcpcapinfo_opts.def > tcpcapinfo.adoc
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_adoc.py tcpcapinfo tcpcapinfo_opts.def > tcpcapinfo.adoc.tmp && mv -f tcpcapinfo.adoc.tmp tcpcapinfo.adoc
 
 tcpcapinfo.1: tcpcapinfo.adoc
-	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpcapinfo.1 tcpcapinfo.adoc
+	cd $(srcdir) && @ASCIIDOCTOR@ -b manpage -o tcpcapinfo.1.tmp tcpcapinfo.adoc && mv -f tcpcapinfo.1.tmp tcpcapinfo.1
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1 tcpcapinfo.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1 \
@@ -104,10 +104,10 @@ tcpreplay_edit_OBJECTS: tcpreplay_edit_opts.h
 
 BUILT_SOURCES += tcpreplay_edit_opts.h
 tcpreplay_edit_opts.h: tcpreplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpreplay_edit_opts tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay_edit_opts.h
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpreplay_edit_opts tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay_edit_opts.h.tmp && mv -f tcpreplay_edit_opts.h.tmp tcpreplay_edit_opts.h
 
 tcpreplay_edit_opts.c: tcpreplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpreplay_edit_opts tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay_edit_opts.c
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpreplay_edit_opts tcpreplay_opts.def TCPREPLAY_EDIT > tcpreplay_edit_opts.c.tmp && mv -f tcpreplay_edit_opts.c.tmp tcpreplay_edit_opts.c
 
 tcpreplay_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPREPLAY
 tcpreplay_SOURCES = tcpreplay_opts.c send_packets.c signal_handler.c tcpreplay.c tcpreplay_api.c sleep.c replay.c
@@ -116,10 +116,10 @@ tcpreplay_OBJECTS: tcpreplay_opts.h
 
 BUILT_SOURCES += tcpreplay_opts.h
 tcpreplay_opts.h: tcpreplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpreplay_opts tcpreplay_opts.def > tcpreplay_opts.h
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpreplay_opts tcpreplay_opts.def > tcpreplay_opts.h.tmp && mv -f tcpreplay_opts.h.tmp tcpreplay_opts.h
 
 tcpreplay_opts.c: tcpreplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpreplay_opts tcpreplay_opts.def > tcpreplay_opts.c
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpreplay_opts tcpreplay_opts.def > tcpreplay_opts.c.tmp && mv -f tcpreplay_opts.c.tmp tcpreplay_opts.c
 
 if ENABLE_OSX_FRAMEWORKS
 tcpreplay_LDFLAGS = -framework CoreServices -framework Carbon
@@ -180,10 +180,10 @@ tcpliveplay_OBJECTS: tcpliveplay_opts.h
 
 BUILT_SOURCES += tcpliveplay_opts.h
 tcpliveplay_opts.h: tcpliveplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpliveplay_opts tcpliveplay_opts.def > tcpliveplay_opts.h
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpliveplay_opts tcpliveplay_opts.def > tcpliveplay_opts.h.tmp && mv -f tcpliveplay_opts.h.tmp tcpliveplay_opts.h
 
 tcpliveplay_opts.c: tcpliveplay_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpliveplay_opts tcpliveplay_opts.def > tcpliveplay_opts.c
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpliveplay_opts tcpliveplay_opts.def > tcpliveplay_opts.c.tmp && mv -f tcpliveplay_opts.c.tmp tcpliveplay_opts.c
 
 
 tcprewrite_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. -I$(srcdir)/tcpedit @LDNETINC@ $(LNAV_CFLAGS) -DTCPREWRITE -DHAVE_CACHEFILE_SUPPORT
@@ -195,10 +195,10 @@ tcprewrite_OBJECTS: tcprewrite_opts.h
 
 BUILT_SOURCES += tcprewrite_opts.h
 tcprewrite_opts.h: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcprewrite_opts tcprewrite_opts.def > tcprewrite_opts.h
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcprewrite_opts tcprewrite_opts.def > tcprewrite_opts.h.tmp && mv -f tcprewrite_opts.h.tmp tcprewrite_opts.h
 
 tcprewrite_opts.c: tcprewrite_opts.def tcpedit/tcpedit_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcprewrite_opts tcprewrite_opts.def > tcprewrite_opts.c
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcprewrite_opts tcprewrite_opts.def > tcprewrite_opts.c.tmp && mv -f tcprewrite_opts.c.tmp tcprewrite_opts.c
 
 tcpcapinfo_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPCAPINFO
 tcpcapinfo_LDADD = ./common/libcommon.a \
@@ -208,10 +208,10 @@ tcpcapinfo_OBJECTS: tcpcapinfo_opts.h
 
 BUILT_SOURCES += tcpcapinfo_opts.h
 tcpcapinfo_opts.h: tcpcapinfo_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpcapinfo_opts tcpcapinfo_opts.def > tcpcapinfo_opts.h
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpcapinfo_opts tcpcapinfo_opts.def > tcpcapinfo_opts.h.tmp && mv -f tcpcapinfo_opts.h.tmp tcpcapinfo_opts.h
 
 tcpcapinfo_opts.c: tcpcapinfo_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpcapinfo_opts tcpcapinfo_opts.def > tcpcapinfo_opts.c
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpcapinfo_opts tcpcapinfo_opts.def > tcpcapinfo_opts.c.tmp && mv -f tcpcapinfo_opts.c.tmp tcpcapinfo_opts.c
 
 tcpprep_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. $(LNAV_CFLAGS) @LDNETINC@ -DTCPPREP
 tcpprep_LDADD = ./common/libcommon.a \
@@ -221,10 +221,10 @@ tcpprep_OBJECTS: tcpprep_opts.h
 
 BUILT_SOURCES += tcpprep_opts.h
 tcpprep_opts.h: tcpprep_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpprep_opts tcpprep_opts.def > tcpprep_opts.h
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpprep_opts tcpprep_opts.def > tcpprep_opts.h.tmp && mv -f tcpprep_opts.h.tmp tcpprep_opts.h
 
 tcpprep_opts.c: tcpprep_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpprep_opts tcpprep_opts.def > tcpprep_opts.c
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpprep_opts tcpprep_opts.def > tcpprep_opts.c.tmp && mv -f tcpprep_opts.c.tmp tcpprep_opts.c
 
 tcpbridge_CFLAGS = $(LIBOPTS_CFLAGS) -I$(srcdir)/.. -I$(srcdir)/tcpedit $(LNAV_CFLAGS) @LDNETINC@ -DTCPBRIDGE
 tcpbridge_LDADD = ./tcpedit/libtcpedit.a ./common/libcommon.a \
@@ -237,10 +237,10 @@ tcpbridge_OBJECTS: tcpbridge_opts.h
 
 BUILT_SOURCES += tcpbridge_opts.h
 tcpbridge_opts.h: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpbridge_opts tcpbridge_opts.def > tcpbridge_opts.h
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_h.py tcpbridge_opts tcpbridge_opts.def > tcpbridge_opts.h.tmp && mv -f tcpbridge_opts.h.tmp tcpbridge_opts.h
 
 tcpbridge_opts.c: tcpbridge_opts.def tcpedit/tcpedit_opts.def
-	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpbridge_opts tcpbridge_opts.def > tcpbridge_opts.c
+	cd $(srcdir) && @PYTHON3@ $(autoopts_dir)/emit_c.py tcpbridge_opts tcpbridge_opts.def > tcpbridge_opts.c.tmp && mv -f tcpbridge_opts.c.tmp tcpbridge_opts.c
 
 noinst_HEADERS = tcpreplay.h tcpprep.h bridge.h defines.h tree.h tcpliveplay.h \
 		 send_packets.h signal_handler.h common.h tcpreplay_opts.h tcpliveplay_opts.h \

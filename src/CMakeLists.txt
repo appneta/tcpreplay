@@ -67,27 +67,36 @@ function(tcpr_autogen_opts base def)
     if(_stale)
         if(PYTHON3_EXECUTABLE)
             message(STATUS "Regenerating ${base}.c/h and ${_manbase}.adoc with python3")
+            # Write to a .tmp path and rename over the real target rather than
+            # writing it directly: a dist tarball extracted read-only (or any
+            # other reason the existing file isn't writable) only needs the
+            # containing directory to be writable for rename() to replace it -
+            # OUTPUT_FILE writing straight to ${_out_h} would instead fail
+            # with a permission error on such a file (#895 follow-up).
             execute_process(
                 COMMAND ${PYTHON3_EXECUTABLE} ${AUTOOPTS_DIR}/emit_h.py ${base} ${def} "${ARG_DEFINES}"
-                OUTPUT_FILE ${_out_h}
+                OUTPUT_FILE ${_out_h}.tmp
                 RESULT_VARIABLE _rc)
             if(NOT _rc EQUAL 0)
                 message(FATAL_ERROR "emit_h.py failed regenerating ${base}.h from ${def}")
             endif()
+            file(RENAME ${_out_h}.tmp ${_out_h})
             execute_process(
                 COMMAND ${PYTHON3_EXECUTABLE} ${AUTOOPTS_DIR}/emit_c.py ${base} ${def} "${ARG_DEFINES}"
-                OUTPUT_FILE ${_out_c}
+                OUTPUT_FILE ${_out_c}.tmp
                 RESULT_VARIABLE _rc)
             if(NOT _rc EQUAL 0)
                 message(FATAL_ERROR "emit_c.py failed regenerating ${base}.c from ${def}")
             endif()
+            file(RENAME ${_out_c}.tmp ${_out_c})
             execute_process(
                 COMMAND ${PYTHON3_EXECUTABLE} ${AUTOOPTS_DIR}/emit_adoc.py ${_manbase} ${def} "${ARG_DEFINES}"
-                OUTPUT_FILE ${_out_adoc}
+                OUTPUT_FILE ${_out_adoc}.tmp
                 RESULT_VARIABLE _rc)
             if(NOT _rc EQUAL 0)
                 message(FATAL_ERROR "emit_adoc.py failed regenerating ${_manbase}.adoc from ${def}")
             endif()
+            file(RENAME ${_out_adoc}.tmp ${_out_adoc})
         else()
             message(FATAL_ERROR
                 "${base}.c/h or ${_manbase}.adoc is missing or older than ${def}, and python3 is "
