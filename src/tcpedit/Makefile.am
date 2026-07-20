@@ -34,7 +34,7 @@ MOSTLYCLEANFILES = *~
 
 MAINTAINERCLEANFILES = Makefile.in tcpedit_stub.h tcpedit.1
 
-EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def
+EXTRA_DIST = tcpedit_stub.def tcpedit_opts.def CMakeLists.txt
 
 include plugins/Makefile.am
 

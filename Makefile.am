@@ -62,4 +62,7 @@ MAINTAINERCLEANFILES = Makefile.in configure *.bak
 
 EXTRA_DIST = doxygen.cfg.in \
 	m4/libtool.m4 m4/ltoptions.m4 m4/ltsugar.m4 \
-	m4/ltversion.m4 m4/lt~obsolete.m4 acinclude.m4
+	m4/ltversion.m4 m4/lt~obsolete.m4 acinclude.m4 \
+	CMakeLists.txt CMakePresets.json \
+	cmake/config.h.cmake cmake/ConfigureChecks.cmake cmake/FindPCAP.cmake \
+	cmake/GitVersion.cmake cmake/OptionalDeps.cmake cmake/PcapChecks.cmake

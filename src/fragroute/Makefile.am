@@ -17,3 +17,5 @@ noinst_HEADERS = bget.h mod.h pkt.h randutil.h iputil.h fragroute.h argv.h \
 MOSTLYCLEANFILES = *~
 
 MAINTAINERCLEANFILES = Makefiles.in
+
+EXTRA_DIST = CMakeLists.txt

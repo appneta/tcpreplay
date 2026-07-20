@@ -1,4 +1,18 @@
 UNRELEASED
+    - build: make dist tarballs are now buildable with CMake, not just autotools (#1037) - every
+      CMakeLists.txt, CMakePresets.json, and cmake/*.cmake support module is now added to the
+      relevant EXTRA_DIST variables, so 'make dist'/'make dist-xz' tarballs ship both build
+      systems' files; also fixes two plugins (dlt_jnpr_ether, dlt_pppserial) whose *_api.c file
+      was never added to autotools' source list (present only in CMake's, so the file was missing
+      from dist tarballs entirely, breaking a from-tarball CMake build with 'cannot find source
+      file') - both now compile under both build systems. CMake's *_opts.c/h and man-page
+      generation (src/CMakeLists.txt) is restructured so man pages (*.adoc/*.1, not needed to
+      compile) no longer share a staleness check with *_opts.c/h (needed to compile): man-page
+      generation moves from eager configure-time execute_process() calls into the build graph via
+      add_custom_command() OUTPUT/DEPENDS, so it now only runs - needing python3/asciidoctor - when
+      the opt-in 'manpages' target is actually invoked, instead of every configure forcing python3
+      just because *.adoc (never distributed, see #1035/#1036) was missing; a tarball-shipped,
+      already-fresh *_opts.c/h now needs neither tool with CMake either, matching autotools
     - build: GNU autogen is no longer required to build (#895, phase 1) - autogen is EOL (Debian
       Bug#1076243), so the AutoOpts-generated option parsers (src/*_opts.c/h, tcpedit_stub.h) and
       man pages are now committed to git; both build systems use them directly and only invoke

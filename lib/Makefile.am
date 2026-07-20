@@ -8,3 +8,5 @@ noinst_HEADERS = strlcpy.h tree.h queue.h sll.h
 MOSTLYCLEANFILES = *~ *.o *.a
 
 MAINTAINERCLEANFILES = Makefile.in
+
+EXTRA_DIST = CMakeLists.txt
