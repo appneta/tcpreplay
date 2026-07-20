@@ -94,7 +94,7 @@ tcpcapinfo.1: tcpcapinfo_opts.def
 
 man_MANS = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpreplay-edit.1 tcpcapinfo.1
 EXTRA_DIST = tcpreplay.1 tcpprep.1 tcprewrite.1 tcpbridge.1 tcpreplay-edit.1 \
-	tcpliveplay.1 tcpcapinfo.1
+	tcpliveplay.1 tcpcapinfo.1 CMakeLists.txt
 bin_PROGRAMS = tcpreplay tcpprep tcprewrite tcpreplay-edit tcpcapinfo
 
 if COMPILE_TCPBRIDGE

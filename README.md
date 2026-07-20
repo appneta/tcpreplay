@@ -109,12 +109,15 @@ Python replacement) and `asciidoctor` produce them from the `.def` files at
 build time instead, so you need those two tools installed to build from git
 (neither is EOL, unlike autogen). GNU autogen itself is only still needed
 for one internal header (`src/tcpedit/tcpedit_stub.h`); see
-`scripts/autoopts/README.md`. Release tarballs (`make dist`, autotools
-only) ship the already-generated option parsers and pre-built man pages
-(`*_opts.c/h`/`*.1`) — matching the pre-#895 behavior of shipping pre-built
-man pages, not a separate source format — so building from a tarball needs
-none of these three tools; the AsciiDoc man-page source (`*.adoc`) is a
-git-checkout-only build artifact and isn't distributed.
+`scripts/autoopts/README.md`. Release tarballs (`make dist`, autotools-
+built but not autotools-only to consume) ship the already-generated option
+parsers and pre-built man pages (`*_opts.c/h`/`*.1`) — matching the
+pre-#895 behavior of shipping pre-built man pages, not a separate source
+format — plus every CMake build file (`CMakeLists.txt`,
+`CMakePresets.json`, `cmake/*.cmake`), so a tarball builds standalone with
+either autotools or CMake, needing none of autogen/python3/asciidoctor for
+either. The AsciiDoc man-page source (`*.adoc`) is a git-checkout-only
+build artifact and isn't distributed.
 
 ```
 cmake -B build
@@ -150,11 +153,12 @@ cmake -B build-debug -DENABLE_DEBUG=ON
 cmake -B build-release
 ```
 
-Handy targets: `cmake --build build --target manpages` renders the man pages
-with asciidoctor — a plain `cmake --build build` never needs asciidoctor,
-only that explicit target does. VS Code users with the CMake Tools extension
-can simply open the repository folder and select a configure preset when
-prompted.
+Handy targets: `cmake --build build --target manpages` regenerates the man
+pages (python3 to produce `*.adoc`, asciidoctor to render `*.1`) — a plain
+`cmake --build build` never touches man pages at all, so it needs neither
+tool unless `*_opts.c/h` themselves are missing or stale (python3 only).
+VS Code users with the CMake Tools extension can simply open the repository
+folder and select a configure preset when prompted.
 
 Build netmap feature
 --------------------

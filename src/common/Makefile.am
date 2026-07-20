@@ -40,3 +40,5 @@ noinst_HEADERS = cidr.h err.h list.h cache.h services.h get.h \
 MOSTLYCLEANFILES = *~
 
 MAINTAINERCLEANFILES = Makefile.in git_version.c
+
+EXTRA_DIST = CMakeLists.txt

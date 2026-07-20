@@ -8,7 +8,7 @@ endif
 libopts_la_SOURCES      = libopts.c
 libopts_la_CPPFLAGS     = -I$(srcdir)
 libopts_la_LDFLAGS      = -version-info  42:1:17
-EXTRA_DIST		=
+EXTRA_DIST		= CMakeLists.txt
 BUILT_SOURCES		=
 MOSTLYCLEANFILES	=
 

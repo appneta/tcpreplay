@@ -10,4 +10,4 @@ replay_stats_SOURCES = replay_stats.c
 replay_stats_CFLAGS = -I$(top_srcdir)/src -I$(top_builddir)/src $(LIBOPTS_CFLAGS)
 replay_stats_LDADD = $(top_builddir)/src/libtcpreplay.a @LPCAPLIB@ @LDNETLIB@ $(LIBOPTS_LDADD)
 
-EXTRA_DIST = README.md
+EXTRA_DIST = README.md CMakeLists.txt

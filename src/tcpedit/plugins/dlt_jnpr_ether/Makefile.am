@@ -7,7 +7,8 @@
 # add your dependency information (see comment below)
 
 libtcpedit_a_SOURCES += \
-	%reldir%/jnpr_ether.c
+	%reldir%/jnpr_ether.c \
+	%reldir%/jnpr_ether_api.c
 
 noinst_HEADERS += \
 	%reldir%/jnpr_ether.h \

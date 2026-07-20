@@ -75,15 +75,21 @@ Mirrors configure.ac feature-for-feature; every `--enable-*`/`--with-*` flag has
 (mapping table in the top-level `CMakeLists.txt` header comment, e.g. `-DENABLE_DEBUG=ON`,
 `-DWITH_NETMAP=DIR`). Feature detection lives in `cmake/*.cmake`; `cmake/config.h.cmake` is the
 CMake twin of `src/config.h.in` — **when adding a configure.ac check or a new config.h define, update
-the corresponding `cmake/` file too**. `*_opts.c/h` and man-page `.adoc` source are **not** committed
-(same convention as autotools, see above) — `cmake -B build` regenerates them at configure time via
-`scripts/autoopts` (python3), so python3 is required for any CMake build from a git checkout.
-Rendering `.adoc` to `.1` is opt-in and asciidoctor-only-if-used: a plain `cmake --build build` never
-touches man pages at all (unlike autotools, where they're part of the default build); only
-`cmake --build build --target manpages` does, and needs asciidoctor. `autogen` itself is only needed
-for `src/tcpedit/tcpedit_stub.h`, which does stay committed. CMake is the primary, recommended way to
-build the suite; `make test` remains autotools-only, so autotools is still required for that and for
-release tarballs (`make dist`/`make dist-xz`, which bundle the already-built generated files).
+the corresponding `cmake/` file too**. `*_opts.c/h` are **not** committed (same convention as
+autotools, see above) — `cmake -B build` regenerates them at configure time via `scripts/autoopts`
+(python3), so python3 is required to compile from a git checkout — but only if they're actually
+missing or stale; a tarball-shipped, already-fresh copy needs no tool. Man pages (`*.adoc`/`*.1`)
+are handled differently from autotools: neither is needed to compile, so their generation is wired
+into the build graph (`add_custom_command` OUTPUT/DEPENDS) instead of happening eagerly at configure
+time — a plain `cmake --build build` never touches man pages at all (unlike autotools, where they're
+part of the default build); only `cmake --build build --target manpages` does, regenerating `.adoc`
+(python3) and rendering `.1` (asciidoctor) as needed. `autogen` itself is only needed for
+`src/tcpedit/tcpedit_stub.h`, which does stay committed. CMake is the primary, recommended way to
+build the suite; `make test` remains autotools-only, so autotools is still required for that.
+Release tarballs (`make dist`/`make dist-xz`, autotools-only to produce) ship both build systems'
+files — pre-built `*_opts.c/h`/`*.1` (no `*.adoc`, a git-checkout-only artifact) plus every
+`CMakeLists.txt`/`CMakePresets.json`/`cmake/*.cmake` — so a tarball builds standalone with either
+autotools or CMake, needing none of autogen/python3/asciidoctor for either.
 
 ## Tests
 
