@@ -16,10 +16,10 @@ jobs:
       - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
       - name: Install prereqs (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt -y install autogen libpcap-dev automake autoconf libtool libxdp-dev liburing-dev
+        run: sudo apt -y install autogen asciidoctor libpcap-dev automake autoconf libtool libxdp-dev liburing-dev
       - name: Install prereqs (macOS)
         if: runner.os == 'macOS'
-        run: brew install libpcap automake autoconf libtool
+        run: brew install libpcap automake autoconf libtool asciidoctor
       - name: Create a build directory
         run: mkdir -p build
       - name: Create configure script
@@ -41,9 +41,15 @@ jobs:
       - name: io_uring variant tests
         if: runner.os == 'Linux'
         run: pushd build; sudo make -C test tcpreplay_io_uring || (cat test/test.log >&2; false); popd
-      - name: verify committed AutoOpts output is current
+      - name: verify committed tcpedit_stub.h is current (autogen)
         if: runner.os == 'Linux'
         run: ./scripts/check-generated-opts.sh
+      - name: verify scripts/autoopts emitters run cleanly (*_opts.c/h, man pages)
+        if: runner.os == 'Linux'
+        run: |
+          python3 scripts/autoopts/validate_ir.py
+          python3 scripts/autoopts/check_emitters.py
+          python3 scripts/autoopts/check_adoc.py
       - run: echo "This test's status is ${{ job.status }}."
   cmake-build:
     strategy:

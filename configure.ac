@@ -183,6 +183,8 @@ AC_PATH_PROG(ECHO, echo)
 AC_PATH_PROG(CUT, cut)
 AC_PATH_PROG(AUTOGEN, autogen)
 AC_PATH_PROG(GROFF, groff)
+AC_PATH_PROG(PYTHON3, python3)
+AC_PATH_PROG(ASCIIDOCTOR, asciidoctor)
 AC_PATH_PROG(depmod, depmod, /sbin/depmod, $PATH:/sbin)
 AC_PATH_PROG(insmod, insmod, /sbin/insmod, $PATH:/sbin)
 AC_PATH_PROG(rmmod, rmmod, /sbin/rmmod, $PATH:/sbin)
@@ -227,23 +229,55 @@ if test -n "${AUTOGEN}" ; then
     fi
 
     dnl Compare the installed version with the maintainer version if regeneration will be needed and not using system libopts
-    if test ! -f ${srcdir}/src/tcpreplay_opts.c && test "x$enable_local_libopts" = "xyes" ; then
+    if test ! -f ${srcdir}/src/tcpedit/tcpedit_stub.h && test "x$enable_local_libopts" = "xyes" ; then
         if test $MAINTAINER_AUTOGEN_VERSION != $AUTOGEN_VERSION ; then
             AC_MSG_ERROR([Your version of autogen ($AUTOGEN_VERSION) != libopts tear off ($MAINTAINER_AUTOGEN_VERSION)  Either install the correct version or specify --disable-local-libopts])
         fi
     fi
 else
-    dnl GNU autogen is EOL (#895).  The AutoOpts-generated *_opts.c/h files and
-    dnl man pages are committed to git, so autogen is only needed to REGENERATE
-    dnl them after editing a .def file.  Substitute a stub that fails with a
-    dnl clear message if a rule ever fires without autogen installed.
-    if test ! -f ${srcdir}/src/tcpreplay_opts.c ; then
-        AC_MSG_ERROR([Pre-generated option parsers are missing and GNU autogen is not installed. Restore src/*_opts.c (git checkout) or install GNU autogen $MAINTAINER_AUTOGEN_VERSION])
+    dnl GNU autogen is EOL (#895).  As of phase 2, autogen is only needed to
+    dnl regenerate src/tcpedit/tcpedit_stub.h - every other AutoOpts-generated
+    dnl file (src/*_opts.c/h, src/*.adoc man-page source) is produced by
+    dnl scripts/autoopts (python3) instead; see the PYTHON3 check below.
+    dnl tcpedit_stub.h is committed to git and shipped in release tarballs, so
+    dnl autogen is only needed to regenerate it after editing a .def it
+    dnl depends on.  Substitute a stub that fails with a clear message if its
+    dnl rule ever fires without autogen installed.
+    if test ! -f ${srcdir}/src/tcpedit/tcpedit_stub.h ; then
+        AC_MSG_ERROR([Pre-generated src/tcpedit/tcpedit_stub.h is missing and GNU autogen is not installed. Restore it (git checkout) or install GNU autogen $MAINTAINER_AUTOGEN_VERSION])
     fi
-    AC_MSG_NOTICE([GNU autogen not found - using the committed pre-generated option parsers])
+    AC_MSG_NOTICE([GNU autogen not found - using the committed tcpedit_stub.h])
     AUTOGEN='$(SHELL) $(abs_top_srcdir)/scripts/missing-autogen'
 fi
 AC_DEFINE([AUTOGEN_VERSION], [${AUTOGEN_VERSION}], [What version of autogen is installed on this system])
+
+dnl #895 phase 2: python3 (scripts/autoopts) replaces autogen for generating
+dnl src/*_opts.c/h and the AsciiDoc man-page source (src/*.adoc); autogen is
+dnl only still required for src/tcpedit/tcpedit_stub.h (a different AutoOpts
+dnl template mode not yet ported - see scripts/autoopts/README.md).  Unlike
+dnl tcpedit_stub.h, none of these are committed to git (see .gitignore) -
+dnl they're ordinary build products, so python3 is required for any build
+dnl from a git checkout; release tarballs (make dist) ship the already-
+dnl built output, so building from a tarball needs neither python3 nor
+dnl asciidoctor below.
+if test -z "${PYTHON3}" ; then
+    if test ! -f ${srcdir}/src/tcpreplay_opts.c ; then
+        AC_MSG_ERROR([src/*_opts.c/h are not committed to git (issue 895) and python3 is not installed to generate them. Install python3, or build from a release tarball (make dist), which ships them pre-built])
+    fi
+    AC_MSG_NOTICE([python3 not found - using the existing pre-generated option parsers and man pages])
+    PYTHON3='$(SHELL) $(abs_top_srcdir)/scripts/missing-python3'
+fi
+
+dnl asciidoctor renders src/*.adoc (see above) to src/*.1 man pages; like
+dnl *_opts.c/h, neither is committed, so asciidoctor is required for any
+dnl build from a git checkout.
+if test -z "${ASCIIDOCTOR}" ; then
+    if test ! -f ${srcdir}/src/tcpreplay.1 ; then
+        AC_MSG_ERROR([src/*.1 man pages are not committed to git (issue 895) and asciidoctor is not installed to generate them. Install asciidoctor, or build from a release tarball (make dist), which ships them pre-built])
+    fi
+    AC_MSG_NOTICE([asciidoctor not found - using the existing pre-generated man pages])
+    ASCIIDOCTOR='$(SHELL) $(abs_top_srcdir)/scripts/missing-asciidoctor'
+fi
 
 if test "x$enable_local_libopts" = "xyes" ; then
     AC_MSG_NOTICE([Using included libopts tearoff])
@@ -2110,6 +2144,8 @@ libpcap:                    ${foundpcap} (${libpcap_version})
 PF_RING libpcap             ${pf_ring_found}   ${pf_ring_lib}
 libdnet:                    ${founddnet}   ${libdnet_version}
 autogen:                    ${AUTOGEN} (${AUTOGEN_VERSION})
+python3 (scripts/autoopts): ${PYTHON3}
+asciidoctor (man pages):    ${ASCIIDOCTOR}
 Use libopts tearoff:        ${enable_local_libopts}
 64bit counter support:      ${use64bit_counters}
 tcpdump binary path:        ${tcpdump_path}

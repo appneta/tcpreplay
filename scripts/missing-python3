@@ -1,0 +1,17 @@
+#!/bin/sh
+# Stand-in for python3 when it is not installed (#895 phase 2).
+#
+# scripts/autoopts regenerates src/*_opts.c/h and src/*.adoc (the AsciiDoc
+# man-page source) from the .def files, replacing GNU autogen for those
+# artifacts. None of them are committed to git - they're ordinary build
+# products - so python3 is required for any build from a git checkout.
+# Release tarballs (make dist/dist-xz) ship the already-generated output,
+# so building from a tarball needs neither python3 nor asciidoctor. If
+# this script runs, src/*_opts.c/h or src/*.adoc is missing or older than
+# its .def and python3 was needed to (re)generate it but is not installed.
+
+echo "ERROR: python3 is required to regenerate scripts/autoopts output, but is not installed." >&2
+echo "       src/*_opts.c/h or src/*.adoc is missing or older than its .def source." >&2
+echo "       Either install python3, or build from a release tarball (make dist)," >&2
+echo "       which ships the already-generated output." >&2
+exit 1
