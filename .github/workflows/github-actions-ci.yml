@@ -19,7 +19,7 @@ jobs:
         run: sudo apt -y install autogen asciidoctor libpcap-dev automake autoconf libtool libxdp-dev liburing-dev
       - name: Install prereqs (macOS)
         if: runner.os == 'macOS'
-        run: brew install libpcap automake autoconf libtool
+        run: brew install libpcap automake autoconf libtool asciidoctor
       - name: Create a build directory
         run: mkdir -p build
       - name: Create configure script
