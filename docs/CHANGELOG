@@ -1,4 +1,10 @@
 UNRELEASED
+    - common: fix check_list() return type mismatch warning - declared 'int' in list.h but defined
+      as 'tcpr_dir_t' (an unrelated enum) in list.c, triggering '-Wenum-int-mismatch' on newer GCC;
+      the function only ever returns 0 or 1 and every caller treats the result as a plain boolean,
+      so tcpr_dir_t (TCPR_DIR_ERROR/NOSEND/C2S/S2C) was never actually meaningful here - likely a
+      copy-paste mistake, since it's the only function in list.c using that type. Now returns 'int',
+      matching the header and how it's actually used
     - cmake: fix the configuration summary and a LIBXDP false negative (#1039) - CMake's
       "TCPREPLAY Suite Configuration Results" banner interpolated raw CMake variables (empty on a
       failed check, "1" on success) directly into the summary instead of normalizing them, so most
